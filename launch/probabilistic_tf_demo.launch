@@ -1,0 +1,34 @@
+<launch>
+  <arg name="rviz" default="true"/>
+  <arg name="axis_length" default="0.18"/>
+  <arg name="sample_count" default="1000"/>
+
+  <env name="BINGHAM_SOURCE_DIR" value="/home/leus/BinghamNLL/src"/>
+  <env name="PYTHONPATH" value="/home/leus/BinghamNLL/src:$(optenv PYTHONPATH)"/>
+
+  <param name="robot_description" textfile="$(find probik_demo)/urdf/simple_six_dof_arm.urdf"/>
+
+  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher">
+    <param name="use_gui" value="false"/>
+  </node>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+
+  <node pkg="probik_demo" type="ptf_demo_publisher.py" name="ptf_demo_publisher" output="screen">
+    <param name="frame_id" value="base_link"/>
+    <param name="child_frame_id" value="probabilistic_target"/>
+    <param name="publish_rate" value="10.0"/>
+    <rosparam param="mean_translation">[0.55, 0.10, 0.55]</rosparam>
+    <rosparam param="translation_covariance">[0.0160, 0.0002, 0.0, 0.0002, 0.0010, 0.0, 0.0, 0.0, 0.0012]</rosparam>
+    <rosparam param="mode_rpy_deg">[15.0, 30.0, -20.0]</rosparam>
+    <rosparam param="bingham_concentrations">[500.0, 200.0, 30.0]</rosparam>
+  </node>
+
+  <node pkg="probik_demo" type="ptf_visualizer.py" name="ptf_visualizer" output="screen">
+    <param name="axis_length" value="$(arg axis_length)"/>
+    <param name="sample_count" value="$(arg sample_count)"/>
+    <param name="seed" value="7"/>
+  </node>
+
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(find probik_demo)/rviz/probabilistic_tf_demo.rviz"/>
+</launch>

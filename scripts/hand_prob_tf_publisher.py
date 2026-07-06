@@ -5,8 +5,13 @@ import rospy
 from sensor_msgs.msg import JointState
 
 from probik_demo.arm_kinematics import ToyArm6DOF
+from probik_demo.ee_belief import EndEffectorBeliefModel
 from probik_demo.msg import ProbabilisticTF
-from probik_demo.ptf_utils import demo_bingham_matrix, make_probabilistic_tf_message
+from probik_demo.ptf_utils import make_probabilistic_tf_message
+
+
+def _get_belief_param(name, default):
+    return rospy.get_param("~" + name, rospy.get_param("/probik_demo/hand_belief/" + name, default))
 
 
 class HandProbTFPublisher:
@@ -15,18 +20,25 @@ class HandProbTFPublisher:
         self.parent_frame_id = rospy.get_param("~parent_frame_id", "base_link")
         self.child_frame_id = rospy.get_param("~child_frame_id", "tool0_prob")
         self.publish_rate = float(rospy.get_param("~publish_rate", 8.0))
-        self.sample_count = int(rospy.get_param("~sample_count", 60))
-        seed = int(rospy.get_param("~seed", 23))
-        self.rng = np.random.default_rng(seed if seed >= 0 else None)
 
-        joint_noise_stddev = rospy.get_param("~joint_noise_stddev", [0.03, 0.03, 0.03, 0.05, 0.05, 0.05])
+        joint_noise_stddev = _get_belief_param("joint_noise_stddev", [0.03, 0.03, 0.03, 0.05, 0.05, 0.05])
         if isinstance(joint_noise_stddev, list):
-            self.joint_noise_stddev = np.asarray(joint_noise_stddev, dtype=float)
+            joint_noise_stddev = np.asarray(joint_noise_stddev, dtype=float)
         else:
-            self.joint_noise_stddev = np.full(self.robot_model.dof, float(joint_noise_stddev), dtype=float)
-
-        self.orientation_concentrations = rospy.get_param("~orientation_concentrations", [420.0, 320.0, 220.0])
-        self.position_covariance_floor = float(rospy.get_param("~position_covariance_floor", 5e-5))
+            joint_noise_stddev = np.full(self.robot_model.dof, float(joint_noise_stddev), dtype=float)
+        self.belief_model = EndEffectorBeliefModel(
+            robot_model=self.robot_model,
+            joint_noise_stddev=joint_noise_stddev,
+            position_covariance_floor=float(_get_belief_param("position_covariance_floor", 5e-5)),
+            sample_count=int(_get_belief_param("sample_count", 36)),
+            sample_seed=int(_get_belief_param("seed", 23)),
+            bingham_integration_steps=int(_get_belief_param("bingham_integration_steps", 80)),
+            bingham_fit_max_iterations=int(_get_belief_param("bingham_fit_max_iterations", 40)),
+            orientation_initial_concentrations=_get_belief_param(
+                "orientation_concentrations",
+                [420.0, 320.0, 220.0],
+            ),
+        )
 
         self.latest_joint_positions = None
         self.publisher = rospy.Publisher("hand_prob_tf", ProbabilisticTF, queue_size=1)
@@ -47,29 +59,14 @@ class HandProbTFPublisher:
         if self.latest_joint_positions is None:
             return
 
-        position_mode, quaternion_mode, _ = self.robot_model.forward_kinematics(self.latest_joint_positions)
-        sampled_joint_positions = self.rng.normal(
-            loc=self.latest_joint_positions,
-            scale=self.joint_noise_stddev,
-            size=(max(self.sample_count, 2), self.robot_model.dof),
-        )
-        sampled_joint_positions = np.asarray(
-            [self.robot_model.clip_to_limits(sample) for sample in sampled_joint_positions],
-            dtype=float,
-        )
-        sampled_positions = np.asarray(
-            [self.robot_model.forward_kinematics(sample)[0] for sample in sampled_joint_positions],
-            dtype=float,
-        )
-        position_covariance = np.cov(sampled_positions.T) + self.position_covariance_floor * np.eye(3, dtype=float)
-        orientation_bingham = demo_bingham_matrix(quaternion_mode, self.orientation_concentrations)
+        estimate = self.belief_model.estimate_distribution(self.latest_joint_positions)
         message = make_probabilistic_tf_message(
             parent_frame_id=self.parent_frame_id,
             child_frame_id=self.child_frame_id,
-            position_mean_xyz=position_mode,
-            position_covariance=position_covariance,
-            orientation_bingham_matrix=orientation_bingham,
-            orientation_mode_wxyz=quaternion_mode,
+            position_mean_xyz=estimate["position_mean"],
+            position_covariance=estimate["position_covariance"],
+            orientation_bingham_matrix=estimate["orientation_bingham"],
+            orientation_mode_wxyz=estimate["orientation_mode"],
             stamp=rospy.Time.now(),
         )
         self.publisher.publish(message)

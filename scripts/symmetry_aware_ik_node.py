@@ -5,8 +5,17 @@ import rospy
 from sensor_msgs.msg import JointState
 
 from probik_demo.arm_kinematics import ToyArm6DOF
+from probik_demo.ee_belief import EndEffectorBeliefModel
 from probik_demo.msg import IKResult, ProbabilisticTF, ProbabilisticTFArray
 from probik_demo.symmetry_aware_ik import SymmetryAwareIKSolver
+
+
+def _get_hand_belief_param(name, default):
+    return rospy.get_param("~" + name, rospy.get_param("/probik_demo/hand_belief/" + name, default))
+
+
+def _get_ik_param(name, default):
+    return rospy.get_param("~" + name, rospy.get_param("/probik_demo/ik/" + name, default))
 
 
 class SymmetryAwareIKNode:
@@ -25,6 +34,25 @@ class SymmetryAwareIKNode:
         self.grasp_targets_topic = rospy.get_param("~grasp_targets_topic", "grasp_target_ptfs")
         self.joint_states_topic = rospy.get_param("~joint_states_topic", "joint_states")
 
+        joint_noise_stddev = _get_hand_belief_param("joint_noise_stddev", [0.03, 0.03, 0.03, 0.05, 0.05, 0.05])
+        if isinstance(joint_noise_stddev, list):
+            joint_noise_stddev = np.asarray(joint_noise_stddev, dtype=float)
+        else:
+            joint_noise_stddev = np.full(self.robot_model.dof, float(joint_noise_stddev), dtype=float)
+        self.hand_belief_model = EndEffectorBeliefModel(
+            robot_model=self.robot_model,
+            joint_noise_stddev=joint_noise_stddev,
+            position_covariance_floor=float(_get_hand_belief_param("position_covariance_floor", 5e-5)),
+            sample_count=int(_get_hand_belief_param("sample_count", 36)),
+            sample_seed=int(_get_hand_belief_param("seed", 23)),
+            bingham_integration_steps=int(_get_hand_belief_param("bingham_integration_steps", 80)),
+            bingham_fit_max_iterations=int(_get_hand_belief_param("bingham_fit_max_iterations", 40)),
+            orientation_initial_concentrations=_get_hand_belief_param(
+                "orientation_concentrations",
+                [420.0, 320.0, 220.0],
+            ),
+        )
+
     def run_once(self):
         target_array = rospy.wait_for_message(self.grasp_targets_topic, ProbabilisticTFArray)
         joint_state = rospy.wait_for_message(self.joint_states_topic, JointState)
@@ -32,13 +60,15 @@ class SymmetryAwareIKNode:
 
         solver = SymmetryAwareIKSolver(
             robot_model=self.robot_model,
-            w_position=float(rospy.get_param("~w_position", 40.0)),
-            w_orientation=float(rospy.get_param("~w_orientation", 0.06)),
-            w_motion=float(rospy.get_param("~w_motion", 0.8)),
-            w_joint_limit=float(rospy.get_param("~w_joint_limit", 1.0)),
-            max_iterations=int(rospy.get_param("~max_iterations", 140)),
-            restarts=int(rospy.get_param("~restarts", 8)),
-            random_seed=int(rospy.get_param("~seed", 31)),
+            w_position=float(_get_ik_param("w_position", 8.0)),
+            w_orientation=float(_get_ik_param("w_orientation", 1.0)),
+            w_motion=float(_get_ik_param("w_motion", 0.4)),
+            w_joint_limit=float(_get_ik_param("w_joint_limit", 1.0)),
+            max_iterations=int(_get_ik_param("max_iterations", 90)),
+            restarts=int(_get_ik_param("restarts", 6)),
+            random_seed=int(_get_ik_param("seed", 31)),
+            hand_belief_model=self.hand_belief_model,
+            bingham_integration_steps=int(_get_ik_param("bingham_integration_steps", 80)),
         )
 
         best_result, _ = solver.solve(target_array.transforms, theta_now, use_bingham_orientation=True)

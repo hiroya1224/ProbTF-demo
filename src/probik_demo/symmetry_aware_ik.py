@@ -3,11 +3,15 @@ import math
 import numpy as np
 
 from probik_demo.arm_kinematics import ToyArm6DOF
+from probik_demo.distribution_metrics import (
+    bingham_bhattacharyya_distance,
+    bingham_log_normalizer_from_A,
+    gaussian_bhattacharyya_distance,
+)
 from probik_demo.ptf_utils import (
     make_bingham_distribution,
     position_covariance_from_msg,
     ptf_mode_quaternion_wxyz,
-    quaternion_wxyz_from_msg,
     regularized_inverse_covariance,
 )
 
@@ -35,6 +39,8 @@ class SymmetryAwareIKSolver:
         max_iterations=120,
         restarts=6,
         random_seed=13,
+        hand_belief_model=None,
+        bingham_integration_steps=None,
     ):
         self.robot_model = robot_model if robot_model is not None else ToyArm6DOF()
         self.w_position = float(w_position)
@@ -45,9 +51,17 @@ class SymmetryAwareIKSolver:
         self.max_iterations = int(max_iterations)
         self.restarts = int(restarts)
         self.rng = np.random.default_rng(random_seed)
+        self.hand_belief_model = hand_belief_model
+        if bingham_integration_steps is None and hand_belief_model is not None:
+            bingham_integration_steps = hand_belief_model.bingham_integration_steps
+        self.bingham_integration_steps = int(bingham_integration_steps if bingham_integration_steps is not None else 80)
 
     def solve(self, target_messages, theta_now, use_bingham_orientation=True):
+        if use_bingham_orientation and self.hand_belief_model is None:
+            raise RuntimeError("Symmetry-aware IK requires an EndEffectorBeliefModel to evaluate EE uncertainty.")
         theta_now = self.robot_model.clip_to_limits(theta_now)
+        if self.hand_belief_model is not None:
+            self.hand_belief_model.clear_cache()
         results = []
         for target_message in target_messages:
             result = self.solve_single_target(target_message, theta_now, use_bingham_orientation)
@@ -73,17 +87,30 @@ class SymmetryAwareIKSolver:
         distribution = make_bingham_distribution(target_message.orientation_bingham.matrix)
         target_mode = ptf_mode_quaternion_wxyz(target_message)
         target_A = distribution.A.copy()
+        target_log_normalizer = bingham_log_normalizer_from_A(
+            target_A,
+            integration_steps=self.bingham_integration_steps,
+        )
+        objective_cache = {}
 
         def objective(theta_vector):
-            return self.evaluate_cost(
+            theta_vector = self.robot_model.clip_to_limits(theta_vector)
+            cache_key = tuple(np.round(theta_vector, 8).tolist())
+            if cache_key in objective_cache:
+                return objective_cache[cache_key]
+            cost_parts = self.evaluate_cost(
                 theta_vector,
                 theta_now,
                 target_position,
+                covariance,
                 inverse_covariance,
                 target_A,
+                target_log_normalizer,
                 target_mode,
                 use_bingham_orientation,
             )
+            objective_cache[cache_key] = cost_parts
+            return cost_parts
 
         seeds = [theta_now.copy(), self.robot_model.heuristic_seed(target_position)]
         for _ in range(self.restarts):
@@ -130,20 +157,34 @@ class SymmetryAwareIKSolver:
         theta_vector,
         theta_now,
         target_position,
+        target_covariance,
         inverse_covariance,
         target_A,
+        target_log_normalizer,
         target_mode,
         use_bingham_orientation,
     ):
         theta_vector = self.robot_model.clip_to_limits(theta_vector)
-        hand_position, hand_quaternion, _ = self.robot_model.forward_kinematics(theta_vector)
-
-        position_error = hand_position - target_position
-        position_cost = 0.5 * float(position_error.T @ inverse_covariance @ position_error)
 
         if use_bingham_orientation:
-            orientation_cost = -float(hand_quaternion.T @ target_A @ hand_quaternion)
+            hand_estimate = self.hand_belief_model.estimate_distribution(theta_vector)
+            position_cost = gaussian_bhattacharyya_distance(
+                target_position,
+                target_covariance,
+                hand_estimate["position_mean"],
+                hand_estimate["position_covariance"],
+            )
+            orientation_cost = bingham_bhattacharyya_distance(
+                target_A,
+                hand_estimate["orientation_bingham"],
+                integration_steps=self.bingham_integration_steps,
+                log_normalizer_a=target_log_normalizer,
+                log_normalizer_b=hand_estimate["orientation_log_normalizer"],
+            )
         else:
+            hand_position, hand_quaternion, _ = self.robot_model.forward_kinematics(theta_vector)
+            position_error = hand_position - target_position
+            position_cost = 0.5 * float(position_error.T @ inverse_covariance @ position_error)
             orientation_cost = _sign_invariant_quaternion_distance(target_mode, hand_quaternion)
 
         delta_theta = theta_vector - theta_now

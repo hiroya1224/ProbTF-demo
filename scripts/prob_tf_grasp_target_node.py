@@ -29,9 +29,12 @@ class ProbTFGraspTargetNode:
         self.rotation_covariance_samples = int(rospy.get_param("~rotation_covariance_samples", 80))
         self.covariance_floor = float(rospy.get_param("~covariance_floor", 1e-4))
         self.axis_length = float(rospy.get_param("~marker_axis_length", 0.12))
+        self.publish_markers = bool(rospy.get_param("~publish_markers", False))
 
         self.targets_publisher = rospy.Publisher("grasp_target_ptfs", ProbabilisticTFArray, queue_size=1, latch=True)
-        self.marker_publisher = rospy.Publisher("grasp_target_mode_axes", Marker, queue_size=1, latch=True)
+        self.marker_publisher = None
+        if self.publish_markers:
+            self.marker_publisher = rospy.Publisher("grasp_target_mode_axes", Marker, queue_size=1, latch=True)
         input_topic = rospy.get_param("~object_ptf_topic", "object_prob_tf")
         self.subscriber = rospy.Subscriber(input_topic, ProbabilisticTF, self.handle_object_ptf, queue_size=1)
 
@@ -77,7 +80,8 @@ class ProbTFGraspTargetNode:
         output.object_id = self.object_id
         output.transforms = target_messages
         self.targets_publisher.publish(output)
-        self.marker_publisher.publish(self.build_marker(output))
+        if self.marker_publisher is not None:
+            self.marker_publisher.publish(self.build_marker(output))
 
     def build_marker(self, target_array):
         marker = Marker()

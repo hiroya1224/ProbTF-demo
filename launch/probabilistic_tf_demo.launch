@@ -2,6 +2,7 @@
   <arg name="rviz" default="true"/>
   <arg name="axis_length" default="0.18"/>
   <arg name="sample_count" default="300"/>
+  <arg name="ik_method" default="symmetry_aware_pointwise"/>
 
   <env name="BINGHAM_SOURCE_DIR" value="/home/leus/BinghamNLL/src"/>
   <env name="PYTHONPATH" value="/home/leus/BinghamNLL/src:$(optenv PYTHONPATH)"/>
@@ -18,6 +19,7 @@
   <param name="/probik_demo/ik/w_orientation" value="1.0"/>
   <param name="/probik_demo/ik/w_motion" value="0.4"/>
   <param name="/probik_demo/ik/w_joint_limit" value="1.0"/>
+  <param name="/probik_demo/ik/method" value="$(arg ik_method)"/>
   <param name="/probik_demo/ik/max_iterations" value="90"/>
   <param name="/probik_demo/ik/restarts" value="6"/>
   <param name="/probik_demo/ik/seed" value="31"/>

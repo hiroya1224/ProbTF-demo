@@ -33,6 +33,7 @@ class SymmetryAwareIKNode:
 
         self.grasp_targets_topic = rospy.get_param("~grasp_targets_topic", "grasp_target_ptfs")
         self.joint_states_topic = rospy.get_param("~joint_states_topic", "joint_states")
+        self.ik_method = str(_get_ik_param("method", SymmetryAwareIKSolver.METHOD_BHATTACHARYYA)).strip().lower()
 
         joint_noise_stddev = _get_hand_belief_param("joint_noise_stddev", [0.03, 0.03, 0.03, 0.05, 0.05, 0.05])
         if isinstance(joint_noise_stddev, list):
@@ -71,18 +72,19 @@ class SymmetryAwareIKNode:
             bingham_integration_steps=int(_get_ik_param("bingham_integration_steps", 80)),
         )
 
-        best_result, _ = solver.solve(target_array.transforms, theta_now, use_bingham_orientation=True)
-        baseline_result, _ = solver.solve(target_array.transforms, theta_now, use_bingham_orientation=False)
+        best_result, _ = solver.solve(target_array.transforms, theta_now, method=self.ik_method)
+        baseline_result, _ = solver.solve(target_array.transforms, theta_now, method=SymmetryAwareIKSolver.METHOD_DETERMINISTIC)
 
         if best_result is None:
-            rospy.logerr("No feasible symmetry-aware IK solution was found.")
+            rospy.logerr("No feasible IK solution was found for method '%s'.", self.ik_method)
             return
 
-        self.result_publisher.publish(self.build_result_message(best_result, "symmetry_aware"))
+        self.result_publisher.publish(self.build_result_message(best_result, self.ik_method))
         if baseline_result is not None:
             self.baseline_publisher.publish(self.build_result_message(baseline_result, "deterministic_mode"))
             rospy.loginfo(
-                "Symmetry-aware grasp=%s cost=%.4f motion=%.4f | baseline grasp=%s cost=%.4f motion=%.4f",
+                "IK method=%s grasp=%s cost=%.4f motion=%.4f | baseline grasp=%s cost=%.4f motion=%.4f",
+                self.ik_method,
                 best_result["grasp_id"],
                 best_result["total_cost"],
                 float(np.linalg.norm(best_result["theta_solution"] - theta_now)),
@@ -92,7 +94,8 @@ class SymmetryAwareIKNode:
             )
         else:
             rospy.loginfo(
-                "Symmetry-aware grasp=%s cost=%.4f motion=%.4f",
+                "IK method=%s grasp=%s cost=%.4f motion=%.4f",
+                self.ik_method,
                 best_result["grasp_id"],
                 best_result["total_cost"],
                 float(np.linalg.norm(best_result["theta_solution"] - theta_now)),

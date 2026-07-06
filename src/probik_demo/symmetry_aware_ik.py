@@ -28,6 +28,10 @@ def _sign_invariant_quaternion_distance(target_wxyz, current_wxyz):
 
 
 class SymmetryAwareIKSolver:
+    METHOD_BHATTACHARYYA = "bhattacharyya"
+    METHOD_POINTWISE = "symmetry_aware_pointwise"
+    METHOD_DETERMINISTIC = "deterministic_mode"
+
     def __init__(
         self,
         robot_model=None,
@@ -56,15 +60,48 @@ class SymmetryAwareIKSolver:
             bingham_integration_steps = hand_belief_model.bingham_integration_steps
         self.bingham_integration_steps = int(bingham_integration_steps if bingham_integration_steps is not None else 80)
 
-    def solve(self, target_messages, theta_now, use_bingham_orientation=True):
-        if use_bingham_orientation and self.hand_belief_model is None:
+    def _normalize_method(self, method, use_bingham_orientation):
+        if method is None:
+            if use_bingham_orientation is None:
+                return self.METHOD_BHATTACHARYYA
+            return self.METHOD_POINTWISE if bool(use_bingham_orientation) else self.METHOD_DETERMINISTIC
+
+        method = str(method).strip().lower()
+        aliases = {
+            "bhattacharyya": self.METHOD_BHATTACHARYYA,
+            "bhat": self.METHOD_BHATTACHARYYA,
+            "symmetry_aware_pointwise": self.METHOD_POINTWISE,
+            "pointwise": self.METHOD_POINTWISE,
+            "old": self.METHOD_POINTWISE,
+            "deterministic_mode": self.METHOD_DETERMINISTIC,
+            "deterministic": self.METHOD_DETERMINISTIC,
+        }
+        if method not in aliases:
+            raise ValueError(
+                "Unknown IK method '%s'. Expected one of: %s"
+                % (
+                    method,
+                    ", ".join(
+                        [
+                            self.METHOD_BHATTACHARYYA,
+                            self.METHOD_POINTWISE,
+                            self.METHOD_DETERMINISTIC,
+                        ]
+                    ),
+                )
+            )
+        return aliases[method]
+
+    def solve(self, target_messages, theta_now, method=None, use_bingham_orientation=None):
+        method = self._normalize_method(method, use_bingham_orientation)
+        if method == self.METHOD_BHATTACHARYYA and self.hand_belief_model is None:
             raise RuntimeError("Symmetry-aware IK requires an EndEffectorBeliefModel to evaluate EE uncertainty.")
         theta_now = self.robot_model.clip_to_limits(theta_now)
         if self.hand_belief_model is not None:
             self.hand_belief_model.clear_cache()
         results = []
         for target_message in target_messages:
-            result = self.solve_single_target(target_message, theta_now, use_bingham_orientation)
+            result = self.solve_single_target(target_message, theta_now, method)
             results.append(result)
 
         feasible_results = [result for result in results if result["success"]]
@@ -73,7 +110,7 @@ class SymmetryAwareIKSolver:
         best_result = min(feasible_results, key=lambda result: result["total_cost"])
         return best_result, results
 
-    def solve_single_target(self, target_message, theta_now, use_bingham_orientation):
+    def solve_single_target(self, target_message, theta_now, method):
         covariance = position_covariance_from_msg(target_message)
         inverse_covariance = regularized_inverse_covariance(covariance)
         target_position = np.array(
@@ -107,7 +144,7 @@ class SymmetryAwareIKSolver:
                 target_A,
                 target_log_normalizer,
                 target_mode,
-                use_bingham_orientation,
+                method,
             )
             objective_cache[cache_key] = cost_parts
             return cost_parts
@@ -162,11 +199,10 @@ class SymmetryAwareIKSolver:
         target_A,
         target_log_normalizer,
         target_mode,
-        use_bingham_orientation,
+        method,
     ):
         theta_vector = self.robot_model.clip_to_limits(theta_vector)
-
-        if use_bingham_orientation:
+        if method == self.METHOD_BHATTACHARYYA:
             hand_estimate = self.hand_belief_model.estimate_distribution(theta_vector)
             position_cost = gaussian_bhattacharyya_distance(
                 target_position,
@@ -183,9 +219,16 @@ class SymmetryAwareIKSolver:
             )
         else:
             hand_position, hand_quaternion, _ = self.robot_model.forward_kinematics(theta_vector)
-            position_error = hand_position - target_position
-            position_cost = 0.5 * float(position_error.T @ inverse_covariance @ position_error)
-            orientation_cost = _sign_invariant_quaternion_distance(target_mode, hand_quaternion)
+            if method == self.METHOD_POINTWISE:
+                position_error = hand_position - target_position
+                position_cost = 0.5 * float(position_error.T @ inverse_covariance @ position_error)
+                orientation_cost = -float(hand_quaternion.T @ target_A @ hand_quaternion)
+            elif method == self.METHOD_DETERMINISTIC:
+                position_error = hand_position - target_position
+                position_cost = 0.5 * float(position_error.T @ inverse_covariance @ position_error)
+                orientation_cost = _sign_invariant_quaternion_distance(target_mode, hand_quaternion)
+            else:
+                raise ValueError("Unsupported IK method '%s'." % method)
 
         delta_theta = theta_vector - theta_now
         motion_cost = 0.5 * float(delta_theta.T @ delta_theta)

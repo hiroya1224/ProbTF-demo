@@ -138,6 +138,32 @@ def orthonormal_columns_from_mode(mode_wxyz, preferred_tangent=None):
     return np.column_stack(basis)
 
 
+def quaternion_from_approach_and_finger_axes(approach_axis_xyz, finger_axis_xyz):
+    x_axis = np.asarray(approach_axis_xyz, dtype=float)
+    z_axis = np.asarray(finger_axis_xyz, dtype=float)
+
+    x_norm = np.linalg.norm(x_axis)
+    z_norm = np.linalg.norm(z_axis)
+    if x_norm == 0.0 or z_norm == 0.0:
+        raise ValueError("Approach axis and finger axis must both be non-zero.")
+
+    x_axis = x_axis / x_norm
+    z_axis = z_axis / z_norm
+    z_axis = z_axis - np.dot(z_axis, x_axis) * x_axis
+    z_norm = np.linalg.norm(z_axis)
+    if z_norm < 1e-8:
+        raise ValueError("Approach axis and finger axis must not be parallel.")
+    z_axis = z_axis / z_norm
+
+    y_axis = np.cross(z_axis, x_axis)
+    y_axis = y_axis / np.linalg.norm(y_axis)
+    z_axis = np.cross(x_axis, y_axis)
+    z_axis = z_axis / np.linalg.norm(z_axis)
+
+    rotation_matrix = np.column_stack([x_axis, y_axis, z_axis])
+    return quaternion_from_rotation_matrix(rotation_matrix)
+
+
 def demo_bingham_matrix(mode_wxyz, concentrations):
     if len(concentrations) != 3:
         raise ValueError("Expected three concentration values.")
@@ -158,6 +184,14 @@ def axially_symmetric_bingham_matrix(mode_wxyz, symmetry_axis_body, concentratio
     negative = quaternion_multiply_wxyz(mode_wxyz, quaternion_from_axis_angle(symmetry_axis_body, -epsilon))
     symmetry_tangent = positive - negative
     eigenvectors = orthonormal_columns_from_mode(mode_wxyz, preferred_tangent=symmetry_tangent)
+    eigenvectors = np.column_stack(
+        [
+            eigenvectors[:, 1],
+            eigenvectors[:, 2],
+            eigenvectors[:, 0],
+            eigenvectors[:, 3],
+        ]
+    )
     eigenvalues = np.array(
         [-abs(concentrations[0]), -abs(concentrations[1]), -abs(concentrations[2]), 0.0],
         dtype=float,

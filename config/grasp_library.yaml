@@ -1,0 +1,21 @@
+objects:
+  demo_cylinder:
+    candidates:
+      - grasp_id: side_grasp_nominal
+        object_to_grasp_position: [0.0, 0.0, 0.0]
+        object_to_grasp_orientation_rpy_deg: [90.0, 0.0, 0.0]
+        approach_axis: [1.0, 0.0, 0.0]
+        finger_axis: [0.0, 0.0, 1.0]
+        weight: 1.0
+      - grasp_id: side_grasp_flipped
+        object_to_grasp_position: [0.0, 0.0, 0.0]
+        object_to_grasp_orientation_rpy_deg: [90.0, 0.0, 180.0]
+        approach_axis: [1.0, 0.0, 0.0]
+        finger_axis: [0.0, 0.0, 1.0]
+        weight: 0.9
+      - grasp_id: top_grasp
+        object_to_grasp_position: [0.0, 0.0, 0.08]
+        object_to_grasp_orientation_rpy_deg: [0.0, 180.0, 0.0]
+        approach_axis: [0.0, 0.0, -1.0]
+        finger_axis: [0.0, 1.0, 0.0]
+        weight: 0.6

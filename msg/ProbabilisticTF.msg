@@ -1,4 +1,8 @@
 std_msgs/Header header
+string parent_frame_id
 string child_frame_id
-GaussianPosition translation
-BinghamDistribution rotation
+geometry_msgs/Vector3 position_mean
+float64[9] position_covariance
+BinghamDistribution orientation_bingham
+geometry_msgs/Quaternion orientation_mode
+string approximation_type

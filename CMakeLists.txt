@@ -16,8 +16,11 @@ catkin_python_setup()
 add_message_files(
   FILES
     BinghamDistribution.msg
+    GraspCandidate.msg
     GaussianPosition.msg
+    IKResult.msg
     ProbabilisticTF.msg
+    ProbabilisticTFArray.msg
 )
 
 generate_messages(
@@ -42,13 +45,19 @@ include_directories(
 
 catkin_install_python(
   PROGRAMS
+    scripts/arm_joint_state_controller.py
+    scripts/hand_prob_tf_publisher.py
+    scripts/object_pose_node.py
     scripts/ptf_demo_publisher.py
+    scripts/prob_tf_grasp_target_node.py
     scripts/ptf_visualizer.py
+    scripts/symmetry_aware_ik_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 install(
   DIRECTORY
+    config
     launch
     msg
     rviz

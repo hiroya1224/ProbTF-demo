@@ -9,6 +9,7 @@ import rospkg
 import rospy
 from sensor_msgs.msg import Imu, JointState
 
+from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
 from deflecomp_core.model.spring import JointTypeAwareSpringModel, LinearSpringModel, PeriodicSpringModel
 from deflecomp_core.robot.pinocchio_robot import RobotArm
 from deflecomp_sim.dynamic_simulator import DynamicParams, FlexibleJointSimulator
@@ -49,6 +50,12 @@ def parse_index_list(value) -> List[int]:
     else:
         items = list(value)
     return [int(item) for item in items if str(item).strip()]
+
+
+def parse_bool(value) -> bool:
+    if isinstance(value, str):
+        return value.strip().lower() not in ("0", "false", "no", "off")
+    return bool(value)
 
 
 def parse_imu_frames(spec: str) -> List[Tuple[str, ImuOffset]]:
@@ -184,6 +191,9 @@ class SimNode:
         qs_vib_axes: List[int],
         qs_seed: Optional[int],
         spring_model_name: str,
+        equilibrium_refine: bool,
+        equilibrium_refine_maxiter: int,
+        equilibrium_refine_tol: float,
     ) -> None:
         self.dt = float(dt)
         self.topic_equil = topic_equil
@@ -219,6 +229,18 @@ class SimNode:
             robot=self.robot,
             params=params,
             spring_model=resolve_spring_model(spring_model_name, self.robot),
+        )
+        self.sim.set_eq_solver(
+            EquilibriumSolver(
+                robot=self.robot,
+                spring_model=self.sim.spring_model,
+                cfg=EquilibriumConfig(
+                    maxiter=80,
+                    refine=bool(equilibrium_refine),
+                    refine_maxiter=int(equilibrium_refine_maxiter),
+                    refine_tol=float(equilibrium_refine_tol),
+                ),
+            )
         )
         self.sim.reset(q=np.zeros(self.n, dtype=float), qd=np.zeros(self.n, dtype=float))
 
@@ -342,6 +364,9 @@ def main() -> None:
     qs_vib_axes = parse_index_list(rospy.get_param("~qs_vib_axes", []))
     qs_seed = rospy.get_param("~qs_seed", None)
     spring_model_name = rospy.get_param("~spring_model", "auto")
+    equilibrium_refine = parse_bool(rospy.get_param("~equilibrium_refine", True))
+    equilibrium_refine_maxiter = int(rospy.get_param("~equilibrium_refine_maxiter", 40))
+    equilibrium_refine_tol = float(rospy.get_param("~equilibrium_refine_tol", 1e-12))
 
     SimNode(
         urdf_path=urdf_path,
@@ -364,6 +389,9 @@ def main() -> None:
         qs_vib_axes=qs_vib_axes,
         qs_seed=(int(qs_seed) if qs_seed is not None else None),
         spring_model_name=spring_model_name,
+        equilibrium_refine=equilibrium_refine,
+        equilibrium_refine_maxiter=equilibrium_refine_maxiter,
+        equilibrium_refine_tol=equilibrium_refine_tol,
     )
     rospy.spin()
 

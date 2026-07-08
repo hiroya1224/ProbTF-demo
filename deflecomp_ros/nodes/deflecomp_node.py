@@ -145,6 +145,9 @@ class DeflecompNode:
         q_proc: float,
         spring_model_name: str,
         theta_cmd_tau: float,
+        equilibrium_refine: bool,
+        equilibrium_refine_maxiter: int,
+        equilibrium_refine_tol: float,
         update_stiffness: bool,
         observability_rcond: float,
         observability_abs: float,
@@ -159,7 +162,12 @@ class DeflecompNode:
         self.solver = EquilibriumSolver(
             robot=self.robot,
             spring_model=self.spring_model,
-            cfg=EquilibriumConfig(maxiter=80),
+            cfg=EquilibriumConfig(
+                maxiter=80,
+                refine=bool(equilibrium_refine),
+                refine_maxiter=int(equilibrium_refine_maxiter),
+                refine_tol=float(equilibrium_refine_tol),
+            ),
         )
         self.sensitivity = SensitivityCalculator(robot=self.robot, spring_model=self.spring_model)
         self.n = self.robot.nv
@@ -332,6 +340,9 @@ def main() -> None:
     q_proc = float(rospy.get_param("~q_proc", 1e-8))
     spring_model_name = rospy.get_param("~spring_model", "auto")
     theta_cmd_tau = float(rospy.get_param("~theta_cmd_tau", 0.2))
+    equilibrium_refine = parse_bool(rospy.get_param("~equilibrium_refine", True))
+    equilibrium_refine_maxiter = int(rospy.get_param("~equilibrium_refine_maxiter", 40))
+    equilibrium_refine_tol = float(rospy.get_param("~equilibrium_refine_tol", 1e-12))
     update_stiffness = parse_bool(rospy.get_param("~update_stiffness", True))
     observability_rcond = float(rospy.get_param("~observability_rcond", 1e-4))
     observability_abs = float(rospy.get_param("~observability_abs", 1e-10))
@@ -354,6 +365,9 @@ def main() -> None:
         q_proc=q_proc,
         spring_model_name=spring_model_name,
         theta_cmd_tau=theta_cmd_tau,
+        equilibrium_refine=equilibrium_refine,
+        equilibrium_refine_maxiter=equilibrium_refine_maxiter,
+        equilibrium_refine_tol=equilibrium_refine_tol,
         update_stiffness=update_stiffness,
         observability_rcond=observability_rcond,
         observability_abs=observability_abs,

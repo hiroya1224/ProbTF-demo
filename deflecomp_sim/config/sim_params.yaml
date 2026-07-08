@@ -18,3 +18,6 @@ qs_vib_freq_hz: 50.0
 qs_vib_axes: []
 qs_seed: 0
 spring_model: periodic
+equilibrium_refine: true
+equilibrium_refine_maxiter: 40
+equilibrium_refine_tol: 1.0e-12

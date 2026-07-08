@@ -54,7 +54,9 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 | --- | --- | --- |
 | Command low-pass delay from `ref` to `cmd` | `deflecomp_ros/config/controller.yaml` | `theta_cmd_tau` |
 | Compensator spring model | `deflecomp_ros/config/controller.yaml` | `spring_model` |
+| Compensator equilibrium refinement | `deflecomp_ros/config/controller.yaml` | `equilibrium_refine`, `equilibrium_refine_maxiter`, `equilibrium_refine_tol` |
 | Simulator spring model | `deflecomp_sim/config/sim_params.yaml` | `spring_model` |
+| Simulator equilibrium refinement | `deflecomp_sim/config/sim_params.yaml` | `equilibrium_refine`, `equilibrium_refine_maxiter`, `equilibrium_refine_tol` |
 | True simulator stiffness | `deflecomp_sim/config/sim_params.yaml` | `kp_true` |
 | Initial estimated stiffness | `deflecomp_ros/config/estimator.yaml` | `kp0` |
 | Stiffness estimator update | `deflecomp_ros/config/estimator.yaml` | `update_stiffness`, `q_proc`, `stiffness_update_gain`, `max_log_kp_step` |
@@ -97,7 +99,10 @@ project_unobservable_feedforward: true
 ```yaml
 # deflecomp_ros/config/controller.yaml
 spring_model: periodic
+equilibrium_refine: true
 ```
+
+`equilibrium_refine` keeps the staged L-BFGS-B equilibrium solve, then refines the result by solving the quasi-static residual `tau_g(theta) + tau_s(theta, theta_cmd, K) = 0` with the analytic Jacobian. Leave it enabled when checking whether `equiv` matches `ref`. Disable it only when measuring raw solver speed or isolating optimizer behavior.
 
 The observability gate is based on the local IMU gravity-direction Jacobian, not on joint names or a hard-coded yaw/gravity assumption. Stiffness updates are applied only in the stiffness subspace supported by the current IMU observations. `measurement_info_eig_cap` limits the information strength of one IMU update, `stiffness_update_gain` tempers the update, and `max_log_kp_step` bounds the per-cycle change in log stiffness. Keep `q_proc` small for static stiffness; increasing it makes the estimator keep adapting during a hold and can make `theta_cmd` drift toward `theta_ref` when the IMU residual contains bias or noise. When `project_unobservable_feedforward` is true, the gravity feedforward term is re-evaluated only along locally observable reference-motion components; the target `theta_ref` itself is not projected. If no IMU observation is available for a cycle, the gravity feedforward evaluation pose is held instead of being reset to `theta_ref`.
 
@@ -109,6 +114,7 @@ Use this state when checking the basic relationship between `ref`, `cmd`, and `e
 # deflecomp_ros/config/controller.yaml
 theta_cmd_tau: 0.0
 spring_model: periodic
+equilibrium_refine: true
 ```
 
 ```yaml

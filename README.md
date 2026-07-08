@@ -42,7 +42,7 @@ roslaunch deflecomp_ros deflecomp_frames.launch model:=/abs/path/to/robot.urdf
 - `deflecomp_ros/config/imu_frames.yaml`: IMU frame list.
 - `deflecomp_sim/config/sim_params.yaml`: simulator stiffness, dynamics, noise, lag, topics, and simulator spring model.
 
-The current default uses the dynamic simulator with noise and vibration disabled. When isolating the feedforward/equilibrium relationship, temporarily switch the simulator to quasi-static mode and disable command lag as shown below. In that no-delay mode `equil` should be much closer to `ref` than `cmd` is:
+The current default is the no-noise/no-delay simulation baseline. In this mode the simulator uses quasi-static equilibrium, the command low-pass filter is disabled, and the estimator initial stiffness is set equal to the simulator stiffness. `equil` should be much closer to `ref` than `cmd` is:
 
 ```text
 ||equil - ref|| < ||cmd - ref||
@@ -70,7 +70,7 @@ Use `spring_model: linear` to match `online-deflecomp` commit `ad5163a`. Use `sp
 
 ### First-Stage Debug: No Noise, No Delay
 
-Use this state when checking the basic relationship between `ref`, `cmd`, and `equil`:
+Use this state when checking the basic relationship between `ref`, `cmd`, and `equil`. These are the current default values:
 
 ```yaml
 # deflecomp_ros/config/controller.yaml
@@ -79,8 +79,13 @@ spring_model: linear
 ```
 
 ```yaml
+# deflecomp_ros/config/estimator.yaml
+kp0: [40.0, 20.0, 40.0, 40.0, 20.0, 20.0]
+```
+
+```yaml
 # deflecomp_sim/config/sim_params.yaml
-vel_limit: 0.0
+kp_true: [40.0, 20.0, 40.0, 40.0, 20.0, 20.0]
 ref_tau: 0.0
 ref_max_vel: 0.0
 eq_mode: quasistatic
@@ -89,7 +94,7 @@ qs_vib_amp_deg: 0.0
 spring_model: linear
 ```
 
-Also keep `deflecomp_ros/config/estimator.yaml::kp0` equal to `deflecomp_sim/config/sim_params.yaml::kp_true` while isolating the feedforward/equilibrium logic.
+Keep `deflecomp_ros/config/estimator.yaml::kp0` equal to `deflecomp_sim/config/sim_params.yaml::kp_true` while isolating the feedforward/equilibrium logic. If they differ, the static inverse-statics command can be wrong even when noise and lag are disabled.
 
 ### Returning To Dynamic Simulation
 

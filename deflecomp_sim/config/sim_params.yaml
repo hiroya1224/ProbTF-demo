@@ -7,9 +7,9 @@ topic_equil: /equil/joint_states
 topic_imu: /imu
 imu_frames: "link2;link3;link6"
 integrator: rk4
-ref_tau: 0.04
-ref_max_vel: 4.0
-eq_mode: dynamic
+ref_tau: 0.0
+ref_max_vel: 0.0
+eq_mode: quasistatic
 tau_eq: 0.05
 # Quasi-static joint-state noise/vibration injection. Keep these at 0 for stable tests.
 qs_noise_std_deg: 0.0

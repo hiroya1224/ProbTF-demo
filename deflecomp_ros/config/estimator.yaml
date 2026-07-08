@@ -1,6 +1,6 @@
 A_param: 100.0
-update_stiffness: false
-kp0: [40.0, 20.0, 40.0, 40.0, 20.0, 20.0]
+update_stiffness: true
+kp0: [5.0, 5.0, 5.0, 10.0, 20.0, 20.0]
 kp_min: 5.0
 kp_max: 500.0
-q_proc: 0.001
+q_proc: 0.0001

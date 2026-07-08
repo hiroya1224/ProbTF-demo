@@ -69,33 +69,49 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 
 Use `spring_model: linear` to match `online-deflecomp` commit `ad5163a`. Use `spring_model: periodic` in both `controller.yaml` and `sim_params.yaml` for the circular spring model.
 
-For URDFs that include passive, mimic, or zero-velocity joints, `deflecomp_core.robot.RobotArm` builds a Pinocchio reduced model and locks those non-controllable joints at zero. For example, `yamaguchi_6axis_arm_nejineji.urdf` contains gripper mimic/prismatic joints in addition to the six arm joints; the reduced model keeps only the six controllable arm joints and treats the gripper/camera links as fixed payloads. The ROS node logs the active `joints` and `locked_joints` at startup.
+For URDFs that include passive, mimic, or zero-velocity joints, `deflecomp_core.robot.RobotArm` builds a Pinocchio reduced model and locks those non-controllable joints at zero. For example, `yamaguchi_6axis_arm_nejineji.urdf` contains gripper mimic/prismatic joints in addition to the six arm joints; the reduced model keeps only the six controllable arm joints and treats the gripper/camera links as fixed payloads. The ROS node logs the active `joints` and `locked_joints` at startup. `/cmd/joint_states` and `/equil/joint_states` are expanded back to the full movable URDF joint list for RViz/TF; locked joints are filled from the latest reference-derived joint values.
+
+### Staged Estimation
+
+The current staged-estimation setting re-enables the Bingham/WEKF stiffness update with a gentle process noise and an initial stiffness matched to the current loose simulator stiffness:
+
+```yaml
+# deflecomp_ros/config/estimator.yaml
+update_stiffness: true
+kp0: [5.0, 5.0, 5.0, 10.0, 20.0, 20.0]
+q_proc: 0.0001
+```
+
+```yaml
+# deflecomp_ros/config/controller.yaml
+spring_model: periodic
+```
 
 ### First-Stage Debug: No Noise, No Delay
 
-Use this state when checking the basic relationship between `ref`, `cmd`, and `equil`. These are the current default values:
+Use this state when checking the basic relationship between `ref`, `cmd`, and `equil` with stiffness estimation frozen:
 
 ```yaml
 # deflecomp_ros/config/controller.yaml
 theta_cmd_tau: 0.0
-spring_model: linear
+spring_model: periodic
 ```
 
 ```yaml
 # deflecomp_ros/config/estimator.yaml
 update_stiffness: false
-kp0: [40.0, 20.0, 40.0, 40.0, 20.0, 20.0]
+kp0: [5.0, 5.0, 5.0, 10.0, 20.0, 20.0]
 ```
 
 ```yaml
 # deflecomp_sim/config/sim_params.yaml
-kp_true: [40.0, 20.0, 40.0, 40.0, 20.0, 20.0]
+kp_true: [5.0, 5.0, 5.0, 10.0, 20.0, 20.0]
 ref_tau: 0.0
 ref_max_vel: 0.0
 eq_mode: quasistatic
 qs_noise_std_deg: 0.0
 qs_vib_amp_deg: 0.0
-spring_model: linear
+spring_model: periodic
 ```
 
 Keep `deflecomp_ros/config/estimator.yaml::kp0` equal to `deflecomp_sim/config/sim_params.yaml::kp_true` while isolating the feedforward/equilibrium logic. Keep `update_stiffness: false` while checking whether the Bingham/WEKF stiffness update is causing oscillation. If `kp0` and `kp_true` differ, the static inverse-statics command can be wrong even when noise and lag are disabled.

@@ -4,14 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Ref1
         - /TF1
         - /TF1/Tree1
-        - /TF1/Tree1/ref/base_link1
-        - /TF1/Tree1/ref/base_link1/cmd/base_link1/cmd/link11
-        - /TF1/Tree1/ref/base_link1/cmd/base_link1/cmd/link11/cmd/link21
-        - /TF1/Tree1/ref/base_link1/cmd/base_link1/cmd/link11/cmd/link21/cmd/link31
-        - /TF1/Tree1/ref/base_link1/cmd/base_link1/cmd/link11/cmd/link21/cmd/link31/cmd/link41
-        - /TF1/Tree1/ref/base_link1/cmd/base_link1/cmd/link11/cmd/link21/cmd/link31/cmd/link41/cmd/link51
       Splitter Ratio: 0.8362573385238647
     Tree Height: 603
   - Class: rviz/Views
@@ -58,32 +53,102 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
+        dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link2:
+        module1_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link3:
+        module1_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module1_link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link4:
+        module2_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link5:
+        module2_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module2_link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link6:
+        module3_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module3_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module3_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module4_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module5_d405_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -108,32 +173,102 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
+        dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link2:
+        module1_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link3:
+        module1_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module1_link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link4:
+        module2_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link5:
+        module2_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module2_link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link6:
+        module3_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module3_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module3_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module4_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module5_d405_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -158,32 +293,102 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
+        dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link2:
+        module1_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link3:
+        module1_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module1_link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link4:
+        module2_base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link5:
+        module2_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module2_link1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        link6:
+        module3_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module3_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module3_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module4_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module5_d405_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link2:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -195,54 +400,12 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Filter (blacklist): ""
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        cmd/base_link:
-          Value: true
-        cmd/link1:
-          Value: true
-        cmd/link2:
-          Value: true
-        cmd/link3:
-          Value: true
-        cmd/link4:
-          Value: true
-        cmd/link5:
-          Value: true
-        cmd/link6:
-          Value: true
-        equil/base_link:
-          Value: true
-        equil/link1:
-          Value: true
-        equil/link2:
-          Value: true
-        equil/link3:
-          Value: true
-        equil/link4:
-          Value: true
-        equil/link5:
-          Value: true
-        equil/link6:
-          Value: true
-        ref/base_link:
-          Value: true
-        ref/link1:
-          Value: true
-        ref/link2:
-          Value: true
-        ref/link3:
-          Value: true
-        ref/link4:
-          Value: true
-        ref/link5:
-          Value: true
-        ref/link6:
-          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -250,33 +413,9 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        base_link:
-          cmd/base_link:
-            cmd/link1:
-              cmd/link2:
-                cmd/link3:
-                  cmd/link4:
-                    cmd/link5:
-                      cmd/link6:
-                        {}
-          equil/base_link:
-            equil/link1:
-              equil/link2:
-                equil/link3:
-                  equil/link4:
-                    equil/link5:
-                      equil/link6:
-                        {}
-          ref/base_link:
-            ref/link1:
-              ref/link2:
-                ref/link3:
-                  ref/link4:
-                    ref/link5:
-                      ref/link6:
-                        {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -305,7 +444,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.666421890258789
+      Distance: 1.156174898147583
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -321,9 +460,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.44539862871170044
+      Pitch: 0.440398633480072
       Target Frame: <Fixed Frame>
-      Yaw: 4.690392017364502
+      Yaw: 4.180393218994141
     Saved: ~
 Window Geometry:
   Displays:

@@ -96,6 +96,27 @@ def map_jointstate_to_model(msg: JointState, model_names: Sequence[str]) -> np.n
     return q
 
 
+def jointstate_position_map(msg: JointState) -> Dict[str, float]:
+    positions = list(msg.position) if msg.position else []
+    return {
+        name: float(positions[idx])
+        for idx, name in enumerate(msg.name)
+        if idx < len(positions)
+    }
+
+
+def expand_joint_positions(
+    output_names: Sequence[str],
+    active_names: Sequence[str],
+    active_positions: np.ndarray,
+    fallback_positions: Dict[str, float],
+) -> List[float]:
+    values = dict(fallback_positions)
+    for name, position in zip(active_names, np.asarray(active_positions, dtype=float)):
+        values[name] = float(position)
+    return [float(values.get(name, 0.0)) for name in output_names]
+
+
 def resolve_default_urdf() -> str:
     return os.path.join(rospkg.RosPack().get_path("deflecomp_description"), "urdf", "simple6r.urdf")
 
@@ -136,6 +157,7 @@ class DeflecompNode:
         self.sensitivity = SensitivityCalculator(robot=self.robot, spring_model=self.spring_model)
         self.n = self.robot.nv
         self.model_joint_names = self.robot.model_joint_names
+        self.output_joint_names = self.robot.urdf_info.movable_joint_names or self.model_joint_names
 
         self.frames = self.robot.suggest_imu_frames(
             preferred=frames,
@@ -176,6 +198,7 @@ class DeflecompNode:
         self.dt = float(dt)
 
         self.q_ref = np.zeros(self.n, dtype=float)
+        self.ref_joint_positions: Dict[str, float] = {name: 0.0 for name in self.output_joint_names}
         self.have_ref = False
         self.imu_bufs: Dict[str, ImuBuffer] = {name: ImuBuffer(maxlen=2000) for name in self.frames}
 
@@ -201,6 +224,7 @@ class DeflecompNode:
 
     def cb_ref(self, msg: JointState) -> None:
         self.q_ref = map_jointstate_to_model(msg, self.model_joint_names)
+        self.ref_joint_positions.update(jointstate_position_map(msg))
         self.have_ref = True
 
     def cb_imu(self, msg: Imu) -> None:
@@ -250,8 +274,13 @@ class DeflecompNode:
 
         cmd_msg = JointState()
         cmd_msg.header.stamp = rospy.Time.from_sec(now)
-        cmd_msg.name = self.model_joint_names
-        cmd_msg.position = result.theta_cmd.tolist()
+        cmd_msg.name = self.output_joint_names
+        cmd_msg.position = expand_joint_positions(
+            output_names=self.output_joint_names,
+            active_names=self.model_joint_names,
+            active_positions=result.theta_cmd,
+            fallback_positions=self.ref_joint_positions,
+        )
         self.pub_cmd.publish(cmd_msg)
 
         cov_diag = np.clip(np.diag(self.compensator.stiffness_estimator.P), 0.0, np.inf)

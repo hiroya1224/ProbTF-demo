@@ -112,6 +112,27 @@ def map_jointstate_to_model(msg: JointState, model_names: List[str]) -> np.ndarr
     return q
 
 
+def jointstate_position_map(msg: JointState) -> Dict[str, float]:
+    positions = list(msg.position) if msg.position else []
+    return {
+        name: float(positions[idx])
+        for idx, name in enumerate(msg.name)
+        if idx < len(positions)
+    }
+
+
+def expand_joint_positions(
+    output_names: List[str],
+    active_names: List[str],
+    active_positions: np.ndarray,
+    fallback_positions: Dict[str, float],
+) -> List[float]:
+    values = dict(fallback_positions)
+    for name, position in zip(active_names, np.asarray(active_positions, dtype=float)):
+        values[name] = float(position)
+    return [float(values.get(name, 0.0)) for name in output_names]
+
+
 def resolve_spring_model(name: str, robot: RobotArm):
     spring_name = str(name).strip().lower()
     if spring_name == "auto":
@@ -171,6 +192,7 @@ class SimNode:
         self.robot = RobotArm(urdf_path)
         self.n = self.robot.nv
         self.joint_names = self.robot.model_joint_names
+        self.output_joint_names = self.robot.urdf_info.movable_joint_names or self.joint_names
 
         Ktrue = np.resize(np.asarray(kp_true, dtype=float), self.n)
         params = DynamicParams(
@@ -202,6 +224,7 @@ class SimNode:
 
         self.have_cmd = False
         self.theta_cmd = np.zeros(self.n, dtype=float)
+        self.cmd_joint_positions: Dict[str, float] = {name: 0.0 for name in self.output_joint_names}
 
         self.pub_equil = rospy.Publisher(self.topic_equil, JointState, queue_size=10)
         self.pub_imu = rospy.Publisher(self.imu_topic, Imu, queue_size=20)
@@ -230,6 +253,9 @@ class SimNode:
 
     def cb_cmd(self, msg: JointState) -> None:
         self.theta_cmd = map_jointstate_to_model(msg, self.joint_names)
+        self.cmd_joint_positions.update(jointstate_position_map(msg))
+        for name, position in zip(self.joint_names, self.theta_cmd):
+            self.cmd_joint_positions[name] = float(position)
         self.have_cmd = True
 
     def publish_imus(self, q: np.ndarray, qd: np.ndarray, qdd: np.ndarray, now: rospy.Time) -> None:
@@ -282,8 +308,13 @@ class SimNode:
 
         js = JointState()
         js.header.stamp = now
-        js.name = self.joint_names
-        js.position = q_next.tolist()
+        js.name = self.output_joint_names
+        js.position = expand_joint_positions(
+            output_names=self.output_joint_names,
+            active_names=self.joint_names,
+            active_positions=q_next,
+            fallback_positions=self.cmd_joint_positions,
+        )
         self.pub_equil.publish(js)
         self.publish_imus(q_next, qd_next, qdd_est, now)
 

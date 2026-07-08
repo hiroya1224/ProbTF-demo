@@ -57,6 +57,7 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 | Simulator spring model | `deflecomp_sim/config/sim_params.yaml` | `spring_model` |
 | True simulator stiffness | `deflecomp_sim/config/sim_params.yaml` | `kp_true` |
 | Initial estimated stiffness | `deflecomp_ros/config/estimator.yaml` | `kp0` |
+| Stiffness estimator update | `deflecomp_ros/config/estimator.yaml` | `update_stiffness` |
 | Simulator mode | `deflecomp_sim/config/sim_params.yaml` | `eq_mode` |
 | Simulator command/equilibrium lag | `deflecomp_sim/config/sim_params.yaml` | `ref_tau`, `ref_max_vel`, `vel_limit`, `tau_eq` |
 | Quasi-static joint noise | `deflecomp_sim/config/sim_params.yaml` | `qs_noise_std_deg` |
@@ -67,6 +68,8 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 | Simulator equilibrium output topic | `deflecomp_sim/config/sim_params.yaml` | `topic_equil` |
 
 Use `spring_model: linear` to match `online-deflecomp` commit `ad5163a`. Use `spring_model: periodic` in both `controller.yaml` and `sim_params.yaml` for the circular spring model.
+
+For URDFs that include passive, mimic, or zero-velocity joints, `deflecomp_core.robot.RobotArm` builds a Pinocchio reduced model and locks those non-controllable joints at zero. For example, `yamaguchi_6axis_arm_nejineji.urdf` contains gripper mimic/prismatic joints in addition to the six arm joints; the reduced model keeps only the six controllable arm joints and treats the gripper/camera links as fixed payloads. The ROS node logs the active `joints` and `locked_joints` at startup.
 
 ### First-Stage Debug: No Noise, No Delay
 
@@ -80,6 +83,7 @@ spring_model: linear
 
 ```yaml
 # deflecomp_ros/config/estimator.yaml
+update_stiffness: false
 kp0: [40.0, 20.0, 40.0, 40.0, 20.0, 20.0]
 ```
 
@@ -94,7 +98,7 @@ qs_vib_amp_deg: 0.0
 spring_model: linear
 ```
 
-Keep `deflecomp_ros/config/estimator.yaml::kp0` equal to `deflecomp_sim/config/sim_params.yaml::kp_true` while isolating the feedforward/equilibrium logic. If they differ, the static inverse-statics command can be wrong even when noise and lag are disabled.
+Keep `deflecomp_ros/config/estimator.yaml::kp0` equal to `deflecomp_sim/config/sim_params.yaml::kp_true` while isolating the feedforward/equilibrium logic. Keep `update_stiffness: false` while checking whether the Bingham/WEKF stiffness update is causing oscillation. If `kp0` and `kp_true` differ, the static inverse-statics command can be wrong even when noise and lag are disabled.
 
 ### Returning To Dynamic Simulation
 

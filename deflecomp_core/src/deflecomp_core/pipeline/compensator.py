@@ -21,6 +21,12 @@ class CompensationStepResult:
     debug: Dict[str, Any]
 
 
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, str):
+        return value.strip().lower() not in ("0", "false", "no", "off")
+    return bool(value)
+
+
 class DeflectionCompensator:
     def __init__(
         self,
@@ -63,8 +69,9 @@ class DeflectionCompensator:
                 latest_obs_stamp = max(obs_stamps) if obs_stamps else None
             debug["delay"] = self.delay_estimator.update(self.last_stamp, latest_obs_stamp)
 
+        update_stiffness = _as_bool(self.config.get("update_stiffness", True))
         theta_eq_obs: Optional[np.ndarray] = None
-        if self.last_theta_cmd is not None and imu_observations:
+        if update_stiffness and self.last_theta_cmd is not None and imu_observations:
             a_map = self.observation_builder.build_A_map(imu_observations)
             if a_map:
                 theta_init = (
@@ -80,6 +87,7 @@ class DeflectionCompensator:
                     kp_lim=kp_lim,
                 )
                 debug["observation_count"] = len(a_map)
+        debug["update_stiffness"] = update_stiffness
 
         kp_hat = self.stiffness_estimator.kp_hat
         theta_cmd_raw = self.command_generator.theta_cmd_from_theta_ref(theta_ref=theta_ref, kp_vec=kp_hat)

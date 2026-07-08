@@ -79,6 +79,12 @@ def parse_float_list(value) -> List[float]:
     return [float(item) for item in items if str(item).strip()]
 
 
+def parse_bool(value) -> bool:
+    if isinstance(value, str):
+        return value.strip().lower() not in ("0", "false", "no", "off")
+    return bool(value)
+
+
 def map_jointstate_to_model(msg: JointState, model_names: Sequence[str]) -> np.ndarray:
     name_to_idx = {name: idx for idx, name in enumerate(msg.name)}
     q = np.zeros(len(model_names), dtype=float)
@@ -118,6 +124,7 @@ class DeflecompNode:
         q_proc: float,
         spring_model_name: str,
         theta_cmd_tau: float,
+        update_stiffness: bool,
     ) -> None:
         self.robot = RobotArm(urdf_path)
         self.spring_model = resolve_spring_model(spring_model_name, self.robot)
@@ -162,6 +169,7 @@ class DeflecompNode:
             config={
                 "theta_cmd_tau": float(theta_cmd_tau),
                 "kp_lim": tuple(float(v) for v in kp_lim),
+                "update_stiffness": bool(update_stiffness),
             },
         )
         self.kp_lim = kp_lim
@@ -182,10 +190,11 @@ class DeflecompNode:
 
         self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
         rospy.loginfo(
-            "deflecomp_node: base=%s tip=%s joints=%s frames=%s spring=%s",
+            "deflecomp_node: base=%s tip=%s joints=%s locked_joints=%s frames=%s spring=%s",
             self.robot.base_link_name,
             self.robot.tip_link_name,
             ", ".join(self.model_joint_names),
+            ", ".join(self.robot.locked_joint_names) if self.robot.locked_joint_names else "(none)",
             ", ".join(self.frames),
             type(self.spring_model).__name__,
         )
@@ -278,6 +287,7 @@ def main() -> None:
     q_proc = float(rospy.get_param("~q_proc", 1e-3))
     spring_model_name = rospy.get_param("~spring_model", "auto")
     theta_cmd_tau = float(rospy.get_param("~theta_cmd_tau", 0.2))
+    update_stiffness = parse_bool(rospy.get_param("~update_stiffness", True))
 
     DeflecompNode(
         urdf_path=urdf_path,
@@ -292,6 +302,7 @@ def main() -> None:
         q_proc=q_proc,
         spring_model_name=spring_model_name,
         theta_cmd_tau=theta_cmd_tau,
+        update_stiffness=update_stiffness,
     )
     rospy.spin()
 

@@ -18,10 +18,26 @@ class RobotArm:
         urdf_path: str,
         tip_link: Optional[str] = None,
         base_link: Optional[str] = None,
+        lock_non_controllable_joints: bool = True,
     ) -> None:
         self.urdf_path = urdf_path
         self.urdf_info = load_urdf_model_info(urdf_path)
-        self.model = pin.buildModelFromUrdf(urdf_path)
+        model = pin.buildModelFromUrdf(urdf_path)
+        if lock_non_controllable_joints:
+            lock_joint_ids = []
+            for joint_name in model.names[1:]:
+                joint_info = self.urdf_info.joint_map.get(joint_name)
+                if joint_info is not None and not joint_info.is_controllable:
+                    lock_joint_ids.append(model.getJointId(joint_name))
+            if lock_joint_ids:
+                self.locked_joint_names = [model.names[joint_id] for joint_id in lock_joint_ids]
+                self.model = pin.buildReducedModel(model, lock_joint_ids, np.zeros(model.nq, dtype=float))
+            else:
+                self.locked_joint_names = []
+                self.model = model
+        else:
+            self.locked_joint_names = []
+            self.model = model
         self.data = self.model.createData()
         self.nv = self.model.nv
         self.frame_names = {frame.name for frame in self.model.frames}

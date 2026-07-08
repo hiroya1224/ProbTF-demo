@@ -219,10 +219,11 @@ class SimNode:
 
         self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
         rospy.loginfo(
-            "deflecomp_sim: base=%s tip=%s joints=%s imu_frames=%s spring=%s",
+            "deflecomp_sim: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s",
             self.robot.base_link_name,
             self.robot.tip_link_name,
             ", ".join(self.joint_names),
+            ", ".join(self.robot.locked_joint_names) if self.robot.locked_joint_names else "(none)",
             ", ".join(self.imu_fids.keys()),
             type(self.sim.spring_model).__name__,
         )

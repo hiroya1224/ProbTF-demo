@@ -11,7 +11,7 @@ class EquilibriumConfig:
     maxiter: int = 200
     k_stiffness: float = 100.0
     n_lambda: int = 10
-    ftol: float = 1e-9
+    ftol: float = 1e-12
     verbose: bool = False
 
 class EquilibriumSolver:
@@ -25,20 +25,6 @@ class EquilibriumSolver:
         self.spring_model = spring_model
         self.cfg = cfg or EquilibriumConfig()
         self.eq_path_last: List[np.ndarray] = []
-
-    @staticmethod
-    def _pack_cs(c: np.ndarray, s: np.ndarray) -> np.ndarray:
-        out = np.empty(c.size * 2, dtype=float)
-        out[0::2] = c; out[1::2] = s
-        return out
-
-    @staticmethod
-    def _unpack_cs(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        return x[0::2], x[1::2]
-
-    @staticmethod
-    def _theta_from_cs(c: np.ndarray, s: np.ndarray) -> np.ndarray:
-        return np.arctan2(s, c)
 
     @staticmethod
     def _V_total(
@@ -62,52 +48,54 @@ class EquilibriumSolver:
         tau_g = robot.tau_gravity(theta)
         return tau_g + spring_model.torque(theta, theta_cmd, k_eff_diag)
 
-    @staticmethod
-    def _grad_x_from_grad_theta(g_theta: np.ndarray, c: np.ndarray, s: np.ndarray) -> np.ndarray:
-        denom = np.maximum(c * c + s * s, 1e-12)
-        dtheta_dc = -s / denom
-        dtheta_ds =  c / denom
-        gx = np.empty(g_theta.size * 2, dtype=float)
-        gx[0::2] = g_theta * dtheta_dc; gx[1::2] = g_theta * dtheta_ds
-        return gx
+    def _position_bounds(self, size: int) -> List[Tuple[Optional[float], Optional[float]]]:
+        lo = np.asarray(self.robot.model.lowerPositionLimit, dtype=float)
+        hi = np.asarray(self.robot.model.upperPositionLimit, dtype=float)
+        if lo.shape != (size,) or hi.shape != (size,):
+            return [(None, None)] * size
+        return [
+            (
+                float(lo_i) if np.isfinite(lo_i) else None,
+                float(hi_i) if np.isfinite(hi_i) else None,
+            )
+            for lo_i, hi_i in zip(lo, hi)
+        ]
 
     @staticmethod
-    def _cons_fun(x: np.ndarray) -> np.ndarray:
-        c, s = EquilibriumSolver._unpack_cs(x)
-        return c * c + s * s - 1.0
+    def _clip_to_bounds(theta: np.ndarray, bounds: List[Tuple[Optional[float], Optional[float]]]) -> np.ndarray:
+        clipped = np.asarray(theta, dtype=float).copy()
+        for idx, (lo, hi) in enumerate(bounds):
+            if lo is not None:
+                clipped[idx] = max(clipped[idx], lo)
+            if hi is not None:
+                clipped[idx] = min(clipped[idx], hi)
+        return clipped
 
-    @staticmethod
-    def _cons_jac(x: np.ndarray) -> np.ndarray:
-        c, s = EquilibriumSolver._unpack_cs(x)
-        n = c.size
-        J = np.zeros((n, 2 * n), dtype=float)
-        idx = np.arange(n)
-        J[idx, 2 * idx] = 2.0 * c
-        J[idx, 2 * idx + 1] = 2.0 * s
-        return J
+    def _stage_minimize(self, theta_cmd: np.ndarray, k_eff_diag: np.ndarray, theta0: np.ndarray) -> np.ndarray:
+        bounds = self._position_bounds(theta0.size)
+        theta_start = self._clip_to_bounds(theta0, bounds)
 
-    def _stage_minimize(self, theta_cmd: np.ndarray, k_eff_diag: np.ndarray, x0: np.ndarray):
-        def f_obj(x: np.ndarray) -> float:
-            c, s = self._unpack_cs(x)
-            theta = self._theta_from_cs(c, s)
+        def f_obj(theta: np.ndarray) -> float:
             return self._V_total(self.robot, self.spring_model, theta, theta_cmd, k_eff_diag)
 
-        def f_jac(x: np.ndarray) -> np.ndarray:
-            c, s = self._unpack_cs(x)
-            theta = self._theta_from_cs(c, s)
-            g_theta = self._grad_theta(self.robot, self.spring_model, theta, theta_cmd, k_eff_diag)
-            return self._grad_x_from_grad_theta(g_theta, c, s)
-
-        cons = { "type": "eq", "fun": self._cons_fun, "jac": self._cons_jac }
+        def f_jac(theta: np.ndarray) -> np.ndarray:
+            return self._grad_theta(self.robot, self.spring_model, theta, theta_cmd, k_eff_diag)
 
         res = minimize(
-            fun=f_obj, x0=x0, jac=f_jac, constraints=[cons], method="SLSQP",
-            options={"maxiter": int(self.cfg.maxiter), "ftol": float(self.cfg.ftol), "disp": bool(self.cfg.verbose)},
+            fun=f_obj,
+            x0=theta_start,
+            jac=f_jac,
+            bounds=bounds,
+            method="L-BFGS-B",
+            options={
+                "maxiter": int(self.cfg.maxiter),
+                "ftol": float(self.cfg.ftol),
+                "gtol": min(float(self.cfg.ftol), 1e-10),
+                "maxls": 50,
+                "disp": bool(self.cfg.verbose),
+            },
         )
-        x_opt = res.x
-        c_opt, s_opt = self._unpack_cs(x_opt)
-        theta_opt = self._theta_from_cs(c_opt, s_opt)
-        return x_opt, theta_opt
+        return np.asarray(res.x, dtype=float)
 
     def solve(
         self,
@@ -120,12 +108,11 @@ class EquilibriumSolver:
             lambdas = np.linspace(1.0, 0.0, self.cfg.n_lambda)
 
         theta0 = theta_init.copy() if theta_init is not None else theta_cmd.copy()
-        c0 = np.cos(theta0); s0 = np.sin(theta0)
-        x0 = self._pack_cs(c0, s0)
 
         self.eq_path_last = []
         for lam in lambdas:
             k_eff_diag = kp_vec + float(lam) * float(self.cfg.k_stiffness)
-            x0, theta_opt = self._stage_minimize(theta_cmd, k_eff_diag, x0)
+            theta_opt = self._stage_minimize(theta_cmd, k_eff_diag, theta0)
             self.eq_path_last.append(theta_opt.copy())
+            theta0 = theta_opt
         return theta_opt

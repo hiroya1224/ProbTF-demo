@@ -146,6 +146,13 @@ class DeflecompNode:
         spring_model_name: str,
         theta_cmd_tau: float,
         update_stiffness: bool,
+        observability_rcond: float,
+        observability_abs: float,
+        measurement_info_eig_cap: float,
+        stiffness_update_gain: float,
+        max_log_kp_step: float,
+        min_log_kp_step: float,
+        project_unobservable_feedforward: bool,
     ) -> None:
         self.robot = RobotArm(urdf_path)
         self.spring_model = resolve_spring_model(spring_model_name, self.robot)
@@ -175,6 +182,12 @@ class DeflecompNode:
             solver=self.solver,
             sensitivity=self.sensitivity,
             eps_def=1e-6,
+            observability_rcond=float(observability_rcond),
+            observability_abs=float(observability_abs),
+            measurement_info_eig_cap=float(measurement_info_eig_cap),
+            update_gain=float(stiffness_update_gain),
+            max_log_kp_step=float(max_log_kp_step),
+            min_log_kp_step=float(min_log_kp_step),
         )
         observation_builder = ImuObservationBuilder(
             robot=self.robot,
@@ -192,6 +205,9 @@ class DeflecompNode:
                 "theta_cmd_tau": float(theta_cmd_tau),
                 "kp_lim": tuple(float(v) for v in kp_lim),
                 "update_stiffness": bool(update_stiffness),
+                "project_unobservable_feedforward": bool(project_unobservable_feedforward),
+                "feedforward_observability_rcond": float(observability_rcond),
+                "feedforward_observability_abs": float(observability_abs),
             },
         )
         self.kp_lim = kp_lim
@@ -311,12 +327,19 @@ def main() -> None:
     dt = float(rospy.get_param("~dt", 0.02))
     A_param = float(rospy.get_param("~A_param", 100.0))
     kp0 = parse_float_list(rospy.get_param("~kp0", [50, 50, 50, 50, 50, 50]))
-    kp_min = float(rospy.get_param("~kp_min", 5.0))
+    kp_min = float(rospy.get_param("~kp_min", 1.0))
     kp_max = float(rospy.get_param("~kp_max", 500.0))
-    q_proc = float(rospy.get_param("~q_proc", 1e-3))
+    q_proc = float(rospy.get_param("~q_proc", 1e-8))
     spring_model_name = rospy.get_param("~spring_model", "auto")
     theta_cmd_tau = float(rospy.get_param("~theta_cmd_tau", 0.2))
     update_stiffness = parse_bool(rospy.get_param("~update_stiffness", True))
+    observability_rcond = float(rospy.get_param("~observability_rcond", 1e-4))
+    observability_abs = float(rospy.get_param("~observability_abs", 1e-10))
+    measurement_info_eig_cap = float(rospy.get_param("~measurement_info_eig_cap", 1.0))
+    stiffness_update_gain = float(rospy.get_param("~stiffness_update_gain", 0.2))
+    max_log_kp_step = float(rospy.get_param("~max_log_kp_step", 0.002))
+    min_log_kp_step = float(rospy.get_param("~min_log_kp_step", 0.0))
+    project_unobservable_feedforward = parse_bool(rospy.get_param("~project_unobservable_feedforward", True))
 
     DeflecompNode(
         urdf_path=urdf_path,
@@ -332,6 +355,13 @@ def main() -> None:
         spring_model_name=spring_model_name,
         theta_cmd_tau=theta_cmd_tau,
         update_stiffness=update_stiffness,
+        observability_rcond=observability_rcond,
+        observability_abs=observability_abs,
+        measurement_info_eig_cap=measurement_info_eig_cap,
+        stiffness_update_gain=stiffness_update_gain,
+        max_log_kp_step=max_log_kp_step,
+        min_log_kp_step=min_log_kp_step,
+        project_unobservable_feedforward=project_unobservable_feedforward,
     )
     rospy.spin()
 

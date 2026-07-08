@@ -99,6 +99,23 @@ class RobotArm:
         J6 = pin.computeFrameJacobian(self.model, self.data, theta, fid, pin.ReferenceFrame.WORLD)
         return J6[3:6, :]
 
+    def gravity_dir_jacobian_in_frame(self, theta: np.ndarray, g_world: np.ndarray, fid: int) -> np.ndarray:
+        self._fk_update(theta)
+        R_wf = self.data.oMf[fid].rotation
+        Jw_world = self.frame_angular_jacobian_world(theta, fid)
+        Jw_frame = R_wf.T @ Jw_world
+        gw = g_world / (np.linalg.norm(g_world) + 1e-12)
+        gf = R_wf.T @ gw
+        skew_gf = np.array(
+            [
+                [0.0, -gf[2], gf[1]],
+                [gf[2], 0.0, -gf[0]],
+                [-gf[1], gf[0], 0.0],
+            ],
+            dtype=float,
+        )
+        return skew_gf @ Jw_frame
+
     def gravity_dir_in_frame(self, theta: np.ndarray, g_base: np.ndarray, fid: int) -> np.ndarray:
         # NOTE: Despite the argument name `g_base`, this function now interprets the input
         # as the gravity vector expressed in the WORLD frame and returns the unit gravity

@@ -57,7 +57,10 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 | Simulator spring model | `deflecomp_sim/config/sim_params.yaml` | `spring_model` |
 | True simulator stiffness | `deflecomp_sim/config/sim_params.yaml` | `kp_true` |
 | Initial estimated stiffness | `deflecomp_ros/config/estimator.yaml` | `kp0` |
-| Stiffness estimator update | `deflecomp_ros/config/estimator.yaml` | `update_stiffness` |
+| Stiffness estimator update | `deflecomp_ros/config/estimator.yaml` | `update_stiffness`, `q_proc`, `stiffness_update_gain`, `max_log_kp_step` |
+| Stiffness estimate limits | `deflecomp_ros/config/estimator.yaml` | `kp_min`, `kp_max` |
+| Observability gating for stiffness/feedforward | `deflecomp_ros/config/estimator.yaml` | `observability_rcond`, `observability_abs`, `project_unobservable_feedforward` |
+| Per-update IMU information cap | `deflecomp_ros/config/estimator.yaml` | `measurement_info_eig_cap` |
 | Simulator mode | `deflecomp_sim/config/sim_params.yaml` | `eq_mode` |
 | Simulator command/equilibrium lag | `deflecomp_sim/config/sim_params.yaml` | `ref_tau`, `ref_max_vel`, `vel_limit`, `tau_eq` |
 | Quasi-static joint noise | `deflecomp_sim/config/sim_params.yaml` | `qs_noise_std_deg` |
@@ -79,13 +82,24 @@ The current staged-estimation setting re-enables the Bingham/WEKF stiffness upda
 # deflecomp_ros/config/estimator.yaml
 update_stiffness: true
 kp0: [5.0, 5.0, 5.0, 10.0, 20.0, 20.0]
-q_proc: 0.0001
+kp_min: 1.0
+kp_max: 500.0
+q_proc: 1.0e-8
+observability_rcond: 0.0001
+observability_abs: 1.0e-10
+measurement_info_eig_cap: 1.0
+stiffness_update_gain: 0.2
+max_log_kp_step: 0.002
+min_log_kp_step: 0.0
+project_unobservable_feedforward: true
 ```
 
 ```yaml
 # deflecomp_ros/config/controller.yaml
 spring_model: periodic
 ```
+
+The observability gate is based on the local IMU gravity-direction Jacobian, not on joint names or a hard-coded yaw/gravity assumption. Stiffness updates are applied only in the stiffness subspace supported by the current IMU observations. `measurement_info_eig_cap` limits the information strength of one IMU update, `stiffness_update_gain` tempers the update, and `max_log_kp_step` bounds the per-cycle change in log stiffness. Keep `q_proc` small for static stiffness; increasing it makes the estimator keep adapting during a hold and can make `theta_cmd` drift toward `theta_ref` when the IMU residual contains bias or noise. When `project_unobservable_feedforward` is true, the gravity feedforward term is re-evaluated only along locally observable reference-motion components; the target `theta_ref` itself is not projected. If no IMU observation is available for a cycle, the gravity feedforward evaluation pose is held instead of being reset to `theta_ref`.
 
 ### First-Stage Debug: No Noise, No Delay
 

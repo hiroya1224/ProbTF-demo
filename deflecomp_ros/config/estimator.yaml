@@ -1,6 +1,13 @@
 A_param: 100.0
 update_stiffness: true
 kp0: [5.0, 5.0, 5.0, 10.0, 20.0, 20.0]
-kp_min: 5.0
+kp_min: 1.0
 kp_max: 500.0
-q_proc: 0.0001
+q_proc: 1.0e-8
+observability_rcond: 0.0001
+observability_abs: 1.0e-10
+measurement_info_eig_cap: 1.0
+stiffness_update_gain: 0.2
+max_log_kp_step: 0.002
+min_log_kp_step: 0.0
+project_unobservable_feedforward: true

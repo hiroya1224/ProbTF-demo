@@ -51,6 +51,70 @@ class DeflectionCompensator:
         self.last_theta_cmd: Optional[np.ndarray] = None
         self.last_theta_eq: Optional[np.ndarray] = None
         self.last_stamp: Optional[float] = None
+        self.last_theta_ref: Optional[np.ndarray] = None
+        self.theta_ref_for_feedforward: Optional[np.ndarray] = None
+
+    def _observable_joint_basis(
+        self,
+        theta: np.ndarray,
+        imu_observations: Sequence[FrameImuObservation],
+    ):
+        n = theta.size
+        info = np.zeros((n, n), dtype=float)
+        g_world = getattr(self.observation_builder, "g_world", np.array([0.0, 0.0, -1.0], dtype=float))
+        seen_frames = set()
+        for observation in imu_observations:
+            frame_name = observation.frame_name
+            if frame_name in seen_frames or not self.robot.has_frame(frame_name):
+                continue
+            seen_frames.add(frame_name)
+            fid = self.robot.get_frame_id(frame_name)
+            J_g = self.robot.gravity_dir_jacobian_in_frame(theta=theta, g_world=g_world, fid=fid)
+            info += J_g.T @ J_g
+
+        eigvals, eigvecs = np.linalg.eigh(0.5 * (info + info.T))
+        lam_max = float(np.max(eigvals)) if eigvals.size else 0.0
+        abs_threshold = float(self.config.get("feedforward_observability_abs", 1e-10))
+        rel_threshold = float(self.config.get("feedforward_observability_rcond", 1e-4)) * max(lam_max, 0.0)
+        keep = eigvals > max(abs_threshold, rel_threshold)
+        return eigvecs[:, keep], eigvals, int(np.count_nonzero(keep))
+
+    def _theta_ref_for_gravity(
+        self,
+        theta_ref: np.ndarray,
+        imu_observations: Optional[Sequence[FrameImuObservation]],
+        debug: Dict[str, Any],
+    ) -> np.ndarray:
+        if not _as_bool(self.config.get("project_unobservable_feedforward", True)):
+            self.last_theta_ref = theta_ref.copy()
+            self.theta_ref_for_feedforward = theta_ref.copy()
+            debug["feedforward_observable_rank"] = theta_ref.size
+            return theta_ref
+
+        if self.last_theta_ref is None or self.theta_ref_for_feedforward is None:
+            self.last_theta_ref = theta_ref.copy()
+            self.theta_ref_for_feedforward = theta_ref.copy()
+            debug["feedforward_observable_rank"] = theta_ref.size
+            return theta_ref
+
+        if not imu_observations:
+            self.last_theta_ref = theta_ref.copy()
+            debug["feedforward_observable_rank"] = 0
+            debug["feedforward_observable_eigvals"] = np.zeros(theta_ref.size, dtype=float)
+            return self.theta_ref_for_feedforward.copy()
+
+        U_obs, eigvals, rank = self._observable_joint_basis(theta_ref, imu_observations)
+        delta_ref = theta_ref - self.last_theta_ref
+        if rank > 0:
+            delta_gravity = U_obs @ (U_obs.T @ delta_ref)
+        else:
+            delta_gravity = np.zeros_like(delta_ref)
+
+        self.theta_ref_for_feedforward = self.theta_ref_for_feedforward + delta_gravity
+        self.last_theta_ref = theta_ref.copy()
+        debug["feedforward_observable_rank"] = rank
+        debug["feedforward_observable_eigvals"] = eigvals
+        return self.theta_ref_for_feedforward.copy()
 
     def step(
         self,
@@ -90,7 +154,13 @@ class DeflectionCompensator:
         debug["update_stiffness"] = update_stiffness
 
         kp_hat = self.stiffness_estimator.kp_hat
-        theta_cmd_raw = self.command_generator.theta_cmd_from_theta_ref(theta_ref=theta_ref, kp_vec=kp_hat)
+        theta_gravity = self._theta_ref_for_gravity(theta_ref, imu_observations, debug)
+        tau_gravity = self.robot.tau_gravity(theta_gravity)
+        theta_cmd_raw = self.spring_model.theta_cmd_from_theta_ref(
+            tau_gravity=tau_gravity,
+            theta_ref=theta_ref,
+            kp_vec=kp_hat,
+        )
 
         if self.last_theta_cmd is not None:
             tau = float(self.config.get("theta_cmd_tau", 0.2))

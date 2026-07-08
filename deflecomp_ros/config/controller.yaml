@@ -1,0 +1,4 @@
+dt: 0.02
+theta_cmd_tau: 0.2
+# online-deflecomp ad5163a used the linear spring equations.
+spring_model: linear

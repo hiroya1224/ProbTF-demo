@@ -1,0 +1,5 @@
+urdf_path: ""
+frames: [link6, link3, link2]
+topic_ref: /ref/joint_states
+topic_imu: /imu
+topic_cmd_out: /cmd/joint_states

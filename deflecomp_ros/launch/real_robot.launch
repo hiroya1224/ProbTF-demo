@@ -1,0 +1,8 @@
+<launch>
+  <arg name="model" default="$(find deflecomp_description)/urdf/simple6r.urdf" />
+  <arg name="urdf_path" default="$(arg model)" />
+
+  <include file="$(find deflecomp_ros)/launch/deflecomp.launch">
+    <arg name="model" value="$(arg urdf_path)" />
+  </include>
+</launch>

@@ -1,0 +1,9 @@
+<launch>
+  <arg name="model" default="$(find deflecomp_description)/urdf/simple6r.urdf" />
+  <arg name="urdf_path" default="$(arg model)" />
+
+  <node pkg="deflecomp_sim" type="sim_node.py" name="deflecomp_sim" output="screen">
+    <rosparam command="load" file="$(find deflecomp_sim)/config/sim_params.yaml" />
+    <param name="urdf_path" value="$(arg urdf_path)" />
+  </node>
+</launch>

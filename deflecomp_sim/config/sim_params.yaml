@@ -1,0 +1,21 @@
+dt: 0.004
+kp_true: [40.0, 20.0, 40.0, 40.0, 20.0, 20.0]
+zeta: 0.9
+vel_limit: 4.0
+topic_cmd: /cmd/joint_states
+topic_equil: /equil/joint_states
+topic_imu: /imu
+imu_frames: "link2;link3;link6"
+integrator: rk4
+ref_tau: 0.04
+ref_max_vel: 4.0
+eq_mode: dynamic
+tau_eq: 0.05
+# Quasi-static joint-state noise/vibration injection. Keep these at 0 for stable tests.
+qs_noise_std_deg: 0.0
+qs_vib_amp_deg: 0.0
+qs_vib_freq_hz: 50.0
+qs_vib_axes: []
+qs_seed: 0
+# online-deflecomp ad5163a used the linear spring equations.
+spring_model: linear

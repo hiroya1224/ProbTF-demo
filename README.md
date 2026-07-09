@@ -59,7 +59,8 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 | Simulator equilibrium refinement | `deflecomp_sim/config/sim_params.yaml` | `equilibrium_refine`, `equilibrium_refine_maxiter`, `equilibrium_refine_tol` |
 | True simulator stiffness | `deflecomp_sim/config/sim_params.yaml` | `kp_true` |
 | Initial estimated stiffness | `deflecomp_ros/config/estimator.yaml` | `kp0` |
-| Stiffness estimator update | `deflecomp_ros/config/estimator.yaml` | `update_stiffness`, `q_proc`, `stiffness_update_gain`, `max_log_kp_step` |
+| Stiffness estimator update | `deflecomp_ros/config/estimator.yaml` | `update_stiffness`, `q_proc` |
+| Execution stiffness smoothing | `deflecomp_ros/config/estimator.yaml` | `kp_exec_tau`, `max_log_kp_exec_step`, `publish_kp_exec` |
 | Stiffness estimate limits | `deflecomp_ros/config/estimator.yaml` | `kp_min`, `kp_max` |
 | Observability gating for stiffness/feedforward | `deflecomp_ros/config/estimator.yaml` | `observability_rcond`, `observability_abs`, `project_unobservable_feedforward` |
 | Per-update IMU information cap | `deflecomp_ros/config/estimator.yaml` | `measurement_info_eig_cap` |
@@ -91,11 +92,14 @@ kp_max: 500.0
 q_proc: 1.0e-8
 observability_rcond: 0.0001
 observability_abs: 1.0e-10
-measurement_info_eig_cap: 1.0
-stiffness_update_gain: 0.2
-max_log_kp_step: 0.002
+measurement_info_eig_cap: 0.0
+stiffness_update_gain: 1.0
+max_log_kp_step: 0.0
 min_log_kp_step: 0.0
 project_unobservable_feedforward: true
+kp_exec_tau: 1.0
+max_log_kp_exec_step: 0.002
+publish_kp_exec: true
 ```
 
 ```yaml
@@ -106,7 +110,7 @@ equilibrium_refine: true
 
 `equilibrium_refine` keeps the staged L-BFGS-B equilibrium solve, then refines the result by solving the quasi-static residual `tau_g(theta) + tau_s(theta, theta_cmd, K) = 0` with the analytic Jacobian. Leave it enabled when checking whether `equiv` matches `ref`. Disable it only when measuring raw solver speed or isolating optimizer behavior.
 
-The observability gate is based on the local IMU gravity-direction Jacobian, not on joint names or a hard-coded yaw/gravity assumption. Stiffness updates are applied only in the stiffness subspace supported by the current IMU observations. `measurement_info_eig_cap` limits the information strength of one IMU update, `stiffness_update_gain` tempers the update, and `max_log_kp_step` bounds the per-cycle change in log stiffness. Keep `q_proc` small for static stiffness; increasing it makes the estimator keep adapting during a hold and can make `theta_cmd` drift toward `theta_ref` when the IMU residual contains bias or noise. When `project_unobservable_feedforward` is true, the gravity feedforward term is re-evaluated only along locally observable reference-motion components; the target `theta_ref` itself is not projected. If no IMU observation is available for a cycle, the gravity feedforward evaluation pose is held instead of being reset to `theta_ref`.
+The observability gate is based on the local IMU gravity-direction Jacobian, not on joint names or a hard-coded yaw/gravity assumption. Stiffness updates are applied only in the stiffness subspace supported by the current IMU observations. The estimator keeps `K_est`, while command generation uses the smoothed `K_exec`; `/deflecomp/kp_hat` and `/deflecomp/kp_est` publish the estimate, and `/deflecomp/kp_exec` publishes the execution stiffness. `kp_exec_tau` and `max_log_kp_exec_step` control how quickly `K_exec` follows `K_est`. Keep `q_proc` small for static stiffness; increasing it makes the estimator keep adapting during a hold and can make `theta_cmd` drift toward `theta_ref` when the IMU residual contains bias or noise. When `project_unobservable_feedforward` is true, the gravity feedforward term is re-evaluated only along locally observable reference-motion components; the target `theta_ref` itself is not projected. If no IMU observation is available for a cycle, the gravity feedforward evaluation pose is held instead of being reset to `theta_ref`.
 
 ### First-Stage Debug: No Noise, No Delay
 

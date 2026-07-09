@@ -17,6 +17,9 @@ class CompensationStepResult:
     theta_cmd_raw: np.ndarray
     theta_eq_hat: np.ndarray
     kp_hat: np.ndarray
+    kp_est: np.ndarray
+    kp_exec: np.ndarray
+    kp_exec_target: np.ndarray
     tau_hat: np.ndarray
     debug: Dict[str, Any]
 
@@ -53,6 +56,65 @@ class DeflectionCompensator:
         self.last_stamp: Optional[float] = None
         self.last_theta_ref: Optional[np.ndarray] = None
         self.theta_ref_for_feedforward: Optional[np.ndarray] = None
+        self.last_processed_observation_stamp: Optional[float] = None
+        self.x_exec = self.stiffness_estimator.x_est.copy()
+        self.x_exec_target = self.stiffness_estimator.x_est.copy()
+
+    @property
+    def kp_est(self) -> np.ndarray:
+        return self.stiffness_estimator.kp_est
+
+    @property
+    def kp_exec(self) -> np.ndarray:
+        return np.exp(self.x_exec)
+
+    @property
+    def kp_exec_target(self) -> np.ndarray:
+        return np.exp(self.x_exec_target)
+
+    def _log_kp_limits(self):
+        kp_lim = self.config.get("kp_lim")
+        if kp_lim is None:
+            return None
+        return np.log(float(kp_lim[0])), np.log(float(kp_lim[1]))
+
+    def _clip_log_kp(self, x: np.ndarray) -> np.ndarray:
+        limits = self._log_kp_limits()
+        if limits is None:
+            return np.asarray(x, dtype=float).copy()
+        return np.clip(np.asarray(x, dtype=float), limits[0], limits[1])
+
+    def _update_exec_stiffness_target(self, x_est: np.ndarray) -> None:
+        self.x_exec_target = self._clip_log_kp(x_est)
+
+    def _smooth_exec_stiffness(self, dt: float) -> np.ndarray:
+        dt = max(0.0, float(dt))
+        tau = float(self.config.get("kp_exec_tau", 1.0))
+        if tau <= 0.0:
+            delta = self.x_exec_target - self.x_exec
+        else:
+            alpha = 1.0 - float(np.exp(-dt / max(tau, 1e-9)))
+            delta = alpha * (self.x_exec_target - self.x_exec)
+
+        max_step = float(self.config.get("max_log_kp_exec_step", 0.0))
+        if max_step > 0.0:
+            delta = np.clip(delta, -max_step, max_step)
+
+        self.x_exec = self._clip_log_kp(self.x_exec + delta)
+        return delta
+
+    def _observation_stamp(self, imu_observations: Optional[Sequence[FrameImuObservation]]) -> Optional[float]:
+        if not imu_observations:
+            return None
+        stamps = [obs.stamp for obs in imu_observations if obs.stamp is not None]
+        return max(stamps) if stamps else None
+
+    def _observation_is_unprocessed(self, observation_stamp: Optional[float]) -> bool:
+        if observation_stamp is None:
+            return True
+        if self.last_processed_observation_stamp is None:
+            return True
+        return float(observation_stamp) > float(self.last_processed_observation_stamp) + 1e-12
 
     def _observable_joint_basis(
         self,
@@ -125,6 +187,9 @@ class DeflectionCompensator:
     ) -> CompensationStepResult:
         theta_ref = np.asarray(theta_ref, dtype=float)
         debug: Dict[str, Any] = {}
+        dt_exec = float(dt)
+        if stamp is not None and self.last_stamp is not None:
+            dt_exec = max(0.0, float(stamp) - float(self.last_stamp))
 
         if self.delay_estimator is not None:
             latest_obs_stamp = None
@@ -134,33 +199,49 @@ class DeflectionCompensator:
             debug["delay"] = self.delay_estimator.update(self.last_stamp, latest_obs_stamp)
 
         update_stiffness = _as_bool(self.config.get("update_stiffness", True))
-        theta_eq_obs: Optional[np.ndarray] = None
+        observation_stamp = self._observation_stamp(imu_observations)
+        debug["used_theta_cmd_sent_for_update"] = False
         if update_stiffness and self.last_theta_cmd is not None and imu_observations:
-            a_map = self.observation_builder.build_A_map(imu_observations)
-            if a_map:
-                theta_init = (
-                    self.stiffness_estimator.last_theta_eq
-                    if self.stiffness_estimator.last_theta_eq is not None
-                    else theta_ref
-                )
-                kp_lim = self.config.get("kp_lim")
-                theta_eq_obs = self.stiffness_estimator.update_with_multi(
-                    theta_cmd=self.last_theta_cmd,
-                    A_map=a_map,
-                    theta_init_eq_pred=theta_init,
-                    kp_lim=kp_lim,
-                )
+            if not self._observation_is_unprocessed(observation_stamp):
+                debug["est_update_skipped_reason"] = "duplicate_observation"
+            else:
+                a_map = self.observation_builder.build_A_map(imu_observations)
                 debug["observation_count"] = len(a_map)
-                debug.update(self.stiffness_estimator.last_debug)
+                if not a_map:
+                    debug["est_update_skipped_reason"] = "empty_observation_map"
+                else:
+                    theta_cmd_sent = self.last_theta_cmd.copy()
+                    debug["used_theta_cmd_sent_for_update"] = True
+                    if observation_stamp is not None:
+                        self.last_processed_observation_stamp = float(observation_stamp)
+                    else:
+                        self.last_processed_observation_stamp = None
+                    theta_init = (
+                        self.stiffness_estimator.last_theta_eq
+                        if self.stiffness_estimator.last_theta_eq is not None
+                        else theta_ref
+                    )
+                    kp_lim = self.config.get("kp_lim")
+                    update_result = self.stiffness_estimator.update_with_multi(
+                        theta_cmd_sent=theta_cmd_sent,
+                        A_map=a_map,
+                        theta_init_eq_pred=theta_init,
+                        kp_lim=kp_lim,
+                    )
+                    self._update_exec_stiffness_target(update_result.x_est)
+                    debug.update(update_result.debug)
         debug["update_stiffness"] = update_stiffness
 
-        kp_hat = self.stiffness_estimator.kp_hat
+        log_kp_exec_delta = self._smooth_exec_stiffness(dt_exec)
+        kp_est = self.kp_est
+        kp_exec = self.kp_exec
+        kp_exec_target = self.kp_exec_target
         theta_gravity = self._theta_ref_for_gravity(theta_ref, imu_observations, debug)
         tau_gravity = self.robot.tau_gravity(theta_gravity)
         theta_cmd_raw = self.spring_model.theta_cmd_from_theta_ref(
             tau_gravity=tau_gravity,
             theta_ref=theta_ref,
-            kp_vec=kp_hat,
+            kp_vec=kp_exec,
         )
 
         if self.last_theta_cmd is not None:
@@ -178,13 +259,11 @@ class DeflectionCompensator:
             theta_cmd = theta_cmd_raw
 
         theta_eq_init = (
-            theta_eq_obs
-            if theta_eq_obs is not None
-            else (self.last_theta_eq if self.last_theta_eq is not None else theta_ref)
+            self.last_theta_eq if self.last_theta_eq is not None else theta_ref
         )
         theta_eq_hat = self.equilibrium_solver.solve(
             theta_cmd=theta_cmd,
-            kp_vec=kp_hat,
+            kp_vec=kp_exec,
             theta_init=theta_eq_init,
         )
         tau_hat = self.robot.tau_gravity(theta_eq_hat)
@@ -195,7 +274,14 @@ class DeflectionCompensator:
 
         debug.update(
             {
-                "kp_cov_diag": np.diag(self.stiffness_estimator.P).copy(),
+                "kp_est": kp_est.copy(),
+                "kp_exec": kp_exec.copy(),
+                "kp_exec_target": kp_exec_target.copy(),
+                "log_kp_est": self.stiffness_estimator.x_est.copy(),
+                "log_kp_exec": self.x_exec.copy(),
+                "log_kp_exec_target": self.x_exec_target.copy(),
+                "log_kp_exec_delta": log_kp_exec_delta.copy(),
+                "kp_cov_diag": np.diag(self.stiffness_estimator.P_est).copy(),
                 "stamp": stamp,
             }
         )
@@ -203,7 +289,10 @@ class DeflectionCompensator:
             theta_cmd=theta_cmd,
             theta_cmd_raw=theta_cmd_raw,
             theta_eq_hat=theta_eq_hat,
-            kp_hat=kp_hat,
+            kp_hat=kp_est,
+            kp_est=kp_est,
+            kp_exec=kp_exec,
+            kp_exec_target=kp_exec_target,
             tau_hat=tau_hat,
             debug=debug,
         )

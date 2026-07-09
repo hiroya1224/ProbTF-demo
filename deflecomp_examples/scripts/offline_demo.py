@@ -106,12 +106,12 @@ def main() -> None:
         theta_ws_true = theta_eq_true_k
 
         # EKF update using all frames; warm start with previous predicted equilibrium (or current ref)
-        theta_eq_used = wekf.update_with_multi(
-            theta_cmd=theta_cmd_k,
+        update_result = wekf.update_with_multi(
+            theta_cmd_sent=theta_cmd_k,
             A_map=A_map,
             theta_init_eq_pred=(theta_eq_pred_prev if theta_eq_pred_prev is not None else theta_ref_k),
         )
-        theta_eq_pred_prev = theta_eq_used
+        theta_eq_pred_prev = update_result.theta_eq
 
         if (k + 1) % max(1, n_ref_steps // 4) == 0:
             print(f"[{k+1}/{n_ref_steps}] Kp_hat =", np.exp(wekf.x))

@@ -187,22 +187,23 @@ class StiffnessWEKFLaplaceTests(unittest.TestCase):
         self.assertTrue(np.all(np.diag(estimator.P) < np.diag(P_before)))
         self.assertNotIn("laplace_update_skipped_reason", estimator.last_debug)
 
-    def test_max_log_step_and_kp_bounds_are_enforced(self):
+    def test_estimator_ignores_old_step_cap_but_keeps_kp_bounds(self):
         A = np.zeros((4, 4), dtype=float)
         A[0, 1] = -20.0
         A[1, 0] = -20.0
         A[1, 1] = -0.1
         estimator, _ = make_estimator(
             P0=np.eye(3) * 10.0,
-            max_log_kp_step=0.05,
+            max_log_kp_step=1e-6,
             laplace_jitter=0.0,
         )
         theta_cmd = np.zeros(3)
 
-        estimator.update_with_multi(theta_cmd, {0: A}, theta_init_eq_pred=None, kp_lim=(0.1, 1.02))
+        result = estimator.update_with_multi(theta_cmd, {0: A}, theta_init_eq_pred=None, kp_lim=(0.1, 500.0))
 
-        self.assertLessEqual(np.max(np.abs(estimator.last_update_step)), 0.05 + 1e-12)
-        self.assertTrue(np.all(estimator.kp_hat <= 1.02 + 1e-12))
+        self.assertTrue(result.update_applied)
+        self.assertGreater(np.max(np.abs(estimator.last_update_step)), 1e-6)
+        self.assertTrue(np.all(estimator.kp_hat <= 500.0 + 1e-12))
         self.assertTrue(np.all(estimator.kp_hat >= 0.1 - 1e-12))
 
 

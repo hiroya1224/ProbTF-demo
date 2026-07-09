@@ -156,6 +156,9 @@ class DeflecompNode:
         max_log_kp_step: float,
         min_log_kp_step: float,
         project_unobservable_feedforward: bool,
+        kp_exec_tau: float,
+        max_log_kp_exec_step: float,
+        publish_kp_exec: bool,
     ) -> None:
         self.robot = RobotArm(urdf_path)
         self.spring_model = resolve_spring_model(spring_model_name, self.robot)
@@ -216,10 +219,13 @@ class DeflecompNode:
                 "project_unobservable_feedforward": bool(project_unobservable_feedforward),
                 "feedforward_observability_rcond": float(observability_rcond),
                 "feedforward_observability_abs": float(observability_abs),
+                "kp_exec_tau": float(kp_exec_tau),
+                "max_log_kp_exec_step": float(max_log_kp_exec_step),
             },
         )
         self.kp_lim = kp_lim
         self.dt = float(dt)
+        self.publish_kp_exec = bool(publish_kp_exec)
 
         self.q_ref = np.zeros(self.n, dtype=float)
         self.ref_joint_positions: Dict[str, float] = {name: 0.0 for name in self.output_joint_names}
@@ -230,6 +236,9 @@ class DeflecompNode:
         self.sub_imu = rospy.Subscriber(topic_imu, Imu, self.cb_imu, queue_size=400)
         self.pub_cmd = rospy.Publisher(topic_cmd_out, JointState, queue_size=10)
         self.pub_kp = rospy.Publisher("/deflecomp/kp_hat", Float64MultiArray, queue_size=10)
+        self.pub_kp_est = rospy.Publisher("/deflecomp/kp_est", Float64MultiArray, queue_size=10)
+        self.pub_kp_exec = rospy.Publisher("/deflecomp/kp_exec", Float64MultiArray, queue_size=10)
+        self.pub_kp_exec_target = rospy.Publisher("/deflecomp/kp_exec_target", Float64MultiArray, queue_size=10)
         self.pub_cov = rospy.Publisher("/deflecomp/kp_cov_diag", Float64MultiArray, queue_size=10)
         self.pub_theta_eq = rospy.Publisher("/deflecomp/theta_eq_hat", Float64MultiArray, queue_size=10)
         self.pub_tau = rospy.Publisher("/deflecomp/tau_hat", Float64MultiArray, queue_size=10)
@@ -307,8 +316,12 @@ class DeflecompNode:
         )
         self.pub_cmd.publish(cmd_msg)
 
-        cov_diag = np.clip(np.diag(self.compensator.stiffness_estimator.P), 0.0, np.inf)
+        cov_diag = np.clip(np.diag(self.compensator.stiffness_estimator.P_est), 0.0, np.inf)
         self.pub_kp.publish(Float64MultiArray(data=kp_hat.tolist()))
+        self.pub_kp_est.publish(Float64MultiArray(data=result.kp_est.tolist()))
+        if self.publish_kp_exec:
+            self.pub_kp_exec.publish(Float64MultiArray(data=result.kp_exec.tolist()))
+            self.pub_kp_exec_target.publish(Float64MultiArray(data=result.kp_exec_target.tolist()))
         self.pub_cov.publish(Float64MultiArray(data=cov_diag.tolist()))
         self.pub_theta_eq.publish(Float64MultiArray(data=result.theta_eq_hat.tolist()))
         self.pub_tau.publish(Float64MultiArray(data=result.tau_hat.tolist()))
@@ -319,6 +332,9 @@ class DeflecompNode:
                 np.asarray(result.theta_eq_hat, dtype=float),
                 np.asarray(result.tau_hat, dtype=float),
                 np.asarray(cov_diag, dtype=float),
+                np.asarray(result.kp_est, dtype=float),
+                np.asarray(result.kp_exec, dtype=float),
+                np.asarray(result.kp_exec_target, dtype=float),
             ]
         )
         self.pub_debug.publish(Float64MultiArray(data=debug_vector.tolist()))
@@ -351,6 +367,9 @@ def main() -> None:
     max_log_kp_step = float(rospy.get_param("~max_log_kp_step", 0.002))
     min_log_kp_step = float(rospy.get_param("~min_log_kp_step", 0.0))
     project_unobservable_feedforward = parse_bool(rospy.get_param("~project_unobservable_feedforward", True))
+    kp_exec_tau = float(rospy.get_param("~kp_exec_tau", 1.0))
+    max_log_kp_exec_step = float(rospy.get_param("~max_log_kp_exec_step", 0.0))
+    publish_kp_exec = parse_bool(rospy.get_param("~publish_kp_exec", True))
 
     DeflecompNode(
         urdf_path=urdf_path,
@@ -376,6 +395,9 @@ def main() -> None:
         max_log_kp_step=max_log_kp_step,
         min_log_kp_step=min_log_kp_step,
         project_unobservable_feedforward=project_unobservable_feedforward,
+        kp_exec_tau=kp_exec_tau,
+        max_log_kp_exec_step=max_log_kp_exec_step,
+        publish_kp_exec=publish_kp_exec,
     )
     rospy.spin()
 

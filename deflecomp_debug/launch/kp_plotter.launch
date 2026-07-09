@@ -1,0 +1,13 @@
+<launch>
+  <arg name="topic" default="/deflecomp/kp_hat" />
+  <arg name="window_s" default="60.0" />
+  <arg name="update_hz" default="10.0" />
+  <arg name="labels" default="" />
+
+  <node pkg="deflecomp_debug" type="kp_plotter.py" name="kp_plotter" output="screen">
+    <param name="topic" value="$(arg topic)" />
+    <param name="window_s" value="$(arg window_s)" />
+    <param name="update_hz" value="$(arg update_hz)" />
+    <param name="labels" value="$(arg labels)" />
+  </node>
+</launch>

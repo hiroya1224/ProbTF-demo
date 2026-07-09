@@ -151,6 +151,7 @@ class DeflectionCompensator:
                     kp_lim=kp_lim,
                 )
                 debug["observation_count"] = len(a_map)
+                debug.update(self.stiffness_estimator.last_debug)
         debug["update_stiffness"] = update_stiffness
 
         kp_hat = self.stiffness_estimator.kp_hat

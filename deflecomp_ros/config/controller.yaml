@@ -1,5 +1,5 @@
 dt: 0.02
-theta_cmd_tau: 0.0
+theta_cmd_tau: 0.2
 spring_model: periodic
 equilibrium_refine: true
 equilibrium_refine_maxiter: 40

@@ -19,6 +19,7 @@
   <build_export_depend>std_msgs</build_export_depend>
 
   <exec_depend>deflecomp_core</exec_depend>
+  <exec_depend>deflecomp_debug</exec_depend>
   <exec_depend>deflecomp_description</exec_depend>
   <exec_depend>deflecomp_sim</exec_depend>
   <exec_depend>joint_state_publisher_gui</exec_depend>

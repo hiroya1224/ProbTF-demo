@@ -18,6 +18,7 @@ class KpPlotter:
         self.max_points = int(rospy.get_param("~max_points", 5000))
         self.update_hz = float(rospy.get_param("~update_hz", 10.0))
         self.labels = self._parse_labels(rospy.get_param("~labels", []))
+        self.raise_window = self._as_bool(rospy.get_param("~raise_window", False))
 
         self.samples: Deque[Sample] = deque(maxlen=max(2, self.max_points))
         self.start_stamp: Optional[float] = None
@@ -28,6 +29,8 @@ class KpPlotter:
         self.lines = []
 
         try:
+            import matplotlib
+            matplotlib.rcParams["figure.raise_window"] = bool(self.raise_window)
             import matplotlib.pyplot as plt
         except ImportError as exc:
             raise RuntimeError("kp_plotter requires matplotlib. Install python3-matplotlib.") from exc
@@ -51,8 +54,9 @@ class KpPlotter:
             color="0.35",
         )
         self.fig.tight_layout()
-        self.fig.show()
+        self._configure_window_behavior()
         self.fig.canvas.draw_idle()
+        self.fig.canvas.flush_events()
         self.plt.pause(0.001)
 
         self.sub = rospy.Subscriber(self.topic, Float64MultiArray, self._cb_kp, queue_size=20)
@@ -63,6 +67,33 @@ class KpPlotter:
         if isinstance(value, str):
             return [item.strip() for item in value.replace(";", ",").split(",") if item.strip()]
         return [str(item).strip() for item in list(value) if str(item).strip()]
+
+    @staticmethod
+    def _as_bool(value) -> bool:
+        if isinstance(value, str):
+            return value.strip().lower() not in ("0", "false", "no", "off")
+        return bool(value)
+
+    def _configure_window_behavior(self) -> None:
+        if self.raise_window:
+            return
+        try:
+            manager = self.plt.get_current_fig_manager()
+            window = getattr(manager, "window", None)
+            if window is None:
+                return
+            try:
+                from matplotlib.backends.qt_compat import QtCore
+                window.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint, False)
+                window.setAttribute(QtCore.Qt.WA_ShowWithoutActivating, True)
+            except Exception:
+                pass
+            try:
+                window.attributes("-topmost", False)
+            except Exception:
+                pass
+        except Exception as exc:
+            rospy.logdebug("kp_plotter: could not adjust window raise behavior: %s", exc)
 
     def _cb_kp(self, msg: Float64MultiArray) -> None:
         stamp = rospy.Time.now().to_sec()

@@ -3,6 +3,8 @@ update_stiffness: true
 kp0: [50.0, 50.0, 50.0, 100.0, 200.0, 200.0]
 kp_min: 1.0
 kp_max: 500.0
+# Initial standard deviation in log(K). "auto" sets kp_min..kp_max to about +/-2 sigma.
+log_kp0_std: auto
 q_proc: 1.0e-8
 observability_rcond: 0.0001
 observability_abs: 1.0e-10
@@ -12,5 +14,5 @@ max_log_kp_step: 0.0
 min_log_kp_step: 0.0
 project_unobservable_feedforward: true
 kp_exec_tau: 0.01
-max_log_kp_exec_step: 0.002
+max_log_kp_exec_step: 0.05
 publish_kp_exec: true

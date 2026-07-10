@@ -67,9 +67,38 @@ class ImuBuffer:
 def parse_float_list(value) -> List[float]:
     if isinstance(value, str):
         items = value.replace(";", ",").split(",")
-    else:
+    elif isinstance(value, (list, tuple, np.ndarray)):
         items = list(value)
+    else:
+        items = [value]
     return [float(item) for item in items if str(item).strip()]
+
+
+def default_log_kp0_std(kp_lim: Tuple[float, float]) -> float:
+    kp_min, kp_max = (float(v) for v in kp_lim)
+    if kp_min <= 0.0 or kp_max <= kp_min:
+        raise ValueError(f"kp_min/kp_max must satisfy 0 < kp_min < kp_max, got {kp_lim}")
+    return (np.log(kp_max) - np.log(kp_min)) / 4.0
+
+
+def resolve_log_kp0_std(value: Any, n: int, kp_lim: Tuple[float, float]) -> np.ndarray:
+    if value is None:
+        arr = np.array([default_log_kp0_std(kp_lim)], dtype=float)
+    elif isinstance(value, str) and value.strip().lower() in ("", "auto", "default"):
+        arr = np.array([default_log_kp0_std(kp_lim)], dtype=float)
+    else:
+        arr = np.asarray(parse_float_list(value), dtype=float)
+        if arr.size == 0:
+            arr = np.array([default_log_kp0_std(kp_lim)], dtype=float)
+
+    if arr.size == 1:
+        arr = np.ones(n, dtype=float) * float(arr[0])
+    elif arr.size != n:
+        arr = np.resize(arr, n)
+
+    if np.any(arr < 0.0):
+        raise ValueError(f"log_kp0_std must be non-negative, got {arr}")
+    return arr
 
 
 def parse_bool(value) -> bool:
@@ -135,6 +164,7 @@ class DeflecompNode:
         A_param: float,
         kp0: Sequence[float],
         kp_lim: Tuple[float, float],
+        log_kp0_std: Any,
         q_proc: float,
         spring_model_name: str,
         theta_cmd_tau: float,
@@ -181,8 +211,13 @@ class DeflecompNode:
             cfg.frame_id: cfg for cfg in self.imu_frame_configs
         }
         x0 = np.log(np.resize(np.asarray(kp0, dtype=float), self.n))
-        P0 = np.eye(self.n) * 1.0
+        log_kp0_std_vec = resolve_log_kp0_std(log_kp0_std, self.n, kp_lim)
+        P0 = np.diag(log_kp0_std_vec ** 2)
         Q = np.eye(self.n) * float(q_proc)
+        rospy.loginfo(
+            "deflecomp_node: initial log(K) std=%s",
+            ", ".join(f"{v:.6g}" for v in log_kp0_std_vec),
+        )
         estimator = MultiFrameStiffnessWEKF(
             x0=x0,
             P0=P0,
@@ -353,6 +388,7 @@ def main() -> None:
     kp0 = parse_float_list(rospy.get_param("~kp0", [50, 50, 50, 50, 50, 50]))
     kp_min = float(rospy.get_param("~kp_min", 1.0))
     kp_max = float(rospy.get_param("~kp_max", 500.0))
+    log_kp0_std = rospy.get_param("~log_kp0_std", "auto")
     q_proc = float(rospy.get_param("~q_proc", 1e-8))
     spring_model_name = rospy.get_param("~spring_model", "auto")
     theta_cmd_tau = float(rospy.get_param("~theta_cmd_tau", 0.2))
@@ -381,6 +417,7 @@ def main() -> None:
         A_param=A_param,
         kp0=kp0,
         kp_lim=(kp_min, kp_max),
+        log_kp0_std=log_kp0_std,
         q_proc=q_proc,
         spring_model_name=spring_model_name,
         theta_cmd_tau=theta_cmd_tau,

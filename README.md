@@ -76,7 +76,7 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 
 Use `spring_model: linear` to match `online-deflecomp` commit `ad5163a`. Use `spring_model: periodic` in both `controller.yaml` and `sim_params.yaml` for the circular spring model.
 
-Set `viewer:=true` on `deflecomp_frames.launch` to start the `deflecomp_debug` stiffness plotter for `/deflecomp/kp_hat`.
+Set `viewer:=true` on `deflecomp_frames.launch` to start the `deflecomp_debug` stiffness plotter. By default it shows `/deflecomp/kp_est` and `/deflecomp/kp_exec` side by side, with `/deflecomp/kp_est` shaded by the `/deflecomp/kp_cov_diag` +/-2 sigma range.
 
 Robot-specific IMU frames are supplied through `imu_config`. The same YAML is loaded into the estimator, simulator, and optional static TF publisher:
 

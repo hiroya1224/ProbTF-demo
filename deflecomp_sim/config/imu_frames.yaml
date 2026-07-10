@@ -1,0 +1,9 @@
+# Default simple6r IMU frame configuration for standalone simulator launch.
+imu_frames:
+  - frame_id: link6
+    model_frame: link6
+  - frame_id: link3
+    model_frame: link3
+  - frame_id: link2
+    model_frame: link2
+static_transforms: []

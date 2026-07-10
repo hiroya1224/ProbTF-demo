@@ -1,10 +1,13 @@
 <launch>
   <arg name="model" default="$(find deflecomp_description)/urdf/simple6r.urdf" />
   <arg name="urdf_path" default="$(arg model)" />
+  <arg name="imu_config" default="$(find deflecomp_sim)/config/imu_frames.yaml" />
   <include file="$(find deflecomp_sim)/launch/sim.launch">
     <arg name="model" value="$(arg urdf_path)" />
+    <arg name="imu_config" value="$(arg imu_config)" />
   </include>
   <include file="$(find deflecomp_ros)/launch/deflecomp.launch">
     <arg name="model" value="$(arg urdf_path)" />
+    <arg name="imu_config" value="$(arg imu_config)" />
   </include>
 </launch>

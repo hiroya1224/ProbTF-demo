@@ -11,6 +11,6 @@ stiffness_update_gain: 1.0
 max_log_kp_step: 0.0
 min_log_kp_step: 0.0
 project_unobservable_feedforward: true
-kp_exec_tau: 1.0
+kp_exec_tau: 0.01
 max_log_kp_exec_step: 0.002
 publish_kp_exec: true

@@ -66,6 +66,7 @@ class FlexibleJointSimulator:
 
         self.q = np.zeros(n, dtype=float)
         self.qd = np.zeros(n, dtype=float)
+        self.qs_perturb = np.zeros(n, dtype=float)
         self.vel_lim = None if params.limit_velocity is None else np.asarray(params.limit_velocity, dtype=float)
         lo = self.robot.model.lowerPositionLimit
         hi = self.robot.model.upperPositionLimit
@@ -98,6 +99,7 @@ class FlexibleJointSimulator:
         self._t = 0.0
         self.q = np.zeros(n, dtype=float) if q is None else np.asarray(q, dtype=float).copy()
         self.qd = np.zeros(n, dtype=float) if qd is None else np.asarray(qd, dtype=float).copy()
+        self.qs_perturb = np.zeros(n, dtype=float)
         self.q_ref_filt = self.q.copy()
         self.q_ref_prev = self.q.copy()
 
@@ -147,7 +149,7 @@ class FlexibleJointSimulator:
             return np.linalg.pinv(M, rcond=1e-12) @ rhs
         return np.linalg.solve(M, rhs)
 
-    def _apply_quasistatic_perturbation(self, q_eq: np.ndarray, dt: float) -> np.ndarray:
+    def _apply_quasistatic_perturbation(self, q_eq: np.ndarray, dt: float) -> Tuple[np.ndarray, np.ndarray]:
         self._t += float(dt)
         n = q_eq.shape[0]
         noise = np.zeros(n, dtype=float)
@@ -164,7 +166,8 @@ class FlexibleJointSimulator:
                     if 0 <= int(idx) < n:
                         mask[int(idx)] = 1.0
                 vib = vib * mask
-        return q_eq + noise + vib
+        perturb = noise + vib
+        return q_eq + perturb, perturb
 
     def step(
         self,
@@ -178,17 +181,24 @@ class FlexibleJointSimulator:
             raise ValueError(f"q_ref must have shape ({n},), got {q_ref.shape}")
 
         mode = self.params.eq_mode
+        q_eq_nominal = None
+        qs_perturb_prev = None
         if mode in ("quasistatic", "relax_to_eq"):
             q_eq = self._solve_equilibrium(theta_cmd=q_ref, kp_vec=self.K, q_init=self.q)
             if mode == "quasistatic":
-                q_next = self._apply_quasistatic_perturbation(q_eq=q_eq, dt=dt)
-                qd_next = np.zeros_like(q_eq)
+                q_eq_nominal = q_eq
+                qs_perturb_prev = self.qs_perturb.copy()
+                q_next, qs_perturb = self._apply_quasistatic_perturbation(q_eq=q_eq, dt=dt)
+                qd_next = (qs_perturb - qs_perturb_prev) / max(dt, 1e-9)
+                self.qs_perturb = qs_perturb.copy()
             else:
+                self.qs_perturb = np.zeros(n, dtype=float)
                 tau = float(self.params.tau_eq if (self.params.tau_eq is not None and self.params.tau_eq > 0.0) else 0.05)
                 alpha = 1.0 - np.exp(-dt / max(tau, 1e-6))
                 q_next = self.q + alpha * (q_eq - self.q)
                 qd_next = (q_next - self.q) / max(dt, 1e-9)
         else:
+            self.qs_perturb = np.zeros(n, dtype=float)
             q_ref_eff = self._shape_reference(dt=dt, q_ref_in=q_ref)
             if self.params.integrator.lower() == "rk4":
                 q0 = self.q.copy()
@@ -209,10 +219,16 @@ class FlexibleJointSimulator:
                 qd_next = self.qd + dt * qdd
                 q_next = self.q + dt * qd_next
 
+        if self.pos_lo is not None and self.pos_hi is not None:
+            q_clipped = np.minimum(np.maximum(q_next, self.pos_lo), self.pos_hi)
+            if mode == "quasistatic" and q_eq_nominal is not None and qs_perturb_prev is not None:
+                q_nominal_clipped = np.minimum(np.maximum(q_eq_nominal, self.pos_lo), self.pos_hi)
+                qs_perturb = q_clipped - q_nominal_clipped
+                qd_next = (qs_perturb - qs_perturb_prev) / max(dt, 1e-9)
+                self.qs_perturb = qs_perturb.copy()
+            q_next = q_clipped
         if self.vel_lim is not None:
             qd_next = np.clip(qd_next, -self.vel_lim, self.vel_lim)
-        if self.pos_lo is not None and self.pos_hi is not None:
-            q_next = np.minimum(np.maximum(q_next, self.pos_lo), self.pos_hi)
 
         self.q = q_next
         self.qd = qd_next

@@ -33,5 +33,6 @@ class ImuObservationBuilder:
         for observation in observations:
             g_frame = normalize(np.asarray(observation.gravity_dir, dtype=float))
             fid = self.robot.get_frame_id(observation.frame_name)
-            a_map[fid] = simple_bingham_unit(g_frame, self.g_world, parameter=self.parameter_A)
+            A_f = simple_bingham_unit(g_frame, self.g_world, parameter=self.parameter_A)
+            a_map[fid] = A_f if fid not in a_map else a_map[fid] + A_f
         return a_map

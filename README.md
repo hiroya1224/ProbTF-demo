@@ -39,7 +39,7 @@ roslaunch deflecomp_ros deflecomp_frames.launch model:=/abs/path/to/robot.urdf
 - `deflecomp_ros/config/simple6r.yaml`: URDF-independent ROS topic/frame wiring.
 - `deflecomp_ros/config/controller.yaml`: command generation, command lag filter, and spring model for the compensator.
 - `deflecomp_ros/config/estimator.yaml`: stiffness estimator parameters.
-- `deflecomp_ros/config/imu_frames.yaml`: IMU frame list.
+- `deflecomp_ros/config/imu_frames.yaml`: default IMU frame config. Override it with `imu_config:=...` for each robot model.
 - `deflecomp_sim/config/sim_params.yaml`: simulator stiffness, dynamics, noise, lag, topics, and simulator spring model.
 
 The current default is the no-noise/no-delay simulation baseline. In this mode the simulator uses quasi-static equilibrium, the command low-pass filter is disabled, and the estimator initial stiffness is set equal to the simulator stiffness. `equil` should be much closer to `ref` than `cmd` is:
@@ -66,7 +66,7 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 | Per-update IMU information cap | `deflecomp_ros/config/estimator.yaml` | `measurement_info_eig_cap` |
 | Simulator mode | `deflecomp_sim/config/sim_params.yaml` | `eq_mode` |
 | Simulator command/equilibrium lag | `deflecomp_sim/config/sim_params.yaml` | `ref_tau`, `ref_max_vel`, `vel_limit`, `tau_eq` |
-| Quasi-static joint noise | `deflecomp_sim/config/sim_params.yaml` | `qs_noise_std_deg` |
+| Quasi-static link noise | `deflecomp_sim/config/sim_params.yaml` | `qs_noise_std_deg` |
 | Quasi-static vibration | `deflecomp_sim/config/sim_params.yaml` | `qs_vib_amp_deg`, `qs_vib_freq_hz`, `qs_vib_axes` |
 | Reference topic | `deflecomp_ros/config/simple6r.yaml` | `topic_ref` |
 | Command topic | `deflecomp_ros/config/simple6r.yaml` | `topic_cmd_out` |
@@ -76,6 +76,29 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 Use `spring_model: linear` to match `online-deflecomp` commit `ad5163a`. Use `spring_model: periodic` in both `controller.yaml` and `sim_params.yaml` for the circular spring model.
 
 Set `viewer:=true` on `deflecomp_frames.launch` to start the `deflecomp_debug` stiffness plotter for `/deflecomp/kp_hat`.
+
+Robot-specific IMU frames are supplied through `imu_config`. The same YAML is loaded into the estimator, simulator, and optional static TF publisher:
+
+```bash
+roslaunch deflecomp_ros deflecomp_frames.launch \
+  model:=/home/leus/catkin_ws/src/nejineji-urdfs/yamaguchi_arm_nejineji/urdf/yamaguchi_6axis_arm_nejineji.urdf \
+  imu_config:=/home/leus/catkin_ws/src/nejineji-urdfs/yamaguchi_arm_nejineji/config/deflecomp_imu_frames.yaml
+```
+
+The YAML schema separates the incoming IMU frame from the URDF frame used by Pinocchio:
+
+```yaml
+imu_frames:
+  - frame_id: module4_imu
+    model_frame: module4_link2
+    parent_frame: module4_link2
+    xyz: [0.0, 0.0, 0.0]
+    rpy: [0.0, 0.0, 0.0]
+    publish_static_tf: true
+static_transforms: []
+```
+
+If the IMU frame already exists in the URDF, set `frame_id` and `model_frame` to that frame and leave `publish_static_tf` unset. If the IMU frame is only a fixed child of an existing URDF link, set `frame_id` to the IMU `sensor_msgs/Imu.header.frame_id`, `model_frame`/`parent_frame` to the URDF link, and enable `publish_static_tf:=true` on the launch. In `deflecomp_frames.launch`, static IMU TF parents are prefixed with `equil` by default so they attach to the equilibrium display tree.
 
 For URDFs that include passive, mimic, or zero-velocity joints, `deflecomp_core.robot.RobotArm` builds a Pinocchio reduced model and locks those non-controllable joints at zero. For example, `yamaguchi_6axis_arm_nejineji.urdf` contains gripper mimic/prismatic joints in addition to the six arm joints; the reduced model keeps only the six controllable arm joints and treats the gripper/camera links as fixed payloads. The ROS node logs the active `joints` and `locked_joints` at startup. `/cmd/joint_states` and `/equil/joint_states` are expanded back to the full movable URDF joint list for RViz/TF; locked joints are filled from the latest reference-derived joint values.
 
@@ -141,6 +164,8 @@ spring_model: periodic
 ```
 
 Keep `deflecomp_ros/config/estimator.yaml::kp0` equal to `deflecomp_sim/config/sim_params.yaml::kp_true` while isolating the feedforward/equilibrium logic. Keep `update_stiffness: false` while checking whether the Bingham/WEKF stiffness update is causing oscillation. If `kp0` and `kp_true` differ, the static inverse-statics command can be wrong even when noise and lag are disabled.
+
+In quasi-static mode, `qs_noise_std_deg` and `qs_vib_amp_deg` perturb the simulated link trajectory. The simulator finite-differences only that perturbation, so synthetic IMU `angular_velocity` and `linear_acceleration` reflect vibration/noise while zero noise/vibration restores gravity-only quasi-static IMU observations.
 
 ### Returning To Dynamic Simulation
 

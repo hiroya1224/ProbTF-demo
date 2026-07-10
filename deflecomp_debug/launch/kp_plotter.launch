@@ -1,5 +1,7 @@
 <launch>
   <arg name="topic" default="/deflecomp/kp_hat" />
+  <arg name="topics" default="/deflecomp/kp_est,/deflecomp/kp_exec" />
+  <arg name="titles" default="K_est,K_exec" />
   <arg name="window_s" default="60.0" />
   <arg name="update_hz" default="10.0" />
   <arg name="labels" default="" />
@@ -7,6 +9,8 @@
 
   <node pkg="deflecomp_debug" type="kp_plotter.py" name="kp_plotter" output="screen">
     <param name="topic" value="$(arg topic)" />
+    <param name="topics" value="$(arg topics)" />
+    <param name="titles" value="$(arg titles)" />
     <param name="window_s" value="$(arg window_s)" />
     <param name="update_hz" value="$(arg update_hz)" />
     <param name="labels" value="$(arg labels)" />

@@ -2,7 +2,7 @@
 import os
 import threading
 from bisect import bisect_left
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import rospkg
@@ -15,6 +15,7 @@ from deflecomp_core.estimator.stiffness_wekf import MultiFrameStiffnessWEKF
 from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
 from deflecomp_core.model.sensitivity import SensitivityCalculator
 from deflecomp_core.model.spring import JointTypeAwareSpringModel, LinearSpringModel, PeriodicSpringModel
+from deflecomp_core.observation.imu_frame_config import ImuFrameConfig, resolve_imu_frame_configs
 from deflecomp_core.observation.imu_observation import FrameImuObservation, ImuObservationBuilder
 from deflecomp_core.pipeline.compensator import DeflectionCompensator
 from deflecomp_core.robot.pinocchio_robot import RobotArm
@@ -61,14 +62,6 @@ class ImuBuffer:
             alpha = (t - t0) / (t1 - t0)
             g = (1.0 - alpha) * g0 + alpha * g1
             return g / (np.linalg.norm(g) + 1e-12)
-
-
-def parse_string_list(value) -> List[str]:
-    if isinstance(value, str):
-        items = value.replace(";", ",").split(",")
-    else:
-        items = list(value)
-    return [str(item).strip() for item in items if str(item).strip()]
 
 
 def parse_float_list(value) -> List[float]:
@@ -134,7 +127,7 @@ class DeflecompNode:
     def __init__(
         self,
         urdf_path: str,
-        frames: Sequence[str],
+        imu_frames: Any,
         topic_ref: str,
         topic_imu: str,
         topic_cmd_out: str,
@@ -177,12 +170,16 @@ class DeflecompNode:
         self.model_joint_names = self.robot.model_joint_names
         self.output_joint_names = self.robot.urdf_info.movable_joint_names or self.model_joint_names
 
-        self.frames = self.robot.suggest_imu_frames(
-            preferred=frames,
+        self.imu_frame_configs: List[ImuFrameConfig] = resolve_imu_frame_configs(
+            robot=self.robot,
+            value=imu_frames,
             count=max(1, min(3, len(self.model_joint_names))),
         )
-        if not self.frames:
+        if not self.imu_frame_configs:
             raise ValueError(f"No valid IMU frames found in URDF: {urdf_path}")
+        self.imu_config_by_frame_id: Dict[str, ImuFrameConfig] = {
+            cfg.frame_id: cfg for cfg in self.imu_frame_configs
+        }
         x0 = np.log(np.resize(np.asarray(kp0, dtype=float), self.n))
         P0 = np.eye(self.n) * 1.0
         Q = np.eye(self.n) * float(q_proc)
@@ -230,7 +227,7 @@ class DeflecompNode:
         self.q_ref = np.zeros(self.n, dtype=float)
         self.ref_joint_positions: Dict[str, float] = {name: 0.0 for name in self.output_joint_names}
         self.have_ref = False
-        self.imu_bufs: Dict[str, ImuBuffer] = {name: ImuBuffer(maxlen=2000) for name in self.frames}
+        self.imu_bufs: Dict[str, ImuBuffer] = {cfg.frame_id: ImuBuffer(maxlen=2000) for cfg in self.imu_frame_configs}
 
         self.sub_ref = rospy.Subscriber(topic_ref, JointState, self.cb_ref, queue_size=50)
         self.sub_imu = rospy.Subscriber(topic_imu, Imu, self.cb_imu, queue_size=400)
@@ -246,12 +243,12 @@ class DeflecompNode:
 
         self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
         rospy.loginfo(
-            "deflecomp_node: base=%s tip=%s joints=%s locked_joints=%s frames=%s spring=%s",
+            "deflecomp_node: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s",
             self.robot.base_link_name,
             self.robot.tip_link_name,
             ", ".join(self.model_joint_names),
             ", ".join(self.robot.locked_joint_names) if self.robot.locked_joint_names else "(none)",
-            ", ".join(self.frames),
+            ", ".join(f"{cfg.frame_id}->{cfg.model_frame}" for cfg in self.imu_frame_configs),
             type(self.spring_model).__name__,
         )
 
@@ -262,7 +259,8 @@ class DeflecompNode:
 
     def cb_imu(self, msg: Imu) -> None:
         frame_name = (msg.header.frame_id or "").strip()
-        if frame_name not in self.imu_bufs:
+        cfg = self.imu_config_by_frame_id.get(frame_name)
+        if cfg is None:
             return
         accel = np.array(
             [
@@ -274,7 +272,9 @@ class DeflecompNode:
         )
         if np.linalg.norm(accel) < 1e-9:
             return
-        g_dir = -accel / (np.linalg.norm(accel) + 1e-12)
+        g_sensor = -accel / (np.linalg.norm(accel) + 1e-12)
+        g_dir = cfg.R_model_imu @ g_sensor
+        g_dir = g_dir / (np.linalg.norm(g_dir) + 1e-12)
         stamp = msg.header.stamp.to_sec() if msg.header.stamp else rospy.get_time()
         self.imu_bufs[frame_name].push(stamp, g_dir)
 
@@ -282,11 +282,11 @@ class DeflecompNode:
         if t_align is None:
             return []
         observations: List[FrameImuObservation] = []
-        for frame_name in self.frames:
-            g_dir = self.imu_bufs[frame_name].interpolate(t_align)
+        for cfg in self.imu_frame_configs:
+            g_dir = self.imu_bufs[cfg.frame_id].interpolate(t_align)
             if g_dir is None:
                 continue
-            observations.append(FrameImuObservation(frame_name=frame_name, gravity_dir=g_dir, stamp=t_align))
+            observations.append(FrameImuObservation(frame_name=cfg.model_frame, gravity_dir=g_dir, stamp=t_align))
         return observations
 
     def on_timer(self, event) -> None:
@@ -344,7 +344,7 @@ def main() -> None:
     rospy.init_node("deflecomp_node", anonymous=False)
 
     urdf_path = rospy.get_param("~urdf_path", resolve_default_urdf())
-    frames = parse_string_list(rospy.get_param("~frames", []))
+    imu_frames = rospy.get_param("~imu_frames", rospy.get_param("~frames", []))
     topic_ref = rospy.get_param("~topic_ref", "/ref/joint_states")
     topic_imu = rospy.get_param("~topic_imu", "/imu")
     topic_cmd_out = rospy.get_param("~topic_cmd_out", "/deflecomp/theta_cmd")
@@ -373,7 +373,7 @@ def main() -> None:
 
     DeflecompNode(
         urdf_path=urdf_path,
-        frames=frames,
+        imu_frames=imu_frames,
         topic_ref=topic_ref,
         topic_imu=topic_imu,
         topic_cmd_out=topic_cmd_out,

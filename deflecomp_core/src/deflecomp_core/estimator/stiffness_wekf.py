@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from deflecomp_core.model.equilibrium import EquilibriumSolver
 from deflecomp_core.model.sensitivity import SensitivityCalculator
 from deflecomp_core.observation.bingham import BinghamUtils
+from deflecomp_core.robot.pinocchio_robot import RobotArm
 
 
 @dataclass
@@ -90,6 +92,41 @@ class MultiFrameStiffnessWEKF:
     @property
     def kp_est(self) -> np.ndarray:
         return np.exp(self.x_est)
+
+    def clone_for_evaluation(self) -> "MultiFrameStiffnessWEKF":
+        robot = RobotArm(
+            self.robot.urdf_path,
+            tip_link=self.robot.tip_link_name,
+            base_link=self.robot.base_link_name,
+        )
+        spring_model = deepcopy(self.solver.spring_model)
+        solver = EquilibriumSolver(
+            robot=robot,
+            spring_model=spring_model,
+            cfg=deepcopy(self.solver.cfg),
+        )
+        sensitivity = SensitivityCalculator(robot=robot, spring_model=spring_model)
+        clone = MultiFrameStiffnessWEKF(
+            x0=self.x_est.copy(),
+            P0=self.P_est.copy(),
+            Q=self.Q.copy(),
+            solver=solver,
+            sensitivity=sensitivity,
+            eps_def=self.eps_def,
+            observability_rcond=self.observability_rcond,
+            observability_abs=self.observability_abs,
+            laplace_negative_info_tol=self.laplace_negative_info_tol,
+            laplace_jitter=self.laplace_jitter,
+        )
+        clone.last_theta_eq = None if self.last_theta_eq is None else self.last_theta_eq.copy()
+        clone.last_observable_rank = int(self.last_observable_rank)
+        clone.last_observable_eigvals = self.last_observable_eigvals.copy()
+        clone.last_information_scale = float(self.last_information_scale)
+        clone.last_update_step = self.last_update_step.copy()
+        clone.last_update_norm = float(self.last_update_norm)
+        clone.last_update_applied = bool(self.last_update_applied)
+        clone.last_debug = deepcopy(self.last_debug)
+        return clone
 
     def evaluate_log_likelihood_at_x(
         self,
@@ -210,6 +247,7 @@ class MultiFrameStiffnessWEKF:
         x_new: np.ndarray,
         active_indices: np.ndarray,
         reset_std: float,
+        pursuit_mixture_weight: float = 1.0,
         theta_eq: Optional[np.ndarray] = None,
         kp_lim: Optional[Tuple[float, float]] = None,
     ) -> None:
@@ -226,15 +264,35 @@ class MultiFrameStiffnessWEKF:
                 raise ValueError(f"invalid kp_lim: {kp_lim}")
             x = np.clip(x, np.log(kp_min), np.log(kp_max))
 
-        self.x_est = x
-        active = np.asarray(active_indices, dtype=int)
+        active = np.unique(np.asarray(active_indices, dtype=int))
+        active = active[(0 <= active) & (active < self.x_est.size)]
+        x_pursuit = x_old.copy()
+        x_pursuit[active] = x[active]
+        weight = float(np.clip(float(pursuit_mixture_weight), 0.0, 1.0))
+
+        P_zealot = 0.5 * (self.P_est + self.P_est.T)
+        P_pursuit = P_zealot.copy()
         reset_var = float(reset_std) ** 2
         for j in active:
-            if 0 <= int(j) < self.P_est.shape[0]:
-                self.P_est[int(j), int(j)] = max(float(self.P_est[int(j), int(j)]), reset_var)
-        self.P_est = 0.5 * (self.P_est + self.P_est.T)
+            P_pursuit[int(j), int(j)] = max(float(P_pursuit[int(j), int(j)]), reset_var)
 
-        if theta_eq is not None:
+        x_mix_raw = (1.0 - weight) * x_old + weight * x_pursuit
+        dz = x_old - x_mix_raw
+        dp = x_pursuit - x_mix_raw
+        P_mix = (
+            (1.0 - weight) * (P_zealot + np.outer(dz, dz))
+            + weight * (P_pursuit + np.outer(dp, dp))
+        )
+        P_mix = 0.5 * (P_mix + P_mix.T)
+        if not np.all(np.isfinite(P_mix)):
+            P_mix = P_zealot
+
+        self.x_est = x_mix_raw
+        if kp_lim is not None:
+            self.x_est = np.clip(self.x_est, np.log(kp_min), np.log(kp_max))
+        self.P_est = P_mix
+
+        if theta_eq is not None and weight >= 1.0:
             self.last_theta_eq = np.asarray(theta_eq, dtype=float).copy()
 
         dx = self.x_est - x_old
@@ -245,6 +303,9 @@ class MultiFrameStiffnessWEKF:
         debug["particle_correction_applied"] = True
         debug["particle_correction_active_indices"] = active.copy()
         debug["particle_correction_reset_std"] = float(reset_std)
+        debug["particle_correction_pursuit_mixture_weight"] = float(weight)
+        debug["particle_correction_x_zealot"] = x_old.copy()
+        debug["particle_correction_x_pursuit"] = x_pursuit.copy()
         debug["particle_correction_dx_norm"] = self.last_update_norm
         debug["particle_correction_dx_max_abs"] = float(np.max(np.abs(dx))) if dx.size else 0.0
         debug["est_update_applied"] = True

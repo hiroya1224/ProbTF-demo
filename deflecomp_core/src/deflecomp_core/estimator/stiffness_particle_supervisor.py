@@ -1,4 +1,5 @@
 from collections import deque
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Deque, Dict, List, Optional, Tuple
 
@@ -61,6 +62,48 @@ class StiffnessParticleScanSupervisor:
 
     def _window_size(self) -> int:
         return max(1, int(self.config.window_size))
+
+    def snapshot(self) -> "StiffnessParticleScanSupervisor":
+        snapshot = StiffnessParticleScanSupervisor(deepcopy(self.config))
+        snapshot.records = deque(
+            (
+                StiffnessParticleRecord(
+                    theta_cmd_sent=record.theta_cmd_sent.copy(),
+                    A_map={fid: A_f.copy() for fid, A_f in record.A_map.items()},
+                    theta_init_eq_pred=None
+                    if record.theta_init_eq_pred is None
+                    else record.theta_init_eq_pred.copy(),
+                    stamp=record.stamp,
+                )
+                for record in self.records
+            ),
+            maxlen=self.records.maxlen,
+        )
+        snapshot.step_count = int(self.step_count)
+        snapshot.last_result = self.last_result
+        return snapshot
+
+    def status_result(
+        self,
+        reason: str,
+        attempted: bool = False,
+        x_current: Optional[np.ndarray] = None,
+        debug_extra: Optional[Dict[str, Any]] = None,
+    ) -> StiffnessParticleScanResult:
+        return self._result(
+            attempted=bool(attempted),
+            accepted=False,
+            reason=reason,
+            x_current=x_current,
+            x_best=None,
+            score_current=-np.inf,
+            score_best=-np.inf,
+            gain_per_obs=0.0,
+            active_indices=np.array([], dtype=int),
+            candidate_count=0,
+            theta_eq_best=None,
+            debug_extra={} if debug_extra is None else dict(debug_extra),
+        )
 
     def add_record(
         self,

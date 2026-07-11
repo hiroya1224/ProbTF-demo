@@ -204,6 +204,31 @@ class StiffnessWEKFLaplaceTests(unittest.TestCase):
         self.assertTrue(np.all(estimator.kp_hat <= 500.0 + 1e-12))
         self.assertTrue(np.all(estimator.kp_hat >= 0.1 - 1e-12))
 
+    def test_particle_correction_moment_matches_zealot_and_pursuit_mixture(self):
+        x0 = np.array([0.0, 0.0], dtype=float)
+        P0 = np.diag([0.01, 0.04])
+        estimator, _ = make_estimator(x0=x0, P0=P0)
+
+        estimator.apply_particle_correction(
+            x_new=np.array([1.0, 5.0], dtype=float),
+            active_indices=np.array([0], dtype=int),
+            reset_std=0.2,
+            pursuit_mixture_weight=0.25,
+            theta_eq=np.ones(2, dtype=float),
+            kp_lim=(0.001, 500.0),
+        )
+
+        x_expected = np.array([0.25, 0.0], dtype=float)
+        P_pursuit = np.diag([0.04, 0.04])
+        dz = x0 - x_expected
+        dp = np.array([1.0, 0.0], dtype=float) - x_expected
+        P_expected = 0.75 * (P0 + np.outer(dz, dz)) + 0.25 * (P_pursuit + np.outer(dp, dp))
+
+        self.assertTrue(np.allclose(estimator.x, x_expected))
+        self.assertTrue(np.allclose(estimator.P, P_expected))
+        self.assertIsNone(estimator.last_theta_eq)
+        self.assertEqual(estimator.last_debug["particle_correction_pursuit_mixture_weight"], 0.25)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -8,7 +8,7 @@ import numpy as np
 import rospkg
 import rospy
 from sensor_msgs.msg import Imu, JointState
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, String
 
 from deflecomp_core.control.feedforward import CommandGenerator
 from deflecomp_core.estimator.stiffness_wekf import MultiFrameStiffnessWEKF
@@ -157,6 +157,8 @@ class DeflecompNode:
         particle_scan_window_size: int,
         particle_scan_grid_size: int,
         particle_scan_reset_std: float,
+        particle_scan_backend: str,
+        particle_pursuit_mixture_weight: float,
     ) -> None:
         self.robot = RobotArm(urdf_path)
         self.spring_model = resolve_spring_model(spring_model_name, self.robot)
@@ -230,7 +232,20 @@ class DeflecompNode:
                 "particle_scan_window_size": int(particle_scan_window_size),
                 "particle_scan_grid_size": int(particle_scan_grid_size),
                 "particle_scan_reset_std": float(particle_scan_reset_std),
+                "particle_scan_backend": str(particle_scan_backend),
+                "particle_pursuit_mixture_weight": float(particle_pursuit_mixture_weight),
             },
+        )
+        rospy.on_shutdown(self.compensator.shutdown)
+        particle_scan_actual_backend = getattr(self.compensator, "_particle_scan_backend", "none")
+        rospy.loginfo(
+            "deflecomp_node: particle_scan enabled=%s backend=%s window_size=%d grid_size=%d reset_std=%.6g pursuit_mixture_weight=%.6g",
+            bool(particle_scan_enabled),
+            str(particle_scan_actual_backend),
+            int(particle_scan_window_size),
+            int(particle_scan_grid_size),
+            float(particle_scan_reset_std),
+            float(particle_pursuit_mixture_weight),
         )
         self.kp_lim = kp_lim
         self.dt = float(dt)
@@ -252,6 +267,8 @@ class DeflecompNode:
         self.pub_theta_eq = rospy.Publisher("/deflecomp/theta_eq_hat", Float64MultiArray, queue_size=10)
         self.pub_tau = rospy.Publisher("/deflecomp/tau_hat", Float64MultiArray, queue_size=10)
         self.pub_debug = rospy.Publisher("/deflecomp/debug", Float64MultiArray, queue_size=10)
+        self.pub_particle_scan_status = rospy.Publisher("/deflecomp/particle_scan_status", String, queue_size=10)
+        self.pub_particle_scan_debug = rospy.Publisher("/deflecomp/particle_scan_debug", Float64MultiArray, queue_size=10)
 
         self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
         rospy.loginfo(
@@ -350,6 +367,55 @@ class DeflecompNode:
             ]
         )
         self.pub_debug.publish(Float64MultiArray(data=debug_vector.tolist()))
+        self._publish_particle_scan_debug(result.debug)
+
+    def _publish_particle_scan_debug(self, debug: Dict[str, Any]) -> None:
+        scan = debug.get("particle_scan")
+        if not isinstance(scan, dict):
+            status = "attempted=0 accepted=0 reason=not_run"
+            vector = np.array([0.0, 0.0, 0.0, 0.0, -np.inf, -np.inf, 0.0, 0.0], dtype=float)
+        else:
+            attempted = bool(scan.get("attempted", False))
+            accepted = bool(scan.get("accepted", False))
+            reason = str(scan.get("reason", "unknown"))
+            gain_per_obs = float(scan.get("gain_per_obs", 0.0))
+            score_current = float(scan.get("score_current", -np.inf))
+            score_best = float(scan.get("score_best", -np.inf))
+            candidate_count = int(scan.get("candidate_count", 0))
+            max_jump = float(scan.get("max_jump", 0.0))
+            active_indices = np.asarray(scan.get("active_indices", []), dtype=int)
+            window_size = int(scan.get("window_size", 0))
+            status = (
+                f"attempted={int(attempted)} accepted={int(accepted)} reason={reason} "
+                f"gain_per_obs={gain_per_obs:.6g} candidates={candidate_count} "
+                f"score_current={score_current:.6g} score_best={score_best:.6g} "
+                f"max_jump={max_jump:.6g} active_indices={active_indices.tolist()}"
+            )
+            vector = np.array(
+                [
+                    float(attempted),
+                    float(accepted),
+                    gain_per_obs,
+                    float(candidate_count),
+                    score_current,
+                    score_best,
+                    max_jump,
+                    float(window_size),
+                ],
+                dtype=float,
+            )
+            if accepted:
+                rospy.loginfo_throttle(
+                    1.0,
+                    "deflecomp_node: particle scan accepted gain_per_obs=%.6g score_current=%.6g score_best=%.6g max_jump=%.6g active_indices=%s",
+                    gain_per_obs,
+                    score_current,
+                    score_best,
+                    max_jump,
+                    active_indices.tolist(),
+                )
+        self.pub_particle_scan_status.publish(String(data=status))
+        self.pub_particle_scan_debug.publish(Float64MultiArray(data=vector.tolist()))
 
 
 def main() -> None:
@@ -381,6 +447,8 @@ def main() -> None:
     particle_scan_window_size = int(rospy.get_param("~particle_scan_window_size", 20))
     particle_scan_grid_size = int(rospy.get_param("~particle_scan_grid_size", 21))
     particle_scan_reset_std = float(rospy.get_param("~particle_scan_reset_std", 0.10))
+    particle_scan_backend = str(rospy.get_param("~particle_scan_backend", "process"))
+    particle_pursuit_mixture_weight = float(rospy.get_param("~particle_pursuit_mixture_weight", 0.35))
 
     DeflecompNode(
         urdf_path=urdf_path,
@@ -408,6 +476,8 @@ def main() -> None:
         particle_scan_window_size=particle_scan_window_size,
         particle_scan_grid_size=particle_scan_grid_size,
         particle_scan_reset_std=particle_scan_reset_std,
+        particle_scan_backend=particle_scan_backend,
+        particle_pursuit_mixture_weight=particle_pursuit_mixture_weight,
     )
     rospy.spin()
 

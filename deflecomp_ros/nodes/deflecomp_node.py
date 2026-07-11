@@ -182,6 +182,19 @@ class DeflecompNode:
         kp_exec_tau: float,
         max_log_kp_exec_step: float,
         publish_kp_exec: bool,
+        particle_scan_enabled: bool,
+        particle_scan_plain: bool,
+        particle_scan_window_size: int,
+        particle_scan_period: int,
+        particle_scan_grid_size: int,
+        particle_scan_mode: str,
+        particle_scan_max_active_dims: int,
+        particle_scan_std_trigger: float,
+        particle_scan_info_abs: float,
+        particle_scan_min_gain_per_obs: float,
+        particle_scan_min_log_jump: float,
+        particle_scan_reset_std: float,
+        particle_scan_cooldown: int,
     ) -> None:
         self.robot = RobotArm(urdf_path)
         self.spring_model = resolve_spring_model(spring_model_name, self.robot)
@@ -253,6 +266,19 @@ class DeflecompNode:
                 "feedforward_observability_abs": float(observability_abs),
                 "kp_exec_tau": float(kp_exec_tau),
                 "max_log_kp_exec_step": float(max_log_kp_exec_step),
+                "particle_scan_enabled": bool(particle_scan_enabled),
+                "particle_scan_plain": bool(particle_scan_plain),
+                "particle_scan_window_size": int(particle_scan_window_size),
+                "particle_scan_period": int(particle_scan_period),
+                "particle_scan_grid_size": int(particle_scan_grid_size),
+                "particle_scan_mode": str(particle_scan_mode),
+                "particle_scan_max_active_dims": int(particle_scan_max_active_dims),
+                "particle_scan_std_trigger": float(particle_scan_std_trigger),
+                "particle_scan_info_abs": float(particle_scan_info_abs),
+                "particle_scan_min_gain_per_obs": float(particle_scan_min_gain_per_obs),
+                "particle_scan_min_log_jump": float(particle_scan_min_log_jump),
+                "particle_scan_reset_std": float(particle_scan_reset_std),
+                "particle_scan_cooldown": int(particle_scan_cooldown),
             },
         )
         self.kp_lim = kp_lim
@@ -406,6 +432,19 @@ def main() -> None:
     kp_exec_tau = float(rospy.get_param("~kp_exec_tau", 1.0))
     max_log_kp_exec_step = float(rospy.get_param("~max_log_kp_exec_step", 0.0))
     publish_kp_exec = parse_bool(rospy.get_param("~publish_kp_exec", True))
+    particle_scan_enabled = parse_bool(rospy.get_param("~particle_scan_enabled", False))
+    particle_scan_plain = parse_bool(rospy.get_param("~particle_scan_plain", True))
+    particle_scan_window_size = int(rospy.get_param("~particle_scan_window_size", 20))
+    particle_scan_period = int(rospy.get_param("~particle_scan_period", 5))
+    particle_scan_grid_size = int(rospy.get_param("~particle_scan_grid_size", 21))
+    particle_scan_mode = str(rospy.get_param("~particle_scan_mode", "axis"))
+    particle_scan_max_active_dims = int(rospy.get_param("~particle_scan_max_active_dims", 2))
+    particle_scan_std_trigger = float(rospy.get_param("~particle_scan_std_trigger", 0.15))
+    particle_scan_info_abs = float(rospy.get_param("~particle_scan_info_abs", 1.0e-8))
+    particle_scan_min_gain_per_obs = float(rospy.get_param("~particle_scan_min_gain_per_obs", 1.0))
+    particle_scan_min_log_jump = float(rospy.get_param("~particle_scan_min_log_jump", 0.05))
+    particle_scan_reset_std = float(rospy.get_param("~particle_scan_reset_std", 0.10))
+    particle_scan_cooldown = int(rospy.get_param("~particle_scan_cooldown", 20))
 
     DeflecompNode(
         urdf_path=urdf_path,
@@ -435,6 +474,19 @@ def main() -> None:
         kp_exec_tau=kp_exec_tau,
         max_log_kp_exec_step=max_log_kp_exec_step,
         publish_kp_exec=publish_kp_exec,
+        particle_scan_enabled=particle_scan_enabled,
+        particle_scan_plain=particle_scan_plain,
+        particle_scan_window_size=particle_scan_window_size,
+        particle_scan_period=particle_scan_period,
+        particle_scan_grid_size=particle_scan_grid_size,
+        particle_scan_mode=particle_scan_mode,
+        particle_scan_max_active_dims=particle_scan_max_active_dims,
+        particle_scan_std_trigger=particle_scan_std_trigger,
+        particle_scan_info_abs=particle_scan_info_abs,
+        particle_scan_min_gain_per_obs=particle_scan_min_gain_per_obs,
+        particle_scan_min_log_jump=particle_scan_min_log_jump,
+        particle_scan_reset_std=particle_scan_reset_std,
+        particle_scan_cooldown=particle_scan_cooldown,
     )
     rospy.spin()
 

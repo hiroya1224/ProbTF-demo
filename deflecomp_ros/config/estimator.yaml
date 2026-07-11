@@ -16,3 +16,21 @@ project_unobservable_feedforward: true
 kp_exec_tau: 0.01
 max_log_kp_exec_step: 0.05
 publish_kp_exec: true
+
+# Deterministic particle scan supervisor for stiffness estimation.
+# This is a low-frequency global correction for K_est, not a full RBPF.
+particle_scan_enabled: false
+# Plain mode disables period/cooldown, covariance/information active-dim gating,
+# and min-gain/min-jump acceptance thresholds. It adopts the best MAP axis candidate.
+particle_scan_plain: true
+particle_scan_window_size: 20
+particle_scan_period: 5
+particle_scan_grid_size: 21
+particle_scan_mode: axis
+particle_scan_max_active_dims: 2
+particle_scan_std_trigger: 0.15
+particle_scan_info_abs: 1.0e-8
+particle_scan_min_gain_per_obs: 1.0
+particle_scan_min_log_jump: 0.05
+particle_scan_reset_std: 0.10
+particle_scan_cooldown: 20

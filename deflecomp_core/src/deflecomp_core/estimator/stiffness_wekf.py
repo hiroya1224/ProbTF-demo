@@ -20,6 +20,16 @@ class StiffnessUpdateResult:
     debug: Dict[str, Any]
 
 
+@dataclass
+class StiffnessLikelihoodEvaluation:
+    log_likelihood: float
+    theta_eq: np.ndarray
+    kp_vec: np.ndarray
+    x_eval: np.ndarray
+    valid: bool
+    error: Optional[str]
+
+
 class MultiFrameStiffnessWEKF:
     def __init__(
         self,
@@ -88,6 +98,166 @@ class MultiFrameStiffnessWEKF:
     @property
     def kp_est(self) -> np.ndarray:
         return np.exp(self.x_est)
+
+    def evaluate_log_likelihood_at_x(
+        self,
+        x_eval: np.ndarray,
+        theta_cmd_sent: np.ndarray,
+        A_map: Dict[int, np.ndarray],
+        theta_init_eq_pred: Optional[np.ndarray],
+        kp_lim: Optional[Tuple[float, float]] = None,
+    ) -> StiffnessLikelihoodEvaluation:
+        try:
+            x = np.asarray(x_eval, dtype=float).copy()
+            if x.shape != self.x_est.shape:
+                return StiffnessLikelihoodEvaluation(
+                    log_likelihood=-np.inf,
+                    theta_eq=np.array([], dtype=float),
+                    kp_vec=np.array([], dtype=float),
+                    x_eval=x,
+                    valid=False,
+                    error=f"x_eval shape {x.shape} does not match estimator shape {self.x_est.shape}",
+                )
+            if not np.all(np.isfinite(x)):
+                return StiffnessLikelihoodEvaluation(
+                    log_likelihood=-np.inf,
+                    theta_eq=np.array([], dtype=float),
+                    kp_vec=np.array([], dtype=float),
+                    x_eval=x,
+                    valid=False,
+                    error="nonfinite_x_eval",
+                )
+
+            if kp_lim is not None:
+                kp_min, kp_max = (float(v) for v in kp_lim)
+                if kp_min <= 0.0 or kp_max < kp_min:
+                    return StiffnessLikelihoodEvaluation(
+                        log_likelihood=-np.inf,
+                        theta_eq=np.array([], dtype=float),
+                        kp_vec=np.array([], dtype=float),
+                        x_eval=x,
+                        valid=False,
+                        error=f"invalid_kp_lim: {kp_lim}",
+                    )
+                x = np.clip(x, np.log(kp_min), np.log(kp_max))
+
+            kp_vec = np.exp(x)
+            if not np.all(np.isfinite(kp_vec)):
+                return StiffnessLikelihoodEvaluation(
+                    log_likelihood=-np.inf,
+                    theta_eq=np.array([], dtype=float),
+                    kp_vec=kp_vec,
+                    x_eval=x,
+                    valid=False,
+                    error="nonfinite_kp_vec",
+                )
+
+            theta_eq = self.solver.solve(
+                theta_cmd=theta_cmd_sent,
+                kp_vec=kp_vec,
+                theta_init=theta_init_eq_pred,
+            )
+            theta_eq = np.asarray(theta_eq, dtype=float)
+            if not np.all(np.isfinite(theta_eq)):
+                return StiffnessLikelihoodEvaluation(
+                    log_likelihood=-np.inf,
+                    theta_eq=theta_eq.copy(),
+                    kp_vec=kp_vec,
+                    x_eval=x,
+                    valid=False,
+                    error="nonfinite_theta_eq",
+                )
+
+            log_likelihood = 0.0
+            for fid, A_f in A_map.items():
+                A_arr = np.asarray(A_f, dtype=float)
+                A_sym = 0.5 * (A_arr + A_arr.T)
+                z_f = np.asarray(self.robot.frame_quaternion_wxyz_base(theta_eq, fid), dtype=float)
+                ell_f = float(z_f.T @ (A_sym @ z_f))
+                if not np.isfinite(ell_f):
+                    return StiffnessLikelihoodEvaluation(
+                        log_likelihood=-np.inf,
+                        theta_eq=theta_eq.copy(),
+                        kp_vec=kp_vec,
+                        x_eval=x,
+                        valid=False,
+                        error=f"nonfinite_frame_likelihood:{fid}",
+                    )
+                log_likelihood += ell_f
+
+            if not np.isfinite(log_likelihood):
+                return StiffnessLikelihoodEvaluation(
+                    log_likelihood=-np.inf,
+                    theta_eq=theta_eq.copy(),
+                    kp_vec=kp_vec,
+                    x_eval=x,
+                    valid=False,
+                    error="nonfinite_log_likelihood",
+                )
+
+            return StiffnessLikelihoodEvaluation(
+                log_likelihood=float(log_likelihood),
+                theta_eq=theta_eq.copy(),
+                kp_vec=kp_vec.copy(),
+                x_eval=x.copy(),
+                valid=True,
+                error=None,
+            )
+        except Exception as exc:
+            return StiffnessLikelihoodEvaluation(
+                log_likelihood=-np.inf,
+                theta_eq=np.array([], dtype=float),
+                kp_vec=np.array([], dtype=float),
+                x_eval=np.asarray(x_eval, dtype=float).copy(),
+                valid=False,
+                error=str(exc),
+            )
+
+    def apply_particle_correction(
+        self,
+        x_new: np.ndarray,
+        active_indices: np.ndarray,
+        reset_std: float,
+        theta_eq: Optional[np.ndarray] = None,
+        kp_lim: Optional[Tuple[float, float]] = None,
+    ) -> None:
+        x_old = self.x_est.copy()
+        x = np.asarray(x_new, dtype=float).copy()
+        if x.shape != self.x_est.shape:
+            raise ValueError(f"x_new shape {x.shape} does not match estimator shape {self.x_est.shape}")
+        if not np.all(np.isfinite(x)):
+            raise ValueError("x_new contains nonfinite values")
+
+        if kp_lim is not None:
+            kp_min, kp_max = (float(v) for v in kp_lim)
+            if kp_min <= 0.0 or kp_max < kp_min:
+                raise ValueError(f"invalid kp_lim: {kp_lim}")
+            x = np.clip(x, np.log(kp_min), np.log(kp_max))
+
+        self.x_est = x
+        active = np.asarray(active_indices, dtype=int)
+        reset_var = float(reset_std) ** 2
+        for j in active:
+            if 0 <= int(j) < self.P_est.shape[0]:
+                self.P_est[int(j), int(j)] = max(float(self.P_est[int(j), int(j)]), reset_var)
+        self.P_est = 0.5 * (self.P_est + self.P_est.T)
+
+        if theta_eq is not None:
+            self.last_theta_eq = np.asarray(theta_eq, dtype=float).copy()
+
+        dx = self.x_est - x_old
+        self.last_update_step = dx.copy()
+        self.last_update_norm = float(np.linalg.norm(dx))
+        self.last_update_applied = True
+        debug = dict(self.last_debug)
+        debug["particle_correction_applied"] = True
+        debug["particle_correction_active_indices"] = active.copy()
+        debug["particle_correction_reset_std"] = float(reset_std)
+        debug["particle_correction_dx_norm"] = self.last_update_norm
+        debug["particle_correction_dx_max_abs"] = float(np.max(np.abs(dx))) if dx.size else 0.0
+        debug["est_update_applied"] = True
+        debug["est_update_skipped_reason"] = None
+        self.last_debug = debug
 
     def _compute_frame_laplace_term(
         self,

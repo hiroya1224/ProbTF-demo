@@ -5,6 +5,10 @@ import numpy as np
 
 from deflecomp_core.control.feedforward import CommandGenerator, lowpass_theta_cmd
 from deflecomp_core.estimator.delay_rls import CommandDelayRLS
+from deflecomp_core.estimator.stiffness_particle_supervisor import (
+    StiffnessParticleScanConfig,
+    StiffnessParticleScanSupervisor,
+)
 from deflecomp_core.estimator.stiffness_wekf import MultiFrameStiffnessWEKF
 from deflecomp_core.model.equilibrium import EquilibriumSolver
 from deflecomp_core.observation.imu_observation import FrameImuObservation, ImuObservationBuilder
@@ -50,6 +54,24 @@ class DeflectionCompensator:
         self.equilibrium_solver = equilibrium_solver or EquilibriumSolver(robot=robot, spring_model=spring_model)
         self.observation_builder = observation_builder or ImuObservationBuilder(robot=robot)
         self.config = config or {}
+        self.stiffness_particle_supervisor = None
+        if _as_bool(self.config.get("particle_scan_enabled", False)):
+            particle_config = StiffnessParticleScanConfig(
+                enabled=True,
+                plain=_as_bool(self.config.get("particle_scan_plain", True)),
+                window_size=int(self.config.get("particle_scan_window_size", 20)),
+                period=int(self.config.get("particle_scan_period", 5)),
+                grid_size=int(self.config.get("particle_scan_grid_size", 21)),
+                max_active_dims=int(self.config.get("particle_scan_max_active_dims", 2)),
+                std_trigger=float(self.config.get("particle_scan_std_trigger", 0.15)),
+                info_abs=float(self.config.get("particle_scan_info_abs", 1.0e-8)),
+                min_gain_per_obs=float(self.config.get("particle_scan_min_gain_per_obs", 1.0)),
+                min_log_jump=float(self.config.get("particle_scan_min_log_jump", 0.05)),
+                reset_std=float(self.config.get("particle_scan_reset_std", 0.10)),
+                cooldown=int(self.config.get("particle_scan_cooldown", 20)),
+                mode=str(self.config.get("particle_scan_mode", "axis")),
+            )
+            self.stiffness_particle_supervisor = StiffnessParticleScanSupervisor(particle_config)
 
         self.last_theta_cmd: Optional[np.ndarray] = None
         self.last_theta_eq: Optional[np.ndarray] = None
@@ -228,8 +250,41 @@ class DeflectionCompensator:
                         theta_init_eq_pred=theta_init,
                         kp_lim=kp_lim,
                     )
-                    self._update_exec_stiffness_target(update_result.x_est)
                     debug.update(update_result.debug)
+                    if self.stiffness_particle_supervisor is not None:
+                        self.stiffness_particle_supervisor.add_record(
+                            theta_cmd_sent=theta_cmd_sent,
+                            A_map=a_map,
+                            theta_init_eq_pred=theta_init,
+                            stamp=observation_stamp,
+                        )
+                        scan_result = self.stiffness_particle_supervisor.maybe_scan(
+                            estimator=self.stiffness_estimator,
+                            latest_information=update_result.information,
+                            kp_lim=kp_lim,
+                        )
+                        debug["particle_scan"] = scan_result.debug
+                        debug["particle_scan_attempted"] = scan_result.attempted
+                        debug["particle_scan_accepted"] = scan_result.accepted
+                        debug["particle_scan_reason"] = scan_result.reason
+                        debug["particle_scan_gain_per_obs"] = scan_result.gain_per_obs
+                        debug["particle_scan_candidate_count"] = scan_result.candidate_count
+                        debug["particle_scan_active_indices"] = scan_result.active_indices.copy()
+                        debug["particle_scan_score_current"] = scan_result.score_current
+                        debug["particle_scan_score_best"] = scan_result.score_best
+                        debug["particle_scan_max_jump"] = float(
+                            scan_result.debug.get("max_jump", 0.0)
+                        )
+
+                        if scan_result.accepted:
+                            self.stiffness_estimator.apply_particle_correction(
+                                x_new=scan_result.x_best,
+                                active_indices=scan_result.active_indices,
+                                reset_std=self.stiffness_particle_supervisor.config.reset_std,
+                                theta_eq=scan_result.theta_eq_best,
+                                kp_lim=kp_lim,
+                            )
+                    self._update_exec_stiffness_target(self.stiffness_estimator.x_est)
         debug["update_stiffness"] = update_stiffness
 
         log_kp_exec_delta = self._smooth_exec_stiffness(dt_exec)

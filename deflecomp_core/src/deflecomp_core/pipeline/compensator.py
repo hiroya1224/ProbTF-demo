@@ -58,18 +58,9 @@ class DeflectionCompensator:
         if _as_bool(self.config.get("particle_scan_enabled", False)):
             particle_config = StiffnessParticleScanConfig(
                 enabled=True,
-                plain=_as_bool(self.config.get("particle_scan_plain", True)),
                 window_size=int(self.config.get("particle_scan_window_size", 20)),
-                period=int(self.config.get("particle_scan_period", 5)),
                 grid_size=int(self.config.get("particle_scan_grid_size", 21)),
-                max_active_dims=int(self.config.get("particle_scan_max_active_dims", 2)),
-                std_trigger=float(self.config.get("particle_scan_std_trigger", 0.15)),
-                info_abs=float(self.config.get("particle_scan_info_abs", 1.0e-8)),
-                min_gain_per_obs=float(self.config.get("particle_scan_min_gain_per_obs", 1.0)),
-                min_log_jump=float(self.config.get("particle_scan_min_log_jump", 0.05)),
                 reset_std=float(self.config.get("particle_scan_reset_std", 0.10)),
-                cooldown=int(self.config.get("particle_scan_cooldown", 20)),
-                mode=str(self.config.get("particle_scan_mode", "axis")),
             )
             self.stiffness_particle_supervisor = StiffnessParticleScanSupervisor(particle_config)
 
@@ -260,7 +251,6 @@ class DeflectionCompensator:
                         )
                         scan_result = self.stiffness_particle_supervisor.maybe_scan(
                             estimator=self.stiffness_estimator,
-                            latest_information=update_result.information,
                             kp_lim=kp_lim,
                         )
                         debug["particle_scan"] = scan_result.debug

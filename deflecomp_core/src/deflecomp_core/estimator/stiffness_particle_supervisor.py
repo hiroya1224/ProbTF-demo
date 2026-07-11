@@ -18,18 +18,9 @@ class StiffnessParticleRecord:
 @dataclass
 class StiffnessParticleScanConfig:
     enabled: bool = False
-    plain: bool = True
     window_size: int = 20
-    period: int = 5
     grid_size: int = 21
-    max_active_dims: int = 2
-    std_trigger: float = 0.15
-    info_abs: float = 1.0e-8
-    min_gain_per_obs: float = 1.0
-    min_log_jump: float = 0.05
     reset_std: float = 0.10
-    cooldown: int = 20
-    mode: str = "axis"
 
 
 @dataclass
@@ -53,7 +44,6 @@ class StiffnessParticleScanSupervisor:
         self.config = config
         self.records: Deque[StiffnessParticleRecord] = deque(maxlen=self._window_size())
         self.step_count = 0
-        self.cooldown_count = 0
         self.last_result = self._result(
             attempted=False,
             accepted=False,
@@ -110,8 +100,6 @@ class StiffnessParticleScanSupervisor:
             "window_size": len(self.records),
             "window_capacity": int(self.records.maxlen or 0),
             "step_count": int(self.step_count),
-            "cooldown_count": int(self.cooldown_count),
-            "plain": bool(self.config.plain),
             "active_indices": active.copy(),
             "candidate_count": int(candidate_count),
             "score_current": float(score_current),
@@ -146,39 +134,6 @@ class StiffnessParticleScanSupervisor:
             theta_eq_best=None if theta_eq_best is None else np.asarray(theta_eq_best, dtype=float).copy(),
             debug=debug,
         )
-
-    def _active_indices(
-        self,
-        P_est: np.ndarray,
-        information: Optional[np.ndarray],
-    ) -> np.ndarray:
-        max_active_dims = int(self.config.max_active_dims)
-        if max_active_dims <= 0:
-            return np.array([], dtype=int)
-
-        P = np.asarray(P_est, dtype=float)
-        diag = np.diag(P)
-        std = np.sqrt(np.maximum(diag, 0.0))
-        mask = np.isfinite(std) & (std <= float(self.config.std_trigger))
-
-        info_diag = None
-        if information is not None:
-            info = np.asarray(information, dtype=float)
-            if info.ndim == 2 and info.shape[0] == info.shape[1] and info.shape[0] == diag.size:
-                info_diag = np.diag(info)
-                mask = mask & np.isfinite(info_diag) & (np.abs(info_diag) >= float(self.config.info_abs))
-            else:
-                mask = np.zeros_like(mask, dtype=bool)
-
-        indices = np.flatnonzero(mask).astype(int)
-        if indices.size <= max_active_dims:
-            return indices
-
-        if info_diag is not None:
-            order = np.argsort(-np.abs(info_diag[indices]))
-        else:
-            order = np.argsort(diag[indices])
-        return indices[order[:max_active_dims]]
 
     def _make_axis_candidates(
         self,
@@ -247,7 +202,6 @@ class StiffnessParticleScanSupervisor:
     def maybe_scan(
         self,
         estimator: MultiFrameStiffnessWEKF,
-        latest_information: Optional[np.ndarray],
         kp_lim: Optional[Tuple[float, float]],
     ) -> StiffnessParticleScanResult:
         self.step_count += 1
@@ -270,48 +224,11 @@ class StiffnessParticleScanSupervisor:
             )
             return self.last_result
 
-        min_records = 1 if bool(self.config.plain) else self._window_size()
-        if len(self.records) < min_records:
+        if len(self.records) < 1:
             self.last_result = self._result(
                 attempted=False,
                 accepted=False,
-                reason="no_records" if bool(self.config.plain) else "window_not_full",
-                x_current=estimator.x_est,
-                x_best=None,
-                score_current=-np.inf,
-                score_best=-np.inf,
-                gain_per_obs=0.0,
-                active_indices=empty_active,
-                candidate_count=0,
-                theta_eq_best=None,
-                debug_extra={},
-            )
-            return self.last_result
-
-        if not bool(self.config.plain) and self.cooldown_count > 0:
-            self.cooldown_count -= 1
-            self.last_result = self._result(
-                attempted=False,
-                accepted=False,
-                reason="cooldown",
-                x_current=estimator.x_est,
-                x_best=None,
-                score_current=-np.inf,
-                score_best=-np.inf,
-                gain_per_obs=0.0,
-                active_indices=empty_active,
-                candidate_count=0,
-                theta_eq_best=None,
-                debug_extra={},
-            )
-            return self.last_result
-
-        period = max(1, int(self.config.period))
-        if not bool(self.config.plain) and self.step_count % period != 0:
-            self.last_result = self._result(
-                attempted=False,
-                accepted=False,
-                reason="period_skip",
+                reason="no_records",
                 x_current=estimator.x_est,
                 x_best=None,
                 score_current=-np.inf,
@@ -341,32 +258,12 @@ class StiffnessParticleScanSupervisor:
             )
             return self.last_result
 
-        if bool(self.config.plain):
-            active_indices = np.arange(np.asarray(estimator.x_est, dtype=float).size, dtype=int)
-        else:
-            active_indices = self._active_indices(estimator.P_est, latest_information)
+        active_indices = np.arange(np.asarray(estimator.x_est, dtype=float).size, dtype=int)
         if active_indices.size == 0:
             self.last_result = self._result(
                 attempted=True,
                 accepted=False,
                 reason="no_active_dimensions",
-                x_current=estimator.x_est,
-                x_best=None,
-                score_current=-np.inf,
-                score_best=-np.inf,
-                gain_per_obs=0.0,
-                active_indices=active_indices,
-                candidate_count=0,
-                theta_eq_best=None,
-                debug_extra={},
-            )
-            return self.last_result
-
-        if str(self.config.mode).strip().lower() != "axis":
-            self.last_result = self._result(
-                attempted=True,
-                accepted=False,
-                reason=f"unsupported_mode:{self.config.mode}",
                 x_current=estimator.x_est,
                 x_best=None,
                 score_current=-np.inf,
@@ -450,17 +347,8 @@ class StiffnessParticleScanSupervisor:
 
         gain_per_obs = (float(score_best) - float(score_current)) / max(1, len(self.records))
         max_jump = float(np.max(np.abs(x_best - x_current))) if x_best.size else 0.0
-        if bool(self.config.plain):
-            accepted = float(score_best) > float(score_current)
-            reason = "accepted_plain" if accepted else "no_score_improvement"
-        else:
-            accepted = (
-                gain_per_obs >= float(self.config.min_gain_per_obs)
-                and max_jump >= float(self.config.min_log_jump)
-            )
-            reason = "accepted" if accepted else "insufficient_gain_or_jump"
-        if accepted and not bool(self.config.plain):
-            self.cooldown_count = max(0, int(self.config.cooldown))
+        accepted = float(score_best) > float(score_current)
+        reason = "accepted" if accepted else "no_score_improvement"
 
         self.last_result = self._result(
             attempted=True,

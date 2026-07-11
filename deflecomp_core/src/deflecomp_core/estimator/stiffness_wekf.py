@@ -41,10 +41,6 @@ class MultiFrameStiffnessWEKF:
         eps_def: float = 1e-6,
         observability_rcond: float = 1e-4,
         observability_abs: float = 1e-10,
-        measurement_info_eig_cap: float = 1.0,
-        update_gain: float = 1.0,
-        max_log_kp_step: float = 0.0,
-        min_log_kp_step: float = 0.0,
         laplace_negative_info_tol: float = 1e-9,
         laplace_jitter: float = 1e-6,
     ) -> None:
@@ -57,10 +53,6 @@ class MultiFrameStiffnessWEKF:
         self.eps_def = float(eps_def)
         self.observability_rcond = float(observability_rcond)
         self.observability_abs = float(observability_abs)
-        self.measurement_info_eig_cap = float(measurement_info_eig_cap)
-        self.update_gain = float(update_gain)
-        self.max_log_kp_step = float(max_log_kp_step)
-        self.min_log_kp_step = float(min_log_kp_step)
         self.laplace_negative_info_tol = float(laplace_negative_info_tol)
         self.laplace_jitter = float(laplace_jitter)
         self.last_theta_eq: Optional[np.ndarray] = None

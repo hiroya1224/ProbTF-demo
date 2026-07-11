@@ -58,13 +58,11 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 | Simulator spring model | `deflecomp_sim/config/sim_params.yaml` | `spring_model` |
 | Simulator equilibrium refinement | `deflecomp_sim/config/sim_params.yaml` | `equilibrium_refine`, `equilibrium_refine_maxiter`, `equilibrium_refine_tol` |
 | True simulator stiffness | `deflecomp_sim/config/sim_params.yaml` | `kp_true` |
-| Initial estimated stiffness | `deflecomp_ros/config/estimator.yaml` | `kp0` |
-| Initial stiffness uncertainty | `deflecomp_ros/config/estimator.yaml` | `log_kp0_std` |
-| Stiffness estimator update | `deflecomp_ros/config/estimator.yaml` | `update_stiffness`, `q_proc` |
+| Stiffness estimator update | `deflecomp_ros/config/estimator.yaml` | `update_stiffness`, `log_kp_process_noise_var` |
 | Execution stiffness smoothing | `deflecomp_ros/config/estimator.yaml` | `kp_exec_tau`, `max_log_kp_exec_step`, `publish_kp_exec` |
-| Stiffness estimate limits | `deflecomp_ros/config/estimator.yaml` | `kp_min`, `kp_max` |
+| Stiffness estimate limits and initialization range | `deflecomp_ros/config/estimator.yaml` | `kp_min`, `kp_max` |
 | Observability gating for stiffness/feedforward | `deflecomp_ros/config/estimator.yaml` | `observability_rcond`, `observability_abs`, `project_unobservable_feedforward` |
-| Per-update IMU information cap | `deflecomp_ros/config/estimator.yaml` | `measurement_info_eig_cap` |
+| Deterministic particle scan | `deflecomp_ros/config/estimator.yaml` | `particle_scan_enabled`, `particle_scan_window_size`, `particle_scan_grid_size`, `particle_scan_reset_std` |
 | Simulator mode | `deflecomp_sim/config/sim_params.yaml` | `eq_mode` |
 | Simulator command/equilibrium lag | `deflecomp_sim/config/sim_params.yaml` | `ref_tau`, `ref_max_vel`, `vel_limit`, `tau_eq` |
 | Quasi-static link noise | `deflecomp_sim/config/sim_params.yaml` | `qs_noise_std_deg` |
@@ -105,22 +103,16 @@ For URDFs that include passive, mimic, or zero-velocity joints, `deflecomp_core.
 
 ### Staged Estimation
 
-The current staged-estimation setting re-enables the Bingham/WEKF stiffness update with a gentle process noise and an initial stiffness matched to the current loose simulator stiffness:
+The current staged-estimation setting re-enables the Bingham/WEKF stiffness update with a gentle process noise. The initial stiffness is fixed to the log-space midpoint of `kp_min` and `kp_max` for every active joint:
 
 ```yaml
 # deflecomp_ros/config/estimator.yaml
 update_stiffness: true
-kp0: [5.0, 5.0, 5.0, 10.0, 20.0, 20.0]
 kp_min: 1.0
 kp_max: 500.0
-log_kp0_std: auto
-q_proc: 1.0e-8
+log_kp_process_noise_var: 1.0e-8
 observability_rcond: 0.0001
 observability_abs: 1.0e-10
-measurement_info_eig_cap: 0.0
-stiffness_update_gain: 1.0
-max_log_kp_step: 0.0
-min_log_kp_step: 0.0
 project_unobservable_feedforward: true
 kp_exec_tau: 1.0
 max_log_kp_exec_step: 0.002
@@ -135,7 +127,7 @@ equilibrium_refine: true
 
 `equilibrium_refine` keeps the staged L-BFGS-B equilibrium solve, then refines the result by solving the quasi-static residual `tau_g(theta) + tau_s(theta, theta_cmd, K) = 0` with the analytic Jacobian. Leave it enabled when checking whether `equiv` matches `ref`. Disable it only when measuring raw solver speed or isolating optimizer behavior.
 
-The observability gate is based on the local IMU gravity-direction Jacobian, not on joint names or a hard-coded yaw/gravity assumption. Stiffness updates are applied only in the stiffness subspace supported by the current IMU observations. The estimator keeps `K_est`, while command generation uses the smoothed `K_exec`; `/deflecomp/kp_hat` and `/deflecomp/kp_est` publish the estimate, and `/deflecomp/kp_exec` publishes the execution stiffness. `kp_exec_tau` and `max_log_kp_exec_step` control how quickly `K_exec` follows `K_est`. `log_kp0_std` sets the initial standard deviation in `log K`; `auto` uses `(log(kp_max) - log(kp_min)) / 4`, so the configured stiffness range is about +/-2 sigma. Keep `q_proc` small for static stiffness; increasing it makes the estimator keep adapting during a hold and can make `theta_cmd` drift toward `theta_ref` when the IMU residual contains bias or noise. When `project_unobservable_feedforward` is true, the gravity feedforward term is re-evaluated only along locally observable reference-motion components; the target `theta_ref` itself is not projected. If no IMU observation is available for a cycle, the gravity feedforward evaluation pose is held instead of being reset to `theta_ref`.
+The observability gate is based on the local IMU gravity-direction Jacobian, not on joint names or a hard-coded yaw/gravity assumption. Stiffness updates are applied only in the stiffness subspace supported by the current IMU observations. The estimator keeps `K_est`, while command generation uses the smoothed `K_exec`; `/deflecomp/kp_hat` and `/deflecomp/kp_est` publish the estimate, and `/deflecomp/kp_exec` publishes the execution stiffness. `kp_exec_tau` and `max_log_kp_exec_step` control how quickly `K_exec` follows `K_est`. Initial `K_est` is `sqrt(kp_min * kp_max)` for every active joint, and initial `log K` standard deviation is `(log(kp_max) - log(kp_min)) / 4`, so the configured stiffness range is about +/-2 sigma. Keep `log_kp_process_noise_var` small for static stiffness; increasing it makes the estimator keep adapting during a hold and can make `theta_cmd` drift toward `theta_ref` when the IMU residual contains bias or noise. When `project_unobservable_feedforward` is true, the gravity feedforward term is re-evaluated only along locally observable reference-motion components; the target `theta_ref` itself is not projected. If no IMU observation is available for a cycle, the gravity feedforward evaluation pose is held instead of being reset to `theta_ref`.
 
 ### First-Stage Debug: No Noise, No Delay
 
@@ -151,7 +143,8 @@ equilibrium_refine: true
 ```yaml
 # deflecomp_ros/config/estimator.yaml
 update_stiffness: false
-kp0: [5.0, 5.0, 5.0, 10.0, 20.0, 20.0]
+kp_min: 1.0
+kp_max: 500.0
 ```
 
 ```yaml
@@ -165,7 +158,7 @@ qs_vib_amp_deg: 0.0
 spring_model: periodic
 ```
 
-Keep `deflecomp_ros/config/estimator.yaml::kp0` equal to `deflecomp_sim/config/sim_params.yaml::kp_true` while isolating the feedforward/equilibrium logic. Keep `update_stiffness: false` while checking whether the Bingham/WEKF stiffness update is causing oscillation. If `kp0` and `kp_true` differ, the static inverse-statics command can be wrong even when noise and lag are disabled.
+With `update_stiffness: false`, the estimator uses the fixed initial stiffness `sqrt(kp_min * kp_max)` for every active joint. Keep the simulator `kp_true` near that value while isolating the feedforward/equilibrium logic, or leave stiffness estimation enabled so `K_est` can adapt.
 
 In quasi-static mode, `qs_noise_std_deg` and `qs_vib_amp_deg` perturb the simulated link trajectory. The simulator finite-differences only that perturbation, so synthetic IMU `angular_velocity` and `linear_acceleration` reflect vibration/noise while zero noise/vibration restores gravity-only quasi-static IMU observations.
 

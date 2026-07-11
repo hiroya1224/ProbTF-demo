@@ -213,16 +213,9 @@ def make_particle_compensator():
             "theta_cmd_tau": 0.0,
             "project_unobservable_feedforward": False,
             "particle_scan_enabled": True,
-            "particle_scan_plain": True,
             "particle_scan_window_size": 1,
-            "particle_scan_period": 1,
             "particle_scan_grid_size": 2,
-            "particle_scan_max_active_dims": 1,
-            "particle_scan_std_trigger": 0.2,
-            "particle_scan_min_gain_per_obs": 1000.0,
-            "particle_scan_min_log_jump": 1000.0,
             "particle_scan_reset_std": 0.10,
-            "particle_scan_cooldown": 20,
         },
     )
     return comp, estimator, solver

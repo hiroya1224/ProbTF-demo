@@ -64,41 +64,18 @@ class ImuBuffer:
             return g / (np.linalg.norm(g) + 1e-12)
 
 
-def parse_float_list(value) -> List[float]:
-    if isinstance(value, str):
-        items = value.replace(";", ",").split(",")
-    elif isinstance(value, (list, tuple, np.ndarray)):
-        items = list(value)
-    else:
-        items = [value]
-    return [float(item) for item in items if str(item).strip()]
-
-
-def default_log_kp0_std(kp_lim: Tuple[float, float]) -> float:
+def initial_log_kp_std(kp_lim: Tuple[float, float]) -> float:
     kp_min, kp_max = (float(v) for v in kp_lim)
     if kp_min <= 0.0 or kp_max <= kp_min:
         raise ValueError(f"kp_min/kp_max must satisfy 0 < kp_min < kp_max, got {kp_lim}")
     return (np.log(kp_max) - np.log(kp_min)) / 4.0
 
 
-def resolve_log_kp0_std(value: Any, n: int, kp_lim: Tuple[float, float]) -> np.ndarray:
-    if value is None:
-        arr = np.array([default_log_kp0_std(kp_lim)], dtype=float)
-    elif isinstance(value, str) and value.strip().lower() in ("", "auto", "default"):
-        arr = np.array([default_log_kp0_std(kp_lim)], dtype=float)
-    else:
-        arr = np.asarray(parse_float_list(value), dtype=float)
-        if arr.size == 0:
-            arr = np.array([default_log_kp0_std(kp_lim)], dtype=float)
-
-    if arr.size == 1:
-        arr = np.ones(n, dtype=float) * float(arr[0])
-    elif arr.size != n:
-        arr = np.resize(arr, n)
-
-    if np.any(arr < 0.0):
-        raise ValueError(f"log_kp0_std must be non-negative, got {arr}")
-    return arr
+def initial_log_kp_state(n: int, kp_lim: Tuple[float, float]) -> np.ndarray:
+    kp_min, kp_max = (float(v) for v in kp_lim)
+    if kp_min <= 0.0 or kp_max <= kp_min:
+        raise ValueError(f"kp_min/kp_max must satisfy 0 < kp_min < kp_max, got {kp_lim}")
+    return np.ones(n, dtype=float) * (0.5 * (np.log(kp_min) + np.log(kp_max)))
 
 
 def parse_bool(value) -> bool:
@@ -162,10 +139,8 @@ class DeflecompNode:
         topic_cmd_out: str,
         dt: float,
         A_param: float,
-        kp0: Sequence[float],
         kp_lim: Tuple[float, float],
-        log_kp0_std: Any,
-        q_proc: float,
+        log_kp_process_noise_var: float,
         spring_model_name: str,
         theta_cmd_tau: float,
         equilibrium_refine: bool,
@@ -174,27 +149,14 @@ class DeflecompNode:
         update_stiffness: bool,
         observability_rcond: float,
         observability_abs: float,
-        measurement_info_eig_cap: float,
-        stiffness_update_gain: float,
-        max_log_kp_step: float,
-        min_log_kp_step: float,
         project_unobservable_feedforward: bool,
         kp_exec_tau: float,
         max_log_kp_exec_step: float,
         publish_kp_exec: bool,
         particle_scan_enabled: bool,
-        particle_scan_plain: bool,
         particle_scan_window_size: int,
-        particle_scan_period: int,
         particle_scan_grid_size: int,
-        particle_scan_mode: str,
-        particle_scan_max_active_dims: int,
-        particle_scan_std_trigger: float,
-        particle_scan_info_abs: float,
-        particle_scan_min_gain_per_obs: float,
-        particle_scan_min_log_jump: float,
         particle_scan_reset_std: float,
-        particle_scan_cooldown: int,
     ) -> None:
         self.robot = RobotArm(urdf_path)
         self.spring_model = resolve_spring_model(spring_model_name, self.robot)
@@ -223,13 +185,15 @@ class DeflecompNode:
         self.imu_config_by_frame_id: Dict[str, ImuFrameConfig] = {
             cfg.frame_id: cfg for cfg in self.imu_frame_configs
         }
-        x0 = np.log(np.resize(np.asarray(kp0, dtype=float), self.n))
-        log_kp0_std_vec = resolve_log_kp0_std(log_kp0_std, self.n, kp_lim)
-        P0 = np.diag(log_kp0_std_vec ** 2)
-        Q = np.eye(self.n) * float(q_proc)
+        x0 = initial_log_kp_state(self.n, kp_lim)
+        initial_log_kp_std_vec = np.ones(self.n, dtype=float) * initial_log_kp_std(kp_lim)
+        P0 = np.diag(initial_log_kp_std_vec ** 2)
+        Q = np.eye(self.n) * float(log_kp_process_noise_var)
         rospy.loginfo(
-            "deflecomp_node: initial log(K) std=%s",
-            ", ".join(f"{v:.6g}" for v in log_kp0_std_vec),
+            "deflecomp_node: initial K=%s log(K) std=%s log(K) process noise var=%.6g",
+            ", ".join(f"{v:.6g}" for v in np.exp(x0)),
+            ", ".join(f"{v:.6g}" for v in initial_log_kp_std_vec),
+            float(log_kp_process_noise_var),
         )
         estimator = MultiFrameStiffnessWEKF(
             x0=x0,
@@ -240,10 +204,6 @@ class DeflecompNode:
             eps_def=1e-6,
             observability_rcond=float(observability_rcond),
             observability_abs=float(observability_abs),
-            measurement_info_eig_cap=float(measurement_info_eig_cap),
-            update_gain=float(stiffness_update_gain),
-            max_log_kp_step=float(max_log_kp_step),
-            min_log_kp_step=float(min_log_kp_step),
         )
         observation_builder = ImuObservationBuilder(
             robot=self.robot,
@@ -267,18 +227,9 @@ class DeflecompNode:
                 "kp_exec_tau": float(kp_exec_tau),
                 "max_log_kp_exec_step": float(max_log_kp_exec_step),
                 "particle_scan_enabled": bool(particle_scan_enabled),
-                "particle_scan_plain": bool(particle_scan_plain),
                 "particle_scan_window_size": int(particle_scan_window_size),
-                "particle_scan_period": int(particle_scan_period),
                 "particle_scan_grid_size": int(particle_scan_grid_size),
-                "particle_scan_mode": str(particle_scan_mode),
-                "particle_scan_max_active_dims": int(particle_scan_max_active_dims),
-                "particle_scan_std_trigger": float(particle_scan_std_trigger),
-                "particle_scan_info_abs": float(particle_scan_info_abs),
-                "particle_scan_min_gain_per_obs": float(particle_scan_min_gain_per_obs),
-                "particle_scan_min_log_jump": float(particle_scan_min_log_jump),
                 "particle_scan_reset_std": float(particle_scan_reset_std),
-                "particle_scan_cooldown": int(particle_scan_cooldown),
             },
         )
         self.kp_lim = kp_lim
@@ -411,11 +362,9 @@ def main() -> None:
     topic_cmd_out = rospy.get_param("~topic_cmd_out", "/deflecomp/theta_cmd")
     dt = float(rospy.get_param("~dt", 0.02))
     A_param = float(rospy.get_param("~A_param", 100.0))
-    kp0 = parse_float_list(rospy.get_param("~kp0", [50, 50, 50, 50, 50, 50]))
     kp_min = float(rospy.get_param("~kp_min", 1.0))
     kp_max = float(rospy.get_param("~kp_max", 500.0))
-    log_kp0_std = rospy.get_param("~log_kp0_std", "auto")
-    q_proc = float(rospy.get_param("~q_proc", 1e-8))
+    log_kp_process_noise_var = float(rospy.get_param("~log_kp_process_noise_var", 1e-8))
     spring_model_name = rospy.get_param("~spring_model", "auto")
     theta_cmd_tau = float(rospy.get_param("~theta_cmd_tau", 0.2))
     equilibrium_refine = parse_bool(rospy.get_param("~equilibrium_refine", True))
@@ -424,27 +373,14 @@ def main() -> None:
     update_stiffness = parse_bool(rospy.get_param("~update_stiffness", True))
     observability_rcond = float(rospy.get_param("~observability_rcond", 1e-4))
     observability_abs = float(rospy.get_param("~observability_abs", 1e-10))
-    measurement_info_eig_cap = float(rospy.get_param("~measurement_info_eig_cap", 1.0))
-    stiffness_update_gain = float(rospy.get_param("~stiffness_update_gain", 0.2))
-    max_log_kp_step = float(rospy.get_param("~max_log_kp_step", 0.002))
-    min_log_kp_step = float(rospy.get_param("~min_log_kp_step", 0.0))
     project_unobservable_feedforward = parse_bool(rospy.get_param("~project_unobservable_feedforward", True))
     kp_exec_tau = float(rospy.get_param("~kp_exec_tau", 1.0))
     max_log_kp_exec_step = float(rospy.get_param("~max_log_kp_exec_step", 0.0))
     publish_kp_exec = parse_bool(rospy.get_param("~publish_kp_exec", True))
     particle_scan_enabled = parse_bool(rospy.get_param("~particle_scan_enabled", False))
-    particle_scan_plain = parse_bool(rospy.get_param("~particle_scan_plain", True))
     particle_scan_window_size = int(rospy.get_param("~particle_scan_window_size", 20))
-    particle_scan_period = int(rospy.get_param("~particle_scan_period", 5))
     particle_scan_grid_size = int(rospy.get_param("~particle_scan_grid_size", 21))
-    particle_scan_mode = str(rospy.get_param("~particle_scan_mode", "axis"))
-    particle_scan_max_active_dims = int(rospy.get_param("~particle_scan_max_active_dims", 2))
-    particle_scan_std_trigger = float(rospy.get_param("~particle_scan_std_trigger", 0.15))
-    particle_scan_info_abs = float(rospy.get_param("~particle_scan_info_abs", 1.0e-8))
-    particle_scan_min_gain_per_obs = float(rospy.get_param("~particle_scan_min_gain_per_obs", 1.0))
-    particle_scan_min_log_jump = float(rospy.get_param("~particle_scan_min_log_jump", 0.05))
     particle_scan_reset_std = float(rospy.get_param("~particle_scan_reset_std", 0.10))
-    particle_scan_cooldown = int(rospy.get_param("~particle_scan_cooldown", 20))
 
     DeflecompNode(
         urdf_path=urdf_path,
@@ -454,10 +390,8 @@ def main() -> None:
         topic_cmd_out=topic_cmd_out,
         dt=dt,
         A_param=A_param,
-        kp0=kp0,
         kp_lim=(kp_min, kp_max),
-        log_kp0_std=log_kp0_std,
-        q_proc=q_proc,
+        log_kp_process_noise_var=log_kp_process_noise_var,
         spring_model_name=spring_model_name,
         theta_cmd_tau=theta_cmd_tau,
         equilibrium_refine=equilibrium_refine,
@@ -466,27 +400,14 @@ def main() -> None:
         update_stiffness=update_stiffness,
         observability_rcond=observability_rcond,
         observability_abs=observability_abs,
-        measurement_info_eig_cap=measurement_info_eig_cap,
-        stiffness_update_gain=stiffness_update_gain,
-        max_log_kp_step=max_log_kp_step,
-        min_log_kp_step=min_log_kp_step,
         project_unobservable_feedforward=project_unobservable_feedforward,
         kp_exec_tau=kp_exec_tau,
         max_log_kp_exec_step=max_log_kp_exec_step,
         publish_kp_exec=publish_kp_exec,
         particle_scan_enabled=particle_scan_enabled,
-        particle_scan_plain=particle_scan_plain,
         particle_scan_window_size=particle_scan_window_size,
-        particle_scan_period=particle_scan_period,
         particle_scan_grid_size=particle_scan_grid_size,
-        particle_scan_mode=particle_scan_mode,
-        particle_scan_max_active_dims=particle_scan_max_active_dims,
-        particle_scan_std_trigger=particle_scan_std_trigger,
-        particle_scan_info_abs=particle_scan_info_abs,
-        particle_scan_min_gain_per_obs=particle_scan_min_gain_per_obs,
-        particle_scan_min_log_jump=particle_scan_min_log_jump,
         particle_scan_reset_std=particle_scan_reset_std,
-        particle_scan_cooldown=particle_scan_cooldown,
     )
     rospy.spin()
 

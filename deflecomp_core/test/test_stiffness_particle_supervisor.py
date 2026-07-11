@@ -96,20 +96,9 @@ class StiffnessParticleSupervisorTests(unittest.TestCase):
         self.assertTrue(np.allclose(estimator.P_est, P_before))
         self.assertTrue(np.allclose(estimator.last_theta_eq, last_theta_before))
 
-    def test_active_dimension_selection_uses_std_information_and_cap(self):
-        supervisor = StiffnessParticleScanSupervisor(
-            StiffnessParticleScanConfig(std_trigger=0.11, info_abs=1.0e-8, max_active_dims=1)
-        )
-        P_est = np.diag([0.01, 1.0, 0.0025])
-        information = np.diag([2.0, 100.0, 5.0])
-
-        active = supervisor._active_indices(P_est, information)
-
-        self.assertTrue(np.array_equal(active, np.array([2])))
-
     def test_axis_candidates_include_current_and_stay_inside_bounds(self):
         supervisor = StiffnessParticleScanSupervisor(
-            StiffnessParticleScanConfig(grid_size=5, max_active_dims=2)
+            StiffnessParticleScanConfig(grid_size=5)
         )
         x_current = np.log(np.array([10.0, 20.0, 30.0], dtype=float))
 
@@ -132,14 +121,8 @@ class StiffnessParticleSupervisorTests(unittest.TestCase):
         supervisor = StiffnessParticleScanSupervisor(
             StiffnessParticleScanConfig(
                 enabled=True,
-                plain=False,
                 window_size=3,
-                period=1,
                 grid_size=5,
-                max_active_dims=1,
-                std_trigger=0.2,
-                min_gain_per_obs=0.1,
-                min_log_jump=0.05,
             )
         )
         for stamp in range(3):
@@ -147,31 +130,25 @@ class StiffnessParticleSupervisorTests(unittest.TestCase):
 
         result = supervisor.maybe_scan(
             estimator=estimator,
-            latest_information=np.diag([1.0, 0.0, 0.0]),
             kp_lim=(1.0, 100.0),
         )
 
         self.assertTrue(result.attempted)
         self.assertTrue(result.accepted)
+        self.assertEqual(result.reason, "accepted")
         self.assertTrue(np.allclose(result.x_best, x_target))
         self.assertGreater(result.gain_per_obs, 0.1)
         self.assertIsNotNone(result.theta_eq_best)
 
-    def test_scan_rejects_when_gain_is_too_small(self):
+    def test_scan_rejects_when_score_does_not_improve(self):
         x_current = np.log(np.array([10.0, 10.0, 10.0], dtype=float))
-        x_target = np.log(np.array([100.0, 10.0, 10.0], dtype=float))
+        x_target = x_current.copy()
         estimator = FakeScanEstimator(x_current=x_current, x_target=x_target)
         supervisor = StiffnessParticleScanSupervisor(
             StiffnessParticleScanConfig(
                 enabled=True,
-                plain=False,
                 window_size=2,
-                period=1,
                 grid_size=5,
-                max_active_dims=1,
-                std_trigger=0.2,
-                min_gain_per_obs=1000.0,
-                min_log_jump=0.05,
             )
         )
         for stamp in range(2):
@@ -179,15 +156,14 @@ class StiffnessParticleSupervisorTests(unittest.TestCase):
 
         result = supervisor.maybe_scan(
             estimator=estimator,
-            latest_information=np.diag([1.0, 0.0, 0.0]),
             kp_lim=(1.0, 100.0),
         )
 
         self.assertTrue(result.attempted)
         self.assertFalse(result.accepted)
-        self.assertEqual(result.reason, "insufficient_gain_or_jump")
+        self.assertEqual(result.reason, "no_score_improvement")
 
-    def test_plain_scan_bypasses_window_period_active_gates_and_thresholds(self):
+    def test_scan_uses_all_dimensions_without_covariance_or_information_gates(self):
         x_current = np.log(np.array([10.0, 10.0, 10.0], dtype=float))
         x_target = np.log(np.array([100.0, 10.0, 10.0], dtype=float))
         estimator = FakeScanEstimator(x_current=x_current, x_target=x_target)
@@ -195,28 +171,20 @@ class StiffnessParticleSupervisorTests(unittest.TestCase):
         supervisor = StiffnessParticleScanSupervisor(
             StiffnessParticleScanConfig(
                 enabled=True,
-                plain=True,
                 window_size=20,
-                period=99,
                 grid_size=5,
-                max_active_dims=0,
-                std_trigger=0.0,
-                min_gain_per_obs=1000.0,
-                min_log_jump=1000.0,
-                cooldown=100,
             )
         )
         supervisor.add_record(np.zeros(3), {0: np.eye(4)}, None, 0.0)
 
         result = supervisor.maybe_scan(
             estimator=estimator,
-            latest_information=np.zeros((3, 3), dtype=float),
             kp_lim=(1.0, 100.0),
         )
 
         self.assertTrue(result.attempted)
         self.assertTrue(result.accepted)
-        self.assertEqual(result.reason, "accepted_plain")
+        self.assertEqual(result.reason, "accepted")
         self.assertTrue(np.array_equal(result.active_indices, np.array([0, 1, 2])))
         self.assertTrue(np.allclose(result.x_best, x_target))
 

@@ -4,10 +4,12 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Equil1
         - /Ref1
         - /TF1
         - /TF1/Tree1
-      Splitter Ratio: 0.8362573385238647
+        - /WrenchStamped1
+      Splitter Ratio: 0.4025973975658417
     Tree Height: 603
   - Class: rviz/Views
     Expanded:
@@ -416,6 +418,21 @@ Visualization Manager:
         {}
       Update Interval: 0
       Value: false
+    - Alpha: 1
+      Arrow Width: 0.10000000149011612
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 0.05000000074505806
+      Force Color: 204; 51; 51
+      Hide Small Values: true
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /deflecomp_sim/external_wrench
+      Torque Arrow Scale: 1
+      Torque Color: 204; 204; 51
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -444,7 +461,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.156174898147583
+      Distance: 1.531205415725708
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -460,9 +477,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.505398690700531
+      Pitch: 0.5603986382484436
       Target Frame: <Fixed Frame>
-      Yaw: 2.0053930282592773
+      Yaw: 2.5703961849212646
     Saved: ~
 Window Geometry:
   Displays:
@@ -470,7 +487,7 @@ Window Geometry:
   Height: 1376
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000001000000000000015800000506fc0200000002fb000000100044006900730070006c006100790073010000003d000002de000000c900fffffffb0000000a00560069006500770073010000032100000222000000a400ffffff0000085a0000050600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000001000000000000026a00000506fc0200000002fb000000100044006900730070006c006100790073010000003d000002de000000c900fffffffb0000000a00560069006500770073010000032100000222000000a400ffffff000007480000050600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 2488

@@ -5,7 +5,7 @@ kp_max: 500.0
 log_kp_process_noise_var: 1.0e-8
 observability_rcond: 0.0001
 observability_abs: 1.0e-10
-project_unobservable_feedforward: false
+project_unobservable_feedforward: true
 kp_exec_tau: 0.01
 max_log_kp_exec_step: 0.05
 publish_kp_exec: true

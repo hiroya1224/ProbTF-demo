@@ -5,11 +5,14 @@ vel_limit: 4.0
 topic_cmd: /cmd/joint_states
 topic_equil: /equil/joint_states
 topic_imu: /imu
+external_wrench_topic: /deflecomp_sim/external_wrench
+# <= 0 keeps the last commanded wrench until a clear command is received.
+external_wrench_timeout: 0.0
 imu_frames: []
 integrator: rk4
 ref_tau: 0.04
 ref_max_vel: 4.0
-eq_mode: quasistatic
+eq_mode: dynamic
 tau_eq: 0.05
 # Quasi-static link vibration/noise. Only this perturbation is finite-differenced,
 # so synthetic IMU angular velocity and acceleration reflect the vibration while

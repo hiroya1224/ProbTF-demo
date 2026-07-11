@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Literal, Optional, Tuple
+from typing import Callable, Literal, Optional, Tuple
 
 import numpy as np
 import pinocchio as pin
@@ -133,18 +133,80 @@ class FlexibleJointSimulator:
             theta_init=np.asarray(q_init, dtype=float),
         )
 
-    def _dyn_rhs(self, q: np.ndarray, qd: np.ndarray, q_ref_eff: np.ndarray, tau_ext: Optional[np.ndarray]) -> np.ndarray:
+    def _external_tau(
+        self,
+        q: np.ndarray,
+        tau_ext: Optional[np.ndarray],
+        tau_ext_fn: Optional[Callable[[np.ndarray], np.ndarray]],
+    ) -> np.ndarray:
         n = self.robot.nv
-        if tau_ext is None:
-            tau_ext = np.zeros(n, dtype=float)
-        else:
-            tau_ext = np.asarray(tau_ext, dtype=float)
+        tau = np.zeros(n, dtype=float) if tau_ext is None else np.asarray(tau_ext, dtype=float).copy()
+        if tau_ext_fn is not None:
+            tau = tau + np.asarray(tau_ext_fn(np.asarray(q, dtype=float)), dtype=float)
+        return tau
 
+    def _solve_loaded_equilibrium(
+        self,
+        theta_cmd: np.ndarray,
+        kp_vec: np.ndarray,
+        q_init: np.ndarray,
+        tau_ext: Optional[np.ndarray],
+        tau_ext_fn: Optional[Callable[[np.ndarray], np.ndarray]],
+    ) -> np.ndarray:
+        if tau_ext is None and tau_ext_fn is None:
+            return self._solve_equilibrium(theta_cmd=theta_cmd, kp_vec=kp_vec, q_init=q_init)
+
+        from scipy.optimize import least_squares
+
+        n = self.robot.nv
+        lo = self.pos_lo if self.pos_lo is not None else np.ones(n, dtype=float) * -np.inf
+        hi = self.pos_hi if self.pos_hi is not None else np.ones(n, dtype=float) * np.inf
+        theta_start = np.minimum(np.maximum(np.asarray(q_init, dtype=float), lo), hi)
+
+        def residual(theta: np.ndarray) -> np.ndarray:
+            tau_load = self._external_tau(theta, tau_ext=tau_ext, tau_ext_fn=tau_ext_fn)
+            return (
+                self.robot.tau_gravity(theta)
+                + self.spring_model.torque(theta, theta_cmd, kp_vec)
+                - tau_load
+            )
+
+        start_residual = residual(theta_start)
+        start_norm = float(np.linalg.norm(start_residual))
+        result = least_squares(
+            fun=residual,
+            x0=theta_start,
+            bounds=(lo, hi),
+            method="trf",
+            ftol=float(self.eq_solver.cfg.refine_tol),
+            xtol=float(self.eq_solver.cfg.refine_tol),
+            gtol=float(self.eq_solver.cfg.refine_tol),
+            max_nfev=max(20, int(self.eq_solver.cfg.refine_maxiter)),
+            x_scale="jac",
+            verbose=2 if self.eq_solver.cfg.verbose else 0,
+        )
+        theta_loaded = np.asarray(result.x, dtype=float)
+        if not np.all(np.isfinite(theta_loaded)):
+            return theta_start
+        if float(np.linalg.norm(residual(theta_loaded))) <= start_norm:
+            return theta_loaded
+        return theta_start
+
+    def _dyn_rhs(
+        self,
+        q: np.ndarray,
+        qd: np.ndarray,
+        q_ref_eff: np.ndarray,
+        tau_ext: Optional[np.ndarray],
+        tau_ext_fn: Optional[Callable[[np.ndarray], np.ndarray]],
+    ) -> np.ndarray:
+        tau_external = self._external_tau(q, tau_ext=tau_ext, tau_ext_fn=tau_ext_fn)
+        n = self.robot.nv
         M = pin.crba(self.robot.model, self.robot.data, q)
         M = 0.5 * (M + M.T)
         b = pin.rnea(self.robot.model, self.robot.data, q, qd, np.zeros(n, dtype=float))
         tau_spring = -self.spring_model.torque(q, q_ref_eff, self.K) - self.D * qd
-        rhs = tau_ext + tau_spring - b
+        rhs = tau_external + tau_spring - b
         if self.params.use_pinv:
             return np.linalg.pinv(M, rcond=1e-12) @ rhs
         return np.linalg.solve(M, rhs)
@@ -174,6 +236,7 @@ class FlexibleJointSimulator:
         dt: float,
         q_ref: np.ndarray,
         tau_ext: Optional[np.ndarray] = None,
+        tau_ext_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
     ) -> Tuple[np.ndarray, np.ndarray]:
         q_ref = np.asarray(q_ref, dtype=float)
         n = self.robot.nv
@@ -184,7 +247,13 @@ class FlexibleJointSimulator:
         q_eq_nominal = None
         qs_perturb_prev = None
         if mode in ("quasistatic", "relax_to_eq"):
-            q_eq = self._solve_equilibrium(theta_cmd=q_ref, kp_vec=self.K, q_init=self.q)
+            q_eq = self._solve_loaded_equilibrium(
+                theta_cmd=q_ref,
+                kp_vec=self.K,
+                q_init=self.q,
+                tau_ext=tau_ext,
+                tau_ext_fn=tau_ext_fn,
+            )
             if mode == "quasistatic":
                 q_eq_nominal = q_eq
                 qs_perturb_prev = self.qs_perturb.copy()
@@ -205,7 +274,7 @@ class FlexibleJointSimulator:
                 v0 = self.qd.copy()
 
                 def rhs(q: np.ndarray, v: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-                    return v, self._dyn_rhs(q, v, q_ref_eff, tau_ext)
+                    return v, self._dyn_rhs(q, v, q_ref_eff, tau_ext, tau_ext_fn)
 
                 k1_v, k1_a = rhs(q0, v0)
                 k2_v, k2_a = rhs(q0 + 0.5 * dt * k1_v, v0 + 0.5 * dt * k1_a)
@@ -215,7 +284,7 @@ class FlexibleJointSimulator:
                 q_next = q0 + (dt / 6.0) * (k1_v + 2.0 * k2_v + 2.0 * k3_v + k4_v)
                 qd_next = v0 + (dt / 6.0) * (k1_a + 2.0 * k2_a + 2.0 * k3_a + k4_a)
             else:
-                qdd = self._dyn_rhs(self.q, self.qd, q_ref_eff, tau_ext)
+                qdd = self._dyn_rhs(self.q, self.qd, q_ref_eff, tau_ext, tau_ext_fn)
                 qd_next = self.qd + dt * qdd
                 q_next = self.q + dt * qd_next
 

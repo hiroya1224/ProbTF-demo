@@ -6,6 +6,7 @@ import numpy as np
 import pinocchio as pin
 import rospkg
 import rospy
+from geometry_msgs.msg import WrenchStamped
 from sensor_msgs.msg import Imu, JointState
 
 from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
@@ -139,10 +140,13 @@ class SimNode:
         equilibrium_refine: bool,
         equilibrium_refine_maxiter: int,
         equilibrium_refine_tol: float,
+        external_wrench_topic: str,
+        external_wrench_timeout: float,
     ) -> None:
         self.dt = float(dt)
         self.topic_equil = topic_equil
         self.imu_topic = imu_topic
+        self.external_wrench_timeout = float(external_wrench_timeout)
 
         self.robot = RobotArm(urdf_path)
         self.n = self.robot.nv
@@ -192,10 +196,22 @@ class SimNode:
         self.have_cmd = False
         self.theta_cmd = np.zeros(self.n, dtype=float)
         self.cmd_joint_positions: Dict[str, float] = {name: 0.0 for name in self.output_joint_names}
+        self.external_wrench_frame: Optional[str] = None
+        self.external_wrench_reference_frame = "world"
+        self.external_wrench_force = np.zeros(3, dtype=float)
+        self.external_wrench_torque = np.zeros(3, dtype=float)
+        self.external_wrench_stamp: Optional[float] = None
+        self.external_wrench_warned_frames = set()
 
         self.pub_equil = rospy.Publisher(self.topic_equil, JointState, queue_size=10)
         self.pub_imu = rospy.Publisher(self.imu_topic, Imu, queue_size=20)
         self.sub_cmd = rospy.Subscriber(topic_cmd, JointState, self.cb_cmd, queue_size=50)
+        self.sub_external_wrench = rospy.Subscriber(
+            external_wrench_topic,
+            WrenchStamped,
+            self.cb_external_wrench,
+            queue_size=10,
+        )
 
         self.imu_frame_configs: List[ImuFrameConfig] = resolve_imu_frame_configs(
             robot=self.robot,
@@ -208,13 +224,14 @@ class SimNode:
 
         self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
         rospy.loginfo(
-            "deflecomp_sim: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s",
+            "deflecomp_sim: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s external_wrench_topic=%s",
             self.robot.base_link_name,
             self.robot.tip_link_name,
             ", ".join(self.joint_names),
             ", ".join(self.robot.locked_joint_names) if self.robot.locked_joint_names else "(none)",
             ", ".join(f"{cfg.frame_id}->{cfg.model_frame}" for cfg in self.imu_frame_configs),
             type(self.sim.spring_model).__name__,
+            external_wrench_topic,
         )
 
     def cb_cmd(self, msg: JointState) -> None:
@@ -223,6 +240,98 @@ class SimNode:
         for name, position in zip(self.joint_names, self.theta_cmd):
             self.cmd_joint_positions[name] = float(position)
         self.have_cmd = True
+
+    def cb_external_wrench(self, msg: WrenchStamped) -> None:
+        frame_name, reference_frame = self._parse_external_wrench_frame_id(msg.header.frame_id)
+        if not frame_name:
+            self.external_wrench_frame = None
+            self.external_wrench_reference_frame = "world"
+            self.external_wrench_force[:] = 0.0
+            self.external_wrench_torque[:] = 0.0
+            self.external_wrench_stamp = rospy.get_time()
+            return
+
+        self.external_wrench_frame = frame_name
+        self.external_wrench_reference_frame = reference_frame
+        self.external_wrench_force = np.array(
+            [msg.wrench.force.x, msg.wrench.force.y, msg.wrench.force.z],
+            dtype=float,
+        )
+        self.external_wrench_torque = np.array(
+            [msg.wrench.torque.x, msg.wrench.torque.y, msg.wrench.torque.z],
+            dtype=float,
+        )
+        self.external_wrench_stamp = msg.header.stamp.to_sec() if msg.header.stamp else rospy.get_time()
+
+    def _model_frame_name_from_tf_frame(self, frame_name: str) -> str:
+        candidate = (frame_name or "").strip().lstrip("/")
+        if self.robot.has_frame(candidate):
+            return candidate
+        while "/" in candidate:
+            candidate = candidate.split("/", 1)[1]
+            if self.robot.has_frame(candidate):
+                return candidate
+        return (frame_name or "").strip()
+
+    def _parse_external_wrench_frame_id(self, value: str) -> Tuple[str, str]:
+        raw = (value or "").strip()
+        if not raw:
+            return "", "world"
+        if "@" not in raw:
+            return self._model_frame_name_from_tf_frame(raw), "world"
+        frame_name, reference_frame = [part.strip() for part in raw.split("@", 1)]
+        model_frame_name = self._model_frame_name_from_tf_frame(frame_name)
+        reference = reference_frame.lower()
+        if reference in ("", "world", "base", "map"):
+            return model_frame_name, "world"
+        if reference in ("local", "frame", "target"):
+            return model_frame_name, "local"
+        rospy.logwarn(
+            "deflecomp_sim: unsupported external wrench reference frame '%s'; using world",
+            reference_frame,
+        )
+        return model_frame_name, "world"
+
+    def _external_wrench_active(self) -> bool:
+        if self.external_wrench_frame is None:
+            return False
+        if self.external_wrench_timeout > 0.0 and self.external_wrench_stamp is not None:
+            if rospy.get_time() - float(self.external_wrench_stamp) > self.external_wrench_timeout:
+                return False
+        return bool(
+            np.linalg.norm(self.external_wrench_force) > 0.0
+            or np.linalg.norm(self.external_wrench_torque) > 0.0
+        )
+
+    def _external_wrench_tau(self, q: np.ndarray) -> np.ndarray:
+        if not self._external_wrench_active():
+            return np.zeros(self.n, dtype=float)
+
+        frame_name = str(self.external_wrench_frame)
+        if not self.robot.has_frame(frame_name):
+            if frame_name not in self.external_wrench_warned_frames:
+                rospy.logwarn("deflecomp_sim: external wrench target frame not found: %s", frame_name)
+                self.external_wrench_warned_frames.add(frame_name)
+            return np.zeros(self.n, dtype=float)
+
+        fid = self.robot.get_frame_id(frame_name)
+        pin.forwardKinematics(self.robot.model, self.robot.data, q)
+        pin.computeJointJacobians(self.robot.model, self.robot.data, q)
+        pin.updateFramePlacements(self.robot.model, self.robot.data)
+        J6 = pin.computeFrameJacobian(
+            self.robot.model,
+            self.robot.data,
+            q,
+            fid,
+            pin.ReferenceFrame.LOCAL_WORLD_ALIGNED,
+        )
+        force = self.external_wrench_force.reshape(3)
+        torque = self.external_wrench_torque.reshape(3)
+        if self.external_wrench_reference_frame == "local":
+            R_wf = self.robot.data.oMf[fid].rotation
+            force = R_wf @ force
+            torque = R_wf @ torque
+        return J6[0:3, :].T @ force + J6[3:6, :].T @ torque
 
     def publish_imus(self, q: np.ndarray, qd: np.ndarray, qdd: np.ndarray, now: rospy.Time) -> None:
         pin.forwardKinematics(self.robot.model, self.robot.data, q, qd, qdd)
@@ -268,7 +377,8 @@ class SimNode:
         if not self.have_cmd:
             return
         q_prev, qd_prev = self.sim.state()
-        q_next, qd_next = self.sim.step(dt=self.dt, q_ref=self.theta_cmd, tau_ext=None)
+        tau_ext_fn = self._external_wrench_tau if self._external_wrench_active() else None
+        q_next, qd_next = self.sim.step(dt=self.dt, q_ref=self.theta_cmd, tau_ext_fn=tau_ext_fn)
         qdd_est = (qd_next - qd_prev) / max(self.dt, 1e-9)
         now = rospy.Time.now()
 
@@ -311,6 +421,8 @@ def main() -> None:
     equilibrium_refine = parse_bool(rospy.get_param("~equilibrium_refine", True))
     equilibrium_refine_maxiter = int(rospy.get_param("~equilibrium_refine_maxiter", 40))
     equilibrium_refine_tol = float(rospy.get_param("~equilibrium_refine_tol", 1e-12))
+    external_wrench_topic = rospy.get_param("~external_wrench_topic", "/deflecomp_sim/external_wrench")
+    external_wrench_timeout = float(rospy.get_param("~external_wrench_timeout", 0.0))
 
     SimNode(
         urdf_path=urdf_path,
@@ -336,6 +448,8 @@ def main() -> None:
         equilibrium_refine=equilibrium_refine,
         equilibrium_refine_maxiter=equilibrium_refine_maxiter,
         equilibrium_refine_tol=equilibrium_refine_tol,
+        external_wrench_topic=external_wrench_topic,
+        external_wrench_timeout=external_wrench_timeout,
     )
     rospy.spin()
 

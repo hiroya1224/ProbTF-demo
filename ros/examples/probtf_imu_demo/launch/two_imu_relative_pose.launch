@@ -1,0 +1,41 @@
+<launch>
+  <arg name="parent_imu_topic" default="/imu_parent/data" />
+  <arg name="child_imu_topic" default="/imu_child/data" />
+  <arg name="materialize_urdf" default="true" />
+
+  <node pkg="probtf_core" type="imu_kinematics_node.py" name="parent_imu_kinematics" output="screen">
+    <param name="frame_id" value="imu_parent" />
+    <remap from="~imu" to="$(arg parent_imu_topic)" />
+  </node>
+
+  <node pkg="probtf_core" type="imu_kinematics_node.py" name="child_imu_kinematics" output="screen">
+    <param name="frame_id" value="imu_child" />
+    <remap from="~imu" to="$(arg child_imu_topic)" />
+  </node>
+
+  <node pkg="probtf_core" type="imu_relative_pose_node.py" name="imu_relative_pose" output="screen">
+    <param name="parent_frame_id" value="imu_parent" />
+    <param name="child_frame_id" value="imu_child" />
+    <remap from="~parent_kinematics" to="/parent_imu_kinematics/kinematics" />
+    <remap from="~child_kinematics" to="/child_imu_kinematics/kinematics" />
+  </node>
+
+  <node
+    if="$(arg materialize_urdf)"
+    pkg="probtf_core"
+    type="symbolic_urdf_materializer_node.py"
+    name="symbolic_urdf_materializer"
+    output="screen">
+    <param name="template_file" value="$(find probtf_imu_demo)/symbolic_models/two_imus.symburdf" />
+    <rosparam param="bindings">
+      imu_relative_xyz:
+        topic: /imu_relative_pose/relative_pose
+        field: position
+      imu_relative_rpy:
+        topic: /imu_relative_pose/relative_pose
+        field: orientation_rpy
+    </rosparam>
+  </node>
+
+  <node if="$(arg materialize_urdf)" pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
+</launch>

@@ -2,7 +2,7 @@
 <package format="2">
   <name>probtf_msgs</name>
   <version>0.1.0</version>
-  <description>Reusable message definitions for ProbTF and grasp planning.</description>
+  <description>Reusable transform distributions and sensor evidence for ProbTF.</description>
 
   <maintainer email="leus@todo.todo">leus</maintainer>
   <license>MIT</license>

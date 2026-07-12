@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- ================= SYMBOLIC URDF ================= -->
+<!-- indefinite variables are written in #|this_form|# -->
+
+<robot name="probtf_two_imus">
+  <link name="world" />
+  <link name="imu_parent" />
+  <link name="imu_child" />
+
+  <joint name="world_fixed_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="world" />
+    <child link="imu_parent" />
+  </joint>
+
+  <joint name="estimated_imu_joint" type="fixed">
+    <origin xyz="#|imu_relative_xyz|#" rpy="#|imu_relative_rpy|#" />
+    <parent link="imu_parent" />
+    <child link="imu_child" />
+  </joint>
+</robot>

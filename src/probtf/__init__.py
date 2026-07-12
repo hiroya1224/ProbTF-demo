@@ -31,12 +31,25 @@ from probtf.geometry import (
     quat_to_rotmat,
     rpy_to_quat,
 )
+from probtf.imu_preprocessing import ImuKinematicsPreprocessor
+from probtf.imu_relative_pose import (
+    ImuRelativePoseEstimator,
+    RecursiveGaussianLeastSquares,
+    rigid_point_acceleration_operator,
+    vector_alignment_bingham,
+)
 from probtf.models import (
     BinghamRotation,
     GaussianPosition,
     ImuKinematics,
     ProbabilisticTransform,
     SensorMount,
+)
+from probtf.symbolic_urdf import (
+    SymbolicUrdfTemplate,
+    find_symbolic_urdf_placeholders,
+    materialize_symbolic_urdf,
+    parse_symbolic_urdf,
 )
 
 __all__ = [
@@ -45,9 +58,13 @@ __all__ = [
     "FusedTransformEvidence",
     "GaussianPosition",
     "ImuKinematics",
+    "ImuKinematicsPreprocessor",
+    "ImuRelativePoseEstimator",
     "ProbabilisticTransform",
+    "RecursiveGaussianLeastSquares",
     "RotationMoment",
     "SensorMount",
+    "SymbolicUrdfTemplate",
     "TransformEvidence",
     "axis_angle_to_quat",
     "bingham_fourth_moment",
@@ -56,7 +73,10 @@ __all__ = [
     "canonical_bingham_parameter",
     "fuse_evidence",
     "fuse_transform_evidence",
+    "find_symbolic_urdf_placeholders",
     "match_bingham_to_second_moment",
+    "materialize_symbolic_urdf",
+    "parse_symbolic_urdf",
     "quat_conj",
     "quat_left_matrix",
     "quat_mul",
@@ -67,6 +87,8 @@ __all__ = [
     "rotation_first_moment",
     "rotation_kronecker_moment",
     "rotation_moment_from_bingham",
+    "rigid_point_acceleration_operator",
     "rpy_to_quat",
     "validate_bingham_parameter",
+    "vector_alignment_bingham",
 ]

@@ -14,8 +14,10 @@ add_message_files(
     GaussianPosition.msg
     GraspCandidate.msg
     IKResult.msg
+    ImuKinematics.msg
     ProbabilisticTF.msg
     ProbabilisticTFArray.msg
+    TransformEvidence.msg
 )
 
 generate_messages(

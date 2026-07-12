@@ -9,6 +9,8 @@ find_package(
     sensor_msgs
 )
 
+catkin_python_setup()
+
 catkin_package(
   CATKIN_DEPENDS
     deflecomp_core

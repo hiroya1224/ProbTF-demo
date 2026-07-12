@@ -1,8 +1,16 @@
-import math
 import os
 import sys
 
 import numpy as np
+
+from probik.geometry import (
+    axis_angle_to_quat as quaternion_from_axis_angle,
+    quat_left_matrix as quaternion_left_matrix,
+    quat_mul as quaternion_multiply_wxyz,
+    quat_normalize as normalize_wxyz,
+    quat_right_matrix as quaternion_right_matrix,
+    rpy_to_quat as quaternion_from_rpy,
+)
 
 
 DEFAULT_BINGHAM_SOURCE_DIR = os.environ.get("BINGHAM_SOURCE_DIR", "/home/leus/BinghamNLL/src")
@@ -19,87 +27,6 @@ except ImportError as exc:
         "symaware_grasp requires geometry_msgs, numpy-quaternion, and the local BinghamNLL source. "
         "Set BINGHAM_SOURCE_DIR or add /home/leus/BinghamNLL/src to PYTHONPATH."
     ) from exc
-
-
-def normalize_wxyz(quat_wxyz):
-    quat = np.asarray(quat_wxyz, dtype=float)
-    norm = np.linalg.norm(quat)
-    if norm == 0.0:
-        raise ValueError("Quaternion must be non-zero.")
-    return quat / norm
-
-
-def quaternion_from_rpy(roll, pitch, yaw):
-    cr = math.cos(roll * 0.5)
-    sr = math.sin(roll * 0.5)
-    cp = math.cos(pitch * 0.5)
-    sp = math.sin(pitch * 0.5)
-    cy = math.cos(yaw * 0.5)
-    sy = math.sin(yaw * 0.5)
-    return normalize_wxyz(
-        [
-            cr * cp * cy + sr * sp * sy,
-            sr * cp * cy - cr * sp * sy,
-            cr * sp * cy + sr * cp * sy,
-            cr * cp * sy - sr * sp * cy,
-        ]
-    )
-
-
-def quaternion_from_axis_angle(axis_xyz, angle_rad):
-    axis = np.asarray(axis_xyz, dtype=float)
-    axis_norm = np.linalg.norm(axis)
-    if axis_norm == 0.0:
-        raise ValueError("Axis must be non-zero.")
-    axis = axis / axis_norm
-    half_angle = 0.5 * angle_rad
-    return normalize_wxyz(
-        [
-            math.cos(half_angle),
-            axis[0] * math.sin(half_angle),
-            axis[1] * math.sin(half_angle),
-            axis[2] * math.sin(half_angle),
-        ]
-    )
-
-
-def quaternion_multiply_wxyz(lhs_wxyz, rhs_wxyz):
-    lw, lx, ly, lz = normalize_wxyz(lhs_wxyz)
-    rw, rx, ry, rz = normalize_wxyz(rhs_wxyz)
-    return normalize_wxyz(
-        [
-            lw * rw - lx * rx - ly * ry - lz * rz,
-            lw * rx + lx * rw + ly * rz - lz * ry,
-            lw * ry - lx * rz + ly * rw + lz * rx,
-            lw * rz + lx * ry - ly * rx + lz * rw,
-        ]
-    )
-
-
-def quaternion_right_matrix(rhs_wxyz):
-    rw, rx, ry, rz = normalize_wxyz(rhs_wxyz)
-    return np.array(
-        [
-            [rw, -rx, -ry, -rz],
-            [rx, rw, rz, -ry],
-            [ry, -rz, rw, rx],
-            [rz, ry, -rx, rw],
-        ],
-        dtype=float,
-    )
-
-
-def quaternion_left_matrix(lhs_wxyz):
-    lw, lx, ly, lz = normalize_wxyz(lhs_wxyz)
-    return np.array(
-        [
-            [lw, -lx, -ly, -lz],
-            [lx, lw, -lz, ly],
-            [ly, lz, lw, -lx],
-            [lz, -ly, lx, lw],
-        ],
-        dtype=float,
-    )
 
 
 def quaternion_from_rotation_matrix(rotation_matrix):

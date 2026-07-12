@@ -13,38 +13,21 @@ x = log K and forms a local Laplace approximation of the posterior.
 import numpy as np
 
 from deflecomp_core.utils.linalg import normalize
+from probik.geometry import quat_left_matrix, quat_right_matrix
 
 
 class BinghamUtils:
     @staticmethod
     def qmat_from_quat_wxyz(z: np.ndarray) -> np.ndarray:
-        w, x, y, zc = z
-        return np.array([
-            [-x, -y, -zc],
-            [w, -zc, y],
-            [zc, w, -x],
-            [-y, x, w],
-        ], dtype=float)
+        return quat_left_matrix(z, normalize_input=False)[:, 1:]
 
     @staticmethod
     def _lmat(q: np.ndarray) -> np.ndarray:
-        a, b, c, d = q
-        return np.array([
-            [a, -b, -c, -d],
-            [b, a, -d, c],
-            [c, d, a, -b],
-            [d, -c, b, a],
-        ], dtype=float)
+        return quat_left_matrix(q, normalize_input=False)
 
     @staticmethod
     def _rmat(q: np.ndarray) -> np.ndarray:
-        w, x, y, zc = q
-        return np.array([
-            [w, -x, -y, -zc],
-            [x, w, zc, -y],
-            [y, -zc, w, x],
-            [zc, y, -x, w],
-        ], dtype=float)
+        return quat_right_matrix(q, normalize_input=False)
 
     @staticmethod
     def simple_bingham_unit(before_vec3: np.ndarray, after_vec3: np.ndarray, parameter: float = 100.0) -> np.ndarray:

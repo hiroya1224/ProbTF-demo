@@ -1,10 +1,7 @@
-"""Compatibility exports for the shared ProbIK geometry helpers."""
+"""Shared numerical primitives for the integrated ProbIK packages."""
 
 from probik.geometry import (
     axis_angle_to_quat,
-    complete_orthonormal_basis,
-    exp_s2,
-    normalize_vec,
     quat_conj,
     quat_left_matrix,
     quat_mul,
@@ -12,15 +9,10 @@ from probik.geometry import (
     quat_right_matrix,
     quat_to_rotmat,
     rpy_to_quat,
-    tangent_basis,
-    tangent_projector,
 )
 
 __all__ = [
     "axis_angle_to_quat",
-    "complete_orthonormal_basis",
-    "exp_s2",
-    "normalize_vec",
     "quat_conj",
     "quat_left_matrix",
     "quat_mul",
@@ -28,7 +20,5 @@ __all__ = [
     "quat_right_matrix",
     "quat_to_rotmat",
     "rpy_to_quat",
-    "tangent_basis",
-    "tangent_projector",
 ]
 

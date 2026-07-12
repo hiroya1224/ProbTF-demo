@@ -1,3 +1,5 @@
+"""Quaternion operations using the internal ``[w, x, y, z]`` convention."""
+
 import math
 
 import numpy as np
@@ -6,13 +8,15 @@ import numpy as np
 def normalize_vec(vec, eps=1e-12):
     vector = np.asarray(vec, dtype=float)
     norm = float(np.linalg.norm(vector))
-    if norm < eps:
+    if not np.isfinite(norm) or norm < eps:
         raise ValueError("Vector norm is too small to normalize.")
     return vector / norm
 
 
 def quat_normalize(q, eps=1e-12):
     quaternion = np.asarray(q, dtype=float)
+    if quaternion.shape != (4,) or not np.all(np.isfinite(quaternion)):
+        raise ValueError("Quaternion must be a finite vector with shape (4,).")
     norm = float(np.linalg.norm(quaternion))
     if norm < eps:
         raise ValueError("Quaternion norm is too small to normalize.")
@@ -21,7 +25,10 @@ def quat_normalize(q, eps=1e-12):
 
 def quat_conj(q):
     quaternion = quat_normalize(q)
-    return np.array([quaternion[0], -quaternion[1], -quaternion[2], -quaternion[3]], dtype=float)
+    return np.array(
+        [quaternion[0], -quaternion[1], -quaternion[2], -quaternion[3]],
+        dtype=float,
+    )
 
 
 def quat_mul(q1, q2):
@@ -89,6 +96,65 @@ def quat_to_rotmat(q):
     )
 
 
+def rotmat_to_quat(rotation):
+    """Return a normalized ``wxyz`` quaternion for a proper rotation matrix."""
+
+    matrix = np.asarray(rotation, dtype=float)
+    if matrix.shape != (3, 3) or not np.all(np.isfinite(matrix)):
+        raise ValueError("rotation must be a finite 3x3 matrix.")
+    if not np.allclose(matrix.T @ matrix, np.eye(3), rtol=0.0, atol=1e-8):
+        raise ValueError("rotation must be orthogonal.")
+    if not np.isclose(np.linalg.det(matrix), 1.0, rtol=0.0, atol=1e-8):
+        raise ValueError("rotation must have determinant one.")
+
+    trace = float(np.trace(matrix))
+    if trace > 0.0:
+        scale = math.sqrt(trace + 1.0) * 2.0
+        quaternion = np.array(
+            [
+                0.25 * scale,
+                (matrix[2, 1] - matrix[1, 2]) / scale,
+                (matrix[0, 2] - matrix[2, 0]) / scale,
+                (matrix[1, 0] - matrix[0, 1]) / scale,
+            ]
+        )
+    else:
+        index = int(np.argmax(np.diag(matrix)))
+        if index == 0:
+            scale = math.sqrt(1.0 + matrix[0, 0] - matrix[1, 1] - matrix[2, 2]) * 2.0
+            quaternion = np.array(
+                [
+                    (matrix[2, 1] - matrix[1, 2]) / scale,
+                    0.25 * scale,
+                    (matrix[0, 1] + matrix[1, 0]) / scale,
+                    (matrix[0, 2] + matrix[2, 0]) / scale,
+                ]
+            )
+        elif index == 1:
+            scale = math.sqrt(1.0 + matrix[1, 1] - matrix[0, 0] - matrix[2, 2]) * 2.0
+            quaternion = np.array(
+                [
+                    (matrix[0, 2] - matrix[2, 0]) / scale,
+                    (matrix[0, 1] + matrix[1, 0]) / scale,
+                    0.25 * scale,
+                    (matrix[1, 2] + matrix[2, 1]) / scale,
+                ]
+            )
+        else:
+            scale = math.sqrt(1.0 + matrix[2, 2] - matrix[0, 0] - matrix[1, 1]) * 2.0
+            quaternion = np.array(
+                [
+                    (matrix[1, 0] - matrix[0, 1]) / scale,
+                    (matrix[0, 2] + matrix[2, 0]) / scale,
+                    (matrix[1, 2] + matrix[2, 1]) / scale,
+                    0.25 * scale,
+                ]
+            )
+    quaternion = quat_normalize(quaternion)
+    pivot = int(np.argmax(np.abs(quaternion)))
+    return -quaternion if quaternion[pivot] < 0.0 else quaternion
+
+
 def axis_angle_to_quat(axis, angle):
     axis_vector = normalize_vec(axis)
     half_angle = 0.5 * float(angle)
@@ -118,45 +184,3 @@ def rpy_to_quat(roll, pitch, yaw):
         ]
     )
 
-
-def complete_orthonormal_basis(first_vec):
-    basis_vectors = [normalize_vec(first_vec)]
-    dimension = basis_vectors[0].shape[0]
-    for candidate in np.eye(dimension, dtype=float):
-        work = candidate.copy()
-        for vector in basis_vectors:
-            work -= float(np.dot(work, vector)) * vector
-        norm = float(np.linalg.norm(work))
-        if norm > 1e-8:
-            basis_vectors.append(work / norm)
-        if len(basis_vectors) == dimension:
-            break
-    if len(basis_vectors) != dimension:
-        raise ValueError("Could not construct an orthonormal basis.")
-    return np.column_stack(basis_vectors)
-
-
-def tangent_projector(v):
-    unit_v = normalize_vec(v)
-    return np.eye(unit_v.shape[0], dtype=float) - np.outer(unit_v, unit_v)
-
-
-def tangent_basis(v):
-    unit_v = normalize_vec(v)
-    projector = tangent_projector(unit_v)
-    eigenvalues, eigenvectors = np.linalg.eigh(projector)
-    order = np.argsort(eigenvalues)[::-1]
-    basis = eigenvectors[:, order[:2]]
-    basis[:, 0] = normalize_vec(basis[:, 0])
-    residual = basis[:, 1] - float(np.dot(basis[:, 0], basis[:, 1])) * basis[:, 0]
-    basis[:, 1] = normalize_vec(residual)
-    return basis
-
-
-def exp_s2(v, u, eps=1e-12):
-    base = normalize_vec(v)
-    tangent = np.asarray(u, dtype=float)
-    norm = float(np.linalg.norm(tangent))
-    if norm < eps:
-        return base.copy()
-    return normalize_vec(math.cos(norm) * base + math.sin(norm) * tangent / norm)

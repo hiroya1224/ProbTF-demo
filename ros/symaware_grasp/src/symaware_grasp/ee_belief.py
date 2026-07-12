@@ -1,6 +1,6 @@
 import numpy as np
 
-from probik_demo.distribution_metrics import fit_bingham_from_quaternion_samples
+from symaware_grasp.distribution_metrics import fit_bingham_from_quaternion_samples
 
 
 class EndEffectorBeliefModel:

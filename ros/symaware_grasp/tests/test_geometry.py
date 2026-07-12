@@ -1,6 +1,6 @@
 import numpy as np
 
-from probik_demo.prob_tf.geometry import axis_angle_to_quat, quat_conj, quat_mul, quat_to_rotmat
+from symaware_grasp.prob_tf.geometry import axis_angle_to_quat, quat_conj, quat_mul, quat_to_rotmat
 
 
 def test_quaternion_conjugate_product_is_identity():

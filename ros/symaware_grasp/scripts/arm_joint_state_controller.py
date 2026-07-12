@@ -4,7 +4,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import JointState
 
-from probik_demo.arm_kinematics import ToyArm6DOF
+from symaware_grasp.arm_kinematics import ToyArm6DOF
 
 
 class ArmJointStateController:

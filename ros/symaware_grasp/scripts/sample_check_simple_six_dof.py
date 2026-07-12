@@ -9,8 +9,8 @@ import quaternion
 import rospy
 import rospkg
 
-from probik_demo.prob_tf.geometry import quat_to_rotmat
-from probik_demo.prob_tf.urdf_override import build_tree_from_prob_tf_yaml
+from symaware_grasp.prob_tf.geometry import quat_to_rotmat
+from symaware_grasp.prob_tf.urdf_override import build_tree_from_prob_tf_yaml
 
 
 DEFAULT_BINGHAM_SOURCE_DIR = os.environ.get("BINGHAM_SOURCE_DIR", "/home/leus/BinghamNLL/src")
@@ -21,7 +21,7 @@ from bingham.distribution import BinghamDistribution
 
 
 def _default_config_path():
-    return Path(rospkg.RosPack().get_path("probik_demo")) / "configs" / "simple_six_dof_prob_tf.yaml"
+    return Path(rospkg.RosPack().get_path("symaware_grasp")) / "configs" / "simple_six_dof_prob_tf.yaml"
 
 
 class SampleCheckSimpleSixDofNode:

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(probik_demo)
+project(symaware_grasp)
 
 find_package(
   catkin REQUIRED COMPONENTS

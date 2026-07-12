@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>probik_demo</name>
+  <name>symaware_grasp</name>
   <version>0.1.0</version>
   <description>ProbabilisticTF demo package with a simple 6-DOF arm and RViz visualization.</description>
 

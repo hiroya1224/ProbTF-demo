@@ -2,13 +2,13 @@ import math
 
 import numpy as np
 
-from probik_demo.arm_kinematics import ToyArm6DOF
-from probik_demo.distribution_metrics import (
+from symaware_grasp.arm_kinematics import ToyArm6DOF
+from symaware_grasp.distribution_metrics import (
     bingham_bhattacharyya_distance,
     bingham_log_normalizer_from_A,
     gaussian_bhattacharyya_distance,
 )
-from probik_demo.ptf_utils import (
+from symaware_grasp.ptf_utils import (
     make_bingham_distribution,
     position_covariance_from_msg,
     ptf_mode_quaternion_wxyz,

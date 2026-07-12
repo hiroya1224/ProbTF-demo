@@ -1,7 +1,7 @@
 import numpy as np
 
-from probik_demo.prob_tf.bingham_moments import bingham_fourth_moment, bingham_second_moment
-from probik_demo.prob_tf.geometry import quat_to_rotmat
+from symaware_grasp.prob_tf.bingham_moments import bingham_fourth_moment, bingham_second_moment
+from symaware_grasp.prob_tf.geometry import quat_to_rotmat
 
 
 def _rotation_quadratic_forms():

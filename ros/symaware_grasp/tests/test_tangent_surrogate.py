@@ -1,8 +1,8 @@
 import numpy as np
 
-from probik_demo.prob_tf.geometry import axis_angle_to_quat
-from probik_demo.prob_tf.tangent_surrogate import induced_vector_moments_tangent
-from probik_demo.prob_tf.urdf_override import make_bingham_param_from_mode
+from symaware_grasp.prob_tf.geometry import axis_angle_to_quat
+from symaware_grasp.prob_tf.tangent_surrogate import induced_vector_moments_tangent
+from symaware_grasp.prob_tf.urdf_override import make_bingham_param_from_mode
 
 
 def test_tangent_surrogate_is_finite_for_concentrated_identity_mode():

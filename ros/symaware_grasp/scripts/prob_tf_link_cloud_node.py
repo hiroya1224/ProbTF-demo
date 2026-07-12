@@ -8,15 +8,15 @@ from sensor_msgs import point_cloud2
 from sensor_msgs.msg import PointCloud2, PointField
 from std_msgs.msg import Header
 
-from probik_demo.prob_tf.urdf_override import build_tree_from_prob_tf_yaml, load_prob_tf_yaml
-from probik_demo.ptf_utils import pack_rgb
+from symaware_grasp.prob_tf.urdf_override import build_tree_from_prob_tf_yaml, load_prob_tf_yaml
+from symaware_grasp.ptf_utils import pack_rgb
 
 
 def _default_config_path():
     try:
         import rospkg
 
-        return os.path.join(rospkg.RosPack().get_path("probik_demo"), "configs", "simple_six_dof_prob_tf.yaml")
+        return os.path.join(rospkg.RosPack().get_path("symaware_grasp"), "configs", "simple_six_dof_prob_tf.yaml")
     except Exception:
         return os.path.join(os.path.dirname(os.path.dirname(__file__)), "configs", "simple_six_dof_prob_tf.yaml")
 

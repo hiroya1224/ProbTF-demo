@@ -4,18 +4,18 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import JointState
 
-from probik_demo.arm_kinematics import ToyArm6DOF
-from probik_demo.ee_belief import EndEffectorBeliefModel
-from probik_demo.msg import IKResult, ProbabilisticTF, ProbabilisticTFArray
-from probik_demo.symmetry_aware_ik import SymmetryAwareIKSolver
+from symaware_grasp.arm_kinematics import ToyArm6DOF
+from symaware_grasp.ee_belief import EndEffectorBeliefModel
+from symaware_grasp.msg import IKResult, ProbabilisticTF, ProbabilisticTFArray
+from symaware_grasp.symmetry_aware_ik import SymmetryAwareIKSolver
 
 
 def _get_hand_belief_param(name, default):
-    return rospy.get_param("~" + name, rospy.get_param("/probik_demo/hand_belief/" + name, default))
+    return rospy.get_param("~" + name, rospy.get_param("/symaware_grasp/hand_belief/" + name, default))
 
 
 def _get_ik_param(name, default):
-    return rospy.get_param("~" + name, rospy.get_param("/probik_demo/ik/" + name, default))
+    return rospy.get_param("~" + name, rospy.get_param("/symaware_grasp/ik/" + name, default))
 
 
 class SymmetryAwareIKNode:

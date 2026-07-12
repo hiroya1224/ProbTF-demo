@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from probik_demo.prob_tf.geometry import axis_angle_to_quat, complete_orthonormal_basis, quat_normalize
-from probik_demo.prob_tf.tree import ProbTfEdge, ProbTfTree
+from symaware_grasp.prob_tf.geometry import axis_angle_to_quat, complete_orthonormal_basis, quat_normalize
+from symaware_grasp.prob_tf.tree import ProbTfEdge, ProbTfTree
 
 
 def load_prob_tf_yaml(path):

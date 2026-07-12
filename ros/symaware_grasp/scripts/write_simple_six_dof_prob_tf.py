@@ -97,7 +97,7 @@ DEFAULT_CONFIG = {
 }
 
 def _default_output_path():
-    package_path = Path(rospkg.RosPack().get_path("probik_demo"))
+    package_path = Path(rospkg.RosPack().get_path("symaware_grasp"))
     return package_path / "configs" / "simple_six_dof_prob_tf.yaml"
 
 

@@ -6,9 +6,9 @@ from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker
 
-from probik_demo.grasp_library import load_grasp_library
-from probik_demo.msg import ProbabilisticTF, ProbabilisticTFArray
-from probik_demo.ptf_utils import (
+from symaware_grasp.grasp_library import load_grasp_library
+from symaware_grasp.msg import ProbabilisticTF, ProbabilisticTFArray
+from symaware_grasp.ptf_utils import (
     make_bingham_distribution,
     make_probabilistic_tf_message,
     position_covariance_from_msg,

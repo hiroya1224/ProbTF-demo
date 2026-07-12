@@ -12,11 +12,11 @@ if os.path.isdir(DEFAULT_BINGHAM_SOURCE_DIR) and DEFAULT_BINGHAM_SOURCE_DIR not 
 try:
     import quaternion
     from geometry_msgs.msg import Quaternion, Vector3
-    from probik_demo.msg import BinghamDistribution, ProbabilisticTF
+    from symaware_grasp.msg import BinghamDistribution, ProbabilisticTF
     from bingham.distribution import BinghamDistribution as BinghamDistributionImpl
 except ImportError as exc:
     raise ImportError(
-        "probik_demo requires geometry_msgs, numpy-quaternion, and the local BinghamNLL source. "
+        "symaware_grasp requires geometry_msgs, numpy-quaternion, and the local BinghamNLL source. "
         "Set BINGHAM_SOURCE_DIR or add /home/leus/BinghamNLL/src to PYTHONPATH."
     ) from exc
 

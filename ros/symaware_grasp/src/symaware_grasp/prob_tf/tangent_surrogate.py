@@ -1,7 +1,7 @@
 import numpy as np
 
-from probik_demo.prob_tf.bingham_moments import ensure_trace_zero
-from probik_demo.prob_tf.geometry import (
+from symaware_grasp.prob_tf.bingham_moments import ensure_trace_zero
+from symaware_grasp.prob_tf.geometry import (
     exp_s2,
     normalize_vec,
     quat_left_matrix,

@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from probik_demo.prob_tf.path_expression import EdgeView, PathExpression
-from probik_demo.prob_tf.urdf_override import build_tree_from_prob_tf_yaml
+from symaware_grasp.prob_tf.path_expression import EdgeView, PathExpression
+from symaware_grasp.prob_tf.urdf_override import build_tree_from_prob_tf_yaml
 
 
 def _config_path():

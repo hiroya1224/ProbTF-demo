@@ -1,7 +1,7 @@
 import numpy as np
 
-from probik_demo.prob_tf.rotation_moments import rotation_moment_from_bingham
-from probik_demo.prob_tf.urdf_override import make_bingham_param_from_mode
+from symaware_grasp.prob_tf.rotation_moments import rotation_moment_from_bingham
+from symaware_grasp.prob_tf.urdf_override import make_bingham_param_from_mode
 
 
 def test_rotation_moment_is_near_identity_for_concentrated_identity_mode():

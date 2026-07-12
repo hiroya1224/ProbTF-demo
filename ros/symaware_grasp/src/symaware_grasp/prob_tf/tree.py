@@ -2,14 +2,14 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from probik_demo.prob_tf.bingham_match import match_bingham_to_second_moment, quaternion_product_second_moment
-from probik_demo.prob_tf.geometry import axis_angle_to_quat
-from probik_demo.prob_tf.path_expression import EdgeView, PathExpression
-from probik_demo.prob_tf.rotation_moments import (
+from symaware_grasp.prob_tf.bingham_match import match_bingham_to_second_moment, quaternion_product_second_moment
+from symaware_grasp.prob_tf.geometry import axis_angle_to_quat
+from symaware_grasp.prob_tf.path_expression import EdgeView, PathExpression
+from symaware_grasp.prob_tf.rotation_moments import (
     identity_rotation_moment,
     rotation_moment_from_bingham,
 )
-from probik_demo.prob_tf.tangent_surrogate import induced_vector_moments_tangent
+from symaware_grasp.prob_tf.tangent_surrogate import induced_vector_moments_tangent
 
 
 def _symmetrize(matrix):
@@ -62,7 +62,7 @@ class ProbTfEdge:
             if self.rotation_moment is None:
                 self.rotation_moment = rotation_moment_from_bingham(self.bingham_param)
             if self.quaternion_second_moment is None:
-                from probik_demo.prob_tf.bingham_moments import bingham_second_moment
+                from symaware_grasp.prob_tf.bingham_moments import bingham_second_moment
 
                 self.quaternion_second_moment = bingham_second_moment(self.bingham_param)
             self.quaternion_second_moment = _symmetrize(self.quaternion_second_moment)

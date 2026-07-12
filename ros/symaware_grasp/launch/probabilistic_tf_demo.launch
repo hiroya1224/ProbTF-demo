@@ -7,25 +7,25 @@
   <env name="BINGHAM_SOURCE_DIR" value="/home/leus/BinghamNLL/src"/>
   <env name="PYTHONPATH" value="/home/leus/BinghamNLL/src:$(optenv PYTHONPATH)"/>
 
-  <param name="robot_description" textfile="$(find probik_demo)/urdf/simple_six_dof_arm.urdf"/>
-  <rosparam param="/probik_demo/hand_belief/joint_noise_stddev">[0.03, 0.03, 0.03, 0.05, 0.05, 0.05]</rosparam>
-  <param name="/probik_demo/hand_belief/sample_count" value="36"/>
-  <rosparam param="/probik_demo/hand_belief/orientation_concentrations">[420.0, 320.0, 220.0]</rosparam>
-  <param name="/probik_demo/hand_belief/position_covariance_floor" value="0.00005"/>
-  <param name="/probik_demo/hand_belief/seed" value="23"/>
-  <param name="/probik_demo/hand_belief/bingham_integration_steps" value="80"/>
-  <param name="/probik_demo/hand_belief/bingham_fit_max_iterations" value="40"/>
-  <param name="/probik_demo/ik/w_position" value="8.0"/>
-  <param name="/probik_demo/ik/w_orientation" value="1.0"/>
-  <param name="/probik_demo/ik/w_motion" value="0.4"/>
-  <param name="/probik_demo/ik/w_joint_limit" value="1.0"/>
-  <param name="/probik_demo/ik/method" value="$(arg ik_method)"/>
-  <param name="/probik_demo/ik/max_iterations" value="90"/>
-  <param name="/probik_demo/ik/restarts" value="6"/>
-  <param name="/probik_demo/ik/seed" value="31"/>
-  <param name="/probik_demo/ik/bingham_integration_steps" value="80"/>
+  <param name="robot_description" textfile="$(find symaware_grasp)/urdf/simple_six_dof_arm.urdf"/>
+  <rosparam param="/symaware_grasp/hand_belief/joint_noise_stddev">[0.03, 0.03, 0.03, 0.05, 0.05, 0.05]</rosparam>
+  <param name="/symaware_grasp/hand_belief/sample_count" value="36"/>
+  <rosparam param="/symaware_grasp/hand_belief/orientation_concentrations">[420.0, 320.0, 220.0]</rosparam>
+  <param name="/symaware_grasp/hand_belief/position_covariance_floor" value="0.00005"/>
+  <param name="/symaware_grasp/hand_belief/seed" value="23"/>
+  <param name="/symaware_grasp/hand_belief/bingham_integration_steps" value="80"/>
+  <param name="/symaware_grasp/hand_belief/bingham_fit_max_iterations" value="40"/>
+  <param name="/symaware_grasp/ik/w_position" value="8.0"/>
+  <param name="/symaware_grasp/ik/w_orientation" value="1.0"/>
+  <param name="/symaware_grasp/ik/w_motion" value="0.4"/>
+  <param name="/symaware_grasp/ik/w_joint_limit" value="1.0"/>
+  <param name="/symaware_grasp/ik/method" value="$(arg ik_method)"/>
+  <param name="/symaware_grasp/ik/max_iterations" value="90"/>
+  <param name="/symaware_grasp/ik/restarts" value="6"/>
+  <param name="/symaware_grasp/ik/seed" value="31"/>
+  <param name="/symaware_grasp/ik/bingham_integration_steps" value="80"/>
 
-  <node pkg="probik_demo" type="arm_joint_state_controller.py" name="robot_controller" output="screen">
+  <node pkg="symaware_grasp" type="arm_joint_state_controller.py" name="robot_controller" output="screen">
     <rosparam param="initial_positions">[0.6, -1.0, 1.2, 0.2, -0.5, 0.8]</rosparam>
     <param name="publish_rate" value="30.0"/>
     <rosparam param="max_joint_speed">[0.9, 0.9, 0.9, 1.2, 1.2, 1.2]</rosparam>
@@ -33,7 +33,7 @@
 
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
 
-  <node pkg="probik_demo" type="object_pose_node.py" name="object_pose_node" output="screen">
+  <node pkg="symaware_grasp" type="object_pose_node.py" name="object_pose_node" output="screen">
     <param name="parent_frame_id" value="base_link"/>
     <param name="child_frame_id" value="demo_cylinder"/>
     <param name="publish_rate" value="10.0"/>
@@ -44,7 +44,7 @@
     <rosparam param="bingham_concentrations">[5000.0, 5000.0, 0.1]</rosparam>
   </node>
 
-  <node pkg="probik_demo" type="ptf_visualizer.py" name="object_prob_tf_visualizer" output="screen">
+  <node pkg="symaware_grasp" type="ptf_visualizer.py" name="object_prob_tf_visualizer" output="screen">
     <param name="input_topic" value="object_prob_tf"/>
     <param name="cloud_topic" value="object_axes_cloud"/>
     <param name="pose_topic" value="object_mode_pose"/>
@@ -54,8 +54,8 @@
     <param name="seed" value="7"/>
   </node>
 
-  <node pkg="probik_demo" type="prob_tf_grasp_target_node.py" name="prob_tf_grasp_target_node" output="screen">
-    <param name="grasp_library_path" value="$(find probik_demo)/config/grasp_library.yaml"/>
+  <node pkg="symaware_grasp" type="prob_tf_grasp_target_node.py" name="prob_tf_grasp_target_node" output="screen">
+    <param name="grasp_library_path" value="$(find symaware_grasp)/config/grasp_library.yaml"/>
     <param name="object_id" value="demo_cylinder"/>
     <param name="object_ptf_topic" value="object_prob_tf"/>
     <param name="rotation_covariance_samples" value="80"/>
@@ -63,13 +63,13 @@
     <param name="marker_axis_length" value="0.10"/>
   </node>
 
-  <node pkg="probik_demo" type="hand_prob_tf_publisher.py" name="hand_prob_tf_publisher" output="screen">
+  <node pkg="symaware_grasp" type="hand_prob_tf_publisher.py" name="hand_prob_tf_publisher" output="screen">
     <param name="parent_frame_id" value="base_link"/>
     <param name="child_frame_id" value="tool0_prob"/>
     <param name="publish_rate" value="8.0"/>
   </node>
 
-  <node pkg="probik_demo" type="ptf_visualizer.py" name="hand_prob_tf_visualizer" output="screen">
+  <node pkg="symaware_grasp" type="ptf_visualizer.py" name="hand_prob_tf_visualizer" output="screen">
     <param name="input_topic" value="hand_prob_tf"/>
     <param name="cloud_topic" value="hand_axes_cloud"/>
     <param name="pose_topic" value="hand_mode_pose"/>
@@ -79,7 +79,7 @@
     <param name="seed" value="11"/>
   </node>
 
-  <node pkg="probik_demo" type="ptf_visualizer.py" name="selected_grasp_target_visualizer" output="screen">
+  <node pkg="symaware_grasp" type="ptf_visualizer.py" name="selected_grasp_target_visualizer" output="screen">
     <param name="input_topic" value="selected_grasp_target_prob_tf"/>
     <param name="cloud_topic" value="selected_grasp_axes_cloud"/>
     <param name="pose_topic" value="selected_grasp_mode_pose"/>
@@ -89,5 +89,5 @@
     <param name="seed" value="17"/>
   </node>
 
-  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(find probik_demo)/rviz/probabilistic_tf_demo.rviz"/>
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(find symaware_grasp)/rviz/probabilistic_tf_demo.rviz"/>
 </launch>

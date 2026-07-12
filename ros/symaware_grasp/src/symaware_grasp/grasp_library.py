@@ -3,8 +3,8 @@ import os
 
 import yaml
 
-from probik_demo.msg import GraspCandidate
-from probik_demo.ptf_utils import (
+from symaware_grasp.msg import GraspCandidate
+from symaware_grasp.ptf_utils import (
     quaternion_from_approach_and_finger_axes,
     quaternion_from_rpy,
     quaternion_msg_from_wxyz,

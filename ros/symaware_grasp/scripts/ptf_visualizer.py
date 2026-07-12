@@ -8,8 +8,8 @@ from sensor_msgs.msg import PointCloud2, PointField
 from std_msgs.msg import ColorRGBA, Header
 from visualization_msgs.msg import Marker
 
-from probik_demo.msg import ProbabilisticTF
-from probik_demo.ptf_utils import (
+from symaware_grasp.msg import ProbabilisticTF
+from symaware_grasp.ptf_utils import (
     make_bingham_distribution,
     pack_rgb,
     position_covariance_from_msg,

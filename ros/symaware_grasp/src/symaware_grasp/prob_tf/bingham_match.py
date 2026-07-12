@@ -3,7 +3,7 @@ import sys
 
 import numpy as np
 
-from probik_demo.prob_tf.bingham_moments import ensure_trace_zero
+from symaware_grasp.prob_tf.bingham_moments import ensure_trace_zero
 
 
 DEFAULT_BINGHAM_SOURCE_DIR = os.environ.get("BINGHAM_SOURCE_DIR", "/home/leus/BinghamNLL/src")

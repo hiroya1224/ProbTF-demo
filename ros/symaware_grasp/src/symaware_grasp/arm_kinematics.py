@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from probik_demo.ptf_utils import quaternion_from_rotation_matrix, normalize_wxyz
+from symaware_grasp.ptf_utils import quaternion_from_rotation_matrix, normalize_wxyz
 
 
 def _translation_matrix(translation_xyz):

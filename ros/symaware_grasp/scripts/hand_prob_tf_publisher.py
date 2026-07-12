@@ -4,14 +4,14 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import JointState
 
-from probik_demo.arm_kinematics import ToyArm6DOF
-from probik_demo.ee_belief import EndEffectorBeliefModel
-from probik_demo.msg import ProbabilisticTF
-from probik_demo.ptf_utils import make_probabilistic_tf_message
+from symaware_grasp.arm_kinematics import ToyArm6DOF
+from symaware_grasp.ee_belief import EndEffectorBeliefModel
+from symaware_grasp.msg import ProbabilisticTF
+from symaware_grasp.ptf_utils import make_probabilistic_tf_message
 
 
 def _get_belief_param(name, default):
-    return rospy.get_param("~" + name, rospy.get_param("/probik_demo/hand_belief/" + name, default))
+    return rospy.get_param("~" + name, rospy.get_param("/symaware_grasp/hand_belief/" + name, default))
 
 
 class HandProbTFPublisher:

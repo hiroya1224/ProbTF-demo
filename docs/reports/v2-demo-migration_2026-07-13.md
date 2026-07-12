@@ -145,6 +145,23 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 - devel space の生成 message / estimator import: 成功
 - two-IMU / orientation launch の node 解決: 成功
 
+### 4.8 native v2 sampling backend
+
+- Dirac、uniform、finite Bingham orientation を v2 domain model から直接 sample するAPIを追加した。
+- mixture の正規化済み正 weight、component ごとの conditional Gaussian translation、
+  `rotation_coupling` を保った joint transform sample を生成する。
+- sampled transform の forward / inverse point action を一つのAPIで実装した。
+- `KernelEvaluator.SAMPLES` を Gaussian point input、mixture、coupled translation、
+  inverse、composed path に接続した。
+- 反復 latent edge は既存の dependency checkで拒否し、独立な再標本化をしない。
+- stochastic sample result は `MONTE_CARLO` approximation として型付けする。
+
+検証:
+
+- sampling / kernel tests: `18 passed`
+- `tests/probtf`: `143 passed`
+- finite Bingham sampleの二次moment、mixture比率、coupling、forward/inverse統計を検査
+
 ## 5. コミット
 
 | commit | 内容 |
@@ -154,3 +171,4 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 | `61fb198` | deterministic right compositionで v2 couplingを保持 |
 | `2f870d2` | symaware YAMLを native v2 static recordsとしてload |
 | `09038d8` | bounded v2 topic listener と lookup APIを追加 |
+| `89c1e85` | estimator demoとorientation-only wire contractをnative v2化 |

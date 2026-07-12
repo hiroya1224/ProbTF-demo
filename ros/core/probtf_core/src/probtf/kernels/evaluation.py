@@ -24,8 +24,10 @@ from probtf.kernels.inverse import InverseEdgeKernel
 from probtf.kernels.mixture import MixtureTransformKernel
 from probtf.probability import (
     PointMomentSummary,
+    apply_transform_samples,
     forward_component_point_moments,
     mixture_point_moments,
+    sample_transform_distribution,
 )
 from probtf.provenance import ApproximationInfo, ApproximationKind
 from probtf.spherical_law import (
@@ -327,21 +329,53 @@ class KernelEvaluator:
         )
 
     def _sample_result(self, kernel, input_law, options, diagnostics):
-        deterministic = self._deterministic_law(kernel, input_law)
-        if deterministic is None or not isinstance(deterministic, DiracPointLaw):
-            return self._unavailable(
-                KernelRepresentation.SAMPLES,
-                "UNAVAILABLE_SAMPLING_BACKEND",
-                "Stochastic sampling backend is not implemented.",
-            )
         count = options.sample_count
-        samples = np.repeat(deterministic.point[None, :], count, axis=0)
-        samples.setflags(write=False)
+        generator = np.random.default_rng(options.rng)
+        if isinstance(input_law, DiracPointLaw):
+            points = np.repeat(input_law.point[None, :], count, axis=0)
+        else:
+            points = generator.multivariate_normal(
+                input_law.mean,
+                input_law.covariance,
+                size=count,
+            ).reshape(count, 3)
+
+        for expression in _kernel_sequence(kernel):
+            base = _edge_kernel(expression)
+            if not isinstance(base, (ForwardEdgeKernel, InverseEdgeKernel)):
+                return self._unavailable(
+                    KernelRepresentation.SAMPLES,
+                    "UNSUPPORTED_KERNEL_EXPRESSION",
+                    "Sampling supports only forward, inverse, and composed edge kernels.",
+                )
+            transform_samples = sample_transform_distribution(
+                base.edge_record.distribution,
+                count,
+                generator,
+            )
+            points = apply_transform_samples(
+                transform_samples,
+                points,
+                inverse=isinstance(base, InverseEdgeKernel),
+            )
+
+        points.setflags(write=False)
+        deterministic = self._deterministic_law(kernel, input_law)
+        approximation = (
+            ApproximationInfo()
+            if isinstance(deterministic, DiracPointLaw)
+            else ApproximationInfo(
+                kind=ApproximationKind.MONTE_CARLO,
+                lossy=True,
+                detail="Finite samples from the native transform-kernel law.",
+                source="probtf.kernels.KernelEvaluator",
+            )
+        )
         return KernelResult(
             DistributionStatus.OK,
             KernelRepresentation.SAMPLES,
-            samples,
-            ApproximationInfo(),
+            points,
+            approximation,
             diagnostics,
         )
 

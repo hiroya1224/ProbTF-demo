@@ -7,6 +7,11 @@
   <arg name="publish_imu_static_tf" default="false" />
   <arg name="imu_static_parent_prefix" default="equil" />
   <arg name="imu_static_child_prefix" default="" />
+  <arg name="enable_probtf_runtime" default="true" />
+  <arg name="probtf_topic" default="/deflecomp/probtf" />
+  <arg name="probtf_static_topic" default="/deflecomp/probtf_static" />
+  <arg name="probtf_marker_topic" default="/deflecomp/probtf_point_moments" />
+  <arg name="probtf_tf_child_prefixes" default="ref,cmd,equil" />
 
   <include file="$(find deflecomp_ros)/launch/deflecomp.launch">
     <arg name="model" value="$(arg urdf_path)" />
@@ -20,7 +25,11 @@
 
   <group ns="ref">
     <param name="robot_description" textfile="$(arg urdf_path)" />
-    <node pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="angle_controller" output="screen">
+    <node if="$(arg viewer)" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="angle_controller" output="screen">
+      <param name="rate" value="50" />
+      <remap from="joint_states" to="/ref/joint_states" />
+    </node>
+    <node unless="$(arg viewer)" pkg="joint_state_publisher" type="joint_state_publisher" name="angle_controller" output="screen">
       <param name="rate" value="50" />
       <remap from="joint_states" to="/ref/joint_states" />
     </node>
@@ -67,7 +76,7 @@
     name="st_equil_to_base"
     args="0 0 0 0 0 0 base_link equil/base_link" />
 
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)" required="false" />
+  <node if="$(arg viewer)" pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)" required="false" />
 
   <node
     if="$(arg publish_imu_static_tf)"
@@ -79,6 +88,29 @@
     <param name="parent_prefix" value="$(arg imu_static_parent_prefix)" />
     <param name="child_prefix" value="$(arg imu_static_child_prefix)" />
   </node>
+
+  <group if="$(arg enable_probtf_runtime)" ns="deflecomp">
+    <include file="$(find probtf_core)/launch/probtf_bridge.launch">
+      <arg name="import_tf" value="true" />
+      <arg name="export_tf" value="false" />
+      <arg name="tf_export_policy" value="exact_only" />
+      <arg name="probtf_topic" value="$(arg probtf_topic)" />
+      <arg name="probtf_static_topic" value="$(arg probtf_static_topic)" />
+      <arg name="tf_import_child_prefixes" value="$(arg probtf_tf_child_prefixes)" />
+    </include>
+
+    <node
+      pkg="deflecomp_ros"
+      type="probtf_point_moments_node.py"
+      name="probtf_point_moments"
+      output="screen">
+      <rosparam command="load" file="$(find deflecomp_ros)/config/probtf_runtime.yaml" />
+      <param name="urdf_path" value="$(arg urdf_path)" />
+      <param name="dynamic_topic" value="$(arg probtf_topic)" />
+      <param name="static_topic" value="$(arg probtf_static_topic)" />
+      <param name="marker_topic" value="$(arg probtf_marker_topic)" />
+    </node>
+  </group>
 
   <include if="$(arg viewer)" file="$(find deflecomp_debug)/launch/kp_plotter.launch" />
 </launch>

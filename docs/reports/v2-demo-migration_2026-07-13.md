@@ -162,6 +162,25 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 - `tests/probtf`: `143 passed`
 - finite Bingham sampleの二次moment、mixture比率、coupling、forward/inverse統計を検査
 
+### 4.9 deflecomp frame runtime の v2 接続
+
+- `deflecomp_frames.launch` に、`ref`、`cmd`、`equil` child frameだけを対象とする
+  import-onlyの共通 TF -> ProbTF v2 bridgeを組み込んだ。
+- 実際の robot-state-publisher / static TFを `/deflecomp/probtf` と
+  `/deflecomp/probtf_static` の native v2 recordとして配信する。
+- 別 processの `RosProbTfListener` から `lookup_path` と `lookup_point_moments` を呼ぶ
+  consumerを追加し、point mean / covariance axisをRViz markerとして表示する。
+- stiffness `kp_*` posteriorはSE(3) transformではないため、ProbTF graphへ登録していない。
+- `viewer:=false` ではGUI/RVizを起動しないheadless構成にし、`viewer:=true` の既存表示を保った。
+
+検証:
+
+- Deflecomp core/sim/v2 runtime tests: `28 passed, 1 warning`
+- 関連7 catkin package build: 成功
+- 指定されたYamaguchi arm URDF / IMU configでviewer false/trueのlaunch解決: 成功
+- devel spaceだけを使ったconsumer node import: 成功
+- 実ROS master上のtopic smokeはsandboxのnetwork-interface制限により、この時点では未実施
+
 ## 5. コミット
 
 | commit | 内容 |
@@ -172,3 +191,4 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 | `2f870d2` | symaware YAMLを native v2 static recordsとしてload |
 | `09038d8` | bounded v2 topic listener と lookup APIを追加 |
 | `89c1e85` | estimator demoとorientation-only wire contractをnative v2化 |
+| `42c699e` | native v2 transform kernel samplingを実装 |

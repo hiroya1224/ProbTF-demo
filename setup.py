@@ -1,24 +1,25 @@
-from pathlib import Path
-
 from setuptools import find_packages, setup
 
 
-ROOT = Path(__file__).resolve().parent
-BINGHAM_SOURCE = ROOT / "third_party" / "BinghamNLL" / "src"
-BINGHAM_PACKAGE_DIR = "third_party/BinghamNLL/src/bingham"
+PACKAGE_ROOTS = (
+    "ros/core/probtf_core/src",
+    "ros/examples/deflecomp/deflecomp_core/src",
+    "ros/examples/deflecomp/deflecomp_examples/src",
+    "ros/examples/deflecomp/deflecomp_sim/src",
+    "ros/examples/symaware_grasp/src",
+    "third_party/BinghamNLL/src",
+)
 
-if not (BINGHAM_SOURCE / "bingham" / "__init__.py").is_file():
-    raise RuntimeError(
-        "BinghamNLL is not initialized. Run "
-        "'git submodule update --init --recursive' before installing."
-    )
-
-packages = find_packages(where="src") + find_packages(where=str(BINGHAM_SOURCE))
+packages = []
+package_dir = {}
+for source_root in PACKAGE_ROOTS:
+    discovered = find_packages(where=source_root)
+    packages.extend(discovered)
+    for package in discovered:
+        top_level = package.split(".", 1)[0]
+        package_dir.setdefault(top_level, "{}/{}".format(source_root, top_level))
 
 setup(
     packages=packages,
-    package_dir={
-        "": "src",
-        "bingham": BINGHAM_PACKAGE_DIR,
-    },
+    package_dir=package_dir,
 )

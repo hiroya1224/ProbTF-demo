@@ -1,12 +1,9 @@
-from setuptools import setup
-
-from catkin_pkg.python_setup import generate_distutils_setup
+from setuptools import find_packages, setup
 
 
-setup_args = generate_distutils_setup(
-    packages=["symaware_grasp_ros"],
+setup(
+    name="symaware_grasp",
+    version="0.1.0",
+    packages=find_packages(where="src"),
     package_dir={"": "src"},
 )
-
-setup(**setup_args)
-

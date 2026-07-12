@@ -17,28 +17,46 @@ ROS_MODULES = {
 }
 
 
+def _ros_free_package_roots(repository_root):
+    return (
+        repository_root / "ros" / "core" / "probtf_core" / "src" / "probtf",
+        repository_root / "ros" / "core" / "probtf_core" / "src" / "probtf_estimators",
+        repository_root / "ros" / "examples" / "deflecomp" / "deflecomp_core" / "src" / "deflecomp_core",
+        repository_root
+        / "ros"
+        / "examples"
+        / "deflecomp"
+        / "deflecomp_examples"
+        / "src"
+        / "deflecomp_examples",
+        repository_root / "ros" / "examples" / "deflecomp" / "deflecomp_sim" / "src" / "deflecomp_sim",
+        repository_root / "ros" / "examples" / "symaware_grasp" / "src" / "symaware_grasp",
+    )
+
+
 class RosBoundaryTest(unittest.TestCase):
     def test_root_python_packages_do_not_import_ros(self):
-        source_root = Path(__file__).resolve().parents[1] / "src"
+        root = Path(__file__).resolve().parents[1]
         violations = []
-        for path in sorted(source_root.rglob("*.py")):
-            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    modules = [alias.name.split(".", 1)[0] for alias in node.names]
-                elif isinstance(node, ast.ImportFrom) and node.module:
-                    modules = [node.module.split(".", 1)[0]]
-                else:
-                    continue
-                for module in modules:
-                    if module in ROS_MODULES:
-                        violations.append(f"{path.relative_to(source_root)} imports {module}")
+        for source_root in _ros_free_package_roots(root):
+            for path in sorted(source_root.rglob("*.py")):
+                tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        modules = [alias.name.split(".", 1)[0] for alias in node.names]
+                    elif isinstance(node, ast.ImportFrom) and node.module:
+                        modules = [node.module.split(".", 1)[0]]
+                    else:
+                        continue
+                    for module in modules:
+                        if module in ROS_MODULES:
+                            violations.append(f"{path.relative_to(root)} imports {module}")
 
         self.assertEqual(violations, [])
 
     def test_probtf_foundation_does_not_import_producers_ros_or_examples(self):
-        source_root = Path(__file__).resolve().parents[1] / "src"
-        foundation_root = source_root / "probtf"
+        root = Path(__file__).resolve().parents[1]
+        foundation_root = root / "ros" / "core" / "probtf_core" / "src" / "probtf"
         forbidden = ROS_MODULES | {
             "deflecomp_examples",
             "probtf_estimators",
@@ -57,7 +75,7 @@ class RosBoundaryTest(unittest.TestCase):
                 for module in modules:
                     if module in forbidden:
                         violations.append(
-                            f"{path.relative_to(source_root)} imports forbidden dependency {module}"
+                            f"{path.relative_to(root)} imports forbidden dependency {module}"
                         )
         self.assertEqual(violations, [])
 
@@ -78,15 +96,37 @@ class RosBoundaryTest(unittest.TestCase):
                     violations.append(str(path.relative_to(root)))
         self.assertEqual(violations, [])
 
-    def test_ros_setup_does_not_repackage_foundation_or_bingham(self):
+    def test_ros_setup_packages_first_party_sources_without_parent_path_relays(self):
         root = Path(__file__).resolve().parents[1]
         setup_text = (root / "ros" / "core" / "probtf_core" / "setup.py").read_text(
             encoding="utf-8"
         )
-        self.assertNotIn('"probtf":', setup_text)
-        self.assertNotIn('"probtf_estimators":', setup_text)
-        self.assertNotIn('"bingham":', setup_text)
-        self.assertIn('packages=["probtf_ros"]', setup_text)
+        self.assertIn('find_packages(where="src")', setup_text)
+        self.assertIn('package_dir={"": "src"}', setup_text)
+        self.assertNotIn("../", setup_text)
+        self.assertTrue((root / "ros" / "core" / "probtf_core" / "src" / "probtf").is_dir())
+        self.assertTrue(
+            (root / "ros" / "core" / "probtf_core" / "src" / "probtf_estimators").is_dir()
+        )
+
+    def test_tests_do_not_modify_sys_path_for_first_party_imports(self):
+        root = Path(__file__).resolve().parents[1]
+        violations = []
+        for path in sorted((root / "tests").rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                    continue
+                owner = node.func.value
+                if (
+                    isinstance(owner, ast.Attribute)
+                    and isinstance(owner.value, ast.Name)
+                    and owner.value.id == "sys"
+                    and owner.attr == "path"
+                    and node.func.attr in ("append", "insert")
+                ):
+                    violations.append(str(path.relative_to(root)))
+        self.assertEqual(violations, [])
 
     def test_ros_core_installs_only_bridge_nodes_and_has_no_estimator_import(self):
         root = Path(__file__).resolve().parents[1]

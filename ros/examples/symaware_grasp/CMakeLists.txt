@@ -4,6 +4,7 @@ project(symaware_grasp)
 find_package(
   catkin REQUIRED COMPONENTS
     geometry_msgs
+    probtf_core
     probtf_msgs
     rospy
     sensor_msgs
@@ -16,6 +17,7 @@ catkin_python_setup()
 catkin_package(
   CATKIN_DEPENDS
     geometry_msgs
+    probtf_core
     probtf_msgs
     rospy
     sensor_msgs

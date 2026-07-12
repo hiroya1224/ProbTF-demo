@@ -1,6 +1,4 @@
 from dataclasses import replace
-from pathlib import Path
-import sys
 
 import numpy as np
 import pytest
@@ -22,19 +20,15 @@ from probtf.provenance import (
     TransformProvenance,
 )
 
-
-ROS_PYTHON = Path(__file__).resolve().parents[2] / "ros" / "core" / "probtf_core" / "src"
-sys.path.insert(0, str(ROS_PYTHON))
-
-from probtf_ros.bridge import ProbTfBroadcaster, ProbTfListener  # noqa: E402
-from probtf_ros.legacy_conversions import legacy_message_to_v2_record  # noqa: E402
-from probtf_ros.tf_bridge import (  # noqa: E402
+from probtf_ros.bridge import ProbTfBroadcaster, ProbTfListener
+from probtf_ros.legacy_conversions import legacy_message_to_v2_record
+from probtf_ros.tf_bridge import (
     ProbTfTfBridge,
     TfExportPolicy,
     deterministic_tf_to_record,
     record_to_deterministic_tf,
 )
-from probtf_ros.v2_conversions import (  # noqa: E402
+from probtf_ros.v2_conversions import (
     V2MessageTypes,
     transform_array_from_msg,
     transform_array_to_msg,

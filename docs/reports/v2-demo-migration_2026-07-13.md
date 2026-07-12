@@ -71,8 +71,25 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 - external `bingham` importを強制拒否した状態で `import probtf`: 成功
 - Bingham / v2 distribution / kernel tests: `42 passed`
 
+### 4.3 deterministic right composition の v2 閉包
+
+- stochastic record の各 component に deterministic child offsetを右合成する core 演算を追加した。
+- `R_new = R_old R_fixed` に伴う coupling の基底変換と `R_old r` 項を、3x9
+  `rotation_coupling` に保持する。
+- mixture weight、residual covariance、representative、approximationを保持し、derived edgeを
+  provenanceへ記録する。
+- symaware grasp target は、この演算を使うことで v1 の mode plug-in / covariance samplingを
+  廃止できる。
+
+検証:
+
+- 任意 quaternion 20点で、旧 component + fixed transform の直接評価と合成後 component の
+  conditional meanが `1e-12` 以内で一致
+- composition tests: `2 passed`
+
 ## 5. コミット
 
 | commit | 内容 |
 | --- | --- |
 | `db91ed4` | Python sourceを所有 catkin package 内へ正規配置 |
+| `89f3811` | Bingham 正規化積分を core 内へ収容 |

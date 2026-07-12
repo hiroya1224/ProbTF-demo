@@ -10,13 +10,20 @@ find_package(
 
 add_message_files(
   FILES
+    ApproximationInfo.msg
+    BinghamOrientation.msg
     BinghamDistribution.msg
+    ConditionalGaussianTranslation.msg
     GaussianPosition.msg
     GraspCandidate.msg
     IKResult.msg
     ImuKinematics.msg
     ProbabilisticTF.msg
     ProbabilisticTFArray.msg
+    ProbabilisticTransformArray.msg
+    ProbabilisticTransformComponent.msg
+    ProbabilisticTransformStamped.msg
+    Provenance.msg
     TransformEvidence.msg
 )
 

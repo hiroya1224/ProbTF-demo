@@ -1,0 +1,18 @@
+uint8 EXACT=0
+uint8 PRODUCER_SUPPLIED=1
+uint8 LEGACY_ADAPTER=2
+uint8 TANGENT_SURROGATE=3
+uint8 NUMERICAL_INTEGRATION=4
+uint8 MONTE_CARLO=5
+uint8 MOMENT_SUMMARY=6
+uint8 MIXTURE_REDUCTION=7
+uint8 BINGHAM_CLOSURE=8
+uint8 REPRESENTATIVE_PROJECTION=9
+uint8 UNAVAILABLE=10
+
+uint8 kind
+bool lossy
+string detail
+string source
+bool has_error_bound
+float64 error_bound

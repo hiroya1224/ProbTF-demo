@@ -7,7 +7,7 @@ from probtf.distributions.status import RepresentativeKind
 from probtf.distributions.transform_distribution import TransformDistribution
 from probtf.distributions.validation import frame_id, identifier
 from probtf.geometry import DeterministicTransform
-from probtf.provenance import TransformProvenance
+from probtf.provenance import ApproximationInfo, TransformProvenance
 
 
 @dataclass(frozen=True)
@@ -24,6 +24,7 @@ class TransformDistributionStamped:
     representative_kind: RepresentativeKind = RepresentativeKind.NONE
     provenance: TransformProvenance = field(default_factory=TransformProvenance)
     is_static: bool = False
+    approximation: ApproximationInfo = field(default_factory=ApproximationInfo)
 
     def __post_init__(self):
         parent = frame_id(self.parent_frame_id, "parent_frame_id")
@@ -48,6 +49,8 @@ class TransformDistributionStamped:
             raise ValueError("A representative requires an explicit representative_kind.")
         if not isinstance(self.provenance, TransformProvenance):
             raise TypeError("provenance must be TransformProvenance.")
+        if not isinstance(self.approximation, ApproximationInfo):
+            raise TypeError("approximation must be ApproximationInfo.")
 
         object.__setattr__(self, "parent_frame_id", parent)
         object.__setattr__(self, "child_frame_id", child)
@@ -55,4 +58,3 @@ class TransformDistributionStamped:
         object.__setattr__(self, "edge_id", identifier(self.edge_id, "edge_id"))
         object.__setattr__(self, "authority", identifier(self.authority, "authority"))
         object.__setattr__(self, "is_static", bool(self.is_static))
-

@@ -78,6 +78,16 @@ class RosBoundaryTest(unittest.TestCase):
                     violations.append(str(path.relative_to(root)))
         self.assertEqual(violations, [])
 
+    def test_ros_setup_does_not_repackage_foundation_or_bingham(self):
+        root = Path(__file__).resolve().parents[1]
+        setup_text = (root / "ros" / "core" / "probtf_core" / "setup.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn('"probtf":', setup_text)
+        self.assertNotIn('"probtf_estimators":', setup_text)
+        self.assertNotIn('"bingham":', setup_text)
+        self.assertIn('packages=["probtf_ros"]', setup_text)
+
 
 if __name__ == "__main__":
     unittest.main()

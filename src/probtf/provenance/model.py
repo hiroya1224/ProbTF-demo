@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
 
+import math
+
 
 class ApproximationKind(Enum):
     EXACT = "exact"
@@ -37,8 +39,8 @@ class ApproximationInfo:
         object.__setattr__(self, "source", str(self.source).strip())
         if self.error_bound is not None:
             value = float(self.error_bound)
-            if value < 0.0:
-                raise ValueError("error_bound must be non-negative.")
+            if not math.isfinite(value) or value < 0.0:
+                raise ValueError("error_bound must be finite and non-negative.")
             object.__setattr__(self, "error_bound", value)
         if self.kind is ApproximationKind.EXACT and self.lossy:
             raise ValueError("Exact metadata cannot be marked lossy.")
@@ -79,4 +81,3 @@ class ComponentProvenance(Provenance):
 @dataclass(frozen=True)
 class TransformProvenance(Provenance):
     pass
-

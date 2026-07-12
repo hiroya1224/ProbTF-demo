@@ -1,0 +1,6 @@
+string component_id
+float64 weight
+BinghamOrientation orientation
+ConditionalGaussianTranslation translation
+ApproximationInfo approximation
+Provenance provenance

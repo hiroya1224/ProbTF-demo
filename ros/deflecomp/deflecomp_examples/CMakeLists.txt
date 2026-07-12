@@ -7,8 +7,6 @@ find_package(
     deflecomp_sim
 )
 
-catkin_python_setup()
-
 catkin_package(
   CATKIN_DEPENDS
     deflecomp_core

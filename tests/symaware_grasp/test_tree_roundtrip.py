@@ -7,7 +7,7 @@ from symaware_grasp.prob_tf.urdf_override import build_tree_from_prob_tf_yaml
 
 
 def _config_path():
-    return Path(__file__).resolve().parents[1] / "configs" / "simple_six_dof_prob_tf.yaml"
+    return Path(__file__).resolve().parents[2] / "ros" / "symaware_grasp" / "configs" / "simple_six_dof_prob_tf.yaml"
 
 
 def test_lookup_path_forward_chain():

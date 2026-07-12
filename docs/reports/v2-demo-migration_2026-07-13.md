@@ -100,6 +100,22 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 - `link_3 -> base_link` の native lookup pathとpoint moment評価を検査
 - v2 config tests: `2 passed`
 
+### 4.5 local graph listener と bounded runtime bridge
+
+- `ProbTfGraph` の insert / lookup / record解決を `RLock` で保護した。
+- frame / physical edge の immutable snapshot APIを追加した。
+- transport-neutral listener に lookup path/kernel、point moments、can/wait lookupを追加した。
+- dynamic/static v2 topicを所有して local graphを作る `RosProbTfListener` を追加した。
+- dynamic/static channelの `is_static` 不一致を拒否し、runtime historyを既定1000件/edgeに制限した。
+- broadcasterに複数recordとstatic setを一度に送るAPIを追加した。
+- bridge launchに v2 topic名、history上限、TF import child-prefix filterを公開した。
+
+検証:
+
+- graph/listener/bridge関連 tests: `45 passed`
+- `catkin build probtf_msgs probtf_core`: 成功
+- 担当差分 `git diff --check`: 成功
+
 ## 5. コミット
 
 | commit | 内容 |
@@ -107,3 +123,4 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 | `db91ed4` | Python sourceを所有 catkin package 内へ正規配置 |
 | `89f3811` | Bingham 正規化積分を core 内へ収容 |
 | `61fb198` | deterministic right compositionで v2 couplingを保持 |
+| `2f870d2` | symaware YAMLを native v2 static recordsとしてload |

@@ -1,3 +1,5 @@
+from threading import Event, Thread
+
 import numpy as np
 import pytest
 
@@ -217,6 +219,78 @@ def test_latest_max_age_reports_stale_sample():
 def test_invalid_graph_buffer_configuration_fails_before_topology_exists():
     with pytest.raises(ValueError, match="max_records"):
         ProbTfGraph(max_records_per_edge=0)
+
+
+def test_graph_exposes_immutable_frame_and_ordered_edge_snapshots():
+    graph = ProbTfGraph()
+    graph.insert(_record("world_b", "world", "b", 1.0))
+
+    frame_snapshot = graph.frames
+    edge_snapshot = graph.edges
+    graph.insert(_record("world_a", "world", "a", 1.0))
+
+    assert frame_snapshot == frozenset(("world", "b"))
+    assert [edge.edge_id for edge in edge_snapshot] == ["world_b"]
+    assert graph.frames == frozenset(("world", "a", "b"))
+    assert [edge.edge_id for edge in graph.edges] == ["world_a", "world_b"]
+
+
+def test_graph_bounded_history_evicts_oldest_records():
+    graph = ProbTfGraph(max_records_per_edge=2)
+    for stamp in (1.0, 2.0, 3.0):
+        graph.insert(_record("edge", "world", "tool", stamp))
+
+    assert [record.stamp for record in graph.edge_buffer("edge").records] == [2.0, 3.0]
+    with pytest.raises(TemporalResolutionError):
+        graph.lookup_path("world", "tool", 1.0)
+    assert graph.lookup_path(
+        "world",
+        "tool",
+        policy=TemporalPolicy.LATEST,
+    ).edge_views[0].sample_stamp == 3.0
+
+
+def test_graph_lookup_holds_insert_lock_while_resolving_records():
+    graph = ProbTfGraph(max_records_per_edge=1)
+    graph.insert(_record("edge", "world", "tool", 1.0))
+    buffer = graph.edge_buffer("edge")
+    entered_record_lookup = Event()
+    release_record_lookup = Event()
+    writer_finished = Event()
+    lookup_errors = []
+    original_lookup = buffer.record_at_sample_stamp
+
+    def blocking_lookup(stamp):
+        entered_record_lookup.set()
+        assert release_record_lookup.wait(1.0)
+        return original_lookup(stamp)
+
+    buffer.record_at_sample_stamp = blocking_lookup
+
+    def lookup():
+        try:
+            graph.lookup_kernel("world", "tool", 1.0)
+        except Exception as error:  # pragma: no cover - asserted below
+            lookup_errors.append(error)
+
+    def insert():
+        graph.insert(_record("edge", "world", "tool", 2.0))
+        writer_finished.set()
+
+    lookup_thread = Thread(target=lookup)
+    lookup_thread.start()
+    assert entered_record_lookup.wait(1.0)
+    writer_thread = Thread(target=insert)
+    writer_thread.start()
+    assert not writer_finished.wait(0.05)
+
+    release_record_lookup.set()
+    lookup_thread.join(1.0)
+    writer_thread.join(1.0)
+
+    assert lookup_errors == []
+    assert writer_finished.is_set()
+    assert buffer.latest_stamp == 2.0
 
 
 def test_cross_time_inverse_views_do_not_cancel_as_one_realization():

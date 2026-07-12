@@ -1,3 +1,5 @@
+from threading import RLock
+
 from probtf.distributions import TransformDistributionStamped
 from probtf.graph.buffer import EdgeTimeBuffer
 from probtf.graph.edge import EdgeView, PhysicalEdge
@@ -25,26 +27,46 @@ class ProbTfGraph:
         self.max_records_per_edge = max_records_per_edge
         self.authority_conflict_policy = authority_conflict_policy
         self._buffers = {}
+        self._lock = RLock()
+
+    @property
+    def frames(self):
+        """Return an immutable snapshot of the currently known frames."""
+
+        with self._lock:
+            return self.topology.frames
+
+    @property
+    def edges(self):
+        """Return an edge-ID-ordered snapshot of known physical edges."""
+
+        with self._lock:
+            return tuple(
+                self.topology.edge(edge_id)
+                for edge_id in sorted(self._buffers)
+            )
 
     def edge_buffer(self, edge_id):
-        return self._buffers[edge_id]
+        with self._lock:
+            return self._buffers[edge_id]
 
     def insert(self, record):
         if not isinstance(record, TransformDistributionStamped):
             raise TypeError("record must be a TransformDistributionStamped.")
         physical = PhysicalEdge(record.edge_id, record.parent_frame_id, record.child_frame_id)
-        buffer = self._buffers.get(record.edge_id)
-        if buffer is None:
-            buffer = EdgeTimeBuffer(
-                self.max_records_per_edge,
-                self.authority_conflict_policy,
-            )
-            buffer.insert(record)
-            self.topology.add_edge(physical)
-            self._buffers[record.edge_id] = buffer
-        else:
-            self.topology.add_edge(physical)
-            buffer.insert(record)
+        with self._lock:
+            buffer = self._buffers.get(record.edge_id)
+            if buffer is None:
+                buffer = EdgeTimeBuffer(
+                    self.max_records_per_edge,
+                    self.authority_conflict_policy,
+                )
+                buffer.insert(record)
+                self.topology.add_edge(physical)
+                self._buffers[record.edge_id] = buffer
+            else:
+                self.topology.add_edge(physical)
+                buffer.insert(record)
 
     def _resolved_traversal(
         self,
@@ -118,45 +140,47 @@ class ProbTfGraph:
         tolerance=0.0,
         max_age=None,
     ):
-        resolved_stamp, traversal = self._resolved_traversal(
-            target_frame,
-            source_frame,
-            stamp,
-            policy,
-            tolerance,
-            max_age,
-        )
-        return PathExpression(
-            source_frame,
-            target_frame,
-            resolved_stamp,
-            tuple(
-                EdgeView(edge.edge_id, direction, resolved.sample_stamp)
-                for edge, direction, resolved in traversal
-            ),
-            tuple(
-                "{}:{}".format(
-                    edge.edge_id,
-                    (
-                        "LATEST_COMMON_ZERO_ORDER_HOLD"
-                        if policy is TemporalPolicy.LATEST_COMMON
-                        and not self._buffers[edge.edge_id].is_static
-                        and resolved.sample_stamp != resolved_stamp
-                        else resolved.diagnostic
-                    ),
-                )
-                for edge, _, resolved in traversal
-                if resolved.diagnostic
-            ),
-        )
+        with self._lock:
+            resolved_stamp, traversal = self._resolved_traversal(
+                target_frame,
+                source_frame,
+                stamp,
+                policy,
+                tolerance,
+                max_age,
+            )
+            return PathExpression(
+                source_frame,
+                target_frame,
+                resolved_stamp,
+                tuple(
+                    EdgeView(edge.edge_id, direction, resolved.sample_stamp)
+                    for edge, direction, resolved in traversal
+                ),
+                tuple(
+                    "{}:{}".format(
+                        edge.edge_id,
+                        (
+                            "LATEST_COMMON_ZERO_ORDER_HOLD"
+                            if policy is TemporalPolicy.LATEST_COMMON
+                            and not self._buffers[edge.edge_id].is_static
+                            and resolved.sample_stamp != resolved_stamp
+                            else resolved.diagnostic
+                        ),
+                    )
+                    for edge, _, resolved in traversal
+                    if resolved.diagnostic
+                ),
+            )
 
     def resolved_records(self, path):
         if not isinstance(path, PathExpression):
             raise TypeError("path must be a PathExpression.")
-        return tuple(
-            self._buffers[view.edge_id].record_at_sample_stamp(view.sample_stamp)
-            for view in path.edge_views
-        )
+        with self._lock:
+            return tuple(
+                self._buffers[view.edge_id].record_at_sample_stamp(view.sample_stamp)
+                for view in path.edge_views
+            )
 
     def lookup_kernel(
         self,
@@ -169,12 +193,13 @@ class ProbTfGraph:
     ):
         from probtf.kernels import kernel_from_path
 
-        path = self.lookup_path(
-            target_frame,
-            source_frame,
-            stamp,
-            policy,
-            tolerance,
-            max_age,
-        )
-        return kernel_from_path(path, self.resolved_records(path))
+        with self._lock:
+            path = self.lookup_path(
+                target_frame,
+                source_frame,
+                stamp,
+                policy,
+                tolerance,
+                max_age,
+            )
+            return kernel_from_path(path, self.resolved_records(path))

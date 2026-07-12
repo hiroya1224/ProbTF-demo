@@ -2,10 +2,18 @@
   <arg name="import_tf" default="true" />
   <arg name="export_tf" default="true" />
   <arg name="tf_export_policy" default="exact_only" />
+  <arg name="probtf_topic" default="/probtf" />
+  <arg name="probtf_static_topic" default="/probtf_static" />
+  <arg name="max_records_per_edge" default="1000" />
+  <arg name="tf_import_child_prefixes" default="" />
 
   <node pkg="probtf_core" type="probtf_bridge_node.py" name="probtf_bridge" output="screen">
     <param name="import_tf" value="$(arg import_tf)" />
     <param name="export_tf" value="$(arg export_tf)" />
     <param name="tf_export_policy" value="$(arg tf_export_policy)" />
+    <param name="probtf_topic" value="$(arg probtf_topic)" />
+    <param name="probtf_static_topic" value="$(arg probtf_static_topic)" />
+    <param name="max_records_per_edge" value="$(arg max_records_per_edge)" />
+    <param name="tf_import_child_prefixes" value="$(arg tf_import_child_prefixes)" />
   </node>
 </launch>

@@ -1,4 +1,5 @@
 from dataclasses import replace
+from threading import Thread
 
 import numpy as np
 import pytest
@@ -6,6 +7,7 @@ import pytest
 from probtf.distributions import (
     BinghamOrientation,
     ConditionalGaussianTranslation,
+    DistributionStatus,
     RepresentativeKind,
     TransformComponent,
     TransformDistribution,
@@ -13,14 +15,22 @@ from probtf.distributions import (
 )
 from probtf.graph import ProbTfGraph
 from probtf.geometry import DeterministicTransform
+from probtf.kernels import KernelRepresentation
 from probtf.provenance import (
     ApproximationInfo,
     ApproximationKind,
     ComponentProvenance,
     TransformProvenance,
 )
+from probtf.temporal import TemporalPolicy
 
-from probtf_ros.bridge import ProbTfBroadcaster, ProbTfListener
+from probtf_ros.bridge import (
+    ProbTfBroadcaster,
+    ProbTfListener,
+    RosProbTfListener,
+    child_frame_matches_prefixes,
+    parse_frame_prefixes,
+)
 from probtf_ros.legacy_conversions import legacy_message_to_v2_record
 from probtf_ros.tf_bridge import (
     ProbTfTfBridge,
@@ -306,6 +316,165 @@ def test_v2_array_and_broadcaster_listener_route_static_and_dynamic_records():
     assert listener.graph.edge_buffer(inserted.edge_id).latest_stamp == 12.5
     static_listener = ProbTfListener(ProbTfGraph())
     assert len(static_listener.receive_array(static_publisher.messages[-1])) == 2
+
+
+def test_broadcaster_bulk_send_publishes_one_complete_static_set():
+    class Publisher:
+        def __init__(self):
+            self.messages = []
+
+        def publish(self, message):
+            self.messages.append(message)
+
+    dynamic_publisher = Publisher()
+    static_publisher = Publisher()
+    broadcaster = ProbTfBroadcaster(
+        dynamic_publisher,
+        static_publisher,
+        MESSAGE_TYPES,
+        Stamp,
+    )
+    world_tool = _mixture_record(is_static=True)
+    world_camera = replace(
+        world_tool,
+        child_frame_id="camera",
+        edge_id="world_camera",
+    )
+
+    messages = broadcaster.send_transforms((world_tool, world_camera))
+
+    assert len(messages) == 1
+    assert len(static_publisher.messages) == 1
+    assert dynamic_publisher.messages == []
+    assert [item.edge_id for item in messages[0].transforms] == [
+        "world_camera",
+        "world_tool",
+    ]
+    assert broadcaster.send_transforms(()) == ()
+
+
+def test_listener_delegates_lookup_point_moments_and_condition_waits():
+    listener = ProbTfListener(ProbTfGraph())
+    wait_results = []
+
+    assert not listener.can_lookup("world", "tool", 12.5)
+    waiter = Thread(
+        target=lambda: wait_results.append(
+            listener.wait_for_lookup("world", "tool", 12.5, timeout=1.0)
+        )
+    )
+    waiter.start()
+    listener.receive_transform(
+        transform_distribution_to_msg(
+            _mixture_record(is_static=False),
+            MESSAGE_TYPES,
+            Stamp,
+        )
+    )
+    waiter.join(1.0)
+
+    assert wait_results == [True]
+    assert listener.can_lookup("world", "tool", 12.5)
+    assert listener.lookup_path("world", "tool", 12.5).target_frame == "world"
+    assert listener.lookup_kernel("world", "tool", 12.5).path.source_frame == "tool"
+    moments = listener.lookup_point_moments("world", "tool", [0.1, 0.0, 0.0], 12.5)
+    assert moments.status is DistributionStatus.OK
+    assert moments.representation is KernelRepresentation.MOMENTS
+    assert moments.value.mean.shape == (3,)
+    assert listener.frames == frozenset(("world", "tool"))
+    assert [edge.edge_id for edge in listener.edges] == ["world_tool"]
+    assert not listener.wait_for_lookup(
+        "world",
+        "missing",
+        policy=TemporalPolicy.LATEST,
+        timeout=0.01,
+    )
+    with pytest.raises(ValueError, match="timeout"):
+        listener.wait_for_lookup("world", "tool", 12.5, timeout=float("nan"))
+
+
+def test_ros_listener_owns_subscribers_validates_channels_and_bounds_history():
+    class Subscriber:
+        instances = []
+
+        def __init__(self, topic, message_type, callback, queue_size):
+            self.topic = topic
+            self.message_type = message_type
+            self.callback = callback
+            self.queue_size = queue_size
+            self.unregister_count = 0
+            self.instances.append(self)
+
+        def unregister(self):
+            self.unregister_count += 1
+
+    Subscriber.instances = []
+    listener = RosProbTfListener(
+        dynamic_topic="/robot/probtf",
+        static_topic="/robot/probtf_static",
+        max_records_per_edge=2,
+        dynamic_queue_size=7,
+        static_queue_size=3,
+        subscriber_factory=Subscriber,
+        dynamic_message_type=StampedMessage,
+        static_message_type=ArrayMessage,
+    )
+    dynamic_subscriber, static_subscriber = Subscriber.instances
+
+    assert dynamic_subscriber.topic == "/robot/probtf"
+    assert dynamic_subscriber.queue_size == 7
+    assert static_subscriber.topic == "/robot/probtf_static"
+    assert static_subscriber.queue_size == 3
+    assert listener.graph.max_records_per_edge == 2
+
+    static_record = replace(
+        _mixture_record(is_static=True),
+        child_frame_id="camera",
+        edge_id="world_camera",
+    )
+    dynamic_record = _mixture_record(is_static=False)
+    with pytest.raises(ValueError, match="dynamic Prob-TF topic"):
+        dynamic_subscriber.callback(
+            transform_distribution_to_msg(static_record, MESSAGE_TYPES, Stamp)
+        )
+    with pytest.raises(ValueError, match="static Prob-TF topic"):
+        static_subscriber.callback(
+            transform_array_to_msg((dynamic_record,), MESSAGE_TYPES, Stamp)
+        )
+    assert listener.frames == frozenset()
+
+    for stamp in (12.5, 13.5, 14.5):
+        dynamic_subscriber.callback(
+            transform_distribution_to_msg(
+                replace(dynamic_record, stamp=stamp),
+                MESSAGE_TYPES,
+                Stamp,
+            )
+        )
+    static_subscriber.callback(
+        transform_array_to_msg((static_record,), MESSAGE_TYPES, Stamp)
+    )
+
+    assert [
+        record.stamp for record in listener.graph.edge_buffer("world_tool").records
+    ] == [13.5, 14.5]
+    assert listener.frames == frozenset(("world", "tool", "camera"))
+
+    listener.unregister()
+    listener.unregister()
+    assert dynamic_subscriber.unregister_count == 1
+    assert static_subscriber.unregister_count == 1
+
+
+def test_tf_import_child_prefix_filter_normalizes_names_and_matches_subtrees():
+    prefixes = parse_frame_prefixes(" /ref,cmd/, ,equil ")
+
+    assert prefixes == ("ref", "cmd", "equil")
+    assert child_frame_matches_prefixes("/ref", prefixes)
+    assert child_frame_matches_prefixes("ref/tool0", prefixes)
+    assert child_frame_matches_prefixes("/cmd/link3", prefixes)
+    assert not child_frame_matches_prefixes("reference/link3", prefixes)
+    assert child_frame_matches_prefixes("anything", ())
 
 
 def test_tf_import_export_is_exact_dirac_and_bridge_prevents_loops():

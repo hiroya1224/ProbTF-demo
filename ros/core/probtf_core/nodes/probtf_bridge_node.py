@@ -10,10 +10,13 @@ from tf2_msgs.msg import TFMessage
 
 from probtf.graph import ProbTfGraph
 from probtf_ros.bridge import (
+    DEFAULT_MAX_RECORDS_PER_EDGE,
     PROBTF_STATIC_TOPIC,
     PROBTF_TOPIC,
     ProbTfBroadcaster,
     ProbTfListener,
+    child_frame_matches_prefixes,
+    parse_frame_prefixes,
 )
 from probtf_ros.tf_bridge import ProbTfTfBridge, TfExportPolicy
 from probtf_ros.v2_conversions import V2MessageTypes
@@ -26,7 +29,12 @@ def _caller_id(message, fallback):
 
 class ProbTfBridgeNode:
     def __init__(self):
-        self.graph = ProbTfGraph()
+        max_records_per_edge = int(
+            rospy.get_param("~max_records_per_edge", DEFAULT_MAX_RECORDS_PER_EDGE)
+        )
+        if max_records_per_edge < 1:
+            raise ValueError("~max_records_per_edge must be positive.")
+        self.graph = ProbTfGraph(max_records_per_edge=max_records_per_edge)
         self.listener = ProbTfListener(self.graph)
         self.message_types = V2MessageTypes.defaults()
         self.node_authority = rospy.get_name()
@@ -62,6 +70,9 @@ class ProbTfBridgeNode:
 
         self.import_tf = bool(rospy.get_param("~import_tf", True))
         self.export_tf = bool(rospy.get_param("~export_tf", True))
+        self.tf_import_child_prefixes = parse_frame_prefixes(
+            rospy.get_param("~tf_import_child_prefixes", ())
+        )
 
         self.dynamic_subscriber = rospy.Subscriber(
             probtf_topic,
@@ -132,6 +143,11 @@ class ProbTfBridgeNode:
     def _on_tf(self, message, is_static):
         authority = _caller_id(message, "unknown_tf_authority")
         for transform in message.transforms:
+            if not child_frame_matches_prefixes(
+                transform.child_frame_id,
+                self.tf_import_child_prefixes,
+            ):
+                continue
             record = self.tf_bridge.import_transform(transform, authority, is_static)
             if record is not None:
                 self.probtf_broadcaster.send_transform(record)

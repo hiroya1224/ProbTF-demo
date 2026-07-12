@@ -3,6 +3,7 @@ std_msgs/Header header
 string parent_frame_id
 string child_frame_id
 string source_id
+string evidence_kind
 bool has_sequence
 uint64 sequence
 bool has_orientation

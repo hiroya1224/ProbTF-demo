@@ -1,0 +1,40 @@
+<launch>
+  <arg name="imu_topic" default="/imu/data" />
+  <arg name="magnetic_topic" default="/imu/mag" />
+  <arg name="parent_frame_id" default="world" />
+  <arg name="child_frame_id" default="imu" />
+  <arg name="use_magnetometer" default="true" />
+
+  <node pkg="probtf_core" type="orientation_filter_node.py" name="orientation_filter" output="screen">
+    <param name="parent_frame_id" value="$(arg parent_frame_id)" />
+    <param name="child_frame_id" value="$(arg child_frame_id)" />
+    <param name="use_magnetometer" value="$(arg use_magnetometer)" />
+    <remap from="~imu" to="$(arg imu_topic)" />
+    <remap from="~magnetic_field" to="$(arg magnetic_topic)" />
+  </node>
+
+  <node
+    unless="$(arg use_magnetometer)"
+    pkg="probtf_core"
+    type="probtf_fusion_node.py"
+    name="orientation_fusion"
+    output="screen">
+    <rosparam param="evidence_topics">
+      - /orientation_filter/prediction
+      - /orientation_filter/gravity_evidence
+    </rosparam>
+  </node>
+
+  <node
+    if="$(arg use_magnetometer)"
+    pkg="probtf_core"
+    type="probtf_fusion_node.py"
+    name="orientation_fusion"
+    output="screen">
+    <rosparam param="evidence_topics">
+      - /orientation_filter/prediction
+      - /orientation_filter/gravity_evidence
+      - /orientation_filter/magnetic_evidence
+    </rosparam>
+  </node>
+</launch>

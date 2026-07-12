@@ -89,6 +89,7 @@ class EvidenceProvenance:
     """Identity and ordering metadata retained for one fused contribution."""
 
     source_id: str
+    evidence_kind: str
     timestamp: Optional[float]
     sequence: Optional[int]
     contributes_orientation: bool
@@ -107,6 +108,7 @@ class TransformEvidence:
     source_id: str
     parent_frame_id: str
     child_frame_id: str
+    evidence_kind: str = "likelihood"
     orientation_bingham: Optional[np.ndarray] = None
     position_information: Optional[np.ndarray] = None
     position_information_vector: Optional[np.ndarray] = None
@@ -115,6 +117,7 @@ class TransformEvidence:
 
     def __post_init__(self):
         source_id = _required_identifier(self.source_id, "source_id")
+        evidence_kind = _required_identifier(self.evidence_kind, "evidence_kind")
         parent_frame_id = _required_identifier(self.parent_frame_id, "parent_frame_id")
         child_frame_id = _required_identifier(self.child_frame_id, "child_frame_id")
         if parent_frame_id == child_frame_id:
@@ -167,6 +170,7 @@ class TransformEvidence:
             position_information_vector = _readonly(position_information_vector)
 
         object.__setattr__(self, "source_id", source_id)
+        object.__setattr__(self, "evidence_kind", evidence_kind)
         object.__setattr__(self, "parent_frame_id", parent_frame_id)
         object.__setattr__(self, "child_frame_id", child_frame_id)
         object.__setattr__(self, "orientation_bingham", orientation_bingham)
@@ -194,6 +198,7 @@ class TransformEvidence:
         position_mean,
         position_covariance,
         orientation_bingham=None,
+        evidence_kind="likelihood",
         timestamp=None,
         sequence=None,
     ):
@@ -211,6 +216,7 @@ class TransformEvidence:
             parent_frame_id=parent_frame_id,
             child_frame_id=child_frame_id,
             orientation_bingham=orientation_bingham,
+            evidence_kind=evidence_kind,
             position_information=information,
             position_information_vector=information @ mean,
             timestamp=timestamp,
@@ -318,6 +324,7 @@ def fuse_transform_evidence(evidence, allow_duplicate_sources=False):
         provenance.append(
             EvidenceProvenance(
                 source_id=contribution.source_id,
+                evidence_kind=contribution.evidence_kind,
                 timestamp=contribution.timestamp,
                 sequence=contribution.sequence,
                 contributes_orientation=contribution.orientation_bingham is not None,

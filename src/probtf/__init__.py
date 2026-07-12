@@ -45,6 +45,16 @@ from probtf.models import (
     ProbabilisticTransform,
     SensorMount,
 )
+from probtf.orientation_filter import (
+    OrientationBinghamFilter,
+    OrientationEvidence,
+    OrientationFilterUpdate,
+    delta_quaternion_second_moment,
+    gravity_bingham_evidence,
+    magnetic_bingham_evidence,
+    predict_orientation_bingham,
+    vector_alignment_bingham_evidence,
+)
 from probtf.sensor_config import load_sensor_mounts, parse_sensor_mounts
 from probtf.symbolic_urdf import (
     SymbolicUrdfTemplate,
@@ -61,6 +71,9 @@ __all__ = [
     "ImuKinematics",
     "ImuKinematicsPreprocessor",
     "ImuRelativePoseEstimator",
+    "OrientationBinghamFilter",
+    "OrientationEvidence",
+    "OrientationFilterUpdate",
     "ProbabilisticTransform",
     "RecursiveGaussianLeastSquares",
     "RotationMoment",
@@ -72,14 +85,18 @@ __all__ = [
     "bingham_mode",
     "bingham_second_moment",
     "canonical_bingham_parameter",
+    "delta_quaternion_second_moment",
     "fuse_evidence",
     "fuse_transform_evidence",
     "find_symbolic_urdf_placeholders",
+    "gravity_bingham_evidence",
     "match_bingham_to_second_moment",
     "materialize_symbolic_urdf",
     "load_sensor_mounts",
+    "magnetic_bingham_evidence",
     "parse_symbolic_urdf",
     "parse_sensor_mounts",
+    "predict_orientation_bingham",
     "quat_conj",
     "quat_left_matrix",
     "quat_mul",
@@ -94,4 +111,5 @@ __all__ = [
     "rpy_to_quat",
     "validate_bingham_parameter",
     "vector_alignment_bingham",
+    "vector_alignment_bingham_evidence",
 ]

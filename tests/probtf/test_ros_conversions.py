@@ -57,6 +57,7 @@ class ProbabilisticTransformMessage:
         self.child_frame_id = ""
         self.edge_id = ""
         self.source_id = ""
+        self.evidence_kind = ""
         self.evidence_source_ids = []
         self.has_position = False
         self.position_mean = Vector3()
@@ -138,6 +139,7 @@ def test_transform_evidence_round_trip_preserves_optional_payloads():
     restored = transform_evidence_from_msg(message)
 
     assert restored.source_id == "camera"
+    assert restored.evidence_kind == "likelihood"
     assert restored.sequence == 9
     assert restored.timestamp == 3.5
     np.testing.assert_allclose(restored.orientation_bingham, evidence.orientation_bingham)

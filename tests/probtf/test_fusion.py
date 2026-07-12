@@ -55,6 +55,7 @@ class TransformEvidenceFusionTest(unittest.TestCase):
             expected_covariance @ expected_vector,
         )
         self.assertEqual(fused.source_ids, ("camera", "imu"))
+        self.assertEqual(fused.provenance[0].evidence_kind, "likelihood")
         self.assertEqual(fused.provenance[0].timestamp, 10.25)
         self.assertEqual(fused.provenance[0].sequence, 7)
         self.assertTrue(fused.provenance[0].contributes_orientation)
@@ -65,6 +66,7 @@ class TransformEvidenceFusionTest(unittest.TestCase):
             source_id="gyro",
             parent_frame_id="base",
             child_frame_id="imu",
+            evidence_kind="prediction",
             orientation_bingham=np.diag([-8.0, -4.0, -2.0, 0.0]),
         )
         position = TransformEvidence(
@@ -80,6 +82,7 @@ class TransformEvidenceFusionTest(unittest.TestCase):
         np.testing.assert_allclose(fused.orientation_bingham, orientation.orientation_bingham)
         np.testing.assert_allclose(fused.position_mean, [1.0, 2.0, 3.0])
         self.assertFalse(fused.provenance[0].contributes_position)
+        self.assertEqual(fused.provenance[0].evidence_kind, "prediction")
         self.assertFalse(fused.provenance[1].contributes_orientation)
 
     def test_rejects_duplicate_source_by_default(self):

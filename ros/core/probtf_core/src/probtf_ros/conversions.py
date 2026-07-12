@@ -95,6 +95,7 @@ def transform_evidence_from_msg(message):
     sequence = int(message.sequence) if message.has_sequence else None
     return TransformEvidence(
         source_id=message.source_id,
+        evidence_kind=message.evidence_kind or "likelihood",
         parent_frame_id=message.parent_frame_id,
         child_frame_id=message.child_frame_id,
         orientation_bingham=orientation,
@@ -119,6 +120,7 @@ def transform_evidence_to_msg(evidence, message_type=None, time_factory=None):
     message.parent_frame_id = evidence.parent_frame_id
     message.child_frame_id = evidence.child_frame_id
     message.source_id = evidence.source_id
+    message.evidence_kind = evidence.evidence_kind
     message.has_sequence = evidence.sequence is not None
     message.sequence = 0 if evidence.sequence is None else evidence.sequence
     message.has_orientation = evidence.orientation_bingham is not None

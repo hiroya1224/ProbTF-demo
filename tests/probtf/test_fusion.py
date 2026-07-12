@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 
+from probtf.provenance import ApproximationInfo, ApproximationKind, Provenance
 from probtf_estimators.evidence_fusion import TransformEvidence, fuse_evidence
 
 
@@ -55,11 +56,16 @@ class TransformEvidenceFusionTest(unittest.TestCase):
             expected_covariance @ expected_vector,
         )
         self.assertEqual(fused.source_ids, ("camera", "imu"))
-        self.assertEqual(fused.provenance[0].evidence_kind, "likelihood")
-        self.assertEqual(fused.provenance[0].timestamp, 10.25)
-        self.assertEqual(fused.provenance[0].sequence, 7)
-        self.assertTrue(fused.provenance[0].contributes_orientation)
-        self.assertTrue(fused.provenance[0].contributes_position)
+        self.assertEqual(fused.evidence_provenance[0].evidence_kind, "likelihood")
+        self.assertEqual(fused.evidence_provenance[0].timestamp, 10.25)
+        self.assertEqual(fused.evidence_provenance[0].sequence, 7)
+        self.assertTrue(fused.evidence_provenance[0].contributes_orientation)
+        self.assertTrue(fused.evidence_provenance[0].contributes_position)
+        self.assertEqual(fused.provenance.source_ids, ("camera", "imu"))
+        self.assertEqual(
+            fused.provenance.method,
+            "independent_natural_parameter_fusion",
+        )
 
     def test_allows_orientation_only_and_position_only_evidence(self):
         orientation = TransformEvidence(
@@ -81,9 +87,50 @@ class TransformEvidenceFusionTest(unittest.TestCase):
 
         np.testing.assert_allclose(fused.orientation_bingham, orientation.orientation_bingham)
         np.testing.assert_allclose(fused.position_mean, [1.0, 2.0, 3.0])
-        self.assertFalse(fused.provenance[0].contributes_position)
-        self.assertEqual(fused.provenance[0].evidence_kind, "prediction")
-        self.assertFalse(fused.provenance[1].contributes_orientation)
+        self.assertFalse(fused.evidence_provenance[0].contributes_position)
+        self.assertEqual(fused.evidence_provenance[0].evidence_kind, "prediction")
+        self.assertFalse(fused.evidence_provenance[1].contributes_orientation)
+
+    def test_preserves_structured_provenance_and_approximation(self):
+        approximation = ApproximationInfo(
+            kind=ApproximationKind.BINGHAM_CLOSURE,
+            lossy=True,
+            detail="Moment-matched gyro convolution.",
+            source="gyro_predictor",
+        )
+        gyro = TransformEvidence(
+            source_id="orientation_filter",
+            parent_frame_id="world",
+            child_frame_id="imu",
+            evidence_kind="prediction",
+            orientation_bingham=np.diag([-3.0, -2.0, -1.0, 0.0]),
+            provenance=Provenance(
+                source_ids=("raw_imu",),
+                derived_from_edge_ids=("previous_orientation",),
+                method="gyro_prediction",
+            ),
+            approximation=approximation,
+        )
+        gravity = TransformEvidence(
+            source_id="gravity",
+            parent_frame_id="world",
+            child_frame_id="imu",
+            orientation_bingham=np.diag([-1.0, -1.0, 0.0, 0.0]),
+        )
+
+        fused = fuse_evidence([gyro, gravity])
+
+        self.assertEqual(fused.approximation, approximation)
+        self.assertEqual(fused.provenance.source_ids, ("raw_imu", "gravity"))
+        self.assertEqual(
+            fused.provenance.derived_from_edge_ids,
+            ("previous_orientation",),
+        )
+        self.assertEqual(fused.evidence_provenance[0].provenance, gyro.provenance)
+        self.assertEqual(
+            fused.evidence_provenance[0].approximation,
+            approximation,
+        )
 
     def test_rejects_duplicate_source_by_default(self):
         first = self._orientation_evidence("imu")
@@ -141,6 +188,12 @@ class TransformEvidenceFusionTest(unittest.TestCase):
             TransformEvidence(**base, orientation_bingham=np.eye(4), timestamp=np.inf)
         with self.assertRaises(ValueError):
             TransformEvidence(**base, orientation_bingham=np.eye(4), sequence=-1)
+        with self.assertRaises(ValueError):
+            TransformEvidence(
+                **base,
+                orientation_bingham=np.eye(4),
+                sequence=1 << 64,
+            )
         with self.assertRaises(ValueError):
             TransformEvidence(
                 source_id=" ",

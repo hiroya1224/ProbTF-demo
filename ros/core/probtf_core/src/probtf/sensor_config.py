@@ -9,7 +9,7 @@ import numpy as np
 import yaml
 
 from probtf.geometry import rpy_to_quat
-from probtf.models import SensorMount
+from probtf.sensor_mount import SensorMount
 
 
 _TOP_LEVEL_KEYS = {"sensors", "imu_frames", "static_transforms"}

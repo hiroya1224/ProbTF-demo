@@ -27,10 +27,9 @@ from probtf.geometry import (
 from probtf.models import (
     BinghamRotation,
     GaussianPosition,
-    ImuKinematics,
     ProbabilisticTransform,
-    SensorMount,
 )
+from probtf.sensor_mount import SensorMount
 from probtf.sensor_config import load_sensor_mounts, parse_sensor_mounts
 from probtf.symbolic_urdf import (
     SymbolicUrdfTemplate,
@@ -42,7 +41,6 @@ from probtf.symbolic_urdf import (
 __all__ = [
     "BinghamRotation",
     "GaussianPosition",
-    "ImuKinematics",
     "ProbabilisticTransform",
     "RotationMoment",
     "SensorMount",

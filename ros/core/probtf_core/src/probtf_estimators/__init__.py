@@ -15,12 +15,17 @@ from probtf_estimators.evidence_fusion import (
     fuse_evidence,
     fuse_transform_evidence,
 )
+from probtf_estimators.imu_kinematics import ImuKinematics
 from probtf_estimators.imu_preprocessing import ImuKinematicsPreprocessor
 from probtf_estimators.imu_relative_pose import (
     ImuRelativePoseEstimator,
     RecursiveGaussianLeastSquares,
     rigid_point_acceleration_operator,
     vector_alignment_bingham,
+)
+from probtf_estimators.materialization import (
+    TransformMaterializationSummary,
+    summarize_transform_for_materialization,
 )
 from probtf_estimators.orientation_imu import (
     OrientationBinghamFilter,
@@ -37,6 +42,7 @@ __all__ = [
     "EvidenceProvenance",
     "FusedTransformEvidence",
     "HessianCouplingResult",
+    "ImuKinematics",
     "ImuKinematicsPreprocessor",
     "ImuRelativePoseEstimator",
     "OrientationBinghamFilter",
@@ -44,6 +50,7 @@ __all__ = [
     "OrientationFilterUpdate",
     "RecursiveGaussianLeastSquares",
     "TransformEvidence",
+    "TransformMaterializationSummary",
     "coupling_from_hessian",
     "delta_quaternion_second_moment",
     "fuse_evidence",
@@ -52,7 +59,7 @@ __all__ = [
     "magnetic_bingham_evidence",
     "predict_orientation_bingham",
     "rigid_point_acceleration_operator",
+    "summarize_transform_for_materialization",
     "vector_alignment_bingham",
     "vector_alignment_bingham_evidence",
 ]
-

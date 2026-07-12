@@ -18,13 +18,14 @@ add_message_files(
     GraspCandidate.msg
     IKResult.msg
     ImuKinematics.msg
+    OrientationDistributionStamped.msg
     ProbabilisticTF.msg
     ProbabilisticTFArray.msg
     ProbabilisticTransformArray.msg
     ProbabilisticTransformComponent.msg
     ProbabilisticTransformStamped.msg
     Provenance.msg
-    TransformEvidence.msg
+    TransformEvidenceStamped.msg
 )
 
 generate_messages(

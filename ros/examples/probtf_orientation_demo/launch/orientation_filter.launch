@@ -4,6 +4,8 @@
   <arg name="parent_frame_id" default="world" />
   <arg name="child_frame_id" default="imu" />
   <arg name="use_magnetometer" default="true" />
+  <arg name="posterior_topic" default="/orientation_filter/posterior_orientation" />
+  <arg name="fused_topic" default="/orientation_fusion/fused_orientation" />
 
   <node pkg="probtf_orientation_demo" type="orientation_filter_node.py" name="orientation_filter" output="screen">
     <param name="parent_frame_id" value="$(arg parent_frame_id)" />
@@ -11,6 +13,7 @@
     <param name="use_magnetometer" value="$(arg use_magnetometer)" />
     <remap from="~imu" to="$(arg imu_topic)" />
     <remap from="~magnetic_field" to="$(arg magnetic_topic)" />
+    <remap from="~posterior" to="$(arg posterior_topic)" />
   </node>
 
   <node
@@ -23,6 +26,7 @@
       - /orientation_filter/prediction
       - /orientation_filter/gravity_evidence
     </rosparam>
+    <remap from="~fused" to="$(arg fused_topic)" />
   </node>
 
   <node
@@ -36,5 +40,6 @@
       - /orientation_filter/gravity_evidence
       - /orientation_filter/magnetic_evidence
     </rosparam>
+    <remap from="~fused" to="$(arg fused_topic)" />
   </node>
 </launch>

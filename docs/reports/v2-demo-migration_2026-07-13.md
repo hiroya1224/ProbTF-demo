@@ -116,6 +116,35 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 - `catkin build probtf_msgs probtf_core`: 成功
 - 担当差分 `git diff --check`: 成功
 
+### 4.6 estimator domain と two-IMU demo の native v2 化
+
+- `ImuKinematics` と `SensorMount` を legacy transform model から分離した。
+- two-IMU estimator の出力を、旧 Gaussian/Bingham summary から単一 component の
+  `TransformDistributionStamped` へ変更した。
+- 登録済み joint geometry の `p = a - R b` を `rotation_coupling` に保持し、回転 mode を
+  代入しただけの位置平均へ潰さないようにした。
+- 未登録 joint の位置 RLS は orientation mode を plug-in する loss のある近似であることを、
+  `ApproximationInfo` と provenance に明示した。
+- symbolic URDF materializer は v2 record を購読し、point moment kernel で coupling を含む位置
+  moment を計算するようにした。mixture は暗黙に一成分へ縮約せず拒否する。
+
+### 4.7 orientation-only evidence / posterior の v2 wire contract
+
+- 旧 `TransformEvidence.msg` を `TransformEvidenceStamped.msg` に置き換えた。
+- Bingham evidence は trace-zero natural parameter、並進 evidence は singular PSD を許す
+  information form として wire 上に保持する。
+- orientation-only posterior 専用の `OrientationDistributionStamped.msg` を追加した。
+  この message には意図的に translation field がない。
+- orientation filter / fusion demo を新 message、structured approximation、provenance に移行した。
+- filter の gyro prediction closure と、likelihood product の意味を metadata に保持した。
+
+検証:
+
+- Python tests: `198 passed, 1 warning`
+- `catkin build probtf_msgs probtf_core probtf_imu_demo probtf_orientation_demo`: 成功
+- devel space の生成 message / estimator import: 成功
+- two-IMU / orientation launch の node 解決: 成功
+
 ## 5. コミット
 
 | commit | 内容 |
@@ -124,3 +153,4 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 | `89f3811` | Bingham 正規化積分を core 内へ収容 |
 | `61fb198` | deterministic right compositionで v2 couplingを保持 |
 | `2f870d2` | symaware YAMLを native v2 static recordsとしてload |
+| `09038d8` | bounded v2 topic listener と lookup APIを追加 |

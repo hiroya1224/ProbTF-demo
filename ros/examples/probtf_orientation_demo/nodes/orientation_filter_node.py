@@ -6,15 +6,22 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Imu, MagneticField
 
-from probtf.bingham import bingham_mode, canonical_bingham_parameter
+from probtf.distributions import BinghamOrientation
+from probtf.provenance import ApproximationInfo, ApproximationKind, Provenance
 from probtf_estimators.evidence_fusion import TransformEvidence
 from probtf_estimators.orientation_imu import (
     OrientationBinghamFilter,
     gravity_bingham_evidence,
     magnetic_bingham_evidence,
 )
-from probtf_estimators.ros_conversions import transform_evidence_to_msg
-from probtf_msgs.msg import ProbabilisticTF, TransformEvidence as TransformEvidenceMsg
+from probtf_estimators.ros_conversions import (
+    orientation_distribution_to_msg,
+    transform_evidence_to_msg,
+)
+from probtf_msgs.msg import (
+    OrientationDistributionStamped,
+    TransformEvidenceStamped,
+)
 
 
 def _vector3(message):
@@ -67,22 +74,22 @@ class OrientationFilterNode:
 
         self.prediction_publisher = rospy.Publisher(
             "~prediction",
-            TransformEvidenceMsg,
+            TransformEvidenceStamped,
             queue_size=10,
         )
         self.gravity_publisher = rospy.Publisher(
             "~gravity_evidence",
-            TransformEvidenceMsg,
+            TransformEvidenceStamped,
             queue_size=10,
         )
         self.magnetic_publisher = rospy.Publisher(
             "~magnetic_evidence",
-            TransformEvidenceMsg,
+            TransformEvidenceStamped,
             queue_size=10,
         )
         self.posterior_publisher = rospy.Publisher(
             "~posterior",
-            ProbabilisticTF,
+            OrientationDistributionStamped,
             queue_size=10,
         )
         self.imu_subscriber = rospy.Subscriber("~imu", Imu, self._update_imu, queue_size=50)
@@ -101,7 +108,15 @@ class OrientationFilterNode:
                 _vector3(message.magnetic_field),
             )
 
-    def _evidence(self, source_id, kind, parameter, stamp, sequence):
+    def _evidence(
+        self,
+        source_id,
+        kind,
+        parameter,
+        stamp,
+        sequence,
+        approximation=ApproximationInfo(),
+    ):
         return TransformEvidence(
             source_id=source_id,
             parent_frame_id=self.parent_frame_id,
@@ -110,6 +125,12 @@ class OrientationFilterNode:
             orientation_bingham=parameter,
             timestamp=stamp,
             sequence=sequence,
+            provenance=Provenance(
+                source_ids=(source_id,),
+                method=kind,
+                detail="Orientation evidence produced by the IMU filter.",
+            ),
+            approximation=approximation,
         )
 
     def _update_imu(self, message):
@@ -159,6 +180,15 @@ class OrientationFilterNode:
                 update.prediction_parameter,
                 stamp,
                 message.header.seq,
+                approximation=ApproximationInfo(
+                    kind=ApproximationKind.BINGHAM_CLOSURE,
+                    lossy=True,
+                    detail=(
+                        "Gyro convolution is moment-matched to one Bingham "
+                        "orientation distribution."
+                    ),
+                    source="predict_orientation_bingham",
+                ),
             )
             gravity_evidence = self._evidence(
                 "gravity",
@@ -170,14 +200,14 @@ class OrientationFilterNode:
             self.prediction_publisher.publish(
                 transform_evidence_to_msg(
                     prediction,
-                    message_type=TransformEvidenceMsg,
+                    message_type=TransformEvidenceStamped,
                     time_factory=rospy.Time.from_sec,
                 )
             )
             self.gravity_publisher.publish(
                 transform_evidence_to_msg(
                     gravity_evidence,
-                    message_type=TransformEvidenceMsg,
+                    message_type=TransformEvidenceStamped,
                     time_factory=rospy.Time.from_sec,
                 )
             )
@@ -193,7 +223,7 @@ class OrientationFilterNode:
                 self.magnetic_publisher.publish(
                     transform_evidence_to_msg(
                         magnetic_evidence,
-                        message_type=TransformEvidenceMsg,
+                        message_type=TransformEvidenceStamped,
                         time_factory=rospy.Time.from_sec,
                     )
                 )
@@ -221,27 +251,33 @@ class OrientationFilterNode:
         )
 
     def _posterior_message(self, parameter, header, source_ids):
-        parameter = canonical_bingham_parameter(parameter)
-        mode = bingham_mode(parameter)
-        output = ProbabilisticTF()
-        output.header.seq = header.seq
-        output.header.stamp = header.stamp
-        output.header.frame_id = self.parent_frame_id
-        output.parent_frame_id = self.parent_frame_id
-        output.child_frame_id = self.child_frame_id
-        output.edge_id = "{}__to__{}".format(self.parent_frame_id, self.child_frame_id)
-        output.source_id = "orientation_filter"
-        output.evidence_source_ids = source_ids
-        output.has_position = False
-        output.has_orientation = True
-        output.orientation_bingham.matrix = parameter.reshape(-1).tolist()
-        output.orientation_mode.w = float(mode[0])
-        output.orientation_mode.x = float(mode[1])
-        output.orientation_mode.y = float(mode[2])
-        output.orientation_mode.z = float(mode[3])
-        output.approximation_type = "gyro_moment_prediction_with_vector_likelihoods"
-        output.closure_approximation = True
-        return output
+        return orientation_distribution_to_msg(
+            BinghamOrientation.from_parameter_matrix(parameter),
+            parent_frame_id=self.parent_frame_id,
+            child_frame_id=self.child_frame_id,
+            stamp=header.stamp.to_sec(),
+            edge_id="{}__to__{}".format(
+                self.parent_frame_id,
+                self.child_frame_id,
+            ),
+            authority="orientation_filter",
+            approximation=ApproximationInfo(
+                kind=ApproximationKind.BINGHAM_CLOSURE,
+                lossy=True,
+                detail=(
+                    "The gyro prediction is moment-matched before exact "
+                    "orientation likelihood fusion."
+                ),
+                source="predict_orientation_bingham",
+            ),
+            provenance=Provenance(
+                source_ids=tuple(source_ids),
+                method="orientation_filter_update",
+            ),
+            message_type=OrientationDistributionStamped,
+            time_factory=rospy.Time.from_sec,
+            sequence=header.seq,
+        )
 
 
 if __name__ == "__main__":

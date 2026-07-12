@@ -16,18 +16,29 @@ from typing import Optional
 import numpy as np
 
 from probtf.bingham import (
-    bingham_fourth_moment,
     bingham_mode,
-    bingham_second_moment,
     canonical_bingham_parameter,
 )
-from probtf.geometry import quat_left_matrix, quat_right_matrix, quat_to_rotmat
-from probtf.models import (
-    BinghamRotation,
-    GaussianPosition,
-    ImuKinematics,
-    ProbabilisticTransform,
+from probtf.distributions import (
+    BinghamOrientation,
+    ConditionalGaussianTranslation,
+    TransformComponent,
+    TransformDistribution,
+    TransformDistributionStamped,
 )
+from probtf.geometry import (
+    quat_left_matrix,
+    quat_right_matrix,
+    quat_to_rotmat,
+    rotation_action_matrix,
+)
+from probtf.provenance import (
+    ApproximationInfo,
+    ApproximationKind,
+    ComponentProvenance,
+    TransformProvenance,
+)
+from probtf_estimators.imu_kinematics import ImuKinematics
 
 
 def skew(vector):
@@ -160,7 +171,7 @@ class JointGeometry:
 
 
 class ImuRelativePoseEstimator:
-    """Online producer of a Gaussian/Bingham relative transform summary."""
+    """Online producer of a native v2 relative-transform distribution."""
 
     def __init__(
         self,
@@ -171,6 +182,8 @@ class ImuRelativePoseEstimator:
         prior_position_variance=1e6,
         integration_steps=120,
         source_id="imu_relative_pose",
+        edge_id=None,
+        authority=None,
     ):
         self.parent_frame_id = str(parent_frame_id).lstrip("/")
         self.child_frame_id = str(child_frame_id).lstrip("/")
@@ -192,6 +205,16 @@ class ImuRelativePoseEstimator:
         self.source_id = str(source_id).strip()
         if not self.source_id:
             raise ValueError("source_id must not be empty.")
+        self.edge_id = (
+            "{}__to__{}".format(self.parent_frame_id, self.child_frame_id)
+            if edge_id is None
+            else str(edge_id).strip()
+        )
+        if not self.edge_id:
+            raise ValueError("edge_id must not be empty.")
+        self.authority = self.source_id if authority is None else str(authority).strip()
+        if not self.authority:
+            raise ValueError("authority must not be empty.")
         self.position_estimator = RecursiveGaussianLeastSquares(
             dimension=3,
             prior_variance=prior_position_variance,
@@ -239,15 +262,14 @@ class ImuRelativePoseEstimator:
             raise ValueError("Unexpected parent IMU frame: {}".format(parent.frame_id))
         if child.frame_id != self.child_frame_id:
             raise ValueError("Unexpected child IMU frame: {}".format(child.frame_id))
-        if parent.stamp is not None and child.stamp is not None:
-            if abs(parent.stamp - child.stamp) > 0.1:
-                raise ValueError("IMU observations are not time synchronized.")
-            stamp = max(parent.stamp, child.stamp)
-            if self.last_stamp is not None and stamp < self.last_stamp:
-                raise ValueError("IMU observations must be time ordered.")
-            self.last_stamp = stamp
-        elif parent.stamp is not None or child.stamp is not None:
-            raise ValueError("Both IMU observations must carry a timestamp or neither may.")
+        if parent.stamp is None or child.stamp is None:
+            raise ValueError("Both IMU observations must carry a timestamp.")
+        if abs(parent.stamp - child.stamp) > 0.1:
+            raise ValueError("IMU observations are not time synchronized.")
+        stamp = max(parent.stamp, child.stamp)
+        if self.last_stamp is not None and stamp < self.last_stamp:
+            raise ValueError("IMU observations must be time ordered.")
+        self.last_stamp = stamp
 
     def _add_rotation_likelihood(self, parameter):
         self.rotation_parameter = canonical_bingham_parameter(
@@ -306,7 +328,7 @@ class ImuRelativePoseEstimator:
                 forgetting_factor=self.position_forgetting_factor,
             )
 
-    def _update_registered_joint(self, parent, child, expected_rotation):
+    def _update_registered_joint(self, parent, child):
         geometry = self.joint_geometry
         parent_operator = rigid_point_acceleration_operator(
             parent.angular_velocity,
@@ -327,63 +349,104 @@ class ImuRelativePoseEstimator:
                     parent.specific_force_covariance,
                 )
             )
-            expected_rotation = self._representative_rotation()
-        position_mean = geometry.parent_to_joint - expected_rotation @ geometry.child_to_joint
-        position_covariance = (
-            geometry.parent_covariance
-            + expected_rotation @ geometry.child_covariance @ expected_rotation.T
+
+    def _registered_translation(self, orientation):
+        geometry = self.joint_geometry
+        reference_rotation = quat_to_rotmat(orientation.reference_quaternion_wxyz)
+        translation = ConditionalGaussianTranslation(
+            mean_at_reference=(
+                geometry.parent_to_joint - reference_rotation @ geometry.child_to_joint
+            ),
+            residual_covariance=(
+                geometry.parent_covariance
+                + reference_rotation @ geometry.child_covariance @ reference_rotation.T
+            ),
+            rotation_coupling=-rotation_action_matrix(geometry.child_to_joint),
         )
-        return GaussianPosition(position_mean, position_covariance)
+        covariance_is_frozen = not np.allclose(
+            geometry.child_covariance,
+            np.zeros((3, 3)),
+            rtol=0.0,
+            atol=0.0,
+        )
+        approximation = ApproximationInfo(
+            kind=ApproximationKind.PRODUCER_SUPPLIED,
+            lossy=covariance_is_frozen,
+            detail=(
+                "Registered-joint mean preserves p=a-Rb exactly; child-offset covariance "
+                "is evaluated at the orientation reference."
+                if covariance_is_frozen
+                else "Registered-joint translation preserves p=a-Rb exactly."
+            ),
+            source="probtf_estimators.imu_relative_pose",
+        )
+        return translation, approximation, "registered_joint_geometry"
+
+    def _plugin_translation(self):
+        translation = ConditionalGaussianTranslation(
+            mean_at_reference=self.position_estimator.mean,
+            residual_covariance=self.position_estimator.covariance,
+            rotation_coupling=np.zeros((3, 9), dtype=float),
+        )
+        approximation = ApproximationInfo(
+            kind=ApproximationKind.PRODUCER_SUPPLIED,
+            lossy=True,
+            detail=(
+                "Translation RLS plugs in the posterior orientation mode; "
+                "rotation-translation cross-dependence is not estimated."
+            ),
+            source="probtf_estimators.imu_relative_pose",
+        )
+        return translation, approximation, "plugin_orientation_rls"
 
     def update(self, parent, child):
         self._check_observations(parent, child)
         self._update_rotation_from_gyros(parent, child)
 
-        expected_rotation = self._representative_rotation()
         if self.joint_geometry is None:
+            expected_rotation = self._representative_rotation()
             if self._rotation_is_observable():
                 self._update_position(parent, child, expected_rotation)
         else:
-            self._update_registered_joint(parent, child, expected_rotation)
+            self._update_registered_joint(parent, child)
         return self.result()
 
     def result(self):
+        if self.last_stamp is None:
+            raise ValueError("A timestamped result requires at least one timestamped IMU update.")
         parameter = canonical_bingham_parameter(self.rotation_parameter)
-        second_moment = bingham_second_moment(
+        orientation = BinghamOrientation.from_parameter_matrix(
             parameter,
-            integration_steps=self.integration_steps,
+            reference_quaternion_wxyz=bingham_mode(parameter),
         )
-        fourth_moment = bingham_fourth_moment(
-            parameter,
-            integration_steps=self.integration_steps,
-        )
-        orientation = BinghamRotation(
-            parameter=parameter,
-            mode_wxyz=bingham_mode(parameter),
-            second_moment=second_moment,
-            fourth_moment=fourth_moment,
-        )
-        expected_rotation = self._representative_rotation(parameter)
         if self.joint_geometry is None:
-            position = GaussianPosition(
-                self.position_estimator.mean,
-                self.position_estimator.covariance,
-            )
+            translation, approximation, method = self._plugin_translation()
         else:
-            geometry = self.joint_geometry
-            position = GaussianPosition(
-                geometry.parent_to_joint - expected_rotation @ geometry.child_to_joint,
-                geometry.parent_covariance
-                + expected_rotation @ geometry.child_covariance @ expected_rotation.T,
-            )
-        return ProbabilisticTransform(
+            translation, approximation, method = self._registered_translation(orientation)
+        component = TransformComponent(
+            component_id="{}:imu_relative_pose".format(self.edge_id),
+            raw_weight=1.0,
+            orientation=orientation,
+            translation=translation,
+            provenance=ComponentProvenance(
+                source_ids=(self.source_id,),
+                method=method,
+                detail="Estimated from synchronized angular velocity, acceleration, and specific force.",
+            ),
+            approximation=approximation,
+        )
+        return TransformDistributionStamped(
             parent_frame_id=self.parent_frame_id,
             child_frame_id=self.child_frame_id,
-            position=position,
-            orientation=orientation,
             stamp=self.last_stamp,
-            source_id=self.source_id,
-            evidence_source_ids=("angular_velocity", "specific_force"),
-            approximation_type="extended_least_squares_bingham_gaussian",
-            closure_approximation=False,
+            edge_id=self.edge_id,
+            authority=self.authority,
+            distribution=TransformDistribution((component,)),
+            provenance=TransformProvenance(
+                source_ids=(self.source_id,),
+                method=method,
+                detail="Two-IMU relative-pose producer output.",
+            ),
+            is_static=False,
+            approximation=approximation,
         )

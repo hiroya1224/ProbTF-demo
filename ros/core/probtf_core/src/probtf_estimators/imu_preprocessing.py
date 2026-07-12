@@ -4,7 +4,7 @@ from collections import deque
 
 import numpy as np
 
-from probtf.models import ImuKinematics
+from probtf_estimators.imu_kinematics import ImuKinematics
 
 
 def _covariance(values, name):

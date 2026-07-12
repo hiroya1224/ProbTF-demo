@@ -2,6 +2,7 @@
   <arg name="parent_imu_topic" default="/imu_parent/data" />
   <arg name="child_imu_topic" default="/imu_child/data" />
   <arg name="materialize_urdf" default="true" />
+  <arg name="probtf_topic" default="/probtf" />
 
   <node pkg="probtf_imu_demo" type="sensor_mount_tf_node.py" name="sensor_mount_tf" output="screen">
     <param name="config_file" value="$(find probtf_imu_demo)/config/sensor_mounts.yaml" />
@@ -22,6 +23,7 @@
     <param name="child_frame_id" value="imu_child" />
     <remap from="~parent_kinematics" to="/parent_imu_kinematics/kinematics" />
     <remap from="~child_kinematics" to="/child_imu_kinematics/kinematics" />
+    <remap from="~relative_pose" to="$(arg probtf_topic)" />
   </node>
 
   <node
@@ -31,12 +33,13 @@
     name="symbolic_urdf_materializer"
     output="screen">
     <param name="template_file" value="$(find probtf_imu_demo)/symbolic_models/two_imus.symburdf" />
+    <param name="input_topic" value="$(arg probtf_topic)" />
+    <param name="parent_frame_id" value="imu_parent" />
+    <param name="child_frame_id" value="imu_child" />
     <rosparam param="bindings">
       imu_relative_xyz:
-        topic: /imu_relative_pose/relative_pose
         field: position
       imu_relative_rpy:
-        topic: /imu_relative_pose/relative_pose
         field: orientation_rpy
     </rosparam>
   </node>

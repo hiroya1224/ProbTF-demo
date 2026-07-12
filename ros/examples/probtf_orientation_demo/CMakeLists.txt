@@ -1,9 +1,20 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(probtf_orientation_demo)
 
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  probtf_core
+  probtf_msgs
+  rospy
+  sensor_msgs
+)
 
-catkin_package()
+catkin_package(
+  CATKIN_DEPENDS
+    probtf_core
+    probtf_msgs
+    rospy
+    sensor_msgs
+)
 
 catkin_install_python(
   PROGRAMS

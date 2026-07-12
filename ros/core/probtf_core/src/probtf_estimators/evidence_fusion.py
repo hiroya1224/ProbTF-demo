@@ -6,15 +6,18 @@ form, ``exp(-0.5 * x.T @ information @ x + information_vector.T @ x)``.
 Independent likelihoods fuse by adding their natural parameters.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from numbers import Integral
 from typing import Optional, Tuple
 
 import numpy as np
 
+from probtf.provenance import ApproximationInfo, ApproximationKind, Provenance
+
 
 _SYMMETRY_TOLERANCE = 1e-10
 _PSD_TOLERANCE = 1e-10
+_UINT64_MAX = (1 << 64) - 1
 
 
 def _required_identifier(value, name):
@@ -41,8 +44,8 @@ def _optional_sequence(value):
     if isinstance(value, (bool, np.bool_)) or not isinstance(value, Integral):
         raise ValueError("sequence must be a non-negative integer.")
     sequence = int(value)
-    if sequence < 0:
-        raise ValueError("sequence must be a non-negative integer.")
+    if sequence < 0 or sequence > _UINT64_MAX:
+        raise ValueError("sequence must be an unsigned 64-bit integer.")
     return sequence
 
 
@@ -94,6 +97,8 @@ class EvidenceProvenance:
     sequence: Optional[int]
     contributes_orientation: bool
     contributes_position: bool
+    provenance: Provenance
+    approximation: ApproximationInfo
 
 
 @dataclass(frozen=True, eq=False)
@@ -114,6 +119,8 @@ class TransformEvidence:
     position_information_vector: Optional[np.ndarray] = None
     timestamp: Optional[float] = None
     sequence: Optional[int] = None
+    provenance: Provenance = field(default_factory=Provenance)
+    approximation: ApproximationInfo = field(default_factory=ApproximationInfo)
 
     def __post_init__(self):
         source_id = _required_identifier(self.source_id, "source_id")
@@ -122,7 +129,19 @@ class TransformEvidence:
         child_frame_id = _required_identifier(self.child_frame_id, "child_frame_id")
         if parent_frame_id == child_frame_id:
             raise ValueError("parent_frame_id and child_frame_id must differ.")
+        if not isinstance(self.provenance, Provenance):
+            raise TypeError("provenance must be Provenance.")
+        if not isinstance(self.approximation, ApproximationInfo):
+            raise TypeError("approximation must be ApproximationInfo.")
 
+        provenance = self.provenance
+        if not provenance.source_ids:
+            provenance = Provenance(
+                source_ids=(source_id,),
+                derived_from_edge_ids=provenance.derived_from_edge_ids,
+                method=provenance.method or evidence_kind,
+                detail=provenance.detail,
+            )
         has_orientation = self.orientation_bingham is not None
         has_information = self.position_information is not None
         has_information_vector = self.position_information_vector is not None
@@ -182,6 +201,7 @@ class TransformEvidence:
         )
         object.__setattr__(self, "timestamp", _optional_timestamp(self.timestamp))
         object.__setattr__(self, "sequence", _optional_sequence(self.sequence))
+        object.__setattr__(self, "provenance", provenance)
 
     @property
     def orientation_bingham_likelihood(self):
@@ -201,6 +221,8 @@ class TransformEvidence:
         evidence_kind="likelihood",
         timestamp=None,
         sequence=None,
+        provenance=None,
+        approximation=None,
     ):
         """Construct evidence from a proper Gaussian mean and covariance."""
 
@@ -221,6 +243,8 @@ class TransformEvidence:
             position_information_vector=information @ mean,
             timestamp=timestamp,
             sequence=sequence,
+            provenance=Provenance() if provenance is None else provenance,
+            approximation=ApproximationInfo() if approximation is None else approximation,
         )
 
 
@@ -233,11 +257,13 @@ class FusedTransformEvidence:
     orientation_bingham: Optional[np.ndarray]
     position_information: Optional[np.ndarray]
     position_information_vector: Optional[np.ndarray]
-    provenance: Tuple[EvidenceProvenance, ...]
+    evidence_provenance: Tuple[EvidenceProvenance, ...]
+    provenance: Provenance
+    approximation: ApproximationInfo
 
     @property
     def source_ids(self):
-        return tuple(item.source_id for item in self.provenance)
+        return tuple(item.source_id for item in self.evidence_provenance)
 
     @property
     def orientation_bingham_likelihood(self):
@@ -294,7 +320,7 @@ def fuse_transform_evidence(evidence, allow_duplicate_sources=False):
     orientation_bingham = None
     position_information = None
     position_information_vector = None
-    provenance = []
+    evidence_provenance = []
 
     for contribution in contributions:
         if (
@@ -321,7 +347,7 @@ def fuse_transform_evidence(evidence, allow_duplicate_sources=False):
             position_information += contribution.position_information
             position_information_vector += contribution.position_information_vector
 
-        provenance.append(
+        evidence_provenance.append(
             EvidenceProvenance(
                 source_id=contribution.source_id,
                 evidence_kind=contribution.evidence_kind,
@@ -329,6 +355,8 @@ def fuse_transform_evidence(evidence, allow_duplicate_sources=False):
                 sequence=contribution.sequence,
                 contributes_orientation=contribution.orientation_bingham is not None,
                 contributes_position=contribution.position_information is not None,
+                provenance=contribution.provenance,
+                approximation=contribution.approximation,
             )
         )
 
@@ -340,13 +368,56 @@ def fuse_transform_evidence(evidence, allow_duplicate_sources=False):
         )
         position_information_vector = _readonly(position_information_vector)
 
+    source_ids = tuple(
+        dict.fromkeys(
+            source_id
+            for contribution in contributions
+            for source_id in contribution.provenance.source_ids
+        )
+    )
+    derived_edge_ids = tuple(
+        dict.fromkeys(
+            edge_id
+            for contribution in contributions
+            for edge_id in contribution.provenance.derived_from_edge_ids
+        )
+    )
+    non_exact = tuple(
+        contribution.approximation
+        for contribution in contributions
+        if contribution.approximation.kind is not ApproximationKind.EXACT
+    )
+    if not non_exact:
+        approximation = ApproximationInfo()
+    elif len(non_exact) == 1:
+        approximation = non_exact[0]
+    else:
+        selected = next((item for item in non_exact if item.lossy), non_exact[0])
+        approximation = ApproximationInfo(
+            kind=selected.kind,
+            lossy=any(item.lossy for item in non_exact),
+            detail="Fused evidence preserves {} non-exact input approximations.".format(
+                len(non_exact)
+            ),
+            source=",".join(
+                dict.fromkeys(item.source for item in non_exact if item.source)
+            ),
+        )
+
     return FusedTransformEvidence(
         parent_frame_id=parent_frame_id,
         child_frame_id=child_frame_id,
         orientation_bingham=orientation_bingham,
         position_information=position_information,
         position_information_vector=position_information_vector,
-        provenance=tuple(provenance),
+        evidence_provenance=tuple(evidence_provenance),
+        provenance=Provenance(
+            source_ids=source_ids,
+            derived_from_edge_ids=derived_edge_ids,
+            method="independent_natural_parameter_fusion",
+            detail="Fused {} source contributions.".format(len(contributions)),
+        ),
+        approximation=approximation,
     )
 
 

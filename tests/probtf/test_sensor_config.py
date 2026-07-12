@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 import yaml
 
-from probtf.models import SensorMount
 from probtf.sensor_config import load_sensor_mounts, parse_sensor_mounts
+from probtf.sensor_mount import SensorMount
 
 
 def test_loads_generic_sensor_list_with_explicit_wxyz_and_rpy():

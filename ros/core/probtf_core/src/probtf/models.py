@@ -1,7 +1,7 @@
-"""ROS-independent domain models shared by ProbTF producers and consumers."""
+"""Legacy v1 independent Gaussian/Bingham transform models."""
 
 from dataclasses import dataclass, field
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -180,78 +180,4 @@ class ProbabilisticTransform:
             position=GaussianPosition(position_mean, position_covariance),
             orientation=BinghamRotation(orientation_bingham, orientation_mode_wxyz),
             **kwargs
-        )
-
-
-@dataclass
-class ImuKinematics:
-    """Locally fitted IMU kinematics used by relative-pose producers."""
-
-    frame_id: str
-    angular_velocity: np.ndarray
-    angular_acceleration: np.ndarray
-    specific_force: np.ndarray
-    angular_velocity_covariance: np.ndarray
-    angular_acceleration_covariance: np.ndarray
-    specific_force_covariance: np.ndarray
-    stamp: Optional[float] = None
-
-    def __post_init__(self):
-        self.frame_id = _frame_id(self.frame_id, "frame_id")
-        self.angular_velocity = _vector(self.angular_velocity, 3, "angular_velocity")
-        self.angular_acceleration = _vector(
-            self.angular_acceleration,
-            3,
-            "angular_acceleration",
-        )
-        self.specific_force = _vector(self.specific_force, 3, "specific_force")
-        self.angular_velocity_covariance = _symmetric_matrix(
-            self.angular_velocity_covariance,
-            3,
-            "angular_velocity_covariance",
-            positive_semidefinite=True,
-        )
-        self.angular_acceleration_covariance = _symmetric_matrix(
-            self.angular_acceleration_covariance,
-            3,
-            "angular_acceleration_covariance",
-            positive_semidefinite=True,
-        )
-        self.specific_force_covariance = _symmetric_matrix(
-            self.specific_force_covariance,
-            3,
-            "specific_force_covariance",
-            positive_semidefinite=True,
-        )
-        if self.stamp is not None:
-            self.stamp = float(self.stamp)
-            if not np.isfinite(self.stamp) or self.stamp < 0.0:
-                raise ValueError("stamp must be a finite non-negative time in seconds.")
-
-
-@dataclass(frozen=True)
-class SensorMount:
-    """Robot-specific placement metadata for an observation source."""
-
-    source_id: str
-    frame_id: str
-    parent_frame_id: str
-    position_xyz: Sequence[float] = (0.0, 0.0, 0.0)
-    orientation_wxyz: Sequence[float] = (1.0, 0.0, 0.0, 0.0)
-
-    def __post_init__(self):
-        object.__setattr__(self, "source_id", str(self.source_id).strip())
-        if not self.source_id:
-            raise ValueError("source_id must not be empty.")
-        object.__setattr__(self, "frame_id", _frame_id(self.frame_id, "frame_id"))
-        object.__setattr__(
-            self,
-            "parent_frame_id",
-            _frame_id(self.parent_frame_id, "parent_frame_id"),
-        )
-        object.__setattr__(self, "position_xyz", _vector(self.position_xyz, 3, "position_xyz"))
-        object.__setattr__(
-            self,
-            "orientation_wxyz",
-            quat_normalize(self.orientation_wxyz),
         )

@@ -6,8 +6,8 @@ import rospy
 
 from probtf_estimators.imu_relative_pose import ImuRelativePoseEstimator
 from probtf_estimators.ros_conversions import imu_kinematics_from_msg
-from probtf_msgs.msg import ImuKinematics, ProbabilisticTF
-from probtf_ros.conversions import probabilistic_transform_to_msg
+from probtf_msgs.msg import ImuKinematics, ProbabilisticTransformStamped
+from probtf_ros.v2_conversions import transform_distribution_to_msg
 
 
 class ImuRelativePoseNode:
@@ -31,10 +31,15 @@ class ImuRelativePoseNode:
             ),
             integration_steps=rospy.get_param("~integration_steps", 120),
             source_id=rospy.get_param("~source_id", "imu_relative_pose"),
+            edge_id=rospy.get_param(
+                "~edge_id",
+                "{}__to__{}".format(parent_frame, child_frame),
+            ),
+            authority=rospy.get_name(),
         )
         self.publisher = rospy.Publisher(
             "~relative_pose",
-            ProbabilisticTF,
+            ProbabilisticTransformStamped,
             queue_size=10,
         )
         parent_subscriber = message_filters.Subscriber(
@@ -58,7 +63,12 @@ class ImuRelativePoseNode:
                 imu_kinematics_from_msg(parent_message),
                 imu_kinematics_from_msg(child_message),
             )
-            self.publisher.publish(probabilistic_transform_to_msg(transform))
+            self.publisher.publish(
+                transform_distribution_to_msg(
+                    transform,
+                    time_factory=rospy.Time.from_sec,
+                )
+            )
         except (TypeError, ValueError, FloatingPointError, np.linalg.LinAlgError) as error:
             rospy.logwarn_throttle(2.0, "ProbTF IMU relative-pose update rejected: %s", error)
 

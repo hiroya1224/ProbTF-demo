@@ -4,9 +4,9 @@ import pytest
 from probtf.models import (
     BinghamRotation,
     GaussianPosition,
-    ImuKinematics,
     ProbabilisticTransform,
 )
+from probtf_estimators.imu_kinematics import ImuKinematics
 
 
 def test_probabilistic_transform_normalizes_wire_conventions():

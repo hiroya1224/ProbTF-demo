@@ -1,0 +1,4 @@
+[submodule "third_party/BinghamNLL"]
+	path = third_party/BinghamNLL
+	url = https://github.com/hiroya1224/BinghamNLL.git
+	branch = develop

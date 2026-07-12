@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from deflecomp_core.observation.bingham import BinghamUtils
-from probik.geometry import quat_left_matrix, quat_right_matrix
+from probtf.geometry import quat_left_matrix, quat_right_matrix
 
 
 class SharedGeometryTest(unittest.TestCase):

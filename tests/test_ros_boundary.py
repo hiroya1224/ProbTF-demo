@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROS_MODULES = {
     "geometry_msgs",
-    "probik_msgs",
+    "probtf_msgs",
     "roslib",
     "rospkg",
     "rospy",

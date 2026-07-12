@@ -8,7 +8,7 @@ from visualization_msgs.msg import Marker
 
 from symaware_grasp.grasp_library import load_grasp_library
 from symaware_grasp.grasp_targets import compose_grasp_targets
-from probik_msgs.msg import ProbabilisticTF, ProbabilisticTFArray
+from probtf_msgs.msg import ProbabilisticTF, ProbabilisticTFArray
 from symaware_grasp.ptf_utils import (
     rotation_matrix_from_quaternion,
 )

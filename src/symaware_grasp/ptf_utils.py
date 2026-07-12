@@ -1,6 +1,6 @@
 import numpy as np
 
-from probik.geometry import (
+from probtf.geometry import (
     axis_angle_to_quat as quaternion_from_axis_angle,
     quat_left_matrix as quaternion_left_matrix,
     quat_mul as quaternion_multiply_wxyz,

@@ -1,4 +1,4 @@
-# Probabilistic IK Demo 実装詳解
+# Symmetry-aware grasp demo 実装詳解
 
 ## 1. 概要
 

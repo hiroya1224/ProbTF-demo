@@ -13,7 +13,7 @@ x = log K and forms a local Laplace approximation of the posterior.
 import numpy as np
 
 from deflecomp_core.utils.linalg import normalize
-from probik.geometry import quat_left_matrix, quat_right_matrix
+from probtf.geometry import quat_left_matrix, quat_right_matrix
 
 
 class BinghamUtils:

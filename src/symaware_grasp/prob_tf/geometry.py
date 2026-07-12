@@ -1,6 +1,6 @@
-"""Compatibility exports for the shared ProbIK geometry helpers."""
+"""Compatibility exports for the shared ProbTF geometry helpers."""
 
-from probik.geometry import (
+from probtf.geometry import (
     axis_angle_to_quat,
     complete_orthonormal_basis,
     exp_s2,

@@ -1,6 +1,6 @@
-"""Shared numerical primitives for the integrated ProbIK packages."""
+"""Shared numerical primitives for the integrated ProbTF packages."""
 
-from probik.geometry import (
+from probtf.geometry import (
     axis_angle_to_quat,
     quat_conj,
     quat_left_matrix,

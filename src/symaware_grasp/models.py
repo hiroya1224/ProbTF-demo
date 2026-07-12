@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from probik.geometry import quat_normalize
+from probtf.geometry import quat_normalize
 
 
 def _vector(values, size, name):

@@ -1,6 +1,6 @@
 import numpy as np
 from geometry_msgs.msg import Quaternion, Vector3
-from probik_msgs.msg import BinghamDistribution, ProbabilisticTF
+from probtf_msgs.msg import BinghamDistribution, ProbabilisticTF
 
 from symaware_grasp.models import ProbabilisticTransform
 from symaware_grasp.ptf_utils import make_bingham_distribution, normalize_wxyz, quaternion_array_to_wxyz

@@ -6,7 +6,7 @@ from sensor_msgs.msg import JointState
 
 from symaware_grasp.arm_kinematics import ToyArm6DOF
 from symaware_grasp.ee_belief import EndEffectorBeliefModel
-from probik_msgs.msg import ProbabilisticTF
+from probtf_msgs.msg import ProbabilisticTF
 from symaware_grasp_ros.messages import make_probabilistic_tf_message
 
 

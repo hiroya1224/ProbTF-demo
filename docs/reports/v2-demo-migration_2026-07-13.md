@@ -60,6 +60,19 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 - `source devel/setup.bash` 後、`probtf`、`probtf_estimators`、`probtf_ros`、
   `deflecomp_core`、`deflecomp_sim`、`deflecomp_examples`、`symaware_grasp` の import: 成功
 
+### 4.2 Bingham 正規化積分の core 内収容
+
+- `probtf.bingham` が外部 `bingham` Python package を importする構成をやめた。
+- 実際に必要な正規化定数と導関数の積分実装だけを `probtf._vendor` に収容した。
+- upstream の copyright / Apache-2.0 header を保持し、`THIRD_PARTY_NOTICES.md` に由来を記録した。
+
+検証:
+
+- external `bingham` importを強制拒否した状態で `import probtf`: 成功
+- Bingham / v2 distribution / kernel tests: `42 passed`
+
 ## 5. コミット
 
-各項目は検証後に追記する。
+| commit | 内容 |
+| --- | --- |
+| `db91ed4` | Python sourceを所有 catkin package 内へ正規配置 |

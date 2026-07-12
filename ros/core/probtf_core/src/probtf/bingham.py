@@ -11,8 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.optimize import minimize
 
-import bingham.math.normconst as bingham_normconst
-
+from probtf._vendor import bingham_normconst
 from probtf.geometry import quat_to_rotmat
 
 

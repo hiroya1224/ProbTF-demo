@@ -9,6 +9,7 @@ find_package(
     rospy
     sensor_msgs
     std_msgs
+    tf2_ros
 )
 
 catkin_python_setup()
@@ -21,12 +22,15 @@ catkin_package(
     rospy
     sensor_msgs
     std_msgs
+    tf2_ros
 )
 
 catkin_install_python(
   PROGRAMS
     nodes/imu_kinematics_node.py
     nodes/imu_relative_pose_node.py
+    nodes/probtf_fusion_node.py
+    nodes/sensor_mount_tf_node.py
     nodes/symbolic_urdf_materializer_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

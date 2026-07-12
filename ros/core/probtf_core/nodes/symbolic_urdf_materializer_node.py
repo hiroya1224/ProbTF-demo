@@ -52,6 +52,8 @@ class SymbolicUrdfMaterializerNode:
             rospy.logwarn_throttle(2.0, "Ignoring ProbTF with conflicting parent frame fields")
             return
         if field == "position":
+            if not message.has_position:
+                return
             covariance = np.asarray(message.position_covariance, dtype=float).reshape(3, 3)
             if float(np.max(np.linalg.eigvalsh(covariance))) > self.position_variance_threshold:
                 return
@@ -61,6 +63,8 @@ class SymbolicUrdfMaterializerNode:
                 message.position_mean.z,
             ]
         else:
+            if not message.has_orientation:
+                return
             parameter = np.asarray(message.orientation_bingham.matrix, dtype=float).reshape(4, 4)
             eigenvalues = np.linalg.eigvalsh(0.5 * (parameter + parameter.T))
             if float(eigenvalues[-1] - eigenvalues[-2]) < self.orientation_concentration_threshold:

@@ -68,9 +68,11 @@ def probabilistic_transform_to_msg(transform, message_type=None, time_factory=No
     message.edge_id = transform.edge_id
     message.source_id = transform.source_id
     message.evidence_source_ids = list(transform.evidence_source_ids)
+    message.has_position = True
     _assign_vector3(message.position_mean, transform.position_mean)
     message.position_covariance = transform.position_covariance.reshape(-1).tolist()
     message.orientation_bingham.matrix = transform.orientation_bingham.reshape(-1).tolist()
+    message.has_orientation = True
     mode = transform.orientation_mode_wxyz
     message.orientation_mode.w = float(mode[0])
     message.orientation_mode.x = float(mode[1])

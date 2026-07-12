@@ -6,6 +6,6 @@ find_package(catkin REQUIRED)
 catkin_package()
 
 install(
-  DIRECTORY launch symbolic_models
+  DIRECTORY config launch symbolic_models
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

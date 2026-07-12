@@ -4,8 +4,10 @@ string child_frame_id
 string edge_id
 string source_id
 string[] evidence_source_ids
+bool has_position
 geometry_msgs/Vector3 position_mean
 float64[9] position_covariance
+bool has_orientation
 BinghamDistribution orientation_bingham
 geometry_msgs/Quaternion orientation_mode
 string approximation_type

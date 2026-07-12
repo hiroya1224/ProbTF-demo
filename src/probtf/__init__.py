@@ -45,6 +45,7 @@ from probtf.models import (
     ProbabilisticTransform,
     SensorMount,
 )
+from probtf.sensor_config import load_sensor_mounts, parse_sensor_mounts
 from probtf.symbolic_urdf import (
     SymbolicUrdfTemplate,
     find_symbolic_urdf_placeholders,
@@ -76,7 +77,9 @@ __all__ = [
     "find_symbolic_urdf_placeholders",
     "match_bingham_to_second_moment",
     "materialize_symbolic_urdf",
+    "load_sensor_mounts",
     "parse_symbolic_urdf",
+    "parse_sensor_mounts",
     "quat_conj",
     "quat_left_matrix",
     "quat_mul",

@@ -69,12 +69,21 @@ def probabilistic_transform_to_msg(transform, stamp=None):
     message.header.frame_id = transform.parent_frame_id
     message.parent_frame_id = transform.parent_frame_id
     message.child_frame_id = transform.child_frame_id
+    message.edge_id = "{}__to__{}".format(
+        transform.parent_frame_id,
+        transform.child_frame_id,
+    )
+    message.source_id = "symaware_grasp"
+    message.evidence_source_ids = []
+    message.has_position = True
     message.position_mean = vector3_msg_from_array(transform.position_mean)
     message.position_covariance = transform.position_covariance.reshape(-1).tolist()
     message.orientation_bingham = BinghamDistribution()
     message.orientation_bingham.matrix = transform.orientation_bingham.reshape(-1).tolist()
+    message.has_orientation = True
     message.orientation_mode = quaternion_msg_from_wxyz(transform.orientation_mode_wxyz)
     message.approximation_type = transform.approximation_type
+    message.closure_approximation = False
     return message
 
 

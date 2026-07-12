@@ -1,0 +1,10 @@
+sensors:
+  parent_imu:
+    frame_id: imu_parent
+    parent_frame_id: world
+    position_xyz: [0.0, 0.0, 0.0]
+    orientation_wxyz: [1.0, 0.0, 0.0, 0.0]
+  child_imu:
+    frame_id: imu_child
+    # This edge is estimated, so no deterministic parent transform is declared.
+    parent_frame_id: imu_child

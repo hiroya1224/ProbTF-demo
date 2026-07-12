@@ -3,6 +3,10 @@
   <arg name="child_imu_topic" default="/imu_child/data" />
   <arg name="materialize_urdf" default="true" />
 
+  <node pkg="probtf_core" type="sensor_mount_tf_node.py" name="sensor_mount_tf" output="screen">
+    <param name="config_file" value="$(find probtf_imu_demo)/config/sensor_mounts.yaml" />
+  </node>
+
   <node pkg="probtf_core" type="imu_kinematics_node.py" name="parent_imu_kinematics" output="screen">
     <param name="frame_id" value="imu_parent" />
     <remap from="~imu" to="$(arg parent_imu_topic)" />

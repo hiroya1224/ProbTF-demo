@@ -58,8 +58,10 @@ class ProbabilisticTransformMessage:
         self.edge_id = ""
         self.source_id = ""
         self.evidence_source_ids = []
+        self.has_position = False
         self.position_mean = Vector3()
         self.position_covariance = [0.0] * 9
+        self.has_orientation = False
         self.orientation_bingham = BinghamMessage()
         self.orientation_mode = Quaternion()
         self.approximation_type = ""
@@ -106,6 +108,8 @@ def test_probabilistic_transform_conversion_preserves_wxyz_and_metadata():
     assert message.edge_id == "base__to__imu"
     assert message.source_id == "relative_pose"
     assert message.evidence_source_ids == ["gyro", "force"]
+    assert message.has_position is True
+    assert message.has_orientation is True
     assert [
         message.orientation_mode.w,
         message.orientation_mode.x,

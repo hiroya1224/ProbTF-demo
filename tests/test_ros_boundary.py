@@ -1,4 +1,6 @@
 import ast
+import importlib
+import re
 import unittest
 from pathlib import Path
 
@@ -14,6 +16,37 @@ ROS_MODULES = {
     "std_msgs",
     "tf2_ros",
     "visualization_msgs",
+}
+
+LEGACY_RUNTIME_MODULES = (
+    "probtf.models",
+    "probtf.compatibility",
+    "probtf_ros.conversions",
+    "probtf_ros.legacy_conversions",
+)
+LEGACY_RUNTIME_SYMBOLS = {
+    "BinghamDistribution",
+    "BinghamRotation",
+    "GaussianPosition",
+    "LEGACY_ADAPTER",
+    "LegacyConversionResult",
+    "LegacyProjectionPolicy",
+    "LegacyRosConversionResult",
+    "ProbabilisticTF",
+    "ProbabilisticTFArray",
+    "ProbabilisticTransform",
+    "distribution_to_legacy_transform",
+    "legacy_message_to_v2_record",
+    "legacy_transform_to_distribution",
+    "legacy_transform_to_stamped",
+    "probabilistic_transform_to_msg",
+    "v2_record_to_legacy_message",
+}
+LEGACY_MESSAGE_FILES = {
+    "BinghamDistribution.msg",
+    "GaussianPosition.msg",
+    "ProbabilisticTF.msg",
+    "ProbabilisticTFArray.msg",
 }
 
 
@@ -35,6 +68,44 @@ def _ros_free_package_roots(repository_root):
 
 
 class RosBoundaryTest(unittest.TestCase):
+    def test_legacy_v1_cannot_reenter_runtime_source_or_message_generation(self):
+        root = Path(__file__).resolve().parents[1]
+        core_root = root / "ros" / "core" / "probtf_core"
+        source_paths = sorted((core_root / "src").rglob("*.py"))
+        source_paths.extend(sorted((core_root / "nodes").glob("*.py")))
+        pattern = re.compile(
+            r"\b(?:{})\b".format(
+                "|".join(re.escape(symbol) for symbol in sorted(LEGACY_RUNTIME_SYMBOLS))
+            )
+        )
+        violations = []
+        for path in source_paths:
+            for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if pattern.search(line) or any(module in line for module in LEGACY_RUNTIME_MODULES):
+                    violations.append("{}:{}".format(path.relative_to(root), line_number))
+        self.assertEqual(violations, [])
+
+        probtf = importlib.import_module("probtf")
+        probtf_ros = importlib.import_module("probtf_ros")
+        for symbol in ("BinghamRotation", "GaussianPosition", "ProbabilisticTransform"):
+            self.assertFalse(hasattr(probtf, symbol), symbol)
+        self.assertFalse(hasattr(probtf_ros, "probabilistic_transform_to_msg"))
+        for module in LEGACY_RUNTIME_MODULES:
+            with self.subTest(module=module):
+                with self.assertRaises(ModuleNotFoundError):
+                    importlib.import_module(module)
+
+        message_root = root / "ros" / "core" / "probtf_msgs"
+        cmake = (message_root / "CMakeLists.txt").read_text(encoding="utf-8")
+        declared_messages = {
+            line.strip() for line in cmake.splitlines() if line.strip().endswith(".msg")
+        }
+        source_messages = {path.name for path in (message_root / "msg").glob("*.msg")}
+        self.assertEqual(declared_messages, source_messages)
+        self.assertTrue(LEGACY_MESSAGE_FILES.isdisjoint(declared_messages))
+        for filename in LEGACY_MESSAGE_FILES:
+            self.assertFalse((message_root / "msg" / filename).exists(), filename)
+
     def test_root_python_packages_do_not_import_ros(self):
         root = Path(__file__).resolve().parents[1]
         violations = []

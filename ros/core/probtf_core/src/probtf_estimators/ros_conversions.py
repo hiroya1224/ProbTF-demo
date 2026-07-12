@@ -19,7 +19,7 @@ _ORIENTATION_TO_WIRE = {
 _APPROXIMATION_ORDER = (
     ApproximationKind.EXACT,
     ApproximationKind.PRODUCER_SUPPLIED,
-    ApproximationKind.LEGACY_ADAPTER,
+    None,
     ApproximationKind.TANGENT_SURROGATE,
     ApproximationKind.NUMERICAL_INTEGRATION,
     ApproximationKind.MONTE_CARLO,
@@ -30,7 +30,7 @@ _APPROXIMATION_ORDER = (
     ApproximationKind.UNAVAILABLE,
 )
 _APPROXIMATION_TO_WIRE = {
-    kind: index for index, kind in enumerate(_APPROXIMATION_ORDER)
+    kind: index for index, kind in enumerate(_APPROXIMATION_ORDER) if kind is not None
 }
 _UINT32_MAX = (1 << 32) - 1
 
@@ -77,7 +77,11 @@ def _assign_approximation(message, value):
 
 def _approximation_from_msg(message):
     index = int(message.kind)
-    if index < 0 or index >= len(_APPROXIMATION_ORDER):
+    if (
+        index < 0
+        or index >= len(_APPROXIMATION_ORDER)
+        or _APPROXIMATION_ORDER[index] is None
+    ):
         raise ValueError("Unknown approximation kind {}.".format(message.kind))
     return ApproximationInfo(
         kind=_APPROXIMATION_ORDER[index],

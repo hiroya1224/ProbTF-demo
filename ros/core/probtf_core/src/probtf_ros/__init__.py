@@ -1,6 +1,5 @@
 """ROS message adapters for the ProbTF domain model."""
 
-from probtf_ros.conversions import probabilistic_transform_to_msg
 from probtf_ros.bridge import ProbTfBroadcaster, ProbTfListener, RosProbTfListener
 from probtf_ros.tf_bridge import (
     ProbTfTfBridge,
@@ -22,7 +21,6 @@ __all__ = [
     "TfExportPolicy",
     "V2MessageTypes",
     "deterministic_tf_to_record",
-    "probabilistic_transform_to_msg",
     "record_to_deterministic_tf",
     "transform_distribution_from_msg",
     "transform_distribution_to_msg",

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from probtf_estimators.imu_preprocessing import ImuKinematicsPreprocessor
+from probtf_estimators.imu_kinematics import ImuKinematics
 
 
 def test_polynomial_preprocessor_recovers_value_and_derivative_at_latest_time():
@@ -55,5 +56,18 @@ def test_preprocessor_rejects_invalid_covariance():
             np.ones(3),
             np.ones(3),
             np.diag([1.0, 1.0, -1.0]),
+            np.eye(3),
+        )
+
+
+def test_imu_kinematics_rejects_non_psd_covariance():
+    with pytest.raises(ValueError, match="positive semidefinite"):
+        ImuKinematics(
+            "imu",
+            np.zeros(3),
+            np.zeros(3),
+            np.zeros(3),
+            np.diag([1.0, 1.0, -0.1]),
+            np.eye(3),
             np.eye(3),
         )

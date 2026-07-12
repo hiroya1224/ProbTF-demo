@@ -31,7 +31,6 @@ from probtf_ros.bridge import (
     child_frame_matches_prefixes,
     parse_frame_prefixes,
 )
-from probtf_ros.legacy_conversions import legacy_message_to_v2_record
 from probtf_ros.tf_bridge import (
     ProbTfTfBridge,
     TfExportPolicy,
@@ -531,29 +530,3 @@ def test_tf_export_requires_explicit_stochastic_projection_policy():
     )
     assert projected.approximation.kind is ApproximationKind.REPRESENTATIVE_PROJECTION
     assert projected.approximation.lossy
-
-
-def test_legacy_orientation_only_message_is_not_promoted_with_fake_zero_translation():
-    class OldBingham:
-        def __init__(self):
-            self.matrix = [0.0] * 16
-
-    class OldMessage:
-        def __init__(self):
-            self.header = Header()
-            self.parent_frame_id = "world"
-            self.child_frame_id = "tool"
-            self.edge_id = "edge"
-            self.source_id = "producer"
-            self.evidence_source_ids = []
-            self.has_position = False
-            self.position_mean = Vector3()
-            self.position_covariance = [0.0] * 9
-            self.has_orientation = True
-            self.orientation_bingham = OldBingham()
-            self.orientation_mode = Quaternion()
-            self.approximation_type = "orientation_only"
-            self.closure_approximation = False
-
-    with pytest.raises(ValueError, match="not zero-filled"):
-        legacy_message_to_v2_record(OldMessage())

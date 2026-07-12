@@ -1,7 +1,6 @@
 import numpy as np
 
 from probtf.distributions import BinghamOrientation, trace_zero_matrix
-from probtf.models import ProbabilisticTransform
 from probtf.provenance import ApproximationInfo, ApproximationKind, Provenance
 from probtf_estimators.evidence_fusion import TransformEvidence
 from probtf_estimators.ros_conversions import (
@@ -10,11 +9,6 @@ from probtf_estimators.ros_conversions import (
     transform_evidence_from_msg,
     transform_evidence_to_msg,
 )
-
-from probtf_ros.conversions import (
-    probabilistic_transform_to_msg,
-)
-
 
 class Vector3:
     def __init__(self):
@@ -42,30 +36,6 @@ class Header:
         self.seq = 0
         self.frame_id = ""
         self.stamp = Stamp()
-
-
-class BinghamMessage:
-    def __init__(self):
-        self.matrix = [0.0] * 16
-
-
-class ProbabilisticTransformMessage:
-    def __init__(self):
-        self.header = Header()
-        self.parent_frame_id = ""
-        self.child_frame_id = ""
-        self.edge_id = ""
-        self.source_id = ""
-        self.evidence_kind = ""
-        self.evidence_source_ids = []
-        self.has_position = False
-        self.position_mean = Vector3()
-        self.position_covariance = [0.0] * 9
-        self.has_orientation = False
-        self.orientation_bingham = BinghamMessage()
-        self.orientation_mode = Quaternion()
-        self.approximation_type = ""
-        self.closure_approximation = False
 
 
 class TransformEvidenceMessage:
@@ -120,42 +90,6 @@ class OrientationDistributionMessage:
         self.orientation = BinghamOrientationMessage()
         self.approximation = ApproximationMessage()
         self.provenance = ProvenanceMessage()
-
-
-def test_probabilistic_transform_conversion_preserves_wxyz_and_metadata():
-    transform = ProbabilisticTransform.from_arrays(
-        "base",
-        "imu",
-        [1.0, 2.0, 3.0],
-        np.diag([0.1, 0.2, 0.3]),
-        np.diag([-3.0, -2.0, -1.0, 0.0]),
-        [0.5, 0.5, -0.5, 0.5],
-        stamp=12.25,
-        source_id="relative_pose",
-        evidence_source_ids=("gyro", "force"),
-        closure_approximation=True,
-    )
-
-    message = probabilistic_transform_to_msg(
-        transform,
-        message_type=ProbabilisticTransformMessage,
-        time_factory=Stamp,
-    )
-
-    assert message.header.frame_id == "base"
-    assert message.header.stamp.to_sec() == 12.25
-    assert message.edge_id == "base__to__imu"
-    assert message.source_id == "relative_pose"
-    assert message.evidence_source_ids == ["gyro", "force"]
-    assert message.has_position is True
-    assert message.has_orientation is True
-    assert [
-        message.orientation_mode.w,
-        message.orientation_mode.x,
-        message.orientation_mode.y,
-        message.orientation_mode.z,
-    ] == [0.5, 0.5, -0.5, 0.5]
-    assert message.closure_approximation is True
 
 
 def test_transform_evidence_round_trip_preserves_optional_payloads():

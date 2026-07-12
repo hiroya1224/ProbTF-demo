@@ -24,11 +24,6 @@ from probtf.geometry import (
     quat_to_rotmat,
     rpy_to_quat,
 )
-from probtf.models import (
-    BinghamRotation,
-    GaussianPosition,
-    ProbabilisticTransform,
-)
 from probtf.sensor_mount import SensorMount
 from probtf.sensor_config import load_sensor_mounts, parse_sensor_mounts
 from probtf.symbolic_urdf import (
@@ -39,9 +34,6 @@ from probtf.symbolic_urdf import (
 )
 
 __all__ = [
-    "BinghamRotation",
-    "GaussianPosition",
-    "ProbabilisticTransform",
     "RotationMoment",
     "SensorMount",
     "SymbolicUrdfTemplate",

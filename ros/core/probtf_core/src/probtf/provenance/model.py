@@ -10,7 +10,6 @@ import math
 class ApproximationKind(Enum):
     EXACT = "exact"
     PRODUCER_SUPPLIED = "producer_supplied"
-    LEGACY_ADAPTER = "legacy_adapter"
     TANGENT_SURROGATE = "tangent_surrogate"
     NUMERICAL_INTEGRATION = "numerical_integration"
     MONTE_CARLO = "monte_carlo"

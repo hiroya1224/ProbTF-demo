@@ -22,14 +22,8 @@ from probtf.geometry import (
     rotation_vector_from_quaternion,
     unpack_symmetric_upper,
 )
-from probtf.provenance import ApproximationKind, ComponentProvenance
+from probtf.provenance import ComponentProvenance
 from probtf_estimators import coupling_from_hessian
-from probtf.compatibility import (
-    LegacyProjectionPolicy,
-    distribution_to_legacy_transform,
-    legacy_transform_to_stamped,
-)
-from probtf.models import ProbabilisticTransform
 
 
 def _translation(mean=(0.0, 0.0, 0.0), covariance=None, coupling=None):
@@ -251,86 +245,3 @@ def test_symmetric_upper_round_trip_uses_fixed_order(size):
     matrix = values + values.T
     packed = pack_symmetric_upper(matrix)
     np.testing.assert_allclose(unpack_symmetric_upper(packed, size), matrix)
-
-
-def test_legacy_adapter_preserves_single_uncoupled_finite_component():
-    legacy = ProbabilisticTransform.from_arrays(
-        parent_frame_id="world",
-        child_frame_id="tool",
-        position_mean=[1.0, 2.0, 3.0],
-        position_covariance=np.diag([0.1, 0.2, 0.3]),
-        orientation_bingham=np.diag([0.0, -1.0, -2.0, -3.0]),
-        orientation_mode_wxyz=[1.0, 0.0, 0.0, 0.0],
-        stamp=2.0,
-        edge_id="edge",
-        source_id="producer",
-    )
-    converted = legacy_transform_to_stamped(legacy)
-    assert converted.diagnostics == ("LEGACY_INDEPENDENCE_ASSUMPTION",)
-    component = converted.value.distribution.components[0]
-    np.testing.assert_allclose(component.translation.rotation_coupling, np.zeros((3, 9)))
-
-    round_trip = distribution_to_legacy_transform(converted.value)
-    np.testing.assert_allclose(round_trip.value.position_mean, legacy.position_mean)
-    np.testing.assert_allclose(
-        round_trip.value.orientation_bingham,
-        legacy.orientation_bingham,
-    )
-
-
-def test_legacy_projection_rejects_silent_mixture_coupling_and_dirac_loss():
-    finite = BinghamOrientation.from_parameter_matrix(np.diag([0.0, -1.0, -2.0, -3.0]))
-    coupled = _component(
-        "coupled",
-        orientation=finite,
-        translation=_translation(coupling=np.ones((3, 9))),
-    )
-    other = _component("other", orientation=finite)
-    record = TransformDistributionStamped(
-        "world",
-        "tool",
-        0.0,
-        "edge",
-        "test",
-        TransformDistribution((coupled, other)),
-    )
-    with pytest.raises(ValueError, match="one component"):
-        distribution_to_legacy_transform(record)
-    projected = distribution_to_legacy_transform(
-        record,
-        LegacyProjectionPolicy.HIGHEST_WEIGHT_COMPONENT_MODE,
-    )
-    assert "MIXTURE_COMPONENT_MODE_PROJECTION" in projected.diagnostics
-    assert "ROTATION_COUPLING_EVALUATED_AT_MODE" in projected.diagnostics
-
-    dirac_record = TransformDistributionStamped(
-        "world",
-        "camera",
-        0.0,
-        "dirac",
-        "test",
-        TransformDistribution((_component(),)),
-    )
-    with pytest.raises(ValueError, match="Dirac"):
-        distribution_to_legacy_transform(dirac_record)
-
-
-def test_legacy_lossy_approximation_metadata_survives_round_trip():
-    legacy = ProbabilisticTransform.from_arrays(
-        parent_frame_id="world",
-        child_frame_id="tool",
-        position_mean=np.zeros(3),
-        position_covariance=np.eye(3),
-        orientation_bingham=np.diag([0.0, -1.0, -2.0, -3.0]),
-        approximation_type="moment_closure",
-        closure_approximation=True,
-    )
-    converted = legacy_transform_to_stamped(legacy)
-    assert converted.value.approximation.kind is ApproximationKind.MOMENT_SUMMARY
-    assert converted.value.approximation.lossy
-    assert "LEGACY_LOSSY_APPROXIMATION" in converted.diagnostics
-
-    restored = distribution_to_legacy_transform(converted.value)
-    assert restored.value.approximation_type == "moment_closure"
-    assert restored.value.closure_approximation
-    assert "SOURCE_APPROXIMATION_PRESERVED" in restored.diagnostics

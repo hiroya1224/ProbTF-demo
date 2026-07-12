@@ -181,6 +181,23 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 - devel spaceだけを使ったconsumer node import: 成功
 - 実ROS master上のtopic smokeはsandboxのnetwork-interface制限により、この時点では未実施
 
+### 4.10 core / ROS message の v1 廃止
+
+- `probtf.models` と `probtf.compatibility` を削除し、v1 domain modelと双方向adapterを廃止した。
+- `probtf_ros.conversions` と `probtf_ros.legacy_conversions` を削除した。
+- `ProbabilisticTF.msg`、`ProbabilisticTFArray.msg`、`GaussianPosition.msg`、
+  `BinghamDistribution.msg` をmessage生成対象とsourceから削除した。
+- `ApproximationKind.LEGACY_ADAPTER` を廃止した。既存v2 wire number 2は別の意味へ
+  再利用せずreserved slotとしてdeserialize時に拒否する。
+- legacy module/symbol/messageがsourceとCMakeへ再導入されないboundary testを追加した。
+- legacy adapter専用testを削除し、残すべきIMU covariance testはv2 estimator testへ移した。
+
+検証:
+
+- core / boundary tests: `143 passed`
+- `catkin clean/build probtf_msgs probtf_core`: 成功
+- core runtime sourceに対するlegacy symbol検索: 0件
+
 ## 5. コミット
 
 | commit | 内容 |
@@ -192,3 +209,4 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 | `09038d8` | bounded v2 topic listener と lookup APIを追加 |
 | `89c1e85` | estimator demoとorientation-only wire contractをnative v2化 |
 | `42c699e` | native v2 transform kernel samplingを実装 |
+| `52a7868` | deflecomp frame runtimeをv2 bridge/listener/lookupへ接続 |

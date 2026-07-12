@@ -1,14 +1,6 @@
-import os
-import sys
-
 import numpy as np
 
 from symaware_grasp.prob_tf.bingham_moments import ensure_trace_zero
-
-
-DEFAULT_BINGHAM_SOURCE_DIR = os.environ.get("BINGHAM_SOURCE_DIR", "/home/leus/BinghamNLL/src")
-if os.path.isdir(DEFAULT_BINGHAM_SOURCE_DIR) and DEFAULT_BINGHAM_SOURCE_DIR not in sys.path:
-    sys.path.insert(0, DEFAULT_BINGHAM_SOURCE_DIR)
 
 import bingham.math.normconst as bingham_normconst
 

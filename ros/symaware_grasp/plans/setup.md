@@ -5,7 +5,7 @@
 - Bingham 分布で表現された確率的な姿勢と，Gaussian 分布で表現された確率的な位置をまとめたペアで，**ProbabilisticTF** を定義します
   - メッセージ型を定義してください．Bingham 分布は quaternion が従う分布で，4x4 の対称行列で表現されます．
   - Bingham 分布に関して，python パッケージとして，`import bingham` などで使えます．
-  - `/home/leus/BinghamNLL/` にソースがありますので，環境を壊さないように venv を作る際は，これを使ってください．
+  - `third_party/BinghamNLL` の `develop` ブランチを submodule として利用します．root で `pip install .` すると同時にインストールされます．
 - ProbabilisticTF (ptf) を受け取ると，ランダムなノイズが乗った各点が得られますが，それを pointcloud の形で表現してください．
   - ptf を受け取ったら，pointcloud を返すような node があると良いです．
   - Bingham 分布では，各座標軸 (1,0,0), (0,1,0), (0,0,1) の行き先を，それぞれ，赤，緑，青で表示させるようにしてください．それに，ptf の中にある Gauss ノイズが乗って，平行移動もしているような状況になります．

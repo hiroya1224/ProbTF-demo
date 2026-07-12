@@ -3,9 +3,6 @@
   <arg name="config_path" default="$(find symaware_grasp)/configs/simple_six_dof_prob_tf.yaml"/>
   <arg name="rviz_config" default="$(find symaware_grasp)/rviz/prob_tf_link_cloud.rviz"/>
 
-  <env name="BINGHAM_SOURCE_DIR" value="/home/leus/BinghamNLL/src"/>
-  <env name="PYTHONPATH" value="/home/leus/BinghamNLL/src:$(optenv PYTHONPATH)"/>
-
   <param name="robot_description" textfile="$(find symaware_grasp)/urdf/simple_six_dof_arm.urdf"/>
 
   <node pkg="symaware_grasp" type="arm_joint_state_controller.py" name="prob_tf_robot_controller" output="screen">

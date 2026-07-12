@@ -4,9 +4,6 @@
   <arg name="sample_count" default="300"/>
   <arg name="ik_method" default="symmetry_aware_pointwise"/>
 
-  <env name="BINGHAM_SOURCE_DIR" value="/home/leus/BinghamNLL/src"/>
-  <env name="PYTHONPATH" value="/home/leus/BinghamNLL/src:$(optenv PYTHONPATH)"/>
-
   <param name="robot_description" textfile="$(find symaware_grasp)/urdf/simple_six_dof_arm.urdf"/>
   <rosparam param="/symaware_grasp/hand_belief/joint_noise_stddev">[0.03, 0.03, 0.03, 0.05, 0.05, 0.05]</rosparam>
   <param name="/symaware_grasp/hand_belief/sample_count" value="36"/>

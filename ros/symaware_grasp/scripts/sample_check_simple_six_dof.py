@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -11,11 +9,6 @@ import rospkg
 
 from symaware_grasp.prob_tf.geometry import quat_to_rotmat
 from symaware_grasp.prob_tf.urdf_override import build_tree_from_prob_tf_yaml
-
-
-DEFAULT_BINGHAM_SOURCE_DIR = os.environ.get("BINGHAM_SOURCE_DIR", "/home/leus/BinghamNLL/src")
-if os.path.isdir(DEFAULT_BINGHAM_SOURCE_DIR) and DEFAULT_BINGHAM_SOURCE_DIR not in sys.path:
-    sys.path.insert(0, DEFAULT_BINGHAM_SOURCE_DIR)
 
 from bingham.distribution import BinghamDistribution
 

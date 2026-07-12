@@ -3,7 +3,7 @@ import os
 
 import yaml
 
-from symaware_grasp.msg import GraspCandidate
+from probik_msgs.msg import GraspCandidate
 from symaware_grasp.ptf_utils import (
     quaternion_from_approach_and_finger_axes,
     quaternion_from_rpy,

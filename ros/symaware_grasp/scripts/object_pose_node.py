@@ -5,7 +5,7 @@ import math
 import numpy as np
 import rospy
 
-from symaware_grasp.msg import ProbabilisticTF
+from probik_msgs.msg import ProbabilisticTF
 from symaware_grasp.ptf_utils import (
     axially_symmetric_bingham_matrix,
     make_probabilistic_tf_message,

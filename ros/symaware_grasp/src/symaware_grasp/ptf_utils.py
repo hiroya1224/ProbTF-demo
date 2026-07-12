@@ -12,7 +12,7 @@ if os.path.isdir(DEFAULT_BINGHAM_SOURCE_DIR) and DEFAULT_BINGHAM_SOURCE_DIR not 
 try:
     import quaternion
     from geometry_msgs.msg import Quaternion, Vector3
-    from symaware_grasp.msg import BinghamDistribution, ProbabilisticTF
+    from probik_msgs.msg import BinghamDistribution, ProbabilisticTF
     from bingham.distribution import BinghamDistribution as BinghamDistributionImpl
 except ImportError as exc:
     raise ImportError(

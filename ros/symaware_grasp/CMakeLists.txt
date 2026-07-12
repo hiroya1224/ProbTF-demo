@@ -4,7 +4,7 @@ project(symaware_grasp)
 find_package(
   catkin REQUIRED COMPONENTS
     geometry_msgs
-    message_generation
+    probik_msgs
     rospy
     sensor_msgs
     std_msgs
@@ -13,26 +13,10 @@ find_package(
 
 catkin_python_setup()
 
-add_message_files(
-  FILES
-    BinghamDistribution.msg
-    GraspCandidate.msg
-    GaussianPosition.msg
-    IKResult.msg
-    ProbabilisticTF.msg
-    ProbabilisticTFArray.msg
-)
-
-generate_messages(
-  DEPENDENCIES
-    geometry_msgs
-    std_msgs
-)
-
 catkin_package(
   CATKIN_DEPENDS
     geometry_msgs
-    message_runtime
+    probik_msgs
     rospy
     sensor_msgs
     std_msgs
@@ -64,7 +48,6 @@ install(
     config
     configs
     launch
-    msg
     rviz
     urdf
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}

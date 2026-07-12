@@ -7,7 +7,7 @@ from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker
 
 from symaware_grasp.grasp_library import load_grasp_library
-from symaware_grasp.msg import ProbabilisticTF, ProbabilisticTFArray
+from probik_msgs.msg import ProbabilisticTF, ProbabilisticTFArray
 from symaware_grasp.ptf_utils import (
     make_bingham_distribution,
     make_probabilistic_tf_message,

@@ -1,3 +1,4 @@
+from dataclasses import replace
 from pathlib import Path
 import sys
 
@@ -295,13 +296,22 @@ def test_v2_array_and_broadcaster_listener_route_static_and_dynamic_records():
         Stamp,
     )
     broadcaster.send_transform(static_record)
+    broadcaster.send_transform(
+        replace(static_record, child_frame_id="camera", edge_id="world_camera")
+    )
     broadcaster.send_transform(dynamic_record)
-    assert len(static_publisher.messages) == 1
+    assert len(static_publisher.messages) == 2
+    assert [item.edge_id for item in static_publisher.messages[-1].transforms] == [
+        "world_camera",
+        "world_tool",
+    ]
     assert len(dynamic_publisher.messages) == 1
 
     listener = ProbTfListener(ProbTfGraph())
     inserted = listener.receive_transform(dynamic_publisher.messages[0])
     assert listener.graph.edge_buffer(inserted.edge_id).latest_stamp == 12.5
+    static_listener = ProbTfListener(ProbTfGraph())
+    assert len(static_listener.receive_array(static_publisher.messages[-1])) == 2
 
 
 def test_tf_import_export_is_exact_dirac_and_bridge_prevents_loops():

@@ -8,6 +8,7 @@ from probtf.kernels.base import (
     KernelRepresentation,
     KernelResult,
     PointLaw,
+    TransformKernel,
     TransformKernelExpression,
 )
 from probtf.kernels.composed import ComposedTransformKernel, IdentityTransformKernel
@@ -40,6 +41,7 @@ __all__ = [
     "MixturePointActionLaw",
     "PointLaw",
     "TransformKernelExpression",
+    "TransformKernel",
     "UnavailableKernelValue",
     "UncoupledPointActionLaw",
     "kernel_from_path",

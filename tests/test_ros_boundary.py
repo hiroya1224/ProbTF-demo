@@ -88,6 +88,31 @@ class RosBoundaryTest(unittest.TestCase):
         self.assertNotIn('"bingham":', setup_text)
         self.assertIn('packages=["probtf_ros"]', setup_text)
 
+    def test_ros_core_installs_only_bridge_nodes_and_has_no_estimator_import(self):
+        root = Path(__file__).resolve().parents[1]
+        core_root = root / "ros" / "core" / "probtf_core"
+        cmake = (core_root / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("nodes/probtf_bridge_node.py", cmake)
+        for producer in (
+            "imu_kinematics_node.py",
+            "imu_relative_pose_node.py",
+            "orientation_filter_node.py",
+            "probtf_fusion_node.py",
+        ):
+            self.assertNotIn("nodes/{}".format(producer), cmake)
+        violations = []
+        for path in sorted((core_root / "nodes").glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                module = None
+                if isinstance(node, ast.ImportFrom):
+                    module = node.module
+                elif isinstance(node, ast.Import):
+                    module = node.names[0].name
+                if module and module.split(".", 1)[0] == "probtf_estimators":
+                    violations.append(str(path.relative_to(root)))
+        self.assertEqual(violations, [])
+
 
 if __name__ == "__main__":
     unittest.main()

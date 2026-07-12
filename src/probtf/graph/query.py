@@ -20,6 +20,7 @@ class ProbTfGraph:
         authority_conflict_policy=AuthorityConflictPolicy.REJECT,
         parent_change_policy=ParentChangePolicy.REJECT,
     ):
+        EdgeTimeBuffer(max_records_per_edge, authority_conflict_policy)
         self.topology = ProbTfTopology(parent_change_policy)
         self.max_records_per_edge = max_records_per_edge
         self.authority_conflict_policy = authority_conflict_policy
@@ -32,17 +33,28 @@ class ProbTfGraph:
         if not isinstance(record, TransformDistributionStamped):
             raise TypeError("record must be a TransformDistributionStamped.")
         physical = PhysicalEdge(record.edge_id, record.parent_frame_id, record.child_frame_id)
-        self.topology.add_edge(physical)
         buffer = self._buffers.get(record.edge_id)
         if buffer is None:
             buffer = EdgeTimeBuffer(
                 self.max_records_per_edge,
                 self.authority_conflict_policy,
             )
+            buffer.insert(record)
+            self.topology.add_edge(physical)
             self._buffers[record.edge_id] = buffer
-        buffer.insert(record)
+        else:
+            self.topology.add_edge(physical)
+            buffer.insert(record)
 
-    def _resolved_traversal(self, target_frame, source_frame, stamp, policy, tolerance):
+    def _resolved_traversal(
+        self,
+        target_frame,
+        source_frame,
+        stamp,
+        policy,
+        tolerance,
+        max_age,
+    ):
         traversal = self.topology.traversal(source_frame, target_frame)
         if not traversal:
             resolved_stamp = 0.0 if stamp is None else float(stamp)
@@ -68,7 +80,11 @@ class ProbTfGraph:
                 (
                     edge,
                     direction,
-                    self._buffers[edge.edge_id].resolve(common, TemporalPolicy.LATEST),
+                    self._buffers[edge.edge_id].resolve(
+                        common,
+                        TemporalPolicy.LATEST,
+                        max_age=max_age,
+                    ),
                 )
                 for edge, direction in traversal
             )
@@ -78,7 +94,12 @@ class ProbTfGraph:
             (
                 edge,
                 direction,
-                self._buffers[edge.edge_id].resolve(stamp, policy, tolerance),
+                self._buffers[edge.edge_id].resolve(
+                    stamp,
+                    policy,
+                    tolerance,
+                    max_age,
+                ),
             )
             for edge, direction in traversal
         )
@@ -95,6 +116,7 @@ class ProbTfGraph:
         stamp=None,
         policy=TemporalPolicy.EXACT,
         tolerance=0.0,
+        max_age=None,
     ):
         resolved_stamp, traversal = self._resolved_traversal(
             target_frame,
@@ -102,6 +124,7 @@ class ProbTfGraph:
             stamp,
             policy,
             tolerance,
+            max_age,
         )
         return PathExpression(
             source_frame,
@@ -110,6 +133,20 @@ class ProbTfGraph:
             tuple(
                 EdgeView(edge.edge_id, direction, resolved.sample_stamp)
                 for edge, direction, resolved in traversal
+            ),
+            tuple(
+                "{}:{}".format(
+                    edge.edge_id,
+                    (
+                        "LATEST_COMMON_ZERO_ORDER_HOLD"
+                        if policy is TemporalPolicy.LATEST_COMMON
+                        and not self._buffers[edge.edge_id].is_static
+                        and resolved.sample_stamp != resolved_stamp
+                        else resolved.diagnostic
+                    ),
+                )
+                for edge, _, resolved in traversal
+                if resolved.diagnostic
             ),
         )
 
@@ -128,9 +165,16 @@ class ProbTfGraph:
         stamp=None,
         policy=TemporalPolicy.EXACT,
         tolerance=0.0,
+        max_age=None,
     ):
         from probtf.kernels import kernel_from_path
 
-        path = self.lookup_path(target_frame, source_frame, stamp, policy, tolerance)
+        path = self.lookup_path(
+            target_frame,
+            source_frame,
+            stamp,
+            policy,
+            tolerance,
+            max_age,
+        )
         return kernel_from_path(path, self.resolved_records(path))
-

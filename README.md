@@ -17,9 +17,10 @@ python3 -m pip install .
 
 The installation provides these main Python namespaces:
 
-- `probtf`: distributions, Bingham moments, evidence fusion, IMU relative-pose
-  production, quaternion prediction, sensor configuration, and symbolic URDF
-  materialization
+- `probtf`: distributions, graph/time lookup, lazy kernels, ISL protocols,
+  Bingham moments, sensor configuration, and symbolic URDF materialization
+- `probtf_estimators`: evidence fusion, IMU relative-pose production,
+  quaternion prediction, and Hessian-to-coupling helpers
 - `symaware_grasp`: probabilistic transforms and symmetry-aware IK
 - `deflecomp_core`: ROS-free deflection compensation and estimation
 - `deflecomp_sim`: ROS-free flexible-joint simulation
@@ -34,18 +35,18 @@ Optional plotting and example dependencies are available with
 The ROS tree is organized by role:
 
 - `ros/core/probtf_msgs`: reusable distribution, kinematics, and evidence messages
-- `ros/core/probtf_core`: thin ROS nodes and Python package relays
+- `ros/core/probtf_core`: the `probtf_ros` bridge and bridge runtime node
 - `ros/examples/probtf_imu_demo`: two-IMU relative-pose and symbolic URDF demo
 - `ros/examples/probtf_orientation_demo`: separated gyro/gravity/magnetic demo
 - `ros/examples/deflecomp`, `ros/examples/symaware_grasp`: existing applications
 
-Link or clone this repository into a catkin workspace, then build the core and
-examples. `probtf_core` exposes the root `probtf` package in both devel and
-install spaces; installing the root project separately is only needed for
-standalone non-ROS use or for the older examples' Python namespaces.
+Link or clone this repository into a catkin workspace. Install the root Python
+project first, then build the ROS messages and bridge. The catkin package no
+longer republishes `probtf`, `probtf_estimators`, or third-party Bingham.
 
 ```bash
 cd /path/to/catkin_ws
+python3 -m pip install -e src/ProbTF-demo
 catkin build probtf_msgs probtf_core probtf_imu_demo probtf_orientation_demo
 source devel/setup.bash
 ```
@@ -64,5 +65,14 @@ present. Source likelihoods and gyro predictions travel as `TransformEvidence`
 and carry source/provenance identifiers so independent evidence is not counted
 twice accidentally.
 
-See `docs/phase1-migration.md` for the migration map, current approximations,
-and issues intentionally deferred to the next design phase.
+`probtf_bridge_node.py` connects `/probtf` and `/probtf_static` to `/tf` and
+`/tf_static`. Its default TF export policy is `exact_only`; stochastic export
+requires an explicit `~tf_export_policy` representative policy.
+
+```bash
+roslaunch probtf_core probtf_bridge.launch
+```
+
+See `docs/probtf_jmaa_kernel_architecture.md` for the mathematical contract,
+exact/approximate/unavailable backend status, compatibility policy, and
+intentionally deferred work.

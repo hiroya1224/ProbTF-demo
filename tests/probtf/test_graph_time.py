@@ -11,7 +11,9 @@ from probtf.distributions import (
 from probtf.graph import (
     EdgeDirection,
     EdgeTimeBuffer,
+    EdgeView,
     GraphErrorCode,
+    PathExpression,
     ProbTfGraph,
     TemporalResolutionError,
     TopologyError,
@@ -163,6 +165,73 @@ def test_same_stamp_authority_conflict_policy_is_explicit():
     np.testing.assert_allclose(deterministic.translation, [2.0, 0.0, 0.0])
 
 
+def test_static_edge_is_time_invariant_and_identical_republish_is_idempotent():
+    buffer = EdgeTimeBuffer()
+    original = _record(
+        "edge",
+        "world",
+        "tool",
+        0.0,
+        is_static=True,
+        translation=(1.0, 0.0, 0.0),
+    )
+    buffer.insert(original)
+    buffer.insert(
+        _record(
+            "edge",
+            "world",
+            "tool",
+            10.0,
+            is_static=True,
+            translation=(1.0, 0.0, 0.0),
+        )
+    )
+    assert len(buffer) == 1
+    with pytest.raises(TemporalResolutionError) as error:
+        buffer.insert(
+            _record(
+                "edge",
+                "world",
+                "tool",
+                10.0,
+                is_static=True,
+                translation=(2.0, 0.0, 0.0),
+            )
+        )
+    assert error.value.code is GraphErrorCode.STATIC_EDGE_CONFLICT
+    np.testing.assert_allclose(
+        buffer.resolve(100.0, TemporalPolicy.EXACT).record.distribution.deterministic_transform().translation,
+        [1.0, 0.0, 0.0],
+    )
+
+
+def test_latest_max_age_reports_stale_sample():
+    buffer = EdgeTimeBuffer()
+    buffer.insert(_record("edge", "world", "tool", 1.0))
+    with pytest.raises(TemporalResolutionError) as error:
+        buffer.resolve(10.0, TemporalPolicy.LATEST, max_age=2.0)
+    assert error.value.code is GraphErrorCode.TEMPORAL_STALE
+    assert buffer.resolve(10.0, TemporalPolicy.LATEST, max_age=10.0).sample_stamp == 1.0
+
+
+def test_invalid_graph_buffer_configuration_fails_before_topology_exists():
+    with pytest.raises(ValueError, match="max_records"):
+        ProbTfGraph(max_records_per_edge=0)
+
+
+def test_cross_time_inverse_views_do_not_cancel_as_one_realization():
+    path = PathExpression(
+        "tool",
+        "tool",
+        2.0,
+        (
+            EdgeView("edge", EdgeDirection.FORWARD, 1.0),
+            EdgeView("edge", EdgeDirection.INVERSE, 2.0),
+        ),
+    )
+    assert len(path.reduce_adjacent_inverses()) == 2
+
+
 def test_latest_common_uses_common_availability_and_actual_sample_stamps():
     graph = ProbTfGraph()
     for stamp in (1.0, 3.0):
@@ -176,6 +245,7 @@ def test_latest_common_uses_common_availability_and_actual_sample_stamps():
         ("a_tool", 2.0),
         ("world_a", 3.0),
     ]
+    assert "a_tool:LATEST_COMMON_ZERO_ORDER_HOLD" in path.diagnostics
 
 
 def test_latest_common_rejects_nonoverlap_and_accepts_static_uncertain_edge():

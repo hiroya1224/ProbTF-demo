@@ -1,8 +1,12 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 
+from probtf.distributions import OrientationKind
+from probtf.kernels import KernelEvaluator, KernelRepresentation
 from symaware_grasp.prob_tf.path_expression import EdgeView, PathExpression
+from symaware_grasp.prob_tf.tree import ProbTfEdge, ProbTfTree
 from symaware_grasp.prob_tf.urdf_override import build_tree_from_prob_tf_yaml
 
 
@@ -57,3 +61,44 @@ def test_summarized_results_cannot_be_re_registered_as_edges():
     result = tree.lookup("base_link", "tool0", return_bingham=True, summarize=True)
     with pytest.raises(ValueError):
         tree.add_edge(result)
+
+
+def test_legacy_tree_adapter_swaps_pose_query_into_core_action_semantics():
+    tree = ProbTfTree(root="world")
+    tree.add_edge(
+        ProbTfEdge(
+            edge_id="joint",
+            parent="world",
+            child="tool",
+            translation=np.array([1.0, 2.0, 3.0]),
+            joint_type="fixed",
+        )
+    )
+    kernel = tree.lookup_core_kernel("world", "tool", stamp=0.0)
+    result = KernelEvaluator().apply_to_point(
+        kernel,
+        np.zeros(3),
+        KernelRepresentation.MOMENTS,
+    )
+    np.testing.assert_allclose(result.value.mean, [1.0, 2.0, 3.0])
+    record = tree.to_core_graph().edge_buffer("joint").records[0]
+    assert record.distribution.components[0].orientation.kind is OrientationKind.DIRAC
+
+
+def test_legacy_uncertain_edge_maps_to_finite_bingham_without_closure():
+    tree = ProbTfTree(root="world")
+    tree.add_edge(
+        ProbTfEdge(
+            edge_id="joint",
+            parent="world",
+            child="tool",
+            translation=np.zeros(3),
+            joint_type="revolute",
+            axis=np.array([0.0, 0.0, 1.0]),
+            bingham_param=np.diag([0.0, -5.0, -10.0, -15.0]),
+        )
+    )
+    record = tree.to_core_graph().edge_buffer("joint").records[0]
+    component = record.distribution.components[0]
+    assert component.orientation.kind is OrientationKind.FINITE_BINGHAM
+    np.testing.assert_allclose(component.translation.rotation_coupling, np.zeros((3, 9)))

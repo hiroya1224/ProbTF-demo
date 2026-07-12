@@ -63,14 +63,6 @@ def _mode_rotation_and_diagonal_frame(matrix):
         mode_quaternion *= -1.0
         eigenvectors[:, 0] *= -1.0
     tangent_vectors = eigenvectors[:, 1:4]
-    # Small-angle expansion around the mode gives a local SO(3) precision
-    # diag((lambda_0 - lambda_i) / 2). The non-polar surrogate expects
-    # mu = (mu_1, mu_2, mu_3) with mu_3 allowed to be negative.
-    local_precisions = 0.5 * np.maximum(eigenvalues[0] - eigenvalues[1:4], 1e-10)
-    order_tangent = np.argsort(local_precisions)[::-1]
-    local_precisions = local_precisions[order_tangent]
-    tangent_vectors = tangent_vectors[:, order_tangent]
-
     left_matrix = quat_left_matrix(mode_quaternion)
     axis_candidates = []
     for tangent_vector in tangent_vectors.T:
@@ -87,7 +79,6 @@ def _mode_rotation_and_diagonal_frame(matrix):
     #   mu_2 = lambda_1 + lambda_3
     #   mu_3 = lambda_2 + lambda_3
     # for lambda_1 >= lambda_2 >= lambda_3 >= lambda_4 and trace(A)=0.
-    del local_precisions
     mu = np.array(
         [
             eigenvalues[0] + eigenvalues[1],

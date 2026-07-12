@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from enum import Enum
 
@@ -40,8 +41,10 @@ class EdgeView:
         object.__setattr__(self, "edge_id", identifier(self.edge_id, "edge_id"))
         if not isinstance(self.direction, EdgeDirection):
             raise TypeError("direction must be an EdgeDirection.")
-        object.__setattr__(self, "sample_stamp", float(self.sample_stamp))
+        stamp = float(self.sample_stamp)
+        if not math.isfinite(stamp) or stamp < 0.0:
+            raise ValueError("sample_stamp must be finite and non-negative.")
+        object.__setattr__(self, "sample_stamp", stamp)
 
     def inverse(self):
         return EdgeView(self.edge_id, self.direction.inverse(), self.sample_stamp)
-

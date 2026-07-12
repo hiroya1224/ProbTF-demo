@@ -3,7 +3,7 @@
 from abc import ABC
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Tuple
+from typing import Optional, Protocol, Tuple
 
 import numpy as np
 
@@ -67,6 +67,16 @@ class TransformKernelExpression(ABC):
         return frozenset()
 
 
+class TransformKernel(Protocol):
+    def apply(
+        self,
+        kernel: TransformKernelExpression,
+        input_law: "PointLaw",
+        options: KernelEvaluationOptions,
+    ) -> KernelResult:
+        ...
+
+
 class PointLaw(ABC):
     pass
 
@@ -102,4 +112,3 @@ class GaussianPointLaw(PointLaw):
 class AppliedKernelExpression:
     kernel: TransformKernelExpression
     input_law: PointLaw
-

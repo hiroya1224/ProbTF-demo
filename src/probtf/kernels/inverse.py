@@ -19,7 +19,8 @@ class InverseEdgeKernel(TransformKernelExpression):
             raise TypeError("edge_record must be TransformDistributionStamped.")
 
     def latent_dependency_ids(self):
-        return frozenset(
-            (self.edge_record.edge_id,) + self.edge_record.provenance.derived_from_edge_ids
-        )
-
+        identifiers = {self.edge_record.edge_id}
+        identifiers.update(self.edge_record.provenance.derived_from_edge_ids)
+        for component in self.edge_record.distribution.components:
+            identifiers.update(component.provenance.derived_from_edge_ids)
+        return frozenset(identifiers)

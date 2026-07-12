@@ -10,6 +10,60 @@ from probtf.graph.status import GraphErrorCode, TemporalResolutionError
 from probtf.temporal import AuthorityConflictPolicy, ResolvedEdgeRecord, TemporalPolicy
 
 
+def _same_component(left, right):
+    return (
+        left.component_id == right.component_id
+        and left.raw_weight == right.raw_weight
+        and left.orientation.kind is right.orientation.kind
+        and left.orientation.inverse_concentration == right.orientation.inverse_concentration
+        and np.array_equal(left.orientation.shape_matrix, right.orientation.shape_matrix)
+        and np.array_equal(
+            left.orientation.reference_quaternion_wxyz,
+            right.orientation.reference_quaternion_wxyz,
+        )
+        and np.array_equal(
+            left.translation.mean_at_reference,
+            right.translation.mean_at_reference,
+        )
+        and np.array_equal(
+            left.translation.residual_covariance,
+            right.translation.residual_covariance,
+        )
+        and np.array_equal(
+            left.translation.rotation_coupling,
+            right.translation.rotation_coupling,
+        )
+        and left.provenance == right.provenance
+        and left.approximation == right.approximation
+    )
+
+
+def _same_deterministic_transform(left, right):
+    if left is None or right is None:
+        return left is right
+    return np.array_equal(left.translation, right.translation) and np.array_equal(
+        left.rotation_wxyz,
+        right.rotation_wxyz,
+    )
+
+
+def _same_static_payload(left, right):
+    return (
+        len(left.distribution.components) == len(right.distribution.components)
+        and all(
+            _same_component(left_component, right_component)
+            for left_component, right_component in zip(
+                left.distribution.components,
+                right.distribution.components,
+            )
+        )
+        and left.representative_kind is right.representative_kind
+        and _same_deterministic_transform(left.representative, right.representative)
+        and left.provenance == right.provenance
+        and left.approximation == right.approximation
+    )
+
+
 class EdgeTimeBuffer:
     def __init__(self, max_records=None, conflict_policy=AuthorityConflictPolicy.REJECT):
         if max_records is not None and int(max_records) < 1:
@@ -65,6 +119,23 @@ class EdgeTimeBuffer:
             elif record.is_static != self._static:
                 raise ValueError("A physical edge cannot mix static and dynamic records.")
 
+            if self._static and self._records:
+                existing = self._records[-1]
+                if existing.authority != record.authority:
+                    raise TemporalResolutionError(
+                        GraphErrorCode.AUTHORITY_CONFLICT,
+                        "Static edge authorities '{}' and '{}' conflict.".format(
+                            existing.authority,
+                            record.authority,
+                        ),
+                    )
+                if _same_static_payload(existing, record):
+                    return
+                raise TemporalResolutionError(
+                    GraphErrorCode.STATIC_EDGE_CONFLICT,
+                    "A static edge is time invariant and cannot change payload.",
+                )
+
             stamps = [item.stamp for item in self._records]
             index = bisect_left(stamps, record.stamp)
             if index < len(self._records) and self._records[index].stamp == record.stamp:
@@ -95,7 +166,7 @@ class EdgeTimeBuffer:
                 raise KeyError("No sample at stamp {}.".format(stamp))
             return self._records[index]
 
-    def resolve(self, stamp, policy, tolerance=0.0):
+    def resolve(self, stamp, policy, tolerance=0.0, max_age=None):
         if not isinstance(policy, TemporalPolicy):
             raise TypeError("policy must be TemporalPolicy.")
         if policy in (TemporalPolicy.INTERPOLATE_WITH_MODEL, TemporalPolicy.PREDICT_WITH_MODEL):
@@ -111,6 +182,10 @@ class EdgeTimeBuffer:
         tolerance = float(tolerance)
         if not np.isfinite(tolerance) or tolerance < 0.0:
             raise ValueError("tolerance must be finite and non-negative.")
+        if max_age is not None:
+            max_age = float(max_age)
+            if not np.isfinite(max_age) or max_age < 0.0:
+                raise ValueError("max_age must be finite and non-negative or None.")
 
         with self._lock:
             if not self._records:
@@ -163,6 +238,11 @@ class EdgeTimeBuffer:
                         "No edge sample exists at or before stamp {}.".format(requested),
                     )
                 record = self._records[index]
+                if max_age is not None and requested - record.stamp > max_age:
+                    raise TemporalResolutionError(
+                        GraphErrorCode.TEMPORAL_STALE,
+                        "Latest edge sample is older than max_age.",
+                    )
                 return ResolvedEdgeRecord(
                     record,
                     requested,
@@ -175,4 +255,3 @@ class EdgeTimeBuffer:
             GraphErrorCode.UNSUPPORTED_TEMPORAL_POLICY,
             "Unsupported temporal policy '{}'.".format(policy.value),
         )
-

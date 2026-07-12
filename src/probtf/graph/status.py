@@ -9,6 +9,8 @@ class GraphErrorCode(Enum):
     DUPLICATE_EDGE = "duplicate_edge"
     EDGE_MISMATCH = "edge_mismatch"
     TEMPORAL_OUT_OF_RANGE = "temporal_out_of_range"
+    TEMPORAL_STALE = "temporal_stale"
+    STATIC_EDGE_CONFLICT = "static_edge_conflict"
     AUTHORITY_CONFLICT = "authority_conflict"
     UNSUPPORTED_TEMPORAL_POLICY = "unsupported_temporal_policy"
     DEPENDENCY_UNRESOLVED = "dependency_unresolved"
@@ -38,4 +40,3 @@ class DependencyUnresolvedError(ProbTfGraphError):
             "Repeated latent edge dependencies are unresolved: {}.".format(", ".join(repeated)),
         )
         self.repeated_edge_ids = repeated
-

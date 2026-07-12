@@ -113,6 +113,94 @@ class ProbTfTree:
         if edge.child not in self.frame_order:
             self.frame_order.append(edge.child)
 
+    def to_core_graph(self, stamp=0.0, authority="symaware_grasp_legacy_adapter"):
+        """Embed legacy demo edges in a timestamped :class:`ProbTfGraph`.
+
+        Legacy edges have deterministic translation and either a deterministic
+        or Bingham rotation. They map to one uncoupled component per physical
+        edge. No legacy moment summary is re-registered as an edge.
+        """
+
+        from probtf.distributions import (
+            BinghamOrientation,
+            ConditionalGaussianTranslation,
+            TransformComponent,
+            TransformDistribution,
+            TransformDistributionStamped,
+        )
+        from probtf.graph import ProbTfGraph
+        from probtf.provenance import (
+            ApproximationInfo,
+            ApproximationKind,
+            ComponentProvenance,
+            TransformProvenance,
+        )
+
+        graph = ProbTfGraph()
+        for edge in self.edges.values():
+            orientation = (
+                BinghamOrientation.dirac(edge.nominal_quaternion)
+                if edge.joint_type == "fixed"
+                else BinghamOrientation.from_parameter_matrix(
+                    edge.bingham_param,
+                    edge.nominal_quaternion,
+                )
+            )
+            component = TransformComponent(
+                component_id="{}:legacy".format(edge.edge_id),
+                raw_weight=1.0,
+                orientation=orientation,
+                translation=ConditionalGaussianTranslation(
+                    edge.translation,
+                    np.zeros((3, 3)),
+                    np.zeros((3, 9)),
+                ),
+                provenance=ComponentProvenance(
+                    source_ids=(authority,),
+                    method="symaware_grasp_prob_tf_edge_adapter",
+                ),
+                approximation=ApproximationInfo(
+                    ApproximationKind.LEGACY_ADAPTER,
+                    False,
+                    "Legacy fixed-translation edge embedded with zero rotation coupling.",
+                ),
+            )
+            graph.insert(
+                TransformDistributionStamped(
+                    parent_frame_id=edge.parent,
+                    child_frame_id=edge.child,
+                    stamp=float(stamp),
+                    edge_id=edge.edge_id,
+                    authority=authority,
+                    distribution=TransformDistribution((component,)),
+                    provenance=TransformProvenance(
+                        source_ids=(authority,),
+                        method="symaware_grasp_tree_adapter",
+                    ),
+                    is_static=True,
+                )
+            )
+        return graph
+
+    def lookup_core_kernel(self, source, target, stamp=0.0):
+        """Return a lazy core kernel while preserving legacy lookup arguments.
+
+        Legacy ``lookup_path(source, target)`` asks for the pose of ``target``
+        relative to ``source``. The core uses tf2/action order
+        ``lookup_kernel(target_frame, source_frame, stamp)``, so the two frame
+        arguments are intentionally swapped here.
+        """
+
+        from probtf.temporal import TemporalPolicy
+
+        graph = self.to_core_graph(stamp=stamp)
+        return graph.lookup_kernel(
+            target_frame=source,
+            source_frame=target,
+            stamp=stamp,
+            policy=TemporalPolicy.EXACT,
+        )
+
     def _edge_to_parent(self, frame):
         if frame == self.root:
             return None

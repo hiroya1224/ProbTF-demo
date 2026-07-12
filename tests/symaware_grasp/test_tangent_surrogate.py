@@ -39,5 +39,15 @@ def test_tangent_surrogate_polar_branch_is_finite():
 
     assert np.all(np.isfinite(result.mean))
     assert np.all(np.isfinite(result.cov))
+
+
+def test_anisotropic_eigenframe_remains_aligned_with_jmaa_shape_parameters():
+    parameter = np.diag([4.0, 2.0, 0.0, -6.0])
+    result = induced_vector_moments_tangent(
+        [1.0, 0.0, 0.0],
+        parameter,
+        use_jacobian_correction=False,
+    )
+    np.testing.assert_allclose(np.diag(result.lambda_mat), [0.0, 5.0, 2.0], atol=1e-12)
     assert np.all(np.isfinite(result.sigma_mat))
     assert np.allclose(result.mean / np.linalg.norm(result.mean), np.array([1.0, 0.0, 0.0]), atol=1e-8)

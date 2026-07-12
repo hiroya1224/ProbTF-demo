@@ -22,7 +22,7 @@ from probtf.geometry import (
     rotation_vector_from_quaternion,
     unpack_symmetric_upper,
 )
-from probtf.provenance import ComponentProvenance
+from probtf.provenance import ApproximationKind, ComponentProvenance
 from probtf_estimators import coupling_from_hessian
 from probtf.compatibility import (
     LegacyProjectionPolicy,
@@ -60,6 +60,13 @@ def test_finite_bingham_uses_jmaa_shape_magnitude_and_reconstructs_parameter():
     assert bingham_shape_magnitude(orientation.shape_matrix) == pytest.approx(1.0)
     np.testing.assert_allclose(orientation.parameter_matrix(), parameter)
     assert not np.isclose(np.linalg.norm(orientation.shape_matrix), 1.0)
+
+
+def test_small_nonzero_bingham_parameter_is_not_silently_made_uniform():
+    parameter = 1e-12 * np.diag([3.0, 1.0, -1.0, -3.0])
+    orientation = BinghamOrientation.from_parameter_matrix(parameter)
+    assert orientation.kind is OrientationKind.FINITE_BINGHAM
+    np.testing.assert_allclose(orientation.parameter_matrix(), parameter, rtol=1e-12, atol=0.0)
 
 
 def test_bingham_validation_rejects_non_jmaa_shape_and_nonfinite_parameter():
@@ -181,6 +188,15 @@ def test_weight_normalization_clamps_negative_and_preserves_order():
     assert normalized.diagnostics[0].code == "NEGATIVE_WEIGHT_CLAMPED"
 
 
+def test_weight_normalization_is_stable_near_float_max():
+    distribution = TransformDistribution(
+        (_component("first", 1e308), _component("second", 1e308))
+    )
+    normalized = distribution.normalize_weights()
+    assert normalized.status is DistributionStatus.OK
+    assert [item.weight for item in normalized.components] == pytest.approx([0.5, 0.5])
+
+
 @pytest.mark.parametrize("weights", [(0.0, 0.0), (-1.0, 0.0), (-1.0, -2.0)])
 def test_all_nonpositive_weight_is_zero_mass(weights):
     distribution = TransformDistribution(
@@ -297,3 +313,24 @@ def test_legacy_projection_rejects_silent_mixture_coupling_and_dirac_loss():
     )
     with pytest.raises(ValueError, match="Dirac"):
         distribution_to_legacy_transform(dirac_record)
+
+
+def test_legacy_lossy_approximation_metadata_survives_round_trip():
+    legacy = ProbabilisticTransform.from_arrays(
+        parent_frame_id="world",
+        child_frame_id="tool",
+        position_mean=np.zeros(3),
+        position_covariance=np.eye(3),
+        orientation_bingham=np.diag([0.0, -1.0, -2.0, -3.0]),
+        approximation_type="moment_closure",
+        closure_approximation=True,
+    )
+    converted = legacy_transform_to_stamped(legacy)
+    assert converted.value.approximation.kind is ApproximationKind.MOMENT_SUMMARY
+    assert converted.value.approximation.lossy
+    assert "LEGACY_LOSSY_APPROXIMATION" in converted.diagnostics
+
+    restored = distribution_to_legacy_transform(converted.value)
+    assert restored.value.approximation_type == "moment_closure"
+    assert restored.value.closure_approximation
+    assert "SOURCE_APPROXIMATION_PRESERVED" in restored.diagnostics

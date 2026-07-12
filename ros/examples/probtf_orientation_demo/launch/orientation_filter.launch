@@ -5,7 +5,7 @@
   <arg name="child_frame_id" default="imu" />
   <arg name="use_magnetometer" default="true" />
 
-  <node pkg="probtf_core" type="orientation_filter_node.py" name="orientation_filter" output="screen">
+  <node pkg="probtf_orientation_demo" type="orientation_filter_node.py" name="orientation_filter" output="screen">
     <param name="parent_frame_id" value="$(arg parent_frame_id)" />
     <param name="child_frame_id" value="$(arg child_frame_id)" />
     <param name="use_magnetometer" value="$(arg use_magnetometer)" />
@@ -15,7 +15,7 @@
 
   <node
     unless="$(arg use_magnetometer)"
-    pkg="probtf_core"
+    pkg="probtf_orientation_demo"
     type="probtf_fusion_node.py"
     name="orientation_fusion"
     output="screen">
@@ -27,7 +27,7 @@
 
   <node
     if="$(arg use_magnetometer)"
-    pkg="probtf_core"
+    pkg="probtf_orientation_demo"
     type="probtf_fusion_node.py"
     name="orientation_fusion"
     output="screen">

@@ -32,9 +32,9 @@ def bingham_shape_magnitude(trace_zero_parameter):
 def normalize_bingham_shape(parameter_matrix):
     matrix = trace_zero_matrix(parameter_matrix)
     magnitude = bingham_shape_magnitude(matrix)
-    if magnitude <= SHAPE_TOLERANCE:
-        if np.linalg.norm(matrix) <= SHAPE_TOLERANCE:
-            return np.zeros((4, 4), dtype=float), 0.0
+    if magnitude <= 0.0:
+        if np.linalg.norm(matrix) == 0.0:
+            return matrix.copy(), 0.0
         raise DistributionValidationError("Bingham shape magnitude must be positive.")
     shape = matrix / magnitude
     return 0.5 * (shape + shape.T), magnitude
@@ -166,4 +166,3 @@ class BinghamOrientation:
         parameter = self.parameter_matrix()
         largest = float(np.linalg.eigvalsh(parameter)[-1])
         return parameter - largest * np.eye(4, dtype=float)
-

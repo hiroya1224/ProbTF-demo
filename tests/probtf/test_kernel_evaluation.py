@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import probtf.isl as isl
 from probtf.distributions import (
     BinghamOrientation,
     ConditionalGaussianTranslation,
@@ -24,6 +25,7 @@ from probtf.kernels import (
 )
 from probtf.probability import PointMomentSummary, forward_component_point_moments
 from probtf.provenance import ApproximationKind
+from probtf.provenance import ComponentProvenance
 from probtf.spherical_law import (
     DiracVectorLaw,
     IslBackendUnavailableError,
@@ -262,6 +264,7 @@ def test_uniform_direction_and_tangent_surrogate_are_typed_distinctly():
 
 
 def test_isl_special_cases_preserve_vector_scale_and_quaternion_antipodes():
+    assert isl.UnavailableExactIslBackend is UnavailableExactIslBackend
     backend = UnavailableExactIslBackend()
     quaternion = axis_angle_to_quat([0.0, 0.0, 1.0], np.pi / 2.0)
     positive = BinghamOrientation.dirac(quaternion)
@@ -309,7 +312,14 @@ def test_zero_mass_stochastic_inverse_and_closure_fail_without_fallback():
 
 
 def test_repeated_latent_edge_is_not_silently_sampled_independently():
-    record = _record("edge", "world", "tool", [_component()], stamp=1.0)
+    finite = BinghamOrientation.from_parameter_matrix(np.diag([0.0, -2.0, -3.0, -4.0]))
+    record = _record(
+        "edge",
+        "world",
+        "tool",
+        [_component(orientation=finite)],
+        stamp=1.0,
+    )
     path = PathExpression(
         "tool",
         "tool",
@@ -329,3 +339,49 @@ def test_repeated_latent_edge_is_not_silently_sampled_independently():
     assert result.status is DistributionStatus.INVALID
     assert result.value.code == "DEPENDENCY_UNRESOLVED"
     assert result.diagnostics.repeated_dependency_ids == ("edge",)
+
+
+def test_repeated_deterministic_edge_uses_the_same_known_realization():
+    record = _record("edge", "world", "tool", [_component(translation=[1.0, 2.0, 3.0])])
+    path = PathExpression(
+        "tool",
+        "tool",
+        1.0,
+        (
+            EdgeView("edge", EdgeDirection.FORWARD, 1.0),
+            EdgeView("edge", EdgeDirection.INVERSE, 1.0),
+        ),
+    )
+    expression = kernel_from_path(path, (record, record))
+    result = KernelEvaluator().apply_to_point(
+        expression,
+        [0.5, -0.25, 1.0],
+        KernelRepresentation.MOMENTS,
+    )
+    assert result.status is DistributionStatus.OK
+    np.testing.assert_allclose(result.value.mean, [0.5, -0.25, 1.0], atol=1e-12)
+
+
+def test_shared_component_provenance_is_a_latent_dependency():
+    finite = BinghamOrientation.from_parameter_matrix(np.diag([0.0, -2.0, -3.0, -4.0]))
+
+    def dependent_component(component_id):
+        return TransformComponent(
+            component_id,
+            1.0,
+            finite,
+            ConditionalGaussianTranslation(np.zeros(3), np.zeros((3, 3)), np.zeros((3, 9))),
+            provenance=ComponentProvenance(derived_from_edge_ids=("shared_latent",)),
+        )
+
+    graph = ProbTfGraph()
+    graph.insert(_record("world_a", "world", "a", [dependent_component("first")]))
+    graph.insert(_record("a_tool", "a", "tool", [dependent_component("second")]))
+    result = KernelEvaluator().apply_to_point(
+        graph.lookup_kernel("world", "tool", 1.0),
+        [1.0, 0.0, 0.0],
+        KernelRepresentation.MOMENTS,
+    )
+    assert result.status is DistributionStatus.INVALID
+    assert result.value.code == "DEPENDENCY_UNRESOLVED"
+    assert result.diagnostics.repeated_dependency_ids == ("shared_latent",)

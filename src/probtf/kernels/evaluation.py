@@ -377,7 +377,7 @@ class KernelEvaluator:
                 diagnostics,
             )
         repeated = _repeated_dependencies(kernel)
-        if repeated:
+        if repeated and self._deterministic_transforms(kernel) is None:
             return KernelResult(
                 DistributionStatus.INVALID,
                 options.representation,

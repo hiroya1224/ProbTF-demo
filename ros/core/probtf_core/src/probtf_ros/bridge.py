@@ -4,6 +4,7 @@ from probtf.graph import ProbTfGraph
 from probtf_ros.v2_conversions import (
     V2MessageTypes,
     transform_array_from_msg,
+    transform_array_to_msg,
     transform_distribution_from_msg,
     transform_distribution_to_msg,
 )
@@ -25,14 +26,24 @@ class ProbTfBroadcaster:
         self.static_publisher = static_publisher
         self.message_types = V2MessageTypes.defaults() if message_types is None else message_types
         self.time_factory = time_factory
+        self._static_records = {}
 
     def send_transform(self, record):
-        message = transform_distribution_to_msg(
-            record,
-            self.message_types,
-            self.time_factory,
-        )
-        publisher = self.static_publisher if record.is_static else self.dynamic_publisher
+        if record.is_static:
+            self._static_records[record.edge_id] = record
+            message = transform_array_to_msg(
+                tuple(self._static_records[key] for key in sorted(self._static_records)),
+                self.message_types,
+                self.time_factory,
+            )
+            publisher = self.static_publisher
+        else:
+            message = transform_distribution_to_msg(
+                record,
+                self.message_types,
+                self.time_factory,
+            )
+            publisher = self.dynamic_publisher
         publisher.publish(message)
         return message
 
@@ -51,4 +62,3 @@ class ProbTfListener:
         for record in records:
             self.graph.insert(record)
         return records
-

@@ -35,6 +35,28 @@ class LegacyConversionResult:
     diagnostics: Tuple[str, ...] = ()
 
 
+def _legacy_approximation(transform):
+    approximation_type = transform.approximation_type
+    if transform.closure_approximation:
+        kind = (
+            ApproximationKind.MOMENT_SUMMARY
+            if "moment" in approximation_type.lower()
+            else ApproximationKind.BINGHAM_CLOSURE
+        )
+        return ApproximationInfo(
+            kind=kind,
+            lossy=True,
+            detail="Lossy v1 approximation preserved by the compatibility adapter.",
+            source=approximation_type,
+        )
+    return ApproximationInfo(
+        kind=ApproximationKind.LEGACY_ADAPTER,
+        lossy=False,
+        detail="The v1 independence assumption is represented explicitly by zero rotation coupling.",
+        source=approximation_type,
+    )
+
+
 def legacy_transform_to_distribution(transform):
     """Embed a v1 independent pose summary as one uncoupled component."""
 
@@ -44,6 +66,7 @@ def legacy_transform_to_distribution(transform):
         transform.orientation_bingham,
         transform.orientation_mode_wxyz,
     )
+    approximation = _legacy_approximation(transform)
     component = TransformComponent(
         component_id="{}:legacy".format(transform.edge_id),
         raw_weight=1.0,
@@ -57,15 +80,14 @@ def legacy_transform_to_distribution(transform):
             source_ids=tuple(filter(None, (transform.source_id,))) + transform.evidence_source_ids,
             method="legacy_v1_independent_embedding",
         ),
-        approximation=ApproximationInfo(
-            kind=ApproximationKind.LEGACY_ADAPTER,
-            lossy=False,
-            detail="The v1 independence assumption is represented explicitly by zero rotation coupling.",
-        ),
+        approximation=approximation,
     )
     return LegacyConversionResult(
         TransformDistribution((component,)),
-        ("LEGACY_INDEPENDENCE_ASSUMPTION",),
+        (
+            "LEGACY_INDEPENDENCE_ASSUMPTION",
+            *(("LEGACY_LOSSY_APPROXIMATION",) if approximation.lossy else ()),
+        ),
     )
 
 
@@ -84,6 +106,7 @@ def legacy_transform_to_stamped(transform, authority="legacy_adapter", stamp_if_
             derived_from_edge_ids=(transform.edge_id,),
             method="legacy_v1_adapter",
         ),
+        approximation=converted.value.components[0].approximation,
     )
     return LegacyConversionResult(record, converted.diagnostics)
 
@@ -128,7 +151,20 @@ def distribution_to_legacy_transform(record, policy=LegacyProjectionPolicy.EXACT
         diagnostics.append("MIXTURE_COMPONENT_MODE_PROJECTION")
     if coupled:
         diagnostics.append("ROTATION_COUPLING_EVALUATED_AT_MODE")
-    lossy = bool(diagnostics)
+    source_approximations = (record.approximation, component.approximation)
+    source_lossy = any(item.lossy for item in source_approximations)
+    if source_lossy:
+        diagnostics.append("SOURCE_APPROXIMATION_PRESERVED")
+    lossy = bool(projected or coupled or source_lossy)
+    source_type = next(
+        (item.source for item in source_approximations if item.source),
+        "",
+    )
+    approximation_type = (
+        "legacy_component_mode_projection"
+        if projected or coupled
+        else source_type or "legacy_exact_single_uncoupled"
+    )
     legacy = ProbabilisticTransform(
         parent_frame_id=record.parent_frame_id,
         child_frame_id=record.child_frame_id,
@@ -138,10 +174,7 @@ def distribution_to_legacy_transform(record, policy=LegacyProjectionPolicy.EXACT
         edge_id=record.edge_id,
         source_id=record.authority,
         evidence_source_ids=component.provenance.source_ids,
-        approximation_type=(
-            "legacy_component_mode_projection" if lossy else "legacy_exact_single_uncoupled"
-        ),
+        approximation_type=approximation_type,
         closure_approximation=lossy,
     )
     return LegacyConversionResult(legacy, tuple(diagnostics))
-

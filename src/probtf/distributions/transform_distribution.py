@@ -58,7 +58,7 @@ class TransformDistribution:
         raw_weights = np.array([component.raw_weight for component in self.components], dtype=float)
         if not np.all(np.isfinite(raw_weights)):
             return DistributionStatus.INVALID
-        if float(np.sum(np.maximum(raw_weights, 0.0))) <= 0.0:
+        if not np.any(raw_weights > 0.0):
             return DistributionStatus.ZERO_MASS
         return DistributionStatus.OK
 
@@ -73,17 +73,19 @@ class TransformDistribution:
             return NormalizedTransformDistribution((), diagnostics, status)
 
         clamped = np.array([max(component.raw_weight, 0.0) for component in self.components])
-        total = float(np.sum(clamped))
         diagnostics = tuple(
             WeightDiagnostic(component.component_id, component.raw_weight, 0.0, "NEGATIVE_WEIGHT_CLAMPED")
             for component in self.components
             if component.raw_weight < 0.0
         )
-        if total <= 0.0:
+        scale = float(np.max(clamped)) if clamped.size else 0.0
+        if scale <= 0.0:
             return NormalizedTransformDistribution((), diagnostics, DistributionStatus.ZERO_MASS)
+        scaled = clamped / scale
+        total = float(np.sum(scaled))
         weighted = tuple(
             WeightedTransformComponent(component, float(weight / total))
-            for component, weight in zip(self.components, clamped)
+            for component, weight in zip(self.components, scaled)
             if weight > 0.0
         )
         return NormalizedTransformDistribution(weighted, diagnostics, DistributionStatus.OK)
@@ -126,4 +128,3 @@ class TransformDistribution:
                 detail="Mode of the highest normalized-weight component; this is not a global MAP claim.",
             ),
         )
-

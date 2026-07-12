@@ -3,21 +3,21 @@
   <arg name="child_imu_topic" default="/imu_child/data" />
   <arg name="materialize_urdf" default="true" />
 
-  <node pkg="probtf_core" type="sensor_mount_tf_node.py" name="sensor_mount_tf" output="screen">
+  <node pkg="probtf_imu_demo" type="sensor_mount_tf_node.py" name="sensor_mount_tf" output="screen">
     <param name="config_file" value="$(find probtf_imu_demo)/config/sensor_mounts.yaml" />
   </node>
 
-  <node pkg="probtf_core" type="imu_kinematics_node.py" name="parent_imu_kinematics" output="screen">
+  <node pkg="probtf_imu_demo" type="imu_kinematics_node.py" name="parent_imu_kinematics" output="screen">
     <param name="frame_id" value="imu_parent" />
     <remap from="~imu" to="$(arg parent_imu_topic)" />
   </node>
 
-  <node pkg="probtf_core" type="imu_kinematics_node.py" name="child_imu_kinematics" output="screen">
+  <node pkg="probtf_imu_demo" type="imu_kinematics_node.py" name="child_imu_kinematics" output="screen">
     <param name="frame_id" value="imu_child" />
     <remap from="~imu" to="$(arg child_imu_topic)" />
   </node>
 
-  <node pkg="probtf_core" type="imu_relative_pose_node.py" name="imu_relative_pose" output="screen">
+  <node pkg="probtf_imu_demo" type="imu_relative_pose_node.py" name="imu_relative_pose" output="screen">
     <param name="parent_frame_id" value="imu_parent" />
     <param name="child_frame_id" value="imu_child" />
     <remap from="~parent_kinematics" to="/parent_imu_kinematics/kinematics" />
@@ -26,7 +26,7 @@
 
   <node
     if="$(arg materialize_urdf)"
-    pkg="probtf_core"
+    pkg="probtf_imu_demo"
     type="symbolic_urdf_materializer_node.py"
     name="symbolic_urdf_materializer"
     output="screen">

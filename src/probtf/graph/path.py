@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -14,6 +15,7 @@ class PathExpression:
     target_frame: str
     resolved_stamp: float
     edge_views: Tuple[EdgeView, ...]
+    diagnostics: Tuple[str, ...] = ()
 
     def __post_init__(self):
         views = tuple(self.edge_views)
@@ -21,8 +23,12 @@ class PathExpression:
             raise TypeError("edge_views must contain only EdgeView objects.")
         object.__setattr__(self, "source_frame", frame_id(self.source_frame, "source_frame"))
         object.__setattr__(self, "target_frame", frame_id(self.target_frame, "target_frame"))
-        object.__setattr__(self, "resolved_stamp", float(self.resolved_stamp))
+        stamp = float(self.resolved_stamp)
+        if not math.isfinite(stamp) or stamp < 0.0:
+            raise ValueError("resolved_stamp must be finite and non-negative.")
+        object.__setattr__(self, "resolved_stamp", stamp)
         object.__setattr__(self, "edge_views", views)
+        object.__setattr__(self, "diagnostics", tuple(str(item) for item in self.diagnostics))
 
     def __iter__(self):
         return iter(self.edge_views)
@@ -36,24 +42,33 @@ class PathExpression:
             self.source_frame,
             self.resolved_stamp,
             tuple(view.inverse() for view in reversed(self.edge_views)),
+            tuple(reversed(self.diagnostics)),
         )
 
     def reduce_adjacent_inverses(self):
         stack = []
-        for view in self.edge_views:
+        diagnostic_stack = []
+        aligned_diagnostics = len(self.diagnostics) == len(self.edge_views)
+        for index, view in enumerate(self.edge_views):
             if (
                 stack
                 and stack[-1].edge_id == view.edge_id
                 and stack[-1].direction is view.direction.inverse()
+                and stack[-1].sample_stamp == view.sample_stamp
             ):
                 stack.pop()
+                if aligned_diagnostics:
+                    diagnostic_stack.pop()
             else:
                 stack.append(view)
+                if aligned_diagnostics:
+                    diagnostic_stack.append(self.diagnostics[index])
         return PathExpression(
             self.source_frame,
             self.target_frame,
             self.resolved_stamp,
             tuple(stack),
+            tuple(diagnostic_stack) if aligned_diagnostics else self.diagnostics,
         )
 
     def repeated_edge_ids(self):
@@ -69,4 +84,3 @@ class PathExpression:
         repeated = self.repeated_edge_ids()
         if repeated:
             raise DependencyUnresolvedError(repeated)
-

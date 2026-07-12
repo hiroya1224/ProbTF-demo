@@ -1,0 +1,10 @@
+std_msgs/Header header
+string solver_name
+string grasp_id
+float64[] theta_solution
+float64 total_cost
+float64 position_cost
+float64 orientation_cost
+float64 motion_cost
+float64 joint_limit_cost
+bool success

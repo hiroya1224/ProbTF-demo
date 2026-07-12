@@ -1,0 +1,6 @@
+string grasp_id
+geometry_msgs/Vector3 object_to_grasp_position
+geometry_msgs/Quaternion object_to_grasp_orientation
+geometry_msgs/Vector3 approach_axis
+geometry_msgs/Vector3 finger_axis
+float64 weight

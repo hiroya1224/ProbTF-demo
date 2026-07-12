@@ -1,0 +1,299 @@
+import math
+import os
+import sys
+
+import numpy as np
+
+
+DEFAULT_BINGHAM_SOURCE_DIR = os.environ.get("BINGHAM_SOURCE_DIR", "/home/leus/BinghamNLL/src")
+if os.path.isdir(DEFAULT_BINGHAM_SOURCE_DIR) and DEFAULT_BINGHAM_SOURCE_DIR not in sys.path:
+    sys.path.insert(0, DEFAULT_BINGHAM_SOURCE_DIR)
+
+try:
+    import quaternion
+    from geometry_msgs.msg import Quaternion, Vector3
+    from probik_demo.msg import BinghamDistribution, ProbabilisticTF
+    from bingham.distribution import BinghamDistribution as BinghamDistributionImpl
+except ImportError as exc:
+    raise ImportError(
+        "probik_demo requires geometry_msgs, numpy-quaternion, and the local BinghamNLL source. "
+        "Set BINGHAM_SOURCE_DIR or add /home/leus/BinghamNLL/src to PYTHONPATH."
+    ) from exc
+
+
+def normalize_wxyz(quat_wxyz):
+    quat = np.asarray(quat_wxyz, dtype=float)
+    norm = np.linalg.norm(quat)
+    if norm == 0.0:
+        raise ValueError("Quaternion must be non-zero.")
+    return quat / norm
+
+
+def quaternion_from_rpy(roll, pitch, yaw):
+    cr = math.cos(roll * 0.5)
+    sr = math.sin(roll * 0.5)
+    cp = math.cos(pitch * 0.5)
+    sp = math.sin(pitch * 0.5)
+    cy = math.cos(yaw * 0.5)
+    sy = math.sin(yaw * 0.5)
+    return normalize_wxyz(
+        [
+            cr * cp * cy + sr * sp * sy,
+            sr * cp * cy - cr * sp * sy,
+            cr * sp * cy + sr * cp * sy,
+            cr * cp * sy - sr * sp * cy,
+        ]
+    )
+
+
+def quaternion_from_axis_angle(axis_xyz, angle_rad):
+    axis = np.asarray(axis_xyz, dtype=float)
+    axis_norm = np.linalg.norm(axis)
+    if axis_norm == 0.0:
+        raise ValueError("Axis must be non-zero.")
+    axis = axis / axis_norm
+    half_angle = 0.5 * angle_rad
+    return normalize_wxyz(
+        [
+            math.cos(half_angle),
+            axis[0] * math.sin(half_angle),
+            axis[1] * math.sin(half_angle),
+            axis[2] * math.sin(half_angle),
+        ]
+    )
+
+
+def quaternion_multiply_wxyz(lhs_wxyz, rhs_wxyz):
+    lw, lx, ly, lz = normalize_wxyz(lhs_wxyz)
+    rw, rx, ry, rz = normalize_wxyz(rhs_wxyz)
+    return normalize_wxyz(
+        [
+            lw * rw - lx * rx - ly * ry - lz * rz,
+            lw * rx + lx * rw + ly * rz - lz * ry,
+            lw * ry - lx * rz + ly * rw + lz * rx,
+            lw * rz + lx * ry - ly * rx + lz * rw,
+        ]
+    )
+
+
+def quaternion_right_matrix(rhs_wxyz):
+    rw, rx, ry, rz = normalize_wxyz(rhs_wxyz)
+    return np.array(
+        [
+            [rw, -rx, -ry, -rz],
+            [rx, rw, rz, -ry],
+            [ry, -rz, rw, rx],
+            [rz, ry, -rx, rw],
+        ],
+        dtype=float,
+    )
+
+
+def quaternion_left_matrix(lhs_wxyz):
+    lw, lx, ly, lz = normalize_wxyz(lhs_wxyz)
+    return np.array(
+        [
+            [lw, -lx, -ly, -lz],
+            [lx, lw, -lz, ly],
+            [ly, lz, lw, -lx],
+            [lz, -ly, lx, lw],
+        ],
+        dtype=float,
+    )
+
+
+def quaternion_from_rotation_matrix(rotation_matrix):
+    quat = quaternion.from_rotation_matrix(np.asarray(rotation_matrix, dtype=float))
+    return normalize_wxyz(quaternion.as_float_array(quat))
+
+
+def rotation_matrix_from_quaternion(quat_value):
+    if isinstance(quat_value, np.ndarray) or isinstance(quat_value, list) or isinstance(quat_value, tuple):
+        quat_value = quaternion.as_quat_array(normalize_wxyz(quat_value))
+    return quaternion.as_rotation_matrix(quat_value)
+
+
+def orthonormal_columns_from_mode(mode_wxyz, preferred_tangent=None):
+    mode = normalize_wxyz(mode_wxyz)
+    basis = []
+    if preferred_tangent is not None:
+        tangent = np.asarray(preferred_tangent, dtype=float)
+        tangent -= np.dot(tangent, mode) * mode
+        tangent_norm = np.linalg.norm(tangent)
+        if tangent_norm > 1e-8:
+            basis.append(tangent / tangent_norm)
+    for candidate in np.eye(4):
+        work = candidate.copy()
+        work -= np.dot(work, mode) * mode
+        for vector in basis:
+            work -= np.dot(work, vector) * vector
+        norm = np.linalg.norm(work)
+        if norm > 1e-8:
+            basis.append(work / norm)
+        if len(basis) == 3:
+            break
+    if len(basis) != 3:
+        raise ValueError("Could not create a full quaternion basis from the requested mode.")
+    basis.append(mode)
+    return np.column_stack(basis)
+
+
+def quaternion_from_approach_and_finger_axes(approach_axis_xyz, finger_axis_xyz):
+    x_axis = np.asarray(approach_axis_xyz, dtype=float)
+    z_axis = np.asarray(finger_axis_xyz, dtype=float)
+
+    x_norm = np.linalg.norm(x_axis)
+    z_norm = np.linalg.norm(z_axis)
+    if x_norm == 0.0 or z_norm == 0.0:
+        raise ValueError("Approach axis and finger axis must both be non-zero.")
+
+    x_axis = x_axis / x_norm
+    z_axis = z_axis / z_norm
+    z_axis = z_axis - np.dot(z_axis, x_axis) * x_axis
+    z_norm = np.linalg.norm(z_axis)
+    if z_norm < 1e-8:
+        raise ValueError("Approach axis and finger axis must not be parallel.")
+    z_axis = z_axis / z_norm
+
+    y_axis = np.cross(z_axis, x_axis)
+    y_axis = y_axis / np.linalg.norm(y_axis)
+    z_axis = np.cross(x_axis, y_axis)
+    z_axis = z_axis / np.linalg.norm(z_axis)
+
+    rotation_matrix = np.column_stack([x_axis, y_axis, z_axis])
+    return quaternion_from_rotation_matrix(rotation_matrix)
+
+
+def demo_bingham_matrix(mode_wxyz, concentrations):
+    if len(concentrations) != 3:
+        raise ValueError("Expected three concentration values.")
+    mode = normalize_wxyz(mode_wxyz)
+    eigenvectors = orthonormal_columns_from_mode(mode)
+    eigenvalues = np.array(
+        [-abs(concentrations[0]), -abs(concentrations[1]), -abs(concentrations[2]), 0.0],
+        dtype=float,
+    )
+    return eigenvectors @ np.diag(eigenvalues) @ eigenvectors.T
+
+
+def axially_symmetric_bingham_matrix(mode_wxyz, symmetry_axis_body, concentrations):
+    if len(concentrations) != 3:
+        raise ValueError("Expected three concentration values.")
+    epsilon = 1e-4
+    positive = quaternion_multiply_wxyz(mode_wxyz, quaternion_from_axis_angle(symmetry_axis_body, epsilon))
+    negative = quaternion_multiply_wxyz(mode_wxyz, quaternion_from_axis_angle(symmetry_axis_body, -epsilon))
+    symmetry_tangent = positive - negative
+    eigenvectors = orthonormal_columns_from_mode(mode_wxyz, preferred_tangent=symmetry_tangent)
+    eigenvectors = np.column_stack(
+        [
+            eigenvectors[:, 1],
+            eigenvectors[:, 2],
+            eigenvectors[:, 0],
+            eigenvectors[:, 3],
+        ]
+    )
+    eigenvalues = np.array(
+        [-abs(concentrations[0]), -abs(concentrations[1]), -abs(concentrations[2]), 0.0],
+        dtype=float,
+    )
+    return eigenvectors @ np.diag(eigenvalues) @ eigenvectors.T
+
+
+def symmetric_matrix_from_flat(values, size):
+    matrix = np.asarray(values, dtype=float).reshape(size, size)
+    return 0.5 * (matrix + matrix.T)
+
+
+def regularized_inverse_covariance(covariance_matrix, epsilon=1e-6):
+    covariance_matrix = symmetric_matrix_from_flat(covariance_matrix, 3)
+    return np.linalg.inv(covariance_matrix + epsilon * np.eye(3, dtype=float))
+
+
+def vector3_from_msg(msg):
+    return np.array([msg.x, msg.y, msg.z], dtype=float)
+
+
+def vector3_msg_from_array(values_xyz):
+    vector = Vector3()
+    vector.x = float(values_xyz[0])
+    vector.y = float(values_xyz[1])
+    vector.z = float(values_xyz[2])
+    return vector
+
+
+def quaternion_msg_from_wxyz(quat_wxyz):
+    quat = normalize_wxyz(quat_wxyz)
+    message = Quaternion()
+    message.w = float(quat[0])
+    message.x = float(quat[1])
+    message.y = float(quat[2])
+    message.z = float(quat[3])
+    return message
+
+
+def quaternion_wxyz_from_msg(message):
+    return normalize_wxyz([message.w, message.x, message.y, message.z])
+
+
+def quaternion_array_to_wxyz(quat_value):
+    return normalize_wxyz(quaternion.as_float_array(quat_value))
+
+
+def position_covariance_from_msg(message):
+    return symmetric_matrix_from_flat(message.position_covariance, 3)
+
+
+def make_bingham_distribution(matrix_values):
+    if hasattr(matrix_values, "matrix"):
+        matrix_values = matrix_values.matrix
+    return BinghamDistributionImpl(A=symmetric_matrix_from_flat(matrix_values, 4))
+
+
+def ptf_mode_quaternion_wxyz(message):
+    mode_candidate = np.array(
+        [
+            message.orientation_mode.w,
+            message.orientation_mode.x,
+            message.orientation_mode.y,
+            message.orientation_mode.z,
+        ],
+        dtype=float,
+    )
+    if np.linalg.norm(mode_candidate) > 1e-8:
+        return normalize_wxyz(mode_candidate)
+    return quaternion_array_to_wxyz(make_bingham_distribution(message.orientation_bingham).mode())
+
+
+def make_probabilistic_tf_message(
+    parent_frame_id,
+    child_frame_id,
+    position_mean_xyz,
+    position_covariance,
+    orientation_bingham_matrix,
+    orientation_mode_wxyz,
+    stamp=None,
+    approximation_type="gaussian_position_bingham_orientation",
+):
+    message = ProbabilisticTF()
+    if stamp is not None:
+        message.header.stamp = stamp
+    message.header.frame_id = parent_frame_id
+    message.parent_frame_id = parent_frame_id
+    message.child_frame_id = child_frame_id
+    message.position_mean = vector3_msg_from_array(position_mean_xyz)
+    message.position_covariance = np.asarray(position_covariance, dtype=float).reshape(-1).tolist()
+    message.orientation_bingham = BinghamDistribution()
+    message.orientation_bingham.matrix = np.asarray(orientation_bingham_matrix, dtype=float).reshape(-1).tolist()
+    message.orientation_mode = quaternion_msg_from_wxyz(orientation_mode_wxyz)
+    message.approximation_type = approximation_type
+    return message
+
+
+def pushforward_bingham_right(matrix_values, rhs_wxyz):
+    matrix = symmetric_matrix_from_flat(matrix_values, 4)
+    right_matrix = quaternion_right_matrix(rhs_wxyz)
+    return right_matrix @ matrix @ right_matrix.T
+
+
+def pack_rgb(r, g, b):
+    return (int(r) << 16) | (int(g) << 8) | int(b)

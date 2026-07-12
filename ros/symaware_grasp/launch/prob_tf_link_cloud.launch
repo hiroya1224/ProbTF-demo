@@ -1,0 +1,29 @@
+<launch>
+  <arg name="rviz" default="true"/>
+  <arg name="config_path" default="$(find probik_demo)/configs/simple_six_dof_prob_tf.yaml"/>
+  <arg name="rviz_config" default="$(find probik_demo)/rviz/prob_tf_link_cloud.rviz"/>
+
+  <env name="BINGHAM_SOURCE_DIR" value="/home/leus/BinghamNLL/src"/>
+  <env name="PYTHONPATH" value="/home/leus/BinghamNLL/src:$(optenv PYTHONPATH)"/>
+
+  <param name="robot_description" textfile="$(find probik_demo)/urdf/simple_six_dof_arm.urdf"/>
+
+  <node pkg="probik_demo" type="arm_joint_state_controller.py" name="prob_tf_robot_controller" output="screen">
+    <rosparam param="initial_positions">[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+    <param name="publish_rate" value="10.0"/>
+    <rosparam param="max_joint_speed">[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
+  </node>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="prob_tf_robot_state_publisher"/>
+
+  <node pkg="probik_demo" type="prob_tf_link_cloud_node.py" name="prob_tf_link_cloud_node" output="screen">
+    <param name="config_path" value="$(arg config_path)"/>
+    <param name="axis_length" value="0.08"/>
+    <param name="sample_count" value="80"/>
+    <param name="publish_rate" value="10"/>
+    <param name="frame_id" value="base_link"/>
+    <param name="seed" value="29"/>
+  </node>
+
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="prob_tf_rviz" args="-d $(arg rviz_config)"/>
+</launch>

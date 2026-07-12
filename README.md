@@ -53,6 +53,7 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 | What to change | File | Parameter |
 | --- | --- | --- |
 | Command low-pass delay from `ref` to `cmd` | `deflecomp_ros/config/controller.yaml` | `theta_cmd_tau` |
+| Minimum-correction L1 command regularization | `deflecomp_ros/config/controller.yaml` | `theta_cmd_l1_regularization`, `theta_cmd_l1_regularization_weight` |
 | Compensator spring model | `deflecomp_ros/config/controller.yaml` | `spring_model` |
 | Compensator equilibrium refinement | `deflecomp_ros/config/controller.yaml` | `equilibrium_refine`, `equilibrium_refine_maxiter`, `equilibrium_refine_tol` |
 | Simulator spring model | `deflecomp_sim/config/sim_params.yaml` | `spring_model` |

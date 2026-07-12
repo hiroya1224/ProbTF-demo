@@ -17,6 +17,11 @@ class FakeRobot:
 
 
 class FakeSpring:
+    def torque(self, theta, theta_cmd, kp_vec):
+        return np.asarray(kp_vec, dtype=float) * (
+            np.asarray(theta, dtype=float) - np.asarray(theta_cmd, dtype=float)
+        )
+
     def theta_cmd_from_theta_ref(self, tau_gravity, theta_ref, kp_vec):
         return np.asarray(theta_ref, dtype=float) + np.asarray(tau_gravity, dtype=float) / np.asarray(kp_vec, dtype=float)
 
@@ -346,6 +351,7 @@ class KExecSeparationTests(unittest.TestCase):
                 "kp_exec_tau": 1.0,
                 "max_log_kp_exec_step": 0.0,
                 "theta_cmd_tau": 10.0,
+                "theta_cmd_l1_regularization": False,
                 "project_unobservable_feedforward": False,
             },
         )
@@ -356,6 +362,56 @@ class KExecSeparationTests(unittest.TestCase):
         self.assertTrue(np.allclose(result.theta_eq_hat, np.array([1.0, 1.0]), atol=1e-8))
         self.assertFalse(np.allclose(result.theta_cmd, np.array([1.0, 1.0]), atol=1e-8))
         self.assertLess(result.debug["theta_cmd_equilibrium_refine_error_norm"], 1e-8)
+
+    def test_l1_command_regularization_reduces_reference_correction(self):
+        estimator = FakeStiffnessEstimator()
+        solver = FakeLoadedEquilibriumSolver()
+        comp = DeflectionCompensator(
+            robot=FakeRobot(),
+            spring_model=FakeSpring(),
+            stiffness_estimator=estimator,
+            equilibrium_solver=solver,
+            observation_builder=FakeObservationBuilder(),
+            config={
+                "kp_lim": (1.0, 500.0),
+                "kp_exec_tau": 1.0,
+                "max_log_kp_exec_step": 0.0,
+                "theta_cmd_tau": 0.0,
+                "theta_cmd_l1_regularization_weight": 0.25,
+                "project_unobservable_feedforward": False,
+            },
+        )
+
+        result = comp.step(theta_ref=np.array([0.0, 0.0], dtype=float), imu_observations=None, dt=0.1, stamp=0.0)
+
+        self.assertTrue(result.debug["theta_cmd_l1_regularization_enabled"])
+        self.assertTrue(np.allclose(result.theta_cmd, np.array([0.75, 0.75]), atol=1e-5))
+        self.assertTrue(np.allclose(result.theta_eq_hat, np.array([-0.25, -0.25]), atol=1e-5))
+
+    def test_l1_command_regularization_can_be_disabled(self):
+        estimator = FakeStiffnessEstimator()
+        solver = FakeLoadedEquilibriumSolver()
+        comp = DeflectionCompensator(
+            robot=FakeRobot(),
+            spring_model=FakeSpring(),
+            stiffness_estimator=estimator,
+            equilibrium_solver=solver,
+            observation_builder=FakeObservationBuilder(),
+            config={
+                "kp_lim": (1.0, 500.0),
+                "kp_exec_tau": 1.0,
+                "max_log_kp_exec_step": 0.0,
+                "theta_cmd_tau": 0.0,
+                "theta_cmd_l1_regularization": False,
+                "project_unobservable_feedforward": False,
+            },
+        )
+
+        result = comp.step(theta_ref=np.array([0.0, 0.0], dtype=float), imu_observations=None, dt=0.1, stamp=0.0)
+
+        self.assertFalse(result.debug["theta_cmd_l1_regularization_enabled"])
+        self.assertTrue(np.allclose(result.theta_cmd, np.array([1.0, 1.0]), atol=1e-8))
+        self.assertTrue(np.allclose(result.theta_eq_hat, np.array([0.0, 0.0]), atol=1e-8))
 
 
 if __name__ == "__main__":

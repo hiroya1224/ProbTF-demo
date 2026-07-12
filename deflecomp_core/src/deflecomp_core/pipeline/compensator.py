@@ -8,6 +8,7 @@ import time
 from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
+from scipy.optimize import minimize
 
 from deflecomp_core.control.feedforward import CommandGenerator, lowpass_theta_cmd
 from deflecomp_core.estimator.delay_rls import CommandDelayRLS
@@ -635,6 +636,7 @@ class DeflectionCompensator:
         theta_cmd: np.ndarray,
         theta_eq: np.ndarray,
         kp_vec: np.ndarray,
+        debug: Optional[Dict[str, Any]] = None,
     ) -> np.ndarray:
         err = np.asarray(theta_ref, dtype=float) - np.asarray(theta_eq, dtype=float)
         n = err.size
@@ -652,9 +654,210 @@ class DeflectionCompensator:
                 eq_cmd_jac = np.linalg.solve(j_q, j_cmd)
             except np.linalg.LinAlgError:
                 eq_cmd_jac = np.linalg.pinv(j_q, rcond=1e-12) @ j_cmd
-            return np.linalg.pinv(eq_cmd_jac, rcond=1e-12) @ err
+            delta_l2 = np.linalg.pinv(eq_cmd_jac, rcond=1e-12) @ err
+            if not self._theta_cmd_l1_regularization_enabled():
+                return delta_l2
+            return self._theta_cmd_l1_regularized_delta(
+                eq_cmd_jac=eq_cmd_jac,
+                err=err,
+                theta_cmd=theta_cmd,
+                theta_ref=theta_ref,
+                delta_seed=delta_l2,
+                debug=debug,
+            )
         except Exception:
             return err
+
+    def _theta_cmd_l1_regularization_enabled(self) -> bool:
+        return _as_bool(self.config.get("theta_cmd_l1_regularization", True))
+
+    def _theta_cmd_l1_regularization_weight(self) -> float:
+        return max(0.0, float(self.config.get("theta_cmd_l1_regularization_weight", 1e-4)))
+
+    def _theta_cmd_l1_regularization_epsilon(self) -> float:
+        return max(1e-12, float(self.config.get("theta_cmd_l1_regularization_epsilon", 1e-6)))
+
+    def _theta_cmd_l1_regularization_maxiter(self) -> int:
+        return max(1, int(self.config.get("theta_cmd_l1_regularization_maxiter", 50)))
+
+    def _theta_cmd_l1_regularized_delta(
+        self,
+        eq_cmd_jac: np.ndarray,
+        err: np.ndarray,
+        theta_cmd: np.ndarray,
+        theta_ref: np.ndarray,
+        delta_seed: np.ndarray,
+        debug: Optional[Dict[str, Any]] = None,
+    ) -> np.ndarray:
+        weight = self._theta_cmd_l1_regularization_weight()
+        if weight <= 0.0:
+            return np.asarray(delta_seed, dtype=float)
+
+        eq_cmd_jac = np.asarray(eq_cmd_jac, dtype=float)
+        err = np.asarray(err, dtype=float)
+        theta_cmd = np.asarray(theta_cmd, dtype=float)
+        theta_ref = np.asarray(theta_ref, dtype=float)
+        delta_seed = np.asarray(delta_seed, dtype=float)
+        if (
+            eq_cmd_jac.shape != (err.size, err.size)
+            or theta_cmd.shape != err.shape
+            or theta_ref.shape != err.shape
+            or delta_seed.shape != err.shape
+            or not np.all(np.isfinite(eq_cmd_jac))
+        ):
+            return delta_seed
+
+        eps = self._theta_cmd_l1_regularization_epsilon()
+
+        def objective(delta: np.ndarray):
+            delta = np.asarray(delta, dtype=float)
+            residual = eq_cmd_jac @ delta - err
+            correction = theta_cmd + delta - theta_ref
+            smooth_abs = np.sqrt(correction * correction + eps * eps)
+            value = 0.5 * float(np.dot(residual, residual))
+            value += weight * float(np.sum(smooth_abs - eps))
+            grad = eq_cmd_jac.T @ residual + weight * correction / smooth_abs
+            return value, grad
+
+        seed_value, _ = objective(delta_seed)
+        zero_delta = np.zeros_like(delta_seed)
+        zero_value, _ = objective(zero_delta)
+        x0 = zero_delta if zero_value < seed_value else delta_seed
+        baseline_delta = x0
+        baseline_value = min(seed_value, zero_value)
+
+        try:
+            res = minimize(
+                fun=objective,
+                x0=x0,
+                jac=True,
+                method="L-BFGS-B",
+                options={
+                    "maxiter": self._theta_cmd_l1_regularization_maxiter(),
+                    "ftol": 1e-12,
+                    "gtol": 1e-10,
+                },
+            )
+        except Exception as exc:
+            if debug is not None:
+                debug["theta_cmd_l1_regularization_success"] = False
+                debug["theta_cmd_l1_regularization_reason"] = str(exc)
+            return baseline_delta
+
+        delta_opt = np.asarray(res.x, dtype=float)
+        opt_value, _ = objective(delta_opt)
+        if np.all(np.isfinite(delta_opt)) and opt_value <= baseline_value + 1e-12:
+            if debug is not None:
+                debug["theta_cmd_l1_regularization_success"] = bool(res.success)
+                debug["theta_cmd_l1_regularization_objective"] = float(opt_value)
+            return delta_opt
+
+        if debug is not None:
+            debug["theta_cmd_l1_regularization_success"] = False
+            debug["theta_cmd_l1_regularization_reason"] = "no_objective_improvement"
+        return baseline_delta
+
+    def _theta_cmd_from_theta_ref(
+        self,
+        tau_gravity: np.ndarray,
+        theta_ref: np.ndarray,
+        kp_vec: np.ndarray,
+        debug: Dict[str, Any],
+    ) -> np.ndarray:
+        theta_cmd_direct = self.spring_model.theta_cmd_from_theta_ref(
+            tau_gravity=tau_gravity,
+            theta_ref=theta_ref,
+            kp_vec=kp_vec,
+        )
+        enabled = self._theta_cmd_l1_regularization_enabled()
+        weight = self._theta_cmd_l1_regularization_weight()
+        debug["theta_cmd_l1_regularization_enabled"] = bool(enabled and weight > 0.0)
+        debug["theta_cmd_l1_regularization_weight"] = float(weight)
+        if not enabled or weight <= 0.0:
+            return theta_cmd_direct
+
+        return self._theta_cmd_l1_regularized_feedforward(
+            tau_gravity=tau_gravity,
+            theta_ref=theta_ref,
+            kp_vec=kp_vec,
+            theta_cmd_seed=theta_cmd_direct,
+            debug=debug,
+        )
+
+    def _theta_cmd_l1_regularized_feedforward(
+        self,
+        tau_gravity: np.ndarray,
+        theta_ref: np.ndarray,
+        kp_vec: np.ndarray,
+        theta_cmd_seed: np.ndarray,
+        debug: Dict[str, Any],
+    ) -> np.ndarray:
+        tau_gravity = np.asarray(tau_gravity, dtype=float)
+        theta_ref = np.asarray(theta_ref, dtype=float)
+        kp_vec = np.asarray(kp_vec, dtype=float)
+        theta_cmd_seed = np.asarray(theta_cmd_seed, dtype=float)
+        if tau_gravity.shape != theta_ref.shape or kp_vec.shape != theta_ref.shape:
+            return theta_cmd_seed
+
+        scale = np.maximum(np.abs(kp_vec), 1e-12)
+        weight = self._theta_cmd_l1_regularization_weight()
+        eps = self._theta_cmd_l1_regularization_epsilon()
+
+        def objective(theta_cmd: np.ndarray):
+            theta_cmd = np.asarray(theta_cmd, dtype=float)
+            torque = np.asarray(
+                self.spring_model.torque(theta_ref, theta_cmd, kp_vec),
+                dtype=float,
+            )
+            residual = (tau_gravity + torque) / scale
+            correction = theta_cmd - theta_ref
+            smooth_abs = np.sqrt(correction * correction + eps * eps)
+            value = 0.5 * float(np.dot(residual, residual))
+            value += weight * float(np.sum(smooth_abs - eps))
+
+            spring_k = np.asarray(
+                self.spring_model.stiffness_diag(theta_ref, theta_cmd, kp_vec),
+                dtype=float,
+            )
+            if spring_k.shape != theta_ref.shape:
+                raise ValueError("spring stiffness shape does not match theta_ref")
+            grad_residual = -(spring_k / scale) * residual
+            grad_l1 = weight * correction / smooth_abs
+            return value, grad_residual + grad_l1
+
+        baseline = theta_cmd_seed.copy()
+        try:
+            seed_value, _ = objective(theta_cmd_seed)
+            ref_value, _ = objective(theta_ref)
+            x0 = theta_ref.copy() if ref_value < seed_value else theta_cmd_seed.copy()
+            baseline = x0.copy()
+            baseline_value = min(seed_value, ref_value)
+            res = minimize(
+                fun=objective,
+                x0=x0,
+                jac=True,
+                method="L-BFGS-B",
+                options={
+                    "maxiter": self._theta_cmd_l1_regularization_maxiter(),
+                    "ftol": 1e-12,
+                    "gtol": 1e-10,
+                },
+            )
+        except Exception as exc:
+            debug["theta_cmd_l1_feedforward_success"] = False
+            debug["theta_cmd_l1_feedforward_reason"] = str(exc)
+            return baseline
+
+        theta_cmd_opt = np.asarray(res.x, dtype=float)
+        opt_value, _ = objective(theta_cmd_opt)
+        if np.all(np.isfinite(theta_cmd_opt)) and opt_value <= baseline_value + 1e-12:
+            debug["theta_cmd_l1_feedforward_success"] = bool(res.success)
+            debug["theta_cmd_l1_feedforward_objective"] = float(opt_value)
+            return theta_cmd_opt
+
+        debug["theta_cmd_l1_feedforward_success"] = False
+        debug["theta_cmd_l1_feedforward_reason"] = "no_objective_improvement"
+        return baseline
 
     def _refine_theta_cmd_for_equilibrium_ref(
         self,
@@ -687,8 +890,11 @@ class DeflectionCompensator:
                 theta_cmd=theta_cmd,
                 theta_eq=theta_eq,
                 kp_vec=kp_vec,
+                debug=debug,
             )
             if not np.all(np.isfinite(delta_cmd)):
+                break
+            if float(np.linalg.norm(delta_cmd)) <= 1e-12:
                 break
             if max_delta > 0.0:
                 delta_cmd = np.clip(delta_cmd, -max_delta, max_delta)
@@ -780,10 +986,11 @@ class DeflectionCompensator:
         kp_exec_target = self.kp_exec_target
         theta_gravity = self._theta_ref_for_gravity(theta_ref, imu_observations, debug)
         tau_gravity = self.robot.tau_gravity(theta_gravity)
-        theta_cmd_raw = self.spring_model.theta_cmd_from_theta_ref(
+        theta_cmd_raw = self._theta_cmd_from_theta_ref(
             tau_gravity=tau_gravity,
             theta_ref=theta_ref,
             kp_vec=kp_exec,
+            debug=debug,
         )
 
         if self.last_theta_cmd is not None:

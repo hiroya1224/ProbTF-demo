@@ -143,6 +143,8 @@ class DeflecompNode:
         log_kp_process_noise_var: float,
         spring_model_name: str,
         theta_cmd_tau: float,
+        theta_cmd_l1_regularization: bool,
+        theta_cmd_l1_regularization_weight: float,
         equilibrium_refine: bool,
         equilibrium_refine_maxiter: int,
         equilibrium_refine_tol: float,
@@ -221,6 +223,8 @@ class DeflecompNode:
             observation_builder=observation_builder,
             config={
                 "theta_cmd_tau": float(theta_cmd_tau),
+                "theta_cmd_l1_regularization": bool(theta_cmd_l1_regularization),
+                "theta_cmd_l1_regularization_weight": float(theta_cmd_l1_regularization_weight),
                 "kp_lim": tuple(float(v) for v in kp_lim),
                 "update_stiffness": bool(update_stiffness),
                 "project_unobservable_feedforward": bool(project_unobservable_feedforward),
@@ -433,6 +437,8 @@ def main() -> None:
     log_kp_process_noise_var = float(rospy.get_param("~log_kp_process_noise_var", 1e-8))
     spring_model_name = rospy.get_param("~spring_model", "auto")
     theta_cmd_tau = float(rospy.get_param("~theta_cmd_tau", 0.2))
+    theta_cmd_l1_regularization = parse_bool(rospy.get_param("~theta_cmd_l1_regularization", True))
+    theta_cmd_l1_regularization_weight = float(rospy.get_param("~theta_cmd_l1_regularization_weight", 1e-4))
     equilibrium_refine = parse_bool(rospy.get_param("~equilibrium_refine", True))
     equilibrium_refine_maxiter = int(rospy.get_param("~equilibrium_refine_maxiter", 40))
     equilibrium_refine_tol = float(rospy.get_param("~equilibrium_refine_tol", 1e-12))
@@ -462,6 +468,8 @@ def main() -> None:
         log_kp_process_noise_var=log_kp_process_noise_var,
         spring_model_name=spring_model_name,
         theta_cmd_tau=theta_cmd_tau,
+        theta_cmd_l1_regularization=theta_cmd_l1_regularization,
+        theta_cmd_l1_regularization_weight=theta_cmd_l1_regularization_weight,
         equilibrium_refine=equilibrium_refine,
         equilibrium_refine_maxiter=equilibrium_refine_maxiter,
         equilibrium_refine_tol=equilibrium_refine_tol,

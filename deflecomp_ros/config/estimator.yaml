@@ -1,4 +1,4 @@
-A_param: 100.0
+A_param: 5000.0
 update_stiffness: true
 kp_min: 1.0
 kp_max: 500.0

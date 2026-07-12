@@ -87,9 +87,23 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
   conditional meanが `1e-12` 以内で一致
 - composition tests: `2 passed`
 
+### 4.4 symaware YAML の native v2 loader
+
+- demo arm YAMLから `TransformDistributionStamped` の static edgeを直接構築する loaderを追加した。
+- revolute joint は finite `BinghamOrientation`、fixed joint は Dirac orientationとして表す。
+- translation、component weight、representative、authority、provenanceを v2 recordに格納する。
+- frame一覧とedge topologyの一致を検証し、旧 treeを経由せず `ProbTfGraph` を構築する。
+
+検証:
+
+- 7 edgeのorientation kind / static flag / couplingを検査
+- `link_3 -> base_link` の native lookup pathとpoint moment評価を検査
+- v2 config tests: `2 passed`
+
 ## 5. コミット
 
 | commit | 内容 |
 | --- | --- |
 | `db91ed4` | Python sourceを所有 catkin package 内へ正規配置 |
 | `89f3811` | Bingham 正規化積分を core 内へ収容 |
+| `61fb198` | deterministic right compositionで v2 couplingを保持 |

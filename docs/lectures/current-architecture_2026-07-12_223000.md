@@ -22,10 +22,26 @@ repository に収めた統合 project である。
 3. `ros/core`: ROS message と、ProbTF v2/TF を接続する transport boundary
 4. `src/symaware_grasp`、`src/deflecomp_*` と `ros/examples`: application と demo
 
+この文書での `v1` / `v2` は ROS の version ではなく、ProbTF-demo 内の
+probabilistic transform 表現の世代を指す。
+
+- `v1`: 既存 demo / application が使っている legacy 表現。主な ROS message は
+  `ProbabilisticTF` / `ProbabilisticTFArray` で、位置 Gaussian と姿勢 Bingham を
+  独立な summary として持つ。
+- `v2`: 今回整理した foundation / graph / bridge 側の表現。主な ROS message は
+  `ProbabilisticTransformStamped` / `ProbabilisticTransformArray` で、component mixture、
+  rotation/translation coupling、provenance、approximation metadata を保持する。
+
+また、`共通 v2 bridge` は
+[`probtf_bridge_node.py`](../../ros/core/probtf_core/nodes/probtf_bridge_node.py) を指す。
+ここでの "generic" は「任意の demo topic を自動で拾う」という意味ではない。
+IMU、orientation、symaware grasp などの application 固有 topic に依存せず、
+`/probtf(_static)` と `/tf(_static)` の共通 transport boundary だけを扱う、という意味である。
+
 最も重要な現状は、**v2 foundation/bridge と producer demo の wire format がまだ
 一つに接続されていない**ことである。
 
-- generic bridge の `/probtf` と `/probtf_static` は v2
+- 共通 v2 bridge の `/probtf` と `/probtf_static` は v2
   `ProbabilisticTransformStamped/Array` を扱う。
 - two-IMU、orientation、symaware grasp の現在の node は、個別 topic に v1
   `ProbabilisticTF/Array` を publish する。
@@ -98,7 +114,7 @@ foundation から producer、ROS、application への逆依存は禁止されて
 
 - root `src/` package が `rospy`、`tf2_ros`、ROS message package を import しない。
 - `probtf` が `probtf_estimators` や example を import しない。
-- generic `probtf_ros` bridge が estimator を import しない。
+- 共通 `probtf_ros` bridge が estimator を import しない。
 - catkin `probtf_core` が root `probtf`、`probtf_estimators`、`bingham` を
   再 package 化しない。
 - core ROS package が bridge node だけを install し、producer node を所有しない。
@@ -302,6 +318,9 @@ parameter、timer、`wait_for_message` で行う。
 
 ### 5.2 Message 世代
 
+ここでの `v1` / `v2` は ProbTF message schema の世代名である。ROS 1 / ROS 2
+の区別ではない。
+
 | 系統 | Message | 用途 |
 | --- | --- | --- |
 | v2 foundation wire | `BinghamOrientation`, `ConditionalGaussianTranslation`, `ProbabilisticTransformComponent`, `ProbabilisticTransformStamped`, `ProbabilisticTransformArray`, `ApproximationInfo`, `Provenance` | joint component mixture、coupling、metadata を保持 |
@@ -316,6 +335,8 @@ approximation を一つの record に含む。
 
 [`probtf_bridge_node.py`](../../ros/core/probtf_core/nodes/probtf_bridge_node.py) は process 内に
 `ProbTfGraph`、`ProbTfListener`、`ProbTfBroadcaster`、`ProbTfTfBridge` を持つ。
+本書ではこれを `共通 v2 bridge` と呼ぶ。application 固有の producer topic を
+subscribe する node ではなく、v2 `/probtf(_static)` と TF の境界を扱う node である。
 
 ```text
 /tf, /tf_static
@@ -356,7 +377,9 @@ library には次の adapter がある。
 - `probtf.compatibility.legacy`: v1 domain object と v2 distribution/record
 - `probtf_ros.legacy_conversions`: v1 ROS message と v2 record
 
-しかし、これらを subscribe/publish する変換 node は存在しない。さらに
+しかし、これらを subscribe/publish する変換 node は存在しない。ここが、現在の
+各種 demo system と v2 `ProbTfGraph` / 共通 v2 bridge の間に残っている実行時の溝である。
+さらに
 `legacy_message_to_v2_record` は position または orientation が欠ける v1 message を
 zero-fill せず拒否する。このため orientation-only posterior は、そのままでは完全な v2
 transform record にならない。
@@ -585,7 +608,22 @@ feedback loop は end-to-end test されていない。
 | symaware | v1 visualization、grasp target、manual one-shot IK、legacy tree adapter | default launch 内の closed IK loop、v2 ROS transport |
 | deflecomp | 独立した estimation/control/simulation loop | ProbTF graph/topic との統合 |
 
-## 10. DOT graph の表示
+## 10. 現状 TODO
+
+各種 demo が使っている v1 system と、v2 `ProbTfGraph` / 共通 v2 bridge の溝を埋める
+には、少なくとも次の作業が残っている。
+
+| 優先度 | TODO | 説明 |
+| --- | --- | --- |
+| high | v1 topic から v2 `/probtf(_static)` へ流す runtime relay node を作る | `probtf_ros.legacy_conversions` は library として存在するが、現在は subscribe/publish する node がない。まず demo topic 名、parent/child frame、static/dynamic の扱いを parameter 化した relay が必要である。 |
+| high | orientation-only v1 出力の v2 化 policy を決める | `orientation_filter_node.py` などは orientation-only posterior を出す。v2 transform record は完全な transform として扱うため、translation を TF から補うのか、partial evidence として別経路にするのか、明示的に拒否し続けるのかを決める必要がある。 |
+| high | producer node の v2 直接 publish を追加する | two-IMU relative pose、orientation fusion、same-edge fusion が v2 `ProbabilisticTransformStamped` を直接 publish できれば、relay 依存を減らせる。 |
+| medium | symaware grasp の v2 transport 対応 | `object_prob_tf`、`grasp_target_ptfs`、`hand_prob_tf` は v1 message で流れている。v2 graph に入れるには message 変換、visualizer、IK 入力のどこを v2 化するかを決める必要がある。 |
+| medium | bridge 内 `ProbTfGraph` への query interface を設計する | 現在の bridge は transport と TF conversion までで、別 process が graph lookup する ROS service/action はない。必要なら lookup API の wire contract を追加する。 |
+| medium | ROS end-to-end test を追加する | 現在の test は ROS-free unit/boundary が中心で、launch 後の topic 接続、v1 relay、TF import/export loop、symaware one-shot IK は end-to-end で検証されていない。 |
+| low | deflecomp と ProbTF graph の統合方針を決める | deflecomp は現在独立した estimation/control/simulation loop であり、ProbTF との接点は `probtf.geometry` helper に限られる。統合するなら publish/subscribe する frame と不確かさの意味を決める。 |
+
+## 11. DOT graph の表示
 
 以下は同じ repository に保存した DOT を Graphviz で render した SVG である。図は、
 code/package layer と実際の runtime system を一枚で示す。

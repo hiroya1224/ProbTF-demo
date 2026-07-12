@@ -1,11 +1,75 @@
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
+import pinocchio as pin
 
 from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
 from deflecomp_core.model.spring import LinearSpringModel, SpringModel
 from deflecomp_core.observation.imu_observation import FrameImuObservation, ImuObservationBuilder
+from deflecomp_core.observation.imu_frame_config import ImuFrameConfig, quat_xyzw_from_matrix
 from deflecomp_core.robot.pinocchio_robot import RobotArm
+
+
+@dataclass(frozen=True)
+class ImuKinematicSample:
+    frame_id: str
+    orientation_xyzw: np.ndarray
+    angular_velocity: np.ndarray
+    linear_acceleration: np.ndarray
+
+
+def build_imu_kinematic_samples(
+    robot: RobotArm,
+    frame_configs: Sequence[ImuFrameConfig],
+    q: np.ndarray,
+    qd: np.ndarray,
+    qdd: np.ndarray,
+) -> List[ImuKinematicSample]:
+    configuration = np.asarray(q, dtype=float).reshape(robot.nv)
+    velocity = np.asarray(qd, dtype=float).reshape(robot.nv)
+    acceleration = np.asarray(qdd, dtype=float).reshape(robot.nv)
+    pin.forwardKinematics(robot.model, robot.data, configuration, velocity, acceleration)
+    pin.updateFramePlacements(robot.model, robot.data)
+
+    samples = []
+    gravity_world = robot.model.gravity.linear
+    for config in frame_configs:
+        frame_id = robot.get_frame_id(config.model_frame)
+        velocity_local = pin.getFrameVelocity(robot.model, robot.data, frame_id, pin.ReferenceFrame.LOCAL)
+        acceleration_local = pin.getFrameAcceleration(
+            robot.model,
+            robot.data,
+            frame_id,
+            pin.ReferenceFrame.LOCAL,
+        )
+        angular_velocity_local = np.asarray(velocity_local.angular, dtype=float).reshape(3)
+        angular_acceleration_local = np.asarray(acceleration_local.angular, dtype=float).reshape(3)
+        origin_acceleration_local = np.asarray(acceleration_local.linear, dtype=float).reshape(3)
+        offset_local = config.xyz.reshape(3)
+        point_acceleration_local = (
+            origin_acceleration_local
+            + np.cross(angular_acceleration_local, offset_local)
+            + np.cross(
+                angular_velocity_local,
+                np.cross(angular_velocity_local, offset_local),
+            )
+        )
+        rotation_world_model = robot.data.oMf[frame_id].rotation
+        rotation_world_imu = rotation_world_model @ config.R_model_imu
+        point_acceleration_imu = config.R_model_imu.T @ point_acceleration_local
+        angular_velocity_imu = config.R_model_imu.T @ angular_velocity_local
+        gravity_imu = rotation_world_imu.T @ gravity_world
+
+        samples.append(
+            ImuKinematicSample(
+                frame_id=config.frame_id,
+                orientation_xyzw=quat_xyzw_from_matrix(rotation_world_imu),
+                angular_velocity=angular_velocity_imu,
+                linear_acceleration=point_acceleration_imu - gravity_imu,
+            )
+        )
+    return samples
 
 
 class SyntheticObservationBuilder:

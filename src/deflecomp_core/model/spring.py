@@ -177,3 +177,16 @@ class JointTypeAwareSpringModel(SpringModel):
             kp_vec[mask],
         )
         return theta_cmd
+
+
+def spring_model_from_name(name: str, joint_types=None) -> SpringModel:
+    spring_name = str(name).strip().lower()
+    if spring_name == "auto":
+        if joint_types is None:
+            raise ValueError("joint_types are required when spring_model is 'auto'")
+        return JointTypeAwareSpringModel.from_joint_types(joint_types)
+    if spring_name == "linear":
+        return LinearSpringModel()
+    if spring_name == "periodic":
+        return PeriodicSpringModel()
+    raise ValueError(f"unsupported spring model: {name!r}")

@@ -1,9 +1,13 @@
 from deflecomp_sim.dynamic_simulator import DynamicParams, DynamicSimulator, FlexibleJointSimulator
-from deflecomp_sim.sensor_simulator import SyntheticObservationBuilder
+from deflecomp_sim.external_wrench import generalized_external_wrench
+from deflecomp_sim.sensor_simulator import ImuKinematicSample, SyntheticObservationBuilder, build_imu_kinematic_samples
 
 __all__ = [
     "DynamicParams",
     "DynamicSimulator",
     "FlexibleJointSimulator",
+    "ImuKinematicSample",
     "SyntheticObservationBuilder",
+    "build_imu_kinematic_samples",
+    "generalized_external_wrench",
 ]

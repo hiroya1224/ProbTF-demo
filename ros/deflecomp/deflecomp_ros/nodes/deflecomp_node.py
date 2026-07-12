@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import os
-import threading
-from bisect import bisect_left
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -11,71 +9,16 @@ from sensor_msgs.msg import Imu, JointState
 from std_msgs.msg import Float64MultiArray, String
 
 from deflecomp_core.control.feedforward import CommandGenerator
+from deflecomp_core.estimator.initialization import initial_log_kp_state, initial_log_kp_std
 from deflecomp_core.estimator.stiffness_wekf import MultiFrameStiffnessWEKF
 from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
 from deflecomp_core.model.sensitivity import SensitivityCalculator
-from deflecomp_core.model.spring import JointTypeAwareSpringModel, LinearSpringModel, PeriodicSpringModel
+from deflecomp_core.model.spring import spring_model_from_name
+from deflecomp_core.observation.imu_buffer import ImuBuffer
 from deflecomp_core.observation.imu_frame_config import ImuFrameConfig, resolve_imu_frame_configs
 from deflecomp_core.observation.imu_observation import FrameImuObservation, ImuObservationBuilder
 from deflecomp_core.pipeline.compensator import DeflectionCompensator
 from deflecomp_core.robot.pinocchio_robot import RobotArm
-
-
-class ImuBuffer:
-    def __init__(self, maxlen: int = 1000) -> None:
-        self.t_list: List[float] = []
-        self.g_list: List[np.ndarray] = []
-        self.maxlen = int(maxlen)
-        self.lock = threading.RLock()
-
-    def push(self, t: float, g_dir: np.ndarray) -> None:
-        g = np.asarray(g_dir, dtype=float)
-        g = g / (np.linalg.norm(g) + 1e-12)
-        with self.lock:
-            idx = bisect_left(self.t_list, t)
-            if idx < len(self.t_list) and abs(self.t_list[idx] - t) < 1e-12:
-                self.t_list[idx] = t
-                self.g_list[idx] = g
-            else:
-                self.t_list.insert(idx, t)
-                self.g_list.insert(idx, g)
-            while len(self.t_list) > self.maxlen:
-                self.t_list.pop(0)
-                self.g_list.pop(0)
-
-    def interpolate(self, t: float) -> Optional[np.ndarray]:
-        with self.lock:
-            if not self.t_list:
-                return None
-            if t <= self.t_list[0]:
-                return self.g_list[0].copy()
-            if t >= self.t_list[-1]:
-                return self.g_list[-1].copy()
-
-            idx = bisect_left(self.t_list, t)
-            t0 = self.t_list[idx - 1]
-            t1 = self.t_list[idx]
-            g0 = self.g_list[idx - 1]
-            g1 = self.g_list[idx]
-            if t1 - t0 <= 1e-12:
-                return g1.copy()
-            alpha = (t - t0) / (t1 - t0)
-            g = (1.0 - alpha) * g0 + alpha * g1
-            return g / (np.linalg.norm(g) + 1e-12)
-
-
-def initial_log_kp_std(kp_lim: Tuple[float, float]) -> float:
-    kp_min, kp_max = (float(v) for v in kp_lim)
-    if kp_min <= 0.0 or kp_max <= kp_min:
-        raise ValueError(f"kp_min/kp_max must satisfy 0 < kp_min < kp_max, got {kp_lim}")
-    return (np.log(kp_max) - np.log(kp_min)) / 4.0
-
-
-def initial_log_kp_state(n: int, kp_lim: Tuple[float, float]) -> np.ndarray:
-    kp_min, kp_max = (float(v) for v in kp_lim)
-    if kp_min <= 0.0 or kp_max <= kp_min:
-        raise ValueError(f"kp_min/kp_max must satisfy 0 < kp_min < kp_max, got {kp_lim}")
-    return np.ones(n, dtype=float) * (0.5 * (np.log(kp_min) + np.log(kp_max)))
 
 
 def parse_bool(value) -> bool:
@@ -120,15 +63,6 @@ def resolve_default_urdf() -> str:
     return os.path.join(rospkg.RosPack().get_path("deflecomp_description"), "urdf", "simple6r.urdf")
 
 
-def resolve_spring_model(name: str, robot: RobotArm):
-    spring_name = str(name).strip().lower()
-    if spring_name == "auto":
-        return JointTypeAwareSpringModel.from_joint_types(robot.model_joint_types)
-    if spring_name == "linear":
-        return LinearSpringModel()
-    return PeriodicSpringModel()
-
-
 class DeflecompNode:
     def __init__(
         self,
@@ -163,7 +97,7 @@ class DeflecompNode:
         particle_pursuit_mixture_weight: float,
     ) -> None:
         self.robot = RobotArm(urdf_path)
-        self.spring_model = resolve_spring_model(spring_model_name, self.robot)
+        self.spring_model = spring_model_from_name(spring_model_name, self.robot.model_joint_types)
         self.solver = EquilibriumSolver(
             robot=self.robot,
             spring_model=self.spring_model,

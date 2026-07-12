@@ -3,7 +3,6 @@ import os
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-import pinocchio as pin
 import rospkg
 import rospy
 from geometry_msgs.msg import WrenchStamped
@@ -11,9 +10,11 @@ from sensor_msgs.msg import Imu, JointState
 
 from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
 from deflecomp_core.observation.imu_frame_config import ImuFrameConfig, resolve_imu_frame_configs
-from deflecomp_core.model.spring import JointTypeAwareSpringModel, LinearSpringModel, PeriodicSpringModel
+from deflecomp_core.model.spring import spring_model_from_name
 from deflecomp_core.robot.pinocchio_robot import RobotArm
 from deflecomp_sim.dynamic_simulator import DynamicParams, FlexibleJointSimulator
+from deflecomp_sim.external_wrench import generalized_external_wrench
+from deflecomp_sim.sensor_simulator import build_imu_kinematic_samples
 
 
 def resolve_default_urdf() -> str:
@@ -40,37 +41,6 @@ def parse_bool(value) -> bool:
     if isinstance(value, str):
         return value.strip().lower() not in ("0", "false", "no", "off")
     return bool(value)
-
-
-def quat_xyzw_from_R(Rw: np.ndarray) -> Tuple[float, float, float, float]:
-    trace = float(np.trace(Rw))
-    if trace > 0.0:
-        s = np.sqrt(trace + 1.0) * 2.0
-        qw = 0.25 * s
-        qx = (Rw[2, 1] - Rw[1, 2]) / s
-        qy = (Rw[0, 2] - Rw[2, 0]) / s
-        qz = (Rw[1, 0] - Rw[0, 1]) / s
-    else:
-        idx = int(np.argmax([Rw[0, 0], Rw[1, 1], Rw[2, 2]]))
-        if idx == 0:
-            s = np.sqrt(1.0 + Rw[0, 0] - Rw[1, 1] - Rw[2, 2]) * 2.0
-            qx = 0.25 * s
-            qy = (Rw[0, 1] + Rw[1, 0]) / s
-            qz = (Rw[0, 2] + Rw[2, 0]) / s
-            qw = (Rw[2, 1] - Rw[1, 2]) / s
-        elif idx == 1:
-            s = np.sqrt(1.0 + Rw[1, 1] - Rw[0, 0] - Rw[2, 2]) * 2.0
-            qx = (Rw[0, 1] + Rw[1, 0]) / s
-            qy = 0.25 * s
-            qz = (Rw[1, 2] + Rw[2, 1]) / s
-            qw = (Rw[0, 2] - Rw[2, 0]) / s
-        else:
-            s = np.sqrt(1.0 + Rw[2, 2] - Rw[0, 0] - Rw[1, 1]) * 2.0
-            qx = (Rw[0, 2] + Rw[2, 0]) / s
-            qy = (Rw[1, 2] + Rw[2, 1]) / s
-            qz = 0.25 * s
-            qw = (Rw[1, 0] - Rw[0, 1]) / s
-    return float(qx), float(qy), float(qz), float(qw)
 
 
 def map_jointstate_to_model(msg: JointState, model_names: List[str]) -> np.ndarray:
@@ -103,15 +73,6 @@ def expand_joint_positions(
     for name, position in zip(active_names, np.asarray(active_positions, dtype=float)):
         values[name] = float(position)
     return [float(values.get(name, 0.0)) for name in output_names]
-
-
-def resolve_spring_model(name: str, robot: RobotArm):
-    spring_name = str(name).strip().lower()
-    if spring_name == "auto":
-        return JointTypeAwareSpringModel.from_joint_types(robot.model_joint_types)
-    if spring_name == "periodic":
-        return PeriodicSpringModel()
-    return LinearSpringModel()
 
 
 class SimNode:
@@ -177,7 +138,7 @@ class SimNode:
         self.sim = FlexibleJointSimulator(
             robot=self.robot,
             params=params,
-            spring_model=resolve_spring_model(spring_model_name, self.robot),
+            spring_model=spring_model_from_name(spring_model_name, self.robot.model_joint_types),
         )
         self.sim.set_eq_solver(
             EquilibriumSolver(
@@ -218,10 +179,6 @@ class SimNode:
             value=imu_frames,
             count=max(1, min(3, len(self.joint_names))),
         )
-        self.imu_fids: Dict[str, int] = {}
-        for cfg in self.imu_frame_configs:
-            self.imu_fids[cfg.frame_id] = self.robot.get_frame_id(cfg.model_frame)
-
         self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
         rospy.loginfo(
             "deflecomp_sim: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s external_wrench_topic=%s",
@@ -314,59 +271,32 @@ class SimNode:
                 self.external_wrench_warned_frames.add(frame_name)
             return np.zeros(self.n, dtype=float)
 
-        fid = self.robot.get_frame_id(frame_name)
-        pin.forwardKinematics(self.robot.model, self.robot.data, q)
-        pin.computeJointJacobians(self.robot.model, self.robot.data, q)
-        pin.updateFramePlacements(self.robot.model, self.robot.data)
-        J6 = pin.computeFrameJacobian(
-            self.robot.model,
-            self.robot.data,
-            q,
-            fid,
-            pin.ReferenceFrame.LOCAL_WORLD_ALIGNED,
+        return generalized_external_wrench(
+            robot=self.robot,
+            q=q,
+            frame_name=frame_name,
+            force=self.external_wrench_force,
+            torque=self.external_wrench_torque,
+            reference_frame=self.external_wrench_reference_frame,
         )
-        force = self.external_wrench_force.reshape(3)
-        torque = self.external_wrench_torque.reshape(3)
-        if self.external_wrench_reference_frame == "local":
-            R_wf = self.robot.data.oMf[fid].rotation
-            force = R_wf @ force
-            torque = R_wf @ torque
-        return J6[0:3, :].T @ force + J6[3:6, :].T @ torque
 
     def publish_imus(self, q: np.ndarray, qd: np.ndarray, qdd: np.ndarray, now: rospy.Time) -> None:
-        pin.forwardKinematics(self.robot.model, self.robot.data, q, qd, qdd)
-        pin.updateFramePlacements(self.robot.model, self.robot.data)
-        g_world = self.robot.model.gravity.linear
-        for cfg in self.imu_frame_configs:
-            fid = self.imu_fids[cfg.frame_id]
-            v6_l = pin.getFrameVelocity(self.robot.model, self.robot.data, fid, pin.ReferenceFrame.LOCAL)
-            a6_l = pin.getFrameAcceleration(self.robot.model, self.robot.data, fid, pin.ReferenceFrame.LOCAL)
-            w_l = np.array(v6_l.angular).reshape(3)
-            alpha_l = np.array(a6_l.angular).reshape(3)
-            a_o_l = np.array(a6_l.linear).reshape(3)
-            r_li = cfg.xyz.reshape(3)
-            a_p_l = a_o_l + np.cross(alpha_l, r_li) + np.cross(w_l, np.cross(w_l, r_li))
-            R_wl = self.robot.data.oMf[fid].rotation
-            R_wi = R_wl @ cfg.R_model_imu
-            a_p_i = cfg.R_model_imu.T @ a_p_l
-            w_i = cfg.R_model_imu.T @ w_l
-            g_i = R_wi.T @ g_world
-            a_meas = a_p_i - g_i
-            qx, qy, qz, qw = quat_xyzw_from_R(R_wi)
-
+        samples = build_imu_kinematic_samples(self.robot, self.imu_frame_configs, q, qd, qdd)
+        for sample in samples:
+            qx, qy, qz, qw = sample.orientation_xyzw
             imu_msg = Imu()
             imu_msg.header.stamp = now
-            imu_msg.header.frame_id = cfg.frame_id
+            imu_msg.header.frame_id = sample.frame_id
             imu_msg.orientation.x = qx
             imu_msg.orientation.y = qy
             imu_msg.orientation.z = qz
             imu_msg.orientation.w = qw
-            imu_msg.angular_velocity.x = float(w_i[0])
-            imu_msg.angular_velocity.y = float(w_i[1])
-            imu_msg.angular_velocity.z = float(w_i[2])
-            imu_msg.linear_acceleration.x = float(a_meas[0])
-            imu_msg.linear_acceleration.y = float(a_meas[1])
-            imu_msg.linear_acceleration.z = float(a_meas[2])
+            imu_msg.angular_velocity.x = float(sample.angular_velocity[0])
+            imu_msg.angular_velocity.y = float(sample.angular_velocity[1])
+            imu_msg.angular_velocity.z = float(sample.angular_velocity[2])
+            imu_msg.linear_acceleration.x = float(sample.linear_acceleration[0])
+            imu_msg.linear_acceleration.y = float(sample.linear_acceleration[1])
+            imu_msg.linear_acceleration.z = float(sample.linear_acceleration[2])
             imu_msg.orientation_covariance[0] = -1.0
             imu_msg.angular_velocity_covariance[0] = -1.0
             imu_msg.linear_acceleration_covariance[0] = -1.0

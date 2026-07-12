@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>deflecomp_examples</name>
+  <version>0.1.0</version>
+  <description>Offline demos and example scripts for deflecomp.</description>
+
+  <maintainer email="leus@todo.todo">leus</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>deflecomp_core</build_depend>
+  <build_depend>deflecomp_sim</build_depend>
+
+  <build_export_depend>deflecomp_core</build_export_depend>
+  <build_export_depend>deflecomp_sim</build_export_depend>
+
+  <exec_depend>deflecomp_core</exec_depend>
+  <exec_depend>deflecomp_description</exec_depend>
+  <exec_depend>deflecomp_sim</exec_depend>
+  <exec_depend>python3-matplotlib</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-rospkg</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+
+  <export />
+</package>

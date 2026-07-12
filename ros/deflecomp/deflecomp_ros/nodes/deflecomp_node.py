@@ -1,0 +1,494 @@
+#!/usr/bin/env python3
+import os
+import threading
+from bisect import bisect_left
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+import numpy as np
+import rospkg
+import rospy
+from sensor_msgs.msg import Imu, JointState
+from std_msgs.msg import Float64MultiArray, String
+
+from deflecomp_core.control.feedforward import CommandGenerator
+from deflecomp_core.estimator.stiffness_wekf import MultiFrameStiffnessWEKF
+from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
+from deflecomp_core.model.sensitivity import SensitivityCalculator
+from deflecomp_core.model.spring import JointTypeAwareSpringModel, LinearSpringModel, PeriodicSpringModel
+from deflecomp_core.observation.imu_frame_config import ImuFrameConfig, resolve_imu_frame_configs
+from deflecomp_core.observation.imu_observation import FrameImuObservation, ImuObservationBuilder
+from deflecomp_core.pipeline.compensator import DeflectionCompensator
+from deflecomp_core.robot.pinocchio_robot import RobotArm
+
+
+class ImuBuffer:
+    def __init__(self, maxlen: int = 1000) -> None:
+        self.t_list: List[float] = []
+        self.g_list: List[np.ndarray] = []
+        self.maxlen = int(maxlen)
+        self.lock = threading.RLock()
+
+    def push(self, t: float, g_dir: np.ndarray) -> None:
+        g = np.asarray(g_dir, dtype=float)
+        g = g / (np.linalg.norm(g) + 1e-12)
+        with self.lock:
+            idx = bisect_left(self.t_list, t)
+            if idx < len(self.t_list) and abs(self.t_list[idx] - t) < 1e-12:
+                self.t_list[idx] = t
+                self.g_list[idx] = g
+            else:
+                self.t_list.insert(idx, t)
+                self.g_list.insert(idx, g)
+            while len(self.t_list) > self.maxlen:
+                self.t_list.pop(0)
+                self.g_list.pop(0)
+
+    def interpolate(self, t: float) -> Optional[np.ndarray]:
+        with self.lock:
+            if not self.t_list:
+                return None
+            if t <= self.t_list[0]:
+                return self.g_list[0].copy()
+            if t >= self.t_list[-1]:
+                return self.g_list[-1].copy()
+
+            idx = bisect_left(self.t_list, t)
+            t0 = self.t_list[idx - 1]
+            t1 = self.t_list[idx]
+            g0 = self.g_list[idx - 1]
+            g1 = self.g_list[idx]
+            if t1 - t0 <= 1e-12:
+                return g1.copy()
+            alpha = (t - t0) / (t1 - t0)
+            g = (1.0 - alpha) * g0 + alpha * g1
+            return g / (np.linalg.norm(g) + 1e-12)
+
+
+def initial_log_kp_std(kp_lim: Tuple[float, float]) -> float:
+    kp_min, kp_max = (float(v) for v in kp_lim)
+    if kp_min <= 0.0 or kp_max <= kp_min:
+        raise ValueError(f"kp_min/kp_max must satisfy 0 < kp_min < kp_max, got {kp_lim}")
+    return (np.log(kp_max) - np.log(kp_min)) / 4.0
+
+
+def initial_log_kp_state(n: int, kp_lim: Tuple[float, float]) -> np.ndarray:
+    kp_min, kp_max = (float(v) for v in kp_lim)
+    if kp_min <= 0.0 or kp_max <= kp_min:
+        raise ValueError(f"kp_min/kp_max must satisfy 0 < kp_min < kp_max, got {kp_lim}")
+    return np.ones(n, dtype=float) * (0.5 * (np.log(kp_min) + np.log(kp_max)))
+
+
+def parse_bool(value) -> bool:
+    if isinstance(value, str):
+        return value.strip().lower() not in ("0", "false", "no", "off")
+    return bool(value)
+
+
+def map_jointstate_to_model(msg: JointState, model_names: Sequence[str]) -> np.ndarray:
+    name_to_idx = {name: idx for idx, name in enumerate(msg.name)}
+    q = np.zeros(len(model_names), dtype=float)
+    positions = list(msg.position) if msg.position else []
+    for idx, name in enumerate(model_names):
+        msg_idx = name_to_idx.get(name)
+        if msg_idx is not None and msg_idx < len(positions):
+            q[idx] = float(positions[msg_idx])
+    return q
+
+
+def jointstate_position_map(msg: JointState) -> Dict[str, float]:
+    positions = list(msg.position) if msg.position else []
+    return {
+        name: float(positions[idx])
+        for idx, name in enumerate(msg.name)
+        if idx < len(positions)
+    }
+
+
+def expand_joint_positions(
+    output_names: Sequence[str],
+    active_names: Sequence[str],
+    active_positions: np.ndarray,
+    fallback_positions: Dict[str, float],
+) -> List[float]:
+    values = dict(fallback_positions)
+    for name, position in zip(active_names, np.asarray(active_positions, dtype=float)):
+        values[name] = float(position)
+    return [float(values.get(name, 0.0)) for name in output_names]
+
+
+def resolve_default_urdf() -> str:
+    return os.path.join(rospkg.RosPack().get_path("deflecomp_description"), "urdf", "simple6r.urdf")
+
+
+def resolve_spring_model(name: str, robot: RobotArm):
+    spring_name = str(name).strip().lower()
+    if spring_name == "auto":
+        return JointTypeAwareSpringModel.from_joint_types(robot.model_joint_types)
+    if spring_name == "linear":
+        return LinearSpringModel()
+    return PeriodicSpringModel()
+
+
+class DeflecompNode:
+    def __init__(
+        self,
+        urdf_path: str,
+        imu_frames: Any,
+        topic_ref: str,
+        topic_imu: str,
+        topic_cmd_out: str,
+        dt: float,
+        A_param: float,
+        kp_lim: Tuple[float, float],
+        log_kp_process_noise_var: float,
+        spring_model_name: str,
+        theta_cmd_tau: float,
+        theta_cmd_l1_regularization: bool,
+        theta_cmd_l1_regularization_weight: float,
+        equilibrium_refine: bool,
+        equilibrium_refine_maxiter: int,
+        equilibrium_refine_tol: float,
+        update_stiffness: bool,
+        observability_rcond: float,
+        observability_abs: float,
+        project_unobservable_feedforward: bool,
+        kp_exec_tau: float,
+        max_log_kp_exec_step: float,
+        publish_kp_exec: bool,
+        particle_scan_enabled: bool,
+        particle_scan_window_size: int,
+        particle_scan_grid_size: int,
+        particle_scan_reset_std: float,
+        particle_scan_backend: str,
+        particle_pursuit_mixture_weight: float,
+    ) -> None:
+        self.robot = RobotArm(urdf_path)
+        self.spring_model = resolve_spring_model(spring_model_name, self.robot)
+        self.solver = EquilibriumSolver(
+            robot=self.robot,
+            spring_model=self.spring_model,
+            cfg=EquilibriumConfig(
+                maxiter=80,
+                refine=bool(equilibrium_refine),
+                refine_maxiter=int(equilibrium_refine_maxiter),
+                refine_tol=float(equilibrium_refine_tol),
+            ),
+        )
+        self.sensitivity = SensitivityCalculator(robot=self.robot, spring_model=self.spring_model)
+        self.n = self.robot.nv
+        self.model_joint_names = self.robot.model_joint_names
+        self.output_joint_names = self.robot.urdf_info.movable_joint_names or self.model_joint_names
+
+        self.imu_frame_configs: List[ImuFrameConfig] = resolve_imu_frame_configs(
+            robot=self.robot,
+            value=imu_frames,
+            count=max(1, min(3, len(self.model_joint_names))),
+        )
+        if not self.imu_frame_configs:
+            raise ValueError(f"No valid IMU frames found in URDF: {urdf_path}")
+        self.imu_config_by_frame_id: Dict[str, ImuFrameConfig] = {
+            cfg.frame_id: cfg for cfg in self.imu_frame_configs
+        }
+        x0 = initial_log_kp_state(self.n, kp_lim)
+        initial_log_kp_std_vec = np.ones(self.n, dtype=float) * initial_log_kp_std(kp_lim)
+        P0 = np.diag(initial_log_kp_std_vec ** 2)
+        Q = np.eye(self.n) * float(log_kp_process_noise_var)
+        rospy.loginfo(
+            "deflecomp_node: initial K=%s log(K) std=%s log(K) process noise var=%.6g",
+            ", ".join(f"{v:.6g}" for v in np.exp(x0)),
+            ", ".join(f"{v:.6g}" for v in initial_log_kp_std_vec),
+            float(log_kp_process_noise_var),
+        )
+        estimator = MultiFrameStiffnessWEKF(
+            x0=x0,
+            P0=P0,
+            Q=Q,
+            solver=self.solver,
+            sensitivity=self.sensitivity,
+            eps_def=1e-6,
+            observability_rcond=float(observability_rcond),
+            observability_abs=float(observability_abs),
+        )
+        observation_builder = ImuObservationBuilder(
+            robot=self.robot,
+            g_world=np.array([0.0, 0.0, -9.81], dtype=float),
+            parameter_A=float(A_param),
+        )
+        self.compensator = DeflectionCompensator(
+            robot=self.robot,
+            spring_model=self.spring_model,
+            stiffness_estimator=estimator,
+            command_generator=CommandGenerator(robot=self.robot, spring_model=self.spring_model),
+            equilibrium_solver=self.solver,
+            observation_builder=observation_builder,
+            config={
+                "theta_cmd_tau": float(theta_cmd_tau),
+                "theta_cmd_l1_regularization": bool(theta_cmd_l1_regularization),
+                "theta_cmd_l1_regularization_weight": float(theta_cmd_l1_regularization_weight),
+                "kp_lim": tuple(float(v) for v in kp_lim),
+                "update_stiffness": bool(update_stiffness),
+                "project_unobservable_feedforward": bool(project_unobservable_feedforward),
+                "feedforward_observability_rcond": float(observability_rcond),
+                "feedforward_observability_abs": float(observability_abs),
+                "kp_exec_tau": float(kp_exec_tau),
+                "max_log_kp_exec_step": float(max_log_kp_exec_step),
+                "particle_scan_enabled": bool(particle_scan_enabled),
+                "particle_scan_window_size": int(particle_scan_window_size),
+                "particle_scan_grid_size": int(particle_scan_grid_size),
+                "particle_scan_reset_std": float(particle_scan_reset_std),
+                "particle_scan_backend": str(particle_scan_backend),
+                "particle_pursuit_mixture_weight": float(particle_pursuit_mixture_weight),
+            },
+        )
+        rospy.on_shutdown(self.compensator.shutdown)
+        particle_scan_actual_backend = getattr(self.compensator, "_particle_scan_backend", "none")
+        rospy.loginfo(
+            "deflecomp_node: particle_scan enabled=%s backend=%s window_size=%d grid_size=%d reset_std=%.6g pursuit_mixture_weight=%.6g",
+            bool(particle_scan_enabled),
+            str(particle_scan_actual_backend),
+            int(particle_scan_window_size),
+            int(particle_scan_grid_size),
+            float(particle_scan_reset_std),
+            float(particle_pursuit_mixture_weight),
+        )
+        self.kp_lim = kp_lim
+        self.dt = float(dt)
+        self.publish_kp_exec = bool(publish_kp_exec)
+
+        self.q_ref = np.zeros(self.n, dtype=float)
+        self.ref_joint_positions: Dict[str, float] = {name: 0.0 for name in self.output_joint_names}
+        self.have_ref = False
+        self.imu_bufs: Dict[str, ImuBuffer] = {cfg.frame_id: ImuBuffer(maxlen=2000) for cfg in self.imu_frame_configs}
+
+        self.sub_ref = rospy.Subscriber(topic_ref, JointState, self.cb_ref, queue_size=50)
+        self.sub_imu = rospy.Subscriber(topic_imu, Imu, self.cb_imu, queue_size=400)
+        self.pub_cmd = rospy.Publisher(topic_cmd_out, JointState, queue_size=10)
+        self.pub_kp = rospy.Publisher("/deflecomp/kp_hat", Float64MultiArray, queue_size=10)
+        self.pub_kp_est = rospy.Publisher("/deflecomp/kp_est", Float64MultiArray, queue_size=10)
+        self.pub_kp_exec = rospy.Publisher("/deflecomp/kp_exec", Float64MultiArray, queue_size=10)
+        self.pub_kp_exec_target = rospy.Publisher("/deflecomp/kp_exec_target", Float64MultiArray, queue_size=10)
+        self.pub_cov = rospy.Publisher("/deflecomp/kp_cov_diag", Float64MultiArray, queue_size=10)
+        self.pub_theta_eq = rospy.Publisher("/deflecomp/theta_eq_hat", Float64MultiArray, queue_size=10)
+        self.pub_tau = rospy.Publisher("/deflecomp/tau_hat", Float64MultiArray, queue_size=10)
+        self.pub_debug = rospy.Publisher("/deflecomp/debug", Float64MultiArray, queue_size=10)
+        self.pub_particle_scan_status = rospy.Publisher("/deflecomp/particle_scan_status", String, queue_size=10)
+        self.pub_particle_scan_debug = rospy.Publisher("/deflecomp/particle_scan_debug", Float64MultiArray, queue_size=10)
+
+        self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
+        rospy.loginfo(
+            "deflecomp_node: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s",
+            self.robot.base_link_name,
+            self.robot.tip_link_name,
+            ", ".join(self.model_joint_names),
+            ", ".join(self.robot.locked_joint_names) if self.robot.locked_joint_names else "(none)",
+            ", ".join(f"{cfg.frame_id}->{cfg.model_frame}" for cfg in self.imu_frame_configs),
+            type(self.spring_model).__name__,
+        )
+
+    def cb_ref(self, msg: JointState) -> None:
+        self.q_ref = map_jointstate_to_model(msg, self.model_joint_names)
+        self.ref_joint_positions.update(jointstate_position_map(msg))
+        self.have_ref = True
+
+    def cb_imu(self, msg: Imu) -> None:
+        frame_name = (msg.header.frame_id or "").strip()
+        cfg = self.imu_config_by_frame_id.get(frame_name)
+        if cfg is None:
+            return
+        accel = np.array(
+            [
+                msg.linear_acceleration.x,
+                msg.linear_acceleration.y,
+                msg.linear_acceleration.z,
+            ],
+            dtype=float,
+        )
+        if np.linalg.norm(accel) < 1e-9:
+            return
+        g_sensor = -accel / (np.linalg.norm(accel) + 1e-12)
+        g_dir = cfg.R_model_imu @ g_sensor
+        g_dir = g_dir / (np.linalg.norm(g_dir) + 1e-12)
+        stamp = msg.header.stamp.to_sec() if msg.header.stamp else rospy.get_time()
+        self.imu_bufs[frame_name].push(stamp, g_dir)
+
+    def _build_observations_at(self, t_align: Optional[float]) -> List[FrameImuObservation]:
+        if t_align is None:
+            return []
+        observations: List[FrameImuObservation] = []
+        for cfg in self.imu_frame_configs:
+            g_dir = self.imu_bufs[cfg.frame_id].interpolate(t_align)
+            if g_dir is None:
+                continue
+            observations.append(FrameImuObservation(frame_name=cfg.model_frame, gravity_dir=g_dir, stamp=t_align))
+        return observations
+
+    def on_timer(self, event) -> None:
+        del event
+        if not self.have_ref:
+            return
+
+        now = rospy.Time.now().to_sec()
+        observations = self._build_observations_at(self.compensator.last_stamp)
+        result = self.compensator.step(
+            theta_ref=self.q_ref,
+            imu_observations=observations,
+            dt=self.dt,
+            stamp=now,
+        )
+
+        kp_hat = result.kp_hat
+
+        cmd_msg = JointState()
+        cmd_msg.header.stamp = rospy.Time.from_sec(now)
+        cmd_msg.name = self.output_joint_names
+        cmd_msg.position = expand_joint_positions(
+            output_names=self.output_joint_names,
+            active_names=self.model_joint_names,
+            active_positions=result.theta_cmd,
+            fallback_positions=self.ref_joint_positions,
+        )
+        self.pub_cmd.publish(cmd_msg)
+
+        cov_diag = np.clip(np.diag(self.compensator.stiffness_estimator.P_est), 0.0, np.inf)
+        self.pub_kp.publish(Float64MultiArray(data=kp_hat.tolist()))
+        self.pub_kp_est.publish(Float64MultiArray(data=result.kp_est.tolist()))
+        if self.publish_kp_exec:
+            self.pub_kp_exec.publish(Float64MultiArray(data=result.kp_exec.tolist()))
+            self.pub_kp_exec_target.publish(Float64MultiArray(data=result.kp_exec_target.tolist()))
+        self.pub_cov.publish(Float64MultiArray(data=cov_diag.tolist()))
+        self.pub_theta_eq.publish(Float64MultiArray(data=result.theta_eq_hat.tolist()))
+        self.pub_tau.publish(Float64MultiArray(data=result.tau_hat.tolist()))
+
+        debug_vector = np.concatenate(
+            [
+                np.asarray(result.theta_cmd_raw, dtype=float),
+                np.asarray(result.theta_eq_hat, dtype=float),
+                np.asarray(result.tau_hat, dtype=float),
+                np.asarray(cov_diag, dtype=float),
+                np.asarray(result.kp_est, dtype=float),
+                np.asarray(result.kp_exec, dtype=float),
+                np.asarray(result.kp_exec_target, dtype=float),
+            ]
+        )
+        self.pub_debug.publish(Float64MultiArray(data=debug_vector.tolist()))
+        self._publish_particle_scan_debug(result.debug)
+
+    def _publish_particle_scan_debug(self, debug: Dict[str, Any]) -> None:
+        scan = debug.get("particle_scan")
+        if not isinstance(scan, dict):
+            status = "attempted=0 accepted=0 reason=not_run"
+            vector = np.array([0.0, 0.0, 0.0, 0.0, -np.inf, -np.inf, 0.0, 0.0], dtype=float)
+        else:
+            attempted = bool(scan.get("attempted", False))
+            accepted = bool(scan.get("accepted", False))
+            reason = str(scan.get("reason", "unknown"))
+            gain_per_obs = float(scan.get("gain_per_obs", 0.0))
+            score_current = float(scan.get("score_current", -np.inf))
+            score_best = float(scan.get("score_best", -np.inf))
+            candidate_count = int(scan.get("candidate_count", 0))
+            max_jump = float(scan.get("max_jump", 0.0))
+            active_indices = np.asarray(scan.get("active_indices", []), dtype=int)
+            window_size = int(scan.get("window_size", 0))
+            status = (
+                f"attempted={int(attempted)} accepted={int(accepted)} reason={reason} "
+                f"gain_per_obs={gain_per_obs:.6g} candidates={candidate_count} "
+                f"score_current={score_current:.6g} score_best={score_best:.6g} "
+                f"max_jump={max_jump:.6g} active_indices={active_indices.tolist()}"
+            )
+            vector = np.array(
+                [
+                    float(attempted),
+                    float(accepted),
+                    gain_per_obs,
+                    float(candidate_count),
+                    score_current,
+                    score_best,
+                    max_jump,
+                    float(window_size),
+                ],
+                dtype=float,
+            )
+            if accepted:
+                rospy.loginfo_throttle(
+                    1.0,
+                    "deflecomp_node: particle scan accepted gain_per_obs=%.6g score_current=%.6g score_best=%.6g max_jump=%.6g active_indices=%s",
+                    gain_per_obs,
+                    score_current,
+                    score_best,
+                    max_jump,
+                    active_indices.tolist(),
+                )
+        self.pub_particle_scan_status.publish(String(data=status))
+        self.pub_particle_scan_debug.publish(Float64MultiArray(data=vector.tolist()))
+
+
+def main() -> None:
+    rospy.init_node("deflecomp_node", anonymous=False)
+
+    urdf_path = rospy.get_param("~urdf_path", resolve_default_urdf())
+    imu_frames = rospy.get_param("~imu_frames", rospy.get_param("~frames", []))
+    topic_ref = rospy.get_param("~topic_ref", "/ref/joint_states")
+    topic_imu = rospy.get_param("~topic_imu", "/imu")
+    topic_cmd_out = rospy.get_param("~topic_cmd_out", "/deflecomp/theta_cmd")
+    dt = float(rospy.get_param("~dt", 0.02))
+    A_param = float(rospy.get_param("~A_param", 100.0))
+    kp_min = float(rospy.get_param("~kp_min", 1.0))
+    kp_max = float(rospy.get_param("~kp_max", 500.0))
+    log_kp_process_noise_var = float(rospy.get_param("~log_kp_process_noise_var", 1e-8))
+    spring_model_name = rospy.get_param("~spring_model", "auto")
+    theta_cmd_tau = float(rospy.get_param("~theta_cmd_tau", 0.2))
+    theta_cmd_l1_regularization = parse_bool(rospy.get_param("~theta_cmd_l1_regularization", True))
+    theta_cmd_l1_regularization_weight = float(rospy.get_param("~theta_cmd_l1_regularization_weight", 1e-4))
+    equilibrium_refine = parse_bool(rospy.get_param("~equilibrium_refine", True))
+    equilibrium_refine_maxiter = int(rospy.get_param("~equilibrium_refine_maxiter", 40))
+    equilibrium_refine_tol = float(rospy.get_param("~equilibrium_refine_tol", 1e-12))
+    update_stiffness = parse_bool(rospy.get_param("~update_stiffness", True))
+    observability_rcond = float(rospy.get_param("~observability_rcond", 1e-4))
+    observability_abs = float(rospy.get_param("~observability_abs", 1e-10))
+    project_unobservable_feedforward = parse_bool(rospy.get_param("~project_unobservable_feedforward", True))
+    kp_exec_tau = float(rospy.get_param("~kp_exec_tau", 1.0))
+    max_log_kp_exec_step = float(rospy.get_param("~max_log_kp_exec_step", 0.0))
+    publish_kp_exec = parse_bool(rospy.get_param("~publish_kp_exec", True))
+    particle_scan_enabled = parse_bool(rospy.get_param("~particle_scan_enabled", False))
+    particle_scan_window_size = int(rospy.get_param("~particle_scan_window_size", 20))
+    particle_scan_grid_size = int(rospy.get_param("~particle_scan_grid_size", 21))
+    particle_scan_reset_std = float(rospy.get_param("~particle_scan_reset_std", 0.10))
+    particle_scan_backend = str(rospy.get_param("~particle_scan_backend", "process"))
+    particle_pursuit_mixture_weight = float(rospy.get_param("~particle_pursuit_mixture_weight", 0.35))
+
+    DeflecompNode(
+        urdf_path=urdf_path,
+        imu_frames=imu_frames,
+        topic_ref=topic_ref,
+        topic_imu=topic_imu,
+        topic_cmd_out=topic_cmd_out,
+        dt=dt,
+        A_param=A_param,
+        kp_lim=(kp_min, kp_max),
+        log_kp_process_noise_var=log_kp_process_noise_var,
+        spring_model_name=spring_model_name,
+        theta_cmd_tau=theta_cmd_tau,
+        theta_cmd_l1_regularization=theta_cmd_l1_regularization,
+        theta_cmd_l1_regularization_weight=theta_cmd_l1_regularization_weight,
+        equilibrium_refine=equilibrium_refine,
+        equilibrium_refine_maxiter=equilibrium_refine_maxiter,
+        equilibrium_refine_tol=equilibrium_refine_tol,
+        update_stiffness=update_stiffness,
+        observability_rcond=observability_rcond,
+        observability_abs=observability_abs,
+        project_unobservable_feedforward=project_unobservable_feedforward,
+        kp_exec_tau=kp_exec_tau,
+        max_log_kp_exec_step=max_log_kp_exec_step,
+        publish_kp_exec=publish_kp_exec,
+        particle_scan_enabled=particle_scan_enabled,
+        particle_scan_window_size=particle_scan_window_size,
+        particle_scan_grid_size=particle_scan_grid_size,
+        particle_scan_reset_std=particle_scan_reset_std,
+        particle_scan_backend=particle_scan_backend,
+        particle_pursuit_mixture_weight=particle_pursuit_mixture_weight,
+    )
+    rospy.spin()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,495 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 70
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Equil1
+        - /Ref1
+        - /TF1
+        - /TF1/Tree1
+        - /WrenchStamped1
+      Splitter Ratio: 0.4025973975658417
+    Tree Height: 603
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 0.10000000149011612
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 20
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module1_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module1_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module1_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module2_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module2_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module2_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module3_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module3_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module3_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module4_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module5_d405_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: Equil
+      Robot Description: /equil/robot_description
+      TF Prefix: equil
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module1_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module1_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module1_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module2_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module2_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module2_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module3_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module3_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module3_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module4_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module5_d405_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: Cmd
+      Robot Description: /cmd/robot_description
+      TF Prefix: cmd
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module1_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module1_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module1_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module2_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module2_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module2_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module3_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module3_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module3_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module4_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module4_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        module5_d405_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_dummy_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        module5_gripper_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: Ref
+      Robot Description: /ref/robot_description
+      TF Prefix: ref
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Class: rviz/TF
+      Enabled: false
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Marker Alpha: 1
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: false
+    - Alpha: 1
+      Arrow Width: 0.10000000149011612
+      Class: rviz/WrenchStamped
+      Enabled: true
+      Force Arrow Scale: 0.05000000074505806
+      Force Color: 204; 51; 51
+      Hide Small Values: true
+      History Length: 1
+      Name: WrenchStamped
+      Queue Size: 10
+      Topic: /deflecomp_sim/external_wrench
+      Torque Arrow Scale: 1
+      Torque Color: 204; 204; 51
+      Unreliable: false
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: base_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Theta std deviation: 0.2617993950843811
+      Topic: /initialpose
+      X std deviation: 0.5
+      Y std deviation: 0.5
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 1.531205415725708
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.5603986382484436
+      Target Frame: <Fixed Frame>
+      Yaw: 2.5703961849212646
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 1376
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd00000001000000000000026a00000506fc0200000002fb000000100044006900730070006c006100790073010000003d000002de000000c900fffffffb0000000a00560069006500770073010000032100000222000000a400ffffff000007480000050600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 2488
+  X: 72
+  Y: 27

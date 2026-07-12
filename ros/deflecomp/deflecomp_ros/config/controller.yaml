@@ -1,0 +1,8 @@
+dt: 0.02
+theta_cmd_tau: 0.2
+theta_cmd_l1_regularization: false
+theta_cmd_l1_regularization_weight: 1.0e-1
+spring_model: periodic
+equilibrium_refine: true
+equilibrium_refine_maxiter: 40
+equilibrium_refine_tol: 1.0e-12

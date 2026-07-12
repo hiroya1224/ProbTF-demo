@@ -1,0 +1,27 @@
+<launch>
+  <arg name="topic" default="/deflecomp/kp_hat" />
+  <arg name="topics" default="/deflecomp/kp_est,/deflecomp/kp_exec" />
+  <arg name="titles" default="K_est,K_exec" />
+  <arg name="window_s" default="60.0" />
+  <arg name="update_hz" default="10.0" />
+  <arg name="labels" default="" />
+  <arg name="raise_window" default="false" />
+  <arg name="cov_topic" default="/deflecomp/kp_cov_diag" />
+  <arg name="cov_topics" default="/deflecomp/kp_est,/deflecomp/kp_hat" />
+  <arg name="cov_sigma" default="2.0" />
+  <arg name="cov_alpha" default="0.14" />
+
+  <node pkg="deflecomp_debug" type="kp_plotter.py" name="kp_plotter" output="screen">
+    <param name="topic" value="$(arg topic)" />
+    <param name="topics" value="$(arg topics)" />
+    <param name="titles" value="$(arg titles)" />
+    <param name="window_s" value="$(arg window_s)" />
+    <param name="update_hz" value="$(arg update_hz)" />
+    <param name="labels" value="$(arg labels)" />
+    <param name="raise_window" value="$(arg raise_window)" />
+    <param name="cov_topic" value="$(arg cov_topic)" />
+    <param name="cov_topics" value="$(arg cov_topics)" />
+    <param name="cov_sigma" value="$(arg cov_sigma)" />
+    <param name="cov_alpha" value="$(arg cov_alpha)" />
+  </node>
+</launch>

@@ -1,0 +1,20 @@
+A_param: 5000.0
+update_stiffness: true
+kp_min: 1.0
+kp_max: 500.0
+log_kp_process_noise_var: 1.0e-8
+observability_rcond: 0.0001
+observability_abs: 1.0e-10
+project_unobservable_feedforward: true
+kp_exec_tau: 0.5
+max_log_kp_exec_step: 0.05
+publish_kp_exec: true
+
+# Deterministic particle scan supervisor for stiffness estimation.
+# Plain axis-grid MAP correction for K_est, not a full RBPF.
+particle_scan_enabled: true
+particle_scan_window_size: 20
+particle_scan_grid_size: 21
+particle_scan_reset_std: 0.10
+particle_scan_backend: process
+particle_pursuit_mixture_weight: 0.80

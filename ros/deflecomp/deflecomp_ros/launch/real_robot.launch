@@ -1,0 +1,20 @@
+<launch>
+  <arg name="model" default="$(find deflecomp_description)/urdf/simple6r.urdf" />
+  <arg name="urdf_path" default="$(arg model)" />
+  <arg name="imu_config" default="$(find deflecomp_ros)/config/imu_frames.yaml" />
+  <arg name="publish_imu_static_tf" default="false" />
+
+  <include file="$(find deflecomp_ros)/launch/deflecomp.launch">
+    <arg name="model" value="$(arg urdf_path)" />
+    <arg name="imu_config" value="$(arg imu_config)" />
+  </include>
+
+  <node
+    if="$(arg publish_imu_static_tf)"
+    pkg="deflecomp_ros"
+    type="static_imu_tf_publisher.py"
+    name="deflecomp_static_imu_tf_publisher"
+    output="screen">
+    <rosparam command="load" file="$(arg imu_config)" />
+  </node>
+</launch>

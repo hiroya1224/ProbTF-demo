@@ -1,0 +1,14 @@
+# Default simple6r IMU frame configuration.
+#
+# `frame_id` is the sensor_msgs/Imu.header.frame_id.
+# `model_frame` is the URDF/Pinocchio frame used by the estimator and simulator.
+# Add xyz/rpy and publish_static_tf: true when the IMU frame is a fixed child of
+# a URDF frame instead of an existing URDF frame.
+imu_frames:
+  - frame_id: link6
+    model_frame: link6
+  - frame_id: link3
+    model_frame: link3
+  - frame_id: link2
+    model_frame: link2
+static_transforms: []

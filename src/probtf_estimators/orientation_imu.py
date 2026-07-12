@@ -1,4 +1,4 @@
-"""Quaternion Bingham prediction and vector-alignment evidence.
+"""IMU quaternion-Bingham prediction and vector-alignment evidence.
 
 Quaternions use ``[w, x, y, z]`` order.  The orientation maps vectors from
 the child/body frame into the parent/reference frame, and body-frame angular

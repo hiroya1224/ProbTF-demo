@@ -1,4 +1,4 @@
-"""ROS-independent likelihood evidence and fusion for probabilistic transforms.
+"""ROS-independent likelihood evidence fusion for one physical transform edge.
 
 The Bingham parameter matrices in this module act on quaternions ordered as
 ``[w, x, y, z]``.  Gaussian position likelihoods use canonical information

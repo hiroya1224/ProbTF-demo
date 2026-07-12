@@ -4,9 +4,10 @@ import message_filters
 import numpy as np
 import rospy
 
-from probtf.imu_relative_pose import ImuRelativePoseEstimator
+from probtf_estimators.imu_relative_pose import ImuRelativePoseEstimator
+from probtf_estimators.ros_conversions import imu_kinematics_from_msg
 from probtf_msgs.msg import ImuKinematics, ProbabilisticTF
-from probtf_ros.conversions import imu_kinematics_from_msg, probabilistic_transform_to_msg
+from probtf_ros.conversions import probabilistic_transform_to_msg
 
 
 class ImuRelativePoseNode:

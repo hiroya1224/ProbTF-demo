@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from probtf.imu_preprocessing import ImuKinematicsPreprocessor
+from probtf_estimators.imu_preprocessing import ImuKinematicsPreprocessor
 
 
 def test_polynomial_preprocessor_recovers_value_and_derivative_at_latest_time():

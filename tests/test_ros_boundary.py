@@ -36,6 +36,48 @@ class RosBoundaryTest(unittest.TestCase):
 
         self.assertEqual(violations, [])
 
+    def test_probtf_foundation_does_not_import_producers_ros_or_examples(self):
+        source_root = Path(__file__).resolve().parents[1] / "src"
+        foundation_root = source_root / "probtf"
+        forbidden = ROS_MODULES | {
+            "deflecomp_examples",
+            "probtf_estimators",
+            "symaware_grasp",
+        }
+        violations = []
+        for path in sorted(foundation_root.rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    modules = [alias.name.split(".", 1)[0] for alias in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    modules = [node.module.split(".", 1)[0]]
+                else:
+                    continue
+                for module in modules:
+                    if module in forbidden:
+                        violations.append(
+                            f"{path.relative_to(source_root)} imports forbidden dependency {module}"
+                        )
+        self.assertEqual(violations, [])
+
+    def test_generic_ros_bridge_does_not_import_estimators(self):
+        root = Path(__file__).resolve().parents[1]
+        bridge_root = root / "ros" / "core" / "probtf_core" / "src" / "probtf_ros"
+        violations = []
+        for path in sorted(bridge_root.rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    modules = [alias.name.split(".", 1)[0] for alias in node.names]
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    modules = [node.module.split(".", 1)[0]]
+                else:
+                    continue
+                if "probtf_estimators" in modules:
+                    violations.append(str(path.relative_to(root)))
+        self.assertEqual(violations, [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -7,14 +7,14 @@ import rospy
 from sensor_msgs.msg import Imu, MagneticField
 
 from probtf.bingham import bingham_mode, canonical_bingham_parameter
-from probtf.fusion import TransformEvidence
-from probtf.orientation_filter import (
+from probtf_estimators.evidence_fusion import TransformEvidence
+from probtf_estimators.orientation_imu import (
     OrientationBinghamFilter,
     gravity_bingham_evidence,
     magnetic_bingham_evidence,
 )
+from probtf_estimators.ros_conversions import transform_evidence_to_msg
 from probtf_msgs.msg import ProbabilisticTF, TransformEvidence as TransformEvidenceMsg
-from probtf_ros.conversions import transform_evidence_to_msg
 
 
 def _vector3(message):
@@ -167,8 +167,20 @@ class OrientationFilterNode:
                 stamp,
                 message.header.seq,
             )
-            self.prediction_publisher.publish(transform_evidence_to_msg(prediction))
-            self.gravity_publisher.publish(transform_evidence_to_msg(gravity_evidence))
+            self.prediction_publisher.publish(
+                transform_evidence_to_msg(
+                    prediction,
+                    message_type=TransformEvidenceMsg,
+                    time_factory=rospy.Time.from_sec,
+                )
+            )
+            self.gravity_publisher.publish(
+                transform_evidence_to_msg(
+                    gravity_evidence,
+                    message_type=TransformEvidenceMsg,
+                    time_factory=rospy.Time.from_sec,
+                )
+            )
             source_ids = ["gyro_prediction", "gravity"]
             if update.magnetic_evidence is not None:
                 magnetic_evidence = self._evidence(
@@ -178,7 +190,13 @@ class OrientationFilterNode:
                     stamp,
                     message.header.seq,
                 )
-                self.magnetic_publisher.publish(transform_evidence_to_msg(magnetic_evidence))
+                self.magnetic_publisher.publish(
+                    transform_evidence_to_msg(
+                        magnetic_evidence,
+                        message_type=TransformEvidenceMsg,
+                        time_factory=rospy.Time.from_sec,
+                    )
+                )
                 source_ids.append("magnetic")
             self.posterior_publisher.publish(
                 self._posterior_message(

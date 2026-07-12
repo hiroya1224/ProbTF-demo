@@ -23,6 +23,7 @@ from probtf.geometry import (
     unpack_symmetric_upper,
 )
 from probtf.provenance import ComponentProvenance
+from probtf_estimators import coupling_from_hessian
 from probtf.compatibility import (
     LegacyProjectionPolicy,
     distribution_to_legacy_transform,
@@ -139,6 +140,29 @@ def test_right_perturbation_jacobian_has_documented_minimum_norm_inverse():
     local_map = np.array([[1.0, 2.0, 3.0], [0.5, -1.0, 4.0], [2.0, 0.0, 1.0]])
     coupling = local_map @ (0.5 * jacobian.T)
     np.testing.assert_allclose(coupling @ jacobian, local_map, atol=1e-12)
+
+
+def test_hessian_coupling_uses_right_perturbation_minimum_norm_solution():
+    hessian_xx = -np.diag([2.0, 4.0, 8.0])
+    hessian_xu = np.array(
+        [[1.0, 2.0, 3.0], [0.0, 2.0, 4.0], [8.0, 0.0, -8.0]],
+        dtype=float,
+    )
+    result = coupling_from_hessian(
+        hessian_xx,
+        hessian_xu,
+        [1.0, 0.0, 0.0, 0.0],
+    )
+    expected_local = -np.linalg.solve(hessian_xx, hessian_xu)
+    np.testing.assert_allclose(result.local_translation_map, expected_local)
+    np.testing.assert_allclose(
+        result.rotation_coupling @ result.rotation_jacobian,
+        expected_local,
+        atol=1e-12,
+    )
+
+    with pytest.raises(ValueError, match="nonsingular"):
+        coupling_from_hessian(np.zeros((3, 3)), np.eye(3), [1.0, 0.0, 0.0, 0.0])
 
 
 def test_weight_normalization_clamps_negative_and_preserves_order():

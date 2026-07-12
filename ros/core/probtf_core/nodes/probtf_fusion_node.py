@@ -4,9 +4,9 @@ import numpy as np
 import rospy
 
 from probtf.bingham import bingham_mode, canonical_bingham_parameter
-from probtf.fusion import fuse_transform_evidence
+from probtf_estimators.evidence_fusion import fuse_transform_evidence
+from probtf_estimators.ros_conversions import transform_evidence_from_msg
 from probtf_msgs.msg import ProbabilisticTF, TransformEvidence
-from probtf_ros.conversions import transform_evidence_from_msg
 
 
 class ProbTfFusionNode:

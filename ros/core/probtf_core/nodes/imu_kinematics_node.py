@@ -4,7 +4,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Imu
 
-from probtf.imu_preprocessing import ImuKinematicsPreprocessor
+from probtf_estimators.imu_preprocessing import ImuKinematicsPreprocessor
 from probtf_msgs.msg import ImuKinematics
 
 

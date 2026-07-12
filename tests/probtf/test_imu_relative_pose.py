@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from probtf.geometry import quat_to_rotmat
-from probtf.imu_relative_pose import (
+from probtf_estimators.imu_relative_pose import (
     ImuRelativePoseEstimator,
     RecursiveGaussianLeastSquares,
     rigid_point_acceleration_operator,

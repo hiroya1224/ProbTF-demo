@@ -14,6 +14,11 @@ probtf_packages = [
     for package in find_packages(where=str(PROBTF_ROOT))
     if package == "probtf" or package.startswith("probtf.")
 ]
+estimator_packages = [
+    package
+    for package in find_packages(where=str(PROBTF_ROOT))
+    if package == "probtf_estimators" or package.startswith("probtf_estimators.")
+]
 bingham_packages = [
     package
     for package in find_packages(where=str(BINGHAM_ROOT))
@@ -23,9 +28,10 @@ bingham_packages = [
 setup(
     name="probtf_core",
     version="0.1.0",
-    packages=probtf_packages + bingham_packages + ["probtf_ros"],
+    packages=probtf_packages + estimator_packages + bingham_packages + ["probtf_ros"],
     package_dir={
         "probtf": PROBTF_SOURCE + "/probtf",
+        "probtf_estimators": PROBTF_SOURCE + "/probtf_estimators",
         "bingham": BINGHAM_SOURCE + "/bingham",
         "probtf_ros": "src/probtf_ros",
     },

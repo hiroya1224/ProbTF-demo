@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 from probtf.bingham import bingham_mode, canonical_bingham_parameter
-from probtf.orientation_filter import (
+from probtf_estimators.orientation_imu import (
     OrientationBinghamFilter,
     OrientationEvidence,
     delta_quaternion_second_moment,

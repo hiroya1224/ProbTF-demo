@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from probtf.fusion import TransformEvidence, fuse_evidence
+from probtf_estimators.evidence_fusion import TransformEvidence, fuse_evidence
 
 
 class TransformEvidenceFusionTest(unittest.TestCase):

@@ -3,18 +3,20 @@ import sys
 
 import numpy as np
 
-from probtf.fusion import TransformEvidence
 from probtf.models import ProbabilisticTransform
+from probtf_estimators.evidence_fusion import TransformEvidence
+from probtf_estimators.ros_conversions import (
+    imu_kinematics_from_msg,
+    transform_evidence_from_msg,
+    transform_evidence_to_msg,
+)
 
 
 ROS_PYTHON = Path(__file__).resolve().parents[2] / "ros" / "core" / "probtf_core" / "src"
 sys.path.insert(0, str(ROS_PYTHON))
 
 from probtf_ros.conversions import (  # noqa: E402
-    imu_kinematics_from_msg,
     probabilistic_transform_to_msg,
-    transform_evidence_from_msg,
-    transform_evidence_to_msg,
 )
 
 

@@ -4,8 +4,10 @@ from setuptools import find_packages, setup
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
-PROBTF_ROOT = (PACKAGE_ROOT / "../../../src").resolve()
-BINGHAM_ROOT = (PACKAGE_ROOT / "../../../third_party/BinghamNLL/src").resolve()
+PROBTF_SOURCE = "../../../src"
+BINGHAM_SOURCE = "../../../third_party/BinghamNLL/src"
+PROBTF_ROOT = (PACKAGE_ROOT / PROBTF_SOURCE).resolve()
+BINGHAM_ROOT = (PACKAGE_ROOT / BINGHAM_SOURCE).resolve()
 
 probtf_packages = [
     package
@@ -23,8 +25,8 @@ setup(
     version="0.1.0",
     packages=probtf_packages + bingham_packages + ["probtf_ros"],
     package_dir={
-        "probtf": str(PROBTF_ROOT / "probtf"),
-        "bingham": str(BINGHAM_ROOT / "bingham"),
+        "probtf": PROBTF_SOURCE + "/probtf",
+        "bingham": BINGHAM_SOURCE + "/bingham",
         "probtf_ros": "src/probtf_ros",
     },
 )

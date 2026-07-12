@@ -1,8 +1,9 @@
 # ProbTF integrated packages
 
-This repository combines symmetry-aware probabilistic grasping and deflection
-compensation. Reusable Python code lives under `src/`; ROS 1 packages under
-`ros/` contain messages, nodes, launch files, configuration, and robot assets.
+This repository collects probabilistic-transform producers, fusion, query
+experiments, symmetry-aware grasping, and deflection compensation in one
+ProbTF context. Reusable numerical code lives under `src/`; ROS 1 is kept at
+the transport and runtime boundary under `ros/`.
 
 ## Python installation
 
@@ -14,9 +15,11 @@ git submodule update --init --recursive
 python3 -m pip install .
 ```
 
-The installation provides these Python namespaces:
+The installation provides these main Python namespaces:
 
-- `probtf`: shared probabilistic-transform numerical primitives
+- `probtf`: distributions, Bingham moments, evidence fusion, IMU relative-pose
+  production, quaternion prediction, sensor configuration, and symbolic URDF
+  materialization
 - `symaware_grasp`: probabilistic transforms and symmetry-aware IK
 - `deflecomp_core`: ROS-free deflection compensation and estimation
 - `deflecomp_sim`: ROS-free flexible-joint simulation
@@ -28,16 +31,38 @@ Optional plotting and example dependencies are available with
 
 ## ROS workspace
 
-Install the Python project first, then link or clone this repository into a
-catkin workspace and build the packages under `ros/`:
+The ROS tree is organized by role:
+
+- `ros/core/probtf_msgs`: reusable distribution, kinematics, and evidence messages
+- `ros/core/probtf_core`: thin ROS nodes and Python package relays
+- `ros/examples/probtf_imu_demo`: two-IMU relative-pose and symbolic URDF demo
+- `ros/examples/probtf_orientation_demo`: separated gyro/gravity/magnetic demo
+- `ros/examples/deflecomp`, `ros/examples/symaware_grasp`: existing applications
+
+Link or clone this repository into a catkin workspace, then build the core and
+examples. `probtf_core` exposes the root `probtf` package in both devel and
+install spaces; installing the root project separately is only needed for
+standalone non-ROS use or for the older examples' Python namespaces.
 
 ```bash
-cd /path/to/ProbTF-demo
-python3 -m pip install -e .
 cd /path/to/catkin_ws
-catkin build
+catkin build probtf_msgs probtf_core probtf_imu_demo probtf_orientation_demo
+source devel/setup.bash
 ```
 
-`probtf_msgs` owns the reusable message contract. `symaware_grasp`,
-`deflecomp_ros`, `deflecomp_sim`, and the remaining ROS packages are adapters
-and runtime assets around the root Python implementation.
+Run the two migrated producer examples with:
+
+```bash
+roslaunch probtf_imu_demo two_imu_relative_pose.launch
+roslaunch probtf_orientation_demo orientation_filter.launch
+```
+
+Quaternion arrays and Bingham matrices use `[w, x, y, z]`; ROS
+`geometry_msgs/Quaternion` is converted at the adapter boundary. A
+`ProbabilisticTF` explicitly states whether position and orientation are
+present. Source likelihoods and gyro predictions travel as `TransformEvidence`
+and carry source/provenance identifiers so independent evidence is not counted
+twice accidentally.
+
+See `docs/phase1-migration.md` for the migration map, current approximations,
+and issues intentionally deferred to the next design phase.

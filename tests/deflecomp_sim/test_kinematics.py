@@ -13,7 +13,15 @@ class KinematicsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         root = Path(__file__).resolve().parents[2]
-        urdf = root / "ros" / "deflecomp" / "deflecomp_description" / "urdf" / "simple6r.urdf"
+        urdf = (
+            root
+            / "ros"
+            / "examples"
+            / "deflecomp"
+            / "deflecomp_description"
+            / "urdf"
+            / "simple6r.urdf"
+        )
         cls.robot = RobotArm(str(urdf))
 
     def test_imu_samples_are_computed_without_ros_messages(self):

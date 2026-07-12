@@ -9,7 +9,14 @@ from symaware_grasp.prob_tf.urdf_override import build_tree_from_prob_tf_yaml, l
 
 
 def _config_path():
-    return Path(__file__).resolve().parents[2] / "ros" / "symaware_grasp" / "configs" / "simple_six_dof_prob_tf.yaml"
+    return (
+        Path(__file__).resolve().parents[2]
+        / "ros"
+        / "examples"
+        / "symaware_grasp"
+        / "configs"
+        / "simple_six_dof_prob_tf.yaml"
+    )
 
 
 def test_tool0_mean_approaches_deterministic_fk_under_small_uncertainty(tmp_path):

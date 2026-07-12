@@ -1,0 +1,417 @@
+digraph ProbTFDemoCurrentArchitecture {
+  graph [
+    rankdir=LR,
+    compound=true,
+    newrank=true,
+    bgcolor="white",
+    fontname="DejaVu Sans",
+    fontsize=18,
+    label="ProbTF-demo Current Architecture (2026-07-12 22:30:00 JST, main@2846fce)",
+    labelloc=t,
+    labeljust=l,
+    nodesep=0.38,
+    ranksep=0.70,
+    pad=0.25,
+    splines=polyline
+  ];
+
+  node [
+    shape=box,
+    style="rounded,filled",
+    fillcolor="white",
+    color="#475569",
+    fontname="DejaVu Sans",
+    fontsize=10,
+    margin="0.12,0.08"
+  ];
+  edge [
+    color="#64748b",
+    fontcolor="#334155",
+    fontname="DejaVu Sans",
+    fontsize=9,
+    arrowsize=0.7
+  ];
+
+  subgraph cluster_code {
+    label="Code and package layers";
+    color="#94a3b8";
+    style="rounded,dashed";
+
+    root_distribution [
+      shape=folder,
+      fillcolor="#f8fafc",
+      label="probtf-integrated 0.1.0\nRoot Python distribution\nPython >= 3.8"
+    ];
+
+    subgraph cluster_foundation {
+      label="ROS-independent foundation: src/probtf";
+      color="#60a5fa";
+      style="rounded,filled";
+      fillcolor="#eff6ff";
+
+      foundation_model [
+        fillcolor="#dbeafe",
+        label="distributions\nBingham orientation kinds\nconditional Gaussian translation\njoint component mixture + stamped edge"
+      ];
+      foundation_graph [
+        fillcolor="#dbeafe",
+        label="graph + temporal\nphysical forest\nper-edge time buffers\nTF-style path resolution"
+      ];
+      foundation_kernel [
+        fillcolor="#dbeafe",
+        label="kernels\nlazy forward / inverse / mixture / composed\nexplicit representation and diagnostics"
+      ];
+      foundation_math [
+        fillcolor="#dbeafe",
+        label="geometry + probability + bingham\n[w,x,y,z], column-major vec(R)\nrotation and point moments"
+      ];
+      foundation_isl [
+        fillcolor="#dbeafe",
+        label="spherical_law (probtf.isl alias)\ninduced direction/vector protocol\nexact special cases + tangent surrogate"
+      ];
+      foundation_metadata [
+        fillcolor="#dbeafe",
+        label="provenance + approximation\ntyped dependency and loss metadata"
+      ];
+      foundation_support [
+        fillcolor="#dbeafe",
+        label="sensor_config + symbolic_urdf\nconfiguration and template utilities"
+      ];
+      foundation_legacy [
+        fillcolor="#fef3c7",
+        label="models + compatibility.legacy\nv1 independent Gaussian/Bingham model\nexplicit v1 <-> v2 library adapters"
+      ];
+      unavailable_backends [
+        shape=note,
+        style="filled,dashed",
+        color="#64748b",
+        fillcolor="#f1f5f9",
+        label="Explicitly unavailable today\nfinite-Bingham exact ISL density\nstochastic inverse and sampling\ntemporal interpolation/prediction\nclosed-mixture reduction"
+      ];
+
+      foundation_graph -> foundation_model [label="stores / resolves"];
+      foundation_graph -> foundation_metadata [label="diagnostics"];
+      foundation_kernel -> foundation_graph [label="path -> expression"];
+      foundation_kernel -> foundation_model [label="edge law"];
+      foundation_kernel -> foundation_math [label="moment evaluation"];
+      foundation_kernel -> foundation_isl [label="numerical law backend"];
+      foundation_kernel -> foundation_metadata [label="loss / status"];
+      foundation_math -> foundation_model [label="distribution moments"];
+      foundation_isl -> foundation_model [label="orientation law"];
+      foundation_isl -> foundation_math [label="tangent math"];
+      foundation_legacy -> foundation_model [label="explicit conversion"];
+      foundation_support -> foundation_math [label="geometry convention"];
+      unavailable_backends -> foundation_kernel [style=dashed, arrowhead=none, label="typed UNAVAILABLE result"];
+      unavailable_backends -> foundation_graph [style=dashed, arrowhead=none, label="unsupported time policy"];
+    }
+
+    subgraph cluster_estimators {
+      label="Producer algorithms: src/probtf_estimators";
+      color="#4ade80";
+      style="rounded,filled";
+      fillcolor="#f0fdf4";
+
+      estimator_preprocess [label="IMU preprocessing\nlocal polynomial derivatives"];
+      estimator_relative [label="IMU relative pose\nBingham alignment + Gaussian RLS"];
+      estimator_orientation [label="orientation IMU filter\ngyro prediction + vector evidence"];
+      estimator_fusion [label="same-edge evidence fusion\nsource-aware natural-parameter sum"];
+      estimator_coupling [label="Hessian -> rotation coupling C"];
+      estimator_ros_duck [label="duck-typed message conversions\n(no ROS imports)"];
+
+      estimator_ros_duck -> estimator_fusion [label="converts"];
+    }
+
+    subgraph cluster_ros_boundary {
+      label="ROS 1 / catkin boundary";
+      color="#f59e0b";
+      style="rounded,filled";
+      fillcolor="#fffbeb";
+
+      msgs_v2 [
+        shape=component,
+        fillcolor="#fef3c7",
+        label="probtf_msgs v2\nProbabilisticTransformStamped/Array\ncomponent + coupling + metadata"
+      ];
+      msgs_v1 [
+        shape=component,
+        fillcolor="#fed7aa",
+        label="probtf_msgs legacy/application\nProbabilisticTF/Array\nTransformEvidence, ImuKinematics, IKResult"
+      ];
+      ros_adapter [
+        shape=component,
+        fillcolor="#fef3c7",
+        label="probtf_core / probtf_ros\nv2 conversion, broadcaster/listener\nTF import/export + loop guard"
+      ];
+      demo_code [
+        shape=component,
+        fillcolor="#fef3c7",
+        label="probtf_imu_demo\nprobtf_orientation_demo\nproducer-owned ROS nodes"
+      ];
+
+      ros_adapter -> msgs_v2 [label="primary wire"];
+      ros_adapter -> msgs_v1 [style=dashed, label="legacy conversion API"];
+      demo_code -> msgs_v1 [label="current demo wire"];
+      demo_code -> ros_adapter [label="legacy message conversion"];
+    }
+
+    subgraph cluster_app_code {
+      label="Applications and examples";
+      color="#f472b6";
+      style="rounded,filled";
+      fillcolor="#fdf2f8";
+
+      symaware_code [
+        shape=component,
+        fillcolor="#fce7f3",
+        label="symaware_grasp + symaware_grasp_ros\nlegacy ProbTfTree + core adapter\ngrasp composition + symmetry-aware IK"
+      ];
+      deflecomp_code [
+        shape=component,
+        fillcolor="#fce7f3",
+        label="deflecomp_core / sim / examples\nequilibrium, WEKF, control\nflexible-joint simulation"
+      ];
+
+    }
+
+    subgraph cluster_third_party {
+      label="External dependencies";
+      color="#a8a29e";
+      style="rounded,filled";
+      fillcolor="#fafaf9";
+
+      bingham_nll [shape=cylinder, label="BinghamNLL\npinned git submodule"];
+      numeric_stack [shape=cylinder, label="NumPy + SciPy + Pinocchio\nPyYAML + numpy-quaternion"];
+      ros_stack [shape=cylinder, label="ROS 1 / catkin\nrospy + tf2 + ROS messages"];
+    }
+
+    estimator_preprocess -> foundation_legacy [label="ImuKinematics model"];
+    estimator_relative -> foundation_math [label="Bingham moments"];
+    estimator_relative -> foundation_legacy [label="v1 output model"];
+    estimator_orientation -> foundation_math [label="Bingham moments"];
+    estimator_coupling -> foundation_math [label="vec(R) Jacobian"];
+    estimator_ros_duck -> foundation_legacy [label="ImuKinematics model"];
+    ros_adapter -> foundation_graph [label="in-process graph"];
+    ros_adapter -> foundation_legacy [style=dashed, label="explicit adapter"];
+    demo_code -> estimator_preprocess [label="uses"];
+    demo_code -> estimator_relative [label="uses"];
+    demo_code -> estimator_orientation [label="uses"];
+    demo_code -> estimator_fusion [label="uses"];
+    symaware_code -> msgs_v1 [label="current ROS wire"];
+    symaware_code -> foundation_graph [style=dashed, label="legacy tree adapter API"];
+    symaware_code -> foundation_math [label="shared Bingham/geometry"];
+    deflecomp_code -> foundation_math [style=dotted, label="quaternion helpers only"];
+
+    root_distribution -> foundation_model [label="installs"];
+    root_distribution -> estimator_preprocess [label="installs"];
+    root_distribution -> symaware_code [label="installs"];
+    root_distribution -> deflecomp_code [label="installs"];
+    root_distribution -> bingham_nll [label="bundles namespace"];
+    foundation_math -> bingham_nll [label="normalizer derivatives"];
+    foundation_math -> numeric_stack [label="numerics"];
+    estimator_preprocess -> numeric_stack [label="numerics"];
+    deflecomp_code -> numeric_stack [label="robotics / optimization"];
+    ros_adapter -> ros_stack [label="transport"];
+    demo_code -> ros_stack [label="runtime"];
+  }
+
+  subgraph cluster_runtime {
+    label="Current runtime systems";
+    color="#334155";
+    style="rounded,dashed";
+
+    subgraph cluster_v2_runtime {
+      label="Generic ProbTF v2 / TF bridge";
+      color="#3b82f6";
+      style="rounded,filled";
+      fillcolor="#eff6ff";
+
+      tf_bus [
+        shape=ellipse,
+        fillcolor="#dcfce7",
+        label="/tf + /tf_static\nTFMessage"
+      ];
+      bridge_runtime [
+        fillcolor="#dbeafe",
+        label="probtf_bridge node\nimport/export policy + loop prevention"
+      ];
+      probtf_v2_bus [
+        shape=ellipse,
+        fillcolor="#dbeafe",
+        label="/probtf\nProbabilisticTransformStamped v2\n/probtf_static\nlatched full static Array v2"
+      ];
+      graph_runtime [
+        fillcolor="#dbeafe",
+        label="in-process ProbTfGraph\ntopology + timestamp buffers"
+      ];
+      query_api [
+        shape=note,
+        fillcolor="#f8fafc",
+        label="Python lookup API only\nNo ROS service/action endpoint"
+      ];
+
+      tf_bus -> bridge_runtime [dir=both, color="#15803d", fontcolor="#166534", label="deterministic import / policy export"];
+      probtf_v2_bus -> bridge_runtime [dir=both, color="#2563eb", fontcolor="#1d4ed8", label="v2 dynamic + static"];
+      bridge_runtime -> graph_runtime [color="#2563eb", label="listener insert"];
+      query_api -> graph_runtime [style=dashed, label="same-process call"];
+    }
+
+    subgraph cluster_imu_runtime {
+      label="Two-IMU relative-pose demo (legacy wire)";
+      color="#fb923c";
+      style="rounded,filled";
+      fillcolor="#fff7ed";
+
+      imu_pair [shape=ellipse, fillcolor="#ffffff", label="/imu_parent/data\n/imu_child/data"];
+      kinematics_nodes [label="2 x imu_kinematics_node\nwindow=9, polynomial=2"];
+      kinematics_topics [shape=ellipse, fillcolor="#ffedd5", label="2 x ImuKinematics topics"];
+      relative_node [label="imu_relative_pose_node\nApproximateTimeSynchronizer"];
+      relative_v1 [shape=ellipse, fillcolor="#fed7aa", label="relative_pose\nProbabilisticTF v1"];
+      materializer [style="rounded,filled,dashed", label="symbolic_urdf_materializer\nwhen materialize_urdf=true"];
+      robot_description [shape=note, fillcolor="#ffffff", label="/robot_description\n+ materialized_urdf String"];
+      imu_rsp [style="rounded,filled,dashed", label="robot_state_publisher"];
+      mount_tf [label="sensor_mount_tf\nYAML -> static TF"];
+
+      imu_pair -> kinematics_nodes -> kinematics_topics -> relative_node;
+      relative_node -> relative_v1 [color="#c2410c", fontcolor="#9a3412", label="legacy v1"];
+      relative_v1 -> materializer [color="#c2410c"];
+      materializer -> robot_description -> imu_rsp;
+    }
+
+    subgraph cluster_orientation_runtime {
+      label="Orientation producer demo (legacy wire)";
+      color="#fb923c";
+      style="rounded,filled";
+      fillcolor="#fff7ed";
+
+      imu_mag [shape=ellipse, fillcolor="#ffffff", label="/imu/data + /imu/mag"];
+      orientation_filter [label="orientation_filter_node\ngyro + gravity + optional magnetic"];
+      evidence_topics [shape=ellipse, fillcolor="#ffedd5", label="prediction / gravity / magnetic\nTransformEvidence"];
+      orientation_fusion [label="probtf_fusion_node\nlatest evidence within stamp skew"];
+      orientation_outputs [shape=ellipse, fillcolor="#fed7aa", label="posterior + fused\nProbabilisticTF v1"];
+
+      imu_mag -> orientation_filter;
+      orientation_filter -> evidence_topics [color="#c2410c"];
+      evidence_topics -> orientation_fusion [color="#c2410c"];
+      orientation_filter -> orientation_outputs [color="#c2410c", label="internal posterior"];
+      orientation_fusion -> orientation_outputs [color="#c2410c", label="source-separated fusion"];
+    }
+
+    legacy_runtime_bus [
+      shape=ellipse,
+      fillcolor="#fed7aa",
+      color="#c2410c",
+      label="Application-specific v1 topics\nProbabilisticTF / ProbabilisticTFArray"
+    ];
+    v1_v2_gap [
+      shape=note,
+      style="filled,bold",
+      fillcolor="#fef2f2",
+      color="#dc2626",
+      fontcolor="#991b1b",
+      label="CURRENT RUNTIME GAP\nLibrary adapters exist, but no launched\nv1 -> v2 conversion node connects\nlegacy demo topics to /probtf."
+    ];
+
+    relative_v1 -> legacy_runtime_bus [color="#c2410c"];
+    orientation_outputs -> legacy_runtime_bus [color="#c2410c"];
+    legacy_runtime_bus -> v1_v2_gap [style=dashed, color="#dc2626", arrowhead=none];
+    v1_v2_gap -> probtf_v2_bus [style=dashed, color="#dc2626", arrowhead=none, label="not connected"];
+
+    subgraph cluster_symaware_runtime {
+      label="Symmetry-aware grasp demo (legacy wire)";
+      color="#ec4899";
+      style="rounded,filled";
+      fillcolor="#fdf2f8";
+
+      object_pose [label="object_pose_node"];
+      object_v1 [shape=ellipse, fillcolor="#fce7f3", label="object_prob_tf v1"];
+      grasp_targets [label="grasp target composer"];
+      target_array_v1 [shape=ellipse, fillcolor="#fce7f3", label="grasp_target_ptfs v1 array"];
+      robot_controller [label="robot_controller"];
+      joint_states [shape=ellipse, fillcolor="#ffffff", label="joint_states"];
+      hand_belief [label="hand_prob_tf_publisher"];
+      hand_v1 [shape=ellipse, fillcolor="#fce7f3", label="hand_prob_tf v1"];
+      ik_manual [
+        style="rounded,filled,dashed",
+        fillcolor="#fce7f3",
+        label="symmetry_aware_ik_node\ninstalled; NOT in default launch\none-shot when run manually"
+      ];
+      target_joint_states [shape=ellipse, style="filled,dashed", label="target_joint_states"];
+      grasp_visualizers [label="PTF visualizers + robot_state_publisher + RViz"];
+
+      object_pose -> object_v1 [color="#c2410c"];
+      object_v1 -> grasp_targets -> target_array_v1 [color="#c2410c"];
+      robot_controller -> joint_states -> hand_belief;
+      hand_belief -> hand_v1 [color="#c2410c"];
+      target_array_v1 -> ik_manual [style=dashed, color="#c2410c"];
+      joint_states -> ik_manual [style=dashed];
+      ik_manual -> target_joint_states [style=dashed];
+      target_joint_states -> robot_controller [style=dashed];
+      object_v1 -> grasp_visualizers [color="#c2410c"];
+      hand_v1 -> grasp_visualizers [color="#c2410c"];
+      joint_states -> grasp_visualizers [label="robot state"];
+      ik_manual -> grasp_visualizers [style=dashed, color="#c2410c", label="selected target"];
+    }
+
+    subgraph cluster_deflecomp_runtime {
+      label="Deflection compensation closed loop (separate from ProbTF topics)";
+      color="#8b5cf6";
+      style="rounded,filled";
+      fillcolor="#f5f3ff";
+
+      reference_state [shape=ellipse, fillcolor="#ffffff", label="/ref/joint_states"];
+      deflecomp_node [label="deflecomp_node\nIMU buffers + WEKF + command"];
+      command_state [shape=ellipse, fillcolor="#ede9fe", label="/cmd/joint_states"];
+      deflecomp_sim [label="deflecomp_sim\nflexible-joint dynamics"];
+      simulated_feedback [shape=ellipse, fillcolor="#ede9fe", label="/equil/joint_states + /imu"];
+      external_wrench [shape=ellipse, fillcolor="#ffffff", label="optional external wrench"];
+      particle_worker [
+        style="rounded,filled,dashed",
+        fillcolor="#ede9fe",
+        label="particle scan worker process\ntask/result queues"
+      ];
+      deflecomp_debug [shape=ellipse, fillcolor="#ffffff", label="/deflecomp/kp_* + debug topics"];
+      frame_publishers [label="ref/cmd/equil\nrobot_state_publishers"];
+
+      reference_state -> deflecomp_node -> command_state -> deflecomp_sim;
+      deflecomp_sim -> simulated_feedback -> deflecomp_node;
+      external_wrench -> deflecomp_sim;
+      deflecomp_node -> particle_worker [dir=both, style=dashed, label="IPC"];
+      deflecomp_node -> deflecomp_debug;
+      reference_state -> frame_publishers;
+      command_state -> frame_publishers;
+      simulated_feedback -> frame_publishers [label="/equil only"];
+    }
+
+    imu_rsp -> tf_bus [color="#15803d", label="TF"];
+    mount_tf -> tf_bus [color="#15803d", label="static TF"];
+    grasp_visualizers -> tf_bus [color="#15803d", label="TF"];
+    object_v1 -> legacy_runtime_bus [color="#c2410c"];
+    target_array_v1 -> legacy_runtime_bus [color="#c2410c"];
+    hand_v1 -> legacy_runtime_bus [color="#c2410c"];
+    frame_publishers -> tf_bus [color="#15803d", label="TF"];
+  }
+
+  bridge_runtime -> ros_adapter [style=dotted, color="#64748b", label="implemented by", constraint=false];
+  kinematics_nodes -> demo_code [style=dotted, color="#64748b", label="implemented by", constraint=false];
+  relative_node -> demo_code [style=dotted, color="#64748b", constraint=false];
+  orientation_filter -> demo_code [style=dotted, color="#64748b", constraint=false];
+  object_pose -> symaware_code [style=dotted, color="#64748b", label="implemented by", constraint=false];
+  deflecomp_node -> deflecomp_code [style=dotted, color="#64748b", label="implemented by", constraint=false];
+
+  subgraph cluster_legend {
+    label="Legend";
+    color="#cbd5e1";
+    style="rounded";
+
+    legend_node [label="process / module"];
+    legend_topic [shape=ellipse, label="ROS topic"];
+    legend_optional [style="rounded,filled,dashed", label="conditional or manually started"];
+    legend_gap [shape=note, color="#dc2626", fontcolor="#991b1b", label="known runtime gap"];
+    legend_v2_a [shape=point, width=0.01, label=""];
+    legend_v2_b [shape=point, width=0.01, label=""];
+    legend_v1_a [shape=point, width=0.01, label=""];
+    legend_v1_b [shape=point, width=0.01, label=""];
+    legend_v2_a -> legend_v2_b [color="#2563eb", label="v2 ProbTF"];
+    legend_v1_a -> legend_v1_b [color="#c2410c", label="legacy/application wire"];
+  }
+}

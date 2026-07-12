@@ -3,19 +3,14 @@ import os
 
 import yaml
 
-from probik_msgs.msg import GraspCandidate
+from symaware_grasp.models import GraspCandidate
 from symaware_grasp.ptf_utils import (
     quaternion_from_approach_and_finger_axes,
     quaternion_from_rpy,
-    quaternion_msg_from_wxyz,
-    vector3_msg_from_array,
 )
 
 
 def _candidate_from_dict(candidate_dict):
-    candidate = GraspCandidate()
-    candidate.grasp_id = str(candidate_dict["grasp_id"])
-    candidate.object_to_grasp_position = vector3_msg_from_array(candidate_dict["object_to_grasp_position"])
     approach_axis = candidate_dict.get("approach_axis")
     finger_axis = candidate_dict.get("finger_axis")
 
@@ -33,11 +28,14 @@ def _candidate_from_dict(candidate_dict):
     else:
         raise KeyError("Grasp candidate requires an orientation.")
 
-    candidate.object_to_grasp_orientation = quaternion_msg_from_wxyz(quat_wxyz)
-    candidate.approach_axis = vector3_msg_from_array(approach_axis or [1.0, 0.0, 0.0])
-    candidate.finger_axis = vector3_msg_from_array(finger_axis or [0.0, 0.0, 1.0])
-    candidate.weight = float(candidate_dict.get("weight", 1.0))
-    return candidate
+    return GraspCandidate(
+        grasp_id=candidate_dict["grasp_id"],
+        object_to_grasp_position=candidate_dict["object_to_grasp_position"],
+        object_to_grasp_orientation_wxyz=quat_wxyz,
+        approach_axis=approach_axis or [1.0, 0.0, 0.0],
+        finger_axis=finger_axis or [0.0, 0.0, 1.0],
+        weight=candidate_dict.get("weight", 1.0),
+    )
 
 
 def load_grasp_library(path, object_id):

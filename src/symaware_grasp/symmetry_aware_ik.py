@@ -10,8 +10,6 @@ from symaware_grasp.distribution_metrics import (
 )
 from symaware_grasp.ptf_utils import (
     make_bingham_distribution,
-    position_covariance_from_msg,
-    ptf_mode_quaternion_wxyz,
     regularized_inverse_covariance,
 )
 
@@ -92,7 +90,7 @@ class SymmetryAwareIKSolver:
             )
         return aliases[method]
 
-    def solve(self, target_messages, theta_now, method=None, use_bingham_orientation=None):
+    def solve(self, targets, theta_now, method=None, use_bingham_orientation=None):
         method = self._normalize_method(method, use_bingham_orientation)
         if method == self.METHOD_BHATTACHARYYA and self.hand_belief_model is None:
             raise RuntimeError("Symmetry-aware IK requires an EndEffectorBeliefModel to evaluate EE uncertainty.")
@@ -100,8 +98,8 @@ class SymmetryAwareIKSolver:
         if self.hand_belief_model is not None:
             self.hand_belief_model.clear_cache()
         results = []
-        for target_message in target_messages:
-            result = self.solve_single_target(target_message, theta_now, method)
+        for target in targets:
+            result = self.solve_single_target(target, theta_now, method)
             results.append(result)
 
         feasible_results = [result for result in results if result["success"]]
@@ -110,19 +108,12 @@ class SymmetryAwareIKSolver:
         best_result = min(feasible_results, key=lambda result: result["total_cost"])
         return best_result, results
 
-    def solve_single_target(self, target_message, theta_now, method):
-        covariance = position_covariance_from_msg(target_message)
+    def solve_single_target(self, target, theta_now, method):
+        covariance = target.position_covariance
         inverse_covariance = regularized_inverse_covariance(covariance)
-        target_position = np.array(
-            [
-                target_message.position_mean.x,
-                target_message.position_mean.y,
-                target_message.position_mean.z,
-            ],
-            dtype=float,
-        )
-        distribution = make_bingham_distribution(target_message.orientation_bingham.matrix)
-        target_mode = ptf_mode_quaternion_wxyz(target_message)
+        target_position = target.position_mean
+        distribution = make_bingham_distribution(target.orientation_bingham)
+        target_mode = target.orientation_mode_wxyz
         target_A = distribution.A.copy()
         target_log_normalizer = bingham_log_normalizer_from_A(
             target_A,
@@ -166,7 +157,7 @@ class SymmetryAwareIKSolver:
 
         if best_theta is None:
             return {
-                "grasp_id": target_message.child_frame_id,
+                "grasp_id": target.child_frame_id,
                 "theta_solution": theta_now.copy(),
                 "total_cost": float("inf"),
                 "position_cost": float("inf"),
@@ -174,11 +165,11 @@ class SymmetryAwareIKSolver:
                 "motion_cost": float("inf"),
                 "joint_limit_cost": float("inf"),
                 "success": False,
-                "target_message": target_message,
+                "target": target,
             }
 
         return {
-            "grasp_id": target_message.child_frame_id,
+            "grasp_id": target.child_frame_id,
             "theta_solution": best_theta,
             "total_cost": best_parts["total_cost"],
             "position_cost": best_parts["position_cost"],
@@ -186,7 +177,7 @@ class SymmetryAwareIKSolver:
             "motion_cost": best_parts["motion_cost"],
             "joint_limit_cost": best_parts["joint_limit_cost"],
             "success": True,
-            "target_message": target_message,
+            "target": target,
         }
 
     def evaluate_cost(

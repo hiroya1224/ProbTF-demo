@@ -12,9 +12,11 @@ from probik_msgs.msg import ProbabilisticTF
 from symaware_grasp.ptf_utils import (
     make_bingham_distribution,
     pack_rgb,
+    rotation_matrix_from_quaternion,
+)
+from symaware_grasp_ros.messages import (
     position_covariance_from_msg,
     ptf_mode_quaternion_wxyz,
-    rotation_matrix_from_quaternion,
     vector3_from_msg,
 )
 

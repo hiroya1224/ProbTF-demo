@@ -8,9 +8,9 @@ import rospy
 from probik_msgs.msg import ProbabilisticTF
 from symaware_grasp.ptf_utils import (
     axially_symmetric_bingham_matrix,
-    make_probabilistic_tf_message,
     quaternion_from_rpy,
 )
+from symaware_grasp_ros.messages import make_probabilistic_tf_message
 
 
 class ObjectPoseNode:

@@ -7,17 +7,14 @@ from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker
 
 from symaware_grasp.grasp_library import load_grasp_library
+from symaware_grasp.grasp_targets import compose_grasp_targets
 from probik_msgs.msg import ProbabilisticTF, ProbabilisticTFArray
 from symaware_grasp.ptf_utils import (
-    make_bingham_distribution,
-    make_probabilistic_tf_message,
-    position_covariance_from_msg,
-    ptf_mode_quaternion_wxyz,
-    pushforward_bingham_right,
-    quaternion_multiply_wxyz,
-    quaternion_wxyz_from_msg,
     rotation_matrix_from_quaternion,
-    vector3_from_msg,
+)
+from symaware_grasp_ros.messages import (
+    probabilistic_transform_from_msg,
+    probabilistic_transform_to_msg,
 )
 
 
@@ -39,40 +36,16 @@ class ProbTFGraspTargetNode:
         self.subscriber = rospy.Subscriber(input_topic, ProbabilisticTF, self.handle_object_ptf, queue_size=1)
 
     def handle_object_ptf(self, object_message):
-        distribution = make_bingham_distribution(object_message.orientation_bingham)
-        object_mode = ptf_mode_quaternion_wxyz(object_message)
-        object_rotation_mode = rotation_matrix_from_quaternion(object_mode)
-        object_covariance = position_covariance_from_msg(object_message)
-        object_mean = vector3_from_msg(object_message.position_mean)
-
-        target_messages = []
-        for candidate in self.candidates:
-            grasp_offset = vector3_from_msg(candidate.object_to_grasp_position)
-            grasp_orientation = quaternion_wxyz_from_msg(candidate.object_to_grasp_orientation)
-            target_mean = object_mean + object_rotation_mode @ grasp_offset
-            target_covariance = object_covariance + self.covariance_floor * np.eye(3, dtype=float)
-
-            if self.rotation_covariance_samples > 1 and np.linalg.norm(grasp_offset) > 1e-8:
-                sampled_quaternions = distribution.update_sample(N_sample=self.rotation_covariance_samples)
-                rotated_offsets = np.asarray(
-                    [rotation_matrix_from_quaternion(sampled_quaternion) @ grasp_offset for sampled_quaternion in sampled_quaternions],
-                    dtype=float,
-                )
-                target_covariance += np.cov(rotated_offsets.T)
-
-            target_mode = quaternion_multiply_wxyz(object_mode, grasp_orientation)
-            target_bingham = pushforward_bingham_right(object_message.orientation_bingham.matrix, grasp_orientation)
-            target_messages.append(
-                make_probabilistic_tf_message(
-                    parent_frame_id=object_message.parent_frame_id or object_message.header.frame_id,
-                    child_frame_id=candidate.grasp_id,
-                    position_mean_xyz=target_mean,
-                    position_covariance=target_covariance,
-                    orientation_bingham_matrix=target_bingham,
-                    orientation_mode_wxyz=target_mode,
-                    stamp=object_message.header.stamp,
-                )
-            )
+        targets = compose_grasp_targets(
+            probabilistic_transform_from_msg(object_message),
+            self.candidates,
+            rotation_covariance_samples=self.rotation_covariance_samples,
+            covariance_floor=self.covariance_floor,
+        )
+        target_messages = [
+            probabilistic_transform_to_msg(target, stamp=object_message.header.stamp)
+            for target in targets
+        ]
 
         output = ProbabilisticTFArray()
         output.header.stamp = object_message.header.stamp
@@ -99,8 +72,9 @@ class ProbTFGraspTargetNode:
             ColorRGBA(r=0.0, g=0.0, b=1.0, a=1.0),
         ]
         for target_message in target_array.transforms:
-            origin = vector3_from_msg(target_message.position_mean)
-            rotation = rotation_matrix_from_quaternion(ptf_mode_quaternion_wxyz(target_message))
+            target = probabilistic_transform_from_msg(target_message)
+            origin = target.position_mean
+            rotation = rotation_matrix_from_quaternion(target.orientation_mode_wxyz)
             for axis_index, color in enumerate(colors):
                 endpoint = origin + self.axis_length * rotation[:, axis_index]
                 marker.points.extend(

@@ -1,6 +1,3 @@
-import os
-import sys
-
 import numpy as np
 
 from probik.geometry import (
@@ -13,19 +10,13 @@ from probik.geometry import (
 )
 
 
-DEFAULT_BINGHAM_SOURCE_DIR = os.environ.get("BINGHAM_SOURCE_DIR", "/home/leus/BinghamNLL/src")
-if os.path.isdir(DEFAULT_BINGHAM_SOURCE_DIR) and DEFAULT_BINGHAM_SOURCE_DIR not in sys.path:
-    sys.path.insert(0, DEFAULT_BINGHAM_SOURCE_DIR)
-
 try:
     import quaternion
-    from geometry_msgs.msg import Quaternion, Vector3
-    from probik_msgs.msg import BinghamDistribution, ProbabilisticTF
     from bingham.distribution import BinghamDistribution as BinghamDistributionImpl
 except ImportError as exc:
     raise ImportError(
-        "symaware_grasp requires geometry_msgs, numpy-quaternion, and the local BinghamNLL source. "
-        "Set BINGHAM_SOURCE_DIR or add /home/leus/BinghamNLL/src to PYTHONPATH."
+        "symaware_grasp requires numpy-quaternion and the pinned BinghamNLL submodule. "
+        "Initialize submodules before installing the root project."
     ) from exc
 
 
@@ -136,84 +127,14 @@ def regularized_inverse_covariance(covariance_matrix, epsilon=1e-6):
     return np.linalg.inv(covariance_matrix + epsilon * np.eye(3, dtype=float))
 
 
-def vector3_from_msg(msg):
-    return np.array([msg.x, msg.y, msg.z], dtype=float)
-
-
-def vector3_msg_from_array(values_xyz):
-    vector = Vector3()
-    vector.x = float(values_xyz[0])
-    vector.y = float(values_xyz[1])
-    vector.z = float(values_xyz[2])
-    return vector
-
-
-def quaternion_msg_from_wxyz(quat_wxyz):
-    quat = normalize_wxyz(quat_wxyz)
-    message = Quaternion()
-    message.w = float(quat[0])
-    message.x = float(quat[1])
-    message.y = float(quat[2])
-    message.z = float(quat[3])
-    return message
-
-
-def quaternion_wxyz_from_msg(message):
-    return normalize_wxyz([message.w, message.x, message.y, message.z])
-
-
 def quaternion_array_to_wxyz(quat_value):
     return normalize_wxyz(quaternion.as_float_array(quat_value))
-
-
-def position_covariance_from_msg(message):
-    return symmetric_matrix_from_flat(message.position_covariance, 3)
 
 
 def make_bingham_distribution(matrix_values):
     if hasattr(matrix_values, "matrix"):
         matrix_values = matrix_values.matrix
     return BinghamDistributionImpl(A=symmetric_matrix_from_flat(matrix_values, 4))
-
-
-def ptf_mode_quaternion_wxyz(message):
-    mode_candidate = np.array(
-        [
-            message.orientation_mode.w,
-            message.orientation_mode.x,
-            message.orientation_mode.y,
-            message.orientation_mode.z,
-        ],
-        dtype=float,
-    )
-    if np.linalg.norm(mode_candidate) > 1e-8:
-        return normalize_wxyz(mode_candidate)
-    return quaternion_array_to_wxyz(make_bingham_distribution(message.orientation_bingham).mode())
-
-
-def make_probabilistic_tf_message(
-    parent_frame_id,
-    child_frame_id,
-    position_mean_xyz,
-    position_covariance,
-    orientation_bingham_matrix,
-    orientation_mode_wxyz,
-    stamp=None,
-    approximation_type="gaussian_position_bingham_orientation",
-):
-    message = ProbabilisticTF()
-    if stamp is not None:
-        message.header.stamp = stamp
-    message.header.frame_id = parent_frame_id
-    message.parent_frame_id = parent_frame_id
-    message.child_frame_id = child_frame_id
-    message.position_mean = vector3_msg_from_array(position_mean_xyz)
-    message.position_covariance = np.asarray(position_covariance, dtype=float).reshape(-1).tolist()
-    message.orientation_bingham = BinghamDistribution()
-    message.orientation_bingham.matrix = np.asarray(orientation_bingham_matrix, dtype=float).reshape(-1).tolist()
-    message.orientation_mode = quaternion_msg_from_wxyz(orientation_mode_wxyz)
-    message.approximation_type = approximation_type
-    return message
 
 
 def pushforward_bingham_right(matrix_values, rhs_wxyz):

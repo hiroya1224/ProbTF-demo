@@ -8,6 +8,10 @@ from symaware_grasp.arm_kinematics import ToyArm6DOF
 from symaware_grasp.ee_belief import EndEffectorBeliefModel
 from probik_msgs.msg import IKResult, ProbabilisticTF, ProbabilisticTFArray
 from symaware_grasp.symmetry_aware_ik import SymmetryAwareIKSolver
+from symaware_grasp_ros.messages import (
+    probabilistic_transform_from_msg,
+    probabilistic_transform_to_msg,
+)
 
 
 def _get_hand_belief_param(name, default):
@@ -58,6 +62,7 @@ class SymmetryAwareIKNode:
         target_array = rospy.wait_for_message(self.grasp_targets_topic, ProbabilisticTFArray)
         joint_state = rospy.wait_for_message(self.joint_states_topic, JointState)
         theta_now = self.joint_state_to_array(joint_state)
+        targets = [probabilistic_transform_from_msg(message) for message in target_array.transforms]
 
         solver = SymmetryAwareIKSolver(
             robot_model=self.robot_model,
@@ -72,8 +77,8 @@ class SymmetryAwareIKNode:
             bingham_integration_steps=int(_get_ik_param("bingham_integration_steps", 80)),
         )
 
-        best_result, _ = solver.solve(target_array.transforms, theta_now, method=self.ik_method)
-        baseline_result, _ = solver.solve(target_array.transforms, theta_now, method=SymmetryAwareIKSolver.METHOD_DETERMINISTIC)
+        best_result, _ = solver.solve(targets, theta_now, method=self.ik_method)
+        baseline_result, _ = solver.solve(targets, theta_now, method=SymmetryAwareIKSolver.METHOD_DETERMINISTIC)
 
         if best_result is None:
             rospy.logerr("No feasible IK solution was found for method '%s'.", self.ik_method)
@@ -106,7 +111,9 @@ class SymmetryAwareIKNode:
         command.name = list(self.robot_model.joint_names)
         command.position = best_result["theta_solution"].tolist()
         self.target_publisher.publish(command)
-        self.selected_target_publisher.publish(best_result["target_message"])
+        self.selected_target_publisher.publish(
+            probabilistic_transform_to_msg(best_result["target"], stamp=target_array.header.stamp)
+        )
         rospy.sleep(0.25)
 
     def joint_state_to_array(self, message):

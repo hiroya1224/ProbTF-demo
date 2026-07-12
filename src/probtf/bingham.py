@@ -381,6 +381,29 @@ def rotation_kronecker_moment(fourth_moment):
     return kronecker_moment
 
 
+def rotation_vector_second_moment(fourth_moment):
+    """Return ``E[vec(R) vec(R).T]`` for column-major ``vec(R)``.
+
+    This is distinct from :func:`rotation_kronecker_moment`, whose index
+    arrangement is the linear operator used for ``E[R S R.T]``.
+    """
+
+    quaternion_moment = np.asarray(fourth_moment, dtype=float)
+    if quaternion_moment.shape != (4, 4, 4, 4):
+        raise ValueError("fourth_moment must have shape (4, 4, 4, 4).")
+    if not np.all(np.isfinite(quaternion_moment)):
+        raise ValueError("fourth_moment must contain only finite values.")
+    output = np.empty((9, 9), dtype=float)
+    for row_index, (row_a, column_a) in enumerate(_COLUMN_MAJOR_MATRIX_INDICES):
+        form_a = _ROTATION_ENTRY_FORMS[row_a * 3 + column_a]
+        for column_index, (row_b, column_b) in enumerate(_COLUMN_MAJOR_MATRIX_INDICES):
+            form_b = _ROTATION_ENTRY_FORMS[row_b * 3 + column_b]
+            output[row_index, column_index] = float(
+                np.einsum("ab,cd,abcd->", form_a, form_b, quaternion_moment)
+            )
+    return 0.5 * (output + output.T)
+
+
 @dataclass(frozen=True)
 class RotationMoment:
     """First and Kronecker moments of a random rotation matrix."""

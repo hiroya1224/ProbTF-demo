@@ -10,6 +10,7 @@ from probtf.bingham import (
     quaternion_product_second_moment,
     rotation_first_moment,
     rotation_kronecker_moment,
+    rotation_vector_second_moment,
     rotation_moment_from_bingham,
     validate_bingham_parameter,
 )
@@ -66,6 +67,7 @@ __all__ = [
     "quaternion_product_second_moment",
     "rotation_first_moment",
     "rotation_kronecker_moment",
+    "rotation_vector_second_moment",
     "rotation_moment_from_bingham",
     "rpy_to_quat",
     "validate_bingham_parameter",

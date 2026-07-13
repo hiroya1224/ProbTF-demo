@@ -2,7 +2,7 @@
 
 更新日: 2026-07-13  
 対象: `deflecomp_frames.launch` から起動される現行 working tree  
-基準: 2026-07-13 の working tree（固定 prior iterated MAP と急速 $K_{est}$ 適合を含む）
+基準: 2026-07-13 時点の現行実装（固定 prior iterated MAP、外力 fixed-frame marker、C++ ProbTF latest-only runtime を含む）
 
 ## 0. この文書の目的と結論
 
@@ -27,6 +27,8 @@
 15. command は実 publish 時刻付き履歴として保存し、全 IMU の最新共通時刻に有効だった command と対応させる。command と reference が 0.5 s 安定した準静的 record だけを更新へ通す。
 16. その後の未知荷重試験で、前段階の `Q=10^{-8}I` は無負荷収束後の covariance を過度に固定し、`0.25`/`0.10 rad` の単一線形化更新は `K_exec`・command の静止 gate を介して次の更新まで待たされることが判明した。現行版は `K_est` を外乱込みの有効パラメータと明示し、`Q=0.30I`、一 batch 内最大 5 回の固定 prior iterated MAP、batch 全体の $\|\Delta\log K\|_\infty\le3.0$、局所平衡 step $\le0.30\,\mathrm{rad}$ へ変更した。共分散は最終点で一度だけ commit し、`K_exec` の 0.5 s 一次遅れと 0.05/cycle 制限は維持する。
 17. `Q=0.30I` を fresh batch ごとに加えると不可観測 covariance 固有値が無制限に増えるため、$P+Q$ を初期 log-K prior variance `2.4138346` 以下へ spectral projection する `max_log_kp_covariance_var` を追加した。これは uncertainty ceiling であり、$K_{est}$ mean や更新 rate の cap ではない。
+18. 外力 command と RViz 表示の座標表現を分離した。既定の `apply_frame_load.py` は対象 frame 原点へ world-resolved の外力を加え、RViz には simulator が現在姿勢から計算した `base_link` 表現の marker を publish する。矢印は作用点から**加えた外力方向**へ伸びるため、既定 payload force は対象 link が回転しても world $-Z$ を向く。これは反力表示ではない。
+19. ProbTF 表示経路は C++ bridge と C++ point-moment worker へ移行した。dynamic edge は complete latest-only batch として atomic に運び、計算中に新世代が届いた結果は publish せず破棄する。Yamaguchi 動作試験では marker は 50 Hz に到達し、旧 Python FIFO 経路で見えていた約 100 ms の表示遅れを解消した。
 
 したがって、現在のシミュレーションは「内部モデルが自己整合しているか」を調べる baseline には使えるが、marker 動画だけから実機追従、動的オンライン同定、モデル誤差に対する頑健性を主張してはならない。
 
@@ -91,6 +93,35 @@
 ```
 
 controller は `/equil/joint_states` を subscribe しない。緑は評価用の simulator 出力であり、制御器への直接 feedback ではない。実姿勢の情報は、合成または実 IMU の重力方向を通じてのみ間接的に入る。
+`/deflecomp_sim/external_wrench` も simulator dynamics にだけ入り、controller/estimator は購読しない。
+
+### 1.4 RViz の二種類の marker
+
+現行 RViz には、意味の異なる二種類の marker がある。
+
+| 表示 | topic | 意味 |
+|---|---|---|
+| ProbTF point moments | `/deflecomp/probtf_point_moments` | `ref`、`cmd`、`equil` の tip frame 原点を `base_link` から見た位置の平均と共分散軸 |
+| Applied External Force | `/deflecomp_sim/external_wrench_marker` | simulator に実際に入力している外力の作用点と、加えた力の向き |
+
+ProbTF point marker の球中心は点位置の平均、3 本の線分は covariance 固有軸の
+`sigma_scale=2` 倍である。ただし現在の deflecomp bridge が import する
+`ref`、`cmd`、`equil` TF は deterministic なので、通常は covariance が 0 で軸長も 0 になる。
+この marker は stiffness posterior や robot state uncertainty を自動的に表しているわけではない。
+
+外力 marker は command の `WrenchStamped` を RViz が直接解釈したものではない。simulator が
+現在の $q$ で対象 frame 原点を model world へ写し、force component も world へ解決してから、
+固定基台で world と一致する `base_link` frame の `visualization_msgs/Marker` として publish する。
+矢印の始点・終点は
+
+```math
+p_{start}=p_{W,frame}(q),\qquad
+p_{end}=p_{start}+s_f f_W
+```
+
+であり、$s_f=0.05\,\mathrm{m/N}$ が既定 scale である。従って矢印はロボット側反力ではなく、
+**plant へ加えた external force** と同じ向きを示す。torque component は dynamics には入るが、
+現 marker は force arrow だけを描画する。
 
 ## 2. ロボットモデル
 
@@ -617,18 +648,71 @@ q_{k+1}=q_k+h\bar v,\qquad \dot q_{k+1}=\bar v
 
 を固定する。quasistatic mode は nominal equilibrium へ瞬時に移る定義を保ち、velocity limit は synthetic perturbation の $\dot q$ にだけ適用するため、この動的制約の対象外である。joint-limit 接触は完全非弾性的であり、実機 hard stop の反発・摩擦・衝撃を再現しない。
 
-### 7.5 simulator の時計
+### 7.5 External wrench の力学・座標規約・表示
+
+simulator は `/deflecomp_sim/external_wrench` の `geometry_msgs/WrenchStamped` を購読する。
+`header.frame_id` は wrench の**作用点となる robot frame** を指定する。`equil/` などの TF prefix が
+付いていても、末尾から現 URDF の frame 名を解決する。空の frame ID は wrench clear として扱う。
+
+この topic では component の基準座標を次の実装規約で区別する。
+
+| `header.frame_id` | force / torque component の意味 |
+|---|---|
+| `equil/module5_gripper_dummy_link` | world-resolved（既定） |
+| `equil/module5_gripper_dummy_link@local` | 対象 frame-resolved。毎 step 現在姿勢で world へ回す |
+
+これは「作用点 frame」と「component reference frame」を一つの文字列に符号化した simulator 固有規約である。
+一般の ROS `WrenchStamped` consumer と共有する公開 API としては専用 message または別 field に分離すべきであり、
+`@local` を知らない node へそのまま渡してはならない。
+
+現在姿勢における対象 frame の `LOCAL_WORLD_ALIGNED` Jacobian を
+
+```math
+J_f(q)=\begin{bmatrix}J_v(q)\\J_\omega(q)\end{bmatrix}
+```
+
+とし、world-resolved wrench $(f_W,n_W)$ を joint torque へ
+
+```math
+\tau_{ext}(q)=J_v(q)^\top f_W+J_\omega(q)^\top n_W
+```
+
+で写す。これは actuator reaction torque の表示値ではなく、plant の運動方程式 §7.1 の右辺へ入れる
+一般化外力である。`external_wrench_timeout<=0` の既定では、clear message が来るまで最後の wrench を保持する。
+
+`apply_frame_load.py` は既定で `reference_frame:=world`、`tf_prefix:=equil` を使い、
+
+```bash
+rosrun deflecomp_sim apply_frame_load.py \
+  _frame:=module5_gripper_dummy_link _mass_kg:=0.5
+```
+
+に対して
+
+```math
+f_W=(0,0,0.5\times-9.81)^\top=(0,0,-4.905)^\top\ \mathrm N
+```
+
+を frame 原点へ加える。`duration<=0` では node 終了まで再送し、通常の Ctrl-C 終了時には
+`clear_on_exit:=true` により zero wrench を3回送る。
+
+RViz は raw `WrenchStamped` でなく `/deflecomp_sim/external_wrench_marker` を表示する。
+marker は 100 Hz の state publish 時に current $q$ から再計算され、作用点を追従する。
+`header.frame_id=base_link`、矢印方向は $f_W$ そのものであるため、既定の payload force は
+対象 link の回転に関係なく world $-Z$ を向く。marker は torque arrow を描かない。
+
+### 7.6 simulator の時計
 
 内部積分は ROS timer callback 1 回につき固定 (h=0.001) s 進む。出力は 100 Hz へ decimate し、header には publish 時の ROS time を付ける。Python callback が実時間 1 kHz を維持できない場合、内部物理時間と header time は一致しない。論文の時間応答評価では `/clock` を伴う deterministic simulation、または実測 callback rate と simulated time の記録が必要である。
 
-### 7.6 simulator が含まない主な現象
+### 7.7 simulator が含まない主な現象
 
 - Coulomb friction、stiction、Stribeck effect
 - gear backlash、hysteresis、dead zone
 - motor/gear/link の二慣性以上の振動
 - current/torque/voltage saturation
 - command position、速度、加速度、jerk の実機 limit 一式
-- cable force、unknown payload、接触力、温度依存性
+- cable/contact model、payload による質量・慣性変化、温度依存性。ideal frame wrench の直接注入だけは §7.5 のとおり可能
 - encoder quantization、sensor/transport delay、packet loss
 - off-diagonal stiffness、構造リンクの分布弾性
 
@@ -1368,8 +1452,10 @@ u_{published,k}=u_k
 | controller | 50 Hz (`dt=0.02`) |
 | simulator integration | nominal 1000 Hz (`dt=0.001`) |
 | simulator state/IMU publish | 100 Hz |
+| external-force marker publish | 最大 100 Hz（state publish と同時） |
 | ProbTF TF import / complete batch | 最大 50 Hz |
 | point-moment marker lookup/publish | 最大 50 Hz |
+| RViz rendering target | 60 Hz |
 
 ProbTF import/marker はC++の固定2実行主体（ROS callback 1、worker 1）で動作する。bridgeは
 各edgeのlatest sampleだけを保持し、全edgeをcomplete batchとしてatomic publishする。marker workerの
@@ -1377,7 +1463,20 @@ ProbTF import/marker はC++の固定2実行主体（ROS callback 1、worker 1）
 避ける低遅延モニタ設計である。従って marker は状態の目視確認には使えるが、lag、overshoot、settling
 timeの計測器には使わない。定量評価は元のtimestamp付き`JointState`/IMU/topicをrosbag等へ記録して行う。
 
-point marker が示すのは tip frame 原点の 3 次元位置だけである。tip 姿勢、各 joint error、肘の異なる configuration は点だけでは判別できない。
+deflecomp launch では個別 dynamic record `/deflecomp/probtf` の互換 publish を無効にし、
+`/deflecomp/probtf_batch` の complete set と latched `/deflecomp/probtf_static` を使う。
+batch は低遅延 monitor 用であり、中間 sample の全履歴を保存する transport ではない。
+
+point marker が示すのは tip frame 原点の 3 次元位置だけである。tip 姿勢、各 joint error、肘の異なる
+configuration は点だけでは判別できない。外力 marker はこれとは独立であり、§1.4、§7.5 のとおり
+plant へ加えた force の作用点と方向を示す。
+
+Yamaguchi 6-axis、0.35 Hz 正弦 reference の実測では、C++ marker は `50.001 Hz`、source age 中央値は
+`cmd 11.3 ms / equil 11.3 ms / ref 17.9 ms` だった。同一 marker stamp の TF との位置差は
+$10^{-15}\,\mathrm m$ 以下であり、旧 Python 経路の約 `99--111 ms` の age は解消した。ただし
+`ref -> cmd -> equil` の物理・制御位相差まで消したわけではない。測定条件と CPU/RSS は
+[`probtf_cpp_latest_runtime_2026-07-13.md`](../reports/probtf_cpp_latest_runtime_2026-07-13.md)
+に記す。
 
 ## 15. 真値漏洩と理想仮定の監査
 
@@ -1411,8 +1510,9 @@ point marker が示すのは tip frame 原点の 3 次元位置だけである�
 | IMU extrinsic | 指定 YAML | 同じ YAML | なし |
 | IMU forward kinematics | Pinocchio | 同じ robot model | なし |
 | K の数値 | 推定、初期 22.36 | `[5,5,5,10,20,20]` | ここだけ非一致 |
+| external wrench / payload state | model に存在しない | optional frame wrench | controller へ非公開 |
 
-未知なのは主に K の数値であり、model class、geometry、inertial parameters、sensor calibration は一致する。従ってこれは「unknown parameter under a perfectly known model」の上限試験である。
+通常の無負荷 run で未知なのは主に K の数値であり、model class、geometry、inertial parameters、sensor calibration は一致する。従ってこれは「unknown parameter under a perfectly known model」の上限試験である。§7.5 の wrench を加える試験では、その外力が controller model にないという mismatch は追加されるが、URDF、ばね則、sensor model が同一である条件は変わらない。
 
 実際、初期 `K_exec=22.36` と真値 `K_true=[5,5,5,10,20,20]` を使い、§6.2 と同じ
 
@@ -1446,11 +1546,14 @@ q_ref = [0.4, -0.4, 0.3, 0.2, -0.5, 0.4] rad
 | `dt` | `0.02 s` |
 | `theta_cmd_tau` | `0.2 s` |
 | `theta_cmd_l1_regularization` | `false` |
+| `theta_cmd_l1_regularization_weight` | `0.1`（通常は無効） |
 | `theta_cmd_equilibrium_refine` | `false` |
 | `theta_cmd_equilibrium_refine_maxiter` | `2` |
+| `theta_cmd_equilibrium_refine_tol` | `1e-5` |
 | `theta_cmd_equilibrium_refine_max_delta` | `0.25 rad/joint/iteration` |
 | `spring_model` | `periodic` |
 | equilibrium solver `refine` | `true` |
+| equilibrium solver `refine_maxiter` | `40` |
 | equilibrium solver tolerance | `1e-12` |
 
 ### 16.2 estimator
@@ -1473,7 +1576,11 @@ q_ref = [0.4, -0.4, 0.3, 0.2, -0.5, 0.4] rad
 | `project_unobservable_feedforward` | `false` |
 | `kp_exec_tau` | `0.5 s` |
 | `max_log_kp_exec_step` | `0.05/cycle` |
-| supervisor effective launch default | `false` |
+| `publish_kp_exec` | `true` |
+| `particle_scan_enabled` | YAML `true`、launch override `false`（通常起動では無効） |
+| particle window / grid | `20` records / `21` points per direction |
+| particle backend / reset std / pursuit weight | `process` / `0.10` / `0.80` |
+| IMU gravity norm | `9.81 m/s^2` |
 | IMU acceleration tolerance | `0.75 m/s^2` |
 | IMU max angular speed | `0.20 rad/s` |
 | IMU settle time | `0.25 s` |
@@ -1497,10 +1604,39 @@ q_ref = [0.4, -0.4, 0.3, 0.2, -0.5, 0.4] rad
 | `ref_tau` | `0.1 s` |
 | `ref_max_vel` | `4 rad/s` |
 | `eq_mode` | `dynamic` |
+| `tau_eq` | `0.05 s`（quasistatic mode 用。通常 dynamic mode では不使用） |
 | `integrator` | `semi_implicit` |
 | `spring_model` | `periodic` |
-| external wrench | default zero |
+| equilibrium `refine` / maxiter / tolerance | `true` / `40` / `1e-12` |
+| external wrench topic / timeout | `/deflecomp_sim/external_wrench` / `0.0 s`（clear まで保持） |
+| external wrench default | zero、component は world-resolved。`@local` suffix で target-frame-resolved |
+| external-force marker topic / scale | `/deflecomp_sim/external_wrench_marker` / `0.05 m/N` |
+| marker shaft / head diameter / head length | `0.015 / 0.03 / 0.04 m` |
+| quasi-static noise / vibration | `0 deg / 0 deg`（通常 dynamic mode では不使用） |
 | sensor noise/bias/delay | none |
+
+### 16.4 ProbTF / RViz runtime
+
+| parameter | value |
+|---|---:|
+| bridge implementation | C++ `probtf_bridge_node` |
+| TF import / export | `true` / `false` |
+| imported child prefixes | `ref, cmd, equil` |
+| import / marker max rate | `50 / 50 Hz` |
+| individual dynamic `/deflecomp/probtf` | compatibility publish/subscribeとも通常 `false` |
+| dynamic complete batch | `/deflecomp/probtf_batch`、subscriber queue `1` |
+| static full set | `/deflecomp/probtf_static`、latched |
+| point marker | `/deflecomp/probtf_point_moments` |
+| target / tip | 空設定なら URDF から推定。提示 Yamaguchi では `base_link <- */module4_link2` |
+| source prefixes / source point | `[ref, cmd, equil]` / `[0,0,0]` |
+| marker max age | `0.5 s` |
+| covariance / point / axis scale | `2 sigma` / `0.025 m` / `0.006 m` |
+| finite-Bingham integration steps | C++ node default `120` |
+| external-force marker | `/deflecomp_sim/external_wrench_marker`、最大 `100 Hz` |
+| RViz frame rate | `60 Hz` |
+
+bridge と point-moment node はそれぞれ callback 1 thread + worker 1 thread の固定構成であり、
+PC の hardware concurrency に応じて thread 数を増やさない。
 
 ## 17. 論文相当の評価プロトコル
 
@@ -1595,6 +1731,7 @@ simulator 内部の `u_eff` を新たに publish/log し、requested command、a
 /cmd/joint_states
 /equil/joint_states
 /imu
+/deflecomp_sim/external_wrench
 /deflecomp/kp_est
 /deflecomp/kp_exec
 /deflecomp/kp_exec_target
@@ -1606,7 +1743,14 @@ simulator 内部の `u_eff` を新たに publish/log し、requested command、a
 /deflecomp/particle_scan_debug
 ```
 
-`/ref/joint_states`、`/cmd/joint_states`、`/equil/joint_states`、`/imu` には Header がある。一方、`/deflecomp/kp_est`、`kp_exec`、`kp_exec_target`、`kp_cov_diag`、`theta_eq_hat`、`debug`、`particle_scan_debug` は `Float64MultiArray`、`estimation_gate_status` と `particle_scan_status` は `std_msgs/String` であり、いずれも Header を持たない。`estimation_gate_status` の本文には alignment stamp を含むが、型としての event timestamp ではない。さらに `/deflecomp/debug` には field 名・version schema もない。従って現状の全 topic を厳密な共通 event-time 軸へ置くことはできず、bag receive time による近似になる。論文計測には sent-command stamp と schema/version を含む stamped custom diagnostic message が必要である。
+`/ref/joint_states`、`/cmd/joint_states`、`/equil/joint_states`、`/imu`、
+`/deflecomp_sim/external_wrench` には Header がある。一方、`/deflecomp/kp_est`、`kp_exec`、
+`kp_exec_target`、`kp_cov_diag`、`theta_eq_hat`、`debug`、`particle_scan_debug` は
+`Float64MultiArray`、`estimation_gate_status` と `particle_scan_status` は `std_msgs/String` であり、
+いずれも Header を持たない。`estimation_gate_status` の本文には alignment stamp を含むが、型としての
+event timestamp ではない。さらに `/deflecomp/debug` には field 名・version schema もない。従って現状の
+全 topic を厳密な共通 event-time 軸へ置くことはできず、bag receive time による近似になる。論文計測には
+sent-command stamp と schema/version を含む stamped custom diagnostic message が必要である。
 
 加えて simulator の `u_slew`、`u_eff`、内部 simulated time、asin clip/limit/debug を publish することが望ましい。
 
@@ -1623,12 +1767,14 @@ simulator 内部の `u_eff` を新たに publish/log し、requested command、a
 - estimator は準静的 gravity-direction records で、局所的に観測可能な log K 方向だけを更新する。
 - 未知の静的 frame load は estimator へ直接入力されず、$K_{est}$ が現在姿勢に対する有効対角パラメータとしてその一部を吸収する。
 - $K_{est}$ の batch 内急変は $K_{exec}$ へ直結せず、実行側の 0.5 s 一次遅れと 0.05/cycle cap が別に作用する。
+- `Applied External Force` marker は current application point から simulator へ加えた force 方向を示し、既定 payload force は world $-Z$ を向く。
+- C++ ProbTF marker は complete latest snapshot を最大 50 Hz で評価し、同じ marker stamp の TF と数値精度で一致する。
 
 ### 18.2 現時点で許されない主張
 
 - 赤 marker から実姿勢、モータ角、closed-loop tracking 性能を主張すること。
 - `theta_eq_hat` と reference の一致から K 推定精度や実姿勢精度を主張すること。
-- 10 Hz marker 動画から 50/100/1000 Hz 系の lag や overshoot を定量化すること。
+- 50 Hz marker 動画だけから 50/100/1000 Hz 系の lag や overshoot を定量化すること。
 - 現結果から実機で同等の性能が得られると主張すること。
 - motion 中にも剛性を正しく推定していると主張すること。
 - gravity direction だけで全 6 軸剛性を常に一意同定できると主張すること。
@@ -1681,13 +1827,22 @@ simulator 内部の `u_eff` を新たに publish/log し、requested command、a
 | launch override | `ros/examples/deflecomp/deflecomp_ros/launch/deflecomp.launch` |
 | ref/cmd/equil RSP wiring | `ros/examples/deflecomp/deflecomp_ros/launch/deflecomp_frames.launch` |
 | dynamic plant | `ros/examples/deflecomp/deflecomp_sim/src/deflecomp_sim/dynamic_simulator.py` |
-| synthetic IMU と ROS sim node | `ros/examples/deflecomp/deflecomp_sim/nodes/sim_node.py` |
+| frame wrench の world/local 変換、generalized torque、arrow geometry | `ros/examples/deflecomp/deflecomp_sim/src/deflecomp_sim/external_wrench.py` |
+| frame load command | `ros/examples/deflecomp/deflecomp_sim/nodes/apply_frame_load.py` |
+| synthetic IMU、external-force marker、ROS sim node | `ros/examples/deflecomp/deflecomp_sim/nodes/sim_node.py` |
 | simulator parameter | `ros/examples/deflecomp/deflecomp_sim/config/sim_params.yaml` |
+| generic C++ TF -> ProbTF latest-only bridge | `ros/core/probtf_core/nodes/probtf_bridge_node.cpp` |
+| C++ latest snapshot / point-moment evaluator | `ros/core/probtf_core/src/latest_snapshot.cpp` |
+| deflecomp C++ point-moment worker | `ros/examples/deflecomp/deflecomp_ros/nodes/probtf_point_moments_node.cpp` |
+| deflecomp ProbTF runtime parameter | `ros/examples/deflecomp/deflecomp_ros/config/probtf_runtime.yaml` |
 | command regression tests | `tests/deflecomp_core/test_compensator_k_exec.py` |
 | WEKF/FK finite-difference tests | `tests/deflecomp_core/test_stiffness_wekf.py` |
 | IMU source-time tests | `tests/deflecomp_core/test_imu_buffer.py` |
 | inverse-statics / KKT / active-set tests | `tests/deflecomp_core/test_equilibrium_constraints.py` |
 | dynamics limit/integration tests | `tests/deflecomp_sim/test_dynamics.py` |
+| external wrench / fixed-frame marker tests | `tests/deflecomp_sim/test_kinematics.py` |
+| C++ ProbTF numerical tests | `ros/core/probtf_core/test/test_latest_snapshot.cpp` |
+| deflecomp ProbTF launch/runtime contract tests | `tests/deflecomp_ros/test_probtf_runtime.py` |
 
 ## 21. 最小擬似コード
 
@@ -1765,5 +1920,7 @@ on cycle(q_ref, imu_buffer, t):
 さらに Pinocchio の固定 base inertia/COM 質量仕様を混用した重力ポテンシャル、joint-limit 上の非 KKT refinement、active-set を無視した感度、exact likelihood を悪化させる WEKF full step、非悪化でも大き過ぎる local step、raw information の弱モード hard cutoff、command publish 前 IMU との逆因果対応を修正した。推定更新は実 publish command 履歴と最新共通 IMU 時刻を対応させ、0.5 s の静止 window を満たす場合だけ実行する。その一 batch 内では $(x_0,\mathcal C_{c_P}(P_0+Q))$ を固定して最大5回再線形化し、exact likelihood/fixed-prior posterior、局所平衡 continuation、新規 strong joint-limit contact guard を通した後、mean と covariance を一度だけ commit する。
 
 未知荷重試験で見つかった遅さは、無負荷後の covariance collapse に対して `Q=1e-8` が小さ過ぎたことと、小さい単発推定 step を次の command-settled batch まで分割したことで $K_{exec}$ の意図的な遅れが estimator の最適化待ちへ再結合したことが原因だった。現行の `Q=0.30I` と fixed-prior iterated MAP は $K_{est}=K_{eff}$ を一 batch 内で大きく適合させる一方、command は別状態 $K_{exec}$ の 0.5 s 一次遅れ・0.05/cycle cap を維持する。大きな $Q$ による不可観測 covariance の線形成長は `max_log_kp_covariance_var` の spectral ceiling で抑える。この ceiling は uncertainty だけを制限し、$K_{est}$ mean やその更新速度を抑えるものではない。
+
+可視化も意味ごとに分離した。外力は raw wrench を link-local と誤解して描かず、simulator が current application point と world-resolved force から `base_link` marker を作る。ProbTF は C++ latest-only bridge/worker で `ref`、`cmd`、`equil` の complete snapshotを評価し、古い中間状態をFIFO処理しない。どちらも表示遅延と座標誤解を減らす変更だが、marker 自体を tracking 性能や posterior の定量計測器へ昇格させるものではない。
 
 直接の truth leakage はない。しかし matched-model/noise-free 条件、gravity-only の非識別性、準静的 estimator、非凸 periodic spring、setpoint marker の誤解可能性は残る。特に K1 は静止重力だけでは厳密に推定不能であり、観測重力方向の整合と full joint pose の一意性は同義でない。また未知外力を吸収した $K_{eff}$ は pose/load 依存であり、材料剛性や外力そのものの同定値ではない。従って現段階の結果は内部整合性 baseline として扱い、独立 plant、sensor mismatch、raw topic に基づく定量評価を経てから実機性能へ一般化すべきである。

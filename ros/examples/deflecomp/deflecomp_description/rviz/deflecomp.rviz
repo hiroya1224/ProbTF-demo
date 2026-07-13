@@ -4,7 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /Equil1
+        - /Cmd1
         - /Ref1
         - /TF1
         - /TF1/Tree1
@@ -41,7 +43,7 @@ Visualization Manager:
       Plane Cell Count: 20
       Reference Frame: <Fixed Frame>
       Value: true
-    - Alpha: 1
+    - Alpha: 0.33000001311302185
       Class: rviz/RobotModel
       Collision Enabled: false
       Enabled: true
@@ -161,7 +163,7 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Alpha: 1
+    - Alpha: 0.33000001311302185
       Class: rviz/RobotModel
       Collision Enabled: false
       Enabled: true
@@ -281,7 +283,7 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Alpha: 1
+    - Alpha: 0.33000001311302185
       Class: rviz/RobotModel
       Collision Enabled: false
       Enabled: true
@@ -445,7 +447,7 @@ Visualization Manager:
       Value: true
   Enabled: true
   Global Options:
-    Background Color: 48; 48; 48
+    Background Color: 243; 243; 243
     Default Light: true
     Fixed Frame: base_link
     Frame Rate: 30
@@ -479,17 +481,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: 0.08328521996736526
+        Y: -0.05263083428144455
+        Z: 0.19433456659317017
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4653988480567932
+      Pitch: 0.3053988814353943
       Target Frame: <Fixed Frame>
-      Yaw: 2.7154016494750977
+      Yaw: 2.445401668548584
     Saved: ~
 Window Geometry:
   Displays:
@@ -501,5 +503,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 2488
-  X: 72
-  Y: 27
+  X: 1244
+  Y: 57

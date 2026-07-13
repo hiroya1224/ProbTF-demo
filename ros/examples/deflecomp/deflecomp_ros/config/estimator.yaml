@@ -5,15 +5,27 @@ A_param: 1000.0
 update_stiffness: true
 kp_min: 1.0
 kp_max: 500.0
-log_kp_process_noise_var: 1.0e-8
+# K_est is an effective, disturbance-absorbing state rather than a protected
+# actuator command.  Keep enough prior variance for a settled payload/load
+# step to move K_est in one observation batch; K_exec provides actuation-side
+# smoothing below.
+log_kp_process_noise_var: 0.30
+# Q is added at every fresh settled batch.  Bound the log-K covariance so
+# exactly/unobserved modes cannot accumulate 0.30 forever.  <=0 selects the
+# initial prior variance implied by kp_min/kp_max (about 2.414 here).
+max_log_kp_covariance_var: 0.0
 observability_rcond: 0.0001
 observability_abs: 1.0e-10
-# Per-update estimator trust region.  The log-stiffness cap limits every
-# component to a factor exp(0.25)=1.284.  The equilibrium-pose cap is the
-# Euclidean joint-vector change in radians and rejects candidates that jump to
-# a different constrained/periodic solution branch.
-max_log_kp_update_step: 0.25
-max_equilibrium_pose_jump: 0.10
+# Re-linearize one settled observation against one fixed prior.  This is an
+# iterated MAP solve, not repeated independent evidence.  K_est may move by a
+# factor exp(3) in one batch; each local equilibrium step remains bounded for
+# branch safety.  K_exec, not these estimator limits, protects the command.
+laplace_outer_iterations: 5
+max_log_kp_update_step: 3.0
+max_equilibrium_pose_jump: 0.30
+# A newly acquired joint-limit branch is rejected only when its generalized
+# KKT reaction exceeds this threshold; numerical grazing contact is allowed.
+joint_limit_reaction_torque_tol: 0.001
 # Evaluate gravity at the known desired pose.  The former incremental
 # observable-subspace projection was path-dependent and could drift far enough
 # to reverse the feedforward gravity torque even after K2/K3 had converged.

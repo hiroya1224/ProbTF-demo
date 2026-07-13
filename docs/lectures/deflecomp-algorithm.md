@@ -2,7 +2,7 @@
 
 更新日: 2026-07-13  
 対象: `deflecomp_frames.launch` から起動される現行 working tree  
-基準: `HEAD=8c10793` に本作業中の推定・追従修正を加えた状態
+基準: 2026-07-13 の working tree（固定 prior iterated MAP と急速 $K_{est}$ 適合を含む）
 
 ## 0. この文書の目的と結論
 
@@ -23,8 +23,10 @@
 11. 追加監査で、`project_unobservable_feedforward` が姿勢依存部分空間への参照増分を逐次積分するため経路依存に漂い、既知の目標姿勢とは別の姿勢で重力を評価していたことを確認した。実測静止例ではこれが重力トルクの符号を反転させ、真値プラントの目標姿勢誤差を `0.00413 rad` から `0.689 rad` へ悪化させていた。これは既定無効へ変更した。
 12. Pinocchio の `centerOfMass()` が universe に固定された base inertia を集計しない一方、旧コードはそれを含む全質量を COM に掛けていた。Yamaguchi ではポテンシャル勾配が一般化重力の `1.96556` 倍になっていたため、`computePotentialEnergy()` へ統一した。
 13. joint limit 上の平衡を raw torque residual の最小二乗で精密化していた処理を廃止し、同じ物理ポテンシャルの box-constrained KKT 解へ統一した。感度も active joint の $dq_i/dx=0$ を含む active-set 系へ変更した。
-14. WEKF の局所 Laplace step は exact likelihood を悪化させても全量適用されていた。さらに、非悪化だけを要求しても `A_param=1000` では一度に $\|\Delta\log K\|_\infty=2.93$、$\|\Delta q_{eq}\|_2=0.562\,\mathrm{rad}$ 動く別 branch 候補を受理できた。Gaussian prior を含む exact posterior objective の最大 16 回 backtracking に加え、$\|\Delta\log K\|_\infty\le0.25$ と $\|\Delta q_{eq}\|_2\le0.10\,\mathrm{rad}$ の trust region を追加した。
+14. WEKF の局所 Laplace step は exact likelihood を悪化させても全量適用されていた。さらに、非悪化だけを要求しても `A_param=1000` では一度に $\|\Delta\log K\|_\infty=2.93$、$\|\Delta q_{eq}\|_2=0.562\,\mathrm{rad}$ 動く別 branch 候補を受理できた。前段階の修正では Gaussian prior を含む exact posterior objective の backtracking と、小さい一回更新 trust region を追加した。
 15. command は実 publish 時刻付き履歴として保存し、全 IMU の最新共通時刻に有効だった command と対応させる。command と reference が 0.5 s 安定した準静的 record だけを更新へ通す。
+16. その後の未知荷重試験で、前段階の `Q=10^{-8}I` は無負荷収束後の covariance を過度に固定し、`0.25`/`0.10 rad` の単一線形化更新は `K_exec`・command の静止 gate を介して次の更新まで待たされることが判明した。現行版は `K_est` を外乱込みの有効パラメータと明示し、`Q=0.30I`、一 batch 内最大 5 回の固定 prior iterated MAP、batch 全体の $\|\Delta\log K\|_\infty\le3.0$、局所平衡 step $\le0.30\,\mathrm{rad}$ へ変更した。共分散は最終点で一度だけ commit し、`K_exec` の 0.5 s 一次遅れと 0.05/cycle 制限は維持する。
+17. `Q=0.30I` を fresh batch ごとに加えると不可観測 covariance 固有値が無制限に増えるため、$P+Q$ を初期 log-K prior variance `2.4138346` 以下へ spectral projection する `max_log_kp_covariance_var` を追加した。これは uncertainty ceiling であり、$K_{est}$ mean や更新 rate の cap ではない。
 
 したがって、現在のシミュレーションは「内部モデルが自己整合しているか」を調べる baseline には使えるが、marker 動画だけから実機追従、動的オンライン同定、モデル誤差に対する頑健性を主張してはならない。
 
@@ -42,7 +44,8 @@
 | $\hat q_{eq}$ | `theta_eq_hat` | controller の内部モデルが、実際に送る $u$ から予測した静的平衡 |
 | $K_{true}$ | `kp_true` | simulator だけが保持するプラント剛性 |
 | $x$ | `x_est` | 推定状態。$x=\log K$ |
-| $K_{est}$ | `kp_est` | 推定器の直近値 $\exp x$ |
+| $K_{est}$ | `kp_est` | 推定器の直近の有効剛性値 $\exp x$ |
+| $K_{eff}$ | 概念名 | 未知の準静的外乱も対角剛性へ吸収した pose/load 依存の有効パラメータ。現公開信号では主に $K_{est}$ が対応する |
 | $K_{exec}$ | `kp_exec` | 指令生成に実際に使う、平滑化済み剛性 |
 | $\tau_g(q)$ | `tau_gravity` | URDF/Pinocchio から得る一般化重力トルク |
 | $\tau_s(q,u,K)$ | spring `torque` | 本書で定義するばね残差トルク |
@@ -629,7 +632,7 @@ q_{k+1}=q_k+h\bar v,\qquad \dot q_{k+1}=\bar v
 - encoder quantization、sensor/transport delay、packet loss
 - off-diagonal stiffness、構造リンクの分布弾性
 
-外力 topic は実装されているが、通常は 0 である。controller の feedforward は外力を推定せず、重力だけを補償する。
+外力 topic は実装されているが、通常は 0 である。controller の物理モデルは外力 vector や payload mass を明示推定せず、feedforward model も重力と対角ばねだけである。ただし現行の $K_{est}$ は物性値に固定せず、準静的 IMU 観測に整合する範囲で未モデル化外力を有効剛性へ吸収する。この意味で外力を直接同定したことにはならない。
 
 ## 8. 合成 IMU と ROS 前処理
 
@@ -701,7 +704,7 @@ u(t^z_k) = latest command whose publish/application time <= t^z_k
 
 gate 状態は `/deflecomp/estimation_gate_status` に `ready`、`command_not_settled`、`reference_not_settled`、`latest_imu_is_stale` などとして publish する。
 
-同じ status 文字列には、前段 gate だけでなく `est_update_applied`、`est_update_skipped_reason`、`laplace_step_scale`、`laplace_dx_max_abs` も含める。従って `reason=ready` でも WEKF が `no_observable_information` や `exact_posterior_not_improved` で更新しなかった場合を区別できる。ただし `std_msgs/String` で Header を持たないという計測上の制約は残る。
+同じ status 文字列には、前段 gate だけでなく `est_update_applied`、`est_update_skipped_reason`、`laplace_step_scale`、`laplace_dx_max_abs`、`laplace_outer_requested/completed/accepted`、`laplace_outer_stop_reason`、`laplace_prior_covariance_capped` も含める。従って `reason=ready` でも WEKF が `no_observable_information` や `exact_posterior_not_improved` で更新しなかった場合、5 回を待たず局所停留した場合、または $P+Q$ の固有値 ceiling が作用した場合を区別できる。ただし `std_msgs/String` で Header を持たないという計測上の制約は残る。
 
 補間値には二種類の時刻を保持する。
 
@@ -814,7 +817,7 @@ x_k=x_{k-1}+w_k,\qquad w_k\sim\mathcal N(0,Q)
 現設定は
 
 ```math
-Q=10^{-8}I
+Q=0.30I
 ```
 
 である。初期標準偏差は log bounds 幅の 1/4、
@@ -824,6 +827,49 @@ Q=10^{-8}I
 ```
 
 である。
+
+ここで推定対象を「関節ばねの材料剛性」と解釈してはならない。尤度モデルに存在するのは、送信 command $u$、URDF 重力、対角ばね $K$、静的平衡、および IMU 重力方向である。未知 payload、定常外力、摩擦、URDF inertial error などが実プラントに存在しても、その状態は estimator へ入力されない。従って estimator が返す $K_{est}$ は、現在の姿勢・荷重でこの縮約モデルを観測へ最もよく合わせる $K_{eff}$ であり、条件が変われば大きく変化してよい。
+
+例えば
+
+```bash
+rosrun deflecomp_sim apply_frame_load.py \
+  _frame:=module5_gripper_dummy_link _mass_kg:=0.5
+```
+
+は既定で対象 frame 原点へ world 下向き $0.5\times9.81=4.905\,\mathrm N$ を simulator にだけ加える。controller/estimator は `mass_kg`、wrench topic、simulator state を読まない。このとき対角 $K_{est}$ が変わるのは未知荷重を剛性へ写像した結果であり、真の $K_{true}$ が変化したという推定ではない。任意の wrench を正の対角 $K$ だけで複数姿勢にわたり同時表現できる保証もない。構造残差が残る場合は、payload/wrench 状態や off-diagonal・非線形ばねを別にモデル化する必要がある。
+
+`Q=0.30I` はこの役割に合わせた追従性の設定である。旧 `Q=10^{-8}I` では無負荷の反復観測後に観測方向の $P$ が縮み、荷重 step 後も prior penalty が新しい有効値への移動をほぼ禁止した。推定値を actuator command のように穏やかにする必要はない。実行側は $K_{exec}$ を別状態として保持し、時定数 0.5 s と $\|\Delta\log K_{exec}\|_\infty\le0.05$/cycle で $K_{est}$ へ漸近するためである。
+
+一方、大きな $Q$ を各 fresh/settled batch で無制限に加えると、尤度が全く拘束しない covariance 固有方向は
+
+```math
+P_{k+1}=P_k+0.30I
+```
+
+として線形に増大する。実際、zero-information を 1000 batch 与えた probe では最大固有値が約 `300` に達した。これは $K_{est}$ mean の変化ではなく、「不可観測方向の log-K uncertainty が無限に増える」という covariance bookkeeping の問題である。
+
+現実装は batch prior を作るとき、raw prediction を
+
+```math
+P^-_{raw}=P_{est,k-1}+Q=V\operatorname{diag}(\rho_i)V^\top
+```
+
+と固有分解し、
+
+```math
+P^-=V\operatorname{diag}
+\left(\min\left(\max(\rho_i,0),c_P\right)\right)V^\top
+```
+
+へ spectral projection する。$c_P$ が `max_log_kp_covariance_var` である。ROS/YAML の `0.0` は cap 無効ではなく、node が初期 log-K prior variance
+
+```math
+c_P=\sigma_{x,0}^2
+=\left(\frac{\log K_{max}-\log K_{min}}{4}\right)^2
+```
+
+へ解決する sentinel である。`kp_min=1`, `kp_max=500` では $c_P=2.4138346$ となる。cap は covariance の固有値だけに作用し、$x_{est}$、$K_{est}$ mean、$\|\Delta\log K_{est}\|$、更新 rate を直接 clip しない。zero-information 反復回帰では mean が厳密に不変のまま covariance が `2.4138346` 以下に留まり、0.5 kg payload の一 batch 適合結果も cap 導入前から変わらなかった。
 
 ### 11.2 局所 gradient と information
 
@@ -935,7 +981,7 @@ q = [0.2, -0.4, 0.3, 0.1, -0.2, 0.25] rad
 
 ### 11.3 観測可能部分空間
 
-$P^-=P+Q$ の対称平方根を $S=(P^-)^{1/2}$ とし、無次元の prior-whitened information と gradient を
+§11.1 の spectral cap $\mathcal C_{c_P}$ を適用した $P^-=\mathcal C_{c_P}(P+Q)$ の対称平方根を $S=(P^-)^{1/2}$ とし、無次元の prior-whitened information と gradient を
 
 ```math
 \widetilde{\mathcal I}=S\mathcal I S,\qquad \widetilde g=Sg
@@ -950,9 +996,107 @@ $P^-=P+Q$ の対称平方根を $S=(P^-)^{1/2}$ とし、無次元の prior-whit
 
 を満たす列を $U_o$ とする。旧実装は raw $\mathcal I$ の各時刻最大固有値を基準にしたため、K2 の強情報に対し K4--K6 の小さい正情報を毎 sample 永久に捨てた。prior whitening 後は、既に学習した強モードの covariance が縮むとその無次元情報も下がり、prior uncertainty が残る弱い独立モードが後続 sample で rank に入る。large negative raw eigenvalue は debug flag に残す。
 
-### 11.4 exact posterior backtracking
+### 11.4 fixed-prior iterated MAP と exact posterior backtracking
 
-局所 Laplace step は非線形平衡写像の大域近似ではない。そこで最大 16 候補について $\alpha=1,1/2,1/4,\ldots,2^{-15}$ を試し、観測部分空間で
+平衡写像 $q_{eq}(x)$ は非線形かつ非凸であり、一回の局所 Laplace step だけでは未知荷重後の大きな残差を解消できない。一方、同じ IMU batch を通常の filter update として 5 回呼べば、同じ evidence と $Q$ を 5 回加えたことになり統計的に誤る。現実装は一つの同期済み静止 batch に対し、prior を
+
+```math
+x_0=x_{est,k-1},\qquad
+P^-=\mathcal C_{c_P}(P_{est,k-1}+Q)
+```
+
+へ固定したまま、MAP の数値最適化だけを最大 $R=5$ 回反復する。$S=(P^-)^{1/2}$、反復点 $x_r$ の prior 座標を
+
+```math
+y_r=S^\dagger(x_r-x_0)
+```
+
+とする。各反復で平衡を解き直し、$g_r=\nabla\ell(x_r)$ と positive information $\mathcal I_r$ を再計算する。§11.3 の固有分解をその反復点で行った観測部分空間 $U_{o,r}$、固有値 $\lambda_r$ における fixed-prior posterior gradient と局所 step は
+
+```math
+b_r=U_{o,r}^\top(Sg_r-y_r)
+```
+
+```math
+\Delta y_{o,r,i}=\frac{b_{r,i}}{1+\lambda_{r,i}+\epsilon},\qquad
+\Delta x_r=S U_{o,r}\Delta y_{o,r}
+```
+
+である。$-y_r$ が常に同じ $x_0,P^-$ への Gaussian prior を表す。前の outer iterate を新しい prior center にせず、反復中に $P^-$ や $Q$ を更新しない。
+
+各 outer iteration では最大 16 候補 $\alpha=1,1/2,\ldots,2^{-15}$ について
+
+```math
+x_c=\operatorname{clip}(x_r+\alpha\Delta x_r,
+                         \log K_{min},\log K_{max})
+```
+
+を試す。まず batch 全体の estimator trust region
+
+```math
+\|x_c-x_0\|_\infty\le3.0
+```
+
+を要求する。これは outer 一回ごとの cap ではなく、一観測 batch が動かせる総量であり、剛性比では最大 $\exp(3)\simeq20.1$ に相当する。actuator rate limit ではない。
+
+次に current iterate の平衡 $q_r$ を初期値として候補の平衡 $q_c=q_{eq}(u,\exp x_c)$ を非線形 solver で解き直し、局所 step
+
+```math
+\|q_c-q_r\|_2\le0.30\ \mathrm{rad}
+```
+
+を要求する。さらに batch 開始時の初期平衡 $q_0$ では inactive だった joint-limit が $q_c$ で新たに active になり、その KKT 反力 torque が `joint_limit_reaction_torque_tol=1e-3 N m` を超える候補を `new_strong_joint_limit_active_set` として棄却する。比較対象を各 outer 直前の $q_r$ でなく batch 初期 active set に固定するのは、ある outer で数値 grazing contact へ入り、次の outer でそれを strong contact へ成長させる抜け道を防ぐためである。これは旧 failure で、姿勢誤差を下げる代わりに肘を hard stop へ押し付ける別 branch を採択した経路を防ぐ guard である。数値 tolerance 程度の接触や、batch 開始時から active だった拘束を維持する局所更新まで一律禁止するものではない。
+
+branch 条件を通った候補について exact Bingham likelihood と、同じ固定 prior の posterior objective
+
+```math
+\mathcal J_0(x)=\ell(x)
+-\frac12(x-x_0)^\top(P^-)^\dagger(x-x_0)
+```
+
+を再計算し、数値 tolerance 内で
+
+```math
+\ell(x_c)\ge\ell(x_r),\qquad
+\mathcal J_0(x_c)\ge\mathcal J_0(x_r)
+```
+
+をともに満たす最初の候補だけを受理する。最初の outer iteration で全候補が失敗すれば mean は変えず `exact_posterior_not_improved` とする。少なくとも一回受理した後に次の反復が進めなくなった場合は、最後に受理した点を batch の解として返す。
+
+outer iteration は**同じ観測を filter evidence として再投入する処理ではない**。$K_{est}$ と covariance の外部 state commit は batch 最後の一回だけである。最終点 $x_R$ で再線形化した observable information を使い、概念的には
+
+```math
+P^+=S\left[I+U_o
+\operatorname{diag}\left(\frac{1}{1+\lambda_i+\epsilon}-1\right)
+U_o^\top\right]S
+```
+
+を一度だけ構成する。従って 5 outer iterations で $Q$ を 5 回加えたり、独立 sample 5 個分に covariance を縮めたりしない。
+
+#### 11.4.1 旧 slow-adaptation の原因
+
+前段階の `Q=10^-8 I`、単一線形化、$\|\Delta x\|_\infty\le0.25$、$\|\Delta q\|_2\le0.10\,\mathrm{rad}$ は無負荷での branch jump 抑制には有効だったが、未知荷重 step には二重に遅かった。
+
+1. 無負荷観測で $P$ が縮んだ後は $Q$ がほぼ uncertainty を戻さず、Gaussian prior が新しい $K_{eff}$ を強く拒んだ。
+2. 一回の小さい $K_{est}$ 更新が $K_{exec,target}$ を動かすと、$K_{exec}$ の意図的な一次遅れ、command 再計算、0.5 s の command-settled gate を経るまで次の filter update が閉じた。すなわち actuation を滑らかにする $K_{exec}$ が、複数 batch に分割された estimator 最適化の待ち時間へ間接的に再結合していた。
+
+現行版では、静止 gate を通った一 batch の内部で最大 5 回の再線形化を完了してから初めて $K_{exec,target}$ を更新する。このため outer iteration の間に $K_{exec}$ の静止を待たない。$K_{est}$ の大きな batch update と、$K_{exec}$・command の緩やかな実行を独立に設計できる。
+
+保存した Yamaguchi の 0.5 kg 荷重ケースを使った offline fixed-prior 再現では、初期の IMU gravity-direction RMS $42.52^\circ$ が outer 反復ごとに
+
+```text
+42.52 -> 25.81 -> 9.60 -> 1.80 -> 0.447 deg
+```
+
+へ低下し、batch 全体の $\|\Delta\log K_{est}\|_\infty$ は `1.076` だった。同じ fixed-prior 5 反復でも `Q=1e-8` では `35.23 deg`、`Q=1e-3` では `10.50 deg` に留まったため、大きな prior variance は単なる反復回数の増加では代替できない。この数値は matched-model の特定姿勢に対する回帰であり、任意の外力・実機で同精度を保証するものではない。
+
+さらに隔離 ROS master 上で本書冒頭と同じ Yamaguchi stack を起動し、`apply_frame_load.py _frame:=module5_gripper_dummy_link _mass_kg:=0.5` を実行した時系列試験では、外力によって IMU gate が閉じてから次の `reason=ready` まで約 `1.03 s`、その最初の batch で `laplace_dx_max_abs=1.467`（最大剛性比約 `exp(1.467)=4.34`）を commit した。同じ記録で $K_{exec}$ の一 cycle 最大変化は設定どおり `0.05` だった。従って少なくともこの無雑音 simulator 条件では、大きな $K_{est}$ step と緩やかな $K_{exec}$ が ROS topic 上でも分離されている。
+
+debug dictionary には `laplace_outer_iterations_requested/completed/accepted`、outer ごとの trial、総 `laplace_dx_max_abs`、局所・総平衡 jump、前後 likelihood/posterior、棄却理由、最終 covariance commit count に加え、cap 前後の prior covariance 固有値と `laplace_prior_covariance_capped` を保存する。ROS の `/deflecomp/estimation_gate_status` は aggregate の `est_update_applied`、`est_update_skipped_reason`、最後の `laplace_step_scale`、batch 全体の `laplace_dx_max_abs`、`laplace_outer_requested/completed/accepted`、`laplace_outer_stop_reason`、`laplace_prior_covariance_capped` を公開する。
+
+#### 11.4.2 前段階の single-linearization trust region（履歴）
+
+以下の `0.25`/`0.10 rad` は、branch jump 修正の経緯を再現するために残す**旧仕様**であり、現行既定値ではない。当時は局所 Laplace step が非線形平衡写像の大域近似ではないことから、最大 16 候補について $\alpha=1,1/2,1/4,\ldots,2^{-15}$ を試し、観測部分空間で
 
 ```math
 v_i(\alpha)=\frac{1}{1+\alpha(\lambda_i+\epsilon)},qquad
@@ -986,13 +1130,13 @@ v_i(\alpha)=\frac{1}{1+\alpha(\lambda_i+\epsilon)},qquad
 
 がともに更新前の $\ell(x^-)$ 以上となる最初の candidate だけを commit する。trust region 超過、branch jump、または目的関数悪化によって全 16 候補が棄却された場合は mean と covariance を更新せず、`exact_posterior_not_improved` とする。受理した $\alpha$ に対応して covariance も tempered update し、返却する $q_{eq}$ は旧 $K$ の予測でなく受理後 $K$ で再計算した値である。
 
-trust region の必要性を示す Yamaguchi、`A_param=1000`、無雑音 matched-model の再現では、非悪化 gate だけの旧更新が初回に $\|\Delta\log K\|_\infty=2.932$、$\|\Delta q_{eq}\|_2=0.562\,\mathrm{rad}$ を受理した。8 更新後の joint-pose 誤差は `0.2454` から `0.3397 rad` へ悪化し、`K2=1`、`K3=500` の上下限へ到達した。現 trust region では、同じデータの 8 更新後誤差は `0.0716 rad` まで低下し、上下限衝突を回避した。
+trust region の必要性を示す Yamaguchi、`A_param=1000`、無雑音 matched-model の再現では、非悪化 gate だけの旧更新が初回に $\|\Delta\log K\|_\infty=2.932$、$\|\Delta q_{eq}\|_2=0.562\,\mathrm{rad}$ を受理した。8 更新後の joint-pose 誤差は `0.2454` から `0.3397 rad` へ悪化し、`K2=1`、`K3=500` の上下限へ到達した。この前段階の小 trust region では、同じデータの 8 更新後誤差は `0.0716 rad` まで低下し、上下限衝突を回避した。
 
 別の既存回帰では、16 更新すべてで exact likelihood が非悪化で、prior-whitened rank は `[3,3,3,2,2,2,2,2,2,3,3,3,3,3,4,4]`、同一 command に対する予測平衡 joint-pose 誤差は `0.30847` から `0.01463 rad` へ低下した。これらは真の姿勢を初期 seed に使わず、現剛性から予測した初期平衡を用いた結果である。
 
-debug には `laplace_step_scale`、`laplace_dx_max_abs`、平衡 jump の 2-norm/最大成分、前後 likelihood/posterior、各 trial の棄却理由、prior-whitened spectrum と threshold を保存する。
+この前段階でも debug には `laplace_step_scale`、`laplace_dx_max_abs`、平衡 jump の 2-norm/最大成分、前後 likelihood/posterior、各 trial の棄却理由、prior-whitened spectrum と threshold を保存していた。
 
-旧講義資料に記載されていた `measurement_info_eig_cap`、`stiffness_update_gain`、旧名 `max_log_kp_step` は現在の estimator update には存在しない。現 estimator mean の trust region は `max_log_kp_update_step`、command に使う $K_{exec}$ 側の別の平滑化 cap は `max_log_kp_exec_step` であり、混同してはならない。
+旧講義資料に記載されていた `measurement_info_eig_cap`、`stiffness_update_gain`、旧名 `max_log_kp_step` は現在の estimator update には存在しない。現 estimator batch の総 trust region は `max_log_kp_update_step=3.0`、局所 branch step は `max_equilibrium_pose_jump=0.30`、command に使う $K_{exec}$ 側の別の平滑化 cap は `max_log_kp_exec_step=0.05` であり、混同してはならない。
 
 ### 11.5 三種類の「観測可能性」
 
@@ -1187,10 +1331,10 @@ input: q_ref,k, IMU buffers, command/reference histories, dt, t_k
 1. 全 IMU の最新共通時刻 t_z を選ぶ
 2. command/reference が直前0.5 s安定していれば、履歴から u(t_z) を取得して観測を構成
 3. completed asynchronous supervisor result があれば freshness 検査後に適用
-4. frame ごとに `source_stamp` が新しい IMU だけを選び、空でなければ $(u(t_z),A(t_z))$ で WEKF update
-5. 最大16回の exact posterior backtracking を行い、$\|\Delta\log K\|_\infty\le0.25$、$\|\Delta q_{eq}\|_2\le0.10\,\mathrm{rad}$、exact likelihood/posterior 非悪化を全て満たす candidate だけを K_est へ commit
-6. K_est を K_exec_target に設定
-7. log K_exec を時定数 0.5 s、最大 0.05/cycle で更新
+4. frame ごとに `source_stamp` が新しい IMU だけを選び、空でなければ $(u(t_z),A(t_z))$ を一つの同期 batch とする
+5. $P_0+Q$ を spectral uncertainty cap へ通し、batch 開始時の $(x_0,\mathcal C_{c_P}(P_0+Q))$ と joint-limit active set を固定して、同じ likelihood を最大5回再線形化する。各 outer で最大16回 backtracking し、batch 総 $\|x-x_0\|_\infty\le3.0$、局所 $\|\Delta q_{eq}\|_2\le0.30\,\mathrm{rad}$、batch 初期からの新規 strong joint-limit contact なし、exact likelihood/fixed-prior posterior 非悪化を要求する
+6. 最終 MAP 点で covariance を一度だけ構成し K_est へ commit。同じ IMU evidence と Q を outer 回数分は加算しない
+7. K_est を K_exec_target に設定し、log K_exec は別状態として時定数 0.5 s、最大 0.05/cycle で更新
 8. 既定では q_eval=q_ref とし、tau_g(q_ref) と K_exec から inverse-statics seed を生成
 9. L1 regularization が有効なら raw seed を最適化
 10. raw equilibrium refinement が明示的に有効かつ projection 無効なら bounded refinement
@@ -1313,12 +1457,15 @@ q_ref = [0.4, -0.4, 0.3, 0.2, -0.5, 0.4] rad
 | `update_stiffness` | `true` |
 | `kp_min`, `kp_max` | `1`, `500` |
 | initial K | `sqrt(500) = 22.3607` all axes |
-| `log_kp_process_noise_var` | `1e-8` |
+| `log_kp_process_noise_var` | `0.30` ($Q=0.30I$ per synchronized estimator-update prediction) |
+| `max_log_kp_covariance_var` | YAML `0.0` -> node-resolved initial prior variance `2.4138346` (spectral uncertainty cap) |
 | `observability_rcond` | `1e-4` |
 | `observability_abs` | `1e-10` |
+| `laplace_outer_iterations` | `5` (same-batch fixed-prior relinearizations) |
 | Laplace backtracking candidates | `16` (`alpha=1,1/2,...,2^-15`) |
-| `max_log_kp_update_step` | `0.25/update` (`K` ratio `<= exp(0.25)`) |
-| `max_equilibrium_pose_jump` | `0.10 rad` (`2`-norm of joint-vector change) |
+| `max_log_kp_update_step` | `3.0/batch` (total $\|x-x_0\|_\infty$; `K` ratio `<= exp(3)`) |
+| `max_equilibrium_pose_jump` | `0.30 rad` (local outer-step joint-vector 2-norm) |
+| `joint_limit_reaction_torque_tol` | `0.001 N m` (batch-initial set に対する新規 contact の KKT reaction guard) |
 | `project_unobservable_feedforward` | `false` |
 | `kp_exec_tau` | `0.5 s` |
 | `max_log_kp_exec_step` | `0.05/cycle` |
@@ -1470,6 +1617,8 @@ simulator 内部の `u_eff` を新たに publish/log し、requested command、a
 - 緑は、記載した理想 simulator の動的 state を示す。
 - matched-model/noise-free 条件で数式と ROS 配線の整合性を検査できる。
 - estimator は準静的 gravity-direction records で、局所的に観測可能な log K 方向だけを更新する。
+- 未知の静的 frame load は estimator へ直接入力されず、$K_{est}$ が現在姿勢に対する有効対角パラメータとしてその一部を吸収する。
+- $K_{est}$ の batch 内急変は $K_{exec}$ へ直結せず、実行側の 0.5 s 一次遅れと 0.05/cycle cap が別に作用する。
 
 ### 18.2 現時点で許されない主張
 
@@ -1480,7 +1629,8 @@ simulator 内部の `u_eff` を新たに publish/log し、requested command、a
 - motion 中にも剛性を正しく推定していると主張すること。
 - gravity direction だけで全 6 軸剛性を常に一意同定できると主張すること。
 - supervisor を有効にすれば必ず精度が上がると主張すること。
-- 外力、payload、摩擦、backlash 下の補償性能を主張すること。
+- 荷重時の $K_{est}$ 変化を、材料剛性、payload mass、外力 vector の同定結果だと主張すること。
+- 一姿勢の対角 $K_{eff}$ 適合から、任意の外力、payload、摩擦、backlash 下の補償性能を一般化すること。
 
 ## 19. 既知の未解決事項と優先順位
 
@@ -1555,13 +1705,22 @@ on cycle(q_ref, imu_buffer, t):
 
     if obs is fresh and u_obs exists:
         A = build_bingham_matrices(obs)
-        x_est, P_est = exact_backtracked_laplace_update(
-            prior=(x_est, P_est),
+        x0 = x_est
+        P_prior = spectral_covariance_cap(
+            P_est + 0.30 * I,
+            max_eigenvalue=2.4138346  # YAML 0 -> initial log-K prior var
+        )
+        x_est, P_est = fixed_prior_iterated_map_laplace(
+            fixed_prior=(x0, P_prior),
             sent_command=u_obs,
             observation=A,
-            max_trials=16,
-            max_abs_delta_log_k=0.25,
-            max_equilibrium_delta_l2=0.10
+            max_outer=5,
+            max_backtracking_trials_per_outer=16,
+            max_total_abs_delta_log_k=3.0,
+            max_local_equilibrium_delta_l2=0.30,
+            reject_new_contact_reaction_above=1e-3,
+            active_set_reference="batch_initial",
+            commit_covariance_once=True
         )
         x_exec_target = x_est
 
@@ -1599,6 +1758,8 @@ on cycle(q_ref, imu_buffer, t):
 
 追加監査では、剛性推定とは独立に追従を壊していた経路依存 feedforward projection を既定無効にした。既知の $q_r$ で重力を評価することで analytic inverse と内部平衡の整合性を回復し、保存 Yamaguchi 姿勢では同じ推定 K のまま真値プラント誤差を `0.689 rad` から `0.00413 rad` へ下げた。これは `K_true` や実姿勢を読む変更ではない。
 
-さらに Pinocchio の固定 base inertia/COM 質量仕様を混用した重力ポテンシャル、joint-limit 上の非 KKT refinement、active-set を無視した感度、exact likelihood を悪化させる WEKF full step、非悪化でも大き過ぎる local step、raw information の弱モード hard cutoff、command publish 前 IMU との逆因果対応を修正した。推定更新は最大16回の backtracking と log-K/平衡姿勢 trust region を通し、実 publish command 履歴と最新共通 IMU 時刻を対応させ、0.5 s の静止 window を満たす場合だけ実行する。
+さらに Pinocchio の固定 base inertia/COM 質量仕様を混用した重力ポテンシャル、joint-limit 上の非 KKT refinement、active-set を無視した感度、exact likelihood を悪化させる WEKF full step、非悪化でも大き過ぎる local step、raw information の弱モード hard cutoff、command publish 前 IMU との逆因果対応を修正した。推定更新は実 publish command 履歴と最新共通 IMU 時刻を対応させ、0.5 s の静止 window を満たす場合だけ実行する。その一 batch 内では $(x_0,\mathcal C_{c_P}(P_0+Q))$ を固定して最大5回再線形化し、exact likelihood/fixed-prior posterior、局所平衡 continuation、新規 strong joint-limit contact guard を通した後、mean と covariance を一度だけ commit する。
 
-直接の truth leakage はない。しかし matched-model/noise-free 条件、gravity-only の非識別性、準静的 estimator、非凸 periodic spring、setpoint marker の誤解可能性は残る。特に K1 は静止重力だけでは厳密に推定不能であり、観測重力方向の整合と full joint pose の一意性は同義でない。従って現段階の結果は内部整合性 baseline として扱い、独立 plant、sensor mismatch、raw topic に基づく定量評価を経てから実機性能へ一般化すべきである。
+未知荷重試験で見つかった遅さは、無負荷後の covariance collapse に対して `Q=1e-8` が小さ過ぎたことと、小さい単発推定 step を次の command-settled batch まで分割したことで $K_{exec}$ の意図的な遅れが estimator の最適化待ちへ再結合したことが原因だった。現行の `Q=0.30I` と fixed-prior iterated MAP は $K_{est}=K_{eff}$ を一 batch 内で大きく適合させる一方、command は別状態 $K_{exec}$ の 0.5 s 一次遅れ・0.05/cycle cap を維持する。大きな $Q$ による不可観測 covariance の線形成長は `max_log_kp_covariance_var` の spectral ceiling で抑える。この ceiling は uncertainty だけを制限し、$K_{est}$ mean やその更新速度を抑えるものではない。
+
+直接の truth leakage はない。しかし matched-model/noise-free 条件、gravity-only の非識別性、準静的 estimator、非凸 periodic spring、setpoint marker の誤解可能性は残る。特に K1 は静止重力だけでは厳密に推定不能であり、観測重力方向の整合と full joint pose の一意性は同義でない。また未知外力を吸収した $K_{eff}$ は pose/load 依存であり、材料剛性や外力そのものの同定値ではない。従って現段階の結果は内部整合性 baseline として扱い、独立 plant、sensor mismatch、raw topic に基づく定量評価を経てから実機性能へ一般化すべきである。

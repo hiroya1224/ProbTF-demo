@@ -112,8 +112,11 @@ class DeflecompNode:
         estimation_command_tolerance: float = 1.0e-3,
         estimation_reference_tolerance: float = 1.0e-4,
         command_apply_delay: float = 0.0,
-        max_log_kp_update_step: float = 0.25,
-        max_equilibrium_pose_jump: float = 0.10,
+        laplace_outer_iterations: int = 5,
+        max_log_kp_update_step: float = 3.0,
+        max_equilibrium_pose_jump: float = 0.30,
+        joint_limit_reaction_torque_tol: float = 1.0e-3,
+        max_log_kp_covariance_var: float = 0.0,
     ) -> None:
         self.robot = RobotArm(urdf_path)
         self.spring_model = spring_model_from_name(spring_model_name, self.robot.model_joint_types)
@@ -146,11 +149,15 @@ class DeflecompNode:
         initial_log_kp_std_vec = np.ones(self.n, dtype=float) * initial_log_kp_std(kp_lim)
         P0 = np.diag(initial_log_kp_std_vec ** 2)
         Q = np.eye(self.n) * float(log_kp_process_noise_var)
+        resolved_covariance_max_var = float(max_log_kp_covariance_var)
+        if resolved_covariance_max_var <= 0.0:
+            resolved_covariance_max_var = float(np.max(initial_log_kp_std_vec ** 2))
         rospy.loginfo(
-            "deflecomp_node: initial K=%s log(K) std=%s log(K) process noise var=%.6g",
+            "deflecomp_node: initial K=%s log(K) std=%s log(K) process noise var=%.6g covariance max var=%.6g",
             ", ".join(f"{v:.6g}" for v in np.exp(x0)),
             ", ".join(f"{v:.6g}" for v in initial_log_kp_std_vec),
             float(log_kp_process_noise_var),
+            resolved_covariance_max_var,
         )
         estimator = MultiFrameStiffnessWEKF(
             x0=x0,
@@ -161,8 +168,11 @@ class DeflecompNode:
             eps_def=1e-6,
             observability_rcond=float(observability_rcond),
             observability_abs=float(observability_abs),
+            laplace_outer_iterations=int(laplace_outer_iterations),
             max_log_kp_update_step=float(max_log_kp_update_step),
             max_equilibrium_pose_jump=float(max_equilibrium_pose_jump),
+            joint_limit_reaction_torque_tol=float(joint_limit_reaction_torque_tol),
+            max_log_kp_covariance_var=resolved_covariance_max_var,
         )
         observation_builder = ImuObservationBuilder(
             robot=self.robot,
@@ -414,6 +424,19 @@ class DeflecompNode:
             est_update_skipped_reason = "none" if est_update_applied else "not_attempted"
         laplace_step_scale = float(result.debug.get("laplace_step_scale", 0.0))
         laplace_dx_max_abs = float(result.debug.get("laplace_dx_max_abs", 0.0))
+        laplace_outer_requested = int(
+            result.debug.get("laplace_outer_iterations_requested", 0)
+        )
+        laplace_outer_completed = int(
+            result.debug.get("laplace_outer_iterations_completed", 0)
+        )
+        laplace_outer_accepted = int(
+            result.debug.get("laplace_outer_iterations_accepted", 0)
+        )
+        laplace_outer_stop_reason = result.debug.get("laplace_outer_stop_reason", "none")
+        laplace_prior_covariance_capped = bool(
+            result.debug.get("laplace_prior_covariance_capped", False)
+        )
         self.pub_estimation_gate_status.publish(
             String(
                 data=(
@@ -423,7 +446,12 @@ class DeflecompNode:
                     f"est_update_applied={int(est_update_applied)} "
                     f"est_update_skipped_reason={est_update_skipped_reason} "
                     f"laplace_step_scale={laplace_step_scale:.9g} "
-                    f"laplace_dx_max_abs={laplace_dx_max_abs:.9g}"
+                    f"laplace_dx_max_abs={laplace_dx_max_abs:.9g} "
+                    f"laplace_outer_requested={laplace_outer_requested} "
+                    f"laplace_outer_completed={laplace_outer_completed} "
+                    f"laplace_outer_accepted={laplace_outer_accepted} "
+                    f"laplace_outer_stop_reason={laplace_outer_stop_reason} "
+                    f"laplace_prior_covariance_capped={int(laplace_prior_covariance_capped)}"
                 )
             )
         )
@@ -533,7 +561,10 @@ def main() -> None:
     A_param = float(rospy.get_param("~A_param", 100.0))
     kp_min = float(rospy.get_param("~kp_min", 1.0))
     kp_max = float(rospy.get_param("~kp_max", 500.0))
-    log_kp_process_noise_var = float(rospy.get_param("~log_kp_process_noise_var", 1e-8))
+    log_kp_process_noise_var = float(rospy.get_param("~log_kp_process_noise_var", 0.30))
+    max_log_kp_covariance_var = float(
+        rospy.get_param("~max_log_kp_covariance_var", 0.0)
+    )
     spring_model_name = rospy.get_param("~spring_model", "auto")
     theta_cmd_tau = float(rospy.get_param("~theta_cmd_tau", 0.2))
     theta_cmd_l1_regularization = parse_bool(rospy.get_param("~theta_cmd_l1_regularization", True))
@@ -556,8 +587,12 @@ def main() -> None:
     update_stiffness = parse_bool(rospy.get_param("~update_stiffness", True))
     observability_rcond = float(rospy.get_param("~observability_rcond", 1e-4))
     observability_abs = float(rospy.get_param("~observability_abs", 1e-10))
-    max_log_kp_update_step = float(rospy.get_param("~max_log_kp_update_step", 0.25))
-    max_equilibrium_pose_jump = float(rospy.get_param("~max_equilibrium_pose_jump", 0.10))
+    laplace_outer_iterations = int(rospy.get_param("~laplace_outer_iterations", 5))
+    max_log_kp_update_step = float(rospy.get_param("~max_log_kp_update_step", 3.0))
+    max_equilibrium_pose_jump = float(rospy.get_param("~max_equilibrium_pose_jump", 0.30))
+    joint_limit_reaction_torque_tol = float(
+        rospy.get_param("~joint_limit_reaction_torque_tol", 1.0e-3)
+    )
     project_unobservable_feedforward = parse_bool(rospy.get_param("~project_unobservable_feedforward", False))
     kp_exec_tau = float(rospy.get_param("~kp_exec_tau", 1.0))
     max_log_kp_exec_step = float(rospy.get_param("~max_log_kp_exec_step", 0.0))
@@ -606,8 +641,11 @@ def main() -> None:
         update_stiffness=update_stiffness,
         observability_rcond=observability_rcond,
         observability_abs=observability_abs,
+        laplace_outer_iterations=laplace_outer_iterations,
         max_log_kp_update_step=max_log_kp_update_step,
         max_equilibrium_pose_jump=max_equilibrium_pose_jump,
+        joint_limit_reaction_torque_tol=joint_limit_reaction_torque_tol,
+        max_log_kp_covariance_var=max_log_kp_covariance_var,
         project_unobservable_feedforward=project_unobservable_feedforward,
         kp_exec_tau=kp_exec_tau,
         max_log_kp_exec_step=max_log_kp_exec_step,

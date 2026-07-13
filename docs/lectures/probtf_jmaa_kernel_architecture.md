@@ -1,4 +1,7 @@
-# ProbTF JMAA kernelの理論・実装contract
+# ProbTF JMAA kernelの数理・architecture contract
+
+本書は数理規約とarchitecture contractを扱う。backendの実装状況、検証結果、今後の作業項目は
+[`v2-demo-migration_2026-07-13.md`](../reports/v2-demo-migration_2026-07-13.md)に記録する。
 
 ## 1. 定義と責務
 
@@ -39,23 +42,6 @@ probtf             -X->  probtf_estimators
 probtf             -X->  ROS
 probtf             -X->  examples
 ```
-
-主要 directory の責務は次の通りである。
-
-| directory | responsibility |
-| --- | --- |
-| `ros/core/probtf_core/src/probtf/distributions` | immutable orientation/translation/component/mixture storage |
-| `ros/core/probtf_core/src/probtf/graph` | physical forest、path、timestamped buffer、query |
-| `ros/core/probtf_core/src/probtf/kernels` | forward/inverse/composed/mixture expression と evaluator |
-| `ros/core/probtf_core/src/probtf/spherical_law` | ISL protocol、special case、tangent surrogate adapter |
-| `ros/core/probtf_core/src/probtf/probability` | optional Bingham/rotation/point moment summary |
-| `ros/core/probtf_core/src/probtf/provenance` | provenance、dependency、approximation metadata |
-| `ros/core/probtf_core/src/probtf_estimators` | IMU producer、same-edge evidence fusion、Hessian coupling |
-| `ros/core/probtf_msgs` | native v2 wire contract |
-| `ros/core/probtf_core/src/probtf_ros` | ROS conversion と bridge のみ |
-
-`tests/test_ros_boundary.py` はこの依存方向、各catkin packageによるPython source ownership、
-parent path relayの不在を検査する。
 
 ## 3. frame と traversal
 
@@ -167,7 +153,7 @@ multiple parent を拒否する。parent change は default で拒否し、明�
 かつ同一 authority は replacement、異なる authority は default で
 `AUTHORITY_CONFLICT` である。
 
-実装済み policy:
+sample selection policyの意味は次である。
 
 - `EXACT`
 - `NEAREST_WITHIN_TOLERANCE`。tie は古い sample
@@ -177,15 +163,14 @@ multiple parent を拒否する。parent change は default で拒否し、明�
 `LATEST` と `LATEST_COMMON` は optional `max_age` を受け取り、許容 age を
 超えた zero-order hold は `TEMPORAL_STALE` で失敗する。
 
-任意 Bingham mixture interpolation は未実装である。現在の
-`LATEST_COMMON` は全 dynamic edge の availability interval の最新共通時刻を
+`LATEST_COMMON`は全dynamic edgeのavailability intervalの最新共通時刻を
 選び、各 edge でその時刻以前の最新 sample を使用する。sample が共通時刻と
 異なる場合、`LATEST_COMMON_ZERO_ORDER_HOLD` diagnostic が
 `PathExpression` に残る。これは exact temporal interpolation ではない。
 
-`INTERPOLATE_WITH_MODEL` と `PREDICT_WITH_MODEL` は interface のみで、呼ぶと
-`UNSUPPORTED_TEMPORAL_POLICY` になる。static uncertain edge は任意 query
-時刻で同じ record を返す。
+`INTERPOLATE_WITH_MODEL`と`PREDICT_WITH_MODEL`は、分布族に対応した明示的model、
+uncertainty growth、diagnosticを必要とする。static uncertain edgeは任意query時刻で
+同じrecordを返す。
 
 ## 8. kernel evaluation
 
@@ -215,31 +200,17 @@ H=A_z+C,
 同じ latent dependency が path に繰り返される場合は
 `DEPENDENCY_UNRESOLVED` である。独立 sample として扱わない。
 
-## 9. ISL backend status
+## 9. ISL backend contract
 
 `probtf.isl` (`probtf.spherical_law` の short alias) にある
 `IslInducedLawBackend.rotate_direction` と `rotate_vector` が primary backend
 contract である。zero vector は orientation に関係なく zero Dirac、nonzero
 vector は norm と unit direction に分ける。
 
-現在の status:
-
-| operation | status |
-| --- | --- |
-| Dirac orientation action | exact |
-| uniform orientation direction/vector action | exact special case |
-| finite-Bingham exact ISL density | `UNAVAILABLE_EXACT_ISL_BACKEND` |
-| numerical joint coupling/Gaussian convolution | unavailable |
-| tangent leading-exponent moments | explicit `TANGENT_SURROGATE` approximation |
-| forward point moments | exact moments、lossy summary representation |
-| stochastic inverse covariance | unavailable |
-| native stochastic sampling | forward/inverse/composed pathまで実装済み、`MONTE_CARLO` |
-| closed-mixture reduction | unavailable without policy |
-
-JMAA manuscript には exact global density があるが、migration 開始時点で source
-evaluator と regression code が存在しなかった。この実装では式を新規転記せず、
-`UnavailableExactIslBackend` を返す。代替として Wang 型 `SE(3)` propagation
-は実装していない。
+backendは結果がexact law、typed approximation、moment summary、sampleのどれであるかを明示する。
+exact evaluatorを持たないoperationを別分布へ黙って置換せず、unavailable resultを返す。
+tangent surrogate、Monte Carlo、mixture reductionを使う場合は、近似種別、loss、provenance、
+必要ならerror boundを結果へ保持する。
 
 ## 10. ROS v2 と TF bridge
 
@@ -270,10 +241,7 @@ exact edgeまたは明示されたrepresentativeだけで、stochastic edgeで�
 要求する。bridgeはown authorityとexport signatureを使ってimmediate re-import loopを防ぐ。
 IMU、orientation、fusion producer nodeは各demo packageが所有する。
 
-## 11. v1廃止とdomain boundary
-
-v1 domain model、ROS message、v1/v2 adapter、symaware固有`ProbTfTree`はsourceとruntimeから
-削除されている。v1へ投影するcompatibility pathは存在しない。
+## 11. Domain boundary
 
 - orientation-only posteriorへzero translationを補い、SE(3) edgeへ偽装しない。
 - stiffness posterior、IK score、grasp IDをtransformとしてgraphへ登録しない。
@@ -282,19 +250,3 @@ v1 domain model、ROS message、v1/v2 adapter、symaware固有`ProbTfTree`はsou
 - 同じlatent dependencyを独立sampleとして扱わない。
 
 これらはbackend不足を埋める暫定compatibilityではなく、確率変数とapplication domainを守る境界である。
-
-## 12. install ownershipと明示的制約
-
-`probtf`、`probtf_estimators`、`probtf_ros`は`probtf_core` catkin packageの`src/`が所有する。
-deflecompとsymawareのPython namespaceも各catkin packageの`src/`が所有する。root `setup.py`は
-非catkin開発向けにfirst-party source rootだけを集約し、catkin packageからparent pathをrelayしない。
-Bingham normalizerは`probtf._vendor`に収容され、runtimeは外部`bingham` packageに依存しない。
-
-次の項目はinterfaceまたはexplicit unavailable statusまでである。
-
-- finite-Bingham exact JMAA density evaluatorとregression values
-- arbitrary mixture temporal interpolation/prediction
-- stochastic inverse analytic high-order moment evaluator
-- coupled numerical lawとdependency-aware shared realization evaluator
-- mixture mergeとBingham-Gaussian closure policy
-- general edge-correlation/factor-graph backend

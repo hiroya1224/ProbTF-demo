@@ -288,11 +288,58 @@ v1 runtime、v1/v2 adapter、applicationごとの手計算伝播を復活させ�
 7. high-rate graphのqueue/history/memory sizingと長時間multi-process整合性試験
 8. unavailable/approximation metadataの共通diagnostic UI
 9. X displayを持つ環境での`viewer:=true` RViz/plotter視認smoke
+10. authority/parent changeを長時間運用で管理する上位policy
+11. general edge-correlation / factor-graph backend
+12. orientation-only lawに独立graph/query abstractionが必要かの用途別判断
+13. Symaware IKが扱うorientation kindの明示的な拡張
+14. two-IMU materialization以外のnative kernel terminal consumer
 
 native Monte Carlo sampling、bounded ROS listener、Symawareのpoint-cloud lookup、Deflecompの
 scoped topic/lookup smokeは実装・確認済みであり、上記TODOには含めない。
 
-## 7. 最終検証
+## 7. 最終実装状態
+
+### 7.1 Kernel evaluator
+
+| representation / operation | status |
+| --- | --- |
+| lazy expression | 実装済み |
+| deterministic forward/inverse/composition | exact |
+| stochastic forward point moments | 実装済み、`MOMENT_SUMMARY` |
+| native stochastic samples | forward/inverse/composed pathまで実装済み |
+| Dirac/uniform/zero-vector induced law | exact special case |
+| finite Bingham tangent induced law | 明示的`TANGENT_SURROGATE` |
+| finite Bingham exact induced density | unavailable |
+| coupled numerical ISL integration | unavailable |
+| stochastic inverse analytic covariance | unavailable |
+| closed-mixture projection | explicit backend未実装 |
+
+### 7.2 Runtime implementation
+
+- full physical SE(3) edgeはnative v2 `/probtf` / `/probtf_static`でtransportする。
+- `RosProbTfListener`はprocessごとにbounded local graphを作り、中央RPCなしでlookupする。
+- two-IMU producerはrotation/translation couplingを保持したfull v2 edgeをpublishする。
+- orientation-only evidence/posteriorはtranslation fieldを持たない専用messageで運ぶ。
+- Symawareのobject/hand/targetはapplication messageとglobal v2 graphの両方へpublishする。
+- Symaware link cloudは`lookup_point_moments()`のterminal resultだけから表示sampleを作る。
+- Deflecompは`ref/cmd/equil` TFだけをscoped v2 graphへimportし、stiffness posteriorは登録しない。
+- v1 model/message/adapter、`ProbTfTree`、demo固有のpath伝播はsource/runtimeに存在しない。
+
+### 7.3 Architecture regressionの検査範囲
+
+- foundationがROS/exampleへ逆依存しないこと
+- package-local setupとparent path relayが存在しないこと
+- ProbTF v1 module/symbol/messageが存在しないこと
+- graph topology、time policy、bounded history、thread-safe lookup
+- v2 message round-trip、TF import/export、local listener
+- Bingham moments、joint coupling、right composition
+- native finite/uniform/Dirac sampling、mixture比率、forward/inverse action
+- two-IMU outputのstamp/edge/authority/provenance
+- orientation-only messageにtranslationがないこと
+- Symaware static graph、application message、IK、visualizer、launch runtime
+- Deflecomp scoped bridge launchとpoint-moment consumer
+
+## 8. 最終検証
 
 - 全Python suite: `200 passed, 1 warning`
 - catkin build: `probtf_msgs`、`probtf_core`、`probtf_imu_demo`、

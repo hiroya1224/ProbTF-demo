@@ -278,6 +278,30 @@ def make_particle_compensator():
 
 
 class KExecSeparationTests(unittest.TestCase):
+    def test_feedforward_projection_is_opt_in_and_known_reference_is_default(self):
+        comp, _, _ = make_compensator()
+        # Exercise the code default rather than make_compensator's explicit
+        # setting.  Gravity must be evaluated at the known desired pose unless
+        # the experimental path-dependent projection is deliberately enabled.
+        comp.config.pop("project_unobservable_feedforward")
+
+        first_ref = np.array([0.2, -0.3], dtype=float)
+        second_ref = np.array([-0.8, 0.9], dtype=float)
+        first = comp._theta_ref_for_gravity(first_ref, None, {})
+        second = comp._theta_ref_for_gravity(
+            second_ref,
+            [
+                FrameImuObservation(
+                    frame_name="unused_when_projection_is_off",
+                    gravity_dir=np.array([0.0, 0.0, -1.0]),
+                )
+            ],
+            {},
+        )
+
+        self.assertTrue(np.allclose(first, first_ref))
+        self.assertTrue(np.allclose(second, second_ref))
+
     def test_est_update_sets_exec_target_but_exec_moves_smoothly(self):
         comp, estimator, _ = make_compensator()
         theta_ref = np.array([0.0, 0.0], dtype=float)
@@ -299,6 +323,38 @@ class KExecSeparationTests(unittest.TestCase):
         self.assertTrue(np.all(second.kp_exec > np.array([10.0, 10.0])))
         self.assertTrue(np.all(second.kp_exec < second.kp_est))
         self.assertFalse(np.allclose(second.kp_exec, second.kp_est))
+
+    def test_explicit_time_aligned_command_is_used_for_estimator_update(self):
+        comp, estimator, _ = make_compensator()
+        theta_ref = np.array([0.0, 0.0], dtype=float)
+        comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.0)
+        aligned_command = np.array([7.0, 8.0], dtype=float)
+        obs = [
+            FrameImuObservation(
+                frame_name="f",
+                gravity_dir=np.array([0.0, 0.0, -1.0]),
+                stamp=1.0,
+                source_stamp=1.0,
+            )
+        ]
+
+        result = comp.step(
+            theta_ref=theta_ref,
+            imu_observations=obs,
+            dt=0.1,
+            stamp=0.1,
+            theta_cmd_sent_for_update=aligned_command,
+        )
+
+        self.assertEqual(len(estimator.update_calls), 1)
+        self.assertTrue(
+            np.allclose(
+                estimator.update_calls[0]["theta_cmd_sent"],
+                aligned_command,
+            )
+        )
+        self.assertTrue(result.debug["used_theta_cmd_sent_for_update"])
+        self.assertTrue(result.debug["used_time_aligned_theta_cmd_for_update"])
 
     def test_same_observation_stamp_is_not_used_twice(self):
         comp, estimator, _ = make_compensator()

@@ -45,6 +45,11 @@ class MultiFrameStiffnessWEKF:
         observability_abs: float = 1e-10,
         laplace_negative_info_tol: float = 1e-9,
         laplace_jitter: float = 1e-6,
+        laplace_backtracking_max_steps: int = 16,
+        laplace_backtracking_factor: float = 0.5,
+        laplace_acceptance_tol: float = 1e-10,
+        max_log_kp_update_step: float = 0.25,
+        max_equilibrium_pose_jump: float = 0.10,
     ) -> None:
         self.x_est = x0.copy()
         self.P_est = P0.copy()
@@ -57,6 +62,17 @@ class MultiFrameStiffnessWEKF:
         self.observability_abs = float(observability_abs)
         self.laplace_negative_info_tol = float(laplace_negative_info_tol)
         self.laplace_jitter = float(laplace_jitter)
+        self.laplace_backtracking_max_steps = max(1, int(laplace_backtracking_max_steps))
+        self.laplace_backtracking_factor = float(laplace_backtracking_factor)
+        if not 0.0 < self.laplace_backtracking_factor < 1.0:
+            raise ValueError("laplace_backtracking_factor must be strictly between 0 and 1")
+        self.laplace_acceptance_tol = max(0.0, float(laplace_acceptance_tol))
+        self.max_log_kp_update_step = float(max_log_kp_update_step)
+        if self.max_log_kp_update_step <= 0.0 or np.isnan(self.max_log_kp_update_step):
+            raise ValueError("max_log_kp_update_step must be positive")
+        self.max_equilibrium_pose_jump = float(max_equilibrium_pose_jump)
+        if self.max_equilibrium_pose_jump <= 0.0 or np.isnan(self.max_equilibrium_pose_jump):
+            raise ValueError("max_equilibrium_pose_jump must be positive")
         self.last_theta_eq: Optional[np.ndarray] = None
         self.last_observable_rank = 0
         self.last_observable_eigvals = np.zeros_like(self.x_est)
@@ -105,7 +121,12 @@ class MultiFrameStiffnessWEKF:
             spring_model=spring_model,
             cfg=deepcopy(self.solver.cfg),
         )
-        sensitivity = SensitivityCalculator(robot=robot, spring_model=spring_model)
+        sensitivity = SensitivityCalculator(
+            robot=robot,
+            spring_model=spring_model,
+            active_set_tol=float(getattr(self.sensitivity, "active_set_tol", 1.0e-8)),
+            kkt_tol=float(getattr(self.sensitivity, "kkt_tol", 1.0e-8)),
+        )
         clone = MultiFrameStiffnessWEKF(
             x0=self.x_est.copy(),
             P0=self.P_est.copy(),
@@ -117,6 +138,11 @@ class MultiFrameStiffnessWEKF:
             observability_abs=self.observability_abs,
             laplace_negative_info_tol=self.laplace_negative_info_tol,
             laplace_jitter=self.laplace_jitter,
+            laplace_backtracking_max_steps=self.laplace_backtracking_max_steps,
+            laplace_backtracking_factor=self.laplace_backtracking_factor,
+            laplace_acceptance_tol=self.laplace_acceptance_tol,
+            max_log_kp_update_step=self.max_log_kp_update_step,
+            max_equilibrium_pose_jump=self.max_equilibrium_pose_jump,
         )
         clone.last_theta_eq = None if self.last_theta_eq is None else self.last_theta_eq.copy()
         clone.last_observable_rank = int(self.last_observable_rank)
@@ -391,6 +417,54 @@ class MultiFrameStiffnessWEKF:
         min_raw_eig = float(np.min(raw_eigvals)) if raw_eigvals.size else 0.0
         return eigvals, eigvecs, keep, raw_eigvals, min_raw_eig
 
+    @staticmethod
+    def _symmetric_psd_sqrt(matrix: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Return the symmetric square root of a covariance and its clipped spectrum."""
+        array = np.asarray(matrix, dtype=float)
+        symmetric = 0.5 * (array + array.T)
+        eigvals, eigvecs = np.linalg.eigh(symmetric)
+        clipped = np.maximum(eigvals, 0.0)
+        sqrt_matrix = (eigvecs * np.sqrt(clipped)) @ eigvecs.T
+        return 0.5 * (sqrt_matrix + sqrt_matrix.T), clipped
+
+    def _prior_whitened_observable_subspace(
+        self,
+        information: np.ndarray,
+        covariance: np.ndarray,
+    ):
+        """Find observable directions in dimensionless prior-whitened coordinates.
+
+        Applying the relative cutoff directly to ``information`` makes the largest
+        mode of every individual sample suppress all weaker modes forever.  With
+        ``delta_x = sqrt(P) delta_y``, the relevant dimensionless information is
+        ``sqrt(P) information sqrt(P)``.  Modes already learned by earlier samples
+        then lose weight while independent weak modes retain their prior variance
+        and become observable on subsequent samples.
+        """
+        covariance_sqrt, covariance_eigvals = self._symmetric_psd_sqrt(covariance)
+        info = 0.5 * (information + information.T)
+        whitened = covariance_sqrt @ info @ covariance_sqrt
+        whitened = 0.5 * (whitened + whitened.T)
+        raw_eigvals, eigvecs = np.linalg.eigh(whitened)
+        eigvals = np.maximum(raw_eigvals, 0.0)
+        lam_max = float(np.max(eigvals)) if eigvals.size else 0.0
+        threshold = max(self.observability_abs, self.observability_rcond * max(lam_max, 0.0))
+        keep = eigvals > threshold
+        self.last_observable_rank = int(np.count_nonzero(keep))
+        self.last_observable_eigvals = eigvals.copy()
+        min_raw_eig = float(np.min(raw_eigvals)) if raw_eigvals.size else 0.0
+        return (
+            eigvals,
+            eigvecs,
+            keep,
+            raw_eigvals,
+            min_raw_eig,
+            covariance_sqrt,
+            covariance_eigvals,
+            whitened,
+            threshold,
+        )
+
     def _grad_hess_multi(
         self,
         theta_cmd: np.ndarray,
@@ -419,7 +493,16 @@ class MultiFrameStiffnessWEKF:
     ) -> StiffnessUpdateResult:
         debug["laplace_update_skipped_reason"] = reason
         debug["est_update_skipped_reason"] = reason
-        debug.setdefault("laplace_information_scale", 0.0)
+        debug["laplace_information_scale"] = 0.0
+        debug["laplace_step_scale"] = 0.0
+        debug["laplace_step_acceptance_reason"] = reason
+        debug.setdefault(
+            "laplace_log_likelihood_before",
+            debug.get("laplace_log_likelihood", -np.inf),
+        )
+        debug.setdefault("laplace_log_likelihood_after", debug["laplace_log_likelihood_before"])
+        debug.setdefault("laplace_posterior_objective_before", debug["laplace_log_likelihood_before"])
+        debug.setdefault("laplace_posterior_objective_after", debug["laplace_posterior_objective_before"])
         debug["laplace_dx_norm"] = 0.0
         debug["laplace_dx_max_abs"] = 0.0
         debug["est_update_applied"] = False
@@ -467,21 +550,28 @@ class MultiFrameStiffnessWEKF:
         terms = self._compute_local_laplace_terms(theta_eq, J_q, J_x, A_map)
         g = terms["gradient"]
         information = terms["information"]
-
-        eigvals, eigvecs, keep, raw_eigvals, min_raw_eig = self._observable_subspace(information)
+        log_likelihood_before = float(terms["log_likelihood"])
         debug: Dict[str, Any] = {
-            "laplace_log_likelihood": float(terms["log_likelihood"]),
+            "laplace_log_likelihood": log_likelihood_before,
+            "laplace_log_likelihood_before": log_likelihood_before,
+            "laplace_log_likelihood_after": log_likelihood_before,
+            "laplace_posterior_objective_before": log_likelihood_before,
+            "laplace_posterior_objective_after": log_likelihood_before,
             "laplace_grad_norm": float(np.linalg.norm(g)),
-            "laplace_info_eigs": eigvals.copy(),
-            "laplace_obs_rank": int(np.count_nonzero(keep)),
-            "laplace_info_negative_min_eig": min_raw_eig,
-            "laplace_info_has_large_negative_eig": bool(min_raw_eig < -self.laplace_negative_info_tol),
-            "laplace_raw_info_eigs": raw_eigvals.copy(),
-            "est_obs_rank": int(np.count_nonzero(keep)),
-            "est_information_eigs": eigvals.copy(),
             "est_gradient_norm": float(np.linalg.norm(g)),
+            "laplace_step_scale": 0.0,
+            "laplace_step_acceptance_reason": "not_evaluated",
+            "laplace_backtracking_trials": [],
+            "laplace_max_log_kp_update_step": self.max_log_kp_update_step,
+            "laplace_max_equilibrium_pose_jump": self.max_equilibrium_pose_jump,
         }
-        if not np.all(np.isfinite(g)) or not np.all(np.isfinite(information)):
+        if (
+            not np.all(np.isfinite(g))
+            or not np.all(np.isfinite(information))
+            or not np.isfinite(log_likelihood_before)
+        ):
+            self.last_observable_rank = 0
+            self.last_observable_eigvals = np.zeros_like(self.x_est)
             return self._finish_skipped_update(
                 theta_eq,
                 P_pred,
@@ -490,6 +580,44 @@ class MultiFrameStiffnessWEKF:
                 g,
                 information,
             )
+
+        raw_information_eigvals = np.linalg.eigvalsh(0.5 * (information + information.T))
+        raw_information_eigvals_clipped = np.maximum(raw_information_eigvals, 0.0)
+        min_raw_information_eig = (
+            float(np.min(raw_information_eigvals)) if raw_information_eigvals.size else 0.0
+        )
+        (
+            eigvals,
+            eigvecs,
+            keep,
+            whitened_raw_eigvals,
+            min_whitened_raw_eig,
+            covariance_sqrt,
+            covariance_eigvals,
+            _whitened_information,
+            observability_threshold,
+        ) = self._prior_whitened_observable_subspace(information, P_pred)
+        debug.update(
+            {
+                # Retain the historical raw-information fields for consumers
+                # which plot them, and expose the dimensionless spectrum used
+                # for the actual observability decision separately.
+                "laplace_info_eigs": raw_information_eigvals_clipped.copy(),
+                "laplace_raw_info_eigs": raw_information_eigvals.copy(),
+                "laplace_info_negative_min_eig": min_raw_information_eig,
+                "laplace_info_has_large_negative_eig": bool(
+                    min_raw_information_eig < -self.laplace_negative_info_tol
+                ),
+                "laplace_prior_whitened_info_eigs": eigvals.copy(),
+                "laplace_prior_whitened_raw_info_eigs": whitened_raw_eigvals.copy(),
+                "laplace_prior_whitened_info_negative_min_eig": min_whitened_raw_eig,
+                "laplace_prior_covariance_eigs": covariance_eigvals.copy(),
+                "laplace_prior_whitened_observability_threshold": float(observability_threshold),
+                "laplace_obs_rank": int(np.count_nonzero(keep)),
+                "est_obs_rank": int(np.count_nonzero(keep)),
+                "est_information_eigs": eigvals.copy(),
+            }
+        )
         if not np.any(keep):
             return self._finish_skipped_update(
                 theta_eq,
@@ -501,10 +629,9 @@ class MultiFrameStiffnessWEKF:
             )
 
         U_obs = eigvecs[:, keep]
-        U_unobs = eigvecs[:, ~keep]
         info_obs = eigvals[keep]
-        P_obs = U_obs.T @ P_pred @ U_obs
-        g_obs = U_obs.T @ g
+        g_whitened = covariance_sqrt @ g
+        g_obs = U_obs.T @ g_whitened
 
         info_scale = self._information_scale(info_obs)
         debug["laplace_information_scale"] = float(info_scale)
@@ -518,17 +645,182 @@ class MultiFrameStiffnessWEKF:
                 information,
             )
 
-        Sinv_obs = np.diag(info_scale * info_obs)
-        g_obs = info_scale * g_obs
-
-        Pinv_obs = np.linalg.pinv(P_obs, rcond=1e-12)
+        # Backtrack a tempered local-Laplace update.  The local Hessian is only
+        # a tangent approximation because every candidate stiffness requires a
+        # new nonlinear equilibrium solve.  A candidate is therefore committed
+        # only after the exact Bingham likelihood and the Gaussian-prior
+        # posterior objective have both been checked.
         jitter = max(0.0, self.laplace_jitter)
-        P_post_obs = np.linalg.pinv(
-            Pinv_obs + Sinv_obs + jitter * np.eye(Sinv_obs.shape[0]),
-            rcond=1e-12,
-        )
-        dx = U_obs @ (P_post_obs @ g_obs)
-        if not np.all(np.isfinite(dx)):
+        prior_precision = np.linalg.pinv(P_pred, rcond=1e-12)
+        accepted_scale: Optional[float] = None
+        accepted_eval: Optional[StiffnessLikelihoodEvaluation] = None
+        accepted_objective = log_likelihood_before
+        accepted_covariance_whitened: Optional[np.ndarray] = None
+        accepted_pose_jump_norm = 0.0
+        accepted_pose_jump_max_abs = 0.0
+        trial_debug: List[Dict[str, Any]] = []
+        lower_log_kp = float(np.log(kp_lim[0]))
+        upper_log_kp = float(np.log(kp_lim[1]))
+
+        for trial_index in range(self.laplace_backtracking_max_steps):
+            step_scale = self.laplace_backtracking_factor ** trial_index
+            tempered_precision = step_scale * (info_scale * info_obs + jitter)
+            posterior_variance_obs = 1.0 / (1.0 + tempered_precision)
+            delta_y_obs = posterior_variance_obs * (step_scale * info_scale * g_obs)
+            delta_x = covariance_sqrt @ (U_obs @ delta_y_obs)
+            if not np.all(np.isfinite(delta_x)):
+                trial_debug.append(
+                    {
+                        "scale": float(step_scale),
+                        "valid": False,
+                        "accepted": False,
+                        "reason": "nonfinite_posterior_step",
+                    }
+                )
+                continue
+
+            x_candidate = np.clip(x_pred + delta_x, lower_log_kp, upper_log_kp)
+            delta_x_applied = x_candidate - x_pred
+            delta_x_norm = float(np.linalg.norm(delta_x_applied))
+            delta_x_max_abs = (
+                float(np.max(np.abs(delta_x_applied))) if delta_x_applied.size else 0.0
+            )
+            if delta_x_max_abs > self.max_log_kp_update_step + 1.0e-12:
+                # Do not project a large local step onto the trust-region
+                # boundary.  Continuing the same tempering sequence preserves
+                # its direction and covariance interpretation while finding a
+                # genuinely local candidate.
+                trial_debug.append(
+                    {
+                        "scale": float(step_scale),
+                        "valid": True,
+                        "exact_evaluated": False,
+                        "accepted": False,
+                        "dx_norm": delta_x_norm,
+                        "dx_max_abs": delta_x_max_abs,
+                        "reason": "log_kp_trust_region_exceeded",
+                    }
+                )
+                continue
+
+            candidate_eval = self.evaluate_log_likelihood_at_x(
+                x_eval=x_candidate,
+                theta_cmd_sent=theta_cmd_sent,
+                A_map=A_map,
+                # Keeping the current solution as the initial point makes the
+                # acceptance test follow the same equilibrium branch.
+                theta_init_eq_pred=theta_eq,
+                kp_lim=kp_lim,
+            )
+            if not candidate_eval.valid:
+                trial_debug.append(
+                    {
+                        "scale": float(step_scale),
+                        "valid": False,
+                        "exact_evaluated": True,
+                        "accepted": False,
+                        "dx_norm": delta_x_norm,
+                        "dx_max_abs": delta_x_max_abs,
+                        "reason": candidate_eval.error or "invalid_exact_likelihood",
+                    }
+                )
+                continue
+
+            pose_delta = np.asarray(candidate_eval.theta_eq, dtype=float) - np.asarray(
+                theta_eq,
+                dtype=float,
+            )
+            pose_jump_norm = float(np.linalg.norm(pose_delta))
+            pose_jump_max_abs = float(np.max(np.abs(pose_delta))) if pose_delta.size else 0.0
+            if (
+                not np.all(np.isfinite(pose_delta))
+                or pose_jump_norm > self.max_equilibrium_pose_jump + 1.0e-12
+            ):
+                trial_debug.append(
+                    {
+                        "scale": float(step_scale),
+                        "valid": bool(np.all(np.isfinite(pose_delta))),
+                        "exact_evaluated": True,
+                        "accepted": False,
+                        "log_likelihood": float(candidate_eval.log_likelihood),
+                        "dx_norm": delta_x_norm,
+                        "dx_max_abs": delta_x_max_abs,
+                        "equilibrium_pose_jump_norm": pose_jump_norm,
+                        "equilibrium_pose_jump_max_abs": pose_jump_max_abs,
+                        "reason": (
+                            "equilibrium_pose_jump_exceeded"
+                            if np.all(np.isfinite(pose_delta))
+                            else "nonfinite_equilibrium_pose_jump"
+                        ),
+                    }
+                )
+                continue
+
+            prior_cost = 0.5 * float(delta_x_applied.T @ (prior_precision @ delta_x_applied))
+            candidate_objective = float(candidate_eval.log_likelihood - prior_cost)
+            comparison_tol = self.laplace_acceptance_tol * max(
+                1.0,
+                abs(log_likelihood_before),
+                abs(float(candidate_eval.log_likelihood)),
+            )
+            likelihood_nonworsening = bool(
+                candidate_eval.log_likelihood + comparison_tol >= log_likelihood_before
+            )
+            posterior_nonworsening = bool(
+                candidate_objective + comparison_tol >= log_likelihood_before
+            )
+            accepted = likelihood_nonworsening and posterior_nonworsening
+            trial_debug.append(
+                {
+                    "scale": float(step_scale),
+                    "valid": True,
+                    "exact_evaluated": True,
+                    "accepted": bool(accepted),
+                    "log_likelihood": float(candidate_eval.log_likelihood),
+                    "posterior_objective": candidate_objective,
+                    "prior_cost": prior_cost,
+                    "dx_norm": delta_x_norm,
+                    "dx_max_abs": delta_x_max_abs,
+                    "equilibrium_pose_jump_norm": pose_jump_norm,
+                    "equilibrium_pose_jump_max_abs": pose_jump_max_abs,
+                    "reason": (
+                        "accepted"
+                        if accepted
+                        else (
+                            "likelihood_worsened"
+                            if not likelihood_nonworsening
+                            else "posterior_objective_worsened"
+                        )
+                    ),
+                }
+            )
+            if accepted:
+                accepted_scale = float(step_scale)
+                accepted_eval = candidate_eval
+                accepted_objective = candidate_objective
+                accepted_pose_jump_norm = pose_jump_norm
+                accepted_pose_jump_max_abs = pose_jump_max_abs
+                accepted_covariance_whitened = np.eye(self.x_est.size, dtype=float)
+                accepted_covariance_whitened += U_obs @ (
+                    np.diag(posterior_variance_obs - 1.0)
+                ) @ U_obs.T
+                break
+
+        debug["laplace_backtracking_trials"] = trial_debug
+        if accepted_eval is None or accepted_scale is None or accepted_covariance_whitened is None:
+            debug["laplace_step_acceptance_reason"] = "exact_posterior_not_improved"
+            return self._finish_skipped_update(
+                theta_eq,
+                P_pred,
+                debug,
+                "exact_posterior_not_improved",
+                g,
+                information,
+            )
+
+        x_post = accepted_eval.x_eval.copy()
+        dx_applied = x_post - x_pred
+        if not np.all(np.isfinite(dx_applied)):
             return self._finish_skipped_update(
                 theta_eq,
                 P_pred,
@@ -538,31 +830,32 @@ class MultiFrameStiffnessWEKF:
                 information,
             )
 
-        x_post = x_pred + dx
-
-        x_post = np.clip(x_post, np.log(kp_lim[0]), np.log(kp_lim[1]))
-        dx_applied = x_post - x_pred
-
-        if U_unobs.size:
-            P_unobs = U_unobs @ (U_unobs.T @ P_pred @ U_unobs) @ U_unobs.T
-        else:
-            P_unobs = np.zeros_like(self.P_est)
-        P_post = U_obs @ P_post_obs @ U_obs.T + P_unobs
+        P_post = covariance_sqrt @ accepted_covariance_whitened @ covariance_sqrt
         self.P_est = 0.5 * (P_post + P_post.T)
         self.x_est = x_post
-        self.last_theta_eq = theta_eq.copy()
-        self.last_information_scale = info_scale
+        theta_eq_post = accepted_eval.theta_eq.copy()
+        self.last_theta_eq = theta_eq_post.copy()
+        self.last_information_scale = info_scale * accepted_scale
         self.last_update_step = dx_applied
         self.last_update_norm = float(np.linalg.norm(dx_applied))
         self.last_update_applied = self.last_update_norm > 0.0
         debug["laplace_dx_norm"] = self.last_update_norm
         debug["laplace_dx_max_abs"] = float(np.max(np.abs(dx_applied))) if dx_applied.size else 0.0
-        debug["laplace_step_scale"] = 1.0
+        debug["laplace_step_scale"] = accepted_scale
+        debug["laplace_step_acceptance_reason"] = (
+            "full_step_exact_posterior_improved"
+            if accepted_scale == 1.0
+            else "backtracked_exact_posterior_improved"
+        )
+        debug["laplace_log_likelihood_after"] = float(accepted_eval.log_likelihood)
+        debug["laplace_posterior_objective_after"] = float(accepted_objective)
+        debug["laplace_equilibrium_pose_jump_norm"] = accepted_pose_jump_norm
+        debug["laplace_equilibrium_pose_jump_max_abs"] = accepted_pose_jump_max_abs
         debug["est_update_applied"] = True
         debug["est_update_skipped_reason"] = None
         self.last_debug = debug
         return StiffnessUpdateResult(
-            theta_eq=theta_eq.copy(),
+            theta_eq=theta_eq_post,
             x_est=self.x_est.copy(),
             kp_est=self.kp_est.copy(),
             P_est=self.P_est.copy(),

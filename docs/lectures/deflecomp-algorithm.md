@@ -2,7 +2,7 @@
 
 更新日: 2026-07-13  
 対象: `deflecomp_frames.launch` から起動される現行 working tree  
-基準: `HEAD=0ac5144` に本作業中の未コミット修正を加えた状態
+基準: `HEAD=8c10793` に本作業中の推定・追従修正を加えた状態
 
 ## 0. この文書の目的と結論
 
@@ -20,6 +20,11 @@
 8. controller と simulator は、同じ URDF、同じ Pinocchio、同じ重力、同じばね実装、同じ IMU 外部標定を共有する。これは数式・配線の整合試験には適切だが、推定性能や実機性能を検証するには強い matched-model 条件、いわゆる inverse crime である。
 9. 現行の剛性推定器は通常の measurement-residual EKF ではなく、Bingham 方向尤度を `x=log K` の周りで局所二次近似する Laplace/Gauss--Newton 型更新である。
 10. `particle supervisor` は particle filter、RBPF、厳密な MAP 推定ではない。事前分布を score に含めない、決定論的・有界バッチ最尤 proposal である。通常 launch では既定で無効である。
+11. 追加監査で、`project_unobservable_feedforward` が姿勢依存部分空間への参照増分を逐次積分するため経路依存に漂い、既知の目標姿勢とは別の姿勢で重力を評価していたことを確認した。実測静止例ではこれが重力トルクの符号を反転させ、真値プラントの目標姿勢誤差を `0.00413 rad` から `0.689 rad` へ悪化させていた。これは既定無効へ変更した。
+12. Pinocchio の `centerOfMass()` が universe に固定された base inertia を集計しない一方、旧コードはそれを含む全質量を COM に掛けていた。Yamaguchi ではポテンシャル勾配が一般化重力の `1.96556` 倍になっていたため、`computePotentialEnergy()` へ統一した。
+13. joint limit 上の平衡を raw torque residual の最小二乗で精密化していた処理を廃止し、同じ物理ポテンシャルの box-constrained KKT 解へ統一した。感度も active joint の $dq_i/dx=0$ を含む active-set 系へ変更した。
+14. WEKF の局所 Laplace step は exact likelihood を悪化させても全量適用されていた。さらに、非悪化だけを要求しても `A_param=1000` では一度に $\|\Delta\log K\|_\infty=2.93$、$\|\Delta q_{eq}\|_2=0.562\,\mathrm{rad}$ 動く別 branch 候補を受理できた。Gaussian prior を含む exact posterior objective の最大 16 回 backtracking に加え、$\|\Delta\log K\|_\infty\le0.25$ と $\|\Delta q_{eq}\|_2\le0.10\,\mathrm{rad}$ の trust region を追加した。
+15. command は実 publish 時刻付き履歴として保存し、全 IMU の最新共通時刻に有効だった command と対応させる。command と reference が 0.5 s 安定した準静的 record だけを更新へ通す。
 
 したがって、現在のシミュレーションは「内部モデルが自己整合しているか」を調べる baseline には使えるが、marker 動画だけから実機追従、動的オンライン同定、モデル誤差に対する頑健性を主張してはならない。
 
@@ -116,6 +121,14 @@ G_q(q)=\frac{\partial\tau_g(q)}{\partial q}
 
 であり、平衡感度と command refinement に使う。
 
+重力ポテンシャルは
+
+```math
+U_g(q)=\operatorname{computePotentialEnergy}(q)
+```
+
+を直接用いる。旧実装は `sum(model.inertias.mass)` と `centerOfMass()` を組み合わせていたが、Pinocchio は固定 base inertia を universe へ集約し、`centerOfMass()` の可動系質量から除く。Yamaguchi では全質量 `1.6245677 kg` と可動系 COM 質量 `0.8265163 kg` の比 `1.9655603` がそのまま勾配誤差になった。`computePotentialEnergy()` と `computeGeneralizedGravity()` を同じ library に委ねることで、有限差分勾配との相対誤差は約 `5.6e-9` になった。
+
 ## 3. ばねモデル
 
 ### 3.1 線形ばね
@@ -209,17 +222,11 @@ K_{eff}(\lambda)=K+100\lambda\mathbf 1
 
 として、$\lambda=1\rightarrow0$ の 10 段階で L-BFGS-B を行う。各段の解を次段の初期値にする。
 
-`equilibrium_refine: true` のときは、その後に元の $K$ について
-
-```math
-\min_q\frac12\|F(q,u,K)\|_2^2
-```
-
-を `least_squares` で解く。Jacobian は $J_q$、既定 tolerance は $10^{-12}$、最大評価回数は 40 である。改善した有限解だけを採用する。
+`equilibrium_refine: true` のときも、元の $K$ に対する同じ $V_{total}$ を bounds 付き L-BFGS-B で再最小化する。採用条件は、目的関数が悪化せず、box constraint の projected gradient、すなわち KKT residual が改善することである。既定 tolerance は $10^{-12}$、最大反復は 40 である。
 
 ここでいう `equilibrium_refine` は、与えられた $u$ の平衡を数値的に精密化する機能である。後述する `theta_cmd_equilibrium_refine` は、$u$ 自体を変える別機能であり、両者を混同してはならない。
 
-joint limit 上では反力を含む KKT 条件が必要だが、refinement は内部力残差 $F=0$ をそのまま最小化する。したがって hard stop に接触した平衡の物理的妥当性は別途検査が必要である。
+joint limit 上では反力のため active joint の $F_i$ は一般に 0 にならない。下限では $F_i\ge0$、上限では $F_i\le0$ を許し、free joint のみ $F_i=0$ を要求する。感度計算は現在の active set が変わらない局所で、active joint に対応する $J_q$ の行と列を 0 にして対角を 1、$J_x$ の対応行を 0 とし、$dq_i/dx=0$ を課す。列も除くのは、free block が特異なときに Moore--Penrose 解が active joint を使って残差を下げる漏れを防ぐためである。active set が切り替わる点では尤度は非微分になり得るため、通常の Laplace 近似が滑らかであるという保証はない。
 
 周期ばねは非凸なので、平衡 solver は一般には単値写像でない。厳密には、初期値 $q^{(0)}$ と solver 設定 $c$ に依存する branch-continuation operator
 
@@ -302,9 +309,17 @@ K_{0,i}=\exp\left(\frac{\log1+\log500}{2}\right)=\sqrt{500}
 
 で全軸同一である。Yamaguchi simulator の真値は `[5,5,5,10,20,20]` なので、初期段階では特に第 1--4 軸を実際より硬いと仮定する。このため赤 $u$ が青 $q_r$ に近いことは「良い補償」ではなく、補償量を過小評価している可能性も示す。
 
-### 5.3 重力 feedforward の可観測方向 projection
+### 5.3 重力評価姿勢と、既定無効の可観測方向 projection
 
-重力方向 IMU が見ない参照変化によって補償値を不用意に変えないため、実装は joint 空間の heuristic projection を持つ。frame $f$ の重力方向 Jacobian を $J_{g,f}$ とし、
+通常設定では
+
+```math
+q_{eval}=q_r
+```
+
+とする。$q_r$ は外部から与えられた既知の目標であって simulator truth ではない。閉形式 inverse statics が $F(q_r,u,K)=0$ を満たすには、ばねの anchor だけでなく重力も同じ $q_r$ で評価しなければならない。
+
+旧実装は、重力方向 IMU が見ない参照変化によって補償値を不用意に変えない意図で、joint 空間の heuristic projection を既定有効にしていた。frame $f$ の重力方向 Jacobianを $J_{g,f}$ とし、
 
 ```math
 \mathcal G(q_r)=\sum_fJ_{g,f}(q_r)^\top J_{g,f}(q_r)
@@ -323,17 +338,11 @@ q_{eval,k}=q_{eval,k-1}
 +U_gU_g^\top(q_{r,k}-q_{r,k-1})
 ```
 
-で更新する。初期化済みで IMU 観測がない cycle では rank 0 とし、$q_{eval}$ を保持する。参照そのものは射影せず、inverse statics の anchor は常に full $q_r$ である。
+で更新していた。しかし $U_g(q_r)$ は姿勢で変化するので、この増分積分は endpoint だけで決まらず参照経路に依存する。結果として $q_{eval}$ が $q_r$ から大きく漂い、anchor は $q_r$、重力は別姿勢 $q_{eval}$ という静力学的に不整合な command を生成した。
 
-ただし startup には明示的な例外がある。最初の `step()` は IMU の有無にかかわらず
+Yamaguchi の保存静止例では、projection 有効時の command による真値プラントの目標誤差は `0.689172 rad` で、実測緑姿勢を `5.31e-7 rad` で再現した。同じ $K_{exec}$ のまま $q_{eval}=q_r$ とすると、内部平衡誤差は `9.93e-10 rad`、真値プラント誤差は `0.004132 rad` まで低下した。従ってこの大誤差は剛性の非識別性ではなく、projection が inverse-statics の整合条件を破った結果である。
 
-```math
-q_{eval,0}=q_{r,0}
-```
-
-とし、debug rank を $n$ とする。従って非零参照で起動すると、初回だけ不可観測成分も full model の重力評価へ入る。さらに §5.6 の command filter も初回は過去値がなく bypass される。これは truth leakage ではないが、projection と bumpless startup が初回から保証されるという意味ではない。実機では current actuator command と信頼できる初期姿勢から filter/projection state を初期化する必要がある。
-
-これは $K$ の Bayesian observability から導かれたものではない。利用可能 frame と局所 kinematics に基づく安全 heuristic であり、後述する WEKF の $\log K$ 情報部分空間とは別物である。
+`project_unobservable_feedforward` は互換・研究比較用に残すが既定は `false` である。これは $K$ の Bayesian observability から導かれたものでもないため、通常の補償性能評価には使用しない。
 
 ### 5.4 L1 command regularization
 
@@ -674,35 +683,38 @@ controller と simulator は同じ IMU YAML を読むため、取付回転 $R_{m
 
 棄却時はその frame の buffer を clear し、sample timestamp から 0.25 s の settle time を置く。buffer 内を補間する場合は左右の supporting sample が query time から各 0.10 s 以内でなければ使わない。query が最新 sample より後なら、過去側 endpoint を最大 0.10 s hold できる。最初の sample より前へは外挿しない。
 
-この gate は、動的 specific force を重力と誤認しないために必要である。しかし acceleration norm が偶然 9.81 に近い並進運動や、0.20 rad/s 未満の低速過渡を完全には排除しない。また command/reference が変わった事実だけでは settle timer を開始しない。
+この gate は、動的 specific force を重力と誤認しないために必要である。しかし acceleration norm が偶然 9.81 に近い並進運動や、0.20 rad/s 未満の低速過渡を完全には排除しない。このため現在は sensor gate に加え、command と reference の履歴が 0.5 s の全 window でそれぞれ `1e-3 rad`、`1e-4 rad` 以内に留まることも要求する。隣接 sample 差でなく window endpoint との差を見るので、小さい増分が累積する低速 ramp も静止と誤認しない。
 
 従って現推定器は「動作中の動的推定器」ではなく、「主に動作間の準静的区間で更新する静的 parameter estimator」と記述すべきである。
 
 ### 8.4 時刻対応
 
-controller timer を $t_k$ とすると、node は `compensator.last_stamp = t_{k-1}` に IMU buffer を補間し、その観測を `last_theta_cmd = u_{k-1}` と組にする。
+旧 node は timer callback 開始時刻を command header に入れた後、約 15 ms の推定・指令計算を経て publish していた。一方、次回更新ではその callback 開始時刻の IMU と、callback 末に初めて届いた command を組にした。保存 run の command header age 中央値は `14.906 ms` であり、観測が command 適用より前になる逆因果対応だった。
+
+現在は command を実 publish 直前時刻 $t^u_j$ と値 $u_j$ の piecewise-constant 履歴として保存する。各更新候補では、全 IMU frame が共有できる最新時刻 $t^z_k$ を選び、
 
 ```text
-at wall-clock t_k:
-    query IMU near t_{k-1}
-    update K using pair (u_{k-1}, IMU(t_{k-1}))
-    compute and publish u_k
+u(t^z_k) = latest command whose publish/application time <= t^z_k
 ```
 
-buffer が (t_{k-1}) の前後 sample をすでに受信済みなら線形補間する。これは wall-clock 上の未来データを読む非因果処理ではなく、1 cycle fixed-lag smoothing である。ただし event time (t_{k-1}) より後の sample を補間に使う可能性はある。
+を履歴から検索する。全 frame がその時刻へ補間可能で、IMU が fresh であり、さらに $[t^z_k-0.5,t^z_k]$ で command と reference が安定している場合だけ $(u(t^z_k),A(t^z_k))$ を WEKF へ渡す。`command_apply_delay` の既定は、publish 直前 stamp 化後は `0.0 s` である。実機で別途計測した transport/application delay がある場合だけ上書きする。
+
+gate 状態は `/deflecomp/estimation_gate_status` に `ready`、`command_not_settled`、`reference_not_settled`、`latest_imu_is_stale` などとして publish する。
+
+同じ status 文字列には、前段 gate だけでなく `est_update_applied`、`est_update_skipped_reason`、`laplace_step_scale`、`laplace_dx_max_abs` も含める。従って `reason=ready` でも WEKF が `no_observable_information` や `exact_posterior_not_improved` で更新しなかった場合を区別できる。ただし `std_msgs/String` で Header を持たないという計測上の制約は残る。
 
 補間値には二種類の時刻を保持する。
 
-- `stamp`: 観測値が表す query/alignment time $t_{k-1}$。
+- `stamp`: 観測値が表す query/alignment time $t^z_k$。
 - `source_stamp`: その値を構成した newest supporting sensor sample の時刻。interior interpolation では右側 $t_1$、endpoint hold では実際の最後の sample 時刻である。
 
-修正前は endpoint hold した同じ値にも毎 cycle 新しい `stamp=t_{k-1}` を付けたため、compensator の duplicate-stamp gate を迂回し、同じ測定を最大 `imu_max_age=0.10 s` の間、独立な Bingham evidence として反復投入できた。これは covariance を過度に縮め、supervisor window を重複 record で満たす。
+修正前は endpoint hold した同じ値にも毎 cycle 新しい query `stamp` を付けたため、compensator の duplicate-stamp gate を迂回し、同じ測定を最大 `imu_max_age=0.10 s` の間、独立な Bingham evidence として反復投入できた。これは covariance を過度に縮め、supervisor window を重複 record で満たす。
 
 修正後は model frame 名ごとに最後に処理した `source_stamp` を保存し、その frame の support が進んだ観測だけで $A_f$ を構成する。ある frame A が新しく、frame B が endpoint hold のままなら、その cycle の update には A だけを入れ、B を再加算しない。同じ右 support $t_1$ に基づく異なる query-time 補間値も一度だけ使うため保守的である。これは独立性を完全に保証する処理ではなく、隣接 sensor sample の時間相関は posterior model に依然含まれない。
 
 dedupe key は物理 sensor ID でなく `FrameImuObservation.frame_name` である。提示された Yamaguchi YAML は sensor/model frame が一対一なので問題ないが、同一 model frame に複数 IMU を割り当てる一般構成では key が衝突する。その場合は observation に sensor ID を追加して source state を分離しなければならない。
 
-より重要なのは、$u_{k-1}$ が $t_{k-1}$ に publish された瞬間、その同時刻の IMU がその command の静的平衡を表す保証がないことである。simulator には $\tau_{ref}=0.1\,\mathrm{s}$ と動力学があるが、推定モデルはそれを含まない。静止後に command が一定なら誤差は小さくなるが、低速過渡では stiffness bias になり得る。
+simulator には $\tau_{ref}=0.1\,\mathrm{s}$ と動力学があるが、推定モデルはそれを含まない。0.5 s dwell と IMU gate はこの model mismatch を準静的 record の選別で避ける処理であり、動力学を推定モデルへ組み込んだわけではない。実機の静定時間が長い場合は `estimation_settle_time` を延ばす必要がある。
 
 `CommandDelayRLS` はクラスとして存在するが、現在の ROS node は生成しておらず、この対応誤差を推定していない。
 
@@ -724,7 +736,7 @@ P_f=L(y)-R(v)
 A_f=-\frac{\alpha}{4}P_f^\top P_f
 ```
 
-を得る。現設定は $\alpha=A_{param}=100$ である。$A_f$ は負半定値であり、予測 frame quaternion $z_f$ の log-likelihood 相当項を
+を得る。現在の local YAML 差分は $\alpha=A_{param}=1000$ である（直前の既定値は 100）。$A_f$ は負半定値であり、予測 frame quaternion $z_f$ の log-likelihood 相当項を
 
 ```math
 \ell_f(x)=z_f(q_{eq}(x))^\top A_fz_f(q_{eq}(x))
@@ -732,7 +744,7 @@ A_f=-\frac{\alpha}{4}P_f^\top P_f
 
 とする。方向が整合すると 0 に近づき、不整合ほど負になる。quaternion の符号反転 $z\leftrightarrow-z$ に対して不変である。
 
-$\alpha=100$ は実 sensor covariance から同定した値ではなく heuristic concentration である。posterior update の強さと particle supervisor の gain threshold は $\alpha$ の scale に依存するため、実機では sensor residual 分布から校正すべきである。
+$\alpha=1000$ も実 sensor covariance から同定した値ではなく heuristic concentration である。旧 WEKF では値を 1000 へ上げると無雑音初回尤度が `-134.7` から `-355.9` へ悪化し、K2 が下限へ飛ぶ再現があった。backtracking 後は悪化候補を棄却できるが、これは concentration の統計的校正を代替しない。posterior update の強さと particle supervisor の gain threshold は $\alpha$ の scale に依存するため、実機では sensor residual 分布から校正すべきである。
 
 一つの重力方向は frame の gravity-axis 周りの回転を観測しない。複数 frame は異なる joint combination を拘束し得るが、6 個の剛性が常に同定可能になるとは限らない。
 
@@ -923,53 +935,66 @@ q = [0.2, -0.4, 0.3, 0.1, -0.2, 0.25] rad
 
 ### 11.3 観測可能部分空間
 
-$\mathcal I$ を固有分解し、負固有値を 0 へ clip する。
+$P^-=P+Q$ の対称平方根を $S=(P^-)^{1/2}$ とし、無次元の prior-whitened information と gradient を
 
 ```math
-\mathcal I=U\operatorname{diag}(\lambda)U^\top
+\widetilde{\mathcal I}=S\mathcal I S,\qquad \widetilde g=Sg
 ```
 
+とする。$\widetilde{\mathcal I}$ を固有分解して負固有値を 0 へ clip し、
+
 ```math
+\widetilde{\mathcal I}=U\operatorname{diag}(\lambda)U^\top,qquad
 \lambda_i>\max(10^{-10},10^{-4}\lambda_{max})
 ```
 
-を満たす列だけを $U_o$ とする。large negative raw eigenvalue は debug flag に残すが、現在のコードはそれだけを理由に update を中止しない。
+を満たす列を $U_o$ とする。旧実装は raw $\mathcal I$ の各時刻最大固有値を基準にしたため、K2 の強情報に対し K4--K6 の小さい正情報を毎 sample 永久に捨てた。prior whitening 後は、既に学習した強モードの covariance が縮むとその無次元情報も下がり、prior uncertainty が残る弱い独立モードが後続 sample で rank に入る。large negative raw eigenvalue は debug flag に残す。
 
-予測 covariance を
+### 11.4 exact posterior backtracking
 
-```math
-P^-=P+Q
-```
-
-とし、観測空間へ
+局所 Laplace step は非線形平衡写像の大域近似ではない。そこで最大 16 候補について $\alpha=1,1/2,1/4,\ldots,2^{-15}$ を試し、観測部分空間で
 
 ```math
-P_o=U_o^\top P^-U_o,\qquad g_o=U_o^\top g
-```
-
-と射影する。posterior は
-
-```math
-P_o^+=\left(P_o^\dagger
-+\operatorname{diag}(\lambda_o)+10^{-6}I\right)^\dagger
+v_i(\alpha)=\frac{1}{1+\alpha(\lambda_i+\epsilon)},qquad
+\Delta y_o(\alpha)=v(\alpha)\odot\alpha U_o^\top\widetilde g
 ```
 
 ```math
-\Delta x=U_oP_o^+g_o
+\Delta x(\alpha)=S U_o\Delta y_o(\alpha)
 ```
+
+を作る。candidate $x_c=\operatorname{clip}(x^-+\Delta x)$ は、まず estimator mean の trust region
 
 ```math
-x^+=\operatorname{clip}
-(x^-+\Delta x,\log K_{min},\log K_{max})
+\|x_c-x^-\|_\infty\le0.25
 ```
 
-である。
+を満たさなければ、非線形 solve を行わず次の $\alpha$ へ進む。これは各剛性の一回の倍率変化を $\exp(0.25)\simeq1.284$ 以下にする。境界へ step を投影すると方向と covariance update の解釈が変わるため、投影せず同じ tempering 列を縮小する。
 
-不可観測 covariance は $U_{uo}$ 部分へ投影して保持するが、observable--unobservable cross covariance は再構成時に捨てる。従ってこれは厳密な Bayesian posterior ではない。
+通過した candidate は平衡を非線形 solver で解き直し、現在の予測平衡 $q_{eq}^-$ から
 
-旧講義資料に記載されていた `measurement_info_eig_cap`、`stiffness_update_gain`、`max_log_kp_step` は現在の estimator update には存在しない。command に使う $K_{exec}$ 側の平滑化・step cap と混同してはならない。
+```math
+\|q_{eq}(x_c)-q_{eq}^-\|_2\le0.10\ \mathrm{rad}
+```
 
-### 11.4 三種類の「観測可能性」
+の局所 branch に留まることを要求する。この gate は同一 branch の数学的証明ではないが、周期ばねや joint limit による有限 jump を局所微分更新として受理することを防ぐ。その後、exact Bingham likelihood $\ell(x_c)$ と Gaussian prior を含む
+
+```math
+\mathcal J(x_c)=\ell(x_c)
+-\frac12(x_c-x^-)^\top(P^-)^\dagger(x_c-x^-)
+```
+
+がともに更新前の $\ell(x^-)$ 以上となる最初の candidate だけを commit する。trust region 超過、branch jump、または目的関数悪化によって全 16 候補が棄却された場合は mean と covariance を更新せず、`exact_posterior_not_improved` とする。受理した $\alpha$ に対応して covariance も tempered update し、返却する $q_{eq}$ は旧 $K$ の予測でなく受理後 $K$ で再計算した値である。
+
+trust region の必要性を示す Yamaguchi、`A_param=1000`、無雑音 matched-model の再現では、非悪化 gate だけの旧更新が初回に $\|\Delta\log K\|_\infty=2.932$、$\|\Delta q_{eq}\|_2=0.562\,\mathrm{rad}$ を受理した。8 更新後の joint-pose 誤差は `0.2454` から `0.3397 rad` へ悪化し、`K2=1`、`K3=500` の上下限へ到達した。現 trust region では、同じデータの 8 更新後誤差は `0.0716 rad` まで低下し、上下限衝突を回避した。
+
+別の既存回帰では、16 更新すべてで exact likelihood が非悪化で、prior-whitened rank は `[3,3,3,2,2,2,2,2,2,3,3,3,3,3,4,4]`、同一 command に対する予測平衡 joint-pose 誤差は `0.30847` から `0.01463 rad` へ低下した。これらは真の姿勢を初期 seed に使わず、現剛性から予測した初期平衡を用いた結果である。
+
+debug には `laplace_step_scale`、`laplace_dx_max_abs`、平衡 jump の 2-norm/最大成分、前後 likelihood/posterior、各 trial の棄却理由、prior-whitened spectrum と threshold を保存する。
+
+旧講義資料に記載されていた `measurement_info_eig_cap`、`stiffness_update_gain`、旧名 `max_log_kp_step` は現在の estimator update には存在しない。現 estimator mean の trust region は `max_log_kp_update_step`、command に使う $K_{exec}$ 側の別の平滑化 cap は `max_log_kp_exec_step` であり、混同してはならない。
+
+### 11.5 三種類の「観測可能性」
 
 実装には互いに異なる三つの固有空間がある。
 
@@ -979,7 +1004,7 @@ x^+=\operatorname{clip}
 
 これらを同一の observability と説明してはならない。特に feedforward projection は観測された gravity 値そのものではなく、frame の存在と局所 kinematics から basis を作る heuristic である。
 
-### 11.5 識別可能性の限界
+### 11.6 識別可能性の限界
 
 重力方向だけでは、一般に $K\in\mathbb R^n$ を一意に識別できない。不可観測性は少なくとも次から生じる。
 
@@ -990,7 +1015,7 @@ x^+=\operatorname{clip}
 - 周期ばねと重力による複数平衡 branch
 - IMU frame より distal な joint の影響欠如
 
-したがって `K_est` の全成分を真値へ収束させる主張には、複数姿勢の persistent excitation と rank/condition の実証が必要である。制御目的では、full K error だけでなく observable subspace に射影した parameter error と、独立 trajectory 上の tracking error を報告すべきである。
+したがって `K_est` の全成分を真値へ収束させる主張には、複数姿勢の persistent excitation と rank/condition の実証が必要である。より基本的に、gravity-only 尤度が直接保証できるのは各 IMU の**観測重力方向**との整合であり、重力軸回りを含む full frame orientation や full joint pose の一意性ではない。複数 frame と matched model によって局所写像が十分拘束される回帰では joint-pose error も低下したが、これは一般保証ではない。full pose が必要なら encoder、磁気方位、vision など重力方向とは独立な観測を追加しなければならない。制御目的では、full K error だけでなく observable subspace に射影した parameter error、gravity-direction residual、および独立 trajectory 上の tracking error を報告すべきである。
 
 ## 12. Deterministic stiffness proposal supervisor
 
@@ -1093,7 +1118,7 @@ z_{r,f}(q_{eq,r}(x))^\top A_{r,f}z_{r,f}(q_{eq,r}(x))
 \frac{(L_{train}+L_{val})(x_*)-(L_{train}+L_{val})(x_0)}{20}
 ```
 
-という combined gain per window record であり、15/5 の各 gate 値とは別である。各 record の score はその cycle で新規だった全 frame の尤度和なので、frame 数が増えるほど threshold は相対的に緩くなる。これらは `A_param=100` と frame 数の heuristic scale に依存し、確率的な significance threshold ではない。
+という combined gain per window record であり、15/5 の各 gate 値とは別である。各 record の score はその cycle で新規だった全 frame の尤度和なので、frame 数が増えるほど threshold は相対的に緩くなる。これらは現在の `A_param=1000` と frame 数の heuristic scale に依存し、確率的な significance threshold ではない。
 
 ### 12.6 非同期 freshness と適用
 
@@ -1154,23 +1179,25 @@ P_{mix}=(1-w)(P_{old}+d_zd_z^\top)
 
 ## 13. 一制御 cycle の厳密な順序
 
-修正後の `DeflectionCompensator.step()` は次の順で動く。
+修正後の node と `DeflectionCompensator.step()` は次の順で動く。
 
 ```text
-input: q_ref,k, IMU observations aligned near t_{k-1}, dt, t_k
+input: q_ref,k, IMU buffers, command/reference histories, dt, t_k
 
-1. completed asynchronous supervisor result があれば freshness 検査後に適用
-2. frame ごとに `source_stamp` が新しい IMU だけを選び、空でなければ $(u_{k-1},A_{k-1})$ で WEKF update
-3. K_est を K_exec_target に設定
-4. log K_exec を時定数 0.5 s、最大 0.05/cycle で更新
-5. joint-angle observability heuristic から q_eval を更新/保持
-6. tau_g(q_eval) と K_exec から inverse-statics seed を生成
-7. L1 regularization が有効なら raw seed を最適化
-8. raw equilibrium refinement が明示的に有効かつ projection 無効なら bounded refinement
-9. u_raw を theta_cmd_tau=0.2 s で low-pass して u_k を確定
-10. u_k と K_exec から q_eq_hat を解く。ただし u_k は変更しない
-11. `step()` 内で $u_k$ と $q_{eq,hat}$ を次 cycle の causal state に保存し、result を return
-12. `deflecomp_node.on_timer()` が result の $u_k$, $q_{eq,hat}$, $K_{est}$, $K_{exec}$, covariance と公開済み debug subset を ROS publish
+1. 全 IMU の最新共通時刻 t_z を選ぶ
+2. command/reference が直前0.5 s安定していれば、履歴から u(t_z) を取得して観測を構成
+3. completed asynchronous supervisor result があれば freshness 検査後に適用
+4. frame ごとに `source_stamp` が新しい IMU だけを選び、空でなければ $(u(t_z),A(t_z))$ で WEKF update
+5. 最大16回の exact posterior backtracking を行い、$\|\Delta\log K\|_\infty\le0.25$、$\|\Delta q_{eq}\|_2\le0.10\,\mathrm{rad}$、exact likelihood/posterior 非悪化を全て満たす candidate だけを K_est へ commit
+6. K_est を K_exec_target に設定
+7. log K_exec を時定数 0.5 s、最大 0.05/cycle で更新
+8. 既定では q_eval=q_ref とし、tau_g(q_ref) と K_exec から inverse-statics seed を生成
+9. L1 regularization が有効なら raw seed を最適化
+10. raw equilibrium refinement が明示的に有効かつ projection 無効なら bounded refinement
+11. u_raw を theta_cmd_tau=0.2 s で low-pass して u_k を確定
+12. u_k と K_exec から q_eq_hat を解く。ただし u_k は変更しない
+13. `step()` 内で $u_k$ と $q_{eq,hat}$ を次 cycle の state に保存し、result を return
+14. node が実 publish 直前時刻を header/history に記録して u_k を publish
 ```
 
 重要な不変条件は
@@ -1282,14 +1309,17 @@ q_ref = [0.4, -0.4, 0.3, 0.2, -0.5, 0.4] rad
 
 | parameter | value |
 |---|---:|
-| `A_param` | `100` |
+| `A_param` | `1000`（現在のローカル YAML。未校正） |
 | `update_stiffness` | `true` |
 | `kp_min`, `kp_max` | `1`, `500` |
 | initial K | `sqrt(500) = 22.3607` all axes |
 | `log_kp_process_noise_var` | `1e-8` |
 | `observability_rcond` | `1e-4` |
 | `observability_abs` | `1e-10` |
-| `project_unobservable_feedforward` | `true` |
+| Laplace backtracking candidates | `16` (`alpha=1,1/2,...,2^-15`) |
+| `max_log_kp_update_step` | `0.25/update` (`K` ratio `<= exp(0.25)`) |
+| `max_equilibrium_pose_jump` | `0.10 rad` (`2`-norm of joint-vector change) |
+| `project_unobservable_feedforward` | `false` |
 | `kp_exec_tau` | `0.5 s` |
 | `max_log_kp_exec_step` | `0.05/cycle` |
 | supervisor effective launch default | `false` |
@@ -1297,6 +1327,10 @@ q_ref = [0.4, -0.4, 0.3, 0.2, -0.5, 0.4] rad
 | IMU max angular speed | `0.20 rad/s` |
 | IMU settle time | `0.25 s` |
 | IMU max age | `0.10 s` |
+| stiffness-update settle time | `0.50 s` |
+| command stability tolerance | `1e-3 rad` |
+| reference stability tolerance | `1e-4 rad` |
+| command apply delay | `0.0 s` |
 
 提示された Yamaguchi YAML は 5 frame、`module1_link1`、`module2_link1`、`module3_link1`、`module4_link2`、`module5_d405_link` を使う。全て既存 URDF frame と identity extrinsic であり、実 sensor mounting error はない。
 
@@ -1416,11 +1450,12 @@ simulator 内部の `u_eff` を新たに publish/log し、requested command、a
 /deflecomp/kp_cov_diag
 /deflecomp/theta_eq_hat
 /deflecomp/debug
+/deflecomp/estimation_gate_status
 /deflecomp/particle_scan_status
 /deflecomp/particle_scan_debug
 ```
 
-`/ref/joint_states`、`/cmd/joint_states`、`/equil/joint_states`、`/imu` には Header がある。一方、`/deflecomp/kp_est`、`kp_exec`、`kp_exec_target`、`kp_cov_diag`、`theta_eq_hat`、`debug`、`particle_scan_debug` は `Float64MultiArray`、`particle_scan_status` は `std_msgs/String` であり、いずれも Header を持たない。さらに `/deflecomp/debug` には field 名・version schema もない。従って現状の全 topic を厳密な共通 event-time 軸へ置くことはできず、bag receive time による近似になる。論文計測には sent-command stamp と schema/version を含む stamped custom diagnostic message が必要である。
+`/ref/joint_states`、`/cmd/joint_states`、`/equil/joint_states`、`/imu` には Header がある。一方、`/deflecomp/kp_est`、`kp_exec`、`kp_exec_target`、`kp_cov_diag`、`theta_eq_hat`、`debug`、`particle_scan_debug` は `Float64MultiArray`、`estimation_gate_status` と `particle_scan_status` は `std_msgs/String` であり、いずれも Header を持たない。`estimation_gate_status` の本文には alignment stamp を含むが、型としての event timestamp ではない。さらに `/deflecomp/debug` には field 名・version schema もない。従って現状の全 topic を厳密な共通 event-time 軸へ置くことはできず、bag receive time による近似になる。論文計測には sent-command stamp と schema/version を含む stamped custom diagnostic message が必要である。
 
 加えて simulator の `u_slew`、`u_eff`、内部 simulated time、asin clip/limit/debug を publish することが望ましい。
 
@@ -1452,18 +1487,17 @@ simulator 内部の `u_eff` を新たに publish/log し、requested command、a
 ### P0: 科学的妥当性と安全性
 
 1. requested command と simulator applied command を別 topic と marker へ分離する。
-2. reference change/command change を契機に settle state を開始し、平衡到達後の観測だけを command record と組にする。
-3. periodic spring の 4-pi 周期を仕様として正当化するか、物理ばねに適した law へ置換する。
-4. asin infeasibility、`J_q` condition、equilibrium residual、Hessian stability を明示的に gate する。
-5. independent plant model と sensor imperfections を評価系へ入れる。
+2. periodic spring の 4-pi 周期を仕様として正当化するか、物理ばねに適した law へ置換する。
+3. asin infeasibility、`J_q` condition、active-set transition、equilibrium residual、Hessian stability を明示的に gate する。
+4. independent plant model と sensor imperfections を評価系へ入れる。
 
 ### P1: estimator
 
 1. gravity-only で識別可能な parameter combination を事前解析する。
 2. `A_param` を実 residual covariance から校正する。
-3. command--observation delay/settling model を推定器へ統合する。
-4. negative information、branch change、cross covariance 消失の影響を検証する。
-5. full K ではなく、識別可能な低次元 parameterization も比較する。
+3. K1 のような厳密不可観測軸を固定し、full K でなく識別可能な低次元 parameterization も比較する。
+4. negative information、branch change、backtracking の収束性を検証する。
+5. 隣接準静的 sample の相関を effective sample size または episode-level likelihood で扱う。
 
 ### P2: supervisor
 
@@ -1498,6 +1532,7 @@ simulator 内部の `u_eff` を新たに publish/log し、requested command、a
 | command regression tests | `tests/deflecomp_core/test_compensator_k_exec.py` |
 | WEKF/FK finite-difference tests | `tests/deflecomp_core/test_stiffness_wekf.py` |
 | IMU source-time tests | `tests/deflecomp_core/test_imu_buffer.py` |
+| inverse-statics / KKT / active-set tests | `tests/deflecomp_core/test_equilibrium_constraints.py` |
 | dynamics limit/integration tests | `tests/deflecomp_sim/test_dynamics.py` |
 
 ## 21. 最小擬似コード
@@ -1507,28 +1542,33 @@ state:
     x_est, P_est
     x_exec, x_exec_target
     u_prev, qeq_hat_prev, t_prev
-    qref_prev, q_gravity
+    command_history, reference_history, imu_buffers
 
 on cycle(q_ref, imu_buffer, t):
-    obs = interpolate_quasi_static_imu_at(t_prev)  # alignment + source stamps
-    obs = keep_new_source_stamp_per_frame(obs)
+    t_obs = latest_common_imu_stamp(imu_buffers)
+    u_obs = settled_value_at(command_history, t_obs, dwell=0.5)
+    ref_ok = settled_value_at(reference_history, t_obs, dwell=0.5)
+    obs = []
+    if u_obs exists and ref_ok:
+        obs = interpolate_all_imu_at(t_obs)
+        obs = keep_new_source_stamp_per_frame(obs)
 
-    if obs is fresh and u_prev exists:
+    if obs is fresh and u_obs exists:
         A = build_bingham_matrices(obs)
-        x_est, P_est = local_laplace_update(
+        x_est, P_est = exact_backtracked_laplace_update(
             prior=(x_est, P_est),
-            sent_command=u_prev,
-            observation=A
+            sent_command=u_obs,
+            observation=A,
+            max_trials=16,
+            max_abs_delta_log_k=0.25,
+            max_equilibrium_delta_l2=0.10
         )
         x_exec_target = x_est
 
     x_exec = bounded_log_lowpass(x_exec, x_exec_target)
     K_exec = exp(x_exec)
 
-    q_gravity = observable_joint_increment_update(
-        q_gravity, qref_prev, q_ref, obs
-    )
-    tau_g_eval = gravity(q_gravity)
+    tau_g_eval = gravity(q_ref)
 
     u_raw = inverse_statics(q_ref, tau_g_eval, K_exec)
     if l1_enabled:
@@ -1540,8 +1580,11 @@ on cycle(q_ref, imu_buffer, t):
     u = lowpass(u_prev, u_raw, theta_cmd_tau)
     qeq_hat = equilibrium_solve(u, K_exec, seed=qeq_hat_prev)  # read-only prediction
 
-    publish(u, qeq_hat, exp(x_est), K_exec, P_est)
-    save(u_prev=u, qeq_hat_prev=qeq_hat, qref_prev=q_ref, t_prev=t)
+    t_publish = now_after_computation()
+    publish(u, stamp=t_publish)
+    append(command_history, t_publish, u)
+    publish(qeq_hat, exp(x_est), K_exec, P_est)
+    save(u_prev=u, qeq_hat_prev=qeq_hat, t_prev=t)
 ```
 
 この擬似コードで最も重要なのは、最後の `equilibrium_solve` が command を変更しないことである。
@@ -1554,4 +1597,8 @@ on cycle(q_ref, imu_buffer, t):
 
 同時に、WEKF の quaternion tangent と角速度 Jacobian の座標混在、held IMU sample の再刻印による反復 evidence、simulator の velocity clip と位置遷移の不一致も修正した。前者は estimator/supervisor の探索方向、二番目は posterior confidence と record window、三番目は動的発散と平衡 branch jump に影響する。いずれも実 FK・source timestamp・state-transition invariant に対する回帰 test を追加し、旧来の自己参照 test だけに依存しないようにした。
 
-直接の truth leakage はない。しかし matched-model/noise-free 条件、gravity-only の非識別性、準静的時刻対応、非凸 periodic spring、setpoint marker の誤解可能性は残る。従って現段階の結果は内部整合性 baseline として扱い、独立 plant、sensor mismatch、正しい時刻対応、raw topic に基づく定量評価を経てから実機性能へ一般化すべきである。
+追加監査では、剛性推定とは独立に追従を壊していた経路依存 feedforward projection を既定無効にした。既知の $q_r$ で重力を評価することで analytic inverse と内部平衡の整合性を回復し、保存 Yamaguchi 姿勢では同じ推定 K のまま真値プラント誤差を `0.689 rad` から `0.00413 rad` へ下げた。これは `K_true` や実姿勢を読む変更ではない。
+
+さらに Pinocchio の固定 base inertia/COM 質量仕様を混用した重力ポテンシャル、joint-limit 上の非 KKT refinement、active-set を無視した感度、exact likelihood を悪化させる WEKF full step、非悪化でも大き過ぎる local step、raw information の弱モード hard cutoff、command publish 前 IMU との逆因果対応を修正した。推定更新は最大16回の backtracking と log-K/平衡姿勢 trust region を通し、実 publish command 履歴と最新共通 IMU 時刻を対応させ、0.5 s の静止 window を満たす場合だけ実行する。
+
+直接の truth leakage はない。しかし matched-model/noise-free 条件、gravity-only の非識別性、準静的 estimator、非凸 periodic spring、setpoint marker の誤解可能性は残る。特に K1 は静止重力だけでは厳密に推定不能であり、観測重力方向の整合と full joint pose の一意性は同義でない。従って現段階の結果は内部整合性 baseline として扱い、独立 plant、sensor mismatch、raw topic に基づく定量評価を経てから実機性能へ一般化すべきである。

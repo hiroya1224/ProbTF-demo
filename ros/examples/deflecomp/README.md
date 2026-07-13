@@ -60,6 +60,8 @@ The current default is the no-noise/no-delay simulation baseline. In this mode t
 | Simulator equilibrium refinement | `deflecomp_sim/config/sim_params.yaml` | `equilibrium_refine`, `equilibrium_refine_maxiter`, `equilibrium_refine_tol` |
 | True simulator stiffness | `deflecomp_sim/config/sim_params.yaml` | `kp_true` |
 | Stiffness estimator update | `deflecomp_ros/config/estimator.yaml` | `update_stiffness`, `log_kp_process_noise_var` |
+| Estimator nonlinear trust region | `deflecomp_ros/config/estimator.yaml` | `max_log_kp_update_step`, `max_equilibrium_pose_jump` |
+| Static estimator timing gate | `deflecomp_ros/config/estimator.yaml` | `estimation_settle_time`, `estimation_command_tolerance`, `estimation_reference_tolerance`, `command_apply_delay` |
 | Execution stiffness smoothing | `deflecomp_ros/config/estimator.yaml` | `kp_exec_tau`, `max_log_kp_exec_step`, `publish_kp_exec` |
 | Stiffness estimate limits and initialization range | `deflecomp_ros/config/estimator.yaml` | `kp_min`, `kp_max` |
 | Observability gating for stiffness/feedforward | `deflecomp_ros/config/estimator.yaml` | `observability_rcond`, `observability_abs`, `project_unobservable_feedforward` |
@@ -108,16 +110,23 @@ The current staged-estimation setting re-enables the Bingham/WEKF stiffness upda
 
 ```yaml
 # deflecomp_ros/config/estimator.yaml
+A_param: 1000.0
 update_stiffness: true
 kp_min: 1.0
 kp_max: 500.0
 log_kp_process_noise_var: 1.0e-8
 observability_rcond: 0.0001
 observability_abs: 1.0e-10
-project_unobservable_feedforward: true
-kp_exec_tau: 1.0
-max_log_kp_exec_step: 0.002
+max_log_kp_update_step: 0.25
+max_equilibrium_pose_jump: 0.10
+project_unobservable_feedforward: false
+kp_exec_tau: 0.5
+max_log_kp_exec_step: 0.05
 publish_kp_exec: true
+estimation_settle_time: 0.50
+estimation_command_tolerance: 1.0e-3
+estimation_reference_tolerance: 1.0e-4
+command_apply_delay: 0.0
 ```
 
 ```yaml
@@ -126,9 +135,15 @@ spring_model: periodic
 equilibrium_refine: true
 ```
 
-`equilibrium_refine` keeps the staged L-BFGS-B equilibrium solve, then refines the result by solving the quasi-static residual `tau_g(theta) + tau_s(theta, theta_cmd, K) = 0` with the analytic Jacobian. Leave it enabled when checking whether `equiv` matches `ref`. Disable it only when measuring raw solver speed or isolating optimizer behavior.
+`equilibrium_refine` keeps the staged L-BFGS-B equilibrium solve, then refines the same total potential with box-constrained L-BFGS-B.  This preserves the correct KKT condition at a joint limit, where a reaction torque means the raw quasi-static residual need not vanish. Leave it enabled when checking whether `equil` matches `ref`. Disable it only when measuring raw solver speed or isolating optimizer behavior.
 
-The observability gate is based on the local IMU gravity-direction Jacobian, not on joint names or a hard-coded yaw/gravity assumption. Stiffness updates are applied only in the stiffness subspace supported by the current IMU observations. The estimator keeps `K_est`, while command generation uses the smoothed `K_exec`; `/deflecomp/kp_hat` and `/deflecomp/kp_est` publish the estimate, and `/deflecomp/kp_exec` publishes the execution stiffness. `kp_exec_tau` and `max_log_kp_exec_step` control how quickly `K_exec` follows `K_est`. Initial `K_est` is `sqrt(kp_min * kp_max)` for every active joint, and initial `log K` standard deviation is `(log(kp_max) - log(kp_min)) / 4`, so the configured stiffness range is about +/-2 sigma. Keep `log_kp_process_noise_var` small for static stiffness; increasing it makes the estimator keep adapting during a hold and can make `theta_cmd` drift toward `theta_ref` when the IMU residual contains bias or noise. When `project_unobservable_feedforward` is true, the gravity feedforward term is re-evaluated only along locally observable reference-motion components; the target `theta_ref` itself is not projected. If no IMU observation is available for a cycle, the gravity feedforward evaluation pose is held instead of being reset to `theta_ref`.
+The observability gate is based on prior-whitened local IMU gravity-direction information, not on joint names or a hard-coded yaw/gravity assumption. Stiffness updates are applied only in the supported stiffness subspace. The local Laplace proposal is backtracked through at most 16 scales and is committed only when `max|delta log K| <= 0.25`, the re-solved equilibrium stays within `||delta q_eq||_2 <= 0.10 rad`, and both the exact likelihood and prior-inclusive posterior objective do not worsen. These are estimator-mean trust limits; `max_log_kp_exec_step` is a separate cap on how quickly command generation follows the estimate.
+
+The estimator keeps `K_est`, while command generation uses the smoothed `K_exec`; `/deflecomp/kp_hat` and `/deflecomp/kp_est` publish the estimate, and `/deflecomp/kp_exec` publishes the execution stiffness. `kp_exec_tau` and `max_log_kp_exec_step` control how quickly `K_exec` follows `K_est`. Initial `K_est` is `sqrt(kp_min * kp_max)` for every active joint, and initial `log K` standard deviation is `(log(kp_max) - log(kp_min)) / 4`, so the configured stiffness range is about +/-2 sigma. Keep `log_kp_process_noise_var` small for static stiffness; increasing it makes the estimator keep adapting during a hold and can make `theta_cmd` drift toward `theta_ref` when the IMU residual contains bias or noise.
+
+Gravity feedforward is evaluated at the known desired pose. `project_unobservable_feedforward` remains only as an opt-in comparison mode and must normally remain `false`: its former pose-dependent incremental projection is path-dependent and can make the gravity-evaluation pose drift away from the desired pose. Estimator records are accepted only after command and reference have remained stable for `estimation_settle_time`; the command is selected from actual publication history at the newest timestamp common to every IMU frame. `/deflecomp/estimation_gate_status` reports the timing-gate reason plus `est_update_applied`, `est_update_skipped_reason`, `laplace_step_scale`, and `laplace_dx_max_abs`.
+
+Gravity-only IMUs directly constrain observed gravity directions, not rotation about gravity or a unique full joint pose. Multiple link IMUs can make the matched-model pose prediction improve, but that is not a general full-pose observability guarantee. Add encoders, heading, or vision observations when full joint/frame pose is required.
 
 ### First-Stage Debug: No Noise, No Delay
 

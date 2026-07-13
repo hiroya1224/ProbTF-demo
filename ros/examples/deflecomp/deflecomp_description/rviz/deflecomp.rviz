@@ -438,7 +438,9 @@ Visualization Manager:
       Marker Topic: /deflecomp/probtf_point_moments
       Name: ProbTF Point Moments
       Namespaces:
-        {}
+        cmd_module4_link2: true
+        equil_module4_link2: true
+        ref_module4_link2: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -469,7 +471,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.531205415725708
+      Distance: 1.232032060623169
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -485,9 +487,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5603986382484436
+      Pitch: 0.4653988480567932
       Target Frame: <Fixed Frame>
-      Yaw: 2.5703961849212646
+      Yaw: 2.7154016494750977
     Saved: ~
 Window Geometry:
   Displays:

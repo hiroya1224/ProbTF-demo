@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 import numpy as np
-from scipy.optimize import least_squares, minimize
+from scipy.optimize import minimize
 
 from deflecomp_core.model.spring import SpringModel
 from deflecomp_core.robot.pinocchio_robot import RobotArm
@@ -119,40 +119,62 @@ class EquilibriumSolver:
     ) -> np.ndarray:
         bounds = self._position_bounds(theta0.size)
         theta_start = self._clip_to_bounds(theta0, bounds)
-        lo, hi = self._bounds_arrays(bounds)
 
-        def residual(theta: np.ndarray) -> np.ndarray:
+        def objective(theta: np.ndarray) -> float:
+            return self._V_total(self.robot, self.spring_model, theta, theta_cmd, kp_vec)
+
+        def gradient(theta: np.ndarray) -> np.ndarray:
             return self._grad_theta(self.robot, self.spring_model, theta, theta_cmd, kp_vec)
 
-        def jacobian(theta: np.ndarray) -> np.ndarray:
-            d_tau_g = self.robot.d_tau_gravity(theta)
-            spring_k = self.spring_model.stiffness_diag(theta, theta_cmd, kp_vec)
-            return d_tau_g + np.diag(spring_k)
+        def projected_gradient(theta: np.ndarray, grad: np.ndarray) -> np.ndarray:
+            """Gradient residual for the box-constrained KKT conditions."""
+            residual = np.asarray(grad, dtype=float).copy()
+            tolerance = max(float(self.cfg.refine_tol), 1.0e-10)
+            for index, (lower, upper) in enumerate(bounds):
+                if lower is not None and theta[index] <= lower + tolerance and residual[index] >= 0.0:
+                    residual[index] = 0.0
+                if upper is not None and theta[index] >= upper - tolerance and residual[index] <= 0.0:
+                    residual[index] = 0.0
+            return residual
 
-        residual_start = residual(theta_start)
-        start_norm = float(np.linalg.norm(residual_start))
-        if start_norm <= float(self.cfg.refine_tol):
+        gradient_start = gradient(theta_start)
+        start_kkt_norm = float(np.linalg.norm(projected_gradient(theta_start, gradient_start), ord=np.inf))
+        if start_kkt_norm <= float(self.cfg.refine_tol):
             return theta_start
 
-        res = least_squares(
-            fun=residual,
-            jac=jacobian,
+        # Refine the same physical potential as the continuation stages.  A
+        # least-squares solve of the raw torque residual is not equivalent at
+        # a joint limit: a valid constrained equilibrium generally has a
+        # non-zero reaction torque on an active joint.
+        res = minimize(
+            fun=objective,
+            jac=gradient,
             x0=theta_start,
-            bounds=(lo, hi),
-            method="trf",
-            ftol=float(self.cfg.refine_tol),
-            xtol=float(self.cfg.refine_tol),
-            gtol=float(self.cfg.refine_tol),
-            max_nfev=int(self.cfg.refine_maxiter),
-            x_scale="jac",
-            verbose=2 if self.cfg.verbose else 0,
+            bounds=bounds,
+            method="L-BFGS-B",
+            options={
+                "maxiter": int(self.cfg.refine_maxiter),
+                "ftol": float(self.cfg.refine_tol),
+                "gtol": float(self.cfg.refine_tol),
+                "maxls": 50,
+                "disp": bool(self.cfg.verbose),
+            },
         )
         theta_refined = np.asarray(res.x, dtype=float)
         if not np.all(np.isfinite(theta_refined)):
             return theta_start
 
-        refined_norm = float(np.linalg.norm(residual(theta_refined)))
-        if refined_norm <= start_norm:
+        refined_gradient = gradient(theta_refined)
+        refined_kkt_norm = float(
+            np.linalg.norm(projected_gradient(theta_refined, refined_gradient), ord=np.inf)
+        )
+        objective_start = float(objective(theta_start))
+        objective_refined = float(objective(theta_refined))
+        objective_tolerance = max(1.0, abs(objective_start)) * 1.0e-12
+        if (
+            objective_refined <= objective_start + objective_tolerance
+            and refined_kkt_norm <= start_kkt_norm + max(float(self.cfg.refine_tol), 1.0e-10)
+        ):
             return theta_refined
         return theta_start
 

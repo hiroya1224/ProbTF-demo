@@ -4,7 +4,11 @@ from pathlib import Path
 import numpy as np
 
 from deflecomp_core.estimator.stiffness_wekf import MultiFrameStiffnessWEKF
+from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
+from deflecomp_core.model.sensitivity import SensitivityCalculator
+from deflecomp_core.model.spring import PeriodicSpringModel
 from deflecomp_core.observation.bingham import BinghamUtils
+from deflecomp_core.observation.imu_observation import FrameImuObservation, ImuObservationBuilder
 from deflecomp_core.robot.pinocchio_robot import RobotArm
 
 
@@ -44,6 +48,33 @@ class FakeSolver:
         return self.theta_eq.copy()
 
 
+class LogStiffnessSolver:
+    """Small exact model used to exercise nonlinear update acceptance."""
+
+    def __init__(self, size, gain=1.0):
+        self.size = int(size)
+        self.gain = float(gain)
+        self.solve_calls = 0
+
+    def solve(self, theta_cmd, kp_vec, theta_init=None):
+        del theta_cmd, theta_init
+        self.solve_calls += 1
+        return self.gain * np.log(np.asarray(kp_vec, dtype=float))
+
+
+class RotationVectorRobot:
+    def frame_quaternion_wxyz_base(self, theta, fid):
+        del fid
+        half_angle = 0.5 * float(theta[0])
+        return np.array([np.cos(half_angle), np.sin(half_angle), 0.0, 0.0], dtype=float)
+
+    def frame_angular_jacobian_base(self, theta, fid):
+        del theta, fid
+        jacobian = np.zeros((3, 3), dtype=float)
+        jacobian[0, 0] = 1.0
+        return jacobian
+
+
 def make_estimator(
     z=None,
     J_w=None,
@@ -78,6 +109,41 @@ def make_estimator(
 
 
 class StiffnessWEKFLaplaceTests(unittest.TestCase):
+    def test_clone_preserves_active_set_sensitivity_tolerances(self):
+        repository_root = Path(__file__).resolve().parents[2]
+        urdf = (
+            repository_root
+            / "ros"
+            / "examples"
+            / "deflecomp"
+            / "deflecomp_description"
+            / "urdf"
+            / "simple6r.urdf"
+        )
+        robot = RobotArm(str(urdf), base_link="link1")
+        spring_model = PeriodicSpringModel()
+        solver = EquilibriumSolver(robot, spring_model, EquilibriumConfig())
+        sensitivity = SensitivityCalculator(
+            robot,
+            spring_model,
+            active_set_tol=3.0e-7,
+            kkt_tol=7.0e-6,
+        )
+        estimator = MultiFrameStiffnessWEKF(
+            x0=np.zeros(robot.nv),
+            P0=np.eye(robot.nv),
+            Q=np.zeros((robot.nv, robot.nv)),
+            solver=solver,
+            sensitivity=sensitivity,
+        )
+
+        clone = estimator.clone_for_evaluation()
+
+        self.assertEqual(clone.sensitivity.active_set_tol, sensitivity.active_set_tol)
+        self.assertEqual(clone.sensitivity.kkt_tol, sensitivity.kkt_tol)
+        self.assertEqual(clone.max_log_kp_update_step, estimator.max_log_kp_update_step)
+        self.assertEqual(clone.max_equilibrium_pose_jump, estimator.max_equilibrium_pose_jump)
+
     def test_relative_quaternion_jacobian_matches_robot_finite_difference(self):
         repository_root = Path(__file__).resolve().parents[2]
         urdf = (
@@ -263,6 +329,22 @@ class StiffnessWEKFLaplaceTests(unittest.TestCase):
         self.assertLess(raw_eigvals[0], 0.0)
         self.assertEqual(np.count_nonzero(keep), 1)
 
+    def test_prior_whitening_exposes_weak_mode_after_dominant_mode_contracts(self):
+        estimator, _ = make_estimator(observability_rcond=1.0e-4, observability_abs=1.0e-12)
+        information = np.diag([1.0e-5, 1.0, 0.0])
+
+        initial = estimator._prior_whitened_observable_subspace(
+            information,
+            np.eye(3),
+        )
+        after_dominant_contraction = estimator._prior_whitened_observable_subspace(
+            information,
+            np.diag([1.0, 1.0e-4, 1.0]),
+        )
+
+        self.assertEqual(np.count_nonzero(initial[2]), 1)
+        self.assertEqual(np.count_nonzero(after_dominant_contraction[2]), 2)
+
     def test_zero_information_skips_mean_update_and_keeps_process_noise(self):
         Q = np.eye(3) * 0.25
         estimator, solver = make_estimator(Q=Q)
@@ -305,11 +387,19 @@ class StiffnessWEKFLaplaceTests(unittest.TestCase):
 
     def test_estimator_keeps_kp_bounds(self):
         A = np.zeros((4, 4), dtype=float)
-        A[0, 1] = -20.0
-        A[1, 0] = -20.0
+        A[0, 1] = 2.0
+        A[1, 0] = 2.0
         A[1, 1] = -0.1
-        estimator, _ = make_estimator(
+        robot = RotationVectorRobot()
+        solver = LogStiffnessSolver(3)
+        # theta_eq = x, hence -pinv(J_q) J_x = I requires J_x = -I.
+        sensitivity = FakeSensitivity(robot, np.eye(3), -np.eye(3))
+        estimator = MultiFrameStiffnessWEKF(
+            x0=np.zeros(3),
             P0=np.eye(3) * 10.0,
+            Q=np.zeros((3, 3)),
+            solver=solver,
+            sensitivity=sensitivity,
             laplace_jitter=0.0,
         )
         theta_cmd = np.zeros(3)
@@ -319,6 +409,254 @@ class StiffnessWEKFLaplaceTests(unittest.TestCase):
         self.assertTrue(result.update_applied)
         self.assertTrue(np.all(estimator.kp_hat <= 500.0 + 1e-12))
         self.assertTrue(np.all(estimator.kp_hat >= 0.1 - 1e-12))
+        np.testing.assert_allclose(result.theta_eq, estimator.x, atol=1.0e-12)
+        self.assertLess(result.debug["laplace_step_scale"], 1.0)
+        self.assertFalse(result.debug["laplace_backtracking_trials"][0]["accepted"])
+        self.assertGreaterEqual(
+            result.debug["laplace_log_likelihood_after"] + 1.0e-12,
+            result.debug["laplace_log_likelihood_before"],
+        )
+
+    def test_yamaguchi_exact_backtracking_and_weak_k5_mode_regression(self):
+        repository_root = Path(__file__).resolve().parents[2]
+        urdf = (
+            repository_root.parent
+            / "nejineji-urdfs"
+            / "yamaguchi_arm_nejineji"
+            / "urdf"
+            / "yamaguchi_6axis_arm_nejineji.urdf"
+        )
+        if not urdf.exists():
+            self.skipTest(f"Yamaguchi regression URDF is not installed: {urdf}")
+
+        robot = RobotArm(str(urdf), tip_link="module4_link2", base_link="base_link")
+        spring_model = PeriodicSpringModel()
+        solver = EquilibriumSolver(robot, spring_model, EquilibriumConfig())
+        sensitivity = SensitivityCalculator(robot, spring_model)
+        theta_cmd = np.array(
+            [-0.16713734, 1.14925658, -0.15910085, 0.66640165, -0.40405263, -1.19423781],
+            dtype=float,
+        )
+        kp_true = np.array([5.0, 5.0, 5.0, 10.0, 20.0, 20.0], dtype=float)
+        theta_true = solver.solve(theta_cmd, kp_true, theta_cmd)
+        frame_names = [
+            "module1_link1",
+            "module2_link1",
+            "module3_link1",
+            "module4_link2",
+            "module5_d405_link",
+        ]
+        gravity_world = np.array([0.0, 0.0, -9.81], dtype=float)
+        observations = [
+            FrameImuObservation(
+                frame_name=frame_name,
+                gravity_dir=robot.gravity_dir_in_frame(
+                    theta_true,
+                    gravity_world,
+                    robot.get_frame_id(frame_name),
+                ),
+            )
+            for frame_name in frame_names
+        ]
+        A_map = ImuObservationBuilder(robot, parameter_A=1000.0).build_A_map(observations)
+
+        kp_min, kp_max = 1.0, 500.0
+        initial_log_kp = np.full(6, np.log(np.sqrt(kp_min * kp_max)), dtype=float)
+        initial_std = np.log(kp_max / kp_min) / 4.0
+        estimator = MultiFrameStiffnessWEKF(
+            x0=initial_log_kp,
+            P0=np.eye(6) * initial_std**2,
+            Q=np.zeros((6, 6)),
+            solver=solver,
+            sensitivity=sensitivity,
+            observability_rcond=1.0e-4,
+            observability_abs=1.0e-10,
+        )
+        theta_initial = solver.solve(theta_cmd, estimator.kp_est, theta_cmd)
+        initial_pose_error = float(np.linalg.norm(theta_initial - theta_true))
+
+        ranks = []
+        k5_after_first = None
+        for update_index in range(16):
+            result = estimator.update_with_multi(
+                theta_cmd_sent=theta_cmd,
+                A_map=A_map,
+                theta_init_eq_pred=theta_initial if update_index == 0 else estimator.last_theta_eq,
+                kp_lim=(kp_min, kp_max),
+            )
+            ranks.append(result.obs_rank)
+            self.assertGreaterEqual(
+                result.debug["laplace_log_likelihood_after"] + 1.0e-9,
+                result.debug["laplace_log_likelihood_before"],
+            )
+            if update_index == 0:
+                k5_after_first = float(result.kp_est[4])
+                self.assertLess(result.debug["laplace_step_scale"], 1.0)
+                self.assertFalse(result.debug["laplace_backtracking_trials"][0]["accepted"])
+
+        self.assertIsNotNone(k5_after_first)
+        # The raw per-sample relative cutoff leaves this mode below threshold,
+        # whereas prior whitening exposes it after the dominant modes contract.
+        self.assertGreater(ranks[-1], ranks[0])
+        self.assertLess(abs(float(estimator.kp_est[4]) - kp_true[4]), abs(k5_after_first - kp_true[4]))
+        final_pose_error = float(np.linalg.norm(estimator.last_theta_eq - theta_true))
+        self.assertGreater(initial_pose_error, 0.10)
+        self.assertLess(final_pose_error, initial_pose_error)
+        self.assertLess(final_pose_error, 0.05)
+
+    def test_yamaguchi_large_laplace_step_is_confined_to_local_pose_branch(self):
+        repository_root = Path(__file__).resolve().parents[2]
+        urdf = (
+            repository_root.parent
+            / "nejineji-urdfs"
+            / "yamaguchi_arm_nejineji"
+            / "urdf"
+            / "yamaguchi_6axis_arm_nejineji.urdf"
+        )
+        if not urdf.exists():
+            self.skipTest(f"Yamaguchi regression URDF is not installed: {urdf}")
+
+        robot = RobotArm(str(urdf), tip_link="module4_link2", base_link="base_link")
+        spring_model = PeriodicSpringModel()
+        solver = EquilibriumSolver(robot, spring_model, EquilibriumConfig())
+        sensitivity = SensitivityCalculator(robot, spring_model)
+        theta_cmd = np.array(
+            [-1.26429437, -1.71550493, -0.24465812, 1.85605893, -0.27998728, 0.93715279],
+            dtype=float,
+        )
+        kp_true = np.array([5.0, 5.0, 5.0, 10.0, 20.0, 20.0], dtype=float)
+        theta_true = solver.solve(theta_cmd, kp_true, theta_cmd)
+        frame_names = [
+            "module1_link1",
+            "module2_link1",
+            "module3_link1",
+            "module4_link2",
+            "module5_d405_link",
+        ]
+        gravity_world = np.array([0.0, 0.0, -9.81], dtype=float)
+        observations = [
+            FrameImuObservation(
+                frame_name=frame_name,
+                gravity_dir=robot.gravity_dir_in_frame(
+                    theta_true,
+                    gravity_world,
+                    robot.get_frame_id(frame_name),
+                ),
+            )
+            for frame_name in frame_names
+        ]
+        A_map = ImuObservationBuilder(robot, parameter_A=1000.0).build_A_map(observations)
+
+        kp_min, kp_max = 1.0, 500.0
+        initial_log_kp = np.full(6, np.log(np.sqrt(kp_min * kp_max)), dtype=float)
+        initial_std = np.log(kp_max / kp_min) / 4.0
+        estimator = MultiFrameStiffnessWEKF(
+            x0=initial_log_kp,
+            P0=np.eye(6) * initial_std**2,
+            Q=np.zeros((6, 6)),
+            solver=solver,
+            sensitivity=sensitivity,
+            observability_rcond=1.0e-4,
+            observability_abs=1.0e-10,
+        )
+        theta_initial = solver.solve(theta_cmd, estimator.kp_est, theta_cmd)
+        initial_pose_error = float(np.linalg.norm(theta_initial - theta_true))
+        self.assertGreater(initial_pose_error, 0.2)
+
+        def gravity_angle_rms(theta):
+            angles = []
+            for frame_name in frame_names:
+                frame_id = robot.get_frame_id(frame_name)
+                gravity_predicted = robot.gravity_dir_in_frame(
+                    theta,
+                    gravity_world,
+                    frame_id,
+                )
+                gravity_observed = robot.gravity_dir_in_frame(
+                    theta_true,
+                    gravity_world,
+                    frame_id,
+                )
+                cosine = float(np.clip(gravity_predicted @ gravity_observed, -1.0, 1.0))
+                angles.append(np.arccos(cosine))
+            return float(np.sqrt(np.mean(np.square(angles))))
+
+        initial_gravity_angle_rms = gravity_angle_rms(theta_initial)
+
+        # Isolate the branch guard from the log-stiffness trust region.  The
+        # formerly accepted alpha=0.125 candidate jumps module1_joint1 to its
+        # lower stop; with the mean-step guard disabled, the pose guard must
+        # still reject that branch and find a local candidate.
+        branch_guard_estimator = MultiFrameStiffnessWEKF(
+            x0=initial_log_kp,
+            P0=np.eye(6) * initial_std**2,
+            Q=np.zeros((6, 6)),
+            solver=solver,
+            sensitivity=sensitivity,
+            observability_rcond=1.0e-4,
+            observability_abs=1.0e-10,
+            max_log_kp_update_step=np.inf,
+        )
+        branch_result = branch_guard_estimator.update_with_multi(
+            theta_cmd_sent=theta_cmd,
+            A_map=A_map,
+            theta_init_eq_pred=theta_initial,
+            kp_lim=(kp_min, kp_max),
+        )
+        branch_trial_reasons = [
+            trial["reason"] for trial in branch_result.debug["laplace_backtracking_trials"]
+        ]
+        self.assertIn("equilibrium_pose_jump_exceeded", branch_trial_reasons)
+        self.assertLessEqual(
+            branch_result.debug["laplace_equilibrium_pose_jump_norm"],
+            branch_guard_estimator.max_equilibrium_pose_jump + 1.0e-12,
+        )
+        self.assertLess(float(np.linalg.norm(branch_result.theta_eq - theta_true)), initial_pose_error)
+
+        first_pose_error = None
+        first_trial_reasons = []
+        pose_error_after_eight = None
+        gravity_angle_rms_after_eight = None
+        for update_index in range(20):
+            x_before = estimator.x.copy()
+            result = estimator.update_with_multi(
+                theta_cmd_sent=theta_cmd,
+                A_map=A_map,
+                theta_init_eq_pred=theta_initial if update_index == 0 else estimator.last_theta_eq,
+                kp_lim=(kp_min, kp_max),
+            )
+            self.assertTrue(result.update_applied)
+            self.assertLessEqual(
+                float(np.max(np.abs(result.x_est - x_before))),
+                estimator.max_log_kp_update_step + 1.0e-12,
+            )
+            self.assertLessEqual(
+                result.debug["laplace_equilibrium_pose_jump_norm"],
+                estimator.max_equilibrium_pose_jump + 1.0e-12,
+            )
+            self.assertGreaterEqual(
+                result.debug["laplace_log_likelihood_after"] + 1.0e-9,
+                result.debug["laplace_log_likelihood_before"],
+            )
+            if update_index == 0:
+                first_pose_error = float(np.linalg.norm(result.theta_eq - theta_true))
+                first_trial_reasons = [
+                    trial["reason"] for trial in result.debug["laplace_backtracking_trials"]
+                ]
+            if update_index == 7:
+                pose_error_after_eight = float(np.linalg.norm(result.theta_eq - theta_true))
+                gravity_angle_rms_after_eight = gravity_angle_rms(result.theta_eq)
+
+        self.assertIn("log_kp_trust_region_exceeded", first_trial_reasons)
+        self.assertIsNotNone(first_pose_error)
+        self.assertLess(first_pose_error, initial_pose_error)
+        self.assertIsNotNone(pose_error_after_eight)
+        self.assertIsNotNone(gravity_angle_rms_after_eight)
+        self.assertLess(pose_error_after_eight, initial_pose_error)
+        self.assertLess(gravity_angle_rms_after_eight, initial_gravity_angle_rms)
+        self.assertLess(float(np.linalg.norm(estimator.last_theta_eq - theta_true)), 0.05)
+        self.assertTrue(np.all(estimator.kp_est > kp_min + 1.0e-6))
+        self.assertTrue(np.all(estimator.kp_est < kp_max - 1.0e-6))
 
     def test_particle_correction_moment_matches_zealot_and_pursuit_mixture(self):
         x0 = np.array([0.0, 0.0], dtype=float)

@@ -721,7 +721,7 @@ class DeflectionCompensator:
         imu_observations: Optional[Sequence[FrameImuObservation]],
         debug: Dict[str, Any],
     ) -> np.ndarray:
-        if not _as_bool(self.config.get("project_unobservable_feedforward", True)):
+        if not _as_bool(self.config.get("project_unobservable_feedforward", False)):
             self.last_theta_ref = theta_ref.copy()
             self.theta_ref_for_feedforward = theta_ref.copy()
             debug["feedforward_observable_rank"] = theta_ref.size
@@ -1061,6 +1061,7 @@ class DeflectionCompensator:
         imu_observations: Optional[Sequence[FrameImuObservation]],
         dt: float,
         stamp: Optional[float] = None,
+        theta_cmd_sent_for_update: Optional[np.ndarray] = None,
     ) -> CompensationStepResult:
         theta_ref = np.asarray(theta_ref, dtype=float)
         debug: Dict[str, Any] = {}
@@ -1084,7 +1085,17 @@ class DeflectionCompensator:
         debug["observation_stamp"] = observation_stamp
         debug["observation_source_stamp"] = observation_source_stamp
         debug["used_theta_cmd_sent_for_update"] = False
-        if update_stiffness and self.last_theta_cmd is not None and imu_observations:
+        debug["used_time_aligned_theta_cmd_for_update"] = False
+        update_theta_cmd = theta_cmd_sent_for_update
+        if update_theta_cmd is None:
+            update_theta_cmd = self.last_theta_cmd
+        else:
+            update_theta_cmd = np.asarray(update_theta_cmd, dtype=float)
+            if update_theta_cmd.shape != theta_ref.shape:
+                raise ValueError("theta_cmd_sent_for_update shape does not match theta_ref")
+            if not np.all(np.isfinite(update_theta_cmd)):
+                raise ValueError("theta_cmd_sent_for_update must be finite")
+        if update_stiffness and update_theta_cmd is not None and imu_observations:
             fresh_observations = self._unprocessed_observations(imu_observations)
             debug["fresh_observation_count"] = len(fresh_observations)
             if not fresh_observations:
@@ -1095,8 +1106,11 @@ class DeflectionCompensator:
                 if not a_map:
                     debug["est_update_skipped_reason"] = "empty_observation_map"
                 else:
-                    theta_cmd_sent = self.last_theta_cmd.copy()
+                    theta_cmd_sent = np.asarray(update_theta_cmd, dtype=float).copy()
                     debug["used_theta_cmd_sent_for_update"] = True
+                    debug["used_time_aligned_theta_cmd_for_update"] = (
+                        theta_cmd_sent_for_update is not None
+                    )
                     update_observation_stamp = self._observation_stamp(fresh_observations)
                     theta_init = (
                         self.stiffness_estimator.last_theta_eq
@@ -1164,7 +1178,7 @@ class DeflectionCompensator:
             self.config.get("theta_cmd_equilibrium_refine", False)
         )
         projection_enabled = _as_bool(
-            self.config.get("project_unobservable_feedforward", True)
+            self.config.get("project_unobservable_feedforward", False)
         )
         refine_enabled = bool(refine_requested and not projection_enabled)
         debug["theta_cmd_equilibrium_refine_requested"] = bool(refine_requested)

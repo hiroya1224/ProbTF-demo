@@ -1,13 +1,23 @@
-# The Bingham observation strength.  Keep this consistent with the model's
-# default; 5000 made small IMU/model errors dominate the stiffness estimate.
-A_param: 100.0
+# Bingham observation concentration.  The current local experiment uses 1000;
+# this is a heuristic value, not the library fallback or a sensor-calibrated
+# concentration.  Larger values make small IMU/model errors dominate.
+A_param: 1000.0
 update_stiffness: true
 kp_min: 1.0
 kp_max: 500.0
 log_kp_process_noise_var: 1.0e-8
 observability_rcond: 0.0001
 observability_abs: 1.0e-10
-project_unobservable_feedforward: true
+# Per-update estimator trust region.  The log-stiffness cap limits every
+# component to a factor exp(0.25)=1.284.  The equilibrium-pose cap is the
+# Euclidean joint-vector change in radians and rejects candidates that jump to
+# a different constrained/periodic solution branch.
+max_log_kp_update_step: 0.25
+max_equilibrium_pose_jump: 0.10
+# Evaluate gravity at the known desired pose.  The former incremental
+# observable-subspace projection was path-dependent and could drift far enough
+# to reverse the feedforward gravity torque even after K2/K3 had converged.
+project_unobservable_feedforward: false
 kp_exec_tau: 0.5
 max_log_kp_exec_step: 0.05
 publish_kp_exec: true
@@ -31,3 +41,13 @@ imu_acceleration_tolerance: 0.75
 imu_max_angular_speed: 0.20
 imu_settle_time: 0.25
 imu_max_age: 0.10
+
+# The stiffness likelihood is static.  Match each IMU batch to a command from
+# publication history and update only after both command and reference have
+# remained effectively constant for this full window.  command_apply_delay
+# models transport/subscriber latency; mechanical settling is handled by the
+# longer estimation_settle_time.
+estimation_settle_time: 0.50
+estimation_command_tolerance: 1.0e-3
+estimation_reference_tolerance: 1.0e-4
+command_apply_delay: 0.0

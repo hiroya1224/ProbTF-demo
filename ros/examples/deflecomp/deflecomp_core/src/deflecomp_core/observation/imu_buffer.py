@@ -1,5 +1,5 @@
 import threading
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -62,6 +62,13 @@ class ImuBuffer:
             self.t_list.clear()
             self.g_list.clear()
 
+    def latest_timestamp(self) -> Optional[float]:
+        """Return the newest sample timestamp without exposing buffer storage."""
+        with self.lock:
+            if not self.t_list:
+                return None
+            return float(self.t_list[-1])
+
     def interpolate_with_support_stamp(
         self,
         timestamp: float,
@@ -111,3 +118,95 @@ class ImuBuffer:
     def interpolate(self, timestamp: float, max_age: Optional[float] = None) -> Optional[np.ndarray]:
         sample = self.interpolate_with_support_stamp(timestamp, max_age=max_age)
         return None if sample is None else sample[0]
+
+
+class TimedVectorHistory:
+    """Timestamped, piecewise-constant vector history.
+
+    This is used to match a delayed observation to the command that could
+    causally have produced it.  ``settled_value_at`` additionally requires the
+    vector to have stayed within a configured tolerance for the entire dwell
+    window.  Comparing the whole window to its final value (rather than only
+    adjacent samples) also detects a slow ramp whose per-cycle increments are
+    individually small.
+    """
+
+    def __init__(self, maxlen: int = 4000) -> None:
+        self.t_list: List[float] = []
+        self.v_list: List[np.ndarray] = []
+        self.maxlen = max(1, int(maxlen))
+        self.lock = threading.RLock()
+
+    def push(self, timestamp: float, value: np.ndarray) -> None:
+        stamp = float(timestamp)
+        vector = np.asarray(value, dtype=float).reshape(-1).copy()
+        if not np.isfinite(stamp) or not np.all(np.isfinite(vector)):
+            raise ValueError("TimedVectorHistory requires finite timestamps and values")
+        with self.lock:
+            if self.v_list and vector.shape != self.v_list[0].shape:
+                raise ValueError("TimedVectorHistory vector size cannot change")
+            index = bisect_left(self.t_list, stamp)
+            if index < len(self.t_list) and abs(self.t_list[index] - stamp) < 1e-12:
+                self.t_list[index] = stamp
+                self.v_list[index] = vector
+            else:
+                self.t_list.insert(index, stamp)
+                self.v_list.insert(index, vector)
+            while len(self.t_list) > self.maxlen:
+                self.t_list.pop(0)
+                self.v_list.pop(0)
+
+    def clear(self) -> None:
+        with self.lock:
+            self.t_list.clear()
+            self.v_list.clear()
+
+    def value_at(
+        self,
+        observation_stamp: float,
+        apply_delay: float = 0.0,
+    ) -> Optional[Tuple[np.ndarray, float]]:
+        """Return the latest value effective at ``observation_stamp``.
+
+        The returned stamp is the assumed application time, i.e. publication
+        stamp plus ``apply_delay``.
+        """
+        query_publish_stamp = float(observation_stamp) - max(0.0, float(apply_delay))
+        with self.lock:
+            index = bisect_right(self.t_list, query_publish_stamp + 1.0e-12) - 1
+            if index < 0:
+                return None
+            return (
+                self.v_list[index].copy(),
+                float(self.t_list[index] + max(0.0, float(apply_delay))),
+            )
+
+    def settled_value_at(
+        self,
+        observation_stamp: float,
+        dwell_time: float,
+        tolerance: float,
+        apply_delay: float = 0.0,
+    ) -> Optional[Tuple[np.ndarray, float]]:
+        """Return a causal value only if it was stable for a full dwell window.
+
+        Stability is measured using the infinity norm against the value active
+        at the end of the window.  A record at or before the start of the
+        window is required, so a newly-created history can never be declared
+        settled prematurely.
+        """
+        delay = max(0.0, float(apply_delay))
+        dwell = max(0.0, float(dwell_time))
+        tol = max(0.0, float(tolerance))
+        query_publish_stamp = float(observation_stamp) - delay
+        start_publish_stamp = query_publish_stamp - dwell
+        with self.lock:
+            end_index = bisect_right(self.t_list, query_publish_stamp + 1.0e-12) - 1
+            start_index = bisect_right(self.t_list, start_publish_stamp + 1.0e-12) - 1
+            if end_index < 0 or start_index < 0:
+                return None
+            candidate = self.v_list[end_index]
+            for vector in self.v_list[start_index : end_index + 1]:
+                if float(np.max(np.abs(vector - candidate), initial=0.0)) > tol:
+                    return None
+            return candidate.copy(), float(self.t_list[end_index] + delay)

@@ -160,9 +160,16 @@ class RobotArm:
         return pin.computeGeneralizedGravityDerivatives(self.model, self.data, theta)
 
     def potential_gravity(self, theta: np.ndarray) -> float:
-        com = pin.centerOfMass(self.model, self.data, theta)
-        g = self.model.gravity.linear
-        return -self.total_mass * float(np.dot(g, com))
+        """Return Pinocchio's gravitational potential energy.
+
+        This deliberately delegates the complete mass bookkeeping to
+        Pinocchio.  ``centerOfMass`` does not include the inertia attached to
+        the universe joint, while summing ``model.inertias`` does.  Combining
+        those two APIs therefore makes the potential inconsistent with
+        ``computeGeneralizedGravity`` whenever a fixed-base URDF gives its
+        base link a non-zero mass.
+        """
+        return float(pin.computePotentialEnergy(self.model, self.data, theta))
     
     def fk_pose(self, theta: np.ndarray) -> pin.SE3:
         self._fk_update(theta)

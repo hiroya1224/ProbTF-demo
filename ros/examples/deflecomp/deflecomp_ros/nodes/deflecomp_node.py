@@ -14,7 +14,11 @@ from deflecomp_core.estimator.stiffness_wekf import MultiFrameStiffnessWEKF
 from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
 from deflecomp_core.model.sensitivity import SensitivityCalculator
 from deflecomp_core.model.spring import spring_model_from_name
-from deflecomp_core.observation.imu_buffer import ImuBuffer, imu_sample_is_quasi_static
+from deflecomp_core.observation.imu_buffer import (
+    ImuBuffer,
+    TimedVectorHistory,
+    imu_sample_is_quasi_static,
+)
 from deflecomp_core.observation.imu_frame_config import ImuFrameConfig, resolve_imu_frame_configs
 from deflecomp_core.observation.imu_observation import FrameImuObservation, ImuObservationBuilder
 from deflecomp_core.pipeline.compensator import DeflectionCompensator
@@ -104,6 +108,12 @@ class DeflecompNode:
         imu_max_angular_speed: float,
         imu_settle_time: float,
         imu_max_age: float,
+        estimation_settle_time: float = 0.5,
+        estimation_command_tolerance: float = 1.0e-3,
+        estimation_reference_tolerance: float = 1.0e-4,
+        command_apply_delay: float = 0.0,
+        max_log_kp_update_step: float = 0.25,
+        max_equilibrium_pose_jump: float = 0.10,
     ) -> None:
         self.robot = RobotArm(urdf_path)
         self.spring_model = spring_model_from_name(spring_model_name, self.robot.model_joint_types)
@@ -151,6 +161,8 @@ class DeflecompNode:
             eps_def=1e-6,
             observability_rcond=float(observability_rcond),
             observability_abs=float(observability_abs),
+            max_log_kp_update_step=float(max_log_kp_update_step),
+            max_equilibrium_pose_jump=float(max_equilibrium_pose_jump),
         )
         observation_builder = ImuObservationBuilder(
             robot=self.robot,
@@ -206,12 +218,22 @@ class DeflecompNode:
         self.imu_max_angular_speed = float(imu_max_angular_speed)
         self.imu_settle_time = max(0.0, float(imu_settle_time))
         self.imu_max_age = max(0.0, float(imu_max_age))
+        self.estimation_settle_time = max(0.0, float(estimation_settle_time))
+        self.estimation_command_tolerance = max(
+            0.0, float(estimation_command_tolerance)
+        )
+        self.estimation_reference_tolerance = max(
+            0.0, float(estimation_reference_tolerance)
+        )
+        self.command_apply_delay = max(0.0, float(command_apply_delay))
 
         self.q_ref = np.zeros(self.n, dtype=float)
         self.ref_joint_positions: Dict[str, float] = {name: 0.0 for name in self.output_joint_names}
         self.have_ref = False
         self.imu_bufs: Dict[str, ImuBuffer] = {cfg.frame_id: ImuBuffer(maxlen=2000) for cfg in self.imu_frame_configs}
         self.imu_reject_until: Dict[str, float] = {cfg.frame_id: -np.inf for cfg in self.imu_frame_configs}
+        self.command_history = TimedVectorHistory(maxlen=4000)
+        self.reference_history = TimedVectorHistory(maxlen=4000)
 
         self.sub_ref = rospy.Subscriber(topic_ref, JointState, self.cb_ref, queue_size=50)
         self.sub_imu = rospy.Subscriber(topic_imu, Imu, self.cb_imu, queue_size=400)
@@ -224,23 +246,30 @@ class DeflecompNode:
         self.pub_theta_eq = rospy.Publisher("/deflecomp/theta_eq_hat", Float64MultiArray, queue_size=10)
         self.pub_tau = rospy.Publisher("/deflecomp/tau_hat", Float64MultiArray, queue_size=10)
         self.pub_debug = rospy.Publisher("/deflecomp/debug", Float64MultiArray, queue_size=10)
+        self.pub_estimation_gate_status = rospy.Publisher(
+            "/deflecomp/estimation_gate_status", String, queue_size=10
+        )
         self.pub_particle_scan_status = rospy.Publisher("/deflecomp/particle_scan_status", String, queue_size=10)
         self.pub_particle_scan_debug = rospy.Publisher("/deflecomp/particle_scan_debug", Float64MultiArray, queue_size=10)
 
         self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
         rospy.loginfo(
-            "deflecomp_node: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s",
+            "deflecomp_node: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s estimation_settle=%.3fs command_apply_delay=%.3fs",
             self.robot.base_link_name,
             self.robot.tip_link_name,
             ", ".join(self.model_joint_names),
             ", ".join(self.robot.locked_joint_names) if self.robot.locked_joint_names else "(none)",
             ", ".join(f"{cfg.frame_id}->{cfg.model_frame}" for cfg in self.imu_frame_configs),
             type(self.spring_model).__name__,
+            self.estimation_settle_time,
+            self.command_apply_delay,
         )
 
     def cb_ref(self, msg: JointState) -> None:
-        self.q_ref = map_jointstate_to_model(msg, self.model_joint_names)
+        q_ref = map_jointstate_to_model(msg, self.model_joint_names)
+        self.q_ref = q_ref
         self.ref_joint_positions.update(jointstate_position_map(msg))
+        self.reference_history.push(rospy.Time.now().to_sec(), q_ref)
         self.have_ref = True
 
     def cb_imu(self, msg: Imu) -> None:
@@ -308,24 +337,107 @@ class DeflecompNode:
             )
         return observations
 
+    def _latest_common_imu_stamp(self) -> Optional[float]:
+        latest_stamps = [
+            self.imu_bufs[cfg.frame_id].latest_timestamp()
+            for cfg in self.imu_frame_configs
+        ]
+        if not latest_stamps or any(stamp is None for stamp in latest_stamps):
+            return None
+        return float(min(stamp for stamp in latest_stamps if stamp is not None))
+
+    def _settled_observations_and_command(
+        self,
+        now: float,
+    ) -> Tuple[List[FrameImuObservation], Optional[np.ndarray], Optional[float], str]:
+        """Build one causal, quasi-static estimator input batch.
+
+        IMU data are aligned at the newest timestamp shared by every configured
+        frame.  The command is then looked up in publication history with the
+        configured application delay.  Both command and reference must have
+        remained stable throughout the dwell window; otherwise the static
+        equilibrium likelihood is not applicable.
+        """
+        t_align = self._latest_common_imu_stamp()
+        if t_align is None:
+            return [], None, None, "waiting_for_all_imu_frames"
+        if t_align > float(now) + 1.0e-6:
+            return [], None, t_align, "imu_stamp_in_future"
+        if float(now) - t_align > self.imu_max_age:
+            return [], None, t_align, "latest_imu_is_stale"
+
+        reference_match = self.reference_history.settled_value_at(
+            observation_stamp=t_align,
+            dwell_time=self.estimation_settle_time,
+            tolerance=self.estimation_reference_tolerance,
+        )
+        if reference_match is None:
+            return [], None, t_align, "reference_not_settled"
+
+        command_match = self.command_history.settled_value_at(
+            observation_stamp=t_align,
+            dwell_time=self.estimation_settle_time,
+            tolerance=self.estimation_command_tolerance,
+            apply_delay=self.command_apply_delay,
+        )
+        if command_match is None:
+            return [], None, t_align, "command_not_settled"
+
+        observations = self._build_observations_at(t_align)
+        if len(observations) != len(self.imu_frame_configs):
+            return [], None, t_align, "imu_frames_not_time_aligned"
+        theta_cmd_sent, _ = command_match
+        return observations, theta_cmd_sent, t_align, "ready"
+
     def on_timer(self, event) -> None:
         del event
         if not self.have_ref:
             return
 
         now = rospy.Time.now().to_sec()
-        observations = self._build_observations_at(self.compensator.last_stamp)
+        observations, theta_cmd_sent, t_align, gate_reason = (
+            self._settled_observations_and_command(now)
+        )
         result = self.compensator.step(
             theta_ref=self.q_ref,
             imu_observations=observations,
             dt=self.dt,
             stamp=now,
+            theta_cmd_sent_for_update=theta_cmd_sent,
+        )
+        result.debug["estimation_gate_reason"] = gate_reason
+        result.debug["estimation_alignment_stamp"] = t_align
+        align_text = "none" if t_align is None else f"{t_align:.9f}"
+        est_update_applied = bool(result.debug.get("est_update_applied", False))
+        est_update_skipped_reason = result.debug.get("est_update_skipped_reason")
+        if est_update_skipped_reason is None:
+            est_update_skipped_reason = "none" if est_update_applied else "not_attempted"
+        laplace_step_scale = float(result.debug.get("laplace_step_scale", 0.0))
+        laplace_dx_max_abs = float(result.debug.get("laplace_dx_max_abs", 0.0))
+        self.pub_estimation_gate_status.publish(
+            String(
+                data=(
+                    f"reason={gate_reason} alignment_stamp={align_text} "
+                    f"observation_count={len(observations)} "
+                    f"time_aligned_command={int(theta_cmd_sent is not None)} "
+                    f"est_update_applied={int(est_update_applied)} "
+                    f"est_update_skipped_reason={est_update_skipped_reason} "
+                    f"laplace_step_scale={laplace_step_scale:.9g} "
+                    f"laplace_dx_max_abs={laplace_dx_max_abs:.9g}"
+                )
+            )
         )
 
         kp_hat = result.kp_hat
 
+        # Record the actual publication time, not the timer callback start.
+        # Estimator work can take milliseconds, and stamping at callback entry
+        # formerly made the command appear to precede the IMU sample that was
+        # already available at entry.
+        command_publish_time = rospy.Time.now()
+        command_publish_stamp = command_publish_time.to_sec()
         cmd_msg = JointState()
-        cmd_msg.header.stamp = rospy.Time.from_sec(now)
+        cmd_msg.header.stamp = command_publish_time
         cmd_msg.name = self.output_joint_names
         cmd_msg.position = expand_joint_positions(
             output_names=self.output_joint_names,
@@ -334,6 +446,7 @@ class DeflecompNode:
             fallback_positions=self.ref_joint_positions,
         )
         self.pub_cmd.publish(cmd_msg)
+        self.command_history.push(command_publish_stamp, result.theta_cmd)
 
         cov_diag = np.clip(np.diag(self.compensator.stiffness_estimator.P_est), 0.0, np.inf)
         self.pub_kp.publish(Float64MultiArray(data=kp_hat.tolist()))
@@ -443,7 +556,9 @@ def main() -> None:
     update_stiffness = parse_bool(rospy.get_param("~update_stiffness", True))
     observability_rcond = float(rospy.get_param("~observability_rcond", 1e-4))
     observability_abs = float(rospy.get_param("~observability_abs", 1e-10))
-    project_unobservable_feedforward = parse_bool(rospy.get_param("~project_unobservable_feedforward", True))
+    max_log_kp_update_step = float(rospy.get_param("~max_log_kp_update_step", 0.25))
+    max_equilibrium_pose_jump = float(rospy.get_param("~max_equilibrium_pose_jump", 0.10))
+    project_unobservable_feedforward = parse_bool(rospy.get_param("~project_unobservable_feedforward", False))
     kp_exec_tau = float(rospy.get_param("~kp_exec_tau", 1.0))
     max_log_kp_exec_step = float(rospy.get_param("~max_log_kp_exec_step", 0.0))
     publish_kp_exec = parse_bool(rospy.get_param("~publish_kp_exec", True))
@@ -458,6 +573,14 @@ def main() -> None:
     imu_max_angular_speed = float(rospy.get_param("~imu_max_angular_speed", 0.20))
     imu_settle_time = float(rospy.get_param("~imu_settle_time", 0.25))
     imu_max_age = float(rospy.get_param("~imu_max_age", 0.10))
+    estimation_settle_time = float(rospy.get_param("~estimation_settle_time", 0.50))
+    estimation_command_tolerance = float(
+        rospy.get_param("~estimation_command_tolerance", 1.0e-3)
+    )
+    estimation_reference_tolerance = float(
+        rospy.get_param("~estimation_reference_tolerance", 1.0e-4)
+    )
+    command_apply_delay = float(rospy.get_param("~command_apply_delay", 0.0))
 
     DeflecompNode(
         urdf_path=urdf_path,
@@ -483,6 +606,8 @@ def main() -> None:
         update_stiffness=update_stiffness,
         observability_rcond=observability_rcond,
         observability_abs=observability_abs,
+        max_log_kp_update_step=max_log_kp_update_step,
+        max_equilibrium_pose_jump=max_equilibrium_pose_jump,
         project_unobservable_feedforward=project_unobservable_feedforward,
         kp_exec_tau=kp_exec_tau,
         max_log_kp_exec_step=max_log_kp_exec_step,
@@ -498,6 +623,10 @@ def main() -> None:
         imu_max_angular_speed=imu_max_angular_speed,
         imu_settle_time=imu_settle_time,
         imu_max_age=imu_max_age,
+        estimation_settle_time=estimation_settle_time,
+        estimation_command_tolerance=estimation_command_tolerance,
+        estimation_reference_tolerance=estimation_reference_tolerance,
+        command_apply_delay=command_apply_delay,
     )
     rospy.spin()
 

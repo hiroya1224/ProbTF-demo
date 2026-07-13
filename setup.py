@@ -7,7 +7,6 @@ PACKAGE_ROOTS = (
     "ros/examples/deflecomp/deflecomp_examples/src",
     "ros/examples/deflecomp/deflecomp_sim/src",
     "ros/examples/symaware_grasp/src",
-    "third_party/BinghamNLL/src",
 )
 
 packages = []

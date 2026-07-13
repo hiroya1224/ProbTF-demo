@@ -180,6 +180,26 @@ class RosBoundaryTest(unittest.TestCase):
             (root / "ros" / "core" / "probtf_core" / "src" / "probtf_estimators").is_dir()
         )
 
+    def test_root_aggregate_contains_only_first_party_package_roots(self):
+        root = Path(__file__).resolve().parents[1]
+        setup_path = root / "setup.py"
+        tree = ast.parse(setup_path.read_text(encoding="utf-8"), filename=str(setup_path))
+        package_roots = None
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and any(
+                isinstance(target, ast.Name) and target.id == "PACKAGE_ROOTS"
+                for target in node.targets
+            ):
+                package_roots = ast.literal_eval(node.value)
+                break
+        self.assertIsNotNone(package_roots)
+        self.assertTrue(package_roots)
+        self.assertTrue(all(path.startswith("ros/") for path in package_roots))
+        self.assertNotIn("third_party/BinghamNLL/src", package_roots)
+
+        setup_config = (root / "setup.cfg").read_text(encoding="utf-8")
+        self.assertNotIn("numpy-quaternion", setup_config)
+
     def test_tests_do_not_modify_sys_path_for_first_party_imports(self):
         root = Path(__file__).resolve().parents[1]
         violations = []

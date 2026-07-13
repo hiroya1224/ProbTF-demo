@@ -1,78 +1,109 @@
 # ProbTF integrated packages
 
-This repository collects probabilistic-transform producers, fusion, query
-experiments, symmetry-aware grasping, and deflection compensation in one
-ProbTF context. Reusable numerical code lives under `src/`; ROS 1 is kept at
-the transport and runtime boundary under `ros/`.
+This repository combines native probabilistic transforms, ROS 1 transport,
+symmetry-aware grasping, and deflection compensation. Python source is owned by
+the catkin package that installs it; there is no shared top-level `src/` relay.
 
-## Python installation
+## Package layout
 
-Clone with submodules, or initialize them in an existing checkout, then install
-the root project:
+- `ros/core/probtf_msgs`: message-only package for the native v2 wire contract
+- `ros/core/probtf_core`: owns `probtf`, `probtf_estimators`, `probtf_ros`, and
+  the ProbTF/TF bridge node
+- `ros/examples/probtf_imu_demo`: two-IMU transform producer and symbolic URDF
+  materialization
+- `ros/examples/probtf_orientation_demo`: gyro, gravity, and magnetic
+  orientation estimation
+- `ros/examples/symaware_grasp`: grasp beliefs, v2 ProbTF publication, lookup,
+  visualization, and symmetry-aware IK
+- `ros/examples/deflecomp`: ROS-free compensation/simulation libraries and ROS
+  runtime packages
 
-```bash
-git submodule update --init --recursive
-python3 -m pip install .
-```
+Each Python namespace lives below its owning package's `src/` directory. The
+root `setup.py` only aggregates these first-party package roots for non-catkin
+development.
 
-The installation provides these main Python namespaces:
+## Installation
 
-- `probtf`: distributions, graph/time lookup, lazy kernels, ISL protocols,
-  Bingham moments, sensor configuration, and symbolic URDF materialization
-- `probtf_estimators`: evidence fusion, IMU relative-pose production,
-  quaternion prediction, and Hessian-to-coupling helpers
-- `symaware_grasp`: probabilistic transforms and symmetry-aware IK
-- `deflecomp_core`: ROS-free deflection compensation and estimation
-- `deflecomp_sim`: ROS-free flexible-joint simulation
-- `deflecomp_examples`: offline example helpers
-- `bingham`: BinghamNLL from the pinned `develop` submodule
-
-Optional plotting and example dependencies are available with
-`python3 -m pip install '.[visualization,examples]'`.
-
-## ROS workspace
-
-The ROS tree is organized by role:
-
-- `ros/core/probtf_msgs`: reusable distribution, kinematics, and evidence messages
-- `ros/core/probtf_core`: the `probtf_ros` bridge and bridge runtime node
-- `ros/examples/probtf_imu_demo`: two-IMU relative-pose and symbolic URDF demo
-- `ros/examples/probtf_orientation_demo`: separated gyro/gravity/magnetic demo
-- `ros/examples/deflecomp`, `ros/examples/symaware_grasp`: existing applications
-
-Link or clone this repository into a catkin workspace. Install the root Python
-project first, then build the ROS messages and bridge. The catkin package no
-longer republishes `probtf`, `probtf_estimators`, or third-party Bingham.
+For ROS use, place the repository in a catkin workspace and build the packages
+directly. A separate root `pip install` is not required.
 
 ```bash
 cd /path/to/catkin_ws
-python3 -m pip install -e src/ProbTF-demo
-catkin build probtf_msgs probtf_core probtf_imu_demo probtf_orientation_demo
+catkin build probtf_msgs probtf_core probtf_imu_demo probtf_orientation_demo \
+  symaware_grasp deflecomp_core deflecomp_sim deflecomp_ros
 source devel/setup.bash
 ```
 
-Run the two migrated producer examples with:
+For Python-only development, install the first-party aggregate:
 
 ```bash
+python3 -m pip install -e .
+```
+
+The Bingham normalizer used by `probtf` is vendored under `probtf._vendor`.
+Root installation does not package or require the external BinghamNLL
+submodule. Optional dependencies are available with
+`python3 -m pip install -e '.[visualization,examples,test]'`.
+
+## Native v2 messages
+
+The transform law is a weighted mixture of
+`ProbabilisticTransformComponent`. Each component contains a
+`BinghamOrientation` and a `ConditionalGaussianTranslation`, including the
+3-by-9 rotation/translation coupling matrix. Metadata uses `Provenance` and
+`ApproximationInfo`.
+
+Runtime transport uses:
+
+- `ProbabilisticTransformStamped` on `/probtf` for dynamic physical edges
+- `ProbabilisticTransformArray` on `/probtf_static` for the complete static set
+- `TransformEvidenceStamped` for likelihood/natural-parameter evidence
+- `OrientationDistributionStamped` for orientation-only posteriors
+- `ImuKinematics` at the two-IMU producer boundary
+
+Quaternion arrays use `[w, x, y, z]`; ROS quaternion fields are converted at
+the adapter boundary. The removed v1 partial transform messages are not part of
+the runtime or generated message set.
+
+## Listener and lookup
+
+`ProbTfBroadcaster` publishes native records. `ProbTfListener` provides an
+in-process timestamped graph, while `RosProbTfListener` subscribes to
+`/probtf` and `/probtf_static` with a bounded history per edge. Both listeners
+provide:
+
+- `lookup_path(target_frame, source_frame, ...)`
+- `lookup_kernel(target_frame, source_frame, ...)`
+- `lookup_point_moments(target_frame, source_frame, point, ...)`
+- `can_lookup(...)` and `wait_for_lookup(...)`
+
+Temporal selection is explicit through `TemporalPolicy` (`EXACT`, `LATEST`,
+`NEAREST_WITHIN_TOLERANCE`, or `LATEST_COMMON`). Forward/inverse traversal uses
+the same latent physical edge rather than constructing an independent inverse
+distribution.
+
+`probtf_bridge_node.py` connects native topics to `/tf` and `/tf_static`. Its
+default export policy is `exact_only`; exporting a stochastic record requires
+an explicit representative policy.
+
+## Demo launches
+
+```bash
+# Native ProbTF <-> TF bridge
+roslaunch probtf_core probtf_bridge.launch
+
+# Two-IMU full transform and orientation-only estimation
 roslaunch probtf_imu_demo two_imu_relative_pose.launch
 roslaunch probtf_orientation_demo orientation_filter.launch
+
+# Symmetry-aware grasp workflow and static-chain point cloud
+roslaunch symaware_grasp probabilistic_tf_demo.launch
+roslaunch symaware_grasp prob_tf_link_cloud.launch
+
+# Deflection-compensation simulation and multi-frame viewer/runtime
+roslaunch deflecomp_sim sim_with_deflecomp.launch
+roslaunch deflecomp_ros deflecomp_frames.launch viewer:=true
 ```
 
-Quaternion arrays and Bingham matrices use `[w, x, y, z]`; ROS
-`geometry_msgs/Quaternion` is converted at the adapter boundary. A
-`ProbabilisticTF` explicitly states whether position and orientation are
-present. Source likelihoods and gyro predictions travel as `TransformEvidence`
-and carry source/provenance identifiers so independent evidence is not counted
-twice accidentally.
-
-`probtf_bridge_node.py` connects `/probtf` and `/probtf_static` to `/tf` and
-`/tf_static`. Its default TF export policy is `exact_only`; stochastic export
-requires an explicit `~tf_export_policy` representative policy.
-
-```bash
-roslaunch probtf_core probtf_bridge.launch
-```
-
-See `docs/probtf_jmaa_kernel_architecture.md` for the mathematical contract,
-exact/approximate/unavailable backend status, compatibility policy, and
-intentionally deferred work.
+See `docs/probtf_jmaa_kernel_architecture.md` for the distribution, graph,
+kernel, temporal, and approximation contracts.

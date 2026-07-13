@@ -7,6 +7,7 @@ find_package(
     geometry_msgs
     rospy
     sensor_msgs
+    visualization_msgs
 )
 
 catkin_python_setup()
@@ -17,6 +18,7 @@ catkin_package(
     geometry_msgs
     rospy
     sensor_msgs
+    visualization_msgs
 )
 
 catkin_install_python(

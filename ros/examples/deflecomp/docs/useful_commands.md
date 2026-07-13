@@ -5,3 +5,6 @@ roslaunch deflecomp_ros deflecomp_frames.launch model:=/home/leus/catkin_ws/src/
 ```
 rosrun deflecomp_sim apply_frame_load.py _frame:=module5_gripper_dummy_link _mass_kg:=0.5
 ```
+
+RViz の `Applied External Force` は `base_link` 座標で表示される。既定の
+payload force は作用点を始点として world -Z 方向を向く。

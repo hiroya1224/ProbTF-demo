@@ -13,7 +13,8 @@
   <arg name="probtf_static_topic" default="/deflecomp/probtf_static" />
   <arg name="probtf_marker_topic" default="/deflecomp/probtf_point_moments" />
   <arg name="probtf_tf_child_prefixes" default="ref,cmd,equil" />
-  <arg name="probtf_tf_import_rate_hz" default="10.0" />
+  <arg name="probtf_tf_import_rate_hz" default="50.0" />
+  <arg name="probtf_marker_rate_hz" default="50.0" />
 
   <include file="$(find deflecomp_ros)/launch/deflecomp.launch">
     <arg name="model" value="$(arg urdf_path)" />
@@ -113,6 +114,7 @@
       <param name="dynamic_topic" value="$(arg probtf_topic)" />
       <param name="static_topic" value="$(arg probtf_static_topic)" />
       <param name="marker_topic" value="$(arg probtf_marker_topic)" />
+      <param name="lookup_rate_hz" value="$(arg probtf_marker_rate_hz)" />
     </node>
   </group>
 

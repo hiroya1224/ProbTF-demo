@@ -108,6 +108,13 @@ def test_covariance_axes_are_derived_from_point_moments():
 def test_deflecomp_frames_launch_scopes_imported_tf_to_v2_topics():
     launch_path = DEFLECOMP_ROS / "launch" / "deflecomp_frames.launch"
     root = ET.parse(str(launch_path)).getroot()
+    launch_args = {
+        element.attrib["name"]: element.attrib["default"]
+        for element in root.findall("arg")
+    }
+    assert launch_args["probtf_tf_import_rate_hz"] == "50.0"
+    assert launch_args["probtf_marker_rate_hz"] == "50.0"
+
     runtime_group = root.find("./group[@ns='deflecomp']")
     assert runtime_group is not None
     assert runtime_group.attrib["if"] == "$(arg enable_probtf_runtime)"
@@ -144,6 +151,7 @@ def test_deflecomp_frames_launch_scopes_imported_tf_to_v2_topics():
     }
     assert parameters["dynamic_topic"] == "$(arg probtf_topic)"
     assert parameters["static_topic"] == "$(arg probtf_static_topic)"
+    assert parameters["lookup_rate_hz"] == "$(arg probtf_marker_rate_hz)"
 
     rviz = root.find("node[@pkg='rviz']")
     gui = root.find("./group[@ns='ref']/node[@pkg='joint_state_publisher_gui']")
@@ -174,5 +182,6 @@ def test_runtime_consumer_uses_v2_listener_without_stiffness_pose_encoding():
     assert "kp_" not in consumer_module + consumer_node + config
     assert "probtf" not in estimator_node.lower()
     assert "marker_max_age" in consumer_node
+    assert "lookup_rate_hz: 50.0" in config
     assert "now - observation.resolved_stamp" in consumer_node
     assert "_COLORS[source_index % len(_COLORS)]" in consumer_node

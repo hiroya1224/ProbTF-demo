@@ -11,6 +11,14 @@ topic_imu: /imu
 external_wrench_topic: /deflecomp_sim/external_wrench
 # <= 0 keeps the last commanded wrench until a clear command is received.
 external_wrench_timeout: 0.0
+# The command WrenchStamped uses the target frame as its application point but,
+# by default, world-resolved components.  Publish a separate fixed-frame marker
+# so RViz does not rotate a world-downward force as though it were link-local.
+external_wrench_marker_topic: /deflecomp_sim/external_wrench_marker
+external_wrench_force_marker_scale: 0.05  # m/N
+external_wrench_marker_shaft_diameter: 0.015
+external_wrench_marker_head_diameter: 0.03
+external_wrench_marker_head_length: 0.04
 imu_frames: []
 integrator: semi_implicit
 ref_tau: 0.1

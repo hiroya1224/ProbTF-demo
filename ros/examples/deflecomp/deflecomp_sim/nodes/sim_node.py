@@ -5,15 +5,20 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import rospkg
 import rospy
-from geometry_msgs.msg import WrenchStamped
+from geometry_msgs.msg import Point, WrenchStamped
 from sensor_msgs.msg import Imu, JointState
+from visualization_msgs.msg import Marker
 
 from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
 from deflecomp_core.observation.imu_frame_config import ImuFrameConfig, resolve_imu_frame_configs
 from deflecomp_core.model.spring import spring_model_from_name
 from deflecomp_core.robot.pinocchio_robot import RobotArm
 from deflecomp_sim.dynamic_simulator import DynamicParams, FlexibleJointSimulator
-from deflecomp_sim.external_wrench import generalized_external_wrench
+from deflecomp_sim.external_wrench import (
+    external_force_arrow_points,
+    frame_wrench_in_world,
+    generalized_external_wrench,
+)
 from deflecomp_sim.sensor_simulator import build_imu_kinematic_samples
 
 
@@ -103,12 +108,38 @@ class SimNode:
         equilibrium_refine_tol: float,
         external_wrench_topic: str,
         external_wrench_timeout: float,
+        external_wrench_marker_topic: str,
+        external_wrench_force_marker_scale: float,
+        external_wrench_marker_shaft_diameter: float,
+        external_wrench_marker_head_diameter: float,
+        external_wrench_marker_head_length: float,
         publish_rate_hz: float,
     ) -> None:
         self.dt = float(dt)
         self.topic_equil = topic_equil
         self.imu_topic = imu_topic
         self.external_wrench_timeout = float(external_wrench_timeout)
+        self.external_wrench_marker_topic = str(external_wrench_marker_topic)
+        self.external_wrench_force_marker_scale = float(
+            external_wrench_force_marker_scale
+        )
+        self.external_wrench_marker_shaft_diameter = float(
+            external_wrench_marker_shaft_diameter
+        )
+        self.external_wrench_marker_head_diameter = float(
+            external_wrench_marker_head_diameter
+        )
+        self.external_wrench_marker_head_length = float(
+            external_wrench_marker_head_length
+        )
+        marker_dimensions = (
+            self.external_wrench_force_marker_scale,
+            self.external_wrench_marker_shaft_diameter,
+            self.external_wrench_marker_head_diameter,
+            self.external_wrench_marker_head_length,
+        )
+        if not all(np.isfinite(value) and value > 0.0 for value in marker_dimensions):
+            raise ValueError("external wrench marker scale and dimensions must be positive")
         self.publish_rate_hz = float(publish_rate_hz)
         if self.publish_rate_hz <= 0.0:
             raise ValueError("publish_rate_hz must be positive")
@@ -172,9 +203,16 @@ class SimNode:
         self.external_wrench_torque = np.zeros(3, dtype=float)
         self.external_wrench_stamp: Optional[float] = None
         self.external_wrench_warned_frames = set()
+        self.external_wrench_marker_visible = False
 
         self.pub_equil = rospy.Publisher(self.topic_equil, JointState, queue_size=10)
         self.pub_imu = rospy.Publisher(self.imu_topic, Imu, queue_size=20)
+        self.pub_external_wrench_marker = rospy.Publisher(
+            self.external_wrench_marker_topic,
+            Marker,
+            queue_size=1,
+            latch=True,
+        )
         self.sub_cmd = rospy.Subscriber(topic_cmd, JointState, self.cb_cmd, queue_size=50)
         self.sub_external_wrench = rospy.Subscriber(
             external_wrench_topic,
@@ -190,7 +228,7 @@ class SimNode:
         )
         self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
         rospy.loginfo(
-            "deflecomp_sim: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s external_wrench_topic=%s publish_rate_hz=%.3f",
+            "deflecomp_sim: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s external_wrench_topic=%s external_wrench_marker_topic=%s publish_rate_hz=%.3f",
             self.robot.base_link_name,
             self.robot.tip_link_name,
             ", ".join(self.joint_names),
@@ -198,6 +236,7 @@ class SimNode:
             ", ".join(f"{cfg.frame_id}->{cfg.model_frame}" for cfg in self.imu_frame_configs),
             type(self.sim.spring_model).__name__,
             external_wrench_topic,
+            self.external_wrench_marker_topic,
             1.0 / (self.publish_every_steps * self.dt),
         )
 
@@ -290,6 +329,72 @@ class SimNode:
             reference_frame=self.external_wrench_reference_frame,
         )
 
+    def _external_wrench_marker(self, q: np.ndarray, now: rospy.Time) -> Optional[Marker]:
+        if not self._external_wrench_active():
+            return None
+
+        frame_name = str(self.external_wrench_frame)
+        if not self.robot.has_frame(frame_name):
+            return None
+
+        application_point_world, force_world, _ = frame_wrench_in_world(
+            robot=self.robot,
+            q=q,
+            frame_name=frame_name,
+            force=self.external_wrench_force,
+            torque=self.external_wrench_torque,
+            reference_frame=self.external_wrench_reference_frame,
+        )
+        if float(np.linalg.norm(force_world)) <= 1.0e-12:
+            return None
+        start_xyz, end_xyz = external_force_arrow_points(
+            application_point_world=application_point_world,
+            force_world=force_world,
+            scale=self.external_wrench_force_marker_scale,
+        )
+
+        marker = Marker()
+        marker.header.stamp = now
+        marker.header.frame_id = self.robot.base_link_name
+        marker.ns = "applied_external_force"
+        marker.id = 0
+        marker.type = Marker.ARROW
+        marker.action = Marker.ADD
+        marker.pose.orientation.w = 1.0
+        marker.points = [
+            Point(x=float(start_xyz[0]), y=float(start_xyz[1]), z=float(start_xyz[2])),
+            Point(x=float(end_xyz[0]), y=float(end_xyz[1]), z=float(end_xyz[2])),
+        ]
+        marker.scale.x = self.external_wrench_marker_shaft_diameter
+        marker.scale.y = self.external_wrench_marker_head_diameter
+        marker.scale.z = self.external_wrench_marker_head_length
+        marker.color.r = 0.8
+        marker.color.g = 0.2
+        marker.color.b = 0.2
+        marker.color.a = 1.0
+        marker.lifetime = rospy.Duration.from_sec(
+            max(0.1, 2.0 / self.publish_rate_hz)
+        )
+        return marker
+
+    def publish_external_wrench_marker(self, q: np.ndarray, now: rospy.Time) -> None:
+        marker = self._external_wrench_marker(q, now)
+        if marker is not None:
+            self.pub_external_wrench_marker.publish(marker)
+            self.external_wrench_marker_visible = True
+            return
+        if not self.external_wrench_marker_visible:
+            return
+
+        clear = Marker()
+        clear.header.stamp = now
+        clear.header.frame_id = self.robot.base_link_name
+        clear.ns = "applied_external_force"
+        clear.id = 0
+        clear.action = Marker.DELETE
+        self.pub_external_wrench_marker.publish(clear)
+        self.external_wrench_marker_visible = False
+
     def publish_imus(self, q: np.ndarray, qd: np.ndarray, qdd: np.ndarray, now: rospy.Time) -> None:
         samples = build_imu_kinematic_samples(self.robot, self.imu_frame_configs, q, qd, qdd)
         for sample in samples:
@@ -337,6 +442,7 @@ class SimNode:
         )
         self.pub_equil.publish(js)
         self.publish_imus(q_next, qd_next, qdd_est, now)
+        self.publish_external_wrench_marker(q_next, now)
 
 
 def main() -> None:
@@ -367,6 +473,22 @@ def main() -> None:
     equilibrium_refine_tol = float(rospy.get_param("~equilibrium_refine_tol", 1e-12))
     external_wrench_topic = rospy.get_param("~external_wrench_topic", "/deflecomp_sim/external_wrench")
     external_wrench_timeout = float(rospy.get_param("~external_wrench_timeout", 0.0))
+    external_wrench_marker_topic = rospy.get_param(
+        "~external_wrench_marker_topic",
+        "/deflecomp_sim/external_wrench_marker",
+    )
+    external_wrench_force_marker_scale = float(
+        rospy.get_param("~external_wrench_force_marker_scale", 0.05)
+    )
+    external_wrench_marker_shaft_diameter = float(
+        rospy.get_param("~external_wrench_marker_shaft_diameter", 0.015)
+    )
+    external_wrench_marker_head_diameter = float(
+        rospy.get_param("~external_wrench_marker_head_diameter", 0.03)
+    )
+    external_wrench_marker_head_length = float(
+        rospy.get_param("~external_wrench_marker_head_length", 0.04)
+    )
     publish_rate_hz = float(rospy.get_param("~publish_rate_hz", 100.0))
 
     SimNode(
@@ -395,6 +517,11 @@ def main() -> None:
         equilibrium_refine_tol=equilibrium_refine_tol,
         external_wrench_topic=external_wrench_topic,
         external_wrench_timeout=external_wrench_timeout,
+        external_wrench_marker_topic=external_wrench_marker_topic,
+        external_wrench_force_marker_scale=external_wrench_force_marker_scale,
+        external_wrench_marker_shaft_diameter=external_wrench_marker_shaft_diameter,
+        external_wrench_marker_head_diameter=external_wrench_marker_head_diameter,
+        external_wrench_marker_head_length=external_wrench_marker_head_length,
         publish_rate_hz=publish_rate_hz,
     )
     rospy.spin()

@@ -109,7 +109,7 @@ roslaunch probtf_core probtf_bridge.launch
 roslaunch probtf_imu_demo two_imu_relative_pose.launch
 roslaunch probtf_orientation_demo orientation_filter.launch
 
-# Symmetry-aware grasp workflow and static-chain point cloud
+# Symmetry-aware grasp workflow and joint-controlled chain point cloud
 roslaunch symaware_grasp probabilistic_tf_demo.launch
 roslaunch symaware_grasp prob_tf_link_cloud.launch
 

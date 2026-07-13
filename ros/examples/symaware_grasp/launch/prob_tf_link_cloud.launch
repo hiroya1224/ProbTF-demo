@@ -1,5 +1,6 @@
 <launch>
   <arg name="rviz" default="true"/>
+  <arg name="joint_gui" default="$(arg rviz)"/>
   <arg name="config_path" default="$(find symaware_grasp)/configs/simple_six_dof_prob_tf.yaml"/>
   <arg name="rviz_config" default="$(find symaware_grasp)/rviz/prob_tf_link_cloud.rviz"/>
   <arg name="probtf_topic" default="/probtf"/>
@@ -11,9 +12,14 @@
     <param name="config_path" value="$(arg config_path)"/>
     <param name="probtf_topic" value="$(arg probtf_topic)"/>
     <param name="probtf_static_topic" value="$(arg probtf_static_topic)"/>
+    <param name="follow_joint_states" value="true"/>
+    <param name="joint_states_topic" value="joint_states"/>
   </node>
 
-  <node pkg="symaware_grasp" type="arm_joint_state_controller.py" name="prob_tf_robot_controller" output="screen">
+  <node if="$(arg joint_gui)" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="prob_tf_joint_sliders" output="screen">
+    <param name="rate" value="30"/>
+  </node>
+  <node unless="$(arg joint_gui)" pkg="symaware_grasp" type="arm_joint_state_controller.py" name="prob_tf_robot_controller" output="screen">
     <rosparam param="initial_positions">[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>
     <param name="publish_rate" value="10.0"/>
     <rosparam param="max_joint_speed">[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]</rosparam>

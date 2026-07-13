@@ -45,3 +45,22 @@ def test_link_cloud_samples_only_after_listener_point_moment_lookup():
     assert lookup_index < sample_index
     assert "sample_transform_distribution" not in source
     assert "update_sample" not in source
+
+
+def test_link_cloud_launch_connects_joint_sliders_to_dynamic_v2_records():
+    launch_path = _PACKAGE / "launch" / "prob_tf_link_cloud.launch"
+    root = ET.parse(str(launch_path)).getroot()
+    arguments = {element.attrib["name"]: element for element in root.findall("arg")}
+    nodes = {element.attrib["name"]: element for element in root.findall("node")}
+
+    assert arguments["joint_gui"].attrib["default"] == "$(arg rviz)"
+    assert nodes["prob_tf_joint_sliders"].attrib["pkg"] == "joint_state_publisher_gui"
+    broadcaster_params = {
+        element.attrib["name"]: element.attrib["value"]
+        for element in nodes["probtf_static_broadcaster"].findall("param")
+    }
+    assert broadcaster_params["follow_joint_states"] == "true"
+    assert broadcaster_params["joint_states_topic"] == "joint_states"
+
+    package_text = (_PACKAGE / "package.xml").read_text(encoding="utf-8")
+    assert "<exec_depend>joint_state_publisher_gui</exec_depend>" in package_text

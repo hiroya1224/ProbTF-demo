@@ -14,6 +14,14 @@ static arm link の point moments と pointcloud だけを確認する場合:
 roslaunch symaware_grasp prob_tf_link_cloud.launch
 ```
 
+この launch は RViz と 6 関節のスライダを起動する。スライダの `joint_states` はロボットの
+通常 TF と revolute joint の native ProbTF v2 record の両方へ反映されるため、姿勢と
+pointcloud は一緒に更新される。GUI を起動しない headless 実行は次のとおり。
+
+```bash
+roslaunch symaware_grasp prob_tf_link_cloud.launch rviz:=false
+```
+
 ## 主要 topic
 
 - `/probtf`: dynamic native v2 transform records

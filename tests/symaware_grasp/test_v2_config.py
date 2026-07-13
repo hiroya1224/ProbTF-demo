@@ -92,6 +92,34 @@ def test_listener_provides_link_point_moments_for_every_configured_link():
         assert np.all(np.linalg.eigvalsh(result.value.covariance) >= -1e-10)
 
 
+def test_joint_positions_condition_revolute_records_as_dynamic_v2_edges():
+    mapping = yaml.safe_load(_config_path().read_text(encoding="utf-8"))
+    mapping = copy.deepcopy(mapping)
+    for edge in mapping["edges"]:
+        if edge["type"] == "revolute":
+            edge["bingham_eigenvalues"] = [30000.0, -10000.0, -10000.0, -10000.0]
+    joint_positions = np.array([0.4, -0.7, 0.9, 0.3, -0.5, 0.6])
+    config = config_from_mapping(
+        mapping,
+        stamp=12.5,
+        joint_positions=joint_positions,
+        dynamic_joints=True,
+    )
+
+    assert [record.is_static for record in config.records] == [False] * 6 + [True]
+    assert all(record.stamp == 12.5 for record in config.records)
+
+    listener = ProbTfListener(config.build_graph())
+    tool_origin = listener.lookup_point_moments(
+        "base_link",
+        "tool0",
+        np.zeros(3),
+        policy=TemporalPolicy.LATEST,
+    )
+    expected_position, _, _ = ToyArm6DOF().forward_kinematics(joint_positions)
+    np.testing.assert_allclose(tool_origin.value.mean, expected_position, atol=2e-2)
+
+
 def test_forward_and_inverse_queries_reuse_physical_edge_ids():
     graph = load_prob_tf_config(_config_path()).build_graph()
     forward = graph.lookup_path("base_link", "link_3", stamp=0.0)

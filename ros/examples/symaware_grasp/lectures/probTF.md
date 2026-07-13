@@ -2,20 +2,22 @@
 
 ## 1. 概要
 
-6 自由度アームの不確かな joint transform は YAML から直接 native ProbTF v2 static records として
-読み込まれる。旧 `ProbTfTree` や demo 固有 path algebra は使わない。
+6 自由度アームの不確かな joint transform は YAML から直接 native ProbTF v2 records として
+読み込まれる。link-cloud demo ではスライダの関節角で revolute record の mode を更新する。
+旧 `ProbTfTree` や demo 固有 path algebra は使わない。
 
 ```text
 configs/simple_six_dof_prob_tf.yaml
-  -> load_prob_tf_config()
-  -> TransformDistributionStamped(is_static=True)[]
+  + joint_state_publisher_gui -> /joint_states
+  -> config_from_mapping(joint_positions=..., dynamic_joints=True)
+  -> revolute: TransformDistributionStamped(is_static=False)[] -> /probtf
+  -> fixed:    TransformDistributionStamped(is_static=True)[]  -> /probtf_static
   -> ProbTfBroadcaster.send_transforms()
-  -> /probtf_static
   -> RosProbTfListener
   -> lookup_point_moments()
 ```
 
-## 2. YAML から static records への変換
+## 2. YAML と関節角から v2 records への変換
 
 各 edge は次を持つ。
 
@@ -24,14 +26,13 @@ configs/simple_six_dof_prob_tf.yaml
 - conditional Gaussian translation
 - representative transform と代表値の種別
 - authority、source、provenance
-- `is_static=True`
 
 fixed joint は Dirac orientation、revolute joint は有限 Bingham orientation になる。YAML の frame
 一覧と edge topology が一致しない場合、load 時に失敗する。
 
-`probtf_static_broadcaster.py` は全 record を一度に `send_transforms()` へ渡す。broadcaster は
-static set 全体を `ProbabilisticTransformArray` として latch publish するため、後から起動した
-listener も同じ topology を復元できる。
+`follow_joint_states:=true` の `probtf_static_broadcaster.py` は fixed joint を static set として latch
+publish し、各 revolute joint は受信した角度を mode に合成して同一時刻の dynamic record として
+publish する。Bingham のばらつきは維持され、mode だけがスライダ角に追従する。
 
 ## 3. graph と lookup の向き
 
@@ -52,8 +53,9 @@ listener.lookup_point_moments(
 )
 ```
 
-static edge の sample stamp は 0 だが、static resolution は要求時刻に依存しない。runtime node は
-`wait_for_lookup()` で topology の受信完了を確認してから query する。
+fixed edge の sample stamp は 0 だが、static resolution は要求時刻に依存しない。revolute edge は
+`JointState` の stamp を持つ。runtime node は `wait_for_lookup()` で topology の受信完了を確認して
+から query する。
 
 ## 4. point moments
 
@@ -90,6 +92,8 @@ Gaussian sampling する。
 roslaunch symaware_grasp prob_tf_link_cloud.launch
 ```
 
+RViz と `joint_state_publisher_gui` が起動し、6 本のスライダで姿勢と pointcloud を操作できる。
+
 RViz なし:
 
 ```bash
@@ -105,7 +109,7 @@ roslaunch symaware_grasp prob_tf_link_cloud.launch \
 
 ## 7. 検証点
 
-- YAML record はすべて static v2 record である。
+- revolute joint は `/probtf` の dynamic v2 record、fixed joint は `/probtf_static` の static v2 record である。
 - listener から全 configured link の point moments を取得できる。
 - covariance は対称 positive semidefinite である。
 - `/probtf_static` の channel に dynamic record を入れない。

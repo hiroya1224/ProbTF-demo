@@ -7,8 +7,8 @@ the catkin package that installs it; there is no shared top-level `src/` relay.
 ## Package layout
 
 - `ros/core/probtf_msgs`: message-only package for the native v2 wire contract
-- `ros/core/probtf_core`: owns `probtf`, `probtf_estimators`, `probtf_ros`, and
-  the ProbTF/TF bridge node
+- `ros/core/probtf_core`: owns `probtf`, `probtf_estimators`, `probtf_ros`, the
+  reusable C++ latest-snapshot evaluator, and the ProbTF/TF bridge nodes
 - `ros/examples/probtf_imu_demo`: two-IMU transform producer and symbolic URDF
   materialization
 - `ros/examples/probtf_orientation_demo`: gyro, gravity, and magnetic
@@ -56,6 +56,8 @@ The transform law is a weighted mixture of
 Runtime transport uses:
 
 - `ProbabilisticTransformStamped` on `/probtf` for dynamic physical edges
+- `ProbabilisticTransformArray` on `/probtf_batch` for an atomic complete
+  latest-only dynamic snapshot
 - `ProbabilisticTransformArray` on `/probtf_static` for the complete static set
 - `TransformEvidenceStamped` for likelihood/natural-parameter evidence
 - `OrientationDistributionStamped` for orientation-only posteriors
@@ -82,9 +84,20 @@ Temporal selection is explicit through `TemporalPolicy` (`EXACT`, `LATEST`,
 the same latent physical edge rather than constructing an independent inverse
 distribution.
 
-`probtf_bridge_node.py` connects native topics to `/tf` and `/tf_static`. Its
-default export policy is `exact_only`; exporting a stochastic record requires
-an explicit representative policy.
+The default `probtf_bridge_node` is C++. It connects native topics to `/tf` and
+`/tf_static`, keeps one pending sample per physical edge, and publishes a
+complete `/probtf_batch` snapshot without queuing intermediate states. The
+legacy per-edge `/probtf` stream remains available through
+`publish_individual_dynamic:=true` (the generic default); deflecomp disables it
+because its C++ consumer reads the batch directly. The Python bridge remains a
+launch-selectable compatibility implementation with `use_cpp_bridge:=false`.
+
+The C++ point-moment evaluator supports Dirac, uniform, and finite Bingham
+orientations, conditional Gaussian translation, mixtures, and forward path
+composition. It retains the Python evaluator's explicit rejection of
+stochastic inverse moments and unresolved repeated latent dependencies. ROS
+callbacks and computation use a fixed callback thread plus one worker; if a
+new batch arrives during evaluation, the superseded result is discarded.
 
 ## Demo launches
 

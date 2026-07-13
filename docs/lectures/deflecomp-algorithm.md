@@ -1368,10 +1368,14 @@ u_{published,k}=u_k
 | controller | 50 Hz (`dt=0.02`) |
 | simulator integration | nominal 1000 Hz (`dt=0.001`) |
 | simulator state/IMU publish | 100 Hz |
-| ProbTF TF import | 最大 10 Hz |
-| point-moment marker lookup/publish | 10 Hz |
+| ProbTF TF import / complete batch | 最大 50 Hz |
+| point-moment marker lookup/publish | 最大 50 Hz |
 
-ProbTF import/marker は各 edge の latest sample を使い、中間軌跡を捨てる。これは 30 s 級 FIFO backlog を避けるための低遅延モニタ設計である。従って marker は状態の目視確認には使えるが、lag、overshoot、settling time の計測器には使えない。定量評価は元の timestamp 付き `JointState`/IMU/topic を rosbag 等へ記録して行う。
+ProbTF import/marker はC++の固定2実行主体（ROS callback 1、worker 1）で動作する。bridgeは
+各edgeのlatest sampleだけを保持し、全edgeをcomplete batchとしてatomic publishする。marker workerの
+計算中に新batchが届いた場合、完了した古い結果を破棄して最新batchから再計算する。これはFIFO backlogを
+避ける低遅延モニタ設計である。従って marker は状態の目視確認には使えるが、lag、overshoot、settling
+timeの計測器には使わない。定量評価は元のtimestamp付き`JointState`/IMU/topicをrosbag等へ記録して行う。
 
 point marker が示すのは tip frame 原点の 3 次元位置だけである。tip 姿勢、各 joint error、肘の異なる configuration は点だけでは判別できない。
 

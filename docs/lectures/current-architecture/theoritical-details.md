@@ -27,7 +27,7 @@
 4. orientation-only posterior は translation を補わず、専用 message で運ぶ。
 5. two-IMU producer は rotation/translation coupling を保持した full v2 edge を直接 publish する。
 6. symaware grasp は global v2 graph と用途固有 application topic の両方を使う。
-7. deflecomp は stiffness posterior を SE(3) に偽装せず、実 TF だけを scoped v2 graph に import する。
+7. deflecomp は stiffness posterior を SE(3) に偽装せず、実 TF だけを scoped v2 latest snapshot に import する。
 
 ## 1. Repository と package ownership
 
@@ -43,7 +43,9 @@ ProbTF-demo/
           probtf/                  # ROS-free foundation
           probtf_estimators/       # ROS-free producer algorithms
           probtf_ros/              # ROS adapters/listener/bridge
-        nodes/probtf_bridge_node.py
+        include/ + src/latest_snapshot.cpp  # reusable C++ evaluator
+        nodes/probtf_bridge_node.cpp         # default latest-only bridge
+        nodes/probtf_bridge_node.py          # compatibility bridge
     examples/
       probtf_imu_demo/             # two-IMU producer + materializer
       probtf_orientation_demo/     # orientation-only filter/fusion
@@ -71,7 +73,7 @@ Python namespaceは、それを責務として持つcatkin packageの`src/`に�
 | 分類 | package | 責務 |
 | --- | --- | --- |
 | core | `probtf_msgs` | ProbTF v2 wire contract |
-| core | `probtf_core` | foundation、estimators、ROS adapter、generic bridge |
+| core | `probtf_core` | foundation、estimators、ROS adapter、C++ latest evaluator、generic bridge |
 | producer | `probtf_imu_demo` | two-IMU preprocessing、relative pose、URDF materialization |
 | producer | `probtf_orientation_demo` | orientation-only prediction/evidence/fusion |
 | application | `symaware_grasp` | native v2 grasp composition、IK、visualization |
@@ -87,6 +89,7 @@ Python namespaceは、それを責務として持つcatkin packageの`src/`に�
 ```text
 probtf_estimators ---> probtf ---> NumPy / SciPy / vendored Bingham numerics
 probtf_ros ---------> probtf + probtf_msgs + ROS 1
+probtf_runtime_cpp --> probtf_msgs + Eigen + roscpp
 producer nodes -----> probtf_estimators + probtf_ros + probtf_msgs
 symaware_grasp -----> probtf + probtf_ros + probtf_msgs
 deflecomp_core -----> probtf geometry primitives + Pinocchio
@@ -304,6 +307,7 @@ provenance を同じ record に含む。
 | topic | type | semantics |
 | --- | --- | --- |
 | `/probtf` | `ProbabilisticTransformStamped` | dynamic recordを個別 publish |
+| `/probtf_batch` | `ProbabilisticTransformArray` | 全dynamic edgeのlatest-only complete snapshotをatomic publish |
 | `/probtf_static` | `ProbabilisticTransformArray` | broadcaster所有の全 static setをlatched publish |
 | `/tf` | `tf2_msgs/TFMessage` | deterministic dynamic TF |
 | `/tf_static` | `tf2_msgs/TFMessage` | deterministic static TF |
@@ -313,8 +317,10 @@ provenance を同じ record に含む。
 
 ### 5.3 Generic TF bridge
 
+既定の[`probtf_bridge_node.cpp`](../../../ros/core/probtf_core/nodes/probtf_bridge_node.cpp) は、
+TF callbackと変換・publish workerを分離したC++実装である。Python版
 [`probtf_bridge_node.py`](../../../ros/core/probtf_core/nodes/probtf_bridge_node.py) は
-`ProbTfTfBridge`、`ProbTfBroadcaster`、in-process graph を持つ。
+`use_cpp_bridge:=false` で選べる互換経路として残す。
 
 - TF import: deterministic TF を Dirac orientation、zero residual covariance、`C=0` の exact
   one-component v2 recordへ変換する。
@@ -322,6 +328,10 @@ provenance を同じ record に含む。
 - TF export: exact edge、または呼び出し側が明示した representative policyだけを出力する。
 - loop prevention: 自 node authority と export済み signature を除外する。
 - filter: import対象 child frame prefixをlaunch parameterで制限できる。
+- latest-only staging: dynamic edgeごとに未処理の最新sampleを一つだけ保持し、中間sampleをFIFOへ積まない。
+- atomic batch: workerが保持する全dynamic edgeを一つの`ProbabilisticTransformArray`として
+  `/probtf_batch`へpublishする。変換中に新sampleが届いた場合、その古いbatchを破棄して最新から作り直す。
+- compatibility stream: `publish_individual_dynamic:=true` の場合は従来の`/probtf`個別recordも併送する。
 
 generic bridge は application topic を自動発見する中央 serverではない。TF と v2 transport の境界だけを
 担当し、queryは各consumerのlocal listenerが行う。
@@ -425,17 +435,16 @@ ref/cmd/equil robot_state_publisher + static anchors
                   /tf + /tf_static
                          |
                          v
-       /deflecomp/probtf_bridge (import=true, export=false)
-                |                         |
-                v                         v
- /deflecomp/probtf            /deflecomp/probtf_static
-  dynamic v2 records           latched static v2 set
-                \                         /
-                 \                       /
-                  v                     v
-          /deflecomp/probtf_point_moments
-                    RosProbTfListener
-                 lookup path + point moments
+       /deflecomp/probtf_bridge (C++, import=true, export=false)
+                |                              |
+                v                              v
+ /deflecomp/probtf_batch        /deflecomp/probtf_static
+ complete dynamic snapshot       latched static v2 set
+                \                              /
+                 \                            /
+                  v                          v
+          /deflecomp/probtf_point_moments (C++)
+             latest snapshot + point moments
                             |
                             v
        /deflecomp/probtf_point_moments MarkerArray
@@ -445,9 +454,11 @@ import child prefixは既定で `ref,cmd,equil`、TF exportはfalseである。�
 v2へmirrorするが、同じrecordをTFへ戻すloopは作らない。dynamic/static topicはglobal symaware graphと
 分離されたscoped runtimeである。
 
-consumerは`/tf`を直接queryせず、scoped topicsから構築したlocal `RosProbTfListener` graphへ
-`LATEST_COMMON` lookupを行う。point mean/covarianceとその可視化はterminal queryであり、
-stiffness posteriorやmoment summaryをSE(3) edgeへ変換しない。
+consumerは`/tf`を直接queryせず、complete batchとstatic setからC++ `LatestSnapshot`を構築する。
+callbackはqueue size 1で最新batch pointerだけを交換し、計算中に次batchが届いた場合は古い計算結果を
+publishせず再計算する。各source pathはbatch内の各edgeの最新recordを使い、表示stampにはpath上の
+最古dynamic stampを使う。point mean/covarianceとその可視化はterminal queryであり、stiffness
+posteriorやmoment summaryをSE(3) edgeへ変換しない。
 
 ## 10. Native v2 only boundary
 
@@ -462,7 +473,8 @@ orientation-only law、application state、terminal summaryをv1的なpartial tr
 4. moment summaryやdisplay sampleをgraphへ再登録しない。
 5. representative exportはexactまたは明示policyだけを許す。
 6. application messageがedgeを指す場合、listenerのframe/stamp lookupでgraph recordを解決する。
-7. static recordはlatched full set、dynamic recordは個別messageで運ぶ。
+7. static recordはlatched full setで運ぶ。dynamicは汎用個別streamに加え、低遅延consumer向けに
+   complete latest-only batchをatomicに運べる。
 8. repeated latent dependencyを独立と仮定しない。
 9. approximation/provenanceをcomponent、record、wireで保持する。
 10. catkin nodeはpackage-local sourceをimportし、parent path relayを追加しない。

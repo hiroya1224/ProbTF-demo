@@ -13,6 +13,7 @@ from probtf_ros.tf_bridge import deterministic_tf_to_record
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFLECOMP_ROS = ROOT / "ros" / "examples" / "deflecomp" / "deflecomp_ros"
+PROBTF_CORE = ROOT / "ros" / "core" / "probtf_core"
 
 
 class Stamp:
@@ -114,6 +115,7 @@ def test_deflecomp_frames_launch_scopes_imported_tf_to_v2_topics():
     }
     assert launch_args["probtf_tf_import_rate_hz"] == "50.0"
     assert launch_args["probtf_marker_rate_hz"] == "50.0"
+    assert launch_args["probtf_batch_topic"] == "/deflecomp/probtf_batch"
 
     runtime_group = root.find("./group[@ns='deflecomp']")
     assert runtime_group is not None
@@ -129,8 +131,11 @@ def test_deflecomp_frames_launch_scopes_imported_tf_to_v2_topics():
     assert bridge_args["import_tf"] == "true"
     assert bridge_args["export_tf"] == "false"
     assert bridge_args["probtf_topic"] == "$(arg probtf_topic)"
+    assert bridge_args["probtf_batch_topic"] == "$(arg probtf_batch_topic)"
     assert bridge_args["probtf_static_topic"] == "$(arg probtf_static_topic)"
     assert bridge_args["tf_import_max_rate_hz"] == "$(arg probtf_tf_import_rate_hz)"
+    assert bridge_args["use_cpp_bridge"] == "true"
+    assert bridge_args["publish_individual_dynamic"] == "false"
 
     deflecomp_include = next(
         element
@@ -143,13 +148,14 @@ def test_deflecomp_frames_launch_scopes_imported_tf_to_v2_topics():
     }
     assert deflecomp_args["particle_scan_enabled"] == "$(arg particle_scan_enabled)"
 
-    consumer = runtime_group.find("node[@type='probtf_point_moments_node.py']")
+    consumer = runtime_group.find("node[@type='probtf_point_moments_node']")
     assert consumer is not None
     parameters = {
         element.attrib["name"]: element.attrib["value"]
         for element in consumer.findall("param")
     }
     assert parameters["dynamic_topic"] == "$(arg probtf_topic)"
+    assert parameters["dynamic_batch_topic"] == "$(arg probtf_batch_topic)"
     assert parameters["static_topic"] == "$(arg probtf_static_topic)"
     assert parameters["lookup_rate_hz"] == "$(arg probtf_marker_rate_hz)"
 
@@ -161,12 +167,12 @@ def test_deflecomp_frames_launch_scopes_imported_tf_to_v2_topics():
     assert headless is not None and headless.attrib["unless"] == "$(arg viewer)"
 
 
-def test_runtime_consumer_uses_v2_listener_without_stiffness_pose_encoding():
+def test_runtime_consumer_uses_cpp_latest_snapshot_without_stiffness_pose_encoding():
     consumer_module = (
         DEFLECOMP_ROS / "src" / "deflecomp_ros" / "probtf_consumer.py"
     ).read_text(encoding="utf-8")
     consumer_node = (
-        DEFLECOMP_ROS / "nodes" / "probtf_point_moments_node.py"
+        DEFLECOMP_ROS / "nodes" / "probtf_point_moments_node.cpp"
     ).read_text(encoding="utf-8")
     config = (DEFLECOMP_ROS / "config" / "probtf_runtime.yaml").read_text(
         encoding="utf-8"
@@ -175,7 +181,9 @@ def test_runtime_consumer_uses_v2_listener_without_stiffness_pose_encoding():
         encoding="utf-8"
     )
 
-    assert "RosProbTfListener" in consumer_node
+    assert "LatestSnapshot" in consumer_node
+    assert "generation_ != generation" in consumer_node
+    assert "dynamic_batch_topic" in consumer_node
     assert "lookup_path" in consumer_module
     assert "lookup_point_moments" in consumer_module
     assert "ProbabilisticTF" not in consumer_module + consumer_node
@@ -184,4 +192,20 @@ def test_runtime_consumer_uses_v2_listener_without_stiffness_pose_encoding():
     assert "marker_max_age" in consumer_node
     assert "lookup_rate_hz: 50.0" in config
     assert "now - observation.resolved_stamp" in consumer_node
-    assert "_COLORS[source_index % len(_COLORS)]" in consumer_node
+    assert "colors[source_index % colors.size()]" in consumer_node
+
+
+def test_cpp_bridge_batches_complete_latest_state_and_keeps_static_publishers():
+    bridge_node = (PROBTF_CORE / "nodes" / "probtf_bridge_node.cpp").read_text(
+        encoding="utf-8"
+    )
+    bridge_launch = (PROBTF_CORE / "launch" / "probtf_bridge.launch").read_text(
+        encoding="utf-8"
+    )
+
+    assert "pending_dynamic_" in bridge_node
+    assert "dynamic_generation_ != dynamic_generation" in bridge_node
+    assert "batch.transforms.reserve(dynamic_records_.size())" in bridge_node
+    assert '"/tf_static", 100' in bridge_node
+    assert 'type="probtf_bridge_node"' in bridge_launch
+    assert 'use_cpp_bridge" default="true"' in bridge_launch

@@ -1,16 +1,32 @@
 <launch>
   <arg name="import_tf" default="true" />
   <arg name="export_tf" default="true" />
+  <arg name="use_cpp_bridge" default="true" />
   <arg name="tf_export_policy" default="exact_only" />
   <arg name="probtf_topic" default="/probtf" />
+  <arg name="probtf_batch_topic" default="/probtf_batch" />
   <arg name="probtf_static_topic" default="/probtf_static" />
+  <arg name="publish_individual_dynamic" default="true" />
   <arg name="max_records_per_edge" default="1000" />
   <arg name="tf_import_child_prefixes" default="" />
-  <!-- 0 preserves lossless import. Positive values coalesce each edge to its
-       latest sample before deterministic TF -> Prob-TF conversion. -->
+  <!-- The C++ bridge is latest-only at every rate. A positive value also
+       bounds complete-snapshot publication frequency. -->
   <arg name="tf_import_max_rate_hz" default="0.0" />
 
-  <node pkg="probtf_core" type="probtf_bridge_node.py" name="probtf_bridge" output="screen">
+  <node if="$(arg use_cpp_bridge)" pkg="probtf_core" type="probtf_bridge_node" name="probtf_bridge" output="screen">
+    <param name="import_tf" value="$(arg import_tf)" />
+    <param name="export_tf" value="$(arg export_tf)" />
+    <param name="tf_export_policy" value="$(arg tf_export_policy)" />
+    <param name="probtf_topic" value="$(arg probtf_topic)" />
+    <param name="probtf_batch_topic" value="$(arg probtf_batch_topic)" />
+    <param name="probtf_static_topic" value="$(arg probtf_static_topic)" />
+    <param name="publish_individual_dynamic" value="$(arg publish_individual_dynamic)" />
+    <param name="max_records_per_edge" value="$(arg max_records_per_edge)" />
+    <param name="tf_import_child_prefixes" value="$(arg tf_import_child_prefixes)" />
+    <param name="tf_import_max_rate_hz" value="$(arg tf_import_max_rate_hz)" />
+  </node>
+
+  <node unless="$(arg use_cpp_bridge)" pkg="probtf_core" type="probtf_bridge_node.py" name="probtf_bridge" output="screen">
     <param name="import_tf" value="$(arg import_tf)" />
     <param name="export_tf" value="$(arg export_tf)" />
     <param name="tf_export_policy" value="$(arg tf_export_policy)" />

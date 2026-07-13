@@ -443,7 +443,7 @@ Visualization Manager:
     Background Color: 243; 243; 243
     Default Light: true
     Fixed Frame: base_link
-    Frame Rate: 30
+    Frame Rate: 60
   Name: root
   Tools:
     - Class: rviz/Interact

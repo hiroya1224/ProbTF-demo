@@ -103,6 +103,10 @@ digraph ProbTFDemoCurrentArchitecture {
         fillcolor="#bfdbfe",
         label="probtf_ros\nv2 lossless conversion\nbroadcaster / listener\nTF import/export bridge"
       ];
+      cpp_runtime [
+        fillcolor="#bfdbfe",
+        label="probtf_runtime_cpp\nlatest complete snapshot\nDirac / uniform / finite Bingham moments\nfixed callback + worker threads"
+      ];
 
       distributions -> geometry [label="conventions"];
       distributions -> provenance [label="component metadata"];
@@ -124,6 +128,8 @@ digraph ProbTFDemoCurrentArchitecture {
       estimator_materialization -> kernels [label="point summary"];
       ros_v2 -> graph_core [label="local graph"];
       ros_v2 -> distributions [label="wire conversion"];
+      cpp_runtime -> moments [label="matching point moments"];
+      cpp_runtime -> distributions [label="same v2 law contract"];
     }
 
     subgraph cluster_message_owner {
@@ -184,10 +190,11 @@ digraph ProbTFDemoCurrentArchitecture {
       symaware_pkg -> kernels [label="lookup/evaluate"];
       symaware_pkg -> sampling [label="terminal visualization"];
       deflecomp_pkg -> geometry [label="robot math"];
-      deflecomp_pkg -> ros_v2 [label="scoped listener"];
+      deflecomp_pkg -> cpp_runtime [label="scoped latest consumer"];
     }
 
     ros_v2 -> se3_messages [label="primary transport"];
+    cpp_runtime -> se3_messages [label="atomic batch transport"];
     estimator_orientation -> estimator_messages [label="orientation wire"];
     estimator_imu -> estimator_messages [label="kinematics wire"];
     imu_pkg -> se3_messages [label="publishes"];
@@ -217,7 +224,7 @@ digraph ProbTFDemoCurrentArchitecture {
       ];
       generic_bridge [
         fillcolor="#dbeafe",
-        label="probtf_bridge_node\nTF import/export policy\nauthority + loop guard\noptional child-prefix filter"
+        label="C++ probtf_bridge_node\nlatest edge staging\natomic complete batch\nTF import/export policy"
       ];
       global_dynamic [
         shape=ellipse,
@@ -229,6 +236,11 @@ digraph ProbTFDemoCurrentArchitecture {
         fillcolor="#bfdbfe",
         label="/probtf_static\nlatched full static v2 set"
       ];
+      global_batch [
+        shape=ellipse,
+        fillcolor="#bfdbfe",
+        label="/probtf_batch\ncomplete latest-only dynamic set\nProbabilisticTransformArray"
+      ];
       local_listener [
         fillcolor="#dbeafe",
         label="RosProbTfListener per consumer\nbounded local ProbTfGraph\nwait / path / kernel / point moments"
@@ -236,6 +248,7 @@ digraph ProbTFDemoCurrentArchitecture {
 
       tf_bus -> generic_bridge [dir=both, label="deterministic import\nexplicit representative export"];
       generic_bridge -> global_dynamic [dir=both, label="dynamic v2"];
+      generic_bridge -> global_batch [label="atomic latest snapshot"];
       generic_bridge -> global_static [dir=both, label="static v2"];
       global_dynamic -> local_listener [penwidth=2.0, label="subscribe"];
       global_static -> local_listener [penwidth=2.0, label="subscribe"];
@@ -411,12 +424,17 @@ digraph ProbTFDemoCurrentArchitecture {
       ];
       scoped_bridge [
         fillcolor="#ddd6fe",
-        label="/deflecomp/probtf_bridge\nTF import=true\nTF export=false"
+        label="C++ /deflecomp/probtf_bridge\nlatest-only TF import=true\nTF export=false"
       ];
       scoped_dynamic [
         shape=ellipse,
         fillcolor="#ddd6fe",
-        label="/deflecomp/probtf\nscoped dynamic v2 records"
+        label="/deflecomp/probtf\noptional compatibility\ndynamic records"
+      ];
+      scoped_batch [
+        shape=ellipse,
+        fillcolor="#ddd6fe",
+        label="/deflecomp/probtf_batch\natomic complete latest snapshot"
       ];
       scoped_static [
         shape=ellipse,
@@ -425,7 +443,7 @@ digraph ProbTFDemoCurrentArchitecture {
       ];
       point_consumer [
         fillcolor="#ede9fe",
-        label="RosProbTfListener\nLATEST_COMMON path\ntip-origin point moments"
+        label="C++ LatestSnapshot worker\nlatest path point moments\ndiscard superseded results"
       ];
       deflecomp_marker [
         shape=ellipse,
@@ -445,8 +463,9 @@ digraph ProbTFDemoCurrentArchitecture {
       frame_publishers -> deflecomp_tf [penwidth=2.0];
       deflecomp_tf -> scoped_bridge [penwidth=2.0, label="deterministic TF import"];
       scoped_bridge -> scoped_dynamic [penwidth=2.0];
+      scoped_bridge -> scoped_batch [penwidth=2.2, label="50 Hz complete batch"];
       scoped_bridge -> scoped_static [penwidth=2.0];
-      scoped_dynamic -> point_consumer;
+      scoped_batch -> point_consumer;
       scoped_static -> point_consumer;
       point_consumer -> deflecomp_marker [penwidth=2.0, label="terminal visualization"];
       stiffness_topics -> stiffness_guard [color="#dc2626", arrowhead=tee];

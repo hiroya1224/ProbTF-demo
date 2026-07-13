@@ -10,6 +10,7 @@
   <arg name="imu_static_child_prefix" default="" />
   <arg name="enable_probtf_runtime" default="true" />
   <arg name="probtf_topic" default="/deflecomp/probtf" />
+  <arg name="probtf_batch_topic" default="/deflecomp/probtf_batch" />
   <arg name="probtf_static_topic" default="/deflecomp/probtf_static" />
   <arg name="probtf_marker_topic" default="/deflecomp/probtf_point_moments" />
   <arg name="probtf_tf_child_prefixes" default="ref,cmd,equil" />
@@ -97,21 +98,25 @@
     <include file="$(find probtf_core)/launch/probtf_bridge.launch">
       <arg name="import_tf" value="true" />
       <arg name="export_tf" value="false" />
+      <arg name="use_cpp_bridge" value="true" />
       <arg name="tf_export_policy" value="exact_only" />
       <arg name="probtf_topic" value="$(arg probtf_topic)" />
+      <arg name="probtf_batch_topic" value="$(arg probtf_batch_topic)" />
       <arg name="probtf_static_topic" value="$(arg probtf_static_topic)" />
+      <arg name="publish_individual_dynamic" value="false" />
       <arg name="tf_import_child_prefixes" value="$(arg probtf_tf_child_prefixes)" />
       <arg name="tf_import_max_rate_hz" value="$(arg probtf_tf_import_rate_hz)" />
     </include>
 
     <node
       pkg="deflecomp_ros"
-      type="probtf_point_moments_node.py"
+      type="probtf_point_moments_node"
       name="probtf_point_moments"
       output="screen">
       <rosparam command="load" file="$(find deflecomp_ros)/config/probtf_runtime.yaml" />
       <param name="urdf_path" value="$(arg urdf_path)" />
       <param name="dynamic_topic" value="$(arg probtf_topic)" />
+      <param name="dynamic_batch_topic" value="$(arg probtf_batch_topic)" />
       <param name="static_topic" value="$(arg probtf_static_topic)" />
       <param name="marker_topic" value="$(arg probtf_marker_topic)" />
       <param name="lookup_rate_hz" value="$(arg probtf_marker_rate_hz)" />

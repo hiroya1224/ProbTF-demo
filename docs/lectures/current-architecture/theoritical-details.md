@@ -391,7 +391,6 @@ symaware は共通 `/probtf` と `/probtf_static` を使用する。
 
 - YAML arm modelの7 static edge: `/probtf_static`
 - object belief: `/probtf`
-- hand/end-effector belief: `/probtf`
 - composed grasp target records: `/probtf`
 
 同時に用途 metadata を持つ application topicを使う。
@@ -399,9 +398,7 @@ symaware は共通 `/probtf` と `/probtf_static` を使用する。
 | topic | application message | v2 payload |
 | --- | --- | --- |
 | `/symaware_grasp/object_belief` | `ObjectBelief` | 完全な stamped v2 transform |
-| `/symaware_grasp/hand_belief` | `HandBelief` | 完全な stamped v2 transform |
 | `/symaware_grasp/grasp_targets` | `GraspTargetArray` | 各 targetに完全なv2 transform |
-| `/symaware_grasp/selected_target` | `SelectedGraspTarget` | 選択targetの完全なv2 transform |
 | `/symaware_grasp/symmetry_aware_ik_result` | `IKResult` | solver result metadata |
 
 application messageだけで独自 graphを作らず、message内のframe/stampで
@@ -409,10 +406,18 @@ application messageだけで独自 graphを作らず、message内のframe/stamp�
 
 ### 8.2 Composition とterminal query
 
-object lawへdeterministic grasp offsetを右合成するとき、mixture、conditional translation、coupling、
-派生元provenanceを保持する。IKとvisualizationはlocal listenerでgraph recordを解決し、point moments、
-sample、representativeをterminal resultとしてだけ利用する。これらのsummaryを独立edgeとして
-graphへ戻さない。
+一般APIでobject lawへdeterministic grasp offsetを右合成するときは、mixture、conditional translation、
+coupling、派生元provenanceを保持する。ただし現行cylinder demoのgrasp offsetは位置0・回転identityであり、
+object Binghamをそのままtarget lawとして使う。手先はdeterministic FKだけで、joint uncertaintyの伝播、
+hand belief、Bhattacharyya分布間距離、deterministic baselineは持たない。IK costはtarget position項と
+$-q_H^T A q_H$のpointwise Bingham尤度、motion prior、joint-limit項だけである。
+IKの出力は通常のjoint commandと`IKResult`だけで、手先または選択targetのProbTFをpublishしない。
+
+visualization launchはobject cylinder、gripper付きRobotModel、belief sampleを起動するがIK nodeは起動しない。
+利用者が`rosrun symaware_grasp symmetry_aware_ik_node.py`を実行した時だけ一回solveする。IKとvisualizationは
+local listenerでgraph recordを解決する。後発IK listenerは起動後のfresh target messageを待ち、購読前の
+dynamic recordを指すlatched messageを使わない。point moments、sample、representativeはterminal resultとして
+だけ利用し、これらのsummaryを独立edgeとしてgraphへ戻さない。
 
 ## 9. Deflecomp scoped architecture
 

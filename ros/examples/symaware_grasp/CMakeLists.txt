@@ -19,7 +19,6 @@ add_message_files(
   FILES
     GraspTarget.msg
     GraspTargetArray.msg
-    HandBelief.msg
     IKResult.msg
     ObjectBelief.msg
     SelectedGraspTarget.msg
@@ -51,7 +50,6 @@ include_directories(
 catkin_install_python(
   PROGRAMS
     scripts/arm_joint_state_controller.py
-    scripts/hand_prob_tf_publisher.py
     scripts/object_pose_node.py
     scripts/probtf_static_broadcaster.py
     scripts/prob_tf_link_cloud_node.py

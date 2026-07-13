@@ -12,7 +12,6 @@ from probtf_ros.v2_conversions import (
 @dataclass(frozen=True)
 class SymawareMessageTypes:
     object_belief: object
-    hand_belief: object
     grasp_target: object
     grasp_target_array: object
     selected_target: object
@@ -23,14 +22,12 @@ class SymawareMessageTypes:
         from symaware_grasp.msg import (
             GraspTarget,
             GraspTargetArray,
-            HandBelief,
             ObjectBelief,
             SelectedGraspTarget,
         )
 
         return cls(
             ObjectBelief,
-            HandBelief,
             GraspTarget,
             GraspTargetArray,
             SelectedGraspTarget,
@@ -50,15 +47,6 @@ def object_belief_to_msg(record, object_id, message_types=None, time_factory=Non
     types = _types(message_types)
     message = types.object_belief()
     message.object_id = str(object_id)
-    message.transform = transform_distribution_to_msg(record, types.v2, time_factory)
-    message.header = message.transform.header
-    return message
-
-
-def hand_belief_to_msg(record, hand_id, message_types=None, time_factory=None):
-    types = _types(message_types)
-    message = types.hand_belief()
-    message.hand_id = str(hand_id)
     message.transform = transform_distribution_to_msg(record, types.v2, time_factory)
     message.header = message.transform.header
     return message

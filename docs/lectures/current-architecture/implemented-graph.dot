@@ -355,18 +355,14 @@ digraph ProbTFDemoCurrentArchitecture {
         fillcolor="#fce7f3",
         label="object pose producer\nPRODUCER_SUPPLIED law"
       ];
-      hand_producer [
-        fillcolor="#fce7f3",
-        label="hand belief producer\nlossy MOMENT_SUMMARY fit"
-      ];
       grasp_composer [
         fillcolor="#fce7f3",
-        label="grasp target composer\ndeterministic right composition\nmixture + coupling + provenance"
+        label="grasp target naming\nconfigured zero/identity offset\nobject law used directly"
       ];
       app_topics [
         shape=ellipse,
         fillcolor="#fbcfe8",
-        label="/symaware_grasp/object_belief\n/hand_belief\n/grasp_targets\n/selected_target\nEach embeds complete v2 payload"
+        label="/symaware_grasp/object_belief\n/grasp_targets\nEach embeds complete v2 payload"
       ];
       symaware_listener [
         fillcolor="#fce7f3",
@@ -374,18 +370,16 @@ digraph ProbTFDemoCurrentArchitecture {
       ];
       ik [
         fillcolor="#fce7f3",
-        label="symmetry-aware IK\nall mixture components\ncoupled point moments\n+ deterministic baseline"
+        label="explicit one-shot pointwise IK\ndeterministic hand FK\nposition + -q^T A q\njoint command + IKResult only"
       ];
       visualizers [
         fillcolor="#fce7f3",
-        label="link cloud + belief visualizers\npoint moments or native v2 samples\nterminal PointCloud2 / markers"
+        label="object cylinder + belief samples\nparallel gripper via normal TF\nno hand/selected-target cloud"
       ];
 
       static_config -> global_static [penwidth=2.2, color="#db2777", label="native static set"];
       object_producer -> global_dynamic [penwidth=2.0, color="#db2777", label="object edge"];
-      hand_producer -> global_dynamic [penwidth=2.0, color="#db2777", label="hand edge"];
       object_producer -> app_topics;
-      hand_producer -> app_topics;
       app_topics -> grasp_composer [label="names object edge"];
       global_dynamic -> symaware_listener [color="#db2777"];
       global_static -> symaware_listener [color="#db2777"];

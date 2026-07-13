@@ -1,5 +1,13 @@
 # 実行コマンド集
 
+- 軸対称 cylinder の pointwise Bingham IK（2端末で起動）
+```
+roslaunch symaware_grasp probabilistic_tf_demo.launch
+```
+```
+rosrun symaware_grasp symmetry_aware_ik_node.py
+```
+
 - 誤差が伝播している様子のビジュアライズ
 ```
 roslaunch symaware_grasp prob_tf_link_cloud.launch

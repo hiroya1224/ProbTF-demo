@@ -1,3 +1,0 @@
-std_msgs/Header header
-string hand_id
-probtf_msgs/ProbabilisticTransformStamped transform

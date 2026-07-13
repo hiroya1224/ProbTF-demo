@@ -1,12 +1,24 @@
 # symaware_grasp
 
-Native ProbTF v2 の component/mixture semantics を保持した symmetry-aware grasp demo です。
+対象物の軸対称 Bingham 尤度を deterministic FK の IK cost へ直接加える、pointwise
+symmetry-aware grasp demo です。joint noise から手先分布を作る確率伝播や、手先分布と目標分布の
+Bhattacharyya 距離最小化は行いません。
 
 ## 実行
 
 ```bash
 roslaunch symaware_grasp probabilistic_tf_demo.launch
 ```
+
+この launch は robot/object producer、visualizer、RViz までを起動し、IK は実行しません。
+別端末から明示的に一回だけ解きます。
+
+```bash
+rosrun symaware_grasp symmetry_aware_ik_node.py
+```
+
+IK node の出力は通常の関節指令と `IKResult` だけです。手先 ProbTF や選択 target 分布を
+publish・表示せず、IK 後は RobotModel の parallel gripper が半透明の cylinder を囲む形で表示されます。
 
 static arm link の point moments と pointcloud だけを確認する場合:
 
@@ -27,9 +39,9 @@ roslaunch symaware_grasp prob_tf_link_cloud.launch rviz:=false
 - `/probtf`: dynamic native v2 transform records
 - `/probtf_static`: latched static native v2 transform set
 - `/symaware_grasp/object_belief`: `ObjectBelief`
-- `/symaware_grasp/hand_belief`: `HandBelief`
 - `/symaware_grasp/grasp_targets`: `GraspTargetArray`
-- `/symaware_grasp/selected_target`: `SelectedGraspTarget`
+- `/symaware_grasp/symmetry_aware_ik_result`: pointwise IK の `IKResult`
+- `/symaware_grasp/object_geometry`: cylinder の表示用 `Marker`
 - `/symaware_grasp/link_pointcloud`: link axis endpoint pointcloud
 
 application message は完全な `probtf_msgs/ProbabilisticTransformStamped` を内包する。runtime consumer

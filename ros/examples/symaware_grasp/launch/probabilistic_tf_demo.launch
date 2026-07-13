@@ -2,32 +2,25 @@
   <arg name="rviz" default="true"/>
   <arg name="axis_length" default="0.18"/>
   <arg name="sample_count" default="300"/>
-  <arg name="ik_method" default="symmetry_aware_pointwise"/>
   <arg name="config_path" default="$(find symaware_grasp)/configs/simple_six_dof_prob_tf.yaml"/>
   <arg name="probtf_topic" default="/probtf"/>
   <arg name="probtf_static_topic" default="/probtf_static"/>
   <arg name="object_belief_topic" default="/symaware_grasp/object_belief"/>
-  <arg name="hand_belief_topic" default="/symaware_grasp/hand_belief"/>
   <arg name="grasp_targets_topic" default="/symaware_grasp/grasp_targets"/>
-  <arg name="selected_target_topic" default="/symaware_grasp/selected_target"/>
 
   <param name="robot_description" textfile="$(find symaware_grasp)/urdf/simple_six_dof_arm.urdf"/>
-  <rosparam param="/symaware_grasp/hand_belief/joint_noise_stddev">[0.03, 0.03, 0.03, 0.05, 0.05, 0.05]</rosparam>
-  <param name="/symaware_grasp/hand_belief/sample_count" value="36"/>
-  <rosparam param="/symaware_grasp/hand_belief/orientation_concentrations">[420.0, 320.0, 220.0]</rosparam>
-  <param name="/symaware_grasp/hand_belief/position_covariance_floor" value="0.00005"/>
-  <param name="/symaware_grasp/hand_belief/seed" value="23"/>
-  <param name="/symaware_grasp/hand_belief/bingham_integration_steps" value="80"/>
-  <param name="/symaware_grasp/hand_belief/bingham_fit_max_iterations" value="40"/>
   <param name="/symaware_grasp/ik/w_position" value="8.0"/>
   <param name="/symaware_grasp/ik/w_orientation" value="1.0"/>
   <param name="/symaware_grasp/ik/w_motion" value="0.4"/>
   <param name="/symaware_grasp/ik/w_joint_limit" value="1.0"/>
-  <param name="/symaware_grasp/ik/method" value="$(arg ik_method)"/>
   <param name="/symaware_grasp/ik/max_iterations" value="90"/>
   <param name="/symaware_grasp/ik/restarts" value="6"/>
   <param name="/symaware_grasp/ik/seed" value="31"/>
   <param name="/symaware_grasp/ik/bingham_integration_steps" value="80"/>
+  <param name="/symaware_grasp/ik/fresh_target_timeout" value="5.0"/>
+  <param name="/symaware_grasp/ik/probtf_topic" value="$(arg probtf_topic)"/>
+  <param name="/symaware_grasp/ik/probtf_static_topic" value="$(arg probtf_static_topic)"/>
+  <param name="/symaware_grasp/ik/grasp_targets_topic" value="$(arg grasp_targets_topic)"/>
 
   <node pkg="symaware_grasp" type="probtf_static_broadcaster.py" name="probtf_static_broadcaster" output="screen">
     <param name="config_path" value="$(arg config_path)"/>
@@ -51,10 +44,10 @@
     <param name="probtf_static_topic" value="$(arg probtf_static_topic)"/>
     <param name="object_belief_topic" value="$(arg object_belief_topic)"/>
     <rosparam param="position_mean">[0.78, -0.12, 0.46]</rosparam>
-    <rosparam param="position_covariance">[0.0015, 0.0002, 0.0, 0.0002, 0.0010, 0.0, 0.0, 0.0, 0.0008]</rosparam>
-    <rosparam param="mode_rpy_deg">[0.0, 0.0, 55.0]</rosparam>
+    <rosparam param="position_covariance">[0., 0., 0.0, 0., 0., 0.0, 0.0, 0.0, 0.]</rosparam>
+    <rosparam param="mode_rpy_deg">[0.0, 0.0, 30.0]</rosparam>
     <rosparam param="symmetry_axis_body">[0.0, 0.0, 1.0]</rosparam>
-    <rosparam param="bingham_concentrations">[5000.0, 5000.0, 0.1]</rosparam>
+    <rosparam param="bingham_concentrations">[5000.0, 5000.0, 0.0]</rosparam>
   </node>
 
   <node pkg="symaware_grasp" type="prob_tf_grasp_target_node.py" name="prob_tf_grasp_target_node" output="screen">
@@ -67,22 +60,6 @@
     <param name="marker_axis_length" value="0.10"/>
   </node>
 
-  <node pkg="symaware_grasp" type="hand_prob_tf_publisher.py" name="hand_prob_tf_publisher" output="screen">
-    <param name="parent_frame_id" value="base_link"/>
-    <param name="child_frame_id" value="tool0_belief"/>
-    <param name="publish_rate" value="8.0"/>
-    <param name="probtf_topic" value="$(arg probtf_topic)"/>
-    <param name="probtf_static_topic" value="$(arg probtf_static_topic)"/>
-    <param name="hand_belief_topic" value="$(arg hand_belief_topic)"/>
-  </node>
-
-  <node pkg="symaware_grasp" type="symmetry_aware_ik_node.py" name="symmetry_aware_ik_node" output="screen">
-    <param name="grasp_targets_topic" value="$(arg grasp_targets_topic)"/>
-    <param name="selected_target_topic" value="$(arg selected_target_topic)"/>
-    <param name="probtf_topic" value="$(arg probtf_topic)"/>
-    <param name="probtf_static_topic" value="$(arg probtf_static_topic)"/>
-  </node>
-
   <node pkg="symaware_grasp" type="ptf_visualizer.py" name="object_prob_tf_visualizer" output="screen">
     <param name="input_kind" value="object"/>
     <param name="input_topic" value="$(arg object_belief_topic)"/>
@@ -92,35 +69,15 @@
     <param name="axis_length" value="$(arg axis_length)"/>
     <param name="sample_count" value="$(arg sample_count)"/>
     <param name="seed" value="7"/>
+    <param name="geometry_marker_topic" value="/symaware_grasp/object_geometry"/>
+    <param name="geometry_type" value="cylinder"/>
+    <rosparam param="geometry_scale">[0.10, 0.10, 0.18]</rosparam>
+    <rosparam param="geometry_color">[0.18, 0.52, 0.82, 0.82]</rosparam>
     <param name="probtf_topic" value="$(arg probtf_topic)"/>
     <param name="probtf_static_topic" value="$(arg probtf_static_topic)"/>
   </node>
 
-  <node pkg="symaware_grasp" type="ptf_visualizer.py" name="hand_prob_tf_visualizer" output="screen">
-    <param name="input_kind" value="hand"/>
-    <param name="input_topic" value="$(arg hand_belief_topic)"/>
-    <param name="cloud_topic" value="hand_axes_cloud"/>
-    <param name="pose_topic" value="hand_mode_pose"/>
-    <param name="marker_topic" value="hand_mode_axes"/>
-    <param name="axis_length" value="$(arg axis_length)"/>
-    <param name="sample_count" value="180"/>
-    <param name="seed" value="11"/>
-    <param name="probtf_topic" value="$(arg probtf_topic)"/>
-    <param name="probtf_static_topic" value="$(arg probtf_static_topic)"/>
-  </node>
-
-  <node pkg="symaware_grasp" type="ptf_visualizer.py" name="selected_grasp_target_visualizer" output="screen">
-    <param name="input_kind" value="selected_target"/>
-    <param name="input_topic" value="$(arg selected_target_topic)"/>
-    <param name="cloud_topic" value="selected_grasp_axes_cloud"/>
-    <param name="pose_topic" value="selected_grasp_mode_pose"/>
-    <param name="marker_topic" value="selected_grasp_mode_axes"/>
-    <param name="axis_length" value="0.14"/>
-    <param name="sample_count" value="120"/>
-    <param name="seed" value="17"/>
-    <param name="probtf_topic" value="$(arg probtf_topic)"/>
-    <param name="probtf_static_topic" value="$(arg probtf_static_topic)"/>
-  </node>
-
+  <!-- IK is intentionally not started here. Run:
+       rosrun symaware_grasp symmetry_aware_ik_node.py -->
   <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(find symaware_grasp)/rviz/probabilistic_tf_demo.rviz"/>
 </launch>

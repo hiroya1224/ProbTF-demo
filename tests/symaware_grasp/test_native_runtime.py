@@ -12,17 +12,13 @@ from probtf.geometry import rotation_action_matrix
 from probtf.provenance import ApproximationInfo, ApproximationKind
 from probtf_ros import ProbTfListener
 from probtf_ros.v2_conversions import V2MessageTypes
-from symaware_grasp.arm_kinematics import ToyArm6DOF
 from symaware_grasp.beliefs import distribution_point_moments, make_transform_record
-from symaware_grasp.distribution_metrics import fit_bingham_from_quaternion_samples
-from symaware_grasp.ee_belief import EndEffectorBeliefModel
 from symaware_grasp.models import GraspCandidate
 from symaware_grasp.runtime import lookup_direct_record
 from symaware_grasp.symmetry_aware_ik import SymmetryAwareIKSolver, _component_cost_models
 from symaware_grasp_ros.messages import (
     SymawareMessageTypes,
     grasp_targets_to_msg,
-    hand_belief_to_msg,
     object_belief_to_msg,
     record_from_app_message,
     selected_target_to_msg,
@@ -93,7 +89,6 @@ class _Wrapper:
     def __init__(self):
         self.header = None
         self.object_id = ""
-        self.hand_id = ""
         self.grasp_id = ""
         self.transform = None
 
@@ -222,7 +217,6 @@ def test_object_wrapper_roundtrip_keeps_all_v2_components():
         _Wrapper,
         _Wrapper,
         _Wrapper,
-        _Wrapper,
         _V2_TYPES,
     )
     message = object_belief_to_msg(
@@ -256,22 +250,19 @@ def test_all_application_wrappers_keep_nested_v2_record():
     )
     message_types = SymawareMessageTypes(
         _Wrapper,
-        _Wrapper,
         _TargetWrapper,
         _TargetArrayWrapper,
         _Wrapper,
         _V2_TYPES,
     )
 
-    hand = hand_belief_to_msg(record, "hand", message_types, _Stamp)
     targets = grasp_targets_to_msg([record], [candidate], "object", message_types, _Stamp)
     selected = selected_target_to_msg(record, "object", "target", message_types, _Stamp)
 
-    assert hand.hand_id == "hand"
     assert targets.object_id == "object"
     assert targets.targets[0].weight == 1.0
     assert selected.grasp_id == "target"
-    for message in (hand, targets.targets[0], selected):
+    for message in (targets.targets[0], selected):
         restored = record_from_app_message(message)
         assert len(restored.distribution.components) == 2
         np.testing.assert_allclose(
@@ -296,7 +287,6 @@ def test_pointwise_ik_cost_accepts_native_mixture_components():
         np.zeros(6),
         np.zeros(6),
         models,
-        SymmetryAwareIKSolver.METHOD_POINTWISE,
     )
     assert np.isfinite(result["total_cost"])
     assert np.isfinite(result["position_cost"])
@@ -328,10 +318,9 @@ def test_ik_rejects_zero_mass_component_set():
         _component_cost_models(zero_mass, integration_steps=20)
 
 
-def test_bhattacharyya_ik_rejects_non_finite_orientation_components():
+def test_pointwise_ik_rejects_non_finite_orientation_components():
     target = _record(BinghamOrientation.uniform())
     solver = SymmetryAwareIKSolver(
-        hand_belief_model=object(),
         bingham_integration_steps=20,
         max_iterations=1,
         restarts=0,
@@ -340,51 +329,7 @@ def test_bhattacharyya_ik_rejects_non_finite_orientation_components():
         solver.solve_single_target(
             target,
             np.zeros(6),
-            SymmetryAwareIKSolver.METHOD_BHATTACHARYYA,
         )
-
-
-def test_native_bingham_fit_does_not_mutate_samples_or_weights():
-    samples = np.array(
-        [
-            [1.0, 0.0, 0.0, 0.0],
-            [0.99, 0.1, 0.0, 0.0],
-            [0.99, -0.1, 0.0, 0.0],
-            [0.98, 0.0, 0.2, 0.0],
-        ],
-        dtype=float,
-    )
-    weights = np.array([1.0, 2.0, 2.0, 1.0], dtype=float)
-    expected_samples = samples.copy()
-    expected_weights = weights.copy()
-
-    fit_bingham_from_quaternion_samples(
-        samples,
-        weights=weights,
-        integration_steps=20,
-        max_iterations=2,
-    )
-
-    np.testing.assert_array_equal(samples, expected_samples)
-    np.testing.assert_array_equal(weights, expected_weights)
-
-
-def test_hand_belief_marks_sample_fit_and_independence_assumption_lossy():
-    robot = ToyArm6DOF()
-    model = EndEffectorBeliefModel(
-        robot,
-        np.full(robot.dof, 0.03),
-        sample_count=8,
-        bingham_integration_steps=20,
-        bingham_fit_max_iterations=2,
-    )
-    record = model.estimate_record(np.zeros(robot.dof), stamp=1.0)
-    component = record.distribution.components[0]
-
-    assert record.approximation.kind is ApproximationKind.MOMENT_SUMMARY
-    assert record.approximation.lossy
-    assert component.approximation == record.approximation
-    assert "cross-coupling" in record.approximation.detail
 
 
 def test_producer_supplied_approximation_survives_app_wire_roundtrip():
@@ -408,7 +353,6 @@ def test_producer_supplied_approximation_survives_app_wire_roundtrip():
         approximation=approximation,
     )
     types = SymawareMessageTypes(
-        _Wrapper,
         _Wrapper,
         _TargetWrapper,
         _TargetArrayWrapper,

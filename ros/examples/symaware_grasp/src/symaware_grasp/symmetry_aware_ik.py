@@ -3,25 +3,19 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from probtf.bingham import bingham_log_normalizer
-from probtf.distributions import DistributionStatus, OrientationKind, TransformDistributionStamped
+from probtf.distributions import (
+    DistributionStatus,
+    OrientationKind,
+    TransformDistributionStamped,
+)
 from probtf.probability import PointMomentSummary, forward_component_point_moments
 from symaware_grasp.arm_kinematics import ToyArm6DOF
 from symaware_grasp.beliefs import distribution_point_moments
-from symaware_grasp.distribution_metrics import (
-    bingham_bhattacharyya_distance,
-    gaussian_bhattacharyya_distance,
-)
 
 try:
     from scipy.optimize import minimize
 except ImportError:  # pragma: no cover - runtime fallback
     minimize = None
-
-
-def _sign_invariant_quaternion_distance(target_wxyz, current_wxyz):
-    dot_value = abs(float(np.dot(target_wxyz, current_wxyz)))
-    return 1.0 - min(max(dot_value, 0.0), 1.0) ** 2
 
 
 def _regularized_inverse(covariance, epsilon=1e-6):
@@ -34,12 +28,8 @@ def _regularized_inverse(covariance, epsilon=1e-6):
 class _ComponentCostModel:
     weight: float
     mean: np.ndarray
-    covariance: np.ndarray
     inverse_covariance: np.ndarray
-    orientation_kind: OrientationKind
-    orientation_parameter: object
-    orientation_log_normalizer: object
-    orientation_mode: np.ndarray
+    orientation_parameter: np.ndarray
 
 
 def _component_cost_models(record, integration_steps):
@@ -47,37 +37,34 @@ def _component_cost_models(record, integration_steps):
         raise TypeError("IK targets must be native TransformDistributionStamped records.")
     normalized = record.distribution.normalize_weights()
     if normalized.status is not DistributionStatus.OK:
-        raise ValueError("IK cannot consume a {} transform distribution.".format(normalized.status.value))
+        raise ValueError(
+            "IK cannot consume a {} transform distribution.".format(
+                normalized.status.value
+            )
+        )
     origin = PointMomentSummary(np.zeros(3), np.zeros((3, 3)))
     models = []
     for item in normalized.components:
         component = item.component
         moments = forward_component_point_moments(component, origin, integration_steps)
         orientation = component.orientation
-        parameter = None
-        log_normalizer = None
-        if orientation.kind is OrientationKind.FINITE_BINGHAM:
-            parameter = orientation.backend_parameter_matrix()
-            log_normalizer = bingham_log_normalizer(parameter, integration_steps)
+        if orientation.kind is not OrientationKind.FINITE_BINGHAM:
+            raise ValueError(
+                "Pointwise symmetry-aware IK requires finite Bingham target components."
+            )
         models.append(
             _ComponentCostModel(
                 weight=item.weight,
                 mean=moments.mean,
-                covariance=moments.covariance,
                 inverse_covariance=_regularized_inverse(moments.covariance),
-                orientation_kind=orientation.kind,
-                orientation_parameter=parameter,
-                orientation_log_normalizer=log_normalizer,
-                orientation_mode=orientation.mode_wxyz,
+                orientation_parameter=orientation.backend_parameter_matrix(),
             )
         )
     return tuple(models)
 
 
 class SymmetryAwareIKSolver:
-    METHOD_BHATTACHARYYA = "bhattacharyya"
     METHOD_POINTWISE = "symmetry_aware_pointwise"
-    METHOD_DETERMINISTIC = "deterministic_mode"
 
     def __init__(
         self,
@@ -90,7 +77,6 @@ class SymmetryAwareIKSolver:
         max_iterations=120,
         restarts=6,
         random_seed=13,
-        hand_belief_model=None,
         bingham_integration_steps=None,
     ):
         self.robot_model = robot_model if robot_model is not None else ToyArm6DOF()
@@ -102,50 +88,21 @@ class SymmetryAwareIKSolver:
         self.max_iterations = int(max_iterations)
         self.restarts = int(restarts)
         self.rng = np.random.default_rng(random_seed)
-        self.hand_belief_model = hand_belief_model
-        if bingham_integration_steps is None and hand_belief_model is not None:
-            bingham_integration_steps = hand_belief_model.bingham_integration_steps
         self.bingham_integration_steps = int(
             bingham_integration_steps if bingham_integration_steps is not None else 80
         )
 
-    def _normalize_method(self, method, use_bingham_orientation):
-        if method is None:
-            if use_bingham_orientation is None:
-                return self.METHOD_BHATTACHARYYA
-            return self.METHOD_POINTWISE if bool(use_bingham_orientation) else self.METHOD_DETERMINISTIC
-        aliases = {
-            "bhattacharyya": self.METHOD_BHATTACHARYYA,
-            "bhat": self.METHOD_BHATTACHARYYA,
-            "symmetry_aware_pointwise": self.METHOD_POINTWISE,
-            "pointwise": self.METHOD_POINTWISE,
-            "old": self.METHOD_POINTWISE,
-            "deterministic_mode": self.METHOD_DETERMINISTIC,
-            "deterministic": self.METHOD_DETERMINISTIC,
-        }
-        normalized = str(method).strip().lower()
-        if normalized not in aliases:
-            raise ValueError("Unknown IK method '{}'.".format(method))
-        return aliases[normalized]
+    def solve(self, targets, theta_now):
+        """Solve deterministic FK against target point and Bingham likelihood costs."""
 
-    def solve(self, targets, theta_now, method=None, use_bingham_orientation=None):
-        method = self._normalize_method(method, use_bingham_orientation)
-        if method == self.METHOD_BHATTACHARYYA and self.hand_belief_model is None:
-            raise RuntimeError("Bhattacharyya IK requires an EndEffectorBeliefModel.")
         theta_now = self.robot_model.clip_to_limits(theta_now)
-        if self.hand_belief_model is not None:
-            self.hand_belief_model.clear_cache()
-        results = [self.solve_single_target(target, theta_now, method) for target in targets]
+        results = [self.solve_single_target(target, theta_now) for target in targets]
         feasible = [result for result in results if result["success"]]
-        return (min(feasible, key=lambda result: result["total_cost"]) if feasible else None), results
+        best = min(feasible, key=lambda result: result["total_cost"]) if feasible else None
+        return best, results
 
-    def solve_single_target(self, target, theta_now, method):
+    def solve_single_target(self, target, theta_now):
         target_models = _component_cost_models(target, self.bingham_integration_steps)
-        if method == self.METHOD_BHATTACHARYYA and any(
-            model.orientation_kind is not OrientationKind.FINITE_BINGHAM
-            for model in target_models
-        ):
-            raise ValueError("Bhattacharyya IK supports finite Bingham target components only.")
         target_position = distribution_point_moments(
             target,
             integration_steps=self.bingham_integration_steps,
@@ -160,7 +117,6 @@ class SymmetryAwareIKSolver:
                     theta_vector,
                     theta_now,
                     target_models,
-                    method,
                 )
             return objective_cache[cache_key]
 
@@ -200,62 +156,21 @@ class SymmetryAwareIKSolver:
             "target": target,
         }
 
-    def evaluate_cost(self, theta_vector, theta_now, target_models, method):
+    def evaluate_cost(self, theta_vector, theta_now, target_models):
         theta_vector = self.robot_model.clip_to_limits(theta_vector)
-        if method == self.METHOD_BHATTACHARYYA:
-            hand_record = self.hand_belief_model.estimate_record(theta_vector)
-            hand_models = _component_cost_models(hand_record, self.bingham_integration_steps)
-            if any(
-                model.orientation_kind is not OrientationKind.FINITE_BINGHAM
-                for model in hand_models
-            ):
-                raise ValueError("Bhattacharyya IK supports finite Bingham hand components only.")
-            position_cost = 0.0
-            orientation_cost = 0.0
-            for target_model in target_models:
-                for hand_model in hand_models:
-                    weight = target_model.weight * hand_model.weight
-                    position_cost += weight * gaussian_bhattacharyya_distance(
-                        target_model.mean,
-                        target_model.covariance,
-                        hand_model.mean,
-                        hand_model.covariance,
-                    )
-                    orientation_cost += weight * bingham_bhattacharyya_distance(
-                        target_model.orientation_parameter,
-                        hand_model.orientation_parameter,
-                        integration_steps=self.bingham_integration_steps,
-                        log_normalizer_a=target_model.orientation_log_normalizer,
-                        log_normalizer_b=hand_model.orientation_log_normalizer,
-                    )
-        else:
-            hand_position, hand_quaternion, _ = self.robot_model.forward_kinematics(theta_vector)
-            position_cost = 0.0
-            orientation_cost = 0.0
-            for model in target_models:
-                position_error = hand_position - model.mean
-                position_cost += model.weight * 0.5 * float(
-                    position_error.T @ model.inverse_covariance @ position_error
-                )
-                if method == self.METHOD_DETERMINISTIC:
-                    component_orientation_cost = _sign_invariant_quaternion_distance(
-                        model.orientation_mode,
-                        hand_quaternion,
-                    )
-                elif model.orientation_kind is OrientationKind.FINITE_BINGHAM:
-                    component_orientation_cost = -float(
-                        hand_quaternion.T @ model.orientation_parameter @ hand_quaternion
-                    )
-                elif model.orientation_kind is OrientationKind.DIRAC:
-                    component_orientation_cost = _sign_invariant_quaternion_distance(
-                        model.orientation_mode,
-                        hand_quaternion,
-                    )
-                elif model.orientation_kind is OrientationKind.UNIFORM:
-                    component_orientation_cost = 0.0
-                else:  # pragma: no cover - enum exhaustiveness
-                    raise ValueError("Unsupported target orientation kind.")
-                orientation_cost += model.weight * component_orientation_cost
+        hand_position, hand_quaternion, _ = self.robot_model.forward_kinematics(
+            theta_vector
+        )
+        position_cost = 0.0
+        orientation_cost = 0.0
+        for model in target_models:
+            position_error = hand_position - model.mean
+            position_cost += model.weight * 0.5 * float(
+                position_error.T @ model.inverse_covariance @ position_error
+            )
+            orientation_cost += model.weight * -float(
+                hand_quaternion.T @ model.orientation_parameter @ hand_quaternion
+            )
 
         delta_theta = theta_vector - theta_now
         motion_cost = 0.5 * float(delta_theta.T @ delta_theta)
@@ -281,7 +196,9 @@ class SymmetryAwareIKSolver:
                 lambda theta: objective(theta)["total_cost"],
                 theta_seed,
                 method="L-BFGS-B",
-                bounds=list(zip(self.robot_model.lower_limits, self.robot_model.upper_limits)),
+                bounds=list(
+                    zip(self.robot_model.lower_limits, self.robot_model.upper_limits)
+                ),
                 options={"maxiter": self.max_iterations},
             )
             theta_value = self.robot_model.clip_to_limits(result.x)

@@ -14,14 +14,13 @@ from probtf.probability import apply_transform_samples, sample_transform_distrib
 from probtf_ros import RosProbTfListener
 from probtf_ros.bridge import PROBTF_STATIC_TOPIC, PROBTF_TOPIC
 from symaware_grasp.beliefs import representative_component
-from symaware_grasp.msg import HandBelief, ObjectBelief, SelectedGraspTarget
+from symaware_grasp.msg import ObjectBelief, SelectedGraspTarget
 from symaware_grasp.runtime import lookup_message_record
 from symaware_grasp.visualization import pack_rgb
 
 
 _INPUT_TYPES = {
     "object": ObjectBelief,
-    "hand": HandBelief,
     "selected_target": SelectedGraspTarget,
 }
 
@@ -37,7 +36,11 @@ class ProbTfV2Visualizer:
         self.lookup_timeout = float(rospy.get_param("~lookup_timeout", 2.0))
         input_kind = str(rospy.get_param("~input_kind", "object")).strip().lower()
         if input_kind not in _INPUT_TYPES:
-            raise ValueError("input_kind must be one of: {}.".format(", ".join(sorted(_INPUT_TYPES))))
+            raise ValueError(
+                "input_kind must be one of: {}.".format(
+                    ", ".join(sorted(_INPUT_TYPES))
+                )
+            )
 
         self.listener = RosProbTfListener(
             dynamic_topic=rospy.get_param("~probtf_topic", PROBTF_TOPIC),
@@ -49,7 +52,11 @@ class ProbTfV2Visualizer:
             PointField(name="z", offset=8, datatype=PointField.FLOAT32, count=1),
             PointField(name="rgb", offset=12, datatype=PointField.UINT32, count=1),
         ]
-        self.axis_colors = (pack_rgb(255, 0, 0), pack_rgb(0, 255, 0), pack_rgb(0, 0, 255))
+        self.axis_colors = (
+            pack_rgb(255, 0, 0),
+            pack_rgb(0, 255, 0),
+            pack_rgb(0, 0, 255),
+        )
         self.cloud_publisher = rospy.Publisher(
             rospy.get_param("~cloud_topic", "ptf_axes_cloud"),
             PointCloud2,
@@ -65,6 +72,38 @@ class ProbTfV2Visualizer:
             Marker,
             queue_size=1,
         )
+        self.geometry_marker_publisher = None
+        geometry_marker_topic = str(
+            rospy.get_param("~geometry_marker_topic", "")
+        ).strip()
+        if geometry_marker_topic:
+            self.geometry_type = (
+                str(rospy.get_param("~geometry_type", "cylinder")).strip().lower()
+            )
+            if self.geometry_type != "cylinder":
+                raise ValueError("Only cylinder geometry is supported by this demo visualizer.")
+            self.geometry_scale = np.asarray(
+                rospy.get_param("~geometry_scale", [0.10, 0.10, 0.18]),
+                dtype=float,
+            ).reshape(3)
+            self.geometry_color = np.asarray(
+                rospy.get_param("~geometry_color", [0.18, 0.52, 0.82, 0.82]),
+                dtype=float,
+            ).reshape(4)
+            if not np.all(np.isfinite(self.geometry_scale)) or np.any(
+                self.geometry_scale <= 0.0
+            ):
+                raise ValueError("geometry_scale must contain three finite positive values.")
+            if not np.all(np.isfinite(self.geometry_color)) or np.any(
+                (self.geometry_color < 0.0) | (self.geometry_color > 1.0)
+            ):
+                raise ValueError("geometry_color must contain four values in [0, 1].")
+            self.geometry_marker_publisher = rospy.Publisher(
+                geometry_marker_topic,
+                Marker,
+                queue_size=1,
+                latch=True,
+            )
         self.subscriber = rospy.Subscriber(
             rospy.get_param("~input_topic", "/symaware_grasp/object_belief"),
             _INPUT_TYPES[input_kind],
@@ -96,10 +135,21 @@ class ProbTfV2Visualizer:
         header = Header()
         header.frame_id = record.parent_frame_id
         header.stamp = message.transform.header.stamp
-        self.cloud_publisher.publish(point_cloud2.create_cloud(header, self.point_fields, cloud_points))
+        self.cloud_publisher.publish(
+            point_cloud2.create_cloud(header, self.point_fields, cloud_points)
+        )
         _, translation, quaternion = representative_component(record)
         self.pose_publisher.publish(self.build_mode_pose(header, translation, quaternion))
         self.marker_publisher.publish(self.build_component_marker(header, record))
+        if self.geometry_marker_publisher is not None:
+            self.geometry_marker_publisher.publish(
+                self.build_geometry_marker(
+                    header,
+                    translation,
+                    quaternion,
+                    record.child_frame_id,
+                )
+            )
 
     @staticmethod
     def build_mode_pose(header, translation, quaternion):
@@ -151,6 +201,28 @@ class ProbTfV2Visualizer:
                     )
                 )
                 marker.colors.extend((color, color))
+        return marker
+
+    def build_geometry_marker(self, header, translation, quaternion, child_frame_id):
+        marker = Marker()
+        marker.header = header
+        marker.ns = "{}_geometry".format(child_frame_id)
+        marker.id = 0
+        marker.type = Marker.CYLINDER
+        marker.action = Marker.ADD
+        marker.pose.position.x, marker.pose.position.y, marker.pose.position.z = (
+            float(value) for value in translation
+        )
+        marker.pose.orientation.w = float(quaternion[0])
+        marker.pose.orientation.x = float(quaternion[1])
+        marker.pose.orientation.y = float(quaternion[2])
+        marker.pose.orientation.z = float(quaternion[3])
+        marker.scale.x, marker.scale.y, marker.scale.z = (
+            float(value) for value in self.geometry_scale
+        )
+        marker.color.r, marker.color.g, marker.color.b, marker.color.a = (
+            float(value) for value in self.geometry_color
+        )
         return marker
 
 

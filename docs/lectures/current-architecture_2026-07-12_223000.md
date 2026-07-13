@@ -1,159 +1,141 @@
 # ProbTF-demo 現行アーキテクチャ
 
-- スナップショット日時: 2026-07-12 22:30:00 JST
-- 対象: `main`、`2846fce`
-- 対象範囲: root Python package、ROS 1/catkin package、実行 node、主要 topic/TF、example application、テスト境界
+- 更新日時: 2026-07-13 JST
+- 対象 HEAD: `main`、`74b8ea5` までの実装
+- 対象範囲: ProbTF v2 foundation、ROS 1 transport、producer demo、symaware grasp、deflecomp、テスト境界
 - DOT source: [`current-architecture_2026-07-12_223000.dot`](./current-architecture_2026-07-12_223000.dot)
 - rendered graph: [`current-architecture_2026-07-12_223000.svg`](./current-architecture_2026-07-12_223000.svg)
 
-この文書は、将来案ではなく上記 commit に存在するコードと設定のスナップショットである。
-以前の [`current-implementation_2026-07-12_172230.md`](./current-implementation_2026-07-12_172230.md)
-は graph/time/kernel の実装前を記録した移行資料であり、現在の構成説明には本書を使う。
-数理 contract の詳細は
+ファイル名の timestamp は参照リンクを壊さないため維持しているが、内容は上記 HEAD の
+現行構成へ全面更新している。本書は将来案ではなく、repository に存在する source、message、
+launch、test に基づく実装スナップショットである。移行作業の経緯は
+[`v2-demo-migration_2026-07-13.md`](../reports/v2-demo-migration_2026-07-13.md)、
+数理 contract は
 [`probtf_jmaa_kernel_architecture.md`](../probtf_jmaa_kernel_architecture.md) を参照する。
 
 ## 0. 結論
 
-現在の `ProbTF-demo` は、単一の ROS package ではなく、次の四層を同じ
-repository に収めた統合 project である。
+現在の `ProbTF-demo` は ProbTF v2 に統一されている。旧
+`ProbabilisticTF` / `ProbabilisticTFArray` wire、旧独立 position/orientation domain model、
+旧 v1/v2 adapter、symaware 固有 `ProbTfTree` は runtime と source から削除済みである。
 
-1. `src/probtf`: ROS 非依存の確率的 transform foundation
-2. `src/probtf_estimators`: IMU producer、orientation filter、same-edge fusion
-3. `ros/core`: ROS message と、ProbTF v2/TF を接続する transport boundary
-4. `src/symaware_grasp`、`src/deflecomp_*` と `ros/examples`: application と demo
+現行 architecture の要点は次の七点である。
 
-この文書での `v1` / `v2` は ROS の version ではなく、ProbTF-demo 内の
-probabilistic transform 表現の世代を指す。
+1. full SE(3) uncertainty は joint component mixture
+   `TransformDistributionStamped` で表す。
+2. physical edge は `/probtf` と `/probtf_static` の native v2 message で運ぶ。
+3. lookup は中央 RPC ではなく、各 consumer の `RosProbTfListener` が local
+   `ProbTfGraph` を構築して行う。
+4. orientation-only posterior は translation を補わず、専用 message で運ぶ。
+5. two-IMU producer は rotation/translation coupling を保持した full v2 edge を直接 publish する。
+6. symaware grasp は global v2 graph と用途固有 application topic の両方を使う。
+7. deflecomp は stiffness posterior を SE(3) に偽装せず、実 TF だけを scoped v2 graph に import する。
 
-- `v1`: 既存 demo / application が使っている legacy 表現。主な ROS message は
-  `ProbabilisticTF` / `ProbabilisticTFArray` で、位置 Gaussian と姿勢 Bingham を
-  独立な summary として持つ。
-- `v2`: 今回整理した foundation / graph / bridge 側の表現。主な ROS message は
-  `ProbabilisticTransformStamped` / `ProbabilisticTransformArray` で、component mixture、
-  rotation/translation coupling、provenance、approximation metadata を保持する。
+旧資料にあった「v2 bridge と v1 demo wire が未接続」という runtime gap は存在しない。
+残っている課題は exact induced spherical law backend、stochastic inverse moments、temporal model、
+closed-mixture reduction などの明示的に unavailable な数値機能であり、v1 relay の不足ではない。
 
-また、`共通 v2 bridge` は
-[`probtf_bridge_node.py`](../../ros/core/probtf_core/nodes/probtf_bridge_node.py) を指す。
-ここでの "generic" は「任意の demo topic を自動で拾う」という意味ではない。
-IMU、orientation、symaware grasp などの application 固有 topic に依存せず、
-`/probtf(_static)` と `/tf(_static)` の共通 transport boundary だけを扱う、という意味である。
+## 1. Repository と package ownership
 
-最も重要な現状は、**v2 foundation/bridge と producer demo の wire format がまだ
-一つに接続されていない**ことである。
-
-- 共通 v2 bridge の `/probtf` と `/probtf_static` は v2
-  `ProbabilisticTransformStamped/Array` を扱う。
-- two-IMU、orientation、symaware grasp の現在の node は、個別 topic に v1
-  `ProbabilisticTF/Array` を publish する。
-- v1/v2 変換関数はあるが、それを relay する runtime node は launch されない。
-
-したがって、demo を起動しただけでは、その出力は bridge 内の `ProbTfGraph` に
-登録されない。これは DOT でも赤い `CURRENT RUNTIME GAP` として示している。
-
-## 1. Repository の物理構成
+### 1.1 物理配置
 
 ```text
 ProbTF-demo/
-  src/
-    probtf/                    # v2 foundation と v1 compatibility
-    probtf_estimators/         # producer / estimator algorithms
-    symaware_grasp/            # symmetry-aware grasp application
-    deflecomp_core/            # deflection compensation core
-    deflecomp_sim/             # flexible-joint simulation
-    deflecomp_examples/        # ROS 非依存 example entry points
   ros/
     core/
-      probtf_msgs/             # v1/application + v2 ROS messages
-      probtf_core/             # probtf_ros adapter と bridge node
+      probtf_msgs/                 # native v2 ROS messages
+      probtf_core/
+        src/
+          probtf/                  # ROS-free foundation
+          probtf_estimators/       # ROS-free producer algorithms
+          probtf_ros/              # ROS adapters/listener/bridge
+        nodes/probtf_bridge_node.py
     examples/
-      probtf_imu_demo/
-      probtf_orientation_demo/
+      probtf_imu_demo/             # two-IMU producer + materializer
+      probtf_orientation_demo/     # orientation-only filter/fusion
       symaware_grasp/
-      deflecomp/               # 6 catkin packages
-  third_party/
-    BinghamNLL/                # pinned git submodule
-  tests/                       # ROS-free unit/boundary tests
+        src/symaware_grasp/        # application domain/runtime helpers
+        msg/                        # application messages containing v2 payload
+      deflecomp/
+        deflecomp_core/src/deflecomp_core/
+        deflecomp_sim/src/deflecomp_sim/
+        deflecomp_examples/src/deflecomp_examples/
+        deflecomp_ros/
+        deflecomp_debug/
+        deflecomp_description/
+  third_party/BinghamNLL/          # provenance-preserved upstream source
+  tests/
   docs/
 ```
 
-root distribution は `probtf-integrated==0.1.0` で、Python 3.8 以上を対象にする。
-[`setup.py`](../../setup.py) は root `src/` の namespace と submodule 内の
-`bingham` namespace をまとめて install する。
+Python namespace は所有する catkin package の `src/` に置かれる。以前の root `src/` を
+catkin package から相対 path で relay install する構成はない。
 
-| Python namespace | 現在の責務 |
-| --- | --- |
-| `probtf` | distribution、graph/time、lazy kernel、ISL protocol、moment、設定、symbolic URDF |
-| `probtf_estimators` | IMU preprocessing/relative pose、orientation、evidence fusion、coupling 推定 |
-| `symaware_grasp` | grasp target、hand belief、symmetry-aware IK、旧 ProbTfTree |
-| `deflecomp_core` | robot model、equilibrium、stiffness estimator、command generation |
-| `deflecomp_sim` | flexible-joint dynamics、synthetic IMU、external wrench |
-| `deflecomp_examples` | offline/flexible simulation の console entry point |
-| `bingham` | BinghamNLL submodule の normalizer 実装 |
+- `probtf_core/setup.py` は自 package の `src/` だけを `find_packages()` する。
+- deflecomp と symaware の各 setup も自 package の `src/` だけを所有する。
+- `source devel/setup.bash` 後は parent path relay や test の `sys.path.insert()` なしで import できる。
+- repository root の `setup.py` は非 catkin の統合 distribution 用に各 package-owned source root を
+  列挙するが、catkin runtime の source ownership を変更しない。
 
-必須 Python dependency は NumPy、SciPy、Pinocchio (`pin`)、PyYAML、
-numpy-quaternion である。BinghamNLL submodule が未初期化なら root install は
-明示的に失敗する。
+### 1.2 catkin package
 
-## 2. 依存方向と境界
+現在の catkin package は11個である。
 
-現在の意図された依存方向は次の通りである。
+| 分類 | package | 責務 |
+| --- | --- | --- |
+| core | `probtf_msgs` | ProbTF v2 wire contract |
+| core | `probtf_core` | foundation、estimators、ROS adapter、generic bridge |
+| producer | `probtf_imu_demo` | two-IMU preprocessing、relative pose、URDF materialization |
+| producer | `probtf_orientation_demo` | orientation-only prediction/evidence/fusion |
+| application | `symaware_grasp` | native v2 grasp composition、IK、visualization |
+| deflecomp | `deflecomp_core` | equilibrium、WEKF、control、robot model |
+| deflecomp | `deflecomp_sim` | flexible-joint simulation、synthetic IMU |
+| deflecomp | `deflecomp_ros` | ROS closed loop、scoped ProbTF consumer |
+| deflecomp | `deflecomp_examples` | offline examples |
+| deflecomp | `deflecomp_description` | URDF、RViz configuration |
+| deflecomp | `deflecomp_debug` | stiffness plotter |
+
+### 1.3 依存方向
 
 ```text
-probtf_estimators  --------->  probtf  --------->  BinghamNLL / NumPy / SciPy
-probtf_ros         --------->  probtf + probtf_msgs + ROS 1
-producer demos     --------->  probtf_estimators + probtf_ros + probtf_msgs
-symaware_grasp     --------->  probtf + probtf_msgs
-deflecomp_*        --------->  deflecomp_core + Pinocchio
-                                  |
-                                  +---- narrow use of probtf.geometry
+probtf_estimators ---> probtf ---> NumPy / SciPy / vendored Bingham numerics
+probtf_ros ---------> probtf + probtf_msgs + ROS 1
+producer nodes -----> probtf_estimators + probtf_ros + probtf_msgs
+symaware_grasp -----> probtf + probtf_ros + probtf_msgs
+deflecomp_core -----> probtf geometry primitives + Pinocchio
+deflecomp_ros ------> deflecomp_core + probtf_ros
 ```
 
-foundation から producer、ROS、application への逆依存は禁止されている。
-[`tests/test_ros_boundary.py`](../../tests/test_ros_boundary.py) は AST を用いて、
-次を検査する。
+`probtf` foundation は `probtf_estimators`、ROS、example application を import しない。
+`probtf_ros` generic bridge は estimator を import しない。この境界は
+[`tests/test_ros_boundary.py`](../../tests/test_ros_boundary.py) の AST test で固定される。
 
-- root `src/` package が `rospy`、`tf2_ros`、ROS message package を import しない。
-- `probtf` が `probtf_estimators` や example を import しない。
-- 共通 `probtf_ros` bridge が estimator を import しない。
-- catkin `probtf_core` が root `probtf`、`probtf_estimators`、`bingham` を
-  再 package 化しない。
-- core ROS package が bridge node だけを install し、producer node を所有しない。
+## 2. ProbTF v2 domain model
 
-`probtf_core` の [`setup.py`](../../ros/core/probtf_core/setup.py) が install する
-Python namespace は `probtf_ros` だけである。このため、catkin build より先に
-root project を install する必要がある。
+### 2.1 Transform action と数値規約
 
-## 3. `probtf` foundation
-
-### 3.1 Frame と数値規約
-
-physical edge `(parent, child)` は、child frame の点を parent frame へ写す
-次の action を表す。
+physical edge `(parent, child)` は child frame の点を parent frame へ写す action である。
 
 \[
 z_{parent}=R(Q)z_{child}+X
 \]
 
-主な内部規約は次の通りである。
-
 | 項目 | 規約 |
 | --- | --- |
-| quaternion | `[w, x, y, z]` |
-| ROS quaternion | field は `x, y, z, w`。adapter でのみ並べ替える |
+| core quaternion | `[w, x, y, z]` |
+| ROS quaternion | `x, y, z, w` field。adapter だけで変換 |
 | `vec(R)` | column-major |
-| rotation/translation coupling | `C: 3 x 9` |
+| translation coupling | `C` は `3 x 9` |
 | perturbation | reference rotation に対する right perturbation |
-| query order | `lookup_kernel(target_frame, source_frame, ...)`。source から target への action |
+| lookup order | `lookup_*(target_frame, source_frame, ...)` |
+| forward edge | child から parent への physical action |
+| inverse edge | 同じ latent edge の逆向き view。別分布を生成しない |
 
-`EdgeDirection.FORWARD` は child から parent への physical action、`INVERSE` は
-同じ latent edge を逆向きに見る view である。inverse 用の独立 distribution は
-作らない。
+### 2.2 Joint component law
 
-### 3.2 v2 joint distribution model
-
-中心となる immutable domain model は
-[`src/probtf/distributions`](../../src/probtf/distributions) にある。mixture の
-component `l` は、概念的に次を保持する。
+中心 model は
+[`probtf.distributions`](../../ros/core/probtf_core/src/probtf/distributions) の immutable 型である。
+component `l` は概念的に次を保持する。
 
 \[
 Q\mid L=l\sim \operatorname{Bing}(A_l)
@@ -165,485 +147,511 @@ m_l+C_l(\operatorname{vec}R(q)-\operatorname{vec}R_{ref,l}),S_l
 \right)
 \]
 
-これは position Gaussian と orientation Bingham を単に並べた v1 model と異なり、
-`C_l` により rotation/translation coupling を保存できる。
-
 | 型 | 内容 |
 | --- | --- |
-| `BinghamOrientation` | `FINITE_BINGHAM`、`DIRAC`、`UNIFORM` を別 kind として保持 |
-| `ConditionalGaussianTranslation` | reference での mean、residual covariance、`C` |
-| `TransformComponent` | raw weight と joint orientation/translation hypothesis |
-| `TransformDistribution` | component mixture、weight status、representative policy |
-| `TransformDistributionStamped` | parent/child、stamp、edge ID、authority、static flag、metadata |
+| `BinghamOrientation` | `FINITE_BINGHAM`、`DIRAC`、`UNIFORM` を型で分離 |
+| `ConditionalGaussianTranslation` | reference mean、residual covariance、rotation coupling `C` |
+| `TransformComponent` | raw weight と一つの joint pose hypothesis |
+| `TransformDistribution` | component mixture、weight normalization/status |
+| `TransformDistributionStamped` | parent/child、stamp、edge ID、authority、static、metadata |
 
-Bingham orientation は trace-zero JMAA shape と inverse concentration を分けて保存する。
-Dirac を有限 Bingham parameter に偽装せず、uniform も独立 kind にする。
+有限 Bingham は trace-zero JMAA shape と inverse concentration を分けて保存する。Dirac を
+極端な有限 concentration に置き換えず、uniform も zero parameter の曖昧な special value ではなく
+独立 kind とする。
 
-mixture weight は保存時には raw value のままである。利用時に負値を 0 へ clamp して
-診断を残し、正の mass で正規化する。全て非正なら `ZERO_MASS`、NaN/Inf を含むなら
-`INVALID` であり、identity transform に置き換えない。
+mixture weight は raw value を保存する。利用時に負 weight を0へ clampして診断を残し、正 mass で
+正規化する。全て非正なら `ZERO_MASS`、NaN/Inf を含むなら `INVALID` であり、identity transform へ
+黙って置換しない。
 
-deterministic representative は、分布が実際に deterministic な場合だけ exact である。
-stochastic mixture の mode を必要とする場合は、
-`HIGHEST_WEIGHT_COMPONENT_MODE` などの policy を呼び出し側が明示する。
+deterministic transform が exact に得られるのは、正規化後の一 component が Dirac orientation、
+zero residual covariance、zero coupling を持つ場合だけである。stochastic law の representative は
+`RepresentativePolicy` と `RepresentativeKind` を明示する。
 
-### 3.3 Provenance と approximation
+### 2.3 Composition と provenance
 
-[`src/probtf/provenance`](../../src/probtf/provenance) は、source ID、派生元 edge、
-method、詳細を component/transform ごとに保持する。approximation は
-`TANGENT_SURROGATE`、`MOMENT_SUMMARY`、`BINGHAM_CLOSURE`、
-`REPRESENTATIVE_PROJECTION`、`UNAVAILABLE` などを型で区別し、`lossy` と
-error bound の有無を保持できる。
+[`composition.py`](../../ros/core/probtf_core/src/probtf/distributions/composition.py) は stochastic
+record の右側へ deterministic offset を合成する。これは grasp offset のような
 
-この metadata は説明用文字列だけではない。kernel evaluator は repeated latent
-dependency を検出した場合、独立 sample とみなさず `DEPENDENCY_UNRESOLVED` を返す。
+\[
+T_{world,grasp}=T_{world,object}T_{object,grasp}
+\]
 
-### 3.4 Graph と time buffer
+を mode plug-in へ潰さず、各 component の coupling basis を変換して保持する演算である。
 
-[`ProbTfGraph`](../../src/probtf/graph/query.py) は次の二要素を所有する。
+[`probtf.provenance`](../../ros/core/probtf_core/src/probtf/provenance) は source ID、派生元 edge ID、
+method、detail を component/record ごとに持つ。`ApproximationInfo` は次を区別する。
+
+- `EXACT`
+- `PRODUCER_SUPPLIED`
+- `TANGENT_SURROGATE`
+- `NUMERICAL_INTEGRATION`
+- `MONTE_CARLO`
+- `MOMENT_SUMMARY`
+- `MIXTURE_REDUCTION`
+- `BINGHAM_CLOSURE`
+- `REPRESENTATIVE_PROJECTION`
+- `UNAVAILABLE`
+
+`lossy`、source、detail、任意 error bound を同時に保持する。旧 wire number 2 は再利用せず、
+deserialize 時に拒否される reserved slot である。
+
+### 2.4 Bingham numerics
+
+`probtf.bingham` が必要とする正規化定数と導関数の積分は
+[`probtf._vendor`](../../ros/core/probtf_core/src/probtf/_vendor) に由来を保持して収容される。
+runtime は外部 `bingham` Python namespace の import に依存しない。
+upstream notice は [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) に記録される。
+
+## 3. Graph と temporal semantics
+
+### 3.1 Local graph
+
+[`ProbTfGraph`](../../ros/core/probtf_core/src/probtf/graph/query.py) は次を所有する。
 
 1. `ProbTfTopology`: disconnected component を許す TF-style forest
-2. edge ID ごとの `EdgeTimeBuffer`: timestamp 順の static/dynamic record history
+2. edge ID ごとの `EdgeTimeBuffer`: timestamp 順の static/dynamic history
 
-topology は multiple parent と cycle を拒否する。parent change は既定で拒否され、
-`REPLACE_WITH_DIAGNOSTIC` を指定した場合だけ診断付きで置換する。
+topology は cycle と multiple parent を既定で拒否する。parent change は明示 policy がある場合だけ
+診断付きで許可される。graph insert/lookup と frame/edge snapshot は lock で保護される。
 
-buffer は out-of-order insert を timestamp 順に並べる。同一 timestamp で authority が
-衝突した場合の既定 policy は `REJECT` で、`REPLACE` と `KEEP_FIRST` も選べる。
-一つの physical edge に static/dynamic record を混在させることはできない。
-static edge は time invariant で、同一 authority の同一 payload の再送だけを許す。
+buffer は out-of-order insert を時刻順に並べる。同一 timestamp の異 authority conflict は既定で
+拒否し、`REPLACE` / `KEEP_FIRST` も選択できる。一 edge に static/dynamic を混在できない。
+static edge は time invariant で、同一 payload の再送だけが idempotent である。
 
-| Temporal policy | 実装状況 | 現在の意味 |
-| --- | --- | --- |
-| `EXACT` | 実装済み | 指定 stamp と完全一致する sample |
-| `NEAREST_WITHIN_TOLERANCE` | 実装済み | tolerance 内の最近傍。tie は古い sample |
-| `LATEST` | 実装済み | 指定時刻以前の最新。任意 `max_age` |
-| `LATEST_COMMON` | 実装済み | path の最新共通時刻と zero-order hold |
-| `INTERPOLATE_WITH_MODEL` | interface のみ | `UNSUPPORTED_TEMPORAL_POLICY` |
-| `PREDICT_WITH_MODEL` | interface のみ | `UNSUPPORTED_TEMPORAL_POLICY` |
+`RosProbTfListener` は既定で一 edge あたり1000 recordに historyを制限する。これは長時間 node の
+local graph が無制限に増えないための runtime policy である。
 
-`LATEST_COMMON` は Bingham mixture を補間しない。dynamic edge の availability interval
-から最新共通時刻を選び、各 edge はその時刻以前の最新 sample を使う。sample stamp が
-共通時刻と違う場合は `LATEST_COMMON_ZERO_ORDER_HOLD` 診断を残す。
+### 3.2 Temporal policy
 
-### 3.5 Lazy kernel と評価
+| policy | 現在の実装 |
+| --- | --- |
+| `EXACT` | 指定 stamp と完全一致する sample |
+| `NEAREST_WITHIN_TOLERANCE` | tolerance 内最近傍。tie は古い sample |
+| `LATEST` | 指定時刻以前の最新。任意 `max_age` |
+| `LATEST_COMMON` | path 全体の最新共通時刻と zero-order hold |
+| `INTERPOLATE_WITH_MODEL` | contract のみ。現在 unavailable |
+| `PREDICT_WITH_MODEL` | contract のみ。現在 unavailable |
 
-graph lookup は distribution を lookup 時点で潰さず、path と record から lazy
-expression を返す。
+`LATEST_COMMON` は mixture を補間しない。dynamic edge histories の共通 availability interval を求め、
+その時刻以前の最新 record を使う。sample stamp が共通時刻と異なる場合は
+`LATEST_COMMON_ZERO_ORDER_HOLD` 診断を残す。
+
+### 3.3 Lookup API
 
 ```python
-kernel = graph.lookup_kernel(
-    target_frame="world",
+listener = RosProbTfListener(
+    dynamic_topic="/probtf",
+    static_topic="/probtf_static",
+)
+
+path = listener.lookup_path(
+    target_frame="base_link",
     source_frame="tool0",
-    stamp=stamp,
+    policy=TemporalPolicy.LATEST,
+)
+kernel = listener.lookup_kernel(
+    "base_link",
+    "tool0",
+    policy=TemporalPolicy.LATEST,
+)
+moments = listener.lookup_point_moments(
+    "base_link",
+    "tool0",
+    [0.0, 0.0, 0.1],
     policy=TemporalPolicy.LATEST,
 )
 ```
 
-expression は `IdentityTransformKernel`、`ForwardEdgeKernel`、
-`InverseEdgeKernel`、`MixtureTransformKernel`、`ComposedTransformKernel` で構成される。
-sampling、moment closure、mixture reduction は lookup の副作用として行わない。
+中央 bridge process への query service/action はない。各 process が dynamic/static topic を listen し、
+自分の local graph に対して `can_lookup`、`wait_for_lookup`、`lookup_path`、`lookup_kernel`、
+`lookup_point_moments` を呼ぶ。これは tf2 buffer と同じ ownership pattern である。
 
-[`KernelEvaluator`](../../src/probtf/kernels/evaluation.py) の現在の評価範囲は次である。
+## 4. Lazy kernel、moments、sampling
 
-| Representation / operation | 現在の status |
+### 4.1 Lazy expression
+
+graph lookup は分布を lookup 時点で一成分へ縮約せず、次の expression を構築する。
+
+- `IdentityTransformKernel`
+- `ForwardEdgeKernel`
+- `InverseEdgeKernel`
+- `MixtureTransformKernel`
+- `ComposedTransformKernel`
+
+同じ latent edge が stochastic path 内で反復された場合、独立 sample を引き直さない。
+dependency-aware evaluator がない表現は `DEPENDENCY_UNRESOLVED` になる。
+
+### 4.2 Point moments
+
+forward component の point first/second moments は Bingham rotation moment、input covariance、
+residual covariance、`rotation_coupling` を含めて評価される。deterministic path は exact、stochastic
+path の first/second moment summary は元の law と同一ではないため `MOMENT_SUMMARY` として
+lossy に型付けされる。
+
+moment summary は terminal query result であり、新しい独立 edge として graph へ再登録しない。
+symaware link cloud と deflecomp marker はこの規則を守る。
+
+### 4.3 Native sampling
+
+[`probtf.probability.sampling`](../../ros/core/probtf_core/src/probtf/probability/sampling.py) は
+native v2 law から直接 sample する。
+
+- Dirac orientation: reference quaternion を反復
+- uniform orientation: unit quaternion の一様 sample
+- finite Bingham: rejection sampler
+- mixture: 正規化済み正 weight で component を選択
+- translation: quaternion 条件付き mean と residual Gaussian
+- point action: forward / inverse
+- path: independent edge の forward / inverse / composed sample
+
+stochastic sample result は `MONTE_CARLO`、deterministic Dirac point path は exact として返る。
+symaware visualizer はこの sampler で全 component と coupling を保持した表示 sample を作る。
+
+### 4.4 現在の evaluator matrix
+
+| representation / operation | status |
 | --- | --- |
-| lazy `EXPRESSION` | 実装済み |
+| lazy expression | 実装済み |
 | deterministic forward/inverse/composition | exact |
-| stochastic forward point first/second moments | 計算済み。返り値は lossy な `MOMENT_SUMMARY` |
+| stochastic forward point moments | 実装済み、`MOMENT_SUMMARY` |
+| native stochastic samples | forward/inverse/composed まで実装済み |
 | Dirac/uniform/zero-vector induced law | exact special case |
-| finite-Bingham exact ISL density | `UNAVAILABLE_EXACT_ISL_BACKEND` |
-| tangent leading-exponent surrogate | 明示的な `TANGENT_SURROGATE` |
-| stochastic inverse covariance | unavailable |
-| stochastic sampling | unavailable。deterministic point の repeat のみ |
-| composed stochastic numerical law | unavailable |
-| closed-mixture projection | explicit reduction policy/backend 未実装 |
+| finite Bingham tangent induced law | 明示的 `TANGENT_SURROGATE` |
+| finite Bingham exact induced density | unavailable |
+| coupled numerical ISL integration | unavailable |
+| stochastic inverse analytic covariance | unavailable |
+| closed-mixture projection | explicit backend未実装 |
 
-forward moment evaluator は coupling を保持したまま `E[Y]` と `Cov[Y]` を計算する。
-ただし first/second moments は元の joint law と同一ではないため、結果を新しい独立 edge
-として graph に再登録しない。
+## 5. ROS v2 wire contract
 
-### 3.6 補助 module と compatibility
+### 5.1 `probtf_msgs`
 
-| module | 現在の位置付け |
+core message は10種である。
+
+| message | 用途 |
 | --- | --- |
-| `geometry` | quaternion、rotation、`DeterministicTransform`、`vec(R)` helper |
-| `probability` | Bingham/rotation/point moment summary。`probability.bingham` は alias |
-| `spherical_law` | induced spherical law protocol と backend adapter |
-| `isl` | `spherical_law` の short compatibility alias |
-| `models` | v1 `GaussianPosition`、`BinghamRotation`、`ProbabilisticTransform` |
-| `compatibility.legacy` | v1 one-component `C=0` embedding と明示 policy 付き v2 projection |
-| `sensor_config` | generic sensor schema と既存 deflecomp schema の YAML parser |
-| `symbolic_urdf` | placeholder の検査と deterministic materialization |
+| `BinghamOrientation` | finite/Dirac/uniform、shape/scale/reference |
+| `ConditionalGaussianTranslation` | mean、upper covariance、`3 x 9` coupling |
+| `ProbabilisticTransformComponent` | weight と joint component law |
+| `ProbabilisticTransformStamped` | 一 physical SE(3) edge |
+| `ProbabilisticTransformArray` | static set 等の record 配列 |
+| `ApproximationInfo` | typed loss metadata |
+| `Provenance` | source/derived edge metadata |
+| `ImuKinematics` | two-IMU preprocessing output |
+| `TransformEvidenceStamped` | natural-parameter evidence |
+| `OrientationDistributionStamped` | translation を持たない orientation posterior |
 
-v2 から v1 へ戻す際、mixture/coupling を暗黙に捨てない。exact policy で表現できない場合は
-失敗し、lossy projection は明示 policy と診断を必要とする。Dirac orientation には有限
-v1 Bingham encoding がないため、v1 へ偽装して出力しない。
+`ProbabilisticTransformStamped.header.frame_id` が parent/target frame の唯一の wire field である。
+child、edge ID、authority、static flag、representative kind、component mixture、approximation、
+provenance を同じ record に含む。
 
-## 4. `probtf_estimators`
+### 5.2 Dynamic/static transport
 
-producer algorithm は
-[`src/probtf_estimators`](../../src/probtf_estimators) に分離され、foundation へのみ
-依存する。
-
-| module | 入力と処理 | 出力 |
+| topic | type | semantics |
 | --- | --- | --- |
-| `imu_preprocessing` | sliding window の局所多項式 fit | angular velocity/acceleration、specific force と covariance |
-| `imu_relative_pose` | vector alignment Bingham、剛体加速度式、information-form RLS | v1 domain `ProbabilisticTransform` |
-| `orientation_imu` | gyro cubature prediction、gravity/magnetic likelihood | Bingham prediction/evidence/posterior |
-| `evidence_fusion` | 同じ directed frame pair の独立 source を自然 parameter 加算 | `FusedTransformEvidence` |
-| `coupling_from_hessian` | `Hxx`、`Hxu` と right perturbation Jacobian | v2 用 `C: 3 x 9` |
-| `ros_conversions` | message object と time/message factory の duck typing | estimator message conversion |
+| `/probtf` | `ProbabilisticTransformStamped` | dynamic recordを個別 publish |
+| `/probtf_static` | `ProbabilisticTransformArray` | broadcaster所有の全 static setをlatched publish |
+| `/tf` | `tf2_msgs/TFMessage` | deterministic dynamic TF |
+| `/tf_static` | `tf2_msgs/TFMessage` | deterministic static TF |
 
-`evidence_fusion` は path composition ではない。同じ edge に対する likelihood/prediction
-を融合する API で、重複 `source_id` は既定で拒否する。
+`ProbTfBroadcaster` は dynamic record と static set を正しい channel へ送る。
+`RosProbTfListener` は dynamic channel 上の static record、static channel 上の dynamic record を拒否する。
 
-`ros_conversions` という名前だが ROS module を import しない。呼び出し側が message type
-と time factory を注入するため、root Python package の ROS-free 境界を維持する。
+### 5.3 Generic TF bridge
 
-## 5. ROS 1 boundary
+[`probtf_bridge_node.py`](../../ros/core/probtf_core/nodes/probtf_bridge_node.py) は
+`ProbTfTfBridge`、`ProbTfBroadcaster`、in-process graph を持つ。
 
-### 5.1 catkin package
+- TF import: deterministic TF を Dirac orientation、zero residual covariance、`C=0` の exact
+  one-component v2 recordへ変換する。
+- TF authority: ROS connection caller ID を provenance/authority に保持する。
+- TF export: exact edge、または呼び出し側が明示した representative policyだけを出力する。
+- loop prevention: 自 node authority と export済み signature を除外する。
+- filter: import対象 child frame prefixをlaunch parameterで制限できる。
 
-`ros/` 以下には現在 11 catkin package がある。
+generic bridge は application topic を自動発見する中央 serverではない。TF と v2 transport の境界だけを
+担当し、queryは各consumerのlocal listenerが行う。
 
-- core: `probtf_msgs`, `probtf_core`
-- producer/application: `probtf_imu_demo`, `probtf_orientation_demo`, `symaware_grasp`
-- deflecomp: `deflecomp_core`, `deflecomp_sim`, `deflecomp_ros`,
-  `deflecomp_examples`, `deflecomp_description`, `deflecomp_debug`
+## 6. two-IMU relative-pose runtime
 
-`probtf_msgs` は 15 message を生成する。`.srv` と `.action` はなく、repository 内に
-`rospy.Service` や action server もない。process 間 coordination は topic、TF、
-parameter、timer、`wait_for_message` で行う。
-
-### 5.2 Message 世代
-
-ここでの `v1` / `v2` は ProbTF message schema の世代名である。ROS 1 / ROS 2
-の区別ではない。
-
-| 系統 | Message | 用途 |
-| --- | --- | --- |
-| v2 foundation wire | `BinghamOrientation`, `ConditionalGaussianTranslation`, `ProbabilisticTransformComponent`, `ProbabilisticTransformStamped`, `ProbabilisticTransformArray`, `ApproximationInfo`, `Provenance` | joint component mixture、coupling、metadata を保持 |
-| v1/application wire | `ProbabilisticTF`, `ProbabilisticTFArray`, `BinghamDistribution`, `GaussianPosition` | 独立 position/orientation summary |
-| producer/application | `TransformEvidence`, `ImuKinematics`, `GraspCandidate`, `IKResult` | demo 固有データ |
-
-v2 `ProbabilisticTransformStamped.header.frame_id` が parent frame の唯一の wire field である。
-child、edge ID、authority、static flag、representative kind、component mixture、provenance、
-approximation を一つの record に含む。
-
-### 5.3 `probtf_bridge_node`
-
-[`probtf_bridge_node.py`](../../ros/core/probtf_core/nodes/probtf_bridge_node.py) は process 内に
-`ProbTfGraph`、`ProbTfListener`、`ProbTfBroadcaster`、`ProbTfTfBridge` を持つ。
-本書ではこれを `共通 v2 bridge` と呼ぶ。application 固有の producer topic を
-subscribe する node ではなく、v2 `/probtf(_static)` と TF の境界を扱う node である。
-
-```text
-/tf, /tf_static
-       <-> probtf_bridge_node <-> /probtf, /probtf_static
-                   |
-                   +-> in-process ProbTfGraph
-```
-
-| Interface | Type / behavior |
-| --- | --- |
-| `/probtf` | v2 `ProbabilisticTransformStamped`、dynamic edge |
-| `/probtf_static` | v2 `ProbabilisticTransformArray`、全 static set を latched publish |
-| `/tf`, `/tf_static` | `tf2_msgs/TFMessage` |
-| `~import_tf` | 既定 `true` |
-| `~export_tf` | 既定 `true` |
-| `~tf_export_policy` | 既定 `exact_only` |
-
-TF import は deterministic transform を Dirac orientation、zero residual covariance、
-`C=0` の one-component v2 record にする。authority は ROS connection の caller ID から
-保持する。
-
-ProbTF から TF へ出す場合、deterministic edge は exact に export できる。stochastic edge
-は既定の `exact_only` では拒否され、stored representative または highest-weight
-component mode policy を明示した場合だけ代表値を export する。
-
-bridge は own caller ID と export signature の両方で即時 re-import loop を防ぐ。
-`/probtf_static` broadcaster は static record を edge ID ごとに cache し、late subscriber
-が全 set を受け取れるよう毎回 array 全体を latch する。
-
-bridge 内 graph に対する ROS service/action の query endpoint はない。別 process が
-`lookup_kernel` を呼ぶための RPC ではなく、現在は transport、TF conversion、内部蓄積
-までを担当する node である。
-
-### 5.4 v1/v2 runtime gap
-
-library には次の adapter がある。
-
-- `probtf.compatibility.legacy`: v1 domain object と v2 distribution/record
-- `probtf_ros.legacy_conversions`: v1 ROS message と v2 record
-
-しかし、これらを subscribe/publish する変換 node は存在しない。ここが、現在の
-各種 demo system と v2 `ProbTfGraph` / 共通 v2 bridge の間に残っている実行時の溝である。
-さらに
-`legacy_message_to_v2_record` は position または orientation が欠ける v1 message を
-zero-fill せず拒否する。このため orientation-only posterior は、そのままでは完全な v2
-transform record にならない。
-
-現在の runtime は次の二系統である。
-
-| 系統 | Producer / consumer | Graph への登録 |
-| --- | --- | --- |
-| v2 `/probtf(_static)` | bridge または外部 v2 publisher | bridge 内 `ProbTfGraph` に登録 |
-| 個別 v1 topic | IMU/orientation/symaware demo | 自動登録なし |
-
-## 6. Demo と application の実行時構成
-
-### 6.1 Two-IMU relative pose
-
-entry point は
 [`two_imu_relative_pose.launch`](../../ros/examples/probtf_imu_demo/launch/two_imu_relative_pose.launch)
-である。
+の dataflow は次である。
 
 ```text
-/imu_parent/data ----> parent_imu_kinematics --+
-                                                  +-> ApproximateTimeSynchronizer
-/imu_child/data -----> child_imu_kinematics ---+          |
-                                                           v
-                                            imu_relative_pose_node
-                                                           |
-                                      /imu_relative_pose/relative_pose (v1)
-                                                           |
-                             symbolic_urdf_materializer [optional]
-                                      |                    |
-                              /robot_description    materialized_urdf
-                                      |
-                              robot_state_publisher -> TF
+/imu_parent/data ---> parent imu_kinematics_node --+
+                                                    +--> imu_relative_pose_node --> /probtf
+/imu_child/data  ---> child imu_kinematics_node ---+       v2 full SE(3) edge
+                                                                  |
+                                                                  v
+                                                 symbolic_urdf_materializer
+                                                                  |
+                                                     /robot_description + RSP
 ```
 
-preprocessor の launch default は window 9、2 次多項式、最小 5 sample である。
-二つの `ImuKinematics` は queue 20、slop 0.02 s の
-`ApproximateTimeSynchronizer` で同期される。
+二つの preprocessing node は local polynomial fit で angular velocity/acceleration、specific force、
+各 covariance を `ImuKinematics` にする。`ApproximateTimeSynchronizer` が二 sensor を揃える。
 
-relative-pose estimator は angular velocity/acceleration の alignment から Bingham
-orientation を更新し、剛体運動式
+`ImuRelativePoseEstimator` は単一 component の `TransformDistributionStamped` を返す。
+登録済み joint geometry の `p=a-Rb` は `rotation_coupling` に保持される。未登録 geometry の位置 RLS は
+orientation mode plug-in を用いるため、その loss を approximation/provenance に明記する。
 
-\[
-R f_{child}-f_{parent}=([\omega]_{\times}^{2}+[\alpha]_{\times})r
-\]
+出力は full SE(3) edge なので `/probtf` に直接 publishできる。materializer は v2 record の
+point moments と orientation concentration を閾値で検査し、ready な summaryだけを symbolic URDFへ
+terminal materializationする。mixtureを暗黙に一成分へ縮約しない。
 
-を Gaussian RLS で解いて child IMU origin の position を推定する。
+sensor mount は設定から deterministic `/tf_static` を publishするが、relative-pose v2 record自体を
+旧 message へ変換する経路はない。
 
-`sensor_mount_tf_node` は YAML から既知 mount を `/tf_static` に出す。現在の default
-config は `world -> imu_parent` のみを宣言し、推定対象 `imu_parent -> imu_child` は
-deterministic mount として出さない。
+## 7. orientation-only runtime
 
-`materialize_urdf=true` の場合、position variance と orientation concentration が閾値を
-通過してから symbolic placeholder を埋め、`/robot_description` parameter と latched
-`materialized_urdf` String を生成する。現在の launch は materializer と
-`robot_state_publisher` を同時に起動するため、運用時は parameter 生成前の起動順を確認する
-必要がある。また materialized URDF と sensor mount node の両方が
-`world -> imu_parent` を表すため、TF authority の重複にも注意が必要である。
-
-### 6.2 Orientation producer
-
-entry point は
-[`orientation_filter.launch`](../../ros/examples/probtf_orientation_demo/launch/orientation_filter.launch)
-である。
+orientation demo は full SE(3) graph と意図的に分離される。
 
 ```text
 /imu/data + /imu/mag
           |
           v
 orientation_filter_node
-  |       |         |          +-> posterior (v1 ProbabilisticTF)
-  |       |         |
-prediction  gravity  magnetic evidence (TransformEvidence)
-          \     |     /
-           orientation_fusion
-                  |
-                fused (v1 ProbabilisticTF)
+  |-- prediction ---------- TransformEvidenceStamped
+  |-- gravity evidence ---- TransformEvidenceStamped
+  |-- magnetic evidence --- TransformEvidenceStamped
+  |-- posterior ----------> OrientationDistributionStamped
+          |
+          v
+probtf_fusion_node --------> OrientationDistributionStamped
 ```
 
-filter は gyro prediction と gravity likelihood を常に作り、`use_magnetometer=true` かつ
-最新 magnetic sample が age 条件を満たす場合に magnetic likelihood を加える。
-同じ update 内で内部 posterior も publish する。
+topic は既定で次になる。
 
-別 node の `orientation_fusion` は各 evidence topic の最新値がそろい、stamp skew が
-既定 0.1 s 以下の場合に source-aware fusion を行う。magnetometer 無効時は prediction と
-gravity の二 source、有効時は magnetic を含む三 source である。
+- `/orientation_filter/prediction`
+- `/orientation_filter/gravity_evidence`
+- `/orientation_filter/magnetic_evidence`
+- `/orientation_filter/posterior_orientation`
+- `/orientation_fusion/fused_orientation`
 
-`posterior` と `fused` はどちらも v1 で、launch 内に `/probtf` への relay はない。
+`TransformEvidenceStamped` は orientation natural parameter を trace-zero symmetric upper 10要素で
+保持する。任意 translation evidence は singular PSD を許す information formであり、sequence、
+approximation、provenanceを持つ。
 
-### 6.3 Symmetry-aware grasp
+posterior用 `OrientationDistributionStamped` には translation fieldが存在しない。gyro convolutionの
+moment matchingは `BINGHAM_CLOSURE` / lossy、gravity/magnetic likelihoodはexactとして記録される。
+fusionは同一 directed frame pairの独立 sourceを自然 parameter加算し、重複 sourceを既定で拒否する。
 
-root `symaware_grasp` は grasp library、object-to-grasp composition、hand belief、
-symmetry-aware IK と、旧 `symaware_grasp.prob_tf.ProbTfTree` を持つ。
+orientation-only lawへ zero translationを補って `/probtf` physical edgeにする処理はない。これは
+未接続のgapではなく、fake SE(3)を防ぐdomain boundaryである。
 
-標準
-[`probabilistic_tf_demo.launch`](../../ros/examples/symaware_grasp/launch/probabilistic_tf_demo.launch)
-の主な流れは次である。
+## 8. symaware grasp runtime
+
+### 8.1 Global graph と application topic
+
+symaware は共通 `/probtf` と `/probtf_static` を使用する。
+
+- YAML arm modelの7 static edge: `/probtf_static`
+- object belief: `/probtf`
+- hand/end-effector belief: `/probtf`
+- composed grasp target records: `/probtf`
+
+同時に用途 metadata を持つ application topicを使う。
+
+| topic | application message | v2 payload |
+| --- | --- | --- |
+| `/symaware_grasp/object_belief` | `ObjectBelief` | 完全な stamped v2 transform |
+| `/symaware_grasp/hand_belief` | `HandBelief` | 完全な stamped v2 transform |
+| `/symaware_grasp/grasp_targets` | `GraspTargetArray` | 各 targetに完全なv2 transform |
+| `/symaware_grasp/selected_target` | `SelectedGraspTarget` | 選択targetの完全なv2 transform |
+| `/symaware_grasp/symmetry_aware_ik_result` | `IKResult` | solver result metadata |
+
+application messageだけで独自 graphを作らず、message内のframe/stampで
+`RosProbTfListener.wait_for_lookup()` と exact direct-edge lookupを行う。
+
+### 8.2 Producer と composition
+
+`probtf_static_broadcaster.py` は native v2 YAML loaderから static recordを直接作る。revolute jointは
+finite Bingham、fixed jointはDiracであり、旧treeや外部Bingham runtimeを経由しない。
+
+object nodeは設定 lawを `PRODUCER_SUPPLIED` としてpublishする。hand beliefはjoint sampleから
+one-component moment fitを行うため `MOMENT_SUMMARY` / lossyを保持する。
+
+grasp target nodeはobject recordへdeterministic grasp offsetを右合成する。mixture、residual covariance、
+rotation coupling、raw weightsを保ち、object edge IDをderived provenanceへ残す。生成targetも
+`ProbTfBroadcaster` でglobal graphへpublishされる。
+
+### 8.3 Consumer、IK、visualization
+
+`symmetry_aware_ik_node.py` はdefault launchに含まれ、grasp targetとjoint stateを待ってone-shot solveする。
+全mixture componentのcoupled point momentsを評価し、deterministic baselineも別結果としてpublishする。
+Bhattacharyya methodが扱えないorientation kindを暗黙なfinite Binghamへ変換せず拒否する。
+
+link cloudは各link軸端点を `lookup_point_moments()` で取得する。表示用Gaussian sampleは
+`PointCloud2`を作るterminal stepだけで生成し、graph edgeへ戻さない。
+
+general visualizerはlocal listenerでrecordを解決し、native v2 samplerで全component、conditional
+translation、couplingを含むaxis cloudを作る。component mode markerは表示用representativeであり、
+graph lawの置換ではない。
+
+## 9. deflecomp scoped runtime
+
+### 9.1 ProbTFへ登録するもの、しないもの
+
+deflecompのWEKFが推定するstiffness `Kp` posteriorはjoint parameter distributionであり、SE(3) edgeではない。
+したがって次のtopicはProbTF graphへ登録しない。
+
+- `/deflecomp/kp_hat`
+- `/deflecomp/kp_est`
+- `/deflecomp/kp_exec`
+- `/deflecomp/kp_exec_target`
+- `/deflecomp/kp_cov_diag`
+
+これらはdeflecomp estimator/control/debugのdomain topicのままである。
+
+ProbTFへ登録するのは、`robot_state_publisher` と static TF publisher が実際に出す `ref`、`cmd`、
+`equil` frame transformだけである。
+
+### 9.2 Scoped TF import
+
+[`deflecomp_frames.launch`](../../ros/examples/deflecomp/deflecomp_ros/launch/deflecomp_frames.launch)
+はgeneric bridgeをnamespace `deflecomp`内にincludeする。
 
 ```text
-object_pose_node -> object_prob_tf (v1)
-                    |-> PTF visualizer
-                    +-> grasp target composer -> grasp_target_ptfs (v1 array)
-
-robot_controller -> joint_states -> robot_state_publisher -> TF
+ref/cmd/equil robot_state_publisher + static anchors
                          |
-                         +-> hand belief -> hand_prob_tf (v1) -> visualizer
+                  /tf + /tf_static
+                         |
+                         v
+       /deflecomp/probtf_bridge (import=true, export=false)
+                |                         |
+                v                         v
+ /deflecomp/probtf            /deflecomp/probtf_static
+  dynamic v2 records           latched static v2 set
+                \                         /
+                 \                       /
+                  v                     v
+          /deflecomp/probtf_point_moments
+                    RosProbTfListener
+                 lookup path + point moments
+                            |
+                            v
+       /deflecomp/probtf_point_moments MarkerArray
 ```
 
-重要な実行時事実として、標準 launch は `symmetry_aware_ik_node.py` を起動しない。
-この node は install されているが、手動実行時にだけ `grasp_target_ptfs` と
-`joint_states` を一度読み、probabilistic/baseline IK を解いて次を publish する。
+import child prefixは既定で `ref,cmd,equil`、TF exportはfalseである。したがって既存TFを
+v2へmirrorするが、同じrecordをTFへ戻すloopは作らない。dynamic/static topicはglobal symaware graphと
+分離されたscoped runtimeである。
 
-- `target_joint_states`
-- `symmetry_aware_ik_result`
-- `deterministic_ik_result`
-- `selected_grasp_target_prob_tf`
+consumerはURDFからbase/tipを解決し、各prefixのtip originについて `LATEST_COMMON` path lookup後に
+point mean/covarianceを評価する。RVizはmean pointとcovariance principal axesのMarkerArrayを表示する。
+consumerは `/tf` を直接lookupせず、必ず`RosProbTfListener`のlocal graphを使う。
 
-したがって標準 launch だけでは controller は初期姿勢を publish し続け、selected target
-visualizer は入力待ちになる。IK は action server ではなく one-shot process である。
+`viewer:=false`ではnon-GUI joint-state publisherを使いRViz/plotterを起動しない。`viewer:=true`では
+既存のthree-robot表示、stiffness plotter、ProbTF point-moment markerを表示する。
 
-別の `prob_tf_link_cloud.launch` は YAML から旧 `ProbTfTree` を構築し、tangent surrogate
-で link axis endpoint cloud を生成する。この runtime は core `ProbTfGraph` ではなく旧
-tree lookup を直接使う。旧 tree には `to_core_graph()` と `lookup_core_kernel()` があり、
-one-component uncoupled edge として新 foundation に埋め込めるが、これは in-process API
-であって ROS transport relay ではない。
+実ROS master上のheadless smokeでは、dynamic `/deflecomp/probtf`、latched
+`/deflecomp/probtf_static`、および3系統すべてを含む
+`/deflecomp/probtf_point_moments` MarkerArrayを確認した。dynamic topicはrobot-state-publisherの
+各edgeを個別recordとして継続配信し、consumerは起動直後のgraph構築を待った後、`base_link`から
+`ref/module4_link2`、`cmd/module4_link2`、`equil/module4_link2`までをlocal v2 graphだけで解決する。
+指定された`viewer:=true` launchのnode graphも解決しており、残るGUIの視認確認にはX displayが必要である。
 
-### 6.4 Deflection compensation
+## 10. ProbTF v1 の完全廃止
 
-deflecomp は ProbTF topic/graph から独立した application branch である。
+次はsourceとmessage generationから削除されている。
 
-| package / namespace | 現在の責務 |
-| --- | --- |
-| `deflecomp_core` | Pinocchio robot、spring/equilibrium、IMU observation、WEKF、control pipeline |
-| `deflecomp_sim` | flexible-joint dynamics、equilibrium、synthetic multi-frame IMU |
-| `deflecomp_ros` | controller node、static IMU TF、launch/config |
-| `deflecomp_examples` | offline/flexible example wrapper |
-| `deflecomp_description` | URDF と RViz config |
-| `deflecomp_debug` | stiffness/covariance plotter |
+- `probtf.models`
+- `probtf.compatibility`
+- `probtf_ros.conversions`
+- `probtf_ros.legacy_conversions`
+- `ProbabilisticTF.msg`
+- `ProbabilisticTFArray.msg`
+- `GaussianPosition.msg`
+- `BinghamDistribution.msg`
+- `ApproximationKind.LEGACY_ADAPTER`
+- symaware `ProbTfTree` と旧manual propagation/sample scripts
 
-full demo の feedback loop は次である。
+v1からv2へrelayするruntime nodeも、v2からv1へprojectionするadapterもない。これは移行漏れではなく、
+v1 contract自体を廃止した結果である。boundary testは旧module/symbol/message/CMake entryの再導入を検出する。
 
-```text
-/ref/joint_states
-       |
-       v
-deflecomp_node -- /cmd/joint_states --> deflecomp_sim
-       ^                                  |
-       |                                  +-> /equil/joint_states
-       +------------- /imu ---------------+
-```
+source内に残る `legacy` という語はsensor configやsymbolic URDFの入力互換を指す場合があるが、
+ProbTF v1 transform domain/wireを意味しない。
 
-`deflecomp_node` は frame ごとの IMU buffer、Bingham direction likelihood、equilibrium と
-sensitivity、`x=log K` に対する observable-subspace WEKF、平滑化した `K_exec`、gravity
-feedforward を一つの pipeline にまとめる。particle scan が有効な現在の config では、
-windowed grid score を child process へ task/result queue で渡し、process 起動失敗時は
-thread fallback を使う。
+## 11. Runtime boundary と運用上の規則
 
-simulator は `/cmd/joint_states`、任意 `/deflecomp_sim/external_wrench` を受け、
-`/equil/joint_states` と複数 frame ID の `/imu` を返す。ref/cmd/equil 用の三つの
-`robot_state_publisher` が可視化用 deterministic TF tree を構築する。
+1. full physical SE(3) edgeだけを`ProbabilisticTransformStamped`としてgraphへ入れる。
+2. orientation-only lawへfake translationを補わない。
+3. stiffness、IK score、grasp IDなどapplication stateをSE(3) edgeへ偽装しない。
+4. moment summaryやdisplay sampleをgraphへ再登録しない。
+5. representative exportはexactまたは明示policyだけを許す。
+6. application messageがedgeを指す場合、listenerのframe/stamp lookupでgraph recordを解決する。
+7. static recordはlatched full set、dynamic recordは個別messageで運ぶ。
+8. repeated latent dependencyを独立と仮定しない。
+9. approximation/provenanceをcomponent、record、wireで保持する。
+10. catkin nodeはpackage-local sourceをimportし、parent path relayを追加しない。
 
-tracked YAML の現在値は次の通りである。
+## 12. テストと検証境界
 
-| 項目 | 現在値 |
-| --- | --- |
-| controller | `dt=0.02`, `theta_cmd_tau=0.2`, periodic spring、L1 off |
-| estimator | stiffness update on、`K` range 1..500、particle scan on/process |
-| simulator | `dt=0.001`, RK4、dynamic equilibrium、`ref_tau=0.04` |
-| simulator noise | quasi-static noise/vibration はともに 0 |
+テストは数理 unit testだけでなく、architecture regressionを含む。
 
-deflecomp と ProbTF foundation の code dependency は、
-`deflecomp_core.observation.bingham` が `probtf.geometry` の quaternion left/right matrix
-helper を使う範囲に限られる。v1/v2 ProbTF message は publish せず、`/probtf` にも
-接続しない。
+- foundationがROS/exampleへ逆依存しないこと
+- package-local setupとparent relay不在
+- ProbTF v1 module/symbol/messageの不在
+- graph topology、time policy、bounded history、thread-safe lookup
+- v2 message round-trip、TF import/export、local listener
+- Bingham moments、joint coupling、right composition
+- native finite/uniform/Dirac sampling、mixture比率、forward/inverse action
+- two-IMU outputのstamp/edge/authority/provenance
+- orientation-only messageにtranslationがないこと
+- symaware static graph、app message、IK、visualizer、launch runtime
+- deflecomp scoped bridge launchとpoint-moment consumer
 
-## 7. Build と package ownership
+現行実装の全Python suiteは `200 passed, 1 warning` が報告されている。warningは外部
+`hppfcl` import renameに関するdeprecationである。主要catkin package build、symaware実動smoke、
+deflecomp scoped v2 topic/lookup/MarkerArray smokeは成功している。
 
-推奨 build order は次である。
+## 13. 残っているTODO
 
-```bash
-git submodule update --init --recursive
-python3 -m pip install -e /path/to/catkin_ws/src/ProbTF-demo
-catkin build probtf_msgs probtf_core probtf_imu_demo probtf_orientation_demo
-source /path/to/catkin_ws/devel/setup.bash
-```
+### 13.1 数値backend
 
-ownership 上の注意は次の通りである。
+1. finite Binghamのexact induced spherical/vector density evaluator
+2. rotation couplingを含むjoint numerical point-action integrator
+3. stochastic inverseのanalytic moment/covariance evaluator
+4. repeated latent edgeを扱うdependency-aware sampler/evaluator
+5. explicit policy付きclosed-mixture reduction backend
 
-- root Python project が `probtf`、`probtf_estimators`、application namespace、
-  BinghamNLL を所有する。
-- catkin `probtf_core` は `probtf_ros` のみを install する。
-- producer node は core ではなく各 demo package が所有する。
-- symaware の catkin Python setup は `symaware_grasp_ros` message helper だけを所有する。
-- deflecomp の catkin metadata package は、root `src` の対応する deflecomp namespace を
-  relay install する。これは `probtf_core` の ownership 方針とは異なる。
-- `deflecomp_core` 実装は `probtf.geometry` を使うが、その依存は現在の
-  `deflecomp_core/package.xml` には現れない。root integrated install が前提になる。
+native Monte Carlo samplingは実装済みなので、「stochastic sampling未実装」は現在のTODOではない。
 
-## 8. Test と検証境界
+### 13.2 Temporal model
 
-`tests/` は次を unit test する。
+1. `INTERPOLATE_WITH_MODEL` の具体的model contractと実装
+2. `PREDICT_WITH_MODEL` のprocess model、uncertainty growth、diagnostic
+3. authority/parent changeを長時間運用で管理する上位policy
 
-- v2 distribution validation、mixture weight、provenance/approximation
-- topology、time policy、path、lazy kernel、moment evaluation
-- v1/v2 conversion、static/dynamic routing、TF bridge loop/export policy
-- IMU preprocessing/relative pose、orientation filter、evidence fusion
-- sensor config、symbolic URDF
-- symaware tree adapter、moment/tangent surrogate、grasp composition
-- deflecomp equilibrium、stiffness estimation、`K_est/K_exec`、particle supervisor、simulation
-- Python/ROS package boundary
+現在の`LATEST_COMMON`は意図的にzero-order holdであり、確率分布補間の代替ではない。
 
-一方、`rostest` や launch test の登録はない。ROS master を使った topic type/namespace、
-materializer と `robot_state_publisher` の起動順、symaware one-shot IK、deflecomp full
-feedback loop は end-to-end test されていない。
+### 13.3 Runtime/validation
 
-## 9. 現在の実装範囲と残る境界
+1. high-rate graphでのqueue/history/memory sizing評価
+2. multi-process consumer間でlookup結果が一致することの長時間integration test
+3. unavailable resultとapproximation metadataを可視化する共通diagnostic UI
+4. X displayを持つ環境での`viewer:=true` RViz/plotter視認smoke
 
-| 領域 | 現在できること | 現在できない、または接続されていないこと |
-| --- | --- | --- |
-| storage | Bingham + conditional Gaussian の joint component mixture | general factor graph / arbitrary edge correlation |
-| graph | forest、time buffer、path、lazy kernel | ROS process 間 query service |
-| time | exact/nearest/latest/latest-common | model interpolation/prediction |
-| evaluation | deterministic exact、forward point moments、special cases | finite exact ISL、stochastic inverse/sampling、mixture closure |
-| ROS v2 | `/probtf(_static)` transport、TF bridge | demo v1 topic の自動 ingest |
-| producers | IMU relative pose、orientation evidence/filter、same-edge fusion | v2 joint record を直接 publish する producer node |
-| symaware | v1 visualization、grasp target、manual one-shot IK、legacy tree adapter | default launch 内の closed IK loop、v2 ROS transport |
-| deflecomp | 独立した estimation/control/simulation loop | ProbTF graph/topic との統合 |
+### 13.4 Application拡張
 
-## 10. 現状 TODO
+1. orientation-only law用の独立graph/query abstractionが必要かを用途から判断する
+2. symaware IKの複数orientation kind対応範囲を明示的に拡張する
+3. two-IMU materialization以外のterminal consumerをnative kernel APIで追加する
 
-各種 demo が使っている v1 system と、v2 `ProbTfGraph` / 共通 v2 bridge の溝を埋める
-には、少なくとも次の作業が残っている。
+orientation-only posteriorをfull SE(3) graphへ入れること、stiffness posteriorをtransform化すること、
+v1 adapterを復活させることはTODOではない。
 
-| 優先度 | TODO | 説明 |
-| --- | --- | --- |
-| high | v1 topic から v2 `/probtf(_static)` へ流す runtime relay node を作る | `probtf_ros.legacy_conversions` は library として存在するが、現在は subscribe/publish する node がない。まず demo topic 名、parent/child frame、static/dynamic の扱いを parameter 化した relay が必要である。 |
-| high | orientation-only v1 出力の v2 化 policy を決める | `orientation_filter_node.py` などは orientation-only posterior を出す。v2 transform record は完全な transform として扱うため、translation を TF から補うのか、partial evidence として別経路にするのか、明示的に拒否し続けるのかを決める必要がある。 |
-| high | producer node の v2 直接 publish を追加する | two-IMU relative pose、orientation fusion、same-edge fusion が v2 `ProbabilisticTransformStamped` を直接 publish できれば、relay 依存を減らせる。 |
-| medium | symaware grasp の v2 transport 対応 | `object_prob_tf`、`grasp_target_ptfs`、`hand_prob_tf` は v1 message で流れている。v2 graph に入れるには message 変換、visualizer、IK 入力のどこを v2 化するかを決める必要がある。 |
-| medium | bridge 内 `ProbTfGraph` への query interface を設計する | 現在の bridge は transport と TF conversion までで、別 process が graph lookup する ROS service/action はない。必要なら lookup API の wire contract を追加する。 |
-| medium | ROS end-to-end test を追加する | 現在の test は ROS-free unit/boundary が中心で、launch 後の topic 接続、v1 relay、TF import/export loop、symaware one-shot IK は end-to-end で検証されていない。 |
-| low | deflecomp と ProbTF graph の統合方針を決める | deflecomp は現在独立した estimation/control/simulation loop であり、ProbTF との接点は `probtf.geometry` helper に限られる。統合するなら publish/subscribe する frame と不確かさの意味を決める。 |
+## 14. DOT の読み方
 
-## 11. DOT graph の表示
+DOT graphは次の色分けを使う。
 
-以下は同じ repository に保存した DOT を Graphviz で render した SVG である。図は、
-code/package layer と実際の runtime system を一枚で示す。
+- 青: ProbTF foundation、graph、kernel、v2 transport
+- 緑: producer algorithmsとtwo-IMU runtime
+- 黄: orientation-only domain
+- 桃: symaware grasp
+- 紫: deflecomp
+- 灰: external/runtime infrastructureと明示的TODO
+- 赤: 禁止境界。v1 gapではなくfake domain encodingを禁止する規則
 
-[![ProbTF-demo current architecture](./current-architecture_2026-07-12_223000.svg)](./current-architecture_2026-07-12_223000.svg)
-
-再生成する場合は repository root で次を実行する。
-
-```bash
-dot -Tsvg \
-  docs/lectures/current-architecture_2026-07-12_223000.dot \
-  -o docs/lectures/current-architecture_2026-07-12_223000.svg
-```
-
-図の表記は次の通りである。
-
-- box/component: module、package、process
-- ellipse: ROS topic
-- blue edge: ProbTF v2 wire
-- orange edge: v1/application wire
-- green edge: TF
-- dashed node/edge: 条件付き起動、手動起動、または callable adapter のみ
-- red note: 現在の runtime で接続されていない境界
+太い実線は実行時dataflow、細い実線はcode dependency、破線はquery/terminal evaluation、
+赤いT字は「このdataをSE(3) graphへ入れない」という境界を表す。

@@ -201,8 +201,9 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 
 ### 4.11 symaware grasp / link cloud の native v2 runtime 化
 
-- object、hand、grasp target、selected target、IK resultをsymaware固有messageへ分離し、
-  各application messageが完全な `ProbabilisticTransformStamped` v2 payloadを内包するようにした。
+- object、hand、grasp target、selected target、IK resultをsymaware固有messageへ分離した。
+  belief/target系application messageは完全な `ProbabilisticTransformStamped` v2 payloadを内包し、
+  `IKResult`はsolver result metadataだけを運ぶ。
 - object / hand / derived grasp target recordを `/probtf`、YAML arm edge 7件を
   `/probtf_static` へpublishするbroadcasterを実装した。
 - grasp target node、IK、visualizerを `RosProbTfListener` のexact/latest lookupへ移行した。
@@ -226,6 +227,37 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 - link-cloud 12秒実動: static v2 record 7件とlistener pointcloud publishを確認
 - full demo 18秒実動: grasp target、selected grasp、IK node正常終了を確認
 
+### 4.12 root aggregate依存の整理
+
+- root `setup.py` のpackage rootをfirst-party catkin package配下だけに限定した。
+- `third_party/BinghamNLL/src` の集約installを廃止し、runtimeはcore内の
+  `probtf._vendor`だけを使用するようにした。
+- 未使用の`numpy-quaternion`依存をroot `setup.cfg`から削除した。
+- READMEをpackage ownership、native v2 wire、listener/lookup、現行demo launchに合わせた。
+- boundary testでroot aggregateへのthird-party source再導入を検出するようにした。
+
+検証:
+
+- core / package boundary tests: `144 passed`
+- `python3 setup.py --name`: 成功
+- root README/setup内のv1および旧依存記述検索: 0件
+
+### 4.13 Deflecomp scoped v2 runtime smoke
+
+指定されたYamaguchi arm URDFとIMU設定を使い、実ROS master上で
+`deflecomp_frames.launch`を実行した。
+
+- `/deflecomp/probtf`からdynamic native v2 recordを取得した。
+- dynamic topicの観測rateは約1,100--1,200 records/sだった。これは複数edgeを個別messageで
+  publishした合計rateである。
+- `/deflecomp/probtf_static`でbase anchorと各prefixのfixed URDF edgeを含むlatched setを確認した。
+- point-moment consumerのMarkerArrayに`ref`、`cmd`、`equil`の3系統すべてが入り、
+  `base_link`基準のmeanとcovariance axesがpublishされることを確認した。
+- consumerは`/tf`を直接lookupせず、scoped v2 topicsをlistenしたlocal graphに対して
+  `lookup_path()` / `lookup_point_moments()`を実行している。
+- `viewer:=true`の指定commandは全nodeを解決して起動した。実行環境にX displayがないため、
+  RViz/plotterの画面描画だけは視認確認していない。
+
 ## 5. コミット
 
 | commit | 内容 |
@@ -239,3 +271,41 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 | `42c699e` | native v2 transform kernel samplingを実装 |
 | `52a7868` | deflecomp frame runtimeをv2 bridge/listener/lookupへ接続 |
 | `a497a15` | ProbTF v1 core model、adapter、ROS wire contractを削除 |
+| `6122ca7` | symaware grasp、IK、link cloudをnative v2 lookup runtimeへ全面移行 |
+| `74b8ea5` | root aggregateからthird-party source依存を削除しownership境界を固定 |
+
+## 6. 現在のTODO
+
+v1 runtime、v1/v2 adapter、applicationごとの手計算伝播を復活させる作業はTODOではない。
+現在残るのは、v2 contract上で明示的にunavailableとしている機能と運用検証である。
+
+1. finite Binghamのexact induced spherical/vector density evaluator
+2. rotation couplingを含むjoint numerical point-action integrator
+3. stochastic inverseのanalytic moment/covariance evaluator
+4. repeated latent edgeをshared latentのまま評価するsampler/evaluator
+5. explicit policy付きclosed-mixture reduction backend
+6. `INTERPOLATE_WITH_MODEL`と`PREDICT_WITH_MODEL`の具体的model実装
+7. high-rate graphのqueue/history/memory sizingと長時間multi-process整合性試験
+8. unavailable/approximation metadataの共通diagnostic UI
+9. X displayを持つ環境での`viewer:=true` RViz/plotter視認smoke
+
+native Monte Carlo sampling、bounded ROS listener、Symawareのpoint-cloud lookup、Deflecompの
+scoped topic/lookup smokeは実装・確認済みであり、上記TODOには含めない。
+
+## 7. 最終検証
+
+- 全Python suite: `200 passed, 1 warning`
+- catkin build: `probtf_msgs`、`probtf_core`、`probtf_imu_demo`、
+  `probtf_orientation_demo`、`symaware_grasp`、`deflecomp_core`、`deflecomp_sim`、
+  `deflecomp_ros`、`deflecomp_examples`、`deflecomp_description`、`deflecomp_debug`の
+  全11 package成功、warning/failed/abandonedなし
+- runtime source audit: v1 module/message/tree/conversion、外部`bingham` import、
+  demo固有のedge/path手計算伝播は0件
+- devel space audit: 削除したv1 messageと旧core application messageの生成物は0件
+- DOT: `dot -Tsvg` / `dot -Tdot`の構文・描画検証成功
+- Symaware: static v2 graph、link point cloud、grasp target、selected target、IKの実動確認成功
+- Deflecomp: dynamic/static scoped v2 topicsと3系統point-moment MarkerArrayの実動確認成功
+- `git diff --check`: 成功
+
+唯一のPython warningは外部`hppfcl` packageの`coal`へのimport名変更に関する
+deprecation warningであり、今回のv2 migrationによるwarningではない。

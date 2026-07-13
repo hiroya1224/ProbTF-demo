@@ -9,8 +9,11 @@ source_frames: []
 frame_prefixes: [ref, cmd, equil]
 source_point: [0.0, 0.0, 0.0]
 
-max_records_per_edge: 500
+# Point markers only query the latest common sample.  A tiny history covers one
+# in-flight flush without rebuilding hundreds of timestamp lists per edge.
+max_records_per_edge: 4
 lookup_rate_hz: 10.0
+marker_max_age: 0.5
 sigma_scale: 2.0
 point_scale: 0.025
 axis_width: 0.006

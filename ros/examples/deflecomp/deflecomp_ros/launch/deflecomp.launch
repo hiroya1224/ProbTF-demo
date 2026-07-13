@@ -2,11 +2,13 @@
   <arg name="model" default="$(find deflecomp_description)/urdf/simple6r.urdf" />
   <arg name="urdf_path" default="$(arg model)" />
   <arg name="imu_config" default="$(find deflecomp_ros)/config/imu_frames.yaml" />
+  <arg name="particle_scan_enabled" default="false" />
 
   <node pkg="deflecomp_ros" type="deflecomp_node.py" name="deflecomp_node" output="screen">
     <rosparam command="load" file="$(find deflecomp_ros)/config/simple6r.yaml" />
     <rosparam command="load" file="$(find deflecomp_ros)/config/controller.yaml" />
     <rosparam command="load" file="$(find deflecomp_ros)/config/estimator.yaml" />
+    <param name="particle_scan_enabled" value="$(arg particle_scan_enabled)" />
     <rosparam command="load" file="$(arg imu_config)" />
     <param name="urdf_path" value="$(arg urdf_path)" />
   </node>

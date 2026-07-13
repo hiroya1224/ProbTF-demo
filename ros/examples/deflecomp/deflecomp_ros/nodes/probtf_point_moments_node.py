@@ -94,8 +94,11 @@ class DeflecompProbTfPointMomentsNode:
         self.point_scale = float(rospy.get_param("~point_scale", 0.025))
         self.axis_width = float(rospy.get_param("~axis_width", 0.006))
         self.lookup_rate_hz = float(rospy.get_param("~lookup_rate_hz", 10.0))
+        self.marker_max_age = float(rospy.get_param("~marker_max_age", 0.5))
         if self.lookup_rate_hz <= 0.0:
             raise ValueError("~lookup_rate_hz must be positive.")
+        if not np.isfinite(self.marker_max_age) or self.marker_max_age < 0.0:
+            raise ValueError("~marker_max_age must be finite and non-negative.")
         if self.point_scale <= 0.0 or self.axis_width <= 0.0:
             raise ValueError("~point_scale and ~axis_width must be positive.")
 
@@ -120,17 +123,27 @@ class DeflecompProbTfPointMomentsNode:
     def _on_timer(self, event):
         del event
         observations = []
-        for source_frame in self.source_frames:
+        now = rospy.Time.now().to_sec()
+        for source_index, source_frame in enumerate(self.source_frames):
             try:
-                observations.append(
-                    lookup_point_moment(
-                        self.listener,
+                observation = lookup_point_moment(
+                    self.listener,
+                    self.target_frame,
+                    source_frame,
+                    self.source_point,
+                    policy=TemporalPolicy.LATEST_COMMON,
+                )
+                age = max(0.0, now - observation.resolved_stamp)
+                if age > self.marker_max_age:
+                    rospy.logwarn_throttle(
+                        3.0,
+                        "Deflecomp Prob-TF lookup %s <- %s is stale by %.3f s; marker suppressed",
                         self.target_frame,
                         source_frame,
-                        self.source_point,
-                        policy=TemporalPolicy.LATEST_COMMON,
+                        age,
                     )
-                )
+                    continue
+                observations.append((source_index, observation))
             except (ProbTfGraphError, RuntimeError, ValueError) as error:
                 rospy.logwarn_throttle(
                     3.0,
@@ -147,8 +160,8 @@ class DeflecompProbTfPointMomentsNode:
         clear.action = Marker.DELETEALL
         output.markers.append(clear)
         lifetime = rospy.Duration.from_sec(2.5 / self.lookup_rate_hz)
-        for index, observation in enumerate(observations):
-            color = _COLORS[index % len(_COLORS)]
+        for source_index, observation in observations:
+            color = _COLORS[source_index % len(_COLORS)]
             namespace = observation.source_frame.replace("/", "_")
             stamp = rospy.Time.from_sec(observation.resolved_stamp)
 
@@ -156,7 +169,7 @@ class DeflecompProbTfPointMomentsNode:
             mean.header.frame_id = observation.target_frame
             mean.header.stamp = stamp
             mean.ns = namespace
-            mean.id = 2 * index
+            mean.id = 2 * source_index
             mean.type = Marker.SPHERE
             mean.action = Marker.ADD
             mean.pose.position = _point(observation.mean)
@@ -173,7 +186,7 @@ class DeflecompProbTfPointMomentsNode:
             axes.header.frame_id = observation.target_frame
             axes.header.stamp = stamp
             axes.ns = namespace
-            axes.id = 2 * index + 1
+            axes.id = 2 * source_index + 1
             axes.type = Marker.LINE_LIST
             axes.action = Marker.ADD
             axes.pose.orientation.w = 1.0

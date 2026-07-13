@@ -21,6 +21,56 @@ PROBTF_STATIC_TOPIC = "/probtf_static"
 DEFAULT_MAX_RECORDS_PER_EDGE = 1000
 
 
+class LatestTfImportBuffer:
+    """Thread-safe latest-only staging for high-rate deterministic TF input.
+
+    A TF producer can run much faster than conversion to the richer Prob-TF
+    message.  Keeping one entry per physical edge bounds both latency and
+    memory: newer samples replace work that has not yet been converted.
+    """
+
+    def __init__(self):
+        self._latest = {}
+        self._lock = RLock()
+
+    @staticmethod
+    def _key(transform):
+        return (
+            str(transform.header.frame_id).strip().lstrip("/"),
+            str(transform.child_frame_id).strip().lstrip("/"),
+        )
+
+    @staticmethod
+    def _stamp(transform):
+        stamp = transform.header.stamp
+        if hasattr(stamp, "to_sec"):
+            return float(stamp.to_sec())
+        if hasattr(stamp, "secs") and hasattr(stamp, "nsecs"):
+            return float(stamp.secs) + 1.0e-9 * float(stamp.nsecs)
+        return float(stamp)
+
+    def put(self, transform, authority):
+        key = self._key(transform)
+        if not key[0] or not key[1]:
+            return False
+        with self._lock:
+            existing = self._latest.get(key)
+            if existing is not None and self._stamp(transform) < self._stamp(existing[0]):
+                return False
+            self._latest[key] = (transform, str(authority))
+        return True
+
+    def drain(self):
+        with self._lock:
+            items = tuple(self._latest[key] for key in sorted(self._latest))
+            self._latest.clear()
+        return items
+
+    def __len__(self):
+        with self._lock:
+            return len(self._latest)
+
+
 def parse_frame_prefixes(value):
     if value is None:
         return ()

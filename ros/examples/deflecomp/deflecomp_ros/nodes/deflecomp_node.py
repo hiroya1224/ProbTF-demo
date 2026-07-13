@@ -14,7 +14,7 @@ from deflecomp_core.estimator.stiffness_wekf import MultiFrameStiffnessWEKF
 from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
 from deflecomp_core.model.sensitivity import SensitivityCalculator
 from deflecomp_core.model.spring import spring_model_from_name
-from deflecomp_core.observation.imu_buffer import ImuBuffer
+from deflecomp_core.observation.imu_buffer import ImuBuffer, imu_sample_is_quasi_static
 from deflecomp_core.observation.imu_frame_config import ImuFrameConfig, resolve_imu_frame_configs
 from deflecomp_core.observation.imu_observation import FrameImuObservation, ImuObservationBuilder
 from deflecomp_core.pipeline.compensator import DeflectionCompensator
@@ -79,6 +79,10 @@ class DeflecompNode:
         theta_cmd_tau: float,
         theta_cmd_l1_regularization: bool,
         theta_cmd_l1_regularization_weight: float,
+        theta_cmd_equilibrium_refine: bool,
+        theta_cmd_equilibrium_refine_maxiter: int,
+        theta_cmd_equilibrium_refine_tol: float,
+        theta_cmd_equilibrium_refine_max_delta: float,
         equilibrium_refine: bool,
         equilibrium_refine_maxiter: int,
         equilibrium_refine_tol: float,
@@ -95,6 +99,11 @@ class DeflecompNode:
         particle_scan_reset_std: float,
         particle_scan_backend: str,
         particle_pursuit_mixture_weight: float,
+        imu_gravity_norm: float,
+        imu_acceleration_tolerance: float,
+        imu_max_angular_speed: float,
+        imu_settle_time: float,
+        imu_max_age: float,
     ) -> None:
         self.robot = RobotArm(urdf_path)
         self.spring_model = spring_model_from_name(spring_model_name, self.robot.model_joint_types)
@@ -159,6 +168,10 @@ class DeflecompNode:
                 "theta_cmd_tau": float(theta_cmd_tau),
                 "theta_cmd_l1_regularization": bool(theta_cmd_l1_regularization),
                 "theta_cmd_l1_regularization_weight": float(theta_cmd_l1_regularization_weight),
+                "theta_cmd_equilibrium_refine": bool(theta_cmd_equilibrium_refine),
+                "theta_cmd_equilibrium_refine_maxiter": int(theta_cmd_equilibrium_refine_maxiter),
+                "theta_cmd_equilibrium_refine_tol": float(theta_cmd_equilibrium_refine_tol),
+                "theta_cmd_equilibrium_refine_max_delta": float(theta_cmd_equilibrium_refine_max_delta),
                 "kp_lim": tuple(float(v) for v in kp_lim),
                 "update_stiffness": bool(update_stiffness),
                 "project_unobservable_feedforward": bool(project_unobservable_feedforward),
@@ -188,11 +201,17 @@ class DeflecompNode:
         self.kp_lim = kp_lim
         self.dt = float(dt)
         self.publish_kp_exec = bool(publish_kp_exec)
+        self.imu_gravity_norm = float(imu_gravity_norm)
+        self.imu_acceleration_tolerance = float(imu_acceleration_tolerance)
+        self.imu_max_angular_speed = float(imu_max_angular_speed)
+        self.imu_settle_time = max(0.0, float(imu_settle_time))
+        self.imu_max_age = max(0.0, float(imu_max_age))
 
         self.q_ref = np.zeros(self.n, dtype=float)
         self.ref_joint_positions: Dict[str, float] = {name: 0.0 for name in self.output_joint_names}
         self.have_ref = False
         self.imu_bufs: Dict[str, ImuBuffer] = {cfg.frame_id: ImuBuffer(maxlen=2000) for cfg in self.imu_frame_configs}
+        self.imu_reject_until: Dict[str, float] = {cfg.frame_id: -np.inf for cfg in self.imu_frame_configs}
 
         self.sub_ref = rospy.Subscriber(topic_ref, JointState, self.cb_ref, queue_size=50)
         self.sub_imu = rospy.Subscriber(topic_imu, Imu, self.cb_imu, queue_size=400)
@@ -237,12 +256,34 @@ class DeflecompNode:
             ],
             dtype=float,
         )
-        if np.linalg.norm(accel) < 1e-9:
+        angular_velocity = np.array(
+            [
+                msg.angular_velocity.x,
+                msg.angular_velocity.y,
+                msg.angular_velocity.z,
+            ],
+            dtype=float,
+        )
+        stamp = msg.header.stamp.to_sec() if msg.header.stamp else 0.0
+        if stamp <= 0.0:
+            stamp = rospy.get_time()
+        if not imu_sample_is_quasi_static(
+            linear_acceleration=accel,
+            angular_velocity=angular_velocity,
+            gravity_norm=self.imu_gravity_norm,
+            acceleration_tolerance=self.imu_acceleration_tolerance,
+            max_angular_speed=self.imu_max_angular_speed,
+        ):
+            self.imu_reject_until[frame_name] = max(
+                self.imu_reject_until[frame_name], stamp + self.imu_settle_time
+            )
+            self.imu_bufs[frame_name].clear()
+            return
+        if stamp < self.imu_reject_until[frame_name]:
             return
         g_sensor = -accel / (np.linalg.norm(accel) + 1e-12)
         g_dir = cfg.R_model_imu @ g_sensor
         g_dir = g_dir / (np.linalg.norm(g_dir) + 1e-12)
-        stamp = msg.header.stamp.to_sec() if msg.header.stamp else rospy.get_time()
         self.imu_bufs[frame_name].push(stamp, g_dir)
 
     def _build_observations_at(self, t_align: Optional[float]) -> List[FrameImuObservation]:
@@ -250,10 +291,21 @@ class DeflecompNode:
             return []
         observations: List[FrameImuObservation] = []
         for cfg in self.imu_frame_configs:
-            g_dir = self.imu_bufs[cfg.frame_id].interpolate(t_align)
-            if g_dir is None:
+            sample = self.imu_bufs[cfg.frame_id].interpolate_with_support_stamp(
+                t_align,
+                max_age=self.imu_max_age,
+            )
+            if sample is None:
                 continue
-            observations.append(FrameImuObservation(frame_name=cfg.model_frame, gravity_dir=g_dir, stamp=t_align))
+            g_dir, support_stamp = sample
+            observations.append(
+                FrameImuObservation(
+                    frame_name=cfg.model_frame,
+                    gravity_dir=g_dir,
+                    stamp=t_align,
+                    source_stamp=support_stamp,
+                )
+            )
         return observations
 
     def on_timer(self, event) -> None:
@@ -373,6 +425,18 @@ def main() -> None:
     theta_cmd_tau = float(rospy.get_param("~theta_cmd_tau", 0.2))
     theta_cmd_l1_regularization = parse_bool(rospy.get_param("~theta_cmd_l1_regularization", True))
     theta_cmd_l1_regularization_weight = float(rospy.get_param("~theta_cmd_l1_regularization_weight", 1e-4))
+    theta_cmd_equilibrium_refine = parse_bool(
+        rospy.get_param("~theta_cmd_equilibrium_refine", False)
+    )
+    theta_cmd_equilibrium_refine_maxiter = int(
+        rospy.get_param("~theta_cmd_equilibrium_refine_maxiter", 2)
+    )
+    theta_cmd_equilibrium_refine_tol = float(
+        rospy.get_param("~theta_cmd_equilibrium_refine_tol", 1e-5)
+    )
+    theta_cmd_equilibrium_refine_max_delta = float(
+        rospy.get_param("~theta_cmd_equilibrium_refine_max_delta", 0.25)
+    )
     equilibrium_refine = parse_bool(rospy.get_param("~equilibrium_refine", True))
     equilibrium_refine_maxiter = int(rospy.get_param("~equilibrium_refine_maxiter", 40))
     equilibrium_refine_tol = float(rospy.get_param("~equilibrium_refine_tol", 1e-12))
@@ -389,6 +453,11 @@ def main() -> None:
     particle_scan_reset_std = float(rospy.get_param("~particle_scan_reset_std", 0.10))
     particle_scan_backend = str(rospy.get_param("~particle_scan_backend", "process"))
     particle_pursuit_mixture_weight = float(rospy.get_param("~particle_pursuit_mixture_weight", 0.35))
+    imu_gravity_norm = float(rospy.get_param("~imu_gravity_norm", 9.81))
+    imu_acceleration_tolerance = float(rospy.get_param("~imu_acceleration_tolerance", 0.75))
+    imu_max_angular_speed = float(rospy.get_param("~imu_max_angular_speed", 0.20))
+    imu_settle_time = float(rospy.get_param("~imu_settle_time", 0.25))
+    imu_max_age = float(rospy.get_param("~imu_max_age", 0.10))
 
     DeflecompNode(
         urdf_path=urdf_path,
@@ -404,6 +473,10 @@ def main() -> None:
         theta_cmd_tau=theta_cmd_tau,
         theta_cmd_l1_regularization=theta_cmd_l1_regularization,
         theta_cmd_l1_regularization_weight=theta_cmd_l1_regularization_weight,
+        theta_cmd_equilibrium_refine=theta_cmd_equilibrium_refine,
+        theta_cmd_equilibrium_refine_maxiter=theta_cmd_equilibrium_refine_maxiter,
+        theta_cmd_equilibrium_refine_tol=theta_cmd_equilibrium_refine_tol,
+        theta_cmd_equilibrium_refine_max_delta=theta_cmd_equilibrium_refine_max_delta,
         equilibrium_refine=equilibrium_refine,
         equilibrium_refine_maxiter=equilibrium_refine_maxiter,
         equilibrium_refine_tol=equilibrium_refine_tol,
@@ -420,6 +493,11 @@ def main() -> None:
         particle_scan_reset_std=particle_scan_reset_std,
         particle_scan_backend=particle_scan_backend,
         particle_pursuit_mixture_weight=particle_pursuit_mixture_weight,
+        imu_gravity_norm=imu_gravity_norm,
+        imu_acceleration_tolerance=imu_acceleration_tolerance,
+        imu_max_angular_speed=imu_max_angular_speed,
+        imu_settle_time=imu_settle_time,
+        imu_max_age=imu_max_age,
     )
     rospy.spin()
 

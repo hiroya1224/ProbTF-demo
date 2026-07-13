@@ -25,6 +25,15 @@ class SharedGeometryTest(unittest.TestCase):
 
         np.testing.assert_allclose(BinghamUtils.qmat_from_quat_wxyz(quaternion), expected)
 
+    def test_deflecomp_spatial_tangent_matches_right_matrix_columns(self):
+        quaternion = np.array([0.8, -0.1, 0.3, 0.5], dtype=float)
+        expected = quat_right_matrix(quaternion, normalize_input=False)[:, 1:]
+
+        np.testing.assert_allclose(
+            BinghamUtils.spatial_qmat_from_quat_wxyz(quaternion),
+            expected,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

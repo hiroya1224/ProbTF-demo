@@ -3,6 +3,7 @@ from copy import deepcopy
 import multiprocessing as mp
 import os
 import queue
+import signal
 import threading
 import time
 from typing import Any, Dict, List, Optional, Sequence
@@ -124,6 +125,10 @@ def _build_particle_worker_estimator(config: Dict[str, Any]) -> MultiFrameStiffn
 
 
 def _particle_scan_process_main(worker_config: Dict[str, Any], task_queue, result_queue) -> None:
+    # The parent owns ROS shutdown and asks this worker to exit through its
+    # queue.  Ignoring the process-group SIGINT avoids a misleading traceback
+    # when roslaunch is stopped during an expensive candidate evaluation.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
     try:
         os.nice(int(worker_config.get("nice", 0)))
     except Exception:
@@ -190,8 +195,41 @@ class DeflectionCompensator:
             particle_config = StiffnessParticleScanConfig(
                 enabled=True,
                 window_size=int(self.config.get("particle_scan_window_size", 20)),
+                period=int(self.config.get("particle_scan_period", 5)),
                 grid_size=int(self.config.get("particle_scan_grid_size", 21)),
+                max_active_dims=int(self.config.get("particle_scan_max_active_dims", 2)),
+                info_abs=float(self.config.get("particle_scan_info_abs", 1.0e-8)),
+                info_rcond=float(self.config.get("particle_scan_info_rcond", 1.0e-4)),
+                require_information=_as_bool(
+                    self.config.get("particle_scan_require_information", True)
+                ),
+                validation_fraction=float(
+                    self.config.get("particle_scan_validation_fraction", 0.25)
+                ),
+                min_validation_records=int(
+                    self.config.get("particle_scan_min_validation_records", 4)
+                ),
+                min_gain_per_obs=float(
+                    self.config.get("particle_scan_min_gain_per_obs", 1.0)
+                ),
+                min_validation_gain_per_obs=self.config.get(
+                    "particle_scan_min_validation_gain_per_obs", None
+                ),
+                min_log_jump=float(self.config.get("particle_scan_min_log_jump", 0.02)),
+                max_log_jump=float(
+                    self.config.get("particle_scan_max_log_jump", np.log(2.0))
+                ),
+                max_equilibrium_jump=float(
+                    self.config.get("particle_scan_max_equilibrium_jump", 0.35)
+                ),
                 reset_std=float(self.config.get("particle_scan_reset_std", 0.10)),
+                cooldown=int(self.config.get("particle_scan_cooldown", 20)),
+                max_result_age_records=int(
+                    self.config.get("particle_scan_max_result_age_records", 5)
+                ),
+                max_estimator_drift=float(
+                    self.config.get("particle_scan_max_estimator_drift", 0.15)
+                ),
             )
             self.stiffness_particle_supervisor = StiffnessParticleScanSupervisor(particle_config)
 
@@ -223,6 +261,7 @@ class DeflectionCompensator:
         self.last_theta_ref: Optional[np.ndarray] = None
         self.theta_ref_for_feedforward: Optional[np.ndarray] = None
         self.last_processed_observation_stamp: Optional[float] = None
+        self.last_processed_observation_source_stamps: Dict[str, float] = {}
         self.x_exec = self.stiffness_estimator.x_est.copy()
         self.x_exec_target = self.stiffness_estimator.x_est.copy()
 
@@ -351,6 +390,14 @@ class DeflectionCompensator:
         if self.stiffness_particle_supervisor is None:
             return False
         if not self.stiffness_particle_supervisor.records:
+            return False
+        readiness = self.stiffness_particle_supervisor.readiness_reason()
+        if readiness != "ready":
+            self._particle_scan_last_result = self.stiffness_particle_supervisor.status_result(
+                reason=readiness,
+                attempted=False,
+                x_current=self.stiffness_estimator.x_est,
+            )
             return False
         if self._particle_scan_backend == "process":
             return self._start_particle_scan_process_if_idle(kp_lim)
@@ -526,7 +573,25 @@ class DeflectionCompensator:
 
     def _apply_particle_scan_result(self, scan_result, debug: Dict[str, Any]) -> bool:
         self._publish_particle_scan_debug_fields(debug, scan_result)
-        if scan_result is None or not scan_result.accepted:
+        if scan_result is None:
+            return False
+        if not scan_result.accepted:
+            self.stiffness_particle_supervisor.register_result(scan_result, applied=False)
+            return False
+        fresh, freshness_reason, freshness_debug = (
+            self.stiffness_particle_supervisor.result_freshness(
+                scan_result,
+                self.stiffness_estimator.x_est,
+            )
+        )
+        debug["particle_scan"].update(freshness_debug)
+        debug["particle_scan_result_fresh"] = bool(fresh)
+        if not fresh:
+            self.stiffness_particle_supervisor.register_result(scan_result, applied=False)
+            debug["particle_scan"]["accepted"] = False
+            debug["particle_scan"]["reason"] = freshness_reason
+            debug["particle_scan_accepted"] = False
+            debug["particle_scan_reason"] = freshness_reason
             return False
         self.stiffness_estimator.apply_particle_correction(
             x_new=scan_result.x_best,
@@ -536,6 +601,7 @@ class DeflectionCompensator:
             theta_eq=scan_result.theta_eq_best,
             kp_lim=self.config.get("kp_lim"),
         )
+        self.stiffness_particle_supervisor.register_result(scan_result, applied=True)
         self._update_exec_stiffness_target(self.stiffness_estimator.x_est)
         return True
 
@@ -561,12 +627,68 @@ class DeflectionCompensator:
         stamps = [obs.stamp for obs in imu_observations if obs.stamp is not None]
         return max(stamps) if stamps else None
 
-    def _observation_is_unprocessed(self, observation_stamp: Optional[float]) -> bool:
-        if observation_stamp is None:
-            return True
-        if self.last_processed_observation_stamp is None:
-            return True
-        return float(observation_stamp) > float(self.last_processed_observation_stamp) + 1e-12
+    def _observation_source_stamp(
+        self,
+        imu_observations: Optional[Sequence[FrameImuObservation]],
+    ) -> Optional[float]:
+        if not imu_observations:
+            return None
+        stamps = [
+            obs.source_stamp if obs.source_stamp is not None else obs.stamp
+            for obs in imu_observations
+            if obs.source_stamp is not None or obs.stamp is not None
+        ]
+        return max(stamps) if stamps else None
+
+    def _unprocessed_observations(
+        self,
+        imu_observations: Optional[Sequence[FrameImuObservation]],
+    ) -> List[FrameImuObservation]:
+        fresh: List[FrameImuObservation] = []
+        for observation in imu_observations or []:
+            source_stamp = (
+                observation.source_stamp
+                if observation.source_stamp is not None
+                else observation.stamp
+            )
+            if source_stamp is None:
+                fresh.append(observation)
+                continue
+            previous = self.last_processed_observation_source_stamps.get(
+                observation.frame_name
+            )
+            if previous is None or float(source_stamp) > float(previous) + 1e-12:
+                fresh.append(observation)
+        return fresh
+
+    def _mark_observations_processed(
+        self,
+        imu_observations: Sequence[FrameImuObservation],
+    ) -> None:
+        processed_stamps: List[float] = []
+        for observation in imu_observations:
+            source_stamp = (
+                observation.source_stamp
+                if observation.source_stamp is not None
+                else observation.stamp
+            )
+            if source_stamp is None:
+                continue
+            value = float(source_stamp)
+            previous = self.last_processed_observation_source_stamps.get(
+                observation.frame_name
+            )
+            self.last_processed_observation_source_stamps[observation.frame_name] = (
+                value if previous is None else max(float(previous), value)
+            )
+            processed_stamps.append(value)
+        if processed_stamps:
+            newest = max(processed_stamps)
+            self.last_processed_observation_stamp = (
+                newest
+                if self.last_processed_observation_stamp is None
+                else max(float(self.last_processed_observation_stamp), newest)
+            )
 
     def _observable_joint_basis(
         self,
@@ -646,8 +768,16 @@ class DeflectionCompensator:
                 self.spring_model.stiffness_diag(theta_eq, theta_cmd, kp_vec),
                 dtype=float,
             )
-            if d_tau_g.shape != (n, n) or spring_k.shape != (n,):
-                return err
+            if (
+                d_tau_g.shape != (n, n)
+                or spring_k.shape != (n,)
+                or not np.all(np.isfinite(d_tau_g))
+                or not np.all(np.isfinite(spring_k))
+            ):
+                if debug is not None:
+                    debug["theta_cmd_equilibrium_delta_valid"] = False
+                    debug["theta_cmd_equilibrium_delta_reason"] = "invalid_jacobian"
+                return np.zeros_like(err)
             j_q = d_tau_g + np.diag(spring_k)
             j_cmd = np.diag(spring_k)
             try:
@@ -655,6 +785,13 @@ class DeflectionCompensator:
             except np.linalg.LinAlgError:
                 eq_cmd_jac = np.linalg.pinv(j_q, rcond=1e-12) @ j_cmd
             delta_l2 = np.linalg.pinv(eq_cmd_jac, rcond=1e-12) @ err
+            if delta_l2.shape != err.shape or not np.all(np.isfinite(delta_l2)):
+                if debug is not None:
+                    debug["theta_cmd_equilibrium_delta_valid"] = False
+                    debug["theta_cmd_equilibrium_delta_reason"] = "invalid_solution"
+                return np.zeros_like(err)
+            if debug is not None:
+                debug["theta_cmd_equilibrium_delta_valid"] = True
             if not self._theta_cmd_l1_regularization_enabled():
                 return delta_l2
             return self._theta_cmd_l1_regularized_delta(
@@ -665,8 +802,15 @@ class DeflectionCompensator:
                 delta_seed=delta_l2,
                 debug=debug,
             )
-        except Exception:
-            return err
+        except Exception as exc:
+            if debug is not None:
+                debug["theta_cmd_equilibrium_delta_valid"] = False
+                debug["theta_cmd_equilibrium_delta_reason"] = str(exc)
+            # Refinement is opt-in and must fail closed.  Treating the joint
+            # error itself as a command correction silently assumes an
+            # identity equilibrium Jacobian and can create a large unsafe
+            # jump precisely when the model derivative is unavailable.
+            return np.zeros_like(err)
 
     def _theta_cmd_l1_regularization_enabled(self) -> bool:
         return _as_bool(self.config.get("theta_cmd_l1_regularization", True))
@@ -869,9 +1013,12 @@ class DeflectionCompensator:
     ):
         theta_cmd = np.asarray(theta_cmd_seed, dtype=float).copy()
         theta_eq = np.asarray(theta_eq_init, dtype=float).copy()
-        maxiter = 2
-        tol = 1e-5
-        max_delta = 0.0
+        maxiter = max(0, int(self.config.get("theta_cmd_equilibrium_refine_maxiter", 2)))
+        tol = max(0.0, float(self.config.get("theta_cmd_equilibrium_refine_tol", 1e-5)))
+        max_delta = max(
+            0.0,
+            float(self.config.get("theta_cmd_equilibrium_refine_max_delta", 0.25)),
+        )
         final_err = np.inf
         applied_iters = 0
 
@@ -894,15 +1041,17 @@ class DeflectionCompensator:
             )
             if not np.all(np.isfinite(delta_cmd)):
                 break
+            # Always enforce the configured per-joint trust region.  In
+            # particular, zero means that no correction is allowed; it must
+            # never recover the former "unbounded" behavior.
+            delta_cmd = np.clip(delta_cmd, -max_delta, max_delta)
             if float(np.linalg.norm(delta_cmd)) <= 1e-12:
                 break
-            if max_delta > 0.0:
-                delta_cmd = np.clip(delta_cmd, -max_delta, max_delta)
             theta_cmd = theta_cmd + delta_cmd
             applied_iters += 1
 
         debug["theta_cmd_equilibrium_refine_iters"] = int(applied_iters)
-        debug["theta_cmd_equilibrium_refine_error_norm"] = float(final_err)
+        debug["theta_cmd_equilibrium_refine_raw_error_norm"] = float(final_err)
         debug["theta_cmd_equilibrium_refine_enabled"] = True
         return theta_cmd, theta_eq
 
@@ -931,26 +1080,32 @@ class DeflectionCompensator:
 
         update_stiffness = _as_bool(self.config.get("update_stiffness", True))
         observation_stamp = self._observation_stamp(imu_observations)
+        observation_source_stamp = self._observation_source_stamp(imu_observations)
+        debug["observation_stamp"] = observation_stamp
+        debug["observation_source_stamp"] = observation_source_stamp
         debug["used_theta_cmd_sent_for_update"] = False
         if update_stiffness and self.last_theta_cmd is not None and imu_observations:
-            if not self._observation_is_unprocessed(observation_stamp):
+            fresh_observations = self._unprocessed_observations(imu_observations)
+            debug["fresh_observation_count"] = len(fresh_observations)
+            if not fresh_observations:
                 debug["est_update_skipped_reason"] = "duplicate_observation"
             else:
-                a_map = self.observation_builder.build_A_map(imu_observations)
+                a_map = self.observation_builder.build_A_map(fresh_observations)
                 debug["observation_count"] = len(a_map)
                 if not a_map:
                     debug["est_update_skipped_reason"] = "empty_observation_map"
                 else:
                     theta_cmd_sent = self.last_theta_cmd.copy()
                     debug["used_theta_cmd_sent_for_update"] = True
-                    if observation_stamp is not None:
-                        self.last_processed_observation_stamp = float(observation_stamp)
-                    else:
-                        self.last_processed_observation_stamp = None
+                    update_observation_stamp = self._observation_stamp(fresh_observations)
                     theta_init = (
                         self.stiffness_estimator.last_theta_eq
                         if self.stiffness_estimator.last_theta_eq is not None
-                        else theta_ref
+                        else (
+                            self.last_theta_eq
+                            if self.last_theta_eq is not None
+                            else theta_ref
+                        )
                     )
                     kp_lim = self.config.get("kp_lim")
                     update_result = self.stiffness_estimator.update_with_multi(
@@ -959,13 +1114,18 @@ class DeflectionCompensator:
                         theta_init_eq_pred=theta_init,
                         kp_lim=kp_lim,
                     )
+                    # Mark support timestamps only after the estimator call
+                    # returns.  A solver/update exception must not consume the
+                    # sample and silently prevent a later retry.
+                    self._mark_observations_processed(fresh_observations)
                     debug.update(update_result.debug)
                     if self.stiffness_particle_supervisor is not None:
                         self.stiffness_particle_supervisor.add_record(
                             theta_cmd_sent=theta_cmd_sent,
                             A_map=a_map,
                             theta_init_eq_pred=theta_init,
-                            stamp=observation_stamp,
+                            stamp=update_observation_stamp,
+                            information=update_result.information,
                         )
                         self._start_particle_scan_if_idle(kp_lim)
                         if "particle_scan" not in debug:
@@ -986,12 +1146,47 @@ class DeflectionCompensator:
         kp_exec_target = self.kp_exec_target
         theta_gravity = self._theta_ref_for_gravity(theta_ref, imu_observations, debug)
         tau_gravity = self.robot.tau_gravity(theta_gravity)
-        theta_cmd_raw = self._theta_cmd_from_theta_ref(
+        theta_cmd_inverse = self._theta_cmd_from_theta_ref(
             tau_gravity=tau_gravity,
             theta_ref=theta_ref,
             kp_vec=kp_exec,
             debug=debug,
         )
+
+        # The equilibrium-based inverse is an optional raw-command generator,
+        # never a post-filter correction.  Applying it after the output filter
+        # used to overwrite the command that the filter had just produced and
+        # made theta_cmd_tau ineffective.  It is also incompatible with the
+        # observable-feedforward projection: solving F(theta_ref, cmd, K)=0
+        # with the full model would reconstruct precisely the components that
+        # the projection intentionally held.  Keep that combination disabled.
+        refine_requested = _as_bool(
+            self.config.get("theta_cmd_equilibrium_refine", False)
+        )
+        projection_enabled = _as_bool(
+            self.config.get("project_unobservable_feedforward", True)
+        )
+        refine_enabled = bool(refine_requested and not projection_enabled)
+        debug["theta_cmd_equilibrium_refine_requested"] = bool(refine_requested)
+        debug["theta_cmd_equilibrium_refine_enabled"] = bool(refine_enabled)
+        debug["theta_cmd_equilibrium_refine_iters"] = 0
+        if refine_requested and projection_enabled:
+            debug["theta_cmd_equilibrium_refine_skipped_reason"] = (
+                "observable_feedforward_projection_enabled"
+            )
+
+        theta_cmd_raw = np.asarray(theta_cmd_inverse, dtype=float).copy()
+        if refine_enabled:
+            theta_eq_raw_init = (
+                self.last_theta_eq if self.last_theta_eq is not None else theta_ref
+            )
+            theta_cmd_raw, _ = self._refine_theta_cmd_for_equilibrium_ref(
+                theta_cmd_seed=theta_cmd_raw,
+                theta_ref=theta_ref,
+                kp_vec=kp_exec,
+                theta_eq_init=theta_eq_raw_init,
+                debug=debug,
+            )
 
         if self.last_theta_cmd is not None:
             tau = float(self.config.get("theta_cmd_tau", 0.2))
@@ -1007,16 +1202,23 @@ class DeflectionCompensator:
         else:
             theta_cmd = theta_cmd_raw
 
+        # theta_eq_hat must describe the command actually returned/published.
+        # Prediction is deliberately read-only: it must not alter theta_cmd.
         theta_eq_init = (
             self.last_theta_eq if self.last_theta_eq is not None else theta_ref
         )
-        theta_cmd, theta_eq_hat = self._refine_theta_cmd_for_equilibrium_ref(
-            theta_cmd_seed=theta_cmd,
-            theta_ref=theta_ref,
+        theta_eq_hat = self.equilibrium_solver.solve(
+            theta_cmd=theta_cmd,
             kp_vec=kp_exec,
-            theta_eq_init=theta_eq_init,
-            debug=debug,
+            theta_init=theta_eq_init,
         )
+        sent_equilibrium_error_norm = float(np.linalg.norm(theta_ref - theta_eq_hat))
+        debug["theta_cmd_sent_equilibrium_error_norm"] = sent_equilibrium_error_norm
+        # Backward-compatible diagnostic name.  This is now the prediction
+        # error for the sent command, not a target that post-filter code drives
+        # to zero.
+        debug["theta_cmd_equilibrium_refine_error_norm"] = sent_equilibrium_error_norm
+        debug["theta_cmd_post_filter_correction_norm"] = 0.0
         tau_hat = self.robot.tau_gravity(theta_eq_hat)
 
         self.last_theta_cmd = theta_cmd.copy()

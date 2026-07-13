@@ -6,6 +6,9 @@
   <arg name="probtf_static_topic" default="/probtf_static" />
   <arg name="max_records_per_edge" default="1000" />
   <arg name="tf_import_child_prefixes" default="" />
+  <!-- 0 preserves lossless import. Positive values coalesce each edge to its
+       latest sample before deterministic TF -> Prob-TF conversion. -->
+  <arg name="tf_import_max_rate_hz" default="0.0" />
 
   <node pkg="probtf_core" type="probtf_bridge_node.py" name="probtf_bridge" output="screen">
     <param name="import_tf" value="$(arg import_tf)" />
@@ -15,5 +18,6 @@
     <param name="probtf_static_topic" value="$(arg probtf_static_topic)" />
     <param name="max_records_per_edge" value="$(arg max_records_per_edge)" />
     <param name="tf_import_child_prefixes" value="$(arg tf_import_child_prefixes)" />
+    <param name="tf_import_max_rate_hz" value="$(arg tf_import_max_rate_hz)" />
   </node>
 </launch>

@@ -513,6 +513,21 @@ def test_tf_import_export_is_exact_dirac_and_bridge_prevents_loops():
     assert imported is not None
 
 
+def test_tf_import_can_skip_duplicate_bridge_history_for_forward_only_use():
+    tf_message = TransformStampedMessage()
+    tf_message.header.frame_id = "world"
+    tf_message.header.stamp = Stamp(3.0)
+    tf_message.child_frame_id = "camera"
+
+    listener = ProbTfListener(ProbTfGraph())
+    bridge = ProbTfTfBridge(listener, store_imports=False)
+
+    imported = bridge.import_transform(tf_message, "external")
+
+    assert imported is not None
+    assert listener.frames == frozenset()
+
+
 def test_tf_export_requires_explicit_stochastic_projection_policy():
     record = _mixture_record(is_static=False)
     with pytest.raises(ValueError, match="explicit representative"):

@@ -321,10 +321,15 @@ class MultiFrameStiffnessWEKF:
     ) -> Dict[str, Any]:
         A_sym = 0.5 * (A_f + A_f.T)
         z_f = self.robot.frame_quaternion_wxyz_base(theta_eq, fid)
-        Qz_f = BinghamUtils.qmat_from_quat_wxyz(z_f)
-        J_w_f = self.robot.frame_angular_jacobian_world(theta_eq, fid)
+        # z_f represents R_base,frame.  Its spatial tangent must be paired
+        # with the relative angular Jacobian expressed in base coordinates.
+        # The former implementation paired a body/local tangent (left
+        # quaternion multiplication) with a WORLD Jacobian; that coordinate
+        # mismatch corrupted both the stiffness gradient and information.
+        Qz_f = BinghamUtils.spatial_qmat_from_quat_wxyz(z_f)
+        J_b_f = self.robot.frame_angular_jacobian_base(theta_eq, fid)
 
-        M_f = Qz_f @ (J_w_f @ theta_x)
+        M_f = Qz_f @ (J_b_f @ theta_x)
         grad_f = -(M_f.T @ (A_sym @ z_f))
         # With dz/dx ~= -0.5 * M_f, Hessian(ell) ~= 0.5 * M_f.T A M_f.
         hess_f = 0.5 * (M_f.T @ (A_sym @ M_f))

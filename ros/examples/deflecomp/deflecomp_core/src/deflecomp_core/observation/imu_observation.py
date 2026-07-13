@@ -13,6 +13,7 @@ class FrameImuObservation:
     frame_name: str
     gravity_dir: np.ndarray
     stamp: Optional[float] = None
+    source_stamp: Optional[float] = None
 
 
 class ImuObservationBuilder:

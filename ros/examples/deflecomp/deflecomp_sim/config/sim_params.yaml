@@ -1,4 +1,7 @@
 dt: 0.001
+# Dynamics still integrate at dt, while ROS state/IMU output is decimated to a
+# rate useful to the 50 Hz controller and robot_state_publisher.
+publish_rate_hz: 100.0
 kp_true: [5.0, 5.0, 5.0, 10.0, 20.0, 20.0]
 zeta: 0.9
 vel_limit: 4.0
@@ -9,8 +12,8 @@ external_wrench_topic: /deflecomp_sim/external_wrench
 # <= 0 keeps the last commanded wrench until a clear command is received.
 external_wrench_timeout: 0.0
 imu_frames: []
-integrator: rk4
-ref_tau: 0.04
+integrator: semi_implicit
+ref_tau: 0.1
 ref_max_vel: 4.0
 eq_mode: dynamic
 tau_eq: 0.05

@@ -176,9 +176,10 @@ def _tf_signature(message, is_static):
 class ProbTfTfBridge:
     """Stateful loop prevention around TF import/export conversion."""
 
-    def __init__(self, listener, own_authority="probtf_tf_bridge"):
+    def __init__(self, listener, own_authority="probtf_tf_bridge", store_imports=True):
         self.listener = listener
         self.own_authority = str(own_authority)
+        self.store_imports = bool(store_imports)
         self._exported_signatures = set()
 
     def import_transform(self, message, authority, is_static=False):
@@ -186,7 +187,8 @@ class ProbTfTfBridge:
         if str(authority) == self.own_authority or signature in self._exported_signatures:
             return None
         record = deterministic_tf_to_record(message, authority, is_static)
-        self.listener.graph.insert(record)
+        if self.store_imports:
+            self.listener.graph.insert(record)
         return record
 
     def import_tf_array(self, message, authority, is_static=False):
@@ -203,4 +205,3 @@ class ProbTfTfBridge:
         result = record_to_deterministic_tf(record, **kwargs)
         self._exported_signatures.add(_tf_signature(result.message, record.is_static))
         return result
-

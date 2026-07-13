@@ -16,6 +16,12 @@ class FakeRobot:
         return np.zeros((theta.size, theta.size), dtype=float)
 
 
+class FakeBrokenDerivativeRobot(FakeRobot):
+    def d_tau_gravity(self, theta):
+        del theta
+        raise RuntimeError("derivative unavailable")
+
+
 class FakeSpring:
     def torque(self, theta, theta_cmd, kp_vec):
         return np.asarray(kp_vec, dtype=float) * (
@@ -28,6 +34,12 @@ class FakeSpring:
     def stiffness_diag(self, theta, theta_cmd, kp_vec):
         del theta, theta_cmd
         return np.asarray(kp_vec, dtype=float)
+
+
+class FakeBiasedFeedforwardSpring(FakeSpring):
+    def theta_cmd_from_theta_ref(self, tau_gravity, theta_ref, kp_vec):
+        del tau_gravity, kp_vec
+        return np.asarray(theta_ref, dtype=float).copy()
 
 
 class FakeEquilibriumSolver:
@@ -58,8 +70,11 @@ class FakeLoadedEquilibriumSolver(FakeEquilibriumSolver):
 
 
 class FakeObservationBuilder:
+    def __init__(self):
+        self.calls = []
+
     def build_A_map(self, observations):
-        del observations
+        self.calls.append(list(observations))
         return {0: np.eye(4)}
 
 
@@ -146,14 +161,14 @@ class FakeParticleStiffnessEstimator:
             kp_est=self.kp_est.copy(),
             P_est=self.P_est.copy(),
             gradient=np.ones(2),
-            information=np.zeros((2, 2), dtype=float),
-            obs_rank=0,
+            information=np.eye(2, dtype=float),
+            obs_rank=2,
             update_applied=True,
             update_skipped_reason=None,
             debug={
                 "est_update_applied": True,
                 "est_update_skipped_reason": None,
-                "est_obs_rank": 0,
+                "est_obs_rank": 2,
             },
         )
 
@@ -248,8 +263,12 @@ def make_particle_compensator():
             "theta_cmd_tau": 0.0,
             "project_unobservable_feedforward": False,
             "particle_scan_enabled": True,
-            "particle_scan_window_size": 1,
+            "particle_scan_window_size": 2,
             "particle_scan_grid_size": 2,
+            "particle_scan_max_active_dims": 2,
+            "particle_scan_min_validation_records": 1,
+            "particle_scan_min_gain_per_obs": 0.1,
+            "particle_scan_max_log_jump": float(np.log(2.0)),
             "particle_scan_reset_std": 0.10,
             "particle_scan_backend": "thread",
             "particle_pursuit_mixture_weight": 0.25,
@@ -271,6 +290,9 @@ class KExecSeparationTests(unittest.TestCase):
 
         self.assertEqual(len(estimator.update_calls), 1)
         self.assertTrue(np.allclose(estimator.update_calls[0]["theta_cmd_sent"], sent_cmd))
+        self.assertTrue(
+            np.allclose(estimator.update_calls[0]["theta_init_eq_pred"], first.theta_eq_hat)
+        )
         self.assertTrue(second.debug["used_theta_cmd_sent_for_update"])
         self.assertTrue(np.allclose(second.kp_est, np.array([100.0, 100.0])))
         self.assertTrue(np.allclose(second.kp_exec_target, np.array([100.0, 100.0])))
@@ -291,53 +313,167 @@ class KExecSeparationTests(unittest.TestCase):
         self.assertEqual(third.debug["est_update_skipped_reason"], "duplicate_observation")
         self.assertFalse(third.debug["used_theta_cmd_sent_for_update"])
 
+    def test_same_imu_source_is_not_reused_under_a_new_alignment_stamp(self):
+        comp, estimator, _ = make_compensator()
+        theta_ref = np.array([0.0, 0.0], dtype=float)
+        first_observation = [
+            FrameImuObservation(
+                frame_name="f",
+                gravity_dir=np.array([0.0, 0.0, -1.0]),
+                stamp=1.0,
+                source_stamp=0.95,
+            )
+        ]
+        held_observation = [
+            FrameImuObservation(
+                frame_name="f",
+                gravity_dir=np.array([0.0, 0.0, -1.0]),
+                stamp=1.1,
+                source_stamp=0.95,
+            )
+        ]
+
+        comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.0)
+        comp.step(
+            theta_ref=theta_ref,
+            imu_observations=first_observation,
+            dt=0.1,
+            stamp=0.1,
+        )
+        held = comp.step(
+            theta_ref=theta_ref,
+            imu_observations=held_observation,
+            dt=0.1,
+            stamp=0.2,
+        )
+
+        self.assertEqual(len(estimator.update_calls), 1)
+        self.assertEqual(held.debug["est_update_skipped_reason"], "duplicate_observation")
+        self.assertEqual(held.debug["observation_stamp"], 1.1)
+        self.assertEqual(held.debug["observation_source_stamp"], 0.95)
+
+    def test_stale_frame_is_excluded_when_another_imu_frame_advances(self):
+        comp, estimator, _ = make_compensator()
+        theta_ref = np.zeros(2, dtype=float)
+        first = [
+            FrameImuObservation("frame_a", np.array([0.0, 0.0, -1.0]), 1.0, 1.0),
+            FrameImuObservation("frame_b", np.array([0.0, 0.0, -1.0]), 1.0, 1.0),
+        ]
+        partially_fresh = [
+            FrameImuObservation("frame_a", np.array([0.0, 0.0, -1.0]), 1.1, 1.1),
+            FrameImuObservation("frame_b", np.array([0.0, 0.0, -1.0]), 1.1, 1.0),
+        ]
+
+        comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.0)
+        comp.step(theta_ref=theta_ref, imu_observations=first, dt=0.1, stamp=0.1)
+        result = comp.step(
+            theta_ref=theta_ref,
+            imu_observations=partially_fresh,
+            dt=0.1,
+            stamp=0.2,
+        )
+
+        self.assertEqual(len(estimator.update_calls), 2)
+        self.assertEqual(result.debug["fresh_observation_count"], 1)
+        self.assertEqual(
+            [observation.frame_name for observation in comp.observation_builder.calls[-1]],
+            ["frame_a"],
+        )
+
+    def test_failed_estimator_update_does_not_consume_imu_source_stamp(self):
+        comp, estimator, _ = make_compensator()
+        theta_ref = np.zeros(2, dtype=float)
+        observation = [
+            FrameImuObservation(
+                frame_name="f",
+                gravity_dir=np.array([0.0, 0.0, -1.0]),
+                stamp=1.0,
+                source_stamp=0.95,
+            )
+        ]
+        original_update = estimator.update_with_multi
+        attempts = {"count": 0}
+
+        def fail_once(*args, **kwargs):
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise RuntimeError("transient solver failure")
+            return original_update(*args, **kwargs)
+
+        estimator.update_with_multi = fail_once
+        comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.0)
+
+        with self.assertRaisesRegex(RuntimeError, "transient solver failure"):
+            comp.step(
+                theta_ref=theta_ref,
+                imu_observations=observation,
+                dt=0.1,
+                stamp=0.1,
+            )
+        self.assertNotIn("f", comp.last_processed_observation_source_stamps)
+
+        retried = comp.step(
+            theta_ref=theta_ref,
+            imu_observations=observation,
+            dt=0.1,
+            stamp=0.2,
+        )
+
+        self.assertEqual(attempts["count"], 2)
+        self.assertTrue(retried.debug["used_theta_cmd_sent_for_update"])
+        self.assertEqual(comp.last_processed_observation_source_stamps["f"], 0.95)
+
     def test_particle_scan_correction_updates_est_target_without_exec_jump(self):
         comp, estimator, _ = make_particle_compensator()
         theta_ref = np.array([0.0, 0.0], dtype=float)
 
         comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.0)
-        obs = [FrameImuObservation(frame_name="f", gravity_dir=np.array([0.0, 0.0, -1.0]), stamp=1.0)]
-        second = comp.step(theta_ref=theta_ref, imu_observations=obs, dt=0.1, stamp=0.1)
+        obs_first = [FrameImuObservation(frame_name="f", gravity_dir=np.array([0.0, 0.0, -1.0]), stamp=1.0)]
+        comp.step(theta_ref=theta_ref, imu_observations=obs_first, dt=0.1, stamp=0.1)
+        obs_second = [FrameImuObservation(frame_name="f", gravity_dir=np.array([0.0, 0.0, -1.0]), stamp=2.0)]
+        scan_started = comp.step(theta_ref=theta_ref, imu_observations=obs_second, dt=0.1, stamp=0.2)
         self.assertEqual(len(estimator.correction_calls), 0)
-        self.assertTrue(second.debug["particle_scan_attempted"])
+        self.assertTrue(scan_started.debug["particle_scan_attempted"])
 
         self.assertTrue(comp.wait_for_particle_scan(timeout=1.0))
-        third = comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.2)
+        applied = comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.3)
 
         x_zealot = np.log(np.array([100.0, 100.0], dtype=float))
         x_pursuit = np.log(np.array([200.0, 100.0], dtype=float))
         expected_x = 0.75 * x_zealot + 0.25 * x_pursuit
-        self.assertEqual(len(estimator.update_calls), 1)
+        self.assertEqual(len(estimator.update_calls), 2)
         self.assertEqual(len(estimator.correction_calls), 1)
-        self.assertTrue(third.debug["particle_scan_attempted"])
-        self.assertTrue(third.debug["particle_scan_accepted"])
+        self.assertTrue(applied.debug["particle_scan_attempted"])
+        self.assertTrue(applied.debug["particle_scan_accepted"])
         self.assertTrue(np.allclose(estimator.x_est, expected_x))
-        self.assertTrue(np.allclose(third.kp_est, np.exp(expected_x)))
-        self.assertTrue(np.allclose(third.kp_exec_target, third.kp_est))
-        self.assertFalse(np.allclose(third.kp_exec, third.kp_est))
-        self.assertTrue(np.all(third.kp_exec > np.array([10.0, 10.0])))
-        self.assertTrue(np.all(third.kp_exec < third.kp_exec_target))
+        self.assertTrue(np.allclose(applied.kp_est, np.exp(expected_x)))
+        self.assertTrue(np.allclose(applied.kp_exec_target, applied.kp_est))
+        self.assertFalse(np.allclose(applied.kp_exec, applied.kp_est))
+        self.assertTrue(np.all(applied.kp_exec > np.array([10.0, 10.0])))
+        self.assertTrue(np.all(applied.kp_exec < applied.kp_exec_target))
         self.assertAlmostEqual(estimator.correction_calls[0]["pursuit_mixture_weight"], 0.25)
 
-    def test_particle_scan_restarts_without_waiting_for_new_observation(self):
+    def test_particle_scan_does_not_restart_without_new_observation(self):
         comp, estimator, _ = make_particle_compensator()
         theta_ref = np.array([0.0, 0.0], dtype=float)
 
         comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.0)
-        obs = [FrameImuObservation(frame_name="f", gravity_dir=np.array([0.0, 0.0, -1.0]), stamp=1.0)]
-        comp.step(theta_ref=theta_ref, imu_observations=obs, dt=0.1, stamp=0.1)
-
-        self.assertTrue(comp.wait_for_particle_scan(timeout=1.0))
-        comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.2)
-        self.assertEqual(len(estimator.update_calls), 1)
-        self.assertEqual(len(estimator.correction_calls), 1)
+        obs_first = [FrameImuObservation(frame_name="f", gravity_dir=np.array([0.0, 0.0, -1.0]), stamp=1.0)]
+        comp.step(theta_ref=theta_ref, imu_observations=obs_first, dt=0.1, stamp=0.1)
+        obs_second = [FrameImuObservation(frame_name="f", gravity_dir=np.array([0.0, 0.0, -1.0]), stamp=2.0)]
+        comp.step(theta_ref=theta_ref, imu_observations=obs_second, dt=0.1, stamp=0.2)
 
         self.assertTrue(comp.wait_for_particle_scan(timeout=1.0))
         comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.3)
-        self.assertEqual(len(estimator.update_calls), 1)
-        self.assertEqual(len(estimator.correction_calls), 2)
+        self.assertEqual(len(estimator.update_calls), 2)
+        self.assertEqual(len(estimator.correction_calls), 1)
 
-    def test_command_refinement_tracks_reference_with_equilibrium_not_command(self):
+        self.assertTrue(comp.wait_for_particle_scan(timeout=1.0))
+        comp.step(theta_ref=theta_ref, imu_observations=None, dt=0.1, stamp=0.4)
+        self.assertEqual(len(estimator.update_calls), 2)
+        self.assertEqual(len(estimator.correction_calls), 1)
+
+    def test_equilibrium_prediction_does_not_bypass_command_filter(self):
         estimator = FakeStiffnessEstimator()
         solver = FakeLoadedEquilibriumSolver()
         comp = DeflectionCompensator(
@@ -359,9 +495,155 @@ class KExecSeparationTests(unittest.TestCase):
         comp.step(theta_ref=np.array([0.0, 0.0], dtype=float), imu_observations=None, dt=0.1, stamp=0.0)
         result = comp.step(theta_ref=np.array([1.0, 1.0], dtype=float), imu_observations=None, dt=0.1, stamp=0.1)
 
-        self.assertTrue(np.allclose(result.theta_eq_hat, np.array([1.0, 1.0]), atol=1e-8))
-        self.assertFalse(np.allclose(result.theta_cmd, np.array([1.0, 1.0]), atol=1e-8))
-        self.assertLess(result.debug["theta_cmd_equilibrium_refine_error_norm"], 1e-8)
+        alpha = 1.0 - np.exp(-0.1 / 10.0)
+        expected_cmd = np.ones(2, dtype=float) + alpha * np.ones(2, dtype=float)
+        expected_eq = expected_cmd - np.ones(2, dtype=float)
+        self.assertTrue(np.allclose(result.theta_cmd, expected_cmd, atol=1e-12))
+        self.assertTrue(np.allclose(result.theta_eq_hat, expected_eq, atol=1e-12))
+        self.assertTrue(np.allclose(solver.calls[-1]["theta_cmd"], result.theta_cmd))
+        self.assertFalse(result.debug["theta_cmd_equilibrium_refine_enabled"])
+        self.assertEqual(result.debug["theta_cmd_post_filter_correction_norm"], 0.0)
+        self.assertGreater(result.debug["theta_cmd_equilibrium_refine_error_norm"], 1.0)
+        self.assertEqual(
+            result.debug["theta_cmd_sent_equilibrium_error_norm"],
+            result.debug["theta_cmd_equilibrium_refine_error_norm"],
+        )
+
+    def test_raw_equilibrium_refinement_cannot_override_observable_projection(self):
+        estimator = FakeStiffnessEstimator()
+        solver = FakeLoadedEquilibriumSolver()
+        comp = DeflectionCompensator(
+            robot=FakeRobot(),
+            spring_model=FakeBiasedFeedforwardSpring(),
+            stiffness_estimator=estimator,
+            equilibrium_solver=solver,
+            observation_builder=FakeObservationBuilder(),
+            config={
+                "kp_lim": (1.0, 500.0),
+                "kp_exec_tau": 1.0,
+                "max_log_kp_exec_step": 0.0,
+                "theta_cmd_tau": 10.0,
+                "theta_cmd_l1_regularization": False,
+                "theta_cmd_equilibrium_refine": True,
+                "project_unobservable_feedforward": True,
+            },
+        )
+
+        comp.step(theta_ref=np.array([0.0, 0.0], dtype=float), imu_observations=None, dt=0.1, stamp=0.0)
+        result = comp.step(theta_ref=np.array([1.0, 1.0], dtype=float), imu_observations=None, dt=0.1, stamp=0.1)
+
+        self.assertTrue(result.debug["theta_cmd_equilibrium_refine_requested"])
+        self.assertFalse(result.debug["theta_cmd_equilibrium_refine_enabled"])
+        self.assertEqual(
+            result.debug["theta_cmd_equilibrium_refine_skipped_reason"],
+            "observable_feedforward_projection_enabled",
+        )
+        self.assertEqual(result.debug["theta_cmd_equilibrium_refine_iters"], 0)
+        self.assertEqual(result.debug["theta_cmd_post_filter_correction_norm"], 0.0)
+        alpha = 1.0 - np.exp(-0.1 / 10.0)
+        self.assertTrue(np.allclose(result.theta_cmd_raw, np.ones(2), atol=1e-12))
+        self.assertTrue(
+            np.allclose(result.theta_cmd, np.ones(2) * alpha, atol=1e-12)
+        )
+
+    def test_opt_in_equilibrium_refinement_runs_before_command_filter(self):
+        estimator = FakeStiffnessEstimator()
+        solver = FakeLoadedEquilibriumSolver()
+        comp = DeflectionCompensator(
+            robot=FakeRobot(),
+            spring_model=FakeBiasedFeedforwardSpring(),
+            stiffness_estimator=estimator,
+            equilibrium_solver=solver,
+            observation_builder=FakeObservationBuilder(),
+            config={
+                "kp_lim": (1.0, 500.0),
+                "kp_exec_tau": 1.0,
+                "max_log_kp_exec_step": 0.0,
+                "theta_cmd_tau": 10.0,
+                "theta_cmd_l1_regularization": False,
+                "theta_cmd_equilibrium_refine": True,
+                "theta_cmd_equilibrium_refine_max_delta": 2.0,
+                "project_unobservable_feedforward": False,
+            },
+        )
+
+        comp.step(theta_ref=np.array([0.0, 0.0], dtype=float), imu_observations=None, dt=0.1, stamp=0.0)
+        result = comp.step(theta_ref=np.array([1.0, 1.0], dtype=float), imu_observations=None, dt=0.1, stamp=0.1)
+
+        alpha = 1.0 - np.exp(-0.1 / 10.0)
+        expected_raw = np.ones(2, dtype=float) * 2.0
+        expected_cmd = np.ones(2, dtype=float) + alpha * np.ones(2, dtype=float)
+        self.assertTrue(result.debug["theta_cmd_equilibrium_refine_enabled"])
+        self.assertTrue(np.allclose(result.theta_cmd_raw, expected_raw, atol=1e-12))
+        self.assertTrue(np.allclose(result.theta_cmd, expected_cmd, atol=1e-12))
+        self.assertTrue(np.allclose(solver.calls[-1]["theta_cmd"], result.theta_cmd))
+        self.assertEqual(result.debug["theta_cmd_post_filter_correction_norm"], 0.0)
+        self.assertGreater(result.debug["theta_cmd_equilibrium_refine_error_norm"], 1.0)
+
+    def test_zero_raw_refinement_delta_never_means_unbounded(self):
+        estimator = FakeStiffnessEstimator()
+        solver = FakeLoadedEquilibriumSolver()
+        comp = DeflectionCompensator(
+            robot=FakeRobot(),
+            spring_model=FakeBiasedFeedforwardSpring(),
+            stiffness_estimator=estimator,
+            equilibrium_solver=solver,
+            observation_builder=FakeObservationBuilder(),
+            config={
+                "kp_lim": (1.0, 500.0),
+                "kp_exec_tau": 1.0,
+                "max_log_kp_exec_step": 0.0,
+                "theta_cmd_tau": 0.0,
+                "theta_cmd_l1_regularization": False,
+                "theta_cmd_equilibrium_refine": True,
+                "theta_cmd_equilibrium_refine_max_delta": 0.0,
+                "project_unobservable_feedforward": False,
+            },
+        )
+
+        result = comp.step(
+            theta_ref=np.zeros(2, dtype=float),
+            imu_observations=None,
+            dt=0.1,
+            stamp=0.0,
+        )
+
+        self.assertTrue(result.debug["theta_cmd_equilibrium_refine_enabled"])
+        self.assertEqual(result.debug["theta_cmd_equilibrium_refine_iters"], 0)
+        self.assertTrue(np.allclose(result.theta_cmd_raw, np.zeros(2), atol=1e-12))
+        self.assertTrue(np.allclose(result.theta_cmd, np.zeros(2), atol=1e-12))
+
+    def test_raw_refinement_fails_closed_when_model_derivative_is_invalid(self):
+        estimator = FakeStiffnessEstimator()
+        solver = FakeLoadedEquilibriumSolver()
+        comp = DeflectionCompensator(
+            robot=FakeBrokenDerivativeRobot(),
+            spring_model=FakeBiasedFeedforwardSpring(),
+            stiffness_estimator=estimator,
+            equilibrium_solver=solver,
+            observation_builder=FakeObservationBuilder(),
+            config={
+                "kp_lim": (1.0, 500.0),
+                "kp_exec_tau": 1.0,
+                "max_log_kp_exec_step": 0.0,
+                "theta_cmd_tau": 0.0,
+                "theta_cmd_l1_regularization": False,
+                "theta_cmd_equilibrium_refine": True,
+                "theta_cmd_equilibrium_refine_max_delta": 2.0,
+                "project_unobservable_feedforward": False,
+            },
+        )
+
+        result = comp.step(
+            theta_ref=np.ones(2, dtype=float),
+            imu_observations=None,
+            dt=0.1,
+            stamp=0.0,
+        )
+
+        self.assertFalse(result.debug["theta_cmd_equilibrium_delta_valid"])
+        self.assertEqual(result.debug["theta_cmd_equilibrium_refine_iters"], 0)
+        self.assertTrue(np.allclose(result.theta_cmd_raw, np.ones(2), atol=1e-12))
 
     def test_l1_command_regularization_reduces_reference_correction(self):
         estimator = FakeStiffnessEstimator()

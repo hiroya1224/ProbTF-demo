@@ -2,6 +2,8 @@
 
 """Runtime wiring for Prob-TF v2 topics and deterministic TF bridges."""
 
+import math
+
 import rospy
 import tf2_ros
 from geometry_msgs.msg import TransformStamped
@@ -11,6 +13,7 @@ from tf2_msgs.msg import TFMessage
 from probtf.graph import ProbTfGraph
 from probtf_ros.bridge import (
     DEFAULT_MAX_RECORDS_PER_EDGE,
+    LatestTfImportBuffer,
     PROBTF_STATIC_TOPIC,
     PROBTF_TOPIC,
     ProbTfBroadcaster,
@@ -70,31 +73,52 @@ class ProbTfBridgeNode:
 
         self.import_tf = bool(rospy.get_param("~import_tf", True))
         self.export_tf = bool(rospy.get_param("~export_tf", True))
+        self.tf_import_max_rate_hz = float(
+            rospy.get_param("~tf_import_max_rate_hz", 0.0)
+        )
+        if (
+            not math.isfinite(self.tf_import_max_rate_hz)
+            or self.tf_import_max_rate_hz < 0.0
+        ):
+            raise ValueError("~tf_import_max_rate_hz must be finite and non-negative.")
         self.tf_import_child_prefixes = parse_frame_prefixes(
             rospy.get_param("~tf_import_child_prefixes", ())
         )
+        self.tf_import_buffer = LatestTfImportBuffer()
+        self.tf_import_timer = None
 
-        self.dynamic_subscriber = rospy.Subscriber(
-            probtf_topic,
-            ProbabilisticTransformStamped,
-            self._on_probtf,
-            queue_size=100,
-        )
-        self.static_subscriber = rospy.Subscriber(
-            probtf_static_topic,
-            ProbabilisticTransformArray,
-            self._on_probtf_static,
-            queue_size=1,
-        )
+        # An import-only bridge publishes records for another process and does
+        # not need to retain a duplicate local history.
+        self.tf_bridge.store_imports = self.export_tf
+
+        self.dynamic_subscriber = None
+        self.static_subscriber = None
+        if self.export_tf:
+            self.dynamic_subscriber = rospy.Subscriber(
+                probtf_topic,
+                ProbabilisticTransformStamped,
+                self._on_probtf,
+                queue_size=100,
+            )
+            self.static_subscriber = rospy.Subscriber(
+                probtf_static_topic,
+                ProbabilisticTransformArray,
+                self._on_probtf_static,
+                queue_size=1,
+            )
         self.tf_subscriber = None
         self.tf_static_subscriber = None
         if self.import_tf:
+            # Preserve the lossless legacy behaviour when coalescing is
+            # disabled.  queue_size=1 is appropriate only for latest-only
+            # import, where retaining old socket work would reintroduce lag.
+            tf_queue_size = 1 if self.tf_import_max_rate_hz > 0.0 else 100
             self.tf_subscriber = rospy.Subscriber(
                 "/tf",
                 TFMessage,
                 self._on_tf,
                 callback_args=False,
-                queue_size=100,
+                queue_size=tf_queue_size,
             )
             self.tf_static_subscriber = rospy.Subscriber(
                 "/tf_static",
@@ -103,6 +127,11 @@ class ProbTfBridgeNode:
                 callback_args=True,
                 queue_size=10,
             )
+            if self.tf_import_max_rate_hz > 0.0:
+                self.tf_import_timer = rospy.Timer(
+                    rospy.Duration.from_sec(1.0 / self.tf_import_max_rate_hz),
+                    self._flush_tf_imports,
+                )
 
     def _is_own_message(self, message):
         return _caller_id(message, "") == self.node_authority
@@ -142,6 +171,16 @@ class ProbTfBridgeNode:
 
     def _on_tf(self, message, is_static):
         authority = _caller_id(message, "unknown_tf_authority")
+        if not is_static and self.tf_import_max_rate_hz > 0.0:
+            for transform in message.transforms:
+                if child_frame_matches_prefixes(
+                    transform.child_frame_id,
+                    self.tf_import_child_prefixes,
+                ):
+                    self.tf_import_buffer.put(transform, authority)
+            return
+
+        records = []
         for transform in message.transforms:
             if not child_frame_matches_prefixes(
                 transform.child_frame_id,
@@ -150,7 +189,17 @@ class ProbTfBridgeNode:
                 continue
             record = self.tf_bridge.import_transform(transform, authority, is_static)
             if record is not None:
-                self.probtf_broadcaster.send_transform(record)
+                records.append(record)
+        self.probtf_broadcaster.send_transforms(records)
+
+    def _flush_tf_imports(self, event):
+        del event
+        records = []
+        for transform, authority in self.tf_import_buffer.drain():
+            record = self.tf_bridge.import_transform(transform, authority, False)
+            if record is not None:
+                records.append(record)
+        self.probtf_broadcaster.send_transforms(records)
 
 
 def main():

@@ -19,7 +19,22 @@ from probtf.geometry import quat_left_matrix, quat_right_matrix
 class BinghamUtils:
     @staticmethod
     def qmat_from_quat_wxyz(z: np.ndarray) -> np.ndarray:
+        """Quaternion tangent for a body/local angular velocity.
+
+        For ``z`` representing ``R_parent_child``, this matrix satisfies
+        ``z_dot = 0.5 * Q(z) * omega_child``.  Do not combine it with a
+        WORLD- or parent-expressed angular-velocity Jacobian.
+        """
         return quat_left_matrix(z, normalize_input=False)[:, 1:]
+
+    @staticmethod
+    def spatial_qmat_from_quat_wxyz(z: np.ndarray) -> np.ndarray:
+        """Quaternion tangent for a parent/spatial angular velocity.
+
+        For ``z`` representing ``R_parent_child``, this matrix satisfies
+        ``z_dot = 0.5 * Q(z) * omega_parent``.
+        """
+        return quat_right_matrix(z, normalize_input=False)[:, 1:]
 
     @staticmethod
     def _lmat(q: np.ndarray) -> np.ndarray:

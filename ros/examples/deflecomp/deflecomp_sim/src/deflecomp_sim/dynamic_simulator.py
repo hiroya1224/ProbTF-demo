@@ -19,7 +19,7 @@ class DynamicParams:
     limit_velocity: Optional[np.ndarray] = None
     limit_position_low: Optional[np.ndarray] = None
     limit_position_high: Optional[np.ndarray] = None
-    integrator: str = "rk4"
+    integrator: str = "semi_implicit"
     ref_tau: Optional[float] = 1e-4
     ref_max_vel: Optional[float] = 10.0
     eq_mode: Literal["dynamic", "relax_to_eq", "quasistatic"] = "dynamic"
@@ -211,6 +211,70 @@ class FlexibleJointSimulator:
             return np.linalg.pinv(M, rcond=1e-12) @ rhs
         return np.linalg.solve(M, rhs)
 
+    def _step_semi_implicit(
+        self,
+        dt: float,
+        q_ref_eff: np.ndarray,
+        tau_ext: Optional[np.ndarray],
+        tau_ext_fn: Optional[Callable[[np.ndarray], np.ndarray]],
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Advance one step while treating viscous damping implicitly.
+
+        The diagonal damping coefficients can be stiff relative to the light
+        wrist inertia.  Evaluating ``-D * qd`` explicitly makes the configured
+        1 ms step unstable even when the underlying continuous dynamics are
+        dissipative.  Backward Euler on damping keeps that term dissipative,
+        while the remaining forces use a symplectic step.
+        """
+        q = self.q
+        qd = self.qd
+        n = self.robot.nv
+        mass = pin.crba(self.robot.model, self.robot.data, q)
+        mass = 0.5 * (mass + mass.T)
+        bias = pin.rnea(self.robot.model, self.robot.data, q, qd, np.zeros(n, dtype=float))
+        tau_external = self._external_tau(q, tau_ext=tau_ext, tau_ext_fn=tau_ext_fn)
+        tau_spring = -self.spring_model.torque(q, q_ref_eff, self.K)
+
+        system = mass + float(dt) * np.diag(self.D)
+        momentum_next = mass @ qd + float(dt) * (tau_external + tau_spring - bias)
+
+        active = np.zeros(n, dtype=bool)
+        lower_active = np.zeros(n, dtype=bool)
+        upper_active = np.zeros(n, dtype=bool)
+        for _ in range(n + 1):
+            free = ~active
+            qd_next = np.zeros(n, dtype=float)
+            if np.any(free):
+                free_system = system[np.ix_(free, free)]
+                free_momentum = momentum_next[free]
+                if self.params.use_pinv:
+                    qd_next[free] = np.linalg.pinv(free_system, rcond=1e-12) @ free_momentum
+                else:
+                    qd_next[free] = np.linalg.solve(free_system, free_momentum)
+
+            if self.pos_lo is None or self.pos_hi is None:
+                break
+            q_trial = q + float(dt) * qd_next
+            new_lower = (
+                ((q_trial < self.pos_lo) | ((q <= self.pos_lo) & (qd_next < 0.0)))
+                & ~active
+            )
+            new_upper = (
+                ((q_trial > self.pos_hi) | ((q >= self.pos_hi) & (qd_next > 0.0)))
+                & ~active
+            )
+            if not np.any(new_lower | new_upper):
+                break
+            lower_active |= new_lower
+            upper_active |= new_upper
+            active |= new_lower | new_upper
+
+        q_next = q + float(dt) * qd_next
+        if self.pos_lo is not None and self.pos_hi is not None:
+            q_next[lower_active] = self.pos_lo[lower_active]
+            q_next[upper_active] = self.pos_hi[upper_active]
+        return q_next, qd_next
+
     def _apply_quasistatic_perturbation(self, q_eq: np.ndarray, dt: float) -> Tuple[np.ndarray, np.ndarray]:
         self._t += float(dt)
         n = q_eq.shape[0]
@@ -269,7 +333,15 @@ class FlexibleJointSimulator:
         else:
             self.qs_perturb = np.zeros(n, dtype=float)
             q_ref_eff = self._shape_reference(dt=dt, q_ref_in=q_ref)
-            if self.params.integrator.lower() == "rk4":
+            integrator = self.params.integrator.strip().lower()
+            if integrator in ("semi_implicit", "implicit_damping"):
+                q_next, qd_next = self._step_semi_implicit(
+                    dt=dt,
+                    q_ref_eff=q_ref_eff,
+                    tau_ext=tau_ext,
+                    tau_ext_fn=tau_ext_fn,
+                )
+            elif integrator == "rk4":
                 q0 = self.q.copy()
                 v0 = self.qd.copy()
 
@@ -288,6 +360,17 @@ class FlexibleJointSimulator:
                 qd_next = self.qd + dt * qdd
                 q_next = self.q + dt * qd_next
 
+        if self.vel_lim is not None:
+            if mode != "quasistatic":
+                # Enforce the velocity limit on the state transition itself.
+                # Previously q_next had already been integrated from the
+                # unbounded velocity and only the returned qd was clipped,
+                # allowing a large one-step pose jump while reporting a small
+                # velocity.  Besides violating the configured bound, that
+                # inconsistency polluted the synthetic IMU kinematics.
+                step_velocity = (q_next - self.q) / max(float(dt), 1.0e-12)
+                qd_next = np.clip(step_velocity, -self.vel_lim, self.vel_lim)
+                q_next = self.q + float(dt) * qd_next
         if self.pos_lo is not None and self.pos_hi is not None:
             q_clipped = np.minimum(np.maximum(q_next, self.pos_lo), self.pos_hi)
             if mode == "quasistatic" and q_eq_nominal is not None and qs_perturb_prev is not None:
@@ -295,8 +378,16 @@ class FlexibleJointSimulator:
                 qs_perturb = q_clipped - q_nominal_clipped
                 qd_next = (qs_perturb - qs_perturb_prev) / max(dt, 1e-9)
                 self.qs_perturb = qs_perturb.copy()
+            lower_outward = (q_clipped <= self.pos_lo) & (qd_next < 0.0)
+            upper_outward = (q_clipped >= self.pos_hi) & (qd_next > 0.0)
+            qd_next = qd_next.copy()
+            qd_next[lower_outward | upper_outward] = 0.0
             q_next = q_clipped
-        if self.vel_lim is not None:
+
+        if self.vel_lim is not None and mode == "quasistatic":
+            # Quasistatic mode intentionally teleports to the solved nominal
+            # equilibrium; qd describes only its synthetic perturbation.
+            # Apply this reporting bound after any position-limit adjustment.
             qd_next = np.clip(qd_next, -self.vel_lim, self.vel_lim)
 
         self.q = q_next

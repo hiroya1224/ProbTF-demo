@@ -1,9 +1,11 @@
 import unittest
+from pathlib import Path
 
 import numpy as np
 
 from deflecomp_core.estimator.stiffness_wekf import MultiFrameStiffnessWEKF
 from deflecomp_core.observation.bingham import BinghamUtils
+from deflecomp_core.robot.pinocchio_robot import RobotArm
 
 
 class FakeRobot:
@@ -15,7 +17,7 @@ class FakeRobot:
         del theta
         return self.frame_quaternions[fid].copy()
 
-    def frame_angular_jacobian_world(self, theta, fid):
+    def frame_angular_jacobian_base(self, theta, fid):
         del theta
         return self.frame_jacobians[fid].copy()
 
@@ -76,6 +78,120 @@ def make_estimator(
 
 
 class StiffnessWEKFLaplaceTests(unittest.TestCase):
+    def test_relative_quaternion_jacobian_matches_robot_finite_difference(self):
+        repository_root = Path(__file__).resolve().parents[2]
+        urdf = (
+            repository_root
+            / "ros"
+            / "examples"
+            / "deflecomp"
+            / "deflecomp_description"
+            / "urdf"
+            / "simple6r.urdf"
+        )
+        # A moving, rotated base frame exercises both subtraction of the base
+        # angular velocity and the WORLD-to-base coordinate conversion.
+        robot = RobotArm(str(urdf), base_link="link1")
+        fid = robot.get_frame_id(robot.tip_link_name)
+        theta = np.array([0.31, -0.27, 0.42, -0.19, 0.36, -0.24], dtype=float)
+        z_nominal = robot.frame_quaternion_wxyz_base(theta, fid)
+        jacobian_fd = np.zeros((4, robot.nv), dtype=float)
+        epsilon = 1.0e-7
+        for joint_index in range(robot.nv):
+            theta_plus = theta.copy()
+            theta_minus = theta.copy()
+            theta_plus[joint_index] += epsilon
+            theta_minus[joint_index] -= epsilon
+            z_plus = robot.frame_quaternion_wxyz_base(theta_plus, fid)
+            z_minus = robot.frame_quaternion_wxyz_base(theta_minus, fid)
+            if float(z_plus @ z_nominal) < 0.0:
+                z_plus = -z_plus
+            if float(z_minus @ z_nominal) < 0.0:
+                z_minus = -z_minus
+            jacobian_fd[:, joint_index] = (z_plus - z_minus) / (2.0 * epsilon)
+
+        jacobian_analytic = 0.5 * (
+            BinghamUtils.spatial_qmat_from_quat_wxyz(z_nominal)
+            @ robot.frame_angular_jacobian_base(theta, fid)
+        )
+        relative_error = np.linalg.norm(jacobian_analytic - jacobian_fd) / max(
+            np.linalg.norm(jacobian_fd),
+            1.0e-12,
+        )
+
+        self.assertLess(relative_error, 1.0e-6)
+
+    def test_real_robot_likelihood_gradient_and_information_match_finite_difference(self):
+        repository_root = Path(__file__).resolve().parents[2]
+        urdf = (
+            repository_root
+            / "ros"
+            / "examples"
+            / "deflecomp"
+            / "deflecomp_description"
+            / "urdf"
+            / "simple6r.urdf"
+        )
+        robot = RobotArm(str(urdf), base_link="link1")
+        fid = robot.get_frame_id(robot.tip_link_name)
+        theta = np.array([0.31, -0.27, 0.42, -0.19, 0.36, -0.24], dtype=float)
+        theta_x = np.array(
+            [
+                [0.12, -0.03, 0.00, 0.01, 0.00, 0.00],
+                [0.00, 0.16, -0.02, 0.00, 0.01, 0.00],
+                [0.01, 0.00, 0.14, -0.02, 0.00, 0.01],
+                [0.00, 0.02, 0.00, 0.11, -0.01, 0.00],
+                [0.00, 0.00, 0.01, 0.00, 0.13, -0.02],
+                [-0.01, 0.00, 0.00, 0.01, 0.00, 0.10],
+            ],
+            dtype=float,
+        )
+        factor = np.array(
+            [
+                [0.8, -0.1, 0.2, 0.0],
+                [0.1, 1.1, -0.2, 0.1],
+                [-0.2, 0.0, 0.9, 0.3],
+                [0.0, -0.1, 0.2, 1.2],
+            ],
+            dtype=float,
+        )
+        A = -(factor.T @ factor)
+        estimator, _ = make_estimator(
+            x0=np.zeros(6, dtype=float),
+            J_w=np.eye(6, dtype=float),
+            J_q=np.eye(6, dtype=float),
+            J_x=np.eye(6, dtype=float),
+        )
+        estimator.robot = robot
+
+        term = estimator._compute_frame_laplace_term(theta, fid, A, theta_x)
+        z_nominal = robot.frame_quaternion_wxyz_base(theta, fid)
+        epsilon = 1.0e-6
+        gradient_fd = np.zeros(6, dtype=float)
+        z_x_fd = np.zeros((4, 6), dtype=float)
+        for state_index in range(6):
+            delta = np.zeros(6, dtype=float)
+            delta[state_index] = epsilon
+            z_plus = robot.frame_quaternion_wxyz_base(theta - theta_x @ delta, fid)
+            z_minus = robot.frame_quaternion_wxyz_base(theta + theta_x @ delta, fid)
+            if float(z_plus @ z_nominal) < 0.0:
+                z_plus = -z_plus
+            if float(z_minus @ z_nominal) < 0.0:
+                z_minus = -z_minus
+            ell_plus = float(z_plus.T @ A @ z_plus)
+            ell_minus = float(z_minus.T @ A @ z_minus)
+            gradient_fd[state_index] = (ell_plus - ell_minus) / (2.0 * epsilon)
+            z_x_fd[:, state_index] = (z_plus - z_minus) / (2.0 * epsilon)
+        information_fd = -2.0 * (z_x_fd.T @ A @ z_x_fd)
+
+        np.testing.assert_allclose(term["gradient"], gradient_fd, rtol=2.0e-5, atol=1.0e-8)
+        np.testing.assert_allclose(
+            term["information"],
+            information_fd,
+            rtol=2.0e-5,
+            atol=1.0e-8,
+        )
+
     def test_local_laplace_terms_match_linear_model_finite_difference(self):
         z = np.array([0.91, 0.22, -0.28, 0.21], dtype=float)
         z = z / np.linalg.norm(z)
@@ -118,7 +234,7 @@ class StiffnessWEKFLaplaceTests(unittest.TestCase):
         info = terms["information"]
 
         theta_x = np.linalg.pinv(J_q, rcond=1e-12) @ J_x
-        M = BinghamUtils.qmat_from_quat_wxyz(z) @ (J_w @ theta_x)
+        M = BinghamUtils.spatial_qmat_from_quat_wxyz(z) @ (J_w @ theta_x)
 
         def ell(delta_x):
             z_local = z - 0.5 * (M @ delta_x)

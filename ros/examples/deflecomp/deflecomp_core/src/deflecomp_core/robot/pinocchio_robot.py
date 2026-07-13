@@ -96,8 +96,33 @@ class RobotArm:
     def frame_angular_jacobian_world(self, theta: np.ndarray, fid: int) -> np.ndarray:
         pin.computeJointJacobians(self.model, self.data, theta)
         pin.updateFramePlacements(self.model, self.data)
-        J6 = pin.computeFrameJacobian(self.model, self.data, theta, fid, pin.ReferenceFrame.WORLD)
+        J6 = pin.getFrameJacobian(self.model, self.data, fid, pin.ReferenceFrame.WORLD)
         return J6[3:6, :]
+
+    def frame_angular_jacobian_base(self, theta: np.ndarray, fid: int) -> np.ndarray:
+        """Relative frame angular Jacobian, expressed in the base frame.
+
+        ``frame_quaternion_wxyz_base`` represents ``R_base,frame``.  Its
+        spatial quaternion tangent therefore requires the frame angular
+        velocity relative to the selected base and expressed in that base,
+        rather than the absolute WORLD angular velocity.
+        """
+        pin.computeJointJacobians(self.model, self.data, theta)
+        pin.updateFramePlacements(self.model, self.data)
+        J_frame_world = pin.getFrameJacobian(
+            self.model,
+            self.data,
+            fid,
+            pin.ReferenceFrame.WORLD,
+        )[3:6, :]
+        J_base_world = pin.getFrameJacobian(
+            self.model,
+            self.data,
+            self.base_fid,
+            pin.ReferenceFrame.WORLD,
+        )[3:6, :]
+        R_world_base = self.data.oMf[self.base_fid].rotation
+        return R_world_base.T @ (J_frame_world - J_base_world)
 
     def gravity_dir_jacobian_in_frame(self, theta: np.ndarray, g_world: np.ndarray, fid: int) -> np.ndarray:
         self._fk_update(theta)

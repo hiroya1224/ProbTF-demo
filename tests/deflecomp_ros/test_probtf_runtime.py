@@ -123,6 +123,18 @@ def test_deflecomp_frames_launch_scopes_imported_tf_to_v2_topics():
     assert bridge_args["export_tf"] == "false"
     assert bridge_args["probtf_topic"] == "$(arg probtf_topic)"
     assert bridge_args["probtf_static_topic"] == "$(arg probtf_static_topic)"
+    assert bridge_args["tf_import_max_rate_hz"] == "$(arg probtf_tf_import_rate_hz)"
+
+    deflecomp_include = next(
+        element
+        for element in root.findall("include")
+        if "deflecomp.launch" in element.attrib.get("file", "")
+    )
+    deflecomp_args = {
+        element.attrib["name"]: element.attrib["value"]
+        for element in deflecomp_include.findall("arg")
+    }
+    assert deflecomp_args["particle_scan_enabled"] == "$(arg particle_scan_enabled)"
 
     consumer = runtime_group.find("node[@type='probtf_point_moments_node.py']")
     assert consumer is not None
@@ -161,3 +173,6 @@ def test_runtime_consumer_uses_v2_listener_without_stiffness_pose_encoding():
     assert "ProbabilisticTF" not in consumer_module + consumer_node
     assert "kp_" not in consumer_module + consumer_node + config
     assert "probtf" not in estimator_node.lower()
+    assert "marker_max_age" in consumer_node
+    assert "now - observation.resolved_stamp" in consumer_node
+    assert "_COLORS[source_index % len(_COLORS)]" in consumer_node

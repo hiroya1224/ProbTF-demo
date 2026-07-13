@@ -103,11 +103,20 @@ class SimNode:
         equilibrium_refine_tol: float,
         external_wrench_topic: str,
         external_wrench_timeout: float,
+        publish_rate_hz: float,
     ) -> None:
         self.dt = float(dt)
         self.topic_equil = topic_equil
         self.imu_topic = imu_topic
         self.external_wrench_timeout = float(external_wrench_timeout)
+        self.publish_rate_hz = float(publish_rate_hz)
+        if self.publish_rate_hz <= 0.0:
+            raise ValueError("publish_rate_hz must be positive")
+        self.publish_every_steps = max(
+            1,
+            int(round(1.0 / (self.dt * self.publish_rate_hz))),
+        )
+        self.steps_since_publish = 0
 
         self.robot = RobotArm(urdf_path)
         self.n = self.robot.nv
@@ -181,7 +190,7 @@ class SimNode:
         )
         self.timer = rospy.Timer(rospy.Duration.from_sec(self.dt), self.on_timer)
         rospy.loginfo(
-            "deflecomp_sim: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s external_wrench_topic=%s",
+            "deflecomp_sim: base=%s tip=%s joints=%s locked_joints=%s imu_frames=%s spring=%s external_wrench_topic=%s publish_rate_hz=%.3f",
             self.robot.base_link_name,
             self.robot.tip_link_name,
             ", ".join(self.joint_names),
@@ -189,6 +198,7 @@ class SimNode:
             ", ".join(f"{cfg.frame_id}->{cfg.model_frame}" for cfg in self.imu_frame_configs),
             type(self.sim.spring_model).__name__,
             external_wrench_topic,
+            1.0 / (self.publish_every_steps * self.dt),
         )
 
     def cb_cmd(self, msg: JointState) -> None:
@@ -310,6 +320,10 @@ class SimNode:
         tau_ext_fn = self._external_wrench_tau if self._external_wrench_active() else None
         q_next, qd_next = self.sim.step(dt=self.dt, q_ref=self.theta_cmd, tau_ext_fn=tau_ext_fn)
         qdd_est = (qd_next - qd_prev) / max(self.dt, 1e-9)
+        self.steps_since_publish += 1
+        if self.steps_since_publish < self.publish_every_steps:
+            return
+        self.steps_since_publish = 0
         now = rospy.Time.now()
 
         js = JointState()
@@ -337,7 +351,7 @@ def main() -> None:
     topic_equil = rospy.get_param("~topic_equil", "/joint_states")
     imu_frames = rospy.get_param("~imu_frames", rospy.get_param("~frames", ""))
     imu_topic = rospy.get_param("~topic_imu", "/imu")
-    integrator = rospy.get_param("~integrator", "rk4")
+    integrator = rospy.get_param("~integrator", "semi_implicit")
     ref_tau = float(rospy.get_param("~ref_tau", 1e-9))
     ref_max_vel = float(rospy.get_param("~ref_max_vel", 1000.0))
     eq_mode = rospy.get_param("~eq_mode", "dynamic")
@@ -353,6 +367,7 @@ def main() -> None:
     equilibrium_refine_tol = float(rospy.get_param("~equilibrium_refine_tol", 1e-12))
     external_wrench_topic = rospy.get_param("~external_wrench_topic", "/deflecomp_sim/external_wrench")
     external_wrench_timeout = float(rospy.get_param("~external_wrench_timeout", 0.0))
+    publish_rate_hz = float(rospy.get_param("~publish_rate_hz", 100.0))
 
     SimNode(
         urdf_path=urdf_path,
@@ -380,6 +395,7 @@ def main() -> None:
         equilibrium_refine_tol=equilibrium_refine_tol,
         external_wrench_topic=external_wrench_topic,
         external_wrench_timeout=external_wrench_timeout,
+        publish_rate_hz=publish_rate_hz,
     )
     rospy.spin()
 

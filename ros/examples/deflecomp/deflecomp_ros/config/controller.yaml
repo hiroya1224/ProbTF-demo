@@ -2,6 +2,13 @@ dt: 0.02
 theta_cmd_tau: 0.2
 theta_cmd_l1_regularization: false
 theta_cmd_l1_regularization_weight: 1.0e-1
+# Experimental model-inverse refinement of the unfiltered command.  This must
+# remain before theta_cmd_tau and is disabled by default: the former post-filter
+# implementation bypassed command smoothing and observable-feedforward gating.
+theta_cmd_equilibrium_refine: false
+theta_cmd_equilibrium_refine_maxiter: 2
+theta_cmd_equilibrium_refine_tol: 1.0e-5
+theta_cmd_equilibrium_refine_max_delta: 0.25
 spring_model: periodic
 equilibrium_refine: true
 equilibrium_refine_maxiter: 40

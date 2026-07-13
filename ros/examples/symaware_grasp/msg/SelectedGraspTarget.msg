@@ -1,0 +1,4 @@
+std_msgs/Header header
+string object_id
+string grasp_id
+probtf_msgs/ProbabilisticTransformStamped transform

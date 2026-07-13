@@ -1,5 +1,7 @@
 import numpy as np
 
+from probtf.provenance import ApproximationInfo, ApproximationKind
+from symaware_grasp.beliefs import make_transform_record
 from symaware_grasp.distribution_metrics import fit_bingham_from_quaternion_samples
 
 
@@ -97,3 +99,38 @@ class EndEffectorBeliefModel:
         }
         self._cache[cache_key] = estimate
         return estimate
+
+    def estimate_record(
+        self,
+        joint_positions,
+        parent_frame_id="base_link",
+        child_frame_id="tool0_belief",
+        stamp=0.0,
+        edge_id="symaware_hand_belief",
+        authority="symaware_grasp_hand",
+    ):
+        """Return the fitted end-effector law as a native v2 record."""
+
+        estimate = self.estimate_distribution(joint_positions)
+        return make_transform_record(
+            parent_frame_id=parent_frame_id,
+            child_frame_id=child_frame_id,
+            stamp=stamp,
+            edge_id=edge_id,
+            authority=authority,
+            position_mean=estimate["position_mean"],
+            position_covariance=estimate["position_covariance"],
+            orientation_parameter=estimate["orientation_bingham"],
+            orientation_reference_wxyz=estimate["orientation_mode"],
+            source_id="joint_state_end_effector_belief",
+            component_id="hand:joint_uncertainty",
+            approximation=ApproximationInfo(
+                kind=ApproximationKind.MOMENT_SUMMARY,
+                lossy=True,
+                detail=(
+                    "Joint-space samples are fit to one Bingham orientation and one independent "
+                    "Gaussian translation; orientation/translation cross-coupling is not estimated."
+                ),
+                source="EndEffectorBeliefModel",
+            ),
+        )

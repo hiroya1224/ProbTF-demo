@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from symaware_grasp.ptf_utils import quaternion_from_rotation_matrix, normalize_wxyz
+from probtf.geometry import quat_normalize, rotmat_to_quat
 
 
 def _translation_matrix(translation_xyz):
@@ -101,7 +101,7 @@ class ToyArm6DOF:
     def forward_kinematics(self, joint_positions):
         transform = self.forward_transform(joint_positions)
         position = transform[:3, 3].copy()
-        quaternion_wxyz = normalize_wxyz(quaternion_from_rotation_matrix(transform[:3, :3]))
+        quaternion_wxyz = quat_normalize(rotmat_to_quat(transform[:3, :3]))
         return position, quaternion_wxyz, transform
 
     def joint_limit_cost(self, joint_positions, barrier_scale=0.02):

@@ -57,6 +57,22 @@ def canonical_bingham_parameter(parameter_matrix):
     return 0.5 * (canonical + canonical.T)
 
 
+def bingham_log_normalizer(parameter_matrix, integration_steps=120):
+    """Return ``log integral exp(q.T A q) dq`` on the unit 3-sphere.
+
+    Unlike moment queries, the normalizer changes under a scalar gauge shift;
+    this function therefore restores the largest eigenvalue after evaluating
+    the canonical max-eigenvalue-zero parameter.
+    """
+
+    parameter = validate_bingham_parameter(parameter_matrix)
+    largest_eigenvalue = float(np.linalg.eigvalsh(parameter)[-1])
+    canonical = parameter - largest_eigenvalue * np.eye(4, dtype=float)
+    eigenvalues = np.linalg.eigvalsh(canonical)
+    constant, _, _ = _normalizer_derivatives(eigenvalues, integration_steps)
+    return float(np.log(constant) + largest_eigenvalue)
+
+
 def bingham_mode(parameter_matrix):
     """Return one unit mode quaternion in ``wxyz`` order.
 
@@ -472,6 +488,7 @@ compute_kron_rot_from_c4 = rotation_kronecker_moment
 __all__ = [
     "RotationMoment",
     "bingham_fourth_moment",
+    "bingham_log_normalizer",
     "bingham_mode",
     "bingham_second_moment",
     "canonical_bingham_parameter",

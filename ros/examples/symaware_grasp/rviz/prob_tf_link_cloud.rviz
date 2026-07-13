@@ -53,7 +53,7 @@ Visualization Manager:
       Size (Pixels): 4
       Size (m): 0.01
       Style: Flat Squares
-      Topic: /prob_tf_link_cloud
+      Topic: /symaware_grasp/link_pointcloud
       Use Fixed Frame: true
       Value: true
   Enabled: true

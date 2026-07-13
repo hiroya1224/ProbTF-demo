@@ -8,122 +8,155 @@ from sensor_msgs.msg import PointCloud2, PointField
 from std_msgs.msg import ColorRGBA, Header
 from visualization_msgs.msg import Marker
 
-from probtf_msgs.msg import ProbabilisticTF
-from symaware_grasp.ptf_utils import (
-    make_bingham_distribution,
-    pack_rgb,
-    rotation_matrix_from_quaternion,
-)
-from symaware_grasp_ros.messages import (
-    position_covariance_from_msg,
-    ptf_mode_quaternion_wxyz,
-    vector3_from_msg,
-)
+from probtf.distributions import DistributionStatus
+from probtf.geometry import quat_to_rotmat
+from probtf.probability import apply_transform_samples, sample_transform_distribution
+from probtf_ros import RosProbTfListener
+from probtf_ros.bridge import PROBTF_STATIC_TOPIC, PROBTF_TOPIC
+from symaware_grasp.beliefs import representative_component
+from symaware_grasp.msg import HandBelief, ObjectBelief, SelectedGraspTarget
+from symaware_grasp.runtime import lookup_message_record
+from symaware_grasp.visualization import pack_rgb
 
 
-class ProbabilisticTFVisualizer:
+_INPUT_TYPES = {
+    "object": ObjectBelief,
+    "hand": HandBelief,
+    "selected_target": SelectedGraspTarget,
+}
+
+
+class ProbTfV2Visualizer:
     def __init__(self):
         self.axis_length = float(rospy.get_param("~axis_length", 0.18))
         self.sample_count = int(rospy.get_param("~sample_count", 300))
+        if self.sample_count < 1:
+            raise ValueError("sample_count must be positive.")
         seed = int(rospy.get_param("~seed", 7))
         self.rng = np.random.default_rng(seed if seed >= 0 else None)
+        self.lookup_timeout = float(rospy.get_param("~lookup_timeout", 2.0))
+        input_kind = str(rospy.get_param("~input_kind", "object")).strip().lower()
+        if input_kind not in _INPUT_TYPES:
+            raise ValueError("input_kind must be one of: {}.".format(", ".join(sorted(_INPUT_TYPES))))
 
-        input_topic = rospy.get_param("~input_topic", "input_ptf")
-        cloud_topic = rospy.get_param("~cloud_topic", "ptf_axes_cloud")
-        pose_topic = rospy.get_param("~pose_topic", "ptf_mode_pose")
-        marker_topic = rospy.get_param("~marker_topic", "ptf_mode_axes")
-
+        self.listener = RosProbTfListener(
+            dynamic_topic=rospy.get_param("~probtf_topic", PROBTF_TOPIC),
+            static_topic=rospy.get_param("~probtf_static_topic", PROBTF_STATIC_TOPIC),
+        )
         self.point_fields = [
             PointField(name="x", offset=0, datatype=PointField.FLOAT32, count=1),
             PointField(name="y", offset=4, datatype=PointField.FLOAT32, count=1),
             PointField(name="z", offset=8, datatype=PointField.FLOAT32, count=1),
             PointField(name="rgb", offset=12, datatype=PointField.UINT32, count=1),
         ]
-        self.axis_colors = [
-            pack_rgb(255, 0, 0),
-            pack_rgb(0, 255, 0),
-            pack_rgb(0, 0, 255),
-        ]
+        self.axis_colors = (pack_rgb(255, 0, 0), pack_rgb(0, 255, 0), pack_rgb(0, 0, 255))
+        self.cloud_publisher = rospy.Publisher(
+            rospy.get_param("~cloud_topic", "ptf_axes_cloud"),
+            PointCloud2,
+            queue_size=1,
+        )
+        self.pose_publisher = rospy.Publisher(
+            rospy.get_param("~pose_topic", "ptf_mode_pose"),
+            PoseStamped,
+            queue_size=1,
+        )
+        self.marker_publisher = rospy.Publisher(
+            rospy.get_param("~marker_topic", "ptf_mode_axes"),
+            Marker,
+            queue_size=1,
+        )
+        self.subscriber = rospy.Subscriber(
+            rospy.get_param("~input_topic", "/symaware_grasp/object_belief"),
+            _INPUT_TYPES[input_kind],
+            self.handle_belief,
+            queue_size=1,
+        )
 
-        self.cloud_publisher = rospy.Publisher(cloud_topic, PointCloud2, queue_size=1)
-        self.pose_publisher = rospy.Publisher(pose_topic, PoseStamped, queue_size=1)
-        self.marker_publisher = rospy.Publisher(marker_topic, Marker, queue_size=1)
-        self.subscriber = rospy.Subscriber(input_topic, ProbabilisticTF, self.handle_ptf, queue_size=1)
-
-    def handle_ptf(self, message):
-        if self.sample_count <= 0:
-            rospy.logwarn_throttle(5.0, "sample_count must be positive.")
+    def handle_belief(self, message):
+        try:
+            record = lookup_message_record(
+                self.listener,
+                message.transform,
+                timeout=self.lookup_timeout,
+            )
+        except (RuntimeError, ValueError) as exc:
+            rospy.logwarn("Cannot resolve visualization belief in ProbTF graph: %s", exc)
             return
+        samples = sample_transform_distribution(record.distribution, self.sample_count, self.rng)
+        cloud_points = []
+        for axis_index, color in enumerate(self.axis_colors):
+            local_points = np.zeros((self.sample_count, 3), dtype=float)
+            local_points[:, axis_index] = self.axis_length
+            endpoints = apply_transform_samples(samples, local_points)
+            cloud_points.extend(
+                [float(point[0]), float(point[1]), float(point[2]), color]
+                for point in endpoints
+            )
 
         header = Header()
-        header.frame_id = message.parent_frame_id or message.header.frame_id
-        header.stamp = message.header.stamp if message.header.stamp != rospy.Time() else rospy.Time.now()
-
-        mean_translation = vector3_from_msg(message.position_mean)
-        covariance = position_covariance_from_msg(message) + 1e-6 * np.eye(3, dtype=float)
-        translation_samples = self.rng.multivariate_normal(mean_translation, covariance, size=self.sample_count)
-
-        distribution = make_bingham_distribution(message.orientation_bingham)
-        orientation_samples = distribution.update_sample(N_sample=self.sample_count)
-
-        cloud_points = []
-        for sample_index, orientation in enumerate(orientation_samples):
-            rotation = rotation_matrix_from_quaternion(orientation)
-            translation = translation_samples[sample_index]
-            for axis_index, color in enumerate(self.axis_colors):
-                endpoint = translation + self.axis_length * rotation[:, axis_index]
-                cloud_points.append([float(endpoint[0]), float(endpoint[1]), float(endpoint[2]), color])
-
+        header.frame_id = record.parent_frame_id
+        header.stamp = message.transform.header.stamp
         self.cloud_publisher.publish(point_cloud2.create_cloud(header, self.point_fields, cloud_points))
-        self.pose_publisher.publish(self.build_mode_pose(header, mean_translation, message))
-        self.marker_publisher.publish(self.build_mode_marker(header, mean_translation, message))
+        _, translation, quaternion = representative_component(record)
+        self.pose_publisher.publish(self.build_mode_pose(header, translation, quaternion))
+        self.marker_publisher.publish(self.build_component_marker(header, record))
 
-    def build_mode_pose(self, header, translation, message):
-        mode_quaternion = ptf_mode_quaternion_wxyz(message)
+    @staticmethod
+    def build_mode_pose(header, translation, quaternion):
         pose = PoseStamped()
         pose.header = header
-        pose.pose.position.x = float(translation[0])
-        pose.pose.position.y = float(translation[1])
-        pose.pose.position.z = float(translation[2])
-        pose.pose.orientation.w = float(mode_quaternion[0])
-        pose.pose.orientation.x = float(mode_quaternion[1])
-        pose.pose.orientation.y = float(mode_quaternion[2])
-        pose.pose.orientation.z = float(mode_quaternion[3])
+        pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = (
+            float(value) for value in translation
+        )
+        pose.pose.orientation.w = float(quaternion[0])
+        pose.pose.orientation.x = float(quaternion[1])
+        pose.pose.orientation.y = float(quaternion[2])
+        pose.pose.orientation.z = float(quaternion[3])
         return pose
 
-    def build_mode_marker(self, header, translation, message):
-        mode_quaternion = ptf_mode_quaternion_wxyz(message)
-        rotation = rotation_matrix_from_quaternion(mode_quaternion)
+    def build_component_marker(self, header, record):
         marker = Marker()
         marker.header = header
-        marker.ns = f"{message.child_frame_id}_mode_axes"
+        marker.ns = "{}_component_modes".format(record.child_frame_id)
         marker.id = 0
         marker.type = Marker.LINE_LIST
         marker.action = Marker.ADD
         marker.scale.x = 0.01
         marker.pose.orientation.w = 1.0
-
-        origin = np.asarray(translation, dtype=float)
-        colors = [
+        colors = (
             ColorRGBA(r=1.0, g=0.0, b=0.0, a=1.0),
             ColorRGBA(r=0.0, g=1.0, b=0.0, a=1.0),
             ColorRGBA(r=0.0, g=0.0, b=1.0, a=1.0),
-        ]
-        for axis_index, color in enumerate(colors):
-            endpoint = origin + self.axis_length * rotation[:, axis_index]
-            marker.points.extend(
-                [
-                    Point(x=float(origin[0]), y=float(origin[1]), z=float(origin[2])),
-                    Point(x=float(endpoint[0]), y=float(endpoint[1]), z=float(endpoint[2])),
-                ]
-            )
-            marker.colors.extend([color, color])
+        )
+        normalized = record.distribution.normalize_weights()
+        if normalized.status is not DistributionStatus.OK:
+            return marker
+        for weighted in normalized.components:
+            component = weighted.component
+            quaternion = component.orientation.mode_wxyz
+            origin = component.conditional_translation_mean(quaternion)
+            rotation = quat_to_rotmat(quaternion)
+            for axis_index, base_color in enumerate(colors):
+                endpoint = origin + self.axis_length * rotation[:, axis_index]
+                color = ColorRGBA(
+                    r=base_color.r,
+                    g=base_color.g,
+                    b=base_color.b,
+                    a=max(0.2, min(1.0, weighted.weight)),
+                )
+                marker.points.extend(
+                    (
+                        Point(x=float(origin[0]), y=float(origin[1]), z=float(origin[2])),
+                        Point(x=float(endpoint[0]), y=float(endpoint[1]), z=float(endpoint[2])),
+                    )
+                )
+                marker.colors.extend((color, color))
         return marker
 
 
 def main():
     rospy.init_node("ptf_visualizer")
-    ProbabilisticTFVisualizer()
+    ProbTfV2Visualizer()
     rospy.spin()
 
 

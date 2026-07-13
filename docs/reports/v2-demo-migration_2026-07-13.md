@@ -21,8 +21,9 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
    だけとする。orientation-only likelihood に zero translation を補わない。
 2. orientation-only posterior と singular likelihood evidence は、full transform record と
    分けた v2 message で運ぶ。
-3. grasp target や end-effector belief のような derived result は physical forest に再登録せず、
-   v2 component modelを含む application topic で運ぶ。
+3. grasp target や end-effector belief の derived transform は、v2 component lawを閉じたまま保持し、
+   派生元edge IDをprovenanceへ残せる場合だけ別edgeとして登録する。application topicは用途metadataと
+   完全なv2 payloadを運ぶ。point momentなどのterminal summaryはgraphへ再登録しない。
 4. lookup は中央 bridge process への独自 RPC ではなく、tf2 と同様に各 consumer が
    `/probtf` と `/probtf_static` を listen して local `ProbTfGraph` を構築する方式にする。
 5. deflecomp の stiffness posterior は SE(3) 分布ではないため `/probtf` に偽装しない。
@@ -198,6 +199,33 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 - `catkin clean/build probtf_msgs probtf_core`: 成功
 - core runtime sourceに対するlegacy symbol検索: 0件
 
+### 4.11 symaware grasp / link cloud の native v2 runtime 化
+
+- object、hand、grasp target、selected target、IK resultをsymaware固有messageへ分離し、
+  各application messageが完全な `ProbabilisticTransformStamped` v2 payloadを内包するようにした。
+- object / hand / derived grasp target recordを `/probtf`、YAML arm edge 7件を
+  `/probtf_static` へpublishするbroadcasterを実装した。
+- grasp target node、IK、visualizerを `RosProbTfListener` のexact/latest lookupへ移行した。
+- grasp offsetの右合成はmixture、residual covariance、`rotation_coupling`、派生元edge provenanceを保持する。
+- link cloudは全linkの軸端点を `lookup_point_moments()` で取得し、Gaussian samplingは
+  PointCloud2を作る表示終端だけで行う。
+- 一般visualizerはlistenerで得たdistributionをcore v2 samplerへ渡し、全componentを描画する。
+- IKは全mixture componentのcoupled point momentsを評価し、finite Bingham以外を必要とする
+  Bhattacharyya methodでは暗黙変換せず明示的に拒否する。
+- handのsample fitはlossy `MOMENT_SUMMARY`、設定object lawは`PRODUCER_SUPPLIED` として、
+  component / record / ROS wireの全てにapproximationを保持する。
+- 旧 `ProbTfTree`、`ptf_utils`、外部Bingham runtime、v1 ROS conversion、手計算sample scriptを削除した。
+- Bingham Bhattacharyya用のgauge-aware `bingham_log_normalizer()` をcoreへ追加した。
+
+検証:
+
+- 全Python tests: `199 passed, 1 warning`
+- devel/message未sourceのsymaware source-only tests: `26 passed`
+- `catkin build probtf_msgs probtf_core symaware_grasp`: 成功
+- generated application message roundtrip / node import / launch node解決: 成功
+- link-cloud 12秒実動: static v2 record 7件とlistener pointcloud publishを確認
+- full demo 18秒実動: grasp target、selected grasp、IK node正常終了を確認
+
 ## 5. コミット
 
 | commit | 内容 |
@@ -210,3 +238,4 @@ Python source relay も廃止し、各 namespace を所有する catkin package 
 | `89c1e85` | estimator demoとorientation-only wire contractをnative v2化 |
 | `42c699e` | native v2 transform kernel samplingを実装 |
 | `52a7868` | deflecomp frame runtimeをv2 bridge/listener/lookupへ接続 |
+| `a497a15` | ProbTF v1 core model、adapter、ROS wire contractを削除 |

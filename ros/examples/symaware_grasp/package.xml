@@ -2,7 +2,7 @@
 <package format="2">
   <name>symaware_grasp</name>
   <version>0.1.0</version>
-  <description>ProbabilisticTF demo package with a simple 6-DOF arm and RViz visualization.</description>
+  <description>Native ProbTF v2 symmetry-aware grasping demo with a simple 6-DOF arm.</description>
 
   <maintainer email="leus@todo.todo">leus</maintainer>
   <license>MIT</license>
@@ -10,6 +10,7 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>geometry_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
   <build_depend>probtf_core</build_depend>
   <build_depend>probtf_msgs</build_depend>
   <build_depend>rospy</build_depend>
@@ -26,6 +27,7 @@
   <build_export_depend>visualization_msgs</build_export_depend>
 
   <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
   <exec_depend>probtf_core</exec_depend>
   <exec_depend>probtf_msgs</exec_depend>
   <exec_depend>python3-matplotlib</exec_depend>

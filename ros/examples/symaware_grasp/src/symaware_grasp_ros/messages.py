@@ -1,109 +1,116 @@
-import numpy as np
-from geometry_msgs.msg import Quaternion, Vector3
-from probtf_msgs.msg import BinghamDistribution, ProbabilisticTF
+"""Application message wrappers that retain the complete ProbTF v2 payload."""
 
-from symaware_grasp.models import ProbabilisticTransform
-from symaware_grasp.ptf_utils import make_bingham_distribution, normalize_wxyz, quaternion_array_to_wxyz
+from dataclasses import dataclass
 
-
-def vector3_from_msg(message):
-    return np.array([message.x, message.y, message.z], dtype=float)
-
-
-def vector3_msg_from_array(values_xyz):
-    values = np.asarray(values_xyz, dtype=float).reshape(3)
-    return Vector3(x=float(values[0]), y=float(values[1]), z=float(values[2]))
+from probtf_ros.v2_conversions import (
+    V2MessageTypes,
+    transform_distribution_from_msg,
+    transform_distribution_to_msg,
+)
 
 
-def quaternion_wxyz_from_msg(message):
-    return normalize_wxyz([message.w, message.x, message.y, message.z])
+@dataclass(frozen=True)
+class SymawareMessageTypes:
+    object_belief: object
+    hand_belief: object
+    grasp_target: object
+    grasp_target_array: object
+    selected_target: object
+    v2: object
+
+    @classmethod
+    def defaults(cls):
+        from symaware_grasp.msg import (
+            GraspTarget,
+            GraspTargetArray,
+            HandBelief,
+            ObjectBelief,
+            SelectedGraspTarget,
+        )
+
+        return cls(
+            ObjectBelief,
+            HandBelief,
+            GraspTarget,
+            GraspTargetArray,
+            SelectedGraspTarget,
+            V2MessageTypes.defaults(),
+        )
 
 
-def quaternion_msg_from_wxyz(quaternion_wxyz):
-    quaternion = normalize_wxyz(quaternion_wxyz)
-    return Quaternion(
-        w=float(quaternion[0]),
-        x=float(quaternion[1]),
-        y=float(quaternion[2]),
-        z=float(quaternion[3]),
-    )
+def _types(message_types):
+    return SymawareMessageTypes.defaults() if message_types is None else message_types
 
 
-def probabilistic_transform_from_msg(message):
-    mode = np.array(
-        [
-            message.orientation_mode.w,
-            message.orientation_mode.x,
-            message.orientation_mode.y,
-            message.orientation_mode.z,
-        ],
-        dtype=float,
-    )
-    if np.linalg.norm(mode) <= 1e-8:
-        distribution = make_bingham_distribution(message.orientation_bingham.matrix)
-        mode = quaternion_array_to_wxyz(distribution.mode())
-
-    return ProbabilisticTransform(
-        parent_frame_id=message.parent_frame_id or message.header.frame_id,
-        child_frame_id=message.child_frame_id,
-        position_mean=vector3_from_msg(message.position_mean),
-        position_covariance=message.position_covariance,
-        orientation_bingham=message.orientation_bingham.matrix,
-        orientation_mode_wxyz=mode,
-        approximation_type=message.approximation_type,
-    )
+def _assign_vector3(message, values):
+    message.x, message.y, message.z = (float(value) for value in values)
 
 
-def position_covariance_from_msg(message):
-    return probabilistic_transform_from_msg(message).position_covariance
-
-
-def ptf_mode_quaternion_wxyz(message):
-    return probabilistic_transform_from_msg(message).orientation_mode_wxyz
-
-
-def probabilistic_transform_to_msg(transform, stamp=None):
-    message = ProbabilisticTF()
-    if stamp is not None:
-        message.header.stamp = stamp
-    message.header.frame_id = transform.parent_frame_id
-    message.parent_frame_id = transform.parent_frame_id
-    message.child_frame_id = transform.child_frame_id
-    message.edge_id = "{}__to__{}".format(
-        transform.parent_frame_id,
-        transform.child_frame_id,
-    )
-    message.source_id = "symaware_grasp"
-    message.evidence_source_ids = []
-    message.has_position = True
-    message.position_mean = vector3_msg_from_array(transform.position_mean)
-    message.position_covariance = transform.position_covariance.reshape(-1).tolist()
-    message.orientation_bingham = BinghamDistribution()
-    message.orientation_bingham.matrix = transform.orientation_bingham.reshape(-1).tolist()
-    message.has_orientation = True
-    message.orientation_mode = quaternion_msg_from_wxyz(transform.orientation_mode_wxyz)
-    message.approximation_type = transform.approximation_type
-    message.closure_approximation = False
+def object_belief_to_msg(record, object_id, message_types=None, time_factory=None):
+    types = _types(message_types)
+    message = types.object_belief()
+    message.object_id = str(object_id)
+    message.transform = transform_distribution_to_msg(record, types.v2, time_factory)
+    message.header = message.transform.header
     return message
 
 
-def make_probabilistic_tf_message(
-    parent_frame_id,
-    child_frame_id,
-    position_mean_xyz,
-    position_covariance,
-    orientation_bingham_matrix,
-    orientation_mode_wxyz,
-    stamp=None,
-    approximation_type="gaussian_position_bingham_orientation",
+def hand_belief_to_msg(record, hand_id, message_types=None, time_factory=None):
+    types = _types(message_types)
+    message = types.hand_belief()
+    message.hand_id = str(hand_id)
+    message.transform = transform_distribution_to_msg(record, types.v2, time_factory)
+    message.header = message.transform.header
+    return message
+
+
+def grasp_targets_to_msg(
+    records,
+    candidates,
+    object_id,
+    message_types=None,
+    time_factory=None,
 ):
-    transform = ProbabilisticTransform(
-        parent_frame_id=parent_frame_id,
-        child_frame_id=child_frame_id,
-        position_mean=position_mean_xyz,
-        position_covariance=position_covariance,
-        orientation_bingham=orientation_bingham_matrix,
-        orientation_mode_wxyz=orientation_mode_wxyz,
-        approximation_type=approximation_type,
-    )
-    return probabilistic_transform_to_msg(transform, stamp=stamp)
+    records = tuple(records)
+    candidates = tuple(candidates)
+    if len(records) != len(candidates):
+        raise ValueError("records and candidates must have the same length.")
+    types = _types(message_types)
+    output = types.grasp_target_array()
+    output.object_id = str(object_id)
+    messages = []
+    for record, candidate in zip(records, candidates):
+        message = types.grasp_target()
+        message.object_id = str(object_id)
+        message.grasp_id = candidate.grasp_id
+        message.weight = float(candidate.weight)
+        _assign_vector3(message.approach_axis, candidate.approach_axis)
+        _assign_vector3(message.finger_axis, candidate.finger_axis)
+        message.transform = transform_distribution_to_msg(record, types.v2, time_factory)
+        messages.append(message)
+    output.targets = messages
+    if messages:
+        output.header = messages[0].transform.header
+    return output
+
+
+def selected_target_to_msg(
+    record,
+    object_id,
+    grasp_id,
+    message_types=None,
+    time_factory=None,
+):
+    types = _types(message_types)
+    message = types.selected_target()
+    message.object_id = str(object_id)
+    message.grasp_id = str(grasp_id)
+    message.transform = transform_distribution_to_msg(record, types.v2, time_factory)
+    message.header = message.transform.header
+    return message
+
+
+def record_from_app_message(message):
+    """Deserialize a wrapper without changing any v2 component fields."""
+
+    return transform_distribution_from_msg(message.transform)

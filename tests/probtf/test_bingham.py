@@ -5,6 +5,7 @@ import pytest
 
 from probtf.bingham import (
     bingham_fourth_moment,
+    bingham_log_normalizer,
     bingham_mode,
     bingham_second_moment,
     canonical_bingham_parameter,
@@ -98,6 +99,14 @@ def test_moments_are_invariant_to_parameter_gauge():
         bingham_fourth_moment(shifted, integration_steps=60),
         atol=1e-12,
     )
+
+
+def test_log_normalizer_tracks_parameter_gauge_shift():
+    parameter = np.diag([-8.0, -4.0, -1.5, 0.0])
+    baseline = bingham_log_normalizer(parameter, integration_steps=60)
+    shifted = bingham_log_normalizer(parameter + 7.5 * np.eye(4), integration_steps=60)
+
+    assert np.isclose(shifted - baseline, 7.5, atol=1e-12)
 
 
 def test_matching_round_trip_preserves_second_moment_and_mode():

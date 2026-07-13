@@ -4,10 +4,13 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import JointState
 
+from probtf_ros import ProbTfBroadcaster
+from probtf_ros.bridge import PROBTF_STATIC_TOPIC, PROBTF_TOPIC
+from probtf_msgs.msg import ProbabilisticTransformArray, ProbabilisticTransformStamped
 from symaware_grasp.arm_kinematics import ToyArm6DOF
 from symaware_grasp.ee_belief import EndEffectorBeliefModel
-from probtf_msgs.msg import ProbabilisticTF
-from symaware_grasp_ros.messages import make_probabilistic_tf_message
+from symaware_grasp.msg import HandBelief
+from symaware_grasp_ros import hand_belief_to_msg
 
 
 def _get_belief_param(name, default):
@@ -17,11 +20,13 @@ def _get_belief_param(name, default):
 class HandProbTFPublisher:
     def __init__(self):
         self.robot_model = ToyArm6DOF()
-        self.parent_frame_id = rospy.get_param("~parent_frame_id", "base_link")
-        self.child_frame_id = rospy.get_param("~child_frame_id", "tool0_prob")
+        self.hand_id = str(rospy.get_param("~hand_id", "demo_hand"))
+        self.parent_frame_id = str(rospy.get_param("~parent_frame_id", "base_link"))
+        self.child_frame_id = str(rospy.get_param("~child_frame_id", "tool0_belief"))
+        self.edge_id = str(rospy.get_param("~edge_id", "symaware_hand_belief"))
         self.publish_rate = float(rospy.get_param("~publish_rate", 8.0))
 
-        joint_noise_stddev = _get_belief_param("joint_noise_stddev", [0.03, 0.03, 0.03, 0.05, 0.05, 0.05])
+        joint_noise_stddev = _get_belief_param("joint_noise_stddev", [0.03] * self.robot_model.dof)
         if isinstance(joint_noise_stddev, list):
             joint_noise_stddev = np.asarray(joint_noise_stddev, dtype=float)
         else:
@@ -40,10 +45,34 @@ class HandProbTFPublisher:
             ),
         )
 
+        dynamic_publisher = rospy.Publisher(
+            rospy.get_param("~probtf_topic", PROBTF_TOPIC),
+            ProbabilisticTransformStamped,
+            queue_size=10,
+        )
+        static_publisher = rospy.Publisher(
+            rospy.get_param("~probtf_static_topic", PROBTF_STATIC_TOPIC),
+            ProbabilisticTransformArray,
+            queue_size=1,
+            latch=True,
+        )
+        self.broadcaster = ProbTfBroadcaster(dynamic_publisher, static_publisher)
+        self.publisher = rospy.Publisher(
+            rospy.get_param("~hand_belief_topic", "/symaware_grasp/hand_belief"),
+            HandBelief,
+            queue_size=1,
+        )
         self.latest_joint_positions = None
-        self.publisher = rospy.Publisher("hand_prob_tf", ProbabilisticTF, queue_size=1)
-        self.subscriber = rospy.Subscriber("joint_states", JointState, self.handle_joint_state, queue_size=1)
-        rospy.Timer(rospy.Duration(1.0 / max(self.publish_rate, 1e-3)), self.publish_message)
+        self.subscriber = rospy.Subscriber(
+            rospy.get_param("~joint_states_topic", "joint_states"),
+            JointState,
+            self.handle_joint_state,
+            queue_size=1,
+        )
+        self.timer = rospy.Timer(
+            rospy.Duration(1.0 / max(self.publish_rate, 1e-3)),
+            self.publish_message,
+        )
 
     def handle_joint_state(self, message):
         if not message.position:
@@ -58,18 +87,17 @@ class HandProbTFPublisher:
     def publish_message(self, _event):
         if self.latest_joint_positions is None:
             return
-
-        estimate = self.belief_model.estimate_distribution(self.latest_joint_positions)
-        message = make_probabilistic_tf_message(
+        now = rospy.Time.now()
+        record = self.belief_model.estimate_record(
+            self.latest_joint_positions,
             parent_frame_id=self.parent_frame_id,
             child_frame_id=self.child_frame_id,
-            position_mean_xyz=estimate["position_mean"],
-            position_covariance=estimate["position_covariance"],
-            orientation_bingham_matrix=estimate["orientation_bingham"],
-            orientation_mode_wxyz=estimate["orientation_mode"],
-            stamp=rospy.Time.now(),
+            stamp=now.to_sec(),
+            edge_id=self.edge_id,
+            authority=rospy.get_name(),
         )
-        self.publisher.publish(message)
+        self.broadcaster.send_transform(record)
+        self.publisher.publish(hand_belief_to_msg(record, self.hand_id))
 
 
 def main():

@@ -3,11 +3,9 @@ import os
 
 import yaml
 
+from probtf.geometry import rpy_to_quat
+from symaware_grasp.geometry_utils import quaternion_from_approach_and_finger_axes
 from symaware_grasp.models import GraspCandidate
-from symaware_grasp.ptf_utils import (
-    quaternion_from_approach_and_finger_axes,
-    quaternion_from_rpy,
-)
 
 
 def _candidate_from_dict(candidate_dict):
@@ -20,7 +18,7 @@ def _candidate_from_dict(candidate_dict):
         quat_wxyz = candidate_dict["object_to_grasp_orientation_wxyz"]
     elif "object_to_grasp_orientation_rpy_deg" in candidate_dict:
         roll_deg, pitch_deg, yaw_deg = candidate_dict["object_to_grasp_orientation_rpy_deg"]
-        quat_wxyz = quaternion_from_rpy(
+        quat_wxyz = rpy_to_quat(
             math.radians(roll_deg),
             math.radians(pitch_deg),
             math.radians(yaw_deg),

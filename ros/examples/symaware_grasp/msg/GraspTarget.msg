@@ -1,0 +1,6 @@
+string object_id
+string grasp_id
+float64 weight
+geometry_msgs/Vector3 approach_axis
+geometry_msgs/Vector3 finger_axis
+probtf_msgs/ProbabilisticTransformStamped transform

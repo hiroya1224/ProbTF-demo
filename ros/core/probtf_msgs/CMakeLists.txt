@@ -13,8 +13,6 @@ add_message_files(
     ApproximationInfo.msg
     BinghamOrientation.msg
     ConditionalGaussianTranslation.msg
-    GraspCandidate.msg
-    IKResult.msg
     ImuKinematics.msg
     OrientationDistributionStamped.msg
     ProbabilisticTransformArray.msg

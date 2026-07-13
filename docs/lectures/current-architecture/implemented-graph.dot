@@ -6,7 +6,7 @@ digraph ProbTFDemoCurrentArchitecture {
     bgcolor="white",
     fontname="DejaVu Sans",
     fontsize=18,
-    label="ProbTF-demo Current Native v2 Architecture (through main@74b8ea5, 2026-07-13)",
+    label="ProbTF-demo Current Native v2 Architecture",
     labelloc=t,
     labeljust=l,
     nodesep=0.35,
@@ -465,29 +465,4 @@ digraph ProbTFDemoCurrentArchitecture {
     terminal_guard -> global_dynamic [style=dashed, color="#dc2626", arrowhead=none];
   }
 
-  subgraph cluster_todo {
-    label="Explicit remaining work (not a v1 migration gap)";
-    color="#64748b";
-    style="rounded,dashed";
-
-    todo_numerics [
-      shape=note,
-      fillcolor="#f1f5f9",
-      label="Numerical backends\nexact finite-Bingham induced density\ncoupled numerical point action\nstochastic inverse analytic moments\ndependency-aware repeated-latent evaluation\nclosed-mixture reduction"
-    ];
-    todo_time [
-      shape=note,
-      fillcolor="#f1f5f9",
-      label="Temporal models\nINTERPOLATE_WITH_MODEL\nPREDICT_WITH_MODEL\nlong-run authority policy"
-    ];
-    todo_runtime [
-      shape=note,
-      fillcolor="#f1f5f9",
-      label="Runtime validation\nhigh-rate queue/history sizing\nmulti-process long-run consistency\nshared diagnostics UI\nX-enabled viewer visual smoke"
-    ];
-
-    todo_numerics -> kernels [style=dashed, arrowhead=none];
-    todo_time -> graph_core [style=dashed, arrowhead=none];
-    todo_runtime -> local_listener [style=dashed, arrowhead=none];
-  }
 }

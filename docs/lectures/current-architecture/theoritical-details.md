@@ -1,15 +1,14 @@
-# ProbTF-demo 現行アーキテクチャ
+# ProbTF-demo 現行アーキテクチャの理論的詳細
 
 - 更新日時: 2026-07-13 JST
-- 対象 HEAD: `main`、`74b8ea5` までの実装
 - 対象範囲: ProbTF v2 foundation、ROS 1 transport、producer demo、symaware grasp、deflecomp、テスト境界
-- DOT source: [`current-architecture_2026-07-12_223000.dot`](./current-architecture_2026-07-12_223000.dot)
-- rendered graph: [`current-architecture_2026-07-12_223000.svg`](./current-architecture_2026-07-12_223000.svg)
+- DOT source: [`implemented-graph.dot`](./implemented-graph.dot)
+- rendered graph: [`implemented-graph.svg`](./implemented-graph.svg)
 
-ファイル名の timestamp は参照リンクを壊さないため維持しているが、内容は上記 HEAD の
-現行構成へ全面更新している。本書は将来案ではなく、repository に存在する source、message、
-launch、test に基づく実装スナップショットである。移行作業の経緯は
-[`v2-demo-migration_2026-07-13.md`](../reports/v2-demo-migration_2026-07-13.md)、
+本書は将来案ではなく、repository に存在する source、message、launch、test に基づく
+現行実装の理論・構造説明である。実装変更に合わせて同じdirectoryのgraphと同時に更新する。
+移行作業の経緯と検証結果は
+[`v2-demo-migration_2026-07-13.md`](../../reports/v2-demo-migration_2026-07-13.md)、
 数理 contract は
 [`probtf_jmaa_kernel_architecture.md`](../probtf_jmaa_kernel_architecture.md) を参照する。
 
@@ -108,7 +107,7 @@ deflecomp_ros ------> deflecomp_core + probtf_ros
 
 `probtf` foundation は `probtf_estimators`、ROS、example application を import しない。
 `probtf_ros` generic bridge は estimator を import しない。この境界は
-[`tests/test_ros_boundary.py`](../../tests/test_ros_boundary.py) の AST test で固定される。
+[`tests/test_ros_boundary.py`](../../../tests/test_ros_boundary.py) の AST test で固定される。
 
 ## 2. ProbTF v2 domain model
 
@@ -134,7 +133,7 @@ z_{parent}=R(Q)z_{child}+X
 ### 2.2 Joint component law
 
 中心 model は
-[`probtf.distributions`](../../ros/core/probtf_core/src/probtf/distributions) の immutable 型である。
+[`probtf.distributions`](../../../ros/core/probtf_core/src/probtf/distributions) の immutable 型である。
 component `l` は概念的に次を保持する。
 
 \[
@@ -169,7 +168,7 @@ zero residual covariance、zero coupling を持つ場合だけである。stocha
 
 ### 2.3 Composition と provenance
 
-[`composition.py`](../../ros/core/probtf_core/src/probtf/distributions/composition.py) は stochastic
+[`composition.py`](../../../ros/core/probtf_core/src/probtf/distributions/composition.py) は stochastic
 record の右側へ deterministic offset を合成する。これは grasp offset のような
 
 \[
@@ -178,7 +177,7 @@ T_{world,grasp}=T_{world,object}T_{object,grasp}
 
 を mode plug-in へ潰さず、各 component の coupling basis を変換して保持する演算である。
 
-[`probtf.provenance`](../../ros/core/probtf_core/src/probtf/provenance) は source ID、派生元 edge ID、
+[`probtf.provenance`](../../../ros/core/probtf_core/src/probtf/provenance) は source ID、派生元 edge ID、
 method、detail を component/record ごとに持つ。`ApproximationInfo` は次を区別する。
 
 - `EXACT`
@@ -198,15 +197,15 @@ deserialize 時に拒否される reserved slot である。
 ### 2.4 Bingham numerics
 
 `probtf.bingham` が必要とする正規化定数と導関数の積分は
-[`probtf._vendor`](../../ros/core/probtf_core/src/probtf/_vendor) に由来を保持して収容される。
+[`probtf._vendor`](../../../ros/core/probtf_core/src/probtf/_vendor) に由来を保持して収容される。
 runtime は外部 `bingham` Python namespace の import に依存しない。
-upstream notice は [`THIRD_PARTY_NOTICES.md`](../../THIRD_PARTY_NOTICES.md) に記録される。
+upstream notice は [`THIRD_PARTY_NOTICES.md`](../../../THIRD_PARTY_NOTICES.md) に記録される。
 
 ## 3. Graph と temporal semantics
 
 ### 3.1 Local graph
 
-[`ProbTfGraph`](../../ros/core/probtf_core/src/probtf/graph/query.py) は次を所有する。
+[`ProbTfGraph`](../../../ros/core/probtf_core/src/probtf/graph/query.py) は次を所有する。
 
 1. `ProbTfTopology`: disconnected component を許す TF-style forest
 2. edge ID ごとの `EdgeTimeBuffer`: timestamp 順の static/dynamic history
@@ -293,7 +292,7 @@ symaware link cloud と deflecomp marker はこの規則を守る。
 
 ### 4.3 Native sampling
 
-[`probtf.probability.sampling`](../../ros/core/probtf_core/src/probtf/probability/sampling.py) は
+[`probtf.probability.sampling`](../../../ros/core/probtf_core/src/probtf/probability/sampling.py) は
 native v2 law から直接 sample する。
 
 - Dirac orientation: reference quaternion を反復
@@ -359,7 +358,7 @@ provenance を同じ record に含む。
 
 ### 5.3 Generic TF bridge
 
-[`probtf_bridge_node.py`](../../ros/core/probtf_core/nodes/probtf_bridge_node.py) は
+[`probtf_bridge_node.py`](../../../ros/core/probtf_core/nodes/probtf_bridge_node.py) は
 `ProbTfTfBridge`、`ProbTfBroadcaster`、in-process graph を持つ。
 
 - TF import: deterministic TF を Dirac orientation、zero residual covariance、`C=0` の exact
@@ -374,7 +373,7 @@ generic bridge は application topic を自動発見する中央 serverではな
 
 ## 6. two-IMU relative-pose runtime
 
-[`two_imu_relative_pose.launch`](../../ros/examples/probtf_imu_demo/launch/two_imu_relative_pose.launch)
+[`two_imu_relative_pose.launch`](../../../ros/examples/probtf_imu_demo/launch/two_imu_relative_pose.launch)
 の dataflow は次である。
 
 ```text
@@ -508,7 +507,7 @@ ProbTFへ登録するのは、`robot_state_publisher` と static TF publisher �
 
 ### 9.2 Scoped TF import
 
-[`deflecomp_frames.launch`](../../ros/examples/deflecomp/deflecomp_ros/launch/deflecomp_frames.launch)
+[`deflecomp_frames.launch`](../../../ros/examples/deflecomp/deflecomp_ros/launch/deflecomp_frames.launch)
 はgeneric bridgeをnamespace `deflecomp`内にincludeする。
 
 ```text
@@ -585,7 +584,7 @@ ProbTF v1 transform domain/wireを意味しない。
 9. approximation/provenanceをcomponent、record、wireで保持する。
 10. catkin nodeはpackage-local sourceをimportし、parent path relayを追加しない。
 
-## 12. テストと検証境界
+## 12. Architecture invariant とテスト境界
 
 テストは数理 unit testだけでなく、architecture regressionを含む。
 
@@ -601,45 +600,32 @@ ProbTF v1 transform domain/wireを意味しない。
 - symaware static graph、app message、IK、visualizer、launch runtime
 - deflecomp scoped bridge launchとpoint-moment consumer
 
-現行実装の全Python suiteは `200 passed, 1 warning` が報告されている。warningは外部
-`hppfcl` import renameに関するdeprecationである。主要catkin package build、symaware実動smoke、
-deflecomp scoped v2 topic/lookup/MarkerArray smokeは成功している。
+具体的なpass数、build結果、runtime smokeの記録はimplementation reportで管理し、本書では
+何をarchitecture invariantとして固定するかだけを記載する。
 
-## 13. 残っているTODO
+## 13. 現行実装の明示的な制約
 
-### 13.1 数値backend
+### 13.1 数値backendのavailability
 
-1. finite Binghamのexact induced spherical/vector density evaluator
-2. rotation couplingを含むjoint numerical point-action integrator
-3. stochastic inverseのanalytic moment/covariance evaluator
-4. repeated latent edgeを扱うdependency-aware sampler/evaluator
-5. explicit policy付きclosed-mixture reduction backend
+- finite Binghamのexact induced spherical/vector density evaluatorはunavailableである。
+- rotation couplingを含むjoint numerical point-action integratorはunavailableである。
+- stochastic inverseのanalytic moment/covariance evaluatorはunavailableである。
+- repeated latent edgeは独立と仮定せず、shared latent evaluatorが必要なqueryを拒否する。
+- closed-mixture reductionは明示policy/backendなしでは実行しない。
 
-native Monte Carlo samplingは実装済みなので、「stochastic sampling未実装」は現在のTODOではない。
+native Monte Carlo samplingはforward/inverse/composed pathまで実装済みであり、上記の
+analytic/numerical law evaluatorとは別のrepresentationである。
 
-### 13.2 Temporal model
+### 13.2 Temporal semantics
 
-1. `INTERPOLATE_WITH_MODEL` の具体的model contractと実装
-2. `PREDICT_WITH_MODEL` のprocess model、uncertainty growth、diagnostic
-3. authority/parent changeを長時間運用で管理する上位policy
+`INTERPOLATE_WITH_MODEL`と`PREDICT_WITH_MODEL`はcontractだけがあり、具体的なprocess model、
+uncertainty growth、diagnostic backendは存在しない。authority/parent changeもlocal graphの
+明示policyを超える長時間運用の上位policyを持たない。
 
 現在の`LATEST_COMMON`は意図的にzero-order holdであり、確率分布補間の代替ではない。
 
-### 13.3 Runtime/validation
-
-1. high-rate graphでのqueue/history/memory sizing評価
-2. multi-process consumer間でlookup結果が一致することの長時間integration test
-3. unavailable resultとapproximation metadataを可視化する共通diagnostic UI
-4. X displayを持つ環境での`viewer:=true` RViz/plotter視認smoke
-
-### 13.4 Application拡張
-
-1. orientation-only law用の独立graph/query abstractionが必要かを用途から判断する
-2. symaware IKの複数orientation kind対応範囲を明示的に拡張する
-3. two-IMU materialization以外のterminal consumerをnative kernel APIで追加する
-
 orientation-only posteriorをfull SE(3) graphへ入れること、stiffness posteriorをtransform化すること、
-v1 adapterを復活させることはTODOではない。
+v1 adapterを復活させることは制約の解消ではなく、禁止しているdomain violationまたは廃止contractの再導入になる。
 
 ## 14. DOT の読み方
 
@@ -650,7 +636,7 @@ DOT graphは次の色分けを使う。
 - 黄: orientation-only domain
 - 桃: symaware grasp
 - 紫: deflecomp
-- 灰: external/runtime infrastructureと明示的TODO
+- 灰: external/runtime infrastructure
 - 赤: 禁止境界。v1 gapではなくfake domain encodingを禁止する規則
 
 太い実線は実行時dataflow、細い実線はcode dependency、破線はquery/terminal evaluation、

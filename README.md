@@ -105,5 +105,5 @@ roslaunch deflecomp_sim sim_with_deflecomp.launch
 roslaunch deflecomp_ros deflecomp_frames.launch viewer:=true
 ```
 
-See `docs/probtf_jmaa_kernel_architecture.md` for the distribution, graph,
+See `docs/lectures/probtf_jmaa_kernel_architecture.md` for the distribution, graph,
 kernel, temporal, and approximation contracts.

@@ -1,4 +1,4 @@
-# Prob-TF JMAA kernel architecture
+# ProbTF JMAA kernelの理論・実装contract
 
 ## 1. 定義と責務
 
@@ -44,18 +44,18 @@ probtf             -X->  examples
 
 | directory | responsibility |
 | --- | --- |
-| `src/probtf/distributions` | immutable orientation/translation/component/mixture storage |
-| `src/probtf/graph` | physical forest、path、timestamped buffer、query |
-| `src/probtf/kernels` | forward/inverse/composed/mixture expression と evaluator |
-| `src/probtf/spherical_law` | ISL protocol、special case、tangent surrogate adapter |
-| `src/probtf/probability` | optional Bingham/rotation/point moment summary |
-| `src/probtf/provenance` | provenance、dependency、approximation metadata |
-| `src/probtf_estimators` | IMU producer、same-edge evidence fusion、Hessian coupling |
-| `ros/core/probtf_msgs` | v1 と additive v2 message |
+| `ros/core/probtf_core/src/probtf/distributions` | immutable orientation/translation/component/mixture storage |
+| `ros/core/probtf_core/src/probtf/graph` | physical forest、path、timestamped buffer、query |
+| `ros/core/probtf_core/src/probtf/kernels` | forward/inverse/composed/mixture expression と evaluator |
+| `ros/core/probtf_core/src/probtf/spherical_law` | ISL protocol、special case、tangent surrogate adapter |
+| `ros/core/probtf_core/src/probtf/probability` | optional Bingham/rotation/point moment summary |
+| `ros/core/probtf_core/src/probtf/provenance` | provenance、dependency、approximation metadata |
+| `ros/core/probtf_core/src/probtf_estimators` | IMU producer、same-edge evidence fusion、Hessian coupling |
+| `ros/core/probtf_msgs` | native v2 wire contract |
 | `ros/core/probtf_core/src/probtf_ros` | ROS conversion と bridge のみ |
 
-`tests/test_ros_boundary.py` はこの依存方向と、ROS setup が root Python
-package を再配布しないことを検査する。
+`tests/test_ros_boundary.py` はこの依存方向、各catkin packageによるPython source ownership、
+parent path relayの不在を検査する。
 
 ## 3. frame と traversal
 
@@ -177,7 +177,7 @@ multiple parent を拒否する。parent change は default で拒否し、明�
 `LATEST` と `LATEST_COMMON` は optional `max_age` を受け取り、許容 age を
 超えた zero-order hold は `TEMPORAL_STALE` で失敗する。
 
-任意 Bingham mixture interpolation は未実装である。初期
+任意 Bingham mixture interpolation は未実装である。現在の
 `LATEST_COMMON` は全 dynamic edge の availability interval の最新共通時刻を
 選び、各 edge でその時刻以前の最新 sample を使用する。sample が共通時刻と
 異なる場合、`LATEST_COMMON_ZERO_ORDER_HOLD` diagnostic が
@@ -233,7 +233,7 @@ vector は norm と unit direction に分ける。
 | tangent leading-exponent moments | explicit `TANGENT_SURROGATE` approximation |
 | forward point moments | exact moments、lossy summary representation |
 | stochastic inverse covariance | unavailable |
-| stochastic sampling | unavailable |
+| native stochastic sampling | forward/inverse/composed pathまで実装済み、`MONTE_CARLO` |
 | closed-mixture reduction | unavailable without policy |
 
 JMAA manuscript には exact global density があるが、migration 開始時点で source
@@ -243,7 +243,7 @@ evaluator と regression code が存在しなかった。この実装では式�
 
 ## 10. ROS v2 と TF bridge
 
-v1 message は変更せず、次の additive v2 message を追加した。
+`probtf_msgs` はnative v2だけを生成する。full physical SE(3) edgeのmessageは次で構成される。
 
 - `BinghamOrientation`
 - `ConditionalGaussianTranslation`
@@ -253,50 +253,48 @@ v1 message は変更せず、次の additive v2 message を追加した。
 - `ApproximationInfo`
 - `Provenance`
 
-v2 `ProbabilisticTransformStamped.header.frame_id` が唯一の parent frame である。
-component は raw weight、joint orientation/translation、provenance、approximation
-を保持する。
+これに加え、two-IMU境界の`ImuKinematics`、orientation-only likelihoodの
+`TransformEvidenceStamped`、translationを持たないposteriorの
+`OrientationDistributionStamped`を生成する。
 
-`ProbTfBroadcaster` と `ProbTfListener` は `/probtf` と `/probtf_static` 用の
-transport facade である。late subscriber が全 static edge を受け取れるよう、
-`/probtf_static` は全 static set の `ProbabilisticTransformArray` を latch して
-再送する。通常 TF import は zero covariance/coupling の Dirac
-component を作る。Prob-TF から TF への export は representative のみで、
-stochastic edge では explicit `TfExportPolicy` を要求する。bridge は own
-authority と export signature を使って immediate re-import loop を防ぐ。
-installed `probtf_bridge_node.py` が両 Prob-TF topic と `/tf`、`/tf_static` を
-実際に接続し、connection `callerid` を import authority として保持する。
-IMU、orientation、fusion producer node は core ROS package ではなく各 demo
-package が所有する。
+`ProbabilisticTransformStamped.header.frame_id`が唯一のparent frameである。componentはraw
+weight、joint orientation/translation、provenance、approximationを保持する。
 
-## 11. compatibility
+`ProbTfBroadcaster`と`RosProbTfListener`は`/probtf`と`/probtf_static`用のtransport facadeである。
+late subscriberが全static edgeを受け取れるよう、`/probtf_static`は全static setの
+`ProbabilisticTransformArray`をlatchして再送する。listenerはtopicごとにlocal `ProbTfGraph`を作り、
+中央RPCなしでlookupする。
 
-- v1 `ProbabilisticTransform` は one-component、`C=0` として v2 に埋め込む。
-- v2 から v1 は default で single finite/uniform uncoupled component のみ。
-- mixture/coupling は explicit legacy projection policy と diagnostic が必要。
-- Dirac orientation は finite v1 Bingham message に偽装せず拒否する。
-- orientation-only v1 message に zero translation を捏造しない。
-- legacy `ProbTfTree.lookup_core_kernel(source, target)` は旧 pose-query argument
-  を新 action-query order へ明示変換する。旧 path/moment API は残る。
+通常TF importはzero covariance/couplingのDirac componentを作る。ProbTFからTFへのexportは
+exact edgeまたは明示されたrepresentativeだけで、stochastic edgeではexplicit `TfExportPolicy`を
+要求する。bridgeはown authorityとexport signatureを使ってimmediate re-import loopを防ぐ。
+IMU、orientation、fusion producer nodeは各demo packageが所有する。
 
-## 12. install と未実装範囲
+## 11. v1廃止とdomain boundary
 
-root Python project が `probtf`、`probtf_estimators`、Bingham dependency を所有
-する。catkin `probtf_core/setup.py` は `probtf_ros` のみを install する。clean
-environment では先に root project を install する。
+v1 domain model、ROS message、v1/v2 adapter、symaware固有`ProbTfTree`はsourceとruntimeから
+削除されている。v1へ投影するcompatibility pathは存在しない。
 
-```bash
-git submodule update --init --recursive
-python3 -m pip install -e .
-catkin build probtf_msgs probtf_core
-```
+- orientation-only posteriorへzero translationを補い、SE(3) edgeへ偽装しない。
+- stiffness posterior、IK score、grasp IDをtransformとしてgraphへ登録しない。
+- moment summary、display sample、representativeを独立なphysical edgeとして再登録しない。
+- mixture/couplingを暗黙に一成分へ縮約しない。
+- 同じlatent dependencyを独立sampleとして扱わない。
 
-次の項目は interface または explicit unavailable status までである。
+これらはbackend不足を埋める暫定compatibilityではなく、確率変数とapplication domainを守る境界である。
 
-- finite-Bingham exact JMAA density evaluator と regression values
+## 12. install ownershipと明示的制約
+
+`probtf`、`probtf_estimators`、`probtf_ros`は`probtf_core` catkin packageの`src/`が所有する。
+deflecompとsymawareのPython namespaceも各catkin packageの`src/`が所有する。root `setup.py`は
+非catkin開発向けにfirst-party source rootだけを集約し、catkin packageからparent pathをrelayしない。
+Bingham normalizerは`probtf._vendor`に収容され、runtimeは外部`bingham` packageに依存しない。
+
+次の項目はinterfaceまたはexplicit unavailable statusまでである。
+
+- finite-Bingham exact JMAA density evaluatorとregression values
 - arbitrary mixture temporal interpolation/prediction
-- stochastic inverse high-order moment evaluator
-- composed numerical law と dependency-aware shared realization sampling
-- mixture merge と Bingham-Gaussian closure policy
+- stochastic inverse analytic high-order moment evaluator
+- coupled numerical lawとdependency-aware shared realization evaluator
+- mixture mergeとBingham-Gaussian closure policy
 - general edge-correlation/factor-graph backend
-- ROS 2、RViz plugin、AR marker producer

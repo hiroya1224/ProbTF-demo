@@ -6,9 +6,12 @@ from pathlib import Path
 
 
 ROS_MODULES = {
+    "genpy",
     "geometry_msgs",
     "message_filters",
+    "nav_msgs",
     "probtf_msgs",
+    "rosbag",
     "roslib",
     "rospkg",
     "rospy",
@@ -63,6 +66,12 @@ def _ros_free_package_roots(repository_root):
         / "src"
         / "deflecomp_examples",
         repository_root / "ros" / "examples" / "deflecomp" / "deflecomp_sim" / "src" / "deflecomp_sim",
+        repository_root
+        / "ros"
+        / "examples"
+        / "grape-param-estim"
+        / "src"
+        / "grape_param_estim",
         repository_root / "ros" / "examples" / "symaware_grasp" / "src" / "symaware_grasp",
     )
 
@@ -130,6 +139,7 @@ class RosBoundaryTest(unittest.TestCase):
         foundation_root = root / "ros" / "core" / "probtf_core" / "src" / "probtf"
         forbidden = ROS_MODULES | {
             "deflecomp_examples",
+            "grape_param_estim",
             "probtf_estimators",
             "symaware_grasp",
         }

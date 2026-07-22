@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="input_bag" default="" />
+  <arg name="output_bag" default="/tmp/grape_param_estim_analysis.bag" />
+  <arg name="config" default="$(find grape_param_estim)/config/estimator.yaml" />
+  <arg name="seed" default="7" />
+  <arg name="start_offset" default="0.0" />
+  <arg name="duration" default="0.0" />
+
+  <node
+    pkg="grape_param_estim"
+    type="estimate_grape_bag.py"
+    name="grape_param_estim_offline"
+    output="screen"
+    required="true"
+    args="--input-bag $(arg input_bag) --output-bag $(arg output_bag) --config $(arg config) --seed $(arg seed) --start-offset $(arg start_offset) --duration $(arg duration)"
+  />
+</launch>

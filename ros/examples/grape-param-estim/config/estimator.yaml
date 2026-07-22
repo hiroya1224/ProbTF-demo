@@ -1,0 +1,79 @@
+# The initial distribution is deliberately not centred on the URDF values.
+# These finite bounds define a proper bounded-uniform distribution; changing
+# them changes the inference problem and must be recorded in provenance.
+model: rigid_body_inertial_parameters_v1
+seed: 7
+
+topics:
+  mocap_pose: /gimbalrotor/mocap/pose
+  calibrated_actuator_wrench: /grape_param_estim/input/actuator_wrench
+  joint_states: /gimbalrotor/joint_states
+  rotor_command: /gimbalrotor/four_axes/command
+  flight_state: /gimbalrotor/flight_state
+
+parameters:
+  names:
+    - mass
+    - cog_x
+    - cog_y
+    - cog_z
+    - inertia_xx
+    - inertia_xy
+    - inertia_xz
+    - inertia_yy
+    - inertia_yz
+    - inertia_zz
+  bounded_uniform:
+    lower: [0.50, -0.20, -0.20, -0.20, 0.010, -0.060, -0.060, 0.010, -0.060, 0.010]
+    upper: [5.00,  0.20,  0.20,  0.15, 0.250,  0.060,  0.060, 0.250,  0.060, 0.250]
+  require_positive_mass: true
+  require_positive_definite_inertia: true
+  require_inertia_triangle_inequality: true
+
+particle_filter:
+  particle_count: 1024
+  resample_ess_fraction: 0.50
+  tempering_ess_fraction: 0.70
+  mcmc_steps: 2
+  local_move_scale: 0.35
+  prior_move_probability: 0.03
+  batch_size: 5
+  output_every_observations: 5
+  particle_output_stride: 8
+
+observation:
+  mocap_position_sigma_m: 0.01
+  mocap_orientation_sigma_deg: 1.0
+  force_residual_sigma_n: 0.80
+  torque_residual_sigma_nm: 0.06
+  robust_likelihood: student_t
+  student_t_degrees_of_freedom: 5.0
+
+synchronization:
+  resample_rate_hz: 50.0
+  estimation_stride: 5
+  savgol_window: 51
+  savgol_polynomial_order: 3
+  max_pose_age_s: 0.03
+  max_wrench_age_s: 0.03
+  max_joint_age_s: 0.05
+  max_command_age_s: 0.10
+  warmup_s: 2.0
+
+real_bag:
+  # TAKEOFF (3) includes long ground-contact thrust ramps in the recordings.
+  # The rigid-body airborne likelihood therefore defaults to HOVER (5) only.
+  allowed_flight_states: [5]
+
+gating:
+  minimum_excitation_rank: 1
+  maximum_excitation_condition: 1000000.0
+
+output:
+  estimate_topic: /grape_param_estim/estimate
+  particles_topic: /grape_param_estim/particles
+  diagnostics_topic: /grape_param_estim/diagnostics
+  predicted_wrench_topic: /grape_param_estim/predicted_wrench
+  residual_wrench_topic: /grape_param_estim/wrench_residual
+  probtf_cog_topic: /probtf/grape_param_estim/cog
+  truth_topic: /grape_param_estim/ground_truth

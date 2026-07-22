@@ -1,0 +1,18 @@
+# Evaluation-only q=0 composite from the current Grape model, expressed at fc.
+# Four 1e-5 kg virtual rotor-arm links used by RobotModel are included.  This
+# file is consumed by the generator/evaluator and never by the estimator.
+model: grape_q0_composite_fc_2026_07
+source: jsk_aerial_robot/robots/gimbalrotor/urdf/grape
+parameter_names:
+  [mass, cog_x, cog_y, cog_z, inertia_xx, inertia_xy, inertia_xz, inertia_yy, inertia_yz, inertia_zz]
+parameters:
+  - 2.351597590812377
+  - 0.015275288306
+  - 0.001069474264
+  - -0.047551249361
+  - 0.065000061483
+  - -0.000000727899
+  - 0.000019015080
+  - 0.064952656340
+  - 0.000000059167
+  - 0.128992110664

@@ -49,6 +49,20 @@ class PoseSeed:
     translation: np.ndarray
     reprojection_error: float
 
+    def __post_init__(self):
+        rotation = np.asarray(self.rotation, dtype=float)
+        translation = np.asarray(self.translation, dtype=float).reshape(-1)
+        reprojection_error = float(self.reprojection_error)
+        if rotation.shape != (3, 3) or not np.all(np.isfinite(rotation)):
+            raise ValueError("seed rotation must be a finite 3x3 matrix.")
+        if translation.shape != (3,) or not np.all(np.isfinite(translation)):
+            raise ValueError("seed translation must be a finite 3-vector.")
+        if not math.isfinite(reprojection_error) or reprojection_error < 0.0:
+            raise ValueError("seed reprojection_error must be finite and non-negative.")
+        object.__setattr__(self, "rotation", rotation.copy())
+        object.__setattr__(self, "translation", translation.copy())
+        object.__setattr__(self, "reprojection_error", reprojection_error)
+
 
 @dataclass(frozen=True)
 class _LocalMode:
@@ -483,15 +497,27 @@ class PoseMixtureEstimator:
         stamp,
         edge_id=None,
         authority="prob_artag_detector",
+        pose_seeds=None,
     ):
         if not isinstance(observation, MarkerObservation):
             raise TypeError("observation must be MarkerObservation.")
         if not isinstance(camera_model, CameraModel):
             raise TypeError("camera_model must be CameraModel.")
         precision = image_precision(observation.image_covariance, self.spd_tolerance)
-        seeds = solve_ippe_square_candidates(
-            observation.corners_px, camera_model, self.tag_size_m
-        )
+        if pose_seeds is None:
+            seeds = solve_ippe_square_candidates(
+                observation.corners_px, camera_model, self.tag_size_m
+            )
+        else:
+            try:
+                seeds = tuple(
+                    PoseSeed(seed.rotation, seed.translation, seed.reprojection_error)
+                    for seed in pose_seeds
+                )
+            except (AttributeError, TypeError, ValueError) as exc:
+                raise ValueError("pose_seeds must contain valid PoseSeed values.") from exc
+            if not seeds:
+                raise PoseEstimationError("pose_seeds must not be empty.")
         diagnostic_rows = [
             dict(
                 seed_index=index,
@@ -662,6 +688,7 @@ class PoseMixtureEstimator:
             diagnostics=diagnostics,
             rotations=tuple(mode.rotation.copy() for mode in modes),
             translations=tuple(mode.translation.copy() for mode in modes),
+            seed_indices=tuple(int(mode.seed_index) for mode in modes),
             log_masses=log_masses,
             weights=tuple(float(value) for value in weights),
         )

@@ -1,6 +1,7 @@
 """ROS-independent inputs and diagnostics for probabilistic AprilTag poses."""
 
 from dataclasses import dataclass
+from numbers import Integral
 from typing import Optional, Tuple
 
 import numpy as np
@@ -110,3 +111,50 @@ class PoseMixtureResult:
     translations: Tuple[np.ndarray, ...]
     log_masses: Tuple[float, ...]
     weights: Tuple[float, ...]
+    seed_indices: Tuple[int, ...] = ()
+
+    def __post_init__(self):
+        rotations = tuple(self.rotations)
+        translations = tuple(self.translations)
+        log_masses = tuple(float(value) for value in self.log_masses)
+        weights = tuple(float(value) for value in self.weights)
+        mode_count = len(rotations)
+        if not (
+            len(translations) == mode_count
+            and len(log_masses) == mode_count
+            and len(weights) == mode_count
+        ):
+            raise ValueError("all PoseMixtureResult mode arrays must have equal length.")
+        if not np.all(np.isfinite(log_masses)) or not np.all(np.isfinite(weights)):
+            raise ValueError("PoseMixtureResult masses and weights must be finite.")
+
+        distribution = getattr(self.record, "distribution", None)
+        components = getattr(distribution, "components", None)
+        if components is not None and len(tuple(components)) != mode_count:
+            raise ValueError("record component count must match returned mode count.")
+
+        raw_seed_indices = tuple(self.seed_indices)
+        if raw_seed_indices:
+            if len(raw_seed_indices) != mode_count:
+                raise ValueError("seed_indices must match returned mode count.")
+            if any(
+                isinstance(value, bool) or not isinstance(value, Integral)
+                for value in raw_seed_indices
+            ):
+                raise TypeError("seed_indices must contain integers.")
+            seed_indices = tuple(int(value) for value in raw_seed_indices)
+            if len(set(seed_indices)) != len(seed_indices):
+                raise ValueError("seed_indices must be unique.")
+            seed_count = getattr(self.diagnostics, "seed_count", None)
+            if seed_count is not None and any(
+                value < 0 or value >= int(seed_count) for value in seed_indices
+            ):
+                raise ValueError("seed_indices must refer to diagnostics seeds.")
+        else:
+            seed_indices = ()
+
+        object.__setattr__(self, "rotations", rotations)
+        object.__setattr__(self, "translations", translations)
+        object.__setattr__(self, "log_masses", log_masses)
+        object.__setattr__(self, "weights", weights)
+        object.__setattr__(self, "seed_indices", seed_indices)

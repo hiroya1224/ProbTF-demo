@@ -10,6 +10,7 @@ from prob_artag_detector import (
     MarkerObservation,
     PoseEstimationError,
     PoseMixtureEstimator,
+    PoseMixtureResult,
     PoseSeed,
     bingham_parameter_from_tangent_precision,
     image_precision,
@@ -215,8 +216,55 @@ def test_ippe_branch_guard_preserves_two_distinct_pose_hypotheses(rotation_vecto
     assert result.diagnostics.seed_count == 2
     assert result.diagnostics.accepted_count == 2
     assert result.diagnostics.deduplicated_count == 0
+    assert set(result.seed_indices) == {0, 1}
     assert len(result.record.distribution.components) == 2
+    for seed_index, component in zip(
+        result.seed_indices, result.record.distribution.components
+    ):
+        assert "candidate {}.".format(seed_index) in component.provenance.detail
     assert _rotation_error(result.rotations[0], result.rotations[1]) > 1e-4
+
+
+def test_explicit_ippe_seeds_are_reused_and_result_keeps_legacy_constructor(monkeypatch):
+    camera = _camera()
+    observation, _, _ = _observation(camera)
+    seeds = solve_ippe_square_candidates(observation.corners_px, camera, 0.12)
+
+    def unexpected_resolve(*_args, **_kwargs):
+        raise AssertionError("IPPE must not be solved twice")
+
+    monkeypatch.setattr(
+        estimator_module, "solve_ippe_square_candidates", unexpected_resolve
+    )
+    result = PoseMixtureEstimator(0.12).estimate(
+        observation,
+        camera,
+        "camera",
+        "tag",
+        1.0,
+        pose_seeds=seeds,
+    )
+    assert set(result.seed_indices) == set(range(len(seeds)))
+
+    legacy = PoseMixtureResult(
+        result.record,
+        result.diagnostics,
+        result.rotations,
+        result.translations,
+        result.log_masses,
+        result.weights,
+    )
+    assert legacy.seed_indices == ()
+    with pytest.raises(ValueError, match="unique"):
+        PoseMixtureResult(
+            result.record,
+            result.diagnostics,
+            result.rotations,
+            result.translations,
+            result.log_masses,
+            result.weights,
+            (0, 0),
+        )
 
 
 def test_distorted_camera_estimation_uses_numerical_jacobian():

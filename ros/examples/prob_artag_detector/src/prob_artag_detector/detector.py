@@ -35,10 +35,18 @@ class ArucoCornerDetector:
         dictionary_id, family_name = _dictionary_id(family)
         self.family = family_name
         self.dictionary = cv2.aruco.getPredefinedDictionary(dictionary_id)
-        self.parameters = cv2.aruco.DetectorParameters()
+        if hasattr(cv2.aruco, "DetectorParameters"):
+            self.parameters = cv2.aruco.DetectorParameters()
+        else:
+            # OpenCV 4.2, as shipped by ROS Noetic on Ubuntu 20.04.
+            self.parameters = cv2.aruco.DetectorParameters_create()
         if corner_refinement:
             self.parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
-        self.detector = cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
+        self.detector = (
+            cv2.aruco.ArucoDetector(self.dictionary, self.parameters)
+            if hasattr(cv2.aruco, "ArucoDetector")
+            else None
+        )
         covariance = (
             isotropic_image_covariance(corner_sigma_px)
             if image_covariance is None
@@ -61,7 +69,12 @@ class ArucoCornerDetector:
             raise ValueError("image must be grayscale, BGR, or BGRA.")
         if gray.dtype != np.uint8:
             raise ValueError("OpenCV marker detection requires a uint8 image.")
-        corners, identifiers, _ = self.detector.detectMarkers(gray)
+        if self.detector is None:
+            corners, identifiers, _ = cv2.aruco.detectMarkers(
+                gray, self.dictionary, parameters=self.parameters
+            )
+        else:
+            corners, identifiers, _ = self.detector.detectMarkers(gray)
         if identifiers is None:
             return ()
         observations = []

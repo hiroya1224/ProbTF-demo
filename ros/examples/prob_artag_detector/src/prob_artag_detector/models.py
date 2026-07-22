@@ -51,11 +51,39 @@ class CameraModel:
 
     @classmethod
     def from_camera_info(cls, message):
+        distortion_model = str(getattr(message, "distortion_model", "")).strip()
+        if distortion_model not in ("", "plumb_bob", "rational_polynomial"):
+            raise ValueError(
+                "Unsupported CameraInfo distortion_model {!r}.".format(
+                    distortion_model
+                )
+            )
+        width = int(message.width)
+        height = int(message.height)
+        if width <= 0 or height <= 0:
+            raise ValueError("CameraInfo width and height must be positive.")
+        binning_x = int(getattr(message, "binning_x", 0))
+        binning_y = int(getattr(message, "binning_y", 0))
+        if binning_x not in (0, 1) or binning_y not in (0, 1):
+            raise ValueError(
+                "Binned CameraInfo is unsupported; publish matching unbinned image_raw."
+            )
+        roi = getattr(message, "roi", None)
+        if roi is not None and (
+            int(getattr(roi, "x_offset", 0)) != 0
+            or int(getattr(roi, "y_offset", 0)) != 0
+            or int(getattr(roi, "width", 0)) != 0
+            or int(getattr(roi, "height", 0)) != 0
+            or bool(getattr(roi, "do_rectify", False))
+        ):
+            raise ValueError(
+                "ROI CameraInfo is unsupported; publish the full matching image_raw."
+            )
         return cls(
             np.asarray(message.K, dtype=float).reshape(3, 3),
             np.asarray(message.D, dtype=float),
-            int(message.width),
-            int(message.height),
+            width,
+            height,
         )
 
 

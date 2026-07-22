@@ -4,7 +4,14 @@ import cv2
 import numpy as np
 
 
-def draw_debug_image(image, observations, results=(), camera_model=None, axis_length=0.04):
+def draw_debug_image(
+    image,
+    observations,
+    results=(),
+    camera_model=None,
+    axis_length=0.04,
+    status_text="",
+):
     value = np.asarray(image)
     if value.ndim == 2:
         output = cv2.cvtColor(value, cv2.COLOR_GRAY2BGR)
@@ -19,6 +26,17 @@ def draw_debug_image(image, observations, results=(), camera_model=None, axis_le
         for observation, result in zip(observations, results)
         if result is not None
     }
+    if status_text:
+        cv2.putText(
+            output,
+            str(status_text),
+            (12, 24),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            (20, 220, 250),
+            2,
+            cv2.LINE_AA,
+        )
     if camera_model is not None:
         length = float(axis_length)
         if not np.isfinite(length) or length <= 0.0:

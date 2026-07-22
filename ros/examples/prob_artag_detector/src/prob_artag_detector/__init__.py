@@ -8,6 +8,11 @@ from prob_artag_detector.camera import (
     project_points,
     transform_points,
 )
+from prob_artag_detector.calibration import (
+    CameraCalibration,
+    approximate_camera_model,
+    load_camera_calibration,
+)
 from prob_artag_detector.detector import ArucoCornerDetector, isotropic_image_covariance
 from prob_artag_detector.estimator import (
     PoseEstimationError,
@@ -32,6 +37,7 @@ from prob_artag_detector.visualization import draw_debug_image
 __all__ = [
     "ArucoCornerDetector",
     "CameraModel",
+    "CameraCalibration",
     "CandidateDiagnostic",
     "EstimationDiagnostics",
     "MarkerObservation",
@@ -40,6 +46,7 @@ __all__ = [
     "PoseMixtureEstimator",
     "PoseSeed",
     "analytic_pinhole_pose_jacobian",
+    "approximate_camera_model",
     "finite_difference_pose_jacobian",
     "bingham_parameter_from_tangent_precision",
     "draw_debug_image",
@@ -47,6 +54,7 @@ __all__ = [
     "ippe_square_object_points",
     "isotropic_image_covariance",
     "local_gauss_newton_hessian",
+    "load_camera_calibration",
     "normalize_log_weights",
     "pose_jacobian",
     "project_points",

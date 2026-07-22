@@ -1,0 +1,129 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 75
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Camera Grid1
+        - /Tag Frames1
+        - /Probabilistic Tag Modes1
+        - /Detection Image1
+      Splitter Ratio: 0.5
+    Tree Height: 620
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.45
+      Cell Size: 0.1
+      Class: rviz/Grid
+      Color: 110; 118; 128
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Camera Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 20
+      Reference Frame: camera_link
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 2
+      Frames:
+        All Enabled: true
+      Marker Alpha: 0.85
+      Marker Scale: 0.25
+      Name: Tag Frames
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /prob_artag_detector/markers
+      Name: Probabilistic Tag Modes
+      Namespaces:
+        {}
+      Queue Size: 10
+      Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /prob_artag_detector/debug_image
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Detection Image
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 34; 38; 44
+    Default Light: true
+    Fixed Frame: camera_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 1.4
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999977648258
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0.65
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.04
+      Invert Z Axis: false
+      Name: Camera Forward View
+      Near Clip Distance: 0.01
+      Pitch: 0.24
+      Target Frame: camera_link
+      Yaw: 3.141592653589793
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 960
+  Hide Left Dock: false
+  Hide Right Dock: false
+  Views:
+    collapsed: false
+  Width: 1480
+  X: 80
+  Y: 40

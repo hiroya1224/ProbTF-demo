@@ -123,13 +123,20 @@ def solve_ippe_square_candidates(corners_px, camera_model, tag_size_m):
         raise TypeError("camera_model must be CameraModel.")
     corners = _corners(corners_px)
     object_points = ippe_square_object_points(tag_size_m)
-    result = cv2.solvePnPGeneric(
-        object_points,
-        corners,
-        camera_model.camera_matrix,
-        camera_model.distortion,
-        flags=cv2.SOLVEPNP_IPPE_SQUARE,
-    )
+    # OpenCV 4.2's Python binding (stock ROS Noetic/Focal) incorrectly creates
+    # an 8-bit placeholder unless the optional output buffer is explicit.
+    reprojection_buffer = np.empty((2, 1), dtype=np.float64)
+    try:
+        result = cv2.solvePnPGeneric(
+            object_points,
+            corners,
+            camera_model.camera_matrix,
+            camera_model.distortion,
+            flags=cv2.SOLVEPNP_IPPE_SQUARE,
+            reprojectionError=reprojection_buffer,
+        )
+    except cv2.error as error:
+        raise PoseEstimationError("IPPE_SQUARE pose solve failed: {}".format(error)) from error
     if len(result) < 3 or not bool(result[0]):
         raise PoseEstimationError("IPPE_SQUARE did not return a pose candidate.")
     rotation_vectors = tuple(result[1])
@@ -498,11 +505,15 @@ class PoseMixtureEstimator:
         edge_id=None,
         authority="prob_artag_detector",
         pose_seeds=None,
+        camera_model_source_id="",
+        camera_model_is_approximate=False,
     ):
         if not isinstance(observation, MarkerObservation):
             raise TypeError("observation must be MarkerObservation.")
         if not isinstance(camera_model, CameraModel):
             raise TypeError("camera_model must be CameraModel.")
+        camera_model_source_id = str(camera_model_source_id).strip()
+        camera_model_is_approximate = bool(camera_model_is_approximate)
         precision = image_precision(observation.image_covariance, self.spd_tolerance)
         if pose_seeds is None:
             seeds = solve_ippe_square_candidates(
@@ -601,6 +612,17 @@ class PoseMixtureEstimator:
             str(child_frame_id).strip().strip("/"),
         )
         source_id = "{}:{}".format(observation.family, observation.marker_id)
+        source_ids = (
+            (source_id, camera_model_source_id)
+            if camera_model_source_id
+            else (source_id,)
+        )
+        calibration_detail = (
+            " Camera intrinsics use an uncalibrated fallback; intrinsic and "
+            "distortion uncertainty are not included in this pose law."
+            if camera_model_is_approximate
+            else ""
+        )
         approximation = ApproximationInfo(
             kind=ApproximationKind.TANGENT_SURROGATE,
             lossy=True,
@@ -609,6 +631,7 @@ class PoseMixtureEstimator:
                 "orientation is its right-chart Bingham surrogate. IPPE seed branches "
                 "are kept in separate pose-space Voronoi cells. A common proper broad "
                 "translation prior is included unless explicitly disabled."
+                + calibration_detail
             ),
             source="prob_artag_detector.PoseMixtureEstimator",
         )
@@ -630,6 +653,7 @@ class PoseMixtureEstimator:
                             else "Refinement converged without reaching the branch guard."
                         )
                     )
+                    + calibration_detail
                 ),
                 source="prob_artag_detector.PoseMixtureEstimator",
             )
@@ -647,7 +671,7 @@ class PoseMixtureEstimator:
                         rotation_coupling=mode.rotation_coupling,
                     ),
                     provenance=ComponentProvenance(
-                        source_ids=(source_id,),
+                        source_ids=source_ids,
                         method="ippe_square_mahalanobis_laplace",
                         detail="Mode initialized by IPPE candidate {}.".format(
                             mode.seed_index
@@ -664,9 +688,12 @@ class PoseMixtureEstimator:
             authority=authority,
             distribution=TransformDistribution(tuple(components)),
             provenance=TransformProvenance(
-                source_ids=(source_id,),
+                source_ids=source_ids,
                 method="opencv_aruco_ippe_square",
-                detail="Ordered corners and their full 8x8 covariance produced this edge.",
+                detail=(
+                    "Ordered corners and their full 8x8 covariance produced this edge."
+                    + calibration_detail
+                ),
             ),
             is_static=False,
             approximation=approximation,

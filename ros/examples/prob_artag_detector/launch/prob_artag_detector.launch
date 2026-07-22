@@ -1,8 +1,15 @@
 <launch>
   <arg name="image_topic" default="/camera/image_raw" />
   <arg name="camera_info_topic" default="/camera/camera_info" />
+  <arg name="calibration_status_topic" default="/prob_artag_detector/calibration_status" />
   <arg name="probtf_topic" default="/probtf" />
   <arg name="publish_debug_image" default="true" />
+  <arg name="publish_markers" default="true" />
+  <arg name="camera_frame_id" default="" />
+  <arg name="fallback_calibration_enabled" default="false" />
+  <arg name="fallback_camera_frame_id" default="camera_optical_frame" />
+  <arg name="fallback_horizontal_fov_deg" default="60.0" />
+  <arg name="require_calibration_resolution_match" default="true" />
   <arg name="config" default="$(find prob_artag_detector)/config/default.yaml" />
 
   <node
@@ -13,7 +20,14 @@
     <rosparam command="load" file="$(arg config)" />
     <param name="probtf_topic" value="$(arg probtf_topic)" />
     <param name="publish_debug_image" value="$(arg publish_debug_image)" />
+    <param name="publish_markers" value="$(arg publish_markers)" />
+    <param name="camera_frame_id" value="$(arg camera_frame_id)" />
+    <param name="fallback_calibration_enabled" value="$(arg fallback_calibration_enabled)" />
+    <param name="fallback_camera_frame_id" value="$(arg fallback_camera_frame_id)" />
+    <param name="fallback_horizontal_fov_deg" value="$(arg fallback_horizontal_fov_deg)" />
+    <param name="require_calibration_resolution_match" value="$(arg require_calibration_resolution_match)" />
     <remap from="~image" to="$(arg image_topic)" />
     <remap from="~camera_info" to="$(arg camera_info_topic)" />
+    <remap from="~calibration_status" to="$(arg calibration_status_topic)" />
   </node>
 </launch>

@@ -91,10 +91,11 @@ def test_camera_model_rejects_invalid_calibration():
 
 
 def test_aruco_detector_recovers_id_order_and_full_covariance():
-    marker = cv2.aruco.generateImageMarker(
-        cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11),
-        17,
-        160,
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+    marker = (
+        cv2.aruco.generateImageMarker(dictionary, 17, 160)
+        if hasattr(cv2.aruco, "generateImageMarker")
+        else cv2.aruco.drawMarker(dictionary, 17, 160)
     )
     canvas = np.full((240, 240), 255, dtype=np.uint8)
     canvas[40:200, 40:200] = marker

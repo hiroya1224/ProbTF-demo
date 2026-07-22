@@ -7,6 +7,23 @@ tag_frame_prefix: apriltag_
 camera_frame_id: ""
 probtf_topic: /probtf
 publish_debug_image: true
+publish_markers: true
+
+# A valid CameraInfo remains preferred.  The generic detector keeps fallback
+# disabled; the real-camera demo launch enables it explicitly.
+fallback_calibration_enabled: false
+fallback_camera_frame_id: camera_optical_frame
+fallback_horizontal_fov_deg: 60.0
+fallback_fx_px: 0.0
+fallback_fy_px: 0.0
+fallback_cx_px: -1.0
+fallback_cy_px: -1.0
+require_calibration_resolution_match: true
+
+marker_lifetime_sec: 0.5
+marker_axis_length_m: 0.06
+marker_tag_thickness_m: 0.003
+maximum_uncertainty_scale_m: 0.75
 
 max_iterations: 30
 convergence_tolerance: 1.0e-9

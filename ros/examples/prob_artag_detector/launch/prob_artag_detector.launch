@@ -1,0 +1,19 @@
+<launch>
+  <arg name="image_topic" default="/camera/image_raw" />
+  <arg name="camera_info_topic" default="/camera/camera_info" />
+  <arg name="probtf_topic" default="/probtf" />
+  <arg name="publish_debug_image" default="true" />
+  <arg name="config" default="$(find prob_artag_detector)/config/default.yaml" />
+
+  <node
+    pkg="prob_artag_detector"
+    type="prob_artag_detector_node.py"
+    name="prob_artag_detector"
+    output="screen">
+    <rosparam command="load" file="$(arg config)" />
+    <param name="probtf_topic" value="$(arg probtf_topic)" />
+    <param name="publish_debug_image" value="$(arg publish_debug_image)" />
+    <remap from="~image" to="$(arg image_topic)" />
+    <remap from="~camera_info" to="$(arg camera_info_topic)" />
+  </node>
+</launch>

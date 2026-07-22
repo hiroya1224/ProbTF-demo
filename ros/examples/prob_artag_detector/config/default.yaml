@@ -1,0 +1,20 @@
+family: DICT_APRILTAG_36h11
+tag_size_m: 0.12
+corner_sigma_px: 0.5
+corner_refinement: true
+
+tag_frame_prefix: apriltag_
+camera_frame_id: ""
+probtf_topic: /probtf
+publish_debug_image: true
+
+max_iterations: 30
+convergence_tolerance: 1.0e-9
+min_depth: 1.0e-6
+dedup_translation_tolerance: 1.0e-7
+dedup_rotation_tolerance_rad: 1.0e-7
+finite_difference_step: 1.0e-6
+verify_jacobian: false
+spd_tolerance: 1.0e-12
+translation_prior_mean: [0.0, 0.0, 0.0]
+translation_prior_variance: 1.0e6

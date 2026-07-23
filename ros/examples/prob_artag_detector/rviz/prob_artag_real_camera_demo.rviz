@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Camera Grid1
         - /Tag Frames1
+        - /Probabilistic AprilTags1
         - /Probabilistic Tag Modes1
         - /Detection Image1
       Splitter Ratio: 0.5
@@ -58,6 +59,22 @@ Visualization Manager:
         {}
       Update Interval: 0
       Value: true
+    - Alpha: 0.6
+      Axis Length: 0.06
+      Class: probtf_rviz/ProbabilisticTF
+      Dynamic Snapshot Topic: ""
+      Dynamic Topic: /prob_artag_demo/probtf
+      Enabled: true
+      Name: Probabilistic AprilTags
+      Point Size: 0.004
+      Point Style: Spheres
+      Queue Size: 10
+      Random Seed: 21
+      Representative Radius: 0.003
+      Root Frame: camera_optical_frame
+      Sample Count: 300
+      Show Representatives: false
+      Static Topic: ""
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /prob_artag_detector/markers

@@ -83,5 +83,8 @@
     type="rviz"
     name="prob_artag_rviz"
     args="-d $(arg rviz_config)"
-    required="false" />
+    required="false">
+    <!-- Keep the fixed RViz config compatible with probtf_topic overrides. -->
+    <remap from="/prob_artag_demo/probtf" to="$(arg probtf_topic)" />
+  </node>
 </launch>

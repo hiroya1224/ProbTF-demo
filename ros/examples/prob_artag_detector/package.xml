@@ -18,6 +18,7 @@
   <depend>std_msgs</depend>
   <depend>visualization_msgs</depend>
 
+  <exec_depend>probtf_rviz</exec_depend>
   <exec_depend>rviz</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
 

@@ -197,12 +197,21 @@ def test_real_camera_launch_wires_camera_detector_bridge_and_rviz():
     arguments = {item.attrib["name"]: item.attrib["default"] for item in root.findall("arg")}
     assert arguments["probtf_topic"] == "/prob_artag_demo/probtf"
 
+    rviz_remaps = {
+        item.attrib["from"]: item.attrib["to"]
+        for item in nodes["prob_artag_rviz"].findall("remap")
+    }
+    assert rviz_remaps["/prob_artag_demo/probtf"] == "$(arg probtf_topic)"
+
     rviz_text = (PACKAGE_ROOT / "rviz" / "prob_artag_real_camera_demo.rviz").read_text(
         encoding="utf-8"
     )
     assert "Fixed Frame: camera_link" in rviz_text
     assert "Marker Topic: /prob_artag_detector/markers" in rviz_text
     assert "Image Topic: /prob_artag_detector/debug_image" in rviz_text
+    assert "Class: probtf_rviz/ProbabilisticTF" in rviz_text
+    assert "Dynamic Topic: /prob_artag_demo/probtf" in rviz_text
+    assert "Root Frame: camera_optical_frame" in rviz_text
 
 
 def test_shipped_sample_tags_decode_to_their_declared_ids():

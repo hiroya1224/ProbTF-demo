@@ -77,6 +77,7 @@ def build_pose_mixture_markers(
     tag_thickness_m=0.003,
     maximum_uncertainty_scale_m=0.75,
     lifetime=None,
+    include_axes=True,
 ):
     """Build a clear-first MarkerArray retaining all accepted IPPE modes."""
 
@@ -141,18 +142,23 @@ def build_pose_mixture_markers(
             plane.color = color
             output.markers.append(plane)
 
-            axes = _base_marker(
-                header, namespace + "/axes", marker_id, Marker.LINE_LIST, lifetime
-            )
-            marker_id += 1
-            axes.scale.x = max(0.0015, 0.025 * tag_size_m)
             origin = np.asarray(translation, dtype=float).reshape(3)
             rotation = np.asarray(rotation, dtype=float).reshape(3, 3)
-            for axis_index, axis_color in enumerate(_AXIS_COLORS):
-                endpoint = origin + axis_length_m * rotation[:, axis_index]
-                axes.points.extend((_point(origin), _point(endpoint)))
-                axes.colors.extend((axis_color, axis_color))
-            output.markers.append(axes)
+            if include_axes:
+                axes = _base_marker(
+                    header,
+                    namespace + "/axes",
+                    marker_id,
+                    Marker.LINE_LIST,
+                    lifetime,
+                )
+                marker_id += 1
+                axes.scale.x = max(0.0015, 0.025 * tag_size_m)
+                for axis_index, axis_color in enumerate(_AXIS_COLORS):
+                    endpoint = origin + axis_length_m * rotation[:, axis_index]
+                    axes.points.extend((_point(origin), _point(endpoint)))
+                    axes.colors.extend((axis_color, axis_color))
+                output.markers.append(axes)
 
             covariance_rotation, covariance_scale, covariance_clipped = _covariance_pose(
                 component.translation.residual_covariance,

@@ -48,7 +48,8 @@ ProbabilisticPoseDisplay::ProbabilisticPoseDisplay()
           SLOT(updateGeometry()))),
       axis_length_property_(new rviz::FloatProperty(
           "Axis Length", 0.18,
-          "Distance from the sampled origin to each colored axis endpoint.",
+          "Shared length of sampled colored endpoints and the representative "
+          "coordinate axes.",
           this, SLOT(updateGeometry()))),
       point_size_property_(new rviz::FloatProperty(
           "Point Size", 0.01, "Rendered diameter of each endpoint.", this,

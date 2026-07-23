@@ -50,6 +50,11 @@ settings bounded, the tree display limits one redraw to 1,500,000 rendered
 sample points and reports the effective per-frame sample count in its status
 when clamping is needed.
 
+`Axis Length` is shared by the sampled RGB endpoints and the central
+representative coordinate axes. `Show Representative(s)` must be enabled for
+those central axes to be visible. Axes drawn by a separate RViz TF or
+MarkerArray display are independent objects and do not follow this property.
+
 Both displays apply `Frame Timeout` to dynamic data. As in RViz's TF display,
 the timeout uses ROS time: a frame stays fully opaque for the first two thirds
 of its lifetime, fades during the final third, and is then hidden together

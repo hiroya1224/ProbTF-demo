@@ -44,6 +44,7 @@ def test_default_config_enables_adaptive_corner_uncertainty():
     assert config["temporal_warmup_samples"] >= 2
     assert config["temporal_freeze_affine_motion"] is False
     assert config["temporal_max_excess_sigma_px"] > 0.0
+    assert config["publish_mode_axes"] is False
 
 
 def test_fov_fallback_has_size_matched_centered_intrinsics():
@@ -171,6 +172,17 @@ def test_rviz_markers_keep_every_mode_and_identify_tf_projection():
     assert len(cleared.markers) == 1
     assert cleared.markers[0].action == Marker.DELETEALL
 
+    without_mode_axes = build_pose_mixture_markers(
+        (result,),
+        header,
+        0.12,
+        include_axes=False,
+    )
+    assert len(without_mode_axes.markers) == 1 + 3 * len(result.weights)
+    assert all(
+        item.type != Marker.LINE_LIST for item in without_mode_axes.markers[1:]
+    )
+
 
 def test_fallback_calibration_is_explicit_in_wire_provenance():
     result = _mixture_result(fallback=True)
@@ -217,9 +229,8 @@ def test_real_camera_launch_wires_camera_detector_bridge_and_rviz():
     }
     assert rviz_remaps["/prob_artag_demo/probtf"] == "$(arg probtf_topic)"
 
-    rviz_text = (PACKAGE_ROOT / "rviz" / "prob_artag_real_camera_demo.rviz").read_text(
-        encoding="utf-8"
-    )
+    rviz_path = PACKAGE_ROOT / "rviz" / "prob_artag_real_camera_demo.rviz"
+    rviz_text = rviz_path.read_text(encoding="utf-8")
     assert "Fixed Frame: camera_link" in rviz_text
     assert "Marker Topic: /prob_artag_detector/markers" in rviz_text
     assert "Image Topic: /prob_artag_detector/debug_image" in rviz_text
@@ -227,6 +238,25 @@ def test_real_camera_launch_wires_camera_detector_bridge_and_rviz():
     assert "Dynamic Topic: /prob_artag_demo/probtf" in rviz_text
     assert "Root Frame: camera_optical_frame" in rviz_text
     assert rviz_text.count("Frame Timeout: 2") == 2
+
+    rviz_config = yaml.safe_load(rviz_text)
+    displays = rviz_config["Visualization Manager"]["Displays"]
+    tf_display = next(item for item in displays if item["Class"] == "rviz/TF")
+    probtf_display = next(
+        item
+        for item in displays
+        if item["Class"] == "probtf_rviz/ProbabilisticTF"
+    )
+    marker_display = next(
+        item for item in displays if item["Class"] == "rviz/MarkerArray"
+    )
+    assert tf_display["Show Axes"] is False
+    assert probtf_display["Show Representatives"] is True
+    assert all(
+        enabled is False
+        for namespace, enabled in marker_display["Namespaces"].items()
+        if namespace.endswith("/axes")
+    )
 
 
 def test_shipped_sample_tags_decode_to_their_declared_ids():

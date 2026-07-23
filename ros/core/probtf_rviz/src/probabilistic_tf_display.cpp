@@ -683,7 +683,8 @@ ProbabilisticTfDisplay::ProbabilisticTfDisplay()
           SLOT(updateGeometry()))),
       axis_length_property_(new rviz::FloatProperty(
           "Axis Length", 0.08,
-          "Distance from each sampled frame origin to its colored endpoints.",
+          "Shared length of sampled colored endpoints and each representative "
+          "coordinate axis.",
           this, SLOT(updateGeometry()))),
       point_size_property_(new rviz::FloatProperty(
           "Point Size", 0.006, "Rendered diameter of each endpoint.", this,

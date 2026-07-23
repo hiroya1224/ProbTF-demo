@@ -43,6 +43,9 @@ camera_frame_id: ""
 probtf_topic: /probtf
 publish_debug_image: true
 publish_markers: true
+# Keep the central axes owned by probtf_rviz, where Axis Length controls both
+# the representative frame and its probability endpoint cloud.
+publish_mode_axes: false
 
 # A valid CameraInfo remains preferred.  The generic detector keeps fallback
 # disabled; the real-camera demo launch enables it explicitly.

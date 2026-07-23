@@ -126,10 +126,11 @@ The launch starts all of the following in one command:
 - `probtf_bridge`: highest-weight component mode to ordinary TF for display only;
 - `probtf_rviz/ProbabilisticTF`: native joint transform-mixture samples for every latest tag edge;
 - a REP-103 `camera_link` to `camera_optical_frame` static transform;
-- RViz with the debug image, TF, every IPPE mode, mode weights, tag planes, axes,
-  and two-sigma conditional translation ellipsoids. These ellipsoids condition on
-  each orientation mode; they are not the full translation marginal. A magenta
-  ellipsoid and label indicate display clipping at `maximum_uncertainty_scale_m`.
+- RViz with the debug image, TF, every IPPE mode, mode weights, tag planes,
+  ProbTF-owned representative axes, and two-sigma conditional translation
+  ellipsoids. These ellipsoids condition on each orientation mode; they are not
+  the full translation marginal. A magenta ellipsoid and label indicate display
+  clipping at `maximum_uncertainty_scale_m`.
 
 Useful launch overrides are:
 
@@ -228,7 +229,12 @@ not the representative `/tf` edge.
 The RViz `Probabilistic AprilTags` display subscribes directly to the scoped
 ProbTF stream and keeps the latest edge for every detected tag ID. Its RGB
 clouds use full joint transform samples, preserving discrete IPPE branches and
-the translation/rotation correlation inside every component. The separate
-`Probabilistic Tag Modes` MarkerArray remains enabled because it labels the
-branch weights and shows each branch's conditional translation covariance
-explicitly. Neither visualization is fed back into estimation.
+the translation/rotation correlation inside every component. Its `Axis Length`
+property controls both the cloud endpoints and the central representative
+axes. To avoid a fixed-length axis being drawn on top, ordinary TF axes are
+hidden and MarkerArray mode axes are not published by default. Set
+`publish_mode_axes: true` to restore the latter as a separate fixed-length
+diagnostic using `marker_axis_length_m`. The `Probabilistic Tag Modes`
+MarkerArray remains enabled for branch weights, tag planes, and each branch's
+conditional translation covariance. Neither visualization is fed back into
+estimation.

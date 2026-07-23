@@ -61,7 +61,7 @@ Visualization Manager:
       Marker Scale: 0.25
       Name: Tag Frames
       Show Arrows: true
-      Show Axes: true
+      Show Axes: false
       Show Names: true
       Tree:
         camera_link:
@@ -87,26 +87,26 @@ Visualization Manager:
       Representative Radius: 0.003
       Root Frame: camera_optical_frame
       Sample Count: 600
-      Show Representatives: false
+      Show Representatives: true
       Static Topic: ""
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /prob_artag_detector/markers
       Name: Probabilistic Tag Modes
       Namespaces:
-        apriltag_0/mode_0/axes: true
+        apriltag_0/mode_0/axes: false
         apriltag_0/mode_0/conditional_translation_2sigma_at_mode: true
         apriltag_0/mode_0/label: true
         apriltag_0/mode_0/tag: true
-        apriltag_0/mode_1/axes: true
+        apriltag_0/mode_1/axes: false
         apriltag_0/mode_1/conditional_translation_2sigma_at_mode: true
         apriltag_0/mode_1/label: true
         apriltag_0/mode_1/tag: true
-        apriltag_14/mode_0/axes: true
+        apriltag_14/mode_0/axes: false
         apriltag_14/mode_0/conditional_translation_2sigma_at_mode: true
         apriltag_14/mode_0/label: true
         apriltag_14/mode_0/tag: true
-        apriltag_14/mode_1/axes: true
+        apriltag_14/mode_1/axes: false
         apriltag_14/mode_1/conditional_translation_2sigma_at_mode: true
         apriltag_14/mode_1/label: true
         apriltag_14/mode_1/tag: true

@@ -179,6 +179,9 @@ class ProbArtagDetectorNode:
             else None
         )
         self.publish_markers = bool(rospy.get_param("~publish_markers", True))
+        self.publish_mode_axes = bool(
+            rospy.get_param("~publish_mode_axes", False)
+        )
         self.marker_lifetime_sec = float(rospy.get_param("~marker_lifetime_sec", 0.5))
         self.marker_axis_length_m = float(
             rospy.get_param("~marker_axis_length_m", 0.5 * self.estimator.tag_size_m)
@@ -443,6 +446,7 @@ class ProbArtagDetectorNode:
                             output_header,
                             self.estimator.tag_size_m,
                             axis_length_m=self.marker_axis_length_m,
+                            include_axes=self.publish_mode_axes,
                             tag_thickness_m=self.marker_tag_thickness_m,
                             maximum_uncertainty_scale_m=(
                                 self.maximum_uncertainty_scale_m

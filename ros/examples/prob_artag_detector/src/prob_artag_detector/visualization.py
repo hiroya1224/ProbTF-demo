@@ -11,6 +11,7 @@ def draw_debug_image(
     camera_model=None,
     axis_length=0.04,
     status_text="",
+    corner_diagnostics=(),
 ):
     value = np.asarray(image)
     if value.ndim == 2:
@@ -25,6 +26,11 @@ def draw_debug_image(
         observation.marker_id: result
         for observation, result in zip(observations, results)
         if result is not None
+    }
+    diagnostic_by_id = {
+        observation.marker_id: diagnostic
+        for observation, diagnostic in zip(observations, corner_diagnostics)
+        if diagnostic is not None
     }
     if status_text:
         cv2.putText(
@@ -59,10 +65,15 @@ def draw_debug_image(
         corners = np.rint(observation.corners_px).astype(np.int32).reshape(-1, 1, 2)
         cv2.polylines(output, [corners], True, (0, 220, 0), 2, cv2.LINE_AA)
         origin = tuple(corners[0, 0])
+        covariance = np.asarray(observation.image_covariance, dtype=float)
+        equivalent_sigma_px = np.sqrt(max(0.0, float(np.trace(covariance))) / 8.0)
         result = result_by_id.get(observation.marker_id)
-        suffix = ""
+        suffix = " sigma={:.2f}px".format(equivalent_sigma_px)
+        diagnostic = diagnostic_by_id.get(observation.marker_id)
+        if diagnostic is not None:
+            suffix += " temporal={}".format(diagnostic.status)
         if result is not None:
-            suffix = " modes={} w={}".format(
+            suffix += " modes={} w={}".format(
                 result.diagnostics.accepted_count,
                 ",".join("{:.2f}".format(weight) for weight in result.weights),
             )

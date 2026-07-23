@@ -106,6 +106,7 @@ def test_aruco_detector_recovers_id_order_and_full_covariance():
         "DICT_APRILTAG_36h11",
         corner_refinement=False,
         image_covariance=covariance,
+        adaptive_covariance=True,
     )
     observations = detector.detect(canvas)
     assert len(observations) == 1
@@ -119,11 +120,113 @@ def test_aruco_detector_recovers_id_order_and_full_covariance():
     )
 
 
+def test_adaptive_corner_covariance_grows_for_unstable_blurred_edges():
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+    marker = (
+        cv2.aruco.generateImageMarker(dictionary, 17, 80)
+        if hasattr(cv2.aruco, "generateImageMarker")
+        else cv2.aruco.drawMarker(dictionary, 17, 80)
+    )
+    sharp = np.full((180, 180), 255, dtype=np.uint8)
+    sharp[50:130, 50:130] = marker
+    blurred = cv2.GaussianBlur(sharp, (0, 0), 3.5)
+    detector = ArucoCornerDetector(
+        adaptive_covariance=True,
+        bootstrap_samples=12,
+        bootstrap_seed=9,
+    )
+
+    sharp_observation = detector.detect(sharp)[0]
+    blurred_observation = detector.detect(blurred)[0]
+    repeated_observation = detector.detect(blurred)[0]
+    sharp_covariance = sharp_observation.image_covariance
+    blurred_covariance = blurred_observation.image_covariance
+
+    np.testing.assert_allclose(
+        blurred_covariance,
+        repeated_observation.image_covariance,
+        rtol=0.0,
+        atol=1e-12,
+    )
+    np.testing.assert_allclose(blurred_covariance, blurred_covariance.T, atol=1e-12)
+    assert np.min(np.linalg.eigvalsh(blurred_covariance)) >= 0.25 - 1e-10
+    assert np.trace(blurred_covariance) > 1.2 * np.trace(sharp_covariance)
+    off_diagonal = blurred_covariance - np.diag(np.diag(blurred_covariance))
+    assert np.max(np.abs(off_diagonal)) > 1e-4
+
+
+def test_adaptive_corner_covariance_inflates_when_perturbations_lose_marker(
+    monkeypatch,
+):
+    detector = ArucoCornerDetector(
+        adaptive_covariance=True,
+        bootstrap_samples=4,
+        corner_refinement=False,
+    )
+    corners = np.array(
+        [[[20.0, 20.0], [80.0, 20.0], [80.0, 80.0], [20.0, 80.0]]],
+        dtype=np.float32,
+    )
+    call_count = [0]
+
+    def baseline_then_missing(_gray):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return (corners,), np.array([[7]], dtype=np.int32), ()
+        return (), None, ()
+
+    monkeypatch.setattr(detector, "_detect_markers", baseline_then_missing)
+    observation = detector.detect(np.full((100, 100), 255, dtype=np.uint8))[0]
+    assert call_count[0] == 1 + detector.bootstrap_samples
+    assert np.min(np.diag(observation.image_covariance)) > 1.0
+
+
+def test_adaptive_corner_covariance_counts_repeatable_perturbation_bias(
+    monkeypatch,
+):
+    detector = ArucoCornerDetector(
+        adaptive_covariance=True,
+        bootstrap_samples=4,
+        bootstrap_noise_std=0.0,
+        bootstrap_dither_px=0.0,
+        bootstrap_blur_sigma_px=0.0,
+    )
+    corners = np.array(
+        [[[20.0, 20.0], [80.0, 20.0], [80.0, 80.0], [20.0, 80.0]]],
+        dtype=np.float32,
+    )
+    shifted = corners.copy()
+    shifted[0, 0, 0] += 1.0
+    call_count = [0]
+
+    def baseline_then_biased(_gray):
+        call_count[0] += 1
+        value = corners if call_count[0] == 1 else shifted
+        return (value,), np.array([[7]], dtype=np.int32), ()
+
+    monkeypatch.setattr(detector, "_detect_markers", baseline_then_biased)
+    observation = detector.detect(np.full((100, 100), 255, dtype=np.uint8))[0]
+    assert observation.image_covariance[0, 0] == pytest.approx(1.25)
+    np.testing.assert_allclose(
+        observation.image_covariance[1:, 1:],
+        np.eye(7) * 0.25,
+        atol=1e-12,
+    )
+
+
 def test_detector_validates_dictionary_covariance_and_image_type():
     with pytest.raises(ValueError, match="Unsupported"):
         ArucoCornerDetector("DICT_4X4_50")
     with pytest.raises(ValueError, match="8x8"):
         ArucoCornerDetector(image_covariance=np.eye(4))
+    with pytest.raises(ValueError, match="at least 2"):
+        ArucoCornerDetector(bootstrap_samples=1)
+    with pytest.raises(ValueError, match=r"\[0, 1\]"):
+        ArucoCornerDetector(bootstrap_covariance_shrinkage=1.1)
+    with pytest.raises(ValueError, match=r"\(0, 1\]"):
+        ArucoCornerDetector(bootstrap_min_success_ratio=0.0)
+    with pytest.raises(ValueError, match="non-negative"):
+        ArucoCornerDetector(bootstrap_dropout_sigma_px=-1.0)
     detector = ArucoCornerDetector(corner_refinement=False)
     with pytest.raises(ValueError, match="uint8"):
         detector.detect(np.zeros((20, 20), dtype=float))

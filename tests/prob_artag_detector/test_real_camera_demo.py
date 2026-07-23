@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import pytest
 import rospy
+import yaml
 from std_msgs.msg import Header
 from visualization_msgs.msg import Marker
 
@@ -30,6 +31,19 @@ PACKAGE_ROOT = (
     / "examples"
     / "prob_artag_detector"
 )
+
+
+def test_default_config_enables_adaptive_corner_uncertainty():
+    config = yaml.safe_load(
+        (PACKAGE_ROOT / "config" / "default.yaml").read_text(encoding="utf-8")
+    )
+    assert config["corner_sigma_px"] > 0.0
+    assert config["adaptive_covariance"] is True
+    assert config["bootstrap_samples"] >= 8
+    assert config["temporal_covariance_enabled"] is True
+    assert config["temporal_warmup_samples"] >= 2
+    assert config["temporal_freeze_affine_motion"] is False
+    assert config["temporal_max_excess_sigma_px"] > 0.0
 
 
 def test_fov_fallback_has_size_matched_centered_intrinsics():

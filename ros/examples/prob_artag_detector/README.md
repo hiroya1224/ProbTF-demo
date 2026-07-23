@@ -35,6 +35,57 @@ difference pose Jacobian. Undistorted pinhole cameras use the analytic
 right-perturbation Jacobian and can enable finite-difference verification with
 `verify_jacobian:=true`.
 
+## Adaptive corner uncertainty
+
+`config/default.yaml` treats `corner_sigma_px` as a covariance floor, not as the
+complete error model.  With `adaptive_covariance: true`, each accepted tag is
+redetected after a deterministic set of small subpixel, intensity-noise, and
+blur perturbations.  The resulting ordered corner samples produce a full
+8-by-8 covariance, including correlations between corners.  A weak, aliased, or
+jagged edge therefore broadens the pose law even when the unperturbed detector
+returns a sharp-looking quadrilateral.
+
+The optional temporal stage uses the second difference of each tag's corner
+track.  This cancels constant-velocity image motion and estimates residual
+frame-to-frame localization jitter.  By default, coherent corner jitter also
+widens the law; this is conservative when the camera or tag really
+accelerates.  Set `temporal_freeze_affine_motion: true` to freeze innovations
+explained by an affine warp, accepting that coherent detector jitter cannot
+then be distinguished from physical motion.  It never averages old corners
+into the reported position: the current frame remains the observation mean,
+and history is applied as a positive-semidefinite covariance excess capped by
+`temporal_max_excess_sigma_px`.
+Invalid/non-positive spatial covariance is still rejected.  There is no way to
+perfectly distinguish coherent detector bias from arbitrary physical motion
+using one monocular corner track, so the same-frame bootstrap remains the
+primary uncertainty source.  In particular, the constant-velocity second
+difference is sensitive to frame-scale jitter and acceleration, but can remove
+a slowly drifting coherent corner bias together with genuine smooth motion.
+
+The debug-image label reports
+`sigma=sqrt(trace(image_covariance)/8)` in pixels and the temporal update state
+(`warmup`, `accepted`, `motion_frozen`, `outlier`, or `gap_reset`).  These are
+compact diagnostics only; the estimator and ProbTF message retain the full
+matrix.  To compare with the old fixed model, set both:
+
+```yaml
+adaptive_covariance: false
+temporal_covariance_enabled: false
+```
+
+If a particular camera still looks overconfident, first raise
+`bootstrap_noise_std` to match its observed intensity noise, then
+`bootstrap_dither_px`; raise `corner_sigma_px` only when a larger unconditional
+floor is justified.  `bootstrap_dropout_sigma_px` controls the penalty when a
+perturbed re-detection disappears.  `bootstrap_samples` trades runtime for
+stability (8 is the real-camera default).  `temporal_half_life_sec` controls
+how quickly repeated jitter is forgotten.
+
+The micro-bootstrap models corner localization uncertainty.  It does not model
+an incorrect focal length, lens distortion, rolling shutter, tag-size error, or
+motion blur outside the perturbation family.  Use a real camera calibration for
+quantitative covariance.
+
 ## Run
 
 ```bash

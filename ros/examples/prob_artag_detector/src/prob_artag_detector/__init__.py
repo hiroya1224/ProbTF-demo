@@ -13,6 +13,12 @@ from prob_artag_detector.calibration import (
     approximate_camera_model,
     load_camera_calibration,
 )
+from prob_artag_detector.corner_uncertainty import (
+    AdaptiveCornerCovariance,
+    CornerNoiseDiagnostics,
+    affine_explained_fraction,
+    constant_velocity_innovation,
+)
 from prob_artag_detector.detector import ArucoCornerDetector, isotropic_image_covariance
 from prob_artag_detector.estimator import (
     PoseEstimationError,
@@ -35,10 +41,12 @@ from prob_artag_detector.models import (
 from prob_artag_detector.visualization import draw_debug_image
 
 __all__ = [
+    "AdaptiveCornerCovariance",
     "ArucoCornerDetector",
     "CameraModel",
     "CameraCalibration",
     "CandidateDiagnostic",
+    "CornerNoiseDiagnostics",
     "EstimationDiagnostics",
     "MarkerObservation",
     "PoseMixtureResult",
@@ -46,9 +54,11 @@ __all__ = [
     "PoseMixtureEstimator",
     "PoseSeed",
     "analytic_pinhole_pose_jacobian",
+    "affine_explained_fraction",
     "approximate_camera_model",
     "finite_difference_pose_jacobian",
     "bingham_parameter_from_tangent_precision",
+    "constant_velocity_innovation",
     "draw_debug_image",
     "image_precision",
     "ippe_square_object_points",

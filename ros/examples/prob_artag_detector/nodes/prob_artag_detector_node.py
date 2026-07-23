@@ -10,6 +10,7 @@ from std_msgs.msg import Header, String
 from visualization_msgs.msg import MarkerArray
 
 from prob_artag_detector import (
+    AdaptiveCornerCovariance,
     ArucoCornerDetector,
     CameraModel,
     PoseMixtureEstimator,
@@ -76,11 +77,75 @@ class ProbArtagDetectorNode:
                 self.fallback_cy_px,
             )
         self.tag_frame_prefix = str(rospy.get_param("~tag_frame_prefix", "apriltag_"))
+        self.corner_sigma_px = float(rospy.get_param("~corner_sigma_px", 0.5))
+        self.adaptive_covariance_enabled = bool(
+            rospy.get_param("~adaptive_covariance", True)
+        )
         self.detector = ArucoCornerDetector(
             family=rospy.get_param("~family", "DICT_APRILTAG_36h11"),
-            corner_sigma_px=rospy.get_param("~corner_sigma_px", 0.5),
+            corner_sigma_px=self.corner_sigma_px,
             corner_refinement=rospy.get_param("~corner_refinement", True),
+            adaptive_covariance=self.adaptive_covariance_enabled,
+            bootstrap_samples=rospy.get_param("~bootstrap_samples", 8),
+            bootstrap_noise_std=rospy.get_param("~bootstrap_noise_std", 6.0),
+            bootstrap_dither_px=rospy.get_param("~bootstrap_dither_px", 0.35),
+            bootstrap_blur_sigma_px=rospy.get_param(
+                "~bootstrap_blur_sigma_px", 0.35
+            ),
+            bootstrap_covariance_shrinkage=rospy.get_param(
+                "~bootstrap_covariance_shrinkage", 0.25
+            ),
+            bootstrap_min_success_ratio=rospy.get_param(
+                "~bootstrap_min_success_ratio", 0.5
+            ),
+            bootstrap_dropout_sigma_px=rospy.get_param(
+                "~bootstrap_dropout_sigma_px", 2.0
+            ),
+            bootstrap_seed=rospy.get_param("~bootstrap_seed", 0),
         )
+        self.temporal_covariance_enabled = bool(
+            rospy.get_param("~temporal_covariance_enabled", True)
+        )
+        self.corner_uncertainty = (
+            AdaptiveCornerCovariance(
+                minimum_sigma_px=self.corner_sigma_px,
+                maximum_excess_sigma_px=rospy.get_param(
+                    "~temporal_max_excess_sigma_px", 5.0
+                ),
+                warmup_samples=rospy.get_param("~temporal_warmup_samples", 8),
+                temporal_half_life_sec=rospy.get_param(
+                    "~temporal_half_life_sec", 0.5
+                ),
+                shrinkage=rospy.get_param("~temporal_shrinkage", 0.25),
+                motion_gate_px=rospy.get_param(
+                    "~temporal_motion_gate_px", 1.5
+                ),
+                motion_gate_edge_fraction=rospy.get_param(
+                    "~temporal_motion_gate_edge_fraction", 0.02
+                ),
+                affine_motion_fraction=rospy.get_param(
+                    "~temporal_affine_motion_fraction", 0.9
+                ),
+                freeze_affine_motion=rospy.get_param(
+                    "~temporal_freeze_affine_motion", False
+                ),
+                huber_chi2=rospy.get_param("~temporal_huber_chi2", 20.09),
+                hard_outlier_px=rospy.get_param(
+                    "~temporal_hard_outlier_px", 8.0
+                ),
+                hard_outlier_edge_fraction=rospy.get_param(
+                    "~temporal_hard_outlier_edge_fraction", 0.15
+                ),
+                max_gap_sec=rospy.get_param("~temporal_max_gap_sec", 0.5),
+                max_dt_ratio=rospy.get_param("~temporal_max_dt_ratio", 2.5),
+                track_ttl_sec=rospy.get_param(
+                    "~temporal_track_ttl_sec", 2.0
+                ),
+            )
+            if self.temporal_covariance_enabled
+            else None
+        )
+        self.corner_uncertainty_context = None
         self.estimator = PoseMixtureEstimator(
             tag_size_m=rospy.get_param("~tag_size_m", 0.12),
             max_iterations=rospy.get_param("~max_iterations", 30),
@@ -294,13 +359,43 @@ class ProbArtagDetectorNode:
                 )
                 return
             camera, camera_frame, calibration_source = camera_selection
+            stamp = message.header.stamp.to_sec()
+            corner_diagnostics = ()
             try:
                 observations = self.detector.detect(image)
-            except (TypeError, ValueError, RuntimeError) as error:
+                if self.corner_uncertainty is not None:
+                    uncertainty_context = (
+                        camera_frame,
+                        calibration_source,
+                        int(camera.width),
+                        int(camera.height),
+                        tuple(np.asarray(camera.camera_matrix).reshape(-1)),
+                        tuple(np.asarray(camera.distortion).reshape(-1)),
+                    )
+                    if uncertainty_context != self.corner_uncertainty_context:
+                        self.corner_uncertainty.reset()
+                        self.corner_uncertainty_context = uncertainty_context
+                    # Preserve diagnostics for the image overlay without making
+                    # them part of the probabilistic observation contract.
+                    updates = tuple(
+                        self.corner_uncertainty.update(
+                            observation,
+                            stamp,
+                            spatial_covariance=observation.image_covariance,
+                        )
+                        for observation in observations
+                    )
+                    observations = tuple(update[0] for update in updates)
+                    corner_diagnostics = tuple(update[1] for update in updates)
+            except (
+                TypeError,
+                ValueError,
+                RuntimeError,
+                np.linalg.LinAlgError,
+            ) as error:
                 rospy.logwarn_throttle(2.0, "AprilTag detection failed: %s", error)
                 return
 
-            stamp = message.header.stamp.to_sec()
             results = []
             for observation in observations:
                 child_frame = "{}{}".format(self.tag_frame_prefix, observation.marker_id)
@@ -367,7 +462,12 @@ class ProbArtagDetectorNode:
                         results,
                         camera_model=camera,
                         axis_length=0.5 * self.estimator.tag_size_m,
-                        status_text="calibration={}".format(calibration_source),
+                        status_text="calibration={} corner_cov={}{}".format(
+                            calibration_source,
+                            "bootstrap" if self.adaptive_covariance_enabled else "fixed",
+                            "+temporal" if self.temporal_covariance_enabled else "",
+                        ),
+                        corner_diagnostics=corner_diagnostics,
                     )
                     debug_message = self.bridge.cv2_to_imgmsg(debug, encoding="bgr8")
                     debug_message.header = output_header

@@ -27,7 +27,11 @@ from probtf.geometry import (
     quat_mul,
     right_perturbation_vec_rotation_jacobian,
 )
-from probtf.probability import PointMomentSummary, forward_component_point_moments
+from probtf.probability import (
+    PointMomentSummary,
+    forward_component_point_moments,
+    mixture_point_moments,
+)
 from probtf_ros import transform_distribution_from_msg, transform_distribution_to_msg
 
 
@@ -95,6 +99,53 @@ def test_full_image_covariance_enters_common_mahalanobis_hessian():
     assert np.linalg.eigvalsh(hessian)[0] > 0.0
     with pytest.raises(ValueError, match="positive definite"):
         image_precision(np.zeros((8, 8)))
+
+
+def test_larger_image_covariance_widens_joint_mixture_point_moments():
+    camera = _camera()
+    narrow_observation, _, _ = _observation(
+        camera, covariance=np.eye(8) * 0.25
+    )
+    wide_observation, _, _ = _observation(
+        camera, covariance=np.eye(8) * 4.0
+    )
+    np.testing.assert_array_equal(
+        wide_observation.corners_px, narrow_observation.corners_px
+    )
+
+    estimator = PoseMixtureEstimator(0.12)
+    narrow = estimator.estimate(
+        narrow_observation, camera, "camera", "tag", 1.0
+    )
+    wide = estimator.estimate(
+        wide_observation, camera, "camera", "tag", 1.0
+    )
+
+    def rgb_axis_endpoint_spread(result):
+        normalized = result.record.distribution.normalize_weights()
+        total = 0.0
+        for axis in range(3):
+            endpoint = np.zeros(3)
+            endpoint[axis] = 0.06
+            input_moments = PointMomentSummary(endpoint, np.zeros((3, 3)))
+            summary = mixture_point_moments(
+                (
+                    weighted.weight,
+                    forward_component_point_moments(
+                        weighted.component,
+                        input_moments,
+                        integration_steps=40,
+                    ),
+                )
+                for weighted in normalized.components
+            )
+            total += float(np.trace(summary.covariance))
+        return total
+
+    narrow_spread = rgb_axis_endpoint_spread(narrow)
+    wide_spread = rgb_axis_endpoint_spread(wide)
+    assert narrow_spread > 0.0
+    assert wide_spread > 10.0 * narrow_spread
 
 
 def test_shared_translation_prior_adds_same_global_hessian_precision():

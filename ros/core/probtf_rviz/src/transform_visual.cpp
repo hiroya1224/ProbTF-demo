@@ -5,6 +5,9 @@
 
 #include <rviz/ogre_helpers/axes.h>
 
+#include <algorithm>
+#include <cmath>
+
 namespace probtf_rviz {
 
 Ogre::ColourValue axisColor(int axis_index) {
@@ -73,11 +76,25 @@ void TransformVisual::setStyle(const VisualStyle& style) {
   cloud_->setRenderMode(style_.render_mode);
   cloud_->setDimensions(style_.point_size, style_.point_size,
                         style_.point_size);
-  cloud_->setAlpha(style_.alpha, true);
-  axes_->set(style_.axis_length, style_.axis_radius, style_.alpha);
+  const float alpha = style_.alpha * fade_;
+  cloud_->setAlpha(alpha, true);
+  axes_->set(style_.axis_length, style_.axis_radius, alpha);
+  axes_->setToDefaultColors();
   cloud_->setVisible(visible_);
   axes_->getSceneNode()->setVisible(
       visible_ && style_.show_representative);
+}
+
+void TransformVisual::setFade(float fade) {
+  const float clamped = std::max(0.0F, std::min(1.0F, fade));
+  if (std::abs(clamped - fade_) <= 1.0e-6F) {
+    return;
+  }
+  fade_ = clamped;
+  const float alpha = style_.alpha * fade_;
+  cloud_->setAlpha(alpha, true);
+  axes_->updateAlpha(alpha);
+  axes_->setToDefaultColors();
 }
 
 void TransformVisual::setVisible(bool visible) {

@@ -27,6 +27,7 @@ Visualization Manager:
       Dynamic Snapshot Topic: /probtf_batch
       Dynamic Topic: /probtf
       Enabled: true
+      Frame Timeout: 15
       Name: Probabilistic TF
       Point Size: 0.006
       Point Style: Spheres

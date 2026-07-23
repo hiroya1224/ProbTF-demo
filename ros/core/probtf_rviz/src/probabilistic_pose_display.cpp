@@ -37,7 +37,12 @@ rviz::PointCloud::RenderMode renderMode(rviz::EnumProperty* property) {
 }  // namespace
 
 ProbabilisticPoseDisplay::ProbabilisticPoseDisplay()
-    : sample_count_property_(new rviz::IntProperty(
+    : frame_timeout_property_(new rviz::FloatProperty(
+          "Frame Timeout", 15.0,
+          "Seconds without receiving a dynamic message before the cloud and "
+          "representative disappear. Static records do not expire.",
+          this, SLOT(updateAppearance()))),
+      sample_count_property_(new rviz::IntProperty(
           "Sample Count", 300,
           "Number of correlated transforms sampled from each message.", this,
           SLOT(updateGeometry()))),
@@ -67,6 +72,7 @@ ProbabilisticPoseDisplay::ProbabilisticPoseDisplay()
           "Random Seed", 7,
           "Stable seed used to resample this distribution.", this,
           SLOT(updateGeometry()))) {
+  frame_timeout_property_->setMin(1.0);
   sample_count_property_->setMin(1);
   sample_count_property_->setMax(100000);
   axis_length_property_->setMin(0.0001);
@@ -93,10 +99,19 @@ void ProbabilisticPoseDisplay::onInitialize() {
 void ProbabilisticPoseDisplay::reset() {
   MFDClass::reset();
   latest_message_.reset();
+  freshness_.reset();
+  message_renderable_ = false;
   if (visual_) {
+    visual_->setFade(1.0F);
     visual_->setPoints({});
     visual_->setVisible(false);
   }
+  deleteStatus("Freshness");
+}
+
+void ProbabilisticPoseDisplay::update(float wall_dt, float ros_dt) {
+  MFDClass::update(wall_dt, ros_dt);
+  refreshFreshness();
 }
 
 void ProbabilisticPoseDisplay::updateAppearance() {
@@ -111,6 +126,7 @@ void ProbabilisticPoseDisplay::updateAppearance() {
   style.show_representative = show_representative_property_->getBool();
   style.render_mode = renderMode(point_style_property_);
   visual_->setStyle(style);
+  refreshFreshness();
   context_->queueRender();
 }
 
@@ -124,6 +140,11 @@ void ProbabilisticPoseDisplay::updateGeometry() {
 void ProbabilisticPoseDisplay::processMessage(
     const Message::ConstPtr& message) {
   latest_message_ = message;
+  if (message->is_static) {
+    freshness_.reset();
+  } else {
+    freshness_.markProgress(ros::Time::now());
+  }
   renderMessage(message);
 }
 
@@ -133,6 +154,7 @@ void ProbabilisticPoseDisplay::renderMessage(
     return;
   }
   if (message->header.frame_id.empty()) {
+    message_renderable_ = false;
     visual_->setVisible(false);
     setStatus(rviz::StatusProperty::Error, "Message",
               "header.frame_id must not be empty.");
@@ -143,6 +165,7 @@ void ProbabilisticPoseDisplay::renderMessage(
   Ogre::Quaternion frame_orientation;
   if (!context_->getFrameManager()->getTransform(
           message->header, frame_position, frame_orientation)) {
+    message_renderable_ = false;
     visual_->setVisible(false);
     setStatus(rviz::StatusProperty::Error, "Transform",
               QString("Could not transform '%1' into the RViz fixed frame.")
@@ -157,6 +180,7 @@ void ProbabilisticPoseDisplay::renderMessage(
   if (!probtf_core::sampleTransformDistribution(
           *message, static_cast<std::size_t>(sample_count_property_->getInt()),
           &generator, &samples, &error)) {
+    message_renderable_ = false;
     visual_->setVisible(false);
     setStatus(rviz::StatusProperty::Error, "Distribution",
               QString::fromStdString(error));
@@ -180,6 +204,7 @@ void ProbabilisticPoseDisplay::renderMessage(
   Eigen::Isometry3d representative = Eigen::Isometry3d::Identity();
   if (!probtf_core::representativeTransform(*message, &representative,
                                             &error)) {
+    message_renderable_ = false;
     visual_->setVisible(false);
     setStatus(rviz::StatusProperty::Error, "Representative",
               QString::fromStdString(error));
@@ -189,12 +214,34 @@ void ProbabilisticPoseDisplay::renderMessage(
   visual_->setFramePose(frame_position, frame_orientation);
   visual_->setPoints(points);
   visual_->setRepresentative(representative);
-  visual_->setVisible(true);
+  message_renderable_ = true;
+  refreshFreshness();
   setStatus(rviz::StatusProperty::Ok, "Distribution",
             QString("%1 correlated samples").arg(samples.size()));
   deleteStatus("Message");
   deleteStatus("Transform");
   deleteStatus("Representative");
+  context_->queueRender();
+}
+
+void ProbabilisticPoseDisplay::refreshFreshness() {
+  if (!visual_ || !latest_message_) {
+    return;
+  }
+
+  FreshnessVisualState state;
+  if (!latest_message_->is_static) {
+    state = freshness_.state(ros::Time::now(),
+                             frame_timeout_property_->getFloat());
+  }
+  visual_->setFade(state.alpha);
+  visual_->setVisible(message_renderable_ && state.visible);
+  if (!state.visible) {
+    setStatus(rviz::StatusProperty::Warn, "Freshness",
+              "Dynamic ProbTF pose expired.");
+  } else {
+    deleteStatus("Freshness");
+  }
   context_->queueRender();
 }
 

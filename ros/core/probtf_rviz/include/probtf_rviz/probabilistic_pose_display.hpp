@@ -1,5 +1,7 @@
 #pragma once
 
+#include <probtf_rviz/frame_freshness.hpp>
+
 #ifndef Q_MOC_RUN
 #include <probtf_msgs/ProbabilisticTransformStamped.h>
 #endif
@@ -30,6 +32,7 @@ class ProbabilisticPoseDisplay
 
   void onInitialize() override;
   void reset() override;
+  void update(float wall_dt, float ros_dt) override;
 
  private Q_SLOTS:
   void updateAppearance();
@@ -40,10 +43,14 @@ class ProbabilisticPoseDisplay
 
   void processMessage(const Message::ConstPtr& message) override;
   void renderMessage(const Message::ConstPtr& message);
+  void refreshFreshness();
 
   std::unique_ptr<TransformVisual> visual_;
   Message::ConstPtr latest_message_;
+  StampFreshness freshness_;
+  bool message_renderable_ = false;
 
+  rviz::FloatProperty* frame_timeout_property_;
   rviz::IntProperty* sample_count_property_;
   rviz::FloatProperty* axis_length_property_;
   rviz::FloatProperty* point_size_property_;

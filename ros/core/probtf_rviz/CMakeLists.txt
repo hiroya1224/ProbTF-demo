@@ -77,6 +77,16 @@ install(
 )
 
 if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(test_frame_freshness
+    test/test_frame_freshness.cpp
+  )
+  if(TARGET test_frame_freshness)
+    target_link_libraries(
+      test_frame_freshness
+      ${catkin_LIBRARIES}
+    )
+  endif()
+
   catkin_add_gtest(test_plugin_loading
     test/test_plugin_loading.cpp
   )

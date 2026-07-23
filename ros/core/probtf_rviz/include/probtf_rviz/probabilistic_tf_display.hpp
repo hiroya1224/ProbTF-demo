@@ -44,6 +44,7 @@ class ProbabilisticTfDisplay : public rviz::Display {
   rviz::RosTopicProperty* dynamic_batch_topic_property_;
   rviz::RosTopicProperty* static_topic_property_;
   rviz::IntProperty* queue_size_property_;
+  rviz::FloatProperty* frame_timeout_property_;
   rviz::StringProperty* root_frame_property_;
   rviz::IntProperty* sample_count_property_;
   rviz::FloatProperty* axis_length_property_;

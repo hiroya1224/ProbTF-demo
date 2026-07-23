@@ -212,6 +212,7 @@ def test_real_camera_launch_wires_camera_detector_bridge_and_rviz():
     assert "Class: probtf_rviz/ProbabilisticTF" in rviz_text
     assert "Dynamic Topic: /prob_artag_demo/probtf" in rviz_text
     assert "Root Frame: camera_optical_frame" in rviz_text
+    assert rviz_text.count("Frame Timeout: 2") == 2
 
 
 def test_shipped_sample_tags_decode_to_their_declared_ids():

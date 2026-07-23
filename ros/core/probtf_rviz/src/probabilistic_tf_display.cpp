@@ -1,5 +1,6 @@
 #include <probtf_rviz/probabilistic_tf_display.hpp>
 
+#include <probtf_rviz/frame_freshness.hpp>
 #include <probtf_rviz/transform_visual.hpp>
 
 #include <probtf_core/latest_snapshot.hpp>
@@ -221,7 +222,10 @@ class ProbabilisticTfDisplay::Impl {
 
   struct FrameBinding {
     std::string root;
+    std::string path_signature;
     ros::Time stamp;
+    bool has_dynamic = false;
+    StampFreshness freshness;
   };
 
   void handleDynamic(const Record::ConstPtr& message) {
@@ -374,7 +378,10 @@ class ProbabilisticTfDisplay::Impl {
 
     std::set<std::string> failed_status_children;
     std::size_t rendered_count = 0U;
+    std::size_t expired_count = 0U;
     std::size_t failed_count = geometry_errors_.size();
+    const ros::Time now = ros::Time::now();
+    const double timeout = display_->frame_timeout_property_->getFloat();
     for (const auto& keyed : geometry_errors_) {
       display_->setStatus(rviz::StatusProperty::Error,
                           frameStatusKey(keyed.first),
@@ -391,6 +398,18 @@ class ProbabilisticTfDisplay::Impl {
                             "Internal frame binding is missing.");
         failed_status_children.insert(keyed.first);
         ++failed_count;
+        continue;
+      }
+
+      FreshnessVisualState freshness;
+      if (binding->second.has_dynamic) {
+        freshness = binding->second.freshness.state(now, timeout);
+      }
+      keyed.second->setFade(freshness.alpha);
+      if (!freshness.visible) {
+        keyed.second->setVisible(false);
+        display_->deleteStatus(frameStatusKey(keyed.first));
+        ++expired_count;
         continue;
       }
 
@@ -422,17 +441,25 @@ class ProbabilisticTfDisplay::Impl {
     }
     status_children_ = std::move(failed_status_children);
 
-    if (rendered_count == 0U) {
+    if (rendered_count == 0U && failed_count > 0U) {
       display_->setStatus(rviz::StatusProperty::Error, "ProbTF",
-                          QString("No frame rendered (%1 failed).")
+                          QString("No fresh frame rendered (%1 expired, %2 "
+                                  "failed).")
+                              .arg(expired_count)
                               .arg(failed_count));
+    } else if (rendered_count == 0U && expired_count > 0U) {
+      display_->setStatus(
+          rviz::StatusProperty::Warn, "ProbTF",
+          QString("No fresh frame rendered (%1 expired).").arg(expired_count));
     } else {
       display_->setStatus(
-          failed_count == 0U ? rviz::StatusProperty::Ok
-                             : rviz::StatusProperty::Warn,
+          failed_count == 0U && expired_count == 0U
+              ? rviz::StatusProperty::Ok
+              : rviz::StatusProperty::Warn,
           "ProbTF",
-          QString("%1 frames rendered, %2 failed.")
+          QString("%1 frames rendered, %2 expired, %3 failed.")
               .arg(rendered_count)
+              .arg(expired_count)
               .arg(failed_count));
     }
     display_->context_->queueRender();
@@ -589,6 +616,22 @@ class ProbabilisticTfDisplay::Impl {
       FrameBinding binding;
       binding.root = root;
       binding.stamp = resolved_stamp;
+      std::ostringstream path_signature;
+      for (const Record* edge : path) {
+        binding.has_dynamic = binding.has_dynamic || !edge->is_static;
+        path_signature << recordKey(*edge) << '\n';
+      }
+      binding.path_signature = path_signature.str();
+      const auto previous_binding = frame_bindings_.find(child);
+      if (binding.has_dynamic && previous_binding != frame_bindings_.end() &&
+          previous_binding->second.has_dynamic &&
+          previous_binding->second.root == binding.root &&
+          previous_binding->second.path_signature == binding.path_signature) {
+        binding.freshness = previous_binding->second.freshness;
+      }
+      if (binding.has_dynamic) {
+        binding.freshness.observe(resolved_stamp, ros::Time::now());
+      }
       frame_bindings_[child] = binding;
       successful_children.insert(child);
     }
@@ -652,6 +695,11 @@ ProbabilisticTfDisplay::ProbabilisticTfDisplay()
       queue_size_property_(new rviz::IntProperty(
           "Queue Size", 10, "ROS subscription queue size.", this,
           SLOT(updateTopics()))),
+      frame_timeout_property_(new rviz::FloatProperty(
+          "Frame Timeout", 15.0,
+          "Seconds without a new dynamic source stamp before clouds and "
+          "representatives disappear. Static records do not expire.",
+          this, SLOT(updateAppearance()))),
       root_frame_property_(new rviz::StringProperty(
           "Root Frame", "",
           "Optional ProbTF root. Empty selects the root of each connected "
@@ -687,6 +735,7 @@ ProbabilisticTfDisplay::ProbabilisticTfDisplay()
           SLOT(updateGeometry()))) {
   queue_size_property_->setMin(1);
   queue_size_property_->setMax(10000);
+  frame_timeout_property_->setMin(1.0);
   sample_count_property_->setMin(1);
   sample_count_property_->setMax(100000);
   axis_length_property_->setMin(0.0001);

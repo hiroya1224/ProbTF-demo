@@ -52,6 +52,7 @@ class TransformVisual {
   void setRepresentative(const Eigen::Isometry3d& transform);
   void setPoints(const std::vector<ColoredPoint>& points);
   void setStyle(const VisualStyle& style);
+  void setFade(float fade);
   void setVisible(bool visible);
 
  private:
@@ -60,6 +61,7 @@ class TransformVisual {
   std::unique_ptr<rviz::PointCloud> cloud_;
   std::unique_ptr<rviz::Axes> axes_;
   VisualStyle style_;
+  float fade_ = 1.0F;
   bool visible_ = false;
 };
 

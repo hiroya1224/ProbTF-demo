@@ -78,6 +78,7 @@ Visualization Manager:
       Dynamic Snapshot Topic: ""
       Dynamic Topic: /prob_artag_demo/probtf
       Enabled: true
+      Frame Timeout: 2
       Name: Probabilistic AprilTags
       Point Size: 0.004
       Point Style: Spheres

@@ -46,6 +46,17 @@ roslaunch prob_artag_detector prob_artag_detector.launch \
 The optional `~debug_image` overlay is for inspection only and is never fed back
 into pose estimation.
 
+## Sample tags
+
+Ready-to-use `DICT_APRILTAG_36h11` tags are included under
+[`samples/`](samples/README.md). For the exact marker used by the real-camera
+smoke test, open `samples/apriltag_36h11_id_021.png`. The other shipped IDs are
+0, 7, and 17.
+
+These are AprilTag 36h11 markers, not ordinary ArUco markers or another
+AprilTag family. Each PNG includes a one-module white quiet zone so it can be
+displayed directly on a monitor or printed without adding a border.
+
 ## Real USB-camera demo
 
 The package contains a self-contained OpenCV/V4L camera source, so the demo does

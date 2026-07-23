@@ -11,6 +11,7 @@ from std_msgs.msg import Header
 from visualization_msgs.msg import Marker
 
 from prob_artag_detector import (
+    ArucoCornerDetector,
     CameraModel,
     MarkerObservation,
     PoseMixtureEstimator,
@@ -202,3 +203,25 @@ def test_real_camera_launch_wires_camera_detector_bridge_and_rviz():
     assert "Fixed Frame: camera_link" in rviz_text
     assert "Marker Topic: /prob_artag_detector/markers" in rviz_text
     assert "Image Topic: /prob_artag_detector/debug_image" in rviz_text
+
+
+def test_shipped_sample_tags_decode_to_their_declared_ids():
+    detector = ArucoCornerDetector("DICT_APRILTAG_36h11")
+    expected = {
+        "apriltag_36h11_id_000.png": 0,
+        "apriltag_36h11_id_007.png": 7,
+        "apriltag_36h11_id_017.png": 17,
+        "apriltag_36h11_id_021.png": 21,
+    }
+    samples = PACKAGE_ROOT / "samples"
+    assert {path.name for path in samples.glob("*.png")} == set(expected)
+    for filename, marker_id in expected.items():
+        image = cv2.imread(str(samples / filename), cv2.IMREAD_COLOR)
+        assert image is not None
+        assert image.shape == (2000, 2000, 3)
+        assert np.all(image[:200] == 255)
+        assert np.all(image[-200:] == 255)
+        assert np.all(image[:, :200] == 255)
+        assert np.all(image[:, -200:] == 255)
+        observations = detector.detect(image)
+        assert [observation.marker_id for observation in observations] == [marker_id]

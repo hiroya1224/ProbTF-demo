@@ -39,6 +39,19 @@ bool sampleTransformDistribution(
     TransformSampleVector* output,
     std::string* error = nullptr);
 
+// Compose aligned Monte Carlo samples along a child-to-root path.
+//
+// Each entry contains samples for one forward transform (child into parent),
+// ordered from the deepest child edge toward the root.  Sample index i is
+// composed with index i on every edge, preserving the joint draw used for all
+// points rendered from the resulting transform.  Every edge vector must have
+// the same size.  Empty paths are rejected because they do not carry a sample
+// count; callers can construct identity samples directly for that case.
+bool composeTransformSamplePath(
+    const std::vector<const TransformSampleVector*>& child_to_root_samples,
+    TransformSampleVector* output,
+    std::string* error = nullptr);
+
 // Return the record's stored representative when present.  If none is stored,
 // derive the mode of the highest positive-weight component and evaluate its
 // conditional translation at that mode.

@@ -331,6 +331,97 @@ TEST(TransformDistributionSampling, MixtureWeightsAreScaleSafe) {
   EXPECT_NEAR(right_fraction, 0.75, 1.5e-2);
 }
 
+TEST(TransformSamplePathComposition,
+     NativeMixtureModesRemainSeparatedAfterComposition) {
+  auto input = record();
+  input.components.push_back(
+      component("left", 1.0, Eigen::Vector3d(-1.0, 0.0, 0.0)));
+  input.components.push_back(
+      component("right", 1.0, Eigen::Vector3d(1.0, 0.0, 0.0)));
+
+  std::mt19937 generator(41);
+  probtf_core::TransformSampleVector edge_samples;
+  std::string error;
+  ASSERT_TRUE(probtf_core::sampleTransformDistribution(
+      input, 2000, &generator, &edge_samples, &error))
+      << error;
+  const std::vector<const probtf_core::TransformSampleVector*> path{
+      &edge_samples};
+  probtf_core::TransformSampleVector composed;
+  ASSERT_TRUE(
+      probtf_core::composeTransformSamplePath(path, &composed, &error))
+      << error;
+
+  std::size_t left_count = 0;
+  std::size_t right_count = 0;
+  for (const auto& sample : composed) {
+    if (sample.translation.x() == -1.0) {
+      ++left_count;
+    } else if (sample.translation.x() == 1.0) {
+      ++right_count;
+    } else {
+      ADD_FAILURE() << "Mixture sample was collapsed between its modes.";
+    }
+    EXPECT_DOUBLE_EQ(sample.translation.y(), 0.0);
+    EXPECT_DOUBLE_EQ(sample.translation.z(), 0.0);
+  }
+  EXPECT_GT(left_count, 800U);
+  EXPECT_GT(right_count, 800U);
+}
+
+TEST(TransformSamplePathComposition,
+     ComposesForwardEdgesInChildToRootOrder) {
+  const Eigen::Quaterniond child_rotation(
+      Eigen::AngleAxisd(0.5 * 3.14159265358979323846,
+                        Eigen::Vector3d::UnitX()));
+  const Eigen::Quaterniond parent_rotation(
+      Eigen::AngleAxisd(0.5 * 3.14159265358979323846,
+                        Eigen::Vector3d::UnitZ()));
+  probtf_core::TransformSample child_edge;
+  child_edge.translation = Eigen::Vector3d(1.0, 0.0, 0.0);
+  child_edge.rotation = child_rotation;
+  probtf_core::TransformSample parent_edge;
+  parent_edge.translation = Eigen::Vector3d(0.0, 2.0, 0.0);
+  parent_edge.rotation = parent_rotation;
+  const probtf_core::TransformSampleVector child_samples(3, child_edge);
+  const probtf_core::TransformSampleVector parent_samples(3, parent_edge);
+  const std::vector<const probtf_core::TransformSampleVector*> path{
+      &child_samples, &parent_samples};
+
+  probtf_core::TransformSampleVector composed;
+  std::string error;
+  ASSERT_TRUE(
+      probtf_core::composeTransformSamplePath(path, &composed, &error))
+      << error;
+  ASSERT_EQ(composed.size(), 3U);
+  const Eigen::Quaterniond expected_rotation =
+      parent_rotation * child_rotation;
+  for (const auto& sample : composed) {
+    expectVectorNear(sample.translation, Eigen::Vector3d(0.0, 3.0, 0.0),
+                     1.0e-15);
+    expectMatrixNear(sample.rotation.toRotationMatrix(),
+                     expected_rotation.toRotationMatrix(), 1.0e-15);
+  }
+}
+
+TEST(TransformSamplePathComposition,
+     InvalidPathDoesNotMutateExistingOutput) {
+  probtf_core::TransformSampleVector first(2);
+  probtf_core::TransformSampleVector second(1);
+  const std::vector<const probtf_core::TransformSampleVector*> path{
+      &first, &second};
+  probtf_core::TransformSample sentinel;
+  sentinel.translation = Eigen::Vector3d(7.0, 8.0, 9.0);
+  probtf_core::TransformSampleVector output(1, sentinel);
+  std::string error;
+
+  EXPECT_FALSE(
+      probtf_core::composeTransformSamplePath(path, &output, &error));
+  EXPECT_NE(error.find("equal sample counts"), std::string::npos);
+  ASSERT_EQ(output.size(), 1U);
+  expectVectorNear(output.front().translation, sentinel.translation, 0.0);
+}
+
 TEST(TransformDistributionSampling,
      ConditionalCouplingUsesColumnMajorRotationVector) {
   auto input = record();

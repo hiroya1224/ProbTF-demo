@@ -561,6 +561,67 @@ bool sampleTransformDistribution(
   return true;
 }
 
+bool composeTransformSamplePath(
+    const std::vector<const TransformSampleVector*>& child_to_root_samples,
+    TransformSampleVector* output,
+    std::string* error) {
+  if (output == nullptr) {
+    setError(error, "Composed transform sample output must not be null.");
+    return false;
+  }
+  if (child_to_root_samples.empty()) {
+    setError(error, "Transform sample path must not be empty.");
+    return false;
+  }
+  if (child_to_root_samples.front() == nullptr) {
+    setError(error, "Transform sample path contains a null edge.");
+    return false;
+  }
+
+  const std::size_t count = child_to_root_samples.front()->size();
+  TransformSampleVector composed(count);
+  for (const TransformSampleVector* edge_samples : child_to_root_samples) {
+    if (edge_samples == nullptr) {
+      setError(error, "Transform sample path contains a null edge.");
+      return false;
+    }
+    if (edge_samples->size() != count) {
+      setError(error,
+               "Transform sample path edges must have equal sample counts.");
+      return false;
+    }
+    for (std::size_t index = 0; index < count; ++index) {
+      const TransformSample& edge = (*edge_samples)[index];
+      const double edge_rotation_norm = edge.rotation.norm();
+      if (!edge.translation.allFinite() ||
+          !edge.rotation.coeffs().allFinite() ||
+          !std::isfinite(edge_rotation_norm) ||
+          std::abs(edge_rotation_norm - 1.0) > kQuaternionTolerance) {
+        setError(error,
+                 "Transform sample path contains a non-finite or non-unit "
+                 "transform.");
+        return false;
+      }
+
+      TransformSample& current = composed[index];
+      current.translation =
+          edge.rotation * current.translation + edge.translation;
+      current.rotation = edge.rotation * current.rotation;
+      const double composed_rotation_norm = current.rotation.norm();
+      if (!current.translation.allFinite() ||
+          !current.rotation.coeffs().allFinite() ||
+          !std::isfinite(composed_rotation_norm) ||
+          composed_rotation_norm <= std::numeric_limits<double>::epsilon()) {
+        setError(error, "Composed transform sample became non-finite.");
+        return false;
+      }
+      current.rotation.normalize();
+    }
+  }
+  *output = std::move(composed);
+  return true;
+}
+
 bool representativeTransform(
     const probtf_msgs::ProbabilisticTransformStamped& record,
     Eigen::Isometry3d* output,

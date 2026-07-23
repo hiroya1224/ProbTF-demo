@@ -39,13 +39,16 @@ normally publish dedicated pose distributions. A
 `ProbabilisticTransformStamped` uses `header.frame_id` as the parent/target
 frame and maps child coordinates into it.
 
-The tree display uses the ProbTF point-moment evaluator and samples only at the
-final rendering boundary. The pose display samples the full mixture jointly,
-so its three colored endpoints share each sampled transform. Tree geometry is
-retained while its root-to-RViz transform is unavailable and becomes visible
-automatically once TF can resolve it. To keep accidental settings bounded, the
-tree display limits one redraw to 1,500,000 rendered sample points and reports
-the effective per-frame sample count in its status when clamping is needed.
+Both displays sample the full native transform mixture jointly, so distinct
+mixture modes remain distinct and each sample's three colored endpoints share
+one rotation and translation draw. The tree display samples every edge once
+per redraw and composes equal sample indices along each child-to-root path;
+shared upstream edges therefore reuse the same draws across child frames.
+Tree geometry is retained while its root-to-RViz transform is unavailable and
+becomes visible automatically once TF can resolve it. To keep accidental
+settings bounded, the tree display limits one redraw to 1,500,000 rendered
+sample points and reports the effective per-frame sample count in its status
+when clamping is needed.
 
 Both displays apply `Frame Timeout` to dynamic data. As in RViz's TF display,
 the timeout uses ROS time: a frame stays fully opaque for the first two thirds

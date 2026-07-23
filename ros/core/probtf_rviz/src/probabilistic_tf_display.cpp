@@ -8,8 +8,6 @@
 #include <probtf_msgs/ProbabilisticTransformArray.h>
 #include <probtf_msgs/ProbabilisticTransformStamped.h>
 
-#include <Eigen/Eigenvalues>
-
 #include <OgreQuaternion.h>
 #include <OgreVector3.h>
 
@@ -27,7 +25,6 @@
 #include <boost/thread/mutex.hpp>
 
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <map>
@@ -88,50 +85,6 @@ rviz::PointCloud::RenderMode renderMode(rviz::EnumProperty* property) {
     default:
       return rviz::PointCloud::RM_SPHERES;
   }
-}
-
-bool sampleGaussian(const Eigen::Vector3d& mean,
-                    const Eigen::Matrix3d& covariance, std::size_t count,
-                    std::mt19937* generator,
-                    std::vector<Eigen::Vector3d>* output,
-                    std::string* error) {
-  if (!mean.allFinite() || !covariance.allFinite()) {
-    if (error != nullptr) {
-      *error = "Point moments contain non-finite values.";
-    }
-    return false;
-  }
-  const Eigen::Matrix3d symmetric =
-      0.5 * (covariance + covariance.transpose());
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver(symmetric);
-  if (solver.info() != Eigen::Success) {
-    if (error != nullptr) {
-      *error = "Point covariance eigendecomposition failed.";
-    }
-    return false;
-  }
-  const double scale =
-      std::max(1.0, solver.eigenvalues().cwiseAbs().maxCoeff());
-  if (solver.eigenvalues().minCoeff() < -1.0e-9 * scale) {
-    if (error != nullptr) {
-      *error = "Point covariance is not positive semidefinite.";
-    }
-    return false;
-  }
-  const Eigen::Vector3d standard_deviation =
-      solver.eigenvalues().cwiseMax(0.0).cwiseSqrt();
-  const Eigen::Matrix3d square_root =
-      solver.eigenvectors() * standard_deviation.asDiagonal();
-
-  std::normal_distribution<double> normal(0.0, 1.0);
-  output->clear();
-  output->reserve(count);
-  for (std::size_t index = 0; index < count; ++index) {
-    const Eigen::Vector3d standard(normal(*generator), normal(*generator),
-                                   normal(*generator));
-    output->push_back(mean + square_root * standard);
-  }
-  return true;
 }
 
 }  // namespace
@@ -539,6 +492,8 @@ class ProbabilisticTfDisplay::Impl {
         static_cast<uint32_t>(display_->seed_property_->getInt());
     std::set<std::string> seen_children;
     std::set<std::string> successful_children;
+    std::map<const Record*, probtf_core::TransformSampleVector>
+        sampled_edges;
 
     for (const Record* record : records) {
       const std::string child = cleanFrame(record->child_frame_id);
@@ -554,43 +509,60 @@ class ProbabilisticTfDisplay::Impl {
         continue;
       }
 
+      probtf_core::TransformPathObservation path_observation;
+      if (!snapshot.lookupPathMetadata(root, child, &path_observation,
+                                       &error)) {
+        geometry_errors_[child] = error;
+        continue;
+      }
+
+      std::vector<const probtf_core::TransformSampleVector*> sampled_path;
+      sampled_path.reserve(path.size());
+      bool sampling_failed = false;
+      for (const Record* edge : path) {
+        auto cached = sampled_edges.find(edge);
+        if (cached == sampled_edges.end()) {
+          const uint64_t hash = stableHash(recordKey(*edge));
+          std::seed_seq seeds{base_seed, static_cast<uint32_t>(hash),
+                              static_cast<uint32_t>(hash >> 32U)};
+          std::mt19937 generator(seeds);
+          probtf_core::TransformSampleVector samples;
+          if (!probtf_core::sampleTransformDistribution(
+                  *edge, sample_count, &generator, &samples, &error)) {
+            sampling_failed = true;
+            break;
+          }
+          cached =
+              sampled_edges.emplace(edge, std::move(samples)).first;
+        }
+        sampled_path.push_back(&cached->second);
+      }
+      if (sampling_failed) {
+        geometry_errors_[child] = error;
+        continue;
+      }
+
+      probtf_core::TransformSampleVector frame_samples;
+      if (sampled_path.empty()) {
+        frame_samples.resize(sample_count);
+      } else if (!probtf_core::composeTransformSamplePath(
+                     sampled_path, &frame_samples, &error)) {
+        geometry_errors_[child] = error;
+        continue;
+      }
+
       std::vector<ColoredPoint> points;
-      points.reserve(3U * sample_count);
-      ros::Time resolved_stamp;
-      bool endpoint_failed = false;
-      for (int axis = 0; axis < 3; ++axis) {
-        probtf_core::PointMomentObservation observation;
-        if (!snapshot.lookupPointMoments(
-                root, child, axis_length * Eigen::Vector3d::Unit(axis),
-                &observation, &error)) {
-          endpoint_failed = true;
-          break;
-        }
-        if (axis == 0) {
-          resolved_stamp = observation.resolved_stamp;
-        }
-        const uint64_t hash = stableHash(child);
-        std::seed_seq seeds{
-            base_seed, static_cast<uint32_t>(hash),
-            static_cast<uint32_t>(hash >> 32U), static_cast<uint32_t>(axis)};
-        std::mt19937 generator(seeds);
-        std::vector<Eigen::Vector3d> endpoint_samples;
-        if (!sampleGaussian(observation.moments.mean,
-                            observation.moments.covariance, sample_count,
-                            &generator, &endpoint_samples, &error)) {
-          endpoint_failed = true;
-          break;
-        }
-        for (const Eigen::Vector3d& endpoint : endpoint_samples) {
+      points.reserve(3U * frame_samples.size());
+      for (const probtf_core::TransformSample& sample : frame_samples) {
+        for (int axis = 0; axis < 3; ++axis) {
           ColoredPoint point;
-          point.position = endpoint;
+          point.position =
+              sample.translation +
+              sample.rotation *
+                  (axis_length * Eigen::Vector3d::Unit(axis));
           point.color = axisColor(axis);
           points.push_back(point);
         }
-      }
-      if (endpoint_failed) {
-        geometry_errors_[child] = error;
-        continue;
       }
 
       Eigen::Isometry3d representative = Eigen::Isometry3d::Identity();
@@ -615,7 +587,7 @@ class ProbabilisticTfDisplay::Impl {
       visual->second->setRepresentative(representative);
       FrameBinding binding;
       binding.root = root;
-      binding.stamp = resolved_stamp;
+      binding.stamp = path_observation.resolved_stamp;
       std::ostringstream path_signature;
       for (const Record* edge : path) {
         binding.has_dynamic = binding.has_dynamic || !edge->is_static;
@@ -630,7 +602,7 @@ class ProbabilisticTfDisplay::Impl {
         binding.freshness = previous_binding->second.freshness;
       }
       if (binding.has_dynamic) {
-        binding.freshness.observe(resolved_stamp, ros::Time::now());
+        binding.freshness.observe(binding.stamp, ros::Time::now());
       }
       frame_bindings_[child] = binding;
       successful_children.insert(child);
@@ -707,7 +679,7 @@ ProbabilisticTfDisplay::ProbabilisticTfDisplay()
           this, SLOT(updateGeometry()))),
       sample_count_property_(new rviz::IntProperty(
           "Sample Count", 80,
-          "Number of terminal Gaussian samples per frame and axis.", this,
+          "Number of joint native transform samples per frame.", this,
           SLOT(updateGeometry()))),
       axis_length_property_(new rviz::FloatProperty(
           "Axis Length", 0.08,
@@ -731,7 +703,7 @@ ProbabilisticTfDisplay::ProbabilisticTfDisplay()
           "Radius of the representative coordinate axes.", this,
           SLOT(updateAppearance()))),
       seed_property_(new rviz::IntProperty(
-          "Random Seed", 29, "Stable seed for terminal point sampling.", this,
+          "Random Seed", 29, "Stable seed for native transform sampling.", this,
           SLOT(updateGeometry()))) {
   queue_size_property_->setMin(1);
   queue_size_property_->setMax(10000);

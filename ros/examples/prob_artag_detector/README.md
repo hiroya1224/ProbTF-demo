@@ -73,7 +73,7 @@ The launch starts all of the following in one command:
 - `prob_artag_camera_demo_node.py`: USB camera to `Image`, plus `CameraInfo` when calibrated;
 - `prob_artag_detector_node.py`: ordered corners to the full ProbTF mixture;
 - `probtf_bridge`: highest-weight component mode to ordinary TF for display only;
-- `probtf_rviz/ProbabilisticTF`: a sampled point-moment cloud for every latest tag edge;
+- `probtf_rviz/ProbabilisticTF`: native joint transform-mixture samples for every latest tag edge;
 - a REP-103 `camera_link` to `camera_optical_frame` static transform;
 - RViz with the debug image, TF, every IPPE mode, mode weights, tag planes, axes,
   and two-sigma conditional translation ellipsoids. These ellipsoids condition on
@@ -176,8 +176,8 @@ not the representative `/tf` edge.
 
 The RViz `Probabilistic AprilTags` display subscribes directly to the scoped
 ProbTF stream and keeps the latest edge for every detected tag ID. Its RGB
-clouds are sampled from the three transformed axis-endpoint point moments. The
-separate `Probabilistic Tag Modes` MarkerArray remains enabled because it shows
-the discrete IPPE branches, their weights, and each branch's conditional
-translation covariance explicitly. Neither visualization is fed back into
-estimation.
+clouds use full joint transform samples, preserving discrete IPPE branches and
+the translation/rotation correlation inside every component. The separate
+`Probabilistic Tag Modes` MarkerArray remains enabled because it labels the
+branch weights and shows each branch's conditional translation covariance
+explicitly. Neither visualization is fed back into estimation.

@@ -80,13 +80,13 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 2
       Name: Probabilistic AprilTags
-      Point Size: 0.004
+      Point Size: 0.003
       Point Style: Spheres
       Queue Size: 10
       Random Seed: 21
       Representative Radius: 0.003
       Root Frame: camera_optical_frame
-      Sample Count: 300
+      Sample Count: 600
       Show Representatives: false
       Static Topic: ""
     - Class: rviz/MarkerArray
@@ -142,7 +142,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.823832631111145
+      Distance: 2.4
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -150,15 +150,15 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.3641132116317749
-        Y: -0.851365864276886
-        Z: 0.13228826224803925
+        X: 1.4
+        Y: 0
+        Z: 0
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.03999999910593033
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.05999990180134773
+      Pitch: 0.18
       Target Frame: camera_link
       Yaw: 1.6165910959243774
     Saved: ~

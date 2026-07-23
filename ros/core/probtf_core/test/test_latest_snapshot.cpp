@@ -3,11 +3,13 @@
 #include <Eigen/Geometry>
 
 #include <probtf_core/latest_snapshot.hpp>
+#include <probtf_core/sampling.hpp>
 
 #include <probtf_msgs/BinghamOrientation.h>
 
 #include <cmath>
 #include <limits>
+#include <random>
 #include <string>
 
 namespace {
@@ -98,6 +100,45 @@ TEST(LatestSnapshot, ComposesExactForwardPath) {
   expectMatrixNear(observation.moments.covariance, Eigen::Matrix3d::Zero(),
                    1.0e-12);
   EXPECT_DOUBLE_EQ(observation.resolved_stamp.toSec(), 2.0);
+
+  probtf_core::TransformPathObservation path_observation;
+  ASSERT_TRUE(snapshot.lookupPathMetadata(
+      "base", "ref/tool", &path_observation, &error))
+      << error;
+  EXPECT_EQ(path_observation.target_frame, "base");
+  EXPECT_EQ(path_observation.source_frame, "ref/tool");
+  EXPECT_DOUBLE_EQ(path_observation.resolved_stamp.toSec(), 2.0);
+  ASSERT_EQ(path_observation.edge_ids.size(), 2U);
+}
+
+TEST(LatestSnapshot, PathMetadataDoesNotRequireMomentEvaluation) {
+  probtf_msgs::ProbabilisticTransformArray static_records;
+  probtf_msgs::ProbabilisticTransformArray dynamic_records;
+  auto record = exactRecord("base", "tool", 7.0, Eigen::Vector3d::Zero(),
+                            Eigen::Quaterniond::Identity());
+  auto& orientation = record.components.front().orientation;
+  orientation.kind = probtf_msgs::BinghamOrientation::FINITE_BINGHAM;
+  orientation.inverse_concentration = 1.0e-100;
+  orientation.shape_upper_wxyz =
+      {{-2.0 / 3.0, 0.0, 0.0, 0.0, -1.0 / 3.0,
+        0.0, 0.0, 1.0 / 3.0, 0.0, 2.0 / 3.0}};
+  dynamic_records.transforms.push_back(record);
+
+  std::mt19937 generator(43);
+  probtf_core::TransformSampleVector samples;
+  std::string error;
+  ASSERT_TRUE(probtf_core::sampleTransformDistribution(
+      dynamic_records.transforms.front(), 4, &generator, &samples, &error))
+      << error;
+
+  probtf_core::LatestSnapshot snapshot(dynamic_records, static_records);
+  probtf_core::TransformPathObservation observation;
+  ASSERT_TRUE(
+      snapshot.lookupPathMetadata("base", "tool", &observation, &error))
+      << error;
+  EXPECT_DOUBLE_EQ(observation.resolved_stamp.toSec(), 7.0);
+  ASSERT_EQ(observation.edge_ids.size(), 1U);
+  EXPECT_EQ(observation.edge_ids.front(), record.edge_id);
 }
 
 TEST(LatestSnapshot, EvaluatesUniformOrientationMoments) {
@@ -224,8 +265,13 @@ TEST(LatestSnapshot, RejectsRepeatedStochasticLatentDependencies) {
   dynamic_records.transforms.push_back(second);
 
   probtf_core::LatestSnapshot snapshot(dynamic_records, static_records);
+  probtf_core::TransformPathObservation path_observation;
   probtf_core::PointMomentObservation observation;
   std::string error;
+  EXPECT_FALSE(snapshot.lookupPathMetadata(
+      "base", "tool", &path_observation, &error));
+  EXPECT_NE(error.find("Repeated latent"), std::string::npos);
+  error.clear();
   EXPECT_FALSE(snapshot.lookupPointMoments(
       "base", "tool", Eigen::Vector3d::Zero(), &observation, &error));
   EXPECT_NE(error.find("Repeated latent"), std::string::npos);

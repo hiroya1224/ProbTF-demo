@@ -838,26 +838,12 @@ bool LatestSnapshot::buildPath(const std::string& target_frame_value,
   return true;
 }
 
-bool LatestSnapshot::lookupPointMoments(
+bool LatestSnapshot::analyzePath(
     const std::string& target_frame,
     const std::string& source_frame,
-    const Eigen::Vector3d& source_point,
-    PointMomentObservation* observation,
-    std::string* error,
-    int bingham_integration_steps) const {
-  if (observation == nullptr) {
-    setError(error, "Point-moment output must not be null.");
-    return false;
-  }
-  if (!finiteVector(source_point)) {
-    setError(error, "Source point must be finite.");
-    return false;
-  }
-  std::vector<PathStep> path;
-  if (!buildPath(target_frame, source_frame, &path, error)) {
-    return false;
-  }
-
+    const std::vector<PathStep>& path,
+    TransformPathObservation* observation,
+    std::string* error) const {
   bool all_deterministic = true;
   bool repeated_dependency = false;
   std::unordered_set<std::string> path_dependencies;
@@ -893,23 +879,11 @@ bool LatestSnapshot::lookupPointMoments(
     return false;
   }
 
-  PointMoments current;
-  current.mean = source_point;
   ros::Time resolved_stamp;
   bool has_dynamic_stamp = false;
   std::vector<std::string> edge_ids;
   edge_ids.reserve(path.size());
   for (const PathStep& step : path) {
-    PointMoments next;
-    const bool success =
-        step.inverse
-            ? applyInverse(*step.record, current, &next, error)
-            : applyForward(*step.record, current, bingham_integration_steps,
-                           &next, error);
-    if (!success) {
-      return false;
-    }
-    current = std::move(next);
     edge_ids.push_back(step.record->edge_id);
     if (!step.record->is_static &&
         (!has_dynamic_stamp || step.record->header.stamp < resolved_stamp)) {
@@ -922,6 +896,74 @@ bool LatestSnapshot::lookupPointMoments(
   observation->source_frame = cleanFrame(source_frame);
   observation->resolved_stamp = has_dynamic_stamp ? resolved_stamp : ros::Time(0);
   observation->edge_ids = std::move(edge_ids);
+  return true;
+}
+
+bool LatestSnapshot::lookupPathMetadata(
+    const std::string& target_frame,
+    const std::string& source_frame,
+    TransformPathObservation* observation,
+    std::string* error) const {
+  if (observation == nullptr) {
+    setError(error, "Transform path output must not be null.");
+    return false;
+  }
+  std::vector<PathStep> path;
+  if (!buildPath(target_frame, source_frame, &path, error)) {
+    return false;
+  }
+  TransformPathObservation result;
+  if (!analyzePath(target_frame, source_frame, path, &result, error)) {
+    return false;
+  }
+  *observation = std::move(result);
+  return true;
+}
+
+bool LatestSnapshot::lookupPointMoments(
+    const std::string& target_frame,
+    const std::string& source_frame,
+    const Eigen::Vector3d& source_point,
+    PointMomentObservation* observation,
+    std::string* error,
+    int bingham_integration_steps) const {
+  if (observation == nullptr) {
+    setError(error, "Point-moment output must not be null.");
+    return false;
+  }
+  if (!finiteVector(source_point)) {
+    setError(error, "Source point must be finite.");
+    return false;
+  }
+  std::vector<PathStep> path;
+  if (!buildPath(target_frame, source_frame, &path, error)) {
+    return false;
+  }
+  TransformPathObservation path_observation;
+  if (!analyzePath(target_frame, source_frame, path, &path_observation,
+                   error)) {
+    return false;
+  }
+
+  PointMoments current;
+  current.mean = source_point;
+  for (const PathStep& step : path) {
+    PointMoments next;
+    const bool success =
+        step.inverse
+            ? applyInverse(*step.record, current, &next, error)
+            : applyForward(*step.record, current, bingham_integration_steps,
+                           &next, error);
+    if (!success) {
+      return false;
+    }
+    current = std::move(next);
+  }
+
+  observation->target_frame = std::move(path_observation.target_frame);
+  observation->source_frame = std::move(path_observation.source_frame);
+  observation->resolved_stamp = path_observation.resolved_stamp;
+  observation->edge_ids = std::move(path_observation.edge_ids);
   observation->moments = std::move(current);
   return true;
 }

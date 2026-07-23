@@ -7,6 +7,7 @@ PACKAGE_ROOTS = (
     "ros/examples/deflecomp/deflecomp_examples/src",
     "ros/examples/deflecomp/deflecomp_sim/src",
     "ros/examples/grape-param-estim/src",
+    "ros/examples/prob_artag_detector/src",
     "ros/examples/symaware_grasp/src",
 )
 

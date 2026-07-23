@@ -1,0 +1,41 @@
+camera:
+  width: 640
+  height: 480
+  fx: 600.0
+  fy: 600.0
+  cx: 320.0
+  cy: 240.0
+  distortion: [0, 0, 0, 0, 0]
+render:
+  backend: egl
+  near: 0.05
+  far: 10.0
+  background: [0.5, 0.5, 0.5]
+  ambient_light: [1.0, 1.0, 1.0]
+tags:
+  family: DICT_APRILTAG_36h11
+  size_m: 0.12
+  count_min: 1
+  count_max: 6
+  marker_pixels: 256
+  margin_pixels: 32
+sampling:
+  depth_m: [0.4, 2.5]
+  image_margin_px: 30
+  projected_edge_min_px: 24
+  projected_edge_max_px: 400
+  small_edge_max_px: 60
+  max_incidence_deg: 75
+  max_attempts: 1000
+sequence:
+  frames: 10
+  travel_m: [0.08, 0.03, 0.0]
+degradations:
+  gaussian_noise: {enabled: false, stddev: 5.0}
+  defocus_blur: {enabled: false, kernel_size: 5}
+  motion_blur: {enabled: false, kernel_size: 9, angle_deg: 0.0}
+  brightness_contrast: {enabled: false, brightness: 8.0, contrast: 1.05}
+  radial_distortion: {enabled: false, coefficients: [-0.12, 0.03, 0.0, 0.0, 0.0]}
+  partial_occlusion: {enabled: false, fraction: 0.2, color: [128, 128, 128]}
+  background_clutter: {enabled: false, count: 20}
+  rolling_shutter: {enabled: false, max_shift_px: 8.0}

@@ -31,6 +31,13 @@ struct PointMomentObservation {
   PointMoments moments;
 };
 
+struct TransformPathObservation {
+  std::string target_frame;
+  std::string source_frame;
+  ros::Time resolved_stamp;
+  std::vector<std::string> edge_ids;
+};
+
 // A read-only, latest-only view over one complete dynamic batch and the
 // latched static set.  Message ownership remains with the caller for the
 // lifetime of this object.
@@ -40,6 +47,13 @@ class LatestSnapshot {
                  const probtf_msgs::ProbabilisticTransformArray& static_records);
 
   bool valid(std::string* error = nullptr) const;
+
+  // Resolve topology, dependency validity, path edge IDs, and the oldest
+  // dynamic source stamp without evaluating distribution moments.
+  bool lookupPathMetadata(const std::string& target_frame,
+                          const std::string& source_frame,
+                          TransformPathObservation* observation,
+                          std::string* error = nullptr) const;
 
   bool lookupPointMoments(const std::string& target_frame,
                           const std::string& source_frame,
@@ -58,6 +72,12 @@ class LatestSnapshot {
                  const std::string& source_frame,
                  std::vector<PathStep>* path,
                  std::string* error) const;
+
+  bool analyzePath(const std::string& target_frame,
+                   const std::string& source_frame,
+                   const std::vector<PathStep>& path,
+                   TransformPathObservation* observation,
+                   std::string* error) const;
 
   void addRecords(const probtf_msgs::ProbabilisticTransformArray& records,
                   bool expected_static);

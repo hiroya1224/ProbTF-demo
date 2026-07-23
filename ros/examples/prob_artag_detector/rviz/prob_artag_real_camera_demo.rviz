@@ -10,8 +10,9 @@ Panels:
         - /Probabilistic AprilTags1
         - /Probabilistic Tag Modes1
         - /Detection Image1
+        - /TF1
       Splitter Ratio: 0.5
-    Tree Height: 388
+    Tree Height: 247
   - Class: rviz/Views
     Expanded:
       - /Current View1
@@ -49,9 +50,7 @@ Visualization Manager:
       Frame Timeout: 2
       Frames:
         All Enabled: true
-        apriltag_0:
-          Value: true
-        apriltag_14:
+        apriltag_12:
           Value: true
         camera_link:
           Value: true
@@ -66,52 +65,36 @@ Visualization Manager:
       Tree:
         camera_link:
           camera_optical_frame:
-            apriltag_0:
-              {}
-            apriltag_14:
+            apriltag_12:
               {}
       Update Interval: 0
       Value: true
-    - Alpha: 0.6
-      Axis Length: 0.06
+    - Alpha: 0.6000000238418579
+      Axis Length: 0.10000000149011612
       Class: probtf_rviz/ProbabilisticTF
       Dynamic Snapshot Topic: ""
       Dynamic Topic: /prob_artag_demo/probtf
       Enabled: true
       Frame Timeout: 2
       Name: Probabilistic AprilTags
-      Point Size: 0.003
+      Point Size: 0.003000000026077032
       Point Style: Spheres
       Queue Size: 10
       Random Seed: 21
-      Representative Radius: 0.003
+      Representative Radius: 0.003000000026077032
       Root Frame: camera_optical_frame
       Sample Count: 600
       Show Representatives: true
       Static Topic: ""
+      Value: true
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /prob_artag_detector/markers
       Name: Probabilistic Tag Modes
       Namespaces:
-        apriltag_0/mode_0/axes: false
-        apriltag_0/mode_0/conditional_translation_2sigma_at_mode: true
-        apriltag_0/mode_0/label: true
-        apriltag_0/mode_0/tag: true
-        apriltag_0/mode_1/axes: false
-        apriltag_0/mode_1/conditional_translation_2sigma_at_mode: true
-        apriltag_0/mode_1/label: true
-        apriltag_0/mode_1/tag: true
-        apriltag_14/mode_0/axes: false
-        apriltag_14/mode_0/conditional_translation_2sigma_at_mode: true
-        apriltag_14/mode_0/label: true
-        apriltag_14/mode_0/tag: true
-        apriltag_14/mode_1/axes: false
-        apriltag_14/mode_1/conditional_translation_2sigma_at_mode: true
-        apriltag_14/mode_1/label: true
-        apriltag_14/mode_1/tag: true
+        {}
       Queue Size: 10
-      Value: true
+      Value: false
     - Class: rviz/Image
       Enabled: true
       Image Topic: /prob_artag_detector/debug_image
@@ -123,6 +106,32 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        apriltag_12:
+          Value: true
+        camera_link:
+          Value: true
+        camera_optical_frame:
+          Value: true
+      Marker Alpha: 0.33000001311302185
+      Marker Scale: 0.10000000149011612
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: false
+      Tree:
+        camera_link:
+          camera_optical_frame:
+            apriltag_12:
+              {}
+      Update Interval: 0
       Value: true
   Enabled: true
   Global Options:
@@ -142,7 +151,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 2.4
+      Distance: 1.7290983200073242
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -150,29 +159,29 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 1.4
-        Y: 0
-        Z: 0
+        X: 1.3773949146270752
+        Y: -0.10362694412469864
+        Z: -0.0852169543504715
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.03999999910593033
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.18
+      Pitch: 0.10499999672174454
       Target Frame: camera_link
-      Yaw: 1.6165910959243774
+      Yaw: 3.011594295501709
     Saved: ~
 Window Geometry:
   Detection Image:
     collapsed: false
   Displays:
     collapsed: false
-  Height: 2096
+  Height: 1562
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000004ec000007d6fc0200000003fb0000001e0044006500740065006300740069006f006e00200049006d006100670065010000003d0000037e0000001600fffffffb000000100044006900730070006c00610079007301000003c10000020c000000c900fffffffb0000000a0056006900650077007301000005d300000240000000a400ffffff000009c6000007d600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000100000000000004ec000005c0fc0200000003fb0000001e0044006500740065006300740069006f006e00200049006d006100670065010000003d0000028f0000001600fffffffb000000100044006900730070006c00610079007301000002d20000017f000000c900fffffffb0000000a005600690065007700730100000457000001a6000000a400ffffff00000618000005c000000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
-  Width: 3768
-  X: 72
-  Y: 27
+  Width: 2826
+  X: 830
+  Y: 124

@@ -42,6 +42,7 @@ include_directories(
 
 add_library(probtf_runtime_cpp
   src/latest_snapshot.cpp
+  src/sampling.cpp
 )
 add_dependencies(probtf_runtime_cpp ${catkin_EXPORTED_TARGETS})
 target_link_libraries(probtf_runtime_cpp Eigen3::Eigen ${catkin_LIBRARIES})
@@ -87,6 +88,18 @@ if(CATKIN_ENABLE_TESTING)
     add_dependencies(test_latest_snapshot ${catkin_EXPORTED_TARGETS})
     target_link_libraries(
       test_latest_snapshot
+      probtf_runtime_cpp
+      ${catkin_LIBRARIES}
+    )
+  endif()
+
+  catkin_add_gtest(test_sampling
+    test/test_sampling.cpp
+  )
+  if(TARGET test_sampling)
+    add_dependencies(test_sampling ${catkin_EXPORTED_TARGETS})
+    target_link_libraries(
+      test_sampling
       probtf_runtime_cpp
       ${catkin_LIBRARIES}
     )

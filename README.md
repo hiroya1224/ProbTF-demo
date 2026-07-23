@@ -9,6 +9,8 @@ the catkin package that installs it; there is no shared top-level `src/` relay.
 - `ros/core/probtf_msgs`: message-only package for the native v2 wire contract
 - `ros/core/probtf_core`: owns `probtf`, `probtf_estimators`, `probtf_ros`, the
   reusable C++ latest-snapshot evaluator, and the ProbTF/TF bridge nodes
+- `ros/core/probtf_rviz`: RViz-native displays for a single probabilistic pose
+  and a complete probabilistic transform tree
 - `ros/examples/probtf_imu_demo`: two-IMU transform producer and symbolic URDF
   materialization
 - `ros/examples/probtf_orientation_demo`: gyro, gravity, and magnetic
@@ -29,7 +31,7 @@ directly. A separate root `pip install` is not required.
 
 ```bash
 cd /path/to/catkin_ws
-catkin build probtf_msgs probtf_core probtf_imu_demo probtf_orientation_demo \
+catkin build probtf_msgs probtf_core probtf_rviz probtf_imu_demo probtf_orientation_demo \
   symaware_grasp deflecomp_core deflecomp_sim deflecomp_ros
 source devel/setup.bash
 ```
@@ -104,6 +106,9 @@ new batch arrives during evaluation, the superseded result is discarded.
 ```bash
 # Native ProbTF <-> TF bridge
 roslaunch probtf_core probtf_bridge.launch
+
+# RViz-native ProbTF tree display (after a producer is running)
+rviz -d "$(rospack find probtf_rviz)/rviz/probtf_tree.rviz"
 
 # Two-IMU full transform and orientation-only estimation
 roslaunch probtf_imu_demo two_imu_relative_pose.launch

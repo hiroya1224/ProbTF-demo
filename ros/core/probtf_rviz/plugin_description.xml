@@ -1,0 +1,21 @@
+<library path="lib/libprobtf_rviz">
+  <class
+      name="probtf_rviz/ProbabilisticPose"
+      type="probtf_rviz::ProbabilisticPoseDisplay"
+      base_class_type="rviz::Display">
+    <description>
+      Displays one ProbabilisticTransformStamped as a representative pose and
+      correlated samples of its positive X/Y/Z axis endpoints.
+    </description>
+    <message_type>probtf_msgs/ProbabilisticTransformStamped</message_type>
+  </class>
+  <class
+      name="probtf_rviz/ProbabilisticTF"
+      type="probtf_rviz::ProbabilisticTfDisplay"
+      base_class_type="rviz::Display">
+    <description>
+      Displays the latest ProbTF dynamic edges and static transform set as one
+      probabilistic transform tree.
+    </description>
+  </class>
+</library>

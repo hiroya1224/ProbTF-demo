@@ -115,6 +115,8 @@ class TemporalEvaluationRequest:
 
     def __post_init__(self):
         requested = _finite_nonnegative(self.requested_stamp, "requested_stamp")
+        if type(self.allow_degraded) is not bool:
+            raise TypeError("allow_degraded must be a built-in bool.")
         if not isinstance(self.policy, TemporalPolicy):
             raise TypeError("policy must be TemporalPolicy.")
         if self.policy not in (
@@ -166,7 +168,6 @@ class TemporalEvaluationRequest:
             "random_stream",
             _identifier(self.random_stream, "random_stream", allow_empty=True),
         )
-        object.__setattr__(self, "allow_degraded", bool(self.allow_degraded))
 
 
 @dataclass(frozen=True)

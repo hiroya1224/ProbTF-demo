@@ -80,6 +80,10 @@ class ProbTfGraph:
 
         if not isinstance(model, TemporalModel):
             raise TypeError("model must be TemporalModel.")
+        if type(make_default) is not bool:
+            raise TypeError("make_default must be a built-in bool.")
+        if type(replace_existing) is not bool:
+            raise TypeError("replace_existing must be a built-in bool.")
         edge_id = str(edge_id).strip()
         authority = str(authority).strip()
         if not edge_id or not authority:
@@ -324,6 +328,8 @@ class ProbTfGraph:
         allow_degraded=False,
         latest_common_model_policy=None,
     ):
+        if type(allow_degraded) is not bool:
+            raise TypeError("allow_degraded must be a built-in bool.")
         with self._lock:
             resolved_stamp, traversal = self._resolved_traversal(
                 target_frame,

@@ -96,6 +96,21 @@ def _request(
     )
 
 
+@pytest.mark.parametrize("invalid", ("false", 0, 1, np.bool_(False)))
+def test_temporal_request_rejects_non_builtin_allow_degraded(invalid):
+    left = _record(0.0, DeterministicTransform.identity())
+    right = _record(1.0, DeterministicTransform.identity())
+    with pytest.raises(TypeError, match="allow_degraded"):
+        TemporalEvaluationRequest(
+            requested_stamp=0.5,
+            policy=TemporalPolicy.INTERPOLATE_WITH_MODEL,
+            anchors=(left, right),
+            model_selector="se3_constant_body_twist",
+            query_mode=TemporalQueryMode.OFFLINE_SMOOTHING,
+            allow_degraded=invalid,
+        )
+
+
 def test_se3_exp_log_roundtrip_zero_short_and_near_pi():
     cases = (
         np.zeros(6),

@@ -190,6 +190,38 @@ def test_multiple_nondefault_models_require_an_explicit_selector():
     assert error.value.code is GraphErrorCode.MODEL_AMBIGUOUS
 
 
+@pytest.mark.parametrize("invalid", ("false", 0, 1, np.bool_(False)))
+@pytest.mark.parametrize("argument", ("make_default", "replace_existing"))
+def test_model_registration_rejects_non_builtin_boolean_flags(argument, invalid):
+    graph = ProbTfGraph()
+    _insert_motion_history(graph)
+    with pytest.raises(TypeError, match=argument):
+        graph.register_temporal_model(
+            "edge",
+            "authority",
+            _twist_model(),
+            **{argument: invalid},
+        )
+    assert graph.temporal_model_bindings == ()
+
+
+@pytest.mark.parametrize("invalid", ("false", 0, 1, np.bool_(False)))
+def test_graph_rejects_non_builtin_allow_degraded(invalid):
+    graph = ProbTfGraph()
+    _insert_motion_history(graph)
+    graph.register_temporal_model("edge", "authority", _twist_model())
+    with pytest.raises(TypeError, match="allow_degraded"):
+        graph.lookup_path(
+            "world",
+            "tool",
+            1.5,
+            TemporalPolicy.PREDICT_WITH_MODEL,
+            max_age=1.0,
+            max_prediction_horizon=1.0,
+            allow_degraded=invalid,
+        )
+
+
 def test_interpolation_requires_strict_bracket_and_offline_smoothing_mode():
     graph = ProbTfGraph()
     _insert_motion_history(graph)

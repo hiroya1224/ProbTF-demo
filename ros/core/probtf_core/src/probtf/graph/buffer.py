@@ -501,6 +501,8 @@ class EdgeTimeBuffer:
             raise TypeError("query_mode must be TemporalQueryMode.")
         if temporal_model is not None and not isinstance(temporal_model, TemporalModel):
             raise TypeError("temporal_model must be TemporalModel or None.")
+        if type(allow_degraded) is not bool:
+            raise TypeError("allow_degraded must be a built-in bool.")
 
         with self._lock:
             if not self._records:

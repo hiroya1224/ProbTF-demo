@@ -1,8 +1,8 @@
 {
-  "bag_start_record_time": 1781253241.4369113,
+  "bag_start_record_time": 1781254003.2001119,
   "config_sha256": "aebedd9b52b0702a050b7725e8197c5aa89908b3d8c3cabef2d5a1dd3d890faa",
   "effective_response": {
-    "condition_number": 457.9691567066706,
+    "condition_number": 2493.365411029549,
     "credible_probability": 0.95,
     "design_rank": 48,
     "fit_diagnostics": [
@@ -14,59 +14,55 @@
       "parameter_posterior_is_em_laplace_approximation_not_calibrated_truth"
     ],
     "identifiable": true,
-    "log_evidence": 3539.238902862914,
+    "log_evidence": 3895.7785159588457,
     "model_id": "low_dimensional_effective_response/v1",
     "parameter_count": 48,
     "posterior_approximation": "trajectory_mixture_marginal_delay_lag_grid_with_responsibility_weighted_laplace_conditionals",
     "roll_pitch_summary": {
       "pitch_delay_s": {
         "lower": 0.0,
-        "mean": 0.0025,
-        "upper": 0.04
+        "mean": 0.0625,
+        "upper": 0.12
       },
       "pitch_effectiveness": {
-        "lower": 0.591963280132683,
-        "mean": 0.6752306195763029,
-        "upper": 0.7415202970552547
+        "lower": 0.2873909119231216,
+        "mean": 0.3510514216353628,
+        "upper": 0.427467637625573
       },
       "pitch_from_roll_cross_coupling": {
-        "lower": -0.6723385986520113,
-        "mean": -0.4278743984966318,
-        "upper": -0.15995470061512676
+        "lower": -0.34744210486511473,
+        "mean": -0.18700965761772181,
+        "upper": -0.0757396564965618
       },
       "roll_delay_s": {
         "lower": 0.0,
-        "mean": 0.0025,
-        "upper": 0.04
+        "mean": 0.0625,
+        "upper": 0.12
       },
       "roll_effectiveness": {
-        "lower": 0.9342001213948355,
-        "mean": 1.1438693131851307,
-        "upper": 1.3539600275376986
+        "lower": 0.2339002591195243,
+        "mean": 0.5600029870627757,
+        "upper": 0.7769924915571651
       },
       "roll_from_pitch_cross_coupling": {
-        "lower": 0.024569280629630676,
-        "mean": 0.043703897354217834,
-        "upper": 0.06413122322163478
+        "lower": -0.05324887660862154,
+        "mean": -0.01673544259607684,
+        "upper": 0.01984356782626034
       }
     }
   },
-  "episode_id": "20260612-04",
+  "episode_id": "20260612-08",
   "flight_states_observed": [
-    0,
-    3,
-    4,
-    6,
-    17
+    5
   ],
   "four_axis_thrust": {
     "mean": [
-      7.205373868809718,
-      6.961965893215884,
-      7.150975898588674,
-      7.457275946672037
+      6.961739614307881,
+      6.480660367310048,
+      7.014271264076233,
+      7.427581002116203
     ],
-    "sample_count": 1511
+    "sample_count": 1600
   },
   "frame_and_unit_conventions": {
     "body_frame": "FLU",
@@ -133,17 +129,17 @@
     }
   },
   "header_record_offset_median_s": {
-    "imu": 0.0013773441314697266,
-    "mocap": 0.0001277923583984375,
-    "pid": 0.004513382911682129
+    "imu": 0.0009936094284057617,
+    "mocap": 0.0005702972412109375,
+    "pid": 0.0035271644592285156
   },
-  "input_slice_sha256": "92c16a6f565b062de404a0344ec0760c3be02c3be66233ec08d145e8fe76a26f",
+  "input_slice_sha256": "d53c84a02950b30d6912a3748f91658bdfacfce7b4e73592c2e2037fb31f2cc7",
   "interval": [
-    18.005629062652588,
-    25.5471088886261
+    294.00327491760254,
+    301.99662494659424
   ],
-  "interval_end_offset_s": 25.5471088886261,
-  "interval_start_offset_s": 18.005629062652588,
+  "interval_end_offset_s": 301.99662494659424,
+  "interval_start_offset_s": 294.00327491760254,
   "model_id": "low_dimensional_effective_response/v1",
   "observed_header_frames": {
     "controller_pid": [
@@ -158,61 +154,62 @@
   },
   "recommendation_available": false,
   "roll_pitch_gain_at_interval": {
-    "d_gain": 8.0,
+    "d_gain": 18.0,
     "i_gain": 1.0,
-    "p_gain": 20.0
+    "p_gain": 13.0
   },
   "roll_pitch_gain_interpretation": "last update at or before interval end; this slice does not evaluate the full bag-8 gain sweep",
-  "run_id": "95902dcc5f562795e72d",
+  "run_id": "bcb0786294cad8f7f565",
   "sample_rate_hz": 20.0,
   "schema": "grape_real_bag_vertical_slice/v1",
   "seed": 7,
   "smoother": {
     "backend": "error_state_ekf_rts",
     "is_smoothed": true,
-    "mean_orientation_std_rad": 0.0018191827085832532,
-    "mean_position_std_m": 0.016727123142439848,
-    "mocap_rejection_count": 381,
-    "mocap_update_count": 578,
+    "mean_orientation_std_rad": 0.0009916826393564237,
+    "mean_position_std_m": 0.0011125386321827412,
+    "mocap_rejection_count": 0,
+    "mocap_update_count": 960,
     "sampling_approximation": "linearized_backward_simulation",
     "trajectory_sample_count": 4
   },
-  "source_bag": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
-  "source_bag_sha256": "bd3fc7f71797c0f5cb665acc50832da93c590e540fa170f9977182ecedf93bf8",
-  "source_commit": "b48bc63d1d961fae7d7bdc73b9d08aff84835910",
+  "source_bag": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_8_2026-06-12-17-46-41.bag",
+  "source_bag_sha256": "dc141d4f6d9d3289d279771eb8d85b0765d1e76cd960f5c79211bf57869863c0",
+  "source_commit": "9b83e4de3eca38e59a65957c2387a5d2c6750bdc",
   "source_topic_counts": {
-    "/gimbalrotor/controller/roll_pitch/parameter_updates": 0,
-    "/gimbalrotor/debug/pose/pid": 1711,
+    "/gimbalrotor/controller/roll_pitch/parameter_updates": 1,
+    "/gimbalrotor/debug/pose/pid": 2000,
     "/gimbalrotor/flight_state": 2000,
-    "/gimbalrotor/four_axes/command": 1711,
-    "/gimbalrotor/mocap/pose": 1143,
+    "/gimbalrotor/four_axes/command": 2000,
+    "/gimbalrotor/mocap/pose": 1200,
     "/gimbalrotor/sensor_plugin/imu1/ros_converted": 2000
   },
-  "stratum": "control_failure",
+  "stratum": "gain_sweep",
   "trajectory_diagnostics": {
     "acceleration_derivative_use": "diagnostic_only_not_an_independent_likelihood_observation",
-    "desired_actual_attitude_rms_rad": 0.2447346086866146,
-    "desired_actual_position_rms_m": 0.3322926604062064,
+    "desired_actual_attitude_rms_rad": 0.05451019506221059,
+    "desired_actual_position_rms_m": 0.03460574636097559,
     "diagnostic_acceleration_mismatch_rms": [
-      1.3133475618811266,
-      0.37890035758837,
-      11.504504643660718,
-      2.024514959501477,
-      10.85434468514703,
-      0.7640916074178372
+      0.16317168697158838,
+      0.17706078255676574,
+      11.82916036744695,
+      3.473758153120568,
+      2.8325120937259642,
+      0.41255318776089456
     ],
-    "nominal_actual_attitude_rms_rad": 0.8570205006978086,
-    "nominal_actual_position_rms_m": 2.8151480077300626,
+    "nominal_actual_attitude_rms_rad": 1.062086640862718,
+    "nominal_actual_position_rms_m": 0.4952230310089574,
     "nominal_definition": "equilibrium-centered recorded_PoseControlPid.total with unit-gain local translation and SO(3) rotation integration from actual initial state; approximation_not_exact_PC_MCU_replay",
     "nominal_equilibrium_command": [
-      -0.07801746553760668,
-      0.029975681724165724,
-      11.34929616301534,
-      1.7474204864995775,
-      1.8391582508068238,
-      0.19126391470443652
+      -0.1480169270287744,
+      0.1817450255314006,
+      11.812686042377269,
+      3.3497825607274963,
+      2.155657931200203,
+      -0.32234009071558506
     ]
   },
-  "trajectory_point_count": 151,
+  "trajectory_evidence_sha256": "847be3904467b0498b1973fe40514009ceb3afaac9cf64d2fe131c5d8a802825",
+  "trajectory_point_count": 160,
   "workflow_status": "EXPERIMENTAL"
 }

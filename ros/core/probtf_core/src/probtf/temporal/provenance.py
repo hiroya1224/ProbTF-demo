@@ -19,6 +19,18 @@ def _update_array(digest, value):
     digest.update(array.tobytes())
 
 
+def _update_approximation(digest, approximation):
+    for value in (
+        approximation.kind.value,
+        bool(approximation.lossy),
+        approximation.detail,
+        approximation.source,
+        approximation.error_bound,
+    ):
+        digest.update(repr(value).encode("utf-8"))
+        digest.update(b"\0")
+
+
 def source_record_dependency_id(record):
     """Return a deterministic content identity for one immutable source record."""
 
@@ -32,6 +44,7 @@ def source_record_dependency_id(record):
         "{:.17g}".format(record.stamp),
         record.authority,
         str(bool(record.is_static)),
+        record.representative_kind.value,
         record.provenance.source_ids,
         record.provenance.derived_from_edge_ids,
         record.provenance.method,
@@ -39,6 +52,13 @@ def source_record_dependency_id(record):
     ):
         digest.update(repr(value).encode("utf-8"))
         digest.update(b"\0")
+    _update_approximation(digest, record.approximation)
+    if record.representative is None:
+        digest.update(b"representative:none\0")
+    else:
+        digest.update(b"representative:present\0")
+        _update_array(digest, record.representative.translation)
+        _update_array(digest, record.representative.rotation_wxyz)
     for component in record.distribution.components:
         for value in (
             component.component_id,
@@ -57,11 +77,19 @@ def source_record_dependency_id(record):
         _update_array(digest, component.translation.mean_at_reference)
         _update_array(digest, component.translation.residual_covariance)
         _update_array(digest, component.translation.rotation_coupling)
+        _update_approximation(digest, component.approximation)
     return "record:{}".format(digest.hexdigest())
 
 
 def source_record_dependency_ids(records):
-    return tuple(source_record_dependency_id(record) for record in records)
+    output = []
+    for record in records:
+        nested = temporal_dependency_ids(record)
+        dependencies = nested or (source_record_dependency_id(record),)
+        for dependency_id in dependencies:
+            if dependency_id not in output:
+                output.append(dependency_id)
+    return tuple(output)
 
 
 def temporal_detail(

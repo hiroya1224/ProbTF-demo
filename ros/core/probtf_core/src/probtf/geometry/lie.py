@@ -20,7 +20,7 @@ from probtf.geometry.rotation import skew
 from probtf.geometry.transform import DeterministicTransform
 
 
-_SMALL_ANGLE = 1.0e-8
+_SMALL_ANGLE = 1.0e-6
 
 
 def rotation_vector_to_quaternion(rotation_vector):
@@ -160,9 +160,130 @@ def body_twist_between(left, right, duration):
     return se3_log(relative_transform(left, right)) / elapsed
 
 
+def integrate_linear_body_twist(
+    endpoint_body_twist,
+    body_acceleration,
+    duration,
+    *,
+    substeps=64,
+):
+    """Integrate ``T_dot = T hat(xi_0 + a t)`` with midpoint Lie steps.
+
+    A single ``Exp(xi_0 h + a h**2 / 2)`` is only exact when the twists
+    commute.  This deterministic reference integrator preserves the
+    time-ordering needed by a body-frame constant-acceleration model.
+    """
+
+    twist = np.asarray(endpoint_body_twist, dtype=float)
+    acceleration = np.asarray(body_acceleration, dtype=float)
+    elapsed = float(duration)
+    count = int(substeps)
+    if (
+        twist.shape != (6,)
+        or acceleration.shape != (6,)
+        or not np.all(np.isfinite(twist))
+        or not np.all(np.isfinite(acceleration))
+    ):
+        raise ValueError(
+            "endpoint_body_twist and body_acceleration must be finite vectors "
+            "with shape (6,)."
+        )
+    if not np.isfinite(elapsed) or elapsed < 0.0:
+        raise ValueError("duration must be finite and non-negative.")
+    if count < 1 or count != substeps:
+        raise ValueError("substeps must be a positive integer.")
+    if elapsed == 0.0:
+        return DeterministicTransform.identity()
+    if np.max(np.abs(acceleration)) == 0.0:
+        return se3_exp(twist * elapsed)
+
+    step = elapsed / count
+    result = DeterministicTransform.identity()
+    for index in range(count):
+        midpoint = (index + 0.5) * step
+        result = compose_transforms(
+            result,
+            se3_exp((twist + acceleration * midpoint) * step),
+        )
+    return result
+
+
+def infer_endpoint_body_twist(
+    left,
+    right,
+    duration,
+    body_acceleration,
+    *,
+    substeps=64,
+    maximum_iterations=12,
+    tolerance=1.0e-10,
+):
+    """Recover the final body twist of a constant-acceleration pose segment.
+
+    The logarithm of the endpoint pose difference is not the arithmetic mean
+    twist when velocity and acceleration do not commute.  This shooting solve
+    uses the same time-ordered integrator as prediction and fails closed if
+    the requested segment is outside its numerical support.
+    """
+
+    if not isinstance(left, DeterministicTransform) or not isinstance(
+        right, DeterministicTransform
+    ):
+        raise TypeError("left and right must be DeterministicTransform objects.")
+    elapsed = float(duration)
+    acceleration = np.asarray(body_acceleration, dtype=float)
+    iterations = int(maximum_iterations)
+    if not np.isfinite(elapsed) or elapsed <= 0.0:
+        raise ValueError("duration must be finite and positive.")
+    if acceleration.shape != (6,) or not np.all(np.isfinite(acceleration)):
+        raise ValueError("body_acceleration must be a finite vector with shape (6,).")
+    if iterations < 1 or iterations != maximum_iterations:
+        raise ValueError("maximum_iterations must be a positive integer.")
+    if not np.isfinite(tolerance) or tolerance <= 0.0:
+        raise ValueError("tolerance must be finite and positive.")
+    average = body_twist_between(left, right, elapsed)
+    if np.max(np.abs(acceleration)) == 0.0:
+        return average
+
+    target = relative_transform(left, right)
+    start_twist = average - 0.5 * acceleration * elapsed
+
+    def residual(value):
+        integrated = integrate_linear_body_twist(
+            value,
+            acceleration,
+            elapsed,
+            substeps=substeps,
+        )
+        return se3_log(relative_transform(integrated, target))
+
+    epsilon = 1.0e-6
+    error = residual(start_twist)
+    for _ in range(iterations):
+        if float(np.linalg.norm(error)) <= tolerance:
+            break
+        jacobian = np.empty((6, 6), dtype=float)
+        for column in range(6):
+            delta = np.zeros(6, dtype=float)
+            delta[column] = epsilon
+            jacobian[:, column] = (
+                residual(start_twist + delta) - residual(start_twist - delta)
+            ) / (2.0 * epsilon)
+        update, _, _, _ = np.linalg.lstsq(jacobian, -error, rcond=1.0e-12)
+        start_twist = start_twist + update
+        error = residual(start_twist)
+    if float(np.linalg.norm(error)) > max(1.0e-8, 100.0 * tolerance):
+        raise ValueError(
+            "Constant-acceleration endpoint-twist solve did not converge."
+        )
+    return start_twist + acceleration * elapsed
+
+
 __all__ = [
     "body_twist_between",
     "compose_transforms",
+    "integrate_linear_body_twist",
+    "infer_endpoint_body_twist",
     "interpolate_transform",
     "quaternion_to_rotation_vector",
     "relative_transform",

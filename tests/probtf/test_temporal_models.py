@@ -75,12 +75,19 @@ def _record(
     )
 
 
-def _request(stamp, policy, anchors, mode=TemporalQueryMode.ONLINE, seed=7):
+def _request(
+    stamp,
+    policy,
+    anchors,
+    mode=TemporalQueryMode.ONLINE,
+    seed=7,
+    model_selector="se3_constant_body_twist",
+):
     return TemporalEvaluationRequest(
         requested_stamp=stamp,
         policy=policy,
         anchors=tuple(anchors),
-        model_selector="reference",
+        model_selector=model_selector,
         max_prediction_horizon=1.0,
         max_age=2.0,
         random_seed=seed,
@@ -204,7 +211,12 @@ def test_constant_acceleration_requires_metadata_and_never_falls_back():
     anchor = _record(1.0, DeterministicTransform.identity())
     result = model.predict(
         (start, anchor),
-        _request(2.0, TemporalPolicy.PREDICT_WITH_MODEL, (start, anchor)),
+        _request(
+            2.0,
+            TemporalPolicy.PREDICT_WITH_MODEL,
+            (start, anchor),
+            model_selector=model.model_id,
+        ),
     )
     np.testing.assert_allclose(
         result.record.distribution.deterministic_transform().translation,

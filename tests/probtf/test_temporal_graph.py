@@ -1,9 +1,12 @@
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
 from probtf.distributions import (
     BinghamOrientation,
     ConditionalGaussianTranslation,
+    DistributionStatus,
     TransformComponent,
     TransformDistribution,
     TransformDistributionStamped,
@@ -28,9 +31,12 @@ from probtf.temporal import (
     ConstantBodyTwistModel,
     TemporalDiagnosticCode,
     TemporalEvaluationKind,
+    TemporalEvaluationResult,
+    TemporalModel,
     TemporalPolicy,
     TemporalQueryMode,
     TemporalUncertaintyBackend,
+    source_record_dependency_ids,
 )
 
 
@@ -612,3 +618,142 @@ def test_sample_ids_resolve_shared_path_dependency_with_common_random_numbers():
         np.tile([0.2, -0.1, 0.4], (80, 1)),
         atol=1.0e-12,
     )
+
+
+class _TamperingTemporalModel(TemporalModel):
+    def __init__(self, tamper):
+        self.tamper = tamper
+        super().__init__(
+            model_id="tamper_{}".format(tamper),
+            version="1",
+            process_noise_spectral_density=np.zeros((6, 6)),
+            maximum_horizon=1.0,
+            backend=TemporalUncertaintyBackend.MOMENT,
+            minimum_history=2,
+            config={"tamper": tamper},
+        )
+
+    @property
+    def supports_interpolation(self):
+        return False
+
+    def interpolate(self, left, right, request):
+        del left, right, request
+        raise NotImplementedError
+
+    def predict(self, history_at_or_before_t, request):
+        sources = tuple(history_at_or_before_t[-2:])
+        record = replace(sources[-1], stamp=request.requested_stamp)
+        kind = TemporalEvaluationKind.MODEL_PREDICTION
+        backend = self.backend
+        dependencies = source_record_dependency_ids(sources)
+        if self.tamper == "parent":
+            record = replace(record, parent_frame_id="map")
+        elif self.tamper == "kind":
+            kind = TemporalEvaluationKind.STATIC
+        elif self.tamper == "backend":
+            backend = TemporalUncertaintyBackend.SAMPLE
+        elif self.tamper == "lineage":
+            dependencies = ("record:" + "0" * 64,)
+        elif self.tamper == "uncertainty":
+            component = record.distribution.components[0]
+            component = replace(
+                component,
+                translation=ConditionalGaussianTranslation(
+                    component.translation.mean_at_reference,
+                    np.eye(3) * 0.2,
+                    component.translation.rotation_coupling,
+                ),
+            )
+            record = replace(
+                record,
+                distribution=TransformDistribution((component,)),
+            )
+        return TemporalEvaluationResult(
+            record=record,
+            requested_stamp=request.requested_stamp,
+            evaluated_stamp=request.requested_stamp,
+            source_stamps=tuple(item.stamp for item in sources),
+            model_id=self.model_id,
+            model_version=self.version,
+            config_fingerprint=self.config_fingerprint,
+            evaluation_kind=kind,
+            horizon=request.requested_stamp - sources[-1].stamp,
+            dependency_ids=dependencies,
+            backend=backend,
+            result_uncertainty_trace=0.0,
+        )
+
+
+@pytest.mark.parametrize(
+    "tamper, message",
+    (
+        ("parent", "endpoints"),
+        ("kind", "kind"),
+        ("backend", "configuration"),
+        ("lineage", "lineage"),
+        ("uncertainty", "understates"),
+        ("provenance", "provenance"),
+    ),
+)
+def test_graph_fails_closed_on_nonconforming_custom_model_results(tamper, message):
+    graph = ProbTfGraph()
+    _insert_motion_history(graph)
+    model = _TamperingTemporalModel(tamper)
+    graph.register_temporal_model("edge", "authority", model)
+    with pytest.raises(ValueError, match=message):
+        graph.lookup_path(
+            "world",
+            "tool",
+            1.2,
+            TemporalPolicy.PREDICT_WITH_MODEL,
+            max_age=1.0,
+            max_prediction_horizon=1.0,
+        )
+
+
+def test_dependency_aware_sample_paths_require_compatible_random_keys():
+    graph = ProbTfGraph()
+    _insert_motion_history(graph)
+    model = ConstantBodyTwistModel(
+        np.eye(6) * 0.01,
+        1.0,
+        model_id="sample_keys",
+        backend=TemporalUncertaintyBackend.SAMPLE,
+        sample_count=16,
+    )
+    graph.register_temporal_model("edge", "authority", model)
+    records = []
+    for seed in (11, 12):
+        resolved = graph.lookup_path(
+            "world",
+            "tool",
+            1.2,
+            TemporalPolicy.PREDICT_WITH_MODEL,
+            max_age=1.0,
+            max_prediction_horizon=1.0,
+            random_seed=seed,
+            random_stream="same-stream",
+        )
+        records.append(resolved._record_snapshot[0])
+    path = PathExpression(
+        "tool",
+        "tool",
+        1.2,
+        (
+            EdgeView("edge", EdgeDirection.FORWARD, 1.2),
+            EdgeView("edge", EdgeDirection.INVERSE, 1.2),
+        ),
+    )
+    expression = kernel_from_path(path, tuple(records))
+    result = KernelEvaluator().apply_to_point(
+        expression,
+        [0.0, 0.0, 0.0],
+        KernelRepresentation.SAMPLES,
+        KernelEvaluationOptions(
+            KernelRepresentation.SAMPLES,
+            sample_count=8,
+        ),
+    )
+    assert result.status is DistributionStatus.INVALID
+    assert result.value.code == "DEPENDENCY_UNRESOLVED"

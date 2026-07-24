@@ -23,6 +23,8 @@ from probtf.geometry.transform import DeterministicTransform
 from probtf.geometry.lie import (
     body_twist_between,
     compose_transforms,
+    infer_endpoint_body_twist,
+    integrate_linear_body_twist,
     interpolate_transform,
     quaternion_to_rotation_vector,
     relative_transform,
@@ -50,6 +52,8 @@ __all__ = [
     "compose_transforms",
     "complete_orthonormal_basis",
     "exp_s2",
+    "infer_endpoint_body_twist",
+    "integrate_linear_body_twist",
     "interpolate_transform",
     "normalize_vec",
     "pack_symmetric_upper",

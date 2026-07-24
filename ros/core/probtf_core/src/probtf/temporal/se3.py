@@ -4,7 +4,12 @@ import numpy as np
 
 from probtf.distributions import OrientationKind
 
-from probtf.geometry import body_twist_between, se3_exp
+from probtf.geometry import (
+    body_twist_between,
+    infer_endpoint_body_twist,
+    integrate_linear_body_twist,
+    se3_exp,
+)
 from probtf.temporal.backends import (
     moment_interpolate,
     moment_predict,
@@ -63,8 +68,10 @@ class ConstantBodyTwistModel(TemporalModel):
         version="1",
         backend=TemporalUncertaintyBackend.MOMENT,
         sample_count=256,
+        process_path_depth=48,
     ):
         self.sample_count = _positive_count(sample_count)
+        self.process_path_depth = _positive_count(process_path_depth)
         super().__init__(
             model_id=model_id,
             version=version,
@@ -80,7 +87,34 @@ class ConstantBodyTwistModel(TemporalModel):
             config={
                 "convention": self.CONVENTION,
                 "sample_count": self.sample_count,
+                "process_path_depth": self.process_path_depth,
             },
+        )
+
+    def _effective_seed(self, request):
+        if (
+            self.backend is TemporalUncertaintyBackend.SAMPLE
+            and request.random_seed is None
+        ):
+            return 0
+        return request.random_seed
+
+    def _prediction_increment(self, endpoint_twist, acceleration, horizon):
+        del acceleration
+        return se3_exp(np.asarray(endpoint_twist, dtype=float) * float(horizon))
+
+    def _endpoint_twist(
+        self,
+        previous_transform,
+        anchor_transform,
+        source_duration,
+        acceleration,
+    ):
+        del acceleration
+        return body_twist_between(
+            previous_transform,
+            anchor_transform,
+            source_duration,
         )
 
     def _detail(
@@ -92,6 +126,7 @@ class ConstantBodyTwistModel(TemporalModel):
         diagnostics,
     ):
         dependencies = source_record_dependency_ids(records)
+        effective_seed = self._effective_seed(request)
         detail = temporal_detail(
             model_id=self.model_id,
             model_version=self.version,
@@ -102,17 +137,14 @@ class ConstantBodyTwistModel(TemporalModel):
             backend=self.backend,
             evaluation_kind=kind,
             horizon=horizon,
-            random_seed=request.random_seed,
+            random_seed=effective_seed,
             random_stream=request.random_stream,
             diagnostics=diagnostics,
         )
-        return dependencies, detail
+        return dependencies, detail, effective_seed
 
     def interpolate(self, left, right, request):
-        if left.stamp >= right.stamp:
-            raise ValueError("Interpolation anchors must have strictly increasing stamps.")
-        if left.authority != right.authority:
-            raise ValueError("Interpolation anchors must have one authority.")
+        self.validate_interpolation_request(left, right, request)
         diagnostics = [
             TemporalDiagnosticCode.MODEL_INTERPOLATION,
             TemporalDiagnosticCode.ENDPOINT_CONDITIONED,
@@ -127,7 +159,7 @@ class ConstantBodyTwistModel(TemporalModel):
                 "Cross-time covariance between stochastic endpoints is unavailable; "
                 "the tangent moment backend uses an explicitly diagnosed approximation."
             )
-        dependencies, detail = self._detail(
+        dependencies, detail, effective_seed = self._detail(
             (left, right),
             request,
             TemporalEvaluationKind.MODEL_INTERPOLATION,
@@ -139,6 +171,7 @@ class ConstantBodyTwistModel(TemporalModel):
                 left,
                 right,
                 request.requested_stamp,
+                self.process_noise_spectral_density,
                 detail,
             )
         else:
@@ -146,9 +179,11 @@ class ConstantBodyTwistModel(TemporalModel):
                 left,
                 right,
                 request.requested_stamp,
+                self.process_noise_spectral_density,
                 self.sample_count,
-                request.random_seed,
+                effective_seed,
                 request.random_stream,
+                self.process_path_depth,
                 detail,
             )
         alpha = (request.requested_stamp - left.stamp) / (right.stamp - left.stamp)
@@ -156,6 +191,9 @@ class ConstantBodyTwistModel(TemporalModel):
             (1.0 - alpha) * record_uncertainty_trace(left)
             + alpha * record_uncertainty_trace(right)
         )
+        result_trace = record_uncertainty_trace(record)
+        if np.isinf(initial_trace):
+            result_trace = float("inf")
         return TemporalEvaluationResult(
             record=record,
             requested_stamp=request.requested_stamp,
@@ -171,10 +209,10 @@ class ConstantBodyTwistModel(TemporalModel):
             approximation=record.approximation,
             diagnostics=tuple(diagnostics),
             warnings=tuple(warnings),
-            random_seed=request.random_seed,
+            random_seed=effective_seed,
             random_stream=request.random_stream,
             initial_uncertainty_trace=initial_trace,
-            result_uncertainty_trace=record_uncertainty_trace(record),
+            result_uncertainty_trace=result_trace,
         )
 
     def _body_acceleration(self, history, request):
@@ -183,44 +221,36 @@ class ConstantBodyTwistModel(TemporalModel):
 
     def predict(self, history_at_or_before_t, request):
         history = tuple(history_at_or_before_t)
-        if len(history) < self.minimum_history:
-            raise ValueError("Constant-body-twist prediction needs at least two records.")
+        self.validate_prediction_request(history, request)
         previous, anchor = history[-2:]
-        if previous.stamp >= anchor.stamp:
-            raise ValueError("Prediction history must have strictly increasing stamps.")
         horizon = request.requested_stamp - anchor.stamp
-        if horizon < 0.0:
-            raise ValueError("Prediction anchor must not be later than the request.")
         acceleration = self._body_acceleration(history, request)
-        diagnostics = (TemporalDiagnosticCode.MODEL_PREDICTION,)
-        dependencies, detail = self._detail(
+        diagnostics = [TemporalDiagnosticCode.MODEL_PREDICTION]
+        warnings = []
+        if (
+            previous.distribution.deterministic_transform() is None
+            or anchor.distribution.deterministic_transform() is None
+        ):
+            diagnostics.append(TemporalDiagnosticCode.DEPENDENCE_APPROXIMATED)
+            warnings.append(
+                "Cross-time covariance is not available in endpoint records; "
+                "the backend reuses explicit provenance dependencies and otherwise "
+                "uses an independence approximation."
+            )
+        dependencies, detail, effective_seed = self._detail(
             (previous, anchor),
             request,
             TemporalEvaluationKind.MODEL_PREDICTION,
             horizon,
-            diagnostics,
+            tuple(diagnostics),
         )
         if self.backend is TemporalUncertaintyBackend.MOMENT:
-            twist = body_twist_between(
-                record_representative(previous),
-                record_representative(anchor),
-                anchor.stamp - previous.stamp,
-            )
-            # The two-pose logarithm is the interval-average twist.  Under
-            # constant acceleration, advance it by half the source interval
-            # to obtain the endpoint twist before forecasting.
-            endpoint_twist = (
-                twist
-                + 0.5 * acceleration * (anchor.stamp - previous.stamp)
-            )
-            increment = (
-                endpoint_twist * horizon
-                + 0.5 * acceleration * horizon ** 2
-            )
             record = moment_predict(
                 (previous, anchor),
                 request.requested_stamp,
-                increment,
+                acceleration,
+                self._endpoint_twist,
+                self._prediction_increment,
                 self.process_noise_spectral_density * horizon,
                 detail,
             )
@@ -229,14 +259,20 @@ class ConstantBodyTwistModel(TemporalModel):
                 (previous, anchor),
                 request.requested_stamp,
                 acceleration,
+                self._endpoint_twist,
+                self._prediction_increment,
                 self.process_noise_spectral_density,
+                self.maximum_horizon,
                 self.sample_count,
-                request.random_seed,
+                effective_seed,
                 request.random_stream,
+                self.process_path_depth,
                 detail,
             )
         initial_trace = record_uncertainty_trace(anchor)
         result_trace = record_uncertainty_trace(record)
+        if np.isinf(initial_trace):
+            result_trace = float("inf")
         return TemporalEvaluationResult(
             record=record,
             requested_stamp=request.requested_stamp,
@@ -250,8 +286,9 @@ class ConstantBodyTwistModel(TemporalModel):
             dependency_ids=dependencies,
             backend=self.backend,
             approximation=record.approximation,
-            diagnostics=diagnostics,
-            random_seed=request.random_seed,
+            diagnostics=tuple(diagnostics),
+            warnings=tuple(warnings),
+            random_seed=effective_seed,
             random_stream=request.random_stream,
             initial_uncertainty_trace=initial_trace,
             result_uncertainty_trace=result_trace,
@@ -273,6 +310,8 @@ class ConstantBodyAccelerationModel(ConstantBodyTwistModel):
         version="1",
         backend=TemporalUncertaintyBackend.MOMENT,
         sample_count=256,
+        process_path_depth=48,
+        integration_substeps=64,
     ):
         self.body_acceleration = _acceleration(body_acceleration)
         self.acceleration_source = _nonempty(
@@ -284,6 +323,8 @@ class ConstantBodyAccelerationModel(ConstantBodyTwistModel):
             "acceleration_frame",
         )
         self.sample_count = _positive_count(sample_count)
+        self.process_path_depth = _positive_count(process_path_depth)
+        self.integration_substeps = _positive_count(integration_substeps)
         TemporalModel.__init__(
             self,
             model_id=model_id,
@@ -300,6 +341,8 @@ class ConstantBodyAccelerationModel(ConstantBodyTwistModel):
             config={
                 "convention": self.CONVENTION,
                 "sample_count": self.sample_count,
+                "process_path_depth": self.process_path_depth,
+                "integration_substeps": self.integration_substeps,
                 "body_acceleration": self.body_acceleration.tolist(),
                 "acceleration_source": self.acceleration_source,
                 "acceleration_frame": self.acceleration_frame,
@@ -309,6 +352,29 @@ class ConstantBodyAccelerationModel(ConstantBodyTwistModel):
     def _body_acceleration(self, history, request):
         del history, request
         return self.body_acceleration
+
+    def _prediction_increment(self, endpoint_twist, acceleration, horizon):
+        return integrate_linear_body_twist(
+            endpoint_twist,
+            acceleration,
+            horizon,
+            substeps=self.integration_substeps,
+        )
+
+    def _endpoint_twist(
+        self,
+        previous_transform,
+        anchor_transform,
+        source_duration,
+        acceleration,
+    ):
+        return infer_endpoint_body_twist(
+            previous_transform,
+            anchor_transform,
+            source_duration,
+            acceleration,
+            substeps=self.integration_substeps,
+        )
 
 
 class EndpointConditionedSampleInterpolationModel(ConstantBodyTwistModel):

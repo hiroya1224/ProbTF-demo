@@ -81,6 +81,8 @@ def _spectral_density(value):
     matrix = np.asarray(value, dtype=float)
     if matrix.shape != (6, 6) or not np.all(np.isfinite(matrix)):
         raise ValueError("process_noise_spectral_density must be a finite 6x6 matrix.")
+    if not np.allclose(matrix, matrix.T, rtol=0.0, atol=1.0e-12):
+        raise ValueError("process_noise_spectral_density must be symmetric.")
     matrix = 0.5 * (matrix + matrix.T)
     if float(np.linalg.eigvalsh(matrix)[0]) < -1.0e-10:
         raise ValueError("process_noise_spectral_density must be positive semidefinite.")
@@ -271,6 +273,13 @@ class TemporalEvaluationResult:
 class TemporalModel(ABC):
     """Base class for explicitly registered edge/authority temporal models."""
 
+    def __setattr__(self, name, value):
+        if getattr(self, "_configuration_frozen", False):
+            raise AttributeError(
+                "TemporalModel configuration is immutable after construction."
+            )
+        object.__setattr__(self, name, value)
+
     def __init__(
         self,
         model_id,
@@ -314,6 +323,7 @@ class TemporalModel(ABC):
         self.config_fingerprint = hashlib.sha256(
             json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
         ).hexdigest()
+        object.__setattr__(self, "_configuration_frozen", True)
 
     @property
     def supports_interpolation(self):
@@ -324,10 +334,134 @@ class TemporalModel(ABC):
         return True
 
     def validate_distribution(self, record):
-        for component in record.distribution.components:
+        if not isinstance(record, TransformDistributionStamped):
+            return False
+        normalized = record.distribution.normalize_weights()
+        if not normalized.components:
+            return False
+        for weighted in normalized.components:
+            component = weighted.component
             if component.orientation.kind not in self.supported_orientation_kinds:
                 return False
+            if self.backend is TemporalUncertaintyBackend.MOMENT:
+                # FINITE_BINGHAM includes axial/plateau laws for which a local
+                # Gaussian moment is not defined.  Model support is a
+                # capability test, not merely an enum test.
+                try:
+                    from probtf.temporal.backends import component_pose_covariance
+
+                    component_pose_covariance(component)
+                except (ValueError, np.linalg.LinAlgError):
+                    return False
         return True
+
+    def _validate_request_anchors(self, records, request):
+        if not isinstance(request, TemporalEvaluationRequest):
+            raise TypeError("request must be TemporalEvaluationRequest.")
+        if request.model_selector != self.model_id:
+            raise ValueError("MODEL_SELECTOR_MISMATCH: request selects another model.")
+        records = tuple(records)
+        if len(records) != len(request.anchors):
+            raise ValueError("ANCHOR_MISMATCH: request anchors do not match model inputs.")
+        from probtf.temporal.provenance import source_record_dependency_id
+
+        if any(
+            source_record_dependency_id(record)
+            != source_record_dependency_id(request_record)
+            for record, request_record in zip(records, request.anchors)
+        ):
+            raise ValueError("ANCHOR_MISMATCH: request anchors do not match model inputs.")
+        if records:
+            edge = (
+                records[0].parent_frame_id,
+                records[0].child_frame_id,
+                records[0].edge_id,
+                records[0].authority,
+            )
+            if any(
+                (
+                    record.parent_frame_id,
+                    record.child_frame_id,
+                    record.edge_id,
+                    record.authority,
+                )
+                != edge
+                for record in records[1:]
+            ):
+                raise ValueError(
+                    "ANCHOR_INCONSISTENT: anchors must share edge, frames, and authority."
+                )
+        return records
+
+    def validate_interpolation_request(self, left, right, request):
+        records = self._validate_request_anchors((left, right), request)
+        if request.policy is not TemporalPolicy.INTERPOLATE_WITH_MODEL:
+            raise ValueError("POLICY_MISMATCH: interpolation requires INTERPOLATE_WITH_MODEL.")
+        if not self.supports_interpolation:
+            raise ValueError("MODEL_SUPPORT_EXCEEDED: model does not support interpolation.")
+        if len(records) != 2 or left.stamp >= right.stamp:
+            raise ValueError("ANCHOR_INCONSISTENT: interpolation stamps must increase.")
+        if not left.stamp < request.requested_stamp < right.stamp:
+            raise ValueError(
+                "MODEL_SUPPORT_EXCEEDED: interpolation requires strict bracketing; "
+                "endpoints are sample-selection queries."
+            )
+        if request.query_mode is not TemporalQueryMode.OFFLINE_SMOOTHING:
+            raise ValueError(
+                "NON_CAUSAL_INPUT_REJECTED: interpolation requires offline_smoothing."
+            )
+        if (
+            request.max_age is not None
+            and request.requested_stamp - left.stamp > request.max_age
+        ):
+            raise ValueError("TEMPORAL_STALE: interpolation anchor exceeds max_age.")
+        if not all(self.validate_distribution(record) for record in records):
+            raise ValueError(
+                "MODEL_SUPPORT_EXCEEDED: an interpolation distribution is unsupported."
+            )
+
+    def validate_prediction_request(self, history, request):
+        records = self._validate_request_anchors(history, request)
+        if request.policy is not TemporalPolicy.PREDICT_WITH_MODEL:
+            raise ValueError("POLICY_MISMATCH: prediction requires PREDICT_WITH_MODEL.")
+        if not self.supports_prediction:
+            raise ValueError("MODEL_SUPPORT_EXCEEDED: model does not support prediction.")
+        if len(records) < self.minimum_history:
+            raise ValueError("INSUFFICIENT_HISTORY: prediction history is too short.")
+        if any(
+            left.stamp >= right.stamp
+            for left, right in zip(records[:-1], records[1:])
+        ):
+            raise ValueError("ANCHOR_INCONSISTENT: prediction stamps must increase.")
+        if any(record.stamp > request.requested_stamp for record in records):
+            raise ValueError("NON_CAUSAL_INPUT_REJECTED: prediction history contains future data.")
+        if request.max_prediction_horizon is None:
+            raise ValueError(
+                "PREDICTION_HORIZON_REQUIRED: max_prediction_horizon is mandatory."
+            )
+        if request.max_age is None:
+            raise ValueError("MAX_AGE_REQUIRED: max_age is mandatory.")
+        horizon = request.requested_stamp - records[-1].stamp
+        if horizon <= 0.0:
+            raise ValueError(
+                "MODEL_SUPPORT_EXCEEDED: a prediction requires a future stamp; "
+                "the anchor stamp is a sample-selection query."
+            )
+        if horizon > request.max_prediction_horizon:
+            raise ValueError(
+                "PREDICTION_HORIZON_EXCEEDED: request exceeds max_prediction_horizon."
+            )
+        if horizon > request.max_age:
+            raise ValueError("TEMPORAL_STALE: prediction anchor exceeds max_age.")
+        if horizon > self.maximum_horizon:
+            raise ValueError("MODEL_SUPPORT_EXCEEDED: prediction exceeds model horizon.")
+        if not all(
+            self.validate_distribution(record)
+            for record in records[-self.minimum_history :]
+        ):
+            raise ValueError(
+                "MODEL_SUPPORT_EXCEEDED: a prediction distribution is unsupported."
+            )
 
     @abstractmethod
     def interpolate(self, left, right, request):
@@ -354,19 +488,53 @@ class ResolvedEdgeRecord:
         return self.sample_stamp - self.requested_stamp
 
 
-def discrete_process_noise_to_spectral_density(discrete_covariance, sample_period):
-    """Explicit compatibility adapter from per-step ``Qd`` to canonical ``Qc``."""
+@dataclass(frozen=True)
+class DiscreteProcessNoiseAdaptation:
+    """Traceable compatibility result for converting per-step ``Qd``."""
+
+    spectral_density: np.ndarray
+    sample_period: float
+    diagnostic: TemporalDiagnosticCode = (
+        TemporalDiagnosticCode.DISCRETE_PROCESS_NOISE_ADAPTED
+    )
+    detail: str = (
+        "Converted legacy per-step covariance Qd to canonical continuous-time "
+        "spectral density Qc=Qd/dt."
+    )
+
+    def __post_init__(self):
+        covariance = _spectral_density(self.spectral_density)
+        period = float(self.sample_period)
+        if not math.isfinite(period) or period <= 0.0:
+            raise ValueError("sample_period must be finite and positive.")
+        if self.diagnostic is not TemporalDiagnosticCode.DISCRETE_PROCESS_NOISE_ADAPTED:
+            raise ValueError("diagnostic must identify discrete process-noise adaptation.")
+        object.__setattr__(self, "spectral_density", covariance)
+        object.__setattr__(self, "sample_period", period)
+        object.__setattr__(self, "detail", str(self.detail))
+
+
+def adapt_discrete_process_noise(discrete_covariance, sample_period):
+    """Return ``Qc`` together with mandatory compatibility provenance."""
 
     period = float(sample_period)
     if not math.isfinite(period) or period <= 0.0:
         raise ValueError("sample_period must be finite and positive.")
     covariance = _spectral_density(discrete_covariance)
-    output = np.asarray(covariance / period, dtype=float)
-    output.setflags(write=False)
-    return output
+    return DiscreteProcessNoiseAdaptation(covariance / period, period)
+
+
+def discrete_process_noise_to_spectral_density(discrete_covariance, sample_period):
+    """Explicit compatibility adapter from per-step ``Qd`` to canonical ``Qc``."""
+
+    return adapt_discrete_process_noise(
+        discrete_covariance,
+        sample_period,
+    ).spectral_density
 
 
 __all__ = [
+    "DiscreteProcessNoiseAdaptation",
     "ResolvedEdgeRecord",
     "TemporalDiagnosticCode",
     "TemporalEvaluationKind",
@@ -375,5 +543,6 @@ __all__ = [
     "TemporalModel",
     "TemporalQueryMode",
     "TemporalUncertaintyBackend",
+    "adapt_discrete_process_noise",
     "discrete_process_noise_to_spectral_density",
 ]

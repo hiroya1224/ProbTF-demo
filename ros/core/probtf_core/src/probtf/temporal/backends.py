@@ -16,14 +16,14 @@ from probtf.distributions import (
 )
 from probtf.geometry import (
     DeterministicTransform,
-    body_twist_between,
     compose_transforms,
     interpolate_transform,
     quat_left_matrix,
     quat_to_rotmat,
+    relative_transform,
     right_perturbation_vec_rotation_jacobian,
     se3_exp,
-    skew,
+    se3_log,
 )
 from probtf.probability import sample_transform_distribution
 from probtf.provenance import ApproximationInfo, ApproximationKind
@@ -41,6 +41,15 @@ def _nearest_psd(matrix, tolerance=1.0e-12):
         raise ValueError("Covariance is not positive semidefinite.")
     clipped = np.maximum(eigenvalues, tolerance)
     return eigenvectors @ np.diag(clipped) @ eigenvectors.T
+
+
+def _combined_component_id(prefix, *component_ids):
+    digest = hashlib.sha256()
+    for component_id in component_ids:
+        encoded = str(component_id).encode("utf-8")
+        digest.update(len(encoded).to_bytes(8, byteorder="big"))
+        digest.update(encoded)
+    return "{}:{}".format(prefix, digest.hexdigest()[:24])
 
 
 def record_representative(record):
@@ -95,7 +104,7 @@ def component_pose_covariance(component):
     jacobian = (
         component.translation.rotation_coupling
         @ right_perturbation_vec_rotation_jacobian(
-            component.orientation.reference_quaternion_wxyz
+            component.orientation.mode_wxyz
         )
     )
     cross_covariance = jacobian @ rotation_covariance
@@ -211,7 +220,10 @@ def record_uncertainty_trace(record):
     total = 0.0
     for weighted in normalized.components:
         component = weighted.component
-        covariance = component_pose_covariance(component)
+        try:
+            covariance = component_pose_covariance(component)
+        except (ValueError, np.linalg.LinAlgError):
+            return float("inf")
         pose = component_representative(component)
         translation_offset = pose.translation - center.translation
         # This diagnostic is only a scalar safety summary; the actual
@@ -224,10 +236,58 @@ def record_uncertainty_trace(record):
     return max(0.0, total)
 
 
+def _mixed_pose_perturb(transform, delta):
+    value = np.asarray(delta, dtype=float).reshape(6)
+    rotation_delta = se3_exp(np.concatenate((np.zeros(3), value[3:])))
+    rotated = compose_transforms(transform, rotation_delta)
+    return DeterministicTransform(
+        transform.translation + value[:3],
+        rotated.rotation_wxyz,
+    )
+
+
+def _mixed_pose_residual(reference, value):
+    return np.concatenate(
+        (
+            value.translation - reference.translation,
+            se3_log(relative_transform(reference, value))[3:],
+        )
+    )
+
+
+def _finite_difference_pose_jacobians(function, inputs, epsilon=1.0e-6):
+    """Jacobians for mixed parent-translation/right-rotation pose moments."""
+
+    nominal = function(*inputs)
+    jacobians = []
+    for input_index, transform in enumerate(inputs):
+        jacobian = np.zeros((6, 6), dtype=float)
+        for column in range(6):
+            delta = np.zeros(6, dtype=float)
+            delta[column] = epsilon
+            positive = list(inputs)
+            negative = list(inputs)
+            positive[input_index] = _mixed_pose_perturb(transform, delta)
+            negative[input_index] = _mixed_pose_perturb(transform, -delta)
+            plus = _mixed_pose_residual(nominal, function(*positive))
+            minus = _mixed_pose_residual(nominal, function(*negative))
+            jacobian[:, column] = (plus - minus) / (2.0 * epsilon)
+        jacobians.append(jacobian)
+    return nominal, tuple(jacobians)
+
+
+def _body_process_map(transform):
+    process_map = np.zeros((6, 6), dtype=float)
+    process_map[:3, :3] = quat_to_rotmat(transform.rotation_wxyz)
+    process_map[3:, 3:] = np.eye(3)
+    return process_map
+
+
 def moment_interpolate(
     left,
     right,
     requested_stamp,
+    process_noise_spectral_density,
     detail,
 ):
     duration = right.stamp - left.stamp
@@ -243,24 +303,51 @@ def moment_interpolate(
     )
     components = []
     component_provenance = make_component_provenance((left, right), detail)
-    for left_component in left.distribution.components:
-        for right_component in right.distribution.components:
-            transform = interpolate_transform(
-                component_representative(left_component),
-                component_representative(right_component),
-                alpha,
+    left_normalized = left.distribution.normalize_weights()
+    right_normalized = right.distribution.normalize_weights()
+    if not left_normalized.components or not right_normalized.components:
+        raise ValueError("Moment interpolation requires positive finite mixture mass.")
+    bridge_covariance = (
+        np.asarray(process_noise_spectral_density, dtype=float)
+        * duration
+        * alpha
+        * (1.0 - alpha)
+    )
+    for left_weighted in left_normalized.components:
+        for right_weighted in right_normalized.components:
+            left_component = left_weighted.component
+            right_component = right_weighted.component
+
+            def interpolation_function(left_pose, right_pose):
+                return interpolate_transform(left_pose, right_pose, alpha)
+
+            transform, (left_jacobian, right_jacobian) = (
+                _finite_difference_pose_jacobians(
+                    interpolation_function,
+                    (
+                        component_representative(left_component),
+                        component_representative(right_component),
+                    ),
+                )
             )
             covariance = (
-                (1.0 - alpha) ** 2 * component_pose_covariance(left_component)
-                + alpha ** 2 * component_pose_covariance(right_component)
+                left_jacobian
+                @ component_pose_covariance(left_component)
+                @ left_jacobian.T
+                + right_jacobian
+                @ component_pose_covariance(right_component)
+                @ right_jacobian.T
             )
+            process_map = _body_process_map(transform)
+            covariance += process_map @ bridge_covariance @ process_map.T
             components.append(
                 component_from_pose_covariance(
-                    component_id="{}~{}".format(
+                    component_id=_combined_component_id(
+                        "interpolated",
                         left_component.component_id,
                         right_component.component_id,
                     ),
-                    raw_weight=left_component.raw_weight * right_component.raw_weight,
+                    raw_weight=left_weighted.weight * right_weighted.weight,
                     transform=transform,
                     covariance=covariance,
                     provenance=component_provenance,
@@ -286,12 +373,16 @@ def moment_interpolate(
 def moment_predict(
     history,
     requested_stamp,
-    mean_increment,
+    acceleration,
+    endpoint_twist_function,
+    increment_function,
     process_covariance,
     detail,
 ):
-    anchor = history[-1]
-    increment = se3_exp(mean_increment)
+    previous, anchor = history[-2:]
+    source_duration = anchor.stamp - previous.stamp
+    horizon = requested_stamp - anchor.stamp
+    acceleration = np.asarray(acceleration, dtype=float).reshape(6)
     approximation = ApproximationInfo(
         kind=ApproximationKind.TANGENT_SURROGATE,
         lossy=True,
@@ -303,31 +394,64 @@ def moment_predict(
     )
     components = []
     component_provenance = make_component_provenance(history, detail)
-    increment_rotation = quat_to_rotmat(increment.rotation_wxyz)
-    for component in anchor.distribution.components:
-        old_transform = component_representative(component)
-        new_transform = compose_transforms(old_transform, increment)
-        old_rotation = quat_to_rotmat(old_transform.rotation_wxyz)
-        jacobian = np.zeros((6, 6), dtype=float)
-        jacobian[:3, :3] = np.eye(3)
-        jacobian[:3, 3:] = -old_rotation @ skew(increment.translation)
-        jacobian[3:, 3:] = increment_rotation.T
-        propagated = jacobian @ component_pose_covariance(component) @ jacobian.T
-        process_map = np.zeros((6, 6), dtype=float)
-        process_map[:3, :3] = quat_to_rotmat(new_transform.rotation_wxyz)
-        process_map[3:, 3:] = np.eye(3)
-        propagated += process_map @ process_covariance @ process_map.T
-        components.append(
-            component_from_pose_covariance(
-                component_id="{}:predicted".format(component.component_id),
-                raw_weight=component.raw_weight,
-                transform=new_transform,
-                covariance=propagated,
-                provenance=component_provenance,
-                approximation=approximation,
-            )
+    previous_normalized = previous.distribution.normalize_weights()
+    anchor_normalized = anchor.distribution.normalize_weights()
+    if not previous_normalized.components or not anchor_normalized.components:
+        raise ValueError("Moment prediction requires positive finite mixture mass.")
+
+    def prediction_function(previous_pose, anchor_pose):
+        endpoint_twist = endpoint_twist_function(
+            previous_pose,
+            anchor_pose,
+            source_duration,
+            acceleration,
         )
-    representative = compose_transforms(record_representative(anchor), increment)
+        return compose_transforms(
+            anchor_pose,
+            increment_function(endpoint_twist, acceleration, horizon),
+        )
+
+    for previous_weighted in previous_normalized.components:
+        for anchor_weighted in anchor_normalized.components:
+            previous_component = previous_weighted.component
+            anchor_component = anchor_weighted.component
+            new_transform, (previous_jacobian, anchor_jacobian) = (
+                _finite_difference_pose_jacobians(
+                    prediction_function,
+                    (
+                        component_representative(previous_component),
+                        component_representative(anchor_component),
+                    ),
+                )
+            )
+            propagated = (
+                previous_jacobian
+                @ component_pose_covariance(previous_component)
+                @ previous_jacobian.T
+                + anchor_jacobian
+                @ component_pose_covariance(anchor_component)
+                @ anchor_jacobian.T
+            )
+            process_map = _body_process_map(new_transform)
+            propagated += process_map @ process_covariance @ process_map.T
+            components.append(
+                component_from_pose_covariance(
+                    component_id=_combined_component_id(
+                        "predicted",
+                        previous_component.component_id,
+                        anchor_component.component_id,
+                    ),
+                    raw_weight=previous_weighted.weight * anchor_weighted.weight,
+                    transform=new_transform,
+                    covariance=propagated,
+                    provenance=component_provenance,
+                    approximation=approximation,
+                )
+            )
+    representative = prediction_function(
+        record_representative(previous),
+        record_representative(anchor),
+    )
     return _output_record(
         anchor,
         requested_stamp,
@@ -349,10 +473,116 @@ def _derived_seed(seed, stream, dependency_id):
     return int.from_bytes(digest.digest()[:8], byteorder="little", signed=False)
 
 
+def _sampling_dependency_id(record):
+    """Sampling identity for a complete record law.
+
+    ``source_ids`` can name only one factor in a record whose residual noise
+    is independent.  Collapsing the whole record to those IDs would therefore
+    create false perfect cross-time correlation.  Until factor-level joint
+    samples are part of the public contract, raw endpoint records use their
+    complete immutable content identity and the approximation is diagnosed.
+    """
+
+    return source_record_dependency_id(record)
+
+
 def _record_samples(record, count, seed, stream):
-    dependency = source_record_dependency_id(record)
+    dependency = _sampling_dependency_id(record)
     generator = np.random.default_rng(_derived_seed(seed, stream, dependency))
     return sample_transform_distribution(record.distribution, count, generator)
+
+
+def _spectral_square_root(matrix):
+    eigenvalues, eigenvectors = np.linalg.eigh(
+        0.5 * (np.asarray(matrix, dtype=float) + np.asarray(matrix, dtype=float).T)
+    )
+    return eigenvectors @ np.diag(np.sqrt(np.maximum(eigenvalues, 0.0)))
+
+
+def _dyadic_process_samples(
+    process_noise_spectral_density,
+    time,
+    domain,
+    count,
+    seed,
+    stream,
+    dependency_id,
+    *,
+    bridge=False,
+    depth=48,
+):
+    """Evaluate a stateless Brownian path on a deterministic dyadic tree.
+
+    Every query reuses the same endpoint and Brownian-bridge node innovations
+    addressed by ``(seed, stream, dependency, level, interval)``.  Thus
+    distinct horizons share their common path ancestry, while short horizons
+    retain ``Qc * h`` variance instead of suffering a fixed-basis cutoff.
+    """
+
+    time = float(time)
+    domain = float(domain)
+    if time == 0.0 or np.max(np.abs(process_noise_spectral_density)) <= 1.0e-16:
+        return np.zeros((count, 6), dtype=float)
+    if domain <= 0.0 or time < 0.0 or time > domain + 1.0e-12:
+        raise ValueError("Gaussian path time must lie within a positive domain.")
+    depth = int(depth)
+    if depth < 1:
+        raise ValueError("Brownian path depth must be positive.")
+    prefix = ("bridge:" if bridge else "brownian:") + dependency_id
+
+    left_time = 0.0
+    right_time = domain
+    left_value = np.zeros((count, 6), dtype=float)
+    if bridge:
+        right_value = np.zeros((count, 6), dtype=float)
+    else:
+        endpoint_generator = np.random.default_rng(
+            _derived_seed(seed, stream, prefix + ":endpoint")
+        )
+        right_value = (
+            np.sqrt(domain)
+            * endpoint_generator.standard_normal((count, 6))
+        )
+    if np.isclose(time, domain, rtol=0.0, atol=0.0):
+        scalar_path = right_value
+    else:
+        interval_index = 0
+        scalar_path = None
+        for level in range(depth):
+            midpoint = 0.5 * (left_time + right_time)
+            node_generator = np.random.default_rng(
+                _derived_seed(
+                    seed,
+                    stream,
+                    "{}:level:{}:interval:{}".format(
+                        prefix,
+                        level,
+                        interval_index,
+                    ),
+                )
+            )
+            midpoint_value = (
+                0.5 * (left_value + right_value)
+                + np.sqrt(0.25 * (right_time - left_time))
+                * node_generator.standard_normal((count, 6))
+            )
+            if np.isclose(time, midpoint, rtol=0.0, atol=0.0):
+                scalar_path = midpoint_value
+                break
+            if time < midpoint:
+                right_time = midpoint
+                right_value = midpoint_value
+                interval_index *= 2
+            else:
+                left_time = midpoint
+                left_value = midpoint_value
+                interval_index = 2 * interval_index + 1
+        if scalar_path is None:
+            fraction = (time - left_time) / (right_time - left_time)
+            scalar_path = (
+                (1.0 - fraction) * left_value + fraction * right_value
+            )
+    return scalar_path @ _spectral_square_root(process_noise_spectral_density).T
 
 
 def _sample_components(transforms, source_records, detail):
@@ -394,17 +624,38 @@ def sample_interpolate(
     left,
     right,
     requested_stamp,
+    process_noise_spectral_density,
     sample_count,
     seed,
     stream,
+    process_depth,
     detail,
 ):
     left_samples = _batch_transforms(_record_samples(left, sample_count, seed, stream))
     right_samples = _batch_transforms(_record_samples(right, sample_count, seed, stream))
     alpha = (requested_stamp - left.stamp) / (right.stamp - left.stamp)
-    transforms = tuple(
+    central_transforms = tuple(
         interpolate_transform(left_transform, right_transform, alpha)
         for left_transform, right_transform in zip(left_samples, right_samples)
+    )
+    duration = right.stamp - left.stamp
+    bridge_samples = _dyadic_process_samples(
+        process_noise_spectral_density,
+        requested_stamp - left.stamp,
+        duration,
+        sample_count,
+        seed,
+        stream,
+        "{}|{}".format(
+            _sampling_dependency_id(left),
+            _sampling_dependency_id(right),
+        ),
+        bridge=True,
+        depth=process_depth,
+    )
+    transforms = tuple(
+        compose_transforms(transform, se3_exp(noise))
+        for transform, noise in zip(central_transforms, bridge_samples)
     )
     components, approximation = _sample_components(
         transforms,
@@ -431,10 +682,14 @@ def sample_predict(
     history,
     requested_stamp,
     acceleration,
+    endpoint_twist_function,
+    increment_function,
     process_noise_spectral_density,
+    maximum_horizon,
     sample_count,
     seed,
     stream,
+    process_depth,
     detail,
 ):
     previous, anchor = history[-2:]
@@ -446,19 +701,16 @@ def sample_predict(
     )
     source_duration = anchor.stamp - previous.stamp
     horizon = requested_stamp - anchor.stamp
-    process_generator = np.random.default_rng(
-        _derived_seed(seed, stream, "process:" + source_record_dependency_id(anchor))
+    process_samples = _dyadic_process_samples(
+        process_noise_spectral_density,
+        horizon,
+        maximum_horizon,
+        sample_count,
+        seed,
+        stream,
+        _sampling_dependency_id(anchor),
+        depth=process_depth,
     )
-    process_covariance = process_noise_spectral_density * horizon
-    if np.max(np.abs(process_covariance)) <= 1.0e-16:
-        process_samples = np.zeros((sample_count, 6), dtype=float)
-    else:
-        process_samples = process_generator.multivariate_normal(
-            np.zeros(6),
-            process_covariance,
-            size=sample_count,
-            check_valid="raise",
-        )
     acceleration = np.asarray(acceleration, dtype=float).reshape(6)
     transforms = []
     for previous_transform, anchor_transform, noise in zip(
@@ -466,19 +718,15 @@ def sample_predict(
         anchor_samples,
         process_samples,
     ):
-        twist = body_twist_between(
+        endpoint_twist = endpoint_twist_function(
             previous_transform,
             anchor_transform,
             source_duration,
-        )
-        endpoint_twist = twist + 0.5 * acceleration * source_duration
-        deterministic_increment = (
-            endpoint_twist * horizon
-            + 0.5 * acceleration * horizon ** 2
+            acceleration,
         )
         prediction = compose_transforms(
             anchor_transform,
-            se3_exp(deterministic_increment),
+            increment_function(endpoint_twist, acceleration, horizon),
         )
         transforms.append(compose_transforms(prediction, se3_exp(noise)))
     components, approximation = _sample_components(
@@ -486,20 +734,15 @@ def sample_predict(
         history,
         detail,
     )
-    central_twist = body_twist_between(
+    central_endpoint_twist = endpoint_twist_function(
         record_representative(previous),
         record_representative(anchor),
         source_duration,
-    )
-    central_endpoint_twist = (
-        central_twist + 0.5 * acceleration * source_duration
+        acceleration,
     )
     representative = compose_transforms(
         record_representative(anchor),
-        se3_exp(
-            central_endpoint_twist * horizon
-            + 0.5 * acceleration * horizon ** 2
-        ),
+        increment_function(central_endpoint_twist, acceleration, horizon),
     )
     return _output_record(
         anchor,

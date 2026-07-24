@@ -139,6 +139,11 @@ def _temporal_sample_key(record):
     if component_ids != expected:
         return None
     return (
+        payload.get("model_id"),
+        payload.get("model_version"),
+        payload.get("config_fingerprint"),
+        payload.get("evaluation_kind"),
+        tuple(payload.get("source_stamps", ())),
         payload.get("random_seed"),
         payload.get("random_stream", ""),
         component_ids,
@@ -146,14 +151,25 @@ def _temporal_sample_key(record):
 
 
 def _has_dependency_aware_temporal_samples(kernel):
-    stochastic_records = []
+    repeated = set(_repeated_dependencies(kernel))
+    if not repeated:
+        return False
+    keys_by_dependency = {dependency_id: set() for dependency_id in repeated}
     for expression in _kernel_sequence(kernel):
         record = _record_for_kernel(expression)
         if record is None or record.distribution.deterministic_transform() is not None:
             continue
-        stochastic_records.append(record)
-    return bool(stochastic_records) and all(
-        _temporal_sample_key(record) is not None for record in stochastic_records
+        participating = repeated.intersection(expression.latent_dependency_ids())
+        if not participating:
+            continue
+        key = _temporal_sample_key(record)
+        if key is None:
+            return False
+        for dependency_id in participating:
+            keys_by_dependency[dependency_id].add(key)
+    return all(
+        len(keys_by_dependency[dependency_id]) == 1
+        for dependency_id in repeated
     )
 
 

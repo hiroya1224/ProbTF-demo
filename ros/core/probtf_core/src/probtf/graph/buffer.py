@@ -19,7 +19,9 @@ from probtf.temporal import (
     TemporalPolicy,
     TemporalQueryMode,
     TemporalUncertaintyBackend,
+    parse_temporal_detail,
     source_record_dependency_id,
+    source_record_dependency_ids,
 )
 from probtf.temporal.backends import copy_record_at_stamp, record_uncertainty_trace
 from probtf.temporal.provenance import make_transform_provenance, temporal_detail
@@ -291,13 +293,40 @@ class EdgeTimeBuffer:
         )
 
     @staticmethod
-    def _validate_model_result(result, request, edge_id, authority):
+    def _validate_model_result(
+        result,
+        request,
+        edge_id,
+        endpoints,
+        authority,
+        temporal_model,
+    ):
         if not isinstance(result, TemporalEvaluationResult):
             raise TypeError("TemporalModel methods must return TemporalEvaluationResult.")
         if result.model_id != request.model_selector:
             raise ValueError("Temporal result model_id does not match the selected model.")
+        if (
+            result.model_id != temporal_model.model_id
+            or result.model_version != temporal_model.version
+            or result.config_fingerprint != temporal_model.config_fingerprint
+            or result.backend is not temporal_model.backend
+        ):
+            raise ValueError("Temporal result does not match the registered model configuration.")
+        expected_kind = {
+            TemporalPolicy.INTERPOLATE_WITH_MODEL:
+                TemporalEvaluationKind.MODEL_INTERPOLATION,
+            TemporalPolicy.PREDICT_WITH_MODEL:
+                TemporalEvaluationKind.MODEL_PREDICTION,
+        }[request.policy]
+        if result.evaluation_kind is not expected_kind:
+            raise ValueError("Temporal result kind does not match the requested policy.")
         if result.record.edge_id != edge_id:
             raise ValueError("Temporal result changed the physical edge_id.")
+        if (
+            result.record.parent_frame_id,
+            result.record.child_frame_id,
+        ) != endpoints:
+            raise ValueError("Temporal result changed the physical edge endpoints.")
         if result.record.authority != authority:
             raise ValueError("Temporal result changed the bound authority.")
         if not np.isclose(
@@ -307,9 +336,64 @@ class EdgeTimeBuffer:
             atol=1.0e-12,
         ):
             raise ValueError("Temporal result must evaluate at the requested stamp.")
-        available = {record.stamp for record in request.anchors}
-        if any(stamp not in available for stamp in result.source_stamps):
+        records_by_stamp = {record.stamp: record for record in request.anchors}
+        if len(records_by_stamp) != len(request.anchors) or any(
+            stamp not in records_by_stamp for stamp in result.source_stamps
+        ):
             raise ValueError("Temporal result cites a source stamp absent from the request.")
+        if request.policy is TemporalPolicy.INTERPOLATE_WITH_MODEL:
+            expected_stamps = tuple(record.stamp for record in request.anchors)
+            if result.source_stamps != expected_stamps:
+                raise ValueError("Interpolation result must cite both request anchors.")
+        else:
+            available_stamps = tuple(record.stamp for record in request.anchors)
+            if (
+                len(result.source_stamps) < temporal_model.minimum_history
+                or result.source_stamps
+                != available_stamps[-len(result.source_stamps) :]
+            ):
+                raise ValueError(
+                    "Prediction result source stamps must be a sufficient causal suffix."
+                )
+        source_records = tuple(
+            records_by_stamp[stamp] for stamp in result.source_stamps
+        )
+        if result.dependency_ids != source_record_dependency_ids(source_records):
+            raise ValueError("Temporal result dependency lineage does not match its sources.")
+        actual_trace = record_uncertainty_trace(result.record)
+        if (
+            np.isinf(actual_trace)
+            and not np.isinf(result.result_uncertainty_trace)
+        ) or (
+            np.isfinite(actual_trace)
+            and result.result_uncertainty_trace + 1.0e-10 < actual_trace
+        ):
+            raise ValueError("Temporal result understates the record uncertainty trace.")
+        expected_payload = {
+            "authority": authority,
+            "backend": result.backend.value,
+            "config_fingerprint": result.config_fingerprint,
+            "dependency_ids": list(result.dependency_ids),
+            "diagnostics": [item.value for item in result.diagnostics],
+            "evaluation_kind": result.evaluation_kind.value,
+            "horizon": result.horizon,
+            "model_id": result.model_id,
+            "model_version": result.model_version,
+            "random_seed": result.random_seed,
+            "random_stream": result.random_stream,
+            "source_stamps": list(result.source_stamps),
+        }
+        provenance_details = (result.record.provenance.detail,) + tuple(
+            component.provenance.detail
+            for component in result.record.distribution.components
+        )
+        if any(
+            parse_temporal_detail(detail) != expected_payload
+            for detail in provenance_details
+        ):
+            raise ValueError(
+                "Temporal result provenance payload is missing or inconsistent."
+            )
 
     @staticmethod
     def _apply_uncertainty_limit(result, max_uncertainty_trace, allow_degraded):
@@ -497,7 +581,9 @@ class EdgeTimeBuffer:
                         result,
                         request,
                         self._edge_id,
+                        self._endpoints,
                         left.authority,
+                        temporal_model,
                     )
                     result = self._apply_uncertainty_limit(
                         result,
@@ -597,7 +683,9 @@ class EdgeTimeBuffer:
                     result,
                     request,
                     self._edge_id,
+                    self._endpoints,
                     anchor.authority,
+                    temporal_model,
                 )
                 if any(source_stamp > requested for source_stamp in result.source_stamps):
                     raise TemporalResolutionError(

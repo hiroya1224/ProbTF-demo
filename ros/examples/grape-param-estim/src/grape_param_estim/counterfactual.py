@@ -1529,6 +1529,7 @@ class ClosedLoopCounterfactualEvaluator:
         )
         conformance_fixture_bound = bool(
             fixture_provenance is not None
+            and fixture_provenance.content_is_valid()
             and conformance.fixture_content_sha256
             == fixture_provenance.content_sha256
             and conformance.request_payload_sha256

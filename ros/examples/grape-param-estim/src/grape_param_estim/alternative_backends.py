@@ -1685,6 +1685,42 @@ class ExactOracleFixtureProvenance:
         object.__setattr__(self, "extraction_config_sha256", config_hash)
         object.__setattr__(self, "content_sha256", content_hash)
 
+    def content_is_valid(self) -> bool:
+        try:
+            payload = self._payload(
+                _validated_sha256(
+                    self.source_bag_sha256, "source_bag_sha256"
+                ),
+                tuple(str(item) for item in self.source_topics),
+                int(self.interval_start_time_ns),
+                int(self.interval_end_time_ns),
+                {
+                    str(key): str(value)
+                    for key, value in self.frame_conventions.items()
+                },
+                {
+                    str(key): str(value)
+                    for key, value in self.unit_conventions.items()
+                },
+                tuple(str(item) for item in self.motor_order),
+                _validated_sha256(
+                    self.fixture_input_payload_sha256,
+                    "fixture_input_payload_sha256",
+                ),
+                _validated_sha256(
+                    self.fixture_data_sha256, "fixture_data_sha256"
+                ),
+                _validated_sha256(
+                    self.extraction_config_sha256,
+                    "extraction_config_sha256",
+                ),
+                self.source_commit,
+                self.schema,
+            )
+            return stable_hash(payload) == self.content_sha256
+        except (AttributeError, TypeError, ValueError):
+            return False
+
 
 @dataclass(frozen=True)
 class ExactOracleConformanceFixture:
@@ -1749,6 +1785,8 @@ class ExactOracleConformanceReport:
             self.fixture_provenance, ExactOracleFixtureProvenance
         ):
             raise TypeError("conformance report requires fixture provenance")
+        if not self.fixture_provenance.content_is_valid():
+            raise ValueError("conformance report fixture provenance was mutated")
         fixture_hash = _validated_sha256(
             self.fixture_content_sha256, "fixture_content_sha256"
         )
@@ -1783,6 +1821,15 @@ def evaluate_exact_oracle_conformance(
         raise TypeError("fixture must be ExactOracleConformanceFixture")
     if not isinstance(payload, Mapping):
         raise TypeError("exact-oracle conformance payload must be a mapping")
+    if not fixture.provenance.content_is_valid():
+        raise ValueError("exact-oracle fixture provenance was mutated")
+    if (
+        stable_hash(
+            {"continuous": fixture.continuous, "events": fixture.events}
+        )
+        != fixture.provenance.fixture_data_sha256
+    ):
+        raise ValueError("exact-oracle fixture data was mutated")
     request_hash = stable_hash(payload)
 
     def report(

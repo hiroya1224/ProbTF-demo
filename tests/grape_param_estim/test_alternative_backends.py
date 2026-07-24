@@ -458,6 +458,21 @@ class ExactOracleAndCandidateGateTests(unittest.TestCase):
         self.assertFalse(report.passed)
         self.assertEqual(report.status, "FIXTURE_BINDING_REJECTED")
 
+        fixture.continuous["pid_terms"] = np.ones((31, 3))
+        with self.assertRaisesRegex(ValueError, "fixture data was mutated"):
+            evaluate_exact_oracle_conformance(
+                None, {"run_id": "unit-test"}, fixture
+            )
+
+        provenance_fixture = self.fixture()
+        provenance_fixture.provenance.frame_conventions[
+            "controller"
+        ] = "mutated_frame"
+        with self.assertRaisesRegex(ValueError, "provenance was mutated"):
+            evaluate_exact_oracle_conformance(
+                None, {"run_id": "unit-test"}, provenance_fixture
+            )
+
     def test_missing_or_surrogate_oracle_fails_closed(self):
         fixture = self.fixture()
         missing = evaluate_exact_oracle_conformance(None, {}, fixture)

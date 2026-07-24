@@ -3,6 +3,8 @@ import unittest
 import numpy as np
 
 from grape_param_estim.episode import (
+    EVENT_SOURCE_HEADER_STAMP,
+    EVENT_SOURCE_TOP_LEVEL_STAMP,
     EVENT_TIME_HEADER,
     EVENT_TIME_RECORD,
     EpisodeDataset,
@@ -11,6 +13,8 @@ from grape_param_estim.episode import (
     QualityEvent,
     clock_diagnostics,
     message_header_time,
+    message_event_time,
+    message_event_time_nanoseconds,
     stable_hash,
 )
 
@@ -31,6 +35,17 @@ class _Header:
 class _Message:
     def __init__(self, seconds):
         self.header = _Header(seconds)
+
+
+class _TopLevelMessage:
+    def __init__(self, seconds):
+        self.stamp = _Stamp(seconds)
+
+
+class _BothMessage:
+    def __init__(self, header_seconds, top_level_seconds):
+        self.header = _Header(header_seconds)
+        self.stamp = _Stamp(top_level_seconds)
 
 
 class EpisodeTests(unittest.TestCase):
@@ -141,6 +156,7 @@ class EpisodeTests(unittest.TestCase):
             event_times + offsets,
             (EVENT_TIME_HEADER,) * 6,
             jump_threshold=0.02,
+            warmup_samples=0,
         )
         self.assertEqual(diagnostic.header_sample_count, 6)
         self.assertEqual(diagnostic.record_fallback_count, 0)
@@ -160,6 +176,37 @@ class EpisodeTests(unittest.TestCase):
             valid_mask=np.ones(6, dtype=bool),
         )
         self.assertEqual(series.clock_diagnostics().offset_jump_count, 1)
+
+    def test_top_level_stamp_source_and_header_precedence_are_explicit(self):
+        seconds, source = message_event_time(_TopLevelMessage(4.25))
+        self.assertEqual(source, EVENT_SOURCE_TOP_LEVEL_STAMP)
+        self.assertAlmostEqual(seconds, 4.25)
+        seconds, source = message_event_time(_BothMessage(5.0, 9.0))
+        self.assertEqual(source, EVENT_SOURCE_HEADER_STAMP)
+        self.assertEqual(seconds, 5.0)
+        self.assertEqual(message_event_time(_TopLevelMessage(0.0)), (None, None))
+        self.assertEqual(message_event_time(object()), (None, None))
+        nanoseconds, source = message_event_time_nanoseconds(
+            _TopLevelMessage(1.25)
+        )
+        # The fake stamp has no integer API; actual ROS stamps exercise the
+        # exact-ns branch in the manifest integration test.
+        self.assertIsNone(nanoseconds)
+        self.assertIsNone(source)
+
+    def test_record_order_clock_diagnostics_preserve_backward_jump(self):
+        diagnostic = clock_diagnostics(
+            np.array([1.0, 3.0, 2.0, 4.0]),
+            np.array([1.1, 3.1, 3.2, 4.1]),
+            (EVENT_TIME_HEADER,) * 4,
+            warmup_samples=0,
+            input_order="record",
+        )
+        self.assertEqual(diagnostic.timestamp_backward_jump_count, 1)
+        self.assertGreaterEqual(diagnostic.segment_count, 2)
+        self.assertIn(
+            "clock_fit_uses_longest_jump_free_segment", diagnostic.warnings
+        )
 
 
 if __name__ == "__main__":

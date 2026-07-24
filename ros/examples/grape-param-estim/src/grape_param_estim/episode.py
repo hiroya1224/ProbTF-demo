@@ -26,9 +26,16 @@ from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Sequence, T
 import numpy as np
 
 
+# ``EVENT_TIME_*`` are persisted policy/category tokens and therefore retain
+# their v1 spelling.  Exact ROS fields are reported with the separate
+# ``EVENT_SOURCE_*`` tokens.
 EVENT_TIME_HEADER = "header"
 EVENT_TIME_RECORD = "record"
 EVENT_TIME_HEADER_OR_RECORD = "header_or_record"
+EVENT_SOURCE_HEADER_STAMP = "header.stamp"
+EVENT_SOURCE_TOP_LEVEL_STAMP = "stamp"
+# Compatibility alias for code written while exact source reporting was added.
+EVENT_TIME_TOP_LEVEL_STAMP = EVENT_SOURCE_TOP_LEVEL_STAMP
 _EVENT_TIME_POLICIES = {
     EVENT_TIME_HEADER,
     EVENT_TIME_RECORD,
@@ -128,6 +135,46 @@ def message_header_time(message: Any) -> Optional[float]:
     return _ros_time_seconds(getattr(message, "stamp", None))
 
 
+def message_event_time(message: Any) -> Tuple[Optional[float], Optional[str]]:
+    """Return event seconds and the exact ROS field supplying them."""
+
+    header = getattr(message, "header", None)
+    if header is not None:
+        stamp = _ros_time_seconds(getattr(header, "stamp", None))
+        if stamp is not None:
+            return stamp, EVENT_SOURCE_HEADER_STAMP
+    stamp = _ros_time_seconds(getattr(message, "stamp", None))
+    if stamp is not None:
+        return stamp, EVENT_SOURCE_TOP_LEVEL_STAMP
+    return None, None
+
+
+def message_event_time_nanoseconds(
+    message: Any,
+) -> Tuple[Optional[int], Optional[str]]:
+    """Return exact integer nanoseconds and the ROS stamp field used."""
+
+    candidates = (
+        (
+            getattr(getattr(message, "header", None), "stamp", None),
+            EVENT_SOURCE_HEADER_STAMP,
+        ),
+        (getattr(message, "stamp", None), EVENT_SOURCE_TOP_LEVEL_STAMP),
+    )
+    for stamp, source in candidates:
+        if stamp is None:
+            continue
+        if hasattr(stamp, "to_nsec"):
+            value = int(stamp.to_nsec())
+        elif hasattr(stamp, "secs") and hasattr(stamp, "nsecs"):
+            value = int(stamp.secs) * 1_000_000_000 + int(stamp.nsecs)
+        else:
+            continue
+        if value > 0:
+            return value, source
+    return None, None
+
+
 @dataclass(frozen=True)
 class QualityEvent:
     stamp: float
@@ -171,6 +218,12 @@ class ClockDiagnostics:
     maximum_offset_step_s: Optional[float]
     offset_jump_count: int
     jump_threshold_s: float
+    timestamp_backward_jump_count: int
+    segment_count: int
+    drift_sample_count: int
+    drift_method: str
+    input_order: str
+    warnings: Tuple[str, ...]
 
 
 def clock_diagnostics(
@@ -178,13 +231,16 @@ def clock_diagnostics(
     record_times: np.ndarray,
     event_time_sources: Sequence[str],
     jump_threshold: float = 0.02,
+    warmup_samples: int = 5,
+    input_order: str = "record",
 ) -> ClockDiagnostics:
-    """Estimate clock offset, linear drift, and abrupt offset changes."""
+    """Estimate offset/drift from a robust record-ordered clock segment."""
 
     events = np.asarray(event_times, dtype=float).reshape(-1)
     records = np.asarray(record_times, dtype=float).reshape(-1)
     sources = tuple(event_time_sources)
     threshold = float(jump_threshold)
+    warmup = int(warmup_samples)
     if (
         records.shape != events.shape
         or len(sources) != events.size
@@ -194,8 +250,19 @@ def clock_diagnostics(
         raise ValueError("clock diagnostic arrays must be finite and aligned")
     if not np.isfinite(threshold) or threshold <= 0.0:
         raise ValueError("jump_threshold must be finite and positive")
+    if warmup < 0 or input_order not in ("record", "event"):
+        raise ValueError("warmup_samples or input_order is invalid")
     header_mask = np.asarray(
-        [item == EVENT_TIME_HEADER for item in sources], dtype=bool
+        [
+            item
+            in (
+                EVENT_TIME_HEADER,
+                EVENT_SOURCE_HEADER_STAMP,
+                EVENT_SOURCE_TOP_LEVEL_STAMP,
+            )
+            for item in sources
+        ],
+        dtype=bool,
     )
     fallback_count = int(
         np.count_nonzero(
@@ -213,21 +280,52 @@ def clock_diagnostics(
             maximum_offset_step_s=None,
             offset_jump_count=0,
             jump_threshold_s=threshold,
+            timestamp_backward_jump_count=0,
+            segment_count=0,
+            drift_sample_count=0,
+            drift_method="unavailable",
+            input_order=input_order,
+            warnings=("no_header_or_top_level_stamp",),
         )
     header_events = events[header_mask]
     offsets = records[header_mask] - header_events
     steps = np.abs(np.diff(offsets))
-    if count >= 2 and float(np.ptp(header_events)) > 0.0:
-        centered_time = header_events - float(np.mean(header_events))
-        centered_offset = offsets - float(np.mean(offsets))
+    backward = np.diff(header_events) <= 0.0
+    breaks = (steps > threshold) | backward
+    boundaries = np.concatenate(([0], np.flatnonzero(breaks) + 1, [count]))
+    segments = [
+        np.arange(boundaries[index], boundaries[index + 1], dtype=int)
+        for index in range(len(boundaries) - 1)
+        if boundaries[index + 1] > boundaries[index]
+    ]
+    longest = max(segments, key=len)
+    fitted = longest[min(warmup, max(0, len(longest) - 2)) :]
+    warnings = []
+    if len(segments) > 1:
+        warnings.append("clock_fit_uses_longest_jump_free_segment")
+    if len(fitted) >= 3:
+        fitted_offsets = offsets[fitted]
+        median = float(np.median(fitted_offsets))
+        mad = float(np.median(np.abs(fitted_offsets - median)))
+        if mad > 0.0:
+            robust = fitted[
+                np.abs(fitted_offsets - median) <= 6.0 * 1.4826 * mad
+            ]
+            if len(robust) >= 3:
+                fitted = robust
+        fitted_events = header_events[fitted]
+        fitted_offsets = offsets[fitted]
+        centered_time = fitted_events - float(np.mean(fitted_events))
+        centered_offset = fitted_offsets - float(np.mean(fitted_offsets))
         denominator = float(np.dot(centered_time, centered_time))
         slope = (
             float(np.dot(centered_time, centered_offset) / denominator)
             if denominator > 0.0
-            else 0.0
+            else None
         )
     else:
         slope = None
+        warnings.append("insufficient_jump_free_samples_for_clock_drift")
     return ClockDiagnostics(
         header_sample_count=count,
         record_fallback_count=fallback_count,
@@ -239,6 +337,12 @@ def clock_diagnostics(
         ),
         offset_jump_count=int(np.count_nonzero(steps > threshold)),
         jump_threshold_s=threshold,
+        timestamp_backward_jump_count=int(np.count_nonzero(backward)),
+        segment_count=len(segments),
+        drift_sample_count=int(len(fitted)),
+        drift_method="longest_jump_free_segment_warmup_trimmed_ols",
+        input_order=input_order,
+        warnings=tuple(warnings),
     )
 
 
@@ -258,6 +362,7 @@ class EventSeries:
     frame_id: str = ""
     metadata: Mapping[str, Any] = field(default_factory=dict)
     source_hash: str = ""
+    record_order_clock_diagnostics: Optional[ClockDiagnostics] = None
 
     def __post_init__(self) -> None:
         if not self.role or not self.topic:
@@ -271,7 +376,14 @@ class EventSeries:
             raise ValueError("event_times must be non-decreasing")
         sources = tuple(str(item) for item in self.event_time_sources)
         if len(sources) != count or any(
-            item not in (EVENT_TIME_HEADER, EVENT_TIME_RECORD) for item in sources
+            item
+            not in (
+                EVENT_TIME_HEADER,
+                EVENT_SOURCE_HEADER_STAMP,
+                EVENT_SOURCE_TOP_LEVEL_STAMP,
+                EVENT_TIME_RECORD,
+            )
+            for item in sources
         ):
             raise ValueError("event_time_sources must identify every sample clock")
         values = tuple(self.values)
@@ -292,6 +404,9 @@ class EventSeries:
                 "unit": self.unit,
                 "frame_id": self.frame_id,
                 "metadata": metadata,
+                "record_order_clock_diagnostics": (
+                    self.record_order_clock_diagnostics
+                ),
             }
         )
         object.__setattr__(self, "event_times", event_times)
@@ -301,6 +416,12 @@ class EventSeries:
         object.__setattr__(self, "valid_mask", valid)
         object.__setattr__(self, "metadata", metadata)
         object.__setattr__(self, "source_hash", source_hash)
+        if self.record_order_clock_diagnostics is not None and not isinstance(
+            self.record_order_clock_diagnostics, ClockDiagnostics
+        ):
+            raise TypeError(
+                "record_order_clock_diagnostics must be ClockDiagnostics"
+            )
 
     @property
     def count(self) -> int:
@@ -312,6 +433,7 @@ class EventSeries:
             self.record_times,
             self.event_time_sources,
             jump_threshold,
+            input_order="event",
         )
 
     def nearest(
@@ -518,15 +640,15 @@ def _choose_event_time(
     record_time: float,
     policy: str,
 ) -> Tuple[float, str]:
-    header_time = message_header_time(message)
+    header_time, event_source = message_event_time(message)
     if policy == EVENT_TIME_RECORD:
         return record_time, EVENT_TIME_RECORD
     if policy == EVENT_TIME_HEADER:
         if header_time is None:
             raise ValueError("message has no valid header/stamp")
-        return header_time, EVENT_TIME_HEADER
+        return header_time, event_source
     if header_time is not None:
-        return header_time, EVENT_TIME_HEADER
+        return header_time, event_source
     return record_time, EVENT_TIME_RECORD
 
 
@@ -552,23 +674,6 @@ def _series_quality_events(
                         ),
                     )
                 )
-    header_mask = np.asarray([item == EVENT_TIME_HEADER for item in sources])
-    if np.count_nonzero(header_mask) > 1:
-        offsets = record_times[header_mask] - event_times[header_mask]
-        offset_steps = np.abs(np.diff(offsets))
-        header_indices = np.flatnonzero(header_mask)
-        for local_index in np.flatnonzero(offset_steps > clock_jump_threshold):
-            sample_index = int(header_indices[local_index + 1])
-            events.append(
-                QualityEvent(
-                    stamp=float(event_times[sample_index]),
-                    kind="clock_offset_jump",
-                    topic=spec.topic,
-                    detail="record-header offset changed by {:.9g}s".format(
-                        float(offset_steps[local_index])
-                    ),
-                )
-            )
     if any(item == EVENT_TIME_RECORD for item in sources) and spec.event_time_policy == EVENT_TIME_HEADER_OR_RECORD:
         first = next(
             index for index, item in enumerate(sources) if item == EVENT_TIME_RECORD
@@ -688,6 +793,33 @@ def read_rosbag_episode(
                     )
                 )
             continue
+        record_order_diagnostics = clock_diagnostics(
+            np.asarray(buffer["event_times"], dtype=float),
+            np.asarray(buffer["record_times"], dtype=float),
+            tuple(buffer["sources"]),
+            float(clock_jump_threshold),
+            input_order="record",
+        )
+        if (
+            record_order_diagnostics.offset_jump_count
+            or record_order_diagnostics.timestamp_backward_jump_count
+        ):
+            quality_events.append(
+                QualityEvent(
+                    stamp=float(buffer["record_times"][0]),
+                    kind="clock_alignment_discontinuity",
+                    topic=spec.topic,
+                    detail=(
+                        "offset_jumps={}, event_time_backward_jumps={}, "
+                        "segments={}, drift_method={}"
+                    ).format(
+                        record_order_diagnostics.offset_jump_count,
+                        record_order_diagnostics.timestamp_backward_jump_count,
+                        record_order_diagnostics.segment_count,
+                        record_order_diagnostics.drift_method,
+                    ),
+                )
+            )
         # Header stamps can arrive out of order relative to record time.  Keep
         # each sample intact while ordering the normalized series by event time.
         order = np.argsort(np.asarray(buffer["event_times"]), kind="stable")
@@ -717,6 +849,7 @@ def read_rosbag_episode(
             unit=spec.unit,
             frame_id=spec.frame_id,
             metadata=spec.metadata,
+            record_order_clock_diagnostics=record_order_diagnostics,
         )
 
     bag_hash = source_bag_sha256 or sha256_file(path)
@@ -758,9 +891,12 @@ def read_rosbag_episode(
 
 __all__ = [
     "ClockDiagnostics",
+    "EVENT_SOURCE_HEADER_STAMP",
+    "EVENT_SOURCE_TOP_LEVEL_STAMP",
     "EVENT_TIME_HEADER",
     "EVENT_TIME_HEADER_OR_RECORD",
     "EVENT_TIME_RECORD",
+    "EVENT_TIME_TOP_LEVEL_STAMP",
     "EpisodeDataset",
     "EpisodeMetadata",
     "EventSample",
@@ -769,6 +905,8 @@ __all__ = [
     "QualityEvent",
     "TopicSpec",
     "clock_diagnostics",
+    "message_event_time",
+    "message_event_time_nanoseconds",
     "message_header_time",
     "read_rosbag_episode",
     "sha256_file",

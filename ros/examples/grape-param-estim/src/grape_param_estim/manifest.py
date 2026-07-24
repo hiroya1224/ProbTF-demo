@@ -8,16 +8,16 @@ from typing import Any, Dict, Iterable, Mapping, Optional, Sequence, Tuple
 import numpy as np
 
 from .episode import (
-    EVENT_TIME_HEADER,
     EVENT_TIME_RECORD,
     clock_diagnostics,
-    message_header_time,
+    message_event_time_nanoseconds,
     sha256_file,
     stable_hash,
 )
 
 
-MANIFEST_SCHEMA = "grape_bag_manifest/v1"
+MANIFEST_SCHEMA = "grape_bag_manifest/v2"
+EVENT_TIME_RULE = "header.stamp > top-level stamp > bag record time"
 
 
 def _utc_iso(timestamp: float) -> str:
@@ -66,10 +66,17 @@ class TopicInventory:
     message_type: str
     message_count: int
     connection_count: int
+    event_time_rule: str
+    event_range_scope: str
+    first_record_time_ns: Optional[int]
+    last_record_time_ns: Optional[int]
+    first_event_time_ns: Optional[int]
+    last_event_time_ns: Optional[int]
     first_record_time: Optional[float]
     last_record_time: Optional[float]
     first_event_time: Optional[float]
     last_event_time: Optional[float]
+    event_time_source_counts: Mapping[str, int]
     header_time_count: int
     record_time_count: int
     header_record_offset_median_s: Optional[float]
@@ -77,6 +84,12 @@ class TopicInventory:
     header_record_offset_drift_ppm: Optional[float]
     maximum_header_record_offset_step_s: Optional[float]
     header_record_offset_jump_count: int
+    event_timestamp_backward_jump_count: int
+    clock_segment_count: int
+    clock_drift_sample_count: int
+    clock_drift_method: str
+    clock_diagnostic_input_order: str
+    clock_warnings: Tuple[str, ...]
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -104,23 +117,27 @@ def inspect_bag(
     if not bag_path.is_file():
         raise FileNotFoundError(str(bag_path))
     with rosbag.Bag(str(bag_path), "r") as bag:
-        start = float(bag.get_start_time())
-        end = float(bag.get_end_time())
+        container_start = float(bag.get_start_time())
+        container_end = float(bag.get_end_time())
         type_info = bag.get_type_and_topic_info()
+        bag_first_record_ns: Optional[int] = None
+        bag_last_record_ns: Optional[int] = None
         buffers: Dict[str, Dict[str, Any]] = {}
         for topic, item in type_info.topics.items():
             buffers[topic] = {
                 "type": item.msg_type,
                 "count": int(item.message_count),
                 "connections": int(item.connections),
-                "first_record": None,
-                "last_record": None,
-                "first_event": None,
-                "last_event": None,
+                "first_record_ns": None,
+                "last_record_ns": None,
+                "first_event_ns": None,
+                "last_event_ns": None,
                 "header_count": 0,
                 "record_count": 0,
-                "header_event_times": [],
-                "header_record_times": [],
+                "event_source_counts": {},
+                "event_times": [],
+                "record_times": [],
+                "event_sources": [],
             }
         parameter_history = []
         singleton_payloads: Dict[str, Any] = {}
@@ -140,32 +157,53 @@ def inspect_bag(
             )
         }
         for topic, message, record_stamp in bag.read_messages():
-            record_time = float(record_stamp.to_sec())
-            header_time = message_header_time(message)
-            event_time = record_time if header_time is None else float(header_time)
+            record_ns = int(record_stamp.to_nsec())
+            record_time = 1.0e-9 * record_ns
+            event_ns, event_source = message_event_time_nanoseconds(message)
+            if event_ns is None:
+                event_ns = record_ns
+                event_source = EVENT_TIME_RECORD
+            event_time = 1.0e-9 * event_ns
+            bag_first_record_ns = (
+                record_ns
+                if bag_first_record_ns is None
+                else min(bag_first_record_ns, record_ns)
+            )
+            bag_last_record_ns = (
+                record_ns
+                if bag_last_record_ns is None
+                else max(bag_last_record_ns, record_ns)
+            )
             item = buffers[topic]
-            if item["first_record"] is None:
-                item["first_record"] = record_time
-                item["last_record"] = record_time
-                item["first_event"] = event_time
-                item["last_event"] = event_time
+            if item["first_record_ns"] is None:
+                item["first_record_ns"] = record_ns
+                item["last_record_ns"] = record_ns
+                item["first_event_ns"] = event_ns
+                item["last_event_ns"] = event_ns
             else:
-                item["first_record"] = min(item["first_record"], record_time)
-                item["last_record"] = max(item["last_record"], record_time)
-                item["first_event"] = min(item["first_event"], event_time)
-                item["last_event"] = max(item["last_event"], event_time)
-            if header_time is None:
+                item["first_record_ns"] = min(item["first_record_ns"], record_ns)
+                item["last_record_ns"] = max(item["last_record_ns"], record_ns)
+                item["first_event_ns"] = min(item["first_event_ns"], event_ns)
+                item["last_event_ns"] = max(item["last_event_ns"], event_ns)
+            item["event_source_counts"][event_source] = (
+                item["event_source_counts"].get(event_source, 0) + 1
+            )
+            item["event_times"].append(event_time)
+            item["record_times"].append(record_time)
+            item["event_sources"].append(event_source)
+            if event_source == EVENT_TIME_RECORD:
                 item["record_count"] += 1
             else:
                 item["header_count"] += 1
-                item["header_event_times"].append(event_time)
-                item["header_record_times"].append(record_time)
             if topic.endswith("/parameter_updates"):
                 parameter_history.append(
                     {
                         "topic": topic,
+                        "record_time_ns": record_ns,
                         "record_time": record_time,
+                        "event_time_ns": event_ns,
                         "event_time": event_time,
+                        "event_time_source": event_source,
                         "values": dynamic_reconfigure_values(message),
                     }
                 )
@@ -175,20 +213,42 @@ def inspect_bag(
     topics = []
     for topic, item in sorted(buffers.items()):
         diagnostic = clock_diagnostics(
-            np.asarray(item["header_event_times"], dtype=float),
-            np.asarray(item["header_record_times"], dtype=float),
-            (EVENT_TIME_HEADER,) * len(item["header_event_times"]),
+            np.asarray(item["event_times"], dtype=float),
+            np.asarray(item["record_times"], dtype=float),
+            tuple(item["event_sources"]),
+            input_order="record",
         )
+        first_record_ns = item["first_record_ns"]
+        last_record_ns = item["last_record_ns"]
+        first_event_ns = item["first_event_ns"]
+        last_event_ns = item["last_event_ns"]
         topics.append(
             TopicInventory(
                 topic=topic,
                 message_type=str(item["type"]),
                 message_count=int(item["count"]),
                 connection_count=int(item["connections"]),
-                first_record_time=item["first_record"],
-                last_record_time=item["last_record"],
-                first_event_time=item["first_event"],
-                last_event_time=item["last_event"],
+                event_time_rule=EVENT_TIME_RULE,
+                event_range_scope="this_topic_only",
+                first_record_time_ns=first_record_ns,
+                last_record_time_ns=last_record_ns,
+                first_event_time_ns=first_event_ns,
+                last_event_time_ns=last_event_ns,
+                first_record_time=(
+                    None if first_record_ns is None else 1.0e-9 * first_record_ns
+                ),
+                last_record_time=(
+                    None if last_record_ns is None else 1.0e-9 * last_record_ns
+                ),
+                first_event_time=(
+                    None if first_event_ns is None else 1.0e-9 * first_event_ns
+                ),
+                last_event_time=(
+                    None if last_event_ns is None else 1.0e-9 * last_event_ns
+                ),
+                event_time_source_counts=dict(
+                    sorted(item["event_source_counts"].items())
+                ),
                 header_time_count=int(item["header_count"]),
                 record_time_count=int(item["record_count"]),
                 header_record_offset_median_s=diagnostic.offset_median_s,
@@ -200,6 +260,14 @@ def inspect_bag(
                     diagnostic.maximum_offset_step_s
                 ),
                 header_record_offset_jump_count=diagnostic.offset_jump_count,
+                event_timestamp_backward_jump_count=(
+                    diagnostic.timestamp_backward_jump_count
+                ),
+                clock_segment_count=diagnostic.segment_count,
+                clock_drift_sample_count=diagnostic.drift_sample_count,
+                clock_drift_method=diagnostic.drift_method,
+                clock_diagnostic_input_order=diagnostic.input_order,
+                clock_warnings=diagnostic.warnings,
             ).to_dict()
         )
 
@@ -216,6 +284,12 @@ def inspect_bag(
         "payload_mass",
         "propeller_ids_and_service_age",
         "rpm_thrust_calibration",
+        "battery_id_charge_cycles_and_state_of_charge",
+        "complete_mixer_allocation_and_motor_order",
+        "complete_filter_and_servo_configuration",
+        "controller_integrator_and_delay_state",
+        "environment_wind_ground_contact_and_tether_state",
+        "operator_experiment_log",
     )
     for name in default_unknowns:
         if name not in unknowns and name not in supplied:
@@ -225,15 +299,37 @@ def inspect_bag(
         topic: stable_hash(payload)
         for topic, payload in sorted(singleton_payloads.items())
     }
+    if bag_first_record_ns is None or bag_last_record_ns is None:
+        # Empty bags have no event range; retain ROS's container metadata only
+        # as an explicitly approximate compatibility field.
+        bag_start = container_start
+        bag_end = container_end
+        start_ns = None
+        end_ns = None
+        duration_ns = None
+    else:
+        start_ns = bag_first_record_ns
+        end_ns = bag_last_record_ns
+        duration_ns = end_ns - start_ns
+        bag_start = 1.0e-9 * start_ns
+        bag_end = 1.0e-9 * end_ns
     result = {
         "episode_id": episode_id,
         "absolute_path": str(bag_path),
         "sha256": digest,
         "file_size_bytes": int(bag_path.stat().st_size),
-        "recorded_at_utc": _utc_iso(start),
-        "start_record_time": start,
-        "end_record_time": end,
-        "duration_s": end - start,
+        "recorded_at_utc": _utc_iso(bag_start),
+        "start_record_time_ns": start_ns,
+        "end_record_time_ns": end_ns,
+        "duration_ns": duration_ns,
+        "start_record_time": bag_start,
+        "end_record_time": bag_end,
+        "duration_s": bag_end - bag_start,
+        "event_time_rule": EVENT_TIME_RULE,
+        "event_range_note": (
+            "Bag boundaries use record time only; per-topic event ranges must "
+            "not be combined because stale producer stamps may predate the bag."
+        ),
         "message_count": int(sum(item["message_count"] for item in topics)),
         "topics": topics,
         "dynamic_reconfigure_history": sorted(
@@ -283,15 +379,42 @@ def load_metadata_yaml(path: Any) -> Dict[str, Mapping[str, Any]]:
         loaded = yaml.safe_load(stream) or {}
     entries = loaded.get("bags", loaded)
     if isinstance(entries, list):
-        return {
+        result = {
             str(item["filename"]): {
                 key: value for key, value in item.items() if key != "filename"
             }
             for item in entries
         }
-    if not isinstance(entries, Mapping):
-        raise ValueError("metadata YAML must contain a bag mapping or list")
-    return {str(key): dict(value or {}) for key, value in entries.items()}
+    else:
+        if not isinstance(entries, Mapping):
+            raise ValueError("metadata YAML must contain a bag mapping or list")
+        result = {str(key): dict(value or {}) for key, value in entries.items()}
+    if loaded.get("schema") == "grape_episode_metadata/v2":
+        required = {"value", "status", "evidence", "provenance"}
+        for filename, item in result.items():
+            outcome = item.get("outcome")
+            labels = item.get("labels")
+            if not isinstance(outcome, Mapping) or set(outcome) != required:
+                raise ValueError(
+                    "{} outcome must have value/status/evidence/provenance".format(
+                        filename
+                    )
+                )
+            if not isinstance(labels, list) or any(
+                not isinstance(label, Mapping) or set(label) != required
+                for label in labels
+            ):
+                raise ValueError(
+                    "{} labels must each have value/status/evidence/provenance".format(
+                        filename
+                    )
+                )
+            for label in [outcome] + labels:
+                if label["status"] not in ("bag_confirmed", "provisional"):
+                    raise ValueError(
+                        "{} has unsupported label status".format(filename)
+                    )
+    return result
 
 
 def write_manifest_yaml(manifest: Mapping[str, Any], path: Any) -> None:

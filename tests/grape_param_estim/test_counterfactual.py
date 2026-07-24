@@ -14,6 +14,7 @@ from grape_param_estim.alternative_backends import (
 )
 from grape_param_estim.controller_replay import (
     ControllerParameters,
+    ControllerReplay,
     PidLimits,
     ReplayMetrics,
 )
@@ -555,14 +556,22 @@ class CounterfactualTests(unittest.TestCase):
             capabilities=REQUIRED_ORACLE_CAPABILITIES,
         )
 
-        class CapturingExactBackend(PythonControllerReplayBackend):
+        class CapturingExactBackend:
             is_exact = True
+            supports_closed_loop_plant_callback = True
+            applies_candidate_parameters = True
+            applies_delay_compensation = True
 
             def run(self, *args, **kwargs):
                 self.integral = np.array(
                     kwargs["initial_integral_state"], copy=True
                 )
-                return super().run(*args, **kwargs)
+                replay = ControllerReplay().run(*args, **kwargs)
+                return replace(
+                    replay,
+                    backend_id=self.backend_id,
+                    is_exact=True,
+                )
 
         CapturingExactBackend.backend_id = identity.backend_id
         CapturingExactBackend.identity = identity
@@ -636,11 +645,83 @@ class CounterfactualTests(unittest.TestCase):
         self.assertEqual(result.dependence_handling, DEPENDENCE_JOINT_SAMPLES)
         self.assertTrue(result.exact_controller_gate_passed)
         self.assertTrue(result.probability_calibration_gate_passed)
+        self.assertTrue(result.integrator_state_gate_passed)
         self.assertTrue(result.recommendable)
         self.assertEqual(result.workflow_status, "MANUAL_REVIEW_REQUIRED")
         self.assertEqual(
             connected_candidate_regions([result], gamma=0.0),
             (("verified-exact",),),
+        )
+
+        lenient_metric = ReplayMetrics(
+            normalized_rmse=np.full(6, 0.02),
+            normalized_maximum_error=np.full(6, 0.04),
+            event_agreement=0.95,
+            passed=True,
+            rmse_threshold=0.10,
+            maximum_error_threshold=0.10,
+            event_agreement_threshold=0.90,
+        )
+        lenient_report = replace(
+            report,
+            channel_metrics={
+                channel: lenient_metric
+                for channel in REQUIRED_CONFORMANCE_CHANNELS
+            },
+        )
+        lenient_calibration, _, _ = probability_calibration_report(
+            identity, lenient_report
+        )
+        lenient_result = ClosedLoopCounterfactualEvaluator(
+            support_reference((candidate,)),
+            controller_backend_factory=CapturingExactBackend,
+            exact_oracle_conformance_report=lenient_report,
+            probability_calibration_report=lenient_calibration,
+        ).evaluate(
+            candidate,
+            target,
+            TargetTube(
+                np.full(6, 100.0),
+                np.full(6, 100.0),
+                allowed_outside_duration_s=1.0,
+            ),
+            response_posterior(),
+            [initial],
+            config,
+            joint,
+        )
+        self.assertFalse(lenient_result.exact_controller_gate_passed)
+        self.assertTrue(
+            lenient_result.probability_calibration_gate_passed
+        )
+        self.assertFalse(lenient_result.recommendable)
+
+        non_boolean_report = replace(
+            report,
+            channel_metrics={
+                channel: replace(replay_metric, passed=np.bool_(True))
+                for channel in REQUIRED_CONFORMANCE_CHANNELS
+            },
+        )
+        non_boolean_result = ClosedLoopCounterfactualEvaluator(
+            support_reference((candidate,)),
+            controller_backend_factory=CapturingExactBackend,
+            exact_oracle_conformance_report=non_boolean_report,
+        ).evaluate(
+            candidate,
+            target,
+            TargetTube(
+                np.full(6, 100.0),
+                np.full(6, 100.0),
+                allowed_outside_duration_s=1.0,
+            ),
+            response_posterior(),
+            [initial],
+            config,
+            joint,
+        )
+        self.assertFalse(
+            non_boolean_result.exact_controller_gate_passed
         )
 
         no_report = ClosedLoopCounterfactualEvaluator(
@@ -662,6 +743,59 @@ class CounterfactualTests(unittest.TestCase):
         self.assertFalse(no_report.exact_controller_gate_passed)
         self.assertFalse(no_report.recommendable)
         self.assertEqual(no_report.workflow_status, "EXPERIMENTAL")
+
+        assumed_integrator = evaluator.evaluate(
+            candidate,
+            target,
+            TargetTube(
+                np.full(6, 100.0),
+                np.full(6, 100.0),
+                allowed_outside_duration_s=1.0,
+            ),
+            response_posterior(),
+            [
+                replace(
+                    initial,
+                    integrator_state_source="explicit_test_assumption",
+                )
+            ],
+            config,
+            joint,
+        )
+        self.assertTrue(assumed_integrator.exact_controller_gate_passed)
+        self.assertTrue(
+            assumed_integrator.probability_calibration_gate_passed
+        )
+        self.assertFalse(assumed_integrator.integrator_state_gate_passed)
+        self.assertFalse(assumed_integrator.recommendable)
+        self.assertEqual(assumed_integrator.workflow_status, "EXPERIMENTAL")
+
+        class SurrogateWrappedAsExact(PythonControllerReplayBackend):
+            is_exact = True
+
+        SurrogateWrappedAsExact.backend_id = identity.backend_id
+        SurrogateWrappedAsExact.identity = identity
+        with self.assertRaisesRegex(
+            ValueError, "replay result does not match"
+        ):
+            ClosedLoopCounterfactualEvaluator(
+                support_reference((candidate,)),
+                controller_backend_factory=SurrogateWrappedAsExact,
+                exact_oracle_conformance_report=report,
+                probability_calibration_report=calibration,
+            ).evaluate(
+                candidate,
+                target,
+                TargetTube(
+                    np.full(6, 100.0),
+                    np.full(6, 100.0),
+                    allowed_outside_duration_s=1.0,
+                ),
+                response_posterior(),
+                [initial],
+                config,
+                joint,
+            )
 
     def test_run_id_hashes_every_behavioral_input(self):
         times = np.array([0.0, 0.1, 0.2])

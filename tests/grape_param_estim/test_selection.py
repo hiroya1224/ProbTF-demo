@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import numpy as np
 import yaml
 
 from grape_param_estim.selection import (
@@ -57,6 +58,25 @@ def _observations(protocol, candidate_id, metric, values, extra_gates=()):
 
 
 class SelectionTests(unittest.TestCase):
+    def test_observation_rejects_non_boolean_hard_gate_values(self):
+        protocol = load_selection_protocol(PROTOCOL_PATH)
+        observation = _observations(
+            protocol,
+            "error_state_ekf_rts",
+            "held_out_log_predictive_density",
+            [1.0],
+        )[0]
+        for invalid in ("false", 0, 1, np.bool_(False)):
+            with self.subTest(value=repr(invalid)):
+                payload = observation.__dict__.copy()
+                payload["hard_gates"] = dict(payload["hard_gates"])
+                gate = next(iter(payload["hard_gates"]))
+                payload["hard_gates"][gate] = invalid
+                with self.assertRaisesRegex(
+                    ValueError, "must be JSON booleans"
+                ):
+                    SelectionObservation.from_mapping(payload)
+
     def test_repository_protocol_has_explicit_leak_free_lobo_folds(self):
         protocol = load_selection_protocol(PROTOCOL_PATH)
         self.assertEqual(len(protocol["episodes"]), 12)

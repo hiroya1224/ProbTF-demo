@@ -29,6 +29,9 @@ _SUPPORT_LABELS = (SUPPORTED, EXTRAPOLATIVE, UNSUPPORTED)
 DEPENDENCE_JOINT_SAMPLES = "JOINT_POSTERIOR_SAMPLES"
 DEPENDENCE_APPROXIMATED = "DEPENDENCE_APPROXIMATED_INDEPENDENT_PRODUCT"
 EXPERIMENTAL = "EXPERIMENTAL"
+_EXACT_REPLAY_RMSE_MAX = 0.01
+_EXACT_REPLAY_MAXIMUM_ERROR = 0.03
+_EXACT_REPLAY_EVENT_AGREEMENT_MIN = 1.0
 
 
 class PythonControllerReplayBackend:
@@ -99,6 +102,35 @@ def _matrix(values, rows, name):
 
 def _weighted_mean(values, weights):
     return np.tensordot(weights, values, axes=(0, 0))
+
+
+def _passes_frozen_exact_replay_metric(metric):
+    rmse = np.asarray(getattr(metric, "normalized_rmse", ()), dtype=float)
+    maximum = np.asarray(
+        getattr(metric, "normalized_maximum_error", ()), dtype=float
+    )
+    try:
+        event_agreement = float(metric.event_agreement)
+        rmse_threshold = float(metric.rmse_threshold)
+        maximum_threshold = float(metric.maximum_error_threshold)
+        event_threshold = float(metric.event_agreement_threshold)
+    except (AttributeError, TypeError, ValueError):
+        return False
+    return bool(
+        type(getattr(metric, "passed", None)) is bool
+        and metric.passed
+        and rmse.size > 0
+        and maximum.size > 0
+        and np.all(np.isfinite(rmse))
+        and np.all(np.isfinite(maximum))
+        and np.isfinite(event_agreement)
+        and rmse_threshold == _EXACT_REPLAY_RMSE_MAX
+        and maximum_threshold == _EXACT_REPLAY_MAXIMUM_ERROR
+        and event_threshold == _EXACT_REPLAY_EVENT_AGREEMENT_MIN
+        and np.all(rmse <= _EXACT_REPLAY_RMSE_MAX)
+        and np.all(maximum <= _EXACT_REPLAY_MAXIMUM_ERROR)
+        and event_agreement >= _EXACT_REPLAY_EVENT_AGREEMENT_MIN
+    )
 
 
 def _sha256(value, name):
@@ -1088,6 +1120,7 @@ class CounterfactualResult:
     recommendation_threshold: float = 0.80
     exact_controller_gate_passed: bool = False
     probability_calibration_gate_passed: bool = False
+    integrator_state_gate_passed: bool = False
     dependence_handling: str = DEPENDENCE_APPROXIMATED
     workflow_status: str = EXPERIMENTAL
 
@@ -1096,6 +1129,7 @@ class CounterfactualResult:
         return bool(
             self.exact_controller_gate_passed
             and self.probability_calibration_gate_passed
+            and self.integrator_state_gate_passed
             and self.dependence_handling == DEPENDENCE_JOINT_SAMPLES
             and self.support.label == SUPPORTED
             and self.lower_credible_bound >= self.recommendation_threshold
@@ -1325,6 +1359,38 @@ class ClosedLoopCounterfactualEvaluator:
                         plant_input="generalized_wrench_command",
                         apply_delay_compensation=True,
                     )
+                    replay_backend_id = getattr(replay, "backend_id", None)
+                    replay_is_exact = getattr(replay, "is_exact", None)
+                    if (
+                        replay_backend_id != backend_identity["backend_id"]
+                        or type(replay_is_exact) is not bool
+                        or replay_is_exact != backend_is_exact
+                    ):
+                        raise ValueError(
+                            "controller replay result does not match the "
+                            "bound backend identity/exactness"
+                        )
+                    replay_identity = getattr(replay, "identity", None)
+                    if (
+                        replay_identity is not None
+                        and replay_identity != getattr(backend, "identity", None)
+                    ):
+                        raise ValueError(
+                            "controller replay result identity does not match "
+                            "the bound backend"
+                        )
+                    replay_capabilities = getattr(
+                        replay, "capabilities", None
+                    )
+                    if (
+                        replay_capabilities is not None
+                        and tuple(replay_capabilities)
+                        != tuple(backend_identity.get("capabilities", ()))
+                    ):
+                        raise ValueError(
+                            "controller replay result capabilities do not "
+                            "match the bound backend"
+                        )
                     saturation = replay.term_saturated | replay.output_saturated
                     tube_result = evaluate_target_tube(
                         target,
@@ -1454,13 +1520,14 @@ class ClosedLoopCounterfactualEvaluator:
             and set(conformance.channel_metrics)
             == set(REQUIRED_CONFORMANCE_CHANNELS)
             and all(
-                metric.passed
+                _passes_frozen_exact_replay_metric(metric)
                 for metric in conformance.channel_metrics.values()
             )
         )
         exact_gate_passed = bool(
             backend_is_exact
             and conformance is not None
+            and type(conformance.passed) is bool
             and conformance.passed
             and conformance.status == "PASS"
             and conformance_metrics_passed
@@ -1513,6 +1580,14 @@ class ClosedLoopCounterfactualEvaluator:
             calibration is not None
             and calibration.passed
             and all(calibration_binding.values())
+        )
+        integrator_state_gate_passed = all(
+            item.integrator_state_source
+            in (
+                "restored_from_controller_state",
+                "latent_posterior_sample",
+            )
+            for item in initials
         )
         content_payload = {
             "candidate": {
@@ -1603,6 +1678,7 @@ class ClosedLoopCounterfactualEvaluator:
             "recommendation_threshold": config.recommendation_threshold,
             "exact_controller_gate_passed": exact_gate_passed,
             "probability_calibration_gate_passed": calibration_gate_passed,
+            "integrator_state_gate_passed": integrator_state_gate_passed,
             "support_reference": {
                 "observed_candidate_vectors": (
                     self.support_reference.observed_candidate_vectors
@@ -1655,6 +1731,7 @@ class ClosedLoopCounterfactualEvaluator:
         statistically_eligible = bool(
             exact_gate_passed
             and calibration_gate_passed
+            and integrator_state_gate_passed
             and coupling == DEPENDENCE_JOINT_SAMPLES
             and support.label == SUPPORTED
             and lower >= config.recommendation_threshold
@@ -1678,6 +1755,7 @@ class ClosedLoopCounterfactualEvaluator:
             "exact_oracle_identity_bound_to_backend": identity_bound,
             "exact_controller_gate_passed": exact_gate_passed,
             "probability_calibration_gate_passed": calibration_gate_passed,
+            "integrator_state_gate_passed": integrator_state_gate_passed,
             "probability_calibration_binding": calibration_binding,
             "probability_calibration_report_sha256": (
                 None
@@ -1721,6 +1799,7 @@ class ClosedLoopCounterfactualEvaluator:
             recommendation_threshold=config.recommendation_threshold,
             exact_controller_gate_passed=exact_gate_passed,
             probability_calibration_gate_passed=calibration_gate_passed,
+            integrator_state_gate_passed=integrator_state_gate_passed,
             dependence_handling=coupling,
             workflow_status=workflow_status,
         )

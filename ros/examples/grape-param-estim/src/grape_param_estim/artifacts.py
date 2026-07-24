@@ -291,6 +291,9 @@ def _candidate_summary(
     elif not result.probability_calibration_gate_passed:
         status = EXPERIMENTAL
         reason = "probability_calibration_gate_not_passed"
+    elif not result.integrator_state_gate_passed:
+        status = EXPERIMENTAL
+        reason = "controller_integrator_state_not_restored_or_inferred"
     elif result.dependence_handling != "JOINT_POSTERIOR_SAMPLES":
         status = EXPERIMENTAL
         reason = "joint_posterior_dependence_not_available"
@@ -321,6 +324,7 @@ def _candidate_summary(
         "probability_calibration_gate_passed": (
             result.probability_calibration_gate_passed
         ),
+        "integrator_state_gate_passed": result.integrator_state_gate_passed,
         "dependence_handling": result.dependence_handling,
         "manual_review_required": True,
         "counterfactual_run_id": result.run_id,

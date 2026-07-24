@@ -144,7 +144,13 @@ class SelectionObservation:
         metrics = {str(key): float(value) for key, value in self.metrics.items()}
         if not metrics or not all(np.isfinite(value) for value in metrics.values()):
             raise ValueError("selection metrics must be finite and non-empty")
-        gates = {str(key): bool(value) for key, value in self.hard_gates.items()}
+        if any(type(value) is not bool for value in self.hard_gates.values()):
+            raise ValueError(
+                "selection hard-gate values must be JSON booleans"
+            )
+        gates = {
+            str(key): value for key, value in self.hard_gates.items()
+        }
         object.__setattr__(self, "metrics", metrics)
         object.__setattr__(self, "hard_gates", gates)
         for name in (

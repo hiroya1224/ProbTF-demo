@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -61,9 +62,10 @@ def _result():
         maximum_predictive_std=0.1,
         reasons=(),
     )
+    content_hash = stable_hash({"fixture": "counterfactual-result"})
     return CounterfactualResult(
         candidate=CounterfactualCandidate("candidate-1", controller),
-        success_probability=0.8,
+        success_probability=1.0,
         credible_lower=0.7,
         credible_upper=0.9,
         lower_credible_bound=0.7,
@@ -71,13 +73,58 @@ def _result():
         violation_probability={},
         effective_rollout_sample_size=1.0,
         rollouts=(rollout,),
-        run_id="counterfactual-run",
-        provenance={"seed": 5},
+        run_id=content_hash[:20],
+        provenance={
+            "seed": 5,
+            "counterfactual_content_hash": content_hash,
+            "recommendation_threshold": 0.6,
+            "exact_controller_gate_passed": False,
+            "probability_calibration_gate_passed": False,
+            "integrator_state_gate_passed": False,
+            "dependence_handling": (
+                "DEPENDENCE_APPROXIMATED_INDEPENDENT_PRODUCT"
+            ),
+            "workflow_status": "EXPERIMENTAL",
+        },
         recommendation_threshold=0.6,
     )
 
 
 class ArtifactTests(unittest.TestCase):
+    def test_counterfactual_result_rejects_truthy_non_boolean_gates(self):
+        result = _result()
+        invalid_values = ("false", 0, 1, np.bool_(False), np.bool_(True))
+        gate_fields = (
+            "exact_controller_gate_passed",
+            "probability_calibration_gate_passed",
+            "integrator_state_gate_passed",
+        )
+        for field in gate_fields:
+            for invalid in invalid_values:
+                with self.subTest(field=field, invalid=repr(invalid)):
+                    with self.assertRaisesRegex(TypeError, field):
+                        replace(result, **{field: invalid})
+
+    def test_counterfactual_result_rejects_status_provenance_mismatch(self):
+        result = _result()
+        with self.assertRaisesRegex(ValueError, "status fields"):
+            replace(
+                result,
+                provenance=dict(
+                    result.provenance,
+                    workflow_status="MANUAL_REVIEW_REQUIRED",
+                ),
+            )
+        with self.assertRaisesRegex(ValueError, "workflow_status"):
+            replace(
+                result,
+                workflow_status="MANUAL_REVIEW_REQUIRED",
+                provenance=dict(
+                    result.provenance,
+                    workflow_status="MANUAL_REVIEW_REQUIRED",
+                ),
+            )
+
     def test_online_prefix_provenance_rejects_post_cutoff_source_data(self):
         common = {
             "source_bag_sha256": ("a" * 64,),
@@ -236,6 +283,19 @@ class ArtifactTests(unittest.TestCase):
                     for item in manifest["files"].values()
                 )
             )
+            for invalid in ("false", 0, 1, np.bool_(False)):
+                with self.subTest(invalid_exact_gate=repr(invalid)):
+                    with self.assertRaisesRegex(
+                        TypeError, "exact_controller_gate_passed"
+                    ):
+                        writer.write(
+                            [_result()],
+                            [1.0, 1.1, 1.2],
+                            provenance,
+                            config,
+                            recommendation_threshold=0.6,
+                            exact_controller_gate_passed=invalid,
+                        )
             with self.assertRaises(FileExistsError):
                 writer.write(
                     [_result()],

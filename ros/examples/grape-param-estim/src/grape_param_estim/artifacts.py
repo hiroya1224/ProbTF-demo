@@ -270,6 +270,10 @@ def _candidate_summary(
     recommendation_threshold: float,
     exact_controller_gate_passed: bool,
 ) -> Dict[str, Any]:
+    if type(exact_controller_gate_passed) is not bool:
+        raise TypeError(
+            "exact_controller_gate_passed must be a built-in bool"
+        )
     vector = result.candidate.vector()
     if vector.shape != (len(CONTROLLER_PARAMETER_NAMES),):
         raise ValueError("counterfactual candidate has an unexpected parameter vector")
@@ -356,6 +360,10 @@ class AnalysisArtifactWriter:
             raise ValueError("results must contain CounterfactualResult values")
         if not isinstance(provenance, ArtifactProvenance):
             raise TypeError("provenance must be ArtifactProvenance")
+        if type(exact_controller_gate_passed) is not bool:
+            raise TypeError(
+                "exact_controller_gate_passed must be a built-in bool"
+            )
         timestamps = np.asarray(trajectory_timestamps, dtype=float).reshape(-1)
         if (
             timestamps.size < 2
@@ -382,7 +390,7 @@ class AnalysisArtifactWriter:
         if stable_hash(config_payload) != provenance.config_sha256:
             raise ValueError("config content does not match provenance config_sha256")
         summaries = tuple(
-            _candidate_summary(item, threshold, bool(exact_controller_gate_passed))
+            _candidate_summary(item, threshold, exact_controller_gate_passed)
             for item in candidates
         )
         derived_run_id = stable_hash(
@@ -416,7 +424,7 @@ class AnalysisArtifactWriter:
                 provenance,
                 config_payload,
                 threshold,
-                bool(exact_controller_gate_passed),
+                exact_controller_gate_passed,
                 tuple(str(item) for item in notes),
             )
             if destination.exists():

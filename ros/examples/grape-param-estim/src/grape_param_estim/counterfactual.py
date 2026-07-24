@@ -29,6 +29,7 @@ _SUPPORT_LABELS = (SUPPORTED, EXTRAPOLATIVE, UNSUPPORTED)
 DEPENDENCE_JOINT_SAMPLES = "JOINT_POSTERIOR_SAMPLES"
 DEPENDENCE_APPROXIMATED = "DEPENDENCE_APPROXIMATED_INDEPENDENT_PRODUCT"
 EXPERIMENTAL = "EXPERIMENTAL"
+MANUAL_REVIEW_REQUIRED = "MANUAL_REVIEW_REQUIRED"
 _EXACT_REPLAY_RMSE_MAX = 0.01
 _EXACT_REPLAY_MAXIMUM_ERROR = 0.03
 _EXACT_REPLAY_EVENT_AGREEMENT_MIN = 1.0
@@ -63,9 +64,12 @@ def _backend_identity(backend: Any) -> Mapping[str, Any]:
     backend_id = str(getattr(backend, "backend_id", identity.get("backend_id", "")))
     if not backend_id:
         raise ValueError("controller backend_id must not be empty")
+    is_exact = getattr(backend, "is_exact", False)
+    if type(is_exact) is not bool:
+        raise TypeError("controller backend is_exact must be a built-in bool")
     result = dict(identity)
     result["backend_id"] = backend_id
-    result["is_exact"] = bool(getattr(backend, "is_exact", False))
+    result["is_exact"] = is_exact
     result["supports_closed_loop_plant_callback"] = bool(
         getattr(backend, "supports_closed_loop_plant_callback", False)
     )
@@ -1124,6 +1128,157 @@ class CounterfactualResult:
     dependence_handling: str = DEPENDENCE_APPROXIMATED
     workflow_status: str = EXPERIMENTAL
 
+    def __post_init__(self):
+        if not isinstance(self.candidate, CounterfactualCandidate):
+            raise TypeError("candidate must be CounterfactualCandidate")
+        if not isinstance(self.support, SupportDiagnostics):
+            raise TypeError("support must be SupportDiagnostics")
+        rollouts = tuple(self.rollouts)
+        if not rollouts or any(
+            not isinstance(item, TrajectoryRollout) for item in rollouts
+        ):
+            raise TypeError(
+                "rollouts must contain at least one TrajectoryRollout"
+            )
+        for name in (
+            "exact_controller_gate_passed",
+            "probability_calibration_gate_passed",
+            "integrator_state_gate_passed",
+        ):
+            if type(getattr(self, name)) is not bool:
+                raise TypeError("{} must be a built-in bool".format(name))
+        if self.dependence_handling not in (
+            DEPENDENCE_JOINT_SAMPLES,
+            DEPENDENCE_APPROXIMATED,
+        ):
+            raise ValueError("dependence_handling is invalid")
+
+        probability_values = tuple(
+            float(value)
+            for value in (
+                self.success_probability,
+                self.credible_lower,
+                self.credible_upper,
+                self.lower_credible_bound,
+                self.recommendation_threshold,
+            )
+        )
+        (
+            success_probability,
+            credible_lower,
+            credible_upper,
+            lower_credible_bound,
+            recommendation_threshold,
+        ) = probability_values
+        if (
+            not np.all(np.isfinite(probability_values))
+            or not 0.0 <= success_probability <= 1.0
+            or not 0.0 <= credible_lower <= credible_upper <= 1.0
+            or not 0.0 <= lower_credible_bound <= 1.0
+            or not 0.0 < recommendation_threshold < 1.0
+        ):
+            raise ValueError(
+                "counterfactual probability, interval, or threshold is invalid"
+            )
+        weights = np.asarray([item.weight for item in rollouts], dtype=float)
+        if not np.isclose(float(np.sum(weights)), 1.0, rtol=0.0, atol=1.0e-12):
+            raise ValueError("counterfactual rollout weights must sum to one")
+        if any(type(item.tube.success) is not bool for item in rollouts):
+            raise TypeError("trajectory tube success must be a built-in bool")
+        measured_success = float(
+            np.dot(
+                weights,
+                np.asarray([item.tube.success for item in rollouts], dtype=float),
+            )
+        )
+        effective_count = float(1.0 / np.dot(weights, weights))
+        if (
+            not np.isclose(
+                success_probability,
+                measured_success,
+                rtol=0.0,
+                atol=1.0e-12,
+            )
+            or not np.isclose(
+                float(self.effective_rollout_sample_size),
+                effective_count,
+                rtol=0.0,
+                atol=1.0e-12,
+            )
+        ):
+            raise ValueError(
+                "counterfactual summary does not match its trajectory rollouts"
+            )
+        violations = dict(self.violation_probability)
+        if any(
+            not np.isfinite(float(value)) or not 0.0 <= float(value) <= 1.0
+            for value in violations.values()
+        ):
+            raise ValueError("violation probabilities must lie in [0, 1]")
+
+        provenance = dict(self.provenance)
+        gate_fields = (
+            "exact_controller_gate_passed",
+            "probability_calibration_gate_passed",
+            "integrator_state_gate_passed",
+        )
+        if any(
+            name not in provenance
+            or type(provenance[name]) is not bool
+            or provenance[name] is not getattr(self, name)
+            for name in gate_fields
+        ):
+            raise ValueError(
+                "counterfactual gate fields do not match provenance"
+            )
+        if (
+            provenance.get("dependence_handling") != self.dependence_handling
+            or provenance.get("workflow_status") != self.workflow_status
+            or float(provenance.get("recommendation_threshold", np.nan))
+            != recommendation_threshold
+        ):
+            raise ValueError(
+                "counterfactual status fields do not match provenance"
+            )
+        content_hash = _sha256(
+            provenance.get("counterfactual_content_hash", ""),
+            "counterfactual_content_hash",
+        )
+        run_id = str(self.run_id)
+        if not run_id or run_id != content_hash[:20]:
+            raise ValueError("counterfactual run_id does not match content hash")
+
+        statistically_eligible = (
+            self.exact_controller_gate_passed
+            and self.probability_calibration_gate_passed
+            and self.integrator_state_gate_passed
+            and self.dependence_handling == DEPENDENCE_JOINT_SAMPLES
+            and self.support.label == SUPPORTED
+            and lower_credible_bound >= recommendation_threshold
+        )
+        expected_status = (
+            MANUAL_REVIEW_REQUIRED if statistically_eligible else EXPERIMENTAL
+        )
+        if self.workflow_status != expected_status:
+            raise ValueError(
+                "workflow_status does not match the counterfactual gates"
+            )
+
+        object.__setattr__(self, "success_probability", success_probability)
+        object.__setattr__(self, "credible_lower", credible_lower)
+        object.__setattr__(self, "credible_upper", credible_upper)
+        object.__setattr__(self, "lower_credible_bound", lower_credible_bound)
+        object.__setattr__(
+            self, "recommendation_threshold", recommendation_threshold
+        )
+        object.__setattr__(
+            self, "effective_rollout_sample_size", effective_count
+        )
+        object.__setattr__(self, "rollouts", rollouts)
+        object.__setattr__(self, "violation_probability", violations)
+        object.__setattr__(self, "run_id", run_id)
+        object.__setattr__(self, "provenance", provenance)
+
     @property
     def recommendable(self):
         return bool(
@@ -1221,7 +1376,7 @@ class ClosedLoopCounterfactualEvaluator:
                 "and apply candidate parameters/delay compensation"
             )
         backend_identity = _backend_identity(backend)
-        backend_is_exact = bool(getattr(backend, "is_exact", False))
+        backend_is_exact = backend_identity["is_exact"]
         if config.analysis_mode == "online_prefix":
             cutoff = float(config.prefix_cutoff)
             tolerance = 1.0e-9
@@ -1760,9 +1915,7 @@ class ClosedLoopCounterfactualEvaluator:
             and lower >= config.recommendation_threshold
         )
         workflow_status = (
-            "MANUAL_REVIEW_REQUIRED"
-            if statistically_eligible
-            else EXPERIMENTAL
+            MANUAL_REVIEW_REQUIRED if statistically_eligible else EXPERIMENTAL
         )
         provenance = {
             "source_bag_hashes": config.source_bag_hashes,
@@ -1884,6 +2037,7 @@ __all__ = [
     "DEPENDENCE_JOINT_SAMPLES",
     "EXPERIMENTAL",
     "EXTRAPOLATIVE",
+    "MANUAL_REVIEW_REQUIRED",
     "SUPPORTED",
     "UNSUPPORTED",
     "ClosedLoopCounterfactualEvaluator",

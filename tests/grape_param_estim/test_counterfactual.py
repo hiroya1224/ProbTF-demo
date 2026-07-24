@@ -853,6 +853,31 @@ class CounterfactualTests(unittest.TestCase):
                 joint,
             )
 
+        class NonBooleanExactBackend(CapturingExactBackend):
+            is_exact = "false"
+
+        NonBooleanExactBackend.backend_id = identity.backend_id
+        NonBooleanExactBackend.identity = identity
+        with self.assertRaisesRegex(TypeError, "is_exact"):
+            ClosedLoopCounterfactualEvaluator(
+                support_reference((candidate,)),
+                controller_backend_factory=NonBooleanExactBackend,
+                exact_oracle_conformance_report=report,
+                probability_calibration_report=calibration,
+            ).evaluate(
+                candidate,
+                target,
+                TargetTube(
+                    np.full(6, 100.0),
+                    np.full(6, 100.0),
+                    allowed_outside_duration_s=1.0,
+                ),
+                response_posterior(),
+                [initial],
+                config,
+                joint,
+            )
+
     def test_run_id_hashes_every_behavioral_input(self):
         times = np.array([0.0, 0.1, 0.2])
         zeros = np.zeros((3, 6))

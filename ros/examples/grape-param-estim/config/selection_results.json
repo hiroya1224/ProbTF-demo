@@ -521,8 +521,8 @@
   "observation_count": 0,
   "outer_fold_count": 12,
   "protocol_hash": "23ff95871e5199f2fec121b9fee5b6e6d542a141b94e68cc4f3a3b82accd92b9",
-  "result_hash": "44a7757a46a19d78561dfd53d47bf3bf63f96ce95434d1b0ed538a45b623548d",
+  "result_hash": "9b2725232b94cbd289243e31fca560e0e2b334698112f8610a45fed6596db059",
   "schema": "grape_backend_selection/v1",
   "selection_complete": false,
-  "source_commit": "6ce66ec11a2df1cf006905d1202bf6b53f9a23dd"
+  "source_commit": "13aeb69792c90660568243705af0362df4013f0a"
 }

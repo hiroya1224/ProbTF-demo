@@ -56,6 +56,13 @@ def _finite_nonnegative(value, name, allow_none=False):
     return result
 
 
+def _nonnegative_extended(value, name):
+    result = float(value)
+    if math.isnan(result) or result < 0.0:
+        raise ValueError("{} must be non-negative and not NaN.".format(name))
+    return result
+
+
 def _identifier(value, name, allow_empty=False):
     result = str(value).strip()
     if not result and not allow_empty:
@@ -198,11 +205,11 @@ class TemporalEvaluationResult:
         source_stamps = tuple(
             _finite_nonnegative(value, "source_stamps") for value in self.source_stamps
         )
-        initial = _finite_nonnegative(
+        initial = _nonnegative_extended(
             self.initial_uncertainty_trace,
             "initial_uncertainty_trace",
         )
-        result = _finite_nonnegative(
+        result = _nonnegative_extended(
             self.result_uncertainty_trace,
             "result_uncertainty_trace",
         )
@@ -248,6 +255,16 @@ class TemporalEvaluationResult:
 
     @property
     def uncertainty_increase(self):
+        if (
+            math.isinf(self.initial_uncertainty_trace)
+            and math.isinf(self.result_uncertainty_trace)
+            and self.evaluation_kind
+            in (
+                TemporalEvaluationKind.STATIC,
+                TemporalEvaluationKind.SAMPLE_SELECTION,
+            )
+        ):
+            return 0.0
         return self.result_uncertainty_trace - self.initial_uncertainty_trace
 
 

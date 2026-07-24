@@ -13,6 +13,14 @@ class GraphErrorCode(Enum):
     STATIC_EDGE_CONFLICT = "static_edge_conflict"
     AUTHORITY_CONFLICT = "authority_conflict"
     UNSUPPORTED_TEMPORAL_POLICY = "unsupported_temporal_policy"
+    MODEL_NOT_REGISTERED = "model_not_registered"
+    MODEL_AMBIGUOUS = "model_ambiguous"
+    MODEL_SUPPORT_EXCEEDED = "model_support_exceeded"
+    PREDICTION_HORIZON_EXCEEDED = "prediction_horizon_exceeded"
+    INSUFFICIENT_HISTORY = "insufficient_history"
+    DEPENDENCE_APPROXIMATED = "dependence_approximated"
+    NON_CAUSAL_INPUT_REJECTED = "non_causal_input_rejected"
+    UNCERTAINTY_LIMIT_EXCEEDED = "uncertainty_limit_exceeded"
     DEPENDENCY_UNRESOLVED = "dependency_unresolved"
 
 

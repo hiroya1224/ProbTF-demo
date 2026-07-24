@@ -12,6 +12,7 @@ from probtf.probability.sampling import (
     sample_bingham_orientation,
     sample_transform_component,
     sample_transform_distribution,
+    sample_transform_distribution_components,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "sample_bingham_orientation",
     "sample_transform_component",
     "sample_transform_distribution",
+    "sample_transform_distribution_components",
 ]

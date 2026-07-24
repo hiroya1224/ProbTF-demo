@@ -208,7 +208,7 @@ def test_constant_acceleration_requires_metadata_and_never_falls_back():
     )
     np.testing.assert_allclose(
         result.record.distribution.deterministic_transform().translation,
-        [1.0, 0.0, 0.0],
+        [2.0, 0.0, 0.0],
         atol=1.0e-12,
     )
 

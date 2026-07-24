@@ -1,4 +1,5 @@
 from threading import RLock
+from collections.abc import Mapping
 
 from probtf.distributions import TransformDistributionStamped
 from probtf.graph.buffer import EdgeTimeBuffer
@@ -9,7 +10,10 @@ from probtf.graph.topology import ProbTfTopology
 from probtf.temporal import (
     AuthorityConflictPolicy,
     ParentChangePolicy,
+    TemporalEvaluationKind,
+    TemporalModel,
     TemporalPolicy,
+    TemporalQueryMode,
 )
 
 
@@ -27,6 +31,8 @@ class ProbTfGraph:
         self.max_records_per_edge = max_records_per_edge
         self.authority_conflict_policy = authority_conflict_policy
         self._buffers = {}
+        self._temporal_models = {}
+        self._default_temporal_models = {}
         self._lock = RLock()
 
     @property
@@ -49,6 +55,101 @@ class ProbTfGraph:
     def edge_buffer(self, edge_id):
         with self._lock:
             return self._buffers[edge_id]
+
+    @property
+    def temporal_model_bindings(self):
+        """Return an immutable edge/authority/model-ID ordered snapshot."""
+
+        with self._lock:
+            return tuple(
+                (edge_id, authority, model_id, model)
+                for (edge_id, authority), models in sorted(self._temporal_models.items())
+                for model_id, model in sorted(models.items())
+            )
+
+    def register_temporal_model(
+        self,
+        edge_id,
+        authority,
+        model,
+        *,
+        make_default=True,
+        replace_existing=False,
+    ):
+        """Bind one named model to one physical edge and one authority."""
+
+        if not isinstance(model, TemporalModel):
+            raise TypeError("model must be TemporalModel.")
+        edge_id = str(edge_id).strip()
+        authority = str(authority).strip()
+        if not edge_id or not authority:
+            raise ValueError("edge_id and authority must not be empty.")
+        with self._lock:
+            if edge_id not in self._buffers:
+                raise KeyError("Unknown physical edge_id {!r}.".format(edge_id))
+            authorities = {record.authority for record in self._buffers[edge_id].records}
+            if authority not in authorities:
+                raise KeyError(
+                    "Authority {!r} has no records on edge {!r}.".format(
+                        authority,
+                        edge_id,
+                    )
+                )
+            key = (edge_id, authority)
+            models = self._temporal_models.setdefault(key, {})
+            if model.model_id in models and not replace_existing:
+                raise ValueError(
+                    "Temporal model {!r} is already bound to edge {!r}, authority {!r}.".format(
+                        model.model_id,
+                        edge_id,
+                        authority,
+                    )
+                )
+            models[model.model_id] = model
+            if make_default:
+                self._default_temporal_models[key] = model.model_id
+        return model
+
+    def unregister_temporal_model(self, edge_id, authority, model_id):
+        edge_id = str(edge_id).strip()
+        authority = str(authority).strip()
+        model_id = str(model_id).strip()
+        key = (edge_id, authority)
+        with self._lock:
+            models = self._temporal_models.get(key)
+            if models is None or model_id not in models:
+                raise KeyError((edge_id, authority, model_id))
+            model = models.pop(model_id)
+            if not models:
+                del self._temporal_models[key]
+            if self._default_temporal_models.get(key) == model_id:
+                self._default_temporal_models.pop(key, None)
+            return model
+
+    @staticmethod
+    def _edge_model_selector(model_id, edge_id):
+        if isinstance(model_id, Mapping):
+            selected = model_id.get(edge_id)
+        else:
+            selected = model_id
+        return None if selected is None else str(selected).strip()
+
+    def _selected_temporal_model(self, edge_id, authority, requested_model_id):
+        key = (edge_id, authority)
+        models = self._temporal_models.get(key, {})
+        if requested_model_id is not None:
+            return models.get(requested_model_id)
+        default_id = self._default_temporal_models.get(key)
+        if default_id is not None:
+            return models.get(default_id)
+        if len(models) == 1:
+            return next(iter(models.values()))
+        if len(models) > 1:
+            raise TemporalResolutionError(
+                GraphErrorCode.MODEL_AMBIGUOUS,
+                "Multiple named temporal models are bound; specify model_id.",
+            )
+        return None
 
     def insert(self, record):
         if not isinstance(record, TransformDistributionStamped):
@@ -76,6 +177,14 @@ class ProbTfGraph:
         policy,
         tolerance,
         max_age,
+        model_id,
+        max_prediction_horizon,
+        random_seed,
+        random_stream,
+        query_mode,
+        max_uncertainty_trace,
+        allow_degraded,
+        latest_common_model_policy,
     ):
         traversal = self.topology.traversal(source_frame, target_frame)
         if not traversal:
@@ -98,33 +207,99 @@ class ProbTfGraph:
                     )
             else:
                 common = 0.0 if stamp is None else float(stamp)
-            resolved = tuple(
+            if latest_common_model_policy is None:
+                resolved = tuple(
+                    (
+                        edge,
+                        direction,
+                        self._buffers[edge.edge_id].resolve(
+                            common,
+                            TemporalPolicy.LATEST,
+                            max_age=max_age,
+                        ),
+                    )
+                    for edge, direction in traversal
+                )
+            else:
+                if latest_common_model_policy not in (
+                    TemporalPolicy.INTERPOLATE_WITH_MODEL,
+                    TemporalPolicy.PREDICT_WITH_MODEL,
+                ):
+                    raise ValueError(
+                        "latest_common_model_policy must be a model-based policy or None."
+                    )
+                entries = []
+                for edge, direction in traversal:
+                    buffer = self._buffers[edge.edge_id]
+                    authority = buffer.model_authority(
+                        common,
+                        latest_common_model_policy,
+                    )
+                    selector = self._edge_model_selector(model_id, edge.edge_id)
+                    model = self._selected_temporal_model(
+                        edge.edge_id,
+                        authority,
+                        selector,
+                    )
+                    entries.append(
+                        (
+                            edge,
+                            direction,
+                            buffer.resolve(
+                                common,
+                                latest_common_model_policy,
+                                tolerance,
+                                max_age,
+                                temporal_model=model,
+                                model_selector=None if model is None else model.model_id,
+                                max_prediction_horizon=max_prediction_horizon,
+                                random_seed=random_seed,
+                                random_stream=random_stream,
+                                query_mode=query_mode,
+                                max_uncertainty_trace=max_uncertainty_trace,
+                                allow_degraded=allow_degraded,
+                            ),
+                        )
+                    )
+                resolved = tuple(entries)
+            return common, resolved
+
+        entries = []
+        for edge, direction in traversal:
+            buffer = self._buffers[edge.edge_id]
+            model = None
+            selector = self._edge_model_selector(model_id, edge.edge_id)
+            if policy in (
+                TemporalPolicy.INTERPOLATE_WITH_MODEL,
+                TemporalPolicy.PREDICT_WITH_MODEL,
+            ):
+                authority = buffer.model_authority(stamp, policy)
+                model = self._selected_temporal_model(
+                    edge.edge_id,
+                    authority,
+                    selector,
+                )
+            entries.append(
                 (
                     edge,
                     direction,
-                    self._buffers[edge.edge_id].resolve(
-                        common,
-                        TemporalPolicy.LATEST,
-                        max_age=max_age,
+                    buffer.resolve(
+                        stamp,
+                        policy,
+                        tolerance,
+                        max_age,
+                        temporal_model=model,
+                        model_selector=None if model is None else model.model_id,
+                        max_prediction_horizon=max_prediction_horizon,
+                        random_seed=random_seed,
+                        random_stream=random_stream,
+                        query_mode=query_mode,
+                        max_uncertainty_trace=max_uncertainty_trace,
+                        allow_degraded=allow_degraded,
                     ),
                 )
-                for edge, direction in traversal
             )
-            return common, resolved
-
-        resolved = tuple(
-            (
-                edge,
-                direction,
-                self._buffers[edge.edge_id].resolve(
-                    stamp,
-                    policy,
-                    tolerance,
-                    max_age,
-                ),
-            )
-            for edge, direction in traversal
-        )
+        resolved = tuple(entries)
         if stamp is not None:
             resolved_stamp = float(stamp)
         else:
@@ -139,6 +314,15 @@ class ProbTfGraph:
         policy=TemporalPolicy.EXACT,
         tolerance=0.0,
         max_age=None,
+        *,
+        model_id=None,
+        max_prediction_horizon=None,
+        random_seed=None,
+        random_stream="",
+        query_mode=TemporalQueryMode.ONLINE,
+        max_uncertainty_trace=None,
+        allow_degraded=False,
+        latest_common_model_policy=None,
     ):
         with self._lock:
             resolved_stamp, traversal = self._resolved_traversal(
@@ -148,6 +332,30 @@ class ProbTfGraph:
                 policy,
                 tolerance,
                 max_age,
+                model_id,
+                max_prediction_horizon,
+                random_seed,
+                random_stream,
+                query_mode,
+                max_uncertainty_trace,
+                allow_degraded,
+                latest_common_model_policy,
+            )
+            records = tuple(
+                (
+                    resolved.record
+                    if resolved.evaluation is not None
+                    and resolved.evaluation.evaluation_kind
+                    in (
+                        TemporalEvaluationKind.STATIC,
+                        TemporalEvaluationKind.MODEL_INTERPOLATION,
+                        TemporalEvaluationKind.MODEL_PREDICTION,
+                    )
+                    else self._buffers[edge.edge_id].record_at_sample_stamp(
+                        resolved.sample_stamp
+                    )
+                )
+                for edge, _, resolved in traversal
             )
             return PathExpression(
                 source_frame,
@@ -171,12 +379,16 @@ class ProbTfGraph:
                     for edge, _, resolved in traversal
                     if resolved.diagnostic
                 ),
+                tuple(resolved.evaluation for _, _, resolved in traversal),
+                records,
             )
 
     def resolved_records(self, path):
         if not isinstance(path, PathExpression):
             raise TypeError("path must be a PathExpression.")
         with self._lock:
+            if path._record_snapshot:
+                return path._record_snapshot
             return tuple(
                 self._buffers[view.edge_id].record_at_sample_stamp(view.sample_stamp)
                 for view in path.edge_views
@@ -190,6 +402,15 @@ class ProbTfGraph:
         policy=TemporalPolicy.EXACT,
         tolerance=0.0,
         max_age=None,
+        *,
+        model_id=None,
+        max_prediction_horizon=None,
+        random_seed=None,
+        random_stream="",
+        query_mode=TemporalQueryMode.ONLINE,
+        max_uncertainty_trace=None,
+        allow_degraded=False,
+        latest_common_model_policy=None,
     ):
         from probtf.kernels import kernel_from_path
 
@@ -201,5 +422,13 @@ class ProbTfGraph:
                 policy,
                 tolerance,
                 max_age,
+                model_id=model_id,
+                max_prediction_horizon=max_prediction_horizon,
+                random_seed=random_seed,
+                random_stream=random_stream,
+                query_mode=query_mode,
+                max_uncertainty_trace=max_uncertainty_trace,
+                allow_degraded=allow_degraded,
+                latest_common_model_policy=latest_common_model_policy,
             )
             return kernel_from_path(path, self.resolved_records(path))

@@ -2,6 +2,8 @@
 
 import numpy as np
 
+from probtf.distributions import OrientationKind
+
 from probtf.geometry import body_twist_between, se3_exp
 from probtf.temporal.backends import (
     moment_interpolate,
@@ -69,6 +71,11 @@ class ConstantBodyTwistModel(TemporalModel):
             process_noise_spectral_density=process_noise_spectral_density,
             maximum_horizon=maximum_horizon,
             backend=backend,
+            supported_orientation_kinds=(
+                tuple(OrientationKind)
+                if backend is TemporalUncertaintyBackend.SAMPLE
+                else (OrientationKind.DIRAC, OrientationKind.FINITE_BINGHAM)
+            ),
             minimum_history=2,
             config={
                 "convention": self.CONVENTION,
@@ -199,7 +206,17 @@ class ConstantBodyTwistModel(TemporalModel):
                 record_representative(anchor),
                 anchor.stamp - previous.stamp,
             )
-            increment = twist * horizon + 0.5 * acceleration * horizon ** 2
+            # The two-pose logarithm is the interval-average twist.  Under
+            # constant acceleration, advance it by half the source interval
+            # to obtain the endpoint twist before forecasting.
+            endpoint_twist = (
+                twist
+                + 0.5 * acceleration * (anchor.stamp - previous.stamp)
+            )
+            increment = (
+                endpoint_twist * horizon
+                + 0.5 * acceleration * horizon ** 2
+            )
             record = moment_predict(
                 (previous, anchor),
                 request.requested_stamp,
@@ -274,6 +291,11 @@ class ConstantBodyAccelerationModel(ConstantBodyTwistModel):
             process_noise_spectral_density=process_noise_spectral_density,
             maximum_horizon=maximum_horizon,
             backend=backend,
+            supported_orientation_kinds=(
+                tuple(OrientationKind)
+                if backend is TemporalUncertaintyBackend.SAMPLE
+                else (OrientationKind.DIRAC, OrientationKind.FINITE_BINGHAM)
+            ),
             minimum_history=2,
             config={
                 "convention": self.CONVENTION,

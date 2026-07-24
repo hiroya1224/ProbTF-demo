@@ -6,7 +6,7 @@ from threading import Condition, RLock
 
 from probtf.graph import ProbTfGraph
 from probtf.graph.status import ProbTfGraphError
-from probtf.temporal import TemporalPolicy
+from probtf.temporal import TemporalPolicy, TemporalQueryMode
 from probtf_ros.v2_conversions import (
     V2MessageTypes,
     transform_array_from_msg,
@@ -185,6 +185,16 @@ class ProbTfListener:
         records = transform_array_from_msg(message)
         return self.receive_records(records)
 
+    def register_temporal_model(self, edge_id, authority, model, **options):
+        """Bind a local query model; model objects are never transported over ROS."""
+
+        return self.graph.register_temporal_model(
+            edge_id,
+            authority,
+            model,
+            **options
+        )
+
     def lookup_path(
         self,
         target_frame,
@@ -193,6 +203,15 @@ class ProbTfListener:
         policy=TemporalPolicy.EXACT,
         tolerance=0.0,
         max_age=None,
+        *,
+        model_id=None,
+        max_prediction_horizon=None,
+        random_seed=None,
+        random_stream="",
+        query_mode=TemporalQueryMode.ONLINE,
+        max_uncertainty_trace=None,
+        allow_degraded=False,
+        latest_common_model_policy=None,
     ):
         return self.graph.lookup_path(
             target_frame,
@@ -201,6 +220,14 @@ class ProbTfListener:
             policy,
             tolerance,
             max_age,
+            model_id=model_id,
+            max_prediction_horizon=max_prediction_horizon,
+            random_seed=random_seed,
+            random_stream=random_stream,
+            query_mode=query_mode,
+            max_uncertainty_trace=max_uncertainty_trace,
+            allow_degraded=allow_degraded,
+            latest_common_model_policy=latest_common_model_policy,
         )
 
     def lookup_kernel(
@@ -211,6 +238,15 @@ class ProbTfListener:
         policy=TemporalPolicy.EXACT,
         tolerance=0.0,
         max_age=None,
+        *,
+        model_id=None,
+        max_prediction_horizon=None,
+        random_seed=None,
+        random_stream="",
+        query_mode=TemporalQueryMode.ONLINE,
+        max_uncertainty_trace=None,
+        allow_degraded=False,
+        latest_common_model_policy=None,
     ):
         return self.graph.lookup_kernel(
             target_frame,
@@ -219,6 +255,14 @@ class ProbTfListener:
             policy,
             tolerance,
             max_age,
+            model_id=model_id,
+            max_prediction_horizon=max_prediction_horizon,
+            random_seed=random_seed,
+            random_stream=random_stream,
+            query_mode=query_mode,
+            max_uncertainty_trace=max_uncertainty_trace,
+            allow_degraded=allow_degraded,
+            latest_common_model_policy=latest_common_model_policy,
         )
 
     def lookup_point_moments(
@@ -231,6 +275,15 @@ class ProbTfListener:
         tolerance=0.0,
         max_age=None,
         evaluator=None,
+        *,
+        model_id=None,
+        max_prediction_horizon=None,
+        random_seed=None,
+        random_stream="",
+        query_mode=TemporalQueryMode.ONLINE,
+        max_uncertainty_trace=None,
+        allow_degraded=False,
+        latest_common_model_policy=None,
     ):
         from probtf.kernels import KernelEvaluator, KernelRepresentation
 
@@ -241,6 +294,14 @@ class ProbTfListener:
             policy,
             tolerance,
             max_age,
+            model_id=model_id,
+            max_prediction_horizon=max_prediction_horizon,
+            random_seed=random_seed,
+            random_stream=random_stream,
+            query_mode=query_mode,
+            max_uncertainty_trace=max_uncertainty_trace,
+            allow_degraded=allow_degraded,
+            latest_common_model_policy=latest_common_model_policy,
         )
         evaluator = KernelEvaluator() if evaluator is None else evaluator
         return evaluator.apply_to_point(
@@ -257,6 +318,15 @@ class ProbTfListener:
         policy=TemporalPolicy.EXACT,
         tolerance=0.0,
         max_age=None,
+        *,
+        model_id=None,
+        max_prediction_horizon=None,
+        random_seed=None,
+        random_stream="",
+        query_mode=TemporalQueryMode.ONLINE,
+        max_uncertainty_trace=None,
+        allow_degraded=False,
+        latest_common_model_policy=None,
     ):
         try:
             self.lookup_path(
@@ -266,6 +336,14 @@ class ProbTfListener:
                 policy,
                 tolerance,
                 max_age,
+                model_id=model_id,
+                max_prediction_horizon=max_prediction_horizon,
+                random_seed=random_seed,
+                random_stream=random_stream,
+                query_mode=query_mode,
+                max_uncertainty_trace=max_uncertainty_trace,
+                allow_degraded=allow_degraded,
+                latest_common_model_policy=latest_common_model_policy,
             )
         except ProbTfGraphError:
             return False
@@ -280,6 +358,15 @@ class ProbTfListener:
         tolerance=0.0,
         max_age=None,
         timeout=None,
+        *,
+        model_id=None,
+        max_prediction_horizon=None,
+        random_seed=None,
+        random_stream="",
+        query_mode=TemporalQueryMode.ONLINE,
+        max_uncertainty_trace=None,
+        allow_degraded=False,
+        latest_common_model_policy=None,
     ):
         if timeout is not None:
             timeout = float(timeout)
@@ -295,6 +382,14 @@ class ProbTfListener:
                 policy,
                 tolerance,
                 max_age,
+                model_id=model_id,
+                max_prediction_horizon=max_prediction_horizon,
+                random_seed=random_seed,
+                random_stream=random_stream,
+                query_mode=query_mode,
+                max_uncertainty_trace=max_uncertainty_trace,
+                allow_degraded=allow_degraded,
+                latest_common_model_policy=latest_common_model_policy,
             ):
                 remaining = None if deadline is None else deadline - time.monotonic()
                 if remaining is not None and remaining <= 0.0:

@@ -170,6 +170,38 @@ def sample_transform_distribution(distribution, count, rng=None):
     return TransformSampleBatch(translations, rotations)
 
 
+def sample_transform_distribution_components(distribution, component_indices, rng=None):
+    """Sample explicitly selected mixture components in the supplied order.
+
+    This is used by dependency-aware temporal sample paths.  The same
+    component-index vector can be reused across multiple records so matching
+    ``sample_id`` components remain the same latent realization.
+    """
+
+    if not isinstance(distribution, TransformDistribution):
+        raise TypeError("distribution must be a TransformDistribution.")
+    indices = np.asarray(component_indices)
+    if indices.ndim != 1 or not np.issubdtype(indices.dtype, np.integer):
+        raise ValueError("component_indices must be a one-dimensional integer array.")
+    count = indices.shape[0]
+    normalized = distribution.normalize_weights()
+    if normalized.status is not DistributionStatus.OK:
+        raise ValueError("Cannot sample a {} transform distribution.".format(normalized.status.value))
+    if count and (int(np.min(indices)) < 0 or int(np.max(indices)) >= len(normalized.components)):
+        raise ValueError("component_indices contains an out-of-range component.")
+    generator = _generator(rng)
+    translations = np.empty((count, 3), dtype=float)
+    rotations = np.empty((count, 4), dtype=float)
+    for index, item in enumerate(normalized.components):
+        selected = np.flatnonzero(indices == index)
+        if not len(selected):
+            continue
+        samples = sample_transform_component(item.component, len(selected), generator)
+        translations[selected] = samples.translations
+        rotations[selected] = samples.rotations_wxyz
+    return TransformSampleBatch(translations, rotations)
+
+
 def apply_transform_samples(samples, points, inverse=False):
     """Apply sampled transforms to one fixed point or corresponding points."""
 

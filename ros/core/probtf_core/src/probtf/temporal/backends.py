@@ -471,7 +471,11 @@ def sample_predict(
             anchor_transform,
             source_duration,
         )
-        deterministic_increment = twist * horizon + 0.5 * acceleration * horizon ** 2
+        endpoint_twist = twist + 0.5 * acceleration * source_duration
+        deterministic_increment = (
+            endpoint_twist * horizon
+            + 0.5 * acceleration * horizon ** 2
+        )
         prediction = compose_transforms(
             anchor_transform,
             se3_exp(deterministic_increment),
@@ -487,9 +491,15 @@ def sample_predict(
         record_representative(anchor),
         source_duration,
     )
+    central_endpoint_twist = (
+        central_twist + 0.5 * acceleration * source_duration
+    )
     representative = compose_transforms(
         record_representative(anchor),
-        se3_exp(central_twist * horizon + 0.5 * acceleration * horizon ** 2),
+        se3_exp(
+            central_endpoint_twist * horizon
+            + 0.5 * acceleration * horizon ** 2
+        ),
     )
     return _output_record(
         anchor,

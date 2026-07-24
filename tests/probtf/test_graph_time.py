@@ -24,6 +24,7 @@ from probtf.temporal import (
     AuthorityConflictPolicy,
     ParentChangePolicy,
     TemporalPolicy,
+    TemporalQueryMode,
 )
 from probtf.kernels import (
     ComposedTransformKernel,
@@ -342,13 +343,33 @@ def test_latest_common_rejects_nonoverlap_and_accepts_static_uncertain_edge():
     ]
 
 
-def test_temporal_model_interfaces_fail_explicitly():
+def test_model_policy_exact_sample_selects_without_model_and_missing_model_fails_closed():
     buffer = EdgeTimeBuffer()
     buffer.insert(_record("edge", "world", "tool", 1.0))
-    for policy in (TemporalPolicy.INTERPOLATE_WITH_MODEL, TemporalPolicy.PREDICT_WITH_MODEL):
-        with pytest.raises(TemporalResolutionError) as error:
-            buffer.resolve(1.0, policy)
-        assert error.value.code is GraphErrorCode.UNSUPPORTED_TEMPORAL_POLICY
+    buffer.insert(_record("edge", "world", "tool", 2.0))
+    for policy in (
+        TemporalPolicy.INTERPOLATE_WITH_MODEL,
+        TemporalPolicy.PREDICT_WITH_MODEL,
+    ):
+        resolved = buffer.resolve(1.0, policy)
+        assert resolved.diagnostic == "EXACT_SAMPLE"
+        assert resolved.evaluation.evaluation_kind.value == "sample_selection"
+
+    with pytest.raises(TemporalResolutionError) as error:
+        buffer.resolve(
+            1.5,
+            TemporalPolicy.INTERPOLATE_WITH_MODEL,
+            query_mode=TemporalQueryMode.OFFLINE_SMOOTHING,
+        )
+    assert error.value.code is GraphErrorCode.MODEL_NOT_REGISTERED
+    with pytest.raises(TemporalResolutionError) as error:
+        buffer.resolve(
+            3.0,
+            TemporalPolicy.PREDICT_WITH_MODEL,
+            max_age=2.0,
+            max_prediction_horizon=2.0,
+        )
+    assert error.value.code is GraphErrorCode.MODEL_NOT_REGISTERED
 
 
 def test_lookup_kernel_is_lazy_and_preserves_direction_order():

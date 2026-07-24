@@ -28,8 +28,10 @@ from probtf.probability import (
     forward_component_point_moments,
     mixture_point_moments,
     sample_transform_distribution,
+    sample_transform_distribution_components,
 )
 from probtf.provenance import ApproximationInfo, ApproximationKind
+from probtf.temporal.provenance import parse_temporal_detail
 from probtf.spherical_law import (
     InducedVectorLaw,
     IslBackendUnavailableError,
@@ -122,6 +124,37 @@ def _repeated_dependencies(kernel):
     if isinstance(kernel, ComposedTransformKernel):
         return kernel.repeated_dependency_ids()
     return ()
+
+
+def _temporal_sample_key(record):
+    payload = parse_temporal_detail(record.provenance.detail)
+    if payload is None or payload.get("backend") != "sample":
+        return None
+    component_ids = tuple(
+        component.component_id for component in record.distribution.components
+    )
+    expected = tuple(
+        "sample:{:06d}".format(index) for index in range(len(component_ids))
+    )
+    if component_ids != expected:
+        return None
+    return (
+        payload.get("random_seed"),
+        payload.get("random_stream", ""),
+        component_ids,
+    )
+
+
+def _has_dependency_aware_temporal_samples(kernel):
+    stochastic_records = []
+    for expression in _kernel_sequence(kernel):
+        record = _record_for_kernel(expression)
+        if record is None or record.distribution.deterministic_transform() is not None:
+            continue
+        stochastic_records.append(record)
+    return bool(stochastic_records) and all(
+        _temporal_sample_key(record) is not None for record in stochastic_records
+    )
 
 
 def _input_moments(input_law):
@@ -340,6 +373,7 @@ class KernelEvaluator:
                 size=count,
             ).reshape(count, 3)
 
+        aligned_component_choices = {}
         for expression in _kernel_sequence(kernel):
             base = _edge_kernel(expression)
             if not isinstance(base, (ForwardEdgeKernel, InverseEdgeKernel)):
@@ -348,11 +382,32 @@ class KernelEvaluator:
                     "UNSUPPORTED_KERNEL_EXPRESSION",
                     "Sampling supports only forward, inverse, and composed edge kernels.",
                 )
-            transform_samples = sample_transform_distribution(
-                base.edge_record.distribution,
-                count,
-                generator,
-            )
+            sample_key = _temporal_sample_key(base.edge_record)
+            if sample_key is None:
+                transform_samples = sample_transform_distribution(
+                    base.edge_record.distribution,
+                    count,
+                    generator,
+                )
+            else:
+                choices = aligned_component_choices.get(sample_key)
+                if choices is None:
+                    normalized = base.edge_record.distribution.normalize_weights()
+                    weights = np.array(
+                        [item.weight for item in normalized.components],
+                        dtype=float,
+                    )
+                    choices = generator.choice(
+                        len(normalized.components),
+                        size=count,
+                        p=weights,
+                    )
+                    aligned_component_choices[sample_key] = choices
+                transform_samples = sample_transform_distribution_components(
+                    base.edge_record.distribution,
+                    choices,
+                    generator,
+                )
             points = apply_transform_samples(
                 transform_samples,
                 points,
@@ -411,7 +466,14 @@ class KernelEvaluator:
                 diagnostics,
             )
         repeated = _repeated_dependencies(kernel)
-        if repeated and self._deterministic_transforms(kernel) is None:
+        if (
+            repeated
+            and self._deterministic_transforms(kernel) is None
+            and not (
+                options.representation is KernelRepresentation.SAMPLES
+                and _has_dependency_aware_temporal_samples(kernel)
+            )
+        ):
             return KernelResult(
                 DistributionStatus.INVALID,
                 options.representation,

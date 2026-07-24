@@ -22,7 +22,11 @@ from probtf.provenance import (
     ComponentProvenance,
     TransformProvenance,
 )
-from probtf.temporal import TemporalPolicy
+from probtf.temporal import (
+    ConstantBodyTwistModel,
+    TemporalPolicy,
+    parse_temporal_detail,
+)
 
 from probtf_ros.bridge import (
     ProbTfBroadcaster,
@@ -270,6 +274,56 @@ def test_v2_round_trip_preserves_joint_components_packing_and_metadata():
     restored = transform_distribution_from_msg(message)
     _assert_record_equal(restored, record)
     np.testing.assert_allclose(restored.representative.translation, record.representative.translation)
+
+
+def test_temporal_diagnostics_round_trip_in_existing_provenance_wire_fields():
+    component = _component(
+        "uncertain",
+        1.0,
+        BinghamOrientation.dirac([1.0, 0.0, 0.0, 0.0]),
+    )
+    first = TransformDistributionStamped(
+        "world",
+        "tool",
+        0.0,
+        "world_tool",
+        "producer",
+        TransformDistribution((component,)),
+    )
+    second = replace(first, stamp=1.0)
+    graph = ProbTfGraph()
+    graph.insert(first)
+    graph.insert(second)
+    graph.register_temporal_model(
+        "world_tool",
+        "producer",
+        ConstantBodyTwistModel(
+            np.diag([0.01] * 6),
+            1.0,
+            model_id="wire_test_model",
+        ),
+    )
+    evaluated = graph.lookup_path(
+        "world",
+        "tool",
+        1.2,
+        TemporalPolicy.PREDICT_WITH_MODEL,
+        max_age=1.0,
+        max_prediction_horizon=1.0,
+        random_seed=11,
+        random_stream="wire-test",
+    )._record_snapshot[0]
+
+    restored = transform_distribution_from_msg(
+        transform_distribution_to_msg(evaluated, MESSAGE_TYPES, Stamp)
+    )
+    payload = parse_temporal_detail(restored.provenance.detail)
+    assert restored.provenance.method == "temporal_model_evaluation"
+    assert payload["model_id"] == "wire_test_model"
+    assert payload["backend"] == "moment"
+    assert payload["horizon"] == pytest.approx(0.2)
+    assert payload["random_seed"] == 11
+    assert payload["random_stream"] == "wire-test"
 
 
 def test_v2_array_and_broadcaster_listener_route_static_and_dynamic_records():

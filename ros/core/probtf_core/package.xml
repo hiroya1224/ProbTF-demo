@@ -2,7 +2,9 @@
 <package format="2">
   <name>probtf_core</name>
   <version>0.1.0</version>
-  <description>ROS adapters for the ROS-independent ProbTF Python core.</description>
+  <description>
+    Probabilistic transform graph, model-based temporal evaluation, and ROS adapters.
+  </description>
 
   <maintainer email="leus@todo.todo">leus</maintainer>
   <license>MIT</license>

@@ -64,8 +64,33 @@ catkin_install_python(
 )
 
 install(
-  DIRECTORY launch
+  DIRECTORY launch docs lectures
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(
+  FILES
+    README.md
+    SELECTION_RESULTS.md
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(
+  PROGRAMS
+    test/run_temporal_selection.py
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/test
+)
+
+install(
+  FILES
+    test/temporal_selection.yaml
+    test/temporal_selection_results_2026-07-24.json
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/test
+)
+
+install(
+  DIRECTORY test/fixtures/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/test/fixtures
 )
 
 install(

@@ -11,8 +11,11 @@ ROS に依存しない Python core、ROS bridge、C++ runtime helper を同じ p
 uncertainty backend が存在しなかった。このため、package-wide な production
 `DEFAULT` は**未選定**である。constant-body-twist、constant-body-acceleration、
 moment backend、sample backend、endpoint-conditioned interpolation は
-`EXPERIMENTAL` であり、利用者が edge/authority と model ID を明示して opt-in
-する必要がある。
+`EXPERIMENTAL` であり、利用者が edge/authority へ named model を明示登録して
+opt-in する必要がある。監査可能性のため query でも `model_id` の明示を推奨するが、
+その edge/authority に binding が一つだけなら省略時にもその model が選択される。
+複数 binding があり、local default も query selector もない場合は
+`MODEL_AMBIGUOUS` で fail closed する。
 
 `ProbTfGraph.register_temporal_model(..., make_default=True)` の `default` は、
 利用者がその graph instance の特定 edge/authority に対して選ぶローカルな

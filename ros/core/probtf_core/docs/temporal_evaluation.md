@@ -61,6 +61,8 @@ application estimator/plugin の責務であり、独立な時刻 marginal を�
 ## model registration と選択
 
 model は physical edge と authority の組に bind し、`model_id` で識別する。
+binding が一つだけなら query の `model_id` は省略でき、その唯一の model が
+選択される。監査可能性のため application からは selector の明示を推奨する。
 同じ組に複数 model を `make_default=False` で登録した場合、query は
 `model_id` を明示しなければ `MODEL_AMBIGUOUS` になる。未登録 edge の暗黙の
 外挿や、名前なし global model は存在しない。

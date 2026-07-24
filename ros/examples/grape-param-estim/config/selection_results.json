@@ -1,0 +1,476 @@
+{
+  "candidates": {
+    "bayesian_closed_loop": {
+      "candidate_id": "bayesian_closed_loop",
+      "complexity_rank": 3,
+      "description": "posterior closed-loop target-tube evaluator",
+      "direction": "minimize",
+      "failed_hard_gates": [],
+      "group_id": "counterfactual_usefulness",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_brier_score",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "climatology": {
+      "candidate_id": "climatology",
+      "complexity_rank": 1,
+      "description": "episode-stratum rate baseline",
+      "direction": "minimize",
+      "failed_hard_gates": [],
+      "group_id": "counterfactual_usefulness",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_brier_score",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "effective_sparse_gp_residual": {
+      "candidate_id": "effective_sparse_gp_residual",
+      "complexity_rank": 3,
+      "description": "conditional residual model",
+      "direction": "maximize",
+      "failed_hard_gates": [],
+      "group_id": "effective_response",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_multistep_log_predictive_density",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "error_state_ekf_rts": {
+      "candidate_id": "error_state_ekf_rts",
+      "complexity_rank": 1,
+      "description": "application-local error-state EKF plus RTS",
+      "direction": "maximize",
+      "failed_hard_gates": [],
+      "group_id": "trajectory_smoother",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_log_predictive_density",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "exact_cpp_pc_mcu_replay": {
+      "candidate_id": "exact_cpp_pc_mcu_replay",
+      "complexity_rank": 1,
+      "description": "deployed PC/MCU controller oracle",
+      "direction": "minimize",
+      "failed_hard_gates": [],
+      "group_id": "controller_replay",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "factual_continuous_normalized_rmse",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "factor_graph_imu_preintegration": {
+      "candidate_id": "factor_graph_imu_preintegration",
+      "complexity_rank": 2,
+      "description": "optional dense factor-graph vertical slice",
+      "direction": "maximize",
+      "failed_hard_gates": [],
+      "group_id": "trajectory_smoother",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_log_predictive_density",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "joint_pmcmc": {
+      "candidate_id": "joint_pmcmc",
+      "complexity_rank": 2,
+      "description": "optional joint PMCMC vertical slice",
+      "direction": "maximize",
+      "failed_hard_gates": [],
+      "group_id": "inference",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_log_predictive_density",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "likelihood_free_bayessim": {
+      "candidate_id": "likelihood_free_bayessim",
+      "complexity_rank": 3,
+      "description": "conditional likelihood-free candidate",
+      "direction": "maximize",
+      "failed_hard_gates": [],
+      "group_id": "inference",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_log_predictive_density",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "low_dim_effective_response": {
+      "candidate_id": "low_dim_effective_response",
+      "complexity_rank": 1,
+      "description": "identifiable low-dimensional effective response",
+      "direction": "maximize",
+      "failed_hard_gates": [],
+      "group_id": "effective_response",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_multistep_log_predictive_density",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "modular_tempered_smc": {
+      "candidate_id": "modular_tempered_smc",
+      "complexity_rank": 1,
+      "description": "modular trajectory-marginalized SMC",
+      "direction": "maximize",
+      "failed_hard_gates": [],
+      "group_id": "inference",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_log_predictive_density",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "nominal_deterministic": {
+      "candidate_id": "nominal_deterministic",
+      "complexity_rank": 2,
+      "description": "deterministic nominal baseline",
+      "direction": "minimize",
+      "failed_hard_gates": [],
+      "group_id": "counterfactual_usefulness",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_brier_score",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "python_vector_pid_surrogate": {
+      "candidate_id": "python_vector_pid_surrogate",
+      "complexity_rank": 2,
+      "description": "vectorized approximation for candidate screening",
+      "direction": "minimize",
+      "failed_hard_gates": [],
+      "group_id": "controller_replay",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "factual_continuous_normalized_rmse",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    },
+    "structured_6dof_mechanics": {
+      "candidate_id": "structured_6dof_mechanics",
+      "complexity_rank": 2,
+      "description": "mechanics model with explicit scale gauge",
+      "direction": "maximize",
+      "failed_hard_gates": [],
+      "group_id": "effective_response",
+      "missing_folds": [
+        "holdout-20260612-01",
+        "holdout-20260612-02",
+        "holdout-20260612-03",
+        "holdout-20260612-04",
+        "holdout-20260612-05",
+        "holdout-20260612-06",
+        "holdout-20260612-07",
+        "holdout-20260612-08",
+        "holdout-20260612-09",
+        "holdout-20260613-01",
+        "holdout-20260613-02",
+        "holdout-20260613-03"
+      ],
+      "missing_metric_folds": [],
+      "observation_count": 0,
+      "primary_metric": "held_out_multistep_log_predictive_density",
+      "reasons": [
+        "incomplete_outer_fold_evaluation"
+      ],
+      "run_hashes": [],
+      "statistics": null,
+      "status": "EXPERIMENTAL"
+    }
+  },
+  "episode_level_resampling": true,
+  "groups": {
+    "controller_replay": {
+      "blocking_candidate_id": "exact_cpp_pc_mcu_replay",
+      "candidate_ids": [
+        "exact_cpp_pc_mcu_replay",
+        "python_vector_pid_surrogate"
+      ],
+      "direction": "minimize",
+      "group_id": "controller_replay",
+      "primary_metric": "factual_continuous_normalized_rmse",
+      "selected_default": null
+    },
+    "counterfactual_usefulness": {
+      "blocking_candidate_id": "bayesian_closed_loop",
+      "candidate_ids": [
+        "bayesian_closed_loop",
+        "nominal_deterministic",
+        "climatology"
+      ],
+      "direction": "minimize",
+      "group_id": "counterfactual_usefulness",
+      "primary_metric": "held_out_brier_score",
+      "selected_default": null
+    },
+    "effective_response": {
+      "blocking_candidate_id": null,
+      "candidate_ids": [
+        "low_dim_effective_response",
+        "structured_6dof_mechanics",
+        "effective_sparse_gp_residual"
+      ],
+      "direction": "maximize",
+      "group_id": "effective_response",
+      "primary_metric": "held_out_multistep_log_predictive_density",
+      "selected_default": null
+    },
+    "inference": {
+      "blocking_candidate_id": null,
+      "candidate_ids": [
+        "modular_tempered_smc",
+        "joint_pmcmc",
+        "likelihood_free_bayessim"
+      ],
+      "direction": "maximize",
+      "group_id": "inference",
+      "primary_metric": "held_out_log_predictive_density",
+      "selected_default": null
+    },
+    "trajectory_smoother": {
+      "blocking_candidate_id": null,
+      "candidate_ids": [
+        "error_state_ekf_rts",
+        "factor_graph_imu_preintegration"
+      ],
+      "direction": "maximize",
+      "group_id": "trajectory_smoother",
+      "primary_metric": "held_out_log_predictive_density",
+      "selected_default": null
+    }
+  },
+  "manifest_hash": "ed85aa1e1d72aacdab55888f2208f31cd06d9fb2ca494327f56bd5a25081b5ac",
+  "observation_count": 0,
+  "outer_fold_count": 12,
+  "protocol_hash": "23ff95871e5199f2fec121b9fee5b6e6d542a141b94e68cc4f3a3b82accd92b9",
+  "result_hash": "083bca4d626c47361cdd928d48099f382897d85499099a3214293aebd7fe972f",
+  "schema": "grape_backend_selection/v1",
+  "selection_complete": false,
+  "source_commit": "b479764"
+}

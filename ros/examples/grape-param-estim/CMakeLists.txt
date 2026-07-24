@@ -40,6 +40,7 @@ catkin_install_python(
   PROGRAMS
     scripts/estimate_grape_bag.py
     scripts/evaluate_sanity.py
+    scripts/evaluate_selection.py
     scripts/generate_sanity_bag.py
     scripts/build_bag_manifest.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -54,6 +55,8 @@ install(
 )
 
 install(
-  FILES README.md
+  FILES
+    README.md
+    SELECTION_RESULTS.md
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

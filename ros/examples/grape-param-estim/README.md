@@ -151,6 +151,16 @@ roslaunch grape_param_estim offline_estimator.launch \
 実推力ではないため、結果は引き続き `command_as_force_effective` な有効
 parameter として解釈してください。
 
+既定では mocap 運動学を 50 Hz で生成した後、5 sample ごとの 10 Hz を
+尤度の evidence として使い、その各 sample で particle filter を更新して
+posterior と診断値を出力します。したがって、候補 sample と診断値は 10 Hz、
+gate を通った区間の posterior も原則 10 Hz です。gate された sample は
+posterior を更新せず、理由を持つ診断だけを残します。50 Hz の全点を独立な
+evidence とみなさないのは、隣接点の微分値が重なった Savitzky--Golay window
+から生成され、強く相関するためです。
+`estimation_stride` を小さくすると message 数は増えますが、相関をモデル化せずに
+尤度を重複計上して過信を招くため、既定値では行いません。
+
 入力 bag は変更しません。出力先には別 path を指定してください。`--start-offset` と `--duration` は推定に使う区間だけを選び、元 bag の message は区間外も含めて出力へ保存します。推定器は original message の型・内容・record timestamp と connection metadata（`/tf_static` の latch を含む）を保ったまま、解析 message と record-time 順に merge して新しい bag を作ります。Header がある sensor はその event time、Header がない `/gimbalrotor/four_axes/command` などは bag record time を使います。
 
 ## 解析 bag の再生

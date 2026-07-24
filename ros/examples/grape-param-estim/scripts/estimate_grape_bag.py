@@ -566,6 +566,19 @@ def _diagnostic_message(
     return message
 
 
+def _observation_batches(selected: np.ndarray, batch_size: int) -> list:
+    """Partition selected indices without discarding a final partial batch."""
+
+    size = int(batch_size)
+    if size <= 0:
+        raise ValueError("particle_filter.batch_size must be positive.")
+    indices = np.asarray(selected, dtype=int).reshape(-1)
+    return [
+        indices[offset : offset + size]
+        for offset in range(0, indices.size, size)
+    ]
+
+
 def _analysis_events(input_path: Path, config: dict, config_hash: str, args) -> list:
     data = _read_selected_data(input_path, config, args.start_offset, args.duration)
     grid, record_grid, position, quaternion, pose_valid = _resample_pose(data, config)
@@ -621,16 +634,18 @@ def _analysis_events(input_path: Path, config: dict, config_hash: str, args) -> 
     )
     force_sigma = np.full(3, float(observation_config["force_residual_sigma_n"]))
     torque_sigma = np.full(3, float(observation_config["torque_residual_sigma_nm"]))
-    batch_size = int(pf_config.get("batch_size", 5))
+    batch_size = int(pf_config.get("batch_size", 1))
     output_every = int(pf_config.get("output_every_observations", batch_size))
+    if output_every <= 0:
+        raise ValueError(
+            "particle_filter.output_every_observations must be positive."
+        )
+    observation_batches = _observation_batches(selected, batch_size)
     provenance = _provenance(input_path, mode, config_hash)
     output_config = config["output"]
     events = []
     last_output_count = -output_every
-    for offset in range(0, selected.size, batch_size):
-        indices = selected[offset : offset + batch_size]
-        if indices.size < batch_size:
-            break
+    for batch_index, indices in enumerate(observation_batches):
         batch = ObservationBatch(
             specific_acceleration=kinematics.specific_acceleration_body[indices],
             angular_velocity=kinematics.angular_velocity_body[indices],
@@ -693,10 +708,10 @@ def _analysis_events(input_path: Path, config: dict, config_hash: str, args) -> 
             )
             continue
         result = particle_filter.update(batch)
-        another_full_batch_remains = offset + 2 * batch_size <= selected.size
+        another_batch_remains = batch_index + 1 < len(observation_batches)
         if (
             result.observation_count - last_output_count < output_every
-            and another_full_batch_remains
+            and another_batch_remains
         ):
             continue
         last_output_count = result.observation_count

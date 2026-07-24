@@ -148,7 +148,9 @@ pose は event time で重複を除去し、quaternion の符号を連続化し�
 - world 表現の角速度をさらに局所多項式で平滑化・微分し、角加速度を求めて body 座標へ戻す。
 - SG window の半幅に回転微分 stencil の余白を加えた `window_length // 2 + 2` sample は無効とする。
 
-pose の最近傍 age が既定 `0.03 s` を超える grid point は使わない。calibrated wrench も別の `max_wrench_age_s=0.03` で gate する。推定用 sample は 50 Hz grid から 5 sample ごとに選ぶため、既定の尤度更新入力は 10 Hz である。
+pose の最近傍 age が既定 `0.03 s` を超える grid point は使わない。calibrated wrench も別の `max_wrench_age_s=0.03` で gate する。推定用 sample は 50 Hz grid から 5 sample ごとに選ぶため、既定の尤度更新候補は 10 Hz である。各 sample を一 observation batch として直ちに評価し、gate を通れば同化して posterior summary と診断を出力する。gate された sample は posterior を更新せず診断だけを残す。末尾に設定 batch size 未満の sample しか残らない場合も、その部分 batch を捨てずに評価する。
+
+50 Hz の隣接 sample は、重なった Savitzky--Golay window から得た微分値を共有するため強く相関する。現在の likelihood はその時間相関を明示的にモデル化していないので、`estimation_stride=1` として全点を独立に掛けると、見かけの message 密度と引き換えに evidence を重複計上し、posterior が過度に狭くなり得る。このため、既定値は evidence と解析出力をともに 10 Hz とする。
 
 ### 5.2 1 cm / 1 deg の意味
 
@@ -184,7 +186,9 @@ command mode では `HOVER_STATE=5` に加え、HOVER へ遷移する前の失�
 \log\left(1+\frac{r_j^2}{\nu\sigma_j^2}\right)
 \]
 
-である。既定では 5 observation を一 batch とする。
+である。既定では 1 observation を一 batch とし、10 Hz の evidence ごとに
+tempering、必要な resampling、posterior 出力を行う。`batch_size` を大きく
+設定した場合も、解析区間末尾の部分 batch は同化する。
 
 急峻な likelihood を一度に掛けて particle が一つへ collapse するのを避けるため、batch likelihood を power \(\beta:0\rightarrow1\) で tempering する。次の power increment は ESS が particle 数の 70%程度になるよう二分探索し、必要に応じて systematic resampling を行う。resampling threshold は 50%である。
 

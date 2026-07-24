@@ -37,8 +37,11 @@ particle_filter:
   mcmc_steps: 2
   local_move_scale: 0.35
   prior_move_probability: 0.03
-  batch_size: 5
-  output_every_observations: 5
+  # Assimilate and publish every decorrelated 10 Hz evidence sample.  The
+  # 50 Hz kinematics grid remains thinned below to avoid treating overlapping
+  # Savitzky--Golay derivative windows as independent observations.
+  batch_size: 1
+  output_every_observations: 1
   particle_output_stride: 8
 
 observation:

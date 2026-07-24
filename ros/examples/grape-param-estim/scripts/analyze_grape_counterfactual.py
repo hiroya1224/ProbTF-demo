@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""Run the diagnostic-only Grape real-bag vertical slice."""
+
+import argparse
+from pathlib import Path
+import sys
+
+from grape_param_estim.grape_bag_adapter import (
+    analyze_bag,
+    load_vertical_slice_config,
+)
+
+
+def _arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", required=True)
+    parser.add_argument("--bag-root", required=True)
+    parser.add_argument("--output-root", required=True)
+    parser.add_argument(
+        "--episode",
+        action="append",
+        help="Episode ID to run; repeatable. Defaults to all configured episodes.",
+    )
+    parser.add_argument(
+        "--source-commit",
+        help="Explicit implementation commit; defaults to the current git state.",
+    )
+    return parser.parse_args()
+
+
+def main():
+    arguments = _arguments()
+    config = load_vertical_slice_config(arguments.config)
+    selected = (
+        set(arguments.episode)
+        if arguments.episode
+        else {item["episode_id"] for item in config["episodes"]}
+    )
+    known = {item["episode_id"] for item in config["episodes"]}
+    unknown = sorted(selected - known)
+    if unknown:
+        raise ValueError("unknown episode(s): {}".format(", ".join(unknown)))
+    bag_root = Path(arguments.bag_root).expanduser().resolve()
+    destinations = []
+    for episode in config["episodes"]:
+        if episode["episode_id"] not in selected:
+            continue
+        destination = analyze_bag(
+            bag_root / episode["bag"],
+            episode,
+            config,
+            arguments.output_root,
+            source_commit=arguments.source_commit,
+        )
+        destinations.append(destination)
+        print("{} -> {}".format(episode["episode_id"], destination))
+    print(
+        "completed {} diagnostic-only episode(s); "
+        "exact controller status=ORACLE_UNAVAILABLE, workflow=EXPERIMENTAL".format(
+            len(destinations)
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except Exception as error:
+        print("{}: {}".format(type(error).__name__, error), file=sys.stderr)
+        sys.exit(2)

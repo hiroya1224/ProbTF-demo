@@ -38,6 +38,7 @@ catkin_package(
 
 catkin_install_python(
   PROGRAMS
+    scripts/analyze_grape_counterfactual.py
     scripts/estimate_grape_bag.py
     scripts/evaluate_sanity.py
     scripts/evaluate_selection.py

@@ -492,6 +492,8 @@ class ControllerReplay:
             Callable[[np.ndarray, np.ndarray, np.ndarray, float, int], Tuple[np.ndarray, np.ndarray]]
         ] = None,
         reset_on_mode_change: bool = True,
+        apply_delay_compensation: bool = True,
+        plant_input: str = "acceleration_command",
     ) -> ReplayResult:
         if replay_mode not in ("teacher_forced", "free_run"):
             raise ValueError("replay_mode must be teacher_forced or free_run")
@@ -501,6 +503,13 @@ class ControllerReplay:
             raise ValueError("teacher_forced replay requires actual state arrays")
         if replay_mode == "free_run" and plant_step is None:
             raise ValueError("free_run replay requires plant_step")
+        if plant_input not in (
+            "acceleration_command",
+            "generalized_wrench_command",
+        ):
+            raise ValueError(
+                "plant_input must be acceleration_command or generalized_wrench_command"
+            )
         backend = self.backend_factory(parameters, initial_integral_state)
         if not all(hasattr(backend, name) for name in ("step", "reset", "set_parameters")):
             raise TypeError("controller backend does not satisfy the replay contract")
@@ -557,10 +566,29 @@ class ControllerReplay:
                 )
             else:
                 feedback = ControllerFeedback(position, velocity)
+            reference_stamp = (
+                stamp + float(backend.parameters.delay_compensation_s)
+                if apply_delay_compensation
+                and hasattr(backend, "parameters")
+                else stamp
+            )
+
+            def interpolated_reference(values):
+                return np.asarray(
+                    [
+                        np.interp(
+                            reference_stamp,
+                            request.timestamps,
+                            values[:, axis],
+                        )
+                        for axis in range(AXIS_COUNT)
+                    ]
+                )
+
             reference = ControllerReference(
-                request.reference_position[index],
-                request.reference_velocity[index],
-                request.reference_acceleration[index],
+                interpolated_reference(request.reference_position),
+                interpolated_reference(request.reference_velocity),
+                interpolated_reference(request.reference_acceleration),
             )
             delta = (
                 0.0
@@ -598,7 +626,7 @@ class ControllerReplay:
                 position, velocity = plant_step(
                     position.copy(),
                     velocity.copy(),
-                    step.acceleration_command.copy(),
+                    getattr(step, plant_input).copy(),
                     next_delta,
                     index,
                 )

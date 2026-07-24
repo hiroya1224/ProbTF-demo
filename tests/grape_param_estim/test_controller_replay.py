@@ -164,6 +164,45 @@ class ControllerReplayTests(unittest.TestCase):
         self.assertFalse(failed.passed)
         self.assertLess(failed.event_agreement, 1.0)
 
+    def test_delay_compensation_advances_known_reference_and_changes_command(self):
+        timestamps = np.arange(0.0, 1.01, 0.1)
+        count = timestamps.size
+        reference = np.zeros((count, 6))
+        reference[:, 0] = timestamps
+        zeros = np.zeros((count, 6))
+        request = ReplayRequest(
+            timestamps=timestamps,
+            reference_position=reference,
+            reference_velocity=zeros,
+            reference_acceleration=zeros,
+            actual_position=zeros,
+            actual_velocity=zeros,
+        )
+        no_compensation = parameters(p=1.0, i=0.0, d=0.0)
+        compensated = ControllerParameters(
+            p_gain=no_compensation.p_gain,
+            i_gain=no_compensation.i_gain,
+            d_gain=no_compensation.d_gain,
+            limits=no_compensation.limits,
+            controller_mass=no_compensation.controller_mass,
+            controller_inertia_diagonal=no_compensation.controller_inertia_diagonal,
+            allocation_scale=no_compensation.allocation_scale,
+            thrust_scale=no_compensation.thrust_scale,
+            delay_compensation_s=0.2,
+        )
+        baseline = ControllerReplay().run(
+            request, no_compensation, "teacher_forced"
+        )
+        advanced = ControllerReplay().run(
+            request, compensated, "teacher_forced"
+        )
+        self.assertAlmostEqual(baseline.acceleration_command[3, 0], 0.3)
+        self.assertAlmostEqual(advanced.acceleration_command[3, 0], 0.5)
+        self.assertGreater(
+            advanced.acceleration_command[3, 0],
+            baseline.acceleration_command[3, 0],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

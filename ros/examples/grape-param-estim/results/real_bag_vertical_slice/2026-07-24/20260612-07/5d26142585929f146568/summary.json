@@ -1,0 +1,214 @@
+{
+  "bag_start_record_time": 1781253696.439366,
+  "config_sha256": "aebedd9b52b0702a050b7725e8197c5aa89908b3d8c3cabef2d5a1dd3d890faa",
+  "effective_response": {
+    "condition_number": 2647.0391850074616,
+    "credible_probability": 0.95,
+    "design_rank": 48,
+    "fit_diagnostics": [
+      "trajectory_weights_normalized_to_one_within_each_episode",
+      "episode_likelihood_is_logsumexp_over_mutually_exclusive_trajectories",
+      "one_step_position_and_velocity_student_t_likelihood",
+      "conditional_coefficients_use_integrated_posterior_state_equations",
+      "raw_mocap_numerical_derivatives_are_forbidden",
+      "parameter_posterior_is_em_laplace_approximation_not_calibrated_truth"
+    ],
+    "identifiable": true,
+    "log_evidence": 3881.9119713403716,
+    "model_id": "low_dimensional_effective_response/v1",
+    "parameter_count": 48,
+    "posterior_approximation": "trajectory_mixture_marginal_delay_lag_grid_with_responsibility_weighted_laplace_conditionals",
+    "roll_pitch_summary": {
+      "pitch_delay_s": {
+        "lower": 0.0,
+        "mean": 0.08875,
+        "upper": 0.12
+      },
+      "pitch_effectiveness": {
+        "lower": 0.2251226643874084,
+        "mean": 0.35409528656627953,
+        "upper": 0.570384295820802
+      },
+      "pitch_from_roll_cross_coupling": {
+        "lower": -0.47600344519317633,
+        "mean": -0.24136128706804855,
+        "upper": -0.0781567308025179
+      },
+      "roll_delay_s": {
+        "lower": 0.0,
+        "mean": 0.08875,
+        "upper": 0.12
+      },
+      "roll_effectiveness": {
+        "lower": 0.25355742767551265,
+        "mean": 0.332202809088061,
+        "upper": 0.40994356686600913
+      },
+      "roll_from_pitch_cross_coupling": {
+        "lower": -0.015226750502939104,
+        "mean": 0.00795865822052587,
+        "upper": 0.04035543792680839
+      }
+    }
+  },
+  "episode_id": "20260612-07",
+  "flight_states_observed": [
+    5
+  ],
+  "four_axis_thrust": {
+    "mean": [
+      7.277029948532581,
+      6.785231959223747,
+      7.095182198286056,
+      7.496414521932602
+    ],
+    "sample_count": 1600
+  },
+  "frame_and_unit_conventions": {
+    "body_frame": "FLU",
+    "expected_header_frames": {
+      "controller_pid": [
+        ""
+      ],
+      "imu": [
+        "gimbalrotor/fc",
+        "/gimbalrotor/fc"
+      ],
+      "mocap_pose": [
+        "world",
+        "/world"
+      ]
+    },
+    "generalized_axis_order": [
+      "x",
+      "y",
+      "z",
+      "roll",
+      "pitch",
+      "yaw"
+    ],
+    "imu_measurement": "specific_force_body_including_positive_g_at_rest",
+    "quaternion_order": "xyzw",
+    "units": {
+      "angular_acceleration": "rad/s^2",
+      "angular_velocity": "rad/s",
+      "four_axis_base_thrust": "controller_nominal_force_unit",
+      "linear_acceleration": "m/s^2",
+      "linear_velocity": "m/s",
+      "orientation": "rad",
+      "position": "m"
+    },
+    "world_frame": "ENU"
+  },
+  "frame_unit_gate_passed": true,
+  "gates": {
+    "bag_derived_exact_fixture": {
+      "passed": false,
+      "status": "BAG_DERIVED_FIXTURE_UNAVAILABLE"
+    },
+    "controller_integrator_state": {
+      "passed": false,
+      "status": "NOT_RECORDED_OR_LATENTLY_INFERRED"
+    },
+    "exact_controller_replay": {
+      "passed": false,
+      "reason": "deployed PC/MCU exact replay backend is not connected",
+      "status": "ORACLE_UNAVAILABLE"
+    },
+    "joint_state_parameter_dependence": {
+      "passed": false,
+      "status": "MODULAR_TRAJECTORY_MIXTURE_ONLY"
+    },
+    "probability_calibration": {
+      "passed": false,
+      "status": "NO_COMPLETE_12_FOLD_SELECTION_RESULT"
+    },
+    "recommendation": {
+      "passed": false,
+      "status": "EXPERIMENTAL"
+    }
+  },
+  "header_record_offset_median_s": {
+    "imu": 0.0013622045516967773,
+    "mocap": 0.0003876686096191406,
+    "pid": 0.004881143569946289
+  },
+  "input_slice_sha256": "08195ff7dcb7c3f31d43da1916d6abd47bc32a219cd8130cb6a99ddecfff34a5",
+  "interval": [
+    45.00323224067688,
+    52.998138666152954
+  ],
+  "interval_end_offset_s": 52.998138666152954,
+  "interval_start_offset_s": 45.00323224067688,
+  "model_id": "low_dimensional_effective_response/v1",
+  "observed_header_frames": {
+    "controller_pid": [
+      ""
+    ],
+    "imu": [
+      "gimbalrotor/fc"
+    ],
+    "mocap_pose": [
+      "world"
+    ]
+  },
+  "recommendation_available": false,
+  "roll_pitch_gain_at_interval": {
+    "d_gain": 12.0,
+    "i_gain": 1.0,
+    "p_gain": 10.0
+  },
+  "roll_pitch_gain_interpretation": "last update at or before interval end; this slice does not evaluate the full bag-8 gain sweep",
+  "run_id": "5d26142585929f146568",
+  "sample_rate_hz": 20.0,
+  "schema": "grape_real_bag_vertical_slice/v1",
+  "seed": 7,
+  "smoother": {
+    "backend": "error_state_ekf_rts",
+    "is_smoothed": true,
+    "mean_orientation_std_rad": 0.0009923197716488388,
+    "mean_position_std_m": 0.0011145604061051778,
+    "mocap_rejection_count": 0,
+    "mocap_update_count": 957,
+    "sampling_approximation": "linearized_backward_simulation",
+    "trajectory_sample_count": 4
+  },
+  "source_bag": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_7_2026-06-12-17-41-34.bag",
+  "source_bag_sha256": "75292b0c79dd1a3be2869eb3a0c3766df9561336efe2948386ebcb86e67297b8",
+  "source_commit": "b48bc63d1d961fae7d7bdc73b9d08aff84835910",
+  "source_topic_counts": {
+    "/gimbalrotor/controller/roll_pitch/parameter_updates": 0,
+    "/gimbalrotor/debug/pose/pid": 2000,
+    "/gimbalrotor/flight_state": 2000,
+    "/gimbalrotor/four_axes/command": 2000,
+    "/gimbalrotor/mocap/pose": 1197,
+    "/gimbalrotor/sensor_plugin/imu1/ros_converted": 2000
+  },
+  "stratum": "sustained_hover",
+  "trajectory_diagnostics": {
+    "acceleration_derivative_use": "diagnostic_only_not_an_independent_likelihood_observation",
+    "desired_actual_attitude_rms_rad": 0.06862104372626762,
+    "desired_actual_position_rms_m": 0.03704930827783189,
+    "diagnostic_acceleration_mismatch_rms": [
+      0.16705451689086304,
+      0.13831323602050552,
+      12.123886889512415,
+      2.0648193025725172,
+      2.7406238771693974,
+      0.3461765790416471
+    ],
+    "nominal_actual_attitude_rms_rad": 1.0880829417602373,
+    "nominal_actual_position_rms_m": 0.21085432759813874,
+    "nominal_definition": "equilibrium-centered recorded_PoseControlPid.total with unit-gain local translation and SO(3) rotation integration from actual initial state; approximation_not_exact_PC_MCU_replay",
+    "nominal_equilibrium_command": [
+      -0.06253524789758322,
+      0.1324453501077259,
+      12.139711931954523,
+      1.811967289614343,
+      2.152910753944407,
+      -0.12113244879664653
+    ]
+  },
+  "trajectory_point_count": 160,
+  "workflow_status": "EXPERIMENTAL"
+}

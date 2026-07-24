@@ -59,7 +59,9 @@ def _plain(value: Any) -> Any:
     return value
 
 
-def _source_commit(repository: Optional[Any] = None) -> str:
+def _source_commit(
+    repository: Optional[Any] = None, explicit: Optional[str] = None
+) -> str:
     root = (
         Path(repository).resolve()
         if repository is not None
@@ -78,9 +80,19 @@ def _source_commit(repository: Optional[Any] = None) -> str:
             text=True,
             stderr=subprocess.DEVNULL,
         ).strip()
-        return commit + ("+dirty" if status else "")
+        if status:
+            raise RuntimeError(
+                "vertical-slice artifacts require a clean source tree"
+            )
+        if explicit is not None and str(explicit) != commit:
+            raise ValueError(
+                "explicit source commit does not match clean HEAD"
+            )
+        return commit
     except (OSError, subprocess.CalledProcessError):
-        return "UNKNOWN"
+        raise RuntimeError(
+            "vertical-slice artifacts require a verifiable git revision"
+        )
 
 
 def load_vertical_slice_config(path: Any) -> Dict[str, Any]:
@@ -1022,13 +1034,38 @@ def analyze_bag(
     output_root: Any,
     source_commit: Optional[str] = None,
 ) -> Path:
+    verified_commit = _source_commit(explicit=source_commit)
     data = read_bag_interval(bag_path, episode, config)
     summary, arrays = analyze_interval(
-        data, config, source_commit or _source_commit()
+        data, config, verified_commit
     )
     return write_vertical_slice_artifact(
         output_root, summary, arrays, config
     )
+
+
+def analyze_configured_bags(
+    *,
+    bag_root: Any,
+    episodes: Sequence[Mapping[str, Any]],
+    config: Mapping[str, Any],
+    output_root: Any,
+    source_commit: Optional[str] = None,
+) -> Tuple[Path, ...]:
+    """Validate the clean revision once, then write several bag artifacts."""
+
+    verified_commit = _source_commit(explicit=source_commit)
+    root = Path(bag_root).expanduser().resolve()
+    destinations = []
+    for episode in episodes:
+        data = read_bag_interval(root / episode["bag"], episode, config)
+        summary, arrays = analyze_interval(data, config, verified_commit)
+        destinations.append(
+            write_vertical_slice_artifact(
+                output_root, summary, arrays, config
+            )
+        )
+    return tuple(destinations)
 
 
 __all__ = [
@@ -1037,6 +1074,7 @@ __all__ = [
     "SCHEMA",
     "WORKFLOW_STATUS",
     "analyze_bag",
+    "analyze_configured_bags",
     "analyze_interval",
     "load_vertical_slice_config",
     "read_bag_interval",

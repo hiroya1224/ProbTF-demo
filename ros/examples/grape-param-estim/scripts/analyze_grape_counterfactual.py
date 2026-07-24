@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 from grape_param_estim.grape_bag_adapter import (
-    analyze_bag,
+    analyze_configured_bags,
     load_vertical_slice_config,
 )
 
@@ -41,18 +41,19 @@ def main():
     if unknown:
         raise ValueError("unknown episode(s): {}".format(", ".join(unknown)))
     bag_root = Path(arguments.bag_root).expanduser().resolve()
-    destinations = []
-    for episode in config["episodes"]:
-        if episode["episode_id"] not in selected:
-            continue
-        destination = analyze_bag(
-            bag_root / episode["bag"],
-            episode,
-            config,
-            arguments.output_root,
-            source_commit=arguments.source_commit,
-        )
-        destinations.append(destination)
+    episodes = [
+        episode
+        for episode in config["episodes"]
+        if episode["episode_id"] in selected
+    ]
+    destinations = analyze_configured_bags(
+        bag_root=bag_root,
+        episodes=episodes,
+        config=config,
+        output_root=arguments.output_root,
+        source_commit=arguments.source_commit,
+    )
+    for episode, destination in zip(episodes, destinations):
         print("{} -> {}".format(episode["episode_id"], destination))
     print(
         "completed {} diagnostic-only episode(s); "

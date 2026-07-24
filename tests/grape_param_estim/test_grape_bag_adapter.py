@@ -120,15 +120,32 @@ class GrapeBagAdapterTests(unittest.TestCase):
             "check_output",
             side_effect=["abc123\n", "?? untracked.py\n"],
         ):
-            self.assertEqual(
-                adapter._source_commit(REPOSITORY), "abc123+dirty"
-            )
+            with self.assertRaisesRegex(RuntimeError, "clean source tree"):
+                adapter._source_commit(REPOSITORY)
         with mock.patch.object(
             adapter.subprocess,
             "check_output",
             side_effect=["abc123\n", ""],
         ):
             self.assertEqual(adapter._source_commit(REPOSITORY), "abc123")
+        with mock.patch.object(
+            adapter.subprocess,
+            "check_output",
+            side_effect=["abc123\n", ""],
+        ):
+            self.assertEqual(
+                adapter._source_commit(REPOSITORY, explicit="abc123"),
+                "abc123",
+            )
+        with mock.patch.object(
+            adapter.subprocess,
+            "check_output",
+            side_effect=["abc123\n", ""],
+        ):
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                adapter._source_commit(
+                    REPOSITORY, explicit="not-the-current-revision"
+                )
 
     def test_vertical_slice_writes_honest_diagnostic_artifact(self):
         config = self.config()

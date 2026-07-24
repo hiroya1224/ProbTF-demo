@@ -134,6 +134,9 @@ class SelectionObservation:
     candidate_grid_sha256: str
     random_stream_sha256: str
     run_sha256: str
+    model_version: str = ""
+    controller_backend_identity_sha256: str = ""
+    exact_conformance_report_sha256: str = ""
 
     def __post_init__(self) -> None:
         if not self.candidate_id or not self.fold_id or not self.held_out_episode:
@@ -151,6 +154,15 @@ class SelectionObservation:
             "run_sha256",
         ):
             object.__setattr__(self, name, _digest(getattr(self, name), name))
+        object.__setattr__(self, "model_version", str(self.model_version))
+        for name in (
+            "controller_backend_identity_sha256",
+            "exact_conformance_report_sha256",
+        ):
+            value = str(getattr(self, name))
+            if value:
+                value = _digest(value, name)
+            object.__setattr__(self, name, value)
 
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> "SelectionObservation":
@@ -167,6 +179,13 @@ class SelectionObservation:
             candidate_grid_sha256=str(value["candidate_grid_sha256"]),
             random_stream_sha256=str(value["random_stream_sha256"]),
             run_sha256=str(value["run_sha256"]),
+            model_version=str(value.get("model_version", "")),
+            controller_backend_identity_sha256=str(
+                value.get("controller_backend_identity_sha256", "")
+            ),
+            exact_conformance_report_sha256=str(
+                value.get("exact_conformance_report_sha256", "")
+            ),
         )
 
 
@@ -361,6 +380,39 @@ def run_selection(
             "direction": group["direction"],
             "statistics": statistics,
             "run_hashes": tuple(sorted(item.run_sha256 for item in candidate_observations)),
+            "trajectory_sample_bundle_hashes": tuple(
+                sorted(
+                    item.trajectory_sample_bundle_sha256
+                    for item in candidate_observations
+                )
+            ),
+            "model_versions": tuple(
+                sorted(
+                    {
+                        item.model_version
+                        for item in candidate_observations
+                        if item.model_version
+                    }
+                )
+            ),
+            "controller_backend_identity_hashes": tuple(
+                sorted(
+                    {
+                        item.controller_backend_identity_sha256
+                        for item in candidate_observations
+                        if item.controller_backend_identity_sha256
+                    }
+                )
+            ),
+            "exact_conformance_report_hashes": tuple(
+                sorted(
+                    {
+                        item.exact_conformance_report_sha256
+                        for item in candidate_observations
+                        if item.exact_conformance_report_sha256
+                    }
+                )
+            ),
         }
     group_results = {}
     for group_id, group in protocol["candidate_groups"].items():
@@ -448,8 +500,14 @@ def run_selection(
         "groups": group_results,
         "candidates": candidate_results,
     }
-    result["selection_complete"] = all(
-        item["selected_default"] is not None for item in group_results.values()
+    result["selection_complete"] = bool(
+        all(item["selected_default"] is not None for item in group_results.values())
+        and all(
+            item["observation_count"] == len(fold_by_id)
+            and not item["missing_folds"]
+            and not item["missing_metric_folds"]
+            for item in candidate_results.values()
+        )
     )
     result["result_hash"] = stable_hash(result)
     return result

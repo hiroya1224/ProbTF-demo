@@ -1,12 +1,25 @@
+from dataclasses import asdict, replace
+from pathlib import Path
 import unittest
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 
+from grape_param_estim.alternative_backends import (
+    EXACT_ORACLE_PROTOCOL,
+    REQUIRED_CONFORMANCE_CHANNELS,
+    REQUIRED_ORACLE_CAPABILITIES,
+    ExactOracleConformanceReport,
+    ExactOracleIdentity,
+)
 from grape_param_estim.controller_replay import (
     ControllerParameters,
     PidLimits,
+    ReplayMetrics,
 )
 from grape_param_estim.counterfactual import (
+    DEPENDENCE_APPROXIMATED,
+    DEPENDENCE_JOINT_SAMPLES,
     EXTRAPOLATIVE,
     SUPPORTED,
     UNSUPPORTED,
@@ -14,12 +27,21 @@ from grape_param_estim.counterfactual import (
     CounterfactualCandidate,
     CounterfactualConfig,
     InitialStateSample,
+    JointPosteriorSample,
+    ProbabilityCalibrationReport,
+    PythonControllerReplayBackend,
     SupportReference,
     TargetTrajectory,
     TargetTube,
     classify_support,
     connected_candidate_regions,
     evaluate_target_tube,
+)
+from grape_param_estim.episode import stable_hash
+from grape_param_estim.selection import (
+    DEFAULT_CANDIDATE,
+    SELECTION_SCHEMA,
+    load_selection_protocol,
 )
 from grape_param_estim.effective_response import (
     EffectiveResponseParameters,
@@ -117,7 +139,118 @@ def support_reference(candidates):
     )
 
 
+def probability_calibration_report(identity, exact_conformance_report):
+    repository = Path(__file__).resolve().parents[2]
+    protocol = load_selection_protocol(
+        repository
+        / "ros/examples/grape-param-estim/config/selection_protocol.yaml"
+    )
+    candidate_id = "bayesian_closed_loop"
+    groups = {
+        group_id: {
+            "selected_default": (
+                candidate_id
+                if group_id == "counterfactual_usefulness"
+                else group["candidates"][0]["candidate_id"]
+            )
+        }
+        for group_id, group in protocol["candidate_groups"].items()
+    }
+    backend_identity = asdict(identity)
+    backend_identity.update(
+        {
+            "is_exact": True,
+            "supports_closed_loop_plant_callback": True,
+            "applies_candidate_parameters": True,
+            "applies_delay_compensation": True,
+        }
+    )
+    normalized_hashes = tuple(
+        stable_hash(("normalized-dataset", index)) for index in range(12)
+    )
+    candidates = {
+        item["candidate_id"]: {
+            "observation_count": 12,
+            "missing_folds": (),
+            "missing_metric_folds": (),
+        }
+        for group in protocol["candidate_groups"].values()
+        for item in group["candidates"]
+    }
+    candidates[candidate_id].update(
+        {
+            "status": DEFAULT_CANDIDATE,
+            "primary_metric": "held_out_brier_score",
+            "failed_hard_gates": (),
+            "run_hashes": tuple(
+                stable_hash(("calibration-run", index))
+                for index in range(12)
+            ),
+            "trajectory_sample_bundle_hashes": normalized_hashes,
+            "model_versions": (
+                "low_dimensional_effective_response/v1",
+            ),
+            "controller_backend_identity_hashes": (
+                stable_hash(backend_identity),
+            ),
+            "exact_conformance_report_hashes": (
+                stable_hash(asdict(exact_conformance_report)),
+            ),
+            "statistics": {
+                "episode_count": 12,
+                "mean": 0.08,
+                "bootstrap_lower": 0.04,
+                "bootstrap_upper": 0.12,
+                "standard_error": 0.02,
+            },
+        }
+    )
+    selection_result = {
+        "schema": SELECTION_SCHEMA,
+        "protocol_hash": stable_hash(protocol),
+        "manifest_hash": protocol["manifest_hash"],
+        "source_commit": "test-commit",
+        "outer_fold_count": 12,
+        "selection_complete": True,
+        "groups": groups,
+        "candidates": candidates,
+    }
+    selection_result["result_hash"] = stable_hash(selection_result)
+    report = ProbabilityCalibrationReport.from_selection_result(
+        selection_protocol=protocol,
+        selection_result=selection_result,
+        model_version="low_dimensional_effective_response/v1",
+        controller_backend_identity=backend_identity,
+    )
+    return report, protocol, normalized_hashes
+
+
 class CounterfactualTests(unittest.TestCase):
+    def test_so3_error_and_physical_tilt_handle_coupled_rotation(self):
+        times = np.array([0.0, 0.1, 0.2])
+        desired = np.zeros((3, 6))
+        actual = np.zeros((3, 6))
+        desired_rotation = Rotation.from_euler("z", np.pi - 0.02)
+        actual_rotation = desired_rotation * Rotation.from_euler("x", 0.05)
+        desired[:, 3:] = desired_rotation.as_rotvec()
+        actual[:, 3:] = actual_rotation.as_rotvec()
+        target = TargetTrajectory(
+            times, desired, np.zeros_like(desired), np.zeros_like(desired)
+        )
+        result = evaluate_target_tube(
+            target,
+            TargetTube(
+                position_tolerance=np.full(6, 0.1),
+                velocity_tolerance=np.ones(6),
+                maximum_tilt_rad=0.1,
+            ),
+            actual,
+            np.zeros_like(actual),
+            np.zeros_like(actual, dtype=bool),
+        )
+        self.assertTrue(result.success)
+        self.assertLess(result.maximum_position_ratio, 1.0)
+
     def test_target_tube_checks_tracking_saturation_ground_and_tilt(self):
         times = np.arange(0.0, 0.51, 0.1)
         zeros = np.zeros((times.size, 6))
@@ -229,6 +362,8 @@ class CounterfactualTests(unittest.TestCase):
                 np.zeros(6),
             ),
             weight=1.0,
+            controller_integral_state=np.zeros(6),
+            integrator_state_source="explicit_test_assumption",
         )
         tube = TargetTube(
             position_tolerance=np.full(6, 0.25),
@@ -272,7 +407,9 @@ class CounterfactualTests(unittest.TestCase):
         self.assertEqual(first.run_id, repeated.run_id)
         self.assertEqual(first.support.label, SUPPORTED)
         self.assertEqual(second.support.label, SUPPORTED)
-        self.assertTrue(first.recommendable)
+        self.assertFalse(first.recommendable)
+        self.assertEqual(first.workflow_status, "EXPERIMENTAL")
+        self.assertEqual(first.dependence_handling, DEPENDENCE_APPROXIMATED)
         self.assertGreater(first.effective_rollout_sample_size, 1.0)
         self.assertGreaterEqual(first.credible_upper, first.credible_lower)
         self.assertGreaterEqual(first.success_probability, 0.0)
@@ -291,7 +428,7 @@ class CounterfactualTests(unittest.TestCase):
             repeated.rollouts[0].position,
         )
         regions = connected_candidate_regions([first, second], gamma=0.0)
-        self.assertEqual(regions, (("baseline", "compensated"),))
+        self.assertEqual(regions, ())
 
     def test_online_prefix_provenance_requires_cutoff(self):
         with self.assertRaisesRegex(ValueError, "prefix_cutoff"):
@@ -333,6 +470,8 @@ class CounterfactualTests(unittest.TestCase):
                 shifted.position[0], shifted.velocity[0], np.zeros(6)
             ),
             1.0,
+            controller_integral_state=np.zeros(6),
+            integrator_state_source="explicit_test_assumption",
         )
         with self.assertRaisesRegex(ValueError, "stamped at prefix_cutoff"):
             evaluator.evaluate(
@@ -373,12 +512,227 @@ class CounterfactualTests(unittest.TestCase):
                         np.zeros(6),
                     ),
                     1.0,
+                    controller_integral_state=np.zeros(6),
+                    integrator_state_source="explicit_test_assumption",
                 )
             ],
             CounterfactualConfig(process_noise_sigma=np.zeros(6)),
         )
         with self.assertRaises(ValueError):
             result.rollouts[0].position[0, 0] = 99.0
+
+    def test_missing_integrator_state_is_never_silently_zero_filled(self):
+        target = target_trajectory()
+        candidate = CounterfactualCandidate("missing-integrator", controller())
+        initial = InitialStateSample(
+            0,
+            ResponseState(
+                target.position[0], target.velocity[0], np.zeros(6)
+            ),
+            1.0,
+        )
+        with self.assertRaisesRegex(
+            ValueError, "controller_integral_state"
+        ):
+            ClosedLoopCounterfactualEvaluator(
+                support_reference((candidate,))
+            ).evaluate(
+                candidate,
+                target,
+                TargetTube(np.ones(6), np.ones(6)),
+                response_posterior(),
+                [initial],
+                CounterfactualConfig(process_noise_sigma=np.zeros(6)),
+            )
+
+    def test_verified_exact_backend_joint_samples_and_gates_are_required(self):
+        identity = ExactOracleIdentity(
+            protocol=EXACT_ORACLE_PROTOCOL,
+            backend_id="test_cpp_closed_loop_controller/v1",
+            implementation_language="C++",
+            source_commit="0123456789abcdef",
+            artifact_sha256="a" * 64,
+            capabilities=REQUIRED_ORACLE_CAPABILITIES,
+        )
+
+        class CapturingExactBackend(PythonControllerReplayBackend):
+            is_exact = True
+
+            def run(self, *args, **kwargs):
+                self.integral = np.array(
+                    kwargs["initial_integral_state"], copy=True
+                )
+                return super().run(*args, **kwargs)
+
+        CapturingExactBackend.backend_id = identity.backend_id
+        CapturingExactBackend.identity = identity
+        replay_metric = ReplayMetrics(
+            normalized_rmse=np.zeros(6),
+            normalized_maximum_error=np.zeros(6),
+            event_agreement=1.0,
+            passed=True,
+            rmse_threshold=0.01,
+            maximum_error_threshold=0.03,
+            event_agreement_threshold=1.0,
+        )
+        report = ExactOracleConformanceReport(
+            passed=True,
+            status="PASS",
+            reasons=(),
+            channel_metrics={
+                channel: replay_metric
+                for channel in REQUIRED_CONFORMANCE_CHANNELS
+            },
+            identity=identity,
+        )
+        calibration, protocol, normalized_hashes = (
+            probability_calibration_report(identity, report)
+        )
+        backend = CapturingExactBackend()
+        target = TargetTrajectory(
+            np.array([0.0, 0.1, 0.2]),
+            np.zeros((3, 6)),
+            np.zeros((3, 6)),
+            np.zeros((3, 6)),
+        )
+        candidate = CounterfactualCandidate("verified-exact", controller())
+        integral = np.linspace(0.01, 0.06, 6)
+        initial = InitialStateSample(
+            5,
+            ResponseState(np.zeros(6), np.zeros(6), np.zeros(6)),
+            1.0,
+            controller_integral_state=integral,
+            integrator_state_source="latent_posterior_sample",
+        )
+        evaluator = ClosedLoopCounterfactualEvaluator(
+            support_reference((candidate,)),
+            controller_backend_factory=lambda: backend,
+            exact_oracle_conformance_report=report,
+            probability_calibration_report=calibration,
+        )
+        source_hash = next(iter(protocol["episodes"].values()))["bag_sha256"]
+        config = CounterfactualConfig(
+            process_noise_sigma=np.zeros(6),
+            recommendation_threshold=0.1,
+            source_bag_hashes=(source_hash,),
+            normalized_dataset_hashes=(normalized_hashes[0],),
+            source_commit="test-commit",
+        )
+        joint = (JointPosteriorSample(11, 5, 0, 1.0),)
+        result = evaluator.evaluate(
+            candidate,
+            target,
+            TargetTube(
+                np.full(6, 100.0),
+                np.full(6, 100.0),
+                allowed_outside_duration_s=1.0,
+            ),
+            response_posterior(),
+            [initial],
+            config,
+            joint,
+        )
+        np.testing.assert_array_equal(backend.integral, integral)
+        self.assertEqual(result.dependence_handling, DEPENDENCE_JOINT_SAMPLES)
+        self.assertTrue(result.exact_controller_gate_passed)
+        self.assertTrue(result.probability_calibration_gate_passed)
+        self.assertTrue(result.recommendable)
+        self.assertEqual(result.workflow_status, "MANUAL_REVIEW_REQUIRED")
+        self.assertEqual(
+            connected_candidate_regions([result], gamma=0.0),
+            (("verified-exact",),),
+        )
+
+        no_report = ClosedLoopCounterfactualEvaluator(
+            support_reference((candidate,)),
+            controller_backend_factory=CapturingExactBackend,
+        ).evaluate(
+            candidate,
+            target,
+            TargetTube(
+                np.full(6, 100.0),
+                np.full(6, 100.0),
+                allowed_outside_duration_s=1.0,
+            ),
+            response_posterior(),
+            [initial],
+            config,
+            joint,
+        )
+        self.assertFalse(no_report.exact_controller_gate_passed)
+        self.assertFalse(no_report.recommendable)
+        self.assertEqual(no_report.workflow_status, "EXPERIMENTAL")
+
+    def test_run_id_hashes_every_behavioral_input(self):
+        times = np.array([0.0, 0.1, 0.2])
+        zeros = np.zeros((3, 6))
+        target = TargetTrajectory(times, zeros, zeros, zeros)
+        candidate = CounterfactualCandidate("content-hash", controller())
+        initial = InitialStateSample(
+            8,
+            ResponseState(np.zeros(6), np.zeros(6), np.zeros(6)),
+            1.0,
+            controller_integral_state=np.zeros(6),
+            integrator_state_source="latent_posterior_sample",
+        )
+        posterior = response_posterior()
+        tube = TargetTube(
+            np.full(6, 100.0),
+            np.full(6, 100.0),
+            allowed_outside_duration_s=1.0,
+        )
+        reference = support_reference((candidate,))
+        config = CounterfactualConfig(
+            process_noise_sigma=np.zeros(6), seed=77
+        )
+
+        def evaluate(
+            selected_target=target,
+            selected_initial=initial,
+            selected_posterior=posterior,
+            selected_reference=reference,
+            selected_config=config,
+        ):
+            return ClosedLoopCounterfactualEvaluator(
+                selected_reference
+            ).evaluate(
+                candidate,
+                selected_target,
+                tube,
+                selected_posterior,
+                [selected_initial],
+                selected_config,
+            )
+
+        baseline = evaluate()
+        self.assertEqual(baseline.run_id, evaluate().run_id)
+        changed_integrator = replace(
+            initial,
+            controller_integral_state=np.ones(6) * 0.01,
+        )
+        changed_weights = replace(
+            posterior, weights=np.array([0.8, 0.1, 0.1])
+        )
+        changed_target_position = np.array(zeros, copy=True)
+        changed_target_position[1, 0] = 0.01
+        changed_target = TargetTrajectory(
+            times, changed_target_position, zeros, zeros
+        )
+        changed_reference = replace(
+            reference, supported_distance=2.5
+        )
+        changed_config = replace(
+            config, process_noise_replicates=2
+        )
+        identifiers = {
+            baseline.run_id,
+            evaluate(selected_initial=changed_integrator).run_id,
+            evaluate(selected_posterior=changed_weights).run_id,
+            evaluate(selected_target=changed_target).run_id,
+            evaluate(selected_reference=changed_reference).run_id,
+            evaluate(selected_config=changed_config).run_id,
+        }
+        self.assertEqual(len(identifiers), 6)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,11 @@
 """Closed-loop posterior counterfactual evaluation and support labelling."""
 
-from dataclasses import dataclass
-from typing import Dict, Mapping, Optional, Sequence, Tuple
+from dataclasses import asdict, dataclass, is_dataclass
+from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 from scipy.stats import beta as beta_distribution
+from scipy.spatial.transform import Rotation
 
 from .controller_replay import (
     AXIS_COUNT,
@@ -25,6 +26,53 @@ SUPPORTED = "SUPPORTED"
 EXTRAPOLATIVE = "EXTRAPOLATIVE"
 UNSUPPORTED = "UNSUPPORTED"
 _SUPPORT_LABELS = (SUPPORTED, EXTRAPOLATIVE, UNSUPPORTED)
+DEPENDENCE_JOINT_SAMPLES = "JOINT_POSTERIOR_SAMPLES"
+DEPENDENCE_APPROXIMATED = "DEPENDENCE_APPROXIMATED_INDEPENDENT_PRODUCT"
+EXPERIMENTAL = "EXPERIMENTAL"
+
+
+class PythonControllerReplayBackend:
+    """Explicit approximation backend for candidate screening."""
+
+    backend_id = "python_vector_pid_surrogate/v1"
+    is_exact = False
+    supports_closed_loop_plant_callback = True
+    applies_candidate_parameters = True
+    applies_delay_compensation = True
+    identity = {
+        "backend_id": backend_id,
+        "implementation_language": "Python",
+        "is_exact": False,
+    }
+
+    def run(self, *args, **kwargs):
+        return ControllerReplay().run(*args, **kwargs)
+
+
+def _backend_identity(backend: Any) -> Mapping[str, Any]:
+    identity = getattr(backend, "identity", None)
+    if is_dataclass(identity):
+        identity = asdict(identity)
+    elif isinstance(identity, Mapping):
+        identity = dict(identity)
+    if not isinstance(identity, Mapping):
+        raise ValueError("controller backend must expose a stable identity mapping")
+    backend_id = str(getattr(backend, "backend_id", identity.get("backend_id", "")))
+    if not backend_id:
+        raise ValueError("controller backend_id must not be empty")
+    result = dict(identity)
+    result["backend_id"] = backend_id
+    result["is_exact"] = bool(getattr(backend, "is_exact", False))
+    result["supports_closed_loop_plant_callback"] = bool(
+        getattr(backend, "supports_closed_loop_plant_callback", False)
+    )
+    result["applies_candidate_parameters"] = bool(
+        getattr(backend, "applies_candidate_parameters", False)
+    )
+    result["applies_delay_compensation"] = bool(
+        getattr(backend, "applies_delay_compensation", False)
+    )
+    return result
 
 
 def _vector(values, name, positive=False):
@@ -51,6 +99,15 @@ def _matrix(values, rows, name):
 
 def _weighted_mean(values, weights):
     return np.tensordot(weights, values, axes=(0, 0))
+
+
+def _sha256(value, name):
+    digest = str(value).lower()
+    if len(digest) != 64 or any(
+        character not in "0123456789abcdef" for character in digest
+    ):
+        raise ValueError("{} must be a lowercase SHA-256".format(name))
+    return digest
 
 
 @dataclass(frozen=True)
@@ -179,11 +236,18 @@ def evaluate_target_tube(
     if not np.any(evaluation):
         raise ValueError("target tube starts after the trajectory horizon")
     position_error = positions - target.position
-    # Generalized attitude coordinates are local rotation-vector-like values;
-    # wrap them to avoid a representational 2*pi error.
+    # Orientation coordinates are rotation vectors, not independent Euler
+    # angles.  Use the SO(3) relative log so coupled/large rotations are not
+    # misclassified by component-wise wrapping.
+    desired_orientation = Rotation.from_rotvec(
+        np.array(target.position[:, 3:], copy=True)
+    )
+    actual_orientation = Rotation.from_rotvec(
+        np.array(positions[:, 3:], copy=True)
+    )
     position_error[:, 3:] = (
-        position_error[:, 3:] + np.pi
-    ) % (2.0 * np.pi) - np.pi
+        desired_orientation.inv() * actual_orientation
+    ).as_rotvec()
     velocity_error = velocities - target.velocity
     position_ratio = np.max(
         np.abs(position_error[evaluation]) / tube.position_tolerance
@@ -233,11 +297,15 @@ def evaluate_target_tube(
         positions[evaluation, 2] < float(tube.minimum_height_m)
     ):
         violations.append("ground_or_contact")
-    if tube.maximum_tilt_rad is not None and np.any(
-        np.linalg.norm(positions[evaluation, 3:5], axis=1)
-        > float(tube.maximum_tilt_rad)
-    ):
-        violations.append("tilt_safety")
+    if tube.maximum_tilt_rad is not None:
+        body_up_world = actual_orientation.apply(
+            np.tile(np.array([0.0, 0.0, 1.0]), (count, 1))
+        )
+        physical_tilt = np.arccos(
+            np.clip(body_up_world[:, 2], -1.0, 1.0)
+        )
+        if np.any(physical_tilt[evaluation] > float(tube.maximum_tilt_rad)):
+            violations.append("tilt_safety")
     if tube.absolute_velocity_limit is not None and np.any(
         np.abs(velocities[evaluation]) > tube.absolute_velocity_limit
     ):
@@ -295,18 +363,65 @@ class InitialStateSample:
     state: ResponseState
     weight: float
     stamp: Optional[float] = None
+    controller_integral_state: Optional[np.ndarray] = None
+    integrator_state_source: str = "UNKNOWN"
 
     def __post_init__(self):
         if not isinstance(self.state, ResponseState):
             raise TypeError("state must be ResponseState")
+        if int(self.sample_id) < 0:
+            raise ValueError("sample_id must be non-negative")
         weight = float(self.weight)
         if not np.isfinite(weight) or weight <= 0.0:
             raise ValueError("initial-state weight must be finite and positive")
         if self.stamp is not None and not np.isfinite(float(self.stamp)):
             raise ValueError("initial-state stamp must be finite when provided")
+        integral = self.controller_integral_state
+        if integral is not None:
+            integral = _vector(integral, "controller_integral_state")
+            if self.integrator_state_source not in (
+                "restored_from_controller_state",
+                "latent_posterior_sample",
+                "explicit_test_assumption",
+            ):
+                raise ValueError(
+                    "an integral state requires explicit restored/latent/assumed provenance"
+                )
+            object.__setattr__(self, "controller_integral_state", integral)
+        elif self.integrator_state_source != "UNKNOWN":
+            raise ValueError(
+                "integrator_state_source must be UNKNOWN when state is absent"
+            )
         object.__setattr__(self, "weight", weight)
+        object.__setattr__(self, "sample_id", int(self.sample_id))
         if self.stamp is not None:
             object.__setattr__(self, "stamp", float(self.stamp))
+
+
+@dataclass(frozen=True)
+class JointPosteriorSample:
+    """One coupled initial-state/response-parameter posterior atom."""
+
+    joint_sample_id: int
+    initial_sample_id: int
+    response_sample_index: int
+    weight: float
+
+    def __post_init__(self):
+        weight = float(self.weight)
+        if (
+            int(self.joint_sample_id) < 0
+            or int(self.response_sample_index) < 0
+            or not np.isfinite(weight)
+            or weight <= 0.0
+        ):
+            raise ValueError("joint posterior sample fields are invalid")
+        object.__setattr__(self, "joint_sample_id", int(self.joint_sample_id))
+        object.__setattr__(self, "initial_sample_id", int(self.initial_sample_id))
+        object.__setattr__(
+            self, "response_sample_index", int(self.response_sample_index)
+        )
+        object.__setattr__(self, "weight", weight)
 
 
 @dataclass(frozen=True)
@@ -373,6 +488,421 @@ class SupportDiagnostics:
     def __post_init__(self):
         if self.label not in _SUPPORT_LABELS:
             raise ValueError("invalid support label")
+
+
+@dataclass(frozen=True)
+class ProbabilityCalibrationReport:
+    """Verified held-out evidence for interpreting q as a probability."""
+
+    source_bag_hashes: Tuple[str, ...]
+    normalized_dataset_hashes: Tuple[str, ...]
+    protocol_sha256: str
+    manifest_sha256: str
+    selection_result_sha256: str
+    model_version: str
+    controller_backend_id: str
+    controller_backend_identity_sha256: str
+    exact_conformance_report_sha256: str
+    source_commit: str
+    outer_fold_count: int
+    selection_candidate_id: str
+    required_hard_gates: Tuple[str, ...]
+    primary_metric: str
+    primary_metric_value: float
+    primary_metric_ci_lower: float
+    primary_metric_ci_upper: float
+    primary_metric_standard_error: float
+    selection_protocol: Mapping[str, Any]
+    selection_result: Mapping[str, Any]
+    content_sha256: str
+    schema: str = "grape_probability_calibration/v1"
+
+    @staticmethod
+    def _payload(
+        source_bag_hashes,
+        normalized_dataset_hashes,
+        protocol_sha256,
+        manifest_sha256,
+        selection_result_sha256,
+        model_version,
+        controller_backend_id,
+        controller_backend_identity_sha256,
+        exact_conformance_report_sha256,
+        source_commit,
+        outer_fold_count,
+        selection_candidate_id,
+        required_hard_gates,
+        primary_metric,
+        primary_metric_value,
+        primary_metric_ci_lower,
+        primary_metric_ci_upper,
+        primary_metric_standard_error,
+        selection_protocol,
+        selection_result,
+        schema,
+    ):
+        return {
+            "schema": schema,
+            "source_bag_hashes": tuple(source_bag_hashes),
+            "normalized_dataset_hashes": tuple(normalized_dataset_hashes),
+            "protocol_sha256": str(protocol_sha256),
+            "manifest_sha256": str(manifest_sha256),
+            "selection_result_sha256": str(selection_result_sha256),
+            "model_version": str(model_version),
+            "controller_backend_id": str(controller_backend_id),
+            "controller_backend_identity_sha256": str(
+                controller_backend_identity_sha256
+            ),
+            "exact_conformance_report_sha256": str(
+                exact_conformance_report_sha256
+            ),
+            "source_commit": str(source_commit),
+            "outer_fold_count": int(outer_fold_count),
+            "selection_candidate_id": str(selection_candidate_id),
+            "required_hard_gates": tuple(required_hard_gates),
+            "primary_metric": str(primary_metric),
+            "primary_metric_value": float(primary_metric_value),
+            "primary_metric_ci_lower": float(primary_metric_ci_lower),
+            "primary_metric_ci_upper": float(primary_metric_ci_upper),
+            "primary_metric_standard_error": float(
+                primary_metric_standard_error
+            ),
+            "selection_protocol": dict(selection_protocol),
+            "selection_result": dict(selection_result),
+        }
+
+    @classmethod
+    def from_selection_result(
+        cls,
+        *,
+        selection_protocol,
+        selection_result,
+        model_version,
+        controller_backend_identity,
+    ):
+        """Verify a frozen selection result and create a promotion report.
+
+        This is intentionally not a ``passed=True`` constructor: the PASS is
+        derived from the frozen LOBO protocol and its content-addressed result.
+        """
+
+        protocol = dict(selection_protocol)
+        result = dict(selection_result)
+        backend_identity = dict(controller_backend_identity)
+        episodes = protocol.get("episodes", {})
+        source_hashes = tuple(
+            episodes[key]["bag_sha256"] for key in sorted(episodes)
+        )
+        candidate_id = "bayesian_closed_loop"
+        candidate = result.get("candidates", {}).get(candidate_id, {})
+        statistics = candidate.get("statistics") or {}
+        normalized_dataset_hashes = tuple(
+            candidate.get("trajectory_sample_bundle_hashes", ())
+        )
+        exact_hashes = tuple(
+            candidate.get("exact_conformance_report_hashes", ())
+        )
+        required = tuple(
+            next(
+                item
+                for item in protocol["candidate_groups"][
+                    "counterfactual_usefulness"
+                ]["candidates"]
+                if item["candidate_id"] == candidate_id
+            ).get("required_hard_gates", ())
+        )
+        schema = "grape_probability_calibration/v1"
+        payload = cls._payload(
+            source_hashes,
+            normalized_dataset_hashes,
+            stable_hash(protocol),
+            protocol["manifest_hash"],
+            result["result_hash"],
+            model_version,
+            backend_identity["backend_id"],
+            stable_hash(backend_identity),
+            exact_hashes[0] if len(exact_hashes) == 1 else "",
+            result["source_commit"],
+            result["outer_fold_count"],
+            candidate_id,
+            required,
+            candidate["primary_metric"],
+            statistics["mean"],
+            statistics["bootstrap_lower"],
+            statistics["bootstrap_upper"],
+            statistics["standard_error"],
+            protocol,
+            result,
+            schema,
+        )
+        return cls(content_sha256=stable_hash(payload), **payload)
+
+    def __post_init__(self):
+        from .selection import (
+            DEFAULT_CANDIDATE,
+            SELECTION_SCHEMA,
+            validate_selection_protocol,
+        )
+
+        if self.schema != "grape_probability_calibration/v1":
+            raise ValueError("unsupported probability calibration schema")
+        protocol = dict(self.selection_protocol)
+        result = dict(self.selection_result)
+        validate_selection_protocol(protocol)
+        if result.get("schema") != SELECTION_SCHEMA:
+            raise ValueError("calibration selection result schema mismatch")
+        result_without_hash = dict(result)
+        recorded_result_hash = result_without_hash.pop("result_hash", None)
+        if (
+            recorded_result_hash is None
+            or stable_hash(result_without_hash) != recorded_result_hash
+        ):
+            raise ValueError("calibration selection result hash mismatch")
+        if stable_hash(protocol) != result.get("protocol_hash"):
+            raise ValueError("calibration protocol/result hash mismatch")
+        if protocol["manifest_hash"] != result.get("manifest_hash"):
+            raise ValueError("calibration manifest binding mismatch")
+        folds = tuple(protocol["outer_folds"])
+        held_out = tuple(item["held_out_episode"] for item in folds)
+        held_out_hashes = tuple(item["held_out_bag_sha256"] for item in folds)
+        episode_hashes = {
+            key: value["bag_sha256"]
+            for key, value in protocol["episodes"].items()
+        }
+        if (
+            len(folds) != 12
+            or len(set(held_out)) != 12
+            or set(held_out) != set(episode_hashes)
+            or any(
+                episode_hashes[episode] != digest
+                for episode, digest in zip(held_out, held_out_hashes)
+            )
+        ):
+            raise ValueError(
+                "probability calibration requires 12 distinct held-out bags"
+            )
+        groups = result.get("groups", {})
+        if (
+            result.get("selection_complete") is not True
+            or set(groups) != set(protocol["candidate_groups"])
+            or any(
+                item.get("selected_default") is None
+                for item in groups.values()
+            )
+        ):
+            raise ValueError("selection is incomplete")
+        group = groups.get("counterfactual_usefulness", {})
+        candidate_id = "bayesian_closed_loop"
+        candidate = result.get("candidates", {}).get(candidate_id, {})
+        protocol_candidate = next(
+            (
+                item
+                for item in protocol["candidate_groups"][
+                    "counterfactual_usefulness"
+                ]["candidates"]
+                if item["candidate_id"] == candidate_id
+            ),
+            None,
+        )
+        required_gates = tuple(
+            () if protocol_candidate is None
+            else protocol_candidate.get("required_hard_gates", ())
+        )
+        run_hashes = tuple(candidate.get("run_hashes", ()))
+        statistics = candidate.get("statistics")
+        if (
+            group.get("selected_default") != candidate_id
+            or candidate.get("status") != DEFAULT_CANDIDATE
+            or candidate.get("primary_metric") != "held_out_brier_score"
+            or int(candidate.get("observation_count", -1)) != 12
+            or tuple(candidate.get("missing_folds", ()))
+            or tuple(candidate.get("missing_metric_folds", ()))
+            or tuple(candidate.get("failed_hard_gates", ()))
+            or len(run_hashes) != 12
+            or len(set(run_hashes)) != 12
+            or any(_sha256(item, "selection run hash") != item for item in run_hashes)
+            or not required_gates
+            or statistics is None
+            or int(statistics.get("episode_count", -1)) != 12
+        ):
+            raise ValueError(
+                "bayesian closed-loop calibration did not pass all 12 folds "
+                "and required hard gates"
+            )
+        protocol_candidate_ids = {
+            item["candidate_id"]
+            for group_value in protocol["candidate_groups"].values()
+            for item in group_value["candidates"]
+        }
+        result_candidates = result.get("candidates", {})
+        if (
+            set(result_candidates) != protocol_candidate_ids
+            or any(
+                int(item.get("observation_count", -1)) != 12
+                or tuple(item.get("missing_folds", ()))
+                or tuple(item.get("missing_metric_folds", ()))
+                for item in result_candidates.values()
+            )
+        ):
+            raise ValueError(
+                "selection must evaluate every protocol candidate on all folds"
+            )
+        statistic_values = tuple(
+            float(statistics[key])
+            for key in (
+                "mean",
+                "bootstrap_lower",
+                "bootstrap_upper",
+                "standard_error",
+            )
+        )
+        if (
+            not np.all(np.isfinite(statistic_values))
+            or statistic_values[1] > statistic_values[0]
+            or statistic_values[0] > statistic_values[2]
+            or statistic_values[3] < 0.0
+        ):
+            raise ValueError("calibration primary metric/CI is invalid")
+        source_hashes = tuple(
+            _sha256(item, "source_bag_hash")
+            for item in self.source_bag_hashes
+        )
+        dataset_hashes = tuple(
+            _sha256(item, "normalized_dataset_hash")
+            for item in self.normalized_dataset_hashes
+        )
+        protocol_hash = _sha256(self.protocol_sha256, "protocol_sha256")
+        manifest_hash = _sha256(self.manifest_sha256, "manifest_sha256")
+        selection_hash = _sha256(
+            self.selection_result_sha256, "selection_result_sha256"
+        )
+        backend_hash = _sha256(
+            self.controller_backend_identity_sha256,
+            "controller_backend_identity_sha256",
+        )
+        exact_conformance_hash = _sha256(
+            self.exact_conformance_report_sha256,
+            "exact_conformance_report_sha256",
+        )
+        if (
+            len(source_hashes) != 12
+            or len(dataset_hashes) != 12
+            or len(set(source_hashes)) != len(source_hashes)
+            or len(set(dataset_hashes)) != len(dataset_hashes)
+            or set(source_hashes) != set(episode_hashes.values())
+        ):
+            raise ValueError(
+                "calibration requires 12 unique bag and dataset hashes"
+            )
+        if (
+            not self.model_version
+            or not self.controller_backend_id
+            or not self.source_commit
+            or self.source_commit == "UNKNOWN"
+        ):
+            raise ValueError(
+                "calibration model/backend/source commit binding is required"
+            )
+        model_versions = tuple(candidate.get("model_versions", ()))
+        backend_hashes = tuple(
+            candidate.get("controller_backend_identity_hashes", ())
+        )
+        exact_hashes = tuple(
+            candidate.get("exact_conformance_report_hashes", ())
+        )
+        trajectory_hashes = tuple(
+            candidate.get("trajectory_sample_bundle_hashes", ())
+        )
+        if (
+            model_versions != (self.model_version,)
+            or backend_hashes != (backend_hash,)
+            or exact_hashes != (exact_conformance_hash,)
+            or len(trajectory_hashes) != 12
+            or len(set(trajectory_hashes)) != 12
+            or tuple(sorted(dataset_hashes))
+            != tuple(sorted(trajectory_hashes))
+        ):
+            raise ValueError(
+                "calibration folds are not bound to one model, controller "
+                "backend, exact-conformance report, and dataset bundle each"
+            )
+        if (
+            int(self.outer_fold_count) != 12
+            or int(result.get("outer_fold_count", -1)) != 12
+            or self.source_commit != result.get("source_commit")
+            or protocol_hash != result.get("protocol_hash")
+            or manifest_hash != result.get("manifest_hash")
+            or selection_hash != recorded_result_hash
+            or self.selection_candidate_id != candidate_id
+            or tuple(self.required_hard_gates) != required_gates
+            or self.primary_metric != candidate["primary_metric"]
+            or not np.allclose(
+                (
+                    self.primary_metric_value,
+                    self.primary_metric_ci_lower,
+                    self.primary_metric_ci_upper,
+                    self.primary_metric_standard_error,
+                ),
+                statistic_values,
+                rtol=0.0,
+                atol=0.0,
+            )
+        ):
+            raise ValueError("calibration report is not bound to selection evidence")
+        payload = self._payload(
+            source_hashes,
+            dataset_hashes,
+            protocol_hash,
+            manifest_hash,
+            selection_hash,
+            self.model_version,
+            self.controller_backend_id,
+            backend_hash,
+            exact_conformance_hash,
+            self.source_commit,
+            12,
+            candidate_id,
+            required_gates,
+            self.primary_metric,
+            self.primary_metric_value,
+            self.primary_metric_ci_lower,
+            self.primary_metric_ci_upper,
+            self.primary_metric_standard_error,
+            protocol,
+            result,
+            self.schema,
+        )
+        content_hash = _sha256(self.content_sha256, "content_sha256")
+        if stable_hash(payload) != content_hash:
+            raise ValueError("calibration report content hash mismatch")
+        object.__setattr__(self, "source_bag_hashes", source_hashes)
+        object.__setattr__(
+            self, "normalized_dataset_hashes", dataset_hashes
+        )
+        object.__setattr__(self, "protocol_sha256", protocol_hash)
+        object.__setattr__(self, "manifest_sha256", manifest_hash)
+        object.__setattr__(self, "selection_result_sha256", selection_hash)
+        object.__setattr__(
+            self, "controller_backend_identity_sha256", backend_hash
+        )
+        object.__setattr__(
+            self,
+            "exact_conformance_report_sha256",
+            exact_conformance_hash,
+        )
+        object.__setattr__(self, "outer_fold_count", 12)
+        object.__setattr__(self, "required_hard_gates", required_gates)
+        object.__setattr__(self, "selection_protocol", protocol)
+        object.__setattr__(self, "selection_result", result)
+        object.__setattr__(self, "content_sha256", content_hash)
+
+    @property
+    def passed(self):
+        return True
+
+    @property
+    def status(self):
+        return "PASS"
 
 
 def classify_support(
@@ -459,6 +989,7 @@ class CounterfactualConfig:
     source_bag_hashes: Tuple[str, ...] = ()
     normalized_dataset_hashes: Tuple[str, ...] = ()
     source_commit: str = "UNKNOWN"
+    recommendation_threshold: float = 0.80
 
     def __post_init__(self):
         sigma = _vector(self.process_noise_sigma, "process_noise_sigma")
@@ -468,6 +999,9 @@ class CounterfactualConfig:
         probability = float(self.credible_probability)
         if replicates < 1 or not 0.0 < probability < 1.0:
             raise ValueError("replicate count or credible probability is invalid")
+        recommendation_threshold = float(self.recommendation_threshold)
+        if not 0.0 < recommendation_threshold < 1.0:
+            raise ValueError("recommendation_threshold must lie in (0, 1)")
         if self.analysis_mode not in ("retrospective", "online_prefix"):
             raise ValueError("analysis_mode must be retrospective or online_prefix")
         if self.analysis_mode == "online_prefix":
@@ -486,6 +1020,9 @@ class CounterfactualConfig:
         object.__setattr__(self, "process_noise_sigma", sigma)
         object.__setattr__(self, "process_noise_replicates", replicates)
         object.__setattr__(self, "credible_probability", probability)
+        object.__setattr__(
+            self, "recommendation_threshold", recommendation_threshold
+        )
         object.__setattr__(self, "source_bag_hashes", tuple(self.source_bag_hashes))
         object.__setattr__(
             self, "normalized_dataset_hashes", tuple(self.normalized_dataset_hashes)
@@ -504,6 +1041,7 @@ class TrajectoryRollout:
     command: np.ndarray
     saturation: np.ndarray
     tube: TubeEvaluation
+    joint_sample_id: int = -1
 
     def __post_init__(self):
         weight = float(self.weight)
@@ -531,6 +1069,7 @@ class TrajectoryRollout:
         if not isinstance(self.tube, TubeEvaluation):
             raise TypeError("tube must be TubeEvaluation")
         object.__setattr__(self, "weight", weight)
+        object.__setattr__(self, "joint_sample_id", int(self.joint_sample_id))
 
 
 @dataclass(frozen=True)
@@ -546,10 +1085,21 @@ class CounterfactualResult:
     rollouts: Tuple[TrajectoryRollout, ...]
     run_id: str
     provenance: Mapping[str, object]
+    recommendation_threshold: float = 0.80
+    exact_controller_gate_passed: bool = False
+    probability_calibration_gate_passed: bool = False
+    dependence_handling: str = DEPENDENCE_APPROXIMATED
+    workflow_status: str = EXPERIMENTAL
 
     @property
     def recommendable(self):
-        return self.support.label == SUPPORTED
+        return bool(
+            self.exact_controller_gate_passed
+            and self.probability_calibration_gate_passed
+            and self.dependence_handling == DEPENDENCE_JOINT_SAMPLES
+            and self.support.label == SUPPORTED
+            and self.lower_credible_bound >= self.recommendation_threshold
+        )
 
 
 class ClosedLoopCounterfactualEvaluator:
@@ -557,11 +1107,48 @@ class ClosedLoopCounterfactualEvaluator:
         self,
         support_reference: SupportReference,
         response_model: Optional[LowDimensionalEffectiveResponse] = None,
+        controller_backend_factory: Optional[Callable[[], Any]] = None,
+        exact_oracle_conformance_report: Optional[Any] = None,
+        probability_calibration_report: Optional[
+            ProbabilityCalibrationReport
+        ] = None,
     ):
         if not isinstance(support_reference, SupportReference):
             raise TypeError("support_reference must be SupportReference")
         self.support_reference = support_reference
         self.response_model = response_model or LowDimensionalEffectiveResponse()
+        self.controller_backend_factory = (
+            controller_backend_factory
+            if controller_backend_factory is not None
+            else PythonControllerReplayBackend
+        )
+        if not callable(self.controller_backend_factory):
+            raise TypeError("controller_backend_factory must be callable")
+        if exact_oracle_conformance_report is not None:
+            from .alternative_backends import ExactOracleConformanceReport
+
+            if not isinstance(
+                exact_oracle_conformance_report, ExactOracleConformanceReport
+            ):
+                raise TypeError(
+                    "exact_oracle_conformance_report must be a verified "
+                    "ExactOracleConformanceReport"
+                )
+        self.exact_oracle_conformance_report = (
+            exact_oracle_conformance_report
+        )
+        if (
+            probability_calibration_report is not None
+            and not isinstance(
+                probability_calibration_report,
+                ProbabilityCalibrationReport,
+            )
+        ):
+            raise TypeError(
+                "probability_calibration_report must be a content-addressed "
+                "ProbabilityCalibrationReport"
+            )
+        self.probability_calibration_report = probability_calibration_report
 
     def evaluate(
         self,
@@ -571,12 +1158,36 @@ class ClosedLoopCounterfactualEvaluator:
         response_posterior: EffectiveResponsePosterior,
         initial_state_samples: Sequence[InitialStateSample],
         config: CounterfactualConfig,
+        joint_posterior_samples: Optional[
+            Sequence[JointPosteriorSample]
+        ] = None,
     ) -> CounterfactualResult:
         if not isinstance(candidate, CounterfactualCandidate):
             raise TypeError("candidate must be CounterfactualCandidate")
         initials = tuple(initial_state_samples)
         if not initials:
             raise ValueError("at least one initial-state sample is required")
+        if any(item.controller_integral_state is None for item in initials):
+            raise ValueError(
+                "every initial-state sample requires an explicit restored or "
+                "latent controller_integral_state"
+            )
+        backend = self.controller_backend_factory()
+        if (
+            not callable(getattr(backend, "run", None))
+            or getattr(backend, "supports_closed_loop_plant_callback", False)
+            is not True
+            or getattr(backend, "applies_candidate_parameters", False)
+            is not True
+            or getattr(backend, "applies_delay_compensation", False)
+            is not True
+        ):
+            raise TypeError(
+                "controller backend must support closed-loop plant callbacks "
+                "and apply candidate parameters/delay compensation"
+            )
+        backend_identity = _backend_identity(backend)
+        backend_is_exact = bool(getattr(backend, "is_exact", False))
         if config.analysis_mode == "online_prefix":
             cutoff = float(config.prefix_cutoff)
             tolerance = 1.0e-9
@@ -591,8 +1202,65 @@ class ClosedLoopCounterfactualEvaluator:
                 raise ValueError(
                     "online-prefix initial states must be stamped at prefix_cutoff"
                 )
+        initial_ids = [item.sample_id for item in initials]
+        if len(set(initial_ids)) != len(initials):
+            raise ValueError("initial-state sample IDs must be unique")
         initial_weights = np.asarray([item.weight for item in initials], dtype=float)
         initial_weights /= np.sum(initial_weights)
+        initial_by_id = {
+            item.sample_id: index for index, item in enumerate(initials)
+        }
+        joint = None
+        if joint_posterior_samples is None:
+            coupling = DEPENDENCE_APPROXIMATED
+            pairs = [
+                (
+                    -1,
+                    initial_index,
+                    response_index,
+                    initial_weights[initial_index]
+                    * float(response_posterior.weights[response_index]),
+                )
+                for initial_index in range(len(initials))
+                for response_index in range(len(response_posterior.samples))
+                if response_posterior.weights[response_index] > 0.0
+            ]
+        else:
+            joint = tuple(joint_posterior_samples)
+            if not joint or any(
+                not isinstance(item, JointPosteriorSample) for item in joint
+            ):
+                raise ValueError(
+                    "joint_posterior_samples must contain coupled posterior atoms"
+                )
+            joint_ids = [item.joint_sample_id for item in joint]
+            if len(set(joint_ids)) != len(joint_ids):
+                raise ValueError("joint posterior sample IDs must be unique")
+            total_joint_weight = float(np.sum([item.weight for item in joint]))
+            pairs = []
+            for item in joint:
+                if item.initial_sample_id not in initial_by_id:
+                    raise ValueError(
+                        "joint sample references an unknown initial sample"
+                    )
+                if (
+                    item.response_sample_index
+                    >= len(response_posterior.samples)
+                    or response_posterior.weights[item.response_sample_index]
+                    <= 0.0
+                ):
+                    raise ValueError(
+                        "joint sample references an unsupported response sample"
+                    )
+                pairs.append(
+                    (
+                        item.joint_sample_id,
+                        initial_by_id[item.initial_sample_id],
+                        item.response_sample_index,
+                        item.weight / total_joint_weight,
+                    )
+                )
+            coupling = DEPENDENCE_JOINT_SAMPLES
         request = ReplayRequest(
             timestamps=target.timestamps,
             reference_position=target.position,
@@ -601,20 +1269,17 @@ class ClosedLoopCounterfactualEvaluator:
         )
         rollouts = []
         rollout_id = 0
-        for initial_index, initial in enumerate(initials):
-            for response_index, response_parameters in enumerate(
-                response_posterior.samples
-            ):
-                response_weight = float(response_posterior.weights[response_index])
-                if response_weight <= 0.0:
-                    continue
-                for noise_index in range(config.process_noise_replicates):
+        for joint_sample_id, initial_index, response_index, pair_weight in pairs:
+            initial = initials[initial_index]
+            response_parameters = response_posterior.samples[response_index]
+            for noise_index in range(config.process_noise_replicates):
                     seed_sequence = np.random.SeedSequence(
                         [
                             int(config.seed),
                             int(initial.sample_id),
                             int(response_index),
                             int(noise_index),
+                            int(joint_sample_id + 1),
                         ]
                     )
                     rng = np.random.default_rng(seed_sequence)
@@ -649,13 +1314,13 @@ class ClosedLoopCounterfactualEvaluator:
                             transition.state.generalized_velocity,
                         )
 
-                    replay = ControllerReplay().run(
+                    replay = backend.run(
                         request,
                         candidate.controller,
                         replay_mode="free_run",
                         initial_position=initial.state.generalized_position,
                         initial_velocity=initial.state.generalized_velocity,
-                        initial_integral_state=None,
+                        initial_integral_state=initial.controller_integral_state,
                         plant_step=plant_step,
                         plant_input="generalized_wrench_command",
                         apply_delay_compensation=True,
@@ -668,11 +1333,7 @@ class ClosedLoopCounterfactualEvaluator:
                         replay.feedback_velocity,
                         saturation,
                     )
-                    weight = (
-                        initial_weights[initial_index]
-                        * response_weight
-                        / config.process_noise_replicates
-                    )
+                    weight = pair_weight / config.process_noise_replicates
                     rollouts.append(
                         TrajectoryRollout(
                             rollout_id=rollout_id,
@@ -685,6 +1346,7 @@ class ClosedLoopCounterfactualEvaluator:
                             command=replay.generalized_wrench_command,
                             saturation=saturation,
                             tube=tube_result,
+                            joint_sample_id=joint_sample_id,
                         )
                     )
                     rollout_id += 1
@@ -715,6 +1377,7 @@ class ClosedLoopCounterfactualEvaluator:
                     command=item.command,
                     saturation=item.saturation,
                     tube=item.tube,
+                    joint_sample_id=item.joint_sample_id,
                 )
             )
         rollouts = tuple(normalized_rollouts)
@@ -772,12 +1435,265 @@ class ClosedLoopCounterfactualEvaluator:
             predictive_std,
             self.support_reference,
         )
+        from .alternative_backends import REQUIRED_CONFORMANCE_CHANNELS
+
+        conformance = self.exact_oracle_conformance_report
+        conformance_identity = None
+        identity_bound = False
+        if conformance is not None and conformance.identity is not None:
+            conformance_identity = asdict(conformance.identity)
+            conformance_identity["is_exact"] = True
+            conformance_identity[
+                "supports_closed_loop_plant_callback"
+            ] = True
+            conformance_identity["applies_candidate_parameters"] = True
+            conformance_identity["applies_delay_compensation"] = True
+            identity_bound = conformance_identity == backend_identity
+        conformance_metrics_passed = bool(
+            conformance is not None
+            and set(conformance.channel_metrics)
+            == set(REQUIRED_CONFORMANCE_CHANNELS)
+            and all(
+                metric.passed
+                for metric in conformance.channel_metrics.values()
+            )
+        )
+        exact_gate_passed = bool(
+            backend_is_exact
+            and conformance is not None
+            and conformance.passed
+            and conformance.status == "PASS"
+            and conformance_metrics_passed
+            and identity_bound
+        )
+        calibration = self.probability_calibration_report
+        calibration_binding = {
+            "report_present": calibration is not None,
+            "model_version_matches": bool(
+                calibration is not None
+                and calibration.model_version == self.response_model.model_id
+            ),
+            "backend_id_matches": bool(
+                calibration is not None
+                and calibration.controller_backend_id
+                == backend_identity["backend_id"]
+            ),
+            "backend_identity_matches": bool(
+                calibration is not None
+                and calibration.controller_backend_identity_sha256
+                == stable_hash(backend_identity)
+            ),
+            "exact_conformance_report_matches": bool(
+                calibration is not None
+                and conformance is not None
+                and calibration.exact_conformance_report_sha256
+                == stable_hash(asdict(conformance))
+            ),
+            "source_commit_matches": bool(
+                calibration is not None
+                and config.source_commit != "UNKNOWN"
+                and calibration.source_commit == config.source_commit
+            ),
+            "source_bags_covered": bool(
+                calibration is not None
+                and config.source_bag_hashes
+                and set(config.source_bag_hashes).issubset(
+                    calibration.source_bag_hashes
+                )
+            ),
+            "normalized_datasets_covered": bool(
+                calibration is not None
+                and config.normalized_dataset_hashes
+                and set(config.normalized_dataset_hashes).issubset(
+                    calibration.normalized_dataset_hashes
+                )
+            ),
+        }
+        calibration_gate_passed = bool(
+            calibration is not None
+            and calibration.passed
+            and all(calibration_binding.values())
+        )
+        content_payload = {
+            "candidate": {
+                "candidate_id": candidate.candidate_id,
+                "controller_vector": candidate.vector(),
+                "controller_limits": {
+                    "output": candidate.controller.limits.output,
+                    "p_term": candidate.controller.limits.p_term,
+                    "i_term": candidate.controller.limits.i_term,
+                    "d_term": candidate.controller.limits.d_term,
+                    "p_error": candidate.controller.limits.p_error,
+                    "i_state": candidate.controller.limits.i_state,
+                    "d_error": candidate.controller.limits.d_error,
+                },
+                "metadata": candidate.metadata,
+            },
+            "target": {
+                "timestamps": target.timestamps,
+                "position": target.position,
+                "velocity": target.velocity,
+                "acceleration": target.acceleration,
+            },
+            "target_tube": {
+                "position_tolerance": tube.position_tolerance,
+                "velocity_tolerance": tube.velocity_tolerance,
+                "evaluation_start_offset_s": tube.evaluation_start_offset_s,
+                "maximum_continuous_saturation_s": (
+                    tube.maximum_continuous_saturation_s
+                    if np.isfinite(tube.maximum_continuous_saturation_s)
+                    else "UNBOUNDED"
+                ),
+                "minimum_height_m": tube.minimum_height_m,
+                "maximum_tilt_rad": tube.maximum_tilt_rad,
+                "absolute_velocity_limit": tube.absolute_velocity_limit,
+                "allowed_outside_duration_s": tube.allowed_outside_duration_s,
+            },
+            "response_posterior": {
+                "parameter_vectors": [
+                    item.as_vector() for item in response_posterior.samples
+                ],
+                "weights": response_posterior.weights,
+                "grid_delay_s": response_posterior.grid_delay_s,
+                "grid_time_constant_s": response_posterior.grid_time_constant_s,
+                "grid_weights": response_posterior.grid_weights,
+                "log_evidence": response_posterior.log_evidence,
+                "approximation": response_posterior.approximation,
+                "source_sample_ids": response_posterior.source_sample_ids,
+            },
+            "initial_samples": [
+                {
+                    "sample_id": item.sample_id,
+                    "weight": item.weight,
+                    "stamp": item.stamp,
+                    "state_position": item.state.generalized_position,
+                    "state_velocity": item.state.generalized_velocity,
+                    "actuator_state": item.state.actuator_state,
+                    "controller_integral_state": (
+                        item.controller_integral_state
+                    ),
+                    "integrator_state_source": item.integrator_state_source,
+                }
+                for item in initials
+            ],
+            "joint_posterior_samples": (
+                None
+                if joint is None
+                else [
+                    {
+                        "joint_sample_id": item.joint_sample_id,
+                        "initial_sample_id": item.initial_sample_id,
+                        "response_sample_index": item.response_sample_index,
+                        "weight": item.weight,
+                    }
+                    for item in joint
+                ]
+            ),
+            "dependence_handling": coupling,
+            "process_noise_sigma": config.process_noise_sigma,
+            "process_noise_replicates": config.process_noise_replicates,
+            "credible_probability": config.credible_probability,
+            "seed": config.seed,
+            "analysis_mode": config.analysis_mode,
+            "prefix_cutoff": config.prefix_cutoff,
+            "inference_data_end_time": config.inference_data_end_time,
+            "source_bag_hashes": config.source_bag_hashes,
+            "normalized_dataset_hashes": config.normalized_dataset_hashes,
+            "source_commit": config.source_commit,
+            "recommendation_threshold": config.recommendation_threshold,
+            "exact_controller_gate_passed": exact_gate_passed,
+            "probability_calibration_gate_passed": calibration_gate_passed,
+            "support_reference": {
+                "observed_candidate_vectors": (
+                    self.support_reference.observed_candidate_vectors
+                ),
+                "observed_state_action_points": (
+                    self.support_reference.observed_state_action_points
+                ),
+                "candidate_scale": self.support_reference.candidate_scale,
+                "state_action_scale": self.support_reference.state_action_scale,
+                "supported_distance": self.support_reference.supported_distance,
+                "unsupported_distance": (
+                    self.support_reference.unsupported_distance
+                ),
+                "minimum_importance_ess": (
+                    self.support_reference.minimum_importance_ess
+                ),
+                "maximum_predictive_std": (
+                    self.support_reference.maximum_predictive_std
+                    if np.isfinite(
+                        self.support_reference.maximum_predictive_std
+                    )
+                    else "UNBOUNDED"
+                ),
+            },
+            "controller_backend_identity": backend_identity,
+            "exact_oracle_conformance": {
+                "present": conformance is not None,
+                "passed": bool(
+                    conformance is not None and conformance.passed
+                ),
+                "status": (
+                    None if conformance is None else conformance.status
+                ),
+                "identity_bound_to_backend": identity_bound,
+                "all_required_metrics_passed": conformance_metrics_passed,
+                "identity": conformance_identity,
+                "report": (
+                    None if conformance is None else asdict(conformance)
+                ),
+            },
+            "probability_calibration": {
+                "binding": calibration_binding,
+                "report": (
+                    None if calibration is None else asdict(calibration)
+                ),
+            },
+            "response_model_id": self.response_model.model_id,
+        }
+        content_hash = stable_hash(content_payload)
+        statistically_eligible = bool(
+            exact_gate_passed
+            and calibration_gate_passed
+            and coupling == DEPENDENCE_JOINT_SAMPLES
+            and support.label == SUPPORTED
+            and lower >= config.recommendation_threshold
+        )
+        workflow_status = (
+            "MANUAL_REVIEW_REQUIRED"
+            if statistically_eligible
+            else EXPERIMENTAL
+        )
         provenance = {
             "source_bag_hashes": config.source_bag_hashes,
             "normalized_dataset_hashes": config.normalized_dataset_hashes,
             "source_commit": config.source_commit,
             "model_version": self.response_model.model_id,
-            "controller_backend": "python_vector_pid_surrogate/v1",
+            "controller_backend": backend_identity["backend_id"],
+            "controller_backend_identity": backend_identity,
+            "controller_backend_is_exact": backend_is_exact,
+            "exact_oracle_conformance_status": (
+                None if conformance is None else conformance.status
+            ),
+            "exact_oracle_identity_bound_to_backend": identity_bound,
+            "exact_controller_gate_passed": exact_gate_passed,
+            "probability_calibration_gate_passed": calibration_gate_passed,
+            "probability_calibration_binding": calibration_binding,
+            "probability_calibration_report_sha256": (
+                None
+                if calibration is None
+                else calibration.content_sha256
+            ),
+            "recommendation_threshold": config.recommendation_threshold,
+            "dependence_handling": coupling,
+            "dependence_diagnostic": (
+                "NONE"
+                if coupling == DEPENDENCE_JOINT_SAMPLES
+                else DEPENDENCE_APPROXIMATED
+            ),
+            "controller_integrator_state_sources": tuple(
+                item.integrator_state_source for item in initials
+            ),
             "seed": int(config.seed),
             "analysis_mode": config.analysis_mode,
             "prefix_cutoff": config.prefix_cutoff,
@@ -786,16 +1702,10 @@ class ClosedLoopCounterfactualEvaluator:
                 int(item.sample_id) for item in initials
             ),
             "response_posterior_approximation": response_posterior.approximation,
+            "counterfactual_content_hash": content_hash,
+            "workflow_status": workflow_status,
         }
-        run_id = stable_hash(
-            {
-                "candidate_id": candidate.candidate_id,
-                "candidate": candidate.vector(),
-                "target_times": target.timestamps,
-                "tube": tube,
-                "provenance": provenance,
-            }
-        )[:20]
+        run_id = content_hash[:20]
         return CounterfactualResult(
             candidate=candidate,
             success_probability=success_probability,
@@ -808,6 +1718,11 @@ class ClosedLoopCounterfactualEvaluator:
             rollouts=rollouts,
             run_id=run_id,
             provenance=provenance,
+            recommendation_threshold=config.recommendation_threshold,
+            exact_controller_gate_passed=exact_gate_passed,
+            probability_calibration_gate_passed=calibration_gate_passed,
+            dependence_handling=coupling,
+            workflow_status=workflow_status,
         )
 
 
@@ -825,8 +1740,7 @@ def connected_candidate_regions(
     eligible = [
         item
         for item in results
-        if item.support.label == SUPPORTED
-        and item.lower_credible_bound >= threshold
+        if item.recommendable and item.lower_credible_bound >= threshold
     ]
     if not eligible:
         return ()
@@ -861,6 +1775,9 @@ def connected_candidate_regions(
 
 
 __all__ = [
+    "DEPENDENCE_APPROXIMATED",
+    "DEPENDENCE_JOINT_SAMPLES",
+    "EXPERIMENTAL",
     "EXTRAPOLATIVE",
     "SUPPORTED",
     "UNSUPPORTED",
@@ -869,6 +1786,8 @@ __all__ = [
     "CounterfactualConfig",
     "CounterfactualResult",
     "InitialStateSample",
+    "JointPosteriorSample",
+    "PythonControllerReplayBackend",
     "SupportDiagnostics",
     "SupportReference",
     "TargetTrajectory",

@@ -183,6 +183,31 @@ class SelectionTests(unittest.TestCase):
             result["groups"]["controller_replay"]["selected_default"]
         )
 
+    def test_selection_is_incomplete_when_competitors_are_unmeasured(self):
+        protocol = load_selection_protocol(PROTOCOL_PATH)
+        observations = []
+        for group in protocol["candidate_groups"].values():
+            candidate = group["candidates"][0]
+            observations.extend(
+                _observations(
+                    protocol,
+                    candidate["candidate_id"],
+                    group["primary_metric"],
+                    [0.1] * 12,
+                    candidate.get("required_hard_gates", ()),
+                )
+            )
+        result = run_selection(
+            protocol, observations, source_commit="test"
+        )
+        self.assertTrue(
+            all(
+                group["selected_default"] is not None
+                for group in result["groups"].values()
+            )
+        )
+        self.assertFalse(result["selection_complete"])
+
     def test_candidates_must_share_fold_samples_grid_and_random_stream(self):
         protocol = load_selection_protocol(PROTOCOL_PATH)
         metric = protocol["candidate_groups"]["trajectory_smoother"][

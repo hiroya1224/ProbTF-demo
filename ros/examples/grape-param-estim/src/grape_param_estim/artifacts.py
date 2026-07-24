@@ -274,14 +274,26 @@ def _candidate_summary(
     if vector.shape != (len(CONTROLLER_PARAMETER_NAMES),):
         raise ValueError("counterfactual candidate has an unexpected parameter vector")
     threshold = float(recommendation_threshold)
+    if abs(threshold - float(result.recommendation_threshold)) > 1.0e-12:
+        raise ValueError(
+            "artifact recommendation threshold must match counterfactual result"
+        )
     eligible = (
         exact_controller_gate_passed
-        and result.support.label == SUPPORTED
-        and result.lower_credible_bound >= threshold
+        and result.recommendable
     )
-    if not exact_controller_gate_passed:
+    if (
+        not exact_controller_gate_passed
+        or not result.exact_controller_gate_passed
+    ):
         status = EXPERIMENTAL
-        reason = "exact_controller_replay_gate_not_passed"
+        reason = "verified_exact_controller_replay_gate_not_passed"
+    elif not result.probability_calibration_gate_passed:
+        status = EXPERIMENTAL
+        reason = "probability_calibration_gate_not_passed"
+    elif result.dependence_handling != "JOINT_POSTERIOR_SAMPLES":
+        status = EXPERIMENTAL
+        reason = "joint_posterior_dependence_not_available"
     elif result.support.label != SUPPORTED:
         status = MANUAL_REVIEW_REQUIRED
         reason = "candidate_is_not_supported"
@@ -305,6 +317,11 @@ def _candidate_summary(
         "proposal_eligible_after_statistical_gates": bool(eligible),
         "proposal_status": status,
         "proposal_reason": reason,
+        "exact_controller_gate_passed": result.exact_controller_gate_passed,
+        "probability_calibration_gate_passed": (
+            result.probability_calibration_gate_passed
+        ),
+        "dependence_handling": result.dependence_handling,
         "manual_review_required": True,
         "counterfactual_run_id": result.run_id,
         "counterfactual_provenance": _plain(result.provenance),
@@ -420,16 +437,22 @@ class AnalysisArtifactWriter:
         exact_controller_gate_passed: bool,
         notes: Tuple[str, ...],
     ) -> None:
+        any_statistically_eligible = any(
+            item["proposal_eligible_after_statistical_gates"]
+            for item in summaries
+        )
         provenance_payload = {
             "schema": ARTIFACT_SCHEMA,
             "run_id": run_id,
             "manual_review_required": True,
             "workflow_status": (
                 MANUAL_REVIEW_REQUIRED
-                if exact_controller_gate_passed
+                if any_statistically_eligible
                 else EXPERIMENTAL
             ),
-            "exact_controller_replay_gate_passed": exact_controller_gate_passed,
+            "caller_exact_controller_replay_gate_passed": (
+                exact_controller_gate_passed
+            ),
             "provenance": _plain(provenance),
             "config": config,
         }
@@ -549,6 +572,7 @@ class AnalysisArtifactWriter:
         initial_sample_id = []
         response_sample_id = []
         noise_sample_id = []
+        joint_sample_id = []
         weight = []
         position = []
         velocity = []
@@ -566,6 +590,7 @@ class AnalysisArtifactWriter:
                 initial_sample_id.append(rollout.initial_sample_id)
                 response_sample_id.append(rollout.response_sample_id)
                 noise_sample_id.append(rollout.noise_sample_id)
+                joint_sample_id.append(rollout.joint_sample_id)
                 weight.append(rollout.weight)
                 position.append(rollout.position)
                 velocity.append(rollout.velocity)
@@ -586,6 +611,7 @@ class AnalysisArtifactWriter:
             initial_sample_id=np.asarray(initial_sample_id, dtype=np.int64),
             response_sample_id=np.asarray(response_sample_id, dtype=np.int64),
             noise_sample_id=np.asarray(noise_sample_id, dtype=np.int64),
+            joint_sample_id=np.asarray(joint_sample_id, dtype=np.int64),
             weight=np.asarray(weight, dtype=np.float64),
             position=np.asarray(position, dtype=np.float64),
             velocity=np.asarray(velocity, dtype=np.float64),
@@ -603,6 +629,10 @@ class AnalysisArtifactWriter:
         exact_controller_gate_passed: bool,
         notes: Tuple[str, ...],
     ) -> None:
+        any_statistically_eligible = any(
+            item["proposal_eligible_after_statistical_gates"]
+            for item in summaries
+        )
         lines = [
             "# Grape counterfactual analysis {}".format(run_id),
             "",
@@ -610,17 +640,19 @@ class AnalysisArtifactWriter:
             "",
             "Workflow status: `{}`.".format(
                 MANUAL_REVIEW_REQUIRED
-                if exact_controller_gate_passed
+                if any_statistically_eligible
                 else EXPERIMENTAL
             ),
         ]
-        if not exact_controller_gate_passed:
+        if not any_statistically_eligible:
             lines.extend(
                 [
                     "",
-                    "The exact PC/MCU controller replay gate has not passed. "
-                    "Candidate probabilities are experimental and must not be "
-                    "presented as flight recommendations.",
+                    "At least one required exact-controller, probability-"
+                    "calibration, joint-dependence, support, or lower-bound "
+                    "gate has not passed. Candidate probabilities are "
+                    "experimental and must not be presented as flight "
+                    "recommendations.",
                 ]
             )
         lines.extend(

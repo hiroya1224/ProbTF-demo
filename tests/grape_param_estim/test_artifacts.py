@@ -73,6 +73,7 @@ def _result():
         rollouts=(rollout,),
         run_id="counterfactual-run",
         provenance={"seed": 5},
+        recommendation_threshold=0.6,
     )
 
 
@@ -220,6 +221,9 @@ class ArtifactTests(unittest.TestCase):
                 np.testing.assert_array_equal(
                     archive["initial_sample_id"], [10]
                 )
+                np.testing.assert_array_equal(
+                    archive["joint_sample_id"], [-1]
+                )
             manifest = json.loads(
                 (output / "artifact_manifest.json").read_text()
             )
@@ -241,6 +245,22 @@ class ArtifactTests(unittest.TestCase):
                     recommendation_threshold=0.6,
                     run_id="fixed-run",
                 )
+            bare_exact = writer.write(
+                [_result()],
+                [1.0, 1.1, 1.2],
+                provenance,
+                config,
+                recommendation_threshold=0.6,
+                exact_controller_gate_passed=True,
+                run_id="bare-exact-flag",
+            )
+            bare_payload = json.loads(
+                (bare_exact / "counterfactual_candidates.json").read_text()
+            )["candidates"][0]
+            self.assertEqual(bare_payload["proposal_status"], EXPERIMENTAL)
+            self.assertFalse(
+                bare_payload["proposal_eligible_after_statistical_gates"]
+            )
 
     def test_config_hash_mismatch_is_rejected_before_writing(self):
         provenance = ArtifactProvenance(

@@ -374,6 +374,8 @@ class BayesianPipelineIntegrationTests(unittest.TestCase):
                     sample_id=int(self.trajectory.sample_ids[index]),
                     state=ResponseState(position, velocity, np.zeros(6)),
                     weight=0.5,
+                    controller_integral_state=np.zeros(6),
+                    integrator_state_source="explicit_test_assumption",
                 )
             )
         return output
@@ -451,7 +453,8 @@ class BayesianPipelineIntegrationTests(unittest.TestCase):
             ),
         )
         self.assertEqual(result.support.label, SUPPORTED)
-        self.assertTrue(result.recommendable)
+        self.assertFalse(result.recommendable)
+        self.assertEqual(result.workflow_status, "EXPERIMENTAL")
         self.assertEqual(result.success_probability, 1.0)
         self.assertEqual(len(result.rollouts), 12)
         self.assertEqual(

@@ -59,6 +59,12 @@ def test_frozen_selection_config_hash_and_split_cover_the_corpus():
     assert not training.intersection(held_out)
     assert training | held_out == corpus_ids
     assert config["comparison_commit"] == "dee44b6"
+    assert config["selection_rules"]["primary_metric"] == "episode_pose_rmse"
+    assert config["selection_rules"]["motion_resampling_unit"] == "episode"
+    assert (
+        config["selection_rules"]["uncertainty_resampling_unit"]
+        == "distribution_case_seed"
+    )
 
 
 def test_log_predictive_density_contains_one_log_determinant_term():
@@ -114,3 +120,70 @@ def test_motion_prediction_uses_the_fixture_anchor_interval_not_one_second():
         np.zeros(6),
         atol=1.0e-10,
     )
+
+
+def test_qd_adapter_is_measured_at_two_sampling_rates():
+    result = RUNNER.evaluate_qd_sampling_rate_equivalence()
+    assert result["sample_periods"] == [0.05, 0.1]
+    assert result["diagnostics"] == [
+        "discrete_process_noise_adapted",
+        "discrete_process_noise_adapted",
+    ]
+    assert result["passed"]
+
+
+def test_empirical_sample_coverage_uses_a_held_out_evaluation_set():
+    generator = np.random.default_rng(123)
+    candidate = generator.normal(size=(256, 6))
+    evaluation = generator.normal(size=(4096, 6))
+    mean, covariance = RUNNER._empirical_moments(candidate)
+    successes, total, threshold = RUNNER._empirical_sample_coverage(
+        candidate,
+        evaluation,
+        mean,
+        covariance,
+    )
+    assert total == 4096
+    assert threshold > 0.0
+    assert successes / total == pytest.approx(0.95, abs=0.03)
+
+
+def test_one_standard_error_rule_uses_episodes_not_horizons():
+    rows = []
+    episode_improvements = {}
+    for episode_id, twist_rmse, acceleration_rmse in (
+        ("held_out_a", 1.0, 0.7),
+        ("held_out_b", 0.8, 0.9),
+    ):
+        for horizon in (0.1, 0.2, 0.3, 0.4):
+            rows.append(
+                {
+                    "episode_id": episode_id,
+                    "split": "held_out",
+                    "horizon": horizon,
+                    "constant_twist": {"se3_error_norm": twist_rmse},
+                    "constant_acceleration": {
+                        "se3_error_norm": acceleration_rmse
+                    },
+                }
+            )
+        episode_improvements[episode_id] = {
+            "constant_twist_rmse": twist_rmse,
+            "constant_acceleration_rmse": acceleration_rmse,
+        }
+    result = RUNNER._one_standard_error_model_rule(
+        {
+            "rows": rows,
+            "episode_improvements": episode_improvements,
+        },
+        {
+            "selection_rules": {
+                "primary_metric": "episode_pose_rmse",
+                "motion_resampling_unit": "episode",
+            }
+        },
+    )
+    assert result["selection_unit"] == "episode"
+    assert result["held_out_episode_ids"] == ["held_out_a", "held_out_b"]
+    for metrics in result["models"].values():
+        assert metrics["selection_unit_count"] == 2

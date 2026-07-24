@@ -36,7 +36,20 @@ correctness_gates:
   coverage_nominal: 0.95
   coverage_binomial_confidence: 0.95
 
+coverage_evaluation:
+  aggregation: "per_distribution_stratum"
+  moment_region: "chi_square_6d"
+  sample_region: "held_out_empirical_mahalanobis_quantile"
+  sample_shared_prefix_excluded_from_coverage: true
+
+conformance:
+  command: ["python3", "-m", "pytest", "-q", "tests/probtf"]
+  required_exit_code: 0
+
 selection_rules:
+  primary_metric: "episode_pose_rmse"
+  motion_resampling_unit: "episode"
+  uncertainty_resampling_unit: "distribution_case_seed"
   bootstrap_confidence: 0.95
   bootstrap_resamples: 4000
   one_standard_error_rule: true

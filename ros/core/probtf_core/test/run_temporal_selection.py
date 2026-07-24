@@ -11,8 +11,11 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
+import re
 import subprocess
+import sys
 
 import numpy as np
 from scipy.stats import chi2, norm
@@ -43,6 +46,7 @@ from probtf.temporal import (
     TemporalPolicy,
     TemporalQueryMode,
     TemporalUncertaintyBackend,
+    adapt_discrete_process_noise,
     benchmark_callable,
     bootstrap_mean_confidence_interval,
     energy_distance_samples,
@@ -288,6 +292,38 @@ def _coverage(vectors, mean, covariance, probability=0.95):
     return int(np.count_nonzero(squared <= chi2.ppf(probability, 6))), len(vectors)
 
 
+def _empirical_sample_coverage(
+    candidate_vectors,
+    evaluation_vectors,
+    mean,
+    covariance,
+    probability=0.95,
+):
+    """Coverage of a held-out oracle under a sample-defined ellipsoid."""
+
+    inverse = np.linalg.pinv(covariance + np.eye(6) * 1.0e-10, rcond=1.0e-10)
+
+    def scores(vectors):
+        centered = vectors - mean
+        return np.einsum("ni,ij,nj->n", centered, inverse, centered)
+
+    candidate_scores = scores(candidate_vectors)
+    try:
+        threshold = float(
+            np.quantile(candidate_scores, probability, method="higher")
+        )
+    except TypeError:  # NumPy < 1.22 compatibility.
+        threshold = float(
+            np.quantile(candidate_scores, probability, interpolation="higher")
+        )
+    evaluation_scores = scores(evaluation_vectors)
+    return (
+        int(np.count_nonzero(evaluation_scores <= threshold)),
+        len(evaluation_scores),
+        threshold,
+    )
+
+
 def _wilson(successes, total, confidence=0.95):
     if total < 1:
         raise ValueError("total must be positive.")
@@ -306,7 +342,7 @@ def _wilson(successes, total, confidence=0.95):
     return float(proportion), float(center - half), float(center + half)
 
 
-def _summary(values, config, seed=0):
+def _summary(values, config, *, unit, seed=0):
     mean, lower, upper = bootstrap_mean_confidence_interval(
         values,
         confidence=config["selection_rules"]["bootstrap_confidence"],
@@ -318,6 +354,7 @@ def _summary(values, config, seed=0):
         "bootstrap_lower": lower,
         "bootstrap_upper": upper,
         "count": len(values),
+        "resampling_unit": str(unit),
     }
 
 
@@ -467,22 +504,49 @@ def evaluate_motion_models(corpus, config):
             selected = rows if split == "all" else [
                 row for row in rows if row["split"] == split
             ]
-            errors = [
-                row[model_name]["se3_error_norm"]
-                for row in selected
+            episode_ids = sorted({row["episode_id"] for row in selected})
+            episode_errors = [
+                float(
+                    np.sqrt(
+                        np.mean(
+                            [
+                                row[model_name]["se3_error_norm"] ** 2
+                                for row in selected
+                                if row["episode_id"] == episode_id
+                            ]
+                        )
+                    )
+                )
+                for episode_id in episode_ids
             ]
             log_scores = [
                 row[model_name]["log_predictive_density"]
                 for row in selected
             ]
             summaries[model_name][split] = {
-                "pose_rmse": float(np.sqrt(np.mean(np.square(errors)))),
+                "pose_rmse": float(
+                    np.sqrt(
+                        np.mean(
+                            [
+                                row[model_name]["se3_error_norm"] ** 2
+                                for row in selected
+                            ]
+                        )
+                    )
+                ),
                 "mean_log_predictive_density": float(np.mean(log_scores)),
-                "pose_error_bootstrap": _summary(
-                    errors,
+                "episode_pose_rmse_bootstrap": _summary(
+                    episode_errors,
                     config,
+                    unit=config["selection_rules"][
+                        "motion_resampling_unit"
+                    ],
                     seed=2718,
                 ),
+                "selection_unit": config["selection_rules"][
+                    "motion_resampling_unit"
+                ],
+                "selection_unit_count": len(episode_errors),
             }
 
     episode_improvements = {}
@@ -608,8 +672,13 @@ def evaluate_uncertainty_backends(corpus, config):
                 float(np.linalg.norm(oracle_covariance, ord="fro")),
                 1.0e-12,
             )
-            sample_coverage = _coverage(
-                oracle_vectors,
+            if len(oracle_vectors) <= sample_count:
+                raise RuntimeError(
+                    "Oracle must contain held-out samples beyond the shared prefix."
+                )
+            sample_coverage = _empirical_sample_coverage(
+                sample_vectors,
+                oracle_vectors[sample_count:],
                 sample_mean,
                 sample_covariance,
             )
@@ -637,6 +706,10 @@ def evaluate_uncertainty_backends(corpus, config):
                         ),
                         "coverage_successes": moment_coverage[0],
                         "coverage_total": moment_coverage[1],
+                        "coverage_method": "chi_square_6d",
+                        "minimum_covariance_eigenvalue": float(
+                            np.linalg.eigvalsh(moment_covariance)[0]
+                        ),
                     },
                     "sample": {
                         "pose_error": float(np.linalg.norm(sample_mean - oracle_mean)),
@@ -653,7 +726,25 @@ def evaluate_uncertainty_backends(corpus, config):
                         ),
                         "coverage_successes": sample_coverage[0],
                         "coverage_total": sample_coverage[1],
+                        "coverage_method":
+                            "held_out_empirical_mahalanobis_quantile",
+                        "coverage_threshold": sample_coverage[2],
+                        "minimum_covariance_eigenvalue": float(
+                            np.linalg.eigvalsh(sample_covariance)[0]
+                        ),
                     },
+                    "maximum_quaternion_norm_error": float(
+                        max(
+                            abs(
+                                np.linalg.norm(
+                                    component.orientation.reference_quaternion_wxyz
+                                )
+                                - 1.0
+                            )
+                            for result in (oracle, sample, moment)
+                            for component in result.record.distribution.components
+                        )
+                    ),
                 }
             )
 
@@ -668,6 +759,9 @@ def evaluate_uncertainty_backends(corpus, config):
             summary[backend][metric] = _summary(
                 [row[backend][metric] for row in rows],
                 config,
+                unit=config["selection_rules"][
+                    "uncertainty_resampling_unit"
+                ],
                 seed=31415,
             )
         successes = sum(row[backend]["coverage_successes"] for row in rows)
@@ -681,6 +775,41 @@ def evaluate_uncertainty_backends(corpus, config):
             "total": total,
             "contains_nominal_0_95": lower <= 0.95 <= upper,
         }
+        by_distribution = {}
+        for case_spec in sorted(
+            {row["distribution_case"] for row in rows}
+        ):
+            selected = [
+                row for row in rows
+                if row["distribution_case"] == case_spec
+            ]
+            case_successes = sum(
+                row[backend]["coverage_successes"] for row in selected
+            )
+            case_total = sum(
+                row[backend]["coverage_total"] for row in selected
+            )
+            case_proportion, case_lower, case_upper = _wilson(
+                case_successes,
+                case_total,
+            )
+            by_distribution[case_spec] = {
+                "proportion": case_proportion,
+                "wilson_lower": case_lower,
+                "wilson_upper": case_upper,
+                "successes": case_successes,
+                "total": case_total,
+                "contains_nominal_0_95":
+                    case_lower <= 0.95 <= case_upper,
+            }
+        summary[backend]["coverage_by_distribution"] = by_distribution
+        summary[backend]["all_distribution_coverage_gates_pass"] = all(
+            value["contains_nominal_0_95"]
+            for value in by_distribution.values()
+        )
+        summary[backend]["minimum_covariance_eigenvalue"] = min(
+            row[backend]["minimum_covariance_eigenvalue"] for row in rows
+        )
     improvements = [
         (
             row["moment"]["energy_distance"]
@@ -692,9 +821,13 @@ def evaluate_uncertainty_backends(corpus, config):
     summary["sample_energy_improvement_fraction"] = _summary(
         improvements,
         config,
+        unit=config["selection_rules"]["uncertainty_resampling_unit"],
         seed=65537,
     )
     summary["common_random_prefix_verified"] = True
+    summary["maximum_quaternion_norm_error"] = max(
+        row["maximum_quaternion_norm_error"] for row in rows
+    )
     return {"rows": rows, "summary": summary}
 
 
@@ -811,29 +944,218 @@ def evaluate_performance(config):
     return output
 
 
-def correctness_gates(motion, uncertainty, performance, config):
-    endpoint_tolerance = config["correctness_gates"][
-        "endpoint_absolute_tolerance"
-    ]
-    left = DeterministicTransform.identity()
-    right = se3_exp([0.8, -0.2, 0.1, 0.4, -0.1, 0.3])
-    endpoint_ok = (
-        np.linalg.norm(_mixed_residual(left, interpolate_transform(left, right, 0.0)))
-        <= endpoint_tolerance
-        and np.linalg.norm(_mixed_residual(right, interpolate_transform(left, right, 1.0)))
-        <= endpoint_tolerance
+def run_conformance_suite(config):
+    configured = list(config["conformance"]["command"])
+    command = [sys.executable] + configured[1:]
+    completed = subprocess.run(
+        command,
+        cwd=str(REPOSITORY_ROOT),
+        env=os.environ.copy(),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=300,
+        check=False,
     )
+    matches = re.findall(r"(\d+) passed", completed.stdout)
+    passed_count = int(matches[-1]) if matches else 0
+    return {
+        "configured_command": configured,
+        "executed_command": command,
+        "exit_code": completed.returncode,
+        "passed_count": passed_count,
+        "passed": (
+            completed.returncode
+            == int(config["conformance"]["required_exit_code"])
+            and passed_count > 0
+        ),
+        "output_tail": completed.stdout[-2000:],
+        "gate_evidence": {
+            "current_policy_regression":
+                "tests/probtf/test_graph_time.py",
+            "endpoint_sample_selection":
+                "tests/probtf/test_graph_time.py::"
+                "test_model_policy_exact_sample_selects_without_model_and_missing_model_fails_closed",
+            "causality":
+                "tests/probtf/test_temporal_graph.py::"
+                "test_online_prediction_is_unchanged_by_future_record_insertion",
+            "static_invariance":
+                "tests/probtf/test_temporal_graph.py::"
+                "test_static_uncertain_edge_is_retimed_without_process_noise_or_model",
+            "horizon_and_support":
+                "tests/probtf/test_temporal_graph.py::"
+                "test_prediction_requires_bounded_fresh_history_and_model_support",
+            "provenance_fail_closed":
+                "tests/probtf/test_temporal_graph.py::"
+                "test_graph_fails_closed_on_nonconforming_custom_model_results",
+            "dependency_approximation":
+                "tests/probtf/test_temporal_model_audit.py::"
+                "test_shared_source_lineage_does_not_create_false_perfect_record_correlation",
+        },
+    }
+
+
+def evaluate_qd_sampling_rate_equivalence():
+    canonical_qc = np.diag([0.02, 0.015, 0.01, 0.006, 0.005, 0.004])
+    twist = np.array([0.3, -0.1, 0.05, 0.08, -0.04, 0.12])
+    anchor_stamp = 1.0
+    horizon = 0.2
+    outputs = []
+    for sample_period in (0.05, 0.10):
+        adaptation = adapt_discrete_process_noise(
+            canonical_qc * sample_period,
+            sample_period,
+        )
+        previous_stamp = anchor_stamp - sample_period
+        previous_pose = se3_exp(twist * previous_stamp)
+        anchor_pose = se3_exp(twist * anchor_stamp)
+        records = (
+            _record(previous_stamp, previous_pose),
+            _record(anchor_stamp, anchor_pose),
+        )
+        model = ConstantBodyTwistModel(
+            adaptation.spectral_density,
+            0.5,
+            model_id="qd_rate_{}".format(sample_period),
+        )
+        result = model.predict(
+            records,
+            _request(
+                model,
+                anchor_stamp + horizon,
+                TemporalPolicy.PREDICT_WITH_MODEL,
+                records,
+                seed=1729,
+            ),
+        )
+        outputs.append(
+            {
+                "sample_period": sample_period,
+                "diagnostic": adaptation.diagnostic.value,
+                "pose": record_representative(result.record),
+                "covariance": component_pose_covariance(
+                    result.record.distribution.components[0]
+                ),
+            }
+        )
+    pose_error = float(
+        np.linalg.norm(
+            _mixed_residual(outputs[0]["pose"], outputs[1]["pose"])
+        )
+    )
+    covariance_error = float(
+        np.linalg.norm(
+            outputs[0]["covariance"] - outputs[1]["covariance"],
+            ord="fro",
+        )
+    )
+    tolerance = 1.0e-9
+    return {
+        "sample_periods": [item["sample_period"] for item in outputs],
+        "diagnostics": [item["diagnostic"] for item in outputs],
+        "pose_error": pose_error,
+        "covariance_frobenius_error": covariance_error,
+        "absolute_tolerance": tolerance,
+        "passed": pose_error <= tolerance and covariance_error <= tolerance,
+    }
+
+
+def _one_standard_error_model_rule(motion, config):
+    primary_metric = config["selection_rules"]["primary_metric"]
+    selection_unit = config["selection_rules"]["motion_resampling_unit"]
+    if primary_metric != "episode_pose_rmse" or selection_unit != "episode":
+        raise ValueError(
+            "The motion-model one-standard-error rule requires "
+            "primary_metric=episode_pose_rmse and "
+            "motion_resampling_unit=episode."
+        )
+    held_out_episode_ids = sorted(
+        {
+            row["episode_id"]
+            for row in motion["rows"]
+            if row["split"] == "held_out"
+        }
+    )
+    if len(held_out_episode_ids) < 2:
+        raise ValueError(
+            "The one-standard-error rule requires at least two held-out episodes."
+        )
+    metrics = {}
+    for model_name in ("constant_twist", "constant_acceleration"):
+        values = np.array(
+            [
+                motion["episode_improvements"][episode_id][
+                    "{}_rmse".format(model_name)
+                ]
+                for episode_id in held_out_episode_ids
+            ],
+            dtype=float,
+        )
+        metrics[model_name] = {
+            "mean_episode_pose_rmse": float(np.mean(values)),
+            "standard_error": float(
+                np.std(values, ddof=1) / np.sqrt(len(values))
+            ),
+            "selection_unit": selection_unit,
+            "selection_unit_count": len(values),
+        }
+    best = min(
+        metrics,
+        key=lambda name: metrics[name]["mean_episode_pose_rmse"],
+    )
+    threshold = (
+        metrics[best]["mean_episode_pose_rmse"]
+        + metrics[best]["standard_error"]
+    )
+    for value in metrics.values():
+        value["within_one_standard_error_of_best"] = (
+            value["mean_episode_pose_rmse"] <= threshold
+        )
+    return {
+        "primary_metric": primary_metric,
+        "selection_unit": selection_unit,
+        "held_out_episode_ids": held_out_episode_ids,
+        "best_model": best,
+        "best_plus_one_standard_error": float(threshold),
+        "models": metrics,
+    }
+
+
+def correctness_gates(
+    motion,
+    uncertainty,
+    performance,
+    conformance,
+    qd_equivalence,
+    config,
+):
     finite_motion = all(
         np.isfinite(row[name]["se3_error_norm"])
         and np.isfinite(row[name]["log_predictive_density"])
         for row in motion["rows"]
         for name in ("constant_twist", "constant_acceleration")
     )
-    covariance_psd = all(
-        row[backend]["covariance_relative_frobenius_error"] >= 0.0
-        and np.isfinite(row[backend]["covariance_relative_frobenius_error"])
+    finite_metrics = all(
+        np.isfinite(row[backend]["covariance_relative_frobenius_error"])
+        and np.isfinite(row[backend]["pose_error"])
+        and np.isfinite(row[backend]["energy_distance"])
         for row in uncertainty["rows"]
         for backend in ("moment", "sample")
+    )
+    covariance_psd = {
+        backend: (
+            uncertainty["summary"][backend]["minimum_covariance_eigenvalue"]
+            >= config["correctness_gates"][
+                "covariance_psd_eigenvalue_tolerance"
+            ]
+        )
+        for backend in ("moment", "sample")
+    }
+    quaternion_normalized = (
+        uncertainty["summary"]["maximum_quaternion_norm_error"]
+        <= config["correctness_gates"][
+            "quaternion_norm_absolute_tolerance"
+        ]
     )
     latency_finite = all(
         np.isfinite(performance[name]["p50_seconds"])
@@ -844,27 +1166,51 @@ def correctness_gates(motion, uncertainty, performance, config):
             "moment_constant_acceleration",
         )
     )
-    return {
-        "endpoint_invariant": bool(endpoint_ok),
+    common = {
+        "conformance_suite": bool(conformance["passed"]),
         "finite_pose_and_log_scores": bool(finite_motion),
-        "finite_psd_covariance_metrics": bool(covariance_psd),
+        "finite_backend_metrics": bool(finite_metrics),
         "finite_latency_and_memory": bool(latency_finite),
-        "moment_coverage_contains_0_95": uncertainty["summary"]["moment"][
-            "empirical_95_percent_coverage"
-        ]["contains_nominal_0_95"],
-        "sample_coverage_contains_0_95": uncertainty["summary"]["sample"][
-            "empirical_95_percent_coverage"
-        ]["contains_nominal_0_95"],
+        "quaternion_normalized": bool(quaternion_normalized),
+    }
+    candidate = {}
+    for backend in ("moment", "sample"):
+        coverage = uncertainty["summary"][backend][
+            "all_distribution_coverage_gates_pass"
+        ]
+        shared_factor = backend == "moment"
+        candidate[backend] = {
+            "common_gates_pass": all(common.values()),
+            "covariance_psd": bool(covariance_psd[backend]),
+            "coverage_all_distribution_strata": bool(coverage),
+            "shared_factor_contract_or_explicit_safe_policy": bool(shared_factor),
+        }
+        candidate[backend]["all_hard_gates_pass"] = all(
+            candidate[backend].values()
+        )
+    return {
+        "common": common,
+        "candidate": candidate,
+        "coverage_aggregation": config["coverage_evaluation"]["aggregation"],
         "marginal_only_shared_factor_exact": False,
         "marginal_only_shared_factor_policy": config["implementation"][
             "marginal_only_shared_factor_policy"
         ],
-        "provenance_payload_checked_by_conformance_suite": True,
-        "causality_and_support_checked_by_conformance_suite": True,
+        "qd_sampling_rate_equivalence": qd_equivalence,
+        "any_backend_passes_all_hard_gates": any(
+            value["all_hard_gates_pass"] for value in candidate.values()
+        ),
     }
 
 
-def dispositions(motion, uncertainty, performance, gates, config):
+def dispositions(
+    motion,
+    uncertainty,
+    performance,
+    gates,
+    model_rule,
+    config,
+):
     acceleration_threshold = config["selection_rules"][
         "acceleration_optional_min_score_improvement_fraction"
     ]
@@ -892,13 +1238,13 @@ def dispositions(motion, uncertainty, performance, gates, config):
         "tangent_space_moment_backend": {
             "status": (
                 "DEFAULT"
-                if gates["moment_coverage_contains_0_95"]
+                if gates["candidate"]["moment"]["all_hard_gates_pass"]
                 else "EXPERIMENTAL"
             ),
             "reason": (
-                "Fastest calibrated backend on the frozen local/mixed corpus; "
-                "unsupported local moments fail closed and missing cross-time "
-                "covariance is explicitly diagnosed."
+                "Fastest backend, but DEFAULT requires every distribution "
+                "stratum and every conformance gate to pass. See the recorded "
+                "per-stratum coverage conjunction."
             ),
         },
         "sample_backend": {
@@ -913,10 +1259,20 @@ def dispositions(motion, uncertainty, performance, gates, config):
             "p50_runtime_ratio_vs_moment": float(runtime_ratio),
         },
         "constant_body_twist": {
-            "status": "DEFAULT",
+            "status": (
+                "DEFAULT"
+                if (
+                    gates["any_backend_passes_all_hard_gates"]
+                    and model_rule["models"]["constant_twist"][
+                        "within_one_standard_error_of_best"
+                    ]
+                )
+                else "EXPERIMENTAL"
+            ),
             "reason": (
-                "Minimal causal two-anchor model; stable baseline across all "
-                "strata and no implicit model selection."
+                "Minimal causal baseline, but DEFAULT additionally requires a "
+                "hard-gate-passing uncertainty backend and held-out performance "
+                "within one standard error of the best model."
             ),
         },
         "constant_body_acceleration": {
@@ -941,10 +1297,16 @@ def dispositions(motion, uncertainty, performance, gates, config):
             ),
         },
         "discrete_qd_compatibility_adapter": {
-            "status": "OPTIONAL",
+            "status": (
+                "OPTIONAL"
+                if gates["qd_sampling_rate_equivalence"]["passed"]
+                else "EXPERIMENTAL"
+            ),
             "reason": (
                 "Migration-only adapter with mandatory sample period and "
-                "diagnostic provenance; canonical model configuration remains Qc."
+                "diagnostic provenance; status is conditional on the recorded "
+                "two-rate prediction equivalence test. Canonical model "
+                "configuration remains Qc."
             ),
         },
         "automatic_model_selector": {
@@ -988,7 +1350,17 @@ def main():
     motion = evaluate_motion_models(corpus, config)
     uncertainty = evaluate_uncertainty_backends(corpus, config)
     performance = evaluate_performance(config)
-    gates = correctness_gates(motion, uncertainty, performance, config)
+    conformance = run_conformance_suite(config)
+    qd_equivalence = evaluate_qd_sampling_rate_equivalence()
+    model_rule = _one_standard_error_model_rule(motion, config)
+    gates = correctness_gates(
+        motion,
+        uncertainty,
+        performance,
+        conformance,
+        qd_equivalence,
+        config,
+    )
     result = {
         "schema_version": 1,
         "run_timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -1017,6 +1389,8 @@ def main():
         "motion_model_evaluation": motion,
         "uncertainty_backend_evaluation": uncertainty,
         "performance": performance,
+        "conformance_suite": conformance,
+        "motion_model_one_standard_error_rule": model_rule,
         "correctness_gates": gates,
     }
     result["dispositions"] = dispositions(
@@ -1024,6 +1398,7 @@ def main():
         uncertainty,
         performance,
         gates,
+        model_rule,
         config,
     )
     encoded = json.dumps(result, indent=2, sort_keys=True) + "\n"

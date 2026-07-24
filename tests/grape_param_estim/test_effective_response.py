@@ -10,6 +10,7 @@ from grape_param_estim.effective_response import (
     TrajectoryTransitionBatch,
     fit_effective_response,
     fit_hierarchical_effective_response,
+    trajectory_mixture_log_likelihood,
 )
 
 
@@ -136,6 +137,84 @@ class EffectiveResponseTests(unittest.TestCase):
         posterior = fit_effective_response([first, second], config)
         self.assertEqual(posterior.source_sample_ids, (3, 9))
         self.assertEqual(posterior.weights.size, 40)
+        self.assertIn(
+            "episode_likelihood_is_logsumexp_over_mutually_exclusive_trajectories",
+            posterior.fit_diagnostics,
+        )
+        self.assertIn("trajectory_mixture_marginal", posterior.approximation)
+
+    def test_splitting_one_trajectory_weight_does_not_create_information(self):
+        original = simulate_batch(sample_id=1, weight=1.0)
+        duplicates = [
+            TrajectoryTransitionBatch(
+                timestamps=original.timestamps,
+                generalized_position=original.generalized_position,
+                generalized_velocity=original.generalized_velocity,
+                commands=original.commands,
+                episode_id=original.episode_id,
+                trajectory_sample_id=index + 10,
+                trajectory_weight=1.0 / 8.0,
+                state_source=original.state_source,
+            )
+            for index in range(8)
+        ]
+        config = EffectiveResponseFitConfig(
+            delay_grid_s=[0.04],
+            time_constant_grid_s=[0.08],
+            posterior_sample_count=64,
+            seed=12,
+        )
+        single = fit_effective_response([original], config)
+        repeated = fit_effective_response(duplicates, config)
+        np.testing.assert_allclose(
+            [item.as_vector() for item in single.samples],
+            [item.as_vector() for item in repeated.samples],
+            atol=1.0e-10,
+            rtol=0.0,
+        )
+        self.assertAlmostEqual(single.log_evidence, repeated.log_evidence, places=8)
+        self.assertAlmostEqual(
+            trajectory_mixture_log_likelihood([original], truth_parameters()),
+            trajectory_mixture_log_likelihood(duplicates, truth_parameters()),
+            places=8,
+        )
+
+    def test_integrated_position_is_part_of_the_common_parameter_likelihood(self):
+        original = simulate_batch(sample_id=1)
+        inconsistent_position = np.array(
+            original.generalized_position, copy=True
+        )
+        elapsed = original.timestamps - original.timestamps[0]
+        inconsistent_position[:, 0] += 0.02 * elapsed * elapsed
+        inconsistent = TrajectoryTransitionBatch(
+            timestamps=original.timestamps,
+            generalized_position=inconsistent_position,
+            generalized_velocity=original.generalized_velocity,
+            commands=original.commands,
+            episode_id=original.episode_id,
+            trajectory_sample_id=2,
+            state_source="synthetic_known_truth",
+        )
+        config = EffectiveResponseFitConfig(
+            delay_grid_s=[0.04],
+            time_constant_grid_s=[0.08],
+            position_sigma=0.005,
+            velocity_sigma=0.05,
+            posterior_sample_count=32,
+            seed=3,
+        )
+        consistent_fit = fit_effective_response([original], config)
+        inconsistent_fit = fit_effective_response([inconsistent], config)
+        self.assertLess(
+            inconsistent_fit.log_evidence, consistent_fit.log_evidence
+        )
+        self.assertGreater(
+            abs(
+                inconsistent_fit.mean_parameters().bias[0]
+                - consistent_fit.mean_parameters().bias[0]
+            ),
+            1.0e-3,
+        )
 
     def test_rank_deficiency_is_reported_for_unexciting_hover(self):
         times = np.arange(0.0, 3.0, 0.05)

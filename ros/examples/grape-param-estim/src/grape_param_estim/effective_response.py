@@ -5,9 +5,11 @@ claim about uniquely identified physical mass or thrust coefficients.  It
 supports axis effectiveness/cross coupling, actuator delay and first-order
 lag, velocity damping, bias, and episode random effects.
 
-Fitting consumes velocity transitions from trajectory-posterior samples.  A
-batch explicitly marked as a raw mocap numerical derivative is rejected so
-that the old errors-in-variables likelihood cannot be reintroduced silently.
+Fitting consumes mutually exclusive trajectory-posterior samples.  A common
+parameter vector predicts one-step position and velocity, and each episode
+marginalizes its trajectory samples with log-sum-exp.  A batch explicitly
+marked as a raw mocap numerical derivative is rejected so that the old
+errors-in-variables likelihood cannot be reintroduced silently.
 """
 
 from dataclasses import dataclass
@@ -238,9 +240,16 @@ class LowDimensionalEffectiveResponse:
         dof = float(degrees_of_freedom)
         if not np.isfinite(dof) or dof <= 0.0:
             raise ValueError("degrees_of_freedom must be finite and positive")
+        position_residual = (
+            observed.generalized_position - predicted.generalized_position
+        )
+        position_residual = np.array(position_residual, copy=True)
+        position_residual[3:] = (
+            position_residual[3:] + np.pi
+        ) % (2.0 * np.pi) - np.pi
         residual = np.concatenate(
             (
-                observed.generalized_position - predicted.generalized_position,
+                position_residual,
                 observed.generalized_velocity - predicted.generalized_velocity,
             )
         )
@@ -319,6 +328,10 @@ class EffectiveResponseFitConfig:
     ridge: float = 1.0e-6
     prior_scale: float = 10.0
     residual_sigma_floor: float = 1.0e-3
+    position_sigma: float = 0.02
+    velocity_sigma: float = 0.05
+    student_t_degrees_of_freedom: float = 5.0
+    em_iterations: int = 3
     posterior_sample_count: int = 256
     seed: int = 7
 
@@ -334,7 +347,14 @@ class EffectiveResponseFitConfig:
             or np.any(constants <= 0.0)
         ):
             raise ValueError("delay/time-constant grids must be finite and valid")
-        for name in ("ridge", "prior_scale", "residual_sigma_floor"):
+        for name in (
+            "ridge",
+            "prior_scale",
+            "residual_sigma_floor",
+            "position_sigma",
+            "velocity_sigma",
+            "student_t_degrees_of_freedom",
+        ):
             value = float(getattr(self, name))
             if not np.isfinite(value) or value <= 0.0:
                 raise ValueError("{} must be finite and positive".format(name))
@@ -342,6 +362,9 @@ class EffectiveResponseFitConfig:
         count = int(self.posterior_sample_count)
         if count < 1:
             raise ValueError("posterior_sample_count must be positive")
+        iterations = int(self.em_iterations)
+        if iterations < 1:
+            raise ValueError("em_iterations must be positive")
         delay_copy = np.unique(delays)
         constant_copy = np.unique(constants)
         delay_copy.setflags(write=False)
@@ -349,6 +372,7 @@ class EffectiveResponseFitConfig:
         object.__setattr__(self, "delay_grid_s", delay_copy)
         object.__setattr__(self, "time_constant_grid_s", constant_copy)
         object.__setattr__(self, "posterior_sample_count", count)
+        object.__setattr__(self, "em_iterations", iterations)
 
 
 @dataclass(frozen=True)
@@ -376,6 +400,7 @@ class EffectiveResponsePosterior:
     log_evidence: float
     approximation: str
     source_sample_ids: Tuple[int, ...]
+    fit_diagnostics: Tuple[str, ...] = ()
 
     def __post_init__(self):
         samples = tuple(self.samples)
@@ -393,6 +418,9 @@ class EffectiveResponsePosterior:
         object.__setattr__(self, "samples", samples)
         object.__setattr__(self, "weights", weights)
         object.__setattr__(self, "source_sample_ids", tuple(self.source_sample_ids))
+        object.__setattr__(
+            self, "fit_diagnostics", tuple(str(item) for item in self.fit_diagnostics)
+        )
 
     def mean_parameters(self) -> EffectiveResponseParameters:
         effectiveness = np.average(
@@ -451,6 +479,7 @@ class _GridFit:
     log_score: float
     design: np.ndarray
     residual_variance: np.ndarray
+    episode_responsibilities: Mapping[str, np.ndarray]
 
 
 def _actuator_history(times, commands, delay, time_constant):
@@ -473,92 +502,331 @@ def _actuator_history(times, commands, delay, time_constant):
     return output
 
 
+def trajectory_mixture_log_likelihood(
+    batches: Sequence[TrajectoryTransitionBatch],
+    parameters: EffectiveResponseParameters,
+    position_sigma: float = 0.02,
+    velocity_sigma: float = 0.05,
+    degrees_of_freedom: float = 5.0,
+) -> float:
+    """Marginalize mutually exclusive trajectories within each episode.
+
+    This is the reusable likelihood boundary for SMC/PMCMC.  Each trajectory
+    is propagated one step from posterior states; position and velocity enter
+    one Student-t likelihood exactly once.  Trajectory weights are normalized
+    inside their episode before log-sum-exp, so drawing more posterior samples
+    does not pretend that more sensor observations were collected.
+    """
+
+    data = tuple(batches)
+    if not data or any(
+        not isinstance(item, TrajectoryTransitionBatch) for item in data
+    ):
+        raise ValueError("trajectory mixture requires transition batches")
+    if not isinstance(parameters, EffectiveResponseParameters):
+        raise TypeError("parameters must be EffectiveResponseParameters")
+    position_scale = float(position_sigma)
+    velocity_scale = float(velocity_sigma)
+    dof = float(degrees_of_freedom)
+    if (
+        not np.isfinite(position_scale)
+        or position_scale <= 0.0
+        or not np.isfinite(velocity_scale)
+        or velocity_scale <= 0.0
+        or not np.isfinite(dof)
+        or dof <= 0.0
+    ):
+        raise ValueError("trajectory likelihood scales/dof must be positive")
+    model = LowDimensionalEffectiveResponse()
+    scores = []
+    grouped: Dict[str, list] = {}
+    for batch_index, batch in enumerate(data):
+        grouped.setdefault(batch.episode_id, []).append(batch_index)
+        actuator = np.array(batch.commands[0], copy=True)
+        score = 0.0
+        for index in range(batch.timestamps.size - 1):
+            state = ResponseState(
+                batch.generalized_position[index],
+                batch.generalized_velocity[index],
+                actuator,
+            )
+            predicted = model.transition(
+                state,
+                batch.timestamps[: index + 1],
+                batch.commands[: index + 1],
+                batch.timestamps[index],
+                batch.timestamps[index + 1] - batch.timestamps[index],
+                parameters,
+            )
+            actuator = predicted.state.actuator_state
+            observed = ResponseState(
+                batch.generalized_position[index + 1],
+                batch.generalized_velocity[index + 1],
+                actuator,
+            )
+            score += model.transition_log_likelihood(
+                predicted.state,
+                observed,
+                np.full(RESPONSE_DIMENSION, position_scale),
+                np.full(RESPONSE_DIMENSION, velocity_scale),
+                dof,
+            )
+        scores.append(score)
+    total = 0.0
+    for episode_id, indices in grouped.items():
+        sample_ids = [data[index].trajectory_sample_id for index in indices]
+        if len(set(sample_ids)) != len(sample_ids):
+            raise ValueError(
+                "trajectory_sample_id must be unique within {}".format(episode_id)
+            )
+        weights = np.asarray(
+            [data[index].trajectory_weight for index in indices], dtype=float
+        )
+        weights /= np.sum(weights)
+        total += _logsumexp(
+            [
+                np.log(weight) + scores[index]
+                for weight, index in zip(weights, indices)
+            ]
+        )
+    return float(total)
+
+
 def _fit_grid_point(
     batches: Sequence[TrajectoryTransitionBatch],
     delay: float,
     time_constant: float,
     config: EffectiveResponseFitConfig,
 ) -> _GridFit:
-    designs = []
-    targets = []
-    weights = []
-    for batch in batches:
-        actuator = _actuator_history(
+    grouped: Dict[str, list] = {}
+    prior_weights = np.empty(len(batches))
+    for index, batch in enumerate(batches):
+        grouped.setdefault(batch.episode_id, []).append(index)
+    for episode_id, indices in grouped.items():
+        sample_ids = [batches[index].trajectory_sample_id for index in indices]
+        if len(set(sample_ids)) != len(sample_ids):
+            raise ValueError(
+                "trajectory_sample_id must be unique within {}".format(episode_id)
+            )
+        total = float(
+            np.sum([batches[index].trajectory_weight for index in indices])
+        )
+        for index in indices:
+            prior_weights[index] = batches[index].trajectory_weight / total
+    actuator_histories = [
+        _actuator_history(
             batch.timestamps, batch.commands, delay, time_constant
         )
-        delta = np.diff(batch.timestamps)
-        acceleration = np.diff(batch.generalized_velocity, axis=0) / delta[:, None]
-        velocity = batch.generalized_velocity[:-1]
-        # Axis-specific damping is represented later by selecting the matching
-        # velocity column; all actuator axes remain available for cross coupling.
-        base = np.column_stack(
-            (actuator[:-1], velocity, np.ones(len(delta)))
-        )
-        designs.append(base)
-        targets.append(acceleration)
-        weights.append(np.full(len(delta), batch.trajectory_weight))
-    base_design = np.concatenate(designs, axis=0)
-    target = np.concatenate(targets, axis=0)
-    sample_weight = np.concatenate(weights)
-    sample_weight = sample_weight / np.mean(sample_weight)
+        for batch in batches
+    ]
     coefficient_count = RESPONSE_DIMENSION + 2
-    coefficients = np.empty((RESPONSE_DIMENSION, coefficient_count))
-    covariances = np.empty(
-        (RESPONSE_DIMENSION, coefficient_count, coefficient_count)
-    )
-    residual_variance = np.empty(RESPONSE_DIMENSION)
-    score = 0.0
-    axis_designs = []
-    for axis in range(RESPONSE_DIMENSION):
-        design = np.column_stack(
+
+    def equations(batch, actuator, axis):
+        delta = np.diff(batch.timestamps)
+        feature = np.column_stack(
             (
-                base_design[:, :RESPONSE_DIMENSION],
-                -base_design[:, RESPONSE_DIMENSION + axis],
-                base_design[:, -1],
+                actuator[:-1],
+                -batch.generalized_velocity[:-1, axis],
+                np.ones(delta.size),
             )
         )
-        axis_designs.append(design)
-        weighted_design = design * np.sqrt(sample_weight)[:, None]
-        weighted_target = target[:, axis] * np.sqrt(sample_weight)
-        precision = (
-            weighted_design.T @ weighted_design
-            + np.eye(coefficient_count)
-            * (config.ridge + 1.0 / config.prior_scale ** 2)
+        velocity_design = feature * delta[:, None]
+        velocity_target = np.diff(
+            batch.generalized_velocity[:, axis]
         )
-        mean = np.linalg.solve(
-            precision, weighted_design.T @ weighted_target
+        position_increment = np.diff(
+            batch.generalized_position[:, axis]
         )
-        residual = target[:, axis] - design @ mean
-        variance = max(
-            float(np.average(residual * residual, weights=sample_weight)),
-            config.residual_sigma_floor ** 2,
+        if axis >= 3:
+            position_increment = (
+                position_increment + np.pi
+            ) % (2.0 * np.pi) - np.pi
+        position_design = feature * (0.5 * delta * delta)[:, None]
+        position_target = (
+            position_increment
+            - batch.generalized_velocity[:-1, axis] * delta
         )
-        covariance = _positive_semidefinite(
-            np.linalg.inv(precision) * variance
+        return (
+            np.vstack(
+                (
+                    velocity_design / config.velocity_sigma,
+                    position_design / config.position_sigma,
+                )
+            ),
+            np.concatenate(
+                (
+                    velocity_target / config.velocity_sigma,
+                    position_target / config.position_sigma,
+                )
+            ),
+            delta.size,
         )
-        coefficients[axis] = mean
-        covariances[axis] = covariance
-        residual_variance[axis] = variance
-        # Integrated Gaussian score with a weak complexity penalty.  All grid
-        # points have the same number of coefficients.
-        score += -0.5 * float(
-            np.sum(
-                sample_weight
-                * (
-                    residual * residual / variance
-                    + np.log(2.0 * np.pi * variance)
+
+    prepared = [
+        tuple(
+            equations(batch, actuator, axis)
+            for axis in range(RESPONSE_DIMENSION)
+        )
+        for batch, actuator in zip(batches, actuator_histories)
+    ]
+
+    def conditional_fit(responsibilities):
+        coefficients = np.empty((RESPONSE_DIMENSION, coefficient_count))
+        covariances = np.empty(
+            (RESPONSE_DIMENSION, coefficient_count, coefficient_count)
+        )
+        residual_variance = np.empty(RESPONSE_DIMENSION)
+        axis_designs = []
+        for axis in range(RESPONSE_DIMENSION):
+            designs = []
+            targets = []
+            row_weights = []
+            for batch_index, batch_equations in enumerate(prepared):
+                design, target, transition_count = batch_equations[axis]
+                designs.append(design)
+                targets.append(target)
+                # Each trajectory is an alternative latent history.  Its
+                # responsibility is split over neither samples nor rows, so
+                # duplicating a trajectory and splitting its prior weight
+                # leaves information and covariance unchanged.
+                row_weights.append(
+                    np.full(
+                        2 * transition_count,
+                        responsibilities[batch_index],
+                    )
+                )
+            design = np.concatenate(designs, axis=0)
+            target = np.concatenate(targets)
+            sample_weight = np.concatenate(row_weights)
+            axis_designs.append(design)
+            weighted_design = design * np.sqrt(sample_weight)[:, None]
+            weighted_target = target * np.sqrt(sample_weight)
+            precision = (
+                weighted_design.T @ weighted_design
+                + np.eye(coefficient_count)
+                * (config.ridge + 1.0 / config.prior_scale ** 2)
+            )
+            mean = np.linalg.solve(
+                precision, weighted_design.T @ weighted_target
+            )
+            residual = target - design @ mean
+            variance = max(
+                float(np.average(residual * residual, weights=sample_weight)),
+                config.residual_sigma_floor ** 2,
+            )
+            coefficients[axis] = mean
+            covariances[axis] = _positive_semidefinite(
+                np.linalg.inv(precision) * variance
+            )
+            residual_variance[axis] = variance
+        return (
+            coefficients,
+            covariances,
+            residual_variance,
+            np.stack(axis_designs, axis=0),
+        )
+
+    def trajectory_log_likelihood(batch, actuator, coefficients):
+        delta = np.diff(batch.timestamps)
+        acceleration = (
+            actuator[:-1] @ coefficients[:, :RESPONSE_DIMENSION].T
+            - batch.generalized_velocity[:-1]
+            * coefficients[:, RESPONSE_DIMENSION]
+            + coefficients[:, RESPONSE_DIMENSION + 1]
+        )
+        predicted_velocity = (
+            batch.generalized_velocity[:-1] + acceleration * delta[:, None]
+        )
+        predicted_position = (
+            batch.generalized_position[:-1]
+            + batch.generalized_velocity[:-1] * delta[:, None]
+            + 0.5 * acceleration * (delta * delta)[:, None]
+        )
+        position_residual = (
+            batch.generalized_position[1:] - predicted_position
+        )
+        position_residual[:, 3:] = (
+            position_residual[:, 3:] + np.pi
+        ) % (2.0 * np.pi) - np.pi
+        velocity_residual = (
+            batch.generalized_velocity[1:] - predicted_velocity
+        )
+        dof = config.student_t_degrees_of_freedom
+        normalizer = (
+            lgamma(0.5 * (dof + 1.0))
+            - lgamma(0.5 * dof)
+            - 0.5 * np.log(dof * pi)
+        )
+
+        def student_t_sum(residual, sigma):
+            scaled = residual / sigma
+            return float(
+                np.sum(
+                    normalizer
+                    - np.log(sigma)
+                    - 0.5
+                    * (dof + 1.0)
+                    * np.log1p(scaled * scaled / dof)
                 )
             )
+
+        return student_t_sum(
+            position_residual, config.position_sigma
+        ) + student_t_sum(velocity_residual, config.velocity_sigma)
+
+    responsibilities = np.array(prior_weights, copy=True)
+    for _ in range(config.em_iterations):
+        coefficients, covariances, residual_variance, axis_designs = (
+            conditional_fit(responsibilities)
         )
-        score += -0.5 * float(np.linalg.slogdet(precision)[1])
+        trajectory_scores = np.asarray(
+            [
+                trajectory_log_likelihood(batch, actuator, coefficients)
+                for batch, actuator in zip(batches, actuator_histories)
+            ]
+        )
+        updated = np.empty_like(responsibilities)
+        for indices in grouped.values():
+            log_mass = np.asarray(
+                [
+                    np.log(prior_weights[index]) + trajectory_scores[index]
+                    for index in indices
+                ]
+            )
+            normalizer = _logsumexp(log_mass)
+            for local, index in enumerate(indices):
+                updated[index] = np.exp(log_mass[local] - normalizer)
+        responsibilities = updated
+    coefficients, covariances, residual_variance, axis_designs = (
+        conditional_fit(responsibilities)
+    )
+    trajectory_scores = np.asarray(
+        [
+            trajectory_log_likelihood(batch, actuator, coefficients)
+            for batch, actuator in zip(batches, actuator_histories)
+        ]
+    )
+    score = 0.0
+    episode_responsibilities = {}
+    for episode_id, indices in grouped.items():
+        log_mass = np.asarray(
+            [
+                np.log(prior_weights[index]) + trajectory_scores[index]
+                for index in indices
+            ]
+        )
+        normalizer = _logsumexp(log_mass)
+        score += normalizer
+        episode_responsibilities[episode_id] = np.exp(log_mass - normalizer)
     return _GridFit(
         delay=float(delay),
         time_constant=float(time_constant),
         coefficients=coefficients,
         coefficient_covariances=covariances,
         log_score=score,
-        design=np.stack(axis_designs, axis=0),
+        design=axis_designs,
         residual_variance=residual_variance,
+        episode_responsibilities=episode_responsibilities,
     )
 
 
@@ -714,10 +982,21 @@ def fit_effective_response(
         ),
         grid_weights=grid_weights,
         identifiability=report,
-        log_evidence=float(log_normalizer),
-        approximation="delay_lag_grid_with_conditional_bayesian_linear_response",
+        log_evidence=float(log_normalizer - np.log(len(grid_fits))),
+        approximation=(
+            "trajectory_mixture_marginal_delay_lag_grid_with_"
+            "responsibility_weighted_laplace_conditionals"
+        ),
         source_sample_ids=tuple(
             sorted(set(item.trajectory_sample_id for item in data))
+        ),
+        fit_diagnostics=(
+            "trajectory_weights_normalized_to_one_within_each_episode",
+            "episode_likelihood_is_logsumexp_over_mutually_exclusive_trajectories",
+            "one_step_position_and_velocity_student_t_likelihood",
+            "conditional_coefficients_use_integrated_posterior_state_equations",
+            "raw_mocap_numerical_derivatives_are_forbidden",
+            "parameter_posterior_is_em_laplace_approximation_not_calibrated_truth",
         ),
     )
 
@@ -750,7 +1029,14 @@ def fit_hierarchical_effective_response(
         raise ValueError("shrinkage_observations must be finite and positive")
     for episode_id, episode_batches in sorted(grouped.items()):
         local = fit_effective_response(episode_batches, config).mean_parameters()
-        transitions = sum(item.timestamps.size - 1 for item in episode_batches)
+        weight_total = float(
+            np.sum([item.trajectory_weight for item in episode_batches])
+        )
+        transitions = sum(
+            (item.trajectory_weight / weight_total)
+            * (item.timestamps.size - 1)
+            for item in episode_batches
+        )
         local_weight = transitions / (transitions + shrinkage)
         effectiveness = (
             local_weight * local.effectiveness
@@ -793,7 +1079,10 @@ def fit_hierarchical_effective_response(
         population=population,
         episode_parameter_means=episode_means,
         episode_random_effect_covariance=covariance,
-        approximation="empirical_bayes_partial_pooling",
+        approximation=(
+            "empirical_bayes_partial_pooling_over_trajectory_mixture_"
+            "marginal_episode_fits"
+        ),
     )
 
 
@@ -811,4 +1100,5 @@ __all__ = [
     "delayed_command",
     "fit_effective_response",
     "fit_hierarchical_effective_response",
+    "trajectory_mixture_log_likelihood",
 ]

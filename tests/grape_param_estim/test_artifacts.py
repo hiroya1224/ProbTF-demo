@@ -125,6 +125,43 @@ class ArtifactTests(unittest.TestCase):
                 ),
             )
 
+    def test_counterfactual_result_defensively_freezes_artifact_mappings(self):
+        result = _result()
+        violation_probability = {"tilt": 0.25}
+        nested = {
+            "binding": {"passed": False},
+            "channels": ["position", "attitude"],
+            "scores": np.array([0.1, 0.2]),
+        }
+        provenance = dict(result.provenance, nested=nested)
+        frozen = replace(
+            result,
+            violation_probability=violation_probability,
+            provenance=provenance,
+        )
+
+        violation_probability["tilt"] = 1.0
+        nested["binding"]["passed"] = True
+        nested["channels"][0] = "tampered"
+        nested["scores"][0] = 9.0
+
+        self.assertEqual(frozen.violation_probability["tilt"], 0.25)
+        self.assertFalse(frozen.provenance["nested"]["binding"]["passed"])
+        self.assertEqual(
+            frozen.provenance["nested"]["channels"][0], "position"
+        )
+        np.testing.assert_allclose(
+            frozen.provenance["nested"]["scores"], [0.1, 0.2]
+        )
+        with self.assertRaises(TypeError):
+            frozen.violation_probability["tilt"] = 0.9
+        with self.assertRaises(TypeError):
+            frozen.provenance["workflow_status"] = "tampered"
+        with self.assertRaises(TypeError):
+            frozen.provenance["nested"]["binding"]["passed"] = True
+        with self.assertRaises(ValueError):
+            frozen.provenance["nested"]["scores"][0] = 9.0
+
     def test_online_prefix_provenance_rejects_post_cutoff_source_data(self):
         common = {
             "source_bag_sha256": ("a" * 64,),

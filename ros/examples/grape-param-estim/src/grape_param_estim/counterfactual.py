@@ -1,6 +1,7 @@
 """Closed-loop posterior counterfactual evaluation and support labelling."""
 
 from dataclasses import asdict, dataclass, is_dataclass
+from types import MappingProxyType
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
@@ -106,6 +107,25 @@ def _matrix(values, rows, name):
 
 def _weighted_mean(values, weights):
     return np.tensordot(weights, values, axes=(0, 0))
+
+
+def _deep_freeze(value):
+    """Return a defensive, recursively immutable copy of artifact metadata."""
+
+    if isinstance(value, Mapping):
+        return MappingProxyType(
+            {
+                key: _deep_freeze(item)
+                for key, item in value.items()
+            }
+        )
+    if isinstance(value, (tuple, list)):
+        return tuple(_deep_freeze(item) for item in value)
+    if isinstance(value, np.ndarray):
+        result = np.array(value, copy=True)
+        result.setflags(write=False)
+        return result
+    return value
 
 
 def _passes_frozen_exact_replay_metric(metric):
@@ -1209,9 +1229,12 @@ class CounterfactualResult:
             raise ValueError(
                 "counterfactual summary does not match its trajectory rollouts"
             )
-        violations = dict(self.violation_probability)
+        violations = {
+            str(name): float(value)
+            for name, value in self.violation_probability.items()
+        }
         if any(
-            not np.isfinite(float(value)) or not 0.0 <= float(value) <= 1.0
+            not np.isfinite(value) or not 0.0 <= value <= 1.0
             for value in violations.values()
         ):
             raise ValueError("violation probabilities must lie in [0, 1]")
@@ -1275,9 +1298,11 @@ class CounterfactualResult:
             self, "effective_rollout_sample_size", effective_count
         )
         object.__setattr__(self, "rollouts", rollouts)
-        object.__setattr__(self, "violation_probability", violations)
+        object.__setattr__(
+            self, "violation_probability", _deep_freeze(violations)
+        )
         object.__setattr__(self, "run_id", run_id)
-        object.__setattr__(self, "provenance", provenance)
+        object.__setattr__(self, "provenance", _deep_freeze(provenance))
 
     @property
     def recommendable(self):

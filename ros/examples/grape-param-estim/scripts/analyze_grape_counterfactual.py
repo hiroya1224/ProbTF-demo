@@ -25,6 +25,13 @@ def _arguments():
         "--source-commit",
         help="Explicit implementation commit; defaults to the current git state.",
     )
+    parser.add_argument(
+        "--analysis-bag-root",
+        help=(
+            "Optional directory for immutable-source derived analysis bags. "
+            "No bag is written by default."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -52,9 +59,28 @@ def main():
         config=config,
         output_root=arguments.output_root,
         source_commit=arguments.source_commit,
+        analysis_bag_root=arguments.analysis_bag_root,
     )
     for episode, destination in zip(episodes, destinations):
         print("{} -> {}".format(episode["episode_id"], destination))
+        if arguments.analysis_bag_root:
+            analysis_bag = (
+                Path(arguments.analysis_bag_root).expanduser().resolve()
+                / episode["episode_id"]
+                / "{}.analysis.bag".format(destination.name)
+            )
+            print(
+                "{} analysis bag -> {}".format(
+                    episode["episode_id"],
+                    analysis_bag,
+                )
+            )
+            print(
+                "{} analysis manifest -> {}".format(
+                    episode["episode_id"],
+                    analysis_bag.with_suffix(".json"),
+                )
+            )
     print(
         "completed {} diagnostic-only episode(s); "
         "exact controller status=ORACLE_UNAVAILABLE, workflow=EXPERIMENTAL".format(

@@ -41,6 +41,26 @@ from .state_smoother import (
 SCHEMA = "grape_real_bag_vertical_slice/v1"
 WORKFLOW_STATUS = "EXPERIMENTAL"
 AXES = ("x", "y", "z", "roll", "pitch", "yaw")
+_TRAJECTORY_EVIDENCE_FIELDS = (
+    "time_offset_s",
+    "desired_position",
+    "desired_velocity",
+    "nominal_position",
+    "nominal_velocity",
+    "actual_position_mean",
+    "actual_velocity_mean",
+    "actual_position_std",
+    "actual_velocity_std",
+    "nominal_acceleration_command",
+    "nominal_actual_log_residual",
+    "desired_actual_log_residual",
+    "actual_position_samples",
+    "actual_velocity_samples",
+    "nominal_position_samples",
+    "nominal_velocity_samples",
+    "actual_sample_ids",
+    "actual_sample_weights",
+)
 
 
 def _plain(value: Any) -> Any:
@@ -57,6 +77,24 @@ def _plain(value: Any) -> Any:
     if isinstance(value, (tuple, list)):
         return [_plain(item) for item in value]
     return value
+
+
+def _trajectory_evidence_sha256(
+    arrays: Mapping[str, np.ndarray]
+) -> str:
+    missing = [
+        name for name in _TRAJECTORY_EVIDENCE_FIELDS if name not in arrays
+    ]
+    if missing:
+        raise ValueError(
+            "trajectory evidence is missing {}".format(", ".join(missing))
+        )
+    return stable_hash(
+        {
+            name: np.asarray(arrays[name])
+            for name in _TRAJECTORY_EVIDENCE_FIELDS
+        }
+    )
 
 
 def _source_commit(
@@ -226,6 +264,43 @@ class BagIntervalData:
     topic_counts: Mapping[str, int]
     header_record_offset_median_s: Mapping[str, Optional[float]]
     observed_header_frames: Mapping[str, Tuple[str, ...]]
+
+
+def _input_slice_sha256(data: BagIntervalData) -> str:
+    """Bind every bag-derived value used by analysis or diagnostics."""
+
+    if not isinstance(data, BagIntervalData):
+        raise TypeError("input slice hashing requires BagIntervalData")
+    return stable_hash(
+        {
+            "episode_id": data.episode_id,
+            "stratum": data.stratum,
+            "source_bag_sha256": data.source_bag_sha256,
+            "bag_start_time": data.bag_start_time,
+            "interval": [
+                data.interval_start_offset_s,
+                data.interval_end_offset_s,
+            ],
+            "mocap_times": data.mocap_times,
+            "mocap_positions": data.mocap_positions,
+            "mocap_quaternions": data.mocap_quaternions,
+            "imu_times": data.imu_times,
+            "accelerometer": data.accelerometer,
+            "gyro": data.gyro,
+            "pid_times": data.pid_times,
+            "desired_position": data.desired_position_euler,
+            "desired_velocity": data.desired_velocity,
+            "nominal_acceleration": data.nominal_acceleration,
+            "four_axis_thrust": data.four_axis_thrust,
+            "roll_pitch_gain": data.roll_pitch_gain,
+            "flight_states": data.flight_states,
+            "topic_counts": data.topic_counts,
+            "header_record_offset_median_s": (
+                data.header_record_offset_median_s
+            ),
+            "observed_header_frames": data.observed_header_frames,
+        }
+    )
 
 
 def read_bag_interval(
@@ -486,6 +561,52 @@ def _parameter_summary(
     }
 
 
+def _integrate_nominal_trajectory(
+    times: np.ndarray,
+    initial_position: np.ndarray,
+    initial_velocity: np.ndarray,
+    local_command: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Integrate the diagnostic local model from one coherent initial state."""
+
+    stamps = np.asarray(times, dtype=float).reshape(-1)
+    position_zero = np.asarray(initial_position, dtype=float).reshape(-1)
+    velocity_zero = np.asarray(initial_velocity, dtype=float).reshape(-1)
+    command = np.asarray(local_command, dtype=float)
+    if (
+        stamps.size < 2
+        or position_zero.shape != (6,)
+        or velocity_zero.shape != (6,)
+        or command.shape != (stamps.size, 6)
+        or not np.all(np.isfinite(stamps))
+        or not np.all(np.isfinite(position_zero))
+        or not np.all(np.isfinite(velocity_zero))
+        or not np.all(np.isfinite(command))
+        or np.any(np.diff(stamps) <= 0.0)
+    ):
+        raise ValueError("nominal integration inputs are invalid")
+    position = np.empty((stamps.size, 6), dtype=float)
+    velocity = np.empty_like(position)
+    position[0] = position_zero
+    velocity[0] = velocity_zero
+    rotation = Rotation.from_rotvec(position_zero[3:])
+    for index, delta in enumerate(np.diff(stamps), start=1):
+        acceleration = command[index - 1]
+        position[index, :3] = (
+            position[index - 1, :3]
+            + velocity[index - 1, :3] * delta
+            + 0.5 * acceleration[:3] * delta * delta
+        )
+        rotation_increment = (
+            velocity[index - 1, 3:] * delta
+            + 0.5 * acceleration[3:] * delta * delta
+        )
+        rotation = rotation * Rotation.from_rotvec(rotation_increment)
+        position[index, 3:] = rotation.as_rotvec()
+        velocity[index] = velocity[index - 1] + acceleration * delta
+    return position, velocity
+
+
 def analyze_interval(
     data: BagIntervalData,
     config: Mapping[str, Any],
@@ -599,34 +720,20 @@ def analyze_interval(
         )
     )
 
-    nominal_position = np.empty_like(actual_position)
-    nominal_velocity = np.empty_like(actual_velocity)
-    nominal_position[0] = actual_position[0]
-    nominal_velocity[0] = actual_velocity[0]
     equilibrium_command = np.median(command, axis=0)
     local_command = command - equilibrium_command
-    nominal_rotation = Rotation.from_rotvec(actual_position[0, 3:])
-    for index, delta in enumerate(np.diff(times), start=1):
-        acceleration = local_command[index - 1]
-        nominal_position[index, :3] = (
-            nominal_position[index - 1]
-            [:3]
-            + nominal_velocity[index - 1, :3] * delta
-            + 0.5 * acceleration[:3] * delta * delta
-        )
-        rotation_increment = (
-            nominal_velocity[index - 1, 3:] * delta
-            + 0.5 * acceleration[3:] * delta * delta
-        )
-        nominal_rotation = (
-            nominal_rotation * Rotation.from_rotvec(rotation_increment)
-        )
-        nominal_position[index, 3:] = nominal_rotation.as_rotvec()
-        nominal_velocity[index] = (
-            nominal_velocity[index - 1] + acceleration * delta
-        )
+    nominal_position, nominal_velocity = _integrate_nominal_trajectory(
+        times,
+        actual_position[0],
+        actual_velocity[0],
+        local_command,
+    )
 
     batches = []
+    actual_position_samples = []
+    actual_velocity_samples = []
+    nominal_position_samples = []
+    nominal_velocity_samples = []
     for sample_index, sample_id in enumerate(smoother.sample_ids):
         sample_position = np.column_stack(
             (
@@ -656,6 +763,18 @@ def analyze_interval(
                 ),
             )
         )
+        sample_nominal_position, sample_nominal_velocity = (
+            _integrate_nominal_trajectory(
+                times,
+                sample_position[0],
+                sample_velocity[0],
+                local_command,
+            )
+        )
+        actual_position_samples.append(sample_position)
+        actual_velocity_samples.append(sample_velocity)
+        nominal_position_samples.append(sample_nominal_position)
+        nominal_velocity_samples.append(sample_nominal_velocity)
         batches.append(
             TrajectoryTransitionBatch(
                 timestamps=times,
@@ -703,20 +822,32 @@ def analyze_interval(
     ).as_rotvec()
     actual_acceleration = np.gradient(actual_velocity, times, axis=0)
     acceleration_mismatch = actual_acceleration - command
-    input_hash = stable_hash(
-        {
-            "mocap_times": data.mocap_times,
-            "mocap_positions": data.mocap_positions,
-            "mocap_quaternions": data.mocap_quaternions,
-            "imu_times": data.imu_times,
-            "accelerometer": data.accelerometer,
-            "gyro": data.gyro,
-            "pid_times": data.pid_times,
-            "desired_position": data.desired_position_euler,
-            "desired_velocity": data.desired_velocity,
-            "nominal_acceleration": data.nominal_acceleration,
-        }
-    )
+    input_hash = _input_slice_sha256(data)
+    arrays = {
+        "time_offset_s": times,
+        "desired_position": desired_position,
+        "desired_velocity": desired_velocity,
+        "nominal_position": nominal_position,
+        "nominal_velocity": nominal_velocity,
+        "actual_position_mean": actual_position,
+        "actual_velocity_mean": actual_velocity,
+        "actual_position_std": position_std,
+        "actual_velocity_std": velocity_std,
+        "nominal_acceleration_command": command,
+        "nominal_actual_log_residual": nominal_actual_residual,
+        "desired_actual_log_residual": desired_actual_residual,
+        "actual_position_samples": np.asarray(actual_position_samples),
+        "actual_velocity_samples": np.asarray(actual_velocity_samples),
+        "nominal_position_samples": np.asarray(nominal_position_samples),
+        "nominal_velocity_samples": np.asarray(nominal_velocity_samples),
+        "actual_sample_ids": np.asarray(
+            smoother.sample_ids, dtype=np.int64
+        ),
+        "actual_sample_weights": np.asarray(
+            smoother.sample_weights, dtype=float
+        ),
+    }
+    trajectory_hash = _trajectory_evidence_sha256(arrays)
     gates = {
         "exact_controller_replay": {
             "passed": False,
@@ -749,6 +880,7 @@ def analyze_interval(
         "episode_id": data.episode_id,
         "source_bag_sha256": data.source_bag_sha256,
         "input_slice_sha256": input_hash,
+        "trajectory_evidence_sha256": trajectory_hash,
         "config_sha256": config["config_sha256"],
         "source_commit": source_commit,
         "model_id": LowDimensionalEffectiveResponse.model_id,
@@ -843,20 +975,6 @@ def analyze_interval(
         },
         "gates": gates,
     }
-    arrays = {
-        "time_offset_s": times,
-        "desired_position": desired_position,
-        "desired_velocity": desired_velocity,
-        "nominal_position": nominal_position,
-        "nominal_velocity": nominal_velocity,
-        "actual_position_mean": actual_position,
-        "actual_velocity_mean": actual_velocity,
-        "actual_position_std": position_std,
-        "actual_velocity_std": velocity_std,
-        "nominal_acceleration_command": command,
-        "nominal_actual_log_residual": nominal_actual_residual,
-        "desired_actual_log_residual": desired_actual_residual,
-    }
     return summary, arrays
 
 
@@ -881,6 +999,663 @@ def _candidate_rows(config: Mapping[str, Any]) -> Sequence[Mapping[str, Any]]:
             grid["allocation_scale"],
         )
     ]
+
+
+def _se3_log_residual(
+    reference_position_rotvec: np.ndarray,
+    actual_position_rotvec: np.ndarray,
+) -> np.ndarray:
+    """Return Log(T_reference^-1 T_actual) as translation/rotation coordinates."""
+
+    reference = np.asarray(reference_position_rotvec, dtype=float).reshape(-1)
+    actual = np.asarray(actual_position_rotvec, dtype=float).reshape(-1)
+    if (
+        reference.shape != (6,)
+        or actual.shape != (6,)
+        or not np.all(np.isfinite(reference))
+        or not np.all(np.isfinite(actual))
+    ):
+        raise ValueError("SE(3) residual inputs must be finite 6-vectors")
+    reference_rotation = Rotation.from_rotvec(reference[3:])
+    relative_rotation = reference_rotation.inv() * Rotation.from_rotvec(
+        actual[3:]
+    )
+    rotation_vector = relative_rotation.as_rotvec()
+    relative_translation = reference_rotation.inv().apply(
+        actual[:3] - reference[:3]
+    )
+    angle = float(np.linalg.norm(rotation_vector))
+    cross = np.asarray(
+        [
+            [0.0, -rotation_vector[2], rotation_vector[1]],
+            [rotation_vector[2], 0.0, -rotation_vector[0]],
+            [-rotation_vector[1], rotation_vector[0], 0.0],
+        ]
+    )
+    if angle < 1.0e-8:
+        coefficient = 1.0 / 12.0 + angle * angle / 720.0
+    else:
+        coefficient = (
+            1.0 - 0.5 * angle / np.tan(0.5 * angle)
+        ) / (angle * angle)
+    inverse_left_jacobian = (
+        np.eye(3)
+        - 0.5 * cross
+        + coefficient * np.matmul(cross, cross)
+    )
+    return np.concatenate(
+        (inverse_left_jacobian.dot(relative_translation), rotation_vector)
+    )
+
+
+def _se3_log_mean_transform_coordinates(log_coordinates: np.ndarray) -> np.ndarray:
+    """Map an SE(3) log-coordinate mean back to translation/rotvec form."""
+
+    coordinates = np.asarray(log_coordinates, dtype=float).reshape(-1)
+    if coordinates.shape != (6,) or not np.all(np.isfinite(coordinates)):
+        raise ValueError("SE(3) mean coordinates must be a finite 6-vector")
+    translation_coordinates = coordinates[:3]
+    rotation_vector = coordinates[3:]
+    angle = float(np.linalg.norm(rotation_vector))
+    cross = np.asarray(
+        [
+            [0.0, -rotation_vector[2], rotation_vector[1]],
+            [rotation_vector[2], 0.0, -rotation_vector[0]],
+            [-rotation_vector[1], rotation_vector[0], 0.0],
+        ]
+    )
+    if angle < 1.0e-8:
+        first = 0.5 - angle * angle / 24.0
+        second = 1.0 / 6.0 - angle * angle / 120.0
+    else:
+        first = (1.0 - np.cos(angle)) / (angle * angle)
+        second = (angle - np.sin(angle)) / (angle**3)
+    left_jacobian = (
+        np.eye(3)
+        + first * cross
+        + second * np.matmul(cross, cross)
+    )
+    return np.concatenate(
+        (left_jacobian.dot(translation_coordinates), rotation_vector)
+    )
+
+
+def _vertical_slice_message_inputs(
+    summary: Mapping[str, Any], arrays: Mapping[str, np.ndarray]
+) -> Mapping[str, Any]:
+    """Validate and normalize the factual slice used by ROS message records."""
+
+    if summary.get("schema") != SCHEMA:
+        raise ValueError("unsupported vertical-slice summary schema")
+    if (
+        summary.get("workflow_status") != WORKFLOW_STATUS
+        or summary.get("recommendation_available") is not False
+    ):
+        raise ValueError(
+            "analysis messages require the non-recommendable EXPERIMENTAL slice"
+        )
+    for gate_name in (
+        "exact_controller_replay",
+        "probability_calibration",
+        "recommendation",
+    ):
+        gate = summary.get("gates", {}).get(gate_name, {})
+        if gate.get("passed") is not False:
+            raise ValueError(
+                "{} must fail before factual-only records are emitted".format(
+                    gate_name
+                )
+            )
+    conventions = summary.get("frame_and_unit_conventions", {})
+    if (
+        summary.get("frame_unit_gate_passed") is not True
+        or conventions.get("world_frame") != "ENU"
+        or conventions.get("body_frame") != "FLU"
+        or "world"
+        not in conventions.get("expected_header_frames", {}).get(
+            "mocap_pose", ()
+        )
+    ):
+        raise ValueError("analysis message frame/unit provenance is invalid")
+    for name in (
+        "source_bag_sha256",
+        "input_slice_sha256",
+        "trajectory_evidence_sha256",
+        "config_sha256",
+    ):
+        digest = str(summary.get(name, ""))
+        if (
+            len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise ValueError("{} must be a lowercase SHA-256 digest".format(name))
+    run_content = {
+        "schema": summary["schema"],
+        "episode_id": summary["episode_id"],
+        "source_bag_sha256": summary["source_bag_sha256"],
+        "input_slice_sha256": summary["input_slice_sha256"],
+        "trajectory_evidence_sha256": summary[
+            "trajectory_evidence_sha256"
+        ],
+        "config_sha256": summary["config_sha256"],
+        "source_commit": summary["source_commit"],
+        "model_id": summary["model_id"],
+        "seed": summary["seed"],
+        "interval": summary["interval"],
+        "gates": summary["gates"],
+    }
+    if stable_hash(run_content)[:20] != str(summary.get("run_id", "")):
+        raise ValueError("vertical-slice run_id does not match its provenance")
+    if not str(summary.get("source_commit", "")):
+        raise ValueError("vertical-slice source_commit must not be empty")
+    topics = tuple(sorted(summary.get("source_topic_counts", {})))
+    if len(topics) != 6 or any(not item.startswith("/") for item in topics):
+        raise ValueError("vertical-slice source topics are incomplete")
+
+    times = np.asarray(arrays.get("time_offset_s"), dtype=float).reshape(-1)
+    desired_position = np.asarray(
+        arrays.get("desired_position"), dtype=float
+    )
+    desired_velocity = np.asarray(
+        arrays.get("desired_velocity"), dtype=float
+    )
+    nominal_position = np.asarray(
+        arrays.get("nominal_position"), dtype=float
+    )
+    nominal_velocity = np.asarray(
+        arrays.get("nominal_velocity"), dtype=float
+    )
+    actual_position = np.asarray(
+        arrays.get("actual_position_mean"), dtype=float
+    )
+    actual_velocity = np.asarray(
+        arrays.get("actual_velocity_mean"), dtype=float
+    )
+    actual_position_samples = np.asarray(
+        arrays.get("actual_position_samples"), dtype=float
+    )
+    actual_velocity_samples = np.asarray(
+        arrays.get("actual_velocity_samples"), dtype=float
+    )
+    nominal_position_samples = np.asarray(
+        arrays.get("nominal_position_samples"), dtype=float
+    )
+    nominal_velocity_samples = np.asarray(
+        arrays.get("nominal_velocity_samples"), dtype=float
+    )
+    sample_ids = np.asarray(
+        arrays.get("actual_sample_ids"), dtype=np.int64
+    ).reshape(-1)
+    sample_weights = np.asarray(
+        arrays.get("actual_sample_weights"), dtype=float
+    ).reshape(-1)
+    point_count = times.size
+    sample_count = sample_ids.size
+    if (
+        point_count < 2
+        or np.any(np.diff(times) <= 0.0)
+        or any(
+            item.shape != (point_count, 6)
+            for item in (
+                desired_position,
+                desired_velocity,
+                nominal_position,
+                nominal_velocity,
+                actual_position,
+                actual_velocity,
+            )
+        )
+        or any(
+            item.shape != (sample_count, point_count, 6)
+            for item in (
+                actual_position_samples,
+                actual_velocity_samples,
+                nominal_position_samples,
+                nominal_velocity_samples,
+            )
+        )
+        or sample_weights.shape != (sample_count,)
+        or sample_count < 1
+        or len(set(int(item) for item in sample_ids)) != sample_count
+        or np.any(sample_ids < 0)
+        or np.any(sample_weights < 0.0)
+        or not np.isclose(np.sum(sample_weights), 1.0, atol=1.0e-10)
+        or not all(
+            np.all(np.isfinite(item))
+            for item in (
+                times,
+                desired_position,
+                desired_velocity,
+                nominal_position,
+                nominal_velocity,
+                actual_position,
+                actual_velocity,
+                actual_position_samples,
+                actual_velocity_samples,
+                nominal_position_samples,
+                nominal_velocity_samples,
+                sample_weights,
+            )
+        )
+    ):
+        raise ValueError("vertical-slice trajectory samples are invalid")
+    if (
+        _trajectory_evidence_sha256(arrays)
+        != summary["trajectory_evidence_sha256"]
+    ):
+        raise ValueError(
+            "trajectory evidence does not match trajectory_evidence_sha256"
+        )
+    interval_start = float(summary["interval_start_offset_s"])
+    interval_end = float(summary["interval_end_offset_s"])
+    sample_period = 1.0 / float(summary["sample_rate_hz"])
+    if (
+        not np.isclose(times[0], interval_start, atol=1.0e-9)
+        or times[-1] > interval_end + 1.0e-9
+        or interval_end - times[-1] >= sample_period + 1.0e-9
+        or not np.allclose(
+            np.asarray(summary["interval"], dtype=float),
+            [interval_start, interval_end],
+            atol=1.0e-9,
+        )
+    ):
+        raise ValueError("trajectory timestamps do not match source interval")
+    bag_start = float(summary["bag_start_record_time"])
+    if not np.isfinite(bag_start):
+        raise ValueError("bag_start_record_time must be finite")
+    return {
+        "times": times,
+        "desired_position": desired_position,
+        "desired_velocity": desired_velocity,
+        "nominal_position": nominal_position,
+        "nominal_velocity": nominal_velocity,
+        "actual_position": actual_position,
+        "actual_velocity": actual_velocity,
+        "actual_position_samples": actual_position_samples,
+        "actual_velocity_samples": actual_velocity_samples,
+        "nominal_position_samples": nominal_position_samples,
+        "nominal_velocity_samples": nominal_velocity_samples,
+        "sample_ids": sample_ids,
+        "sample_weights": sample_weights,
+        "topics": topics,
+        "absolute_time_ns": np.rint(
+            (bag_start + times) * 1.0e9
+        ).astype(np.int64),
+        "source_interval_ns": np.rint(
+            (bag_start + np.asarray([interval_start, interval_end]))
+            * 1.0e9
+        ).astype(np.int64),
+    }
+
+
+def build_vertical_slice_analysis_records(
+    summary: Mapping[str, Any], arrays: Mapping[str, np.ndarray]
+) -> Tuple[Any, ...]:
+    """Build factual Grape trajectory/mismatch records for a derived bag.
+
+    This deliberately emits no CounterfactualCandidate while the exact
+    controller and calibration gates remain unavailable.
+    """
+
+    try:
+        import genpy
+        from geometry_msgs.msg import Transform, Twist
+        from grape_param_estim.msg import ModelMismatch, TrajectoryParticleSet
+        from probtf_msgs.msg import Provenance
+    except ImportError as error:  # pragma: no cover - ROS integration only.
+        raise RuntimeError(
+            "Grape analysis message generation requires built ROS 1 messages"
+        ) from error
+    from .artifacts import AnalysisBagRecord
+
+    values = _vertical_slice_message_inputs(summary, arrays)
+    sample_ids = [int(item) for item in values["sample_ids"]]
+    sample_weights = [float(item) for item in values["sample_weights"]]
+    absolute_time_ns = [int(item) for item in values["absolute_time_ns"]]
+    source_interval_ns = [
+        int(item) for item in values["source_interval_ns"]
+    ]
+
+    def ros_time(nanoseconds: int):
+        seconds, remainder = divmod(int(nanoseconds), 1_000_000_000)
+        return genpy.Time(seconds, remainder)
+
+    stamps = [ros_time(item) for item in absolute_time_ns]
+    interval_start = ros_time(source_interval_ns[0])
+    interval_end = ros_time(source_interval_ns[1])
+    trajectory_end = stamps[-1]
+
+    def transform(position_rotvec: np.ndarray):
+        pose = np.asarray(position_rotvec, dtype=float)
+        quaternion = Rotation.from_rotvec(pose[3:]).as_quat()
+        message = Transform()
+        message.translation.x = float(pose[0])
+        message.translation.y = float(pose[1])
+        message.translation.z = float(pose[2])
+        message.rotation.x = float(quaternion[0])
+        message.rotation.y = float(quaternion[1])
+        message.rotation.z = float(quaternion[2])
+        message.rotation.w = float(quaternion[3])
+        return message
+
+    def twist(velocity: np.ndarray):
+        state = np.asarray(velocity, dtype=float)
+        message = Twist()
+        message.linear.x = float(state[0])
+        message.linear.y = float(state[1])
+        message.linear.z = float(state[2])
+        message.angular.x = float(state[3])
+        message.angular.y = float(state[4])
+        message.angular.z = float(state[5])
+        return message
+
+    def provenance(kind: str, model_version: str):
+        message = Provenance()
+        message.source_ids = [
+            "source_bag_sha256:{}".format(summary["source_bag_sha256"]),
+            "input_slice_sha256:{}".format(summary["input_slice_sha256"]),
+            "trajectory_evidence_sha256:{}".format(
+                summary["trajectory_evidence_sha256"]
+            ),
+            "episode_id:{}".format(summary["episode_id"]),
+            "run_id:{}".format(summary["run_id"]),
+        ]
+        message.derived_from_edge_ids = []
+        message.method = "{}/matched_trajectory_message_builder".format(SCHEMA)
+        message.detail = json.dumps(
+            {
+                "kind": kind,
+                "normalized_dataset_sha256_semantics": (
+                    "input_slice_sha256 over normalized adapter evidence"
+                ),
+                "trajectory_evidence_sha256": summary[
+                    "trajectory_evidence_sha256"
+                ],
+                "effective_response_model_id": summary["model_id"],
+                "model_version": model_version,
+                "run_id": summary["run_id"],
+                "workflow_status": WORKFLOW_STATUS,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return message
+
+    def fill_common(
+        message: Any, kind: str, model_version: str
+    ) -> None:
+        message.source_bag_sha256 = [summary["source_bag_sha256"]]
+        message.normalized_dataset_sha256 = [summary["input_slice_sha256"]]
+        message.source_topics = list(values["topics"])
+        message.source_interval_start = interval_start
+        message.source_interval_end = interval_end
+        message.config_sha256 = summary["config_sha256"]
+        message.source_commit = summary["source_commit"]
+        message.model_version = model_version
+        message.seed = int(summary["seed"])
+        message.causal = False
+        message.prefix_cutoff = genpy.Time()
+        message.provenance = provenance(kind, model_version)
+
+    def trajectory_record(
+        kind: str,
+        positions: np.ndarray,
+        velocities: np.ndarray,
+        ids: Sequence[int],
+        weights: Sequence[float],
+        approximation: str,
+        model_version: str,
+    ) -> AnalysisBagRecord:
+        position_samples = np.asarray(positions, dtype=float)
+        velocity_samples = np.asarray(velocities, dtype=float)
+        message = TrajectoryParticleSet()
+        message.header.stamp = trajectory_end
+        message.header.frame_id = "world"
+        message.run_id = summary["run_id"]
+        message.trajectory_id = "{}:{}".format(summary["run_id"], kind)
+        message.trajectory_length = len(stamps)
+        message.sample_ids = [int(item) for item in ids]
+        message.sample_weights = [float(item) for item in weights]
+        message.stamps = stamps
+        message.transforms = [
+            transform(position_samples[sample_index, time_index])
+            for sample_index in range(position_samples.shape[0])
+            for time_index in range(position_samples.shape[1])
+        ]
+        message.twists = [
+            twist(velocity_samples[sample_index, time_index])
+            for sample_index in range(velocity_samples.shape[0])
+            for time_index in range(velocity_samples.shape[1])
+        ]
+        message.candidate_id = ""
+        message.candidate_parameter_names = []
+        message.candidate_parameters = []
+        message.approximation = approximation
+        fill_common(message, kind, model_version)
+        return AnalysisBagRecord(
+            "/analysis/grape_param_estim/trajectory/{}".format(kind),
+            message,
+            absolute_time_ns[-1],
+        )
+
+    desired_positions = values["desired_position"][None, :, :]
+    desired_velocities = values["desired_velocity"][None, :, :]
+    records = [
+        trajectory_record(
+            "desired",
+            desired_positions,
+            desired_velocities,
+            [0],
+            [1.0],
+            "recorded_controller_target_interpolated",
+            "recorded_PoseControlPid_target/interpolated/v1",
+        ),
+        trajectory_record(
+            "nominal",
+            values["nominal_position_samples"],
+            values["nominal_velocity_samples"],
+            sample_ids,
+            sample_weights,
+            (
+                "equilibrium_centered_recorded_PoseControlPid.total;"
+                "same_sample_initial_state;nominal_not_exact_pc_mcu_replay"
+            ),
+            "equilibrium_centered_local_PID_total_integrator/v1",
+        ),
+        trajectory_record(
+            "actual_posterior",
+            values["actual_position_samples"],
+            values["actual_velocity_samples"],
+            sample_ids,
+            sample_weights,
+            "offline_RTS_coherent_trajectory_samples:{}".format(
+                summary["smoother"]["sampling_approximation"]
+            ),
+            "error_state_EKF_RTS/v1",
+        ),
+    ]
+    probability = float(
+        summary["effective_response"]["credible_probability"]
+    )
+    if not 0.0 < probability < 1.0:
+        raise ValueError("credible probability must lie in (0, 1)")
+    lower_probability = 0.5 * (1.0 - probability)
+    upper_probability = 1.0 - lower_probability
+
+    def weighted_summary(samples: np.ndarray):
+        sample_values = np.asarray(samples, dtype=float)
+        weights = values["sample_weights"]
+        mean = np.average(sample_values, axis=0, weights=weights)
+        centered = sample_values - mean
+        covariance = np.matmul(
+            (centered * weights[:, None]).T,
+            centered,
+        )
+        lower = np.asarray(
+            [
+                _weighted_quantile(
+                    sample_values[:, axis], weights, lower_probability
+                )
+                for axis in range(6)
+            ]
+        )
+        upper = np.asarray(
+            [
+                _weighted_quantile(
+                    sample_values[:, axis], weights, upper_probability
+                )
+                for axis in range(6)
+            ]
+        )
+        return mean, lower, upper, covariance
+
+    for time_index, record_time_ns in enumerate(absolute_time_ns):
+        tracking_samples = np.asarray(
+            [
+                _se3_log_residual(
+                    values["desired_position"][time_index],
+                    values["actual_position_samples"][
+                        sample_index, time_index
+                    ],
+                )
+                for sample_index in range(len(sample_ids))
+            ]
+        )
+        model_samples = np.asarray(
+            [
+                _se3_log_residual(
+                    values["nominal_position_samples"][
+                        sample_index, time_index
+                    ],
+                    values["actual_position_samples"][
+                        sample_index, time_index
+                    ],
+                )
+                for sample_index in range(len(sample_ids))
+            ]
+        )
+        tracking_mean, tracking_lower, tracking_upper, _ = (
+            weighted_summary(tracking_samples)
+        )
+        model_mean, model_lower, model_upper, model_covariance = (
+            weighted_summary(model_samples)
+        )
+        mismatch = ModelMismatch()
+        mismatch.header.seq = time_index
+        mismatch.header.stamp = stamps[time_index]
+        mismatch.header.frame_id = "world"
+        mismatch.run_id = summary["run_id"]
+        mismatch.sample_set_id = "{}:actual_posterior".format(
+            summary["run_id"]
+        )
+        mismatch.desired = transform(values["desired_position"][time_index])
+        mismatch.nominal = transform(values["nominal_position"][time_index])
+        mismatch.actual_posterior_mean = transform(
+            values["actual_position"][time_index]
+        )
+        mismatch.nominal_to_actual_mean = transform(
+            _se3_log_mean_transform_coordinates(model_mean)
+        )
+        mismatch.tracking_residual_mean = tracking_mean.tolist()
+        mismatch.tracking_residual_lower = tracking_lower.tolist()
+        mismatch.tracking_residual_upper = tracking_upper.tolist()
+        mismatch.model_residual_mean = model_mean.tolist()
+        mismatch.model_residual_lower = model_lower.tolist()
+        mismatch.model_residual_upper = model_upper.tolist()
+        mismatch.model_residual_covariance = model_covariance.reshape(
+            -1
+        ).tolist()
+        mismatch.trajectory_sample_count = len(sample_ids)
+        mismatch.diagnostics = [
+            WORKFLOW_STATUS,
+            "recommendation_available=false",
+            "nominal_not_exact_pc_mcu_replay",
+            "offline_RTS_noncausal",
+            "matched_sample_SE3_log_residual",
+        ]
+        fill_common(
+            mismatch,
+            "model_mismatch",
+            "matched_sample_SE3_log/v1",
+        )
+        records.append(
+            AnalysisBagRecord(
+                "/analysis/grape_param_estim/model_mismatch",
+                mismatch,
+                record_time_ns,
+            )
+        )
+    return tuple(records)
+
+
+def materialize_vertical_slice_analysis_bag(
+    source_bag: Any,
+    output_bag: Any,
+    summary: Mapping[str, Any],
+    arrays: Mapping[str, np.ndarray],
+) -> Mapping[str, Any]:
+    """Merge factual vertical-slice records into a new immutable-source bag."""
+
+    from .artifacts import merge_analysis_bag
+
+    destination = Path(output_bag).expanduser().resolve()
+    sidecar = destination.with_suffix(".json")
+    if sidecar.exists():
+        raise FileExistsError(str(sidecar))
+    records = build_vertical_slice_analysis_records(summary, arrays)
+    merged = merge_analysis_bag(
+        source_bag,
+        destination,
+        records,
+        expected_source_sha256=str(summary["source_bag_sha256"]),
+    )
+    topic_counts: Dict[str, int] = {}
+    message_types: Dict[str, str] = {}
+    for record in records:
+        topic_counts[record.topic] = topic_counts.get(record.topic, 0) + 1
+        message_types[record.topic] = str(
+            getattr(record.message, "_type", type(record.message).__name__)
+        )
+    metadata = {
+        **dict(merged),
+        "schema": "{}/analysis_bag_manifest/v1".format(SCHEMA),
+        "run_id": summary["run_id"],
+        "config_sha256": summary["config_sha256"],
+        "input_slice_sha256": summary["input_slice_sha256"],
+        "trajectory_evidence_sha256": summary[
+            "trajectory_evidence_sha256"
+        ],
+        "source_commit": summary["source_commit"],
+        "workflow_status": summary["workflow_status"],
+        "recommendation_available": False,
+        "analysis_topic_counts": topic_counts,
+        "analysis_message_types": message_types,
+        "analysis_metadata": str(sidecar),
+    }
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=".{}.".format(sidecar.name),
+        suffix=".tmp",
+        dir=str(sidecar.parent),
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            json.dump(
+                _plain(metadata),
+                stream,
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            stream.write("\n")
+        if sidecar.exists():
+            raise FileExistsError(str(sidecar))
+        os.rename(temporary_name, str(sidecar))
+    except Exception:
+        if os.path.exists(temporary_name):
+            os.unlink(temporary_name)
+        raise
+    return metadata
 
 
 def _write_report(path: Path, summary: Mapping[str, Any]) -> None:
@@ -971,6 +1746,19 @@ def write_vertical_slice_artifact(
     arrays: Mapping[str, np.ndarray],
     config: Mapping[str, Any],
 ) -> Path:
+    _vertical_slice_message_inputs(summary, arrays)
+    config_payload = {
+        key: value
+        for key, value in config.items()
+        if key != "config_sha256"
+    }
+    if (
+        stable_hash(config_payload) != config.get("config_sha256")
+        or config.get("config_sha256") != summary.get("config_sha256")
+    ):
+        raise ValueError(
+            "vertical-slice config does not match config_sha256 provenance"
+        )
     root = Path(output_root).expanduser().resolve()
     destination = root / str(summary["episode_id"]) / str(summary["run_id"])
     if destination.exists():
@@ -992,33 +1780,78 @@ def write_vertical_slice_artifact(
                 allow_nan=False,
             )
             stream.write("\n")
+        point_count = len(arrays["time_offset_s"])
+        tabular_arrays = [
+            (name, np.asarray(values))
+            for name, values in arrays.items()
+            if name != "time_offset_s"
+            and np.asarray(values).ndim == 2
+            and np.asarray(values).shape[0] == point_count
+        ]
         columns = ["time_offset_s"]
-        for name, values in arrays.items():
-            if name == "time_offset_s":
-                continue
+        for name, values in tabular_arrays:
             columns.extend(
                 "{}_{}".format(name, axis)
-                for axis in AXES[: np.asarray(values).shape[1]]
+                for axis in AXES[: values.shape[1]]
             )
         with (staging / "trajectory.csv").open(
             "w", encoding="utf-8", newline=""
         ) as stream:
-            writer = csv.writer(stream)
+            writer = csv.writer(stream, lineterminator="\n")
             writer.writerow(columns)
-            for row in range(len(arrays["time_offset_s"])):
+            for row in range(point_count):
                 values = [arrays["time_offset_s"][row]]
-                for name, array in arrays.items():
-                    if name != "time_offset_s":
-                        values.extend(np.asarray(array)[row])
+                for _, array in tabular_arrays:
+                    values.extend(array[row])
                 writer.writerow([float(item) for item in values])
         candidates = _candidate_rows(config)
         with (staging / "candidate_grid.csv").open(
             "w", encoding="utf-8", newline=""
         ) as stream:
-            writer = csv.DictWriter(stream, fieldnames=tuple(candidates[0]))
+            writer = csv.DictWriter(
+                stream,
+                fieldnames=tuple(candidates[0]),
+                lineterminator="\n",
+            )
             writer.writeheader()
             writer.writerows(candidates)
+        np.savez_compressed(
+            str(staging / "trajectory_particles.npz"),
+            schema=np.asarray(SCHEMA),
+            trajectory_evidence_sha256=np.asarray(
+                summary["trajectory_evidence_sha256"]
+            ),
+            **{
+                name: np.asarray(arrays[name])
+                for name in _TRAJECTORY_EVIDENCE_FIELDS
+            }
+        )
         _write_report(staging / "REPORT.md", summary)
+        files = {}
+        for path in sorted(staging.iterdir()):
+            if path.is_file():
+                files[path.name] = {
+                    "sha256": sha256_file(path),
+                    "size_bytes": path.stat().st_size,
+                }
+        with (staging / "artifact_manifest.json").open(
+            "w", encoding="utf-8"
+        ) as stream:
+            json.dump(
+                {
+                    "schema": "{}/artifact_manifest/v1".format(SCHEMA),
+                    "run_id": summary["run_id"],
+                    "trajectory_evidence_sha256": summary[
+                        "trajectory_evidence_sha256"
+                    ],
+                    "files": files,
+                },
+                stream,
+                indent=2,
+                sort_keys=True,
+                allow_nan=False,
+            )
+            stream.write("\n")
         os.rename(str(staging), str(destination))
     except Exception:
         if staging.exists():
@@ -1033,15 +1866,24 @@ def analyze_bag(
     config: Mapping[str, Any],
     output_root: Any,
     source_commit: Optional[str] = None,
+    analysis_bag_path: Optional[Any] = None,
 ) -> Path:
     verified_commit = _source_commit(explicit=source_commit)
     data = read_bag_interval(bag_path, episode, config)
     summary, arrays = analyze_interval(
         data, config, verified_commit
     )
-    return write_vertical_slice_artifact(
+    destination = write_vertical_slice_artifact(
         output_root, summary, arrays, config
     )
+    if analysis_bag_path is not None:
+        materialize_vertical_slice_analysis_bag(
+            bag_path,
+            analysis_bag_path,
+            summary,
+            arrays,
+        )
+    return destination
 
 
 def analyze_configured_bags(
@@ -1051,20 +1893,34 @@ def analyze_configured_bags(
     config: Mapping[str, Any],
     output_root: Any,
     source_commit: Optional[str] = None,
+    analysis_bag_root: Optional[Any] = None,
 ) -> Tuple[Path, ...]:
     """Validate the clean revision once, then write several bag artifacts."""
 
     verified_commit = _source_commit(explicit=source_commit)
     root = Path(bag_root).expanduser().resolve()
+    bag_output_root = (
+        None
+        if analysis_bag_root is None
+        else Path(analysis_bag_root).expanduser().resolve()
+    )
     destinations = []
     for episode in episodes:
         data = read_bag_interval(root / episode["bag"], episode, config)
         summary, arrays = analyze_interval(data, config, verified_commit)
-        destinations.append(
-            write_vertical_slice_artifact(
-                output_root, summary, arrays, config
-            )
+        destination = write_vertical_slice_artifact(
+            output_root, summary, arrays, config
         )
+        destinations.append(destination)
+        if bag_output_root is not None:
+            materialize_vertical_slice_analysis_bag(
+                root / episode["bag"],
+                bag_output_root
+                / str(summary["episode_id"])
+                / "{}.analysis.bag".format(summary["run_id"]),
+                summary,
+                arrays,
+            )
     return tuple(destinations)
 
 
@@ -1076,7 +1932,9 @@ __all__ = [
     "analyze_bag",
     "analyze_configured_bags",
     "analyze_interval",
+    "build_vertical_slice_analysis_records",
     "load_vertical_slice_config",
+    "materialize_vertical_slice_analysis_bag",
     "read_bag_interval",
     "write_vertical_slice_artifact",
 ]

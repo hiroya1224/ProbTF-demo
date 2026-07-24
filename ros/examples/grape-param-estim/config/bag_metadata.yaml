@@ -1,0 +1,91 @@
+schema: grape_episode_metadata/v1
+bags:
+  20260612_grape_hovering_1_2026-06-12-17-30-06.bag:
+    episode_id: "20260612-01"
+    split: lobo
+    outcome: failure
+    labels: [short_airborne, manual_land]
+  20260612_grape_hovering_2_2026-06-12-17-31-30.bag:
+    episode_id: "20260612-02"
+    split: lobo
+    outcome: failure
+    labels: [takeoff_abort, force_land]
+  20260612_grape_hovering_3_2026-06-12-17-33-02.bag:
+    episode_id: "20260612-03"
+    split: lobo
+    outcome: failure
+    labels: [sensor_dropout, force_land]
+    assumptions:
+      failure_cause: "mocap dropout; confirm against experiment log"
+    label_status: provisional
+    label_evidence:
+      mocap_gap_s: 0.550104
+      sensor_warning_record_offset_s: 22.727406
+      force_land_record_offset_s: 22.731336
+  20260612_grape_hovering_4_2026-06-12-17-33-59.bag:
+    episode_id: "20260612-04"
+    split: lobo
+    outcome: failure
+    labels: [attitude_failure, excessive_roll_pitch]
+    assumptions:
+      failure_cause: "attitude failure; confirm against experiment log"
+    label_status: provisional
+    label_evidence:
+      rosout_record_offset_s: 25.283372
+      rosout_message: "failsafe: the roll pitch angles are too large"
+      airborne_duration_s: 1.133
+  20260612_grape_hovering_5_2026-06-12-17-38-24.bag:
+    episode_id: "20260612-05"
+    split: lobo
+    outcome: no_flight
+    labels: [parameter_adjustment]
+  20260612_grape_hovering_6_2026-06-12-17-40-34.bag:
+    episode_id: "20260612-06"
+    split: lobo
+    outcome: failure
+    labels: [short_airborne, manual_land]
+  20260612_grape_hovering_7_2026-06-12-17-41-34.bag:
+    episode_id: "20260612-07"
+    split: lobo
+    outcome: success
+    labels: [sustained_hover]
+    assumptions:
+      outcome_label: "success; confirm against experiment log"
+    label_status: provisional
+    label_evidence:
+      hover_duration_s: 114.529613
+      manual_land_record_offset_s: 157.607
+  20260612_grape_hovering_8_2026-06-12-17-46-41.bag:
+    episode_id: "20260612-08"
+    split: lobo
+    outcome: success
+    labels: [sustained_hover, gain_sweep]
+    assumptions:
+      experiment_type: "runtime PID gain sweep; confirm intervention log"
+    label_status: provisional
+    label_evidence:
+      hover_duration_s: 309.379910
+      roll_pitch_update_count: 17
+      final_roll_pitch_gain: {p: 13.0, i: 1.0, d: 20.0}
+      final_gain_record_offset_s: 322.700702
+      manual_land_record_offset_s: 348.770631
+  20260612_grape_hovering_9_2026-06-12-17-54-12.bag:
+    episode_id: "20260612-09"
+    split: lobo
+    outcome: success
+    labels: [sustained_hover]
+  20260613_grape_hovering_1_2026-06-13-13-44-01.bag:
+    episode_id: "20260613-01"
+    split: lobo
+    outcome: success
+    labels: [sustained_hover]
+  20260613_grape_hovering_2_2026-06-13-14-29-46.bag:
+    episode_id: "20260613-02"
+    split: lobo
+    outcome: success
+    labels: [sustained_hover]
+  20260613_grape_hovering_3_2026-06-13-15-12-51.bag:
+    episode_id: "20260613-03"
+    split: lobo
+    outcome: success
+    labels: [sustained_hover]

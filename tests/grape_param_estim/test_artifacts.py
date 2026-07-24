@@ -286,6 +286,11 @@ class ArtifactTests(unittest.TestCase):
                 "trajectory_particles.npz",
             }
             self.assertEqual({item.name for item in output.iterdir()}, expected)
+            csv_bytes = (
+                output / "counterfactual_candidates.csv"
+            ).read_bytes()
+            self.assertNotIn(b"\r", csv_bytes)
+            self.assertTrue(csv_bytes.endswith(b"\n"))
             candidate_payload = json.loads(
                 (output / "counterfactual_candidates.json").read_text()
             )

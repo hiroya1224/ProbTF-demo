@@ -515,7 +515,9 @@ class AnalysisArtifactWriter:
         with (directory / "counterfactual_candidates.csv").open(
             "w", encoding="utf-8", newline=""
         ) as stream:
-            writer = csv.DictWriter(stream, fieldnames=csv_fields)
+            writer = csv.DictWriter(
+                stream, fieldnames=csv_fields, lineterminator="\n"
+            )
             writer.writeheader()
             for result, summary in zip(results, summaries):
                 writer.writerow(

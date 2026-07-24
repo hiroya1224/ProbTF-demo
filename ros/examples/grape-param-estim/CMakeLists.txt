@@ -3,6 +3,7 @@ project(grape_param_estim)
 
 find_package(
   catkin REQUIRED COMPONENTS
+    geometry_msgs
     message_generation
     probtf_msgs
     std_msgs
@@ -15,16 +16,21 @@ add_message_files(
     EstimatorDiagnostics.msg
     InertialParameterEstimate.msg
     ParameterParticleSet.msg
+    TrajectoryParticleSet.msg
+    ModelMismatch.msg
+    CounterfactualCandidate.msg
 )
 
 generate_messages(
   DEPENDENCIES
+    geometry_msgs
     probtf_msgs
     std_msgs
 )
 
 catkin_package(
   CATKIN_DEPENDS
+    geometry_msgs
     message_runtime
     probtf_msgs
     std_msgs
@@ -35,6 +41,7 @@ catkin_install_python(
     scripts/estimate_grape_bag.py
     scripts/evaluate_sanity.py
     scripts/generate_sanity_bag.py
+    scripts/build_bag_manifest.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -184,12 +184,25 @@ python3 ros/core/probtf_core/test/run_temporal_selection.py \
 検査し、実行環境、seed、git tree、source/config/runner/corpus hash、
 conformance 出力を JSON に保存する。
 
-記録済み artifact:
+記録済み baseline artifact:
 
 - [temporal_selection_results_2026-07-24.json](../test/temporal_selection_results_2026-07-24.json)
 - SHA-256:
   `72e61c62e2f65dffc9d9ddacd678476796b61e21202be319b6894613bae97c22`
 - repository HEAD at run:
   `ccef72f10dd1762cfb340d7f458d62f1d9ddda3f`
+
+provenance/boolean claim の fail-closed 検証を追加した後も、旧 run は上書きせず
+同じ protocol で再検証した。
+
+- [temporal_selection_results_2026-07-24_post_hardening.json](../test/temporal_selection_results_2026-07-24_post_hardening.json)
+- SHA-256:
+  `fd7a15bb693d344a78c4e681f87228a8bbefc93d128ae408e1094caee2df5ce3`
+- repository HEAD at run:
+  `31dbaa7cf3a75c5dd0dca6c13bd49d4ef347dc19`
+- worktree: clean、conformance: `220 passed`
+
+post-hardening run でも hard gate と disposition は baseline と同じで、
+production `DEFAULT` は未選定である。
 
 判定の要約は [SELECTION_RESULTS.md](../SELECTION_RESULTS.md) を参照する。

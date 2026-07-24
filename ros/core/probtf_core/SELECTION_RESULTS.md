@@ -38,6 +38,37 @@ tree/source hash で一意に追跡する。
 raw artifact:
 [test/temporal_selection_results_2026-07-24.json](test/temporal_selection_results_2026-07-24.json)
 
+### Post-hardening 再検証
+
+baseline 後に、boolean safety flag と custom temporal model result の claim を
+fail closed に検証する test/実装を追加した。旧 run を上書きせず、同じ frozen
+config、corpus、seed、runner で clean checkout から再実行した。
+
+| 項目 | 記録値 |
+|---|---|
+| run timestamp (UTC) | `2026-07-24T13:15:08.403847+00:00` |
+| repository HEAD at run | `31dbaa7cf3a75c5dd0dca6c13bd49d4ef347dc19` |
+| whole worktree dirty | `false` |
+| core/tests worktree dirty | `false` |
+| core HEAD tree | `e25d7f8d07b53efb1e5ed923c2d825456af0616a` |
+| `tests/probtf` HEAD tree | `98855ddaa5bc3adf04778e928abc2c7ae9df9d34` |
+| evaluated core source SHA-256 | `f764ae6aaababd640dfca7dfb59b33d2f4b42923ce08b8bb62749ca0dca8caf7` |
+| config SHA-256 | `fe775ac61e6ffc686f2dee218e8019f9ea2030025a452f8733e79ab96cd4781d` |
+| runner SHA-256 | `dde2723d3ae19c95db041e49a34b77e797091d7a9e597f3da3c200ee7c05f405` |
+| corpus SHA-256 | `cc0486c72fba0a91bbc64bc153f2414ec608f05c2448eb8e2a1ac343bb4b12fc` |
+| result artifact SHA-256 | `fd7a15bb693d344a78c4e681f87228a8bbefc93d128ae408e1094caee2df5ce3` |
+| conformance | `220 passed in 9.24s`, exit `0` |
+
+raw artifact:
+[test/temporal_selection_results_2026-07-24_post_hardening.json](test/temporal_selection_results_2026-07-24_post_hardening.json)
+
+accuracy、coverage、uncertainty metric、one-standard-error 判定、hard gate は
+baseline と数値まで一致し、最終 disposition も不変だった。測定時刻に依存する
+performance は、moment twist `0.016217/0.016503 s`、sample twist
+`0.355931/0.357645 s`、moment acceleration `0.433797/0.436950 s`
+（各 p50/p95）で、sample/moment p50 比は `21.948x` だった。この再検証でも
+production `DEFAULT` は選定しない。
+
 ## 凍結 protocol
 
 - config は結果を見る前の `2026-07-24T00:00:00+09:00` に凍結した。

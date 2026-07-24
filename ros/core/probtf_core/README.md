@@ -24,6 +24,8 @@ binding を意味する。評価済みの package-wide recommendation ではな�
 測定値、判定理由、再現情報は [SELECTION_RESULTS.md](SELECTION_RESULTS.md) を
 参照する。API と安全契約の詳細は
 [docs/temporal_evaluation.md](docs/temporal_evaluation.md) に記載している。
+入力 protocol を変えずに provenance/boolean 検証追加後の 220-test suite で
+再実行した post-hardening run でも、この disposition は変わらなかった。
 
 ## 四つの時間処理を区別する
 

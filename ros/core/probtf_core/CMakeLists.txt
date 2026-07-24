@@ -85,6 +85,7 @@ install(
   FILES
     test/temporal_selection.yaml
     test/temporal_selection_results_2026-07-24.json
+    test/temporal_selection_results_2026-07-24_post_hardening.json
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/test
 )
 

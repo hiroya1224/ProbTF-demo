@@ -223,6 +223,32 @@ def test_moment_prediction_propagates_both_anchor_covariances():
     assert TemporalDiagnosticCode.DEPENDENCE_APPROXIMATED in result.diagnostics
 
 
+def test_moment_fast_path_never_drops_tiny_positive_anchor_covariance():
+    covariance = np.diag([1.0e-20, 0.0, 0.0])
+    previous = _record(
+        0.0,
+        components=(_component(covariance=covariance),),
+    )
+    anchor = _record(
+        1.0,
+        components=(_component(covariance=covariance),),
+    )
+    model = ConstantBodyTwistModel(np.zeros((6, 6)), 2.0)
+    result = model.predict(
+        (previous, anchor),
+        _request(
+            model,
+            2.0,
+            TemporalPolicy.PREDICT_WITH_MODEL,
+            (previous, anchor),
+        ),
+    )
+    output_covariance = component_pose_covariance(
+        result.record.distribution.components[0]
+    )
+    assert output_covariance[0, 0] == pytest.approx(5.0e-20, rel=2.0e-4)
+
+
 def test_interpolation_transports_endpoint_moments_adds_bridge_qc_and_safe_ids():
     finite = BinghamOrientation.from_parameter_matrix(
         np.diag([0.0, -80.0, -70.0, -60.0])
@@ -448,6 +474,71 @@ def test_sample_seed_none_is_recorded_as_effective_zero_and_uniform_is_unbounded
         np.testing.assert_array_equal(
             left.translation.mean_at_reference,
             right.translation.mean_at_reference,
+        )
+
+
+def test_sample_ids_are_a_common_random_prefix_across_sample_counts():
+    finite = BinghamOrientation.from_parameter_matrix(
+        np.diag([0.0, -8.0, -5.0, -3.0])
+    )
+    previous = _record(
+        0.0,
+        components=(
+            _component(
+                orientation=finite,
+                covariance=np.eye(3) * 0.02,
+            ),
+        ),
+    )
+    anchor = _record(
+        1.0,
+        transform=DeterministicTransform(
+            [0.2, 0.0, 0.0],
+            [1.0, 0.0, 0.0, 0.0],
+        ),
+        components=(
+            _component(
+                transform=DeterministicTransform(
+                    [0.2, 0.0, 0.0],
+                    [1.0, 0.0, 0.0, 0.0],
+                ),
+                orientation=finite,
+                covariance=np.eye(3) * 0.02,
+            ),
+        ),
+    )
+    outputs = []
+    for count in (24, 48):
+        model = ConstantBodyTwistModel(
+            np.eye(6) * 0.01,
+            1.0,
+            model_id="prefix_{}".format(count),
+            backend=TemporalUncertaintyBackend.SAMPLE,
+            sample_count=count,
+        )
+        outputs.append(
+            model.predict(
+                (previous, anchor),
+                _request(
+                    model,
+                    1.2,
+                    TemporalPolicy.PREDICT_WITH_MODEL,
+                    (previous, anchor),
+                    seed=42,
+                ),
+            )
+        )
+    for short, long in zip(
+        outputs[0].record.distribution.components,
+        outputs[1].record.distribution.components[:24],
+    ):
+        np.testing.assert_array_equal(
+            short.translation.mean_at_reference,
+            long.translation.mean_at_reference,
+        )
+        np.testing.assert_array_equal(
+            short.orientation.reference_quaternion_wxyz,
+            long.orientation.reference_quaternion_wxyz,
         )
 
 

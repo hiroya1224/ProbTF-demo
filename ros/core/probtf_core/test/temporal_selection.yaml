@@ -1,0 +1,57 @@
+schema_version: 1
+frozen_before_run: "2026-07-24T00:00:00+09:00"
+comparison_commit: "dee44b6"
+
+corpus:
+  path: "fixtures/temporal_corpus.yaml"
+  sha256: "cc0486c72fba0a91bbc64bc153f2414ec608f05c2448eb8e2a1ac343bb4b12fc"
+  training_episode_ids:
+    - stationary_local_gaussian
+    - constant_twist_screw
+    - constant_linear_acceleration
+    - abrupt_mode_change
+  held_out_episode_ids:
+    - constant_angular_acceleration
+    - timestamp_jitter_dropout
+
+random_seeds: [1729, 2718, 31415, 65537]
+oracle_sample_count: 2048
+sample_backend_count: 256
+
+metrics:
+  - se3_pose_rmse
+  - covariance_relative_frobenius_error
+  - energy_distance
+  - empirical_95_percent_coverage
+  - p50_latency_seconds
+  - p95_latency_seconds
+  - peak_python_bytes
+
+correctness_gates:
+  endpoint_absolute_tolerance: 1.0e-10
+  quaternion_norm_absolute_tolerance: 1.0e-10
+  covariance_psd_eigenvalue_tolerance: -1.0e-9
+  deterministic_limit_absolute_tolerance: 1.0e-10
+  causality_absolute_tolerance: 0.0
+  coverage_nominal: 0.95
+  coverage_binomial_confidence: 0.95
+
+selection_rules:
+  bootstrap_confidence: 0.95
+  bootstrap_resamples: 4000
+  one_standard_error_rule: true
+  sample_optional_min_energy_improvement_fraction: 0.10
+  sample_prune_runtime_or_memory_ratio: 2.0
+  acceleration_optional_min_score_improvement_fraction: 0.10
+  acceleration_min_independent_corpora: 2
+  nonlinear_local_rotation_threshold_radians: 0.35
+
+benchmark:
+  warmups: 3
+  repetitions: 20
+  sample_scaling_counts: [32, 64, 128, 256]
+
+implementation:
+  process_path_depth: 48
+  constant_acceleration_integration_substeps: 64
+  marginal_only_shared_factor_policy: "diagnose_dependence_approximated"

@@ -1,0 +1,67 @@
+schema_version: 1
+se3_convention: "T(t+h)=T(t)*Exp(h*xi_body), xi=[rho,phi]"
+episodes:
+  - id: stationary_local_gaussian
+    stratum: stationary
+    truth_model: constant_acceleration
+    anchor_dt: 0.10
+    initial_body_twist: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    body_acceleration: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    prediction_horizons: [0.02, 0.05, 0.10, 0.20]
+    process_noise_spectral_density_diagonal: [0.004, 0.004, 0.004, 0.001, 0.001, 0.001]
+
+  - id: constant_twist_screw
+    stratum: normal_motion
+    truth_model: constant_acceleration
+    anchor_dt: 0.10
+    initial_body_twist: [0.8, -0.2, 0.15, 0.25, -0.10, 0.45]
+    body_acceleration: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    prediction_horizons: [0.02, 0.05, 0.10, 0.20]
+    process_noise_spectral_density_diagonal: [0.008, 0.008, 0.008, 0.002, 0.002, 0.002]
+
+  - id: constant_linear_acceleration
+    stratum: imu_available
+    truth_model: constant_acceleration
+    anchor_dt: 0.10
+    initial_body_twist: [0.20, -0.10, 0.05, 0.0, 0.0, 0.10]
+    body_acceleration: [2.0, -0.7, 0.4, 0.0, 0.0, 0.25]
+    prediction_horizons: [0.02, 0.05, 0.10, 0.20]
+    process_noise_spectral_density_diagonal: [0.012, 0.012, 0.012, 0.003, 0.003, 0.003]
+
+  - id: constant_angular_acceleration
+    stratum: imu_available
+    truth_model: constant_acceleration
+    anchor_dt: 0.08
+    initial_body_twist: [0.10, 0.05, -0.03, 0.20, -0.15, 0.30]
+    body_acceleration: [0.3, -0.2, 0.1, 1.1, -0.8, 0.6]
+    prediction_horizons: [0.02, 0.04, 0.08, 0.16]
+    process_noise_spectral_density_diagonal: [0.015, 0.015, 0.015, 0.006, 0.006, 0.006]
+
+  - id: timestamp_jitter_dropout
+    stratum: dropout
+    truth_model: constant_acceleration
+    anchor_dt: 0.117
+    initial_body_twist: [0.4, 0.1, -0.2, 0.05, 0.15, -0.25]
+    body_acceleration: [0.2, -0.1, 0.15, 0.08, 0.0, -0.06]
+    prediction_horizons: [0.03, 0.09, 0.18, 0.30]
+    process_noise_spectral_density_diagonal: [0.020, 0.020, 0.020, 0.008, 0.008, 0.008]
+
+  - id: abrupt_mode_change
+    stratum: abrupt_motion
+    truth_model: post_anchor_mode_change
+    anchor_dt: 0.10
+    initial_body_twist: [0.5, -0.2, 0.1, 0.1, 0.2, -0.15]
+    body_acceleration: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    post_anchor_body_acceleration: [-4.0, 2.5, -1.0, 1.5, -1.2, 2.0]
+    prediction_horizons: [0.02, 0.05, 0.10, 0.20]
+    process_noise_spectral_density_diagonal: [0.040, 0.040, 0.040, 0.015, 0.015, 0.015]
+
+distribution_cases:
+  - id: dirac_endpoints
+    kind: dirac
+  - id: local_gaussian_pose
+    kind: local_gaussian
+  - id: bimodal_orientation
+    kind: bimodal_orientation
+  - id: coupled_translation_rotation
+    kind: strong_translation_rotation_coupling

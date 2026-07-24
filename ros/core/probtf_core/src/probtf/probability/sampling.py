@@ -91,7 +91,11 @@ def _sample_finite_bingham(parameter, count, rng):
     accepted = []
     remaining = count
     while remaining:
-        batch_size = max(2 * remaining, 32)
+        # A count-independent batch keeps fixed-seed sample prefixes stable:
+        # requesting N and M>N samples yields the same first N accepted
+        # orientations.  Temporal common-random-number comparisons rely on
+        # that sample_id contract.
+        batch_size = 256
         gaussian = inverse_sqrt @ rng.normal(size=(4, batch_size))
         candidates = (gaussian / np.linalg.norm(gaussian, axis=0)).T
         proposal = np.einsum("ni,ij,nj->n", candidates, omega, candidates) ** -2.0

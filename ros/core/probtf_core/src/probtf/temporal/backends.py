@@ -8,6 +8,7 @@ import numpy as np
 from probtf.distributions import (
     BinghamOrientation,
     ConditionalGaussianTranslation,
+    DistributionStatus,
     OrientationKind,
     RepresentativeKind,
     TransformComponent,
@@ -25,7 +26,10 @@ from probtf.geometry import (
     se3_exp,
     se3_log,
 )
-from probtf.probability import sample_transform_distribution
+from probtf.probability import (
+    TransformSampleBatch,
+    sample_bingham_orientation,
+)
 from probtf.provenance import ApproximationInfo, ApproximationKind
 from probtf.temporal.provenance import (
     make_component_provenance,
@@ -321,23 +325,27 @@ def moment_interpolate(
             def interpolation_function(left_pose, right_pose):
                 return interpolate_transform(left_pose, right_pose, alpha)
 
-            transform, (left_jacobian, right_jacobian) = (
-                _finite_difference_pose_jacobians(
-                    interpolation_function,
-                    (
-                        component_representative(left_component),
-                        component_representative(right_component),
-                    ),
+            left_pose = component_representative(left_component)
+            right_pose = component_representative(right_component)
+            left_covariance = component_pose_covariance(left_component)
+            right_covariance = component_pose_covariance(right_component)
+            if (
+                not np.any(left_covariance)
+                and not np.any(right_covariance)
+            ):
+                transform = interpolation_function(left_pose, right_pose)
+                covariance = np.zeros((6, 6), dtype=float)
+            else:
+                transform, (left_jacobian, right_jacobian) = (
+                    _finite_difference_pose_jacobians(
+                        interpolation_function,
+                        (left_pose, right_pose),
+                    )
                 )
-            )
-            covariance = (
-                left_jacobian
-                @ component_pose_covariance(left_component)
-                @ left_jacobian.T
-                + right_jacobian
-                @ component_pose_covariance(right_component)
-                @ right_jacobian.T
-            )
+                covariance = (
+                    left_jacobian @ left_covariance @ left_jacobian.T
+                    + right_jacobian @ right_covariance @ right_jacobian.T
+                )
             process_map = _body_process_map(transform)
             covariance += process_map @ bridge_covariance @ process_map.T
             components.append(
@@ -415,23 +423,31 @@ def moment_predict(
         for anchor_weighted in anchor_normalized.components:
             previous_component = previous_weighted.component
             anchor_component = anchor_weighted.component
-            new_transform, (previous_jacobian, anchor_jacobian) = (
-                _finite_difference_pose_jacobians(
-                    prediction_function,
-                    (
-                        component_representative(previous_component),
-                        component_representative(anchor_component),
-                    ),
+            previous_pose = component_representative(previous_component)
+            anchor_pose = component_representative(anchor_component)
+            previous_covariance = component_pose_covariance(previous_component)
+            anchor_covariance = component_pose_covariance(anchor_component)
+            if (
+                not np.any(previous_covariance)
+                and not np.any(anchor_covariance)
+            ):
+                new_transform = prediction_function(previous_pose, anchor_pose)
+                propagated = np.zeros((6, 6), dtype=float)
+            else:
+                new_transform, (previous_jacobian, anchor_jacobian) = (
+                    _finite_difference_pose_jacobians(
+                        prediction_function,
+                        (previous_pose, anchor_pose),
+                    )
                 )
-            )
-            propagated = (
-                previous_jacobian
-                @ component_pose_covariance(previous_component)
-                @ previous_jacobian.T
-                + anchor_jacobian
-                @ component_pose_covariance(anchor_component)
-                @ anchor_jacobian.T
-            )
+                propagated = (
+                    previous_jacobian
+                    @ previous_covariance
+                    @ previous_jacobian.T
+                    + anchor_jacobian
+                    @ anchor_covariance
+                    @ anchor_jacobian.T
+                )
             process_map = _body_process_map(new_transform)
             propagated += process_map @ process_covariance @ process_map.T
             components.append(
@@ -488,8 +504,61 @@ def _sampling_dependency_id(record):
 
 def _record_samples(record, count, seed, stream):
     dependency = _sampling_dependency_id(record)
-    generator = np.random.default_rng(_derived_seed(seed, stream, dependency))
-    return sample_transform_distribution(record.distribution, count, generator)
+    normalized = record.distribution.normalize_weights()
+    if normalized.status is not DistributionStatus.OK:
+        raise ValueError(
+            "Cannot sample a {} transform distribution.".format(
+                normalized.status.value
+            )
+        )
+    choice_generator = np.random.default_rng(
+        _derived_seed(seed, stream, dependency + ":mixture")
+    )
+    weights = np.array([item.weight for item in normalized.components], dtype=float)
+    choices = choice_generator.choice(
+        len(normalized.components),
+        size=count,
+        p=weights,
+    )
+    translations = np.empty((count, 3), dtype=float)
+    rotations = np.empty((count, 4), dtype=float)
+    for component_index, weighted in enumerate(normalized.components):
+        selected = np.flatnonzero(choices == component_index)
+        if not len(selected):
+            continue
+        component = weighted.component
+        component_key = _combined_component_id(
+            dependency,
+            component.component_id,
+        )
+        orientation_generator = np.random.default_rng(
+            _derived_seed(seed, stream, component_key + ":orientation")
+        )
+        selected_rotations = sample_bingham_orientation(
+            component.orientation,
+            len(selected),
+            orientation_generator,
+        )
+        selected_translations = np.asarray(
+            [
+                component.conditional_translation_mean(quaternion)
+                for quaternion in selected_rotations
+            ],
+            dtype=float,
+        ).reshape(len(selected), 3)
+        covariance = component.translation.residual_covariance
+        if not np.allclose(covariance, 0.0, rtol=0.0, atol=0.0):
+            residual_generator = np.random.default_rng(
+                _derived_seed(seed, stream, component_key + ":residual")
+            )
+            selected_translations += residual_generator.multivariate_normal(
+                np.zeros(3),
+                covariance,
+                size=len(selected),
+            )
+        translations[selected] = selected_translations
+        rotations[selected] = selected_rotations
+    return TransformSampleBatch(translations, rotations)
 
 
 def _spectral_square_root(matrix):

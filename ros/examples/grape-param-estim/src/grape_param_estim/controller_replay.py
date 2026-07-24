@@ -513,6 +513,9 @@ class ControllerReplay:
         backend = self.backend_factory(parameters, initial_integral_state)
         if not all(hasattr(backend, name) for name in ("step", "reset", "set_parameters")):
             raise TypeError("controller backend does not satisfy the replay contract")
+        backend_is_exact = getattr(backend, "is_exact", False)
+        if type(backend_is_exact) is not bool:
+            raise TypeError("controller backend is_exact must be a built-in bool")
         changes = tuple(sorted(parameter_changes, key=lambda item: item.stamp))
         change_index = 0
         count = request.count
@@ -639,7 +642,7 @@ class ControllerReplay:
             output_saturated=output_saturated,
             reset_applied=reset_applied,
             backend_id=str(getattr(backend, "backend_id", type(backend).__name__)),
-            is_exact=bool(getattr(backend, "is_exact", False)),
+            is_exact=backend_is_exact,
             replay_mode=replay_mode,
             initial_integrator_known=initial_integral_state is not None,
             **fields

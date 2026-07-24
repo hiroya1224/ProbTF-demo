@@ -129,6 +129,32 @@ class ControllerReplayTests(unittest.TestCase):
             np.allclose(fast.acceleration_command, slow.acceleration_command)
         )
 
+    def test_replay_rejects_truthy_non_boolean_backend_exactness(self):
+        timestamps = np.array([0.0, 0.1])
+        zeros = np.zeros((timestamps.size, 6))
+        request = ReplayRequest(
+            timestamps=timestamps,
+            reference_position=zeros,
+            reference_velocity=zeros,
+            reference_acceleration=zeros,
+            actual_position=zeros,
+            actual_velocity=zeros,
+        )
+        for invalid in ("false", 0, np.bool_(False)):
+            with self.subTest(invalid=repr(invalid)):
+                class NonBooleanExactSurrogate(VectorPidSurrogate):
+                    pass
+
+                NonBooleanExactSurrogate.is_exact = invalid
+                with self.assertRaisesRegex(TypeError, "is_exact"):
+                    ControllerReplay(
+                        backend_factory=NonBooleanExactSurrogate
+                    ).run(
+                        request,
+                        parameters(),
+                        "teacher_forced",
+                    )
+
     def test_gain_schedule_keeps_integrator_but_changes_subsequent_output(self):
         timestamps = np.arange(0.0, 0.51, 0.1)
         count = timestamps.size

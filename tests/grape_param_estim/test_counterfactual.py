@@ -878,6 +878,48 @@ class CounterfactualTests(unittest.TestCase):
                 joint,
             )
 
+        for capability in (
+            "supports_closed_loop_plant_callback",
+            "applies_candidate_parameters",
+            "applies_delay_compensation",
+        ):
+            for invalid in ("false", 0, np.bool_(False)):
+                with self.subTest(
+                    capability=capability,
+                    invalid=repr(invalid),
+                ):
+                    class NonBooleanCapabilityBackend(
+                        CapturingExactBackend
+                    ):
+                        pass
+
+                    setattr(
+                        NonBooleanCapabilityBackend,
+                        capability,
+                        invalid,
+                    )
+                    with self.assertRaisesRegex(TypeError, capability):
+                        ClosedLoopCounterfactualEvaluator(
+                            support_reference((candidate,)),
+                            controller_backend_factory=(
+                                NonBooleanCapabilityBackend
+                            ),
+                            exact_oracle_conformance_report=report,
+                            probability_calibration_report=calibration,
+                        ).evaluate(
+                            candidate,
+                            target,
+                            TargetTube(
+                                np.full(6, 100.0),
+                                np.full(6, 100.0),
+                                allowed_outside_duration_s=1.0,
+                            ),
+                            response_posterior(),
+                            [initial],
+                            config,
+                            joint,
+                        )
+
     def test_run_id_hashes_every_behavioral_input(self):
         times = np.array([0.0, 0.1, 0.2])
         zeros = np.zeros((3, 6))

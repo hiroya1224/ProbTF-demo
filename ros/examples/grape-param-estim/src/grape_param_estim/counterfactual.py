@@ -71,15 +71,17 @@ def _backend_identity(backend: Any) -> Mapping[str, Any]:
     result = dict(identity)
     result["backend_id"] = backend_id
     result["is_exact"] = is_exact
-    result["supports_closed_loop_plant_callback"] = bool(
-        getattr(backend, "supports_closed_loop_plant_callback", False)
-    )
-    result["applies_candidate_parameters"] = bool(
-        getattr(backend, "applies_candidate_parameters", False)
-    )
-    result["applies_delay_compensation"] = bool(
-        getattr(backend, "applies_delay_compensation", False)
-    )
+    for name in (
+        "supports_closed_loop_plant_callback",
+        "applies_candidate_parameters",
+        "applies_delay_compensation",
+    ):
+        value = getattr(backend, name, False)
+        if type(value) is not bool:
+            raise TypeError(
+                "controller backend {} must be a built-in bool".format(name)
+            )
+        result[name] = value
     return result
 
 
@@ -1387,20 +1389,17 @@ class ClosedLoopCounterfactualEvaluator:
                 "latent controller_integral_state"
             )
         backend = self.controller_backend_factory()
+        backend_identity = _backend_identity(backend)
         if (
             not callable(getattr(backend, "run", None))
-            or getattr(backend, "supports_closed_loop_plant_callback", False)
-            is not True
-            or getattr(backend, "applies_candidate_parameters", False)
-            is not True
-            or getattr(backend, "applies_delay_compensation", False)
-            is not True
+            or not backend_identity["supports_closed_loop_plant_callback"]
+            or not backend_identity["applies_candidate_parameters"]
+            or not backend_identity["applies_delay_compensation"]
         ):
             raise TypeError(
                 "controller backend must support closed-loop plant callbacks "
                 "and apply candidate parameters/delay compensation"
             )
-        backend_identity = _backend_identity(backend)
         backend_is_exact = backend_identity["is_exact"]
         if config.analysis_mode == "online_prefix":
             cutoff = float(config.prefix_cutoff)

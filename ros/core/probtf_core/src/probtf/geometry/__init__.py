@@ -20,6 +20,16 @@ from probtf.geometry.rotation import (
     tangent_projector,
 )
 from probtf.geometry.transform import DeterministicTransform
+from probtf.geometry.lie import (
+    body_twist_between,
+    compose_transforms,
+    interpolate_transform,
+    quaternion_to_rotation_vector,
+    relative_transform,
+    rotation_vector_to_quaternion,
+    se3_exp,
+    se3_log,
+)
 from probtf.geometry.vectorization import (
     SYMMETRIC_3_UPPER_INDICES,
     SYMMETRIC_4_UPPER_INDICES,
@@ -36,8 +46,11 @@ __all__ = [
     "SYMMETRIC_3_UPPER_INDICES",
     "SYMMETRIC_4_UPPER_INDICES",
     "axis_angle_to_quat",
+    "body_twist_between",
+    "compose_transforms",
     "complete_orthonormal_basis",
     "exp_s2",
+    "interpolate_transform",
     "normalize_vec",
     "pack_symmetric_upper",
     "quat_conj",
@@ -46,15 +59,19 @@ __all__ = [
     "quat_normalize",
     "quat_right_matrix",
     "quat_to_rotmat",
+    "quaternion_to_rotation_vector",
+    "relative_transform",
+    "rotation_vector_to_quaternion",
     "right_perturbation_vec_rotation_jacobian",
     "rotation_action_matrix",
     "rotation_vector_from_quaternion",
     "rotmat_to_quat",
     "rpy_to_quat",
+    "se3_exp",
+    "se3_log",
     "skew",
     "tangent_basis",
     "tangent_projector",
     "unpack_symmetric_upper",
     "vectorize_rotation",
 ]
-

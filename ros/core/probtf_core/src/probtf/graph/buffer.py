@@ -322,6 +322,20 @@ class EdgeTimeBuffer:
         }[request.policy]
         if result.evaluation_kind is not expected_kind:
             raise ValueError("Temporal result kind does not match the requested policy.")
+        required_diagnostic = {
+            TemporalPolicy.INTERPOLATE_WITH_MODEL:
+                TemporalDiagnosticCode.MODEL_INTERPOLATION,
+            TemporalPolicy.PREDICT_WITH_MODEL:
+                TemporalDiagnosticCode.MODEL_PREDICTION,
+        }[request.policy]
+        if required_diagnostic not in result.diagnostics:
+            raise ValueError(
+                "Temporal result is missing the diagnostic required by its policy."
+            )
+        if result.approximation != result.record.approximation:
+            raise ValueError(
+                "Temporal result approximation does not match its record."
+            )
         if result.record.edge_id != edge_id:
             raise ValueError("Temporal result changed the physical edge_id.")
         if (
@@ -345,6 +359,17 @@ class EdgeTimeBuffer:
             atol=1.0e-12,
         ):
             raise ValueError("Temporal result must evaluate at the requested stamp.")
+        if result.random_stream != request.random_stream:
+            raise ValueError(
+                "Temporal result random_stream does not match the request."
+            )
+        if (
+            request.random_seed is not None
+            and result.random_seed != request.random_seed
+        ):
+            raise ValueError(
+                "Temporal result random_seed does not match the request."
+            )
         records_by_stamp = {record.stamp: record for record in request.anchors}
         if len(records_by_stamp) != len(request.anchors) or any(
             stamp not in records_by_stamp for stamp in result.source_stamps
@@ -364,11 +389,49 @@ class EdgeTimeBuffer:
                 raise ValueError(
                     "Prediction result source stamps must be a sufficient causal suffix."
                 )
+        expected_horizon = (
+            0.0
+            if request.policy is TemporalPolicy.INTERPOLATE_WITH_MODEL
+            else request.requested_stamp - result.source_stamps[-1]
+        )
+        if not np.isclose(
+            result.horizon,
+            expected_horizon,
+            rtol=0.0,
+            atol=1.0e-12,
+        ):
+            raise ValueError(
+                "Temporal result horizon does not match its request and sources."
+            )
         source_records = tuple(
             records_by_stamp[stamp] for stamp in result.source_stamps
         )
         if result.dependency_ids != source_record_dependency_ids(source_records):
             raise ValueError("Temporal result dependency lineage does not match its sources.")
+        if request.policy is TemporalPolicy.INTERPOLATE_WITH_MODEL:
+            left, right = source_records
+            alpha = (
+                request.requested_stamp - left.stamp
+            ) / (right.stamp - left.stamp)
+            expected_initial_trace = (
+                (1.0 - alpha) * record_uncertainty_trace(left)
+                + alpha * record_uncertainty_trace(right)
+            )
+        else:
+            expected_initial_trace = record_uncertainty_trace(
+                source_records[-1]
+            )
+        if (
+            np.isinf(expected_initial_trace)
+            and not np.isinf(result.initial_uncertainty_trace)
+        ) or (
+            np.isfinite(expected_initial_trace)
+            and result.initial_uncertainty_trace + 1.0e-10
+            < expected_initial_trace
+        ):
+            raise ValueError(
+                "Temporal result understates its source uncertainty trace."
+            )
         actual_trace = record_uncertainty_trace(result.record)
         if (
             np.isinf(actual_trace)

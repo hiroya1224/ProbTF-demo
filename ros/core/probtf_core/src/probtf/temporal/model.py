@@ -216,6 +216,11 @@ class TemporalEvaluationResult:
             self.result_uncertainty_trace,
             "result_uncertainty_trace",
         )
+        seed = self.random_seed
+        if seed is not None and (type(seed) is not int or seed < 0):
+            raise ValueError(
+                "random_seed must be a non-negative built-in integer or None."
+            )
         object.__setattr__(
             self,
             "requested_stamp",
@@ -251,6 +256,7 @@ class TemporalEvaluationResult:
             "random_stream",
             _identifier(self.random_stream, "random_stream", allow_empty=True),
         )
+        object.__setattr__(self, "random_seed", seed)
         object.__setattr__(self, "initial_uncertainty_trace", initial)
         object.__setattr__(self, "result_uncertainty_trace", result)
         if not np.isclose(self.record.stamp, self.evaluated_stamp, rtol=0.0, atol=1.0e-12):

@@ -26,6 +26,7 @@ from probtf.kernels import (
     KernelRepresentation,
     kernel_from_path,
 )
+from probtf.provenance import ApproximationInfo, ApproximationKind
 from probtf.temporal import (
     ConstantBodyAccelerationModel,
     ConstantBodyTwistModel,
@@ -39,6 +40,7 @@ from probtf.temporal import (
     parse_temporal_detail,
     source_record_dependency_ids,
 )
+from probtf.temporal.backends import record_uncertainty_trace
 
 
 def _record(
@@ -86,7 +88,13 @@ def _twist_model(model_id="twist", maximum_horizon=2.0, process_noise=None):
     )
 
 
-def _insert_motion_history(graph, edge_id="edge", parent="world", child="tool"):
+def _insert_motion_history(
+    graph,
+    edge_id="edge",
+    parent="world",
+    child="tool",
+    covariance=None,
+):
     graph.insert(
         _record(
             edge_id,
@@ -94,6 +102,7 @@ def _insert_motion_history(graph, edge_id="edge", parent="world", child="tool"):
             child,
             0.0,
             DeterministicTransform.identity(),
+            covariance=covariance,
         )
     )
     graph.insert(
@@ -103,6 +112,7 @@ def _insert_motion_history(graph, edge_id="edge", parent="world", child="tool"):
             child,
             1.0,
             se3_exp(np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.2])),
+            covariance=covariance,
         )
     )
 
@@ -690,6 +700,13 @@ class _TamperingTemporalModel(TemporalModel):
         backend = self.backend
         dependencies = source_record_dependency_ids(sources)
         requested_stamp = request.requested_stamp
+        horizon = request.requested_stamp - sources[-1].stamp
+        random_seed = request.random_seed
+        random_stream = request.random_stream
+        approximation = record.approximation
+        diagnostics = (TemporalDiagnosticCode.MODEL_PREDICTION,)
+        initial_uncertainty_trace = record_uncertainty_trace(sources[-1])
+        understate_result_uncertainty = False
         if self.tamper == "parent":
             record = replace(record, parent_frame_id="map")
         elif self.tamper == "kind":
@@ -712,8 +729,26 @@ class _TamperingTemporalModel(TemporalModel):
                 record,
                 distribution=TransformDistribution((component,)),
             )
+            understate_result_uncertainty = True
         elif self.tamper == "requested_stamp":
             requested_stamp += 0.01
+        elif self.tamper == "horizon":
+            horizon = 0.0
+        elif self.tamper == "random_stream":
+            random_stream = "tampered-stream"
+        elif self.tamper == "random_seed":
+            random_seed = request.random_seed + 1
+        elif self.tamper == "approximation":
+            approximation = ApproximationInfo(
+                ApproximationKind.PRODUCER_SUPPLIED,
+                lossy=True,
+                detail="tampered result metadata",
+                source="custom model",
+            )
+        elif self.tamper == "diagnostic":
+            diagnostics = ()
+        elif self.tamper == "initial_uncertainty":
+            initial_uncertainty_trace = 0.0
         return TemporalEvaluationResult(
             record=record,
             requested_stamp=requested_stamp,
@@ -723,10 +758,53 @@ class _TamperingTemporalModel(TemporalModel):
             model_version=self.version,
             config_fingerprint=self.config_fingerprint,
             evaluation_kind=kind,
-            horizon=request.requested_stamp - sources[-1].stamp,
+            horizon=horizon,
             dependency_ids=dependencies,
             backend=backend,
-            result_uncertainty_trace=0.0,
+            approximation=approximation,
+            diagnostics=diagnostics,
+            random_seed=random_seed,
+            random_stream=random_stream,
+            initial_uncertainty_trace=initial_uncertainty_trace,
+            result_uncertainty_trace=(
+                0.0
+                if understate_result_uncertainty
+                else record_uncertainty_trace(record)
+            ),
+        )
+
+
+class _TamperingInterpolationModel(_TamperingTemporalModel):
+    def __init__(self):
+        super().__init__("interpolation_horizon")
+
+    @property
+    def supports_interpolation(self):
+        return True
+
+    def interpolate(self, left, right, request):
+        record = replace(left, stamp=request.requested_stamp)
+        return TemporalEvaluationResult(
+            record=record,
+            requested_stamp=request.requested_stamp,
+            evaluated_stamp=request.requested_stamp,
+            source_stamps=(left.stamp, right.stamp),
+            model_id=self.model_id,
+            model_version=self.version,
+            config_fingerprint=self.config_fingerprint,
+            evaluation_kind=TemporalEvaluationKind.MODEL_INTERPOLATION,
+            horizon=0.1,
+            dependency_ids=source_record_dependency_ids((left, right)),
+            backend=self.backend,
+            approximation=record.approximation,
+            diagnostics=(
+                TemporalDiagnosticCode.MODEL_INTERPOLATION,
+                TemporalDiagnosticCode.ENDPOINT_CONDITIONED,
+            ),
+            random_seed=request.random_seed,
+            random_stream=request.random_stream,
+            initial_uncertainty_trace=0.0,
+            result_uncertainty_trace=record_uncertainty_trace(record),
         )
 
 
@@ -739,12 +817,25 @@ class _TamperingTemporalModel(TemporalModel):
         ("lineage", "lineage"),
         ("uncertainty", "understates"),
         ("requested_stamp", "requested_stamp"),
+        ("horizon", "horizon"),
+        ("random_stream", "random_stream"),
+        ("random_seed", "random_seed"),
+        ("approximation", "approximation"),
+        ("diagnostic", "diagnostic"),
+        ("initial_uncertainty", "source uncertainty"),
         ("provenance", "provenance"),
     ),
 )
 def test_graph_fails_closed_on_nonconforming_custom_model_results(tamper, message):
     graph = ProbTfGraph()
-    _insert_motion_history(graph)
+    _insert_motion_history(
+        graph,
+        covariance=(
+            np.eye(3) * 0.1
+            if tamper == "initial_uncertainty"
+            else None
+        ),
+    )
     model = _TamperingTemporalModel(tamper)
     graph.register_temporal_model("edge", "authority", model)
     with pytest.raises(ValueError, match=message):
@@ -755,7 +846,50 @@ def test_graph_fails_closed_on_nonconforming_custom_model_results(tamper, messag
             TemporalPolicy.PREDICT_WITH_MODEL,
             max_age=1.0,
             max_prediction_horizon=1.0,
+            random_seed=17,
+            random_stream="test-stream",
         )
+
+
+def test_graph_rejects_nonzero_custom_interpolation_horizon():
+    graph = ProbTfGraph()
+    _insert_motion_history(graph)
+    model = _TamperingInterpolationModel()
+    graph.register_temporal_model("edge", "authority", model)
+    with pytest.raises(ValueError, match="horizon"):
+        graph.lookup_path(
+            "world",
+            "tool",
+            0.5,
+            TemporalPolicy.INTERPOLATE_WITH_MODEL,
+            query_mode=TemporalQueryMode.OFFLINE_SMOOTHING,
+            max_age=1.0,
+            random_seed=17,
+            random_stream="test-stream",
+        )
+
+
+@pytest.mark.parametrize(
+    "invalid_seed",
+    (True, -1, 1.0, np.int64(1), "1"),
+)
+def test_temporal_result_rejects_non_builtin_or_negative_random_seed(
+    invalid_seed,
+):
+    graph = ProbTfGraph()
+    _insert_motion_history(graph)
+    graph.register_temporal_model("edge", "authority", _twist_model())
+    result = graph.lookup_path(
+        "world",
+        "tool",
+        1.2,
+        TemporalPolicy.PREDICT_WITH_MODEL,
+        max_age=1.0,
+        max_prediction_horizon=1.0,
+        random_seed=17,
+    ).edge_evaluations[0]
+    with pytest.raises(ValueError, match="random_seed"):
+        replace(result, random_seed=invalid_seed)
 
 
 def test_dependency_aware_sample_paths_require_compatible_random_keys():

@@ -34,6 +34,25 @@ This file records frozen held-out decisions. A missing comparison is reported as
 
 No candidate may be promoted from this file until all frozen outer folds and hard gates are present. In particular, an unavailable or unverified exact PC/MCU controller oracle blocks counterfactual recommendation; Python replay remains an approximation.
 
+## Post-hardening regeneration
+
+The baseline machine-readable result is
+[`config/selection_results.json`](config/selection_results.json). After the
+strict exact-backend capability and counterfactual-result gates were added,
+the same frozen protocol was regenerated without observations and preserved
+separately as
+[`config/selection_results_2026-07-24_post_hardening.json`](config/selection_results_2026-07-24_post_hardening.json).
+
+- Grape implementation commit: `9b83e4de3eca38e59a65957c2387a5d2c6750bdc`
+- Protocol hash: `23ff95871e5199f2fec121b9fee5b6e6d542a141b94e68cc4f3a3b82accd92b9`
+- Post-hardening result hash: `ef2d1837aa33b1d87c88dea5607f0c739f9b1a73fd81a97754f84c57c66bc52c`
+- Observations/folds: `0/12`
+- `selection_complete`: `false`
+
+Apart from the source commit and resulting content hash, the decision payload
+is identical to the baseline: every candidate remains `EXPERIMENTAL`, and no
+default or recommendation is selected.
+
 ## Real-bag diagnostic evidence
 
 The bag 4/7/8 vertical slices recorded on 2026-07-24 are indexed in

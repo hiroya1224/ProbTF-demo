@@ -74,7 +74,9 @@ rosrun grape_param_estim analyze_grape_counterfactual.py \
 
 現在の実 bag 結果は
 [`results/real_bag_vertical_slice/2026-07-24/INDEX.md`](results/real_bag_vertical_slice/2026-07-24/INDEX.md)
-にあります。exact PC/MCU replay、bag-derived exact fixture、controller
+にあり、frozen backend 判定と post-hardening 再生成は
+[`SELECTION_RESULTS.md`](SELECTION_RESULTS.md) にあります。exact PC/MCU
+replay、bag-derived exact fixture、controller
 integrator state、joint state/parameter inference、12-fold calibration が
 未接続なので、全 run は `EXPERIMENTAL`、
 `recommendation_available=false` です。candidate CSV は推奨ではなく

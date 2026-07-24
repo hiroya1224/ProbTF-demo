@@ -197,10 +197,10 @@ provenance/boolean claim の fail-closed 検証を追加した後も、旧 run �
 
 - [temporal_selection_results_2026-07-24_post_hardening.json](../test/temporal_selection_results_2026-07-24_post_hardening.json)
 - SHA-256:
-  `fd7a15bb693d344a78c4e681f87228a8bbefc93d128ae408e1094caee2df5ce3`
+  `3410e1a223463a54b779e22fe6132963591c4be7e9758f37149a915b5663e2fd`
 - repository HEAD at run:
-  `31dbaa7cf3a75c5dd0dca6c13bd49d4ef347dc19`
-- worktree: clean、conformance: `220 passed`
+  `9c326b3210d473783288d97320a6eddf557346fe`
+- worktree: clean、conformance: `221 passed`
 
 post-hardening run でも hard gate と disposition は baseline と同じで、
 production `DEFAULT` は未選定である。

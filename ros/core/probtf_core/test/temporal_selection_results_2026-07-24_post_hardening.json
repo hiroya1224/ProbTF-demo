@@ -26,11 +26,11 @@
       "provenance_fail_closed": "tests/probtf/test_temporal_graph.py::test_graph_fails_closed_on_nonconforming_custom_model_results",
       "static_invariance": "tests/probtf/test_temporal_graph.py::test_static_uncertain_edge_is_retimed_without_process_noise_or_model"
     },
-    "output_tail": "........................................................................ [ 32%]\n........................................................................ [ 65%]\n........................................................................ [ 98%]\n....                                                                     [100%]\n220 passed in 9.24s\n",
+    "output_tail": "........................................................................ [ 32%]\n........................................................................ [ 65%]\n........................................................................ [ 97%]\n.....                                                                    [100%]\n221 passed in 9.47s\n",
     "passed": true,
-    "passed_count": 220
+    "passed_count": 221
   },
-  "core_head_tree": "e25d7f8d07b53efb1e5ed923c2d825456af0616a",
+  "core_head_tree": "89846232ea240995fd440127d6d33c19a67dd44e",
   "core_implementation_commit": "dee44b6",
   "core_working_tree_dirty": false,
   "corpus_path": "test/fixtures/temporal_corpus.yaml",
@@ -108,7 +108,7 @@
     },
     "sample_backend": {
       "energy_improvement_rule_passed": true,
-      "p50_runtime_ratio_vs_moment": 21.947509731098084,
+      "p50_runtime_ratio_vs_moment": 22.21310584874458,
       "reason": "Retained as a nonlinear oracle, but marginal endpoint records cannot split shared calibration factors from independent measurement residuals. A factor-level joint-sample contract is required before public OPTIONAL status.",
       "status": "EXPERIMENTAL"
     },
@@ -137,7 +137,7 @@
       65537
     ]
   },
-  "evaluated_core_source_sha256": "f764ae6aaababd640dfca7dfb59b33d2f4b42923ce08b8bb62749ca0dca8caf7",
+  "evaluated_core_source_sha256": "e88468ecf32c586d4ba7a396a9b4c9fb5a054c62e7b0f1be6e359fbcb63ea123",
   "frozen_before_run": "2026-07-24T00:00:00+09:00",
   "motion_model_evaluation": {
     "episode_improvements": {
@@ -629,54 +629,54 @@
   },
   "performance": {
     "moment_constant_acceleration": {
-      "p50_seconds": 0.43379656807519495,
-      "p95_seconds": 0.4369495581137016,
+      "p50_seconds": 0.43533484800718725,
+      "p95_seconds": 0.43831687241327016,
       "peak_python_bytes": 50213,
       "repetitions": 20
     },
     "moment_constant_twist": {
-      "p50_seconds": 0.016217378550209105,
-      "p95_seconds": 0.016503307630773633,
+      "p50_seconds": 0.016109403455629945,
+      "p95_seconds": 0.01639015555847436,
       "peak_python_bytes": 51074,
       "repetitions": 20
     },
     "sample_constant_twist": {
-      "p50_seconds": 0.35593107354361564,
-      "p95_seconds": 0.3576450887019746,
+      "p50_seconds": 0.35783988412003964,
+      "p95_seconds": 0.3608776815584861,
       "peak_python_bytes": 824638,
       "repetitions": 20
     },
     "sample_scaling": [
       {
-        "p50_seconds": 0.05086037493310869,
-        "p95_seconds": 0.05230006540659815,
+        "p50_seconds": 0.05248932051472366,
+        "p95_seconds": 0.05265149964252487,
         "peak_python_bytes": 212847,
         "sample_count": 32
       },
       {
-        "p50_seconds": 0.09389118407852948,
-        "p95_seconds": 0.0952759152976796,
+        "p50_seconds": 0.09673751646187156,
+        "p95_seconds": 0.09749483746709302,
         "peak_python_bytes": 238850,
         "sample_count": 64
       },
       {
-        "p50_seconds": 0.18132254586089402,
-        "p95_seconds": 0.18554669241420924,
+        "p50_seconds": 0.18495036906097084,
+        "p95_seconds": 0.18679100811714305,
         "peak_python_bytes": 437200,
         "sample_count": 128
       },
       {
-        "p50_seconds": 0.35671003302559257,
-        "p95_seconds": 0.3622874180669896,
+        "p50_seconds": 0.3631600739900023,
+        "p95_seconds": 0.3655129479360767,
         "peak_python_bytes": 825016,
         "sample_count": 256
       }
     ]
   },
-  "probtf_tests_head_tree": "98855ddaa5bc3adf04778e928abc2c7ae9df9d34",
-  "repository_head_at_run": "31dbaa7cf3a75c5dd0dca6c13bd49d4ef347dc19",
-  "run_timestamp_utc": "2026-07-24T13:15:08.403847+00:00",
-  "runner_sha256": "dde2723d3ae19c95db041e49a34b77e797091d7a9e597f3da3c200ee7c05f405",
+  "probtf_tests_head_tree": "7422aa8122381d229df0f6dc86dc76704f1bba45",
+  "repository_head_at_run": "9c326b3210d473783288d97320a6eddf557346fe",
+  "run_timestamp_utc": "2026-07-24T13:26:05.284236+00:00",
+  "runner_sha256": "18e3e1b913c578fa4c20b094814b8a9f68fc3ef3137e8b7562882fc8c7b5004c",
   "schema_version": 1,
   "uncertainty_backend_evaluation": {
     "rows": [

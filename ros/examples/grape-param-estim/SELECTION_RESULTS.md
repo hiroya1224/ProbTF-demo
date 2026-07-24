@@ -4,10 +4,10 @@ Selection status: `EXPERIMENTAL`.
 
 This file records frozen held-out decisions. A missing comparison is reported as `EXPERIMENTAL`; it is not treated as evidence for a default.
 
-- Source commit: `b479764`
+- Source commit: `6ce66ec11a2df1cf006905d1202bf6b53f9a23dd`
 - Bag manifest hash: `ed85aa1e1d72aacdab55888f2208f31cd06d9fb2ca494327f56bd5a25081b5ac`
 - Selection protocol hash: `23ff95871e5199f2fec121b9fee5b6e6d542a141b94e68cc4f3a3b82accd92b9`
-- Result hash: `083bca4d626c47361cdd928d48099f382897d85499099a3214293aebd7fe972f`
+- Result hash: `44a7757a46a19d78561dfd53d47bf3bf63f96ce95434d1b0ed538a45b623548d`
 - Outer held-out folds: `12`
 - Submitted observations: `0`
 - Resampling unit: whole episode/bag

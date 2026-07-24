@@ -3,8 +3,10 @@
     "bayesian_closed_loop": {
       "candidate_id": "bayesian_closed_loop",
       "complexity_rank": 3,
+      "controller_backend_identity_hashes": [],
       "description": "posterior closed-loop target-tube evaluator",
       "direction": "minimize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "counterfactual_usefulness",
       "missing_folds": [
@@ -22,6 +24,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_brier_score",
       "reasons": [
@@ -29,13 +32,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "climatology": {
       "candidate_id": "climatology",
       "complexity_rank": 1,
+      "controller_backend_identity_hashes": [],
       "description": "episode-stratum rate baseline",
       "direction": "minimize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "counterfactual_usefulness",
       "missing_folds": [
@@ -53,6 +59,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_brier_score",
       "reasons": [
@@ -60,13 +67,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "effective_sparse_gp_residual": {
       "candidate_id": "effective_sparse_gp_residual",
       "complexity_rank": 3,
+      "controller_backend_identity_hashes": [],
       "description": "conditional residual model",
       "direction": "maximize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "effective_response",
       "missing_folds": [
@@ -84,6 +94,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_multistep_log_predictive_density",
       "reasons": [
@@ -91,13 +102,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "error_state_ekf_rts": {
       "candidate_id": "error_state_ekf_rts",
       "complexity_rank": 1,
+      "controller_backend_identity_hashes": [],
       "description": "application-local error-state EKF plus RTS",
       "direction": "maximize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "trajectory_smoother",
       "missing_folds": [
@@ -115,6 +129,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_log_predictive_density",
       "reasons": [
@@ -122,13 +137,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "exact_cpp_pc_mcu_replay": {
       "candidate_id": "exact_cpp_pc_mcu_replay",
       "complexity_rank": 1,
+      "controller_backend_identity_hashes": [],
       "description": "deployed PC/MCU controller oracle",
       "direction": "minimize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "controller_replay",
       "missing_folds": [
@@ -146,6 +164,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "factual_continuous_normalized_rmse",
       "reasons": [
@@ -153,13 +172,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "factor_graph_imu_preintegration": {
       "candidate_id": "factor_graph_imu_preintegration",
       "complexity_rank": 2,
+      "controller_backend_identity_hashes": [],
       "description": "optional dense factor-graph vertical slice",
       "direction": "maximize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "trajectory_smoother",
       "missing_folds": [
@@ -177,6 +199,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_log_predictive_density",
       "reasons": [
@@ -184,13 +207,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "joint_pmcmc": {
       "candidate_id": "joint_pmcmc",
       "complexity_rank": 2,
+      "controller_backend_identity_hashes": [],
       "description": "optional joint PMCMC vertical slice",
       "direction": "maximize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "inference",
       "missing_folds": [
@@ -208,6 +234,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_log_predictive_density",
       "reasons": [
@@ -215,13 +242,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "likelihood_free_bayessim": {
       "candidate_id": "likelihood_free_bayessim",
       "complexity_rank": 3,
+      "controller_backend_identity_hashes": [],
       "description": "conditional likelihood-free candidate",
       "direction": "maximize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "inference",
       "missing_folds": [
@@ -239,6 +269,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_log_predictive_density",
       "reasons": [
@@ -246,13 +277,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "low_dim_effective_response": {
       "candidate_id": "low_dim_effective_response",
       "complexity_rank": 1,
+      "controller_backend_identity_hashes": [],
       "description": "identifiable low-dimensional effective response",
       "direction": "maximize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "effective_response",
       "missing_folds": [
@@ -270,6 +304,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_multistep_log_predictive_density",
       "reasons": [
@@ -277,13 +312,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "modular_tempered_smc": {
       "candidate_id": "modular_tempered_smc",
       "complexity_rank": 1,
+      "controller_backend_identity_hashes": [],
       "description": "modular trajectory-marginalized SMC",
       "direction": "maximize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "inference",
       "missing_folds": [
@@ -301,6 +339,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_log_predictive_density",
       "reasons": [
@@ -308,13 +347,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "nominal_deterministic": {
       "candidate_id": "nominal_deterministic",
       "complexity_rank": 2,
+      "controller_backend_identity_hashes": [],
       "description": "deterministic nominal baseline",
       "direction": "minimize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "counterfactual_usefulness",
       "missing_folds": [
@@ -332,6 +374,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_brier_score",
       "reasons": [
@@ -339,13 +382,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "python_vector_pid_surrogate": {
       "candidate_id": "python_vector_pid_surrogate",
       "complexity_rank": 2,
+      "controller_backend_identity_hashes": [],
       "description": "vectorized approximation for candidate screening",
       "direction": "minimize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "controller_replay",
       "missing_folds": [
@@ -363,6 +409,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "factual_continuous_normalized_rmse",
       "reasons": [
@@ -370,13 +417,16 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     },
     "structured_6dof_mechanics": {
       "candidate_id": "structured_6dof_mechanics",
       "complexity_rank": 2,
+      "controller_backend_identity_hashes": [],
       "description": "mechanics model with explicit scale gauge",
       "direction": "maximize",
+      "exact_conformance_report_hashes": [],
       "failed_hard_gates": [],
       "group_id": "effective_response",
       "missing_folds": [
@@ -394,6 +444,7 @@
         "holdout-20260613-03"
       ],
       "missing_metric_folds": [],
+      "model_versions": [],
       "observation_count": 0,
       "primary_metric": "held_out_multistep_log_predictive_density",
       "reasons": [
@@ -401,7 +452,8 @@
       ],
       "run_hashes": [],
       "statistics": null,
-      "status": "EXPERIMENTAL"
+      "status": "EXPERIMENTAL",
+      "trajectory_sample_bundle_hashes": []
     }
   },
   "episode_level_resampling": true,
@@ -469,8 +521,8 @@
   "observation_count": 0,
   "outer_fold_count": 12,
   "protocol_hash": "23ff95871e5199f2fec121b9fee5b6e6d542a141b94e68cc4f3a3b82accd92b9",
-  "result_hash": "083bca4d626c47361cdd928d48099f382897d85499099a3214293aebd7fe972f",
+  "result_hash": "44a7757a46a19d78561dfd53d47bf3bf63f96ce95434d1b0ed538a45b623548d",
   "schema": "grape_backend_selection/v1",
   "selection_complete": false,
-  "source_commit": "b479764"
+  "source_commit": "6ce66ec11a2df1cf006905d1202bf6b53f9a23dd"
 }

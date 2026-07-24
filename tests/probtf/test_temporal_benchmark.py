@@ -67,6 +67,38 @@ def test_frozen_selection_config_hash_and_split_cover_the_corpus():
     )
 
 
+def test_selection_source_hash_excludes_generated_result_artifacts(
+    tmp_path,
+    monkeypatch,
+):
+    repository = tmp_path / "repository"
+    package = repository / "ros/core/probtf_core"
+    package_source = package / "src"
+    package_test = package / "test"
+    shared_tests = repository / "tests/probtf"
+    for directory in (package_source, package_test, shared_tests):
+        directory.mkdir(parents=True, exist_ok=True)
+    (package_source / "model.py").write_text("MODEL = 1\n", encoding="utf-8")
+    (package_test / "runner.py").write_text("RUNNER = 1\n", encoding="utf-8")
+    (shared_tests / "test_model.py").write_text(
+        "def test_model(): pass\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(RUNNER, "REPOSITORY_ROOT", repository)
+    monkeypatch.setattr(RUNNER, "PACKAGE_ROOT", package)
+    monkeypatch.setattr(RUNNER, "HERE", package_test)
+
+    baseline = RUNNER._evaluated_core_source_hash()
+    generated = package_test / "temporal_selection_results_repeat.json"
+    generated.write_text('{"run": 1}\n', encoding="utf-8")
+    assert RUNNER._evaluated_core_source_hash() == baseline
+
+    arbitrary_output = package_test / "custom_output.json"
+    arbitrary_output.write_text('{"run": 1}\n', encoding="utf-8")
+    assert RUNNER._evaluated_core_source_hash((arbitrary_output,)) == baseline
+    assert RUNNER._evaluated_core_source_hash() != baseline
+
+
 def test_log_predictive_density_contains_one_log_determinant_term():
     error = np.array([0.2, -0.1, 0.3, 0.0, 0.1, -0.2])
     spectral_density = np.diag([0.5, 0.8, 1.1, 0.4, 0.7, 0.9])

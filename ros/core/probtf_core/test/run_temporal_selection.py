@@ -81,16 +81,16 @@ def _git(*arguments):
         return "unavailable"
 
 
-def _evaluated_core_source_hash():
+def _evaluated_core_source_hash(excluded_paths=()):
     digest = hashlib.sha256()
     roots = (
         PACKAGE_ROOT / "src",
         PACKAGE_ROOT / "test",
         REPOSITORY_ROOT / "tests/probtf",
     )
-    excluded_names = {
-        "SELECTION_RESULTS.md",
-        "temporal_selection_results_2026-07-24.json",
+    excluded_names = {"SELECTION_RESULTS.md"}
+    excluded_resolved = {
+        Path(path).expanduser().resolve() for path in excluded_paths
     }
     paths = []
     for root in roots:
@@ -101,6 +101,11 @@ def _evaluated_core_source_hash():
             "__pycache__" in relative.parts
             or path.suffix == ".pyc"
             or path.name in excluded_names
+            or (
+                path.parent == HERE
+                and path.match("temporal_selection_results_*.json")
+            )
+            or path.resolve() in excluded_resolved
         ):
             continue
         digest.update(str(relative).encode("utf-8"))
@@ -1378,7 +1383,9 @@ def main():
         ),
         "core_head_tree": _git("rev-parse", "HEAD:ros/core/probtf_core"),
         "probtf_tests_head_tree": _git("rev-parse", "HEAD:tests/probtf"),
-        "evaluated_core_source_sha256": _evaluated_core_source_hash(),
+        "evaluated_core_source_sha256": _evaluated_core_source_hash(
+            () if args.output is None else (args.output,)
+        ),
         "frozen_before_run": config["frozen_before_run"],
         "config_path": str(config_path.relative_to(PACKAGE_ROOT)),
         "config_sha256": _sha256(config_path),

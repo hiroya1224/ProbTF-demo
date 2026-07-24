@@ -129,7 +129,7 @@ rosbag info /tmp/grape_hovering_7_analysis.bag
 
 ```bash
 roslaunch grape_param_estim offline_estimator.launch \
-  input_bag:="$INPUT" \
+  input_bag:="/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_7_2026-06-12-17-41-34.bag" \
   output_bag:=/tmp/grape_hovering_7_analysis.bag \
   start_offset:=45 \
   duration:=8

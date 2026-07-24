@@ -2,7 +2,7 @@
 <package format="2">
   <name>grape_param_estim</name>
   <version>0.1.0</version>
-  <description>Offline particle-filter estimation of Grape inertial parameters from ROS bags.</description>
+  <description>Offline Bayesian trajectory, effective-response, counterfactual diagnostics, and inertial estimation for Grape ROS bags.</description>
 
   <maintainer email="leus@todo.todo">leus</maintainer>
   <license>MIT</license>

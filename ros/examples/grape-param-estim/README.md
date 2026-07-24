@@ -1,6 +1,10 @@
-# Grape dynamics parameter estimator
+# Grape offline Bayesian analysis
 
-Grape の rosbag を直接読み、particle filter で質量・重心・慣性を推定し、元データと推定途中の状態をまとめた解析用 ROS 1 bag を生成するパッケージです。推定はオフラインで完結するため、`rosbag play` や実機 controller の起動は必要ありません。生成した解析 bag は再生でき、Foxglove Studio で直接開くこともできます。
+Grape の rosbag を直接読み、trajectory smoother、effective-response
+同定、反実仮想の安全 gate、質量・重心・慣性の particle filter を扱う
+オフライン解析パッケージです。実機 parameter を書き換える経路はなく、
+出力は human review 用の artifact または元 bag と別の解析用 ROS 1 bag
+です。`rosbag play` や実機 controller の起動は解析に必要ありません。
 
 数式、座標系、filter、bag merge、ProbTF 表現、既知の限界は [`lectures/grape_parameter_estimation.md`](lectures/grape_parameter_estimation.md) にまとめています。
 
@@ -13,6 +17,70 @@ source devel/setup.bash
 ```
 
 既定設定は `config/estimator.yaml` です。ここで指定する prior は URDF nominal 値を中心とする Gaussian ではなく、物理制約を満たす有限範囲の bounded uniform です。乱数 seed、parameter bounds、入力 bag、使用区間、設定内容は再現性と provenance の一部です。
+
+## Bayesian real-bag vertical slice
+
+`config/counterfactual.yaml` は bag 4、7、8 の固定区間、topic、source bag
+SHA-256、ENU/FLU/SI 規約、20 Hz の共通 pipeline、seed、27 candidate の
+共通 grid を定義します。実行は clean な Git checkout と完全一致する
+source commit を必須にし、dirty tree、bag hash 不一致、frame/unit
+不一致を出力前に拒否します。
+
+```bash
+GRAPE_BAG_ROOT=/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering
+GRAPE_SLICE_OUT=/tmp/grape_real_bag_slice
+
+rosrun grape_param_estim analyze_grape_counterfactual.py \
+  --config "$(rospack find grape_param_estim)/config/counterfactual.yaml" \
+  --bag-root "$GRAPE_BAG_ROOT" \
+  --output-root "$GRAPE_SLICE_OUT"
+```
+
+各 run directory には次のファイルを保存します。
+
+| file | 内容 |
+|---|---|
+| `summary.json` | source/config/commit/input/trajectory hash、frame、diagnostic、全 hard gate |
+| `trajectory.csv` | desired、diagnostic nominal、actual posterior mean/std、residual の時系列 |
+| `trajectory_particles.npz` | coherent RTS actual sample と、同じ sample 初期状態から積分した nominal sample、ID、weight |
+| `candidate_grid.csv` | 共通 27 candidate。exact oracle 不在時は確率欄を空にした未評価 grid |
+| `REPORT.md` | RMS、effective-response posterior、識別性、gate の人向け要約 |
+| `artifact_manifest.json` | 上記 payload の SHA-256 と byte size |
+
+必要な場合だけ `--analysis-bag-root` を追加すると、元 bag を変更せず、
+解析 message を record-time 順に merge した派生 bag と
+`*.analysis.json` SHA/count sidecar を生成します。派生 bag は元 bag
+全体を含むため、repository へ commit せず容量に余裕のある出力先を
+指定してください。
+
+```bash
+GRAPE_ANALYSIS_BAG_ROOT=/tmp/grape_analysis_bags
+
+rosrun grape_param_estim analyze_grape_counterfactual.py \
+  --config "$(rospack find grape_param_estim)/config/counterfactual.yaml" \
+  --bag-root "$GRAPE_BAG_ROOT" \
+  --output-root "$GRAPE_SLICE_OUT" \
+  --analysis-bag-root "$GRAPE_ANALYSIS_BAG_ROOT"
+```
+
+派生 bag の application topic は次のとおりです。
+
+| topic | type | 内容 |
+|---|---|---|
+| `/analysis/grape_param_estim/trajectory/desired` | `TrajectoryParticleSet` | 記録済み controller target |
+| `/analysis/grape_param_estim/trajectory/nominal` | `TrajectoryParticleSet` | sample ごとの診断用 local nominal。exact PC/MCU replay ではない |
+| `/analysis/grape_param_estim/trajectory/actual_posterior` | `TrajectoryParticleSet` | offline EKF/RTS の coherent trajectory samples |
+| `/analysis/grape_param_estim/model_mismatch` | `ModelMismatch` | matched sample の SE(3) log tracking/model residual、区間、covariance |
+
+現在の実 bag 結果は
+[`results/real_bag_vertical_slice/2026-07-24/INDEX.md`](results/real_bag_vertical_slice/2026-07-24/INDEX.md)
+にあります。exact PC/MCU replay、bag-derived exact fixture、controller
+integrator state、joint state/parameter inference、12-fold calibration が
+未接続なので、全 run は `EXPERIMENTAL`、
+`recommendation_available=false` です。candidate CSV は推奨ではなく
+未評価 grid です。また per-time の
+`world→{desired, nominal, actual}` ProbTF edge materialization は未接続で、
+現時点の trajectory/mismatch 可視化契約は application message 側です。
 
 ## Synthetic sanity check
 

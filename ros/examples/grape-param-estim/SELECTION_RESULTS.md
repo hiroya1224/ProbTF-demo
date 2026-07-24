@@ -33,3 +33,16 @@ This file records frozen held-out decisions. A missing comparison is reported as
 ## Current limitation
 
 No candidate may be promoted from this file until all frozen outer folds and hard gates are present. In particular, an unavailable or unverified exact PC/MCU controller oracle blocks counterfactual recommendation; Python replay remains an approximation.
+
+## Real-bag diagnostic evidence
+
+The bag 4/7/8 vertical slices recorded on 2026-07-24 are indexed in
+[`results/real_bag_vertical_slice/2026-07-24/INDEX.md`](results/real_bag_vertical_slice/2026-07-24/INDEX.md).
+They bind source commit
+`9b83e4de3eca38e59a65957c2387a5d2c6750bdc`, source-bag, normalized-input,
+configuration, coherent-trajectory, and per-file hashes.
+
+These runs exercise the common error-state EKF/RTS and low-dimensional
+effective-response pipeline on real evidence, but all recommendation gates
+remain false. They are diagnostics, not held-out selection observations, so
+the submitted-observation count above remains zero.

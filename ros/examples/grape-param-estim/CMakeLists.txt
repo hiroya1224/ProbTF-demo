@@ -52,6 +52,7 @@ install(
     config
     launch
     lectures
+    results
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 

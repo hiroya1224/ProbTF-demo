@@ -163,7 +163,13 @@ pose の最近傍 age が既定 `0.03 s` を超える grid point は使わない
 1. 選択区間に calibrated actuator wrench が 10 sample 以上あれば、その topic を使う。
 2. それ以外は `base_thrust` と実測 gimbal angle から effective wrench を再構成する。
 
-command mode では `flight_state=5`、すなわち `HOVER_STATE` だけを既定で採用する。`TAKEOFF_STATE=3` には、機体が床上にあるまま thrust を ramp する長い区間が含まれ、床反力を持たない剛体式が成立しないためである。許容 state は `real_bag.allowed_flight_states` で変更できる。
+command mode では `HOVER_STATE=5` に加え、HOVER へ遷移する前の失敗を解析する
+ため `TAKEOFF_STATE=3` も候補にする。ただし TAKEOFF には、機体が床上にある
+まま thrust を ramp する長い区間が含まれる。そこで bag 冒頭
+`ground_reference_duration_s` の mocap 高さの中央値を床面基準とし、
+`minimum_takeoff_clearance_m` 以上上昇した TAKEOFF sample だけを採用する。
+床面基準を復元できない場合、TAKEOFF sample は fail closed で全て拒否する。
+許容 state と clearance は `real_bag` 設定に記録する。
 
 各 batch の採用前には、既存 history と pending batch の whitened finite-difference Jacobian を連結して excitation rank と condition number を計算する。既定値は `minimum_excitation_rank=1` なので、一部の parameter combination だけが観測可能な rank-deficient batch も更新に使う。診断はそれを `updated_rank_deficient` と表示する。rank が最小値未満、または full-rank 時の condition number が上限を超えた batch は posterior に入れず、diagnostic-only message を残す。
 

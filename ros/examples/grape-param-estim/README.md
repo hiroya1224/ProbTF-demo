@@ -135,6 +135,22 @@ roslaunch grape_param_estim offline_estimator.launch \
   duration:=8
 ```
 
+HOVER へ遷移する前に失敗した bag 4 も、同じ launch で解析できます。
+
+```bash
+roslaunch grape_param_estim offline_estimator.launch \
+  input_bag:="/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag" \
+  output_bag:=/tmp/grape_hovering_failure.bag \
+  start_offset:=18 \
+  duration:=7
+```
+
+この区間は `TAKEOFF_STATE=3` のため、bag 冒頭 3 秒の mocap 高さを床面基準とし、
+そこから `0.05 m` 以上上昇した sample だけを剛体 likelihood に使います。
+地上での thrust ramp は除外されます。command から復元した wrench は校正済み
+実推力ではないため、結果は引き続き `command_as_force_effective` な有効
+parameter として解釈してください。
+
 入力 bag は変更しません。出力先には別 path を指定してください。`--start-offset` と `--duration` は推定に使う区間だけを選び、元 bag の message は区間外も含めて出力へ保存します。推定器は original message の型・内容・record timestamp と connection metadata（`/tf_static` の latch を含む）を保ったまま、解析 message と record-time 順に merge して新しい bag を作ります。Header がある sensor はその event time、Header がない `/gimbalrotor/four_axes/command` などは bag record time を使います。
 
 ## 解析 bag の再生

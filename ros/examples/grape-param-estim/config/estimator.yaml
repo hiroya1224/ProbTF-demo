@@ -61,9 +61,13 @@ synchronization:
   warmup_s: 2.0
 
 real_bag:
-  # TAKEOFF (3) includes long ground-contact thrust ramps in the recordings.
-  # The rigid-body airborne likelihood therefore defaults to HOVER (5) only.
-  allowed_flight_states: [5]
+  # TAKEOFF (3) includes a long ground-contact thrust ramp.  It is accepted
+  # only after mocap height exceeds the bag-start ground reference by the
+  # configured clearance.  HOVER (5) is accepted without this extra gate.
+  allowed_flight_states: [3, 5]
+  takeoff_state: 3
+  ground_reference_duration_s: 3.0
+  minimum_takeoff_clearance_m: 0.05
 
 gating:
   minimum_excitation_rank: 1

@@ -131,9 +131,39 @@ def _read_selected_data(bag_path: Path, config: dict, start_offset: float, durat
         "command": [],
         "flight_event": [],
         "flight_state": [],
+        "ground_reference_z": None,
     }
     with rosbag.Bag(str(bag_path), "r") as bag:
         bag_start = float(bag.get_start_time())
+        real_bag_config = config.get("real_bag", {})
+        allowed_states = tuple(real_bag_config.get("allowed_flight_states", (5,)))
+        takeoff_state = int(real_bag_config.get("takeoff_state", 3))
+        ground_reference_duration = float(
+            real_bag_config.get("ground_reference_duration_s", 0.0)
+        )
+        if (
+            takeoff_state in allowed_states
+            and np.isfinite(ground_reference_duration)
+            and ground_reference_duration > 0.0
+        ):
+            ground_values = []
+            for _, message, _ in bag.read_messages(
+                topics=(topics["mocap_pose"],),
+                start_time=genpy.Time.from_sec(bag_start),
+                end_time=genpy.Time.from_sec(
+                    bag_start + ground_reference_duration
+                ),
+            ):
+                try:
+                    position, _ = _pose_fields(message)
+                except (AttributeError, TypeError, ValueError):
+                    continue
+                if np.isfinite(position[2]):
+                    ground_values.append(float(position[2]))
+            if ground_values:
+                data["ground_reference_z"] = float(
+                    np.median(np.asarray(ground_values, dtype=float))
+                )
         start = bag_start + max(0.0, float(start_offset))
         stop = None if duration <= 0.0 else start + float(duration)
         start_time = genpy.Time.from_sec(start)
@@ -204,6 +234,64 @@ def _read_selected_data(bag_path: Path, config: dict, start_offset: float, durat
             )
         )
     return data
+
+
+def _flight_state_valid_mask(data: dict, grid: np.ndarray, config: dict) -> np.ndarray:
+    if not data["flight_event"]:
+        return np.ones(grid.size, dtype=bool)
+
+    state_times, states = _strictly_increasing_last(
+        data["flight_event"], data["flight_state"]
+    )
+    state_index = np.searchsorted(state_times, grid, side="right") - 1
+    state_available = state_index >= 0
+    state_index = np.clip(state_index, 0, len(state_times) - 1)
+    selected_states = np.asarray(states[state_index], dtype=int)
+
+    real_bag_config = config.get("real_bag", {})
+    allowed_values = real_bag_config.get("allowed_flight_states", (5,))
+    if not isinstance(allowed_values, (list, tuple)) or not allowed_values:
+        raise ValueError("real_bag.allowed_flight_states must be a non-empty list")
+    allowed_states = []
+    for value in allowed_values:
+        if type(value) is not int or not 0 <= value <= 255:
+            raise ValueError(
+                "real_bag.allowed_flight_states must contain uint8 integers"
+            )
+        allowed_states.append(value)
+
+    valid = state_available & np.isin(selected_states, allowed_states)
+    takeoff_state = int(real_bag_config.get("takeoff_state", 3))
+    takeoff = selected_states == takeoff_state
+    if takeoff_state not in allowed_states or not np.any(takeoff):
+        return valid
+
+    clearance = float(
+        real_bag_config.get("minimum_takeoff_clearance_m", np.inf)
+    )
+    if not np.isfinite(clearance) or clearance < 0.0:
+        raise ValueError(
+            "real_bag.minimum_takeoff_clearance_m must be finite and non-negative"
+        )
+    ground_reference = data.get("ground_reference_z")
+    if ground_reference is None or not np.isfinite(float(ground_reference)):
+        return valid & ~takeoff
+
+    pose_times, positions = _strictly_increasing_last(
+        data["pose_event"], data["position"]
+    )
+    position_z = np.interp(
+        grid,
+        pose_times,
+        positions[:, 2],
+        left=np.nan,
+        right=np.nan,
+    )
+    airborne_takeoff = (
+        np.isfinite(position_z)
+        & (position_z - float(ground_reference) >= clearance)
+    )
+    return valid & (~takeoff | airborne_takeoff)
 
 
 def _resample_pose(data: dict, config: dict) -> tuple:
@@ -286,13 +374,7 @@ def _synchronized_wrench(data: dict, grid: np.ndarray, config: dict) -> tuple:
         & np.all(np.isfinite(joint_grid), axis=1)
     )
     if data["flight_event"]:
-        state_times, states = _strictly_increasing_last(data["flight_event"], data["flight_state"])
-        state_index = np.searchsorted(state_times, grid, side="right") - 1
-        state_index = np.clip(state_index, 0, len(state_times) - 1)
-        allowed_states = np.asarray(
-            config.get("real_bag", {}).get("allowed_flight_states", [5]), dtype=int
-        )
-        valid &= np.isin(states[state_index], allowed_states)
+        valid &= _flight_state_valid_mask(data, grid, config)
     wrench = reconstruct_actuator_wrench(held_commands, joint_grid)
     return wrench, valid, "command_as_force_effective"
 

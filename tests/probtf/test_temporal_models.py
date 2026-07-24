@@ -164,6 +164,7 @@ def test_constant_body_twist_prediction_uses_coupled_se3_increment_and_provenanc
     payload = parse_temporal_detail(result.record.provenance.detail)
     assert payload["model_id"] == model.model_id
     assert payload["backend"] == "moment"
+    assert payload["requested_stamp"] == pytest.approx(3.0)
     assert payload["source_stamps"] == [1.0, 2.0]
 
 

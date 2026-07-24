@@ -264,10 +264,12 @@ class EdgeTimeBuffer:
                 authority=record.authority,
                 backend=TemporalUncertaintyBackend.MOMENT,
                 evaluation_kind=kind,
+                requested_stamp=requested,
                 horizon=0.0,
                 random_seed=None,
                 random_stream="",
                 diagnostics=(code,),
+                warnings=(),
             )
             output = replace(
                 copy_record_at_stamp(record, requested),
@@ -330,6 +332,13 @@ class EdgeTimeBuffer:
         if result.record.authority != authority:
             raise ValueError("Temporal result changed the bound authority.")
         if not np.isclose(
+            result.requested_stamp,
+            request.requested_stamp,
+            rtol=0.0,
+            atol=1.0e-12,
+        ):
+            raise ValueError("Temporal result requested_stamp does not match the request.")
+        if not np.isclose(
             result.evaluated_stamp,
             request.requested_stamp,
             rtol=0.0,
@@ -381,7 +390,9 @@ class EdgeTimeBuffer:
             "model_version": result.model_version,
             "random_seed": result.random_seed,
             "random_stream": result.random_stream,
+            "requested_stamp": result.requested_stamp,
             "source_stamps": list(result.source_stamps),
+            "warnings": list(result.warnings),
         }
         provenance_details = (result.record.provenance.detail,) + tuple(
             component.provenance.detail
@@ -408,11 +419,52 @@ class EdgeTimeBuffer:
         diagnostics = tuple(result.diagnostics)
         if TemporalDiagnosticCode.UNCERTAINTY_LIMIT_EXCEEDED not in diagnostics:
             diagnostics += (TemporalDiagnosticCode.UNCERTAINTY_LIMIT_EXCEEDED,)
+        warnings = result.warnings + (
+            "Uncertainty limit exceeded; returning an explicitly degraded result.",
+        )
+        detail = temporal_detail(
+            model_id=result.model_id,
+            model_version=result.model_version,
+            config_fingerprint=result.config_fingerprint,
+            source_stamps=result.source_stamps,
+            dependency_ids=result.dependency_ids,
+            authority=result.record.authority,
+            backend=result.backend,
+            evaluation_kind=result.evaluation_kind,
+            requested_stamp=result.requested_stamp,
+            horizon=result.horizon,
+            random_seed=result.random_seed,
+            random_stream=result.random_stream,
+            diagnostics=diagnostics,
+            warnings=warnings,
+        )
+        record = replace(
+            result.record,
+            provenance=replace(
+                result.record.provenance,
+                method="temporal_model_evaluation",
+                detail=detail,
+            ),
+            distribution=replace(
+                result.record.distribution,
+                components=tuple(
+                    replace(
+                        component,
+                        provenance=replace(
+                            component.provenance,
+                            method="temporal_model_evaluation",
+                            detail=detail,
+                        ),
+                    )
+                    for component in result.record.distribution.components
+                ),
+            ),
+        )
         return replace(
             result,
+            record=record,
             diagnostics=diagnostics,
-            warnings=result.warnings
-            + ("Uncertainty limit exceeded; returning an explicitly degraded result.",),
+            warnings=warnings,
         )
 
     def resolve(

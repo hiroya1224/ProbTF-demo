@@ -124,6 +124,7 @@ class ConstantBodyTwistModel(TemporalModel):
         kind,
         horizon,
         diagnostics,
+        warnings,
     ):
         dependencies = source_record_dependency_ids(records)
         effective_seed = self._effective_seed(request)
@@ -136,10 +137,12 @@ class ConstantBodyTwistModel(TemporalModel):
             authority=records[-1].authority,
             backend=self.backend,
             evaluation_kind=kind,
+            requested_stamp=request.requested_stamp,
             horizon=horizon,
             random_seed=effective_seed,
             random_stream=request.random_stream,
             diagnostics=diagnostics,
+            warnings=warnings,
         )
         return dependencies, detail, effective_seed
 
@@ -165,6 +168,7 @@ class ConstantBodyTwistModel(TemporalModel):
             TemporalEvaluationKind.MODEL_INTERPOLATION,
             0.0,
             tuple(diagnostics),
+            tuple(warnings),
         )
         if self.backend is TemporalUncertaintyBackend.MOMENT:
             record = moment_interpolate(
@@ -243,6 +247,7 @@ class ConstantBodyTwistModel(TemporalModel):
             TemporalEvaluationKind.MODEL_PREDICTION,
             horizon,
             tuple(diagnostics),
+            tuple(warnings),
         )
         if self.backend is TemporalUncertaintyBackend.MOMENT:
             record = moment_predict(

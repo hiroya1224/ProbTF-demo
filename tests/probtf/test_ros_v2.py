@@ -310,6 +310,8 @@ def test_temporal_diagnostics_round_trip_in_existing_provenance_wire_fields():
         TemporalPolicy.PREDICT_WITH_MODEL,
         max_age=1.0,
         max_prediction_horizon=1.0,
+        max_uncertainty_trace=1.0e-12,
+        allow_degraded=True,
         random_seed=11,
         random_stream="wire-test",
     )._record_snapshot[0]
@@ -322,8 +324,16 @@ def test_temporal_diagnostics_round_trip_in_existing_provenance_wire_fields():
     assert payload["model_id"] == "wire_test_model"
     assert payload["backend"] == "moment"
     assert payload["horizon"] == pytest.approx(0.2)
+    assert payload["requested_stamp"] == pytest.approx(1.2)
     assert payload["random_seed"] == 11
     assert payload["random_stream"] == "wire-test"
+    assert "uncertainty_limit_exceeded" in payload["diagnostics"]
+    assert "degraded" in payload["warnings"][-1]
+    for restored_component in restored.distribution.components:
+        component_payload = parse_temporal_detail(
+            restored_component.provenance.detail
+        )
+        assert component_payload == payload
 
 
 def test_v2_array_and_broadcaster_listener_route_static_and_dynamic_records():

@@ -36,6 +36,7 @@ from probtf.temporal import (
     TemporalPolicy,
     TemporalQueryMode,
     TemporalUncertaintyBackend,
+    parse_temporal_detail,
     source_record_dependency_ids,
 )
 
@@ -439,6 +440,15 @@ def test_uncertainty_limit_rejects_or_returns_explicit_degraded_result():
     evaluation = degraded.edge_evaluations[0]
     assert TemporalDiagnosticCode.UNCERTAINTY_LIMIT_EXCEEDED in evaluation.diagnostics
     assert "degraded" in evaluation.warnings[-1]
+    details = (evaluation.record.provenance.detail,) + tuple(
+        component.provenance.detail
+        for component in evaluation.record.distribution.components
+    )
+    for detail in details:
+        payload = parse_temporal_detail(detail)
+        assert payload["requested_stamp"] == pytest.approx(1.5)
+        assert "uncertainty_limit_exceeded" in payload["diagnostics"]
+        assert "degraded" in payload["warnings"][-1]
 
 
 def test_latest_common_can_use_one_unique_anchor_for_model_evaluation():
@@ -647,6 +657,7 @@ class _TamperingTemporalModel(TemporalModel):
         kind = TemporalEvaluationKind.MODEL_PREDICTION
         backend = self.backend
         dependencies = source_record_dependency_ids(sources)
+        requested_stamp = request.requested_stamp
         if self.tamper == "parent":
             record = replace(record, parent_frame_id="map")
         elif self.tamper == "kind":
@@ -669,9 +680,11 @@ class _TamperingTemporalModel(TemporalModel):
                 record,
                 distribution=TransformDistribution((component,)),
             )
+        elif self.tamper == "requested_stamp":
+            requested_stamp += 0.01
         return TemporalEvaluationResult(
             record=record,
-            requested_stamp=request.requested_stamp,
+            requested_stamp=requested_stamp,
             evaluated_stamp=request.requested_stamp,
             source_stamps=tuple(item.stamp for item in sources),
             model_id=self.model_id,
@@ -693,6 +706,7 @@ class _TamperingTemporalModel(TemporalModel):
         ("backend", "configuration"),
         ("lineage", "lineage"),
         ("uncertainty", "understates"),
+        ("requested_stamp", "requested_stamp"),
         ("provenance", "provenance"),
     ),
 )

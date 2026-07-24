@@ -102,10 +102,12 @@ def temporal_detail(
     authority,
     backend,
     evaluation_kind,
+    requested_stamp,
     horizon,
     random_seed,
     random_stream,
     diagnostics=(),
+    warnings=(),
 ):
     """Encode temporal metadata in existing v2 provenance wire fields.
 
@@ -126,7 +128,9 @@ def temporal_detail(
         "model_version": str(model_version),
         "random_seed": random_seed,
         "random_stream": str(random_stream),
+        "requested_stamp": float(requested_stamp),
         "source_stamps": [float(stamp) for stamp in source_stamps],
+        "warnings": [str(warning) for warning in warnings],
     }
     return _DETAIL_PREFIX + json.dumps(
         payload,

@@ -1524,6 +1524,18 @@ class ClosedLoopCounterfactualEvaluator:
                 for metric in conformance.channel_metrics.values()
             )
         )
+        fixture_provenance = (
+            None if conformance is None else conformance.fixture_provenance
+        )
+        conformance_fixture_bound = bool(
+            fixture_provenance is not None
+            and conformance.fixture_content_sha256
+            == fixture_provenance.content_sha256
+            and conformance.request_payload_sha256
+            == fixture_provenance.fixture_input_payload_sha256
+            and fixture_provenance.source_bag_sha256
+            in config.source_bag_hashes
+        )
         exact_gate_passed = bool(
             backend_is_exact
             and conformance is not None
@@ -1531,6 +1543,7 @@ class ClosedLoopCounterfactualEvaluator:
             and conformance.passed
             and conformance.status == "PASS"
             and conformance_metrics_passed
+            and conformance_fixture_bound
             and identity_bound
         )
         calibration = self.probability_calibration_report
@@ -1555,6 +1568,12 @@ class ClosedLoopCounterfactualEvaluator:
                 and conformance is not None
                 and calibration.exact_conformance_report_sha256
                 == stable_hash(asdict(conformance))
+            ),
+            "exact_fixture_source_bag_calibrated": bool(
+                calibration is not None
+                and fixture_provenance is not None
+                and fixture_provenance.source_bag_sha256
+                in calibration.source_bag_hashes
             ),
             "source_commit_matches": bool(
                 calibration is not None
@@ -1714,6 +1733,9 @@ class ClosedLoopCounterfactualEvaluator:
                 ),
                 "identity_bound_to_backend": identity_bound,
                 "all_required_metrics_passed": conformance_metrics_passed,
+                "fixture_provenance_bound_to_source_bag": (
+                    conformance_fixture_bound
+                ),
                 "identity": conformance_identity,
                 "report": (
                     None if conformance is None else asdict(conformance)
@@ -1753,6 +1775,9 @@ class ClosedLoopCounterfactualEvaluator:
                 None if conformance is None else conformance.status
             ),
             "exact_oracle_identity_bound_to_backend": identity_bound,
+            "exact_oracle_fixture_bound_to_source_bag": (
+                conformance_fixture_bound
+            ),
             "exact_controller_gate_passed": exact_gate_passed,
             "probability_calibration_gate_passed": calibration_gate_passed,
             "integrator_state_gate_passed": integrator_state_gate_passed,

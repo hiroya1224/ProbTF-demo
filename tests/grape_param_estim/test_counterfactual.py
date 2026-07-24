@@ -10,6 +10,7 @@ from grape_param_estim.alternative_backends import (
     REQUIRED_CONFORMANCE_CHANNELS,
     REQUIRED_ORACLE_CAPABILITIES,
     ExactOracleConformanceReport,
+    ExactOracleFixtureProvenance,
     ExactOracleIdentity,
 )
 from grape_param_estim.controller_replay import (
@@ -584,6 +585,37 @@ class CounterfactualTests(unittest.TestCase):
             maximum_error_threshold=0.03,
             event_agreement_threshold=1.0,
         )
+        repository = Path(__file__).resolve().parents[2]
+        fixture_protocol = load_selection_protocol(
+            repository
+            / "ros/examples/grape-param-estim/config/selection_protocol.yaml"
+        )
+        fixture_source_hash = next(
+            iter(fixture_protocol["episodes"].values())
+        )["bag_sha256"]
+        fixture_payload = {"factual_replay": "unit-test"}
+        fixture_continuous = {
+            channel: np.zeros((3, 1))
+            for channel in REQUIRED_CONFORMANCE_CHANNELS
+        }
+        fixture_events = np.zeros(3, dtype=int)
+        fixture_provenance = ExactOracleFixtureProvenance.create(
+            source_bag_sha256=fixture_source_hash,
+            source_topics=tuple(
+                "/fixture/" + channel
+                for channel in REQUIRED_CONFORMANCE_CHANNELS
+            ),
+            interval_start_time_ns=1_000_000_000,
+            interval_end_time_ns=2_000_000_000,
+            frame_conventions={"controller": "body_flu"},
+            unit_conventions={"controller": "SI"},
+            motor_order=("motor1", "motor2", "motor3", "motor4"),
+            request_payload=fixture_payload,
+            continuous=fixture_continuous,
+            events=fixture_events,
+            extraction_config_sha256="c" * 64,
+            source_commit="fixture-source-commit",
+        )
         report = ExactOracleConformanceReport(
             passed=True,
             status="PASS",
@@ -593,6 +625,11 @@ class CounterfactualTests(unittest.TestCase):
                 for channel in REQUIRED_CONFORMANCE_CHANNELS
             },
             identity=identity,
+            fixture_provenance=fixture_provenance,
+            fixture_content_sha256=fixture_provenance.content_sha256,
+            request_payload_sha256=(
+                fixture_provenance.fixture_input_payload_sha256
+            ),
         )
         calibration, protocol, normalized_hashes = (
             probability_calibration_report(identity, report)
@@ -652,6 +689,25 @@ class CounterfactualTests(unittest.TestCase):
             connected_candidate_regions([result], gamma=0.0),
             (("verified-exact",),),
         )
+
+        other_source_hash = tuple(
+            item["bag_sha256"] for item in protocol["episodes"].values()
+        )[1]
+        cross_bag_result = evaluator.evaluate(
+            candidate,
+            target,
+            TargetTube(
+                np.full(6, 100.0),
+                np.full(6, 100.0),
+                allowed_outside_duration_s=1.0,
+            ),
+            response_posterior(),
+            [initial],
+            replace(config, source_bag_hashes=(other_source_hash,)),
+            joint,
+        )
+        self.assertFalse(cross_bag_result.exact_controller_gate_passed)
+        self.assertFalse(cross_bag_result.recommendable)
 
         lenient_metric = ReplayMetrics(
             normalized_rmse=np.full(6, 0.02),

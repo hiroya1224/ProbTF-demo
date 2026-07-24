@@ -8,6 +8,7 @@ from grape_param_estim.alternative_backends import (
     EXACT_ORACLE_PROTOCOL,
     BatchImuPreintegrationSmoother,
     ExactOracleConformanceFixture,
+    ExactOracleFixtureProvenance,
     ExactOracleIdentity,
     ExactOracleProtocolError,
     ExactOracleReplayOutput,
@@ -352,17 +353,44 @@ class StructuredMechanicsTests(unittest.TestCase):
 
 
 class ExactOracleAndCandidateGateTests(unittest.TestCase):
-    def fixture(self):
+    def fixture(self, payload=None, source_bag_sha256="b" * 64):
         samples = 31
         base = np.linspace(-1.0, 1.0, samples)[:, None]
+        continuous = {
+            "pid_terms": np.hstack((base, base**2, -base)),
+            "four_axis_command": np.hstack(
+                (base, -base, base**2, base**3)
+            ),
+            "vectoring_force": np.hstack((base, 2.0 * base)),
+            "pwm": np.hstack(
+                (1000.0 + 100.0 * base, 1200.0 - 80.0 * base)
+            ),
+        }
+        events = np.arange(samples) % 4
+        request = {"run_id": "unit-test"} if payload is None else payload
+        provenance = ExactOracleFixtureProvenance.create(
+            source_bag_sha256=source_bag_sha256,
+            source_topics=(
+                "/debug/pose/pid",
+                "/four_axes/command",
+                "/target_vectoring_force",
+                "/motor_pwms",
+            ),
+            interval_start_time_ns=1_000_000_000,
+            interval_end_time_ns=2_000_000_000,
+            frame_conventions={"controller": "body_flu", "world": "enu"},
+            unit_conventions={"angles": "rad", "pwm": "timer_count"},
+            motor_order=("motor1", "motor2", "motor3", "motor4"),
+            request_payload=request,
+            continuous=continuous,
+            events=events,
+            extraction_config_sha256="c" * 64,
+            source_commit="fixture-source-commit",
+        )
         return ExactOracleConformanceFixture(
-            continuous={
-                "pid_terms": np.hstack((base, base**2, -base)),
-                "four_axis_command": np.hstack((base, -base, base**2, base**3)),
-                "vectoring_force": np.hstack((base, 2.0 * base)),
-                "pwm": np.hstack((1000.0 + 100.0 * base, 1200.0 - 80.0 * base)),
-            },
-            events=np.arange(samples) % 4,
+            continuous=continuous,
+            events=events,
+            provenance=provenance,
         )
 
     def test_verified_external_oracle_passes_all_factual_channels(self):
@@ -397,6 +425,38 @@ class ExactOracleAndCandidateGateTests(unittest.TestCase):
                 "pwm",
             },
         )
+        self.assertEqual(
+            report.fixture_provenance.source_bag_sha256, "b" * 64
+        )
+        self.assertEqual(
+            report.request_payload_sha256,
+            fixture.provenance.fixture_input_payload_sha256,
+        )
+
+    def test_fixture_provenance_rejects_tampering_and_wrong_payload(self):
+        fixture = self.fixture()
+        changed = dict(fixture.continuous)
+        changed["pid_terms"] = np.array(changed["pid_terms"], copy=True)
+        changed["pid_terms"][0, 0] += 1.0
+        with self.assertRaisesRegex(ValueError, "do not match"):
+            ExactOracleConformanceFixture(
+                continuous=changed,
+                events=fixture.events,
+                provenance=fixture.provenance,
+            )
+
+        class ExactOracle:
+            is_exact = True
+            identity = exact_identity()
+
+            def replay(self, payload):
+                raise AssertionError("mismatched payload must not execute")
+
+        report = evaluate_exact_oracle_conformance(
+            ExactOracle(), {"run_id": "different"}, fixture
+        )
+        self.assertFalse(report.passed)
+        self.assertEqual(report.status, "FIXTURE_BINDING_REJECTED")
 
     def test_missing_or_surrogate_oracle_fails_closed(self):
         fixture = self.fixture()

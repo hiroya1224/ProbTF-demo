@@ -30,6 +30,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from grape_param_estim.controller_replay import ReplayMetrics, replay_metrics
+from grape_param_estim.episode import stable_hash
 from grape_param_estim.dynamics import (
     PARAMETER_COUNT,
     predict_wrench,
@@ -1518,12 +1519,184 @@ class CtypesExactControllerOracle:
         return _output_from_reply(parsed, self.identity)
 
 
+def _validated_sha256(value: Any, name: str) -> str:
+    digest = str(value).lower()
+    if len(digest) != 64 or any(
+        character not in "0123456789abcdef" for character in digest
+    ):
+        raise ValueError("{} must be a lowercase SHA-256".format(name))
+    return digest
+
+
+@dataclass(frozen=True)
+class ExactOracleFixtureProvenance:
+    source_bag_sha256: str
+    source_topics: Tuple[str, ...]
+    interval_start_time_ns: int
+    interval_end_time_ns: int
+    frame_conventions: Mapping[str, str]
+    unit_conventions: Mapping[str, str]
+    motor_order: Tuple[str, ...]
+    fixture_input_payload_sha256: str
+    fixture_data_sha256: str
+    extraction_config_sha256: str
+    source_commit: str
+    content_sha256: str
+    schema: str = "grape_exact_oracle_fixture_provenance/v1"
+
+    @staticmethod
+    def _payload(
+        source_bag_sha256,
+        source_topics,
+        interval_start_time_ns,
+        interval_end_time_ns,
+        frame_conventions,
+        unit_conventions,
+        motor_order,
+        fixture_input_payload_sha256,
+        fixture_data_sha256,
+        extraction_config_sha256,
+        source_commit,
+        schema,
+    ) -> Mapping[str, Any]:
+        return {
+            "schema": str(schema),
+            "source_bag_sha256": str(source_bag_sha256),
+            "source_topics": tuple(source_topics),
+            "interval_start_time_ns": int(interval_start_time_ns),
+            "interval_end_time_ns": int(interval_end_time_ns),
+            "frame_conventions": dict(frame_conventions),
+            "unit_conventions": dict(unit_conventions),
+            "motor_order": tuple(motor_order),
+            "fixture_input_payload_sha256": str(
+                fixture_input_payload_sha256
+            ),
+            "fixture_data_sha256": str(fixture_data_sha256),
+            "extraction_config_sha256": str(extraction_config_sha256),
+            "source_commit": str(source_commit),
+        }
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        source_bag_sha256: str,
+        source_topics: Sequence[str],
+        interval_start_time_ns: int,
+        interval_end_time_ns: int,
+        frame_conventions: Mapping[str, str],
+        unit_conventions: Mapping[str, str],
+        motor_order: Sequence[str],
+        request_payload: Mapping[str, Any],
+        continuous: Mapping[str, np.ndarray],
+        events: np.ndarray,
+        extraction_config_sha256: str,
+        source_commit: str,
+    ) -> "ExactOracleFixtureProvenance":
+        schema = "grape_exact_oracle_fixture_provenance/v1"
+        payload = cls._payload(
+            source_bag_sha256,
+            source_topics,
+            interval_start_time_ns,
+            interval_end_time_ns,
+            frame_conventions,
+            unit_conventions,
+            motor_order,
+            stable_hash(request_payload),
+            stable_hash({"continuous": continuous, "events": events}),
+            extraction_config_sha256,
+            source_commit,
+            schema,
+        )
+        return cls(content_sha256=stable_hash(payload), **payload)
+
+    def __post_init__(self) -> None:
+        if self.schema != "grape_exact_oracle_fixture_provenance/v1":
+            raise ValueError("unsupported exact-oracle fixture provenance schema")
+        source_topics = tuple(str(item) for item in self.source_topics)
+        motor_order = tuple(str(item) for item in self.motor_order)
+        frames = {
+            str(key): str(value)
+            for key, value in self.frame_conventions.items()
+        }
+        units = {
+            str(key): str(value)
+            for key, value in self.unit_conventions.items()
+        }
+        start = int(self.interval_start_time_ns)
+        end = int(self.interval_end_time_ns)
+        if (
+            not source_topics
+            or len(set(source_topics)) != len(source_topics)
+            or not frames
+            or not units
+            or not motor_order
+            or len(set(motor_order)) != len(motor_order)
+            or start < 0
+            or end <= start
+            or not self.source_commit
+            or self.source_commit == "UNKNOWN"
+        ):
+            raise ValueError(
+                "exact-oracle fixture requires complete source/topic/time/"
+                "frame/unit/motor-order provenance"
+            )
+        source_hash = _validated_sha256(
+            self.source_bag_sha256, "source_bag_sha256"
+        )
+        input_hash = _validated_sha256(
+            self.fixture_input_payload_sha256,
+            "fixture_input_payload_sha256",
+        )
+        data_hash = _validated_sha256(
+            self.fixture_data_sha256, "fixture_data_sha256"
+        )
+        config_hash = _validated_sha256(
+            self.extraction_config_sha256, "extraction_config_sha256"
+        )
+        content_hash = _validated_sha256(
+            self.content_sha256, "content_sha256"
+        )
+        payload = self._payload(
+            source_hash,
+            source_topics,
+            start,
+            end,
+            frames,
+            units,
+            motor_order,
+            input_hash,
+            data_hash,
+            config_hash,
+            self.source_commit,
+            self.schema,
+        )
+        if stable_hash(payload) != content_hash:
+            raise ValueError("exact-oracle fixture provenance hash mismatch")
+        object.__setattr__(self, "source_bag_sha256", source_hash)
+        object.__setattr__(self, "source_topics", source_topics)
+        object.__setattr__(self, "interval_start_time_ns", start)
+        object.__setattr__(self, "interval_end_time_ns", end)
+        object.__setattr__(self, "frame_conventions", frames)
+        object.__setattr__(self, "unit_conventions", units)
+        object.__setattr__(self, "motor_order", motor_order)
+        object.__setattr__(self, "fixture_input_payload_sha256", input_hash)
+        object.__setattr__(self, "fixture_data_sha256", data_hash)
+        object.__setattr__(self, "extraction_config_sha256", config_hash)
+        object.__setattr__(self, "content_sha256", content_hash)
+
+
 @dataclass(frozen=True)
 class ExactOracleConformanceFixture:
     continuous: Mapping[str, np.ndarray]
     events: np.ndarray
+    provenance: ExactOracleFixtureProvenance
 
     def __post_init__(self) -> None:
+        if not isinstance(self.provenance, ExactOracleFixtureProvenance):
+            raise TypeError(
+                "exact-oracle fixture requires bag-derived provenance"
+            )
         output = ExactOracleReplayOutput(
             identity=ExactOracleIdentity(
                 protocol=EXACT_ORACLE_PROTOCOL,
@@ -1545,6 +1718,15 @@ class ExactOracleConformanceFixture:
                     ", ".join(missing)
                 )
             )
+        if (
+            stable_hash(
+                {"continuous": output.continuous, "events": output.events}
+            )
+            != self.provenance.fixture_data_sha256
+        ):
+            raise ValueError(
+                "fixture arrays do not match bag-derived provenance hash"
+            )
         object.__setattr__(self, "continuous", output.continuous)
         object.__setattr__(self, "events", output.events)
 
@@ -1556,6 +1738,35 @@ class ExactOracleConformanceReport:
     reasons: Tuple[str, ...]
     channel_metrics: Mapping[str, ReplayMetrics]
     identity: Optional[ExactOracleIdentity]
+    fixture_provenance: ExactOracleFixtureProvenance
+    fixture_content_sha256: str
+    request_payload_sha256: str
+
+    def __post_init__(self) -> None:
+        if type(self.passed) is not bool:
+            raise ValueError("conformance passed must be a built-in bool")
+        if not isinstance(
+            self.fixture_provenance, ExactOracleFixtureProvenance
+        ):
+            raise TypeError("conformance report requires fixture provenance")
+        fixture_hash = _validated_sha256(
+            self.fixture_content_sha256, "fixture_content_sha256"
+        )
+        request_hash = _validated_sha256(
+            self.request_payload_sha256, "request_payload_sha256"
+        )
+        if fixture_hash != self.fixture_provenance.content_sha256:
+            raise ValueError("conformance report fixture hash mismatch")
+        if self.passed and (
+            self.status != "PASS"
+            or request_hash
+            != self.fixture_provenance.fixture_input_payload_sha256
+        ):
+            raise ValueError(
+                "passing conformance report is not bound to fixture request"
+            )
+        object.__setattr__(self, "fixture_content_sha256", fixture_hash)
+        object.__setattr__(self, "request_payload_sha256", request_hash)
 
 
 def evaluate_exact_oracle_conformance(
@@ -1570,8 +1781,31 @@ def evaluate_exact_oracle_conformance(
 
     if not isinstance(fixture, ExactOracleConformanceFixture):
         raise TypeError("fixture must be ExactOracleConformanceFixture")
-    if oracle is None:
+    if not isinstance(payload, Mapping):
+        raise TypeError("exact-oracle conformance payload must be a mapping")
+    request_hash = stable_hash(payload)
+
+    def report(
+        *,
+        passed: bool,
+        status: str,
+        reasons: Sequence[str],
+        channel_metrics: Mapping[str, ReplayMetrics],
+        identity: Optional[ExactOracleIdentity],
+    ) -> ExactOracleConformanceReport:
         return ExactOracleConformanceReport(
+            passed=passed,
+            status=status,
+            reasons=tuple(reasons),
+            channel_metrics=dict(channel_metrics),
+            identity=identity,
+            fixture_provenance=fixture.provenance,
+            fixture_content_sha256=fixture.provenance.content_sha256,
+            request_payload_sha256=request_hash,
+        )
+
+    if oracle is None:
+        return report(
             passed=False,
             status="ORACLE_UNAVAILABLE",
             reasons=("no external exact-controller oracle is connected",),
@@ -1584,7 +1818,7 @@ def evaluate_exact_oracle_conformance(
         or not isinstance(identity, ExactOracleIdentity)
         or not callable(getattr(oracle, "replay", None))
     ):
-        return ExactOracleConformanceReport(
+        return report(
             passed=False,
             status="IDENTITY_REJECTED",
             reasons=(
@@ -1594,10 +1828,20 @@ def evaluate_exact_oracle_conformance(
             channel_metrics={},
             identity=None,
         )
+    if request_hash != fixture.provenance.fixture_input_payload_sha256:
+        return report(
+            passed=False,
+            status="FIXTURE_BINDING_REJECTED",
+            reasons=(
+                "oracle request payload does not match the bag-derived fixture",
+            ),
+            channel_metrics={},
+            identity=identity,
+        )
     try:
         output = oracle.replay(payload)
     except Exception as exc:  # fail closed across an external process boundary
-        return ExactOracleConformanceReport(
+        return report(
             passed=False,
             status="EXECUTION_FAILED",
             reasons=("oracle replay failed: {}".format(type(exc).__name__),),
@@ -1605,7 +1849,7 @@ def evaluate_exact_oracle_conformance(
             identity=identity,
         )
     if not isinstance(output, ExactOracleReplayOutput) or output.identity != identity:
-        return ExactOracleConformanceReport(
+        return report(
             passed=False,
             status="PROTOCOL_REJECTED",
             reasons=("oracle replay output identity/type mismatch",),
@@ -1616,7 +1860,7 @@ def evaluate_exact_oracle_conformance(
         set(REQUIRED_CONFORMANCE_CHANNELS) - set(output.continuous)
     )
     if missing:
-        return ExactOracleConformanceReport(
+        return report(
             passed=False,
             status="CONFORMANCE_FAILED",
             reasons=(
@@ -1644,7 +1888,7 @@ def evaluate_exact_oracle_conformance(
         if not metrics[channel].passed:
             reasons.append("{} exceeded the frozen replay thresholds".format(channel))
     passed = not reasons and len(metrics) == len(REQUIRED_CONFORMANCE_CHANNELS)
-    return ExactOracleConformanceReport(
+    return report(
         passed=passed,
         status="PASS" if passed else "CONFORMANCE_FAILED",
         reasons=tuple(reasons),
@@ -1708,6 +1952,7 @@ __all__ = [
     "EXACT_ORACLE_PROTOCOL",
     "ExactOracleConformanceFixture",
     "ExactOracleConformanceReport",
+    "ExactOracleFixtureProvenance",
     "ExactOracleError",
     "ExactOracleIdentity",
     "ExactOracleProtocolError",

@@ -1,41 +1,21 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>grape_param_estim</name>
-  <version>0.1.0</version>
-  <description>Offline factual controller replay auditing, effective-plant Bayesian assimilation, posterior validation, and legacy inertial diagnostics for Grape ROS bags.</description>
+  <version>0.2.0</version>
+  <description>Minimal effective-parameter extraction from a failed Grape ROS bag.</description>
 
   <maintainer email="leus@todo.todo">leus</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <build_depend>message_generation</build_depend>
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>probtf_msgs</build_depend>
-  <build_depend>std_msgs</build_depend>
-
-  <build_export_depend>probtf_msgs</build_export_depend>
-  <build_export_depend>geometry_msgs</build_export_depend>
-  <build_export_depend>std_msgs</build_export_depend>
-
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>aerial_robot_msgs</exec_depend>
-  <exec_depend>dynamic_reconfigure</exec_depend>
-  <exec_depend>genpy</exec_depend>
-  <exec_depend>message_runtime</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>probtf_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-rospkg</exec_depend>
-  <exec_depend>python3-scipy</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>rosbag</exec_depend>
-  <exec_depend>rospy</exec_depend>
-  <exec_depend>rosgraph_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>spinal</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>tf2_msgs</exec_depend>
 
   <test_depend>python3-nose</test_depend>
 

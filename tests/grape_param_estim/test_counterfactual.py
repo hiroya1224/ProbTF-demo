@@ -196,7 +196,7 @@ def probability_calibration_report(identity, exact_conformance_report):
                 stable_hash(backend_identity),
             ),
             "exact_conformance_report_hashes": (
-                stable_hash(asdict(exact_conformance_report)),
+                exact_conformance_report.evidence_sha256,
             ),
             "statistics": {
                 "episode_count": 12,
@@ -585,6 +585,15 @@ class CounterfactualTests(unittest.TestCase):
             maximum_error_threshold=0.03,
             event_agreement_threshold=1.0,
         )
+        timestamp_metric = ReplayMetrics(
+            normalized_rmse=np.zeros(1),
+            normalized_maximum_error=np.zeros(1),
+            event_agreement=1.0,
+            passed=True,
+            rmse_threshold=0.0,
+            maximum_error_threshold=0.0,
+            event_agreement_threshold=1.0,
+        )
         repository = Path(__file__).resolve().parents[2]
         fixture_protocol = load_selection_protocol(
             repository
@@ -621,7 +630,11 @@ class CounterfactualTests(unittest.TestCase):
             status="PASS",
             reasons=(),
             channel_metrics={
-                channel: replay_metric
+                channel: (
+                    timestamp_metric
+                    if channel == "command_timestamp"
+                    else replay_metric
+                )
                 for channel in REQUIRED_CONFORMANCE_CHANNELS
             },
             identity=identity,
@@ -718,67 +731,29 @@ class CounterfactualTests(unittest.TestCase):
             maximum_error_threshold=0.10,
             event_agreement_threshold=0.90,
         )
-        lenient_report = replace(
-            report,
-            channel_metrics={
-                channel: lenient_metric
-                for channel in REQUIRED_CONFORMANCE_CHANNELS
-            },
-        )
-        lenient_calibration, _, _ = probability_calibration_report(
-            identity, lenient_report
-        )
-        lenient_result = ClosedLoopCounterfactualEvaluator(
-            support_reference((candidate,)),
-            controller_backend_factory=CapturingExactBackend,
-            exact_oracle_conformance_report=lenient_report,
-            probability_calibration_report=lenient_calibration,
-        ).evaluate(
-            candidate,
-            target,
-            TargetTube(
-                np.full(6, 100.0),
-                np.full(6, 100.0),
-                allowed_outside_duration_s=1.0,
-            ),
-            response_posterior(),
-            [initial],
-            config,
-            joint,
-        )
-        self.assertFalse(lenient_result.exact_controller_gate_passed)
-        self.assertTrue(
-            lenient_result.probability_calibration_gate_passed
-        )
-        self.assertFalse(lenient_result.recommendable)
+        with self.assertRaisesRegex(ValueError, "frozen"):
+            replace(
+                report,
+                channel_metrics={
+                    channel: lenient_metric
+                    for channel in REQUIRED_CONFORMANCE_CHANNELS
+                },
+            )
 
-        non_boolean_report = replace(
-            report,
-            channel_metrics={
-                channel: replace(replay_metric, passed=np.bool_(True))
-                for channel in REQUIRED_CONFORMANCE_CHANNELS
-            },
-        )
-        non_boolean_result = ClosedLoopCounterfactualEvaluator(
-            support_reference((candidate,)),
-            controller_backend_factory=CapturingExactBackend,
-            exact_oracle_conformance_report=non_boolean_report,
-        ).evaluate(
-            candidate,
-            target,
-            TargetTube(
-                np.full(6, 100.0),
-                np.full(6, 100.0),
-                allowed_outside_duration_s=1.0,
-            ),
-            response_posterior(),
-            [initial],
-            config,
-            joint,
-        )
-        self.assertFalse(
-            non_boolean_result.exact_controller_gate_passed
-        )
+        with self.assertRaisesRegex(
+            ValueError, "thresholds/status"
+        ):
+            replace(replay_metric, passed=np.bool_(True))
+        with self.assertRaisesRegex(ValueError, "passed flag disagrees"):
+            ReplayMetrics(
+                normalized_rmse=np.full(6, 1.0),
+                normalized_maximum_error=np.full(6, 1.0),
+                event_agreement=0.0,
+                passed=True,
+                rmse_threshold=0.01,
+                maximum_error_threshold=0.03,
+                event_agreement_threshold=1.0,
+            )
 
         no_report = ClosedLoopCounterfactualEvaluator(
             support_reference((candidate,)),

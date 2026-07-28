@@ -1,4 +1,8 @@
-"""Reusable transformed-prior tempered resample-move SMC primitives."""
+"""Compatibility implementation for transformed-prior tempered SMC.
+
+The public imports now live under :mod:`grape_param_estim.inference`; this
+module remains the frozen implementation used by legacy callers.
+"""
 
 from dataclasses import dataclass
 from typing import Callable, Optional, Sequence, Tuple

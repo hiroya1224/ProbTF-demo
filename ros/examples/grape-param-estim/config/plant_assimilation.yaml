@@ -1,0 +1,156 @@
+schema: grape_plant_assimilation/v2
+seed: 7
+mode: open_loop_plant_identification
+
+controller:
+  backend: unavailable_external_cpp
+  fidelity: pc_exact
+  snapshot_policy: unavailable_from_current_bag
+  nominal_model_policy: frozen
+  require_factual_replay_pass: false
+  note: >-
+    Current bags lack a complete source/model/state snapshot. Open-loop
+    identification uses recorded commands and does not invoke this backend.
+    Closed-loop mode remains fail-closed until the external C++ core and a
+    passing factual replay fixture are connected.
+
+plant:
+  model: effective_closed_loop_v1
+  integration_rate_hz: 100.0
+  geometry_profile:
+    schema: grape_actuator_geometry_profile/v1
+    profile_id: grape_source_geometry_20260612_v1
+    profile_sha256: 78814b83a44ff81bdd3d50aae471338d0e017503d8c104ee7d569aa72d87bbd7
+    evidence_status: ASSUMED_SOURCE_NOT_BAG_VERIFIED
+    note: >-
+      Fixed source geometry used by the effective command-to-motion model.
+      Current bags lack a hash-bound URDF/geometry snapshot, so this is an
+      explicit modeling assumption and not a bag-verified physical geometry.
+  fixed_actuator_parameters:
+    minimum_thrust: 0.0
+    maximum_thrust: 15.0
+  parameters:
+    - {name: specific_thrust_authority, prior: {type: bounded_uniform, lower: 0.50, upper: 2.00}}
+    - {name: roll_authority, prior: {type: bounded_log_uniform, lower: 0.50, upper: 80.0}}
+    - {name: pitch_authority, prior: {type: bounded_log_uniform, lower: 0.50, upper: 80.0}}
+    - {name: yaw_authority, prior: {type: bounded_log_uniform, lower: 0.50, upper: 200.0}}
+    - {name: cog_coupling_x, prior: {type: bounded_uniform, lower: -0.20, upper: 0.20}}
+    - {name: cog_coupling_y, prior: {type: bounded_uniform, lower: -0.20, upper: 0.20}}
+    - {name: linear_drag, prior: {type: bounded_uniform, lower: 0.0, upper: 2.0}}
+    - {name: angular_drag, prior: {type: bounded_uniform, lower: 0.0, upper: 5.0}}
+    - {name: force_bias_z, prior: {type: bounded_uniform, lower: -2.0, upper: 2.0}}
+    - {name: torque_bias_x, prior: {type: bounded_uniform, lower: -5.0, upper: 5.0}}
+    - {name: torque_bias_y, prior: {type: bounded_uniform, lower: -5.0, upper: 5.0}}
+  actuator_parameters:
+    - {name: common_thrust_scale, prior: {type: bounded_uniform, lower: 0.50, upper: 1.50}}
+    - {name: motor_time_constant, prior: {type: bounded_log_uniform, lower: 0.01, upper: 0.30}}
+    - {name: command_delay, prior: {type: bounded_uniform, lower: 0.0, upper: 0.20}}
+    - {name: gimbal_time_constant, prior: {type: bounded_log_uniform, lower: 0.01, upper: 0.30}}
+    - {name: gimbal_angle_bias, prior: {type: bounded_uniform, lower: -0.15, upper: 0.15}}
+
+observation:
+  pose_likelihood: student_t
+  orientation_residual: so3_log
+  likelihood_rate_hz: 10.0
+  report_rate_hz: 20.0
+  position_sigma: 0.03
+  orientation_sigma_rad: 0.03490658503988659
+  velocity_sigma: 0.10
+  imu_sigma: 0.30
+  angular_velocity_sigma: 0.05
+  student_t_degrees_of_freedom: 5.0
+  saturation_event_error_probability: 0.01
+  mode_event_error_probability: 0.01
+  other_event_error_probability: 0.01
+  require_controller_event_evidence: false
+  censor_after_failure: true
+
+smoother:
+  trajectory_sample_count: 4
+  initial_state_sample_count: 2
+  mocap_position_sigma: 0.01
+  mocap_orientation_sigma: 0.017453292519943295
+  accelerometer_noise_sigma: 0.20
+  gyro_noise_sigma: 0.008726646259971648
+
+episode_nuisance:
+  disturbance:
+    model_id: effective_constant_acceleration_disturbance_v1
+    parameter_names:
+      - wind_acceleration_world_x
+      - wind_acceleration_world_y
+      - wind_acceleration_world_z
+      - angular_acceleration_bias_body_x
+      - angular_acceleration_bias_body_y
+      - angular_acceleration_bias_body_z
+    prior:
+      type: bounded_uniform
+      lower: [-0.50, -0.50, -0.25, -0.50, -0.50, -0.75]
+      upper: [0.50, 0.50, 0.25, 0.50, 0.50, 0.75]
+    sample_count: 3
+
+inference:
+  algorithm: tempered_smc
+  particle_count: 64
+  target_ess_fraction: 0.70
+  resample_ess_fraction: 0.50
+  mcmc_steps: 1
+  chain_count: 1
+  worker_count: 4
+  chain_worker_count: 1
+  exact_controller_batch_size: 4
+  exact_controller_batch_wait_s: 0.001
+  proposal_scale: 0.60
+  rollout_cache_entries: 8192
+
+validation:
+  credible_probability: 0.95
+  failure_bags_for_inference: true
+  success_bags_for_inference: false
+  success_bags_for_validation: true
+  minimum_failure_trajectory_coverage: 0.90
+  minimum_success_coverage: 0.90
+  maximum_success_failure_probability: 0.10
+
+topics:
+  command: /gimbalrotor/four_axes/command
+  gimbal: /gimbalrotor/gimbals_ctrl
+  mocap: /gimbalrotor/mocap/pose
+  imu: /gimbalrotor/sensor_plugin/imu1/ros_converted
+
+episodes:
+  - episode_id: 20260612-04
+    bag: 20260612_grape_hovering_4_2026-06-12-17-33-59.bag
+    source_bag_sha256: bd3fc7f71797c0f5cb665acc50832da93c590e540fa170f9977182ecedf93bf8
+    role: inference_failure
+    replay_start_offset_s: 18.0
+    score_start_offset_s: 20.0
+    score_end_offset_s: 25.30
+    failure_type: attitude_failure
+    failure_time_offset_s: 25.283372
+
+  - episode_id: 20260612-03
+    bag: 20260612_grape_hovering_3_2026-06-12-17-33-02.bag
+    source_bag_sha256: 4f93133b9900d7236462acf000fde252ee6303f606903219980ddb460cf4e393
+    role: validation_failure
+    replay_start_offset_s: 17.0
+    score_start_offset_s: 20.0
+    score_end_offset_s: 22.73
+    failure_type: sensor_dropout
+    failure_time_offset_s: 22.727406
+
+  - episode_id: 20260612-07
+    bag: 20260612_grape_hovering_7_2026-06-12-17-41-34.bag
+    source_bag_sha256: 75292b0c79dd1a3be2869eb3a0c3766df9561336efe2948386ebcb86e67297b8
+    role: validation_success
+    replay_start_offset_s: 40.0
+    score_start_offset_s: 45.0
+    score_end_offset_s: 53.0
+
+  - episode_id: 20260612-08
+    bag: 20260612_grape_hovering_8_2026-06-12-17-46-41.bag
+    source_bag_sha256: dc141d4f6d9d3289d279771eb8d85b0765d1e76cd960f5c79211bf57869863c0
+    role: validation_success
+    replay_start_offset_s: 294.0
+    score_start_offset_s: 298.0
+    score_end_offset_s: 306.0

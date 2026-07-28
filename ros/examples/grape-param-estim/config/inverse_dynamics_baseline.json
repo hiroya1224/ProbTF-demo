@@ -1,0 +1,38 @@
+{
+  "schema": "grape_inverse_dynamics_baseline/v1",
+  "model_id": "inverse_dynamics_baseline_v1",
+  "model_id_role": "Phase 0 legacy baseline family label; it does not relabel the immutable real-bag payloads.",
+  "frozen_payload_model_ids": [
+    "low_dimensional_effective_response/v1"
+  ],
+  "frozen_payload_model_id_locations": [
+    "summary.json:model_id",
+    "summary.json:effective_response.model_id"
+  ],
+  "source_commit": "614d018295b5b7dfec802a5a8c2731758bb5c955",
+  "frozen_result_root": "results/real_bag_vertical_slice/2026-07-24",
+  "combined_payload_listing_schema": "grape_inverse_dynamics_baseline_payload_listing/v1",
+  "combined_payload_listing_method": "UTF-8 lines episode_id<TAB>artifact_key<TAB>sha256<LF>, with episodes and *_sha256 artifact keys lexicographically sorted",
+  "combined_payload_listing_sha256": "76575356f084d99e5d1a2d1af9a3282d4208afb6b61c697ca06da1652773131c",
+  "runs": {
+    "20260612-04": {
+      "run_id": "b1b32ee30d43c05fe357",
+      "artifact_manifest_sha256": "d19a87190b79f8a71996525b7b0dbb75110ed4d55f94763cbc3d44d2070d92db",
+      "summary_sha256": "7f362c9ac755828763f2a86e5a711e4bb7ae766ce68419099f43913794046105",
+      "trajectory_particles_sha256": "a3002578001966a914fa2e3ad8ec45a1be67b7a0898678993674171dde14142a"
+    },
+    "20260612-07": {
+      "run_id": "c63e4ebe570b6943f7dd",
+      "artifact_manifest_sha256": "27ad92c9fabbde51b2f112da52e4cc9a3d93a43be136b6d730d8182ccc9dd2c6",
+      "summary_sha256": "a03fa93ed0982713dae15992e0864f2e751cd543e4564bcf05b52dd50c3002aa",
+      "trajectory_particles_sha256": "20f3c80198a49c08dbb3875d42bf5e51192f6f8c1775c54603d6f661d32e1c52"
+    },
+    "20260612-08": {
+      "run_id": "bcb0786294cad8f7f565",
+      "artifact_manifest_sha256": "919e316e5b7e020b3a49633c14c83090e8e30b005fdec8c1140557e9f327969d",
+      "summary_sha256": "628bf97e4bc302f82878a5e5e6e42972a83ec7410de2967df1150161265aa418",
+      "trajectory_particles_sha256": "e7a062702887572df4b645e2024f952fc1d0af6017d8dfa1024f311e2e86e14b"
+    }
+  },
+  "note": "Frozen files remain compatibility evidence and retain their original low_dimensional_effective_response/v1 payload label and hashes. inverse_dynamics_baseline_v1 names the Phase 0 legacy baseline family and the calibrated-wrench estimator config; redesigned forward-model runs use a separate artifact schema."
+}

@@ -19,6 +19,9 @@ add_message_files(
     TrajectoryParticleSet.msg
     ModelMismatch.msg
     CounterfactualCandidate.msg
+    GimbalrotorControllerReplayMetadata.msg
+    GimbalrotorControllerReplayFrame.msg
+    PlantPosteriorSummary.msg
 )
 
 generate_messages(
@@ -39,11 +42,16 @@ catkin_package(
 catkin_install_python(
   PROGRAMS
     scripts/analyze_grape_counterfactual.py
+    scripts/audit_grape_controller_replay.py
     scripts/estimate_grape_bag.py
+    scripts/estimate_grape_plant.py
     scripts/evaluate_sanity.py
     scripts/evaluate_selection.py
     scripts/generate_sanity_bag.py
     scripts/build_bag_manifest.py
+    scripts/materialize_grape_controller_replay.py
+    scripts/verify_inverse_dynamics_baseline.py
+    scripts/verify_synthetic_sanity_baseline.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -52,6 +60,7 @@ install(
     config
     launch
     lectures
+    plans
     results
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

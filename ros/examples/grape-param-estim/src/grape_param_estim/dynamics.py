@@ -17,6 +17,8 @@ from typing import Tuple
 import numpy as np
 
 
+MODEL_ID = "inverse_dynamics_baseline_v1"
+
 PARAMETER_NAMES: Tuple[str, ...] = (
     "mass",
     "cog_x",
@@ -301,6 +303,7 @@ predict_actuator_wrench = predict_wrench
 
 
 __all__ = [
+    "MODEL_ID",
     "PARAMETER_COUNT",
     "PARAMETER_NAMES",
     "inertia_to_parameters",

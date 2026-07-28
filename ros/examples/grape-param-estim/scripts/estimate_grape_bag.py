@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 import tempfile
 
 import genpy
@@ -51,7 +52,7 @@ def _default_config_path() -> Path:
     return Path(rospkg.RosPack().get_path("grape_param_estim")) / "config" / "estimator.yaml"
 
 
-def _parse_arguments() -> argparse.Namespace:
+def _parse_arguments(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-bag", required=True, type=Path)
     parser.add_argument("--output-bag", required=True, type=Path)
@@ -61,9 +62,11 @@ def _parse_arguments() -> argparse.Namespace:
     parser.add_argument("--start-offset", type=float, default=0.0)
     parser.add_argument("--duration", type=float, default=0.0)
     parser.add_argument("--force", action="store_true", help="atomically replace an existing output bag")
-    parser.add_argument("__name", type=str, default=None)
-    parser.add_argument("__log", type=str, default=None)
-    return parser.parse_args()
+    values = list(sys.argv[1:] if argv is None else argv)
+    # roslaunch appends transport remappings such as ``__name:=...``.  They
+    # are not estimator positionals, and direct rosrun must work without them.
+    values = [item for item in values if ":=" not in item]
+    return parser.parse_args(values)
 
 
 def _load_config(path: Path) -> tuple:

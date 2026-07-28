@@ -1,7 +1,7 @@
 # The initial distribution is deliberately not centred on the URDF values.
 # These finite bounds define a proper bounded-uniform distribution; changing
 # them changes the inference problem and must be recorded in provenance.
-model: rigid_body_inertial_parameters_v1
+model: inverse_dynamics_baseline_v1
 seed: 7
 
 topics:

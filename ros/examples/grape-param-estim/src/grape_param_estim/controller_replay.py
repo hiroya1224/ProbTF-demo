@@ -659,6 +659,64 @@ class ReplayMetrics:
     maximum_error_threshold: float
     event_agreement_threshold: float
 
+    def __post_init__(self) -> None:
+        rmse = np.asarray(self.normalized_rmse, dtype=float)
+        maximum = np.asarray(self.normalized_maximum_error, dtype=float)
+        if (
+            rmse.ndim != 1
+            or maximum.shape != rmse.shape
+            or rmse.size == 0
+            or not np.all(np.isfinite(rmse))
+            or not np.all(np.isfinite(maximum))
+            or np.any(rmse < 0.0)
+            or np.any(maximum < 0.0)
+        ):
+            raise ValueError(
+                "replay metric errors must be aligned finite vectors"
+            )
+        agreement = float(self.event_agreement)
+        rmse_threshold = float(self.rmse_threshold)
+        maximum_threshold = float(self.maximum_error_threshold)
+        event_threshold = float(self.event_agreement_threshold)
+        if (
+            not np.isfinite(agreement)
+            or not 0.0 <= agreement <= 1.0
+            or not np.isfinite(rmse_threshold)
+            or not np.isfinite(maximum_threshold)
+            or not np.isfinite(event_threshold)
+            or rmse_threshold < 0.0
+            or maximum_threshold < 0.0
+            or not 0.0 <= event_threshold <= 1.0
+            or type(self.passed) is not bool
+        ):
+            raise ValueError("replay metric thresholds/status are invalid")
+        computed_passed = bool(
+            np.all(rmse <= rmse_threshold)
+            and np.all(maximum <= maximum_threshold)
+            and agreement >= event_threshold
+        )
+        if self.passed is not computed_passed:
+            raise ValueError(
+                "replay metric passed flag disagrees with its arrays "
+                "and frozen thresholds"
+            )
+        rmse_copy = np.array(rmse, copy=True)
+        maximum_copy = np.array(maximum, copy=True)
+        rmse_copy.setflags(write=False)
+        maximum_copy.setflags(write=False)
+        object.__setattr__(self, "normalized_rmse", rmse_copy)
+        object.__setattr__(
+            self, "normalized_maximum_error", maximum_copy
+        )
+        object.__setattr__(self, "event_agreement", agreement)
+        object.__setattr__(self, "rmse_threshold", rmse_threshold)
+        object.__setattr__(
+            self, "maximum_error_threshold", maximum_threshold
+        )
+        object.__setattr__(
+            self, "event_agreement_threshold", event_threshold
+        )
+
 
 def replay_metrics(
     predicted: np.ndarray,

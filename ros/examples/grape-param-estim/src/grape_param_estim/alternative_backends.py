@@ -23,12 +23,25 @@ import ctypes
 import hashlib
 import json
 import os
+import selectors
 import subprocess
+import threading
+import time
+from types import MappingProxyType
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 from scipy.spatial.transform import Rotation
 
+from grape_param_estim.controller.contracts import (
+    FIDELITY_PC_EXACT,
+    FIDELITY_PC_MCU_EXACT,
+    FrozenMapping,
+    PC_EXACT_REQUIRED_CAPABILITIES,
+    deep_freeze,
+    expand_capabilities,
+    normalize_fidelity,
+)
 from grape_param_estim.controller_replay import ReplayMetrics, replay_metrics
 from grape_param_estim.episode import stable_hash
 from grape_param_estim.dynamics import (
@@ -1194,20 +1207,66 @@ class StructuredSixDofMechanicsResponse:
 
 
 EXACT_ORACLE_PROTOCOL = "grape.exact-controller-oracle/v1"
+# Legacy names remain the PC+MCU defaults so existing callers and frozen
+# reports retain their meaning.
 REQUIRED_ORACLE_CAPABILITIES = (
     "pc_mcu_closed_loop_replay",
+    "command_timestamp",
     "pid_terms",
     "four_axis_command",
     "vectoring_force",
+    "allocation_internal",
+    "torque_allocation_matrix_inverse",
     "pwm",
     "mode_and_saturation_events",
 )
+PC_EXACT_ORACLE_CAPABILITIES = PC_EXACT_REQUIRED_CAPABILITIES
+PC_MCU_EXACT_ORACLE_CAPABILITIES = REQUIRED_ORACLE_CAPABILITIES
 REQUIRED_CONFORMANCE_CHANNELS = (
+    "command_timestamp",
     "pid_terms",
     "four_axis_command",
     "vectoring_force",
+    "allocation_internal",
+    "torque_allocation_matrix_inverse",
     "pwm",
 )
+PC_EXACT_CONFORMANCE_CHANNELS = (
+    "command_timestamp",
+    "pid_terms",
+    "four_axis_command",
+    "vectoring_force",
+    "gimbal_command",
+    "allocation_internal",
+    "torque_allocation_matrix_inverse",
+)
+PC_MCU_EXACT_CONFORMANCE_CHANNELS = REQUIRED_CONFORMANCE_CHANNELS
+FROZEN_REPLAY_RMSE_THRESHOLD = 0.01
+FROZEN_REPLAY_MAXIMUM_ERROR_THRESHOLD = 0.03
+FROZEN_REPLAY_EVENT_AGREEMENT_THRESHOLD = 1.0
+COMMAND_TIMESTAMP_TOLERANCE_S = 0.0
+
+
+def required_oracle_capabilities(fidelity: str) -> Tuple[str, ...]:
+    normalized = normalize_fidelity(fidelity)
+    if normalized == FIDELITY_PC_EXACT:
+        return PC_EXACT_REQUIRED_CAPABILITIES
+    if normalized == FIDELITY_PC_MCU_EXACT:
+        return PC_MCU_EXACT_ORACLE_CAPABILITIES
+    raise ValueError(
+        "exact controller oracle fidelity must be pc_exact or pc_mcu_exact"
+    )
+
+
+def required_conformance_channels(fidelity: str) -> Tuple[str, ...]:
+    normalized = normalize_fidelity(fidelity)
+    if normalized == FIDELITY_PC_EXACT:
+        return PC_EXACT_CONFORMANCE_CHANNELS
+    if normalized == FIDELITY_PC_MCU_EXACT:
+        return PC_MCU_EXACT_CONFORMANCE_CHANNELS
+    raise ValueError(
+        "controller conformance fidelity must be pc_exact or pc_mcu_exact"
+    )
 
 
 class ExactOracleError(RuntimeError):
@@ -1230,6 +1289,118 @@ def _sha256_file(path: str) -> str:
     return digest.hexdigest()
 
 
+_CONTROLLER_CORE_SHARED_OBJECTS = (
+    "libgimbalrotor_allocation_core.so",
+    "libpose_linear_controller_core.so",
+)
+
+
+def _sanitized_loader_environment(
+    source: Optional[Mapping[str, str]] = None,
+) -> Dict[str, str]:
+    """Return an environment that cannot redirect or inject dynamic code."""
+
+    values = os.environ if source is None else source
+    return {
+        str(key): str(value)
+        for key, value in values.items()
+        if not str(key).startswith(("LD_", "DYLD_"))
+    }
+
+
+def _controller_core_dynamic_dependencies(executable: str) -> Tuple[str, ...]:
+    """Read the ELF dependency table without executing the candidate."""
+
+    readelf = "/usr/bin/readelf"
+    if not os.path.isfile(readelf) or not os.access(readelf, os.X_OK):
+        raise ExactOracleUnavailable(
+            "readelf is required to verify exact-controller static linkage"
+        )
+    try:
+        completed = subprocess.run(
+            (readelf, "-d", executable),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10.0,
+            check=False,
+            env=_sanitized_loader_environment(),
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ExactOracleUnavailable(
+            "exact-controller ELF dependencies could not be inspected"
+        ) from exc
+    if completed.returncode != 0 or completed.stderr:
+        raise ExactOracleProtocolError(
+            "exact controller oracle must be an inspectable ELF executable"
+        )
+    return tuple(
+        name
+        for name in _CONTROLLER_CORE_SHARED_OBJECTS
+        if "[{}]".format(name) in completed.stdout
+    )
+
+
+def _require_static_controller_cores(executable: str) -> None:
+    dynamic = _controller_core_dynamic_dependencies(executable)
+    if dynamic:
+        raise ExactOracleProtocolError(
+            "exact controller core must be statically linked; dynamic "
+            "dependencies found: {}".format(", ".join(dynamic))
+        )
+
+
+def _mapped_controller_core_dsos(process_id: int) -> Tuple[str, ...]:
+    """Return controller-core DSOs actually mapped into one live process."""
+
+    maps_path = "/proc/{}/maps".format(int(process_id))
+    try:
+        with open(maps_path, "r", encoding="utf-8") as stream:
+            lines = tuple(stream)
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ExactOracleUnavailable(
+            "live exact-controller process mappings are unavailable"
+        ) from exc
+    mapped = set()
+    for line in lines:
+        fields = line.rstrip().split(None, 5)
+        if len(fields) != 6 or not fields[5].startswith("/"):
+            continue
+        path = fields[5]
+        if path.endswith(" (deleted)"):
+            path = path[: -len(" (deleted)")]
+        if os.path.basename(path) in _CONTROLLER_CORE_SHARED_OBJECTS:
+            mapped.add(os.path.realpath(path))
+    return tuple(sorted(mapped))
+
+
+def _verify_live_static_artifact(
+    process_id: int,
+    expected_executable_sha256: str,
+) -> str:
+    """Verify the executed inode and reject controller-core DSO substitution."""
+
+    live_executable = "/proc/{}/exe".format(int(process_id))
+    try:
+        measured = _sha256_file(live_executable)
+    except OSError as exc:
+        raise ExactOracleUnavailable(
+            "live exact-controller executable is unavailable"
+        ) from exc
+    if measured != expected_executable_sha256:
+        raise ExactOracleProtocolError(
+            "live exact-controller executable hash mismatch"
+        )
+    mapped = _mapped_controller_core_dsos(process_id)
+    if mapped:
+        raise ExactOracleProtocolError(
+            "exact controller core DSO substitution detected: {}".format(
+                ", ".join(mapped)
+            )
+        )
+    return measured
+
+
 @dataclass(frozen=True)
 class ExactOracleIdentity:
     protocol: str
@@ -1238,10 +1409,14 @@ class ExactOracleIdentity:
     source_commit: str
     artifact_sha256: str
     capabilities: Tuple[str, ...]
+    fidelity: str = FIDELITY_PC_MCU_EXACT
 
     def __post_init__(self) -> None:
         capabilities = tuple(str(item) for item in self.capabilities)
-        missing = sorted(set(REQUIRED_ORACLE_CAPABILITIES) - set(capabilities))
+        fidelity = normalize_fidelity(self.fidelity)
+        required = required_oracle_capabilities(fidelity)
+        expanded = set(expand_capabilities(capabilities))
+        missing = sorted(set(required) - expanded)
         digest = str(self.artifact_sha256).lower()
         if self.protocol != EXACT_ORACLE_PROTOCOL:
             raise ValueError("exact oracle protocol mismatch")
@@ -1256,8 +1431,13 @@ class ExactOracleIdentity:
             "cpp",
         ):
             raise ValueError("exact oracle must identify a C++ implementation")
-        if not self.source_commit:
-            raise ValueError("exact oracle source_commit is required")
+        if (
+            not self.source_commit.strip()
+            or self.source_commit.strip().lower() == "unknown"
+        ):
+            raise ValueError(
+                "exact oracle source_commit must identify a known revision"
+            )
         if len(digest) != 64 or any(
             character not in "0123456789abcdef" for character in digest
         ):
@@ -1270,6 +1450,7 @@ class ExactOracleIdentity:
             )
         object.__setattr__(self, "artifact_sha256", digest)
         object.__setattr__(self, "capabilities", capabilities)
+        object.__setattr__(self, "fidelity", fidelity)
 
     @classmethod
     def from_mapping(cls, values: Mapping[str, Any]) -> "ExactOracleIdentity":
@@ -1283,6 +1464,9 @@ class ExactOracleIdentity:
                 source_commit=str(values["source_commit"]),
                 artifact_sha256=str(values["artifact_sha256"]),
                 capabilities=tuple(values["capabilities"]),
+                fidelity=str(
+                    values.get("fidelity", FIDELITY_PC_MCU_EXACT)
+                ),
             )
         except (KeyError, TypeError) as exc:
             raise ExactOracleProtocolError(
@@ -1295,6 +1479,7 @@ class ExactOracleReplayOutput:
     identity: ExactOracleIdentity
     continuous: Mapping[str, np.ndarray]
     events: np.ndarray
+    final_states: Tuple[Mapping[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.identity, ExactOracleIdentity):
@@ -1323,8 +1508,19 @@ class ExactOracleReplayOutput:
             raise ValueError("oracle events are not aligned with channels")
         event_copy = np.array(events, copy=True)
         event_copy.setflags(write=False)
-        object.__setattr__(self, "continuous", continuous)
+        final_states = []
+        for index, value in enumerate(self.final_states):
+            frozen = deep_freeze(value)
+            if not isinstance(frozen, FrozenMapping):
+                raise TypeError(
+                    "oracle final state {} must be a mapping".format(index)
+                )
+            final_states.append(frozen)
+        object.__setattr__(
+            self, "continuous", MappingProxyType(continuous)
+        )
         object.__setattr__(self, "events", event_copy)
+        object.__setattr__(self, "final_states", tuple(final_states))
 
 
 def _decode_oracle_reply(
@@ -1366,6 +1562,7 @@ def _output_from_reply(
                 for name, values in parsed["continuous"].items()
             },
             events=np.asarray(parsed["events"]),
+            final_states=tuple(parsed.get("final_states", ())),
         )
     except (TypeError, ValueError) as exc:
         raise ExactOracleProtocolError(
@@ -1399,6 +1596,7 @@ class SubprocessExactControllerOracle:
             raise ExactOracleProtocolError(
                 "exact controller oracle artifact hash mismatch"
             )
+        _require_static_controller_cores(executable)
         timeout = float(timeout_s)
         if not np.isfinite(timeout) or timeout <= 0.0:
             raise ValueError("timeout_s must be finite and positive")
@@ -1428,6 +1626,7 @@ class SubprocessExactControllerOracle:
                 stderr=subprocess.PIPE,
                 timeout=self.timeout_s,
                 check=False,
+                env=_sanitized_loader_environment(),
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise ExactOracleUnavailable(
@@ -1455,6 +1654,191 @@ class SubprocessExactControllerOracle:
             self._invoke("replay", payload), self.identity
         )
         return _output_from_reply(parsed, self.identity)
+
+
+class PersistentSubprocessExactControllerOracle:
+    """Shared JSON-lines transport for stateful closed-loop replay.
+
+    Unlike :class:`SubprocessExactControllerOracle`, this transport starts the
+    C++ executable once and serializes handshake/replay requests through one
+    lock.  The executable must implement ``--server`` and flush exactly one
+    JSON reply line for each JSON request line.
+    """
+
+    is_exact = True
+    transport_is_persistent = True
+
+    def __init__(
+        self,
+        command: Sequence[str],
+        expected_identity: ExactOracleIdentity,
+        timeout_s: float = 30.0,
+    ) -> None:
+        command_tuple = tuple(str(item) for item in command)
+        if not command_tuple:
+            raise ValueError("oracle command must not be empty")
+        executable = os.path.abspath(command_tuple[0])
+        if (
+            not os.path.isfile(executable)
+            or not os.access(executable, os.X_OK)
+        ):
+            raise ExactOracleUnavailable(
+                "exact controller oracle executable is unavailable"
+            )
+        if _sha256_file(executable) != expected_identity.artifact_sha256:
+            raise ExactOracleProtocolError(
+                "exact controller oracle artifact hash mismatch"
+            )
+        _require_static_controller_cores(executable)
+        timeout = float(timeout_s)
+        if not np.isfinite(timeout) or timeout <= 0.0:
+            raise ValueError("timeout_s must be finite and positive")
+        arguments = (executable,) + command_tuple[1:]
+        if "--server" not in arguments[1:]:
+            arguments = arguments + ("--server",)
+        self.command = arguments
+        self.identity = expected_identity
+        self.timeout_s = timeout
+        self._lock = threading.RLock()
+        self._closed = False
+        try:
+            self._process = subprocess.Popen(
+                self.command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                env=_sanitized_loader_environment(),
+            )
+        except OSError as exc:
+            raise ExactOracleUnavailable(
+                "persistent exact controller oracle could not be started"
+            ) from exc
+        try:
+            self.runtime_executable_sha256 = _verify_live_static_artifact(
+                self._process.pid,
+                self.identity.artifact_sha256,
+            )
+            handshake = self._invoke("handshake", {})
+            _decode_oracle_reply(handshake, self.identity)
+        except Exception:
+            self.close()
+            raise
+
+    def _terminate_locked(self) -> None:
+        process = self._process
+        if process.poll() is not None:
+            return
+        process.terminate()
+        try:
+            process.wait(timeout=min(self.timeout_s, 2.0))
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait(timeout=min(self.timeout_s, 2.0))
+
+    def _invoke(
+        self, operation: str, payload: Mapping[str, Any]
+    ) -> str:
+        request = json.dumps(
+            {
+                "protocol": EXACT_ORACLE_PROTOCOL,
+                "operation": str(operation),
+                "payload": payload,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        with self._lock:
+            if self._closed:
+                raise ExactOracleUnavailable(
+                    "persistent exact controller oracle is closed"
+                )
+            process = self._process
+            if process.poll() is not None:
+                raise ExactOracleUnavailable(
+                    "persistent exact controller oracle exited with status "
+                    "{}".format(process.returncode)
+                )
+            try:
+                process.stdin.write(request + "\n")
+                process.stdin.flush()
+            except (BrokenPipeError, OSError) as exc:
+                self._terminate_locked()
+                raise ExactOracleUnavailable(
+                    "persistent exact controller oracle request failed"
+                ) from exc
+            selector = selectors.DefaultSelector()
+            selector.register(process.stdout, selectors.EVENT_READ, "stdout")
+            selector.register(process.stderr, selectors.EVENT_READ, "stderr")
+            deadline = time.monotonic() + self.timeout_s
+            try:
+                while True:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0.0:
+                        self._terminate_locked()
+                        raise ExactOracleUnavailable(
+                            "persistent exact controller oracle timed out"
+                        )
+                    ready = selector.select(remaining)
+                    if not ready:
+                        continue
+                    for key, _ in ready:
+                        line = key.fileobj.readline()
+                        if key.data == "stderr" and line:
+                            self._terminate_locked()
+                            raise ExactOracleProtocolError(
+                                "exact oracle wrote unexpected stderr output"
+                            )
+                        if key.data == "stdout" and line:
+                            result = line.rstrip("\r\n")
+                            if not result:
+                                self._terminate_locked()
+                                raise ExactOracleProtocolError(
+                                    "exact oracle returned an empty reply"
+                                )
+                            return result
+                        if line == "" and process.poll() is not None:
+                            raise ExactOracleUnavailable(
+                                "persistent exact controller oracle exited "
+                                "before replying"
+                            )
+            finally:
+                selector.close()
+
+    def replay(self, payload: Mapping[str, Any]) -> ExactOracleReplayOutput:
+        parsed = _decode_oracle_reply(
+            self._invoke("replay", payload), self.identity
+        )
+        return _output_from_reply(parsed, self.identity)
+
+    def close(self) -> None:
+        with self._lock:
+            if self._closed:
+                return
+            self._closed = True
+            process = self._process
+            if process.poll() is None:
+                try:
+                    process.stdin.close()
+                    process.wait(timeout=min(self.timeout_s, 2.0))
+                except (BrokenPipeError, OSError, subprocess.TimeoutExpired):
+                    self._terminate_locked()
+            for stream in (
+                process.stdout,
+                process.stderr,
+            ):
+                try:
+                    stream.close()
+                except OSError:
+                    pass
+
+    def __enter__(self) -> "PersistentSubprocessExactControllerOracle":
+        return self
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        self.close()
 
 
 class CtypesExactControllerOracle:
@@ -1634,8 +2018,8 @@ class ExactOracleFixtureProvenance:
             or len(set(motor_order)) != len(motor_order)
             or start < 0
             or end <= start
-            or not self.source_commit
-            or self.source_commit == "UNKNOWN"
+            or not self.source_commit.strip()
+            or self.source_commit.strip().lower() == "unknown"
         ):
             raise ValueError(
                 "exact-oracle fixture requires complete source/topic/time/"
@@ -1677,13 +2061,72 @@ class ExactOracleFixtureProvenance:
         object.__setattr__(self, "source_topics", source_topics)
         object.__setattr__(self, "interval_start_time_ns", start)
         object.__setattr__(self, "interval_end_time_ns", end)
-        object.__setattr__(self, "frame_conventions", frames)
-        object.__setattr__(self, "unit_conventions", units)
+        object.__setattr__(
+            self, "frame_conventions", MappingProxyType(frames)
+        )
+        object.__setattr__(
+            self, "unit_conventions", MappingProxyType(units)
+        )
         object.__setattr__(self, "motor_order", motor_order)
         object.__setattr__(self, "fixture_input_payload_sha256", input_hash)
         object.__setattr__(self, "fixture_data_sha256", data_hash)
         object.__setattr__(self, "extraction_config_sha256", config_hash)
         object.__setattr__(self, "content_sha256", content_hash)
+
+    def to_mapping(self) -> Mapping[str, Any]:
+        return {
+            **self._payload(
+                self.source_bag_sha256,
+                self.source_topics,
+                self.interval_start_time_ns,
+                self.interval_end_time_ns,
+                self.frame_conventions,
+                self.unit_conventions,
+                self.motor_order,
+                self.fixture_input_payload_sha256,
+                self.fixture_data_sha256,
+                self.extraction_config_sha256,
+                self.source_commit,
+                self.schema,
+            ),
+            "content_sha256": self.content_sha256,
+        }
+
+    @classmethod
+    def from_mapping(
+        cls, values: Mapping[str, Any]
+    ) -> "ExactOracleFixtureProvenance":
+        if not isinstance(values, Mapping):
+            raise TypeError(
+                "exact-oracle fixture provenance must be a mapping"
+            )
+        try:
+            return cls(
+                source_bag_sha256=values["source_bag_sha256"],
+                source_topics=tuple(values["source_topics"]),
+                interval_start_time_ns=values["interval_start_time_ns"],
+                interval_end_time_ns=values["interval_end_time_ns"],
+                frame_conventions=values["frame_conventions"],
+                unit_conventions=values["unit_conventions"],
+                motor_order=tuple(values["motor_order"]),
+                fixture_input_payload_sha256=(
+                    values["fixture_input_payload_sha256"]
+                ),
+                fixture_data_sha256=values["fixture_data_sha256"],
+                extraction_config_sha256=(
+                    values["extraction_config_sha256"]
+                ),
+                source_commit=values["source_commit"],
+                content_sha256=values["content_sha256"],
+                schema=values.get(
+                    "schema",
+                    "grape_exact_oracle_fixture_provenance/v1",
+                ),
+            )
+        except (KeyError, TypeError) as exc:
+            raise ValueError(
+                "exact-oracle fixture provenance is incomplete"
+            ) from exc
 
     def content_is_valid(self) -> bool:
         try:
@@ -1727,6 +2170,7 @@ class ExactOracleConformanceFixture:
     continuous: Mapping[str, np.ndarray]
     events: np.ndarray
     provenance: ExactOracleFixtureProvenance
+    fidelity: Optional[str] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.provenance, ExactOracleFixtureProvenance):
@@ -1740,19 +2184,50 @@ class ExactOracleConformanceFixture:
                 implementation_language="C++",
                 source_commit="fixture",
                 artifact_sha256="0" * 64,
-                capabilities=REQUIRED_ORACLE_CAPABILITIES,
+                capabilities=(
+                    PC_MCU_EXACT_ORACLE_CAPABILITIES
+                    if (
+                        self.fidelity is None
+                        and "pwm" in self.continuous
+                    )
+                    or self.fidelity == FIDELITY_PC_MCU_EXACT
+                    else PC_EXACT_ORACLE_CAPABILITIES
+                ),
+                fidelity=(
+                    FIDELITY_PC_MCU_EXACT
+                    if self.fidelity is None and "pwm" in self.continuous
+                    else (
+                        FIDELITY_PC_EXACT
+                        if self.fidelity is None
+                        else self.fidelity
+                    )
+                ),
             ),
             continuous=self.continuous,
             events=self.events,
         )
+        fidelity = (
+            FIDELITY_PC_MCU_EXACT
+            if self.fidelity is None and "pwm" in output.continuous
+            else (
+                FIDELITY_PC_EXACT
+                if self.fidelity is None
+                else normalize_fidelity(self.fidelity)
+            )
+        )
+        required_channels = required_conformance_channels(fidelity)
         missing = sorted(
-            set(REQUIRED_CONFORMANCE_CHANNELS) - set(output.continuous)
+            set(required_channels) - set(output.continuous)
         )
         if missing:
             raise ValueError(
                 "conformance fixture lacks channels: {}".format(
                     ", ".join(missing)
                 )
+            )
+        if output.continuous["command_timestamp"].shape[1] != 1:
+            raise ValueError(
+                "command_timestamp must be a one-column matrix"
             )
         if (
             stable_hash(
@@ -1765,10 +2240,112 @@ class ExactOracleConformanceFixture:
             )
         object.__setattr__(self, "continuous", output.continuous)
         object.__setattr__(self, "events", output.events)
+        object.__setattr__(self, "fidelity", fidelity)
+
+    def to_mapping(self) -> Mapping[str, Any]:
+        return {
+            "continuous": {
+                name: values.tolist()
+                for name, values in sorted(self.continuous.items())
+            },
+            "events": self.events.tolist(),
+            "provenance": self.provenance.to_mapping(),
+            "fidelity": self.fidelity,
+        }
+
+    @classmethod
+    def from_mapping(
+        cls, values: Mapping[str, Any]
+    ) -> "ExactOracleConformanceFixture":
+        if not isinstance(values, Mapping):
+            raise TypeError("exact-oracle fixture must be a mapping")
+        try:
+            continuous = values["continuous"]
+            if not isinstance(continuous, Mapping):
+                raise TypeError("continuous must be a mapping")
+            return cls(
+                continuous={
+                    str(name): np.asarray(items, dtype=float)
+                    for name, items in continuous.items()
+                },
+                events=np.asarray(values["events"]),
+                provenance=ExactOracleFixtureProvenance.from_mapping(
+                    values["provenance"]
+                ),
+                fidelity=values.get("fidelity"),
+            )
+        except (KeyError, TypeError) as exc:
+            raise ValueError(
+                "exact-oracle conformance fixture is incomplete"
+            ) from exc
+
+
+def _identity_mapping(
+    identity: Optional[ExactOracleIdentity],
+) -> Optional[Mapping[str, Any]]:
+    if identity is None:
+        return None
+    return {
+        "protocol": identity.protocol,
+        "backend_id": identity.backend_id,
+        "implementation_language": identity.implementation_language,
+        "source_commit": identity.source_commit,
+        "artifact_sha256": identity.artifact_sha256,
+        "capabilities": list(identity.capabilities),
+        "fidelity": identity.fidelity,
+    }
+
+
+def _metric_mapping(metric: ReplayMetrics) -> Mapping[str, Any]:
+    return {
+        "normalized_rmse": metric.normalized_rmse.tolist(),
+        "normalized_maximum_error": (
+            metric.normalized_maximum_error.tolist()
+        ),
+        "event_agreement": metric.event_agreement,
+        "passed": metric.passed,
+        "rmse_threshold": metric.rmse_threshold,
+        "maximum_error_threshold": metric.maximum_error_threshold,
+        "event_agreement_threshold": metric.event_agreement_threshold,
+    }
+
+
+def _metric_from_mapping(values: Mapping[str, Any]) -> ReplayMetrics:
+    if not isinstance(values, Mapping):
+        raise TypeError("replay channel metric must be a mapping")
+    try:
+        return ReplayMetrics(
+            normalized_rmse=np.asarray(
+                values["normalized_rmse"], dtype=float
+            ),
+            normalized_maximum_error=np.asarray(
+                values["normalized_maximum_error"], dtype=float
+            ),
+            event_agreement=values["event_agreement"],
+            passed=values["passed"],
+            rmse_threshold=values["rmse_threshold"],
+            maximum_error_threshold=values[
+                "maximum_error_threshold"
+            ],
+            event_agreement_threshold=values[
+                "event_agreement_threshold"
+            ],
+        )
+    except KeyError as exc:
+        raise ValueError("replay channel metric is incomplete") from exc
 
 
 @dataclass(frozen=True)
 class ExactOracleConformanceReport:
+    """Immutable, content-addressed evidence from one factual replay.
+
+    ``evidence_sha256`` covers the executable/source identity, fidelity,
+    fixture provenance and data hash, exact request hash, all frozen channel
+    metrics, and the decision.  A deserialized report therefore cannot be
+    rebound to another oracle, fixture, or request without invalidating the
+    digest.
+    """
+
     passed: bool
     status: str
     reasons: Tuple[str, ...]
@@ -1777,16 +2354,45 @@ class ExactOracleConformanceReport:
     fixture_provenance: ExactOracleFixtureProvenance
     fixture_content_sha256: str
     request_payload_sha256: str
+    fidelity: str = FIDELITY_PC_MCU_EXACT
+    evidence_sha256: str = ""
+    schema: str = "grape_exact_oracle_conformance_report/v2"
 
     def __post_init__(self) -> None:
         if type(self.passed) is not bool:
             raise ValueError("conformance passed must be a built-in bool")
+        status = str(self.status)
+        reasons = tuple(str(item) for item in self.reasons)
+        if not status:
+            raise ValueError("conformance status is required")
         if not isinstance(
             self.fixture_provenance, ExactOracleFixtureProvenance
         ):
             raise TypeError("conformance report requires fixture provenance")
         if not self.fixture_provenance.content_is_valid():
             raise ValueError("conformance report fixture provenance was mutated")
+        if (
+            self.identity is not None
+            and not isinstance(self.identity, ExactOracleIdentity)
+        ):
+            raise TypeError(
+                "conformance report identity must be ExactOracleIdentity"
+            )
+        if self.schema != "grape_exact_oracle_conformance_report/v2":
+            raise ValueError("unsupported exact conformance report schema")
+        fidelity = normalize_fidelity(self.fidelity)
+        if fidelity not in (FIDELITY_PC_EXACT, FIDELITY_PC_MCU_EXACT):
+            raise ValueError(
+                "exact conformance fidelity must be pc_exact or pc_mcu_exact"
+            )
+        if (
+            self.passed
+            and self.identity is not None
+            and self.identity.fidelity != fidelity
+        ):
+            raise ValueError(
+                "conformance report fidelity does not match oracle identity"
+            )
         fixture_hash = _validated_sha256(
             self.fixture_content_sha256, "fixture_content_sha256"
         )
@@ -1795,25 +2401,186 @@ class ExactOracleConformanceReport:
         )
         if fixture_hash != self.fixture_provenance.content_sha256:
             raise ValueError("conformance report fixture hash mismatch")
-        if self.passed and (
-            self.status != "PASS"
-            or request_hash
-            != self.fixture_provenance.fixture_input_payload_sha256
-        ):
-            raise ValueError(
-                "passing conformance report is not bound to fixture request"
+
+        metrics: Dict[str, ReplayMetrics] = {}
+        for raw_name, raw_metric in self.channel_metrics.items():
+            name = str(raw_name)
+            if not isinstance(raw_metric, ReplayMetrics):
+                raise TypeError(
+                    "conformance channel metrics must be ReplayMetrics"
+                )
+            metric = ReplayMetrics(
+                normalized_rmse=raw_metric.normalized_rmse,
+                normalized_maximum_error=(
+                    raw_metric.normalized_maximum_error
+                ),
+                event_agreement=raw_metric.event_agreement,
+                passed=raw_metric.passed,
+                rmse_threshold=raw_metric.rmse_threshold,
+                maximum_error_threshold=(
+                    raw_metric.maximum_error_threshold
+                ),
+                event_agreement_threshold=(
+                    raw_metric.event_agreement_threshold
+                ),
             )
+            timestamp = name == "command_timestamp"
+            expected_rmse = (
+                COMMAND_TIMESTAMP_TOLERANCE_S
+                if timestamp
+                else FROZEN_REPLAY_RMSE_THRESHOLD
+            )
+            expected_maximum = (
+                COMMAND_TIMESTAMP_TOLERANCE_S
+                if timestamp
+                else FROZEN_REPLAY_MAXIMUM_ERROR_THRESHOLD
+            )
+            if (
+                metric.rmse_threshold != expected_rmse
+                or metric.maximum_error_threshold != expected_maximum
+                or metric.event_agreement_threshold
+                != FROZEN_REPLAY_EVENT_AGREEMENT_THRESHOLD
+            ):
+                raise ValueError(
+                    "{} does not use frozen conformance thresholds".format(
+                        name
+                    )
+                )
+            metrics[name] = metric
+
+        required = set(required_conformance_channels(fidelity))
+        if self.passed:
+            if (
+                status != "PASS"
+                or reasons
+                or self.identity is None
+                or request_hash
+                != self.fixture_provenance.fixture_input_payload_sha256
+                or set(metrics) != required
+                or not all(metric.passed for metric in metrics.values())
+            ):
+                raise ValueError(
+                    "passing conformance report lacks complete bound evidence"
+                )
+        elif status == "PASS":
+            raise ValueError("a failed conformance report cannot say PASS")
+
+        object.__setattr__(self, "status", status)
+        object.__setattr__(self, "reasons", reasons)
+        object.__setattr__(
+            self,
+            "channel_metrics",
+            MappingProxyType(dict(sorted(metrics.items()))),
+        )
         object.__setattr__(self, "fixture_content_sha256", fixture_hash)
         object.__setattr__(self, "request_payload_sha256", request_hash)
+        object.__setattr__(self, "fidelity", fidelity)
+        payload = self._evidence_payload()
+        computed = stable_hash(payload)
+        supplied = str(self.evidence_sha256).lower()
+        if supplied and _validated_sha256(
+            supplied, "evidence_sha256"
+        ) != computed:
+            raise ValueError("conformance report evidence hash mismatch")
+        object.__setattr__(self, "evidence_sha256", computed)
+
+    def _evidence_payload(self) -> Mapping[str, Any]:
+        return {
+            "schema": self.schema,
+            "passed": self.passed,
+            "status": self.status,
+            "reasons": list(self.reasons),
+            "channel_metrics": {
+                name: _metric_mapping(metric)
+                for name, metric in sorted(
+                    self.channel_metrics.items()
+                )
+            },
+            "identity": _identity_mapping(self.identity),
+            "fixture_provenance": (
+                self.fixture_provenance.to_mapping()
+            ),
+            "fixture_content_sha256": self.fixture_content_sha256,
+            "request_payload_sha256": self.request_payload_sha256,
+            "fidelity": self.fidelity,
+        }
+
+    def to_mapping(self) -> Mapping[str, Any]:
+        return {
+            **self._evidence_payload(),
+            "evidence_sha256": self.evidence_sha256,
+        }
+
+    @property
+    def content_sha256(self) -> str:
+        return self.evidence_sha256
+
+    def content_is_valid(self) -> bool:
+        try:
+            return bool(
+                self.fixture_provenance.content_is_valid()
+                and stable_hash(self._evidence_payload())
+                == self.evidence_sha256
+            )
+        except (AttributeError, TypeError, ValueError):
+            return False
+
+    @classmethod
+    def from_mapping(
+        cls, values: Mapping[str, Any]
+    ) -> "ExactOracleConformanceReport":
+        if not isinstance(values, Mapping):
+            raise TypeError("exact conformance report must be a mapping")
+        try:
+            raw_metrics = values["channel_metrics"]
+            if not isinstance(raw_metrics, Mapping):
+                raise TypeError("channel_metrics must be a mapping")
+            raw_identity = values.get("identity")
+            return cls(
+                passed=values["passed"],
+                status=values["status"],
+                reasons=tuple(values["reasons"]),
+                channel_metrics={
+                    str(name): _metric_from_mapping(metric)
+                    for name, metric in raw_metrics.items()
+                },
+                identity=(
+                    None
+                    if raw_identity is None
+                    else ExactOracleIdentity.from_mapping(raw_identity)
+                ),
+                fixture_provenance=(
+                    ExactOracleFixtureProvenance.from_mapping(
+                        values["fixture_provenance"]
+                    )
+                ),
+                fixture_content_sha256=values[
+                    "fixture_content_sha256"
+                ],
+                request_payload_sha256=values[
+                    "request_payload_sha256"
+                ],
+                fidelity=values["fidelity"],
+                evidence_sha256=values["evidence_sha256"],
+                schema=values["schema"],
+            )
+        except (KeyError, TypeError) as exc:
+            raise ValueError(
+                "exact conformance report is incomplete"
+            ) from exc
 
 
 def evaluate_exact_oracle_conformance(
     oracle: Optional[Any],
     payload: Mapping[str, Any],
     fixture: ExactOracleConformanceFixture,
-    rmse_threshold: float = 0.01,
-    maximum_error_threshold: float = 0.03,
-    event_agreement_threshold: float = 1.0,
+    rmse_threshold: float = FROZEN_REPLAY_RMSE_THRESHOLD,
+    maximum_error_threshold: float = (
+        FROZEN_REPLAY_MAXIMUM_ERROR_THRESHOLD
+    ),
+    event_agreement_threshold: float = (
+        FROZEN_REPLAY_EVENT_AGREEMENT_THRESHOLD
+    ),
 ) -> ExactOracleConformanceReport:
     """Apply the factual replay gate; absence and surrogates fail closed."""
 
@@ -1821,6 +2588,16 @@ def evaluate_exact_oracle_conformance(
         raise TypeError("fixture must be ExactOracleConformanceFixture")
     if not isinstance(payload, Mapping):
         raise TypeError("exact-oracle conformance payload must be a mapping")
+    if (
+        float(rmse_threshold) != FROZEN_REPLAY_RMSE_THRESHOLD
+        or float(maximum_error_threshold)
+        != FROZEN_REPLAY_MAXIMUM_ERROR_THRESHOLD
+        or float(event_agreement_threshold)
+        != FROZEN_REPLAY_EVENT_AGREEMENT_THRESHOLD
+    ):
+        raise ValueError(
+            "exact-oracle conformance thresholds are frozen"
+        )
     if not fixture.provenance.content_is_valid():
         raise ValueError("exact-oracle fixture provenance was mutated")
     if (
@@ -1849,6 +2626,7 @@ def evaluate_exact_oracle_conformance(
             fixture_provenance=fixture.provenance,
             fixture_content_sha256=fixture.provenance.content_sha256,
             request_payload_sha256=request_hash,
+            fidelity=fixture.fidelity,
         )
 
     if oracle is None:
@@ -1874,6 +2652,18 @@ def evaluate_exact_oracle_conformance(
             ),
             channel_metrics={},
             identity=None,
+        )
+    if identity.fidelity != fixture.fidelity:
+        return report(
+            passed=False,
+            status="FIDELITY_REJECTED",
+            reasons=(
+                "oracle fidelity {} does not match fixture fidelity {}".format(
+                    identity.fidelity, fixture.fidelity
+                ),
+            ),
+            channel_metrics={},
+            identity=identity,
         )
     if request_hash != fixture.provenance.fixture_input_payload_sha256:
         return report(
@@ -1903,9 +2693,8 @@ def evaluate_exact_oracle_conformance(
             channel_metrics={},
             identity=identity,
         )
-    missing = sorted(
-        set(REQUIRED_CONFORMANCE_CHANNELS) - set(output.continuous)
-    )
+    required_channels = required_conformance_channels(identity.fidelity)
+    missing = sorted(set(required_channels) - set(output.continuous))
     if missing:
         return report(
             passed=False,
@@ -1918,23 +2707,40 @@ def evaluate_exact_oracle_conformance(
         )
     metrics: Dict[str, ReplayMetrics] = {}
     reasons = []
-    for channel in REQUIRED_CONFORMANCE_CHANNELS:
+    for channel in required_channels:
+        timestamp = channel == "command_timestamp"
         try:
             metrics[channel] = replay_metrics(
                 output.continuous[channel],
                 fixture.continuous[channel],
                 output.events,
                 fixture.events,
-                rmse_threshold=rmse_threshold,
-                maximum_error_threshold=maximum_error_threshold,
+                rmse_threshold=(
+                    COMMAND_TIMESTAMP_TOLERANCE_S
+                    if timestamp
+                    else rmse_threshold
+                ),
+                maximum_error_threshold=(
+                    COMMAND_TIMESTAMP_TOLERANCE_S
+                    if timestamp
+                    else maximum_error_threshold
+                ),
                 event_agreement_threshold=event_agreement_threshold,
             )
         except ValueError as exc:
             reasons.append("{}: {}".format(channel, exc))
             continue
+        if timestamp and not np.array_equal(
+            output.continuous[channel],
+            fixture.continuous[channel],
+        ):
+            reasons.append(
+                "command_timestamp differs from the frozen fixture"
+            )
+            continue
         if not metrics[channel].passed:
             reasons.append("{} exceeded the frozen replay thresholds".format(channel))
-    passed = not reasons and len(metrics) == len(REQUIRED_CONFORMANCE_CHANNELS)
+    passed = not reasons and len(metrics) == len(required_channels)
     return report(
         passed=passed,
         status="PASS" if passed else "CONFORMANCE_FAILED",
@@ -1995,6 +2801,7 @@ __all__ = [
     "BatchImuPreintegrationSmoother",
     "BayesianBackendComparison",
     "CtypesExactControllerOracle",
+    "COMMAND_TIMESTAMP_TOLERANCE_S",
     "ConditionalCandidateGate",
     "EXACT_ORACLE_PROTOCOL",
     "ExactOracleConformanceFixture",
@@ -2006,6 +2813,9 @@ __all__ = [
     "ExactOracleReplayOutput",
     "ExactOracleUnavailable",
     "FactorGraphSmootherConfig",
+    "FROZEN_REPLAY_EVENT_AGREEMENT_THRESHOLD",
+    "FROZEN_REPLAY_MAXIMUM_ERROR_THRESHOLD",
+    "FROZEN_REPLAY_RMSE_THRESHOLD",
     "LinearGaussianRandomWalkModel",
     "MechanicsGaugeReport",
     "MechanicsIdentifiabilityReport",
@@ -2014,6 +2824,11 @@ __all__ = [
     "ParticleMarginalMhConfig",
     "ParticleMarginalMhPosterior",
     "ParticleStateSpaceModel",
+    "PC_EXACT_CONFORMANCE_CHANNELS",
+    "PC_EXACT_ORACLE_CAPABILITIES",
+    "PC_MCU_EXACT_CONFORMANCE_CHANNELS",
+    "PC_MCU_EXACT_ORACLE_CAPABILITIES",
+    "PersistentSubprocessExactControllerOracle",
     "REQUIRED_CONFORMANCE_CHANNELS",
     "REQUIRED_ORACLE_CAPABILITIES",
     "StructuredMechanicsParameters",
@@ -2023,4 +2838,6 @@ __all__ = [
     "compare_pmmh_with_modular_smc",
     "evaluate_conditional_candidate",
     "evaluate_exact_oracle_conformance",
+    "required_conformance_channels",
+    "required_oracle_capabilities",
 ]

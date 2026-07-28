@@ -1,9 +1,11 @@
 import hashlib
 import os
 import unittest
+from unittest import mock
 
 import numpy as np
 
+from grape_param_estim import alternative_backends as backend_module
 from grape_param_estim.alternative_backends import (
     EXACT_ORACLE_PROTOCOL,
     BatchImuPreintegrationSmoother,
@@ -357,11 +359,20 @@ class ExactOracleAndCandidateGateTests(unittest.TestCase):
         samples = 31
         base = np.linspace(-1.0, 1.0, samples)[:, None]
         continuous = {
+            "command_timestamp": np.linspace(
+                10.0, 10.3, samples
+            )[:, None],
             "pid_terms": np.hstack((base, base**2, -base)),
             "four_axis_command": np.hstack(
                 (base, -base, base**2, base**3)
             ),
             "vectoring_force": np.hstack((base, 2.0 * base)),
+            "allocation_internal": np.hstack(
+                (base, -base, base**2)
+            ),
+            "torque_allocation_matrix_inverse": np.hstack(
+                (base, -base, base**2, -base**2)
+            ),
             "pwm": np.hstack(
                 (1000.0 + 100.0 * base, 1200.0 - 80.0 * base)
             ),
@@ -419,9 +430,12 @@ class ExactOracleAndCandidateGateTests(unittest.TestCase):
         self.assertEqual(
             set(report.channel_metrics),
             {
+                "command_timestamp",
                 "pid_terms",
                 "four_axis_command",
                 "vectoring_force",
+                "allocation_internal",
+                "torque_allocation_matrix_inverse",
                 "pwm",
             },
         )
@@ -431,6 +445,43 @@ class ExactOracleAndCandidateGateTests(unittest.TestCase):
         self.assertEqual(
             report.request_payload_sha256,
             fixture.provenance.fixture_input_payload_sha256,
+        )
+
+    def test_torque_allocation_inverse_mismatch_fails_conformance(self):
+        identity = exact_identity()
+        fixture = self.fixture()
+
+        class ChangedAllocationOracle:
+            is_exact = True
+
+            def __init__(self):
+                self.identity = identity
+
+            def replay(self, payload):
+                continuous = dict(fixture.continuous)
+                inverse = np.array(
+                    continuous["torque_allocation_matrix_inverse"],
+                    copy=True,
+                )
+                inverse[0, 0] += 1.0
+                continuous["torque_allocation_matrix_inverse"] = inverse
+                return ExactOracleReplayOutput(
+                    identity=self.identity,
+                    continuous=continuous,
+                    events=fixture.events,
+                )
+
+        report = evaluate_exact_oracle_conformance(
+            ChangedAllocationOracle(),
+            {"run_id": "unit-test"},
+            fixture,
+        )
+        self.assertFalse(report.passed)
+        self.assertEqual(report.status, "CONFORMANCE_FAILED")
+        self.assertFalse(
+            report.channel_metrics[
+                "torque_allocation_matrix_inverse"
+            ].passed
         )
 
     def test_fixture_provenance_rejects_tampering_and_wrong_payload(self):
@@ -458,20 +509,14 @@ class ExactOracleAndCandidateGateTests(unittest.TestCase):
         self.assertFalse(report.passed)
         self.assertEqual(report.status, "FIXTURE_BINDING_REJECTED")
 
-        fixture.continuous["pid_terms"] = np.ones((31, 3))
-        with self.assertRaisesRegex(ValueError, "fixture data was mutated"):
-            evaluate_exact_oracle_conformance(
-                None, {"run_id": "unit-test"}, fixture
-            )
+        with self.assertRaises(TypeError):
+            fixture.continuous["pid_terms"] = np.ones((31, 3))
 
         provenance_fixture = self.fixture()
-        provenance_fixture.provenance.frame_conventions[
-            "controller"
-        ] = "mutated_frame"
-        with self.assertRaisesRegex(ValueError, "provenance was mutated"):
-            evaluate_exact_oracle_conformance(
-                None, {"run_id": "unit-test"}, provenance_fixture
-            )
+        with self.assertRaises(TypeError):
+            provenance_fixture.provenance.frame_conventions[
+                "controller"
+            ] = "mutated_frame"
 
     def test_missing_or_surrogate_oracle_fails_closed(self):
         fixture = self.fixture()
@@ -502,6 +547,15 @@ class ExactOracleAndCandidateGateTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "surrogate"):
             ExactOracleIdentity(**values)
+        with self.assertRaisesRegex(ValueError, "known revision"):
+            ExactOracleIdentity(
+                protocol=EXACT_ORACLE_PROTOCOL,
+                backend_id="grape_pc_mcu_controller_cpp/v1",
+                implementation_language="C++",
+                source_commit=" UnKnOwN ",
+                artifact_sha256="0" * 64,
+                capabilities=REQUIRED_ORACLE_CAPABILITIES,
+            )
 
     def test_subprocess_adapter_checks_artifact_before_handshake(self):
         with self.assertRaises(ExactOracleUnavailable):
@@ -517,6 +571,65 @@ class ExactOracleAndCandidateGateTests(unittest.TestCase):
                 SubprocessExactControllerOracle(
                     [executable],
                     exact_identity(digest=digest),
+                )
+
+    def test_exact_subprocess_loader_environment_is_sanitized(self):
+        sanitized = backend_module._sanitized_loader_environment(
+            {
+                "PATH": "/usr/bin",
+                "ROS_MASTER_URI": "http://localhost:11311",
+                "LD_LIBRARY_PATH": "/tmp/substitute",
+                "LD_PRELOAD": "/tmp/inject.so",
+                "LD_AUDIT": "/tmp/audit.so",
+                "DYLD_INSERT_LIBRARIES": "/tmp/inject.dylib",
+            }
+        )
+        self.assertEqual(
+            sanitized,
+            {
+                "PATH": "/usr/bin",
+                "ROS_MASTER_URI": "http://localhost:11311",
+            },
+        )
+
+    def test_dynamic_controller_core_dependency_is_rejected(self):
+        with mock.patch.object(
+            backend_module,
+            "_controller_core_dynamic_dependencies",
+            return_value=("libpose_linear_controller_core.so",),
+        ):
+            with self.assertRaisesRegex(
+                ExactOracleProtocolError, "statically linked"
+            ):
+                backend_module._require_static_controller_cores(
+                    "/tmp/oracle"
+                )
+
+    def test_live_controller_core_dso_substitution_is_rejected(self):
+        digest = "3" * 64
+        with mock.patch.object(
+            backend_module, "_sha256_file", return_value=digest
+        ), mock.patch.object(
+            backend_module,
+            "_mapped_controller_core_dsos",
+            return_value=(
+                "/tmp/libgimbalrotor_allocation_core.so",
+            ),
+        ):
+            with self.assertRaisesRegex(
+                ExactOracleProtocolError, "DSO substitution"
+            ):
+                backend_module._verify_live_static_artifact(1234, digest)
+
+    def test_post_launch_executable_measurement_rejects_toctou(self):
+        with mock.patch.object(
+            backend_module, "_sha256_file", return_value="4" * 64
+        ):
+            with self.assertRaisesRegex(
+                ExactOracleProtocolError, "executable hash mismatch"
+            ):
+                backend_module._verify_live_static_artifact(
+                    1234, "5" * 64
                 )
 
     def test_conditional_gp_and_bayessim_remain_pruned_without_evidence(self):

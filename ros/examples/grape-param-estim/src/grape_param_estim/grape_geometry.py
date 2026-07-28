@@ -6,11 +6,13 @@ caller explicitly opts into that calibration assumption; they are not thrust
 sensors.  This distinction is surfaced by the offline pipeline provenance.
 """
 
-from typing import Tuple
+from typing import Any, Mapping, Tuple
 
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.spatial.transform import Rotation
+
+from grape_param_estim.episode import stable_hash
 
 
 GIMBAL_ORIGINS_MAIN = np.array(
@@ -30,6 +32,74 @@ ARM_YAWS = np.array([-2.3562, -0.7854, 0.7854, 2.3562], dtype=float)
 ROTOR_DIRECTIONS = np.array([-1.0, 1.0, -1.0, 1.0], dtype=float)
 THRUST_OFFSET = 0.056
 MOMENT_FORCE_RATE = -0.0181
+for _geometry_array in (
+    GIMBAL_ORIGINS_MAIN,
+    MAIN_TO_FC_TRANSLATION,
+    GIMBAL_ORIGINS_FC,
+    ARM_YAWS,
+    ROTOR_DIRECTIONS,
+):
+    _geometry_array.setflags(write=False)
+FIXED_GEOMETRY_PROFILE_SCHEMA = "grape_actuator_geometry_profile/v1"
+FIXED_GEOMETRY_PROFILE_ID = "grape_source_geometry_20260612_v1"
+FIXED_GEOMETRY_EVIDENCE_STATUS = "ASSUMED_SOURCE_NOT_BAG_VERIFIED"
+
+
+def fixed_geometry_profile() -> Mapping[str, Any]:
+    """Return the exact fixed geometry used by the legacy wrench mapping.
+
+    The profile is deliberately labelled as a source assumption.  Current
+    bags do not contain the URDF/model snapshot needed to claim that these
+    values were the physical geometry at recording time.
+    """
+
+    return {
+        "schema": FIXED_GEOMETRY_PROFILE_SCHEMA,
+        "profile_id": FIXED_GEOMETRY_PROFILE_ID,
+        "evidence_status": FIXED_GEOMETRY_EVIDENCE_STATUS,
+        "gimbal_origins_main": GIMBAL_ORIGINS_MAIN.tolist(),
+        "main_to_fc_translation": MAIN_TO_FC_TRANSLATION.tolist(),
+        "arm_yaws": ARM_YAWS.tolist(),
+        "rotor_directions": ROTOR_DIRECTIONS.tolist(),
+        "thrust_offset": THRUST_OFFSET,
+        "moment_force_rate": MOMENT_FORCE_RATE,
+    }
+
+
+FIXED_GEOMETRY_PROFILE_SHA256 = stable_hash(fixed_geometry_profile())
+
+
+def validate_fixed_geometry_declaration(
+    declaration: Mapping[str, Any],
+) -> Mapping[str, str]:
+    """Validate a production config against the implemented geometry.
+
+    A config cannot silently inherit the module constants: it must name the
+    profile, bind its content hash, and state whether bag evidence verified
+    it.  This first profile intentionally permits only the honest
+    ``ASSUMED_SOURCE_NOT_BAG_VERIFIED`` status.
+    """
+
+    if not isinstance(declaration, Mapping):
+        raise TypeError("plant.geometry_profile must be a mapping")
+    normalized = {
+        "schema": str(declaration.get("schema", "")),
+        "profile_id": str(declaration.get("profile_id", "")),
+        "profile_sha256": str(declaration.get("profile_sha256", "")).lower(),
+        "evidence_status": str(declaration.get("evidence_status", "")),
+    }
+    expected = {
+        "schema": FIXED_GEOMETRY_PROFILE_SCHEMA,
+        "profile_id": FIXED_GEOMETRY_PROFILE_ID,
+        "profile_sha256": FIXED_GEOMETRY_PROFILE_SHA256,
+        "evidence_status": FIXED_GEOMETRY_EVIDENCE_STATUS,
+    }
+    if normalized != expected:
+        raise ValueError(
+            "plant geometry declaration is not bound to the implemented "
+            "fixed source profile"
+        )
+    return expected
 
 
 def _rotation_z(angle: float) -> np.ndarray:
@@ -38,6 +108,7 @@ def _rotation_z(angle: float) -> np.ndarray:
 
 
 ARM_ROTATIONS = np.stack([_rotation_z(value) for value in ARM_YAWS])
+ARM_ROTATIONS.setflags(write=False)
 
 
 def reconstruct_actuator_wrench(

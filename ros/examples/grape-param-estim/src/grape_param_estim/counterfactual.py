@@ -130,7 +130,7 @@ def _deep_freeze(value):
     return value
 
 
-def _passes_frozen_exact_replay_metric(metric):
+def _passes_frozen_exact_replay_metric(metric, channel=None):
     rmse = np.asarray(getattr(metric, "normalized_rmse", ()), dtype=float)
     maximum = np.asarray(
         getattr(metric, "normalized_maximum_error", ()), dtype=float
@@ -142,6 +142,11 @@ def _passes_frozen_exact_replay_metric(metric):
         event_threshold = float(metric.event_agreement_threshold)
     except (AttributeError, TypeError, ValueError):
         return False
+    timestamp = channel == "command_timestamp"
+    expected_rmse = 0.0 if timestamp else _EXACT_REPLAY_RMSE_MAX
+    expected_maximum = (
+        0.0 if timestamp else _EXACT_REPLAY_MAXIMUM_ERROR
+    )
     return bool(
         type(getattr(metric, "passed", None)) is bool
         and metric.passed
@@ -150,11 +155,11 @@ def _passes_frozen_exact_replay_metric(metric):
         and np.all(np.isfinite(rmse))
         and np.all(np.isfinite(maximum))
         and np.isfinite(event_agreement)
-        and rmse_threshold == _EXACT_REPLAY_RMSE_MAX
-        and maximum_threshold == _EXACT_REPLAY_MAXIMUM_ERROR
+        and rmse_threshold == expected_rmse
+        and maximum_threshold == expected_maximum
         and event_threshold == _EXACT_REPLAY_EVENT_AGREEMENT_MIN
-        and np.all(rmse <= _EXACT_REPLAY_RMSE_MAX)
-        and np.all(maximum <= _EXACT_REPLAY_MAXIMUM_ERROR)
+        and np.all(rmse <= expected_rmse)
+        and np.all(maximum <= expected_maximum)
         and event_agreement >= _EXACT_REPLAY_EVENT_AGREEMENT_MIN
     )
 
@@ -524,14 +529,287 @@ class SupportReference:
             or np.isnan(maximum_std)
         ):
             raise ValueError("support thresholds are invalid")
-        object.__setattr__(self, "observed_candidate_vectors", candidates)
-        object.__setattr__(self, "observed_state_action_points", points)
-        object.__setattr__(self, "candidate_scale", candidate_scale)
-        object.__setattr__(self, "state_action_scale", point_scale)
+        immutable_candidates = np.array(candidates, copy=True)
+        immutable_points = np.array(points, copy=True)
+        immutable_candidate_scale = np.array(candidate_scale, copy=True)
+        immutable_point_scale = np.array(point_scale, copy=True)
+        for value in (
+            immutable_candidates,
+            immutable_points,
+            immutable_candidate_scale,
+            immutable_point_scale,
+        ):
+            value.setflags(write=False)
+        object.__setattr__(
+            self, "observed_candidate_vectors", immutable_candidates
+        )
+        object.__setattr__(
+            self, "observed_state_action_points", immutable_points
+        )
+        object.__setattr__(
+            self, "candidate_scale", immutable_candidate_scale
+        )
+        object.__setattr__(
+            self, "state_action_scale", immutable_point_scale
+        )
         object.__setattr__(self, "supported_distance", supported)
         object.__setattr__(self, "unsupported_distance", unsupported)
         object.__setattr__(self, "minimum_importance_ess", minimum_ess)
         object.__setattr__(self, "maximum_predictive_std", maximum_std)
+
+    @property
+    def content_sha256(self) -> str:
+        return stable_hash(
+            {
+                "schema": "grape_controller_support_reference/v1",
+                "observed_candidate_vectors": (
+                    self.observed_candidate_vectors
+                ),
+                "observed_state_action_points": (
+                    self.observed_state_action_points
+                ),
+                "candidate_scale": self.candidate_scale,
+                "state_action_scale": self.state_action_scale,
+                "supported_distance": self.supported_distance,
+                "unsupported_distance": self.unsupported_distance,
+                "minimum_importance_ess": (
+                    self.minimum_importance_ess
+                ),
+                "maximum_predictive_std": self.maximum_predictive_std,
+            }
+        )
+
+
+def _support_result_payload(
+    *,
+    label: str,
+    candidate_distance: float,
+    state_action_distance_p95: float,
+    importance_weight_ess: float,
+    maximum_predictive_std: float,
+    reasons: Sequence[str],
+) -> Mapping[str, Any]:
+    return {
+        "label": str(label),
+        "candidate_distance": float(candidate_distance),
+        "state_action_distance_p95": float(
+            state_action_distance_p95
+        ),
+        "importance_weight_ess": float(importance_weight_ess),
+        "maximum_predictive_std": float(maximum_predictive_std),
+        "reasons": tuple(str(item) for item in reasons),
+    }
+
+
+def _hashable_support_scalar(value: Any) -> Any:
+    number = float(value)
+    if np.isnan(number):
+        return "NaN"
+    if np.isposinf(number):
+        return "+Infinity"
+    if np.isneginf(number):
+        return "-Infinity"
+    return number
+
+
+def _support_result_identity_payload(
+    value: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    return {
+        "label": str(value["label"]),
+        "candidate_distance": _hashable_support_scalar(
+            value["candidate_distance"]
+        ),
+        "state_action_distance_p95": _hashable_support_scalar(
+            value["state_action_distance_p95"]
+        ),
+        "importance_weight_ess": _hashable_support_scalar(
+            value["importance_weight_ess"]
+        ),
+        "maximum_predictive_std": _hashable_support_scalar(
+            value["maximum_predictive_std"]
+        ),
+        "reasons": tuple(str(item) for item in value["reasons"]),
+    }
+
+
+def _compute_support_result(
+    candidate_vector: Any,
+    rollout_state_action_points: Any,
+    predictive_std: float,
+    reference: SupportReference,
+) -> Mapping[str, Any]:
+    if not isinstance(reference, SupportReference):
+        raise TypeError("reference must be SupportReference")
+    candidate = np.asarray(candidate_vector, dtype=float).reshape(-1)
+    rollout_points = np.asarray(
+        rollout_state_action_points, dtype=float
+    )
+    if candidate.shape != (
+        reference.observed_candidate_vectors.shape[1],
+    ):
+        raise ValueError(
+            "candidate vector dimension does not match support reference"
+        )
+    if (
+        rollout_points.ndim != 2
+        or rollout_points.shape[1]
+        != reference.observed_state_action_points.shape[1]
+        or rollout_points.shape[0] == 0
+    ):
+        raise ValueError(
+            "rollout state/action points do not match support reference"
+        )
+    if (
+        not np.all(np.isfinite(candidate))
+        or not np.all(np.isfinite(rollout_points))
+    ):
+        raise ValueError(
+            "support candidate and rollout inputs must be finite"
+        )
+    candidate_distances = np.linalg.norm(
+        (reference.observed_candidate_vectors - candidate)
+        / reference.candidate_scale,
+        axis=1,
+    )
+    candidate_distance = float(np.min(candidate_distances))
+    log_importance = -0.5 * candidate_distances * candidate_distances
+    log_importance -= float(np.max(log_importance))
+    importance = np.exp(log_importance)
+    importance /= np.sum(importance)
+    importance_ess = float(1.0 / np.dot(importance, importance))
+    nearest = []
+    for start in range(0, rollout_points.shape[0], 256):
+        chunk = rollout_points[start : start + 256]
+        distance = np.linalg.norm(
+            (
+                chunk[:, None, :]
+                - reference.observed_state_action_points[None, :, :]
+            )
+            / reference.state_action_scale,
+            axis=2,
+        )
+        nearest.extend(np.min(distance, axis=1))
+    state_distance = float(np.quantile(nearest, 0.95))
+    uncertainty = float(predictive_std)
+    reasons = []
+    if candidate_distance > reference.unsupported_distance:
+        reasons.append("candidate_parameter_distance")
+    if state_distance > reference.unsupported_distance:
+        reasons.append("state_action_distance")
+    if importance_ess < reference.minimum_importance_ess:
+        reasons.append("importance_weight_ess")
+    if (
+        not np.isfinite(uncertainty)
+        or uncertainty > reference.maximum_predictive_std
+    ):
+        reasons.append("posterior_predictive_uncertainty")
+    if reasons:
+        label = UNSUPPORTED
+    elif (
+        candidate_distance > reference.supported_distance
+        or state_distance > reference.supported_distance
+    ):
+        label = EXTRAPOLATIVE
+        reasons.append("near_support_boundary")
+    else:
+        label = SUPPORTED
+    return _support_result_payload(
+        label=label,
+        candidate_distance=candidate_distance,
+        state_action_distance_p95=state_distance,
+        importance_weight_ess=importance_ess,
+        maximum_predictive_std=uncertainty,
+        reasons=tuple(reasons),
+    )
+
+
+@dataclass(frozen=True, init=False)
+class SupportEvidenceIdentity:
+    """Measured support inputs inseparably bound to their computed result."""
+
+    support_reference: SupportReference
+    support_reference_sha256: str
+    evaluation_input_sha256: str
+    support_result_sha256: str
+    content_sha256: str
+
+    def __init__(
+        self,
+        *,
+        support_reference: SupportReference,
+        candidate_vector: Any,
+        rollout_state_action_points: Any,
+        predictive_std: float,
+    ) -> None:
+        if not isinstance(support_reference, SupportReference):
+            raise TypeError(
+                "support_reference must be SupportReference"
+            )
+        candidate = np.asarray(candidate_vector, dtype=float)
+        rollout = np.asarray(
+            rollout_state_action_points, dtype=float
+        )
+        uncertainty = float(predictive_std)
+        if (
+            not np.all(np.isfinite(candidate))
+            or not np.all(np.isfinite(rollout))
+        ):
+            raise ValueError(
+                "support candidate and rollout inputs must be finite"
+            )
+        reference_hash = support_reference.content_sha256
+        support_result = _compute_support_result(
+            candidate,
+            rollout,
+            uncertainty,
+            support_reference,
+        )
+        input_hash = stable_hash(
+            {
+                "schema": "grape_controller_support_inputs/v1",
+                "candidate_vector": candidate,
+                "rollout_state_action_points": rollout,
+                "predictive_std": _hashable_support_scalar(
+                    uncertainty
+                ),
+            }
+        )
+        result_hash = stable_hash(
+            _support_result_identity_payload(support_result)
+        )
+        payload = {
+            "schema": "grape_controller_support_evidence/v1",
+            "support_reference_sha256": reference_hash,
+            "evaluation_input_sha256": input_hash,
+            "support_result_sha256": result_hash,
+        }
+        object.__setattr__(
+            self, "support_reference", support_reference
+        )
+        object.__setattr__(
+            self, "support_reference_sha256", reference_hash
+        )
+        object.__setattr__(
+            self, "evaluation_input_sha256", input_hash
+        )
+        object.__setattr__(
+            self, "support_result_sha256", result_hash
+        )
+        object.__setattr__(
+            self, "content_sha256", stable_hash(payload)
+        )
+
+    def to_mapping(self) -> Mapping[str, str]:
+        return {
+            "schema": "grape_controller_support_evidence/v1",
+            "support_reference_sha256": (
+                self.support_reference_sha256
+            ),
+            "evaluation_input_sha256": self.evaluation_input_sha256,
+            "support_result_sha256": self.support_result_sha256,
+            "content_sha256": self.content_sha256,
+        }
 
 
 @dataclass(frozen=True)
@@ -542,10 +820,58 @@ class SupportDiagnostics:
     importance_weight_ess: float
     maximum_predictive_std: float
     reasons: Tuple[str, ...]
+    support_evidence: Optional[SupportEvidenceIdentity] = None
 
     def __post_init__(self):
         if self.label not in _SUPPORT_LABELS:
             raise ValueError("invalid support label")
+        if self.support_evidence is not None and not isinstance(
+            self.support_evidence, SupportEvidenceIdentity
+        ):
+            raise TypeError(
+                "support_evidence must be SupportEvidenceIdentity"
+            )
+        if (
+            self.support_evidence is not None
+            and self.support_evidence.support_result_sha256
+            != stable_hash(
+                _support_result_identity_payload(
+                    _support_result_payload(
+                        label=self.label,
+                        candidate_distance=self.candidate_distance,
+                        state_action_distance_p95=(
+                            self.state_action_distance_p95
+                        ),
+                        importance_weight_ess=(
+                            self.importance_weight_ess
+                        ),
+                        maximum_predictive_std=(
+                            self.maximum_predictive_std
+                        ),
+                        reasons=self.reasons,
+                    )
+                )
+            )
+        ):
+            raise ValueError(
+                "support evidence/result identity mismatch"
+            )
+
+    @property
+    def support_reference(self) -> Optional[SupportReference]:
+        return (
+            None
+            if self.support_evidence is None
+            else self.support_evidence.support_reference
+        )
+
+    @property
+    def support_reference_sha256(self) -> Optional[str]:
+        return (
+            None
+            if self.support_evidence is None
+            else self.support_evidence.support_reference_sha256
+        )
 
 
 @dataclass(frozen=True)
@@ -969,69 +1295,20 @@ def classify_support(
     predictive_std: float,
     reference: SupportReference,
 ) -> SupportDiagnostics:
-    candidate = np.asarray(candidate_vector, dtype=float).reshape(-1)
-    rollout_points = np.asarray(rollout_state_action_points, dtype=float)
-    if candidate.shape != (reference.observed_candidate_vectors.shape[1],):
-        raise ValueError("candidate vector dimension does not match support reference")
-    if (
-        rollout_points.ndim != 2
-        or rollout_points.shape[1]
-        != reference.observed_state_action_points.shape[1]
-        or rollout_points.shape[0] == 0
-    ):
-        raise ValueError("rollout state/action points do not match support reference")
-    candidate_distances = np.linalg.norm(
-        (reference.observed_candidate_vectors - candidate)
-        / reference.candidate_scale,
-        axis=1,
+    result = _compute_support_result(
+        candidate_vector,
+        rollout_state_action_points,
+        predictive_std,
+        reference,
     )
-    candidate_distance = float(np.min(candidate_distances))
-    log_importance = -0.5 * candidate_distances * candidate_distances
-    log_importance -= float(np.max(log_importance))
-    importance = np.exp(log_importance)
-    importance /= np.sum(importance)
-    importance_ess = float(1.0 / np.dot(importance, importance))
-    # Chunking avoids a T x N x D allocation for long offline rollouts.
-    nearest = []
-    for start in range(0, rollout_points.shape[0], 256):
-        chunk = rollout_points[start : start + 256]
-        distance = np.linalg.norm(
-            (
-                chunk[:, None, :]
-                - reference.observed_state_action_points[None, :, :]
-            )
-            / reference.state_action_scale,
-            axis=2,
-        )
-        nearest.extend(np.min(distance, axis=1))
-    state_distance = float(np.quantile(nearest, 0.95))
-    uncertainty = float(predictive_std)
-    reasons = []
-    if candidate_distance > reference.unsupported_distance:
-        reasons.append("candidate_parameter_distance")
-    if state_distance > reference.unsupported_distance:
-        reasons.append("state_action_distance")
-    if importance_ess < reference.minimum_importance_ess:
-        reasons.append("importance_weight_ess")
-    if not np.isfinite(uncertainty) or uncertainty > reference.maximum_predictive_std:
-        reasons.append("posterior_predictive_uncertainty")
-    if reasons:
-        label = UNSUPPORTED
-    elif (
-        candidate_distance > reference.supported_distance
-        or state_distance > reference.supported_distance
-    ):
-        label = EXTRAPOLATIVE
-        reasons.append("near_support_boundary")
-    else:
-        label = SUPPORTED
     return SupportDiagnostics(
-        label=label,
-        candidate_distance=candidate_distance,
-        state_action_distance_p95=state_distance,
-        importance_weight_ess=importance_ess,
-        maximum_predictive_std=uncertainty,
-        reasons=tuple(reasons),
+        **result,
+        support_evidence=SupportEvidenceIdentity(
+            support_reference=reference,
+            candidate_vector=candidate_vector,
+            rollout_state_action_points=rollout_state_action_points,
+            predictive_std=predictive_std,
+        ),
     )
 
 
@@ -1699,8 +1976,9 @@ class ClosedLoopCounterfactualEvaluator:
             and set(conformance.channel_metrics)
             == set(REQUIRED_CONFORMANCE_CHANNELS)
             and all(
-                _passes_frozen_exact_replay_metric(metric)
-                for metric in conformance.channel_metrics.values()
+                _passes_frozen_exact_replay_metric(metric, channel)
+                for channel, metric
+                in conformance.channel_metrics.items()
             )
         )
         fixture_provenance = (
@@ -1747,7 +2025,7 @@ class ClosedLoopCounterfactualEvaluator:
                 calibration is not None
                 and conformance is not None
                 and calibration.exact_conformance_report_sha256
-                == stable_hash(asdict(conformance))
+                == conformance.evidence_sha256
             ),
             "exact_fixture_source_bag_calibrated": bool(
                 calibration is not None
@@ -1918,7 +2196,9 @@ class ClosedLoopCounterfactualEvaluator:
                 ),
                 "identity": conformance_identity,
                 "report": (
-                    None if conformance is None else asdict(conformance)
+                    None
+                    if conformance is None
+                    else conformance.to_mapping()
                 ),
             },
             "probability_calibration": {
@@ -2072,6 +2352,7 @@ __all__ = [
     "JointPosteriorSample",
     "PythonControllerReplayBackend",
     "SupportDiagnostics",
+    "SupportEvidenceIdentity",
     "SupportReference",
     "TargetTrajectory",
     "TargetTube",

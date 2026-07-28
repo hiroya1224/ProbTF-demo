@@ -16,6 +16,9 @@ import numpy as np
 from .dynamics import PARAMETER_NAMES, physical_parameter_mask, predict_wrench
 
 
+MODEL_ID = "inverse_dynamics_baseline_v1"
+
+
 def _logsumexp(values: np.ndarray) -> float:
     maximum = float(np.max(values))
     if not np.isfinite(maximum):

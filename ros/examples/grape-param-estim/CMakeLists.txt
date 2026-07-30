@@ -9,9 +9,7 @@ catkin_package()
 
 catkin_install_python(
   PROGRAMS
-    scripts/analyze_failure_bags.py
-    scripts/estimate_failure_parameters.py
-    scripts/failure_analysis_gui.py
+    scripts/grape_param_estim_app.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -22,4 +20,9 @@ install(
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-install(FILES README.md DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(
+  FILES
+    README.md
+    requirements.txt
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)

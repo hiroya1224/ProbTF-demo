@@ -1,21 +1,18 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>grape_param_estim</name>
-  <version>0.3.0</version>
-  <description>Automatic episode extraction and effective-parameter reports from Grape ROS bags.</description>
+  <version>0.4.0</version>
+  <description>Short-segment rigid-body trajectory replay for Grape ROS bags.</description>
 
   <maintainer email="leus@todo.todo">leus</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <exec_depend>aerial_robot_msgs</exec_depend>
-  <exec_depend>dynamic_reconfigure</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
-  <exec_depend>python3-matplotlib</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-pip</exec_depend>
   <exec_depend>python3-rospkg</exec_depend>
-  <exec_depend>python3-tk</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>rosbag</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>

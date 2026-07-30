@@ -1,0 +1,19 @@
+schema: grape_param_estim/phase0
+
+data:
+  bag_directory: /home/leus/catkin_ws/bags/grape-drone
+  bag_path: /home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag
+  topics:
+    command: /gimbalrotor/four_axes/command
+    gimbal: /gimbalrotor/gimbals_ctrl
+    imu: /gimbalrotor/sensor_plugin/imu1/ros_converted
+    odometry: /gimbalrotor/uav/cog/odom
+    flight_state: /gimbalrotor/flight_state
+
+analysis:
+  start_time: 20.0
+  end_time: 25.28
+  segment_duration: 0.75
+
+output:
+  config_path: ~/.ros/grape_param_estim/analysis.yaml

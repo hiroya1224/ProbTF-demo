@@ -1,5 +1,6 @@
 """Automatic multi-bag analysis with explicit fit and failure masks."""
 
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -617,6 +618,64 @@ def analyze_bags(
     return analyze_recordings(recordings, config)
 
 
+def merge_analysis_results(
+    existing: Mapping[str, Any],
+    addition: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    """Append independently analyzed bags without reprocessing old bags."""
+
+    for name, result in (
+        ("existing", existing),
+        ("addition", addition),
+    ):
+        if result.get("schema") != RESULT_SCHEMA:
+            raise ValueError(
+                "{} result has an unsupported schema".format(name)
+            )
+        if not isinstance(result.get("bags"), list):
+            raise ValueError(
+                "{} result has no bag list".format(name)
+            )
+    if existing.get("config_sha256") != addition.get("config_sha256"):
+        raise ValueError(
+            "cannot merge results made with different configurations"
+        )
+    if existing.get("interpretation") != addition.get("interpretation"):
+        raise ValueError(
+            "cannot merge results with different interpretations"
+        )
+
+    merged = deepcopy(existing)
+    sequence_shift = float(existing["sequence_duration_s"])
+    bag_index_shift = len(merged["bags"])
+    for source_bag in addition["bags"]:
+        bag = deepcopy(source_bag)
+        bag["bag_index"] = bag_index_shift + int(bag["bag_index"])
+        bag["sequence_offset_s"] = (
+            sequence_shift + float(bag["sequence_offset_s"])
+        )
+        for episode in bag["episodes"]:
+            episode["sequence_start_s"] = (
+                sequence_shift + float(episode["sequence_start_s"])
+            )
+            episode["sequence_end_s"] = (
+                sequence_shift + float(episode["sequence_end_s"])
+            )
+            for row in episode["parameter_trace"]:
+                row["sequence_time_s"] = (
+                    sequence_shift + float(row["sequence_time_s"])
+                )
+        merged["bags"].append(bag)
+
+    merged["bag_count"] = len(merged["bags"])
+    merged["sequence_duration_s"] = (
+        sequence_shift + float(addition["sequence_duration_s"])
+    )
+    merged.pop("result_sha256", None)
+    merged["result_sha256"] = canonical_sha256(merged)
+    return merged
+
+
 __all__ = [
     "AutomaticAnalysisConfig",
     "CONFIG_SCHEMA",
@@ -624,4 +683,5 @@ __all__ = [
     "analyze_bags",
     "analyze_recordings",
     "load_automatic_config",
+    "merge_analysis_results",
 ]

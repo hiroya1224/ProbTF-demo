@@ -14,9 +14,18 @@ from grape_param_estim.data import (
     scan_bag_paths,
 )
 from grape_param_estim.plots import (
+    make_correction_figure,
     make_command_figure,
+    make_replay_pose_figure,
+    make_replay_trajectory_figure,
+    make_segment_residual_figure,
     make_state_figure,
     make_trajectory_figure,
+)
+from grape_param_estim.model import (
+    GrapeRigidBodyModel,
+    RigidBodyParameters,
+    replay_segments,
 )
 
 
@@ -52,10 +61,12 @@ def _saved_configuration(
     start_time: float,
     end_time: float,
     segment_duration: float,
+    nominal_mass: float,
+    nominal_inertia: np.ndarray,
     save_path: str,
 ) -> Dict[str, Any]:
     return {
-        "schema": "grape_param_estim/phase0",
+        "schema": "grape_param_estim/phase1",
         "data": {
             "bag_directory": bag_directory,
             "bag_path": bag_path,
@@ -65,6 +76,16 @@ def _saved_configuration(
             "start_time": float(start_time),
             "end_time": float(end_time),
             "segment_duration": float(segment_duration),
+        },
+        "model": {
+            "nominal": {
+                "mass": float(nominal_mass),
+                "inertia_diagonal": [
+                    float(value) for value in nominal_inertia
+                ],
+                "force_scale": 1.0,
+                "torque_scale": 1.0,
+            }
         },
         "output": {"config_path": save_path},
     }
@@ -80,8 +101,8 @@ def main() -> None:
     )
     st.title("Grape trajectory replay")
     st.caption(
-        "Phase 0: choose the exact bag interval and inspect every stream "
-        "that will be used by the replay."
+        "Phase 0–1: inspect the selected bag data, then replay each short "
+        "segment with the recorded command and a nominal rigid-body model."
     )
 
     config_source = _initial_config_path()
@@ -93,6 +114,8 @@ def main() -> None:
 
     data_config = dict(configuration.get("data", {}))
     analysis_config = dict(configuration.get("analysis", {}))
+    model_config = dict(configuration.get("model", {}))
+    nominal_config = dict(model_config.get("nominal", {}))
     output_config = dict(configuration.get("output", {}))
     configured_topics = dict(data_config.get("topics", {}))
 
@@ -233,12 +256,68 @@ def main() -> None:
         format="%.3f",
     )
 
+    default_inertia = np.asarray(
+        (0.0649940671, 0.0649466618, 0.1289801290), dtype=float
+    )
+    configured_inertia = np.asarray(
+        nominal_config.get("inertia_diagonal", default_inertia),
+        dtype=float,
+    )
+    if (
+        configured_inertia.shape != (3,)
+        or np.any(~np.isfinite(configured_inertia))
+        or np.any(configured_inertia <= 0.0)
+    ):
+        configured_inertia = default_inertia
+    configured_mass = float(
+        nominal_config.get("mass", 2.351557590812377)
+    )
+    if not np.isfinite(configured_mass) or configured_mass <= 0.0:
+        configured_mass = 2.351557590812377
+
+    st.sidebar.header("Nominal rigid body")
+    st.sidebar.caption(
+        "Defaults are the current Grape zero-joint URDF aggregate."
+    )
+    nominal_mass = st.sidebar.number_input(
+        "Mass [kg]",
+        min_value=0.01,
+        max_value=100.0,
+        value=configured_mass,
+        step=0.01,
+        format="%.6f",
+    )
+    nominal_inertia = np.asarray(
+        [
+            st.sidebar.number_input(
+                "{} [kg m²]".format(label),
+                min_value=0.000001,
+                max_value=100.0,
+                value=float(configured_inertia[index]),
+                step=0.001,
+                format="%.6f",
+            )
+            for index, label in enumerate(("Ixx", "Iyy", "Izz"))
+        ]
+    )
+
     try:
         analysis = recording.select_interval(
             start_time, end_time, segment_duration
         )
     except ValueError as exc:
         st.error(str(exc))
+        st.stop()
+    parameters = RigidBodyParameters.from_diagonal(
+        nominal_mass, nominal_inertia
+    )
+    try:
+        with st.spinner("Replaying nominal short segments…"):
+            replay = replay_segments(
+                analysis, GrapeRigidBodyModel(), parameters
+            )
+    except Exception as exc:
+        st.error("Nominal replay failed: {}".format(exc))
         st.stop()
 
     default_save_path = str(
@@ -258,6 +337,8 @@ def main() -> None:
         start_time,
         end_time,
         segment_duration,
+        nominal_mass,
+        nominal_inertia,
         save_path,
     )
     if st.sidebar.button("Save analysis YAML", type="primary"):
@@ -268,24 +349,87 @@ def main() -> None:
         else:
             st.sidebar.success("Saved `{}`".format(written_path))
 
-    metric_columns = st.columns(4)
-    metric_columns[0].metric(
-        "Selected duration", "{:.3f} s".format(end_time - start_time)
-    )
-    metric_columns[1].metric("State samples", str(analysis.times.size))
-    metric_columns[2].metric("Segments", str(analysis.segment_count))
-    metric_columns[3].metric(
-        "Bag duration", "{:.3f} s".format(recording.bag_duration)
-    )
-    st.info(
-        "Dotted vertical lines are short-replay segment boundaries. "
-        "Large motion and post-contact samples are intentionally not hidden."
-    )
-    st.plotly_chart(
-        make_trajectory_figure(analysis), use_container_width=True
-    )
-    st.plotly_chart(make_state_figure(analysis), use_container_width=True)
-    st.plotly_chart(make_command_figure(analysis), use_container_width=True)
+    data_tab, replay_tab = st.tabs(("Data", "Nominal replay"))
+    with data_tab:
+        metric_columns = st.columns(4)
+        metric_columns[0].metric(
+            "Selected duration",
+            "{:.3f} s".format(end_time - start_time),
+        )
+        metric_columns[1].metric(
+            "State samples", str(analysis.times.size)
+        )
+        metric_columns[2].metric(
+            "Segments", str(analysis.segment_count)
+        )
+        metric_columns[3].metric(
+            "Bag duration", "{:.3f} s".format(recording.bag_duration)
+        )
+        st.info(
+            "Dotted vertical lines are short-replay segment boundaries. "
+            "Large motion and post-contact samples are intentionally not "
+            "hidden."
+        )
+        st.plotly_chart(
+            make_trajectory_figure(analysis), use_container_width=True
+        )
+        st.plotly_chart(
+            make_state_figure(analysis), use_container_width=True
+        )
+        st.plotly_chart(
+            make_command_figure(analysis), use_container_width=True
+        )
+
+    with replay_tab:
+        translation_rms = float(
+            np.sqrt(np.mean(replay.translation_residual_norm**2))
+        )
+        translation_max = float(
+            np.max(replay.translation_residual_norm)
+        )
+        rotation_rms = float(
+            np.rad2deg(
+                np.sqrt(np.mean(replay.rotation_residual_norm**2))
+            )
+        )
+        rotation_max = float(
+            np.rad2deg(np.max(replay.rotation_residual_norm))
+        )
+        replay_metrics = st.columns(4)
+        replay_metrics[0].metric(
+            "Translation RMS", "{:.4f} m".format(translation_rms)
+        )
+        replay_metrics[1].metric(
+            "Translation max", "{:.4f} m".format(translation_max)
+        )
+        replay_metrics[2].metric(
+            "Rotation RMS", "{:.2f}°".format(rotation_rms)
+        )
+        replay_metrics[3].metric(
+            "Rotation max", "{:.2f}°".format(rotation_max)
+        )
+        st.info(
+            "Every segment starts from its observed `(p, R, v, ω)`. "
+            "The SE(3) residual is "
+            "`Log(T_obs,rel⁻¹ T_nom,rel)`. The correction plot shows "
+            "`T_nom⁻¹ T_obs`."
+        )
+        st.plotly_chart(
+            make_replay_trajectory_figure(analysis, replay),
+            use_container_width=True,
+        )
+        st.plotly_chart(
+            make_replay_pose_figure(analysis, replay),
+            use_container_width=True,
+        )
+        st.plotly_chart(
+            make_correction_figure(analysis, replay),
+            use_container_width=True,
+        )
+        st.plotly_chart(
+            make_segment_residual_figure(analysis, replay),
+            use_container_width=True,
+        )
 
 
 if __name__ == "__main__":

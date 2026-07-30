@@ -1,4 +1,4 @@
-schema: grape_param_estim/phase0
+schema: grape_param_estim/phase1
 
 data:
   bag_directory: /home/leus/catkin_ws/bags/grape-drone
@@ -14,6 +14,14 @@ analysis:
   start_time: 20.0
   end_time: 25.28
   segment_duration: 0.75
+
+model:
+  nominal:
+    # Current zero-joint aggregate from the Grape URDF.
+    mass: 2.351557590812377
+    inertia_diagonal: [0.0649940671, 0.0649466618, 0.1289801290]
+    force_scale: 1.0
+    torque_scale: 1.0
 
 output:
   config_path: ~/.ros/grape_param_estim/analysis.yaml

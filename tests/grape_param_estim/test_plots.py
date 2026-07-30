@@ -2,6 +2,7 @@ import importlib.util
 import unittest
 
 from test_data import make_recording
+from test_model import make_analysis, nominal_parameters
 
 
 @unittest.skipUnless(
@@ -25,6 +26,33 @@ class PlotTest(unittest.TestCase):
         self.assertEqual(len(trajectory.data), data.segment_count)
         self.assertEqual(len(state.data), 13)
         self.assertEqual(len(command.data), 8)
+
+    def test_phase_one_figures_show_replay_and_residuals(self):
+        from grape_param_estim.model import (
+            GrapeRigidBodyModel,
+            replay_segments,
+        )
+        from grape_param_estim.plots import (
+            make_correction_figure,
+            make_replay_pose_figure,
+            make_replay_trajectory_figure,
+            make_segment_residual_figure,
+        )
+
+        data = make_analysis(two_segments=True)
+        replay = replay_segments(
+            data, GrapeRigidBodyModel(), nominal_parameters()
+        )
+
+        trajectory = make_replay_trajectory_figure(data, replay)
+        pose = make_replay_pose_figure(data, replay)
+        correction = make_correction_figure(data, replay)
+        residual = make_segment_residual_figure(data, replay)
+
+        self.assertEqual(len(trajectory.data), 2 * data.segment_count)
+        self.assertEqual(len(pose.data), 12)
+        self.assertEqual(len(correction.data), 6)
+        self.assertEqual(len(residual.data), 2 * data.segment_count)
 
 
 if __name__ == "__main__":

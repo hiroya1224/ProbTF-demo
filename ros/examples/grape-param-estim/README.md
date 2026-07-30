@@ -25,9 +25,12 @@ Phase 0–2 では次を実装しています。
   weighted static-particle posterior
 - 同じ particle に対する複数 bag likelihood の加算
 - ESS が極端に低い場合の一回だけの resample + reflected jitter
-- parameter ridge、observed / nominal / posterior trajectory の表示
+- parameter ridge、observed / pre-fit baseline / estimated nominal (MAP) /
+  posterior trajectory の表示
 - posterior の各 particle を軌道へ押し出した
-  `ΔT_i(t) = T_nominal(t)^-1 T_particle,i(t)` の保存と表示
+  `ΔT_i(t) = T_estimated(t)^-1 T_particle,i(t)` の保存と表示
+- pre-fit model からの補正
+  `T_baseline(t)^-1 T_particle,i(t)` の診断表示
 - GUI と独立した worker process、および reload 後も残る run directory
 
 controller は再実行しません。Phase 3 の次回 parameter 提案も含みません。
@@ -69,15 +72,30 @@ whole-bag overview 上を横方向に box select するか、その直下の ran
 nominal pose、補正変換、segment-local residual を表示します。
 `Parameter posterior` tab では prior、likelihood weight、particle 数を設定して
 worker を起動し、進捗、ETA、ESS、二つの parameter ridge を確認できます。
-`Uncertain transform` tab では posterior trajectory、時間方向の 50% / 95%
-区間、選択時刻の raw transform particles と body frame を表示します。
+同じ tab には、実在する maximum-weight particle を estimated nominal とした
+parameter 値、および pre-fit baseline / estimated nominal / posterior expected
+RMS の比較も表示します。座標ごとの median をつないだ非物理的な代表軌道は
+使いません。
+
+`Uncertain transform` tab では observed、pre-fit baseline、estimated nominal、
+posterior trajectory と pose 時系列を重ね、推定による likelihood / residual
+改善を最初に表示します。その後に時間方向の 50% / 95% 区間、選択時刻の raw
+transform particles と body frame を表示します。既定の transform reference は
+estimated nominal です。radio button で pre-fit baseline からの model correction
+にも切り替えられます。
 選択区間の large residual や接触後データを自動的に除外しません。
 
 推定 run は既定で `~/.ros/grape_param_estim/runs/<timestamp>/` に保存されます。
 各 directory には `config.yaml`、`status.json`、`result.npz`、
 `summary.json`、`error.txt` があり、同時に起動できる worker は一つです。
 `result.npz` の正本は四 parameter の particles と weights であり、各 bag の
-posterior trajectory と `ΔT_i(t)` も同じ particle 順で格納されます。
+posterior trajectory、observed residual、estimated-nominal-relative `ΔT_i(t)`、
+baseline-relative correction も同じ particle 順で格納されます。GUI は schema 1
+の既存 result も pose arrays から同じ量へ読み替えます。
+
+GUI の preview bag と completed run の bag は独立しているため、一致しない場合は
+両方の path を warning に表示します。また ESS が少数 particle 相当まで落ちた
+run では、MAP trajectory は表示しつつ 50% / 95% interval の解釈に警告を出します。
 
 3-D plot は記録軌道を中心に同じ physical scale の立方体を作ります。nominal が
 枠外へ出た場合は mouse wheel で zoom out できます。このため nominal の発散で
@@ -158,6 +176,10 @@ Phase 2 はその residual から四 scale を推定します。ただし現在�
 `torque_scale / inertia_scale` です。個々の scale を根拠なく一点へ潰さず、
 その比に沿う ridge を weighted particles のまま残します。不定座標変換は別に
 fit せず、この parameter posterior を replay 軌道へ押し出して得ます。
+maximum-weight particle の trajectory を estimated nominal
+`T_estimated(t)` とし、`T_estimated^-1 T_particle,i` は推定後 model 周りの
+posterior uncertainty、`T_baseline^-1 T_particle,i` は推定前 scale=1 model
+からの correction として明確に分けます。
 
 ## テスト
 

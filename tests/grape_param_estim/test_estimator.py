@@ -11,6 +11,8 @@ from grape_param_estim.estimator import (
     estimate_parameters,
     load_result,
     relative_transform_from_nominal,
+    relative_transform_from_poses,
+    residual_se3_from_poses,
     save_result,
     weighted_quantile,
 )
@@ -19,6 +21,7 @@ from grape_param_estim.model import (
     RigidBodyParameters,
     replay_segments,
 )
+from grape_param_estim.worker import _summary
 from test_model import make_analysis, nominal_parameters
 
 
@@ -76,6 +79,16 @@ class WeightedParticleEstimatorTest(unittest.TestCase):
 
         np.testing.assert_allclose(translation, 0.0, atol=1.0e-12)
         np.testing.assert_allclose(rotation, 0.0, atol=1.0e-12)
+        reconstructed = residual_se3_from_poses(
+            analysis.position,
+            analysis.orientation_xyzw,
+            replay_result.position,
+            replay_result.orientation_xyzw,
+            analysis.segment_id,
+        )
+        np.testing.assert_allclose(
+            reconstructed, replay_result.residual_se3, atol=1.0e-12
+        )
 
     def test_weighted_quantile_preserves_trailing_dimensions(self):
         values = np.asarray(((0.0, 10.0), (1.0, 20.0), (2.0, 30.0)))
@@ -136,6 +149,27 @@ class WeightedParticleEstimatorTest(unittest.TestCase):
             result.bags[0].delta_translation.shape,
             (96, analysis.times.size, 3),
         )
+        map_index = result.posterior.map_index
+        np.testing.assert_allclose(
+            result.bags[0].delta_translation[map_index],
+            0.0,
+            atol=1.0e-12,
+        )
+        np.testing.assert_allclose(
+            result.bags[0].delta_rotation_vector[map_index],
+            0.0,
+            atol=1.0e-12,
+        )
+        expected_baseline_delta, _ = relative_transform_from_poses(
+            result.bags[0].nominal.position,
+            result.bags[0].nominal.orientation_xyzw,
+            result.bags[0].posterior_position,
+            result.bags[0].posterior_orientation_xyzw,
+        )
+        np.testing.assert_allclose(
+            result.bags[0].baseline_delta_translation,
+            expected_baseline_delta,
+        )
 
     def test_multiple_bags_add_likelihood_and_result_round_trips(self):
         analysis = generated_analysis(
@@ -181,6 +215,21 @@ class WeightedParticleEstimatorTest(unittest.TestCase):
         )
         self.assertEqual(loaded["bag_paths"].shape, (2,))
         self.assertIn("bag_1_delta_rotation_vector", loaded)
+        self.assertEqual(int(loaded["schema_version"][0]), 2)
+        self.assertEqual(
+            int(loaded["map_particle_index"][0]),
+            multiple.posterior.map_index,
+        )
+        self.assertIn("bag_0_posterior_residual_se3", loaded)
+        self.assertIn("bag_0_baseline_delta_translation", loaded)
+        self.assertIn("bag_0_baseline_position", loaded)
+        summary = _summary(multiple, elapsed_seconds=1.25)
+        self.assertEqual(
+            summary["map_particle_index"], multiple.posterior.map_index
+        )
+        self.assertIn("map_parameters", summary)
+        self.assertIn("baseline_translation_rms", summary["bags"][0])
+        self.assertIn("estimated_translation_rms", summary["bags"][0])
 
 
 if __name__ == "__main__":

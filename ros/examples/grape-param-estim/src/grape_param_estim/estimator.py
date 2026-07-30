@@ -14,6 +14,7 @@ from grape_param_estim.model import (
     quaternion_to_matrix,
     replay_segments,
     rotation_vector_from_matrix,
+    se3_log,
 )
 
 
@@ -76,6 +77,12 @@ class ParticlePosterior:
     def effective_sample_size(self) -> float:
         return float(1.0 / np.sum(np.asarray(self.weights) ** 2))
 
+    @property
+    def map_index(self) -> int:
+        """Index of the maximum-weight, dynamically realised trajectory."""
+
+        return int(np.argmax(np.asarray(self.weights)))
+
 
 @dataclass(frozen=True)
 class BagPushforward:
@@ -86,8 +93,11 @@ class BagPushforward:
     nominal: ReplayResult
     posterior_position: np.ndarray
     posterior_orientation_xyzw: np.ndarray
+    posterior_residual_se3: np.ndarray
     delta_translation: np.ndarray
     delta_rotation_vector: np.ndarray
+    baseline_delta_translation: np.ndarray
+    baseline_delta_rotation_vector: np.ndarray
 
     def __post_init__(self) -> None:
         particle_count = self.posterior_position.shape[0]
@@ -103,9 +113,19 @@ class BagPushforward:
             raise ValueError(
                 "posterior_orientation_xyzw must have shape N by T by 4"
             )
+        if self.posterior_residual_se3.shape != (
+            particle_count,
+            sample_count,
+            6,
+        ):
+            raise ValueError(
+                "posterior_residual_se3 must have shape N by T by 6"
+            )
         if (
             self.delta_translation.shape != expected_vector
             or self.delta_rotation_vector.shape != expected_vector
+            or self.baseline_delta_translation.shape != expected_vector
+            or self.baseline_delta_rotation_vector.shape != expected_vector
         ):
             raise ValueError("uncertain transforms must have shape N by T by 3")
 
@@ -264,6 +284,179 @@ def _evaluate_particles(
     return log_likelihood
 
 
+def relative_transform_from_poses(
+    reference_position: np.ndarray,
+    reference_orientation_xyzw: np.ndarray,
+    target_position: np.ndarray,
+    target_orientation_xyzw: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Push target pose trajectories through ``T_reference^-1 T_target``.
+
+    Target arrays may describe one ``T x D`` trajectory or an ``N x T x D``
+    particle collection. The returned arrays preserve that leading particle
+    dimension.
+    """
+
+    reference_p = np.asarray(reference_position, dtype=float)
+    reference_q = np.asarray(reference_orientation_xyzw, dtype=float)
+    target_p = np.asarray(target_position, dtype=float)
+    target_q = np.asarray(target_orientation_xyzw, dtype=float)
+    single_trajectory = target_p.ndim == 2
+    if single_trajectory:
+        target_p = target_p[np.newaxis, :, :]
+        target_q = target_q[np.newaxis, :, :]
+    if (
+        reference_p.ndim != 2
+        or reference_p.shape[1:] != (3,)
+        or reference_q.shape != (reference_p.shape[0], 4)
+        or target_p.ndim != 3
+        or target_p.shape[1:] != reference_p.shape
+        or target_q.shape != (target_p.shape[0], reference_p.shape[0], 4)
+        or np.any(~np.isfinite(reference_p))
+        or np.any(~np.isfinite(reference_q))
+        or np.any(~np.isfinite(target_p))
+        or np.any(~np.isfinite(target_q))
+    ):
+        raise ValueError("reference and target pose array shapes are invalid")
+
+    translation = np.empty_like(target_p)
+    rotation_vector = np.empty_like(target_p)
+    for time_index in range(reference_p.shape[0]):
+        reference_rotation = quaternion_to_matrix(reference_q[time_index])
+        for particle_index in range(target_p.shape[0]):
+            target_rotation = quaternion_to_matrix(
+                target_q[particle_index, time_index]
+            )
+            translation[particle_index, time_index] = (
+                reference_rotation.T
+                @ (
+                    target_p[particle_index, time_index]
+                    - reference_p[time_index]
+                )
+            )
+            rotation_vector[particle_index, time_index] = (
+                rotation_vector_from_matrix(
+                    reference_rotation.T @ target_rotation
+                )
+            )
+    if single_trajectory:
+        return translation[0], rotation_vector[0]
+    return translation, rotation_vector
+
+
+def residual_se3_from_poses(
+    observed_position: np.ndarray,
+    observed_orientation_xyzw: np.ndarray,
+    predicted_position: np.ndarray,
+    predicted_orientation_xyzw: np.ndarray,
+    segment_id: np.ndarray,
+) -> np.ndarray:
+    """Reconstruct the replay likelihood residual from stored pose arrays."""
+
+    observed_p = np.asarray(observed_position, dtype=float)
+    observed_q = np.asarray(observed_orientation_xyzw, dtype=float)
+    predicted_p = np.asarray(predicted_position, dtype=float)
+    predicted_q = np.asarray(predicted_orientation_xyzw, dtype=float)
+    segments = np.asarray(segment_id)
+    single_trajectory = predicted_p.ndim == 2
+    if single_trajectory:
+        predicted_p = predicted_p[np.newaxis, :, :]
+        predicted_q = predicted_q[np.newaxis, :, :]
+    sample_count = observed_p.shape[0]
+    if (
+        observed_p.ndim != 2
+        or observed_p.shape[1:] != (3,)
+        or observed_q.shape != (sample_count, 4)
+        or predicted_p.ndim != 3
+        or predicted_p.shape[1:] != observed_p.shape
+        or predicted_q.shape != (
+            predicted_p.shape[0],
+            sample_count,
+            4,
+        )
+        or segments.shape != (sample_count,)
+        or np.any(np.diff(segments) < 0)
+        or np.any(~np.isfinite(observed_p))
+        or np.any(~np.isfinite(observed_q))
+        or np.any(~np.isfinite(predicted_p))
+        or np.any(~np.isfinite(predicted_q))
+    ):
+        raise ValueError("stored replay pose arrays are invalid")
+
+    result = np.empty(
+        (predicted_p.shape[0], sample_count, 6), dtype=float
+    )
+    boundaries = np.flatnonzero(np.diff(segments)) + 1
+    starts = np.concatenate(([0], boundaries))
+    stops = np.concatenate((boundaries, [sample_count]))
+    for particle_index in range(predicted_p.shape[0]):
+        for start, stop in zip(starts, stops):
+            observed_start_rotation = quaternion_to_matrix(
+                observed_q[start]
+            )
+            predicted_start_rotation = quaternion_to_matrix(
+                predicted_q[particle_index, start]
+            )
+            for time_index in range(start, stop):
+                observed_rotation = quaternion_to_matrix(
+                    observed_q[time_index]
+                )
+                predicted_rotation = quaternion_to_matrix(
+                    predicted_q[particle_index, time_index]
+                )
+                observed_relative_rotation = (
+                    observed_start_rotation.T @ observed_rotation
+                )
+                predicted_relative_rotation = (
+                    predicted_start_rotation.T @ predicted_rotation
+                )
+                observed_relative_translation = (
+                    observed_start_rotation.T
+                    @ (observed_p[time_index] - observed_p[start])
+                )
+                predicted_relative_translation = (
+                    predicted_start_rotation.T
+                    @ (
+                        predicted_p[particle_index, time_index]
+                        - predicted_p[particle_index, start]
+                    )
+                )
+                residual_rotation = (
+                    observed_relative_rotation.T
+                    @ predicted_relative_rotation
+                )
+                residual_translation = (
+                    observed_relative_rotation.T
+                    @ (
+                        predicted_relative_translation
+                        - observed_relative_translation
+                    )
+                )
+                result[particle_index, time_index] = se3_log(
+                    residual_rotation, residual_translation
+                )
+    return result[0] if single_trajectory else result
+
+
+def residual_rms(residual_se3: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Return translation and rotation-vector RMS over the time axis."""
+
+    residual = np.asarray(residual_se3, dtype=float)
+    if (
+        residual.ndim not in (2, 3)
+        or residual.shape[-1] != 6
+        or np.any(~np.isfinite(residual))
+    ):
+        raise ValueError("residual_se3 must be a finite T/N by T by 6 array")
+    translation = np.sqrt(
+        np.mean(np.sum(residual[..., :3] ** 2, axis=-1), axis=-1)
+    )
+    rotation = np.sqrt(
+        np.mean(np.sum(residual[..., 3:] ** 2, axis=-1), axis=-1)
+    )
+    return translation, rotation
+
+
 def relative_transform_from_nominal(
     nominal: ReplayResult,
     particle: ReplayResult,
@@ -274,28 +467,18 @@ def relative_transform_from_nominal(
         nominal.times, particle.times, atol=1.0e-12, rtol=0.0
     ):
         raise ValueError("nominal and particle replay times must match")
-    sample_count = nominal.times.size
-    translation = np.empty((sample_count, 3), dtype=float)
-    rotation_vector = np.empty((sample_count, 3), dtype=float)
-    for index in range(sample_count):
-        nominal_rotation = quaternion_to_matrix(
-            nominal.orientation_xyzw[index]
-        )
-        particle_rotation = quaternion_to_matrix(
-            particle.orientation_xyzw[index]
-        )
-        translation[index] = nominal_rotation.T @ (
-            particle.position[index] - nominal.position[index]
-        )
-        rotation_vector[index] = rotation_vector_from_matrix(
-            nominal_rotation.T @ particle_rotation
-        )
-    return translation, rotation_vector
+    return relative_transform_from_poses(
+        nominal.position,
+        nominal.orientation_xyzw,
+        particle.position,
+        particle.orientation_xyzw,
+    )
 
 
 def _pushforward_bag(
     analysis: AnalysisData,
     particles: np.ndarray,
+    estimated_particle_index: int,
     nominal_parameters: RigidBodyParameters,
     model: GrapeRigidBodyModel,
     progress_callback: Optional[ProgressCallback],
@@ -307,8 +490,9 @@ def _pushforward_bag(
     sample_count = analysis.times.size
     position = np.empty((particle_count, sample_count, 3), dtype=float)
     orientation = np.empty((particle_count, sample_count, 4), dtype=float)
-    delta_translation = np.empty_like(position)
-    delta_rotation = np.empty_like(position)
+    residual = np.empty((particle_count, sample_count, 6), dtype=float)
+    baseline_delta_translation = np.empty_like(position)
+    baseline_delta_rotation = np.empty_like(position)
     for index, particle in enumerate(particles):
         parameters = parameters_from_particle(
             nominal_parameters, particle
@@ -316,9 +500,10 @@ def _pushforward_bag(
         replay = replay_segments(analysis, model, parameters)
         position[index] = replay.position
         orientation[index] = replay.orientation_xyzw
+        residual[index] = replay.residual_se3
         (
-            delta_translation[index],
-            delta_rotation[index],
+            baseline_delta_translation[index],
+            baseline_delta_rotation[index],
         ) = relative_transform_from_nominal(nominal, replay)
         if progress_callback is not None:
             fraction = (index + 1) / particle_count
@@ -330,14 +515,23 @@ def _pushforward_bag(
                     Path(analysis.bag_path).name, index + 1, particle_count
                 ),
             )
+    delta_translation, delta_rotation = relative_transform_from_poses(
+        position[estimated_particle_index],
+        orientation[estimated_particle_index],
+        position,
+        orientation,
+    )
     return BagPushforward(
         bag_path=analysis.bag_path,
         analysis=analysis,
         nominal=nominal,
         posterior_position=position,
         posterior_orientation_xyzw=orientation,
+        posterior_residual_se3=residual,
         delta_translation=delta_translation,
         delta_rotation_vector=delta_rotation,
+        baseline_delta_translation=baseline_delta_translation,
+        baseline_delta_rotation_vector=baseline_delta_rotation,
     )
 
 
@@ -420,6 +614,12 @@ def estimate_parameters(
             "ESS {:.1f}/{}".format(effective_sample_size, count),
         )
 
+    posterior = ParticlePosterior(
+        particles=particles,
+        weights=weights,
+        log_likelihood=log_likelihood,
+        resampled=resampled,
+    )
     bags = []
     bag_fraction = 0.30 / len(selected_analyses)
     for index, analysis in enumerate(selected_analyses):
@@ -429,6 +629,7 @@ def estimate_parameters(
             _pushforward_bag(
                 analysis,
                 particles,
+                posterior.map_index,
                 nominal_parameters,
                 motion_model,
                 progress_callback,
@@ -436,12 +637,6 @@ def estimate_parameters(
                 end,
             )
         )
-    posterior = ParticlePosterior(
-        particles=particles,
-        weights=weights,
-        log_likelihood=log_likelihood,
-        resampled=resampled,
-    )
     if progress_callback is not None:
         progress_callback(1.0, "complete", "posterior ready")
     return EstimationResult(
@@ -534,7 +729,7 @@ def result_arrays(result: EstimationResult) -> dict:
     """Convert an estimation result to an allow_pickle=False NPZ payload."""
 
     arrays = {
-        "schema_version": np.asarray((1,), dtype=np.int64),
+        "schema_version": np.asarray((2,), dtype=np.int64),
         "parameter_names": np.asarray(PARAMETER_NAMES, dtype="U32"),
         "particles": np.asarray(result.posterior.particles, dtype=float),
         "weights": np.asarray(result.posterior.weights, dtype=float),
@@ -545,6 +740,9 @@ def result_arrays(result: EstimationResult) -> dict:
             (int(result.posterior.resampled),), dtype=np.int8
         ),
         "seed": np.asarray((result.seed,), dtype=np.int64),
+        "map_particle_index": np.asarray(
+            (result.posterior.map_index,), dtype=np.int64
+        ),
         "bag_paths": np.asarray(
             [bag.bag_path for bag in result.bags], dtype="U1024"
         ),
@@ -561,13 +759,32 @@ def result_arrays(result: EstimationResult) -> dict:
         arrays[prefix + "nominal_orientation_xyzw"] = (
             bag.nominal.orientation_xyzw
         )
+        arrays[prefix + "baseline_position"] = bag.nominal.position
+        arrays[prefix + "baseline_orientation_xyzw"] = (
+            bag.nominal.orientation_xyzw
+        )
         arrays[prefix + "posterior_position"] = bag.posterior_position
         arrays[prefix + "posterior_orientation_xyzw"] = (
             bag.posterior_orientation_xyzw
         )
+        arrays[prefix + "posterior_residual_se3"] = (
+            bag.posterior_residual_se3
+        )
+        arrays[prefix + "estimated_position"] = bag.posterior_position[
+            result.posterior.map_index
+        ]
+        arrays[prefix + "estimated_orientation_xyzw"] = (
+            bag.posterior_orientation_xyzw[result.posterior.map_index]
+        )
         arrays[prefix + "delta_translation"] = bag.delta_translation
         arrays[prefix + "delta_rotation_vector"] = (
             bag.delta_rotation_vector
+        )
+        arrays[prefix + "baseline_delta_translation"] = (
+            bag.baseline_delta_translation
+        )
+        arrays[prefix + "baseline_delta_rotation_vector"] = (
+            bag.baseline_delta_rotation_vector
         )
     return arrays
 
@@ -601,6 +818,9 @@ __all__ = [
     "parameters_from_particle",
     "result_arrays",
     "relative_transform_from_nominal",
+    "relative_transform_from_poses",
+    "residual_rms",
+    "residual_se3_from_poses",
     "sample_prior",
     "save_result",
     "trajectory_log_likelihood",

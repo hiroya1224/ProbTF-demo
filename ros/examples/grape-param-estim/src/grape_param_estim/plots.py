@@ -1,6 +1,6 @@
 """Plotly figures for the selected Grape analysis interval."""
 
-from typing import Iterable
+from typing import Iterable, Optional
 
 import numpy as np
 
@@ -811,14 +811,23 @@ def make_posterior_trajectory_figure(
     nominal_position: np.ndarray,
     posterior_position: np.ndarray,
     weights: np.ndarray,
+    estimated_particle_index: Optional[int] = None,
 ):
-    """Overlay observed, nominal, weighted samples, and posterior median."""
+    """Overlay observed, pre-fit baseline, MAP, and posterior trajectories."""
 
     import plotly.graph_objects as go
 
     figure = go.Figure()
+    map_index = (
+        int(np.argmax(weights))
+        if estimated_particle_index is None
+        else int(estimated_particle_index)
+    )
     particle_indices = _representative_particle_indices(weights)
-    for display_index, particle_index in enumerate(particle_indices):
+    display_index = 0
+    for particle_index in particle_indices:
+        if particle_index == map_index:
+            continue
         position = _break_segments(
             posterior_position[particle_index], segment_id
         )
@@ -835,9 +844,7 @@ def make_posterior_trajectory_figure(
                 hoverinfo="skip",
             )
         )
-    posterior_median = weighted_quantile(
-        posterior_position, weights, (0.5,)
-    )[0]
+        display_index += 1
     for label, position, color, width, dash in (
         (
             "observed",
@@ -847,15 +854,15 @@ def make_posterior_trajectory_figure(
             "solid",
         ),
         (
-            "nominal",
+            "pre-fit baseline",
             _break_segments(nominal_position, segment_id),
             "#f97316",
             5,
             "dash",
         ),
         (
-            "posterior median",
-            _break_segments(posterior_median, segment_id),
+            "estimated nominal (maximum-weight particle)",
+            _break_segments(posterior_position[map_index], segment_id),
             "#2563eb",
             6,
             "solid",
@@ -880,11 +887,124 @@ def make_posterior_trajectory_figure(
             )
         )
     figure.update_layout(
-        title="Observed, nominal, and posterior trajectories",
+        title=(
+            "Observed, pre-fit baseline, estimated nominal, "
+            "and posterior trajectories"
+        ),
         height=650,
         margin={"l": 0, "r": 0, "t": 50, "b": 0},
         scene=_observed_scene(observed_position),
         legend={"orientation": "h"},
+    )
+    return figure
+
+
+def make_estimated_pose_figure(
+    times: np.ndarray,
+    segment_id: np.ndarray,
+    observed_position: np.ndarray,
+    observed_orientation_xyzw: np.ndarray,
+    baseline_position: np.ndarray,
+    baseline_orientation_xyzw: np.ndarray,
+    estimated_position: np.ndarray,
+    estimated_orientation_xyzw: np.ndarray,
+):
+    """Compare observed, pre-fit, and estimated nominal pose over time."""
+
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    figure = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.08,
+        subplot_titles=(
+            "Position in world",
+            "Orientation in world (XYZ Euler, display only)",
+        ),
+    )
+    observed_euler = np.rad2deg(
+        _quaternion_to_euler_xyzw(observed_orientation_xyzw)
+    )
+    baseline_euler = _break_segments(
+        np.rad2deg(
+            _quaternion_to_euler_xyzw(baseline_orientation_xyzw)
+        ),
+        segment_id,
+    )
+    estimated_euler = _break_segments(
+        np.rad2deg(
+            _quaternion_to_euler_xyzw(estimated_orientation_xyzw)
+        ),
+        segment_id,
+    )
+    baseline_position = _break_segments(baseline_position, segment_id)
+    estimated_position = _break_segments(estimated_position, segment_id)
+    colors = ("#2563eb", "#dc2626", "#16a34a")
+    trajectory_styles = (
+        ("observed", "solid", 3),
+        ("pre-fit baseline", "dot", 2),
+        ("estimated nominal", "dash", 3),
+    )
+    for axis_index, axis in enumerate(AXES):
+        angle_name = ("roll", "pitch", "yaw")[axis_index]
+        for (
+            trajectory_name,
+            dash,
+            width,
+        ), position_values, angle_values in zip(
+            trajectory_styles,
+            (observed_position, baseline_position, estimated_position),
+            (observed_euler, baseline_euler, estimated_euler),
+        ):
+            line = {
+                "color": colors[axis_index],
+                "dash": dash,
+                "width": width,
+            }
+            figure.add_trace(
+                go.Scatter(
+                    x=times,
+                    y=position_values[:, axis_index],
+                    mode="lines",
+                    line=line,
+                    name="{} p{}".format(trajectory_name, axis),
+                    legendgroup="{}-{}".format(
+                        trajectory_name, axis
+                    ),
+                ),
+                row=1,
+                col=1,
+            )
+            figure.add_trace(
+                go.Scatter(
+                    x=times,
+                    y=angle_values[:, axis_index],
+                    mode="lines",
+                    line=line,
+                    name="{} {}".format(
+                        trajectory_name, angle_name
+                    ),
+                    legendgroup="{}-{}".format(
+                        trajectory_name, axis
+                    ),
+                    showlegend=False,
+                ),
+                row=2,
+                col=1,
+            )
+    figure.update_yaxes(title_text="position [m]", row=1, col=1)
+    figure.update_yaxes(title_text="angle [deg]", row=2, col=1)
+    figure.update_xaxes(title_text="bag-local time [s]", row=2, col=1)
+    figure.update_layout(
+        title=(
+            "Recorded pose versus pre-fit and estimated nominal trajectories"
+        ),
+        height=760,
+        margin={"l": 45, "r": 20, "t": 70, "b": 45},
+        legend={"orientation": "h"},
+        hovermode="x unified",
     )
     return figure
 
@@ -895,6 +1015,7 @@ def make_uncertain_transform_time_figure(
     delta_translation: np.ndarray,
     delta_rotation_vector: np.ndarray,
     weights: np.ndarray,
+    reference_label: str = "estimated nominal",
 ):
     """Plot median, 50%, and 95% intervals of transform magnitudes."""
 
@@ -975,6 +1096,9 @@ def make_uncertain_transform_time_figure(
     figure.update_yaxes(title_text="rotation [deg]", row=2, col=1)
     figure.update_xaxes(title_text="bag-local time [s]", row=2, col=1)
     figure.update_layout(
+        title="Posterior pushforward relative to {}".format(
+            reference_label
+        ),
         height=680,
         margin={"l": 45, "r": 20, "t": 65, "b": 45},
         legend={"orientation": "h"},
@@ -987,6 +1111,7 @@ def make_transform_particle_figure(
     delta_translation: np.ndarray,
     delta_rotation_vector: np.ndarray,
     weights: np.ndarray,
+    reference_label: str = "estimated nominal",
 ):
     """Scatter raw uncertain-transform particles at one selected time."""
 
@@ -1049,6 +1174,9 @@ def make_transform_particle_figure(
             col=column,
         )
     figure.update_layout(
+        title="Raw transform particles relative to {}".format(
+            reference_label
+        ),
         height=600,
         margin={"l": 0, "r": 0, "t": 65, "b": 0},
         legend={"orientation": "h"},
@@ -1095,14 +1223,16 @@ def _add_frame_axes(
 def make_body_frame_particle_figure(
     observed_position: np.ndarray,
     observed_orientation_xyzw: np.ndarray,
-    nominal_position: np.ndarray,
-    nominal_orientation_xyzw: np.ndarray,
+    baseline_position: np.ndarray,
+    baseline_orientation_xyzw: np.ndarray,
+    estimated_position: np.ndarray,
+    estimated_orientation_xyzw: np.ndarray,
     posterior_position: np.ndarray,
     posterior_orientation_xyzw: np.ndarray,
     weights: np.ndarray,
     scene_reference_position: np.ndarray,
 ):
-    """Show observed, nominal, and representative posterior body frames."""
+    """Show observed, baseline, estimated, and posterior body frames."""
 
     import plotly.graph_objects as go
 
@@ -1111,6 +1241,7 @@ def make_body_frame_particle_figure(
     axis_length = max(0.025, 0.12 * span)
     figure = go.Figure()
     representative = _representative_particle_indices(weights, maximum=12)
+    estimated_particle_index = int(np.argmax(weights))
     figure.add_trace(
         go.Scatter3d(
             x=posterior_position[:, 0],
@@ -1126,7 +1257,10 @@ def make_body_frame_particle_figure(
             ),
         )
     )
-    for display_index, particle_index in enumerate(representative):
+    display_index = 0
+    for particle_index in representative:
+        if particle_index == estimated_particle_index:
+            continue
         _add_frame_axes(
             figure,
             posterior_position[particle_index],
@@ -1138,6 +1272,7 @@ def make_body_frame_particle_figure(
             "posterior frames",
             display_index == 0,
         )
+        display_index += 1
     for name, position, quaternion, width in (
         (
             "observed frame",
@@ -1146,10 +1281,16 @@ def make_body_frame_particle_figure(
             8,
         ),
         (
-            "nominal frame",
-            nominal_position,
-            nominal_orientation_xyzw,
+            "pre-fit baseline frame",
+            baseline_position,
+            baseline_orientation_xyzw,
             6,
+        ),
+        (
+            "estimated nominal frame",
+            estimated_position,
+            estimated_orientation_xyzw,
+            8,
         ),
     ):
         _add_frame_axes(
@@ -1178,6 +1319,7 @@ __all__ = [
     "make_body_frame_particle_figure",
     "make_correction_figure",
     "make_command_figure",
+    "make_estimated_pose_figure",
     "make_parameter_ridge_figure",
     "make_posterior_trajectory_figure",
     "make_replay_pose_figure",

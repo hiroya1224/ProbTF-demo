@@ -18,6 +18,9 @@ from grape_param_estim.data import (
 from grape_param_estim.estimator import (
     PARAMETER_NAMES,
     load_result,
+    relative_transform_from_poses,
+    residual_rms,
+    residual_se3_from_poses,
     weighted_quantile,
 )
 from grape_param_estim.model import (
@@ -30,6 +33,7 @@ from grape_param_estim.plots import (
     make_body_frame_particle_figure,
     make_command_figure,
     make_correction_figure,
+    make_estimated_pose_figure,
     make_parameter_ridge_figure,
     make_posterior_trajectory_figure,
     make_replay_pose_figure,
@@ -251,6 +255,233 @@ def _parameter_rows(particles: np.ndarray, weights: np.ndarray):
     return rows
 
 
+def _estimated_parameter_rows(
+    particles: np.ndarray, estimated_particle_index: int
+):
+    estimated = np.asarray(particles)[estimated_particle_index]
+    rows = [
+        {
+            "quantity": name,
+            "estimated nominal (MAP)": float(estimated[index]),
+        }
+        for index, name in enumerate(PARAMETER_NAMES)
+    ]
+    rows.extend(
+        (
+            {
+                "quantity": "force / mass",
+                "estimated nominal (MAP)": float(
+                    estimated[1] / estimated[0]
+                ),
+            },
+            {
+                "quantity": "torque / inertia",
+                "estimated nominal (MAP)": float(
+                    estimated[3] / estimated[2]
+                ),
+            },
+        )
+    )
+    return rows
+
+
+def _result_bag_view(payload: Mapping[str, np.ndarray], bag_index: int):
+    """Resolve schema-1/2 result arrays to unambiguous display semantics."""
+
+    prefix = "bag_{}_".format(int(bag_index))
+    weights = np.asarray(payload["weights"], dtype=float)
+    particles = np.asarray(payload["particles"], dtype=float)
+    map_index = int(np.argmax(weights))
+    if "map_particle_index" in payload:
+        candidate = int(np.asarray(payload["map_particle_index"]).flat[0])
+        if 0 <= candidate < particles.shape[0]:
+            map_index = candidate
+
+    times = np.asarray(payload[prefix + "times"], dtype=float)
+    segment_id = np.asarray(payload[prefix + "segment_id"])
+    observed_position = np.asarray(
+        payload[prefix + "observed_position"], dtype=float
+    )
+    observed_orientation = np.asarray(
+        payload[prefix + "observed_orientation_xyzw"], dtype=float
+    )
+    baseline_position = np.asarray(
+        payload.get(
+            prefix + "baseline_position",
+            payload[prefix + "nominal_position"],
+        ),
+        dtype=float,
+    )
+    baseline_orientation = np.asarray(
+        payload.get(
+            prefix + "baseline_orientation_xyzw",
+            payload[prefix + "nominal_orientation_xyzw"],
+        ),
+        dtype=float,
+    )
+    posterior_position = np.asarray(
+        payload[prefix + "posterior_position"], dtype=float
+    )
+    posterior_orientation = np.asarray(
+        payload[prefix + "posterior_orientation_xyzw"], dtype=float
+    )
+    estimated_position = posterior_position[map_index]
+    estimated_orientation = posterior_orientation[map_index]
+
+    posterior_residual_key = prefix + "posterior_residual_se3"
+    if posterior_residual_key in payload:
+        posterior_residual = np.asarray(
+            payload[posterior_residual_key], dtype=float
+        )
+    else:
+        posterior_residual = residual_se3_from_poses(
+            observed_position,
+            observed_orientation,
+            posterior_position,
+            posterior_orientation,
+            segment_id,
+        )
+    baseline_residual = residual_se3_from_poses(
+        observed_position,
+        observed_orientation,
+        baseline_position,
+        baseline_orientation,
+        segment_id,
+    )
+
+    baseline_translation_key = prefix + "baseline_delta_translation"
+    baseline_rotation_key = prefix + "baseline_delta_rotation_vector"
+    if (
+        baseline_translation_key in payload
+        and baseline_rotation_key in payload
+    ):
+        baseline_delta_translation = np.asarray(
+            payload[baseline_translation_key], dtype=float
+        )
+        baseline_delta_rotation = np.asarray(
+            payload[baseline_rotation_key], dtype=float
+        )
+    else:
+        baseline_delta_translation, baseline_delta_rotation = (
+            relative_transform_from_poses(
+                baseline_position,
+                baseline_orientation,
+                posterior_position,
+                posterior_orientation,
+            )
+        )
+
+    schema_version = int(
+        np.asarray(payload.get("schema_version", (1,))).flat[0]
+    )
+    if (
+        schema_version >= 2
+        and prefix + "delta_translation" in payload
+        and prefix + "delta_rotation_vector" in payload
+    ):
+        delta_translation = np.asarray(
+            payload[prefix + "delta_translation"], dtype=float
+        )
+        delta_rotation = np.asarray(
+            payload[prefix + "delta_rotation_vector"], dtype=float
+        )
+    else:
+        delta_translation, delta_rotation = relative_transform_from_poses(
+            estimated_position,
+            estimated_orientation,
+            posterior_position,
+            posterior_orientation,
+        )
+    return {
+        "times": times,
+        "segment_id": segment_id,
+        "observed_position": observed_position,
+        "observed_orientation": observed_orientation,
+        "baseline_position": baseline_position,
+        "baseline_orientation": baseline_orientation,
+        "estimated_position": estimated_position,
+        "estimated_orientation": estimated_orientation,
+        "posterior_position": posterior_position,
+        "posterior_orientation": posterior_orientation,
+        "baseline_residual_se3": baseline_residual,
+        "posterior_residual_se3": posterior_residual,
+        "delta_translation": delta_translation,
+        "delta_rotation_vector": delta_rotation,
+        "baseline_delta_translation": baseline_delta_translation,
+        "baseline_delta_rotation_vector": baseline_delta_rotation,
+        "estimated_particle_index": map_index,
+    }
+
+
+def _fit_rows(
+    bag_view: Mapping[str, np.ndarray],
+    weights: np.ndarray,
+    translation_weight: float,
+    rotation_weight: float,
+):
+    baseline_residual = bag_view["baseline_residual_se3"]
+    posterior_residual = bag_view["posterior_residual_se3"]
+    map_index = int(bag_view["estimated_particle_index"])
+    baseline_translation, baseline_rotation = residual_rms(
+        baseline_residual
+    )
+    posterior_translation, posterior_rotation = residual_rms(
+        posterior_residual
+    )
+
+    def log_likelihood(residual):
+        return -0.5 * (
+            float(translation_weight) * np.sum(residual[..., :3] ** 2)
+            + float(rotation_weight) * np.sum(residual[..., 3:] ** 2)
+        )
+
+    return [
+        {
+            "trajectory": "pre-fit baseline",
+            "translation RMS [m]": float(baseline_translation),
+            "rotation RMS [deg]": float(
+                np.rad2deg(baseline_rotation)
+            ),
+            "log likelihood": float(log_likelihood(baseline_residual)),
+        },
+        {
+            "trajectory": "estimated nominal (maximum-weight particle)",
+            "translation RMS [m]": float(
+                posterior_translation[map_index]
+            ),
+            "rotation RMS [deg]": float(
+                np.rad2deg(posterior_rotation[map_index])
+            ),
+            "log likelihood": float(
+                log_likelihood(posterior_residual[map_index])
+            ),
+        },
+        {
+            "trajectory": (
+                "posterior weighted expectation "
+                "(diagnostic, not one trajectory)"
+            ),
+            "translation RMS [m]": float(
+                np.sum(weights * posterior_translation)
+            ),
+            "rotation RMS [deg]": float(
+                np.rad2deg(np.sum(weights * posterior_rotation))
+            ),
+            "log likelihood": float(
+                np.sum(
+                    weights
+                    * np.asarray(
+                        [
+                            log_likelihood(residual)
+                            for residual in posterior_residual
+                        ]
+                    )
+                )
+            ),
+        },
+    ]
+
+
 def _transform_rows(
     delta_translation: np.ndarray,
     delta_rotation_vector: np.ndarray,
@@ -438,6 +669,16 @@ def main() -> None:
     ):
         del file_size, modified_ns
         return load_result(path)
+
+    @st.cache_data(show_spinner=False)
+    def cached_bag_view(
+        path: str,
+        file_size: int,
+        modified_ns: int,
+        bag_index: int,
+    ):
+        del file_size, modified_ns
+        return _result_bag_view(load_result(path), bag_index)
 
     bag_stat = Path(bag_path).stat()
     try:
@@ -830,6 +1071,9 @@ def main() -> None:
     estimator_settings = {}
     completed_run = None
     result_payload = None
+    result_configuration = {}
+    result_path = None
+    result_stat = None
     with estimate_tab:
         st.markdown("#### Data entering this posterior")
         if selected_datasets:
@@ -1106,10 +1350,36 @@ def main() -> None:
             except Exception as exc:
                 st.error("Cannot load result.npz: {}".format(exc))
                 result_payload = None
+            try:
+                result_configuration = load_yaml(
+                    str(completed_run / "config.yaml")
+                )
+            except Exception:
+                result_configuration = {}
         if result_payload is not None:
             particles = result_payload["particles"]
             weights = result_payload["weights"]
             ess = float(1.0 / np.sum(weights**2))
+            map_index = (
+                int(result_payload["map_particle_index"][0])
+                if "map_particle_index" in result_payload
+                else int(np.argmax(weights))
+            )
+            result_bag_paths = [
+                str(path) for path in result_payload["bag_paths"]
+            ]
+            result_estimator = dict(
+                result_configuration.get("estimator", {})
+            )
+            result_likelihood = dict(
+                result_estimator.get("likelihood", {})
+            )
+            result_translation_weight = float(
+                result_likelihood.get("translation_weight", 10.0)
+            )
+            result_rotation_weight = float(
+                result_likelihood.get("rotation_weight", 1.0)
+            )
             posterior_metrics = st.columns(4)
             posterior_metrics[0].metric(
                 "Particles", str(particles.shape[0])
@@ -1125,6 +1395,84 @@ def main() -> None:
             st.caption(
                 "Showing the latest completed run `{}`.".format(completed_run)
             )
+            st.write(
+                "**Result data:** {}".format(
+                    ", ".join(
+                        "`{}`".format(
+                            _bag_label(path, bag_directory)
+                        )
+                        for path in result_bag_paths
+                    )
+                )
+            )
+            if bag_path not in result_bag_paths:
+                st.warning(
+                    "The overview currently previews `{}`, but this completed "
+                    "posterior was estimated from {}. The result below does "
+                    "not belong to the previewed bag.".format(
+                        _bag_label(bag_path, bag_directory),
+                        ", ".join(
+                            _bag_label(path, bag_directory)
+                            for path in result_bag_paths
+                        ),
+                    )
+                )
+            if ess < max(10.0, 0.20 * particles.shape[0]):
+                st.warning(
+                    "Posterior resolution is low: ESS {:.2f} / {}. "
+                    "The estimated trajectory is the best realised particle, "
+                    "but uncertainty intervals are supported by only a few "
+                    "effective particles. Increase particle count or revise "
+                    "the prior before interpreting interval width.".format(
+                        ess, particles.shape[0]
+                    )
+                )
+
+            st.markdown("#### Estimated nominal and fit improvement")
+            st.caption(
+                "The estimated nominal is one physically realised trajectory: "
+                "the maximum-weight particle (index {}). It is not a "
+                "coordinate-wise median curve.".format(map_index)
+            )
+            estimated_columns = st.columns((1, 2))
+            with estimated_columns[0]:
+                st.dataframe(
+                    _estimated_parameter_rows(particles, map_index),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            fit_table = []
+            for result_bag_index, result_bag_path in enumerate(
+                result_bag_paths
+            ):
+                bag_view = cached_bag_view(
+                    str(result_path),
+                    int(result_stat.st_size),
+                    int(result_stat.st_mtime_ns),
+                    result_bag_index,
+                )
+                for row in _fit_rows(
+                    bag_view,
+                    weights,
+                    result_translation_weight,
+                    result_rotation_weight,
+                ):
+                    fit_table.append(
+                        {
+                            "bag": _bag_label(
+                                result_bag_path, bag_directory
+                            ),
+                            **row,
+                        }
+                    )
+            with estimated_columns[1]:
+                st.dataframe(
+                    fit_table,
+                    use_container_width=True,
+                    hide_index=True,
+                )
+
+            st.markdown("#### Posterior ridges and intervals")
             st.plotly_chart(
                 make_parameter_ridge_figure(particles, weights),
                 use_container_width=True,
@@ -1150,6 +1498,12 @@ def main() -> None:
                     )
                 except Exception as exc:
                     st.error("Cannot load result.npz: {}".format(exc))
+                try:
+                    result_configuration = load_yaml(
+                        str(completed_run / "config.yaml")
+                    )
+                except Exception:
+                    result_configuration = {}
         if result_payload is None:
             st.info(
                 "Complete an estimation run first. This tab always reloads "
@@ -1173,52 +1527,169 @@ def main() -> None:
                 key="uncertain_transform_bag",
             )
             bag_index = result_bag_paths.index(result_bag_path)
-            prefix = "bag_{}_".format(bag_index)
-            times = result_payload[prefix + "times"]
-            segment_id = result_payload[prefix + "segment_id"]
-            observed_position = result_payload[
-                prefix + "observed_position"
-            ]
-            observed_orientation = result_payload[
-                prefix + "observed_orientation_xyzw"
-            ]
-            nominal_position = result_payload[
-                prefix + "nominal_position"
-            ]
-            nominal_orientation = result_payload[
-                prefix + "nominal_orientation_xyzw"
-            ]
-            posterior_position = result_payload[
-                prefix + "posterior_position"
-            ]
-            posterior_orientation = result_payload[
-                prefix + "posterior_orientation_xyzw"
-            ]
-            delta_translation = result_payload[
-                prefix + "delta_translation"
-            ]
-            delta_rotation = result_payload[
-                prefix + "delta_rotation_vector"
-            ]
+            bag_view = cached_bag_view(
+                str(result_path),
+                int(result_stat.st_size),
+                int(result_stat.st_mtime_ns),
+                bag_index,
+            )
+            times = bag_view["times"]
+            segment_id = bag_view["segment_id"]
+            observed_position = bag_view["observed_position"]
+            observed_orientation = bag_view["observed_orientation"]
+            baseline_position = bag_view["baseline_position"]
+            baseline_orientation = bag_view["baseline_orientation"]
+            estimated_position = bag_view["estimated_position"]
+            estimated_orientation = bag_view["estimated_orientation"]
+            posterior_position = bag_view["posterior_position"]
+            posterior_orientation = bag_view["posterior_orientation"]
+            map_index = int(bag_view["estimated_particle_index"])
+            ess = float(1.0 / np.sum(np.asarray(weights) ** 2))
 
+            if bag_path != result_bag_path:
+                st.warning(
+                    "The overview previews `{}`, while this plot shows the "
+                    "stored result for `{}`. Time and trajectory selections "
+                    "come from the result bag.".format(
+                        _bag_label(bag_path, bag_directory),
+                        _bag_label(result_bag_path, bag_directory),
+                    )
+                )
+            if ess < max(10.0, 0.20 * len(weights)):
+                st.warning(
+                    "This run has low posterior resolution (ESS {:.2f} / {}). "
+                    "The MAP fit can be inspected, but the 50% / 95% "
+                    "transform intervals are supported by only a few "
+                    "effective particles.".format(ess, len(weights))
+                )
+            result_estimator = dict(
+                result_configuration.get("estimator", {})
+            )
+            result_likelihood = dict(
+                result_estimator.get("likelihood", {})
+            )
+            fit_rows = _fit_rows(
+                bag_view,
+                weights,
+                float(
+                    result_likelihood.get("translation_weight", 10.0)
+                ),
+                float(result_likelihood.get("rotation_weight", 1.0)),
+            )
+            st.markdown("#### 1. Does the estimated model explain the data?")
+            st.dataframe(
+                [
+                    {
+                        "bag": _bag_label(
+                            result_bag_path, bag_directory
+                        ),
+                        **row,
+                    }
+                    for row in fit_rows
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+            baseline_fit = fit_rows[0]
+            estimated_fit = fit_rows[1]
+            if (
+                estimated_fit["log likelihood"]
+                > baseline_fit["log likelihood"]
+            ):
+                st.success(
+                    "For this bag, the estimated nominal improves log "
+                    "likelihood from {:.3f} to {:.3f}; translation RMS "
+                    "{:.4f} → {:.4f} m and rotation RMS {:.2f} → {:.2f}°."
+                    .format(
+                        baseline_fit["log likelihood"],
+                        estimated_fit["log likelihood"],
+                        baseline_fit["translation RMS [m]"],
+                        estimated_fit["translation RMS [m]"],
+                        baseline_fit["rotation RMS [deg]"],
+                        estimated_fit["rotation RMS [deg]"],
+                    )
+                )
+            else:
+                st.warning(
+                    "The estimated nominal does not improve this bag's "
+                    "likelihood over the pre-fit baseline. With multiple "
+                    "bags the shared posterior may trade one bag against "
+                    "another; inspect all per-bag rows before accepting it."
+                )
             st.info(
-                "The raw posterior is the weighted four-parameter particles. "
-                "For every particle and time, this tab shows its pushforward "
-                "`ΔTᵢ(t) = T_nominal(t)⁻¹ T_particle,i(t)`. It is not a "
-                "separately fitted transform distribution."
+                "Black is recorded motion. Dashed orange is the pre-fit "
+                "scale=1 baseline. Blue is the estimated nominal generated "
+                "by maximum-weight particle {}. Faint blue trajectories are "
+                "the remaining weighted posterior—not a coordinate-wise "
+                "median curve.".format(map_index)
             )
             st.plotly_chart(
                 make_posterior_trajectory_figure(
                     times,
                     segment_id,
                     observed_position,
-                    nominal_position,
+                    baseline_position,
                     posterior_position,
                     weights,
+                    map_index,
                 ),
                 use_container_width=True,
                 config=trajectory_config,
             )
+            st.plotly_chart(
+                make_estimated_pose_figure(
+                    times,
+                    segment_id,
+                    observed_position,
+                    observed_orientation,
+                    baseline_position,
+                    baseline_orientation,
+                    estimated_position,
+                    estimated_orientation,
+                ),
+                use_container_width=True,
+                config=chart_config,
+            )
+
+            st.markdown(
+                "#### 2. Push the parameter posterior into transforms"
+            )
+            reference_choice = st.radio(
+                "ΔT reference trajectory",
+                (
+                    "Estimated nominal (posterior uncertainty)",
+                    "Pre-fit baseline (estimated model correction)",
+                ),
+                horizontal=True,
+                help=(
+                    "The first view answers how uncertain the trajectory is "
+                    "around the fitted model. The second shows how far the "
+                    "posterior-corrected model moved from scale=1."
+                ),
+            )
+            if reference_choice.startswith("Estimated"):
+                delta_translation = bag_view["delta_translation"]
+                delta_rotation = bag_view["delta_rotation_vector"]
+                reference_label = "estimated nominal (MAP)"
+                st.success(
+                    "Showing `ΔTᵢ(t) = T_estimated(t)⁻¹ T_particle,i(t)`. "
+                    "The MAP particle is exactly identity; the other "
+                    "particles show posterior uncertainty around the fitted "
+                    "trajectory."
+                )
+            else:
+                delta_translation = bag_view[
+                    "baseline_delta_translation"
+                ]
+                delta_rotation = bag_view[
+                    "baseline_delta_rotation_vector"
+                ]
+                reference_label = "pre-fit baseline"
+                st.info(
+                    "Showing `ΔTᵢ(t) = T_baseline(t)⁻¹ T_particle,i(t)`. "
+                    "This is the inferred correction from the original "
+                    "scale=1 model, not uncertainty centred on the fit."
+                )
             st.plotly_chart(
                 make_uncertain_transform_time_figure(
                     times,
@@ -1226,6 +1697,7 @@ def main() -> None:
                     delta_translation,
                     delta_rotation,
                     weights,
+                    reference_label,
                 ),
                 use_container_width=True,
                 config=chart_config,
@@ -1263,6 +1735,7 @@ def main() -> None:
                     delta_translation[:, time_index],
                     delta_rotation[:, time_index],
                     weights,
+                    reference_label,
                 ),
                 use_container_width=True,
                 config=trajectory_config,
@@ -1280,8 +1753,10 @@ def main() -> None:
                 make_body_frame_particle_figure(
                     observed_position[time_index],
                     observed_orientation[time_index],
-                    nominal_position[time_index],
-                    nominal_orientation[time_index],
+                    baseline_position[time_index],
+                    baseline_orientation[time_index],
+                    estimated_position[time_index],
+                    estimated_orientation[time_index],
                     posterior_position[:, time_index],
                     posterior_orientation[:, time_index],
                     weights,

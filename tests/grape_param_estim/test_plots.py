@@ -70,6 +70,7 @@ class PlotTest(unittest.TestCase):
         )
         from grape_param_estim.plots import (
             make_body_frame_particle_figure,
+            make_estimated_pose_figure,
             make_parameter_ridge_figure,
             make_posterior_trajectory_figure,
             make_transform_particle_figure,
@@ -115,6 +116,17 @@ class PlotTest(unittest.TestCase):
             replay.position,
             posterior_position,
             weights,
+            2,
+        )
+        pose = make_estimated_pose_figure(
+            data.times,
+            data.segment_id,
+            data.position,
+            data.orientation_xyzw,
+            replay.position,
+            replay.orientation_xyzw,
+            posterior_position[2],
+            posterior_orientation[2],
         )
         transform_time = make_uncertain_transform_time_figure(
             data.times,
@@ -133,6 +145,8 @@ class PlotTest(unittest.TestCase):
             data.orientation_xyzw[-1],
             replay.position[-1],
             replay.orientation_xyzw[-1],
+            posterior_position[2, -1],
+            posterior_orientation[2, -1],
             posterior_position[:, -1],
             posterior_orientation[:, -1],
             weights,
@@ -142,12 +156,21 @@ class PlotTest(unittest.TestCase):
         self.assertEqual(len(ridge.data), 4)
         self.assertGreaterEqual(len(trajectory.data), 4)
         self.assertLessEqual(len(trajectory.data), particle_count + 3)
+        trajectory_names = {trace.name for trace in trajectory.data}
+        self.assertIn("pre-fit baseline", trajectory_names)
+        self.assertIn(
+            "estimated nominal (maximum-weight particle)",
+            trajectory_names,
+        )
+        self.assertNotIn("posterior median", trajectory_names)
         self.assertEqual(len(transform_time.data), 10)
         self.assertEqual(len(transform_particles.data), 4)
         self.assertGreater(len(frames.data), 10)
+        self.assertEqual(len(pose.data), 18)
         for figure in (
             ridge,
             trajectory,
+            pose,
             transform_time,
             transform_particles,
             frames,

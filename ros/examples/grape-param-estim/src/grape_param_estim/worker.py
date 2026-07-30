@@ -17,6 +17,7 @@ from grape_param_estim.estimator import (
     LikelihoodWeights,
     estimate_parameters,
     parameter_summary,
+    residual_rms,
     save_result,
 )
 from grape_param_estim.model import (
@@ -50,7 +51,14 @@ def _nominal_parameters(configuration: Mapping[str, Any]):
 
 def _summary(result, elapsed_seconds: float) -> dict:
     bags = []
+    map_index = result.posterior.map_index
     for bag in result.bags:
+        nominal_translation, nominal_rotation = residual_rms(
+            bag.nominal.residual_se3
+        )
+        posterior_translation, posterior_rotation = residual_rms(
+            bag.posterior_residual_se3
+        )
         bags.append(
             {
                 "bag_path": bag.bag_path,
@@ -58,19 +66,31 @@ def _summary(result, elapsed_seconds: float) -> dict:
                 "end_time": float(bag.analysis.end_time),
                 "samples": int(bag.analysis.times.size),
                 "segments": int(bag.analysis.segment_count),
-                "nominal_translation_rms": float(
-                    np.sqrt(
-                        np.mean(
-                            bag.nominal.translation_residual_norm**2
-                        )
+                "nominal_translation_rms": float(nominal_translation),
+                "nominal_rotation_rms_deg": float(
+                    np.rad2deg(nominal_rotation)
+                ),
+                "baseline_translation_rms": float(nominal_translation),
+                "baseline_rotation_rms_deg": float(
+                    np.rad2deg(nominal_rotation)
+                ),
+                "estimated_translation_rms": float(
+                    posterior_translation[map_index]
+                ),
+                "estimated_rotation_rms_deg": float(
+                    np.rad2deg(posterior_rotation[map_index])
+                ),
+                "posterior_expected_translation_rms": float(
+                    np.sum(
+                        result.posterior.weights
+                        * posterior_translation
                     )
                 ),
-                "nominal_rotation_rms_deg": float(
+                "posterior_expected_rotation_rms_deg": float(
                     np.rad2deg(
-                        np.sqrt(
-                            np.mean(
-                                bag.nominal.rotation_residual_norm**2
-                            )
+                        np.sum(
+                            result.posterior.weights
+                            * posterior_rotation
                         )
                     )
                 ),
@@ -82,6 +102,18 @@ def _summary(result, elapsed_seconds: float) -> dict:
         "elapsed_seconds": float(elapsed_seconds),
         "particle_count": int(result.posterior.particles.shape[0]),
         "effective_sample_size": result.posterior.effective_sample_size,
+        "map_particle_index": map_index,
+        "map_parameters": {
+            name: float(result.posterior.particles[map_index, index])
+            for index, name in enumerate(
+                (
+                    "mass_scale",
+                    "force_scale",
+                    "inertia_scale",
+                    "torque_scale",
+                )
+            )
+        },
         "resampled": bool(result.posterior.resampled),
         "seed": int(result.seed),
         "parameters": parameter_summary(result.posterior),

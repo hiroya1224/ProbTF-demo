@@ -1,4 +1,5 @@
 import unittest
+from dataclasses import replace
 
 import numpy as np
 
@@ -47,7 +48,8 @@ def make_analysis(two_segments=False) -> AnalysisData:
         angular_velocity=np.zeros((times.size, 3)),
         specific_force=np.zeros((times.size, 3)),
         base_thrust=thrust,
-        gimbal_angle=gimbal,
+        gimbal_target_angle=gimbal + 0.01,
+        gimbal_measured_angle=gimbal,
         flight_state=np.full(times.size, 5),
         segment_id=segment_id,
     )
@@ -127,6 +129,23 @@ class GrapeRigidBodyModelTest(unittest.TestCase):
             atol=1e-11,
         )
 
+    def test_replay_uses_measured_gimbal_not_target_angle(self):
+        nominal = self.model.simulate_segment(
+            self.data, nominal_parameters(), self.segment
+        )
+        changed_target = replace(
+            self.data,
+            gimbal_target_angle=self.data.gimbal_target_angle + 0.5,
+        )
+
+        replay = self.model.simulate_segment(
+            changed_target, nominal_parameters(), self.segment
+        )
+
+        np.testing.assert_allclose(
+            replay.command_wrench, nominal.command_wrench, atol=0.0
+        )
+
     def test_nominal_synthetic_trajectory_replays_with_zero_residual(self):
         generated = self.model.simulate_segment(
             self.data, nominal_parameters(), self.segment
@@ -143,7 +162,8 @@ class GrapeRigidBodyModelTest(unittest.TestCase):
             angular_velocity=generated.angular_velocity,
             specific_force=self.data.specific_force,
             base_thrust=self.data.base_thrust,
-            gimbal_angle=self.data.gimbal_angle,
+            gimbal_target_angle=self.data.gimbal_target_angle,
+            gimbal_measured_angle=self.data.gimbal_measured_angle,
             flight_state=self.data.flight_state,
             segment_id=self.data.segment_id,
         )

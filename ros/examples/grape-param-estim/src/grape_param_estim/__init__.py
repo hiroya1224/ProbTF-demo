@@ -7,6 +7,7 @@ from grape_param_estim.data import (
     read_bag,
     save_yaml,
     scan_bag_paths,
+    suggest_analysis_interval,
 )
 from grape_param_estim.model import (
     GrapeRigidBodyModel,
@@ -28,4 +29,5 @@ __all__ = [
     "replay_segments",
     "save_yaml",
     "scan_bag_paths",
+    "suggest_analysis_interval",
 ]

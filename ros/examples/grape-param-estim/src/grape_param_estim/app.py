@@ -1,6 +1,7 @@
 """Single-page Streamlit application for selecting Grape replay data."""
 
 import argparse
+import hashlib
 from pathlib import Path
 from typing import Any, Dict, Mapping
 
@@ -12,8 +13,10 @@ from grape_param_estim.data import (
     read_bag,
     save_yaml,
     scan_bag_paths,
+    suggest_analysis_interval,
 )
 from grape_param_estim.plots import (
+    make_bag_overview_figure,
     make_correction_figure,
     make_command_figure,
     make_replay_pose_figure,
@@ -52,6 +55,19 @@ def _configured_value(
 ) -> Any:
     value = mapping.get(key, fallback)
     return fallback if value is None else value
+
+
+def _widget_suffix(path: str) -> str:
+    return hashlib.sha1(path.encode("utf-8")).hexdigest()[:12]
+
+
+def _bag_label(path: str, search_root: str) -> str:
+    try:
+        return str(
+            Path(path).resolve().relative_to(Path(search_root).resolve())
+        )
+    except (OSError, ValueError):
+        return str(Path(path))
 
 
 def _saved_configuration(
@@ -101,8 +117,8 @@ def main() -> None:
     )
     st.title("Grape trajectory replay")
     st.caption(
-        "Phase 0–1: inspect the selected bag data, then replay each short "
-        "segment with the recorded command and a nominal rigid-body model."
+        "Phase 0–1: choose motion from a whole-bag overview, then replay each "
+        "short segment with the recorded command and a nominal rigid body."
     )
 
     config_source = _initial_config_path()
@@ -119,10 +135,10 @@ def main() -> None:
     output_config = dict(configuration.get("output", {}))
     configured_topics = dict(data_config.get("topics", {}))
 
-    st.sidebar.header("Data")
+    st.sidebar.header("ROS bag")
     st.sidebar.caption("Loaded defaults from `{}`".format(config_source))
     bag_directory = st.sidebar.text_input(
-        "Bag directory",
+        "Bag directory or single `.bag`",
         value=str(
             _configured_value(
                 data_config,
@@ -130,13 +146,15 @@ def main() -> None:
                 "/home/leus/catkin_ws/bags/grape-drone",
             )
         ),
+        help=(
+            "A directory is scanned recursively. A direct .bag path produces "
+            "a one-item file list."
+        ),
     )
     bag_paths = scan_bag_paths(bag_directory)
     configured_bag = str(data_config.get("bag_path", ""))
     if configured_bag and Path(configured_bag).is_file():
         configured_bag = str(Path(configured_bag).expanduser().resolve())
-        if configured_bag not in bag_paths:
-            bag_paths = (configured_bag,) + bag_paths
     if not bag_paths:
         st.warning("No `.bag` file was found below `{}`.".format(bag_directory))
         st.stop()
@@ -146,23 +164,27 @@ def main() -> None:
         else 0
     )
     bag_path = st.sidebar.selectbox(
-        "Bag",
+        "Bag file",
         bag_paths,
         index=selected_index,
-        format_func=lambda path: "{}/{}".format(
-            Path(path).parent.name, Path(path).name
-        ),
+        format_func=lambda path: _bag_label(path, bag_directory),
+    )
+    st.sidebar.caption(
+        "{} bag(s) found recursively. Times below are local to the "
+        "selected bag.".format(len(bag_paths))
     )
 
     default_topics = {
-        "command": "/gimbalrotor/four_axes/command",
-        "gimbal": "/gimbalrotor/gimbals_ctrl",
+        "thrust_command": "/gimbalrotor/four_axes/command",
+        "gimbal_command": "/gimbalrotor/gimbals_ctrl",
+        "gimbal_state": "/gimbalrotor/joint_states",
         "imu": "/gimbalrotor/sensor_plugin/imu1/ros_converted",
-        "odometry": "/gimbalrotor/uav/cog/odom",
+        "cog_odometry": "/gimbalrotor/uav/cog/odom",
+        "body_odometry": "/gimbalrotor/uav/baselink/odom",
         "flight_state": "/gimbalrotor/flight_state",
     }
     topics = {}
-    with st.sidebar.expander("Topics"):
+    with st.sidebar.expander("Advanced: ROS topics"):
         for key in TOPIC_KEYS:
             topics[key] = st.text_input(
                 key.replace("_", " ").title(),
@@ -198,7 +220,7 @@ def main() -> None:
         st.stop()
 
     available_start, available_end = recording.analysis_bounds
-    minimum_window = min(0.05, 0.25 * (available_end - available_start))
+    minimum_window = min(0.25, 0.25 * (available_end - available_start))
     configured_start = float(
         _configured_value(analysis_config, "start_time", available_start)
     )
@@ -220,40 +242,136 @@ def main() -> None:
         )
     )
 
-    st.sidebar.header("Analysis interval")
-    start_time = st.sidebar.number_input(
-        "Start [bag-local s]",
-        min_value=float(available_start),
-        max_value=float(available_end - minimum_window),
-        value=configured_start,
-        step=0.05,
-        format="%.3f",
+    configured_duration = max(
+        minimum_window, configured_end - configured_start
     )
-    end_time = st.sidebar.number_input(
-        "End [bag-local s]",
-        min_value=float(start_time + minimum_window),
-        max_value=float(available_end),
-        value=max(configured_end, float(start_time + minimum_window)),
-        step=0.05,
-        format="%.3f",
+    suggested_interval = suggest_analysis_interval(
+        recording, configured_duration
+    )
+    initial_interval = (
+        (configured_start, configured_end)
+        if bag_path == configured_bag
+        else suggested_interval
+    )
+    suffix = _widget_suffix(bag_path)
+    interval_key = "analysis_interval_{}".format(suffix)
+    current_interval = st.session_state.get(interval_key, initial_interval)
+    current_start = float(
+        np.clip(
+            current_interval[0],
+            available_start,
+            available_end - minimum_window,
+        )
+    )
+    current_end = float(
+        np.clip(
+            current_interval[1],
+            current_start + minimum_window,
+            available_end,
+        )
+    )
+    st.session_state[interval_key] = (current_start, current_end)
+
+    st.subheader("1. Choose the motion to analyse")
+    st.caption(
+        "`{}` · common physical-stream range {:.3f}–{:.3f} s. "
+        "The orange band is the current interval.".format(
+            bag_path, available_start, available_end
+        )
+    )
+    overview_event = st.plotly_chart(
+        make_bag_overview_figure(
+            recording, st.session_state[interval_key]
+        ),
+        use_container_width=True,
+        key="bag_overview_{}".format(suffix),
+        on_select="rerun",
+        selection_mode=("box",),
+        config={"displaylogo": False},
+    )
+    try:
+        selected_points = overview_event["selection"]["points"]
+    except (KeyError, TypeError):
+        selected_points = ()
+    selected_x = sorted(
+        float(point["x"])
+        for point in selected_points
+        if point.get("x") is not None
+    )
+    selection_seen_key = "overview_selection_seen_{}".format(suffix)
+    if len(selected_x) >= 2:
+        plot_selection = (
+            float(np.clip(selected_x[0], available_start, available_end)),
+            float(np.clip(selected_x[-1], available_start, available_end)),
+        )
+        signature = tuple(round(value, 6) for value in plot_selection)
+        if (
+            plot_selection[1] - plot_selection[0] >= minimum_window
+            and st.session_state.get(selection_seen_key) != signature
+        ):
+            st.session_state[selection_seen_key] = signature
+            st.session_state[interval_key] = plot_selection
+            st.rerun()
+
+    interval_column, suggestion_column = st.columns((5, 1))
+    with suggestion_column:
+        if st.button(
+            "Use suggested window",
+            key="suggest_interval_{}".format(suffix),
+            use_container_width=True,
+        ):
+            st.session_state[interval_key] = suggested_interval
+            st.rerun()
+    with interval_column:
+        selected_interval = st.slider(
+            "Analysis interval [bag-local s]",
+            min_value=float(available_start),
+            max_value=float(available_end),
+            step=0.01,
+            format="%.2f s",
+            key=interval_key,
+            help=(
+                "Drag either handle for exact adjustment. You can also box-"
+                "select a horizontal range in the overview above."
+            ),
+        )
+    start_time, end_time = (
+        float(selected_interval[0]),
+        float(selected_interval[1]),
+    )
+
+    st.sidebar.header("Short replay")
+    st.sidebar.caption(
+        "Selected {:.3f}–{:.3f} s ({:.3f} s).".format(
+            start_time, end_time, end_time - start_time
+        )
+    )
+    segment_key = "segment_duration_{}".format(suffix)
+    segment_default = float(
+        np.clip(
+            float(
+                _configured_value(
+                    analysis_config, "segment_duration", 0.75
+                )
+            ),
+            0.05,
+            max(0.05, float(end_time - start_time)),
+        )
+    )
+    st.session_state[segment_key] = float(
+        np.clip(
+            st.session_state.get(segment_key, segment_default),
+            0.05,
+            max(0.05, float(end_time - start_time)),
+        )
     )
     segment_duration = st.sidebar.number_input(
         "Segment length [s]",
         min_value=0.05,
         max_value=max(0.05, float(end_time - start_time)),
-        value=float(
-            np.clip(
-                float(
-                    _configured_value(
-                        analysis_config, "segment_duration", 0.75
-                    )
-                ),
-                0.05,
-                max(0.05, float(end_time - start_time)),
-            )
-        ),
         step=0.05,
         format="%.3f",
+        key=segment_key,
     )
 
     default_inertia = np.asarray(
@@ -349,7 +467,10 @@ def main() -> None:
         else:
             st.sidebar.success("Saved `{}`".format(written_path))
 
-    data_tab, replay_tab = st.tabs(("Data", "Nominal replay"))
+    st.subheader("2. Inspect the selected interval")
+    data_tab, replay_tab = st.tabs(("Selected data", "Nominal replay"))
+    chart_config = {"displaylogo": False}
+    trajectory_config = {"displaylogo": False, "scrollZoom": True}
     with data_tab:
         metric_columns = st.columns(4)
         metric_columns[0].metric(
@@ -366,18 +487,25 @@ def main() -> None:
             "Bag duration", "{:.3f} s".format(recording.bag_duration)
         )
         st.info(
-            "Dotted vertical lines are short-replay segment boundaries. "
-            "Large motion and post-contact samples are intentionally not "
-            "hidden."
+            "The replay frame is centred at measured CoG translation and "
+            "aligned with the physical baselink orientation. Solid gimbal "
+            "traces are measured joints; dotted traces are targets. Gray "
+            "vertical lines are segment boundaries."
         )
         st.plotly_chart(
-            make_trajectory_figure(analysis), use_container_width=True
+            make_trajectory_figure(analysis),
+            use_container_width=True,
+            config=trajectory_config,
         )
         st.plotly_chart(
-            make_state_figure(analysis), use_container_width=True
+            make_state_figure(analysis),
+            use_container_width=True,
+            config=chart_config,
         )
         st.plotly_chart(
-            make_command_figure(analysis), use_container_width=True
+            make_command_figure(analysis),
+            use_container_width=True,
+            config=chart_config,
         )
 
     with replay_tab:
@@ -410,6 +538,9 @@ def main() -> None:
         )
         st.info(
             "Every segment starts from its observed `(p, R, v, ω)`. "
+            "Black is recorded motion; dashed orange is nominal and resets "
+            "at every gray segment boundary. The 3-D frame is centred/scaled "
+            "from the black trajectory only; use the mouse wheel to zoom. "
             "The SE(3) residual is "
             "`Log(T_obs,rel⁻¹ T_nom,rel)`. The correction plot shows "
             "`T_nom⁻¹ T_obs`."
@@ -417,18 +548,22 @@ def main() -> None:
         st.plotly_chart(
             make_replay_trajectory_figure(analysis, replay),
             use_container_width=True,
+            config=trajectory_config,
         )
         st.plotly_chart(
             make_replay_pose_figure(analysis, replay),
             use_container_width=True,
+            config=chart_config,
         )
         st.plotly_chart(
             make_correction_figure(analysis, replay),
             use_container_width=True,
+            config=chart_config,
         )
         st.plotly_chart(
             make_segment_residual_figure(analysis, replay),
             use_container_width=True,
+            config=chart_config,
         )
 
 

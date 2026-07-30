@@ -9,13 +9,15 @@ from grape_param_estim.data import (
     load_yaml,
     save_yaml,
     scan_bag_paths,
+    suggest_analysis_interval,
 )
 
 
 def make_recording() -> BagRecording:
     times = np.linspace(0.0, 2.0, 21)
     quaternion = np.zeros((times.size, 4))
-    quaternion[:, 3] = 1.0
+    quaternion[:, 2] = np.sin(0.25 * times)
+    quaternion[:, 3] = np.cos(0.25 * times)
     return BagRecording(
         bag_path="/tmp/synthetic.bag",
         bag_start_time=100.0,
@@ -24,9 +26,13 @@ def make_recording() -> BagRecording:
         base_thrust=np.column_stack(
             [times + float(rotor) for rotor in range(4)]
         ),
-        gimbal_times=times,
-        gimbal_angle=np.column_stack(
+        gimbal_target_times=times,
+        gimbal_target_angle=np.column_stack(
             [0.1 * times + float(rotor) for rotor in range(4)]
+        ),
+        gimbal_measured_times=times + 0.01,
+        gimbal_measured_angle=np.column_stack(
+            [0.2 * times + float(rotor) for rotor in range(4)]
         ),
         imu_times=times,
         specific_force=np.column_stack((times, 2.0 * times, 3.0 * times)),
@@ -35,9 +41,13 @@ def make_recording() -> BagRecording:
         ),
         state_times=times,
         position=np.column_stack((times, times**2, -times)),
-        orientation_xyzw=quaternion,
         linear_velocity=np.column_stack(
             (np.ones_like(times), 2.0 * times, -np.ones_like(times))
+        ),
+        body_times=times,
+        body_orientation_xyzw=quaternion,
+        body_angular_velocity=np.column_stack(
+            (0.4 * times, 0.5 * times, 0.6 * times)
         ),
         flight_state_times=np.asarray((0.0, 0.8, 1.4)),
         flight_state=np.asarray((0, 3, 5)),
@@ -55,7 +65,19 @@ class BagRecordingTest(unittest.TestCase):
             selected.base_thrust[:, 0], selected.times
         )
         np.testing.assert_allclose(
-            selected.angular_velocity[:, 2], 0.3 * selected.times
+            selected.angular_velocity[:, 2], 0.6 * selected.times
+        )
+        np.testing.assert_allclose(
+            selected.gimbal_target_angle[:, 0], 0.1 * selected.times
+        )
+        np.testing.assert_allclose(
+            selected.gimbal_measured_angle[:, 0],
+            0.2 * (selected.times - 0.01),
+        )
+        np.testing.assert_allclose(
+            selected.orientation_xyzw[:, 2],
+            np.sin(0.25 * selected.times),
+            atol=1.0e-12,
         )
         self.assertEqual(selected.segment_count, 4)
         self.assertEqual(
@@ -75,9 +97,18 @@ class BagRecordingTest(unittest.TestCase):
     def test_analysis_bounds_are_common_stream_overlap(self):
         recording = make_recording()
 
-        self.assertEqual(recording.analysis_bounds, (0.0, 2.0))
+        self.assertEqual(recording.analysis_bounds, (0.01, 2.0))
         with self.assertRaisesRegex(ValueError, "analysis interval"):
             recording.select_interval(-0.1, 1.0, 0.5)
+
+    def test_suggested_interval_is_valid_and_has_requested_duration(self):
+        recording = make_recording()
+
+        start, end = suggest_analysis_interval(recording, 0.5)
+
+        self.assertGreaterEqual(start, recording.analysis_bounds[0])
+        self.assertLessEqual(end, recording.analysis_bounds[1])
+        self.assertGreaterEqual(end - start, 0.49)
 
 
 class ConfigurationTest(unittest.TestCase):

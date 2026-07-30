@@ -49,7 +49,12 @@ def command_to_wrench(
     base_thrust: Sequence[float],
     gimbal_angle: Sequence[float],
 ) -> np.ndarray:
-    """Map four rotor/gimbal commands to body ``[F, tau]`` about the CoG."""
+    """Map rotor thrust and measured gimbal pose to root-aligned CoG wrench.
+
+    The geometry below is expressed in the physical ``main_body`` axes. The
+    replay state therefore uses CoG translation with baselink orientation,
+    instead of the controller's movable desired-CoG orientation.
+    """
 
     thrust = np.asarray(base_thrust, dtype=float)
     angle = np.asarray(gimbal_angle, dtype=float)
@@ -421,7 +426,7 @@ class GrapeRigidBodyModel:
                 command_to_wrench(thrust, angle)
                 for thrust, angle in zip(
                     data.base_thrust[segment],
-                    data.gimbal_angle[segment],
+                    data.gimbal_measured_angle[segment],
                 )
             ]
         )

@@ -8,11 +8,16 @@ import numpy as np
 
 
 TOPIC_KEYS = (
-    "command",
-    "gimbal",
+    "thrust_command",
+    "gimbal_command",
+    "gimbal_state",
     "imu",
-    "odometry",
+    "cog_odometry",
+    "body_odometry",
     "flight_state",
+)
+GIMBAL_JOINT_NAMES = tuple(
+    "gimbal{}".format(index) for index in range(1, 5)
 )
 
 
@@ -68,7 +73,8 @@ class AnalysisData:
     angular_velocity: np.ndarray
     specific_force: np.ndarray
     base_thrust: np.ndarray
-    gimbal_angle: np.ndarray
+    gimbal_target_angle: np.ndarray
+    gimbal_measured_angle: np.ndarray
     flight_state: np.ndarray
     segment_id: np.ndarray
 
@@ -81,7 +87,8 @@ class AnalysisData:
             ("angular_velocity", self.angular_velocity, 3),
             ("specific_force", self.specific_force, 3),
             ("base_thrust", self.base_thrust, 4),
-            ("gimbal_angle", self.gimbal_angle, 4),
+            ("gimbal_target_angle", self.gimbal_target_angle, 4),
+            ("gimbal_measured_angle", self.gimbal_measured_angle, 4),
         ):
             _validate_matrix(name, values, self.times, width)
         states = np.asarray(self.flight_state)
@@ -119,15 +126,19 @@ class BagRecording:
     bag_duration: float
     command_times: np.ndarray
     base_thrust: np.ndarray
-    gimbal_times: np.ndarray
-    gimbal_angle: np.ndarray
+    gimbal_target_times: np.ndarray
+    gimbal_target_angle: np.ndarray
+    gimbal_measured_times: np.ndarray
+    gimbal_measured_angle: np.ndarray
     imu_times: np.ndarray
     specific_force: np.ndarray
     angular_velocity: np.ndarray
     state_times: np.ndarray
     position: np.ndarray
-    orientation_xyzw: np.ndarray
     linear_velocity: np.ndarray
+    body_times: np.ndarray
+    body_orientation_xyzw: np.ndarray
+    body_angular_velocity: np.ndarray
     flight_state_times: np.ndarray
     flight_state: np.ndarray
 
@@ -136,20 +147,44 @@ class BagRecording:
             raise ValueError("bag_duration must be positive")
         for name, times, minimum in (
             ("command", self.command_times, 3),
-            ("gimbal", self.gimbal_times, 3),
+            ("gimbal target", self.gimbal_target_times, 3),
+            ("gimbal measured", self.gimbal_measured_times, 3),
             ("imu", self.imu_times, 3),
-            ("state", self.state_times, 3),
+            ("CoG state", self.state_times, 3),
+            ("body state", self.body_times, 3),
             ("flight_state", self.flight_state_times, 1),
         ):
             _validate_times(name, times, minimum=minimum)
         for name, values, times, width in (
             ("base_thrust", self.base_thrust, self.command_times, 4),
-            ("gimbal_angle", self.gimbal_angle, self.gimbal_times, 4),
+            (
+                "gimbal_target_angle",
+                self.gimbal_target_angle,
+                self.gimbal_target_times,
+                4,
+            ),
+            (
+                "gimbal_measured_angle",
+                self.gimbal_measured_angle,
+                self.gimbal_measured_times,
+                4,
+            ),
             ("specific_force", self.specific_force, self.imu_times, 3),
             ("angular_velocity", self.angular_velocity, self.imu_times, 3),
             ("position", self.position, self.state_times, 3),
-            ("orientation_xyzw", self.orientation_xyzw, self.state_times, 4),
             ("linear_velocity", self.linear_velocity, self.state_times, 3),
+            (
+                "body_orientation_xyzw",
+                self.body_orientation_xyzw,
+                self.body_times,
+                4,
+            ),
+            (
+                "body_angular_velocity",
+                self.body_angular_velocity,
+                self.body_times,
+                3,
+            ),
         ):
             _validate_matrix(name, values, times, width)
         if np.asarray(self.flight_state).shape != self.flight_state_times.shape:
@@ -157,19 +192,23 @@ class BagRecording:
 
     @property
     def analysis_bounds(self) -> Tuple[float, float]:
-        """Return the interval covered by state, command, gimbal, and IMU."""
+        """Return the common interval of every required physical stream."""
 
         start = max(
             self.command_times[0],
-            self.gimbal_times[0],
+            self.gimbal_target_times[0],
+            self.gimbal_measured_times[0],
             self.imu_times[0],
             self.state_times[0],
+            self.body_times[0],
         )
         end = min(
             self.command_times[-1],
-            self.gimbal_times[-1],
+            self.gimbal_target_times[-1],
+            self.gimbal_measured_times[-1],
             self.imu_times[-1],
             self.state_times[-1],
+            self.body_times[-1],
         )
         if end <= start:
             raise ValueError("required bag streams do not overlap")
@@ -181,7 +220,13 @@ class BagRecording:
         end_time: float,
         segment_duration: float,
     ) -> AnalysisData:
-        """Align all inputs to odometry timestamps and assign segment IDs."""
+        """Align physical inputs/state to CoG timestamps and make segments.
+
+        Translation is the measured CoG state. Orientation and angular
+        velocity are the measured physical body/baselink state. Together they
+        define a rigid-body frame centred at the CoG and parallel to baselink,
+        which is also the frame used by the wrench geometry in ``model.py``.
+        """
 
         start = float(start_time)
         end = float(end_time)
@@ -232,10 +277,12 @@ class BagRecording:
             segment_duration=duration,
             times=times,
             position=self.position[selected],
-            orientation_xyzw=self.orientation_xyzw[selected],
+            orientation_xyzw=_interpolate_quaternions(
+                self.body_times, self.body_orientation_xyzw, times
+            ),
             linear_velocity=self.linear_velocity[selected],
             angular_velocity=_interpolate_matrix(
-                self.imu_times, self.angular_velocity, times
+                self.body_times, self.body_angular_velocity, times
             ),
             specific_force=_interpolate_matrix(
                 self.imu_times, self.specific_force, times
@@ -243,8 +290,13 @@ class BagRecording:
             base_thrust=_interpolate_matrix(
                 self.command_times, self.base_thrust, times
             ),
-            gimbal_angle=_interpolate_matrix(
-                self.gimbal_times, self.gimbal_angle, times
+            gimbal_target_angle=_interpolate_matrix(
+                self.gimbal_target_times, self.gimbal_target_angle, times
+            ),
+            gimbal_measured_angle=_interpolate_matrix(
+                self.gimbal_measured_times,
+                self.gimbal_measured_angle,
+                times,
             ),
             flight_state=np.asarray(self.flight_state)[flight_indices],
             segment_id=segment_id,
@@ -290,12 +342,65 @@ def _interpolate_matrix(
     )
 
 
+def _interpolate_quaternions(
+    source_times: np.ndarray,
+    source_values: np.ndarray,
+    query_times: np.ndarray,
+) -> np.ndarray:
+    """Spherically interpolate a sign-continuous quaternion stream."""
+
+    quaternions = _normalise_quaternions(source_values)
+    upper = np.searchsorted(source_times, query_times, side="right")
+    upper = np.clip(upper, 1, len(source_times) - 1)
+    lower = upper - 1
+    interval = source_times[upper] - source_times[lower]
+    fraction = (query_times - source_times[lower]) / interval
+    first = quaternions[lower]
+    second = quaternions[upper]
+    dot = np.clip(np.sum(first * second, axis=1), -1.0, 1.0)
+
+    result = np.empty_like(first)
+    nearly_equal = dot > 0.9995
+    result[nearly_equal] = (
+        (1.0 - fraction[nearly_equal, np.newaxis])
+        * first[nearly_equal]
+        + fraction[nearly_equal, np.newaxis] * second[nearly_equal]
+    )
+    separated = ~nearly_equal
+    if np.any(separated):
+        angle = np.arccos(dot[separated])
+        denominator = np.sin(angle)
+        first_weight = np.sin(
+            (1.0 - fraction[separated]) * angle
+        ) / denominator
+        second_weight = np.sin(fraction[separated] * angle) / denominator
+        result[separated] = (
+            first_weight[:, np.newaxis] * first[separated]
+            + second_weight[:, np.newaxis] * second[separated]
+        )
+    return _normalise_quaternions(result)
+
+
+def _gimbal_positions(message: Any) -> Tuple[float, ...]:
+    """Extract gimbal1..4 in physical joint order from a JointState."""
+
+    positions = tuple(message.position)
+    names = tuple(message.name)
+    if all(name in names for name in GIMBAL_JOINT_NAMES):
+        return tuple(
+            positions[names.index(name)] for name in GIMBAL_JOINT_NAMES
+        )
+    if not names and len(positions) >= 4:
+        return positions[:4]
+    return ()
+
+
 def read_bag(
     bag_path: str,
     topics: Mapping[str, str],
     progress_callback=None,
 ) -> BagRecording:
-    """Read the five streams needed by Phase 0 and Phase 1 directly."""
+    """Read the physical state and command streams used by Phase 0--1."""
 
     if set(topics) != set(TOPIC_KEYS):
         raise ValueError(
@@ -312,15 +417,19 @@ def read_bag(
 
     command_times = []
     base_thrust = []
-    gimbal_times = []
-    gimbal_angle = []
+    gimbal_target_times = []
+    gimbal_target_angle = []
+    gimbal_measured_times = []
+    gimbal_measured_angle = []
     imu_times = []
     specific_force = []
     angular_velocity = []
     state_times = []
     position = []
-    orientation = []
     linear_velocity = []
+    body_times = []
+    body_orientation = []
+    body_angular_velocity = []
     flight_state_times = []
     flight_state = []
 
@@ -342,16 +451,21 @@ def read_bag(
                 next_report = fraction + 0.01
 
             timestamp = _message_time(message, record_time, bag_start)
-            if topic == topics["command"]:
+            if topic == topics["thrust_command"]:
                 values = tuple(message.base_thrust)
                 if len(values) >= 4:
                     command_times.append(timestamp)
                     base_thrust.append(values[:4])
-            elif topic == topics["gimbal"]:
-                values = tuple(message.position)
-                if len(values) >= 4:
-                    gimbal_times.append(timestamp)
-                    gimbal_angle.append(values[:4])
+            elif topic == topics["gimbal_command"]:
+                values = _gimbal_positions(message)
+                if values:
+                    gimbal_target_times.append(timestamp)
+                    gimbal_target_angle.append(values)
+            elif topic == topics["gimbal_state"]:
+                values = _gimbal_positions(message)
+                if values:
+                    gimbal_measured_times.append(timestamp)
+                    gimbal_measured_angle.append(values)
             elif topic == topics["imu"]:
                 imu_times.append(timestamp)
                 specific_force.append(
@@ -368,7 +482,7 @@ def read_bag(
                         message.angular_velocity.z,
                     )
                 )
-            elif topic == topics["odometry"]:
+            elif topic == topics["cog_odometry"]:
                 state_times.append(timestamp)
                 position.append(
                     (
@@ -377,7 +491,16 @@ def read_bag(
                         message.pose.pose.position.z,
                     )
                 )
-                orientation.append(
+                linear_velocity.append(
+                    (
+                        message.twist.twist.linear.x,
+                        message.twist.twist.linear.y,
+                        message.twist.twist.linear.z,
+                    )
+                )
+            elif topic == topics["body_odometry"]:
+                body_times.append(timestamp)
+                body_orientation.append(
                     (
                         message.pose.pose.orientation.x,
                         message.pose.pose.orientation.y,
@@ -385,11 +508,11 @@ def read_bag(
                         message.pose.pose.orientation.w,
                     )
                 )
-                linear_velocity.append(
+                body_angular_velocity.append(
                     (
-                        message.twist.twist.linear.x,
-                        message.twist.twist.linear.y,
-                        message.twist.twist.linear.z,
+                        message.twist.twist.angular.x,
+                        message.twist.twist.angular.y,
+                        message.twist.twist.angular.z,
                     )
                 )
             elif topic == topics["flight_state"]:
@@ -401,8 +524,11 @@ def read_bag(
     command_time, thrust = _ordered_unique(
         command_times, base_thrust, width=4
     )
-    gimbal_time, angle = _ordered_unique(
-        gimbal_times, gimbal_angle, width=4
+    gimbal_target_time, target_angle = _ordered_unique(
+        gimbal_target_times, gimbal_target_angle, width=4
+    )
+    gimbal_measured_time, measured_angle = _ordered_unique(
+        gimbal_measured_times, gimbal_measured_angle, width=4
     )
     imu_time, force = _ordered_unique(
         imu_times, specific_force, width=3
@@ -411,22 +537,24 @@ def read_bag(
         imu_times, angular_velocity, width=3
     )
     state_time, pose = _ordered_unique(state_times, position, width=3)
-    orientation_time, quaternion = _ordered_unique(
-        state_times, orientation, width=4
-    )
     velocity_time, velocity = _ordered_unique(
         state_times, linear_velocity, width=3
+    )
+    body_time, quaternion = _ordered_unique(
+        body_times, body_orientation, width=4
+    )
+    body_gyro_time, body_gyro = _ordered_unique(
+        body_times, body_angular_velocity, width=3
     )
     flight_time, flight_value = _ordered_unique(
         flight_state_times, flight_state, width=1, minimum=1
     )
     if not np.array_equal(imu_time, gyro_time):
         raise RuntimeError("IMU streams have diverging timestamps")
-    if not (
-        np.array_equal(state_time, orientation_time)
-        and np.array_equal(state_time, velocity_time)
-    ):
-        raise RuntimeError("odometry fields have diverging timestamps")
+    if not np.array_equal(state_time, velocity_time):
+        raise RuntimeError("CoG odometry fields have diverging timestamps")
+    if not np.array_equal(body_time, body_gyro_time):
+        raise RuntimeError("body odometry fields have diverging timestamps")
 
     return BagRecording(
         bag_path=str(path),
@@ -434,15 +562,19 @@ def read_bag(
         bag_duration=bag_duration,
         command_times=command_time,
         base_thrust=thrust,
-        gimbal_times=gimbal_time,
-        gimbal_angle=angle,
+        gimbal_target_times=gimbal_target_time,
+        gimbal_target_angle=target_angle,
+        gimbal_measured_times=gimbal_measured_time,
+        gimbal_measured_angle=measured_angle,
         imu_times=imu_time,
         specific_force=force,
         angular_velocity=gyro,
         state_times=state_time,
         position=pose,
-        orientation_xyzw=_normalise_quaternions(quaternion),
         linear_velocity=velocity,
+        body_times=body_time,
+        body_orientation_xyzw=_normalise_quaternions(quaternion),
+        body_angular_velocity=body_gyro,
         flight_state_times=flight_time,
         flight_state=flight_value[:, 0].astype(int),
     )
@@ -461,6 +593,108 @@ def scan_bag_paths(directory: str) -> Tuple[str, ...]:
         for path in sorted(root.rglob("*.bag"))
         if path.is_file()
     )
+
+
+def suggest_analysis_interval(
+    recording: BagRecording,
+    duration: float = 5.28,
+) -> Tuple[float, float]:
+    """Suggest a low-motion airborne interval for a newly selected bag.
+
+    This is only a UI starting point. It never filters samples from an interval
+    chosen by the user.
+    """
+
+    available_start, available_end = recording.analysis_bounds
+    requested = float(
+        np.clip(float(duration), 0.25, available_end - available_start)
+    )
+    times = recording.state_times
+    in_bounds = (times >= available_start) & (times <= available_end)
+    flight_indices = (
+        np.searchsorted(recording.flight_state_times, times, side="right") - 1
+    )
+    flight_indices = np.clip(
+        flight_indices, 0, recording.flight_state_times.size - 1
+    )
+    states = recording.flight_state[flight_indices]
+    altitude = recording.position[:, 2]
+    lower_altitude = float(np.percentile(altitude[in_bounds], 10.0))
+    upper_altitude = float(np.percentile(altitude[in_bounds], 90.0))
+    airborne_threshold = lower_altitude + max(
+        0.10, 0.15 * (upper_altitude - lower_altitude)
+    )
+    airborne = altitude > airborne_threshold
+    body_rate = _interpolate_matrix(
+        recording.body_times,
+        recording.body_angular_velocity,
+        times,
+    )
+    motion_score = np.linalg.norm(
+        recording.linear_velocity, axis=1
+    ) + 0.20 * np.linalg.norm(body_rate, axis=1)
+
+    masks = (
+        in_bounds & airborne & (states == 5),
+        in_bounds & airborne & np.isin(states, (3, 4, 5)),
+        in_bounds & airborne,
+        in_bounds,
+    )
+    for mask in masks:
+        best = None
+        invalid_prefix = np.concatenate(
+            ([0], np.cumsum((~mask).astype(int)))
+        )
+        score_prefix = np.concatenate(([0.0], np.cumsum(motion_score)))
+        for start_index in np.flatnonzero(mask):
+            target_end = times[start_index] + requested
+            end_index = int(np.searchsorted(times, target_end, side="left"))
+            if end_index >= times.size:
+                continue
+            if invalid_prefix[end_index + 1] != invalid_prefix[start_index]:
+                continue
+            count = end_index - start_index + 1
+            score = (
+                score_prefix[end_index + 1] - score_prefix[start_index]
+            ) / count
+            candidate = (
+                float(score),
+                float(times[start_index]),
+                float(times[end_index]),
+            )
+            if best is None or candidate < best:
+                best = candidate
+        if best is not None:
+            return best[1], best[2]
+
+        transitions = np.diff(
+            np.concatenate(([False], mask, [False])).astype(int)
+        )
+        starts = np.flatnonzero(transitions == 1)
+        stops = np.flatnonzero(transitions == -1)
+        shortened = []
+        minimum_short_window = min(requested, 1.0)
+        for start_index, stop_index in zip(starts, stops):
+            end_index = int(stop_index - 1)
+            run_duration = float(times[end_index] - times[start_index])
+            if run_duration + 1.0e-9 < minimum_short_window:
+                continue
+            mean_score = float(
+                np.mean(motion_score[start_index : end_index + 1])
+            )
+            shortened.append(
+                (
+                    -run_duration,
+                    mean_score,
+                    float(times[start_index]),
+                    float(times[end_index]),
+                )
+            )
+        if shortened:
+            shortened.sort()
+            return shortened[0][2], shortened[0][3]
+
+    return available_start, available_end
 
 
 def load_yaml(path: str) -> Dict[str, Any]:
@@ -498,4 +732,5 @@ __all__ = [
     "read_bag",
     "save_yaml",
     "scan_bag_paths",
+    "suggest_analysis_interval",
 ]

@@ -4,7 +4,7 @@ from typing import Iterable
 
 import numpy as np
 
-from grape_param_estim.data import AnalysisData
+from grape_param_estim.data import AnalysisData, BagRecording
 from grape_param_estim.model import ReplayResult
 
 
@@ -54,6 +54,161 @@ def _add_segment_lines(figure, data: AnalysisData, rows: int) -> None:
             )
 
 
+def _decimated_indices(size: int, maximum: int = 5000) -> np.ndarray:
+    stride = max(1, int(np.ceil(float(size) / float(maximum))))
+    indices = np.arange(0, size, stride, dtype=int)
+    if indices[-1] != size - 1:
+        indices = np.append(indices, size - 1)
+    return indices
+
+
+def _observed_scene(position: np.ndarray) -> dict:
+    """Return a cubic scene centred and scaled only from observed motion."""
+
+    values = np.asarray(position, dtype=float)
+    lower = np.min(values, axis=0)
+    upper = np.max(values, axis=0)
+    centre = 0.5 * (lower + upper)
+    span = max(float(np.max(upper - lower)), 0.20)
+    half = 0.60 * span
+    return {
+        "xaxis": {
+            "title": "world x [m]",
+            "range": [centre[0] - half, centre[0] + half],
+        },
+        "yaxis": {
+            "title": "world y [m]",
+            "range": [centre[1] - half, centre[1] + half],
+        },
+        "zaxis": {
+            "title": "world z [m]",
+            "range": [centre[2] - half, centre[2] + half],
+        },
+        "aspectmode": "cube",
+    }
+
+
+def make_bag_overview_figure(
+    recording: BagRecording,
+    selected_interval,
+):
+    """Show the whole bag and expose its x values for box selection."""
+
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    figure = make_subplots(
+        rows=4,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.035,
+        subplot_titles=(
+            "CoG position in world",
+            "Physical baselink orientation",
+            "CoG linear / body angular velocity",
+            "Flight state",
+        ),
+    )
+    state_indices = _decimated_indices(recording.state_times.size)
+    body_indices = _decimated_indices(recording.body_times.size)
+    flight_indices = _decimated_indices(recording.flight_state_times.size)
+    body_euler = np.rad2deg(
+        _quaternion_to_euler_xyzw(
+            recording.body_orientation_xyzw[body_indices]
+        )
+    )
+    colors = ("#2563eb", "#dc2626", "#16a34a")
+    for column, axis in enumerate(AXES):
+        figure.add_trace(
+            go.Scattergl(
+                x=recording.state_times[state_indices],
+                y=recording.position[state_indices, column],
+                mode="lines",
+                line={"color": colors[column]},
+                name="p{}".format(axis),
+                legendgroup="p{}".format(axis),
+            ),
+            row=1,
+            col=1,
+        )
+        figure.add_trace(
+            go.Scattergl(
+                x=recording.body_times[body_indices],
+                y=body_euler[:, column],
+                mode="lines",
+                line={"color": colors[column]},
+                name=("roll", "pitch", "yaw")[column],
+                legendgroup=("roll", "pitch", "yaw")[column],
+            ),
+            row=2,
+            col=1,
+        )
+        figure.add_trace(
+            go.Scattergl(
+                x=recording.state_times[state_indices],
+                y=recording.linear_velocity[state_indices, column],
+                mode="lines",
+                line={"color": colors[column]},
+                name="v{}".format(axis),
+                legendgroup="v{}".format(axis),
+            ),
+            row=3,
+            col=1,
+        )
+        figure.add_trace(
+            go.Scattergl(
+                x=recording.body_times[body_indices],
+                y=recording.body_angular_velocity[body_indices, column],
+                mode="lines",
+                line={"color": colors[column], "dash": "dot"},
+                name="ω{}".format(axis),
+                legendgroup="omega{}".format(axis),
+            ),
+            row=3,
+            col=1,
+        )
+    figure.add_trace(
+        go.Scatter(
+            x=recording.flight_state_times[flight_indices],
+            y=recording.flight_state[flight_indices],
+            mode="lines",
+            line={"shape": "hv", "color": "#475569"},
+            name="flight state",
+        ),
+        row=4,
+        col=1,
+    )
+    start, end = (float(value) for value in selected_interval)
+    for row in range(1, 5):
+        figure.add_vrect(
+            x0=start,
+            x1=end,
+            fillcolor="rgba(249, 115, 22, 0.16)",
+            line_width=1,
+            line_color="rgba(249, 115, 22, 0.8)",
+            row=row,
+            col=1,
+        )
+    figure.update_yaxes(title_text="position [m]", row=1, col=1)
+    figure.update_yaxes(title_text="angle [deg]", row=2, col=1)
+    figure.update_yaxes(title_text="m/s, rad/s", row=3, col=1)
+    figure.update_yaxes(title_text="state", row=4, col=1)
+    figure.update_xaxes(title_text="bag-local time [s]", row=4, col=1)
+    figure.update_layout(
+        title=(
+            "Whole-bag overview — drag horizontally on any panel "
+            "to select an interval"
+        ),
+        height=830,
+        margin={"l": 45, "r": 20, "t": 80, "b": 40},
+        legend={"orientation": "h"},
+        hovermode="x unified",
+        dragmode="select",
+        selectdirection="h",
+    )
+    return figure
+
+
 def make_trajectory_figure(data: AnalysisData):
     """Return a 3-D observed trajectory split into replay segments."""
 
@@ -84,13 +239,9 @@ def make_trajectory_figure(data: AnalysisData):
         title="Observed body pose in world",
         height=560,
         margin={"l": 0, "r": 0, "t": 45, "b": 0},
-        scene={
-            "xaxis_title": "world x [m]",
-            "yaxis_title": "world y [m]",
-            "zaxis_title": "world z [m]",
-            "aspectmode": "data",
-        },
+        scene=_observed_scene(data.position),
         legend={"orientation": "h"},
+        uirevision=data.bag_path,
     )
     return figure
 
@@ -199,7 +350,10 @@ def make_command_figure(data: AnalysisData):
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.08,
-        subplot_titles=("Recorded base thrust", "Recorded gimbal angle"),
+        subplot_titles=(
+            "Recorded base thrust command",
+            "Gimbal target and measured physical angle",
+        ),
     )
     for rotor in range(4):
         color = ROTOR_COLORS[rotor]
@@ -218,10 +372,23 @@ def make_command_figure(data: AnalysisData):
         figure.add_trace(
             go.Scatter(
                 x=data.times,
-                y=np.rad2deg(data.gimbal_angle[:, rotor]),
+                y=np.rad2deg(data.gimbal_target_angle[:, rotor]),
+                mode="lines",
+                line={"color": color, "dash": "dot"},
+                name="gimbal {} target".format(rotor + 1),
+                legendgroup="rotor{}".format(rotor),
+                showlegend=False,
+            ),
+            row=2,
+            col=1,
+        )
+        figure.add_trace(
+            go.Scatter(
+                x=data.times,
+                y=np.rad2deg(data.gimbal_measured_angle[:, rotor]),
                 mode="lines",
                 line={"color": color},
-                name="gimbal {}".format(rotor + 1),
+                name="gimbal {} measured".format(rotor + 1),
                 legendgroup="rotor{}".format(rotor),
                 showlegend=False,
             ),
@@ -252,9 +419,9 @@ def make_replay_trajectory_figure(
     for segment_id, segment in data.segments():
         observed = data.position[segment]
         nominal = replay.position[segment]
-        for label, position, color, dash in (
-            ("observed", observed, "#0f172a", "solid"),
-            ("nominal", nominal, "#f97316", "dash"),
+        for label, position, color, dash, width in (
+            ("observed", observed, "#0f172a", "solid", 7),
+            ("nominal", nominal, "#f97316", "dash", 4),
         ):
             figure.add_trace(
                 go.Scatter3d(
@@ -262,7 +429,7 @@ def make_replay_trajectory_figure(
                     y=position[:, 1],
                     z=position[:, 2],
                     mode="lines",
-                    line={"width": 5, "color": color, "dash": dash},
+                    line={"width": width, "color": color, "dash": dash},
                     name=label,
                     legendgroup=label,
                     showlegend=segment_id == 0,
@@ -280,13 +447,9 @@ def make_replay_trajectory_figure(
         title="Observed and nominal body trajectory in world",
         height=620,
         margin={"l": 0, "r": 0, "t": 45, "b": 0},
-        scene={
-            "xaxis_title": "world x [m]",
-            "yaxis_title": "world y [m]",
-            "zaxis_title": "world z [m]",
-            "aspectmode": "data",
-        },
+        scene=_observed_scene(data.position),
         legend={"orientation": "h"},
+        uirevision=data.bag_path,
     )
     return figure
 
@@ -510,6 +673,7 @@ def make_segment_residual_figure(
 
 
 __all__ = [
+    "make_bag_overview_figure",
     "make_correction_figure",
     "make_command_figure",
     "make_replay_pose_figure",

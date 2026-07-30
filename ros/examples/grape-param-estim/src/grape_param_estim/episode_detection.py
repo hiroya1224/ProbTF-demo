@@ -83,6 +83,7 @@ class DetectedEpisode:
     support_height_sigma_m: float
     support_vertical_velocity_sigma_m_s: float
     support_sample_count: int
+    support_source: str
     liftoff_s: float
     status: str
     reason: str
@@ -252,13 +253,53 @@ def _detect_liftoff(
     ):
         selected = slice(index, index + count)
         relative_height = position_z[selected] - support_height
+        velocity_start = max(start_index, index - 2 * count)
+        velocity_stop = min(stop_index, index + count)
+        recent_velocity = velocity_z[velocity_start:velocity_stop]
         if (
             np.all(relative_height >= height_threshold)
-            and float(np.median(velocity_z[selected]))
+            and float(np.quantile(recent_velocity, 0.75))
             > max(0.0, velocity_threshold)
         ):
             return float(times[index])
     return float("nan")
+
+
+def _stationary_support(
+    recording: FailureBagRecording,
+    indices: np.ndarray,
+    settings: EpisodeDetectionSettings,
+):
+    if indices.size < 10:
+        return None
+    speed = np.linalg.norm(
+        recording.linear_velocity[indices], axis=1
+    )
+    speed_median = float(np.median(speed))
+    speed_sigma = _robust_sigma(speed)
+    stationary = indices[
+        speed
+        <= speed_median
+        + settings.standardized_threshold
+        * max(speed_sigma, np.finfo(float).eps)
+    ]
+    if stationary.size < 10:
+        return None
+    return {
+        "height": float(
+            np.median(recording.position[stationary, 2])
+        ),
+        "height_sigma": _robust_sigma(
+            recording.position[stationary, 2]
+        ),
+        "vertical_velocity": float(
+            np.median(recording.linear_velocity[stationary, 2])
+        ),
+        "vertical_velocity_sigma": _robust_sigma(
+            recording.linear_velocity[stationary, 2]
+        ),
+        "count": int(stationary.size),
+    }
 
 
 def detect_control_episodes(
@@ -302,53 +343,56 @@ def detect_control_episodes(
         status = "not_identifiable"
         reason = "no_stationary_baseline"
         support_count = 0
+        support_source = "unavailable"
 
-        if baseline_indices.size >= 10:
-            baseline_speed = np.linalg.norm(
-                recording.linear_velocity[baseline_indices], axis=1
+        support = _stationary_support(
+            recording, baseline_indices, settings
+        )
+        if support is not None:
+            support_source = "pre_control_stationary"
+        else:
+            initial_active = np.flatnonzero(
+                (times >= start_s)
+                & (
+                    times
+                    < min(
+                        end_s,
+                        start_s + settings.baseline_window_s,
+                    )
+                )
             )
-            speed_median = float(np.median(baseline_speed))
-            speed_sigma = _robust_sigma(baseline_speed)
-            stationary = baseline_indices[
-                baseline_speed
-                <= speed_median
-                + settings.standardized_threshold
-                * max(speed_sigma, np.finfo(float).eps)
-            ]
-            if stationary.size >= 10:
-                support_height = float(
-                    np.median(recording.position[stationary, 2])
-                )
-                height_sigma = _robust_sigma(
-                    recording.position[stationary, 2]
-                )
-                support_velocity = float(
-                    np.median(recording.linear_velocity[stationary, 2])
-                )
-                velocity_sigma = _robust_sigma(
-                    recording.linear_velocity[stationary, 2]
-                )
-                support_count = int(stationary.size)
-                liftoff = _detect_liftoff(
-                    recording,
-                    start_index,
-                    stop_index,
-                    support_height,
-                    height_sigma,
-                    support_velocity,
-                    velocity_sigma,
-                    settings,
-                )
-                if not np.isfinite(liftoff):
-                    reason = "no_persistent_liftoff"
-                elif (
-                    end_s - liftoff
-                    < settings.minimum_airborne_duration_s
-                ):
-                    reason = "airborne_interval_too_short"
-                else:
-                    status = "candidate"
-                    reason = "airborne_candidate"
+            support = _stationary_support(
+                recording, initial_active, settings
+            )
+            if support is not None:
+                support_source = "initial_controlled_stationary"
+
+        if support is not None:
+            support_height = support["height"]
+            height_sigma = support["height_sigma"]
+            support_velocity = support["vertical_velocity"]
+            velocity_sigma = support["vertical_velocity_sigma"]
+            support_count = support["count"]
+            liftoff = _detect_liftoff(
+                recording,
+                start_index,
+                stop_index,
+                support_height,
+                height_sigma,
+                support_velocity,
+                velocity_sigma,
+                settings,
+            )
+            if not np.isfinite(liftoff):
+                reason = "no_persistent_liftoff"
+            elif (
+                end_s - liftoff
+                < settings.minimum_airborne_duration_s
+            ):
+                reason = "airborne_interval_too_short"
+            else:
+                status = "candidate"
+                reason = "airborne_candidate"
 
         episodes.append(
             DetectedEpisode(
@@ -362,6 +406,7 @@ def detect_control_episodes(
                 support_height_sigma_m=height_sigma,
                 support_vertical_velocity_sigma_m_s=velocity_sigma,
                 support_sample_count=support_count,
+                support_source=support_source,
                 liftoff_s=liftoff,
                 status=status,
                 reason=reason,

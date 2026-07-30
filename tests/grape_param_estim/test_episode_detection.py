@@ -139,6 +139,26 @@ class EpisodeDetectionTests(unittest.TestCase):
         self.assertEqual(len(episodes), 1)
         self.assertEqual(episodes[0].status, "candidate")
 
+    def test_initial_controlled_stationary_period_can_supply_support(self):
+        recording = _recording()
+        flight_state = recording.flight_state.copy()
+        flight_state[recording.state_times < 10.0] = 3
+        updated = FailureBagRecording(
+            **{
+                **recording.__dict__,
+                "flight_state": flight_state,
+            }
+        )
+
+        episodes = detect_control_episodes(updated, _settings())
+
+        self.assertEqual(len(episodes), 1)
+        self.assertEqual(episodes[0].status, "candidate")
+        self.assertEqual(
+            episodes[0].support_source,
+            "initial_controlled_stationary",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

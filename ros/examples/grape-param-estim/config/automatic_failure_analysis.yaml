@@ -1,4 +1,4 @@
-schema: grape_failure_automatic_analysis/v1
+schema: grape_failure_automatic_analysis/v2
 
 topics:
   command: /gimbalrotor/four_axes/command
@@ -6,6 +6,13 @@ topics:
   imu: /gimbalrotor/sensor_plugin/imu1/ros_converted
   odometry: /gimbalrotor/uav/cog/odom
   flight_state: /gimbalrotor/flight_state
+
+controller_topics:
+  pid_debug: /gimbalrotor/debug/pose/pid
+  xy: /gimbalrotor/controller/xy/parameter_updates
+  z: /gimbalrotor/controller/z/parameter_updates
+  roll_pitch: /gimbalrotor/controller/roll_pitch/parameter_updates
+  yaw: /gimbalrotor/controller/yaw/parameter_updates
 
 # Flight state supplies controller intent.  Liftoff is still inferred from the
 # stationary support plane immediately preceding each active episode.

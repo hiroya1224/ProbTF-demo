@@ -9,6 +9,8 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <exec_depend>aerial_robot_msgs</exec_depend>
+  <exec_depend>dynamic_reconfigure</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>python3-matplotlib</exec_depend>
   <exec_depend>python3-numpy</exec_depend>

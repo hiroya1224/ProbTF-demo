@@ -1,13 +1,16 @@
 """Automatic multi-bag analysis with explicit fit and failure masks."""
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import numpy as np
 import yaml
 
+from grape_param_estim.controller_advice import (
+    build_controller_advice,
+)
 from grape_param_estim.effective_estimator import (
     EstimatorSettings,
     canonical_sha256,
@@ -30,8 +33,8 @@ from grape_param_estim.failure_bag import (
 )
 
 
-CONFIG_SCHEMA = "grape_failure_automatic_analysis/v1"
-RESULT_SCHEMA = "grape_failure_automatic_result/v1"
+CONFIG_SCHEMA = "grape_failure_automatic_analysis/v2"
+RESULT_SCHEMA = "grape_failure_automatic_result/v2"
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,18 @@ class AutomaticAnalysisConfig:
     detection: EpisodeDetectionSettings
     estimation: Mapping[str, Any]
     parameter_trace_step_s: float
+    controller_topics: Mapping[str, str] = field(default_factory=dict)
+
+
+def _progress_slice(callback, start: float, end: float):
+    if callback is None:
+        return None
+
+    def report(fraction, phase):
+        value = float(np.clip(fraction, 0.0, 1.0))
+        callback(start + (end - start) * value, phase)
+
+    return report
 
 
 def load_automatic_config(path) -> AutomaticAnalysisConfig:
@@ -64,6 +79,25 @@ def load_automatic_config(path) -> AutomaticAnalysisConfig:
         )
     normalized_topics = {
         str(name): str(topic) for name, topic in topics.items()
+    }
+    controller_topics = values.get("controller_topics")
+    required_controller_topics = {
+        "pid_debug",
+        "xy",
+        "z",
+        "roll_pitch",
+        "yaw",
+    }
+    if (
+        not isinstance(controller_topics, dict)
+        or set(controller_topics) != required_controller_topics
+    ):
+        raise ValueError(
+            "automatic config must define PID debug and four gain topics"
+        )
+    normalized_controller_topics = {
+        str(name): str(topic)
+        for name, topic in controller_topics.items()
     }
     estimation = values.get("estimation")
     if not isinstance(estimation, dict):
@@ -107,6 +141,7 @@ def load_automatic_config(path) -> AutomaticAnalysisConfig:
         detection=detection,
         estimation=dict(estimation),
         parameter_trace_step_s=trace_step,
+        controller_topics=normalized_controller_topics,
     )
 
 
@@ -160,6 +195,7 @@ def _fit_and_diagnose(
     recording: FailureBagRecording,
     episode: DetectedEpisode,
     config: AutomaticAnalysisConfig,
+    progress_callback=None,
 ):
     if recording.command_times.size < 3:
         raise ValueError("recording has no usable command stream")
@@ -204,7 +240,25 @@ def _fit_and_diagnose(
             )
         ),
     )
-    preliminary_selected = command_valid & ~diagnostic_state
+    sampled_height = np.interp(
+        timestamps,
+        recording.state_times,
+        recording.position[:, 2],
+    )
+    support_clearance = max(
+        config.detection.minimum_liftoff_height_m,
+        config.detection.standardized_threshold
+        * max(episode.support_height_sigma_m, 0.0),
+    )
+    support_contact = _persistent_mask(
+        timestamps,
+        sampled_height
+        <= episode.support_height_m + support_clearance,
+        config.detection.persistence_s,
+    )
+    preliminary_selected = (
+        command_valid & ~diagnostic_state & ~support_contact
+    )
     if int(np.sum(preliminary_selected)) < minimum_samples:
         raise ValueError("too few command-valid airborne samples")
 
@@ -213,6 +267,9 @@ def _fit_and_diagnose(
         settings,
         fit_mask=preliminary_selected,
         bootstrap=False,
+        progress_callback=_progress_slice(
+            progress_callback, 0.0, 0.08
+        ),
     )
     preliminary_evaluation = evaluate_effective_parameters(
         data, settings, preliminary
@@ -237,6 +294,9 @@ def _fit_and_diagnose(
         settings,
         fit_mask=selected,
         bootstrap=False,
+        progress_callback=_progress_slice(
+            progress_callback, 0.08, 0.16
+        ),
     )
     evaluation = evaluate_effective_parameters(
         data, settings, intermediate
@@ -260,7 +320,12 @@ def _fit_and_diagnose(
         mismatch = final_mismatch
 
     estimate = estimate_effective_parameters(
-        data, settings, fit_mask=selected
+        data,
+        settings,
+        fit_mask=selected,
+        progress_callback=_progress_slice(
+            progress_callback, 0.16, 0.70
+        ),
     )
     evaluation = evaluate_effective_parameters(
         data, settings, estimate
@@ -283,6 +348,9 @@ def _fit_and_diagnose(
             config.detection.minimum_airborne_duration_s
         ),
         step_s=trace_step,
+        progress_callback=_progress_slice(
+            progress_callback, 0.70, 1.0
+        ),
     )
     return {
         "settings": settings,
@@ -290,10 +358,12 @@ def _fit_and_diagnose(
         "command_valid": command_valid,
         "flight_state": sampled_flight_state,
         "diagnostic_state_mask": diagnostic_state,
+        "support_contact_mask": support_contact,
         "fit_mask": selected,
         "mismatch_mask": mismatch,
         "residual_score": final_score,
         "estimate": estimate,
+        "evaluation": evaluation,
         "parameter_trace": trace,
         "parameter_trace_step_s": trace_step,
     }
@@ -339,6 +409,7 @@ def _episode_result(
     episode: DetectedEpisode,
     config: AutomaticAnalysisConfig,
     sequence_offset_s: float,
+    progress_callback=None,
 ) -> Mapping[str, Any]:
     base = {
         "episode_index": episode.index,
@@ -358,6 +429,7 @@ def _episode_result(
                 episode.support_vertical_velocity_sigma_m_s
             ),
             "sample_count": episode.support_sample_count,
+            "source": episode.support_source,
         },
         "liftoff_s": _finite_or_none(episode.liftoff_s),
         "selection": {
@@ -382,13 +454,25 @@ def _episode_result(
         "parameter_trace": [],
         "parameter_trace_step_s": None,
         "model_diagnostics": None,
+        "controller_advice": {
+            "status": "not_available",
+            "reason": "episode was not estimated",
+            "groups": [],
+        },
     }
     if not episode.identifiable:
+        if progress_callback is not None:
+            progress_callback(1.0, episode.reason)
         return base
 
     try:
         fit = _fit_and_diagnose(
-            recording, episode, config
+            recording,
+            episode,
+            config,
+            progress_callback=_progress_slice(
+                progress_callback, 0.0, 0.82
+            ),
         )
     except ValueError as error:
         base["status"] = "not_identifiable"
@@ -400,6 +484,8 @@ def _episode_result(
                 "reason": "estimation_not_identifiable",
             }
         )
+        if progress_callback is not None:
+            progress_callback(1.0, "episode not identifiable")
         return base
 
     timestamps = fit["timestamps"]
@@ -411,6 +497,13 @@ def _episode_result(
             timestamps, fit["fit_mask"]
         )
     ]
+    base["selection"]["failure_diagnostic_intervals"].extend(
+        _interval_rows(
+            timestamps,
+            fit["support_contact_mask"],
+            "support_contact",
+        )
+    )
     base["selection"]["failure_diagnostic_intervals"].extend(
         _interval_rows(
             timestamps,
@@ -443,6 +536,16 @@ def _episode_result(
             }
         )
     base["estimate"] = fit["estimate"]
+    base["controller_advice"] = build_controller_advice(
+        recording,
+        fit,
+        episode.liftoff_s,
+        progress_callback=_progress_slice(
+            progress_callback, 0.82, 1.0
+        ),
+    )
+    if progress_callback is not None:
+        progress_callback(1.0, "episode complete")
     base["parameter_trace_step_s"] = fit[
         "parameter_trace_step_s"
     ]
@@ -557,6 +660,7 @@ def _recording_plot_data(
 def analyze_recordings(
     recordings: Sequence[FailureBagRecording],
     config: AutomaticAnalysisConfig,
+    progress_callback=None,
 ) -> Mapping[str, Any]:
     """Analyze already loaded recordings in the supplied sequence order."""
 
@@ -564,19 +668,40 @@ def analyze_recordings(
         raise ValueError("at least one recording is required")
     bag_rows = []
     sequence_offset = 0.0
+    recording_count = len(recordings)
     for bag_index, recording in enumerate(recordings):
         detected = detect_control_episodes(
             recording, config.detection
         )
-        episodes = [
-            _episode_result(
-                recording,
-                episode,
-                config,
-                sequence_offset,
+        episode_count = max(1, len(detected))
+        episodes = []
+        for episode_index, episode in enumerate(detected):
+            local_callback = _progress_slice(
+                progress_callback,
+                (
+                    bag_index + episode_index / episode_count
+                )
+                / recording_count,
+                (
+                    bag_index
+                    + (episode_index + 1) / episode_count
+                )
+                / recording_count,
             )
-            for episode in detected
-        ]
+            episodes.append(
+                _episode_result(
+                    recording,
+                    episode,
+                    config,
+                    sequence_offset,
+                    progress_callback=local_callback,
+                )
+            )
+        if not detected and progress_callback is not None:
+            progress_callback(
+                (bag_index + 1) / recording_count,
+                "no controller-active episode",
+            )
         bag_rows.append(
             {
                 "bag_index": bag_index,
@@ -610,12 +735,33 @@ def analyze_recordings(
 def analyze_bags(
     bag_paths: Sequence,
     config: AutomaticAnalysisConfig,
+    progress_callback=None,
 ) -> Mapping[str, Any]:
-    recordings = [
-        read_failure_recording(path, config.topics)
-        for path in bag_paths
-    ]
-    return analyze_recordings(recordings, config)
+    paths = list(bag_paths)
+    if not paths:
+        raise ValueError("at least one bag is required")
+    recordings = []
+    for index, path in enumerate(paths):
+        read_progress = _progress_slice(
+            progress_callback,
+            0.15 * index / len(paths),
+            0.15 * (index + 1) / len(paths),
+        )
+        recordings.append(
+            read_failure_recording(
+                path,
+                config.topics,
+                config.controller_topics,
+                progress_callback=read_progress,
+            )
+        )
+    return analyze_recordings(
+        recordings,
+        config,
+        progress_callback=_progress_slice(
+            progress_callback, 0.15, 1.0
+        ),
+    )
 
 
 def merge_analysis_results(

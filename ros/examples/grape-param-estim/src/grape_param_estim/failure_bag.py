@@ -3,11 +3,91 @@
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import Mapping, Tuple
+from typing import Mapping, Optional, Tuple
 
 import numpy as np
 
 from grape_param_estim.controller_sample import command_to_wrench
+
+
+PID_AXES = ("x", "y", "z", "roll", "pitch", "yaw")
+PID_GROUPS = ("xy", "z", "roll_pitch", "yaw")
+
+
+@dataclass(frozen=True)
+class ControllerRecording:
+    """Recorded PID terms and dynamic-reconfigure gain snapshots."""
+
+    times: np.ndarray
+    total: np.ndarray
+    proportional: np.ndarray
+    integral: np.ndarray
+    derivative: np.ndarray
+    gain_times: Mapping[str, np.ndarray]
+    gain_values: Mapping[str, np.ndarray]
+
+    def __post_init__(self) -> None:
+        times = np.asarray(self.times, dtype=float)
+        if (
+            times.size < 3
+            or not np.all(np.isfinite(times))
+            or np.any(np.diff(times) <= 0.0)
+        ):
+            raise ValueError(
+                "controller PID timestamps must be finite and ordered"
+            )
+        for name in (
+            "total",
+            "proportional",
+            "integral",
+            "derivative",
+        ):
+            values = np.asarray(getattr(self, name), dtype=float)
+            if (
+                values.shape != (times.size, len(PID_AXES))
+                or not np.all(np.isfinite(values))
+            ):
+                raise ValueError(
+                    "{} PID terms have an invalid shape".format(name)
+                )
+        if set(self.gain_times) != set(self.gain_values):
+            raise ValueError("controller gain groups do not match")
+        for group in self.gain_times:
+            update_times = np.asarray(
+                self.gain_times[group], dtype=float
+            )
+            values = np.asarray(
+                self.gain_values[group], dtype=float
+            )
+            if (
+                values.shape != (update_times.size, 3)
+                or update_times.size < 1
+                or not np.all(np.isfinite(update_times))
+                or not np.all(np.isfinite(values))
+                or (
+                    update_times.size > 1
+                    and np.any(np.diff(update_times) <= 0.0)
+                )
+            ):
+                raise ValueError(
+                    "{} controller gains are invalid".format(group)
+                )
+
+    def gains_at(self, group: str, timestamp: float) -> Optional[Mapping]:
+        """Return the latest recorded P/I/D gains at one bag-local time."""
+
+        if group not in self.gain_times:
+            return None
+        times = np.asarray(self.gain_times[group], dtype=float)
+        index = int(np.searchsorted(times, timestamp, side="right") - 1)
+        if index < 0:
+            index = 0
+        values = np.asarray(self.gain_values[group], dtype=float)[index]
+        return {
+            "p": float(values[0]),
+            "i": float(values[1]),
+            "d": float(values[2]),
+        }
 
 
 @dataclass(frozen=True)
@@ -76,6 +156,8 @@ class FailureBagRecording:
     linear_velocity: np.ndarray
     flight_state_times: np.ndarray
     flight_state: np.ndarray
+    orientation_xyzw: Optional[np.ndarray] = None
+    controller: Optional[ControllerRecording] = None
 
     def __post_init__(self) -> None:
         if not np.isfinite(self.bag_duration_s) or self.bag_duration_s <= 0.0:
@@ -134,6 +216,19 @@ class FailureBagRecording:
             or np.any(np.diff(flight_times) <= 0.0)
         ):
             raise ValueError("flight_state must be finite and time ordered")
+        if self.orientation_xyzw is not None:
+            orientation = np.asarray(
+                self.orientation_xyzw, dtype=float
+            )
+            if (
+                orientation.shape != (self.state_times.size, 4)
+                or not np.all(np.isfinite(orientation))
+                or np.any(
+                    np.linalg.norm(orientation, axis=1)
+                    <= np.finfo(float).eps
+                )
+            ):
+                raise ValueError("orientation_xyzw is invalid")
 
     def estimator_data(
         self, start_offset_s: float, end_offset_s: float
@@ -160,14 +255,31 @@ class FailureBagRecording:
         )
 
 
-def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
+def sha256_file(
+    path: Path,
+    chunk_size: int = 1024 * 1024,
+    progress_callback=None,
+) -> str:
     digest = sha256()
+    total_size = max(1, path.stat().st_size)
+    completed = 0
+    next_report = 0.0
     with path.open("rb") as stream:
         while True:
             chunk = stream.read(chunk_size)
             if not chunk:
                 break
             digest.update(chunk)
+            completed += len(chunk)
+            fraction = min(1.0, completed / total_size)
+            if (
+                progress_callback is not None
+                and (fraction >= next_report or fraction >= 1.0)
+            ):
+                progress_callback(fraction, "hashing ROS bag")
+                next_report = fraction + 0.01
+    if progress_callback is not None:
+        progress_callback(1.0, "ROS bag hash complete")
     return digest.hexdigest()
 
 
@@ -214,6 +326,8 @@ def _collect_streams(
     low: float,
     high: float,
     allow_missing_command: bool = False,
+    controller_topics: Optional[Mapping[str, str]] = None,
+    progress_callback=None,
 ):
     try:
         import rosbag
@@ -230,16 +344,49 @@ def _collect_streams(
     state_times = []
     position = []
     linear_velocity = []
+    orientation = []
     flight_state_times = []
     flight_state = []
+    pid_times = []
+    pid_rows = []
+    gain_times = {group: [] for group in PID_GROUPS}
+    gain_values = {group: [] for group in PID_GROUPS}
 
-    selected_topics = tuple(topics.values())
+    controller_topics = dict(controller_topics or {})
+    selected_topics = tuple(
+        dict.fromkeys(
+            tuple(topics.values())
+            + tuple(controller_topics.values())
+        )
+    )
+    gain_topic_groups = {
+        topic: group
+        for group, topic in controller_topics.items()
+        if group in PID_GROUPS
+    }
     with rosbag.Bag(str(path), "r") as bag:
         bag_start = float(bag.get_start_time())
         bag_duration = float(bag.get_end_time()) - bag_start
+        next_progress = 0.0
         for topic, message, record_time in bag.read_messages(
             topics=selected_topics
         ):
+            progress = float(
+                np.clip(
+                    (
+                        float(record_time.to_sec()) - bag_start
+                    )
+                    / max(bag_duration, np.finfo(float).eps),
+                    0.0,
+                    1.0,
+                )
+            )
+            if (
+                progress_callback is not None
+                and progress >= next_progress
+            ):
+                progress_callback(progress, "reading ROS bag")
+                next_progress = progress + 0.005
             timestamp = _message_time(message, record_time, bag_start)
             if timestamp < low or timestamp > high:
                 continue
@@ -285,12 +432,65 @@ def _collect_streams(
                         message.twist.twist.linear.z,
                     )
                 )
+                orientation.append(
+                    (
+                        message.pose.pose.orientation.x,
+                        message.pose.pose.orientation.y,
+                        message.pose.pose.orientation.z,
+                        message.pose.pose.orientation.w,
+                    )
+                )
             elif (
                 "flight_state" in topics
                 and topic == topics["flight_state"]
             ):
                 flight_state_times.append(timestamp)
                 flight_state.append((int(message.data),))
+            elif (
+                controller_topics.get("pid_debug") is not None
+                and topic == controller_topics["pid_debug"]
+            ):
+                row = []
+                usable = True
+                for term in (
+                    "total",
+                    "p_term",
+                    "i_term",
+                    "d_term",
+                ):
+                    for axis in PID_AXES:
+                        values = tuple(
+                            getattr(getattr(message, axis), term)
+                        )
+                        if not values:
+                            usable = False
+                            break
+                        row.append(float(values[0]))
+                    if not usable:
+                        break
+                if usable and np.all(np.isfinite(row)):
+                    pid_times.append(timestamp)
+                    pid_rows.append(row)
+            elif topic in gain_topic_groups:
+                values = {
+                    parameter.name: float(parameter.value)
+                    for parameter in message.doubles
+                }
+                if all(
+                    name in values
+                    for name in ("p_gain", "i_gain", "d_gain")
+                ):
+                    group = gain_topic_groups[topic]
+                    gain_times[group].append(timestamp)
+                    gain_values[group].append(
+                        (
+                            values["p_gain"],
+                            values["i_gain"],
+                            values["d_gain"],
+                        )
+                    )
+        if progress_callback is not None:
+            progress_callback(1.0, "ROS bag messages loaded")
 
     if allow_missing_command and (
         len(command_times) < 3 or len(gimbal_times) < 3
@@ -343,8 +543,41 @@ def _collect_streams(
     velocity_time, velocity = _ordered_unique(
         state_times, linear_velocity, 3
     )
+    orientation_time, quaternion = _ordered_unique(
+        state_times, orientation, 4
+    )
     if not np.array_equal(state_time, velocity_time):
         raise RuntimeError("odometry pose and velocity timestamps diverged")
+    if not np.array_equal(state_time, orientation_time):
+        raise RuntimeError("odometry pose and orientation timestamps diverged")
+
+    controller = None
+    if len(pid_times) >= 3:
+        pid_time, terms = _ordered_unique(
+            pid_times, pid_rows, 4 * len(PID_AXES)
+        )
+        ordered_gain_times = {}
+        ordered_gain_values = {}
+        for group in PID_GROUPS:
+            if not gain_times[group]:
+                continue
+            times = np.asarray(gain_times[group], dtype=float)
+            values = np.asarray(gain_values[group], dtype=float)
+            order = np.argsort(times, kind="stable")
+            times = times[order]
+            values = values[order]
+            unique, indices = np.unique(times, return_index=True)
+            ordered_gain_times[group] = unique
+            ordered_gain_values[group] = values[indices]
+        controller = ControllerRecording(
+            times=pid_time,
+            total=terms[:, 0:6],
+            proportional=terms[:, 6:12],
+            integral=terms[:, 12:18],
+            derivative=terms[:, 18:24],
+            gain_times=ordered_gain_times,
+            gain_values=ordered_gain_values,
+        )
 
     result = {
         "bag_start": bag_start,
@@ -357,6 +590,8 @@ def _collect_streams(
         "state_time": state_time,
         "position": pose,
         "velocity": velocity,
+        "orientation": quaternion,
+        "controller": controller,
     }
     if "flight_state" in topics:
         flight_time, flight_value = _ordered_unique(
@@ -414,6 +649,8 @@ def read_failure_bag(
 def read_failure_recording(
     bag_path,
     topics: Mapping[str, str],
+    controller_topics: Optional[Mapping[str, str]] = None,
+    progress_callback=None,
 ) -> FailureBagRecording:
     """Load a complete bag for automatic control-episode detection."""
 
@@ -438,10 +675,27 @@ def read_failure_recording(
         -np.inf,
         np.inf,
         allow_missing_command=True,
+        controller_topics=controller_topics,
+        progress_callback=(
+            None
+            if progress_callback is None
+            else lambda fraction, phase: progress_callback(
+                0.9 * fraction, phase
+            )
+        ),
     )
     return FailureBagRecording(
         bag_path=str(path),
-        bag_sha256=sha256_file(path),
+        bag_sha256=sha256_file(
+            path,
+            progress_callback=(
+                None
+                if progress_callback is None
+                else lambda fraction, phase: progress_callback(
+                    0.9 + 0.1 * fraction, phase
+                )
+            ),
+        ),
         bag_start_time=streams["bag_start"],
         bag_duration_s=streams["bag_duration"],
         command_times=streams["command_time"],
@@ -454,12 +708,17 @@ def read_failure_recording(
         linear_velocity=streams["velocity"],
         flight_state_times=streams["flight_time"],
         flight_state=streams["flight_state"],
+        orientation_xyzw=streams["orientation"],
+        controller=streams["controller"],
     )
 
 
 __all__ = [
+    "ControllerRecording",
     "FailureBagData",
     "FailureBagRecording",
+    "PID_AXES",
+    "PID_GROUPS",
     "read_failure_bag",
     "read_failure_recording",
     "sha256_file",

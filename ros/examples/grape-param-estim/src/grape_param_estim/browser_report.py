@@ -247,6 +247,95 @@ def _parameter_table(episode: Mapping) -> str:
     )
 
 
+def _pid_text(gains) -> str:
+    if gains is None:
+        return "not recorded"
+    return "P={:.6g}, I={:.6g}, D={:.6g}".format(
+        gains["p"], gains["i"], gains["d"]
+    )
+
+
+def _controller_advice_table(episode: Mapping) -> str:
+    advice = episode.get("controller_advice", {})
+    groups = advice.get("groups", [])
+    if not groups:
+        return "<p>{}: {}</p>".format(
+            html.escape(advice.get("status", "not_available")),
+            html.escape(advice.get("reason", "no controller advice")),
+        )
+    rows = []
+    ridge_rows = []
+    for group in groups:
+        response = group.get("response_scale")
+        revision = group.get("minimum_log_change", {})
+        model = group.get("controller_model", {})
+        estimate = model.get("estimate")
+        proposed_model = revision.get(
+            "proposed_controller_model_parameter"
+        )
+        response_text = (
+            "-"
+            if response is None
+            else "{:.6g} [{:.6g}, {:.6g}]".format(
+                response["estimate"],
+                response["ci95"][0],
+                response["ci95"][1],
+            )
+        )
+        model_text = (
+            "-"
+            if estimate is None or proposed_model is None
+            else "{}: {:.6g} → {:.6g}".format(
+                model.get("parameter", "model"),
+                estimate,
+                proposed_model,
+            )
+        )
+        rows.append(
+            "<tr><td>{}</td><td>{}</td><td>{}</td>"
+            "<td>{}</td><td>{}</td><td>{}</td></tr>".format(
+                html.escape(group["group"]),
+                html.escape(group["status"]),
+                html.escape(response_text),
+                html.escape(_pid_text(group.get("current_pid"))),
+                html.escape(
+                    _pid_text(revision.get("proposed_pid"))
+                ),
+                html.escape(model_text),
+            )
+        )
+        ridge = group.get("non_identifiability_ridge")
+        if ridge is not None:
+            points = ridge.get("points", [])
+            span = (
+                "-"
+                if not points
+                else "{:.3g}…{:.3g}".format(
+                    points[0]["physical_parameter_ratio"],
+                    points[-1]["physical_parameter_ratio"],
+                )
+            )
+            ridge_rows.append(
+                "<li><code>{}</code>: <code>{}</code>; "
+                "shown physical-parameter ratio {}</li>".format(
+                    html.escape(group["group"]),
+                    html.escape(ridge["equation"]),
+                    html.escape(span),
+                )
+            )
+    return (
+        "<p>Advisory first step only; each PID/model scale is limited "
+        "to 20%. Values are not written to the aircraft. Validate one "
+        "change at a time under tethered/safe conditions.</p>"
+        "<table><thead><tr><th>group</th><th>evidence</th>"
+        "<th>response scale [95%]</th><th>current PID</th>"
+        "<th>proposed PID</th><th>controller model</th>"
+        "</tr></thead><tbody>{}</tbody></table>"
+        "<details><summary>Preserved non-identifiability ridges</summary>"
+        "<ul>{}</ul></details>"
+    ).format("".join(rows), "".join(ridge_rows))
+
+
 def _episode_html(episode: Mapping) -> str:
     support = episode["support"]["height_m"]
     support_text = "unavailable" if support is None else "{:.4f} m".format(
@@ -283,6 +372,8 @@ def _episode_html(episode: Mapping) -> str:
         {lag}
         <h4>Effective parameters</h4>
         {table}
+        <h4>PID / model first-step advice</h4>
+        {controller_advice}
         <h4>Failure diagnostic intervals</h4>
         <ul>{diagnostics}</ul>
         {residual}
@@ -298,6 +389,7 @@ def _episode_html(episode: Mapping) -> str:
         states=", ".join(str(value) for value in episode["flight_states"]),
         lag=lag,
         table=_parameter_table(episode),
+        controller_advice=_controller_advice_table(episode),
         diagnostics=diagnostics or "<li>none</li>",
         residual=_residual_svg(episode),
     )

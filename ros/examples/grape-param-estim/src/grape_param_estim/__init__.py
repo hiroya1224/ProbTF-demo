@@ -24,6 +24,7 @@ from grape_param_estim.effective_estimator import (
     write_result,
 )
 from grape_param_estim.failure_bag import (
+    ControllerRecording,
     FailureBagData,
     FailureBagRecording,
     read_failure_bag,
@@ -33,6 +34,7 @@ from grape_param_estim.failure_bag import (
 
 __all__ = [
     "AutomaticAnalysisConfig",
+    "ControllerRecording",
     "EstimatorSettings",
     "FailureBagData",
     "FailureBagRecording",

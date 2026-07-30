@@ -370,6 +370,7 @@ def estimate_effective_parameters(
     settings: EstimatorSettings,
     fit_mask: np.ndarray = None,
     bootstrap: bool = True,
+    progress_callback=None,
 ) -> Mapping[str, Any]:
     """Estimate diagonal effective response and autocorrelation-aware CIs."""
 
@@ -394,6 +395,10 @@ def estimate_effective_parameters(
     )
     delay_rows = []
     candidate_wrench = []
+    total_work = len(delays) + 6 * (
+        settings.bootstrap_samples if bootstrap else 1
+    )
+    completed_work = 0
     for delay in delays:
         wrench = _zero_order_hold(
             data.command_times,
@@ -407,6 +412,12 @@ def estimate_effective_parameters(
             {"delay_s": float(delay), "normalized_rmse": score}
         )
         candidate_wrench.append(wrench)
+        completed_work += 1
+        if progress_callback is not None:
+            progress_callback(
+                completed_work / total_work,
+                "alignment delay search",
+            )
     best_index = min(
         range(len(delay_rows)),
         key=lambda index: (
@@ -475,8 +486,20 @@ def estimate_effective_parameters(
                     fit_response[indices],
                     settings,
                 )
+                completed_work += 1
+                if progress_callback is not None:
+                    progress_callback(
+                        completed_work / total_work,
+                        "block bootstrap",
+                    )
         else:
             samples = np.repeat(coefficients[None, :], 2, axis=0)
+            completed_work += 1
+            if progress_callback is not None:
+                progress_callback(
+                    completed_work / total_work,
+                    "robust channel fit",
+                )
         gain_interval_values = np.quantile(
             samples[:, 1], (0.025, 0.975)
         )
@@ -627,6 +650,7 @@ def effective_parameter_trace(
     fit_mask: np.ndarray = None,
     minimum_duration_s: float = 0.5,
     step_s: float = 0.5,
+    progress_callback=None,
 ) -> list:
     """Return cumulative robust-fit coefficients without repeated bootstrap."""
 
@@ -664,9 +688,17 @@ def effective_parameter_trace(
         "angular_acceleration",
     )
     rows = []
+    total_work = max(1, len(cutoffs) * len(axis_names))
+    completed_work = 0
     for cutoff in cutoffs:
         prefix_mask = selected & (timestamps <= cutoff)
         if int(np.sum(prefix_mask)) < 30:
+            completed_work += len(axis_names)
+            if progress_callback is not None:
+                progress_callback(
+                    completed_work / total_work,
+                    "parameter trace",
+                )
             continue
         parameters = {}
         for channel, axis in enumerate(axis_names):
@@ -686,6 +718,12 @@ def effective_parameter_trace(
             parameters[
                 "{}_velocity_feedback".format(prefix)
             ] = float(coefficients[2])
+            completed_work += 1
+            if progress_callback is not None:
+                progress_callback(
+                    completed_work / total_work,
+                    "parameter trace",
+                )
         rows.append(
             {
                 "time_s": float(min(cutoff, final)),

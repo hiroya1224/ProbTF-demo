@@ -15,6 +15,7 @@ from grape_param_estim.episode_detection import (
     EpisodeDetectionSettings,
 )
 from grape_param_estim.failure_bag import FailureBagRecording
+from grape_param_estim.failure_bag import ControllerRecording
 
 
 def _automatic_recording():
@@ -28,6 +29,9 @@ def _automatic_recording():
     position = np.zeros((timestamps.size, 3), dtype=float)
     position[:, 2] = 1.7 + 0.3 * np.clip(
         (timestamps - 5.0) / 0.5, 0.0, 1.0
+    )
+    position[:, 2] -= 0.3 * np.clip(
+        (timestamps - 10.0) / 0.2, 0.0, 1.0
     )
     velocity = np.gradient(position, step, axis=0)
 
@@ -65,6 +69,34 @@ def _automatic_recording():
     angular_velocity += rng.normal(
         0.0, 0.0003, angular_velocity.shape
     )
+    angular_response = np.gradient(
+        angular_velocity, step, axis=0
+    )
+    pid_total = np.column_stack(
+        (
+            specific_force / np.asarray((0.9, 1.1, 0.8)),
+            angular_response / np.asarray((1.2, 0.95, 0.7)),
+        )
+    )
+    orientation = np.zeros((timestamps.size, 4), dtype=float)
+    orientation[:, 3] = 1.0
+    controller = ControllerRecording(
+        times=timestamps,
+        total=pid_total,
+        proportional=0.6 * pid_total,
+        integral=0.1 * pid_total,
+        derivative=0.3 * pid_total,
+        gain_times={
+            group: np.asarray((0.0,))
+            for group in ("xy", "z", "roll_pitch", "yaw")
+        },
+        gain_values={
+            "xy": np.asarray(((3.0, 0.1, 1.0),)),
+            "z": np.asarray(((5.0, 1.0, 2.5),)),
+            "roll_pitch": np.asarray(((20.0, 1.0, 8.0),)),
+            "yaw": np.asarray(((4.0, 1.0, 2.0),)),
+        },
+    )
     return FailureBagRecording(
         bag_path="/synthetic/automatic.bag",
         bag_sha256="c" * 64,
@@ -80,6 +112,8 @@ def _automatic_recording():
         linear_velocity=velocity,
         flight_state_times=timestamps,
         flight_state=flight_state,
+        orientation_xyzw=orientation,
+        controller=controller,
     )
 
 
@@ -138,13 +172,29 @@ class AutomaticAnalysisTests(unittest.TestCase):
         self.assertEqual(
             config.detection.diagnostic_flight_states, (17,)
         )
+        self.assertEqual(
+            config.controller_topics["pid_debug"],
+            "/gimbalrotor/debug/pose/pid",
+        )
 
     def test_detection_estimation_trace_and_browser_report(self):
+        progress = []
         result = analyze_recordings(
-            [_automatic_recording()], _config()
+            [_automatic_recording()],
+            _config(),
+            progress_callback=lambda fraction, phase: progress.append(
+                (fraction, phase)
+            ),
         )
 
         self.assertEqual(result["schema"], RESULT_SCHEMA)
+        self.assertAlmostEqual(progress[-1][0], 1.0)
+        self.assertTrue(
+            np.all(np.diff([row[0] for row in progress]) >= 0.0)
+        )
+        self.assertIn(
+            "block bootstrap", {row[1] for row in progress}
+        )
         self.assertEqual(result["bag_count"], 1)
         episode = result["bags"][0]["episodes"][0]
         self.assertEqual(episode["status"], "estimated")
@@ -162,12 +212,50 @@ class AutomaticAnalysisTests(unittest.TestCase):
                 ]
             },
         )
+        self.assertIn(
+            "support_contact",
+            {
+                interval["reason"]
+                for interval in episode["selection"][
+                    "failure_diagnostic_intervals"
+                ]
+            },
+        )
         self.assertAlmostEqual(
             episode["estimate"]["parameters"][
                 "specific_force_x_gain"
             ]["estimate"],
             1.2,
             delta=0.10,
+        )
+        advice = episode["controller_advice"]
+        self.assertEqual(advice["status"], "available")
+        self.assertTrue(advice["airborne_only"])
+        self.assertEqual(
+            advice["alignment_lag_s"],
+            episode["estimate"]["selected_alignment_lag_s"],
+        )
+        z_advice = next(
+            row for row in advice["groups"] if row["group"] == "z"
+        )
+        self.assertEqual(
+            z_advice["status"], "proposal_available"
+        )
+        self.assertEqual(
+            z_advice["minimum_log_change"]["decision"],
+            "apply_bounded_first_step",
+        )
+        self.assertAlmostEqual(
+            z_advice["response_scale"]["estimate"],
+            0.8,
+            delta=0.08,
+        )
+        self.assertTrue(
+            z_advice["non_identifiability_ridge"]["points"]
+        )
+        self.assertGreater(
+            z_advice["minimum_log_change"]["proposed_pid"]["p"],
+            z_advice["current_pid"]["p"],
         )
 
         with tempfile.TemporaryDirectory() as directory:
@@ -177,6 +265,12 @@ class AutomaticAnalysisTests(unittest.TestCase):
             self.assertIn("Grape failure-bag automatic analysis", text)
             self.assertIn("<svg", text)
             self.assertIn("specific_force_x_gain", text)
+            self.assertIn("PID / model first-step advice", text)
+            self.assertIn(
+                "response_scale = actuator_scale / "
+                "physical_parameter_ratio",
+                text,
+            )
 
 
 if __name__ == "__main__":

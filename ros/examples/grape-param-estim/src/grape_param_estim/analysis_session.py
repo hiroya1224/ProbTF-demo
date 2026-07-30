@@ -112,7 +112,7 @@ class IncrementalAnalysisSession:
         ]
         return removed
 
-    def analyze(self, path) -> Mapping:
+    def analyze(self, path, progress_callback=None) -> Mapping:
         """Analyze one pending bag, append it, and atomically persist JSON."""
 
         resolved = Path(path).expanduser().resolve()
@@ -124,7 +124,14 @@ class IncrementalAnalysisSession:
             raise ValueError(
                 "bag is already analyzed: {}".format(resolved)
             )
-        addition = self._analyzer([resolved], self.config)
+        if progress_callback is None:
+            addition = self._analyzer([resolved], self.config)
+        else:
+            addition = self._analyzer(
+                [resolved],
+                self.config,
+                progress_callback=progress_callback,
+            )
         if self._result is None:
             updated = addition
         else:

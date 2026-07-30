@@ -12,6 +12,8 @@ one or more rosbag files
   -> command / gimbal / IMU / odometry を時刻合わせ
   -> fit_mask と failure_diagnostic_mask を分離
   -> effective gain / velocity feedback / bias を robust 回帰
+  -> 記録 PID と controller model の識別不能リッジを保持
+  -> 不確実性を考慮した PID / model の初回修正値を提案
   -> GUI で対話的に確認し、JSON を自動保存
 ```
 
@@ -34,10 +36,17 @@ rosrun grape_param_estim failure_analysis_gui.py
 
 GUI の基本操作は次のとおりです。
 
-1. `bag を追加…` から一つ以上の `.bag` ファイルを選ぶ。
-2. `解析を実行` を押す。
-3. 進捗バーの完了を待ち、右側のタブで時系列、パラメータ推移、最終推定値を
-   確認する。
+1. `bag を追加…` で複数ファイルを選ぶか、`フォルダを追加…` でフォルダ直下の
+   `.bag` をまとめて一覧へ加える。
+2. 一覧の `解析` 欄をクリックし、今回使う bag だけを `[x]` にする。
+   `未解析をすべて選択` と `選択を解除` も利用できる。
+3. `解析を実行` を押し、実進捗率と `残り約` の時間表示を確認しながら待つ。
+4. 完了後、右側の `PID・モデル提案`、時系列、実効ゲイン、推定値タブを確認する。
+
+進捗は indeterminate animation ではありません。bag 内の読み込み位置、
+SHA-256 計算量、alignment 探索、bootstrap、parameter trace の完了量を集約した
+determinate progress です。ETA はファイルサイズから得る初期値を、実測経過時間で
+解析中に補正します。
 
 時系列とパラメータ推移には Matplotlib の対話 canvas を直接埋め込んでいます。
 下部ツールバーから pan、矩形 zoom、表示範囲の戻る／進む、画像保存を行えます。
@@ -80,9 +89,10 @@ rosrun grape_param_estim analyze_failure_bags.py \
 出力は次の2ファイルです。
 
 - `analysis.json`: bag SHA-256、自動抽出 episode、支持面、liftoff、
-  fit/diagnostic interval、推定値、累積 parameter 推移
-- `report.html`: 時系列、parameter 推移、残差、区間ラベルを含む
-  外部 JavaScript 不要の browser report
+  fit/diagnostic interval、推定値、累積 parameter 推移、PID / model 提案、
+  識別不能リッジ
+- `report.html`: 時系列、parameter 推移、残差、区間ラベル、PID / model 提案を
+  含む外部 JavaScript 不要の browser report
 
 `report.html` は通常の browser で直接開けます。高度、速度、IMU specific
 force、angular rate、vertical command、flight state を同じ時刻軸に表示します。
@@ -103,9 +113,15 @@ controller-active state とします。ただし state だけで空中とはみ�
 次の sample は parameter fit から分離し、JSON と GUI には残します。
 
 - liftoff 前の controller-active / supported 区間
+- liftoff 後に支持面付近へ戻り、一定時間続いた `support_contact` 区間
 - FORCE_LANDING `17`
 - command heartbeat が欠けた区間
 - episode 内の preliminary fit に対して大きな残差が持続する区間
+
+接地 sample が posterior の中で自然に消えることは仮定しません。支持面相対高度で
+明示的に fit から外した上で、失敗診断区間として残します。episode 直前の非制御
+静止区間が bag にない場合だけ、controller-active episode 冒頭の静止区間を
+支持面推定へ使い、その出所も `support.source` に記録します。
 
 自由飛行の有効 sample が不足する episode は、無理に係数を返さず
 `not_identifiable` と記録します。一つの bag に複数 episode があれば個別に
@@ -143,6 +159,39 @@ block-bootstrap 95%区間も Bayesian posterior ではありません。
 `informative` は、その episode と実効 model の中で gain の符号と大きさに
 情報があることだけを意味します。
 
+## PID・controller model 提案の解釈
+
+bag 内の `/gimbalrotor/debug/pose/pid` から各軸の total、P、I、D term を、
+4個の dynamic-reconfigure `parameter_updates` topic から現在の
+`xy / z / roll_pitch / yaw` gain を読みます。PID total は選択済み alignment
+lag だけ前の時刻へ合わせ、並進成分を odometry 姿勢で body / CoG 座標へ変換して
+自由飛行 sample だけを使います。
+
+観測から直接得る応答倍率を `r`、actuator scale を `alpha`、物理 parameter の
+controller model に対する比を `rho` とすると、一意に識別できるのは次の比です。
+
+```text
+r = alpha / rho
+```
+
+したがって質量または慣性と actuator scale を一点へ潰さず、複数の `rho` に対する
+`alpha` と block-bootstrap 95% 区間をリッジとして JSON と GUI に保持します。
+記録 command wrench と PID desired acceleration の回帰から、現在 controller が
+使った mass / inertia 相当値も復元します。これは source geometry 上の
+controller model 相当値であり、独立に校正した真の質量・慣性ではありません。
+
+PID の P/I/D 比は bag だけから個別には決め直せないため、3項を同じ倍率
+`s_pid` で動かします。controller model 倍率を `s_model` として、
+`r * s_pid * s_model = 1` を満たす中で両倍率の対数変更量が等しくなる点を
+初回候補とし、各倍率を一度に `0.8` から `1.2` までへ制限します。
+95%区間が1を含む場合は `現状維持`、回帰または PID term の根拠が弱い場合は
+`根拠不足` とし、変更値を勧めません。PID の feedforward は変更せず、記録 total
+に対して無視できない場合も根拠を弱めます。
+
+これらは閉ループ log から得た「次に試す一手」であり、自動 tuning や安定性保証
+ではありません。値は機体へ書き込まれません。係留・安全設備下で一項目ずつ変更し、
+新しい bag で再評価してください。
+
 ## 固定区間の最小 CLI
 
 比較・監査用として、従来の単一 bag / 固定区間 CLI も残しています。
@@ -171,6 +220,7 @@ src/grape_param_estim/
   analysis_session.py
   automatic_analysis.py
   browser_report.py
+  controller_advice.py
   controller_sample.py
   effective_estimator.py
   episode_detection.py
@@ -179,8 +229,10 @@ src/grape_param_estim/
   interactive_plots.py
 ```
 
-原理と仮定の詳細は `lectures/2026-07-30_automatic_failure_episode_analysis.md`
-に記録しています。
+原理と仮定の詳細は次に記録しています。
+
+- `lectures/2026-07-30_automatic_failure_episode_analysis.md`
+- `lectures/2026-07-30_pid_ridge_tuning_advice.md`
 
 ## テスト
 

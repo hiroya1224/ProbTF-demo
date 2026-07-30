@@ -6,6 +6,7 @@ import queue
 import subprocess
 import sys
 import threading
+import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -14,6 +15,7 @@ from matplotlib.backends.backend_tkagg import (
     NavigationToolbar2Tk,
 )
 from matplotlib.figure import Figure
+import numpy as np
 
 from grape_param_estim.analysis_session import (
     IncrementalAnalysisSession,
@@ -79,8 +81,14 @@ class FailureAnalysisApp:
         self._worker = None
         self._tree_paths = {}
         self._path_items = {}
+        self._enabled_paths = set()
         self._episode_rows = {}
+        self._advice_rows = {}
         self._errors = []
+        self._run_started = None
+        self._run_sizes = {}
+        self._run_prefix = {}
+        self._run_total_size = 1
         self.status_text = tk.StringVar(
             value="ROS bag を追加して解析を開始してください。"
         )
@@ -114,13 +122,17 @@ class FailureAnalysisApp:
 
         self.bag_tree = ttk.Treeview(
             left,
-            columns=("status", "name"),
+            columns=("enabled", "status", "name"),
             show="headings",
             selectmode="extended",
             height=18,
         )
+        self.bag_tree.heading("enabled", text="解析")
         self.bag_tree.heading("status", text="状態")
         self.bag_tree.heading("name", text="ファイル")
+        self.bag_tree.column(
+            "enabled", width=48, stretch=False, anchor="center"
+        )
         self.bag_tree.column(
             "status", width=82, stretch=False, anchor="center"
         )
@@ -134,6 +146,8 @@ class FailureAnalysisApp:
         self.bag_tree.bind(
             "<<TreeviewSelect>>", self._on_bag_selected
         )
+        self.bag_tree.bind("<Button-1>", self._on_bag_click)
+        self.bag_tree.bind("<space>", self._toggle_selected_rows)
 
         controls = ttk.Frame(left)
         controls.grid(
@@ -149,13 +163,41 @@ class FailureAnalysisApp:
         self.add_button.grid(
             row=0, column=0, sticky="ew", padx=(0, 4)
         )
+        self.folder_button = ttk.Button(
+            controls,
+            text="フォルダを追加…",
+            command=self._add_folder,
+        )
+        self.folder_button.grid(
+            row=0, column=1, sticky="ew", padx=(4, 0)
+        )
+        self.select_all_button = ttk.Button(
+            controls,
+            text="未解析をすべて選択",
+            command=lambda: self._select_pending(True),
+        )
+        self.select_all_button.grid(
+            row=1, column=0, sticky="ew", padx=(0, 4), pady=(8, 0)
+        )
+        self.clear_all_button = ttk.Button(
+            controls,
+            text="選択を解除",
+            command=lambda: self._select_pending(False),
+        )
+        self.clear_all_button.grid(
+            row=1, column=1, sticky="ew", padx=(4, 0), pady=(8, 0)
+        )
         self.remove_button = ttk.Button(
             controls,
-            text="未解析を削除",
+            text="未解析を一覧から削除",
             command=self._remove_selected,
         )
         self.remove_button.grid(
-            row=0, column=1, sticky="ew", padx=(4, 0)
+            row=2,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            pady=(8, 0),
         )
         self.run_button = ttk.Button(
             controls,
@@ -163,7 +205,7 @@ class FailureAnalysisApp:
             command=self._start_analysis,
         )
         self.run_button.grid(
-            row=1,
+            row=3,
             column=0,
             columnspan=2,
             sticky="ew",
@@ -219,8 +261,9 @@ class FailureAnalysisApp:
         self._build_plot_tab(
             "選択 bag の時系列", "timeline"
         )
+        self._build_advice_tab()
         self._build_plot_tab(
-            "パラメータ推移", "parameters"
+            "実効ゲイン（診断）", "parameters"
         )
         self._build_details_tab()
 
@@ -250,6 +293,78 @@ class FailureAnalysisApp:
         )
         setattr(self, "{}_figure".format(name), figure)
         setattr(self, "{}_canvas".format(name), canvas)
+
+    def _build_advice_tab(self) -> None:
+        self.advice_frame = ttk.Frame(self.notebook, padding=6)
+        self.notebook.add(self.advice_frame, text="PID・モデル提案")
+        self.advice_frame.rowconfigure(1, weight=1)
+        self.advice_frame.rowconfigure(3, weight=1)
+        self.advice_frame.columnconfigure(0, weight=1)
+        ttk.Label(
+            self.advice_frame,
+            text=(
+                "提案値は記録PIDから求める変更量20%以内の"
+                "最初の一手です。機体へ自動適用しません。"
+                "係留・安全設備下で一項目ずつ"
+                "検証してください。"
+            ),
+            wraplength=820,
+        ).grid(row=0, column=0, sticky="ew", pady=(0, 5))
+
+        self.advice_tree = ttk.Treeview(
+            self.advice_frame,
+            columns=(
+                "bag",
+                "episode",
+                "group",
+                "status",
+                "scale",
+                "current",
+                "proposed",
+                "model",
+            ),
+            show="headings",
+            selectmode="browse",
+        )
+        headings = (
+            ("bag", "bag"),
+            ("episode", "ep"),
+            ("group", "group"),
+            ("status", "根拠"),
+            ("scale", "応答倍率"),
+            ("current", "現在 P/I/D"),
+            ("proposed", "提案 P/I/D"),
+            ("model", "model 現在→提案"),
+        )
+        for name, label in headings:
+            self.advice_tree.heading(name, text=label)
+        self.advice_tree.column("bag", width=175)
+        self.advice_tree.column(
+            "episode", width=38, stretch=False, anchor="center"
+        )
+        self.advice_tree.column("group", width=75, stretch=False)
+        self.advice_tree.column("status", width=115)
+        self.advice_tree.column("scale", width=90)
+        self.advice_tree.column("current", width=145)
+        self.advice_tree.column("proposed", width=145)
+        self.advice_tree.column("model", width=160)
+        self.advice_tree.grid(row=1, column=0, sticky="nsew")
+        self.advice_tree.bind(
+            "<<TreeviewSelect>>", self._on_advice_selected
+        )
+
+        ttk.Label(
+            self.advice_frame,
+            text="識別不能リッジ（選択行）",
+            font=("", 10, "bold"),
+        ).grid(row=2, column=0, sticky="w", pady=(8, 3))
+        self.ridge_text = tk.Text(
+            self.advice_frame,
+            height=9,
+            wrap=tk.WORD,
+            state=tk.DISABLED,
+        )
+        self.ridge_text.grid(row=3, column=0, sticky="nsew")
 
     def _build_details_tab(self) -> None:
         frame = ttk.Frame(self.notebook, padding=6)
@@ -334,6 +449,27 @@ class FailureAnalysisApp:
         )
         if not names:
             return
+        self._register_bags(names)
+
+    def _add_folder(self) -> None:
+        directory = filedialog.askdirectory(
+            parent=self.root,
+            title="ROS bag を含むフォルダを選択",
+            mustexist=True,
+        )
+        if not directory:
+            return
+        names = tuple(sorted(Path(directory).glob("*.bag")))
+        if not names:
+            messagebox.showinfo(
+                "ROS bag なし",
+                "選択したフォルダ直下に .bag がありません。",
+                parent=self.root,
+            )
+            return
+        self._register_bags(names)
+
+    def _register_bags(self, names) -> None:
         try:
             added = self.session.add_bags(names)
         except (OSError, ValueError) as error:
@@ -345,10 +481,11 @@ class FailureAnalysisApp:
             return
         for path in added:
             item = self.bag_tree.insert(
-                "", tk.END, values=("待機", path.name)
+                "", tk.END, values=("[x]", "待機", path.name)
             )
             self._tree_paths[item] = path
             self._path_items[path] = item
+            self._enabled_paths.add(path)
         if added:
             self.status_text.set(
                 "{} 個の bag を追加しました。".format(len(added))
@@ -358,6 +495,55 @@ class FailureAnalysisApp:
                 "選択した bag はすでに一覧へ"
                 "追加されています。"
             )
+
+    def _set_path_enabled(self, path, enabled: bool) -> None:
+        if path in self.session.completed_paths:
+            return
+        if enabled:
+            self._enabled_paths.add(path)
+        else:
+            self._enabled_paths.discard(path)
+        item = self._path_items[path]
+        self.bag_tree.set(
+            item,
+            "enabled",
+            "[x]" if path in self._enabled_paths else "[ ]",
+        )
+
+    def _on_bag_click(self, event) -> None:
+        if self._worker is not None and self._worker.is_alive():
+            return
+        if self.bag_tree.identify_region(
+            event.x, event.y
+        ) != "cell":
+            return
+        if self.bag_tree.identify_column(event.x) != "#1":
+            return
+        item = self.bag_tree.identify_row(event.y)
+        if not item:
+            return
+        path = self._tree_paths[item]
+        self._set_path_enabled(
+            path, path not in self._enabled_paths
+        )
+
+    def _toggle_selected_rows(self, _event=None):
+        for item in self.bag_tree.selection():
+            path = self._tree_paths[item]
+            self._set_path_enabled(
+                path, path not in self._enabled_paths
+            )
+        return "break"
+
+    def _select_pending(self, enabled: bool) -> None:
+        for path in self.session.pending_paths:
+            if path in self._path_items:
+                self._set_path_enabled(path, enabled)
+        self.status_text.set(
+            "未解析 bag の解析対象を{}しました。".format(
+                "選択" if enabled else "解除"
+            )
+        )
 
     def _remove_selected(self) -> None:
         removed = 0
@@ -370,6 +556,7 @@ class FailureAnalysisApp:
             self.bag_tree.delete(item)
             del self._tree_paths[item]
             del self._path_items[path]
+            self._enabled_paths.discard(path)
             self.session.remove_bags([path])
             removed += 1
         if blocked:
@@ -387,21 +574,42 @@ class FailureAnalysisApp:
         pending = tuple(
             path
             for path in self.session.pending_paths
-            if path in self._path_items
+            if (
+                path in self._path_items
+                and path in self._enabled_paths
+            )
         )
         if not pending:
             messagebox.showinfo(
                 "解析対象なし",
-                "未解析の ROS bag を追加してください。",
+                "解析欄が [x] の未解析 ROS bag を"
+                "選んでください。",
                 parent=self.root,
             )
             return
         self._errors = []
         self._set_running(True)
-        self.progress.configure(maximum=len(pending))
+        self._run_started = time.monotonic()
+        self._run_sizes = {
+            path: max(1, path.stat().st_size) for path in pending
+        }
+        prefix = 0
+        self._run_prefix = {}
+        for path in pending:
+            self._run_prefix[path] = prefix
+            prefix += self._run_sizes[path]
+        self._run_total_size = max(1, prefix)
+        self.progress.configure(
+            mode="determinate", maximum=100.0
+        )
         self.progress["value"] = 0
+        initial_seconds = self._run_total_size / (
+            8.0 * 1024.0 * 1024.0
+        )
         self.progress_text.set(
-            "0 / {} bag 完了".format(len(pending))
+            "0% / 残り約 {}".format(
+                self._format_duration(initial_seconds)
+            )
         )
         self.status_text.set("解析を開始しています…")
         self._worker = threading.Thread(
@@ -417,7 +625,31 @@ class FailureAnalysisApp:
                 ("started", index, len(paths), path)
             )
             try:
-                bag = self.session.analyze(path)
+                last_report_time = 0.0
+
+                def report(fraction, phase):
+                    nonlocal last_report_time
+                    now = time.monotonic()
+                    if (
+                        now - last_report_time >= 0.08
+                        or fraction >= 1.0
+                    ):
+                        self._events.put(
+                            (
+                                "progress",
+                                index,
+                                len(paths),
+                                path,
+                                float(fraction),
+                                str(phase),
+                                now,
+                            )
+                        )
+                        last_report_time = now
+
+                bag = self.session.analyze(
+                    path, progress_callback=report
+                )
             except Exception as error:
                 self._events.put(
                     ("error", index, len(paths), path, error)
@@ -427,6 +659,56 @@ class FailureAnalysisApp:
                     ("completed", index, len(paths), path, bag)
                 )
         self._events.put(("finished", len(paths)))
+
+    @staticmethod
+    def _format_duration(seconds: float) -> str:
+        value = max(0, int(round(seconds)))
+        minutes, remainder = divmod(value, 60)
+        if minutes:
+            return "{}分{:02d}秒".format(minutes, remainder)
+        return "{}秒".format(remainder)
+
+    def _update_eta(
+        self,
+        path,
+        bag_fraction: float,
+        phase: str,
+        now: float,
+    ) -> None:
+        completed_work = (
+            self._run_prefix[path]
+            + np.clip(bag_fraction, 0.0, 1.0)
+            * self._run_sizes[path]
+        )
+        overall = float(
+            np.clip(
+                completed_work / self._run_total_size,
+                0.0,
+                1.0,
+            )
+        )
+        elapsed = max(0.0, now - self._run_started)
+        prior_total = self._run_total_size / (
+            8.0 * 1024.0 * 1024.0
+        )
+        if overall > 1.0e-4:
+            observed_total = elapsed / overall
+            observed_weight = min(1.0, overall / 0.20)
+            predicted_total = (
+                (1.0 - observed_weight) * prior_total
+                + observed_weight * observed_total
+            )
+        else:
+            predicted_total = prior_total
+        remaining = max(0.0, predicted_total - elapsed)
+        self.progress["value"] = 100.0 * overall
+        self.progress_text.set(
+            "{:.0f}% / 残り約 {} / {}".format(
+                100.0 * overall,
+                self._format_duration(remaining),
+                phase,
+            )
+        )
 
     def _drain_events(self) -> None:
         try:
@@ -443,28 +725,43 @@ class FailureAnalysisApp:
             _, index, total, path = event
             item = self._path_items[path]
             self.bag_tree.set(item, "status", "解析中")
-            self.progress.configure(mode="indeterminate")
-            self.progress.start(12)
-            self.progress_text.set(
-                "{} / {}: {} を解析中".format(
-                    index, total, path.name
-                )
+            self._update_eta(
+                path,
+                0.0,
+                "{} / {} bag: 読み込み".format(index, total),
+                time.monotonic(),
             )
             self.status_text.set(
                 "読み込み、区間検出、推定を"
                 "実行しています。"
             )
+        elif kind == "progress":
+            (
+                _,
+                index,
+                total,
+                path,
+                fraction,
+                phase,
+                now,
+            ) = event
+            self._update_eta(
+                path,
+                fraction,
+                "{} / {} bag: {}".format(index, total, phase),
+                now,
+            )
         elif kind == "completed":
             _, index, total, path, bag = event
             item = self._path_items[path]
+            self._enabled_paths.discard(path)
+            self.bag_tree.set(item, "enabled", "済")
             self.bag_tree.set(item, "status", "完了")
-            self.progress.stop()
-            self.progress.configure(
-                mode="determinate", maximum=total
-            )
-            self.progress["value"] = index
-            self.progress_text.set(
-                "{} / {} bag 完了".format(index, total)
+            self._update_eta(
+                path,
+                1.0,
+                "{} / {} bag 完了".format(index, total),
+                time.monotonic(),
             )
             self.status_text.set(
                 "{}: {} episode を検出しました。".format(
@@ -478,25 +775,23 @@ class FailureAnalysisApp:
             _, index, total, path, error = event
             item = self._path_items[path]
             self.bag_tree.set(item, "status", "エラー")
-            self.progress.stop()
-            self.progress.configure(
-                mode="determinate", maximum=total
-            )
-            self.progress["value"] = index
-            self.progress_text.set(
-                "{} / {} bag 処理済み".format(index, total)
+            self._update_eta(
+                path,
+                1.0,
+                "{} / {} bag エラー".format(index, total),
+                time.monotonic(),
             )
             self._errors.append((path, error))
             self.status_text.set(
                 "{}: {}".format(path.name, error)
             )
         elif kind == "finished":
-            self.progress.stop()
             self._set_running(False)
             self._refresh_results()
+            self.progress["value"] = 100.0
             completed = len(self.session.completed_paths)
             self.progress_text.set(
-                "累計 {} bag の解析が完了".format(completed)
+                "100% / 累計 {} bag の解析が完了".format(completed)
             )
             if self._errors:
                 summary = "\n".join(
@@ -513,10 +808,15 @@ class FailureAnalysisApp:
                     "解析完了。追加の bag を選び、"
                     "同じ結果へ継続できます。"
                 )
+            if self.session.result is not None:
+                self.notebook.select(self.advice_frame)
 
     def _set_running(self, running: bool) -> None:
         state = tk.DISABLED if running else tk.NORMAL
         self.add_button.configure(state=state)
+        self.folder_button.configure(state=state)
+        self.select_all_button.configure(state=state)
+        self.clear_all_button.configure(state=state)
         self.remove_button.configure(state=state)
         self.run_button.configure(state=state)
 
@@ -556,7 +856,192 @@ class FailureAnalysisApp:
             if bag is not None:
                 draw_timeline(self.timeline_figure, bag)
                 self.timeline_canvas.draw_idle()
+        self._refresh_advice_table()
         self._refresh_episode_table()
+
+    @staticmethod
+    def _pid_text(gains) -> str:
+        if gains is None:
+            return "記録なし"
+        return "P={:.4g} I={:.4g} D={:.4g}".format(
+            gains["p"], gains["i"], gains["d"]
+        )
+
+    @staticmethod
+    def _advice_status_text(status: str) -> str:
+        return {
+            "proposal_available": "提案あり",
+            "nominal_within_uncertainty": "現状維持",
+            "weak_evidence": "根拠不足",
+            "not_identifiable": "識別不能",
+            "not_available": "記録なし",
+        }.get(status, status)
+
+    def _refresh_advice_table(self) -> None:
+        for item in self.advice_tree.get_children():
+            self.advice_tree.delete(item)
+        self._advice_rows.clear()
+        result = self.session.result
+        if result is None:
+            return
+        for bag in result["bags"]:
+            for episode in bag["episodes"]:
+                advice = episode.get("controller_advice", {})
+                groups = advice.get("groups", [])
+                if not groups:
+                    item = self.advice_tree.insert(
+                        "",
+                        tk.END,
+                        values=(
+                            Path(bag["path"]).name,
+                            episode["episode_index"],
+                            "-",
+                            self._advice_status_text(
+                                advice.get(
+                                    "status", "not_available"
+                                )
+                            ),
+                            "-",
+                            "-",
+                            "-",
+                            advice.get("reason", "-"),
+                        ),
+                    )
+                    self._advice_rows[item] = advice
+                    continue
+                for group in groups:
+                    response = group.get("response_scale")
+                    response_text = (
+                        "-"
+                        if response is None
+                        else "{:.3g} [{:.3g}, {:.3g}]".format(
+                            response["estimate"],
+                            response["ci95"][0],
+                            response["ci95"][1],
+                        )
+                    )
+                    revision = group.get("minimum_log_change", {})
+                    model = group.get("controller_model", {})
+                    current_model = model.get("estimate")
+                    proposed_model = revision.get(
+                        "proposed_controller_model_parameter"
+                    )
+                    model_text = (
+                        "-"
+                        if current_model is None
+                        else "{:.4g} → {:.4g}".format(
+                            current_model, proposed_model
+                        )
+                    )
+                    item = self.advice_tree.insert(
+                        "",
+                        tk.END,
+                        values=(
+                            Path(bag["path"]).name,
+                            episode["episode_index"],
+                            group["group"],
+                            self._advice_status_text(
+                                group["status"]
+                            ),
+                            response_text,
+                            self._pid_text(
+                                group.get("current_pid")
+                            ),
+                            self._pid_text(
+                                revision.get("proposed_pid")
+                            ),
+                            model_text,
+                        ),
+                    )
+                    self._advice_rows[item] = group
+        children = self.advice_tree.get_children()
+        if children:
+            self.advice_tree.selection_set(children[0])
+            self.advice_tree.see(children[0])
+            self._on_advice_selected()
+
+    def _on_advice_selected(self, _event=None) -> None:
+        selection = self.advice_tree.selection()
+        if not selection:
+            return
+        row = self._advice_rows[selection[0]]
+        lines = []
+        if (
+            "group" not in row
+            or "non_identifiability_ridge" not in row
+        ):
+            lines.append(
+                "{}: {}".format(
+                    row.get("status", "not_available"),
+                    row.get("reason", "提案なし"),
+                )
+            )
+        else:
+            lines.append(
+                "{} / {}".format(row["group"], row["status"])
+            )
+            lines.append(
+                "観測で一意に決まるのは次の比だけです:"
+            )
+            ridge = row["non_identifiability_ridge"]
+            lines.append("  " + ridge["equation"])
+            lines.append(
+                "物理parameter倍率 | 物理parameter | "
+                "actuator倍率 [95%]"
+            )
+            for point in ridge["points"]:
+                physical = point["physical_parameter"]
+                lines.append(
+                    "  {:>6.2f} | {:>10} | {:.4g} "
+                    "[{:.4g}, {:.4g}]".format(
+                        point["physical_parameter_ratio"],
+                        (
+                            "-"
+                            if physical is None
+                            else "{:.5g}".format(physical)
+                        ),
+                        point["actuator_scale"],
+                        point["actuator_scale_ci95"][0],
+                        point["actuator_scale_ci95"][1],
+                    )
+                )
+            revision = row["minimum_log_change"]
+            lines.append("")
+            if revision["decision"] == "hold_current_values":
+                lines.append(
+                    "判断: 95%区間が1を含むか根拠が弱いため、"
+                    "現在値を維持します。"
+                )
+            else:
+                lines.append(
+                    "最小対数変更の初回ステップ: "
+                    "PID ×{:.4g}, model ×{:.4g}; "
+                    "変更後予測応答倍率 {:.4g}".format(
+                        revision[
+                            "recommended_first_step_pid_scale"
+                        ],
+                        revision[
+                            "recommended_first_step_model_scale"
+                        ],
+                        revision[
+                            "predicted_response_scale_after_first_step"
+                        ],
+                    )
+                )
+            assumption = row.get("pid_scaling_assumption", {})
+            if assumption:
+                lines.append(
+                    "PID全項同率変更の仮定: feedforward相対RMS "
+                    "{:.3g}（feedforward自体は変更しない）".format(
+                        assumption[
+                            "maximum_feedforward_relative_rms"
+                        ]
+                    )
+                )
+        self.ridge_text.configure(state=tk.NORMAL)
+        self.ridge_text.delete("1.0", tk.END)
+        self.ridge_text.insert("1.0", "\n".join(lines))
+        self.ridge_text.configure(state=tk.DISABLED)
 
     def _refresh_episode_table(self) -> None:
         for item in self.episode_tree.get_children():

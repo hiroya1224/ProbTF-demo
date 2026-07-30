@@ -6,7 +6,10 @@ import numpy as np
 
 from grape_param_estim.effective_estimator import (
     EstimatorSettings,
+    effective_parameter_trace,
     estimate_effective_parameters,
+    evaluate_effective_parameters,
+    prepared_timestamps,
     write_result,
 )
 from grape_param_estim.failure_bag import FailureBagData
@@ -132,6 +135,60 @@ class EffectiveEstimatorTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 write_result(destination, result)
             write_result(destination, result, overwrite=True)
+
+    def test_explicit_fit_mask_drives_estimate_and_parameter_trace(self):
+        data = _synthetic_data()
+        settings = _settings()
+        timestamps = prepared_timestamps(data, settings)
+        fit_mask = timestamps <= 9.0
+
+        result = estimate_effective_parameters(
+            data, settings, fit_mask=fit_mask
+        )
+        evaluation = evaluate_effective_parameters(
+            data, settings, result
+        )
+        trace = effective_parameter_trace(
+            data,
+            settings,
+            result,
+            fit_mask=fit_mask,
+            minimum_duration_s=1.0,
+            step_s=1.0,
+        )
+
+        self.assertEqual(
+            result["fit_sample_count"], int(np.sum(fit_mask))
+        )
+        self.assertEqual(
+            evaluation["timestamps"].shape, timestamps.shape
+        )
+        self.assertEqual(
+            evaluation["residual"].shape, (timestamps.size, 6)
+        )
+        self.assertGreater(len(trace), 2)
+        self.assertAlmostEqual(
+            trace[-1]["parameters"]["specific_force_x_gain"],
+            1.2,
+            delta=0.08,
+        )
+
+    def test_point_fit_can_skip_bootstrap_during_mask_search(self):
+        result = estimate_effective_parameters(
+            _synthetic_data(), _settings(), bootstrap=False
+        )
+
+        self.assertEqual(result["bootstrap"]["samples"], 0)
+        self.assertEqual(
+            result["bootstrap"]["method"], "disabled_point_fit"
+        )
+        self.assertAlmostEqual(
+            result["parameters"]["specific_force_x_gain"][
+                "estimate"
+            ],
+            1.2,
+            delta=0.08,
+        )
 
 
 if __name__ == "__main__":

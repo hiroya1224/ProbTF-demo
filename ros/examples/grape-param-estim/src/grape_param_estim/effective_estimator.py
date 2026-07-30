@@ -298,13 +298,14 @@ def _delay_score(
     wrench: np.ndarray,
     prepared: _PreparedSignals,
     settings: EstimatorSettings,
+    fit_mask: np.ndarray,
 ) -> float:
     scores = []
     for channel in range(6):
-        response = prepared.response[:, channel]
+        response = prepared.response[fit_mask, channel]
         _, prediction = _robust_fit(
-            wrench[:, channel],
-            prepared.state[:, channel],
+            wrench[fit_mask, channel],
+            prepared.state[fit_mask, channel],
             response,
             settings,
         )
@@ -367,10 +368,24 @@ def _coefficient_entry(
 def estimate_effective_parameters(
     data: FailureBagData,
     settings: EstimatorSettings,
+    fit_mask: np.ndarray = None,
+    bootstrap: bool = True,
 ) -> Mapping[str, Any]:
     """Estimate diagonal effective response and autocorrelation-aware CIs."""
 
     prepared = _prepare_signals(data, settings)
+    if fit_mask is None:
+        selected_for_fit = np.ones(
+            prepared.timestamps.shape, dtype=bool
+        )
+    else:
+        selected_for_fit = np.asarray(fit_mask, dtype=bool)
+        if selected_for_fit.shape != prepared.timestamps.shape:
+            raise ValueError(
+                "fit_mask must match the prepared estimator timestamps"
+            )
+    if int(np.sum(selected_for_fit)) < 30:
+        raise ValueError("fewer than 30 selected fit samples remain")
     delays = np.arange(
         0.0,
         settings.maximum_delay_s + 0.5 * settings.delay_step_s,
@@ -385,7 +400,9 @@ def estimate_effective_parameters(
             data.command_wrench,
             prepared.timestamps - delay,
         )
-        score = _delay_score(wrench, prepared, settings)
+        score = _delay_score(
+            wrench, prepared, settings, selected_for_fit
+        )
         delay_rows.append(
             {"delay_s": float(delay), "normalized_rmse": score}
         )
@@ -429,7 +446,7 @@ def estimate_effective_parameters(
         2,
         int(round(settings.bootstrap_block_s * settings.sample_rate_hz)),
     )
-    block_length = min(block_length, prepared.timestamps.size)
+    block_length = min(block_length, int(np.sum(selected_for_fit)))
     rng = np.random.default_rng(settings.seed)
     parameters = {}
     channels = {}
@@ -438,26 +455,34 @@ def estimate_effective_parameters(
         response = prepared.response[:, channel]
         state = prepared.state[:, channel]
         input_value = wrench[:, channel]
-        coefficients, prediction = _robust_fit(
-            input_value, state, response, settings
+        fit_response = response[selected_for_fit]
+        fit_state = state[selected_for_fit]
+        fit_input = input_value[selected_for_fit]
+        coefficients, fit_prediction = _robust_fit(
+            fit_input, fit_state, fit_response, settings
         )
-        samples = np.empty((settings.bootstrap_samples, 3), dtype=float)
-        for sample in range(settings.bootstrap_samples):
-            indices = _block_indices(
-                response.size, block_length, rng
+        if bootstrap:
+            samples = np.empty(
+                (settings.bootstrap_samples, 3), dtype=float
             )
-            samples[sample], _ = _robust_fit(
-                input_value[indices],
-                state[indices],
-                response[indices],
-                settings,
-            )
+            for sample in range(settings.bootstrap_samples):
+                indices = _block_indices(
+                    fit_response.size, block_length, rng
+                )
+                samples[sample], _ = _robust_fit(
+                    fit_input[indices],
+                    fit_state[indices],
+                    fit_response[indices],
+                    settings,
+                )
+        else:
+            samples = np.repeat(coefficients[None, :], 2, axis=0)
         gain_interval_values = np.quantile(
             samples[:, 1], (0.025, 0.975)
         )
-        residual = response - prediction
+        residual = fit_response - fit_prediction
         denominator = float(
-            np.sum((response - np.mean(response)) ** 2)
+            np.sum((fit_response - np.mean(fit_response)) ** 2)
         )
         r_squared = (
             0.0
@@ -470,7 +495,7 @@ def estimate_effective_parameters(
                 float(gain_interval_values[0]),
                 float(gain_interval_values[1]),
             ),
-            float(np.std(input_value)),
+            float(np.std(fit_input)),
             r_squared,
             settings,
         )
@@ -490,8 +515,10 @@ def estimate_effective_parameters(
         channels[axis] = {
             "information_grade": grade,
             "gain_parameter": gain_name,
-            "input_standard_deviation": float(np.std(input_value)),
-            "response_standard_deviation": float(np.std(response)),
+            "input_standard_deviation": float(np.std(fit_input)),
+            "response_standard_deviation": float(
+                np.std(fit_response)
+            ),
             "rmse": float(np.sqrt(np.mean(residual ** 2))),
             "r_squared": r_squared,
         }
@@ -515,9 +542,14 @@ def estimate_effective_parameters(
         "selected_alignment_lag_s": selected_delay,
         "sample_rate_hz": settings.sample_rate_hz,
         "sample_count": int(prepared.timestamps.size),
+        "fit_sample_count": int(np.sum(selected_for_fit)),
         "bootstrap": {
-            "method": "moving_block_bootstrap",
-            "samples": settings.bootstrap_samples,
+            "method": (
+                "moving_block_bootstrap"
+                if bootstrap
+                else "disabled_point_fit"
+            ),
+            "samples": settings.bootstrap_samples if bootstrap else 0,
             "block_s": settings.bootstrap_block_s,
             "seed": settings.seed,
         },
@@ -525,6 +557,143 @@ def estimate_effective_parameters(
         "channels": channels,
         "delay_search": delay_rows,
     }
+
+
+def evaluate_effective_parameters(
+    data: FailureBagData,
+    settings: EstimatorSettings,
+    estimate: Mapping[str, Any],
+) -> Mapping[str, np.ndarray]:
+    """Evaluate one fitted model at every prepared sample."""
+
+    prepared = _prepare_signals(data, settings)
+    delay = float(estimate["selected_alignment_lag_s"])
+    wrench = _zero_order_hold(
+        data.command_times,
+        data.command_wrench,
+        prepared.timestamps - delay,
+    )
+    axis_names = ("x", "y", "z", "roll", "pitch", "yaw")
+    response_names = (
+        "specific_force",
+        "specific_force",
+        "specific_force",
+        "angular_acceleration",
+        "angular_acceleration",
+        "angular_acceleration",
+    )
+    prediction = np.empty(prepared.response.shape, dtype=float)
+    for channel, axis in enumerate(axis_names):
+        prefix = "{}_{}".format(response_names[channel], axis)
+        bias = float(
+            estimate["parameters"]["{}_bias".format(prefix)]["estimate"]
+        )
+        gain = float(
+            estimate["parameters"]["{}_gain".format(prefix)]["estimate"]
+        )
+        feedback = float(
+            estimate["parameters"][
+                "{}_velocity_feedback".format(prefix)
+            ]["estimate"]
+        )
+        prediction[:, channel] = (
+            bias
+            + gain * wrench[:, channel]
+            + feedback * prepared.state[:, channel]
+        )
+    return {
+        "timestamps": prepared.timestamps,
+        "wrench": wrench,
+        "response": prepared.response,
+        "state": prepared.state,
+        "prediction": prediction,
+        "residual": prepared.response - prediction,
+    }
+
+
+def prepared_timestamps(
+    data: FailureBagData,
+    settings: EstimatorSettings,
+) -> np.ndarray:
+    """Return the exact timestamps used by the regression preprocessor."""
+
+    return _prepare_signals(data, settings).timestamps.copy()
+
+
+def effective_parameter_trace(
+    data: FailureBagData,
+    settings: EstimatorSettings,
+    estimate: Mapping[str, Any],
+    fit_mask: np.ndarray = None,
+    minimum_duration_s: float = 0.5,
+    step_s: float = 0.5,
+) -> list:
+    """Return cumulative robust-fit coefficients without repeated bootstrap."""
+
+    evaluation = evaluate_effective_parameters(
+        data, settings, estimate
+    )
+    timestamps = evaluation["timestamps"]
+    if fit_mask is None:
+        selected = np.ones(timestamps.shape, dtype=bool)
+    else:
+        selected = np.asarray(fit_mask, dtype=bool)
+        if selected.shape != timestamps.shape:
+            raise ValueError(
+                "fit_mask must match the prepared estimator timestamps"
+            )
+    minimum = float(minimum_duration_s)
+    step = float(step_s)
+    if minimum <= 0.0 or step <= 0.0:
+        raise ValueError("trace duration and step must be positive")
+    first = float(timestamps[0] + minimum)
+    final = float(timestamps[-1])
+    if first > final:
+        return []
+    cutoffs = list(np.arange(first, final + 0.5 * step, step))
+    if not cutoffs or final - cutoffs[-1] > 1.0e-9:
+        cutoffs.append(final)
+
+    axis_names = ("x", "y", "z", "roll", "pitch", "yaw")
+    response_names = (
+        "specific_force",
+        "specific_force",
+        "specific_force",
+        "angular_acceleration",
+        "angular_acceleration",
+        "angular_acceleration",
+    )
+    rows = []
+    for cutoff in cutoffs:
+        prefix_mask = selected & (timestamps <= cutoff)
+        if int(np.sum(prefix_mask)) < 30:
+            continue
+        parameters = {}
+        for channel, axis in enumerate(axis_names):
+            coefficients, _ = _robust_fit(
+                evaluation["wrench"][prefix_mask, channel],
+                evaluation["state"][prefix_mask, channel],
+                evaluation["response"][prefix_mask, channel],
+                settings,
+            )
+            prefix = "{}_{}".format(response_names[channel], axis)
+            parameters["{}_bias".format(prefix)] = float(
+                coefficients[0]
+            )
+            parameters["{}_gain".format(prefix)] = float(
+                coefficients[1]
+            )
+            parameters[
+                "{}_velocity_feedback".format(prefix)
+            ] = float(coefficients[2])
+        rows.append(
+            {
+                "time_s": float(min(cutoff, final)),
+                "fit_sample_count": int(np.sum(prefix_mask)),
+                "parameters": parameters,
+            }
+        )
+    return rows
 
 
 def run_from_bag(
@@ -606,8 +775,11 @@ __all__ = [
     "EstimatorSettings",
     "LoadedConfig",
     "canonical_sha256",
+    "effective_parameter_trace",
     "estimate_effective_parameters",
+    "evaluate_effective_parameters",
     "load_config",
+    "prepared_timestamps",
     "run_from_bag",
     "write_result",
 ]

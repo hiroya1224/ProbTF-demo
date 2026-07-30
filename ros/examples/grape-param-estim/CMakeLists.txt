@@ -9,12 +9,15 @@ catkin_package()
 
 catkin_install_python(
   PROGRAMS
+    scripts/analyze_failure_bags.py
     scripts/estimate_failure_parameters.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 install(
-  DIRECTORY config
+  DIRECTORY
+    config
+    lectures
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 

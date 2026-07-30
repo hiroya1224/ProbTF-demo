@@ -132,6 +132,25 @@ class IncrementalAnalysisSessionTests(unittest.TestCase):
             ):
                 session.analyze(first)
 
+    def test_pending_bag_can_be_removed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            pending = root / "pending.bag"
+            pending.touch()
+            session = IncrementalAnalysisSession(
+                object(),
+                root / "output",
+                analyzer=lambda paths, config: _result(
+                    tuple(paths)[0], 1.0
+                ),
+            )
+            session.add_bags([pending])
+
+            self.assertEqual(
+                session.remove_bags([pending]), (pending.resolve(),)
+            )
+            self.assertEqual(session.paths, ())
+
     def test_default_output_is_under_ros_home(self):
         path = default_session_directory(
             datetime(2026, 7, 30, 12, 34, 56)

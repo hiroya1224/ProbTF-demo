@@ -12,7 +12,7 @@ one or more rosbag files
   -> command / gimbal / IMU / odometry を時刻合わせ
   -> fit_mask と failure_diagnostic_mask を分離
   -> effective gain / velocity feedback / bias を robust 回帰
-  -> JSON と自己完結 browser report を生成
+  -> GUI で対話的に確認し、JSON を自動保存
 ```
 
 ## ビルド
@@ -23,9 +23,42 @@ catkin build grape_param_estim --no-deps
 source devel/setup.bash
 ```
 
+## 対話 GUI（推奨）
+
+ファイル名や出力先をコマンドラインへ入力せず、次の一つのコマンドで GUI を
+起動できます。
+
+```bash
+rosrun grape_param_estim failure_analysis_gui.py
+```
+
+GUI の基本操作は次のとおりです。
+
+1. `bag を追加…` から一つ以上の `.bag` ファイルを選ぶ。
+2. `解析を実行` を押す。
+3. 進捗バーの完了を待ち、右側のタブで時系列、パラメータ推移、最終推定値を
+   確認する。
+
+時系列とパラメータ推移には Matplotlib の対話 canvas を直接埋め込んでいます。
+下部ツールバーから pan、矩形 zoom、表示範囲の戻る／進む、画像保存を行えます。
+HTML への変換や browser の起動は必要ありません。
+
+GUI を閉じずに別の bag を追加して再び `解析を実行` すると、解析済み bag は
+再計算せず、新規 bag の結果だけを現在の試行時系列へ追加します。各 bag の解析が
+終わるたび、累積結果を次へ自動保存します。
+
+```text
+~/.ros/grape_param_estim/failure_analysis/YYYYMMDD-HHMMSS/analysis.json
+```
+
+実際の保存先は GUI 左下へ常時表示され、`結果保存先を開く` から直接開けます。
+bag の内容自体は変更しません。解析中に一つの bag が失敗しても、完了済みの結果は
+保持され、エラーになった bag だけを次回の実行で再試行できます。
+
 ## 自動解析
 
-bag 4 を固定時刻の指定なしで解析する例です。
+GUI を使用しない batch 処理では、従来の CLI も利用できます。bag 4 を固定時刻の
+指定なしで解析する例です。
 
 ```bash
 rosrun grape_param_estim analyze_failure_bags.py \
@@ -133,13 +166,17 @@ config/
 scripts/
   analyze_failure_bags.py
   estimate_failure_parameters.py
+  failure_analysis_gui.py
 src/grape_param_estim/
+  analysis_session.py
   automatic_analysis.py
   browser_report.py
   controller_sample.py
   effective_estimator.py
   episode_detection.py
+  failure_analysis_gui.py
   failure_bag.py
+  interactive_plots.py
 ```
 
 原理と仮定の詳細は `lectures/2026-07-30_automatic_failure_episode_analysis.md`

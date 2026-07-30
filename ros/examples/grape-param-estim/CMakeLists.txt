@@ -11,6 +11,7 @@ catkin_install_python(
   PROGRAMS
     scripts/analyze_failure_bags.py
     scripts/estimate_failure_parameters.py
+    scripts/failure_analysis_gui.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

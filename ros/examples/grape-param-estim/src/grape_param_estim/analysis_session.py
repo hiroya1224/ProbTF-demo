@@ -95,6 +95,23 @@ class IncrementalAnalysisSession:
             added.append(path)
         return tuple(added)
 
+    def remove_bags(self, paths: Iterable) -> tuple:
+        """Remove selected pending bags while preserving completed results."""
+
+        requested = {
+            Path(value).expanduser().resolve() for value in paths
+        }
+        completed = requested & self._completed
+        if completed:
+            raise ValueError("analyzed bags cannot be removed")
+        removed = tuple(
+            path for path in self._paths if path in requested
+        )
+        self._paths = [
+            path for path in self._paths if path not in requested
+        ]
+        return removed
+
     def analyze(self, path) -> Mapping:
         """Analyze one pending bag, append it, and atomically persist JSON."""
 

@@ -149,7 +149,43 @@ step を下限としつつ trace を最大120点に制限する。これは最�
 fit する。機体構成、台、controller 設定が異なる試行を、同一 parameter を持つ
 ものとして暗黙に同化しないためである。
 
-## 8. browser report と再現性
+## 8. 対話 GUI と累積セッション
+
+通常の操作入口は Tkinter GUI `failure_analysis_gui.py` とした。起動後の操作は
+ファイル選択と解析実行だけであり、bag path、出力 path、固定時刻をコマンドライン
+へ入力しない。推定は worker thread で行うため、処理中も window の event loop と
+進捗バーは応答を続ける。
+
+時系列 plot と parameter trace は Matplotlib の Tk canvas を直接埋め込む。
+したがって HTML や静的 SVG を介さず、標準 toolbar による pan、zoom、表示履歴、
+画像保存を使用できる。別 tab の表には episode の判定理由と最終 parameter、
+block-bootstrap 95% 区間、information grade を表示する。
+
+GUI session は選択された path を次の3状態で管理する。
+
+- `pending`: 選択済みだが未解析
+- `completed`: 累積結果へ追加済み
+- `error`: 読み込みまたは解析に失敗し、次回に再試行可能
+
+二回目以降の実行では `pending` と `error` だけを解析する。新しい bag は独立に
+episode 抽出・fit した後、既存の `sequence_duration_s` を新しい
+`sequence_offset_s` と trace 時刻へ加算する。旧 bag の bootstrap を再実行
+しないため、追加操作の計算量は新しい bag の分だけである。この結合でも episode
+間の parameter は pool しない。
+
+各 bag が完了するたび、累積 `analysis.json` を一時ファイルへ書いて `fsync` 後に
+rename する。途中の bag が失敗した場合や GUI を閉じた場合にも、それ以前に完了
+した結果を壊さない。既定の保存先は次であり、実 path と保存先を開く button は
+GUI 内に表示する。
+
+```text
+${ROS_HOME:-~/.ros}/grape_param_estim/failure_analysis/YYYYMMDD-HHMMSS/
+```
+
+同じ config hash と result schema の結果だけを結合する。結合後は bag index、
+sequence time、bag count、duration、result hash を再計算する。
+
+## 9. browser report と再現性
 
 `analyze_failure_bags.py` は次を生成する。
 
@@ -162,7 +198,10 @@ flight state と、fit/diagnostic/liftoff を重ねる。parameter trace は並�
 回転を別 scale で表示し、episode の詳細には最終係数、区間、残差 score を
 表示する。
 
-## 9. 既知の制約
+GUI が主操作経路になった後も、この CLI と browser report は headless batch、
+比較、監査用として残す。
+
+## 10. 既知の制約
 
 - flight state topic が欠けた bag は自動抽出できない。
 - 空中から収録開始した bag は支持面を復元できず `not_identifiable` になる。

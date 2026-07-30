@@ -10,6 +10,7 @@ catkin_package()
 catkin_install_python(
   PROGRAMS
     scripts/grape_param_estim_app.py
+    scripts/grape_param_estim_worker.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

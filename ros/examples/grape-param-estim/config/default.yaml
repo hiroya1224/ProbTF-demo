@@ -1,8 +1,11 @@
-schema: grape_param_estim/phase1
+schema: grape_param_estim/phase2
 
 data:
   bag_directory: /home/leus/catkin_ws/bags/grape-drone
   bag_path: /home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_1_2026-06-13-13-44-01.bag
+  preview_bag_path: /home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_1_2026-06-13-13-44-01.bag
+  bag_paths:
+    - /home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_1_2026-06-13-13-44-01.bag
   topics:
     thrust_command: /gimbalrotor/four_axes/command
     gimbal_command: /gimbalrotor/gimbals_ctrl
@@ -13,10 +16,12 @@ data:
     flight_state: /gimbalrotor/flight_state
 
 analysis:
-  # Airborne interval in the default bag, not the pre-takeoff ground interval.
-  start_time: 57.466
-  end_time: 62.747
-  segment_duration: 0.75
+  datasets:
+    # Airborne interval in the default bag, not the pre-takeoff ground interval.
+    - bag_path: /home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_1_2026-06-13-13-44-01.bag
+      start_time: 57.466
+      end_time: 62.747
+      segment_duration: 0.75
 
 model:
   nominal:
@@ -26,5 +31,22 @@ model:
     force_scale: 1.0
     torque_scale: 1.0
 
+estimator:
+  particle_count: 64
+  seed: 42
+  priors:
+    mass_scale: {min: 0.60, max: 1.60}
+    force_scale: {min: 0.40, max: 1.60}
+    inertia_scale: {min: 0.50, max: 2.00}
+    torque_scale: {min: 0.05, max: 1.50}
+  likelihood:
+    translation_weight: 10.0
+    rotation_weight: 1.0
+  # At most one resample + reflected jitter pass is performed.
+  resample_ess_fraction: 0.10
+  jitter_fraction: 0.03
+  maximum_time_step: 0.005
+
 output:
   config_path: ~/.ros/grape_param_estim/analysis.yaml
+  run_root: ~/.ros/grape_param_estim/runs

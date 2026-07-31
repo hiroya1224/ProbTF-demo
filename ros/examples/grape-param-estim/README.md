@@ -71,6 +71,30 @@ segment reset、static particle estimator、旧 result schema との後方互換
 block を prior ensemble が張るようにします。Experiment C の Q scale は既知の
 synthetic model-error RMS から機械的に校正します。
 
+## Phase 4 の内容
+
+- common-scale exact ridge 上の5本の full closed-loop rollout と pose likelihood
+  の不変性
+- proper prior metric で分解した raw ridge coordinate / 17次元 quotient law、
+  prior-whitened information leak、true correction-path coverage
+- IEnKS-Q の perfect-model zero-residual realization における raw ridge law と、
+  非ゼロ residual を含む exact augmented symmetry
+  `(theta, eta) -> (theta + lambda v, exp(lambda) eta)`
+- strong `M=38,46` と短い full-block weak `D=78, M=80,88` の実同化を使う
+  ensemble-size convergence
+- prior-whitened quotient と pose-whitened full correction path の deterministic
+  sliced-Wasserstein-1 比較
+- plant actuator channel wiring の nominal / 0--1 swap を、一つの ensemble に
+  混ぜず mode ごとに独立同化する Experiment D
+- pose-only Laplace mode weight と、独立 wiring inspection による weight のみの
+  conditioning（raw posterior member は再同化・再サンプル・混合しない）
+
+reaction-torque 符号だけを mode にする案は、短い pose window では両方の真値を
+区別できなかったため採用していません。wiring mode は両方の synthetic truth で
+pose weight の argmax が切り替わることを回帰試験しています。
+IEnKS-Q でも proper-prior ridge law と augmented likelihood symmetry が保たれたため、
+この phase では particle-based correction を追加していません。
+
 ## 実行
 
 ```bash
@@ -111,6 +135,22 @@ rosrun grape_param_estim grape_weak_constraint_ienks_q.py \
   --output /tmp/grape_phase3_c.npz
 ```
 
+Phase 4 の三つの検証は、それぞれ独立に実行できます。
+
+```bash
+rosrun grape_param_estim grape_phase4_validate.py \
+  --section ridge \
+  --output /tmp/grape_phase4_ridge.npz
+
+rosrun grape_param_estim grape_phase4_validate.py \
+  --section convergence \
+  --output /tmp/grape_phase4_convergence.npz
+
+rosrun grape_param_estim grape_phase4_validate.py \
+  --section mode \
+  --output /tmp/grape_phase4_mode.npz
+```
+
 長い window では full-block control と必要 ensemble size も増えます。明示する
 場合、`--ensemble-size` は必ず augmented dimension より大きくしてください。
 
@@ -121,6 +161,11 @@ parameter posterior の一点化や Gaussian summary を正本にはしません
 Phase 3 の NPZ は strong/weak の比較に加え、weak posterior の raw innovations、
 decoded residual-wrench path、static parameters、full trajectory、correction path を
 member-aligned arrays として保存します。
+
+Phase 4 の NPZ は ridge coordinate / quotient / path の raw law、各 ensemble size
+の raw law と convergence 指標、または mode 別の full posterior member と
+pose/independent-measurement weight を保存します。mode-conditioned posterior は
+選択 mode の raw ensemble そのもので、mode 横断の Gaussian summary ではありません。
 
 NPZ は pickle を使わず、次を保存します。
 

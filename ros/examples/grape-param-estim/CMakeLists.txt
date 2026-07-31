@@ -9,6 +9,7 @@ catkin_package()
 
 catkin_install_python(
   PROGRAMS
+    scripts/grape_phase4_validate.py
     scripts/grape_strong_constraint_ienks.py
     scripts/grape_weak_constraint_ienks_q.py
     scripts/grape_weak_constraint_synthetic.py

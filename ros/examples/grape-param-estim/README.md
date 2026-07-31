@@ -4,7 +4,7 @@ Grape の full closed-loop system を forecast operator として使う、
 weak-constraint ensemble smoothing の実装です。設計の正本は
 `docs/plans/grape_weak_constraint_ienks_estimation_plan_ja.md` です。
 
-現在は Phase 1–2 を実装しています。旧 Streamlit GUI、rosbag open-loop replay、
+現在は Phase 1–3 を実装しています。旧 Streamlit GUI、rosbag open-loop replay、
 segment reset、static particle estimator、旧 result schema との後方互換は
 意図的に削除しました。
 
@@ -48,7 +48,28 @@ segment reset、static particle estimator、旧 result schema との後方互換
 - mass・full inertia・全 force effectiveness の common-scale exact ridge の保持
 
 解析・有限差分 Jacobian、segment reset、parameter hard bounds、particle weights は
-使いません。residual wrench を同化する weak-constraint IEnKS-Q は Phase 3 です。
+使いません。
+
+## Phase 3 の内容
+
+- 各 integration interval に独立な6次元 innovation block を持つ full-block
+  weak-constraint IEnKS-Q
+- 不規則時刻にも対応する stationary Gauss–Markov / OU residual body wrench
+- static parameter は飛行全体で一つの global variable のまま保持
+- interval residual は、その区間の全 RK4 stage へ同じ値を加算
+- static parameter、innovation、residual wrench、full trajectory、
+  correction-transform path を同じ member ID のまま保存
+- drag、actuator lag/delay、時間変化外乱を truth だけへ加えた Experiment C で、
+  strong constraint との parameter bias / latent state / path coverage 比較
+- truth state 上で nominal controller/actuator を因果的に独立 replay して求めた
+  counterfactual residual-wrench oracle（truth command の流用なし）
+- 同じ static truth・observation-noise realization・window から model error だけを
+  除いた matched strong-control run による excess parameter bias の分離
+
+時間方向を一つの低rank path sampleへ潰してはいません。augmented dimension は
+`36 + 6 * (interval count)` で、既定では ensemble size をさらに2大きくし、全Q
+block を prior ensemble が張るようにします。Experiment C の Q scale は既知の
+synthetic model-error RMS から機械的に校正します。
 
 ## 実行
 
@@ -83,9 +104,23 @@ rosrun grape_param_estim grape_strong_constraint_ienks.py \
   --output /tmp/grape_phase2_b.npz
 ```
 
+Phase 3 の Experiment C は次で実行します。
+
+```bash
+rosrun grape_param_estim grape_weak_constraint_ienks_q.py \
+  --output /tmp/grape_phase3_c.npz
+```
+
+長い window では full-block control と必要 ensemble size も増えます。明示する
+場合、`--ensemble-size` は必ず augmented dimension より大きくしてください。
+
 Phase 2 の NPZ は member 順を保った control/physical parameter/full trajectory/
 correction path ensemble、ridge covariance、iteration diagnostics を保存します。
 parameter posterior の一点化や Gaussian summary を正本にはしません。
+
+Phase 3 の NPZ は strong/weak の比較に加え、weak posterior の raw innovations、
+decoded residual-wrench path、static parameters、full trajectory、correction path を
+member-aligned arrays として保存します。
 
 NPZ は pickle を使わず、次を保存します。
 

@@ -216,6 +216,38 @@ class DynamicsTests(unittest.TestCase):
             1.0e-8,
         )
 
+    def test_interval_residual_is_held_for_every_runge_kutta_stage(self):
+        parameters = VehicleParameters.nominal()
+        geometry = GrapeGeometry.grape()
+        state = RigidBodyState(
+            position=(0.1, -0.2, 0.8),
+            orientation_xyzw=matrix_to_quaternion(
+                euler_xyz_to_matrix((0.1, -0.08, 0.15))
+            ),
+            linear_velocity=(0.2, -0.1, 0.05),
+            angular_velocity=(0.12, -0.09, 0.07),
+        )
+        actuators = ActuatorState(
+            thrust=np.full(4, parameters.mass * 9.80665 / 4.0),
+            gimbal_angle=np.asarray((0.1, -0.08, 0.06, -0.04)),
+        )
+        residual = np.asarray((0.3, -0.2, 0.1, 0.02, -0.015, 0.01))
+        callback_plant = FullSixDofPlant(
+            parameters,
+            geometry,
+            residual_wrench=lambda _time, _state: residual,
+        )
+        interval_plant = FullSixDofPlant(parameters, geometry)
+        expected = callback_plant.step(0.0, state, actuators, 0.02)
+        actual = interval_plant.step(
+            0.0,
+            state,
+            actuators,
+            0.02,
+            interval_residual_wrench=residual,
+        )
+        np.testing.assert_allclose(actual.as_vector(), expected.as_vector())
+
 
 if __name__ == "__main__":
     unittest.main()

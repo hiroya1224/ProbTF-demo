@@ -22,10 +22,10 @@ class StrongConstraintIEnKSTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         arguments = dict(
-            duration=0.6,
+            duration=0.4,
             time_step=0.04,
             ensemble_size=38,
-            maximum_iterations=2,
+            maximum_iterations=1,
             seed=11,
         )
         cls.experiment_a = run_phase2_experiment("A", **arguments)

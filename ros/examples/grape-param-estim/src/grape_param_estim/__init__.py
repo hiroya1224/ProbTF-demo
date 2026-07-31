@@ -13,6 +13,7 @@ from grape_param_estim.dynamics import (
     simulate_closed_loop,
 )
 from grape_param_estim.geometry import correction_transform_path
+from grape_param_estim.model_error import GaussMarkovWrenchProcess
 from grape_param_estim.parameterization import (
     PARAMETER_DIMENSION,
     VehicleParameterChart,
@@ -48,6 +49,17 @@ from grape_param_estim.system import (
     RigidBodyState,
     VehicleParameters,
 )
+from grape_param_estim.weak_constraint import (
+    WeakConstraintIEnKSQ,
+    WeakConstraintPosterior,
+    WeakConstraintPrior,
+    WeakConstraintProblem,
+)
+from grape_param_estim.weak_constraint_experiments import (
+    Phase3Experiment,
+    run_phase3_experiment,
+    save_phase3_experiment,
+)
 
 __all__ = [
     "ActuatorCommand",
@@ -61,6 +73,7 @@ __all__ = [
     "GrapeController",
     "GrapeArticulatedModel",
     "GrapeGeometry",
+    "GaussMarkovWrenchProcess",
     "IEnKSConfig",
     "PARAMETER_DIMENSION",
     "PIDConfig",
@@ -75,13 +88,20 @@ __all__ = [
     "VehicleParameters",
     "VehicleParameterChart",
     "Phase2Experiment",
+    "Phase3Experiment",
+    "WeakConstraintIEnKSQ",
+    "WeakConstraintPosterior",
+    "WeakConstraintPrior",
+    "WeakConstraintProblem",
     "actuator_wrench",
     "correction_transform_path",
     "initial_controller_state",
     "run_perfect_model_experiment",
     "run_phase2_experiment",
+    "run_phase3_experiment",
     "run_synthetic_experiment",
     "save_experiment",
     "save_phase2_experiment",
+    "save_phase3_experiment",
     "simulate_closed_loop",
 ]

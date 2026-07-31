@@ -18,7 +18,10 @@ from grape_param_estim.ensemble_convergence import (
     save_ensemble_convergence,
 )
 from grape_param_estim.geometry import correction_transform_path
-from grape_param_estim.model_error import GaussMarkovWrenchProcess
+from grape_param_estim.model_error import (
+    GaussMarkovWrenchProcess,
+    KnotGaussMarkovWrenchProcess,
+)
 from grape_param_estim.parameterization import (
     PARAMETER_DIMENSION,
     VehicleParameterChart,
@@ -39,6 +42,33 @@ from grape_param_estim.ridge_validation import (
     save_ridge_validation,
     validate_phase2_ridge,
     validate_weak_zero_realization_ridge,
+)
+from grape_param_estim.real_assimilation import (
+    RealAssimilationMetrics,
+    RealAssimilationResult,
+    RealModeDiagnostic,
+    assimilate_real_episode,
+    build_real_strong_problem,
+    run_real_rosbag_assimilation,
+    save_real_assimilation,
+)
+from grape_param_estim.real_calibration import (
+    KnotResolution,
+    ModelErrorCalibration,
+    calibrate_model_error_from_closed_loop_pose,
+    calibrate_model_error_from_pose,
+    pose_derived_initial_state,
+    select_ou_knot_resolution,
+)
+from grape_param_estim.real_rosbag import (
+    DEFAULT_GRAPE_BAG,
+    ControllerGainSnapshot,
+    EpisodeProvenance,
+    RealFlightEpisode,
+    build_real_flight_episode,
+    load_grape_rosbag_episode,
+    read_grape_rosbag_arrays,
+    save_real_flight_episode,
 )
 from grape_param_estim.strong_constraint import (
     CONTROL_DIMENSION,
@@ -84,6 +114,15 @@ from grape_param_estim.weak_constraint_experiments import (
 )
 
 __all__ = [
+    "ControllerGainSnapshot",
+    "DEFAULT_GRAPE_BAG",
+    "EpisodeProvenance",
+    "KnotResolution",
+    "ModelErrorCalibration",
+    "RealAssimilationMetrics",
+    "RealAssimilationResult",
+    "RealFlightEpisode",
+    "RealModeDiagnostic",
     "ActuatorCommand",
     "ActuatorParameters",
     "ActuatorState",
@@ -97,6 +136,7 @@ __all__ = [
     "GrapeArticulatedModel",
     "GrapeGeometry",
     "GaussMarkovWrenchProcess",
+    "KnotGaussMarkovWrenchProcess",
     "IEnKSConfig",
     "EnsembleConvergenceReport",
     "ModeConditioningResult",
@@ -124,22 +164,34 @@ __all__ = [
     "WeakConstraintProblem",
     "WeakRidgeValidationReport",
     "actuator_wrench",
+    "assimilate_real_episode",
+    "build_real_flight_episode",
+    "build_real_strong_problem",
+    "calibrate_model_error_from_closed_loop_pose",
+    "calibrate_model_error_from_pose",
     "correction_transform_path",
     "condition_on_actuator_wiring",
     "initial_controller_state",
+    "load_grape_rosbag_episode",
+    "pose_derived_initial_state",
+    "read_grape_rosbag_arrays",
     "run_perfect_model_experiment",
     "run_phase2_experiment",
     "run_phase3_experiment",
     "run_ensemble_size_convergence",
     "run_mode_validation_experiment",
+    "run_real_rosbag_assimilation",
     "run_synthetic_experiment",
     "save_experiment",
     "save_phase2_experiment",
     "save_phase3_experiment",
     "save_ensemble_convergence",
     "save_mode_validation",
+    "save_real_assimilation",
+    "save_real_flight_episode",
     "save_ridge_validation",
     "simulate_closed_loop",
+    "select_ou_knot_resolution",
     "validate_phase2_ridge",
     "validate_weak_zero_realization_ridge",
 ]

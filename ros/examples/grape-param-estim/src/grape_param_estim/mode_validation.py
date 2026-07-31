@@ -103,7 +103,15 @@ def plant_wiring_mode(mode_id: str) -> PlantWiringMode:
 class ModeStrongConstraintProblem(StrongConstraintProblem):
     """A strong-constraint problem whose mode affects only the plant."""
 
-    plant_mode: PlantWiringMode
+    # Python 3.8 dataclass inheritance requires a syntactic default here
+    # because the base problem ends in an optional actuator snapshot.  None is
+    # rejected so construction sites must still select the mode explicitly.
+    plant_mode: Optional[PlantWiringMode] = None
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if not isinstance(self.plant_mode, PlantWiringMode):
+            raise ValueError("plant_mode must be selected explicitly")
 
     def forecast(self, control: Sequence[float]):
         initial_state, controller_state, parameters = self.decode_control(
@@ -129,6 +137,7 @@ class ModeStrongConstraintProblem(StrongConstraintProblem):
             controller=controller,
             plant=plant,
             actuator_parameters=self.actuator_parameters,
+            initial_actuator_state=self.initial_actuator_state,
         )
 
 

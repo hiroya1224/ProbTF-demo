@@ -4,7 +4,7 @@ Grape の full closed-loop system を forecast operator として使う、
 weak-constraint ensemble smoothing の実装です。設計の正本は
 `docs/plans/grape_weak_constraint_ienks_estimation_plan_ja.md` です。
 
-現在は Phase 1–3 を実装しています。旧 Streamlit GUI、rosbag open-loop replay、
+現在は Phase 1–5 を実装しています。旧 Streamlit GUI、rosbag open-loop replay、
 segment reset、static particle estimator、旧 result schema との後方互換は
 意図的に削除しました。
 
@@ -95,6 +95,28 @@ pose weight の argmax が切り替わることを回帰試験しています。
 IEnKS-Q でも proper-prior ridge law と augmented likelihood symmetry が保たれたため、
 この phase では particle-based correction を追加していません。
 
+## Phase 5 の内容
+
+- rosbag の header stamp ではなく record time を正本にした実データ adapter
+- `flight_state=5` の一つの連続 airborne 区間を既定 window とし、別 flight や
+  不連続区間を連結しない episode selection
+- CoG odometry の位置と baselink odometry の姿勢だけを likelihood に使用
+  （twist、IMU、加速度は観測へ追加しない）
+- 記録された `PoseControlPid` reference/feedforward、PID integral、
+  dynamic-reconfigure/YAML gain snapshot、gimbal/thrust anchor の因果的復元
+- preflight 静止区間からロバスト推定する位置・SO(3) 観測 covariance
+- body residual wrench を sparse OU knot で表し、piecewise-linear wrench の
+  integration interval 平均を全 RK4 stage に保持する連続 weak forecast
+- 観測 pose が要求する wrench と、観測 pose 上で因果 replay した nominal
+  controller/actuator wrench の差による Q scale・相関時間の事前校正
+- raw static parameter、OU innovation/knot/interval wrench、full latent trajectory、
+  correction-transform path、ridge/mode/resolution 診断の member-aligned 保存
+
+対象 bag の既定 window は約 21 秒です。takeoff 直後の接地期間は、ground-contact
+model を持たない free-flight rigid body へ入力すると床を突き抜けるため、自動では
+含めません。`--full-flight` は ground-contact model を追加した診断時だけ明示的に
+使うための option です。
+
 ## 実行
 
 ```bash
@@ -151,6 +173,21 @@ rosrun grape_param_estim grape_phase4_validate.py \
   --output /tmp/grape_phase4_mode.npz
 ```
 
+Phase 5 の実 rosbag 同化は次で実行します。既定は `dt=0.04 s`、12 knots、
+augmented dimension + 2 members、1 iteration です。
+
+```bash
+rosrun grape_param_estim grape_real_rosbag_ienks_q.py \
+  --bag /home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_3_2026-06-13-15-12-51.bag \
+  --output /tmp/grape_phase5_real.npz
+```
+
+CLI summary の `q_resolution_sufficient` が false の場合、その knot 数で Q の
+時間解像度が十分だとは主張できません。`--maximum-knots 0` は校正された OU bridge
+criterion を満たす全 knot を使いますが、augmented dimension と必要 member 数が
+増えるため計算時間も大きくなります。計算量を理由に knot を減らした事実は artifact
+へ保存されます。
+
 長い window では full-block control と必要 ensemble size も増えます。明示する
 場合、`--ensemble-size` は必ず augmented dimension より大きくしてください。
 
@@ -166,6 +203,10 @@ Phase 4 の NPZ は ridge coordinate / quotient / path の raw law、各 ensembl
 の raw law と convergence 指標、または mode 別の full posterior member と
 pose/independent-measurement weight を保存します。mode-conditioned posterior は
 選択 mode の raw ensemble そのもので、mode 横断の Gaussian summary ではありません。
+
+Phase 5 の NPZ は、bag hash/record-time/window/controller/calibration provenance、
+observed/nominal/posterior trajectory、raw parameter/Q/path ensemble、OU knot 解像度、
+ridge と selected-mode 診断を同じファイルへ保存します。
 
 NPZ は pickle を使わず、次を保存します。
 

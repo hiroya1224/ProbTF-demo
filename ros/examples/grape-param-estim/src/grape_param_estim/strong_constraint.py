@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Optional, Sequence, Tuple
+import warnings
 
 import numpy as np
 
@@ -21,6 +22,7 @@ from grape_param_estim.parameterization import (
 )
 from grape_param_estim.system import (
     ActuatorParameters,
+    ActuatorState,
     ClosedLoopTrajectory,
     ControllerState,
     GrapeGeometry,
@@ -162,6 +164,7 @@ class StrongConstraintProblem:
     geometry: GrapeGeometry
     actuator_parameters: ActuatorParameters
     parameter_chart: VehicleParameterChart
+    initial_actuator_state: Optional[ActuatorState] = None
 
     def __post_init__(self) -> None:
         sample_count = self.observations.times.size
@@ -180,6 +183,19 @@ class StrongConstraintProblem:
         ):
             if np.any(np.linalg.eigvalsh(covariance) <= 0.0):
                 raise ValueError("{} must be positive definite".format(name))
+        if self.initial_actuator_state is not None:
+            if not isinstance(self.initial_actuator_state, ActuatorState):
+                raise ValueError(
+                    "initial_actuator_state must be an ActuatorState or None"
+                )
+            object.__setattr__(
+                self,
+                "initial_actuator_state",
+                ActuatorState(
+                    self.initial_actuator_state.thrust,
+                    self.initial_actuator_state.gimbal_angle,
+                ),
+            )
 
     def decode_control(
         self, control: Sequence[float]
@@ -236,6 +252,7 @@ class StrongConstraintProblem:
             controller=controller,
             plant=plant,
             actuator_parameters=self.actuator_parameters,
+            initial_actuator_state=self.initial_actuator_state,
         )
 
     def residual(self, trajectory: ClosedLoopTrajectory) -> np.ndarray:
@@ -450,9 +467,26 @@ class StrongConstraintIEnKS:
             while fraction >= self.configuration.minimum_line_search_step:
                 candidate = center + fraction * step
                 trial_control = prior_mean + basis @ candidate
-                trial_trajectory = problem.forecast(trial_control)
-                trial_residual = problem.residual(trial_trajectory)
-                trial_objective = self._objective(candidate, trial_residual)
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("error", RuntimeWarning)
+                        trial_trajectory = problem.forecast(trial_control)
+                        trial_residual = problem.residual(trial_trajectory)
+                    trial_objective = self._objective(
+                        candidate, trial_residual
+                    )
+                except (
+                    ValueError,
+                    FloatingPointError,
+                    RuntimeWarning,
+                    np.linalg.LinAlgError,
+                ):
+                    # A nonlinear ensemble-space step may leave the domain in
+                    # which the black-box rigid-body forecast is finite.  It
+                    # has infinite objective; reduce the same line-search
+                    # direction without clipping any physical parameter.
+                    fraction *= 0.5
+                    continue
                 if trial_objective < objective:
                     accepted = True
                     candidate_trajectory = trial_trajectory

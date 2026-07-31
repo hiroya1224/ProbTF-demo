@@ -1,7 +1,8 @@
 """Full-block weak-constraint IEnKS-Q for additive residual wrench."""
 
 from dataclasses import dataclass
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple, Union
+import warnings
 
 import numpy as np
 
@@ -9,7 +10,10 @@ from grape_param_estim.articulated import GrapeArticulatedModel
 from grape_param_estim.controller import GrapeController
 from grape_param_estim.dynamics import FullSixDofPlant, simulate_closed_loop
 from grape_param_estim.geometry import correction_transform_path
-from grape_param_estim.model_error import GaussMarkovWrenchProcess
+from grape_param_estim.model_error import (
+    GaussMarkovWrenchProcess,
+    KnotGaussMarkovWrenchProcess,
+)
 from grape_param_estim.strong_constraint import (
     CONTROL_DIMENSION,
     PARAMETER_OFFSET,
@@ -25,12 +29,17 @@ from grape_param_estim.strong_constraint import (
 from grape_param_estim.system import ClosedLoopTrajectory
 
 
+WrenchProcess = Union[
+    GaussMarkovWrenchProcess, KnotGaussMarkovWrenchProcess
+]
+
+
 @dataclass(frozen=True)
 class WeakConstraintPrior:
     """Independent proper priors for static controls and every Q block."""
 
     static_prior: StrongConstraintPrior
-    wrench_process: GaussMarkovWrenchProcess
+    wrench_process: WrenchProcess
 
     @property
     def control_dimension(self) -> int:
@@ -67,13 +76,23 @@ class WeakConstraintProblem:
     """A full-window Grape problem with one independent Q block per interval."""
 
     strong_problem: StrongConstraintProblem
-    wrench_process: GaussMarkovWrenchProcess
+    wrench_process: WrenchProcess
 
     def __post_init__(self) -> None:
-        expected_times = self.strong_problem.observations.times[:-1]
-        if not np.array_equal(self.wrench_process.times, expected_times):
+        observation_times = self.strong_problem.observations.times
+        if isinstance(
+            self.wrench_process, KnotGaussMarkovWrenchProcess
+        ):
+            grid_matches = np.array_equal(
+                self.wrench_process.integration_times, observation_times
+            )
+        else:
+            grid_matches = np.array_equal(
+                self.wrench_process.times, observation_times[:-1]
+            )
+        if not grid_matches:
             raise ValueError(
-                "wrench process must provide one value per integration interval"
+                "wrench process grid must match every integration interval"
             )
 
     @property
@@ -126,6 +145,7 @@ class WeakConstraintProblem:
             controller=controller,
             plant=FullSixDofPlant(parameters, base.geometry),
             actuator_parameters=base.actuator_parameters,
+            initial_actuator_state=base.initial_actuator_state,
             interval_residual_wrench=residual_wrench,
         )
 
@@ -171,19 +191,9 @@ class WeakConstraintIEnKSQ:
             static_prior=StrongConstraintPrior.grape(),
             wrench_process=problem.wrench_process,
         )
-        # Dataclass equality with NumPy arrays is ambiguous, so compare each
-        # factual process field explicitly.
         if (
-            not np.array_equal(
-                selected_prior.wrench_process.times,
-                problem.wrench_process.times,
-            )
-            or not np.array_equal(
-                selected_prior.wrench_process.stationary_standard_deviation,
-                problem.wrench_process.stationary_standard_deviation,
-            )
-            or selected_prior.wrench_process.correlation_time
-            != problem.wrench_process.correlation_time
+            selected_prior.wrench_process.compatibility_signature
+            != problem.wrench_process.compatibility_signature
         ):
             raise ValueError("prior and problem wrench processes must agree")
         configuration = self.configuration or IEnKSConfig(
@@ -262,11 +272,25 @@ class WeakConstraintIEnKSQ:
             while fraction >= configuration.minimum_line_search_step:
                 candidate = center + fraction * step
                 trial_control = prior_mean + basis @ candidate
-                trial_trajectory = problem.forecast(trial_control)
-                trial_residual = problem.residual(trial_trajectory)
-                trial_objective = StrongConstraintIEnKS._objective(
-                    candidate, trial_residual
-                )
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("error", RuntimeWarning)
+                        trial_trajectory = problem.forecast(trial_control)
+                        trial_residual = problem.residual(trial_trajectory)
+                    trial_objective = StrongConstraintIEnKS._objective(
+                        candidate, trial_residual
+                    )
+                except (
+                    ValueError,
+                    FloatingPointError,
+                    RuntimeWarning,
+                    np.linalg.LinAlgError,
+                ):
+                    # Invalid black-box forecasts have infinite likelihood
+                    # cost.  Backtrack in ensemble space; do not introduce
+                    # hard parameter bounds or silently clip the member.
+                    fraction *= 0.5
+                    continue
                 if trial_objective < objective:
                     accepted = True
                     candidate_trajectory = trial_trajectory

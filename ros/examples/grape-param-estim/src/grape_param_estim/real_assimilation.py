@@ -364,6 +364,7 @@ def save_real_assimilation(
     iteration = posterior.iterations
     configuration = episode.controller_configuration
     provenance = episode.provenance
+    controller_geometry = GrapeGeometry.grape()
     np.savez_compressed(
         str(destination),
         schema=np.asarray(("grape-weak-constraint/phase5-real-assimilation",)),
@@ -554,6 +555,22 @@ def save_real_assimilation(
         ),
         actuator_parameter_values=np.asarray(
             tuple(result.actuator_parameters.__dict__.values())
+        ),
+        controller_geometry_rotor_origins=(
+            controller_geometry.rotor_origins
+        ),
+        controller_geometry_arm_yaws=controller_geometry.arm_yaws,
+        controller_geometry_rotor_directions=(
+            controller_geometry.rotor_directions
+        ),
+        controller_geometry_moment_force_rate=np.asarray(
+            (controller_geometry.moment_force_rate,)
+        ),
+        controller_geometry_thrust_offset=np.asarray(
+            (controller_geometry.thrust_offset,)
+        ),
+        controller_articulated_model_id=np.asarray(
+            ("grape_articulated_model/v1",)
         ),
         nominal_position=result.nominal_trajectory.position,
         nominal_orientation_xyzw=result.nominal_trajectory.orientation_xyzw,

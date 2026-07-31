@@ -4,7 +4,7 @@ Grape の full closed-loop system を forecast operator として使う、
 weak-constraint ensemble smoothing の実装です。設計の正本は
 `docs/plans/grape_weak_constraint_ienks_estimation_plan_ja.md` です。
 
-現在は Phase 1–5 を実装しています。旧 Streamlit GUI、rosbag open-loop replay、
+現在は Phase 1–6 を実装しています。旧 Streamlit GUI、rosbag open-loop replay、
 segment reset、static particle estimator、旧 result schema との後方互換は
 意図的に削除しました。
 
@@ -117,6 +117,31 @@ model を持たない free-flight rigid body へ入力すると床を突き抜�
 含めません。`--full-flight` は ground-contact model を追加した診断時だけ明示的に
 使うための option です。
 
+## Phase 6 の内容
+
+- Phase 5 NPZ の selected-mode raw member を平均化せず読み戻し、各 controller
+  parameter 候補を全 member で full closed-loop simulation
+- member ごとの static plant parameter、初期機体/controller/actuator state、Q path を
+  同じ row のまま維持
+- controller nominal mass scale と roll/pitch/yaw PID scale の明示的な候補集合
+- desired pose からの correction-transform path、mean tracking loss、upper CVaR、
+  failure probability、log-scale parameter change の decision score
+- numerical/physical forecast failure を member ID と理由つきで保持し、failure
+  probability へ算入（欠損 path は NaN として明示）。1件でも forecast exception を
+  含む候補は推奨対象外とし、全候補が該当すれば偽の推奨値を出さない
+- 全 candidate × member の trajectory/path/loss と、source mode law、decision policy、
+  provenance を pickle-free NPZ に保存
+
+既定の scenario は、Phase 5 と同じ reference・member 初期状態・posterior residual
+wrench path を繰り返す counterfactual です。したがって「同じ実験を controller
+parameter だけ変えて再試行する」提案であり、新しい風を予言したものではありません。
+`--residual-policy zero` を使う場合も、その仮定を artifact に明記します。
+
+loss scale、failure threshold、CVaR level、各 decision weight は物理同定 parameter
+ではなく明示的な意思決定規則です。CLI option と artifact に全値を残すため、推奨値を
+採用する前にそれらを変えた sensitivity check を行えます。dynamic_reconfigure への
+自動書き込みは行いません。
+
 ## 実行
 
 ```bash
@@ -188,6 +213,23 @@ criterion を満たす全 knot を使いますが、augmented dimension と必�
 増えるため計算時間も大きくなります。計算量を理由に knot を減らした事実は artifact
 へ保存されます。
 
+Phase 6 は Phase 5 artifact を直接読みます。次は baseline と二つの mass 候補だけを
+評価する短い例です。`--candidate` を省略すると mass と姿勢 PID の既定9候補を使います。
+
+```bash
+rosrun grape_param_estim grape_posterior_predictive.py \
+  --phase5-artifact /tmp/grape_phase5_real.npz \
+  --candidate baseline,1,1,1,1 \
+  --candidate controller_mass_0p9,0.9,1,1,1 \
+  --candidate controller_mass_1p1,1.1,1,1,1 \
+  --output /tmp/grape_phase6_proposal.npz
+```
+
+異なる policy への感度は、たとえば `--failure-threshold`、`--cvar-level`、
+`--mean-weight`、`--cvar-weight`、`--failure-weight`、`--change-weight` を変えて比較します。
+member thinning option は設けていないため、CLI は常に source artifact の raw member
+全体を評価します。
+
 長い window では full-block control と必要 ensemble size も増えます。明示する
 場合、`--ensemble-size` は必ず augmented dimension より大きくしてください。
 
@@ -207,6 +249,11 @@ pose/independent-measurement weight を保存します。mode-conditioned poster
 Phase 5 の NPZ は、bag hash/record-time/window/controller/calibration provenance、
 observed/nominal/posterior trajectory、raw parameter/Q/path ensemble、OU knot 解像度、
 ridge と selected-mode 診断を同じファイルへ保存します。
+
+Phase 6 の NPZ は source member ID、mode weights/conditioning、scenario assumption、
+candidate scale と適用後 mass/PID、member-level forecast success/reason、
+trajectory/correction path/loss、
+mean/CVaR/failure/change score と最終候補を member-aligned arrays として保存します。
 
 NPZ は pickle を使わず、次を保存します。
 

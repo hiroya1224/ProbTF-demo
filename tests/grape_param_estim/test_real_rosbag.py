@@ -9,6 +9,11 @@ from grape_param_estim.real_assimilation import (
     assimilate_real_episode,
     save_real_assimilation,
 )
+from grape_param_estim.posterior_predictive import (
+    ControllerParameterCandidate,
+    evaluate_posterior_predictive,
+    input_from_phase5_artifact,
+)
 from grape_param_estim.real_rosbag import (
     ControllerGainEvents,
     FlightStateSeries,
@@ -334,6 +339,29 @@ class RealRosbagArrayTests(unittest.TestCase):
                 )
                 for key in artifact.files:
                     self.assertFalse(artifact[key].dtype.hasobject)
+            predictive = input_from_phase5_artifact(str(destination))
+            np.testing.assert_array_equal(
+                predictive.member_ids,
+                np.arange(result.posterior.control_ensemble.shape[0]),
+            )
+            np.testing.assert_array_equal(
+                predictive.interval_residual_wrench,
+                result.posterior.residual_wrench_ensemble,
+            )
+            self.assertEqual(
+                predictive.scenario_assumption,
+                "repeat_phase5_reference_member_initial_state_and_"
+                "posterior_residual_path",
+            )
+            decision = evaluate_posterior_predictive(
+                predictive,
+                candidates=(ControllerParameterCandidate("baseline"),),
+                failure_threshold=100.0,
+            )
+            np.testing.assert_array_equal(
+                decision.evaluations[0].member_ids,
+                predictive.member_ids,
+            )
 
 
 if __name__ == "__main__":

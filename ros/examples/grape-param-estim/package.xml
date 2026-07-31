@@ -1,23 +1,15 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>grape_param_estim</name>
-  <version>0.5.0</version>
-  <description>Particle trajectory estimation and uncertain transforms for Grape ROS bags.</description>
+  <version>1.0.0</version>
+  <description>Weak-constraint ensemble smoothing for the full Grape closed-loop system.</description>
 
   <maintainer email="leus@todo.todo">leus</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <exec_depend>nav_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
-  <exec_depend>python3-pip</exec_depend>
-  <exec_depend>python3-rospkg</exec_depend>
-  <exec_depend>python3-yaml</exec_depend>
-  <exec_depend>rosbag</exec_depend>
-  <exec_depend>sensor_msgs</exec_depend>
-  <exec_depend>spinal</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
 
   <test_depend>python3-nose</test_depend>
 

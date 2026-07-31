@@ -1,4 +1,0 @@
-# ROS Noetic uses Python 3.8 in the target workspace.
-plotly>=5.18,<6
-streamlit>=1.30,<1.41
-packaging<25

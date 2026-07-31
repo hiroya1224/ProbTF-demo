@@ -9,21 +9,18 @@ catkin_package()
 
 catkin_install_python(
   PROGRAMS
-    scripts/grape_param_estim_app.py
-    scripts/grape_param_estim_worker.py
+    scripts/grape_weak_constraint_synthetic.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(
-  DIRECTORY
-    config
-    lectures
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
 install(
   FILES
     README.md
-    requirements.txt
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_nosetests(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../../tests/grape_param_estim
+  )
+endif()

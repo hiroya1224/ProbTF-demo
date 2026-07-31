@@ -9,6 +9,7 @@ catkin_package()
 
 catkin_install_python(
   PROGRAMS
+    scripts/grape_strong_constraint_ienks.py
     scripts/grape_weak_constraint_synthetic.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

@@ -4,7 +4,7 @@ Grape の full closed-loop system を forecast operator として使う、
 weak-constraint ensemble smoothing の実装です。設計の正本は
 `docs/plans/grape_weak_constraint_ienks_estimation_plan_ja.md` です。
 
-現在は Phase 1 を実装しています。旧 Streamlit GUI、rosbag open-loop replay、
+現在は Phase 1–2 を実装しています。旧 Streamlit GUI、rosbag open-loop replay、
 segment reset、static particle estimator、旧 result schema との後方互換は
 意図的に削除しました。
 
@@ -30,8 +30,25 @@ segment reset、static particle estimator、旧 result schema との後方互換
 - position/orientation だけの observation generator
 - `Z_k = T_nominal,k^-1 T_real,k` の correction-transform path
 
-推定器はまだありません。strong-constraint IEnKS は Phase 2、residual wrench を
-同化する IEnKS-Q は Phase 3 で追加します。
+## Phase 2 の内容
+
+- 一つの全飛行 window を black-box forecast する strong-constraint IEnKS
+- joint control `z=(x0, c0, theta)`（36次元）
+  - initial position / SO(3) tangent / latent velocity / angular velocity
+  - six PID integral states
+  - log mass、full SPD inertia chart、CoG、rotorごとの log force/torque
+    effectiveness
+- pose-only residual
+  `[(p-p_obs), Log(R_obs^T R)]` の既知 covariance による whitening
+- ensemble cloud の secant regression だけを使う ensemble-space Gauss–Newton
+- raw static-parameter ensemble、full latent trajectory ensemble、
+  correction-transform path ensemble
+- model family が完全に一致する Experiment A と、pose noise だけを加えた
+  Experiment B
+- mass・full inertia・全 force effectiveness の common-scale exact ridge の保持
+
+解析・有限差分 Jacobian、segment reset、parameter hard bounds、particle weights は
+使いません。residual wrench を同化する weak-constraint IEnKS-Q は Phase 3 です。
 
 ## 実行
 
@@ -52,6 +69,23 @@ rosrun grape_param_estim grape_weak_constraint_synthetic.py \
   --duration 3.0 \
   --output /tmp/grape_phase1_perfect.npz
 ```
+
+Phase 2 の Experiment A（観測 noise realization はゼロ、covariance は正定値）と
+Experiment B（位置姿勢 noise のみ）は次で実行します。
+
+```bash
+rosrun grape_param_estim grape_strong_constraint_ienks.py \
+  --experiment A \
+  --output /tmp/grape_phase2_a.npz
+
+rosrun grape_param_estim grape_strong_constraint_ienks.py \
+  --experiment B \
+  --output /tmp/grape_phase2_b.npz
+```
+
+Phase 2 の NPZ は member 順を保った control/physical parameter/full trajectory/
+correction path ensemble、ridge covariance、iteration diagnostics を保存します。
+parameter posterior の一点化や Gaussian summary を正本にはしません。
 
 NPZ は pickle を使わず、次を保存します。
 

@@ -143,6 +143,41 @@ class DeterministicEnsembleUpdateTest(unittest.TestCase):
                 np.asarray(((0.0,),)),
             )
 
+    def test_low_rank_transform_matches_direct_ensemble_eigendecomposition(self):
+        generator = np.random.RandomState(902)
+        members = 64
+        forecast = generator.normal(size=(members, 32))
+        predicted = generator.normal(size=(members, 6))
+        covariance = np.diag(
+            np.asarray((0.2, 0.3, 0.4, 0.05, 0.06, 0.07)) ** 2
+        )
+        update = deterministic_square_root_update(
+            forecast,
+            predicted,
+            generator.normal(size=6),
+            covariance,
+        )
+
+        anomalies = (
+            predicted - np.mean(predicted, axis=0, keepdims=True)
+        ).T / np.sqrt(members - 1.0)
+        precision = (
+            np.eye(members)
+            + anomalies.T @ np.linalg.solve(covariance, anomalies)
+        )
+        eigenvalues, eigenvectors = np.linalg.eigh(precision)
+        expected = (
+            eigenvectors
+            @ np.diag(1.0 / np.sqrt(eigenvalues))
+            @ eigenvectors.T
+        )
+        np.testing.assert_allclose(
+            update.member_transform,
+            expected,
+            rtol=2.0e-13,
+            atol=2.0e-13,
+        )
+
 
 class EnsembleRtsSmootherTest(unittest.TestCase):
     def test_scalar_filter_and_smoother_match_analytic_kalman_rts(self):

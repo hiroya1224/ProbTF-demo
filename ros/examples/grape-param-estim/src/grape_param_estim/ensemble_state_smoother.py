@@ -64,16 +64,37 @@ def _symmetric_positive_definite(value, size: int, name: str) -> np.ndarray:
     return symmetric
 
 
-def _inverse_symmetric_sqrt(value: np.ndarray, name: str) -> np.ndarray:
-    symmetric = 0.5 * (value + value.T)
-    eigenvalues, eigenvectors = np.linalg.eigh(symmetric)
-    if np.any(eigenvalues <= 0.0) or np.any(~np.isfinite(eigenvalues)):
-        raise ValueError("{} must be positive definite".format(name))
-    return (
-        eigenvectors
-        @ np.diag(1.0 / np.sqrt(eigenvalues))
-        @ eigenvectors.T
+def _low_rank_ensemble_transform(
+    observation_sample_factor: np.ndarray,
+    observation_covariance: np.ndarray,
+) -> np.ndarray:
+    """Evaluate the ETKF inverse square root in observation rank.
+
+    ``I + Y.T @ R^-1 @ Y`` differs from identity in at most observation
+    dimension directions.  An SVD of the usually 6-by-M whitened anomaly
+    matrix therefore avoids an M-by-M eigendecomposition at every sample.
+    """
+
+    factor = np.asarray(observation_sample_factor, dtype=float)
+    covariance = np.asarray(observation_covariance, dtype=float)
+    if (
+        factor.ndim != 2
+        or covariance.ndim != 2
+        or factor.shape[0] != covariance.shape[0]
+        or covariance.shape[0] != covariance.shape[1]
+        or np.any(~np.isfinite(factor))
+    ):
+        raise ValueError("observation sample factor is misaligned")
+    cholesky = np.linalg.cholesky(covariance)
+    whitened = np.linalg.solve(cholesky, factor)
+    _left, singular_values, right_transpose = np.linalg.svd(
+        whitened, full_matrices=False
     )
+    correction = 1.0 / np.sqrt(1.0 + singular_values**2) - 1.0
+    transform = np.eye(factor.shape[1]) + (
+        right_transpose.T * correction[None, :]
+    ) @ right_transpose
+    return 0.5 * (transform + transform.T)
 
 
 def exact_gaussian_ensemble(
@@ -272,15 +293,8 @@ def deterministic_square_root_update(
     innovation = selected_observation - observation_mean
     analysis_mean = state_mean + kalman_gain @ innovation
 
-    inverse_r_observation_factor = np.linalg.solve(
-        selected_covariance, observation_sample_factor
-    )
-    ensemble_space_precision = (
-        np.eye(members)
-        + observation_sample_factor.T @ inverse_r_observation_factor
-    )
-    transform = _inverse_symmetric_sqrt(
-        ensemble_space_precision, "ensemble-space precision"
+    transform = _low_rank_ensemble_transform(
+        observation_sample_factor, selected_covariance
     )
     analysis_anomalies = state_anomalies @ transform
     # Suppress roundoff drift along the exact mean-null direction.

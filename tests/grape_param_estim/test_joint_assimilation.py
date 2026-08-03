@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 from pathlib import Path
 import tempfile
 
@@ -11,6 +12,7 @@ from grape_param_estim.controller import (
     initial_controller_state,
 )
 from grape_param_estim.dynamics import FullSixDofPlant, simulate_closed_loop
+from grape_param_estim.ensemble_solver import EstimationCancelled
 from grape_param_estim.geometry import (
     euler_xyz_to_matrix,
     matrix_to_quaternion,
@@ -356,6 +358,203 @@ class JointAssimilationTest(unittest.TestCase):
         samples = self.first.problem.strong_problem.observations.times.size
         self.assertEqual(residual.shape, (2 * samples * 6,))
 
+    def test_parallel_batches_match_serial_and_report_every_member_bag(self):
+        problem = JointWeakConstraintProblem((self.first, self.second))
+        controls = np.zeros((3, problem.control_dimension), dtype=float)
+        controls[1, problem.layout.shared_parameter_slice.start] = 0.01
+        second_layout = problem.layout.for_bag("bag_b")
+        controls[2, second_layout.initial_and_controller_slice.start] = 0.005
+        controls[2, second_layout.innovation_slice.start] = 0.1
+
+        serial_residual_events = []
+        serial_residuals = problem.forecast_residual_batch(
+            controls,
+            member_bag_callback=(
+                lambda *event: serial_residual_events.append(event)
+            ),
+            worker_count=1,
+        )
+        residual_events = []
+        parallel_residuals = problem.forecast_residual_batch(
+            controls,
+            member_bag_callback=lambda *event: residual_events.append(event),
+            worker_count=2,
+        )
+        np.testing.assert_array_equal(parallel_residuals, serial_residuals)
+        self.assertFalse(
+            np.array_equal(serial_residuals[0], serial_residuals[1])
+        )
+        self.assertFalse(
+            np.array_equal(serial_residuals[0], serial_residuals[2])
+        )
+
+        serial_trajectory_events = []
+        serial_trajectories = problem.forecast_trajectory_batch(
+            controls,
+            member_bag_callback=(
+                lambda *event: serial_trajectory_events.append(event)
+            ),
+            worker_count=1,
+        )
+        trajectory_events = []
+        parallel_trajectories = problem.forecast_trajectory_batch(
+            controls,
+            member_bag_callback=lambda *event: trajectory_events.append(event),
+            worker_count=2,
+        )
+        trajectory_fields = (
+            "times",
+            "position",
+            "orientation_xyzw",
+            "linear_velocity",
+            "angular_velocity",
+            "controller_integral",
+            "commanded_thrust",
+            "commanded_gimbal_angle",
+            "actuator_thrust",
+            "actuator_gimbal_angle",
+            "body_wrench",
+        )
+        for serial_member, parallel_member in zip(
+            serial_trajectories, parallel_trajectories
+        ):
+            self.assertEqual(len(serial_member), len(parallel_member))
+            for serial_bag, parallel_bag in zip(
+                serial_member, parallel_member
+            ):
+                for field in trajectory_fields:
+                    np.testing.assert_array_equal(
+                        getattr(parallel_bag, field),
+                        getattr(serial_bag, field),
+                    )
+
+        expected_units = controls.shape[0] * len(problem.bags)
+        for events in (residual_events, trajectory_events):
+            self.assertEqual(len(events), expected_units)
+            self.assertEqual(
+                [event[2] for event in events],
+                list(range(1, expected_units + 1)),
+            )
+            self.assertTrue(
+                all(event[3] == expected_units for event in events)
+            )
+            for offset in range(0, expected_units, len(problem.bags)):
+                member_events = events[offset:offset + len(problem.bags)]
+                self.assertEqual(
+                    [event[1] for event in member_events],
+                    [bag.bag_id for bag in problem.bags],
+                )
+                self.assertEqual(
+                    len({event[0] for event in member_events}), 1
+                )
+            self.assertEqual(
+                sorted(event[0] for event in events),
+                [0, 0, 1, 1, 2, 2],
+            )
+        self.assertEqual(residual_events, serial_residual_events)
+        self.assertEqual(trajectory_events, serial_trajectory_events)
+
+    def test_parallel_batch_reports_members_in_canonical_order(self):
+        problem = JointWeakConstraintProblem((self.first,))
+        controls = np.zeros((3, problem.control_dimension), dtype=float)
+        controls[1, problem.layout.shared_parameter_slice.start] = 0.01
+        controls[2, problem.layout.bags[0].innovation_slice.start] = 0.1
+        expected = problem.forecast_residual_batch(controls, worker_count=1)
+
+        iterator = mock.Mock()
+        iterator.next.side_effect = (
+            (0, expected[0].copy()),
+            (1, expected[1].copy()),
+            (2, expected[2].copy()),
+        )
+        pool = mock.Mock()
+        pool.imap.return_value = iterator
+        context = mock.Mock()
+        context.Pool.return_value = pool
+        events = []
+        with mock.patch(
+            "grape_param_estim.joint_assimilation.multiprocessing.get_context",
+            return_value=context,
+        ):
+            actual = problem.forecast_residual_batch(
+                controls,
+                member_bag_callback=lambda *event: events.append(event),
+                worker_count=2,
+            )
+
+        np.testing.assert_array_equal(actual, expected)
+        self.assertEqual([event[0] for event in events], [0, 1, 2])
+        self.assertEqual([event[2] for event in events], [1, 2, 3])
+        pool.imap.assert_called_once()
+        pool.imap_unordered.assert_not_called()
+        pool.close.assert_called_once_with()
+        pool.join.assert_called_once_with()
+        pool.terminate.assert_not_called()
+
+    def test_single_member_batches_do_not_create_a_process_pool(self):
+        problem = JointWeakConstraintProblem((self.first, self.second))
+        controls = np.zeros((1, problem.control_dimension), dtype=float)
+        with mock.patch(
+            "grape_param_estim.joint_assimilation.multiprocessing.get_context"
+        ) as get_context:
+            residuals = problem.forecast_residual_batch(
+                controls, worker_count=16
+            )
+            trajectories = problem.forecast_trajectory_batch(
+                controls, worker_count=16
+            )
+        get_context.assert_not_called()
+        self.assertEqual(residuals.shape[0], 1)
+        self.assertEqual(len(trajectories), 1)
+        self.assertEqual(len(trajectories[0]), len(problem.bags))
+
+    def test_parallel_batch_terminates_pool_on_cancel_or_worker_error(self):
+        problem = JointWeakConstraintProblem((self.first,))
+        controls = np.zeros((2, problem.control_dimension), dtype=float)
+        for failure, expected in (
+            (EstimationCancelled("cancelled"), EstimationCancelled),
+            (RuntimeError("worker failed"), RuntimeError),
+        ):
+            with self.subTest(expected=expected.__name__):
+                iterator = mock.Mock()
+                iterator.next.side_effect = failure
+                pool = mock.Mock()
+                pool.imap.return_value = iterator
+                context = mock.Mock()
+                context.Pool.return_value = pool
+                with mock.patch(
+                    "grape_param_estim.joint_assimilation."
+                    "multiprocessing.get_context",
+                    return_value=context,
+                ):
+                    with self.assertRaises(expected):
+                        problem.forecast_residual_batch(
+                            controls, worker_count=2
+                        )
+                pool.terminate.assert_called_once_with()
+                pool.join.assert_called_once_with()
+                pool.close.assert_not_called()
+
+    def test_parallel_batch_honours_cancel_before_pool_creation(self):
+        problem = JointWeakConstraintProblem((self.first,))
+        controls = np.zeros((2, problem.control_dimension), dtype=float)
+        with mock.patch(
+            "grape_param_estim.joint_assimilation.multiprocessing.get_context"
+        ) as get_context:
+            with self.assertRaises(EstimationCancelled):
+                problem.forecast_residual_batch(
+                    controls,
+                    cancel_requested=lambda: True,
+                    worker_count=2,
+                )
+        get_context.assert_not_called()
+
+    def test_forecast_worker_configuration_rejects_invalid_values(self):
+        for value in (False, 0, -1, 257, 1.5, None, "many"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    JointIEnKSConfig(forecast_workers=value)
+
     def test_bag_order_is_canonical_and_second_bag_adds_static_information(self):
         forward = JointWeakConstraintProblem((self.first, self.second))
         reverse = JointWeakConstraintProblem((self.second, self.first))
@@ -474,6 +673,61 @@ class JointAssimilationTest(unittest.TestCase):
                 bag.trajectory_ensemble[0].position,
                 replay[bag_index].position,
             )
+
+    def test_parallel_fit_matches_serial_fit_bit_for_bit(self):
+        problem = JointWeakConstraintProblem((self.first,))
+        prior = JointWeakConstraintPrior.grape(problem)
+        serial = JointWeakConstraintIEnKSQ(
+            JointIEnKSConfig(
+                ensemble_size=4,
+                maximum_iterations=1,
+                seed=29,
+                forecast_workers=1,
+            )
+        ).fit(problem, prior)
+        parallel = JointWeakConstraintIEnKSQ(
+            JointIEnKSConfig(
+                ensemble_size=4,
+                maximum_iterations=1,
+                seed=29,
+                forecast_workers=2,
+            )
+        ).fit(problem, prior)
+
+        for field in (
+            "member_id",
+            "requested_prior_control_ensemble",
+            "prior_control_ensemble",
+            "control_ensemble",
+            "center_control",
+        ):
+            np.testing.assert_array_equal(
+                getattr(parallel, field), getattr(serial, field)
+            )
+        self.assertEqual(parallel.termination_reason, serial.termination_reason)
+        self.assertEqual(parallel.converged, serial.converged)
+        trajectory_fields = (
+            "times",
+            "position",
+            "orientation_xyzw",
+            "linear_velocity",
+            "angular_velocity",
+            "controller_integral",
+            "commanded_thrust",
+            "commanded_gimbal_angle",
+            "actuator_thrust",
+            "actuator_gimbal_angle",
+            "body_wrench",
+        )
+        for serial_trajectory, parallel_trajectory in zip(
+            serial.bags[0].trajectory_ensemble,
+            parallel.bags[0].trajectory_ensemble,
+        ):
+            for field in trajectory_fields:
+                np.testing.assert_array_equal(
+                    getattr(parallel_trajectory, field),
+                    getattr(serial_trajectory, field),
+                )
 
     def test_different_configuration_fingerprints_are_blocked(self):
         incompatible = JointBagProblem(

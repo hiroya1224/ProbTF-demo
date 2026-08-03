@@ -21,6 +21,7 @@ from grape_param_estim.artifact_io import (
 )
 from grape_param_estim.ensemble_solver import EstimationCancelled
 from grape_param_estim.joint_assimilation import (
+    FORECAST_START_METHOD,
     JointIEnKSConfig,
     assimilate_joint_flights,
     assimilation_run_manifest,
@@ -212,11 +213,58 @@ def _maximum_line_search_trials(minimum_fraction: float) -> int:
     return int(math.floor(math.log(1.0 / minimum_fraction, 2))) + 1
 
 
+def _available_cpu_count() -> int:
+    try:
+        return max(1, len(os.sched_getaffinity(0)))
+    except (AttributeError, OSError):
+        return max(1, os.cpu_count() or 1)
+
+
+def _resolved_forecast_workers(
+    request: Mapping[str, object], ensemble_size: int
+) -> int:
+    execution = request.get("execution", {})
+    if not isinstance(execution, dict):
+        raise ValueError("execution must be an object")
+    requested = execution.get("forecast_workers")
+    if requested is None:
+        requested = os.environ.get(
+            "GRAPE_PARAM_ESTIM_FORECAST_WORKERS", "auto"
+        )
+    if isinstance(requested, str):
+        normalised = requested.strip().lower()
+        if normalised in {"", "0", "auto"}:
+            cpu_count = _available_cpu_count()
+            return min(int(ensemble_size), 16, max(1, cpu_count // 2))
+        try:
+            requested = int(normalised)
+        except ValueError as error:
+            raise ValueError(
+                "forecast_workers must be auto or a positive integer"
+            ) from error
+    try:
+        valid = (
+            not isinstance(requested, (bool, np.bool_))
+            and int(requested) == requested
+            and 1 <= int(requested) <= 256
+        )
+    except (TypeError, ValueError, OverflowError):
+        valid = False
+    if not valid:
+        raise ValueError(
+            "forecast_workers must be auto or an integer in [1, 256]"
+        )
+    return min(int(requested), int(ensemble_size))
+
+
 def run_request(request_path: str, output_path: str) -> Path:
     request_source = Path(request_path).expanduser().resolve()
     request = _validate_request(read_json(request_source))
     output = Path(output_path).expanduser().resolve()
     settings = request["settings"]
+    forecast_workers = _resolved_forecast_workers(
+        request, int(settings["ensemble_size"])
+    )
     configuration = JointIEnKSConfig(
         ensemble_size=int(settings["ensemble_size"]),
         maximum_iterations=int(settings["maximum_iterations"]),
@@ -230,6 +278,7 @@ def run_request(request_path: str, output_path: str) -> Path:
         maximum_initial_prior_backoff_trials=int(
             settings.get("maximum_initial_prior_backoff_trials", 8)
         ),
+        forecast_workers=forecast_workers,
     )
     intervals = {
         str(bag["bag_id"]): tuple(bag["selected_interval"])
@@ -250,6 +299,12 @@ def run_request(request_path: str, output_path: str) -> Path:
             "GRAPE_PARAM_ESTIM_REVISION", "workspace"
         ),
     )
+    manifest["execution"] = {
+        "forecast_workers": forecast_workers,
+        "multiprocessing_start_method": (
+            FORECAST_START_METHOD if forecast_workers > 1 else None
+        ),
+    }
     begin_bundle(output, manifest)
     cancellation = CancellationToken()
 

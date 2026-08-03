@@ -161,6 +161,8 @@ devel space の `rosrun` は source script の shebang ではなく、catkin が
 したがって上記 workspace では venv の activate や GUI 用環境変数なしで `rosrun grape_param_estim run_gui.py` を実行できます。
 検証環境の package-local `qt-runtime` も同じ再実行時にだけ自動追加します。
 worker interpreter を変更する場合は `GRAPE_PARAM_ESTIM_WORKER_PYTHON` に catkin/ROS package を読み込める interpreter の絶対パスを設定します。
+同化中の closed-loop forecast は ensemble member ごとに独立なので、既定では CPU affinity と ensemble size を見て最大16個の `spawn` process で並列実行します。
+使用 process 数を固定する場合は `GRAPE_PARAM_ESTIM_FORECAST_WORKERS=4` のように指定し、直列で再現確認する場合は `GRAPE_PARAM_ESTIM_FORECAST_WORKERS=1` を指定します。
 GUI の `Save Project` は raw rosbag、inspection、run、PID evaluation、GUI state を含む標準 ZIP/ZIP64 を保存し、`Load Project` は同梱 bag の SHA256 を検査して `projects/` 以下へ展開します。
 
 `Next experiment` では shared selection の raw member を明示し、current、member-derived exact candidate、任意で入力した exact 4 x 3 user candidate を評価します。

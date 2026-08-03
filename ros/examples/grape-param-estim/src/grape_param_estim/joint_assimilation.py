@@ -2,7 +2,9 @@
 
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
+import multiprocessing
 from pathlib import Path
+import signal
 from typing import Callable, Dict, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
@@ -56,6 +58,43 @@ from grape_param_estim.model_error import KnotGaussMarkovWrenchProcess
 
 ACTUATOR_STATE_DIMENSION = 8
 SHARED_STATIC_DIMENSION = PARAMETER_DIMENSION + 1
+FORECAST_START_METHOD = "spawn"
+_FORECAST_WORKER_PROBLEM = None
+
+
+def _initialise_forecast_worker(problem) -> None:
+    """Install one immutable problem in a child used only for forecasts."""
+
+    global _FORECAST_WORKER_PROBLEM
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    _FORECAST_WORKER_PROBLEM = problem
+
+
+def _forecast_member(task):
+    """Run one deterministic member in a process-pool child."""
+
+    member_index, control, residual_only = task
+    problem = _FORECAST_WORKER_PROBLEM
+    if problem is None:
+        raise RuntimeError("parallel forecast worker was not initialised")
+    trajectories = problem.forecast(control)
+    value = problem.residual(trajectories) if residual_only else trajectories
+    return member_index, value
+
+
+def _validated_forecast_worker_count(value, name: str) -> int:
+    try:
+        valid = (
+            not isinstance(value, (bool, np.bool_))
+            and int(value) == value
+            and 1 <= int(value) <= 256
+        )
+    except (TypeError, ValueError, OverflowError):
+        valid = False
+    if not valid:
+        raise ValueError("{} must be an integer in [1, 256]".format(name))
+    return int(value)
 
 
 @dataclass(frozen=True)
@@ -66,6 +105,7 @@ class JointIEnKSConfig:
     minimum_line_search_step: float = 1.0 / 64.0
     seed: int = 23
     maximum_initial_prior_backoff_trials: int = 8
+    forecast_workers: int = 1
 
     def __post_init__(self) -> None:
         if self.ensemble_size < 3:
@@ -83,6 +123,9 @@ class JointIEnKSConfig:
             raise ValueError(
                 "maximum_initial_prior_backoff_trials must be in [0, 30]"
             )
+        _validated_forecast_worker_count(
+            self.forecast_workers, "forecast_workers"
+        )
         if (
             not np.isfinite(self.convergence_tolerance)
             or self.convergence_tolerance <= 0.0
@@ -488,10 +531,22 @@ class JointWeakConstraintProblem:
         controls: np.ndarray,
         member_bag_callback: Optional[Callable[[int, str, int, int], None]] = None,
         cancel_requested: Optional[Callable[[], bool]] = None,
+        worker_count: int = 1,
     ) -> np.ndarray:
         values = np.asarray(controls, dtype=float)
         if values.ndim != 2 or values.shape[1] != self.control_dimension:
             raise ValueError("joint control batch has the wrong shape")
+        selected_workers = self._validated_worker_count(worker_count)
+        if selected_workers > 1 and values.shape[0] > 1:
+            return np.asarray(
+                self._parallel_forecast_batch(
+                    values,
+                    selected_workers,
+                    residual_only=True,
+                    member_bag_callback=member_bag_callback,
+                    cancel_requested=cancel_requested,
+                )
+            )
         total = values.shape[0] * len(self.bags)
         completed = 0
         rows = []
@@ -517,6 +572,126 @@ class JointWeakConstraintProblem:
             )
             rows.append(self.residual(member_trajectories))
         return np.asarray(rows)
+
+    def forecast_trajectory_batch(
+        self,
+        controls: np.ndarray,
+        member_bag_callback: Optional[Callable[[int, str, int, int], None]] = None,
+        cancel_requested: Optional[Callable[[], bool]] = None,
+        worker_count: int = 1,
+    ) -> Tuple[Tuple[ClosedLoopTrajectory, ...], ...]:
+        """Forecast complete member paths while preserving input row order."""
+
+        values = np.asarray(controls, dtype=float)
+        if values.ndim != 2 or values.shape[1] != self.control_dimension:
+            raise ValueError("joint control batch has the wrong shape")
+        selected_workers = self._validated_worker_count(worker_count)
+        if selected_workers > 1 and values.shape[0] > 1:
+            return tuple(
+                self._parallel_forecast_batch(
+                    values,
+                    selected_workers,
+                    residual_only=False,
+                    member_bag_callback=member_bag_callback,
+                    cancel_requested=cancel_requested,
+                )
+            )
+        total = values.shape[0] * len(self.bags)
+        completed = 0
+        rows = []
+        for member, control in enumerate(values):
+            def report(
+                member_index: int,
+                bag_id: str,
+                _local_completed: int,
+                _local_total: int,
+            ) -> None:
+                nonlocal completed
+                completed += 1
+                if member_bag_callback is not None:
+                    member_bag_callback(
+                        member_index, bag_id, completed, total
+                    )
+
+            rows.append(
+                self.forecast(
+                    control,
+                    member_index=member,
+                    member_bag_callback=report,
+                    cancel_requested=cancel_requested,
+                )
+            )
+        return tuple(rows)
+
+    @staticmethod
+    def _validated_worker_count(value: int) -> int:
+        return _validated_forecast_worker_count(value, "worker_count")
+
+    def _parallel_forecast_batch(
+        self,
+        values: np.ndarray,
+        worker_count: int,
+        *,
+        residual_only: bool,
+        member_bag_callback: Optional[Callable[[int, str, int, int], None]],
+        cancel_requested: Optional[Callable[[], bool]],
+    ):
+        """Run independent members in child processes and collect by index."""
+
+        rows = [None] * int(values.shape[0])
+        completed_members = 0
+        total_units = int(values.shape[0]) * len(self.bags)
+        pool = None
+        try:
+            if cancel_requested is not None and bool(cancel_requested()):
+                raise EstimationCancelled(
+                    "estimation cancelled before parallel forecast"
+                )
+            context = multiprocessing.get_context(FORECAST_START_METHOD)
+            pool = context.Pool(
+                processes=min(int(worker_count), int(values.shape[0])),
+                initializer=_initialise_forecast_worker,
+                initargs=(self,),
+            )
+            iterator = pool.imap(
+                _forecast_member,
+                (
+                    (member, values[member], bool(residual_only))
+                    for member in range(values.shape[0])
+                ),
+                chunksize=1,
+            )
+            while completed_members < values.shape[0]:
+                if cancel_requested is not None and bool(cancel_requested()):
+                    raise EstimationCancelled(
+                        "estimation cancelled during parallel forecast"
+                    )
+                try:
+                    member, row = iterator.next(timeout=0.1)
+                except multiprocessing.TimeoutError:
+                    continue
+                rows[int(member)] = row
+                completed_members += 1
+                if member_bag_callback is not None:
+                    for bag_index, bag in enumerate(self.bags):
+                        member_bag_callback(
+                            int(member),
+                            bag.bag_id,
+                            (completed_members - 1) * len(self.bags)
+                            + bag_index
+                            + 1,
+                            total_units,
+                        )
+            pool.close()
+            pool.join()
+        except BaseException:
+            if pool is not None:
+                pool.terminate()
+                pool.join()
+            raise
+        if any(row is None for row in rows):
+            raise RuntimeError("parallel forecast batch returned incomplete rows")
+        return tuple(rows)
 
 
 @dataclass(frozen=True)
@@ -631,7 +806,10 @@ class JointWeakConstraintIEnKSQ:
         result = run_ensemble_space_ienks(
             ensemble,
             lambda controls: problem.forecast_residual_batch(
-                controls, member_bag_callback, cancel_requested
+                controls,
+                member_bag_callback,
+                cancel_requested,
+                worker_count=self.configuration.forecast_workers,
             ),
             self.configuration,
             progress_callback=progress_callback,
@@ -649,6 +827,7 @@ class JointWeakConstraintIEnKSQ:
             result,
             member_bag_callback=member_bag_callback,
             cancel_requested=cancel_requested,
+            forecast_workers=self.configuration.forecast_workers,
         )
         if progress_callback is not None:
             progress_callback(
@@ -665,6 +844,7 @@ class JointWeakConstraintIEnKSQ:
         result: EnsembleSpaceResult,
         member_bag_callback=None,
         cancel_requested=None,
+        forecast_workers=1,
     ) -> JointWeakConstraintPosterior:
         member_count = result.posterior_ensemble.shape[0]
         member_id = np.arange(member_count, dtype=np.int64)
@@ -736,23 +916,17 @@ class JointWeakConstraintIEnKSQ:
                     total_replay_units,
                 )
 
-        posterior_forecasts = tuple(
-            problem.forecast(
-                value,
-                member_index=member,
-                member_bag_callback=report_replay,
-                cancel_requested=cancel_requested,
-            )
-            for member, value in enumerate(result.posterior_ensemble)
+        posterior_forecasts = problem.forecast_trajectory_batch(
+            result.posterior_ensemble,
+            member_bag_callback=report_replay,
+            cancel_requested=cancel_requested,
+            worker_count=forecast_workers,
         )
-        prior_forecasts = tuple(
-            problem.forecast(
-                value,
-                member_index=member,
-                member_bag_callback=report_replay,
-                cancel_requested=cancel_requested,
-            )
-            for member, value in enumerate(result.prior_ensemble)
+        prior_forecasts = problem.forecast_trajectory_batch(
+            result.prior_ensemble,
+            member_bag_callback=report_replay,
+            cancel_requested=cancel_requested,
+            worker_count=forecast_workers,
         )
         bag_results = []
         for bag_index, bag in enumerate(problem.bags):

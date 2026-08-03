@@ -15,12 +15,61 @@ from grape_param_estim.ensemble_solver import (
 )
 from grape_param_estim.joint_assimilation_cli import (
     _iteration_progress_metadata,
+    _resolved_forecast_workers,
     run_request,
 )
 from grape_param_estim.progress import ProgressEvent
 
 
 class JointAssimilationCliTest(unittest.TestCase):
+    def test_forecast_worker_resolution_supports_auto_and_explicit_values(self):
+        with mock.patch.dict(
+            "os.environ", {"GRAPE_PARAM_ESTIM_FORECAST_WORKERS": "auto"}
+        ), mock.patch("os.sched_getaffinity", return_value=set(range(64))):
+            self.assertEqual(_resolved_forecast_workers({}, 128), 16)
+            self.assertEqual(_resolved_forecast_workers({}, 7), 7)
+
+        with mock.patch.dict(
+            "os.environ", {"GRAPE_PARAM_ESTIM_FORECAST_WORKERS": "9"}
+        ):
+            self.assertEqual(_resolved_forecast_workers({}, 32), 9)
+            self.assertEqual(_resolved_forecast_workers({}, 4), 4)
+            self.assertEqual(
+                _resolved_forecast_workers(
+                    {"execution": {"forecast_workers": 3}}, 32
+                ),
+                3,
+            )
+            self.assertEqual(
+                _resolved_forecast_workers(
+                    {"execution": {"forecast_workers": "auto"}}, 6
+                ),
+                6,
+            )
+
+        with mock.patch.dict(
+            "os.environ", {"GRAPE_PARAM_ESTIM_FORECAST_WORKERS": "auto"}
+        ), mock.patch(
+            "os.sched_getaffinity", side_effect=AttributeError
+        ), mock.patch("os.cpu_count", return_value=None):
+            self.assertEqual(_resolved_forecast_workers({}, 128), 1)
+
+    def test_forecast_worker_resolution_rejects_invalid_values(self):
+        for execution in (
+            [],
+            {"forecast_workers": True},
+            {"forecast_workers": 0},
+            {"forecast_workers": -1},
+            {"forecast_workers": 257},
+            {"forecast_workers": 1.5},
+            {"forecast_workers": "many"},
+        ):
+            with self.subTest(execution=execution):
+                with self.assertRaises(ValueError):
+                    _resolved_forecast_workers(
+                        {"execution": execution}, ensemble_size=32
+                    )
+
     def test_iteration_label_parser_leaves_noniteration_stages_null(self):
         self.assertEqual(
             _iteration_progress_metadata("iteration 2/5 line search"),

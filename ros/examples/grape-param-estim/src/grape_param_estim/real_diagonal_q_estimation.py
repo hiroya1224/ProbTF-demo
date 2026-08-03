@@ -380,6 +380,7 @@ def run_real_diagonal_q_em(
     config: DiagonalQEmConfig,
     *,
     ensemble_size: int = 64,
+    forecast_workers: int = 1,
     seed: int = 23,
     progress_callback: Optional[ProgressCallback] = None,
     bag_progress_callback: Optional[BagProgressCallback] = None,
@@ -439,6 +440,7 @@ def run_real_diagonal_q_em(
                 correlation_time=bag.calibration.correlation_time,
                 observation_covariance=bag.observation_covariance,
                 seed=int((bag_seed + 2) % (2**32)),
+                forecast_workers=forecast_workers,
                 progress_callback=(
                     forward_event
                     if bag_progress_callback is not None

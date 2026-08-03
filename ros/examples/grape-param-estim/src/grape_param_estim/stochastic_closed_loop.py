@@ -40,6 +40,7 @@ from grape_param_estim.progress import (
     ProgressCallback,
     ProgressTracker,
 )
+from grape_param_estim.parallel_stepper import PersistentParallelSteppers
 from grape_param_estim.system import (
     ActuatorParameters,
     ActuatorState,
@@ -99,6 +100,20 @@ def _seed(value) -> int:
     if result < 0 or result >= 2**32:
         raise ValueError("seed must be an unsigned 32-bit integer")
     return result
+
+
+def _forecast_worker_count(value, member_count: int) -> int:
+    if isinstance(value, (bool, np.bool_)):
+        raise ValueError("forecast_workers must be an integer in [1, 256]")
+    try:
+        result = int(value)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError(
+            "forecast_workers must be an integer in [1, 256]"
+        ) from error
+    if result != value or result < 1 or result > 256:
+        raise ValueError("forecast_workers must be an integer in [1, 256]")
+    return min(result, member_count)
 
 
 def _state_ensemble(
@@ -476,6 +491,7 @@ def run_stochastic_closed_loop_e_step(
     observation_covariance: PoseObservationCovariance,
     seed: int,
     covariance_rcond: float = 1.0e-12,
+    forecast_workers: int = 1,
     progress_callback: Optional[ProgressCallback] = None,
     cancellation_token: Optional[CancellationToken] = None,
     progress_run_id: str = "q-only-e-step",
@@ -515,6 +531,9 @@ def run_stochastic_closed_loop_e_step(
     factors = OuTransitionFactors(selected_times, correlation_time)
     innovation_variance = factors.innovation_variance(wrench_covariance)
     member_count = len(initial_ensemble)
+    selected_workers = _forecast_worker_count(
+        forecast_workers, member_count
+    )
     time_count = int(selected_times.size)
     total_units = (
         time_count
@@ -535,20 +554,32 @@ def run_stochastic_closed_loop_e_step(
         message="starting filter",
     )
 
-    steppers = tuple(
-        ClosedLoopStepper(
+    parallel_steppers = None
+    if selected_workers > 1:
+        parallel_steppers = PersistentParallelSteppers(
             controller=controller,
             plant=plant,
             actuator_parameters=actuator_parameters,
-            initial_state=ClosedLoopStepperState(
-                time=selected_times[0],
-                rigid_body_state=state.rigid,
-                controller_state=state.controller,
-                actuator_state=state.actuator,
-            ),
+            initial_time=selected_times[0],
+            initial_states=initial_ensemble,
+            worker_count=selected_workers,
         )
-        for state in initial_ensemble
-    )
+        steppers = ()
+    else:
+        steppers = tuple(
+            ClosedLoopStepper(
+                controller=controller,
+                plant=plant,
+                actuator_parameters=actuator_parameters,
+                initial_state=ClosedLoopStepperState(
+                    time=selected_times[0],
+                    rigid_body_state=state.rigid,
+                    controller_state=state.controller,
+                    actuator_state=state.actuator,
+                ),
+            )
+            for state in initial_ensemble
+        )
     forecast_ensembles = [initial_ensemble]
     analysis_ensembles = []
     log_likelihood = np.empty(time_count, dtype=float)
@@ -578,12 +609,13 @@ def run_stochastic_closed_loop_e_step(
             for state in decoded
         )
         analysis_ensembles.append(analysis)
-        for stepper, state in zip(steppers, analysis):
-            stepper.replace_dynamic_state(
-                rigid_body_state=state.rigid,
-                controller_state=state.controller,
-                actuator_state=state.actuator,
-            )
+        if parallel_steppers is None:
+            for stepper, state in zip(steppers, analysis):
+                stepper.replace_dynamic_state(
+                    rigid_body_state=state.rigid,
+                    controller_state=state.controller,
+                    actuator_state=state.actuator,
+                )
         log_likelihood[time_index] = update.approximate_log_likelihood
         nis[time_index] = float(
             update.innovation
@@ -627,14 +659,26 @@ def run_stochastic_closed_loop_e_step(
             current_wrench, factors.rho[time_index], noise
         )
         next_forecast = []
-        for member_index, stepper in enumerate(steppers):
-            tracker.checkpoint()
-            stepper.advance_interval(
-                selected_times[time_index + 1],
-                selected_references[time_index],
-                interval_wrench[member_index],
+        if parallel_steppers is None:
+            next_stepper_states = []
+            for member_index, stepper in enumerate(steppers):
+                tracker.checkpoint()
+                stepper.advance_interval(
+                    selected_times[time_index + 1],
+                    selected_references[time_index],
+                    interval_wrench[member_index],
+                )
+                next_stepper_states.append(stepper.state)
+        else:
+            next_stepper_states = parallel_steppers.advance_interval(
+                end_time=selected_times[time_index + 1],
+                reference=selected_references[time_index],
+                analysis_states=analysis,
+                interval_wrench=interval_wrench,
+                cancellation_token=cancellation_token,
             )
-            stepper_state = stepper.state
+        for member_index, stepper_state in enumerate(next_stepper_states):
+            tracker.checkpoint()
             next_forecast.append(
                 GrapeFilterState(
                     rigid=stepper_state.rigid_body_state,
@@ -689,6 +733,15 @@ def run_stochastic_closed_loop_e_step(
         ),
         (1, 0, 2),
     )
+    if parallel_steppers is None:
+        command_issue_times = tuple(
+            stepper.command_issue_times for stepper in steppers
+        )
+    else:
+        command_issue_times = parallel_steppers.command_issue_times(
+            cancellation_token
+        )
+        parallel_steppers.close()
     return StochasticClosedLoopEStepResult(
         times=selected_times,
         smoothed_wrench_ensemble=smoothed_wrench,
@@ -701,9 +754,7 @@ def run_stochastic_closed_loop_e_step(
         analysis_state_ensembles=tuple(analysis_ensembles),
         smoothed_state_ensembles=tuple(smoothed_ensembles),
         smoothing_gains=tuple(smoothing_gains),
-        command_issue_times=tuple(
-            stepper.command_issue_times for stepper in steppers
-        ),
+        command_issue_times=command_issue_times,
     )
 
 

@@ -207,6 +207,51 @@ class StochasticClosedLoopEStepTest(unittest.TestCase):
                 atol=2e-15,
             )
 
+    def test_parallel_forecast_is_bit_exact_to_serial(self):
+        serial = self._run(seed=222, forecast_workers=1)
+        parallel = self._run(seed=222, forecast_workers=2)
+        np.testing.assert_array_equal(
+            parallel.smoothed_wrench_ensemble,
+            serial.smoothed_wrench_ensemble,
+        )
+        np.testing.assert_array_equal(
+            parallel.filter_log_likelihood_by_time,
+            serial.filter_log_likelihood_by_time,
+        )
+        np.testing.assert_array_equal(parallel.filter_nis, serial.filter_nis)
+        for left_series, right_series in (
+            (
+                parallel.forecast_state_ensembles,
+                serial.forecast_state_ensembles,
+            ),
+            (
+                parallel.analysis_state_ensembles,
+                serial.analysis_state_ensembles,
+            ),
+            (
+                parallel.smoothed_state_ensembles,
+                serial.smoothed_state_ensembles,
+            ),
+        ):
+            for left_ensemble, right_ensemble in zip(
+                left_series, right_series
+            ):
+                for left, right in zip(left_ensemble, right_ensemble):
+                    np.testing.assert_array_equal(
+                        left.rigid.position, right.rigid.position
+                    )
+                    np.testing.assert_array_equal(
+                        left.rigid.orientation_xyzw,
+                        right.rigid.orientation_xyzw,
+                    )
+                    np.testing.assert_array_equal(
+                        left.residual_wrench, right.residual_wrench
+                    )
+        for left, right in zip(
+            parallel.command_issue_times, serial.command_issue_times
+        ):
+            np.testing.assert_array_equal(left, right)
+
     def test_zero_innovation_uses_unequal_dt_ou_and_trapezoidal_wrench(self):
         factors = OuTransitionFactors(self.times, 0.13)
         current = np.arange(12, dtype=float).reshape(2, 6) - 3.0
@@ -236,6 +281,8 @@ class StochasticClosedLoopEStepTest(unittest.TestCase):
             self._run(observed_orientation_xyzw=invalid_orientation)
         with self.assertRaisesRegex(ValueError, "seed"):
             self._run(seed=-1)
+        with self.assertRaisesRegex(ValueError, "forecast_workers"):
+            self._run(forecast_workers=0)
         with self.assertRaisesRegex(ValueError, "positive definite"):
             PoseObservationCovariance(np.eye(3), np.zeros((3, 3)))
         with self.assertRaisesRegex(ValueError, "member-first"):

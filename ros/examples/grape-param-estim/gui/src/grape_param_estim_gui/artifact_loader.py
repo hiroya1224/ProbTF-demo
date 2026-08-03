@@ -9,6 +9,7 @@ views.  No pickle or object arrays are accepted by that boundary.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -27,6 +28,20 @@ except ImportError as error:  # pragma: no cover - exercised by GUI startup
 else:
     _BACKEND_IMPORT_ERROR = None
 
+try:
+    from grape_param_estim import (
+        augmented_parameter_artifact as augmented_parameter_artifact_io,
+    )
+    from grape_param_estim import (
+        diagonal_q_artifact as diagonal_q_artifact_io,
+    )
+except ImportError as error:  # pragma: no cover - exercised by GUI startup
+    augmented_parameter_artifact_io = None  # type: ignore[assignment]
+    diagonal_q_artifact_io = None  # type: ignore[assignment]
+    _STAGE_BACKEND_IMPORT_ERROR = error
+else:
+    _STAGE_BACKEND_IMPORT_ERROR = None
+
 
 GUI_ARTIFACT_LOADER_ID = PROJECT_ARTIFACT_LOADER_ID
 GUI_ARTIFACT_LOADER_VERSION = PROJECT_ARTIFACT_LOADER_VERSION
@@ -44,6 +59,30 @@ def _backend() -> Any:
             "to PYTHONPATH"
         ) from _BACKEND_IMPORT_ERROR
     return artifact_io
+
+
+def _stage_backends() -> tuple[Any, Any]:
+    _backend()
+    if (
+        diagonal_q_artifact_io is None
+        or augmented_parameter_artifact_io is None
+    ):
+        raise GuiArtifactError(
+            "stage artifact adapters are unavailable; start the GUI from "
+            "the package launcher or add the estimator src directory to "
+            "PYTHONPATH"
+        ) from _STAGE_BACKEND_IMPORT_ERROR
+    return diagonal_q_artifact_io, augmented_parameter_artifact_io
+
+
+def _strict_stage_call(label: str, callback: Any) -> Any:
+    backend = _backend()
+    try:
+        return callback()
+    except (backend.ArtifactValidationError, OSError) as error:
+        raise GuiArtifactError(
+            "cannot load {}: {}".format(label, error)
+        ) from error
 
 
 def _array(value: Any, *, copy: bool = False) -> np.ndarray:
@@ -321,6 +360,174 @@ def load_assimilation(path: str | Path) -> AssimilationRun:
     )
 
 
+def load_diagonal_q_stage(path: str | Path) -> Any:
+    """Return a complete diagonal-Q bundle after strict backend validation."""
+
+    diagonal_backend, _augmented_backend = _stage_backends()
+    return _strict_stage_call(
+        "diagonal-Q stage artifact",
+        lambda: diagonal_backend.load_diagonal_q_artifact(path),
+    )
+
+
+def diagonal_q_stage_fingerprint(path: str | Path) -> str:
+    """Fingerprint the canonical manifest of a validated diagonal-Q stage."""
+
+    bundle = load_diagonal_q_stage(path)
+    return _strict_stage_call(
+        "diagonal-Q stage fingerprint",
+        lambda: _backend().request_fingerprint(bundle.manifest),
+    )
+
+
+def _stage2_provenance(metadata: Mapping[str, Any]) -> dict[str, Any]:
+    provenance = dict(metadata["episode_provenance"])
+    for key in (
+        "source_path",
+        "source_sha256",
+        "source_size_bytes",
+        "episode_index",
+        "configuration_fingerprint",
+        "time_basis",
+        "requested_interval_record_seconds",
+        "effective_interval_record_seconds",
+        "effective_interval_local_seconds",
+        "episode_provenance_fingerprint",
+        "controller_snapshot",
+        "controller_snapshot_fingerprint",
+        "controller_configuration",
+        "controller_configuration_fingerprint",
+        "model_provenance",
+        "model_provenance_fingerprint",
+    ):
+        provenance[key] = metadata[key]
+    return provenance
+
+
+def _stage2_coverage(_metadata: Mapping[str, Any]) -> dict[str, Any]:
+    # Interval provenance remains in ``provenance``.  Stage 2 does not
+    # compute the legacy pose-component coverage metric.
+    return {}
+
+
+def _stage2_calibration(
+    arrays: Mapping[str, np.ndarray],
+) -> dict[str, np.ndarray]:
+    return {
+        key: _array(arrays[key])
+        for key in (
+            "fixed_q_stationary_variance",
+            "fixed_r_translation_covariance",
+            "fixed_r_rotation_covariance",
+            "fixed_correlation_time",
+        )
+    }
+
+
+def load_augmented_parameter_assimilation(
+    path: str | Path,
+) -> AssimilationRun:
+    """Adapt a strict stage-2 bundle without inventing absent diagnostics."""
+
+    _diagonal_backend, augmented_backend = _stage_backends()
+    bundle = _strict_stage_call(
+        "fixed-Q augmented-parameter stage artifact",
+        lambda: augmented_backend.load_augmented_parameter_artifact(path),
+    )
+    shared = bundle.shared_posterior
+    diagnostics: dict[str, np.ndarray] = {}
+    posterior = SharedPosterior(
+        member_id=_array(shared["member_id"]),
+        parameter_coordinate=_array(shared["final_shared_coordinates"]),
+        mass=_array(shared["mass"]),
+        inertia=_array(shared["inertia"]),
+        cog=_array(shared["cog_offset"]),
+        force_effectiveness=_array(shared["force_effectiveness"]),
+        torque_effectiveness=_array(shared["torque_effectiveness"]),
+        constant_delay=_array(shared["constant_delay"]),
+        ridge={
+            "covariance": _array(shared["ridge_covariance"]),
+            "eigenvalues": _array(shared["ridge_eigenvalues"]),
+            "eigenvectors": _array(shared["ridge_eigenvectors"]),
+            "expected_direction": _array(
+                shared["expected_physical_ridge_direction"]
+            ),
+            "expected_variance": _array(
+                shared["expected_physical_ridge_variance"]
+            ),
+            "ensemble_rank": _array(shared["ensemble_rank"]),
+        },
+        mode={},
+        iteration_diagnostics=diagnostics,
+    )
+    bag_results: dict[str, FlightResult] = {}
+    for bag_id in bundle.bag_ids:
+        arrays = bundle.bags[bag_id]
+        metadata = bundle.manifest["bags"][bag_id]
+        likelihood = np.asarray(
+            arrays["filter_log_likelihood_by_time"], dtype=float
+        ).reshape(-1)
+        bag_results[bag_id] = FlightResult(
+            bag_id=bag_id,
+            time=_array(arrays["times"]),
+            record_time=_array(arrays["record_times"]),
+            reference_position=_array(arrays["reference_position"]),
+            reference_rpy=_quaternion_xyzw_to_rpy(
+                arrays["reference_orientation_xyzw"]
+            ),
+            observed_position=_array(arrays["observation_position"]),
+            observed_orientation_xyzw=_array(
+                arrays["observation_orientation_xyzw"]
+            ),
+            nominal_position=_array(arrays["nominal_position"]),
+            nominal_orientation_xyzw=_array(
+                arrays["nominal_orientation_xyzw"]
+            ),
+            member_position=_array(arrays["smoothed_position"]),
+            member_orientation_xyzw=_array(
+                arrays["smoothed_orientation_xyzw"]
+            ),
+            correction_translation=_array(
+                arrays["smoothed_correction_translation"]
+            ),
+            correction_rotation_vector=_array(
+                arrays["smoothed_correction_rotation_vector"]
+            ),
+            observed_correction_translation=_array(
+                arrays["observed_correction_translation"]
+            ),
+            observed_correction_rotation_vector=_array(
+                arrays["observed_correction_rotation_vector"]
+            ),
+            residual_wrench=_array(arrays["smoothed_residual_wrench"]),
+            flight_state=None,
+            q_resolution_sufficient=None,
+            provenance=_stage2_provenance(metadata),
+            calibration=_stage2_calibration(arrays),
+            coverage=_stage2_coverage(metadata),
+            objective_contribution=math.fsum(
+                float(value) for value in likelihood
+            ),
+        )
+    manifest = dict(bundle.manifest)
+    manifest["project_request_fingerprint"] = manifest[
+        "project_fingerprint"
+    ]
+    path_warning = (
+        "Stored flight paths are sequential EnRTS marginals with actual "
+        "per-time static coordinates; earlier bags were not recomputed "
+        "using the final shared 19-D posterior."
+    )
+    return AssimilationRun(
+        root=bundle.root,
+        manifest=manifest,
+        shared_posterior=posterior,
+        bag_results=bag_results,
+        diagnostics=diagnostics,
+        warnings=(path_warning,),
+    )
+
+
 def load_pid_evaluation(path: str | Path) -> PidProposalEvaluation:
     """Load exact PID candidates, forecasts, metrics, and YAML text."""
 
@@ -347,7 +554,10 @@ __all__ = [
     "InspectionArtifact",
     "PidProposalEvaluation",
     "SharedPosterior",
+    "diagonal_q_stage_fingerprint",
+    "load_augmented_parameter_assimilation",
     "load_assimilation",
+    "load_diagonal_q_stage",
     "load_inspection",
     "load_pid_evaluation",
 ]

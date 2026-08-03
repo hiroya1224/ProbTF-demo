@@ -404,7 +404,8 @@ class MainWindow(QMainWindow):
             self,
             "Confirm configuration group",
             "The bag did not record: {}.\n\n"
-            "To enable smoothing, explicitly assign a configuration group. "
+            "To enable staged parameter estimation, explicitly assign a "
+            "configuration group. "
             "Use the same ID for multiple bags only when you know they used "
             "the same payload, rotors, geometry, model, wiring, and hardware. "
             "The missing provenance remains recorded as a warning.".format(
@@ -415,7 +416,8 @@ class MainWindow(QMainWindow):
         )
         if not accepted:
             self.statusBar().showMessage(
-                "Configuration group is still unconfirmed; smoothing remains disabled."
+                "Configuration group is still unconfirmed; parameter "
+                "estimation remains disabled."
             )
             return
         try:
@@ -425,7 +427,7 @@ class MainWindow(QMainWindow):
             self._show_error("Cannot confirm configuration group", error)
             return
         self.statusBar().showMessage(
-            "Confirmed manual configuration group; smoothing is ready."
+            "Confirmed manual configuration group; parameter estimation is ready."
         )
 
     def _schedule_configuration_prompts(
@@ -971,7 +973,7 @@ class MainWindow(QMainWindow):
         if self.store.assimilation_run is None:
             self._show_error(
                 "Cannot evaluate PID proposal",
-                "Complete joint smoothing before evaluating a PID proposal.",
+                "Complete fixed-Q parameter estimation before evaluating a PID proposal.",
             )
             return
         if not isinstance(options, PidEvaluationLaunchOptions):
@@ -1093,7 +1095,8 @@ class MainWindow(QMainWindow):
                 self.tabs.setCurrentWidget(self.bag_browser)
                 if pending_confirmation:
                     self.statusBar().showMessage(
-                        "Inspection completed; confirm a configuration group to enable smoothing."
+                        "Inspection completed; confirm a configuration group "
+                        "to enable parameter estimation."
                     )
                     self._schedule_configuration_prompts(
                         tuple(pending_confirmation)
@@ -1107,7 +1110,7 @@ class MainWindow(QMainWindow):
                 ]
                 self.store.apply_assimilation(run)
                 self._update_freshness(self.store.results_stale)
-                self.statusBar().showMessage("Joint smoothing completed.")
+                self.statusBar().showMessage("Parameter estimation completed.")
             elif self._operation == DIAGONAL_Q_STAGE_ID:
                 bundle = load_diagonal_q_stage(output)
                 self._complete_workflow_attempt(bundle.root, bundle.manifest)

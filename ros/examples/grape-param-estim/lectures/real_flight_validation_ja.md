@@ -222,13 +222,16 @@ metric は各 directory bundle に pickle-free で保存され、strict loader �
 | backend `unittest` 全 discovery | 192 tests、0 failures、0 errors |
 | `catkin build grape_param_estim --no-deps` | success、warning なし |
 | `catkin run_tests grape_param_estim --no-deps` | 192 tests、0 failures、0 errors、0 skips |
-| GUI test discovery (`gui/.venv`) | 49 tests、49 success、0 skips |
+| GUI test discovery (`gui/.venv`) | 52 tests、52 success、0 skips |
 | Python `compileall` | success |
 
 GUI は pyenv Python 3.10.18 の `gui/.venv` で検証した。依存 version は PySide6 6.9.3、
 pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 である。request、strict artifact
 adapter、project ZIP / ZIP64、freshness、launcher、SIGINT / terminate / kill 後の cancellation、
-Qt widget、実 manifest / NPZ を含む project load E2E、3D test を含む 49 tests がすべて成功した。
+Qt widget、実 manifest / NPZ を含む project load E2E、3D test を含む 52 tests がすべて成功した。
+また `VIRTUAL_ENV`、`GRAPE_PARAM_ESTIM_GUI_PYTHON`、手動 `LD_LIBRARY_PATH` を外した状態で
+devel space の `rosrun grape_param_estim run_gui.py` を起動し、package-local `gui/.venv` と
+`qt-runtime` の自動選択後に Qt event loop が継続することを確認した。
 
 自動 test に加え、`DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で production UI と
 VTK plotter を起動した。Master、Bag browser の world / correction、Next experiment の PID

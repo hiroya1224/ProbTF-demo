@@ -66,6 +66,61 @@ class GuiLauncherInterpreterTest(unittest.TestCase):
         )
         self.assertEqual(selected, target.resolve())
 
+    def test_package_local_virtual_environment_is_used_by_bare_rosrun(self):
+        current = self._executable("catkin/python3")
+        target = self._executable("package/gui/.venv/bin/python")
+        selected = _LAUNCHER._selected_gui_python(
+            {},
+            package_root=self.root / "package",
+            current_executable=current,
+            version_info=(3, 8),
+            platform_name="posix",
+        )
+        self.assertEqual(selected, target)
+
+    def test_package_qt_runtime_is_added_before_bare_rosrun_reexecution(self):
+        current = self._executable("catkin/python3")
+        target = self._executable("package/gui/.venv/bin/python")
+        runtime = (
+            self.root
+            / "package/gui/.venv/qt-runtime/usr/lib/x86_64-linux-gnu"
+        )
+        runtime.mkdir(parents=True)
+        calls = []
+        _LAUNCHER._reexec_gui_python(
+            (),
+            {"LD_LIBRARY_PATH": "/existing/runtime"},
+            package_root=self.root / "package",
+            current_executable=current,
+            version_info=(3, 8),
+            platform_name="posix",
+            execve=lambda *arguments: calls.append(arguments),
+        )
+        self.assertEqual(calls[0][0], str(target))
+        runtime_entries = calls[0][2]["LD_LIBRARY_PATH"].split(os.pathsep)
+        self.assertIn(str(runtime), runtime_entries)
+        self.assertEqual(runtime_entries[-1], "/existing/runtime")
+
+    def test_explicit_external_environment_does_not_use_package_qt_runtime(self):
+        current = self._executable("catkin/python3")
+        target = self._executable("external/bin/python")
+        runtime = (
+            self.root
+            / "package/gui/.venv/qt-runtime/usr/lib/x86_64-linux-gnu"
+        )
+        runtime.mkdir(parents=True)
+        calls = []
+        _LAUNCHER._reexec_gui_python(
+            (),
+            {"GRAPE_PARAM_ESTIM_GUI_PYTHON": str(target)},
+            package_root=self.root / "package",
+            current_executable=current,
+            version_info=(3, 8),
+            platform_name="posix",
+            execve=lambda *arguments: calls.append(arguments),
+        )
+        self.assertNotIn("LD_LIBRARY_PATH", calls[0][2])
+
     def test_virtual_environment_symlink_is_not_resolved_to_base_python(self):
         base = self._executable("pyenv/bin/python3.10")
         target = self.root / "venv/bin/python"

@@ -155,17 +155,20 @@ Python 3.10.18 と `gui/.venv` です。
 ```bash
 /home/leus/.pyenv/versions/3.10.18/bin/python -m venv \
   ros/examples/grape-param-estim/gui/.venv
-source ros/examples/grape-param-estim/gui/.venv/bin/activate
-python -m pip install -e ros/examples/grape-param-estim/gui
+ros/examples/grape-param-estim/gui/.venv/bin/python -m pip install -e \
+  ros/examples/grape-param-estim/gui
 
 source /home/leus/catkin_ws/devel/setup.bash
 rosrun grape_param_estim run_gui.py
 ```
 
-catkin が launcher の shebang を ROS 側 Python に書き換えていても、launcher は PySide6 を
-import する前に active `VIRTUAL_ENV/bin/python` へ一度だけ移り直します。明示的に GUI
-interpreter を選ぶ場合は `GRAPE_PARAM_ESTIM_GUI_PYTHON` に Python 3.10 以上の実行ファイルを
-設定します。worker interpreter を変更する場合は
+devel space の `rosrun` は source script の shebang ではなく、catkin が生成した relay の
+Python で開始します。そのため host 固有の venv 絶対パスを shebang へ固定せず、launcher が
+PySide6 を import する前に interpreter を選んで `execve` します。選択順は
+`GRAPE_PARAM_ESTIM_GUI_PYTHON`、active `VIRTUAL_ENV`、package 内 `gui/.venv`、現在の
+Python 3.10 以上です。したがって上記 workspace では venv の activate や GUI 用環境変数なしで
+`rosrun grape_param_estim run_gui.py` を実行できます。検証環境の package-local
+`qt-runtime` も同じ再実行時にだけ自動追加します。worker interpreter を変更する場合は
 `GRAPE_PARAM_ESTIM_WORKER_PYTHON` に catkin/ROS package を読み込める
 interpreter の絶対パスを設定します。GUI の `Save Project` は raw rosbag、
 inspection、run、PID evaluation、GUI state を含む標準 ZIP/ZIP64 を保存し、
@@ -181,7 +184,7 @@ selection target を画面上で選択でき、threshold は既定で `Not confi
 だけを表示します。
 
 実環境では `gui/.venv` に PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、
-PyVistaQt 0.11.4、VTK 9.5.2 を導入し、GUI test 49 / 49、skip 0 を確認しました。
+PyVistaQt 0.11.4、VTK 9.5.2 を導入し、GUI test 52 / 52、skip 0 を確認しました。
 さらに `DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と VTK を起動し、
 Master、Bag browser の world / correction、PID の translation / rotation / trajectory を
 視覚確認しました。14 枚の PNG と機械可読な `summary.json` は
@@ -351,7 +354,7 @@ catkin_test_results build/grape_param_estim
 ```
 
 GUI test suite は次で実行します。上記の検証済み venv では Qt widget / 3D test を含む
-49 tests がすべて成功し、skip はありません。依存 package が揃わない環境では Qt widget /
+52 tests がすべて成功し、skip はありません。依存 package が揃わない環境では Qt widget /
 3D test だけを skip し、request、project archive、artifact loader、launcher、signal cancel の
 pure tests は実行されます。
 

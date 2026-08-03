@@ -19,9 +19,20 @@ def _absolute_path_preserving_symlinks(value) -> Path:
     return Path(os.path.abspath(str(Path(value).expanduser())))
 
 
+def _environment_python(environment_root, platform_name) -> Path:
+    executable_name = "python.exe" if platform_name == "nt" else "python"
+    executable_directory = "Scripts" if platform_name == "nt" else "bin"
+    return _absolute_path_preserving_symlinks(
+        Path(environment_root).expanduser().resolve()
+        / executable_directory
+        / executable_name
+    )
+
+
 def _selected_gui_python(
     environment=None,
     *,
+    package_root=None,
     current_executable=None,
     version_info=None,
     platform_name=None,
@@ -39,20 +50,32 @@ def _selected_gui_python(
         candidate = _absolute_path_preserving_symlinks(configured)
     else:
         virtual_environment = str(values.get("VIRTUAL_ENV", "")).strip()
-        if not virtual_environment:
+        if virtual_environment:
+            candidate = _environment_python(virtual_environment, platform)
+        elif package_root is not None:
+            local_environment = (
+                Path(package_root).expanduser().resolve() / "gui" / ".venv"
+            )
+            local_candidate = _environment_python(
+                local_environment, platform
+            )
+            if local_candidate.exists():
+                candidate = local_candidate
+            elif version < _MINIMUM_GUI_PYTHON:
+                raise RuntimeError(
+                    "the desktop GUI requires Python 3.10 or newer; create "
+                    "gui/.venv, activate a compatible virtual environment, or "
+                    "set GRAPE_PARAM_ESTIM_GUI_PYTHON"
+                )
+            else:
+                return None
+        else:
             if version < _MINIMUM_GUI_PYTHON:
                 raise RuntimeError(
                     "the desktop GUI requires Python 3.10 or newer; activate its "
                     "virtual environment or set GRAPE_PARAM_ESTIM_GUI_PYTHON"
                 )
             return None
-        executable_name = "python.exe" if platform == "nt" else "python"
-        executable_directory = "Scripts" if platform == "nt" else "bin"
-        candidate = _absolute_path_preserving_symlinks(
-            Path(virtual_environment).expanduser().resolve()
-            / executable_directory
-            / executable_name
-        )
     if not candidate.is_file() or not os.access(str(candidate), os.X_OK):
         raise RuntimeError(
             "GUI Python interpreter is not an executable file: {}".format(
@@ -81,6 +104,7 @@ def _reexec_gui_python(
     arguments,
     environment=None,
     *,
+    package_root=None,
     current_executable=None,
     version_info=None,
     platform_name=None,
@@ -91,6 +115,7 @@ def _reexec_gui_python(
     values = os.environ if environment is None else environment
     target = _selected_gui_python(
         values,
+        package_root=package_root,
         current_executable=current_executable,
         version_info=version_info,
         platform_name=platform_name,
@@ -99,6 +124,40 @@ def _reexec_gui_python(
         return False
     next_environment = dict(values)
     next_environment[_GUI_REEXEC_GUARD] = "1"
+    platform = os.name if platform_name is None else str(platform_name)
+    local_target = None
+    if package_root is not None:
+        local_target = _environment_python(
+            Path(package_root).expanduser().resolve() / "gui" / ".venv",
+            platform,
+        )
+    if target == local_target and platform != "nt":
+        runtime_root = (
+            Path(package_root).expanduser().resolve()
+            / "gui"
+            / ".venv"
+            / "qt-runtime"
+            / "usr"
+            / "lib"
+        )
+        runtime_directories = []
+        if runtime_root.is_dir():
+            runtime_directories.append(runtime_root)
+            runtime_directories.extend(
+                path for path in sorted(runtime_root.iterdir()) if path.is_dir()
+            )
+        if runtime_directories:
+            existing = str(next_environment.get("LD_LIBRARY_PATH", ""))
+            existing_entries = [
+                value for value in existing.split(os.pathsep) if value
+            ]
+            entries = [
+                str(path)
+                for path in runtime_directories
+                if str(path) not in existing_entries
+            ]
+            entries.extend(existing_entries)
+            next_environment["LD_LIBRARY_PATH"] = os.pathsep.join(entries)
     execute = os.execve if execve is None else execve
     script = Path(__file__).resolve()
     execute(
@@ -142,8 +201,8 @@ def _locate_package_root() -> Path:
 
 
 def main() -> int:
-    _reexec_gui_python(sys.argv[1:])
     package_root = _locate_package_root()
+    _reexec_gui_python(sys.argv[1:], package_root=package_root)
     gui_src = package_root / "gui" / "src"
     estimator_src = package_root / "src"
     for source in (gui_src, estimator_src):

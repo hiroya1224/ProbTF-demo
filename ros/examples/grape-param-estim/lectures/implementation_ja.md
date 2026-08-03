@@ -111,11 +111,11 @@ Save Project は working project 全体を `allowZip64=True` の標準 ZIP へ a
 
 ## 7. 実行環境
 
-ROS worker は catkin workspace の `/usr/bin/python3` と ROS message package を使う。GUI は PySide6、pyqtgraph、PyVistaQt、VTK を持つ Python 3.10 以上の環境を使い、worker interpreter とは分離する。GUI launcher は source package と installed worker の双方を探索し、worker interpreter は `GRAPE_PARAM_ESTIM_WORKER_PYTHON` で明示変更できる。
+ROS worker は catkin workspace の `/usr/bin/python3` と ROS message package を使う。GUI は PySide6、pyqtgraph、PyVistaQt、VTK を持つ Python 3.10 以上の環境を使い、worker interpreter とは分離する。devel space の `rosrun` は catkin 生成 relay の Python で launcher を開始するため、source shebang に host 固有の venv を固定しない。launcher は GUI package を import する前に、明示指定、active venv、package-local `gui/.venv` の順で interpreter を選択して `execve` する。GUI launcher は source package と installed worker の双方を探索し、worker interpreter は `GRAPE_PARAM_ESTIM_WORKER_PYTHON` で明示変更できる。
 
 本ホストでは pyenv Python 3.10.18 を用いた `gui/.venv` を作り、PySide6 6.9.3、
 pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 を導入した。GUI test は
-49 / 49、skip 0 である。`DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と
+52 / 52、skip 0 である。`DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と
 VTK 描画も起動し、Master、Bag browser、Next experiment の主要な plot / 3D 表示を確認した。
 受入証跡は `/tmp/grape-gui-visual-acceptance` の 14 PNG と `summary.json` である。X server
 から `QScreen.grabWindow` で取得した window image にネイティブ VTK 子画面が含まれること、

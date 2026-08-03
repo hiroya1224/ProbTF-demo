@@ -66,6 +66,32 @@ class GuiLauncherInterpreterTest(unittest.TestCase):
         )
         self.assertEqual(selected, target.resolve())
 
+    def test_virtual_environment_symlink_is_not_resolved_to_base_python(self):
+        base = self._executable("pyenv/bin/python3.10")
+        target = self.root / "venv/bin/python"
+        target.parent.mkdir(parents=True)
+        target.symlink_to(base)
+        selected = _LAUNCHER._selected_gui_python(
+            {"GRAPE_PARAM_ESTIM_GUI_PYTHON": str(target)},
+            current_executable=base,
+            version_info=(3, 10),
+            platform_name="posix",
+        )
+        self.assertEqual(selected, target)
+        self.assertTrue(selected.is_symlink())
+
+        calls = []
+        _LAUNCHER._reexec_gui_python(
+            (),
+            {"GRAPE_PARAM_ESTIM_GUI_PYTHON": str(target)},
+            current_executable=base,
+            version_info=(3, 10),
+            platform_name="posix",
+            execve=lambda *arguments: calls.append(arguments),
+        )
+        self.assertEqual(calls[0][0], str(target))
+        self.assertEqual(calls[0][1][0], str(target))
+
     def test_current_supported_interpreter_needs_no_reexecution(self):
         current = self._executable("python310")
         self.assertIsNone(

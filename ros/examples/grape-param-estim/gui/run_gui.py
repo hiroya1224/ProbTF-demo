@@ -13,6 +13,12 @@ _GUI_REEXEC_GUARD = "GRAPE_PARAM_ESTIM_GUI_REEXECUTED"
 _MINIMUM_GUI_PYTHON = (3, 10)
 
 
+def _absolute_path_preserving_symlinks(value) -> Path:
+    """Return an absolute path without resolving a virtualenv symlink."""
+
+    return Path(os.path.abspath(str(Path(value).expanduser())))
+
+
 def _selected_gui_python(
     environment=None,
     *,
@@ -23,12 +29,14 @@ def _selected_gui_python(
     """Resolve a requested GUI interpreter before importing GUI dependencies."""
 
     values = os.environ if environment is None else environment
-    current = Path(current_executable or sys.executable).expanduser().resolve()
+    current = _absolute_path_preserving_symlinks(
+        current_executable or sys.executable
+    )
     version = tuple(sys.version_info[:2] if version_info is None else version_info[:2])
     platform = os.name if platform_name is None else str(platform_name)
     configured = str(values.get("GRAPE_PARAM_ESTIM_GUI_PYTHON", "")).strip()
     if configured:
-        candidate = Path(configured).expanduser().resolve()
+        candidate = _absolute_path_preserving_symlinks(configured)
     else:
         virtual_environment = str(values.get("VIRTUAL_ENV", "")).strip()
         if not virtual_environment:
@@ -40,7 +48,7 @@ def _selected_gui_python(
             return None
         executable_name = "python.exe" if platform == "nt" else "python"
         executable_directory = "Scripts" if platform == "nt" else "bin"
-        candidate = (
+        candidate = _absolute_path_preserving_symlinks(
             Path(virtual_environment).expanduser().resolve()
             / executable_directory
             / executable_name
@@ -51,10 +59,10 @@ def _selected_gui_python(
                 candidate
             )
         )
-    try:
-        same_interpreter = os.path.samefile(str(candidate), str(current))
-    except OSError:
-        same_interpreter = candidate == current
+    # A virtualenv's python is commonly a symlink to its base interpreter.
+    # Invoking that symlink is what makes Python discover pyvenv.cfg, so inode
+    # equality (os.path.samefile) must not suppress the re-execution.
+    same_interpreter = candidate == current
     if same_interpreter:
         if version < _MINIMUM_GUI_PYTHON:
             raise RuntimeError(

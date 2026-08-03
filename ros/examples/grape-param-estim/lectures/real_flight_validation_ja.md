@@ -222,16 +222,27 @@ metric は各 directory bundle に pickle-free で保存され、strict loader �
 | backend `unittest` 全 discovery | 192 tests、0 failures、0 errors |
 | `catkin build grape_param_estim --no-deps` | success、warning なし |
 | `catkin run_tests grape_param_estim --no-deps` | 192 tests、0 failures、0 errors、0 skips |
-| GUI contract discovery | 39 tests 中 35 success、4 dependency skips |
+| GUI test discovery (`gui/.venv`) | 49 tests、49 success、0 skips |
 | Python `compileall` | success |
 
-GUI の 4 skips は、当ホストが Python 3.8.10 で PySide6、pyqtgraph、PyVista、PyVistaQt を
-持たず、Python 3.10 以上の GUI interpreter も存在しないためである。request、strict artifact
-adapter、project ZIP / ZIP64、freshness、launcher、SIGINT / terminate / kill 後の cancellation は
-Qt 非依存 test で確認した。Qt widget の offscreen test、実 manifest / NPZ を含む project の
-GUI load E2E、3D 描画の視覚的受入は、依存 package を持つ GUI 環境では実行可能な test として
-実装したが、本ホストでは実行していない。したがって code contract の実装完了と、実画面の
-視覚的受入確認を区別する。
+GUI は pyenv Python 3.10.18 の `gui/.venv` で検証した。依存 version は PySide6 6.9.3、
+pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 である。request、strict artifact
+adapter、project ZIP / ZIP64、freshness、launcher、SIGINT / terminate / kill 後の cancellation、
+Qt widget、実 manifest / NPZ を含む project load E2E、3D test を含む 49 tests がすべて成功した。
+
+自動 test に加え、`DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で production UI と
+VTK plotter を起動した。Master、Bag browser の world / correction、Next experiment の PID
+translation / rotation / trajectory を確認し、14 枚の PNG と各画像の寸法・byte 数を含む
+`summary.json` を `/tmp/grape-gui-visual-acceptance` に保存した。summary では bag world / correction
+と PID plotter の availability も true である。window image は X server の
+`QScreen.grabWindow` で取得し、ネイティブ VTK 子画面を含む。VTK framebuffer の直接画像も
+別に保存して確認した。
+
+ホストに不足していた `libxcb-cursor0` は sudo による system install を行わず、deb を
+`gui/.venv/qt-runtime` へ展開し、その library directory を `LD_LIBRARY_PATH` に追加した。
+視覚受入のために元の assimilation / PID artifact は変更していない。GUI freshness 検査に必要な
+`project_request_fingerprint` は `/tmp/grape-visual-assimilation-run` の視覚確認用コピーへだけ
+追加した。
 
 本報告の実 rosbag run は、configuration provenance が不足した事実を warning に保持したうえで、
 worker / CLI を直接使って数値経路を検証したものである。production GUI は同じ incomplete

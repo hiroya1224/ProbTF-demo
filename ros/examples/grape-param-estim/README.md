@@ -149,11 +149,13 @@ request で `residual_policy="zero"` を選ぶ場合も、その仮定を artifa
 
 GUI は estimator の ROS Python 環境とは別の Python 3.10 以上の環境へ
 インストールします。rosbag の inspection と同化 worker は `QProcess` から
-catkin 環境の `/usr/bin/python3` で起動されます。
+catkin 環境の `/usr/bin/python3` で起動されます。検証済み環境は pyenv の
+Python 3.10.18 と `gui/.venv` です。
 
 ```bash
-python3.10 -m venv /tmp/grape-param-estim-gui
-source /tmp/grape-param-estim-gui/bin/activate
+/home/leus/.pyenv/versions/3.10.18/bin/python -m venv \
+  ros/examples/grape-param-estim/gui/.venv
+source ros/examples/grape-param-estim/gui/.venv/bin/activate
 python -m pip install -e ros/examples/grape-param-estim/gui
 
 source /home/leus/catkin_ws/devel/setup.bash
@@ -178,10 +180,23 @@ selection target を画面上で選択でき、threshold は既定で `Not confi
 結果の3D比較も、画面で選択中の bag・member・candidate に対応する保存済み forecast path
 だけを表示します。
 
-この repository で GUI 接続コードと Qt 非依存 contract test は検証していますが、本ホストは
-Python 3.8.10 で、Python 3.10 以上の GUI interpreter と PySide6 / pyqtgraph / PyVista /
-PyVistaQt が未導入です。そのため、Qt widget と 3D 表示の視覚的な受入確認は未実施です。
-上記 venv に依存 package を導入した環境で、画面上の操作と描画を別途確認してください。
+実環境では `gui/.venv` に PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、
+PyVistaQt 0.11.4、VTK 9.5.2 を導入し、GUI test 49 / 49、skip 0 を確認しました。
+さらに `DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と VTK を起動し、
+Master、Bag browser の world / correction、PID の translation / rotation / trajectory を
+視覚確認しました。14 枚の PNG と機械可読な `summary.json` は
+`/tmp/grape-gui-visual-acceptance` にあります。
+ウィンドウ画像は X server の `QScreen.grabWindow` で取得しているため、ネイティブ VTK
+子画面も含みます。各 VTK framebuffer も別画像として保存しています。再実行には
+`gui/tests/visual_acceptance.py` へ strict-load 可能な assimilation bundle、同じ run ID の
+PID evaluation bundle、出力 directory を指定します。
+
+ホスト側に不足していた `libxcb-cursor0` は sudo で system install せず、deb を
+`gui/.venv/qt-runtime` へ展開し、その `usr/lib/x86_64-linux-gnu` を受入実行時の
+`LD_LIBRARY_PATH` に追加しました。これは検証環境だけの補完であり、system library は
+変更していません。実 artifact は変更せず、GUI freshness 検査に必要な
+`project_request_fingerprint` は `/tmp/grape-visual-assimilation-run` の視覚確認用コピーにだけ
+追加しました。
 
 ```bash
 cd /home/leus/catkin_ws
@@ -335,12 +350,13 @@ catkin run_tests grape_param_estim
 catkin_test_results build/grape_param_estim
 ```
 
-GUI の Qt-free contract tests は次で実行します。PySide6 / pyqtgraph / PyVista / PyVistaQt /
-VTK が揃わない環境では Qt widget / 3D test だけを skip し、request、project archive、
-artifact loader、launcher、signal cancel の pure tests は実行されます。
+GUI test suite は次で実行します。上記の検証済み venv では Qt widget / 3D test を含む
+49 tests がすべて成功し、skip はありません。依存 package が揃わない環境では Qt widget /
+3D test だけを skip し、request、project archive、artifact loader、launcher、signal cancel の
+pure tests は実行されます。
 
 ```bash
 PYTHONPATH=ros/examples/grape-param-estim/gui/src:ros/examples/grape-param-estim/src \
-  /usr/bin/python3 -m unittest discover \
+  ros/examples/grape-param-estim/gui/.venv/bin/python -m unittest discover \
   -s ros/examples/grape-param-estim/gui/tests -p 'test_*.py' -v
 ```

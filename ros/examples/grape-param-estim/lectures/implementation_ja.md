@@ -113,10 +113,18 @@ Save Project は working project 全体を `allowZip64=True` の標準 ZIP へ a
 
 ROS worker は catkin workspace の `/usr/bin/python3` と ROS message package を使う。GUI は PySide6、pyqtgraph、PyVistaQt、VTK を持つ Python 3.10 以上の環境を使い、worker interpreter とは分離する。GUI launcher は source package と installed worker の双方を探索し、worker interpreter は `GRAPE_PARAM_ESTIM_WORKER_PYTHON` で明示変更できる。
 
-本節の GUI 記述は実装された code contract である。本ホストは Python 3.8.10 で、Python 3.10
-以上の GUI interpreter と PySide6、pyqtgraph、PyVista、PyVistaQt がないため、Qt widget / 3D
-描画を起動した視覚的な受入確認は未実施である。Qt 非依存 contract test と artifact loader
-test の結果、およびこの制約は実飛行検証報告に記録する。
+本ホストでは pyenv Python 3.10.18 を用いた `gui/.venv` を作り、PySide6 6.9.3、
+pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 を導入した。GUI test は
+49 / 49、skip 0 である。`DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と
+VTK 描画も起動し、Master、Bag browser、Next experiment の主要な plot / 3D 表示を確認した。
+受入証跡は `/tmp/grape-gui-visual-acceptance` の 14 PNG と `summary.json` である。X server
+から `QScreen.grabWindow` で取得した window image にネイティブ VTK 子画面が含まれること、
+および別保存した VTK framebuffer の両方を確認した。
+
+`xcb` plugin が必要とする `libxcb-cursor0` は sudo で system install せず、deb を
+`gui/.venv/qt-runtime` へ展開して `LD_LIBRARY_PATH` から参照した。視覚確認では元の数値
+artifact を変更せず、GUI の freshness 契約に必要な `project_request_fingerprint` は
+`/tmp/grape-visual-assimilation-run` の視覚確認用コピーにだけ追加した。
 
 機械的な artifact validation の成功は、推定の科学的妥当性、posterior coverage、次回実機飛行の安全を保証しない。synthetic truth、held-out flight、Q resolution、coverage、prior predictive stability を別々に確認する必要がある。実 rosbag を使った今回の確認結果は [実飛行検証報告](real_flight_validation_ja.md) に分離した。
 

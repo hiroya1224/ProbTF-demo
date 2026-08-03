@@ -157,6 +157,21 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
         )
         self.assertEqual(result.final_approx_log_likelihood, -6.0)
 
+        final = result.final_expectations[0]
+        with self.assertRaisesRegex(ValueError, "member count changed"):
+            replace(
+                result,
+                final_expectations=(
+                    replace(
+                        final,
+                        smoothed_wrench=np.concatenate(
+                            (final.smoothed_wrench, final.smoothed_wrench[:1]),
+                            axis=0,
+                        ),
+                    ),
+                ),
+            )
+
         with self.assertRaisesRegex(ValueError, "log_q_tolerance"):
             replace(
                 result,

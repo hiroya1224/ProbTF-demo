@@ -538,6 +538,13 @@ class DiagonalQEmResult:
         final_expectations = _ordered_expectations(
             self.final_expectations, pilots, fixed_layout=fixed_layout
         )
+        for previous, final in zip(expectations, final_expectations):
+            if previous.member_count != final.member_count:
+                raise ValueError(
+                    "final expectation member count changed for bag {!r}".format(
+                        final.bag_id
+                    )
+                )
         if not isinstance(self.converged, (bool, np.bool_)):
             raise TypeError("converged must be boolean")
         selected_converged = bool(self.converged)

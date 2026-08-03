@@ -17,6 +17,7 @@ catkin_install_python(
     scripts/grape_run_weak_constraint_experiment.py
     scripts/grape_validate_assimilation.py
     scripts/grape_validate_held_out_flight.py
+    gui/run_gui.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -24,6 +25,13 @@ install(
   FILES
     README.md
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(
+  DIRECTORY
+    gui/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/gui
+  USE_SOURCE_PERMISSIONS
 )
 
 if(CATKIN_ENABLE_TESTING)

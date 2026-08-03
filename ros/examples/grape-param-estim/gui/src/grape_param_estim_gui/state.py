@@ -1,0 +1,547 @@
+"""Qt application state backed only by inspection and estimator artifacts."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Iterable, Mapping
+
+import numpy as np
+try:
+    from PySide6.QtCore import QObject, Signal
+except ImportError:  # Qt-free state/loader tests; the application still requires PySide6.
+    class _BoundSignal:
+        def __init__(self) -> None:
+            self._callbacks: list[Any] = []
+
+        def connect(self, callback: Any) -> None:
+            self._callbacks.append(callback)
+
+        def emit(self, *arguments: Any) -> None:
+            for callback in tuple(self._callbacks):
+                callback(*arguments)
+
+    class Signal:  # type: ignore[no-redef]
+        def __init__(self, *_types: Any) -> None:
+            self._name = ""
+
+        def __set_name__(self, _owner: type, name: str) -> None:
+            self._name = "_headless_signal_" + name
+
+        def __get__(self, instance: Any, _owner: type) -> Any:
+            if instance is None:
+                return self
+            signal = instance.__dict__.get(self._name)
+            if signal is None:
+                signal = _BoundSignal()
+                instance.__dict__[self._name] = signal
+            return signal
+
+    class QObject:  # type: ignore[no-redef]
+        def __init__(self, _parent: Any = None) -> None:
+            pass
+
+from .artifact_loader import (
+    AssimilationRun,
+    FlightResult,
+    InspectionArtifact,
+    PidProposalEvaluation,
+    SharedPosterior,
+)
+from .project_io import freshness_fingerprint, result_is_fresh
+
+
+@dataclass
+class BagRecord:
+    bag_id: str
+    path: Path
+    source_path: Path
+    sha256: str
+    inspection: Mapping[str, Any] | None = None
+    preview: FlightResult | None = None
+    result: FlightResult | None = None
+    included: bool = False
+    auto_interval: tuple[float, float] | None = None
+    selected_interval: tuple[float, float] | None = None
+    interval_state: str = "AUTO"
+    status: str = "awaiting inspection"
+    configuration_fingerprint: str = ""
+    configuration_provenance: Mapping[str, str] = field(default_factory=dict)
+    controller_snapshot: Mapping[str, Any] = field(default_factory=dict)
+    current_time: float = 0.0
+    view_range: tuple[float, float] = (0.0, 1.0)
+
+    @property
+    def display_name(self) -> str:
+        return self.path.name
+
+    @property
+    def data(self) -> FlightResult | None:
+        """The most informative real array set currently available."""
+
+        return self.result if self.result is not None else self.preview
+
+    @property
+    def auto_range(self) -> tuple[float, float]:
+        return self.auto_interval or (0.0, 0.0)
+
+    @auto_range.setter
+    def auto_range(self, value: tuple[float, float]) -> None:
+        self.auto_interval = value
+
+    @property
+    def selected_range(self) -> tuple[float, float]:
+        return self.selected_interval or self.auto_range
+
+    @selected_range.setter
+    def selected_range(self, value: tuple[float, float]) -> None:
+        self.selected_interval = value
+
+    @property
+    def configuration_group(self) -> str:
+        return self.configuration_fingerprint or "unconfirmed"
+
+
+@dataclass(frozen=True)
+class ProjectState:
+    project_id: str
+    project_path: Path
+    project_schema: str
+    project_loader_id: str
+    bag_records: tuple[BagRecord, ...]
+    selected_bag_ids: tuple[str, ...]
+    current_bag_id: str | None
+    selected_member_id: int | None
+    selected_mode_id: str | None
+    selected_pid_proposal_id: str | None
+    assimilation_run_path: Path | None
+    pid_proposal_evaluation_path: Path | None
+    results_stale: bool
+
+
+class TimeState(QObject):
+    currentTimeChanged = Signal(float)
+    estimationRangeChanged = Signal(float, float)
+    viewRangeChanged = Signal(float, float)
+    playingChanged = Signal(bool)
+    playbackSpeedChanged = Signal(float)
+
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self.current_time = 0.0
+        self.estimation_start = 0.0
+        self.estimation_end = 1.0
+        self.view_start = 0.0
+        self.view_end = 1.0
+        self.playing = False
+        self.playback_speed = 1.0
+
+    def set_current_time(self, value: float) -> None:
+        value = float(value)
+        if abs(value - self.current_time) < 1.0e-12:
+            return
+        self.current_time = value
+        self.currentTimeChanged.emit(value)
+
+    def set_estimation_range(self, start: float, end: float) -> None:
+        start, end = sorted((float(start), float(end)))
+        if (start, end) == (self.estimation_start, self.estimation_end):
+            return
+        self.estimation_start, self.estimation_end = start, end
+        self.estimationRangeChanged.emit(start, end)
+
+    def set_view_range(self, start: float, end: float) -> None:
+        start, end = sorted((float(start), float(end)))
+        if (start, end) == (self.view_start, self.view_end):
+            return
+        self.view_start, self.view_end = start, end
+        self.viewRangeChanged.emit(start, end)
+
+    def set_playing(self, value: bool) -> None:
+        value = bool(value)
+        if value != self.playing:
+            self.playing = value
+            self.playingChanged.emit(value)
+
+    def set_playback_speed(self, value: float) -> None:
+        value = max(float(value), 0.01)
+        if abs(value - self.playback_speed) >= 1.0e-12:
+            self.playback_speed = value
+            self.playbackSpeedChanged.emit(value)
+
+
+class ProjectStore(QObject):
+    bagsChanged = Signal()
+    currentBagChanged = Signal(object)
+    currentBagIdChanged = Signal(str)
+    selectedMemberChanged = Signal(object)
+    selectedModeChanged = Signal(object)
+    selectedPidProposalChanged = Signal(object)
+    recordChanged = Signal(str)
+    posteriorChanged = Signal(object)
+    pidEvaluationChanged = Signal(object)
+    freshnessChanged = Signal(bool)
+    projectChanged = Signal()
+
+    def __init__(
+        self,
+        project_path: str | Path,
+        manifest: dict[str, Any],
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self.project_path = Path(project_path).resolve()
+        self.manifest = manifest
+        self._records: list[BagRecord] = []
+        self._current_bag_id: str | None = None
+        self._selected_member_id: int | None = None
+        self._selected_mode_id: str | None = None
+        self._selected_pid_proposal_id: str | None = None
+        self.assimilation_run: AssimilationRun | None = None
+        self.pid_evaluation: PidProposalEvaluation | None = None
+        self._results_stale = bool(manifest.get("run_request_fingerprint")) and not result_is_fresh(manifest)
+
+    @property
+    def project_id(self) -> str:
+        return str(self.manifest["project_id"])
+
+    @property
+    def selected_member_id(self) -> int | None:
+        return self._selected_member_id
+
+    @property
+    def selected_mode_id(self) -> str | None:
+        return self._selected_mode_id
+
+    @property
+    def selected_pid_proposal_id(self) -> str | None:
+        return self._selected_pid_proposal_id
+
+    @property
+    def current_bag_id(self) -> str | None:
+        return self._current_bag_id
+
+    @property
+    def results_stale(self) -> bool:
+        return self._results_stale
+
+    @property
+    def parameter_ensemble(self) -> SharedPosterior | None:
+        return None if self.assimilation_run is None else self.assimilation_run.shared_posterior
+
+    def records(self) -> tuple[BagRecord, ...]:
+        return tuple(self._records)
+
+    def replace_project(
+        self,
+        project_path: str | Path,
+        manifest: dict[str, Any],
+        records: Iterable[BagRecord],
+    ) -> None:
+        self.project_path = Path(project_path).resolve()
+        self.manifest = manifest
+        self._records = list(records)
+        self._current_bag_id = None
+        self._selected_member_id = None
+        self._selected_mode_id = None
+        self._selected_pid_proposal_id = None
+        self.assimilation_run = None
+        self.pid_evaluation = None
+        self._results_stale = bool(manifest.get("run_request_fingerprint")) and not result_is_fresh(manifest)
+        self.projectChanged.emit()
+        self.posteriorChanged.emit(None)
+        self.pidEvaluationChanged.emit(None)
+        self.bagsChanged.emit()
+        if self._records:
+            self.set_current(self._records[0].bag_id)
+        else:
+            self.currentBagIdChanged.emit("")
+            self.currentBagChanged.emit(None)
+        self.selectedMemberChanged.emit(None)
+        self.freshnessChanged.emit(self._results_stale)
+
+    def included_records(self) -> tuple[BagRecord, ...]:
+        return tuple(record for record in self._records if record.included)
+
+    def current_record(self) -> BagRecord | None:
+        return None if self._current_bag_id is None else self.get(self._current_bag_id)
+
+    def get(self, bag_id: str) -> BagRecord | None:
+        return next((record for record in self._records if record.bag_id == bag_id), None)
+
+    def add(self, record: BagRecord) -> None:
+        if self.get(record.bag_id) is not None:
+            raise ValueError("duplicate bag ID {}".format(record.bag_id))
+        self._records.append(record)
+        self._sync_manifest_inputs()
+        self.bagsChanged.emit()
+        if self._current_bag_id is None:
+            self.set_current(record.bag_id)
+
+    def extend(self, records: Iterable[BagRecord]) -> None:
+        for record in records:
+            self.add(record)
+
+    def remove(self, bag_id: str) -> None:
+        self._records = [record for record in self._records if record.bag_id != bag_id]
+        self.manifest["bags"] = [
+            item for item in self.manifest.get("bags", [])
+            if item.get("bag_id") != bag_id
+        ]
+        if self._current_bag_id == bag_id:
+            self._current_bag_id = None
+            if self._records:
+                self.set_current(self._records[0].bag_id)
+            else:
+                self.currentBagIdChanged.emit("")
+                self.currentBagChanged.emit(None)
+        self._sync_manifest_inputs()
+        self.bagsChanged.emit()
+
+    def set_current(self, bag_id: str) -> None:
+        record = self.get(bag_id)
+        if record is None or bag_id == self._current_bag_id:
+            return
+        self._current_bag_id = bag_id
+        self.currentBagIdChanged.emit(bag_id)
+        self.currentBagChanged.emit(record)
+
+    def set_included(self, bag_id: str, included: bool) -> None:
+        record = self.get(bag_id)
+        if record is None or record.included == bool(included):
+            return
+        record.included = bool(included)
+        self._sync_manifest_inputs()
+        self.recordChanged.emit(bag_id)
+        self.bagsChanged.emit()
+
+    def update_interval(
+        self,
+        bag_id: str,
+        selected_range: tuple[float, float],
+        state: str = "MODIFIED",
+    ) -> None:
+        record = self.get(bag_id)
+        if record is None:
+            return
+        start, end = sorted((float(selected_range[0]), float(selected_range[1])))
+        if start >= end:
+            raise ValueError("selected interval must have positive duration")
+        if state not in {"AUTO", "MODIFIED", "LOCKED"}:
+            raise ValueError("unknown interval state")
+        record.selected_interval = (start, end)
+        record.interval_state = state
+        self._sync_manifest_inputs()
+        self.recordChanged.emit(bag_id)
+        self.bagsChanged.emit()
+
+    def restore_auto_interval(self, bag_id: str) -> None:
+        record = self.get(bag_id)
+        if record is None or record.auto_interval is None:
+            return
+        self.update_interval(bag_id, record.auto_interval, state="AUTO")
+
+    def apply_inspection(self, artifact: InspectionArtifact) -> None:
+        for bag_id, inspection in artifact.inspections.items():
+            record = self.get(bag_id)
+            if record is None:
+                raise ValueError("inspection contains unregistered bag {}".format(bag_id))
+            if str(inspection["bag_sha256"]) != record.sha256:
+                raise ValueError("inspection SHA256 differs for {}".format(bag_id))
+            recommendation = inspection.get("recommended_interval")
+            if recommendation is None:
+                recommendation = inspection.get("recommendation")
+            first_inspection = record.inspection is None
+            previous_status = record.status
+            record.inspection = inspection
+            record.preview = artifact.previews[bag_id]
+            if recommendation is not None:
+                if not isinstance(recommendation, Mapping):
+                    raise ValueError("inspection recommended interval is invalid")
+                interval = recommendation.get("interval", recommendation)
+                if not isinstance(interval, Mapping):
+                    raise ValueError("inspection recommended interval is invalid")
+                start = float(
+                    interval.get(
+                        "start_local_time",
+                        interval.get("start", interval.get("record_start")),
+                    )
+                )
+                end = float(
+                    interval.get(
+                        "end_local_time",
+                        interval.get("end", interval.get("record_end")),
+                    )
+                )
+                record.auto_interval = (start, end)
+                if record.selected_interval is None or record.interval_state == "AUTO":
+                    record.selected_interval = record.auto_interval
+                    record.interval_state = "AUTO"
+            fingerprint = inspection.get("configuration_fingerprint", {})
+            record.configuration_fingerprint = (
+                str(fingerprint.get("value", ""))
+                if isinstance(fingerprint, Mapping)
+                else str(fingerprint)
+            )
+            if isinstance(fingerprint, Mapping):
+                record.configuration_provenance = {
+                    str(key): str(value)
+                    for key, value in fingerprint.get("components", {}).items()
+                }
+            record.controller_snapshot = inspection.get("controller_snapshot") or {}
+            record.status = str(inspection.get("status", "inspected"))
+            if (
+                (first_inspection or previous_status == "needs_configuration_confirmation")
+                and record.status == "ready"
+                and record.selected_interval is not None
+            ):
+                record.included = True
+            record.current_time = float(record.preview.time[0])
+            record.view_range = (float(record.preview.time[0]), float(record.preview.time[-1]))
+            self.recordChanged.emit(bag_id)
+        self._sync_manifest_inputs()
+        self.bagsChanged.emit()
+
+    def apply_assimilation(self, run: AssimilationRun) -> None:
+        project_fingerprint = str(
+            run.manifest.get("project_request_fingerprint", "")
+        )
+        current_fingerprint = self.request_fingerprint()
+        if project_fingerprint != current_fingerprint:
+            raise ValueError(
+                "assimilation run project_request_fingerprint does not match "
+                "the current project inputs"
+            )
+        for bag_id, result in run.bag_results.items():
+            record = self.get(bag_id)
+            if record is None:
+                raise ValueError("run contains unregistered bag {}".format(bag_id))
+            record.result = result
+            record.status = "complete"
+            self.recordChanged.emit(bag_id)
+        self.assimilation_run = run
+        run_id = str(run.manifest.get("run_id", ""))
+        if (
+            self.pid_evaluation is not None
+            and str(self.pid_evaluation.manifest.get("source_run_id", ""))
+            != run_id
+        ):
+            self.pid_evaluation = None
+            self._selected_pid_proposal_id = None
+            self.manifest["current_pid_proposal_evaluation_id"] = None
+            self.pidEvaluationChanged.emit(None)
+            self.selectedPidProposalChanged.emit(None)
+        member_ids = run.shared_posterior.member_id
+        self._selected_member_id = int(member_ids[0]) if member_ids.size else None
+        selected_mode = run.shared_posterior.mode.get("selected_mode_id")
+        self._selected_mode_id = (
+            None
+            if selected_mode is None or np.asarray(selected_mode).size == 0
+            else str(np.asarray(selected_mode).reshape(-1)[0])
+        )
+        self.manifest["current_assimilation_run_id"] = run.manifest.get("run_id")
+        self._refresh_stale()
+        self.posteriorChanged.emit(run)
+        self.selectedMemberChanged.emit(self._selected_member_id)
+        self.selectedModeChanged.emit(self._selected_mode_id)
+        self.bagsChanged.emit()
+
+    def apply_pid_evaluation(self, evaluation: PidProposalEvaluation) -> None:
+        if self.assimilation_run is None:
+            raise ValueError(
+                "a PID evaluation requires its source assimilation run"
+            )
+        source_run_id = str(evaluation.manifest.get("source_run_id", ""))
+        current_run_id = str(
+            self.assimilation_run.manifest.get("run_id", "")
+        )
+        if not source_run_id or source_run_id != current_run_id:
+            raise ValueError(
+                "PID evaluation source_run_id does not match the current "
+                "assimilation run"
+            )
+        self.pid_evaluation = evaluation
+        self.manifest["current_pid_proposal_evaluation_id"] = evaluation.manifest.get("evaluation_id")
+        candidates = evaluation.summary.get("candidate_id")
+        if candidates is not None and len(candidates):
+            self._selected_pid_proposal_id = str(candidates[0])
+        self.pidEvaluationChanged.emit(evaluation)
+        self.selectedPidProposalChanged.emit(self._selected_pid_proposal_id)
+
+    def set_selected_member(self, member_id: int | None) -> None:
+        if member_id is None:
+            selected = None
+        else:
+            posterior = self.parameter_ensemble
+            if posterior is None or int(member_id) not in set(posterior.member_id.tolist()):
+                return
+            selected = int(member_id)
+        if selected != self._selected_member_id:
+            self._selected_member_id = selected
+            self.selectedMemberChanged.emit(selected)
+
+    def set_selected_mode(self, mode_id: str | None) -> None:
+        if mode_id != self._selected_mode_id:
+            self._selected_mode_id = mode_id
+            self.selectedModeChanged.emit(mode_id)
+
+    def set_selected_pid_proposal(self, candidate_id: str | None) -> None:
+        if candidate_id != self._selected_pid_proposal_id:
+            self._selected_pid_proposal_id = candidate_id
+            self.selectedPidProposalChanged.emit(candidate_id)
+
+    def set_estimator_settings(self, settings: Mapping[str, Any]) -> None:
+        self.manifest["estimator_settings"] = dict(settings)
+        self._sync_manifest_inputs()
+
+    def request_fingerprint(self) -> str:
+        self._sync_manifest_inputs()
+        return freshness_fingerprint(self.manifest)
+
+    def snapshot(self) -> ProjectState:
+        return ProjectState(
+            project_id=self.project_id,
+            project_path=self.project_path,
+            project_schema=str(self.manifest["schema"]),
+            project_loader_id=str(self.manifest["loader"]["id"]),
+            bag_records=self.records(),
+            selected_bag_ids=tuple(record.bag_id for record in self.included_records()),
+            current_bag_id=self.current_bag_id,
+            selected_member_id=self.selected_member_id,
+            selected_mode_id=self.selected_mode_id,
+            selected_pid_proposal_id=self.selected_pid_proposal_id,
+            assimilation_run_path=None if self.assimilation_run is None else self.assimilation_run.root,
+            pid_proposal_evaluation_path=None if self.pid_evaluation is None else self.pid_evaluation.root,
+            results_stale=self.results_stale,
+        )
+
+    def _sync_manifest_inputs(self) -> None:
+        self.manifest["selected_bag_ids"] = [
+            record.bag_id for record in self._records if record.included
+        ]
+        self.manifest["intervals"] = {
+            record.bag_id: {
+                "auto": list(record.auto_range),
+                "selected": list(record.selected_range),
+                "state": record.interval_state,
+            }
+            for record in self._records
+            if record.auto_interval is not None and record.selected_interval is not None
+        }
+        self.manifest["configuration_fingerprints"] = {
+            record.bag_id: record.configuration_fingerprint for record in self._records
+        }
+        self.manifest["controller_snapshots"] = {
+            record.bag_id: dict(record.controller_snapshot) for record in self._records
+        }
+        self._refresh_stale()
+
+    def _refresh_stale(self) -> None:
+        stale = bool(self.manifest.get("run_request_fingerprint")) and not result_is_fresh(self.manifest)
+        if stale != self._results_stale:
+            self._results_stale = stale
+            self.manifest["result_freshness"] = "STALE" if stale else "UP_TO_DATE"
+            self.freshnessChanged.emit(stale)
+
+
+__all__ = ["BagRecord", "ProjectState", "ProjectStore", "TimeState"]

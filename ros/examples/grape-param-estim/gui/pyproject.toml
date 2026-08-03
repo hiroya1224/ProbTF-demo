@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grape-param-estim-gui"
+version = "1.0.0"
+description = "PySide6 desktop interface for Grape flight inspection and assimilation"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "PySide6>=6.6,<7",
+  "pyqtgraph>=0.13.4,<0.15",
+  "pyvista>=0.43,<0.47",
+  "pyvistaqt>=0.11,<0.12",
+  "vtk>=9.2,<10",
+]
+
+[project.scripts]
+grape-param-estim-gui = "grape_param_estim_gui.app:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,846 @@
+from __future__ import annotations
+
+from dataclasses import replace
+from datetime import datetime, timezone
+import json
+import os
+from pathlib import Path
+import shutil
+import uuid
+
+from PySide6.QtCore import QPoint, QRect, QSize, QTimer, Qt
+from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFileDialog,
+    QInputDialog,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QTabWidget,
+    QToolBar,
+)
+
+from .artifact_loader import (
+    GuiArtifactError,
+    load_assimilation,
+    load_inspection,
+    load_pid_evaluation,
+)
+from .process_runner import EstimatorProcessRunner
+from .pid_request import (
+    PidEvaluationLaunchOptions,
+    build_pid_evaluation_request,
+)
+from .project_io import (
+    GUI_STATE_NAME,
+    ProjectIoError,
+    copy_bag_into_project,
+    load_project_archive,
+    read_project_manifest,
+    save_project_archive,
+    unique_project_id,
+    write_project_manifest,
+)
+from .state import BagRecord, ProjectStore
+from .widgets.bag_browser import BagBrowserView
+from .widgets.master_view import MasterView
+from .widgets.next_experiment import NextExperimentView
+
+
+class MainWindow(QMainWindow):
+    _PREFERRED_SIZE = QSize(1680, 1040)
+    _MINIMUM_SIZE = QSize(960, 640)
+    _SCREEN_MARGIN = QSize(48, 64)
+
+    def __init__(self, store: ProjectStore, package_root: str | Path) -> None:
+        super().__init__()
+        self.store = store
+        self.package_root = Path(package_root).resolve()
+        self.worker_python = os.environ.get(
+            "GRAPE_PARAM_ESTIM_WORKER_PYTHON", "/usr/bin/python3"
+        )
+        self.runner = EstimatorProcessRunner(self)
+        self._operation: str | None = None
+        self._operation_context: dict[str, object] = {}
+        self._log_path: Path | None = None
+        self._close_after_worker = False
+        self.setWindowTitle("Grape parameter assimilation")
+
+        self.tabs = QTabWidget()
+        self.master_view = MasterView(store)
+        self.bag_browser = BagBrowserView(store)
+        self.next_experiment = NextExperimentView(store)
+        self.tabs.addTab(self.master_view, "Master")
+        self.tabs.addTab(self.bag_browser, "Bag browser")
+        self.tabs.addTab(self.next_experiment, "Next experiment")
+        self.setCentralWidget(self.tabs)
+        self._build_toolbar()
+        self._build_menu()
+        self._build_shortcuts()
+        self._connect_state()
+        self._update_freshness(self.store.results_stale)
+        self.statusBar().showMessage("Add rosbag files to start inspection.")
+        self._fit_initial_geometry_to_screen()
+
+    def _connect_state(self) -> None:
+        self.master_view.bagActivated.connect(self._open_bag_from_master)
+        self.bag_browser.statusMessage.connect(self.statusBar().showMessage)
+        self.bag_browser.filesSelected.connect(self.add_bag_files)
+        self.bag_browser.reinspectionRequested.connect(self.inspect_bags)
+        self.bag_browser.configurationRequested.connect(self.set_configuration_provenance)
+        self.next_experiment.evaluationRequested.connect(self.start_pid_evaluation)
+        self.bag_browser.time_state.playingChanged.connect(self._update_play_action)
+        self.store.freshnessChanged.connect(self._update_freshness)
+        self.store.projectChanged.connect(self._update_project_title)
+        self.runner.progress.connect(self._update_progress)
+        self.runner.stderrLog.connect(self._worker_log)
+        self.runner.finished.connect(self._worker_finished)
+        self.runner.cancelled.connect(self._worker_cancelled)
+        self.runner.failed.connect(self._worker_failed)
+        self.runner.runningChanged.connect(self._worker_running_changed)
+
+    def _fit_initial_geometry_to_screen(self) -> None:
+        screen = self.screen()
+        if screen is None:
+            self.resize(self._PREFERRED_SIZE)
+            return
+        available = screen.availableGeometry()
+        width = min(self._PREFERRED_SIZE.width(), max(1, available.width() - self._SCREEN_MARGIN.width()))
+        height = min(self._PREFERRED_SIZE.height(), max(1, available.height() - self._SCREEN_MARGIN.height()))
+        self.setMinimumSize(min(self._MINIMUM_SIZE.width(), width), min(self._MINIMUM_SIZE.height(), height))
+        geometry = QRect(QPoint(0, 0), QSize(width, height))
+        geometry.moveCenter(available.center())
+        self.setGeometry(geometry)
+
+    def _build_toolbar(self) -> None:
+        toolbar = QToolBar("Main")
+        toolbar.setMovable(False)
+        self.addToolBar(toolbar)
+        self.add_bags_action = QAction("Add bags…", self)
+        self.add_bags_action.triggered.connect(self.bag_browser.open_files)
+        toolbar.addAction(self.add_bags_action)
+        self.save_project_action = QAction("Save Project…", self)
+        self.save_project_action.triggered.connect(self.save_project)
+        toolbar.addAction(self.save_project_action)
+        self.load_project_action = QAction("Load Project…", self)
+        self.load_project_action.triggered.connect(self.load_project)
+        toolbar.addAction(self.load_project_action)
+        toolbar.addSeparator()
+        self.run_action = QAction("Run smoothing", self)
+        self.run_action.triggered.connect(self.start_assimilation)
+        toolbar.addAction(self.run_action)
+        self.stop_action = QAction("Stop", self)
+        self.stop_action.setEnabled(False)
+        self.stop_action.triggered.connect(self.runner.request_cancel)
+        toolbar.addAction(self.stop_action)
+        toolbar.addSeparator()
+        self.previous_action = QAction("◀", self)
+        self.previous_action.triggered.connect(lambda: self.bag_browser.step_samples(-1))
+        toolbar.addAction(self.previous_action)
+        self.play_action = QAction("▶", self)
+        self.play_action.triggered.connect(self.bag_browser.toggle_playback)
+        toolbar.addAction(self.play_action)
+        self.next_action = QAction("▶|", self)
+        self.next_action.triggered.connect(lambda: self.bag_browser.step_samples(1))
+        toolbar.addAction(self.next_action)
+        self.speed_combo = QComboBox()
+        for speed in (0.25, 0.5, 1.0, 2.0, 4.0):
+            self.speed_combo.addItem("×{:g}".format(speed), speed)
+        self.speed_combo.setCurrentText("×1")
+        self.speed_combo.currentIndexChanged.connect(
+            lambda _index: self.bag_browser.set_playback_speed(float(self.speed_combo.currentData()))
+        )
+        toolbar.addWidget(self.speed_combo)
+        toolbar.addSeparator()
+        self.stage_label = QLabel("idle")
+        self.stage_label.setMinimumWidth(360)
+        toolbar.addWidget(self.stage_label)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 1000)
+        self.progress_bar.setMinimumWidth(220)
+        toolbar.addWidget(self.progress_bar)
+        self.eta_label = QLabel("ETA —")
+        self.eta_label.setMinimumWidth(100)
+        toolbar.addWidget(self.eta_label)
+        self.freshness_label = QLabel()
+        self.freshness_label.setMinimumWidth(105)
+        toolbar.addWidget(self.freshness_label)
+
+    def _build_menu(self) -> None:
+        file_menu = self.menuBar().addMenu("File")
+        file_menu.addAction(self.add_bags_action)
+        file_menu.addAction(self.save_project_action)
+        file_menu.addAction(self.load_project_action)
+        self.load_pid_action = QAction("Import PID evaluation…", self)
+        self.load_pid_action.triggered.connect(self.import_pid_evaluation)
+        file_menu.addAction(self.load_pid_action)
+        file_menu.addSeparator()
+        quit_action = QAction("Quit", self)
+        quit_action.setShortcut(QKeySequence.Quit)
+        quit_action.triggered.connect(self.close)
+        file_menu.addAction(quit_action)
+        view_menu = self.menuBar().addMenu("View")
+        for text, widget in (
+            ("Master", self.master_view),
+            ("Bag browser", self.bag_browser),
+            ("Next experiment", self.next_experiment),
+        ):
+            action = QAction(text, self)
+            action.triggered.connect(lambda _checked=False, target=widget: self.tabs.setCurrentWidget(target))
+            view_menu.addAction(action)
+        fit_action = QAction("Fit full time range", self)
+        fit_action.setShortcut("F")
+        fit_action.triggered.connect(self.bag_browser.fit_view)
+        view_menu.addAction(fit_action)
+
+    def _build_shortcuts(self) -> None:
+        self._shortcuts: list[QShortcut] = []
+        for key, callback in (
+            ("Space", self.bag_browser.toggle_playback),
+            ("Left", lambda: self.bag_browser.step_samples(-1)),
+            ("Right", lambda: self.bag_browser.step_samples(1)),
+            ("Shift+Left", lambda: self.bag_browser.step_samples(-20)),
+            ("Shift+Right", lambda: self.bag_browser.step_samples(20)),
+            ("Home", self._go_to_start),
+            ("End", self._go_to_end),
+        ):
+            shortcut = QShortcut(QKeySequence(key), self)
+            shortcut.activated.connect(callback)
+            self._shortcuts.append(shortcut)
+
+    def add_bag_files(self, paths: object) -> None:
+        if self.runner.running:
+            return
+        added: list[str] = []
+        try:
+            existing = {item["bag_id"]: item for item in self.store.manifest["bags"]}
+            for raw_path in paths:  # type: ignore[union-attr]
+                entry = copy_bag_into_project(self.store.project_path, Path(raw_path))
+                if entry["bag_id"] in existing:
+                    continue
+                self.store.manifest["bags"].append(entry)
+                self.store.add(
+                    BagRecord(
+                        bag_id=entry["bag_id"],
+                        path=self.store.project_path / entry["relative_path"],
+                        source_path=Path(entry["source_path"]),
+                        sha256=entry["sha256"],
+                    )
+                )
+                existing[entry["bag_id"]] = entry
+                added.append(entry["bag_id"])
+            write_project_manifest(self.store.project_path, self.store.manifest)
+        except (OSError, ProjectIoError, ValueError) as error:
+            self._show_error("Cannot add rosbag", error)
+            return
+        if added:
+            self.inspect_bags(tuple(added))
+        else:
+            self.statusBar().showMessage("The selected rosbag files are already in this project.")
+
+    def inspect_bags(self, bag_ids: object = None) -> None:
+        if self.runner.running or not self.store.records():
+            return
+        requested_ids = (
+            tuple(record.bag_id for record in self.store.records())
+            if bag_ids is None
+            else tuple(str(value) for value in bag_ids)
+        )
+        include_when_ready = tuple(
+            bag_id
+            for bag_id in requested_ids
+            if self.store.get(bag_id) is not None
+            and self.store.get(bag_id).status
+            in {"awaiting inspection", "needs_configuration_confirmation"}
+        )
+        request_id = "inspection-{}".format(uuid.uuid4().hex[:12])
+        settings = self.store.manifest.get("estimator_settings", {})
+        bags = []
+        for record in self.store.records():
+            bags.append(
+                {
+                    "bag_id": record.bag_id,
+                    "path": str(record.path),
+                    "episode_index": 0,
+                    "configuration_provenance": dict(record.configuration_provenance),
+                }
+            )
+            record.status = "inspection queued"
+        request = {
+            "schema": "grape-param-estim/inspection-request/v1",
+            "request_id": request_id,
+            "preview_max_samples": 1200,
+            "bags": bags,
+            "estimator_settings": {
+                key: settings[key]
+                for key in ("sample_period", "ensemble_size", "maximum_iterations", "maximum_knots")
+                if key in settings
+            },
+        }
+        request_path = self.store.project_path / "logs" / (request_id + ".request.json")
+        output = self.store.project_path / (".inspection-" + request_id)
+        self._write_request(request_path, request)
+        self._start_worker(
+            "inspection", request_id, request_path, output,
+            self.package_root / "scripts" / "grape_inspect_flights.py",
+        )
+        if self._operation == "inspection":
+            self._operation_context["include_when_ready"] = include_when_ready
+
+    def set_configuration_provenance(self, bag_id: str) -> None:
+        record = self.store.get(bag_id)
+        if record is None or self.runner.running:
+            return
+        fields = (
+            "payload",
+            "rotor_propeller",
+            "geometry",
+            "robot_model_revision",
+            "actuator_wiring",
+            "hardware_revision",
+        )
+        initial = {field: record.configuration_provenance.get(field, "") for field in fields}
+        text, accepted = QInputDialog.getMultiLineText(
+            self,
+            "Configuration provenance",
+            "Enter a non-empty identifier for every field as JSON:",
+            json.dumps(initial, ensure_ascii=False, indent=2),
+        )
+        if not accepted:
+            return
+        try:
+            value = json.loads(text)
+            if not isinstance(value, dict) or set(value) != set(fields):
+                raise ValueError("configuration JSON must contain exactly the displayed fields")
+            provenance = {field: str(value[field]).strip() for field in fields}
+            if any(not value for value in provenance.values()):
+                raise ValueError("every configuration provenance field must be non-empty")
+        except (TypeError, ValueError) as error:
+            self._show_error("Invalid configuration provenance", error)
+            return
+        record.configuration_provenance = provenance
+        self.inspect_bags((bag_id,))
+
+    def start_assimilation(self) -> None:
+        if self.runner.running:
+            return
+        selected = self.store.included_records()
+        if not selected:
+            self._show_error("Cannot run smoothing", "Select at least one inspected bag.")
+            return
+        if any(record.inspection is None or record.selected_interval is None for record in selected):
+            self._show_error("Cannot run smoothing", "Every selected bag must have a completed inspection and interval.")
+            return
+        fingerprints = {record.configuration_fingerprint for record in selected}
+        if any(record.status != "ready" for record in selected):
+            self._show_error(
+                "Cannot run smoothing",
+                "Every selected bag must have ready inspection status and confirmed configuration provenance.",
+            )
+            return
+        if "" in fingerprints:
+            self._show_error("Cannot run smoothing", "Selected bags must have one confirmed configuration fingerprint.")
+            return
+        allow_configuration_mismatch = False
+        if len(fingerprints) > 1:
+            decision = QMessageBox.warning(
+                self,
+                "Configuration mismatch",
+                "Selected bags have different configuration fingerprints. "
+                "They may not share one mass, inertia, CoG, effectiveness, and "
+                "constant delay. Run joint smoothing with an explicit mismatch "
+                "override for this request?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if decision != QMessageBox.Yes:
+                return
+            allow_configuration_mismatch = True
+        baseline = self._choose_baseline_bag(selected)
+        if baseline is None:
+            return
+        run_id = "run-{}".format(uuid.uuid4().hex[:12])
+        output = self.store.project_path / "runs" / run_id / "assimilation_run"
+        request_path = output.parent / "request.json"
+        output.parent.mkdir(parents=True, exist_ok=False)
+        settings = dict(self.store.manifest["estimator_settings"])
+        settings["allow_configuration_mismatch"] = allow_configuration_mismatch
+        self.store.set_estimator_settings(settings)
+        request = {
+            "schema": "grape-param-estim/assimilation-request/v1",
+            "run_id": run_id,
+            "project_id": self.store.project_id,
+            "project_request_fingerprint": self.store.request_fingerprint(),
+            "baseline_bag_id": baseline,
+            "bags": [
+                {
+                    "bag_id": record.bag_id,
+                    "path": str(record.path),
+                    "sha256": record.sha256,
+                    "episode_index": int(record.inspection["recommended_interval"]["episode_index"]),
+                    "selected_interval": list(record.selected_range),
+                    "configuration_fingerprint": record.configuration_fingerprint,
+                }
+                for record in selected
+            ],
+            "settings": settings,
+        }
+        write_project_manifest(self.store.project_path, self.store.manifest)
+        self._write_request(request_path, request)
+        for record in selected:
+            record.status = "queued"
+        self.store.bagsChanged.emit()
+        self._start_worker(
+            "assimilation", run_id, request_path, output,
+            self.package_root / "scripts" / "grape_assimilate_flights.py",
+        )
+        if self._operation == "assimilation":
+            self._operation_context["project_request_fingerprint"] = request[
+                "project_request_fingerprint"
+            ]
+            self.freshness_label.setText("RUNNING")
+            self.freshness_label.setStyleSheet(
+                "padding-left: 8px; color: #2e6b99; font-weight: 600;"
+            )
+
+    def _choose_baseline_bag(self, records: tuple[BagRecord, ...]) -> str | None:
+        snapshots = {
+            json.dumps(record.controller_snapshot, allow_nan=False, sort_keys=True, separators=(",", ":"))
+            for record in records
+        }
+        if len(snapshots) == 1:
+            return records[0].bag_id
+        labels = ["{} — {}".format(record.bag_id, record.display_name) for record in records]
+        selected, accepted = QInputDialog.getItem(
+            self, "Select baseline controller snapshot",
+            "Selected bags have different PID snapshots. Choose the exact current baseline:",
+            labels, 0, False,
+        )
+        if not accepted:
+            return None
+        return records[labels.index(selected)].bag_id
+
+    def start_pid_evaluation(self, options: object) -> None:
+        """Launch exact current/member posterior-predictive evaluation."""
+
+        if self.runner.running:
+            return
+        if self.store.assimilation_run is None:
+            self._show_error(
+                "Cannot evaluate PID proposal",
+                "Complete joint smoothing before evaluating a PID proposal.",
+            )
+            return
+        if not isinstance(options, PidEvaluationLaunchOptions):
+            self._show_error(
+                "Cannot evaluate PID proposal", "invalid GUI evaluation options"
+            )
+            return
+        evaluation_id = "pid-eval-{}".format(uuid.uuid4().hex[:12])
+        output = (
+            self.store.project_path
+            / "pid_proposals"
+            / evaluation_id
+            / "pid_proposal_evaluation"
+        )
+        request_path = output.parent / "request.json"
+        try:
+            request = build_pid_evaluation_request(
+                self.store.assimilation_run, evaluation_id, options
+            )
+            output.parent.mkdir(parents=True, exist_ok=False)
+            self._write_request(request_path, request)
+        except (OSError, TypeError, ValueError) as error:
+            self._show_error("Cannot evaluate PID proposal", error)
+            return
+        started = self._start_worker(
+            "pid_evaluation",
+            evaluation_id,
+            request_path,
+            output,
+            self.package_root / "scripts" / "grape_evaluate_pid_proposals.py",
+        )
+        if started and self._operation == "pid_evaluation":
+            self._operation_context["source_run_id"] = str(
+                self.store.assimilation_run.manifest["run_id"]
+            )
+            self.tabs.setCurrentWidget(self.next_experiment)
+            self.statusBar().showMessage(
+                "Evaluating current PID, exact member {} proposal{}.".format(
+                    options.source_member_id,
+                    " and exact user candidate"
+                    if options.user_candidate_values is not None
+                    else "",
+                )
+            )
+
+    def _start_worker(
+        self,
+        operation: str,
+        run_id: str,
+        request_path: Path,
+        output: Path,
+        script: Path,
+    ) -> bool:
+        worker = script
+        if not worker.is_file():
+            install_space_worker = (
+                self.package_root.parent.parent
+                / "lib"
+                / "grape_param_estim"
+                / worker.name
+            )
+            installed = shutil.which(worker.name)
+            if install_space_worker.is_file():
+                worker = install_space_worker
+            elif installed is not None:
+                worker = Path(installed)
+            else:
+                self._show_error("Worker is unavailable", worker)
+                return False
+        self._operation = operation
+        self._operation_context = {"request": request_path, "output": output}
+        self._log_path = self.store.project_path / "logs" / (run_id + ".stderr.log")
+        self.runner.start(
+            self.worker_python,
+            (worker, "--request", request_path, "--output", output),
+            output_directory=output,
+            run_id=run_id,
+            working_directory=self.package_root,
+        )
+        return True
+
+    def _worker_finished(self, output_text: str) -> None:
+        output = Path(output_text)
+        try:
+            if self._operation == "inspection":
+                artifact = load_inspection(output)
+                canonical = self.store.project_path / "inspection"
+                backup = self.store.project_path / (
+                    ".inspection-previous-" + uuid.uuid4().hex[:10]
+                )
+                if canonical.exists():
+                    os.replace(canonical, backup)
+                try:
+                    os.replace(output, canonical)
+                except BaseException:
+                    if backup.exists() and not canonical.exists():
+                        os.replace(backup, canonical)
+                    raise
+                if backup.exists():
+                    shutil.rmtree(backup)
+                artifact = replace(artifact, root=canonical)
+                self.store.apply_inspection(artifact)
+                for bag_id in self._operation_context.get("include_when_ready", ()):
+                    record = self.store.get(str(bag_id))
+                    if (
+                        record is not None
+                        and record.status == "ready"
+                        and record.selected_interval is not None
+                    ):
+                        self.store.set_included(record.bag_id, True)
+                self.statusBar().showMessage("Rosbag inspection completed.")
+            elif self._operation == "assimilation":
+                run = load_assimilation(output)
+                self.store.manifest["run_request_fingerprint"] = self._operation_context[
+                    "project_request_fingerprint"
+                ]
+                self.store.apply_assimilation(run)
+                self._update_freshness(self.store.results_stale)
+                self.statusBar().showMessage("Joint smoothing completed.")
+            elif self._operation == "pid_evaluation":
+                evaluation = load_pid_evaluation(output)
+                if self.store.assimilation_run is None:
+                    raise ProjectIoError(
+                        "the source assimilation run is no longer loaded"
+                    )
+                source_run_id = str(evaluation.manifest["source_run_id"])
+                if source_run_id != self._operation_context.get("source_run_id"):
+                    raise ProjectIoError(
+                        "PID evaluation source_run_id does not match its request"
+                    )
+                if source_run_id != str(
+                    self.store.assimilation_run.manifest["run_id"]
+                ):
+                    raise ProjectIoError(
+                        "PID evaluation source_run_id does not match the current run"
+                    )
+                self.store.apply_pid_evaluation(evaluation)
+                self.tabs.setCurrentWidget(self.next_experiment)
+                self.statusBar().showMessage(
+                    "Posterior-predictive PID evaluation completed."
+                )
+            write_project_manifest(self.store.project_path, self.store.manifest)
+        except (OSError, ValueError, GuiArtifactError, ProjectIoError) as error:
+            self._show_error("Worker output is invalid", error)
+        finally:
+            self._operation = None
+            self._operation_context = {}
+            self.stage_label.setText("idle")
+            self._finish_pending_close()
+
+    def _worker_failed(self, message: str) -> None:
+        for record in self.store.records():
+            if record.status in {"queued", "running", "writing", "inspection queued"}:
+                record.status = "failed"
+        self.store.bagsChanged.emit()
+        self._update_freshness(self.store.results_stale)
+        self._show_error("Estimator worker failed", message)
+        self._operation = None
+        self._finish_pending_close()
+
+    def _worker_cancelled(self) -> None:
+        for record in self.store.records():
+            if record.status in {"queued", "running", "writing", "inspection queued"}:
+                record.status = "cancelled"
+        self.store.bagsChanged.emit()
+        self.statusBar().showMessage("Worker cancelled; incomplete artifacts were not loaded.")
+        self.stage_label.setText("cancelled")
+        self.eta_label.setText("ETA —")
+        self._update_freshness(self.store.results_stale)
+        self._operation = None
+        self._finish_pending_close()
+
+    def _finish_pending_close(self) -> None:
+        if self._close_after_worker:
+            self._close_after_worker = False
+            QTimer.singleShot(0, self.close)
+
+    def _worker_running_changed(self, running: bool) -> None:
+        self.add_bags_action.setEnabled(not running)
+        self.run_action.setEnabled(not running)
+        self.save_project_action.setEnabled(not running)
+        self.load_project_action.setEnabled(not running)
+        self.load_pid_action.setEnabled(not running)
+        self.next_experiment.set_evaluation_running(running)
+        self.stop_action.setEnabled(running)
+
+    def _update_progress(self, event: object) -> None:
+        self.progress_bar.setValue(int(round(1000.0 * float(event.fraction))))
+        detail = event.message or event.stage_label
+        self.stage_label.setText("{} — {}".format(event.stage_label, detail))
+        self.eta_label.setText(
+            "ETA —" if event.eta_seconds is None
+            else "ETA {}".format(self._format_duration(event.eta_seconds))
+        )
+        if event.bag_id:
+            record = self.store.get(event.bag_id)
+            if record is not None:
+                record.status = "writing" if event.stage_id == "artifact_writing" else "running"
+                self.store.recordChanged.emit(record.bag_id)
+
+    def _worker_log(self, line: str) -> None:
+        if self._log_path is not None:
+            self._log_path.parent.mkdir(parents=True, exist_ok=True)
+            with self._log_path.open("a", encoding="utf-8") as stream:
+                stream.write(line + "\n")
+        if line:
+            self.statusBar().showMessage(line, 5000)
+
+    def save_project(self) -> None:
+        if self.runner.running:
+            return
+        default = Path.home() / (self.store.project_id + ".zip")
+        file_name, _filter = QFileDialog.getSaveFileName(
+            self, "Save Project", str(default), "Grape project ZIP (*.zip)"
+        )
+        if not file_name:
+            return
+        try:
+            self._write_gui_state()
+            write_project_manifest(self.store.project_path, self.store.manifest)
+            save_project_archive(self.store.project_path, file_name)
+        except (OSError, ValueError, ProjectIoError) as error:
+            self._show_error("Cannot save project", error)
+            return
+        self.statusBar().showMessage("Saved self-contained project to {}".format(file_name))
+
+    def load_project(self) -> None:
+        if self.runner.running:
+            return
+        file_name, _filter = QFileDialog.getOpenFileName(
+            self, "Load Project", str(Path.home()), "Grape project ZIP (*.zip)"
+        )
+        if not file_name:
+            return
+        try:
+            projects_root = self.package_root / "projects"
+            project_path = load_project_archive(file_name, projects_root)
+            manifest = read_project_manifest(project_path, verify_bags=True)
+            records = self._records_from_manifest(project_path, manifest)
+            self.store.replace_project(project_path, manifest, records)
+            inspection_path = project_path / "inspection"
+            if (inspection_path / "manifest.json").is_file():
+                self.store.apply_inspection(load_inspection(inspection_path))
+            run_id = manifest.get("current_assimilation_run_id")
+            if run_id:
+                self.store.apply_assimilation(
+                    load_assimilation(project_path / "runs" / str(run_id) / "assimilation_run")
+                )
+            evaluation_id = manifest.get("current_pid_proposal_evaluation_id")
+            if evaluation_id:
+                self.store.apply_pid_evaluation(
+                    load_pid_evaluation(project_path / "pid_proposals" / str(evaluation_id) / "pid_proposal_evaluation")
+                )
+            self._restore_gui_state(project_path / GUI_STATE_NAME)
+            self.statusBar().showMessage("Loaded project {}".format(self.store.project_id))
+        except (OSError, ValueError, GuiArtifactError, ProjectIoError) as error:
+            self._show_error("Cannot load project", error)
+
+    def import_pid_evaluation(self) -> None:
+        source_name = QFileDialog.getExistingDirectory(
+            self, "Import PID proposal evaluation", str(Path.home())
+        )
+        if not source_name:
+            return
+        try:
+            source = Path(source_name).resolve()
+            evaluation = load_pid_evaluation(source)
+            if self.store.assimilation_run is None:
+                raise ProjectIoError(
+                    "load the source assimilation run before importing its PID evaluation"
+                )
+            if evaluation.manifest["source_run_id"] != self.store.assimilation_run.manifest["run_id"]:
+                raise ProjectIoError("PID evaluation source_run_id does not match the current run")
+            evaluation_id = str(evaluation.manifest["evaluation_id"])
+            canonical = self.store.project_path / "pid_proposals" / evaluation_id / "pid_proposal_evaluation"
+            if source != canonical:
+                if canonical.exists():
+                    raise ProjectIoError("PID evaluation ID already exists in this project")
+                canonical.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(source, canonical)
+                evaluation = load_pid_evaluation(canonical)
+            self.store.apply_pid_evaluation(evaluation)
+            write_project_manifest(self.store.project_path, self.store.manifest)
+            self.tabs.setCurrentWidget(self.next_experiment)
+        except (OSError, ValueError, GuiArtifactError, ProjectIoError) as error:
+            self._show_error("Cannot import PID evaluation", error)
+
+    @staticmethod
+    def _records_from_manifest(project_path: Path, manifest: dict[str, object]) -> list[BagRecord]:
+        intervals = manifest["intervals"]
+        selected = set(manifest["selected_bag_ids"])
+        fingerprints = manifest["configuration_fingerprints"]
+        snapshots = manifest["controller_snapshots"]
+        records = []
+        for item in manifest["bags"]:
+            interval = intervals.get(item["bag_id"])
+            records.append(
+                BagRecord(
+                    bag_id=item["bag_id"],
+                    path=project_path / item["relative_path"],
+                    source_path=Path(item["source_path"]),
+                    sha256=item["sha256"],
+                    included=item["bag_id"] in selected,
+                    auto_interval=None if interval is None else tuple(interval["auto"]),
+                    selected_interval=None if interval is None else tuple(interval["selected"]),
+                    interval_state="AUTO" if interval is None else interval["state"],
+                    configuration_fingerprint=fingerprints.get(item["bag_id"], ""),
+                    controller_snapshot=snapshots.get(item["bag_id"]) or {},
+                )
+            )
+        return records
+
+    def _write_gui_state(self) -> None:
+        payload = {
+            "schema": "grape-param-estim/gui-state/v1",
+            "current_bag_id": self.store.current_bag_id,
+            "selected_member_id": self.store.selected_member_id,
+            "selected_mode_id": self.store.selected_mode_id,
+            "selected_pid_proposal_id": self.store.selected_pid_proposal_id,
+            "bags": {
+                record.bag_id: {
+                    "current_time": record.current_time,
+                    "view_range": list(record.view_range),
+                }
+                for record in self.store.records()
+            },
+        }
+        self._write_request(self.store.project_path / GUI_STATE_NAME, payload)
+
+    def _restore_gui_state(self, path: Path) -> None:
+        if not path.is_file():
+            return
+        value = json.loads(path.read_text(encoding="utf-8"))
+        if value.get("schema") != "grape-param-estim/gui-state/v1":
+            raise ProjectIoError("unsupported GUI state schema")
+        for bag_id, state in value.get("bags", {}).items():
+            record = self.store.get(bag_id)
+            if record is not None:
+                record.current_time = float(state["current_time"])
+                record.view_range = tuple(float(item) for item in state["view_range"])
+        current = value.get("current_bag_id")
+        if current:
+            self.store.set_current(str(current))
+        member = value.get("selected_member_id")
+        if member is not None:
+            self.store.set_selected_member(int(member))
+        self.store.set_selected_mode(value.get("selected_mode_id"))
+        self.store.set_selected_pid_proposal(value.get("selected_pid_proposal_id"))
+
+    @staticmethod
+    def _write_request(path: Path, value: dict[str, object]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(value, allow_nan=False, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+
+    def _update_freshness(self, stale: bool) -> None:
+        if self.store.manifest.get("run_request_fingerprint") is None:
+            self.freshness_label.setText("NOT ESTIMATED")
+            color = "#666"
+        elif stale:
+            self.freshness_label.setText("STALE")
+            color = "#9a5c00"
+        else:
+            self.freshness_label.setText("UP TO DATE")
+            color = "#217543"
+        self.freshness_label.setStyleSheet("padding-left: 8px; color: {}; font-weight: 600;".format(color))
+
+    def _update_project_title(self) -> None:
+        self.setWindowTitle("Grape parameter assimilation — {}".format(self.store.project_id))
+
+    def _open_bag_from_master(self, bag_id: str) -> None:
+        self.store.set_current(bag_id)
+        self.tabs.setCurrentWidget(self.bag_browser)
+
+    def _update_play_action(self, playing: bool) -> None:
+        self.play_action.setText("❚❚" if playing else "▶")
+
+    def _go_to_start(self) -> None:
+        record = self.store.current_record()
+        if record is not None and record.data is not None:
+            self.bag_browser.time_state.set_current_time(float(record.data.time[0]))
+
+    def _go_to_end(self) -> None:
+        record = self.store.current_record()
+        if record is not None and record.data is not None:
+            self.bag_browser.time_state.set_current_time(float(record.data.time[-1]))
+
+    @staticmethod
+    def _format_duration(seconds: float) -> str:
+        seconds = max(float(seconds), 0.0)
+        if seconds < 60.0:
+            return "{:.0f} s".format(seconds)
+        minutes = int(seconds // 60.0)
+        return "{}m {:02d}s".format(minutes, int(round(seconds - 60.0 * minutes)))
+
+    def _show_error(self, title: str, error: object) -> None:
+        QMessageBox.critical(self, title, str(error))
+        self.statusBar().showMessage("{}: {}".format(title, error), 10000)
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        if self.runner.running:
+            self._close_after_worker = True
+            self.runner.request_cancel("application_closing")
+            event.ignore()
+            return
+        self.bag_browser.close_scene()
+        self.next_experiment.comparison_scene.close_scene()
+        super().closeEvent(event)
+
+
+__all__ = ["MainWindow"]

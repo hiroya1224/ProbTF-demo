@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import sys
 import tempfile
 import unittest
@@ -81,6 +82,49 @@ class ProcessRunnerQtTest(unittest.TestCase):
         terminal = self._run_until_terminal(runner)
         self.assertEqual(terminal[0], "failed")
         self.assertIn("progress JSONL", terminal[1])
+
+    def test_worker_linear_algebra_threads_default_to_one_and_allow_override(self):
+        worker = self.root / "worker_environment.py"
+        worker.write_text(
+            "import json,os\n"
+            "event=" + repr(_event(completed=2, eta=0.0)) + "\n"
+            "event['message']='|'.join(os.environ[k] for k in "
+            "('OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS'))\n"
+            "print(json.dumps(event),flush=True)\n"
+        )
+        for override, expected in ((None, "1|1|1"), ("3", "3|3|3")):
+            with self.subTest(override=override):
+                environment = {
+                    key: value
+                    for key, value in os.environ.items()
+                    if key
+                    not in {
+                        "OPENBLAS_NUM_THREADS",
+                        "OMP_NUM_THREADS",
+                        "MKL_NUM_THREADS",
+                    }
+                }
+                if override is not None:
+                    environment.update(
+                        {
+                            "OPENBLAS_NUM_THREADS": override,
+                            "OMP_NUM_THREADS": override,
+                            "MKL_NUM_THREADS": override,
+                        }
+                    )
+                with mock.patch.dict(os.environ, environment, clear=True):
+                    runner = EstimatorProcessRunner()
+                    progress = []
+                    runner.progress.connect(progress.append)
+                    runner.start(
+                        sys.executable,
+                        [worker],
+                        output_directory=self.root / "out",
+                        run_id="run-a",
+                    )
+                    terminal = self._run_until_terminal(runner)
+                self.assertEqual(terminal[0], "finished")
+                self.assertEqual(progress[0].message, expected)
 
     def test_cancel_escalates_from_cooperative_request_to_terminate_and_kill(self):
         worker = self.root / "worker.py"

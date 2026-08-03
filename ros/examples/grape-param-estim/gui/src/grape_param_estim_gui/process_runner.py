@@ -6,7 +6,13 @@ import math
 from pathlib import Path
 from typing import Sequence
 
-from PySide6.QtCore import QObject, QProcess, QTimer, Signal
+from PySide6.QtCore import (
+    QObject,
+    QProcess,
+    QProcessEnvironment,
+    QTimer,
+    Signal,
+)
 
 from .process_control import finalize_cancelled_bundle, send_cooperative_interrupt
 
@@ -93,6 +99,15 @@ class EstimatorProcessRunner(QObject):
         self._terminal_emitted = False
         if working_directory is not None:
             self._process.setWorkingDirectory(str(Path(working_directory).resolve()))
+        environment = QProcessEnvironment.systemEnvironment()
+        for variable in (
+            "OPENBLAS_NUM_THREADS",
+            "OMP_NUM_THREADS",
+            "MKL_NUM_THREADS",
+        ):
+            if not environment.contains(variable):
+                environment.insert(variable, "1")
+        self._process.setProcessEnvironment(environment)
         self._process.setProgram(executable)
         self._process.setArguments([str(value) for value in arguments])
         self._process.start(QProcess.ReadWrite)

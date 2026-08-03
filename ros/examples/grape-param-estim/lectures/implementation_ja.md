@@ -8,7 +8,7 @@
 処理は次の成果物を境界として分離した。
 
 1. inspection bundle: rosbag の topic 契約、完全な飛行 episode、連続区間候補、controller snapshot、構成 fingerprint、軽量 preview
-2. diagonal-Q stage: 6個のstationary variance、固定observation covariance、bag provenance、EM trace、smoothed residual-wrench law
+2. diagonal-Q stage: 6個のstationary variance、固定observation covariance、bag provenance、generalized-EM / backtracking trace、smoothed residual-wrench law
 3. fixed-Q parameter stage: 上流Q artifactへのcontent-addressed参照、shared static posterior、bag-local filter / smoother trajectory、residual wrench、correction-transform path、ridge診断
 4. PID proposal evaluation: raw PID proposal ensemble、評価した exact candidate、candidate × bag × physical member の full closed-loop forecast、物理単位別 metric、Pareto 判定、YAML 表示用テキスト
 5. project archive: project JSON、GUI state、`workflow.json`、生の全登録 rosbag、上記成果物を含む標準 ZIP / ZIP64
@@ -48,7 +48,12 @@ Q = diag(q_Fx, q_Fy, q_Fz, q_tau_x, q_tau_y, q_tau_z)
 
 E-stepは各bagのmember-aligned smoothed wrench pathを返し、M-stepは不規則時刻のOU sufficient statisticsから6個のstationary varianceを成分別に更新する。
 複数bagでは同じ6成分を共有し、bagごとの十分統計を決定的なbag ID順で集約する。
-収束判定は各成分のlog variance変化を使い、component floorも6成分を別々に保持する。
+M-stepが与えるclosed-form stationary varianceはそのまま次のQとせず、入力Qからtargetへの差をlog-Q空間でバックトラッキングする。
+各step fraction `alpha` のcandidateでEnKF / EnRTSのE-stepを再評価し、計算が有限値で完了し、かつbagごとの和である近似filter log-likelihoodが入力Q以上のcandidateだけをgeneralized-EM updateとして受理する。
+数値失敗と尤度低下はcandidateの棄却理由として区別し、より小さな `alpha` を順に試し、全trialを棄却した場合は入力Qを保持して `generalized_em_update_rejected` で停止する。
+artifactはclosed-form target、trialごとの `alpha`、candidate Q、受理・数値失敗・尤度低下のoutcome、入出力尤度、最終的に受理したQを保存する。
+収束判定は入力Qからclosed-form targetまでの各成分のlog variance変化を使い、component floorも6成分を別々に保持する。
+Qの発散を表面上だけ抑えるper-axis hard upper capは設けず、有限性と尤度非低下を受理条件にする。
 
 ### 2.2 Stage 2: fixed-Q augmented EnKF / EnRTS
 

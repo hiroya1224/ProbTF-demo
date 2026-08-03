@@ -21,6 +21,8 @@ rosrun grape_param_estim run_gui.py \
 ```
 
 inspectionが完了するとGUIは `Bag browser` へ自動的に移動し、`Trajectory`、`Flight state`、3D world trajectoryへpreviewを表示します。
+この失敗飛行で推定する場合は、`Bag browser` の `start` と `end` をlocal record timeの `18.000 s` と `24.000 s` にそれぞれ変更してから `Run estimation…` を開始してください。
+inspectionが自動選択する約 `7.39–24.90 s` の全区間は、数値破綻せず完走することを確認する回帰試験用であり、このbagの科学的推定に推奨するwindowではありません。
 `Master`、`Correction transform`、`Residual wrench` はStage 2のfixed-Q parameter estimation結果を表示する領域なので、Stage 2完了前は空です。
 このbagにはhardware configuration provenanceが記録されていないため、GUIはconfiguration group確認画面を開きます。
 単独bagのデモでは既定の `single-bag-bd3fc7f71797` をそのまま確認すると、欠落warningを保持したままこのbagだけのgroupとして `Use` が有効になり、toolbarの `Run estimation…` を実行できます。
@@ -72,10 +74,13 @@ rosrun grape_param_estim run_gui.py \
 - body-frame residual wrench を6次元の OU process state として EnKF / EnRTS で filtering / smoothing
 - `Q = diag(q_Fx, q_Fy, q_Fz, q_tau_x, q_tau_y, q_tau_z)` の6成分を別々に保持
 - position / orientation の observation covariance `R`、vehicle parameter、初期 delay、OU correlation time はこのstage中に固定
-- E-step の smoothed wrench pathからOU sufficient statisticsを集計し、M-stepで6個のstationary varianceを更新
-- `Q` の各成分、単位、frame、EM trace、入力fingerprintをstrict artifactへ保存
+- E-step の smoothed wrench pathからOU sufficient statisticsを集計し、M-stepで6個のstationary varianceのclosed-form targetを計算
+- closed-form targetへの変化をlog-Q空間でバックトラッキングし、candidateのE-stepが有限値で完了し、かつ近似filter log-likelihoodが入力Qから低下しないときだけ受理
+- 数値失敗または尤度低下のcandidateは棄却してより小さなstep fraction `alpha`を試し、全trialの棄却時は入力Qを保持して明示的に停止
+- `Q` の各成分、単位、frame、closed-form target、受理した `alpha`、全trialのcandidateと棄却理由、入出力尤度、入力fingerprintをstrict artifactへ保存
 
 `Q` を単位行列の定数倍にはせず、force 3軸とtorque 3軸の異なるスケールを保持します。
+成分ごとの下限floorは有効ですが、発散を隠すper-axisのhard upper capは設けません。
 residual wrenchの各時刻値はdynamic stochastic stateであり、時刻ごとの最適化変数としてparameter vectorへ追加しません。
 
 ### Stage 2: fixed-Q static parameters

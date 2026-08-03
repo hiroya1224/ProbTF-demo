@@ -32,7 +32,10 @@ from grape_param_estim.diagonal_q_artifact import (
     read_diagonal_q_manifest,
     write_diagonal_q_artifact,
 )
-from grape_param_estim.diagonal_q_em import DiagonalQEmConfig
+from grape_param_estim.diagonal_q_em import (
+    DiagonalQEmConfig,
+    DiagonalQExpectationContext,
+)
 from grape_param_estim.parameterization import PARAMETER_DIMENSION
 from grape_param_estim.progress import (
     CancellationToken,
@@ -58,7 +61,7 @@ DIAGONAL_Q_STAGE_REQUEST_SCHEMA = (
     "grape-param-estim/diagonal-q-stage-request/v1"
 )
 DIAGONAL_Q_STAGE_ID = "diagonal_q"
-DIAGONAL_Q_ALGORITHM_VERSION = "diagonal-q-em-v1"
+DIAGONAL_Q_ALGORITHM_VERSION = "diagonal-q-generalized-em-v2"
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$")
 _FINGERPRINT = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -475,11 +478,15 @@ class _MonotonicProgressBridge:
         tracker: ProgressTracker,
         preparation_units: int,
         maximum_iterations: int,
+        maximum_backtracking_trials: int,
         bag_units: Mapping[str, int],
     ) -> None:
         self.tracker = tracker
         self.preparation_units = int(preparation_units)
         self.maximum_iterations = int(maximum_iterations)
+        self.maximum_backtracking_trials = int(
+            maximum_backtracking_trials
+        )
         self.bag_ids = tuple(sorted(bag_units))
         self.bag_units = {key: int(bag_units[key]) for key in self.bag_ids}
         self.cycle_units = sum(self.bag_units.values())
@@ -528,38 +535,95 @@ class _MonotonicProgressBridge:
         self._last_emitted = selected
         self._last_stage = stage_id
 
-    def bag_event(self, iteration: int, bag_id: str, event: ProgressEvent) -> None:
+    def bag_event(
+        self,
+        context: DiagonalQExpectationContext,
+        bag_id: str,
+        event: ProgressEvent,
+    ) -> None:
+        if not isinstance(context, DiagonalQExpectationContext):
+            raise RuntimeError("diagonal-Q progress context is invalid")
         if bag_id not in self.bag_units:
             raise RuntimeError("unknown bag in diagonal-Q progress")
-        if not 1 <= int(iteration) <= self.maximum_iterations + 1:
+        if not 1 <= context.iteration <= self.maximum_iterations:
+            raise RuntimeError("diagonal-Q EM iteration exceeds its reserve")
+        if not 0 <= context.trial <= self.maximum_backtracking_trials:
+            raise RuntimeError(
+                "diagonal-Q backtracking trial exceeds its reserve"
+            )
+        maximum_evaluations = (
+            1
+            + self.maximum_iterations
+            * self.maximum_backtracking_trials
+        )
+        if context.evaluation > maximum_evaluations:
             raise RuntimeError("diagonal-Q E-step index exceeds its reserve")
+        if context.trial == 0:
+            if context.iteration != 1 or context.evaluation != 1:
+                raise RuntimeError(
+                    "only the first diagonal-Q E-step may use the initial slot"
+                )
+            evaluation_slot = 0
+        else:
+            evaluation_slot = (
+                1
+                + (context.iteration - 1)
+                * self.maximum_backtracking_trials
+                + context.trial
+                - 1
+            )
         expected = self.bag_units[bag_id]
         if event.total_units != expected or event.completed_units > expected:
             raise RuntimeError("diagonal-Q bag progress total changed")
         completed = (
             self.preparation_units
-            + (int(iteration) - 1) * self.cycle_units
+            + evaluation_slot * self.cycle_units
             + self.prefix[bag_id]
             + event.completed_units
         )
-        displayed_iteration = (
-            int(iteration)
-            if int(iteration) <= self.maximum_iterations
-            else None
+        stage_prefix = (
+            "diagonal_q_initial_"
+            if context.trial == 0
+            else "diagonal_q_backtracking_"
         )
+        stage_label = event.stage_label
+        message = event.message
+        if context.trial > 0:
+            stage_label = "Backtracking trial {} · {}".format(
+                context.trial, stage_label
+            )
+            message = "alpha={:.8g}; {}".format(
+                context.step_fraction, message
+            )
         self._emit(
             completed,
-            event.stage_id,
-            event.stage_label,
-            iteration=displayed_iteration,
+            stage_prefix + event.stage_id,
+            stage_label,
+            iteration=context.iteration,
             bag_id=bag_id,
             member_id=event.member_id,
-            message=event.message,
+            message=message,
         )
 
     def em_event(self, event: ProgressEvent) -> None:
+        completed = self.completed
+        if event.stage_id == "diagonal_q_m_step":
+            if event.iteration is None:
+                raise RuntimeError(
+                    "diagonal-Q M-step progress requires an iteration"
+                )
+            completed = max(
+                completed,
+                self.preparation_units
+                + (
+                    1
+                    + event.iteration
+                    * self.maximum_backtracking_trials
+                )
+                * self.cycle_units,
+            )
         self._emit(
-            self.completed,
+            completed,
             event.stage_id,
             event.stage_label,
             force=True,
@@ -672,7 +736,13 @@ def run_request(request_path: str, output_path: str) -> Path:
             )
             for bag in prepared_bags
         }
-        reserved_compute_units = (maximum_iterations + 1) * sum(
+        maximum_backtracking_trials = len(
+            configuration.backtracking_step_fractions
+        )
+        reserved_evaluations = (
+            1 + maximum_iterations * maximum_backtracking_trials
+        )
+        reserved_compute_units = reserved_evaluations * sum(
             bag_units.values()
         )
         total_units = preparation_units + reserved_compute_units + 2
@@ -694,6 +764,7 @@ def run_request(request_path: str, output_path: str) -> Path:
             tracker=tracker,
             preparation_units=preparation_units,
             maximum_iterations=maximum_iterations,
+            maximum_backtracking_trials=maximum_backtracking_trials,
             bag_units=bag_units,
         )
         result = run_real_diagonal_q_em(

@@ -197,7 +197,7 @@ class AugmentedParameterArtifactTest(unittest.TestCase):
             for bag_id in ("bag-a", "bag-b")
         )
 
-        def expectation_step(_covariance, iteration):
+        def expectation_step(_covariance, _context):
             values = []
             for index, bag_id in enumerate(("bag-a", "bag-b")):
                 times = cls.problems[bag_id].observations.times
@@ -214,7 +214,7 @@ class AugmentedParameterArtifactTest(unittest.TestCase):
                         times,
                         0.18 + index * 0.03,
                         wrench,
-                        -10.0 - iteration - index,
+                        -10.0 - index,
                     )
                 )
             return tuple(values)

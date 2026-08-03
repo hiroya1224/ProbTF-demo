@@ -34,9 +34,12 @@ from grape_param_estim.diagonal_q_artifact import (
     write_diagonal_q_artifact,
 )
 from grape_param_estim.diagonal_q_em import (
+    GENERALIZED_EM_UPDATE_REJECTED_TERMINATION,
     DiagonalQBagExpectation,
     DiagonalQEmConfig,
+    DiagonalQExpectationNumericalError,
     DiagonalQInitialPilot,
+    initial_diagonal_q_from_pilots,
     run_diagonal_q_em,
 )
 
@@ -150,21 +153,21 @@ class DiagonalQArtifactTest(unittest.TestCase):
         )
 
     def _result(self):
-        def expectation_step(_covariance, iteration):
+        def expectation_step(_covariance, context):
             return (
                 DiagonalQBagExpectation(
                     "bag-z",
                     self.first_times,
                     0.35,
                     self.first_wrench,
-                    -20.0 - float(iteration),
+                    -20.0 - float(context.iteration),
                 ),
                 DiagonalQBagExpectation(
                     "bag-a",
                     self.second_times,
                     0.7,
                     self.second_wrench,
-                    -10.0 - float(iteration),
+                    -10.0 - float(context.iteration),
                 ),
             )
 
@@ -180,9 +183,78 @@ class DiagonalQArtifactTest(unittest.TestCase):
             ),
         )
 
-    def _write(self, root):
-        result = self._result()
-        destination = write_diagonal_q_artifact(
+    def _backtracked_result(
+        self, *, numerical_full_step=False, reject_all=False
+    ):
+        floor = np.asarray(
+            (1.0e-6, 2.0e-6, 3.0e-6, 4.0e-7, 5.0e-7, 6.0e-7)
+        )
+        initial = initial_diagonal_q_from_pilots(self.pilots, floor)
+        reference = (
+            DiagonalQBagExpectation(
+                "bag-z", self.first_times, 0.35, self.first_wrench, 0.0
+            ),
+            DiagonalQBagExpectation(
+                "bag-a", self.second_times, 0.7, self.second_wrench, 0.0
+            ),
+        )
+        target = shared_diagonal_q_m_step(
+            tuple(value.sufficient_statistics for value in reference), floor
+        ).covariance
+        component = int(
+            np.flatnonzero(
+                target.stationary_variance
+                != initial.stationary_variance
+            )[0]
+        )
+        denominator = np.log(target.stationary_variance[component]) - np.log(
+            initial.stationary_variance[component]
+        )
+
+        def expectation_step(covariance, context):
+            if numerical_full_step and context.step_fraction == 1.0:
+                raise DiagonalQExpectationNumericalError(
+                    "injected full-step failure"
+                )
+            alpha = (
+                np.log(covariance.stationary_variance[component])
+                - np.log(initial.stationary_variance[component])
+            ) / denominator
+            total = (
+                -float(alpha)
+                if reject_all
+                else -float(alpha - 0.35) ** 2
+            )
+            return (
+                DiagonalQBagExpectation(
+                    "bag-z",
+                    self.first_times,
+                    0.35,
+                    self.first_wrench,
+                    0.0,
+                ),
+                DiagonalQBagExpectation(
+                    "bag-a",
+                    self.second_times,
+                    0.7,
+                    self.second_wrench,
+                    total,
+                ),
+            )
+
+        return run_diagonal_q_em(
+            self.pilots,
+            expectation_step,
+            DiagonalQEmConfig(
+                maximum_iterations=1,
+                log_q_tolerance=1.0e-12,
+                component_floor=floor,
+                backtracking_step_fractions=(1.0, 0.5, 0.25),
+            ),
+        )
+
+    def _write_result(self, root, result):
+        return write_diagonal_q_artifact(
             root,
             run_id="run-q-17",
             stage_id="estimate_diagonal_q",
@@ -194,6 +266,10 @@ class DiagonalQArtifactTest(unittest.TestCase):
             result=result,
             expectations=result.final_expectations,
         )
+
+    def _write(self, root):
+        result = self._result()
+        destination = self._write_result(root, result)
         return result, destination
 
     def _descriptor_path(self, root, manifest, bag_id=None):
@@ -218,6 +294,10 @@ class DiagonalQArtifactTest(unittest.TestCase):
 
             self.assertEqual(destination, Path(directory).resolve())
             self.assertEqual(manifest["schema"], DIAGONAL_Q_ESTIMATE_SCHEMA)
+            self.assertEqual(
+                manifest["schema"],
+                "grape-param-estim/diagonal-wrench-q-estimate/v2",
+            )
             self.assertEqual(manifest["status"], COMPLETE_STATUS)
             self.assertEqual(manifest["run_id"], "run-q-17")
             self.assertEqual(manifest["stage_id"], "estimate_diagonal_q")
@@ -310,10 +390,14 @@ class DiagonalQArtifactTest(unittest.TestCase):
                 manifest["em"]["smoothed_wrench_semantics"],
                 "terminal_e_step_conditioned_on_final_q",
             )
+            self.assertEqual(
+                manifest["em"]["backtracking_step_fractions"],
+                list(result.config.backtracking_step_fractions),
+            )
             terminal_implied = shared_diagonal_q_m_step(
                 tuple(
                     value.sufficient_statistics
-                    for value in result.final_expectations
+                    for value in result.last_expectations
                 ),
                 result.config.component_floor,
             )
@@ -331,15 +415,86 @@ class DiagonalQArtifactTest(unittest.TestCase):
                 [value.iteration for value in result.iterations],
             )
             np.testing.assert_array_equal(
-                bundle.trace["raw_stationary_variance"],
+                bundle.trace["m_step_raw_stationary_variance"],
                 [
                     value.update.raw_stationary_variance
                     for value in result.iterations
                 ],
             )
             np.testing.assert_array_equal(
-                bundle.trace["floor_applied"],
+                bundle.trace["m_step_floor_applied"],
                 [value.update.floor_applied for value in result.iterations],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["m_step_target_stationary_variance"],
+                [
+                    value.update.covariance.stationary_variance
+                    for value in result.iterations
+                ],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["accepted_output_stationary_variance"],
+                [
+                    value.accepted_covariance.stationary_variance
+                    for value in result.iterations
+                ],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["accepted_step_fraction"],
+                [value.accepted_step_fraction for value in result.iterations],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["target_maximum_absolute_log_q_change"],
+                [
+                    value.maximum_absolute_log_q_change
+                    for value in result.iterations
+                ],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["accepted_maximum_absolute_log_q_change"],
+                [
+                    value.accepted_maximum_absolute_log_q_change
+                    for value in result.iterations
+                ],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["input_approx_log_likelihood"],
+                [value.approx_log_likelihood for value in result.iterations],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["output_approx_log_likelihood"],
+                [
+                    value.output_approx_log_likelihood
+                    for value in result.iterations
+                ],
+            )
+            flattened_trials = tuple(
+                (iteration.iteration, trial)
+                for iteration in result.iterations
+                for trial in iteration.backtracking_trials
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["trial_iteration"],
+                [value[0] for value in flattened_trials],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["trial_index"],
+                [value[1].trial for value in flattened_trials],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["trial_step_fraction"],
+                [value[1].step_fraction for value in flattened_trials],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["trial_outcome"],
+                [value[1].outcome for value in flattened_trials],
+            )
+            np.testing.assert_array_equal(
+                bundle.trace["trial_likelihood_present"],
+                [
+                    value[1].approx_log_likelihood is not None
+                    for value in flattened_trials
+                ],
             )
             for loaded, expected in zip(
                 bundle.expectations, result.final_expectations
@@ -396,6 +551,208 @@ class DiagonalQArtifactTest(unittest.TestCase):
                 mark_diagonal_q_artifact_cancelled(destination, "too_late")
             with self.assertRaises(ArtifactStateError):
                 self._write(directory)
+
+    def test_backtracked_trace_separates_target_accepted_q_and_likelihoods(self):
+        result = self._backtracked_result()
+        iteration = result.iterations[0]
+        self.assertEqual(iteration.accepted_step_fraction, 0.5)
+        self.assertFalse(
+            np.array_equal(
+                iteration.update.covariance.stationary_variance,
+                iteration.accepted_covariance.stationary_variance,
+            )
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._write_result(directory, result)
+            bundle = load_diagonal_q_artifact(root)
+            trace = bundle.trace
+            np.testing.assert_array_equal(
+                trace["m_step_raw_stationary_variance"][0],
+                iteration.update.raw_stationary_variance,
+            )
+            np.testing.assert_array_equal(
+                trace["m_step_target_stationary_variance"][0],
+                iteration.update.covariance.stationary_variance,
+            )
+            np.testing.assert_array_equal(
+                trace["accepted_output_stationary_variance"][0],
+                iteration.accepted_covariance.stationary_variance,
+            )
+            self.assertEqual(trace["accepted_step_fraction"].tolist(), [0.5])
+            self.assertEqual(
+                trace["target_maximum_absolute_log_q_change"].tolist(),
+                [iteration.maximum_absolute_log_q_change],
+            )
+            self.assertEqual(
+                trace["accepted_maximum_absolute_log_q_change"].tolist(),
+                [iteration.accepted_maximum_absolute_log_q_change],
+            )
+            self.assertEqual(
+                trace["input_approx_log_likelihood"].tolist(),
+                [iteration.approx_log_likelihood],
+            )
+            self.assertEqual(
+                trace["output_approx_log_likelihood"].tolist(),
+                [iteration.output_approx_log_likelihood],
+            )
+            self.assertEqual(trace["trial_iteration"].tolist(), [1, 1])
+            self.assertEqual(trace["trial_index"].tolist(), [1, 2])
+            self.assertEqual(trace["trial_step_fraction"].tolist(), [1.0, 0.5])
+            self.assertEqual(
+                trace["trial_outcome"].tolist(),
+                ["likelihood_decrease", "accepted"],
+            )
+            self.assertEqual(
+                trace["trial_likelihood_present"].tolist(), [True, True]
+            )
+
+            last_update = shared_diagonal_q_m_step(
+                bundle.last_em_statistics, result.config.component_floor
+            )
+            np.testing.assert_array_equal(
+                last_update.raw_stationary_variance,
+                bundle.manifest[
+                    "terminal_implied_raw_stationary_variance"
+                ],
+            )
+            np.testing.assert_array_equal(
+                last_update.covariance.stationary_variance,
+                bundle.manifest["terminal_implied_stationary_variance"],
+            )
+            np.testing.assert_array_equal(
+                last_update.covariance.stationary_variance,
+                trace["m_step_target_stationary_variance"][-1],
+            )
+            np.testing.assert_array_equal(
+                bundle.manifest[
+                    "smoothed_wrench_input_stationary_variance"
+                ],
+                trace["accepted_output_stationary_variance"][-1],
+            )
+            for loaded, expected in zip(
+                bundle.expectations, result.final_expectations
+            ):
+                np.testing.assert_array_equal(
+                    loaded.smoothed_wrench, expected.smoothed_wrench
+                )
+
+    def test_numerical_failure_trial_records_explicit_missing_likelihood(self):
+        result = self._backtracked_result(numerical_full_step=True)
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._write_result(directory, result)
+            bundle = load_diagonal_q_artifact(root)
+            trace = bundle.trace
+            self.assertEqual(
+                trace["trial_outcome"].tolist(),
+                ["numerical_failure", "accepted"],
+            )
+            self.assertEqual(
+                trace["trial_likelihood_present"].tolist(), [False, True]
+            )
+            self.assertEqual(trace["trial_approx_log_likelihood"][0], 0.0)
+            np.testing.assert_array_equal(
+                trace["trial_bag_approx_log_likelihood"][0],
+                np.zeros(2),
+            )
+
+            manifest = read_json(root / "manifest.json")
+            trace_path, _descriptor = self._descriptor_path(root, manifest)
+            arrays = load_npz_strict(trace_path)
+            arrays["trial_likelihood_present"][0] = True
+            write_npz_atomic(trace_path, arrays)
+            self._refresh_descriptor(root, manifest)
+            with self.assertRaisesRegex(
+                ArtifactValidationError, "presence"
+            ):
+                load_diagonal_q_artifact(root)
+
+    def test_rejected_generalized_em_update_round_trips_alpha_zero(self):
+        result = self._backtracked_result(reject_all=True)
+        self.assertEqual(
+            result.termination_reason,
+            GENERALIZED_EM_UPDATE_REJECTED_TERMINATION,
+        )
+        self.assertEqual(result.iterations[0].accepted_step_fraction, 0.0)
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._write_result(directory, result)
+            bundle = load_diagonal_q_artifact(root)
+            trace = bundle.trace
+            self.assertEqual(
+                bundle.manifest["em"]["termination_reason"],
+                GENERALIZED_EM_UPDATE_REJECTED_TERMINATION,
+            )
+            self.assertEqual(trace["accepted_step_fraction"].tolist(), [0.0])
+            self.assertEqual(
+                trace["trial_step_fraction"].tolist(), [1.0, 0.5, 0.25]
+            )
+            self.assertEqual(
+                trace["trial_outcome"].tolist(),
+                ["likelihood_decrease"] * 3,
+            )
+            np.testing.assert_array_equal(
+                trace["accepted_output_stationary_variance"][0],
+                trace["input_stationary_variance"][0],
+            )
+            np.testing.assert_array_equal(
+                trace["output_bag_approx_log_likelihood"][0],
+                trace["input_bag_approx_log_likelihood"][0],
+            )
+
+    def test_backtracking_trace_rejects_digest_consistent_tampering(self):
+        mutations = (
+            (
+                "accepted alpha",
+                lambda arrays: arrays["accepted_step_fraction"].__setitem__(
+                    0, 0.25
+                ),
+                "alpha",
+            ),
+            (
+                "M-step target",
+                lambda arrays: arrays[
+                    "m_step_target_stationary_variance"
+                ].__setitem__((0, 0), 99.0),
+                "target|floor",
+            ),
+            (
+                "trial outcome",
+                lambda arrays: arrays["trial_outcome"].__setitem__(
+                    0, "accepted"
+                ),
+                "trial|decrease",
+            ),
+            (
+                "output likelihood",
+                lambda arrays: arrays[
+                    "output_approx_log_likelihood"
+                ].__setitem__(0, 99.0),
+                "likelihood",
+            ),
+        )
+        for name, mutate, message in mutations:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                result = self._backtracked_result()
+                root = self._write_result(directory, result)
+                manifest = read_json(root / "manifest.json")
+                trace_path, _descriptor = self._descriptor_path(root, manifest)
+                arrays = load_npz_strict(trace_path)
+                mutate(arrays)
+                write_npz_atomic(trace_path, arrays)
+                self._refresh_descriptor(root, manifest)
+                with self.assertRaisesRegex(ArtifactValidationError, message):
+                    load_diagonal_q_artifact(root)
+
+        with tempfile.TemporaryDirectory() as directory:
+            result = self._backtracked_result()
+            root = self._write_result(directory, result)
+            manifest = read_json(root / "manifest.json")
+            manifest["terminal_implied_stationary_variance"][0] *= 2.0
+            write_json_atomic(root / "manifest.json", manifest)
+            with self.assertRaisesRegex(
+                ArtifactValidationError, "terminal implied"
+            ):
+                load_diagonal_q_artifact(root)
 
     def test_writing_and_cancelled_manifests_are_never_loadable(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -499,6 +856,17 @@ class DiagonalQArtifactTest(unittest.TestCase):
 
     def test_manifest_missing_extra_and_bad_fingerprint_are_rejected(self):
         mutations = (
+            (
+                "v1 schema",
+                lambda value: value.update(
+                    {
+                        "schema": (
+                            "grape-param-estim/"
+                            "diagonal-wrench-q-estimate/v1"
+                        )
+                    }
+                ),
+            ),
             ("extra", lambda value: value.update({"unexpected": 1})),
             ("missing", lambda value: value.pop("run_id")),
             (
@@ -619,7 +987,7 @@ class DiagonalQArtifactTest(unittest.TestCase):
             manifest = read_json(root / "manifest.json")
             path, _descriptor = self._descriptor_path(root, manifest)
             arrays = load_npz_strict(path)
-            arrays["maximum_absolute_log_q_change"][0] += 0.25
+            arrays["target_maximum_absolute_log_q_change"][0] += 0.25
             write_npz_atomic(path, arrays)
             self._refresh_descriptor(root, manifest)
             with self.assertRaisesRegex(ArtifactValidationError, "log-Q"):
@@ -838,7 +1206,7 @@ class DiagonalQArtifactTest(unittest.TestCase):
     def test_terminal_paths_need_not_imply_the_max_iteration_output_q(self):
         pilot = DiagonalQInitialPilot("bag-a", 2, np.ones(6))
 
-        def expectation_step(covariance, iteration):
+        def expectation_step(covariance, context):
             variance = covariance.stationary_variance * 2.0
             scale = np.sqrt(variance)
             wrench = np.stack(
@@ -850,7 +1218,11 @@ class DiagonalQArtifactTest(unittest.TestCase):
             )
             return (
                 DiagonalQBagExpectation(
-                    "bag-a", (0.0, 1.0), 0.5, wrench, -float(iteration)
+                    "bag-a",
+                    (0.0, 1.0),
+                    0.5,
+                    wrench,
+                    -float(context.iteration),
                 ),
             )
 

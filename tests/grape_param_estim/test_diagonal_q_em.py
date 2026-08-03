@@ -8,10 +8,15 @@ from grape_param_estim.diagonal_q import (
     shared_diagonal_q_m_step,
 )
 from grape_param_estim.diagonal_q_em import (
+    BACKTRACKING_ACCEPTED,
+    BACKTRACKING_LIKELIHOOD_DECREASE,
+    BACKTRACKING_NUMERICAL_FAILURE,
+    GENERALIZED_EM_UPDATE_REJECTED_TERMINATION,
     LOG_Q_TOLERANCE_TERMINATION,
     MAXIMUM_ITERATIONS_TERMINATION,
     DiagonalQBagExpectation,
     DiagonalQEmConfig,
+    DiagonalQExpectationNumericalError,
     DiagonalQInitialPilot,
     initial_diagonal_q_from_pilots,
     run_diagonal_q_em,
@@ -79,9 +84,9 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
         calls = []
         progress = []
 
-        def expectation_step(covariance, iteration):
+        def expectation_step(covariance, context):
             calls.append(
-                (iteration, covariance.stationary_variance.copy())
+                (context, covariance.stationary_variance.copy())
             )
             desired = np.exp(
                 0.5
@@ -90,7 +95,18 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
                     + np.log(target)
                 )
             )
-            return (_one_boundary_expectation("bag-a", desired, -iteration),)
+            likelihood = -float(
+                np.sum(
+                    (
+                        np.log(covariance.stationary_variance)
+                        - np.log(target)
+                    )
+                    ** 2
+                )
+            )
+            return (
+                _one_boundary_expectation("bag-a", desired, likelihood),
+            )
 
         result = run_diagonal_q_em(
             (pilot,),
@@ -106,7 +122,10 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
         )
         self.assertEqual(len(result.iterations), 5)
         self.assertEqual(
-            [value[0] for value in calls], [1, 2, 3, 4, 5, 6]
+            [value[0].evaluation for value in calls], [1, 2, 3, 4, 5, 6]
+        )
+        self.assertEqual(
+            [value[0].iteration for value in calls], [1, 1, 2, 3, 4, 5]
         )
         self.assertEqual(
             [value.iteration for value in result.iterations],
@@ -116,8 +135,14 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
             np.testing.assert_array_equal(
                 call[1], trace.input_covariance.stationary_variance
             )
+            self.assertGreaterEqual(
+                trace.output_approx_log_likelihood,
+                trace.approx_log_likelihood,
+            )
+            self.assertEqual(trace.accepted_step_fraction, 1.0)
             self.assertEqual(
-                trace.approx_log_likelihood, -float(trace.iteration)
+                trace.backtracking_trials[-1].outcome,
+                BACKTRACKING_ACCEPTED,
             )
             self.assertEqual(
                 trace.converged,
@@ -128,21 +153,25 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
         self.assertTrue(
             all(not value.converged for value in result.iterations[:-1])
         )
-        self.assertEqual(len(progress), 2 * len(result.iterations) + 1)
+        self.assertEqual(len(progress), 3 * len(result.iterations) + 1)
         self.assertEqual(
-            [value.stage_id for value in progress[:-1:2]],
+            [value.stage_id for value in progress[:-1:3]],
             ["diagonal_q_expectation"] * len(result.iterations),
         )
         self.assertEqual(
-            [value.stage_id for value in progress[1:-1:2]],
+            [value.stage_id for value in progress[1:-1:3]],
+            ["diagonal_q_backtracking_trial"] * len(result.iterations),
+        )
+        self.assertEqual(
+            [value.stage_id for value in progress[2:-1:3]],
             ["diagonal_q_m_step"] * len(result.iterations),
         )
         self.assertEqual(
-            [value.completed_units for value in progress[:-1:2]],
+            [value.completed_units for value in progress[:-1:3]],
             [0, 1, 2, 3, 4],
         )
         self.assertEqual(
-            [value.completed_units for value in progress[1:-1:2]],
+            [value.completed_units for value in progress[2:-1:3]],
             [1, 2, 3, 4, 5],
         )
         self.assertEqual(
@@ -155,7 +184,10 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
             result.final_expectation_input_covariance.stationary_variance,
             result.covariance.stationary_variance,
         )
-        self.assertEqual(result.final_approx_log_likelihood, -6.0)
+        self.assertEqual(
+            result.final_approx_log_likelihood,
+            result.iterations[-1].output_approx_log_likelihood,
+        )
 
         final = result.final_expectations[0]
         with self.assertRaisesRegex(ValueError, "member count changed"):
@@ -312,8 +344,8 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
         stages = []
         expectation_calls = []
 
-        def expectation_step(covariance, iteration):
-            expectation_calls.append(iteration)
+        def expectation_step(covariance, context):
+            expectation_calls.append(context)
             return (
                 _one_boundary_expectation(
                     "bag-a", covariance.stationary_variance, -1.0
@@ -334,9 +366,17 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
                 cancellation_token=token,
             )
         self.assertEqual(context.exception.reason, "after_first_m_step")
-        self.assertEqual(expectation_calls, [1])
         self.assertEqual(
-            stages, ["diagonal_q_expectation", "diagonal_q_m_step"]
+            [(value.iteration, value.trial) for value in expectation_calls],
+            [(1, 0)],
+        )
+        self.assertEqual(
+            stages,
+            [
+                "diagonal_q_expectation",
+                "diagonal_q_backtracking_trial",
+                "diagonal_q_m_step",
+            ],
         )
 
     def test_bag_set_boundary_grid_and_tau_are_fixed(self):
@@ -377,8 +417,11 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
             "bag-a", (0.0, 0.25), 0.5, np.ones((2, 2, 6)), -1.0
         )
 
-        def moving_grid(_covariance, iteration):
-            return (valid_a if iteration == 1 else shifted_a, valid_b)
+        def moving_grid(_covariance, context):
+            return (
+                valid_a if context.trial == 0 else shifted_a,
+                valid_b,
+            )
 
         with self.assertRaisesRegex(ValueError, "time grid changed"):
             run_diagonal_q_em(pilots, moving_grid, config)
@@ -387,10 +430,10 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
             "bag-a", (0.0, 0.2), 0.6, np.ones((2, 2, 6)), -1.0
         )
 
-        def moving_correlation_time(_covariance, iteration):
+        def moving_correlation_time(_covariance, context):
             return (
                 valid_a
-                if iteration == 1
+                if context.trial == 0
                 else changed_correlation_time,
                 valid_b,
             )
@@ -407,13 +450,17 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
         )
         config = DiagonalQEmConfig(3, 1.0e-8, 1.0e-10)
 
-        def ordered_step(covariance, iteration):
+        def ordered_step(covariance, context):
             variance = covariance.stationary_variance * 2.0
             values = (
                 _one_boundary_expectation("bag-a", variance * 0.5, -2.0),
                 _one_boundary_expectation("bag-z", variance * 1.5, -3.0),
             )
-            return values if iteration % 2 else tuple(reversed(values))
+            return (
+                values
+                if context.evaluation % 2
+                else tuple(reversed(values))
+            )
 
         first_result = run_diagonal_q_em(
             (first, second), ordered_step, config
@@ -463,6 +510,224 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
                 termination_reason=LOG_Q_TOLERANCE_TERMINATION,
             )
 
+    def test_likelihood_decrease_backtracks_in_log_q_and_reuses_candidate(self):
+        pilot = DiagonalQInitialPilot("bag-a", 1, np.ones(6))
+        config = DiagonalQEmConfig(
+            2, 1.0e-12, 1.0e-9, (1.0, 0.5, 0.25)
+        )
+        calls = []
+        discarded = []
+        returned = []
+
+        def expectation(covariance, context):
+            calls.append(context)
+            if context.trial == 0:
+                value = _one_boundary_expectation(
+                    "bag-a", np.full(6, 16.0), 0.0
+                )
+            elif context.step_fraction == 1.0:
+                value = _one_boundary_expectation(
+                    "bag-a", np.full(6, 16.0), -1.0
+                )
+            else:
+                value = _one_boundary_expectation(
+                    "bag-a", covariance.stationary_variance, 2.0
+                )
+            returned.append(value)
+            return (value,)
+
+        result = run_diagonal_q_em(
+            (pilot,),
+            expectation,
+            config,
+            expectation_discarded_callback=lambda values: discarded.append(
+                values
+            ),
+        )
+
+        first = result.iterations[0]
+        self.assertEqual(
+            [value.outcome for value in first.backtracking_trials],
+            [BACKTRACKING_LIKELIHOOD_DECREASE, BACKTRACKING_ACCEPTED],
+        )
+        self.assertEqual(first.accepted_step_fraction, 0.5)
+        np.testing.assert_allclose(
+            first.accepted_covariance.stationary_variance,
+            np.full(6, 4.0),
+        )
+        self.assertEqual(first.output_approx_log_likelihood, 2.0)
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(discarded), 2)
+        self.assertEqual(discarded[0][0].approx_log_likelihood, -1.0)
+        self.assertEqual(discarded[1][0].approx_log_likelihood, 0.0)
+        self.assertIs(result.final_expectations[0], returned[-1])
+        with self.assertRaisesRegex(ValueError, "configured fraction prefix"):
+            replace(
+                result,
+                config=replace(
+                    config,
+                    backtracking_step_fractions=(1.0, 0.25),
+                ),
+            )
+
+    def test_numerical_failure_backtracks_to_largest_finite_candidate(self):
+        pilot = DiagonalQInitialPilot("bag-a", 1, np.ones(6))
+        config = DiagonalQEmConfig(
+            2, 1.0e-12, 1.0e-9, (1.0, 0.5, 0.25)
+        )
+        contexts = []
+
+        def expectation(covariance, context):
+            contexts.append(context)
+            if context.trial == 0:
+                return (
+                    _one_boundary_expectation(
+                        "bag-a", np.full(6, 16.0), 0.0
+                    ),
+                )
+            if context.step_fraction == 1.0:
+                raise DiagonalQExpectationNumericalError("diverged")
+            return (
+                _one_boundary_expectation(
+                    "bag-a", covariance.stationary_variance, 1.0
+                ),
+            )
+
+        result = run_diagonal_q_em((pilot,), expectation, config)
+
+        first = result.iterations[0]
+        self.assertEqual(
+            [value.outcome for value in first.backtracking_trials],
+            [BACKTRACKING_NUMERICAL_FAILURE, BACKTRACKING_ACCEPTED],
+        )
+        self.assertEqual(first.accepted_step_fraction, 0.5)
+        self.assertEqual(
+            [(value.iteration, value.trial) for value in contexts],
+            [(1, 0), (1, 1), (1, 2)],
+        )
+
+    def test_unrepresentable_candidate_likelihood_sum_is_backtracked(self):
+        pilots = (
+            DiagonalQInitialPilot("bag-a", 1, np.ones(6)),
+            DiagonalQInitialPilot("bag-b", 1, np.ones(6)),
+        )
+        config = DiagonalQEmConfig(
+            1, 1.0e-12, 1.0e-9, (1.0, 0.5)
+        )
+        discarded = []
+
+        def expectation(covariance, context):
+            if context.trial == 0:
+                likelihood = 0.0
+                variance = np.full(6, 16.0)
+            elif context.step_fraction == 1.0:
+                likelihood = -1.0e308
+                variance = covariance.stationary_variance
+            else:
+                likelihood = 1.0
+                variance = covariance.stationary_variance
+            return tuple(
+                _one_boundary_expectation(bag_id, variance, likelihood)
+                for bag_id in ("bag-a", "bag-b")
+            )
+
+        result = run_diagonal_q_em(
+            pilots,
+            expectation,
+            config,
+            expectation_discarded_callback=lambda values: discarded.append(
+                values
+            ),
+        )
+
+        iteration = result.iterations[0]
+        self.assertEqual(
+            [value.outcome for value in iteration.backtracking_trials],
+            [BACKTRACKING_NUMERICAL_FAILURE, BACKTRACKING_ACCEPTED],
+        )
+        self.assertEqual(iteration.accepted_step_fraction, 0.5)
+        self.assertEqual(len(discarded), 2)
+        self.assertEqual(
+            [value.approx_log_likelihood for value in discarded[0]],
+            [-1.0e308, -1.0e308],
+        )
+
+    def test_all_candidates_rejected_keeps_q_and_is_not_convergence(self):
+        pilot = DiagonalQInitialPilot("bag-a", 1, np.ones(6))
+        config = DiagonalQEmConfig(5, 1.0e-3, 1.0e-9, (1.0, 0.5))
+        initial_expectation = _one_boundary_expectation(
+            "bag-a", np.full(6, 16.0), 0.0
+        )
+
+        def expectation(_covariance, context):
+            if context.trial == 0:
+                return (initial_expectation,)
+            raise DiagonalQExpectationNumericalError("diverged")
+
+        result = run_diagonal_q_em((pilot,), expectation, config)
+
+        self.assertFalse(result.converged)
+        self.assertEqual(
+            result.termination_reason,
+            GENERALIZED_EM_UPDATE_REJECTED_TERMINATION,
+        )
+        self.assertEqual(len(result.iterations), 1)
+        iteration = result.iterations[0]
+        self.assertEqual(iteration.accepted_step_fraction, 0.0)
+        self.assertEqual(iteration.accepted_maximum_absolute_log_q_change, 0.0)
+        self.assertGreater(iteration.maximum_absolute_log_q_change, 0.0)
+        np.testing.assert_array_equal(
+            result.covariance.stationary_variance,
+            result.initial_covariance.stationary_variance,
+        )
+        self.assertIs(result.final_expectations[0], initial_expectation)
+        with self.assertRaisesRegex(ValueError, "must exhaust"):
+            replace(
+                result,
+                iterations=(
+                    replace(
+                        iteration,
+                        backtracking_trials=(
+                            iteration.backtracking_trials[:-1]
+                        ),
+                    ),
+                ),
+            )
+
+    def test_small_accepted_step_does_not_fake_target_convergence(self):
+        pilot = DiagonalQInitialPilot("bag-a", 1, np.ones(6))
+        target = np.full(6, np.exp(2.0))
+        config = DiagonalQEmConfig(
+            1, 1.0e-3, 1.0e-9, (1.0, 1.0e-4)
+        )
+
+        def expectation(covariance, context):
+            if context.trial == 0:
+                return (_one_boundary_expectation("bag-a", target, 0.0),)
+            if context.step_fraction == 1.0:
+                raise DiagonalQExpectationNumericalError("diverged")
+            return (
+                _one_boundary_expectation(
+                    "bag-a", covariance.stationary_variance, 1.0
+                ),
+            )
+
+        result = run_diagonal_q_em((pilot,), expectation, config)
+
+        iteration = result.iterations[0]
+        self.assertLess(
+            iteration.accepted_maximum_absolute_log_q_change,
+            config.log_q_tolerance,
+        )
+        self.assertGreater(
+            iteration.maximum_absolute_log_q_change,
+            config.log_q_tolerance,
+        )
+        self.assertFalse(iteration.converged)
+        self.assertEqual(
+            result.termination_reason, MAXIMUM_ITERATIONS_TERMINATION
+        )
+
     def test_configuration_and_duplicate_pilot_validation_is_strict(self):
         for maximum in (0, -1, 1.5, True):
             with self.subTest(maximum=maximum), self.assertRaises(ValueError):
@@ -475,6 +740,21 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
         for floor in (0.0, -1.0, np.nan, np.ones(5), np.zeros(6)):
             with self.subTest(floor=floor), self.assertRaises(ValueError):
                 DiagonalQEmConfig(2, 1.0e-3, floor)
+        for fractions in (
+            (),
+            (0.5, 0.25),
+            (1.0, 0.0),
+            (1.0, 0.5, 0.5),
+            (1.0, 1.5),
+            (True, 0.5),
+            (1.0, False),
+        ):
+            with self.subTest(fractions=fractions), self.assertRaises(
+                ValueError
+            ):
+                DiagonalQEmConfig(
+                    2, 1.0e-3, 1.0e-8, fractions
+                )
 
         pilot = DiagonalQInitialPilot("bag-a", 1, np.ones(6))
         with self.assertRaisesRegex(ValueError, "unique"):

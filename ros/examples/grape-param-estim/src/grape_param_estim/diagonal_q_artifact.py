@@ -41,6 +41,11 @@ from grape_param_estim.diagonal_q import (
     shared_diagonal_q_m_step,
 )
 from grape_param_estim.diagonal_q_em import (
+    BACKTRACKING_ACCEPTED,
+    BACKTRACKING_LIKELIHOOD_DECREASE,
+    BACKTRACKING_NUMERICAL_FAILURE,
+    BACKTRACKING_OUTCOMES,
+    GENERALIZED_EM_UPDATE_REJECTED_TERMINATION,
     LOG_Q_TOLERANCE_TERMINATION,
     MAXIMUM_ITERATIONS_TERMINATION,
     DiagonalQBagExpectation,
@@ -51,7 +56,7 @@ from grape_param_estim.diagonal_q_em import (
 
 
 DIAGONAL_Q_ESTIMATE_SCHEMA = (
-    "grape-param-estim/diagonal-wrench-q-estimate/v1"
+    "grape-param-estim/diagonal-wrench-q-estimate/v2"
 )
 
 _FINGERPRINT = re.compile(r"sha256:[0-9a-f]{64}\Z")
@@ -64,12 +69,25 @@ _DIGEST = _FINGERPRINT
 _TRACE_KEYS = (
     "iteration",
     "input_stationary_variance",
-    "raw_stationary_variance",
-    "output_stationary_variance",
-    "floor_applied",
-    "maximum_absolute_log_q_change",
-    "approx_log_likelihood",
-    "bag_approx_log_likelihood",
+    "m_step_raw_stationary_variance",
+    "m_step_target_stationary_variance",
+    "m_step_floor_applied",
+    "accepted_output_stationary_variance",
+    "accepted_step_fraction",
+    "target_maximum_absolute_log_q_change",
+    "accepted_maximum_absolute_log_q_change",
+    "input_approx_log_likelihood",
+    "input_bag_approx_log_likelihood",
+    "output_approx_log_likelihood",
+    "output_bag_approx_log_likelihood",
+    "trial_iteration",
+    "trial_index",
+    "trial_step_fraction",
+    "trial_stationary_variance",
+    "trial_outcome",
+    "trial_likelihood_present",
+    "trial_approx_log_likelihood",
+    "trial_bag_approx_log_likelihood",
 )
 _BAG_ARRAY_KEYS = (
     "bag_id",
@@ -90,6 +108,7 @@ _BAG_ARRAY_KEYS = (
     "last_em_member_count",
     "last_em_times",
     "last_em_correlation_time",
+    "last_em_approx_log_likelihood",
     "last_em_initial_second_moment",
     "last_em_transition_second_moment",
     "smoothed_wrench_input_stationary_variance",
@@ -134,6 +153,7 @@ _BAG_METADATA_KEYS = (
     "boundary_count",
     "member_count",
     "last_em_member_count",
+    "last_em_approx_log_likelihood",
     "correlation_time",
     "pilot_stationary_standard_deviation",
     "final_approx_log_likelihood",
@@ -470,6 +490,19 @@ def _component_vector(
             )
         )
     return result.copy()
+
+
+def _log_q_step_variance(
+    before: np.ndarray, target: np.ndarray, step_fraction: float
+) -> np.ndarray:
+    if step_fraction == 0.0:
+        return before.copy()
+    if step_fraction == 1.0:
+        return target.copy()
+    return np.exp(
+        np.log(before)
+        + step_fraction * (np.log(target) - np.log(before))
+    )
 
 
 def _interval(value: Any, location: str) -> Tuple[float, float]:
@@ -820,6 +853,10 @@ def _validate_manifest(
             metadata["last_em_member_count"],
             "{}.last_em_member_count".format(location),
         )
+        _finite_float(
+            metadata["last_em_approx_log_likelihood"],
+            "{}.last_em_approx_log_likelihood".format(location),
+        )
         _positive_float(
             metadata["correlation_time"],
             "{}.correlation_time".format(location),
@@ -840,6 +877,7 @@ def _validate_manifest(
             "maximum_iterations",
             "log_q_tolerance",
             "component_floor",
+            "backtracking_step_fractions",
             "completed_iterations",
             "converged",
             "termination_reason",
@@ -856,6 +894,35 @@ def _validate_manifest(
         "manifest.em.component_floor",
         positive=True,
     )
+    raw_backtracking_fractions = em["backtracking_step_fractions"]
+    if (
+        not isinstance(raw_backtracking_fractions, list)
+        or not raw_backtracking_fractions
+    ):
+        raise ArtifactValidationError(
+            "manifest.em.backtracking_step_fractions must be a non-empty list"
+        )
+    backtracking_fractions = tuple(
+        _positive_float(
+            value,
+            "manifest.em.backtracking_step_fractions[{}]".format(index),
+        )
+        for index, value in enumerate(raw_backtracking_fractions)
+    )
+    if (
+        backtracking_fractions[0] != 1.0
+        or any(value > 1.0 for value in backtracking_fractions)
+        or any(
+            following >= current
+            for current, following in zip(
+                backtracking_fractions, backtracking_fractions[1:]
+            )
+        )
+    ):
+        raise ArtifactValidationError(
+            "manifest.em.backtracking_step_fractions must start at 1 and be "
+            "strictly decreasing positive values"
+        )
     completed_iterations = _positive_integer(
         em["completed_iterations"], "manifest.em.completed_iterations"
     )
@@ -880,12 +947,14 @@ def _validate_manifest(
             raise ArtifactValidationError(
                 "converged EM must terminate by log_q_tolerance"
             )
-    elif (
-        termination != MAXIMUM_ITERATIONS_TERMINATION
-        or completed_iterations != maximum_iterations
-    ):
+    elif termination == MAXIMUM_ITERATIONS_TERMINATION:
+        if completed_iterations != maximum_iterations:
+            raise ArtifactValidationError(
+                "non-converged EM must exhaust maximum_iterations"
+            )
+    elif termination != GENERALIZED_EM_UPDATE_REJECTED_TERMINATION:
         raise ArtifactValidationError(
-            "non-converged EM must exhaust maximum_iterations"
+            "non-converged EM termination reason is unsupported"
         )
 
     initial_variance = _component_vector(
@@ -1171,101 +1240,416 @@ def _validate_trace(
     )
     raw_variance = _numeric_array(
         arrays,
-        "raw_stationary_variance",
+        "m_step_raw_stationary_variance",
         (iteration_count, BODY_WRENCH_DIMENSION),
         location,
     )
-    output_variance = _numeric_array(
+    target_variance = _numeric_array(
         arrays,
-        "output_stationary_variance",
+        "m_step_target_stationary_variance",
         (iteration_count, BODY_WRENCH_DIMENSION),
         location,
     )
-    log_change = _numeric_array(
+    accepted_variance = _numeric_array(
         arrays,
-        "maximum_absolute_log_q_change",
+        "accepted_output_stationary_variance",
+        (iteration_count, BODY_WRENCH_DIMENSION),
+        location,
+    )
+    accepted_fraction = _numeric_array(
+        arrays,
+        "accepted_step_fraction",
         (iteration_count,),
         location,
     )
-    total_likelihood = _numeric_array(
+    target_log_change = _numeric_array(
         arrays,
-        "approx_log_likelihood",
+        "target_maximum_absolute_log_q_change",
         (iteration_count,),
         location,
     )
-    bag_likelihood = _numeric_array(
+    accepted_log_change = _numeric_array(
         arrays,
-        "bag_approx_log_likelihood",
+        "accepted_maximum_absolute_log_q_change",
+        (iteration_count,),
+        location,
+    )
+    input_total_likelihood = _numeric_array(
+        arrays,
+        "input_approx_log_likelihood",
+        (iteration_count,),
+        location,
+    )
+    input_bag_likelihood = _numeric_array(
+        arrays,
+        "input_bag_approx_log_likelihood",
         (iteration_count, bag_count),
         location,
     )
-    floor_applied = arrays["floor_applied"]
+    output_total_likelihood = _numeric_array(
+        arrays,
+        "output_approx_log_likelihood",
+        (iteration_count,),
+        location,
+    )
+    output_bag_likelihood = _numeric_array(
+        arrays,
+        "output_bag_approx_log_likelihood",
+        (iteration_count, bag_count),
+        location,
+    )
+    floor_applied = arrays["m_step_floor_applied"]
     if floor_applied.shape != (
         iteration_count,
         BODY_WRENCH_DIMENSION,
     ) or not np.issubdtype(floor_applied.dtype, np.bool_):
         raise ArtifactValidationError(
-            "{}:floor_applied must be a boolean trace".format(location)
+            "{}:m_step_floor_applied must be a boolean trace".format(
+                location
+            )
         )
     if (
         np.any(input_variance <= 0.0)
         or np.any(raw_variance < 0.0)
-        or np.any(output_variance <= 0.0)
-        or np.any(log_change < 0.0)
+        or np.any(target_variance <= 0.0)
+        or np.any(accepted_variance <= 0.0)
+        or np.any(accepted_fraction < 0.0)
+        or np.any(accepted_fraction > 1.0)
+        or np.any(target_log_change < 0.0)
+        or np.any(accepted_log_change < 0.0)
     ):
         raise ArtifactValidationError(
             "{} contains invalid Q values".format(location)
         )
     floor = np.asarray(em["component_floor"], dtype=float)
     expected_floor = raw_variance < floor[None, :]
-    expected_output = np.maximum(raw_variance, floor[None, :])
+    expected_target = np.maximum(raw_variance, floor[None, :])
     if not np.array_equal(floor_applied, expected_floor) or not np.array_equal(
-        output_variance, expected_output
+        target_variance, expected_target
     ):
         raise ArtifactValidationError(
-            "{} floor provenance is inconsistent".format(location)
+            "{} M-step target/floor provenance is inconsistent".format(
+                location
+            )
         )
     if not np.array_equal(input_variance[0], initial_variance):
         raise ArtifactValidationError(
             "{} first input Q does not match the manifest".format(location)
         )
     if iteration_count > 1 and not np.array_equal(
-        input_variance[1:], output_variance[:-1]
+        input_variance[1:], accepted_variance[:-1]
     ):
         raise ArtifactValidationError(
-            "{} Q iteration trace is not contiguous".format(location)
+            "{} accepted Q iteration trace is not contiguous".format(location)
         )
-    if not np.array_equal(output_variance[-1], final_variance):
+    if not np.array_equal(accepted_variance[-1], final_variance):
         raise ArtifactValidationError(
-            "{} final Q does not match the manifest".format(location)
+            "{} final accepted Q does not match the manifest".format(location)
         )
-    expected_log_change = np.max(
-        np.abs(np.log(output_variance) - np.log(input_variance)), axis=1
+    expected_target_log_change = np.max(
+        np.abs(np.log(target_variance) - np.log(input_variance)), axis=1
     )
-    if not np.array_equal(log_change, expected_log_change):
+    expected_accepted_log_change = np.max(
+        np.abs(np.log(accepted_variance) - np.log(input_variance)), axis=1
+    )
+    if not np.array_equal(
+        target_log_change, expected_target_log_change
+    ) or not np.array_equal(
+        accepted_log_change, expected_accepted_log_change
+    ):
         raise ArtifactValidationError(
-            "{} log-Q change trace is inconsistent".format(location)
+            "{} target/accepted log-Q change trace is inconsistent".format(
+                location
+            )
         )
-    expected_likelihood = np.asarray(
+    expected_input_likelihood = np.asarray(
         [
             math.fsum(float(value) for value in row)
-            for row in bag_likelihood
+            for row in input_bag_likelihood
         ],
         dtype=float,
     )
-    if not np.array_equal(total_likelihood, expected_likelihood):
+    expected_output_likelihood = np.asarray(
+        [
+            math.fsum(float(value) for value in row)
+            for row in output_bag_likelihood
+        ],
+        dtype=float,
+    )
+    if not np.array_equal(
+        input_total_likelihood, expected_input_likelihood
+    ) or not np.array_equal(
+        output_total_likelihood, expected_output_likelihood
+    ):
         raise ArtifactValidationError(
-            "{} likelihood trace is inconsistent".format(location)
+            "{} input/output likelihood trace is inconsistent".format(location)
         )
+    if np.any(output_total_likelihood < input_total_likelihood):
+        raise ArtifactValidationError(
+            "{} accepted likelihood decreases".format(location)
+        )
+    if iteration_count > 1 and (
+        not np.array_equal(
+            input_total_likelihood[1:], output_total_likelihood[:-1]
+        )
+        or not np.array_equal(
+            input_bag_likelihood[1:], output_bag_likelihood[:-1]
+        )
+    ):
+        raise ArtifactValidationError(
+            "{} cached likelihood trace is not contiguous".format(location)
+        )
+
+    expected_accepted = np.asarray(
+        [
+            _log_q_step_variance(before, target, float(alpha))
+            for before, target, alpha in zip(
+                input_variance, target_variance, accepted_fraction
+            )
+        ],
+        dtype=float,
+    )
+    if not np.array_equal(accepted_variance, expected_accepted):
+        raise ArtifactValidationError(
+            "{} accepted Q does not match its recorded alpha".format(location)
+        )
+
+    trial_count = int(arrays["trial_iteration"].size)
+    trial_iteration = arrays["trial_iteration"]
+    trial_index = arrays["trial_index"]
+    if (
+        trial_iteration.shape != (trial_count,)
+        or not np.issubdtype(trial_iteration.dtype, np.integer)
+        or trial_index.shape != (trial_count,)
+        or not np.issubdtype(trial_index.dtype, np.integer)
+    ):
+        raise ArtifactValidationError(
+            "{} flattened trial identity arrays must be integer vectors".format(
+                location
+            )
+        )
+    trial_fraction = _numeric_array(
+        arrays, "trial_step_fraction", (trial_count,), location
+    )
+    trial_variance = _numeric_array(
+        arrays,
+        "trial_stationary_variance",
+        (trial_count, BODY_WRENCH_DIMENSION),
+        location,
+    )
+    trial_outcome = arrays["trial_outcome"]
+    if trial_outcome.shape != (trial_count,) or trial_outcome.dtype.kind != "U":
+        raise ArtifactValidationError(
+            "{}:trial_outcome must be a Unicode vector".format(location)
+        )
+    trial_likelihood_present = arrays["trial_likelihood_present"]
+    if (
+        trial_likelihood_present.shape != (trial_count,)
+        or not np.issubdtype(trial_likelihood_present.dtype, np.bool_)
+    ):
+        raise ArtifactValidationError(
+            "{}:trial_likelihood_present must be a boolean vector".format(
+                location
+            )
+        )
+    trial_total_likelihood = _numeric_array(
+        arrays, "trial_approx_log_likelihood", (trial_count,), location
+    )
+    trial_bag_likelihood = _numeric_array(
+        arrays,
+        "trial_bag_approx_log_likelihood",
+        (trial_count, bag_count),
+        location,
+    )
+    if trial_count < iteration_count or np.any(trial_variance <= 0.0):
+        raise ArtifactValidationError(
+            "{} must record at least one positive-Q trial per iteration".format(
+                location
+            )
+        )
+    configured_fractions = np.asarray(
+        em["backtracking_step_fractions"], dtype=float
+    )
+    for iteration_offset in range(iteration_count):
+        selected = np.flatnonzero(
+            trial_iteration == iteration_offset + 1
+        )
+        if (
+            selected.size == 0
+            or not np.array_equal(
+                selected,
+                np.arange(selected[0], selected[-1] + 1, dtype=selected.dtype),
+            )
+            or not np.array_equal(
+                trial_index[selected],
+                np.arange(1, selected.size + 1, dtype=trial_index.dtype),
+            )
+            or selected.size > configured_fractions.size
+            or not np.array_equal(
+                trial_fraction[selected], configured_fractions[: selected.size]
+            )
+        ):
+            raise ArtifactValidationError(
+                "{} trials must be grouped, contiguous, and follow the "
+                "configured alphas".format(location)
+            )
+        expected_trial_variance = np.asarray(
+            [
+                _log_q_step_variance(
+                    input_variance[iteration_offset],
+                    target_variance[iteration_offset],
+                    float(trial_fraction[flat_index]),
+                )
+                for flat_index in selected
+            ],
+            dtype=float,
+        )
+        if not np.array_equal(
+            trial_variance[selected], expected_trial_variance
+        ):
+            raise ArtifactValidationError(
+                "{} trial Q does not match its alpha".format(location)
+            )
+        accepted_rows = []
+        for flat_index in selected:
+            outcome = str(trial_outcome[flat_index])
+            if outcome not in BACKTRACKING_OUTCOMES:
+                raise ArtifactValidationError(
+                    "{} contains an unknown trial outcome".format(location)
+                )
+            has_likelihood = bool(trial_likelihood_present[flat_index])
+            expected_presence = outcome != BACKTRACKING_NUMERICAL_FAILURE
+            if has_likelihood != expected_presence:
+                raise ArtifactValidationError(
+                    "{} trial likelihood presence contradicts its outcome".format(
+                        location
+                    )
+                )
+            if not has_likelihood:
+                if (
+                    trial_total_likelihood[flat_index] != 0.0
+                    or np.any(trial_bag_likelihood[flat_index] != 0.0)
+                ):
+                    raise ArtifactValidationError(
+                        "{} missing trial likelihood must use zero sentinels".format(
+                            location
+                        )
+                    )
+                continue
+            expected_total = math.fsum(
+                float(value) for value in trial_bag_likelihood[flat_index]
+            )
+            if trial_total_likelihood[flat_index] != expected_total:
+                raise ArtifactValidationError(
+                    "{} trial likelihood does not equal its per-bag sum".format(
+                        location
+                    )
+                )
+            if outcome == BACKTRACKING_LIKELIHOOD_DECREASE:
+                if not (
+                    trial_total_likelihood[flat_index]
+                    < input_total_likelihood[iteration_offset]
+                ):
+                    raise ArtifactValidationError(
+                        "{} likelihood-decrease trial did not decrease".format(
+                            location
+                        )
+                    )
+            elif outcome == BACKTRACKING_ACCEPTED:
+                if (
+                    trial_total_likelihood[flat_index]
+                    < input_total_likelihood[iteration_offset]
+                ):
+                    raise ArtifactValidationError(
+                        "{} accepted trial decreases likelihood".format(location)
+                    )
+                accepted_rows.append(flat_index)
+
+        alpha = float(accepted_fraction[iteration_offset])
+        if alpha == 0.0:
+            if (
+                accepted_rows
+                or selected.size != configured_fractions.size
+                or not np.array_equal(
+                    output_bag_likelihood[iteration_offset],
+                    input_bag_likelihood[iteration_offset],
+                )
+                or output_total_likelihood[iteration_offset]
+                != input_total_likelihood[iteration_offset]
+            ):
+                raise ArtifactValidationError(
+                    "{} rejected update must exhaust trials and retain input"
+                    .format(location)
+                )
+        else:
+            if accepted_rows != [int(selected[-1])]:
+                raise ArtifactValidationError(
+                    "{} accepted trial must be the final sole accepted trial"
+                    .format(location)
+                )
+            accepted_index = accepted_rows[0]
+            if (
+                alpha != trial_fraction[accepted_index]
+                or not np.array_equal(
+                    accepted_variance[iteration_offset],
+                    trial_variance[accepted_index],
+                )
+                or not np.array_equal(
+                    output_bag_likelihood[iteration_offset],
+                    trial_bag_likelihood[accepted_index],
+                )
+                or output_total_likelihood[iteration_offset]
+                != trial_total_likelihood[accepted_index]
+            ):
+                raise ArtifactValidationError(
+                    "{} accepted output does not match the accepted trial".format(
+                        location
+                    )
+                )
+
+    expected_trial_order = np.concatenate(
+        [
+            np.full(
+                np.count_nonzero(trial_iteration == value),
+                value,
+                dtype=trial_iteration.dtype,
+            )
+            for value in range(1, iteration_count + 1)
+        ]
+    )
+    if not np.array_equal(trial_iteration, expected_trial_order):
+        raise ArtifactValidationError(
+            "{} flattened trials are not ordered by iteration".format(location)
+        )
+
     converged = bool(em["converged"])
     tolerance = float(em["log_q_tolerance"])
-    if converged != bool(log_change[-1] <= tolerance):
+    convergence_flags = (
+        (target_log_change <= tolerance) & (accepted_fraction > 0.0)
+    )
+    if converged != bool(convergence_flags[-1]):
         raise ArtifactValidationError(
             "{} convergence flag is inconsistent".format(location)
         )
-    if np.any(log_change[:-1] <= tolerance):
+    if np.any(convergence_flags[:-1]):
         raise ArtifactValidationError(
             "{} continued after an earlier converged iteration".format(location)
+        )
+    termination = em["termination_reason"]
+    if termination == GENERALIZED_EM_UPDATE_REJECTED_TERMINATION:
+        if (
+            accepted_fraction[-1] != 0.0
+            or np.any(accepted_fraction[:-1] == 0.0)
+        ):
+            raise ArtifactValidationError(
+                "{} rejected termination must stop at the first update that "
+                "retains its input Q".format(location)
+            )
+    elif np.any(accepted_fraction == 0.0):
+        raise ArtifactValidationError(
+            "{} contains a rejected update without rejected termination".format(
+                location
+            )
         )
 
 
@@ -1302,6 +1686,7 @@ def _load_complete(
     bag_inputs = []
     pilots = []
     last_em_statistics = []
+    last_em_likelihoods = []
     expectations = []
     for bag_id in bag_ids:
         metadata = bag_metadata[bag_id]
@@ -1508,6 +1893,18 @@ def _load_complete(
                     path
                 )
             )
+        last_em_likelihood = _numeric_array(
+            arrays, "last_em_approx_log_likelihood", (1,), str(path)
+        )[0]
+        if (
+            last_em_likelihood
+            != metadata["last_em_approx_log_likelihood"]
+        ):
+            raise ArtifactValidationError(
+                "{}:last EM likelihood does not match the manifest".format(
+                    path
+                )
+            )
         last_initial_second_moment = _numeric_array(
             arrays,
             "last_em_initial_second_moment",
@@ -1591,6 +1988,7 @@ def _load_complete(
             )
         )
         last_em_statistics.append(statistics)
+        last_em_likelihoods.append(float(last_em_likelihood))
         expectations.append(
             DiagonalQBagExpectation(
                 bag_id,
@@ -1600,44 +1998,55 @@ def _load_complete(
                 stored_likelihood[0],
             )
         )
+    if not np.array_equal(
+        np.asarray(last_em_likelihoods, dtype=float),
+        trace["input_bag_approx_log_likelihood"][-1],
+    ):
+        raise ArtifactValidationError(
+            "last input likelihoods do not match the final trace iteration"
+        )
+    if not np.array_equal(
+        np.asarray(
+            [value.approx_log_likelihood for value in expectations],
+            dtype=float,
+        ),
+        trace["output_bag_approx_log_likelihood"][-1],
+    ):
+        raise ArtifactValidationError(
+            "terminal path likelihoods do not match the final accepted output"
+        )
     last_update = shared_diagonal_q_m_step(
         last_em_statistics, em["component_floor"]
     )
     if (
         not np.array_equal(
             last_update.raw_stationary_variance,
-            trace["raw_stationary_variance"][-1],
+            trace["m_step_raw_stationary_variance"][-1],
         )
         or not np.array_equal(
             last_update.covariance.stationary_variance,
-            trace["output_stationary_variance"][-1],
+            trace["m_step_target_stationary_variance"][-1],
         )
         or not np.array_equal(
-            last_update.floor_applied, trace["floor_applied"][-1]
-        )
-        or not np.array_equal(
-            last_update.covariance.stationary_variance, final_variance
+            last_update.floor_applied,
+            trace["m_step_floor_applied"][-1],
         )
     ):
         raise ArtifactValidationError(
-            "last EM sufficient statistics do not reproduce the final M-step"
+            "last input expectations do not reproduce the final M-step target"
         )
-    terminal_update = shared_diagonal_q_m_step(
-        tuple(value.sufficient_statistics for value in expectations),
-        em["component_floor"],
-    )
     if (
         not np.array_equal(
-            terminal_update.raw_stationary_variance,
+            last_update.raw_stationary_variance,
             terminal_implied_raw_variance,
         )
         or not np.array_equal(
-            terminal_update.covariance.stationary_variance,
+            last_update.covariance.stationary_variance,
             terminal_implied_variance,
         )
     ):
         raise ArtifactValidationError(
-            "terminal smoothed paths do not reproduce their diagnostic Q"
+            "terminal implied Q does not match the last input expectations"
         )
     expected_initial = initial_diagonal_q_from_pilots(
         pilots, em["component_floor"]
@@ -1818,6 +2227,11 @@ def _safe_new_payload_path(root: Path, relative: str) -> Path:
 def _trace_arrays(result: DiagonalQEmResult) -> Dict[str, np.ndarray]:
     trace = result.iterations
     bag_ids = result.bag_ids
+    trials = tuple(
+        (value.iteration, trial)
+        for value in trace
+        for trial in value.backtracking_trials
+    )
     return {
         "iteration": np.asarray(
             [value.iteration for value in trace], dtype=np.int64
@@ -1826,28 +2240,104 @@ def _trace_arrays(result: DiagonalQEmResult) -> Dict[str, np.ndarray]:
             [value.input_covariance.stationary_variance for value in trace],
             dtype=float,
         ),
-        "raw_stationary_variance": np.asarray(
+        "m_step_raw_stationary_variance": np.asarray(
             [value.update.raw_stationary_variance for value in trace],
             dtype=float,
         ),
-        "output_stationary_variance": np.asarray(
-            [value.output_covariance.stationary_variance for value in trace],
+        "m_step_target_stationary_variance": np.asarray(
+            [value.update.covariance.stationary_variance for value in trace],
             dtype=float,
         ),
-        "floor_applied": np.asarray(
+        "m_step_floor_applied": np.asarray(
             [value.update.floor_applied for value in trace], dtype=bool
         ),
-        "maximum_absolute_log_q_change": np.asarray(
+        "accepted_output_stationary_variance": np.asarray(
+            [value.accepted_covariance.stationary_variance for value in trace],
+            dtype=float,
+        ),
+        "accepted_step_fraction": np.asarray(
+            [value.accepted_step_fraction for value in trace], dtype=float
+        ),
+        "target_maximum_absolute_log_q_change": np.asarray(
             [value.maximum_absolute_log_q_change for value in trace],
             dtype=float,
         ),
-        "approx_log_likelihood": np.asarray(
+        "accepted_maximum_absolute_log_q_change": np.asarray(
+            [
+                value.accepted_maximum_absolute_log_q_change
+                for value in trace
+            ],
+            dtype=float,
+        ),
+        "input_approx_log_likelihood": np.asarray(
             [value.approx_log_likelihood for value in trace], dtype=float
         ),
-        "bag_approx_log_likelihood": np.asarray(
+        "input_bag_approx_log_likelihood": np.asarray(
             [
                 [dict(value.bag_approx_log_likelihoods)[bag_id] for bag_id in bag_ids]
                 for value in trace
+            ],
+            dtype=float,
+        ),
+        "output_approx_log_likelihood": np.asarray(
+            [value.output_approx_log_likelihood for value in trace],
+            dtype=float,
+        ),
+        "output_bag_approx_log_likelihood": np.asarray(
+            [
+                [
+                    dict(value.output_bag_approx_log_likelihoods)[bag_id]
+                    for bag_id in bag_ids
+                ]
+                for value in trace
+            ],
+            dtype=float,
+        ),
+        "trial_iteration": np.asarray(
+            [iteration for iteration, _trial in trials], dtype=np.int64
+        ),
+        "trial_index": np.asarray(
+            [trial.trial for _iteration, trial in trials], dtype=np.int64
+        ),
+        "trial_step_fraction": np.asarray(
+            [trial.step_fraction for _iteration, trial in trials],
+            dtype=float,
+        ),
+        "trial_stationary_variance": np.asarray(
+            [
+                trial.covariance.stationary_variance
+                for _iteration, trial in trials
+            ],
+            dtype=float,
+        ),
+        "trial_outcome": np.asarray(
+            [trial.outcome for _iteration, trial in trials]
+        ),
+        "trial_likelihood_present": np.asarray(
+            [
+                trial.approx_log_likelihood is not None
+                for _iteration, trial in trials
+            ],
+            dtype=bool,
+        ),
+        "trial_approx_log_likelihood": np.asarray(
+            [
+                0.0
+                if trial.approx_log_likelihood is None
+                else trial.approx_log_likelihood
+                for _iteration, trial in trials
+            ],
+            dtype=float,
+        ),
+        "trial_bag_approx_log_likelihood": np.asarray(
+            [
+                [
+                    0.0
+                    if trial.approx_log_likelihood is None
+                    else dict(trial.bag_approx_log_likelihoods)[bag_id]
+                    for bag_id in bag_ids
+                ]
+                for _iteration, trial in trials
             ],
             dtype=float,
         ),
@@ -1874,7 +2364,7 @@ def _validate_result_last_m_step(result: DiagonalQEmResult) -> None:
         or not np.array_equal(expected.floor_applied, recorded.floor_applied)
     ):
         raise ArtifactValidationError(
-            "last EM expectations do not reproduce the final trace update"
+            "last input expectations do not reproduce the final M-step target"
         )
 
 
@@ -1949,7 +2439,10 @@ def write_diagonal_q_artifact(
                 "{!r}".format(bag_id)
             )
     terminal_update = shared_diagonal_q_m_step(
-        tuple(value.sufficient_statistics for value in ordered_expectations),
+        tuple(
+            value.sufficient_statistics
+            for value in result.last_expectations
+        ),
         result.config.component_floor,
     )
     destination = Path(root).expanduser().resolve()
@@ -2028,6 +2521,9 @@ def write_diagonal_q_artifact(
                 "last_em_member_count": (
                     last_expectation_by_id[bag_id].member_count
                 ),
+                "last_em_approx_log_likelihood": (
+                    last_expectation_by_id[bag_id].approx_log_likelihood
+                ),
                 "correlation_time": (
                     expectation_by_id[bag_id].correlation_time
                 ),
@@ -2044,6 +2540,9 @@ def write_diagonal_q_artifact(
             "maximum_iterations": result.config.maximum_iterations,
             "log_q_tolerance": result.config.log_q_tolerance,
             "component_floor": result.config.component_floor.tolist(),
+            "backtracking_step_fractions": list(
+                result.config.backtracking_step_fractions
+            ),
             "completed_iterations": len(result.iterations),
             "converged": result.converged,
             "termination_reason": result.termination_reason,
@@ -2134,6 +2633,9 @@ def write_diagonal_q_artifact(
                 "last_em_times": last_statistics.times,
                 "last_em_correlation_time": np.asarray(
                     (last_statistics.correlation_time,), dtype=float
+                ),
+                "last_em_approx_log_likelihood": np.asarray(
+                    (last_expectation.approx_log_likelihood,), dtype=float
                 ),
                 "last_em_initial_second_moment": (
                     last_statistics.initial_second_moment

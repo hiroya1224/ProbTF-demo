@@ -14,14 +14,20 @@ from unittest import mock
 import numpy as np
 
 from grape_param_estim.artifact_io import request_fingerprint
+from grape_param_estim.diagonal_q_em import DiagonalQExpectationContext
 from grape_param_estim.diagonal_q_stage_cli import (
     DIAGONAL_Q_STAGE_REQUEST_SCHEMA,
+    _MonotonicProgressBridge,
     _q_e_step_units,
     resolved_forecast_workers,
     run_request,
     validate_diagonal_q_stage_request,
 )
-from grape_param_estim.progress import ProgressCancelled, ProgressEvent
+from grape_param_estim.progress import (
+    ProgressCancelled,
+    ProgressEvent,
+    ProgressTracker,
+)
 
 
 class DiagonalQStageCliTest(unittest.TestCase):
@@ -138,6 +144,114 @@ class DiagonalQStageCliTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     resolved_forecast_workers(value, 39)
 
+    def test_backtracking_reserve_padding_keeps_later_iterations_monotonic(self):
+        events = []
+        preparation_units = 5
+        cycle_units = 10
+        maximum_iterations = 2
+        maximum_trials = 3
+        total_units = (
+            preparation_units
+            + (1 + maximum_iterations * maximum_trials) * cycle_units
+            + 2
+        )
+        bridge = _MonotonicProgressBridge(
+            tracker=ProgressTracker(
+                run_id="q-progress-test",
+                total_units=total_units,
+                callback=events.append,
+            ),
+            preparation_units=preparation_units,
+            maximum_iterations=maximum_iterations,
+            maximum_backtracking_trials=maximum_trials,
+            bag_units={"bag-a": cycle_units},
+        )
+
+        def bag_event(context, completed):
+            bridge.bag_event(
+                context,
+                "bag-a",
+                ProgressEvent(
+                    run_id="nested",
+                    stage_id="q_only_filter",
+                    stage_label="Q-only ensemble filtering",
+                    completed_units=completed,
+                    total_units=cycle_units,
+                    fraction=float(completed) / float(cycle_units),
+                    elapsed_seconds=float(completed),
+                    eta_seconds=None,
+                    bag_id="bag-a",
+                ),
+            )
+
+        bag_event(
+            DiagonalQExpectationContext(1, 1, 0, 0.0), cycle_units
+        )
+        bag_event(
+            DiagonalQExpectationContext(2, 1, 1, 1.0), cycle_units
+        )
+        bridge.em_event(
+            ProgressEvent(
+                run_id="nested",
+                stage_id="diagonal_q_m_step",
+                stage_label="Diagonal Q M-step",
+                completed_units=1,
+                total_units=maximum_iterations,
+                fraction=0.5,
+                elapsed_seconds=1.0,
+                eta_seconds=1.0,
+                iteration=1,
+                maximum_iterations=maximum_iterations,
+            )
+        )
+        padded_after_first = bridge.completed
+        bag_event(DiagonalQExpectationContext(3, 2, 1, 1.0), 0)
+        self.assertEqual(bridge.completed, padded_after_first)
+        bag_event(
+            DiagonalQExpectationContext(3, 2, 1, 1.0), cycle_units
+        )
+        bridge.em_event(
+            ProgressEvent(
+                run_id="nested",
+                stage_id="diagonal_q_m_step",
+                stage_label="Diagonal Q M-step",
+                completed_units=2,
+                total_units=maximum_iterations,
+                fraction=1.0,
+                elapsed_seconds=2.0,
+                eta_seconds=0.0,
+                iteration=2,
+                maximum_iterations=maximum_iterations,
+            )
+        )
+        bridge.em_event(
+            ProgressEvent(
+                run_id="nested",
+                stage_id="diagonal_q_final_expectation",
+                stage_label="Final diagonal Q expectation",
+                completed_units=2,
+                total_units=maximum_iterations,
+                fraction=1.0,
+                elapsed_seconds=2.0,
+                eta_seconds=0.0,
+                iteration=2,
+                maximum_iterations=maximum_iterations,
+            )
+        )
+
+        self.assertEqual(
+            padded_after_first,
+            preparation_units + (1 + maximum_trials) * cycle_units,
+        )
+        self.assertTrue(
+            all(
+                left.completed_units <= right.completed_units
+                for left, right in zip(events[:-1], events[1:])
+            )
+        )
+        self.assertGreater(events[-1].fraction, 0.95)
+        self.assertLess(events[-1].fraction, 1.0)
+
     def test_run_request_wires_real_adapter_progress_and_audited_writer(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -193,22 +307,37 @@ class DiagonalQStageCliTest(unittest.TestCase):
                         maximum_iterations=1,
                     )
                 )
-                for completed in (0, 1, units):
-                    bag_progress_callback(
-                        1,
-                        "bag-a",
-                        ProgressEvent(
-                            run_id="nested",
-                            stage_id="q_only_filter",
-                            stage_label="Q-only ensemble filtering",
-                            completed_units=completed,
-                            total_units=units,
-                            fraction=float(completed) / float(units),
-                            elapsed_seconds=float(completed),
-                            eta_seconds=None,
-                            bag_id="bag-a",
-                        ),
-                    )
+                contexts = (
+                    DiagonalQExpectationContext(
+                        evaluation=1,
+                        iteration=1,
+                        trial=0,
+                        step_fraction=0.0,
+                    ),
+                    DiagonalQExpectationContext(
+                        evaluation=2,
+                        iteration=1,
+                        trial=1,
+                        step_fraction=1.0,
+                    ),
+                )
+                for context in contexts:
+                    for completed in (0, 1, units):
+                        bag_progress_callback(
+                            context,
+                            "bag-a",
+                            ProgressEvent(
+                                run_id="nested",
+                                stage_id="q_only_filter",
+                                stage_label="Q-only ensemble filtering",
+                                completed_units=completed,
+                                total_units=units,
+                                fraction=float(completed) / float(units),
+                                elapsed_seconds=float(completed),
+                                eta_seconds=None,
+                                bag_id="bag-a",
+                            ),
+                        )
                 progress_callback(
                     ProgressEvent(
                         run_id=run_id,
@@ -263,7 +392,7 @@ class DiagonalQStageCliTest(unittest.TestCase):
             self.assertEqual(written["expectations"], terminal_expectations)
             self.assertEqual(
                 written["implementation_provenance"]["algorithm_version"],
-                "diagonal-q-em-v1",
+                "diagonal-q-generalized-em-v2",
             )
 
             events = [
@@ -280,6 +409,20 @@ class DiagonalQStageCliTest(unittest.TestCase):
             self.assertEqual(events[-1].fraction, 1.0)
             self.assertEqual(events[-1].stage_id, "complete")
             self.assertTrue(all(event.run_id == request["run_id"] for event in events))
+            self.assertTrue(
+                any(
+                    event.stage_id.startswith("diagonal_q_backtracking_")
+                    and "alpha=1" in event.message
+                    for event in events
+                )
+            )
+            self.assertTrue(
+                any(
+                    event.eta_seconds is not None
+                    and event.eta_seconds >= 0.0
+                    for event in events
+                )
+            )
 
     def test_sha_mismatch_stops_before_episode_construction(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -15,6 +15,8 @@ from grape_param_estim.diagonal_q_em import (
     DiagonalQBagExpectation,
     DiagonalQEmConfig,
     DiagonalQEmResult,
+    DiagonalQExpectationContext,
+    DiagonalQExpectationNumericalError,
     DiagonalQInitialPilot,
     run_diagonal_q_em,
 )
@@ -22,6 +24,7 @@ from grape_param_estim.dynamics import FullSixDofPlant
 from grape_param_estim.ensemble_state_smoother import exact_gaussian_ensemble
 from grape_param_estim.filter_state import GrapeFilterState
 from grape_param_estim.progress import CancellationToken, ProgressCallback
+from grape_param_estim.parallel_stepper import ParallelStepperError
 from grape_param_estim.real_assimilation import build_real_strong_problem
 from grape_param_estim.real_calibration import (
     ModelErrorCalibration,
@@ -288,7 +291,30 @@ def draw_q_only_initial_ensemble(
     return QOnlyInitialEnsemble(local, tuple(states))
 
 
-BagProgressCallback = Callable[[int, str, object], None]
+BagProgressCallback = Callable[
+    [DiagonalQExpectationContext, str, object], None
+]
+
+
+def _is_q_dependent_numerical_failure(error: Exception) -> bool:
+    if isinstance(
+        error,
+        (FloatingPointError, OverflowError, np.linalg.LinAlgError),
+    ):
+        return True
+    if not isinstance(error, (ParallelStepperError, ValueError)):
+        return False
+    message = str(error).lower()
+    return any(
+        marker in message
+        for marker in (
+            "finite values",
+            "not finite",
+            "non-finite",
+            "not representable",
+            "overflow",
+        )
+    )
 
 
 @dataclass(frozen=True)
@@ -401,68 +427,88 @@ def run_real_diagonal_q_em(
         bag_progress_callback
     ):
         raise TypeError("bag_progress_callback must be callable")
-    final_steps = {}
+    e_step_by_expectation_id = {}
 
-    def expectation_step(covariance, iteration):
+    def expectation_step(covariance, context):
         expectations = []
         for bag in bags:
             cancellation.raise_if_cancelled()
             bag_seed = _bag_seed(selected_seed, bag.bag_id)
-            initial = draw_q_only_initial_ensemble(
-                bag, covariance, members, bag_seed
-            )
             problem = bag.problem
 
             def forward_event(event):
                 if bag_progress_callback is not None:
-                    bag_progress_callback(iteration, bag.bag_id, event)
+                    bag_progress_callback(context, bag.bag_id, event)
 
-            result = run_stochastic_closed_loop_e_step(
-                times=problem.observations.times,
-                references=problem.references,
-                observed_position=problem.observations.position,
-                observed_orientation_xyzw=(
-                    problem.observations.orientation_xyzw
-                ),
-                initial_state_ensemble=initial.filter_states,
-                controller=GrapeController(
-                    problem.controller_configuration,
-                    problem.controller_parameters,
-                    problem.geometry,
-                    articulated_model=GrapeArticulatedModel(),
-                ),
-                plant=FullSixDofPlant(
-                    problem.parameter_chart.decode(np.zeros(18)),
-                    problem.geometry,
-                ),
-                actuator_parameters=problem.actuator_parameters,
-                wrench_covariance=covariance,
-                correlation_time=bag.calibration.correlation_time,
-                observation_covariance=bag.observation_covariance,
-                seed=int((bag_seed + 2) % (2**32)),
-                forecast_workers=forecast_workers,
-                progress_callback=(
-                    forward_event
-                    if bag_progress_callback is not None
-                    else None
-                ),
-                cancellation_token=cancellation,
-                progress_run_id="{}-{}-{}".format(
-                    run_id, iteration, bag.bag_id
-                ),
-                bag_id=bag.bag_id,
-            )
-            final_steps[bag.bag_id] = result
-            expectations.append(
-                DiagonalQBagExpectation(
+            try:
+                initial = draw_q_only_initial_ensemble(
+                    bag, covariance, members, bag_seed
+                )
+                result = run_stochastic_closed_loop_e_step(
+                    times=problem.observations.times,
+                    references=problem.references,
+                    observed_position=problem.observations.position,
+                    observed_orientation_xyzw=(
+                        problem.observations.orientation_xyzw
+                    ),
+                    initial_state_ensemble=initial.filter_states,
+                    controller=GrapeController(
+                        problem.controller_configuration,
+                        problem.controller_parameters,
+                        problem.geometry,
+                        articulated_model=GrapeArticulatedModel(),
+                    ),
+                    plant=FullSixDofPlant(
+                        problem.parameter_chart.decode(np.zeros(18)),
+                        problem.geometry,
+                    ),
+                    actuator_parameters=problem.actuator_parameters,
+                    wrench_covariance=covariance,
+                    correlation_time=bag.calibration.correlation_time,
+                    observation_covariance=bag.observation_covariance,
+                    seed=int((bag_seed + 2) % (2**32)),
+                    forecast_workers=forecast_workers,
+                    progress_callback=(
+                        forward_event
+                        if bag_progress_callback is not None
+                        else None
+                    ),
+                    cancellation_token=cancellation,
+                    progress_run_id="{}-evaluation-{}-{}".format(
+                        run_id, context.evaluation, bag.bag_id
+                    ),
+                    bag_id=bag.bag_id,
+                )
+                expectation = DiagonalQBagExpectation(
                     bag_id=bag.bag_id,
                     times=result.times,
                     correlation_time=bag.calibration.correlation_time,
                     smoothed_wrench=result.smoothed_wrench_ensemble,
                     approx_log_likelihood=result.filter_log_likelihood,
                 )
-            )
+            except Exception as error:
+                for completed in expectations:
+                    e_step_by_expectation_id.pop(id(completed), None)
+                if not _is_q_dependent_numerical_failure(error):
+                    raise
+                raise DiagonalQExpectationNumericalError(
+                    "bag {!r} evaluation {} (EM iteration {}, trial {}, "
+                    "alpha={:.8g}) failed numerically: {}".format(
+                        bag.bag_id,
+                        context.evaluation,
+                        context.iteration,
+                        context.trial,
+                        context.step_fraction,
+                        error,
+                    )
+                ) from error
+            expectations.append(expectation)
+            e_step_by_expectation_id[id(expectation)] = result
         return tuple(expectations)
+
+    def discard_expectations(expectations):
+        for expectation in expectations:
+            e_step_by_expectation_id.pop(id(expectation), None)
 
     em_result = run_diagonal_q_em(
         tuple(value.initial_pilot for value in bags),
@@ -470,14 +516,20 @@ def run_real_diagonal_q_em(
         config,
         progress_callback=progress_callback,
         cancellation_token=cancellation,
+        expectation_discarded_callback=discard_expectations,
         run_id=run_id,
+    )
+    final_steps = tuple(
+        (
+            expectation.bag_id,
+            e_step_by_expectation_id[id(expectation)],
+        )
+        for expectation in em_result.final_expectations
     )
     return RealDiagonalQEstimationResult(
         prepared_bags=bags,
         em_result=em_result,
-        final_e_steps=tuple(
-            (bag.bag_id, final_steps[bag.bag_id]) for bag in bags
-        ),
+        final_e_steps=final_steps,
     )
 
 

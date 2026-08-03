@@ -10,6 +10,36 @@ posterior-predictive controller 評価を実装しています。旧 Streamlit G
 open-loop replay、segment reset、static particle estimator、旧 result schema との
 後方互換は意図的に削除しました。
 
+## 収録 rosbag で GUI を起動する最短デモ
+
+初回だけ後述の Desktop GUI セットアップと `catkin build grape_param_estim --no-deps` を済ませてください。
+次のコマンドは、指定された2026年6月12日の飛行を新しい一時projectへコピーし、GUIをbare `rosrun`で起動してinspectionを自動開始します。
+このbagは完結した `flight_state=5` を含まず、control-activeな `flight_state=3` を警告付きで選ぶ失敗飛行の例です。
+
+```bash
+cd /home/leus/catkin_ws
+source devel/setup.bash
+rosrun grape_param_estim run_gui.py \
+  --projects-root /tmp/grape-param-estim-failed-demo \
+  --bag "$(rospack find grape_param_estim)/samples/rosbags/20260612_grape_hovering_4_2026-06-12-17-33-59.bag"
+```
+
+次のコマンドは、2026年6月13日の成功飛行を同じGUI経路で開きます。
+このbagは完全hold-out検証にも使った例で、完結した `flight_state=5` 区間を211 samples含みます。
+選定された完結episodeはtakeoff、約21.06秒のhover、land、stopまで遷移し、hover位置referenceに対するRMSEは約0.0602 mです。
+
+```bash
+cd /home/leus/catkin_ws
+source devel/setup.bash
+rosrun grape_param_estim run_gui.py \
+  --projects-root /tmp/grape-param-estim-success-demo \
+  --bag "$(rospack find grape_param_estim)/samples/rosbags/20260613_grape_hovering_3_2026-06-13-15-12-51.bag"
+```
+
+両方を一つのprojectへ読み込む場合は、同じコマンドへ2個の `--bag` を指定できます。
+収録ファイルは元bagのbasenameと内容を維持しており、GUIはsourceを変更せずproject側へコピーします。
+どちらのbagもhardware configuration provenanceの一部を記録していないため、inspection後にGUIが確認を求めますが、これはtopic/data欠落を意味しません。
+
 ## Synthetic closed-loop flight
 
 - `PoseLinearController::controlCore()` と
@@ -184,7 +214,7 @@ selection target を画面上で選択でき、threshold は既定で `Not confi
 だけを表示します。
 
 実環境では `gui/.venv` に PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、
-PyVistaQt 0.11.4、VTK 9.5.2 を導入し、GUI test 52 / 52、skip 0 を確認しました。
+PyVistaQt 0.11.4、VTK 9.5.2 を導入し、GUI test 54 / 54、skip 0 を確認しました。
 さらに `DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と VTK を起動し、
 Master、Bag browser の world / correction、PID の translation / rotation / trajectory を
 視覚確認しました。14 枚の PNG と機械可読な `summary.json` は
@@ -354,7 +384,7 @@ catkin_test_results build/grape_param_estim
 ```
 
 GUI test suite は次で実行します。上記の検証済み venv では Qt widget / 3D test を含む
-52 tests がすべて成功し、skip はありません。依存 package が揃わない環境では Qt widget /
+54 tests がすべて成功し、skip はありません。依存 package が揃わない環境では Qt widget /
 3D test だけを skip し、request、project archive、artifact loader、launcher、signal cancel の
 pure tests は実行されます。
 

@@ -9,6 +9,7 @@ import sys
 os.environ.setdefault("QT_API", "pyside6")
 
 import pyqtgraph as pg
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from .main_window import MainWindow
@@ -24,11 +25,31 @@ def _arguments(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Grape parameter assimilation desktop GUI")
     parser.add_argument("--package-root", type=Path)
     parser.add_argument("--projects-root", type=Path)
+    parser.add_argument(
+        "--bag",
+        action="append",
+        default=[],
+        type=Path,
+        help="rosbag to copy into the new project and inspect (repeatable)",
+    )
     return parser.parse_args(argv)
+
+
+def _validated_bag_paths(values: list[Path]) -> tuple[Path, ...]:
+    paths = tuple(path.expanduser().resolve() for path in values)
+    missing = tuple(path for path in paths if not path.is_file())
+    if missing:
+        raise FileNotFoundError(
+            "rosbag is not a file: {}".format(
+                ", ".join(str(path) for path in missing)
+            )
+        )
+    return paths
 
 
 def main(argv: list[str] | None = None) -> int:
     arguments = _arguments(list(sys.argv[1:] if argv is None else argv))
+    bag_paths = _validated_bag_paths(arguments.bag)
     configured_root = arguments.package_root
     if configured_root is None:
         environment_root = os.environ.get("GRAPE_PARAM_ESTIM_PACKAGE_ROOT")
@@ -89,6 +110,8 @@ def main(argv: list[str] | None = None) -> int:
     store = ProjectStore(project_path, manifest)
     window = MainWindow(store, package_root)
     window.show()
+    if bag_paths:
+        QTimer.singleShot(0, lambda: window.add_bag_files(bag_paths))
     return int(application.exec())
 
 

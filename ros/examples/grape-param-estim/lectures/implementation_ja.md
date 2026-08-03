@@ -115,7 +115,7 @@ ROS worker は catkin workspace の `/usr/bin/python3` と ROS message package �
 
 本ホストでは pyenv Python 3.10.18 を用いた `gui/.venv` を作り、PySide6 6.9.3、
 pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 を導入した。GUI test は
-52 / 52、skip 0 である。`DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と
+54 / 54、skip 0 である。`DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と
 VTK 描画も起動し、Master、Bag browser、Next experiment の主要な plot / 3D 表示を確認した。
 受入証跡は `/tmp/grape-gui-visual-acceptance` の 14 PNG と `summary.json` である。X server
 から `QScreen.grabWindow` で取得した window image にネイティブ VTK 子画面が含まれること、

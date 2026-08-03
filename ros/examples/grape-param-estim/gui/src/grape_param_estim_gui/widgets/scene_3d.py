@@ -199,7 +199,7 @@ class Scene3DWidget(QWidget):
         else:
             if session.observed_correction_translation is None:
                 self.plotter.add_text(
-                    "Correction paths are available after smoothing",
+                    "Correction paths are available after staged parameter estimation",
                     position="upper_left",
                     font_size=12,
                 )

@@ -31,6 +31,11 @@ from .scene_3d import Scene3DWidget
 from .timeline import SignalPanel
 
 
+FIXED_Q_AUGMENTED_PARAMETER_SCHEMA = (
+    "grape-param-estim/fixed-q-augmented-parameter-estimate/v1"
+)
+
+
 class BagBrowserView(QWidget):
     statusMessage = Signal(str)
     filesSelected = Signal(object)
@@ -160,7 +165,9 @@ class BagBrowserView(QWidget):
         self.path_label = QLabel("—")
         self.path_label.setWordWrap(True)
         self.path_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.include_checkbox = QCheckBox("Use this bag in joint smoothing")
+        self.include_checkbox = QCheckBox(
+            "Use this bag in staged parameter estimation"
+        )
         self.confirm_group_button = QPushButton("Confirm configuration group…")
         self.configure_button = QPushButton("Set configuration provenance…")
         self.group_label = QLabel("—")
@@ -171,8 +178,8 @@ class BagBrowserView(QWidget):
         self.inspection_details.setWordWrap(True)
         self.inspection_details.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.inspection_details.setToolTip(
-            "Residual-wrench time resolution reports whether the calibrated OU "
-            "process has enough knots over this bag's selected interval."
+            "Residual-wrench Q time resolution is a legacy diagnostic and is "
+            "not applicable to the fixed-Q parameter-estimation stage."
         )
         details_layout.addRow("path", self.path_label)
         details_layout.addRow("group", self.group_label)
@@ -471,10 +478,24 @@ class BagBrowserView(QWidget):
         else:
             warnings = record.inspection.get("warnings", [])
             topic_contract = record.inspection.get("topic_contract", {})
-            q_text = (
-                "not evaluated" if record.result is None
-                else ("sufficient" if record.result.q_resolution_sufficient else "insufficient")
+            q_resolution = (
+                None
+                if record.result is None
+                else record.result.q_resolution_sufficient
             )
+            fixed_q_staged_run = (
+                self.store.assimilation_run is not None
+                and str(self.store.assimilation_run.manifest.get("schema", ""))
+                == FIXED_Q_AUGMENTED_PARAMETER_SCHEMA
+            )
+            if q_resolution is None:
+                q_text = (
+                    "not applicable"
+                    if fixed_q_staged_run
+                    else "not reported"
+                )
+            else:
+                q_text = "sufficient" if q_resolution else "insufficient"
             self.inspection_details.setText(
                 "status: {}\nresidual-wrench Q time resolution: {}\n"
                 "controller snapshot: {}\n"

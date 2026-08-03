@@ -22,6 +22,56 @@ from ..presentation import member_parameter_text
 from ..state import ProjectStore
 
 
+FIXED_Q_AUGMENTED_PARAMETER_SCHEMA = (
+    "grape-param-estim/fixed-q-augmented-parameter-estimate/v1"
+)
+FIXED_Q_BODY_COMPONENTS = ("Fx", "Fy", "Fz", "tau_x", "tau_y", "tau_z")
+
+
+def _is_fixed_q_staged_run(run: AssimilationRun | None) -> bool:
+    return (
+        run is not None
+        and str(run.manifest.get("schema", ""))
+        == FIXED_Q_AUGMENTED_PARAMETER_SCHEMA
+    )
+
+
+def _fixed_q_variance_text(run: AssimilationRun) -> str:
+    reported: list[tuple[str, np.ndarray]] = []
+    for bag_id, result in sorted(run.bag_results.items()):
+        value = result.calibration.get("fixed_q_stationary_variance")
+        if value is None:
+            continue
+        try:
+            variance = np.asarray(value, dtype=float).reshape(-1)
+        except (TypeError, ValueError):
+            continue
+        if variance.shape == (6,) and np.all(np.isfinite(variance)):
+            reported.append((bag_id, variance))
+    if not reported:
+        return "not reported"
+
+    def format_variance(value: np.ndarray) -> str:
+        return np.array2string(value, precision=6, separator=", ")
+
+    first = reported[0][1]
+    if all(np.array_equal(first, value) for _bag_id, value in reported[1:]):
+        return format_variance(first)
+    return "; ".join(
+        "{}={}".format(bag_id, format_variance(value))
+        for bag_id, value in reported
+    )
+
+
+def _reported_array(value: object) -> str:
+    if value is None:
+        return "not reported"
+    array = np.asarray(value)
+    if array.size == 0:
+        return "not reported"
+    return np.array2string(array, precision=4)
+
+
 def _metric(value: object, default: float = float("nan")) -> float:
     if isinstance(value, Mapping):
         for key in ("value", "fraction", "mean"):
@@ -201,6 +251,7 @@ class MasterView(QWidget):
         super().__init__(parent)
         self.store = store
         self._refreshing = False
+        self._fixed_q_staged_run = False
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
         self.configuration_warning = QLabel()
@@ -209,8 +260,8 @@ class MasterView(QWidget):
 
         top_splitter = QSplitter(Qt.Horizontal)
         root.addWidget(top_splitter, 3)
-        bag_group = QGroupBox("Bags participating in joint smoothing")
-        bag_layout = QVBoxLayout(bag_group)
+        self.bag_group = QGroupBox("Bags in staged parameter estimation")
+        bag_layout = QVBoxLayout(self.bag_group)
         self.bag_table = QTableWidget(0, 10)
         self.bag_table.setHorizontalHeaderLabels(
             [
@@ -226,14 +277,14 @@ class MasterView(QWidget):
         self.bag_table.itemChanged.connect(self._on_table_item_changed)
         self.bag_table.cellDoubleClicked.connect(self._on_bag_double_clicked)
         bag_layout.addWidget(self.bag_table)
-        top_splitter.addWidget(bag_group)
+        top_splitter.addWidget(self.bag_group)
 
         ridge_group = QGroupBox("Shared static parameter ensemble (equal-weight raw members)")
         ridge_layout = QVBoxLayout(ridge_group)
         self.ridge_widget = RidgePlotWidget()
         self.ridge_widget.set_ensemble(store.parameter_ensemble)
         ridge_layout.addWidget(self.ridge_widget)
-        self.member_detail = QLabel("No completed assimilation run")
+        self.member_detail = QLabel("No completed parameter-estimation run")
         self.member_detail.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.member_detail.setWordWrap(True)
         ridge_layout.addWidget(self.member_detail)
@@ -254,25 +305,27 @@ class MasterView(QWidget):
         self.coverage_plot.setYRange(0.0, 1.05)
         bottom_splitter.addWidget(contribution_group)
 
-        diagnostic_group = QGroupBox("IEnKS-Q diagnostics")
-        diagnostic_layout = QVBoxLayout(diagnostic_group)
-        self.iteration_plot = pg.PlotWidget(title="objective by iteration")
+        self.diagnostic_group = QGroupBox("Parameter-estimation diagnostics")
+        diagnostic_layout = QVBoxLayout(self.diagnostic_group)
+        self.iteration_plot = pg.PlotWidget(title="iteration diagnostics")
         self.iteration_plot.showGrid(x=True, y=True, alpha=0.18)
         self.iteration_plot.setLabel("bottom", "iteration")
         self.iteration_plot.setLabel("left", "objective")
         diagnostic_layout.addWidget(self.iteration_plot)
         self.diagnostic_label = QLabel(
-            "termination: not run\nraw members: —\n"
-            "residual-wrench Q time resolution: pending"
+            "run status: not run\nconvergence: not reported\n"
+            "iterations: not reported\nraw members: —\n"
+            "residual-wrench Q time resolution: not reported\n"
+            "correction-path coverage: not reported"
         )
         self.diagnostic_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.diagnostic_label.setWordWrap(True)
         self.diagnostic_label.setToolTip(
-            "Residual-wrench time resolution is sufficient when the calibrated "
-            "OU process is represented by enough knots for the selected interval."
+            "Availability depends on the artifact schema. Fixed-Q staged runs "
+            "do not report the legacy residual-wrench knot-resolution metric."
         )
         diagnostic_layout.addWidget(self.diagnostic_label)
-        bottom_splitter.addWidget(diagnostic_group)
+        bottom_splitter.addWidget(self.diagnostic_group)
         bottom_splitter.setSizes([660, 620])
 
         self.ridge_widget.memberSelected.connect(self.store.set_selected_member)
@@ -280,8 +333,7 @@ class MasterView(QWidget):
         self.store.recordChanged.connect(lambda _bag_id: self.refresh())
         self.store.selectedMemberChanged.connect(self._on_selected_member_changed)
         self.store.posteriorChanged.connect(self.set_run)
-        self.refresh()
-        self._on_selected_member_changed(self.store.selected_member_id)
+        self.set_run(self.store.assimilation_run)
 
     @staticmethod
     def _range_text(value: tuple[float, float]) -> str:
@@ -301,6 +353,15 @@ class MasterView(QWidget):
                 data = record.data
                 objective = None if record.result is None else record.result.objective_contribution
                 coverage = None if record.result is None else _metric(record.result.coverage)
+                coverage_text = (
+                    "not reported"
+                    if self._fixed_q_staged_run and record.result is not None
+                    else (
+                        "—"
+                        if coverage is None or not np.isfinite(coverage)
+                        else "{:.3f}".format(coverage)
+                    )
+                )
                 values = (
                     record.display_name,
                     record.configuration_group,
@@ -310,7 +371,7 @@ class MasterView(QWidget):
                     "—" if data is None else str(data.sample_count),
                     record.status,
                     "—" if objective is None else "{:.4g}".format(float(objective)),
-                    "—" if coverage is None or not np.isfinite(coverage) else "{:.3f}".format(coverage),
+                    coverage_text,
                 )
                 for column, text in enumerate(values, start=1):
                     item = QTableWidgetItem(text)
@@ -323,14 +384,17 @@ class MasterView(QWidget):
             self._refreshing = False
 
     def set_run(self, run: AssimilationRun | None) -> None:
+        self._configure_schema_presentation(run)
         if run is None:
             self.ridge_widget.set_ensemble(None)
             self.iteration_plot.clear()
             self.diagnostic_label.setText(
-                "termination: not run\nraw members: —\n"
-                "residual-wrench Q time resolution: pending"
+                "run status: not run\nconvergence: not reported\n"
+                "iterations: not reported\nraw members: —\n"
+                "residual-wrench Q time resolution: not reported\n"
+                "correction-path coverage: not reported"
             )
-            self.member_detail.setText("No completed assimilation run")
+            self.member_detail.setText("No completed parameter-estimation run")
             self.refresh()
             return
         self.ridge_widget.set_ensemble(run.shared_posterior)
@@ -344,22 +408,66 @@ class MasterView(QWidget):
             np.empty(0),
         )
         self.iteration_plot.clear()
-        if history.size:
+        if history.size and not self._fixed_q_staged_run:
             self.iteration_plot.plot(
                 np.arange(history.size), history,
                 pen=pg.mkPen((45, 120, 185), width=2.0), symbol="o", symbolSize=6,
             )
-        termination = str(run.manifest.get("termination_reason", "unknown"))
-        convergence = bool(run.manifest.get("converged", False))
-        q_warning_count = sum(
-            record.result is not None
-            and record.result.q_resolution_sufficient is False
-            for record in self.store.records()
-        )
         run_warning_text = (
             "none"
             if not run.warnings
             else "\n  - " + "\n  - ".join(str(value) for value in run.warnings)
+        )
+        if self._fixed_q_staged_run:
+            artifact_status = str(run.manifest.get("status", "not reported"))
+            self.diagnostic_label.setText(
+                "artifact status: {}\ntermination: not reported\n"
+                "convergence: not reported\n"
+                "iterations: not reported\nraw members: {} (equal weight)\n"
+                "fixed_q_stationary_variance (body order [{}]): {}\n"
+                "residual-wrench Q time resolution: not applicable\n"
+                "correction-path coverage: not reported\nrun warnings: {}".format(
+                    artifact_status,
+                    run.shared_posterior.size,
+                    ", ".join(FIXED_Q_BODY_COMPONENTS),
+                    _fixed_q_variance_text(run),
+                    run_warning_text,
+                )
+            )
+            self._on_selected_member_changed(self.store.selected_member_id)
+            self.refresh()
+            return
+
+        termination = str(run.manifest.get("termination_reason", "not reported"))
+        convergence = (
+            "not reported"
+            if "converged" not in run.manifest
+            else ("converged" if bool(run.manifest["converged"]) else "not converged")
+        )
+        q_resolution = [
+            record.result.q_resolution_sufficient
+            for record in self.store.records()
+            if record.result is not None
+        ]
+        q_resolution_text = (
+            "not reported"
+            if not any(value is not None for value in q_resolution)
+            else str(
+                sum(
+                    value is not None and not bool(value)
+                    for value in q_resolution
+                )
+            )
+        )
+        coverage_count = sum(
+            record.result is not None
+            and np.isfinite(_metric(record.result.coverage))
+            for record in self.store.records()
+        )
+        coverage_text = (
+            "not reported"
+            if coverage_count == 0
+            else "{} bag(s)".format(coverage_count)
         )
         accepted = diagnostics.get("accepted_fraction")
         gradient = diagnostics.get("gradient_norm")
@@ -373,23 +481,59 @@ class MasterView(QWidget):
             _text_mode(selected_mode),
         )
         self.diagnostic_label.setText(
-            "termination: {}{}\nraw members: {} (equal weight)\n"
+            "termination: {}\nconvergence: {}\niterations: {}\n"
+            "raw members: {} (equal weight)\n"
             "accepted fraction: {}\ngradient norm: {}\nstep norm: {}\n"
             "residual-wrench Q time-resolution insufficient bags: {}\n"
-            "run warnings: {}\nmode law: {}".format(
+            "correction-path coverage: {}\nrun warnings: {}\nmode law: {}".format(
                 termination,
-                " (converged)" if convergence else " (not labelled converged)",
+                convergence,
+                str(history.size) if history.size else "not reported",
                 run.shared_posterior.size,
-                "—" if accepted is None else np.array2string(np.asarray(accepted), precision=4),
-                "—" if gradient is None else np.array2string(np.asarray(gradient), precision=4),
-                "—" if step is None else np.array2string(np.asarray(step), precision=4),
-                q_warning_count,
+                _reported_array(accepted),
+                _reported_array(gradient),
+                _reported_array(step),
+                q_resolution_text,
+                coverage_text,
                 run_warning_text,
                 mode_text,
             )
         )
         self._on_selected_member_changed(self.store.selected_member_id)
         self.refresh()
+
+    def _configure_schema_presentation(
+        self, run: AssimilationRun | None
+    ) -> None:
+        self._fixed_q_staged_run = _is_fixed_q_staged_run(run)
+        objective_header = self.bag_table.horizontalHeaderItem(8)
+        if self._fixed_q_staged_run:
+            self.diagnostic_group.setTitle(
+                "Fixed-Q staged parameter-estimation diagnostics"
+            )
+            self.iteration_plot.setTitle("iteration diagnostics (not reported)")
+            self.objective_plot.setTitle("per-bag filter log likelihood")
+            self.objective_plot.setLabel("left", "filter log likelihood")
+            self.coverage_plot.setTitle(
+                "correction-path coverage (not reported)"
+            )
+            if objective_header is not None:
+                objective_header.setText("Log likelihood")
+            return
+
+        self.diagnostic_group.setTitle(
+            "Parameter-estimation diagnostics"
+            if run is None
+            else "IEnKS-Q diagnostics"
+        )
+        self.iteration_plot.setTitle(
+            "iteration diagnostics" if run is None else "objective by iteration"
+        )
+        self.objective_plot.setTitle("per-bag objective contribution")
+        self.objective_plot.setLabel("left", "objective")
+        self.coverage_plot.setTitle("correction-path coverage")
+        if objective_header is not None:
+            objective_header.setText("Objective")
 
     def _refresh_contribution_plots(self) -> None:
         records = self.store.records()
@@ -428,7 +572,8 @@ class MasterView(QWidget):
         else:
             self.configuration_warning.setText(
                 "Selected bags have different configuration fingerprints; "
-                "joint smoothing requires explicit mismatch confirmation."
+                "staged parameter estimation requires one shared confirmed "
+                "configuration group."
             )
             self.configuration_warning.setStyleSheet(
                 "background: #fff1c7; color: #6c4a00; padding: 6px; border-radius: 4px;"
@@ -438,7 +583,7 @@ class MasterView(QWidget):
         self.ridge_widget.set_selected_member(member_id)
         ensemble = self.store.parameter_ensemble
         if ensemble is None or member_id is None:
-            self.member_detail.setText("No completed assimilation run")
+            self.member_detail.setText("No completed parameter-estimation run")
             return
         matches = np.flatnonzero(ensemble.member_id == member_id)
         if not matches.size:

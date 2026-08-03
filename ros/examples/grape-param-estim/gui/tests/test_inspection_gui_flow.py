@@ -24,6 +24,7 @@ from grape_param_estim_gui.project_io import (
     validate_project_manifest,
 )
 from grape_param_estim_gui.state import BagRecord, ProjectStore
+from grape_param_estim_gui.workflow import WorkflowMode
 
 
 def _preview(bag_id: str) -> FlightResult:
@@ -111,7 +112,7 @@ class InspectionGuiFlowTest(unittest.TestCase):
         self.manifest["estimator_settings"] = {
             "sample_period": 0.1,
             "maximum_knots": 2,
-            "ensemble_size": 3,
+            "ensemble_size": 58,
             "maximum_iterations": 1,
             "convergence_tolerance": 1.0e-3,
             "minimum_line_search_step": 1.0 / 64.0,
@@ -226,7 +227,12 @@ class InspectionGuiFlowTest(unittest.TestCase):
 
         started = []
         window._start_worker = lambda *arguments: started.append(arguments) or True
-        window.start_assimilation()
+        with mock.patch.object(
+            window,
+            "_choose_workflow_mode",
+            return_value=WorkflowMode.STEP,
+        ):
+            window.start_assimilation()
         self.assertEqual(len(started), 1)
         request_path = Path(started[0][2])
         request = json.loads(request_path.read_text(encoding="utf-8"))
@@ -359,7 +365,12 @@ class InspectionGuiFlowTest(unittest.TestCase):
         self.assertTrue(self.record.included)
         self.assertTrue(window.run_action.isEnabled())
 
-        window.start_assimilation()
+        with mock.patch.object(
+            window,
+            "_choose_workflow_mode",
+            return_value=WorkflowMode.STEP,
+        ):
+            window.start_assimilation()
         self.assertEqual(self.record.status, "ready")
         self.assertTrue(self.record.included)
         self.assertTrue(window.run_action.isEnabled())

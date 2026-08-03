@@ -8,7 +8,7 @@ from unittest import mock
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 try:
-    from PySide6.QtWidgets import QApplication, QMessageBox
+    from PySide6.QtWidgets import QApplication
 except ImportError as error:  # exactly the supported optional-test guard
     raise unittest.SkipTest("PySide6 is unavailable: {}".format(error))
 
@@ -358,11 +358,11 @@ class PidEvaluationGuiQtTests(unittest.TestCase):
         )
         window.close()
 
-    def test_configuration_mismatch_requires_explicit_per_request_override(self):
+    def test_configuration_mismatch_is_rejected_before_stage_dialog(self):
         settings = {
             "sample_period": 0.1,
             "maximum_knots": 2,
-            "ensemble_size": 4,
+            "ensemble_size": 58,
             "maximum_iterations": 1,
             "seed": 7,
             "delay_prior_mean": 0.02,
@@ -379,34 +379,27 @@ class PidEvaluationGuiQtTests(unittest.TestCase):
             record.auto_interval = (0.0, 1.0)
             record.selected_interval = (0.0, 1.0)
             record.status = "ready"
-            record.configuration_fingerprint = "complete:vehicle-{}".format(
-                index
-            )
+            record.configuration_fingerprint = "complete:" + (
+                "a" if index == 0 else "b"
+            ) * 64
             record.controller_snapshot = shared_snapshot
         self.store._sync_manifest_inputs()
 
         window = MainWindow(self.store, self.root)
         starts = []
         window._start_worker = lambda *arguments: starts.append(arguments) or True
-        with mock.patch.object(
-            QMessageBox, "warning", return_value=QMessageBox.No
-        ):
+        with mock.patch.object(window, "_show_error") as show_error, mock.patch.object(
+            window, "_choose_workflow_mode"
+        ) as choose_mode:
             window.start_assimilation()
         self.assertEqual(starts, [])
-        self.assertFalse(
-            self.store.manifest["estimator_settings"]
-            ["allow_configuration_mismatch"]
+        choose_mode.assert_not_called()
+        show_error.assert_called_once()
+        self.assertIn(
+            "share one confirmed configuration fingerprint",
+            str(show_error.call_args.args[1]),
         )
-
-        with mock.patch.object(
-            QMessageBox, "warning", return_value=QMessageBox.Yes
-        ):
-            window.start_assimilation()
-        self.assertEqual(len(starts), 1)
-        request_path = starts[0][2]
-        request = json.loads(Path(request_path).read_text(encoding="utf-8"))
-        self.assertTrue(request["settings"]["allow_configuration_mismatch"])
-        self.assertTrue(
+        self.assertFalse(
             self.store.manifest["estimator_settings"]
             ["allow_configuration_mismatch"]
         )

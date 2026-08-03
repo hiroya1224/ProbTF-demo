@@ -20,6 +20,25 @@ from PySide6.QtWidgets import (
 from ..artifact_loader import FlightResult, SharedPosterior
 
 
+def _residual_time_axis(
+    time: np.ndarray, residual_wrench: np.ndarray
+) -> np.ndarray:
+    """Support legacy interval values and staged boundary-state values."""
+
+    selected_time = np.asarray(time)
+    members = np.asarray(residual_wrench)
+    if members.ndim != 3:
+        raise ValueError("residual wrench must have member, time, component axes")
+    sample_count = int(members.shape[1])
+    if sample_count == selected_time.size:
+        return selected_time
+    if sample_count + 1 == selected_time.size:
+        return selected_time[:-1]
+    raise ValueError(
+        "residual wrench time axis must contain N or N-1 samples"
+    )
+
+
 class SignalPanel(QWidget):
     """Tabbed, linked plots used for trajectory, correction, or residual views."""
 
@@ -372,11 +391,11 @@ class SignalPanel(QWidget):
         if self.session is None:
             return
 
-        time = (
-            self.session.time[:-1]
-            if self.kind == "residual" and self.session.residual_wrench is not None
-            else self.session.time
-        )
+        time = self.session.time
+        if self.kind == "residual" and self.session.residual_wrench is not None:
+            time = _residual_time_axis(
+                self.session.time, self.session.residual_wrench
+            )
         observed, nominal, center, lower, upper, selected, reference = self._extract_series()
 
         pens = {

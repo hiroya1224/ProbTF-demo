@@ -448,6 +448,8 @@ class DiagonalQEmResult:
     initial_covariance: BodyWrenchDiagonalCovariance
     iterations: Tuple[DiagonalQEmIteration, ...]
     last_expectations: Tuple[DiagonalQBagExpectation, ...]
+    final_expectation_input_covariance: BodyWrenchDiagonalCovariance
+    final_expectations: Tuple[DiagonalQBagExpectation, ...]
     covariance: BodyWrenchDiagonalCovariance
     converged: bool
     termination_reason: str
@@ -507,6 +509,14 @@ class DiagonalQEmResult:
             raise ValueError(
                 "last expectations do not match the final iteration trace"
             )
+        if not isinstance(
+            self.final_expectation_input_covariance,
+            BodyWrenchDiagonalCovariance,
+        ):
+            raise TypeError(
+                "final_expectation_input_covariance must be "
+                "BodyWrenchDiagonalCovariance"
+            )
         if not isinstance(self.covariance, BodyWrenchDiagonalCovariance):
             raise TypeError("covariance must be BodyWrenchDiagonalCovariance")
         if not np.array_equal(
@@ -514,6 +524,20 @@ class DiagonalQEmResult:
             iterations[-1].output_covariance.stationary_variance,
         ):
             raise ValueError("result covariance is not the final M-step output")
+        if not np.array_equal(
+            self.final_expectation_input_covariance.stationary_variance,
+            self.covariance.stationary_variance,
+        ):
+            raise ValueError(
+                "final expectation must be conditioned on result covariance"
+            )
+        fixed_layout = {
+            value.bag_id: (value.times.copy(), value.correlation_time)
+            for value in expectations
+        }
+        final_expectations = _ordered_expectations(
+            self.final_expectations, pilots, fixed_layout=fixed_layout
+        )
         if not isinstance(self.converged, (bool, np.bool_)):
             raise TypeError("converged must be boolean")
         selected_converged = bool(self.converged)
@@ -536,11 +560,24 @@ class DiagonalQEmResult:
         object.__setattr__(self, "pilots", pilots)
         object.__setattr__(self, "iterations", iterations)
         object.__setattr__(self, "last_expectations", expectations)
+        object.__setattr__(
+            self, "final_expectations", final_expectations
+        )
         object.__setattr__(self, "converged", selected_converged)
 
     @property
     def bag_ids(self) -> Tuple[str, ...]:
         return tuple(value.bag_id for value in self.pilots)
+
+    @property
+    def final_approx_log_likelihood(self) -> float:
+        return _finite_sum(
+            (
+                value.approx_log_likelihood
+                for value in self.final_expectations
+            ),
+            "final approx_log_likelihood",
+        )
 
 
 ExpectationStep = Callable[
@@ -592,6 +629,43 @@ def run_diagonal_q_em(
     fixed_layout = None
     trace = []
     last_expectations = None
+
+    def finish_result(converged, termination_reason, completed_iteration):
+        tracker.checkpoint()
+        final_input = BodyWrenchDiagonalCovariance(
+            covariance.stationary_variance
+        )
+        final_callback_input = BodyWrenchDiagonalCovariance(
+            final_input.stationary_variance
+        )
+        raw_final = expectation_step(
+            final_callback_input, completed_iteration + 1
+        )
+        tracker.checkpoint()
+        final_expectations = _ordered_expectations(
+            raw_final, ordered_pilots, fixed_layout
+        )
+        tracker.emit(
+            completed_units=completed_iteration,
+            stage_id="diagonal_q_final_expectation",
+            stage_label="Final diagonal Q expectation",
+            iteration=completed_iteration,
+            maximum_iterations=config.maximum_iterations,
+            message="computed final paths conditioned on output Q",
+        )
+        tracker.checkpoint()
+        return DiagonalQEmResult(
+            config=config,
+            pilots=ordered_pilots,
+            initial_covariance=initial_covariance,
+            iterations=tuple(trace),
+            last_expectations=last_expectations,
+            final_expectation_input_covariance=final_input,
+            final_expectations=final_expectations,
+            covariance=covariance,
+            converged=converged,
+            termination_reason=termination_reason,
+        )
 
     for iteration in range(1, config.maximum_iterations + 1):
         tracker.emit(
@@ -666,26 +740,12 @@ def run_diagonal_q_em(
         )
         tracker.checkpoint()
         if converged:
-            return DiagonalQEmResult(
-                config=config,
-                pilots=ordered_pilots,
-                initial_covariance=initial_covariance,
-                iterations=tuple(trace),
-                last_expectations=last_expectations,
-                covariance=covariance,
-                converged=True,
-                termination_reason=LOG_Q_TOLERANCE_TERMINATION,
+            return finish_result(
+                True, LOG_Q_TOLERANCE_TERMINATION, iteration
             )
 
-    return DiagonalQEmResult(
-        config=config,
-        pilots=ordered_pilots,
-        initial_covariance=initial_covariance,
-        iterations=tuple(trace),
-        last_expectations=last_expectations,
-        covariance=covariance,
-        converged=False,
-        termination_reason=MAXIMUM_ITERATIONS_TERMINATION,
+    return finish_result(
+        False, MAXIMUM_ITERATIONS_TERMINATION, config.maximum_iterations
     )
 
 

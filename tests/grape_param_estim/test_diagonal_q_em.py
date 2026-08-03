@@ -105,12 +105,14 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
             result.termination_reason, LOG_Q_TOLERANCE_TERMINATION
         )
         self.assertEqual(len(result.iterations), 5)
-        self.assertEqual([value[0] for value in calls], [1, 2, 3, 4, 5])
+        self.assertEqual(
+            [value[0] for value in calls], [1, 2, 3, 4, 5, 6]
+        )
         self.assertEqual(
             [value.iteration for value in result.iterations],
             [1, 2, 3, 4, 5],
         )
-        for call, trace in zip(calls, result.iterations):
+        for call, trace in zip(calls[:-1], result.iterations):
             np.testing.assert_array_equal(
                 call[1], trace.input_covariance.stationary_variance
             )
@@ -126,23 +128,34 @@ class DiagonalQEmOrchestrationTest(unittest.TestCase):
         self.assertTrue(
             all(not value.converged for value in result.iterations[:-1])
         )
-        self.assertEqual(len(progress), 2 * len(result.iterations))
+        self.assertEqual(len(progress), 2 * len(result.iterations) + 1)
         self.assertEqual(
-            [value.stage_id for value in progress[::2]],
+            [value.stage_id for value in progress[:-1:2]],
             ["diagonal_q_expectation"] * len(result.iterations),
         )
         self.assertEqual(
-            [value.stage_id for value in progress[1::2]],
+            [value.stage_id for value in progress[1:-1:2]],
             ["diagonal_q_m_step"] * len(result.iterations),
         )
         self.assertEqual(
-            [value.completed_units for value in progress[::2]],
+            [value.completed_units for value in progress[:-1:2]],
             [0, 1, 2, 3, 4],
         )
         self.assertEqual(
-            [value.completed_units for value in progress[1::2]],
+            [value.completed_units for value in progress[1:-1:2]],
             [1, 2, 3, 4, 5],
         )
+        self.assertEqual(
+            progress[-1].stage_id, "diagonal_q_final_expectation"
+        )
+        np.testing.assert_array_equal(
+            calls[-1][1], result.covariance.stationary_variance
+        )
+        np.testing.assert_array_equal(
+            result.final_expectation_input_covariance.stationary_variance,
+            result.covariance.stationary_variance,
+        )
+        self.assertEqual(result.final_approx_log_likelihood, -6.0)
 
         with self.assertRaisesRegex(ValueError, "log_q_tolerance"):
             replace(

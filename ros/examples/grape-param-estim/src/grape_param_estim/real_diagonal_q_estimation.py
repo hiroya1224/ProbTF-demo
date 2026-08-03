@@ -322,7 +322,8 @@ class RealDiagonalQEstimationResult:
         ):
             raise ValueError("final_e_steps must align with prepared_bags")
         expectations = {
-            value.bag_id: value for value in self.em_result.last_expectations
+            value.bag_id: value
+            for value in self.em_result.final_expectations
         }
         for bag_id, result in steps:
             expectation = expectations[bag_id]

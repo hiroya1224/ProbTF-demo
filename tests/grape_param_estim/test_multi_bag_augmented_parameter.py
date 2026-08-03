@@ -1,8 +1,12 @@
 from dataclasses import replace
 import unittest
+from unittest import mock
 
 import numpy as np
 
+from grape_param_estim.augmented_parameter_filter import (
+    run_augmented_parameter_filter as run_single_bag_filter,
+)
 from grape_param_estim.augmented_parameter_state import (
     LOCAL_INITIAL_DIMENSION,
     MINIMUM_PROCESS_NOISE_MEMBER_COUNT,
@@ -237,6 +241,46 @@ class MultiBagAugmentedParameterTest(unittest.TestCase):
                 second.filter_result.smoothed_wrench_ensemble,
             )
 
+    def test_forecast_workers_are_forwarded_and_one_is_serial_compatible(self):
+        serial = run_multi_bag_augmented_parameter_filter(
+            (self.first,),
+            self.q,
+            ensemble_size=MINIMUM_PROCESS_NOISE_MEMBER_COUNT,
+            seed=1702,
+            forecast_workers=1,
+            run_id="multi-bag-explicit-serial",
+        )
+        with mock.patch(
+            "grape_param_estim.multi_bag_augmented_parameter."
+            "run_augmented_parameter_filter",
+            wraps=run_single_bag_filter,
+        ) as wrapped:
+            parallel = run_multi_bag_augmented_parameter_filter(
+                (self.first,),
+                self.q,
+                ensemble_size=MINIMUM_PROCESS_NOISE_MEMBER_COUNT,
+                seed=1702,
+                forecast_workers=2,
+                run_id="multi-bag-forwarded-parallel",
+            )
+        self.assertEqual(wrapped.call_count, 1)
+        self.assertEqual(wrapped.call_args.kwargs["forecast_workers"], 2)
+        serial_filter = serial.bags[0].filter_result
+        parallel_filter = parallel.bags[0].filter_result
+        for name in (
+            "static_forecast_ensemble",
+            "static_analysis_ensemble",
+            "static_smoothed_ensemble",
+            "smoothed_wrench_ensemble",
+            "final_command_history_ensemble",
+            "applied_model_mass",
+            "applied_model_delay",
+        ):
+            np.testing.assert_array_equal(
+                getattr(parallel_filter, name),
+                getattr(serial_filter, name),
+            )
+
     def test_accessors_return_copies_and_result_validation_is_strict(self):
         posterior = self.forward.final_shared_posterior
         expected = posterior.copy()
@@ -288,6 +332,13 @@ class MultiBagAugmentedParameterTest(unittest.TestCase):
             run_multi_bag_augmented_parameter_filter(
                 (self.first,), self.q, seed=-1
             )
+        for workers in (True, 0, -1, 257, 1.0, 1.5):
+            with self.subTest(forecast_workers=workers), self.assertRaisesRegex(
+                ValueError, "forecast_workers"
+            ):
+                run_multi_bag_augmented_parameter_filter(
+                    (self.first,), self.q, forecast_workers=workers
+                )
         with self.assertRaises(TypeError):
             run_multi_bag_augmented_parameter_filter(
                 (self.first,), object()

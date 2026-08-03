@@ -18,6 +18,9 @@ from grape_param_estim.augmented_parameter_filter import (
     AugmentedParameterFilterResult,
     run_augmented_parameter_filter,
 )
+from grape_param_estim.augmented_forecast_pool import (
+    validated_forecast_worker_count,
+)
 from grape_param_estim.augmented_parameter_state import (
     MINIMUM_FULL_RANK_MEMBER_COUNT,
     MINIMUM_PROCESS_NOISE_MEMBER_COUNT,
@@ -459,11 +462,16 @@ def run_multi_bag_augmented_parameter_filter(
     prior: Optional[AugmentedParameterPrior] = None,
     delay_chart: Optional[BoundedDelayChart] = None,
     covariance_rcond: float = 1.0e-12,
+    forecast_workers: int = 1,
     progress_callback: Optional[ProgressCallback] = None,
     cancellation_token: Optional[CancellationToken] = None,
     run_id: str = "multi-bag-augmented-parameter",
 ) -> MultiBagAugmentedParameterResult:
-    """Assimilate bags sequentially while carrying the shared 19-D members."""
+    """Assimilate bags sequentially while carrying the shared 19-D members.
+
+    ``forecast_workers`` is forwarded unchanged in meaning to each bag's
+    augmented filter; one is the deterministic serial reference path.
+    """
 
     ordered = _ordered_bags(bags)
     if not isinstance(wrench_covariance, BodyWrenchDiagonalCovariance):
@@ -471,6 +479,9 @@ def run_multi_bag_augmented_parameter_filter(
             "wrench_covariance must be BodyWrenchDiagonalCovariance"
         )
     members = _member_count(ensemble_size)
+    selected_workers = validated_forecast_worker_count(
+        forecast_workers, members
+    )
     selected_seed = _seed(seed)
     selected_delay_chart = delay_chart or BoundedDelayChart()
     if not isinstance(selected_delay_chart, BoundedDelayChart):
@@ -560,6 +571,7 @@ def run_multi_bag_augmented_parameter_filter(
             seed=filter_seed,
             delay_chart=selected_delay_chart,
             covariance_rcond=selected_rcond,
+            forecast_workers=selected_workers,
             progress_callback=forward_progress,
             cancellation_token=cancellation,
             progress_run_id="{}-{}".format(run_id, bag.bag_id),

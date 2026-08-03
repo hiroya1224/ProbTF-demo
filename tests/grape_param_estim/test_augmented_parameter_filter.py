@@ -1,9 +1,16 @@
+import multiprocessing
 import unittest
 import numpy as np
 
+from grape_param_estim.articulated import GrapeArticulatedModel
+from grape_param_estim.augmented_forecast_pool import (
+    AugmentedForecastPoolError,
+    PersistentAugmentedForecastPool,
+)
 from grape_param_estim.augmented_parameter_filter import (
     COMMAND_COORDINATE_DIMENSION,
     _analyse_auxiliary_ensemble,
+    _member_models,
     run_augmented_parameter_filter,
 )
 from grape_param_estim.augmented_parameter_state import (
@@ -16,6 +23,7 @@ from grape_param_estim.augmented_parameter_state import (
 )
 from grape_param_estim.controller import (
     ControllerConfig,
+    GrapeController,
     initial_controller_state,
 )
 from grape_param_estim.diagonal_q import (
@@ -36,6 +44,7 @@ from grape_param_estim.stochastic_closed_loop import (
 )
 from grape_param_estim.synthetic import run_synthetic_experiment
 from grape_param_estim.strong_constraint import StrongConstraintProblem
+from grape_param_estim.timing import BoundedDelayChart
 from grape_param_estim.system import (
     ActuatorParameters,
     ActuatorState,
@@ -265,6 +274,68 @@ class AugmentedParameterFilterTest(unittest.TestCase):
             )
         )
 
+    def test_parallel_forecast_is_bit_exact_and_leaves_no_workers(self):
+        delay_chart = BoundedDelayChart(0.03)
+        serial = self._run_once(seed=919, delay_chart=delay_chart)
+        before = {child.pid for child in multiprocessing.active_children()}
+        parallel = self._run_once(
+            seed=919,
+            delay_chart=delay_chart,
+            forecast_workers=2,
+        )
+        after = {child.pid for child in multiprocessing.active_children()}
+        self.assertTrue(after.issubset(before))
+
+        for name in (
+            "prior_static_ensemble",
+            "final_static_ensemble",
+            "static_forecast_ensemble",
+            "static_analysis_ensemble",
+            "static_smoothed_ensemble",
+            "smoothed_wrench_ensemble",
+            "filter_log_likelihood_by_time",
+            "filter_nis",
+            "final_command_history_ensemble",
+            "applied_model_mass",
+            "applied_model_delay",
+        ):
+            np.testing.assert_array_equal(
+                getattr(parallel, name), getattr(serial, name)
+            )
+        self.assertEqual(
+            parallel.filter_log_likelihood,
+            serial.filter_log_likelihood,
+        )
+        for parallel_times, serial_times in zip(
+            parallel.command_issue_times, serial.command_issue_times
+        ):
+            np.testing.assert_array_equal(parallel_times, serial_times)
+            np.testing.assert_array_equal(
+                parallel_times, self.problem.observations.times[1:2]
+            )
+        for parallel_gain, serial_gain in zip(
+            parallel.smoothing_gains, serial.smoothing_gains
+        ):
+            np.testing.assert_array_equal(parallel_gain, serial_gain)
+
+        for series_name in (
+            "dynamic_forecast_state_ensembles",
+            "dynamic_analysis_state_ensembles",
+            "dynamic_smoothed_state_ensembles",
+        ):
+            parallel_series = getattr(parallel, series_name)
+            serial_series = getattr(serial, series_name)
+            for parallel_ensemble, serial_ensemble in zip(
+                parallel_series, serial_series
+            ):
+                chart = GrapeFilterStateChart.from_ensemble(
+                    serial_ensemble + parallel_ensemble
+                )
+                np.testing.assert_array_equal(
+                    chart.encode_ensemble(parallel_ensemble),
+                    chart.encode_ensemble(serial_ensemble),
+                )
+
     def test_auxiliary_history_uses_the_exact_etkf_member_analysis(self):
         generator = np.random.RandomState(310)
         members = MINIMUM_PROCESS_NOISE_MEMBER_COUNT
@@ -320,6 +391,80 @@ class AugmentedParameterFilterTest(unittest.TestCase):
             ),
         )
 
+    def test_augmented_pool_aborts_on_cancellation_and_worker_error(self):
+        chart = BoundedDelayChart()
+        vehicles, actuators = _member_models(
+            self.problem,
+            self.initial_ensemble.shared_coordinates,
+            chart,
+        )
+        controller = GrapeController(
+            self.problem.controller_configuration,
+            self.problem.controller_parameters,
+            self.problem.geometry,
+            articulated_model=GrapeArticulatedModel(),
+        )
+
+        def make_pool():
+            return PersistentAugmentedForecastPool(
+                controller=controller,
+                geometry=self.problem.geometry,
+                initial_time=self.problem.observations.times[0],
+                initial_states=self.initial_ensemble.filter_states,
+                initial_vehicle_parameters=vehicles,
+                initial_actuator_parameters=actuators,
+                worker_count=2,
+            )
+
+        members = self.initial_ensemble.member_count
+        arguments = {
+            "end_time": self.problem.observations.times[1],
+            "reference": self.problem.references[0],
+            "analysis_states": self.initial_ensemble.filter_states,
+            "vehicle_parameters": vehicles,
+            "actuator_parameters": actuators,
+            "command_issue_times": tuple(
+                np.empty(0, dtype=float) for _member in range(members)
+            ),
+            "command_histories": tuple(() for _member in range(members)),
+            "interval_wrench": np.zeros((members, 6)),
+        }
+
+        cancellation_pool = make_pool()
+        cancellation_pids = cancellation_pool.worker_pids
+        cancellation = CancellationToken()
+        cancellation.cancel("unit_test")
+        with self.assertRaises(ProgressCancelled):
+            cancellation_pool.advance_interval(
+                start_time=self.problem.observations.times[0],
+                cancellation_token=cancellation,
+                **arguments,
+            )
+        self.assertTrue(cancellation_pool.closed)
+
+        error_pool = make_pool()
+        error_pids = error_pool.worker_pids
+        with self.assertRaisesRegex(
+            AugmentedForecastPoolError, "boundary time"
+        ):
+            error_pool.advance_interval(start_time=0.001, **arguments)
+        self.assertTrue(error_pool.closed)
+        active = {child.pid for child in multiprocessing.active_children()}
+        self.assertTrue(
+            set(cancellation_pids + error_pids).isdisjoint(active)
+        )
+
+        with self.assertRaisesRegex(ValueError, "at least two"):
+            PersistentAugmentedForecastPool(
+                controller=controller,
+                geometry=self.problem.geometry,
+                initial_time=self.problem.observations.times[0],
+                initial_states=self.initial_ensemble.filter_states,
+                initial_vehicle_parameters=vehicles,
+                initial_actuator_parameters=actuators,
+                worker_count=1,
+            )
+
     def test_cancellation_member_floor_and_types_are_validated(self):
         cancellation = CancellationToken()
         cancellation.cancel("unit_test")
@@ -342,6 +487,11 @@ class AugmentedParameterFilterTest(unittest.TestCase):
             self._run_once(seed=1, observation_covariance=object())
         with self.assertRaisesRegex(ValueError, "seed"):
             self._run_once(seed=-1)
+        for workers in (True, 0, -1, 257, 1.0, 1.5):
+            with self.subTest(forecast_workers=workers), self.assertRaisesRegex(
+                ValueError, "forecast_workers"
+            ):
+                self._run_once(seed=1, forecast_workers=workers)
 
 
 if __name__ == "__main__":

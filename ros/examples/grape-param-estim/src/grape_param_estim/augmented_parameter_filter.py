@@ -18,6 +18,10 @@ from typing import Optional, Sequence, Tuple
 import numpy as np
 
 from grape_param_estim.articulated import GrapeArticulatedModel
+from grape_param_estim.augmented_forecast_pool import (
+    PersistentAugmentedForecastPool,
+    validated_forecast_worker_count,
+)
 from grape_param_estim.augmented_parameter_state import (
     AUGMENTED_FILTER_DIMENSION,
     MINIMUM_PROCESS_NOISE_MEMBER_COUNT,
@@ -561,6 +565,7 @@ def run_augmented_parameter_filter(
     seed: int,
     delay_chart: Optional[BoundedDelayChart] = None,
     covariance_rcond: float = 1.0e-12,
+    forecast_workers: int = 1,
     progress_callback: Optional[ProgressCallback] = None,
     cancellation_token: Optional[CancellationToken] = None,
     progress_run_id: str = "augmented-parameter-filter",
@@ -570,6 +575,8 @@ def run_augmented_parameter_filter(
 
     ``delay_chart`` supplies the physical maximum used both by the bijective
     delay coordinate and by causal command-buffer truncation.
+    ``forecast_workers=1`` preserves the in-process reference path; larger
+    values use a persistent spawned pool while the parent retains history.
     """
 
     if not isinstance(problem, StrongConstraintProblem):
@@ -603,12 +610,18 @@ def run_augmented_parameter_filter(
         not isinstance(bag_id, str) or not bag_id
     ):
         raise ValueError("bag_id must be None or a non-empty string")
+    cancellation = cancellation_token or CancellationToken()
+    if not isinstance(cancellation, CancellationToken):
+        raise TypeError("cancellation_token must be CancellationToken")
 
     observations = problem.observations
     times = observations.times.copy()
     factors = OuTransitionFactors(times, correlation_time)
     innovation_variance = factors.innovation_variance(wrench_covariance)
     member_count = initial_ensemble.member_count
+    selected_workers = validated_forecast_worker_count(
+        forecast_workers, member_count
+    )
     time_count = int(times.size)
     total_units = (
         time_count
@@ -619,7 +632,7 @@ def run_augmented_parameter_filter(
         progress_run_id,
         total_units,
         callback=progress_callback,
-        cancellation_token=cancellation_token,
+        cancellation_token=cancellation,
     )
     tracker.emit(
         0,
@@ -667,136 +680,207 @@ def run_augmented_parameter_filter(
     model_delay = np.empty((time_count, member_count), dtype=float)
     completed = 0
 
-    for time_index in range(time_count):
-        tracker.checkpoint()
-        forecast_static = static_forecast[time_index]
-        forecast_dynamic = dynamic_forecast[time_index]
-        chart = GrapeFilterStateChart.from_ensemble(forecast_dynamic)
-        forecast_coordinates = _encode_augmented(
-            forecast_static, forecast_dynamic, chart
+    forecast_pool = None
+    if selected_workers > 1:
+        forecast_pool = PersistentAugmentedForecastPool(
+            controller=nominal_controller,
+            geometry=problem.geometry,
+            initial_time=times[0],
+            initial_states=initial_ensemble.filter_states,
+            initial_vehicle_parameters=prior_parameters,
+            initial_actuator_parameters=prior_actuators,
+            worker_count=selected_workers,
         )
-        predicted_pose = chart.predicted_pose_ensemble(forecast_dynamic)
-        observed_pose = chart.observed_pose_coordinates(
-            observations.position[time_index],
-            observations.orientation_xyzw[time_index],
-        )
-        update = deterministic_square_root_update(
-            forecast_coordinates,
-            predicted_pose,
-            observed_pose,
-            observation_covariance.matrix,
-        )
-        for stepper in steppers:
-            stepper.trim_command_history(
-                times[time_index], selected_delay_chart.maximum_delay
-            )
-        _analyse_command_histories(steppers, predicted_pose, update)
-        analysed_static = update.analysis_ensemble[
-            :, :SHARED_STATIC_DIMENSION
-        ].copy()
-        decoded_dynamic = chart.decode_ensemble(
-            update.analysis_ensemble[:, SHARED_STATIC_DIMENSION:],
-            forecast_dynamic,
-        )
-        analysed_dynamic = tuple(
-            _clip_dynamic_state(state, problem.actuator_parameters)
-            for state in decoded_dynamic
-        )
-        parameters, actuators = _member_models(
-            problem, analysed_static, selected_delay_chart
-        )
-        for member_index, (stepper, state, vehicle, actuator) in enumerate(
-            zip(steppers, analysed_dynamic, parameters, actuators)
-        ):
-            stepper.replace_static_model(
-                controller=nominal_controller,
-                plant=FullSixDofPlant(vehicle, problem.geometry),
-                actuator_parameters=actuator,
-            )
-            stepper.replace_dynamic_state(
-                rigid_body_state=state.rigid,
-                controller_state=state.controller,
-                actuator_state=state.actuator,
-            )
-            model_mass[time_index, member_index] = vehicle.mass
-            model_delay[time_index, member_index] = actuator.delay
-        static_analysis.append(analysed_static)
-        dynamic_analysis.append(analysed_dynamic)
-        log_likelihood[time_index] = update.approximate_log_likelihood
-        nis[time_index] = float(
-            update.innovation
-            @ np.linalg.solve(
-                update.innovation_covariance, update.innovation
-            )
-        )
-        completed += 1
-        tracker.emit(
-            completed,
-            "augmented_filter",
-            "Augmented parameter filtering",
-            bag_id=bag_id,
-            message="analysed observation {}/{}".format(
-                time_index + 1, time_count
-            ),
-        )
-
-        if time_index + 1 == time_count:
-            continue
-        analysis_chart = GrapeFilterStateChart.from_ensemble(
-            analysed_dynamic
-        )
-        analysis_coordinates = _encode_augmented(
-            analysed_static, analysed_dynamic, analysis_chart
-        )
-        try:
-            noise = exact_gaussian_ensemble(
-                np.zeros(BODY_WRENCH_DIMENSION),
-                np.diag(innovation_variance[time_index]),
-                member_count,
-                _transition_seed(selected_seed, time_index),
-                orthogonal_to=analysis_coordinates,
-            )
-        except ValueError as error:
-            raise ValueError(
-                "ensemble cannot provide six process-noise directions "
-                "orthogonal to the current 51-D analysis anomalies"
-            ) from error
-        current_wrench = np.asarray(
-            [state.residual_wrench for state in analysed_dynamic]
-        )
-        next_wrench, interval_wrench = ou_wrench_transition(
-            current_wrench, factors.rho[time_index], noise
-        )
-        next_dynamic = []
-        for member_index, stepper in enumerate(steppers):
+    try:
+        for time_index in range(time_count):
             tracker.checkpoint()
-            stepper.advance_interval(
-                times[time_index + 1],
-                problem.references[time_index],
-                interval_wrench[member_index],
+            forecast_static = static_forecast[time_index]
+            forecast_dynamic = dynamic_forecast[time_index]
+            chart = GrapeFilterStateChart.from_ensemble(forecast_dynamic)
+            forecast_coordinates = _encode_augmented(
+                forecast_static, forecast_dynamic, chart
             )
-            state = stepper.state
-            next_dynamic.append(
-                GrapeFilterState(
-                    rigid=state.rigid_body_state,
-                    controller=state.controller_state,
-                    actuator=state.actuator_state,
-                    residual_wrench=next_wrench[member_index],
+            predicted_pose = chart.predicted_pose_ensemble(forecast_dynamic)
+            observed_pose = chart.observed_pose_coordinates(
+                observations.position[time_index],
+                observations.orientation_xyzw[time_index],
+            )
+            update = deterministic_square_root_update(
+                forecast_coordinates,
+                predicted_pose,
+                observed_pose,
+                observation_covariance.matrix,
+            )
+            for stepper in steppers:
+                stepper.trim_command_history(
+                    times[time_index], selected_delay_chart.maximum_delay
+                )
+            _analyse_command_histories(steppers, predicted_pose, update)
+            analysed_static = update.analysis_ensemble[
+                :, :SHARED_STATIC_DIMENSION
+            ].copy()
+            decoded_dynamic = chart.decode_ensemble(
+                update.analysis_ensemble[:, SHARED_STATIC_DIMENSION:],
+                forecast_dynamic,
+            )
+            analysed_dynamic = tuple(
+                _clip_dynamic_state(state, problem.actuator_parameters)
+                for state in decoded_dynamic
+            )
+            parameters, actuators = _member_models(
+                problem, analysed_static, selected_delay_chart
+            )
+            for member_index, (
+                stepper,
+                state,
+                vehicle,
+                actuator,
+            ) in enumerate(
+                zip(steppers, analysed_dynamic, parameters, actuators)
+            ):
+                stepper.replace_static_model(
+                    controller=nominal_controller,
+                    plant=FullSixDofPlant(vehicle, problem.geometry),
+                    actuator_parameters=actuator,
+                )
+                stepper.replace_dynamic_state(
+                    rigid_body_state=state.rigid,
+                    controller_state=state.controller,
+                    actuator_state=state.actuator,
+                )
+                model_mass[time_index, member_index] = vehicle.mass
+                model_delay[time_index, member_index] = actuator.delay
+            static_analysis.append(analysed_static)
+            dynamic_analysis.append(analysed_dynamic)
+            log_likelihood[time_index] = update.approximate_log_likelihood
+            nis[time_index] = float(
+                update.innovation
+                @ np.linalg.solve(
+                    update.innovation_covariance, update.innovation
                 )
             )
             completed += 1
             tracker.emit(
                 completed,
-                "augmented_forecast",
-                "Augmented closed-loop forecast",
+                "augmented_filter",
+                "Augmented parameter filtering",
                 bag_id=bag_id,
-                member_id=member_index,
-                message="propagated interval {}/{}".format(
-                    time_index + 1, time_count - 1
+                message="analysed observation {}/{}".format(
+                    time_index + 1, time_count
                 ),
             )
-        static_forecast.append(analysed_static.copy())
-        dynamic_forecast.append(tuple(next_dynamic))
+
+            if time_index + 1 == time_count:
+                continue
+            analysis_chart = GrapeFilterStateChart.from_ensemble(
+                analysed_dynamic
+            )
+            analysis_coordinates = _encode_augmented(
+                analysed_static, analysed_dynamic, analysis_chart
+            )
+            try:
+                noise = exact_gaussian_ensemble(
+                    np.zeros(BODY_WRENCH_DIMENSION),
+                    np.diag(innovation_variance[time_index]),
+                    member_count,
+                    _transition_seed(selected_seed, time_index),
+                    orthogonal_to=analysis_coordinates,
+                )
+            except ValueError as error:
+                raise ValueError(
+                    "ensemble cannot provide six process-noise directions "
+                    "orthogonal to the current 51-D analysis anomalies"
+                ) from error
+            current_wrench = np.asarray(
+                [state.residual_wrench for state in analysed_dynamic]
+            )
+            next_wrench, interval_wrench = ou_wrench_transition(
+                current_wrench, factors.rho[time_index], noise
+            )
+            next_dynamic = []
+            if forecast_pool is None:
+                for member_index, stepper in enumerate(steppers):
+                    tracker.checkpoint()
+                    stepper.advance_interval(
+                        times[time_index + 1],
+                        problem.references[time_index],
+                        interval_wrench[member_index],
+                    )
+                    state = stepper.state
+                    next_dynamic.append(
+                        GrapeFilterState(
+                            rigid=state.rigid_body_state,
+                            controller=state.controller_state,
+                            actuator=state.actuator_state,
+                            residual_wrench=next_wrench[member_index],
+                        )
+                    )
+                    completed += 1
+                    tracker.emit(
+                        completed,
+                        "augmented_forecast",
+                        "Augmented closed-loop forecast",
+                        bag_id=bag_id,
+                        member_id=member_index,
+                        message="propagated interval {}/{}".format(
+                            time_index + 1, time_count - 1
+                        ),
+                    )
+            else:
+                (
+                    next_stepper_states,
+                    issued_commands,
+                ) = forecast_pool.advance_interval(
+                    start_time=times[time_index],
+                    end_time=times[time_index + 1],
+                    reference=problem.references[time_index],
+                    analysis_states=analysed_dynamic,
+                    vehicle_parameters=parameters,
+                    actuator_parameters=actuators,
+                    command_issue_times=tuple(
+                        stepper.command_issue_times for stepper in steppers
+                    ),
+                    command_histories=tuple(
+                        stepper.command_history_commands
+                        for stepper in steppers
+                    ),
+                    interval_wrench=interval_wrench,
+                    cancellation_token=cancellation,
+                )
+                for stepper, state, command in zip(
+                    steppers, next_stepper_states, issued_commands
+                ):
+                    stepper.accept_external_interval_advance(state, command)
+                for member_index, state in enumerate(next_stepper_states):
+                    tracker.checkpoint()
+                    next_dynamic.append(
+                        GrapeFilterState(
+                            rigid=state.rigid_body_state,
+                            controller=state.controller_state,
+                            actuator=state.actuator_state,
+                            residual_wrench=next_wrench[member_index],
+                        )
+                    )
+                    completed += 1
+                    tracker.emit(
+                        completed,
+                        "augmented_forecast",
+                        "Augmented closed-loop forecast",
+                        bag_id=bag_id,
+                        member_id=member_index,
+                        message="propagated interval {}/{}".format(
+                            time_index + 1, time_count - 1
+                        ),
+                    )
+            static_forecast.append(analysed_static.copy())
+            dynamic_forecast.append(tuple(next_dynamic))
+    except BaseException:
+        if forecast_pool is not None:
+            forecast_pool.abort()
+        raise
+    else:
+        if forecast_pool is not None:
+            forecast_pool.close()
 
     static_smoothed = [None] * time_count
     dynamic_smoothed = [None] * time_count

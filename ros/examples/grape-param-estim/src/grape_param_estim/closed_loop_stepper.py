@@ -203,10 +203,46 @@ class ClosedLoopStepper:
             raise ValueError(
                 "commands must align with the retained command history"
             )
+        self.replace_command_history_snapshot(issue_times, selected)
+
+    def replace_command_history_snapshot(
+        self,
+        issue_times: Sequence[float],
+        commands: Sequence[ActuatorCommand],
+    ) -> None:
+        """Replace the complete bounded causal-history snapshot.
+
+        Spawned forecast workers receive the parent process's authoritative
+        post-analysis history at every observation boundary.  Replacing both
+        issue times and command values prevents a worker's older, untrimmed
+        history from becoming hidden dynamic state.
+        """
+
+        self._require_active()
+        selected_times = np.asarray(issue_times, dtype=float)
+        selected_commands = tuple(commands)
+        if (
+            selected_times.ndim != 1
+            or np.any(~np.isfinite(selected_times))
+            or np.any(np.diff(selected_times) <= 0.0)
+            or (
+                selected_times.size
+                and selected_times[-1] >= self._state.time
+            )
+            or len(selected_commands) != selected_times.size
+            or any(
+                not isinstance(command, ActuatorCommand)
+                for command in selected_commands
+            )
+        ):
+            raise ValueError(
+                "history snapshot must contain increasing past issue times "
+                "and aligned commands"
+            )
         replacement = ZeroOrderHoldCommandHistory[ActuatorCommand](
             self._command_history.constant_delay
         )
-        for time, command in zip(issue_times, selected):
+        for time, command in zip(selected_times, selected_commands):
             replacement.append(
                 float(time),
                 ActuatorCommand(
@@ -217,6 +253,40 @@ class ClosedLoopStepper:
                 ),
             )
         self._command_history = replacement
+
+    def accept_external_interval_advance(
+        self,
+        next_state: ClosedLoopStepperState,
+        issued_command: ActuatorCommand,
+    ) -> ClosedLoopStepperState:
+        """Record one worker-computed interval in the parent-side history.
+
+        The expensive plant propagation may run in another process, but the
+        parent remains authoritative for bounded command history and the next
+        boundary time.  The command is recorded at the current left endpoint
+        exactly as :meth:`advance_interval` would have done.
+        """
+
+        self._require_active()
+        if not isinstance(next_state, ClosedLoopStepperState):
+            raise TypeError("next_state must be ClosedLoopStepperState")
+        if not isinstance(issued_command, ActuatorCommand):
+            raise TypeError("issued_command must be ActuatorCommand")
+        if (
+            next_state.time <= self._state.time
+            or next_state.actuator_state is None
+        ):
+            raise ValueError(
+                "external interval result must advance time with actuator state"
+            )
+        self._command_history.append(self._state.time, issued_command)
+        self._state = ClosedLoopStepperState(
+            time=next_state.time,
+            rigid_body_state=next_state.rigid_body_state,
+            controller_state=next_state.controller_state,
+            actuator_state=next_state.actuator_state,
+        )
+        return self._state
 
     def trim_command_history(
         self, current_time: float, maximum_delay: float

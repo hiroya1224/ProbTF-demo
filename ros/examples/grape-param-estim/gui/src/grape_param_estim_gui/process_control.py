@@ -8,6 +8,14 @@ import signal
 from typing import Callable, Mapping
 
 
+_DIAGONAL_Q_ARTIFACT_SCHEMAS = frozenset(
+    {
+        "grape-param-estim/diagonal-wrench-q-estimate/v1",
+        "grape-param-estim/diagonal-wrench-q-estimate/v2",
+    }
+)
+
+
 def send_cooperative_interrupt(
     process_id: int,
     *,
@@ -42,7 +50,7 @@ def finalize_cancelled_bundle(
 
         raw = read_json(bundle_root / "manifest.json")
         schema = raw.get("schema")
-        if schema == "grape-param-estim/diagonal-wrench-q-estimate/v1":
+        if schema in _DIAGONAL_Q_ARTIFACT_SCHEMAS:
             from grape_param_estim.diagonal_q_artifact import (
                 mark_diagonal_q_artifact_cancelled,
                 read_diagonal_q_manifest,

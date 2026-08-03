@@ -92,23 +92,33 @@ class ProcessControlTest(unittest.TestCase):
             )
 
     def test_diagonal_q_force_stop_uses_its_typed_cancellation_marker(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "q"
-            root.mkdir()
-            (root / "manifest.json").write_text(
-                '{"schema":"grape-param-estim/diagonal-wrench-q-estimate/v1"}',
-                encoding="utf-8",
-            )
-            with mock.patch(
-                "grape_param_estim.diagonal_q_artifact."
-                "read_diagonal_q_manifest",
-                return_value={"status": "writing"},
-            ), mock.patch(
-                "grape_param_estim.diagonal_q_artifact."
-                "mark_diagonal_q_artifact_cancelled"
-            ) as marker:
-                self.assertTrue(finalize_cancelled_bundle(root, "forced"))
-            marker.assert_called_once_with(root.resolve(), "forced")
+        for version in ("v1", "v2"):
+            with self.subTest(version=version):
+                temporary = tempfile.TemporaryDirectory()
+                self.addCleanup(temporary.cleanup)
+                directory = temporary.name
+                root = Path(directory) / "q"
+                root.mkdir()
+                schema = (
+                    "grape-param-estim/"
+                    "diagonal-wrench-q-estimate/{}".format(version)
+                )
+                (root / "manifest.json").write_text(
+                    '{{"schema":"{}"}}'.format(schema),
+                    encoding="utf-8",
+                )
+                with mock.patch(
+                    "grape_param_estim.diagonal_q_artifact."
+                    "read_diagonal_q_manifest",
+                    return_value={"status": "writing"},
+                ), mock.patch(
+                    "grape_param_estim.diagonal_q_artifact."
+                    "mark_diagonal_q_artifact_cancelled"
+                ) as marker:
+                    self.assertTrue(
+                        finalize_cancelled_bundle(root, "forced")
+                    )
+                marker.assert_called_once_with(root.resolve(), "forced")
 
     def test_parameter_force_stop_uses_its_typed_cancellation_marker(self):
         with tempfile.TemporaryDirectory() as directory:

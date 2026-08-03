@@ -165,7 +165,7 @@ class StagedMainWindowTest(unittest.TestCase):
         manifest = self._manifest(
             window,
             output,
-            "grape-param-estim/diagonal-wrench-q-estimate/v1",
+            "grape-param-estim/diagonal-wrench-q-estimate/v2",
         )
         return SimpleNamespace(
             root=output,

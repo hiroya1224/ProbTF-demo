@@ -60,6 +60,7 @@ class WorkflowLaunchDialog(QDialog):
         statuses: Mapping[str, StageStatus | str],
         *,
         reusable_artifacts: Mapping[str, bool] | None = None,
+        artifact_details: Mapping[str, str] | None = None,
         running: bool = False,
         selected_mode: WorkflowMode | str = WorkflowMode.STEP,
         parent: QWidget | None = None,
@@ -82,6 +83,16 @@ class WorkflowLaunchDialog(QDialog):
                     ", ".join(sorted(unexpected_artifacts))
                 )
             )
+        details = dict(artifact_details or {})
+        unexpected_details = set(details) - set(_STAGE_ORDER)
+        if unexpected_details:
+            raise ValueError(
+                "unexpected artifact-detail stages: {}".format(
+                    ", ".join(sorted(unexpected_details))
+                )
+            )
+        if any(not isinstance(value, str) for value in details.values()):
+            raise ValueError("artifact details must be text")
 
         self._statuses = {
             stage_id: StageStatus(statuses[stage_id])
@@ -89,6 +100,10 @@ class WorkflowLaunchDialog(QDialog):
         }
         self._reusable_artifacts = {
             stage_id: bool(artifact_flags.get(stage_id, False))
+            for stage_id in _STAGE_ORDER
+        }
+        self._artifact_details = {
+            stage_id: details.get(stage_id, "").strip()
             for stage_id in _STAGE_ORDER
         }
         self._explicit_running = bool(running)
@@ -227,6 +242,7 @@ class WorkflowLaunchDialog(QDialog):
         status: StageStatus | str,
         *,
         reusable_artifact: bool = False,
+        artifact_detail: str = "",
     ) -> None:
         """Update one already-derived stage status and its reuse indicator."""
 
@@ -234,6 +250,9 @@ class WorkflowLaunchDialog(QDialog):
             raise ValueError("unknown workflow stage: {}".format(stage_id))
         self._statuses[stage_id] = StageStatus(status)
         self._reusable_artifacts[stage_id] = bool(reusable_artifact)
+        if not isinstance(artifact_detail, str):
+            raise ValueError("artifact detail must be text")
+        self._artifact_details[stage_id] = artifact_detail.strip()
         self._refresh_stage_row(stage_id)
         self._refresh_enabled_state()
 
@@ -264,6 +283,9 @@ class WorkflowLaunchDialog(QDialog):
             artifact_text = "Completed artifact is not selected for reuse."
         else:
             artifact_text = "No reusable completed artifact."
+        detail = self._artifact_details[stage_id]
+        if detail:
+            artifact_text = "{} {}".format(artifact_text, detail)
         self.artifact_labels[stage_id].setText(artifact_text)
 
     def _refresh_enabled_state(self) -> None:

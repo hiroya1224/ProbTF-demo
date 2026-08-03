@@ -78,6 +78,24 @@ class WorkflowLaunchDialogTests(unittest.TestCase):
             "Completed artifact is stale and will not be reused.",
         )
 
+    def test_reusable_q_detail_is_visible(self):
+        dialog = WorkflowLaunchDialog(
+            {
+                "diagonal_q": StageStatus.COMPLETE,
+                "static_parameters": StageStatus.READY,
+            },
+            reusable_artifacts={"diagonal_q": True},
+            artifact_details={
+                "diagonal_q": (
+                    "Q diag [Fx, Fy, Fz, tau_x, tau_y, tau_z] = "
+                    "[1, 2, 3, 4, 5, 6]."
+                )
+            },
+        )
+        text = dialog.artifact_text("diagonal_q")
+        self.assertIn("will be reused", text)
+        self.assertIn("[1, 2, 3, 4, 5, 6]", text)
+
     def test_running_attempt_locks_mode_and_start_but_keeps_cancel_available(self):
         dialog = self._dialog(running=True, selected_mode=WorkflowMode.ALL)
         self.assertTrue(dialog.running)
@@ -134,6 +152,8 @@ class WorkflowLaunchDialogTests(unittest.TestCase):
             WorkflowLaunchDialog({"diagonal_q": StageStatus.READY})
         with self.assertRaisesRegex(ValueError, "unexpected"):
             self._dialog(reusable_artifacts={"another_stage": True})
+        with self.assertRaisesRegex(ValueError, "unexpected"):
+            self._dialog(artifact_details={"another_stage": "detail"})
 
 
 if __name__ == "__main__":

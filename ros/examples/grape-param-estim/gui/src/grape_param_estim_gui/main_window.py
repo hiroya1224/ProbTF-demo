@@ -12,6 +12,7 @@ from PySide6.QtCore import QPoint, QRect, QSize, QTimer, Qt
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
     QFileDialog,
     QInputDialog,
     QLabel,
@@ -25,7 +26,10 @@ from PySide6.QtWidgets import (
 
 from .artifact_loader import (
     GuiArtifactError,
+    diagonal_q_stage_fingerprint,
+    load_augmented_parameter_assimilation,
     load_assimilation,
+    load_diagonal_q_stage,
     load_inspection,
     load_pid_evaluation,
 )
@@ -42,12 +46,44 @@ from .project_io import (
     read_project_manifest,
     save_project_archive,
     unique_project_id,
+    utc_now,
     write_project_manifest,
 )
+from .stage_requests import (
+    DIAGONAL_Q_STAGE_ID,
+    STATIC_PARAMETERS_STAGE_ID,
+    augmented_parameter_stage_settings,
+    build_augmented_parameter_stage_request,
+    build_diagonal_q_stage_request,
+    diagonal_q_stage_settings,
+    stage_bag_requests,
+)
 from .state import BagRecord, ProjectStore
+from .workflow import (
+    StageAttempt,
+    StageStatus,
+    UpstreamRef,
+    WorkflowError,
+    WorkflowMode,
+    canonical_fingerprint,
+    stage_input_fingerprint,
+)
+from .workflow_artifacts import artifact_ref_from_validated_bundle
+from .workflow_io import (
+    WorkflowIoError,
+    load_workflow,
+    recover_interrupted_attempt,
+    save_workflow,
+)
 from .widgets.bag_browser import BagBrowserView
 from .widgets.master_view import MasterView
 from .widgets.next_experiment import NextExperimentView
+from .widgets.workflow_dialog import WorkflowLaunchDialog
+
+
+_STAGED_ASSIMILATION_SCHEMA = (
+    "grape-param-estim/fixed-q-augmented-parameter-estimate/v1"
+)
 
 
 class MainWindow(QMainWindow):
@@ -66,6 +102,8 @@ class MainWindow(QMainWindow):
         self._operation: str | None = None
         self._operation_context: dict[str, object] = {}
         self._log_path: Path | None = None
+        self._workflow_state = None
+        self._workflow_error: str | None = None
         self._close_after_worker = False
         self._pending_configuration_prompts: tuple[
             tuple[str, str, str], ...
@@ -76,6 +114,7 @@ class MainWindow(QMainWindow):
             self._show_pending_configuration_prompts
         )
         self.setWindowTitle("Grape parameter assimilation")
+        self._reload_workflow_state()
 
         self.tabs = QTabWidget()
         self.master_view = MasterView(store)
@@ -108,6 +147,7 @@ class MainWindow(QMainWindow):
         self.store.freshnessChanged.connect(self._update_freshness)
         self.store.projectChanged.connect(self._update_project_title)
         self.store.projectChanged.connect(self._cancel_configuration_prompts)
+        self.store.projectChanged.connect(self._reload_workflow_state)
         self.store.bagsChanged.connect(self._update_run_action)
         self.store.recordChanged.connect(lambda _bag_id: self._update_run_action())
         self.runner.progress.connect(self._update_progress)
@@ -144,12 +184,14 @@ class MainWindow(QMainWindow):
         self.load_project_action.triggered.connect(self.load_project)
         toolbar.addAction(self.load_project_action)
         toolbar.addSeparator()
-        self.run_action = QAction("Run smoothing", self)
+        self.run_action = QAction("Run estimation…", self)
         self.run_action.triggered.connect(self.start_assimilation)
         toolbar.addAction(self.run_action)
         self.stop_action = QAction("Stop", self)
         self.stop_action.setEnabled(False)
-        self.stop_action.triggered.connect(self.runner.request_cancel)
+        self.stop_action.triggered.connect(
+            lambda _checked=False: self.runner.request_cancel("user_requested")
+        )
         toolbar.addAction(self.stop_action)
         toolbar.addSeparator()
         self.previous_action = QAction("◀", self)
@@ -442,90 +484,467 @@ class MainWindow(QMainWindow):
         self._configuration_prompt_timer.stop()
         self._pending_configuration_prompts = ()
 
+    def _reload_workflow_state(self) -> None:
+        """Load project-local workflow state and recover an interrupted worker."""
+
+        self._workflow_state = None
+        self._workflow_error = None
+        try:
+            loaded = load_workflow(
+                self.store.project_path, self.store.project_id
+            )
+            recovered = recover_interrupted_attempt(loaded)
+            if recovered != loaded:
+                save_workflow(
+                    self.store.project_path,
+                    self.store.project_id,
+                    recovered,
+                )
+            self._workflow_state = recovered
+        except (OSError, ValueError, WorkflowError, WorkflowIoError) as error:
+            self._workflow_error = str(error)
+
     def start_assimilation(self) -> None:
+        """Open the stage chooser and launch the next required stage."""
+
         if self.runner.running:
             return
+        try:
+            selected = self._validated_workflow_records()
+            inputs = self._derive_workflow_inputs(selected)
+        except (OSError, ValueError, WorkflowError, WorkflowIoError, GuiArtifactError) as error:
+            self._show_error("Cannot run estimation", error)
+            return
+        mode = self._choose_workflow_mode(inputs)
+        if mode is None:
+            return
+        try:
+            self._workflow_state = self._workflow_state.with_mode(mode)
+            self._save_workflow_state()
+            self._launch_next_workflow_stage()
+        except (OSError, ValueError, WorkflowError, WorkflowIoError, GuiArtifactError) as error:
+            self._show_error("Cannot run estimation", error)
+
+    def _validated_workflow_records(self) -> tuple[BagRecord, ...]:
         selected = self.store.included_records()
         if not selected:
-            self._show_error("Cannot run smoothing", "Select at least one inspected bag.")
-            return
-        if any(record.inspection is None or record.selected_interval is None for record in selected):
-            self._show_error("Cannot run smoothing", "Every selected bag must have a completed inspection and interval.")
-            return
-        fingerprints = {record.configuration_fingerprint for record in selected}
-        if any(record.status not in {"ready", "complete"} for record in selected):
-            self._show_error(
-                "Cannot run smoothing",
-                "Every selected bag must have ready inspection status and confirmed configuration provenance.",
+            raise ValueError("Select at least one inspected bag.")
+        if any(
+            record.inspection is None or record.selected_interval is None
+            for record in selected
+        ):
+            raise ValueError(
+                "Every selected bag must have a completed inspection and interval."
             )
-            return
-        if "" in fingerprints:
-            self._show_error("Cannot run smoothing", "Selected bags must have one confirmed configuration fingerprint.")
-            return
-        allow_configuration_mismatch = False
-        if len(fingerprints) > 1:
-            decision = QMessageBox.warning(
-                self,
-                "Configuration mismatch",
-                "Selected bags have different configuration fingerprints. "
-                "They may not share one mass, inertia, CoG, effectiveness, and "
-                "constant delay. Run joint smoothing with an explicit mismatch "
-                "override for this request?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
+        if any(
+            record.status not in {"ready", "complete"} for record in selected
+        ):
+            raise ValueError(
+                "Every selected bag must have ready inspection status and "
+                "confirmed configuration provenance."
             )
-            if decision != QMessageBox.Yes:
-                return
-            allow_configuration_mismatch = True
-        baseline = self._choose_baseline_bag(selected)
-        if baseline is None:
-            return
-        run_id = "run-{}".format(uuid.uuid4().hex[:12])
-        output = self.store.project_path / "runs" / run_id / "assimilation_run"
-        request_path = output.parent / "request.json"
-        output.parent.mkdir(parents=True, exist_ok=False)
-        settings = dict(self.store.manifest["estimator_settings"])
-        settings["allow_configuration_mismatch"] = allow_configuration_mismatch
-        self.store.set_estimator_settings(settings)
-        request = {
-            "schema": "grape-param-estim/assimilation-request/v1",
-            "run_id": run_id,
-            "project_id": self.store.project_id,
-            "project_request_fingerprint": self.store.request_fingerprint(),
-            "baseline_bag_id": baseline,
-            "bags": [
-                {
-                    "bag_id": record.bag_id,
-                    "path": str(record.path),
-                    "sha256": record.sha256,
-                    "episode_index": int(record.inspection["recommended_interval"]["episode_index"]),
-                    "selected_interval": list(record.selected_range),
-                    "configuration_fingerprint": record.configuration_fingerprint,
-                }
-                for record in selected
-            ],
-            "settings": settings,
+        fingerprints = {
+            record.configuration_fingerprint for record in selected
         }
-        write_project_manifest(self.store.project_path, self.store.manifest)
+        if "" in fingerprints or len(fingerprints) != 1:
+            raise ValueError(
+                "Selected bags must share one confirmed configuration fingerprint."
+            )
+        if self._workflow_error is not None or self._workflow_state is None:
+            raise WorkflowIoError(
+                self._workflow_error or "workflow state is unavailable"
+            )
+        return selected
+
+    def _derive_workflow_inputs(
+        self, selected: tuple[BagRecord, ...]
+    ) -> dict[str, object]:
+        state = self._workflow_state
+        if state is None:
+            raise WorkflowIoError("workflow state is unavailable")
+        root_fingerprint = self.store.request_fingerprint()
+        bags = stage_bag_requests(selected)
+        estimator_settings = self.store.manifest["estimator_settings"]
+        q_settings = diagonal_q_stage_settings(estimator_settings)
+        q_stage = state.stage(DIAGONAL_Q_STAGE_ID)
+        q_input = stage_input_fingerprint(
+            definition_fingerprint=state.definition_fingerprint,
+            stage_id=q_stage.stage_id,
+            algorithm_version=q_stage.algorithm_version,
+            root_input_fingerprint=root_fingerprint,
+            stage_settings=q_settings,
+        )
+        q_status = state.stage_status(DIAGONAL_Q_STAGE_ID, q_input)
+        q_upstream = state.completion_ref(DIAGONAL_Q_STAGE_ID, q_input)
+        q_bundle = None
+        q_path = None
+        q_fingerprint = None
+        q_detail = ""
+        if q_upstream is not None:
+            q_attempt = state.attempt(q_upstream.attempt_id)
+            if q_attempt.artifact is None:
+                raise WorkflowError("completed Q attempt has no artifact")
+            q_path = self.store.project_path / q_attempt.artifact.relative_path
+            q_bundle = load_diagonal_q_stage(q_path)
+            self._verify_workflow_artifact(
+                q_attempt, q_bundle.root, q_bundle.manifest
+            )
+            if q_bundle.manifest["project_fingerprint"] != root_fingerprint:
+                raise WorkflowError(
+                    "completed Q artifact belongs to different project inputs"
+                )
+            q_fingerprint = diagonal_q_stage_fingerprint(q_path)
+            values = q_bundle.covariance.stationary_variance
+            q_detail = (
+                "Q diag [Fx, Fy, Fz, tau_x, tau_y, tau_z] = [{}]."
+            ).format(", ".join("{:.4g}".format(float(value)) for value in values))
+
+        parameter_settings = augmented_parameter_stage_settings(
+            estimator_settings
+        )
+        parameter_stage = state.stage(STATIC_PARAMETERS_STAGE_ID)
+        upstream = () if q_upstream is None else (q_upstream,)
+        parameter_input = stage_input_fingerprint(
+            definition_fingerprint=state.definition_fingerprint,
+            stage_id=parameter_stage.stage_id,
+            algorithm_version=parameter_stage.algorithm_version,
+            root_input_fingerprint=root_fingerprint,
+            stage_settings=parameter_settings,
+            upstream=upstream,
+        )
+        parameter_status = state.stage_status(
+            STATIC_PARAMETERS_STAGE_ID, parameter_input, upstream
+        )
+        parameter_upstream = state.completion_ref(
+            STATIC_PARAMETERS_STAGE_ID, parameter_input, upstream
+        )
+        parameter_detail = ""
+        if parameter_upstream is not None:
+            attempt = state.attempt(parameter_upstream.attempt_id)
+            if attempt.artifact is None:
+                raise WorkflowError(
+                    "completed parameter attempt has no artifact"
+                )
+            path = self.store.project_path / attempt.artifact.relative_path
+            run = load_augmented_parameter_assimilation(path)
+            self._verify_workflow_artifact(attempt, run.root, run.manifest)
+            if run.manifest["project_fingerprint"] != root_fingerprint:
+                raise WorkflowError(
+                    "completed parameter artifact belongs to different project inputs"
+                )
+            parameter_detail = "{} members across {} bag(s).".format(
+                run.shared_posterior.size, len(run.bag_results)
+            )
+        return {
+            "selected": selected,
+            "root_fingerprint": root_fingerprint,
+            "bags": bags,
+            "q_settings": q_settings,
+            "q_input": q_input,
+            "q_status": q_status,
+            "q_upstream": q_upstream,
+            "q_path": q_path,
+            "q_fingerprint": q_fingerprint,
+            "q_detail": q_detail,
+            "parameter_settings": parameter_settings,
+            "parameter_input": parameter_input,
+            "parameter_status": parameter_status,
+            "parameter_upstream": parameter_upstream,
+            "parameter_detail": parameter_detail,
+        }
+
+    def _verify_workflow_artifact(
+        self, attempt: StageAttempt, root: Path, manifest: object
+    ) -> None:
+        reference = artifact_ref_from_validated_bundle(
+            project_root=self.store.project_path,
+            artifact_root=root,
+            manifest=manifest,
+            expected_stage_id=self._workflow_stage_for_attempt(attempt),
+            expected_stage_input=attempt.stage_input_fingerprint,
+            expected_request_fingerprint=attempt.request_fingerprint,
+        )
+        if reference != attempt.artifact:
+            raise WorkflowError(
+                "completed artifact content differs from workflow.json"
+            )
+
+    def _workflow_stage_for_attempt(self, attempt: StageAttempt) -> str:
+        state = self._workflow_state
+        if state is None:
+            raise WorkflowIoError("workflow state is unavailable")
+        for stage in state.stages:
+            if attempt in stage.attempts:
+                return stage.stage_id
+        raise WorkflowError("workflow attempt has no owning stage")
+
+    def _choose_workflow_mode(
+        self, inputs: dict[str, object]
+    ) -> WorkflowMode | None:
+        state = self._workflow_state
+        if state is None:
+            raise WorkflowIoError("workflow state is unavailable")
+        dialog = WorkflowLaunchDialog(
+            {
+                DIAGONAL_Q_STAGE_ID: inputs["q_status"],
+                STATIC_PARAMETERS_STAGE_ID: inputs["parameter_status"],
+            },
+            reusable_artifacts={
+                DIAGONAL_Q_STAGE_ID: inputs["q_upstream"] is not None,
+                STATIC_PARAMETERS_STAGE_ID: (
+                    inputs["parameter_upstream"] is not None
+                ),
+            },
+            artifact_details={
+                DIAGONAL_Q_STAGE_ID: str(inputs["q_detail"]),
+                STATIC_PARAMETERS_STAGE_ID: str(
+                    inputs["parameter_detail"]
+                ),
+            },
+            selected_mode=state.mode,
+            parent=self,
+        )
+        if dialog.exec() != QDialog.Accepted:
+            return None
+        selection = dialog.launch_selection
+        return None if selection is None else selection.mode
+
+    def _launch_next_workflow_stage(self) -> None:
+        selected = self._validated_workflow_records()
+        inputs = self._derive_workflow_inputs(selected)
+        q_status = inputs["q_status"]
+        parameter_status = inputs["parameter_status"]
+        startable = {StageStatus.READY, StageStatus.RETRY, StageStatus.STALE}
+        if q_status in startable:
+            self._launch_diagonal_q_stage(inputs)
+            return
+        if q_status is StageStatus.COMPLETE and parameter_status in startable:
+            self._launch_static_parameter_stage(inputs)
+            return
+        if (
+            q_status is StageStatus.COMPLETE
+            and parameter_status is StageStatus.COMPLETE
+        ):
+            self.statusBar().showMessage(
+                "Both estimation stages are already complete."
+            )
+            return
+        raise WorkflowError(
+            "No estimation stage can start from the current project inputs."
+        )
+
+    def _launch_diagonal_q_stage(self, inputs: dict[str, object]) -> None:
+        attempt_id = "q-{}".format(uuid.uuid4().hex[:12])
+        parent = self.store.project_path / "runs" / attempt_id
+        output = parent / "diagonal_q"
+        request_path = parent / "request.json"
+        parent.mkdir(parents=True, exist_ok=False)
+        request = build_diagonal_q_stage_request(
+            run_id=attempt_id,
+            project_fingerprint=str(inputs["root_fingerprint"]),
+            stage_input_fingerprint=str(inputs["q_input"]),
+            bags=inputs["bags"],
+            settings=inputs["q_settings"],
+        )
+        self._launch_workflow_worker(
+            operation=DIAGONAL_Q_STAGE_ID,
+            attempt_id=attempt_id,
+            request=request,
+            request_path=request_path,
+            output=output,
+            stage_input=str(inputs["q_input"]),
+            root_input=str(inputs["root_fingerprint"]),
+            upstream=(),
+            script=self.package_root / "scripts" / "grape_estimate_diagonal_q.py",
+        )
+
+    def _launch_static_parameter_stage(
+        self, inputs: dict[str, object]
+    ) -> None:
+        if (
+            inputs["q_upstream"] is None
+            or inputs["q_path"] is None
+            or inputs["q_fingerprint"] is None
+        ):
+            raise WorkflowError("parameter stage requires a reusable Q artifact")
+        attempt_id = "parameters-{}".format(uuid.uuid4().hex[:12])
+        parent = self.store.project_path / "runs" / attempt_id
+        output = parent / "assimilation_run"
+        request_path = parent / "request.json"
+        parent.mkdir(parents=True, exist_ok=False)
+        request = build_augmented_parameter_stage_request(
+            run_id=attempt_id,
+            project_fingerprint=str(inputs["root_fingerprint"]),
+            stage_input_fingerprint=str(inputs["parameter_input"]),
+            upstream_diagonal_q_path=inputs["q_path"],
+            upstream_diagonal_q_fingerprint=str(inputs["q_fingerprint"]),
+            bags=inputs["bags"],
+            settings=inputs["parameter_settings"],
+        )
+        self._launch_workflow_worker(
+            operation=STATIC_PARAMETERS_STAGE_ID,
+            attempt_id=attempt_id,
+            request=request,
+            request_path=request_path,
+            output=output,
+            stage_input=str(inputs["parameter_input"]),
+            root_input=str(inputs["root_fingerprint"]),
+            upstream=(inputs["q_upstream"],),
+            script=(
+                self.package_root
+                / "scripts"
+                / "grape_estimate_augmented_parameters.py"
+            ),
+        )
+
+    def _launch_workflow_worker(
+        self,
+        *,
+        operation: str,
+        attempt_id: str,
+        request: dict[str, object],
+        request_path: Path,
+        output: Path,
+        stage_input: str,
+        root_input: str,
+        upstream: tuple[UpstreamRef, ...],
+        script: Path,
+    ) -> None:
+        state = self._workflow_state
+        if state is None:
+            raise WorkflowIoError("workflow state is unavailable")
         self._write_request(request_path, request)
-        for record in selected:
+        request_hash = canonical_fingerprint(request)
+        project = self.store.project_path
+        created = utc_now()
+        state = state.begin_attempt(
+            stage_id=operation,
+            attempt_id=attempt_id,
+            request_path=request_path.relative_to(project).as_posix(),
+            output_path=output.relative_to(project).as_posix(),
+            root_input_fingerprint=root_input,
+            stage_input=stage_input,
+            request_fingerprint=request_hash,
+            upstream=upstream,
+            created_at=created,
+        )
+        state = state.mark_running(attempt_id, started_at=utc_now())
+        self._workflow_state = state
+        self._save_workflow_state()
+        for record in self.store.included_records():
             record.status = "queued"
         self.store.bagsChanged.emit()
-        started = self._start_worker(
-            "assimilation", run_id, request_path, output,
-            self.package_root / "scripts" / "grape_assimilate_flights.py",
-        )
-        if not started:
-            self._restore_transient_record_statuses()
-            return
-        if self._operation == "assimilation":
-            self._operation_context["project_request_fingerprint"] = request[
-                "project_request_fingerprint"
-            ]
-            self.freshness_label.setText("RUNNING")
-            self.freshness_label.setStyleSheet(
-                "padding-left: 8px; color: #2e6b99; font-weight: 600;"
+        try:
+            started = self._start_worker(
+                operation,
+                attempt_id,
+                request_path,
+                output,
+                script,
             )
+        except BaseException as error:
+            self._mark_workflow_attempt_unsuccessful(
+                "failed",
+                "worker_start_error: {}".format(error),
+                attempt_id=attempt_id,
+            )
+            self._restore_transient_record_statuses()
+            self._operation = None
+            self._operation_context = {}
+            raise
+        if not started:
+            self._mark_workflow_attempt_unsuccessful(
+                "failed", "worker_unavailable", attempt_id=attempt_id
+            )
+            self._restore_transient_record_statuses()
+            self._operation = None
+            self._operation_context = {}
+            return
+        self._operation_context.update(
+            {
+                "attempt_id": attempt_id,
+                "root_input_fingerprint": root_input,
+                "stage_input_fingerprint": stage_input,
+                "request_fingerprint": request_hash,
+            }
+        )
+        self.freshness_label.setText("RUNNING")
+        self.freshness_label.setStyleSheet(
+            "padding-left: 8px; color: #2e6b99; font-weight: 600;"
+        )
+
+    def _save_workflow_state(self) -> None:
+        if self._workflow_state is None:
+            raise WorkflowIoError("workflow state is unavailable")
+        save_workflow(
+            self.store.project_path,
+            self.store.project_id,
+            self._workflow_state,
+        )
+
+    def _complete_workflow_attempt(
+        self, artifact_root: Path, manifest: object
+    ) -> None:
+        """Bind a validated complete bundle to the active workflow attempt."""
+
+        state = self._workflow_state
+        attempt_id = self._operation_context.get("attempt_id")
+        if state is None or not isinstance(attempt_id, str):
+            raise WorkflowIoError("active workflow attempt is unavailable")
+        attempt = state.attempt(attempt_id)
+        if self._operation is None:
+            raise WorkflowError("active workflow stage is unavailable")
+        reference = artifact_ref_from_validated_bundle(
+            project_root=self.store.project_path,
+            artifact_root=artifact_root,
+            manifest=manifest,
+            expected_stage_id=self._operation,
+            expected_stage_input=attempt.stage_input_fingerprint,
+            expected_request_fingerprint=attempt.request_fingerprint,
+        )
+        self._workflow_state = state.mark_complete(
+            attempt_id, reference, finished_at=utc_now()
+        )
+        self._save_workflow_state()
+
+    def _mark_workflow_attempt_unsuccessful(
+        self,
+        outcome: str,
+        reason: str,
+        *,
+        attempt_id: str | None = None,
+    ) -> None:
+        """Persist failure/cancellation when the current operation is staged."""
+
+        if self._operation not in {
+            DIAGONAL_Q_STAGE_ID,
+            STATIC_PARAMETERS_STAGE_ID,
+        } and attempt_id is None:
+            return
+        state = self._workflow_state
+        selected_id = (
+            attempt_id
+            if attempt_id is not None
+            else self._operation_context.get("attempt_id")
+        )
+        if state is None or not isinstance(selected_id, str):
+            return
+        attempt = state.attempt(selected_id)
+        if not attempt.status.active:
+            return
+        if outcome == "failed":
+            state = state.mark_failed(
+                selected_id, str(reason), finished_at=utc_now()
+            )
+        elif outcome == "cancelled":
+            state = state.mark_cancelled(
+                selected_id, str(reason), finished_at=utc_now()
+            )
+        else:
+            raise ValueError("workflow outcome must be failed or cancelled")
+        self._workflow_state = state
+        self._save_workflow_state()
+
 
     def _choose_baseline_bag(self, records: tuple[BagRecord, ...]) -> str | None:
         snapshots = {
@@ -636,6 +1055,7 @@ class MainWindow(QMainWindow):
 
     def _worker_finished(self, output_text: str) -> None:
         output = Path(output_text)
+        continue_all = False
         try:
             if self._operation == "inspection":
                 artifact = load_inspection(output)
@@ -688,6 +1108,41 @@ class MainWindow(QMainWindow):
                 self.store.apply_assimilation(run)
                 self._update_freshness(self.store.results_stale)
                 self.statusBar().showMessage("Joint smoothing completed.")
+            elif self._operation == DIAGONAL_Q_STAGE_ID:
+                bundle = load_diagonal_q_stage(output)
+                self._complete_workflow_attempt(bundle.root, bundle.manifest)
+                self._restore_transient_record_statuses()
+                values = bundle.covariance.stationary_variance
+                self.statusBar().showMessage(
+                    "Diagonal Q completed: [{}].".format(
+                        ", ".join(
+                            "{:.4g}".format(float(value))
+                            for value in values
+                        )
+                    )
+                )
+                continue_all = (
+                    self._workflow_state is not None
+                    and self._workflow_state.mode is WorkflowMode.ALL
+                    and not self._close_after_worker
+                )
+            elif self._operation == STATIC_PARAMETERS_STAGE_ID:
+                run = load_augmented_parameter_assimilation(output)
+                self._complete_workflow_attempt(run.root, run.manifest)
+                root_input = self._operation_context.get(
+                    "root_input_fingerprint"
+                )
+                if not isinstance(root_input, str):
+                    raise WorkflowError(
+                        "parameter attempt has no root input fingerprint"
+                    )
+                self.store.manifest["run_request_fingerprint"] = root_input
+                self.store.apply_assimilation(run)
+                self._update_freshness(self.store.results_stale)
+                self.tabs.setCurrentWidget(self.master_view)
+                self.statusBar().showMessage(
+                    "Fixed-Q static parameter estimation completed."
+                )
             elif self._operation == "pid_evaluation":
                 evaluation = load_pid_evaluation(output)
                 if self.store.assimilation_run is None:
@@ -712,7 +1167,30 @@ class MainWindow(QMainWindow):
                     "Posterior-predictive PID evaluation completed."
                 )
             write_project_manifest(self.store.project_path, self.store.manifest)
-        except (OSError, ValueError, GuiArtifactError, ProjectIoError) as error:
+        except (
+            OSError,
+            ValueError,
+            GuiArtifactError,
+            ProjectIoError,
+            WorkflowError,
+            WorkflowIoError,
+        ) as error:
+            continue_all = False
+            try:
+                self._mark_workflow_attempt_unsuccessful(
+                    "failed", "invalid_worker_output: {}".format(error)
+                )
+            except (
+                OSError,
+                ValueError,
+                WorkflowError,
+                WorkflowIoError,
+            ) as state_error:
+                error = RuntimeError(
+                    "{}; additionally could not persist workflow failure: {}".format(
+                        error, state_error
+                    )
+                )
             self._restore_transient_record_statuses()
             self._show_error("Worker output is invalid", error)
         finally:
@@ -720,21 +1198,82 @@ class MainWindow(QMainWindow):
             self._operation_context = {}
             self.stage_label.setText("idle")
             self._finish_pending_close()
+        if continue_all:
+            QTimer.singleShot(0, self._continue_all_workflow)
+
+    def _continue_all_workflow(self) -> None:
+        """Launch the next stage after a successful ALL-mode boundary."""
+
+        if (
+            self.runner.running
+            or self._close_after_worker
+            or self._workflow_state is None
+            or self._workflow_state.mode is not WorkflowMode.ALL
+        ):
+            return
+        try:
+            self._launch_next_workflow_stage()
+        except (
+            OSError,
+            ValueError,
+            GuiArtifactError,
+            WorkflowError,
+            WorkflowIoError,
+        ) as error:
+            self._show_error("Cannot continue estimation", error)
 
     def _worker_failed(self, message: str) -> None:
+        workflow_error = None
+        try:
+            self._mark_workflow_attempt_unsuccessful(
+                "failed", "worker_failed: {}".format(message)
+            )
+        except (
+            OSError,
+            ValueError,
+            WorkflowError,
+            WorkflowIoError,
+        ) as error:
+            workflow_error = error
         self._restore_transient_record_statuses()
         self._update_freshness(self.store.results_stale)
+        if workflow_error is not None:
+            message = (
+                "{}; additionally could not persist workflow failure: {}"
+            ).format(message, workflow_error)
         self._show_error("Estimator worker failed", message)
         self._operation = None
+        self._operation_context = {}
         self._finish_pending_close()
 
     def _worker_cancelled(self) -> None:
+        reason = (
+            "application_closing"
+            if self._close_after_worker
+            else "user_requested"
+        )
+        workflow_error = None
+        try:
+            self._mark_workflow_attempt_unsuccessful("cancelled", reason)
+        except (
+            OSError,
+            ValueError,
+            WorkflowError,
+            WorkflowIoError,
+        ) as error:
+            workflow_error = error
         self._restore_transient_record_statuses()
-        self.statusBar().showMessage("Worker cancelled; incomplete artifacts were not loaded.")
+        message = "Worker cancelled; incomplete artifacts were not loaded."
+        if workflow_error is not None:
+            message = "{} Workflow state error: {}".format(
+                message, workflow_error
+            )
+        self.statusBar().showMessage(message)
         self.stage_label.setText("cancelled")
         self.eta_label.setText("ETA —")
         self._update_freshness(self.store.results_stale)
         self._operation = None
+        self._operation_context = {}
         self._finish_pending_close()
 
     def _restore_transient_record_statuses(self) -> None:
@@ -795,6 +1334,14 @@ class MainWindow(QMainWindow):
             self.run_action.setEnabled(False)
             self.run_action.setToolTip("An estimator worker is running.")
             return
+        if self._workflow_error is not None or self._workflow_state is None:
+            self.run_action.setEnabled(False)
+            self.run_action.setToolTip(
+                "The staged workflow state cannot be loaded: {}".format(
+                    self._workflow_error or "unknown error"
+                )
+            )
+            return
         selected = self.store.included_records()
         if not selected:
             self.run_action.setEnabled(False)
@@ -814,9 +1361,18 @@ class MainWindow(QMainWindow):
                 "Every selected bag needs an interval and confirmed configuration group."
             )
             return
+        fingerprints = {
+            record.configuration_fingerprint for record in selected
+        }
+        if len(fingerprints) != 1:
+            self.run_action.setEnabled(False)
+            self.run_action.setToolTip(
+                "Selected bags must share one confirmed configuration group."
+            )
+            return
         self.run_action.setEnabled(True)
         self.run_action.setToolTip(
-            "Run joint weak-constraint ensemble smoothing for the selected bags."
+            "Choose staged or continuous diagonal-Q and parameter estimation."
         )
 
     def _update_progress(self, event: object) -> None:
@@ -879,7 +1435,12 @@ class MainWindow(QMainWindow):
             run_id = manifest.get("current_assimilation_run_id")
             if run_id:
                 self.store.apply_assimilation(
-                    load_assimilation(project_path / "runs" / str(run_id) / "assimilation_run")
+                    self._load_project_assimilation(
+                        project_path
+                        / "runs"
+                        / str(run_id)
+                        / "assimilation_run"
+                    )
                 )
             evaluation_id = manifest.get("current_pid_proposal_evaluation_id")
             if evaluation_id:
@@ -890,6 +1451,18 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Loaded project {}".format(self.store.project_id))
         except (OSError, ValueError, GuiArtifactError, ProjectIoError) as error:
             self._show_error("Cannot load project", error)
+
+    @staticmethod
+    def _load_project_assimilation(path: Path) -> object:
+        """Dispatch legacy and fixed-Q run bundles by their declared schema."""
+
+        manifest_path = path / "manifest.json"
+        value = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if not isinstance(value, dict):
+            raise ProjectIoError("assimilation manifest must contain an object")
+        if value.get("schema") == _STAGED_ASSIMILATION_SCHEMA:
+            return load_augmented_parameter_assimilation(path)
+        return load_assimilation(path)
 
     def import_pid_evaluation(self) -> None:
         source_name = QFileDialog.getExistingDirectory(

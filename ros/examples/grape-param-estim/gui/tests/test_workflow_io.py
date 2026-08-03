@@ -7,6 +7,7 @@ from unittest import mock
 from grape_param_estim_gui.workflow import (
     ArtifactRef,
     AttemptStatus,
+    StageStatus,
     WorkflowMode,
     WorkflowStage,
     WorkflowState,
@@ -17,6 +18,7 @@ from grape_param_estim_gui.workflow import (
 )
 from grape_param_estim_gui.workflow_io import (
     DEFAULT_DEFINITION_ID,
+    DIAGONAL_Q_ALGORITHM_VERSION,
     WORKFLOW_FILE_NAME,
     WorkflowIoError,
     create_default_workflow,
@@ -32,6 +34,7 @@ REQUEST = "sha256:" + "b" * 64
 CREATED = "2026-08-04T01:00:00+00:00"
 STARTED = "2026-08-04T01:00:01+00:00"
 RECOVERED = "2026-08-04T01:00:02+00:00"
+LEGACY_DIAGONAL_Q_ALGORITHM_VERSION = "diagonal-q-em-v1"
 
 
 def _begin_diagonal_q(state: WorkflowState, attempt_id: str = "q-attempt-1"):
@@ -80,6 +83,35 @@ def _complete_diagonal_q(state: WorkflowState):
     )
 
 
+def _legacy_workflow() -> WorkflowState:
+    return WorkflowState.create(
+        workflow_id="project-a",
+        definition_id=DEFAULT_DEFINITION_ID,
+        mode=WorkflowMode.STEP,
+        stages=(
+            WorkflowStage(
+                "diagonal_q", LEGACY_DIAGONAL_Q_ALGORITHM_VERSION
+            ),
+            WorkflowStage(
+                "static_parameters",
+                "augmented-static-enkf-v1",
+                depends_on=("diagonal_q",),
+            ),
+        ),
+    )
+
+
+def _current_diagonal_q_input(state: WorkflowState) -> str:
+    stage = state.stage("diagonal_q")
+    return stage_input_fingerprint(
+        definition_fingerprint=state.definition_fingerprint,
+        stage_id=stage.stage_id,
+        algorithm_version=stage.algorithm_version,
+        root_input_fingerprint=ROOT_INPUT,
+        stage_settings={"q_structure": "diagonal"},
+    )
+
+
 class WorkflowIoTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -102,7 +134,7 @@ class WorkflowIoTests(unittest.TestCase):
         )
         self.assertEqual(
             [stage.algorithm_version for stage in state.stages],
-            ["diagonal-q-em-v1", "augmented-static-enkf-v1"],
+            [DIAGONAL_Q_ALGORITHM_VERSION, "augmented-static-enkf-v1"],
         )
         self.assertEqual(state.stages[1].depends_on, ("diagonal_q",))
 
@@ -167,6 +199,73 @@ class WorkflowIoTests(unittest.TestCase):
             load_workflow(self.root, "project-a")
         with self.assertRaisesRegex(WorkflowIoError, "definition"):
             save_workflow(self.root, "project-a", other)
+
+    def test_known_v1_complete_history_is_reconciled_as_stale(self):
+        legacy, _upstream = _complete_diagonal_q(_legacy_workflow())
+        legacy_attempt = legacy.attempt("q-attempt-1")
+        (self.root / WORKFLOW_FILE_NAME).write_text(
+            json.dumps(legacy.to_dict()), encoding="utf-8"
+        )
+
+        state = load_workflow(self.root, "project-a")
+
+        self.assertEqual(
+            state.stage("diagonal_q").algorithm_version,
+            DIAGONAL_Q_ALGORITHM_VERSION,
+        )
+        self.assertEqual(state.attempt("q-attempt-1"), legacy_attempt)
+        self.assertNotEqual(
+            state.definition_fingerprint, legacy.definition_fingerprint
+        )
+        self.assertEqual(
+            state.stage_status(
+                "diagonal_q", _current_diagonal_q_input(state)
+            ),
+            StageStatus.STALE,
+        )
+        save_workflow(self.root, "project-a", state)
+        self.assertEqual(load_workflow(self.root, "project-a"), state)
+
+    def test_known_v1_failed_history_is_reconciled_as_ready(self):
+        legacy = _begin_diagonal_q(_legacy_workflow())
+        legacy = legacy.mark_failed(
+            "q-attempt-1", "numerical_failure", finished_at=RECOVERED
+        )
+        legacy_attempt = legacy.attempt("q-attempt-1")
+        (self.root / WORKFLOW_FILE_NAME).write_text(
+            json.dumps(legacy.to_dict()), encoding="utf-8"
+        )
+
+        state = load_workflow(self.root, "project-a")
+
+        self.assertEqual(state.attempt("q-attempt-1"), legacy_attempt)
+        self.assertEqual(
+            state.stage_status(
+                "diagonal_q", _current_diagonal_q_input(state)
+            ),
+            StageStatus.READY,
+        )
+
+    def test_unknown_algorithm_change_is_not_reconciled(self):
+        unsupported = WorkflowState.create(
+            workflow_id="project-a",
+            definition_id=DEFAULT_DEFINITION_ID,
+            mode=WorkflowMode.STEP,
+            stages=(
+                WorkflowStage("diagonal_q", "diagonal-q-unknown-v9"),
+                WorkflowStage(
+                    "static_parameters",
+                    "augmented-static-enkf-v1",
+                    depends_on=("diagonal_q",),
+                ),
+            ),
+        )
+        (self.root / WORKFLOW_FILE_NAME).write_text(
+            json.dumps(unsupported.to_dict()), encoding="utf-8"
+        )
+
+        with self.assertRaisesRegex(WorkflowIoError, "definition"):
+            load_workflow(self.root, "project-a")
 
     def test_project_and_workflow_ids_are_safe_and_bound_on_load_and_save(self):
         with self.assertRaisesRegex(WorkflowIoError, "project_id"):

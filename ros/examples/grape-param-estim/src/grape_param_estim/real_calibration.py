@@ -23,6 +23,32 @@ from grape_param_estim.system import (
     RigidBodyState,
     VehicleParameters,
 )
+from grape_param_estim.timing import ZeroOrderHoldCommandHistory
+
+
+def _advance_actuator_replay(
+    start_time,
+    end_time,
+    actuator_state,
+    command_history,
+    actuator_parameters,
+):
+    """Advance a pose-only calibration replay across exact delay switches."""
+
+    boundaries = [float(start_time), float(end_time)]
+    boundaries.extend(command_history.switch_times(start_time, end_time))
+    boundaries = sorted(set(boundaries))
+    current = actuator_state
+    for left, right in zip(boundaries[:-1], boundaries[1:]):
+        step = right - left
+        command = command_history.value_at(0.5 * (left + right))
+        midpoint = advance_actuators(
+            current, command, actuator_parameters, 0.5 * step
+        )
+        current = advance_actuators(
+            midpoint, command, actuator_parameters, 0.5 * step
+        )
+    return current
 
 
 @dataclass(frozen=True)
@@ -368,6 +394,7 @@ def calibrate_model_error_from_closed_loop_pose(
         initial_actuator_state.thrust,
         initial_actuator_state.gimbal_angle,
     )
+    command_history = ZeroOrderHoldCommandHistory(actuator_parameters.delay)
     predicted_actuator_wrench = np.empty((count, 6), dtype=float)
     for index in range(count):
         predicted_actuator_wrench[index] = actuator_wrench(
@@ -385,12 +412,14 @@ def calibrate_model_error_from_closed_loop_pose(
             time_step,
             actuators.gimbal_angle,
         )
+        command_history.append(float(sample_times[index]), command)
         if index + 1 < count:
-            midpoint = advance_actuators(
-                actuators, command, actuator_parameters, 0.5 * time_step
-            )
-            actuators = advance_actuators(
-                midpoint, command, actuator_parameters, 0.5 * time_step
+            actuators = _advance_actuator_replay(
+                sample_times[index],
+                sample_times[index + 1],
+                actuators,
+                command_history,
+                actuator_parameters,
             )
             controller_state = next_controller_state
 

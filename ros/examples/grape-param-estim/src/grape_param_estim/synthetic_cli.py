@@ -21,7 +21,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default="grape_phase1_synthetic.npz",
+        default="grape_synthetic_closed_loop.npz",
         help="destination NPZ (default: %(default)s)",
     )
     parser.add_argument("--duration", type=float, default=6.0)
@@ -53,7 +53,7 @@ def main() -> None:
     print(
         json.dumps(
             {
-                "schema": "grape-weak-constraint/phase1-summary",
+                "schema": "grape-param-estim/synthetic-closed-loop-summary/v1",
                 "output": str(destination),
                 "samples": int(experiment.nominal.times.size),
                 "duration_s": float(

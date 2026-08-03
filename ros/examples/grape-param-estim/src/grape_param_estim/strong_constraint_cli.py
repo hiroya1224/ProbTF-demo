@@ -4,8 +4,8 @@ import argparse
 import json
 
 from grape_param_estim.strong_constraint_experiments import (
-    run_phase2_experiment,
-    save_phase2_experiment,
+    run_strong_constraint_experiment,
+    save_strong_constraint_experiment,
 )
 
 
@@ -16,14 +16,16 @@ def main() -> None:
         )
     )
     parser.add_argument("--experiment", choices=("A", "B"), default="A")
-    parser.add_argument("--output", default="grape_phase2_ienks.npz")
+    parser.add_argument(
+        "--output", default="grape_strong_constraint_experiment.npz"
+    )
     parser.add_argument("--duration", type=float, default=1.2)
     parser.add_argument("--time-step", type=float, default=0.04)
     parser.add_argument("--ensemble-size", type=int, default=48)
     parser.add_argument("--iterations", type=int, default=4)
     parser.add_argument("--seed", type=int, default=23)
     arguments = parser.parse_args()
-    result = run_phase2_experiment(
+    result = run_strong_constraint_experiment(
         label=arguments.experiment,
         duration=arguments.duration,
         time_step=arguments.time_step,
@@ -31,12 +33,16 @@ def main() -> None:
         maximum_iterations=arguments.iterations,
         seed=arguments.seed,
     )
-    destination = save_phase2_experiment(arguments.output, result)
+    destination = save_strong_constraint_experiment(
+        arguments.output, result
+    )
     metrics = result.metrics
     print(
         json.dumps(
             {
-                "schema": "grape-weak-constraint/phase2-summary",
+                "schema": (
+                    "grape-param-estim/strong-constraint-experiment-summary/v1"
+                ),
                 "experiment": result.label,
                 "output": str(destination),
                 "members": int(result.posterior.control_ensemble.shape[0]),

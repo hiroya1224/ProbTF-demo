@@ -1,4 +1,4 @@
-"""Synthetic ground-truth validation of the exact Phase-2 parameter ridge.
+"""Synthetic ground-truth validation of the exact parameter ridge.
 
 The full closed-loop model has one exact common-scale invariance.  If mass,
 the complete inertia tensor and every force-effectiveness coefficient are
@@ -29,7 +29,7 @@ from grape_param_estim.strong_constraint import (
     StrongConstraintPrior,
 )
 from grape_param_estim.strong_constraint_experiments import (
-    Phase2Experiment,
+    StrongConstraintExperimentResult,
     _problem_from_synthetic,
 )
 from grape_param_estim.weak_constraint import (
@@ -206,14 +206,16 @@ class WeakRidgeValidationReport:
     particle_correction_required: bool
 
 
-def validate_phase2_ridge(
-    experiment: Phase2Experiment,
+def validate_strong_constraint_ridge(
+    experiment: StrongConstraintExperimentResult,
     rollout_lambdas: Sequence[float] = (-0.30, -0.15, 0.0, 0.15, 0.30),
 ) -> RidgeValidationReport:
-    """Validate one completed Phase-2 A/B experiment against its exact ridge."""
+    """Validate one completed strong-constraint experiment's exact ridge."""
 
-    if not isinstance(experiment, Phase2Experiment):
-        raise TypeError("experiment must be a Phase2Experiment")
+    if not isinstance(experiment, StrongConstraintExperimentResult):
+        raise TypeError(
+            "experiment must be a StrongConstraintExperimentResult"
+        )
     lambdas = np.asarray(rollout_lambdas, dtype=float)
     if (
         lambdas.ndim != 1
@@ -388,7 +390,7 @@ def validate_phase2_ridge(
 
 
 def validate_weak_zero_realization_ridge(
-    experiment: Phase2Experiment,
+    experiment: StrongConstraintExperimentResult,
     maximum_iterations: int = 1,
     seed: int = 11,
     rollout_lambdas: Sequence[float] = (-0.30, 0.0, 0.30),
@@ -403,8 +405,10 @@ def validate_weak_zero_realization_ridge(
     must also remain unaltered.
     """
 
-    if not isinstance(experiment, Phase2Experiment):
-        raise TypeError("experiment must be a Phase2Experiment")
+    if not isinstance(experiment, StrongConstraintExperimentResult):
+        raise TypeError(
+            "experiment must be a StrongConstraintExperimentResult"
+        )
     if experiment.label != "A":
         raise ValueError("weak ridge validation requires Experiment A")
     lambdas = np.asarray(rollout_lambdas, dtype=float)
@@ -584,7 +588,7 @@ def save_ridge_validation(
     destination = Path(path).expanduser().resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "schema": np.asarray(("grape-weak-constraint/phase4-ridge",)),
+        "schema": np.asarray(("grape-param-estim/ridge-validation/v1",)),
         "experiment_label": np.asarray(
             [value.experiment_label for value in selected]
         ),
@@ -664,6 +668,6 @@ __all__ = [
     "RidgeValidationReport",
     "WeakRidgeValidationReport",
     "save_ridge_validation",
-    "validate_phase2_ridge",
+    "validate_strong_constraint_ridge",
     "validate_weak_zero_realization_ridge",
 ]

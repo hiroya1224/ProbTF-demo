@@ -1,6 +1,6 @@
 """Continuous full six-DoF plant and closed-loop trajectory forecast."""
 
-from typing import Callable, List, Optional, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -22,6 +22,7 @@ from grape_param_estim.system import (
     RigidBodyState,
     VehicleParameters,
 )
+from grape_param_estim.timing import ZeroOrderHoldCommandHistory
 
 
 ResidualWrench = Callable[[float, RigidBodyState], np.ndarray]
@@ -131,29 +132,12 @@ def advance_actuators(
     return ActuatorState(thrust, gimbal)
 
 
-def _delayed_command(
-    query_time: float,
-    command_history: Sequence[Tuple[float, ActuatorCommand]],
-    delay: float,
-) -> ActuatorCommand:
-    """Evaluate a zero-order-held command after a continuous time delay."""
-
-    effective_time = float(query_time) - float(delay)
-    selected = command_history[0][1]
-    for issued_time, command in command_history:
-        if issued_time <= effective_time + 1.0e-12:
-            selected = command
-        else:
-            break
-    return selected
-
-
 def _advance_plant_and_actuators(
     start_time: float,
     end_time: float,
     state: RigidBodyState,
     actuator_state: ActuatorState,
-    command_history: Sequence[Tuple[float, ActuatorCommand]],
+    command_history: ZeroOrderHoldCommandHistory,
     actuator_parameters: ActuatorParameters,
     plant: "FullSixDofPlant",
     interval_residual_wrench: Optional[Sequence[float]] = None,
@@ -161,20 +145,13 @@ def _advance_plant_and_actuators(
     """Advance one controller interval without quantising actuator delay."""
 
     boundaries = [float(start_time), float(end_time)]
-    for issued_time, _command in command_history[1:]:
-        switch_time = float(issued_time) + actuator_parameters.delay
-        if start_time + 1.0e-12 < switch_time < end_time - 1.0e-12:
-            boundaries.append(switch_time)
+    boundaries.extend(command_history.switch_times(start_time, end_time))
     boundaries = sorted(set(boundaries))
     current_state = state
     current_actuators = actuator_state
     for left, right in zip(boundaries[:-1], boundaries[1:]):
         step = right - left
-        command = _delayed_command(
-            0.5 * (left + right),
-            command_history,
-            actuator_parameters.delay,
-        )
+        command = command_history.value_at(0.5 * (left + right))
         midpoint_actuators = advance_actuators(
             current_actuators, command, actuator_parameters, 0.5 * step
         )
@@ -358,7 +335,9 @@ def simulate_closed_loop(
     state = initial_state
     controller_state = initial_controller_state
     actuator_state = initial_actuator_state
-    command_history: List[Tuple[float, ActuatorCommand]] = []
+    command_history = ZeroOrderHoldCommandHistory[ActuatorCommand](
+        actuator_parameters.delay
+    )
     for index, time in enumerate(times):
         dt = (
             times[index + 1] - time
@@ -376,7 +355,7 @@ def simulate_closed_loop(
             dt,
             None if actuator_state is None else actuator_state.gimbal_angle,
         )
-        command_history.append((float(time), command))
+        command_history.append(float(time), command)
         if actuator_state is None:
             actuator_state = ActuatorState(
                 np.clip(

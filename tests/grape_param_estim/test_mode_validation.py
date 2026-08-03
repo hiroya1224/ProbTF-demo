@@ -89,6 +89,19 @@ class ModeValidationTests(unittest.TestCase):
                 result.pose_mode_probabilities[truth_index], 0.99
             )
 
+    def test_mode_experiment_intentionally_shares_one_actuator_model(self):
+        synthetic = self.forward.synthetic
+        self.assertIs(
+            synthetic.nominal_actuator_parameters,
+            synthetic.truth_actuator_parameters,
+        )
+        self.assertEqual(synthetic.nominal_actuator_parameters.delay, 0.0)
+        for value in self.forward.mode_posteriors:
+            self.assertIs(
+                value.problem.actuator_parameters,
+                synthetic.nominal_actuator_parameters,
+            )
+
     def test_mode_order_does_not_change_weights_or_raw_members(self):
         forward_weights = dict(
             zip(self.forward.mode_ids, self.forward.pose_mode_probabilities)
@@ -156,14 +169,14 @@ class ModeValidationTests(unittest.TestCase):
         conditioned = condition_on_actuator_wiring(self.forward, measurement)
         with tempfile.TemporaryDirectory() as directory:
             destination = save_mode_validation(
-                str(Path(directory) / "phase4_mode.npz"),
+                str(Path(directory) / "mode_validation.npz"),
                 self.forward,
                 conditioned,
             )
             with np.load(str(destination), allow_pickle=False) as artifact:
                 self.assertEqual(
                     str(artifact["schema"][0]),
-                    "grape-weak-constraint/phase4-mode",
+                    "grape-param-estim/mode-validation/v1",
                 )
                 self.assertEqual(
                     artifact["posterior_control_ensemble"].shape,

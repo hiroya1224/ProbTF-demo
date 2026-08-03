@@ -9,12 +9,14 @@ catkin_package()
 
 catkin_install_python(
   PROGRAMS
-    scripts/grape_posterior_predictive.py
-    scripts/grape_real_rosbag_ienks_q.py
-    scripts/grape_phase4_validate.py
-    scripts/grape_strong_constraint_ienks.py
-    scripts/grape_weak_constraint_ienks_q.py
-    scripts/grape_weak_constraint_synthetic.py
+    scripts/grape_assimilate_flights.py
+    scripts/grape_evaluate_pid_proposals.py
+    scripts/grape_generate_synthetic_flight.py
+    scripts/grape_inspect_flights.py
+    scripts/grape_run_strong_constraint_experiment.py
+    scripts/grape_run_weak_constraint_experiment.py
+    scripts/grape_validate_assimilation.py
+    scripts/grape_validate_held_out_flight.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -4,8 +4,8 @@ import argparse
 import json
 
 from grape_param_estim.weak_constraint_experiments import (
-    run_phase3_experiment,
-    save_phase3_experiment,
+    run_weak_constraint_experiment,
+    save_weak_constraint_experiment,
 )
 
 
@@ -16,7 +16,9 @@ def main() -> None:
             "model-error Experiment C."
         )
     )
-    parser.add_argument("--output", default="grape_phase3_ienks_q.npz")
+    parser.add_argument(
+        "--output", default="grape_weak_constraint_experiment.npz"
+    )
     parser.add_argument("--duration", type=float, default=0.4)
     parser.add_argument("--time-step", type=float, default=0.04)
     parser.add_argument(
@@ -28,7 +30,7 @@ def main() -> None:
     parser.add_argument("--iterations", type=int, default=4)
     parser.add_argument("--seed", type=int, default=31)
     arguments = parser.parse_args()
-    result = run_phase3_experiment(
+    result = run_weak_constraint_experiment(
         duration=arguments.duration,
         time_step=arguments.time_step,
         ensemble_size=(
@@ -37,12 +39,14 @@ def main() -> None:
         maximum_iterations=arguments.iterations,
         seed=arguments.seed,
     )
-    destination = save_phase3_experiment(arguments.output, result)
+    destination = save_weak_constraint_experiment(arguments.output, result)
     metrics = result.metrics
     print(
         json.dumps(
             {
-                "schema": "grape-weak-constraint/phase3-summary",
+                "schema": (
+                    "grape-param-estim/weak-constraint-experiment-summary/v1"
+                ),
                 "output": str(destination),
                 "members": int(
                     result.weak_posterior.control_ensemble.shape[0]

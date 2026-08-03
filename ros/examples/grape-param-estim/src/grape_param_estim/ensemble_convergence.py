@@ -1,4 +1,4 @@
-"""Raw-ensemble convergence diagnostics for Phase 4.
+"""Raw-ensemble convergence diagnostics.
 
 The posterior ensemble, rather than a fitted Gaussian, is the canonical law.
 This module compares two numerical resolutions after removing the exact
@@ -106,7 +106,7 @@ class WeakStrongConclusion:
 
 @dataclass(frozen=True)
 class EnsembleConvergenceReport:
-    """Phase-4 strong/weak size sweep without Gaussian posterior fitting."""
+    """Strong/weak size sweep without Gaussian posterior fitting."""
 
     synthetic: SyntheticExperiment
     weak_control_dimension: int
@@ -609,7 +609,7 @@ def save_ensemble_convergence(
     synthetic = report.synthetic
     payload = {
         "schema": np.asarray(
-            ("grape-weak-constraint/phase4-ensemble-convergence",)
+            ("grape-param-estim/ensemble-convergence/v1",)
         ),
         "times": synthetic.truth.times,
         "observations_position": synthetic.observations.position,

@@ -9,7 +9,7 @@ odometry twist, IMU, commands and joint data never enter the likelihood.
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple
 import hashlib
 
 import numpy as np
@@ -58,6 +58,13 @@ TAKEOFF_FLIGHT_STATE = 3
 LAND_FLIGHT_STATE = 4
 HOVER_FLIGHT_STATE = 5
 STOP_FLIGHT_STATE = 6
+FORCE_LANDING_STATE = 17
+CONTROL_ACTIVE_FLIGHT_STATES = (
+    TAKEOFF_FLIGHT_STATE,
+    LAND_FLIGHT_STATE,
+    HOVER_FLIGHT_STATE,
+    FORCE_LANDING_STATE,
+)
 
 TOPIC_TYPE_CONTRACT = (
     (COG_ODOM_TOPIC, "nav_msgs/Odometry"),
@@ -184,6 +191,146 @@ class FlightStateSeries:
 
 
 @dataclass(frozen=True)
+class FlightStateIntervalCandidate:
+    """One contiguous recorded flight-state interval inside an episode."""
+
+    state: int
+    start_record_time: float
+    end_record_time: float
+    start_local_time: float
+    end_local_time: float
+
+    def __post_init__(self) -> None:
+        state = int(self.state)
+        values = np.asarray(
+            (
+                self.start_record_time,
+                self.end_record_time,
+                self.start_local_time,
+                self.end_local_time,
+            ),
+            dtype=float,
+        )
+        if np.any(~np.isfinite(values)):
+            raise ValueError("flight-state interval times must be finite")
+        if values[1] <= values[0] or values[3] <= values[2]:
+            raise ValueError("flight-state interval must have positive duration")
+        if not np.isclose(
+            values[1] - values[0], values[3] - values[2],
+            atol=2.0e-7, rtol=0.0,
+        ):
+            raise ValueError("record and local interval durations must agree")
+        object.__setattr__(self, "state", state)
+        object.__setattr__(self, "start_record_time", float(values[0]))
+        object.__setattr__(self, "end_record_time", float(values[1]))
+        object.__setattr__(self, "start_local_time", float(values[2]))
+        object.__setattr__(self, "end_local_time", float(values[3]))
+
+    @property
+    def duration(self) -> float:
+        return self.end_record_time - self.start_record_time
+
+    @property
+    def control_active(self) -> bool:
+        return self.state in CONTROL_ACTIVE_FLIGHT_STATES
+
+
+@dataclass(frozen=True)
+class FlightEpisodeCandidate:
+    """One complete TAKEOFF-to-STOP episode and all of its state intervals."""
+
+    episode_index: int
+    start_record_time: float
+    end_record_time: float
+    start_local_time: float
+    end_local_time: float
+    state_intervals: Tuple[FlightStateIntervalCandidate, ...]
+
+    def __post_init__(self) -> None:
+        index = int(self.episode_index)
+        intervals = tuple(self.state_intervals)
+        values = np.asarray(
+            (
+                self.start_record_time,
+                self.end_record_time,
+                self.start_local_time,
+                self.end_local_time,
+            ),
+            dtype=float,
+        )
+        if index < 0 or np.any(~np.isfinite(values)) or not intervals:
+            raise ValueError("flight episode candidate is invalid")
+        if values[1] <= values[0] or values[3] <= values[2]:
+            raise ValueError("flight episode must have positive duration")
+        if not np.isclose(
+            intervals[0].start_record_time, values[0],
+            atol=2.0e-7, rtol=0.0,
+        ) or not np.isclose(
+            intervals[-1].end_record_time, values[1],
+            atol=2.0e-7, rtol=0.0,
+        ):
+            raise ValueError("state intervals must span the flight episode")
+        for first, second in zip(intervals[:-1], intervals[1:]):
+            if not np.isclose(
+                first.end_record_time, second.start_record_time,
+                atol=2.0e-7, rtol=0.0,
+            ):
+                raise ValueError("flight-state intervals must be contiguous")
+        object.__setattr__(self, "episode_index", index)
+        object.__setattr__(self, "start_record_time", float(values[0]))
+        object.__setattr__(self, "end_record_time", float(values[1]))
+        object.__setattr__(self, "start_local_time", float(values[2]))
+        object.__setattr__(self, "end_local_time", float(values[3]))
+        object.__setattr__(self, "state_intervals", intervals)
+
+
+@dataclass(frozen=True)
+class SmoothingIntervalRecommendation:
+    """Auditable automatic interval choice for one complete flight."""
+
+    episode_index: int
+    interval: FlightStateIntervalCandidate
+    reason: str
+    warnings: Tuple[str, ...] = tuple()
+
+    def __post_init__(self) -> None:
+        if int(self.episode_index) < 0:
+            raise ValueError("episode_index cannot be negative")
+        if not isinstance(self.interval, FlightStateIntervalCandidate):
+            raise TypeError("interval must be a FlightStateIntervalCandidate")
+        if self.reason not in {
+            "preferred_state",
+            "longest_control_active_fallback",
+        }:
+            raise ValueError("unknown smoothing recommendation reason")
+        object.__setattr__(self, "episode_index", int(self.episode_index))
+        object.__setattr__(self, "warnings", tuple(str(v) for v in self.warnings))
+
+
+@dataclass(frozen=True)
+class _SelectedFlightWindow:
+    start_record_time: float
+    end_record_time: float
+    transition_record_times: np.ndarray
+    transition_states: np.ndarray
+    episode_start_record_time: float
+    episode_end_record_time: float
+    selected_state: int
+
+    def __post_init__(self) -> None:
+        times = _finite_times(
+            self.transition_record_times, "selected flight transitions",
+            minimum_size=2,
+        )
+        states = np.asarray(self.transition_states, dtype=np.int64)
+        if states.shape != times.shape:
+            raise ValueError("selected flight transitions must align")
+        object.__setattr__(self, "transition_record_times", times)
+        object.__setattr__(self, "transition_states", states.copy())
+        object.__setattr__(self, "selected_state", int(self.selected_state))
+
+
+@dataclass(frozen=True)
 class ControllerGainEvents:
     """Dynamic-reconfigure gain updates from the four controller groups."""
 
@@ -290,7 +437,7 @@ class ControllerGainSnapshot:
         ):
             raise ValueError("controller snapshot is invalid")
         allowed_sources = {
-            "static_controller_configuration",
+            "recorded_startup_parameter_update",
             "dynamic_reconfigure_applied",
         }
         if any(value not in allowed_sources for value in source_kinds):
@@ -467,15 +614,30 @@ def _compress_flight_states(series: FlightStateSeries):
     return series.record_times[changed], series.states[changed]
 
 
-def _flight_episodes(series: FlightStateSeries):
+def list_flight_episode_candidates(
+    series: FlightStateSeries,
+    bag_record_start: float,
+) -> Tuple[FlightEpisodeCandidate, ...]:
+    """Return every complete flight and every contiguous state interval.
+
+    A forced landing (state 17) remains part of the same physical flight and
+    may therefore occur before STOP.  Unknown states still terminate a
+    candidate instead of silently joining unrelated flight segments.
+    """
+
+    if not isinstance(series, FlightStateSeries):
+        raise TypeError("series must be a FlightStateSeries")
+    local_origin = float(bag_record_start)
+    if not np.isfinite(local_origin):
+        raise ValueError("bag_record_start must be finite")
     times, states = _compress_flight_states(series)
-    allowed_airborne = {
-        TAKEOFF_FLIGHT_STATE,
-        LAND_FLIGHT_STATE,
-        HOVER_FLIGHT_STATE,
-    }
+    allowed_airborne = set(CONTROL_ACTIVE_FLIGHT_STATES)
     episodes = []
+    covered_until = -1
     for start_index in np.flatnonzero(states == TAKEOFF_FLIGHT_STATE):
+        start_index = int(start_index)
+        if start_index <= covered_until:
+            continue
         end_index = None
         for index in range(start_index + 1, states.size):
             if states[index] == STOP_FLIGHT_STATE:
@@ -483,68 +645,177 @@ def _flight_episodes(series: FlightStateSeries):
                 break
             if states[index] not in allowed_airborne:
                 break
-        if end_index is not None:
-            episodes.append(
-                (
-                    float(times[start_index]),
-                    float(times[end_index]),
-                    start_index,
-                    end_index,
-                )
+        if end_index is None:
+            continue
+        intervals = tuple(
+            FlightStateIntervalCandidate(
+                state=int(states[index]),
+                start_record_time=float(times[index]),
+                end_record_time=float(times[index + 1]),
+                start_local_time=float(times[index] - local_origin),
+                end_local_time=float(times[index + 1] - local_origin),
             )
-    if not episodes:
+            for index in range(start_index, end_index)
+        )
+        episodes.append(
+            FlightEpisodeCandidate(
+                episode_index=len(episodes),
+                start_record_time=float(times[start_index]),
+                end_record_time=float(times[end_index]),
+                start_local_time=float(times[start_index] - local_origin),
+                end_local_time=float(times[end_index] - local_origin),
+                state_intervals=intervals,
+            )
+        )
+        covered_until = end_index
+    return tuple(episodes)
+
+
+def recommend_smoothing_interval(
+    episode: FlightEpisodeCandidate,
+    preferred_state: int = HOVER_FLIGHT_STATE,
+) -> SmoothingIntervalRecommendation:
+    """Prefer the longest state-5 interval, with an explicit safe fallback."""
+
+    if not isinstance(episode, FlightEpisodeCandidate):
+        raise TypeError("episode must be a FlightEpisodeCandidate")
+    selected_state = int(preferred_state)
+    matching = tuple(
+        value for value in episode.state_intervals
+        if value.state == selected_state
+    )
+    warning_messages = []
+    if matching:
+        chosen = max(matching, key=lambda value: value.duration)
+        if len(matching) > 1:
+            warning_messages.append(
+                "flight episode has multiple state={} intervals; selected "
+                "the longest contiguous interval".format(selected_state)
+            )
+        reason = "preferred_state"
+    else:
+        active = tuple(
+            value for value in episode.state_intervals
+            if value.control_active
+        )
+        if not active:
+            raise ValueError(
+                "flight episode has no control-active smoothing interval"
+            )
+        chosen = max(active, key=lambda value: value.duration)
+        warning_messages.append(
+            "flight episode has no state={} interval; using longest "
+            "control-active state={} interval".format(
+                selected_state, chosen.state
+            )
+        )
+        reason = "longest_control_active_fallback"
+    return SmoothingIntervalRecommendation(
+        episode_index=episode.episode_index,
+        interval=chosen,
+        reason=reason,
+        warnings=tuple(warning_messages),
+    )
+
+
+def _flight_episodes(series: FlightStateSeries):
+    """Legacy internal tuple view backed by public immutable candidates."""
+
+    times, states = _compress_flight_states(series)
+    candidates = list_flight_episode_candidates(series, times[0])
+    if not candidates:
         raise ValueError("no complete TAKEOFF-to-STOP flight episode found")
+    episodes = []
+    for candidate in candidates:
+        first = int(np.searchsorted(
+            times, candidate.start_record_time, side="left"
+        ))
+        last = int(np.searchsorted(
+            times, candidate.end_record_time, side="left"
+        ))
+        episodes.append(
+            (
+                candidate.start_record_time,
+                candidate.end_record_time,
+                first,
+                last,
+            )
+        )
     return times, states, tuple(episodes)
 
 
-def select_continuous_flight_window(
-    series: FlightStateSeries,
-    bag_record_start: float,
-    episode_index: int = 0,
-    start_local: Optional[float] = None,
-    end_local: Optional[float] = None,
-    window_state: Optional[int] = HOVER_FLIGHT_STATE,
-):
-    """Select one continuous state interval inside one complete flight.
-
-    State 5 (HOVER) is the deliberately conservative default: the target bag
-    has already reached a controlled airborne condition there.  Passing
-    ``window_state=None`` exposes the complete TAKEOFF-to-STOP interval for
-    diagnostics, but callers must opt in explicitly.
-    """
-
-    transitions, states, episodes = _flight_episodes(series)
+def _episode_at_index(
+    candidates: Tuple[FlightEpisodeCandidate, ...], episode_index: int
+) -> FlightEpisodeCandidate:
     index = int(episode_index)
     if index < 0:
-        index += len(episodes)
-    if index < 0 or index >= len(episodes):
+        index += len(candidates)
+    if index < 0 or index >= len(candidates):
         raise ValueError("episode_index is outside the complete flights")
-    episode_start, episode_end, first, last = episodes[index]
-    interval_start = episode_start
-    interval_end = episode_end
+    return candidates[index]
+
+
+def _select_continuous_flight_window_details(
+    series: FlightStateSeries,
+    bag_record_start: float,
+    episode_index: int,
+    start_local: Optional[float],
+    end_local: Optional[float],
+    window_state: Optional[int],
+) -> _SelectedFlightWindow:
+    candidates = list_flight_episode_candidates(series, bag_record_start)
+    if not candidates:
+        raise ValueError("no complete TAKEOFF-to-STOP flight episode found")
+    episode = _episode_at_index(candidates, episode_index)
+    selected_state = -1
+    interval_start = episode.start_record_time
+    interval_end = episode.end_record_time
+    candidate_intervals = tuple()
     if window_state is not None:
-        selected_state = int(window_state)
-        matching = [
-            transition_index
-            for transition_index in range(first, last)
-            if states[transition_index] == selected_state
-        ]
-        if not matching:
-            raise ValueError(
-                "flight episode has no continuous state={} interval".format(
-                    selected_state
+        requested_state = int(window_state)
+        candidate_intervals = tuple(
+            value for value in episode.state_intervals
+            if value.state == requested_state
+        )
+        if not candidate_intervals:
+            if requested_state != HOVER_FLIGHT_STATE:
+                raise ValueError(
+                    "flight episode has no continuous state={} interval".format(
+                        requested_state
+                    )
                 )
+            recommendation = recommend_smoothing_interval(
+                episode, preferred_state=requested_state
             )
-        if len(matching) != 1:
-            raise ValueError(
-                "flight episode has multiple state={} intervals; select a "
-                "local window explicitly with window_state=None".format(
-                    selected_state
+            candidate_intervals = (recommendation.interval,)
+        chosen = max(candidate_intervals, key=lambda value: value.duration)
+
+        explicit_points = []
+        if start_local is not None:
+            explicit_points.append(float(bag_record_start) + float(start_local))
+        if end_local is not None:
+            explicit_points.append(float(bag_record_start) + float(end_local))
+        tolerance = 2.0e-7
+        containing = tuple(
+            value for value in candidate_intervals
+            if all(
+                value.start_record_time - tolerance <= point
+                <= value.end_record_time + tolerance
+                for point in explicit_points
+            )
+        )
+        if explicit_points:
+            if not containing:
+                raise ValueError(
+                    "requested window must stay inside one continuous "
+                    "selected-state interval of one complete flight episode; "
+                    "flight segments cannot be concatenated"
                 )
-            )
-        state_index = matching[0]
-        interval_start = float(transitions[state_index])
-        interval_end = float(transitions[state_index + 1])
+            chosen = max(containing, key=lambda value: value.duration)
+        interval_start = chosen.start_record_time
+        interval_end = chosen.end_record_time
+        selected_state = chosen.state
+
     requested_start = (
         interval_start
         if start_local is None
@@ -566,13 +837,56 @@ def select_continuous_flight_window(
             "interval of one complete flight episode; flight segments cannot "
             "be concatenated"
         )
+    transition_times = np.asarray(
+        [value.start_record_time for value in episode.state_intervals]
+        + [episode.end_record_time],
+        dtype=float,
+    )
+    transition_states = np.asarray(
+        [value.state for value in episode.state_intervals]
+        + [STOP_FLIGHT_STATE],
+        dtype=np.int64,
+    )
+    return _SelectedFlightWindow(
+        start_record_time=requested_start,
+        end_record_time=requested_end,
+        transition_record_times=transition_times,
+        transition_states=transition_states,
+        episode_start_record_time=episode.start_record_time,
+        episode_end_record_time=episode.end_record_time,
+        selected_state=selected_state,
+    )
+
+
+def select_continuous_flight_window(
+    series: FlightStateSeries,
+    bag_record_start: float,
+    episode_index: int = 0,
+    start_local: Optional[float] = None,
+    end_local: Optional[float] = None,
+    window_state: Optional[int] = HOVER_FLIGHT_STATE,
+):
+    """Select one continuous window, falling back when state 5 is absent.
+
+    Use :func:`recommend_smoothing_interval` when the caller also needs the
+    explicit fallback warning for display or persistence.
+    """
+
+    selected = _select_continuous_flight_window_details(
+        series,
+        bag_record_start,
+        episode_index,
+        start_local,
+        end_local,
+        window_state,
+    )
     return (
-        requested_start,
-        requested_end,
-        transitions[first:last + 1].copy(),
-        states[first:last + 1].copy(),
-        episode_start,
-        episode_end,
+        selected.start_record_time,
+        selected.end_record_time,
+        selected.transition_record_times.copy(),
+        selected.transition_states.copy(),
+        selected.episode_start_record_time,
+        selected.episode_end_record_time,
     )
 
 
@@ -763,65 +1077,57 @@ def _select_controller_snapshot(
     events: ControllerGainEvents,
     window_start: float,
     window_end: float,
-    initial_group_gains: np.ndarray,
-    initial_record_time: float,
 ) -> ControllerGainSnapshot:
-    """Reconstruct effective gains, treating ``pid_control_flag`` as a gate.
+    """Reconstruct exact gains solely from the bag-recorded update streams.
 
-    The controller PID objects load their initial gains from ROS parameters.
-    A dynamic-reconfigure message with ``pid_control_flag=false`` does not
-    apply its displayed values to those objects.  Consequently the static
-    controller configuration is the initial truth and only true events can
-    alter it.
+    The first pre-window update for every group is the dynamic-reconfigure
+    server's recorded startup snapshot, even when its application gate is
+    false.  Later false events are inert; later true events are applied.  A
+    true event that changes a gain inside the selected window invalidates the
+    assumption of one fixed controller snapshot.
     """
 
     groups = tuple(value[0] for value in GAIN_TOPICS)
-    initial = _finite_matrix(
-        initial_group_gains, len(groups), 3, "initial controller gains"
-    )
-    initial_time = float(initial_record_time)
-    if not np.isfinite(initial_time) or initial_time > window_start:
-        raise ValueError("initial controller snapshot time is invalid")
+    start = float(window_start)
+    end = float(window_end)
+    if not np.isfinite(start) or not np.isfinite(end) or end <= start:
+        raise ValueError("controller snapshot window is invalid")
     selected_times = []
     selected_gains = []
     selected_flags = []
     source_kinds = []
-    for group_index, group in enumerate(groups):
-        gains = initial[group_index].copy()
-        snapshot_time = initial_time
-        source_kind = "static_controller_configuration"
+    for group in groups:
         group_indices = [
             index
             for index, value in enumerate(events.groups)
-            if value == group and events.record_times[index] <= window_end
+            if value == group and events.record_times[index] <= end
         ]
         before_window = [
             index
             for index in group_indices
-            if events.record_times[index] <= window_start
+            if events.record_times[index] <= start
         ]
-        if before_window:
-            first = before_window[0]
-            if (
-                not events.pid_control_flags[first]
-                and not np.allclose(
-                    events.gains[first], gains, atol=1.0e-12, rtol=0.0
-                )
-            ):
-                raise ValueError(
-                    "inactive startup {} gain event disagrees with the "
-                    "static controller configuration".format(group)
-                )
-            if not events.pid_control_flags[first]:
-                snapshot_time = float(events.record_times[first])
-        for event_index in before_window:
+        if not before_window:
+            raise ValueError(
+                "bag has no recorded startup gain snapshot for {} before "
+                "the selected window".format(group)
+            )
+        startup = before_window[0]
+        gains = events.gains[startup].copy()
+        snapshot_time = float(events.record_times[startup])
+        source_kind = "recorded_startup_parameter_update"
+        applied = bool(events.pid_control_flags[startup])
+        if applied:
+            source_kind = "dynamic_reconfigure_applied"
+        for event_index in before_window[1:]:
             if events.pid_control_flags[event_index]:
                 gains = events.gains[event_index].copy()
                 snapshot_time = float(events.record_times[event_index])
                 source_kind = "dynamic_reconfigure_applied"
+                applied = True
         for event_index in group_indices:
             event_time = events.record_times[event_index]
-            if event_time <= window_start:
+            if event_time <= start:
                 continue
             if (
                 events.pid_control_flags[event_index]
@@ -833,7 +1139,7 @@ def _select_controller_snapshot(
                 )
         selected_times.append(snapshot_time)
         selected_gains.append(gains)
-        selected_flags.append(source_kind == "dynamic_reconfigure_applied")
+        selected_flags.append(applied)
         source_kinds.append(source_kind)
     return ControllerGainSnapshot(
         groups,
@@ -842,26 +1148,6 @@ def _select_controller_snapshot(
         np.asarray(selected_flags),
         tuple(source_kinds),
     )
-
-
-def _controller_group_gains(configuration: ControllerConfig) -> np.ndarray:
-    axis_gains = np.asarray(
-        [
-            (pid.p_gain, pid.i_gain, pid.d_gain)
-            for pid in configuration.pid
-        ],
-        dtype=float,
-    )
-    if axis_gains.shape != (6, 3) or np.any(~np.isfinite(axis_gains)):
-        raise ValueError("base controller gains are invalid")
-    if (
-        not np.array_equal(axis_gains[0], axis_gains[1])
-        or not np.array_equal(axis_gains[3], axis_gains[4])
-    ):
-        raise ValueError(
-            "base controller must share gains across xy and roll/pitch"
-        )
-    return axis_gains[[0, 2, 3, 5]].copy()
 
 
 def _controller_configuration(
@@ -928,14 +1214,7 @@ def build_real_flight_episode(
     period = float(sample_period)
     if not np.isfinite(period) or period <= 0.0:
         raise ValueError("sample_period must be positive")
-    (
-        requested_start,
-        requested_end,
-        transition_times,
-        transition_states,
-        complete_start,
-        _complete_end,
-    ) = select_continuous_flight_window(
+    selected_window = _select_continuous_flight_window_details(
         arrays.flight_state,
         arrays.bag_record_start,
         episode_index,
@@ -943,6 +1222,11 @@ def build_real_flight_episode(
         end_local,
         window_state,
     )
+    requested_start = selected_window.start_record_time
+    requested_end = selected_window.end_record_time
+    transition_times = selected_window.transition_record_times
+    transition_states = selected_window.transition_states
+    complete_start = selected_window.episode_start_record_time
     static_start, static_end = _static_window_before_episode(
         arrays.flight_state, complete_start
     )
@@ -976,8 +1260,6 @@ def build_real_flight_episode(
         arrays.controller_gain_events,
         requested_start,
         requested_end,
-        _controller_group_gains(base_configuration),
-        arrays.bag_record_start,
     )
     configuration = _controller_configuration(
         snapshot, static_position[2], base_configuration
@@ -1145,7 +1427,7 @@ def build_real_flight_episode(
         source_available_start=available_start,
         source_available_end=available_end,
         resample_period=period,
-        selected_flight_state=(-1 if window_state is None else window_state),
+        selected_flight_state=selected_window.selected_state,
         flight_transition_record_times=transition_times,
         flight_transition_states=transition_states,
         static_window_start=static_start,
@@ -1198,10 +1480,14 @@ def build_real_flight_episode(
     )
 
 
-def _sha256(path: Path) -> str:
+def _sha256(
+    path: Path, checkpoint: Optional[Callable[[], None]] = None
+) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         while True:
+            if checkpoint is not None:
+                checkpoint()
             block = stream.read(1024 * 1024)
             if not block:
                 break
@@ -1223,6 +1509,7 @@ def _series(times, values):
 def read_grape_rosbag_arrays(
     path: str = DEFAULT_GRAPE_BAG,
     compute_sha256: bool = True,
+    checkpoint: Optional[Callable[[], None]] = None,
 ) -> RosbagArrayData:
     """Read factual message fields using rosbag record time, lazily importing ROS."""
 
@@ -1248,6 +1535,8 @@ def read_grape_rosbag_arrays(
     joint_times, joint_position = [], []
     command_times, command_thrust = [], []
 
+    if checkpoint is not None:
+        checkpoint()
     with rosbag.Bag(str(source), "r") as bag:
         bag_start = float(bag.get_start_time())
         bag_end = float(bag.get_end_time())
@@ -1263,7 +1552,11 @@ def read_grape_rosbag_arrays(
                     )
                 )
         topic_types = tuple(str(topic_info[v].msg_type) for v in topics)
-        for topic, message, stamp in bag.read_messages(topics=topics):
+        for message_index, (topic, message, stamp) in enumerate(
+            bag.read_messages(topics=topics)
+        ):
+            if checkpoint is not None and message_index % 256 == 0:
+                checkpoint()
             record_time = float(stamp.to_sec())
             if topic == COG_ODOM_TOPIC:
                 value = message.pose.pose.position
@@ -1337,9 +1630,13 @@ def read_grape_rosbag_arrays(
                 gains.append(tuple(doubles[name] for name in required))
                 gain_flags.append(bools.get("pid_control_flag", False))
 
+    if checkpoint is not None:
+        checkpoint()
     return RosbagArrayData(
         bag_path=str(source),
-        bag_sha256=_sha256(source) if compute_sha256 else "",
+        bag_sha256=(
+            _sha256(source, checkpoint) if compute_sha256 else ""
+        ),
         bag_size_bytes=source.stat().st_size,
         bag_record_start=bag_start,
         bag_record_end=bag_end,
@@ -1413,7 +1710,7 @@ def save_real_flight_episode(path: str, episode: RealFlightEpisode) -> Path:
     provenance = episode.provenance
     np.savez_compressed(
         str(destination),
-        schema=np.asarray(("grape-weak-constraint/phase5-real-episode",)),
+        schema=np.asarray(("grape-param-estim/flight-episode/v1",)),
         record_times=episode.record_times,
         times=episode.observations.times,
         window_start_record_time=np.asarray(
@@ -1574,21 +1871,28 @@ def save_real_flight_episode(path: str, episode: RealFlightEpisode) -> Path:
 
 
 __all__ = [
+    "CONTROL_ACTIVE_FLIGHT_STATES",
     "ControllerGainEvents",
     "ControllerGainSnapshot",
     "DEFAULT_GRAPE_BAG",
     "EpisodeProvenance",
+    "FORCE_LANDING_STATE",
+    "FlightEpisodeCandidate",
     "FlightStateSeries",
+    "FlightStateIntervalCandidate",
     "HOVER_FLIGHT_STATE",
     "PidReferenceSeries",
     "RealFlightEpisode",
     "RosbagArrayData",
+    "SmoothingIntervalRecommendation",
     "TimedVectorSeries",
     "build_real_flight_episode",
     "linear_resample",
+    "list_flight_episode_candidates",
     "load_grape_rosbag_episode",
     "quaternion_slerp_resample",
     "read_grape_rosbag_arrays",
+    "recommend_smoothing_interval",
     "robust_covariance",
     "robust_pose_covariances",
     "save_real_flight_episode",

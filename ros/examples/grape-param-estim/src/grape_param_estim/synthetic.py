@@ -34,7 +34,7 @@ from grape_param_estim.system import (
 
 @dataclass(frozen=True)
 class SyntheticExperiment:
-    """Phase-1 output, including latent truth but pose-only observations."""
+    """Synthetic output, including latent truth but pose-only observations."""
 
     references: Tuple[ReferenceState, ...]
     nominal: ClosedLoopTrajectory
@@ -44,8 +44,14 @@ class SyntheticExperiment:
     correction_rotation_vector: np.ndarray
     controller_parameters: VehicleParameters
     truth_parameters: VehicleParameters
+    nominal_actuator_parameters: ActuatorParameters
+    truth_actuator_parameters: ActuatorParameters
 
     def __post_init__(self) -> None:
+        if not isinstance(
+            self.nominal_actuator_parameters, ActuatorParameters
+        ) or not isinstance(self.truth_actuator_parameters, ActuatorParameters):
+            raise TypeError("synthetic actuator parameters are invalid")
         count = self.nominal.times.size
         if len(self.references) != count:
             raise ValueError("reference and trajectory lengths must agree")
@@ -221,6 +227,7 @@ def run_synthetic_experiment(
         controller_configuration, trim_hover=True
     )
 
+    nominal_actuators = ActuatorParameters()
     nominal = simulate_closed_loop(
         times=times,
         references=references,
@@ -233,7 +240,7 @@ def run_synthetic_experiment(
             articulated_model=articulated_model,
         ),
         plant=FullSixDofPlant(nominal_parameters, geometry),
-        actuator_parameters=ActuatorParameters(),
+        actuator_parameters=nominal_actuators,
     )
 
     selected_truth = truth_parameters or default_truth_parameters()
@@ -284,6 +291,8 @@ def run_synthetic_experiment(
         correction_rotation_vector=correction_rotation,
         controller_parameters=nominal_parameters,
         truth_parameters=selected_truth,
+        nominal_actuator_parameters=nominal_actuators,
+        truth_actuator_parameters=selected_actuators,
     )
 
 
@@ -307,14 +316,14 @@ def run_perfect_model_experiment(
 
 
 def save_experiment(path: str, experiment: SyntheticExperiment) -> Path:
-    """Persist Phase-1 arrays without pickle or a legacy schema."""
+    """Persist synthetic arrays without pickle or a legacy schema."""
 
     destination = Path(path).expanduser().resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
     reference = experiment.references
     np.savez_compressed(
         str(destination),
-        schema=np.asarray(("grape-weak-constraint/phase1",)),
+        schema=np.asarray(("grape-param-estim/synthetic-closed-loop/v1",)),
         times=experiment.nominal.times,
         reference_position=np.asarray([item.position for item in reference]),
         reference_rpy=np.asarray([item.rpy for item in reference]),
@@ -359,5 +368,11 @@ def save_experiment(path: str, experiment: SyntheticExperiment) -> Path:
         ),
         truth_linear_drag=experiment.truth_parameters.linear_drag,
         truth_angular_drag=experiment.truth_parameters.angular_drag,
+        nominal_constant_delay=np.asarray(
+            (experiment.nominal_actuator_parameters.delay,), dtype=float
+        ),
+        truth_constant_delay=np.asarray(
+            (experiment.truth_actuator_parameters.delay,), dtype=float
+        ),
     )
     return destination

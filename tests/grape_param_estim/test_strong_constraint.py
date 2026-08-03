@@ -13,9 +13,11 @@ from grape_param_estim.strong_constraint import (
 )
 from grape_param_estim.strong_constraint_experiments import (
     _problem_from_synthetic,
-    run_phase2_experiment,
-    save_phase2_experiment,
+    run_strong_constraint_experiment,
+    save_strong_constraint_experiment,
 )
+from grape_param_estim.synthetic import run_synthetic_experiment
+from grape_param_estim.system import ActuatorParameters
 
 
 class StrongConstraintIEnKSTests(unittest.TestCase):
@@ -28,8 +30,8 @@ class StrongConstraintIEnKSTests(unittest.TestCase):
             maximum_iterations=1,
             seed=11,
         )
-        cls.experiment_a = run_phase2_experiment("A", **arguments)
-        cls.experiment_b = run_phase2_experiment("B", **arguments)
+        cls.experiment_a = run_strong_constraint_experiment("A", **arguments)
+        cls.experiment_b = run_strong_constraint_experiment("B", **arguments)
 
     def test_prior_ensemble_has_exact_declared_moments(self):
         prior = StrongConstraintPrior.grape()
@@ -83,6 +85,27 @@ class StrongConstraintIEnKSTests(unittest.TestCase):
             baseline.angular_velocity,
             atol=2.0e-14,
         )
+
+    def test_problem_uses_nominal_actuators_without_erasing_truth_delay(self):
+        truth_actuators = ActuatorParameters(delay=0.017)
+        synthetic = run_synthetic_experiment(
+            duration=0.08,
+            time_step=0.04,
+            truth_actuators=truth_actuators,
+            truth_residual_wrench=lambda _time, _state: np.zeros(6),
+            translation_noise=0.001,
+            rotation_noise=np.deg2rad(0.05),
+        )
+        problem = _problem_from_synthetic(synthetic)
+        self.assertIs(
+            problem.actuator_parameters,
+            synthetic.nominal_actuator_parameters,
+        )
+        self.assertEqual(problem.actuator_parameters.delay, 0.0)
+        self.assertIs(
+            synthetic.truth_actuator_parameters, truth_actuators
+        )
+        self.assertEqual(synthetic.truth_actuator_parameters.delay, 0.017)
 
     def test_experiment_a_recovers_equivalence_class_and_paths(self):
         result = self.experiment_a
@@ -144,15 +167,16 @@ class StrongConstraintIEnKSTests(unittest.TestCase):
         self.assertGreater(metrics.ridge_variance_ratio, 0.80)
         self.assertGreater(metrics.truth_pose_component_coverage, 0.75)
 
-    def test_phase2_artifact_keeps_raw_member_identity(self):
+    def test_strong_artifact_keeps_raw_member_identity(self):
         with tempfile.TemporaryDirectory() as directory:
-            destination = save_phase2_experiment(
-                str(Path(directory) / "phase2.npz"), self.experiment_a
+            destination = save_strong_constraint_experiment(
+                str(Path(directory) / "strong_constraint.npz"),
+                self.experiment_a,
             )
             with np.load(str(destination), allow_pickle=False) as artifact:
                 self.assertEqual(
                     str(artifact["schema"][0]),
-                    "grape-weak-constraint/phase2",
+                    "grape-param-estim/strong-constraint-experiment/v1",
                 )
                 self.assertEqual(
                     artifact["posterior_control_ensemble"].shape,

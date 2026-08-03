@@ -54,7 +54,7 @@ from grape_param_estim.weak_constraint import (
 
 
 @dataclass(frozen=True)
-class Phase3Metrics:
+class WeakConstraintExperimentMetrics:
     matched_strong_static_bias: float
     strong_static_bias: float
     weak_static_bias: float
@@ -74,7 +74,7 @@ class Phase3Metrics:
 
 
 @dataclass(frozen=True)
-class Phase3Experiment:
+class WeakConstraintExperimentResult:
     synthetic: SyntheticExperiment
     matched_synthetic: SyntheticExperiment
     truth_static_coordinates: np.ndarray
@@ -83,7 +83,7 @@ class Phase3Experiment:
     matched_strong_posterior: StrongConstraintPosterior
     strong_posterior: StrongConstraintPosterior
     weak_posterior: WeakConstraintPosterior
-    metrics: Phase3Metrics
+    metrics: WeakConstraintExperimentMetrics
 
 
 @dataclass(frozen=True)
@@ -375,13 +375,13 @@ def _zero_residual_wrench(_time, _state):
     return np.zeros(6, dtype=float)
 
 
-def run_phase3_experiment(
+def run_weak_constraint_experiment(
     duration: float = 0.8,
     time_step: float = 0.04,
     ensemble_size: Optional[int] = None,
     maximum_iterations: int = 3,
     seed: int = 31,
-) -> Phase3Experiment:
+) -> WeakConstraintExperimentResult:
     """Run the same model-error episode with strong and IEnKS-Q smoothers."""
 
     synthetic = run_synthetic_experiment(
@@ -411,7 +411,7 @@ def run_phase3_experiment(
     oracle_residual = oracle_effective_residual_wrench(synthetic)
     # Experiment C owns its truth generator, so Q is calibrated from the
     # known synthetic model-error RMS rather than adjusted to estimator output.
-    # Real-data Q calibration is deliberately deferred to Phase 5.
+    # Real-data Q calibration is deliberately handled by real assimilation.
     wrench_standard_deviation = np.maximum(
         2.0 * np.sqrt(np.mean(oracle_residual**2, axis=0)),
         np.asarray((0.05, 0.05, 0.05, 0.005, 0.005, 0.005)),
@@ -480,7 +480,7 @@ def run_phase3_experiment(
     residual_metrics = _residual_metrics(
         weak_posterior, oracle_residual, static_truth
     )
-    metrics = Phase3Metrics(
+    metrics = WeakConstraintExperimentMetrics(
         matched_strong_static_bias=matched_bias,
         strong_static_bias=strong_bias,
         weak_static_bias=weak_bias,
@@ -498,7 +498,7 @@ def run_phase3_experiment(
         residual_excited_channel_correlation=residual_metrics[1],
         residual_component_coverage=residual_metrics[2],
     )
-    return Phase3Experiment(
+    return WeakConstraintExperimentResult(
         synthetic=synthetic,
         matched_synthetic=matched_synthetic,
         truth_static_coordinates=truth_coordinates,
@@ -511,7 +511,9 @@ def run_phase3_experiment(
     )
 
 
-def save_phase3_experiment(path: str, result: Phase3Experiment) -> Path:
+def save_weak_constraint_experiment(
+    path: str, result: WeakConstraintExperimentResult
+) -> Path:
     """Save strong/weak comparison and the raw IEnKS-Q member law."""
 
     destination = Path(path).expanduser().resolve()
@@ -522,7 +524,9 @@ def save_phase3_experiment(path: str, result: Phase3Experiment) -> Path:
     counterfactual = replay_nominal_actuators_on_truth(result.synthetic)
     np.savez_compressed(
         str(destination),
-        schema=np.asarray(("grape-weak-constraint/phase3",)),
+        schema=np.asarray(
+            ("grape-param-estim/weak-constraint-experiment/v1",)
+        ),
         times=result.synthetic.truth.times,
         reference_position=np.asarray(
             [value.position for value in result.synthetic.references]

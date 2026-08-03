@@ -110,15 +110,16 @@ class SyntheticExperimentTests(unittest.TestCase):
             limits.maximum_gimbal_angle,
         )
 
-    def test_phase1_npz_has_no_pickle_or_estimator_result(self):
+    def test_synthetic_npz_has_no_pickle_or_estimator_result(self):
         with tempfile.TemporaryDirectory() as directory:
             path = save_experiment(
-                str(Path(directory) / "phase1.npz"), self.experiment
+                str(Path(directory) / "synthetic_closed_loop.npz"),
+                self.experiment,
             )
             with np.load(str(path), allow_pickle=False) as result:
                 self.assertEqual(
                     str(result["schema"][0]),
-                    "grape-weak-constraint/phase1",
+                    "grape-param-estim/synthetic-closed-loop/v1",
                 )
                 self.assertIn("nominal_position", result.files)
                 self.assertIn("truth_position", result.files)
@@ -126,6 +127,12 @@ class SyntheticExperimentTests(unittest.TestCase):
                 self.assertIn("correction_translation", result.files)
                 self.assertIn("controller_inertia", result.files)
                 self.assertIn("truth_force_effectiveness", result.files)
+                self.assertEqual(
+                    float(result["truth_constant_delay"][0]), 0.02
+                )
+                self.assertEqual(
+                    float(result["nominal_constant_delay"][0]), 0.0
+                )
                 self.assertNotIn("particles", result.files)
                 self.assertNotIn("weights", result.files)
 

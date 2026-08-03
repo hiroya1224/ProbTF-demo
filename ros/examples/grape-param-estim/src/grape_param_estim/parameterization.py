@@ -15,7 +15,7 @@ nominal Cholesky factor ``L0``::
 This makes every finite coordinate vector map to positive mass/effectiveness
 and a symmetric positive-definite inertia without hard parameter bounds.
 Linear and angular drag are fixed at their nominal values; they are not part
-of this Phase-2 static-parameter chart.
+of this static-parameter chart.
 """
 
 from typing import Sequence

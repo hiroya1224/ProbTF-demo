@@ -1,4 +1,4 @@
-"""Command-line entry points for Phase-4 ridge, size and mode validation."""
+"""Command-line entry points for ridge, size and mode validation."""
 
 import argparse
 import json
@@ -20,11 +20,11 @@ from grape_param_estim.mode_validation import (
 )
 from grape_param_estim.ridge_validation import (
     save_ridge_validation,
-    validate_phase2_ridge,
+    validate_strong_constraint_ridge,
     validate_weak_zero_realization_ridge,
 )
 from grape_param_estim.strong_constraint_experiments import (
-    run_phase2_experiment,
+    run_strong_constraint_experiment,
 )
 
 
@@ -35,7 +35,7 @@ def _ridge(arguments):
     reports = []
     experiment_a = None
     for label in ("A", "B"):
-        result = run_phase2_experiment(
+        result = run_strong_constraint_experiment(
             label=label,
             duration=duration,
             time_step=arguments.time_step,
@@ -45,7 +45,7 @@ def _ridge(arguments):
         )
         if label == "A":
             experiment_a = result
-        reports.append(validate_phase2_ridge(result))
+        reports.append(validate_strong_constraint_ridge(result))
     if experiment_a is None:
         raise AssertionError("Experiment A was not evaluated")
     weak_report = validate_weak_zero_realization_ridge(
@@ -57,7 +57,7 @@ def _ridge(arguments):
         arguments.output, reports, weak_report
     )
     return {
-        "schema": "grape-weak-constraint/phase4-ridge-summary",
+        "schema": "grape-param-estim/ridge-validation-summary/v1",
         "output": str(destination),
         "experiments": {
             value.experiment_label: {
@@ -105,7 +105,7 @@ def _convergence(arguments):
     weak = report.weak_endpoint_comparison
     return {
         "schema": (
-            "grape-weak-constraint/phase4-ensemble-convergence-summary"
+            "grape-param-estim/ensemble-convergence-summary/v1"
         ),
         "output": str(destination),
         "strong_sizes": [value.ensemble_size for value in report.strong_laws],
@@ -146,7 +146,7 @@ def _mode(arguments):
         arguments.output, result, conditioning
     )
     return {
-        "schema": "grape-weak-constraint/phase4-mode-summary",
+        "schema": "grape-param-estim/mode-validation-summary/v1",
         "output": str(destination),
         "mode_ids": list(result.mode_ids),
         "pose_mode_probabilities": result.pose_mode_probabilities.tolist(),
@@ -160,7 +160,7 @@ def _mode(arguments):
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Run one Phase-4 validation without mixing posterior members."
+            "Run one validation without mixing posterior members."
         )
     )
     parser.add_argument(
@@ -168,7 +168,9 @@ def main() -> None:
         choices=("ridge", "convergence", "mode"),
         default="ridge",
     )
-    parser.add_argument("--output", default="grape_phase4_validation.npz")
+    parser.add_argument(
+        "--output", default="grape_assimilation_validation.npz"
+    )
     parser.add_argument("--duration", type=float)
     parser.add_argument("--time-step", type=float, default=0.04)
     parser.add_argument("--ensemble-size", type=int)

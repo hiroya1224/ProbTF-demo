@@ -150,7 +150,7 @@ def _snapshot(configuration, parameters, geometry):
             }
         )
     return {
-        "snapshot_id": "phase1-golden",
+        "snapshot_id": "synthetic-golden",
         "pid": pid,
         "pose_config": {
             "need_yaw_d_control": True,

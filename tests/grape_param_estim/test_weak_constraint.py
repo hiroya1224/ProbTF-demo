@@ -15,15 +15,15 @@ from grape_param_estim.weak_constraint import WeakConstraintProblem
 from grape_param_estim.weak_constraint_experiments import (
     oracle_effective_residual_wrench,
     replay_nominal_actuators_on_truth,
-    run_phase3_experiment,
-    save_phase3_experiment,
+    run_weak_constraint_experiment,
+    save_weak_constraint_experiment,
 )
 
 
 class WeakConstraintIEnKSQTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.result = run_phase3_experiment(
+        cls.result = run_weak_constraint_experiment(
             duration=0.3,
             time_step=0.04,
             ensemble_size=88,
@@ -193,15 +193,15 @@ class WeakConstraintIEnKSQTests(unittest.TestCase):
             self.result.wrench_process.innovation_dimension, decoded.size
         )
 
-    def test_phase3_artifact_is_pickle_free_and_member_aligned(self):
+    def test_weak_artifact_is_pickle_free_and_member_aligned(self):
         with tempfile.TemporaryDirectory() as directory:
-            destination = save_phase3_experiment(
-                str(Path(directory) / "phase3.npz"), self.result
+            destination = save_weak_constraint_experiment(
+                str(Path(directory) / "weak_constraint.npz"), self.result
             )
             with np.load(str(destination), allow_pickle=False) as artifact:
                 self.assertEqual(
                     str(artifact["schema"][0]),
-                    "grape-weak-constraint/phase3",
+                    "grape-param-estim/weak-constraint-experiment/v1",
                 )
                 self.assertEqual(
                     artifact["weak_control_ensemble"].shape[0], 88

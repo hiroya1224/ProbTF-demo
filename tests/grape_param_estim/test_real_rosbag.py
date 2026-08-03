@@ -9,11 +9,6 @@ from grape_param_estim.real_assimilation import (
     assimilate_real_episode,
     save_real_assimilation,
 )
-from grape_param_estim.posterior_predictive import (
-    ControllerParameterCandidate,
-    evaluate_posterior_predictive,
-    input_from_phase5_artifact,
-)
 from grape_param_estim.real_rosbag import (
     ControllerGainEvents,
     FlightStateSeries,
@@ -233,7 +228,7 @@ class RealRosbagArrayTests(unittest.TestCase):
         )
         self.assertEqual(
             inactive_episode.controller_snapshot.source_kinds[0],
-            "static_controller_configuration",
+            "recorded_startup_parameter_update",
         )
 
         active_events = ControllerGainEvents(
@@ -255,24 +250,30 @@ class RealRosbagArrayTests(unittest.TestCase):
             "dynamic_reconfigure_applied",
         )
 
-    def test_inactive_startup_event_must_confirm_static_configuration(self):
+    def test_recorded_startup_event_is_the_current_exact_gain(self):
         arrays = _fake_arrays()
         events = arrays.controller_gain_events
         inconsistent = events.gains.copy()
         inconsistent[0] = (8.0, 0.3, 4.0)
-        with self.assertRaisesRegex(ValueError, "inactive startup xy"):
-            build_real_flight_episode(
-                replace(
-                    arrays,
-                    controller_gain_events=ControllerGainEvents(
-                        events.record_times,
-                        events.groups,
-                        inconsistent,
-                        events.pid_control_flags,
-                    ),
+        episode = build_real_flight_episode(
+            replace(
+                arrays,
+                controller_gain_events=ControllerGainEvents(
+                    events.record_times,
+                    events.groups,
+                    inconsistent,
+                    events.pid_control_flags,
                 ),
-                sample_period=0.2,
-            )
+            ),
+            sample_period=0.2,
+        )
+        np.testing.assert_array_equal(
+            episode.controller_snapshot.gains[0], (8.0, 0.3, 4.0)
+        )
+        self.assertEqual(
+            episode.controller_snapshot.source_kinds[0],
+            "recorded_startup_parameter_update",
+        )
 
     def test_episode_artifact_is_pickle_free_and_complete(self):
         episode = build_real_flight_episode(
@@ -285,7 +286,7 @@ class RealRosbagArrayTests(unittest.TestCase):
             with np.load(str(destination), allow_pickle=False) as artifact:
                 self.assertEqual(
                     str(artifact["schema"][0]),
-                    "grape-weak-constraint/phase5-real-episode",
+                    "grape-param-estim/flight-episode/v1",
                 )
                 self.assertEqual(
                     artifact["reference_position"].shape,
@@ -319,7 +320,7 @@ class RealRosbagArrayTests(unittest.TestCase):
             with np.load(str(destination), allow_pickle=False) as artifact:
                 self.assertEqual(
                     str(artifact["schema"][0]),
-                    "grape-weak-constraint/phase5-real-assimilation",
+                    "grape-param-estim/assimilation-run/v1",
                 )
                 self.assertEqual(
                     str(artifact["provenance_thrust_anchor_kind"][0]),
@@ -339,29 +340,6 @@ class RealRosbagArrayTests(unittest.TestCase):
                 )
                 for key in artifact.files:
                     self.assertFalse(artifact[key].dtype.hasobject)
-            predictive = input_from_phase5_artifact(str(destination))
-            np.testing.assert_array_equal(
-                predictive.member_ids,
-                np.arange(result.posterior.control_ensemble.shape[0]),
-            )
-            np.testing.assert_array_equal(
-                predictive.interval_residual_wrench,
-                result.posterior.residual_wrench_ensemble,
-            )
-            self.assertEqual(
-                predictive.scenario_assumption,
-                "repeat_phase5_reference_member_initial_state_and_"
-                "posterior_residual_path",
-            )
-            decision = evaluate_posterior_predictive(
-                predictive,
-                candidates=(ControllerParameterCandidate("baseline"),),
-                failure_threshold=100.0,
-            )
-            np.testing.assert_array_equal(
-                decision.evaluations[0].member_ids,
-                predictive.member_ids,
-            )
 
 
 if __name__ == "__main__":

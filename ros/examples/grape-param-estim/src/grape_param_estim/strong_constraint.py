@@ -336,7 +336,7 @@ class ParameterRidge:
 
 @dataclass(frozen=True)
 class StrongConstraintPosterior:
-    """Raw member-preserving Phase-2 posterior and push-forward paths."""
+    """Raw member-preserving posterior and push-forward paths."""
 
     control_ensemble: np.ndarray
     prior_control_ensemble: np.ndarray

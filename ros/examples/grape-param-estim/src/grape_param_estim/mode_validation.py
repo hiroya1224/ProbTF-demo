@@ -413,6 +413,8 @@ def generate_mode_synthetic_experiment(
         correction_rotation_vector=correction_rotation,
         controller_parameters=parameters,
         truth_parameters=parameters,
+        nominal_actuator_parameters=actuator_parameters,
+        truth_actuator_parameters=actuator_parameters,
     )
 
 
@@ -432,7 +434,7 @@ def _problem_for_mode(
         controller_configuration=configuration,
         controller_parameters=experiment.controller_parameters,
         geometry=geometry,
-        actuator_parameters=ActuatorParameters(),
+        actuator_parameters=experiment.nominal_actuator_parameters,
         parameter_chart=VehicleParameterChart(
             experiment.controller_parameters
         ),
@@ -667,7 +669,7 @@ def save_mode_validation(
     )
     np.savez_compressed(
         str(destination),
-        schema=np.asarray(("grape-weak-constraint/phase4-mode",)),
+        schema=np.asarray(("grape-param-estim/mode-validation/v1",)),
         truth_mode_id=np.asarray((result.truth_mode_id,)),
         mode_id=mode_ids,
         mode_channel_to_rotor=np.asarray(

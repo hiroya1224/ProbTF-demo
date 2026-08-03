@@ -1,694 +1,673 @@
 from dataclasses import replace
 from pathlib import Path
-from types import SimpleNamespace
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
-from grape_param_estim.controller import (
-    ControllerConfig,
-    initial_controller_state,
+from grape_param_estim.artifact_io import (
+    begin_bundle,
+    load_pid_proposal_evaluation,
+    read_manifest,
+)
+from grape_param_estim.controller import ControllerConfig, initial_controller_state
+from grape_param_estim.controller_config import (
+    ControllerSnapshotProvenance,
+    PID_GROUPS,
+    PidGainConfiguration,
 )
 from grape_param_estim.geometry import (
-    correction_transform_path,
     euler_xyz_to_matrix,
     matrix_to_quaternion,
 )
-from grape_param_estim.mode_validation import (
-    NOMINAL_MODE_ID,
-    plant_wiring_mode,
+from grape_param_estim.pid_proposal import (
+    derive_pid_proposal_ensemble,
+    member_pid_candidate,
+    user_pid_candidate,
 )
 from grape_param_estim.posterior_predictive import (
-    ControllerParameterCandidate,
+    COMPONENTWISE_IMPROVEMENT_RULE,
+    CounterfactualBagScenario,
+    ErrorThresholds,
+    PHYSICAL_METRICS,
     PosteriorPredictiveInput,
-    PosteriorPredictiveWeights,
-    TrackingLossDefinition,
-    apply_controller_candidate,
-    default_controller_parameter_candidates,
+    bag_equal_aggregate,
+    correction_zero_coverage,
     empirical_upper_cvar,
-    evaluate_posterior_predictive,
-    input_from_mode_posterior,
-    input_from_real_assimilation,
-    save_posterior_predictive_decision,
+    evaluate_pid_proposals,
+    log_gain_change,
+    pid_proposal_evaluation_manifest,
+    save_pid_proposal_evaluation,
+    summarize_member_metrics,
+    time_integrated_error_metrics,
 )
-from grape_param_estim.strong_constraint import (
-    CONTROL_DIMENSION,
-    PARAMETER_OFFSET,
-)
-from grape_param_estim.strong_constraint_experiments import (
-    _problem_from_synthetic,
-)
+from grape_param_estim.progress import CancellationToken, ProgressCancelled
 from grape_param_estim.synthetic import run_synthetic_experiment
-from grape_param_estim.parameterization import VehicleParameterChart
 from grape_param_estim.system import (
     ActuatorParameters,
     ActuatorState,
-    ControllerState,
+    ClosedLoopTrajectory,
     GrapeGeometry,
     RigidBodyState,
     VehicleParameters,
 )
 
 
-class PosteriorPredictiveDecisionTests(unittest.TestCase):
+def _pid_values(configuration):
+    rows = []
+    for axis in (0, 2, 3, 5):
+        value = configuration.pid[axis]
+        rows.append((value.p_gain, value.i_gain, value.d_gain))
+    return np.asarray(rows)
+
+
+class PosteriorPredictiveTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.synthetic = run_synthetic_experiment(
-            duration=0.20,
+        cls.configuration = ControllerConfig.grape()
+        cls.current = PidGainConfiguration(
+            _pid_values(cls.configuration),
+            ControllerSnapshotProvenance(
+                bag_id="bag-a",
+                topics=tuple(
+                    "/recorded/controller/{}/parameter_updates".format(group)
+                    for group in PID_GROUPS
+                ),
+                record_times=np.asarray((10.0, 10.1, 10.2, 10.3)),
+                source_kinds=("dynamic_reconfigure",) * 4,
+            ),
+        )
+        cls.nominal = VehicleParameters.nominal()
+        cls.geometry = GrapeGeometry.grape()
+        cls.member_id = np.asarray((41, 7, 99), dtype=np.int64)
+        cls.physical = tuple(
+            replace(cls.nominal, mass=cls.nominal.mass * scale)
+            for scale in (0.88, 1.0, 1.13)
+        )
+        cls.constant_delay = np.asarray((0.0, 0.007, 0.024))
+        cls.proposals = derive_pid_proposal_ensemble(
+            cls.member_id,
+            cls.physical,
+            cls.constant_delay,
+            ("nominal", "nominal", "nominal"),
+            cls.nominal,
+            cls.geometry,
+            cls.current,
+        )
+        first = run_synthetic_experiment(
+            duration=0.24,
             time_step=0.04,
+            truth_parameters=cls.nominal,
+            truth_actuators=ActuatorParameters(),
             truth_residual_wrench=lambda _time, _state: np.zeros(6),
-            translation_noise=0.001,
-            rotation_noise=0.001,
-            seed=17,
+            translation_noise=0.0,
+            rotation_noise=0.0,
+            seed=91,
         )
-        cls.problem = _problem_from_synthetic(cls.synthetic)
-        nominal = VehicleParameters.nominal()
-        cls.members = tuple(
-            replace(nominal, mass=nominal.mass * scale)
-            for scale in (0.82, 1.0, 1.18)
+        second = run_synthetic_experiment(
+            duration=0.16,
+            time_step=0.04,
+            truth_parameters=cls.nominal,
+            truth_actuators=ActuatorParameters(),
+            truth_residual_wrench=lambda _time, _state: np.zeros(6),
+            translation_noise=0.0,
+            rotation_noise=0.0,
+            seed=92,
         )
-        cls.member_ids = np.asarray((9, 2, 15), dtype=np.int64)
-        cls.zero_residual_wrench = np.zeros(
-            (len(cls.members), cls.synthetic.truth.times.size - 1, 6)
-        )
-        configuration = ControllerConfig.grape()
-        controller_state = initial_controller_state(
-            configuration, trim_hover=True
+        cls.scenarios = (
+            cls._scenario("bag-a", first, "posterior_replay", 0.03),
+            cls._scenario("bag-b", second, "zero", 0.07),
         )
         cls.predictive_input = PosteriorPredictiveInput(
-            selected_mode_id=NOMINAL_MODE_ID,
-            member_ids=cls.member_ids,
-            physical_parameter_members=cls.members,
-            times=cls.synthetic.truth.times,
-            references=cls.synthetic.references,
-            initial_states=tuple(
-                cls.problem.initial_state_anchor for _value in cls.members
-            ),
+            selected_mode_id="nominal",
+            physical_parameter_members=cls.physical,
+            proposal_ensemble=cls.proposals,
+            bags=cls.scenarios,
+            provenance=(("source_run_id", "run-a"),),
+        )
+        cls.member_candidate = member_pid_candidate(cls.proposals, 41)
+        cls.user_candidate = user_pid_candidate(
+            "user-soft",
+            PidGainConfiguration(cls.current.values * 0.90),
+        )
+
+    @classmethod
+    def _scenario(cls, bag_id, experiment, residual_policy, residual_value):
+        truth = experiment.truth
+        state = RigidBodyState(
+            truth.position[0],
+            truth.orientation_xyzw[0],
+            truth.linear_velocity[0],
+            truth.angular_velocity[0],
+        )
+        controller_state = initial_controller_state(
+            cls.configuration, trim_hover=True
+        )
+        actuator_state = ActuatorState(
+            truth.actuator_thrust[0], truth.actuator_gimbal_angle[0]
+        )
+        members = cls.member_id.size
+        residual = np.full(
+            (members, truth.times.size - 1, 6), residual_value
+        )
+        return CounterfactualBagScenario(
+            bag_id=bag_id,
+            times=truth.times,
+            references=experiment.references,
+            initial_states=tuple(state for _index in range(members)),
             initial_controller_states=tuple(
-                controller_state for _value in cls.members
-            ),
-            initial_actuator_states=(None, None, None),
-            interval_residual_wrench=cls.zero_residual_wrench,
-            controller_configuration=configuration,
-            controller_parameters=nominal,
-            controller_geometry=GrapeGeometry.grape(),
-            plant_geometry=GrapeGeometry.grape(),
-            actuator_parameters=ActuatorParameters(),
-            provenance=(
-                ("source_artifact", "/tmp/selected_mode.npz"),
-                ("source_schema", "phase5-test"),
-            ),
-        )
-        cls.candidates = (
-            ControllerParameterCandidate("baseline"),
-            ControllerParameterCandidate(
-                "mass_and_attitude",
-                controller_mass_scale=1.08,
-                roll_pid_scale=0.90,
-                pitch_pid_scale=0.95,
-                yaw_pid_scale=1.10,
-            ),
-        )
-        cls.loss_definition = TrackingLossDefinition(
-            translation_scale=0.08,
-            rotation_scale=np.deg2rad(8.0),
-        )
-        cls.weights = PosteriorPredictiveWeights(
-            mean_tracking_loss=1.0,
-            cvar_tracking_loss=0.4,
-            failure_probability=2.5,
-            parameter_change=0.2,
-        )
-        cls.decision = evaluate_posterior_predictive(
-            cls.predictive_input,
-            candidates=cls.candidates,
-            failure_threshold=0.50,
-            cvar_level=0.75,
-            loss_definition=cls.loss_definition,
-            weights=cls.weights,
-        )
-
-    def test_candidate_application_changes_only_declared_coordinates(self):
-        configuration = ControllerConfig.grape()
-        parameters = VehicleParameters.nominal()
-        candidate = ControllerParameterCandidate(
-            "declared",
-            controller_mass_scale=1.10,
-            roll_pid_scale=0.80,
-            pitch_pid_scale=1.20,
-            yaw_pid_scale=0.70,
-        )
-        changed_configuration, changed_parameters = (
-            apply_controller_candidate(
-                configuration, parameters, candidate
-            )
-        )
-        self.assertAlmostEqual(
-            changed_parameters.mass, 1.10 * parameters.mass
-        )
-        np.testing.assert_array_equal(
-            changed_parameters.inertia, parameters.inertia
-        )
-        self.assertEqual(
-            changed_configuration.pid[:3], configuration.pid[:3]
-        )
-        for axis, scale in ((3, 0.80), (4, 1.20), (5, 0.70)):
-            before = configuration.pid[axis]
-            after = changed_configuration.pid[axis]
-            self.assertAlmostEqual(after.p_gain, scale * before.p_gain)
-            self.assertAlmostEqual(after.i_gain, scale * before.i_gain)
-            self.assertAlmostEqual(after.d_gain, scale * before.d_gain)
-            self.assertEqual(after.limit_sum, before.limit_sum)
-
-    def test_default_proposals_are_an_explicit_unique_set(self):
-        candidates = default_controller_parameter_candidates()
-        self.assertEqual(candidates[0].candidate_id, "baseline")
-        self.assertEqual(candidates[0].scales.tolist(), [1.0] * 4)
-        self.assertEqual(
-            len({value.candidate_id for value in candidates}),
-            len(candidates),
-        )
-        self.assertTrue(
-            any(value.controller_mass_scale != 1.0 for value in candidates)
-        )
-        self.assertTrue(
-            any(value.roll_pid_scale != 1.0 for value in candidates)
-        )
-        self.assertTrue(
-            any(value.pitch_pid_scale != 1.0 for value in candidates)
-        )
-        self.assertTrue(
-            any(value.yaw_pid_scale != 1.0 for value in candidates)
-        )
-
-    def test_empirical_cvar_integrates_fractional_tail_mass(self):
-        losses = np.asarray((0.0, 1.0, 2.0, 9.0))
-        self.assertAlmostEqual(empirical_upper_cvar(losses, 0.0), 3.0)
-        self.assertAlmostEqual(empirical_upper_cvar(losses, 0.50), 5.5)
-        self.assertAlmostEqual(empirical_upper_cvar(losses, 0.60), 6.375)
-        self.assertAlmostEqual(empirical_upper_cvar(losses, 0.75), 9.0)
-
-    def test_every_candidate_runs_every_raw_physical_member(self):
-        decision = self.decision
-        sample_count = self.synthetic.truth.times.size
-        self.assertEqual(len(decision.evaluations), 2)
-        for evaluation in decision.evaluations:
-            np.testing.assert_array_equal(
-                evaluation.member_ids, self.member_ids
-            )
-            self.assertEqual(len(evaluation.trajectories), 3)
-            self.assertEqual(
-                evaluation.correction_translation.shape,
-                (3, sample_count, 3),
-            )
-            self.assertEqual(evaluation.tracking_loss.shape, (3,))
-            self.assertAlmostEqual(
-                evaluation.mean_tracking_loss,
-                float(np.mean(evaluation.tracking_loss)),
-            )
-            self.assertAlmostEqual(
-                evaluation.cvar_tracking_loss,
-                empirical_upper_cvar(evaluation.tracking_loss, 0.75),
-            )
-            self.assertAlmostEqual(
-                evaluation.failure_probability,
-                float(np.mean(evaluation.tracking_loss >= 0.50)),
-            )
-        # Distinct raw plant masses remain distinct simulations.  Replacing
-        # them with one mean vehicle would make these paths identical.
-        self.assertGreater(
-            np.max(
-                np.abs(
-                    decision.evaluations[0].trajectories[0].position
-                    - decision.evaluations[0].trajectories[2].position
-                )
-            ),
-            1.0e-5,
-        )
-
-    def test_member_aligned_correction_paths_and_score_are_reproducible(self):
-        desired_position = np.asarray(
-            [value.position for value in self.synthetic.references]
-        )
-        desired_orientation = np.asarray(
-            [
-                matrix_to_quaternion(euler_xyz_to_matrix(value.rpy))
-                for value in self.synthetic.references
-            ]
-        )
-        evaluation = self.decision.evaluations[1]
-        expected_translation, expected_rotation = correction_transform_path(
-            desired_position,
-            desired_orientation,
-            evaluation.trajectories[1].position,
-            evaluation.trajectories[1].orientation_xyzw,
-        )
-        np.testing.assert_array_equal(
-            evaluation.correction_translation[1], expected_translation
-        )
-        np.testing.assert_array_equal(
-            evaluation.correction_rotation_vector[1], expected_rotation
-        )
-        expected_score = (
-            self.weights.mean_tracking_loss * evaluation.mean_tracking_loss
-            + self.weights.cvar_tracking_loss
-            * evaluation.cvar_tracking_loss
-            + self.weights.failure_probability
-            * evaluation.failure_probability
-            + evaluation.change_penalty
-        )
-        expected_change_magnitude = float(
-            np.mean(np.log(evaluation.candidate.scales) ** 2)
-        )
-        self.assertAlmostEqual(
-            evaluation.parameter_change_magnitude,
-            expected_change_magnitude,
-        )
-        self.assertAlmostEqual(
-            evaluation.change_penalty,
-            self.weights.parameter_change * expected_change_magnitude,
-        )
-        self.assertAlmostEqual(evaluation.decision_score, expected_score)
-        scores = [value.decision_score for value in self.decision.evaluations]
-        self.assertEqual(
-            self.decision.selected_candidate_index, int(np.argmin(scores))
-        )
-
-    def test_raw_member_model_error_changes_predictive_trajectory(self):
-        nominal = VehicleParameters.nominal()
-        residual = self.zero_residual_wrench.copy()
-        residual[1, :, 0] = 0.8
-        residual[2, :, 3] = 0.04
-        source = replace(
-            self.predictive_input,
-            physical_parameter_members=(nominal, nominal, nominal),
-            interval_residual_wrench=residual,
-        )
-        decision = evaluate_posterior_predictive(
-            source,
-            candidates=(ControllerParameterCandidate("baseline"),),
-            failure_threshold=1.0,
-        )
-        trajectories = decision.evaluations[0].trajectories
-        self.assertGreater(
-            np.max(np.abs(trajectories[0].position - trajectories[1].position)),
-            1.0e-5,
-        )
-        self.assertGreater(
-            np.max(
-                np.abs(
-                    trajectories[0].orientation_xyzw
-                    - trajectories[2].orientation_xyzw
-                )
-            ),
-            1.0e-6,
-        )
-
-    def test_articulated_controller_mass_candidate_changes_the_forecast(self):
-        nominal = VehicleParameters.nominal()
-        source = replace(
-            self.predictive_input,
-            physical_parameter_members=(nominal, nominal, nominal),
-        )
-        decision = evaluate_posterior_predictive(
-            source,
-            candidates=(
-                ControllerParameterCandidate("baseline"),
-                ControllerParameterCandidate(
-                    "mass_1p10", controller_mass_scale=1.10
-                ),
-            ),
-            failure_threshold=100.0,
-        )
-        baseline = decision.evaluations[0].trajectories[0]
-        changed = decision.evaluations[1].trajectories[0]
-        self.assertGreater(
-            np.max(
-                np.abs(
-                    baseline.commanded_thrust - changed.commanded_thrust
-                )
-            ),
-            1.0e-6,
-        )
-        self.assertGreater(
-            np.max(np.abs(baseline.position - changed.position)),
-            1.0e-8,
-        )
-
-    def test_matching_mass_candidate_is_selected_for_known_mismatch(self):
-        nominal = VehicleParameters.nominal()
-        heavy = replace(nominal, mass=1.20 * nominal.mass)
-        source = replace(
-            self.predictive_input,
-            physical_parameter_members=(heavy, heavy, heavy),
-        )
-        decision = evaluate_posterior_predictive(
-            source,
-            candidates=(
-                ControllerParameterCandidate("baseline"),
-                ControllerParameterCandidate(
-                    "mass_match", controller_mass_scale=1.20
-                ),
-            ),
-            failure_threshold=1000.0,
-            weights=PosteriorPredictiveWeights(
-                mean_tracking_loss=1.0,
-                cvar_tracking_loss=0.0,
-                failure_probability=0.0,
-                parameter_change=0.0,
-            ),
-        )
-        self.assertEqual(decision.selected_candidate.candidate_id, "mass_match")
-        self.assertLess(
-            decision.evaluations[1].mean_tracking_loss,
-            0.01 * decision.evaluations[0].mean_tracking_loss,
-        )
-
-    def test_all_member_coordinates_survive_a_joint_permutation(self):
-        base = self.predictive_input
-        initial_states = tuple(
-            RigidBodyState(
-                position=value.position
-                + np.asarray((0.01 * member, -0.004 * member, 0.0)),
-                orientation_xyzw=value.orientation_xyzw,
-                linear_velocity=value.linear_velocity
-                + np.asarray((0.0, 0.002 * member, 0.0)),
-                angular_velocity=value.angular_velocity,
-            )
-            for member, value in enumerate(base.initial_states)
-        )
-        initial_controller_states = tuple(
-            ControllerState(
-                value.integral_error
-                + np.asarray((0.0, 0.0, 0.01 * member, 0.0, 0.0, 0.0)),
-                value.roll_pitch_integration_active,
-            )
-            for member, value in enumerate(base.initial_controller_states)
-        )
-        initial_actuator_states = tuple(
-            ActuatorState(
-                np.full(4, 1.5 + 0.01 * member),
-                np.full(4, 0.001 * member),
-            )
-            for member in range(len(self.members))
-        )
-        residual = base.interval_residual_wrench.copy()
-        residual[0, :, 0] = 0.1
-        residual[1, :, 2] = -0.2
-        residual[2, :, 5] = 0.03
-        source = replace(
-            base,
-            initial_states=initial_states,
-            initial_controller_states=initial_controller_states,
-            initial_actuator_states=initial_actuator_states,
-            interval_residual_wrench=residual,
-        )
-        candidate = (ControllerParameterCandidate("baseline"),)
-        original = evaluate_posterior_predictive(
-            source, candidates=candidate, failure_threshold=100.0
-        ).evaluations[0]
-        permutation = np.asarray((2, 0, 1))
-        permuted_source = replace(
-            source,
-            member_ids=source.member_ids[permutation],
-            physical_parameter_members=tuple(
-                source.physical_parameter_members[index]
-                for index in permutation
-            ),
-            initial_states=tuple(
-                source.initial_states[index] for index in permutation
-            ),
-            initial_controller_states=tuple(
-                source.initial_controller_states[index]
-                for index in permutation
+                controller_state for _index in range(members)
             ),
             initial_actuator_states=tuple(
-                source.initial_actuator_states[index]
-                for index in permutation
+                actuator_state for _index in range(members)
             ),
-            interval_residual_wrench=(
-                source.interval_residual_wrench[permutation]
+            posterior_residual_wrench=residual,
+            controller_configuration=cls.configuration,
+            controller_nominal_parameters=cls.nominal,
+            controller_geometry=cls.geometry,
+            plant_geometry=cls.geometry,
+            actuator_parameters=ActuatorParameters(
+                thrust_time_constant=0.02,
+                gimbal_time_constant=0.02,
             ),
+            residual_policy=residual_policy,
+            provenance=(("bag_id", bag_id),),
         )
-        permuted = evaluate_posterior_predictive(
-            permuted_source,
-            candidates=candidate,
-            failure_threshold=100.0,
-        ).evaluations[0]
-        np.testing.assert_array_equal(
-            permuted.tracking_loss, original.tracking_loss[permutation]
-        )
-        for row, original_row in enumerate(permutation):
-            np.testing.assert_array_equal(
-                permuted.trajectories[row].position,
-                original.trajectories[original_row].position,
-            )
 
-    def test_numerical_member_failure_is_retained_and_scored(self):
-        residual = self.zero_residual_wrench.copy()
-        residual[1, :, :] = 1.0e300
-        source = replace(
-            self.predictive_input,
-            interval_residual_wrench=residual,
+    def _fake_trajectory(self, keyword_arguments, error_scale=None):
+        references = keyword_arguments["references"]
+        times = np.asarray(keyword_arguments["times"])
+        controller = keyword_arguments["controller"]
+        scale = (
+            controller.configuration.pid[0].p_gain
+            / self.configuration.pid[0].p_gain
+            if error_scale is None
+            else float(error_scale)
         )
-        decision = evaluate_posterior_predictive(
-            source,
-            candidates=(ControllerParameterCandidate("baseline"),),
-            failure_threshold=2.0,
+        reference_position = np.asarray([value.position for value in references])
+        position = reference_position.copy()
+        position[:, 0] += 0.05 * scale
+        orientation = []
+        error_rotation = euler_xyz_to_matrix((0.0, 0.0, 0.03 * scale))
+        for reference in references:
+            orientation.append(
+                matrix_to_quaternion(
+                    euler_xyz_to_matrix(reference.rpy) @ error_rotation
+                )
+            )
+        count = times.size
+        return ClosedLoopTrajectory(
+            times=times,
+            position=position,
+            orientation_xyzw=np.asarray(orientation),
+            linear_velocity=np.zeros((count, 3)),
+            angular_velocity=np.zeros((count, 3)),
+            controller_integral=np.zeros((count, 6)),
+            commanded_thrust=np.zeros((count, 4)),
+            commanded_gimbal_angle=np.zeros((count, 4)),
+            actuator_thrust=np.zeros((count, 4)),
+            actuator_gimbal_angle=np.zeros((count, 4)),
+            body_wrench=np.zeros((count, 6)),
         )
-        evaluation = decision.evaluations[0]
-        np.testing.assert_array_equal(
-            evaluation.forecast_success, (True, False, True)
+
+    def test_current_is_always_included_and_no_representative_is_automatic(self):
+        with patch(
+            "grape_param_estim.posterior_predictive.simulate_closed_loop",
+            side_effect=lambda **kwargs: self._fake_trajectory(kwargs),
+        ):
+            decision = evaluate_pid_proposals(
+                self.predictive_input,
+                candidates=(self.member_candidate,),
+            )
+        self.assertEqual(
+            [value.candidate.candidate_id for value in decision.evaluations],
+            ["current", "member_41"],
         )
-        self.assertIsNone(evaluation.trajectories[1])
-        self.assertTrue(np.all(np.isnan(evaluation.correction_translation[1])))
-        self.assertTrue(evaluation.forecast_failure_reason[1])
-        self.assertEqual(evaluation.tracking_loss[1], 2.0)
-        self.assertGreaterEqual(evaluation.failure_probability, 1.0 / 3.0)
-        self.assertTrue(np.isinf(evaluation.decision_score))
         self.assertFalse(decision.recommendation_available)
-        self.assertEqual(decision.selected_candidate_index, -1)
-        with self.assertRaisesRegex(RuntimeError, "no candidate"):
-            _selected = decision.selected_candidate
-        with tempfile.TemporaryDirectory() as directory:
-            destination = save_posterior_predictive_decision(
-                str(Path(directory) / "failed_member.npz"), decision
-            )
-            with np.load(str(destination), allow_pickle=False) as artifact:
-                self.assertFalse(artifact["forecast_success"][0, 1])
-                self.assertTrue(
-                    np.all(np.isnan(artifact["prediction_position"][0, 1]))
-                )
-                self.assertTrue(artifact["forecast_failure_reason"][0, 1])
-                self.assertFalse(artifact["recommendation_available"][0])
-                self.assertEqual(artifact["selected_candidate_index"][0], -1)
-                self.assertEqual(str(artifact["selected_candidate_id"][0]), "")
-                for key in artifact.files:
-                    self.assertFalse(artifact[key].dtype.hasobject)
-
-    def test_selected_mode_adapter_preserves_raw_member_order(self):
-        controls = np.zeros((len(self.members), CONTROL_DIMENSION))
-        for index, parameters in enumerate(self.members):
-            controls[index, PARAMETER_OFFSET:] = (
-                self.problem.parameter_chart.encode(parameters)
-            )
-        selected = SimpleNamespace(
-            mode=plant_wiring_mode(NOMINAL_MODE_ID),
-            problem=self.problem,
-            posterior=SimpleNamespace(control_ensemble=controls),
-            member_ids=self.member_ids,
-        )
-        adapted = input_from_mode_posterior(
-            selected, provenance={"source_artifact": "mode.npz"}
-        )
-        np.testing.assert_array_equal(adapted.member_ids, self.member_ids)
-        np.testing.assert_allclose(
-            [value.mass for value in adapted.physical_parameter_members],
-            [value.mass for value in self.members],
-            atol=2.0e-15,
-        )
-        self.assertEqual(adapted.selected_mode_id, NOMINAL_MODE_ID)
+        self.assertEqual(decision.recommended_candidate_id, "")
+        self.assertIn("no automatic representative", decision.rejection_reason)
+        self.assertEqual(decision.improvement_rule, COMPONENTWISE_IMPROVEMENT_RULE)
         self.assertIn(
-            ("source_kind", "selected_mode_posterior"), adapted.provenance
+            "same recorded reference",
+            decision.predictive_input.scenario_assumption,
         )
-        np.testing.assert_array_equal(
-            adapted.interval_residual_wrench, self.zero_residual_wrench
+        self.assertIn(
+            "bag-b=zero", decision.predictive_input.scenario_assumption
+        )
+        self.assertIn(
+            "not a forecast of a new disturbance realization",
+            decision.predictive_input.scenario_assumption,
         )
 
-    def test_real_assimilation_adapter_keeps_x0_c0_a0_theta_and_q_rows(self):
-        trajectories = self.decision.evaluations[0].trajectories
-        chart = VehicleParameterChart(VehicleParameters.nominal())
-        coordinates = np.asarray(
-            [chart.encode(value) for value in self.members]
+    def test_multi_bag_raw_member_paths_are_never_averaged(self):
+        decision = evaluate_pid_proposals(
+            self.predictive_input,
+            candidates=(self.member_candidate,),
+            cvar_level=0.75,
         )
-        residual = self.zero_residual_wrench.copy()
-        residual[0, :, 2] = 0.13
-        residual[1, :, 4] = -0.02
-        posterior = SimpleNamespace(
-            trajectory_ensemble=trajectories,
-            parameter_ensemble=SimpleNamespace(coordinates=coordinates),
-            residual_wrench_ensemble=residual,
-        )
-        episode = SimpleNamespace(
-            observations=self.synthetic.observations,
-            references=self.synthetic.references,
-            initial_controller_state=(
-                self.predictive_input.initial_controller_states[0]
+        self.assertEqual(len(decision.evaluations), 2)
+        for evaluation in decision.evaluations:
+            self.assertEqual(len(evaluation.bags), 2)
+            for scenario in self.scenarios:
+                bag = evaluation.bag(scenario.bag_id)
+                np.testing.assert_array_equal(bag.member_id, self.member_id)
+                self.assertEqual(
+                    bag.prediction_position.shape,
+                    (3, scenario.times.size, 3),
+                )
+                self.assertEqual(
+                    bag.correction_rotation_vector.shape,
+                    (3, scenario.times.size, 3),
+                )
+                self.assertEqual(bag.position_rmse.shape, (3,))
+                self.assertTrue(np.all(bag.forecast_completed))
+        current_a = decision.current_evaluation.bag("bag-a")
+        self.assertGreater(
+            np.max(
+                np.abs(
+                    current_a.prediction_position[0]
+                    - current_a.prediction_position[2]
+                )
             ),
-            controller_configuration=(
-                self.predictive_input.controller_configuration
-            ),
-            provenance=SimpleNamespace(
-                bag_path="flight.bag",
-                bag_sha256="abc123",
-                time_basis="header",
-            ),
+            1.0e-7,
         )
-        result = SimpleNamespace(
-            posterior=posterior,
-            episode=episode,
-            nominal_parameters=VehicleParameters.nominal(),
-            actuator_parameters=ActuatorParameters(),
-            mode_diagnostic=SimpleNamespace(
-                selected_mode_id=NOMINAL_MODE_ID
-            ),
-        )
-        adapted = input_from_real_assimilation(
-            result, provenance={"run_id": "real-test"}
-        )
-        np.testing.assert_array_equal(adapted.member_ids, np.arange(3))
-        np.testing.assert_array_equal(
-            adapted.interval_residual_wrench, residual
-        )
-        np.testing.assert_allclose(
-            [value.mass for value in adapted.physical_parameter_members],
-            [value.mass for value in self.members],
-            atol=2.0e-15,
-        )
-        for member, trajectory in enumerate(trajectories):
-            np.testing.assert_array_equal(
-                adapted.initial_states[member].position,
-                trajectory.position[0],
-            )
-            np.testing.assert_array_equal(
-                adapted.initial_controller_states[member].integral_error,
-                trajectory.controller_integral[0],
-            )
-            np.testing.assert_array_equal(
-                adapted.initial_actuator_states[member].thrust,
-                trajectory.actuator_thrust[0],
-            )
-        self.assertIn(("bag_path", "flight.bag"), adapted.provenance)
-        self.assertIn(("run_id", "real-test"), adapted.provenance)
 
-    def test_pickle_free_artifact_retains_threshold_candidates_and_provenance(self):
-        with tempfile.TemporaryDirectory() as directory:
-            destination = save_posterior_predictive_decision(
-                str(Path(directory) / "decision.npz"), self.decision
-            )
-            with np.load(str(destination), allow_pickle=False) as artifact:
-                self.assertEqual(
-                    str(artifact["schema"][0]),
-                    "grape-weak-constraint/phase6-posterior-predictive",
-                )
-                self.assertEqual(
-                    str(artifact["selected_mode_id"][0]), NOMINAL_MODE_ID
-                )
-                np.testing.assert_array_equal(
-                    artifact["source_mode_id"], (NOMINAL_MODE_ID,)
-                )
-                np.testing.assert_array_equal(
-                    artifact["source_mode_weight"], (1.0,)
-                )
-                self.assertEqual(
-                    str(artifact["scenario_assumption"][0]),
-                    self.predictive_input.scenario_assumption,
-                )
-                self.assertTrue(artifact["recommendation_available"][0])
-                np.testing.assert_array_equal(
-                    artifact["posterior_member_id"], self.member_ids
-                )
-                np.testing.assert_allclose(
-                    artifact["posterior_member_mass"],
-                    [value.mass for value in self.members],
-                )
-                np.testing.assert_array_equal(
-                    artifact["posterior_residual_wrench_interval"],
-                    self.zero_residual_wrench,
-                )
-                np.testing.assert_array_equal(
-                    artifact["candidate_id"],
-                    [value.candidate_id for value in self.candidates],
-                )
-                np.testing.assert_allclose(
-                    artifact["candidate_scale"],
-                    [value.scales for value in self.candidates],
-                )
-                np.testing.assert_allclose(
-                    artifact["candidate_controller_mass"],
-                    self.predictive_input.controller_parameters.mass
-                    * np.asarray((1.0, 1.08)),
-                )
-                self.assertEqual(artifact["candidate_pid"].shape[:2], (2, 6))
-                self.assertEqual(artifact["failure_threshold"][0], 0.50)
-                self.assertEqual(
-                    dict(
-                        zip(
-                            artifact["provenance_key"].tolist(),
-                            artifact["provenance_value"].tolist(),
-                        )
-                    ),
-                    {
-                        "source_artifact": "/tmp/selected_mode.npz",
-                        "source_schema": "phase5-test",
-                    },
-                )
-                self.assertEqual(
-                    artifact["correction_translation"].shape[:2], (2, 3)
-                )
-                self.assertEqual(
-                    artifact["prediction_position"].shape[:2], (2, 3)
-                )
-                self.assertTrue(np.all(artifact["forecast_success"]))
-                for key in artifact.files:
-                    self.assertFalse(artifact[key].dtype.hasobject)
+    def test_controller_model_limits_member_tau_and_residual_policy_are_fixed(self):
+        captured = []
 
-    def test_single_mean_and_invalid_decision_inputs_are_rejected(self):
-        source = self.predictive_input
-        with self.assertRaisesRegex(ValueError, "at least two"):
+        def fake_simulation(**kwargs):
+            captured.append(kwargs)
+            return self._fake_trajectory(kwargs)
+
+        with patch(
+            "grape_param_estim.posterior_predictive.simulate_closed_loop",
+            side_effect=fake_simulation,
+        ):
+            evaluate_pid_proposals(
+                self.predictive_input,
+                candidates=(self.user_candidate,),
+            )
+        # current + user, then bag-a + bag-b, each with all three members.
+        self.assertEqual(len(captured), 12)
+        for candidate_index in range(2):
+            start = candidate_index * 6
+            for bag_index, scenario in enumerate(self.scenarios):
+                for member_index in range(3):
+                    call = captured[start + bag_index * 3 + member_index]
+                    self.assertIs(
+                        call["controller"].nominal_parameters,
+                        scenario.controller_nominal_parameters,
+                    )
+                    np.testing.assert_array_equal(
+                        call["plant"].parameters.inertia,
+                        self.physical[member_index].inertia,
+                    )
+                    self.assertEqual(
+                        call["actuator_parameters"].delay,
+                        self.constant_delay[member_index],
+                    )
+                    expected_residual = (
+                        scenario.posterior_residual_wrench[member_index]
+                        if scenario.residual_policy == "posterior_replay"
+                        else np.zeros((scenario.times.size - 1, 6))
+                    )
+                    np.testing.assert_array_equal(
+                        call["interval_residual_wrench"], expected_residual
+                    )
+                    for before, after in zip(
+                        scenario.controller_configuration.pid,
+                        call["controller"].configuration.pid,
+                    ):
+                        self.assertEqual(before.limit_sum, after.limit_sum)
+                        self.assertEqual(before.limit_p, after.limit_p)
+                        self.assertEqual(before.limit_i, after.limit_i)
+                        self.assertEqual(before.limit_d, after.limit_d)
+        # Candidate changes do not replace the nominal mass/inertia/geometry.
+        self.assertTrue(
+            all(
+                call["controller"].nominal_parameters is self.nominal
+                for call in captured
+            )
+        )
+
+    def test_time_integrated_metrics_keep_position_and_orientation_separate(self):
+        times = np.asarray((0.0, 1.0, 3.0))
+        position = np.asarray(((0.0, 0.0, 0.0), (2.0, 0.0, 0.0), (2.0, 0.0, 0.0)))
+        orientation = np.asarray(((0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 3.0, 0.0)))
+        metric = time_integrated_error_metrics(times, position, orientation)
+        self.assertAlmostEqual(metric.position_rmse, np.sqrt(10.0 / 3.0))
+        self.assertAlmostEqual(metric.orientation_rmse, np.sqrt(3.5))
+        self.assertEqual(metric.maximum_position_error, 2.0)
+        self.assertEqual(metric.maximum_orientation_error, 3.0)
+        self.assertFalse(hasattr(metric, "tracking_loss"))
+
+    def test_cvar_is_per_bag_then_equal_weighted_across_bags(self):
+        completed = np.ones(4, dtype=bool)
+
+        def summary(offset):
+            values = {
+                name: np.asarray((offset, offset + 1, offset + 2, offset + 9), dtype=float)
+                for name in PHYSICAL_METRICS
+            }
+            return summarize_member_metrics(values, completed, 0.75)
+
+        first = summary(0.0)
+        second = summary(10.0)
+        aggregate = bag_equal_aggregate((first, second))
+        self.assertAlmostEqual(first.metrics["position_rmse"].upper_cvar, 9.0)
+        self.assertAlmostEqual(second.metrics["position_rmse"].upper_cvar, 19.0)
+        self.assertAlmostEqual(
+            aggregate.metrics["position_rmse"].upper_cvar, 14.0
+        )
+        self.assertAlmostEqual(
+            aggregate.metrics["position_rmse"].mean,
+            0.5
+            * (
+                np.mean((0.0, 1.0, 2.0, 9.0))
+                + np.mean((10.0, 11.0, 12.0, 19.0))
+            ),
+        )
+        self.assertAlmostEqual(
+            empirical_upper_cvar((0.0, 1.0, 2.0, 9.0), 0.60), 6.375
+        )
+
+    def test_correction_coverage_is_a_separate_componentwise_diagnostic(self):
+        translation = np.zeros((3, 2, 3))
+        translation[0, :, 0] = -1.0
+        translation[1, :, 0] = 1.0
+        translation[:2, :, 1] = 1.0
+        translation[2] = np.nan
+        rotation = np.zeros_like(translation)
+        rotation[2] = np.nan
+        completed = np.asarray((True, True, False))
+        translation_coverage, rotation_coverage, combined = (
+            correction_zero_coverage(translation, rotation, completed)
+        )
+        self.assertAlmostEqual(translation_coverage, 2.0 / 3.0)
+        self.assertEqual(rotation_coverage, 1.0)
+        self.assertAlmostEqual(combined, 5.0 / 6.0)
+
+    def test_absent_threshold_is_not_configured_and_failure_is_separate(self):
+        def sometimes_fails(**kwargs):
+            if np.isclose(kwargs["plant"].parameters.mass, self.nominal.mass):
+                raise FloatingPointError("member diverged")
+            return self._fake_trajectory(kwargs, error_scale=1.0)
+
+        thresholds = ErrorThresholds(position=0.01, orientation=None)
+        with patch(
+            "grape_param_estim.posterior_predictive.simulate_closed_loop",
+            side_effect=sometimes_fails,
+        ):
+            decision = evaluate_pid_proposals(
+                self.predictive_input,
+                candidates=(),
+                thresholds=thresholds,
+            )
+        bag = decision.current_evaluation.bag("bag-a")
+        self.assertEqual(bag.forecast_completed.tolist(), [True, False, True])
+        self.assertIn("FloatingPointError", bag.failure_reason[1])
+        self.assertTrue(np.isnan(bag.position_rmse[1]))
+        self.assertTrue(np.isnan(bag.position_threshold_exceeded[1]))
+        self.assertIsNone(bag.orientation_threshold_exceeded)
+        self.assertEqual(decision.thresholds.orientation_display(), "Not configured")
+        self.assertEqual(bag.summary.numerical_failure_count, 1)
+        # The numerical failure is not counted as threshold exceedance.
+        self.assertEqual(bag.summary.position_threshold_exceedance, 1.0)
+
+    def test_position_and_orientation_thresholds_remain_independent(self):
+        thresholds = ErrorThresholds(position=0.04, orientation=0.04)
+        with patch(
+            "grape_param_estim.posterior_predictive.simulate_closed_loop",
+            side_effect=lambda **kwargs: self._fake_trajectory(kwargs, 1.0),
+        ):
+            decision = evaluate_pid_proposals(
+                self.predictive_input, candidates=(), thresholds=thresholds
+            )
+        bag = decision.current_evaluation.bag("bag-a")
+        self.assertEqual(bag.summary.position_threshold_exceedance, 1.0)
+        self.assertEqual(bag.summary.orientation_threshold_exceedance, 0.0)
+
+    def test_pareto_and_explicit_componentwise_recommendation_rule(self):
+        better = user_pid_candidate(
+            "better", PidGainConfiguration(self.current.values * 0.5)
+        )
+        worse = user_pid_candidate(
+            "worse", PidGainConfiguration(self.current.values * 1.5)
+        )
+
+        def deterministic(**kwargs):
+            return self._fake_trajectory(kwargs)
+
+        with patch(
+            "grape_param_estim.posterior_predictive.simulate_closed_loop",
+            side_effect=deterministic,
+        ):
+            unselected = evaluate_pid_proposals(
+                self.predictive_input, candidates=(better, worse)
+            )
+            selected_better = evaluate_pid_proposals(
+                self.predictive_input,
+                candidates=(better, worse),
+                selected_candidate_id="better",
+            )
+            selected_worse = evaluate_pid_proposals(
+                self.predictive_input,
+                candidates=(better, worse),
+                selected_candidate_id="worse",
+            )
+        self.assertTrue(unselected.evaluation("better").improves_current)
+        self.assertFalse(unselected.evaluation("better").pareto_dominated)
+        self.assertTrue(unselected.evaluation("worse").pareto_dominated)
+        self.assertFalse(unselected.recommendation_available)
+        self.assertTrue(selected_better.recommendation_available)
+        self.assertEqual(selected_better.recommended_candidate_id, "better")
+        self.assertFalse(selected_worse.recommendation_available)
+        self.assertIn("Pareto dominated", selected_worse.rejection_reason)
+
+    def test_member_candidate_must_match_source_member_and_mode(self):
+        fake = replace(
+            self.member_candidate,
+            configuration=PidGainConfiguration(
+                self.member_candidate.configuration.values * 1.01
+            ),
+        )
+        with self.assertRaisesRegex(ValueError, "must match"):
+            evaluate_pid_proposals(self.predictive_input, candidates=(fake,))
+        mixed = replace(
+            self.proposals,
+            source_mode_id=("nominal", "other", "nominal"),
+        )
+        with self.assertRaisesRegex(ValueError, "cannot average across modes"):
             PosteriorPredictiveInput(
-                selected_mode_id=source.selected_mode_id,
-                member_ids=np.asarray((0,)),
-                physical_parameter_members=(self.members[0],),
-                times=source.times,
-                references=source.references,
-                initial_states=(source.initial_states[0],),
-                initial_controller_states=(
-                    source.initial_controller_states[0],
-                ),
-                initial_actuator_states=(None,),
-                interval_residual_wrench=np.zeros(
-                    (1, source.times.size - 1, 6)
-                ),
-                controller_configuration=source.controller_configuration,
-                controller_parameters=source.controller_parameters,
-                controller_geometry=source.controller_geometry,
-                plant_geometry=source.plant_geometry,
-                actuator_parameters=source.actuator_parameters,
+                selected_mode_id="nominal",
+                physical_parameter_members=self.physical,
+                proposal_ensemble=mixed,
+                bags=self.scenarios,
             )
-        with self.assertRaisesRegex(ValueError, "interval_residual_wrench"):
-            replace(source, interval_residual_wrench=None)
-        duplicate = (
-            ControllerParameterCandidate("same"),
-            ControllerParameterCandidate("same", yaw_pid_scale=1.1),
+
+    def test_progress_is_emitted_at_every_candidate_bag_member_boundary(self):
+        events = []
+        with patch(
+            "grape_param_estim.posterior_predictive.simulate_closed_loop",
+            side_effect=lambda **kwargs: self._fake_trajectory(kwargs),
+        ):
+            evaluate_pid_proposals(
+                self.predictive_input,
+                candidates=(self.user_candidate,),
+                progress_callback=events.append,
+                progress_run_id="evaluation-a",
+            )
+        self.assertEqual(len(events), 2 * 2 * 3)
+        self.assertEqual(events[-1].fraction, 1.0)
+        self.assertEqual(events[-1].completed_units, 12)
+        self.assertEqual(
+            {value.bag_id for value in events}, {"bag-a", "bag-b"}
         )
-        with self.assertRaisesRegex(ValueError, "unique"):
-            evaluate_posterior_predictive(source, candidates=duplicate)
-        with self.assertRaisesRegex(ValueError, "failure_threshold"):
-            evaluate_posterior_predictive(source, failure_threshold=0.0)
-        with self.assertRaisesRegex(ValueError, "cvar_level"):
-            evaluate_posterior_predictive(source, cvar_level=1.0)
+        self.assertEqual(
+            {value.member_id for value in events}, {41, 7, 99}
+        )
+        self.assertEqual(
+            {value.stage_id for value in events},
+            {"candidate_member_bag_forecast"},
+        )
+
+    def test_pre_cancelled_evaluation_stops_before_the_first_forecast(self):
+        token = CancellationToken()
+        token.cancel("user_requested")
+        with patch(
+            "grape_param_estim.posterior_predictive.simulate_closed_loop"
+        ) as simulation:
+            with self.assertRaises(ProgressCancelled):
+                evaluate_pid_proposals(
+                    self.predictive_input,
+                    candidates=(),
+                    cancellation_token=token,
+                )
+        simulation.assert_not_called()
+
+    def test_artifact_is_pickle_free_aligned_and_contains_no_weighted_score(self):
+        with patch(
+            "grape_param_estim.posterior_predictive.simulate_closed_loop",
+            side_effect=lambda **kwargs: self._fake_trajectory(kwargs),
+        ):
+            decision = evaluate_pid_proposals(
+                self.predictive_input,
+                candidates=(self.user_candidate,),
+                thresholds=ErrorThresholds(position=0.10),
+                selected_candidate_id="user-soft",
+            )
+        with tempfile.TemporaryDirectory() as directory:
+            root = save_pid_proposal_evaluation(
+                str(Path(directory) / "pid_proposal_evaluation"),
+                decision,
+                evaluation_id="evaluation-a",
+                source_run_id="run-a",
+                created_at="2026-08-04T12:00:00+09:00",
+            )
+            bundle = load_pid_proposal_evaluation(root)
+            np.testing.assert_array_equal(
+                bundle.proposal_ensemble["source_member_id"], self.member_id
+            )
+            self.assertEqual(
+                bundle.bags["bag-a"]["prediction_position"].shape,
+                (2, 3, self.scenarios[0].times.size, 3),
+            )
+            self.assertEqual(
+                bundle.summary["member_bag_position_rmse"].shape,
+                (2, 2, 3),
+            )
+            self.assertIn("per_bag_position_rmse_upper_cvar", bundle.summary)
+            self.assertIn("pareto_non_dominated", bundle.summary)
+            self.assertIn(
+                "same posterior member initial state",
+                str(bundle.summary["scenario_assumption"][0]),
+            )
+            self.assertEqual(
+                bundle.summary["current_pid_baseline_bag_id"].tolist(),
+                ["bag-a"],
+            )
+            np.testing.assert_array_equal(
+                bundle.summary["current_pid_snapshot_record_time"],
+                self.current.provenance.record_times,
+            )
+            np.testing.assert_array_equal(
+                bundle.summary["current_pid_snapshot_topic"],
+                np.asarray(self.current.provenance.topics),
+            )
+            self.assertEqual(
+                bundle.summary[
+                    "per_bag_correction_transform_zero_coverage"
+                ].shape,
+                (2, 2),
+            )
+            np.testing.assert_allclose(
+                bundle.summary[
+                    "per_bag_correction_transform_zero_coverage"
+                ][:, 0],
+                bundle.bags["bag-a"][
+                    "correction_transform_zero_coverage"
+                ],
+            )
+            self.assertNotIn("decision_score", bundle.summary)
+            self.assertNotIn("tracking_loss", bundle.summary)
+            self.assertFalse(
+                any(
+                    "controller_mass" in key
+                    for arrays in (
+                        bundle.proposal_ensemble,
+                        bundle.summary,
+                        bundle.bags["bag-a"],
+                    )
+                    for key in arrays
+                )
+            )
+            for arrays in (
+                bundle.proposal_ensemble,
+                bundle.summary,
+                bundle.bags["bag-a"],
+                bundle.bags["bag-b"],
+            ):
+                for value in arrays.values():
+                    self.assertFalse(value.dtype.hasobject)
+            yaml_text = bundle.proposed_yaml_path.read_text(encoding="utf-8")
+            self.assertIn("xy:", yaml_text)
+            self.assertIn("roll_pitch:", yaml_text)
+
+    def test_prestarted_bundle_and_artifact_cancellation_are_authoritative(self):
+        with patch(
+            "grape_param_estim.posterior_predictive.simulate_closed_loop",
+            side_effect=lambda **kwargs: self._fake_trajectory(kwargs),
+        ):
+            decision = evaluate_pid_proposals(
+                self.predictive_input, candidates=(self.user_candidate,)
+            )
+        with tempfile.TemporaryDirectory() as directory:
+            prestarted = Path(directory) / "prestarted"
+            manifest = pid_proposal_evaluation_manifest(
+                self.predictive_input,
+                "evaluation-prestarted",
+                "run-a",
+                "2026-08-04T12:00:00+09:00",
+            )
+            begin_bundle(prestarted, manifest)
+            save_pid_proposal_evaluation(
+                str(prestarted),
+                decision,
+                evaluation_id="evaluation-prestarted",
+                source_run_id="run-a",
+                bundle_started=True,
+            )
+            self.assertEqual(read_manifest(prestarted)["status"], "complete")
+
+            cancelled = Path(directory) / "cancelled"
+            token = CancellationToken()
+            token.cancel("signal_SIGTERM")
+            with self.assertRaises(ProgressCancelled):
+                save_pid_proposal_evaluation(
+                    str(cancelled),
+                    decision,
+                    evaluation_id="evaluation-cancelled",
+                    source_run_id="run-a",
+                    cancellation_token=token,
+                )
+            cancelled_manifest = read_manifest(cancelled)
+            self.assertEqual(cancelled_manifest["status"], "cancelled")
+            self.assertEqual(
+                cancelled_manifest["cancellation_reason"], "signal_SIGTERM"
+            )
+
+    def test_log_gain_change_has_no_hidden_zero_gain_regularizer(self):
+        self.assertEqual(log_gain_change(self.current, self.current), 0.0)
+        values = self.current.values.copy()
+        zero = np.argwhere(values == 0.0)
+        if zero.size:
+            row, column = zero[0]
+            values[row, column] = 0.1
+            self.assertEqual(
+                log_gain_change(self.current, PidGainConfiguration(values)),
+                float("inf"),
+            )
 
 
 if __name__ == "__main__":

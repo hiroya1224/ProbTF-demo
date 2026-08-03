@@ -1,4 +1,4 @@
-"""Phase-5 weak-constraint assimilation of one continuous real flight."""
+"""Weak-constraint assimilation of one continuous real flight."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -340,7 +340,7 @@ def _trajectory_field(trajectories, field):
 def save_real_assimilation(
     path: str, result: RealAssimilationResult
 ) -> Path:
-    """Save the raw member law and all member-aligned Phase-5 paths."""
+    """Save the raw member law and all member-aligned flight paths."""
 
     destination = Path(path).expanduser().resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -367,7 +367,7 @@ def save_real_assimilation(
     controller_geometry = GrapeGeometry.grape()
     np.savez_compressed(
         str(destination),
-        schema=np.asarray(("grape-weak-constraint/phase5-real-assimilation",)),
+        schema=np.asarray(("grape-param-estim/assimilation-run/v1",)),
         member_id=np.arange(posterior.control_ensemble.shape[0], dtype=np.int64),
         control_ensemble=posterior.control_ensemble,
         prior_control_ensemble=posterior.prior_control_ensemble,

@@ -1,4 +1,4 @@
-"""Phase-2 perfect-model and pose-noise IEnKS experiments."""
+"""Perfect-model and pose-noise strong-constraint IEnKS experiments."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,7 +40,7 @@ from grape_param_estim.system import (
 
 
 @dataclass(frozen=True)
-class Phase2Metrics:
+class StrongConstraintExperimentMetrics:
     prior_pose_rmse: float
     posterior_pose_rmse: float
     prior_velocity_rmse: float
@@ -55,16 +55,16 @@ class Phase2Metrics:
 
 
 @dataclass(frozen=True)
-class Phase2Experiment:
+class StrongConstraintExperimentResult:
     label: str
     synthetic: SyntheticExperiment
     truth_control: np.ndarray
     posterior: StrongConstraintPosterior
     prior: StrongConstraintPrior
-    metrics: Phase2Metrics
+    metrics: StrongConstraintExperimentMetrics
 
 
-def default_phase2_truth_coordinates(
+def default_strong_constraint_truth_coordinates(
     chart: VehicleParameterChart,
 ) -> np.ndarray:
     """A non-nominal static plant inside the exact estimation model family."""
@@ -107,7 +107,7 @@ def _problem_from_synthetic(
         controller_configuration=configuration,
         controller_parameters=experiment.controller_parameters,
         geometry=GrapeGeometry.grape(),
-        actuator_parameters=ActuatorParameters(),
+        actuator_parameters=experiment.nominal_actuator_parameters,
         parameter_chart=VehicleParameterChart(
             experiment.controller_parameters
         ),
@@ -156,7 +156,7 @@ def _metrics(
     truth_control: np.ndarray,
     prior: StrongConstraintPrior,
     posterior: StrongConstraintPosterior,
-) -> Phase2Metrics:
+) -> StrongConstraintExperimentMetrics:
     direction = posterior.ridge.expected_direction
     projector = np.eye(direction.size) - np.outer(direction, direction)
     truth_parameter = truth_control[PARAMETER_OFFSET:]
@@ -178,7 +178,7 @@ def _metrics(
         @ prior.covariance[PARAMETER_OFFSET:, PARAMETER_OFFSET:]
         @ direction
     )
-    return Phase2Metrics(
+    return StrongConstraintExperimentMetrics(
         prior_pose_rmse=_pose_rmse(
             posterior.prior_trajectory_ensemble, experiment.truth
         ),
@@ -227,7 +227,7 @@ def _metrics(
     )
 
 
-def run_phase2_experiment(
+def run_strong_constraint_experiment(
     label: str = "A",
     duration: float = 1.2,
     time_step: float = 0.04,
@@ -235,16 +235,16 @@ def run_phase2_experiment(
     maximum_iterations: int = 4,
     seed: int = 23,
     truth_parameter_coordinates: Optional[np.ndarray] = None,
-) -> Phase2Experiment:
+) -> StrongConstraintExperimentResult:
     """Run Experiment A (zero realization) or B (pose noise only)."""
 
     normalized_label = str(label).upper()
     if normalized_label not in ("A", "B"):
-        raise ValueError("Phase-2 experiment label must be A or B")
+        raise ValueError("strong-constraint experiment label must be A or B")
     nominal = VehicleParameters.nominal()
     chart = VehicleParameterChart(nominal)
     truth_parameter = (
-        default_phase2_truth_coordinates(chart)
+        default_strong_constraint_truth_coordinates(chart)
         if truth_parameter_coordinates is None
         else np.asarray(truth_parameter_coordinates, dtype=float)
     )
@@ -289,6 +289,10 @@ def run_phase2_experiment(
             ),
             controller_parameters=synthetic.controller_parameters,
             truth_parameters=synthetic.truth_parameters,
+            nominal_actuator_parameters=(
+                synthetic.nominal_actuator_parameters
+            ),
+            truth_actuator_parameters=synthetic.truth_actuator_parameters,
         )
     problem = _problem_from_synthetic(synthetic)
     prior = StrongConstraintPrior.grape()
@@ -301,7 +305,7 @@ def run_phase2_experiment(
     ).fit(problem, prior)
     truth_control = np.zeros(CONTROL_DIMENSION, dtype=float)
     truth_control[PARAMETER_OFFSET:] = truth_parameter
-    return Phase2Experiment(
+    return StrongConstraintExperimentResult(
         label=normalized_label,
         synthetic=synthetic,
         truth_control=truth_control,
@@ -311,7 +315,9 @@ def run_phase2_experiment(
     )
 
 
-def save_phase2_experiment(path: str, result: Phase2Experiment) -> Path:
+def save_strong_constraint_experiment(
+    path: str, result: StrongConstraintExperimentResult
+) -> Path:
     """Save raw members and member-aligned trajectory/path ensembles."""
 
     destination = Path(path).expanduser().resolve()
@@ -322,7 +328,9 @@ def save_phase2_experiment(path: str, result: Phase2Experiment) -> Path:
     iterations = posterior.iterations
     np.savez_compressed(
         str(destination),
-        schema=np.asarray(("grape-weak-constraint/phase2",)),
+        schema=np.asarray(
+            ("grape-param-estim/strong-constraint-experiment/v1",)
+        ),
         experiment=np.asarray((result.label,)),
         times=result.synthetic.truth.times,
         reference_position=np.asarray(

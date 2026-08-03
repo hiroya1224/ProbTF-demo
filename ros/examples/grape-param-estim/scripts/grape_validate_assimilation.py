@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from grape_param_estim.phase4_cli import main
+from grape_param_estim.validation_cli import main
 
 
 if __name__ == "__main__":

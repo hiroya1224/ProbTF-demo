@@ -164,7 +164,7 @@ class EnsembleSizeConvergenceTests(unittest.TestCase):
             with np.load(str(destination), allow_pickle=False) as artifact:
                 self.assertEqual(
                     str(artifact["schema"][0]),
-                    "grape-weak-constraint/phase4-ensemble-convergence",
+                    "grape-param-estim/ensemble-convergence/v1",
                 )
                 np.testing.assert_array_equal(
                     artifact["weak_1_parameter_coordinates"],

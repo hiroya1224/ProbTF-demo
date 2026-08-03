@@ -6,12 +6,12 @@ import numpy as np
 
 from grape_param_estim.ridge_validation import (
     save_ridge_validation,
-    validate_phase2_ridge,
+    validate_strong_constraint_ridge,
     validate_weak_zero_realization_ridge,
 )
 from grape_param_estim.strong_constraint import PARAMETER_OFFSET
 from grape_param_estim.strong_constraint_experiments import (
-    run_phase2_experiment,
+    run_strong_constraint_experiment,
 )
 
 
@@ -25,10 +25,10 @@ class RidgeValidationTests(unittest.TestCase):
             maximum_iterations=1,
             seed=11,
         )
-        cls.experiment_a = run_phase2_experiment("A", **arguments)
-        cls.experiment_b = run_phase2_experiment("B", **arguments)
-        cls.report_a = validate_phase2_ridge(cls.experiment_a)
-        cls.report_b = validate_phase2_ridge(cls.experiment_b)
+        cls.experiment_a = run_strong_constraint_experiment("A", **arguments)
+        cls.experiment_b = run_strong_constraint_experiment("B", **arguments)
+        cls.report_a = validate_strong_constraint_ridge(cls.experiment_a)
+        cls.report_b = validate_strong_constraint_ridge(cls.experiment_b)
         cls.weak_report = validate_weak_zero_realization_ridge(
             cls.experiment_a,
             maximum_iterations=1,
@@ -103,7 +103,7 @@ class RidgeValidationTests(unittest.TestCase):
             )
 
     def test_report_is_reproducible_and_retains_raw_samples(self):
-        repeated = validate_phase2_ridge(self.experiment_a)
+        repeated = validate_strong_constraint_ridge(self.experiment_a)
         for name in (
             "rollout_pose_cost",
             "prior_parameter_samples",
@@ -132,7 +132,9 @@ class RidgeValidationTests(unittest.TestCase):
 
     def test_invalid_ridge_grid_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "containing zero"):
-            validate_phase2_ridge(self.experiment_a, (-0.2, 0.1, 0.3))
+            validate_strong_constraint_ridge(
+                self.experiment_a, (-0.2, 0.1, 0.3)
+            )
 
     def test_ienks_q_preserves_zero_realization_ridge_law(self):
         report = self.weak_report
@@ -175,7 +177,7 @@ class RidgeValidationTests(unittest.TestCase):
             with np.load(str(destination), allow_pickle=False) as artifact:
                 self.assertEqual(
                     str(artifact["schema"][0]),
-                    "grape-weak-constraint/phase4-ridge",
+                    "grape-param-estim/ridge-validation/v1",
                 )
                 self.assertEqual(
                     artifact["experiment_label"].tolist(), ["A", "B"]

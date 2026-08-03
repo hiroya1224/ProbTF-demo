@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -48,7 +49,12 @@ from .artifact_loader import (
     PidProposalEvaluation,
     SharedPosterior,
 )
-from .project_io import freshness_fingerprint, result_is_fresh
+from .project_io import freshness_fingerprint, result_is_fresh, utc_now
+
+
+MANUAL_CONFIGURATION_GROUP_SCHEMA = (
+    "grape-param-estim/manual-configuration-group/v1"
+)
 
 
 @dataclass
@@ -67,6 +73,7 @@ class BagRecord:
     status: str = "awaiting inspection"
     configuration_fingerprint: str = ""
     configuration_provenance: Mapping[str, str] = field(default_factory=dict)
+    configuration_confirmation: Mapping[str, str] = field(default_factory=dict)
     controller_snapshot: Mapping[str, Any] = field(default_factory=dict)
     current_time: float = 0.0
     view_range: tuple[float, float] = (0.0, 1.0)
@@ -99,6 +106,9 @@ class BagRecord:
 
     @property
     def configuration_group(self) -> str:
+        group_id = self.configuration_confirmation.get("group_id")
+        if group_id:
+            return "manual: {}".format(group_id)
         return self.configuration_fingerprint or "unconfirmed"
 
 
@@ -315,6 +325,55 @@ class ProjectStore(QObject):
         self.recordChanged.emit(bag_id)
         self.bagsChanged.emit()
 
+    def confirm_configuration_group(self, bag_id: str, group_id: str) -> None:
+        """Record an explicit human grouping without inventing provenance."""
+
+        record = self.get(bag_id)
+        if record is None:
+            raise ValueError("unknown bag ID {}".format(bag_id))
+        if record.inspection is None or record.selected_interval is None:
+            raise ValueError("inspect the bag before confirming its group")
+        if str(record.inspection.get("status", "")) != (
+            "needs_configuration_confirmation"
+        ):
+            raise ValueError(
+                "manual grouping cannot override a blocked inspection"
+            )
+        fingerprint = record.inspection.get("configuration_fingerprint")
+        if not isinstance(fingerprint, Mapping):
+            raise ValueError("inspection configuration fingerprint is invalid")
+        if bool(fingerprint.get("complete", False)):
+            raise ValueError("configuration provenance is already complete")
+        source_fingerprint = str(fingerprint.get("value", ""))
+        if not source_fingerprint:
+            raise ValueError("inspection configuration fingerprint is empty")
+        identifier = str(group_id).strip()
+        if not identifier:
+            raise ValueError("configuration group ID cannot be empty")
+        if len(identifier) > 160 or any(ord(character) < 32 for character in identifier):
+            raise ValueError(
+                "configuration group ID must be at most 160 printable characters"
+            )
+        digest = hashlib.sha256(
+            (MANUAL_CONFIGURATION_GROUP_SCHEMA + "\0" + identifier).encode(
+                "utf-8"
+            )
+        ).hexdigest()
+        confirmed_fingerprint = "manual-group:sha256:" + digest
+        record.configuration_confirmation = {
+            "schema": MANUAL_CONFIGURATION_GROUP_SCHEMA,
+            "group_id": identifier,
+            "source_fingerprint": source_fingerprint,
+            "confirmed_fingerprint": confirmed_fingerprint,
+            "confirmed_at": utc_now(),
+        }
+        record.configuration_fingerprint = confirmed_fingerprint
+        record.status = "ready"
+        record.included = True
+        self._sync_manifest_inputs()
+        self.recordChanged.emit(bag_id)
+        self.bagsChanged.emit()
+
     def update_interval(
         self,
         bag_id: str,
@@ -378,11 +437,12 @@ class ProjectStore(QObject):
                     record.selected_interval = record.auto_interval
                     record.interval_state = "AUTO"
             fingerprint = inspection.get("configuration_fingerprint", {})
-            record.configuration_fingerprint = (
+            inspection_fingerprint = (
                 str(fingerprint.get("value", ""))
                 if isinstance(fingerprint, Mapping)
                 else str(fingerprint)
             )
+            record.configuration_fingerprint = inspection_fingerprint
             if isinstance(fingerprint, Mapping):
                 record.configuration_provenance = {
                     str(key): str(value)
@@ -390,6 +450,27 @@ class ProjectStore(QObject):
                 }
             record.controller_snapshot = inspection.get("controller_snapshot") or {}
             record.status = str(inspection.get("status", "inspected"))
+            confirmation = dict(record.configuration_confirmation)
+            if isinstance(fingerprint, Mapping) and bool(
+                fingerprint.get("complete", False)
+            ):
+                record.configuration_confirmation = {}
+            elif (
+                record.status == "needs_configuration_confirmation"
+                and confirmation.get("schema")
+                == MANUAL_CONFIGURATION_GROUP_SCHEMA
+                and confirmation.get("source_fingerprint")
+                == inspection_fingerprint
+                and confirmation.get("confirmed_fingerprint")
+            ):
+                record.configuration_fingerprint = str(
+                    confirmation["confirmed_fingerprint"]
+                )
+                record.status = "ready"
+            else:
+                record.configuration_confirmation = {}
+            if record.status != "ready":
+                record.included = False
             if (
                 (first_inspection or previous_status == "needs_configuration_confirmation")
                 and record.status == "ready"
@@ -531,6 +612,11 @@ class ProjectStore(QObject):
         self.manifest["configuration_fingerprints"] = {
             record.bag_id: record.configuration_fingerprint for record in self._records
         }
+        self.manifest["configuration_confirmations"] = {
+            record.bag_id: dict(record.configuration_confirmation)
+            for record in self._records
+            if record.configuration_confirmation
+        }
         self.manifest["controller_snapshots"] = {
             record.bag_id: dict(record.controller_snapshot) for record in self._records
         }
@@ -544,4 +630,10 @@ class ProjectStore(QObject):
             self.freshnessChanged.emit(stale)
 
 
-__all__ = ["BagRecord", "ProjectState", "ProjectStore", "TimeState"]
+__all__ = [
+    "BagRecord",
+    "MANUAL_CONFIGURATION_GROUP_SCHEMA",
+    "ProjectState",
+    "ProjectStore",
+    "TimeState",
+]

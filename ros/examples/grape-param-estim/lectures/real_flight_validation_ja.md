@@ -185,12 +185,12 @@ source bag、request SHA、選択 interval、controller snapshot、要求 / 実�
 | backend `unittest` 全 discovery | 192 tests、0 failures、0 errors |
 | `catkin build grape_param_estim --no-deps` | success、warning なし |
 | `catkin run_tests grape_param_estim --no-deps` | 192 tests、0 failures、0 errors、0 skips |
-| GUI test discovery (`gui/.venv`) | 54 tests、54 success、0 skips |
+| GUI test discovery (`gui/.venv`) | 63 tests、63 success、0 skips |
 | Python `compileall` | success |
 
 GUI は pyenv Python 3.10.18 の `gui/.venv` で検証した。
 依存 version は PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 である。
-request、strict artifact adapter、project ZIP / ZIP64、freshness、launcher、SIGINT / terminate / kill 後の cancellation、Qt widget、実 manifest / NPZ を含む project load E2E、3D test を含む 54 tests がすべて成功した。
+request、strict artifact adapter、project ZIP / ZIP64、freshness、launcher、SIGINT / terminate / kill 後の cancellation、Qt widget、実 manifest / NPZ を含む project load E2E、3D test を含む 63 tests がすべて成功した。
 また `VIRTUAL_ENV`、`GRAPE_PARAM_ESTIM_GUI_PYTHON`、手動 `LD_LIBRARY_PATH` を外した状態で devel space の `rosrun grape_param_estim run_gui.py` を起動し、package-local `gui/.venv` と `qt-runtime` の自動選択後に Qt event loop が継続することを確認した。
 
 自動 test に加え、`DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で production UI と VTK plotter を起動した。
@@ -199,10 +199,19 @@ summary では bag world / correction と PID plotter の availability も true 
 window image は X server の `QScreen.grabWindow` で取得し、ネイティブ VTK 子画面を含む。
 VTK framebuffer の直接画像も別に保存して確認した。
 
+README に掲載した失敗飛行の bare `rosrun` コマンドも、空の projects root から改めて実行した。
+起動後は Bag browser が自動的に選択され、inspection 完了後に position / reference、flight state の preview と実軌跡の 3D 描画が表示された。
+不足している六つの hardware provenance 項目を明示する確認 dialog で、一 bag 専用の既定 group ID `single-bag-bd3fc7f71797` を確定すると、その bag だけが使用可能になった。
+実 worker を起動し、`iteration 1/5 ensemble` の member forecast と ETA が GUI に表示されるところまで確認した。
+さらに Stop 後に cancellation artifact が保存され、bag status が `ready` に戻り、同じ画面から再実行できることを確認した。
+これらの画像は Code 画面を含む desktop 全体ではなく、X11 の対象 window ID を指定して GUI または dialog だけを取得したもので、`/tmp/grape-gui-rosrun-acceptance` に保存した。
+
 ホストに不足していた `libxcb-cursor0` は sudo による system install を行わず、deb を `gui/.venv/qt-runtime` へ展開し、その library directory を `LD_LIBRARY_PATH` に追加した。
 視覚受入のために元の assimilation / PID artifact は変更していない。
 GUI freshness 検査に必要な `project_request_fingerprint` は `/tmp/grape-visual-assimilation-run` の視覚確認用コピーへだけ追加した。
 
 本報告の実 rosbag run は、configuration provenance が不足した事実を warning に保持したうえで、worker / CLI を直接使って数値経路を検証したものである。
-production GUI は同じ incomplete fingerprint を `needs_configuration_confirmation` とし、payload、rotor / propeller、geometry、robot model revision、actuator wiring、hardware revision を確認して再 inspection するまで joint run を開始しない。
-この安全側の GUI 契約を、報告用の直接実行によって緩めてはいない。
+production GUI は同じ incomplete fingerprint を `needs_configuration_confirmation` とし、不足項目を隠さずに、operator が明示的に名付けた manual configuration group と元 fingerprint を project manifest に保存する。
+一 bag の既定 group は bag SHA に結び付くため、別 bag と同一 hardware だと暗黙に扱わない。
+inspection が `blocked` の bag は手動確認で迂回できず、再 inspection で元 fingerprint が変わった場合も確認と選択を無効化する。
+この確認は hardware provenance の完全性を主張するものではなく、不足を承知した単独 bag run を明示的かつ追跡可能に許可する契約である。

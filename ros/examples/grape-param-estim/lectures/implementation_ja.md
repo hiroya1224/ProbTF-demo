@@ -70,7 +70,11 @@ dynamic_reconfigure は、利用者が決定した gain を controller へ書き
 parameter 推定、PID 候補生成、候補選択は行わず、GUI も自動書込みをしない。
 
 構成 fingerprint は payload、rotor / propeller、geometry、robot model revision、actuator wiring、hardware revision から作る。
-情報が不足する inspection は `needs_configuration_confirmation` となり、GUI から識別情報を確認して再 inspection するまで joint run の対象にできない。
+情報が不足する inspection は `needs_configuration_confirmation` となり、GUIは欠落項目を表示してmanual configuration groupの明示確認を求める。
+manual group確認は欠落したprovenanceを既知として補完せず、元のincomplete fingerprint、利用者が入力したgroup ID、確認時刻、対応するmanual fingerprintをprojectへ保存する。
+同じgroup IDは同じ静的実機parameterを共有してよいと利用者が確認したbagだけへ指定し、単独bagではbag SHA256由来の既定IDによって他bagとの共有を仮定しない。
+topic契約などで `blocked` になったinspectionをmanual group確認で上書きすることはできない。
+全provenanceが既知の場合は、GUIから識別情報を設定して再inspectionし、complete fingerprintを正本にできる。
 
 ## 4. raw member と不定座標変換
 
@@ -130,10 +134,13 @@ GUI は `Master`、`Bag browser`、`Next experiment` の三画面を持つ。
 - Next experiment: 明示 member からの PID evaluation 実行、current / proposed / difference / ratio / raw range、Pareto・推薦状態、aggregate / bag / member metric、current / candidate correction path、3D comparison、read-only YAML / diff
 
 inspection、assimilation、PID evaluation は GUI process 内で計算せず、ROS Python worker を別 process として起動する。
+inspection完了時はcurrent bagのpreviewをplotと3D sceneへ再bindし、`--bag` 起動では `Bag browser` へ自動移動する。
+configuration groupが未確認の間はbag選択と `Run smoothing` を無効にし、明示確認後だけ自動選択してrunを許可する。
 worker stdout は typed JSON Lines progress 専用、stderr は log 専用である。
 進捗 fraction は単調で、member / bag、反復、ETA を表示する。
 cancel は cooperative signal を送り、一定時間後に terminate、最後に kill する。
 cancelled bundle は GUI へ load しない。
+assimilationのcancelまたはworker failureはinspectionの有効性を失わせないため、bagを直前の `ready` または `complete` に戻し、画面のstatusと再実行可否を同期する。
 
 project の freshness fingerprint は selected bag IDs、各 bag SHA256、選択区間、controller snapshot、構成 fingerprint、estimator settings を含む。
 いずれかを変えると既存 run は `STALE` となる。
@@ -151,7 +158,7 @@ launcher は GUI package を import する前に、明示指定、active venv、
 GUI launcher は source package と installed worker の双方を探索し、worker interpreter は `GRAPE_PARAM_ESTIM_WORKER_PYTHON` で明示変更できる。
 
 本ホストでは pyenv Python 3.10.18 を用いた `gui/.venv` を作り、PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 を導入した。
-GUI test は 54 / 54、skip 0 である。
+GUI test は 63 / 63、skip 0 である。
 `DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と VTK 描画も起動し、Master、Bag browser、Next experiment の主要な plot / 3D 表示を確認した。
 受入証跡は `/tmp/grape-gui-visual-acceptance` の 14 PNG と `summary.json` である。
 X server から `QScreen.grabWindow` で取得した window image にネイティブ VTK 子画面が含まれること、および別保存した VTK framebuffer の両方を確認した。

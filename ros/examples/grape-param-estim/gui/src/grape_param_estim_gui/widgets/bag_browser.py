@@ -36,12 +36,14 @@ class BagBrowserView(QWidget):
     filesSelected = Signal(object)
     reinspectionRequested = Signal(object)
     configurationRequested = Signal(str)
+    configurationGroupRequested = Signal(str)
 
     def __init__(self, store: ProjectStore, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.store = store
         self.time_state = TimeState(self)
         self.current_record: BagRecord | None = None
+        self._loaded_session: object | None = None
         self._refreshing_table = False
         self._loading_record = False
 
@@ -159,6 +161,7 @@ class BagBrowserView(QWidget):
         self.path_label.setWordWrap(True)
         self.path_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.include_checkbox = QCheckBox("Use this bag in joint smoothing")
+        self.confirm_group_button = QPushButton("Confirm configuration group…")
         self.configure_button = QPushButton("Set configuration provenance…")
         self.group_label = QLabel("—")
         self.samples_label = QLabel("—")
@@ -176,6 +179,7 @@ class BagBrowserView(QWidget):
         details_layout.addRow("samples", self.samples_label)
         details_layout.addRow("SHA256", self.sha_label)
         details_layout.addRow(self.include_checkbox)
+        details_layout.addRow(self.confirm_group_button)
         details_layout.addRow(self.configure_button)
         details_layout.addRow("inspection", self.inspection_details)
         layout.addWidget(details_group)
@@ -188,6 +192,12 @@ class BagBrowserView(QWidget):
         self.start_spin.valueChanged.connect(self._on_numeric_interval_changed)
         self.end_spin.valueChanged.connect(self._on_numeric_interval_changed)
         self.include_checkbox.toggled.connect(self._on_include_checkbox_toggled)
+        self.confirm_group_button.clicked.connect(
+            lambda: (
+                self.configurationGroupRequested.emit(self.current_record.bag_id)
+                if self.current_record is not None else None
+            )
+        )
         self.configure_button.clicked.connect(
             lambda: (
                 self.configurationRequested.emit(self.current_record.bag_id)
@@ -253,7 +263,7 @@ class BagBrowserView(QWidget):
 
     def _connect_state(self) -> None:
         self.store.bagsChanged.connect(self.refresh_table)
-        self.store.recordChanged.connect(lambda _bag_id: self.refresh_table())
+        self.store.recordChanged.connect(self._on_record_changed)
         self.store.currentBagChanged.connect(self._load_record)
         self.store.selectedMemberChanged.connect(self._on_selected_member_changed)
         self.store.posteriorChanged.connect(self._on_posterior_changed)
@@ -292,7 +302,10 @@ class BagBrowserView(QWidget):
             selected_row = -1
             for row, record in enumerate(records):
                 use_item = QTableWidgetItem()
-                use_item.setFlags(use_item.flags() | Qt.ItemIsUserCheckable)
+                flags = use_item.flags() | Qt.ItemIsUserCheckable
+                if record.status not in {"ready", "complete"}:
+                    flags &= ~Qt.ItemIsEnabled
+                use_item.setFlags(flags)
                 use_item.setCheckState(Qt.Checked if record.included else Qt.Unchecked)
                 use_item.setData(Qt.UserRole, record.bag_id)
                 self.bag_table.setItem(row, 0, use_item)
@@ -393,6 +406,7 @@ class BagBrowserView(QWidget):
         try:
             self.current_record = record
             session = record.data if record is not None else None
+            self._loaded_session = session
             self.scene.set_session(session)
             self.trajectory_panel.set_session(session)
             self.correction_panel.set_session(session)
@@ -474,7 +488,40 @@ class BagBrowserView(QWidget):
             )
         blocker = QSignalBlocker(self.include_checkbox)
         self.include_checkbox.setChecked(record.included)
+        self.include_checkbox.setEnabled(record.status in {"ready", "complete"})
         del blocker
+        fingerprint = (
+            None
+            if record.inspection is None
+            else record.inspection.get("configuration_fingerprint")
+        )
+        incomplete = (
+            isinstance(fingerprint, dict)
+            and not bool(fingerprint.get("complete", False))
+        )
+        self.confirm_group_button.setEnabled(
+            incomplete
+            and (
+                record.status == "needs_configuration_confirmation"
+                or bool(record.configuration_confirmation)
+            )
+        )
+        self.confirm_group_button.setToolTip(
+            "Assign an explicit manual group without claiming that the missing "
+            "hardware provenance was recorded."
+        )
+
+    def _on_record_changed(self, bag_id: str) -> None:
+        self.refresh_table()
+        record = self.store.get(str(bag_id))
+        if record is None or record.bag_id != self.store.current_bag_id:
+            return
+        if self._loaded_session is not record.data:
+            self._load_record(record)
+            return
+        self._update_details(record)
+        if record.data is not None:
+            self._update_interval_controls(record)
 
     def _render_flight_state(self, record: BagRecord | None) -> None:
         self.flight_state_plot.clear()

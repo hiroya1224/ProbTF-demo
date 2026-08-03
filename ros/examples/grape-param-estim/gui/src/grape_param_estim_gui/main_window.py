@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QInputDialog,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMessageBox,
     QProgressBar,
@@ -66,6 +67,14 @@ class MainWindow(QMainWindow):
         self._operation_context: dict[str, object] = {}
         self._log_path: Path | None = None
         self._close_after_worker = False
+        self._pending_configuration_prompts: tuple[
+            tuple[str, str, str], ...
+        ] = ()
+        self._configuration_prompt_timer = QTimer(self)
+        self._configuration_prompt_timer.setSingleShot(True)
+        self._configuration_prompt_timer.timeout.connect(
+            self._show_pending_configuration_prompts
+        )
         self.setWindowTitle("Grape parameter assimilation")
 
         self.tabs = QTabWidget()
@@ -81,6 +90,7 @@ class MainWindow(QMainWindow):
         self._build_shortcuts()
         self._connect_state()
         self._update_freshness(self.store.results_stale)
+        self._update_run_action()
         self.statusBar().showMessage("Add rosbag files to start inspection.")
         self._fit_initial_geometry_to_screen()
 
@@ -90,10 +100,16 @@ class MainWindow(QMainWindow):
         self.bag_browser.filesSelected.connect(self.add_bag_files)
         self.bag_browser.reinspectionRequested.connect(self.inspect_bags)
         self.bag_browser.configurationRequested.connect(self.set_configuration_provenance)
+        self.bag_browser.configurationGroupRequested.connect(
+            self.confirm_configuration_group
+        )
         self.next_experiment.evaluationRequested.connect(self.start_pid_evaluation)
         self.bag_browser.time_state.playingChanged.connect(self._update_play_action)
         self.store.freshnessChanged.connect(self._update_freshness)
         self.store.projectChanged.connect(self._update_project_title)
+        self.store.projectChanged.connect(self._cancel_configuration_prompts)
+        self.store.bagsChanged.connect(self._update_run_action)
+        self.store.recordChanged.connect(lambda _bag_id: self._update_run_action())
         self.runner.progress.connect(self._update_progress)
         self.runner.stderrLog.connect(self._worker_log)
         self.runner.finished.connect(self._worker_finished)
@@ -236,6 +252,7 @@ class MainWindow(QMainWindow):
             self._show_error("Cannot add rosbag", error)
             return
         if added:
+            self.tabs.setCurrentWidget(self.bag_browser)
             self.inspect_bags(tuple(added))
         else:
             self.statusBar().showMessage("The selected rosbag files are already in this project.")
@@ -282,10 +299,13 @@ class MainWindow(QMainWindow):
         request_path = self.store.project_path / "logs" / (request_id + ".request.json")
         output = self.store.project_path / (".inspection-" + request_id)
         self._write_request(request_path, request)
-        self._start_worker(
+        started = self._start_worker(
             "inspection", request_id, request_path, output,
             self.package_root / "scripts" / "grape_inspect_flights.py",
         )
+        if not started:
+            self._restore_transient_record_statuses()
+            return
         if self._operation == "inspection":
             self._operation_context["include_when_ready"] = include_when_ready
 
@@ -323,6 +343,105 @@ class MainWindow(QMainWindow):
         record.configuration_provenance = provenance
         self.inspect_bags((bag_id,))
 
+    def confirm_configuration_group(self, bag_id: str) -> None:
+        record = self.store.get(bag_id)
+        if record is None or self.runner.running or record.inspection is None:
+            return
+        fingerprint = record.inspection.get("configuration_fingerprint", {})
+        missing = (
+            tuple(str(value) for value in fingerprint.get("missing_components", ()))
+            if isinstance(fingerprint, dict)
+            else ()
+        )
+        suggested = (
+            "single-bag-{}".format(record.sha256[:12])
+            if len(self.store.records()) == 1
+            else "isolated-bag-{}".format(record.sha256[:12])
+        )
+        group_id, accepted = QInputDialog.getText(
+            self,
+            "Confirm configuration group",
+            "The bag did not record: {}.\n\n"
+            "To enable smoothing, explicitly assign a configuration group. "
+            "Use the same ID for multiple bags only when you know they used "
+            "the same payload, rotors, geometry, model, wiring, and hardware. "
+            "The missing provenance remains recorded as a warning.".format(
+                ", ".join(missing) if missing else "hardware provenance"
+            ),
+            QLineEdit.Normal,
+            suggested,
+        )
+        if not accepted:
+            self.statusBar().showMessage(
+                "Configuration group is still unconfirmed; smoothing remains disabled."
+            )
+            return
+        try:
+            self.store.confirm_configuration_group(bag_id, group_id)
+            write_project_manifest(self.store.project_path, self.store.manifest)
+        except (OSError, ProjectIoError, ValueError) as error:
+            self._show_error("Cannot confirm configuration group", error)
+            return
+        self.statusBar().showMessage(
+            "Confirmed manual configuration group; smoothing is ready."
+        )
+
+    def _schedule_configuration_prompts(
+        self, bag_ids: tuple[str, ...]
+    ) -> None:
+        if self._close_after_worker:
+            return
+        prompts: list[tuple[str, str, str]] = []
+        for bag_id in bag_ids:
+            record = self.store.get(bag_id)
+            if record is None or record.inspection is None:
+                continue
+            fingerprint = record.inspection.get("configuration_fingerprint")
+            source_fingerprint = (
+                str(fingerprint.get("value", ""))
+                if isinstance(fingerprint, dict)
+                else ""
+            )
+            if source_fingerprint:
+                prompts.append(
+                    (self.store.project_id, bag_id, source_fingerprint)
+                )
+        self._pending_configuration_prompts = tuple(prompts)
+        if prompts:
+            self._configuration_prompt_timer.start(0)
+
+    def _show_pending_configuration_prompts(self) -> None:
+        prompts = self._pending_configuration_prompts
+        self._pending_configuration_prompts = ()
+        if self._close_after_worker or not self.isVisible():
+            return
+        for project_id, bag_id, expected_fingerprint in prompts:
+            if (
+                self._close_after_worker
+                or not self.isVisible()
+                or self.store.project_id != project_id
+            ):
+                return
+            record = self.store.get(bag_id)
+            if (
+                record is None
+                or record.status != "needs_configuration_confirmation"
+                or record.inspection is None
+            ):
+                continue
+            fingerprint = record.inspection.get("configuration_fingerprint")
+            current_fingerprint = (
+                str(fingerprint.get("value", ""))
+                if isinstance(fingerprint, dict)
+                else ""
+            )
+            if current_fingerprint == expected_fingerprint:
+                self.confirm_configuration_group(bag_id)
+
+    def _cancel_configuration_prompts(self) -> None:
+        self._configuration_prompt_timer.stop()
+        self._pending_configuration_prompts = ()
+
     def start_assimilation(self) -> None:
         if self.runner.running:
             return
@@ -334,7 +453,7 @@ class MainWindow(QMainWindow):
             self._show_error("Cannot run smoothing", "Every selected bag must have a completed inspection and interval.")
             return
         fingerprints = {record.configuration_fingerprint for record in selected}
-        if any(record.status != "ready" for record in selected):
+        if any(record.status not in {"ready", "complete"} for record in selected):
             self._show_error(
                 "Cannot run smoothing",
                 "Every selected bag must have ready inspection status and confirmed configuration provenance.",
@@ -392,10 +511,13 @@ class MainWindow(QMainWindow):
         for record in selected:
             record.status = "queued"
         self.store.bagsChanged.emit()
-        self._start_worker(
+        started = self._start_worker(
             "assimilation", run_id, request_path, output,
             self.package_root / "scripts" / "grape_assimilate_flights.py",
         )
+        if not started:
+            self._restore_transient_record_statuses()
+            return
         if self._operation == "assimilation":
             self._operation_context["project_request_fingerprint"] = request[
                 "project_request_fingerprint"
@@ -533,6 +655,7 @@ class MainWindow(QMainWindow):
                     shutil.rmtree(backup)
                 artifact = replace(artifact, root=canonical)
                 self.store.apply_inspection(artifact)
+                pending_confirmation: list[str] = []
                 for bag_id in self._operation_context.get("include_when_ready", ()):
                     record = self.store.get(str(bag_id))
                     if (
@@ -541,7 +664,22 @@ class MainWindow(QMainWindow):
                         and record.selected_interval is not None
                     ):
                         self.store.set_included(record.bag_id, True)
-                self.statusBar().showMessage("Rosbag inspection completed.")
+                    elif (
+                        record is not None
+                        and record.status == "needs_configuration_confirmation"
+                        and record.selected_interval is not None
+                    ):
+                        pending_confirmation.append(record.bag_id)
+                self.tabs.setCurrentWidget(self.bag_browser)
+                if pending_confirmation:
+                    self.statusBar().showMessage(
+                        "Inspection completed; confirm a configuration group to enable smoothing."
+                    )
+                    self._schedule_configuration_prompts(
+                        tuple(pending_confirmation)
+                    )
+                else:
+                    self.statusBar().showMessage("Rosbag inspection completed.")
             elif self._operation == "assimilation":
                 run = load_assimilation(output)
                 self.store.manifest["run_request_fingerprint"] = self._operation_context[
@@ -568,12 +706,14 @@ class MainWindow(QMainWindow):
                         "PID evaluation source_run_id does not match the current run"
                     )
                 self.store.apply_pid_evaluation(evaluation)
+                self._restore_transient_record_statuses()
                 self.tabs.setCurrentWidget(self.next_experiment)
                 self.statusBar().showMessage(
                     "Posterior-predictive PID evaluation completed."
                 )
             write_project_manifest(self.store.project_path, self.store.manifest)
         except (OSError, ValueError, GuiArtifactError, ProjectIoError) as error:
+            self._restore_transient_record_statuses()
             self._show_error("Worker output is invalid", error)
         finally:
             self._operation = None
@@ -582,26 +722,59 @@ class MainWindow(QMainWindow):
             self._finish_pending_close()
 
     def _worker_failed(self, message: str) -> None:
-        for record in self.store.records():
-            if record.status in {"queued", "running", "writing", "inspection queued"}:
-                record.status = "failed"
-        self.store.bagsChanged.emit()
+        self._restore_transient_record_statuses()
         self._update_freshness(self.store.results_stale)
         self._show_error("Estimator worker failed", message)
         self._operation = None
         self._finish_pending_close()
 
     def _worker_cancelled(self) -> None:
-        for record in self.store.records():
-            if record.status in {"queued", "running", "writing", "inspection queued"}:
-                record.status = "cancelled"
-        self.store.bagsChanged.emit()
+        self._restore_transient_record_statuses()
         self.statusBar().showMessage("Worker cancelled; incomplete artifacts were not loaded.")
         self.stage_label.setText("cancelled")
         self.eta_label.setText("ETA —")
         self._update_freshness(self.store.results_stale)
         self._operation = None
         self._finish_pending_close()
+
+    def _restore_transient_record_statuses(self) -> None:
+        transient = {"queued", "running", "writing", "inspection queued"}
+        for record in self.store.records():
+            if record.status not in transient:
+                continue
+            if record.inspection is None:
+                restored_status = "awaiting inspection"
+            else:
+                restored_status = str(
+                    record.inspection.get("status", "awaiting inspection")
+                )
+                fingerprint = record.inspection.get(
+                    "configuration_fingerprint", {}
+                )
+                source_fingerprint = (
+                    str(fingerprint.get("value", ""))
+                    if isinstance(fingerprint, dict)
+                    else ""
+                )
+                if (
+                    restored_status == "needs_configuration_confirmation"
+                    and record.configuration_confirmation.get(
+                        "source_fingerprint"
+                    )
+                    == source_fingerprint
+                    and record.configuration_confirmation.get(
+                        "confirmed_fingerprint"
+                    )
+                ):
+                    restored_status = "ready"
+                if restored_status == "ready" and record.result is not None:
+                    restored_status = "complete"
+            record.status = restored_status
+            if restored_status not in {"ready", "complete"}:
+                record.included = False
+            self.store.recordChanged.emit(record.bag_id)
+        self.store._sync_manifest_inputs()
+        self.store.bagsChanged.emit()
 
     def _finish_pending_close(self) -> None:
         if self._close_after_worker:
@@ -610,12 +783,41 @@ class MainWindow(QMainWindow):
 
     def _worker_running_changed(self, running: bool) -> None:
         self.add_bags_action.setEnabled(not running)
-        self.run_action.setEnabled(not running)
         self.save_project_action.setEnabled(not running)
         self.load_project_action.setEnabled(not running)
         self.load_pid_action.setEnabled(not running)
         self.next_experiment.set_evaluation_running(running)
         self.stop_action.setEnabled(running)
+        self._update_run_action()
+
+    def _update_run_action(self) -> None:
+        if self.runner.running:
+            self.run_action.setEnabled(False)
+            self.run_action.setToolTip("An estimator worker is running.")
+            return
+        selected = self.store.included_records()
+        if not selected:
+            self.run_action.setEnabled(False)
+            self.run_action.setToolTip(
+                "Inspect a bag and confirm its configuration group first."
+            )
+            return
+        if any(
+            record.inspection is None
+            or record.selected_interval is None
+            or record.status not in {"ready", "complete"}
+            or not record.configuration_fingerprint
+            for record in selected
+        ):
+            self.run_action.setEnabled(False)
+            self.run_action.setToolTip(
+                "Every selected bag needs an interval and confirmed configuration group."
+            )
+            return
+        self.run_action.setEnabled(True)
+        self.run_action.setToolTip(
+            "Run joint weak-constraint ensemble smoothing for the selected bags."
+        )
 
     def _update_progress(self, event: object) -> None:
         self.progress_bar.setValue(int(round(1000.0 * float(event.fraction))))
@@ -723,6 +925,7 @@ class MainWindow(QMainWindow):
         intervals = manifest["intervals"]
         selected = set(manifest["selected_bag_ids"])
         fingerprints = manifest["configuration_fingerprints"]
+        confirmations = manifest.get("configuration_confirmations", {})
         snapshots = manifest["controller_snapshots"]
         records = []
         for item in manifest["bags"]:
@@ -738,6 +941,9 @@ class MainWindow(QMainWindow):
                     selected_interval=None if interval is None else tuple(interval["selected"]),
                     interval_state="AUTO" if interval is None else interval["state"],
                     configuration_fingerprint=fingerprints.get(item["bag_id"], ""),
+                    configuration_confirmation=confirmations.get(
+                        item["bag_id"], {}
+                    ),
                     controller_snapshot=snapshots.get(item["bag_id"]) or {},
                 )
             )
@@ -833,6 +1039,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("{}: {}".format(title, error), 10000)
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+        self._cancel_configuration_prompts()
         if self.runner.running:
             self._close_after_worker = True
             self.runner.request_cancel("application_closing")

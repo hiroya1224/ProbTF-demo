@@ -30,6 +30,9 @@ GUI_STATE_NAME = "gui_state.json"
 _PROJECT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _FRESHNESS_FINGERPRINT = re.compile(r"^sha256:[0-9a-f]{64}$")
+_MANUAL_GROUP_FINGERPRINT = re.compile(
+    r"^manual-group:sha256:[0-9a-f]{64}$"
+)
 _INTERVAL_STATES = {"AUTO", "MODIFIED", "LOCKED"}
 _ARTIFACT_KINDS = {
     "inspection",
@@ -163,6 +166,7 @@ def new_project_manifest(
         "intervals": {},
         "controller_snapshots": {},
         "configuration_fingerprints": {},
+        "configuration_confirmations": {},
         "estimator_settings": {},
         "current_assimilation_run_id": None,
         "current_pid_proposal_evaluation_id": None,
@@ -185,11 +189,14 @@ def _safe_relative(value: Any, label: str) -> PurePosixPath:
 def validate_project_manifest(
     value: Mapping[str, Any], *, source_root: str | Path | None = None
 ) -> dict[str, Any]:
+    value = dict(value)
+    value.setdefault("configuration_confirmations", {})
     required = {
         "schema", "project_id", "created_at", "updated_at", "gui_revision",
         "estimator_revision", "writer", "loader", "artifact_loaders", "bags",
         "selected_bag_ids", "intervals", "controller_snapshots",
-        "configuration_fingerprints", "estimator_settings",
+        "configuration_fingerprints", "configuration_confirmations",
+        "estimator_settings",
         "current_assimilation_run_id", "current_pid_proposal_evaluation_id",
         "run_request_fingerprint", "result_freshness",
     }
@@ -250,6 +257,74 @@ def validate_project_manifest(
         relative_paths.add(relative)
     if len(set(identifiers)) != len(identifiers):
         raise ProjectIoError("bag IDs must be unique")
+    fingerprints = value["configuration_fingerprints"]
+    if (
+        not isinstance(fingerprints, dict)
+        or not set(fingerprints) <= set(identifiers)
+        or any(
+            not isinstance(fingerprint, str)
+            for fingerprint in fingerprints.values()
+        )
+    ):
+        raise ProjectIoError(
+            "configuration_fingerprints must map registered bag IDs to strings"
+        )
+    confirmations = value["configuration_confirmations"]
+    if not isinstance(confirmations, dict) or not set(confirmations) <= set(
+        identifiers
+    ):
+        raise ProjectIoError(
+            "configuration_confirmations must reference registered bag IDs"
+        )
+    confirmation_fields = {
+        "schema",
+        "group_id",
+        "source_fingerprint",
+        "confirmed_fingerprint",
+        "confirmed_at",
+    }
+    for bag_id, confirmation in confirmations.items():
+        if (
+            not isinstance(confirmation, dict)
+            or set(confirmation) != confirmation_fields
+            or confirmation.get("schema")
+            != "grape-param-estim/manual-configuration-group/v1"
+        ):
+            raise ProjectIoError(
+                "invalid configuration confirmation for {}".format(bag_id)
+            )
+        for key in ("group_id", "source_fingerprint", "confirmed_at"):
+            if not isinstance(confirmation.get(key), str) or not confirmation[key]:
+                raise ProjectIoError(
+                    "configuration confirmation {} is empty".format(key)
+                )
+        group_id = confirmation["group_id"]
+        if len(group_id) > 160 or any(
+            ord(character) < 32 for character in group_id
+        ):
+            raise ProjectIoError("configuration confirmation group_id is invalid")
+        if not isinstance(confirmation.get("confirmed_fingerprint"), str) or not (
+            _MANUAL_GROUP_FINGERPRINT.fullmatch(
+                confirmation["confirmed_fingerprint"]
+            )
+        ):
+            raise ProjectIoError(
+                "configuration confirmation fingerprint is invalid"
+            )
+        expected_fingerprint = "manual-group:sha256:" + hashlib.sha256(
+            (
+                "grape-param-estim/manual-configuration-group/v1"
+                + "\0"
+                + group_id
+            ).encode("utf-8")
+        ).hexdigest()
+        if (
+            confirmation["confirmed_fingerprint"] != expected_fingerprint
+            or fingerprints.get(bag_id) != expected_fingerprint
+        ):
+            raise ProjectIoError(
+                "configuration confirmation does not match its group ID"
+            )
     selected = value["selected_bag_ids"]
     if (
         not isinstance(selected, list)

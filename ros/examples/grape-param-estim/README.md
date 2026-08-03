@@ -20,6 +20,13 @@ rosrun grape_param_estim run_gui.py \
   --bag "$(rospack find grape_param_estim)/samples/rosbags/20260612_grape_hovering_4_2026-06-12-17-33-59.bag"
 ```
 
+inspectionが完了するとGUIは `Bag browser` へ自動的に移動し、`Trajectory`、`Flight state`、3D world trajectoryへpreviewを表示します。
+`Master`、`Correction transform`、`Residual wrench` はsmoothing結果の表示領域なので、smoothing前は空です。
+このbagにはhardware configuration provenanceが記録されていないため、GUIはconfiguration group確認画面を開きます。
+単独bagのデモでは既定の `single-bag-bd3fc7f71797` をそのまま確認すると、欠落warningを保持したままこのbagだけのgroupとして `Use` が有効になり、toolbarの `Run smoothing` を実行できます。
+同じgroup IDを複数bagへ指定する操作は、それらが同じpayload、rotor、geometry、robot model、wiring、hardwareであると利用者が確認できる場合に限ります。
+実行中に `Stop` した場合、不完全なrunは `cancelled` として読み込まず、bagは `ready` に戻るため再実行できます。
+
 次のコマンドは、2026年6月13日の成功飛行を同じGUI経路で開きます。
 このbagは完全hold-out検証にも使った例で、完結した `flight_state=5` 区間を211 samples含みます。
 選定された完結episodeはtakeoff、約21.06秒のhover、land、stopまで遷移し、hover位置referenceに対するRMSEは約0.0602 mです。
@@ -34,7 +41,7 @@ rosrun grape_param_estim run_gui.py \
 
 両方を一つのprojectへ読み込む場合は、同じコマンドへ2個の `--bag` を指定できます。
 収録ファイルは元bagのbasenameと内容を維持しており、GUIはsourceを変更せずproject側へコピーします。
-どちらのbagもhardware configuration provenanceの一部を記録していないため、inspection後にGUIが確認を求めますが、これはtopic/data欠落を意味しません。
+どちらのbagもhardware configuration provenanceの一部を記録していないため、inspection後にGUIがconfiguration groupの確認を求めますが、これはtopic/data欠落を意味しません。
 
 ## Synthetic closed-loop flight
 
@@ -162,7 +169,7 @@ baseline controller snapshot、`posterior_replay` / `zero`、CVaR level、explic
 実行は同じ progress / ETA / cancel 経路を使い、complete artifact だけを自動ロードします。
 結果の3D比較も、画面で選択中の bag・member・candidate に対応する保存済み forecast path だけを表示します。
 
-実環境では `gui/.venv` に PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 を導入し、GUI test 54 / 54、skip 0 を確認しました。
+実環境では `gui/.venv` に PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 を導入し、GUI test 63 / 63、skip 0 を確認しました。
 さらに `DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と VTK を起動し、Master、Bag browser の world / correction、PID の translation / rotation / trajectory を視覚確認しました。
 14 枚の PNG と機械可読な `summary.json` は `/tmp/grape-gui-visual-acceptance` にあります。
 ウィンドウ画像は X server の `QScreen.grabWindow` で取得しているため、ネイティブ VTK 子画面も含みます。
@@ -307,7 +314,7 @@ catkin_test_results build/grape_param_estim
 ```
 
 GUI test suite は次で実行します。
-上記の検証済み venv では Qt widget / 3D test を含む 54 tests がすべて成功し、skip はありません。
+上記の検証済み venv では Qt widget / 3D test を含む 63 tests がすべて成功し、skip はありません。
 依存 package が揃わない環境では Qt widget / 3D test だけを skip し、request、project archive、artifact loader、launcher、signal cancel の pure tests は実行されます。
 
 ```bash

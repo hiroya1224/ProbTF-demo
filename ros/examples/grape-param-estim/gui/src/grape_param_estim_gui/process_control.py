@@ -37,7 +37,38 @@ def finalize_cancelled_bundle(
     bundle_root = Path(root).expanduser().resolve()
     if not (bundle_root / "manifest.json").is_file():
         return False
-    if manifest_reader is None or cancellation_marker is None:
+    if manifest_reader is None and cancellation_marker is None:
+        from grape_param_estim.artifact_io import read_json
+
+        raw = read_json(bundle_root / "manifest.json")
+        schema = raw.get("schema")
+        if schema == "grape-param-estim/diagonal-wrench-q-estimate/v1":
+            from grape_param_estim.diagonal_q_artifact import (
+                mark_diagonal_q_artifact_cancelled,
+                read_diagonal_q_manifest,
+            )
+
+            reader = read_diagonal_q_manifest
+            marker = mark_diagonal_q_artifact_cancelled
+        elif schema == (
+            "grape-param-estim/fixed-q-augmented-parameter-estimate/v1"
+        ):
+            from grape_param_estim.augmented_parameter_artifact import (
+                mark_augmented_parameter_artifact_cancelled,
+                read_augmented_parameter_manifest,
+            )
+
+            reader = read_augmented_parameter_manifest
+            marker = mark_augmented_parameter_artifact_cancelled
+        else:
+            from grape_param_estim.artifact_io import (
+                mark_bundle_cancelled,
+                read_manifest,
+            )
+
+            reader = read_manifest
+            marker = mark_bundle_cancelled
+    elif manifest_reader is None or cancellation_marker is None:
         from grape_param_estim.artifact_io import (  # local cross-env boundary
             mark_bundle_cancelled,
             read_manifest,

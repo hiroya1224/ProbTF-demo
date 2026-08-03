@@ -45,6 +45,7 @@ class WorkflowLaunchDialogTests(unittest.TestCase):
         self.assertEqual(dialog.selected_mode, WorkflowMode.STEP)
         self.assertTrue(dialog.staged_mode_radio.isChecked())
         self.assertIn("recommended", dialog.staged_mode_radio.text())
+        self.assertIn("non-convergence pauses", dialog.all_mode_help.text())
 
         dialog.all_mode_radio.click()
         dialog.start_button.click()

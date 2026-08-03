@@ -134,9 +134,16 @@ class WorkflowLaunchDialog(QDialog):
         self.all_mode_radio = QRadioButton("Run all stages")
         self.all_mode_radio.setObjectName("allModeRadio")
         mode_layout.addWidget(self.all_mode_radio)
-        all_help = QLabel("Continue automatically after a stage completes.")
-        all_help.setStyleSheet("color: #5f6368; margin-left: 22px;")
-        mode_layout.addWidget(all_help)
+        self.all_mode_help = QLabel(
+            "Continue automatically after a stage completes; scientific "
+            "non-convergence pauses for review."
+        )
+        self.all_mode_help.setObjectName("allModeHelp")
+        self.all_mode_help.setWordWrap(True)
+        self.all_mode_help.setStyleSheet(
+            "color: #5f6368; margin-left: 22px;"
+        )
+        mode_layout.addWidget(self.all_mode_help)
         root.addWidget(mode_group)
 
         stages_group = QGroupBox("Stages")

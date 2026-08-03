@@ -84,6 +84,9 @@ from .widgets.workflow_dialog import WorkflowLaunchDialog
 _STAGED_ASSIMILATION_SCHEMA = (
     "grape-param-estim/fixed-q-augmented-parameter-estimate/v1"
 )
+_DIAGONAL_Q_SCHEMA = (
+    "grape-param-estim/diagonal-wrench-q-estimate/v2"
+)
 
 
 class MainWindow(QMainWindow):
@@ -597,9 +600,28 @@ class MainWindow(QMainWindow):
                 )
             q_fingerprint = diagonal_q_stage_fingerprint(q_path)
             values = q_bundle.covariance.stationary_variance
+            em = q_bundle.manifest["em"]
+            trace = q_bundle.trace
+            last_iteration = int(trace["iteration"][-1])
+            last_trial_count = sum(
+                int(value) == last_iteration
+                for value in trace["trial_iteration"]
+            )
+            last_alpha = float(trace["accepted_step_fraction"][-1])
             q_detail = (
-                "Q diag [Fx, Fy, Fz, tau_x, tau_y, tau_z] = [{}]."
-            ).format(", ".join("{:.4g}".format(float(value)) for value in values))
+                "Q diag [Fx, Fy, Fz, tau_x, tau_y, tau_z] = [{}]. "
+                "EM {}/{}, converged={}, termination={}, last accepted "
+                "alpha={:.4g} ({} trial{})."
+            ).format(
+                ", ".join("{:.4g}".format(float(value)) for value in values),
+                int(em["completed_iterations"]),
+                int(em["maximum_iterations"]),
+                str(em["converged"]).lower(),
+                str(em["termination_reason"]),
+                last_alpha,
+                last_trial_count,
+                "" if last_trial_count == 1 else "s",
+            )
 
         parameter_settings = augmented_parameter_stage_settings(
             estimator_settings
@@ -1113,22 +1135,39 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage("Parameter estimation completed.")
             elif self._operation == DIAGONAL_Q_STAGE_ID:
                 bundle = load_diagonal_q_stage(output)
+                if bundle.manifest["schema"] != _DIAGONAL_Q_SCHEMA:
+                    raise GuiArtifactError(
+                        "diagonal-Q stage must use schema v2"
+                    )
                 self._complete_workflow_attempt(bundle.root, bundle.manifest)
                 self._restore_transient_record_statuses()
                 values = bundle.covariance.stationary_variance
-                self.statusBar().showMessage(
-                    "Diagonal Q completed: [{}].".format(
-                        ", ".join(
-                            "{:.4g}".format(float(value))
-                            for value in values
+                em = bundle.manifest["em"]
+                if em["converged"]:
+                    self.statusBar().showMessage(
+                        "Diagonal Q completed: [{}].".format(
+                            ", ".join(
+                                "{:.4g}".format(float(value))
+                                for value in values
+                            )
                         )
                     )
-                )
-                continue_all = (
-                    self._workflow_state is not None
-                    and self._workflow_state.mode is WorkflowMode.ALL
-                    and not self._close_after_worker
-                )
+                    continue_all = (
+                        self._workflow_state is not None
+                        and self._workflow_state.mode is WorkflowMode.ALL
+                        and not self._close_after_worker
+                    )
+                else:
+                    self.statusBar().showMessage(
+                        "WARNING: diagonal Q produced a reusable artifact "
+                        "but did not scientifically converge ({}, {}/{} EM "
+                        "iterations). Stage 2 is paused; review Q and choose "
+                        "Run estimation… again to continue explicitly.".format(
+                            em["termination_reason"],
+                            em["completed_iterations"],
+                            em["maximum_iterations"],
+                        )
+                    )
             elif self._operation == STATIC_PARAMETERS_STAGE_ID:
                 run = load_augmented_parameter_assimilation(output)
                 self._complete_workflow_attempt(run.root, run.manifest)

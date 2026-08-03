@@ -160,16 +160,50 @@ class StagedMainWindowTest(unittest.TestCase):
             },
         }
 
-    def _q_bundle(self, window):
+    def _q_bundle(
+        self,
+        window,
+        *,
+        converged=True,
+        completed_iterations=2,
+        maximum_iterations=5,
+        termination_reason="log_q_tolerance",
+    ):
         output = self.starts[0]["output"]
         manifest = self._manifest(
             window,
             output,
             "grape-param-estim/diagonal-wrench-q-estimate/v2",
         )
+        manifest["em"] = {
+            "completed_iterations": completed_iterations,
+            "maximum_iterations": maximum_iterations,
+            "converged": converged,
+            "termination_reason": termination_reason,
+        }
+        iterations = np.arange(
+            1, completed_iterations + 1, dtype=np.int64
+        )
+        accepted_step_fraction = np.ones(
+            completed_iterations, dtype=float
+        )
+        accepted_step_fraction[-1] = (
+            0.0
+            if termination_reason == "generalized_em_update_rejected"
+            else 0.25
+        )
         return SimpleNamespace(
             root=output,
             manifest=manifest,
+            trace={
+                "iteration": iterations,
+                "accepted_step_fraction": accepted_step_fraction,
+                "trial_iteration": np.asarray(
+                    tuple(iterations[:-1])
+                    + (completed_iterations,) * 3,
+                    dtype=np.int64,
+                ),
+            },
             covariance=SimpleNamespace(
                 stationary_variance=np.asarray(
                     (0.1, 0.2, 0.3, 0.01, 0.02, 0.03)
@@ -317,6 +351,91 @@ class StagedMainWindowTest(unittest.TestCase):
             AttemptStatus.COMPLETE,
         )
         self.assertEqual(self._persisted(), window._workflow_state)
+        window.close()
+
+    def test_all_pauses_after_reusable_nonconverged_q_until_explicit_run(self):
+        window = self._window()
+        self._launch(window, WorkflowMode.ALL)
+        q_bundle = self._q_bundle(
+            window,
+            converged=False,
+            completed_iterations=5,
+            maximum_iterations=5,
+            termination_reason="maximum_iterations",
+        )
+        with mock.patch(
+            "grape_param_estim_gui.main_window.load_diagonal_q_stage",
+            return_value=q_bundle,
+        ), mock.patch(
+            "grape_param_estim_gui.main_window.QTimer.singleShot"
+        ) as single_shot:
+            window._worker_finished(str(q_bundle.root))
+
+        single_shot.assert_not_called()
+        self.assertEqual(len(self.starts), 1)
+        attempt = window._workflow_state.stage(
+            DIAGONAL_Q_STAGE_ID
+        ).attempts[-1]
+        self.assertEqual(attempt.status, AttemptStatus.COMPLETE)
+        self.assertIn("reusable artifact", window.statusBar().currentMessage())
+        self.assertIn(
+            "did not scientifically converge",
+            window.statusBar().currentMessage(),
+        )
+        self.assertIn("Stage 2 is paused", window.statusBar().currentMessage())
+
+        q_fingerprint = "sha256:" + "c" * 64
+        with mock.patch.object(
+            window, "_choose_workflow_mode", return_value=WorkflowMode.ALL
+        ), mock.patch(
+            "grape_param_estim_gui.main_window.load_diagonal_q_stage",
+            return_value=q_bundle,
+        ), mock.patch(
+            "grape_param_estim_gui.main_window.diagonal_q_stage_fingerprint",
+            return_value=q_fingerprint,
+        ):
+            window.start_assimilation()
+
+        self.assertEqual(
+            [value["operation"] for value in self.starts],
+            [DIAGONAL_Q_STAGE_ID, STATIC_PARAMETERS_STAGE_ID],
+        )
+        window.close()
+
+    def test_reusable_q_detail_reports_v2_em_and_last_backtracking_trial(self):
+        window = self._window()
+        self._launch(window, WorkflowMode.STEP)
+        q_bundle = self._q_bundle(
+            window,
+            converged=False,
+            completed_iterations=5,
+            maximum_iterations=5,
+            termination_reason="generalized_em_update_rejected",
+        )
+        with mock.patch(
+            "grape_param_estim_gui.main_window.load_diagonal_q_stage",
+            return_value=q_bundle,
+        ):
+            window._worker_finished(str(q_bundle.root))
+
+        with mock.patch(
+            "grape_param_estim_gui.main_window.load_diagonal_q_stage",
+            return_value=q_bundle,
+        ), mock.patch(
+            "grape_param_estim_gui.main_window.diagonal_q_stage_fingerprint",
+            return_value="sha256:" + "d" * 64,
+        ):
+            detail = window._derive_workflow_inputs(
+                window._validated_workflow_records()
+            )["q_detail"]
+
+        self.assertIn(
+            "Q diag [Fx, Fy, Fz, tau_x, tau_y, tau_z]", detail
+        )
+        self.assertIn("EM 5/5", detail)
+        self.assertIn("converged=false", detail)
+        self.assertIn("termination=generalized_em_update_rejected", detail)
+        self.assertIn("last accepted alpha=0 (3 trials)", detail)
         window.close()
 
     def test_worker_failure_is_persisted_as_retryable_attempt(self):

@@ -22,6 +22,7 @@ from grape_param_estim.controller import (
 from grape_param_estim.real_assimilation import build_real_strong_problem
 from grape_param_estim.synthetic import run_synthetic_experiment
 from grape_param_estim.system import ActuatorParameters, ActuatorState
+from grape_param_estim.timing import BoundedDelayChart
 
 
 class AugmentedParameterStateTest(unittest.TestCase):
@@ -61,10 +62,14 @@ class AugmentedParameterStateTest(unittest.TestCase):
 
     def test_default_prior_has_exact_shared_and_local_blocks(self):
         prior = AugmentedParameterPrior.grape(0.03, 0.01)
+        delay_chart = BoundedDelayChart()
         self.assertEqual(prior.shared_mean.shape, (19,))
         self.assertEqual(prior.local_mean.shape, (26,))
-        self.assertEqual(prior.shared_mean[-1], 0.03)
-        self.assertEqual(prior.shared_covariance[-1, -1], 0.01**2)
+        self.assertEqual(prior.shared_mean[-1], delay_chart.encode(0.03))
+        self.assertEqual(
+            prior.shared_covariance[-1, -1],
+            delay_chart.coordinate_standard_deviation(0.03, 0.01) ** 2,
+        )
         np.testing.assert_array_equal(
             np.diag(prior.local_covariance)[18:],
             np.asarray((0.30,) * 4 + (0.03,) * 4) ** 2,
@@ -108,14 +113,20 @@ class AugmentedParameterStateTest(unittest.TestCase):
             np.cov(wrench, rowvar=False), covariance.matrix, atol=2.0e-15
         )
 
-    def test_static_decode_keeps_signed_coordinate_but_nonnegative_delay(self):
+    def test_static_decode_uses_one_to_one_bounded_delay_coordinate(self):
+        delay_chart = BoundedDelayChart()
         coordinates = np.zeros(19)
-        coordinates[-1] = -0.017
+        coordinates[-1] = delay_chart.encode(0.017)
         parameters, delay = decode_shared_static_coordinates(
-            self.problem, coordinates
+            self.problem, coordinates, delay_chart
         )
         self.assertAlmostEqual(delay, 0.017)
         self.assertAlmostEqual(parameters.mass, 2.3515975908123767)
+        coordinates[-1] *= -1.0
+        _parameters, reflected = decode_shared_static_coordinates(
+            self.problem, coordinates, delay_chart
+        )
+        self.assertNotAlmostEqual(reflected, delay)
 
     def test_member_floor_and_input_types_are_enforced(self):
         covariance = BodyWrenchDiagonalCovariance(np.ones(6))

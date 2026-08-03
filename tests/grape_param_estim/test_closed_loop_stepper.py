@@ -19,6 +19,7 @@ from grape_param_estim.geometry import (
 )
 from grape_param_estim.synthetic import full_six_dof_reference
 from grape_param_estim.system import (
+    ActuatorCommand,
     ActuatorParameters,
     ActuatorState,
     ControllerState,
@@ -377,6 +378,76 @@ class ClosedLoopStepperTest(unittest.TestCase):
             sample.rigid_body_state.position,
             state_before.rigid_body_state.position,
         )
+
+    def test_analysis_can_replace_member_mixed_command_history(self):
+        stepper = self._new_stepper(0.095, self.initial_actuator_snapshot)
+        first = stepper.advance_interval(
+            self.times[1], self.references[0]
+        )
+        second = stepper.advance_interval(
+            self.times[2], self.references[1]
+        )
+        issue_times = stepper.command_issue_times.copy()
+        original = stepper.command_history_commands
+        mixed = tuple(
+            ActuatorCommand(
+                command.thrust + 0.5,
+                command.gimbal_angle - 0.02,
+                command.virtual_force + 0.1,
+                command.desired_acceleration - 0.1,
+            )
+            for command in original
+        )
+
+        stepper.replace_command_history(mixed)
+
+        np.testing.assert_array_equal(stepper.command_issue_times, issue_times)
+        replaced = stepper.command_history_commands
+        self.assertEqual(len(replaced), 2)
+        np.testing.assert_array_equal(replaced[0].thrust, mixed[0].thrust)
+        np.testing.assert_array_equal(
+            replaced[1].gimbal_angle, mixed[1].gimbal_angle
+        )
+        delayed = stepper.delayed_command_at(self.times[2])
+        np.testing.assert_array_equal(delayed.thrust, mixed[0].thrust)
+        mixed[0].thrust[:] = -999.0
+        np.testing.assert_array_equal(
+            stepper.delayed_command_at(self.times[2]).thrust,
+            first.command.thrust + 0.5,
+        )
+
+        before_invalid = stepper.command_history_commands
+        with self.assertRaisesRegex(ValueError, "align"):
+            stepper.replace_command_history((second.command,))
+        np.testing.assert_array_equal(
+            stepper.command_history_commands[0].thrust,
+            before_invalid[0].thrust,
+        )
+
+    def test_bounded_delay_history_keeps_only_causal_suffix(self):
+        stepper = self._new_stepper(0.05, self.initial_actuator_snapshot)
+        samples = []
+        for index in range(3):
+            samples.append(
+                stepper.advance_interval(
+                    self.times[index + 1], self.references[index]
+                )
+            )
+        np.testing.assert_array_equal(
+            stepper.command_issue_times, self.times[:3]
+        )
+
+        stepper.trim_command_history(self.times[3], 0.06)
+
+        np.testing.assert_array_equal(
+            stepper.command_issue_times, self.times[1:3]
+        )
+        at_maximum_delay = stepper.delayed_command_at(self.times[3])
+        np.testing.assert_array_equal(
+            at_maximum_delay.thrust, samples[1].command.thrust
+        )
+        with self.assertRaisesRegex(ValueError, "match state"):
+            stepper.trim_command_history(self.times[2], 0.06)
 
     def test_static_model_replacement_validates_before_mutation(self):
         stepper = self._new_stepper(0.095, self.initial_actuator_snapshot)

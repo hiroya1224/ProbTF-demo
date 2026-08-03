@@ -26,7 +26,7 @@ from grape_param_estim.strong_constraint import (
     StrongConstraintProblem,
 )
 from grape_param_estim.system import ActuatorState
-from grape_param_estim.timing import ConstantDelayChart
+from grape_param_estim.timing import BoundedDelayChart
 
 
 SHARED_STATIC_DIMENSION = PARAMETER_DIMENSION + 1
@@ -96,23 +96,31 @@ class AugmentedParameterPrior:
         cls,
         delay_mean: float = 0.02,
         delay_standard_deviation: float = 0.015,
+        maximum_delay: float = 0.2,
     ) -> "AugmentedParameterPrior":
         selected_delay_mean = float(delay_mean)
         selected_delay_deviation = float(delay_standard_deviation)
         if (
             not np.isfinite(selected_delay_mean)
-            or selected_delay_mean < 0.0
+            or selected_delay_mean <= 0.0
             or not np.isfinite(selected_delay_deviation)
             or selected_delay_deviation <= 0.0
         ):
             raise ValueError(
-                "delay mean/deviation must be non-negative/positive"
+                "delay mean/deviation must be positive"
             )
+        delay_chart = BoundedDelayChart(maximum_delay)
+        delay_coordinate_mean = delay_chart.encode(selected_delay_mean)
+        delay_coordinate_deviation = (
+            delay_chart.coordinate_standard_deviation(
+                selected_delay_mean, selected_delay_deviation
+            )
+        )
         base = StrongConstraintPrior.grape()
         shared_mean = np.concatenate(
             (
                 base.mean[PARAMETER_OFFSET:],
-                np.asarray((selected_delay_mean,)),
+                np.asarray((delay_coordinate_mean,)),
             )
         )
         shared_covariance = np.zeros(
@@ -121,7 +129,7 @@ class AugmentedParameterPrior:
         shared_covariance[:PARAMETER_DIMENSION, :PARAMETER_DIMENSION] = (
             base.covariance[PARAMETER_OFFSET:, PARAMETER_OFFSET:]
         )
-        shared_covariance[-1, -1] = selected_delay_deviation**2
+        shared_covariance[-1, -1] = delay_coordinate_deviation**2
 
         actuator_deviation = np.asarray(
             (0.30, 0.30, 0.30, 0.30, 0.03, 0.03, 0.03, 0.03)
@@ -194,6 +202,7 @@ def draw_augmented_initial_ensemble(
     member_count: int,
     seed: int,
     prior: AugmentedParameterPrior | None = None,
+    delay_chart: BoundedDelayChart | None = None,
 ) -> AugmentedInitialEnsemble:
     """Draw one exact, mutually uncorrelated 19+26+6 initial ensemble."""
 
@@ -210,7 +219,12 @@ def draw_augmented_initial_ensemble(
                 MINIMUM_FULL_RANK_MEMBER_COUNT
             )
         )
-    selected_prior = prior or AugmentedParameterPrior.grape()
+    selected_delay_chart = delay_chart or BoundedDelayChart()
+    if not isinstance(selected_delay_chart, BoundedDelayChart):
+        raise TypeError("delay_chart must be a BoundedDelayChart")
+    selected_prior = prior or AugmentedParameterPrior.grape(
+        maximum_delay=selected_delay_chart.maximum_delay
+    )
     shared = exact_gaussian_ensemble(
         selected_prior.shared_mean,
         selected_prior.shared_covariance,
@@ -273,7 +287,9 @@ def draw_augmented_initial_ensemble(
 
 
 def decode_shared_static_coordinates(
-    problem: StrongConstraintProblem, coordinates: np.ndarray
+    problem: StrongConstraintProblem,
+    coordinates: np.ndarray,
+    delay_chart: BoundedDelayChart | None = None,
 ):
     """Decode one 19-D member into plant parameters and physical delay."""
 
@@ -282,9 +298,12 @@ def decode_shared_static_coordinates(
     value = _finite_vector(
         coordinates, SHARED_STATIC_DIMENSION, "shared coordinates"
     )
+    selected_delay_chart = delay_chart or BoundedDelayChart()
+    if not isinstance(selected_delay_chart, BoundedDelayChart):
+        raise TypeError("delay_chart must be a BoundedDelayChart")
     return (
         problem.parameter_chart.decode(value[:PARAMETER_DIMENSION]),
-        ConstantDelayChart().decode(value[-1]),
+        selected_delay_chart.decode(value[-1]),
     )
 
 

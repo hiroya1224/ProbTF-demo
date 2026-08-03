@@ -1,7 +1,7 @@
 """One-observation-interval stateful Grape closed-loop propagation."""
 
 from dataclasses import dataclass
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -136,6 +136,20 @@ class ClosedLoopStepper:
         return self._command_history.issue_times
 
     @property
+    def command_history_commands(self) -> Tuple[ActuatorCommand, ...]:
+        """Return defensive copies of the member's causal commands."""
+
+        return tuple(
+            ActuatorCommand(
+                command.thrust,
+                command.gimbal_angle,
+                command.virtual_force,
+                command.desired_acceleration,
+            )
+            for command in self._command_history.values
+        )
+
+    @property
     def is_terminal(self) -> bool:
         return self._terminal
 
@@ -167,6 +181,82 @@ class ClosedLoopStepper:
         )
         self._state = replacement
         return replacement
+
+    def replace_command_history(
+        self, commands: Sequence[ActuatorCommand]
+    ) -> None:
+        """Replace command values while retaining their causal issue times.
+
+        A deterministic ensemble analysis mixes members.  Delayed commands
+        are auxiliary dynamic state and must receive the same member-space
+        analysis before the next forecast interval.  The common issue-time
+        grid and the currently analysed delay remain unchanged.
+        """
+
+        self._require_active()
+        selected = tuple(commands)
+        issue_times = self._command_history.issue_times
+        if len(selected) != issue_times.size or any(
+            not isinstance(command, ActuatorCommand)
+            for command in selected
+        ):
+            raise ValueError(
+                "commands must align with the retained command history"
+            )
+        replacement = ZeroOrderHoldCommandHistory[ActuatorCommand](
+            self._command_history.constant_delay
+        )
+        for time, command in zip(issue_times, selected):
+            replacement.append(
+                float(time),
+                ActuatorCommand(
+                    command.thrust,
+                    command.gimbal_angle,
+                    command.virtual_force,
+                    command.desired_acceleration,
+                ),
+            )
+        self._command_history = replacement
+
+    def trim_command_history(
+        self, current_time: float, maximum_delay: float
+    ) -> None:
+        """Discard commands that cannot affect any future bounded delay.
+
+        One predecessor at or before ``current_time - maximum_delay`` is
+        retained because zero-order hold may still select it at the left edge
+        of the admissible delay window.
+        """
+
+        self._require_active()
+        selected_time = float(current_time)
+        selected_maximum = float(maximum_delay)
+        if (
+            not np.isfinite(selected_time)
+            or not np.isfinite(selected_maximum)
+            or selected_maximum <= 0.0
+            or selected_time != self._state.time
+        ):
+            raise ValueError(
+                "current time/max delay must match state and be positive"
+            )
+        issue_times = self._command_history.issue_times
+        if issue_times.size < 2:
+            return
+        threshold = selected_time - selected_maximum
+        first = max(
+            int(np.searchsorted(issue_times, threshold, side="right") - 1),
+            0,
+        )
+        if first == 0:
+            return
+        commands = self.command_history_commands[first:]
+        replacement = ZeroOrderHoldCommandHistory[ActuatorCommand](
+            self._command_history.constant_delay
+        )
+        for time, command in zip(issue_times[first:], commands):
+            replacement.append(float(time), command)
+        self._command_history = replacement
 
     def replace_static_model(
         self,

@@ -239,6 +239,63 @@ def write_json_atomic(path: Union[str, Path], value: Mapping[str, Any]) -> Path:
     return destination
 
 
+def write_npz_atomic(
+    path: Union[str, Path], arrays: Mapping[str, np.ndarray]
+) -> Path:
+    """Atomically replace ``path`` with a pickle-free compressed NPZ."""
+
+    if not isinstance(arrays, Mapping) or not arrays:
+        raise ArtifactValidationError(
+            "NPZ payload must be a non-empty array mapping"
+        )
+    payload: Dict[str, np.ndarray] = {}
+    for key, value in arrays.items():
+        if not isinstance(key, str) or not key:
+            raise ArtifactValidationError(
+                "NPZ payload keys must be non-empty strings"
+            )
+        selected = np.asarray(value)
+        if selected.dtype.hasobject:
+            raise ArtifactValidationError(
+                "NPZ payload {!r} has forbidden object dtype".format(key)
+            )
+        payload[key] = selected
+
+    destination = Path(path).expanduser().resolve()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary_name: Optional[str] = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w+b",
+            prefix=".{}.".format(destination.name),
+            suffix=".tmp",
+            dir=str(destination.parent),
+            delete=False,
+        ) as stream:
+            temporary_name = stream.name
+            np.savez_compressed(stream, **payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_name, str(destination))
+        temporary_name = None
+        try:
+            directory_fd = os.open(str(destination.parent), os.O_RDONLY)
+        except OSError:
+            directory_fd = -1
+        if directory_fd >= 0:
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+    finally:
+        if temporary_name is not None:
+            try:
+                os.unlink(temporary_name)
+            except FileNotFoundError:
+                pass
+    return destination
+
+
 def _require_keys(
     mapping: Mapping[str, Any], keys: Sequence[str], location: str
 ) -> None:
@@ -2903,4 +2960,5 @@ __all__ = [
     "request_fingerprint",
     "request_fingerprint_file",
     "write_json_atomic",
+    "write_npz_atomic",
 ]

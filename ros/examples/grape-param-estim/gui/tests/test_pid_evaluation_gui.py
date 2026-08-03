@@ -154,12 +154,21 @@ class PidEvaluationGuiQtTests(unittest.TestCase):
             bag = self.root / "bags" / (bag_id + ".bag")
             bag.parent.mkdir(exist_ok=True)
             bag.write_bytes(bag_id.encode("ascii"))
+            digest = ("a" if bag_id == "bag-a" else "b") * 64
+            self.store.manifest["bags"].append(
+                {
+                    "bag_id": bag_id,
+                    "source_path": str(bag),
+                    "relative_path": "bags/{}.bag".format(bag_id),
+                    "sha256": digest,
+                }
+            )
             self.store.add(
                 BagRecord(
                     bag_id=bag_id,
                     path=bag,
                     source_path=bag,
-                    sha256=("a" if bag_id == "bag-a" else "b") * 64,
+                    sha256=digest,
                     controller_snapshot={
                         "gains": (
                             np.arange(12, dtype=float).reshape(4, 3) + 1.0
@@ -287,6 +296,7 @@ class PidEvaluationGuiQtTests(unittest.TestCase):
             "maximum orientation error limit = 0.2 rad",
             view.threshold_label.text(),
         )
+        self.assertTrue(view.threshold_label.wordWrap())
         self.assertEqual(view.candidate_table.columnCount(), 20)
         self.assertEqual(
             view.candidate_table.item(1, 2).text(), "1.1 / 1.1 / 1.1"

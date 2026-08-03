@@ -79,20 +79,21 @@ class NextExperimentView(QWidget):
         root.addWidget(self.scenario_label)
 
         launch_group = QGroupBox("Posterior-predictive evaluation")
-        launch_layout = QHBoxLayout(launch_group)
+        launch_layout = QVBoxLayout(launch_group)
+        launch_controls = QHBoxLayout()
         self.source_member_label = QLabel("Selected member: —")
         self.source_member_label.setMinimumWidth(145)
-        launch_layout.addWidget(self.source_member_label)
-        launch_layout.addWidget(QLabel("Current PID snapshot:"))
+        launch_controls.addWidget(self.source_member_label)
+        launch_controls.addWidget(QLabel("Current PID snapshot:"))
         self.baseline_combo = QComboBox()
         self.baseline_combo.setMinimumWidth(125)
-        launch_layout.addWidget(self.baseline_combo)
-        launch_layout.addWidget(QLabel("Residual:"))
+        launch_controls.addWidget(self.baseline_combo)
+        launch_controls.addWidget(QLabel("Residual:"))
         self.residual_combo = QComboBox()
         for policy in RESIDUAL_POLICIES:
             self.residual_combo.addItem(policy, policy)
-        launch_layout.addWidget(self.residual_combo)
-        launch_layout.addWidget(QLabel("CVaR:"))
+        launch_controls.addWidget(self.residual_combo)
+        launch_controls.addWidget(QLabel("CVaR:"))
         self.cvar_spin = QDoubleSpinBox()
         self.cvar_spin.setDecimals(3)
         self.cvar_spin.setRange(0.0, 0.999)
@@ -102,8 +103,8 @@ class NextExperimentView(QWidget):
             "Upper CVaR is the mean of the raw-member errors in the worst tail; "
             "this value sets where that tail begins."
         )
-        launch_layout.addWidget(self.cvar_spin)
-        launch_layout.addWidget(QLabel("Recommendation target:"))
+        launch_controls.addWidget(self.cvar_spin)
+        launch_controls.addWidget(QLabel("Recommendation target:"))
         self.selection_target_combo = QComboBox()
         self.selection_target_combo.addItem("None", None)
         self.selection_target_combo.addItem(
@@ -114,13 +115,15 @@ class NextExperimentView(QWidget):
             "A target is evaluated for recommendation only when selected explicitly; "
             "no representative candidate is selected automatically."
         )
-        launch_layout.addWidget(self.selection_target_combo)
+        launch_controls.addWidget(self.selection_target_combo)
         self.evaluate_button = QPushButton("Evaluate selected member")
         self.evaluate_button.clicked.connect(self._request_evaluation)
-        launch_layout.addWidget(self.evaluate_button)
-        launch_layout.addStretch(1)
+        launch_controls.addWidget(self.evaluate_button)
+        launch_controls.addStretch(1)
+        launch_layout.addLayout(launch_controls)
         self.threshold_label = QLabel("Thresholds: Not configured")
         self.threshold_label.setStyleSheet("color: #666;")
+        self.threshold_label.setWordWrap(True)
         launch_layout.addWidget(self.threshold_label)
         root.addWidget(launch_group)
 

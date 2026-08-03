@@ -82,6 +82,10 @@ class RidgePlotWidget(QWidget):
         )
 
     def _render(self) -> None:
+        # PlotWidget.clear() removes the selected markers as well.  Drop the
+        # Python references first so _render_selected() does not ask an old
+        # GraphicsScene to remove an item whose native scene is already gone.
+        self._selected_items.clear()
         for plot in (self.trans_plot, self.rot_plot):
             plot.clear()
         ensemble = self.parameter_ensemble
@@ -110,10 +114,10 @@ class RidgePlotWidget(QWidget):
         self._render_selected()
 
     def _render_selected(self) -> None:
-        for item in self._selected_items:
-            scene = item.scene()
-            if scene is not None:
-                scene.removeItem(item)
+        for plot, item in zip(
+            (self.trans_plot, self.rot_plot), self._selected_items, strict=False
+        ):
+            plot.removeItem(item)
         self._selected_items.clear()
         ensemble = self.parameter_ensemble
         if ensemble is None or self.selected_member_id is None:

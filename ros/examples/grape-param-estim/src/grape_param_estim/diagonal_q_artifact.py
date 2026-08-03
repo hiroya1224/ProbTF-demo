@@ -57,7 +57,8 @@ DIAGONAL_Q_ESTIMATE_SCHEMA = (
 _FINGERPRINT = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _RAW_SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _CONFIGURATION_FINGERPRINT = re.compile(
-    r"(?:complete|incomplete):[0-9a-f]{64}\Z"
+    r"(?:(?:complete|incomplete):[0-9a-f]{64}"
+    r"|manual-group:sha256:[0-9a-f]{64})\Z"
 )
 _DIGEST = _FINGERPRINT
 _TRACE_KEYS = (
@@ -215,7 +216,8 @@ class DiagonalQArtifactBagInput:
             configuration_fingerprint
         ) is None:
             raise ArtifactValidationError(
-                "configuration_fingerprint must be complete/incomplete SHA256"
+                "configuration_fingerprint must be a complete, incomplete, "
+                "or manual-group SHA256"
             )
         fixed_model_provenance = _normalised_json_mapping(
             self.fixed_model_provenance, "fixed_model_provenance"
@@ -752,7 +754,8 @@ def _validate_manifest(
             configuration_fingerprint
         ) is None:
             raise ArtifactValidationError(
-                "{}.configuration_fingerprint is invalid".format(location)
+                "{}.configuration_fingerprint must be a complete, incomplete, "
+                "or manual-group SHA256".format(location)
             )
         fixed_model_provenance = _normalised_json_mapping(
             metadata["fixed_model_provenance"],

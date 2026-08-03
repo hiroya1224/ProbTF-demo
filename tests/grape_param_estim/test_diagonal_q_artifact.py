@@ -132,7 +132,9 @@ class DiagonalQArtifactTest(unittest.TestCase):
                     self.effective_intervals["bag-a"]
                 ),
                 episode_index=1,
-                configuration_fingerprint="complete:" + "a" * 64,
+                configuration_fingerprint=(
+                    "manual-group:sha256:" + "a" * 64
+                ),
                 fixed_model_provenance={
                     "fixed_model": "a",
                     "revision": 7,
@@ -800,6 +802,27 @@ class DiagonalQArtifactTest(unittest.TestCase):
                 DiagonalQArtifactBagInput(
                     translation_covariance=np.eye(3), **invalid
                 )
+
+    def test_bag_input_accepts_manual_configuration_group_fingerprint(self):
+        value = DiagonalQArtifactBagInput(
+            bag_id="bag-a",
+            source_path="/flight-data/bag-a.bag",
+            source_sha256="a" * 64,
+            source_size_bytes=1,
+            selected_interval_local_seconds=(0.0, 1.0),
+            effective_interval_local_seconds=(0.0, 1.0),
+            episode_index=0,
+            configuration_fingerprint="manual-group:sha256:" + "b" * 64,
+            fixed_model_provenance={"fixed_model": "a"},
+            constant_delay_seconds=0.0,
+            translation_covariance=np.eye(3),
+            rotation_covariance=np.eye(3),
+            fixed_r_provenance={"method": "fixed"},
+        )
+        self.assertEqual(
+            value.configuration_fingerprint,
+            "manual-group:sha256:" + "b" * 64,
+        )
 
     def test_atomic_npz_writer_rejects_object_payloads(self):
         with tempfile.TemporaryDirectory() as directory:

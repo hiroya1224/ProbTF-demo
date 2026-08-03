@@ -303,16 +303,35 @@ def _validate_supported_state(state: WorkflowState, workflow_id: str) -> None:
             "workflow ID does not match this project workflow"
         )
     expected_stages = default_workflow_stages()
-    expected_fingerprint = workflow_definition_fingerprint(
-        DEFAULT_DEFINITION_ID, expected_stages
-    )
-    if (
-        state.definition_id != DEFAULT_DEFINITION_ID
-        or state.definition_fingerprint != expected_fingerprint
+    if not _has_exact_definition(
+        state, DEFAULT_DEFINITION_ID, expected_stages
     ):
         raise WorkflowIoError(
             "workflow definition does not match the supported two-stage definition"
         )
+
+
+def _has_exact_definition(
+    state: WorkflowState,
+    definition_id: str,
+    expected_stages: tuple[WorkflowStage, ...],
+) -> bool:
+    """Compare IDs, versions and dependencies as well as their fingerprint."""
+
+    actual_definition = tuple(
+        (stage.stage_id, stage.algorithm_version, stage.depends_on)
+        for stage in state.stages
+    )
+    expected_definition = tuple(
+        (stage.stage_id, stage.algorithm_version, stage.depends_on)
+        for stage in expected_stages
+    )
+    return (
+        state.definition_id == definition_id
+        and actual_definition == expected_definition
+        and state.definition_fingerprint
+        == workflow_definition_fingerprint(definition_id, expected_stages)
+    )
 
 
 def _reconcile_supported_state(
@@ -326,12 +345,8 @@ def _reconcile_supported_state(
         )
 
     expected_stages = default_workflow_stages()
-    expected_fingerprint = workflow_definition_fingerprint(
-        DEFAULT_DEFINITION_ID, expected_stages
-    )
-    if (
-        state.definition_id == DEFAULT_DEFINITION_ID
-        and state.definition_fingerprint == expected_fingerprint
+    if _has_exact_definition(
+        state, DEFAULT_DEFINITION_ID, expected_stages
     ):
         return state
 
@@ -346,28 +361,21 @@ def _reconcile_supported_state(
             depends_on=(DIAGONAL_Q_STAGE_ID,),
         ),
     )
-    legacy_fingerprint = workflow_definition_fingerprint(
-        DEFAULT_DEFINITION_ID, legacy_stages
-    )
-    if (
-        state.definition_id != DEFAULT_DEFINITION_ID
-        or state.definition_fingerprint != legacy_fingerprint
+    if not _has_exact_definition(
+        state, DEFAULT_DEFINITION_ID, legacy_stages
     ):
         raise WorkflowIoError(
             "workflow definition does not match the supported two-stage definition"
         )
 
-    attempts_by_stage = {
-        stage.stage_id: stage.attempts for stage in state.stages
-    }
     reconciled_stages = tuple(
         WorkflowStage(
-            stage_id=stage.stage_id,
-            algorithm_version=stage.algorithm_version,
-            depends_on=stage.depends_on,
-            attempts=attempts_by_stage[stage.stage_id],
+            stage_id=expected.stage_id,
+            algorithm_version=expected.algorithm_version,
+            depends_on=expected.depends_on,
+            attempts=legacy.attempts,
         )
-        for stage in expected_stages
+        for expected, legacy in zip(expected_stages, state.stages)
     )
     return WorkflowState.create(
         workflow_id=state.workflow_id,

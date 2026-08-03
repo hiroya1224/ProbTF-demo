@@ -267,6 +267,67 @@ class WorkflowIoTests(unittest.TestCase):
         with self.assertRaisesRegex(WorkflowIoError, "definition"):
             load_workflow(self.root, "project-a")
 
+    def test_tampered_algorithm_with_known_fingerprint_is_rejected(self):
+        for label, original in (
+            ("v1", _legacy_workflow()),
+            ("v2", create_default_workflow("project-a")),
+        ):
+            with self.subTest(label=label):
+                payload = original.to_dict()
+                known_fingerprint = payload["definition_fingerprint"]
+                payload["stages"][0]["algorithm_version"] = (
+                    "diagonal-q-tampered-v99"
+                )
+                self.assertEqual(
+                    payload["definition_fingerprint"], known_fingerprint
+                )
+                (self.root / WORKFLOW_FILE_NAME).write_text(
+                    json.dumps(payload), encoding="utf-8"
+                )
+
+                with self.assertRaisesRegex(
+                    WorkflowIoError, "definition fingerprint"
+                ):
+                    load_workflow(self.root, "project-a")
+
+    def test_missing_or_reordered_stages_are_cleanly_rejected(self):
+        malformed_definitions = {
+            "missing": WorkflowState.create(
+                workflow_id="project-a",
+                definition_id=DEFAULT_DEFINITION_ID,
+                mode=WorkflowMode.STEP,
+                stages=(
+                    WorkflowStage(
+                        "diagonal_q",
+                        LEGACY_DIAGONAL_Q_ALGORITHM_VERSION,
+                    ),
+                ),
+            ),
+            "reordered": WorkflowState.create(
+                workflow_id="project-a",
+                definition_id=DEFAULT_DEFINITION_ID,
+                mode=WorkflowMode.STEP,
+                stages=(
+                    WorkflowStage(
+                        "static_parameters", "augmented-static-enkf-v1"
+                    ),
+                    WorkflowStage(
+                        "diagonal_q",
+                        LEGACY_DIAGONAL_Q_ALGORITHM_VERSION,
+                        depends_on=("static_parameters",),
+                    ),
+                ),
+            ),
+        }
+        for label, malformed in malformed_definitions.items():
+            with self.subTest(label=label):
+                (self.root / WORKFLOW_FILE_NAME).write_text(
+                    json.dumps(malformed.to_dict()), encoding="utf-8"
+                )
+
+                with self.assertRaisesRegex(WorkflowIoError, "definition"):
+                    load_workflow(self.root, "project-a")
+
     def test_project_and_workflow_ids_are_safe_and_bound_on_load_and_save(self):
         with self.assertRaisesRegex(WorkflowIoError, "project_id"):
             load_workflow(self.root, "../project-a")

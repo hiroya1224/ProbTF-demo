@@ -104,6 +104,13 @@ def main(argv: list[str] | None = None) -> int:
         "seed": 23,
         "delay_prior_mean": 0.02,
         "delay_prior_standard_deviation": 0.015,
+        "maximum_delay": 0.2,
+        "q_maximum_em_iterations": 5,
+        "q_log_q_tolerance": 1.0e-3,
+        "q_component_floor": [1.0e-9] * 6,
+        "q_fixed_initial_delay_seconds": 0.02,
+        "forecast_workers": "auto",
+        "covariance_rcond": 1.0e-12,
         "allow_configuration_mismatch": False,
     }
     project_path = create_project_directory(projects_root, manifest)

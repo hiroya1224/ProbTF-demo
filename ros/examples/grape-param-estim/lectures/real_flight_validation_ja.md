@@ -1,16 +1,34 @@
-# Grape 実飛行データによる同化・完全 hold-out 検証報告
+# Grape 実飛行データによる旧推定器の同化・完全 hold-out 検証記録
+
+> **適用範囲:** 本資料の数値結果は、residual-wrench pathを時刻ごとの最適化変数に含めた旧weak-constraint solverで2026年6月に得た履歴であり、現行の二段階estimatorの検証結果ではない。
+> 現行方式はStage 1で6個のdiagonal `Q` 成分をEM推定し、Stage 2でその `Q` を固定して45個のone-bag unknownを51次元augmented EnKF / EnRTSで推定するため、旧runとの数値比較には再実行が必要である。
+> 現行workflowは最低58 membersを要求し、`STEP` / `ALL` とstage artifact再利用に対応する。
 
 ## 1. 結論
 
-実装した worker と artifact 契約は、指定された失敗飛行を読み、position / orientation だけを尤度に用いる full closed-loop weak-constraint 同化を最後まで実行できた。
-また、同化完了後まで隔離した成功飛行に対し、失敗飛行から得た raw physical posterior member と一定遅れだけを移送する完全 hold-out 検証も完走した。
+旧workerとartifact契約は、指定された失敗飛行を読み、position / orientationだけを尤度に用いるfull closed-loop同化を最後まで実行できた。
+また、旧同化完了後まで隔離した成功飛行に対し、失敗飛行から得たraw physical posterior memberと一定遅れだけを移送する完全hold-out検証も完走した。
 
 ただし、今回の推定値は次回実機飛行の品質保証にはならない。
 Q の全 89 knots を使った正本 run は、成功飛行の位置・姿勢の全指標で nominal baseline より悪かった。
 8 knots へ制限した感度 run では位置だけが改善し、姿勢は悪化した。
 開発用失敗飛行でも posterior の姿勢 RMSE は nominal より悪く、pose component coverage は 0 だった。
 初期 prior ensemble の縮約が必要で、終了理由も `maximum_iterations` である。
-したがって本報告の PID 結論は **推奨なし** である。
+したがって旧方式に基づく本報告のPID結論は **推奨なし** であり、現行二段階estimatorについても再検証が終わるまで推奨を出さない。
+
+### 現行方式での再検証手順
+
+1. 失敗飛行だけをprojectへ登録し、推奨の `STEP` でStage 1を実行する。
+2. 完成したartifactでforce 3軸とtorque 3軸のdiagonal `Q`、EM trace、固定 `R`、入力fingerprintを確認する。
+3. 同じStage 1 artifactを再利用し、ensemble size 58以上でfixed-Q Stage 2を実行する。
+4. position / orientationのin-sample診断を別々に確認し、隔離した成功飛行へphysical parameterとdelayだけを移送して完全hold-out scoringを再実行する。
+5. 全独立指標、coverage、ensemble-size感度が妥当になるまでPID recommendationを出さない。
+
+現行GUIの `ALL` はStage 1のcomplete artifactを保存してからStage 2へ自動的に進むが、検証では各境界で結果を確認できる `STEP` を推奨する。
+cancel・failure・アプリ再起動後は完成済み上流artifactを再利用できる一方、実行中stageの途中checkpointからは再開せず、そのstageを先頭から再試行する。
+forecastは単一rolloutではなく全member・全intervalのEnKF forecastと後向きEnRTSであり、Stage 1ではさらにEM反復ごとに繰り返す。
+順方向member計算はpersistent `spawn` poolで並列化され、`auto` は最大32 workersである。
+GUIはBLAS thread環境変数が未設定の場合だけ1を既定値として渡し、明示された環境変数は保持するため、短いwindowや利用者設定によるoversubscriptionでは並列経路が直列より遅い場合がある。
 
 ## 2. データ分割と provenance
 
@@ -56,7 +74,11 @@ source bag の初期状態、controller state、actuator state、reference、res
 物理値は固定 `VehicleParameters.nominal()`、一定遅れは 0 s であり、source run の nominal 推定値や posterior member ではない。
 したがって以下は「完全に未知の初期状態から将来を予言する」検証ではなく、飛行開始時の pose / velocity で条件付けた後の observation-reset-free closed-loop trajectory 検証である。
 
-## 4. 失敗飛行に対する M=32、全 Q-knot 同化
+## 4. 旧方式による失敗飛行の M=32、全 Q-knot 同化
+
+この節から第6節までの `Q-knot`、control dimension、posterior、PID候補は旧time-indexed residual-wrench optimizerの結果であり、現行Stage 1 / Stage 2 artifactへ読み替えてはならない。
+旧方式の579次元はstatic / initial coordinateに全時刻のwrench coordinateを連結したために増大したが、現行Stage 2のone-bag unknownはshared static 19とlocal initial 26の合計45で固定される。
+現行filterはshared static 19とdynamic state 32の合計51次元であり、residual wrench 6成分は `Q` に駆動されるdynamic stateとして扱う。
 
 正本とした run は `/tmp/grape-failed-assimilation-run-m32-full-backoff` である。
 設定は sample period 0.1 s、ensemble size 32、maximum iterations 3、OU knot 89、delay prior `0.020 +/- 0.015 s`、seed 20260612 である。
@@ -162,7 +184,7 @@ policy を変えると Pareto 集合も変わった。
 確認できなかったことは、姿勢を含む joint physical law の整合、posterior coverage、Q と constant delay の安定した分離、complete hardware fingerprint、反復・ensemble size に対する安定性、次回実機飛行の安全性である。
 したがって current PID を自動変更せず、提案値を flight recommendation として出力しない。
 
-再実行には、同梱 worker の request-file interface を使う。
+次のコマンドはこの報告に記録した旧artifactを再現するlegacy request-file interfaceである。
 
 ```bash
 rosrun grape_param_estim grape_assimilate_flights.py \
@@ -176,9 +198,23 @@ rosrun grape_param_estim grape_validate_held_out_flight.py \
 
 source bag、request SHA、選択 interval、controller snapshot、要求 / 実効 prior、raw forecast、metric は各 directory bundle に pickle-free で保存され、strict loader が再計算して検査する。
 
-## 8. 実装・runtime 検証
+現行二段階workerをGUI外で再実行する場合は、それぞれ専用schemaのrequest JSONを使う。
 
-最終 source tree で次を実行した。
+```bash
+rosrun grape_param_estim grape_estimate_diagonal_q.py \
+  --request /path/to/diagonal-q-request.json \
+  --output /path/to/diagonal-q
+
+rosrun grape_param_estim grape_estimate_augmented_parameters.py \
+  --request /path/to/augmented-parameter-request.json \
+  --output /path/to/assimilation-run
+```
+
+Stage 2 requestは検証済みStage 1 artifactのpathとcontent fingerprintを必須のupstreamとして持つ。
+
+## 8. 旧実装・runtime 検証の履歴
+
+次の件数と視覚受入は旧solverを正本としていた時点の履歴であり、現行二段階workflowのtest件数を表さない。
 
 | check | result |
 |---|---:|
@@ -202,7 +238,7 @@ VTK framebuffer の直接画像も別に保存して確認した。
 README に掲載した失敗飛行の bare `rosrun` コマンドも、空の projects root から改めて実行した。
 起動後は Bag browser が自動的に選択され、inspection 完了後に position / reference、flight state の preview と実軌跡の 3D 描画が表示された。
 不足している六つの hardware provenance 項目を明示する確認 dialog で、一 bag 専用の既定 group ID `single-bag-bd3fc7f71797` を確定すると、その bag だけが使用可能になった。
-実 worker を起動し、`iteration 1/5 ensemble` の member forecast と ETA が GUI に表示されるところまで確認した。
+旧workerを起動し、`iteration 1/5 ensemble` のmember forecastとETAがGUIに表示されるところまで確認した。
 さらに Stop 後に cancellation artifact が保存され、bag status が `ready` に戻り、同じ画面から再実行できることを確認した。
 これらの画像は Code 画面を含む desktop 全体ではなく、X11 の対象 window ID を指定して GUI または dialog だけを取得したもので、`/tmp/grape-gui-rosrun-acceptance` に保存した。
 

@@ -1,9 +1,9 @@
 # grape_param_estim
 
-Grape の full closed-loop system を forecast operator として使う、weak-constraint ensemble smoothing の実装です。
-推定器と GUI 統合の設計は `docs/plans/grape_weak_constraint_ienks_estimation_plan_ja.md` と `docs/plans/grape_param_estim_gui_integration_next_experiment_plan_ja.md` に従います。
+Grape の full closed-loop system を forecast operator として使い、対角 process-noise covariance `Q` の推定と fixed-Q static-parameter assimilation を分けた二段階 ensemble filter / smoother の実装です。
+現行の実 rosbag 推定は、Stage 1 の diagonal-Q EM と Stage 2 の augmented EnKF / EnRTS を順番に実行します。
 
-synthetic experiment、strong/weak-constraint smoothing、検証、実 rosbag 同化、posterior-predictive controller 評価を実装しています。
+現行の二段階推定に加え、synthetic experiment、旧 strong/weak-constraint 回帰、検証、実 rosbag inspection、posterior-predictive controller 評価を実装しています。
 旧 Streamlit GUI、rosbag open-loop replay、segment reset、static particle estimator、旧 result schema との後方互換は意図的に削除しました。
 
 ## 収録 rosbag で GUI を起動する最短デモ
@@ -21,11 +21,15 @@ rosrun grape_param_estim run_gui.py \
 ```
 
 inspectionが完了するとGUIは `Bag browser` へ自動的に移動し、`Trajectory`、`Flight state`、3D world trajectoryへpreviewを表示します。
-`Master`、`Correction transform`、`Residual wrench` はsmoothing結果の表示領域なので、smoothing前は空です。
+`Master`、`Correction transform`、`Residual wrench` はStage 2のfixed-Q parameter estimation結果を表示する領域なので、Stage 2完了前は空です。
 このbagにはhardware configuration provenanceが記録されていないため、GUIはconfiguration group確認画面を開きます。
-単独bagのデモでは既定の `single-bag-bd3fc7f71797` をそのまま確認すると、欠落warningを保持したままこのbagだけのgroupとして `Use` が有効になり、toolbarの `Run smoothing` を実行できます。
+単独bagのデモでは既定の `single-bag-bd3fc7f71797` をそのまま確認すると、欠落warningを保持したままこのbagだけのgroupとして `Use` が有効になり、toolbarの `Run estimation…` を実行できます。
+`Run estimation…` は二段階の実行方法を選ぶ画面を開き、推奨の `Run one stage at a time`（`STEP`）または連続実行する `Run all stages`（`ALL`）を選べます。
 同じgroup IDを複数bagへ指定する操作は、それらが同じpayload、rotor、geometry、robot model、wiring、hardwareであると利用者が確認できる場合に限ります。
-実行中に `Stop` した場合、不完全なrunは `cancelled` として読み込まず、bagは `ready` に戻るため再実行できます。
+選択したbagのconfirmed configuration fingerprintが混在する場合、現行staged workflowは実行を拒否し、mismatchを許すoverrideはありません。
+実行中に `Stop` した場合、不完全なstage artifactは `cancelled` として読み込まず、bagは `ready` に戻るため同じstageを再試行できます。
+Stage 1 が完了していれば、そのartifactは次回起動でも検証後に再利用され、Stage 2 から再開できます。
+一方、実行中stageの数値計算途中から再開するcheckpointはなく、cancel・failure・アプリ再起動で中断されたstageは先頭から再試行します。
 
 次のコマンドは、2026年6月13日の成功飛行を同じGUI経路で開きます。
 このbagは完全hold-out検証にも使った例で、完結した `flight_state=5` 区間を211 samples含みます。
@@ -61,49 +65,49 @@ rosrun grape_param_estim run_gui.py \
 - position/orientation だけの observation generator
 - `Z_k = T_nominal,k^-1 T_real,k` の correction-transform path
 
-## Strong-constraint experiment
+## 現行の二段階推定
 
-- 一つの全飛行 window を black-box forecast する strong-constraint IEnKS
-- joint control `z=(x0, c0, theta)`（36次元）
-  - initial position / SO(3) tangent / latent velocity / angular velocity
-  - six PID integral states
-  - log mass、full SPD inertia chart、CoG、rotorごとの log force/torque effectiveness
-- pose-only residual `[(p-p_obs), Log(R_obs^T R)]` の既知 covariance による whitening
-- ensemble cloud の secant regression だけを使う ensemble-space Gauss–Newton
-- raw static-parameter ensemble、full latent trajectory ensemble、correction-transform path ensemble
-- model family が完全に一致する Experiment A と、pose noise だけを加えた Experiment B
-- mass・full inertia・全 force effectiveness の common-scale exact ridge の保持
+### Stage 1: diagonal-Q EM
 
-解析・有限差分 Jacobian、segment reset、parameter hard bounds、particle weights は使いません。
+- body-frame residual wrench を6次元の OU process state として EnKF / EnRTS で filtering / smoothing
+- `Q = diag(q_Fx, q_Fy, q_Fz, q_tau_x, q_tau_y, q_tau_z)` の6成分を別々に保持
+- position / orientation の observation covariance `R`、vehicle parameter、初期 delay、OU correlation time はこのstage中に固定
+- E-step の smoothed wrench pathからOU sufficient statisticsを集計し、M-stepで6個のstationary varianceを更新
+- `Q` の各成分、単位、frame、EM trace、入力fingerprintをstrict artifactへ保存
 
-## Weak-constraint experiment
+`Q` を単位行列の定数倍にはせず、force 3軸とtorque 3軸の異なるスケールを保持します。
+residual wrenchの各時刻値はdynamic stochastic stateであり、時刻ごとの最適化変数としてparameter vectorへ追加しません。
 
-- 各 integration interval に独立な6次元 innovation block を持つ full-block weak-constraint IEnKS-Q
-- 不規則時刻にも対応する stationary Gauss–Markov / OU residual body wrench
-- static parameter は飛行全体で一つの global variable のまま保持
-- interval residual は、その区間の全 RK4 stage へ同じ値を加算
-- static parameter、innovation、residual wrench、full trajectory、correction-transform path を同じ member ID のまま保存
-- drag、actuator lag/delay、時間変化外乱を truth だけへ加えた Experiment C で、strong constraint との parameter bias / latent state / path coverage 比較
-- truth state 上で nominal controller/actuator を因果的に独立 replay して求めた counterfactual residual-wrench oracle（truth command の流用なし）
-- 同じ static truth・observation-noise realization・window から model error だけを除いた matched strong-control run による excess parameter bias の分離
+### Stage 2: fixed-Q static parameters
 
-時間方向を一つの低rank path sampleへ潰してはいません。
-augmented dimension は `36 + 6 * (interval count)` で、既定では ensemble size をさらに2大きくし、全Q block を prior ensemble が張るようにします。
-Experiment C の Q scale は既知の synthetic model-error RMS から機械的に校正します。
+Stage 1 の検証済み `Q` artifactを固定入力とし、19個のshared static coordinatesとbag-local dynamic stateをaugmented EnKFで逐次更新し、最後にEnRTSでfixed-interval smoothingします。
+shared static coordinatesの内訳は、vehicle parameter 18個とcontinuous constant delay 1個です。
 
-## Ridge・ensemble convergence・mode validation
+一つのbagに対する推定未知量の内訳は次のとおりです。
 
-- common-scale exact ridge 上の5本の full closed-loop rollout と pose likelihood の不変性
-- proper prior metric で分解した raw ridge coordinate / 17次元 quotient law、prior-whitened information leak、true correction-path coverage
-- IEnKS-Q の perfect-model zero-residual realization における raw ridge law と、非ゼロ residual を含む exact augmented symmetry `(theta, eta) -> (theta + lambda v, exp(lambda) eta)`
-- strong `M=38,46` と短い full-block weak `D=78, M=80,88` の実同化を使う ensemble-size convergence
-- prior-whitened quotient と pose-whitened full correction path の deterministic sliced-Wasserstein-1 比較
-- plant actuator channel wiring の nominal / 0--1 swap を、一つの ensemble に混ぜず mode ごとに独立同化する Experiment D
-- pose-only Laplace mode weight と、独立 wiring inspection による weight のみの conditioning（raw posterior member は再同化・再サンプル・混合しない）
+| 区分 | 内訳 | 次元 |
+|---|---|---:|
+| shared static | mass 1、full SPD inertia 6、CoG 3、force effectiveness 4、torque effectiveness 4、delay 1 | 19 |
+| bag-local initial | position / orientation tangent / linear velocity / angular velocity 12、PID integral 6、actuator thrust / gimbal 8 | 26 |
+| 合計 | `19 + 26` | 45 |
 
-reaction-torque 符号だけを mode にする案は、短い pose window では両方の真値を区別できなかったため採用していません。
-wiring mode は両方の synthetic truth で pose weight の argmax が切り替わることを回帰試験しています。
-IEnKS-Q でも proper-prior ridge law と augmented likelihood symmetry が保たれたため、この検証では particle-based correction を追加していません。
+時刻ごとのfilter stateはshared static 19成分とdynamic 32成分からなる51次元です。
+dynamic 32成分の内訳はrigid-body state 12、PID integral 6、actuator state 8、現在のresidual wrench 6です。
+residual wrench 6成分は `Q` に従うMarkov processとして毎intervalで遷移し、全時刻分を未知parameterとして積み上げません。
+
+51次元analysis anomalyに直交する6本のprocess-noise directionをexact ensembleで確保するには、中心化で失う1自由度も含めて `51 + 6 + 1 = 58` members以上が必要です。
+そのため現行staged workflowはensemble sizeを58以上に制限し、既定値は128です。
+複数bagでは19個のstatic coordinatesだけを共有し、26個の初期座標とdynamic pathはbagごとに独立に保ちます。
+
+### 識別性と検証
+
+- common-scale exact ridge 上のfull closed-loop rolloutとpose likelihoodの不変性
+- raw ridge coordinate、17次元quotient law、prior-whitened information leak、correction-path coverage
+- position / orientationを分離したposterior predictive metricと完全hold-out flight
+- plant actuator channel wiringをmodeごとに独立同化するsynthetic regression
+
+mass・inertia・effectivenessにはpose-only観測で識別できないridgeが残るため、marginalの狭さだけを推定成功と解釈しません。
+解析・有限差分Jacobian、segment reset、parameter hard bounds、particle weightsは使いません。
 
 ## Real rosbag assimilation
 
@@ -112,9 +116,9 @@ IEnKS-Q でも proper-prior ridge law と augmented likelihood symmetry が保�
 - CoG odometry の位置と baselink odometry の姿勢だけを likelihood に使用（twist、IMU、加速度は観測へ追加しない）
 - 記録された `PoseControlPid` reference/feedforward、PID integral、dynamic-reconfigure update の gain snapshot、gimbal/thrust anchor の因果的復元
 - preflight 静止区間からロバスト推定する位置・SO(3) 観測 covariance
-- body residual wrench を sparse OU knot で表し、piecewise-linear wrench の integration interval 平均を全 RK4 stage に保持する連続 weak forecast
-- 観測 pose が要求する wrench と、観測 pose 上で因果 replay した nominal controller/actuator wrench の差による Q scale・相関時間の事前校正
-- raw static parameter、OU innovation/knot/interval wrench、full latent trajectory、correction-transform path、ridge/mode/resolution 診断の member-aligned 保存
+- nominal vehicle modelを固定したStage 1で6成分のdiagonal `Q` をEM推定
+- Stage 1 artifactの `Q` を固定したStage 2でshared static parameterとbag-local stateをEnKF / EnRTS推定
+- raw static parameter、filter / smoother state、residual-wrench path、full latent trajectory、correction-transform path、ridge診断のmember-aligned保存
 
 既定では完結した episode 内の最長 `flight_state=5` interval を選びます。
 存在しない場合は control-active interval を警告付き候補として返し、人間が GUI 上で確認します。
@@ -161,8 +165,15 @@ devel space の `rosrun` は source script の shebang ではなく、catkin が
 したがって上記 workspace では venv の activate や GUI 用環境変数なしで `rosrun grape_param_estim run_gui.py` を実行できます。
 検証環境の package-local `qt-runtime` も同じ再実行時にだけ自動追加します。
 worker interpreter を変更する場合は `GRAPE_PARAM_ESTIM_WORKER_PYTHON` に catkin/ROS package を読み込める interpreter の絶対パスを設定します。
-同化中の closed-loop forecast は ensemble member ごとに独立なので、既定では CPU affinity と ensemble size を見て最大16個の `spawn` process で並列実行します。
-使用 process 数を固定する場合は `GRAPE_PARAM_ESTIM_FORECAST_WORKERS=4` のように指定し、直列で再現確認する場合は `GRAPE_PARAM_ESTIM_FORECAST_WORKERS=1` を指定します。
+同化画面で `forecast` と表示される処理は、一本の順方向軌道だけではありません。
+Stage 1 は各EM iterationで全memberのEnKF forecastとEnRTS smoothingを行い、Stage 2も各観測intervalで全memberを順方向に伝播してanalysisした後、全区間を後向きにEnRTS smoothingします。
+したがって主な計算量は概ねmember数、時刻interval数、Stage 1のEM反復数に比例し、既定128 membersでは単一rolloutより大幅に重くなります。
+
+各memberの順方向伝播は独立なので、2 workers以上では `spawn` process poolをfilter pass中ずっと保持し、intervalごとのprocess生成を避けます。
+`forecast_workers="auto"` はCPU affinityの半数、ensemble size、32の最小値を使うため、自動選択の上限は32 workersです。
+明示値はproject manifestの `estimator_settings.forecast_workers` で指定でき、`1` はprocess間通信を使わない直列の参照経路です。
+GUIはBLASの入れ子並列によるoversubscriptionを避けるため、`OPENBLAS_NUM_THREADS`、`OMP_NUM_THREADS`、`MKL_NUM_THREADS` が未設定の場合だけ既定値1をworkerへ渡し、利用者が明示した環境変数は保持します。
+短いwindowや小さいensembleではprocess間通信の固定費により直列より遅い場合がありますが、長い実bagではpersistent poolによりmember並列を利用できます。
 GUI の `Save Project` は raw rosbag、inspection、run、PID evaluation、GUI state を含む標準 ZIP/ZIP64 を保存し、`Load Project` は同梱 bag の SHA256 を検査して `projects/` 以下へ展開します。
 
 `Next experiment` では shared selection の raw member を明示し、current、member-derived exact candidate、任意で入力した exact 4 x 3 user candidate を評価します。
@@ -171,7 +182,7 @@ baseline controller snapshot、`posterior_replay` / `zero`、CVaR level、explic
 実行は同じ progress / ETA / cancel 経路を使い、complete artifact だけを自動ロードします。
 結果の3D比較も、画面で選択中の bag・member・candidate に対応する保存済み forecast path だけを表示します。
 
-実環境では `gui/.venv` に PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 を導入し、GUI test 63 / 63、skip 0 を確認しました。
+実環境では `gui/.venv` に PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 を導入し、Qt widget、staged workflow、project、plot / 3DのGUI testを実行できる状態にしました。
 さらに `DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と VTK を起動し、Master、Bag browser の world / correction、PID の translation / rotation / trajectory を視覚確認しました。
 14 枚の PNG と機械可読な `summary.json` は `/tmp/grape-gui-visual-acceptance` にあります。
 ウィンドウ画像は X server の `QScreen.grabWindow` で取得しているため、ネイティブ VTK 子画面も含みます。
@@ -181,6 +192,10 @@ baseline controller snapshot、`posterior_replay` / `zero`、CVaR level、explic
 ホスト側に不足していた `libxcb-cursor0` は sudo で system install せず、deb を `gui/.venv/qt-runtime` へ展開し、その `usr/lib/x86_64-linux-gnu` を受入実行時の `LD_LIBRARY_PATH` に追加しました。
 これは検証環境だけの補完であり、system library は変更していません。
 実 artifact は変更せず、GUI freshness 検査に必要な `project_request_fingerprint` は `/tmp/grape-visual-assimilation-run` の視覚確認用コピーにだけ追加しました。
+
+### Legacy synthetic regression tools
+
+次のstrong/weak-constraintコマンドはsynthetic回帰と旧方式の比較用であり、現行の実rosbag二段階workflowではありません。
 
 ```bash
 cd /home/leus/catkin_ws
@@ -235,16 +250,12 @@ rosrun grape_param_estim grape_validate_assimilation.py \
   --output /tmp/grape_mode_validation.npz
 ```
 
-実 rosbag の追加、inspection、区間選択、joint smoothing、project 保存・復元は Desktop GUI から実行します。
-GUI が worker 用 request JSON を project 内へ保存し、`grape_inspect_flights.py --request ... --output ...` と `grape_assimilate_flights.py --request ... --output ...` を起動します。
+実 rosbag の追加、inspection、区間選択、二段階推定、project 保存・復元は Desktop GUI から実行します。
+GUIはworker用request JSONをproject内へ保存し、inspectionには `grape_inspect_flights.py`、Stage 1には `grape_estimate_diagonal_q.py`、Stage 2には `grape_estimate_augmented_parameters.py` を起動します。
 
-artifact の `q_resolution_sufficient` が false の場合、その knot 数で Q の時間解像度が十分だとは主張できません。
-assimilation request の `maximum_knots=0` は校正された OU bridge criterion を満たす全 knot を使います。
-計算量を理由に knot を減らした事実と診断は artifact へ保存されます。
-
-real joint solver は ensemble size が augmented dimension より小さい場合も、実際の prior ensemble span 内で更新します。
-要求 prior forecast が非有限になる場合は、全 member の中心からの偏差を共通係数で縮めた最初の有限 ensemble を実効 prior とし、要求 / 実効 ensemble、scale、rank、失敗理由を保存して GUI に警告します。
-member の除外や有限な罰 residual への置換は行いません。
+Stage 1のdiagonal-Q artifactは、6個のstationary variance、固定 `R`、bag provenance、EM trace、smoothed residual-wrench lawを保存します。
+Stage 2のassimilation run directoryは、上流diagonal-Q artifactのcontent fingerprint、bag hash / record-time / window / controller provenance、shared posterior、bagごとのobserved / nominal / forecast / analysis / smoother trajectory、residual-wrench path、ridge診断を保存します。
+入力または上流artifactが変わると既存stageは `STALE` になり、自動再利用しません。
 
 Strong-constraint NPZ は member 順を保った control/physical parameter/full trajectory/ correction path ensemble、ridge covariance、iteration diagnostics を保存します。
 parameter posterior の一点化や Gaussian summary を正本にはしません。
@@ -253,8 +264,6 @@ Weak-constraint NPZ は strong/weak の比較に加え、weak posterior の raw 
 
 Validation NPZ は ridge coordinate / quotient / path の raw law、各 ensemble size の raw law と convergence 指標、または mode 別の full posterior member と pose/independent-measurement weight を保存します。
 mode-conditioned posterior は選択 mode の raw ensemble そのもので、mode 横断の Gaussian summary ではありません。
-
-Assimilation run directory は bag hash/record-time/window/controller/calibration provenance、shared posterior、bag ごとの observed/nominal/posterior trajectory、raw parameter/Q/path ensemble、OU knot 解像度、ridge と selected-mode 診断を可変長 bag ごとに保存します。
 
 PID proposal evaluation directory は source member ID、mode law、scenario assumption、current/proposed exact PID、candidate/member/bag ごとの forecast success/reason、trajectory/correction path、単位別 mean/CVaR/Pareto 指標、提案 YAML を保存します。
 
@@ -267,7 +276,8 @@ rosrun grape_param_estim grape_validate_held_out_flight.py \
   --output /path/to/held-out-validation
 ```
 
-実装契約は [`lectures/implementation_ja.md`](lectures/implementation_ja.md)、指定された失敗 bag と隔離した成功 bag の実測結果、Q-knot 感度、推奨なしの判定は [`lectures/real_flight_validation_ja.md`](lectures/real_flight_validation_ja.md) に記録しています。
+現行の実装契約は [`lectures/implementation_ja.md`](lectures/implementation_ja.md) に記録しています。
+指定された失敗bagと隔離した成功bagの [`lectures/real_flight_validation_ja.md`](lectures/real_flight_validation_ja.md) は、旧time-indexed residual-wrench optimizerによる過去結果であり、現行二段階推定の検証結果ではありません。
 
 NPZ は pickle を使わず、次を保存します。
 
@@ -316,7 +326,7 @@ catkin_test_results build/grape_param_estim
 ```
 
 GUI test suite は次で実行します。
-上記の検証済み venv では Qt widget / 3D test を含む 63 tests がすべて成功し、skip はありません。
+上記の検証済みvenvではQt widget、二段階workflow、artifact再利用、plot / 3D testを含むsuiteを実行します。
 依存 package が揃わない環境では Qt widget / 3D test だけを skip し、request、project archive、artifact loader、launcher、signal cancel の pure tests は実行されます。
 
 ```bash

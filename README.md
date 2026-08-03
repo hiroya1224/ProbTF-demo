@@ -1,8 +1,7 @@
 # ProbTF integrated packages
 
-This repository combines native probabilistic transforms, ROS 1 transport,
-symmetry-aware grasping, and deflection compensation. Python source is owned by
-the catkin package that installs it; there is no shared top-level `src/` relay.
+This repository combines native probabilistic transforms, ROS 1 transport, symmetry-aware grasping, deflection compensation, and the staged Grape flight-parameter estimator.
+Python source is owned by the catkin package that installs it; there is no shared top-level `src/` relay.
 
 ## Package layout
 
@@ -19,20 +18,20 @@ the catkin package that installs it; there is no shared top-level `src/` relay.
   visualization, and symmetry-aware IK
 - `ros/examples/deflecomp`: ROS-free compensation/simulation libraries and ROS
   runtime packages
+- `ros/examples/grape-param-estim`: rosbag inspection, six-component diagonal-Q EM, fixed-Q augmented EnKF / EnRTS parameter estimation, and posterior-predictive PID evaluation
 
-Each Python namespace lives below its owning package's `src/` directory. The
-root `setup.py` only aggregates these first-party package roots for non-catkin
-development.
+Each Python namespace lives below its owning package's `src/` directory.
+The root `setup.py` only aggregates these first-party package roots for non-catkin development.
 
 ## Installation
 
-For ROS use, place the repository in a catkin workspace and build the packages
-directly. A separate root `pip install` is not required.
+For ROS use, place the repository in a catkin workspace and build the packages directly.
+A separate root `pip install` is not required.
 
 ```bash
 cd /path/to/catkin_ws
 catkin build probtf_msgs probtf_core probtf_rviz probtf_imu_demo probtf_orientation_demo \
-  symaware_grasp deflecomp_core deflecomp_sim deflecomp_ros
+  symaware_grasp deflecomp_core deflecomp_sim deflecomp_ros grape_param_estim
 source devel/setup.bash
 ```
 
@@ -43,17 +42,14 @@ python3 -m pip install -e .
 ```
 
 The Bingham normalizer used by `probtf` is vendored under `probtf._vendor`.
-Root installation does not package or require the external BinghamNLL
-submodule. Optional dependencies are available with
-`python3 -m pip install -e '.[visualization,examples,test]'`.
+Root installation does not package or require the external BinghamNLL submodule.
+Optional dependencies are available with `python3 -m pip install -e '.[visualization,examples,test]'`.
 
 ## Native v2 messages
 
-The transform law is a weighted mixture of
-`ProbabilisticTransformComponent`. Each component contains a
-`BinghamOrientation` and a `ConditionalGaussianTranslation`, including the
-3-by-9 rotation/translation coupling matrix. Metadata uses `Provenance` and
-`ApproximationInfo`.
+The transform law is a weighted mixture of `ProbabilisticTransformComponent`.
+Each component contains a `BinghamOrientation` and a `ConditionalGaussianTranslation`, including the 3-by-9 rotation/translation coupling matrix.
+Metadata uses `Provenance` and `ApproximationInfo`.
 
 Runtime transport uses:
 
@@ -65,41 +61,31 @@ Runtime transport uses:
 - `OrientationDistributionStamped` for orientation-only posteriors
 - `ImuKinematics` at the two-IMU producer boundary
 
-Quaternion arrays use `[w, x, y, z]`; ROS quaternion fields are converted at
-the adapter boundary. The removed v1 partial transform messages are not part of
-the runtime or generated message set.
+Quaternion arrays use `[w, x, y, z]`; ROS quaternion fields are converted at the adapter boundary.
+The removed v1 partial transform messages are not part of the runtime or generated message set.
 
 ## Listener and lookup
 
-`ProbTfBroadcaster` publishes native records. `ProbTfListener` provides an
-in-process timestamped graph, while `RosProbTfListener` subscribes to
-`/probtf` and `/probtf_static` with a bounded history per edge. Both listeners
-provide:
+`ProbTfBroadcaster` publishes native records.
+`ProbTfListener` provides an in-process timestamped graph, while `RosProbTfListener` subscribes to `/probtf` and `/probtf_static` with a bounded history per edge.
+Both listeners provide:
 
 - `lookup_path(target_frame, source_frame, ...)`
 - `lookup_kernel(target_frame, source_frame, ...)`
 - `lookup_point_moments(target_frame, source_frame, point, ...)`
 - `can_lookup(...)` and `wait_for_lookup(...)`
 
-Temporal selection is explicit through `TemporalPolicy` (`EXACT`, `LATEST`,
-`NEAREST_WITHIN_TOLERANCE`, or `LATEST_COMMON`). Forward/inverse traversal uses
-the same latent physical edge rather than constructing an independent inverse
-distribution.
+Temporal selection is explicit through `TemporalPolicy` (`EXACT`, `LATEST`, `NEAREST_WITHIN_TOLERANCE`, or `LATEST_COMMON`).
+Forward/inverse traversal uses the same latent physical edge rather than constructing an independent inverse distribution.
 
-The default `probtf_bridge_node` is C++. It connects native topics to `/tf` and
-`/tf_static`, keeps one pending sample per physical edge, and publishes a
-complete `/probtf_batch` snapshot without queuing intermediate states. The
-legacy per-edge `/probtf` stream remains available through
-`publish_individual_dynamic:=true` (the generic default); deflecomp disables it
-because its C++ consumer reads the batch directly. The Python bridge remains a
-launch-selectable compatibility implementation with `use_cpp_bridge:=false`.
+The default `probtf_bridge_node` is C++.
+It connects native topics to `/tf` and `/tf_static`, keeps one pending sample per physical edge, and publishes a complete `/probtf_batch` snapshot without queuing intermediate states.
+The legacy per-edge `/probtf` stream remains available through `publish_individual_dynamic:=true` (the generic default); deflecomp disables it because its C++ consumer reads the batch directly.
+The Python bridge remains a launch-selectable compatibility implementation with `use_cpp_bridge:=false`.
 
-The C++ point-moment evaluator supports Dirac, uniform, and finite Bingham
-orientations, conditional Gaussian translation, mixtures, and forward path
-composition. It retains the Python evaluator's explicit rejection of
-stochastic inverse moments and unresolved repeated latent dependencies. ROS
-callbacks and computation use a fixed callback thread plus one worker; if a
-new batch arrives during evaluation, the superseded result is discarded.
+The C++ point-moment evaluator supports Dirac, uniform, and finite Bingham orientations, conditional Gaussian translation, mixtures, and forward path composition.
+It retains the Python evaluator's explicit rejection of stochastic inverse moments and unresolved repeated latent dependencies.
+ROS callbacks and computation use a fixed callback thread plus one worker; if a new batch arrives during evaluation, the superseded result is discarded.
 
 ## Demo launches
 
@@ -121,7 +107,10 @@ roslaunch symaware_grasp prob_tf_link_cloud.launch
 # Deflection-compensation simulation and multi-frame viewer/runtime
 roslaunch deflecomp_sim sim_with_deflecomp.launch
 roslaunch deflecomp_ros deflecomp_frames.launch viewer:=true
+
+# Grape staged diagonal-Q -> fixed-Q parameter-estimation GUI
+rosrun grape_param_estim run_gui.py
 ```
 
-See `docs/lectures/probtf_jmaa_kernel_architecture.md` for the distribution, graph,
-kernel, temporal, and approximation contracts.
+See `docs/lectures/probtf_jmaa_kernel_architecture.md` for the distribution, graph, kernel, temporal, and approximation contracts.
+See `ros/examples/grape-param-estim/README.md` for the packaged rosbag demos, staged workflow, dimension breakdown, and forecast-performance notes.

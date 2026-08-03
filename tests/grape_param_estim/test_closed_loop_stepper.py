@@ -335,6 +335,65 @@ class ClosedLoopStepperTest(unittest.TestCase):
             (self.times[0], self.times[1], self.times[2]),
         )
 
+    def test_static_model_replacement_preserves_state_and_command_history(self):
+        stepper = self._new_stepper(0.095, self.initial_actuator_snapshot)
+        first = stepper.advance_interval(
+            self.times[1], self.references[0]
+        )
+        state_before = stepper.state
+        issue_times = stepper.command_issue_times.copy()
+
+        changed_parameters = VehicleParameters(
+            mass=1.1 * self.parameters.mass,
+            inertia=self.parameters.inertia,
+            cog_offset=self.parameters.cog_offset,
+            force_effectiveness=self.parameters.force_effectiveness,
+            torque_effectiveness=self.parameters.torque_effectiveness,
+            linear_drag=self.parameters.linear_drag,
+            angular_drag=self.parameters.angular_drag,
+        )
+        changed_actuators = self._actuator_parameters(0.017)
+        stepper.replace_static_model(
+            controller=GrapeController(
+                self.configuration,
+                changed_parameters,
+                self.geometry,
+                articulated_model=GrapeArticulatedModel(),
+            ),
+            plant=FullSixDofPlant(changed_parameters, self.geometry),
+            actuator_parameters=changed_actuators,
+        )
+
+        self.assertIs(stepper.state, state_before)
+        np.testing.assert_array_equal(
+            stepper.command_issue_times, issue_times
+        )
+        delayed = stepper.delayed_command_at(self.times[1] + 0.017)
+        np.testing.assert_array_equal(delayed.thrust, first.command.thrust)
+        sample = stepper.advance_interval(
+            self.times[2], self.references[1]
+        )
+        np.testing.assert_array_equal(
+            sample.rigid_body_state.position,
+            state_before.rigid_body_state.position,
+        )
+
+    def test_static_model_replacement_validates_before_mutation(self):
+        stepper = self._new_stepper(0.095, self.initial_actuator_snapshot)
+        valid_controller = self._controller()
+        valid_plant = FullSixDofPlant(self.parameters, self.geometry)
+        valid_actuators = self._actuator_parameters(0.017)
+        for field in ("controller", "plant", "actuator_parameters"):
+            arguments = {
+                "controller": valid_controller,
+                "plant": valid_plant,
+                "actuator_parameters": valid_actuators,
+            }
+            arguments[field] = object()
+            with self.subTest(field=field), self.assertRaises(TypeError):
+                stepper.replace_static_model(**arguments)
+        self.assertEqual(stepper.command_issue_times.size, 0)
+
     def test_terminal_and_input_validation_block_continuation(self):
         stepper = self._new_stepper(0.017, None)
         for invalid_end in (self.times[0], -1.0, float("nan"), float("inf")):
@@ -378,6 +437,12 @@ class ClosedLoopStepperTest(unittest.TestCase):
                     self.configuration, trim_hover=True
                 ),
                 actuator_state=self.initial_actuator_snapshot,
+            )
+        with self.assertRaises(RuntimeError):
+            stepper.replace_static_model(
+                controller=self._controller(),
+                plant=FullSixDofPlant(self.parameters, self.geometry),
+                actuator_parameters=self._actuator_parameters(0.0),
             )
 
     def test_state_and_constructor_types_are_validated(self):

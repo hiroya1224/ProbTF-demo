@@ -168,6 +168,35 @@ class ClosedLoopStepper:
         self._state = replacement
         return replacement
 
+    def replace_static_model(
+        self,
+        *,
+        controller: GrapeController,
+        plant: FullSixDofPlant,
+        actuator_parameters: ActuatorParameters,
+    ) -> None:
+        """Apply updated static members without resetting causal history.
+
+        An augmented-state filter can update vehicle parameters and constant
+        delay at an observation boundary.  The controller and plant must then
+        use those analysed values for the next interval, while every command
+        already issued by this member remains available to ``u(t - delay)``.
+        """
+
+        self._require_active()
+        if not isinstance(controller, GrapeController):
+            raise TypeError("controller must be GrapeController")
+        if not isinstance(plant, FullSixDofPlant):
+            raise TypeError("plant must be FullSixDofPlant")
+        if not isinstance(actuator_parameters, ActuatorParameters):
+            raise TypeError(
+                "actuator_parameters must be ActuatorParameters"
+            )
+        self._controller = controller
+        self._plant = plant
+        self._actuator_parameters = actuator_parameters
+        self._command_history.constant_delay = actuator_parameters.delay
+
     def advance_interval(
         self,
         end_time: float,

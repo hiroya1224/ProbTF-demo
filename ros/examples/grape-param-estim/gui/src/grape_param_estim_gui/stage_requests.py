@@ -14,6 +14,10 @@ DIAGONAL_Q_STAGE_REQUEST_SCHEMA = (
     "grape-param-estim/diagonal-q-stage-request/v1"
 )
 DIAGONAL_Q_STAGE_ID = "diagonal_q"
+STATIC_PARAMETERS_STAGE_REQUEST_SCHEMA = (
+    "grape-param-estim/augmented-parameter-stage-request/v1"
+)
+STATIC_PARAMETERS_STAGE_ID = "static_parameters"
 MINIMUM_STAGED_ENSEMBLE_SIZE = 58
 
 
@@ -114,6 +118,65 @@ def diagonal_q_stage_settings(
     }
 
 
+def augmented_parameter_stage_settings(
+    estimator_settings: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Resolve the fixed-Q augmented EnKF/EnRTS stage settings."""
+
+    if not isinstance(estimator_settings, Mapping):
+        raise ValueError("estimator_settings must be an object")
+    sample_period = _finite(
+        estimator_settings.get("sample_period"),
+        "sample_period",
+        positive=True,
+    )
+    ensemble_size = _integer(
+        estimator_settings.get("ensemble_size"),
+        "ensemble_size",
+        minimum=MINIMUM_STAGED_ENSEMBLE_SIZE,
+    )
+    delay_mean = _finite(
+        estimator_settings.get("delay_prior_mean"),
+        "delay_prior_mean",
+        positive=True,
+    )
+    delay_deviation = _finite(
+        estimator_settings.get("delay_prior_standard_deviation"),
+        "delay_prior_standard_deviation",
+        positive=True,
+    )
+    maximum_delay = _finite(
+        estimator_settings.get("maximum_delay", 0.2),
+        "maximum_delay",
+        positive=True,
+    )
+    if delay_mean >= maximum_delay:
+        raise ValueError("delay_prior_mean must be below maximum_delay")
+    covariance_rcond = _finite(
+        estimator_settings.get("covariance_rcond", 1.0e-12),
+        "covariance_rcond",
+        positive=True,
+    )
+    seed = _integer(estimator_settings.get("seed"), "seed", minimum=0)
+    if seed >= 2**32:
+        raise ValueError("seed must be below 2**32")
+    workers = estimator_settings.get("forecast_workers", "auto")
+    if workers != "auto":
+        workers = _integer(workers, "forecast_workers", minimum=1)
+        if workers > 256:
+            raise ValueError("forecast_workers cannot exceed 256")
+    return {
+        "sample_period": sample_period,
+        "ensemble_size": ensemble_size,
+        "delay_prior_mean_seconds": delay_mean,
+        "delay_prior_standard_deviation_seconds": delay_deviation,
+        "maximum_delay_seconds": maximum_delay,
+        "covariance_rcond": covariance_rcond,
+        "seed": seed,
+        "forecast_workers": workers,
+    }
+
+
 def stage_bag_requests(records: Sequence[Any]) -> list[dict[str, Any]]:
     """Detach the exact selected bag inputs required by both stages."""
 
@@ -173,10 +236,43 @@ def build_diagonal_q_stage_request(
     return request
 
 
+def build_augmented_parameter_stage_request(
+    *,
+    run_id: str,
+    project_fingerprint: str,
+    stage_input_fingerprint: str,
+    upstream_diagonal_q_path: str | Path,
+    upstream_diagonal_q_fingerprint: str,
+    bags: Sequence[Mapping[str, Any]],
+    settings: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build the exact request for fixed-Q 19+26 parameter assimilation."""
+
+    request = {
+        "schema": STATIC_PARAMETERS_STAGE_REQUEST_SCHEMA,
+        "run_id": str(run_id),
+        "project_fingerprint": str(project_fingerprint),
+        "stage_id": STATIC_PARAMETERS_STAGE_ID,
+        "stage_input_fingerprint": str(stage_input_fingerprint),
+        "upstream_diagonal_q": {
+            "path": str(Path(upstream_diagonal_q_path).resolve()),
+            "artifact_fingerprint": str(upstream_diagonal_q_fingerprint),
+        },
+        "bags": [dict(value) for value in bags],
+        "settings": dict(settings),
+    }
+    canonical_fingerprint(request)
+    return request
+
+
 __all__ = [
     "DIAGONAL_Q_STAGE_ID",
     "DIAGONAL_Q_STAGE_REQUEST_SCHEMA",
     "MINIMUM_STAGED_ENSEMBLE_SIZE",
+    "STATIC_PARAMETERS_STAGE_ID",
+    "STATIC_PARAMETERS_STAGE_REQUEST_SCHEMA",
+    "augmented_parameter_stage_settings",
+    "build_augmented_parameter_stage_request",
     "build_diagonal_q_stage_request",
     "diagonal_q_stage_settings",
     "stage_bag_requests",

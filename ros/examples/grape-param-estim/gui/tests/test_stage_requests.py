@@ -4,6 +4,8 @@ import unittest
 
 from grape_param_estim_gui.stage_requests import (
     MINIMUM_STAGED_ENSEMBLE_SIZE,
+    augmented_parameter_stage_settings,
+    build_augmented_parameter_stage_request,
     build_diagonal_q_stage_request,
     diagonal_q_stage_settings,
     stage_bag_requests,
@@ -47,6 +49,28 @@ class StageRequestTests(unittest.TestCase):
         source["ensemble_size"] = MINIMUM_STAGED_ENSEMBLE_SIZE - 1
         with self.assertRaisesRegex(ValueError, "at least 58"):
             diagonal_q_stage_settings(source)
+
+    def test_augmented_settings_are_explicit_and_bounded(self):
+        source = self._settings()
+        source.update(
+            delay_prior_standard_deviation=0.015,
+            maximum_delay=0.2,
+            covariance_rcond=1.0e-10,
+            forecast_workers="auto",
+        )
+        resolved = augmented_parameter_stage_settings(source)
+        self.assertEqual(resolved["ensemble_size"], 64)
+        self.assertEqual(resolved["delay_prior_mean_seconds"], 0.02)
+        self.assertEqual(
+            resolved["delay_prior_standard_deviation_seconds"], 0.015
+        )
+        self.assertEqual(resolved["maximum_delay_seconds"], 0.2)
+        self.assertEqual(resolved["covariance_rcond"], 1.0e-10)
+        self.assertEqual(resolved["forecast_workers"], "auto")
+
+        source["delay_prior_mean"] = 0.2
+        with self.assertRaisesRegex(ValueError, "below maximum_delay"):
+            augmented_parameter_stage_settings(source)
 
     def test_selected_bags_are_canonical_and_preserve_manual_group(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -117,6 +141,50 @@ class StageRequestTests(unittest.TestCase):
             },
         )
         self.assertEqual(canonical_fingerprint(first), canonical_fingerprint(second))
+
+    def test_augmented_request_binds_the_exact_q_artifact(self):
+        source = self._settings()
+        source["delay_prior_standard_deviation"] = 0.015
+        request = build_augmented_parameter_stage_request(
+            run_id="parameters-a",
+            project_fingerprint=canonical_fingerprint({"project": "a"}),
+            stage_input_fingerprint=canonical_fingerprint(
+                {"stage": "parameters"}
+            ),
+            upstream_diagonal_q_path="/tmp/project/runs/q-a/diagonal_q",
+            upstream_diagonal_q_fingerprint=canonical_fingerprint(
+                {"q": "artifact"}
+            ),
+            bags=[
+                {
+                    "bag_id": "bag-a",
+                    "path": "/tmp/a.bag",
+                    "sha256": "1" * 64,
+                    "episode_index": 0,
+                    "selected_interval_local_seconds": [1.0, 2.0],
+                    "configuration_fingerprint": "complete:" + "2" * 64,
+                }
+            ],
+            settings=augmented_parameter_stage_settings(source),
+        )
+        self.assertEqual(
+            set(request),
+            {
+                "schema",
+                "run_id",
+                "project_fingerprint",
+                "stage_id",
+                "stage_input_fingerprint",
+                "upstream_diagonal_q",
+                "bags",
+                "settings",
+            },
+        )
+        self.assertTrue(
+            request["upstream_diagonal_q"]["artifact_fingerprint"].startswith(
+                "sha256:"
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 import argparse
 import signal
 import sys
+from types import SimpleNamespace
 from typing import Mapping, Optional, Sequence
 
 from grape_param_estim.batch_artifact import (
@@ -202,7 +203,10 @@ def execute_pid_evaluation(
             bag_id=bag.bag_id,
             message="Loaded recorded controller snapshot and bag contract",
         )
-    if controller_snapshot_fingerprint(flight_data) != run.manifest[
+    controller_inputs = SimpleNamespace(
+        flight_data=tuple(flight_data[bag_id] for bag_id in expected_bags)
+    )
+    if controller_snapshot_fingerprint(controller_inputs) != run.manifest[
         "controller_snapshot_fingerprint"
     ]:
         raise ValueError("recorded controller snapshots disagree with estimation")

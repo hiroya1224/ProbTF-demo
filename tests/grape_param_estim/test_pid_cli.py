@@ -114,6 +114,7 @@ class PidCliTests(unittest.TestCase):
         cancellation_token=None,
         estimation_fingerprint="sha256:" + "d" * 64,
         writer_mock=None,
+        fingerprint_mock=None,
     ):
         run = BatchEstimationRun(
             root=request.estimation_run,
@@ -181,9 +182,12 @@ class PidCliTests(unittest.TestCase):
             stack.enter_context(patch(
                 "grape_param_estim.pid.cli.load_flight_data", return_value=flight
             ))
+            fingerprint = fingerprint_mock or Mock(
+                return_value="sha256:" + "c" * 64
+            )
             stack.enter_context(patch(
                 "grape_param_estim.pid.cli.controller_snapshot_fingerprint",
-                return_value="sha256:" + "c" * 64,
+                new=fingerprint,
             ))
             stack.enter_context(patch(
                 "grape_param_estim.pid.cli.configuration_from_controller_snapshot",
@@ -208,6 +212,32 @@ class PidCliTests(unittest.TestCase):
                 progress_callback=progress.append,
             )
         return result, writer
+
+    def test_controller_fingerprint_receives_ordered_flight_tuple(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bag = root / "flight.bag"
+            bag.write_bytes(b"strict test bag")
+            bag_sha = file_sha256(bag)
+            request = _request(root, bag, bag_sha)
+            fingerprint = Mock(return_value="sha256:" + "c" * 64)
+
+            self._run(
+                request,
+                bag_sha,
+                [],
+                fingerprint_mock=fingerprint,
+            )
+
+            fingerprint.assert_called_once()
+            inputs = fingerprint.call_args.args[0]
+            self.assertIs(type(inputs), SimpleNamespace)
+            self.assertIs(type(inputs.flight_data), tuple)
+            self.assertEqual(len(inputs.flight_data), 1)
+            self.assertEqual(
+                tuple(value.controller_configuration for value in inputs.flight_data),
+                (ControllerConfig.grape(),),
+            )
 
     def test_one_command_uses_artifact_q_actuator_model_and_progress(self):
         with tempfile.TemporaryDirectory() as temporary:

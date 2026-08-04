@@ -654,6 +654,52 @@ def sample_selected_mode(
 ) -> McmcRunResult:
     """Run ridge-aware delayed-acceptance MCMC for one selected mode."""
 
+    if not isinstance(mode, ModeEstimationResult):
+        raise TypeError("mode must be ModeEstimationResult")
+    return sample_laplace_solution(
+        inputs,
+        mode.mode_id,
+        mode.final_solution,
+        mode.static_geometry,
+        mode.delay_uncertainty,
+        cancellation_requested=cancellation_requested,
+        progress=progress,
+        target_timing_callback=target_timing_callback,
+        completed_chains=completed_chains,
+        chain_checkpoints=chain_checkpoints,
+        checkpoint_completed_chain=checkpoint_completed_chain,
+        checkpoint_chain_proposal=checkpoint_chain_proposal,
+    )
+
+
+def sample_laplace_solution(
+    inputs: RealEstimationInputs,
+    mode_id: str,
+    final: FixedGraphLaplaceSolution,
+    static_geometry: StaticLaplaceGeometry,
+    delay_uncertainty: DelayUncertaintyEstimate,
+    *,
+    cancellation_requested: Optional[CancellationCheck] = None,
+    progress: Optional[ProgressCallback] = None,
+    target_timing_callback: Optional[Callable[[float], None]] = None,
+    completed_chains: Optional[Mapping[str, object]] = None,
+    chain_checkpoints: Optional[Mapping[str, object]] = None,
+    checkpoint_completed_chain: Optional[CompletedChainCheckpoint] = None,
+    checkpoint_chain_proposal: Optional[ChainProposalCheckpoint] = None,
+) -> McmcRunResult:
+    """Sample a fixed-Q Laplace point, including one restored from disk."""
+
+    if not isinstance(inputs, RealEstimationInputs):
+        raise TypeError("inputs must be RealEstimationInputs")
+    if mode_id not in _mode_ids(inputs.request):
+        raise ValueError("mode_id is absent from request")
+    if not isinstance(final, FixedGraphLaplaceSolution):
+        raise TypeError("final must be FixedGraphLaplaceSolution")
+    if not isinstance(static_geometry, StaticLaplaceGeometry):
+        raise TypeError("static_geometry must be StaticLaplaceGeometry")
+    if not isinstance(delay_uncertainty, DelayUncertaintyEstimate):
+        raise TypeError("delay_uncertainty must be DelayUncertaintyEstimate")
+
     raw = inputs.request.payload["mcmc_settings"]
     if not bool(raw["enabled"]):
         raise ValueError("request does not enable MCMC")
@@ -663,18 +709,17 @@ def sample_selected_mode(
         raise TypeError("target_timing_callback must be callable")
     delay_raw = inputs.request.payload["delay"]
     bounds = tuple(float(value) for value in delay_raw["bounds_seconds"])
-    final = mode.final_solution
     static_map = final.lm.state.value(final.lm.state.layout.variable_keys[0])
     map_point = PosteriorPoint(static_map, final.prepared.fixed_delay)
     information = np.zeros((19, 19), dtype=float)
     information[:18, :18] = (
-        mode.static_geometry.information.posterior.hessian
+        static_geometry.information.posterior.hessian
     )
     information[-1, -1] = (
-        1.0 / mode.delay_uncertainty.standard_deviation_seconds**2
+        1.0 / delay_uncertainty.standard_deviation_seconds**2
     )
     target_factory = make_fixed_q_laplace_problem_factory(
-        _graph_factory(inputs, mode.mode_id), final.prepared.dynamics.q
+        _graph_factory(inputs, mode_id), final.prepared.dynamics.q
     )
     target = LaplaceMarginalTarget(
         target_factory,
@@ -697,8 +742,8 @@ def sample_selected_mode(
         map_point, map_evaluation.log_density, information
     )
     proposal = build_ridge_aware_proposal(
-        mode.static_geometry.information.likelihood.hessian,
-        mode.static_geometry.exact_ridge_direction,
+        static_geometry.information.likelihood.hessian,
+        static_geometry.exact_ridge_direction,
         delay_scale=float(raw["delay_scale_seconds"]),
         local_scale=float(raw["local_scale"]),
         exact_ridge_scale=float(raw["exact_ridge_scale"]),
@@ -707,7 +752,7 @@ def sample_selected_mode(
         near_relative_threshold=float(raw["near_relative_threshold"]),
     )
     settings = McmcRunSettings(
-        mode_id=mode.mode_id,
+        mode_id=mode_id,
         chain_count=int(raw["chain_count"]),
         warmup_steps=int(raw["warmup_steps"]),
         retained_draws=int(raw["retained_draws"]),
@@ -720,9 +765,9 @@ def sample_selected_mode(
     )
     initializations = initialize_mcmc_chains(
         map_point,
-        mode.static_geometry.covariance,
-        mode.delay_uncertainty.standard_deviation_seconds,
-        mode.static_geometry.exact_ridge_direction,
+        static_geometry.covariance,
+        delay_uncertainty.standard_deviation_seconds,
+        static_geometry.exact_ridge_direction,
         bounds,
         settings.chain_count,
         settings.random_seed,
@@ -764,7 +809,7 @@ def sample_selected_mode(
         sampler_factory,
         settings,
         initializations,
-        mode.static_geometry.exact_ridge_direction,
+        static_geometry.exact_ridge_direction,
         completed_chains=completed_chains,
         chain_checkpoints=chain_checkpoints,
         cancellation_requested=cancellation_requested,
@@ -774,17 +819,16 @@ def sample_selected_mode(
     )
 
 
-def run_real_estimation(
+def estimate_real_modes(
     inputs: RealEstimationInputs,
     *,
     cancellation_requested: Optional[CancellationCheck] = None,
     progress: Optional[ProgressCallback] = None,
-) -> RealEstimationResult:
-    """Estimate every explicit mode, select by marginal objective, then sample."""
+) -> Tuple[Tuple[ModeEstimationResult, ...], str]:
+    """Complete every MAP/EM/Laplace mode and select one deterministically."""
 
     if not isinstance(inputs, RealEstimationInputs):
         raise TypeError("inputs must be RealEstimationInputs")
-    started = time.perf_counter()
     modes = tuple(
         estimate_mode(
             inputs,
@@ -816,6 +860,28 @@ def run_real_estimation(
                 selected.mode_id
             ),
         )
+    return modes, selected.mode_id
+
+
+def run_real_estimation(
+    inputs: RealEstimationInputs,
+    *,
+    cancellation_requested: Optional[CancellationCheck] = None,
+    progress: Optional[ProgressCallback] = None,
+) -> RealEstimationResult:
+    """Estimate every explicit mode, select by marginal objective, then sample."""
+
+    if not isinstance(inputs, RealEstimationInputs):
+        raise TypeError("inputs must be RealEstimationInputs")
+    started = time.perf_counter()
+    modes, selected_mode_id = estimate_real_modes(
+        inputs,
+        cancellation_requested=cancellation_requested,
+        progress=progress,
+    )
+    selected = next(
+        value for value in modes if value.mode_id == selected_mode_id
+    )
     mcmc_target_seconds = []
     mcmc = (
         sample_selected_mode(
@@ -848,8 +914,10 @@ __all__ = [
     "RealEstimationResult",
     "estimate_delay_uncertainty",
     "estimate_mode",
+    "estimate_real_modes",
     "prepare_real_estimation_inputs",
     "production_state_scaling",
     "run_real_estimation",
+    "sample_laplace_solution",
     "sample_selected_mode",
 ]

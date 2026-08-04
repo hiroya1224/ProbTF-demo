@@ -15,6 +15,7 @@ from grape_param_estim.sensor_models import (
     PoseSeries,
     ReferenceSeries,
     SensorContract,
+    SensorExtrinsics,
     TimeInterval,
     TimestampSource,
     TopicSensorContract,
@@ -33,6 +34,22 @@ class _ControllerSnapshot:
 
     def axis_gains(self):
         return self._gains.copy()
+
+
+def _sensor_extrinsics():
+    return SensorExtrinsics(
+        body_frame="main_body",
+        pose_sensor_frame="fc",
+        velocity_sensor_frame="fc",
+        gyro_sensor_frame="fc",
+        pose_sensor_position_in_body=np.zeros(3),
+        pose_sensor_to_body_rotation=np.eye(3),
+        velocity_sensor_position_in_body=np.zeros(3),
+        velocity_sensor_to_body_rotation=np.eye(3),
+        gyro_sensor_position_in_body=np.zeros(3),
+        body_to_gyro_sensor_rotation=np.eye(3),
+        source="synthetic identity extrinsics",
+    )
 
 
 def _record_times(times):
@@ -227,6 +244,8 @@ def _flight_data(sign_flips=True, include_accelerometer=False):
         ),
         imu_preflight=_preflight(include_accelerometer),
         controller_snapshot=_ControllerSnapshot(),
+        controller_configuration=object(),
+        sensor_extrinsics=_sensor_extrinsics(),
         sensor_contract=_sensor_contract(),
         provenance=FlightProvenance(
             bag_path="/tmp/synthetic.bag",

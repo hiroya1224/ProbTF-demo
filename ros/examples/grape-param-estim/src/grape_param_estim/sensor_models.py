@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     # would pull controller, geometry, and bag-adapter implementation into this
     # otherwise lightweight domain-model module.
     from grape_param_estim.real_rosbag import ControllerGainSnapshot
+    from grape_param_estim.controller import ControllerConfig
 
 
 class TimestampSource(Enum):
@@ -324,6 +325,68 @@ class SensorContract:
             if contract.topic == topic:
                 return contract
         raise KeyError(topic)
+
+
+@dataclass(frozen=True)
+class SensorExtrinsics:
+    """Numeric fixed-frame geometry used by observation factors.
+
+    ``sensor_to_body_rotation`` matrices map sensor-frame coordinates into
+    the estimator body frame.  ``body_to_gyro_sensor_rotation`` maps body
+    angular velocity into the gyro measurement frame.  Keeping both names
+    explicit prevents an apparently harmless transpose from changing the
+    likelihood.
+    """
+
+    body_frame: str
+    pose_sensor_frame: str
+    velocity_sensor_frame: str
+    gyro_sensor_frame: str
+    pose_sensor_position_in_body: np.ndarray
+    pose_sensor_to_body_rotation: np.ndarray
+    velocity_sensor_position_in_body: np.ndarray
+    velocity_sensor_to_body_rotation: np.ndarray
+    gyro_sensor_position_in_body: np.ndarray
+    body_to_gyro_sensor_rotation: np.ndarray
+    source: str
+
+    def __post_init__(self) -> None:
+        for name in (
+            "body_frame",
+            "pose_sensor_frame",
+            "velocity_sensor_frame",
+            "gyro_sensor_frame",
+            "source",
+        ):
+            object.__setattr__(
+                self, name, _canonical_text(getattr(self, name), name)
+            )
+        for name in (
+            "pose_sensor_position_in_body",
+            "velocity_sensor_position_in_body",
+            "gyro_sensor_position_in_body",
+        ):
+            object.__setattr__(
+                self,
+                name,
+                _readonly_vector(getattr(self, name), 3, name),
+            )
+        for name in (
+            "pose_sensor_to_body_rotation",
+            "velocity_sensor_to_body_rotation",
+            "body_to_gyro_sensor_rotation",
+        ):
+            rotation = _readonly_matrix(getattr(self, name), 3, 3, name)
+            if not np.allclose(
+                rotation.T @ rotation,
+                np.eye(3),
+                rtol=0.0,
+                atol=1.0e-10,
+            ) or not np.isclose(
+                np.linalg.det(rotation), 1.0, rtol=0.0, atol=1.0e-10
+            ):
+                raise ValueError("{} must be a proper rotation".format(name))
+            object.__setattr__(self, name, rotation)
 
 
 @dataclass(frozen=True)
@@ -755,6 +818,8 @@ class FlightData:
     flight_mode: FlightModeSeries
     imu_preflight: ImuPreflightCalibration
     controller_snapshot: "ControllerGainSnapshot"
+    controller_configuration: "ControllerConfig"
+    sensor_extrinsics: SensorExtrinsics
     sensor_contract: SensorContract
     provenance: FlightProvenance
 
@@ -791,6 +856,10 @@ class FlightData:
             )
         if self.controller_snapshot is None:
             raise TypeError("controller_snapshot cannot be None")
+        if self.controller_configuration is None:
+            raise TypeError("controller_configuration cannot be None")
+        if not isinstance(self.sensor_extrinsics, SensorExtrinsics):
+            raise TypeError("sensor_extrinsics must be SensorExtrinsics")
         if not isinstance(self.sensor_contract, SensorContract):
             raise TypeError("sensor_contract must be a SensorContract")
         if not isinstance(self.provenance, FlightProvenance):
@@ -807,6 +876,7 @@ __all__ = [
     "PoseSeries",
     "ReferenceSeries",
     "SensorContract",
+    "SensorExtrinsics",
     "TimeInterval",
     "TimestampSource",
     "TopicSensorContract",

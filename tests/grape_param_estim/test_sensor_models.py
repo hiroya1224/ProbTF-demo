@@ -17,6 +17,7 @@ from grape_param_estim.sensor_models import (
     PoseSeries,
     ReferenceSeries,
     SensorContract,
+    SensorExtrinsics,
     TimeInterval,
     TimestampSource,
     TopicSensorContract,
@@ -53,6 +54,22 @@ def _topic_contract(**overrides):
     }
     values.update(overrides)
     return TopicSensorContract(**values)
+
+
+def _sensor_extrinsics():
+    return SensorExtrinsics(
+        body_frame="main_body",
+        pose_sensor_frame="fc",
+        velocity_sensor_frame="fc",
+        gyro_sensor_frame="fc",
+        pose_sensor_position_in_body=np.asarray((0.1, -0.02, 0.03)),
+        pose_sensor_to_body_rotation=np.eye(3),
+        velocity_sensor_position_in_body=np.asarray((0.1, -0.02, 0.03)),
+        velocity_sensor_to_body_rotation=np.eye(3),
+        gyro_sensor_position_in_body=np.asarray((0.1, -0.02, 0.03)),
+        body_to_gyro_sensor_rotation=np.eye(3),
+        source="synthetic fixed transform",
+    )
 
 
 def _pose_series():
@@ -448,6 +465,8 @@ class FlightDataTests(unittest.TestCase):
             flight_mode=_flight_mode_series(),
             imu_preflight=_imu_preflight(),
             controller_snapshot=snapshot,
+            controller_configuration=object(),
+            sensor_extrinsics=_sensor_extrinsics(),
             sensor_contract=contract,
             provenance=provenance,
         )
@@ -477,6 +496,8 @@ class FlightDataTests(unittest.TestCase):
             "flight_mode": _flight_mode_series(),
             "imu_preflight": _imu_preflight(),
             "controller_snapshot": object(),
+            "controller_configuration": object(),
+            "sensor_extrinsics": _sensor_extrinsics(),
             "sensor_contract": SensorContract((_topic_contract(),)),
             "provenance": FlightProvenance(
                 "/data/flight.bag", "hash", 1, 9.0, 12.0
@@ -491,6 +512,8 @@ class FlightDataTests(unittest.TestCase):
             {"flight_mode": object()},
             {"imu_preflight": object()},
             {"controller_snapshot": None},
+            {"controller_configuration": None},
+            {"sensor_extrinsics": object()},
             {"sensor_contract": object()},
             {"provenance": object()},
         )
@@ -500,6 +523,28 @@ class FlightDataTests(unittest.TestCase):
             with self.subTest(overrides=overrides):
                 with self.assertRaises(TypeError):
                     FlightData(**values)
+
+    def test_sensor_extrinsics_are_numeric_immutable_proper_transforms(self):
+        extrinsics = _sensor_extrinsics()
+        np.testing.assert_allclose(
+            extrinsics.pose_sensor_position_in_body, (0.1, -0.02, 0.03)
+        )
+        self.assertFalse(extrinsics.pose_sensor_position_in_body.flags.writeable)
+        self.assertFalse(extrinsics.body_to_gyro_sensor_rotation.flags.writeable)
+        with self.assertRaises(ValueError):
+            SensorExtrinsics(
+                body_frame="main_body",
+                pose_sensor_frame="fc",
+                velocity_sensor_frame="fc",
+                gyro_sensor_frame="fc",
+                pose_sensor_position_in_body=np.zeros(3),
+                pose_sensor_to_body_rotation=np.diag((1.0, 1.0, -1.0)),
+                velocity_sensor_position_in_body=np.zeros(3),
+                velocity_sensor_to_body_rotation=np.eye(3),
+                gyro_sensor_position_in_body=np.zeros(3),
+                body_to_gyro_sensor_rotation=np.eye(3),
+                source="invalid reflection",
+            )
 
     def test_sensor_module_does_not_import_ros_or_legacy_adapter(self):
         environment = os.environ.copy()

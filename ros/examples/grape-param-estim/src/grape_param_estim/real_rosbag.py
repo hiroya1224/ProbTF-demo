@@ -35,6 +35,7 @@ from grape_param_estim.sensor_models import (
     PoseSeries,
     ReferenceSeries,
     SensorContract,
+    SensorExtrinsics,
     TimeInterval,
     TimestampSource,
     TopicSensorContract,
@@ -2287,6 +2288,28 @@ def build_flight_data_from_messages(
     if not static_entries:
         raise ValueError("bag has no /tf_static messages")
     static_parent, static_child = _validate_main_body_to_fc(static_entries)
+    sensor_extrinsics = SensorExtrinsics(
+        body_frame=static_parent,
+        pose_sensor_frame=static_child,
+        velocity_sensor_frame=velocity_child_frame,
+        gyro_sensor_frame=imu_frame,
+        pose_sensor_position_in_body=np.asarray(
+            MAIN_BODY_TO_FC_TRANSLATION, dtype=float
+        ),
+        pose_sensor_to_body_rotation=np.eye(3),
+        velocity_sensor_position_in_body=np.asarray(
+            MAIN_BODY_TO_FC_TRANSLATION, dtype=float
+        ),
+        velocity_sensor_to_body_rotation=np.eye(3),
+        gyro_sensor_position_in_body=np.asarray(
+            MAIN_BODY_TO_FC_TRANSLATION, dtype=float
+        ),
+        body_to_gyro_sensor_rotation=np.eye(3),
+        source=(
+            "bag /tf_static verified against {}"
+            .format(MAIN_BODY_TO_FC_URDF_SOURCE)
+        ),
+    )
 
     gain_events = _parse_gain_events(entries_by_topic)
     absolute_start = bag_start + local_start
@@ -2384,6 +2407,30 @@ def build_flight_data_from_messages(
             for entry in preflight_imu_entries
         )
     )
+    preflight_pose_candidates = tuple(
+        entry
+        for entry in full_entries_by_topic[RAW_MOCAP_POSE_TOPIC]
+        if preflight_interval.start <= entry.time < preflight_interval.end
+    )
+    preflight_pose_entries = _strict_stream_entries(
+        preflight_pose_candidates,
+        TimestampSource.HEADER,
+        header_duplicate_policy,
+        "preflight {}".format(RAW_MOCAP_POSE_TOPIC),
+    )
+    preflight_pose_height = np.asarray(
+        tuple(
+            _vector3(entry.message.pose.position)[2]
+            for entry in preflight_pose_entries
+        ),
+        dtype=float,
+    )
+    inferred_initial_height = float(np.median(preflight_pose_height))
+    controller_configuration = _controller_configuration(
+        controller_snapshot,
+        inferred_initial_height,
+        ControllerConfig.grape(),
+    )
     accelerometer_bias = None
     accelerometer_sample_count = 0
     orientation_topic = None
@@ -2394,21 +2441,6 @@ def build_flight_data_from_messages(
         "arithmetic mean over initial contiguous ARM_OFF record schedule"
     )
     if include_accelerometer:
-        preflight_pose_candidates = tuple(
-            entry
-            for entry in full_entries_by_topic[RAW_MOCAP_POSE_TOPIC]
-            if (
-                preflight_interval.start
-                <= entry.time
-                < preflight_interval.end
-            )
-        )
-        preflight_pose_entries = _strict_stream_entries(
-            preflight_pose_candidates,
-            TimestampSource.HEADER,
-            header_duplicate_policy,
-            "preflight {}".format(RAW_MOCAP_POSE_TOPIC),
-        )
         pose_start = preflight_pose_entries[0].time
         pose_end = preflight_pose_entries[-1].time
         aligned_imu_entries = tuple(
@@ -3018,6 +3050,11 @@ def build_flight_data_from_messages(
             imu_preflight.imu_sample_count,
             imu_preflight.method,
         ),
+        "controller_limits_source=ControllerConfig.grape; gains_source="
+        "recorded_dynamic_reconfigure; initial_height_source=median_"
+        "preflight_raw_FC_pose_z; initial_height={:.16g}".format(
+            inferred_initial_height
+        ),
         (
             "accelerometer_opt_in=converted_specific_force; "
             "accepted_C_SB=I_and_known_FC_origin; "
@@ -3052,6 +3089,8 @@ def build_flight_data_from_messages(
         flight_mode=flight_mode,
         imu_preflight=imu_preflight,
         controller_snapshot=controller_snapshot,
+        controller_configuration=controller_configuration,
+        sensor_extrinsics=sensor_extrinsics,
         sensor_contract=SensorContract(tuple(topic_contracts)),
         provenance=provenance,
     )

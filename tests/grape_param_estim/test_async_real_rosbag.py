@@ -463,6 +463,32 @@ class AsynchronousRosbagAdapterTests(unittest.TestCase):
                 (6.0, 1.0, 2.0),
             ),
         )
+        self.assertAlmostEqual(
+            data.controller_configuration.pid[0].p_gain, 4.0
+        )
+        self.assertAlmostEqual(
+            data.controller_configuration.initial_height, 0.0
+        )
+        np.testing.assert_allclose(
+            data.sensor_extrinsics.pose_sensor_position_in_body,
+            MAIN_BODY_TO_FC_TRANSLATION,
+            rtol=0.0,
+            atol=0.0,
+        )
+        np.testing.assert_allclose(
+            data.sensor_extrinsics.velocity_sensor_position_in_body,
+            MAIN_BODY_TO_FC_TRANSLATION,
+            rtol=0.0,
+            atol=0.0,
+        )
+        np.testing.assert_array_equal(
+            data.sensor_extrinsics.body_to_gyro_sensor_rotation,
+            np.eye(3),
+        )
+        self.assertIn(
+            "initial_height_source=median_preflight_raw_FC_pose_z",
+            " ".join(data.provenance.notes),
+        )
 
     def test_specific_force_requires_explicit_fc_origin_acceptance(self):
         data = _build_synthetic(include_fc_specific_force=True)
@@ -655,6 +681,15 @@ class AuditedBagIntegrationTests(unittest.TestCase):
                 (20.0, 1.0, 8.0),
                 (4.0, 1.0, 2.0),
             ),
+        )
+        np.testing.assert_allclose(
+            data.sensor_extrinsics.pose_sensor_position_in_body,
+            MAIN_BODY_TO_FC_TRANSLATION,
+            rtol=0.0,
+            atol=1.0e-15,
+        )
+        self.assertTrue(
+            np.isfinite(data.controller_configuration.initial_height)
         )
 
 

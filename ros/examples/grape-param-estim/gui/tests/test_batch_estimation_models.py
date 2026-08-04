@@ -510,6 +510,15 @@ class BatchResultViewTests(unittest.TestCase):
         self.assertIn("Laplace rank: 18/18", view.diagnostic_label.text())
         self.assertIn("3 retained equal-weight samples", view.diagnostic_label.text())
         self.assertEqual(view.posterior_widget.run, run)
+        trace = view.mcmc_trace_widget
+        self.assertEqual(trace.chain_combo.count(), 3)
+        self.assertEqual(len(trace.ridge_plot.listDataItems()), 2)
+        self.assertEqual(len(trace.delay_plot.listDataItems()), 2)
+        self.assertIn("stage1 6/8", trace.kernel_label.text())
+        self.assertIn("inner failures 0", trace.kernel_label.text())
+        trace.chain_combo.setCurrentIndex(1)
+        self.assertEqual(len(trace.ridge_plot.listDataItems()), 1)
+        self.assertEqual(trace.chain_combo.currentText(), "chain-0")
         self.store.set_selected_sample("109")
         self.assertIn("MCMC sample 109", view.sample_detail.text())
 
@@ -552,6 +561,11 @@ class BatchResultViewTests(unittest.TestCase):
         self.widgets.append(map_view)
         self.assertTrue(map_view.sample_detail.text().startswith("MAP |"))
         self.assertIn("MAP/Laplace result only", map_view.diagnostic_label.text())
+        self.assertEqual(map_view.mcmc_trace_widget.chain_combo.count(), 0)
+        self.assertEqual(
+            map_view.mcmc_trace_widget.kernel_label.text(),
+            "MCMC traces unavailable.",
+        )
 
     def test_bag_browser_uses_selected_conditional_and_dynamics_residual(self) -> None:
         import os

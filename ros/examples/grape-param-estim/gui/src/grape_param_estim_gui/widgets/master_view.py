@@ -5,6 +5,7 @@ import pyqtgraph as pg
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QComboBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -205,6 +206,103 @@ class PosteriorPlotWidget(QWidget):
             self.sampleSelected.emit(str(points[0].data()))
 
 
+class McmcTraceWidget(QWidget):
+    """Compact chain-selectable diagnostics without a large pair plot."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.run: BatchEstimationRun | None = None
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        selector = QHBoxLayout()
+        selector.addWidget(QLabel("MCMC trace chain:"))
+        self.chain_combo = QComboBox()
+        self.chain_combo.currentIndexChanged.connect(self._render)
+        selector.addWidget(self.chain_combo)
+        selector.addStretch(1)
+        root.addLayout(selector)
+        self.ridge_plot = pg.PlotWidget(title="ridge coordinate trace")
+        self.delay_plot = pg.PlotWidget(title="delay trace")
+        self.log_posterior_plot = pg.PlotWidget(title="log posterior trace")
+        self.delay_plot.setLabel("left", "delay", units="s")
+        self.log_posterior_plot.setLabel("bottom", "retained draw")
+        for plot in (
+            self.ridge_plot,
+            self.delay_plot,
+            self.log_posterior_plot,
+        ):
+            plot.showGrid(x=True, y=True, alpha=0.18)
+            root.addWidget(plot, 1)
+        self.kernel_label = QLabel("MCMC traces unavailable.")
+        self.kernel_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.kernel_label.setWordWrap(True)
+        root.addWidget(self.kernel_label)
+
+    def set_run(self, run: BatchEstimationRun | None) -> None:
+        self.run = run
+        self.chain_combo.blockSignals(True)
+        self.chain_combo.clear()
+        diagnostic = None if run is None else run.diagnostics.mcmc
+        if diagnostic is not None:
+            self.chain_combo.addItem("all chains", None)
+            for index, chain_id in enumerate(diagnostic.chain_id):
+                self.chain_combo.addItem(str(chain_id), index)
+        self.chain_combo.blockSignals(False)
+        self._render()
+
+    def _selected_chain_indices(self) -> tuple[int, ...]:
+        if self.run is None or self.run.diagnostics.mcmc is None:
+            return ()
+        selected = self.chain_combo.currentData()
+        if selected is None:
+            return tuple(range(self.run.diagnostics.mcmc.chain_id.size))
+        return (int(selected),)
+
+    def _render(self, _index: int = -1) -> None:
+        for plot in (
+            self.ridge_plot,
+            self.delay_plot,
+            self.log_posterior_plot,
+        ):
+            plot.clear()
+        if self.run is None or self.run.diagnostics.mcmc is None:
+            self.kernel_label.setText("MCMC traces unavailable.")
+            return
+        diagnostic = self.run.diagnostics.mcmc
+        for color_index, chain_index in enumerate(
+            self._selected_chain_indices()
+        ):
+            chain_id = str(diagnostic.chain_id[chain_index])
+            pen = pg.mkPen(pg.intColor(color_index, hues=max(1, diagnostic.chain_id.size)), width=1.8)
+            draw = np.arange(diagnostic.draws_per_chain, dtype=float)
+            for plot, trace in (
+                (self.ridge_plot, diagnostic.ridge_coordinate_trace),
+                (self.delay_plot, diagnostic.delay_trace),
+                (self.log_posterior_plot, diagnostic.log_posterior_trace),
+            ):
+                plot.plot(
+                    draw,
+                    trace[chain_index],
+                    pen=pen,
+                    name=chain_id,
+                )
+        kernel_parts = []
+        for index, name in enumerate(diagnostic.kernel_names):
+            kernel_parts.append(
+                "{}: stage1 {}/{}, stage2 {}/{}, cache {}, inner failures {}, inner iterations {}".format(
+                    name,
+                    int(diagnostic.kernel_stage_one_accepted[index]),
+                    int(diagnostic.kernel_attempts[index]),
+                    int(diagnostic.kernel_stage_two_accepted[index]),
+                    int(diagnostic.kernel_stage_two_attempted[index]),
+                    int(diagnostic.kernel_full_target_cache_hits[index]),
+                    int(diagnostic.kernel_inner_solve_failures[index]),
+                    int(diagnostic.kernel_inner_iterations[index]),
+                )
+            )
+        self.kernel_label.setText("Kernel diagnostics — " + "; ".join(kernel_parts))
+
+
 class MasterView(QWidget):
     bagActivated = Signal(str)
 
@@ -291,6 +389,8 @@ class MasterView(QWidget):
         self.diagnostic_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.diagnostic_label.setWordWrap(True)
         diagnostic_layout.addWidget(self.diagnostic_label)
+        self.mcmc_trace_widget = McmcTraceWidget()
+        diagnostic_layout.addWidget(self.mcmc_trace_widget, 1)
         bottom_splitter.addWidget(self.diagnostic_group)
         bottom_splitter.setSizes([720, 560])
 
@@ -368,6 +468,7 @@ class MasterView(QWidget):
 
     def set_run(self, run: BatchEstimationRun | None) -> None:
         self.posterior_widget.set_run(run)
+        self.mcmc_trace_widget.set_run(run)
         self.objective_plot.clear()
         self.em_plot.clear()
         self.em_objective_plot.clear()
@@ -532,4 +633,4 @@ class MasterView(QWidget):
             self.bagActivated.emit(str(item.data(Qt.UserRole)))
 
 
-__all__ = ["MasterView", "PosteriorPlotWidget"]
+__all__ = ["MasterView", "McmcTraceWidget", "PosteriorPlotWidget"]

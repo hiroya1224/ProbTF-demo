@@ -112,9 +112,15 @@ class BatchArtifactTests(unittest.TestCase):
             "exact_ridge_direction": np.eye(dimension)[0],
             "ridge_alignment": np.asarray((1.0,)),
             "condition_number": np.asarray((2.0,)),
+            "delay_profile_available": np.asarray((True,), dtype=bool),
             "delay_profile_grid": np.asarray((0.0, 0.005, 0.01)),
             "delay_profile_objective": np.asarray((2.0, 1.0, 3.0)),
             "delay_local_uncertainty": np.asarray((0.001,)),
+            "delay_uncertainty_source": np.asarray(
+                ("positive local quadratic profile curvature",)
+            ),
+            "delay_profile_curvature": np.asarray((1.0e6,)),
+            "delay_profile_curvature_valid": np.asarray((True,), dtype=bool),
         }
 
     def _diagnostics(self, mcmc=False):
@@ -588,6 +594,54 @@ class BatchArtifactTests(unittest.TestCase):
             )
         loaded = load_batch_estimation_run(destination)
         self.assertEqual(loaded.manifest, run.manifest)
+
+    def test_writer_round_trips_explicitly_unavailable_final_q_profile(self):
+        laplace = self._laplace()
+        laplace.update(
+            {
+                "delay_profile_available": np.asarray((False,), dtype=bool),
+                "delay_profile_grid": np.asarray((), dtype=float),
+                "delay_profile_objective": np.asarray((), dtype=float),
+                "delay_uncertainty_source": np.asarray(
+                    (
+                        "uniform delay prior because local profile curvature "
+                        "is unavailable",
+                    )
+                ),
+                "delay_profile_curvature": np.asarray((0.0,)),
+                "delay_profile_curvature_valid": np.asarray(
+                    (False,), dtype=bool
+                ),
+            }
+        )
+        destination = Path(self.temporary.name) / "no-final-q-profile"
+        run = write_batch_estimation_run(
+            destination,
+            manifest_metadata=self._manifest_metadata(),
+            map_static=self._map_static(),
+            q_em=self._q_em(),
+            laplace=laplace,
+            diagnostics=self._diagnostics(),
+            bags={bag_id: self._bag(bag_id) for bag_id in self.bag_ids},
+        )
+        self.assertFalse(run.laplace["delay_profile_available"][0])
+        self.assertEqual(run.laplace["delay_profile_grid"].size, 0)
+
+        inconsistent = dict(laplace)
+        inconsistent["delay_profile_grid"] = np.asarray((0.0, 0.01))
+        inconsistent["delay_profile_objective"] = np.asarray((1.0, 2.0))
+        with self.assertRaisesRegex(ArtifactValidationError, "must be empty"):
+            write_batch_estimation_run(
+                Path(self.temporary.name) / "inconsistent-final-q-profile",
+                manifest_metadata=self._manifest_metadata(),
+                map_static=self._map_static(),
+                q_em=self._q_em(),
+                laplace=inconsistent,
+                diagnostics=self._diagnostics(),
+                bags={
+                    bag_id: self._bag(bag_id) for bag_id in self.bag_ids
+                },
+            )
 
     def test_writer_round_trips_optional_mcmc_and_trajectory_subset(self):
         self._write_core_run(mcmc=True)

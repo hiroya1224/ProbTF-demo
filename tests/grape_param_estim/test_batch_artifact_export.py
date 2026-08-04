@@ -138,29 +138,45 @@ class BatchArtifactExportTests(unittest.TestCase):
             reason=LaplaceEmTerminationReason.MAXIMUM_ITERATIONS,
         )
 
-    def _lag_history(self):
+    def _final_q_lag_profile(self):
         delay = self.prepared.fixed_delay
-        points = tuple(
+        objective = self.solution.marginal_objective.value
+        points = (
             LagProfilePoint(
-                lag=value,
+                lag=0.0,
                 phase="coarse",
-                objective=self.solution.marginal_objective.value + index,
+                objective=objective + 1.0,
                 converged=True,
                 inner_iterations=len(self.solution.lm.iterations),
                 termination_reason=self.solution.lm.reason.value,
                 warm_start_lag=None,
-            )
-            for index, value in enumerate((0.0, delay, 0.08))
-        )
-        return (
-            LagProfileResult(
-                best_lag=delay,
-                best_objective=self.solution.marginal_objective.value,
-                best_state=self.solution.lm.state,
-                initial_refinement_bracket=(0.0, 0.08),
-                final_refinement_bracket=(0.03, 0.04),
-                points=points,
             ),
+            LagProfilePoint(
+                lag=delay,
+                phase="coarse",
+                objective=objective,
+                converged=True,
+                inner_iterations=len(self.solution.lm.iterations),
+                termination_reason=self.solution.lm.reason.value,
+                warm_start_lag=0.0,
+            ),
+            LagProfilePoint(
+                lag=0.08,
+                phase="coarse",
+                objective=objective + 2.0,
+                converged=True,
+                inner_iterations=len(self.solution.lm.iterations),
+                termination_reason=self.solution.lm.reason.value,
+                warm_start_lag=delay,
+            ),
+        )
+        return LagProfileResult(
+            best_lag=delay,
+            best_objective=objective,
+            best_state=self.solution.lm.state,
+            initial_refinement_bracket=(0.0, 0.08),
+            final_refinement_bracket=(0.03, 0.04),
+            points=points,
         )
 
     def _performance(self, mcmc):
@@ -300,7 +316,7 @@ class BatchArtifactExportTests(unittest.TestCase):
         )
         return tuple(chains), diagnostics
 
-    def test_exports_and_round_trips_complete_mcmc_run(self):
+    def test_exports_raw_or_labelled_sha_and_round_trips_complete_mcmc_run(self):
         request = validate_batch_estimation_request(
             self._mcmc_payload_request(self.helper.payload)
         )
@@ -318,15 +334,18 @@ class BatchArtifactExportTests(unittest.TestCase):
             dynamics_residual_valid=valid,
             conditional_objective=self.solution.lm.objective,
         )
-        payload = export_batch_estimation_artifact_payload(
+        common = dict(
             request=request,
-            flight_data=(self.helper.flight,),
             initializations=(self.helper.initialization,),
             final_solution=self.solution,
             em_result=self.em_result,
             static_geometry=self.solution.static_geometry(),
-            lag_profile_history=self._lag_history(),
-            delay_geometry=DelayLocalGeometry(0.001),
+            final_q_lag_profile=self._final_q_lag_profile(),
+            delay_geometry=DelayLocalGeometry(
+                0.001,
+                "positive local quadratic profile curvature",
+                1.0e6,
+            ),
             identity=ArtifactRunIdentity(
                 estimator_revision="test-estimator-revision",
                 configuration_fingerprint="sha256:" + "1" * 64,
@@ -336,6 +355,32 @@ class BatchArtifactExportTests(unittest.TestCase):
             mcmc_chains=chains,
             mcmc_diagnostics=diagnostics,
             selected_trajectories=(selected,),
+        )
+        labelled_payload = export_batch_estimation_artifact_payload(
+            flight_data=(self.helper.flight,), **common
+        )
+        mismatched = dict(common)
+        mismatched["final_q_lag_profile"] = replace(
+            self._final_q_lag_profile(),
+            best_lag=self.prepared.fixed_delay + 0.001,
+        )
+        with self.assertRaisesRegex(ValueError, "best lag"):
+            export_batch_estimation_artifact_payload(
+                flight_data=(self.helper.flight,), **mismatched
+            )
+        raw_flight = replace(
+            self.helper.flight,
+            provenance=replace(
+                self.helper.flight.provenance,
+                bag_sha256=self.helper.flight.provenance.bag_sha256[7:],
+            ),
+        )
+        payload = export_batch_estimation_artifact_payload(
+            flight_data=(raw_flight,), **common
+        )
+        self.assertEqual(
+            payload.manifest_metadata["selected_bag_sha256"],
+            labelled_payload.manifest_metadata["selected_bag_sha256"],
         )
         with tempfile.TemporaryDirectory() as temporary:
             loaded = write_batch_estimation_run(
@@ -350,10 +395,28 @@ class BatchArtifactExportTests(unittest.TestCase):
         self.assertIn("mcmc_split_rhat", loaded.diagnostics)
         self.assertIn("accelerometer", loaded.bags["flight-a"])
         self.assertNotIn("residual_wrench", loaded.bags["flight-a"])
+        self.assertTrue(loaded.laplace["delay_profile_available"][0])
+        self.assertTrue(loaded.laplace["delay_profile_curvature_valid"][0])
         np.testing.assert_allclose(
             loaded.q_em["expected_residual_second_moment"],
             loaded.q_em["map_residual_second_moment"]
             + loaded.q_em["covariance_correction"],
+        )
+
+        unavailable = dict(common)
+        unavailable["final_q_lag_profile"] = None
+        unavailable["delay_geometry"] = DelayLocalGeometry(
+            0.08 / np.sqrt(12.0),
+            "uniform delay prior because local profile curvature is unavailable",
+            None,
+        )
+        no_profile = export_batch_estimation_artifact_payload(
+            flight_data=(raw_flight,), **unavailable
+        )
+        self.assertFalse(no_profile.laplace["delay_profile_available"][0])
+        self.assertEqual(no_profile.laplace["delay_profile_grid"].size, 0)
+        self.assertFalse(
+            no_profile.laplace["delay_profile_curvature_valid"][0]
         )
 
 

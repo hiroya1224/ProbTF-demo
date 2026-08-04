@@ -73,6 +73,21 @@ def _sha256(value: object, name: str) -> str:
     return selected
 
 
+def _normalized_flight_sha256(value: object) -> str:
+    if not isinstance(value, str):
+        raise TypeError("FlightData bag SHA-256 must be a string")
+    digest = value[7:] if value.startswith("sha256:") else value
+    if (
+        len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        raise ValueError(
+            "FlightData bag SHA-256 must be raw lowercase hex or "
+            "sha256:<lowercase hex>"
+        )
+    return "sha256:" + digest
+
+
 def _nonnegative_real(value: object, name: str) -> float:
     if isinstance(value, (bool, np.bool_)) or not isinstance(value, Real):
         raise TypeError("{} must be a real scalar".format(name))
@@ -230,6 +245,8 @@ class DelayLocalGeometry:
     """Explicit local delay uncertainty from the caller's profile analysis."""
 
     standard_deviation_seconds: float
+    source: str
+    curvature: Optional[float] = None
 
     def __post_init__(self) -> None:
         selected = _nonnegative_real(
@@ -238,6 +255,13 @@ class DelayLocalGeometry:
         if selected == 0.0:
             raise ValueError("standard_deviation_seconds must be positive")
         object.__setattr__(self, "standard_deviation_seconds", selected)
+        object.__setattr__(self, "source", _canonical_string(self.source, "source"))
+        curvature = self.curvature
+        if curvature is not None:
+            curvature = _nonnegative_real(curvature, "curvature")
+            if curvature == 0.0:
+                raise ValueError("curvature must be positive when present")
+        object.__setattr__(self, "curvature", curvature)
 
 
 @dataclass(frozen=True)
@@ -727,6 +751,51 @@ def _validate_solver_alignment(
         raise ValueError("static geometry does not describe the final Hessian")
 
 
+def _validate_final_q_lag_profile(
+    solution: FixedGraphLaplaceSolution,
+    profile: Optional[LagProfileResult],
+    delay_geometry: DelayLocalGeometry,
+) -> None:
+    if profile is None:
+        if delay_geometry.curvature is not None:
+            raise ValueError(
+                "delay curvature cannot be supplied without a final-Q profile"
+            )
+        return
+    if not isinstance(profile, LagProfileResult):
+        raise TypeError("final_q_lag_profile must be LagProfileResult or None")
+    if not np.isclose(
+        profile.best_lag,
+        solution.prepared.fixed_delay,
+        rtol=1.0e-12,
+        atol=1.0e-14,
+    ):
+        raise ValueError("final-Q profile best lag disagrees with final solution")
+    if not np.isclose(
+        profile.best_objective,
+        solution.marginal_objective.value,
+        rtol=2.0e-10,
+        atol=2.0e-10,
+    ):
+        raise ValueError(
+            "final-Q profile objective disagrees with final marginal objective"
+        )
+    if profile.best_state is None:
+        raise ValueError("available final-Q profile must retain its best state")
+    if profile.best_state.layout != solution.lm.state.layout:
+        raise ValueError("final-Q profile state layout disagrees with final solution")
+    for key in solution.lm.state.layout.variable_keys:
+        if not np.allclose(
+            profile.best_state.value(key),
+            solution.lm.state.value(key),
+            rtol=1.0e-11,
+            atol=1.0e-12,
+        ):
+            raise ValueError(
+                "final-Q profile state disagrees with final solution"
+            )
+
+
 def _physical_parameter_arrays(
     coordinates: np.ndarray, chart: object
 ) -> Mapping[str, np.ndarray]:
@@ -877,39 +946,50 @@ def _q_em_payload(result: LaplaceEmResult) -> Mapping[str, np.ndarray]:
 
 
 def _delay_profile_arrays(
-    history: Sequence[LagProfileResult],
+    final_q_lag_profile: Optional[LagProfileResult],
 ) -> Tuple[np.ndarray, np.ndarray]:
-    if not isinstance(history, (tuple, list)) or not history:
-        raise ValueError("lag_profile_history must not be empty")
-    if any(not isinstance(value, LagProfileResult) for value in history):
-        raise TypeError("lag_profile_history must contain LagProfileResult values")
-    selected = history[-1]
+    if final_q_lag_profile is None:
+        return np.asarray((), dtype=float), np.asarray((), dtype=float)
+    if not isinstance(final_q_lag_profile, LagProfileResult):
+        raise TypeError("final_q_lag_profile must be LagProfileResult or None")
     profile = {}
-    for point in selected.points:
+    for point in final_q_lag_profile.points:
+        lag = float(point.lag)
+        if not np.isfinite(lag) or lag < 0.0:
+            raise ValueError("final-Q lag profile contains an invalid lag")
         objective = (
             float(point.objective)
             if point.converged and point.objective is not None
             else float("inf")
         )
-        current = profile.get(float(point.lag))
-        profile[float(point.lag)] = (
+        if np.isnan(objective):
+            raise ValueError("final-Q lag profile objective cannot be NaN")
+        current = profile.get(lag)
+        profile[lag] = (
             objective if current is None else min(current, objective)
         )
     if not profile:
-        raise ValueError("final lag profile contains no points")
+        raise ValueError("an available final-Q lag profile must contain points")
     grid = np.asarray(tuple(sorted(profile)), dtype=float)
     objective = np.asarray(tuple(profile[value] for value in grid), dtype=float)
+    if not np.any(np.isfinite(objective)):
+        raise ValueError("final-Q lag profile has no converged point")
     return grid, objective
 
 
 def _laplace_payload(
     geometry: StaticLaplaceGeometry,
-    lag_profile_history: Sequence[LagProfileResult],
+    final_q_lag_profile: Optional[LagProfileResult],
     delay_geometry: DelayLocalGeometry,
 ) -> Mapping[str, np.ndarray]:
-    grid, objective = _delay_profile_arrays(lag_profile_history)
+    if final_q_lag_profile is None and delay_geometry.curvature is not None:
+        raise ValueError(
+            "delay curvature cannot be exported without a final-Q profile"
+        )
+    grid, objective = _delay_profile_arrays(final_q_lag_profile)
     likelihood = geometry.information.likelihood
     posterior = geometry.information.posterior
+    curvature_valid = delay_geometry.curvature is not None
     return {
         "reduced_likelihood_hessian": np.asarray(
             likelihood.hessian, dtype=float
@@ -930,10 +1010,25 @@ def _laplace_payload(
         "condition_number": np.asarray(
             (likelihood.condition_number,), dtype=float
         ),
+        "delay_profile_available": np.asarray(
+            (final_q_lag_profile is not None,), dtype=bool
+        ),
         "delay_profile_grid": grid,
         "delay_profile_objective": objective,
         "delay_local_uncertainty": np.asarray(
             (delay_geometry.standard_deviation_seconds,), dtype=float
+        ),
+        "delay_uncertainty_source": np.asarray((delay_geometry.source,)),
+        "delay_profile_curvature": np.asarray(
+            (
+                delay_geometry.curvature
+                if delay_geometry.curvature is not None
+                else 0.0,
+            ),
+            dtype=float,
+        ),
+        "delay_profile_curvature_valid": np.asarray(
+            (curvature_valid,), dtype=bool
         ),
     }
 
@@ -1817,7 +1912,10 @@ def _validate_primary_inputs(
     for bag_id in request.bag_ids:
         flight = flights[bag_id]
         bag_request = request_bags[bag_id]
-        if flight.provenance.bag_sha256 != bag_request["sha256"]:
+        if (
+            _normalized_flight_sha256(flight.provenance.bag_sha256)
+            != bag_request["sha256"]
+        ):
             raise ValueError("FlightData SHA-256 disagrees with the request")
         selected_interval = tuple(
             float(value) for value in bag_request["interval_seconds"]
@@ -1840,7 +1938,7 @@ def export_batch_estimation_artifact_payload(
     final_solution: FixedGraphLaplaceSolution,
     em_result: LaplaceEmResult,
     static_geometry: StaticLaplaceGeometry,
-    lag_profile_history: Sequence[LagProfileResult],
+    final_q_lag_profile: Optional[LagProfileResult],
     delay_geometry: DelayLocalGeometry,
     identity: ArtifactRunIdentity,
     performance: RunPerformanceMeasurements,
@@ -1857,6 +1955,9 @@ def export_batch_estimation_artifact_payload(
     if not isinstance(delay_geometry, DelayLocalGeometry):
         raise TypeError("delay_geometry must be DelayLocalGeometry")
     _validate_solver_alignment(final_solution, em_result, static_geometry)
+    _validate_final_q_lag_profile(
+        final_solution, final_q_lag_profile, delay_geometry
+    )
     flights, initialized, prepared_bags = _validate_primary_inputs(
         request, flight_data, initializations, final_solution
     )
@@ -1926,7 +2027,7 @@ def export_batch_estimation_artifact_payload(
         ),
         q_em=_q_em_payload(em_result),
         laplace=_laplace_payload(
-            static_geometry, lag_profile_history, delay_geometry
+            static_geometry, final_q_lag_profile, delay_geometry
         ),
         diagnostics=_diagnostics_payload(
             bag_ids, performance, mcmc_diagnostics

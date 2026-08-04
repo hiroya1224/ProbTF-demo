@@ -855,9 +855,13 @@ _LAPLACE_KEYS = (
     "exact_ridge_direction",
     "ridge_alignment",
     "condition_number",
+    "delay_profile_available",
     "delay_profile_grid",
     "delay_profile_objective",
     "delay_local_uncertainty",
+    "delay_uncertainty_source",
+    "delay_profile_curvature",
+    "delay_profile_curvature_valid",
 )
 
 
@@ -908,12 +912,27 @@ def _validate_laplace(arrays: Mapping[str, np.ndarray], location: str) -> None:
         raise ArtifactValidationError(
             "{}:condition_number must be non-negative or +inf".format(location)
         )
+    available = _array(
+        arrays,
+        "delay_profile_available",
+        (1,),
+        location,
+        kind="boolean",
+    )
     grid = _array(arrays, "delay_profile_grid", (None,), location)
-    if grid.size == 0:
+    if available[0] and grid.size == 0:
         raise ArtifactValidationError(
-            "{}:delay_profile_grid must not be empty".format(location)
+            "{}:delay_profile_grid must not be empty when the final-Q "
+            "profile is available".format(location)
         )
-    _strictly_increasing(grid, "{}:delay_profile_grid".format(location))
+    if not available[0] and grid.size != 0:
+        raise ArtifactValidationError(
+            "{}:delay_profile_grid must be empty when the final-Q profile "
+            "is unavailable".format(location)
+        )
+    if grid.size:
+        _strictly_increasing(grid, "{}:delay_profile_grid".format(location))
+        _nonnegative(grid, "{}:delay_profile_grid".format(location))
     objective = _array(
         arrays,
         "delay_profile_objective",
@@ -925,8 +944,36 @@ def _validate_laplace(arrays: Mapping[str, np.ndarray], location: str) -> None:
         raise ArtifactValidationError(
             "{}:delay_profile_objective must not contain NaN".format(location)
         )
+    if available[0] and not np.any(np.isfinite(objective)):
+        raise ArtifactValidationError(
+            "{}:delay_profile_objective must retain a converged final-Q "
+            "point".format(location)
+        )
     uncertainty = _array(arrays, "delay_local_uncertainty", (1,), location)
     _positive(uncertainty, "{}:delay_local_uncertainty".format(location))
+    _strings(arrays, "delay_uncertainty_source", 1, location)
+    curvature = _array(
+        arrays, "delay_profile_curvature", (1,), location
+    )
+    curvature_valid = _array(
+        arrays,
+        "delay_profile_curvature_valid",
+        (1,),
+        location,
+        kind="boolean",
+    )
+    if curvature_valid[0]:
+        _positive(curvature, "{}:delay_profile_curvature".format(location))
+        if not available[0]:
+            raise ArtifactValidationError(
+                "{}:delay profile curvature cannot be valid without a "
+                "final-Q profile".format(location)
+            )
+    elif curvature[0] != 0.0:
+        raise ArtifactValidationError(
+            "{}:delay_profile_curvature must use canonical zero when "
+            "unavailable".format(location)
+        )
 
 
 _DIAGNOSTIC_KEYS = (

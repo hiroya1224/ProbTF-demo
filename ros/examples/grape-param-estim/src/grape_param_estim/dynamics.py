@@ -1,5 +1,6 @@
 """Continuous full six-DoF plant and closed-loop trajectory forecast."""
 
+from dataclasses import dataclass
 from typing import Callable, Optional, Sequence, Tuple
 
 import numpy as np
@@ -9,6 +10,7 @@ from grape_param_estim.geometry import (
     normalise_quaternion,
     quaternion_multiply,
     quaternion_to_matrix,
+    skew,
 )
 from grape_param_estim.system import (
     ActuatorCommand,
@@ -28,6 +30,38 @@ from grape_param_estim.timing import ZeroOrderHoldCommandHistory
 ResidualWrench = Callable[[float, RigidBodyState], np.ndarray]
 
 
+@dataclass(frozen=True)
+class ActuatorWrenchJacobian:
+    """Analytic Jacobian blocks of the six-dimensional actuator wrench.
+
+    The blocks are with respect to actual thrust ``(6, 4)``, actual gimbal
+    angle ``(6, 4)``, CoG offset ``(6, 3)``, force effectiveness ``(6, 4)``,
+    and torque effectiveness ``(6, 4)``.  Mass, inertia, and drag have no
+    direct dependency at this actuator-only API boundary.
+    """
+
+    actual_thrust: np.ndarray
+    actual_gimbal_angle: np.ndarray
+    cog_offset: np.ndarray
+    force_effectiveness: np.ndarray
+    torque_effectiveness: np.ndarray
+
+    def __post_init__(self) -> None:
+        for name, shape in (
+            ("actual_thrust", (6, 4)),
+            ("actual_gimbal_angle", (6, 4)),
+            ("cog_offset", (6, 3)),
+            ("force_effectiveness", (6, 4)),
+            ("torque_effectiveness", (6, 4)),
+        ):
+            value = np.asarray(getattr(self, name), dtype=float)
+            if value.shape != shape or not np.all(np.isfinite(value)):
+                raise ValueError(
+                    "{} must be a finite {} array".format(name, shape)
+                )
+            object.__setattr__(self, name, value.copy())
+
+
 def _rotate_z(vector: np.ndarray, angle: float) -> np.ndarray:
     cosine = float(np.cos(angle))
     sine = float(np.sin(angle))
@@ -41,6 +75,80 @@ def _rotate_z(vector: np.ndarray, angle: float) -> np.ndarray:
     )
 
 
+def _validate_actuator_wrench_inputs(
+    actuator_state: ActuatorState,
+    parameters: VehicleParameters,
+    geometry: GrapeGeometry,
+) -> None:
+    if not isinstance(actuator_state, ActuatorState):
+        raise TypeError("actuator_state must be an ActuatorState instance")
+    if not isinstance(parameters, VehicleParameters):
+        raise TypeError("parameters must be a VehicleParameters instance")
+    if not isinstance(geometry, GrapeGeometry):
+        raise TypeError("geometry must be a GrapeGeometry instance")
+    for value, shape, name in (
+        (actuator_state.thrust, (4,), "actual thrust"),
+        (actuator_state.gimbal_angle, (4,), "actual gimbal angle"),
+        (parameters.cog_offset, (3,), "CoG offset"),
+        (parameters.force_effectiveness, (4,), "force effectiveness"),
+        (parameters.torque_effectiveness, (4,), "torque effectiveness"),
+        (geometry.rotor_origins, (4, 3), "rotor origins"),
+        (geometry.arm_yaws, (4,), "arm yaws"),
+        (geometry.rotor_directions, (4,), "rotor directions"),
+    ):
+        array = np.asarray(value, dtype=float)
+        if array.shape != shape or not np.all(np.isfinite(array)):
+            raise ValueError("{} must be a finite {} array".format(name, shape))
+    geometry_scalars = np.asarray(
+        (geometry.moment_force_rate, geometry.thrust_offset), dtype=float
+    )
+    if (
+        not np.all(np.isfinite(geometry_scalars))
+        or geometry.thrust_offset < 0.0
+    ):
+        raise ValueError("geometry wrench scalars must be finite and valid")
+
+
+def _rotor_force_primitives(
+    actual_thrust: float,
+    force_effectiveness: float,
+    gimbal_angle: float,
+    arm_yaw: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Return force and shared direction/gimbal derivative primitives."""
+
+    sine = float(np.sin(gimbal_angle))
+    cosine = float(np.cos(gimbal_angle))
+    unit_direction = _rotate_z(
+        np.asarray((0.0, -sine, cosine), dtype=float),
+        arm_yaw,
+    )
+    unit_direction_derivative = _rotate_z(
+        np.asarray((0.0, -cosine, -sine), dtype=float),
+        arm_yaw,
+    )
+    effective_thrust = actual_thrust * force_effectiveness
+    # Retain the original forward multiplication order for actuator_wrench.
+    local_force = np.asarray(
+        (
+            0.0,
+            -effective_thrust * sine,
+            effective_thrust * cosine,
+        ),
+        dtype=float,
+    )
+    force = _rotate_z(local_force, arm_yaw)
+    force_gimbal_derivative = (
+        effective_thrust * unit_direction_derivative
+    )
+    return (
+        force,
+        unit_direction,
+        unit_direction_derivative,
+        force_gimbal_derivative,
+    )
+
+
 def actuator_wrench(
     actuator_state: ActuatorState,
     parameters: VehicleParameters,
@@ -48,25 +156,19 @@ def actuator_wrench(
 ) -> np.ndarray:
     """Map actual rotor thrust and gimbal angle to a body-frame wrench."""
 
+    _validate_actuator_wrench_inputs(actuator_state, parameters, geometry)
     wrench = np.zeros(6, dtype=float)
     thrust_origins = geometry.thrust_origins(
         actuator_state.gimbal_angle
     )
     for rotor in range(4):
         angle = actuator_state.gimbal_angle[rotor]
-        effective_thrust = (
-            actuator_state.thrust[rotor]
-            * parameters.force_effectiveness[rotor]
+        force, _, _, _ = _rotor_force_primitives(
+            actual_thrust=float(actuator_state.thrust[rotor]),
+            force_effectiveness=float(parameters.force_effectiveness[rotor]),
+            gimbal_angle=float(angle),
+            arm_yaw=float(geometry.arm_yaws[rotor]),
         )
-        local_force = np.asarray(
-            (
-                0.0,
-                -effective_thrust * np.sin(angle),
-                effective_thrust * np.cos(angle),
-            ),
-            dtype=float,
-        )
-        force = _rotate_z(local_force, geometry.arm_yaws[rotor])
         origin = (
             thrust_origins[rotor]
             - parameters.cog_offset
@@ -79,7 +181,92 @@ def actuator_wrench(
         )
         wrench[:3] += force
         wrench[3:] += np.cross(origin, force) + reaction_torque
+    if not np.all(np.isfinite(wrench)):
+        raise ValueError("actuator wrench is not finite")
     return wrench
+
+
+def actuator_wrench_with_jacobian(
+    actuator_state: ActuatorState,
+    parameters: VehicleParameters,
+    geometry: GrapeGeometry,
+) -> Tuple[np.ndarray, ActuatorWrenchJacobian]:
+    """Return :func:`actuator_wrench` and its exact analytic Jacobian blocks."""
+
+    # The public forward function remains the single source of truth for the
+    # returned wrench.  The derivative loop shares its per-rotor primitives.
+    wrench = actuator_wrench(actuator_state, parameters, geometry)
+    actual_thrust = np.zeros((6, 4), dtype=float)
+    actual_gimbal_angle = np.zeros((6, 4), dtype=float)
+    cog_offset = np.zeros((6, 3), dtype=float)
+    force_effectiveness = np.zeros((6, 4), dtype=float)
+    torque_effectiveness = np.zeros((6, 4), dtype=float)
+    thrust_origins = geometry.thrust_origins(
+        actuator_state.gimbal_angle
+    )
+
+    for rotor in range(4):
+        thrust = float(actuator_state.thrust[rotor])
+        effectiveness = float(parameters.force_effectiveness[rotor])
+        angle = float(actuator_state.gimbal_angle[rotor])
+        (
+            force,
+            unit_direction,
+            unit_direction_derivative,
+            force_gimbal_derivative,
+        ) = _rotor_force_primitives(
+            actual_thrust=thrust,
+            force_effectiveness=effectiveness,
+            gimbal_angle=angle,
+            arm_yaw=float(geometry.arm_yaws[rotor]),
+        )
+        origin = thrust_origins[rotor] - parameters.cog_offset
+        reaction_scale = (
+            parameters.torque_effectiveness[rotor]
+            * geometry.rotor_directions[rotor]
+            * geometry.moment_force_rate
+        )
+
+        force_thrust_derivative = effectiveness * unit_direction
+        actual_thrust[:3, rotor] = force_thrust_derivative
+        actual_thrust[3:, rotor] = (
+            np.cross(origin, force_thrust_derivative)
+            + reaction_scale * force_thrust_derivative
+        )
+
+        origin_gimbal_derivative = (
+            geometry.thrust_offset * unit_direction_derivative
+        )
+        actual_gimbal_angle[:3, rotor] = force_gimbal_derivative
+        actual_gimbal_angle[3:, rotor] = (
+            np.cross(origin_gimbal_derivative, force)
+            + np.cross(origin, force_gimbal_derivative)
+            + reaction_scale * force_gimbal_derivative
+        )
+
+        cog_offset[3:, :] += skew(force)
+
+        force_effectiveness_derivative = thrust * unit_direction
+        force_effectiveness[:3, rotor] = force_effectiveness_derivative
+        force_effectiveness[3:, rotor] = (
+            np.cross(origin, force_effectiveness_derivative)
+            + reaction_scale * force_effectiveness_derivative
+        )
+
+        torque_effectiveness[3:, rotor] = (
+            geometry.rotor_directions[rotor]
+            * geometry.moment_force_rate
+            * force
+        )
+
+    jacobian = ActuatorWrenchJacobian(
+        actual_thrust=actual_thrust,
+        actual_gimbal_angle=actual_gimbal_angle,
+        cog_offset=cog_offset,
+        force_effectiveness=force_effectiveness,
+        torque_effectiveness=torque_effectiveness,
+    )
+    return wrench, jacobian
 
 
 def advance_actuators(

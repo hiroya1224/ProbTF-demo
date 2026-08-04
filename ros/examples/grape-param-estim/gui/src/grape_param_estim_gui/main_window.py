@@ -1107,7 +1107,7 @@ class MainWindow(QMainWindow):
         if self.store.estimation_run is None:
             self._show_error(
                 "Cannot evaluate PID proposal",
-                "Complete fixed-Q parameter estimation before evaluating a PID proposal.",
+                "Complete sparse batch estimation and posterior sampling before evaluating PID candidates.",
             )
             return
         if not isinstance(options, PidEvaluationLaunchOptions):

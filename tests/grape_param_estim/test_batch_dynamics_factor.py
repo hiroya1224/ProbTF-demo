@@ -7,12 +7,12 @@ from grape_param_estim.batch.factors.dynamics import (
     evaluate_raw_dynamics_residual,
 )
 from grape_param_estim.batch.factors.dynamics_factor import (
+    BODY_WRENCH_COMPONENT_NAMES,
+    BODY_WRENCH_COMPONENT_UNITS,
     BODY_WRENCH_QUANTITY,
-    SPECIFIC_ACCELERATION_QUANTITY,
     body_wrench_statistical_residual,
     diagonal_q_log_normalization,
     evaluate_dynamics_factor,
-    specific_acceleration_statistical_residual,
 )
 from grape_param_estim.batch.laplace_em import (
     DiagonalQDefinition,
@@ -24,12 +24,12 @@ from grape_param_estim.parameterization import VehicleParameterChart
 from grape_param_estim.system import GrapeGeometry, VehicleParameters
 
 
-def _definition(quantity, interval_model):
+def _definition():
     return DiagonalQDefinition(
-        residual_quantity=quantity,
-        component_names=("x", "y", "z", "roll", "pitch", "yaw"),
-        component_units=("u",) * 6,
-        interval_model=interval_model,
+        residual_quantity=BODY_WRENCH_QUANTITY,
+        component_names=BODY_WRENCH_COMPONENT_NAMES,
+        component_units=BODY_WRENCH_COMPONENT_UNITS,
+        interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
     )
 
 
@@ -72,10 +72,7 @@ class BatchDynamicsFactorTests(unittest.TestCase):
         return evaluate_raw_dynamics_residual(**values)
 
     def test_body_wrench_factor_uses_spectral_density_dt_whitening(self):
-        definition = _definition(
-            BODY_WRENCH_QUANTITY,
-            QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
-        )
+        definition = _definition()
         raw = self._raw()
         statistical = body_wrench_statistical_residual(
             "bag-a", 4, raw, definition
@@ -111,21 +108,16 @@ class BatchDynamicsFactorTests(unittest.TestCase):
                 block.value, whitening @ raw_block.value
             )
 
-    def test_specific_static_jacobian_matches_test_only_difference(self):
-        definition = _definition(
-            SPECIFIC_ACCELERATION_QUANTITY,
-            QIntervalModel.FIXED_INTERVAL_COVARIANCE,
-        )
+    def test_body_wrench_static_jacobian_matches_test_only_difference(self):
+        definition = _definition()
 
         def evaluate(coordinates):
             raw = self._raw(coordinates)
-            return specific_acceleration_statistical_residual(
+            return body_wrench_statistical_residual(
                 "bag-a",
                 4,
                 raw,
                 definition,
-                self.chart,
-                coordinates,
             )
 
         result = evaluate(self.coordinates)
@@ -145,15 +137,8 @@ class BatchDynamicsFactorTests(unittest.TestCase):
             atol=3.0e-7,
         )
 
-    def test_coordinate_choice_exposes_common_scale_likelihood_difference(self):
-        body_definition = _definition(
-            BODY_WRENCH_QUANTITY,
-            QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
-        )
-        specific_definition = _definition(
-            SPECIFIC_ACCELERATION_QUANTITY,
-            QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
-        )
+    def test_body_wrench_residual_has_physical_common_scale_units(self):
+        body_definition = _definition()
         ridge = self.chart.ridge_direction()
         shifted_coordinates = self.coordinates + 0.4 * ridge
         raw0 = self._raw(self.coordinates)
@@ -164,73 +149,45 @@ class BatchDynamicsFactorTests(unittest.TestCase):
         body1 = body_wrench_statistical_residual(
             "bag-a", 4, raw1, body_definition
         )
-        specific0 = specific_acceleration_statistical_residual(
-            "bag-a",
-            4,
-            raw0,
-            specific_definition,
-            self.chart,
-            self.coordinates,
-        )
-        specific1 = specific_acceleration_statistical_residual(
-            "bag-a",
-            4,
-            raw1,
-            specific_definition,
-            self.chart,
-            shifted_coordinates,
-        )
-        self.assertFalse(np.allclose(body0.residual, body1.residual))
         np.testing.assert_allclose(
-            specific0.residual,
-            specific1.residual,
+            body1.residual,
+            np.exp(0.4) * body0.residual,
             rtol=2.0e-13,
             atol=2.0e-13,
         )
         np.testing.assert_allclose(
-            specific0.jacobian.static_parameters @ ridge,
-            np.zeros(6),
-            atol=2.0e-13,
+            body0.jacobian.static_parameters @ ridge,
+            body0.residual,
+            rtol=3.0e-13,
+            atol=3.0e-13,
         )
 
-    def test_q_gaussian_normalization_matches_interval_definition(self):
+    def test_q_gaussian_normalization_uses_q_over_variable_dt(self):
         q = np.asarray((2.0, 3.0, 4.0, 5.0, 6.0, 7.0))
         dt = np.asarray((0.01, 0.03))
         spectral = diagonal_q_log_normalization(
             q,
             dt,
-            _definition(
-                BODY_WRENCH_QUANTITY,
-                QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
-            ),
+            _definition(),
         )
         expected = 0.5 * np.sum(
             np.log(2.0 * np.pi * q[None, :] / dt[:, None])
         )
         self.assertAlmostEqual(spectral, expected)
-        fixed = diagonal_q_log_normalization(
-            q,
-            dt,
-            _definition(
-                BODY_WRENCH_QUANTITY,
-                QIntervalModel.FIXED_INTERVAL_COVARIANCE,
-            ),
-        )
-        expected_fixed = 0.5 * np.sum(
-            np.log(np.broadcast_to(2.0 * np.pi * q, (2, 6)))
-        )
-        self.assertAlmostEqual(fixed, expected_fixed)
-
-    def test_mismatched_q_quantity_is_rejected(self):
+    def test_non_body_wrench_or_non_continuous_definition_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "body_wrench"):
-            body_wrench_statistical_residual(
-                "bag-a",
-                0,
-                self._raw(),
-                _definition(
-                    SPECIFIC_ACCELERATION_QUANTITY,
-                    QIntervalModel.FIXED_INTERVAL_COVARIANCE,
-                ),
+            DiagonalQDefinition(
+                residual_quantity="specific_acceleration",
+                component_names=BODY_WRENCH_COMPONENT_NAMES,
+                component_units=BODY_WRENCH_COMPONENT_UNITS,
+                interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
+            )
+        with self.assertRaisesRegex(TypeError, "QIntervalModel"):
+            DiagonalQDefinition(
+                residual_quantity=BODY_WRENCH_QUANTITY,
+                component_names=BODY_WRENCH_COMPONENT_NAMES,
+                component_units=BODY_WRENCH_COMPONENT_UNITS,
+                interval_model="fixed_interval_covariance",
             )
 
 

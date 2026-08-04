@@ -105,8 +105,7 @@ D_\omega\omega_m
 midpoint attitude は endpoint を結ぶ principal SO(3) geodesic の中点、velocity、omega、thrust、gimbal は endpoint の算術平均である。
 `xi_k` は state と static parameter から決まる factor residual であり、独立な latent force/torque path ではない。
 
-request は `body_wrench` または `specific_acceleration` のどちらを Q の統計座標にするか明示する。
-後者では force residual を mass で、torque residual を inertia で写像し、その parameter derivative も Jacobian に含める。
+Q の統計座標は body frame の `body_wrench` 6 成分だけであり、force は N、torque は N*m で表す。
 
 ## 6. 対角 Q と可変 interval
 
@@ -116,9 +115,8 @@ Q は全 selected interval と全 bag で共有する正の 6 対角成分であ
 Q=\operatorname{diag}(q_x,q_y,q_z,q_{roll},q_{pitch},q_{yaw}).
 ```
 
-`continuous_spectral_density` の場合、interval-average residual covariance を `Q/dt_k` と定義するため、whitening は `diag(sqrt(dt_k/q))` になる。
-`fixed_interval_covariance` の場合は interval ごとの covariance を Q と定義する。
-quantity、component name、unit、interval model は一組の科学的 contract であり、loader や GUI が推測しない。
+interval-average residual covariance は `Q/dt_k` と定義するため、whitening は `diag(sqrt(dt_k/q))` になる。
+`body_wrench/continuous_spectral_density`、component name、unit は一組の科学的 contract であり、loader や GUI が推測しない。
 
 ## 7. sparse MAP solve
 

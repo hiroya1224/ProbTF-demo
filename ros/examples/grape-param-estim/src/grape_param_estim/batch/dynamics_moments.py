@@ -19,11 +19,8 @@ from grape_param_estim.batch.factors.dynamics import (
     evaluate_raw_dynamics_residual,
 )
 from grape_param_estim.batch.factors.dynamics_factor import (
-    BODY_WRENCH_QUANTITY,
-    SPECIFIC_ACCELERATION_QUANTITY,
     StatisticalDynamicsResidual,
     body_wrench_statistical_residual,
-    specific_acceleration_statistical_residual,
 )
 from grape_param_estim.batch.laplace_em import (
     DiagonalQDefinition,
@@ -362,25 +359,12 @@ def evaluate_prepared_dynamics_intervals(
                 geometry=prepared.geometry,
                 gravity_world=prepared.dynamics.gravity_world,
             )
-            quantity = prepared.dynamics.q_definition.residual_quantity
-            if quantity == BODY_WRENCH_QUANTITY:
-                statistical = body_wrench_statistical_residual(
-                    bag.bag_id,
-                    index,
-                    raw,
-                    prepared.dynamics.q_definition,
-                )
-            elif quantity == SPECIFIC_ACCELERATION_QUANTITY:
-                statistical = specific_acceleration_statistical_residual(
-                    bag.bag_id,
-                    index,
-                    raw,
-                    prepared.dynamics.q_definition,
-                    prepared.parameter_chart,
-                    coordinates,
-                )
-            else:
-                raise ValueError("unsupported dynamics residual quantity")
+            statistical = body_wrench_statistical_residual(
+                bag.bag_id,
+                index,
+                raw,
+                prepared.dynamics.q_definition,
+            )
             valid.append(
                 DynamicsIntervalLinearization(
                     bag_id=bag.bag_id,

@@ -29,7 +29,6 @@ from grape_param_estim.pid.metrics import ForecastMetrics
 from grape_param_estim.pid.particle_search import (
     BODY_WRENCH_MODEL_DISCREPANCY,
     ModelDiscrepancyRealization,
-    SPECIFIC_ACCELERATION_MODEL_DISCREPANCY,
 )
 from grape_param_estim.pid.proposal import PhysicalPlantSample, PidCandidate
 from grape_param_estim.system import (
@@ -376,19 +375,10 @@ def _metrics_from_trace(
 def _body_wrench_discrepancy(
     realization: ModelDiscrepancyRealization,
     time_step: np.ndarray,
-    parameters: VehicleParameters,
 ) -> np.ndarray:
-    statistical = realization.interval_average_residual(time_step)
-    if realization.residual_quantity == BODY_WRENCH_MODEL_DISCREPANCY:
-        return statistical
-    if realization.residual_quantity == SPECIFIC_ACCELERATION_MODEL_DISCREPANCY:
-        wrench = np.empty_like(statistical)
-        wrench[:, :3] = parameters.mass * statistical[:, :3]
-        wrench[:, 3:] = np.einsum(
-            "ij,nj->ni", parameters.inertia, statistical[:, 3:]
-        )
-        return wrench
-    raise AssertionError("validated discrepancy quantity is unreachable")
+    if realization.residual_quantity != BODY_WRENCH_MODEL_DISCREPANCY:
+        raise AssertionError("validated discrepancy quantity is unreachable")
+    return realization.interval_average_residual(time_step)
 
 
 def run_pid_forecast(
@@ -434,7 +424,6 @@ def run_pid_forecast(
     discrepancy_path = _body_wrench_discrepancy(
         discrepancy,
         np.diff(scenario.times),
-        sample.parameters,
     )
     position = [initial.rigid_body_state.position]
     orientation = [initial.rigid_body_state.orientation_xyzw]

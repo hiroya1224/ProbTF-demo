@@ -563,23 +563,14 @@ class BatchSignalPanel(QWidget):
         map_residual = result.map_dynamics_residual
         dt = np.diff(result.knot_time)
         definition = str(self.run.manifest["q_definition"]["definition"])
-        if definition.endswith("/continuous_spectral_density"):
-            reference_scale = np.sqrt(
-                self.run.static_map.q_diagonal[None, :] / dt[:, None]
-            )
-            self.q_reference_label = "sqrt(Q/Δt)"
-        elif definition.endswith("/fixed_interval_covariance"):
-            reference_scale = np.sqrt(
-                np.broadcast_to(
-                    self.run.static_map.q_diagonal[None, :],
-                    (dt.size, self.run.static_map.q_diagonal.size),
-                )
-            )
-            self.q_reference_label = "sqrt(Q)"
-        else:
+        if definition != "body_wrench/continuous_spectral_density":
             raise ValueError(
-                "unsupported Q interval definition {!r}".format(definition)
+                "unsupported Q definition {!r}".format(definition)
             )
+        reference_scale = np.sqrt(
+            self.run.static_map.q_diagonal[None, :] / dt[:, None]
+        )
+        self.q_reference_label = "sqrt(Q/Δt)"
         series: dict[str, tuple[np.ndarray, np.ndarray]] = {
             "map": (time[valid], map_residual[valid]),
             "q_upper": (time, reference_scale),

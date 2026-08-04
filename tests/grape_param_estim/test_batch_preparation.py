@@ -387,11 +387,11 @@ def _request_payload(root, bag_specs):
         "output_directory": str(root / "run"),
         "bags": bags,
         "q": {
-            "residual_quantity": "specific_acceleration",
+            "residual_quantity": "body_wrench",
             "interval_model": "continuous_spectral_density",
             "component_names": ["x", "y", "z", "roll", "pitch", "yaw"],
-            "component_units": ["explicit-unit"] * 6,
-            "initial_diagonal": [1.0] * 6,
+            "component_units": ["N", "N", "N", "N*m", "N*m", "N*m"],
+            "initial_diagonal": [25.0, 25.0, 25.0, 1.0, 1.0, 1.0],
             "floor_diagonal": [1.0e-8] * 6,
         },
         "parameter_prior": {
@@ -524,7 +524,7 @@ class BatchPreparationTests(unittest.TestCase):
                     mode_id="recorded-mode",
                     fixed_delay_seconds=0.035,
                     q_diagonal=np.asarray(
-                        (1.1, 1.2, 1.3, 0.7, 0.8, 0.9)
+                        (25.0, 25.0, 25.0, 1.0, 1.0, 1.0)
                     ),
                     initial_parameter_coordinates=np.zeros(18),
                 )
@@ -555,7 +555,7 @@ class BatchPreparationTests(unittest.TestCase):
         np.testing.assert_allclose(durations, (0.035, 0.06, 0.005))
         np.testing.assert_allclose(
             prepared.dynamics.q,
-            (1.1, 1.2, 1.3, 0.7, 0.8, 0.9),
+            (25.0, 25.0, 25.0, 1.0, 1.0, 1.0),
         )
         problem = build_fixed_batch_problem(prepared)
         state = build_initial_batch_state(prepared)

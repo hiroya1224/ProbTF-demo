@@ -9,8 +9,9 @@ from grape_param_estim.batch.dynamics_moments import (
     evaluate_prepared_dynamics_intervals,
 )
 from grape_param_estim.batch.factors.dynamics_factor import (
+    BODY_WRENCH_COMPONENT_NAMES,
+    BODY_WRENCH_COMPONENT_UNITS,
     BODY_WRENCH_QUANTITY,
-    SPECIFIC_ACCELERATION_QUANTITY,
 )
 from grape_param_estim.batch.graph_builder import (
     AccelerometerFactorContract,
@@ -70,22 +71,17 @@ def _orientation_prior(rotation, scale=1.0):
     return OrientationGaussianPrior(rotation, _covariance(3, scale))
 
 
-def _q_definition(quantity):
-    units = (
-        ("N", "N", "N", "Nm", "Nm", "Nm")
-        if quantity == BODY_WRENCH_QUANTITY
-        else ("m/s^2",) * 3 + ("rad/s^2",) * 3
-    )
+def _q_definition():
     return DiagonalQDefinition(
-        residual_quantity=quantity,
-        component_names=("x", "y", "z", "roll", "pitch", "yaw"),
-        component_units=units,
+        residual_quantity=BODY_WRENCH_QUANTITY,
+        component_names=BODY_WRENCH_COMPONENT_NAMES,
+        component_units=BODY_WRENCH_COMPONENT_UNITS,
         interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
     )
 
 
 class BatchGraphBuilderTests(unittest.TestCase):
-    def _prepared(self, quantity=SPECIFIC_ACCELERATION_QUANTITY):
+    def _prepared(self):
         nominal = replace(
             VehicleParameters.nominal(),
             cog_offset=np.asarray((0.012, -0.008, 0.016)),
@@ -286,8 +282,8 @@ class BatchGraphBuilderTests(unittest.TestCase):
             static_parameter_prior=_vector_prior(np.zeros(18), 0.8),
             geometry=geometry,
             dynamics=PreparedDynamicsConfiguration(
-                q_definition=_q_definition(quantity),
-                q=np.asarray((1.8, 1.9, 2.0, 0.8, 0.9, 1.0)),
+                q_definition=_q_definition(),
+                q=np.asarray((10.0, 10.0, 10.0, 0.01, 0.01, 0.01)),
                 gravity_world=np.asarray((0.0, 0.0, -9.80665)),
             ),
             fixed_delay=0.0085,
@@ -356,29 +352,18 @@ class BatchGraphBuilderTests(unittest.TestCase):
             delta=2.0e-5 * max(1.0, abs(analytic), abs(numerical)),
         )
 
-    def test_q_quantity_has_two_explicit_paths_and_no_default(self):
-        specific = self._prepared(SPECIFIC_ACCELERATION_QUANTITY)
-        body = self._prepared(BODY_WRENCH_QUANTITY)
-        specific_factor = build_fixed_batch_problem(specific).evaluate_factors(
-            build_initial_batch_state(specific)
+    def test_q_quantity_has_one_strict_body_wrench_path(self):
+        prepared = self._prepared()
+        factor = build_fixed_batch_problem(prepared).evaluate_factors(
+            build_initial_batch_state(prepared)
         )[-1]
-        body_factor = build_fixed_batch_problem(body).evaluate_factors(
-            build_initial_batch_state(body)
-        )[-1]
-        self.assertFalse(
-            np.allclose(specific_factor.residual, body_factor.residual)
-        )
-        unsupported = DiagonalQDefinition(
-            residual_quantity="implicit_default_forbidden",
-            component_names=("x", "y", "z", "r", "p", "y2"),
-            component_units=("u",) * 6,
-            interval_model=QIntervalModel.FIXED_INTERVAL_COVARIANCE,
-        )
-        with self.assertRaisesRegex(ValueError, "explicitly"):
-            PreparedDynamicsConfiguration(
-                q_definition=unsupported,
-                q=np.ones(6),
-                gravity_world=np.asarray((0.0, 0.0, -9.80665)),
+        self.assertTrue(np.all(np.isfinite(factor.residual)))
+        with self.assertRaisesRegex(ValueError, "body_wrench"):
+            DiagonalQDefinition(
+                residual_quantity="specific_acceleration",
+                component_names=BODY_WRENCH_COMPONENT_NAMES,
+                component_units=BODY_WRENCH_COMPONENT_UNITS,
+                interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
             )
 
     def test_accelerometer_contract_and_prebracketing_fail_closed(self):

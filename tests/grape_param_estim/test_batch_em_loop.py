@@ -12,6 +12,9 @@ from grape_param_estim.batch.em_loop import (
     run_laplace_em,
 )
 from grape_param_estim.batch.laplace_em import (
+    BODY_WRENCH_COMPONENT_NAMES,
+    BODY_WRENCH_COMPONENT_UNITS,
+    BODY_WRENCH_QUANTITY,
     DiagonalQDefinition,
     ExpectedResidualMoments,
     QIntervalModel,
@@ -51,10 +54,10 @@ def _state():
 
 def _definition():
     return DiagonalQDefinition(
-        residual_quantity="explicit_test_quantity",
-        component_names=("a", "b", "c", "d", "e", "f"),
-        component_units=("u",) * 6,
-        interval_model=QIntervalModel.FIXED_INTERVAL_COVARIANCE,
+        residual_quantity=BODY_WRENCH_QUANTITY,
+        component_names=BODY_WRENCH_COMPONENT_NAMES,
+        component_units=BODY_WRENCH_COMPONENT_UNITS,
+        interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
     )
 
 
@@ -88,7 +91,7 @@ class BatchEmLoopTests(unittest.TestCase):
             _definition(),
             np.ones(6),
             np.full(6, 1.0e-8),
-            np.asarray((0.01, 0.02)),
+            np.ones(2),
             0.02,
             solver,
             LaplaceEmSettings(

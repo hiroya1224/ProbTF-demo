@@ -24,7 +24,6 @@ from grape_param_estim.batch.lag_profile import (
 )
 from grape_param_estim.batch.laplace_em import (
     QInnerEvaluation,
-    QIntervalModel,
     compute_diagonal_q_target,
     damped_diagonal_q_update,
 )
@@ -133,14 +132,22 @@ class PerfectModelSyntheticRecoveryTests(unittest.TestCase):
         initial = truth + perturbation
 
         def evaluate(coordinates):
-            return trajectory.specific_acceleration_residual_and_jacobian(
+            return trajectory.body_wrench_residual_and_jacobian(
                 coordinates
             )
 
+        def evaluate_with_ridge_gauge(coordinates):
+            residual, jacobian = evaluate(coordinates)
+            gauge = float(ridge @ (coordinates - truth))
+            return (
+                np.concatenate((residual, np.asarray((gauge,)))),
+                np.vstack((jacobian, ridge)),
+            )
+
         result = least_squares(
-            lambda value: evaluate(value)[0],
+            lambda value: evaluate_with_ridge_gauge(value)[0],
             initial,
-            jac=lambda value: evaluate(value)[1],
+            jac=lambda value: evaluate_with_ridge_gauge(value)[1],
             xtol=1.0e-12,
             ftol=1.0e-12,
             gtol=1.0e-12,
@@ -149,7 +156,7 @@ class PerfectModelSyntheticRecoveryTests(unittest.TestCase):
         error = result.x - truth
         identified_error = error - ridge * float(ridge @ error)
         self.assertTrue(result.success, msg=result.message)
-        self.assertLess(np.linalg.norm(result.fun, ord=np.inf), 2.0e-9)
+        self.assertLess(np.linalg.norm(result.fun, ord=np.inf), 3.0e-9)
         self.assertLess(np.linalg.norm(identified_error, ord=np.inf), 2.0e-7)
 
         residual, jacobian = evaluate(truth)
@@ -180,17 +187,14 @@ class KnownQSyntheticRecoveryTests(unittest.TestCase):
             (
                 "isotropic-small",
                 np.asarray((0.015, 0.015, 0.015, 0.001, 0.001, 0.001)),
-                QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
             ),
             (
                 "anisotropic",
                 np.asarray((0.012, 0.045, 0.19, 0.0004, 0.0025, 0.014)),
-                QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
             ),
             (
-                "large-fixed-interval",
+                "large-spectral-density",
                 np.asarray((3.0, 1.1, 0.42, 0.09, 0.025, 0.006)),
-                QIntervalModel.FIXED_INTERVAL_COVARIANCE,
             ),
         )
         random = np.random.RandomState(81)
@@ -198,12 +202,11 @@ class KnownQSyntheticRecoveryTests(unittest.TestCase):
             random.uniform(0.008, 0.025, size=900),
             random.uniform(0.031, 0.074, size=1100),
         )
-        for case_index, (name, truth, interval_model) in enumerate(cases):
+        for case_index, (name, truth) in enumerate(cases):
             with self.subTest(name=name):
                 synthetic = generate_known_q_laplace_moments(
                     truth,
                     bag_steps,
-                    interval_model=interval_model,
                     observation_noise_ratio=0.8,
                     seed=700 + case_index,
                 )

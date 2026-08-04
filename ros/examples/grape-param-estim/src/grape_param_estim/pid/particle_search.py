@@ -34,16 +34,12 @@ MODEL_DISCREPANCY_POLICIES = (
     SAMPLE_MODEL_DISCREPANCY,
 )
 BODY_WRENCH_MODEL_DISCREPANCY = "body_wrench"
-SPECIFIC_ACCELERATION_MODEL_DISCREPANCY = "specific_acceleration"
 MODEL_DISCREPANCY_QUANTITIES = (
     BODY_WRENCH_MODEL_DISCREPANCY,
-    SPECIFIC_ACCELERATION_MODEL_DISCREPANCY,
 )
 CONTINUOUS_SPECTRAL_DENSITY = "continuous_spectral_density"
-FIXED_INTERVAL_COVARIANCE = "fixed_interval_covariance"
 MODEL_DISCREPANCY_INTERVAL_MODELS = (
     CONTINUOUS_SPECTRAL_DENSITY,
-    FIXED_INTERVAL_COVARIANCE,
 )
 STRICT_SUBSET_RECOMMENDATION_REASON = (
     "recommendation unavailable: strict posterior subset is exploratory; "
@@ -71,13 +67,12 @@ class ModelDiscrepancyConfiguration:
         replicates = self.replicates
         if policy not in MODEL_DISCREPANCY_POLICIES:
             raise ValueError("unknown model discrepancy policy")
-        if quantity not in MODEL_DISCREPANCY_QUANTITIES:
+        if quantity != BODY_WRENCH_MODEL_DISCREPANCY:
+            raise ValueError("residual_quantity must be body_wrench")
+        if interval_model != CONTINUOUS_SPECTRAL_DENSITY:
             raise ValueError(
-                "residual_quantity must explicitly be body_wrench or "
-                "specific_acceleration"
+                "interval_model must be continuous_spectral_density"
             )
-        if interval_model not in MODEL_DISCREPANCY_INTERVAL_MODELS:
-            raise ValueError("unknown model discrepancy interval_model")
         if q.shape != (6,) or np.any(~np.isfinite(q)) or np.any(q < 0.0):
             raise ValueError("diagonal_q must contain six non-negative values")
         if (
@@ -148,13 +143,12 @@ class ModelDiscrepancyRealization:
         q = np.asarray(self.diagonal_q, dtype=float)
         if policy not in MODEL_DISCREPANCY_POLICIES:
             raise ValueError("unknown model discrepancy policy")
-        if quantity not in MODEL_DISCREPANCY_QUANTITIES:
+        if quantity != BODY_WRENCH_MODEL_DISCREPANCY:
+            raise ValueError("residual_quantity must be body_wrench")
+        if interval_model != CONTINUOUS_SPECTRAL_DENSITY:
             raise ValueError(
-                "residual_quantity must explicitly be body_wrench or "
-                "specific_acceleration"
+                "interval_model must be continuous_spectral_density"
             )
-        if interval_model not in MODEL_DISCREPANCY_INTERVAL_MODELS:
-            raise ValueError("unknown model discrepancy interval_model")
         if q.shape != (6,) or np.any(~np.isfinite(q)) or np.any(q < 0.0):
             raise ValueError("diagonal_q must contain six non-negative values")
         for name in ("seed", "replicate_index"):
@@ -192,12 +186,7 @@ class ModelDiscrepancyRealization:
         # object, and repeated calls with the same horizon must be identical.
         random_state = np.random.default_rng(self.seed)
         standard = random_state.standard_normal((dt.size, 6))
-        if self.interval_model == CONTINUOUS_SPECTRAL_DENSITY:
-            covariance_diagonal = self.diagonal_q[None, :] / dt[:, None]
-        else:
-            covariance_diagonal = np.broadcast_to(
-                self.diagonal_q[None, :], (dt.size, 6)
-            )
+        covariance_diagonal = self.diagonal_q[None, :] / dt[:, None]
         return standard * np.sqrt(covariance_diagonal)
 
 
@@ -1079,7 +1068,6 @@ def refine_pid_candidate_particles(
 __all__ = [
     "BODY_WRENCH_MODEL_DISCREPANCY",
     "CONTINUOUS_SPECTRAL_DENSITY",
-    "FIXED_INTERVAL_COVARIANCE",
     "MODEL_DISCREPANCY_POLICIES",
     "MODEL_DISCREPANCY_INTERVAL_MODELS",
     "MODEL_DISCREPANCY_QUANTITIES",
@@ -1092,7 +1080,6 @@ __all__ = [
     "PidForecastProgress",
     "PidParticleSearchResult",
     "SAMPLE_MODEL_DISCREPANCY",
-    "SPECIFIC_ACCELERATION_MODEL_DISCREPANCY",
     "STRICT_SUBSET_RECOMMENDATION_REASON",
     "ZERO_MODEL_DISCREPANCY",
     "build_initial_candidate_population",

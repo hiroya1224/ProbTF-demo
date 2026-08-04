@@ -728,7 +728,7 @@ class BatchResultViewTests(unittest.TestCase):
         bundle.manifest["substage_status"] = substages
         bundle.manifest["q_definition"] = {
             "definition": (
-                "specific_acceleration/continuous_spectral_density"
+                "body_wrench/continuous_spectral_density"
             ),
             "units": ["m/s^2"] * 3 + ["rad/s^2"] * 3,
         }
@@ -850,7 +850,7 @@ class BatchResultViewTests(unittest.TestCase):
         }
         bundle.manifest["q_definition"] = {
             "definition": (
-                "specific_acceleration/continuous_spectral_density"
+                "body_wrench/continuous_spectral_density"
             ),
             "units": ["unit"] * 6,
         }

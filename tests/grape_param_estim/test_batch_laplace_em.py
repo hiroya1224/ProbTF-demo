@@ -3,6 +3,9 @@ import unittest
 import numpy as np
 
 from grape_param_estim.batch.laplace_em import (
+    BODY_WRENCH_COMPONENT_NAMES,
+    BODY_WRENCH_COMPONENT_UNITS,
+    BODY_WRENCH_QUANTITY,
     DiagonalQDefinition,
     ExpectedResidualMoments,
     QInnerEvaluation,
@@ -12,12 +15,12 @@ from grape_param_estim.batch.laplace_em import (
 )
 
 
-def _definition(interval_model):
+def _definition():
     return DiagonalQDefinition(
-        residual_quantity="explicit_test_quantity",
-        component_names=("fx", "fy", "fz", "tx", "ty", "tz"),
-        component_units=("u", "u", "u", "v", "v", "v"),
-        interval_model=interval_model,
+        residual_quantity=BODY_WRENCH_QUANTITY,
+        component_names=BODY_WRENCH_COMPONENT_NAMES,
+        component_units=BODY_WRENCH_COMPONENT_UNITS,
+        interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
     )
 
 
@@ -57,7 +60,7 @@ class BatchLaplaceEmTests(unittest.TestCase):
 
     def test_spectral_density_target_uses_variable_interval_duration(self):
         result = compute_diagonal_q_target(
-            _definition(QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY),
+            _definition(),
             self.moments,
             self.time_step,
             self.floor,
@@ -76,28 +79,12 @@ class BatchLaplaceEmTests(unittest.TestCase):
             result.raw_target, expected_map + expected_correction
         )
 
-    def test_fixed_interval_definition_uses_no_hidden_dt_factor(self):
-        result = compute_diagonal_q_target(
-            _definition(QIntervalModel.FIXED_INTERVAL_COVARIANCE),
-            self.moments,
-            self.time_step,
-            self.floor,
-        )
-        np.testing.assert_allclose(
-            result.map_second_moment,
-            np.mean(self.residual**2, axis=0),
-        )
-        np.testing.assert_allclose(
-            result.covariance_correction,
-            np.mean(self.correction, axis=0),
-        )
-
     def test_covariance_correction_prevents_hard_em_update(self):
         zero_residual = ExpectedResidualMoments(
             np.zeros((3, 6)), np.full((3, 6), 0.4)
         )
         result = compute_diagonal_q_target(
-            _definition(QIntervalModel.FIXED_INTERVAL_COVARIANCE),
+            _definition(),
             zero_residual,
             np.ones(3),
             np.full(6, 1.0e-6),
@@ -113,7 +100,7 @@ class BatchLaplaceEmTests(unittest.TestCase):
         )
         floor = np.asarray((0.1, 0.2, 0.3, 0.4, 0.5, 0.6))
         result = compute_diagonal_q_target(
-            _definition(QIntervalModel.FIXED_INTERVAL_COVARIANCE),
+            _definition(),
             moments,
             np.ones(1),
             floor,
@@ -124,7 +111,7 @@ class BatchLaplaceEmTests(unittest.TestCase):
 
     def test_log_q_backtracking_accepts_first_nonworsening_candidate(self):
         target = compute_diagonal_q_target(
-            _definition(QIntervalModel.FIXED_INTERVAL_COVARIANCE),
+            _definition(),
             ExpectedResidualMoments(np.full((1, 6), 4.0), np.zeros((1, 6))),
             np.ones(1),
             self.floor,
@@ -150,7 +137,7 @@ class BatchLaplaceEmTests(unittest.TestCase):
 
     def test_failed_inner_solves_are_rejected_without_changing_q(self):
         target = compute_diagonal_q_target(
-            _definition(QIntervalModel.FIXED_INTERVAL_COVARIANCE),
+            _definition(),
             self.moments,
             self.time_step,
             self.floor,
@@ -181,15 +168,22 @@ class BatchLaplaceEmTests(unittest.TestCase):
             "all_damped_candidates_rejected",
         )
 
-    def test_q_definition_never_defaults_the_scientific_quantity(self):
+    def test_q_definition_is_strict_body_wrench_spectral_density(self):
         with self.assertRaises(TypeError):
             DiagonalQDefinition()
         with self.assertRaises(ValueError):
             DiagonalQDefinition(
-                residual_quantity="",
-                component_names=("a",) * 6,
-                component_units=("u",) * 6,
-                interval_model=QIntervalModel.FIXED_INTERVAL_COVARIANCE,
+                residual_quantity="specific_acceleration",
+                component_names=BODY_WRENCH_COMPONENT_NAMES,
+                component_units=BODY_WRENCH_COMPONENT_UNITS,
+                interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
+            )
+        with self.assertRaises(TypeError):
+            DiagonalQDefinition(
+                residual_quantity=BODY_WRENCH_QUANTITY,
+                component_names=BODY_WRENCH_COMPONENT_NAMES,
+                component_units=BODY_WRENCH_COMPONENT_UNITS,
+                interval_model="fixed_interval_covariance",
             )
 
 

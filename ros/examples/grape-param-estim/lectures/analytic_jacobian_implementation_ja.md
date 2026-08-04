@@ -54,8 +54,7 @@ torque row では次の寄与を含める。
 - angular drag。
 - actuator torque と lever arm/reaction torque derivative。
 
-`specific_acceleration` quantity を選ぶ場合は wrench Jacobianへ左から `diag(I/m, J^{-1})` を掛けるだけでは不十分である。
-mass と inertia 自体が static coordinate に依存するため、`1/m` と `J^{-1}` の product-rule term も static block に加える。
+Q の統計座標は body-frame wrench に固定し、raw force/torque residual の解析 Jacobian を N/N*m のまま whitening する。
 
 ## 6. kinematic、controller、actuator transition
 

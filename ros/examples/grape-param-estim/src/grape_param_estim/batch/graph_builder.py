@@ -20,7 +20,6 @@ from grape_param_estim.batch.factors.controller import (
 )
 from grape_param_estim.batch.factors.dynamics_factor import (
     BODY_WRENCH_QUANTITY,
-    SPECIFIC_ACCELERATION_QUANTITY,
     evaluate_dynamics_factor,
 )
 from grape_param_estim.batch.dynamics_moments import (
@@ -612,13 +611,9 @@ class PreparedDynamicsConfiguration:
     def __post_init__(self) -> None:
         if not isinstance(self.q_definition, DiagonalQDefinition):
             raise TypeError("q_definition must be DiagonalQDefinition")
-        if self.q_definition.residual_quantity not in (
-            BODY_WRENCH_QUANTITY,
-            SPECIFIC_ACCELERATION_QUANTITY,
-        ):
+        if self.q_definition.residual_quantity != BODY_WRENCH_QUANTITY:
             raise ValueError(
-                "q_definition residual_quantity must explicitly be "
-                "body_wrench or specific_acceleration"
+                "q_definition residual_quantity must be body_wrench"
             )
         q = _immutable_vector(self.q, 6, "q")
         if np.any(q <= 0.0):

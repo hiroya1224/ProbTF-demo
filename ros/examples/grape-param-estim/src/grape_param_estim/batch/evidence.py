@@ -19,7 +19,6 @@ from grape_param_estim.batch.covariance import (
 )
 from grape_param_estim.batch.laplace_em import (
     DiagonalQDefinition,
-    QIntervalModel,
 )
 from grape_param_estim.batch.lag_profile import LagProfileResult
 from grape_param_estim.batch.ridge import (
@@ -644,10 +643,9 @@ def dynamics_q_log_normalization(
 ) -> float:
     """Return ``0.5 sum_k log det(Sigma_k)`` for valid intervals.
 
-    For continuous spectral density, the graph uses
-    ``Sigma_k = Q / dt_k``.  For fixed-interval covariance it uses
-    ``Sigma_k = Q``.  Constants involving ``2*pi`` are omitted because the
-    residual count is fixed across candidate Q values.
+    The graph uses ``Sigma_k = Q / dt_k`` for the sole body-wrench continuous
+    spectral-density contract.  Constants involving ``2*pi`` are omitted
+    because the residual count is fixed across candidate Q values.
     """
 
     if not isinstance(definition, DiagonalQDefinition):
@@ -658,8 +656,7 @@ def dynamics_q_log_normalization(
         raise ValueError("q_diagonal must contain six positive finite values")
     definition.interval_weights(time_steps)
     result = 0.5 * time_steps.size * float(np.sum(np.log(q)))
-    if definition.interval_model is QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY:
-        result -= 3.0 * float(np.sum(np.log(time_steps)))
+    result -= 3.0 * float(np.sum(np.log(time_steps)))
     return float(result)
 
 

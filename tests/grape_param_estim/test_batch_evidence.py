@@ -8,18 +8,21 @@ from grape_param_estim.batch.evidence import (
     dynamics_q_log_normalization,
 )
 from grape_param_estim.batch.laplace_em import (
+    BODY_WRENCH_COMPONENT_NAMES,
+    BODY_WRENCH_COMPONENT_UNITS,
+    BODY_WRENCH_QUANTITY,
     DiagonalQDefinition,
     QIntervalModel,
 )
 from grape_param_estim.parameterization import PARAMETER_DIMENSION
 
 
-def _definition(interval_model):
+def _definition():
     return DiagonalQDefinition(
-        residual_quantity="test_residual",
-        component_names=tuple("x{}".format(index) for index in range(6)),
-        component_units=("u",) * 6,
-        interval_model=interval_model,
+        residual_quantity=BODY_WRENCH_QUANTITY,
+        component_names=BODY_WRENCH_COMPONENT_NAMES,
+        component_units=BODY_WRENCH_COMPONENT_UNITS,
+        interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
     )
 
 
@@ -28,7 +31,7 @@ class BatchEvidenceTests(unittest.TestCase):
         q = np.exp(np.arange(6, dtype=float) * 0.2)
         dt = np.asarray((0.01, 0.025, 0.04))
         actual = dynamics_q_log_normalization(
-            _definition(QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY),
+            _definition(),
             q,
             dt,
         )
@@ -36,21 +39,6 @@ class BatchEvidenceTests(unittest.TestCase):
             np.sum(np.log(q / time_step)) for time_step in dt
         )
         self.assertAlmostEqual(actual, expected)
-
-    def test_fixed_interval_q_normalization_does_not_use_dt(self):
-        q = np.exp(np.arange(6, dtype=float) * 0.1)
-        first = dynamics_q_log_normalization(
-            _definition(QIntervalModel.FIXED_INTERVAL_COVARIANCE),
-            q,
-            np.asarray((0.01, 0.02)),
-        )
-        second = dynamics_q_log_normalization(
-            _definition(QIntervalModel.FIXED_INTERVAL_COVARIANCE),
-            q,
-            np.asarray((1.0, 3.0)),
-        )
-        self.assertAlmostEqual(first, second)
-        self.assertAlmostEqual(first, np.sum(np.log(q)))
 
     def test_breakdown_requires_exact_sum(self):
         with self.assertRaisesRegex(ValueError, "sum"):

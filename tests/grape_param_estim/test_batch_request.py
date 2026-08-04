@@ -85,10 +85,10 @@ class BatchRequestTests(unittest.TestCase):
                 }
             ],
             "q": {
-                "residual_quantity": "specific_acceleration",
+                "residual_quantity": "body_wrench",
                 "interval_model": "continuous_spectral_density",
                 "component_names": ["x", "y", "z", "roll", "pitch", "yaw"],
-                "component_units": ["explicit-unit"] * 6,
+                "component_units": ["N", "N", "N", "N*m", "N*m", "N*m"],
                 "initial_diagonal": [1.0] * 6,
                 "floor_diagonal": [1.0e-8] * 6,
             },
@@ -212,6 +212,14 @@ class BatchRequestTests(unittest.TestCase):
             validate_batch_estimation_request(request)
         request = copy.deepcopy(self.request)
         request["q"]["residual_quantity"] = "unspecified"
+        with self.assertRaisesRegex(ArtifactValidationError, "must be one of"):
+            validate_batch_estimation_request(request)
+        request = copy.deepcopy(self.request)
+        request["q"]["residual_quantity"] = "specific_acceleration"
+        with self.assertRaisesRegex(ArtifactValidationError, "must be one of"):
+            validate_batch_estimation_request(request)
+        request = copy.deepcopy(self.request)
+        request["q"]["interval_model"] = "fixed_interval_covariance"
         with self.assertRaisesRegex(ArtifactValidationError, "must be one of"):
             validate_batch_estimation_request(request)
 

@@ -19,7 +19,6 @@ import numpy as np
 
 from grape_param_estim.batch.factors.dynamics_factor import (
     BODY_WRENCH_QUANTITY,
-    SPECIFIC_ACCELERATION_QUANTITY,
 )
 from grape_param_estim.batch.graph_builder import (
     AccelerometerFactorContract,
@@ -1319,11 +1318,8 @@ def prepare_fixed_batch_graph_data(
     if np.any(selection.q_diagonal < q_floor):
         raise ValueError("selected Q diagonal lies below the request floor")
     quantity = str(q["residual_quantity"])
-    if quantity not in (
-        BODY_WRENCH_QUANTITY,
-        SPECIFIC_ACCELERATION_QUANTITY,
-    ):
-        raise ValueError("request Q residual quantity is unsupported")
+    if quantity != BODY_WRENCH_QUANTITY:
+        raise ValueError("request Q residual quantity must be body_wrench")
     q_definition = DiagonalQDefinition(
         residual_quantity=quantity,
         component_names=tuple(q["component_names"]),

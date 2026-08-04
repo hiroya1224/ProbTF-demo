@@ -22,8 +22,10 @@ from grape_param_estim.batch.factors.dynamics import (
     evaluate_raw_dynamics_residual,
 )
 from grape_param_estim.batch.factors.dynamics_factor import (
-    SPECIFIC_ACCELERATION_QUANTITY,
-    specific_acceleration_statistical_residual,
+    BODY_WRENCH_COMPONENT_NAMES,
+    BODY_WRENCH_COMPONENT_UNITS,
+    BODY_WRENCH_QUANTITY,
+    body_wrench_statistical_residual,
 )
 from grape_param_estim.batch.laplace_em import (
     DiagonalQDefinition,
@@ -235,11 +237,11 @@ class PerfectModelBatchTrajectory:
             gravity_world=_GRAVITY_WORLD,
         )
 
-    def specific_acceleration_residual_and_jacobian(
+    def body_wrench_residual_and_jacobian(
         self,
         parameter_coordinates: Sequence[float],
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Stack scale-invariant residuals and analytic 18-D Jacobians."""
+        """Stack body-wrench residuals and analytic 18-D Jacobians."""
 
         coordinates = np.asarray(parameter_coordinates, dtype=float)
         if coordinates.shape != (PARAMETER_DIMENSION,) or not np.all(
@@ -247,22 +249,20 @@ class PerfectModelBatchTrajectory:
         ):
             raise ValueError("parameter_coordinates must contain 18 finite values")
         definition = DiagonalQDefinition(
-            residual_quantity=SPECIFIC_ACCELERATION_QUANTITY,
-            component_names=("x", "y", "z", "roll", "pitch", "yaw"),
-            component_units=("m/s^2",) * 3 + ("rad/s^2",) * 3,
+            residual_quantity=BODY_WRENCH_QUANTITY,
+            component_names=BODY_WRENCH_COMPONENT_NAMES,
+            component_units=BODY_WRENCH_COMPONENT_UNITS,
             interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
         )
         residuals = []
         jacobians = []
         for index in range(self.interval_count):
             raw = self.dynamics_evaluation(index, coordinates)
-            statistical = specific_acceleration_statistical_residual(
+            statistical = body_wrench_statistical_residual(
                 "synthetic-perfect",
                 index,
                 raw,
                 definition,
-                self.parameter_chart,
-                coordinates,
             )
             residuals.append(statistical.residual)
             jacobians.append(statistical.jacobian.static_parameters)
@@ -885,25 +885,21 @@ def generate_known_q_laplace_moments(
     true_q: Sequence[float],
     bag_time_steps: Sequence[Sequence[float]],
     *,
-    interval_model: QIntervalModel = QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
     observation_noise_ratio: float = 0.8,
     seed: int = 2718,
 ) -> KnownQBatchMoments:
     """Draw posterior E-step moments whose expected M-step target is ``true_q``.
 
-    The latent discrepancy has interval covariance ``Q / dt`` for spectral
-    density Q (or ``Q`` for fixed-interval Q).  A Gaussian noisy pseudo-
-    observation is conditioned analytically.  Consequently the returned MAP
-    residual is shrunken, while its Laplace covariance correction restores the
-    known expected second moment.
+    The body-wrench discrepancy has interval covariance ``Q / dt``.  A
+    Gaussian noisy pseudo-observation is conditioned analytically.
+    Consequently the returned MAP residual is shrunken, while its Laplace
+    covariance correction restores the known expected second moment.
     """
 
     q = _positive_vector(true_q, 6, "true_q")
     ratio = float(observation_noise_ratio)
     if not np.isfinite(ratio) or ratio <= 0.0:
         raise ValueError("observation_noise_ratio must be finite and positive")
-    if not isinstance(interval_model, QIntervalModel):
-        raise TypeError("interval_model must be QIntervalModel")
     selected = tuple(np.asarray(value, dtype=float) for value in bag_time_steps)
     if not selected:
         raise ValueError("bag_time_steps cannot be empty")
@@ -923,10 +919,10 @@ def generate_known_q_laplace_moments(
         )
     )
     definition = DiagonalQDefinition(
-        residual_quantity=SPECIFIC_ACCELERATION_QUANTITY,
-        component_names=("x", "y", "z", "roll", "pitch", "yaw"),
-        component_units=("m/s^2",) * 3 + ("rad/s^2",) * 3,
-        interval_model=interval_model,
+        residual_quantity=BODY_WRENCH_QUANTITY,
+        component_names=BODY_WRENCH_COMPONENT_NAMES,
+        component_units=BODY_WRENCH_COMPONENT_UNITS,
+        interval_model=QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY,
     )
     weights = definition.interval_weights(time_step)
     noise = ratio * q

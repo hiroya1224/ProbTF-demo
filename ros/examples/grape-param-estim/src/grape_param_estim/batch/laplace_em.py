@@ -8,23 +8,20 @@ import numpy as np
 
 
 Q_DIMENSION = 6
+BODY_WRENCH_QUANTITY = "body_wrench"
+BODY_WRENCH_COMPONENT_NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
+BODY_WRENCH_COMPONENT_UNITS = ("N", "N", "N", "N*m", "N*m", "N*m")
 
 
 class QIntervalModel(Enum):
-    """How a diagonal Q parameter maps to one interval covariance."""
+    """The sole production mapping from wrench spectral density to intervals."""
 
     CONTINUOUS_SPECTRAL_DENSITY = "continuous_spectral_density"
-    FIXED_INTERVAL_COVARIANCE = "fixed_interval_covariance"
 
 
 @dataclass(frozen=True)
 class DiagonalQDefinition:
-    """Explicit residual quantity, units, and time-scaling convention.
-
-    No default residual quantity is provided.  In particular, callers must
-    decide whether the six components describe physical body wrench or a
-    scale-invariant specific-acceleration discrepancy before running EM.
-    """
+    """Strict body-wrench continuous spectral-density Q definition."""
 
     residual_quantity: str
     component_names: Tuple[str, ...]
@@ -32,33 +29,22 @@ class DiagonalQDefinition:
     interval_model: QIntervalModel
 
     def __post_init__(self) -> None:
-        if (
-            not isinstance(self.residual_quantity, str)
-            or not self.residual_quantity
-            or self.residual_quantity.strip() != self.residual_quantity
-        ):
-            raise ValueError("residual_quantity must be a canonical string")
-        for name, values in (
-            ("component_names", self.component_names),
-            ("component_units", self.component_units),
-        ):
-            if (
-                type(values) is not tuple
-                or len(values) != Q_DIMENSION
-                or any(
-                    not isinstance(value, str)
-                    or not value
-                    or value.strip() != value
-                    for value in values
-                )
-            ):
-                raise ValueError(
-                    "{} must contain six canonical strings".format(name)
-                )
-        if len(set(self.component_names)) != Q_DIMENSION:
-            raise ValueError("component_names must be unique")
+        if self.residual_quantity != BODY_WRENCH_QUANTITY:
+            raise ValueError("residual_quantity must be 'body_wrench'")
+        if self.component_names != BODY_WRENCH_COMPONENT_NAMES:
+            raise ValueError(
+                "component_names must use the canonical body-wrench axes"
+            )
+        if self.component_units != BODY_WRENCH_COMPONENT_UNITS:
+            raise ValueError(
+                "component_units must be N,N,N,N*m,N*m,N*m"
+            )
         if not isinstance(self.interval_model, QIntervalModel):
             raise TypeError("interval_model must be a QIntervalModel")
+        if self.interval_model is not QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY:
+            raise ValueError(
+                "interval_model must be continuous_spectral_density"
+            )
 
     def interval_weights(self, time_step: np.ndarray) -> np.ndarray:
         values = np.asarray(time_step, dtype=float)
@@ -69,10 +55,7 @@ class DiagonalQDefinition:
             or np.any(values <= 0.0)
         ):
             raise ValueError("time_step must contain positive finite values")
-        if self.interval_model is QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY:
-            result = values.copy()
-        else:
-            result = np.ones_like(values)
+        result = values.copy()
         result.setflags(write=False)
         return result
 
@@ -446,6 +429,9 @@ def damped_diagonal_q_update(
 
 
 __all__ = [
+    "BODY_WRENCH_COMPONENT_NAMES",
+    "BODY_WRENCH_COMPONENT_UNITS",
+    "BODY_WRENCH_QUANTITY",
     "DiagonalQDefinition",
     "DiagonalQTarget",
     "ExpectedResidualMoments",

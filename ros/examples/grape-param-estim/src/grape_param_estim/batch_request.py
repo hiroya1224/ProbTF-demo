@@ -15,8 +15,9 @@ from grape_param_estim.artifact_io import (
     request_fingerprint,
 )
 from grape_param_estim.batch.factors.dynamics_factor import (
+    BODY_WRENCH_COMPONENT_NAMES,
+    BODY_WRENCH_COMPONENT_UNITS,
     BODY_WRENCH_QUANTITY,
-    SPECIFIC_ACCELERATION_QUANTITY,
 )
 from grape_param_estim.batch.laplace_em import QIntervalModel
 from grape_param_estim.batch_artifact import file_sha256
@@ -600,16 +601,26 @@ def _validate_q(value: Any) -> None:
     )
     _choice(
         q["residual_quantity"],
-        (BODY_WRENCH_QUANTITY, SPECIFIC_ACCELERATION_QUANTITY),
+        (BODY_WRENCH_QUANTITY,),
         "request.q.residual_quantity",
     )
     _choice(
         q["interval_model"],
-        tuple(item.value for item in QIntervalModel),
+        (QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY.value,),
         "request.q.interval_model",
     )
     _strings(q["component_names"], 6, "request.q.component_names", unique=True)
     _strings(q["component_units"], 6, "request.q.component_units", unique=False)
+    if tuple(q["component_names"]) != BODY_WRENCH_COMPONENT_NAMES:
+        _error(
+            "request.q.component_names",
+            "must use the canonical body-wrench axes",
+        )
+    if tuple(q["component_units"]) != BODY_WRENCH_COMPONENT_UNITS:
+        _error(
+            "request.q.component_units",
+            "must be N,N,N,N*m,N*m,N*m",
+        )
     initial = _vector(
         q["initial_diagonal"],
         6,

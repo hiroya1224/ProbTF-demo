@@ -9,21 +9,20 @@ Q は観測 noise ではなく、隣接 latent state と rigid-body/actuator mod
 Q=\operatorname{diag}(q_x,q_y,q_z,q_{roll},q_{pitch},q_{yaw}).
 ```
 
-request は residual quantity を `body_wrench` または `specific_acceleration` として明示し、各成分の unit と interval model も同時に固定する。
-Q の 6 成分は等しいと仮定せず、force/acceleration 3 軸と torque/angular-acceleration 3 軸を個別に保持する。
+request の residual quantity は body-frame `body_wrench`、unit は force 3 軸が N、torque 3 軸が N*m、interval model は `continuous_spectral_density` に固定する。
+Q の 6 成分は等しいと仮定せず、force 3 軸と torque 3 軸を個別に保持する。
 時刻ごとの Q、bag ごとの Q、off-diagonal covariance は現在の model には含めない。
 
 ## 2. interval model
 
-`continuous_spectral_density` の場合、interval-average residual `xi_k` の covariance を次で定義する。
+interval-average residual `xi_k` の covariance を次で定義する。
 
 ```math
 \operatorname{Cov}(\xi_k)=Q/\Delta t_k.
 ```
 
 このとき whitened dynamics residual は `diag(sqrt(dt_k/q)) xi_k` になる。
-`fixed_interval_covariance` の場合は `Cov(xi_k)=Q` であり、sampling interval による rescale を行わない。
-二つの定義は数値値と unit が異なるため、artifact は `quantity/interval_model` を一つの Q definition として保存する。
+artifact は唯一の定義 `body_wrench/continuous_spectral_density` と component unit を保存する。
 
 ## 3. E-step
 

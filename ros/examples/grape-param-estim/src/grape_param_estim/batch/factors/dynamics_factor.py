@@ -12,15 +12,12 @@ from grape_param_estim.batch.factors.dynamics import (
     DynamicsResidualJacobian,
 )
 from grape_param_estim.batch.laplace_em import (
+    BODY_WRENCH_COMPONENT_NAMES,
+    BODY_WRENCH_COMPONENT_UNITS,
+    BODY_WRENCH_QUANTITY,
     DiagonalQDefinition,
-    QIntervalModel,
 )
 from grape_param_estim.batch.variables import VariableKey, VariableKind
-from grape_param_estim.parameterization import VehicleParameterChart
-
-
-BODY_WRENCH_QUANTITY = "body_wrench"
-SPECIFIC_ACCELERATION_QUANTITY = "specific_acceleration"
 
 
 _JACOBIAN_FIELDS = (
@@ -47,17 +44,12 @@ def _immutable_six(value: np.ndarray, name: str) -> np.ndarray:
     return result
 
 
-def _validate_identity(
-    definition: DiagonalQDefinition,
-    expected_quantity: str,
-) -> None:
+def _validate_identity(definition: DiagonalQDefinition) -> None:
     if not isinstance(definition, DiagonalQDefinition):
         raise TypeError("definition must be DiagonalQDefinition")
-    if definition.residual_quantity != expected_quantity:
+    if definition.residual_quantity != BODY_WRENCH_QUANTITY:
         raise ValueError(
-            "Q definition residual_quantity must be {!r}".format(
-                expected_quantity
-            )
+            "Q definition residual_quantity must be 'body_wrench'"
         )
 
 
@@ -144,7 +136,7 @@ def body_wrench_statistical_residual(
 
     if not isinstance(raw_evaluation, DynamicsResidualEvaluation):
         raise TypeError("raw_evaluation must be DynamicsResidualEvaluation")
-    _validate_identity(definition, BODY_WRENCH_QUANTITY)
+    _validate_identity(definition)
     return StatisticalDynamicsResidual(
         bag_id=bag_id,
         left_knot_index=left_knot_index,
@@ -154,59 +146,6 @@ def body_wrench_statistical_residual(
         raw_body_wrench_residual=raw_evaluation.residual,
         branch_diagnostics=raw_evaluation.branch_diagnostics,
     )
-
-
-def specific_acceleration_statistical_residual(
-    bag_id: str,
-    left_knot_index: int,
-    raw_evaluation: DynamicsResidualEvaluation,
-    definition: DiagonalQDefinition,
-    parameter_chart: VehicleParameterChart,
-    parameter_coordinates: np.ndarray,
-) -> StatisticalDynamicsResidual:
-    """Map N/Nm balance to force/mass and inverse-inertia torque defects."""
-
-    if not isinstance(raw_evaluation, DynamicsResidualEvaluation):
-        raise TypeError("raw_evaluation must be DynamicsResidualEvaluation")
-    _validate_identity(definition, SPECIFIC_ACCELERATION_QUANTITY)
-    if not isinstance(parameter_chart, VehicleParameterChart):
-        raise TypeError("parameter_chart must be VehicleParameterChart")
-    parameters, parameter_jacobian = parameter_chart.decode_with_jacobian(
-        parameter_coordinates
-    )
-    inverse_inertia = np.linalg.solve(parameters.inertia, np.eye(3))
-    transform = np.zeros((6, 6), dtype=float)
-    transform[:3, :3] = np.eye(3) / parameters.mass
-    transform[3:, 3:] = inverse_inertia
-    residual = transform @ raw_evaluation.residual
-
-    transformed = {}
-    for field, _, _ in _JACOBIAN_FIELDS:
-        transformed[field] = transform @ getattr(raw_evaluation.jacobian, field)
-    static = transformed["static_parameters"].copy()
-    static[:3, :] -= np.outer(
-        raw_evaluation.residual[:3] / (parameters.mass**2),
-        parameter_jacobian.mass,
-    )
-    angular_residual = residual[3:]
-    for coordinate in range(static.shape[1]):
-        static[3:, coordinate] -= (
-            inverse_inertia
-            @ parameter_jacobian.inertia[:, :, coordinate]
-            @ angular_residual
-        )
-    transformed["static_parameters"] = static
-    jacobian = DynamicsResidualJacobian(**transformed)
-    return StatisticalDynamicsResidual(
-        bag_id=bag_id,
-        left_knot_index=left_knot_index,
-        definition=definition,
-        residual=residual,
-        jacobian=jacobian,
-        raw_body_wrench_residual=raw_evaluation.residual,
-        branch_diagnostics=raw_evaluation.branch_diagnostics,
-    )
-
 
 def _positive_q(value: np.ndarray) -> np.ndarray:
     result = np.asarray(value, dtype=float)
@@ -224,7 +163,7 @@ def dynamics_square_root_information(
     time_step: float,
     definition: DiagonalQDefinition,
 ) -> np.ndarray:
-    """Return diagonal whitening for the definition's interval model."""
+    """Return ``diag(sqrt(dt / Q))`` for body-wrench spectral density."""
 
     if not isinstance(definition, DiagonalQDefinition):
         raise TypeError("definition must be DiagonalQDefinition")
@@ -276,12 +215,9 @@ def diagonal_q_log_normalization(
     selected_q = _positive_q(q)
     time_steps = np.asarray(time_step, dtype=float)
     weights = definition.interval_weights(time_steps)
-    if definition.interval_model is QIntervalModel.CONTINUOUS_SPECTRAL_DENSITY:
-        log_determinant = np.sum(
-            np.log(selected_q)[None, :] - np.log(weights)[:, None]
-        )
-    else:
-        log_determinant = time_steps.size * float(np.sum(np.log(selected_q)))
+    log_determinant = np.sum(
+        np.log(selected_q)[None, :] - np.log(weights)[:, None]
+    )
     return float(
         0.5
         * (
@@ -292,12 +228,12 @@ def diagonal_q_log_normalization(
 
 
 __all__ = [
+    "BODY_WRENCH_COMPONENT_NAMES",
+    "BODY_WRENCH_COMPONENT_UNITS",
     "BODY_WRENCH_QUANTITY",
-    "SPECIFIC_ACCELERATION_QUANTITY",
     "StatisticalDynamicsResidual",
     "body_wrench_statistical_residual",
     "diagonal_q_log_normalization",
     "dynamics_square_root_information",
     "evaluate_dynamics_factor",
-    "specific_acceleration_statistical_residual",
 ]

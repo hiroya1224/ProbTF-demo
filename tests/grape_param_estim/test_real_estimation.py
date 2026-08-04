@@ -105,6 +105,12 @@ class RealEstimationTests(unittest.TestCase):
             self.assertEqual(result.initializations[0].bag_id, "flight-a")
             self.assertEqual(progress[0][0], "preparing_trajectory")
             self.assertEqual(result.actuator_parameters.delay, 0.0)
+            self.assertEqual(
+                result.actuator_parameters.thrust_time_constant, 0.04
+            )
+            self.assertEqual(
+                result.actuator_parameters.gimbal_time_constant, 0.03
+            )
 
     def test_production_scaling_covers_every_batch_variable_kind(self):
         scaling = production_state_scaling()

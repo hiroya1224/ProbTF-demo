@@ -375,8 +375,41 @@ def prepare_real_estimation_inputs(
         parameter_chart=VehicleParameterChart(VehicleParameters.nominal()),
         geometry=GrapeGeometry.grape(),
         # Constant command transport delay is an outer parameter.  The
-        # actuator model's legacy delay field remains exactly zero.
-        actuator_parameters=ActuatorParameters(),
+        # actuator model's legacy delay field remains exactly zero, while all
+        # response and saturation parameters are explicit request inputs.
+        actuator_parameters=ActuatorParameters(
+            thrust_time_constant=float(
+                request.payload["actuator_model"][
+                    "thrust_time_constant_seconds"
+                ]
+            ),
+            gimbal_time_constant=float(
+                request.payload["actuator_model"][
+                    "gimbal_time_constant_seconds"
+                ]
+            ),
+            delay=0.0,
+            minimum_thrust=float(
+                request.payload["actuator_model"][
+                    "minimum_thrust_newtons"
+                ]
+            ),
+            maximum_thrust=float(
+                request.payload["actuator_model"][
+                    "maximum_thrust_newtons"
+                ]
+            ),
+            maximum_gimbal_angle=float(
+                request.payload["actuator_model"][
+                    "maximum_gimbal_angle_radians"
+                ]
+            ),
+            maximum_gimbal_rate=float(
+                request.payload["actuator_model"][
+                    "maximum_gimbal_rate_radians_per_second"
+                ]
+            ),
+        ),
         scaling=production_state_scaling(),
         loading_seconds=time.perf_counter() - started,
     )

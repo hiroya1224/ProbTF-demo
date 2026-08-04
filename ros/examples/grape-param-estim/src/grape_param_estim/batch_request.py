@@ -864,6 +864,47 @@ def _validate_mcmc(value: Any, run_mode: str) -> None:
         _error("request.mcmc_settings.enabled", "must be false for estimate_only")
 
 
+def _validate_actuator_model(value: Any) -> None:
+    location = "request.actuator_model"
+    model = _mapping(value, location)
+    expected = (
+        "source",
+        "thrust_time_constant_seconds",
+        "gimbal_time_constant_seconds",
+        "minimum_thrust_newtons",
+        "maximum_thrust_newtons",
+        "maximum_gimbal_angle_radians",
+        "maximum_gimbal_rate_radians_per_second",
+    )
+    _keys(model, expected, location)
+    _string(model["source"], location + ".source")
+    for name in (
+        "thrust_time_constant_seconds",
+        "gimbal_time_constant_seconds",
+        "maximum_gimbal_angle_radians",
+        "maximum_gimbal_rate_radians_per_second",
+    ):
+        _number(
+            model[name],
+            location + "." + name,
+            minimum=0.0,
+            strictly_greater=True,
+        )
+    minimum = _number(
+        model["minimum_thrust_newtons"],
+        location + ".minimum_thrust_newtons",
+        minimum=0.0,
+    )
+    maximum = _number(
+        model["maximum_thrust_newtons"],
+        location + ".maximum_thrust_newtons",
+        minimum=0.0,
+        strictly_greater=True,
+    )
+    if maximum <= minimum:
+        _error(location, "maximum thrust must exceed minimum thrust")
+
+
 def _validate_modes(value: Any, bag_ids: Tuple[str, ...]) -> None:
     if not isinstance(value, list) or not value:
         _error("request.mode_hypotheses", "must be a non-empty list")
@@ -932,6 +973,7 @@ def validate_batch_estimation_request(
         "q",
         "parameter_prior",
         "delay",
+        "actuator_model",
         "knot_policy",
         "interpolation_policy",
         "controller_snapshot_policy",
@@ -956,6 +998,7 @@ def validate_batch_estimation_request(
     _validate_q(request["q"])
     _validate_parameter_prior(request["parameter_prior"])
     _validate_delay(request["delay"])
+    _validate_actuator_model(request["actuator_model"])
     _validate_knot_and_interpolation(
         request["knot_policy"], request["interpolation_policy"]
     )

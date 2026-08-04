@@ -407,6 +407,15 @@ def _request_payload(root, bag_specs):
             "refinement_tolerance_seconds": 1.0e-5,
             "maximum_refinement_evaluations": 12,
         },
+        "actuator_model": {
+            "source": "test actuator calibration",
+            "thrust_time_constant_seconds": 0.04,
+            "gimbal_time_constant_seconds": 0.03,
+            "minimum_thrust_newtons": 1.5,
+            "maximum_thrust_newtons": 27.6145,
+            "maximum_gimbal_angle_radians": 3.14,
+            "maximum_gimbal_rate_radians_per_second": 6.0,
+        },
         "knot_policy": {
             "period_seconds": 0.1,
             "origin": "interval_start",

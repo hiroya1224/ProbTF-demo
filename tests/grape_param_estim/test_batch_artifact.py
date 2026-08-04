@@ -410,6 +410,15 @@ class BatchArtifactTests(unittest.TestCase):
             },
             "parameter_prior": {"kind": "gaussian", "dimension": 18},
             "delay_prior": {"kind": "uniform", "bounds_seconds": [0.0, 0.02]},
+            "actuator_model": {
+                "source": "test actuator calibration",
+                "thrust_time_constant_seconds": 0.04,
+                "gimbal_time_constant_seconds": 0.03,
+                "minimum_thrust_newtons": 1.5,
+                "maximum_thrust_newtons": 27.6145,
+                "maximum_gimbal_angle_radians": 3.14,
+                "maximum_gimbal_rate_radians_per_second": 6.0,
+            },
             "q_definition": {
                 "definition": "explicit synthetic six-axis discrepancy spectrum",
                 "components": ["x", "y", "z", "roll", "pitch", "yaw"],

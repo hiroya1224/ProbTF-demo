@@ -356,6 +356,26 @@ def _request_bags(request: BatchEstimationRequest) -> Mapping[str, Mapping[str, 
     }
 
 
+def _unit_quaternion_series(value: object, name: str) -> np.ndarray:
+    """Normalize finite xyzw rows and choose a continuous double-cover sign."""
+
+    selected = np.asarray(value, dtype=float)
+    if (
+        selected.ndim != 2
+        or selected.shape[1] != 4
+        or np.any(~np.isfinite(selected))
+    ):
+        raise ValueError("{} must have finite shape (N, 4)".format(name))
+    norms = np.linalg.norm(selected, axis=1)
+    if np.any(norms <= np.finfo(float).tiny):
+        raise ValueError("{} contains a zero quaternion".format(name))
+    result = selected / norms[:, None]
+    for index in range(1, result.shape[0]):
+        if float(np.dot(result[index - 1], result[index])) < 0.0:
+            result[index] *= -1.0
+    return result
+
+
 def _by_bag_id(values: Sequence[Any], name: str) -> Mapping[str, Any]:
     result = {}
     for value in values:
@@ -381,6 +401,10 @@ def _state_arrays(state: BatchState, bag_id: str, knot_count: int) -> Dict[str, 
         if array.shape != (knot_count, width):
             raise ValueError(
                 "{} {} state has the wrong shape".format(bag_id, output_name)
+            )
+        if kind is VariableKind.ORIENTATION_TANGENT:
+            array = _unit_quaternion_series(
+                array, "{} {}".format(bag_id, output_name)
             )
         result[output_name] = array
     return result
@@ -1356,8 +1380,8 @@ def _bag_payload(
         "pose_time": np.asarray(pose.times, dtype=float),
         "pose_record_time": np.asarray(pose.record_times, dtype=float),
         "pose_position": np.asarray(pose.positions, dtype=float),
-        "pose_orientation_xyzw": np.asarray(
-            pose.orientations_xyzw, dtype=float
+        "pose_orientation_xyzw": _unit_quaternion_series(
+            pose.orientations_xyzw, "{} observed pose".format(bag_id)
         ),
         "pose_valid": pose_valid,
         "pose_covariance": pose_covariance,
@@ -1855,6 +1879,7 @@ def _manifest_metadata(
         "observation_factors": observation_factors,
         "parameter_prior": _plain(payload["parameter_prior"]),
         "delay_prior": _plain(payload["delay"]),
+        "actuator_model": _plain(payload["actuator_model"]),
         "q_definition": {
             "definition": "{}/{}".format(
                 definition.residual_quantity, definition.interval_model.value

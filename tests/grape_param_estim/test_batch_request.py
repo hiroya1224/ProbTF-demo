@@ -105,6 +105,15 @@ class BatchRequestTests(unittest.TestCase):
                 "refinement_tolerance_seconds": 1.0e-5,
                 "maximum_refinement_evaluations": 32,
             },
+            "actuator_model": {
+                "source": "test actuator calibration",
+                "thrust_time_constant_seconds": 0.04,
+                "gimbal_time_constant_seconds": 0.03,
+                "minimum_thrust_newtons": 1.5,
+                "maximum_thrust_newtons": 27.6145,
+                "maximum_gimbal_angle_radians": 3.14,
+                "maximum_gimbal_rate_radians_per_second": 6.0,
+            },
             "knot_policy": {
                 "period_seconds": 0.01,
                 "origin": "interval_start",
@@ -197,6 +206,20 @@ class BatchRequestTests(unittest.TestCase):
         request = copy.deepcopy(self.request)
         request["q"]["residual_quantity"] = "unspecified"
         with self.assertRaisesRegex(ArtifactValidationError, "must be one of"):
+            validate_batch_estimation_request(request)
+
+    def test_actuator_model_is_explicit_positive_and_has_provenance(self):
+        request = copy.deepcopy(self.request)
+        del request["actuator_model"]
+        with self.assertRaisesRegex(ArtifactValidationError, "actuator_model"):
+            validate_batch_estimation_request(request)
+        request = copy.deepcopy(self.request)
+        request["actuator_model"]["thrust_time_constant_seconds"] = 0.0
+        with self.assertRaisesRegex(ArtifactValidationError, "must be >"):
+            validate_batch_estimation_request(request)
+        request = copy.deepcopy(self.request)
+        request["actuator_model"]["source"] = ""
+        with self.assertRaisesRegex(ArtifactValidationError, "canonical"):
             validate_batch_estimation_request(request)
 
     def test_unknown_and_old_stage_request_schemas_are_rejected(self):

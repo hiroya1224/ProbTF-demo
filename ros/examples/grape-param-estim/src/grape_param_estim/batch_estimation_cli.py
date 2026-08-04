@@ -315,6 +315,7 @@ def configuration_fingerprint(request: BatchEstimationRequest) -> str:
             "q",
             "parameter_prior",
             "delay",
+            "actuator_model",
             "knot_policy",
             "interpolation_policy",
             "controller_snapshot_policy",

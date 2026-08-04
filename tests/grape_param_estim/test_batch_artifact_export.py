@@ -30,6 +30,7 @@ from grape_param_estim.batch_artifact_export import (
     DelayLocalGeometry,
     RunPerformanceMeasurements,
     SelectedConditionalTrajectory,
+    _unit_quaternion_series,
     export_batch_estimation_artifact_payload,
 )
 from grape_param_estim.batch_request import validate_batch_estimation_request
@@ -45,6 +46,20 @@ from tests.grape_param_estim.test_batch_preparation import (
 
 
 class BatchArtifactExportTests(unittest.TestCase):
+    def test_quaternion_export_normalizes_and_unwraps_double_cover(self):
+        values = np.asarray(
+            (
+                (0.0, 0.0, 0.0, 1.0000002),
+                (0.0, 0.0, 0.01, -0.99995),
+                (0.0, 0.0, 0.02, 0.9998),
+            )
+        )
+        result = _unit_quaternion_series(values, "test")
+        np.testing.assert_allclose(np.linalg.norm(result, axis=1), 1.0)
+        self.assertTrue(
+            np.all(np.sum(result[:-1] * result[1:], axis=1) >= 0.0)
+        )
+
     def setUp(self):
         self.helper = BatchPreparationTests()
         self.helper.setUp()

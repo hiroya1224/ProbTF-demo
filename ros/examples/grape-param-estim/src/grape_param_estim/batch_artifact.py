@@ -57,6 +57,7 @@ _MANIFEST_KEYS = (
     "observation_factors",
     "parameter_prior",
     "delay_prior",
+    "actuator_model",
     "q_definition",
     "knot_policy",
     "interpolation_policy",
@@ -522,6 +523,7 @@ def _validate_manifest(
     for key in (
         "parameter_prior",
         "delay_prior",
+        "actuator_model",
         "knot_policy",
         "interpolation_policy",
         "solver_settings",
@@ -533,6 +535,61 @@ def _validate_manifest(
             raise ArtifactValidationError(
                 "manifest.{} must be explicit and non-empty".format(key)
             )
+
+    actuator_model = _required_mapping(manifest, "actuator_model", "manifest")
+    actuator_keys = (
+        "source",
+        "thrust_time_constant_seconds",
+        "gimbal_time_constant_seconds",
+        "minimum_thrust_newtons",
+        "maximum_thrust_newtons",
+        "maximum_gimbal_angle_radians",
+        "maximum_gimbal_rate_radians_per_second",
+    )
+    _require_keys(actuator_model, actuator_keys, "manifest.actuator_model")
+    _reject_unknown_keys(
+        actuator_model, actuator_keys, "manifest.actuator_model"
+    )
+    _required_string(actuator_model, "source", "manifest.actuator_model")
+    actuator_values = {}
+    for key in actuator_keys[1:]:
+        value = actuator_model[key]
+        if isinstance(value, bool):
+            raise ArtifactValidationError(
+                "manifest.actuator_model.{} must be numeric".format(key)
+            )
+        try:
+            selected = float(value)
+        except (TypeError, ValueError) as error:
+            raise ArtifactValidationError(
+                "manifest.actuator_model.{} must be numeric".format(key)
+            ) from error
+        if not np.isfinite(selected):
+            raise ArtifactValidationError(
+                "manifest.actuator_model.{} must be finite".format(key)
+            )
+        actuator_values[key] = selected
+    for key in (
+        "thrust_time_constant_seconds",
+        "gimbal_time_constant_seconds",
+        "maximum_gimbal_angle_radians",
+        "maximum_gimbal_rate_radians_per_second",
+    ):
+        if actuator_values[key] <= 0.0:
+            raise ArtifactValidationError(
+                "manifest.actuator_model.{} must be positive".format(key)
+            )
+    if actuator_values["minimum_thrust_newtons"] < 0.0:
+        raise ArtifactValidationError(
+            "manifest.actuator_model.minimum_thrust_newtons cannot be negative"
+        )
+    if (
+        actuator_values["maximum_thrust_newtons"]
+        <= actuator_values["minimum_thrust_newtons"]
+    ):
+        raise ArtifactValidationError(
+            "manifest.actuator_model thrust bounds are inconsistent"
+        )
 
     q_definition = _required_mapping(manifest, "q_definition", "manifest")
     _require_keys(

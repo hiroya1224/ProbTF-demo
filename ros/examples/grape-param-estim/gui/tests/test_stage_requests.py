@@ -3,12 +3,17 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from grape_param_estim.posterior_sampling_request import (
+    validate_posterior_sampling_request,
+)
 from grape_param_estim_gui import stage_requests
 from grape_param_estim_gui.stage_requests import (
     BATCH_ESTIMATION_REQUEST_SCHEMA,
     BATCH_ESTIMATION_STAGE_ID,
     batch_estimation_settings,
     build_batch_estimation_request,
+    build_posterior_sampling_request,
+    posterior_sampling_request_fingerprint,
     stage_bag_requests,
     workflow_mode_run_mode,
 )
@@ -153,6 +158,63 @@ class StageRequestTests(unittest.TestCase):
             },
         )
         self.assertEqual(canonical_fingerprint(first), canonical_fingerprint(second))
+
+    def test_posterior_append_request_passes_strict_backend_validator(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            estimation_request = root / "estimate.request.json"
+            estimation_request.write_text("{}\n", encoding="utf-8")
+            manifest = {
+                "status": "complete",
+                "run_id": "estimate-a",
+                "request_fingerprint": "sha256:" + "1" * 64,
+                "configuration_fingerprint": "sha256:" + "2" * 64,
+                "controller_snapshot_fingerprint": "sha256:" + "3" * 64,
+                "estimator_revision": "revision-a",
+                "selected_bag_ids": ["bag-a"],
+                "selected_intervals": {"bag-a": [18.0, 24.0]},
+                "selected_bag_sha256": {
+                    "bag-a": "sha256:" + "4" * 64
+                },
+                "mcmc_settings": {"enabled": False},
+            }
+            settings = {
+                "enabled": True,
+                "chain_count": 4,
+                "warmup_steps": 100,
+                "retained_draws": 200,
+                "thinning": 1,
+                "random_seed": 42,
+                "local_scale": 0.5,
+                "exact_ridge_scale": 0.25,
+                "near_ridge_scale": 0.25,
+                "identified_scale": 0.1,
+                "delay_scale_seconds": 0.002,
+                "near_relative_threshold": 1.0e-6,
+                "rhat_threshold": 1.01,
+                "minimum_effective_sample_size": 100.0,
+            }
+            request = build_posterior_sampling_request(
+                sampling_id="posterior-estimate-a",
+                resume=False,
+                estimation_run_directory=root / "estimation_run",
+                estimation_request_path=estimation_request,
+                estimation_manifest=manifest,
+                mcmc_settings=settings,
+            )
+            parsed = validate_posterior_sampling_request(request)
+            self.assertEqual(parsed.payload["upstream"]["run_id"], "estimate-a")
+            self.assertNotIn("enabled", parsed.payload["mcmc_settings"])
+            resumed = dict(request)
+            resumed["resume"] = True
+            self.assertEqual(
+                posterior_sampling_request_fingerprint(request),
+                posterior_sampling_request_fingerprint(resumed),
+            )
+            self.assertEqual(
+                parsed.fingerprint,
+                posterior_sampling_request_fingerprint(request),
+            )
 
     def test_old_two_stage_api_is_absent(self):
         self.assertEqual(BATCH_ESTIMATION_STAGE_ID, "batch_estimation")

@@ -50,6 +50,8 @@ from .stage_requests import (
     BATCH_ESTIMATION_STAGE_ID,
     batch_estimation_settings,
     build_batch_estimation_request,
+    build_posterior_sampling_request,
+    posterior_sampling_request_fingerprint,
     stage_bag_requests,
     workflow_mode_run_mode,
 )
@@ -528,6 +530,18 @@ class MainWindow(QMainWindow):
         try:
             self._workflow_state = self._workflow_state.with_mode(mode)
             self._save_workflow_state()
+            if mode is WorkflowMode.ALL:
+                sampling = self._derive_posterior_sampling_inputs(selected)
+                if sampling is not None:
+                    if bool(sampling["already_complete"]):
+                        self._adopt_completed_posterior_sampling(sampling)
+                        self.statusBar().showMessage(
+                            "Posterior sampling is already complete for the "
+                            "current estimate-only run."
+                        )
+                    else:
+                        self._launch_posterior_sampling(sampling)
+                    return
             self._launch_batch_estimation(
                 self._derive_workflow_inputs(selected, mode)
             )
@@ -719,6 +733,251 @@ class MainWindow(QMainWindow):
             }
         )
 
+    def _derive_posterior_sampling_inputs(
+        self, selected: tuple[BagRecord, ...]
+    ) -> dict[str, object] | None:
+        """Locate the exact current estimate-only completion, if one exists."""
+
+        state = self._workflow_state
+        if state is None:
+            raise WorkflowIoError("workflow state is unavailable")
+        estimate_inputs = self._derive_workflow_inputs(
+            selected, WorkflowMode.STEP
+        )
+        if estimate_inputs["stage_status"] is not StageStatus.COMPLETE:
+            return None
+        completion = state.completion_ref(
+            BATCH_ESTIMATION_STAGE_ID,
+            str(estimate_inputs["stage_input"]),
+        )
+        if completion is None:
+            raise WorkflowError(
+                "complete estimate-only workflow has no completion reference"
+            )
+        attempt = state.attempt(completion.attempt_id)
+        run = self.store.estimation_run
+        if run is None:
+            raise WorkflowError(
+                "the complete estimate-only workflow artifact is not loaded"
+            )
+        expected_output = (
+            self.store.project_path / attempt.output_path
+        ).resolve()
+        if run.root.resolve() != expected_output:
+            raise WorkflowError(
+                "loaded estimation run does not match the complete workflow attempt"
+            )
+        if run.request_fingerprint != attempt.request_fingerprint:
+            raise WorkflowError(
+                "loaded estimation request fingerprint does not match workflow"
+            )
+        mcmc_settings = run.manifest.get("mcmc_settings")
+        already_complete = run.mcmc is not None
+        if already_complete:
+            if (
+                not isinstance(mcmc_settings, dict)
+                or mcmc_settings.get("enabled") is not True
+                or not isinstance(
+                    mcmc_settings.get("sampling_request_fingerprint"), str
+                )
+            ):
+                raise WorkflowError(
+                    "sampled estimation artifact lacks its sampling identity"
+                )
+        elif mcmc_settings != {"enabled": False}:
+            raise WorkflowError(
+                "estimate-only artifact has inconsistent MCMC settings"
+            )
+        estimation_request = (
+            self.store.project_path / attempt.request_path
+        ).resolve()
+        if not estimation_request.is_file():
+            raise WorkflowError(
+                "the immutable estimate-only request file is missing"
+            )
+        return {
+            "selected": selected,
+            "attempt_id": attempt.attempt_id,
+            "attempt_completion_fingerprint": (
+                attempt.artifact.completion_fingerprint
+                if attempt.artifact is not None
+                else ""
+            ),
+            "estimation_request_path": estimation_request,
+            "output": expected_output,
+            "run": run,
+            "already_complete": already_complete,
+            "root_fingerprint": estimate_inputs["root_fingerprint"],
+        }
+
+    @staticmethod
+    def _sampling_resume_request(
+        request: dict[str, object], output: Path
+    ) -> dict[str, object]:
+        """Bind resume to the checkpoint's exact sampling context."""
+
+        checkpoint_manifest = (
+            output.parent
+            / (".{}-batch-checkpoint".format(output.name))
+            / "manifest.json"
+        )
+        try:
+            value = json.loads(checkpoint_manifest.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise WorkflowError(
+                "cannot read estimate-only checkpoint: {}".format(error)
+            ) from error
+        if not isinstance(value, dict) or value.get("schema") != (
+            "grape-param-estim/batch-estimation-checkpoint/v1"
+        ):
+            raise WorkflowError("estimate-only checkpoint schema is invalid")
+        upstream = request["upstream"]
+        if not isinstance(upstream, dict):
+            raise WorkflowError("posterior sampling upstream is invalid")
+        expected_checkpoint = {
+            "run_id": upstream["run_id"],
+            "request_fingerprint": upstream["request_fingerprint"],
+            "configuration_fingerprint": upstream[
+                "configuration_fingerprint"
+            ],
+            "controller_snapshot_fingerprint": upstream[
+                "controller_snapshot_fingerprint"
+            ],
+            "estimator_revision": upstream["estimator_revision"],
+            "output_directory": str(output.resolve()),
+        }
+        for key, expected in expected_checkpoint.items():
+            if value.get(key) != expected:
+                raise WorkflowError(
+                    "estimate-only checkpoint {} mismatch".format(key)
+                )
+        context = value.get("sampling_context")
+        if context is None:
+            if value.get("chain_checkpoints"):
+                raise WorkflowError(
+                    "checkpoint has MCMC chains without a sampling context"
+                )
+            return request
+        if not isinstance(context, dict):
+            raise WorkflowError("checkpoint sampling context is invalid")
+        fingerprint = posterior_sampling_request_fingerprint(request)
+        expected_settings = {
+            "enabled": True,
+            **request["mcmc_settings"],
+        }
+        if (
+            context.get("sampling_request_fingerprint") != fingerprint
+            or context.get("mcmc_settings") != expected_settings
+            or not isinstance(context.get("sampler_revision"), str)
+            or not context.get("sampler_revision")
+        ):
+            raise WorkflowError(
+                "checkpoint belongs to a different posterior sampling request"
+            )
+        resumed = dict(request)
+        resumed["resume"] = True
+        if posterior_sampling_request_fingerprint(resumed) != fingerprint:
+            raise AssertionError("resume changed the posterior sampling identity")
+        return resumed
+
+    def _launch_posterior_sampling(self, inputs: dict[str, object]) -> None:
+        """Append resumable MCMC without re-running MAP or Laplace-EM."""
+
+        run = inputs["run"]
+        output = Path(inputs["output"])
+        attempt_id = str(inputs["attempt_id"])
+        request_path = output.parent / "posterior_sampling.request.json"
+        request = self._posterior_sampling_request(inputs)
+        request = self._sampling_resume_request(request, output)
+        self._write_request(request_path, request)
+        sampling_fingerprint = posterior_sampling_request_fingerprint(request)
+        if not self._start_worker(
+            "posterior_sampling",
+            str(run.manifest["run_id"]),
+            request_path,
+            output,
+            self.package_root
+            / "scripts"
+            / "grape_sample_parameter_posterior.py",
+        ):
+            self._restore_transient_record_statuses()
+            return
+        for record in inputs["selected"]:
+            record.status = "queued"
+        self.store.bagsChanged.emit()
+        self._operation_context.update(
+            {
+                "attempt_id": attempt_id,
+                "attempt_completion_fingerprint": inputs[
+                    "attempt_completion_fingerprint"
+                ],
+                "project_request_fingerprint": inputs[
+                    "root_fingerprint"
+                ],
+                "sampling_request_fingerprint": sampling_fingerprint,
+            }
+        )
+
+    def _posterior_sampling_request(
+        self, inputs: dict[str, object]
+    ) -> dict[str, object]:
+        """Build one stable sampling identity before fresh or resumed launch."""
+
+        run = inputs["run"]
+        upstream_manifest = dict(run.manifest)
+        # A successfully appended artifact records audited MCMC settings, but
+        # its immutable upstream identity remains the estimate-only request.
+        upstream_manifest["mcmc_settings"] = {"enabled": False}
+        settings = json.loads(
+            json.dumps(self.store.manifest["estimator_settings"])
+        )["mcmc_settings"]
+        settings["enabled"] = True
+        return build_posterior_sampling_request(
+            sampling_id="posterior-{}".format(inputs["attempt_id"]),
+            resume=False,
+            estimation_run_directory=inputs["output"],
+            estimation_request_path=inputs["estimation_request_path"],
+            estimation_manifest=upstream_manifest,
+            mcmc_settings=settings,
+        )
+
+    def _adopt_completed_posterior_sampling(
+        self, inputs: dict[str, object]
+    ) -> None:
+        """Repair/reconfirm the workflow reference after an idempotent append."""
+
+        state = self._workflow_state
+        if state is None:
+            raise WorkflowIoError("workflow state is unavailable")
+        run = inputs["run"]
+        expected_sampling = posterior_sampling_request_fingerprint(
+            self._posterior_sampling_request(inputs)
+        )
+        if run.manifest["mcmc_settings"].get(
+            "sampling_request_fingerprint"
+        ) != expected_sampling:
+            raise WorkflowError(
+                "completed samples belong to different MCMC settings"
+            )
+        attempt = state.attempt(str(inputs["attempt_id"]))
+        reference = artifact_ref_from_validated_bundle(
+            project_root=self.store.project_path,
+            artifact_root=inputs["output"],
+            manifest=run.manifest,
+            expected_stage_id=BATCH_ESTIMATION_STAGE_ID,
+            expected_stage_input=attempt.stage_input_fingerprint,
+            expected_request_fingerprint=attempt.request_fingerprint,
+        )
+        if attempt.artifact != reference:
+            self._workflow_state = state.replace_completed_artifact(
+                attempt.attempt_id,
+                reference,
+                expected_completion_fingerprint=str(
+                    inputs["attempt_completion_fingerprint"]
+                ),
+            )
+            self._save_workflow_state()
+
     def _save_workflow_state(self) -> None:
         if self._workflow_state is None:
             raise WorkflowIoError("workflow state is unavailable")
@@ -750,6 +1009,40 @@ class MainWindow(QMainWindow):
         )
         self._workflow_state = state.mark_complete(
             attempt_id, reference, finished_at=utc_now()
+        )
+        self._save_workflow_state()
+
+    def _replace_completed_workflow_artifact(
+        self, artifact_root: Path, manifest: object
+    ) -> None:
+        """Rebind the estimate-only attempt after atomic MCMC append."""
+
+        state = self._workflow_state
+        attempt_id = self._operation_context.get("attempt_id")
+        prior_completion = self._operation_context.get(
+            "attempt_completion_fingerprint"
+        )
+        if (
+            state is None
+            or not isinstance(attempt_id, str)
+            or not isinstance(prior_completion, str)
+        ):
+            raise WorkflowIoError(
+                "completed estimate-only workflow attempt is unavailable"
+            )
+        attempt = state.attempt(attempt_id)
+        reference = artifact_ref_from_validated_bundle(
+            project_root=self.store.project_path,
+            artifact_root=artifact_root,
+            manifest=manifest,
+            expected_stage_id=BATCH_ESTIMATION_STAGE_ID,
+            expected_stage_input=attempt.stage_input_fingerprint,
+            expected_request_fingerprint=attempt.request_fingerprint,
+        )
+        self._workflow_state = state.replace_completed_artifact(
+            attempt_id,
+            reference,
+            expected_completion_fingerprint=prior_completion,
         )
         self._save_workflow_state()
 
@@ -956,6 +1249,33 @@ class MainWindow(QMainWindow):
                 self._update_freshness(self.store.results_stale)
                 self.tabs.setCurrentWidget(self.master_view)
                 self.statusBar().showMessage("Sparse batch estimation completed.")
+            elif self._operation == "posterior_sampling":
+                run = load_batch_estimation_run(output)
+                mcmc_settings = run.manifest.get("mcmc_settings")
+                if run.mcmc is None or not isinstance(mcmc_settings, dict):
+                    raise ProjectIoError(
+                        "posterior sampling did not publish MCMC samples"
+                    )
+                if mcmc_settings.get("sampling_request_fingerprint") != (
+                    self._operation_context.get(
+                        "sampling_request_fingerprint"
+                    )
+                ):
+                    raise ProjectIoError(
+                        "posterior sampling fingerprint does not match its request"
+                    )
+                self._replace_completed_workflow_artifact(
+                    output, run.manifest
+                )
+                self.store.manifest["run_request_fingerprint"] = (
+                    self._operation_context["project_request_fingerprint"]
+                )
+                self.store.apply_estimation(run)
+                self._update_freshness(self.store.results_stale)
+                self.tabs.setCurrentWidget(self.master_view)
+                self.statusBar().showMessage(
+                    "Posterior sampling appended without re-running estimation."
+                )
             elif self._operation == "pid_evaluation":
                 evaluation = load_pid_evaluation(output)
                 if self.store.estimation_run is None:
@@ -1052,7 +1372,12 @@ class MainWindow(QMainWindow):
         ) as error:
             workflow_error = error
         self._restore_transient_record_statuses()
-        message = "Worker cancelled; incomplete artifacts were not loaded."
+        message = (
+            "Posterior sampling cancelled; the estimate-only result remains "
+            "loaded and its exact checkpoint can be resumed."
+            if self._operation == "posterior_sampling"
+            else "Worker cancelled; incomplete artifacts were not loaded."
+        )
         if workflow_error is not None:
             message = "{} Workflow state error: {}".format(
                 message, workflow_error

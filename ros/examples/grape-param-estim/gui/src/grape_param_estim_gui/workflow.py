@@ -1073,6 +1073,52 @@ class WorkflowState:
             )
         )
 
+    def replace_completed_artifact(
+        self,
+        attempt_id: str,
+        artifact: ArtifactRef,
+        *,
+        expected_completion_fingerprint: str,
+    ) -> "WorkflowState":
+        """Atomically rebind one complete attempt to upgraded bundle content.
+
+        Posterior sampling appends to an estimate-only bundle without changing
+        the estimation request or stage input.  The expected fingerprint is a
+        compare-and-swap guard against silently replacing a different archived
+        result.  A referenced upstream attempt cannot be changed in place.
+        """
+
+        attempt = self.attempt(attempt_id)
+        expected = _fingerprint(
+            expected_completion_fingerprint,
+            "expected_completion_fingerprint",
+        )
+        if attempt.status != AttemptStatus.COMPLETE or attempt.artifact is None:
+            raise WorkflowTransitionError(
+                "only a complete attempt artifact can be replaced"
+            )
+        if attempt.artifact.completion_fingerprint != expected:
+            raise WorkflowTransitionError(
+                "completed artifact changed since posterior sampling started"
+            )
+        if not isinstance(artifact, ArtifactRef):
+            raise WorkflowTransitionError("artifact must be an ArtifactRef")
+        if artifact.relative_path != attempt.output_path:
+            raise WorkflowTransitionError(
+                "replacement artifact must reuse the completed output path"
+            )
+        if any(
+            parent.attempt_id == attempt.attempt_id
+            for stage in self.stages
+            for child in stage.attempts
+            for parent in child.upstream
+        ):
+            raise WorkflowTransitionError(
+                "a completed artifact referenced by a downstream attempt "
+                "cannot be replaced"
+            )
+        return self._replace_attempt(replace(attempt, artifact=artifact))
+
     def mark_failed(
         self, attempt_id: str, reason: str, *, finished_at: str
     ) -> "WorkflowState":

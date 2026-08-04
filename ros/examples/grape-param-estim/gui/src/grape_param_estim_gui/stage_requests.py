@@ -14,6 +14,24 @@ BATCH_ESTIMATION_REQUEST_SCHEMA = (
 )
 BATCH_ESTIMATION_STAGE_ID = "batch_estimation"
 RUN_MODES = ("estimate_only", "estimate_and_sample")
+POSTERIOR_SAMPLING_REQUEST_SCHEMA = (
+    "grape-param-estim/posterior-sampling-request/v1"
+)
+POSTERIOR_MCMC_SETTING_KEYS = (
+    "chain_count",
+    "warmup_steps",
+    "retained_draws",
+    "thinning",
+    "random_seed",
+    "local_scale",
+    "exact_ridge_scale",
+    "near_ridge_scale",
+    "identified_scale",
+    "delay_scale_seconds",
+    "near_relative_threshold",
+    "rhat_threshold",
+    "minimum_effective_sample_size",
+)
 
 _SETTING_KEYS = {
     "q",
@@ -191,12 +209,118 @@ def build_batch_estimation_request(
     return request
 
 
+def build_posterior_sampling_request(
+    *,
+    sampling_id: str,
+    resume: bool,
+    estimation_run_directory: str | Path,
+    estimation_request_path: str | Path,
+    estimation_manifest: Mapping[str, Any],
+    mcmc_settings: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build the strict request that appends MCMC to estimate-only output.
+
+    The upstream identity comes only from the already validated estimation
+    manifest.  The GUI neither recomputes nor weakens those bindings.
+    """
+
+    if not isinstance(sampling_id, str) or not sampling_id.strip():
+        raise ValueError("sampling_id must be canonical non-empty text")
+    if sampling_id.strip() != sampling_id:
+        raise ValueError("sampling_id must be canonical non-empty text")
+    if not isinstance(resume, bool):
+        raise ValueError("resume must be boolean")
+    run_directory = Path(estimation_run_directory)
+    request_path = Path(estimation_request_path)
+    for value, label in (
+        (run_directory, "estimation_run_directory"),
+        (request_path, "estimation_request_path"),
+    ):
+        if not value.is_absolute() or ".." in value.parts:
+            raise ValueError(
+                "{} must be an absolute path without '..'".format(label)
+            )
+    if not request_path.is_file():
+        raise ValueError("estimation_request_path must name an existing file")
+    if not isinstance(estimation_manifest, Mapping):
+        raise ValueError("estimation_manifest must be an object")
+    if estimation_manifest.get("status") != "complete":
+        raise ValueError("estimation manifest must be complete")
+    if estimation_manifest.get("mcmc_settings") != {"enabled": False}:
+        raise ValueError("estimation manifest must be estimate-only")
+
+    if not isinstance(mcmc_settings, Mapping):
+        raise ValueError("mcmc_settings must be an object")
+    _exact_keys(
+        mcmc_settings,
+        {"enabled", *POSTERIOR_MCMC_SETTING_KEYS},
+        "mcmc_settings",
+    )
+    if mcmc_settings.get("enabled") is not True:
+        raise ValueError("mcmc_settings.enabled must be true")
+    sampling_settings = {
+        key: mcmc_settings[key] for key in POSTERIOR_MCMC_SETTING_KEYS
+    }
+
+    upstream_keys = (
+        "run_id",
+        "request_fingerprint",
+        "configuration_fingerprint",
+        "controller_snapshot_fingerprint",
+        "estimator_revision",
+        "selected_bag_ids",
+        "selected_intervals",
+        "selected_bag_sha256",
+    )
+    missing = [key for key in upstream_keys if key not in estimation_manifest]
+    if missing:
+        raise ValueError(
+            "estimation manifest lacks {}".format(", ".join(missing))
+        )
+    upstream = {
+        key: estimation_manifest[key] for key in upstream_keys
+    }
+    request = {
+        "schema": POSTERIOR_SAMPLING_REQUEST_SCHEMA,
+        "sampling_id": sampling_id,
+        "resume": resume,
+        "estimation_run_directory": str(run_directory.resolve()),
+        "estimation_request_path": str(request_path.resolve()),
+        "upstream": _finite_json_copy(upstream, "estimation upstream"),
+        "mcmc_settings": _finite_json_copy(
+            sampling_settings, "mcmc_settings"
+        ),
+    }
+    canonical_fingerprint(request)
+    return request
+
+
+def posterior_sampling_request_fingerprint(
+    request: Mapping[str, Any],
+) -> str:
+    """Return the backend sampling identity, excluding only ``resume``."""
+
+    if not isinstance(request, Mapping):
+        raise ValueError("posterior sampling request must be an object")
+    payload = _finite_json_copy(request, "posterior sampling request")
+    if payload.get("schema") != POSTERIOR_SAMPLING_REQUEST_SCHEMA:
+        raise ValueError("posterior sampling request schema is unsupported")
+    if not isinstance(payload.get("resume"), bool):
+        raise ValueError("posterior sampling request resume must be boolean")
+    payload["resume"] = False
+    return canonical_fingerprint(payload)
+
+
 __all__ = [
     "BATCH_ESTIMATION_REQUEST_SCHEMA",
     "BATCH_ESTIMATION_STAGE_ID",
+    "POSTERIOR_MCMC_SETTING_KEYS",
+    "POSTERIOR_SAMPLING_REQUEST_SCHEMA",
     "RUN_MODES",
     "batch_estimation_settings",
     "build_batch_estimation_request",
+    "build_posterior_sampling_request",
+    "posterior_sampling_request_fingerprint",
     "stage_bag_requests",
     "workflow_mode_run_mode",
 ]

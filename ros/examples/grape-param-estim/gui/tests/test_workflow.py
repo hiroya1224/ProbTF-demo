@@ -275,6 +275,34 @@ class WorkflowLifecycleTest(unittest.TestCase):
         self.assertEqual(attempts[1].retry_of, "attempt-1")
         self.assertEqual(attempts[1].status, AttemptStatus.QUEUED)
 
+    def test_completed_artifact_can_be_compare_and_swap_upgraded(self):
+        state, _stage_input_value = _complete_noise(_workflow())
+        prior = state.attempt("attempt-noise-1")
+        replacement = _artifact(prior, "noise-output-1", "2")
+        updated = state.replace_completed_artifact(
+            prior.attempt_id,
+            replacement,
+            expected_completion_fingerprint=(
+                prior.artifact.completion_fingerprint
+            ),
+        )
+        self.assertEqual(
+            updated.attempt(prior.attempt_id).artifact, replacement
+        )
+        self.assertEqual(
+            state.attempt(prior.attempt_id).artifact, prior.artifact
+        )
+        with self.assertRaisesRegex(
+            WorkflowTransitionError, "changed since posterior sampling"
+        ):
+            updated.replace_completed_artifact(
+                prior.attempt_id,
+                _artifact(updated.attempt(prior.attempt_id), "noise-output-1", "3"),
+                expected_completion_fingerprint=(
+                    prior.artifact.completion_fingerprint
+                ),
+            )
+
     def test_changed_root_and_upstream_make_completed_stages_stale(self):
         state, noise_a = _complete_noise(_workflow())
         upstream_a = state.completion_ref("noise", noise_a)

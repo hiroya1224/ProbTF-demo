@@ -155,7 +155,7 @@ class SignalPanel(QWidget):
             if self.selected_trajectory is not None:
                 rollout = self.selected_trajectory.recorded_control_rollout
                 self._plot_vector(self.selected_trajectory.knot_time[rollout.valid], np.column_stack((rollout.position[rollout.valid], rollout.rpy[rollout.valid])), "#962daa", 2.5)
-            self._plot_vector(session.pose.time[session.pose.valid], np.column_stack((session.pose.position[session.pose.valid], session.pose.rpy[session.pose.valid])), "#1e5abe", 2.5)
+            self._plot_vector(session.pose.time, np.column_stack((session.pose.position, session.pose.rpy)), "#1e5abe", 2.5)
         elif self.kind == "correction":
             initial_valid = session.initial_parameter_rollout_correction_valid
             self._plot_vector(session.knot_time[initial_valid], np.column_stack((session.initial_parameter_rollout_correction_translation[initial_valid], session.initial_parameter_rollout_correction_rotation_vector[initial_valid])), "#d2691e", 2.0)

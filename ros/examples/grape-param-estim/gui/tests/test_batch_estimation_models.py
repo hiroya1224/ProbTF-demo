@@ -926,7 +926,8 @@ class BatchResultViewTests(unittest.TestCase):
         os.environ["GRAPE_PARAM_ESTIM_DISABLE_3D"] = "1"
         from grape_param_estim_gui.widgets.bag_browser import BagBrowserView
 
-        self._load_run(mcmc=True)
+        run = self._load_run(mcmc=True)
+        run.bags["bag-a"].pose.valid[:] = False
         view = BagBrowserView(self.store)
         self.widgets.append(view)
 
@@ -971,6 +972,14 @@ class BatchResultViewTests(unittest.TestCase):
                 "map",
                 "selected",
             }.issubset(view.trajectory_panel.series_data)
+        )
+        self.assertEqual(
+            view.trajectory_panel.series_data["observed"][0].size,
+            run.bags["bag-a"].pose.time.size,
+        )
+        self.assertIn(
+            "0 entered the pose factor",
+            view.trajectory_panel.status_label.text(),
         )
         np.testing.assert_allclose(
             view.trajectory_panel.series_data["nominal"][1][:, :3], 2.0
@@ -1064,7 +1073,10 @@ class BatchResultViewTests(unittest.TestCase):
                 "controller_integral_observation",
             },
         )
-        self.assertEqual(direct.series_data["velocity"][0].tolist(), [0.0, 0.2])
+        self.assertEqual(
+            direct.series_data["velocity"][0].tolist(),
+            [0.0, 0.1, 0.2],
+        )
         self.assertEqual(len(direct.plot.listDataItems()), 3)
         direct.set_component_visible("velocity", 1, False)
         self.assertEqual(
@@ -1079,7 +1091,10 @@ class BatchResultViewTests(unittest.TestCase):
             direct.observation_combo.findData("thrust_command")
         )
         self.assertEqual(len(direct.plot.listDataItems()), 4)
-        self.assertIn("2/3 valid samples", direct.status_label.text())
+        self.assertIn(
+            "3/3 finite recorded samples shown; 2 entered the factor",
+            direct.status_label.text(),
+        )
         direct.observation_combo.setCurrentIndex(
             direct.observation_combo.findData("velocity")
         )

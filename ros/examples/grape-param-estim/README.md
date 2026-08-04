@@ -74,7 +74,8 @@ bag inspection 後に `Bag browser` で使用する区間と sensor contract を
 二つの rollout は同じ推定済み先頭 sensor pose/twist から開始し、候補ごとの CoG に合わせて CoG state だけを再表現した上で、推定グラフと同じ遅延適用済み rotor/gimbal command、actuator model、rigid-body model を使います。
 rollout 中に controller の再計算、観測による state reset、推定 residual wrench の注入は行いません。
 紫は保存された posterior sample の物理パラメータと conditional 先頭状態を使った同じ recorded-control rollout です。
-青い observed は最後に marker 付きで描画するため、他の曲線と重なっても前面で確認できます。
+青い observed は pose factor の使用 mask と独立に記録値をすべて表示し、最後に marker 付きで描画するため、factor が無効な旧 run や他の曲線との重なりでも確認できます。
+新しい GUI run は pose factor が無効なら worker 起動前に拒否するため、旧 inspection で無効と判定された project は bag を再 inspection してください。
 `Correction transform` は各 knot での `T_observed^-1 T_rollout` で、青い zero-error baseline と緑または紫が一致するほど recorded-control forward model が観測を再現しています。
 latent nominal/MAP/conditional trajectory は solver と posterior の監査用として artifact に残しますが、forward-model 適合の曲線としては表示しません。
 rollout の一致だけでなく、normalized sensor residual、dynamics residual、Q band、ridge、MCMC 診断も一緒に確認してください。

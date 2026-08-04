@@ -94,7 +94,7 @@ class PidComparisonScene3DWidget(QWidget):
         paths.append(
             (
                 "Observed",
-                result.pose.position[result.pose.valid],
+                result.pose.position,
                 "#1e5abe",
                 3.8,
             )

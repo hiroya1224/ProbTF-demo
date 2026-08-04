@@ -228,7 +228,7 @@ class BatchTrajectoryScene(QWidget):
             paths.append(
                 (
                     "Observed pose",
-                    result.pose.position[result.pose.valid],
+                    result.pose.position,
                     "#1e5abe",
                     4.5,
                 )
@@ -657,10 +657,11 @@ class BatchSignalPanel(QWidget):
                     np.concatenate((result.reference.position, result.reference.rpy), axis=1),
                 )
             if result.pose.time.size:
-                valid = result.pose.valid
                 series["observed"] = (
-                    result.pose.time[valid],
-                    np.concatenate((result.pose.position[valid], result.pose.rpy[valid]), axis=1),
+                    result.pose.time,
+                    np.concatenate(
+                        (result.pose.position, result.pose.rpy), axis=1
+                    ),
                 )
             initial_valid = result.initial_parameter_rollout.valid
             series["nominal"] = (
@@ -866,11 +867,18 @@ class BatchSignalPanel(QWidget):
         self.current_lines.clear()
         if self.kind == "trajectory":
             self.series_data = self._trajectory_series()
+            pose_counts = ""
+            if self.result is not None:
+                pose_counts = " Blue contains {} recorded samples; {} entered the pose factor.".format(
+                    self.result.pose.time.size,
+                    int(np.count_nonzero(self.result.pose.valid)),
+                )
             self.status_label.setText(
                 "Blue is the asynchronous recorded sensor pose. Orange and green "
                 "are open-loop forward simulations driven by the same recorded "
                 "actuator commands, without observation resets or residual wrench. "
                 "The matching Correction plot uses the same vertical scale."
+                + pose_counts
             )
         elif self.kind == "correction":
             self.series_data = self._correction_series()
@@ -1285,13 +1293,15 @@ class DirectObservationPanel(QWidget):
         if result is not None:
             for key, _label, _components, _unit in self._SIGNALS:
                 observation: VectorObservation = getattr(result, key)
-                valid = np.asarray(observation.valid, dtype=bool).copy()
+                finite = np.ones(observation.time.size, dtype=bool)
                 if observation.time.size:
-                    valid &= np.isfinite(observation.time)
-                    valid &= np.all(np.isfinite(observation.value), axis=1)
+                    finite &= np.isfinite(observation.time)
+                    finite &= np.all(
+                        np.isfinite(observation.value), axis=1
+                    )
                 self.series_data[key] = (
-                    np.asarray(observation.time[valid], dtype=float),
-                    np.asarray(observation.value[valid], dtype=float),
+                    np.asarray(observation.time[finite], dtype=float),
+                    np.asarray(observation.value[finite], dtype=float),
                 )
         self._render()
 
@@ -1320,15 +1330,22 @@ class DirectObservationPanel(QWidget):
         self.plot.setTitle(label)
         self.plot.setLabel("left", label, units=unit)
         selected = self.series_data.get(key)
-        valid_count = 0 if selected is None else int(selected[0].size)
+        recorded_count = 0 if selected is None else int(selected[0].size)
         total_count = (
             0
             if self.result is None
             else int(getattr(self.result, key).time.size)
         )
+        factor_count = (
+            0
+            if self.result is None
+            else int(
+                np.count_nonzero(getattr(self.result, key).valid)
+            )
+        )
         self.status_label.setText(
-            "{}: {}/{} valid samples; invalid-mask entries are omitted.".format(
-                label, valid_count, total_count
+            "{}: {}/{} finite recorded samples shown; {} entered the factor.".format(
+                label, recorded_count, total_count, factor_count
             )
         )
         if selected is not None:

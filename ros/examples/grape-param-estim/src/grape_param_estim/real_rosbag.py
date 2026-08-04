@@ -143,6 +143,12 @@ ASYNC_TOPIC_TYPE_CONTRACT = (
     + ASYNC_OPTIONAL_AUDIT_TOPIC_TYPE_CONTRACT
 )
 
+INSPECTION_TOPIC_TYPE_CONTRACT = TOPIC_TYPE_CONTRACT + tuple(
+    value
+    for value in ASYNC_REQUIRED_TOPIC_TYPE_CONTRACT
+    if value[0] not in {topic for topic, _type in TOPIC_TYPE_CONTRACT}
+)
+
 _ASYNC_HEADER_TOPICS = {
     RAW_MOCAP_POSE_TOPIC,
     BASELINK_ODOM_TOPIC,
@@ -1029,7 +1035,10 @@ def read_grape_rosbag_arrays(
     source = Path(path).expanduser().resolve()
     if not source.is_file():
         raise ValueError("rosbag does not exist: {}".format(source))
-    topics = tuple(value[0] for value in TOPIC_TYPE_CONTRACT)
+    read_topics = tuple(value[0] for value in TOPIC_TYPE_CONTRACT)
+    audited_topics = tuple(
+        value[0] for value in INSPECTION_TOPIC_TYPE_CONTRACT
+    )
     gain_group_by_topic = {topic: group for group, topic in GAIN_TOPICS}
     cog_times, cog_position = [], []
     base_times, base_orientation = [], []
@@ -1048,7 +1057,7 @@ def read_grape_rosbag_arrays(
         bag_start = float(bag.get_start_time())
         bag_end = float(bag.get_end_time())
         topic_info = bag.get_type_and_topic_info().topics
-        for topic, expected_type in TOPIC_TYPE_CONTRACT:
+        for topic, expected_type in INSPECTION_TOPIC_TYPE_CONTRACT:
             if topic not in topic_info:
                 raise ValueError("required topic is missing: {}".format(topic))
             actual_type = str(topic_info[topic].msg_type)
@@ -1058,9 +1067,11 @@ def read_grape_rosbag_arrays(
                         topic, actual_type, expected_type
                     )
                 )
-        topic_types = tuple(str(topic_info[v].msg_type) for v in topics)
+        audited_topic_types = tuple(
+            str(topic_info[value].msg_type) for value in audited_topics
+        )
         for message_index, (topic, message, stamp) in enumerate(
-            bag.read_messages(topics=topics)
+            bag.read_messages(topics=read_topics)
         ):
             if checkpoint is not None and message_index % 256 == 0:
                 checkpoint()
@@ -1147,8 +1158,8 @@ def read_grape_rosbag_arrays(
         bag_size_bytes=source.stat().st_size,
         bag_record_start=bag_start,
         bag_record_end=bag_end,
-        topic_names=topics,
-        topic_types=topic_types,
+        topic_names=audited_topics,
+        topic_types=audited_topic_types,
         cog_position=_series(cog_times, cog_position),
         baselink_orientation=_series(base_times, base_orientation),
         pid=PidReferenceSeries(
@@ -2636,6 +2647,7 @@ __all__ = [
     "GIMBAL_COMMAND_TOPIC",
     "HOVER_FLIGHT_STATE",
     "HeaderDuplicatePolicy",
+    "INSPECTION_TOPIC_TYPE_CONTRACT",
     "MAIN_BODY_TO_FC_TRANSLATION",
     "MAIN_BODY_TO_FC_URDF_SOURCE",
     "NATIVE_IMU_TOPIC",

@@ -123,6 +123,22 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             sampled = validate_batch_estimation_request(sampled_request)
             self.assertEqual(sampled.payload["run_mode"], "estimate_and_sample")
             self.assertTrue(sampled.payload["mcmc_settings"]["enabled"])
+            disabled_pose = json.loads(json.dumps(sampled_request))
+            disabled_pose_factor = disabled_pose["bags"][0][
+                "observation_factors"
+            ]["pose"]
+            disabled_pose_factor["enabled"] = False
+            disabled_pose_factor["disabled_reason"] = (
+                "legacy inspection did not audit mocap pose"
+            )
+            disabled_pose_factor["covariances"] = None
+            with self.assertRaisesRegex(
+                WorkflowError, "requires an enabled pose factor"
+            ):
+                preflight_batch_estimation_launch(
+                    disabled_pose,
+                    source_path=root / "disabled-pose.request.json",
+                )
             missing_method = json.loads(json.dumps(sampled_request))
             del missing_method["solver_settings"]["method"]
             with self.assertRaisesRegex(
@@ -181,6 +197,15 @@ class BatchRunRequestGuiTests(unittest.TestCase):
                 parsed.payload["bags"][0]["observation_factors"]["accelerometer"]["disabled_reason"],
                 "accelerometer disabled: sensor frame and lever arm are not confirmed by inspection",
             )
+            parsed_factors = parsed.payload["bags"][0][
+                "observation_factors"
+            ]
+            for factor_name in (
+                "pose",
+                "gyro",
+                "issued_gimbal_command",
+            ):
+                self.assertTrue(parsed_factors[factor_name]["enabled"])
             self.assertEqual(captured["script"].name, "grape_estimate_flights.py")
             window.close()
 

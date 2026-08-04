@@ -32,9 +32,9 @@ from grape_param_estim.progress import (
 from grape_param_estim.real_rosbag import (
     ControllerGainEvents,
     FlightStateSeries,
+    INSPECTION_TOPIC_TYPE_CONTRACT,
     PidReferenceSeries,
     RosbagArrayData,
-    TOPIC_TYPE_CONTRACT,
     TimedVectorSeries,
     _select_controller_snapshot,
     list_flight_episode_candidates,
@@ -76,8 +76,12 @@ def _fake_arrays(path="/tmp/fake-inspection.bag", sha256="a" * 64):
             (4.0, 1.0, 2.0),
         )
     )
-    topic_names = tuple(value[0] for value in TOPIC_TYPE_CONTRACT)
-    topic_types = tuple(value[1] for value in TOPIC_TYPE_CONTRACT)
+    topic_names = tuple(
+        value[0] for value in INSPECTION_TOPIC_TYPE_CONTRACT
+    )
+    topic_types = tuple(
+        value[1] for value in INSPECTION_TOPIC_TYPE_CONTRACT
+    )
     return RosbagArrayData(
         bag_path=path,
         bag_sha256=sha256,
@@ -292,6 +296,19 @@ class InspectionBundleTests(unittest.TestCase):
                 "needs_configuration_confirmation",
             )
             self.assertEqual(inspection["bag_sha256"], bag_sha256)
+            topic_contract = {
+                value["topic"]: value
+                for value in inspection["topic_contract"]
+            }
+            for required_topic in (
+                "/gimbalrotor/mocap/pose",
+                "/gimbalrotor/sensor_plugin/imu1/ros_converted",
+                "/gimbalrotor/gimbals_ctrl",
+            ):
+                self.assertTrue(topic_contract[required_topic]["present"])
+                self.assertTrue(
+                    topic_contract[required_topic]["type_matches"]
+                )
             self.assertEqual(
                 inspection["recommended_interval"]["interval"]["state"], 3
             )

@@ -113,6 +113,18 @@ def preflight_batch_estimation_launch(
     validated = validate_batch_estimation_request(
         request, source_path=source_path
     )
+    disabled_pose_bags = tuple(
+        str(bag["bag_id"])
+        for bag in validated.payload["bags"]
+        if not bool(bag["observation_factors"]["pose"]["enabled"])
+    )
+    if disabled_pose_bags:
+        raise WorkflowError(
+            "recorded-trajectory parameter estimation requires an enabled "
+            "pose factor; re-inspect these bags before running: {}".format(
+                ", ".join(disabled_pose_bags)
+            )
+        )
     return validated.fingerprint
 
 

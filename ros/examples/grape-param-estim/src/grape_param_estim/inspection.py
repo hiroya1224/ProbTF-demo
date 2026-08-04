@@ -31,9 +31,9 @@ from grape_param_estim.progress import (
 from grape_param_estim.real_rosbag import (
     ControllerGainSnapshot,
     FlightEpisodeCandidate,
+    INSPECTION_TOPIC_TYPE_CONTRACT,
     RosbagArrayData,
     SmoothingIntervalRecommendation,
-    TOPIC_TYPE_CONTRACT,
     _select_controller_snapshot,
     linear_resample,
     list_flight_episode_candidates,
@@ -445,7 +445,7 @@ def _configuration_fingerprint(
 def _topic_contract(arrays: RosbagArrayData):
     actual = dict(zip(arrays.topic_names, arrays.topic_types))
     entries = []
-    for topic, expected_type in TOPIC_TYPE_CONTRACT:
+    for topic, expected_type in INSPECTION_TOPIC_TYPE_CONTRACT:
         actual_type = actual.get(topic)
         entries.append(
             {

@@ -1,3 +1,4 @@
+from dataclasses import replace
 import unittest
 from unittest.mock import patch
 
@@ -11,6 +12,7 @@ from grape_param_estim.pid.particle_search import (
     SAMPLE_MODEL_DISCREPANCY,
     ZERO_MODEL_DISCREPANCY,
     ModelDiscrepancyConfiguration,
+    SPECIFIC_ACCELERATION_MODEL_DISCREPANCY,
     evaluate_pid_candidates,
 )
 from grape_param_estim.pid.predictive import (
@@ -172,6 +174,46 @@ class PidPredictiveTests(unittest.TestCase):
         np.testing.assert_array_equal(first.trace.position, second.trace.position)
         self.assertGreater(
             np.linalg.norm(first.trace.position - zero.trace.position), 0.0
+        )
+
+    def test_specific_acceleration_q_is_converted_per_physical_plant(self):
+        parameters = replace(
+            self.parameters,
+            mass=2.0,
+            inertia=np.diag((2.0, 3.0, 4.0)),
+        )
+        sample = PhysicalPlantPosterior.from_aligned_values(
+            ("chain-a:000000",),
+            (parameters,),
+            (0.0,),
+            ("mode-map",),
+        ).samples[0]
+        specific = ModelDiscrepancyConfiguration(
+            SAMPLE_MODEL_DISCREPANCY,
+            np.ones(6),
+            base_seed=55,
+            residual_quantity=SPECIFIC_ACCELERATION_MODEL_DISCREPANCY,
+        ).realization("chain-a:000000", "failure-bag", 0)
+        equivalent_wrench = ModelDiscrepancyConfiguration(
+            SAMPLE_MODEL_DISCREPANCY,
+            np.asarray((4.0, 4.0, 4.0, 4.0, 9.0, 16.0)),
+            base_seed=55,
+            residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+        ).realization("chain-a:000000", "failure-bag", 0)
+        first = run_pid_forecast(
+            self.candidate, sample, self.scenario, specific
+        )
+        second = run_pid_forecast(
+            self.candidate, sample, self.scenario, equivalent_wrench
+        )
+        np.testing.assert_allclose(
+            first.trace.position, second.trace.position, rtol=0.0, atol=1.0e-15
+        )
+        np.testing.assert_allclose(
+            first.trace.orientation_xyzw,
+            second.trace.orientation_xyzw,
+            rtol=0.0,
+            atol=1.0e-15,
         )
 
     def test_cross_evaluator_covers_every_candidate_and_plant_sample(self):

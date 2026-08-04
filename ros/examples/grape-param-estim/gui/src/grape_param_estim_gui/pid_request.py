@@ -15,7 +15,7 @@ from .artifact_loader import BatchEstimationRun
 
 
 PID_EVALUATION_REQUEST_SCHEMA = (
-    "grape-param-estim/pid-proposal-evaluation-request/v1"
+    "grape-param-estim/pid-proposal-evaluation-request/v2"
 )
 BATCH_ESTIMATION_RUN_SCHEMA = "grape-param-estim/batch-estimation-run/v1"
 COMPLETE_STATUS = "complete"
@@ -80,6 +80,7 @@ class PidEvaluationLaunchOptions:
     fixed_linear_drag: tuple[float, float, float]
     fixed_angular_drag: tuple[float, float, float]
     model_discrepancy_policy: str
+    maximum_derived_candidates: int | None = 12
     quantile_level: float = 0.95
     cvar_level: float = 0.9
     base_seed: int = 0
@@ -99,6 +100,16 @@ class PidEvaluationLaunchOptions:
         policy = str(self.model_discrepancy_policy)
         if policy not in MODEL_DISCREPANCY_POLICIES:
             raise ValueError("unknown model discrepancy policy")
+        maximum_candidates = self.maximum_derived_candidates
+        if maximum_candidates is not None and (
+            isinstance(maximum_candidates, (bool, np.bool_))
+            or not isinstance(maximum_candidates, (int, np.integer))
+            or int(maximum_candidates) < 1
+            or int(maximum_candidates) > 10 ** 6
+        ):
+            raise ValueError(
+                "maximum_derived_candidates must be null or a positive integer"
+            )
         quantile = float(self.quantile_level)
         cvar = float(self.cvar_level)
         maximum_age = float(self.maximum_reference_age_seconds)
@@ -137,6 +148,11 @@ class PidEvaluationLaunchOptions:
         object.__setattr__(self, "fixed_linear_drag", _vector3(self.fixed_linear_drag, "fixed_linear_drag"))
         object.__setattr__(self, "fixed_angular_drag", _vector3(self.fixed_angular_drag, "fixed_angular_drag"))
         object.__setattr__(self, "model_discrepancy_policy", policy)
+        object.__setattr__(
+            self,
+            "maximum_derived_candidates",
+            None if maximum_candidates is None else int(maximum_candidates),
+        )
         object.__setattr__(self, "quantile_level", quantile)
         object.__setattr__(self, "cvar_level", cvar)
         object.__setattr__(self, "base_seed", int(self.base_seed))
@@ -198,7 +214,6 @@ def build_pid_evaluation_request(
         raise ValueError("source batch estimation run directory is unavailable")
     candidates: list[dict[str, Any]] = [
         {"candidate_id": "current", "source": "current", "source_sample_id": None, "gain_values": None},
-        {"candidate_id": options.candidate_id, "source": "sample-derived", "source_sample_id": options.source_sample_id, "gain_values": None},
     ]
     if options.user_candidate_values is not None:
         candidates.append({"candidate_id": USER_CANDIDATE_ID, "source": "user", "source_sample_id": None, "gain_values": [list(row) for row in options.user_candidate_values]})
@@ -215,6 +230,15 @@ def build_pid_evaluation_request(
         "fixed_plant_parameters": {"linear_drag": list(options.fixed_linear_drag), "angular_drag": list(options.fixed_angular_drag)},
         "model_discrepancy": {"policy": options.model_discrepancy_policy, "base_seed": options.base_seed, "replicates": options.replicates},
         "plant_sample_subset": {"method": "all_equal_weight_mcmc_samples", "sample_ids": None},
+        "derived_candidate_population": {
+            "method": (
+                "all_raw_mcmc_samples"
+                if options.maximum_derived_candidates is None
+                else "deterministic_k_medoids"
+            ),
+            "maximum_candidates": options.maximum_derived_candidates,
+            "required_source_sample_ids": [options.source_sample_id],
+        },
         "candidates": candidates,
         "quantile_level": options.quantile_level,
         "cvar_level": options.cvar_level,

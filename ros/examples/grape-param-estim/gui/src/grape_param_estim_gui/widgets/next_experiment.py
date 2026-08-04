@@ -110,7 +110,7 @@ class NextExperimentView(QWidget):
             label = "zero" if policy == "zero_model_discrepancy" else "sampled Q"
             self.discrepancy_combo.addItem(label, policy)
         controls.addWidget(self.discrepancy_combo)
-        self.evaluate_button = QPushButton("Evaluate selected sample candidate")
+        self.evaluate_button = QPushButton("Evaluate candidate population")
         self.evaluate_button.clicked.connect(self._request_evaluation)
         controls.addWidget(self.evaluate_button)
         launch_layout.addLayout(controls)
@@ -133,6 +133,12 @@ class NextExperimentView(QWidget):
         self.replicates_spin.setValue(1)
         advanced.addWidget(QLabel("Discrepancy replicates:"))
         advanced.addWidget(self.replicates_spin)
+        self.derived_candidate_spin = QSpinBox()
+        self.derived_candidate_spin.setRange(0, 10000)
+        self.derived_candidate_spin.setValue(12)
+        self.derived_candidate_spin.setSpecialValueText("all")
+        advanced.addWidget(QLabel("Derived candidates:"))
+        advanced.addWidget(self.derived_candidate_spin)
         self.seed_spin = QSpinBox()
         self.seed_spin.setRange(0, 2**31 - 1)
         advanced.addWidget(QLabel("Base seed:"))
@@ -361,6 +367,11 @@ class NextExperimentView(QWidget):
                 fixed_linear_drag=tuple(editor.value() for editor in self.linear_drag_inputs),
                 fixed_angular_drag=tuple(editor.value() for editor in self.angular_drag_inputs),
                 model_discrepancy_policy=str(self.discrepancy_combo.currentData()),
+                maximum_derived_candidates=(
+                    None
+                    if self.derived_candidate_spin.value() == 0
+                    else self.derived_candidate_spin.value()
+                ),
                 quantile_level=self.quantile_spin.value(),
                 cvar_level=self.cvar_spin.value(),
                 base_seed=self.seed_spin.value(),

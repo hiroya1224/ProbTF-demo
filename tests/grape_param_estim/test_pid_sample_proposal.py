@@ -141,6 +141,26 @@ class PidSampleProposalTests(unittest.TestCase):
                 proposals.exact_gain_values[index],
             )
 
+    def test_required_source_replaces_a_medoid_without_averaging(self):
+        proposals = derive_pid_proposals(
+            self._posterior(),
+            self.nominal,
+            self.geometry,
+            self.current,
+        )
+        required = "chain-b:00000002"
+        candidates = build_initial_candidate_population(
+            proposals,
+            maximum_derived_candidates=1,
+            required_source_sample_ids=(required,),
+        )
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual(candidates[1].source_sample_id, required)
+        np.testing.assert_array_equal(
+            candidates[1].configuration.values,
+            proposals.configuration_for_sample(required).values,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -101,7 +101,11 @@ class PidRequestBuilderTests(unittest.TestCase):
             self.assertEqual(parsed.evaluation_id, "evaluation-a")
             self.assertEqual(parsed.discrepancy_policy, "sample_model_discrepancy")
             self.assertEqual(parsed.plant_sample_subset_method, "all_equal_weight_mcmc_samples")
-            self.assertEqual(parsed.candidates[1].source_sample_id, "chain-b:0001")
+            self.assertEqual(len(parsed.candidates), 1)
+            self.assertEqual(parsed.candidates[0].source, "current")
+            self.assertEqual(parsed.derived_candidate_method, "deterministic_k_medoids")
+            self.assertEqual(parsed.maximum_derived_candidates, 12)
+            self.assertEqual(parsed.required_derived_sample_ids, ("chain-b:0001",))
             self.assertEqual(parsed.selected_candidate_id, sample_candidate_id("chain-b:0001"))
             self.assertEqual(tuple(parsed.fixed_linear_drag), (0.1, 0.2, 0.3))
             self.assertEqual(parsed.forecast_workers, "auto")
@@ -125,6 +129,18 @@ class PidRequestBuilderTests(unittest.TestCase):
                 ValueError, "forecast_workers"
             ):
                 PidEvaluationLaunchOptions(forecast_workers=value, **common)
+        self.assertIsNone(
+            PidEvaluationLaunchOptions(
+                maximum_derived_candidates=None, **common
+            ).maximum_derived_candidates
+        )
+        for value in (0, -1, True):
+            with self.subTest(maximum_candidates=value), self.assertRaisesRegex(
+                ValueError, "maximum_derived_candidates"
+            ):
+                PidEvaluationLaunchOptions(
+                    maximum_derived_candidates=value, **common
+                )
 
     def test_unknown_sample_and_mode_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

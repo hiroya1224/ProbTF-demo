@@ -747,17 +747,52 @@ def build_initial_candidate_population(
     proposals: PidProposalPopulation,
     *,
     maximum_derived_candidates: Optional[int] = None,
+    required_source_sample_ids: Sequence[str] = tuple(),
     user_candidates: Sequence[PidCandidate] = tuple(),
 ) -> Tuple[PidCandidate, ...]:
     """Build current + raw sample-derived + user exact candidate population."""
 
     if not isinstance(proposals, PidProposalPopulation):
         raise TypeError("proposals must be PidProposalPopulation")
+    all_sample_ids = tuple(str(value) for value in proposals.source_sample_id)
+    required = tuple(str(value) for value in required_source_sample_ids)
+    if len(set(required)) != len(required) or not set(required).issubset(
+        set(all_sample_ids)
+    ):
+        raise ValueError(
+            "required_source_sample_ids must be unique proposal sample IDs"
+        )
     if maximum_derived_candidates is None:
-        sample_ids = tuple(str(value) for value in proposals.source_sample_id)
+        sample_ids = all_sample_ids
     else:
-        sample_ids = select_proposal_medoids(
+        maximum = maximum_derived_candidates
+        if (
+            isinstance(maximum, (bool, np.bool_))
+            or not isinstance(maximum, (int, np.integer))
+            or maximum < 1
+            or len(required) > maximum
+        ):
+            raise ValueError(
+                "maximum_derived_candidates must cover all required samples"
+            )
+        selected = list(select_proposal_medoids(
             proposals, maximum_derived_candidates
+        ))
+        missing = tuple(value for value in required if value not in selected)
+        for value in missing:
+            replaceable = tuple(
+                index
+                for index in range(len(selected) - 1, -1, -1)
+                if selected[index] not in required
+            )
+            if not replaceable:
+                raise ValueError(
+                    "maximum_derived_candidates cannot include required samples"
+                )
+            selected[replaceable[0]] = value
+        selected_set = set(selected)
+        sample_ids = tuple(
+            value for value in all_sample_ids if value in selected_set
         )
     users = tuple(user_candidates)
     if any(

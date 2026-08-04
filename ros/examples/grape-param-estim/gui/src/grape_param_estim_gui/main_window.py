@@ -1145,7 +1145,7 @@ class MainWindow(QMainWindow):
             )
             self.tabs.setCurrentWidget(self.next_experiment)
             self.statusBar().showMessage(
-                "Cross-evaluating current PID and sample {} proposal{}.".format(
+                "Cross-evaluating current PID and the MCMC-derived candidate population; selected source={}{}.".format(
                     options.source_sample_id,
                     " and exact user candidate"
                     if options.user_candidate_values is not None

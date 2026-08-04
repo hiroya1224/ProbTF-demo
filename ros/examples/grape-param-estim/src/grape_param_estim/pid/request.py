@@ -18,13 +18,17 @@ from grape_param_estim.pid.particle_search import MODEL_DISCREPANCY_POLICIES
 
 
 PID_EVALUATION_REQUEST_SCHEMA = (
-    "grape-param-estim/pid-proposal-evaluation-request/v1"
+    "grape-param-estim/pid-proposal-evaluation-request/v2"
 )
 PLANT_SAMPLE_SUBSET_METHODS = (
     "all_equal_weight_mcmc_samples",
     "explicit_equal_weight_mcmc_subset",
 )
-PID_CANDIDATE_SOURCES = ("current", "sample-derived", "user")
+PID_CANDIDATE_SOURCES = ("current", "user")
+DERIVED_CANDIDATE_METHODS = (
+    "all_raw_mcmc_samples",
+    "deterministic_k_medoids",
+)
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$")
 _SAFE_BAG_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -158,6 +162,9 @@ class PidEvaluationRequest:
     discrepancy_replicates: int
     plant_sample_subset_method: str
     plant_sample_ids: Optional[Tuple[str, ...]]
+    derived_candidate_method: str
+    maximum_derived_candidates: Optional[int]
+    required_derived_sample_ids: Tuple[str, ...]
     candidates: Tuple[PidEvaluationCandidateRequest, ...]
     quantile_level: float
     cvar_level: float
@@ -217,11 +224,6 @@ def _candidates(value: Any) -> Tuple[PidEvaluationCandidateRequest, ...]:
                 _error(location, "current must use ID current and null source/gains")
             selected_sample = None
             selected_gains = None
-        elif source == "sample-derived":
-            if sample_id is None or gains is not None:
-                _error(location, "sample-derived requires source_sample_id and null gains")
-            selected_sample = _string(sample_id, location + ".source_sample_id")
-            selected_gains = None
         else:
             if sample_id is not None or not isinstance(gains, list) or len(gains) != 4:
                 _error(location, "user requires null source sample and 4x3 gains")
@@ -264,6 +266,7 @@ def validate_pid_evaluation_request(
         "fixed_plant_parameters",
         "model_discrepancy",
         "plant_sample_subset",
+        "derived_candidate_population",
         "candidates",
         "quantile_level",
         "cvar_level",
@@ -344,6 +347,64 @@ def validate_pid_evaluation_request(
         )
         if len(set(sample_ids)) != len(sample_ids):
             _error("request.plant_sample_subset.sample_ids", "contains duplicates")
+
+    population = _mapping(
+        request["derived_candidate_population"],
+        "request.derived_candidate_population",
+    )
+    _keys(
+        population,
+        ("method", "maximum_candidates", "required_source_sample_ids"),
+        "request.derived_candidate_population",
+    )
+    derived_method = _choice(
+        population["method"],
+        DERIVED_CANDIDATE_METHODS,
+        "request.derived_candidate_population.method",
+    )
+    raw_maximum = population["maximum_candidates"]
+    if derived_method == "all_raw_mcmc_samples":
+        if raw_maximum is not None:
+            _error(
+                "request.derived_candidate_population.maximum_candidates",
+                "must be null when all raw MCMC candidates are selected",
+            )
+        maximum_derived_candidates = None
+    else:
+        maximum_derived_candidates = _integer(
+            raw_maximum,
+            "request.derived_candidate_population.maximum_candidates",
+            minimum=1,
+            maximum=10 ** 6,
+        )
+    raw_required = population["required_source_sample_ids"]
+    if not isinstance(raw_required, list):
+        _error(
+            "request.derived_candidate_population.required_source_sample_ids",
+            "must be a list",
+        )
+    required_derived_sample_ids = tuple(
+        _string(
+            value,
+            "request.derived_candidate_population.required_source_sample_ids",
+        )
+        for value in raw_required
+    )
+    if len(set(required_derived_sample_ids)) != len(
+        required_derived_sample_ids
+    ):
+        _error(
+            "request.derived_candidate_population.required_source_sample_ids",
+            "contains duplicates",
+        )
+    if (
+        maximum_derived_candidates is not None
+        and len(required_derived_sample_ids) > maximum_derived_candidates
+    ):
+        _error(
+            "request.derived_candidate_population.required_source_sample_ids",
+            "cannot exceed maximum_candidates",
+        )
     candidates = _candidates(request["candidates"])
     quantile = _number(request["quantile_level"], "request.quantile_level", lower=0.0, upper=1.0)
     if quantile in (0.0, 1.0):
@@ -357,10 +418,15 @@ def validate_pid_evaluation_request(
         if selected is None
         else _identifier(selected, "request.selected_candidate_id")
     )
-    if selected_candidate is not None and selected_candidate not in {
-        value.candidate_id for value in candidates
-    }:
-        _error("request.selected_candidate_id", "must name a requested candidate")
+    if (
+        selected_candidate is not None
+        and selected_candidate not in {value.candidate_id for value in candidates}
+        and not selected_candidate.startswith("sample_")
+    ):
+        _error(
+            "request.selected_candidate_id",
+            "must name an explicit or generated sample candidate",
+        )
     maximum_reference_age = _number(
         request["maximum_reference_age_seconds"],
         "request.maximum_reference_age_seconds",
@@ -394,6 +460,9 @@ def validate_pid_evaluation_request(
         discrepancy_replicates=replicates,
         plant_sample_subset_method=subset_method,
         plant_sample_ids=sample_ids,
+        derived_candidate_method=derived_method,
+        maximum_derived_candidates=maximum_derived_candidates,
+        required_derived_sample_ids=required_derived_sample_ids,
         candidates=candidates,
         quantile_level=quantile,
         cvar_level=cvar,
@@ -408,6 +477,7 @@ def load_pid_evaluation_request(path: Union[str, Path]) -> PidEvaluationRequest:
 
 
 __all__ = [
+    "DERIVED_CANDIDATE_METHODS",
     "PID_CANDIDATE_SOURCES",
     "PID_EVALUATION_REQUEST_SCHEMA",
     "PLANT_SAMPLE_SUBSET_METHODS",

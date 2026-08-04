@@ -44,17 +44,16 @@ def _payload(root):
             "method": "explicit_equal_weight_mcmc_subset",
             "sample_ids": ["chain-a:1", "chain-b:1"],
         },
+        "derived_candidate_population": {
+            "method": "deterministic_k_medoids",
+            "maximum_candidates": 8,
+            "required_source_sample_ids": ["chain-a:1"],
+        },
         "candidates": [
             {
                 "candidate_id": "current",
                 "source": "current",
                 "source_sample_id": None,
-                "gain_values": None,
-            },
-            {
-                "candidate_id": "sample_Y2hhaW4tYTox",
-                "source": "sample-derived",
-                "source_sample_id": "chain-a:1",
                 "gain_values": None,
             },
             {
@@ -80,7 +79,10 @@ class PidRequestTests(unittest.TestCase):
             self.assertEqual(request.discrepancy_replicates, 3)
             self.assertEqual(request.forecast_workers, "auto")
             self.assertEqual(request.plant_sample_ids, ("chain-a:1", "chain-b:1"))
-            self.assertEqual(request.candidates[2].gain_values.shape, (4, 3))
+            self.assertEqual(request.derived_candidate_method, "deterministic_k_medoids")
+            self.assertEqual(request.maximum_derived_candidates, 8)
+            self.assertEqual(request.required_derived_sample_ids, ("chain-a:1",))
+            self.assertEqual(request.candidates[1].gain_values.shape, (4, 3))
             self.assertTrue(request.fingerprint.startswith("sha256:"))
 
     def test_unknown_field_is_rejected(self):
@@ -104,8 +106,37 @@ class PidRequestTests(unittest.TestCase):
     def test_candidate_source_fields_are_exclusive(self):
         with tempfile.TemporaryDirectory() as temporary:
             payload = _payload(Path(temporary))
-            payload["candidates"][1]["gain_values"] = [[1.0, 1.0, 1.0]] * 4
-            with self.assertRaisesRegex(ArtifactValidationError, "sample-derived"):
+            payload["candidates"][1]["source"] = "sample-derived"
+            payload["candidates"][1]["source_sample_id"] = "chain-a:1"
+            payload["candidates"][1]["gain_values"] = None
+            with self.assertRaisesRegex(ArtifactValidationError, "must be one"):
+                validate_pid_evaluation_request(payload)
+
+    def test_derived_population_policy_is_strict_and_bounded(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            payload = _payload(Path(temporary))
+            payload["derived_candidate_population"] = {
+                "method": "all_raw_mcmc_samples",
+                "maximum_candidates": None,
+                "required_source_sample_ids": [],
+            }
+            parsed = validate_pid_evaluation_request(payload)
+            self.assertIsNone(parsed.maximum_derived_candidates)
+
+            payload = _payload(Path(temporary))
+            payload["derived_candidate_population"]["maximum_candidates"] = 0
+            with self.assertRaisesRegex(
+                ArtifactValidationError, r"\[1, 1000000\]"
+            ):
+                validate_pid_evaluation_request(payload)
+
+            payload = _payload(Path(temporary))
+            payload["derived_candidate_population"]["maximum_candidates"] = 1
+            payload["derived_candidate_population"]["required_source_sample_ids"] = [
+                "chain-a:1",
+                "chain-b:1",
+            ]
+            with self.assertRaisesRegex(ArtifactValidationError, "cannot exceed"):
                 validate_pid_evaluation_request(payload)
 
     def test_all_sample_method_requires_null_ids(self):

@@ -36,13 +36,12 @@ from grape_param_estim.pid.particle_search import (
     MODEL_DISCREPANCY_INTERVAL_MODELS,
     MODEL_DISCREPANCY_QUANTITIES,
     ModelDiscrepancyConfiguration,
+    build_initial_candidate_population,
     evaluate_pid_candidates,
     resolve_forecast_worker_count,
 )
 from grape_param_estim.pid.predictive import ClosedLoopPidForecastEvaluator
 from grape_param_estim.pid.proposal import (
-    PidCandidate,
-    current_pid_candidate,
     derive_pid_proposals,
     user_pid_candidate,
 )
@@ -110,31 +109,20 @@ def _q_contract(run: BatchEstimationRun):
     return quantity, interval_model
 
 
-def _requested_candidates(request, proposals, posterior, current):
-    result = []
-    for item in request.candidates:
-        if item.source == "current":
-            result.append(current_pid_candidate(current))
-        elif item.source == "sample-derived":
-            sample = posterior.sample(item.source_sample_id)
-            result.append(
-                PidCandidate(
-                    candidate_id=item.candidate_id,
-                    source="sample-derived",
-                    configuration=proposals.configuration_for_sample(
-                        item.source_sample_id
-                    ),
-                    source_sample_id=item.source_sample_id,
-                    source_mode_id=sample.source_mode_id,
-                )
-            )
-        else:
-            result.append(
-                user_pid_candidate(
-                    item.candidate_id, PidGainConfiguration(item.gain_values)
-                )
-            )
-    return tuple(result)
+def _requested_candidates(request, proposals):
+    users = tuple(
+        user_pid_candidate(
+            item.candidate_id, PidGainConfiguration(item.gain_values)
+        )
+        for item in request.candidates
+        if item.source == "user"
+    )
+    return build_initial_candidate_population(
+        proposals,
+        maximum_derived_candidates=request.maximum_derived_candidates,
+        required_source_sample_ids=request.required_derived_sample_ids,
+        user_candidates=users,
+    )
 
 
 def execute_pid_evaluation(
@@ -166,8 +154,19 @@ def execute_pid_evaluation(
         if request.plant_sample_ids is None
         else len(request.plant_sample_ids)
     )
+    derived_candidate_count = min(
+        len(posterior.samples),
+        (
+            len(posterior.samples)
+            if request.maximum_derived_candidates is None
+            else request.maximum_derived_candidates
+        ),
+    )
+    candidate_count = 1 + derived_candidate_count + sum(
+        value.source == "user" for value in request.candidates
+    )
     forecast_count = (
-        len(request.candidates)
+        candidate_count
         * selected_sample_count
         * len(request.bags)
         * request.discrepancy_replicates
@@ -236,7 +235,9 @@ def execute_pid_evaluation(
     )
     scenarios = forecast_scenarios_from_batch_run(run, posterior, models)
     proposals = derive_pid_proposals(posterior, nominal, geometry, current)
-    candidates = _requested_candidates(request, proposals, posterior, current)
+    candidates = _requested_candidates(request, proposals)
+    if len(candidates) != candidate_count:
+        raise RuntimeError("derived PID candidate count changed during evaluation")
     q_quantity, q_interval_model = _q_contract(run)
     discrepancy = ModelDiscrepancyConfiguration(
         policy=request.discrepancy_policy,

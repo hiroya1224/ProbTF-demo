@@ -57,6 +57,11 @@ def _request(root, bag_path, bag_sha):
             "method": "all_equal_weight_mcmc_samples",
             "sample_ids": None,
         },
+        "derived_candidate_population": {
+            "method": "all_raw_mcmc_samples",
+            "maximum_candidates": None,
+            "required_source_sample_ids": ["chain-a:1"],
+        },
         "candidates": [
             {
                 "candidate_id": "current",
@@ -224,7 +229,11 @@ class PidCliTests(unittest.TestCase):
                 },
             )
             evaluation = writer.call_args.kwargs["evaluation"]
-            self.assertEqual(len(evaluation.records), 2)
+            self.assertEqual(len(evaluation.records), 3)
+            self.assertEqual(
+                tuple(value.candidate_id for value in evaluation.records),
+                ("current", "sample_Y2hhaW4tYTox", "user-a"),
+            )
             self.assertEqual(
                 evaluation.discrepancy.interval_model,
                 "continuous_spectral_density",
@@ -316,11 +325,11 @@ class PidCliTests(unittest.TestCase):
                 evaluator_override=resumed_evaluator,
             )
             self.assertEqual(len(first_calls), 1)
-            self.assertEqual(len(resumed_calls), 1)
+            self.assertEqual(len(resumed_calls), 2)
             evaluation = writer.call_args.kwargs["evaluation"]
             self.assertEqual(
                 tuple(value.candidate_id for value in evaluation.records),
-                ("current", "user-a"),
+                ("current", "sample_Y2hhaW4tYTox", "user-a"),
             )
             runtime = writer.call_args.kwargs["runtime_diagnostics"]
             self.assertEqual(runtime.resumed_forecast_count, 1)

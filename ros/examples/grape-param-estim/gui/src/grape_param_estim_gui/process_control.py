@@ -8,12 +8,7 @@ import signal
 from typing import Callable, Mapping
 
 
-_DIAGONAL_Q_ARTIFACT_SCHEMAS = frozenset(
-    {
-        "grape-param-estim/diagonal-wrench-q-estimate/v1",
-        "grape-param-estim/diagonal-wrench-q-estimate/v2",
-    }
-)
+_BATCH_CHECKPOINT_SCHEMA = "grape-param-estim/batch-estimation-checkpoint/v1"
 
 
 def send_cooperative_interrupt(
@@ -43,39 +38,41 @@ def finalize_cancelled_bundle(
     """Make an existing writing/cancelled worker manifest authoritative."""
 
     bundle_root = Path(root).expanduser().resolve()
-    if not (bundle_root / "manifest.json").is_file():
-        return False
     if manifest_reader is None and cancellation_marker is None:
-        from grape_param_estim.artifact_io import read_json
+        from grape_param_estim.artifact_io import read_json, write_json_atomic
 
-        raw = read_json(bundle_root / "manifest.json")
-        schema = raw.get("schema")
-        if schema in _DIAGONAL_Q_ARTIFACT_SCHEMAS:
-            from grape_param_estim.diagonal_q_artifact import (
-                mark_diagonal_q_artifact_cancelled,
-                read_diagonal_q_manifest,
+        manifest_path = bundle_root / "manifest.json"
+        if not manifest_path.is_file():
+            checkpoint_root = bundle_root.parent / (
+                ".{}-batch-checkpoint".format(bundle_root.name)
             )
+            checkpoint_manifest = checkpoint_root / "manifest.json"
+            if not checkpoint_manifest.is_file():
+                return False
+            raw = read_json(checkpoint_manifest)
+            if raw.get("schema") != _BATCH_CHECKPOINT_SCHEMA:
+                return False
+            status = raw.get("status")
+            if status == "cancelled":
+                return True
+            if status not in {"core_complete", "sampling"}:
+                return False
+            cancellation_reason = str(reason)
+            if not cancellation_reason or cancellation_reason.strip() != cancellation_reason:
+                raise ValueError("cancellation reason must be canonical text")
+            updated = dict(raw)
+            updated["status"] = "cancelled"
+            updated["cancellation_reason"] = cancellation_reason
+            write_json_atomic(checkpoint_manifest, updated)
+            return True
 
-            reader = read_diagonal_q_manifest
-            marker = mark_diagonal_q_artifact_cancelled
-        elif schema == (
-            "grape-param-estim/fixed-q-augmented-parameter-estimate/v1"
-        ):
-            from grape_param_estim.augmented_parameter_artifact import (
-                mark_augmented_parameter_artifact_cancelled,
-                read_augmented_parameter_manifest,
-            )
+        from grape_param_estim.artifact_io import (
+            mark_bundle_cancelled,
+            read_manifest,
+        )
 
-            reader = read_augmented_parameter_manifest
-            marker = mark_augmented_parameter_artifact_cancelled
-        else:
-            from grape_param_estim.artifact_io import (
-                mark_bundle_cancelled,
-                read_manifest,
-            )
-
-            reader = read_manifest
-            marker = mark_bundle_cancelled
+        reader = read_manifest
+        marker = mark_bundle_cancelled
     elif manifest_reader is None or cancellation_marker is None:
         from grape_param_estim.artifact_io import (  # local cross-env boundary
             mark_bundle_cancelled,

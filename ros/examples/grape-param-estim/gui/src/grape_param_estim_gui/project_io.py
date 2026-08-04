@@ -112,6 +112,10 @@ def freshness_payload(manifest: Mapping[str, Any]) -> dict[str, Any]:
             bag_id: fingerprints.get(bag_id) for bag_id in selected
         },
         "estimator_settings": manifest.get("estimator_settings", {}),
+        "bag_estimation_settings": {
+            bag_id: manifest.get("bag_estimation_settings", {}).get(bag_id)
+            for bag_id in selected
+        },
     }
 
 
@@ -169,6 +173,7 @@ def new_project_manifest(
         "configuration_fingerprints": {},
         "configuration_confirmations": {},
         "estimator_settings": {},
+        "bag_estimation_settings": {},
         "current_estimation_run_id": None,
         "current_pid_proposal_evaluation_id": None,
         "run_request_fingerprint": None,
@@ -196,7 +201,7 @@ def validate_project_manifest(
         "estimator_revision", "writer", "loader", "artifact_loaders", "bags",
         "selected_bag_ids", "intervals", "controller_snapshots",
         "configuration_fingerprints", "configuration_confirmations",
-        "estimator_settings",
+        "estimator_settings", "bag_estimation_settings",
         "current_estimation_run_id", "current_pid_proposal_evaluation_id",
         "run_request_fingerprint", "result_freshness",
     }
@@ -370,6 +375,25 @@ def validate_project_manifest(
         raise ProjectIoError("controller snapshots must be objects")
     if not isinstance(value["estimator_settings"], dict):
         raise ProjectIoError("estimator_settings must be an object")
+    bag_settings = value["bag_estimation_settings"]
+    if (
+        not isinstance(bag_settings, dict)
+        or not set(bag_settings) <= set(identifiers)
+        or any(not isinstance(item, dict) for item in bag_settings.values())
+    ):
+        raise ProjectIoError(
+            "bag_estimation_settings must map registered bag IDs to objects"
+        )
+    expected_bag_setting_keys = {
+        "observation_factors",
+        "fixed_factor_covariances",
+        "initial_state_prior_covariances",
+    }
+    if any(set(item) != expected_bag_setting_keys for item in bag_settings.values()):
+        raise ProjectIoError(
+            "each bag_estimation_settings entry must contain explicit factor, "
+            "fixed-covariance, and initial-prior settings"
+        )
     freshness = value["result_freshness"]
     if freshness not in {"NOT_ESTIMATED", "UP_TO_DATE", "STALE"}:
         raise ProjectIoError("invalid result_freshness")

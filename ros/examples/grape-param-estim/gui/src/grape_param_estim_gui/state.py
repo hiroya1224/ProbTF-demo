@@ -50,10 +50,89 @@ from .artifact_loader import (
 )
 from .project_io import freshness_fingerprint, result_is_fresh, utc_now
 
+from grape_param_estim.batch_request import (
+    FIXED_FACTOR_COVARIANCE_BLOCKS,
+    INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS,
+    OBSERVATION_COVARIANCE_BLOCKS,
+)
+
 
 MANUAL_CONFIGURATION_GROUP_SCHEMA = (
     "grape-param-estim/manual-configuration-group/v1"
 )
+
+
+_FACTOR_TOPICS = {
+    "pose": "/gimbalrotor/mocap/pose",
+    "velocity": "/gimbalrotor/uav/baselink/odom",
+    "gyro": "/gimbalrotor/sensor_plugin/imu1/ros_converted",
+    "issued_rotor_command": "/gimbalrotor/four_axes/command",
+    "issued_gimbal_command": "/gimbalrotor/gimbals_ctrl",
+    "actual_gimbal_position": "/gimbalrotor/joint_states",
+    "controller_integral": "/gimbalrotor/debug/pose/pid",
+}
+
+
+def _provisional_covariance(
+    contract: tuple[tuple[str, ...], tuple[str, ...]], source: str
+) -> dict[str, object]:
+    coordinates, units = contract
+    return {
+        "source": source,
+        "representation": "diagonal",
+        "coordinates": list(coordinates),
+        "units": list(units),
+        "values": [1.0] * len(coordinates),
+    }
+
+
+def bag_estimation_settings_from_inspection(
+    inspection: Mapping[str, Any],
+) -> dict[str, object]:
+    """Create explicit factor choices from the audited topic contract."""
+
+    topics = {
+        str(item.get("topic")): bool(item.get("present")) and bool(item.get("type_matches"))
+        for item in inspection.get("topic_contract", ())
+        if isinstance(item, Mapping)
+    }
+    factors: dict[str, object] = {}
+    for name, blocks in OBSERVATION_COVARIANCE_BLOCKS.items():
+        if name == "accelerometer":
+            enabled = False
+            reason = (
+                "accelerometer disabled: sensor frame and lever arm are not "
+                "confirmed by inspection"
+            )
+        else:
+            topic = _FACTOR_TOPICS[name]
+            enabled = bool(topics.get(topic, False))
+            reason = None if enabled else "required audited topic unavailable: {}".format(topic)
+        factors[name] = {
+            "enabled": enabled,
+            "disabled_reason": reason,
+            "covariances": (
+                {
+                    block_name: _provisional_covariance(
+                        contract, "project_configuration"
+                    )
+                    for block_name, contract in blocks.items()
+                }
+                if enabled
+                else None
+            ),
+        }
+    return {
+        "observation_factors": factors,
+        "fixed_factor_covariances": {
+            name: _provisional_covariance(contract, "numerical_tolerance")
+            for name, contract in FIXED_FACTOR_COVARIANCE_BLOCKS.items()
+        },
+        "initial_state_prior_covariances": {
+            name: _provisional_covariance(contract, "project_configuration")
+            for name, contract in INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS.items()
+        },
+    }
 
 
 @dataclass
@@ -293,6 +372,7 @@ class ProjectStore(QObject):
 
     def remove(self, bag_id: str) -> None:
         self._records = [record for record in self._records if record.bag_id != bag_id]
+        self.manifest.get("bag_estimation_settings", {}).pop(bag_id, None)
         self.manifest["bags"] = [
             item for item in self.manifest.get("bags", [])
             if item.get("bag_id") != bag_id
@@ -413,6 +493,9 @@ class ProjectStore(QObject):
             previous_status = record.status
             record.inspection = inspection
             record.preview = artifact.previews[bag_id]
+            self.manifest.setdefault("bag_estimation_settings", {})[bag_id] = (
+                bag_estimation_settings_from_inspection(inspection)
+            )
             if recommendation is not None:
                 if not isinstance(recommendation, Mapping):
                     raise ValueError("inspection recommended interval is invalid")
@@ -485,13 +568,10 @@ class ProjectStore(QObject):
     def apply_estimation(self, run: BatchEstimationRun) -> None:
         """Attach a validated batch run and synchronize its sample identity."""
 
-        project_fingerprint = run.request_fingerprint
-        current_fingerprint = self.request_fingerprint()
-        if project_fingerprint != current_fingerprint:
-            raise ValueError(
-                "batch run request_fingerprint does not match "
-                "the current project inputs"
-            )
+        # The artifact request fingerprint authenticates the complete worker
+        # request, while project freshness fingerprints only GUI scientific
+        # inputs.  MainWindow binds both when completing the workflow attempt;
+        # they are intentionally different hashes.
         unknown_bag_ids = sorted(
             bag_id for bag_id in run.bags if self.get(bag_id) is None
         )
@@ -643,6 +723,7 @@ class ProjectStore(QObject):
 
 __all__ = [
     "BagRecord",
+    "bag_estimation_settings_from_inspection",
     "MANUAL_CONFIGURATION_GROUP_SCHEMA",
     "ProjectState",
     "ProjectStore",

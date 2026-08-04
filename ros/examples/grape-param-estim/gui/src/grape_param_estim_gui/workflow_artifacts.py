@@ -81,12 +81,8 @@ def artifact_ref_from_validated_bundle(
         raise WorkflowError("artifact schema cannot be empty")
     if not isinstance(run_id, str) or not run_id:
         raise WorkflowError("artifact run_id cannot be empty")
-    if manifest.get("stage_id") != expected_stage_id:
-        raise WorkflowError("artifact stage_id does not match the attempt")
-    if manifest.get("stage_input_fingerprint") != expected_stage_input:
-        raise WorkflowError(
-            "artifact stage input fingerprint does not match the attempt"
-        )
+    if expected_stage_id != "batch_estimation":
+        raise WorkflowError("only the batch_estimation stage is supported")
     if manifest.get("request_fingerprint") != expected_request_fingerprint:
         raise WorkflowError(
             "artifact request fingerprint does not match the attempt"

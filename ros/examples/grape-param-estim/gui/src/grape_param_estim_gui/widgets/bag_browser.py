@@ -714,7 +714,12 @@ class BatchSignalPanel(QWidget):
                         brush=pg.mkBrush(75, 175, 120, 42),
                     )
                 )
-            if self.kind == "dynamics" and not normalized_dynamics:
+            if (
+                self.kind == "dynamics"
+                and not normalized_dynamics
+                and "q_upper" in self.series_data
+                and "q_lower" in self.series_data
+            ):
                 for key in ("q_upper", "q_lower"):
                     time, values = self.series_data[key]
                     plot.plot(
@@ -722,7 +727,7 @@ class BatchSignalPanel(QWidget):
                         values[:, component],
                         pen=pg.mkPen(self._COLORS["q_band"], width=1.4, style=Qt.DashLine),
                     )
-            elif normalized_dynamics:
+            elif normalized_dynamics and "q_upper" in self.series_data:
                 reference_time = self.series_data["q_upper"][0]
                 for value in (-1.0, 1.0):
                     plot.plot(

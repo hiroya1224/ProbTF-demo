@@ -6,6 +6,8 @@ from pathlib import Path
 import shutil
 import sys
 
+import numpy as np
+
 os.environ.setdefault("QT_API", "pyside6")
 
 import pyqtgraph as pg
@@ -21,8 +23,106 @@ from .project_io import (
 from .state import ProjectStore
 
 
+def default_batch_estimator_settings() -> dict[str, object]:
+    """Return explicit, auditable starting settings for a new project.
+
+    Numeric values are provisional project configuration, not inferred sensor
+    statistics.  The request preserves that provenance and users may edit the
+    project JSON before a run.
+    """
+
+    return {
+        "q": {
+            "residual_quantity": "body_wrench",
+            "interval_model": "continuous_spectral_density",
+            "component_names": ["x", "y", "z", "roll", "pitch", "yaw"],
+            "component_units": ["N", "N", "N", "N*m", "N*m", "N*m"],
+            "initial_diagonal": [25.0, 25.0, 25.0, 1.0, 1.0, 1.0],
+            "floor_diagonal": [1.0e-8] * 6,
+        },
+        "parameter_prior": {
+            "kind": "gaussian",
+            "mean_coordinate": [0.0] * 18,
+            "covariance": np.eye(18).tolist(),
+        },
+        "delay": {
+            "prior_kind": "uniform",
+            "bounds_seconds": [0.0, 0.08],
+            "initial_seconds": 0.035,
+            "coarse_grid_points": 9,
+            "refinement_tolerance_seconds": 1.0e-5,
+            "maximum_refinement_evaluations": 32,
+        },
+        "actuator_model": {
+            "source": "provisional_project_configuration; verify against actuator calibration",
+            "thrust_time_constant_seconds": 0.04,
+            "gimbal_time_constant_seconds": 0.03,
+            "minimum_thrust_newtons": 1.5,
+            "maximum_thrust_newtons": 27.6145,
+            "maximum_gimbal_angle_radians": 3.14,
+            "maximum_gimbal_rate_radians_per_second": 6.0,
+        },
+        "knot_policy": {
+            "period_seconds": 0.02,
+            "origin": "interval_start",
+            "maximum_measurement_gap_seconds": 0.06,
+        },
+        "interpolation_policy": {
+            "euclidean": "linear",
+            "orientation": "so3_geodesic",
+            "command": "zoh_record_issue_time",
+            "allow_extrapolation": False,
+        },
+        "controller_snapshot_policy": {
+            "source": "bag_startup_parameter_updates",
+            "require_constant_within_interval": True,
+        },
+        "mode_hypotheses": [],
+        "solver_settings": {
+            "maximum_iterations": 50,
+            "maximum_factorization_retries": 4,
+            "maximum_model_evaluation_retries": 4,
+            "acceptance_ratio": 1.0e-4,
+            "gradient_tolerance": 1.0e-6,
+            "scaled_step_tolerance": 1.0e-7,
+            "relative_objective_tolerance": 1.0e-8,
+            "initial_damping": 1.0e-3,
+            "minimum_damping": 1.0e-12,
+            "maximum_damping": 1.0e12,
+        },
+        "em_settings": {
+            "maximum_iterations": 12,
+            "minimum_iterations": 2,
+            "maximum_repeated_q_rejections": 3,
+            "maximum_repeated_lag_profile_failures": 3,
+            "log_q_tolerance": 1.0e-3,
+            "lag_tolerance": 1.0e-5,
+            "map_objective_tolerance": 1.0e-5,
+            "marginal_objective_tolerance": 1.0e-5,
+            "q_acceptance_objective_tolerance": 0.0,
+            "q_minimum_alpha": 1.0 / 64.0,
+        },
+        "mcmc_settings": {
+            "enabled": True,
+            "chain_count": 4,
+            "warmup_steps": 100,
+            "retained_draws": 200,
+            "thinning": 1,
+            "random_seed": 42,
+            "local_scale": 0.5,
+            "exact_ridge_scale": 0.25,
+            "near_ridge_scale": 0.25,
+            "identified_scale": 0.1,
+            "delay_scale_seconds": 0.002,
+            "near_relative_threshold": 1.0e-6,
+            "rhat_threshold": 1.01,
+            "minimum_effective_sample_size": 100.0,
+        },
+    }
+
+
 def _arguments(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Grape parameter assimilation desktop GUI")
+    parser = argparse.ArgumentParser(description="Grape sparse batch estimation desktop GUI")
     parser.add_argument("--package-root", type=Path)
     parser.add_argument("--projects-root", type=Path)
     parser.add_argument(
@@ -81,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
         else arguments.projects_root.expanduser().resolve()
     )
     application = QApplication.instance() or QApplication(sys.argv[:1])
-    application.setApplicationName("Grape parameter assimilation")
+    application.setApplicationName("Grape sparse batch estimation")
     application.setOrganizationName("ProbTF demo")
     pg.setConfigOptions(
         background="w",
@@ -94,25 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         gui_revision="1.0.0",
         estimator_revision=os.environ.get("GRAPE_PARAM_ESTIM_REVISION", "workspace"),
     )
-    manifest["estimator_settings"] = {
-        "sample_period": 0.04,
-        "maximum_knots": 12,
-        "ensemble_size": 128,
-        "maximum_iterations": 5,
-        "convergence_tolerance": 1.0e-3,
-        "minimum_line_search_step": 1.0 / 64.0,
-        "seed": 23,
-        "delay_prior_mean": 0.02,
-        "delay_prior_standard_deviation": 0.015,
-        "maximum_delay": 0.2,
-        "q_maximum_em_iterations": 5,
-        "q_log_q_tolerance": 1.0e-3,
-        "q_component_floor": [1.0e-9] * 6,
-        "q_fixed_initial_delay_seconds": 0.02,
-        "forecast_workers": "auto",
-        "covariance_rcond": 1.0e-12,
-        "allow_configuration_mismatch": False,
-    }
+    manifest["estimator_settings"] = default_batch_estimator_settings()
     project_path = create_project_directory(projects_root, manifest)
     store = ProjectStore(project_path, manifest)
     window = MainWindow(store, package_root)

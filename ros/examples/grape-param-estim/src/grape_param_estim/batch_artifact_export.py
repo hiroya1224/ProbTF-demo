@@ -2161,8 +2161,96 @@ def complete_pending_mcmc_artifact_payload(
     )
 
 
+def append_posterior_sampling_artifact_payload(
+    core: BatchArtifactPayload,
+    final_solution: FixedGraphLaplaceSolution,
+    mcmc_chains: Sequence[McmcChainResult],
+    mcmc_diagnostics: McmcDiagnostics,
+    mcmc_target_seconds: Sequence[float],
+    audited_mcmc_settings: Mapping[str, Any],
+) -> BatchArtifactPayload:
+    """Upgrade an immutable estimate-only payload with independent MCMC."""
+
+    if not isinstance(core, BatchArtifactPayload):
+        raise TypeError("core must be BatchArtifactPayload")
+    if not isinstance(final_solution, FixedGraphLaplaceSolution):
+        raise TypeError("final_solution must be FixedGraphLaplaceSolution")
+    if core.mcmc_samples is not None or core.trajectories:
+        raise ValueError("estimate-only core already contains posterior samples")
+    metadata = dict(core.manifest_metadata)
+    old_settings = metadata.get("mcmc_settings")
+    if not isinstance(old_settings, Mapping) or old_settings != {"enabled": False}:
+        raise ValueError("upstream core is not a strict estimate-only run")
+    if not isinstance(audited_mcmc_settings, Mapping):
+        raise TypeError("audited_mcmc_settings must be a mapping")
+    selected_settings = dict(audited_mcmc_settings)
+    if selected_settings.get("enabled") is not True:
+        raise ValueError("audited MCMC settings must explicitly enable sampling")
+    required_audit = {
+        "sampling_request_fingerprint",
+        "upstream_estimation_request_fingerprint",
+        "sampler_revision",
+    }
+    if not required_audit.issubset(selected_settings):
+        raise ValueError("audited MCMC settings are missing provenance")
+    if (
+        selected_settings["upstream_estimation_request_fingerprint"]
+        != metadata.get("request_fingerprint")
+    ):
+        raise ValueError("upstream estimation request fingerprint mismatch")
+    if not isinstance(mcmc_diagnostics, McmcDiagnostics):
+        raise TypeError("mcmc_diagnostics must be McmcDiagnostics")
+    timings = np.asarray(tuple(mcmc_target_seconds), dtype=float)
+    if timings.ndim != 1 or not timings.size or np.any(~np.isfinite(timings)):
+        raise ValueError("mcmc_target_seconds must be a non-empty finite vector")
+    if np.any(timings < 0.0):
+        raise ValueError("mcmc_target_seconds cannot be negative")
+    diagnostics = {
+        key: np.asarray(value).copy() for key, value in core.diagnostics.items()
+    }
+    if diagnostics.get("mcmc_target_seconds", np.ones(1)).size != 0:
+        raise ValueError("estimate-only core already has MCMC timings")
+    diagnostics["mcmc_target_seconds"] = timings
+    diagnostics.update(_mcmc_diagnostic_arrays(mcmc_diagnostics))
+    substage_status = {
+        key: dict(value)
+        for key, value in metadata["substage_status"].items()
+    }
+    if "mcmc" in substage_status:
+        raise ValueError("estimate-only core already has an MCMC substage")
+    substage_status["mcmc"] = {
+        "converged": bool(mcmc_diagnostics.converged),
+        "termination_reason": (
+            "converged_diagnostics"
+            if mcmc_diagnostics.converged
+            else "completed_not_converged"
+        ),
+    }
+    metadata["substage_status"] = substage_status
+    metadata["mcmc_settings"] = selected_settings
+    if not mcmc_diagnostics.converged:
+        warnings = list(metadata["warnings"])
+        warning = "MCMC completed without satisfying convergence thresholds"
+        if warning not in warnings:
+            warnings.append(warning)
+        metadata["warnings"] = warnings
+    return BatchArtifactPayload(
+        manifest_metadata=metadata,
+        map_static=core.map_static,
+        q_em=core.q_em,
+        laplace=core.laplace,
+        diagnostics=diagnostics,
+        bags=core.bags,
+        mcmc_samples=_mcmc_payload(
+            final_solution, mcmc_chains, mcmc_diagnostics
+        ),
+        trajectories={},
+    )
+
+
 __all__ = [
     "ArtifactRunIdentity",
+    "append_posterior_sampling_artifact_payload",
     "BagPerformanceMeasurements",
     "BatchArtifactPayload",
     "DelayLocalGeometry",

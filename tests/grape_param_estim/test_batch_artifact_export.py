@@ -23,7 +23,10 @@ from grape_param_estim.batch.laplace_em import (
 )
 from grape_param_estim.batch.lm import LMSettings
 from grape_param_estim.batch.variables import VariableKey, VariableKind
-from grape_param_estim.batch_artifact import write_batch_estimation_run
+from grape_param_estim.batch_artifact import (
+    replace_batch_estimation_run,
+    write_batch_estimation_run,
+)
 from grape_param_estim.batch_artifact_export import (
     ArtifactRunIdentity,
     BagPerformanceMeasurements,
@@ -31,6 +34,7 @@ from grape_param_estim.batch_artifact_export import (
     RunPerformanceMeasurements,
     SelectedConditionalTrajectory,
     _unit_quaternion_series,
+    append_posterior_sampling_artifact_payload,
     complete_pending_mcmc_artifact_payload,
     export_batch_estimation_artifact_payload,
 )
@@ -376,6 +380,67 @@ class BatchArtifactExportTests(unittest.TestCase):
                 Path(temporary) / "run", **completed.writer_arguments
             )
         self.assertEqual(loaded.mcmc_samples["sample_id"].size, 8)
+
+    def test_independent_sampling_replaces_estimate_only_with_rollback_boundary(self):
+        request = validate_batch_estimation_request(self.helper.payload)
+        core = export_batch_estimation_artifact_payload(
+            request=request,
+            flight_data=(self.helper.flight,),
+            initializations=(self.helper.initialization,),
+            final_solution=self.solution,
+            em_result=self.em_result,
+            static_geometry=self.solution.static_geometry(),
+            final_q_lag_profile=self._final_q_lag_profile(),
+            delay_geometry=DelayLocalGeometry(
+                0.001,
+                "positive local quadratic profile curvature",
+                1.0e6,
+            ),
+            identity=ArtifactRunIdentity(
+                estimator_revision="test-estimator-revision",
+                configuration_fingerprint="sha256:" + "1" * 64,
+                controller_snapshot_fingerprint="sha256:" + "2" * 64,
+            ),
+            performance=self._performance(mcmc=False),
+        )
+        chains, diagnostics = self._chains_and_diagnostics()
+        sampled = append_posterior_sampling_artifact_payload(
+            core,
+            self.solution,
+            chains,
+            diagnostics,
+            (0.2, 0.21),
+            {
+                "enabled": True,
+                "sampling_request_fingerprint": "sha256:" + "3" * 64,
+                "upstream_estimation_request_fingerprint": request.fingerprint,
+                "sampler_revision": "test-sampler",
+            },
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "run"
+            original = write_batch_estimation_run(
+                root, **core.writer_arguments
+            )
+            original_map_digest = original.manifest["artifacts"]["map_static"][
+                "sha256"
+            ]
+            upgraded = replace_batch_estimation_run(
+                root,
+                expected_request_fingerprint=request.fingerprint,
+                **sampled.writer_arguments
+            )
+        self.assertEqual(upgraded.mcmc_samples["sample_id"].size, 8)
+        self.assertEqual(
+            upgraded.manifest["artifacts"]["map_static"]["sha256"],
+            original_map_digest,
+        )
+        self.assertEqual(
+            upgraded.manifest["mcmc_settings"][
+                "sampling_request_fingerprint"
+            ],
+            "sha256:" + "3" * 64,
+        )
 
     def test_exports_raw_or_labelled_sha_and_round_trips_complete_mcmc_run(self):
         request = validate_batch_estimation_request(

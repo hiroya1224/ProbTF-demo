@@ -17,6 +17,7 @@ from dataclasses import dataclass
 import hashlib
 import os
 import re
+import shutil
 from pathlib import Path
 import tempfile
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
@@ -2107,10 +2108,88 @@ def load_batch_estimation_run(
     return _load_validated_run(run_root, manifest)
 
 
+def replace_batch_estimation_run(
+    root: Union[str, Path],
+    *,
+    expected_request_fingerprint: str,
+    manifest_metadata: Mapping[str, Any],
+    map_static: Mapping[str, np.ndarray],
+    q_em: Mapping[str, np.ndarray],
+    laplace: Mapping[str, np.ndarray],
+    diagnostics: Mapping[str, np.ndarray],
+    bags: Mapping[str, Mapping[str, np.ndarray]],
+    mcmc_samples: Optional[Mapping[str, np.ndarray]] = None,
+    trajectories: Optional[Mapping[str, Mapping[str, np.ndarray]]] = None,
+) -> BatchEstimationRun:
+    """Publish an upgraded complete run with rollback to the original."""
+
+    destination = Path(root).expanduser().resolve()
+    original = load_batch_estimation_run(destination)
+    if original.manifest["request_fingerprint"] != expected_request_fingerprint:
+        raise ArtifactValidationError(
+            "current run request fingerprint changed before replacement"
+        )
+    if original.mcmc_samples is not None:
+        raise ArtifactValidationError(
+            "current run already contains posterior samples"
+        )
+    staging_parent = Path(
+        tempfile.mkdtemp(
+            prefix=".{}-upgrade-".format(destination.name),
+            dir=str(destination.parent),
+        )
+    )
+    candidate = staging_parent / "complete-run"
+    backup_parent = Path(
+        tempfile.mkdtemp(
+            prefix=".{}-rollback-".format(destination.name),
+            dir=str(destination.parent),
+        )
+    )
+    backup = backup_parent / "original-run"
+    original_moved = False
+    replacement_published = False
+    try:
+        write_batch_estimation_run(
+            candidate,
+            manifest_metadata=manifest_metadata,
+            map_static=map_static,
+            q_em=q_em,
+            laplace=laplace,
+            diagnostics=diagnostics,
+            bags=bags,
+            mcmc_samples=mcmc_samples,
+            trajectories=trajectories,
+        )
+        os.replace(str(destination), str(backup))
+        original_moved = True
+        try:
+            os.replace(str(candidate), str(destination))
+            replacement_published = True
+            _fsync_directory(destination.parent)
+        except Exception:
+            os.replace(str(backup), str(destination))
+            original_moved = False
+            _fsync_directory(destination.parent)
+            raise
+        return load_batch_estimation_run(destination)
+    finally:
+        if replacement_published and backup.exists():
+            shutil.rmtree(str(backup))
+            original_moved = False
+        if original_moved and not destination.exists() and backup.exists():
+            os.replace(str(backup), str(destination))
+        if staging_parent.exists():
+            shutil.rmtree(str(staging_parent))
+        if backup_parent.exists():
+            shutil.rmtree(str(backup_parent))
+
+
 __all__ = [
     "BATCH_ESTIMATION_RUN_SCHEMA",
     "BatchEstimationRun",
     "file_sha256",
     "load_batch_estimation_run",
+    "replace_batch_estimation_run",
     "write_batch_estimation_run",
 ]

@@ -82,6 +82,11 @@ class EstimationOrchestrationTests(unittest.TestCase):
         )
         self.assertGreaterEqual(len(self.calls), 3)
         self.assertEqual(len(solver.profile_history), 1)
+        self.assertEqual(len(solver.profile_q_history), 1)
+        np.testing.assert_array_equal(
+            solver.profile_q_history[0], self.prepared.dynamics.q
+        )
+        self.assertFalse(solver.profile_q_history[0].flags.writeable)
         self.assertEqual(result.termination_reason, "wide_lag_profile")
         self.assertTrue(
             0.0 <= result.lag <= 0.02,

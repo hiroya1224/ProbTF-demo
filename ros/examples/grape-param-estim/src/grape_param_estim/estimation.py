@@ -336,6 +336,11 @@ class SparseLaplaceEStepSolver:
         self.wide_lag_settings = wide_lag_settings
         self.cancellation_requested = cancellation_requested
         self.profile_history = []  # type: list
+        # A profile objective is comparable only with profiles evaluated at
+        # the same Q.  Keep the exact Q beside every chronological profile so
+        # downstream delay-curvature analysis cannot accidentally mix EM
+        # iterations with different normalizing terms.
+        self.profile_q_history = []  # type: list
 
     def _check_cancelled(self) -> None:
         if (
@@ -452,6 +457,9 @@ class SparseLaplaceEStepSolver:
                 "lag_profile_failure", total
             ) from error
         self.profile_history.append(profile)
+        profile_q = selected_q.copy()
+        profile_q.setflags(write=False)
+        self.profile_q_history.append(profile_q)
         best = solved[profile.best_lag]
         total_iterations = sum(
             point.inner_iterations for point in profile.points

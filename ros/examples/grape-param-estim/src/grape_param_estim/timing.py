@@ -7,80 +7,6 @@ import numpy as np
 
 
 CommandT = TypeVar("CommandT")
-DEFAULT_MAXIMUM_ESTIMATED_DELAY_SECONDS = 0.2
-
-
-@dataclass(frozen=True)
-class ConstantDelayChart:
-    """One-dimensional continuous chart for a non-negative delay.
-
-    The signed coordinate is retained in the raw control ensemble while its
-    absolute value is the physical delay.  This keeps zero delay representable
-    without quantizing to a simulation or publication period.
-    """
-
-    def decode(self, coordinate: float) -> float:
-        value = float(coordinate)
-        if not np.isfinite(value):
-            raise ValueError("constant-delay coordinate must be finite")
-        return abs(value)
-
-    def encode(self, delay: float) -> float:
-        return validate_constant_delay(delay)
-
-
-@dataclass(frozen=True)
-class BoundedDelayChart:
-    """Smooth bijection from R to a physically bounded positive delay."""
-
-    maximum_delay: float = DEFAULT_MAXIMUM_ESTIMATED_DELAY_SECONDS
-
-    def __post_init__(self) -> None:
-        maximum = float(self.maximum_delay)
-        if not np.isfinite(maximum) or maximum <= 0.0:
-            raise ValueError("maximum delay must be finite and positive")
-        object.__setattr__(self, "maximum_delay", maximum)
-
-    def decode(self, coordinate: float) -> float:
-        value = float(coordinate)
-        if not np.isfinite(value):
-            raise ValueError("bounded-delay coordinate must be finite")
-        if value >= 0.0:
-            exponential = np.exp(-value)
-            fraction = 1.0 / (1.0 + exponential)
-        else:
-            exponential = np.exp(value)
-            fraction = exponential / (1.0 + exponential)
-        return float(self.maximum_delay * fraction)
-
-    def encode(self, delay: float) -> float:
-        value = validate_constant_delay(delay)
-        if not 0.0 < value < self.maximum_delay:
-            raise ValueError(
-                "delay must lie strictly between zero and maximum_delay"
-            )
-        fraction = value / self.maximum_delay
-        return float(np.log(fraction) - np.log1p(-fraction))
-
-    def coordinate_standard_deviation(
-        self, delay: float, physical_standard_deviation: float
-    ) -> float:
-        """First-order conversion of a physical prior scale to chart units."""
-
-        value = validate_constant_delay(delay)
-        deviation = float(physical_standard_deviation)
-        if (
-            not 0.0 < value < self.maximum_delay
-            or not np.isfinite(deviation)
-            or deviation <= 0.0
-        ):
-            raise ValueError(
-                "delay/deviation must be interior-positive and positive"
-            )
-        derivative = value * (1.0 - value / self.maximum_delay)
-        return deviation / derivative
-
-
 def validate_constant_delay(value: float) -> float:
     """Return a finite non-negative controller-to-plant delay in seconds."""
 
@@ -179,9 +105,6 @@ def zero_order_hold_values(
 
 
 __all__ = [
-    "BoundedDelayChart",
-    "ConstantDelayChart",
-    "DEFAULT_MAXIMUM_ESTIMATED_DELAY_SECONDS",
     "ZeroOrderHoldCommandHistory",
     "validate_constant_delay",
     "zero_order_hold_values",

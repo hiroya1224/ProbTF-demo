@@ -3,8 +3,6 @@ import unittest
 import numpy as np
 
 from grape_param_estim.timing import (
-    BoundedDelayChart,
-    ConstantDelayChart,
     ZeroOrderHoldCommandHistory,
     validate_constant_delay,
     zero_order_hold_values,
@@ -45,29 +43,6 @@ class TimingTest(unittest.TestCase):
         history.append(0.0, "first")
         with self.assertRaises(ValueError):
             history.append(0.0, "duplicate")
-
-    def test_delay_chart_represents_zero_and_continuous_positive_values(self):
-        chart = ConstantDelayChart()
-        self.assertEqual(chart.decode(0.0), 0.0)
-        self.assertEqual(chart.decode(-0.013), 0.013)
-        self.assertEqual(chart.encode(0.0045), 0.0045)
-
-    def test_bounded_delay_chart_is_bijective_and_has_physical_scale(self):
-        chart = BoundedDelayChart(0.2)
-        for delay in (1.0e-5, 0.02, 0.1, 0.19999):
-            with self.subTest(delay=delay):
-                self.assertAlmostEqual(chart.decode(chart.encode(delay)), delay)
-        self.assertAlmostEqual(chart.decode(0.0), 0.1)
-        self.assertAlmostEqual(
-            chart.coordinate_standard_deviation(0.02, 0.015),
-            0.015 / (0.02 * 0.9),
-        )
-        self.assertGreater(chart.decode(1000.0), 0.199)
-        self.assertLess(chart.decode(-1000.0), 1.0e-12)
-        for delay in (0.0, 0.2, 0.3):
-            with self.assertRaises(ValueError):
-                chart.encode(delay)
-
 
 if __name__ == "__main__":
     unittest.main()

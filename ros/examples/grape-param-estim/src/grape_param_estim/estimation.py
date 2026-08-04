@@ -45,6 +45,8 @@ from grape_param_estim.batch.lag_profile import (
     optimize_lag_profile,
 )
 from grape_param_estim.batch.lm import (
+    BatchMapCancelled,
+    LMIterationRecord,
     LMSettings,
     LMSolveResult,
     solve_batch_map,
@@ -67,6 +69,7 @@ PreparedGraphFactory = Callable[
     [np.ndarray, float, np.ndarray], PreparedBatchGraphData
 ]
 CancellationCheck = Callable[[], bool]
+LMProgress = Callable[[LMIterationRecord], None]
 
 
 def _positive_q(value: np.ndarray) -> np.ndarray:
@@ -228,6 +231,8 @@ def solve_fixed_graph_laplace(
     lm_settings: LMSettings = LMSettings(),
     *,
     warm_start: Optional[BatchState] = None,
+    cancellation_requested: Optional[CancellationCheck] = None,
+    lm_progress: Optional[LMProgress] = None,
 ) -> FixedGraphLaplaceSolution:
     """Solve and factor one graph without retaining LM damping in precision."""
 
@@ -242,6 +247,12 @@ def solve_fixed_graph_laplace(
         raise TypeError("lm_settings must be LMSettings")
     if warm_start is not None and not isinstance(warm_start, BatchState):
         raise TypeError("warm_start must be BatchState or None")
+    for callback, name in (
+        (cancellation_requested, "cancellation_requested"),
+        (lm_progress, "lm_progress"),
+    ):
+        if callback is not None and not callable(callback):
+            raise TypeError("{} must be callable".format(name))
 
     try:
         prepared = graph_factory(selected_q.copy(), delay, static.copy())
@@ -265,7 +276,15 @@ def solve_fixed_graph_laplace(
         build_initial_batch_state(prepared), warm_start
     )
     try:
-        lm = solve_batch_map(problem, initial, lm_settings)
+        lm = solve_batch_map(
+            problem,
+            initial,
+            lm_settings,
+            cancellation_requested=cancellation_requested,
+            progress=lm_progress,
+        )
+    except BatchMapCancelled as error:
+        raise EstimationCancelled(str(error)) from error
     except RecoverableModelEvaluationError as error:
         raise FixedGraphSolveFailure("lm_model_failure") from error
     except (ArithmeticError, ValueError, RuntimeError) as error:
@@ -317,6 +336,7 @@ class SparseLaplaceEStepSolver:
         wide_lag_settings: LagProfileSettings,
         *,
         cancellation_requested: Optional[CancellationCheck] = None,
+        lm_progress: Optional[LMProgress] = None,
     ) -> None:
         if not callable(graph_factory):
             raise TypeError("graph_factory must be callable")
@@ -328,6 +348,8 @@ class SparseLaplaceEStepSolver:
             cancellation_requested
         ):
             raise TypeError("cancellation_requested must be callable")
+        if lm_progress is not None and not callable(lm_progress):
+            raise TypeError("lm_progress must be callable")
         self.graph_factory = graph_factory
         self.initial_static_coordinate = _static_coordinate(
             initial_static_coordinate
@@ -335,6 +357,7 @@ class SparseLaplaceEStepSolver:
         self.lm_settings = lm_settings
         self.wide_lag_settings = wide_lag_settings
         self.cancellation_requested = cancellation_requested
+        self.lm_progress = lm_progress
         self.profile_history = []  # type: list
         # A profile objective is comparable only with profiles evaluated at
         # the same Q.  Keep the exact Q beside every chronological profile so
@@ -368,6 +391,8 @@ class SparseLaplaceEStepSolver:
             static,
             self.lm_settings,
             warm_start=warm_start,
+            cancellation_requested=self.cancellation_requested,
+            lm_progress=self.lm_progress,
         )
 
     def _local_lag_settings(self, center: float) -> LagProfileSettings:
@@ -516,6 +541,7 @@ __all__ = [
     "EstimationCancelled",
     "FixedGraphLaplaceSolution",
     "FixedGraphSolveFailure",
+    "LMProgress",
     "PreparedGraphFactory",
     "SparseLaplaceEStepSolver",
     "make_fixed_q_laplace_problem_factory",

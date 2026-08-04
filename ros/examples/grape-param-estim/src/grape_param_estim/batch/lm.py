@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from numbers import Integral, Real
-from typing import Optional, Tuple
+from typing import Callable, Optional, Tuple
 
 import numpy as np
 
@@ -38,6 +38,19 @@ _CONVERGED_REASONS = {
     LMTerminationReason.SCALED_STEP_TOLERANCE,
     LMTerminationReason.RELATIVE_OBJECTIVE_TOLERANCE,
 }
+
+
+CancellationCheck = Callable[[], bool]
+
+
+class BatchMapCancelled(RuntimeError):
+    """Cancellation observed at a nonlinear-iteration boundary."""
+
+    def __init__(self, iterations: Tuple["LMIterationRecord", ...]):
+        self.iterations = iterations
+        super().__init__(
+            "batch MAP cancelled after {} iterations".format(len(iterations))
+        )
 
 
 def _finite_nonnegative(value: object, name: str) -> float:
@@ -185,6 +198,9 @@ def solve_batch_map(
     problem: BatchProblem,
     initial_state: BatchState,
     settings: LMSettings = LMSettings(),
+    *,
+    cancellation_requested: Optional[CancellationCheck] = None,
+    progress: Optional[Callable[[LMIterationRecord], None]] = None,
 ) -> LMSolveResult:
     """Run sparse LM while preserving every attempted-step diagnostic."""
 
@@ -193,6 +209,8 @@ def solve_batch_map(
         initial_state,
         settings,
         optimize_shared=True,
+        cancellation_requested=cancellation_requested,
+        progress=progress,
     )
 
 
@@ -200,6 +218,9 @@ def solve_conditional_batch_map(
     problem: BatchProblem,
     initial_state: BatchState,
     settings: LMSettings = LMSettings(),
+    *,
+    cancellation_requested: Optional[CancellationCheck] = None,
+    progress: Optional[Callable[[LMIterationRecord], None]] = None,
 ) -> LMSolveResult:
     """Optimize bag-local trajectories with the shared 18-D block fixed."""
 
@@ -208,6 +229,8 @@ def solve_conditional_batch_map(
         initial_state,
         settings,
         optimize_shared=False,
+        cancellation_requested=cancellation_requested,
+        progress=progress,
     )
     shared_key = problem.layout.variable_keys[0]
     if not np.array_equal(
@@ -234,6 +257,8 @@ def _solve_batch_map(
     settings: LMSettings,
     *,
     optimize_shared: bool,
+    cancellation_requested: Optional[CancellationCheck],
+    progress: Optional[Callable[[LMIterationRecord], None]],
 ) -> LMSolveResult:
     """Implementation shared by joint and fixed-parameter trajectory LM."""
 
@@ -243,17 +268,35 @@ def _solve_batch_map(
         raise TypeError("initial_state must be a BatchState")
     if not isinstance(settings, LMSettings):
         raise TypeError("settings must be LMSettings")
+    for callback, name in (
+        (cancellation_requested, "cancellation_requested"),
+        (progress, "progress"),
+    ):
+        if callback is not None and not callable(callback):
+            raise TypeError("{} must be callable".format(name))
+
+    def check_cancelled() -> None:
+        if cancellation_requested is not None and cancellation_requested():
+            raise BatchMapCancelled(tuple(records))
+
+    def append_record(record: LMIterationRecord) -> None:
+        records.append(record)
+        if progress is not None:
+            progress(record)
+
+    records = []
+    check_cancelled()
     current_state = initial_state
     current = problem.linearize(current_state)
     objective = float(current.sparse.objective)
     damping = settings.initial_damping
     scale = problem.coordinate_scale
-    records = []
     active_history = [_active_set_signature(current.factors)]
     consecutive_factorization_failures = 0
     consecutive_model_evaluation_failures = 0
 
     for iteration in range(settings.maximum_iterations):
+        check_cancelled()
         gradient_inf_norm = _scaled_gradient_inf_norm(
             current.sparse, scale, optimize_shared
         )
@@ -283,7 +326,7 @@ def _solve_batch_map(
         except np.linalg.LinAlgError:
             consecutive_factorization_failures += 1
             next_damping = _increase_damping(damping, settings)
-            records.append(
+            append_record(
                 LMIterationRecord(
                     iteration=iteration,
                     objective_before=objective,
@@ -319,7 +362,7 @@ def _solve_batch_map(
             continue
         consecutive_factorization_failures = 0
         if step.scaled_step_norm <= settings.scaled_step_tolerance:
-            records.append(
+            append_record(
                 LMIterationRecord(
                     iteration=iteration,
                     objective_before=objective,
@@ -388,7 +431,7 @@ def _solve_batch_map(
             else:
                 next_damping = _increase_damping(damping, settings)
                 active_set_changed = False
-        records.append(
+        append_record(
             LMIterationRecord(
                 iteration=iteration,
                 objective_before=objective,
@@ -490,6 +533,8 @@ def _result(
 
 
 __all__ = [
+    "BatchMapCancelled",
+    "CancellationCheck",
     "LMIterationRecord",
     "LMSettings",
     "LMSolveResult",

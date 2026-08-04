@@ -7,6 +7,7 @@ from grape_param_estim.batch.em_loop import EStepPhase
 from grape_param_estim.batch.lag_profile import LagProfileSettings
 from grape_param_estim.batch.lm import LMSettings
 from grape_param_estim.estimation import (
+    EstimationCancelled,
     SparseLaplaceEStepSolver,
     make_fixed_q_laplace_problem_factory,
     solve_fixed_graph_laplace,
@@ -108,6 +109,19 @@ class EstimationOrchestrationTests(unittest.TestCase):
             coordinate,
         )
         self.assertTrue(fixed.graph_objective_includes_static_prior)
+
+    def test_fixed_graph_cancellation_propagates_without_becoming_failure(self):
+        records = []
+        with self.assertRaises(EstimationCancelled):
+            solve_fixed_graph_laplace(
+                self.factory,
+                self.prepared.dynamics.q,
+                self.prepared.fixed_delay,
+                self.prepared.initial_parameter_coordinates,
+                cancellation_requested=lambda: bool(records),
+                lm_progress=records.append,
+            )
+        self.assertEqual(len(records), 1)
 
 
 if __name__ == "__main__":

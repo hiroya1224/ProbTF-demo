@@ -9,6 +9,7 @@ from grape_param_estim.batch.factors.prior import (
 )
 from grape_param_estim.batch.layout import VariableLayout
 from grape_param_estim.batch.lm import (
+    BatchMapCancelled,
     LMSettings,
     LMTerminationReason,
     solve_batch_map,
@@ -301,6 +302,33 @@ class BatchLMTests(unittest.TestCase):
             )
         with self.assertRaises(TypeError):
             BatchProblem(self.layout, StateScaling.unit(), object())
+
+    def test_progress_and_cancellation_use_nonlinear_iteration_boundaries(self):
+        problem = BatchProblem(
+            self.layout,
+            StateScaling.unit(),
+            _wrong_sign_factors,
+        )
+        records = []
+
+        def cancelled():
+            return len(records) == 2
+
+        with self.assertRaises(BatchMapCancelled) as context:
+            solve_batch_map(
+                problem,
+                self.initial,
+                LMSettings(
+                    maximum_iterations=10,
+                    gradient_tolerance=0.0,
+                    scaled_step_tolerance=0.0,
+                    relative_objective_tolerance=0.0,
+                ),
+                cancellation_requested=cancelled,
+                progress=records.append,
+            )
+        self.assertEqual(len(records), 2)
+        self.assertEqual(context.exception.iterations, tuple(records))
 
 
 if __name__ == "__main__":

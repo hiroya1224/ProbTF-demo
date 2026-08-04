@@ -448,12 +448,26 @@ def estimate_mode(
     if not dynamics.intervals:
         raise ValueError("mode has no valid free-flight dynamics interval")
     lag_settings = _lag_settings(request)
+
+    def lm_progress(record) -> None:
+        if progress is not None:
+            maximum = int(request.payload["solver_settings"]["maximum_iterations"])
+            progress(
+                "optimizing_full_trajectory",
+                record.iteration + 1,
+                maximum,
+                "mode={} objective={:.9g}".format(
+                    mode_id, record.objective_before
+                ),
+            )
+
     e_step = SparseLaplaceEStepSolver(
         factory,
         initial_static,
         _lm_settings(request),
         lag_settings,
         cancellation_requested=cancellation_requested,
+        lm_progress=lm_progress,
     )
 
     def em_progress(record) -> None:
@@ -488,6 +502,8 @@ def estimate_mode(
         final_step.state.value(final_step.state.layout.variable_keys[0]),
         _lm_settings(request),
         warm_start=final_step.state,
+        cancellation_requested=cancellation_requested,
+        lm_progress=lm_progress,
     )
     geometry = final_solution.static_geometry()
     profiles = tuple(e_step.profile_history)

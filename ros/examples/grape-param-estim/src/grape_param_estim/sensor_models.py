@@ -131,6 +131,17 @@ def _readonly_matrix(
     return copied
 
 
+def _readonly_vector(value: object, size: int, name: str) -> np.ndarray:
+    result = np.asarray(value, dtype=float)
+    if result.shape != (size,) or not np.all(np.isfinite(result)):
+        raise ValueError(
+            "{} must be a finite array with shape ({},)".format(name, size)
+        )
+    copied = result.copy()
+    copied.setflags(write=False)
+    return copied
+
+
 def _series_times(
     timestamp_source: object,
     times: object,
@@ -161,7 +172,11 @@ def _series_times(
 
 @dataclass(frozen=True)
 class TimeInterval:
-    """Closed interval in the flight data's common time coordinate."""
+    """Ordered bounds in the flight data's common time coordinate.
+
+    Measurement windows use inclusive support checks; transition-delimited
+    calibration intervals may document an exclusive end in their provenance.
+    """
 
     start: float
     end: float
@@ -457,6 +472,223 @@ class ReferenceSeries:
 
 
 @dataclass(frozen=True)
+class FlightModeSeries:
+    """Recorded discrete controller-mode schedule with a causal anchor.
+
+    ``times`` and ``states`` retain every in-interval flight-state sample.
+    ``initial_*`` identifies the latest causal sample at or before the flight
+    interval start, so downstream ZOH mode lookup never needs extrapolation.
+    """
+
+    times: np.ndarray
+    record_times: np.ndarray
+    states: np.ndarray
+    initial_time: float
+    initial_record_time: float
+    initial_state: int
+    timestamp_source: TimestampSource
+    source_topic: str
+    state_semantics: str
+
+    def __post_init__(self) -> None:
+        source, times, record_times = _series_times(
+            self.timestamp_source, self.times, self.record_times
+        )
+        if source is not TimestampSource.RECORD:
+            raise ValueError("flight mode schedule must use record time")
+        raw_states = np.asarray(self.states)
+        if (
+            raw_states.shape != times.shape
+            or raw_states.dtype == np.bool_
+            or not np.issubdtype(raw_states.dtype, np.integer)
+            or np.any(raw_states < 0)
+        ):
+            raise ValueError(
+                "states must be a non-negative integer array aligned to times"
+            )
+        states = raw_states.astype(np.int64, copy=True)
+        states.setflags(write=False)
+        initial_time = _finite_scalar(self.initial_time, "initial_time")
+        initial_record_time = _finite_scalar(
+            self.initial_record_time, "initial_record_time"
+        )
+        initial_state = _nonnegative_integer(
+            self.initial_state, "initial_state"
+        )
+        if initial_time > times[0] or initial_record_time > record_times[0]:
+            raise ValueError("flight mode anchor must be causal")
+        if not np.isclose(
+            initial_record_time - initial_time,
+            record_times[0] - times[0],
+            rtol=0.0,
+            atol=2.0e-7,
+        ):
+            raise ValueError("flight mode times must share one bag epoch")
+        object.__setattr__(self, "times", times)
+        object.__setattr__(self, "record_times", record_times)
+        object.__setattr__(self, "states", states)
+        object.__setattr__(self, "initial_time", initial_time)
+        object.__setattr__(self, "initial_record_time", initial_record_time)
+        object.__setattr__(self, "initial_state", initial_state)
+        object.__setattr__(self, "timestamp_source", source)
+        object.__setattr__(
+            self,
+            "source_topic",
+            _canonical_text(self.source_topic, "source_topic"),
+        )
+        object.__setattr__(
+            self,
+            "state_semantics",
+            _canonical_text(self.state_semantics, "state_semantics"),
+        )
+
+
+@dataclass(frozen=True)
+class ImuPreflightCalibration:
+    """Immutable estimates from the initial contiguous ARM_OFF interval."""
+
+    interval: TimeInterval
+    state_value: int
+    imu_sample_count: int
+    gyro_bias: np.ndarray
+    gyro_standard_deviation: np.ndarray
+    specific_force_mean: np.ndarray
+    specific_force_standard_deviation: np.ndarray
+    specific_force_norm_mean: float
+    accelerometer_bias: Optional[np.ndarray]
+    accelerometer_sample_count: int
+    gravity_magnitude: float
+    frame_id: str
+    timestamp_source: TimestampSource
+    source_topic: str
+    state_topic: str
+    orientation_topic: Optional[str]
+    method: str
+    accelerometer_unavailable_reason: Optional[str]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.interval, TimeInterval):
+            raise TypeError("interval must be a TimeInterval")
+        state_value = _nonnegative_integer(self.state_value, "state_value")
+        imu_sample_count = _nonnegative_integer(
+            self.imu_sample_count, "imu_sample_count"
+        )
+        if imu_sample_count < 2:
+            raise ValueError("imu_sample_count must be at least two")
+        gyro_bias = _readonly_vector(self.gyro_bias, 3, "gyro_bias")
+        gyro_standard_deviation = _readonly_vector(
+            self.gyro_standard_deviation,
+            3,
+            "gyro_standard_deviation",
+        )
+        specific_force_mean = _readonly_vector(
+            self.specific_force_mean, 3, "specific_force_mean"
+        )
+        specific_force_standard_deviation = _readonly_vector(
+            self.specific_force_standard_deviation,
+            3,
+            "specific_force_standard_deviation",
+        )
+        if np.any(gyro_standard_deviation < 0.0) or np.any(
+            specific_force_standard_deviation < 0.0
+        ):
+            raise ValueError(
+                "preflight standard deviations cannot be negative"
+            )
+        specific_force_norm_mean = _finite_scalar(
+            self.specific_force_norm_mean, "specific_force_norm_mean"
+        )
+        gravity_magnitude = _finite_scalar(
+            self.gravity_magnitude, "gravity_magnitude"
+        )
+        if specific_force_norm_mean <= 0.0 or gravity_magnitude <= 0.0:
+            raise ValueError(
+                "specific force norm and gravity must be positive"
+            )
+
+        accelerometer_sample_count = _nonnegative_integer(
+            self.accelerometer_sample_count, "accelerometer_sample_count"
+        )
+        accelerometer_bias = None
+        if self.accelerometer_bias is not None:
+            accelerometer_bias = _readonly_vector(
+                self.accelerometer_bias, 3, "accelerometer_bias"
+            )
+        orientation_topic = _optional_text(
+            self.orientation_topic, "orientation_topic"
+        )
+        unavailable_reason = _optional_text(
+            self.accelerometer_unavailable_reason,
+            "accelerometer_unavailable_reason",
+        )
+        if accelerometer_bias is None:
+            if accelerometer_sample_count != 0 or unavailable_reason is None:
+                raise ValueError(
+                    "disabled accelerometer calibration requires zero samples "
+                    "and an unavailable reason"
+                )
+            if orientation_topic is not None:
+                raise ValueError(
+                    "disabled accelerometer calibration has no orientation "
+                    "topic"
+                )
+        elif (
+            accelerometer_sample_count < 2
+            or unavailable_reason is not None
+            or orientation_topic is None
+        ):
+            raise ValueError(
+                "accelerometer bias requires samples and orientation "
+                "provenance"
+            )
+
+        if not isinstance(self.timestamp_source, TimestampSource):
+            raise TypeError("timestamp_source must be a TimestampSource")
+        object.__setattr__(self, "state_value", state_value)
+        object.__setattr__(self, "imu_sample_count", imu_sample_count)
+        object.__setattr__(self, "gyro_bias", gyro_bias)
+        object.__setattr__(
+            self, "gyro_standard_deviation", gyro_standard_deviation
+        )
+        object.__setattr__(self, "specific_force_mean", specific_force_mean)
+        object.__setattr__(
+            self,
+            "specific_force_standard_deviation",
+            specific_force_standard_deviation,
+        )
+        object.__setattr__(
+            self, "specific_force_norm_mean", specific_force_norm_mean
+        )
+        object.__setattr__(self, "accelerometer_bias", accelerometer_bias)
+        object.__setattr__(
+            self, "accelerometer_sample_count", accelerometer_sample_count
+        )
+        object.__setattr__(self, "gravity_magnitude", gravity_magnitude)
+        object.__setattr__(
+            self, "frame_id", _canonical_text(self.frame_id, "frame_id")
+        )
+        object.__setattr__(
+            self,
+            "source_topic",
+            _canonical_text(self.source_topic, "source_topic"),
+        )
+        object.__setattr__(
+            self,
+            "state_topic",
+            _canonical_text(self.state_topic, "state_topic"),
+        )
+        object.__setattr__(self, "orientation_topic", orientation_topic)
+        object.__setattr__(
+            self, "method", _canonical_text(self.method, "method")
+        )
+        object.__setattr__(
+            self,
+            "accelerometer_unavailable_reason",
+            unavailable_reason,
+        )
+
+
+@dataclass(frozen=True)
 class FlightProvenance:
     """Factual identity and record-time extent of the source bag."""
 
@@ -516,9 +748,12 @@ class FlightData:
     gyro: Optional[VectorSeries]
     accelerometer: Optional[VectorSeries]
     gimbal_position: Optional[VectorSeries]
+    gimbal_command: Optional[VectorSeries]
     rotor_command: Optional[VectorSeries]
     pid_debug: Optional[PidDebugSeries]
     reference: ReferenceSeries
+    flight_mode: FlightModeSeries
+    imu_preflight: ImuPreflightCalibration
     controller_snapshot: "ControllerGainSnapshot"
     sensor_contract: SensorContract
     provenance: FlightProvenance
@@ -534,6 +769,7 @@ class FlightData:
             "gyro",
             "accelerometer",
             "gimbal_position",
+            "gimbal_command",
             "rotor_command",
         ):
             value = getattr(self, name)
@@ -547,6 +783,12 @@ class FlightData:
             raise TypeError("pid_debug must be a PidDebugSeries or None")
         if not isinstance(self.reference, ReferenceSeries):
             raise TypeError("reference must be a ReferenceSeries")
+        if not isinstance(self.flight_mode, FlightModeSeries):
+            raise TypeError("flight_mode must be a FlightModeSeries")
+        if not isinstance(self.imu_preflight, ImuPreflightCalibration):
+            raise TypeError(
+                "imu_preflight must be an ImuPreflightCalibration"
+            )
         if self.controller_snapshot is None:
             raise TypeError("controller_snapshot cannot be None")
         if not isinstance(self.sensor_contract, SensorContract):
@@ -558,7 +800,9 @@ class FlightData:
 
 __all__ = [
     "FlightData",
+    "FlightModeSeries",
     "FlightProvenance",
+    "ImuPreflightCalibration",
     "PidDebugSeries",
     "PoseSeries",
     "ReferenceSeries",

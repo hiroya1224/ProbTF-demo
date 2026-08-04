@@ -10,7 +10,9 @@ import numpy as np
 
 from grape_param_estim.sensor_models import (
     FlightData,
+    FlightModeSeries,
     FlightProvenance,
+    ImuPreflightCalibration,
     PidDebugSeries,
     PoseSeries,
     ReferenceSeries,
@@ -78,6 +80,50 @@ def _reference_series():
         angular_velocity=zeros,
         angular_acceleration=zeros,
         timestamp_source=TimestampSource.RECORD,
+    )
+
+
+def _flight_mode_series():
+    return FlightModeSeries(
+        times=np.asarray((10.01, 10.06, 10.11)),
+        record_times=np.asarray((100.01, 100.06, 100.11)),
+        states=np.asarray((3, 3, 4), dtype=np.int64),
+        initial_time=9.99,
+        initial_record_time=99.99,
+        initial_state=3,
+        timestamp_source=TimestampSource.RECORD,
+        source_topic="/flight_state",
+        state_semantics="recorded controller mode",
+    )
+
+
+def _imu_preflight(with_accelerometer=False):
+    return ImuPreflightCalibration(
+        interval=TimeInterval(0.001, 6.4),
+        state_value=0,
+        imu_sample_count=1280,
+        gyro_bias=np.asarray((1.0e-4, 2.0e-4, -2.0e-4)),
+        gyro_standard_deviation=np.asarray((0.01, 0.01, 0.02)),
+        specific_force_mean=np.asarray((0.0, 0.0, 9.8)),
+        specific_force_standard_deviation=np.asarray((0.1, 0.1, 0.2)),
+        specific_force_norm_mean=9.8,
+        accelerometer_bias=(
+            np.asarray((0.01, -0.02, -0.04))
+            if with_accelerometer else None
+        ),
+        accelerometer_sample_count=(1200 if with_accelerometer else 0),
+        gravity_magnitude=9.80665,
+        frame_id="gimbalrotor/fc",
+        timestamp_source=TimestampSource.HEADER,
+        source_topic="/imu/converted",
+        state_topic="/flight_state",
+        orientation_topic=("/mocap/pose" if with_accelerometer else None),
+        method="initial contiguous ARM_OFF arithmetic mean",
+        accelerometer_unavailable_reason=(
+            None
+            if with_accelerometer
+            else "physical_imu_origin_not_separately_calibrated"
+        ),
     )
 
 
@@ -311,6 +357,60 @@ class AsynchronousSeriesTests(unittest.TestCase):
 
 
 class FlightDataTests(unittest.TestCase):
+    def test_mode_and_preflight_contracts_are_immutable_and_sourced(self):
+        mode = _flight_mode_series()
+        calibration = _imu_preflight(with_accelerometer=True)
+
+        self.assertFalse(mode.times.flags.writeable)
+        self.assertFalse(mode.record_times.flags.writeable)
+        self.assertFalse(mode.states.flags.writeable)
+        self.assertEqual(mode.initial_state, 3)
+        self.assertEqual(mode.source_topic, "/flight_state")
+        for value in (
+            calibration.gyro_bias,
+            calibration.gyro_standard_deviation,
+            calibration.specific_force_mean,
+            calibration.specific_force_standard_deviation,
+            calibration.accelerometer_bias,
+        ):
+            self.assertFalse(value.flags.writeable)
+        self.assertEqual(calibration.accelerometer_sample_count, 1200)
+        self.assertEqual(calibration.orientation_topic, "/mocap/pose")
+
+        with self.assertRaisesRegex(ValueError, "causal"):
+            FlightModeSeries(
+                times=np.asarray((10.0, 10.1)),
+                record_times=np.asarray((100.0, 100.1)),
+                states=np.asarray((3, 3), dtype=np.int64),
+                initial_time=10.05,
+                initial_record_time=100.05,
+                initial_state=3,
+                timestamp_source=TimestampSource.RECORD,
+                source_topic="/flight_state",
+                state_semantics="controller mode",
+            )
+        with self.assertRaisesRegex(ValueError, "unavailable reason"):
+            ImuPreflightCalibration(
+                interval=TimeInterval(0.0, 1.0),
+                state_value=0,
+                imu_sample_count=10,
+                gyro_bias=np.zeros(3),
+                gyro_standard_deviation=np.zeros(3),
+                specific_force_mean=np.asarray((0.0, 0.0, 9.8)),
+                specific_force_standard_deviation=np.zeros(3),
+                specific_force_norm_mean=9.8,
+                accelerometer_bias=None,
+                accelerometer_sample_count=0,
+                gravity_magnitude=9.80665,
+                frame_id="fc",
+                timestamp_source=TimestampSource.HEADER,
+                source_topic="/imu",
+                state_topic="/flight_state",
+                orientation_topic=None,
+                method="mean",
+                accelerometer_unavailable_reason=None,
+            )
+
     def test_flight_data_keeps_streams_asynchronous_and_optional(self):
         pose = _pose_series()
         gyro_times = np.asarray((10.0, 10.025, 10.05, 10.075, 10.1))
@@ -341,9 +441,12 @@ class FlightDataTests(unittest.TestCase):
             gyro=gyro,
             accelerometer=None,
             gimbal_position=None,
+            gimbal_command=None,
             rotor_command=None,
             pid_debug=None,
             reference=reference,
+            flight_mode=_flight_mode_series(),
+            imu_preflight=_imu_preflight(),
             controller_snapshot=snapshot,
             sensor_contract=contract,
             provenance=provenance,
@@ -367,9 +470,12 @@ class FlightDataTests(unittest.TestCase):
             "gyro": None,
             "accelerometer": None,
             "gimbal_position": None,
+            "gimbal_command": None,
             "rotor_command": None,
             "pid_debug": None,
             "reference": _reference_series(),
+            "flight_mode": _flight_mode_series(),
+            "imu_preflight": _imu_preflight(),
             "controller_snapshot": object(),
             "sensor_contract": SensorContract((_topic_contract(),)),
             "provenance": FlightProvenance(
@@ -382,6 +488,8 @@ class FlightDataTests(unittest.TestCase):
             {"velocity": object()},
             {"pid_debug": object()},
             {"reference": object()},
+            {"flight_mode": object()},
+            {"imu_preflight": object()},
             {"controller_snapshot": None},
             {"sensor_contract": object()},
             {"provenance": object()},

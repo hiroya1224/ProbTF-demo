@@ -3,9 +3,10 @@
 The legacy :class:`RealFlightEpisode` path remains available while the sparse
 batch estimator migrates to
 :class:`~grape_param_estim.sensor_models.FlightData`.
-The new path keeps pose, velocity, IMU, joint, command, and controller streams
-on their audited asynchronous time axes; it performs no resampling or
-extrapolation.
+The new path keeps pose, velocity, IMU, joint, issued-command, flight-mode,
+and controller streams on their audited asynchronous time axes.  Observation
+streams are never resampled; the optional preflight accelerometer calibration
+uses only common pose/IMU support and never extrapolates.
 """
 
 from dataclasses import dataclass
@@ -27,7 +28,9 @@ from grape_param_estim.geometry import (
 )
 from grape_param_estim.sensor_models import (
     FlightData,
+    FlightModeSeries,
     FlightProvenance,
+    ImuPreflightCalibration,
     PidDebugSeries,
     PoseSeries,
     ReferenceSeries,
@@ -42,6 +45,7 @@ from grape_param_estim.system import (
     ActuatorParameters,
     ActuatorState,
     ControllerState,
+    GRAVITY,
     PoseObservations,
     ReferenceState,
 )
@@ -66,6 +70,7 @@ ACC_ONLY_TOPIC = "/gimbalrotor/sensor_plugin/imu1/acc_only"
 PID_TOPIC = "/gimbalrotor/debug/pose/pid"
 FLIGHT_STATE_TOPIC = "/gimbalrotor/flight_state"
 JOINT_STATE_TOPIC = "/gimbalrotor/joint_states"
+GIMBAL_COMMAND_TOPIC = "/gimbalrotor/gimbals_ctrl"
 FOUR_AXIS_COMMAND_TOPIC = "/gimbalrotor/four_axes/command"
 TF_STATIC_TOPIC = "/tf_static"
 GAIN_TOPICS = (
@@ -128,8 +133,10 @@ ASYNC_REQUIRED_TOPIC_TYPE_CONTRACT = (
     (BASELINK_ODOM_TOPIC, "nav_msgs/Odometry"),
     (CONVERTED_IMU_TOPIC, "sensor_msgs/Imu"),
     (JOINT_STATE_TOPIC, "sensor_msgs/JointState"),
+    (GIMBAL_COMMAND_TOPIC, "sensor_msgs/JointState"),
     (FOUR_AXIS_COMMAND_TOPIC, "spinal/FourAxisCommand"),
     (PID_TOPIC, "aerial_robot_msgs/PoseControlPid"),
+    (FLIGHT_STATE_TOPIC, "std_msgs/UInt8"),
     (TF_STATIC_TOPIC, "tf2_msgs/TFMessage"),
 ) + tuple(
     (topic, "dynamic_reconfigure/Config") for _group, topic in GAIN_TOPICS
@@ -2192,6 +2199,11 @@ def build_flight_data_from_messages(
     entries_by_topic = {
         topic: [] for topic in known_topics if topic in actual_types
     }
+    full_entries_by_topic = {
+        RAW_MOCAP_POSE_TOPIC: [],
+        CONVERTED_IMU_TOPIC: [],
+        FLIGHT_STATE_TOPIC: [],
+    }
     for topic, message, record_stamp in records:
         if topic not in entries_by_topic:
             continue
@@ -2213,25 +2225,28 @@ def build_flight_data_from_messages(
         initialization_topic = topic == TF_STATIC_TOPIC or any(
             topic == gain_topic for _group, gain_topic in GAIN_TOPICS
         )
+        audited_entry = _AuditedMessage(
+            time=local_time,
+            record_time=record_time,
+            header_time=header_time,
+            frame_id=frame_id,
+            child_frame_id=child_frame_id,
+            message=message,
+        )
+        if topic in full_entries_by_topic:
+            full_entries_by_topic[topic].append(audited_entry)
         if initialization_topic or local_start <= local_time <= local_end:
-            entries_by_topic[topic].append(
-                _AuditedMessage(
-                    time=local_time,
-                    record_time=record_time,
-                    header_time=header_time,
-                    frame_id=frame_id,
-                    child_frame_id=child_frame_id,
-                    message=message,
-                )
-            )
+            entries_by_topic[topic].append(audited_entry)
 
     required_stream_specs = (
         (RAW_MOCAP_POSE_TOPIC, TimestampSource.HEADER),
         (BASELINK_ODOM_TOPIC, TimestampSource.HEADER),
         (CONVERTED_IMU_TOPIC, TimestampSource.HEADER),
         (JOINT_STATE_TOPIC, TimestampSource.HEADER),
+        (GIMBAL_COMMAND_TOPIC, TimestampSource.RECORD),
         (FOUR_AXIS_COMMAND_TOPIC, TimestampSource.RECORD),
         (PID_TOPIC, TimestampSource.RECORD),
+        (FLIGHT_STATE_TOPIC, TimestampSource.RECORD),
     )
     retained = {}
     for topic, timestamp_source in required_stream_specs:
@@ -2246,8 +2261,10 @@ def build_flight_data_from_messages(
     velocity_entries = retained[BASELINK_ODOM_TOPIC]
     imu_entries = retained[CONVERTED_IMU_TOPIC]
     joint_entries = retained[JOINT_STATE_TOPIC]
+    gimbal_command_entries = retained[GIMBAL_COMMAND_TOPIC]
     command_entries = retained[FOUR_AXIS_COMMAND_TOPIC]
     pid_entries = retained[PID_TOPIC]
+    flight_state_entries = retained[FLIGHT_STATE_TOPIC]
 
     pose_frame = _observed_frame(pose_entries)
     velocity_frame = _observed_frame(velocity_entries)
@@ -2285,6 +2302,185 @@ def build_flight_data_from_messages(
         return np.asarray(
             tuple(entry.record_time for entry in entries), dtype=float
         )
+
+    full_flight_state_entries = _strict_stream_entries(
+        full_entries_by_topic[FLIGHT_STATE_TOPIC],
+        TimestampSource.RECORD,
+        header_duplicate_policy,
+        "full {}".format(FLIGHT_STATE_TOPIC),
+    )
+    mode_anchor_candidates = tuple(
+        entry
+        for entry in full_flight_state_entries
+        if entry.record_time <= absolute_start
+    )
+    if not mode_anchor_candidates:
+        raise ValueError("flight_state has no causal pre-window anchor")
+    mode_anchor = mode_anchor_candidates[-1]
+    flight_mode = FlightModeSeries(
+        times=local_times(flight_state_entries),
+        record_times=record_times(flight_state_entries),
+        states=np.asarray(
+            tuple(int(entry.message.data) for entry in flight_state_entries),
+            dtype=np.int64,
+        ),
+        initial_time=mode_anchor.time,
+        initial_record_time=mode_anchor.record_time,
+        initial_state=int(mode_anchor.message.data),
+        timestamp_source=TimestampSource.RECORD,
+        source_topic=FLIGHT_STATE_TOPIC,
+        state_semantics=(
+            "aerial_robot flight_state UInt8; controller discrete mode ZOH"
+        ),
+    )
+
+    first_flight_state = full_flight_state_entries[0]
+    if int(first_flight_state.message.data) != ARM_OFF_FLIGHT_STATE:
+        raise ValueError("bag does not start with a recorded ARM_OFF state")
+    arm_off_end_entry = next(
+        (
+            entry
+            for entry in full_flight_state_entries[1:]
+            if int(entry.message.data) != ARM_OFF_FLIGHT_STATE
+        ),
+        None,
+    )
+    if arm_off_end_entry is None:
+        raise ValueError("bag has no transition out of initial ARM_OFF")
+    preflight_interval = TimeInterval(
+        first_flight_state.time, arm_off_end_entry.time
+    )
+    preflight_imu_candidates = tuple(
+        entry
+        for entry in full_entries_by_topic[CONVERTED_IMU_TOPIC]
+        if (
+            preflight_interval.start
+            <= entry.time
+            < preflight_interval.end
+        )
+    )
+    preflight_imu_entries = _strict_stream_entries(
+        preflight_imu_candidates,
+        TimestampSource.HEADER,
+        header_duplicate_policy,
+        "preflight {}".format(CONVERTED_IMU_TOPIC),
+    )
+    preflight_imu_frame = _observed_frame(preflight_imu_entries)
+    _require_frame_tail(
+        preflight_imu_frame,
+        "fc",
+        CONVERTED_IMU_TOPIC,
+        "preflight sensor frame",
+    )
+    preflight_gyro = np.asarray(
+        tuple(
+            _vector3(entry.message.angular_velocity)
+            for entry in preflight_imu_entries
+        )
+    )
+    preflight_specific_force = np.asarray(
+        tuple(
+            _vector3(entry.message.linear_acceleration)
+            for entry in preflight_imu_entries
+        )
+    )
+    accelerometer_bias = None
+    accelerometer_sample_count = 0
+    orientation_topic = None
+    accelerometer_unavailable_reason = (
+        "physical_imu_origin_not_separately_calibrated"
+    )
+    calibration_method = (
+        "arithmetic mean over initial contiguous ARM_OFF record schedule"
+    )
+    if include_accelerometer:
+        preflight_pose_candidates = tuple(
+            entry
+            for entry in full_entries_by_topic[RAW_MOCAP_POSE_TOPIC]
+            if (
+                preflight_interval.start
+                <= entry.time
+                < preflight_interval.end
+            )
+        )
+        preflight_pose_entries = _strict_stream_entries(
+            preflight_pose_candidates,
+            TimestampSource.HEADER,
+            header_duplicate_policy,
+            "preflight {}".format(RAW_MOCAP_POSE_TOPIC),
+        )
+        pose_start = preflight_pose_entries[0].time
+        pose_end = preflight_pose_entries[-1].time
+        aligned_imu_entries = tuple(
+            entry
+            for entry in preflight_imu_entries
+            if pose_start <= entry.time <= pose_end
+        )
+        if len(aligned_imu_entries) < 2:
+            raise ValueError(
+                "preflight pose and IMU have insufficient common support"
+            )
+        source_quaternions = np.asarray(
+            tuple(
+                _quaternion_xyzw(entry.message.pose.orientation)
+                for entry in preflight_pose_entries
+            )
+        )
+        aligned_times = local_times(aligned_imu_entries)
+        aligned_quaternions = quaternion_slerp_resample(
+            local_times(preflight_pose_entries),
+            source_quaternions,
+            aligned_times,
+        )
+        gravity_world = np.asarray((0.0, 0.0, GRAVITY))
+        expected_specific_force = np.asarray(
+            tuple(
+                quaternion_to_matrix(quaternion).T @ gravity_world
+                for quaternion in aligned_quaternions
+            )
+        )
+        measured_specific_force = np.asarray(
+            tuple(
+                _vector3(entry.message.linear_acceleration)
+                for entry in aligned_imu_entries
+            )
+        )
+        accelerometer_bias = np.mean(
+            measured_specific_force - expected_specific_force, axis=0
+        )
+        accelerometer_sample_count = len(aligned_imu_entries)
+        orientation_topic = RAW_MOCAP_POSE_TOPIC
+        accelerometer_unavailable_reason = None
+        calibration_method += (
+            "; accelerometer bias uses sign-safe SO3 pose interpolation "
+            "without extrapolation and mean(f_F-R_WF^T*g_W)"
+        )
+    imu_preflight = ImuPreflightCalibration(
+        interval=preflight_interval,
+        state_value=ARM_OFF_FLIGHT_STATE,
+        imu_sample_count=len(preflight_imu_entries),
+        gyro_bias=np.mean(preflight_gyro, axis=0),
+        gyro_standard_deviation=np.std(preflight_gyro, axis=0, ddof=1),
+        specific_force_mean=np.mean(preflight_specific_force, axis=0),
+        specific_force_standard_deviation=np.std(
+            preflight_specific_force, axis=0, ddof=1
+        ),
+        specific_force_norm_mean=float(
+            np.mean(np.linalg.norm(preflight_specific_force, axis=1))
+        ),
+        accelerometer_bias=accelerometer_bias,
+        accelerometer_sample_count=accelerometer_sample_count,
+        gravity_magnitude=GRAVITY,
+        frame_id=preflight_imu_frame,
+        timestamp_source=TimestampSource.HEADER,
+        source_topic=CONVERTED_IMU_TOPIC,
+        state_topic=FLIGHT_STATE_TOPIC,
+        orientation_topic=orientation_topic,
+        method=calibration_method,
+        accelerometer_unavailable_reason=(
+            accelerometer_unavailable_reason
+        ),
+    )
 
     pose = PoseSeries(
         times=local_times(pose_entries),
@@ -2361,6 +2557,19 @@ def build_flight_data_from_messages(
         values=np.asarray(joint_positions),
         field_names=GIMBAL_JOINT_NAMES,
         timestamp_source=TimestampSource.HEADER,
+    )
+    issued_gimbal_values = []
+    for entry in gimbal_command_entries:
+        value = np.asarray(entry.message.position, dtype=float)
+        if value.shape != (4,) or not np.all(np.isfinite(value)):
+            raise ValueError("gimbals_ctrl position must contain four angles")
+        issued_gimbal_values.append(value)
+    gimbal_command = VectorSeries(
+        times=local_times(gimbal_command_entries),
+        record_times=record_times(gimbal_command_entries),
+        values=np.asarray(issued_gimbal_values),
+        field_names=GIMBAL_JOINT_NAMES,
+        timestamp_source=TimestampSource.RECORD,
     )
 
     command_values = []
@@ -2570,6 +2779,27 @@ def build_flight_data_from_messages(
     )
     topic_contracts.append(
         _topic_sensor_contract(
+            GIMBAL_COMMAND_TOPIC,
+            actual_types[GIMBAL_COMMAND_TOPIC],
+            TimestampSource.RECORD,
+            UsageDecision.INPUT,
+            entries_by_topic[GIMBAL_COMMAND_TOPIC],
+            gimbal_command_entries,
+            _observed_frame(gimbal_command_entries),
+            tuple(
+                "position[{}]".format(name)
+                for name in GIMBAL_JOINT_NAMES
+            ),
+            ("rad", "rad", "rad", "rad"),
+            "not applicable: deterministic issued gimbal command",
+            mixed_frame_notes=(
+                "JointState.name is empty; canonical gimbal1..4 order is "
+                "defined by the controller publisher"
+            ),
+        )
+    )
+    topic_contracts.append(
+        _topic_sensor_contract(
             FOUR_AXIS_COMMAND_TOPIC,
             actual_types[FOUR_AXIS_COMMAND_TOPIC],
             TimestampSource.RECORD,
@@ -2602,6 +2832,24 @@ def build_flight_data_from_messages(
             pid_fields,
             pid_units,
             "unknown: controller debug has no covariance field",
+        )
+    )
+    topic_contracts.append(
+        _topic_sensor_contract(
+            FLIGHT_STATE_TOPIC,
+            actual_types[FLIGHT_STATE_TOPIC],
+            TimestampSource.RECORD,
+            UsageDecision.INPUT,
+            entries_by_topic[FLIGHT_STATE_TOPIC],
+            flight_state_entries,
+            None,
+            ("data",),
+            ("1",),
+            "not applicable: recorded discrete controller mode",
+            mixed_frame_notes=(
+                "causal anchor state={} at local time {:.9f}"
+                .format(flight_mode.initial_state, flight_mode.initial_time)
+            ),
         )
     )
 
@@ -2655,11 +2903,12 @@ def build_flight_data_from_messages(
                 units,
                 "unknown: excluded observation source",
                 unavailable_reason=unavailable_reason,
-            mixed_frame_notes=(
-                "native message carries its own measurement stamp; record "
-                "timing is reported only because this duplicate is disabled"
-                if topic == NATIVE_IMU_TOPIC else None
-            ),
+                mixed_frame_notes=(
+                    "native message carries its own measurement stamp; record "
+                    "timing is reported only because this duplicate is "
+                    "disabled"
+                    if topic == NATIVE_IMU_TOPIC else None
+                ),
             )
         )
 
@@ -2750,6 +2999,25 @@ def build_flight_data_from_messages(
         "header_nonmonotonic={}; record_time_is_authoritative".format(
             pid_header_duplicates, pid_header_nonmonotonic
         ),
+        "issued_gimbal_command_source={}; timestamp=record; samples={}"
+        .format(GIMBAL_COMMAND_TOPIC, len(gimbal_command_entries)),
+        "flight_mode_source={}; timestamp=record; anchor_state={}; "
+        "selected_states={}".format(
+            FLIGHT_STATE_TOPIC,
+            flight_mode.initial_state,
+            ",".join(
+                str(value) for value in sorted(set(flight_mode.states))
+            ),
+        ),
+        "imu_preflight_source={}; state_source={}; interval=[{:.9f},"
+        "{:.9f}); samples={}; method={}".format(
+            CONVERTED_IMU_TOPIC,
+            FLIGHT_STATE_TOPIC,
+            imu_preflight.interval.start,
+            imu_preflight.interval.end,
+            imu_preflight.imu_sample_count,
+            imu_preflight.method,
+        ),
         (
             "accelerometer_opt_in=converted_specific_force; "
             "accepted_C_SB=I_and_known_FC_origin; "
@@ -2765,7 +3033,7 @@ def build_flight_data_from_messages(
         bag_size_bytes=bag_size_bytes,
         bag_record_start=bag_start,
         bag_record_end=bag_end,
-        adapter_revision="audited-asynchronous-flight-data/v1",
+        adapter_revision="audited-asynchronous-flight-data/v2",
         notes=notes,
     )
     resolved_bag_id = Path(bag_path).stem if bag_id is None else bag_id
@@ -2777,9 +3045,12 @@ def build_flight_data_from_messages(
         gyro=gyro,
         accelerometer=accelerometer,
         gimbal_position=gimbal_position,
+        gimbal_command=gimbal_command,
         rotor_command=rotor_command,
         pid_debug=pid_debug,
         reference=reference,
+        flight_mode=flight_mode,
+        imu_preflight=imu_preflight,
         controller_snapshot=controller_snapshot,
         sensor_contract=SensorContract(tuple(topic_contracts)),
         provenance=provenance,
@@ -3041,8 +3312,10 @@ __all__ = [
     "EpisodeProvenance",
     "FORCE_LANDING_STATE",
     "FlightEpisodeCandidate",
+    "FLIGHT_STATE_TOPIC",
     "FlightStateSeries",
     "FlightStateIntervalCandidate",
+    "GIMBAL_COMMAND_TOPIC",
     "HOVER_FLIGHT_STATE",
     "HeaderDuplicatePolicy",
     "MAIN_BODY_TO_FC_TRANSLATION",

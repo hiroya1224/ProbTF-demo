@@ -12,8 +12,10 @@ from grape_param_estim.real_rosbag import (
     COG_ODOM_TOPIC,
     CONVERTED_IMU_TOPIC,
     DEFAULT_AUDITED_GRAPE_BAG,
+    FLIGHT_STATE_TOPIC,
     FOUR_AXIS_COMMAND_TOPIC,
     GAIN_TOPICS,
+    GIMBAL_COMMAND_TOPIC,
     HeaderDuplicatePolicy,
     JOINT_STATE_TOPIC,
     MAIN_BODY_TO_FC_TRANSLATION,
@@ -176,6 +178,40 @@ def _synthetic_records(duplicate_pose_header=False):
     ):
         add(topic, _gain_message(values), 100.1 + 0.1 * gain_index)
 
+    # Full-bag sources retained for causal mode and preflight provenance.
+    for record_time, state in (
+        (100.01, 0),
+        (101.0, 0),
+        (102.0, 0),
+        (103.0, 0),
+        (104.0, 1),
+        (110.0, 2),
+        (117.0, 3),
+        (118.01, 3),
+        (118.21, 3),
+        (118.41, 3),
+    ):
+        add(FLIGHT_STATE_TOPIC, _namespace(data=state), record_time)
+    for index, header_time in enumerate((100.1, 101.1, 102.1, 103.1)):
+        add(
+            RAW_MOCAP_POSE_TOPIC,
+            _pose_message(
+                header_time,
+                (0.0, 0.0, 0.0),
+                (0.0, 0.0, 0.0, 1.0),
+            ),
+            header_time + 0.002,
+        )
+        add(
+            CONVERTED_IMU_TOPIC,
+            _imu_message(
+                header_time,
+                (0.01, 0.02, 0.03),
+                (0.1, -0.2, 9.81),
+            ),
+            header_time + 0.001,
+        )
+
     # These record times lie inside the requested window but their header
     # times do not; header-time selection must exclude both without clamping.
     add(
@@ -246,6 +282,23 @@ def _synthetic_records(duplicate_pose_header=False):
             header_time + 0.001,
         )
 
+    for index, header_time in enumerate(
+        (118.03, 118.13, 118.23, 118.33)
+    ):
+        add(
+            GIMBAL_COMMAND_TOPIC,
+            _namespace(
+                header=_header(header_time),
+                name=(),
+                position=tuple(
+                    index + value for value in (0.1, 0.2, 0.3, 0.4)
+                ),
+                velocity=(),
+                effort=(),
+            ),
+            header_time + 0.001,
+        )
+
     for index, record_time in enumerate((118.06, 118.16, 118.26)):
         add(
             FOUR_AXIS_COMMAND_TOPIC,
@@ -293,10 +346,23 @@ class AsynchronousRosbagAdapterTests(unittest.TestCase):
         self.assertEqual(data.velocity.times.size, 2)
         self.assertEqual(data.gyro.times.size, 4)
         self.assertEqual(data.gimbal_position.times.size, 2)
+        self.assertEqual(data.gimbal_command.times.size, 4)
         self.assertEqual(data.rotor_command.times.size, 3)
         self.assertEqual(data.pid_debug.times.size, 3)
         self.assertEqual(data.reference.times.size, 3)
         self.assertIsNone(data.accelerometer)
+        self.assertEqual(data.flight_mode.times.size, 3)
+        self.assertEqual(data.flight_mode.initial_state, 3)
+        np.testing.assert_array_equal(data.flight_mode.states, (3, 3, 3))
+        self.assertEqual(data.imu_preflight.imu_sample_count, 4)
+        np.testing.assert_allclose(
+            data.imu_preflight.gyro_bias, (0.01, 0.02, 0.03)
+        )
+        self.assertIsNone(data.imu_preflight.accelerometer_bias)
+        self.assertEqual(
+            data.imu_preflight.accelerometer_unavailable_reason,
+            "physical_imu_origin_not_separately_calibrated",
+        )
 
         self.assertGreater(data.pose.times[0], data.interval.start)
         self.assertLess(data.pose.times[-1], data.interval.end)
@@ -328,6 +394,10 @@ class AsynchronousRosbagAdapterTests(unittest.TestCase):
             FOUR_AXIS_COMMAND_TOPIC
         )
         pid_contract = data.sensor_contract.for_topic(PID_TOPIC)
+        gimbal_command_contract = data.sensor_contract.for_topic(
+            GIMBAL_COMMAND_TOPIC
+        )
+        mode_contract = data.sensor_contract.for_topic(FLIGHT_STATE_TOPIC)
         self.assertEqual(
             pose_contract.timestamp_source, TimestampSource.HEADER
         )
@@ -345,6 +415,15 @@ class AsynchronousRosbagAdapterTests(unittest.TestCase):
         self.assertEqual(command_contract.usage, UsageDecision.INPUT)
         self.assertEqual(pid_contract.timestamp_source, TimestampSource.RECORD)
         self.assertEqual(pid_contract.duplicate_timestamp_count, 0)
+        self.assertEqual(gimbal_command_contract.usage, UsageDecision.INPUT)
+        self.assertEqual(
+            gimbal_command_contract.timestamp_source,
+            TimestampSource.RECORD,
+        )
+        self.assertEqual(mode_contract.usage, UsageDecision.INPUT)
+        self.assertEqual(
+            mode_contract.timestamp_source, TimestampSource.RECORD
+        )
         self.assertIn(
             "PoseControlPid_header_duplicates=1",
             " ".join(data.provenance.notes),
@@ -398,6 +477,14 @@ class AsynchronousRosbagAdapterTests(unittest.TestCase):
         self.assertIn(
             "accepted_C_SB=I_and_known_FC_origin",
             " ".join(data.provenance.notes),
+        )
+        np.testing.assert_allclose(
+            data.imu_preflight.accelerometer_bias,
+            (0.1, -0.2, 9.81 - 9.80665),
+            atol=1.0e-12,
+        )
+        self.assertEqual(
+            data.imu_preflight.orientation_topic, RAW_MOCAP_POSE_TOPIC
         )
 
     def test_duplicate_header_policy_is_explicit_and_never_sorts(self):
@@ -500,9 +587,35 @@ class AuditedBagIntegrationTests(unittest.TestCase):
         self.assertEqual(data.velocity.times.size, 600)
         self.assertEqual(data.gyro.times.size, 1200)
         self.assertEqual(data.gimbal_position.times.size, 300)
+        self.assertEqual(data.gimbal_command.times.size, 1200)
         self.assertEqual(data.rotor_command.times.size, 1200)
         self.assertEqual(data.pid_debug.times.size, 1200)
         self.assertEqual(data.reference.times.size, 1200)
+        self.assertEqual(data.flight_mode.times.size, 1200)
+        self.assertEqual(data.flight_mode.initial_state, 3)
+        self.assertTrue(np.all(data.flight_mode.states == 3))
+        self.assertEqual(data.imu_preflight.imu_sample_count, 1280)
+        np.testing.assert_allclose(
+            data.imu_preflight.gyro_bias,
+            (1.44e-4, 2.23e-4, -2.03e-4),
+            atol=8.0e-6,
+        )
+        self.assertIsNotNone(data.imu_preflight.accelerometer_bias)
+        self.assertEqual(data.imu_preflight.accelerometer_sample_count, 1242)
+        self.assertAlmostEqual(
+            data.imu_preflight.specific_force_norm_mean, 9.75579, places=4
+        )
+        self.assertTrue(
+            np.all(np.isfinite(data.imu_preflight.accelerometer_bias))
+        )
+        self.assertEqual(
+            data.sensor_contract.for_topic(GIMBAL_COMMAND_TOPIC).usage,
+            UsageDecision.INPUT,
+        )
+        self.assertEqual(
+            data.sensor_contract.for_topic(FLIGHT_STATE_TOPIC).usage,
+            UsageDecision.INPUT,
+        )
         self.assertEqual(data.gyro.field_names, ("x", "y", "z"))
         self.assertTrue(np.all(data.pose.times >= 18.0))
         self.assertTrue(np.all(data.pose.times <= 24.0))
@@ -511,6 +624,13 @@ class AuditedBagIntegrationTests(unittest.TestCase):
         np.testing.assert_allclose(
             data.rotor_command.times,
             data.rotor_command.record_times
+            - data.provenance.bag_record_start,
+            rtol=0.0,
+            atol=2.0e-7,
+        )
+        np.testing.assert_allclose(
+            data.gimbal_command.times,
+            data.gimbal_command.record_times
             - data.provenance.bag_record_start,
             rtol=0.0,
             atol=2.0e-7,

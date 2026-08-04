@@ -3,6 +3,11 @@ import unittest
 
 import numpy as np
 
+from grape_param_estim.batch.covariance import ArrowheadLaplaceFactorization
+from grape_param_estim.batch.dynamics_moments import (
+    compute_expected_dynamics_moments,
+    evaluate_prepared_dynamics_intervals,
+)
 from grape_param_estim.batch.factors.dynamics_factor import (
     BODY_WRENCH_QUANTITY,
     SPECIFIC_ACCELERATION_QUANTITY,
@@ -19,6 +24,7 @@ from grape_param_estim.batch.graph_builder import (
     PreparedCommandSegment,
     PreparedControllerInterval,
     PreparedDynamicsConfiguration,
+    PreparedDynamicsIntervalStatus,
     PreparedFactorCovariances,
     PreparedGimbalMeasurement,
     PreparedGyroMeasurement,
@@ -214,6 +220,9 @@ class BatchGraphBuilderTests(unittest.TestCase):
                     ),
                 ),
             ),
+            dynamics_interval_statuses=(
+                PreparedDynamicsIntervalStatus(0, True, ""),
+            ),
             pose_measurements=(
                 PreparedPoseMeasurement(
                     bracket,
@@ -385,6 +394,139 @@ class BatchGraphBuilderTests(unittest.TestCase):
             whitening[0, 0] = 1.0
         with self.assertRaisesRegex(ValueError, "positive definite"):
             GaussianCovariance(np.asarray(((1.0, 2.0), (2.0, 1.0))))
+
+    def test_dynamics_laplace_moments_match_selected_dense_oracle(self):
+        prepared = self._prepared()
+        problem = build_fixed_batch_problem(prepared)
+        state = build_initial_batch_state(prepared)
+        sparse = problem.linearize(state).sparse
+        factorization = ArrowheadLaplaceFactorization(sparse)
+        intervals = evaluate_prepared_dynamics_intervals(prepared, state)
+        result = compute_expected_dynamics_moments(
+            intervals, factorization
+        )
+
+        self.assertEqual(intervals.valid_interval_count, 1)
+        self.assertEqual(intervals.excluded_interval_count, 0)
+        np.testing.assert_allclose(result.time_step, (0.02,), atol=1.0e-14)
+        interval = intervals.intervals[0]
+        dense_jacobian = np.zeros(
+            (6, problem.layout.total_dimension), dtype=float
+        )
+        for block in interval.jacobian_blocks:
+            dense_jacobian[
+                :, problem.layout.column_slice(block.variable_key)
+            ] = block.value
+        expected = np.diag(
+            dense_jacobian
+            @ np.linalg.solve(sparse.hessian.toarray(), dense_jacobian.T)
+        )
+        np.testing.assert_allclose(
+            result.moments.map_residual[0],
+            interval.residual,
+            rtol=0.0,
+            atol=0.0,
+        )
+        np.testing.assert_allclose(
+            result.moments.covariance_correction[0],
+            expected,
+            rtol=3.0e-11,
+            atol=3.0e-11,
+        )
+        self.assertTrue(np.any(expected > 0.0))
+
+    def test_invalid_dynamics_interval_is_audited_and_excluded(self):
+        prepared = self._prepared()
+        bag = replace(
+            prepared.bags[0],
+            dynamics_interval_statuses=(
+                PreparedDynamicsIntervalStatus(
+                    0, False, "mocap_dropout"
+                ),
+            ),
+        )
+        selected = replace(prepared, bags=(bag,))
+        problem = build_fixed_batch_problem(selected)
+        state = build_initial_batch_state(selected)
+        factors = problem.evaluate_factors(state)
+        reference_factors = build_fixed_batch_problem(
+            prepared
+        ).evaluate_factors(build_initial_batch_state(prepared))
+        self.assertEqual(len(factors), len(reference_factors) - 1)
+        self.assertEqual(factors[-1].residual.size, 3)
+        intervals = evaluate_prepared_dynamics_intervals(selected, state)
+        self.assertEqual(intervals.valid_interval_count, 0)
+        self.assertEqual(intervals.excluded_interval_count, 1)
+        self.assertEqual(
+            intervals.excluded_intervals[0].reason, "mocap_dropout"
+        )
+        self.assertAlmostEqual(
+            intervals.excluded_intervals[0].time_step, 0.02
+        )
+
+        reference = self._prepared()
+        reference_problem = build_fixed_batch_problem(reference)
+        reference_state = build_initial_batch_state(reference)
+        factorization = ArrowheadLaplaceFactorization(
+            reference_problem.linearize(reference_state).sparse
+        )
+        with self.assertRaisesRegex(ValueError, "at least one valid"):
+            compute_expected_dynamics_moments(intervals, factorization)
+
+    def test_dynamics_status_is_strict_and_variable_dt_is_preserved(self):
+        prepared = self._prepared()
+        bag = prepared.bags[0]
+        with self.assertRaisesRegex(ValueError, "cover every knot interval"):
+            replace(bag, dynamics_interval_statuses=())
+        with self.assertRaisesRegex(TypeError, "must be bool"):
+            PreparedDynamicsIntervalStatus(0, np.bool_(True), "")
+        with self.assertRaisesRegex(ValueError, "canonical reason"):
+            PreparedDynamicsIntervalStatus(0, False, "")
+        with self.assertRaisesRegex(ValueError, "cannot have"):
+            PreparedDynamicsIntervalStatus(0, True, "not_invalid")
+
+        knot2 = replace(bag.knots[1], time=10.05)
+        controller2 = replace(
+            bag.controller_intervals[0], left_knot_index=1
+        )
+        command = bag.actuator_intervals[0].delayed_command_segments[0].command
+        actuator2 = PreparedActuatorInterval(
+            1, (PreparedCommandSegment(command, 0.03),)
+        )
+        extended_bag = replace(
+            bag,
+            knots=bag.knots + (knot2,),
+            controller_intervals=bag.controller_intervals + (controller2,),
+            actuator_intervals=bag.actuator_intervals + (actuator2,),
+            dynamics_interval_statuses=(
+                PreparedDynamicsIntervalStatus(0, True, ""),
+                PreparedDynamicsIntervalStatus(1, True, ""),
+            ),
+        )
+        extended = replace(prepared, bags=(extended_bag,))
+        intervals = evaluate_prepared_dynamics_intervals(
+            extended, build_initial_batch_state(extended)
+        )
+        np.testing.assert_allclose(
+            intervals.time_step, (0.02, 0.03), atol=1.0e-14
+        )
+
+    def test_laplace_bridge_rejects_a_different_bag_layout(self):
+        prepared = self._prepared()
+        problem = build_fixed_batch_problem(prepared)
+        state = build_initial_batch_state(prepared)
+        factorization = ArrowheadLaplaceFactorization(
+            problem.linearize(state).sparse
+        )
+        other_bag = replace(prepared.bags[0], bag_id="bag-b")
+        other = replace(prepared, bags=(other_bag,))
+        other_intervals = evaluate_prepared_dynamics_intervals(
+            other, build_initial_batch_state(other)
+        )
+        with self.assertRaisesRegex(ValueError, "layout does not match"):
+            compute_expected_dynamics_moments(
+                other_intervals, factorization
+            )
 
 
 if __name__ == "__main__":

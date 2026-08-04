@@ -17,15 +17,13 @@ from grape_param_estim.batch.factors.actuator import (
 from grape_param_estim.batch.factors.controller import (
     evaluate_controller_step_factors,
 )
-from grape_param_estim.batch.factors.dynamics import (
-    evaluate_raw_dynamics_residual,
-)
 from grape_param_estim.batch.factors.dynamics_factor import (
     BODY_WRENCH_QUANTITY,
     SPECIFIC_ACCELERATION_QUANTITY,
-    body_wrench_statistical_residual,
     evaluate_dynamics_factor,
-    specific_acceleration_statistical_residual,
+)
+from grape_param_estim.batch.dynamics_moments import (
+    evaluate_prepared_dynamics_intervals,
 )
 from grape_param_estim.batch.factors.imu import evaluate_gyro_factor
 from grape_param_estim.batch.factors.kinematics import (
@@ -558,6 +556,43 @@ class PreparedDynamicsConfiguration:
         )
 
 
+@dataclass(frozen=True)
+class PreparedDynamicsIntervalStatus:
+    """Audited inclusion status shared by likelihood and Laplace-EM."""
+
+    left_knot_index: int
+    valid: bool
+    invalid_reason: str
+
+    def __post_init__(self) -> None:
+        if (
+            isinstance(self.left_knot_index, (bool, np.bool_))
+            or not isinstance(self.left_knot_index, (int, np.integer))
+            or self.left_knot_index < 0
+        ):
+            raise ValueError(
+                "left_knot_index must be a non-negative integer"
+            )
+        if type(self.valid) is not bool:
+            raise TypeError("dynamics interval valid must be bool")
+        if self.valid:
+            if self.invalid_reason != "":
+                raise ValueError(
+                    "valid dynamics interval cannot have an invalid reason"
+                )
+        elif (
+            not isinstance(self.invalid_reason, str)
+            or not self.invalid_reason
+            or self.invalid_reason.strip() != self.invalid_reason
+        ):
+            raise ValueError(
+                "invalid dynamics interval requires a canonical reason"
+            )
+        object.__setattr__(
+            self, "left_knot_index", int(self.left_knot_index)
+        )
+
+
 def _validate_measurement_brackets(measurements, knot_count: int, name: str):
     last = None
     for measurement in measurements:
@@ -582,6 +617,7 @@ class PreparedBagGraphData:
     controller_intervals: Tuple[PreparedControllerInterval, ...]
     actuator_parameters: ActuatorParameters
     actuator_intervals: Tuple[PreparedActuatorInterval, ...]
+    dynamics_interval_statuses: Tuple[PreparedDynamicsIntervalStatus, ...]
     pose_measurements: Tuple[PreparedPoseMeasurement, ...]
     velocity_measurements: Tuple[PreparedVelocityMeasurement, ...]
     gyro_measurements: Tuple[PreparedGyroMeasurement, ...]
@@ -625,20 +661,32 @@ class PreparedBagGraphData:
             PreparedActuatorInterval,
             "actuator_intervals",
         )
+        dynamics_statuses = _canonical_tuple(
+            self.dynamics_interval_statuses,
+            PreparedDynamicsIntervalStatus,
+            "dynamics_interval_statuses",
+        )
         interval_count = len(knots) - 1
-        if len(controllers) != interval_count or len(actuators) != interval_count:
+        if (
+            len(controllers) != interval_count
+            or len(actuators) != interval_count
+            or len(dynamics_statuses) != interval_count
+        ):
             raise ValueError(
-                "controller and actuator data must cover every knot interval"
+                "controller, actuator, and dynamics status data must cover "
+                "every knot interval"
             )
-        for index, (controller, actuator) in enumerate(
-            zip(controllers, actuators)
+        for index, (controller, actuator, dynamics_status) in enumerate(
+            zip(controllers, actuators, dynamics_statuses)
         ):
             if (
                 controller.left_knot_index != index
                 or actuator.left_knot_index != index
+                or dynamics_status.left_knot_index != index
             ):
                 raise ValueError(
-                    "controller and actuator intervals must be contiguous"
+                    "controller, actuator, and dynamics intervals must be "
+                    "contiguous"
                 )
             time_step = knots[index + 1].time - knots[index].time
             duration = sum(
@@ -652,6 +700,9 @@ class PreparedBagGraphData:
                 )
         object.__setattr__(self, "controller_intervals", controllers)
         object.__setattr__(self, "actuator_intervals", actuators)
+        object.__setattr__(
+            self, "dynamics_interval_statuses", dynamics_statuses
+        )
 
         for name, item_type in (
             ("pose_measurements", PreparedPoseMeasurement),
@@ -1229,99 +1280,17 @@ def _evaluate_prepared_factors(
                 )
             )
 
-    # 8. Q-weighted dynamics.  There is intentionally no fallback quantity.
-    for bag in bags:
-        for index in range(len(bag.knots) - 1):
-            dt = bag.knots[index + 1].time - bag.knots[index].time
-            raw = evaluate_raw_dynamics_residual(
-                rotation_left=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index,
-                    VariableKind.ORIENTATION_TANGENT,
-                ),
-                rotation_right=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index + 1,
-                    VariableKind.ORIENTATION_TANGENT,
-                ),
-                linear_velocity_left=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index,
-                    VariableKind.LINEAR_VELOCITY,
-                ),
-                linear_velocity_right=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index + 1,
-                    VariableKind.LINEAR_VELOCITY,
-                ),
-                angular_velocity_left=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index,
-                    VariableKind.ANGULAR_VELOCITY,
-                ),
-                angular_velocity_right=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index + 1,
-                    VariableKind.ANGULAR_VELOCITY,
-                ),
-                actuator_thrust_left=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index,
-                    VariableKind.ACTUATOR_THRUST,
-                ),
-                actuator_thrust_right=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index + 1,
-                    VariableKind.ACTUATOR_THRUST,
-                ),
-                gimbal_angle_left=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index,
-                    VariableKind.GIMBAL_ANGLE,
-                ),
-                gimbal_angle_right=_knot_value(
-                    state,
-                    bag.bag_id,
-                    index + 1,
-                    VariableKind.GIMBAL_ANGLE,
-                ),
-                time_step=dt,
-                parameter_chart=prepared.parameter_chart,
-                parameter_coordinates=coordinates,
-                geometry=prepared.geometry,
-                gravity_world=prepared.dynamics.gravity_world,
+    # 8. Q-weighted dynamics.  Invalid intervals are excluded by the same
+    # audited status consumed by the Laplace-EM moment bridge.
+    dynamics = evaluate_prepared_dynamics_intervals(prepared, state)
+    for interval in dynamics.intervals:
+        factors.append(
+            evaluate_dynamics_factor(
+                interval.statistical_residual,
+                prepared.dynamics.q,
+                interval.time_step,
             )
-            quantity = prepared.dynamics.q_definition.residual_quantity
-            if quantity == BODY_WRENCH_QUANTITY:
-                statistical = body_wrench_statistical_residual(
-                    bag.bag_id,
-                    index,
-                    raw,
-                    prepared.dynamics.q_definition,
-                )
-            elif quantity == SPECIFIC_ACCELERATION_QUANTITY:
-                statistical = specific_acceleration_statistical_residual(
-                    bag.bag_id,
-                    index,
-                    raw,
-                    prepared.dynamics.q_definition,
-                    prepared.parameter_chart,
-                    coordinates,
-                )
-            else:
-                raise ValueError("unsupported dynamics residual quantity")
-            factors.append(
-                evaluate_dynamics_factor(statistical, prepared.dynamics.q, dt)
-            )
+        )
     return tuple(factors)
 
 
@@ -1352,6 +1321,7 @@ __all__ = [
     "PreparedCommandSegment",
     "PreparedControllerInterval",
     "PreparedDynamicsConfiguration",
+    "PreparedDynamicsIntervalStatus",
     "PreparedFactorCovariances",
     "PreparedGimbalMeasurement",
     "PreparedGyroMeasurement",

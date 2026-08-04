@@ -807,7 +807,7 @@ class MainWindow(QMainWindow):
         return records[labels.index(selected)].bag_id
 
     def start_pid_evaluation(self, options: object) -> None:
-        """Launch exact current/member posterior-predictive evaluation."""
+        """Launch exact current/sample posterior-predictive evaluation."""
 
         if self.runner.running:
             return

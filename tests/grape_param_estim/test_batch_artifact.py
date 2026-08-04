@@ -1,7 +1,9 @@
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -12,6 +14,7 @@ from grape_param_estim.artifact_io import (
 )
 from grape_param_estim.batch_artifact import (
     BATCH_ESTIMATION_RUN_SCHEMA,
+    _publish_replacement_directory,
     file_sha256,
     load_batch_estimation_run,
     write_batch_estimation_run,
@@ -734,6 +737,35 @@ class BatchArtifactTests(unittest.TestCase):
         self._write_manifest(manifest)
         with self.assertRaisesRegex(ArtifactValidationError, "member_id"):
             load_batch_estimation_run(self.root)
+
+    def test_directory_upgrade_restores_original_when_publish_rename_fails(self):
+        parent = Path(self.temporary.name) / "rollback-test"
+        destination = parent / "run"
+        candidate = parent / "candidate"
+        backup = parent / "backup"
+        destination.mkdir(parents=True)
+        candidate.mkdir()
+        (destination / "identity").write_text("original", encoding="utf-8")
+        (candidate / "identity").write_text("candidate", encoding="utf-8")
+        real_replace = os.replace
+        calls = [0]
+
+        def fail_second_rename(source, target):
+            calls[0] += 1
+            if calls[0] == 2:
+                raise OSError("synthetic publish failure")
+            return real_replace(source, target)
+
+        with patch(
+            "grape_param_estim.batch_artifact.os.replace",
+            side_effect=fail_second_rename,
+        ), self.assertRaisesRegex(OSError, "synthetic publish failure"):
+            _publish_replacement_directory(destination, candidate, backup)
+        self.assertEqual(
+            (destination / "identity").read_text(encoding="utf-8"),
+            "original",
+        )
+        self.assertFalse(backup.exists())
 
 
 if __name__ == "__main__":

@@ -2161,17 +2161,10 @@ def replace_batch_estimation_run(
             mcmc_samples=mcmc_samples,
             trajectories=trajectories,
         )
-        os.replace(str(destination), str(backup))
         original_moved = True
-        try:
-            os.replace(str(candidate), str(destination))
-            replacement_published = True
-            _fsync_directory(destination.parent)
-        except Exception:
-            os.replace(str(backup), str(destination))
-            original_moved = False
-            _fsync_directory(destination.parent)
-            raise
+        _publish_replacement_directory(destination, candidate, backup)
+        original_moved = False
+        replacement_published = True
         return load_batch_estimation_run(destination)
     finally:
         if replacement_published and backup.exists():
@@ -2183,6 +2176,21 @@ def replace_batch_estimation_run(
             shutil.rmtree(str(staging_parent))
         if backup_parent.exists():
             shutil.rmtree(str(backup_parent))
+
+
+def _publish_replacement_directory(
+    destination: Path, candidate: Path, backup: Path
+) -> None:
+    """Swap two complete directories and restore the original on failure."""
+
+    os.replace(str(destination), str(backup))
+    try:
+        os.replace(str(candidate), str(destination))
+        _fsync_directory(destination.parent)
+    except Exception:
+        os.replace(str(backup), str(destination))
+        _fsync_directory(destination.parent)
+        raise
 
 
 __all__ = [

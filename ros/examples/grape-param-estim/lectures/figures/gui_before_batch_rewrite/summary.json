@@ -1,0 +1,83 @@
+{
+  "assimilation_run_id": "failed-20260612-4-development",
+  "bag_id": "grape_hovering_20260612_4",
+  "candidate_id": "member-0",
+  "member_id": 0,
+  "pid_evaluation_id": "failed-20260612-4-posterior-replay",
+  "pid_plotter_available": true,
+  "schema": "grape-param-estim/gui-visual-acceptance/v1",
+  "screenshots": {
+    "bag_browser_correction.png": {
+      "height": 1120,
+      "size_bytes": 272156,
+      "width": 1800
+    },
+    "bag_browser_world.png": {
+      "height": 1120,
+      "size_bytes": 272070,
+      "width": 1800
+    },
+    "bag_correction_vtk.png": {
+      "height": 404,
+      "size_bytes": 10741,
+      "width": 842
+    },
+    "bag_world_vtk.png": {
+      "height": 404,
+      "size_bytes": 11035,
+      "width": 842
+    },
+    "master.png": {
+      "height": 1120,
+      "size_bytes": 219066,
+      "width": 1800
+    },
+    "pid_aggregate_metrics.png": {
+      "height": 1120,
+      "size_bytes": 235679,
+      "width": 1800
+    },
+    "pid_correction_paths.png": {
+      "height": 1120,
+      "size_bytes": 239615,
+      "width": 1800
+    },
+    "pid_proposed_yaml.png": {
+      "height": 1120,
+      "size_bytes": 170231,
+      "width": 1800
+    },
+    "pid_rotation.png": {
+      "height": 1120,
+      "size_bytes": 188951,
+      "width": 1800
+    },
+    "pid_rotation_vtk.png": {
+      "height": 495,
+      "size_bytes": 35558,
+      "width": 1776
+    },
+    "pid_trajectory.png": {
+      "height": 1120,
+      "size_bytes": 178753,
+      "width": 1800
+    },
+    "pid_trajectory_vtk.png": {
+      "height": 495,
+      "size_bytes": 26942,
+      "width": 1776
+    },
+    "pid_translation.png": {
+      "height": 1120,
+      "size_bytes": 183894,
+      "width": 1800
+    },
+    "pid_translation_vtk.png": {
+      "height": 495,
+      "size_bytes": 30829,
+      "width": 1776
+    }
+  },
+  "window_capture_method": "QScreen.grabWindow",
+  "world_plotter_available": true
+}

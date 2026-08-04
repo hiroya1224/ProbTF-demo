@@ -12,7 +12,7 @@ candidate × plant sample × selected bag × discrepancy replicate
 
 ## 2. 入力 posterior
 
-source は complete な `grape-param-estim/batch-estimation-run/v1` で、MCMC retained draw を含む必要がある。
+source は complete な `grape-param-estim/batch-estimation-run/v2` で、MCMC retained draw を含む必要がある。
 各 plant sample は `sample_id`、mass、full inertia、CoG、force/torque effectiveness、delay、source mode ID を持つ。
 retained draw は equal weight であり、component-wise mean plant や平均 gain へ潰さない。
 linear/angular drag は static 18-D chart に含まれないため、PID request の `fixed_plant_parameters` で明示する。

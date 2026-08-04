@@ -17,7 +17,7 @@ from .artifact_loader import BatchEstimationRun
 PID_EVALUATION_REQUEST_SCHEMA = (
     "grape-param-estim/pid-proposal-evaluation-request/v2"
 )
-BATCH_ESTIMATION_RUN_SCHEMA = "grape-param-estim/batch-estimation-run/v1"
+BATCH_ESTIMATION_RUN_SCHEMA = "grape-param-estim/batch-estimation-run/v2"
 COMPLETE_STATUS = "complete"
 MODEL_DISCREPANCY_POLICIES = (
     "zero_model_discrepancy",

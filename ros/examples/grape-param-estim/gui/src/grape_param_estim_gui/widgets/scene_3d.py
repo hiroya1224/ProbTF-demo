@@ -18,12 +18,12 @@ except ImportError:  # pragma: no cover - optional visual dependencies
 
 
 class PidComparisonScene3DWidget(QWidget):
-    """Show the selected posterior conditional path without fabricating forecasts.
+    """Show recorded-control rollouts for the selected posterior plant sample.
 
-    The PID evaluation v1 artifact stores scalar cross-evaluation metrics, not
+    The PID evaluation v2 artifact stores scalar cross-evaluation metrics, not
     candidate forecast trajectories.  This view therefore presents the exact
-    estimation-run context used by the selected plant sample: reference, MAP,
-    and the stored conditional trajectory when available.
+    estimation-run context used by the selected plant sample: reference,
+    estimated-parameter rollout, and the selected posterior rollout.
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -67,8 +67,14 @@ class PidComparisonScene3DWidget(QWidget):
         result = self.run.bags[self.selected_bag_id]
         paths = [
             ("Reference", result.reference.position, "#aaaaaa", 2.0),
-            ("Observed", result.pose.position[result.pose.valid], "#3d8bf2", 3.5),
-            ("MAP", result.map_trajectory.position, "#34b77b", 3.2),
+            (
+                "Estimated-parameter rollout",
+                result.estimated_parameter_rollout.position[
+                    result.estimated_parameter_rollout.valid
+                ],
+                "#34b77b",
+                3.2,
+            ),
         ]
         if self.selected_sample_id is not None:
             selected = self.run.selected_trajectory(
@@ -77,12 +83,22 @@ class PidComparisonScene3DWidget(QWidget):
             if selected is not None:
                 paths.append(
                     (
-                        "Selected conditional sample",
-                        selected.state.position,
+                        "Selected posterior rollout",
+                        selected.recorded_control_rollout.position[
+                            selected.recorded_control_rollout.valid
+                        ],
                         "#d45bd4",
                         4.0,
                     )
                 )
+        paths.append(
+            (
+                "Observed",
+                result.pose.position[result.pose.valid],
+                "#1e5abe",
+                3.8,
+            )
+        )
         return paths
 
     def rebuild_scene(self) -> None:

@@ -281,8 +281,6 @@ class BatchArtifactTests(unittest.TestCase):
             "map_actuator_gimbal": np.zeros((count, 4)),
             "map_dynamics_residual": np.zeros((count - 1, 6)),
             "map_dynamics_residual_valid": np.ones(count - 1, dtype=bool),
-            "correction_translation": np.zeros((count, 3)),
-            "correction_rotation_vector": np.zeros((count, 3)),
             "factor_names": np.asarray(("pose", "dynamics")),
             "factor_residual_history": np.zeros((2, 2)),
             "factor_normalized_residual_history": np.zeros((2, 2)),
@@ -291,6 +289,22 @@ class BatchArtifactTests(unittest.TestCase):
             "numerical_diagnostic_names": np.asarray(("condition",)),
             "numerical_diagnostic_values": np.asarray((10.0,)),
         }
+        for prefix in (
+            "initial_parameter_rollout",
+            "estimated_parameter_rollout",
+        ):
+            result["{}_position".format(prefix)] = np.zeros((count, 3))
+            result["{}_orientation_xyzw".format(prefix)] = quaternion.copy()
+            result["{}_valid".format(prefix)] = np.ones(count, dtype=bool)
+            result["{}_correction_translation".format(prefix)] = np.zeros(
+                (count, 3)
+            )
+            result[
+                "{}_correction_rotation_vector".format(prefix)
+            ] = np.zeros((count, 3))
+            result["{}_correction_valid".format(prefix)] = np.ones(
+                count, dtype=bool
+            )
         for prefix, value_name, dimension, covariance_dimension in (
             ("pose", "pose_position", 3, 6),
             ("velocity", "velocity", 3, 3),
@@ -369,9 +383,21 @@ class BatchArtifactTests(unittest.TestCase):
             "conditional_actuator_gimbal": np.zeros(
                 (sample_count, knot_count, 4)
             ),
-            "correction_translation": np.zeros((sample_count, knot_count, 3)),
-            "correction_rotation_vector": np.zeros(
+            "recorded_control_rollout_position": np.zeros(
                 (sample_count, knot_count, 3)
+            ),
+            "recorded_control_rollout_orientation_xyzw": quaternion.copy(),
+            "recorded_control_rollout_valid": np.ones(
+                (sample_count, knot_count), dtype=bool
+            ),
+            "observed_relative_correction_translation": np.zeros(
+                (sample_count, knot_count, 3)
+            ),
+            "observed_relative_correction_rotation_vector": np.zeros(
+                (sample_count, knot_count, 3)
+            ),
+            "observed_relative_correction_valid": np.ones(
+                (sample_count, knot_count), dtype=bool
             ),
             "dynamics_residual": np.zeros((sample_count, knot_count - 1, 6)),
             "dynamics_residual_valid": np.ones(
@@ -551,7 +577,7 @@ class BatchArtifactTests(unittest.TestCase):
     def test_unknown_and_old_schemas_are_rejected(self):
         for schema in (
             "grape-param-estim/assimilation-run/v1",
-            "grape-param-estim/batch-estimation-run/v2",
+            "grape-param-estim/batch-estimation-run/v1",
         ):
             manifest = self._read_manifest()
             manifest["schema"] = schema
@@ -987,7 +1013,7 @@ class BatchArtifactTests(unittest.TestCase):
             )
         self.assertFalse(destination.exists())
 
-    def test_exact_v1_rejects_unknown_manifest_and_array_fields(self):
+    def test_exact_v2_rejects_unknown_manifest_and_array_fields(self):
         manifest = self._read_manifest()
         manifest["legacy_stage"] = {"schema": "old"}
         self._write_manifest(manifest)

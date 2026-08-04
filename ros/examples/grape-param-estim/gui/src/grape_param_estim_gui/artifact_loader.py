@@ -1,7 +1,7 @@
 """Strict Qt-free views of batch-estimation artifacts.
 
 The backend owns the on-disk contract.  The GUI accepts only a completed
-``grape-param-estim/batch-estimation-run/v1`` directory validated by
+``grape-param-estim/batch-estimation-run/v2`` directory validated by
 ``grape_param_estim.batch_artifact``.  This module converts that detached,
 pickle-free bundle into immutable display models; it does not implement an
 old assimilation or staged-artifact compatibility path.
@@ -358,6 +358,19 @@ class StateTrajectory:
 
 
 @dataclass(frozen=True)
+class PoseTrajectory:
+    """One sensor-pose path with an explicit finite-prefix mask."""
+
+    position: np.ndarray
+    orientation_xyzw: np.ndarray
+    valid: np.ndarray
+
+    @property
+    def rpy(self) -> np.ndarray:
+        return _quaternion_xyzw_to_rpy(self.orientation_xyzw)
+
+
+@dataclass(frozen=True)
 class BagEstimationResult:
     bag_id: str
     knot_time: np.ndarray
@@ -373,10 +386,16 @@ class BagEstimationResult:
     controller_integral_observation: VectorObservation
     nominal: StateTrajectory
     map_trajectory: StateTrajectory
+    initial_parameter_rollout: PoseTrajectory
+    estimated_parameter_rollout: PoseTrajectory
+    initial_parameter_rollout_correction_translation: np.ndarray
+    initial_parameter_rollout_correction_rotation_vector: np.ndarray
+    initial_parameter_rollout_correction_valid: np.ndarray
+    estimated_parameter_rollout_correction_translation: np.ndarray
+    estimated_parameter_rollout_correction_rotation_vector: np.ndarray
+    estimated_parameter_rollout_correction_valid: np.ndarray
     map_dynamics_residual: np.ndarray
     map_dynamics_residual_valid: np.ndarray
-    correction_translation: np.ndarray
-    correction_rotation_vector: np.ndarray
     factor_residual_history: Mapping[str, np.ndarray]
     factor_normalized_residual_history: Mapping[str, np.ndarray]
     objective_components: Mapping[str, float]
@@ -398,8 +417,10 @@ class ConditionalTrajectory:
     sample_id: str
     knot_time: np.ndarray
     state: StateTrajectory
-    correction_translation: np.ndarray
-    correction_rotation_vector: np.ndarray
+    recorded_control_rollout: PoseTrajectory
+    observed_relative_correction_translation: np.ndarray
+    observed_relative_correction_rotation_vector: np.ndarray
+    observed_relative_correction_valid: np.ndarray
     dynamics_residual: np.ndarray
     dynamics_residual_valid: np.ndarray
     conditional_objective: float
@@ -417,8 +438,12 @@ class SelectedTrajectorySet:
     conditional_controller_integral: np.ndarray
     conditional_actuator_thrust: np.ndarray
     conditional_actuator_gimbal: np.ndarray
-    correction_translation: np.ndarray
-    correction_rotation_vector: np.ndarray
+    recorded_control_rollout_position: np.ndarray
+    recorded_control_rollout_orientation_xyzw: np.ndarray
+    recorded_control_rollout_valid: np.ndarray
+    observed_relative_correction_translation: np.ndarray
+    observed_relative_correction_rotation_vector: np.ndarray
+    observed_relative_correction_valid: np.ndarray
     dynamics_residual: np.ndarray
     dynamics_residual_valid: np.ndarray
     conditional_objective: np.ndarray
@@ -447,8 +472,22 @@ class SelectedTrajectorySet:
                 actuator_thrust=self.conditional_actuator_thrust[index],
                 actuator_gimbal=self.conditional_actuator_gimbal[index],
             ),
-            correction_translation=self.correction_translation[index],
-            correction_rotation_vector=self.correction_rotation_vector[index],
+            recorded_control_rollout=PoseTrajectory(
+                position=self.recorded_control_rollout_position[index],
+                orientation_xyzw=(
+                    self.recorded_control_rollout_orientation_xyzw[index]
+                ),
+                valid=self.recorded_control_rollout_valid[index],
+            ),
+            observed_relative_correction_translation=(
+                self.observed_relative_correction_translation[index]
+            ),
+            observed_relative_correction_rotation_vector=(
+                self.observed_relative_correction_rotation_vector[index]
+            ),
+            observed_relative_correction_valid=(
+                self.observed_relative_correction_valid[index]
+            ),
             dynamics_residual=self.dynamics_residual[index],
             dynamics_residual_valid=self.dynamics_residual_valid[index],
             conditional_objective=float(self.conditional_objective[index]),
@@ -902,13 +941,53 @@ def _bag_result(
         ),
         nominal=_state_trajectory(arrays, "nominal"),
         map_trajectory=_state_trajectory(arrays, "map"),
+        initial_parameter_rollout=PoseTrajectory(
+            position=_array(
+                arrays["initial_parameter_rollout_position"]
+            ),
+            orientation_xyzw=_array(
+                arrays["initial_parameter_rollout_orientation_xyzw"]
+            ),
+            valid=_array(arrays["initial_parameter_rollout_valid"]),
+        ),
+        estimated_parameter_rollout=PoseTrajectory(
+            position=_array(
+                arrays["estimated_parameter_rollout_position"]
+            ),
+            orientation_xyzw=_array(
+                arrays["estimated_parameter_rollout_orientation_xyzw"]
+            ),
+            valid=_array(arrays["estimated_parameter_rollout_valid"]),
+        ),
+        initial_parameter_rollout_correction_translation=_array(
+            arrays[
+                "initial_parameter_rollout_correction_translation"
+            ]
+        ),
+        initial_parameter_rollout_correction_rotation_vector=_array(
+            arrays[
+                "initial_parameter_rollout_correction_rotation_vector"
+            ]
+        ),
+        initial_parameter_rollout_correction_valid=_array(
+            arrays["initial_parameter_rollout_correction_valid"]
+        ),
+        estimated_parameter_rollout_correction_translation=_array(
+            arrays[
+                "estimated_parameter_rollout_correction_translation"
+            ]
+        ),
+        estimated_parameter_rollout_correction_rotation_vector=_array(
+            arrays[
+                "estimated_parameter_rollout_correction_rotation_vector"
+            ]
+        ),
+        estimated_parameter_rollout_correction_valid=_array(
+            arrays["estimated_parameter_rollout_correction_valid"]
+        ),
         map_dynamics_residual=_array(arrays["map_dynamics_residual"]),
         map_dynamics_residual_valid=_array(
             arrays["map_dynamics_residual_valid"]
-        ),
-        correction_translation=_array(arrays["correction_translation"]),
-        correction_rotation_vector=_array(
-            arrays["correction_rotation_vector"]
         ),
         factor_residual_history={
             str(name): residual[:, index]
@@ -979,9 +1058,23 @@ def _trajectory_set(
         conditional_actuator_gimbal=_array(
             arrays["conditional_actuator_gimbal"]
         ),
-        correction_translation=_array(arrays["correction_translation"]),
-        correction_rotation_vector=_array(
-            arrays["correction_rotation_vector"]
+        recorded_control_rollout_position=_array(
+            arrays["recorded_control_rollout_position"]
+        ),
+        recorded_control_rollout_orientation_xyzw=_array(
+            arrays["recorded_control_rollout_orientation_xyzw"]
+        ),
+        recorded_control_rollout_valid=_array(
+            arrays["recorded_control_rollout_valid"]
+        ),
+        observed_relative_correction_translation=_array(
+            arrays["observed_relative_correction_translation"]
+        ),
+        observed_relative_correction_rotation_vector=_array(
+            arrays["observed_relative_correction_rotation_vector"]
+        ),
+        observed_relative_correction_valid=_array(
+            arrays["observed_relative_correction_valid"]
         ),
         dynamics_residual=_array(arrays["dynamics_residual"]),
         dynamics_residual_valid=_array(arrays["dynamics_residual_valid"]),
@@ -1126,6 +1219,7 @@ __all__ = [
     "McmcDiagnostics",
     "McmcPosterior",
     "PidProposalEvaluation",
+    "PoseTrajectory",
     "QEmHistory",
     "RunDiagnostics",
     "SelectedTrajectorySet",

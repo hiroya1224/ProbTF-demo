@@ -95,7 +95,7 @@ def preflight_batch_estimation_launch(
             "batch-estimation backend is unavailable during launch preflight"
         ) from _BACKEND_IMPORT_ERROR
     if BATCH_ESTIMATION_RUN_SCHEMA != (
-        "grape-param-estim/batch-estimation-run/v1"
+        "grape-param-estim/batch-estimation-run/v2"
     ):
         raise WorkflowError(
             "GUI does not support backend artifact schema {!r}".format(

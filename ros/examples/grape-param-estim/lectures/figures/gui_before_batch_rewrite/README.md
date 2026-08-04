@@ -6,6 +6,6 @@
 
 この baseline が固定するのは、`Master`、`Bag browser`、`Next experiment` の三画面構成、主要 panel の配置、3D view の配置、および既存の操作密度である。
 画像内の `member`、`Residual wrench`、旧 stage、旧 artifact の意味は改装対象であり、維持すべき仕様ではない。
-取得に使った旧 artifact は新 reader の互換 fixture ではなく、新しい `grape-param-estim/batch-estimation-run/v1` loader はそれらを拒否しなければならない。
+取得に使った旧 artifact は新 reader の互換 fixture ではなく、新しい `grape-param-estim/batch-estimation-run/v2` loader はそれらを拒否しなければならない。
 
 各画像の寸法と byte size、取得対象 ID は [summary.json](summary.json) に記録している。

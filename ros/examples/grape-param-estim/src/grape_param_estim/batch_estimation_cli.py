@@ -735,6 +735,7 @@ def _execute_resumable_mcmc_run(
         mcmc.chains,
         mcmc.diagnostics,
         target_timings,
+        inputs.flight_data,
         inputs.initializations,
         conditional.trajectories,
         conditional.selection.manifest_payload,

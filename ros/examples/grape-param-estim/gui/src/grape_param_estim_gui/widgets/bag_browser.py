@@ -60,6 +60,22 @@ def _interval_time(time: np.ndarray) -> np.ndarray:
     return 0.5 * (value[:-1] + value[1:])
 
 
+def _finite_column_quantile(values: np.ndarray, probability: float) -> np.ndarray:
+    """Take a sample-axis quantile without warning on unavailable columns."""
+
+    array = np.asarray(values, dtype=float)
+    if array.ndim < 2:
+        raise ValueError("quantile values must have a sample axis")
+    flattened = array.reshape((array.shape[0], -1))
+    result = np.full(flattened.shape[1], np.nan, dtype=float)
+    available = np.any(np.isfinite(flattened), axis=0)
+    if np.any(available):
+        result[available] = np.nanquantile(
+            flattened[:, available], probability, axis=0
+        )
+    return result.reshape(array.shape[1:])
+
+
 class BatchTrajectoryScene(QWidget):
     """PyVista overview driven directly by MAP and selected trajectories."""
 
@@ -155,22 +171,25 @@ class BatchTrajectoryScene(QWidget):
                 paths.append(
                     ("Reference", result.reference.position, "#aaaaaa", 2.0)
                 )
-            if self.layers["observed"]:
+            if self.layers["nominal"]:
+                valid = result.initial_parameter_rollout.valid
                 paths.append(
                     (
-                        "Observed pose",
-                        result.pose.position[result.pose.valid],
-                        "#3d8bf2",
-                        4.0,
+                        "Initial-parameter rollout",
+                        result.initial_parameter_rollout.position[valid],
+                        "#ec8a2f",
+                        2.5,
                     )
                 )
-            if self.layers["nominal"]:
-                paths.append(
-                    ("Nominal", result.nominal.position, "#ec8a2f", 2.5)
-                )
             if self.layers["map"]:
+                valid = result.estimated_parameter_rollout.valid
                 paths.append(
-                    ("MAP trajectory", result.map_trajectory.position, "#34b77b", 3.4)
+                    (
+                        "Estimated-parameter rollout",
+                        result.estimated_parameter_rollout.position[valid],
+                        "#34b77b",
+                        3.4,
+                    )
                 )
         elif self.preview is not None:
             if self.layers["reference"]:
@@ -182,22 +201,36 @@ class BatchTrajectoryScene(QWidget):
                     ("Observed pose", self.preview.observed_position, "#3d8bf2", 4.0)
                 )
         if self.layers["posterior"] and self.subset is not None:
-            for index, points in enumerate(self.subset.conditional_position):
+            for index in range(self.subset.sample_id.size):
+                valid = self.subset.recorded_control_rollout_valid[index]
                 paths.append(
                     (
-                        "stored sample {}".format(index),
-                        points,
-                        "#6bc493",
+                        "stored posterior rollout {}".format(index),
+                        self.subset.recorded_control_rollout_position[index][
+                            valid
+                        ],
+                        "#9467bd",
                         0.8,
                     )
                 )
         if self.layers["selected"] and self.selected is not None:
+            valid = self.selected.recorded_control_rollout.valid
             paths.append(
                 (
-                    "Selected conditional sample",
-                    self.selected.state.position,
+                    "Selected posterior rollout",
+                    self.selected.recorded_control_rollout.position[valid],
                     "#d45bd4",
                     4.0,
+                )
+            )
+        if self.result is not None and self.layers["observed"]:
+            result = self.result
+            paths.append(
+                (
+                    "Observed pose",
+                    result.pose.position[result.pose.valid],
+                    "#1e5abe",
+                    4.5,
                 )
             )
         return paths
@@ -205,33 +238,68 @@ class BatchTrajectoryScene(QWidget):
     def _correction_paths(self) -> list[tuple[str, np.ndarray, str, float]]:
         paths: list[tuple[str, np.ndarray, str, float]] = []
         if self.result is not None:
-            zero = np.zeros_like(self.result.correction_translation)
-            if self.layers["nominal"]:
-                paths.append(("Nominal identity", zero, "#ec8a2f", 2.0))
-            if self.layers["map"]:
+            observed_valid = (
+                self.result.initial_parameter_rollout_correction_valid
+                | self.result.estimated_parameter_rollout_correction_valid
+            )
+            if self.layers["observed"]:
                 paths.append(
                     (
-                        "MAP correction",
-                        self.result.correction_translation,
+                        "Observed baseline",
+                        np.zeros((int(np.count_nonzero(observed_valid)), 3)),
+                        "#1e5abe",
+                        4.0,
+                    )
+                )
+            if self.layers["nominal"]:
+                valid = (
+                    self.result.initial_parameter_rollout_correction_valid
+                )
+                paths.append(
+                    (
+                        "Initial-parameter rollout error",
+                        self.result.initial_parameter_rollout_correction_translation[
+                            valid
+                        ],
+                        "#ec8a2f",
+                        2.5,
+                    )
+                )
+            if self.layers["map"]:
+                valid = (
+                    self.result.estimated_parameter_rollout_correction_valid
+                )
+                paths.append(
+                    (
+                        "Estimated-parameter rollout error",
+                        self.result.estimated_parameter_rollout_correction_translation[
+                            valid
+                        ],
                         "#34b77b",
                         3.4,
                     )
                 )
         if self.layers["posterior"] and self.subset is not None:
-            for index, points in enumerate(self.subset.correction_translation):
+            for index, points in enumerate(
+                self.subset.observed_relative_correction_translation
+            ):
+                valid = self.subset.observed_relative_correction_valid[index]
                 paths.append(
                     (
-                        "stored correction {}".format(index),
-                        points,
-                        "#6bc493",
+                        "stored posterior error {}".format(index),
+                        points[valid],
+                        "#9467bd",
                         0.8,
                     )
                 )
         if self.layers["selected"] and self.selected is not None:
+            valid = self.selected.observed_relative_correction_valid
             paths.append(
                 (
-                    "Selected correction",
-                    self.selected.correction_translation,
+                    "Selected posterior rollout error",
+                    self.selected.observed_relative_correction_translation[
+                        valid
+                    ],
                     "#d45bd4",
                     4.0,
                 )
@@ -274,7 +342,7 @@ class BatchTrajectoryScene(QWidget):
         self.plotter.add_text(
             "World trajectory"
             if self.view_mode == "world"
-            else "Nominal-to-estimated correction",
+            else "Observed-relative rollout error (zero is agreement)",
             position="upper_left",
             font_size=11,
         )
@@ -303,14 +371,13 @@ class BatchSignalPanel(QWidget):
     viewRangeRequested = Signal(float, float)
     estimationRangeEdited = Signal(float, float)
     seriesRendered = Signal()
-
     _COLORS = {
         "reference": (80, 80, 80),
         "observed": (30, 90, 190),
         "nominal": (210, 105, 30),
         "map": (30, 150, 95),
-        "selected": (150, 45, 170),
-        "posterior": (75, 175, 120),
+        "selected": (205, 65, 185),
+        "posterior": (135, 75, 175),
         "q_band": (190, 105, 35),
         "normalized": (55, 55, 55),
     }
@@ -318,16 +385,17 @@ class BatchSignalPanel(QWidget):
         "trajectory": {
             "reference": "Reference trajectory",
             "observed": "Observed pose",
-            "nominal": "Nominal trajectory",
-            "map": "MAP trajectory",
-            "posterior": "Stored posterior 5–95% band",
-            "selected": "Selected conditional sample",
+            "nominal": "Initial-parameter recorded-control rollout",
+            "map": "Estimated-parameter recorded-control rollout",
+            "posterior": "Posterior rollout 5–95% band",
+            "selected": "Selected posterior rollout",
         },
         "correction": {
-            "nominal": "Nominal (zero correction)",
-            "map": "MAP correction",
-            "posterior": "Stored posterior 5–95% band",
-            "selected": "Selected correction sample",
+            "observed": "Observed baseline (zero error)",
+            "nominal": "Initial-parameter rollout error",
+            "map": "Estimated-parameter rollout error",
+            "posterior": "Posterior rollout-error 5–95% band",
+            "selected": "Selected posterior rollout error",
         },
         "dynamics": {
             "map": "MAP dynamics residual",
@@ -509,11 +577,14 @@ class BatchSignalPanel(QWidget):
             blocker = QSignalBlocker(checkbox)
             checkbox.setText(label)
             checkbox.setChecked(self.series_visibility[key])
-            checkbox.setEnabled(key in available)
+            checkbox.setEnabled(True)
             checkbox.setToolTip(
                 "Show or hide {} in every component tab.".format(label)
                 if key in available
-                else "{} is unavailable for the current result.".format(label)
+                else (
+                    "{} is not present in the current result; this visibility "
+                    "choice is retained for the next available result."
+                ).format(label)
             )
             checkbox.setStyleSheet(
                 "QCheckBox {{ color: rgb({}, {}, {}); font-weight: 600; }}".format(
@@ -591,13 +662,29 @@ class BatchSignalPanel(QWidget):
                     result.pose.time[valid],
                     np.concatenate((result.pose.position[valid], result.pose.rpy[valid]), axis=1),
                 )
+            initial_valid = result.initial_parameter_rollout.valid
             series["nominal"] = (
-                result.knot_time,
-                np.concatenate((result.nominal.position, result.nominal.rpy), axis=1),
+                result.knot_time[initial_valid],
+                np.concatenate(
+                    (
+                        result.initial_parameter_rollout.position[initial_valid],
+                        result.initial_parameter_rollout.rpy[initial_valid],
+                    ),
+                    axis=1,
+                ),
             )
+            estimated_valid = result.estimated_parameter_rollout.valid
             series["map"] = (
-                result.knot_time,
-                np.concatenate((result.map_trajectory.position, result.map_trajectory.rpy), axis=1),
+                result.knot_time[estimated_valid],
+                np.concatenate(
+                    (
+                        result.estimated_parameter_rollout.position[
+                            estimated_valid
+                        ],
+                        result.estimated_parameter_rollout.rpy[estimated_valid],
+                    ),
+                    axis=1,
+                ),
             )
         elif self.preview is not None:
             series["reference"] = (
@@ -612,11 +699,16 @@ class BatchSignalPanel(QWidget):
             # Position quantiles are Euclidean.  Euler-angle quantiles would
             # be wrong across the ±pi branch, so the orientation band remains
             # absent until an SO(3)-tangent credible band is available.
-            lower_position = np.quantile(
-                self.subset.conditional_position, 0.05, axis=0
+            rollout_position = np.where(
+                self.subset.recorded_control_rollout_valid[:, :, None],
+                self.subset.recorded_control_rollout_position,
+                np.nan,
             )
-            upper_position = np.quantile(
-                self.subset.conditional_position, 0.95, axis=0
+            lower_position = _finite_column_quantile(
+                rollout_position, 0.05
+            )
+            upper_position = _finite_column_quantile(
+                rollout_position, 0.95
             )
             absent_orientation = np.full(
                 (self.subset.knot_time.size, 3), np.nan
@@ -630,10 +722,15 @@ class BatchSignalPanel(QWidget):
                 np.concatenate((upper_position, absent_orientation), axis=1),
             )
         if self.selected is not None:
+            valid = self.selected.recorded_control_rollout.valid
             series["selected"] = (
-                self.selected.knot_time,
+                self.selected.knot_time[valid],
                 np.concatenate(
-                    (self.selected.state.position, self.selected.state.rpy), axis=1
+                    (
+                        self.selected.recorded_control_rollout.position[valid],
+                        self.selected.recorded_control_rollout.rpy[valid],
+                    ),
+                    axis=1,
                 ),
             )
         return series
@@ -641,41 +738,72 @@ class BatchSignalPanel(QWidget):
     def _correction_series(self) -> dict[str, tuple[np.ndarray, np.ndarray]]:
         series: dict[str, tuple[np.ndarray, np.ndarray]] = {}
         if self.result is not None:
-            values = np.concatenate(
+            initial_values = np.concatenate(
                 (
-                    self.result.correction_translation,
-                    self.result.correction_rotation_vector,
+                    self.result.initial_parameter_rollout_correction_translation,
+                    self.result.initial_parameter_rollout_correction_rotation_vector,
                 ),
                 axis=1,
             )
-            series["nominal"] = (
-                self.result.knot_time,
-                np.zeros_like(values),
+            initial_valid = (
+                self.result.initial_parameter_rollout_correction_valid
             )
-            series["map"] = (self.result.knot_time, values)
+            series["nominal"] = (
+                self.result.knot_time[initial_valid],
+                initial_values[initial_valid],
+            )
+            estimated_values = np.concatenate(
+                (
+                    self.result.estimated_parameter_rollout_correction_translation,
+                    self.result.estimated_parameter_rollout_correction_rotation_vector,
+                ),
+                axis=1,
+            )
+            estimated_valid = (
+                self.result.estimated_parameter_rollout_correction_valid
+            )
+            series["map"] = (
+                self.result.knot_time[estimated_valid],
+                estimated_values[estimated_valid],
+            )
+            observed_valid = initial_valid | estimated_valid
+            series["observed"] = (
+                self.result.knot_time[observed_valid],
+                np.zeros((int(np.count_nonzero(observed_valid)), 6)),
+            )
         if self.subset is not None and self.subset.sample_id.size:
             values = np.concatenate(
                 (
-                    self.subset.correction_translation,
-                    self.subset.correction_rotation_vector,
+                    self.subset.observed_relative_correction_translation,
+                    self.subset.observed_relative_correction_rotation_vector,
                 ),
                 axis=2,
             )
+            values = np.where(
+                self.subset.observed_relative_correction_valid[:, :, None],
+                values,
+                np.nan,
+            )
             series["posterior_lower"] = (
                 self.subset.knot_time,
-                np.quantile(values, 0.05, axis=0),
+                _finite_column_quantile(values, 0.05),
             )
             series["posterior_upper"] = (
                 self.subset.knot_time,
-                np.quantile(values, 0.95, axis=0),
+                _finite_column_quantile(values, 0.95),
             )
         if self.selected is not None:
+            valid = self.selected.observed_relative_correction_valid
             series["selected"] = (
-                self.selected.knot_time,
+                self.selected.knot_time[valid],
                 np.concatenate(
                     (
-                        self.selected.correction_translation,
-                        self.selected.correction_rotation_vector,
+                        self.selected.observed_relative_correction_translation[
+                            valid
+                        ],
+                        self.selected.observed_relative_correction_rotation_vector[
+                            valid
+                        ],
                     ),
                     axis=1,
                 ),
@@ -713,11 +841,11 @@ class BatchSignalPanel(QWidget):
             )
             series["posterior_lower"] = (
                 time,
-                np.nanquantile(residual, 0.05, axis=0),
+                _finite_column_quantile(residual, 0.05),
             )
             series["posterior_upper"] = (
                 time,
-                np.nanquantile(residual, 0.95, axis=0),
+                _finite_column_quantile(residual, 0.95),
             )
         if self.selected is not None:
             selected_valid = self.selected.dynamics_residual_valid
@@ -739,16 +867,17 @@ class BatchSignalPanel(QWidget):
         if self.kind == "trajectory":
             self.series_data = self._trajectory_series()
             self.status_label.setText(
-                "Reference, asynchronous observed pose, nominal, full-trajectory MAP, "
-                "and the selected stored conditional sample. The Y scale is shared "
-                "with the matching Correction transform component."
+                "Blue is the asynchronous recorded sensor pose. Orange and green "
+                "are open-loop forward simulations driven by the same recorded "
+                "actuator commands, without observation resets or residual wrench. "
+                "The matching Correction plot uses the same vertical scale."
             )
         elif self.kind == "correction":
             self.series_data = self._correction_series()
             self.status_label.setText(
-                "Correction is nominal-to-MAP or nominal-to-selected conditional "
-                "trajectory. The Y scale is shared with the matching Trajectory "
-                "component."
+                "Each curve is T_observed^-1 T_rollout on the knot grid. Blue is "
+                "the zero-error observed baseline; agreement with blue is desired. "
+                "Its vertical origin remains independent from Trajectory."
             )
         else:
             self.series_data = self._dynamics_series()
@@ -801,7 +930,7 @@ class BatchSignalPanel(QWidget):
             visible_keys = (
                 ("map_normalized", "selected_normalized")
                 if normalized_dynamics
-                else ("reference", "observed", "nominal", "map", "selected")
+                else ("reference", "nominal", "map", "selected")
             )
             for key in visible_keys:
                 item = self.series_data.get(key)
@@ -861,7 +990,7 @@ class BatchSignalPanel(QWidget):
                     pg.FillBetweenItem(
                         lower_curve,
                         upper_curve,
-                        brush=pg.mkBrush(75, 175, 120, 42),
+                        brush=pg.mkBrush(135, 75, 175, 42),
                     )
                 )
             if (
@@ -904,6 +1033,23 @@ class BatchSignalPanel(QWidget):
                             else None
                         ),
                     )
+            observed = self.series_data.get("observed")
+            if (
+                not normalized_dynamics
+                and observed is not None
+                and self.series_visibility.get("observed", False)
+            ):
+                observed_time, observed_values = observed
+                plot.plot(
+                    observed_time,
+                    observed_values[:, component],
+                    pen=pg.mkPen(self._COLORS["observed"], width=2.2),
+                    symbol="o" if self.kind == "trajectory" else None,
+                    symbolSize=5 if self.kind == "trajectory" else 0,
+                    symbolPen=pg.mkPen(self._COLORS["observed"]),
+                    symbolBrush=pg.mkBrush(*self._COLORS["observed"], 150),
+                    name=self._series_label("observed"),
+                )
             line = pg.InfiniteLine(
                 angle=90,
                 movable=False,
@@ -1267,7 +1413,7 @@ class BagBrowserView(QWidget):
         self.correction_panel = BatchSignalPanel("correction")
         self.dynamics_panel = BatchSignalPanel("dynamics")
         self._updating_linked_y_ranges = False
-        self._connect_trajectory_correction_y_ranges()
+        self._connect_trajectory_correction_y_scales()
         self.direct_observation_panel = DirectObservationPanel()
         self.signal_tabs.addTab(self.trajectory_panel, "Trajectory")
         self.signal_tabs.addTab(self.correction_panel, "Correction transform")
@@ -1303,8 +1449,8 @@ class BagBrowserView(QWidget):
         if self.store.current_record() is not None:
             self._load_record(self.store.current_record())
 
-    def _connect_trajectory_correction_y_ranges(self) -> None:
-        """Keep matching position/correction components on one Y scale."""
+    def _connect_trajectory_correction_y_scales(self) -> None:
+        """Keep matching absolute-pose and error plots at one Y scale."""
 
         for trajectory_plot, correction_plot in zip(
             self.trajectory_panel.plots,
@@ -1312,36 +1458,47 @@ class BagBrowserView(QWidget):
             strict=True,
         ):
             trajectory_plot.getViewBox().sigYRangeChanged.connect(
-                lambda _view, value, target=correction_plot: self._mirror_y_range(
+                lambda _view, value, target=correction_plot: self._mirror_y_span(
                     target, value
                 )
             )
             correction_plot.getViewBox().sigYRangeChanged.connect(
-                lambda _view, value, target=trajectory_plot: self._mirror_y_range(
+                lambda _view, value, target=trajectory_plot: self._mirror_y_span(
                     target, value
                 )
             )
         self.trajectory_panel.seriesRendered.connect(
-            self._fit_trajectory_correction_y_ranges
+            self._fit_trajectory_correction_y_scales
         )
         self.correction_panel.seriesRendered.connect(
-            self._fit_trajectory_correction_y_ranges
+            self._fit_trajectory_correction_y_scales
         )
 
-    def _mirror_y_range(
+    def _mirror_y_span(
         self, target: pg.PlotWidget, value: object
     ) -> None:
         if self._updating_linked_y_ranges:
             return
         lower, upper = (float(bound) for bound in value)
+        span = upper - lower
+        if not np.isfinite(span) or span <= 0.0:
+            return
+        target_lower, target_upper = target.getViewBox().viewRange()[1]
+        center = 0.5 * (float(target_lower) + float(target_upper))
         self._updating_linked_y_ranges = True
         try:
-            target.setYRange(lower, upper, padding=0.0)
+            target.setYRange(
+                center - 0.5 * span,
+                center + 0.5 * span,
+                padding=0.0,
+            )
         finally:
             self._updating_linked_y_ranges = False
 
     @staticmethod
-    def _finite_plot_y_bounds(plot: pg.PlotWidget) -> tuple[float, float] | None:
+    def _finite_plot_y_bounds(
+        plot: pg.PlotWidget,
+    ) -> tuple[float, float] | None:
         bounds: list[tuple[float, float]] = []
         for item in plot.listDataItems():
             item_bounds = item.dataBounds(1)
@@ -1361,8 +1518,8 @@ class BagBrowserView(QWidget):
             max(value[1] for value in bounds),
         )
 
-    def _fit_trajectory_correction_y_ranges(self) -> None:
-        """Fit each linked pair to the union of its visible finite data."""
+    def _fit_trajectory_correction_y_scales(self) -> None:
+        """Fit each pair around its own center using a common finite span."""
 
         if self._updating_linked_y_ranges:
             return
@@ -1373,28 +1530,44 @@ class BagBrowserView(QWidget):
                 self.correction_panel.plots,
                 strict=True,
             ):
-                pair_bounds = tuple(
-                    bounds
-                    for bounds in (
-                        self._finite_plot_y_bounds(trajectory_plot),
-                        self._finite_plot_y_bounds(correction_plot),
-                    )
-                    if bounds is not None
+                plot_bounds = (
+                    self._finite_plot_y_bounds(trajectory_plot),
+                    self._finite_plot_y_bounds(correction_plot),
                 )
-                if not pair_bounds:
+                available = tuple(
+                    bounds for bounds in plot_bounds if bounds is not None
+                )
+                if not available:
                     continue
-                lower = min(bounds[0] for bounds in pair_bounds)
-                upper = max(bounds[1] for bounds in pair_bounds)
-                span = upper - lower
-                padding = (
-                    0.05 * span
-                    if span > 0.0
-                    else 0.05 * max(abs(lower), 1.0)
+                raw_span = max(
+                    bounds[1] - bounds[0] for bounds in available
                 )
-                for plot in (trajectory_plot, correction_plot):
+                shared_span = (
+                    1.1 * raw_span
+                    if raw_span > 0.0
+                    else 0.1
+                    * max(
+                        1.0,
+                        *(
+                            abs(value)
+                            for bounds in available
+                            for value in bounds
+                        ),
+                    )
+                )
+                for plot, bounds in zip(
+                    (trajectory_plot, correction_plot),
+                    plot_bounds,
+                    strict=True,
+                ):
+                    if bounds is None:
+                        current = plot.getViewBox().viewRange()[1]
+                        center = 0.5 * (current[0] + current[1])
+                    else:
+                        center = 0.5 * (bounds[0] + bounds[1])
                     plot.setYRange(
-                        lower - padding,
-                        upper + padding,
+                        center - 0.5 * shared_span,
+                        center + 0.5 * shared_span,
                         padding=0.0,
                     )
         finally:
@@ -1500,7 +1673,9 @@ class BagBrowserView(QWidget):
         view_layout = QVBoxLayout(view_group)
         self.view_mode_combo = QComboBox()
         self.view_mode_combo.addItem("World trajectory", "world")
-        self.view_mode_combo.addItem("Correction transform", "correction")
+        self.view_mode_combo.addItem(
+            "Observed-relative rollout error", "correction"
+        )
         self.reset_camera_button = QPushButton("Reset camera")
         view_layout.addWidget(self.view_mode_combo)
         view_layout.addWidget(self.reset_camera_button)
@@ -1510,11 +1685,11 @@ class BagBrowserView(QWidget):
         self.layer_checkboxes: dict[str, QCheckBox] = {}
         for layer, text in (
             ("reference", "Reference"),
-            ("observed", "Observed pose"),
-            ("nominal", "Nominal"),
-            ("map", "MAP"),
-            ("posterior", "Stored posterior subset"),
-            ("selected", "Selected conditional sample"),
+            ("observed", "Observed pose / zero-error baseline"),
+            ("nominal", "Initial-parameter rollout"),
+            ("map", "Estimated-parameter rollout"),
+            ("posterior", "Stored posterior rollouts"),
+            ("selected", "Selected posterior rollout"),
         ):
             checkbox = QCheckBox(text)
             checkbox.setChecked(True)
@@ -1796,10 +1971,17 @@ class BagBrowserView(QWidget):
     def _render_flight_state(self, record: BagRecord | None) -> None:
         self.flight_state_plot.clear()
         if record is None or record.preview is None or record.preview.flight_state is None:
-            self.flight_state_checkbox.setEnabled(False)
+            self.flight_state_checkbox.setEnabled(True)
+            self.flight_state_checkbox.setToolTip(
+                "No recorded flight-state stream is present now; the visibility "
+                "choice is retained for the next bag that has one."
+            )
             self.flight_state_plot.setTitle("Recorded flight state (not stored in batch run)")
             return
         self.flight_state_checkbox.setEnabled(True)
+        self.flight_state_checkbox.setToolTip(
+            "Show or hide the recorded flight-state series."
+        )
         self.flight_state_plot.setTitle("Recorded flight state")
         if not self.flight_state_checkbox.isChecked():
             return

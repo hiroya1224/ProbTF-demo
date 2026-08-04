@@ -52,7 +52,7 @@ def _run(root: Path) -> BatchEstimationRun:
     return BatchEstimationRun(
         root=root,
         manifest={
-            "schema": "grape-param-estim/batch-estimation-run/v1",
+            "schema": "grape-param-estim/batch-estimation-run/v2",
             "status": "complete",
             "run_id": "source-run",
             "selected_bag_ids": ["bag-a", "bag-b"],

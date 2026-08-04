@@ -30,9 +30,16 @@ from grape_param_estim.batch.factors.dynamics_factor import (
 )
 from grape_param_estim.batch.graph_builder import (
     GaussianCovariance,
+    PreparedActuatorInterval,
     PreparedBagGraphData,
 )
 from grape_param_estim.batch.lag_profile import LagProfileResult
+from grape_param_estim.batch.recorded_control_rollout import (
+    RecordedControlRollout,
+    interpolate_observed_pose,
+    simulate_recorded_control_rollout,
+)
+from grape_param_estim.batch.preparation import _delayed_command_segments
 from grape_param_estim.batch.state import BatchState
 from grape_param_estim.batch.variables import VariableKey, VariableKind
 from grape_param_estim.batch_request import BatchEstimationRequest
@@ -394,6 +401,125 @@ def _state_arrays(state: BatchState, bag_id: str, knot_count: int) -> Dict[str, 
             )
         result[output_name] = array
     return result
+
+
+def _observed_relative_correction(
+    rollout: RecordedControlRollout,
+    observation_time: np.ndarray,
+    observation_position: np.ndarray,
+    observation_orientation_xyzw: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return ``T_observed^-1 T_rollout`` on the rollout knot grid."""
+
+    count = rollout.time.size
+    translation = np.zeros((count, 3), dtype=float)
+    rotation = np.zeros((count, 3), dtype=float)
+    if observation_time.size < 2:
+        return translation, rotation, np.zeros(count, dtype=bool)
+    observed_position, observed_orientation, observed_valid = (
+        interpolate_observed_pose(
+            observation_time,
+            observation_position,
+            observation_orientation_xyzw,
+            rollout.time,
+        )
+    )
+    valid = np.asarray(observed_valid & rollout.valid, dtype=bool)
+    if np.any(valid):
+        selected_translation, selected_rotation = correction_transform_path(
+            observed_position[valid],
+            observed_orientation[valid],
+            rollout.sensor_position[valid],
+            rollout.sensor_orientation_xyzw[valid],
+        )
+        translation[valid] = selected_translation
+        rotation[valid] = selected_rotation
+    return translation, rotation, valid
+
+
+def _recorded_control_rollout_payload(
+    *,
+    solution: FixedGraphLaplaceSolution,
+    prepared_bag: PreparedBagGraphData,
+    initial_state: BatchState,
+    parameter_coordinates: np.ndarray,
+    observation_time: np.ndarray,
+    observation_position: np.ndarray,
+    observation_orientation_xyzw: np.ndarray,
+    initial_state_parameter_coordinates: Optional[
+        Sequence[float]
+    ] = None,
+    actuator_intervals: Optional[
+        Sequence[PreparedActuatorInterval]
+    ] = None,
+) -> Mapping[str, np.ndarray]:
+    rollout = simulate_recorded_control_rollout(
+        prepared_bag=prepared_bag,
+        initial_state=initial_state,
+        parameter_chart=solution.prepared.parameter_chart,
+        parameter_coordinates=parameter_coordinates,
+        geometry=solution.prepared.geometry,
+        initial_state_parameter_coordinates=(
+            initial_state_parameter_coordinates
+        ),
+        actuator_intervals=actuator_intervals,
+    )
+    translation, rotation, correction_valid = (
+        _observed_relative_correction(
+            rollout,
+            observation_time,
+            observation_position,
+            observation_orientation_xyzw,
+        )
+    )
+    return {
+        "position": rollout.sensor_position,
+        "orientation_xyzw": rollout.sensor_orientation_xyzw,
+        "valid": rollout.valid,
+        "correction_translation": translation,
+        "correction_rotation_vector": rotation,
+        "correction_valid": correction_valid,
+    }
+
+
+def _actuator_intervals_at_delay(
+    prepared_bag: PreparedBagGraphData,
+    flight: FlightData,
+    delay: float,
+) -> Tuple[PreparedActuatorInterval, ...]:
+    """Rebuild exact ZOH segments for one posterior delay sample."""
+
+    rotor = flight.rotor_command
+    gimbal = flight.gimbal_command
+    if rotor is None or gimbal is None:
+        raise ValueError("recorded-control rollout requires both command streams")
+    for name, series in (("rotor", rotor), ("gimbal", gimbal)):
+        if not all(
+            hasattr(series, attribute)
+            for attribute in ("all_times", "all_values")
+        ):
+            raise TypeError(
+                "{} command must retain causal pre-window history".format(name)
+            )
+    times = np.asarray(
+        tuple(knot.time for knot in prepared_bag.knots), dtype=float
+    )
+    return tuple(
+        PreparedActuatorInterval(
+            left_knot_index=index,
+            delayed_command_segments=_delayed_command_segments(
+                float(times[index]),
+                float(times[index + 1]),
+                float(delay),
+                np.asarray(rotor.all_times, dtype=float),
+                np.asarray(rotor.all_values, dtype=float),
+                np.asarray(gimbal.all_times, dtype=float),
+                np.asarray(gimbal.all_values, dtype=float),
+                float("inf"),
+            ),
+        )
+        for index in range(times.size - 1)
+    )
 
 
 @dataclass(frozen=True)
@@ -1449,12 +1575,6 @@ def _bag_payload(
     knot_count = knot_times.size
     nominal = _state_arrays(initialization.state, bag_id, knot_count)
     mapped = _state_arrays(solution.lm.state, bag_id, knot_count)
-    correction_translation, correction_rotation = correction_transform_path(
-        nominal["position"],
-        nominal["orientation_xyzw"],
-        mapped["position"],
-        mapped["orientation_xyzw"],
-    )
     map_dynamics, map_dynamics_valid = _dynamics_path(
         solution, bag_id, knot_count - 1
     )
@@ -1468,6 +1588,40 @@ def _bag_payload(
     )
     if int(np.count_nonzero(pose_valid)) != len(prepared_bag.pose_measurements):
         raise ValueError("pose validity mask disagrees with prepared factors")
+    pose_support = _support_mask(pose.times, knot_times, True)
+    initial_rollout = _recorded_control_rollout_payload(
+        solution=solution,
+        prepared_bag=prepared_bag,
+        initial_state=solution.lm.state,
+        parameter_coordinates=(
+            solution.prepared.initial_parameter_coordinates
+        ),
+        initial_state_parameter_coordinates=solution.lm.state.value(
+            VariableKey(VariableKind.STATIC_PARAMETERS)
+        ),
+        observation_time=np.asarray(pose.times, dtype=float)[pose_support],
+        observation_position=np.asarray(pose.positions, dtype=float)[
+            pose_support
+        ],
+        observation_orientation_xyzw=np.asarray(
+            pose.orientations_xyzw, dtype=float
+        )[pose_support],
+    )
+    estimated_rollout = _recorded_control_rollout_payload(
+        solution=solution,
+        prepared_bag=prepared_bag,
+        initial_state=solution.lm.state,
+        parameter_coordinates=solution.lm.state.value(
+            VariableKey(VariableKind.STATIC_PARAMETERS)
+        ),
+        observation_time=np.asarray(pose.times, dtype=float)[pose_support],
+        observation_position=np.asarray(pose.positions, dtype=float)[
+            pose_support
+        ],
+        observation_orientation_xyzw=np.asarray(
+            pose.orientations_xyzw, dtype=float
+        )[pose_support],
+    )
     result: Dict[str, np.ndarray] = {
         "bag_id": np.asarray((bag_id,)),
         "knot_time": knot_times,
@@ -1501,12 +1655,16 @@ def _bag_payload(
         "pose_covariance_valid": pose_covariance_valid,
         "map_dynamics_residual": map_dynamics,
         "map_dynamics_residual_valid": map_dynamics_valid,
-        "correction_translation": correction_translation,
-        "correction_rotation_vector": correction_rotation,
     }
     for name, _kind, _width in _STATE_FIELDS:
         result["nominal_{}".format(name)] = nominal[name]
         result["map_{}".format(name)] = mapped[name]
+    for prefix, rollout in (
+        ("initial_parameter_rollout", initial_rollout),
+        ("estimated_parameter_rollout", estimated_rollout),
+    ):
+        for name, value in rollout.items():
+            result["{}_{}".format(prefix, name)] = value
 
     stream_specs = (
         (
@@ -1758,8 +1916,9 @@ def _mcmc_payload(
 def _trajectory_payloads(
     selected: Sequence[SelectedConditionalTrajectory],
     mcmc_samples: Optional[Mapping[str, np.ndarray]],
-    prepared_bags: Mapping[str, PreparedBagGraphData],
-    initializations: Mapping[str, FlightInitialization],
+    solution: FixedGraphLaplaceSolution,
+    bag_payloads: Mapping[str, Mapping[str, np.ndarray]],
+    flights: Mapping[str, FlightData],
 ) -> Mapping[str, Mapping[str, np.ndarray]]:
     if not isinstance(selected, (tuple, list)):
         raise TypeError("selected_trajectories must be a tuple or list")
@@ -1771,9 +1930,14 @@ def _trajectory_payloads(
         raise ValueError("selected trajectories require MCMC samples")
     if not selected:
         return {}
+    prepared_bags = _by_bag_id(solution.prepared.bags, "prepared bags")
     sample_ids = tuple(str(value) for value in mcmc_samples["sample_id"].tolist())
     sample_coordinate = {
         sample_id: mcmc_samples["parameter_coordinate"][index]
+        for index, sample_id in enumerate(sample_ids)
+    }
+    sample_delay = {
+        sample_id: float(mcmc_samples["delay"][index])
         for index, sample_id in enumerate(sample_ids)
     }
     groups: Dict[str, list] = {}
@@ -1801,26 +1965,44 @@ def _trajectory_payloads(
     result = {}
     for bag_id, values in groups.items():
         prepared = prepared_bags[bag_id]
-        initialization = initializations[bag_id]
         knot_times = np.asarray(
             tuple(value.time for value in prepared.knots), dtype=float
         )
         knot_count = knot_times.size
-        nominal = _state_arrays(initialization.state, bag_id, knot_count)
         states = tuple(
             _state_arrays(value.state, bag_id, knot_count) for value in values
         )
-        translations = []
-        rotations = []
-        for state in states:
-            translation, rotation = correction_transform_path(
-                nominal["position"],
-                nominal["orientation_xyzw"],
-                state["position"],
-                state["orientation_xyzw"],
+        bag_payload = bag_payloads[bag_id]
+        pose_support = _support_mask(
+            np.asarray(bag_payload["pose_time"], dtype=float),
+            knot_times,
+            True,
+        )
+        rollouts = tuple(
+            _recorded_control_rollout_payload(
+                solution=solution,
+                prepared_bag=prepared,
+                initial_state=value.state,
+                parameter_coordinates=np.asarray(
+                    sample_coordinate[value.sample_id], dtype=float
+                ),
+                observation_time=np.asarray(
+                    bag_payload["pose_time"], dtype=float
+                )[pose_support],
+                observation_position=np.asarray(
+                    bag_payload["pose_position"], dtype=float
+                )[pose_support],
+                observation_orientation_xyzw=np.asarray(
+                    bag_payload["pose_orientation_xyzw"], dtype=float
+                )[pose_support],
+                actuator_intervals=_actuator_intervals_at_delay(
+                    prepared,
+                    flights[bag_id],
+                    sample_delay[value.sample_id],
+                ),
             )
-            translations.append(translation)
-            rotations.append(rotation)
+            for value in values
+        )
         if any(
             value.dynamics_residual.shape != (knot_count - 1, 6)
             for value in values
@@ -1851,8 +2033,33 @@ def _trajectory_payloads(
             "conditional_actuator_gimbal": np.asarray(
                 tuple(value["actuator_gimbal"] for value in states), dtype=float
             ),
-            "correction_translation": np.asarray(translations, dtype=float),
-            "correction_rotation_vector": np.asarray(rotations, dtype=float),
+            "recorded_control_rollout_position": np.asarray(
+                tuple(value["position"] for value in rollouts), dtype=float
+            ),
+            "recorded_control_rollout_orientation_xyzw": np.asarray(
+                tuple(value["orientation_xyzw"] for value in rollouts),
+                dtype=float,
+            ),
+            "recorded_control_rollout_valid": np.asarray(
+                tuple(value["valid"] for value in rollouts), dtype=bool
+            ),
+            "observed_relative_correction_translation": np.asarray(
+                tuple(
+                    value["correction_translation"] for value in rollouts
+                ),
+                dtype=float,
+            ),
+            "observed_relative_correction_rotation_vector": np.asarray(
+                tuple(
+                    value["correction_rotation_vector"]
+                    for value in rollouts
+                ),
+                dtype=float,
+            ),
+            "observed_relative_correction_valid": np.asarray(
+                tuple(value["correction_valid"] for value in rollouts),
+                dtype=bool,
+            ),
             "dynamics_residual": np.asarray(
                 tuple(value.dynamics_residual for value in values), dtype=float
             ),
@@ -2282,7 +2489,7 @@ def export_batch_estimation_artifact_payload(
             raise ValueError("measured residual_dimension disagrees with graph")
 
     trajectories = _trajectory_payloads(
-        selected_trajectories, mcmc, prepared_bags, initialized
+        selected_trajectories, mcmc, final_solution, bags, flights
     )
     manifest = _manifest_metadata(
         request=request,
@@ -2326,6 +2533,7 @@ def complete_pending_mcmc_artifact_payload(
     mcmc_chains: Sequence[McmcChainResult],
     mcmc_diagnostics: McmcDiagnostics,
     mcmc_target_seconds: Sequence[float],
+    flight_data: Sequence[FlightData],
     initializations: Sequence[FlightInitialization],
     selected_trajectories: Sequence[SelectedConditionalTrajectory],
     trajectory_selection: Mapping[str, Any],
@@ -2392,13 +2600,19 @@ def complete_pending_mcmc_artifact_payload(
         final_solution, mcmc_chains, mcmc_diagnostics
     )
     prepared_bags = _by_bag_id(final_solution.prepared.bags, "prepared bags")
+    flights = _by_bag_id(flight_data, "flight_data")
     initialized = _by_bag_id(initializations, "initializations")
-    if set(prepared_bags) != set(request.bag_ids) or set(initialized) != set(
-        request.bag_ids
+    if any(
+        set(values) != set(request.bag_ids)
+        for values in (prepared_bags, flights, initialized)
     ):
         raise ValueError("trajectory inputs must exactly match request bags")
     trajectories = _trajectory_payloads(
-        selected_trajectories, mcmc_samples, prepared_bags, initialized
+        selected_trajectories,
+        mcmc_samples,
+        final_solution,
+        core.bags,
+        flights,
     )
     metadata = _attach_trajectory_selection(
         metadata,
@@ -2427,6 +2641,7 @@ def append_posterior_sampling_artifact_payload(
     mcmc_diagnostics: McmcDiagnostics,
     mcmc_target_seconds: Sequence[float],
     audited_mcmc_settings: Mapping[str, Any],
+    flight_data: Sequence[FlightData],
     initializations: Sequence[FlightInitialization],
     selected_trajectories: Sequence[SelectedConditionalTrajectory],
     trajectory_selection: Mapping[str, Any],
@@ -2500,12 +2715,20 @@ def append_posterior_sampling_artifact_payload(
         final_solution, mcmc_chains, mcmc_diagnostics
     )
     prepared_bags = _by_bag_id(final_solution.prepared.bags, "prepared bags")
+    flights = _by_bag_id(flight_data, "flight_data")
     initialized = _by_bag_id(initializations, "initializations")
     bag_ids = tuple(str(value) for value in metadata["selected_bag_ids"])
-    if set(prepared_bags) != set(bag_ids) or set(initialized) != set(bag_ids):
+    if any(
+        set(values) != set(bag_ids)
+        for values in (prepared_bags, flights, initialized)
+    ):
         raise ValueError("trajectory inputs must exactly match manifest bags")
     trajectories = _trajectory_payloads(
-        selected_trajectories, mcmc_samples, prepared_bags, initialized
+        selected_trajectories,
+        mcmc_samples,
+        final_solution,
+        core.bags,
+        flights,
     )
     metadata = _attach_trajectory_selection(
         metadata,

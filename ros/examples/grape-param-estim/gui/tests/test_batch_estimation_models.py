@@ -65,8 +65,30 @@ def _bag_arrays() -> dict[str, np.ndarray]:
         "map_actuator_gimbal": np.zeros((count, 4)),
         "map_dynamics_residual": np.zeros((count - 1, 6)),
         "map_dynamics_residual_valid": np.ones((count - 1,), dtype=bool),
-        "correction_translation": np.zeros((count, 3)),
-        "correction_rotation_vector": np.zeros((count, 3)),
+        "initial_parameter_rollout_position": np.full((count, 3), 2.0),
+        "initial_parameter_rollout_orientation_xyzw": quaternion.copy(),
+        "initial_parameter_rollout_valid": np.ones(count, dtype=bool),
+        "initial_parameter_rollout_correction_translation": np.full(
+            (count, 3), 0.4
+        ),
+        "initial_parameter_rollout_correction_rotation_vector": np.zeros(
+            (count, 3)
+        ),
+        "initial_parameter_rollout_correction_valid": np.ones(
+            count, dtype=bool
+        ),
+        "estimated_parameter_rollout_position": np.full((count, 3), 3.0),
+        "estimated_parameter_rollout_orientation_xyzw": quaternion.copy(),
+        "estimated_parameter_rollout_valid": np.ones(count, dtype=bool),
+        "estimated_parameter_rollout_correction_translation": np.full(
+            (count, 3), 0.2
+        ),
+        "estimated_parameter_rollout_correction_rotation_vector": np.zeros(
+            (count, 3)
+        ),
+        "estimated_parameter_rollout_correction_valid": np.ones(
+            count, dtype=bool
+        ),
         "factor_names": np.asarray(("pose", "dynamics")),
         "factor_residual_history": np.zeros((2, 2)),
         "factor_normalized_residual_history": np.zeros((2, 2)),
@@ -95,7 +117,19 @@ def _bag_arrays() -> dict[str, np.ndarray]:
                 prefix, value_name, dimension, covariance_dimension
             )
         )
-    arrays["pose_orientation_xyzw"] = np.empty((0, 4))
+    arrays.update(
+        {
+            "pose_time": time,
+            "pose_record_time": 100.0 + time,
+            "pose_position": np.full((count, 3), 2.8),
+            "pose_orientation_xyzw": quaternion.copy(),
+            "pose_valid": np.ones(count, dtype=bool),
+            "pose_covariance": np.repeat(
+                np.eye(6)[None, :, :], count, axis=0
+            ),
+            "pose_covariance_valid": np.ones(count, dtype=bool),
+        }
+    )
     return arrays
 
 
@@ -321,8 +355,22 @@ def _trajectory_arrays() -> dict[str, np.ndarray]:
         "conditional_controller_integral": np.zeros((sample_count, knot_count, 6)),
         "conditional_actuator_thrust": np.ones((sample_count, knot_count, 4)),
         "conditional_actuator_gimbal": np.zeros((sample_count, knot_count, 4)),
-        "correction_translation": np.zeros((sample_count, knot_count, 3)),
-        "correction_rotation_vector": np.zeros((sample_count, knot_count, 3)),
+        "recorded_control_rollout_position": np.full(
+            (sample_count, knot_count, 3), 3.2
+        ),
+        "recorded_control_rollout_orientation_xyzw": quaternion.copy(),
+        "recorded_control_rollout_valid": np.ones(
+            (sample_count, knot_count), dtype=bool
+        ),
+        "observed_relative_correction_translation": np.full(
+            (sample_count, knot_count, 3), 0.3
+        ),
+        "observed_relative_correction_rotation_vector": np.zeros(
+            (sample_count, knot_count, 3)
+        ),
+        "observed_relative_correction_valid": np.ones(
+            (sample_count, knot_count), dtype=bool
+        ),
         "dynamics_residual": np.zeros((sample_count, knot_count - 1, 6)),
         "dynamics_residual_valid": np.ones(
             (sample_count, knot_count - 1), dtype=bool
@@ -336,7 +384,7 @@ def _backend_bundle(
 ) -> SimpleNamespace:
     digest = "sha256:" + "a" * 64
     manifest = {
-        "schema": "grape-param-estim/batch-estimation-run/v1",
+        "schema": "grape-param-estim/batch-estimation-run/v2",
         "status": "complete",
         "run_id": "run-a",
         "request_fingerprint": digest,
@@ -872,7 +920,7 @@ class BatchResultViewTests(unittest.TestCase):
             "MCMC traces unavailable.",
         )
 
-    def test_bag_browser_uses_selected_conditional_and_dynamics_residual(self) -> None:
+    def test_bag_browser_uses_recorded_control_rollouts_and_enabled_toggles(self) -> None:
         import os
 
         os.environ["GRAPE_PARAM_ESTIM_DISABLE_3D"] = "1"
@@ -890,20 +938,30 @@ class BatchResultViewTests(unittest.TestCase):
             strict=True,
         ):
             np.testing.assert_allclose(
-                trajectory_plot.getViewBox().viewRange()[1],
-                correction_plot.getViewBox().viewRange()[1],
+                np.diff(trajectory_plot.getViewBox().viewRange()[1]),
+                np.diff(correction_plot.getViewBox().viewRange()[1]),
             )
         view.correction_panel.plots[0].setYRange(-4.0, 5.0, padding=0.0)
         self.application.processEvents()
+        self.assertFalse(
+            np.allclose(
+                view.trajectory_panel.plots[0].getViewBox().viewRange()[1],
+                (-4.0, 5.0),
+            )
+        )
         np.testing.assert_allclose(
-            view.trajectory_panel.plots[0].getViewBox().viewRange()[1],
-            (-4.0, 5.0),
+            np.diff(
+                view.trajectory_panel.plots[0].getViewBox().viewRange()[1]
+            ),
+            9.0,
         )
         view.trajectory_panel.plots[0].setYRange(-2.0, 3.0, padding=0.0)
         self.application.processEvents()
         np.testing.assert_allclose(
-            view.correction_panel.plots[0].getViewBox().viewRange()[1],
-            (-2.0, 3.0),
+            np.diff(
+                view.correction_panel.plots[0].getViewBox().viewRange()[1]
+            ),
+            5.0,
         )
         self.assertTrue(
             {
@@ -913,6 +971,21 @@ class BatchResultViewTests(unittest.TestCase):
                 "map",
                 "selected",
             }.issubset(view.trajectory_panel.series_data)
+        )
+        np.testing.assert_allclose(
+            view.trajectory_panel.series_data["nominal"][1][:, :3], 2.0
+        )
+        np.testing.assert_allclose(
+            view.trajectory_panel.series_data["map"][1][:, :3], 3.0
+        )
+        np.testing.assert_allclose(
+            view.trajectory_panel.series_data["selected"][1][:, :3], 3.2
+        )
+        np.testing.assert_allclose(
+            view.correction_panel.series_data["map"][1][:, :3], 0.2
+        )
+        np.testing.assert_allclose(
+            view.correction_panel.series_data["observed"][1], 0.0
         )
         self.assertTrue(
             {
@@ -933,10 +1006,10 @@ class BatchResultViewTests(unittest.TestCase):
             {
                 "Reference trajectory",
                 "Observed pose",
-                "Nominal trajectory",
-                "MAP trajectory",
-                "Stored posterior 5–95% band",
-                "Selected conditional sample",
+                "Initial-parameter recorded-control rollout",
+                "Estimated-parameter recorded-control rollout",
+                "Posterior rollout 5–95% band",
+                "Selected posterior rollout",
             }.issubset(trajectory_names)
         )
         view.trajectory_panel.set_series_visible("observed", False)
@@ -961,15 +1034,16 @@ class BatchResultViewTests(unittest.TestCase):
         }
         self.assertTrue(
             {
-                "Nominal (zero correction)",
-                "MAP correction",
-                "Stored posterior 5–95% band",
-                "Selected correction sample",
+                "Observed baseline (zero error)",
+                "Initial-parameter rollout error",
+                "Estimated-parameter rollout error",
+                "Posterior rollout-error 5–95% band",
+                "Selected posterior rollout error",
             }.issubset(correction_names)
         )
         view.correction_panel.set_series_visible("nominal", False)
         self.assertNotIn(
-            "Nominal (zero correction)",
+            "Initial-parameter rollout error",
             {
                 item.name()
                 for item in view.correction_panel.plots[0].listDataItems()
@@ -1040,6 +1114,27 @@ class BatchResultViewTests(unittest.TestCase):
         )
         self.store.set_selected_sample("107")
         self.assertNotIn("selected", view.trajectory_panel.series_data)
+        for panel in (
+            view.trajectory_panel,
+            view.correction_panel,
+            view.dynamics_panel,
+        ):
+            self.assertTrue(
+                all(
+                    checkbox.isEnabled()
+                    for checkbox in panel.series_checkboxes.values()
+                )
+            )
+        self.assertTrue(view.flight_state_checkbox.isEnabled())
+        unavailable_selected = (
+            view.trajectory_panel.series_checkboxes["selected"]
+        )
+        checked_before_click = unavailable_selected.isChecked()
+        unavailable_selected.click()
+        self.application.processEvents()
+        self.assertEqual(
+            unavailable_selected.isChecked(), not checked_before_click
+        )
         self.assertFalse(
             view.trajectory_panel.series_checkboxes["observed"].isChecked()
         )

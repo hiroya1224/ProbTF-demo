@@ -70,11 +70,14 @@ bag inspection 後に `Bag browser` で使用する区間と sensor contract を
 - `STEP` は `estimate_only` を実行し、疎な MAP、delay profile、選択した Q policy、Laplace 幾何を保存したところで止まるため、中間結果の点検に向きます。
 - `ALL` は `estimate_and_sample` を実行し、同じ推定に ridge-aware MCMC を続けて posterior sample まで生成します。
 
-表示する軌道は observed、nominal、MAP、保存された selected posterior-sample conditional trajectory です。
-observed は測定値、nominal は観測を補間・平滑化して作る推定初期軌道、MAP は全 factor を同時に満たす最尤点ではなく prior を含む最大事後点、conditional trajectory は選択した static sample と delay に条件づけた局所 trajectory MAP です。
-nominal は open-loop model forecast ではなく、観測との近さを予測性能として解釈できません。
-保存された selected conditional trajectory は posterior sample ごとの診断と可視化に使い、PID forecast の sample 別初期状態には使いません。
-観測と推定軌道が近いことだけでは十分でなく、normalized sensor residual、dynamics residual、Q band、ridge、MCMC 診断も一緒に確認してください。
+`Trajectory` の青は記録された非同期 sensor pose、橙は初期物理パラメータ、緑は推定物理パラメータを使った recorded-control open-loop rollout です。
+二つの rollout は同じ推定済み先頭 sensor pose/twist から開始し、候補ごとの CoG に合わせて CoG state だけを再表現した上で、推定グラフと同じ遅延適用済み rotor/gimbal command、actuator model、rigid-body model を使います。
+rollout 中に controller の再計算、観測による state reset、推定 residual wrench の注入は行いません。
+紫は保存された posterior sample の物理パラメータと conditional 先頭状態を使った同じ recorded-control rollout です。
+青い observed は最後に marker 付きで描画するため、他の曲線と重なっても前面で確認できます。
+`Correction transform` は各 knot での `T_observed^-1 T_rollout` で、青い zero-error baseline と緑または紫が一致するほど recorded-control forward model が観測を再現しています。
+latent nominal/MAP/conditional trajectory は solver と posterior の監査用として artifact に残しますが、forward-model 適合の曲線としては表示しません。
+rollout の一致だけでなく、normalized sensor residual、dynamics residual、Q band、ridge、MCMC 診断も一緒に確認してください。
 `Dynamics residual` は状態と物理パラメータから決まる interval residual の表示であり、推定された外力時系列ではありません。
 
 worker は JSON Lines の progress を標準出力へ、診断を標準エラーへ出し、GUI は nonlinear iteration、lag profile point、EM iteration、MCMC proposal、PID forecast の境界で停止要求を処理します。
@@ -188,7 +191,8 @@ worker は retained MCMC draw だけを plant sample とし、各 sample を先�
 
 ## Artifact schema
 
-推定 artifact は `grape-param-estim/batch-estimation-run/v1` の strict directory bundle です。
+推定 artifact は `grape-param-estim/batch-estimation-run/v2` の strict directory bundle です。
+旧 v1 には recorded-control rollout と observed-relative correction が存在しないため v2 として自動再解釈せず、現在の表示を得るには推定を再実行します。
 
 ```text
 estimation_run/
@@ -205,7 +209,7 @@ estimation_run/
 `manifest.json` は status、run/request/configuration/controller fingerprint、bag SHA256 と interval、sensor contract、factor on/off、prior、delay、明示的 actuator model、Q 定義、solver/EM/MCMC 設定、substage convergence、warning、各 file SHA256 を持ちます。
 `map_static.npz` は 18 次元 MAP の物理値、delay、最終 Q、objective decomposition を持ち、`q_em.npz` は input/target/accepted Q、alpha、MAP と marginal objective、expected residual moment、MAP moment、covariance correction を持ちます。
 `laplace.npz` は prior を分離した reduced likelihood/posterior Hessian、covariance、eigensystem、rank、ridge、delay profile を持ち、`mcmc_samples.npz` は equal-weight retained draw を `sample_id` で保持します。
-`bags/<bag_id>.npz` は raw observation、nominal/MAP trajectory、dynamics residual、normalized factor residual、covariance、数値診断を持ち、latent residual-wrench path は持ちません。
+`bags/<bag_id>.npz` は raw observation、監査用 nominal/MAP latent trajectory、初期・推定パラメータの recorded-control rollout、observed-relative correction、dynamics residual、normalized factor residual、covariance、数値診断を持ち、latent residual-wrench path は持ちません。
 NPZ は `allow_pickle=False` で読み、object dtype、unknown key、shape/単位不一致、SHA256 不一致、`status != complete` を拒否します。
 
 PID artifact は `grape-param-estim/pid-proposal-evaluation/v2` です。

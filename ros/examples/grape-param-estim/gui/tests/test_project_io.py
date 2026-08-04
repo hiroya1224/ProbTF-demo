@@ -68,7 +68,7 @@ def _complete_project(root: Path, project_id: str = "flight-test"):
     (run_root / "manifest.json").write_text(
         json.dumps(
             {
-                "schema": "grape-param-estim/batch-estimation-run/v1",
+                "schema": "grape-param-estim/batch-estimation-run/v2",
                 "status": "complete",
                 "run_id": "run-a",
                 "artifacts": {"mcmc_samples": "mcmc_samples.npz"},

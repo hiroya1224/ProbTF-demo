@@ -148,22 +148,43 @@ class SignalPanel(QWidget):
             return
         if self.kind == "trajectory":
             self._plot_vector(session.reference.time, np.column_stack((session.reference.position, session.reference.rpy)), "#666666", 1.5, Qt.DashLine)
+            initial_valid = session.initial_parameter_rollout.valid
+            self._plot_vector(session.knot_time[initial_valid], np.column_stack((session.initial_parameter_rollout.position[initial_valid], session.initial_parameter_rollout.rpy[initial_valid])), "#d2691e", 2.0)
+            valid = session.estimated_parameter_rollout.valid
+            self._plot_vector(session.knot_time[valid], np.column_stack((session.estimated_parameter_rollout.position[valid], session.estimated_parameter_rollout.rpy[valid])), "#1e965f", 2.5)
+            if self.selected_trajectory is not None:
+                rollout = self.selected_trajectory.recorded_control_rollout
+                self._plot_vector(self.selected_trajectory.knot_time[rollout.valid], np.column_stack((rollout.position[rollout.valid], rollout.rpy[rollout.valid])), "#962daa", 2.5)
             self._plot_vector(session.pose.time[session.pose.valid], np.column_stack((session.pose.position[session.pose.valid], session.pose.rpy[session.pose.valid])), "#1e5abe", 2.5)
-            self._plot_vector(session.knot_time, np.column_stack((session.map_trajectory.position, session.map_trajectory.rpy)), "#1e965f", 2.5)
-            if self.selected_trajectory is not None:
-                state = self.selected_trajectory.state
-                self._plot_vector(self.selected_trajectory.knot_time, np.column_stack((state.position, state.rpy)), "#962daa", 2.5)
         elif self.kind == "correction":
-            self._plot_vector(session.knot_time, np.column_stack((session.correction_translation, session.correction_rotation_vector)), "#1e965f", 2.5)
+            initial_valid = session.initial_parameter_rollout_correction_valid
+            self._plot_vector(session.knot_time[initial_valid], np.column_stack((session.initial_parameter_rollout_correction_translation[initial_valid], session.initial_parameter_rollout_correction_rotation_vector[initial_valid])), "#d2691e", 2.0)
+            valid = session.estimated_parameter_rollout_correction_valid
+            self._plot_vector(session.knot_time[valid], np.column_stack((session.estimated_parameter_rollout_correction_translation[valid], session.estimated_parameter_rollout_correction_rotation_vector[valid])), "#1e965f", 2.5)
             if self.selected_trajectory is not None:
-                self._plot_vector(self.selected_trajectory.knot_time, np.column_stack((self.selected_trajectory.correction_translation, self.selected_trajectory.correction_rotation_vector)), "#962daa", 2.5)
+                selected_valid = self.selected_trajectory.observed_relative_correction_valid
+                self._plot_vector(self.selected_trajectory.knot_time[selected_valid], np.column_stack((self.selected_trajectory.observed_relative_correction_translation[selected_valid], self.selected_trajectory.observed_relative_correction_rotation_vector[selected_valid])), "#962daa", 2.5)
+            observed_valid = initial_valid | valid
+            self._plot_vector(session.knot_time[observed_valid], np.zeros((int(np.count_nonzero(observed_valid)), 6)), "#1e5abe", 2.5)
         else:
             time = dynamics_residual_time_axis(session.knot_time, session.map_dynamics_residual)
             self._plot_vector(time, session.map_dynamics_residual, "#1e965f", 2.5)
             if self.selected_trajectory is not None:
                 selected_time = dynamics_residual_time_axis(self.selected_trajectory.knot_time, self.selected_trajectory.dynamics_residual)
                 self._plot_vector(selected_time, self.selected_trajectory.dynamics_residual, "#962daa", 2.5)
-        self.status_label.setText("MAP{} {}.".format(" and selected sample" if self.selected_trajectory is not None else "", self.kind))
+        if self.kind in {"trajectory", "correction"}:
+            label = "Recorded-control rollout"
+        else:
+            label = "MAP dynamics residual"
+        self.status_label.setText(
+            "{}{} {}.".format(
+                label,
+                " and selected posterior sample"
+                if self.selected_trajectory is not None
+                else "",
+                self.kind,
+            )
+        )
 
 
 __all__ = ["SignalPanel", "dynamics_residual_time_axis"]

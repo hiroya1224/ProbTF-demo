@@ -12,6 +12,7 @@ class FunctionalNamingTest(unittest.TestCase):
             path
             for path in package.rglob("*")
             if path.is_file()
+            and ".venv" not in path.parts
             and path.suffix in {".md", ".py", ".toml", ".xml"}
         )
         sources.extend((repository / "tests" / "grape_param_estim").glob("*.py"))

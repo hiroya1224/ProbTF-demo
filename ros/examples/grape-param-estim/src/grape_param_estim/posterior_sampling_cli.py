@@ -318,6 +318,7 @@ def execute_posterior_sampling(
         mcmc.diagnostics,
         target_timings,
         audited_settings,
+        inputs.flight_data,
         inputs.initializations,
         conditional.trajectories,
         conditional.selection.manifest_payload,

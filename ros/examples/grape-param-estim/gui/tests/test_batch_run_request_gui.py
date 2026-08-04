@@ -253,21 +253,21 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             )
             attempt = state.attempt(attempt_id)
             content = artifact_content_fingerprint(
-                {"schema": "grape-param-estim/batch-estimation-run/v1"},
+                {"schema": "grape-param-estim/batch-estimation-run/v2"},
                 {"map_static.npz": "1" * 64},
             )
             completion = completion_fingerprint(
                 stage_input=attempt.stage_input_fingerprint,
                 request_fingerprint=attempt.request_fingerprint,
                 artifact_schema=(
-                    "grape-param-estim/batch-estimation-run/v1"
+                    "grape-param-estim/batch-estimation-run/v2"
                 ),
                 artifact_content=content,
             )
             state = state.mark_complete(
                 attempt_id,
                 ArtifactRef(
-                    schema="grape-param-estim/batch-estimation-run/v1",
+                    schema="grape-param-estim/batch-estimation-run/v2",
                     artifact_id=attempt_id,
                     relative_path=attempt.output_path,
                     content_fingerprint=content,
@@ -278,7 +278,7 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             window._workflow_state = state
             window._save_workflow_state()
             run_manifest = {
-                "schema": "grape-param-estim/batch-estimation-run/v1",
+                "schema": "grape-param-estim/batch-estimation-run/v2",
                 "status": "complete",
                 "run_id": attempt_id,
                 "request_fingerprint": request_fingerprint,
@@ -391,13 +391,13 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             completed_attempt = window._workflow_state.attempt(attempt_id)
             upgraded_content = artifact_content_fingerprint(
                 {
-                    "schema": "grape-param-estim/batch-estimation-run/v1",
+                    "schema": "grape-param-estim/batch-estimation-run/v2",
                     "mcmc": "complete",
                 },
                 {"mcmc_samples.npz": "5" * 64},
             )
             upgraded_reference = ArtifactRef(
-                schema="grape-param-estim/batch-estimation-run/v1",
+                schema="grape-param-estim/batch-estimation-run/v2",
                 artifact_id=attempt_id,
                 relative_path=completed_attempt.output_path,
                 content_fingerprint=upgraded_content,
@@ -405,7 +405,7 @@ class BatchRunRequestGuiTests(unittest.TestCase):
                     stage_input=completed_attempt.stage_input_fingerprint,
                     request_fingerprint=completed_attempt.request_fingerprint,
                     artifact_schema=(
-                        "grape-param-estim/batch-estimation-run/v1"
+                        "grape-param-estim/batch-estimation-run/v2"
                     ),
                     artifact_content=upgraded_content,
                 ),

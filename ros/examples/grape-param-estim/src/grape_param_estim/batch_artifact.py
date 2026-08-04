@@ -1,4 +1,4 @@
-"""Strict v1 artifacts for sparse batch estimation runs.
+"""Strict v2 artifacts for sparse batch estimation runs.
 
 This module deliberately recognises exactly one estimation schema.  It does
 not dispatch to, translate, or otherwise interpret the former ensemble and
@@ -36,7 +36,7 @@ from .artifact_io import (
 from .posterior import representatives as _posterior_representatives
 
 
-BATCH_ESTIMATION_RUN_SCHEMA = "grape-param-estim/batch-estimation-run/v1"
+BATCH_ESTIMATION_RUN_SCHEMA = "grape-param-estim/batch-estimation-run/v2"
 ARTIFACT_DESCRIPTOR_KEYS = ("path", "sha256")
 STATIC_PARAMETER_DIMENSION = 18
 DYNAMICS_RESIDUAL_DIMENSION = 6
@@ -1755,8 +1755,18 @@ _BAG_KEYS = (
     "map_actuator_gimbal",
     "map_dynamics_residual",
     "map_dynamics_residual_valid",
-    "correction_translation",
-    "correction_rotation_vector",
+    "initial_parameter_rollout_position",
+    "initial_parameter_rollout_orientation_xyzw",
+    "initial_parameter_rollout_valid",
+    "initial_parameter_rollout_correction_translation",
+    "initial_parameter_rollout_correction_rotation_vector",
+    "initial_parameter_rollout_correction_valid",
+    "estimated_parameter_rollout_position",
+    "estimated_parameter_rollout_orientation_xyzw",
+    "estimated_parameter_rollout_valid",
+    "estimated_parameter_rollout_correction_translation",
+    "estimated_parameter_rollout_correction_rotation_vector",
+    "estimated_parameter_rollout_correction_valid",
     "factor_names",
     "factor_residual_history",
     "factor_normalized_residual_history",
@@ -1987,8 +1997,61 @@ def _validate_bag(
         location,
         kind="boolean",
     )
-    _array(arrays, "correction_translation", (count, 3), location)
-    _array(arrays, "correction_rotation_vector", (count, 3), location)
+    for prefix in (
+        "initial_parameter_rollout",
+        "estimated_parameter_rollout",
+    ):
+        _array(arrays, "{}_position".format(prefix), (count, 3), location)
+        rollout_orientation = _array(
+            arrays,
+            "{}_orientation_xyzw".format(prefix),
+            (count, 4),
+            location,
+        )
+        _unit_quaternions(
+            rollout_orientation,
+            "{}:{}_orientation_xyzw".format(location, prefix),
+        )
+        rollout_valid = _array(
+            arrays,
+            "{}_valid".format(prefix),
+            (count,),
+            location,
+            kind="boolean",
+        )
+        if not rollout_valid[0] or np.any(
+            np.diff(rollout_valid.astype(np.int8)) > 0
+        ):
+            raise ArtifactValidationError(
+                "{}:{}_valid must be one non-empty prefix".format(
+                    location, prefix
+                )
+            )
+        _array(
+            arrays,
+            "{}_correction_translation".format(prefix),
+            (count, 3),
+            location,
+        )
+        _array(
+            arrays,
+            "{}_correction_rotation_vector".format(prefix),
+            (count, 3),
+            location,
+        )
+        correction_valid = _array(
+            arrays,
+            "{}_correction_valid".format(prefix),
+            (count,),
+            location,
+            kind="boolean",
+        )
+        if np.any(correction_valid & ~rollout_valid):
+            raise ArtifactValidationError(
+                "{}:{} correction cannot outlive the rollout".format(
+                    location, prefix
+                )
+            )
 
     factor_names = _strings(arrays, "factor_names", None, location, unique=True)
     if factor_names.size == 0:
@@ -2123,8 +2186,12 @@ _TRAJECTORY_KEYS = (
     "conditional_controller_integral",
     "conditional_actuator_thrust",
     "conditional_actuator_gimbal",
-    "correction_translation",
-    "correction_rotation_vector",
+    "recorded_control_rollout_position",
+    "recorded_control_rollout_orientation_xyzw",
+    "recorded_control_rollout_valid",
+    "observed_relative_correction_translation",
+    "observed_relative_correction_rotation_vector",
+    "observed_relative_correction_valid",
     "dynamics_residual",
     "dynamics_residual_valid",
     "conditional_objective",
@@ -2171,8 +2238,26 @@ def _validate_trajectory_subset(
         "conditional_controller_integral": (sample_count, knot_count, 6),
         "conditional_actuator_thrust": (sample_count, knot_count, 4),
         "conditional_actuator_gimbal": (sample_count, knot_count, 4),
-        "correction_translation": (sample_count, knot_count, 3),
-        "correction_rotation_vector": (sample_count, knot_count, 3),
+        "recorded_control_rollout_position": (
+            sample_count,
+            knot_count,
+            3,
+        ),
+        "recorded_control_rollout_orientation_xyzw": (
+            sample_count,
+            knot_count,
+            4,
+        ),
+        "observed_relative_correction_translation": (
+            sample_count,
+            knot_count,
+            3,
+        ),
+        "observed_relative_correction_rotation_vector": (
+            sample_count,
+            knot_count,
+            3,
+        ),
         "dynamics_residual": (
             sample_count,
             knot_count - 1,
@@ -2182,10 +2267,13 @@ def _validate_trajectory_subset(
     }
     for key, shape in shapes.items():
         value = _array(arrays, key, shape, location)
-        if key == "conditional_orientation_xyzw":
+        if key in {
+            "conditional_orientation_xyzw",
+            "recorded_control_rollout_orientation_xyzw",
+        }:
             _unit_quaternions(
                 value.reshape((-1, 4)),
-                "{}:conditional_orientation_xyzw".format(location),
+                "{}:{}".format(location, key),
             )
     _array(
         arrays,
@@ -2194,6 +2282,34 @@ def _validate_trajectory_subset(
         location,
         kind="boolean",
     )
+    rollout_valid = _array(
+        arrays,
+        "recorded_control_rollout_valid",
+        (sample_count, knot_count),
+        location,
+        kind="boolean",
+    )
+    if sample_count and (
+        np.any(~rollout_valid[:, 0])
+        or np.any(np.diff(rollout_valid.astype(np.int8), axis=1) > 0)
+    ):
+        raise ArtifactValidationError(
+            "{}:recorded_control_rollout_valid must contain finite prefixes"
+            .format(location)
+        )
+    correction_valid = _array(
+        arrays,
+        "observed_relative_correction_valid",
+        (sample_count, knot_count),
+        location,
+        kind="boolean",
+    )
+    if np.any(correction_valid & ~rollout_valid):
+        raise ArtifactValidationError(
+            "{}:correction cannot outlive recorded-control rollout".format(
+                location
+            )
+        )
 
 
 def _freeze(arrays: Dict[str, np.ndarray]) -> Mapping[str, np.ndarray]:

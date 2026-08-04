@@ -32,6 +32,8 @@ payload、rotor/propeller、geometry、robot model revision、actuator wiring、
 ## 3. request 設定
 
 validation run ID は `failure-04-real-c-18.0-24.0` で、artifact は `/tmp/grape-sparse-real-18-24-run-20260804-c` に生成した。
+artifact の `estimator_revision` は当時の `f2d5984...-dirty` であり、現在の clean HEAD による最終科学 run ではない。
+以下の数値は実データ経路と表示の診断には使えるが、現 HEAD の再現性証明には別の clean run が必要である。
 run mode は `estimate_only`、knot period は `0.05 s`、solver maximum iteration は 30、delay bounds は `0.0--0.08 s` である。
 delay profile は coarse 3 点、refinement 最大 2 evaluation、tolerance `0.01 s` の短縮設定である。
 EM は minimum/maximum ともに 1 iteration とした。
@@ -115,6 +117,33 @@ local quadratic curvature からの nominal uncertainty は約 `0.0131 s` だが
 
 これらは暫定 unit prior、暫定 observation covariance、暫定 actuator dynamics、単一短区間の条件付き MAP である。
 parameter marginal や trajectory の見栄えだけから実機物理値として採用しない。
+
+### 6.1 observation と dynamics の定量的な再現精度
+
+artifact に保存された observation time へ nominal/MAP knot state を補間し、position/velocity/gyro/gimbal/controller integral は全 component の RMS、orientation は quaternion geodesic RMS を計算した。
+ここで nominal は observation から作った smoothing initialization であり、物理モデルの open-loop forecast ではない。
+したがって nominal が observation に近いこと自体はモデル予測性能を意味せず、比較は MAP が initialization からどれだけ動いたかを示す診断である。
+
+| quantity | nominal RMS | MAP RMS | nominal maximum | MAP maximum |
+|---|---:|---:|---:|---:|
+| position component [m] | `0.001364` | `0.030819` | norm `0.00980` | norm `0.06435` |
+| orientation geodesic [rad] | `0.019117` | `0.017722` | `0.09083` | `0.04974` |
+| linear velocity component [m/s] | `0.002337` | `0.040992` | norm `0.01228` | norm `0.14401` |
+| gyro component [rad/s] | `0.015901` | `0.025188` | norm `0.16659` | norm `0.13026` |
+| actual gimbal component [rad] | `0.007276` | `0.014852` | norm `0.07387` | norm `0.08000` |
+| controller integral component | `0.000180` | `0.000658` | norm `0.00410` | norm `0.00368` |
+
+MAP は orientation RMS と一部 maximum error を改善したが、position、velocity、gyro、gimbal、integral の RMS は悪化した。
+これは全 factor、prior、dynamics の妥協点が observation-anchored initialization から離れたことを示し、「観測軌道をよく再現した」とは評価できない。
+
+MAP dynamics residual の軸別 RMS は force が `[0.44874, 0.15035, 0.73794]`、torque が `[0.040756, 0.201882, 0.040814]` だった。
+全 force component RMS は `0.50614`、全 torque component RMS は `0.12122` である。
+一方、最終 Q の `sqrt(Q/dt)` で規格化した軸別 RMS は `[0.02637, 0.00882, 0.04499, 0.03968, 0.18941, 0.02124]` で、全 708 scalar residual が one-Q band 内に入った。
+factor-whitened dynamics residual も RMS `0.08236`、maximum absolute `0.42698` と小さい。
+これは dynamics が十分に説明できた証拠というより、暫定 covariance と一回だけ更新した Q band が raw residual に対して広いことを示すため、Q が parameter/controller mismatch を吸収している可能性を否定できない。
+
+nominal から MAP への correction-transform は translation component RMS `0.03073 m`、rotation-vector component RMS `0.01209 rad`、maximum norm がそれぞれ `0.06545 m` と `0.09422 rad` だった。
+GUI で見えた軌道の分離は plotting artifact ではなく、この保存値に対応する。
 
 ## 7. Q update
 

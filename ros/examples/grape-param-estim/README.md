@@ -2,6 +2,8 @@
 
 Grape の実 rosbag を一つの疎な全軌道問題として解き、静的物理パラメータ、一定 command delay、対角モデル誤差共分散、局所事後幾何、MCMC sample、PID 候補の posterior predictive 評価を一続きに扱う ROS package です。
 各 knot の状態を同時に推定する batch smoothing を使い、観測時刻ごとの reset や時刻ごとの residual-wrench 未知状態は使いません。
+Backend と GUI の通常動作経路は実装済みですが、実 rosbag の物理パラメータ推定は科学的受入を完了していません。
+校正不足、既存 run の不良診断、再開時の優先順位は [残作業](lectures/remaining_work_ja.md) に明記しています。
 
 ## 収録 rosbag で GUI を起動する
 

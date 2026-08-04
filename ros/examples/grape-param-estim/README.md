@@ -20,7 +20,8 @@ rosrun grape_param_estim run_gui.py \
 
 次の例は飛行に成功した 2026 年 6 月 13 日の bag を同じ経路で開きます。
 inspection では complete episode `7.2259--65.6365 s` と state=5 区間 `41.8469--62.9066 s` を確認しており、短い tuning run には例えば `45--51 s` を明示的な候補にできます。
-この成功 bag は現時点では未実施の data split 候補であり、estimator や covariance の設定を確認するために使った場合は「完全な hold-out」とは呼びません。
+この成功 bag は GUI inspection と tuning 区間の選定に使用済みなので、本 repository の検証では完全な hold-out と呼びません。
+この bag を forecast に使う場合は `tuning_evaluation` と明記し、strict hold-out には未閲覧かつ tuning 未使用の別 bag を割り当てます。
 
 ```bash
 cd /home/leus/catkin_ws
@@ -151,6 +152,19 @@ request の `forecast_workers` は `auto` または `1--32` の明示値で、�
 完了 forecast は content-addressed checkpoint に保存され、同一 request fingerprint の `resume=true` では未完了の Cartesian-product record だけを再計算します。
 current PID の正本は baseline rosbag の controller snapshot であり、repository の YAML を現在値として代用しません。
 出力 YAML は提案ファイルであり、controller や `dynamic_reconfigure` を自動変更しません。
+
+保持済み MCMC sample を別飛行へ連続 forecast する request schema は `grape-param-estim/held-out-validation-request/v2` です。
+`strict_hold_out` は source estimation に含まれる bag SHA256、estimator tuning 使用、PID tuning 使用を拒否し、`tuning_evaluation` は少なくとも一方の tuning 使用を明示させます。
+今回の成功 sample は既に GUI inspection と tuning 区間確認に使ったため、次の command を実行する場合も結果の意味は必ず `tuning evaluation (not held-out)` です。
+
+```bash
+rosrun grape_param_estim grape_validate_held_out_flight.py \
+  --request /absolute/path/to/held-out-or-tuning-evaluation-request.json
+```
+
+worker は retained MCMC draw だけを plant sample とし、各 sample を先頭状態から区間末尾まで state replacement なしで連続 closed-loop forecast します。
+観測軌道に対する誤差と reference 追従誤差は別 metric として保存し、future model discrepancy は zero または推定済み対角 Q からの新規 sample のどちらかを request で明示します。
+過去の residual path は再生せず、source actuator model、固定 drag、forecast 設定、configuration compatibility の status と根拠も artifact に固定します。
 
 ## Artifact schema
 

@@ -104,6 +104,27 @@ class PidRequestBuilderTests(unittest.TestCase):
             self.assertEqual(parsed.candidates[1].source_sample_id, "chain-b:0001")
             self.assertEqual(parsed.selected_candidate_id, sample_candidate_id("chain-b:0001"))
             self.assertEqual(tuple(parsed.fixed_linear_drag), (0.1, 0.2, 0.3))
+            self.assertEqual(parsed.forecast_workers, "auto")
+
+    def test_forecast_worker_count_is_explicit_and_bounded(self):
+        common = dict(
+            source_sample_id="sample-a",
+            baseline_bag_id="bag-a",
+            selected_mode_id="mode-a",
+            bags=(("bag-a", __file__, "1" * 64, True),),
+            fixed_linear_drag=(0.0, 0.0, 0.0),
+            fixed_angular_drag=(0.0, 0.0, 0.0),
+            model_discrepancy_policy="zero_model_discrepancy",
+        )
+        self.assertEqual(
+            PidEvaluationLaunchOptions(forecast_workers=4, **common).forecast_workers,
+            4,
+        )
+        for value in (0, 33, "automatic", True):
+            with self.subTest(value=value), self.assertRaisesRegex(
+                ValueError, "forecast_workers"
+            ):
+                PidEvaluationLaunchOptions(forecast_workers=value, **common)
 
     def test_unknown_sample_and_mode_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

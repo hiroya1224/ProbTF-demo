@@ -85,6 +85,7 @@ class PidEvaluationLaunchOptions:
     base_seed: int = 0
     replicates: int = 1
     maximum_reference_age_seconds: float = 0.5
+    forecast_workers: str | int = "auto"
     user_candidate_values: tuple[tuple[float, ...], ...] | None = None
     selected_candidate_source: str | None = None
 
@@ -111,6 +112,13 @@ class PidEvaluationLaunchOptions:
             raise ValueError("base_seed must be an unsigned 64-bit integer")
         if isinstance(self.replicates, bool) or not isinstance(self.replicates, (int, np.integer)) or int(self.replicates) < 1:
             raise ValueError("replicates must be a positive integer")
+        workers = self.forecast_workers
+        if workers != "auto" and (
+            isinstance(workers, (bool, np.bool_))
+            or not isinstance(workers, (int, np.integer))
+            or not 1 <= int(workers) <= 32
+        ):
+            raise ValueError("forecast_workers must be auto or an integer in [1, 32]")
         user_values = self.user_candidate_values
         if user_values is not None:
             values = np.asarray(user_values, dtype=float)
@@ -133,6 +141,11 @@ class PidEvaluationLaunchOptions:
         object.__setattr__(self, "cvar_level", cvar)
         object.__setattr__(self, "base_seed", int(self.base_seed))
         object.__setattr__(self, "replicates", int(self.replicates))
+        object.__setattr__(
+            self,
+            "forecast_workers",
+            "auto" if workers == "auto" else int(workers),
+        )
         object.__setattr__(self, "maximum_reference_age_seconds", maximum_age)
         object.__setattr__(self, "user_candidate_values", user_values)
 
@@ -195,6 +208,7 @@ def build_pid_evaluation_request(
         "estimation_run": str(source_root),
         "output_directory": str(output_root),
         "resume": False,
+        "forecast_workers": options.forecast_workers,
         "baseline_bag_id": options.baseline_bag_id,
         "selected_mode_id": options.selected_mode_id,
         "bags": [{"bag_id": bag_id, "path": path, "sha256": sha256, "roll_pitch_integration_active": active} for bag_id, path, sha256, active in options.bags],

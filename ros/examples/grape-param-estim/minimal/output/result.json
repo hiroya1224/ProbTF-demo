@@ -1,0 +1,402 @@
+{
+  "bag": {
+    "fitted_common_support_seconds": [
+      19.00920867919922,
+      23.959208679199218
+    ],
+    "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+    "requested_interval_seconds": [
+      19.0,
+      24.0
+    ],
+    "sample_count": 100,
+    "sha256": "bd3fc7f71797c0f5cb665acc50832da93c590e540fa170f9977182ecedf93bf8"
+  },
+  "coordinates": {
+    "dynamics_initialized_active": {
+      "cog_offset_x_m": 0.006661874721788485,
+      "cog_offset_y_m": 7.772520332354771e-05,
+      "cog_offset_z_m": 0.0023432790414772173,
+      "force_effectiveness_contrast_1": -0.07968366584295253,
+      "force_effectiveness_contrast_2": 0.015104964576187416,
+      "force_effectiveness_contrast_3": 0.03437334862597223,
+      "log_mass_scale": 0.15849280281197922,
+      "relative_log_inertia_xx": 0.19739310382234918,
+      "relative_log_inertia_xy": -0.009325829046267874,
+      "relative_log_inertia_xz": 0.02072190515233327,
+      "relative_log_inertia_yy": 0.9999999999880008,
+      "relative_log_inertia_yz": 0.037933743570793654,
+      "relative_log_inertia_zz": 0.02357628557598337
+    },
+    "estimated_active": {
+      "cog_offset_x_m": 0.015041631521516687,
+      "cog_offset_y_m": -0.011711553039196415,
+      "cog_offset_z_m": 0.07998795947252987,
+      "force_effectiveness_contrast_1": -0.14302340073986428,
+      "force_effectiveness_contrast_2": 0.0334958890403771,
+      "force_effectiveness_contrast_3": 0.09845431137003342,
+      "log_mass_scale": 0.029147130773504903,
+      "relative_log_inertia_xx": 0.9998177101944977,
+      "relative_log_inertia_xy": -0.022104249776164358,
+      "relative_log_inertia_xz": -0.4999212843605836,
+      "relative_log_inertia_yy": 0.9999999991253491,
+      "relative_log_inertia_yz": 0.10352295795410889,
+      "relative_log_inertia_zz": -0.1978735057553745
+    },
+    "estimated_full": [
+      0.029147130773504903,
+      0.9998177101944977,
+      0.9999999991253491,
+      -0.1978735057553745,
+      -0.022104249776164358,
+      -0.4999212843605836,
+      0.10352295795410889,
+      0.015041631521516687,
+      -0.011711553039196415,
+      0.07998795947252987,
+      -0.05903686550703389,
+      0.1432287675560043,
+      0.0010720327095816225,
+      -0.08526393475855205,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "nominal_full": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "created_at": "2026-08-04T19:44:04.826828+00:00",
+  "metrics": {
+    "dynamics_initialized": {
+      "angular_velocity_rmse_rad_per_s": 1.3444646195523409,
+      "orientation_angle_rmse_deg": 65.42618294930726,
+      "orientation_angle_rmse_rad": 1.141902309477586,
+      "position_component_rmse_m": [
+        4.6747416336235394,
+        2.1292131691320435,
+        7.051927325887021
+      ],
+      "position_rmse_m": 8.724473455190902,
+      "specific_force_rmse_m_per_s2": 1.1165444732161682,
+      "terminal_orientation_error_deg": 175.79966500037855,
+      "terminal_position_error_m": 21.778792200938227,
+      "velocity_component_rmse_m_per_s": [
+        5.370081478899018,
+        1.6693520014078036,
+        6.453058917685681
+      ],
+      "velocity_rmse_m_per_s": 8.559584136495253
+    },
+    "estimated": {
+      "angular_velocity_rmse_rad_per_s": 1.8299753967295305,
+      "orientation_angle_rmse_deg": 34.45618894589788,
+      "orientation_angle_rmse_rad": 0.6013739447951924,
+      "position_component_rmse_m": [
+        1.480249788594623,
+        0.1936700786109881,
+        0.14966649537756282
+      ],
+      "position_rmse_m": 1.500349157970309,
+      "specific_force_rmse_m_per_s2": 1.7058540847850636,
+      "terminal_orientation_error_deg": 70.79196116307622,
+      "terminal_position_error_m": 0.52385438173225,
+      "velocity_component_rmse_m_per_s": [
+        1.8330212855379362,
+        0.36460523378029475,
+        0.3840930297250186
+      ],
+      "velocity_rmse_m_per_s": 1.9079914740948074
+    },
+    "nominal": {
+      "angular_velocity_rmse_rad_per_s": 5.805364922725194,
+      "orientation_angle_rmse_deg": 134.09180388544317,
+      "orientation_angle_rmse_rad": 2.3403434777395087,
+      "position_component_rmse_m": [
+        16.124213531855084,
+        14.651699076442842,
+        47.3384720777632
+      ],
+      "position_rmse_m": 52.11135659819902,
+      "specific_force_rmse_m_per_s2": 2.800365812127242,
+      "terminal_orientation_error_deg": 159.79247732594501,
+      "terminal_position_error_m": 123.4248391115022,
+      "velocity_component_rmse_m_per_s": [
+        7.503735720583354,
+        6.242964964568819,
+        29.73092153784468
+      ],
+      "velocity_rmse_m_per_s": 31.29230507333503
+    },
+    "position_rmse_improvement_fraction": 0.9712087871835952
+  },
+  "model": {
+    "active_parameter_names": [
+      "log_mass_scale",
+      "relative_log_inertia_xx",
+      "relative_log_inertia_yy",
+      "relative_log_inertia_zz",
+      "relative_log_inertia_xy",
+      "relative_log_inertia_xz",
+      "relative_log_inertia_yz",
+      "cog_offset_x_m",
+      "cog_offset_y_m",
+      "cog_offset_z_m",
+      "force_effectiveness_contrast_1",
+      "force_effectiveness_contrast_2",
+      "force_effectiveness_contrast_3"
+    ],
+    "fixed_parameters": {
+      "command_delay_seconds": 0.01,
+      "gimbal_model": "issued gimbal command with fixed first-order response",
+      "gimbal_time_constant_seconds": 0.02,
+      "rotor_thrust_model": "issued base_thrust with fixed first-order response",
+      "thrust_time_constant_seconds": 0.01,
+      "torque_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "integration_step_seconds": 0.025,
+    "latent_states": false,
+    "method": "local observed-dynamics initialization followed by single-shooting recorded-control open-loop RK4 refinement",
+    "observation_resets": false,
+    "parameter_constraints": {
+      "force_effectiveness_geometric_mean": 1.0
+    },
+    "prior_weight": 0.05,
+    "q": null,
+    "residual_scales": {
+      "angular_velocity_rad_per_s": 0.2,
+      "orientation_rad": 0.1,
+      "position_m": 0.05,
+      "specific_force_m_per_s2": 0.75,
+      "velocity_m_per_s": 0.2
+    },
+    "residual_wrench": null,
+    "sample_step_seconds": 0.05
+  },
+  "optimizer": {
+    "dynamics_initializer": {
+      "active_mask": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "cost": 1.4984879555453425,
+      "elapsed_seconds": 5.673681462183595,
+      "message": "`ftol` termination condition is satisfied.",
+      "nfev": 17,
+      "njev": 13,
+      "optimality": 0.00015574473348776538,
+      "status": 2,
+      "success": true
+    },
+    "name": "scipy.optimize.least_squares",
+    "outputs_valid": true,
+    "total_elapsed_seconds": 96.04993892507628,
+    "trajectory_refinement": {
+      "active_mask": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "converged": false,
+      "cost": 558.4448291161494,
+      "elapsed_seconds": 87.53598692081869,
+      "message": "The maximum number of function evaluations is exceeded.",
+      "nfev": 25,
+      "njev": 23,
+      "optimality": 3624.8057123335384,
+      "status": 0
+    }
+  },
+  "outputs": {
+    "json": "result.json",
+    "pdf": "trajectory.pdf"
+  },
+  "parameters": {
+    "dynamics_initialized": {
+      "angular_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cog_offset_m": [
+        0.006661874721788485,
+        7.772520332354771e-05,
+        0.0023432790414772173
+      ],
+      "force_effectiveness": [
+        0.9605439374570454,
+        1.075122025761833,
+        0.9975924818412834,
+        0.9706705155718973
+      ],
+      "inertia_kg_m2": [
+        [
+          0.07920497374320831,
+          -0.001094472462251622,
+          0.00212084746906122
+        ],
+        [
+          -0.001094472462251622,
+          0.17665944899427713,
+          0.006013524211492467
+        ],
+        [
+          0.00212084746906122,
+          0.006013524211492467,
+          0.1322355511828723
+        ]
+      ],
+      "linear_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass_kg": 2.755469170336676,
+      "torque_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "estimated": {
+      "angular_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cog_offset_m": [
+        0.015041631521516687,
+        -0.011711553039196415,
+        0.07998795947252987
+      ],
+      "force_effectiveness": [
+        0.9426720164346628,
+        1.1539937678053198,
+        1.0010726075420415,
+        0.9182698890731301
+      ],
+      "inertia_kg_m2": [
+        [
+          0.19243746981899382,
+          -0.007284136710838163,
+          -0.07579485375020525
+        ],
+        [
+          -0.007284136710838163,
+          0.17732767098046284,
+          0.016636790213061487
+        ],
+        [
+          -0.07579485375020525,
+          0.016636790213061487,
+          0.12780902724431242
+        ]
+      ],
+      "linear_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass_kg": 2.421148595551781,
+      "torque_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "nominal": {
+      "angular_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cog_offset_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "force_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "inertia_kg_m2": [
+        [
+          0.065000061483315,
+          -7.27899253e-07,
+          1.9015080033e-05
+        ],
+        [
+          -7.27899253e-07,
+          0.06495265634016499,
+          5.916730499999999e-08
+        ],
+        [
+          1.9015080033e-05,
+          5.916730499999999e-08,
+          0.12899211066442798
+        ]
+      ],
+      "linear_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass_kg": 2.3515975908123767,
+      "torque_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "schema": "grape-param-estim/minimal-direct-shooting/v2"
+}

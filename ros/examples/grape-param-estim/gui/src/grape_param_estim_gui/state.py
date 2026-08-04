@@ -6,8 +6,6 @@ from dataclasses import dataclass, field
 import hashlib
 from pathlib import Path
 from typing import Any, Iterable, Mapping
-
-import numpy as np
 try:
     from PySide6.QtCore import QObject, Signal
 except ImportError:  # Qt-free state/loader tests; the application still requires PySide6.
@@ -43,11 +41,12 @@ except ImportError:  # Qt-free state/loader tests; the application still require
             pass
 
 from .artifact_loader import (
-    AssimilationRun,
+    BagEstimationResult,
+    BatchEstimationRun,
     FlightResult,
     InspectionArtifact,
+    McmcPosterior,
     PidProposalEvaluation,
-    SharedPosterior,
 )
 from .project_io import freshness_fingerprint, result_is_fresh, utc_now
 
@@ -65,7 +64,7 @@ class BagRecord:
     sha256: str
     inspection: Mapping[str, Any] | None = None
     preview: FlightResult | None = None
-    result: FlightResult | None = None
+    result: BagEstimationResult | None = None
     included: bool = False
     auto_interval: tuple[float, float] | None = None
     selected_interval: tuple[float, float] | None = None
@@ -83,7 +82,7 @@ class BagRecord:
         return self.path.name
 
     @property
-    def data(self) -> FlightResult | None:
+    def data(self) -> FlightResult | BagEstimationResult | None:
         """The most informative real array set currently available."""
 
         return self.result if self.result is not None else self.preview
@@ -121,10 +120,10 @@ class ProjectState:
     bag_records: tuple[BagRecord, ...]
     selected_bag_ids: tuple[str, ...]
     current_bag_id: str | None
-    selected_member_id: int | None
+    selected_sample_id: str | None
     selected_mode_id: str | None
     selected_pid_proposal_id: str | None
-    assimilation_run_path: Path | None
+    estimation_run_path: Path | None
     pid_proposal_evaluation_path: Path | None
     results_stale: bool
 
@@ -184,7 +183,7 @@ class ProjectStore(QObject):
     bagsChanged = Signal()
     currentBagChanged = Signal(object)
     currentBagIdChanged = Signal(str)
-    selectedMemberChanged = Signal(object)
+    selectedSampleChanged = Signal(object)
     selectedModeChanged = Signal(object)
     selectedPidProposalChanged = Signal(object)
     recordChanged = Signal(str)
@@ -204,10 +203,10 @@ class ProjectStore(QObject):
         self.manifest = manifest
         self._records: list[BagRecord] = []
         self._current_bag_id: str | None = None
-        self._selected_member_id: int | None = None
+        self._selected_sample_id: str | None = None
         self._selected_mode_id: str | None = None
         self._selected_pid_proposal_id: str | None = None
-        self.assimilation_run: AssimilationRun | None = None
+        self.estimation_run: BatchEstimationRun | None = None
         self.pid_evaluation: PidProposalEvaluation | None = None
         self._results_stale = bool(manifest.get("run_request_fingerprint")) and not result_is_fresh(manifest)
 
@@ -216,8 +215,8 @@ class ProjectStore(QObject):
         return str(self.manifest["project_id"])
 
     @property
-    def selected_member_id(self) -> int | None:
-        return self._selected_member_id
+    def selected_sample_id(self) -> str | None:
+        return self._selected_sample_id
 
     @property
     def selected_mode_id(self) -> str | None:
@@ -236,8 +235,8 @@ class ProjectStore(QObject):
         return self._results_stale
 
     @property
-    def parameter_ensemble(self) -> SharedPosterior | None:
-        return None if self.assimilation_run is None else self.assimilation_run.shared_posterior
+    def posterior_samples(self) -> McmcPosterior | None:
+        return None if self.estimation_run is None else self.estimation_run.mcmc
 
     def records(self) -> tuple[BagRecord, ...]:
         return tuple(self._records)
@@ -252,10 +251,10 @@ class ProjectStore(QObject):
         self.manifest = manifest
         self._records = list(records)
         self._current_bag_id = None
-        self._selected_member_id = None
+        self._selected_sample_id = None
         self._selected_mode_id = None
         self._selected_pid_proposal_id = None
-        self.assimilation_run = None
+        self.estimation_run = None
         self.pid_evaluation = None
         self._results_stale = bool(manifest.get("run_request_fingerprint")) and not result_is_fresh(manifest)
         self.projectChanged.emit()
@@ -267,7 +266,7 @@ class ProjectStore(QObject):
         else:
             self.currentBagIdChanged.emit("")
             self.currentBagChanged.emit(None)
-        self.selectedMemberChanged.emit(None)
+        self.selectedSampleChanged.emit(None)
         self.freshnessChanged.emit(self._results_stale)
 
     def included_records(self) -> tuple[BagRecord, ...]:
@@ -483,25 +482,35 @@ class ProjectStore(QObject):
         self._sync_manifest_inputs()
         self.bagsChanged.emit()
 
-    def apply_assimilation(self, run: AssimilationRun) -> None:
-        project_fingerprint = str(
-            run.manifest.get("project_request_fingerprint", "")
-        )
+    def apply_estimation(self, run: BatchEstimationRun) -> None:
+        """Attach a validated batch run and synchronize its sample identity."""
+
+        project_fingerprint = run.request_fingerprint
         current_fingerprint = self.request_fingerprint()
         if project_fingerprint != current_fingerprint:
             raise ValueError(
-                "assimilation run project_request_fingerprint does not match "
+                "batch run request_fingerprint does not match "
                 "the current project inputs"
             )
-        for bag_id, result in run.bag_results.items():
+        unknown_bag_ids = sorted(
+            bag_id for bag_id in run.bags if self.get(bag_id) is None
+        )
+        if unknown_bag_ids:
+            raise ValueError(
+                "run contains unregistered bags: {}".format(
+                    ", ".join(unknown_bag_ids)
+                )
+            )
+        for record in self._records:
+            record.result = None
+        for bag_id, result in run.bags.items():
             record = self.get(bag_id)
-            if record is None:
-                raise ValueError("run contains unregistered bag {}".format(bag_id))
+            assert record is not None
             record.result = result
             record.status = "complete"
             self.recordChanged.emit(bag_id)
-        self.assimilation_run = run
-        run_id = str(run.manifest.get("run_id", ""))
+        self.estimation_run = run
+        run_id = run.run_id
         if (
             self.pid_evaluation is not None
             and str(self.pid_evaluation.manifest.get("source_run_id", ""))
@@ -512,34 +521,31 @@ class ProjectStore(QObject):
             self.manifest["current_pid_proposal_evaluation_id"] = None
             self.pidEvaluationChanged.emit(None)
             self.selectedPidProposalChanged.emit(None)
-        member_ids = run.shared_posterior.member_id
-        self._selected_member_id = int(member_ids[0]) if member_ids.size else None
-        selected_mode = run.shared_posterior.mode.get("selected_mode_id")
-        self._selected_mode_id = (
-            None
-            if selected_mode is None or np.asarray(selected_mode).size == 0
-            else str(np.asarray(selected_mode).reshape(-1)[0])
+        self._selected_sample_id = (
+            None if not run.sample_ids else run.sample_ids[0]
         )
-        self.manifest["current_assimilation_run_id"] = run.manifest.get("run_id")
+        if run.mcmc is None or run.mcmc.source_mode_id.size == 0:
+            self._selected_mode_id = None
+        else:
+            self._selected_mode_id = str(run.mcmc.source_mode_id[0])
+        self.manifest["current_estimation_run_id"] = run.run_id
         self._refresh_stale()
         self.posteriorChanged.emit(run)
-        self.selectedMemberChanged.emit(self._selected_member_id)
+        self.selectedSampleChanged.emit(self._selected_sample_id)
         self.selectedModeChanged.emit(self._selected_mode_id)
         self.bagsChanged.emit()
 
     def apply_pid_evaluation(self, evaluation: PidProposalEvaluation) -> None:
-        if self.assimilation_run is None:
+        if self.estimation_run is None:
             raise ValueError(
-                "a PID evaluation requires its source assimilation run"
+                "a PID evaluation requires its source batch estimation run"
             )
         source_run_id = str(evaluation.manifest.get("source_run_id", ""))
-        current_run_id = str(
-            self.assimilation_run.manifest.get("run_id", "")
-        )
+        current_run_id = self.estimation_run.run_id
         if not source_run_id or source_run_id != current_run_id:
             raise ValueError(
                 "PID evaluation source_run_id does not match the current "
-                "assimilation run"
+                "batch estimation run"
             )
         self.pid_evaluation = evaluation
         self.manifest["current_pid_proposal_evaluation_id"] = evaluation.manifest.get("evaluation_id")
@@ -549,17 +555,20 @@ class ProjectStore(QObject):
         self.pidEvaluationChanged.emit(evaluation)
         self.selectedPidProposalChanged.emit(self._selected_pid_proposal_id)
 
-    def set_selected_member(self, member_id: int | None) -> None:
-        if member_id is None:
+    def set_selected_sample(self, sample_id: str | None) -> None:
+        if sample_id is None:
             selected = None
         else:
-            posterior = self.parameter_ensemble
-            if posterior is None or int(member_id) not in set(posterior.member_id.tolist()):
+            posterior = self.posterior_samples
+            selected = str(sample_id)
+            if (
+                posterior is None
+                or selected not in set(posterior.sample_id.tolist())
+            ):
                 return
-            selected = int(member_id)
-        if selected != self._selected_member_id:
-            self._selected_member_id = selected
-            self.selectedMemberChanged.emit(selected)
+        if selected != self._selected_sample_id:
+            self._selected_sample_id = selected
+            self.selectedSampleChanged.emit(selected)
 
     def set_selected_mode(self, mode_id: str | None) -> None:
         if mode_id != self._selected_mode_id:
@@ -588,10 +597,12 @@ class ProjectStore(QObject):
             bag_records=self.records(),
             selected_bag_ids=tuple(record.bag_id for record in self.included_records()),
             current_bag_id=self.current_bag_id,
-            selected_member_id=self.selected_member_id,
+            selected_sample_id=self.selected_sample_id,
             selected_mode_id=self.selected_mode_id,
             selected_pid_proposal_id=self.selected_pid_proposal_id,
-            assimilation_run_path=None if self.assimilation_run is None else self.assimilation_run.root,
+            estimation_run_path=(
+                None if self.estimation_run is None else self.estimation_run.root
+            ),
             pid_proposal_evaluation_path=None if self.pid_evaluation is None else self.pid_evaluation.root,
             results_stale=self.results_stale,
         )

@@ -1,15 +1,15 @@
-"""Strict, Qt-free adapters from estimator bundles to GUI data models.
+"""Strict Qt-free views of batch-estimation artifacts.
 
-The estimator owns the wire format.  This module deliberately delegates all
-schema, dtype, member-alignment, completeness, and path validation to
-``grape_param_estim.artifact_io`` before exposing convenient immutable GUI
-views.  No pickle or object arrays are accepted by that boundary.
+The backend owns the on-disk contract.  The GUI accepts only a completed
+``grape-param-estim/batch-estimation-run/v1`` directory validated by
+``grape_param_estim.batch_artifact``.  This module converts that detached,
+pickle-free bundle into immutable display models; it does not implement an
+old assimilation or staged-artifact compatibility path.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-import math
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -24,23 +24,17 @@ try:
     from grape_param_estim import artifact_io
 except ImportError as error:  # pragma: no cover - exercised by GUI startup
     artifact_io = None  # type: ignore[assignment]
-    _BACKEND_IMPORT_ERROR = error
+    _INSPECTION_BACKEND_IMPORT_ERROR = error
 else:
-    _BACKEND_IMPORT_ERROR = None
+    _INSPECTION_BACKEND_IMPORT_ERROR = None
 
 try:
-    from grape_param_estim import (
-        augmented_parameter_artifact as augmented_parameter_artifact_io,
-    )
-    from grape_param_estim import (
-        diagonal_q_artifact as diagonal_q_artifact_io,
-    )
+    from grape_param_estim import batch_artifact as batch_artifact_io
 except ImportError as error:  # pragma: no cover - exercised by GUI startup
-    augmented_parameter_artifact_io = None  # type: ignore[assignment]
-    diagonal_q_artifact_io = None  # type: ignore[assignment]
-    _STAGE_BACKEND_IMPORT_ERROR = error
+    batch_artifact_io = None  # type: ignore[assignment]
+    _BATCH_BACKEND_IMPORT_ERROR = error
 else:
-    _STAGE_BACKEND_IMPORT_ERROR = None
+    _BATCH_BACKEND_IMPORT_ERROR = None
 
 
 GUI_ARTIFACT_LOADER_ID = PROJECT_ARTIFACT_LOADER_ID
@@ -48,51 +42,57 @@ GUI_ARTIFACT_LOADER_VERSION = PROJECT_ARTIFACT_LOADER_VERSION
 
 
 class GuiArtifactError(ValueError):
-    """An estimator artifact cannot be represented by this GUI."""
+    """An artifact failed the backend contract or cannot be displayed."""
 
 
-def _backend() -> Any:
+def _inspection_backend() -> Any:
     if artifact_io is None:
         raise GuiArtifactError(
             "grape_param_estim.artifact_io is unavailable; start the GUI "
             "from the package launcher or add the estimator src directory "
             "to PYTHONPATH"
-        ) from _BACKEND_IMPORT_ERROR
+        ) from _INSPECTION_BACKEND_IMPORT_ERROR
     return artifact_io
 
 
-def _stage_backends() -> tuple[Any, Any]:
-    _backend()
-    if (
-        diagonal_q_artifact_io is None
-        or augmented_parameter_artifact_io is None
-    ):
+def _batch_backend() -> Any:
+    if batch_artifact_io is None:
         raise GuiArtifactError(
-            "stage artifact adapters are unavailable; start the GUI from "
-            "the package launcher or add the estimator src directory to "
-            "PYTHONPATH"
-        ) from _STAGE_BACKEND_IMPORT_ERROR
-    return diagonal_q_artifact_io, augmented_parameter_artifact_io
+            "grape_param_estim.batch_artifact is unavailable; start the GUI "
+            "from the package launcher or add the estimator src directory "
+            "to PYTHONPATH"
+        ) from _BATCH_BACKEND_IMPORT_ERROR
+    return batch_artifact_io
 
 
-def _strict_stage_call(label: str, callback: Any) -> Any:
-    backend = _backend()
-    try:
-        return callback()
-    except (backend.ArtifactValidationError, OSError) as error:
-        raise GuiArtifactError(
-            "cannot load {}: {}".format(label, error)
-        ) from error
+def _array(value: Any) -> np.ndarray:
+    return np.asarray(value)
 
 
-def _array(value: Any, *, copy: bool = False) -> np.ndarray:
-    result = np.asarray(value)
-    return result.copy() if copy else result
+def _text_array(value: Any) -> np.ndarray:
+    """Return display-safe text without changing backend ID alignment."""
+
+    array = np.asarray(value).reshape(-1)
+    result = np.asarray(
+        [
+            item.decode("utf-8") if isinstance(item, bytes) else str(item)
+            for item in array.tolist()
+        ]
+    )
+    result.setflags(write=False)
+    return result
+
+
+def _named_values(
+    names: np.ndarray, values: np.ndarray
+) -> Mapping[str, float]:
+    return {
+        str(name): float(value)
+        for name, value in zip(_text_array(names), np.asarray(values))
+    }
 
 
 def _quaternion_xyzw_to_rpy(value: np.ndarray) -> np.ndarray:
-    """Convert display orientation only; correction paths remain rotvec data."""
-
     quaternion = np.asarray(value, dtype=float)
     x, y, z, w = np.moveaxis(quaternion, -1, 0)
     sinr = 2.0 * (w * x + y * z)
@@ -107,32 +107,9 @@ def _quaternion_xyzw_to_rpy(value: np.ndarray) -> np.ndarray:
 
 
 @dataclass(frozen=True)
-class SharedPosterior:
-    member_id: np.ndarray
-    parameter_coordinate: np.ndarray
-    mass: np.ndarray
-    inertia: np.ndarray
-    cog: np.ndarray
-    force_effectiveness: np.ndarray
-    torque_effectiveness: np.ndarray
-    constant_delay: np.ndarray
-    ridge: Mapping[str, np.ndarray]
-    mode: Mapping[str, np.ndarray]
-    iteration_diagnostics: Mapping[str, np.ndarray]
-
-    @property
-    def size(self) -> int:
-        return int(self.member_id.size)
-
-    @property
-    def equal_weights(self) -> np.ndarray:
-        if self.size == 0:
-            return np.empty(0, dtype=float)
-        return np.full(self.size, 1.0 / float(self.size), dtype=float)
-
-
-@dataclass(frozen=True)
 class FlightResult:
+    """Inspection preview data available before estimation."""
+
     bag_id: str
     time: np.ndarray
     record_time: np.ndarray
@@ -140,21 +117,8 @@ class FlightResult:
     reference_rpy: np.ndarray
     observed_position: np.ndarray
     observed_orientation_xyzw: np.ndarray
-    nominal_position: np.ndarray | None
-    nominal_orientation_xyzw: np.ndarray | None
-    member_position: np.ndarray | None
-    member_orientation_xyzw: np.ndarray | None
-    correction_translation: np.ndarray | None
-    correction_rotation_vector: np.ndarray | None
-    observed_correction_translation: np.ndarray | None
-    observed_correction_rotation_vector: np.ndarray | None
-    residual_wrench: np.ndarray | None
     flight_state: np.ndarray | None
-    q_resolution_sufficient: bool | None
     provenance: Mapping[str, Any]
-    calibration: Mapping[str, Any]
-    coverage: Mapping[str, Any]
-    objective_contribution: float | None
 
     @property
     def sample_count(self) -> int:
@@ -162,27 +126,13 @@ class FlightResult:
 
     @property
     def duration(self) -> float:
+        if self.time.size < 2:
+            return 0.0
         return float(self.time[-1] - self.time[0])
-
-    @property
-    def has_posterior(self) -> bool:
-        return self.member_position is not None
 
     @property
     def observed_rpy(self) -> np.ndarray:
         return _quaternion_xyzw_to_rpy(self.observed_orientation_xyzw)
-
-    @property
-    def nominal_rpy(self) -> np.ndarray | None:
-        if self.nominal_orientation_xyzw is None:
-            return None
-        return _quaternion_xyzw_to_rpy(self.nominal_orientation_xyzw)
-
-    @property
-    def member_rpy(self) -> np.ndarray | None:
-        if self.member_orientation_xyzw is None:
-            return None
-        return _quaternion_xyzw_to_rpy(self.member_orientation_xyzw)
 
 
 @dataclass(frozen=True)
@@ -194,17 +144,358 @@ class InspectionArtifact:
 
 
 @dataclass(frozen=True)
-class AssimilationRun:
+class StaticParameterMap:
+    parameter_coordinate: np.ndarray
+    mass: float
+    inertia: np.ndarray
+    cog: np.ndarray
+    force_effectiveness: np.ndarray
+    torque_effectiveness: np.ndarray
+    delay: float
+    q_diagonal: np.ndarray
+    objective_components: Mapping[str, float]
+    prior_objective: float
+    likelihood_objective: float
+    bag_objective: Mapping[str, float]
+
+
+@dataclass(frozen=True)
+class QEmHistory:
+    iteration: np.ndarray
+    input_q: np.ndarray
+    target_q: np.ndarray
+    accepted_q: np.ndarray
+    alpha: np.ndarray
+    log_q_change: np.ndarray
+    map_objective: np.ndarray
+    approximate_marginal_objective: np.ndarray
+    delay: np.ndarray
+    accepted: np.ndarray
+    reason: np.ndarray
+    floor_activation: np.ndarray
+    expected_residual_second_moment: np.ndarray
+    map_residual_second_moment: np.ndarray
+    covariance_correction: np.ndarray
+
+
+@dataclass(frozen=True)
+class LaplaceApproximation:
+    reduced_likelihood_hessian: np.ndarray
+    reduced_posterior_hessian: np.ndarray
+    covariance: np.ndarray
+    eigenvalues: np.ndarray
+    eigenvectors: np.ndarray
+    effective_rank: int
+    exact_ridge_direction: np.ndarray
+    ridge_alignment: float
+    condition_number: float
+    delay_profile_grid: np.ndarray
+    delay_profile_objective: np.ndarray
+    delay_local_uncertainty: float
+
+
+@dataclass(frozen=True)
+class StaticParameterSample:
+    sample_id: str
+    chain_id: str
+    draw_index: int
+    parameter_coordinate: np.ndarray
+    mass: float
+    inertia: np.ndarray
+    cog: np.ndarray
+    force_effectiveness: np.ndarray
+    torque_effectiveness: np.ndarray
+    delay: float
+    log_posterior: float
+    log_likelihood_approximation: float
+    log_determinant_term: float
+    accepted_kernel: str
+    source_mode_id: str
+
+
+@dataclass(frozen=True)
+class McmcPosterior:
+    sample_id: np.ndarray
+    chain_id: np.ndarray
+    draw_index: np.ndarray
+    parameter_coordinate: np.ndarray
+    mass: np.ndarray
+    inertia: np.ndarray
+    cog: np.ndarray
+    force_effectiveness: np.ndarray
+    torque_effectiveness: np.ndarray
+    delay: np.ndarray
+    log_posterior: np.ndarray
+    log_likelihood_approximation: np.ndarray
+    log_determinant_term: np.ndarray
+    accepted_kernel: np.ndarray
+    source_mode_id: np.ndarray
+
+    @property
+    def size(self) -> int:
+        return int(self.sample_id.size)
+
+    @property
+    def equal_weights(self) -> np.ndarray:
+        if self.size == 0:
+            return np.empty((0,), dtype=float)
+        return np.full((self.size,), 1.0 / float(self.size), dtype=float)
+
+    def index_of(self, sample_id: str) -> int:
+        matches = np.flatnonzero(self.sample_id == str(sample_id))
+        if matches.size != 1:
+            raise KeyError("unknown MCMC sample {!r}".format(sample_id))
+        return int(matches[0])
+
+    def sample(self, sample_id: str) -> StaticParameterSample:
+        index = self.index_of(sample_id)
+        return StaticParameterSample(
+            sample_id=str(self.sample_id[index]),
+            chain_id=str(self.chain_id[index]),
+            draw_index=int(self.draw_index[index]),
+            parameter_coordinate=self.parameter_coordinate[index],
+            mass=float(self.mass[index]),
+            inertia=self.inertia[index],
+            cog=self.cog[index],
+            force_effectiveness=self.force_effectiveness[index],
+            torque_effectiveness=self.torque_effectiveness[index],
+            delay=float(self.delay[index]),
+            log_posterior=float(self.log_posterior[index]),
+            log_likelihood_approximation=float(
+                self.log_likelihood_approximation[index]
+            ),
+            log_determinant_term=float(self.log_determinant_term[index]),
+            accepted_kernel=str(self.accepted_kernel[index]),
+            source_mode_id=str(self.source_mode_id[index]),
+        )
+
+
+@dataclass(frozen=True)
+class ReferenceTrajectory:
+    time: np.ndarray
+    record_time: np.ndarray
+    position: np.ndarray
+    linear_velocity: np.ndarray
+    linear_acceleration: np.ndarray
+    rpy: np.ndarray
+    angular_velocity: np.ndarray
+    angular_acceleration: np.ndarray
+
+
+@dataclass(frozen=True)
+class VectorObservation:
+    time: np.ndarray
+    record_time: np.ndarray
+    value: np.ndarray
+    valid: np.ndarray
+    covariance: np.ndarray
+    covariance_valid: np.ndarray
+
+
+@dataclass(frozen=True)
+class PoseObservation:
+    time: np.ndarray
+    record_time: np.ndarray
+    position: np.ndarray
+    orientation_xyzw: np.ndarray
+    valid: np.ndarray
+    covariance: np.ndarray
+    covariance_valid: np.ndarray
+
+    @property
+    def rpy(self) -> np.ndarray:
+        return _quaternion_xyzw_to_rpy(self.orientation_xyzw)
+
+
+@dataclass(frozen=True)
+class StateTrajectory:
+    position: np.ndarray
+    orientation_xyzw: np.ndarray
+    linear_velocity: np.ndarray
+    angular_velocity: np.ndarray
+    controller_integral: np.ndarray
+    actuator_thrust: np.ndarray
+    actuator_gimbal: np.ndarray
+
+    @property
+    def rpy(self) -> np.ndarray:
+        return _quaternion_xyzw_to_rpy(self.orientation_xyzw)
+
+
+@dataclass(frozen=True)
+class BagEstimationResult:
+    bag_id: str
+    knot_time: np.ndarray
+    knot_record_time: np.ndarray
+    reference: ReferenceTrajectory
+    pose: PoseObservation
+    velocity: VectorObservation
+    gyro: VectorObservation
+    accelerometer: VectorObservation
+    thrust_command: VectorObservation
+    gimbal_command: VectorObservation
+    gimbal_observation: VectorObservation
+    controller_integral_observation: VectorObservation
+    nominal: StateTrajectory
+    map_trajectory: StateTrajectory
+    map_dynamics_residual: np.ndarray
+    map_dynamics_residual_valid: np.ndarray
+    correction_translation: np.ndarray
+    correction_rotation_vector: np.ndarray
+    factor_residual_history: Mapping[str, np.ndarray]
+    factor_normalized_residual_history: Mapping[str, np.ndarray]
+    objective_components: Mapping[str, float]
+    numerical_diagnostics: Mapping[str, float]
+    sensor_contract: Mapping[str, Any]
+    observation_factors: Mapping[str, Any]
+
+    @property
+    def sample_count(self) -> int:
+        return int(self.knot_time.size)
+
+    @property
+    def duration(self) -> float:
+        return float(self.knot_time[-1] - self.knot_time[0])
+
+
+@dataclass(frozen=True)
+class ConditionalTrajectory:
+    sample_id: str
+    knot_time: np.ndarray
+    state: StateTrajectory
+    correction_translation: np.ndarray
+    correction_rotation_vector: np.ndarray
+    dynamics_residual: np.ndarray
+    dynamics_residual_valid: np.ndarray
+    conditional_objective: float
+
+
+@dataclass(frozen=True)
+class SelectedTrajectorySet:
+    bag_id: str
+    sample_id: np.ndarray
+    knot_time: np.ndarray
+    conditional_position: np.ndarray
+    conditional_orientation_xyzw: np.ndarray
+    conditional_linear_velocity: np.ndarray
+    conditional_angular_velocity: np.ndarray
+    conditional_controller_integral: np.ndarray
+    conditional_actuator_thrust: np.ndarray
+    conditional_actuator_gimbal: np.ndarray
+    correction_translation: np.ndarray
+    correction_rotation_vector: np.ndarray
+    dynamics_residual: np.ndarray
+    dynamics_residual_valid: np.ndarray
+    conditional_objective: np.ndarray
+
+    def index_of(self, sample_id: str) -> int:
+        matches = np.flatnonzero(self.sample_id == str(sample_id))
+        if matches.size != 1:
+            raise KeyError(
+                "sample {!r} has no stored trajectory for bag {!r}".format(
+                    sample_id, self.bag_id
+                )
+            )
+        return int(matches[0])
+
+    def trajectory(self, sample_id: str) -> ConditionalTrajectory:
+        index = self.index_of(sample_id)
+        return ConditionalTrajectory(
+            sample_id=str(self.sample_id[index]),
+            knot_time=self.knot_time,
+            state=StateTrajectory(
+                position=self.conditional_position[index],
+                orientation_xyzw=self.conditional_orientation_xyzw[index],
+                linear_velocity=self.conditional_linear_velocity[index],
+                angular_velocity=self.conditional_angular_velocity[index],
+                controller_integral=self.conditional_controller_integral[index],
+                actuator_thrust=self.conditional_actuator_thrust[index],
+                actuator_gimbal=self.conditional_actuator_gimbal[index],
+            ),
+            correction_translation=self.correction_translation[index],
+            correction_rotation_vector=self.correction_rotation_vector[index],
+            dynamics_residual=self.dynamics_residual[index],
+            dynamics_residual_valid=self.dynamics_residual_valid[index],
+            conditional_objective=float(self.conditional_objective[index]),
+        )
+
+
+@dataclass(frozen=True)
+class McmcDiagnostics:
+    chain_id: np.ndarray
+    mode_id: str
+    draws_per_chain: int
+    split_rhat: np.ndarray
+    effective_sample_size: np.ndarray
+    integrated_autocorrelation_time: np.ndarray
+    ridge_coordinate_trace: np.ndarray
+    delay_trace: np.ndarray
+    log_posterior_trace: np.ndarray
+    kernel_names: np.ndarray
+    kernel_attempts: np.ndarray
+    kernel_stage_one_accepted: np.ndarray
+    kernel_stage_two_attempted: np.ndarray
+    kernel_stage_two_accepted: np.ndarray
+    kernel_full_target_cache_hits: np.ndarray
+    kernel_inner_solve_failures: np.ndarray
+    kernel_inner_iterations: np.ndarray
+    completed: bool
+    converged: bool
+    rhat_threshold: float
+    minimum_effective_sample_size: float
+
+
+@dataclass(frozen=True)
+class RunDiagnostics:
+    bag_id: np.ndarray
+    knot_count: np.ndarray
+    factor_count: np.ndarray
+    residual_dimension: np.ndarray
+    jacobian_nnz: np.ndarray
+    assembly_seconds: np.ndarray
+    factorization_seconds: np.ndarray
+    schur_solve_seconds: np.ndarray
+    nonlinear_iteration_seconds: np.ndarray
+    em_iteration_seconds: np.ndarray
+    mcmc_target_seconds: np.ndarray
+    peak_memory_bytes: int
+    mcmc: McmcDiagnostics | None
+
+
+@dataclass(frozen=True)
+class BatchEstimationRun:
     root: Path
     manifest: Mapping[str, Any]
-    shared_posterior: SharedPosterior
-    bag_results: Mapping[str, FlightResult]
-    diagnostics: Mapping[str, np.ndarray]
+    static_map: StaticParameterMap
+    q_em: QEmHistory
+    laplace: LaplaceApproximation
+    diagnostics: RunDiagnostics
+    bags: Mapping[str, BagEstimationResult]
+    mcmc: McmcPosterior | None
+    selected_trajectories: Mapping[str, SelectedTrajectorySet]
     warnings: tuple[str, ...]
 
     @property
     def request_fingerprint(self) -> str:
-        return str(self.manifest.get("request_fingerprint", ""))
+        return str(self.manifest["request_fingerprint"])
+
+    @property
+    def run_id(self) -> str:
+        return str(self.manifest["run_id"])
+
+    @property
+    def sample_ids(self) -> tuple[str, ...]:
+        if self.mcmc is None:
+            return ()
+        return tuple(str(value) for value in self.mcmc.sample_id.tolist())
+
+    def selected_trajectory(
+        self, bag_id: str, sample_id: str
+    ) -> ConditionalTrajectory | None:
+        subset = self.selected_trajectories.get(bag_id)
+        if subset is None or str(sample_id) not in set(subset.sample_id.tolist()):
+            return None
+        return subset.trajectory(str(sample_id))
 
 
 @dataclass(frozen=True)
@@ -216,16 +507,6 @@ class PidProposalEvaluation:
     bags: Mapping[str, Mapping[str, np.ndarray]]
     proposed_yaml: str
     proposed_diff_yaml: str
-
-
-def _diagnostic_groups(
-    diagnostics: Mapping[str, np.ndarray], prefix: str
-) -> dict[str, np.ndarray]:
-    return {
-        key[len(prefix) :]: value
-        for key, value in diagnostics.items()
-        if key.startswith(prefix)
-    }
 
 
 def _preview_result(
@@ -243,28 +524,21 @@ def _preview_result(
         reference_rpy=_array(arrays["reference_rpy"]),
         observed_position=_array(arrays["position"]),
         observed_orientation_xyzw=_array(arrays["orientation_xyzw"]),
-        nominal_position=None,
-        nominal_orientation_xyzw=None,
-        member_position=None,
-        member_orientation_xyzw=None,
-        correction_translation=None,
-        correction_rotation_vector=None,
-        observed_correction_translation=None,
-        observed_correction_rotation_vector=None,
-        residual_wrench=None,
-        flight_state=_array(arrays["flight_state"]),
-        q_resolution_sufficient=None,
+        flight_state=(
+            None if "flight_state" not in arrays else _array(arrays["flight_state"])
+        ),
         provenance=inspection,
-        calibration={},
-        coverage={},
-        objective_contribution=None,
     )
 
 
 def load_inspection(path: str | Path) -> InspectionArtifact:
-    """Load a complete inspection bundle through the backend validator."""
+    """Load a complete inspection bundle through its strict validator."""
 
-    bundle = _backend().load_inspection_bundle(path)
+    backend = _inspection_backend()
+    try:
+        bundle = backend.load_inspection_bundle(path)
+    except (backend.ArtifactValidationError, OSError) as error:
+        raise GuiArtifactError("cannot load inspection: {}".format(error)) from error
     previews = {
         bag_id: _preview_result(
             bag_id, bundle.previews[bag_id], bundle.inspections[bag_id]
@@ -279,259 +553,369 @@ def load_inspection(path: str | Path) -> InspectionArtifact:
     )
 
 
-def load_assimilation(path: str | Path) -> AssimilationRun:
-    """Load a complete run, preserving member identity and raw paths."""
-
-    bundle = _backend().load_assimilation_run(path)
-    shared = bundle.shared_posterior
-    diagnostics = bundle.diagnostics
-    posterior = SharedPosterior(
-        member_id=_array(shared["member_id"]),
-        parameter_coordinate=_array(shared["parameter_coordinates"]),
-        mass=_array(shared["mass"]),
-        inertia=_array(shared["inertia"]),
-        cog=_array(shared["cog"]),
-        force_effectiveness=_array(shared["force_effectiveness"]),
-        torque_effectiveness=_array(shared["torque_effectiveness"]),
-        constant_delay=_array(shared["constant_delay"]),
-        ridge=_diagnostic_groups(shared, "ridge_"),
-        mode={
-            key: shared[key]
-            for key in ("mode_id", "mode_weight", "selected_mode_id")
-            if key in shared
+def _static_map(arrays: Mapping[str, np.ndarray]) -> StaticParameterMap:
+    bag_ids = _text_array(arrays["bag_id"])
+    return StaticParameterMap(
+        parameter_coordinate=_array(arrays["parameter_coordinate_map"]),
+        mass=float(arrays["mass"][0]),
+        inertia=_array(arrays["inertia"]),
+        cog=_array(arrays["cog"]),
+        force_effectiveness=_array(arrays["force_effectiveness"]),
+        torque_effectiveness=_array(arrays["torque_effectiveness"]),
+        delay=float(arrays["delay"][0]),
+        q_diagonal=_array(arrays["q_diagonal"]),
+        objective_components=_named_values(
+            arrays["objective_component_names"],
+            arrays["objective_component_values"],
+        ),
+        prior_objective=float(arrays["prior_objective"][0]),
+        likelihood_objective=float(arrays["likelihood_objective"][0]),
+        bag_objective={
+            str(bag_id): float(value)
+            for bag_id, value in zip(bag_ids, arrays["bag_objective"])
         },
-        iteration_diagnostics=diagnostics,
     )
-    bag_results: dict[str, FlightResult] = {}
-    for bag_id, arrays in bundle.bags.items():
-        provenance = {
-            key[len("provenance_") :]: np.asarray(value).tolist()
-            for key, value in arrays.items()
-            if key.startswith("provenance_")
-        }
-        bag_results[bag_id] = FlightResult(
-            bag_id=bag_id,
-            time=_array(arrays["times"]),
-            record_time=_array(arrays["record_times"]),
-            reference_position=_array(arrays["reference_position"]),
-            reference_rpy=_array(arrays["reference_rpy"]),
-            observed_position=_array(arrays["observed_position"]),
-            observed_orientation_xyzw=_array(arrays["observed_orientation_xyzw"]),
-            nominal_position=_array(arrays["nominal_position"]),
-            nominal_orientation_xyzw=_array(arrays["nominal_orientation_xyzw"]),
-            member_position=_array(arrays["posterior_position"]),
-            member_orientation_xyzw=_array(arrays["posterior_orientation_xyzw"]),
-            correction_translation=_array(arrays["correction_translation"]),
-            correction_rotation_vector=_array(arrays["correction_rotation_vector"]),
-            observed_correction_translation=_array(
-                arrays["observed_correction_translation"]
+
+
+def _q_em(arrays: Mapping[str, np.ndarray]) -> QEmHistory:
+    return QEmHistory(
+        iteration=_array(arrays["iteration"]),
+        input_q=_array(arrays["input_q"]),
+        target_q=_array(arrays["target_q"]),
+        accepted_q=_array(arrays["accepted_q"]),
+        alpha=_array(arrays["alpha"]),
+        log_q_change=_array(arrays["log_q_change"]),
+        map_objective=_array(arrays["map_objective"]),
+        approximate_marginal_objective=_array(
+            arrays["approximate_marginal_objective"]
+        ),
+        delay=_array(arrays["lag"]),
+        accepted=_array(arrays["accepted"]),
+        reason=_text_array(arrays["reason"]),
+        floor_activation=_array(arrays["floor_activation"]),
+        expected_residual_second_moment=_array(
+            arrays["expected_residual_second_moment"]
+        ),
+        map_residual_second_moment=_array(
+            arrays["map_residual_second_moment"]
+        ),
+        covariance_correction=_array(arrays["covariance_correction"]),
+    )
+
+
+def _laplace(arrays: Mapping[str, np.ndarray]) -> LaplaceApproximation:
+    return LaplaceApproximation(
+        reduced_likelihood_hessian=_array(arrays["reduced_likelihood_hessian"]),
+        reduced_posterior_hessian=_array(arrays["reduced_posterior_hessian"]),
+        covariance=_array(arrays["covariance"]),
+        eigenvalues=_array(arrays["eigenvalues"]),
+        eigenvectors=_array(arrays["eigenvectors"]),
+        effective_rank=int(arrays["effective_rank"][0]),
+        exact_ridge_direction=_array(arrays["exact_ridge_direction"]),
+        ridge_alignment=float(arrays["ridge_alignment"][0]),
+        condition_number=float(arrays["condition_number"][0]),
+        delay_profile_grid=_array(arrays["delay_profile_grid"]),
+        delay_profile_objective=_array(arrays["delay_profile_objective"]),
+        delay_local_uncertainty=float(arrays["delay_local_uncertainty"][0]),
+    )
+
+
+def _vector_observation(
+    arrays: Mapping[str, np.ndarray], prefix: str, value_name: str
+) -> VectorObservation:
+    return VectorObservation(
+        time=_array(arrays["{}_time".format(prefix)]),
+        record_time=_array(arrays["{}_record_time".format(prefix)]),
+        value=_array(arrays[value_name]),
+        valid=_array(arrays["{}_valid".format(prefix)]),
+        covariance=_array(arrays["{}_covariance".format(prefix)]),
+        covariance_valid=_array(
+            arrays["{}_covariance_valid".format(prefix)]
+        ),
+    )
+
+
+def _state_trajectory(
+    arrays: Mapping[str, np.ndarray], prefix: str
+) -> StateTrajectory:
+    return StateTrajectory(
+        position=_array(arrays["{}_position".format(prefix)]),
+        orientation_xyzw=_array(
+            arrays["{}_orientation_xyzw".format(prefix)]
+        ),
+        linear_velocity=_array(
+            arrays["{}_linear_velocity".format(prefix)]
+        ),
+        angular_velocity=_array(
+            arrays["{}_angular_velocity".format(prefix)]
+        ),
+        controller_integral=_array(
+            arrays["{}_controller_integral".format(prefix)]
+        ),
+        actuator_thrust=_array(
+            arrays["{}_actuator_thrust".format(prefix)]
+        ),
+        actuator_gimbal=_array(
+            arrays["{}_actuator_gimbal".format(prefix)]
+        ),
+    )
+
+
+def _bag_result(
+    bag_id: str,
+    arrays: Mapping[str, np.ndarray],
+    manifest: Mapping[str, Any],
+) -> BagEstimationResult:
+    factor_names = _text_array(arrays["factor_names"])
+    residual = _array(arrays["factor_residual_history"])
+    normalized = _array(arrays["factor_normalized_residual_history"])
+    return BagEstimationResult(
+        bag_id=bag_id,
+        knot_time=_array(arrays["knot_time"]),
+        knot_record_time=_array(arrays["knot_record_time"]),
+        reference=ReferenceTrajectory(
+            time=_array(arrays["reference_time"]),
+            record_time=_array(arrays["reference_record_time"]),
+            position=_array(arrays["reference_position"]),
+            linear_velocity=_array(arrays["reference_linear_velocity"]),
+            linear_acceleration=_array(
+                arrays["reference_linear_acceleration"]
             ),
-            observed_correction_rotation_vector=_array(
-                arrays["observed_correction_rotation_vector"]
+            rpy=_array(arrays["reference_rpy"]),
+            angular_velocity=_array(arrays["reference_angular_velocity"]),
+            angular_acceleration=_array(
+                arrays["reference_angular_acceleration"]
             ),
-            residual_wrench=_array(arrays["residual_wrench_interval"]),
-            flight_state=None,
-            q_resolution_sufficient=bool(
-                np.asarray(arrays["q_resolution_sufficient"]).reshape(-1)[0]
-            ),
-            provenance=provenance,
-            calibration={
-                key: arrays[key]
-                for key in (
-                    "observation_translation_covariance",
-                    "observation_rotation_covariance",
-                    "q_stationary_standard_deviation",
-                    "q_correlation_time",
-                    "q_knot_indices",
-                    "q_knot_times",
-                )
-                if key in arrays
-            },
-            coverage={"value": float(np.asarray(arrays["pose_component_coverage"]).reshape(-1)[0])},
-            objective_contribution=float(np.mean(arrays["objective_contribution"])),
-        )
-    return AssimilationRun(
+        ),
+        pose=PoseObservation(
+            time=_array(arrays["pose_time"]),
+            record_time=_array(arrays["pose_record_time"]),
+            position=_array(arrays["pose_position"]),
+            orientation_xyzw=_array(arrays["pose_orientation_xyzw"]),
+            valid=_array(arrays["pose_valid"]),
+            covariance=_array(arrays["pose_covariance"]),
+            covariance_valid=_array(arrays["pose_covariance_valid"]),
+        ),
+        velocity=_vector_observation(arrays, "velocity", "velocity"),
+        gyro=_vector_observation(arrays, "gyro", "gyro"),
+        accelerometer=_vector_observation(
+            arrays, "accelerometer", "accelerometer"
+        ),
+        thrust_command=_vector_observation(
+            arrays, "thrust_command", "thrust_command"
+        ),
+        gimbal_command=_vector_observation(
+            arrays, "gimbal_command", "gimbal_command"
+        ),
+        gimbal_observation=_vector_observation(
+            arrays, "gimbal_observation", "gimbal_observation"
+        ),
+        controller_integral_observation=_vector_observation(
+            arrays,
+            "controller_integral",
+            "controller_integral_observation",
+        ),
+        nominal=_state_trajectory(arrays, "nominal"),
+        map_trajectory=_state_trajectory(arrays, "map"),
+        map_dynamics_residual=_array(arrays["map_dynamics_residual"]),
+        map_dynamics_residual_valid=_array(
+            arrays["map_dynamics_residual_valid"]
+        ),
+        correction_translation=_array(arrays["correction_translation"]),
+        correction_rotation_vector=_array(
+            arrays["correction_rotation_vector"]
+        ),
+        factor_residual_history={
+            str(name): residual[:, index]
+            for index, name in enumerate(factor_names)
+        },
+        factor_normalized_residual_history={
+            str(name): normalized[:, index]
+            for index, name in enumerate(factor_names)
+        },
+        objective_components=_named_values(
+            arrays["objective_component_names"],
+            arrays["objective_component_values"],
+        ),
+        numerical_diagnostics=_named_values(
+            arrays["numerical_diagnostic_names"],
+            arrays["numerical_diagnostic_values"],
+        ),
+        sensor_contract=manifest["sensor_contracts"][bag_id],
+        observation_factors=manifest["observation_factors"][bag_id],
+    )
+
+
+def _mcmc(arrays: Mapping[str, np.ndarray]) -> McmcPosterior:
+    return McmcPosterior(
+        sample_id=_text_array(arrays["sample_id"]),
+        chain_id=_text_array(arrays["chain_id"]),
+        draw_index=_array(arrays["draw_index"]),
+        parameter_coordinate=_array(arrays["parameter_coordinate"]),
+        mass=_array(arrays["mass"]),
+        inertia=_array(arrays["inertia"]),
+        cog=_array(arrays["cog"]),
+        force_effectiveness=_array(arrays["force_effectiveness"]),
+        torque_effectiveness=_array(arrays["torque_effectiveness"]),
+        delay=_array(arrays["delay"]),
+        log_posterior=_array(arrays["log_posterior"]),
+        log_likelihood_approximation=_array(
+            arrays["log_likelihood_approximation"]
+        ),
+        log_determinant_term=_array(arrays["log_determinant_term"]),
+        accepted_kernel=_text_array(arrays["accepted_kernel"]),
+        source_mode_id=_text_array(arrays["source_mode_id"]),
+    )
+
+
+def _trajectory_set(
+    bag_id: str, arrays: Mapping[str, np.ndarray]
+) -> SelectedTrajectorySet:
+    return SelectedTrajectorySet(
+        bag_id=bag_id,
+        sample_id=_text_array(arrays["sample_id"]),
+        knot_time=_array(arrays["knot_time"]),
+        conditional_position=_array(arrays["conditional_position"]),
+        conditional_orientation_xyzw=_array(
+            arrays["conditional_orientation_xyzw"]
+        ),
+        conditional_linear_velocity=_array(
+            arrays["conditional_linear_velocity"]
+        ),
+        conditional_angular_velocity=_array(
+            arrays["conditional_angular_velocity"]
+        ),
+        conditional_controller_integral=_array(
+            arrays["conditional_controller_integral"]
+        ),
+        conditional_actuator_thrust=_array(
+            arrays["conditional_actuator_thrust"]
+        ),
+        conditional_actuator_gimbal=_array(
+            arrays["conditional_actuator_gimbal"]
+        ),
+        correction_translation=_array(arrays["correction_translation"]),
+        correction_rotation_vector=_array(
+            arrays["correction_rotation_vector"]
+        ),
+        dynamics_residual=_array(arrays["dynamics_residual"]),
+        dynamics_residual_valid=_array(arrays["dynamics_residual_valid"]),
+        conditional_objective=_array(arrays["conditional_objective"]),
+    )
+
+
+def _mcmc_diagnostics(
+    arrays: Mapping[str, np.ndarray]
+) -> McmcDiagnostics | None:
+    if "mcmc_chain_id" not in arrays:
+        return None
+    return McmcDiagnostics(
+        chain_id=_text_array(arrays["mcmc_chain_id"]),
+        mode_id=str(_text_array(arrays["mcmc_mode_id"])[0]),
+        draws_per_chain=int(arrays["mcmc_draws_per_chain"][0]),
+        split_rhat=_array(arrays["mcmc_split_rhat"]),
+        effective_sample_size=_array(
+            arrays["mcmc_effective_sample_size"]
+        ),
+        integrated_autocorrelation_time=_array(
+            arrays["mcmc_integrated_autocorrelation_time"]
+        ),
+        ridge_coordinate_trace=_array(
+            arrays["mcmc_ridge_coordinate_trace"]
+        ),
+        delay_trace=_array(arrays["mcmc_delay_trace"]),
+        log_posterior_trace=_array(arrays["mcmc_log_posterior_trace"]),
+        kernel_names=_text_array(arrays["mcmc_kernel_names"]),
+        kernel_attempts=_array(arrays["mcmc_kernel_attempts"]),
+        kernel_stage_one_accepted=_array(
+            arrays["mcmc_kernel_stage_one_accepted"]
+        ),
+        kernel_stage_two_attempted=_array(
+            arrays["mcmc_kernel_stage_two_attempted"]
+        ),
+        kernel_stage_two_accepted=_array(
+            arrays["mcmc_kernel_stage_two_accepted"]
+        ),
+        kernel_full_target_cache_hits=_array(
+            arrays["mcmc_kernel_full_target_cache_hits"]
+        ),
+        kernel_inner_solve_failures=_array(
+            arrays["mcmc_kernel_inner_solve_failures"]
+        ),
+        kernel_inner_iterations=_array(
+            arrays["mcmc_kernel_inner_iterations"]
+        ),
+        completed=bool(arrays["mcmc_completed"][0]),
+        converged=bool(arrays["mcmc_converged"][0]),
+        rhat_threshold=float(arrays["mcmc_rhat_threshold"][0]),
+        minimum_effective_sample_size=float(
+            arrays["mcmc_minimum_effective_sample_size"][0]
+        ),
+    )
+
+
+def _diagnostics(arrays: Mapping[str, np.ndarray]) -> RunDiagnostics:
+    return RunDiagnostics(
+        bag_id=_text_array(arrays["bag_id"]),
+        knot_count=_array(arrays["knot_count"]),
+        factor_count=_array(arrays["factor_count"]),
+        residual_dimension=_array(arrays["residual_dimension"]),
+        jacobian_nnz=_array(arrays["jacobian_nnz"]),
+        assembly_seconds=_array(arrays["assembly_seconds"]),
+        factorization_seconds=_array(arrays["factorization_seconds"]),
+        schur_solve_seconds=_array(arrays["schur_solve_seconds"]),
+        nonlinear_iteration_seconds=_array(
+            arrays["nonlinear_iteration_seconds"]
+        ),
+        em_iteration_seconds=_array(arrays["em_iteration_seconds"]),
+        mcmc_target_seconds=_array(arrays["mcmc_target_seconds"]),
+        peak_memory_bytes=int(arrays["peak_memory_bytes"][0]),
+        mcmc=_mcmc_diagnostics(arrays),
+    )
+
+
+def load_batch_estimation_run(path: str | Path) -> BatchEstimationRun:
+    """Load exactly one complete strict v1 sparse-batch estimation run."""
+
+    backend = _batch_backend()
+    try:
+        bundle = backend.load_batch_estimation_run(path)
+    except (backend.ArtifactValidationError, OSError) as error:
+        raise GuiArtifactError(
+            "cannot load batch estimation run: {}".format(error)
+        ) from error
+
+    mcmc = None if bundle.mcmc_samples is None else _mcmc(bundle.mcmc_samples)
+    return BatchEstimationRun(
         root=bundle.root,
         manifest=bundle.manifest,
-        shared_posterior=posterior,
-        bag_results=bag_results,
-        diagnostics=diagnostics,
-        warnings=tuple(bundle.warnings),
-    )
-
-
-def load_diagonal_q_stage(path: str | Path) -> Any:
-    """Return a complete diagonal-Q bundle after strict backend validation."""
-
-    diagonal_backend, _augmented_backend = _stage_backends()
-    return _strict_stage_call(
-        "diagonal-Q stage artifact",
-        lambda: diagonal_backend.load_diagonal_q_artifact(path),
-    )
-
-
-def diagonal_q_stage_fingerprint(path: str | Path) -> str:
-    """Fingerprint the canonical manifest of a validated diagonal-Q stage."""
-
-    bundle = load_diagonal_q_stage(path)
-    return _strict_stage_call(
-        "diagonal-Q stage fingerprint",
-        lambda: _backend().request_fingerprint(bundle.manifest),
-    )
-
-
-def _stage2_provenance(metadata: Mapping[str, Any]) -> dict[str, Any]:
-    provenance = dict(metadata["episode_provenance"])
-    for key in (
-        "source_path",
-        "source_sha256",
-        "source_size_bytes",
-        "episode_index",
-        "configuration_fingerprint",
-        "time_basis",
-        "requested_interval_record_seconds",
-        "effective_interval_record_seconds",
-        "effective_interval_local_seconds",
-        "episode_provenance_fingerprint",
-        "controller_snapshot",
-        "controller_snapshot_fingerprint",
-        "controller_configuration",
-        "controller_configuration_fingerprint",
-        "model_provenance",
-        "model_provenance_fingerprint",
-    ):
-        provenance[key] = metadata[key]
-    return provenance
-
-
-def _stage2_coverage(_metadata: Mapping[str, Any]) -> dict[str, Any]:
-    # Interval provenance remains in ``provenance``.  Stage 2 does not
-    # compute the legacy pose-component coverage metric.
-    return {}
-
-
-def _stage2_calibration(
-    arrays: Mapping[str, np.ndarray],
-) -> dict[str, np.ndarray]:
-    return {
-        key: _array(arrays[key])
-        for key in (
-            "fixed_q_stationary_variance",
-            "fixed_r_translation_covariance",
-            "fixed_r_rotation_covariance",
-            "fixed_correlation_time",
-        )
-    }
-
-
-def load_augmented_parameter_assimilation(
-    path: str | Path,
-) -> AssimilationRun:
-    """Adapt a strict stage-2 bundle without inventing absent diagnostics."""
-
-    _diagonal_backend, augmented_backend = _stage_backends()
-    bundle = _strict_stage_call(
-        "fixed-Q augmented-parameter stage artifact",
-        lambda: augmented_backend.load_augmented_parameter_artifact(path),
-    )
-    shared = bundle.shared_posterior
-    diagnostics: dict[str, np.ndarray] = {}
-    posterior = SharedPosterior(
-        member_id=_array(shared["member_id"]),
-        parameter_coordinate=_array(shared["final_shared_coordinates"]),
-        mass=_array(shared["mass"]),
-        inertia=_array(shared["inertia"]),
-        cog=_array(shared["cog_offset"]),
-        force_effectiveness=_array(shared["force_effectiveness"]),
-        torque_effectiveness=_array(shared["torque_effectiveness"]),
-        constant_delay=_array(shared["constant_delay"]),
-        ridge={
-            "covariance": _array(shared["ridge_covariance"]),
-            "eigenvalues": _array(shared["ridge_eigenvalues"]),
-            "eigenvectors": _array(shared["ridge_eigenvectors"]),
-            "expected_direction": _array(
-                shared["expected_physical_ridge_direction"]
-            ),
-            "expected_variance": _array(
-                shared["expected_physical_ridge_variance"]
-            ),
-            "ensemble_rank": _array(shared["ensemble_rank"]),
+        static_map=_static_map(bundle.map_static),
+        q_em=_q_em(bundle.q_em),
+        laplace=_laplace(bundle.laplace),
+        diagnostics=_diagnostics(bundle.diagnostics),
+        bags={
+            bag_id: _bag_result(bag_id, arrays, bundle.manifest)
+            for bag_id, arrays in bundle.bags.items()
         },
-        mode={},
-        iteration_diagnostics=diagnostics,
-    )
-    bag_results: dict[str, FlightResult] = {}
-    for bag_id in bundle.bag_ids:
-        arrays = bundle.bags[bag_id]
-        metadata = bundle.manifest["bags"][bag_id]
-        likelihood = np.asarray(
-            arrays["filter_log_likelihood_by_time"], dtype=float
-        ).reshape(-1)
-        bag_results[bag_id] = FlightResult(
-            bag_id=bag_id,
-            time=_array(arrays["times"]),
-            record_time=_array(arrays["record_times"]),
-            reference_position=_array(arrays["reference_position"]),
-            reference_rpy=_quaternion_xyzw_to_rpy(
-                arrays["reference_orientation_xyzw"]
-            ),
-            observed_position=_array(arrays["observation_position"]),
-            observed_orientation_xyzw=_array(
-                arrays["observation_orientation_xyzw"]
-            ),
-            nominal_position=_array(arrays["nominal_position"]),
-            nominal_orientation_xyzw=_array(
-                arrays["nominal_orientation_xyzw"]
-            ),
-            member_position=_array(arrays["smoothed_position"]),
-            member_orientation_xyzw=_array(
-                arrays["smoothed_orientation_xyzw"]
-            ),
-            correction_translation=_array(
-                arrays["smoothed_correction_translation"]
-            ),
-            correction_rotation_vector=_array(
-                arrays["smoothed_correction_rotation_vector"]
-            ),
-            observed_correction_translation=_array(
-                arrays["observed_correction_translation"]
-            ),
-            observed_correction_rotation_vector=_array(
-                arrays["observed_correction_rotation_vector"]
-            ),
-            residual_wrench=_array(arrays["smoothed_residual_wrench"]),
-            flight_state=None,
-            q_resolution_sufficient=None,
-            provenance=_stage2_provenance(metadata),
-            calibration=_stage2_calibration(arrays),
-            coverage=_stage2_coverage(metadata),
-            objective_contribution=math.fsum(
-                float(value) for value in likelihood
-            ),
-        )
-    manifest = dict(bundle.manifest)
-    manifest["project_request_fingerprint"] = manifest[
-        "project_fingerprint"
-    ]
-    path_warning = (
-        "Stored flight paths are sequential EnRTS marginals with actual "
-        "per-time static coordinates; earlier bags were not recomputed "
-        "using the final shared 19-D posterior."
-    )
-    return AssimilationRun(
-        root=bundle.root,
-        manifest=manifest,
-        shared_posterior=posterior,
-        bag_results=bag_results,
-        diagnostics=diagnostics,
-        warnings=(path_warning,),
+        mcmc=mcmc,
+        selected_trajectories={
+            bag_id: _trajectory_set(bag_id, arrays)
+            for bag_id, arrays in bundle.trajectories.items()
+        },
+        warnings=tuple(str(value) for value in bundle.manifest["warnings"]),
     )
 
 
 def load_pid_evaluation(path: str | Path) -> PidProposalEvaluation:
-    """Load exact PID candidates, forecasts, metrics, and YAML text."""
+    """Load a PID evaluation through its backend validator."""
 
-    bundle = _backend().load_pid_proposal_evaluation(path)
+    backend = _inspection_backend()
+    try:
+        bundle = backend.load_pid_proposal_evaluation(path)
+    except (backend.ArtifactValidationError, OSError) as error:
+        raise GuiArtifactError(
+            "cannot load PID proposal evaluation: {}".format(error)
+        ) from error
     return PidProposalEvaluation(
         root=bundle.root,
         manifest=bundle.manifest,
@@ -546,18 +930,26 @@ def load_pid_evaluation(path: str | Path) -> PidProposalEvaluation:
 
 
 __all__ = [
-    "AssimilationRun",
+    "BagEstimationResult",
+    "BatchEstimationRun",
+    "ConditionalTrajectory",
     "FlightResult",
     "GUI_ARTIFACT_LOADER_ID",
     "GUI_ARTIFACT_LOADER_VERSION",
     "GuiArtifactError",
     "InspectionArtifact",
+    "LaplaceApproximation",
+    "McmcDiagnostics",
+    "McmcPosterior",
     "PidProposalEvaluation",
-    "SharedPosterior",
-    "diagonal_q_stage_fingerprint",
-    "load_augmented_parameter_assimilation",
-    "load_assimilation",
-    "load_diagonal_q_stage",
+    "QEmHistory",
+    "RunDiagnostics",
+    "SelectedTrajectorySet",
+    "StateTrajectory",
+    "StaticParameterMap",
+    "StaticParameterSample",
+    "VectorObservation",
+    "load_batch_estimation_run",
     "load_inspection",
     "load_pid_evaluation",
 ]

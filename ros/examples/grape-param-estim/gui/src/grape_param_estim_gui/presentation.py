@@ -1,28 +1,45 @@
-"""Qt-free formatting shared by production widgets and headless tests."""
+"""Qt-free text formatting for batch-estimation result widgets."""
 
 from __future__ import annotations
 
 import numpy as np
 
-from .artifact_loader import SharedPosterior
+from .artifact_loader import McmcPosterior, StaticParameterMap
 
 
-def member_parameter_text(posterior: SharedPosterior, member_id: int) -> str:
-    matches = np.flatnonzero(posterior.member_id == int(member_id))
-    if not matches.size:
-        raise KeyError("unknown posterior member {}".format(member_id))
-    index = int(matches[0])
+def map_parameter_text(static_map: StaticParameterMap) -> str:
     return (
-        "Member {} | mass {:.6g} kg | full inertia {} kg m² | CoG {} m | "
-        "force effectiveness {} | torque effectiveness {} | constant delay τ {:.6g} s"
+        "MAP | mass {:.6g} kg | full inertia {} kg m² | CoG {} m | "
+        "force effectiveness {} | torque effectiveness {} | "
+        "constant delay τ {:.6g} s"
     ).format(
-        member_id,
-        posterior.mass[index],
-        np.array2string(posterior.inertia[index], precision=5),
-        np.array2string(posterior.cog[index], precision=5),
-        np.array2string(posterior.force_effectiveness[index], precision=5),
-        np.array2string(posterior.torque_effectiveness[index], precision=5),
-        posterior.constant_delay[index],
+        static_map.mass,
+        np.array2string(static_map.inertia, precision=5),
+        np.array2string(static_map.cog, precision=5),
+        np.array2string(static_map.force_effectiveness, precision=5),
+        np.array2string(static_map.torque_effectiveness, precision=5),
+        static_map.delay,
+    )
+
+
+def sample_parameter_text(
+    posterior: McmcPosterior, sample_id: str
+) -> str:
+    sample = posterior.sample(str(sample_id))
+    return (
+        "MCMC sample {} | chain {} draw {} | mass {:.6g} kg | "
+        "full inertia {} kg m² | CoG {} m | force effectiveness {} | "
+        "torque effectiveness {} | constant delay τ {:.6g} s"
+    ).format(
+        sample.sample_id,
+        sample.chain_id,
+        sample.draw_index,
+        sample.mass,
+        np.array2string(sample.inertia, precision=5),
+        np.array2string(sample.cog, precision=5),
+        np.array2string(sample.force_effectiveness, precision=5),
+        np.array2string(sample.torque_effectiveness, precision=5),
+        sample.delay,
     )
 
 
@@ -35,4 +52,8 @@ def scenario_assumption_text(assumption: object) -> str:
     return "Counterfactual assumption: {}".format(value)
 
 
-__all__ = ["member_parameter_text", "scenario_assumption_text"]
+__all__ = [
+    "map_parameter_text",
+    "sample_parameter_text",
+    "scenario_assumption_text",
+]

@@ -153,14 +153,31 @@ class PosteriorSamplingCliTests(unittest.TestCase):
             "diagnostics": diagnostics,
         })()
 
+    def _conditional_result(self):
+        chains, _diagnostics = self.helper._chains_and_diagnostics()
+        trajectories, policy = self.helper._selected_trajectory_and_policy(
+            chains
+        )
+        return SimpleNamespace(
+            trajectories=trajectories,
+            selection=SimpleNamespace(
+                selected_sample_ids=tuple(policy["selected_sample_ids"]),
+                manifest_payload=policy,
+            ),
+        )
+
     @patch(
         "grape_param_estim.posterior_sampling_cli.prepare_real_estimation_inputs"
     )
+    @patch(
+        "grape_param_estim.posterior_sampling_cli.sample_selected_conditional_trajectories"
+    )
     @patch("grape_param_estim.posterior_sampling_cli.sample_laplace_solution")
     def test_appends_to_same_directory_and_same_request_is_idempotent(
-        self, sample, prepare
+        self, sample, sample_trajectories, prepare
     ):
         prepare.return_value = self.inputs
+        sample_trajectories.return_value = self._conditional_result()
 
         def sampled(*_args, **kwargs):
             return self._completed_mcmc(kwargs["target_timing_callback"])
@@ -187,6 +204,10 @@ class PosteriorSamplingCliTests(unittest.TestCase):
         )
         self.assertEqual(again.mcmc_samples["sample_id"].size, 8)
         self.assertEqual(sample.call_count, 1)
+        self.assertEqual(sample_trajectories.call_count, 1)
+        self.assertEqual(
+            sample_trajectories.call_args.args[1], "recorded-mode"
+        )
 
     def test_rejects_upstream_bag_or_configuration_mismatch(self):
         payload = self._payload()
@@ -202,11 +223,15 @@ class PosteriorSamplingCliTests(unittest.TestCase):
     @patch(
         "grape_param_estim.posterior_sampling_cli.prepare_real_estimation_inputs"
     )
+    @patch(
+        "grape_param_estim.posterior_sampling_cli.sample_selected_conditional_trajectories"
+    )
     @patch("grape_param_estim.posterior_sampling_cli.sample_laplace_solution")
     def test_cancel_keeps_original_and_resume_finishes(
-        self, sample, prepare
+        self, sample, sample_trajectories, prepare
     ):
         prepare.return_value = self.inputs
+        sample_trajectories.return_value = self._conditional_result()
         token = CancellationToken()
         original_manifest = (
             self.estimation.output_directory / "manifest.json"
@@ -258,6 +283,58 @@ class PosteriorSamplingCliTests(unittest.TestCase):
         self.assertEqual(
             context["sampling_request_fingerprint"], fresh.fingerprint
         )
+
+    @patch(
+        "grape_param_estim.posterior_sampling_cli.prepare_real_estimation_inputs"
+    )
+    @patch(
+        "grape_param_estim.posterior_sampling_cli.sample_selected_conditional_trajectories"
+    )
+    @patch("grape_param_estim.posterior_sampling_cli.sample_laplace_solution")
+    def test_conditional_trajectory_cancel_keeps_estimate_immutable_and_resumes(
+        self, sample, sample_trajectories, prepare
+    ):
+        prepare.return_value = self.inputs
+        sample.side_effect = lambda *_args, **kwargs: self._completed_mcmc(
+            kwargs["target_timing_callback"]
+        )
+        token = CancellationToken()
+        original_manifest = (
+            self.estimation.output_directory / "manifest.json"
+        ).read_bytes()
+
+        def cancel_trajectory(*_args, **_kwargs):
+            token.cancel("user_requested_during_conditional_trajectory")
+            raise RuntimeError("cancelled during conditional trajectory")
+
+        sample_trajectories.side_effect = cancel_trajectory
+        fresh = validate_posterior_sampling_request(self._payload())
+        with self.assertRaisesRegex(RuntimeError, "conditional trajectory"):
+            execute_posterior_sampling(
+                fresh,
+                sampler_revision="sampler-test",
+                cancellation_token=token,
+            )
+        self.assertEqual(
+            (self.estimation.output_directory / "manifest.json").read_bytes(),
+            original_manifest,
+        )
+        self.assertIsNone(
+            load_batch_estimation_run(
+                self.estimation.output_directory
+            ).mcmc_samples
+        )
+
+        sample_trajectories.side_effect = None
+        sample_trajectories.return_value = self._conditional_result()
+        resumed = validate_posterior_sampling_request(
+            self._payload(resume=True)
+        )
+        upgraded = execute_posterior_sampling(
+            resumed, sampler_revision="sampler-test"
+        )
+        self.assertEqual(upgraded.mcmc_samples["sample_id"].size, 8)
+        self.assertEqual(tuple(upgraded.trajectories), ("flight-a",))
 
 
 if __name__ == "__main__":

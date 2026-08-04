@@ -41,6 +41,9 @@ from grape_param_estim.batch_artifact_export import (
 from grape_param_estim.batch_request import validate_batch_estimation_request
 from grape_param_estim.estimation import solve_fixed_graph_laplace
 from grape_param_estim.posterior.diagnostics import McmcDiagnostics
+from grape_param_estim.posterior.laplace_target import (
+    factorize_bag_local_hessian,
+)
 from grape_param_estim.posterior.mcmc import (
     KernelAcceptanceSummary,
     McmcChainResult,
@@ -259,12 +262,18 @@ class BatchArtifactExportTests(unittest.TestCase):
             VariableKey(VariableKind.STATIC_PARAMETERS)
         )
         chains = []
+        graph_objective = self.solution.lm.objective
+        log_determinant_value = factorize_bag_local_hessian(
+            self.solution.final_linearization.sparse
+        ).value
         for chain_index in range(2):
             coordinates = np.tile(coordinate, (4, 1))
-            coordinates[1:, 7] += 1.0e-4 * (chain_index + 1)
-            graph = np.asarray((10.0, 10.1, 9.9, 10.2))
-            log_determinant = np.asarray((2.0, 2.1, 1.9, 2.2))
-            delay_prior = np.zeros(4)
+            graph = np.full(4, graph_objective)
+            log_determinant = np.full(4, log_determinant_value)
+            delay_bounds = self.helper.payload["delay"]["bounds_seconds"]
+            delay_prior = np.full(
+                4, -np.log(delay_bounds[1] - delay_bounds[0])
+            )
             log_density = delay_prior - graph - 0.5 * log_determinant
             chains.append(
                 McmcChainResult(
@@ -336,6 +345,33 @@ class BatchArtifactExportTests(unittest.TestCase):
         )
         return tuple(chains), diagnostics
 
+    def _selected_trajectory_and_policy(self, chains):
+        dynamics = np.zeros((len(self.prepared.bags[0].knots) - 1, 6))
+        valid = np.zeros(dynamics.shape[0], dtype=bool)
+        for interval in self.solution.dynamics.linearizations.intervals:
+            dynamics[interval.left_knot_index] = interval.residual
+            valid[interval.left_knot_index] = True
+        sample_id = str(chains[0].sample_id[0])
+        selected = SelectedConditionalTrajectory(
+            sample_id=sample_id,
+            bag_id=self.prepared.bags[0].bag_id,
+            state=self.solution.lm.state,
+            dynamics_residual=dynamics,
+            dynamics_residual_valid=valid,
+            conditional_objective=float(chains[0].graph_objective[0]),
+        )
+        policy = {
+            "policy": "deterministic_flattened_chain_draw_quantiles_v1",
+            "sample_order": "chain_order_then_draw_index",
+            "available_sample_count": 8,
+            "maximum_sample_count": 1,
+            "selected_sample_ids": [sample_id],
+            "selected_bag_ids": [self.prepared.bags[0].bag_id],
+            "conditional_evaluation_method": "fresh_conditional_sparse_map",
+            "warm_start_policy": "selected_mode_map_local_state",
+        }
+        return (selected,), policy
+
     def test_pending_mcmc_core_is_completed_without_reexporting_map(self):
         request = validate_batch_estimation_request(
             self._mcmc_payload_request(self.helper.payload)
@@ -364,6 +400,7 @@ class BatchArtifactExportTests(unittest.TestCase):
         self.assertIsNone(core.mcmc_samples)
         self.assertNotIn("mcmc", core.manifest_metadata["substage_status"])
         chains, diagnostics = self._chains_and_diagnostics()
+        selected, selection = self._selected_trajectory_and_policy(chains)
         completed = complete_pending_mcmc_artifact_payload(
             core,
             request,
@@ -371,6 +408,9 @@ class BatchArtifactExportTests(unittest.TestCase):
             chains,
             diagnostics,
             (0.2, 0.21),
+            (self.helper.initialization,),
+            selected,
+            selection,
         )
         self.assertIs(completed.map_static, core.map_static)
         self.assertEqual(completed.mcmc_samples["sample_id"].size, 8)
@@ -404,6 +444,7 @@ class BatchArtifactExportTests(unittest.TestCase):
             performance=self._performance(mcmc=False),
         )
         chains, diagnostics = self._chains_and_diagnostics()
+        selected, selection = self._selected_trajectory_and_policy(chains)
         sampled = append_posterior_sampling_artifact_payload(
             core,
             self.solution,
@@ -416,6 +457,9 @@ class BatchArtifactExportTests(unittest.TestCase):
                 "upstream_estimation_request_fingerprint": request.fingerprint,
                 "sampler_revision": "test-sampler",
             },
+            (self.helper.initialization,),
+            selected,
+            selection,
         )
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "run"
@@ -447,19 +491,7 @@ class BatchArtifactExportTests(unittest.TestCase):
             self._mcmc_payload_request(self.helper.payload)
         )
         chains, diagnostics = self._chains_and_diagnostics()
-        dynamics = np.zeros((len(self.prepared.bags[0].knots) - 1, 6))
-        valid = np.zeros(dynamics.shape[0], dtype=bool)
-        for interval in self.solution.dynamics.linearizations.intervals:
-            dynamics[interval.left_knot_index] = interval.residual
-            valid[interval.left_knot_index] = True
-        selected = SelectedConditionalTrajectory(
-            sample_id=str(chains[0].sample_id[0]),
-            bag_id=self.prepared.bags[0].bag_id,
-            state=self.solution.lm.state,
-            dynamics_residual=dynamics,
-            dynamics_residual_valid=valid,
-            conditional_objective=self.solution.lm.objective,
-        )
+        selected, selection = self._selected_trajectory_and_policy(chains)
         common = dict(
             request=request,
             initializations=(self.helper.initialization,),
@@ -480,7 +512,8 @@ class BatchArtifactExportTests(unittest.TestCase):
             performance=self._performance(mcmc=True),
             mcmc_chains=chains,
             mcmc_diagnostics=diagnostics,
-            selected_trajectories=(selected,),
+            selected_trajectories=selected,
+            trajectory_selection=selection,
         )
         labelled_payload = export_batch_estimation_artifact_payload(
             flight_data=(self.helper.flight,), **common

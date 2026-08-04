@@ -44,6 +44,23 @@ WRITING_STATUS = "writing"
 _BAG_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 
+_CONDITIONAL_TRAJECTORY_SELECTION_POLICY = (
+    "deterministic_flattened_chain_draw_quantiles_v1"
+)
+_CONDITIONAL_TRAJECTORY_SAMPLE_ORDER = "chain_order_then_draw_index"
+_CONDITIONAL_TRAJECTORY_EVALUATION_METHOD = "fresh_conditional_sparse_map"
+_CONDITIONAL_TRAJECTORY_WARM_START_POLICY = "selected_mode_map_local_state"
+_CONDITIONAL_TRAJECTORY_SELECTION_KEYS = (
+    "policy",
+    "sample_order",
+    "available_sample_count",
+    "maximum_sample_count",
+    "selected_sample_ids",
+    "selected_bag_ids",
+    "conditional_evaluation_method",
+    "warm_start_policy",
+)
+
 _MANIFEST_KEYS = (
     "schema",
     "status",
@@ -408,6 +425,87 @@ def _id_vector(
     return normalized
 
 
+def _validate_conditional_trajectory_selection(
+    mcmc_settings: Mapping[str, Any],
+    bag_ids: Tuple[str, ...],
+    trajectory_bag_ids: Tuple[str, ...],
+) -> Optional[Mapping[str, Any]]:
+    """Validate manifest provenance for any stored trajectory subset."""
+
+    selection = mcmc_settings.get("conditional_trajectory_selection")
+    if not trajectory_bag_ids:
+        if selection is not None:
+            raise ArtifactValidationError(
+                "manifest trajectory selection requires trajectory artifacts"
+            )
+        return None
+    if not isinstance(selection, Mapping):
+        raise ArtifactValidationError(
+            "manifest.mcmc_settings.conditional_trajectory_selection is required"
+        )
+    location = "manifest.mcmc_settings.conditional_trajectory_selection"
+    _require_keys(selection, _CONDITIONAL_TRAJECTORY_SELECTION_KEYS, location)
+    _reject_unknown_keys(
+        selection, _CONDITIONAL_TRAJECTORY_SELECTION_KEYS, location
+    )
+    expected_literals = {
+        "policy": _CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
+        "sample_order": _CONDITIONAL_TRAJECTORY_SAMPLE_ORDER,
+        "conditional_evaluation_method": (
+            _CONDITIONAL_TRAJECTORY_EVALUATION_METHOD
+        ),
+        "warm_start_policy": _CONDITIONAL_TRAJECTORY_WARM_START_POLICY,
+    }
+    for name, expected in expected_literals.items():
+        if selection[name] != expected:
+            raise ArtifactValidationError(
+                "{}.{} must be {!r}".format(location, name, expected)
+            )
+    integer_values = {}
+    for name in ("available_sample_count", "maximum_sample_count"):
+        value = selection[name]
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, np.integer))
+            or int(value) <= 0
+        ):
+            raise ArtifactValidationError(
+                "{}.{} must be a positive integer".format(location, name)
+            )
+        integer_values[name] = int(value)
+    raw_sample_ids = selection["selected_sample_ids"]
+    if not isinstance(raw_sample_ids, list) or not raw_sample_ids:
+        raise ArtifactValidationError(
+            location + ".selected_sample_ids must be a non-empty ID list"
+        )
+    normalized_sample_ids = np.asarray(raw_sample_ids)
+    if normalized_sample_ids.ndim != 1 or normalized_sample_ids.dtype.kind not in "iUS":
+        raise ArtifactValidationError(
+            location + ".selected_sample_ids must contain integer or string IDs"
+        )
+    sample_ids = tuple(str(value) for value in normalized_sample_ids.tolist())
+    if len(set(sample_ids)) != len(sample_ids):
+        raise ArtifactValidationError(
+            location + ".selected_sample_ids must not contain duplicates"
+        )
+    selected_bags = _string_list(
+        selection["selected_bag_ids"],
+        location + ".selected_bag_ids",
+    )
+    if selected_bags != bag_ids or trajectory_bag_ids != bag_ids:
+        raise ArtifactValidationError(
+            "conditional trajectory selection must cover every selected bag in order"
+        )
+    if len(sample_ids) > min(
+        integer_values["available_sample_count"],
+        integer_values["maximum_sample_count"],
+    ):
+        raise ArtifactValidationError(
+            "conditional trajectory selection exceeds its recorded bound"
+        )
+    return selection
+
+
 def _validate_manifest(
     root: Path, manifest: Mapping[str, Any]
 ) -> Tuple[
@@ -748,6 +846,10 @@ def _validate_manifest(
                 "trajectories/{}/selected_samples.npz".format(bag_id),
                 "manifest.artifacts.trajectories.{}".format(bag_id),
             )
+
+    _validate_conditional_trajectory_selection(
+        mcmc_settings, bag_ids, tuple(trajectory_paths)
+    )
 
     return bag_ids, core_paths, bag_paths, mcmc_path, trajectory_paths
 
@@ -1821,6 +1923,90 @@ def _load_validated_run(
                 )
             )
         trajectories[bag_id] = _freeze(arrays)
+
+    if trajectories:
+        if mcmc_arrays is None or mcmc_sample_ids is None:  # pragma: no cover
+            raise ArtifactValidationError(
+                "conditional trajectories require retained MCMC arrays"
+            )
+        selection = manifest["mcmc_settings"][
+            "conditional_trajectory_selection"
+        ]
+        selected_ids = tuple(
+            str(value) for value in selection["selected_sample_ids"]
+        )
+        if int(selection["available_sample_count"]) != mcmc_sample_ids.size:
+            raise ArtifactValidationError(
+                "conditional trajectory population disagrees with MCMC sample count"
+            )
+        available_ids = tuple(str(value) for value in mcmc_sample_ids.tolist())
+        index_by_id = {
+            sample_id: index for index, sample_id in enumerate(available_ids)
+        }
+        if not set(selected_ids).issubset(index_by_id):
+            raise ArtifactValidationError(
+                "conditional trajectory selection contains unknown MCMC IDs"
+            )
+        delay_prior = manifest["delay_prior"]
+        if delay_prior.get("prior_kind") != "uniform":
+            raise ArtifactValidationError(
+                "conditional objective audit requires the declared uniform delay prior"
+            )
+        lower, upper = _interval(
+            delay_prior.get("bounds_seconds"),
+            "manifest.delay_prior.bounds_seconds",
+        )
+        delay_log_prior = -float(np.log(upper - lower))
+        solver_relative_tolerance = manifest["solver_settings"].get(
+            "relative_objective_tolerance", 0.0
+        )
+        if isinstance(solver_relative_tolerance, bool):
+            raise ArtifactValidationError(
+                "manifest solver relative objective tolerance must be numeric"
+            )
+        try:
+            solver_relative_tolerance = float(solver_relative_tolerance)
+        except (TypeError, ValueError) as error:
+            raise ArtifactValidationError(
+                "manifest solver relative objective tolerance must be numeric"
+            ) from error
+        if (
+            not np.isfinite(solver_relative_tolerance)
+            or solver_relative_tolerance < 0.0
+        ):
+            raise ArtifactValidationError(
+                "manifest solver relative objective tolerance is invalid"
+            )
+        objective_relative_tolerance = max(
+            2.0e-8, 5.0 * solver_relative_tolerance
+        )
+        for bag_id, arrays in trajectories.items():
+            actual_ids = tuple(str(value) for value in arrays["sample_id"].tolist())
+            if actual_ids != selected_ids:
+                raise ArtifactValidationError(
+                    "trajectory {} sample order disagrees with manifest policy"
+                    .format(bag_id)
+                )
+            indices = np.asarray(
+                tuple(index_by_id[value] for value in actual_ids),
+                dtype=np.int64,
+            )
+            expected_objective = (
+                delay_log_prior
+                + mcmc_arrays["log_determinant_term"][indices]
+                - mcmc_arrays["log_posterior"][indices]
+            )
+            if not np.allclose(
+                arrays["conditional_objective"],
+                expected_objective,
+                rtol=objective_relative_tolerance,
+                atol=objective_relative_tolerance
+                * np.maximum(1.0, np.abs(expected_objective)),
+            ):
+                raise ArtifactValidationError(
+                    "trajectory {} conditional objective is not the retained target"
+                    .format(bag_id)
+                )
 
     if not np.allclose(
         map_static["q_diagonal"],

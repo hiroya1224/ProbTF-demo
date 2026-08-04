@@ -55,6 +55,23 @@ _STATE_FIELDS = (
     ("actuator_gimbal", VariableKind.GIMBAL_ANGLE, 4),
 )
 
+CONDITIONAL_TRAJECTORY_SELECTION_POLICY = (
+    "deterministic_flattened_chain_draw_quantiles_v1"
+)
+CONDITIONAL_TRAJECTORY_SAMPLE_ORDER = "chain_order_then_draw_index"
+CONDITIONAL_TRAJECTORY_EVALUATION_METHOD = "fresh_conditional_sparse_map"
+CONDITIONAL_TRAJECTORY_WARM_START_POLICY = "selected_mode_map_local_state"
+_CONDITIONAL_TRAJECTORY_SELECTION_KEYS = (
+    "policy",
+    "sample_order",
+    "available_sample_count",
+    "maximum_sample_count",
+    "selected_sample_ids",
+    "selected_bag_ids",
+    "conditional_evaluation_method",
+    "warm_start_policy",
+)
+
 
 def _canonical_string(value: object, name: str) -> str:
     if type(value) is not str or not value or value.strip() != value:
@@ -1755,6 +1772,114 @@ def _trajectory_payloads(
     return result
 
 
+def _trajectory_selection_payload(
+    value: Mapping[str, Any],
+    selected: Sequence[SelectedConditionalTrajectory],
+    mcmc_samples: Mapping[str, np.ndarray],
+    bag_ids: Tuple[str, ...],
+) -> Mapping[str, Any]:
+    """Validate the bounded production policy before it enters a manifest."""
+
+    if not isinstance(value, Mapping):
+        raise TypeError("trajectory_selection must be a mapping")
+    if set(value) != set(_CONDITIONAL_TRAJECTORY_SELECTION_KEYS):
+        raise ValueError(
+            "trajectory_selection keys must be exactly {}".format(
+                sorted(_CONDITIONAL_TRAJECTORY_SELECTION_KEYS)
+            )
+        )
+    expected_literals = {
+        "policy": CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
+        "sample_order": CONDITIONAL_TRAJECTORY_SAMPLE_ORDER,
+        "conditional_evaluation_method": (
+            CONDITIONAL_TRAJECTORY_EVALUATION_METHOD
+        ),
+        "warm_start_policy": CONDITIONAL_TRAJECTORY_WARM_START_POLICY,
+    }
+    for name, expected in expected_literals.items():
+        if value[name] != expected:
+            raise ValueError(
+                "trajectory_selection.{} must be {!r}".format(name, expected)
+            )
+    available = _positive_integer(
+        value["available_sample_count"],
+        "trajectory_selection.available_sample_count",
+    )
+    maximum = _positive_integer(
+        value["maximum_sample_count"],
+        "trajectory_selection.maximum_sample_count",
+    )
+    sample_ids_raw = value["selected_sample_ids"]
+    selected_bags_raw = value["selected_bag_ids"]
+    if not isinstance(sample_ids_raw, (tuple, list)) or not sample_ids_raw:
+        raise ValueError("trajectory_selection selected_sample_ids cannot be empty")
+    sample_ids = tuple(
+        _canonical_string(item, "trajectory selection sample ID")
+        for item in sample_ids_raw
+    )
+    if len(set(sample_ids)) != len(sample_ids):
+        raise ValueError("trajectory selection sample IDs must be unique")
+    if len(sample_ids) > min(available, maximum):
+        raise ValueError("trajectory selection exceeds its recorded bound")
+    if not isinstance(selected_bags_raw, (tuple, list)):
+        raise TypeError("trajectory_selection selected_bag_ids must be a sequence")
+    selected_bags = tuple(
+        _canonical_string(item, "trajectory selection bag ID")
+        for item in selected_bags_raw
+    )
+    if selected_bags != bag_ids:
+        raise ValueError("trajectory selection must cover every request bag in order")
+    available_mcmc = tuple(
+        str(item) for item in mcmc_samples["sample_id"].tolist()
+    )
+    if available != len(available_mcmc):
+        raise ValueError("trajectory selection population disagrees with MCMC")
+    if not set(sample_ids).issubset(set(available_mcmc)):
+        raise ValueError("trajectory selection contains an unknown MCMC sample")
+    expected_pairs = {
+        (sample_id, bag_id)
+        for sample_id in sample_ids
+        for bag_id in selected_bags
+    }
+    actual_pairs = {(item.sample_id, item.bag_id) for item in selected}
+    if actual_pairs != expected_pairs or len(actual_pairs) != len(selected):
+        raise ValueError(
+            "selected trajectories must exactly cover the policy sample/bag pairs"
+        )
+    return {
+        "policy": CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
+        "sample_order": CONDITIONAL_TRAJECTORY_SAMPLE_ORDER,
+        "available_sample_count": available,
+        "maximum_sample_count": maximum,
+        "selected_sample_ids": list(sample_ids),
+        "selected_bag_ids": list(selected_bags),
+        "conditional_evaluation_method": (
+            CONDITIONAL_TRAJECTORY_EVALUATION_METHOD
+        ),
+        "warm_start_policy": CONDITIONAL_TRAJECTORY_WARM_START_POLICY,
+    }
+
+
+def _attach_trajectory_selection(
+    metadata: Mapping[str, Any],
+    selection: Mapping[str, Any],
+    selected: Sequence[SelectedConditionalTrajectory],
+    mcmc_samples: Mapping[str, np.ndarray],
+    bag_ids: Tuple[str, ...],
+) -> Mapping[str, Any]:
+    result = dict(metadata)
+    mcmc_settings = dict(result["mcmc_settings"])
+    if "conditional_trajectory_selection" in mcmc_settings:
+        raise ValueError("manifest already contains trajectory selection metadata")
+    mcmc_settings["conditional_trajectory_selection"] = (
+        _trajectory_selection_payload(
+            selection, selected, mcmc_samples, bag_ids
+        )
+    )
+    result["mcmc_settings"] = mcmc_settings
+    return result
+
+
 def _sensor_contract_payload(flight: FlightData) -> Mapping[str, Any]:
     topics = []
     for value in flight.sensor_contract:
@@ -1970,6 +2095,7 @@ def export_batch_estimation_artifact_payload(
     mcmc_chains: Sequence[McmcChainResult] = (),
     mcmc_diagnostics: Optional[McmcDiagnostics] = None,
     selected_trajectories: Sequence[SelectedConditionalTrajectory] = (),
+    trajectory_selection: Optional[Mapping[str, Any]] = None,
     pending_mcmc_checkpoint: bool = False,
 ) -> BatchArtifactPayload:
     """Build exact pickle-free arrays for the strict batch artifact writer."""
@@ -2004,6 +2130,10 @@ def export_batch_estimation_artifact_payload(
                 raise ValueError(
                     "a pending MCMC checkpoint cannot contain trajectories"
                 )
+            if trajectory_selection is not None:
+                raise ValueError(
+                    "a pending MCMC checkpoint cannot contain trajectory selection"
+                )
             mcmc = None
         elif mcmc_diagnostics is None:
             raise ValueError("enabled MCMC requires McmcDiagnostics")
@@ -2013,6 +2143,10 @@ def export_batch_estimation_artifact_payload(
             mcmc = _mcmc_payload(
                 final_solution, mcmc_chains, mcmc_diagnostics
             )
+            if not selected_trajectories or trajectory_selection is None:
+                raise ValueError(
+                    "completed MCMC requires selected conditional trajectories"
+                )
     else:
         if pending_mcmc_checkpoint:
             raise ValueError("pending MCMC requires enabled MCMC settings")
@@ -2020,6 +2154,8 @@ def export_batch_estimation_artifact_payload(
             raise ValueError("disabled MCMC cannot export chains or diagnostics")
         if performance.mcmc_target_seconds:
             raise ValueError("disabled MCMC cannot report target timings")
+        if selected_trajectories or trajectory_selection is not None:
+            raise ValueError("disabled MCMC cannot contain trajectory selection")
         mcmc = None
 
     audits, components, factor_payloads = _factor_payload(final_solution)
@@ -2063,6 +2199,14 @@ def export_batch_estimation_artifact_payload(
         em_result=em_result,
         mcmc_diagnostics=mcmc_diagnostics,
     )
+    if mcmc is not None:
+        manifest = _attach_trajectory_selection(
+            manifest,
+            trajectory_selection,
+            selected_trajectories,
+            mcmc,
+            bag_ids,
+        )
     return BatchArtifactPayload(
         manifest_metadata=manifest,
         map_static=_map_static_payload(
@@ -2088,6 +2232,9 @@ def complete_pending_mcmc_artifact_payload(
     mcmc_chains: Sequence[McmcChainResult],
     mcmc_diagnostics: McmcDiagnostics,
     mcmc_target_seconds: Sequence[float],
+    initializations: Sequence[FlightInitialization],
+    selected_trajectories: Sequence[SelectedConditionalTrajectory],
+    trajectory_selection: Mapping[str, Any],
 ) -> BatchArtifactPayload:
     """Attach completed chains to a strictly identified core checkpoint."""
 
@@ -2147,6 +2294,25 @@ def complete_pending_mcmc_artifact_payload(
         if warning not in warnings:
             warnings.append(warning)
         metadata["warnings"] = warnings
+    mcmc_samples = _mcmc_payload(
+        final_solution, mcmc_chains, mcmc_diagnostics
+    )
+    prepared_bags = _by_bag_id(final_solution.prepared.bags, "prepared bags")
+    initialized = _by_bag_id(initializations, "initializations")
+    if set(prepared_bags) != set(request.bag_ids) or set(initialized) != set(
+        request.bag_ids
+    ):
+        raise ValueError("trajectory inputs must exactly match request bags")
+    trajectories = _trajectory_payloads(
+        selected_trajectories, mcmc_samples, prepared_bags, initialized
+    )
+    metadata = _attach_trajectory_selection(
+        metadata,
+        trajectory_selection,
+        selected_trajectories,
+        mcmc_samples,
+        request.bag_ids,
+    )
     return BatchArtifactPayload(
         manifest_metadata=metadata,
         map_static=core.map_static,
@@ -2154,10 +2320,8 @@ def complete_pending_mcmc_artifact_payload(
         laplace=core.laplace,
         diagnostics=diagnostics,
         bags=core.bags,
-        mcmc_samples=_mcmc_payload(
-            final_solution, mcmc_chains, mcmc_diagnostics
-        ),
-        trajectories={},
+        mcmc_samples=mcmc_samples,
+        trajectories=trajectories,
     )
 
 
@@ -2168,6 +2332,9 @@ def append_posterior_sampling_artifact_payload(
     mcmc_diagnostics: McmcDiagnostics,
     mcmc_target_seconds: Sequence[float],
     audited_mcmc_settings: Mapping[str, Any],
+    initializations: Sequence[FlightInitialization],
+    selected_trajectories: Sequence[SelectedConditionalTrajectory],
+    trajectory_selection: Mapping[str, Any],
 ) -> BatchArtifactPayload:
     """Upgrade an immutable estimate-only payload with independent MCMC."""
 
@@ -2234,6 +2401,24 @@ def append_posterior_sampling_artifact_payload(
         if warning not in warnings:
             warnings.append(warning)
         metadata["warnings"] = warnings
+    mcmc_samples = _mcmc_payload(
+        final_solution, mcmc_chains, mcmc_diagnostics
+    )
+    prepared_bags = _by_bag_id(final_solution.prepared.bags, "prepared bags")
+    initialized = _by_bag_id(initializations, "initializations")
+    bag_ids = tuple(str(value) for value in metadata["selected_bag_ids"])
+    if set(prepared_bags) != set(bag_ids) or set(initialized) != set(bag_ids):
+        raise ValueError("trajectory inputs must exactly match manifest bags")
+    trajectories = _trajectory_payloads(
+        selected_trajectories, mcmc_samples, prepared_bags, initialized
+    )
+    metadata = _attach_trajectory_selection(
+        metadata,
+        trajectory_selection,
+        selected_trajectories,
+        mcmc_samples,
+        bag_ids,
+    )
     return BatchArtifactPayload(
         manifest_metadata=metadata,
         map_static=core.map_static,
@@ -2241,10 +2426,8 @@ def append_posterior_sampling_artifact_payload(
         laplace=core.laplace,
         diagnostics=diagnostics,
         bags=core.bags,
-        mcmc_samples=_mcmc_payload(
-            final_solution, mcmc_chains, mcmc_diagnostics
-        ),
-        trajectories={},
+        mcmc_samples=mcmc_samples,
+        trajectories=trajectories,
     )
 
 
@@ -2253,6 +2436,10 @@ __all__ = [
     "append_posterior_sampling_artifact_payload",
     "BagPerformanceMeasurements",
     "BatchArtifactPayload",
+    "CONDITIONAL_TRAJECTORY_EVALUATION_METHOD",
+    "CONDITIONAL_TRAJECTORY_SAMPLE_ORDER",
+    "CONDITIONAL_TRAJECTORY_SELECTION_POLICY",
+    "CONDITIONAL_TRAJECTORY_WARM_START_POLICY",
     "DelayLocalGeometry",
     "RunPerformanceMeasurements",
     "SelectedConditionalTrajectory",

@@ -268,6 +268,7 @@ class BatchEstimationCliTests(unittest.TestCase):
 
     @patch("grape_param_estim.batch_estimation_cli.mark_batch_checkpoint_published")
     @patch("grape_param_estim.batch_estimation_cli.write_batch_estimation_run")
+    @patch("grape_param_estim.batch_estimation_cli.sample_selected_conditional_trajectories")
     @patch("grape_param_estim.batch_estimation_cli.complete_pending_mcmc_artifact_payload")
     @patch("grape_param_estim.batch_estimation_cli.sample_laplace_solution")
     @patch("grape_param_estim.batch_estimation_cli.write_batch_estimation_checkpoint")
@@ -284,6 +285,7 @@ class BatchEstimationCliTests(unittest.TestCase):
         write_checkpoint,
         sample,
         complete,
+        sample_trajectories,
         write,
         mark_published,
     ):
@@ -327,6 +329,13 @@ class BatchEstimationCliTests(unittest.TestCase):
             sample.return_value = SimpleNamespace(
                 chains=(object(),), diagnostics=object()
             )
+            sample_trajectories.return_value = SimpleNamespace(
+                trajectories=(object(),),
+                selection=SimpleNamespace(
+                    selected_sample_ids=("sample-0",),
+                    manifest_payload={"policy": "test"},
+                ),
+            )
             completed = SimpleNamespace(writer_arguments={"strict": True})
             complete.return_value = completed
             written = SimpleNamespace(root=request.output_directory)
@@ -342,6 +351,11 @@ class BatchEstimationCliTests(unittest.TestCase):
             self.assertTrue(export.call_args.kwargs["pending_mcmc_checkpoint"])
             self.assertEqual(
                 sample.call_args.kwargs["chain_checkpoints"], {}
+            )
+            sample_trajectories.assert_called_once()
+            self.assertIs(sample_trajectories.call_args.args[0], inputs)
+            self.assertEqual(
+                sample_trajectories.call_args.args[1], "recorded-mode"
             )
             write.assert_called_once_with(
                 request.output_directory, strict=True

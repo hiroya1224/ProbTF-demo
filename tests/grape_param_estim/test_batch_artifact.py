@@ -330,7 +330,17 @@ class BatchArtifactTests(unittest.TestCase):
             "dynamics_residual_valid": np.ones(
                 (sample_count, knot_count - 1), dtype=bool
             ),
-            "conditional_objective": np.arange(sample_count, dtype=float),
+            "conditional_objective": np.asarray(
+                tuple(
+                    {
+                        101: -np.log(0.02) + 1.0 - (-10.0),
+                        107: -np.log(0.02) + 1.1 - (-9.0),
+                        109: -np.log(0.02) + 0.9 - (-11.0),
+                    }.get(int(sample_id), 0.0)
+                    for sample_id in sample_ids
+                ),
+                dtype=float,
+            ),
         }
 
     def _write_core_run(self, mcmc):
@@ -361,20 +371,22 @@ class BatchArtifactTests(unittest.TestCase):
         }
         if mcmc:
             self._save(self.root / "mcmc_samples.npz", self._mcmc())
-            self._save(
-                self.root
-                / "trajectories"
-                / self.bag_ids[0]
-                / "selected_samples.npz",
-                self._trajectory(),
-            )
+            for bag_id in self.bag_ids:
+                self._save(
+                    self.root
+                    / "trajectories"
+                    / bag_id
+                    / "selected_samples.npz",
+                    self._trajectory(),
+                )
             artifacts["mcmc_samples"] = self._descriptor("mcmc_samples.npz")
             artifacts["trajectories"] = {
-                self.bag_ids[0]: self._descriptor(
+                bag_id: self._descriptor(
                     "trajectories/{}/selected_samples.npz".format(
-                        self.bag_ids[0]
+                        bag_id
                     )
                 )
+                for bag_id in self.bag_ids
             }
             substage_status["mcmc"] = {
                 "converged": True,
@@ -412,7 +424,10 @@ class BatchArtifactTests(unittest.TestCase):
                 for bag_id in self.bag_ids
             },
             "parameter_prior": {"kind": "gaussian", "dimension": 18},
-            "delay_prior": {"kind": "uniform", "bounds_seconds": [0.0, 0.02]},
+            "delay_prior": {
+                "prior_kind": "uniform",
+                "bounds_seconds": [0.0, 0.02],
+            },
             "actuator_model": {
                 "source": "test actuator calibration",
                 "thrust_time_constant_seconds": 0.04,
@@ -431,7 +446,31 @@ class BatchArtifactTests(unittest.TestCase):
             "interpolation_policy": {"pose": "SO3_geodesic"},
             "solver_settings": {"kind": "sparse_lm"},
             "em_settings": {"maximum_iterations": 8},
-            "mcmc_settings": {"enabled": mcmc},
+            "mcmc_settings": {
+                "enabled": mcmc,
+                **(
+                    {
+                        "conditional_trajectory_selection": {
+                            "policy": (
+                                "deterministic_flattened_chain_draw_quantiles_v1"
+                            ),
+                            "sample_order": "chain_order_then_draw_index",
+                            "available_sample_count": 3,
+                            "maximum_sample_count": 2,
+                            "selected_sample_ids": [101, 109],
+                            "selected_bag_ids": list(self.bag_ids),
+                            "conditional_evaluation_method": (
+                                "fresh_conditional_sparse_map"
+                            ),
+                            "warm_start_policy": (
+                                "selected_mode_map_local_state"
+                            ),
+                        }
+                    }
+                    if mcmc
+                    else {}
+                ),
+            },
             "request_fingerprint": digest,
             "substage_status": substage_status,
             "warnings": [],
@@ -667,13 +706,15 @@ class BatchArtifactTests(unittest.TestCase):
             diagnostics=self._diagnostics(mcmc=True),
             bags={bag_id: self._bag(bag_id) for bag_id in self.bag_ids},
             mcmc_samples=self._mcmc(),
-            trajectories={self.bag_ids[0]: self._trajectory()},
+            trajectories={
+                bag_id: self._trajectory() for bag_id in self.bag_ids
+            },
         )
 
         self.assertTrue(
             np.array_equal(run.mcmc_samples["sample_id"], (101, 107, 109))
         )
-        self.assertEqual(tuple(run.trajectories), ("bag-a",))
+        self.assertEqual(tuple(run.trajectories), self.bag_ids)
         self.assertIn("mcmc_samples", run.manifest["artifacts"])
         self.assertIn("trajectories", run.manifest["artifacts"])
 

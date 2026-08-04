@@ -65,6 +65,9 @@ from grape_param_estim.real_estimation import (
     run_real_estimation,
     sample_laplace_solution,
 )
+from grape_param_estim.trajectory_sampling import (
+    sample_selected_conditional_trajectories,
+)
 
 
 StageProgress = Callable[[str, int, int, str], None]
@@ -700,6 +703,21 @@ def _execute_resumable_mcmc_run(
             ),
         )
         cancellation.raise_if_cancelled()
+        conditional = sample_selected_conditional_trajectories(
+            inputs,
+            selected_mode_id,
+            final_solution,
+            mcmc.chains,
+            cancellation_requested=lambda: cancellation.cancelled,
+            progress=(
+                None
+                if progress is None
+                else lambda completed, total, message: progress(
+                    "writing_artifacts", completed, total + 1, message
+                )
+            ),
+        )
+        cancellation.raise_if_cancelled()
     except Exception:
         if cancellation.cancelled:
             mark_batch_checkpoint_cancelled(
@@ -714,16 +732,33 @@ def _execute_resumable_mcmc_run(
         mcmc.chains,
         mcmc.diagnostics,
         target_timings,
+        inputs.initializations,
+        conditional.trajectories,
+        conditional.selection.manifest_payload,
     )
     if progress is not None:
-        progress("writing_artifacts", 0, 1, "publishing strict run")
+        progress(
+            "writing_artifacts",
+            len(conditional.selection.selected_sample_ids),
+            len(conditional.selection.selected_sample_ids) + 1,
+            "publishing strict run",
+        )
+    if cancellation.cancelled:
+        mark_batch_checkpoint_cancelled(
+            checkpoint_root, cancellation.reason
+        )
     cancellation.raise_if_cancelled()
     written = write_batch_estimation_run(
         request.output_directory, **completed_payload.writer_arguments
     )
     mark_batch_checkpoint_published(checkpoint_root)
     if progress is not None:
-        progress("writing_artifacts", 1, 1, "run complete")
+        progress(
+            "writing_artifacts",
+            len(conditional.selection.selected_sample_ids) + 1,
+            len(conditional.selection.selected_sample_ids) + 1,
+            "run complete",
+        )
     return written
 
 

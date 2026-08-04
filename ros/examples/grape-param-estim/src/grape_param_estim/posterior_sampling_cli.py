@@ -49,6 +49,9 @@ from grape_param_estim.real_estimation import (
     restore_laplace_checkpoint,
     sample_laplace_solution,
 )
+from grape_param_estim.trajectory_sampling import (
+    sample_selected_conditional_trajectories,
+)
 
 
 def _plain(value: Any) -> Any:
@@ -280,6 +283,21 @@ def execute_posterior_sampling(
             ),
         )
         cancellation.raise_if_cancelled()
+        conditional = sample_selected_conditional_trajectories(
+            sampling_inputs,
+            str(checkpoint.manifest["selected_mode_id"]),
+            final_solution,
+            mcmc.chains,
+            cancellation_requested=lambda: cancellation.cancelled,
+            progress=(
+                None
+                if progress is None
+                else lambda completed, total, message: progress(
+                    "writing_artifacts", completed, total + 1, message
+                )
+            ),
+        )
+        cancellation.raise_if_cancelled()
     except Exception:
         if cancellation.cancelled:
             mark_batch_checkpoint_cancelled(
@@ -300,9 +318,21 @@ def execute_posterior_sampling(
         mcmc.diagnostics,
         target_timings,
         audited_settings,
+        inputs.initializations,
+        conditional.trajectories,
+        conditional.selection.manifest_payload,
     )
     if progress is not None:
-        progress("writing_artifacts", 0, 1, "publishing posterior samples")
+        progress(
+            "writing_artifacts",
+            len(conditional.selection.selected_sample_ids),
+            len(conditional.selection.selected_sample_ids) + 1,
+            "publishing posterior samples",
+        )
+    if cancellation.cancelled:
+        mark_batch_checkpoint_cancelled(
+            checkpoint.root, cancellation.reason
+        )
     cancellation.raise_if_cancelled()
     upgraded = replace_batch_estimation_run(
         request.estimation_run_directory,
@@ -311,7 +341,12 @@ def execute_posterior_sampling(
     )
     mark_batch_checkpoint_published(checkpoint.root)
     if progress is not None:
-        progress("writing_artifacts", 1, 1, "run complete")
+        progress(
+            "writing_artifacts",
+            len(conditional.selection.selected_sample_ids) + 1,
+            len(conditional.selection.selected_sample_ids) + 1,
+            "run complete",
+        )
     return upgraded
 
 

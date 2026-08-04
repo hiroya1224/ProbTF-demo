@@ -5,6 +5,22 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
+try:
+    from grape_param_estim.batch_artifact import (
+        ARTIFACT_DESCRIPTOR_KEYS,
+        BATCH_ESTIMATION_RUN_SCHEMA,
+    )
+    from grape_param_estim.batch_request import (
+        validate_batch_estimation_request,
+    )
+except ImportError as error:  # pragma: no cover - GUI startup reports this
+    ARTIFACT_DESCRIPTOR_KEYS = ()
+    BATCH_ESTIMATION_RUN_SCHEMA = None
+    validate_batch_estimation_request = None
+    _BACKEND_IMPORT_ERROR = error
+else:
+    _BACKEND_IMPORT_ERROR = None
+
 from .workflow import (
     ArtifactRef,
     WorkflowError,
@@ -22,17 +38,13 @@ def _declared_file_fingerprints(
 
     if not isinstance(value, Mapping):
         raise WorkflowError("{} must be an object".format(location))
-    if set(value) == {"path", "sha256", "size_bytes"}:
+    if set(value) == set(ARTIFACT_DESCRIPTOR_KEYS):
         path = value["path"]
         digest = value["sha256"]
-        size = value["size_bytes"]
         if (
             not isinstance(path, str)
             or not path
             or not isinstance(digest, str)
-            or not isinstance(size, int)
-            or isinstance(size, bool)
-            or size <= 0
         ):
             raise WorkflowError(
                 "{} is not a complete payload descriptor".format(location)
@@ -58,6 +70,40 @@ def _declared_file_fingerprints(
     if not result:
         raise WorkflowError("{} declares no payload files".format(location))
     return result
+
+
+def preflight_batch_estimation_launch(
+    request: Mapping[str, Any], *, source_path: str | Path
+) -> str:
+    """Validate the request and GUI/backend artifact handshake before work."""
+
+    if (
+        validate_batch_estimation_request is None
+        or BATCH_ESTIMATION_RUN_SCHEMA is None
+    ):
+        raise WorkflowError(
+            "batch-estimation backend is unavailable during launch preflight"
+        ) from _BACKEND_IMPORT_ERROR
+    if BATCH_ESTIMATION_RUN_SCHEMA != (
+        "grape-param-estim/batch-estimation-run/v1"
+    ):
+        raise WorkflowError(
+            "GUI does not support backend artifact schema {!r}".format(
+                BATCH_ESTIMATION_RUN_SCHEMA
+            )
+        )
+    probe_digest = "sha256:" + "0" * 64
+    probe = {
+        "probe": {"path": "probe.npz", "sha256": probe_digest}
+    }
+    if _declared_file_fingerprints(probe) != {"probe.npz": probe_digest}:
+        raise WorkflowError(
+            "GUI and backend artifact descriptor contracts disagree"
+        )
+    validated = validate_batch_estimation_request(
+        request, source_path=source_path
+    )
+    return validated.fingerprint
 
 
 def artifact_ref_from_validated_bundle(
@@ -117,4 +163,7 @@ def artifact_ref_from_validated_bundle(
     )
 
 
-__all__ = ["artifact_ref_from_validated_bundle"]
+__all__ = [
+    "artifact_ref_from_validated_bundle",
+    "preflight_batch_estimation_launch",
+]

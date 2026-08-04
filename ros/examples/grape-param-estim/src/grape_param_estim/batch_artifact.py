@@ -37,6 +37,7 @@ from .posterior import representatives as _posterior_representatives
 
 
 BATCH_ESTIMATION_RUN_SCHEMA = "grape-param-estim/batch-estimation-run/v1"
+ARTIFACT_DESCRIPTOR_KEYS = ("path", "sha256")
 STATIC_PARAMETER_DIMENSION = 18
 DYNAMICS_RESIDUAL_DIMENSION = 6
 COMPLETE_STATUS = "complete"
@@ -289,8 +290,8 @@ def _artifact_descriptor(
 ) -> Path:
     if not isinstance(value, Mapping):
         raise ArtifactValidationError("{} must be an object".format(location))
-    _require_keys(value, ("path", "sha256"), location)
-    _reject_unknown_keys(value, ("path", "sha256"), location)
+    _require_keys(value, ARTIFACT_DESCRIPTOR_KEYS, location)
+    _reject_unknown_keys(value, ARTIFACT_DESCRIPTOR_KEYS, location)
     relative = _required_string(value, "path", location)
     if relative != expected_path:
         raise ArtifactValidationError(
@@ -2818,6 +2819,7 @@ def _publish_replacement_directory(
 
 
 __all__ = [
+    "ARTIFACT_DESCRIPTOR_KEYS",
     "BATCH_ESTIMATION_RUN_SCHEMA",
     "BatchEstimationRun",
     "file_sha256",

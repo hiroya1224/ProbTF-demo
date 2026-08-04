@@ -1119,6 +1119,35 @@ class WorkflowState:
             )
         return self._replace_attempt(replace(attempt, artifact=artifact))
 
+    def recover_validated_worker_output(
+        self, attempt_id: str, artifact: ArtifactRef
+    ) -> "WorkflowState":
+        """Adopt output that was valid but failed GUI post-processing."""
+
+        attempt = self.attempt(attempt_id)
+        if (
+            attempt.status is not AttemptStatus.FAILED
+            or attempt.failure is None
+            or not attempt.failure.startswith("invalid_worker_output:")
+        ):
+            raise WorkflowTransitionError(
+                "only an invalid-worker-output failure can be recovered"
+            )
+        if not isinstance(artifact, ArtifactRef):
+            raise WorkflowTransitionError("artifact must be an ArtifactRef")
+        if artifact.relative_path != attempt.output_path:
+            raise WorkflowTransitionError(
+                "recovered artifact must reuse the failed output path"
+            )
+        return self._replace_attempt(
+            replace(
+                attempt,
+                status=AttemptStatus.COMPLETE,
+                artifact=artifact,
+                failure=None,
+            )
+        )
+
     def mark_failed(
         self, attempt_id: str, reason: str, *, finished_at: str
     ) -> "WorkflowState":

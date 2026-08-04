@@ -63,7 +63,10 @@ from .workflow import (
     canonical_fingerprint,
     stage_input_fingerprint,
 )
-from .workflow_artifacts import artifact_ref_from_validated_bundle
+from .workflow_artifacts import (
+    artifact_ref_from_validated_bundle,
+    preflight_batch_estimation_launch,
+)
 from .workflow_io import (
     WorkflowIoError,
     load_workflow,
@@ -699,7 +702,6 @@ class MainWindow(QMainWindow):
             parent = self.store.project_path / "runs" / attempt_id
             output = parent / "estimation_run"
             request_path = parent / "request.json"
-            parent.mkdir(parents=True, exist_ok=False)
         request = build_batch_estimation_request(
             run_id=attempt_id,
             run_mode=str(inputs["run_mode"]),
@@ -708,8 +710,12 @@ class MainWindow(QMainWindow):
             bags=inputs["bags"],
             settings=inputs["settings"],
         )
+        request_hash = preflight_batch_estimation_launch(
+            request, source_path=request_path
+        )
+        if not resume:
+            parent.mkdir(parents=True, exist_ok=False)
         self._write_request(request_path, request)
-        request_hash = canonical_fingerprint(request)
         common = dict(
             stage_id=BATCH_ESTIMATION_STAGE_ID,
             attempt_id=attempt_id,

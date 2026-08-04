@@ -153,6 +153,39 @@ class WorkflowFingerprintTest(unittest.TestCase):
 
 
 class WorkflowLifecycleTest(unittest.TestCase):
+    def test_validated_output_can_recover_gui_postprocessing_failure(self):
+        state = _workflow()
+        stage_input = _stage_input(
+            state, "noise", ROOT_A, {"q": "diagonal"}
+        )
+        state = state.begin_attempt(
+            stage_id="noise",
+            attempt_id="attempt-recover",
+            request_path="runs/attempt-recover/request.json",
+            output_path="runs/attempt-recover/bundle",
+            root_input_fingerprint=ROOT_A,
+            stage_input=stage_input,
+            request_fingerprint=REQUEST_A,
+            created_at=CREATED,
+        )
+        state = state.mark_running(
+            "attempt-recover", started_at=STARTED
+        )
+        attempt = state.attempt("attempt-recover")
+        artifact = _artifact(attempt, "recovered-output", "5")
+        state = state.mark_failed(
+            "attempt-recover",
+            "invalid_worker_output: descriptor mismatch",
+            finished_at=FINISHED,
+        )
+        recovered = state.recover_validated_worker_output(
+            "attempt-recover", artifact
+        )
+        selected = recovered.attempt("attempt-recover")
+        self.assertEqual(selected.status, AttemptStatus.COMPLETE)
+        self.assertEqual(selected.artifact, artifact)
+        self.assertIsNone(selected.failure)
+
     def test_step_all_and_stage_status_follow_one_complete_boundary(self):
         state = _workflow()
         noise_input = _stage_input(

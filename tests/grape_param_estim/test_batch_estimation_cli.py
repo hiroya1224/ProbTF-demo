@@ -14,6 +14,7 @@ from grape_param_estim.batch_estimation_cli import (
     planned_progress_units,
 )
 from grape_param_estim.batch_request import validate_batch_estimation_request
+from grape_param_estim.batch.em_loop import QUpdatePolicy
 from grape_param_estim.progress import (
     CancellationToken,
     ProgressEvent,
@@ -214,7 +215,10 @@ class BatchEstimationCliTests(unittest.TestCase):
                 initializations=(object(),),
             )
             prepare.return_value = inputs
-            em = SimpleNamespace(converged=True)
+            em = SimpleNamespace(
+                converged=True,
+                update_policy=QUpdatePolicy.LAPLACE_EM,
+            )
             selected = SimpleNamespace(
                 mode_id="recorded-mode",
                 final_solution=SimpleNamespace(
@@ -308,7 +312,10 @@ class BatchEstimationCliTests(unittest.TestCase):
             prepare.return_value = inputs
             selected = SimpleNamespace(
                 mode_id="recorded-mode",
-                em=SimpleNamespace(converged=True),
+                em=SimpleNamespace(
+                    converged=True,
+                    update_policy=QUpdatePolicy.LAPLACE_EM,
+                ),
                 final_solution=SimpleNamespace(
                     lm=SimpleNamespace(state=object())
                 ),

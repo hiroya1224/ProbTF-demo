@@ -27,6 +27,7 @@ from grape_param_estim_gui.state import (
 from grape_param_estim_gui.stage_requests import build_batch_estimation_request
 from grape_param_estim_gui.workflow import (
     ArtifactRef,
+    WorkflowError,
     WorkflowMode,
     artifact_content_fingerprint,
     canonical_fingerprint,
@@ -118,6 +119,16 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             sampled = validate_batch_estimation_request(sampled_request)
             self.assertEqual(sampled.payload["run_mode"], "estimate_and_sample")
             self.assertTrue(sampled.payload["mcmc_settings"]["enabled"])
+            with mock.patch(
+                "grape_param_estim_gui.main_window."
+                "preflight_batch_estimation_launch",
+                side_effect=WorkflowError("synthetic preflight failure"),
+            ):
+                with self.assertRaisesRegex(
+                    WorkflowError, "synthetic preflight failure"
+                ):
+                    window._launch_batch_estimation(sampled_inputs)
+            self.assertEqual(tuple((project / "runs").iterdir()), ())
             captured = {}
 
             def fake_start(operation, run_id, request_path, output, script):

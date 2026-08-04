@@ -20,6 +20,7 @@ from grape_param_estim.batch_artifact import (
     load_batch_estimation_run,
     write_batch_estimation_run,
 )
+from grape_param_estim.batch.em_loop import QUpdatePolicy
 from grape_param_estim.batch_artifact_export import (
     ArtifactRunIdentity,
     complete_pending_mcmc_artifact_payload,
@@ -440,7 +441,10 @@ def _warnings(result: object, estimator_revision: str) -> tuple:
     if estimator_revision.endswith("-dirty"):
         warnings.append("estimator source tree had uncommitted package changes")
     for mode in result.modes:
-        if not mode.em.converged:
+        if (
+            mode.em.update_policy is QUpdatePolicy.LAPLACE_EM
+            and not mode.em.converged
+        ):
             warnings.append(
                 "mode {} Laplace-EM terminated with {}".format(
                     mode.mode_id, mode.em.reason.value

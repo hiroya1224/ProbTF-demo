@@ -69,6 +69,60 @@ def _key(
     return VariableKey(kind, bag_id=bag_id, knot_index=knot_index)
 
 
+def evaluate_controller_integral_observation_factor(
+    bag_id: str,
+    left_knot_index: int,
+    interpolation_fraction: float,
+    integral_left: np.ndarray,
+    integral_right: np.ndarray,
+    observed_integral: np.ndarray,
+    square_root_information: np.ndarray,
+) -> FactorEvaluation:
+    """Connect a recorded PID-integral proxy at its asynchronous time."""
+
+    alpha = float(interpolation_fraction)
+    if not np.isfinite(alpha) or alpha < 0.0 or alpha > 1.0:
+        raise ValueError(
+            "interpolation_fraction must be finite and in [0, 1]"
+        )
+    left = _finite_vector(integral_left, 6, "integral_left")
+    right = _finite_vector(integral_right, 6, "integral_right")
+    observation = _finite_vector(
+        observed_integral, 6, "observed_integral"
+    )
+    whitening = _whitening(
+        square_root_information,
+        6,
+        "square_root_information",
+    )
+    prediction = (1.0 - alpha) * left + alpha * right
+    residual = whitening @ (observation - prediction)
+    right_index = int(left_knot_index) + 1
+    return FactorEvaluation(
+        residual=residual,
+        jacobian_blocks=(
+            JacobianBlock(
+                _key(
+                    VariableKind.CONTROLLER_INTEGRAL,
+                    bag_id,
+                    left_knot_index,
+                ),
+                -(1.0 - alpha) * whitening,
+            ),
+            JacobianBlock(
+                _key(
+                    VariableKind.CONTROLLER_INTEGRAL,
+                    bag_id,
+                    right_index,
+                ),
+                -alpha * whitening,
+            ),
+        ),
+        squared_error=float(residual @ residual),
+        active_set={},
+    )
+
+
 def _active_set(
     diagnostics: ControllerStepDiagnostics,
 ) -> Mapping[str, np.ndarray]:
@@ -360,4 +414,8 @@ def evaluate_controller_step_factors(
     )
 
 
-__all__ = ["ControllerFactorSet", "evaluate_controller_step_factors"]
+__all__ = [
+    "ControllerFactorSet",
+    "evaluate_controller_integral_observation_factor",
+    "evaluate_controller_step_factors",
+]

@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 from grape_param_estim.batch.factors.controller import (
+    evaluate_controller_integral_observation_factor,
     evaluate_controller_step_factors,
 )
 from grape_param_estim.batch.variables import VariableKind
@@ -18,6 +19,35 @@ from grape_param_estim.system import (
 
 
 class BatchControllerFactorTests(unittest.TestCase):
+    def test_asynchronous_integral_proxy_has_exact_linear_blocks(self):
+        left = np.arange(6, dtype=float) * 0.1
+        right = left + 0.4
+        observed = left + 0.31
+        whitening = np.diag(np.linspace(0.7, 1.2, 6))
+        factor = evaluate_controller_integral_observation_factor(
+            bag_id="bag-a",
+            left_knot_index=4,
+            interpolation_fraction=0.25,
+            integral_left=left,
+            integral_right=right,
+            observed_integral=observed,
+            square_root_information=whitening,
+        )
+
+        np.testing.assert_allclose(
+            factor.residual,
+            whitening @ (observed - 0.75 * left - 0.25 * right),
+        )
+        np.testing.assert_allclose(
+            factor.jacobian_blocks[0].value, -0.75 * whitening
+        )
+        np.testing.assert_allclose(
+            factor.jacobian_blocks[1].value, -0.25 * whitening
+        )
+        self.assertEqual(
+            factor.jacobian_blocks[1].variable_key.knot_index, 5
+        )
+
     def setUp(self):
         self.controller = GrapeController(
             ControllerConfig.grape(),

@@ -15,6 +15,7 @@ from grape_param_estim.batch.factors.actuator import (
     evaluate_gimbal_position_factor,
 )
 from grape_param_estim.batch.factors.controller import (
+    evaluate_controller_integral_observation_factor,
     evaluate_controller_step_factors,
 )
 from grape_param_estim.batch.factors.dynamics_factor import (
@@ -337,6 +338,23 @@ class PreparedGyroMeasurement:
 
 
 @dataclass(frozen=True)
+class PreparedControllerIntegralMeasurement:
+    bracket: MeasurementBracket
+    controller_integral: np.ndarray
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.bracket, MeasurementBracket):
+            raise TypeError("bracket must be MeasurementBracket")
+        object.__setattr__(
+            self,
+            "controller_integral",
+            _immutable_vector(
+                self.controller_integral, 6, "controller_integral"
+            ),
+        )
+
+
+@dataclass(frozen=True)
 class PreparedGimbalMeasurement:
     bracket: MeasurementBracket
     gimbal_angle: np.ndarray
@@ -460,13 +478,14 @@ class PreparedSensorExtrinsics:
 class PreparedFactorCovariances:
     """Independent sensor and fixed model-tolerance covariances."""
 
-    position_observation: GaussianCovariance
-    orientation_observation: GaussianCovariance
-    velocity_observation: GaussianCovariance
-    gyro_observation: GaussianCovariance
-    issued_thrust_observation: GaussianCovariance
-    issued_gimbal_observation: GaussianCovariance
-    actual_gimbal_observation: GaussianCovariance
+    position_observation: Optional[GaussianCovariance]
+    orientation_observation: Optional[GaussianCovariance]
+    velocity_observation: Optional[GaussianCovariance]
+    gyro_observation: Optional[GaussianCovariance]
+    issued_thrust_observation: Optional[GaussianCovariance]
+    issued_gimbal_observation: Optional[GaussianCovariance]
+    actual_gimbal_observation: Optional[GaussianCovariance]
+    controller_integral_observation: Optional[GaussianCovariance]
     controller_integral_transition: GaussianCovariance
     actuator_thrust_transition: GaussianCovariance
     actuator_gimbal_transition: GaussianCovariance
@@ -482,6 +501,22 @@ class PreparedFactorCovariances:
             ("issued_thrust_observation", 4),
             ("issued_gimbal_observation", 4),
             ("actual_gimbal_observation", 4),
+            ("controller_integral_observation", 6),
+        ):
+            covariance = getattr(self, name)
+            if covariance is None:
+                continue
+            if not isinstance(covariance, GaussianCovariance):
+                raise TypeError(
+                    "{} must be GaussianCovariance or None".format(name)
+                )
+            if covariance.dimension != dimension:
+                raise ValueError(
+                    "{} covariance must have dimension {}".format(
+                        name, dimension
+                    )
+                )
+        for name, dimension in (
             ("controller_integral_transition", 6),
             ("actuator_thrust_transition", 4),
             ("actuator_gimbal_transition", 4),
@@ -621,6 +656,9 @@ class PreparedBagGraphData:
     pose_measurements: Tuple[PreparedPoseMeasurement, ...]
     velocity_measurements: Tuple[PreparedVelocityMeasurement, ...]
     gyro_measurements: Tuple[PreparedGyroMeasurement, ...]
+    controller_integral_measurements: Tuple[
+        PreparedControllerIntegralMeasurement, ...
+    ]
     actual_gimbal_measurements: Tuple[PreparedGimbalMeasurement, ...]
     sensor_extrinsics: PreparedSensorExtrinsics
     covariances: PreparedFactorCovariances
@@ -708,6 +746,10 @@ class PreparedBagGraphData:
             ("pose_measurements", PreparedPoseMeasurement),
             ("velocity_measurements", PreparedVelocityMeasurement),
             ("gyro_measurements", PreparedGyroMeasurement),
+            (
+                "controller_integral_measurements",
+                PreparedControllerIntegralMeasurement,
+            ),
             ("actual_gimbal_measurements", PreparedGimbalMeasurement),
         ):
             measurements = _canonical_tuple(
@@ -719,6 +761,41 @@ class PreparedBagGraphData:
             raise TypeError("sensor_extrinsics must be PreparedSensorExtrinsics")
         if not isinstance(self.covariances, PreparedFactorCovariances):
             raise TypeError("covariances must be PreparedFactorCovariances")
+        covariance_usage = (
+            ("position_observation", bool(self.pose_measurements)),
+            ("orientation_observation", bool(self.pose_measurements)),
+            ("velocity_observation", bool(self.velocity_measurements)),
+            ("gyro_observation", bool(self.gyro_measurements)),
+            (
+                "issued_thrust_observation",
+                any(
+                    interval.issued_thrust_observation is not None
+                    for interval in self.controller_intervals
+                ),
+            ),
+            (
+                "issued_gimbal_observation",
+                any(
+                    interval.issued_gimbal_observation is not None
+                    for interval in self.controller_intervals
+                ),
+            ),
+            (
+                "actual_gimbal_observation",
+                bool(self.actual_gimbal_measurements),
+            ),
+            (
+                "controller_integral_observation",
+                bool(self.controller_integral_measurements),
+            ),
+        )
+        for name, used in covariance_usage:
+            available = getattr(self.covariances, name) is not None
+            if available != used:
+                raise ValueError(
+                    "{} covariance must be present exactly when its "
+                    "observations are present".format(name)
+                )
         if not isinstance(self.accelerometer, AccelerometerFactorContract):
             raise TypeError("accelerometer must be AccelerometerFactorContract")
 
@@ -1057,7 +1134,38 @@ def _evaluate_prepared_factors(
                 )
             )
 
-    # 5. Fixed-schedule controller transitions and issued commands.
+    # 5. Asynchronous recorded controller-integral proxy observations.
+    for bag in bags:
+        for measurement in bag.controller_integral_measurements:
+            index = measurement.bracket.left_knot_index
+            factors.append(
+                evaluate_controller_integral_observation_factor(
+                    bag_id=bag.bag_id,
+                    left_knot_index=index,
+                    interpolation_fraction=(
+                        measurement.bracket.interpolation_fraction
+                    ),
+                    integral_left=_knot_value(
+                        state,
+                        bag.bag_id,
+                        index,
+                        VariableKind.CONTROLLER_INTEGRAL,
+                    ),
+                    integral_right=_knot_value(
+                        state,
+                        bag.bag_id,
+                        index + 1,
+                        VariableKind.CONTROLLER_INTEGRAL,
+                    ),
+                    observed_integral=measurement.controller_integral,
+                    square_root_information=(
+                        bag.covariances.controller_integral_observation
+                        .square_root_information
+                    ),
+                )
+            )
+
+    # 6. Fixed-schedule controller transitions and issued commands.
     for bag in bags:
         for interval in bag.controller_intervals:
             index = interval.left_knot_index
@@ -1135,7 +1243,7 @@ def _evaluate_prepared_factors(
             )
             factors.extend(result.factors)
 
-    # 6. Delayed actuator transitions, then actual gimbal observations.
+    # 7. Delayed actuator transitions, then actual gimbal observations.
     for bag in bags:
         for interval in bag.actuator_intervals:
             index = interval.left_knot_index
@@ -1211,7 +1319,7 @@ def _evaluate_prepared_factors(
                 )
             )
 
-    # 7. Fixed-covariance kinematic consistency.
+    # 8. Fixed-covariance kinematic consistency.
     for bag in bags:
         for index in range(len(bag.knots) - 1):
             dt = bag.knots[index + 1].time - bag.knots[index].time
@@ -1280,7 +1388,7 @@ def _evaluate_prepared_factors(
                 )
             )
 
-    # 8. Q-weighted dynamics.  Invalid intervals are excluded by the same
+    # 9. Q-weighted dynamics.  Invalid intervals are excluded by the same
     # audited status consumed by the Laplace-EM moment bridge.
     dynamics = evaluate_prepared_dynamics_intervals(prepared, state)
     for interval in dynamics.intervals:
@@ -1319,6 +1427,7 @@ __all__ = [
     "PreparedBagPriors",
     "PreparedBatchGraphData",
     "PreparedCommandSegment",
+    "PreparedControllerIntegralMeasurement",
     "PreparedControllerInterval",
     "PreparedDynamicsConfiguration",
     "PreparedDynamicsIntervalStatus",

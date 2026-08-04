@@ -22,6 +22,7 @@ from grape_param_estim.batch.graph_builder import (
     PreparedBagPriors,
     PreparedBatchGraphData,
     PreparedCommandSegment,
+    PreparedControllerIntegralMeasurement,
     PreparedControllerInterval,
     PreparedDynamicsConfiguration,
     PreparedDynamicsIntervalStatus,
@@ -163,6 +164,7 @@ class BatchGraphBuilderTests(unittest.TestCase):
             issued_thrust_observation=_covariance(4, 0.2),
             issued_gimbal_observation=_covariance(4, 0.1),
             actual_gimbal_observation=_covariance(4, 0.05),
+            controller_integral_observation=_covariance(6, 0.11),
             controller_integral_transition=_covariance(6, 0.15),
             actuator_thrust_transition=_covariance(4, 0.18),
             actuator_gimbal_transition=_covariance(4, 0.12),
@@ -240,6 +242,14 @@ class BatchGraphBuilderTests(unittest.TestCase):
                     bracket, np.asarray((0.034, -0.019, 0.045))
                 ),
             ),
+            controller_integral_measurements=(
+                PreparedControllerIntegralMeasurement(
+                    bracket,
+                    np.asarray(
+                        (0.011, -0.014, 0.021, 0.006, -0.003, 0.006)
+                    ),
+                ),
+            ),
             actual_gimbal_measurements=(
                 PreparedGimbalMeasurement(
                     bracket, np.asarray((0.026, -0.029, 0.019, -0.016))
@@ -303,6 +313,7 @@ class BatchGraphBuilderTests(unittest.TestCase):
                 3,
                 3,
                 3,
+                6,
                 6,
                 4,
                 4,
@@ -394,6 +405,38 @@ class BatchGraphBuilderTests(unittest.TestCase):
             whitening[0, 0] = 1.0
         with self.assertRaisesRegex(ValueError, "positive definite"):
             GaussianCovariance(np.asarray(((1.0, 2.0), (2.0, 1.0))))
+
+    def test_disabled_observation_has_no_invented_covariance(self):
+        prepared = self._prepared()
+        bag = prepared.bags[0]
+        without_velocity = replace(
+            bag,
+            velocity_measurements=(),
+            covariances=replace(
+                bag.covariances, velocity_observation=None
+            ),
+        )
+        problem = build_fixed_batch_problem(
+            replace(prepared, bags=(without_velocity,))
+        )
+        self.assertTrue(
+            np.isfinite(
+                problem.linearize(
+                    build_initial_batch_state(
+                        replace(prepared, bags=(without_velocity,))
+                    )
+                ).sparse.objective
+            )
+        )
+        with self.assertRaisesRegex(ValueError, "present exactly"):
+            replace(bag, velocity_measurements=())
+        with self.assertRaisesRegex(ValueError, "present exactly"):
+            replace(
+                bag,
+                covariances=replace(
+                    bag.covariances, gyro_observation=None
+                ),
+            )
 
     def test_dynamics_laplace_moments_match_selected_dense_oracle(self):
         prepared = self._prepared()

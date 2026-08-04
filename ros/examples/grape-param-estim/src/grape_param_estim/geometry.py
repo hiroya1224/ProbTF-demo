@@ -369,17 +369,70 @@ def right_tangent_rotation_action_jacobian(
     return -matrix @ skew(action_vector)
 
 
-def _so3_geodesic_midpoint_components(
+def _so3_geodesic_interpolation_components(
     left_rotation: np.ndarray,
     right_rotation: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    fraction: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     left = _finite_matrix3(left_rotation, name="left_rotation")
     right = _finite_matrix3(right_rotation, name="right_rotation")
+    alpha = float(fraction)
+    if not np.isfinite(alpha) or alpha < 0.0 or alpha > 1.0:
+        raise ValueError("fraction must be finite and in [0, 1]")
     relative_rotation = left.T @ right
     relative_vector = so3_log(relative_rotation)
-    half_step = so3_exp(0.5 * relative_vector)
-    midpoint = left @ half_step
-    return midpoint, relative_rotation, relative_vector, half_step
+    interpolation_step = so3_exp(alpha * relative_vector)
+    interpolated = left @ interpolation_step
+    return interpolated, relative_vector, interpolation_step
+
+
+def so3_geodesic_interpolation(
+    left_rotation: np.ndarray,
+    right_rotation: np.ndarray,
+    fraction: float,
+) -> np.ndarray:
+    """Interpolate two rotations along their principal SO(3) geodesic."""
+
+    interpolated, _, _ = _so3_geodesic_interpolation_components(
+        left_rotation,
+        right_rotation,
+        fraction,
+    )
+    return interpolated
+
+
+def so3_geodesic_interpolation_with_right_jacobians(
+    left_rotation: np.ndarray,
+    right_rotation: np.ndarray,
+    fraction: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return geodesic interpolation and right-tangent endpoint Jacobians.
+
+    For endpoint perturbations ``R0 Exp(d0)`` and ``R1 Exp(d1)``, the returned
+    blocks satisfy ``R' = R Exp(J0 d0 + J1 d1) + O(||d||^2)``.  ``fraction``
+    is constrained to the adjacent-knot interval ``[0, 1]``.
+    """
+
+    alpha = float(fraction)
+    interpolated, relative_vector, interpolation_step = (
+        _so3_geodesic_interpolation_components(
+            left_rotation,
+            right_rotation,
+            alpha,
+        )
+    )
+    scaled_vector = alpha * relative_vector
+    scaled_right_jacobian = so3_right_jacobian(scaled_vector)
+    relative_left_inverse = so3_left_jacobian_inverse(relative_vector)
+    relative_right_inverse = so3_right_jacobian_inverse(relative_vector)
+    left_block = (
+        interpolation_step.T
+        - alpha * scaled_right_jacobian @ relative_left_inverse
+    )
+    right_block = (
+        alpha * scaled_right_jacobian @ relative_right_inverse
+    )
+    return interpolated, left_block, right_block
 
 
 def so3_geodesic_midpoint(
@@ -388,9 +441,10 @@ def so3_geodesic_midpoint(
 ) -> np.ndarray:
     """Return the principal geodesic midpoint of two rotations."""
 
-    midpoint, _, _, _ = _so3_geodesic_midpoint_components(
+    midpoint, _, _ = _so3_geodesic_interpolation_components(
         left_rotation,
         right_rotation,
+        0.5,
     )
     return midpoint
 
@@ -407,19 +461,11 @@ def so3_geodesic_midpoint_with_right_jacobians(
     The principal-log branch determines the finite convention at ``pi``.
     """
 
-    midpoint, _, relative_vector, half_step = (
-        _so3_geodesic_midpoint_components(left_rotation, right_rotation)
+    return so3_geodesic_interpolation_with_right_jacobians(
+        left_rotation,
+        right_rotation,
+        0.5,
     )
-    half_vector = 0.5 * relative_vector
-    half_right_jacobian = so3_right_jacobian(half_vector)
-    relative_left_inverse = so3_left_jacobian_inverse(relative_vector)
-    relative_right_inverse = so3_right_jacobian_inverse(relative_vector)
-    left_block = (
-        half_step.T
-        - 0.5 * half_right_jacobian @ relative_left_inverse
-    )
-    right_block = 0.5 * half_right_jacobian @ relative_right_inverse
-    return midpoint, left_block, right_block
 
 
 def rotation_matrix_from_vector(rotation_vector: Sequence[float]) -> np.ndarray:

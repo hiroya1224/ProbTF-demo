@@ -11,6 +11,8 @@ from grape_param_estim.geometry import (
     rotation_matrix_from_vector,
     rotation_vector_from_matrix,
     so3_exp,
+    so3_geodesic_interpolation,
+    so3_geodesic_interpolation_with_right_jacobians,
     so3_geodesic_midpoint,
     so3_geodesic_midpoint_with_right_jacobians,
     so3_left_jacobian,
@@ -256,6 +258,71 @@ class GeometryTests(unittest.TestCase):
                     atol=8.0e-7,
                 )
 
+    def test_geodesic_interpolation_endpoint_jacobians(self):
+        left = so3_exp((0.22, -0.17, 0.09))
+        right = left @ so3_exp((0.74, -0.41, 0.28))
+        step = 1.0e-7
+        for fraction in (0.0, 0.17, 0.63, 1.0):
+            with self.subTest(fraction=fraction):
+                interpolated, left_block, right_block = (
+                    so3_geodesic_interpolation_with_right_jacobians(
+                        left,
+                        right,
+                        fraction,
+                    )
+                )
+                np.testing.assert_allclose(
+                    interpolated,
+                    so3_geodesic_interpolation(left, right, fraction),
+                    atol=1.0e-14,
+                )
+                numerical_left = np.empty((3, 3), dtype=float)
+                numerical_right = np.empty((3, 3), dtype=float)
+                for coordinate in range(3):
+                    direction = np.zeros(3, dtype=float)
+                    direction[coordinate] = step
+                    left_plus = so3_geodesic_interpolation(
+                        left @ so3_exp(direction), right, fraction
+                    )
+                    left_minus = so3_geodesic_interpolation(
+                        left @ so3_exp(-direction), right, fraction
+                    )
+                    numerical_left[:, coordinate] = (
+                        _right_tangent_matrix_derivative(
+                            interpolated, left_plus, left_minus, step
+                        )
+                    )
+                    right_plus = so3_geodesic_interpolation(
+                        left, right @ so3_exp(direction), fraction
+                    )
+                    right_minus = so3_geodesic_interpolation(
+                        left, right @ so3_exp(-direction), fraction
+                    )
+                    numerical_right[:, coordinate] = (
+                        _right_tangent_matrix_derivative(
+                            interpolated, right_plus, right_minus, step
+                        )
+                    )
+                np.testing.assert_allclose(
+                    left_block,
+                    numerical_left,
+                    rtol=3.0e-7,
+                    atol=3.0e-8,
+                )
+                np.testing.assert_allclose(
+                    right_block,
+                    numerical_right,
+                    rtol=3.0e-7,
+                    atol=3.0e-8,
+                )
+
+        np.testing.assert_allclose(
+            so3_geodesic_interpolation(left, right, 0.0), left, atol=1.0e-14
+        )
+        np.testing.assert_allclose(
+            so3_geodesic_interpolation(left, right, 1.0), right, atol=1.0e-14
+        )
+
     def test_near_pi_operations_remain_finite(self):
         axis = np.asarray((0.37, -0.51, 0.78), dtype=float)
         axis /= np.linalg.norm(axis)
@@ -318,6 +385,12 @@ class GeometryTests(unittest.TestCase):
             so3_geodesic_midpoint_with_right_jacobians(
                 np.eye(3), invalid_rotation
             )
+        for fraction in (-1.0e-3, 1.001, np.nan):
+            with self.subTest(fraction=fraction):
+                with self.assertRaises(ValueError):
+                    so3_geodesic_interpolation(
+                        np.eye(3), np.eye(3), fraction
+                    )
 
     def test_correction_path_reconstructs_candidate_pose(self):
         count = 20

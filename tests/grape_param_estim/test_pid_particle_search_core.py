@@ -6,6 +6,7 @@ import numpy as np
 from grape_param_estim.controller_config import PidGainConfiguration
 from grape_param_estim.pid.metrics import ForecastMetrics
 from grape_param_estim.pid.particle_search import (
+    BODY_WRENCH_MODEL_DISCREPANCY,
     SAMPLE_MODEL_DISCREPANCY,
     ZERO_MODEL_DISCREPANCY,
     ModelDiscrepancyConfiguration,
@@ -63,12 +64,13 @@ class PidParticleSearchCoreTests(unittest.TestCase):
             SAMPLE_MODEL_DISCREPANCY,
             np.asarray((1.0, 2.0, 3.0, 4.0, 5.0, 6.0)),
             base_seed=1234,
+            residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
             replicates=2,
         )
         calls = []
 
         def evaluator(candidate_value, sample, bag_id, realization):
-            disturbance = realization.interval_average_wrench((0.1, 0.2))
+            disturbance = realization.interval_average_residual((0.1, 0.2))
             calls.append(
                 (
                     candidate_value.candidate_id,
@@ -123,26 +125,37 @@ class PidParticleSearchCoreTests(unittest.TestCase):
     def test_zero_and_sampled_q_policies_are_distinct_and_repeatable(self):
         q = np.arange(1.0, 7.0)
         zero = ModelDiscrepancyConfiguration(
-            ZERO_MODEL_DISCREPANCY, q, base_seed=91
+            ZERO_MODEL_DISCREPANCY,
+            q,
+            base_seed=91,
+            residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
         ).realization("chain-a:00000001", "bag-a", 0)
         sampled_configuration = ModelDiscrepancyConfiguration(
-            SAMPLE_MODEL_DISCREPANCY, q, base_seed=91
+            SAMPLE_MODEL_DISCREPANCY,
+            q,
+            base_seed=91,
+            residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
         )
         sampled = sampled_configuration.realization(
             "chain-a:00000001", "bag-a", 0
         )
         np.testing.assert_array_equal(
-            zero.interval_average_wrench((0.1, 0.2)), np.zeros((2, 6))
+            zero.interval_average_residual((0.1, 0.2)), np.zeros((2, 6))
         )
-        first = sampled.interval_average_wrench((0.1, 0.2))
-        second = sampled.interval_average_wrench((0.1, 0.2))
+        first = sampled.interval_average_residual((0.1, 0.2))
+        second = sampled.interval_average_residual((0.1, 0.2))
         np.testing.assert_array_equal(first, second)
         self.assertGreater(np.linalg.norm(first), 0.0)
         other = sampled_configuration.realization(
             "chain-a:00000002", "bag-a", 0
         )
         self.assertNotEqual(sampled.seed, other.seed)
-        self.assertGreater(np.linalg.norm(first - other.interval_average_wrench((0.1, 0.2))), 0.0)
+        self.assertGreater(
+            np.linalg.norm(
+                first - other.interval_average_residual((0.1, 0.2))
+            ),
+            0.0,
+        )
 
     def test_refinement_uses_coarse_subset_then_all_samples_for_finalists(self):
         user = user_pid_candidate(
@@ -152,6 +165,7 @@ class PidParticleSearchCoreTests(unittest.TestCase):
             ZERO_MODEL_DISCREPANCY,
             np.ones(6),
             base_seed=17,
+            residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
         )
 
         def evaluator(candidate, sample, _bag_id, _realization):

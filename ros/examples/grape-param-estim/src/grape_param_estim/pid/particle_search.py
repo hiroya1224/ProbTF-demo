@@ -31,6 +31,12 @@ MODEL_DISCREPANCY_POLICIES = (
     ZERO_MODEL_DISCREPANCY,
     SAMPLE_MODEL_DISCREPANCY,
 )
+BODY_WRENCH_MODEL_DISCREPANCY = "body_wrench"
+SPECIFIC_ACCELERATION_MODEL_DISCREPANCY = "specific_acceleration"
+MODEL_DISCREPANCY_QUANTITIES = (
+    BODY_WRENCH_MODEL_DISCREPANCY,
+    SPECIFIC_ACCELERATION_MODEL_DISCREPANCY,
+)
 
 
 @dataclass(frozen=True)
@@ -40,15 +46,22 @@ class ModelDiscrepancyConfiguration:
     policy: str
     diagonal_q: np.ndarray
     base_seed: int
+    residual_quantity: str
     replicates: int = 1
 
     def __post_init__(self) -> None:
         policy = str(self.policy)
+        quantity = str(self.residual_quantity)
         q = np.asarray(self.diagonal_q, dtype=float)
         seed = self.base_seed
         replicates = self.replicates
         if policy not in MODEL_DISCREPANCY_POLICIES:
             raise ValueError("unknown model discrepancy policy")
+        if quantity not in MODEL_DISCREPANCY_QUANTITIES:
+            raise ValueError(
+                "residual_quantity must explicitly be body_wrench or "
+                "specific_acceleration"
+            )
         if q.shape != (6,) or np.any(~np.isfinite(q)) or np.any(q < 0.0):
             raise ValueError("diagonal_q must contain six non-negative values")
         if (
@@ -67,6 +80,7 @@ class ModelDiscrepancyConfiguration:
         copied = q.copy()
         copied.setflags(write=False)
         object.__setattr__(self, "policy", policy)
+        object.__setattr__(self, "residual_quantity", quantity)
         object.__setattr__(self, "diagonal_q", copied)
         object.__setattr__(self, "base_seed", int(seed))
         object.__setattr__(self, "replicates", int(replicates))
@@ -94,6 +108,7 @@ class ModelDiscrepancyConfiguration:
             diagonal_q=self.diagonal_q,
             seed=self.seed_for(sample_id, bag_id, replicate_index),
             replicate_index=replicate_index,
+            residual_quantity=self.residual_quantity,
         )
 
 
@@ -105,12 +120,19 @@ class ModelDiscrepancyRealization:
     diagonal_q: np.ndarray
     seed: int
     replicate_index: int
+    residual_quantity: str
 
     def __post_init__(self) -> None:
         policy = str(self.policy)
+        quantity = str(self.residual_quantity)
         q = np.asarray(self.diagonal_q, dtype=float)
         if policy not in MODEL_DISCREPANCY_POLICIES:
             raise ValueError("unknown model discrepancy policy")
+        if quantity not in MODEL_DISCREPANCY_QUANTITIES:
+            raise ValueError(
+                "residual_quantity must explicitly be body_wrench or "
+                "specific_acceleration"
+            )
         if q.shape != (6,) or np.any(~np.isfinite(q)) or np.any(q < 0.0):
             raise ValueError("diagonal_q must contain six non-negative values")
         for name in ("seed", "replicate_index"):
@@ -125,10 +147,13 @@ class ModelDiscrepancyRealization:
         copied = q.copy()
         copied.setflags(write=False)
         object.__setattr__(self, "policy", policy)
+        object.__setattr__(self, "residual_quantity", quantity)
         object.__setattr__(self, "diagonal_q", copied)
 
-    def interval_average_wrench(self, time_step: Sequence[float]) -> np.ndarray:
-        """Sample average wrench with covariance ``Q / dt`` per interval."""
+    def interval_average_residual(
+        self, time_step: Sequence[float]
+    ) -> np.ndarray:
+        """Sample the configured residual with covariance ``Q / dt``."""
 
         dt = np.asarray(time_step, dtype=float)
         if (
@@ -774,7 +799,9 @@ def refine_pid_candidate_particles(
 
 
 __all__ = [
+    "BODY_WRENCH_MODEL_DISCREPANCY",
     "MODEL_DISCREPANCY_POLICIES",
+    "MODEL_DISCREPANCY_QUANTITIES",
     "ModelDiscrepancyConfiguration",
     "ModelDiscrepancyRealization",
     "ParticleRefinementSettings",
@@ -783,6 +810,7 @@ __all__ = [
     "PidForecastEvaluator",
     "PidParticleSearchResult",
     "SAMPLE_MODEL_DISCREPANCY",
+    "SPECIFIC_ACCELERATION_MODEL_DISCREPANCY",
     "ZERO_MODEL_DISCREPANCY",
     "build_initial_candidate_population",
     "evaluate_pid_candidates",

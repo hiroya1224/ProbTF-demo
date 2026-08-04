@@ -1,3 +1,4 @@
+from dataclasses import replace
 import hashlib
 import json
 from pathlib import Path
@@ -10,8 +11,15 @@ from grape_param_estim.articulated import GrapeArticulatedModel
 from grape_param_estim.controller import (
     ControllerConfig,
     GrapeController,
+    PIDActiveSet,
+    PIDClampState,
     PIDConfig,
+    PIDUpdateJacobian,
+    PIDUpdateResult,
+    PID_UPDATE_INPUTS,
+    _pid_update,
     acceleration_allocation_matrix,
+    pid_update_with_jacobian,
 )
 from grape_param_estim.dynamics import actuator_wrench
 from grape_param_estim.geometry import (
@@ -247,7 +255,491 @@ def _run_python_and_ticks():
     return configuration, parameters, geometry, outputs, ticks
 
 
+def _reference_pid_update(
+    configuration,
+    integral_error,
+    error_p,
+    time_step,
+    error_d,
+    feedforward,
+    nonnegative_integral=False,
+):
+    """The original scalar forward update retained as a regression oracle."""
+
+    error_p = float(
+        np.clip(
+            error_p,
+            -configuration.limit_error_p,
+            configuration.limit_error_p,
+        )
+    )
+    integral = float(
+        np.clip(
+            integral_error + error_p * time_step,
+            -configuration.limit_error_i,
+            configuration.limit_error_i,
+        )
+    )
+    error_d = float(
+        np.clip(
+            error_d,
+            -configuration.limit_error_d,
+            configuration.limit_error_d,
+        )
+    )
+    p_term = float(
+        np.clip(
+            error_p * configuration.p_gain,
+            -configuration.limit_p,
+            configuration.limit_p,
+        )
+    )
+    i_term = float(
+        np.clip(
+            integral * configuration.i_gain,
+            -configuration.limit_i,
+            configuration.limit_i,
+        )
+    )
+    d_term = float(
+        np.clip(
+            error_d * configuration.d_gain,
+            -configuration.limit_d,
+            configuration.limit_d,
+        )
+    )
+    output = float(
+        np.clip(
+            p_term + i_term + d_term + feedforward,
+            -configuration.limit_sum,
+            configuration.limit_sum,
+        )
+    )
+    if nonnegative_integral:
+        integral = max(0.0, integral)
+    return output, integral
+
+
+def _evaluate_pid_vector(configuration, inputs, nonnegative_integral=False):
+    result = pid_update_with_jacobian(
+        configuration,
+        integral_error=inputs[0],
+        error_p=inputs[1],
+        error_d=inputs[2],
+        feedforward=inputs[3],
+        time_step=inputs[4],
+        nonnegative_integral=nonnegative_integral,
+    )
+    return np.asarray((result.output, result.next_integral))
+
+
+def _central_pid_jacobian(configuration, inputs, nonnegative_integral=False):
+    point = np.asarray(inputs, dtype=float)
+    step = 1.0e-6
+    result = np.empty((2, len(PID_UPDATE_INPUTS)), dtype=float)
+    for coordinate in range(point.size):
+        direction = np.zeros_like(point)
+        direction[coordinate] = step
+        result[:, coordinate] = (
+            _evaluate_pid_vector(
+                configuration,
+                point + direction,
+                nonnegative_integral,
+            )
+            - _evaluate_pid_vector(
+                configuration,
+                point - direction,
+                nonnegative_integral,
+            )
+        ) / (2.0 * step)
+    return result
+
+
 class ControllerTests(unittest.TestCase):
+    def test_pid_forward_uses_the_original_scalar_primitive(self):
+        configuration = PIDConfig(
+            3.2,
+            1.7,
+            2.4,
+            limit_sum=0.8,
+            limit_p=0.45,
+            limit_i=0.31,
+            limit_d=0.37,
+            limit_error_p=0.28,
+            limit_error_i=0.19,
+            limit_error_d=0.22,
+        )
+        cases = (
+            (0.07, 0.13, 0.04, -0.08, 0.05, False),
+            (0.6, 2.0, -3.0, 1.2, 0.2, False),
+            (-0.4, -1.7, 2.1, -1.3, 0.1, True),
+            (0.0, 0.0, 0.0, 0.0, 0.0, True),
+        )
+        for (
+            integral_error,
+            error_p,
+            error_d,
+            feedforward,
+            time_step,
+            nonnegative_integral,
+        ) in cases:
+            with self.subTest(
+                integral_error=integral_error,
+                error_p=error_p,
+                nonnegative_integral=nonnegative_integral,
+            ):
+                expected = _reference_pid_update(
+                    configuration,
+                    integral_error,
+                    error_p,
+                    time_step,
+                    error_d,
+                    feedforward,
+                    nonnegative_integral,
+                )
+                result = pid_update_with_jacobian(
+                    configuration,
+                    integral_error,
+                    error_p,
+                    time_step,
+                    error_d,
+                    feedforward,
+                    nonnegative_integral=nonnegative_integral,
+                )
+                wrapper = _pid_update(
+                    configuration,
+                    integral_error,
+                    error_p,
+                    time_step,
+                    error_d,
+                    feedforward,
+                    nonnegative_integral=nonnegative_integral,
+                )
+                self.assertEqual((result.output, result.next_integral), expected)
+                self.assertEqual(wrapper, expected)
+
+    def test_pid_random_interior_jacobian_matches_central_difference(self):
+        configuration = PIDConfig(
+            1.7,
+            0.8,
+            1.2,
+            limit_sum=50.0,
+            limit_p=50.0,
+            limit_i=50.0,
+            limit_d=50.0,
+            limit_error_p=50.0,
+            limit_error_i=50.0,
+            limit_error_d=50.0,
+        )
+        generator = np.random.RandomState(42173)
+        for case in range(12):
+            nonnegative_integral = bool(case % 2)
+            integral_error = (
+                generator.uniform(0.2, 0.5)
+                if nonnegative_integral
+                else generator.uniform(-0.5, 0.5)
+            )
+            inputs = np.asarray(
+                (
+                    integral_error,
+                    generator.uniform(-0.4, 0.4),
+                    generator.uniform(-0.5, 0.5),
+                    generator.uniform(-0.3, 0.3),
+                    generator.uniform(0.02, 0.2),
+                )
+            )
+            result = pid_update_with_jacobian(
+                configuration,
+                integral_error=inputs[0],
+                error_p=inputs[1],
+                error_d=inputs[2],
+                feedforward=inputs[3],
+                time_step=inputs[4],
+                nonnegative_integral=nonnegative_integral,
+            )
+            analytic = np.vstack(
+                (result.jacobian.output, result.jacobian.next_integral)
+            )
+            numerical = _central_pid_jacobian(
+                configuration,
+                inputs,
+                nonnegative_integral,
+            )
+            with self.subTest(case=case):
+                np.testing.assert_allclose(
+                    analytic,
+                    numerical,
+                    rtol=2.0e-9,
+                    atol=2.0e-10,
+                )
+                self.assertFalse(result.near_kink)
+                for name in (
+                    "error_p",
+                    "error_d",
+                    "integral",
+                    "p_term",
+                    "i_term",
+                    "d_term",
+                    "output_sum",
+                ):
+                    self.assertEqual(
+                        getattr(result.active_set, name).region,
+                        "interior",
+                    )
+
+    def test_pid_each_saturated_stage_has_zero_local_slope(self):
+        wide = dict(
+            limit_sum=100.0,
+            limit_p=100.0,
+            limit_i=100.0,
+            limit_d=100.0,
+            limit_error_p=100.0,
+            limit_error_i=100.0,
+            limit_error_d=100.0,
+        )
+
+        error_p_result = pid_update_with_jacobian(
+            replace(PIDConfig(2.0, 1.0, 3.0, **wide), limit_error_p=0.2),
+            0.1,
+            0.8,
+            0.1,
+            0.05,
+            0.0,
+        )
+        self.assertTrue(error_p_result.active_set.error_p.saturated)
+        self.assertEqual(error_p_result.jacobian.output[1], 0.0)
+        self.assertEqual(error_p_result.jacobian.next_integral[1], 0.0)
+
+        error_d_result = pid_update_with_jacobian(
+            replace(PIDConfig(2.0, 1.0, 3.0, **wide), limit_error_d=0.2),
+            0.1,
+            0.05,
+            0.1,
+            -0.8,
+            0.0,
+        )
+        self.assertTrue(error_d_result.active_set.error_d.saturated)
+        self.assertEqual(error_d_result.jacobian.output[2], 0.0)
+
+        integral_result = pid_update_with_jacobian(
+            replace(PIDConfig(0.0, 2.0, 0.0, **wide), limit_error_i=0.1),
+            0.4,
+            0.2,
+            0.1,
+            0.0,
+            0.0,
+        )
+        self.assertTrue(integral_result.active_set.integral.saturated)
+        np.testing.assert_array_equal(
+            integral_result.jacobian.next_integral,
+            np.zeros(5),
+        )
+        self.assertEqual(integral_result.jacobian.output[0], 0.0)
+        self.assertEqual(integral_result.jacobian.output[4], 0.0)
+
+        p_term_result = pid_update_with_jacobian(
+            replace(PIDConfig(3.0, 0.0, 0.0, **wide), limit_p=0.2),
+            0.1,
+            0.4,
+            0.1,
+            0.0,
+            0.0,
+        )
+        self.assertTrue(p_term_result.active_set.p_term.saturated)
+        self.assertEqual(p_term_result.jacobian.output[1], 0.0)
+
+        i_term_result = pid_update_with_jacobian(
+            replace(PIDConfig(0.0, 3.0, 0.0, **wide), limit_i=0.2),
+            0.4,
+            0.1,
+            0.1,
+            0.0,
+            0.0,
+        )
+        self.assertTrue(i_term_result.active_set.i_term.saturated)
+        np.testing.assert_array_equal(
+            i_term_result.jacobian.output,
+            np.asarray((0.0, 0.0, 0.0, 1.0, 0.0)),
+        )
+        self.assertEqual(i_term_result.jacobian.next_integral[0], 1.0)
+
+        d_term_result = pid_update_with_jacobian(
+            replace(PIDConfig(0.0, 0.0, 3.0, **wide), limit_d=0.2),
+            0.0,
+            0.0,
+            0.1,
+            0.4,
+            0.0,
+        )
+        self.assertTrue(d_term_result.active_set.d_term.saturated)
+        self.assertEqual(d_term_result.jacobian.output[2], 0.0)
+
+        sum_result = pid_update_with_jacobian(
+            replace(PIDConfig(1.0, 1.0, 1.0, **wide), limit_sum=0.2),
+            0.1,
+            0.2,
+            0.1,
+            0.3,
+            0.4,
+        )
+        self.assertTrue(sum_result.active_set.output_sum.saturated)
+        np.testing.assert_array_equal(sum_result.jacobian.output, np.zeros(5))
+
+        nonnegative_result = pid_update_with_jacobian(
+            PIDConfig(0.0, 2.0, 0.0, **wide),
+            -0.3,
+            0.0,
+            0.1,
+            0.0,
+            0.0,
+            nonnegative_integral=True,
+        )
+        self.assertTrue(
+            nonnegative_result.active_set.nonnegative_integral.saturated
+        )
+        np.testing.assert_array_equal(
+            nonnegative_result.jacobian.next_integral,
+            np.zeros(5),
+        )
+        self.assertEqual(nonnegative_result.jacobian.output[0], 2.0)
+
+    def test_pid_exact_boundary_uses_saturated_one_sided_convention(self):
+        configuration = PIDConfig(
+            1.0,
+            0.0,
+            0.0,
+            limit_sum=10.0,
+            limit_p=10.0,
+            limit_i=10.0,
+            limit_d=10.0,
+            limit_error_p=0.5,
+            limit_error_i=10.0,
+            limit_error_d=10.0,
+        )
+        boundary = pid_update_with_jacobian(
+            configuration, 0.0, 0.5, 0.2, 0.0, 0.0
+        )
+        outside = pid_update_with_jacobian(
+            configuration, 0.0, 0.5 + 1.0e-6, 0.2, 0.0, 0.0
+        )
+        self.assertEqual(boundary.active_set.error_p.region, "upper")
+        self.assertTrue(boundary.active_set.error_p.near_kink)
+        self.assertTrue(boundary.near_kink)
+        one_sided = (
+            np.asarray((outside.output, outside.next_integral))
+            - np.asarray((boundary.output, boundary.next_integral))
+        ) / 1.0e-6
+        np.testing.assert_allclose(
+            one_sided,
+            (
+                boundary.jacobian.output[1],
+                boundary.jacobian.next_integral[1],
+            ),
+        )
+
+        near_inside = pid_update_with_jacobian(
+            configuration,
+            0.0,
+            np.nextafter(0.5, 0.0),
+            0.2,
+            0.0,
+            0.0,
+        )
+        self.assertEqual(near_inside.active_set.error_p.region, "interior")
+        self.assertTrue(near_inside.active_set.error_p.near_kink)
+        self.assertEqual(near_inside.jacobian.output[1], 1.0)
+
+        sum_configuration = replace(configuration, limit_sum=0.5)
+        sum_boundary = pid_update_with_jacobian(
+            sum_configuration, 0.0, 0.0, 0.1, 0.0, 0.5
+        )
+        sum_outside = pid_update_with_jacobian(
+            sum_configuration, 0.0, 0.0, 0.1, 0.0, 0.500001
+        )
+        self.assertEqual(sum_boundary.active_set.output_sum.region, "upper")
+        self.assertEqual(sum_boundary.jacobian.output[3], 0.0)
+        self.assertAlmostEqual(
+            (sum_outside.output - sum_boundary.output) / 1.0e-6,
+            sum_boundary.jacobian.output[3],
+        )
+
+        z_boundary = pid_update_with_jacobian(
+            configuration,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            nonnegative_integral=True,
+        )
+        z_outside = pid_update_with_jacobian(
+            configuration,
+            -1.0e-6,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            nonnegative_integral=True,
+        )
+        self.assertEqual(
+            z_boundary.active_set.nonnegative_integral.region, "lower"
+        )
+        self.assertTrue(z_boundary.active_set.nonnegative_integral.near_kink)
+        self.assertEqual(z_boundary.jacobian.next_integral[0], 0.0)
+        self.assertAlmostEqual(
+            (z_outside.next_integral - z_boundary.next_integral) / -1.0e-6,
+            z_boundary.jacobian.next_integral[0],
+        )
+
+    def test_pid_typed_results_and_input_validation(self):
+        configuration = PIDConfig(1.0, 2.0, 3.0)
+        result = pid_update_with_jacobian(
+            configuration, 0.1, 0.2, 0.03, -0.4, 0.5
+        )
+        self.assertEqual(
+            PID_UPDATE_INPUTS,
+            (
+                "integral_error",
+                "error_p",
+                "error_d",
+                "feedforward",
+                "time_step",
+            ),
+        )
+        self.assertIsInstance(result, PIDUpdateResult)
+        self.assertIsInstance(result.jacobian, PIDUpdateJacobian)
+        self.assertIsInstance(result.active_set, PIDActiveSet)
+        self.assertIsInstance(result.active_set.error_p, PIDClampState)
+        self.assertEqual(result.jacobian.output.shape, (5,))
+        self.assertEqual(result.jacobian.next_integral.shape, (5,))
+        self.assertTrue(np.all(np.isfinite(result.jacobian.output)))
+        self.assertTrue(np.all(np.isfinite(result.jacobian.next_integral)))
+
+        with self.assertRaisesRegex(ValueError, "five finite"):
+            PIDUpdateJacobian(np.zeros(4), np.zeros(5))
+        with self.assertRaisesRegex(ValueError, "finite"):
+            pid_update_with_jacobian(
+                configuration, np.nan, 0.0, 0.1, 0.0, 0.0
+            )
+        with self.assertRaisesRegex(ValueError, "non-negative"):
+            pid_update_with_jacobian(
+                configuration, 0.0, 0.0, -0.1, 0.0, 0.0
+            )
+        with self.assertRaises(TypeError):
+            pid_update_with_jacobian(
+                object(), 0.0, 0.0, 0.1, 0.0, 0.0
+            )
+        with self.assertRaises(TypeError):
+            pid_update_with_jacobian(
+                configuration,
+                0.0,
+                0.0,
+                0.1,
+                0.0,
+                0.0,
+                nonnegative_integral=1,
+            )
+
     def test_articulated_q0_snapshot_matches_audited_controller_values(self):
         parameters, geometry = GrapeArticulatedModel().at(np.zeros(4))
         expected_parameters = VehicleParameters.nominal()

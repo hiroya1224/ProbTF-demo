@@ -1,78 +1,80 @@
+import copy
 from pathlib import Path
 import tempfile
 import unittest
 
+from grape_param_estim_gui import stage_requests
 from grape_param_estim_gui.stage_requests import (
-    MINIMUM_STAGED_ENSEMBLE_SIZE,
-    augmented_parameter_stage_settings,
-    build_augmented_parameter_stage_request,
-    build_diagonal_q_stage_request,
-    diagonal_q_stage_settings,
+    BATCH_ESTIMATION_REQUEST_SCHEMA,
+    BATCH_ESTIMATION_STAGE_ID,
+    batch_estimation_settings,
+    build_batch_estimation_request,
     stage_bag_requests,
+    workflow_mode_run_mode,
 )
 from grape_param_estim_gui.state import BagRecord
-from grape_param_estim_gui.workflow import canonical_fingerprint
+from grape_param_estim_gui.workflow import WorkflowMode, canonical_fingerprint
+
+
+def _settings(*, mcmc_enabled=True):
+    return {
+        "q": {"definition": "explicit-six-axis"},
+        "parameter_prior": {"kind": "gaussian"},
+        "delay": {"prior_kind": "uniform"},
+        "actuator_model": {"source": "calibration-a"},
+        "knot_policy": {"origin": "interval_start"},
+        "interpolation_policy": {"orientation": "so3_geodesic"},
+        "controller_snapshot_policy": {
+            "source": "bag_startup_parameter_updates"
+        },
+        "mode_hypotheses": [{"mode_id": "recorded"}],
+        "solver_settings": {"maximum_iterations": 50},
+        "em_settings": {"maximum_iterations": 10},
+        "mcmc_settings": {"enabled": mcmc_enabled},
+    }
+
+
+def _bag_configuration():
+    return {
+        "observation_factors": {"pose": {"enabled": True}},
+        "fixed_factor_covariances": {"position_kinematic": {}},
+        "initial_state_prior_covariances": {"position": {}},
+    }
 
 
 class StageRequestTests(unittest.TestCase):
-    def _settings(self):
-        return {
-            "sample_period": 0.04,
-            "ensemble_size": 64,
-            "maximum_iterations": 4,
-            "convergence_tolerance": 2.0e-3,
-            "seed": 23,
-            "delay_prior_mean": 0.02,
-        }
-
-    def test_q_settings_keep_all_six_diagonal_floors(self):
-        source = self._settings()
-        source["q_component_floor"] = [
-            1.0e-8,
-            2.0e-8,
-            3.0e-8,
-            4.0e-8,
-            5.0e-8,
-            6.0e-8,
-        ]
-        source["q_maximum_em_iterations"] = 7
-        source["q_log_q_tolerance"] = 4.0e-4
-        source["forecast_workers"] = 12
-        resolved = diagonal_q_stage_settings(source)
-        self.assertEqual(resolved["component_floor"], source["q_component_floor"])
-        self.assertEqual(resolved["maximum_em_iterations"], 7)
-        self.assertEqual(resolved["log_q_tolerance"], 4.0e-4)
-        self.assertEqual(resolved["forecast_workers"], 12)
-
-    def test_staged_workflow_rejects_an_undersized_ensemble(self):
-        source = self._settings()
-        source["ensemble_size"] = MINIMUM_STAGED_ENSEMBLE_SIZE - 1
-        with self.assertRaisesRegex(ValueError, "at least 58"):
-            diagonal_q_stage_settings(source)
-
-    def test_augmented_settings_are_explicit_and_bounded(self):
-        source = self._settings()
-        source.update(
-            delay_prior_standard_deviation=0.015,
-            maximum_delay=0.2,
-            covariance_rcond=1.0e-10,
-            forecast_workers="auto",
-        )
-        resolved = augmented_parameter_stage_settings(source)
-        self.assertEqual(resolved["ensemble_size"], 64)
-        self.assertEqual(resolved["delay_prior_mean_seconds"], 0.02)
+    def test_workflow_mode_selects_estimate_or_estimate_and_sample(self):
         self.assertEqual(
-            resolved["delay_prior_standard_deviation_seconds"], 0.015
+            workflow_mode_run_mode(WorkflowMode.STEP), "estimate_only"
         )
-        self.assertEqual(resolved["maximum_delay_seconds"], 0.2)
-        self.assertEqual(resolved["covariance_rcond"], 1.0e-10)
-        self.assertEqual(resolved["forecast_workers"], "auto")
+        self.assertEqual(
+            workflow_mode_run_mode(WorkflowMode.ALL), "estimate_and_sample"
+        )
 
-        source["delay_prior_mean"] = 0.2
-        with self.assertRaisesRegex(ValueError, "below maximum_delay"):
-            augmented_parameter_stage_settings(source)
+    def test_settings_are_strict_and_never_supply_scientific_defaults(self):
+        settings = _settings()
+        self.assertEqual(
+            batch_estimation_settings(
+                settings, run_mode="estimate_and_sample"
+            ),
+            settings,
+        )
+        for key in tuple(settings):
+            candidate = copy.deepcopy(settings)
+            del candidate[key]
+            with self.subTest(key=key), self.assertRaisesRegex(
+                ValueError, "missing"
+            ):
+                batch_estimation_settings(
+                    candidate, run_mode="estimate_and_sample"
+                )
 
-    def test_selected_bags_are_canonical_and_preserve_manual_group(self):
+        with self.assertRaisesRegex(ValueError, "match run_mode"):
+            batch_estimation_settings(
+                _settings(mcmc_enabled=True), run_mode="estimate_only"
+            )
+
+    def test_selected_bags_bind_exact_interval_sha_and_factor_settings(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             records = []
@@ -85,106 +87,82 @@ class StageRequestTests(unittest.TestCase):
                         path=path,
                         source_path=path,
                         sha256="1" * 64,
-                        inspection={
-                            "recommended_interval": {"episode_index": 2}
-                        },
-                        selected_interval=(1.0, 3.0),
-                        configuration_fingerprint=(
-                            "manual-group:sha256:" + "2" * 64
-                        ),
+                        inspection={"sensor_contract": {}},
+                        selected_interval=(18.0, 24.0),
                     )
                 )
-            bags = stage_bag_requests(records)
+            bags = stage_bag_requests(
+                records,
+                {bag_id: _bag_configuration() for bag_id in ("bag-a", "bag-z")},
+            )
+
         self.assertEqual([value["bag_id"] for value in bags], ["bag-a", "bag-z"])
+        self.assertEqual(bags[0]["sha256"], "sha256:" + "1" * 64)
+        self.assertEqual(bags[0]["interval_seconds"], [18.0, 24.0])
         self.assertEqual(
-            bags[0]["configuration_fingerprint"],
-            "manual-group:sha256:" + "2" * 64,
+            set(bags[0]),
+            {
+                "bag_id",
+                "path",
+                "sha256",
+                "interval_seconds",
+                "observation_factors",
+                "fixed_factor_covariances",
+                "initial_state_prior_covariances",
+            },
         )
 
-    def test_request_has_exact_worker_contract_and_stable_fingerprint(self):
-        stage_input = canonical_fingerprint({"stage": "q"})
-        project = canonical_fingerprint({"project": "a"})
+    def test_one_command_request_is_exact_stable_and_resumable(self):
+        settings = _settings()
         bag = {
             "bag_id": "bag-a",
             "path": "/tmp/a.bag",
-            "sha256": "1" * 64,
-            "episode_index": 0,
-            "selected_interval_local_seconds": [1.0, 2.0],
-            "configuration_fingerprint": "complete:" + "2" * 64,
+            "sha256": "sha256:" + "1" * 64,
+            "interval_seconds": [18.0, 24.0],
+            **_bag_configuration(),
         }
-        settings = diagonal_q_stage_settings(self._settings())
-        first = build_diagonal_q_stage_request(
-            run_id="q-a",
-            project_fingerprint=project,
-            stage_input_fingerprint=stage_input,
+        first = build_batch_estimation_request(
+            run_id="run-a",
+            run_mode="estimate_and_sample",
+            resume=True,
+            output_directory="/tmp/project/runs/run-a/estimation_run",
             bags=[bag],
             settings=settings,
         )
-        second = build_diagonal_q_stage_request(
-            run_id="q-a",
-            project_fingerprint=project,
-            stage_input_fingerprint=stage_input,
+        second = build_batch_estimation_request(
+            run_id="run-a",
+            run_mode="estimate_and_sample",
+            resume=True,
+            output_directory="/tmp/project/runs/run-a/estimation_run",
             bags=[bag],
             settings=settings,
         )
         self.assertEqual(first, second)
+        self.assertEqual(first["schema"], BATCH_ESTIMATION_REQUEST_SCHEMA)
+        self.assertEqual(first["resume"], True)
         self.assertEqual(
             set(first),
             {
                 "schema",
                 "run_id",
-                "project_fingerprint",
-                "stage_id",
-                "stage_input_fingerprint",
+                "run_mode",
+                "resume",
+                "output_directory",
                 "bags",
-                "settings",
+                *settings.keys(),
             },
         )
         self.assertEqual(canonical_fingerprint(first), canonical_fingerprint(second))
 
-    def test_augmented_request_binds_the_exact_q_artifact(self):
-        source = self._settings()
-        source["delay_prior_standard_deviation"] = 0.015
-        request = build_augmented_parameter_stage_request(
-            run_id="parameters-a",
-            project_fingerprint=canonical_fingerprint({"project": "a"}),
-            stage_input_fingerprint=canonical_fingerprint(
-                {"stage": "parameters"}
-            ),
-            upstream_diagonal_q_path="/tmp/project/runs/q-a/diagonal_q",
-            upstream_diagonal_q_fingerprint=canonical_fingerprint(
-                {"q": "artifact"}
-            ),
-            bags=[
-                {
-                    "bag_id": "bag-a",
-                    "path": "/tmp/a.bag",
-                    "sha256": "1" * 64,
-                    "episode_index": 0,
-                    "selected_interval_local_seconds": [1.0, 2.0],
-                    "configuration_fingerprint": "complete:" + "2" * 64,
-                }
-            ],
-            settings=augmented_parameter_stage_settings(source),
-        )
-        self.assertEqual(
-            set(request),
-            {
-                "schema",
-                "run_id",
-                "project_fingerprint",
-                "stage_id",
-                "stage_input_fingerprint",
-                "upstream_diagonal_q",
-                "bags",
-                "settings",
-            },
-        )
-        self.assertTrue(
-            request["upstream_diagonal_q"]["artifact_fingerprint"].startswith(
-                "sha256:"
-            )
-        )
+    def test_old_two_stage_api_is_absent(self):
+        self.assertEqual(BATCH_ESTIMATION_STAGE_ID, "batch_estimation")
+        for name in (
+            "build_diagonal_q_stage_request",
+            "build_augmented_parameter_stage_request",
+            "diagonal_q_stage_settings",
+            "augmented_parameter_stage_settings",
+        ):
+            self.assertFalse(hasattr(stage_requests, name))
 
 
 if __name__ == "__main__":

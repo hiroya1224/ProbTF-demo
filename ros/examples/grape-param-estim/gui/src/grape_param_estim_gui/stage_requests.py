@@ -1,279 +1,202 @@
-"""Deterministic GUI request builders for the staged estimator workers."""
+"""Deterministic GUI request builder for the sparse batch worker."""
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-import numpy as np
-
-from .workflow import canonical_fingerprint
+from .workflow import WorkflowMode, canonical_fingerprint
 
 
-DIAGONAL_Q_STAGE_REQUEST_SCHEMA = (
-    "grape-param-estim/diagonal-q-stage-request/v1"
+BATCH_ESTIMATION_REQUEST_SCHEMA = (
+    "grape-param-estim/batch-estimation-request/v1"
 )
-DIAGONAL_Q_STAGE_ID = "diagonal_q"
-STATIC_PARAMETERS_STAGE_REQUEST_SCHEMA = (
-    "grape-param-estim/augmented-parameter-stage-request/v1"
-)
-STATIC_PARAMETERS_STAGE_ID = "static_parameters"
-MINIMUM_STAGED_ENSEMBLE_SIZE = 58
+BATCH_ESTIMATION_STAGE_ID = "batch_estimation"
+RUN_MODES = ("estimate_only", "estimate_and_sample")
+
+_SETTING_KEYS = {
+    "q",
+    "parameter_prior",
+    "delay",
+    "actuator_model",
+    "knot_policy",
+    "interpolation_policy",
+    "controller_snapshot_policy",
+    "mode_hypotheses",
+    "solver_settings",
+    "em_settings",
+    "mcmc_settings",
+}
+_BAG_SETTING_KEYS = {
+    "observation_factors",
+    "fixed_factor_covariances",
+    "initial_state_prior_covariances",
+}
 
 
-def _finite(value: Any, label: str, *, positive: bool = False) -> float:
-    if isinstance(value, (bool, np.bool_)):
-        raise ValueError("{} must be a finite number".format(label))
+def _exact_keys(value: Mapping[str, Any], expected: set[str], label: str) -> None:
+    supplied = set(value)
+    if supplied == expected:
+        return
+    missing = sorted(expected - supplied)
+    unknown = sorted(supplied - expected)
+    details = []
+    if missing:
+        details.append("missing {}".format(", ".join(missing)))
+    if unknown:
+        details.append("unexpected {}".format(", ".join(unknown)))
+    raise ValueError("{} has {}".format(label, "; ".join(details)))
+
+
+def _finite_json_copy(value: Any, label: str) -> Any:
     try:
-        selected = float(value)
-    except (TypeError, ValueError, OverflowError) as error:
-        raise ValueError("{} must be a finite number".format(label)) from error
-    if not np.isfinite(selected) or (positive and selected <= 0.0):
-        raise ValueError("{} must be finite and positive".format(label))
-    return selected
-
-
-def _integer(value: Any, label: str, *, minimum: int) -> int:
-    if isinstance(value, (bool, np.bool_)):
-        raise ValueError("{} must be an integer".format(label))
-    try:
-        selected = int(value)
-    except (TypeError, ValueError, OverflowError) as error:
-        raise ValueError("{} must be an integer".format(label)) from error
-    if selected != value or selected < minimum:
-        raise ValueError(
-            "{} must be an integer of at least {}".format(label, minimum)
+        canonical_fingerprint(value)
+        return json.loads(
+            json.dumps(
+                value,
+                allow_nan=False,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            )
         )
-    return selected
+    except (TypeError, ValueError) as error:
+        raise ValueError("{} must be finite JSON".format(label)) from error
 
 
-def diagonal_q_stage_settings(
-    estimator_settings: Mapping[str, Any],
+def workflow_mode_run_mode(mode: WorkflowMode | str) -> str:
+    """Map staged user interaction to the worker's explicit run mode."""
+
+    try:
+        selected = WorkflowMode(mode)
+    except (TypeError, ValueError) as error:
+        raise ValueError("workflow mode must be STEP or ALL") from error
+    return (
+        "estimate_only"
+        if selected == WorkflowMode.STEP
+        else "estimate_and_sample"
+    )
+
+
+def batch_estimation_settings(
+    estimator_settings: Mapping[str, Any], *, run_mode: str
 ) -> dict[str, Any]:
-    """Resolve explicit six-component Q settings from a project manifest."""
+    """Detach the exact scientific settings accepted by the worker.
+
+    No covariance, prior, solver, EM, or MCMC default is supplied by the GUI.
+    The project must persist every scientific choice explicitly.
+    """
 
     if not isinstance(estimator_settings, Mapping):
         raise ValueError("estimator_settings must be an object")
-    sample_period = _finite(
-        estimator_settings.get("sample_period"),
-        "sample_period",
-        positive=True,
-    )
-    ensemble_size = _integer(
-        estimator_settings.get("ensemble_size"),
-        "ensemble_size",
-        minimum=MINIMUM_STAGED_ENSEMBLE_SIZE,
-    )
-    iterations = _integer(
-        estimator_settings.get(
-            "q_maximum_em_iterations",
-            estimator_settings.get("maximum_iterations"),
-        ),
-        "q_maximum_em_iterations",
-        minimum=1,
-    )
-    tolerance = _finite(
-        estimator_settings.get(
-            "q_log_q_tolerance",
-            estimator_settings.get("convergence_tolerance", 1.0e-3),
-        ),
-        "q_log_q_tolerance",
-        positive=True,
-    )
-    raw_floor = estimator_settings.get(
-        "q_component_floor", [1.0e-9] * 6
-    )
-    if not isinstance(raw_floor, (list, tuple)) or len(raw_floor) != 6:
-        raise ValueError("q_component_floor must contain six values")
-    floor = [
-        _finite(value, "q_component_floor[{}]".format(index), positive=True)
-        for index, value in enumerate(raw_floor)
-    ]
-    fixed_delay = _finite(
-        estimator_settings.get(
-            "q_fixed_initial_delay_seconds",
-            estimator_settings.get("delay_prior_mean"),
-        ),
-        "q_fixed_initial_delay_seconds",
-    )
-    if fixed_delay < 0.0:
-        raise ValueError("q_fixed_initial_delay_seconds cannot be negative")
-    seed = _integer(estimator_settings.get("seed"), "seed", minimum=0)
-    if seed >= 2**32:
-        raise ValueError("seed must be below 2**32")
-    workers = estimator_settings.get("forecast_workers", "auto")
-    if workers != "auto":
-        workers = _integer(workers, "forecast_workers", minimum=1)
-        if workers > 256:
-            raise ValueError("forecast_workers cannot exceed 256")
-    return {
-        "sample_period": sample_period,
-        "ensemble_size": ensemble_size,
-        "maximum_em_iterations": iterations,
-        "log_q_tolerance": tolerance,
-        "component_floor": floor,
-        "fixed_initial_delay_seconds": fixed_delay,
-        "seed": seed,
-        "forecast_workers": workers,
-    }
+    _exact_keys(estimator_settings, _SETTING_KEYS, "estimator_settings")
+    if run_mode not in RUN_MODES:
+        raise ValueError("run_mode must be estimate_only or estimate_and_sample")
+    settings = _finite_json_copy(estimator_settings, "estimator_settings")
+    mcmc = settings["mcmc_settings"]
+    if not isinstance(mcmc, dict) or not isinstance(mcmc.get("enabled"), bool):
+        raise ValueError("mcmc_settings.enabled must be explicit boolean")
+    expected_enabled = run_mode == "estimate_and_sample"
+    if mcmc["enabled"] != expected_enabled:
+        raise ValueError(
+            "mcmc_settings.enabled must match run_mode"
+        )
+    return settings
 
 
-def augmented_parameter_stage_settings(
-    estimator_settings: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Resolve the fixed-Q augmented EnKF/EnRTS stage settings."""
+def stage_bag_requests(
+    records: Sequence[Any],
+    bag_settings: Mapping[str, Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Bind selected bags and intervals to explicit factor configuration."""
 
-    if not isinstance(estimator_settings, Mapping):
-        raise ValueError("estimator_settings must be an object")
-    sample_period = _finite(
-        estimator_settings.get("sample_period"),
-        "sample_period",
-        positive=True,
-    )
-    ensemble_size = _integer(
-        estimator_settings.get("ensemble_size"),
-        "ensemble_size",
-        minimum=MINIMUM_STAGED_ENSEMBLE_SIZE,
-    )
-    delay_mean = _finite(
-        estimator_settings.get("delay_prior_mean"),
-        "delay_prior_mean",
-        positive=True,
-    )
-    delay_deviation = _finite(
-        estimator_settings.get("delay_prior_standard_deviation"),
-        "delay_prior_standard_deviation",
-        positive=True,
-    )
-    maximum_delay = _finite(
-        estimator_settings.get("maximum_delay", 0.2),
-        "maximum_delay",
-        positive=True,
-    )
-    if delay_mean >= maximum_delay:
-        raise ValueError("delay_prior_mean must be below maximum_delay")
-    covariance_rcond = _finite(
-        estimator_settings.get("covariance_rcond", 1.0e-12),
-        "covariance_rcond",
-        positive=True,
-    )
-    seed = _integer(estimator_settings.get("seed"), "seed", minimum=0)
-    if seed >= 2**32:
-        raise ValueError("seed must be below 2**32")
-    workers = estimator_settings.get("forecast_workers", "auto")
-    if workers != "auto":
-        workers = _integer(workers, "forecast_workers", minimum=1)
-        if workers > 256:
-            raise ValueError("forecast_workers cannot exceed 256")
-    return {
-        "sample_period": sample_period,
-        "ensemble_size": ensemble_size,
-        "delay_prior_mean_seconds": delay_mean,
-        "delay_prior_standard_deviation_seconds": delay_deviation,
-        "maximum_delay_seconds": maximum_delay,
-        "covariance_rcond": covariance_rcond,
-        "seed": seed,
-        "forecast_workers": workers,
-    }
-
-
-def stage_bag_requests(records: Sequence[Any]) -> list[dict[str, Any]]:
-    """Detach the exact selected bag inputs required by both stages."""
+    if not isinstance(bag_settings, Mapping):
+        raise ValueError("bag_settings must be an object")
+    selected_records = sorted(tuple(records), key=lambda value: value.bag_id)
+    selected_ids = {str(record.bag_id) for record in selected_records}
+    if not selected_records:
+        raise ValueError("at least one selected bag is required")
+    if set(bag_settings) != selected_ids:
+        raise ValueError("bag_settings must exactly match selected bag IDs")
 
     bags = []
-    for record in sorted(tuple(records), key=lambda value: value.bag_id):
+    for record in selected_records:
         if record.inspection is None or record.selected_interval is None:
             raise ValueError(
                 "selected bag {} has no inspection interval".format(
                     record.bag_id
                 )
             )
-        recommendation = record.inspection.get("recommended_interval")
-        if not isinstance(recommendation, Mapping):
-            raise ValueError(
-                "selected bag {} has no episode index".format(record.bag_id)
-            )
+        configuration = bag_settings[str(record.bag_id)]
+        if not isinstance(configuration, Mapping):
+            raise ValueError("bag settings must be objects")
+        _exact_keys(
+            configuration,
+            _BAG_SETTING_KEYS,
+            "bag_settings.{}".format(record.bag_id),
+        )
+        digest = str(record.sha256)
+        if not digest.startswith("sha256:"):
+            digest = "sha256:" + digest
         bags.append(
             {
                 "bag_id": str(record.bag_id),
                 "path": str(Path(record.path).resolve()),
-                "sha256": str(record.sha256),
-                "episode_index": int(recommendation["episode_index"]),
-                "selected_interval_local_seconds": [
+                "sha256": digest,
+                "interval_seconds": [
                     float(value) for value in record.selected_range
                 ],
-                "configuration_fingerprint": str(
-                    record.configuration_fingerprint
+                **_finite_json_copy(
+                    configuration,
+                    "bag_settings.{}".format(record.bag_id),
                 ),
             }
         )
-    if not bags:
-        raise ValueError("at least one selected bag is required")
+    canonical_fingerprint(bags)
     return bags
 
 
-def build_diagonal_q_stage_request(
+def build_batch_estimation_request(
     *,
     run_id: str,
-    project_fingerprint: str,
-    stage_input_fingerprint: str,
+    run_mode: str,
+    resume: bool,
+    output_directory: str | Path,
     bags: Sequence[Mapping[str, Any]],
     settings: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Build the exact request accepted by ``grape_estimate_diagonal_q``."""
+    """Build the exact one-command request accepted by the batch worker."""
 
+    if not isinstance(run_id, str) or not run_id:
+        raise ValueError("run_id must be a non-empty string")
+    if run_mode not in RUN_MODES:
+        raise ValueError("run_mode must be estimate_only or estimate_and_sample")
+    if not isinstance(resume, bool):
+        raise ValueError("resume must be boolean")
+    output = Path(output_directory)
+    if not output.is_absolute() or ".." in output.parts:
+        raise ValueError("output_directory must be an absolute path without '..'")
+    resolved_settings = batch_estimation_settings(settings, run_mode=run_mode)
     request = {
-        "schema": DIAGONAL_Q_STAGE_REQUEST_SCHEMA,
-        "run_id": str(run_id),
-        "project_fingerprint": str(project_fingerprint),
-        "stage_id": DIAGONAL_Q_STAGE_ID,
-        "stage_input_fingerprint": str(stage_input_fingerprint),
-        "bags": [dict(value) for value in bags],
-        "settings": dict(settings),
-    }
-    # Fail here rather than enqueue a request containing non-finite JSON.
-    canonical_fingerprint(request)
-    return request
-
-
-def build_augmented_parameter_stage_request(
-    *,
-    run_id: str,
-    project_fingerprint: str,
-    stage_input_fingerprint: str,
-    upstream_diagonal_q_path: str | Path,
-    upstream_diagonal_q_fingerprint: str,
-    bags: Sequence[Mapping[str, Any]],
-    settings: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Build the exact request for fixed-Q 19+26 parameter assimilation."""
-
-    request = {
-        "schema": STATIC_PARAMETERS_STAGE_REQUEST_SCHEMA,
-        "run_id": str(run_id),
-        "project_fingerprint": str(project_fingerprint),
-        "stage_id": STATIC_PARAMETERS_STAGE_ID,
-        "stage_input_fingerprint": str(stage_input_fingerprint),
-        "upstream_diagonal_q": {
-            "path": str(Path(upstream_diagonal_q_path).resolve()),
-            "artifact_fingerprint": str(upstream_diagonal_q_fingerprint),
-        },
-        "bags": [dict(value) for value in bags],
-        "settings": dict(settings),
+        "schema": BATCH_ESTIMATION_REQUEST_SCHEMA,
+        "run_id": run_id,
+        "run_mode": run_mode,
+        "resume": resume,
+        "output_directory": str(output.resolve()),
+        "bags": [_finite_json_copy(dict(value), "bag request") for value in bags],
+        **resolved_settings,
     }
     canonical_fingerprint(request)
     return request
 
 
 __all__ = [
-    "DIAGONAL_Q_STAGE_ID",
-    "DIAGONAL_Q_STAGE_REQUEST_SCHEMA",
-    "MINIMUM_STAGED_ENSEMBLE_SIZE",
-    "STATIC_PARAMETERS_STAGE_ID",
-    "STATIC_PARAMETERS_STAGE_REQUEST_SCHEMA",
-    "augmented_parameter_stage_settings",
-    "build_augmented_parameter_stage_request",
-    "build_diagonal_q_stage_request",
-    "diagonal_q_stage_settings",
+    "BATCH_ESTIMATION_REQUEST_SCHEMA",
+    "BATCH_ESTIMATION_STAGE_ID",
+    "RUN_MODES",
+    "batch_estimation_settings",
+    "build_batch_estimation_request",
     "stage_bag_requests",
+    "workflow_mode_run_mode",
 ]

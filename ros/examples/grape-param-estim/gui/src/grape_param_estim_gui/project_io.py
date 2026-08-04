@@ -17,15 +17,16 @@ import uuid
 import zipfile
 
 
-PROJECT_SCHEMA = "grape-param-estim/project/v1"
+PROJECT_SCHEMA = "grape-param-estim/project/v2"
 PROJECT_WRITER_ID = "grape-param-estim-gui-project-writer"
-PROJECT_WRITER_VERSION = 1
+PROJECT_WRITER_VERSION = 2
 PROJECT_LOADER_ID = "grape-param-estim-gui-project-loader"
-PROJECT_LOADER_VERSION = 1
+PROJECT_LOADER_VERSION = 2
 PROJECT_ARTIFACT_LOADER_ID = "grape-param-estim-gui-artifact-loader"
-PROJECT_ARTIFACT_LOADER_VERSION = 1
+PROJECT_ARTIFACT_LOADER_VERSION = 2
 PROJECT_MANIFEST_NAME = "project.json"
 GUI_STATE_NAME = "gui_state.json"
+GUI_STATE_SCHEMA = "grape-param-estim/gui-state/v2"
 
 _PROJECT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -36,7 +37,7 @@ _MANUAL_GROUP_FINGERPRINT = re.compile(
 _INTERVAL_STATES = {"AUTO", "MODIFIED", "LOCKED"}
 _ARTIFACT_KINDS = {
     "inspection",
-    "assimilation_run",
+    "estimation_run",
     "pid_proposal_evaluation",
 }
 
@@ -152,7 +153,7 @@ def new_project_manifest(
                 "id": PROJECT_ARTIFACT_LOADER_ID,
                 "version": PROJECT_ARTIFACT_LOADER_VERSION,
             },
-            "assimilation_run": {
+            "estimation_run": {
                 "id": PROJECT_ARTIFACT_LOADER_ID,
                 "version": PROJECT_ARTIFACT_LOADER_VERSION,
             },
@@ -168,7 +169,7 @@ def new_project_manifest(
         "configuration_fingerprints": {},
         "configuration_confirmations": {},
         "estimator_settings": {},
-        "current_assimilation_run_id": None,
+        "current_estimation_run_id": None,
         "current_pid_proposal_evaluation_id": None,
         "run_request_fingerprint": None,
         "result_freshness": "NOT_ESTIMATED",
@@ -190,19 +191,24 @@ def validate_project_manifest(
     value: Mapping[str, Any], *, source_root: str | Path | None = None
 ) -> dict[str, Any]:
     value = dict(value)
-    value.setdefault("configuration_confirmations", {})
     required = {
         "schema", "project_id", "created_at", "updated_at", "gui_revision",
         "estimator_revision", "writer", "loader", "artifact_loaders", "bags",
         "selected_bag_ids", "intervals", "controller_snapshots",
         "configuration_fingerprints", "configuration_confirmations",
         "estimator_settings",
-        "current_assimilation_run_id", "current_pid_proposal_evaluation_id",
+        "current_estimation_run_id", "current_pid_proposal_evaluation_id",
         "run_request_fingerprint", "result_freshness",
     }
     missing = required - set(value)
-    if missing:
-        raise ProjectIoError("project manifest is missing {}".format(", ".join(sorted(missing))))
+    unknown = set(value) - required
+    if missing or unknown:
+        details = []
+        if missing:
+            details.append("missing {}".format(", ".join(sorted(missing))))
+        if unknown:
+            details.append("unexpected {}".format(", ".join(sorted(unknown))))
+        raise ProjectIoError("project manifest has {}".format("; ".join(details)))
     if value["schema"] != PROJECT_SCHEMA:
         raise ProjectIoError("unsupported project schema {!r}".format(value["schema"]))
     project_id = value["project_id"]
@@ -213,7 +219,11 @@ def validate_project_manifest(
         ("loader", PROJECT_LOADER_ID, PROJECT_LOADER_VERSION),
     ):
         metadata = value[key]
-        if not isinstance(metadata, dict) or metadata.get("id") != expected_id:
+        if (
+            not isinstance(metadata, dict)
+            or set(metadata) != {"id", "version"}
+            or metadata.get("id") != expected_id
+        ):
             raise ProjectIoError("unsupported project {}".format(key))
         if metadata.get("version") != expected_version:
             raise ProjectIoError("unsupported project {} version".format(key))
@@ -227,6 +237,7 @@ def validate_project_manifest(
         metadata = artifact_loaders[kind]
         if (
             not isinstance(metadata, dict)
+            or set(metadata) != {"id", "version"}
             or metadata.get("id") != PROJECT_ARTIFACT_LOADER_ID
         ):
             raise ProjectIoError("unsupported {} artifact loader".format(kind))
@@ -242,8 +253,8 @@ def validate_project_manifest(
     for item in bags:
         if not isinstance(item, dict):
             raise ProjectIoError("each bag entry must be an object")
-        if not {"bag_id", "source_path", "relative_path", "sha256"} <= set(item):
-            raise ProjectIoError("bag entry is incomplete")
+        if set(item) != {"bag_id", "source_path", "relative_path", "sha256"}:
+            raise ProjectIoError("bag entry has unsupported fields")
         bag_id = item["bag_id"]
         if not isinstance(bag_id, str) or not _PROJECT_ID.fullmatch(bag_id):
             raise ProjectIoError("bag_id is not a safe identifier")
@@ -338,6 +349,8 @@ def validate_project_manifest(
     for bag_id, interval in intervals.items():
         if bag_id not in identifiers or not isinstance(interval, dict):
             raise ProjectIoError("invalid interval bag ID")
+        if set(interval) != {"auto", "selected", "state"}:
+            raise ProjectIoError("invalid interval metadata fields")
         try:
             auto = [float(x) for x in interval["auto"]]
             chosen = [float(x) for x in interval["selected"]]
@@ -350,6 +363,13 @@ def validate_project_manifest(
             or interval_state not in _INTERVAL_STATES
         ):
             raise ProjectIoError("invalid interval bounds or state")
+    snapshots = value["controller_snapshots"]
+    if not isinstance(snapshots, dict) or not set(snapshots) <= set(identifiers):
+        raise ProjectIoError("controller_snapshots must reference registered bag IDs")
+    if any(not isinstance(snapshot, dict) for snapshot in snapshots.values()):
+        raise ProjectIoError("controller snapshots must be objects")
+    if not isinstance(value["estimator_settings"], dict):
+        raise ProjectIoError("estimator_settings must be an object")
     freshness = value["result_freshness"]
     if freshness not in {"NOT_ESTIMATED", "UP_TO_DATE", "STALE"}:
         raise ProjectIoError("invalid result_freshness")
@@ -362,7 +382,7 @@ def validate_project_manifest(
             "run_request_fingerprint must be null or a SHA256 fingerprint"
         )
     for key in (
-        "current_assimilation_run_id",
+        "current_estimation_run_id",
         "current_pid_proposal_evaluation_id",
     ):
         identifier = value[key]
@@ -380,6 +400,137 @@ def validate_project_manifest(
             if sha256_file(path) != item["sha256"]:
                 raise ProjectIoError("project bag SHA256 mismatch: {}".format(item["bag_id"]))
     return json.loads(_canonical_json(dict(value)).decode("utf-8"))
+
+
+def validate_gui_state(
+    value: Mapping[str, Any], *, registered_bag_ids: Iterable[str]
+) -> dict[str, Any]:
+    """Validate the sole GUI-state schema used by batch-estimation projects."""
+
+    state = dict(value)
+    expected = {
+        "schema",
+        "current_bag_id",
+        "selected_sample_id",
+        "selected_mode_id",
+        "selected_pid_proposal_id",
+        "bags",
+    }
+    if set(state) != expected:
+        missing = sorted(expected - set(state))
+        unknown = sorted(set(state) - expected)
+        details = []
+        if missing:
+            details.append("missing {}".format(", ".join(missing)))
+        if unknown:
+            details.append("unexpected {}".format(", ".join(unknown)))
+        raise ProjectIoError("GUI state has {}".format("; ".join(details)))
+    if state["schema"] != GUI_STATE_SCHEMA:
+        raise ProjectIoError("unsupported GUI state schema")
+
+    registered = tuple(registered_bag_ids)
+    if (
+        len(set(registered)) != len(registered)
+        or any(not isinstance(item, str) or not _PROJECT_ID.fullmatch(item) for item in registered)
+    ):
+        raise ProjectIoError("registered_bag_ids must contain unique safe identifiers")
+    registered_set = set(registered)
+    current_bag_id = state["current_bag_id"]
+    if current_bag_id is not None and current_bag_id not in registered_set:
+        raise ProjectIoError("current_bag_id must be null or a registered bag ID")
+    for key in (
+        "selected_sample_id",
+        "selected_mode_id",
+        "selected_pid_proposal_id",
+    ):
+        selected = state[key]
+        if selected is not None and (not isinstance(selected, str) or not selected):
+            raise ProjectIoError("{} must be null or a non-empty string".format(key))
+
+    bags = state["bags"]
+    if not isinstance(bags, dict) or set(bags) != registered_set:
+        raise ProjectIoError("GUI state bags must exactly match registered bag IDs")
+    for bag_id, raw in bags.items():
+        if not isinstance(raw, dict) or set(raw) != {"current_time", "view_range"}:
+            raise ProjectIoError("invalid GUI state for {}".format(bag_id))
+        try:
+            current_time = float(raw["current_time"])
+            view_range = [float(item) for item in raw["view_range"]]
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ProjectIoError("invalid GUI timeline for {}".format(bag_id)) from error
+        if (
+            not all(value == value and abs(value) != float("inf") for value in [current_time, *view_range])
+            or len(view_range) != 2
+            or view_range[1] <= view_range[0]
+        ):
+            raise ProjectIoError("invalid GUI timeline for {}".format(bag_id))
+        if current_time < view_range[0] or current_time > view_range[1]:
+            raise ProjectIoError("GUI current_time must lie inside view_range")
+    return json.loads(_canonical_json(state).decode("utf-8"))
+
+
+def write_gui_state(
+    project_root: str | Path,
+    value: Mapping[str, Any],
+    *,
+    registered_bag_ids: Iterable[str],
+) -> Path:
+    """Atomically write validated GUI state inside a project directory."""
+
+    root = Path(project_root).resolve()
+    validated = validate_gui_state(value, registered_bag_ids=registered_bag_ids)
+    destination = root / GUI_STATE_NAME
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=str(root), prefix=".gui-state-", suffix=".json"
+    )
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(json.dumps(validated, indent=2, ensure_ascii=False, sort_keys=True).encode("utf-8"))
+            stream.write(b"\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_name, destination)
+    except BaseException:
+        try:
+            os.unlink(temporary_name)
+        except OSError:
+            pass
+        raise
+    return destination
+
+
+def _reject_duplicate_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in result:
+            raise ProjectIoError("JSON contains duplicate key {!r}".format(key))
+        result[key] = item
+    return result
+
+
+def _reject_nonfinite(token: str) -> Any:
+    raise ProjectIoError("JSON contains non-finite number {}".format(token))
+
+
+def read_gui_state(
+    project_root: str | Path, *, registered_bag_ids: Iterable[str]
+) -> dict[str, Any]:
+    """Read finite GUI-state JSON and reject every non-v2 shape."""
+
+    source = Path(project_root).resolve() / GUI_STATE_NAME
+    try:
+        value = json.loads(
+            source.read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_object,
+            parse_constant=_reject_nonfinite,
+        )
+    except ProjectIoError:
+        raise
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise ProjectIoError("cannot read gui_state.json: {}".format(error)) from error
+    if not isinstance(value, dict):
+        raise ProjectIoError("gui_state.json must contain an object")
+    return validate_gui_state(value, registered_bag_ids=registered_bag_ids)
 
 
 def write_project_manifest(root: str | Path, manifest: Mapping[str, Any]) -> Path:
@@ -415,7 +566,13 @@ def write_project_manifest(root: str | Path, manifest: Mapping[str, Any]) -> Pat
 def read_project_manifest(root: str | Path, *, verify_bags: bool = True) -> dict[str, Any]:
     directory = Path(root).resolve()
     try:
-        value = json.loads((directory / PROJECT_MANIFEST_NAME).read_text(encoding="utf-8"))
+        value = json.loads(
+            (directory / PROJECT_MANIFEST_NAME).read_text(encoding="utf-8"),
+            object_pairs_hook=_reject_duplicate_object,
+            parse_constant=_reject_nonfinite,
+        )
+    except ProjectIoError:
+        raise
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         raise ProjectIoError("cannot read project.json: {}".format(error)) from error
     if not isinstance(value, dict):
@@ -598,13 +755,14 @@ def unique_project_id(prefix: str = "project") -> str:
 
 
 __all__ = [
-    "ArchiveLimits", "GUI_STATE_NAME", "PROJECT_LOADER_ID",
+    "ArchiveLimits", "GUI_STATE_NAME", "GUI_STATE_SCHEMA", "PROJECT_LOADER_ID",
     "PROJECT_LOADER_VERSION", "PROJECT_MANIFEST_NAME", "PROJECT_SCHEMA",
     "PROJECT_ARTIFACT_LOADER_ID", "PROJECT_ARTIFACT_LOADER_VERSION",
     "PROJECT_WRITER_ID", "PROJECT_WRITER_VERSION", "ProjectIoError",
     "copy_bag_into_project", "create_project_directory", "freshness_fingerprint",
     "freshness_payload", "load_project_archive", "new_project_manifest",
-    "read_project_manifest", "result_is_fresh", "save_project_archive",
-    "sha256_file", "unique_project_id", "validate_project_manifest",
+    "read_gui_state", "read_project_manifest", "result_is_fresh",
+    "save_project_archive", "sha256_file", "unique_project_id",
+    "validate_gui_state", "validate_project_manifest", "write_gui_state",
     "write_project_manifest",
 ]

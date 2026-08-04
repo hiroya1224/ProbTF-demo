@@ -1,4 +1,4 @@
-"""Safe, Qt-free persistence for the staged project workflow."""
+"""Safe, Qt-free persistence for the batch-estimation project workflow."""
 
 from __future__ import annotations
 
@@ -17,17 +17,13 @@ from .workflow import (
     WorkflowMode,
     WorkflowStage,
     WorkflowState,
-    workflow_definition_fingerprint,
 )
 
 
 WORKFLOW_FILE_NAME = "workflow.json"
-DEFAULT_DEFINITION_ID = "diagonal-q-then-static-parameters-v1"
-DIAGONAL_Q_STAGE_ID = "diagonal_q"
-STATIC_PARAMETERS_STAGE_ID = "static_parameters"
-DIAGONAL_Q_ALGORITHM_VERSION = "diagonal-q-generalized-em-v2"
-
-_LEGACY_DIAGONAL_Q_ALGORITHM_VERSION = "diagonal-q-em-v1"
+DEFAULT_DEFINITION_ID = "sparse-batch-estimation-v1"
+BATCH_ESTIMATION_STAGE_ID = "batch_estimation"
+BATCH_ESTIMATION_ALGORITHM_VERSION = "sparse-batch-laplace-em-mcmc-v1"
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$")
 
@@ -36,18 +32,13 @@ class WorkflowIoError(WorkflowError):
     """A workflow file or project-local path violates the I/O contract."""
 
 
-def default_workflow_stages() -> tuple[WorkflowStage, WorkflowStage]:
-    """Return the supported two-stage definition without attempt history."""
+def default_workflow_stages() -> tuple[WorkflowStage]:
+    """Return the sole worker-stage definition without attempt history."""
 
     return (
         WorkflowStage(
-            stage_id=DIAGONAL_Q_STAGE_ID,
-            algorithm_version=DIAGONAL_Q_ALGORITHM_VERSION,
-        ),
-        WorkflowStage(
-            stage_id=STATIC_PARAMETERS_STAGE_ID,
-            algorithm_version="augmented-static-enkf-v1",
-            depends_on=(DIAGONAL_Q_STAGE_ID,),
+            stage_id=BATCH_ESTIMATION_STAGE_ID,
+            algorithm_version=BATCH_ESTIMATION_ALGORITHM_VERSION,
         ),
     )
 
@@ -103,7 +94,6 @@ def load_workflow(
         state = WorkflowState.from_dict(value)
     except WorkflowError as error:
         raise WorkflowIoError("invalid workflow.json: {}".format(error)) from error
-    state = _reconcile_supported_state(state, expected_workflow)
     _validate_supported_state(state, expected_workflow)
     return state
 
@@ -307,7 +297,7 @@ def _validate_supported_state(state: WorkflowState, workflow_id: str) -> None:
         state, DEFAULT_DEFINITION_ID, expected_stages
     ):
         raise WorkflowIoError(
-            "workflow definition does not match the supported two-stage definition"
+            "workflow definition does not match the supported batch definition"
         )
 
 
@@ -316,7 +306,7 @@ def _has_exact_definition(
     definition_id: str,
     expected_stages: tuple[WorkflowStage, ...],
 ) -> bool:
-    """Compare IDs, versions and dependencies as well as their fingerprint."""
+    """Compare the complete, single-stage definition without migration."""
 
     actual_definition = tuple(
         (stage.stage_id, stage.algorithm_version, stage.depends_on)
@@ -330,58 +320,12 @@ def _has_exact_definition(
         state.definition_id == definition_id
         and actual_definition == expected_definition
         and state.definition_fingerprint
-        == workflow_definition_fingerprint(definition_id, expected_stages)
-    )
-
-
-def _reconcile_supported_state(
-    state: WorkflowState, workflow_id: str
-) -> WorkflowState:
-    """Preserve known v1 history under the current v2 stage definition."""
-
-    if state.workflow_id != workflow_id:
-        raise WorkflowIoError(
-            "workflow ID does not match this project workflow"
-        )
-
-    expected_stages = default_workflow_stages()
-    if _has_exact_definition(
-        state, DEFAULT_DEFINITION_ID, expected_stages
-    ):
-        return state
-
-    legacy_stages = (
-        WorkflowStage(
-            stage_id=DIAGONAL_Q_STAGE_ID,
-            algorithm_version=_LEGACY_DIAGONAL_Q_ALGORITHM_VERSION,
-        ),
-        WorkflowStage(
-            stage_id=STATIC_PARAMETERS_STAGE_ID,
-            algorithm_version="augmented-static-enkf-v1",
-            depends_on=(DIAGONAL_Q_STAGE_ID,),
-        ),
-    )
-    if not _has_exact_definition(
-        state, DEFAULT_DEFINITION_ID, legacy_stages
-    ):
-        raise WorkflowIoError(
-            "workflow definition does not match the supported two-stage definition"
-        )
-
-    reconciled_stages = tuple(
-        WorkflowStage(
-            stage_id=expected.stage_id,
-            algorithm_version=expected.algorithm_version,
-            depends_on=expected.depends_on,
-            attempts=legacy.attempts,
-        )
-        for expected, legacy in zip(expected_stages, state.stages)
-    )
-    return WorkflowState.create(
-        workflow_id=state.workflow_id,
-        definition_id=DEFAULT_DEFINITION_ID,
-        mode=state.mode,
-        stages=reconciled_stages,
+        == WorkflowState.create(
+            workflow_id=state.workflow_id,
+            definition_id=definition_id,
+            mode=state.mode,
+            stages=expected_stages,
+        ).definition_fingerprint
     )
 
 
@@ -419,9 +363,8 @@ def _fsync_directory(directory: Path) -> None:
 
 __all__ = [
     "DEFAULT_DEFINITION_ID",
-    "DIAGONAL_Q_ALGORITHM_VERSION",
-    "DIAGONAL_Q_STAGE_ID",
-    "STATIC_PARAMETERS_STAGE_ID",
+    "BATCH_ESTIMATION_ALGORITHM_VERSION",
+    "BATCH_ESTIMATION_STAGE_ID",
     "WORKFLOW_FILE_NAME",
     "WorkflowIoError",
     "create_default_workflow",

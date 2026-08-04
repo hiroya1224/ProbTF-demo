@@ -9,6 +9,7 @@ import zipfile
 import numpy as np
 
 from grape_param_estim_gui.project_io import (
+    GUI_STATE_SCHEMA,
     PROJECT_ARTIFACT_LOADER_ID,
     PROJECT_ARTIFACT_LOADER_VERSION,
     PROJECT_MANIFEST_NAME,
@@ -20,9 +21,12 @@ from grape_param_estim_gui.project_io import (
     new_project_manifest,
     read_project_manifest,
     result_is_fresh,
+    read_gui_state,
     save_project_archive,
     sha256_file,
     validate_project_manifest,
+    validate_gui_state,
+    write_gui_state,
     write_project_manifest,
 )
 
@@ -40,21 +44,34 @@ def _complete_project(root: Path, project_id: str = "flight-test"):
     }
     manifest["configuration_fingerprints"] = {"bag-a": "complete:abc"}
     manifest["controller_snapshots"] = {"bag-a": {"gains": [[[1.0, 2.0, 3.0]]]}}
-    manifest["estimator_settings"] = {"ensemble_size": 128, "maximum_iterations": 5}
-    manifest["current_assimilation_run_id"] = "run-a"
+    manifest["estimator_settings"] = {"solver_settings": {"maximum_iterations": 5}}
+    manifest["current_estimation_run_id"] = "run-a"
     manifest["current_pid_proposal_evaluation_id"] = "pid-a"
     write_project_manifest(project, manifest)
-    (project / "gui_state.json").write_text('{"schema":"grape-param-estim/gui-state/v1"}\n')
+    write_gui_state(
+        project,
+        {
+            "schema": GUI_STATE_SCHEMA,
+            "current_bag_id": "bag-a",
+            "selected_sample_id": "sample-17",
+            "selected_mode_id": "mode-a",
+            "selected_pid_proposal_id": "current",
+            "bags": {
+                "bag-a": {"current_time": 2.0, "view_range": [1.0, 5.0]}
+            },
+        },
+        registered_bag_ids=("bag-a",),
+    )
     (project / "inspection" / "payload.txt").write_text("inspection")
-    run_root = project / "runs" / "run-a" / "assimilation_run"
+    run_root = project / "runs" / "run-a" / "estimation_run"
     run_root.mkdir(parents=True)
     (run_root / "manifest.json").write_text(
         json.dumps(
             {
-                "schema": "grape-param-estim/assimilation-run/v1",
+                "schema": "grape-param-estim/batch-estimation-run/v1",
                 "status": "complete",
                 "run_id": "run-a",
-                "artifacts": {"shared_posterior": "shared_posterior.npz"},
+                "artifacts": {"mcmc_samples": "mcmc_samples.npz"},
             },
             sort_keys=True,
         )
@@ -62,8 +79,8 @@ def _complete_project(root: Path, project_id: str = "flight-test"):
         encoding="utf-8",
     )
     np.savez_compressed(
-        str(run_root / "shared_posterior.npz"),
-        member_id=np.asarray((17, 29), dtype=np.int64),
+        str(run_root / "mcmc_samples.npz"),
+        sample_id=np.asarray(("sample-17", "sample-29")),
         mass=np.asarray((2.1, 2.2)),
         constant_delay=np.asarray((0.012, 0.019)),
     )
@@ -123,12 +140,14 @@ class ProjectIoTest(unittest.TestCase):
                 restored
                 / "runs"
                 / "run-a"
-                / "assimilation_run"
-                / "shared_posterior.npz"
+                / "estimation_run"
+                / "mcmc_samples.npz"
             ),
             allow_pickle=False,
         ) as posterior:
-            np.testing.assert_array_equal(posterior["member_id"], (17, 29))
+            np.testing.assert_array_equal(
+                posterior["sample_id"], ("sample-17", "sample-29")
+            )
             np.testing.assert_allclose(
                 posterior["constant_delay"], (0.012, 0.019)
             )
@@ -211,7 +230,7 @@ class ProjectIoTest(unittest.TestCase):
         restored = load_project_archive(archive_path, self.root / "imports")
         manifest = read_project_manifest(restored)
         self.assertEqual(manifest["project_id"], "flight-test")
-        self.assertEqual(manifest["current_assimilation_run_id"], "run-a")
+        self.assertEqual(manifest["current_estimation_run_id"], "run-a")
         self.assertEqual(
             manifest["current_pid_proposal_evaluation_id"], "pid-a"
         )
@@ -220,8 +239,8 @@ class ProjectIoTest(unittest.TestCase):
                 restored
                 / "runs"
                 / "run-a"
-                / "assimilation_run"
-                / "shared_posterior.npz"
+                / "estimation_run"
+                / "mcmc_samples.npz"
             ).is_file()
         )
         self.assertTrue(
@@ -244,7 +263,7 @@ class ProjectIoTest(unittest.TestCase):
             lambda value: value["intervals"]["bag-a"].update(selected=[1.3, 4.8]),
             lambda value: value["controller_snapshots"]["bag-a"].update(source="changed"),
             lambda value: value["configuration_fingerprints"].__setitem__("bag-a", "complete:def"),
-            lambda value: value["estimator_settings"].update(ensemble_size=64),
+            lambda value: value["estimator_settings"]["solver_settings"].update(maximum_iterations=6),
         )
         for mutate in mutations:
             candidate = copy.deepcopy(manifest)
@@ -255,7 +274,7 @@ class ProjectIoTest(unittest.TestCase):
         manifest = new_project_manifest("loader-contract")
         self.assertEqual(
             set(manifest["artifact_loaders"]),
-            {"inspection", "assimilation_run", "pid_proposal_evaluation"},
+            {"inspection", "estimation_run", "pid_proposal_evaluation"},
         )
         for metadata in manifest["artifact_loaders"].values():
             self.assertEqual(metadata["id"], PROJECT_ARTIFACT_LOADER_ID)
@@ -264,7 +283,7 @@ class ProjectIoTest(unittest.TestCase):
             )
 
         bad_version = copy.deepcopy(manifest)
-        bad_version["artifact_loaders"]["assimilation_run"]["version"] += 1
+        bad_version["artifact_loaders"]["estimation_run"]["version"] += 1
         with self.assertRaisesRegex(ProjectIoError, "artifact loader version"):
             validate_project_manifest(bad_version)
 
@@ -276,13 +295,44 @@ class ProjectIoTest(unittest.TestCase):
     def test_current_artifact_ids_cannot_escape_the_project(self):
         manifest = new_project_manifest("artifact-path-contract")
         for key in (
-            "current_assimilation_run_id",
+            "current_estimation_run_id",
             "current_pid_proposal_evaluation_id",
         ):
             candidate = copy.deepcopy(manifest)
             candidate[key] = "../../outside"
             with self.assertRaisesRegex(ProjectIoError, "safe identifier"):
                 validate_project_manifest(candidate)
+
+    def test_gui_state_v2_is_strict_and_uses_sample_identity(self):
+        state = {
+            "schema": GUI_STATE_SCHEMA,
+            "current_bag_id": "bag-a",
+            "selected_sample_id": "sample-42",
+            "selected_mode_id": None,
+            "selected_pid_proposal_id": None,
+            "bags": {
+                "bag-a": {"current_time": 2.0, "view_range": [1.0, 3.0]}
+            },
+        }
+        self.assertEqual(
+            validate_gui_state(state, registered_bag_ids=("bag-a",)), state
+        )
+        project = self.root / "gui-state-project"
+        project.mkdir()
+        write_gui_state(project, state, registered_bag_ids=("bag-a",))
+        self.assertEqual(
+            read_gui_state(project, registered_bag_ids=("bag-a",)), state
+        )
+
+        for mutation in (
+            lambda value: value.update(schema="grape-param-estim/gui-state/v1"),
+            lambda value: value.update(selected_member_id=42),
+            lambda value: value["bags"]["bag-a"].update(view_range=[3.0, 1.0]),
+        ):
+            candidate = copy.deepcopy(state)
+            mutation(candidate)
+            with self.assertRaises(ProjectIoError):
+                validate_gui_state(candidate, registered_bag_ids=("bag-a",))
 
 
 if __name__ == "__main__":

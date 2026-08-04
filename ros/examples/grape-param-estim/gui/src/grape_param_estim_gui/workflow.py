@@ -1,4 +1,4 @@
-"""Qt-free immutable state for resumable stage-boundary workflows.
+"""Qt-free immutable state for one-command batch-estimation attempts.
 
 Artifact bundles retain their own ``writing``/``complete``/``cancelled``
 contract.  This module records attempts around those bundles and derives the
@@ -18,8 +18,8 @@ import re
 from typing import Any, Mapping, Sequence
 
 
-WORKFLOW_SCHEMA = "grape-param-estim/staged-workflow/v1"
-STAGE_INPUT_SCHEMA = "grape-param-estim/stage-input/v1"
+WORKFLOW_SCHEMA = "grape-param-estim/batch-workflow/v1"
+STAGE_INPUT_SCHEMA = "grape-param-estim/batch-run-input/v1"
 ARTIFACT_CONTENT_SCHEMA = "grape-param-estim/artifact-content/v1"
 COMPLETION_SCHEMA = "grape-param-estim/stage-completion/v1"
 
@@ -397,6 +397,7 @@ class StageAttempt:
     request_fingerprint: str
     upstream: tuple[UpstreamRef, ...]
     retry_of: str | None
+    resume: bool
     created_at: str
     started_at: str | None = None
     finished_at: str | None = None
@@ -437,6 +438,10 @@ class StageAttempt:
             )
             if self.retry_of == self.attempt_id:
                 raise WorkflowError("an attempt cannot retry itself")
+        if not isinstance(self.resume, bool):
+            raise WorkflowError("resume must be boolean")
+        if self.resume and self.retry_of is None:
+            raise WorkflowError("a resumed attempt must identify its prior attempt")
         object.__setattr__(self, "created_at", _timestamp(self.created_at, "created_at"))
         object.__setattr__(
             self,
@@ -515,6 +520,7 @@ class StageAttempt:
             "request_fingerprint": self.request_fingerprint,
             "upstream": [value.to_dict() for value in self.upstream],
             "retry_of": self.retry_of,
+            "resume": self.resume,
             "created_at": self.created_at,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
@@ -538,6 +544,7 @@ class StageAttempt:
                 "request_fingerprint",
                 "upstream",
                 "retry_of",
+                "resume",
                 "created_at",
                 "started_at",
                 "finished_at",
@@ -561,6 +568,7 @@ class StageAttempt:
                 for item in _list(source["upstream"], "attempt upstream")
             ),
             retry_of=source["retry_of"],
+            resume=source["resume"],
             created_at=source["created_at"],
             started_at=source["started_at"],
             finished_at=source["finished_at"],
@@ -728,6 +736,20 @@ class WorkflowState:
                     raise WorkflowError(
                         "retry_of must identify an earlier attempt in the stage"
                     )
+                if attempt.resume:
+                    previous = next(
+                        value
+                        for value in stage.attempts
+                        if value.attempt_id == attempt.retry_of
+                    )
+                    if previous.status.active:
+                        raise WorkflowError(
+                            "a resumed attempt must follow a terminal attempt"
+                        )
+                    if previous.output_path != attempt.output_path:
+                        raise WorkflowError(
+                            "a resumed attempt must reuse its prior output path"
+                        )
                 prior_attempt_ids.add(attempt.attempt_id)
         object.__setattr__(self, "stages", stages)
         expected_definition = workflow_definition_fingerprint(
@@ -890,6 +912,7 @@ class WorkflowState:
         stage_input: str,
         request_fingerprint: str,
         upstream: Sequence[UpstreamRef] = (),
+        resume: bool = False,
         created_at: str,
     ) -> "WorkflowState":
         stage = self.stage(stage_id)
@@ -918,6 +941,10 @@ class WorkflowState:
             and status in {StageStatus.RETRY, StageStatus.STALE}
             else None
         )
+        if resume and retry_of is None:
+            raise WorkflowTransitionError(
+                "resume requires an earlier terminal attempt"
+            )
         attempt = StageAttempt(
             attempt_id=identifier,
             number=len(stage.attempts) + 1,
@@ -929,6 +956,7 @@ class WorkflowState:
             request_fingerprint=request_fingerprint,
             upstream=selected_upstream,
             retry_of=retry_of,
+            resume=resume,
             created_at=created_at,
         )
         return self._replace_stage(
@@ -946,6 +974,7 @@ class WorkflowState:
         stage_input: str,
         request_fingerprint: str,
         upstream: Sequence[UpstreamRef] = (),
+        resume: bool = False,
         created_at: str,
     ) -> "WorkflowState":
         status = self.stage_status(stage_id, stage_input, upstream)
@@ -962,6 +991,50 @@ class WorkflowState:
             stage_input=stage_input,
             request_fingerprint=request_fingerprint,
             upstream=upstream,
+            resume=resume,
+            created_at=created_at,
+        )
+
+    def resume_attempt(
+        self,
+        *,
+        stage_id: str,
+        attempt_id: str,
+        request_path: str,
+        output_path: str,
+        root_input_fingerprint: str,
+        stage_input: str,
+        request_fingerprint: str,
+        upstream: Sequence[UpstreamRef] = (),
+        created_at: str,
+    ) -> "WorkflowState":
+        """Resume the latest terminal attempt in its existing run directory."""
+
+        stage = self.stage(stage_id)
+        if not stage.attempts:
+            raise WorkflowTransitionError(
+                "resume requires an earlier terminal attempt"
+            )
+        previous = stage.attempts[-1]
+        if previous.status.active:
+            raise WorkflowTransitionError(
+                "resume requires an earlier terminal attempt"
+            )
+        selected_output = _safe_relative(output_path, "output_path")
+        if selected_output != previous.output_path:
+            raise WorkflowTransitionError(
+                "resume must reuse the prior output path"
+            )
+        return self.begin_attempt(
+            stage_id=stage_id,
+            attempt_id=attempt_id,
+            request_path=request_path,
+            output_path=selected_output,
+            root_input_fingerprint=root_input_fingerprint,
+            stage_input=stage_input,
+            request_fingerprint=request_fingerprint,
+            upstream=upstream,
+            resume=True,
             created_at=created_at,
         )
 

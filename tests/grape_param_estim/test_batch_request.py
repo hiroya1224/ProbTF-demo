@@ -301,6 +301,18 @@ class BatchRequestTests(unittest.TestCase):
         with self.assertRaisesRegex(ArtifactValidationError, "must be null"):
             validate_batch_estimation_request(request)
 
+    def test_pose_factor_is_mandatory_for_trajectory_identification(self):
+        request = copy.deepcopy(self.request)
+        pose = request["bags"][0]["observation_factors"]["pose"]
+        pose["enabled"] = False
+        pose["disabled_reason"] = "synthetic missing pose"
+        pose["covariances"] = None
+        with self.assertRaisesRegex(
+            ArtifactValidationError,
+            "pose.enabled must be true.*trajectory-identification target",
+        ):
+            validate_batch_estimation_request(request)
+
     def test_initial_state_priors_are_explicit_and_not_sensor_covariances(self):
         request = copy.deepcopy(self.request)
         del request["bags"][0]["initial_state_prior_covariances"]

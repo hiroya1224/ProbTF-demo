@@ -51,6 +51,7 @@ from .artifact_loader import (
 from .project_io import freshness_fingerprint, result_is_fresh, utc_now
 
 from grape_param_estim.batch_request import (
+    ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS,
     FIXED_FACTOR_COVARIANCE_BLOCKS,
     INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS,
     OBSERVATION_COVARIANCE_BLOCKS,
@@ -66,6 +67,7 @@ _FACTOR_TOPICS = {
     "pose": "/gimbalrotor/mocap/pose",
     "velocity": "/gimbalrotor/uav/baselink/odom",
     "gyro": "/gimbalrotor/sensor_plugin/imu1/ros_converted",
+    "accelerometer": "/gimbalrotor/sensor_plugin/imu1/ros_converted",
     "issued_rotor_command": "/gimbalrotor/four_axes/command",
     "issued_gimbal_command": "/gimbalrotor/gimbals_ctrl",
     "actual_gimbal_position": "/gimbalrotor/joint_states",
@@ -98,16 +100,18 @@ def bag_estimation_settings_from_inspection(
     }
     factors: dict[str, object] = {}
     for name, blocks in OBSERVATION_COVARIANCE_BLOCKS.items():
-        if name == "accelerometer":
-            enabled = False
-            reason = (
-                "accelerometer disabled: sensor frame and lever arm are not "
-                "confirmed by inspection"
+        topic = _FACTOR_TOPICS[name]
+        enabled = bool(topics.get(topic, False))
+        if name == "pose" and not enabled:
+            raise ValueError(
+                "inspection does not audit the required recorded pose topic: "
+                + topic
             )
-        else:
-            topic = _FACTOR_TOPICS[name]
-            enabled = bool(topics.get(topic, False))
-            reason = None if enabled else "required audited topic unavailable: {}".format(topic)
+        reason = (
+            None
+            if enabled
+            else "required audited topic unavailable: {}".format(topic)
+        )
         factors[name] = {
             "enabled": enabled,
             "disabled_reason": reason,
@@ -122,6 +126,11 @@ def bag_estimation_settings_from_inspection(
                 else None
             ),
         }
+    initial_prior_blocks = dict(INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS)
+    if bool(topics.get(_FACTOR_TOPICS["accelerometer"], False)):
+        initial_prior_blocks.update(
+            ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS
+        )
     return {
         "observation_factors": factors,
         "fixed_factor_covariances": {
@@ -130,7 +139,7 @@ def bag_estimation_settings_from_inspection(
         },
         "initial_state_prior_covariances": {
             name: _provisional_covariance(contract, "project_configuration")
-            for name, contract in INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS.items()
+            for name, contract in initial_prior_blocks.items()
         },
     }
 

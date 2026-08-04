@@ -566,6 +566,12 @@ def _validate_bags(value: Any) -> Tuple[str, ...]:
                 name,
                 location + ".observation_factors." + name,
             )
+        if not bool(factors["pose"]["enabled"]):
+            _error(
+                location + ".observation_factors.pose.enabled",
+                "must be true because recorded pose is the required "
+                "trajectory-identification target",
+            )
         _validate_covariance_blocks(
             bag["fixed_factor_covariances"],
             FIXED_FACTOR_COVARIANCE_BLOCKS,

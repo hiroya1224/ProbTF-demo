@@ -133,7 +133,8 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             )
             disabled_pose_factor["covariances"] = None
             with self.assertRaisesRegex(
-                WorkflowError, "requires an enabled pose factor"
+                ValueError,
+                "pose.enabled must be true.*trajectory-identification target",
             ):
                 preflight_batch_estimation_launch(
                     disabled_pose,
@@ -193,21 +194,36 @@ class BatchRunRequestGuiTests(unittest.TestCase):
                 parsed.payload["solver_settings"]["maximum_iterations"], 12
             )
             self.assertEqual(tuple(parsed.payload["bags"][0]["interval_seconds"]), (18.0, 24.0))
-            self.assertEqual(
-                parsed.payload["bags"][0]["observation_factors"]["accelerometer"]["disabled_reason"],
-                "accelerometer disabled: sensor frame and lever arm are not confirmed by inspection",
-            )
             parsed_factors = parsed.payload["bags"][0][
                 "observation_factors"
             ]
             for factor_name in (
                 "pose",
                 "gyro",
+                "accelerometer",
                 "issued_gimbal_command",
             ):
                 self.assertTrue(parsed_factors[factor_name]["enabled"])
+            self.assertIn(
+                "accelerometer_bias",
+                parsed.payload["bags"][0][
+                    "initial_state_prior_covariances"
+                ],
+            )
             self.assertEqual(captured["script"].name, "grape_estimate_flights.py")
             window.close()
+
+    def test_missing_required_pose_is_not_converted_to_a_disabled_default(self):
+        inspection = _inspection()
+        inspection["topic_contract"] = [
+            item
+            for item in inspection["topic_contract"]
+            if item["topic"] != "/gimbalrotor/mocap/pose"
+        ]
+        with self.assertRaisesRegex(
+            ValueError, "required recorded pose topic"
+        ):
+            bag_estimation_settings_from_inspection(inspection)
 
     def test_all_appends_and_resumes_sampling_in_same_completed_run(self):
         from grape_param_estim.posterior_sampling_request import (

@@ -74,8 +74,10 @@ bag inspection 後に `Bag browser` で使用する区間と sensor contract を
 二つの rollout は同じ推定済み先頭 sensor pose/twist から開始し、候補ごとの CoG に合わせて CoG state だけを再表現した上で、推定グラフと同じ遅延適用済み rotor/gimbal command、actuator model、rigid-body model を使います。
 rollout 中に controller の再計算、観測による state reset、推定 residual wrench の注入は行いません。
 紫は保存された posterior sample の物理パラメータと conditional 先頭状態を使った同じ recorded-control rollout です。
-青い observed は pose factor の使用 mask と独立に記録値をすべて表示し、最後に marker 付きで描画するため、factor が無効な旧 run や他の曲線との重なりでも確認できます。
-新しい GUI run は pose factor が無効なら worker 起動前に拒否するため、旧 inspection で無効と判定された project は bag を再 inspection してください。
+青い observed は pose factor の使用 mask と独立に記録値をすべて表示し、最後に marker 付きで描画するため、旧 run や他の曲線との重なりでも確認できます。
+recorded pose は trajectory identification の必須 target であり、GUI の既定値だけでなく backend request contract でも常時有効に固定されます。
+converted IMU topic の監査に成功した bag では、同じ `sensor_msgs/Imu` の angular velocity と linear acceleration をそれぞれ gyro factor と accelerometer factor に既定で使用し、ARM_OFF 区間から各 bias を初期化します。
+旧 inspection で pose、gyro、accelerometer が無効と判定された project は bag を再 inspection してください。
 `Correction transform` は各 knot での `T_observed^-1 T_rollout` で、青い zero-error baseline と緑または紫が一致するほど recorded-control forward model が観測を再現しています。
 latent nominal/MAP/conditional trajectory は solver と posterior の監査用として artifact に残しますが、forward-model 適合の曲線としては表示しません。
 rollout の一致だけでなく、normalized sensor residual、dynamics residual、Q band、ridge、MCMC 診断も一緒に確認してください。
@@ -103,8 +105,8 @@ worker は JSON Lines の progress を標準出力へ、診断を標準エラー
 各 knot の local state は position 3、SO(3) tangent 3、world linear velocity 3、body angular velocity 3、PID integral 6、actual rotor thrust 4、actual gimbal angle 4、の合計 26 次元です。
 bag ごとに gyro bias 3 次元を持ち、calibrated accelerometer factor を有効にした場合だけ accelerometer bias 3 次元も持ちます。
 したがって inner MAP の次元は `18 + sum_b(26 N_b + 3 + accelerometer_bias_b)` であり、`N_b` は bag `b` の knot 数、`accelerometer_bias_b` は accelerometer 使用時だけ 3 です。
-18--24 秒の検証 run は 119 knots、gyro bias 有効、accelerometer 無効なので、inner MAP は `18 + 26*119 + 3 = 3115` 次元です。
-Q の 6 対角成分は Laplace-EM の hyperparameter、delay は外側 profile parameter であり、この 3115 次元には含めません。
+18--24 秒の標準設定は 119 knots、gyro bias と accelerometer bias が有効なので、inner MAP は `18 + 26*119 + 3 + 3 = 3118` 次元です。
+Q の 6 対角成分は Laplace-EM の hyperparameter、delay は外側 profile parameter であり、この 3118 次元には含めません。
 時刻ごとの residual wrench を未知変数として積み上げないため、軌道が長くなると増えるのは物理的な knot state だけです。
 
 ## 数理の要点

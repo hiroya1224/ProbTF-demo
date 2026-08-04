@@ -302,6 +302,7 @@ class BatchSignalPanel(QWidget):
     currentTimeRequested = Signal(float)
     viewRangeRequested = Signal(float, float)
     estimationRangeEdited = Signal(float, float)
+    seriesRendered = Signal()
 
     _COLORS = {
         "reference": (80, 80, 80),
@@ -739,12 +740,15 @@ class BatchSignalPanel(QWidget):
             self.series_data = self._trajectory_series()
             self.status_label.setText(
                 "Reference, asynchronous observed pose, nominal, full-trajectory MAP, "
-                "and the selected stored conditional sample."
+                "and the selected stored conditional sample. The Y scale is shared "
+                "with the matching Correction transform component."
             )
         elif self.kind == "correction":
             self.series_data = self._correction_series()
             self.status_label.setText(
-                "Correction is nominal-to-MAP or nominal-to-selected conditional trajectory."
+                "Correction is nominal-to-MAP or nominal-to-selected conditional "
+                "trajectory. The Y scale is shared with the matching Trajectory "
+                "component."
             )
         else:
             self.series_data = self._dynamics_series()
@@ -909,6 +913,7 @@ class BatchSignalPanel(QWidget):
             plot.addItem(line)
             self.current_lines.append(line)
         self._attach_regions()
+        self.seriesRendered.emit()
 
     def _attach_regions(self) -> None:
         if not self.estimation_regions:
@@ -1261,6 +1266,8 @@ class BagBrowserView(QWidget):
         self.trajectory_panel = BatchSignalPanel("trajectory")
         self.correction_panel = BatchSignalPanel("correction")
         self.dynamics_panel = BatchSignalPanel("dynamics")
+        self._updating_linked_y_ranges = False
+        self._connect_trajectory_correction_y_ranges()
         self.direct_observation_panel = DirectObservationPanel()
         self.signal_tabs.addTab(self.trajectory_panel, "Trajectory")
         self.signal_tabs.addTab(self.correction_panel, "Correction transform")
@@ -1295,6 +1302,103 @@ class BagBrowserView(QWidget):
         self.refresh_table()
         if self.store.current_record() is not None:
             self._load_record(self.store.current_record())
+
+    def _connect_trajectory_correction_y_ranges(self) -> None:
+        """Keep matching position/correction components on one Y scale."""
+
+        for trajectory_plot, correction_plot in zip(
+            self.trajectory_panel.plots,
+            self.correction_panel.plots,
+            strict=True,
+        ):
+            trajectory_plot.getViewBox().sigYRangeChanged.connect(
+                lambda _view, value, target=correction_plot: self._mirror_y_range(
+                    target, value
+                )
+            )
+            correction_plot.getViewBox().sigYRangeChanged.connect(
+                lambda _view, value, target=trajectory_plot: self._mirror_y_range(
+                    target, value
+                )
+            )
+        self.trajectory_panel.seriesRendered.connect(
+            self._fit_trajectory_correction_y_ranges
+        )
+        self.correction_panel.seriesRendered.connect(
+            self._fit_trajectory_correction_y_ranges
+        )
+
+    def _mirror_y_range(
+        self, target: pg.PlotWidget, value: object
+    ) -> None:
+        if self._updating_linked_y_ranges:
+            return
+        lower, upper = (float(bound) for bound in value)
+        self._updating_linked_y_ranges = True
+        try:
+            target.setYRange(lower, upper, padding=0.0)
+        finally:
+            self._updating_linked_y_ranges = False
+
+    @staticmethod
+    def _finite_plot_y_bounds(plot: pg.PlotWidget) -> tuple[float, float] | None:
+        bounds: list[tuple[float, float]] = []
+        for item in plot.listDataItems():
+            item_bounds = item.dataBounds(1)
+            if (
+                item_bounds is not None
+                and item_bounds[0] is not None
+                and item_bounds[1] is not None
+                and np.all(np.isfinite(item_bounds))
+            ):
+                bounds.append(
+                    (float(item_bounds[0]), float(item_bounds[1]))
+                )
+        if not bounds:
+            return None
+        return (
+            min(value[0] for value in bounds),
+            max(value[1] for value in bounds),
+        )
+
+    def _fit_trajectory_correction_y_ranges(self) -> None:
+        """Fit each linked pair to the union of its visible finite data."""
+
+        if self._updating_linked_y_ranges:
+            return
+        self._updating_linked_y_ranges = True
+        try:
+            for trajectory_plot, correction_plot in zip(
+                self.trajectory_panel.plots,
+                self.correction_panel.plots,
+                strict=True,
+            ):
+                pair_bounds = tuple(
+                    bounds
+                    for bounds in (
+                        self._finite_plot_y_bounds(trajectory_plot),
+                        self._finite_plot_y_bounds(correction_plot),
+                    )
+                    if bounds is not None
+                )
+                if not pair_bounds:
+                    continue
+                lower = min(bounds[0] for bounds in pair_bounds)
+                upper = max(bounds[1] for bounds in pair_bounds)
+                span = upper - lower
+                padding = (
+                    0.05 * span
+                    if span > 0.0
+                    else 0.05 * max(abs(lower), 1.0)
+                )
+                for plot in (trajectory_plot, correction_plot):
+                    plot.setYRange(
+                        lower - padding,
+                        upper + padding,
+                        padding=0.0,
+                    )
+        finally:
+            self._updating_linked_y_ranges = False
 
     def _build_left_panel(self) -> QWidget:
         panel = QWidget()

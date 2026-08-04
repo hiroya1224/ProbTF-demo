@@ -884,6 +884,27 @@ class BatchResultViewTests(unittest.TestCase):
 
         self.assertEqual(view.signal_tabs.tabText(2), "Dynamics residual")
         self.assertEqual(view.signal_tabs.tabText(3), "Direct observations")
+        for trajectory_plot, correction_plot in zip(
+            view.trajectory_panel.plots,
+            view.correction_panel.plots,
+            strict=True,
+        ):
+            np.testing.assert_allclose(
+                trajectory_plot.getViewBox().viewRange()[1],
+                correction_plot.getViewBox().viewRange()[1],
+            )
+        view.correction_panel.plots[0].setYRange(-4.0, 5.0, padding=0.0)
+        self.application.processEvents()
+        np.testing.assert_allclose(
+            view.trajectory_panel.plots[0].getViewBox().viewRange()[1],
+            (-4.0, 5.0),
+        )
+        view.trajectory_panel.plots[0].setYRange(-2.0, 3.0, padding=0.0)
+        self.application.processEvents()
+        np.testing.assert_allclose(
+            view.correction_panel.plots[0].getViewBox().viewRange()[1],
+            (-2.0, 3.0),
+        )
         self.assertTrue(
             {
                 "reference",

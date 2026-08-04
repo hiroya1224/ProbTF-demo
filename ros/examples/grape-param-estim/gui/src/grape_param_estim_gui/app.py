@@ -3,8 +3,10 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import signal
 import shutil
 import sys
+from typing import Callable
 
 import numpy as np
 
@@ -152,6 +154,29 @@ def _validated_bag_paths(values: list[Path]) -> tuple[Path, ...]:
     return paths
 
 
+def _install_interrupt_handler(
+    application: QApplication,
+    close_window: Callable[[], object],
+) -> tuple[QTimer, object]:
+    """Bridge terminal SIGINT into the Qt event loop and window close path."""
+
+    if not callable(close_window):
+        raise TypeError("close_window must be callable")
+    previous_handler = signal.getsignal(signal.SIGINT)
+    poll_timer = QTimer(application)
+    poll_timer.setInterval(100)
+    # Entering Python regularly lets its pending-signal machinery run while
+    # QApplication.exec() otherwise remains inside the Qt C++ event loop.
+    poll_timer.timeout.connect(lambda: None)
+    poll_timer.start()
+
+    def request_close(_signum: int, _frame: object) -> None:
+        QTimer.singleShot(0, close_window)
+
+    signal.signal(signal.SIGINT, request_close)
+    return poll_timer, previous_handler
+
+
 def main(argv: list[str] | None = None) -> int:
     arguments = _arguments(list(sys.argv[1:] if argv is None else argv))
     bag_paths = _validated_bag_paths(arguments.bag)
@@ -206,7 +231,14 @@ def main(argv: list[str] | None = None) -> int:
     window.show()
     if bag_paths:
         QTimer.singleShot(0, lambda: window.add_bag_files(bag_paths))
-    return int(application.exec())
+    interrupt_timer, previous_interrupt_handler = _install_interrupt_handler(
+        application, window.close
+    )
+    try:
+        return int(application.exec())
+    finally:
+        interrupt_timer.stop()
+        signal.signal(signal.SIGINT, previous_interrupt_handler)
 
 
 __all__ = ["main"]

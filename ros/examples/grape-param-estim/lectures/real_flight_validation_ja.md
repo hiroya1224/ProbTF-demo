@@ -143,6 +143,11 @@ selected posterior-sample conditional trajectory は MCMC 付き run でだけ�
 observed と MAP が近いことは pose fit の診断だが、dynamics residual や他 sensor residual が大きいままでも起こりうる。
 `Dynamics residual` panel では force/torque の MAP residual、normalized residual、`sqrt(Q/dt)` band を比較し、特定軸だけが Q に吸収されていないか確認する。
 
+2026 年 8 月 4 日に package 内 Python 3.10 environment の PySide6、pyqtgraph、PyVista、PyVistaQt、VTK を使い、`rosrun` で sample bag の inspection と実 3D 描画を確認した。
+同日にこの実 artifact を production widget へロードし、world trajectory、correction transform、dynamics residual、Master の MAP/Q/EM/Laplace 表示を実画面で確認した。
+画像は [rewrite 後の GUI visual acceptance](figures/gui_after_batch_rewrite/README.md) に保存している。
+画面上でも observed、nominal、MAP の大きな乖離が見えたため、数値的に artifact が完走したことと科学的に推定が成功したことを区別している。
+
 ## 10. 次の validation
 
 1. pose、velocity、gyro、command、fixed-factor covariance を実測または再現性試験から校正する。

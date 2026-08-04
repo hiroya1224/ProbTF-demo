@@ -758,6 +758,21 @@ def run_real_estimation(
             value.mode_id,
         ),
     )
+    if progress is not None:
+        progress(
+            "computing_local_posterior_geometry",
+            0,
+            1,
+            "validating selected reduced Hessian",
+        )
+        progress(
+            "computing_local_posterior_geometry",
+            1,
+            1,
+            "selected mode={} local geometry ready".format(
+                selected.mode_id
+            ),
+        )
     mcmc_target_seconds = []
     mcmc = (
         sample_selected_mode(

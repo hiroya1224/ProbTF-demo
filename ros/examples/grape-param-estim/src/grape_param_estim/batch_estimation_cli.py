@@ -34,7 +34,13 @@ from grape_param_estim.progress import (
     ProgressCallback,
     ProgressEvent,
     ProgressValidationError,
+    STAGE_COMPUTING_LOCAL_POSTERIOR_GEOMETRY,
     STAGE_LABELS,
+    STAGE_OPTIMIZING_FULL_TRAJECTORY,
+    STAGE_PREPARING_TRAJECTORY,
+    STAGE_REFINING_CONSTANT_DELAY,
+    STAGE_SAMPLING_PARAMETER_POSTERIOR,
+    STAGE_UPDATING_MODEL_ERROR_COVARIANCE,
     STAGE_WRITING_ARTIFACTS,
     stage_label,
 )
@@ -48,41 +54,11 @@ StageProgress = Callable[[str, int, int, str], None]
 
 
 def planned_progress_units(request: BatchEstimationRequest) -> int:
-    """Return a stable upper work budget for one request.
-
-    Nonlinear solves may terminate early and Laplace-EM may reject a trial Q,
-    so an exact callback count cannot be known before solving.  The budget is
-    deliberately an upper bound derived only from immutable request settings;
-    the final artifact event consumes any unused budget atomically.
-    """
+    """Return the fixed-point resolution of the overall progress wire."""
 
     if not isinstance(request, BatchEstimationRequest):
         raise TypeError("request must be BatchEstimationRequest")
-    payload = request.payload
-    mode_count = len(payload["mode_hypotheses"])
-    bag_count = len(payload["bags"])
-    lm_iterations = int(payload["solver_settings"]["maximum_iterations"])
-    em_iterations = int(payload["em_settings"]["maximum_iterations"])
-    delay = payload["delay"]
-    profile_evaluations = int(delay["coarse_grid_points"]) + int(
-        delay["maximum_refinement_evaluations"]
-    )
-    # Four E-step passes per EM iteration cover accepted work plus rejected-Q
-    # retries without ever changing the progress wire total mid-run.
-    nonlinear = mode_count * (
-        em_iterations * (4 * profile_evaluations + 1) + 1
-    ) * lm_iterations
-    q_updates = mode_count * em_iterations
-    mcmc = payload["mcmc_settings"]
-    posterior_steps = 0
-    if bool(mcmc["enabled"]):
-        posterior_steps = int(mcmc["chain_count"]) * (
-            int(mcmc["warmup_steps"])
-            + int(mcmc["retained_draws"]) * int(mcmc["thinning"])
-        )
-    # Two local-geometry callbacks and two artifact callbacks are explicit in
-    # execute_batch_estimation.
-    return bag_count + nonlinear + q_updates + posterior_steps + 4
+    return 10_000
 
 
 class BatchProgressReporter:
@@ -109,8 +85,44 @@ class BatchProgressReporter:
         self._last_time = self._started
         self._stage_started = self._started
         self._stage_id: Optional[str] = None
-        self._observed = 0
+        self._stage_last_completed = 0
+        self._last_fraction = 0.0
         self._terminal = False
+        payload = request.payload
+        self._q_update_total = max(
+            1,
+            len(payload["mode_hypotheses"])
+            * int(payload["em_settings"]["maximum_iterations"]),
+        )
+        delay = payload["delay"]
+        profile_evaluations = int(delay["coarse_grid_points"]) + int(
+            delay["maximum_refinement_evaluations"]
+        )
+        typical_lm_iterations = min(
+            int(payload["solver_settings"]["maximum_iterations"]), 5
+        )
+        # One profile for the current Q and normally one for its proposed Q.
+        self._optimization_callbacks_per_q = max(
+            1, 2 * profile_evaluations * typical_lm_iterations
+        )
+        self._q_updates_seen = 0
+        self._optimization_callbacks_since_q = 0
+        if bool(payload["mcmc_settings"]["enabled"]):
+            self._weights = {
+                "preparation": 0.05,
+                "inference": 0.70,
+                "geometry": 0.05,
+                "sampling": 0.15,
+                "writing": 0.05,
+            }
+        else:
+            self._weights = {
+                "preparation": 0.05,
+                "inference": 0.85,
+                "geometry": 0.05,
+                "sampling": 0.0,
+                "writing": 0.05,
+            }
 
     @property
     def total_units(self) -> int:
@@ -152,9 +164,17 @@ class BatchProgressReporter:
         now = float(self._clock())
         if not np.isfinite(now) or now < self._last_time:
             raise ProgressValidationError("monotonic progress clock regressed")
-        if self._stage_id != stage_id:
+        stage_restarted = (
+            self._stage_id != stage_id
+            or (
+                stage_id == STAGE_OPTIMIZING_FULL_TRAJECTORY
+                and local_completed <= self._stage_last_completed
+            )
+        )
+        if stage_restarted:
             self._stage_id = stage_id
             self._stage_started = now
+        self._stage_last_completed = local_completed
         self._last_time = now
         elapsed = now - self._started
         stage_elapsed = now - self._stage_started
@@ -168,12 +188,14 @@ class BatchProgressReporter:
             overall_completed = self._total
             self._terminal = True
         else:
-            if self._observed >= self._total - 1:
-                raise ProgressValidationError(
-                    "request-derived progress budget was exhausted"
-                )
-            self._observed += 1
-            overall_completed = self._observed
+            candidate = self._phase_fraction(
+                stage_id, local_completed, local_total
+            )
+            self._last_fraction = max(self._last_fraction, candidate)
+            overall_completed = min(
+                self._total - 1,
+                int(np.floor(self._last_fraction * self._total)),
+            )
 
         stage_eta = None
         if local_completed == local_total:
@@ -210,6 +232,54 @@ class BatchProgressReporter:
             message=message,
         )
         self._callback(event)
+
+    def _phase_fraction(
+        self, stage_id: str, completed: int, total: int
+    ) -> float:
+        local = float(completed) / float(total)
+        preparation = self._weights["preparation"]
+        inference = self._weights["inference"]
+        geometry = self._weights["geometry"]
+        sampling = self._weights["sampling"]
+        if stage_id == STAGE_PREPARING_TRAJECTORY:
+            return preparation * local
+        if stage_id in (
+            STAGE_OPTIMIZING_FULL_TRAJECTORY,
+            STAGE_REFINING_CONSTANT_DELAY,
+        ):
+            self._optimization_callbacks_since_q += 1
+            provisional = min(
+                0.95,
+                float(self._optimization_callbacks_since_q)
+                / float(self._optimization_callbacks_per_q),
+            )
+            inference_fraction = min(
+                1.0,
+                (
+                    float(self._q_updates_seen) + provisional
+                )
+                / float(self._q_update_total),
+            )
+            return preparation + inference * inference_fraction
+        if stage_id == STAGE_UPDATING_MODEL_ERROR_COVARIANCE:
+            self._q_updates_seen = min(
+                self._q_update_total, self._q_updates_seen + 1
+            )
+            self._optimization_callbacks_since_q = 0
+            return preparation + inference * (
+                float(self._q_updates_seen) / float(self._q_update_total)
+            )
+        inference_end = preparation + inference
+        if stage_id == STAGE_COMPUTING_LOCAL_POSTERIOR_GEOMETRY:
+            return inference_end + geometry * local
+        geometry_end = inference_end + geometry
+        if stage_id == STAGE_SAMPLING_PARAMETER_POSTERIOR:
+            return geometry_end + sampling * local
+        if stage_id == STAGE_WRITING_ARTIFACTS:
+            return geometry_end + sampling + self._weights["writing"] * local
+        raise ProgressValidationError(
+            "unsupported progress stage_id {!r}".format(stage_id)
+        )
 
 
 def _jsonable(value: Any) -> Any:
@@ -394,13 +464,6 @@ def execute_batch_estimation(
         progress=progress,
     )
     cancellation.raise_if_cancelled()
-    if progress is not None:
-        progress(
-            "computing_local_posterior_geometry",
-            0,
-            1,
-            "benchmarking final undamped sparse geometry",
-        )
     performance = measure_run_performance(result)
     selected = result.selected_mode
     identity = ArtifactRunIdentity(
@@ -436,12 +499,6 @@ def execute_batch_estimation(
         ),
     )
     if progress is not None:
-        progress(
-            "computing_local_posterior_geometry",
-            1,
-            1,
-            "strict solver payload validated",
-        )
         progress("writing_artifacts", 0, 1, "publishing strict run")
     cancellation.raise_if_cancelled()
     written = write_batch_estimation_run(

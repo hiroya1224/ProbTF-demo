@@ -47,7 +47,8 @@ Laplace draw を MCMC draw と表示しない。
 
 MCMC の chain state は 18 次元 static chart と continuous delay の 19 次元だけである。
 全 knot の latent trajectory を chain state に含めない。
-各 proposal 点では static coordinate と delay を固定し、bag-local trajectory の conditional sparse MAP を warm start で解いて Laplace-marginal target を評価する。
+各 proposal 点では static coordinate と delay を固定し、bag-local trajectory の conditional sparse MAP を共通の selected-mode MAP trajectory から解いて Laplace-marginal target を評価する。
+現在の chain state で得た trajectory を次 proposal の warm start に引き継がず、同じ point の exact target が chain history や resume の有無に依存しないようにする。
 
 概念的な log target は次である。
 
@@ -99,12 +100,28 @@ draw 数が多いこと、acceptance が高いこと、MAP 周辺に cloud が�
 cancel 時は complete estimate-only artifact を変更せず proposal checkpoint を保持し、同一 sampling request fingerprint の `resume=true` だけを受け付ける。
 linear factorization の途中は保存せず、保存済み MAP state から undamped factorization を再生成する。
 
-## 11. 18--24 秒 run の現在地
+## 11. 実 bag run の現在地
+
+### 11.1 `18.0--24.0 s` estimate-only run
 
 2026 年 8 月 4 日の実 bag validation は `estimate_only` で実行したため、MCMC sample は生成していない。
 Laplace artifact は作成され、likelihood eigenvalue は広い dynamic range を持ち、condition number は約 `1.32e8` だった。
 この一 run は暫定 covariance、暫定 prior、EM 一回、delay boundary `0.0 s` という条件なので、ridge や parameter posterior を科学的に確定する材料には不足している。
-MCMC の実 bag validation は、covariance/actuator contract の校正、複数 EM iteration、delay profile の安定化後に別 run として行う。
+
+### 11.2 clean `18.0--18.3 s` posterior sampling smoke
+
+clean revision `5b08e5c290925d7585024f3c5350a7f88a7f1fe9` の `run b` では、5-knot estimate-only artifact に後段 MCMC を追加した。
+estimate-only は wall `9.04 s`、posterior sampling は wall `11.71 s`、progress elapsed `11.316 s` で complete になった。
+sampling は 2 chains × 4 retained draws で、8 retained draws すべてについて fresh conditional sparse MAP trajectory を保存した。
+保存した conditional objective と対応する MCMC target breakdown は最大絶対誤差 `8.88e-15` で一致した。
+
+この clean run の前に、現在の chain trajectory を次 proposal の warm start にすると、nonlinear stopping point を介して target が history-dependent になる不具合を実 E2E で検出した。
+revision `5b08e5c` は全 exact evaluation を共通の selected-mode MAP warm start から開始するよう修正し、同じ point の target と checkpoint resume を history independent にした。
+上記 `run b` は修正後に最初から作り直した artifact である。
+
+各 chain 4 draws では configured R-hat/ESS threshold を満たさず、artifact も `MCMC completed without satisfying convergence thresholds` を warning として保存した。
+8 selected conditional trajectories は sample-local state の診断と可視化を監査できることを示すが、MCMC 収束や posterior の科学的妥当性は示さない。
+科学的な実 bag MCMC validation は covariance/actuator contract の校正、複数 EM iteration、delay profile の安定化後に十分な warmup と retained draws で行う。
 
 ## 12. GUI での確認順序
 

@@ -4,8 +4,9 @@
 
 新しい sparse batch estimator は、指定された失敗飛行の `18.0--24.0 s` を読み、pose、velocity、gyro、controller/actuator observation、kinematics、dynamics を一つの全軌道問題として解き、strict v1 artifact を complete 状態で出力した。
 MAP は relative objective tolerance で収束し、Laplace 幾何も完了した。
-一方、Laplace-EM は検証時間を抑えるため最大一 iteration に制限したので非収束であり、MCMC と PID evaluation はこの run では実行していない。
-したがってこの結果は end-to-end 数値経路の成立を示す smoke/validation であり、実機 parameter、Q、delay、PID の科学的な校正結果ではない。
+一方、Laplace-EM は検証時間を抑えるため最大一 iteration に制限したので非収束であり、この `18.0--24.0 s` run では MCMC と PID evaluation を実行していない。
+別の clean `18.0--18.3 s` run では estimate→MCMC→selected conditional trajectory→PID evaluation→成功飛行 tuning evaluation までを実行し、artifact 間の配管と監査契約を確認した。
+どちらも実機 parameter、Q、delay、MCMC、PID の科学的な校正結果ではない。
 
 ## 2. data split
 
@@ -23,11 +24,11 @@ MAP は relative objective tolerance で収束し、Laplace 幾何も完了し�
 - original: `/home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_3_2026-06-13-15-12-51.bag`。
 - SHA256: `a1569a48bf9a1d4d3f10a40bfc0e2c3c0cba192660b32204eeb37d1416425071`。
 - inspection result: complete episode `7.2259--65.6365 s`、推奨 state=5 区間 `41.8469--62.9066 s`、topic contract valid。
-- current use: GUI demo と未実施の data split 候補で、短い tuning run なら例えば `45--51 s` を明示的に選べる。
+- current use: GUI demo と tuning evaluation で、短区間 `45.0--45.3 s` を実際に使用した。
 
 成功 bag の flight outcome と inspection contract は既に確認しているため、本報告では完全 hold-out と呼ばない。
 payload、rotor/propeller、geometry、robot model revision、actuator wiring、hardware revision の provenance は bag だけでは不足し、configuration group の manual confirmation が必要である。
-今後この bag を tuning や candidate selection に使った場合は、その事実を manifest/report に残し、別の未閲覧 bag を外部 validation 用に確保する。
+この bag を tuning に使った事実は manifest/report に記録し、別の未閲覧 bag を外部 validation 用に確保する。
 
 ## 3. request 設定
 
@@ -167,7 +168,8 @@ likelihood eigenvalue は約 `9.92e-5` から `1.31e4` に広がり、condition 
 
 ## 9. trajectory 表示の読み方
 
-GUI の observed は sensor measurement、nominal は推定前の model trajectory、MAP は全 factor と prior を同時に最適化した latent trajectory である。
+GUI の observed は sensor measurement、nominal は観測を補間・平滑化して作る推定初期軌道、MAP は全 factor と prior を同時に最適化した latent trajectory である。
+nominal は open-loop model forecast ではないため、observed との近さをモデルの予測性能として読まない。
 selected posterior-sample conditional trajectory は MCMC 付き run でだけ存在する。
 observed と MAP が近いことは pose fit の診断だが、dynamics residual や他 sensor residual が大きいままでも起こりうる。
 `Dynamics residual` panel では force/torque の MAP residual、normalized residual、`sqrt(Q/dt)` band を比較し、特定軸だけが Q に吸収されていないか確認する。
@@ -177,7 +179,87 @@ observed と MAP が近いことは pose fit の診断だが、dynamics residual
 画像は [rewrite 後の GUI visual acceptance](figures/gui_after_batch_rewrite/README.md) に保存している。
 画面上でも observed、nominal、MAP の大きな乖離が見えたため、数値的に artifact が完走したことと科学的に推定が成功したことを区別している。
 
-## 10. 次の validation
+## 10. clean 短区間 E2E evidence
+
+### 10.1 estimate と posterior sampling
+
+clean source `run b` は失敗 bag の `18.0--18.3 s` を 5 knots で推定し、後段 worker で同じ complete estimate-only artifact へ MCMC を追加した。
+estimate と sampling の `estimator_revision` / `sampler_revision` は `5b08e5c290925d7585024f3c5350a7f88a7f1fe9` である。
+
+| substage | result |
+|---|---|
+| estimate-only wall time | `9.04 s` |
+| MAP | converged、`gradient_tolerance` |
+| Laplace | complete |
+| Laplace-EM | non-converged、`maximum_iterations` |
+| posterior sampling wall time | `11.71 s`、progress elapsed `11.316 s` |
+| retained draws | 2 chains × 4 draws = 8 |
+| selected conditional trajectories | 8/8 retained draws × 1 bag |
+| conditional objective audit | strict all-close、maximum absolute error `8.88e-15` |
+| MCMC convergence | configured R-hat/ESS thresholds not satisfied |
+
+各 selected trajectory は retained static coordinate と delay を固定した fresh conditional sparse MAP であり、保存した conditional objective を同じ sample の MCMC target breakdown と照合した。
+現行 policy では selected conditional trajectories は posterior sample の局所状態診断と可視化のための保存物であり、PID forecast の sample 別初期状態には使わない。
+後述する旧 PID `run c` だけは `608decf` より前の初期条件 policy で実行したため、この原則の validation evidence には数えない。
+
+最初の試行では proposal 間の trajectory warm start を引き継ぐと、非線形 solver の停止点を介して同じ proposal の target が chain history に依存する不具合を検出した。
+revision `5b08e5c` は全 exact target evaluation を共通の selected-mode MAP warm start から開始し、target を proposal point だけの関数に戻した修正版である。
+上表の `run b` はこの修正後に最初から作り直した結果である。
+
+4 draws/chain は配管確認用の極小設定であり、warning `MCMC completed without satisfying convergence thresholds` が正しい判定である。
+この sample を converged posterior と呼ばず、parameter や ridge の科学的推論に使わない。
+
+### 10.2 PID cross-evaluation
+
+PID `run c` は controller snapshot fingerprint を estimation と同じ bag order で計算する修正 `f56142b` の後に作り直した v2 artifact である。
+修正前の試行は、flight input の順序契約を正しく fingerprint できず拒否されたため、validation evidence に数えない。
+
+| quantity | result |
+|---|---|
+| wall time | `2.78 s` |
+| candidates | current + sample-derived = 2 |
+| plant population | explicit 2-sample subset |
+| forecasts | `2 × 2 = 4` |
+| completion mean | current `1.0`、sample-derived `1.0` |
+| numerical failures | 0 |
+| actuator saturation duration/rate | `0 s` / `0` |
+| recommendation | unavailable |
+
+current と sample-derived はどちらも non-dominated だったが、sample-derived は current に対する全 performance component の Pareto 改善を満たさなかった。
+そのため rejection reason は `recommendation unavailable: no Pareto candidate improves current` である。
+さらに explicit 2-sample subset は smoke/exploratory evaluation であり、現行 revision `608decf` は subset 上で改善が見えても retained posterior 全体の finalist reevaluation なしに推薦を出さない。
+PID `run c` は `608decf` より前の revision で実行したため、明示した 2 plant samples の保存済み conditional trajectory initial state を使用した。
+`608decf` 以降の現行 policy は全 plant sample を共通の `shared_selected_mode_map_initial` から始め、保存済み selected conditional trajectory を診断と可視化にだけ使用する。
+したがって上表の metric は旧初期条件 policy による配管 smoke evidence であり、最終 HEAD の現行 policy で再実行するまで性能比較へ使わない。
+
+### 10.3 成功飛行の tuning evaluation
+
+成功 bag の `45.0--45.3 s` に 2 retained samples を連続 forecast する `tuning run b` は wall `3.83 s` で complete になった。
+data split role は `tuning_evaluation`、semantic label は `tuning evaluation (not held-out)` であり、`strict_hold_out` ではない。
+future discrepancy は `zero_model_discrepancy` とした。
+
+| metric | mean |
+|---|---:|
+| observed position RMSE | `0.0201115 m` |
+| observed orientation RMSE | `0.0563624 rad` |
+| observed maximum position error | `0.0382226 m` |
+| observed maximum orientation error | `0.0988568 rad` |
+| reference position RMSE | `0.0612683 m` |
+| reference orientation RMSE | `0.147179 rad` |
+| reference maximum position error | `0.0634088 m` |
+| reference maximum orientation error | `0.154781 rad` |
+| forecast completion | `1.0` |
+| numerical failure count | `0` |
+| actuator saturation duration/rate | `0 s` / `0` |
+
+2 retained samples が同じ値を返したため mean、configured quantile、upper CVaR はこの短区間では同じだった。
+失敗飛行と翌日の成功飛行が同一 campaign であること以外に exact hardware/configuration identity は独立確認できず、artifact の compatibility status は `unconfirmed` である。
+したがってこの誤差を parameter mismatch だけに帰属できず、成功飛行への predictive generalization を確認したとも言えない。
+
+この clean E2E は estimate、posterior append、conditional trajectory、PID Cartesian product、別飛行 tuning artifact が整合することを検証した plumbing smoke test である。
+短い区間、EM 一回、4 draws/chain、2-sample PID subset、zero discrepancy、未確認の configuration compatibility という条件なので、parameter、Q、MCMC、PID の科学的成功を主張しない。
+
+## 11. 次の validation
 
 1. pose、velocity、gyro、command、fixed-factor covariance を実測または再現性試験から校正する。
 2. gimbal time constant と delay を別実験で識別し、両者の競合を減らす。

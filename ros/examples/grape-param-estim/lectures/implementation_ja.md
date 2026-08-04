@@ -9,7 +9,7 @@
 2. [analytic_jacobian_implementation_ja.md](analytic_jacobian_implementation_ja.md) は SO(3)、physical chart、controller/actuator/dynamics factor の解析 Jacobian を説明する。
 3. [laplace_em_q_estimation_ja.md](laplace_em_q_estimation_ja.md) は covariance correction を含む対角 Q の Laplace-EM を説明する。
 4. [ridge_and_mcmc_diagnostics_ja.md](ridge_and_mcmc_diagnostics_ja.md) は likelihood/posterior ridge、Laplace geometry、multiple-chain MCMC を説明する。
-5. [real_flight_validation_ja.md](real_flight_validation_ja.md) は失敗 rosbag `18--24 s` の end-to-end 結果と未解決点を記録する。
+5. [real_flight_validation_ja.md](real_flight_validation_ja.md) は失敗 rosbag `18--24 s` の batch 結果と、短区間の clean estimate→MCMC→PID→tuning E2E evidence を記録する。
 6. [pid_particle_evaluation_ja.md](pid_particle_evaluation_ja.md) は MCMC sample 由来 PID 候補の posterior cross-evaluation を説明する。
 7. [synthetic_recovery_validation_ja.md](synthetic_recovery_validation_ja.md) は perfect-model、known-Q、lag、sensor、MCMC の truth recovery 結果を記録する。
 

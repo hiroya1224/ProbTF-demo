@@ -140,9 +140,38 @@ YAML と diff は exact selected gain の提案物であり、`jsk_aerial_robot`
 ## 12. 現在の validation 状態
 
 2026 年 8 月 4 日の `18.0--24.0 s` 実 bag run は `estimate_only` で MCMC を実行していないため、この run を source にした実データ PID recommendation は存在しない。
-backend の candidate × sample × bag × replicate、sampled-Q common-random-number、strict request/artifact 経路は synthetic/test fixture で検証している。
-実機向け評価へ進むには、まず covariance/actuator calibration、複数回 EM、delay/ridge stability、multiple-chain R-hat/ESS を満たす MCMC run が必要である。
-成功 bag は現在 data split 候補として既に閲覧しているため、これを使った candidate tuning を外部 hold-out validation と報告しない。
+別の clean `18.0--18.3 s` source `run b` は revision `5b08e5c290925d7585024f3c5350a7f88a7f1fe9` で 2 chains × 4 retained draws と 8/8 selected conditional trajectories を生成したが、MCMC convergence threshold は満たしていない。
+
+この source を使った PID `run c` の最初の試行で、PID worker が controller snapshot fingerprint を estimation と同じ bag order で再構成していない不具合を検出した。
+revision `f56142b` で ordered flight inputs を fingerprint するよう修正し、修正後に v2 artifact を作り直した。
+
+| quantity | `run c` result |
+|---|---|
+| wall time | `2.78 s` |
+| candidates | current + sample-derived = 2 |
+| plant population | explicit 2-sample subset |
+| forecast count | `2 × 2 = 4` |
+| forecast completion mean | 両 candidate とも `1.0` |
+| numerical failure count | 0 |
+| actuator saturation duration/rate | `0 s` / `0` |
+| nondominated candidates | current、sample-derived |
+| recommendation | unavailable |
+
+sample-derived candidate は current に対する全 performance component の Pareto 改善を満たさず、rejection reason は `recommendation unavailable: no Pareto candidate improves current` だった。
+explicit 2-sample subset は smoke/exploratory population にすぎず、現行 revision `608decf` は retained posterior 全体で finalist を再評価するまで推薦を禁止する。
+
+PID `run c` は `608decf` より前に実行したため、明示した 2 samples の保存済み conditional trajectory initial state を使った。
+section 5 に記した現行 policy は全 sample で同じ `shared_selected_mode_map_initial` を使い、selected conditional trajectories を診断と可視化にだけ使う。
+したがって `run c` の metric は旧初期条件 policy の配管 smoke evidence であり、最終 HEAD の現行 policy による性能 evidence ではない。
+
+成功 bag `45.0--45.3 s` の `tuning run b` は 2 retained samples を wall `3.83 s` で連続 forecast し、completion mean `1.0`、数値失敗 0、actuator saturation 0 で complete になった。
+zero-model-discrepancy 条件での observed position/orientation RMSE は `0.0201115 m` / `0.0563624 rad`、observed maximum error は `0.0382226 m` / `0.0988568 rad` だった。
+reference position/orientation RMSE は `0.0612683 m` / `0.147179 rad`、reference maximum error は `0.0634088 m` / `0.154781 rad` だった。
+この artifact の role は `tuning_evaluation`、semantic label は `tuning evaluation (not held-out)` であり、configuration compatibility は `unconfirmed` である。
+
+これらの tiny runs は candidate × sample の Cartesian path、fingerprint、artifact、別飛行 tuning path の配管を実 bag で確認しただけである。
+実機向け評価へ進むには、covariance/actuator calibration、複数回 EM、delay/ridge stability、multiple-chain R-hat/ESS、full posterior PID reevaluation、未閲覧 bag の strict hold-out が必要である。
+parameter、Q、MCMC、PID の科学的成功や飛行安全上の推薦を示す結果ではない。
 
 ## 13. code 対応
 

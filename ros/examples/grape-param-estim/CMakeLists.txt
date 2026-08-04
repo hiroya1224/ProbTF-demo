@@ -13,6 +13,8 @@ catkin_install_python(
     scripts/grape_evaluate_pid_proposals.py
     scripts/grape_generate_synthetic_flight.py
     scripts/grape_inspect_flights.py
+    scripts/grape_sample_parameter_posterior.py
+    scripts/grape_validate_held_out_flight.py
     gui/run_gui.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

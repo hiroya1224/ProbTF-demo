@@ -154,6 +154,9 @@ class McmcChainResult:
     thinning: int
     total_transitions: int
     kernel_summaries: Mapping[str, KernelAcceptanceSummary]
+    graph_objective: Optional[np.ndarray] = None
+    local_log_determinant: Optional[np.ndarray] = None
+    delay_log_prior: Optional[np.ndarray] = None
 
     def __post_init__(self) -> None:
         for name in ("chain_id", "mode_id"):
@@ -240,6 +243,45 @@ class McmcChainResult:
         if sum(value.attempts for value in summaries.values()) != self.total_transitions:
             raise ValueError("kernel attempts must equal total transitions")
         object.__setattr__(self, "kernel_summaries", MappingProxyType(summaries))
+        component_names = (
+            "graph_objective",
+            "local_log_determinant",
+            "delay_log_prior",
+        )
+        component_values = tuple(getattr(self, name) for name in component_names)
+        supplied = tuple(value is not None for value in component_values)
+        if any(supplied) and not all(supplied):
+            raise ValueError(
+                "target density component traces must be supplied together"
+            )
+        if all(supplied):
+            for name, value in zip(component_names, component_values):
+                array = np.asarray(value, dtype=float)
+                if array.shape != (draw_count,) or not np.all(
+                    np.isfinite(array)
+                ):
+                    raise ValueError(
+                        "{} must contain one finite value per draw".format(
+                            name
+                        )
+                    )
+                copied = array.copy()
+                copied.setflags(write=False)
+                object.__setattr__(self, name, copied)
+            reconstructed = (
+                self.delay_log_prior
+                - self.graph_objective
+                - 0.5 * self.local_log_determinant
+            )
+            if not np.allclose(
+                self.log_density,
+                reconstructed,
+                rtol=1.0e-12,
+                atol=1.0e-12,
+            ):
+                raise ValueError(
+                    "target component traces do not reconstruct log_density"
+                )
 
 
 class McmcCancelled(RuntimeError):
@@ -340,6 +382,30 @@ def run_mcmc_chain(
     log_density = np.asarray(
         tuple(item[1].log_density for item in retained)
     )
+    component_availability = tuple(
+        item[1].has_density_components for item in retained
+    )
+    if any(component_availability) and not all(component_availability):
+        raise RuntimeError(
+            "retained target evaluations mix decomposed and opaque densities"
+        )
+    if all(component_availability):
+        graph_objective = np.asarray(
+            tuple(item[1].graph_objective for item in retained), dtype=float
+        )
+        local_log_determinant = np.asarray(
+            tuple(
+                item[1].local_log_determinant for item in retained
+            ),
+            dtype=float,
+        )
+        delay_log_prior = np.asarray(
+            tuple(item[1].delay_log_prior for item in retained), dtype=float
+        )
+    else:
+        graph_objective = None
+        local_log_determinant = None
+        delay_log_prior = None
     attempted_kernel = np.asarray(
         tuple(item[2].kernel_name for item in retained)
     )
@@ -397,6 +463,9 @@ def run_mcmc_chain(
         thinning=settings.thinning,
         total_transitions=total,
         kernel_summaries=summaries,
+        graph_objective=graph_objective,
+        local_log_determinant=local_log_determinant,
+        delay_log_prior=delay_log_prior,
     )
 
 

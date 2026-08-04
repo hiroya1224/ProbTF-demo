@@ -76,6 +76,33 @@ class DelayedAcceptanceTests(unittest.TestCase):
         self.assertFalse(hit)
         self.assertEqual(len(calls), 2)
 
+    def test_exact_cache_rejects_inconsistent_target_decompositions(self):
+        cache = ExactTargetCache()
+        point = _point()
+        first = TargetEvaluation(
+            point=point,
+            log_density=-2.0,
+            successful=True,
+            failure_reason="",
+            inner_iterations=1,
+            graph_objective=1.0,
+            local_log_determinant=2.0,
+            delay_log_prior=0.0,
+        )
+        inconsistent = TargetEvaluation(
+            point=point,
+            log_density=-2.0,
+            successful=True,
+            failure_reason="",
+            inner_iterations=1,
+            graph_objective=2.0,
+            local_log_determinant=0.0,
+            delay_log_prior=0.0,
+        )
+        cache.store(first)
+        with self.assertRaisesRegex(ValueError, "inconsistent"):
+            cache.store(inconsistent)
+
     def test_quadratic_surrogate_preserves_exact_zero_information_ridge(self):
         center = _point()
         information = np.eye(19)

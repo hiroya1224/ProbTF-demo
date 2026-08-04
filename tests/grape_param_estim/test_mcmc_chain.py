@@ -160,6 +160,59 @@ class McmcChainTests(unittest.TestCase):
         self.assertEqual(summary.stage_one_accepted, 0)
         self.assertEqual(summary.stage_two_attempted, 0)
 
+    def test_preserves_auditable_laplace_target_component_traces(self):
+        center = PosteriorPoint(np.zeros(18), 0.02)
+        surrogate = QuadraticSurrogate(
+            center, -0.1, np.zeros((19, 19))
+        )
+        proposal = ProposalMixture((IncrementKernel(),), np.ones(1))
+
+        def target(point, warm_start):
+            objective = 0.5 * float(
+                point.static_coordinate @ point.static_coordinate
+            )
+            log_determinant = 0.2
+            delay_prior = -0.5 * point.delay**2
+            return TargetEvaluation(
+                point=point,
+                log_density=(
+                    delay_prior - objective - 0.5 * log_determinant
+                ),
+                successful=True,
+                failure_reason="",
+                inner_iterations=2,
+                warm_start=point.static_coordinate.copy(),
+                graph_objective=objective,
+                local_log_determinant=log_determinant,
+                delay_log_prior=delay_prior,
+            )
+
+        sampler = DelayedAcceptanceSampler(
+            surrogate,
+            proposal,
+            (0.0, 0.05),
+            target,
+        )
+        settings = McmcChainSettings("chain-components", "mode-map", 0, 2)
+        result = run_mcmc_chain(
+            sampler,
+            target(center, None),
+            settings,
+            DeterministicRandom(
+                increments=(0.1, 0.1),
+                uniforms=(0.0, 0.0, 0.0, 0.0),
+            ),
+        )
+        np.testing.assert_allclose(result.graph_objective, (0.005, 0.02))
+        np.testing.assert_allclose(result.local_log_determinant, (0.2, 0.2))
+        np.testing.assert_allclose(
+            result.log_density,
+            result.delay_log_prior
+            - result.graph_objective
+            - 0.5 * result.local_log_determinant,
+        )
+        self.assertFalse(result.graph_objective.flags.writeable)
+
     def test_settings_reject_invalid_counts(self):
         invalid = (
             {"warmup_steps": -1, "retained_draws": 2, "thinning": 1},

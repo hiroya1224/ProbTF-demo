@@ -77,6 +77,9 @@ class TargetEvaluation:
     failure_reason: str
     inner_iterations: int
     warm_start: Any = None
+    graph_objective: Optional[float] = None
+    local_log_determinant: Optional[float] = None
+    delay_log_prior: Optional[float] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.point, PosteriorPoint):
@@ -104,6 +107,40 @@ class TargetEvaluation:
         object.__setattr__(self, "successful", successful)
         object.__setattr__(self, "log_density", log_density)
         object.__setattr__(self, "inner_iterations", int(self.inner_iterations))
+        component_names = (
+            "graph_objective",
+            "local_log_determinant",
+            "delay_log_prior",
+        )
+        component_values = tuple(getattr(self, name) for name in component_names)
+        supplied = tuple(value is not None for value in component_values)
+        if any(supplied) and not all(supplied):
+            raise ValueError(
+                "target density components must be supplied together"
+            )
+        if all(supplied):
+            if not successful:
+                raise ValueError(
+                    "a failed target evaluation cannot have density components"
+                )
+            converted = tuple(float(value) for value in component_values)
+            if not np.all(np.isfinite(converted)):
+                raise ValueError("target density components must be finite")
+            objective, log_determinant, delay_prior = converted
+            reconstructed = (
+                delay_prior - objective - 0.5 * log_determinant
+            )
+            if not np.isclose(
+                log_density,
+                reconstructed,
+                rtol=1.0e-12,
+                atol=1.0e-12,
+            ):
+                raise ValueError(
+                    "target components do not reconstruct log_density"
+                )
+            for name, value in zip(component_names, converted):
+                object.__setattr__(self, name, value)
 
     @classmethod
     def failure(
@@ -120,6 +157,12 @@ class TargetEvaluation:
             inner_iterations=inner_iterations,
             warm_start=None,
         )
+
+    @property
+    def has_density_components(self) -> bool:
+        """Whether the exact target exposed its auditable decomposition."""
+
+        return self.graph_objective is not None
 
 
 class ExactTargetCache:
@@ -141,6 +184,10 @@ class ExactTargetCache:
         if existing is not None and (
             existing.log_density != evaluation.log_density
             or existing.successful != evaluation.successful
+            or existing.graph_objective != evaluation.graph_objective
+            or existing.local_log_determinant
+            != evaluation.local_log_determinant
+            or existing.delay_log_prior != evaluation.delay_log_prior
         ):
             raise ValueError(
                 "bit-identical target point produced inconsistent evaluations"

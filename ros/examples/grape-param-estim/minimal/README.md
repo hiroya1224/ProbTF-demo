@@ -1,6 +1,6 @@
 # 最小構成の実機パラメータ推定
 
-このディレクトリの `estimate_recorded_control.py` は deterministic と probabilistic の二つを切り替える共通エントリポイントです。
+このディレクトリの `estimate_recorded_control.py` は deterministic、deterministic-Q、probabilistic の三つを切り替える共通エントリポイントです。
 
 既定では `deterministic_estimator.py` のベースライン推定法を呼び出します。
 
@@ -32,6 +32,23 @@ Observed は青の実線、nominal は橙の破線、estimated は緑の点線�
 ```bash
 python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" --max-nfev 50
 ```
+
+### Deterministic baseline と対角 Q の交互推定
+
+`--method deterministic_q` は deterministic の single-shooting 軌道誤差を維持し、観測 IMU 軌道上の required-minus-modeled body wrench に対する対角 Q 尤度を追加します。
+
+固定 Q のパラメータ最適化と、Mahalanobis 項および `log det(Q/dt)` を含む Gaussian 尤度の閉形式 Q 更新を交互に実行します。
+
+```bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic_q \
+  --q-iterations 2 \
+  --q-max-nfev 8
+```
+
+結果は `minimal/output/deterministic_q/` に保存されます。
+
+この手法は latent trajectory を持たず、Q の residual は順方向シミュレーション軌道ではなく観測軌道から計算する inverse-dynamics residual です。
 
 ### GUI backend の根幹アルゴリズムとの比較
 

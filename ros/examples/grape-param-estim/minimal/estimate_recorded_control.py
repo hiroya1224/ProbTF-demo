@@ -13,12 +13,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     selector = argparse.ArgumentParser(add_help=False)
     selector.add_argument(
         "--method",
-        choices=("deterministic", "probabilistic"),
+        choices=("deterministic", "deterministic_q", "probabilistic"),
         default="deterministic",
     )
     selection, remaining = selector.parse_known_args(raw_arguments)
     if selection.method == "deterministic":
         from deterministic_estimator import main as selected_main
+    elif selection.method == "deterministic_q":
+        from deterministic_q_estimator import main as selected_main
     else:
         from probabilistic_estimator import main as selected_main
     return selected_main(remaining)

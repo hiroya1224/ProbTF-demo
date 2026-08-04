@@ -1,0 +1,354 @@
+{
+  "bag": {
+    "interval_seconds": [
+      19.0,
+      24.0
+    ],
+    "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/20260612_grape_hovering_4_2026-06-12-17-33-59.bag"
+  },
+  "coordinates": {
+    "deterministic_baseline_full": [
+      0.029147130773504903,
+      0.9998177101944977,
+      0.9999999991253491,
+      -0.1978735057553745,
+      -0.022104249776164358,
+      -0.4999212843605836,
+      0.10352295795410889,
+      0.015041631521516687,
+      -0.011711553039196415,
+      0.07998795947252987,
+      -0.05903686550703389,
+      0.1432287675560043,
+      0.0010720327095816225,
+      -0.08526393475855205,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "deterministic_q_active": {
+      "cog_offset_x_m": 0.01354752776025342,
+      "cog_offset_y_m": -0.02876552690802546,
+      "cog_offset_z_m": 0.07999051162949453,
+      "force_effectiveness_contrast_1": -0.13682194510064272,
+      "force_effectiveness_contrast_2": 0.1563240701782549,
+      "force_effectiveness_contrast_3": 0.1633402802290241,
+      "log_mass_scale": 0.037007920493319954,
+      "relative_log_inertia_xx": 0.9999877372659646,
+      "relative_log_inertia_xy": -0.27712919204528824,
+      "relative_log_inertia_xz": -0.4995889053297252,
+      "relative_log_inertia_yy": 0.9999317139816277,
+      "relative_log_inertia_yz": 0.21556709276161773,
+      "relative_log_inertia_zz": -0.9997891125198387
+    },
+    "deterministic_q_full": [
+      0.037007920493319954,
+      0.9999877372659646,
+      0.9999317139816277,
+      -0.9997891125198387,
+      -0.27712919204528824,
+      -0.4995889053297252,
+      0.21556709276161773,
+      0.01354752776025342,
+      -0.02876552690802546,
+      0.07999051162949453,
+      0.014223586592695531,
+      0.20771903698429148,
+      -0.08048579143738305,
+      -0.14145683213960397,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "created_at": "2026-08-04T20:28:25.369860+00:00",
+  "final_objective": {
+    "mean_wrench_gaussian_nll": 6.679429942761055,
+    "total_composite_objective": 432.76792122456027,
+    "trajectory_and_parameter_prior": 426.08849128179924
+  },
+  "limitations": [
+    "the open-loop observation loss and inverse-dynamics residual reuse the same recorded flight as a composite likelihood",
+    "Q has no parameter-uncertainty or sensor-noise covariance correction",
+    "angular acceleration uses the deterministic baseline Savitzky-Golay gyro derivative",
+    "wrench residual is evaluated at left knots with fixed actuator and delay models",
+    "only the deterministic baseline thirteen-dimensional parameter subspace is optimized"
+  ],
+  "method": {
+    "fixed_delay_seconds": 0.01,
+    "latent_trajectory": false,
+    "q_update": "closed-form diagonal Gaussian maximum likelihood",
+    "residual_wrench_state": false,
+    "trajectory": "deterministic single-shooting open-loop",
+    "wrench_residual": "observed inverse dynamics required minus modeled body wrench"
+  },
+  "optimizer": {
+    "completed_q_iterations": 2,
+    "elapsed_seconds": 94.27142470283434,
+    "final_theta_message": "The maximum number of function evaluations is exceeded.",
+    "final_theta_nfev": 8,
+    "final_theta_success": false,
+    "name": "scipy.optimize.least_squares alternating with analytic Q MLE",
+    "q_iterations": 2,
+    "q_log_tolerance": 0.001,
+    "theta_max_nfev_per_solve": 8
+  },
+  "outputs": {
+    "method_comparison_pdf": "method_comparison.pdf",
+    "result_json": "result.json",
+    "trajectory_pdf": "trajectory.pdf"
+  },
+  "parameters": {
+    "deterministic_q": {
+      "angular_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cog_offset_m": [
+        0.01354752776025342,
+        -0.02876552690802546,
+        0.07999051162949453
+      ],
+      "force_effectiveness": [
+        1.0143252231073534,
+        1.2308672927753372,
+        0.9226680132768627,
+        0.8680926484783339
+      ],
+      "inertia_kg_m2": [
+        [
+          0.19769581404755143,
+          -0.056826994083571405,
+          -0.06179879060508549
+        ],
+        [
+          -0.056826994083571405,
+          0.1870545852340976,
+          0.03486272862583174
+        ],
+        [
+          -0.06179879060508549,
+          0.03486272862583174,
+          0.06489814557562174
+        ]
+      ],
+      "linear_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass_kg": 2.440255735758538,
+      "torque_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  },
+  "q": {
+    "component_names": [
+      "Fx",
+      "Fy",
+      "Fz",
+      "Tx",
+      "Ty",
+      "Tz"
+    ],
+    "diagonal_units": [
+      "N^2*s",
+      "N^2*s",
+      "N^2*s",
+      "N^2*m^2*s",
+      "N^2*m^2*s",
+      "N^2*m^2*s"
+    ],
+    "residual_component_units": [
+      "N",
+      "N",
+      "N",
+      "N*m",
+      "N*m",
+      "N*m"
+    ],
+    "final_diagonal": [
+      0.248449653809968,
+      0.0038349827920730714,
+      0.5966181137189633,
+      0.00527071997014665,
+      0.0811179405166081,
+      0.0005734272041807471
+    ],
+    "final_map_second_moment": [
+      0.24957273952482115,
+      0.00365390268989534,
+      0.6040273631816365,
+      0.007853548897996325,
+      0.08424743774948025,
+      0.0008904017696479734
+    ],
+    "final_mean_gaussian_nll": 6.679429942761055,
+    "fixed_point_converged": false,
+    "floor_diagonal": [
+      1e-08,
+      1e-08,
+      1e-08,
+      1e-08,
+      1e-08,
+      1e-08
+    ],
+    "history": [
+      {
+        "input_q": [
+          0.24965560545791574,
+          0.004265836360793682,
+          0.6240852648982256,
+          0.001790217973376436,
+          0.07770539901541706,
+          0.000712713288455306
+        ],
+        "iteration": 0,
+        "maximum_log_q_change": 0.6256067772784499,
+        "objective_after": {
+          "mean_wrench_gaussian_nll": 5.6600624959868995,
+          "total_composite_objective": 517.6008784939935,
+          "trajectory_and_parameter_prior": 511.9408159980066
+        },
+        "objective_before": {
+          "mean_wrench_gaussian_nll": 5.779359041971408,
+          "total_composite_objective": 564.2241881581208,
+          "trajectory_and_parameter_prior": 558.4448291161494
+        },
+        "target_q": [
+          0.24882326108271005,
+          0.004031988475703437,
+          0.6153662057536491,
+          0.0028082545715777843,
+          0.07853153407472699,
+          0.00038125652490702286
+        ],
+        "theta_message": "The maximum number of function evaluations is exceeded.",
+        "theta_nfev": 8,
+        "theta_success": false
+      },
+      {
+        "input_q": [
+          0.24882326108271005,
+          0.004031988475703437,
+          0.6153662057536491,
+          0.0028082545715777843,
+          0.07853153407472699,
+          0.00038125652490702286
+        ],
+        "iteration": 1,
+        "maximum_log_q_change": 0.6296038285001275,
+        "objective_after": {
+          "mean_wrench_gaussian_nll": 6.153876804904336,
+          "total_composite_objective": 459.43056336968755,
+          "trajectory_and_parameter_prior": 453.27668656478323
+        },
+        "objective_before": {
+          "mean_wrench_gaussian_nll": 5.6600624959868995,
+          "total_composite_objective": 517.6008784939935,
+          "trajectory_and_parameter_prior": 511.9408159980066
+        },
+        "target_q": [
+          0.248449653809968,
+          0.0038349827920730714,
+          0.5966181137189633,
+          0.00527071997014665,
+          0.0811179405166081,
+          0.0005734272041807471
+        ],
+        "theta_message": "The maximum number of function evaluations is exceeded.",
+        "theta_nfev": 8,
+        "theta_success": false
+      }
+    ],
+    "initial_diagonal": [
+      0.24965560545791574,
+      0.004265836360793682,
+      0.6240852648982256,
+      0.001790217973376436,
+      0.07770539901541706,
+      0.000712713288455306
+    ],
+    "interval_covariance": "Q / dt",
+    "maximum_log_fixed_point_error": 0.4400417914750019,
+    "next_closed_form_target": [
+      0.24957273952482115,
+      0.00365390268989534,
+      0.6040273631816365,
+      0.007853548897996325,
+      0.08424743774948025,
+      0.0008904017696479734
+    ],
+    "quantity": "body_wrench_continuous_spectral_density"
+  },
+  "recorded_control_open_loop_metrics": {
+    "deterministic": {
+      "angular_velocity_rmse_rad_per_s": 1.8299753967295305,
+      "orientation_angle_rmse_deg": 34.45618894589788,
+      "orientation_angle_rmse_rad": 0.6013739447951924,
+      "position_component_rmse_m": [
+        1.480249788594623,
+        0.1936700786109881,
+        0.14966649537756282
+      ],
+      "position_rmse_m": 1.500349157970309,
+      "specific_force_rmse_m_per_s2": 1.7058540847850636,
+      "terminal_orientation_error_deg": 70.79196116307622,
+      "terminal_position_error_m": 0.52385438173225,
+      "velocity_component_rmse_m_per_s": [
+        1.8330212855379362,
+        0.36460523378029475,
+        0.3840930297250186
+      ],
+      "velocity_rmse_m_per_s": 1.9079914740948074
+    },
+    "deterministic_q": {
+      "angular_velocity_rmse_rad_per_s": 2.257743729445565,
+      "orientation_angle_rmse_deg": 40.941212479159944,
+      "orientation_angle_rmse_rad": 0.7145589575199314,
+      "position_component_rmse_m": [
+        1.1130814033746905,
+        0.4623835691274494,
+        0.13335210403128497
+      ],
+      "position_rmse_m": 1.2126547567989743,
+      "specific_force_rmse_m_per_s2": 1.6284840058153394,
+      "terminal_orientation_error_deg": 36.69683857237492,
+      "terminal_position_error_m": 0.7663625228919572,
+      "velocity_component_rmse_m_per_s": [
+        1.4631661617694416,
+        0.9775434829925382,
+        0.3339940593860588
+      ],
+      "velocity_rmse_m_per_s": 1.7910886381732987
+    },
+    "nominal": {
+      "angular_velocity_rmse_rad_per_s": 5.805364922725194,
+      "orientation_angle_rmse_deg": 134.09180388544317,
+      "orientation_angle_rmse_rad": 2.3403434777395087,
+      "position_component_rmse_m": [
+        16.124213531855084,
+        14.651699076442842,
+        47.3384720777632
+      ],
+      "position_rmse_m": 52.11135659819902,
+      "specific_force_rmse_m_per_s2": 2.800365812127242,
+      "terminal_orientation_error_deg": 159.79247732594501,
+      "terminal_position_error_m": 123.4248391115022,
+      "velocity_component_rmse_m_per_s": [
+        7.503735720583354,
+        6.242964964568819,
+        29.73092153784468
+      ],
+      "velocity_rmse_m_per_s": 31.29230507333503
+    }
+  },
+  "schema": "grape-param-estim/minimal-deterministic-diagonal-q/v1"
+}

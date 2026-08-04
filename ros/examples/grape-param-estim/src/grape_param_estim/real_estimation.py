@@ -144,6 +144,7 @@ class ModeEstimationResult:
     final_solution: FixedGraphLaplaceSolution
     static_geometry: StaticLaplaceGeometry
     lag_profile_history: Tuple[LagProfileResult, ...]
+    final_q_lag_profile_history: Tuple[LagProfileResult, ...]
     delay_uncertainty: DelayUncertaintyEstimate
     nonlinear_iteration_seconds: Tuple[float, ...]
     em_iteration_seconds: Tuple[float, ...]
@@ -167,6 +168,23 @@ class ModeEstimationResult:
             )
         ):
             raise ValueError("lag_profile_history cannot be empty")
+        if (
+            type(self.final_q_lag_profile_history) is not tuple
+            or any(
+                not isinstance(value, LagProfileResult)
+                for value in self.final_q_lag_profile_history
+            )
+        ):
+            raise TypeError(
+                "final_q_lag_profile_history must contain LagProfileResult values"
+            )
+        if any(
+            all(value is not known for known in self.lag_profile_history)
+            for value in self.final_q_lag_profile_history
+        ):
+            raise ValueError(
+                "final-Q lag profiles must be part of chronological history"
+            )
         if not isinstance(self.delay_uncertainty, DelayUncertaintyEstimate):
             raise TypeError(
                 "delay_uncertainty must be DelayUncertaintyEstimate"
@@ -574,6 +592,7 @@ def estimate_mode(
         final_solution=final_solution,
         static_geometry=geometry,
         lag_profile_history=profiles,
+        final_q_lag_profile_history=final_q_profiles[-1:],
         delay_uncertainty=uncertainty,
         nonlinear_iteration_seconds=tuple(nonlinear_timings),
         em_iteration_seconds=tuple(em_timings),

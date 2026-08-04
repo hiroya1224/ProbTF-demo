@@ -88,6 +88,7 @@ class BatchEstimationCliTests(unittest.TestCase):
                 em=em,
                 static_geometry=object(),
                 lag_profile_history=(object(),),
+                final_q_lag_profile_history=(object(),),
                 delay_uncertainty=SimpleNamespace(
                     standard_deviation_seconds=0.01,
                     curvature=10000.0,

@@ -241,7 +241,7 @@ def execute_batch_estimation(
         final_solution=selected.final_solution,
         em_result=selected.em,
         static_geometry=selected.static_geometry,
-        lag_profile_history=selected.lag_profile_history,
+        lag_profile_history=selected.final_q_lag_profile_history,
         delay_geometry=DelayLocalGeometry(
             selected.delay_uncertainty.standard_deviation_seconds
         ),

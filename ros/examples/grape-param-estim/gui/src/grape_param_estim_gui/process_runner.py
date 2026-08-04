@@ -58,7 +58,9 @@ class EstimatorProcessRunner(QObject):
         self._kill_after_ms = max(int(kill_after_ms), 1)
         self._stdout_buffer = ""
         self._stderr_buffer = ""
-        self._last_fraction = 0.0
+        self._last_overall_fraction = 0.0
+        self._overall_total_units: int | None = None
+        self._last_elapsed_seconds = 0.0
         self._run_id: str | None = None
         self._output_directory: Path | None = None
         self._cancel_requested = False
@@ -90,7 +92,9 @@ class EstimatorProcessRunner(QObject):
             raise ValueError("worker program cannot be empty")
         self._stdout_buffer = ""
         self._stderr_buffer = ""
-        self._last_fraction = 0.0
+        self._last_overall_fraction = 0.0
+        self._overall_total_units = None
+        self._last_elapsed_seconds = 0.0
         self._run_id = run_id
         self._output_directory = Path(output_directory).expanduser().resolve()
         self._cancel_requested = False
@@ -176,15 +180,30 @@ class EstimatorProcessRunner(QObject):
         if self._run_id is not None and event.run_id != self._run_id:
             self._fail_protocol("worker progress run_id does not match the request")
             return
-        if event.fraction + 5.0e-13 < self._last_fraction:
-            self._fail_protocol("worker progress fraction decreased")
+        if self._overall_total_units is None:
+            self._overall_total_units = int(event.total_units)
+        elif event.total_units != self._overall_total_units:
+            self._fail_protocol(
+                "worker progress overall total_units changed during the run"
+            )
+            return
+        if event.fraction + 5.0e-13 < self._last_overall_fraction:
+            self._fail_protocol("worker overall progress fraction decreased")
+            return
+        if event.elapsed_seconds + 5.0e-13 < self._last_elapsed_seconds:
+            self._fail_protocol("worker progress elapsed time decreased")
             return
         if event.eta_seconds is not None and (
             not math.isfinite(event.eta_seconds) or event.eta_seconds < 0.0
         ):
             self._fail_protocol("worker progress ETA is not finite and non-negative")
             return
-        self._last_fraction = max(self._last_fraction, float(event.fraction))
+        self._last_overall_fraction = max(
+            self._last_overall_fraction, float(event.fraction)
+        )
+        self._last_elapsed_seconds = max(
+            self._last_elapsed_seconds, float(event.elapsed_seconds)
+        )
         self.progress.emit(event)
 
     def _fail_protocol(self, message: str) -> None:

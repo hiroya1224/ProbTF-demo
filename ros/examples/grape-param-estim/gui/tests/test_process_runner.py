@@ -15,19 +15,24 @@ from grape_param_estim_gui.process_runner import EstimatorProcessRunner
 
 def _event(run_id="run-a", completed=1, total=2, eta=1.0):
     return {
-        "schema": "grape-param-estim/progress-event/v1",
+        "schema": "grape-param-estim/progress-event/v2",
         "run_id": run_id,
-        "stage_id": "forecast",
-        "stage_label": "Forecast",
+        "stage_id": "optimizing_full_trajectory",
+        "stage_label": "Optimizing full trajectory",
+        "stage_completed_units": completed,
+        "stage_total_units": total,
+        "stage_fraction": completed / total,
         "completed_units": completed,
         "total_units": total,
         "fraction": completed / total,
+        "stage_elapsed_seconds": 0.1,
+        "stage_eta_seconds": eta,
         "elapsed_seconds": 0.1,
         "eta_seconds": eta,
         "iteration": None,
         "maximum_iterations": None,
         "bag_id": None,
-        "member_id": None,
+        "sample_id": None,
         "message": "working",
     }
 
@@ -72,6 +77,9 @@ class ProcessRunnerQtTest(unittest.TestCase):
         terminal = self._run_until_terminal(runner)
         self.assertEqual(terminal[0], "finished")
         self.assertEqual([value.fraction for value in progress], [0.5, 1.0])
+        self.assertEqual(
+            [value.stage_fraction for value in progress], [0.5, 1.0]
+        )
         self.assertIn("diagnostic log", logs)
 
     def test_non_json_stdout_is_protocol_error(self):
@@ -82,6 +90,46 @@ class ProcessRunnerQtTest(unittest.TestCase):
         terminal = self._run_until_terminal(runner)
         self.assertEqual(terminal[0], "failed")
         self.assertIn("progress JSONL", terminal[1])
+
+    def test_legacy_member_id_event_is_strict_protocol_error(self):
+        worker = self.root / "legacy_worker.py"
+        legacy = _event(completed=2, eta=0.0)
+        legacy["schema"] = "grape-param-estim/progress-event/v1"
+        legacy["member_id"] = 7
+        legacy.pop("sample_id")
+        worker.write_text(
+            "import json\n"
+            "print(json.dumps(" + repr(legacy) + "), flush=True)\n"
+        )
+        runner = EstimatorProcessRunner()
+        runner.start(
+            sys.executable,
+            [worker],
+            output_directory=self.root / "out",
+            run_id="run-a",
+        )
+        terminal = self._run_until_terminal(runner)
+        self.assertEqual(terminal[0], "failed")
+        self.assertIn("progress JSONL", terminal[1])
+
+    def test_overall_total_units_cannot_change_between_events(self):
+        worker = self.root / "changing_total_worker.py"
+        events = [_event(completed=1, total=2), _event(completed=3, total=3)]
+        worker.write_text(
+            "import json\n"
+            "events=" + repr(events) + "\n"
+            "[print(json.dumps(v), flush=True) for v in events]\n"
+        )
+        runner = EstimatorProcessRunner()
+        runner.start(
+            sys.executable,
+            [worker],
+            output_directory=self.root / "out",
+            run_id="run-a",
+        )
+        terminal = self._run_until_terminal(runner)
+        self.assertEqual(terminal[0], "failed")
+        self.assertIn("total_units changed", terminal[1])
 
     def test_worker_linear_algebra_threads_default_to_one_and_allow_override(self):
         worker = self.root / "worker_environment.py"

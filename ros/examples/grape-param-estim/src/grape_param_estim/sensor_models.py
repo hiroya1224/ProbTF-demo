@@ -415,6 +415,73 @@ class VectorSeries:
 
 
 @dataclass(frozen=True)
+class CausalVectorSeries(VectorSeries):
+    """A record-time command series with explicit pre-window history.
+
+    ``times``/``values`` remain the selected-interval samples used for
+    inspection and command-observation factors.  ``history_*`` stores every
+    strictly earlier issue event retained by the adapter so a delayed ZOH
+    input can be reconstructed without extrapolating the first selected
+    value backwards in time.
+    """
+
+    history_times: np.ndarray
+    history_record_times: np.ndarray
+    history_values: np.ndarray
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.timestamp_source is not TimestampSource.RECORD:
+            raise ValueError("causal command history must use record time")
+        _, history_times, history_record_times = _series_times(
+            TimestampSource.RECORD,
+            self.history_times,
+            self.history_record_times,
+        )
+        history_values = _readonly_matrix(
+            self.history_values,
+            history_times.size,
+            len(self.field_names),
+            "history_values",
+        )
+        if history_times[-1] >= self.times[0]:
+            raise ValueError(
+                "command history must be strictly earlier than selected samples"
+            )
+        selected_epoch = self.record_times[0] - self.times[0]
+        history_epoch = history_record_times[-1] - history_times[-1]
+        if not np.isclose(
+            selected_epoch, history_epoch, rtol=0.0, atol=2.0e-7
+        ):
+            raise ValueError(
+                "command history and selected samples must share one bag epoch"
+            )
+        object.__setattr__(self, "history_times", history_times)
+        object.__setattr__(self, "history_record_times", history_record_times)
+        object.__setattr__(self, "history_values", history_values)
+
+    @property
+    def all_times(self) -> np.ndarray:
+        result = np.concatenate((self.history_times, self.times))
+        result.setflags(write=False)
+        return result
+
+    @property
+    def all_record_times(self) -> np.ndarray:
+        result = np.concatenate(
+            (self.history_record_times, self.record_times)
+        )
+        result.setflags(write=False)
+        return result
+
+    @property
+    def all_values(self) -> np.ndarray:
+        result = np.vstack((self.history_values, self.values))
+        result.setflags(write=False)
+        return result
+
+
+@dataclass(frozen=True)
 class PoseSeries:
     """Position and orientation observations at their measurement times.
 
@@ -868,6 +935,7 @@ class FlightData:
 
 
 __all__ = [
+    "CausalVectorSeries",
     "FlightData",
     "FlightModeSeries",
     "FlightProvenance",

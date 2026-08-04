@@ -282,6 +282,25 @@ def _synthetic_records(duplicate_pose_header=False):
             header_time + 0.001,
         )
 
+    add(
+        GIMBAL_COMMAND_TOPIC,
+        _namespace(
+            header=_header(117.89),
+            name=(),
+            position=(0.0, 0.0, 0.0, 0.0),
+            velocity=(),
+            effort=(),
+        ),
+        117.9,
+    )
+    add(
+        FOUR_AXIS_COMMAND_TOPIC,
+        _namespace(
+            base_thrust=(0.5, 0.5, 0.5, 0.5),
+            angles=(0.0, 0.0, 0.0),
+        ),
+        117.91,
+    )
     for index, header_time in enumerate(
         (118.03, 118.13, 118.23, 118.33)
     ):
@@ -355,6 +374,20 @@ class AsynchronousRosbagAdapterTests(unittest.TestCase):
         self.assertEqual(data.flight_mode.initial_state, 3)
         np.testing.assert_array_equal(data.flight_mode.states, (3, 3, 3))
         self.assertEqual(data.imu_preflight.imu_sample_count, 4)
+        self.assertGreaterEqual(data.gimbal_command.history_times.size, 1)
+        self.assertGreaterEqual(data.rotor_command.history_times.size, 1)
+        self.assertLess(
+            data.gimbal_command.history_times[-1],
+            data.gimbal_command.times[0],
+        )
+        self.assertLess(
+            data.rotor_command.history_times[-1],
+            data.rotor_command.times[0],
+        )
+        np.testing.assert_array_equal(
+            data.rotor_command.history_values[-1],
+            (0.5, 0.5, 0.5, 0.5),
+        )
         np.testing.assert_allclose(
             data.imu_preflight.gyro_bias, (0.01, 0.02, 0.03)
         )

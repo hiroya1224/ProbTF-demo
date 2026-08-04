@@ -9,6 +9,7 @@ import unittest
 import numpy as np
 
 from grape_param_estim.sensor_models import (
+    CausalVectorSeries,
     FlightData,
     FlightModeSeries,
     FlightProvenance,
@@ -237,6 +238,37 @@ class TimeAndTopicContractTests(unittest.TestCase):
 
 
 class AsynchronousSeriesTests(unittest.TestCase):
+    def test_causal_command_series_keeps_pre_window_issue_history(self):
+        series = CausalVectorSeries(
+            times=np.asarray((18.0, 18.1)),
+            record_times=np.asarray((118.0, 118.1)),
+            values=np.asarray(((2.0,), (3.0,))),
+            field_names=("thrust",),
+            timestamp_source=TimestampSource.RECORD,
+            history_times=np.asarray((17.8, 17.9)),
+            history_record_times=np.asarray((117.8, 117.9)),
+            history_values=np.asarray(((0.5,), (1.0,))),
+        )
+
+        np.testing.assert_array_equal(
+            series.all_times, (17.8, 17.9, 18.0, 18.1)
+        )
+        np.testing.assert_array_equal(
+            series.all_values[:, 0], (0.5, 1.0, 2.0, 3.0)
+        )
+        self.assertFalse(series.history_values.flags.writeable)
+        with self.assertRaisesRegex(ValueError, "strictly earlier"):
+            CausalVectorSeries(
+                times=np.asarray((18.0, 18.1)),
+                record_times=np.asarray((118.0, 118.1)),
+                values=np.asarray(((2.0,), (3.0,))),
+                field_names=("thrust",),
+                timestamp_source=TimestampSource.RECORD,
+                history_times=np.asarray((18.0,)),
+                history_record_times=np.asarray((118.0,)),
+                history_values=np.asarray(((1.0,),)),
+            )
+
     def test_vector_series_preserves_both_clocks_and_freezes_copies(self):
         header_times = np.asarray((1.0, 1.1, 1.2))
         record_times = np.asarray((1.003, 1.104, 1.204))

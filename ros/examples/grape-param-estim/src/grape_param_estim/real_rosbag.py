@@ -27,6 +27,7 @@ from grape_param_estim.geometry import (
     rotation_vector_from_matrix,
 )
 from grape_param_estim.sensor_models import (
+    CausalVectorSeries,
     FlightData,
     FlightModeSeries,
     FlightProvenance,
@@ -2204,6 +2205,8 @@ def build_flight_data_from_messages(
         RAW_MOCAP_POSE_TOPIC: [],
         CONVERTED_IMU_TOPIC: [],
         FLIGHT_STATE_TOPIC: [],
+        GIMBAL_COMMAND_TOPIC: [],
+        FOUR_AXIS_COMMAND_TOPIC: [],
     }
     for topic, message, record_stamp in records:
         if topic not in entries_by_topic:
@@ -2266,6 +2269,33 @@ def build_flight_data_from_messages(
     command_entries = retained[FOUR_AXIS_COMMAND_TOPIC]
     pid_entries = retained[PID_TOPIC]
     flight_state_entries = retained[FLIGHT_STATE_TOPIC]
+
+    full_gimbal_command_entries = _strict_stream_entries(
+        full_entries_by_topic[GIMBAL_COMMAND_TOPIC],
+        TimestampSource.RECORD,
+        header_duplicate_policy,
+        "full {}".format(GIMBAL_COMMAND_TOPIC),
+    )
+    full_command_entries = _strict_stream_entries(
+        full_entries_by_topic[FOUR_AXIS_COMMAND_TOPIC],
+        TimestampSource.RECORD,
+        header_duplicate_policy,
+        "full {}".format(FOUR_AXIS_COMMAND_TOPIC),
+    )
+    gimbal_command_history_entries = tuple(
+        entry
+        for entry in full_gimbal_command_entries
+        if entry.time < gimbal_command_entries[0].time
+    )
+    command_history_entries = tuple(
+        entry
+        for entry in full_command_entries
+        if entry.time < command_entries[0].time
+    )
+    if not gimbal_command_history_entries:
+        raise ValueError("gimbal command has no causal pre-window history")
+    if not command_history_entries:
+        raise ValueError("rotor command has no causal pre-window history")
 
     pose_frame = _observed_frame(pose_entries)
     velocity_frame = _observed_frame(velocity_entries)
@@ -2596,12 +2626,23 @@ def build_flight_data_from_messages(
         if value.shape != (4,) or not np.all(np.isfinite(value)):
             raise ValueError("gimbals_ctrl position must contain four angles")
         issued_gimbal_values.append(value)
-    gimbal_command = VectorSeries(
+    gimbal_history_values = []
+    for entry in gimbal_command_history_entries:
+        value = np.asarray(entry.message.position, dtype=float)
+        if value.shape != (4,) or not np.all(np.isfinite(value)):
+            raise ValueError(
+                "gimbals_ctrl history position must contain four angles"
+            )
+        gimbal_history_values.append(value)
+    gimbal_command = CausalVectorSeries(
         times=local_times(gimbal_command_entries),
         record_times=record_times(gimbal_command_entries),
         values=np.asarray(issued_gimbal_values),
         field_names=GIMBAL_JOINT_NAMES,
         timestamp_source=TimestampSource.RECORD,
+        history_times=local_times(gimbal_command_history_entries),
+        history_record_times=record_times(gimbal_command_history_entries),
+        history_values=np.asarray(gimbal_history_values),
     )
 
     command_values = []
@@ -2615,12 +2656,21 @@ def build_flight_data_from_messages(
             raise ValueError("FourAxisCommand angles are invalid")
         command_values.append(value)
         command_angles.append(angles)
-    rotor_command = VectorSeries(
+    command_history_values = []
+    for entry in command_history_entries:
+        value = np.asarray(entry.message.base_thrust, dtype=float)
+        if value.shape != (4,) or not np.all(np.isfinite(value)):
+            raise ValueError("FourAxisCommand history base_thrust is invalid")
+        command_history_values.append(value)
+    rotor_command = CausalVectorSeries(
         times=local_times(command_entries),
         record_times=record_times(command_entries),
         values=np.asarray(command_values),
         field_names=("rotor_1", "rotor_2", "rotor_3", "rotor_4"),
         timestamp_source=TimestampSource.RECORD,
+        history_times=local_times(command_history_entries),
+        history_record_times=record_times(command_history_entries),
+        history_values=np.asarray(command_history_values),
     )
 
     pid_columns = {
@@ -3031,8 +3081,18 @@ def build_flight_data_from_messages(
         "header_nonmonotonic={}; record_time_is_authoritative".format(
             pid_header_duplicates, pid_header_nonmonotonic
         ),
-        "issued_gimbal_command_source={}; timestamp=record; samples={}"
-        .format(GIMBAL_COMMAND_TOPIC, len(gimbal_command_entries)),
+        "issued_gimbal_command_source={}; timestamp=record; samples={}; "
+        "history_samples={}".format(
+            GIMBAL_COMMAND_TOPIC,
+            len(gimbal_command_entries),
+            len(gimbal_command_history_entries),
+        ),
+        "issued_rotor_command_source={}; timestamp=record; samples={}; "
+        "history_samples={}".format(
+            FOUR_AXIS_COMMAND_TOPIC,
+            len(command_entries),
+            len(command_history_entries),
+        ),
         "flight_mode_source={}; timestamp=record; anchor_state={}; "
         "selected_states={}".format(
             FLIGHT_STATE_TOPIC,

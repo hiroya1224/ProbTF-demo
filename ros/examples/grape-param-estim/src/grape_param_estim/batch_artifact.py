@@ -33,6 +33,7 @@ from .artifact_io import (
     write_json_atomic,
     write_npz_atomic,
 )
+from .posterior import representatives as _posterior_representatives
 
 
 BATCH_ESTIMATION_RUN_SCHEMA = "grape-param-estim/batch-estimation-run/v1"
@@ -44,21 +45,37 @@ WRITING_STATUS = "writing"
 _BAG_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 
-_CONDITIONAL_TRAJECTORY_SELECTION_POLICY = (
-    "deterministic_flattened_chain_draw_quantiles_v1"
+_CONDITIONAL_TRAJECTORY_EVALUATION_METHOD = (
+    _posterior_representatives.CONDITIONAL_TRAJECTORY_EVALUATION_METHOD
 )
-_CONDITIONAL_TRAJECTORY_SAMPLE_ORDER = "chain_order_then_draw_index"
-_CONDITIONAL_TRAJECTORY_EVALUATION_METHOD = "fresh_conditional_sparse_map"
-_CONDITIONAL_TRAJECTORY_WARM_START_POLICY = "selected_mode_map_local_state"
+_CONDITIONAL_TRAJECTORY_SAMPLE_ORDER = (
+    _posterior_representatives.CONDITIONAL_TRAJECTORY_SAMPLE_ORDER
+)
+_CONDITIONAL_TRAJECTORY_SELECTION_POLICY = (
+    _posterior_representatives.CONDITIONAL_TRAJECTORY_SELECTION_POLICY
+)
+_CONDITIONAL_TRAJECTORY_WARM_START_POLICY = (
+    _posterior_representatives.CONDITIONAL_TRAJECTORY_WARM_START_POLICY
+)
+_CONDITIONAL_TRAJECTORY_FEATURE_POLICY = (
+    _posterior_representatives.FEATURE_POLICY
+)
+_CONDITIONAL_TRAJECTORY_RIDGE_POLICY = (
+    _posterior_representatives.RIDGE_COORDINATE_POLICY
+)
+_CONDITIONAL_TRAJECTORY_ROLE_PRIORITY = _posterior_representatives.ROLE_PRIORITY
+_CONDITIONAL_TRAJECTORY_ROLE_RECORD_KEYS = (
+    _posterior_representatives.ROLE_RECORD_KEYS
+)
 _CONDITIONAL_TRAJECTORY_SELECTION_KEYS = (
-    "policy",
-    "sample_order",
-    "available_sample_count",
-    "maximum_sample_count",
-    "selected_sample_ids",
-    "selected_bag_ids",
-    "conditional_evaluation_method",
-    "warm_start_policy",
+    _posterior_representatives.SELECTION_MANIFEST_KEYS
+)
+POSTERIOR_REPRESENTATIVE_MAXIMUM_SAMPLE_COUNT = (
+    _posterior_representatives.POSTERIOR_REPRESENTATIVE_MAXIMUM_SAMPLE_COUNT
+)
+RepresentativeRole = _posterior_representatives.RepresentativeRole
+select_posterior_representatives_from_arrays = (
+    _posterior_representatives.select_posterior_representatives_from_arrays
 )
 
 _MANIFEST_KEYS = (
@@ -461,29 +478,53 @@ def _validate_conditional_trajectory_selection(
             raise ArtifactValidationError(
                 "{}.{} must be {!r}".format(location, name, expected)
             )
-    integer_values = {}
-    for name in ("available_sample_count", "maximum_sample_count"):
-        value = selection[name]
-        if (
-            isinstance(value, bool)
-            or not isinstance(value, (int, np.integer))
-            or int(value) <= 0
-        ):
+    fixed_policies = {
+        "role_priority": list(_CONDITIONAL_TRAJECTORY_ROLE_PRIORITY),
+        "feature_policy": dict(_CONDITIONAL_TRAJECTORY_FEATURE_POLICY),
+        "ridge_coordinate_policy": dict(
+            _CONDITIONAL_TRAJECTORY_RIDGE_POLICY
+        ),
+    }
+    for name, expected in fixed_policies.items():
+        if selection[name] != expected:
             raise ArtifactValidationError(
-                "{}.{} must be a positive integer".format(location, name)
+                "{}.{} does not match role-union v2".format(location, name)
             )
-        integer_values[name] = int(value)
+    available = selection["available_sample_count"]
+    if (
+        isinstance(available, bool)
+        or not isinstance(available, (int, np.integer))
+        or int(available) <= 0
+    ):
+        raise ArtifactValidationError(
+            location + ".available_sample_count must be a positive integer"
+        )
+    maximum = selection["maximum_sample_count"]
+    if (
+        isinstance(maximum, bool)
+        or not isinstance(maximum, (int, np.integer))
+        or int(maximum)
+        != POSTERIOR_REPRESENTATIVE_MAXIMUM_SAMPLE_COUNT
+    ):
+        raise ArtifactValidationError(
+            location + ".maximum_sample_count must be the fixed v2 bound"
+        )
     raw_sample_ids = selection["selected_sample_ids"]
-    if not isinstance(raw_sample_ids, list) or not raw_sample_ids:
-        raise ArtifactValidationError(
-            location + ".selected_sample_ids must be a non-empty ID list"
+    if (
+        not isinstance(raw_sample_ids, list)
+        or not raw_sample_ids
+        or any(
+            type(value) is not str
+            or not value
+            or value.strip() != value
+            for value in raw_sample_ids
         )
-    normalized_sample_ids = np.asarray(raw_sample_ids)
-    if normalized_sample_ids.ndim != 1 or normalized_sample_ids.dtype.kind not in "iUS":
+    ):
         raise ArtifactValidationError(
-            location + ".selected_sample_ids must contain integer or string IDs"
+            location
+            + ".selected_sample_ids must be a non-empty canonical string list"
         )
-    sample_ids = tuple(str(value) for value in normalized_sample_ids.tolist())
+    sample_ids = tuple(raw_sample_ids)
     if len(set(sample_ids)) != len(sample_ids):
         raise ArtifactValidationError(
             location + ".selected_sample_ids must not contain duplicates"
@@ -496,12 +537,54 @@ def _validate_conditional_trajectory_selection(
         raise ArtifactValidationError(
             "conditional trajectory selection must cover every selected bag in order"
         )
-    if len(sample_ids) > min(
-        integer_values["available_sample_count"],
-        integer_values["maximum_sample_count"],
-    ):
+    if len(sample_ids) > min(int(available), int(maximum)):
         raise ArtifactValidationError(
             "conditional trajectory selection exceeds its recorded bound"
+        )
+    raw_roles = selection["role_records"]
+    if not isinstance(raw_roles, list) or not raw_roles:
+        raise ArtifactValidationError(
+            location + ".role_records must be a non-empty list"
+        )
+    roles = []
+    for index, raw_role in enumerate(raw_roles):
+        role_location = "{}.role_records[{}]".format(location, index)
+        if not isinstance(raw_role, Mapping):
+            raise ArtifactValidationError(
+                role_location + " must be an object"
+            )
+        _require_keys(
+            raw_role, _CONDITIONAL_TRAJECTORY_ROLE_RECORD_KEYS, role_location
+        )
+        _reject_unknown_keys(
+            raw_role, _CONDITIONAL_TRAJECTORY_ROLE_RECORD_KEYS, role_location
+        )
+        try:
+            role = RepresentativeRole(**dict(raw_role))
+        except (TypeError, ValueError) as error:
+            raise ArtifactValidationError(
+                role_location + " is not a canonical v2 role record"
+            ) from error
+        if dict(role.manifest_payload) != dict(raw_role):
+            raise ArtifactValidationError(
+                role_location + " is not in canonical form"
+            )
+        if role.sample_id not in sample_ids:
+            raise ArtifactValidationError(
+                role_location + " references an unselected sample"
+            )
+        roles.append(role)
+    role_ids = tuple(value.role_id for value in roles)
+    if len(set(role_ids)) != len(role_ids):
+        raise ArtifactValidationError(
+            location + ".role_records contains duplicate role IDs"
+        )
+    if (
+        roles[0].role_class != "highest_log_posterior"
+        or roles[0].sample_id != sample_ids[0]
+    ):
+        raise ArtifactValidationError(
+            location + " must place the primary role and sample first"
         )
     return selection
 
@@ -846,6 +929,10 @@ def _validate_manifest(
                 "trajectories/{}/selected_samples.npz".format(bag_id),
                 "manifest.artifacts.trajectories.{}".format(bag_id),
             )
+    if mcmc_enabled and set(trajectory_paths) != expected_bags:
+        raise ArtifactValidationError(
+            "completed MCMC requires selected trajectories for every bag"
+        )
 
     _validate_conditional_trajectory_selection(
         mcmc_settings, bag_ids, tuple(trajectory_paths)
@@ -2176,6 +2263,38 @@ def _load_validated_run(
         selection = manifest["mcmc_settings"][
             "conditional_trajectory_selection"
         ]
+        parameter_prior = manifest["parameter_prior"]
+        delay_prior = manifest["delay_prior"]
+        mcmc_settings = manifest["mcmc_settings"]
+        try:
+            expected_representatives = (
+                select_posterior_representatives_from_arrays(
+                    mcmc_arrays,
+                    prior_mean_coordinate=parameter_prior[
+                        "mean_coordinate"
+                    ],
+                    prior_covariance=parameter_prior["covariance"],
+                    delay_bounds_seconds=delay_prior["bounds_seconds"],
+                    delay_scale_seconds=mcmc_settings[
+                        "delay_scale_seconds"
+                    ],
+                    exact_ridge_direction=laplace[
+                        "exact_ridge_direction"
+                    ],
+                )
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise ArtifactValidationError(
+                "conditional trajectory role-union inputs are invalid"
+            ) from error
+        expected_selection = expected_representatives.manifest_payload(
+            bag_ids
+        )
+        if selection != expected_selection:
+            raise ArtifactValidationError(
+                "conditional trajectory roles, IDs, or order disagree with "
+                "recomputed role-union v2"
+            )
         selected_ids = tuple(
             str(value) for value in selection["selected_sample_ids"]
         )
@@ -2191,7 +2310,6 @@ def _load_validated_run(
             raise ArtifactValidationError(
                 "conditional trajectory selection contains unknown MCMC IDs"
             )
-        delay_prior = manifest["delay_prior"]
         if delay_prior.get("prior_kind") != "uniform":
             raise ArtifactValidationError(
                 "conditional objective audit requires the declared uniform delay prior"

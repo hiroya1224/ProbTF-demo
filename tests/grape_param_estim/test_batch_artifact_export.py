@@ -50,6 +50,9 @@ from grape_param_estim.posterior.mcmc import (
     KernelAcceptanceSummary,
     McmcChainResult,
 )
+from grape_param_estim.posterior.representatives import (
+    select_posterior_representatives,
+)
 from tests.grape_param_estim.test_batch_preparation import (
     BatchPreparationTests,
 )
@@ -92,7 +95,7 @@ class BatchArtifactExportTests(unittest.TestCase):
                 maximum_iterations=50,
                 gradient_tolerance=1.0e-5,
                 scaled_step_tolerance=1.0e-6,
-                relative_objective_tolerance=1.0e-7,
+                relative_objective_tolerance=3.0e-6,
             ),
         )
         self.em_result = self._em_result()
@@ -364,26 +367,62 @@ class BatchArtifactExportTests(unittest.TestCase):
         for interval in self.solution.dynamics.linearizations.intervals:
             dynamics[interval.left_knot_index] = interval.residual
             valid[interval.left_knot_index] = True
-        sample_id = str(chains[0].sample_id[0])
-        selected = SelectedConditionalTrajectory(
-            sample_id=sample_id,
-            bag_id=self.prepared.bags[0].bag_id,
-            state=self.solution.lm.state,
-            dynamics_residual=dynamics,
-            dynamics_residual_valid=valid,
-            conditional_objective=float(chains[0].graph_objective[0]),
+        request = self._mcmc_payload_request(self.helper.payload)
+        prior = request["parameter_prior"]
+        representatives = select_posterior_representatives(
+            sample_id=tuple(
+                str(value)
+                for chain in chains
+                for value in chain.sample_id.tolist()
+            ),
+            chain_id=tuple(
+                chain.chain_id for chain in chains for _value in chain.sample_id
+            ),
+            draw_index=np.concatenate(
+                tuple(chain.draw_index for chain in chains)
+            ),
+            static_coordinate=np.vstack(
+                tuple(chain.static_coordinate for chain in chains)
+            ),
+            delay=np.concatenate(tuple(chain.delay for chain in chains)),
+            log_posterior=np.concatenate(
+                tuple(chain.log_density for chain in chains)
+            ),
+            source_mode_id=tuple(
+                chain.mode_id for chain in chains for _value in chain.sample_id
+            ),
+            prior_mean_coordinate=prior["mean_coordinate"],
+            prior_covariance=prior["covariance"],
+            delay_bounds_seconds=request["delay"]["bounds_seconds"],
+            delay_scale_seconds=request["mcmc_settings"][
+                "delay_scale_seconds"
+            ],
+            exact_ridge_direction=(
+                self.solution.static_geometry().exact_ridge_direction
+            ),
         )
-        policy = {
-            "policy": "deterministic_flattened_chain_draw_quantiles_v1",
-            "sample_order": "chain_order_then_draw_index",
-            "available_sample_count": 8,
-            "maximum_sample_count": 1,
-            "selected_sample_ids": [sample_id],
-            "selected_bag_ids": [self.prepared.bags[0].bag_id],
-            "conditional_evaluation_method": "fresh_conditional_sparse_map",
-            "warm_start_policy": "selected_mode_map_local_state",
+        objective_by_id = {
+            str(sample_id): float(chain.graph_objective[index])
+            for chain in chains
+            for index, sample_id in enumerate(chain.sample_id.tolist())
         }
-        return (selected,), policy
+        selected = tuple(
+            SelectedConditionalTrajectory(
+                sample_id=sample_id,
+                bag_id=self.prepared.bags[0].bag_id,
+                state=self.solution.lm.state,
+                dynamics_residual=dynamics,
+                dynamics_residual_valid=valid,
+                conditional_objective=objective_by_id[sample_id],
+            )
+            for sample_id in representatives.selected_sample_ids
+        )
+        return (
+            selected,
+            representatives.manifest_payload(
+                (self.prepared.bags[0].bag_id,)
+            ),
+        )
 
     def test_pending_mcmc_core_is_completed_without_reexporting_map(self):
         request = validate_batch_estimation_request(
@@ -458,6 +497,7 @@ class BatchArtifactExportTests(unittest.TestCase):
             (0.2, 0.21),
             {
                 "enabled": True,
+                "delay_scale_seconds": 0.001,
                 "sampling_request_fingerprint": "sha256:" + "3" * 64,
                 "upstream_estimation_request_fingerprint": request.fingerprint,
                 "sampler_revision": "test-sampler",
@@ -550,7 +590,7 @@ class BatchArtifactExportTests(unittest.TestCase):
         self.assertEqual(loaded.mcmc_samples["sample_id"].size, 8)
         self.assertEqual(
             loaded.trajectories["flight-a"]["sample_id"].tolist(),
-            [str(chains[0].sample_id[0])],
+            selection["selected_sample_ids"],
         )
         self.assertIn("mcmc_split_rhat", loaded.diagnostics)
         self.assertIn("accelerometer", loaded.bags["flight-a"])

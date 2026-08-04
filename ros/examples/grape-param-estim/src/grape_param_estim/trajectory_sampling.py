@@ -8,7 +8,6 @@ payload is absent after checkpoint/resume and is not an artifact contract.
 """
 
 from dataclasses import dataclass
-from numbers import Integral
 from typing import Callable, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
@@ -23,10 +22,6 @@ from grape_param_estim.batch.preparation import (
     prepare_fixed_batch_graph_data,
 )
 from grape_param_estim.batch_artifact_export import (
-    CONDITIONAL_TRAJECTORY_EVALUATION_METHOD,
-    CONDITIONAL_TRAJECTORY_SAMPLE_ORDER,
-    CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
-    CONDITIONAL_TRAJECTORY_WARM_START_POLICY,
     SelectedConditionalTrajectory,
 )
 from grape_param_estim.batch.variables import VariableKey, VariableKind
@@ -40,55 +35,40 @@ from grape_param_estim.posterior.laplace_target import (
     LaplaceMarginalTarget,
 )
 from grape_param_estim.posterior.mcmc import McmcChainResult
+from grape_param_estim.posterior.representatives import (
+    CONDITIONAL_TRAJECTORY_EVALUATION_METHOD,
+    CONDITIONAL_TRAJECTORY_SAMPLE_ORDER,
+    CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
+    CONDITIONAL_TRAJECTORY_WARM_START_POLICY,
+    POSTERIOR_REPRESENTATIVE_MAXIMUM_SAMPLE_COUNT,
+    PosteriorRepresentativeSelection,
+    select_posterior_representatives,
+)
 from grape_param_estim.real_estimation import RealEstimationInputs
 
 
-CONDITIONAL_TRAJECTORY_MAXIMUM_SAMPLE_COUNT = 8
+CONDITIONAL_TRAJECTORY_MAXIMUM_SAMPLE_COUNT = (
+    POSTERIOR_REPRESENTATIVE_MAXIMUM_SAMPLE_COUNT
+)
 
 CancellationCheck = Callable[[], bool]
 TrajectoryProgress = Callable[[int, int, str], None]
-
-
-def _canonical_positive_integer(value: object, name: str) -> int:
-    if (
-        isinstance(value, (bool, np.bool_))
-        or not isinstance(value, Integral)
-        or int(value) <= 0
-    ):
-        raise ValueError("{} must be a positive integer".format(name))
-    return int(value)
 
 
 @dataclass(frozen=True)
 class ConditionalTrajectorySelection:
     """The exact deterministic subset saved in one completed run."""
 
-    available_sample_count: int
-    maximum_sample_count: int
-    selected_sample_ids: Tuple[str, ...]
+    representatives: PosteriorRepresentativeSelection
     selected_bag_ids: Tuple[str, ...]
 
     def __post_init__(self) -> None:
-        available = _canonical_positive_integer(
-            self.available_sample_count, "available_sample_count"
-        )
-        maximum = _canonical_positive_integer(
-            self.maximum_sample_count, "maximum_sample_count"
-        )
-        if (
-            type(self.selected_sample_ids) is not tuple
-            or not self.selected_sample_ids
-            or any(
-                not isinstance(value, str)
-                or not value
-                or value.strip() != value
-                for value in self.selected_sample_ids
-            )
-            or len(set(self.selected_sample_ids)) != len(self.selected_sample_ids)
+        if not isinstance(
+            self.representatives, PosteriorRepresentativeSelection
         ):
-            raise ValueError("selected_sample_ids must be unique canonical text")
-        if len(self.selected_sample_ids) > min(available, maximum):
-            raise ValueError("selected sample count exceeds its audited bound")
+            raise TypeError(
+                "representatives must be PosteriorRepresentativeSelection"
+            )
         if (
             type(self.selected_bag_ids) is not tuple
             or not self.selected_bag_ids
@@ -101,25 +81,24 @@ class ConditionalTrajectorySelection:
             or len(set(self.selected_bag_ids)) != len(self.selected_bag_ids)
         ):
             raise ValueError("selected_bag_ids must be unique canonical text")
-        object.__setattr__(self, "available_sample_count", available)
-        object.__setattr__(self, "maximum_sample_count", maximum)
+
+    @property
+    def available_sample_count(self) -> int:
+        return self.representatives.available_sample_count
+
+    @property
+    def maximum_sample_count(self) -> int:
+        return self.representatives.maximum_sample_count
+
+    @property
+    def selected_sample_ids(self) -> Tuple[str, ...]:
+        return self.representatives.selected_sample_ids
 
     @property
     def manifest_payload(self) -> Mapping[str, object]:
         """Return the strict JSON-compatible policy audit."""
 
-        return {
-            "policy": CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
-            "sample_order": CONDITIONAL_TRAJECTORY_SAMPLE_ORDER,
-            "available_sample_count": self.available_sample_count,
-            "maximum_sample_count": self.maximum_sample_count,
-            "selected_sample_ids": list(self.selected_sample_ids),
-            "selected_bag_ids": list(self.selected_bag_ids),
-            "conditional_evaluation_method": (
-                CONDITIONAL_TRAJECTORY_EVALUATION_METHOD
-            ),
-            "warm_start_policy": CONDITIONAL_TRAJECTORY_WARM_START_POLICY,
-        }
+        return self.representatives.manifest_payload(self.selected_bag_ids)
 
 
 @dataclass(frozen=True)
@@ -195,30 +174,51 @@ def _flatten_retained_draws(
 
 def select_conditional_trajectory_draws(
     chains: Sequence[McmcChainResult],
-    maximum_sample_count: int = CONDITIONAL_TRAJECTORY_MAXIMUM_SAMPLE_COUNT,
-) -> Tuple[_RetainedDraw, ...]:
-    """Select bounded quantiles of canonical chain/draw order exactly."""
+    *,
+    prior_mean_coordinate: object,
+    prior_covariance: object,
+    delay_bounds_seconds: Sequence[object],
+    delay_scale_seconds: object,
+    exact_ridge_direction: object,
+) -> Tuple[Tuple[_RetainedDraw, ...], PosteriorRepresentativeSelection]:
+    """Select the strict posterior role union and its retained draw payloads."""
 
     flattened = _flatten_retained_draws(chains)
-    maximum = _canonical_positive_integer(
-        maximum_sample_count, "maximum_sample_count"
+    representatives = select_posterior_representatives(
+        sample_id=tuple(
+            str(value)
+            for chain in chains
+            for value in chain.sample_id.tolist()
+        ),
+        chain_id=tuple(
+            chain.chain_id
+            for chain in chains
+            for _value in chain.sample_id
+        ),
+        draw_index=np.concatenate(tuple(chain.draw_index for chain in chains)),
+        static_coordinate=np.vstack(
+            tuple(chain.static_coordinate for chain in chains)
+        ),
+        delay=np.concatenate(tuple(chain.delay for chain in chains)),
+        log_posterior=np.concatenate(
+            tuple(chain.log_density for chain in chains)
+        ),
+        source_mode_id=tuple(
+            chain.mode_id
+            for chain in chains
+            for _value in chain.sample_id
+        ),
+        prior_mean_coordinate=prior_mean_coordinate,
+        prior_covariance=prior_covariance,
+        delay_bounds_seconds=delay_bounds_seconds,
+        delay_scale_seconds=delay_scale_seconds,
+        exact_ridge_direction=exact_ridge_direction,
     )
-    count = min(len(flattened), maximum)
-    if count == len(flattened):
-        indices = tuple(range(count))
-    elif count == 1:
-        indices = (0,)
-    else:
-        # Integer arithmetic defines the policy without platform-dependent
-        # rounding.  With population >= count, these indices are unique and
-        # include both endpoints of the flattened retained sequence.
-        indices = tuple(
-            index * (len(flattened) - 1) // (count - 1)
-            for index in range(count)
-        )
-    if len(set(indices)) != count:  # pragma: no cover - arithmetic invariant
-        raise RuntimeError("conditional trajectory subset indices are not unique")
-    return tuple(flattened[index] for index in indices)
+    by_id = {value.sample_id: value for value in flattened}
+    return (
+        tuple(by_id[value] for value in representatives.selected_sample_ids),
+        representatives,
+    )
 
 
 def _uniform_delay_log_prior(bounds: Tuple[float, float]):
@@ -279,7 +279,6 @@ def sample_selected_conditional_trajectories(
     final_solution: FixedGraphLaplaceSolution,
     chains: Sequence[McmcChainResult],
     *,
-    maximum_sample_count: int = CONDITIONAL_TRAJECTORY_MAXIMUM_SAMPLE_COUNT,
     cancellation_requested: Optional[CancellationCheck] = None,
     progress: Optional[TrajectoryProgress] = None,
 ) -> ConditionalTrajectorySamplingResult:
@@ -298,13 +297,22 @@ def sample_selected_conditional_trajectories(
     if progress is not None and not callable(progress):
         raise TypeError("progress must be callable")
 
-    selected = select_conditional_trajectory_draws(
-        chains, maximum_sample_count
+    prior = inputs.request.payload["parameter_prior"]
+    delay = inputs.request.payload["delay"]
+    selected, representatives = select_conditional_trajectory_draws(
+        chains,
+        prior_mean_coordinate=prior["mean_coordinate"],
+        prior_covariance=prior["covariance"],
+        delay_bounds_seconds=delay["bounds_seconds"],
+        delay_scale_seconds=inputs.request.payload["mcmc_settings"][
+            "delay_scale_seconds"
+        ],
+        exact_ridge_direction=(
+            final_solution.static_geometry().exact_ridge_direction
+        ),
     )
     selection = ConditionalTrajectorySelection(
-        available_sample_count=sum(chain.sample_id.size for chain in chains),
-        maximum_sample_count=maximum_sample_count,
-        selected_sample_ids=tuple(value.sample_id for value in selected),
+        representatives=representatives,
         selected_bag_ids=inputs.request.bag_ids,
     )
     total = len(selected)

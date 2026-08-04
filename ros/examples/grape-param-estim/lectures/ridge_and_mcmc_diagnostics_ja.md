@@ -100,19 +100,32 @@ draw 数が多いこと、acceptance が高いこと、MAP 周辺に cloud が�
 cancel 時は complete estimate-only artifact を変更せず proposal checkpoint を保持し、同一 sampling request fingerprint の `resume=true` だけを受け付ける。
 linear factorization の途中は保存せず、保存済み MAP state から undamped factorization を再生成する。
 
-## 11. 実 bag run の現在地
+## 11. conditional trajectory の role-union v2
 
-### 11.1 `18.0--24.0 s` estimate-only run
+全 retained draw の static parameter と delay は `mcmc_samples.npz` に equal-weight で保存するが、重い conditional trajectory は最大 8 sample の診断用 subset だけを保存する。
+subset は highest log-posterior、各 source mode 内の highest log-posterior、canonical sign にそろえた exact common-scale ridge coordinate の経験 quantile `0.1`、`0.5`、`0.9`、PID 評価用の最大 4 medoid という role 順で決める。
+log-posterior tie は `chain_id`、`draw_index`、`sample_id` の順で解決し、ridge quantile は nearest order statistic の half-up 規則で解決する。
+PID medoid の 19 次元特徴量は、parameter prior の lower-Cholesky whitening を施した 18 次元 static coordinate と、request delay bounds の midpoint を引いて request `delay_scale_seconds` で割った delay を連結する。
+medoid は retained draw を等重みとする deterministic PAM であり、trajectory subset を PID initial population そのものとして流用しない。
+一つの sample が複数 role を持つ場合は全 role record を保持し、`selected_sample_ids` は role priority における初出順の union とする。
+primary sample は常に先頭であり、各 selected sample と各 selected bag の Cartesian product を fresh conditional sparse MAP で解く。
+primary、全 mode、三つの ridge quantile という mandatory role の union だけで 8 sample を超える場合は、role を黙って欠落させず run を fail-closed にする。
+exporter と reader は MCMC arrays、parameter prior、delay bounds/scale、exact ridge direction から role、ID、順序を独立に再計算し、manifest または NPZ の改変を拒否する。
+v1 の flattened chain/draw quantile policy と reader alias は残さない。
+
+## 12. 実 bag run の現在地
+
+### 12.1 `18.0--24.0 s` estimate-only run
 
 2026 年 8 月 4 日の実 bag validation は `estimate_only` で実行したため、MCMC sample は生成していない。
 Laplace artifact は作成され、likelihood eigenvalue は広い dynamic range を持ち、condition number は約 `1.32e8` だった。
 この一 run は暫定 covariance、暫定 prior、EM 一回、delay boundary `0.0 s` という条件なので、ridge や parameter posterior を科学的に確定する材料には不足している。
 
-### 11.2 clean `18.0--18.3 s` posterior sampling smoke
+### 12.2 clean `18.0--18.3 s` posterior sampling smoke
 
 clean revision `5b08e5c290925d7585024f3c5350a7f88a7f1fe9` の `run b` では、5-knot estimate-only artifact に後段 MCMC を追加した。
 estimate-only は wall `9.04 s`、posterior sampling は wall `11.71 s`、progress elapsed `11.316 s` で complete になった。
-sampling は 2 chains × 4 retained draws で、8 retained draws すべてについて fresh conditional sparse MAP trajectory を保存した。
+この旧 smoke artifact の sampling は 2 chains × 4 retained draws で、当時の v1 policy により 8 retained draws すべてについて fresh conditional sparse MAP trajectory を保存した。
 保存した conditional objective と対応する MCMC target breakdown は最大絶対誤差 `8.88e-15` で一致した。
 
 この clean run の前に、現在の chain trajectory を次 proposal の warm start にすると、nonlinear stopping point を介して target が history-dependent になる不具合を実 E2E で検出した。
@@ -123,7 +136,7 @@ revision `5b08e5c` は全 exact evaluation を共通の selected-mode MAP warm s
 8 selected conditional trajectories は sample-local state の診断と可視化を監査できることを示すが、MCMC 収束や posterior の科学的妥当性は示さない。
 科学的な実 bag MCMC validation は covariance/actuator contract の校正、複数 EM iteration、delay profile の安定化後に十分な warmup と retained draws で行う。
 
-## 12. GUI での確認順序
+## 13. GUI での確認順序
 
 1. MAP と prior/likelihood objective の内訳を確認する。
 2. likelihood と posterior の eigenvalue、effective rank、ridge loading を分けて確認する。
@@ -134,7 +147,7 @@ revision `5b08e5c` は全 exact evaluation を共通の selected-mode MAP warm s
 posterior marginal が狭くても likelihood ridge が prior で埋められている場合がある。
 PID candidate を作る前に、data が識別した方向と prior が選んだ方向を明示的に分ける。
 
-## 13. code 対応
+## 14. code 対応
 
 | 責務 | module |
 |---|---|
@@ -145,4 +158,5 @@ PID candidate を作る前に、data が識別した方向と prior が選んだ
 | proposal/chain runner | `posterior/mcmc.py`, `posterior/run.py` |
 | R-hat/ESS | `posterior/diagnostics.py` |
 | pickle-free checkpoint | `posterior/checkpoint.py` |
+| conditional trajectory role-union | `posterior/representatives.py`, `trajectory_sampling.py` |
 | estimate-only への後段 sampling | `posterior_sampling_request.py`, `posterior_sampling_cli.py` |

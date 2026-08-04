@@ -19,6 +19,9 @@ from grape_param_estim.batch_artifact import (
     load_batch_estimation_run,
     write_batch_estimation_run,
 )
+from grape_param_estim.posterior.representatives import (
+    select_posterior_representatives_from_arrays,
+)
 
 
 class BatchArtifactTests(unittest.TestCase):
@@ -387,6 +390,19 @@ class BatchArtifactTests(unittest.TestCase):
             ),
         }
 
+    def _selection_payload(self):
+        representatives = select_posterior_representatives_from_arrays(
+            self._mcmc(),
+            prior_mean_coordinate=np.zeros(18),
+            prior_covariance=np.eye(18),
+            delay_bounds_seconds=(0.0, 0.02),
+            delay_scale_seconds=0.001,
+            exact_ridge_direction=self._laplace()[
+                "exact_ridge_direction"
+            ],
+        )
+        return representatives.manifest_payload(self.bag_ids)
+
     def _write_core_run(self, mcmc):
         self._save(self.root / "map_static.npz", self._map_static())
         self._save(self.root / "q_em.npz", self._q_em())
@@ -414,6 +430,10 @@ class BatchArtifactTests(unittest.TestCase):
             "laplace": {"converged": True, "termination_reason": "completed"},
         }
         if mcmc:
+            selection = self._selection_payload()
+            trajectory_sample_ids = tuple(
+                int(value) for value in selection["selected_sample_ids"]
+            )
             self._save(self.root / "mcmc_samples.npz", self._mcmc())
             for bag_id in self.bag_ids:
                 self._save(
@@ -421,7 +441,7 @@ class BatchArtifactTests(unittest.TestCase):
                     / "trajectories"
                     / bag_id
                     / "selected_samples.npz",
-                    self._trajectory(),
+                    self._trajectory(trajectory_sample_ids),
                 )
             artifacts["mcmc_samples"] = self._descriptor("mcmc_samples.npz")
             artifacts["trajectories"] = {
@@ -467,7 +487,11 @@ class BatchArtifactTests(unittest.TestCase):
                 }
                 for bag_id in self.bag_ids
             },
-            "parameter_prior": {"kind": "gaussian", "dimension": 18},
+            "parameter_prior": {
+                "kind": "gaussian",
+                "mean_coordinate": [0.0] * 18,
+                "covariance": np.eye(18).tolist(),
+            },
             "delay_prior": {
                 "prior_kind": "uniform",
                 "bounds_seconds": [0.0, 0.02],
@@ -494,22 +518,8 @@ class BatchArtifactTests(unittest.TestCase):
                 "enabled": mcmc,
                 **(
                     {
-                        "conditional_trajectory_selection": {
-                            "policy": (
-                                "deterministic_flattened_chain_draw_quantiles_v1"
-                            ),
-                            "sample_order": "chain_order_then_draw_index",
-                            "available_sample_count": 3,
-                            "maximum_sample_count": 2,
-                            "selected_sample_ids": [101, 109],
-                            "selected_bag_ids": list(self.bag_ids),
-                            "conditional_evaluation_method": (
-                                "fresh_conditional_sparse_map"
-                            ),
-                            "warm_start_policy": (
-                                "selected_mode_map_local_state"
-                            ),
-                        }
+                        "delay_scale_seconds": 0.001,
+                        "conditional_trajectory_selection": selection,
                     }
                     if mcmc
                     else {}
@@ -633,9 +643,13 @@ class BatchArtifactTests(unittest.TestCase):
         self.assertTrue(
             np.array_equal(run.mcmc_samples["sample_id"], (101, 107, 109))
         )
+        expected = tuple(
+            int(value)
+            for value in self._selection_payload()["selected_sample_ids"]
+        )
         self.assertTrue(
             np.array_equal(
-                run.trajectories["bag-a"]["sample_id"], (101, 109)
+                run.trajectories["bag-a"]["sample_id"], expected
             )
         )
 
@@ -835,9 +849,13 @@ class BatchArtifactTests(unittest.TestCase):
                 **common,
             )
 
-    def test_writer_round_trips_optional_mcmc_and_trajectory_subset(self):
+    def test_writer_round_trips_mcmc_with_required_trajectory_subset(self):
         self._write_core_run(mcmc=True)
         destination = Path(self.temporary.name) / "written-mcmc-run"
+        sample_ids = tuple(
+            int(value)
+            for value in self._selection_payload()["selected_sample_ids"]
+        )
         run = write_batch_estimation_run(
             destination,
             manifest_metadata=self._manifest_metadata(),
@@ -848,7 +866,7 @@ class BatchArtifactTests(unittest.TestCase):
             bags={bag_id: self._bag(bag_id) for bag_id in self.bag_ids},
             mcmc_samples=self._mcmc(),
             trajectories={
-                bag_id: self._trajectory() for bag_id in self.bag_ids
+                bag_id: self._trajectory(sample_ids) for bag_id in self.bag_ids
             },
         )
 
@@ -858,6 +876,71 @@ class BatchArtifactTests(unittest.TestCase):
         self.assertEqual(tuple(run.trajectories), self.bag_ids)
         self.assertIn("mcmc_samples", run.manifest["artifacts"])
         self.assertIn("trajectories", run.manifest["artifacts"])
+
+    def test_completed_mcmc_without_every_bag_trajectory_fails_closed(self):
+        self._write_core_run(mcmc=True)
+        metadata = self._manifest_metadata()
+        sample_ids = tuple(
+            int(value)
+            for value in self._selection_payload()["selected_sample_ids"]
+        )
+        with self.assertRaisesRegex(
+            ArtifactValidationError, "trajectories for every bag"
+        ):
+            write_batch_estimation_run(
+                Path(self.temporary.name) / "missing-trajectory-run",
+                manifest_metadata=metadata,
+                map_static=self._map_static(),
+                q_em=self._q_em(),
+                laplace=self._laplace(),
+                diagnostics=self._diagnostics(mcmc=True),
+                bags={bag_id: self._bag(bag_id) for bag_id in self.bag_ids},
+                mcmc_samples=self._mcmc(),
+                trajectories={"bag-a": self._trajectory(sample_ids)},
+            )
+
+        manifest = self._read_manifest()
+        del manifest["artifacts"]["trajectories"]["bag-b"]
+        self._write_manifest(manifest)
+        with self.assertRaisesRegex(
+            ArtifactValidationError, "trajectories for every bag"
+        ):
+            load_batch_estimation_run(self.root)
+
+        manifest = self._read_manifest()
+        del manifest["artifacts"]["trajectories"]
+        self._write_manifest(manifest)
+        with self.assertRaisesRegex(
+            ArtifactValidationError, "trajectories for every bag"
+        ):
+            load_batch_estimation_run(self.root)
+
+    def test_role_union_manifest_and_mcmc_tampering_fails_closed(self):
+        self._write_core_run(mcmc=True)
+        manifest = self._read_manifest()
+        selection = manifest["mcmc_settings"][
+            "conditional_trajectory_selection"
+        ]
+        selection["role_records"][1]["sample_id"] = selection[
+            "selected_sample_ids"
+        ][-1]
+        self._write_manifest(manifest)
+        with self.assertRaisesRegex(
+            ArtifactValidationError, "roles, IDs, or order"
+        ):
+            load_batch_estimation_run(self.root)
+
+        self._write_core_run(mcmc=True)
+        arrays = self._mcmc()
+        arrays["log_posterior"] = np.asarray((100.0, -9.0, -11.0))
+        self._save(self.root / "mcmc_samples.npz", arrays)
+        manifest = self._read_manifest()
+        self._refresh_descriptor(manifest, "mcmc_samples")
+        self._write_manifest(manifest)
+        with self.assertRaisesRegex(
+            ArtifactValidationError, "roles, IDs, or order"
+        ):
+            load_batch_estimation_run(self.root)
 
     def test_writer_failure_leaves_authoritative_incomplete_status(self):
         destination = Path(self.temporary.name) / "invalid-run"

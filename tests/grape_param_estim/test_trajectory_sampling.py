@@ -91,12 +91,24 @@ class ConditionalTrajectorySamplingTests(unittest.TestCase):
         return evaluate
 
     def test_selects_bounded_draws_and_freshly_materializes_every_bag(self):
-        selected = select_conditional_trajectory_draws(
-            self.chains, maximum_sample_count=2
+        prior = self.request.payload["parameter_prior"]
+        selected, representatives = select_conditional_trajectory_draws(
+            self.chains,
+            prior_mean_coordinate=prior["mean_coordinate"],
+            prior_covariance=prior["covariance"],
+            delay_bounds_seconds=self.request.payload["delay"][
+                "bounds_seconds"
+            ],
+            delay_scale_seconds=self.request.payload["mcmc_settings"][
+                "delay_scale_seconds"
+            ],
+            exact_ridge_direction=(
+                self.helper.solution.static_geometry().exact_ridge_direction
+            ),
         )
         self.assertEqual(
             tuple(value.sample_id for value in selected),
-            ("sample-0-0", "sample-1-3"),
+            representatives.selected_sample_ids,
         )
         calls = []
         progress = []
@@ -111,27 +123,29 @@ class ConditionalTrajectorySamplingTests(unittest.TestCase):
                 "recorded-mode",
                 self.helper.solution,
                 self.chains,
-                maximum_sample_count=2,
                 progress=lambda *value: progress.append(value),
             )
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), len(representatives.selected_sample_ids))
         self.assertTrue(
             all(
                 isinstance(warm_start, ConditionalTrajectoryWarmStart)
                 for _point, warm_start in calls
             )
         )
-        self.assertEqual(len(result.trajectories), 2)
+        self.assertEqual(
+            len(result.trajectories), len(representatives.selected_sample_ids)
+        )
         self.assertEqual(
             result.selection.selected_sample_ids,
-            ("sample-0-0", "sample-1-3"),
+            representatives.selected_sample_ids,
         )
         self.assertEqual(
             result.selection.manifest_payload["policy"],
             CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
         )
-        self.assertEqual(progress[0][:2], (0, 2))
-        self.assertEqual(progress[-1][:2], (2, 2))
+        count = len(representatives.selected_sample_ids)
+        self.assertEqual(progress[0][:2], (0, count))
+        self.assertEqual(progress[-1][:2], (count, count))
         static_key = VariableKey(VariableKind.STATIC_PARAMETERS)
         for trajectory in result.trajectories:
             np.testing.assert_array_equal(
@@ -176,7 +190,6 @@ class ConditionalTrajectorySamplingTests(unittest.TestCase):
                     "recorded-mode",
                     self.helper.solution,
                     forged,
-                    maximum_sample_count=1,
                 )
         with patch.object(
             LaplaceMarginalTarget, "evaluate", autospec=True
@@ -187,7 +200,6 @@ class ConditionalTrajectorySamplingTests(unittest.TestCase):
                     "recorded-mode",
                     self.helper.solution,
                     self.chains,
-                    maximum_sample_count=1,
                     cancellation_requested=lambda: True,
                 )
         evaluate.assert_not_called()

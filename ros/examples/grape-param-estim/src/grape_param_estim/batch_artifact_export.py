@@ -45,6 +45,14 @@ from grape_param_estim.initialization import FlightInitialization
 from grape_param_estim.parameterization import PARAMETER_DIMENSION
 from grape_param_estim.posterior.diagnostics import McmcDiagnostics
 from grape_param_estim.posterior.mcmc import McmcChainResult
+from grape_param_estim.posterior.representatives import (
+    CONDITIONAL_TRAJECTORY_EVALUATION_METHOD,
+    CONDITIONAL_TRAJECTORY_SAMPLE_ORDER,
+    CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
+    CONDITIONAL_TRAJECTORY_WARM_START_POLICY,
+    SELECTION_MANIFEST_KEYS,
+    select_posterior_representatives_from_arrays,
+)
 from grape_param_estim.sensor_models import FlightData
 
 
@@ -57,24 +65,6 @@ _STATE_FIELDS = (
     ("actuator_thrust", VariableKind.ACTUATOR_THRUST, 4),
     ("actuator_gimbal", VariableKind.GIMBAL_ANGLE, 4),
 )
-
-CONDITIONAL_TRAJECTORY_SELECTION_POLICY = (
-    "deterministic_flattened_chain_draw_quantiles_v1"
-)
-CONDITIONAL_TRAJECTORY_SAMPLE_ORDER = "chain_order_then_draw_index"
-CONDITIONAL_TRAJECTORY_EVALUATION_METHOD = "fresh_conditional_sparse_map"
-CONDITIONAL_TRAJECTORY_WARM_START_POLICY = "selected_mode_map_local_state"
-_CONDITIONAL_TRAJECTORY_SELECTION_KEYS = (
-    "policy",
-    "sample_order",
-    "available_sample_count",
-    "maximum_sample_count",
-    "selected_sample_ids",
-    "selected_bag_ids",
-    "conditional_evaluation_method",
-    "warm_start_policy",
-)
-
 
 def _canonical_string(value: object, name: str) -> str:
     if type(value) is not str or not value or value.strip() != value:
@@ -1883,63 +1873,51 @@ def _trajectory_selection_payload(
     selected: Sequence[SelectedConditionalTrajectory],
     mcmc_samples: Mapping[str, np.ndarray],
     bag_ids: Tuple[str, ...],
+    metadata: Mapping[str, Any],
+    exact_ridge_direction: np.ndarray,
 ) -> Mapping[str, Any]:
-    """Validate the bounded production policy before it enters a manifest."""
+    """Independently recompute role-union v2 before manifest export."""
 
     if not isinstance(value, Mapping):
         raise TypeError("trajectory_selection must be a mapping")
-    if set(value) != set(_CONDITIONAL_TRAJECTORY_SELECTION_KEYS):
+    if set(value) != set(SELECTION_MANIFEST_KEYS):
         raise ValueError(
             "trajectory_selection keys must be exactly {}".format(
-                sorted(_CONDITIONAL_TRAJECTORY_SELECTION_KEYS)
+                sorted(SELECTION_MANIFEST_KEYS)
             )
         )
-    expected_literals = {
-        "policy": CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
-        "sample_order": CONDITIONAL_TRAJECTORY_SAMPLE_ORDER,
-        "conditional_evaluation_method": (
-            CONDITIONAL_TRAJECTORY_EVALUATION_METHOD
-        ),
-        "warm_start_policy": CONDITIONAL_TRAJECTORY_WARM_START_POLICY,
-    }
-    for name, expected in expected_literals.items():
-        if value[name] != expected:
-            raise ValueError(
-                "trajectory_selection.{} must be {!r}".format(name, expected)
-            )
-    available = _positive_integer(
-        value["available_sample_count"],
-        "trajectory_selection.available_sample_count",
-    )
-    maximum = _positive_integer(
-        value["maximum_sample_count"],
-        "trajectory_selection.maximum_sample_count",
-    )
-    sample_ids_raw = value["selected_sample_ids"]
-    selected_bags_raw = value["selected_bag_ids"]
-    if not isinstance(sample_ids_raw, (tuple, list)) or not sample_ids_raw:
-        raise ValueError("trajectory_selection selected_sample_ids cannot be empty")
-    sample_ids = tuple(
-        _canonical_string(item, "trajectory selection sample ID")
-        for item in sample_ids_raw
-    )
-    if len(set(sample_ids)) != len(sample_ids):
-        raise ValueError("trajectory selection sample IDs must be unique")
-    if len(sample_ids) > min(available, maximum):
-        raise ValueError("trajectory selection exceeds its recorded bound")
-    if not isinstance(selected_bags_raw, (tuple, list)):
-        raise TypeError("trajectory_selection selected_bag_ids must be a sequence")
-    selected_bags = tuple(
-        _canonical_string(item, "trajectory selection bag ID")
-        for item in selected_bags_raw
-    )
-    if selected_bags != bag_ids:
-        raise ValueError("trajectory selection must cover every request bag in order")
+    parameter_prior = metadata.get("parameter_prior")
+    delay_prior = metadata.get("delay_prior")
+    mcmc_settings = metadata.get("mcmc_settings")
+    if not isinstance(parameter_prior, Mapping):
+        raise ValueError("manifest parameter prior is unavailable")
+    if not isinstance(delay_prior, Mapping):
+        raise ValueError("manifest delay prior is unavailable")
+    if not isinstance(mcmc_settings, Mapping):
+        raise ValueError("manifest MCMC settings are unavailable")
+    try:
+        representatives = select_posterior_representatives_from_arrays(
+            mcmc_samples,
+            prior_mean_coordinate=parameter_prior["mean_coordinate"],
+            prior_covariance=parameter_prior["covariance"],
+            delay_bounds_seconds=delay_prior["bounds_seconds"],
+            delay_scale_seconds=mcmc_settings["delay_scale_seconds"],
+            exact_ridge_direction=exact_ridge_direction,
+        )
+    except KeyError as error:
+        raise ValueError(
+            "manifest lacks strict posterior representative inputs"
+        ) from error
+    expected_payload = representatives.manifest_payload(bag_ids)
+    if value != expected_payload:
+        raise ValueError(
+            "trajectory_selection does not match recomputed role-union v2"
+        )
+    sample_ids = representatives.selected_sample_ids
+    selected_bags = bag_ids
     available_mcmc = tuple(
         str(item) for item in mcmc_samples["sample_id"].tolist()
     )
-    if available != len(available_mcmc):
-        raise ValueError("trajectory selection population disagrees with MCMC")
     if not set(sample_ids).issubset(set(available_mcmc)):
         raise ValueError("trajectory selection contains an unknown MCMC sample")
     expected_pairs = {
@@ -1952,18 +1930,15 @@ def _trajectory_selection_payload(
         raise ValueError(
             "selected trajectories must exactly cover the policy sample/bag pairs"
         )
-    return {
-        "policy": CONDITIONAL_TRAJECTORY_SELECTION_POLICY,
-        "sample_order": CONDITIONAL_TRAJECTORY_SAMPLE_ORDER,
-        "available_sample_count": available,
-        "maximum_sample_count": maximum,
-        "selected_sample_ids": list(sample_ids),
-        "selected_bag_ids": list(selected_bags),
-        "conditional_evaluation_method": (
-            CONDITIONAL_TRAJECTORY_EVALUATION_METHOD
-        ),
-        "warm_start_policy": CONDITIONAL_TRAJECTORY_WARM_START_POLICY,
-    }
+    for bag_id in selected_bags:
+        actual_order = tuple(
+            item.sample_id for item in selected if item.bag_id == bag_id
+        )
+        if actual_order != sample_ids:
+            raise ValueError(
+                "selected trajectory order must match role-union sample order"
+            )
+    return expected_payload
 
 
 def _attach_trajectory_selection(
@@ -1972,6 +1947,7 @@ def _attach_trajectory_selection(
     selected: Sequence[SelectedConditionalTrajectory],
     mcmc_samples: Mapping[str, np.ndarray],
     bag_ids: Tuple[str, ...],
+    exact_ridge_direction: np.ndarray,
 ) -> Mapping[str, Any]:
     result = dict(metadata)
     mcmc_settings = dict(result["mcmc_settings"])
@@ -1979,7 +1955,12 @@ def _attach_trajectory_selection(
         raise ValueError("manifest already contains trajectory selection metadata")
     mcmc_settings["conditional_trajectory_selection"] = (
         _trajectory_selection_payload(
-            selection, selected, mcmc_samples, bag_ids
+            selection,
+            selected,
+            mcmc_samples,
+            bag_ids,
+            result,
+            exact_ridge_direction,
         )
     )
     result["mcmc_settings"] = mcmc_settings
@@ -2313,6 +2294,7 @@ def export_batch_estimation_artifact_payload(
             selected_trajectories,
             mcmc,
             bag_ids,
+            static_geometry.exact_ridge_direction,
         )
     return BatchArtifactPayload(
         manifest_metadata=manifest,
@@ -2419,6 +2401,7 @@ def complete_pending_mcmc_artifact_payload(
         selected_trajectories,
         mcmc_samples,
         request.bag_ids,
+        core.laplace["exact_ridge_direction"],
     )
     return BatchArtifactPayload(
         manifest_metadata=metadata,
@@ -2525,6 +2508,7 @@ def append_posterior_sampling_artifact_payload(
         selected_trajectories,
         mcmc_samples,
         bag_ids,
+        core.laplace["exact_ridge_direction"],
     )
     return BatchArtifactPayload(
         manifest_metadata=metadata,

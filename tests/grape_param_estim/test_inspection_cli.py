@@ -13,6 +13,9 @@ from grape_param_estim.progress import (
     JsonlProgressWriter,
     ProgressCancelled,
     ProgressEvent,
+    ProgressTracker,
+    STAGE_PREPARING_TRAJECTORY,
+    STAGE_WRITING_ARTIFACTS,
 )
 try:
     from .test_flight_inspection import _fake_arrays
@@ -54,10 +57,14 @@ class InspectionCliTests(unittest.TestCase):
                 for line in stream.getvalue().splitlines()
             ]
             self.assertTrue(events)
-            self.assertEqual(events[0].stage_id, "request_validation")
-            self.assertEqual(events[-1].stage_id, "complete")
+            self.assertEqual(
+                events[0].stage_id, STAGE_PREPARING_TRAJECTORY
+            )
+            self.assertEqual(events[-1].stage_id, STAGE_WRITING_ARTIFACTS)
             self.assertEqual(events[-1].fraction, 1.0)
-            self.assertIn("sha256", {value.stage_id for value in events})
+            self.assertTrue(
+                any("SHA256" in value.message for value in events)
+            )
             self.assertEqual(
                 load_inspection_bundle(output).manifest["status"],
                 "complete",
@@ -65,17 +72,11 @@ class InspectionCliTests(unittest.TestCase):
 
     def test_main_reserves_stdout_for_progress_jsonl(self):
         def fake_run(_request, output, progress_callback, **_kwargs):
-            progress_callback(
-                ProgressEvent(
-                    run_id="cli-inspection",
-                    stage_id="complete",
-                    stage_label="Inspection bundle complete",
-                    completed_units=1,
-                    total_units=1,
-                    fraction=1.0,
-                    elapsed_seconds=0.1,
-                    eta_seconds=0.0,
-                )
+            tracker = ProgressTracker(
+                "cli-inspection", 1, callback=progress_callback
+            )
+            tracker.begin_stage(STAGE_WRITING_ARTIFACTS, 1).complete(
+                message="Inspection bundle complete"
             )
             return Path(output)
 

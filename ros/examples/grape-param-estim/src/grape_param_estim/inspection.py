@@ -24,6 +24,8 @@ from grape_param_estim.progress import (
     ProgressCallback,
     ProgressCancelled,
     ProgressTracker,
+    STAGE_PREPARING_TRAJECTORY,
+    STAGE_WRITING_ARTIFACTS,
 )
 
 from grape_param_estim.real_rosbag import (
@@ -823,30 +825,43 @@ def inspect_flights(
     total_units = 2 + 5 * len(request.bags)
     tracker = ProgressTracker(
         run_id=request.request_id,
-        total_units=total_units,
+        overall_total_units=total_units,
         callback=progress_callback,
         cancellation_token=cancellation,
         eta_calibration_units=min(4, max(2, total_units // 3)),
     )
-    completed = 0
+    active_stage = None
+    active_work_id = None
 
     def emit(
-        stage_id: str,
-        stage_label: str,
+        work_id: str,
+        work_label: str,
         bag_id: Optional[str] = None,
         message: str = "",
         advance: bool = False,
     ) -> None:
-        nonlocal completed
+        nonlocal active_stage, active_work_id
+        if active_stage is None:
+            stage_id = (
+                STAGE_WRITING_ARTIFACTS
+                if work_id in {"artifact_writing", "artifact_validation"}
+                else STAGE_PREPARING_TRAJECTORY
+            )
+            active_stage = tracker.begin_stage(stage_id, 1)
+            active_work_id = work_id
+        elif active_work_id != work_id:
+            raise RuntimeError(
+                "inspection progress work changed before completion"
+            )
+        detail = work_label
+        if message:
+            detail = "{} ({})".format(detail, message)
         if advance:
-            completed += 1
-        tracker.emit(
-            completed,
-            stage_id,
-            stage_label,
-            bag_id=bag_id,
-            message=message,
-        )
+            active_stage.complete(bag_id=bag_id, message=detail)
+            active_stage = None
+            active_work_id = None
+        else:
+            active_stage.emit(0, bag_id=bag_id, message=detail)
 
     try:
         emit(
@@ -972,11 +987,10 @@ def inspect_flights(
             "Validating inspection bundle",
         )
         mark_bundle_complete(destination)
-        completed += 1
-        tracker.emit(
-            completed,
-            "complete",
+        emit(
+            "artifact_validation",
             "Inspection bundle complete",
+            advance=True,
         )
         return destination
     except ProgressCancelled as error:

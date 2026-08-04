@@ -119,7 +119,7 @@ class BatchArtifactTests(unittest.TestCase):
 
     def _diagnostics(self, mcmc=False):
         count = len(self.bag_ids)
-        return {
+        result = {
             "bag_id": np.asarray(self.bag_ids),
             "knot_count": np.asarray((10, 11), dtype=np.int64),
             "factor_count": np.asarray((40, 44), dtype=np.int64),
@@ -135,6 +135,45 @@ class BatchArtifactTests(unittest.TestCase):
             ),
             "peak_memory_bytes": np.asarray((123456,), dtype=np.int64),
         }
+        if mcmc:
+            result.update(
+                {
+                    "mcmc_chain_id": np.asarray(("chain-0", "chain-1")),
+                    "mcmc_mode_id": np.asarray(("nominal",)),
+                    "mcmc_draws_per_chain": np.asarray((4,), dtype=np.int64),
+                    "mcmc_split_rhat": np.ones(19),
+                    "mcmc_effective_sample_size": np.full(19, 8.0),
+                    "mcmc_integrated_autocorrelation_time": np.ones(19),
+                    "mcmc_ridge_coordinate_trace": np.zeros((2, 4)),
+                    "mcmc_delay_trace": np.full((2, 4), 0.006),
+                    "mcmc_log_posterior_trace": np.zeros((2, 4)),
+                    "mcmc_kernel_names": np.asarray(("ridge", "delay")),
+                    "mcmc_kernel_attempts": np.asarray((8, 8), dtype=np.int64),
+                    "mcmc_kernel_stage_one_accepted": np.asarray(
+                        (6, 6), dtype=np.int64
+                    ),
+                    "mcmc_kernel_stage_two_attempted": np.asarray(
+                        (6, 6), dtype=np.int64
+                    ),
+                    "mcmc_kernel_stage_two_accepted": np.asarray(
+                        (4, 4), dtype=np.int64
+                    ),
+                    "mcmc_kernel_full_target_cache_hits": np.asarray(
+                        (1, 1), dtype=np.int64
+                    ),
+                    "mcmc_kernel_inner_solve_failures": np.asarray(
+                        (0, 0), dtype=np.int64
+                    ),
+                    "mcmc_kernel_inner_iterations": np.asarray(
+                        (10, 10), dtype=np.int64
+                    ),
+                    "mcmc_completed": np.asarray((True,), dtype=bool),
+                    "mcmc_converged": np.asarray((True,), dtype=bool),
+                    "mcmc_rhat_threshold": np.asarray((1.01,)),
+                    "mcmc_minimum_effective_sample_size": np.asarray((4.0,)),
+                }
+            )
+        return result
 
     @staticmethod
     def _empty_stream(prefix, value_name, dimension, covariance_dimension):
@@ -148,6 +187,9 @@ class BatchArtifactTests(unittest.TestCase):
             result["{}_covariance".format(prefix)] = np.empty(
                 (0, covariance_dimension, covariance_dimension)
             )
+            result["{}_covariance_valid".format(prefix)] = np.empty(
+                (0,), dtype=bool
+            )
         return result
 
     def _bag(self, bag_id):
@@ -160,6 +202,7 @@ class BatchArtifactTests(unittest.TestCase):
             "knot_time": time,
             "knot_record_time": 100.0 + time,
             "reference_time": time,
+            "reference_record_time": 100.0 + time,
             "reference_position": np.zeros((count, 3)),
             "reference_linear_velocity": np.zeros((count, 3)),
             "reference_linear_acceleration": np.zeros((count, 3)),
@@ -181,6 +224,7 @@ class BatchArtifactTests(unittest.TestCase):
             "map_actuator_thrust": np.ones((count, 4)),
             "map_actuator_gimbal": np.zeros((count, 4)),
             "map_dynamics_residual": np.zeros((count - 1, 6)),
+            "map_dynamics_residual_valid": np.ones(count - 1, dtype=bool),
             "correction_translation": np.zeros((count, 3)),
             "correction_rotation_vector": np.zeros((count, 3)),
             "factor_names": np.asarray(("pose", "dynamics")),
@@ -206,6 +250,18 @@ class BatchArtifactTests(unittest.TestCase):
         result["pose_orientation_xyzw"] = np.empty((0, 4))
         for prefix in ("thrust_command", "gimbal_command"):
             result.update(self._empty_stream(prefix, prefix, 4, None))
+            result["{}_covariance".format(prefix)] = np.empty((0, 4, 4))
+            result["{}_covariance_valid".format(prefix)] = np.empty(
+                (0,), dtype=bool
+            )
+        result.update(
+            self._empty_stream(
+                "controller_integral",
+                "controller_integral_observation",
+                6,
+                6,
+            )
+        )
         return result
 
     @staticmethod
@@ -214,7 +270,7 @@ class BatchArtifactTests(unittest.TestCase):
         inertia = np.repeat(np.eye(3)[None, :, :], count, axis=0)
         return {
             "sample_id": np.asarray((101, 107, 109), dtype=np.int64),
-            "chain_id": np.asarray((0, 0, 1), dtype=np.int64),
+            "chain_id": np.asarray(("chain-0", "chain-0", "chain-1")),
             "draw_index": np.asarray((0, 1, 0), dtype=np.int64),
             "parameter_coordinate": np.zeros((count, 18)),
             "mass": np.full(count, 2.4),
@@ -262,6 +318,9 @@ class BatchArtifactTests(unittest.TestCase):
                 (sample_count, knot_count, 3)
             ),
             "dynamics_residual": np.zeros((sample_count, knot_count - 1, 6)),
+            "dynamics_residual_valid": np.ones(
+                (sample_count, knot_count - 1), dtype=bool
+            ),
             "conditional_objective": np.arange(sample_count, dtype=float),
         }
 

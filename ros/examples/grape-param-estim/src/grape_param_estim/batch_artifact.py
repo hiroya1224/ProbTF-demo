@@ -944,6 +944,30 @@ _DIAGNOSTIC_KEYS = (
     "peak_memory_bytes",
 )
 
+_MCMC_DIAGNOSTIC_KEYS = (
+    "mcmc_chain_id",
+    "mcmc_mode_id",
+    "mcmc_draws_per_chain",
+    "mcmc_split_rhat",
+    "mcmc_effective_sample_size",
+    "mcmc_integrated_autocorrelation_time",
+    "mcmc_ridge_coordinate_trace",
+    "mcmc_delay_trace",
+    "mcmc_log_posterior_trace",
+    "mcmc_kernel_names",
+    "mcmc_kernel_attempts",
+    "mcmc_kernel_stage_one_accepted",
+    "mcmc_kernel_stage_two_attempted",
+    "mcmc_kernel_stage_two_accepted",
+    "mcmc_kernel_full_target_cache_hits",
+    "mcmc_kernel_inner_solve_failures",
+    "mcmc_kernel_inner_iterations",
+    "mcmc_completed",
+    "mcmc_converged",
+    "mcmc_rhat_threshold",
+    "mcmc_minimum_effective_sample_size",
+)
+
 
 def _validate_diagnostics(
     arrays: Mapping[str, np.ndarray],
@@ -952,7 +976,8 @@ def _validate_diagnostics(
     location: str,
 ) -> None:
     _require_keys(arrays, _DIAGNOSTIC_KEYS, location)
-    _reject_unknown_keys(arrays, _DIAGNOSTIC_KEYS, location)
+    allowed = _DIAGNOSTIC_KEYS + _MCMC_DIAGNOSTIC_KEYS
+    _reject_unknown_keys(arrays, allowed, location)
     actual_bags = _strings(arrays, "bag_id", len(bag_ids), location, unique=True)
     if tuple(actual_bags.tolist()) != bag_ids:
         raise ArtifactValidationError(
@@ -988,6 +1013,125 @@ def _validate_diagnostics(
                 location
             )
         )
+    supplied_mcmc = set(arrays).intersection(_MCMC_DIAGNOSTIC_KEYS)
+    if mcmc_enabled:
+        _require_keys(arrays, _MCMC_DIAGNOSTIC_KEYS, location)
+        chain_ids = _strings(
+            arrays, "mcmc_chain_id", None, location, unique=True
+        )
+        if chain_ids.size < 2:
+            raise ArtifactValidationError(
+                "{}:mcmc_chain_id must contain at least two chains".format(
+                    location
+                )
+            )
+        _strings(arrays, "mcmc_mode_id", 1, location)
+        draws = _array(
+            arrays,
+            "mcmc_draws_per_chain",
+            (1,),
+            location,
+            kind="integer",
+        )
+        if draws[0] < 4:
+            raise ArtifactValidationError(
+                "{}:mcmc_draws_per_chain must be at least four".format(location)
+            )
+        posterior_dimension = STATIC_PARAMETER_DIMENSION + 1
+        for key in (
+            "mcmc_split_rhat",
+            "mcmc_effective_sample_size",
+            "mcmc_integrated_autocorrelation_time",
+        ):
+            _array(arrays, key, (posterior_dimension,), location, finite=False)
+            if np.any(np.isnan(arrays[key])):
+                raise ArtifactValidationError(
+                    "{}:{} must not contain NaN".format(location, key)
+                )
+        _positive(
+            arrays["mcmc_effective_sample_size"],
+            "{}:mcmc_effective_sample_size".format(location),
+        )
+        if np.any(arrays["mcmc_integrated_autocorrelation_time"] < 1.0):
+            raise ArtifactValidationError(
+                "{}:mcmc_integrated_autocorrelation_time must be >= 1".format(
+                    location
+                )
+            )
+        trace_shape = (chain_ids.size, int(draws[0]))
+        for key in (
+            "mcmc_ridge_coordinate_trace",
+            "mcmc_delay_trace",
+            "mcmc_log_posterior_trace",
+        ):
+            _array(arrays, key, trace_shape, location)
+        kernels = _strings(
+            arrays, "mcmc_kernel_names", None, location, unique=True
+        )
+        if kernels.size == 0:
+            raise ArtifactValidationError(
+                "{}:mcmc_kernel_names must not be empty".format(location)
+            )
+        count_keys = (
+            "mcmc_kernel_attempts",
+            "mcmc_kernel_stage_one_accepted",
+            "mcmc_kernel_stage_two_attempted",
+            "mcmc_kernel_stage_two_accepted",
+            "mcmc_kernel_full_target_cache_hits",
+            "mcmc_kernel_inner_solve_failures",
+            "mcmc_kernel_inner_iterations",
+        )
+        for key in count_keys:
+            values = _array(
+                arrays, key, (kernels.size,), location, kind="integer"
+            )
+            if np.any(values < 0):
+                raise ArtifactValidationError(
+                    "{}:{} must be non-negative".format(location, key)
+                )
+        if np.any(
+            arrays["mcmc_kernel_stage_two_accepted"]
+            > arrays["mcmc_kernel_stage_two_attempted"]
+        ) or np.any(
+            arrays["mcmc_kernel_stage_two_attempted"]
+            > arrays["mcmc_kernel_stage_one_accepted"]
+        ) or np.any(
+            arrays["mcmc_kernel_stage_one_accepted"]
+            > arrays["mcmc_kernel_attempts"]
+        ):
+            raise ArtifactValidationError(
+                "{} MCMC kernel acceptance counts are not nested".format(
+                    location
+                )
+            )
+        completed = _array(
+            arrays, "mcmc_completed", (1,), location, kind="boolean"
+        )
+        converged = _array(
+            arrays, "mcmc_converged", (1,), location, kind="boolean"
+        )
+        if converged[0] and not completed[0]:
+            raise ArtifactValidationError(
+                "{}: an incomplete MCMC run cannot be converged".format(
+                    location
+                )
+            )
+        for key in (
+            "mcmc_rhat_threshold",
+            "mcmc_minimum_effective_sample_size",
+        ):
+            value = _array(arrays, key, (1,), location)
+            _positive(value, "{}:{}".format(location, key))
+        if arrays["mcmc_rhat_threshold"][0] <= 1.0:
+            raise ArtifactValidationError(
+                "{}:mcmc_rhat_threshold must exceed one".format(location)
+            )
+    elif supplied_mcmc:
+        raise ArtifactValidationError(
+            "{} contains MCMC diagnostics while MCMC is disabled".format(
+                location
+            )
+        )
     peak = _array(arrays, "peak_memory_bytes", (1,), location, kind="integer")
     if peak[0] < 0:
         raise ArtifactValidationError(
@@ -1000,6 +1144,7 @@ _BAG_KEYS = (
     "knot_time",
     "knot_record_time",
     "reference_time",
+    "reference_record_time",
     "reference_position",
     "reference_linear_velocity",
     "reference_linear_acceleration",
@@ -1012,34 +1157,49 @@ _BAG_KEYS = (
     "pose_orientation_xyzw",
     "pose_valid",
     "pose_covariance",
+    "pose_covariance_valid",
     "velocity_time",
     "velocity_record_time",
     "velocity",
     "velocity_valid",
     "velocity_covariance",
+    "velocity_covariance_valid",
     "gyro_time",
     "gyro_record_time",
     "gyro",
     "gyro_valid",
     "gyro_covariance",
+    "gyro_covariance_valid",
     "accelerometer_time",
     "accelerometer_record_time",
     "accelerometer",
     "accelerometer_valid",
     "accelerometer_covariance",
+    "accelerometer_covariance_valid",
     "thrust_command_time",
     "thrust_command_record_time",
     "thrust_command",
     "thrust_command_valid",
+    "thrust_command_covariance",
+    "thrust_command_covariance_valid",
     "gimbal_command_time",
     "gimbal_command_record_time",
     "gimbal_command",
     "gimbal_command_valid",
+    "gimbal_command_covariance",
+    "gimbal_command_covariance_valid",
     "gimbal_observation_time",
     "gimbal_observation_record_time",
     "gimbal_observation",
     "gimbal_observation_valid",
     "gimbal_observation_covariance",
+    "gimbal_observation_covariance_valid",
+    "controller_integral_time",
+    "controller_integral_record_time",
+    "controller_integral_observation",
+    "controller_integral_valid",
+    "controller_integral_covariance",
+    "controller_integral_covariance_valid",
     "nominal_position",
     "nominal_orientation_xyzw",
     "nominal_linear_velocity",
@@ -1055,6 +1215,7 @@ _BAG_KEYS = (
     "map_actuator_thrust",
     "map_actuator_gimbal",
     "map_dynamics_residual",
+    "map_dynamics_residual_valid",
     "correction_translation",
     "correction_rotation_vector",
     "factor_names",
@@ -1107,6 +1268,27 @@ def _stream(
         _positive_semidefinite(
             covariance, "{}:{}_covariance".format(location, prefix)
         )
+        covariance_valid = _array(
+            arrays,
+            "{}_covariance_valid".format(prefix),
+            (count,),
+            location,
+            kind="boolean",
+        )
+        if np.any(~covariance_valid) and np.any(
+            covariance[~covariance_valid] != 0.0
+        ):
+            raise ArtifactValidationError(
+                "{}:{} covariance must use canonical zeros where unavailable"
+                .format(location, prefix)
+            )
+        if np.any(covariance_valid):
+            eigenvalues = np.linalg.eigvalsh(covariance[covariance_valid])
+            if np.any(eigenvalues <= 0.0):
+                raise ArtifactValidationError(
+                    "{}:{} available covariance must be positive definite"
+                    .format(location, prefix)
+                )
 
 
 def _validate_bag(
@@ -1138,6 +1320,12 @@ def _validate_bag(
             "{}:reference_time must not be empty".format(location)
         )
     _strictly_increasing(reference_time, "{}:reference_time".format(location))
+    reference_record_time = _array(
+        arrays, "reference_record_time", (reference_count,), location
+    )
+    _strictly_increasing(
+        reference_record_time, "{}:reference_record_time".format(location)
+    )
     for key in (
         "reference_position",
         "reference_linear_velocity",
@@ -1158,6 +1346,14 @@ def _validate_bag(
     _stream(arrays, "gyro", "gyro", 3, 3, location)
     _stream(arrays, "accelerometer", "accelerometer", 3, 3, location)
     _stream(arrays, "gimbal_observation", "gimbal_observation", 4, 4, location)
+    _stream(
+        arrays,
+        "controller_integral",
+        "controller_integral_observation",
+        6,
+        6,
+        location,
+    )
 
     for prefix, value_name in (
         ("thrust_command", "thrust_command"),
@@ -1182,6 +1378,43 @@ def _validate_bag(
             location,
             kind="boolean",
         )
+        covariance = _array(
+            arrays,
+            "{}_covariance".format(prefix),
+            (stream_count, 4, 4),
+            location,
+        )
+        covariance_valid = _array(
+            arrays,
+            "{}_covariance_valid".format(prefix),
+            (stream_count,),
+            location,
+            kind="boolean",
+        )
+        if stream_count and not np.allclose(
+            covariance,
+            np.swapaxes(covariance, 1, 2),
+            rtol=1.0e-9,
+            atol=1.0e-11,
+        ):
+            raise ArtifactValidationError(
+                "{}:{}_covariance must be symmetric".format(location, prefix)
+            )
+        if np.any(~covariance_valid) and np.any(
+            covariance[~covariance_valid] != 0.0
+        ):
+            raise ArtifactValidationError(
+                "{}:{} covariance must use canonical zeros where unavailable"
+                .format(location, prefix)
+            )
+        if np.any(covariance_valid) and np.any(
+            np.linalg.eigvalsh(covariance[covariance_valid]) <= 0.0
+        ):
+            raise ArtifactValidationError(
+                "{}:{} available covariance must be positive definite".format(
+                    location, prefix
+                )
+            )
 
     state_shapes = {
         "position": (count, 3),
@@ -1207,6 +1440,13 @@ def _validate_bag(
         "map_dynamics_residual",
         (count - 1, DYNAMICS_RESIDUAL_DIMENSION),
         location,
+    )
+    _array(
+        arrays,
+        "map_dynamics_residual_valid",
+        (count - 1,),
+        location,
+        kind="boolean",
     )
     _array(arrays, "correction_translation", (count, 3), location)
     _array(arrays, "correction_rotation_vector", (count, 3), location)
@@ -1283,18 +1523,16 @@ def _validate_mcmc(
     _reject_unknown_keys(arrays, _MCMC_KEYS, location)
     sample_ids = _id_vector(arrays, "sample_id", location)
     count = sample_ids.size
-    chain_id = _array(
-        arrays, "chain_id", (count,), location, kind="integer"
-    )
+    chain_id = _strings(arrays, "chain_id", count, location)
     draw_index = _array(
         arrays, "draw_index", (count,), location, kind="integer"
     )
-    if np.any(chain_id < 0) or np.any(draw_index < 0):
+    if np.any(draw_index < 0):
         raise ArtifactValidationError(
-            "{}:chain_id and draw_index must be non-negative".format(location)
+            "{}:draw_index must be non-negative".format(location)
         )
-    chain_draw = np.column_stack((chain_id, draw_index))
-    if np.unique(chain_draw, axis=0).shape[0] != count:
+    chain_draw = tuple(zip(chain_id.tolist(), draw_index.tolist()))
+    if len(set(chain_draw)) != count:
         raise ArtifactValidationError(
             "{} contains duplicate (chain_id, draw_index) pairs".format(location)
         )
@@ -1328,7 +1566,10 @@ def _validate_mcmc(
         "log_determinant_term",
     ):
         _array(arrays, key, (count,), location)
-    _strings(arrays, "accepted_kernel", count, location)
+    accepted_kernel = _array(
+        arrays, "accepted_kernel", (count,), location, kind="string"
+    )
+    del accepted_kernel
     _strings(arrays, "source_mode_id", count, location)
     return sample_ids
 
@@ -1346,6 +1587,7 @@ _TRAJECTORY_KEYS = (
     "correction_translation",
     "correction_rotation_vector",
     "dynamics_residual",
+    "dynamics_residual_valid",
     "conditional_objective",
 )
 
@@ -1406,6 +1648,13 @@ def _validate_trajectory_subset(
                 value.reshape((-1, 4)),
                 "{}:conditional_orientation_xyzw".format(location),
             )
+    _array(
+        arrays,
+        "dynamics_residual_valid",
+        (sample_count, knot_count - 1),
+        location,
+        kind="boolean",
+    )
 
 
 def _freeze(arrays: Dict[str, np.ndarray]) -> Mapping[str, np.ndarray]:

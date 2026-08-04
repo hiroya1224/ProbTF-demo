@@ -94,7 +94,7 @@ def _complete_project(root: Path, project_id: str = "flight-test"):
     (pid_root / "manifest.json").write_text(
         json.dumps(
             {
-                "schema": "grape-param-estim/pid-proposal-evaluation/v1",
+                "schema": "grape-param-estim/pid-proposal-evaluation/v2",
                 "status": "complete",
                 "evaluation_id": "pid-a",
                 "source_run_id": "run-a",

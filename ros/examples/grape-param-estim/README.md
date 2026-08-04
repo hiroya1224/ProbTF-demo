@@ -139,8 +139,8 @@ rosrun grape_param_estim grape_sample_parameter_posterior.py \
 cancel 時は元の complete estimate-only artifact を変更せず、同一 sampling request fingerprint の chain checkpoint だけを保持します。
 再実行時は同じ request の `resume` だけを `true` にし、upstream run ID、bag SHA256/interval、configuration、controller、estimator revision、元 request fingerprint のいずれかが変われば拒否します。
 
-PID evaluation request schema は `grape-param-estim/pid-proposal-evaluation-request/v1` です。
-完了した MCMC 付き estimation run、元 bag、current・sample-derived・user candidate、plant sample subset、model discrepancy policy、replicate seed、tail level を明示して実行します。
+PID evaluation request schema は `grape-param-estim/pid-proposal-evaluation-request/v2` です。
+完了した MCMC 付き estimation run、元 bag、current・user candidate、MCMC-derived candidate population の全件または deterministic k-medoids 上限、必ず残す source sample、plant sample subset、model discrepancy policy、replicate seed、tail level を明示して実行します。
 
 ```bash
 rosrun grape_param_estim grape_evaluate_pid_proposals.py \
@@ -148,6 +148,8 @@ rosrun grape_param_estim grape_evaluate_pid_proposals.py \
 ```
 
 PID worker は candidate × retained plant sample × selected bag × discrepancy replicate の full closed-loop simulation を行います。
+まず全 retained MCMC sample から exact correlated PID gain と response を導出し、sample 数が多い場合だけ request に記録した deterministic k-medoids で評価候補数を制限します。
+raw proposal population は sample ID と整列して artifact に保存され、component-wise mean を代表 gain として捏造しません。
 request の `forecast_workers` は `auto` または `1--32` の明示値で、独立 forecast を deterministic process pool へ割り当てます。
 完了 forecast は content-addressed checkpoint に保存され、同一 request fingerprint の `resume=true` では未完了の Cartesian-product record だけを再計算します。
 current PID の正本は baseline rosbag の controller snapshot であり、repository の YAML を現在値として代用しません。
@@ -188,7 +190,7 @@ estimation_run/
 `bags/<bag_id>.npz` は raw observation、nominal/MAP trajectory、dynamics residual、normalized factor residual、covariance、数値診断を持ち、latent residual-wrench path は持ちません。
 NPZ は `allow_pickle=False` で読み、object dtype、unknown key、shape/単位不一致、SHA256 不一致、`status != complete` を拒否します。
 
-PID artifact は `grape-param-estim/pid-proposal-evaluation/v1` です。
+PID artifact は `grape-param-estim/pid-proposal-evaluation/v2` です。
 
 ```text
 pid_proposal_evaluation/
@@ -200,6 +202,9 @@ pid_proposal_evaluation/
   proposed_GimbalrotorControl.diff.yaml
   bags/<bag_id>.npz
 ```
+
+`source_samples.npz` は physical posterior に加えて、全 retained sample の exact group scale、gain、acceleration response を同じ sample order で持ちます。
+manifest は raw/evaluated derived candidate 件数、all-raw または k-medoids policy、上限、必須 source sample を持ち、評価 candidate が raw proposal と一致しなければ loader が拒否します。
 
 推薦条件を満たさない場合、`recommendation_available=false` と理由を保存し、提案 YAML を実機へ自動適用しません。
 

@@ -29,13 +29,15 @@ repository 内 YAML や別 bag の値へ暗黙に fallback しない。
 
 ## 4. candidate source
 
-strict request は次の candidate を受け付ける。
+strict request は次の candidate source と population policy を受け付ける。
 
 - `current` は baseline snapshot の 4 group × P/I/D で、必ず比較基準に含める。
-- `sample-derived` は一つの明示的 `source_sample_id` に対応する exact proposal である。
+- `sample-derived` は backend が全 retained MCMC sample から一対一で生成する exact raw proposal である。
 - `user` は 4 × 3 の nonnegative exact gain を request に直接保存する。
 
-backend の particle type は mutation generation と parent candidate provenance も表現できるが、現行 one-command request の直接 source は上の三種類である。
+request は raw sample-derived population を全件評価するか、log group-scale と delay 空間の deterministic k-medoids で指定上限へ絞るかを明示する。
+GUI で選択中の source sample は `required_source_sample_ids` に入り、k-medoids による制限後も必ず exact candidate として残る。
+backend の particle type は mutation generation と parent candidate provenance も表現できるが、現行 one-command request の直接指定 source は current と user であり、sample-derived candidate は backend が監査可能に生成する。
 自動 refinement を追加する場合も bounded mutation と generation/parent ID を artifact に残し、最終候補を full posterior で再評価する。
 
 ## 5. counterfactual scenario
@@ -60,7 +62,8 @@ seed は `base_seed`、sample ID、bag ID、replicate index から安定に導�
 
 ## 7. plant subset と計算量
 
-`all_equal_weight_mcmc_samples` は全 retained sample、`explicit_equal_weight_mcmc_subset` は明示 sample ID の部分集合を使う。
+plant 側の `all_equal_weight_mcmc_samples` は全 retained sample、`explicit_equal_weight_mcmc_subset` は明示 sample ID の部分集合を使う。
+candidate 側は全 retained sample の raw proposal を必ず先に生成し、`all_raw_mcmc_samples` または `deterministic_k_medoids` を別に選ぶ。
 探索初期に subset を使った場合、最終 candidate は全 posterior sample で再評価してから推薦を判断する。
 forecast 数は `candidate_count * sample_count * bag_count * replicate_count` であり、progress unit もこの Cartesian product を正本にする。
 各 forecast は独立なので、この段階は process parallelization と cache の対象にしやすい。
@@ -94,8 +97,8 @@ operator が `selected_candidate_id` を指定しても、selection policy を�
 
 ## 10. strict request と CLI
 
-request schema は `grape-param-estim/pid-proposal-evaluation-request/v1` である。
-主な必須 field は evaluation/output path、estimation run、resume、`forecast_workers`、baseline bag、bag path/SHA256、selected mode、fixed drag、model discrepancy policy/seed/replicates、plant subset、candidate、quantile/CVaR、selected candidate、maximum reference age である。
+request schema は `grape-param-estim/pid-proposal-evaluation-request/v2` である。
+主な必須 field は evaluation/output path、estimation run、resume、`forecast_workers`、baseline bag、bag path/SHA256、selected mode、fixed drag、model discrepancy policy/seed/replicates、plant subset、derived candidate population、current/user candidate、quantile/CVaR、selected candidate、maximum reference age である。
 
 ```bash
 cd /home/leus/catkin_ws
@@ -112,7 +115,7 @@ request identity が異なる checkpoint、重複 record、異なる common-rand
 
 ## 11. artifact
 
-artifact schema は `grape-param-estim/pid-proposal-evaluation/v1` である。
+artifact schema は `grape-param-estim/pid-proposal-evaluation/v2` である。
 
 ```text
 pid_proposal_evaluation/
@@ -125,8 +128,10 @@ pid_proposal_evaluation/
   bags/<bag_id>.npz
 ```
 
-manifest は estimation/request fingerprint、Q policy/quantity/interval model/seed/replicates、sample subset、bag/candidate ID、selection policy、Pareto/recommended ID、recommendation availability、rejection reason、selected candidateを保存する。
-`source_samples.npz` は MCMC physical sample、`candidate_particles.npz` は source/generation/parent/gain、`summary.npz` は robust metric、各 bag NPZ は candidate/sample/replicate/seed ごとの metric record を保存する。
+manifest は estimation/request fingerprint、Q policy/quantity/interval model/seed/replicates、plant sample subset、raw/evaluated derived candidate 件数、candidate population method/上限/必須 source sample、bag/candidate ID、selection policy、Pareto/recommended ID、recommendation availability、rejection reason、selected candidateを保存する。
+`source_samples.npz` は MCMC physical sample に加えて、全 sample の exact group scale、gain、6 × 6 acceleration response を sample ID と同じ order で保存する。
+`candidate_particles.npz` は実際に評価した source/generation/parent/gain、`summary.npz` は robust metric、各 bag NPZ は candidate/sample/replicate/seed ごとの metric record を保存する。
+loader は sample-derived candidate の gain が raw proposal と bit-exact に一致し、k-medoids 上限と必須 sample が manifest と一致することを検証する。
 YAML と diff は exact selected gain の提案物であり、`jsk_aerial_robot`、controller YAML、dynamic_reconfigure を自動変更しない。
 
 ## 12. 現在の validation 状態

@@ -1,6 +1,7 @@
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -11,11 +12,20 @@ from grape_param_estim.batch.lag_profile import (
 from grape_param_estim.batch.variables import VariableKind
 from grape_param_estim.batch_artifact import file_sha256
 from grape_param_estim.batch_request import validate_batch_estimation_request
+from grape_param_estim.posterior.delayed_acceptance import TargetEvaluation
+from grape_param_estim.posterior.laplace_target import (
+    ConditionalTrajectoryWarmStart,
+)
+from grape_param_estim.posterior.mcmc import McmcCancelled
 from grape_param_estim.real_estimation import (
+    DelayUncertaintyEstimate,
+    RealEstimationInputs,
     estimate_delay_uncertainty,
     prepare_real_estimation_inputs,
     production_state_scaling,
+    sample_laplace_solution,
 )
+import tests.grape_param_estim.test_batch_artifact_export as artifact_support
 from tests.grape_param_estim.test_batch_preparation import (
     _flight_data,
     _request_payload,
@@ -120,6 +130,153 @@ class RealEstimationTests(unittest.TestCase):
         self.assertTrue(
             all(value > 0.0 for value in scaling.kind_scales.values())
         )
+
+    def test_sampling_target_and_chain_are_resume_identical_with_fixed_map_start(self):
+        helper = artifact_support.BatchArtifactExportTests()
+        helper.setUp()
+        try:
+            payload = helper._mcmc_payload_request(helper.helper.payload)
+            request = validate_batch_estimation_request(payload)
+            inputs = RealEstimationInputs(
+                request=request,
+                flight_data=(helper.helper.flight,),
+                initializations=(helper.helper.initialization,),
+                parameter_chart=helper.helper.chart,
+                geometry=helper.helper.geometry,
+                actuator_parameters=helper.helper.actuators,
+                scaling=helper.prepared.scaling,
+                loading_seconds=0.0,
+            )
+            received_warm_starts = []
+
+            class HistoryWarmStart:
+                pass
+
+            class WarmStartSensitiveTarget:
+                def __init__(self, _factory, _delay_prior, _settings):
+                    pass
+
+                def __call__(self, point, warm_start=None):
+                    received_warm_starts.append(warm_start)
+                    fixed = isinstance(
+                        warm_start, ConditionalTrajectoryWarmStart
+                    )
+                    history_offset = 0.0 if fixed else 0.125
+                    objective = (
+                        0.5
+                        * float(
+                            point.static_coordinate
+                            @ point.static_coordinate
+                        )
+                        + history_offset
+                    )
+                    local_log_determinant = (
+                        0.2
+                        + 0.01 * float(point.static_coordinate[0] ** 2)
+                    )
+                    delay_log_prior = 0.0
+                    return TargetEvaluation(
+                        point=point,
+                        log_density=(
+                            delay_log_prior
+                            - objective
+                            - 0.5 * local_log_determinant
+                        ),
+                        successful=True,
+                        failure_reason="",
+                        inner_iterations=1,
+                        warm_start=HistoryWarmStart(),
+                        graph_objective=objective,
+                        local_log_determinant=local_log_determinant,
+                        delay_log_prior=delay_log_prior,
+                    )
+
+            common = dict(
+                inputs=inputs,
+                mode_id="recorded-mode",
+                final=helper.solution,
+                static_geometry=helper.solution.static_geometry(),
+                delay_uncertainty=DelayUncertaintyEstimate(
+                    0.001, "test positive curvature", 1.0e6
+                ),
+            )
+            with patch(
+                "grape_param_estim.real_estimation.LaplaceMarginalTarget",
+                WarmStartSensitiveTarget,
+            ):
+                uninterrupted = sample_laplace_solution(**common)
+                latest = {}
+                cancelled = [False]
+
+                def checkpoint(chain_id, value):
+                    latest[chain_id] = value
+                    if chain_id == "chain-000" and value.completed_transition == 2:
+                        cancelled[0] = True
+
+                with self.assertRaises(McmcCancelled):
+                    sample_laplace_solution(
+                        **common,
+                        cancellation_requested=lambda: cancelled[0],
+                        checkpoint_chain_proposal=checkpoint,
+                    )
+                resumed = sample_laplace_solution(
+                    **common,
+                    chain_checkpoints={"chain-000": latest["chain-000"]},
+                )
+
+            self.assertTrue(received_warm_starts)
+            self.assertTrue(
+                all(
+                    isinstance(value, ConditionalTrajectoryWarmStart)
+                    for value in received_warm_starts
+                )
+            )
+            expected_cache_key = np.asarray(
+                np.concatenate(
+                    (
+                        helper.solution.lm.state.value(
+                            helper.solution.lm.state.layout.variable_keys[0]
+                        ),
+                        np.asarray((helper.solution.prepared.fixed_delay,)),
+                    )
+                ),
+                dtype="<f8",
+            ).tobytes(order="C")
+            self.assertTrue(
+                all(
+                    value.state is helper.solution.lm.state
+                    and value.source_point_cache_key == expected_cache_key
+                    for value in received_warm_starts
+                )
+            )
+            for expected, actual in zip(
+                uninterrupted.chains, resumed.chains
+            ):
+                for name in (
+                    "sample_id",
+                    "draw_index",
+                    "static_coordinate",
+                    "delay",
+                    "log_density",
+                    "attempted_kernel",
+                    "accepted_kernel",
+                    "accepted",
+                    "stage_one_accepted",
+                    "stage_two_attempted",
+                    "full_target_cache_hit",
+                    "inner_solve_failed",
+                    "inner_iterations",
+                    "graph_objective",
+                    "local_log_determinant",
+                    "delay_log_prior",
+                ):
+                    np.testing.assert_array_equal(
+                        getattr(actual, name),
+                        getattr(expected, name),
+                        err_msg=name,
+                    )
+        finally:
+            helper.tearDown()
 
 
 if __name__ == "__main__":

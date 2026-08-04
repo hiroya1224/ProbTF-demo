@@ -45,7 +45,10 @@ from grape_param_estim.posterior.delayed_acceptance import (
     QuadraticSurrogate,
     build_ridge_aware_proposal,
 )
-from grape_param_estim.posterior.laplace_target import LaplaceMarginalTarget
+from grape_param_estim.posterior.laplace_target import (
+    ConditionalTrajectoryWarmStart,
+    LaplaceMarginalTarget,
+)
 from grape_param_estim.posterior.run import (
     ChainProposalCheckpoint,
     CompletedChainCheckpoint,
@@ -820,9 +823,12 @@ def sample_laplace_solution(
         _uniform_delay_log_prior(bounds),
         _lm_settings(inputs.request),
     )
+    fixed_warm_start = ConditionalTrajectoryWarmStart(
+        final.lm.state, map_point.exact_cache_key
+    )
     map_started = time.perf_counter()
     try:
-        map_evaluation = target(map_point, None)
+        map_evaluation = target(map_point, fixed_warm_start)
     finally:
         if target_timing_callback is not None:
             target_timing_callback(time.perf_counter() - map_started)
@@ -873,10 +879,14 @@ def sample_laplace_solution(
             _uniform_delay_log_prior(bounds),
             _lm_settings(inputs.request),
         )
-        def timed_target(point, warm_start):
+        def timed_target(point, _history_warm_start):
             target_started = time.perf_counter()
             try:
-                return chain_target(point, warm_start)
+                # The exact marginal target must be a function of ``point``
+                # alone.  Reusing the current chain trajectory makes the
+                # nonlinear stopping point history-dependent, and a resumed
+                # checkpoint deliberately has no serialized warm start.
+                return chain_target(point, fixed_warm_start)
             finally:
                 if target_timing_callback is not None:
                     target_timing_callback(

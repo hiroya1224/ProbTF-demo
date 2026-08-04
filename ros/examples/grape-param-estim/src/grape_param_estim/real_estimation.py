@@ -46,6 +46,8 @@ from grape_param_estim.posterior.delayed_acceptance import (
 )
 from grape_param_estim.posterior.laplace_target import LaplaceMarginalTarget
 from grape_param_estim.posterior.run import (
+    ChainProposalCheckpoint,
+    CompletedChainCheckpoint,
     McmcRunResult,
     McmcRunSettings,
     initialize_mcmc_chains,
@@ -645,6 +647,10 @@ def sample_selected_mode(
     cancellation_requested: Optional[CancellationCheck] = None,
     progress: Optional[ProgressCallback] = None,
     target_timing_callback: Optional[Callable[[float], None]] = None,
+    completed_chains: Optional[Mapping[str, object]] = None,
+    chain_checkpoints: Optional[Mapping[str, object]] = None,
+    checkpoint_completed_chain: Optional[CompletedChainCheckpoint] = None,
+    checkpoint_chain_proposal: Optional[ChainProposalCheckpoint] = None,
 ) -> McmcRunResult:
     """Run ridge-aware delayed-acceptance MCMC for one selected mode."""
 
@@ -759,8 +765,12 @@ def sample_selected_mode(
         settings,
         initializations,
         mode.static_geometry.exact_ridge_direction,
+        completed_chains=completed_chains,
+        chain_checkpoints=chain_checkpoints,
         cancellation_requested=cancellation_requested,
         progress=mcmc_progress,
+        checkpoint_completed_chain=checkpoint_completed_chain,
+        checkpoint_chain_proposal=checkpoint_chain_proposal,
     )
 
 

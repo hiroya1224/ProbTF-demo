@@ -45,6 +45,13 @@ class VariableLayout:
         repr=False,
         compare=False,
     )
+    _bag_slices: Mapping[str, slice] = field(
+        init=False,
+        repr=False,
+        compare=False,
+    )
+    bag_ids: Tuple[str, ...] = field(init=False)
+    shared_slice: slice = field(init=False)
     total_dimension: int = field(init=False)
 
     def __post_init__(self) -> None:
@@ -131,8 +138,24 @@ class VariableLayout:
             next_offset = offset + key.dimension
             offsets[key] = slice(offset, next_offset)
             offset = next_offset
+        bag_slices = {}
+        for bag_id in bag_ids:
+            bag_keys = [
+                key for key in canonical_keys if key.bag_id == bag_id
+            ]
+            bag_slices[bag_id] = slice(
+                offsets[bag_keys[0]].start,
+                offsets[bag_keys[-1]].stop,
+            )
         object.__setattr__(self, "variable_keys", tuple(canonical_keys))
         object.__setattr__(self, "_column_slices", MappingProxyType(offsets))
+        object.__setattr__(
+            self,
+            "_bag_slices",
+            MappingProxyType(bag_slices),
+        )
+        object.__setattr__(self, "bag_ids", tuple(bag_ids))
+        object.__setattr__(self, "shared_slice", offsets[static_key])
         object.__setattr__(self, "total_dimension", offset)
 
     def column_slice(self, variable_key: VariableKey) -> slice:
@@ -149,6 +172,16 @@ class VariableLayout:
         """Return the first deterministic column for a known key."""
 
         return self.column_slice(variable_key).start
+
+    def bag_slice(self, bag_id: str) -> slice:
+        """Return the contiguous local-variable slice for a known bag."""
+
+        if type(bag_id) is not str:
+            raise TypeError("bag_id must be a string")
+        try:
+            return self._bag_slices[bag_id]
+        except KeyError as error:
+            raise KeyError("bag_id is not present in this layout") from error
 
     def __contains__(self, variable_key: object) -> bool:
         return variable_key in self._column_slices

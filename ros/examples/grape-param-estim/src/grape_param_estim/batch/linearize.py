@@ -2,14 +2,14 @@
 
 from dataclasses import dataclass
 import math
-from typing import Mapping, Sequence, Tuple
+from typing import Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 from scipy.sparse import coo_matrix, csc_matrix, isspmatrix_csc
 
 from grape_param_estim.batch.factor import FactorEvaluation
 from grape_param_estim.batch.layout import VariableLayout
-from grape_param_estim.batch.variables import VariableKey
+from grape_param_estim.batch.variables import VariableKey, VariableScope
 
 
 @dataclass(frozen=True)
@@ -19,6 +19,7 @@ class FactorProvenance:
     factor_index: int
     row_slice: slice
     variable_keys: Tuple[VariableKey, ...]
+    local_bag_id: Optional[str]
     active_set: Mapping[str, np.ndarray]
 
 
@@ -82,11 +83,25 @@ def assemble_sparse_linearization(
         factor_keys = tuple(
             block.variable_key for block in factor.jacobian_blocks
         )
+        local_bag_ids = {
+            key.bag_id
+            for key in factor_keys
+            if key.scope is not VariableScope.SHARED
+        }
+        if len(local_bag_ids) > 1:
+            raise ValueError(
+                "a factor cannot directly couple local variables from "
+                "multiple bags"
+            )
+        local_bag_id = (
+            next(iter(local_bag_ids)) if local_bag_ids else None
+        )
         provenance.append(
             FactorProvenance(
                 factor_index=factor_index,
                 row_slice=row_slice,
                 variable_keys=factor_keys,
+                local_bag_id=local_bag_id,
                 active_set=factor.active_set,
             )
         )

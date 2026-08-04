@@ -196,6 +196,14 @@ def execute_posterior_sampling(
             "sampling_request_fingerprint"
         )
         if stored == request.fingerprint:
+            if progress is not None:
+                progress(
+                    "writing_artifacts",
+                    0,
+                    1,
+                    "posterior samples already complete",
+                )
+                progress("writing_artifacts", 1, 1, "run complete")
             return run
         raise ArtifactValidationError(
             "estimation run already contains samples from another request"

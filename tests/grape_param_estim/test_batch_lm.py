@@ -12,6 +12,7 @@ from grape_param_estim.batch.lm import (
     LMSettings,
     LMTerminationReason,
     solve_batch_map,
+    solve_conditional_batch_map,
 )
 from grape_param_estim.batch.problem import (
     BatchProblem,
@@ -129,6 +130,42 @@ class BatchLMTests(unittest.TestCase):
         self.assertLess(result.objective, 1.0e-16)
         self.assertTrue(any(record.accepted for record in result.iterations))
         for key in self.layout.variable_keys:
+            if key.kind is VariableKind.ORIENTATION_TANGENT:
+                np.testing.assert_allclose(
+                    result.state.value(key), np.eye(3), atol=1.0e-10
+                )
+            else:
+                np.testing.assert_allclose(
+                    result.state.value(key), 0.0, atol=1.0e-10
+                )
+
+    def test_conditional_lm_optimizes_locals_without_moving_static_block(self):
+        problem = BatchProblem(
+            self.layout,
+            StateScaling.unit(),
+            _correct_prior_factors,
+        )
+        static_key = VariableKey(VariableKind.STATIC_PARAMETERS)
+        static_before = self.initial.value(static_key).copy()
+
+        result = solve_conditional_batch_map(
+            problem,
+            self.initial,
+            LMSettings(
+                maximum_iterations=12,
+                initial_damping=1.0e-3,
+                gradient_tolerance=1.0e-10,
+                scaled_step_tolerance=1.0e-12,
+                relative_objective_tolerance=1.0e-12,
+            ),
+        )
+
+        self.assertTrue(result.converged)
+        np.testing.assert_array_equal(
+            result.state.value(static_key), static_before
+        )
+        self.assertGreater(result.objective, 0.0)
+        for key in self.layout.variable_keys[1:]:
             if key.kind is VariableKind.ORIENTATION_TANGENT:
                 np.testing.assert_allclose(
                     result.state.value(key), np.eye(3), atol=1.0e-10

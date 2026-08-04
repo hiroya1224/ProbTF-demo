@@ -44,6 +44,18 @@ class ScaledSchurStep:
     bag_diagnostics: Tuple[BagFactorizationDiagnostics, ...]
 
 
+@dataclass(frozen=True)
+class ScaledConditionalStep:
+    """One LM step with the shared 18-D parameter block held fixed."""
+
+    delta: np.ndarray
+    scaled_delta: np.ndarray
+    gradient_inf_norm: float
+    scaled_step_norm: float
+    predicted_reduction: float
+    bag_diagnostics: Tuple[BagFactorizationDiagnostics, ...]
+
+
 def solve_scaled_lm_step(
     linearization: SparseBatchLinearization,
     coordinate_scale: Sequence[float],
@@ -245,6 +257,156 @@ def solve_scaled_lm_step(
     )
 
 
+def solve_scaled_conditional_lm_step(
+    linearization: SparseBatchLinearization,
+    coordinate_scale: Sequence[float],
+    damping: float,
+) -> ScaledConditionalStep:
+    """Solve independent bag-local LM blocks with shared parameters fixed.
+
+    This is the inner trajectory solve used by the Laplace-marginal posterior
+    target.  The returned shared-coordinate increment is exactly zero; no
+    large penalty or numerical approximation is used to enforce the fixed
+    18-D parameter value.
+    """
+
+    if not isinstance(linearization, SparseBatchLinearization):
+        raise TypeError("linearization must be a SparseBatchLinearization")
+    if isinstance(damping, (bool, np.bool_)) or not isinstance(damping, Real):
+        raise TypeError("damping must be a finite non-negative scalar")
+    damping_value = float(damping)
+    if not np.isfinite(damping_value) or damping_value < 0.0:
+        raise ValueError("damping must be a finite non-negative scalar")
+
+    layout = linearization.layout
+    dimension = layout.total_dimension
+    scale = np.asarray(coordinate_scale, dtype=float)
+    if (
+        scale.shape != (dimension,)
+        or not np.all(np.isfinite(scale))
+        or np.any(scale <= 0.0)
+    ):
+        raise ValueError(
+            "coordinate_scale must contain one finite positive value per "
+            "physical coordinate"
+        )
+    if layout.shared_slice != slice(0, 18):
+        raise ValueError("layout must begin with the shared 18-D block")
+
+    hessian = linearization.hessian
+    gradient = np.asarray(linearization.gradient, dtype=float)
+    if (
+        not isspmatrix_csc(hessian)
+        or hessian.shape != (dimension, dimension)
+        or gradient.shape != (dimension,)
+        or not np.all(np.isfinite(hessian.data))
+        or not np.all(np.isfinite(gradient))
+    ):
+        raise ValueError(
+            "linearization must contain a finite CSC Hessian and gradient"
+        )
+    asymmetry = (hessian - hessian.T).tocsc()
+    asymmetry.eliminate_zeros()
+    if asymmetry.nnz:
+        largest_asymmetry = float(np.max(np.abs(asymmetry.data)))
+        largest_entry = (
+            float(np.max(np.abs(hessian.data))) if hessian.nnz else 0.0
+        )
+        if largest_asymmetry > 1.0e-12 * max(1.0, largest_entry):
+            raise ValueError("linearization Hessian must be symmetric")
+    _reject_cross_bag_hessian_entries(hessian, layout)
+
+    scaling = diags(scale, offsets=0, shape=hessian.shape, format="csc")
+    scaled_hessian = (scaling @ hessian @ scaling).tocsc()
+    scaled_hessian.sum_duplicates()
+    scaled_hessian.eliminate_zeros()
+    scaled_hessian.sort_indices()
+    scaled_gradient = scale * gradient
+
+    scaled_delta = np.zeros(dimension, dtype=float)
+    diagnostics = []
+    for bag_id in layout.bag_ids:
+        local_slice = layout.bag_slice(bag_id)
+        local_undamped = scaled_hessian[local_slice, local_slice].tocsc()
+        local_damped = (
+            local_undamped
+            + damping_value
+            * eye(
+                local_slice.stop - local_slice.start,
+                format="csc",
+                dtype=float,
+            )
+        ).tocsc()
+        local_damped.sum_duplicates()
+        local_damped.sort_indices()
+        try:
+            factorization = splu(local_damped)
+        except RuntimeError as error:
+            raise np.linalg.LinAlgError(
+                "bag-local conditional LM block is singular for {!r}".format(
+                    bag_id
+                )
+            ) from error
+        local_delta = np.asarray(
+            factorization.solve(-scaled_gradient[local_slice]), dtype=float
+        ).reshape(-1)
+        if (
+            local_delta.shape
+            != (local_slice.stop - local_slice.start,)
+            or not np.all(np.isfinite(local_delta))
+        ):
+            raise np.linalg.LinAlgError(
+                "bag-local conditional LM solve is non-finite for {!r}".format(
+                    bag_id
+                )
+            )
+        scaled_delta[local_slice] = local_delta
+        diagnostics.append(
+            BagFactorizationDiagnostics(
+                bag_id=bag_id,
+                local_slice=local_slice,
+                local_dimension=local_slice.stop - local_slice.start,
+                undamped_hessian_nnz=local_undamped.nnz,
+                damped_hessian_nnz=local_damped.nnz,
+                factor_l_nnz=factorization.L.nnz,
+                factor_u_nnz=factorization.U.nnz,
+                rhs_count=1,
+            )
+        )
+
+    delta = scale * scaled_delta
+    predicted_reduction = -float(
+        gradient @ delta + 0.5 * delta @ hessian.dot(delta)
+    )
+    local_start = layout.shared_slice.stop
+    gradient_inf_norm = float(
+        np.linalg.norm(scaled_gradient[local_start:], ord=np.inf)
+    )
+    scaled_step_norm = float(np.linalg.norm(scaled_delta[local_start:]))
+    if (
+        not np.all(np.isfinite(delta))
+        or not np.all(np.isfinite(scaled_delta))
+        or not np.isfinite(predicted_reduction)
+        or not np.isfinite(gradient_inf_norm)
+        or not np.isfinite(scaled_step_norm)
+    ):
+        raise np.linalg.LinAlgError(
+            "conditional LM step diagnostics are non-finite"
+        )
+    if np.any(delta[layout.shared_slice] != 0.0):
+        raise RuntimeError("conditional LM changed the fixed shared block")
+    delta.setflags(write=False)
+    scaled_delta.setflags(write=False)
+    return ScaledConditionalStep(
+        delta=delta,
+        scaled_delta=scaled_delta,
+        gradient_inf_norm=gradient_inf_norm,
+        scaled_step_norm=scaled_step_norm,
+        predicted_reduction=predicted_reduction,
+        bag_diagnostics=tuple(diagnostics),
+    )
+
+
 def _multiple_rhs(
     local_gradient: np.ndarray,
     local_to_shared: csc_matrix,
@@ -281,6 +443,8 @@ def _reject_cross_bag_hessian_entries(hessian, layout) -> None:
 
 __all__ = [
     "BagFactorizationDiagnostics",
+    "ScaledConditionalStep",
     "ScaledSchurStep",
+    "solve_scaled_conditional_lm_step",
     "solve_scaled_lm_step",
 ]

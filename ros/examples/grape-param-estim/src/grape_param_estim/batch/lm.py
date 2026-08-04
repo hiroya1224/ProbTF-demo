@@ -15,6 +15,7 @@ from grape_param_estim.batch.problem import (
 )
 from grape_param_estim.batch.sparse_solver import (
     BagFactorizationDiagnostics,
+    solve_scaled_conditional_lm_step,
     solve_scaled_lm_step,
 )
 from grape_param_estim.batch.state import BatchState
@@ -187,6 +188,55 @@ def solve_batch_map(
 ) -> LMSolveResult:
     """Run sparse LM while preserving every attempted-step diagnostic."""
 
+    return _solve_batch_map(
+        problem,
+        initial_state,
+        settings,
+        optimize_shared=True,
+    )
+
+
+def solve_conditional_batch_map(
+    problem: BatchProblem,
+    initial_state: BatchState,
+    settings: LMSettings = LMSettings(),
+) -> LMSolveResult:
+    """Optimize bag-local trajectories with the shared 18-D block fixed."""
+
+    result = _solve_batch_map(
+        problem,
+        initial_state,
+        settings,
+        optimize_shared=False,
+    )
+    shared_key = problem.layout.variable_keys[0]
+    if not np.array_equal(
+        result.state.value(shared_key), initial_state.value(shared_key)
+    ):
+        raise RuntimeError("conditional MAP changed the fixed shared block")
+    return result
+
+
+def _scaled_gradient_inf_norm(
+    sparse,
+    scale: np.ndarray,
+    optimize_shared: bool,
+) -> float:
+    scaled_gradient = scale * sparse.gradient
+    if not optimize_shared:
+        scaled_gradient = scaled_gradient[sparse.layout.shared_slice.stop :]
+    return float(np.linalg.norm(scaled_gradient, ord=np.inf))
+
+
+def _solve_batch_map(
+    problem: BatchProblem,
+    initial_state: BatchState,
+    settings: LMSettings,
+    *,
+    optimize_shared: bool,
+) -> LMSolveResult:
+    """Implementation shared by joint and fixed-parameter trajectory LM."""
+
     if not isinstance(problem, BatchProblem):
         raise TypeError("problem must be a BatchProblem")
     if not isinstance(initial_state, BatchState):
@@ -204,8 +254,9 @@ def solve_batch_map(
     consecutive_model_evaluation_failures = 0
 
     for iteration in range(settings.maximum_iterations):
-        scaled_gradient = scale * current.sparse.gradient
-        gradient_inf_norm = float(np.linalg.norm(scaled_gradient, ord=np.inf))
+        gradient_inf_norm = _scaled_gradient_inf_norm(
+            current.sparse, scale, optimize_shared
+        )
         if gradient_inf_norm <= settings.gradient_tolerance:
             return _result(
                 current_state,
@@ -217,11 +268,18 @@ def solve_batch_map(
             )
         damping_before = damping
         try:
-            step = solve_scaled_lm_step(
-                current.sparse,
-                scale,
-                damping,
-            )
+            if optimize_shared:
+                step = solve_scaled_lm_step(
+                    current.sparse,
+                    scale,
+                    damping,
+                )
+            else:
+                step = solve_scaled_conditional_lm_step(
+                    current.sparse,
+                    scale,
+                    damping,
+                )
         except np.linalg.LinAlgError:
             consecutive_factorization_failures += 1
             next_damping = _increase_damping(damping, settings)
@@ -372,8 +430,8 @@ def solve_batch_map(
         objective = trial_objective
         active_history.append(_active_set_signature(current.factors))
         if _active_set_is_oscillating(active_history):
-            final_gradient = float(
-                np.linalg.norm(scale * current.sparse.gradient, ord=np.inf)
+            final_gradient = _scaled_gradient_inf_norm(
+                current.sparse, scale, optimize_shared
             )
             return _result(
                 current_state,
@@ -388,8 +446,8 @@ def solve_batch_map(
             abs(previous_objective),
         )
         if relative_decrease <= settings.relative_objective_tolerance:
-            final_gradient = float(
-                np.linalg.norm(scale * current.sparse.gradient, ord=np.inf)
+            final_gradient = _scaled_gradient_inf_norm(
+                current.sparse, scale, optimize_shared
             )
             return _result(
                 current_state,
@@ -400,8 +458,8 @@ def solve_batch_map(
                 damping,
             )
 
-    final_gradient = float(
-        np.linalg.norm(scale * current.sparse.gradient, ord=np.inf)
+    final_gradient = _scaled_gradient_inf_norm(
+        current.sparse, scale, optimize_shared
     )
     return _result(
         current_state,
@@ -437,4 +495,5 @@ __all__ = [
     "LMSolveResult",
     "LMTerminationReason",
     "solve_batch_map",
+    "solve_conditional_batch_map",
 ]

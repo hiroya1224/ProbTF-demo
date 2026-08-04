@@ -8,7 +8,10 @@ import grape_param_estim.batch.sparse_solver as sparse_solver_module
 from grape_param_estim.batch.factor import FactorEvaluation, JacobianBlock
 from grape_param_estim.batch.layout import VariableLayout
 from grape_param_estim.batch.linearize import assemble_sparse_linearization
-from grape_param_estim.batch.sparse_solver import solve_scaled_lm_step
+from grape_param_estim.batch.sparse_solver import (
+    solve_scaled_conditional_lm_step,
+    solve_scaled_lm_step,
+)
 from grape_param_estim.batch.variables import VariableKey, VariableKind
 
 
@@ -231,6 +234,45 @@ class ScaledSchurStepTests(unittest.TestCase):
             self.assertGreater(diagnostic.damped_hessian_nnz, 0)
             self.assertGreater(diagnostic.factor_l_nnz, 0)
             self.assertGreater(diagnostic.factor_u_nnz, 0)
+
+    def test_conditional_step_matches_dense_local_solves_and_fixes_shared(self):
+        layout, _, linearization = _arrowhead_problem()
+        scale = np.linspace(0.6, 1.7, layout.total_dimension)
+        damping = 0.17
+
+        result = solve_scaled_conditional_lm_step(
+            linearization, scale, damping
+        )
+
+        dense_hessian = linearization.hessian.toarray()
+        scaled_hessian = scale[:, None] * dense_hessian * scale[None, :]
+        scaled_gradient = scale * linearization.gradient
+        expected_scaled = np.zeros(layout.total_dimension)
+        for bag_id in layout.bag_ids:
+            local = layout.bag_slice(bag_id)
+            expected_scaled[local] = np.linalg.solve(
+                scaled_hessian[local, local]
+                + damping * np.eye(local.stop - local.start),
+                -scaled_gradient[local],
+            )
+
+        np.testing.assert_array_equal(
+            result.delta[layout.shared_slice], np.zeros(18)
+        )
+        np.testing.assert_allclose(
+            result.scaled_delta,
+            expected_scaled,
+            rtol=2.0e-11,
+            atol=2.0e-12,
+        )
+        np.testing.assert_allclose(result.delta, scale * expected_scaled)
+        self.assertAlmostEqual(
+            result.gradient_inf_norm,
+            float(np.max(np.abs(scaled_gradient[layout.shared_slice.stop :]))),
+        )
+        self.assertTrue(
+            all(item.rhs_count == 1 for item in result.bag_diagnostics)
+        )
 
     def test_invalid_scale_damping_and_nonfinite_system_are_rejected(self):
         layout, _, linearization = _arrowhead_problem(("bag-a",))

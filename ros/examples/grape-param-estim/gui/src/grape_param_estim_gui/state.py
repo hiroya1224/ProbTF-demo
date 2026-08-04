@@ -513,7 +513,7 @@ class ProjectStore(QObject):
         run_id = run.run_id
         if (
             self.pid_evaluation is not None
-            and str(self.pid_evaluation.manifest.get("source_run_id", ""))
+            and str(self.pid_evaluation.manifest.get("estimation_run_id", ""))
             != run_id
         ):
             self.pid_evaluation = None
@@ -540,11 +540,11 @@ class ProjectStore(QObject):
             raise ValueError(
                 "a PID evaluation requires its source batch estimation run"
             )
-        source_run_id = str(evaluation.manifest.get("source_run_id", ""))
+        source_run_id = str(evaluation.manifest.get("estimation_run_id", ""))
         current_run_id = self.estimation_run.run_id
         if not source_run_id or source_run_id != current_run_id:
             raise ValueError(
-                "PID evaluation source_run_id does not match the current "
+                "PID evaluation estimation_run_id does not match the current "
                 "batch estimation run"
             )
         self.pid_evaluation = evaluation

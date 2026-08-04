@@ -1,177 +1,142 @@
 from pathlib import Path
-import json
 import tempfile
 import unittest
 
 import numpy as np
 
-from grape_param_estim.pid_evaluation_input import load_pid_evaluation_request
-from grape_param_estim_gui.artifact_loader import AssimilationRun, SharedPosterior
+from grape_param_estim.pid.request import validate_pid_evaluation_request
+from grape_param_estim_gui.artifact_loader import (
+    BatchEstimationRun,
+    McmcPosterior,
+    StaticParameterMap,
+)
 from grape_param_estim_gui.pid_request import (
     PidEvaluationLaunchOptions,
     build_pid_evaluation_request,
+    sample_candidate_id,
 )
 
 
-def _run(root: Path) -> AssimilationRun:
-    shared = SharedPosterior(
-        member_id=np.asarray((11, 23), dtype=np.int64),
-        parameter_coordinate=np.zeros((2, 1)),
+def _run(root: Path) -> BatchEstimationRun:
+    mcmc = McmcPosterior(
+        sample_id=np.asarray(("chain-a:0001", "chain-b:0001")),
+        chain_id=np.asarray(("chain-a", "chain-b")),
+        draw_index=np.asarray((1, 1)),
+        parameter_coordinate=np.zeros((2, 18)),
         mass=np.ones(2),
-        inertia=np.zeros((2, 3, 3)),
+        inertia=np.repeat(np.eye(3)[None], 2, axis=0),
         cog=np.zeros((2, 3)),
-        force_effectiveness=np.ones((2, 2)),
-        torque_effectiveness=np.ones((2, 2)),
-        constant_delay=np.asarray((0.01, 0.02)),
-        ridge={},
-        mode={"selected_mode_id": np.asarray(("nominal",))},
-        iteration_diagnostics={},
+        force_effectiveness=np.ones((2, 4)),
+        torque_effectiveness=np.ones((2, 4)),
+        delay=np.asarray((0.01, 0.02)),
+        log_posterior=np.zeros(2),
+        log_likelihood_approximation=np.zeros(2),
+        log_determinant_term=np.zeros(2),
+        accepted_kernel=np.asarray(("local", "ridge")),
+        source_mode_id=np.asarray(("mode-a", "mode-a")),
     )
-    return AssimilationRun(
+    static_map = StaticParameterMap(
+        parameter_coordinate=np.zeros(18),
+        mass=1.0,
+        inertia=np.eye(3),
+        cog=np.zeros(3),
+        force_effectiveness=np.ones(4),
+        torque_effectiveness=np.ones(4),
+        delay=0.01,
+        q_diagonal=np.ones(6),
+        objective_components={},
+        prior_objective=0.0,
+        likelihood_objective=0.0,
+        bag_objective={},
+    )
+    return BatchEstimationRun(
         root=root,
         manifest={
-            "schema": "grape-param-estim/assimilation-run/v1",
+            "schema": "grape-param-estim/batch-estimation-run/v1",
             "status": "complete",
             "run_id": "source-run",
-            "project_request_fingerprint": "sha256:" + "a" * 64,
             "selected_bag_ids": ["bag-a", "bag-b"],
+            "request_fingerprint": "sha256:" + "a" * 64,
         },
-        shared_posterior=shared,
-        bag_results={},
-        diagnostics={},
+        static_map=static_map,
+        q_em=None,  # type: ignore[arg-type]
+        laplace=None,  # type: ignore[arg-type]
+        diagnostics=None,  # type: ignore[arg-type]
+        bags={},
+        mcmc=mcmc,
+        selected_trajectories={},
         warnings=(),
     )
 
 
 class PidRequestBuilderTests(unittest.TestCase):
-    def test_selected_member_builds_current_and_exact_member_candidate(self):
+    def test_request_matches_backend_strict_schema(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "assimilation_run"
-            root.mkdir()
-            payload = build_pid_evaluation_request(
-                _run(root),
-                "evaluation-a",
-                PidEvaluationLaunchOptions(
-                    source_member_id=23,
-                    baseline_bag_id="bag-b",
-                    residual_policy="zero",
-                    cvar_level=0.85,
+            root = Path(directory)
+            run_root = root / "estimation"
+            run_root.mkdir()
+            bag_a = root / "a.bag"
+            bag_b = root / "b.bag"
+            bag_a.write_bytes(b"a")
+            bag_b.write_bytes(b"b")
+            options = PidEvaluationLaunchOptions(
+                source_sample_id="chain-b:0001",
+                baseline_bag_id="bag-b",
+                selected_mode_id="mode-a",
+                bags=(
+                    ("bag-a", str(bag_a), "1" * 64, True),
+                    ("bag-b", str(bag_b), "2" * 64, False),
                 ),
-            )
-            self.assertEqual(
-                payload["candidates"],
-                [
-                    {"candidate_id": "current", "source": "current"},
-                    {
-                        "candidate_id": "member-23-exact",
-                        "source": "member-derived",
-                        "source_member_id": 23,
-                    },
-                ],
-            )
-            self.assertIsNone(payload["selected_candidate_id"])
-            self.assertEqual(payload["residual_policy"], "zero")
-            self.assertEqual(
-                payload["thresholds"],
-                {
-                    "position": None,
-                    "orientation": None,
-                    "position_metric": "position_rmse",
-                    "orientation_metric": "orientation_rmse",
-                },
-            )
-
-            request_path = Path(directory) / "request.json"
-            request_path.write_text(json.dumps(payload), encoding="utf-8")
-            parsed = load_pid_evaluation_request(str(request_path))
-            self.assertEqual(parsed.baseline_bag_id, "bag-b")
-            self.assertEqual(parsed.candidates[1].source_member_id, 23)
-            self.assertIsNone(parsed.selected_candidate_id)
-            self.assertIsNone(parsed.thresholds.position)
-            self.assertIsNone(parsed.thresholds.orientation)
-
-    def test_exact_user_candidate_is_strict_and_can_be_selected_explicitly(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "assimilation_run"
-            root.mkdir()
-            exact = tuple(
-                tuple(float(10 * row + column + 1) for column in range(3))
-                for row in range(4)
+                fixed_linear_drag=(0.1, 0.2, 0.3),
+                fixed_angular_drag=(0.01, 0.02, 0.03),
+                model_discrepancy_policy="sample_model_discrepancy",
+                base_seed=7,
+                replicates=3,
+                selected_candidate_source="sample-derived",
             )
             payload = build_pid_evaluation_request(
-                _run(root),
-                "evaluation-b",
-                PidEvaluationLaunchOptions(
-                    source_member_id=11,
-                    baseline_bag_id="bag-a",
-                    user_candidate_values=exact,
-                    selected_candidate_source="user",
-                ),
+                _run(run_root), "evaluation-a", root / "output", options
             )
-            self.assertEqual(
-                payload["selected_candidate_id"], "user-exact"
-            )
-            self.assertEqual(
-                payload["candidates"][2],
-                {
-                    "candidate_id": "user-exact",
-                    "source": "user",
-                    "values": [list(row) for row in exact],
-                },
-            )
-            request_path = Path(directory) / "request-user.json"
-            request_path.write_text(json.dumps(payload), encoding="utf-8")
-            parsed = load_pid_evaluation_request(str(request_path))
-            np.testing.assert_array_equal(
-                parsed.candidates[2].configuration.values, np.asarray(exact)
-            )
-            self.assertEqual(parsed.selected_candidate_id, "user-exact")
+            parsed = validate_pid_evaluation_request(payload)
+            self.assertEqual(parsed.evaluation_id, "evaluation-a")
+            self.assertEqual(parsed.discrepancy_policy, "sample_model_discrepancy")
+            self.assertEqual(parsed.plant_sample_subset_method, "all_equal_weight_mcmc_samples")
+            self.assertEqual(parsed.candidates[1].source_sample_id, "chain-b:0001")
+            self.assertEqual(parsed.selected_candidate_id, sample_candidate_id("chain-b:0001"))
+            self.assertEqual(tuple(parsed.fixed_linear_drag), (0.1, 0.2, 0.3))
 
-    def test_member_candidate_can_be_selected_without_an_automatic_representative(self):
+    def test_unknown_sample_and_mode_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "assimilation_run"
-            root.mkdir()
-            payload = build_pid_evaluation_request(
-                _run(root),
-                "evaluation-member-selection",
-                PidEvaluationLaunchOptions(
-                    source_member_id=11,
-                    baseline_bag_id="bag-a",
-                    selected_candidate_source="member-derived",
-                ),
+            root = Path(directory)
+            run_root = root / "estimation"
+            run_root.mkdir()
+            bag_a = root / "a.bag"
+            bag_b = root / "b.bag"
+            bag_a.write_bytes(b"a")
+            bag_b.write_bytes(b"b")
+            common = dict(
+                baseline_bag_id="bag-a",
+                selected_mode_id="mode-a",
+                bags=(("bag-a", str(bag_a), "1" * 64, True), ("bag-b", str(bag_b), "2" * 64, True)),
+                fixed_linear_drag=(0.0, 0.0, 0.0),
+                fixed_angular_drag=(0.0, 0.0, 0.0),
+                model_discrepancy_policy="zero_model_discrepancy",
             )
-            self.assertEqual(
-                payload["selected_candidate_id"], "member-11-exact"
-            )
-
-    def test_unknown_member_or_baseline_is_rejected_without_fallback(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory) / "assimilation_run"
-            root.mkdir()
-            run = _run(root)
-            with self.assertRaisesRegex(ValueError, "selected member"):
+            with self.assertRaisesRegex(ValueError, "selected sample"):
                 build_pid_evaluation_request(
-                    run,
+                    _run(run_root),
+                    "evaluation-b",
+                    root / "out-b",
+                    PidEvaluationLaunchOptions(source_sample_id="missing", **common),
+                )
+            with self.assertRaisesRegex(ValueError, "selected_mode_id"):
+                bad = dict(common)
+                bad["selected_mode_id"] = "mode-b"
+                build_pid_evaluation_request(
+                    _run(run_root),
                     "evaluation-c",
-                    PidEvaluationLaunchOptions(99, "bag-a"),
-                )
-            with self.assertRaisesRegex(ValueError, "baseline_bag_id"):
-                build_pid_evaluation_request(
-                    run,
-                    "evaluation-d",
-                    PidEvaluationLaunchOptions(11, "bag-unknown"),
-                )
-            with self.assertRaisesRegex(ValueError, "finite non-negative 4x3"):
-                PidEvaluationLaunchOptions(
-                    11,
-                    "bag-a",
-                    user_candidate_values=((1.0, 2.0, 3.0),),
-                )
-            with self.assertRaisesRegex(ValueError, "must be included"):
-                PidEvaluationLaunchOptions(
-                    11,
-                    "bag-a",
-                    selected_candidate_source="user",
+                    root / "out-c",
+                    PidEvaluationLaunchOptions(source_sample_id="chain-a:0001", **bad),
                 )
 
 

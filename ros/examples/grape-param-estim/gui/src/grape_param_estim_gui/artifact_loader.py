@@ -36,6 +36,14 @@ except ImportError as error:  # pragma: no cover - exercised by GUI startup
 else:
     _BATCH_BACKEND_IMPORT_ERROR = None
 
+try:
+    from grape_param_estim.pid import artifact as pid_artifact_io
+except ImportError as error:  # pragma: no cover - exercised by GUI startup
+    pid_artifact_io = None  # type: ignore[assignment]
+    _PID_BACKEND_IMPORT_ERROR = error
+else:
+    _PID_BACKEND_IMPORT_ERROR = None
+
 
 GUI_ARTIFACT_LOADER_ID = PROJECT_ARTIFACT_LOADER_ID
 GUI_ARTIFACT_LOADER_VERSION = PROJECT_ARTIFACT_LOADER_VERSION
@@ -63,6 +71,16 @@ def _batch_backend() -> Any:
             "to PYTHONPATH"
         ) from _BATCH_BACKEND_IMPORT_ERROR
     return batch_artifact_io
+
+
+def _pid_backend() -> Any:
+    if pid_artifact_io is None:
+        raise GuiArtifactError(
+            "grape_param_estim.pid.artifact is unavailable; start the GUI "
+            "from the package launcher or add the estimator src directory "
+            "to PYTHONPATH"
+        ) from _PID_BACKEND_IMPORT_ERROR
+    return pid_artifact_io
 
 
 def _array(value: Any) -> np.ndarray:
@@ -502,11 +520,12 @@ class BatchEstimationRun:
 class PidProposalEvaluation:
     root: Path
     manifest: Mapping[str, Any]
-    proposal_ensemble: Mapping[str, np.ndarray]
+    source_samples: Mapping[str, np.ndarray]
+    candidate_particles: Mapping[str, np.ndarray]
     summary: Mapping[str, np.ndarray]
     bags: Mapping[str, Mapping[str, np.ndarray]]
-    proposed_yaml: str
-    proposed_diff_yaml: str
+    proposed_yaml: str | None
+    proposed_diff_yaml: str | None
 
 
 def _preview_result(
@@ -909,7 +928,7 @@ def load_batch_estimation_run(path: str | Path) -> BatchEstimationRun:
 def load_pid_evaluation(path: str | Path) -> PidProposalEvaluation:
     """Load a PID evaluation through its backend validator."""
 
-    backend = _inspection_backend()
+    backend = _pid_backend()
     try:
         bundle = backend.load_pid_proposal_evaluation(path)
     except (backend.ArtifactValidationError, OSError) as error:
@@ -919,13 +938,12 @@ def load_pid_evaluation(path: str | Path) -> PidProposalEvaluation:
     return PidProposalEvaluation(
         root=bundle.root,
         manifest=bundle.manifest,
-        proposal_ensemble=bundle.proposal_ensemble,
+        source_samples=bundle.source_samples,
+        candidate_particles=bundle.candidate_particles,
         summary=bundle.summary,
         bags=bundle.bags,
-        proposed_yaml=bundle.proposed_yaml_path.read_text(encoding="utf-8"),
-        proposed_diff_yaml=bundle.proposed_diff_yaml_path.read_text(
-            encoding="utf-8"
-        ),
+        proposed_yaml=bundle.proposed_yaml,
+        proposed_diff_yaml=bundle.proposed_diff_yaml,
     )
 
 

@@ -48,12 +48,9 @@ from .project_io import (
     write_project_manifest,
 )
 from .stage_requests import (
-    DIAGONAL_Q_STAGE_ID,
-    STATIC_PARAMETERS_STAGE_ID,
-    augmented_parameter_stage_settings,
-    build_augmented_parameter_stage_request,
-    build_diagonal_q_stage_request,
-    diagonal_q_stage_settings,
+    BATCH_ESTIMATION_STAGE_ID,
+    batch_estimation_settings,
+    build_batch_estimation_request,
     stage_bag_requests,
 )
 from .state import BagRecord, ProjectStore
@@ -959,7 +956,7 @@ class MainWindow(QMainWindow):
         request_path = output.parent / "request.json"
         try:
             request = build_pid_evaluation_request(
-                self.store.estimation_run, evaluation_id, options
+                self.store.estimation_run, evaluation_id, output, options
             )
             output.parent.mkdir(parents=True, exist_ok=False)
             self._write_request(request_path, request)
@@ -979,8 +976,8 @@ class MainWindow(QMainWindow):
             )
             self.tabs.setCurrentWidget(self.next_experiment)
             self.statusBar().showMessage(
-                "Evaluating current PID, exact member {} proposal{}.".format(
-                    options.source_member_id,
+                "Cross-evaluating current PID and sample {} proposal{}.".format(
+                    options.source_sample_id,
                     " and exact user candidate"
                     if options.user_candidate_values is not None
                     else "",

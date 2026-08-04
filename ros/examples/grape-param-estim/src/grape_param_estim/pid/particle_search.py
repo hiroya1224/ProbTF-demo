@@ -37,6 +37,12 @@ MODEL_DISCREPANCY_QUANTITIES = (
     BODY_WRENCH_MODEL_DISCREPANCY,
     SPECIFIC_ACCELERATION_MODEL_DISCREPANCY,
 )
+CONTINUOUS_SPECTRAL_DENSITY = "continuous_spectral_density"
+FIXED_INTERVAL_COVARIANCE = "fixed_interval_covariance"
+MODEL_DISCREPANCY_INTERVAL_MODELS = (
+    CONTINUOUS_SPECTRAL_DENSITY,
+    FIXED_INTERVAL_COVARIANCE,
+)
 
 
 @dataclass(frozen=True)
@@ -47,11 +53,13 @@ class ModelDiscrepancyConfiguration:
     diagonal_q: np.ndarray
     base_seed: int
     residual_quantity: str
+    interval_model: str
     replicates: int = 1
 
     def __post_init__(self) -> None:
         policy = str(self.policy)
         quantity = str(self.residual_quantity)
+        interval_model = str(self.interval_model)
         q = np.asarray(self.diagonal_q, dtype=float)
         seed = self.base_seed
         replicates = self.replicates
@@ -62,6 +70,8 @@ class ModelDiscrepancyConfiguration:
                 "residual_quantity must explicitly be body_wrench or "
                 "specific_acceleration"
             )
+        if interval_model not in MODEL_DISCREPANCY_INTERVAL_MODELS:
+            raise ValueError("unknown model discrepancy interval_model")
         if q.shape != (6,) or np.any(~np.isfinite(q)) or np.any(q < 0.0):
             raise ValueError("diagonal_q must contain six non-negative values")
         if (
@@ -81,6 +91,7 @@ class ModelDiscrepancyConfiguration:
         copied.setflags(write=False)
         object.__setattr__(self, "policy", policy)
         object.__setattr__(self, "residual_quantity", quantity)
+        object.__setattr__(self, "interval_model", interval_model)
         object.__setattr__(self, "diagonal_q", copied)
         object.__setattr__(self, "base_seed", int(seed))
         object.__setattr__(self, "replicates", int(replicates))
@@ -109,6 +120,7 @@ class ModelDiscrepancyConfiguration:
             seed=self.seed_for(sample_id, bag_id, replicate_index),
             replicate_index=replicate_index,
             residual_quantity=self.residual_quantity,
+            interval_model=self.interval_model,
         )
 
 
@@ -121,10 +133,12 @@ class ModelDiscrepancyRealization:
     seed: int
     replicate_index: int
     residual_quantity: str
+    interval_model: str
 
     def __post_init__(self) -> None:
         policy = str(self.policy)
         quantity = str(self.residual_quantity)
+        interval_model = str(self.interval_model)
         q = np.asarray(self.diagonal_q, dtype=float)
         if policy not in MODEL_DISCREPANCY_POLICIES:
             raise ValueError("unknown model discrepancy policy")
@@ -133,6 +147,8 @@ class ModelDiscrepancyRealization:
                 "residual_quantity must explicitly be body_wrench or "
                 "specific_acceleration"
             )
+        if interval_model not in MODEL_DISCREPANCY_INTERVAL_MODELS:
+            raise ValueError("unknown model discrepancy interval_model")
         if q.shape != (6,) or np.any(~np.isfinite(q)) or np.any(q < 0.0):
             raise ValueError("diagonal_q must contain six non-negative values")
         for name in ("seed", "replicate_index"):
@@ -148,6 +164,7 @@ class ModelDiscrepancyRealization:
         copied.setflags(write=False)
         object.__setattr__(self, "policy", policy)
         object.__setattr__(self, "residual_quantity", quantity)
+        object.__setattr__(self, "interval_model", interval_model)
         object.__setattr__(self, "diagonal_q", copied)
 
     def interval_average_residual(
@@ -169,7 +186,13 @@ class ModelDiscrepancyRealization:
         # object, and repeated calls with the same horizon must be identical.
         random_state = np.random.default_rng(self.seed)
         standard = random_state.standard_normal((dt.size, 6))
-        return standard * np.sqrt(self.diagonal_q[None, :] / dt[:, None])
+        if self.interval_model == CONTINUOUS_SPECTRAL_DENSITY:
+            covariance_diagonal = self.diagonal_q[None, :] / dt[:, None]
+        else:
+            covariance_diagonal = np.broadcast_to(
+                self.diagonal_q[None, :], (dt.size, 6)
+            )
+        return standard * np.sqrt(covariance_diagonal)
 
 
 PidForecastEvaluator = Callable[
@@ -181,6 +204,7 @@ PidForecastEvaluator = Callable[
     ],
     ForecastMetrics,
 ]
+PidForecastProgress = Callable[[int, int, ForecastMetricRecord], None]
 
 
 class PidEvaluationCancelled(RuntimeError):
@@ -353,6 +377,7 @@ def evaluate_pid_candidates(
     quantile_level: float = 0.95,
     cvar_level: float = 0.90,
     cancellation_requested: Optional[Callable[[], bool]] = None,
+    progress: Optional[PidForecastProgress] = None,
 ) -> PidCandidateEvaluation:
     """Cross-evaluate every candidate on every selected sample and bag."""
 
@@ -376,6 +401,12 @@ def evaluate_pid_candidates(
             raise ValueError("derived candidate source sample is absent")
     records = []
     completed = 0
+    total = (
+        len(selected_candidates)
+        * len(samples)
+        * len(selected_bags)
+        * discrepancy.replicates
+    )
     for candidate in selected_candidates:
         for sample in samples:
             for bag_id in selected_bags:
@@ -388,17 +419,18 @@ def evaluate_pid_candidates(
                     metrics = evaluator(candidate, sample, bag_id, realization)
                     if not isinstance(metrics, ForecastMetrics):
                         raise TypeError("evaluator must return ForecastMetrics")
-                    records.append(
-                        ForecastMetricRecord(
-                            candidate_id=candidate.candidate_id,
-                            sample_id=sample.sample_id,
-                            bag_id=bag_id,
-                            replicate_index=replicate,
-                            discrepancy_seed=realization.seed,
-                            metrics=metrics,
-                        )
+                    record = ForecastMetricRecord(
+                        candidate_id=candidate.candidate_id,
+                        sample_id=sample.sample_id,
+                        bag_id=bag_id,
+                        replicate_index=replicate,
+                        discrepancy_seed=realization.seed,
+                        metrics=metrics,
                     )
+                    records.append(record)
                     completed += 1
+                    if progress is not None:
+                        progress(completed, total, record)
     summaries = tuple(
         summarize_forecast_records(
             tuple(
@@ -800,7 +832,10 @@ def refine_pid_candidate_particles(
 
 __all__ = [
     "BODY_WRENCH_MODEL_DISCREPANCY",
+    "CONTINUOUS_SPECTRAL_DENSITY",
+    "FIXED_INTERVAL_COVARIANCE",
     "MODEL_DISCREPANCY_POLICIES",
+    "MODEL_DISCREPANCY_INTERVAL_MODELS",
     "MODEL_DISCREPANCY_QUANTITIES",
     "ModelDiscrepancyConfiguration",
     "ModelDiscrepancyRealization",
@@ -808,6 +843,7 @@ __all__ = [
     "PidCandidateEvaluation",
     "PidEvaluationCancelled",
     "PidForecastEvaluator",
+    "PidForecastProgress",
     "PidParticleSearchResult",
     "SAMPLE_MODEL_DISCREPANCY",
     "SPECIFIC_ACCELERATION_MODEL_DISCREPANCY",

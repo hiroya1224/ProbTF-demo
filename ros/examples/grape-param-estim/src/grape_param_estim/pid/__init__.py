@@ -9,8 +9,14 @@ from grape_param_estim.pid.metrics import (
     pareto_nondominated_candidate_ids,
 )
 from grape_param_estim.pid.particle_search import (
+    BODY_WRENCH_MODEL_DISCREPANCY,
+    CONTINUOUS_SPECTRAL_DENSITY,
+    FIXED_INTERVAL_COVARIANCE,
     MODEL_DISCREPANCY_POLICIES,
+    MODEL_DISCREPANCY_INTERVAL_MODELS,
+    MODEL_DISCREPANCY_QUANTITIES,
     SAMPLE_MODEL_DISCREPANCY,
+    SPECIFIC_ACCELERATION_MODEL_DISCREPANCY,
     ZERO_MODEL_DISCREPANCY,
     ModelDiscrepancyConfiguration,
     ModelDiscrepancyRealization,
@@ -35,10 +41,15 @@ from grape_param_estim.pid.proposal import (
 
 
 __all__ = [
+    "BODY_WRENCH_MODEL_DISCREPANCY",
     "CandidateMetricSummary",
+    "CONTINUOUS_SPECTRAL_DENSITY",
+    "FIXED_INTERVAL_COVARIANCE",
     "ForecastMetricRecord",
     "ForecastMetrics",
     "MODEL_DISCREPANCY_POLICIES",
+    "MODEL_DISCREPANCY_INTERVAL_MODELS",
+    "MODEL_DISCREPANCY_QUANTITIES",
     "ModelDiscrepancyConfiguration",
     "ModelDiscrepancyRealization",
     "ParticleRefinementSettings",
@@ -50,6 +61,7 @@ __all__ = [
     "PidProposalPopulation",
     "RecommendationDecision",
     "SAMPLE_MODEL_DISCREPANCY",
+    "SPECIFIC_ACCELERATION_MODEL_DISCREPANCY",
     "ZERO_MODEL_DISCREPANCY",
     "build_initial_candidate_population",
     "current_pid_candidate",

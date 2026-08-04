@@ -10,6 +10,7 @@ catkin_package()
 catkin_install_python(
   PROGRAMS
     scripts/grape_estimate_flights.py
+    scripts/grape_evaluate_pid_proposals.py
     scripts/grape_generate_synthetic_flight.py
     scripts/grape_inspect_flights.py
     gui/run_gui.py

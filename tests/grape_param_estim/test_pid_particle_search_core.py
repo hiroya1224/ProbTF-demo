@@ -7,6 +7,7 @@ from grape_param_estim.controller_config import PidGainConfiguration
 from grape_param_estim.pid.metrics import ForecastMetrics
 from grape_param_estim.pid.particle_search import (
     BODY_WRENCH_MODEL_DISCREPANCY,
+    CONTINUOUS_SPECTRAL_DENSITY,
     SAMPLE_MODEL_DISCREPANCY,
     ZERO_MODEL_DISCREPANCY,
     ModelDiscrepancyConfiguration,
@@ -65,6 +66,7 @@ class PidParticleSearchCoreTests(unittest.TestCase):
             np.asarray((1.0, 2.0, 3.0, 4.0, 5.0, 6.0)),
             base_seed=1234,
             residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
             replicates=2,
         )
         calls = []
@@ -129,12 +131,14 @@ class PidParticleSearchCoreTests(unittest.TestCase):
             q,
             base_seed=91,
             residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
         ).realization("chain-a:00000001", "bag-a", 0)
         sampled_configuration = ModelDiscrepancyConfiguration(
             SAMPLE_MODEL_DISCREPANCY,
             q,
             base_seed=91,
             residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
         )
         sampled = sampled_configuration.realization(
             "chain-a:00000001", "bag-a", 0
@@ -166,6 +170,7 @@ class PidParticleSearchCoreTests(unittest.TestCase):
             np.ones(6),
             base_seed=17,
             residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
         )
 
         def evaluator(candidate, sample, _bag_id, _realization):

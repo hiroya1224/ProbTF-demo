@@ -30,6 +30,7 @@ from grape_param_estim.pid.metrics import FORECAST_COST_METRICS
 from grape_param_estim.pid.particle_search import (
     MODEL_DISCREPANCY_POLICIES,
     MODEL_DISCREPANCY_QUANTITIES,
+    MODEL_DISCREPANCY_INTERVAL_MODELS,
     PidCandidateEvaluation,
 )
 from grape_param_estim.pid.proposal import PhysicalPlantPosterior
@@ -46,8 +47,10 @@ _MANIFEST_KEYS = (
     "evaluation_id",
     "estimation_run_id",
     "estimation_request_fingerprint",
+    "request_fingerprint",
     "model_discrepancy_policy",
     "model_discrepancy_residual_quantity",
+    "model_discrepancy_interval_model",
     "model_discrepancy_q_diagonal",
     "model_discrepancy_base_seed",
     "model_discrepancy_replicates",
@@ -208,6 +211,7 @@ class PidEvaluationArtifactIdentity:
     evaluation_id: str
     estimation_run_id: str
     estimation_request_fingerprint: str
+    request_fingerprint: str
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -225,6 +229,11 @@ class PidEvaluationArtifactIdentity:
                 self.estimation_request_fingerprint,
                 "estimation_request_fingerprint",
             ),
+        )
+        object.__setattr__(
+            self,
+            "request_fingerprint",
+            _sha256_identifier(self.request_fingerprint, "request_fingerprint"),
         )
 
 
@@ -570,8 +579,10 @@ def _manifest(
         "evaluation_id": identity.evaluation_id,
         "estimation_run_id": identity.estimation_run_id,
         "estimation_request_fingerprint": identity.estimation_request_fingerprint,
+        "request_fingerprint": identity.request_fingerprint,
         "model_discrepancy_policy": discrepancy.policy,
         "model_discrepancy_residual_quantity": discrepancy.residual_quantity,
+        "model_discrepancy_interval_model": discrepancy.interval_model,
         "model_discrepancy_q_diagonal": discrepancy.diagonal_q.tolist(),
         "model_discrepancy_base_seed": discrepancy.base_seed,
         "model_discrepancy_replicates": discrepancy.replicates,
@@ -605,6 +616,7 @@ def _load(root: Path) -> PidProposalEvaluationArtifact:
         "estimation_run_id",
         "model_discrepancy_policy",
         "model_discrepancy_residual_quantity",
+        "model_discrepancy_interval_model",
         "plant_sample_subset_method",
         "selection_policy",
     ):
@@ -616,10 +628,13 @@ def _load(root: Path) -> PidProposalEvaluationArtifact:
         not in MODEL_DISCREPANCY_QUANTITIES
     ):
         raise ArtifactValidationError("manifest model discrepancy quantity is invalid")
+    if manifest["model_discrepancy_interval_model"] not in MODEL_DISCREPANCY_INTERVAL_MODELS:
+        raise ArtifactValidationError("manifest model discrepancy interval model is invalid")
     _sha256_identifier(
         manifest["estimation_request_fingerprint"],
         "manifest.estimation_request_fingerprint",
     )
+    _sha256_identifier(manifest["request_fingerprint"], "manifest.request_fingerprint")
     candidate_ids = _string_list(manifest["candidate_ids"], "candidate_ids")
     sample_ids = _string_list(manifest["plant_sample_ids"], "plant_sample_ids")
     bag_ids = _string_list(manifest["bag_ids"], "bag_ids")

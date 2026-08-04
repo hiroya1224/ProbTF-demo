@@ -21,6 +21,7 @@ from grape_param_estim.pid.artifact import (
 from grape_param_estim.pid.metrics import ForecastMetrics
 from grape_param_estim.pid.particle_search import (
     BODY_WRENCH_MODEL_DISCREPANCY,
+    CONTINUOUS_SPECTRAL_DENSITY,
     SAMPLE_MODEL_DISCREPANCY,
     ModelDiscrepancyConfiguration,
     evaluate_pid_candidates,
@@ -72,6 +73,7 @@ class PidEvaluationArtifactTests(unittest.TestCase):
                 np.arange(1.0, 7.0),
                 base_seed=12345,
                 residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+                interval_model=CONTINUOUS_SPECTRAL_DENSITY,
                 replicates=2,
             ),
         )
@@ -79,6 +81,7 @@ class PidEvaluationArtifactTests(unittest.TestCase):
             evaluation_id="pid-evaluation-20260804",
             estimation_run_id="batch-run-20260804",
             estimation_request_fingerprint="sha256:" + "a" * 64,
+            request_fingerprint="sha256:" + "b" * 64,
         )
 
     def test_round_trip_preserves_full_cross_evaluation_and_yaml(self):

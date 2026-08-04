@@ -9,6 +9,7 @@ from grape_param_estim.controller import ControllerConfig, initial_controller_st
 from grape_param_estim.controller_config import PidGainConfiguration
 from grape_param_estim.pid.particle_search import (
     BODY_WRENCH_MODEL_DISCREPANCY,
+    CONTINUOUS_SPECTRAL_DENSITY,
     SAMPLE_MODEL_DISCREPANCY,
     ZERO_MODEL_DISCREPANCY,
     ModelDiscrepancyConfiguration,
@@ -124,6 +125,7 @@ class PidPredictiveTests(unittest.TestCase):
             np.ones(6),
             base_seed=41,
             residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
         ).realization("chain-a:000000", "failure-bag", 0)
         outcome = run_pid_forecast(
             self.candidate,
@@ -144,6 +146,7 @@ class PidPredictiveTests(unittest.TestCase):
             np.asarray((0.3, 0.2, 0.1, 0.02, 0.03, 0.01)),
             base_seed=90210,
             residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
         )
         sampled = sampled_configuration.realization(
             "chain-a:000000", "failure-bag", 0
@@ -169,6 +172,7 @@ class PidPredictiveTests(unittest.TestCase):
                 sampled_configuration.diagonal_q,
                 base_seed=90210,
                 residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+                interval_model=CONTINUOUS_SPECTRAL_DENSITY,
             ).realization("chain-a:000000", "failure-bag", 0),
         )
         np.testing.assert_array_equal(first.trace.position, second.trace.position)
@@ -193,12 +197,14 @@ class PidPredictiveTests(unittest.TestCase):
             np.ones(6),
             base_seed=55,
             residual_quantity=SPECIFIC_ACCELERATION_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
         ).realization("chain-a:000000", "failure-bag", 0)
         equivalent_wrench = ModelDiscrepancyConfiguration(
             SAMPLE_MODEL_DISCREPANCY,
             np.asarray((4.0, 4.0, 4.0, 4.0, 9.0, 16.0)),
             base_seed=55,
             residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
         ).realization("chain-a:000000", "failure-bag", 0)
         first = run_pid_forecast(
             self.candidate, sample, self.scenario, specific
@@ -233,6 +239,7 @@ class PidPredictiveTests(unittest.TestCase):
                 np.ones(6),
                 base_seed=8,
                 residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+                interval_model=CONTINUOUS_SPECTRAL_DENSITY,
             ),
         )
         self.assertEqual(len(result.records), 4)
@@ -267,6 +274,7 @@ class PidPredictiveTests(unittest.TestCase):
             np.ones(6),
             base_seed=7,
             residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
         ).realization("chain-a:000000", "failure-bag", 0)
         with patch.object(
             ClosedLoopStepper,
@@ -318,6 +326,7 @@ class PidPredictiveTests(unittest.TestCase):
                 np.ones(6),
                 base_seed=1,
                 residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+                interval_model=CONTINUOUS_SPECTRAL_DENSITY,
             ).realization("chain-a:000000", "failure-bag", 0),
         )
         self.assertGreater(outcome.metrics.actuator_saturation_duration, 0.0)
@@ -341,6 +350,7 @@ class PidPredictiveTests(unittest.TestCase):
                     np.ones(6),
                     base_seed=1,
                     residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+                    interval_model=CONTINUOUS_SPECTRAL_DENSITY,
                 ).realization("absent-sample", "failure-bag", 0),
             )
 

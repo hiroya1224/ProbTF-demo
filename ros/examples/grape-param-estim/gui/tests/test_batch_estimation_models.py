@@ -903,6 +903,58 @@ class BatchResultViewTests(unittest.TestCase):
                 "selected_normalized",
             }.issubset(view.dynamics_panel.series_data)
         )
+        trajectory_names = {
+            item.name()
+            for item in view.trajectory_panel.plots[0].listDataItems()
+            if item.name() is not None
+        }
+        self.assertTrue(
+            {
+                "Reference trajectory",
+                "Observed pose",
+                "Nominal trajectory",
+                "MAP trajectory",
+                "Stored posterior 5–95% band",
+                "Selected conditional sample",
+            }.issubset(trajectory_names)
+        )
+        view.trajectory_panel.set_series_visible("observed", False)
+        self.assertFalse(
+            view.trajectory_panel.series_checkboxes["observed"].isChecked()
+        )
+        self.assertTrue(
+            all(
+                "Observed pose"
+                not in {
+                    item.name()
+                    for item in plot.listDataItems()
+                    if item.name() is not None
+                }
+                for plot in view.trajectory_panel.plots
+            )
+        )
+        correction_names = {
+            item.name()
+            for item in view.correction_panel.plots[0].listDataItems()
+            if item.name() is not None
+        }
+        self.assertTrue(
+            {
+                "Nominal (zero correction)",
+                "MAP correction",
+                "Stored posterior 5–95% band",
+                "Selected correction sample",
+            }.issubset(correction_names)
+        )
+        view.correction_panel.set_series_visible("nominal", False)
+        self.assertNotIn(
+            "Nominal (zero correction)",
+            {
+                item.name()
+                for item in view.correction_panel.plots[0].listDataItems()
+                if item.name() is not None
+            },
+        )
         self.assertIn("pose: used", view.inspection_details.text())
         direct = view.direct_observation_panel
         self.assertEqual(
@@ -919,15 +971,77 @@ class BatchResultViewTests(unittest.TestCase):
         )
         self.assertEqual(direct.series_data["velocity"][0].tolist(), [0.0, 0.2])
         self.assertEqual(len(direct.plot.listDataItems()), 3)
+        direct.set_component_visible("velocity", 1, False)
+        self.assertEqual(
+            {
+                item.name()
+                for item in direct.plot.listDataItems()
+                if item.name() is not None
+            },
+            {"vx", "vz"},
+        )
         direct.observation_combo.setCurrentIndex(
             direct.observation_combo.findData("thrust_command")
         )
         self.assertEqual(len(direct.plot.listDataItems()), 4)
         self.assertIn("2/3 valid samples", direct.status_label.text())
+        direct.observation_combo.setCurrentIndex(
+            direct.observation_combo.findData("velocity")
+        )
+        self.assertFalse(direct.component_checkboxes[1].isChecked())
+        self.assertEqual(len(direct.plot.listDataItems()), 2)
         view.dynamics_panel.dynamics_display_combo.setCurrentIndex(1)
         self.assertIn("±1 after normalization", view.dynamics_panel.status_label.text())
+        self.assertTrue(
+            {
+                "MAP normalized residual",
+                "Selected normalized residual",
+                "Q reference ±1",
+            }.issubset(
+                {
+                    item.name()
+                    for item in view.dynamics_panel.plots[0].listDataItems()
+                    if item.name() is not None
+                }
+            )
+        )
+        view.dynamics_panel.set_series_visible("q_band", False)
+        self.assertTrue(
+            all(
+                "Q reference ±1"
+                not in {
+                    item.name()
+                    for item in plot.listDataItems()
+                    if item.name() is not None
+                }
+                for plot in view.dynamics_panel.plots
+            )
+        )
         self.store.set_selected_sample("107")
         self.assertNotIn("selected", view.trajectory_panel.series_data)
+        self.assertFalse(
+            view.trajectory_panel.series_checkboxes["observed"].isChecked()
+        )
+        original_record = view.current_record
+        flight_record = SimpleNamespace(
+            preview=SimpleNamespace(
+                time=np.asarray((0.0, 0.1, 0.2)),
+                flight_state=np.asarray((0.0, 1.0, 1.0)),
+            )
+        )
+        view.current_record = flight_record
+        view._render_flight_state(flight_record)
+        self.assertEqual(
+            {
+                item.name()
+                for item in view.flight_state_plot.listDataItems()
+                if item.name() is not None
+            },
+            {"Recorded flight state"},
+        )
+        view.flight_state_checkbox.setChecked(False)
+        self.assertEqual(view.flight_state_plot.listDataItems(), [])
+        view.current_record = original_record
         self.store.set_selected_sample("109")
         self.assertIn("selected", view.trajectory_panel.series_data)
         self.assertEqual(view.sample_label.text(), "109")

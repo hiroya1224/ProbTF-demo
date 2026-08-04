@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -312,6 +313,28 @@ class BatchSignalPanel(QWidget):
         "q_band": (190, 105, 35),
         "normalized": (55, 55, 55),
     }
+    _SERIES_LABELS = {
+        "trajectory": {
+            "reference": "Reference trajectory",
+            "observed": "Observed pose",
+            "nominal": "Nominal trajectory",
+            "map": "MAP trajectory",
+            "posterior": "Stored posterior 5–95% band",
+            "selected": "Selected conditional sample",
+        },
+        "correction": {
+            "nominal": "Nominal (zero correction)",
+            "map": "MAP correction",
+            "posterior": "Stored posterior 5–95% band",
+            "selected": "Selected correction sample",
+        },
+        "dynamics": {
+            "map": "MAP dynamics residual",
+            "posterior": "Stored posterior 5–95% band",
+            "selected": "Selected residual sample",
+            "q_band": "Q reference band",
+        },
+    }
 
     def __init__(self, kind: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -331,6 +354,10 @@ class BatchSignalPanel(QWidget):
         self._estimation_movable = True
         self._updating_regions = False
         self.q_reference_label = "Q reference unavailable"
+        self.series_visibility = {
+            key: True for key in self._SERIES_LABELS[kind]
+        }
+        self.series_checkboxes: dict[str, QCheckBox] = {}
         self.current_lines: list[pg.InfiniteLine] = []
         self.auto_regions: list[pg.LinearRegionItem] = []
         self.estimation_regions: list[pg.LinearRegionItem] = []
@@ -353,6 +380,25 @@ class BatchSignalPanel(QWidget):
                 lambda _index: self._render()
             )
             layout.addWidget(self.dynamics_display_combo)
+        series_group = QGroupBox("Visible series")
+        series_layout = QGridLayout(series_group)
+        series_layout.setContentsMargins(8, 3, 8, 3)
+        series_layout.setHorizontalSpacing(14)
+        series_layout.setVerticalSpacing(2)
+        for index, (key, label) in enumerate(
+            self._SERIES_LABELS[self.kind].items()
+        ):
+            checkbox = QCheckBox(label)
+            checkbox.setObjectName("seriesVisibility_{}".format(key))
+            checkbox.setChecked(True)
+            checkbox.toggled.connect(
+                lambda checked, selected=key: self._series_toggled(
+                    selected, checked
+                )
+            )
+            series_layout.addWidget(checkbox, index // 3, index % 3)
+            self.series_checkboxes[key] = checkbox
+        layout.addWidget(series_group)
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs, 1)
         self.plots: list[pg.PlotWidget] = []
@@ -360,6 +406,7 @@ class BatchSignalPanel(QWidget):
             plot = pg.PlotWidget()
             plot.showGrid(x=True, y=True, alpha=0.18)
             plot.setLabel("bottom", "time", units="s")
+            plot.addLegend(offset=(-8, 8))
             plot.getPlotItem().setClipToView(True)
             plot.getPlotItem().setDownsampling(auto=True, mode="peak")
             plot.scene().sigMouseClicked.connect(
@@ -393,6 +440,86 @@ class BatchSignalPanel(QWidget):
         self.plots[0].getViewBox().sigXRangeChanged.connect(
             self._x_range_changed
         )
+        self._update_series_controls(False)
+
+    def _series_toggled(self, key: str, checked: bool) -> None:
+        self.series_visibility[key] = bool(checked)
+        self._render()
+
+    def set_series_visible(self, key: str, visible: bool) -> None:
+        """Set one semantic series across every component plot."""
+
+        if key not in self.series_checkboxes:
+            raise ValueError("unknown {} series {!r}".format(self.kind, key))
+        checkbox = self.series_checkboxes[key]
+        selected = bool(visible)
+        if checkbox.isChecked() == selected:
+            self.series_visibility[key] = selected
+            self._render()
+            return
+        checkbox.setChecked(selected)
+
+    def _series_label(self, key: str, normalized: bool = False) -> str:
+        if self.kind == "dynamics" and normalized:
+            if key == "map":
+                return "MAP normalized residual"
+            if key == "selected":
+                return "Selected normalized residual"
+            if key == "q_band":
+                return "Q reference ±1"
+        return self._SERIES_LABELS[self.kind][key]
+
+    def _series_color_key(self, key: str, normalized: bool) -> str:
+        if key == "posterior":
+            return "posterior"
+        if key == "q_band":
+            return "q_band"
+        if key == "map" and normalized:
+            return "normalized"
+        return key
+
+    def _available_series(self, normalized: bool) -> set[str]:
+        available: set[str] = set()
+        if normalized:
+            if "map_normalized" in self.series_data:
+                available.add("map")
+            if "selected_normalized" in self.series_data:
+                available.add("selected")
+            if "q_upper" in self.series_data:
+                available.add("q_band")
+            return available
+        for key in ("reference", "observed", "nominal", "map", "selected"):
+            if key in self.series_data:
+                available.add(key)
+        if {
+            "posterior_lower",
+            "posterior_upper",
+        }.issubset(self.series_data):
+            available.add("posterior")
+        if {"q_upper", "q_lower"}.issubset(self.series_data):
+            available.add("q_band")
+        return available
+
+    def _update_series_controls(self, normalized: bool) -> None:
+        available = self._available_series(normalized)
+        for key, checkbox in self.series_checkboxes.items():
+            label = self._series_label(key, normalized)
+            color = self._COLORS[self._series_color_key(key, normalized)]
+            blocker = QSignalBlocker(checkbox)
+            checkbox.setText(label)
+            checkbox.setChecked(self.series_visibility[key])
+            checkbox.setEnabled(key in available)
+            checkbox.setToolTip(
+                "Show or hide {} in every component tab.".format(label)
+                if key in available
+                else "{} is unavailable for the current result.".format(label)
+            )
+            checkbox.setStyleSheet(
+                "QCheckBox {{ color: rgb({}, {}, {}); font-weight: 600; }}".format(
+                    *color
+                )
+            )
+            del blocker
 
     def _tab_labels(self) -> tuple[str, ...]:
         if self.kind == "trajectory":
@@ -643,6 +770,7 @@ class BatchSignalPanel(QWidget):
             and self.dynamics_display_combo is not None
             and self.dynamics_display_combo.currentData() == "normalized"
         )
+        self._update_series_controls(normalized_dynamics)
         for component, plot in enumerate(self.plots):
             if self.kind == "trajectory":
                 plot.setLabel(
@@ -675,6 +803,12 @@ class BatchSignalPanel(QWidget):
                 item = self.series_data.get(key)
                 if item is None:
                     continue
+                toggle_key = {
+                    "map_normalized": "map",
+                    "selected_normalized": "selected",
+                }.get(key, key)
+                if not self.series_visibility[toggle_key]:
+                    continue
                 time, values = item
                 style = Qt.DashLine if key in {"reference", "nominal"} else Qt.SolidLine
                 color_key = (
@@ -690,14 +824,34 @@ class BatchSignalPanel(QWidget):
                         width=2.4 if color_key == "selected" else 1.8,
                         style=style,
                     ),
-                    name=key,
+                    name=self._series_label(
+                        toggle_key, normalized_dynamics
+                    ),
                 )
-            if lower is not None and upper is not None and not normalized_dynamics:
+            if (
+                lower is not None
+                and upper is not None
+                and not normalized_dynamics
+                and self.series_visibility.get("posterior", False)
+            ):
+                lower_values = lower[1][:, component]
+                upper_values = upper[1][:, component]
+                band_pen = pg.mkPen(
+                    self._COLORS["posterior"], width=1.0
+                )
                 lower_curve = plot.plot(
-                    lower[0], lower[1][:, component], pen=pg.mkPen(None)
+                    lower[0], lower_values, pen=band_pen
                 )
                 upper_curve = plot.plot(
-                    upper[0], upper[1][:, component], pen=pg.mkPen(None)
+                    upper[0],
+                    upper_values,
+                    pen=band_pen,
+                    name=(
+                        self._series_label("posterior")
+                        if np.any(np.isfinite(lower_values))
+                        and np.any(np.isfinite(upper_values))
+                        else None
+                    ),
                 )
                 plot.addItem(
                     pg.FillBetweenItem(
@@ -709,19 +863,29 @@ class BatchSignalPanel(QWidget):
             if (
                 self.kind == "dynamics"
                 and not normalized_dynamics
+                and self.series_visibility["q_band"]
                 and "q_upper" in self.series_data
                 and "q_lower" in self.series_data
             ):
-                for key in ("q_upper", "q_lower"):
+                for index, key in enumerate(("q_upper", "q_lower")):
                     time, values = self.series_data[key]
                     plot.plot(
                         time,
                         values[:, component],
                         pen=pg.mkPen(self._COLORS["q_band"], width=1.4, style=Qt.DashLine),
+                        name=(
+                            self._series_label("q_band")
+                            if index == 0
+                            else None
+                        ),
                     )
-            elif normalized_dynamics and "q_upper" in self.series_data:
+            elif (
+                normalized_dynamics
+                and self.series_visibility["q_band"]
+                and "q_upper" in self.series_data
+            ):
                 reference_time = self.series_data["q_upper"][0]
-                for value in (-1.0, 1.0):
+                for index, value in enumerate((-1.0, 1.0)):
                     plot.plot(
                         reference_time,
                         np.full(reference_time.shape, value),
@@ -729,6 +893,11 @@ class BatchSignalPanel(QWidget):
                             self._COLORS["q_band"],
                             width=1.4,
                             style=Qt.DashLine,
+                        ),
+                        name=(
+                            self._series_label("q_band", True)
+                            if index == 0
+                            else None
                         ),
                     )
             line = pg.InfiniteLine(
@@ -856,6 +1025,11 @@ class DirectObservationPanel(QWidget):
         self.result: BagEstimationResult | None = None
         self.current_time = 0.0
         self.series_data: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+        self.component_visibility = {
+            key: [True] * len(components)
+            for key, _label, components, _unit in self._SIGNALS
+        }
+        self.component_checkboxes: list[QCheckBox] = []
         self._view_update = False
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -871,6 +1045,27 @@ class DirectObservationPanel(QWidget):
         self.status_label = QLabel("No completed batch result.")
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
+        component_group = QGroupBox("Visible components")
+        component_layout = QGridLayout(component_group)
+        component_layout.setContentsMargins(8, 3, 8, 3)
+        component_layout.setHorizontalSpacing(14)
+        component_layout.setVerticalSpacing(2)
+        maximum_components = max(
+            len(components) for _key, _label, components, _unit in self._SIGNALS
+        )
+        for index in range(maximum_components):
+            checkbox = QCheckBox()
+            checkbox.setObjectName(
+                "observationComponentVisibility_{}".format(index)
+            )
+            checkbox.toggled.connect(
+                lambda checked, component=index: self._component_toggled(
+                    component, checked
+                )
+            )
+            component_layout.addWidget(checkbox, index // 3, index % 3)
+            self.component_checkboxes.append(checkbox)
+        layout.addWidget(component_group)
         self.plot = pg.PlotWidget()
         self.plot.showGrid(x=True, y=True, alpha=0.18)
         self.plot.setLabel("bottom", "time", units="s")
@@ -883,6 +1078,55 @@ class DirectObservationPanel(QWidget):
         self.plot.scene().sigMouseClicked.connect(self._mouse_clicked)
         layout.addWidget(self.plot, 1)
         self.current_line: pg.InfiniteLine | None = None
+        initial_key, _label, initial_components, _unit = self._selected_spec()
+        self._update_component_controls(initial_key, initial_components)
+
+    def _component_toggled(self, component: int, checked: bool) -> None:
+        key, _label, components, _unit = self._selected_spec()
+        if component >= len(components):
+            return
+        self.component_visibility[key][component] = bool(checked)
+        self._render()
+
+    def set_component_visible(
+        self, signal_key: str, component: int, visible: bool
+    ) -> None:
+        """Set visibility for one recorded-vector component."""
+
+        if signal_key not in self.component_visibility:
+            raise ValueError("unknown observation signal {!r}".format(signal_key))
+        values = self.component_visibility[signal_key]
+        if component < 0 or component >= len(values):
+            raise ValueError("observation component index is out of range")
+        values[component] = bool(visible)
+        if self.observation_combo.currentData() == signal_key:
+            checkbox = self.component_checkboxes[component]
+            blocker = QSignalBlocker(checkbox)
+            checkbox.setChecked(bool(visible))
+            del blocker
+            self._render()
+
+    def _update_component_controls(
+        self, key: str, components: tuple[str, ...]
+    ) -> None:
+        for index, checkbox in enumerate(self.component_checkboxes):
+            blocker = QSignalBlocker(checkbox)
+            available = index < len(components)
+            checkbox.setVisible(available)
+            if available:
+                component_label = components[index]
+                color = pg.intColor(index, hues=len(components)).getRgb()
+                checkbox.setText(component_label)
+                checkbox.setChecked(self.component_visibility[key][index])
+                checkbox.setToolTip(
+                    "Show or hide the {} component.".format(component_label)
+                )
+                checkbox.setStyleSheet(
+                    "QCheckBox {{ color: rgb({}, {}, {}); font-weight: 600; }}".format(
+                        color[0], color[1], color[2]
+                    )
+                )
+            del blocker
 
     def set_result(self, result: BagEstimationResult | None) -> None:
         self.result = result
@@ -921,6 +1165,7 @@ class DirectObservationPanel(QWidget):
     def _render(self, _index: int = -1) -> None:
         self.plot.clear()
         key, label, components, unit = self._selected_spec()
+        self._update_component_controls(key, components)
         self.plot.setTitle(label)
         self.plot.setLabel("left", label, units=unit)
         selected = self.series_data.get(key)
@@ -938,6 +1183,8 @@ class DirectObservationPanel(QWidget):
         if selected is not None:
             time, values = selected
             for component, component_label in enumerate(components):
+                if not self.component_visibility[key][component]:
+                    continue
                 self.plot.plot(
                     time,
                     values[:, component],
@@ -1021,9 +1268,26 @@ class BagBrowserView(QWidget):
         self.signal_tabs.addTab(
             self.direct_observation_panel, "Direct observations"
         )
+        self.flight_state_panel = QWidget()
+        flight_state_layout = QVBoxLayout(self.flight_state_panel)
+        flight_state_layout.setContentsMargins(0, 0, 0, 0)
+        self.flight_state_checkbox = QCheckBox("Recorded flight state")
+        self.flight_state_checkbox.setObjectName(
+            "flightStateSeriesVisibility"
+        )
+        self.flight_state_checkbox.setChecked(True)
+        self.flight_state_checkbox.setStyleSheet(
+            "QCheckBox { color: rgb(45, 120, 185); font-weight: 600; }"
+        )
+        self.flight_state_checkbox.toggled.connect(
+            lambda _checked: self._render_flight_state(self.current_record)
+        )
+        flight_state_layout.addWidget(self.flight_state_checkbox)
         self.flight_state_plot = pg.PlotWidget(title="Recorded flight state")
         self.flight_state_plot.showGrid(x=True, y=True, alpha=0.18)
-        self.signal_tabs.addTab(self.flight_state_plot, "Flight state")
+        self.flight_state_plot.addLegend(offset=(-8, 8))
+        flight_state_layout.addWidget(self.flight_state_plot, 1)
+        self.signal_tabs.addTab(self.flight_state_panel, "Flight state")
         right_splitter.addWidget(self.signal_tabs)
         right_splitter.setSizes([470, 690])
 
@@ -1428,13 +1692,18 @@ class BagBrowserView(QWidget):
     def _render_flight_state(self, record: BagRecord | None) -> None:
         self.flight_state_plot.clear()
         if record is None or record.preview is None or record.preview.flight_state is None:
+            self.flight_state_checkbox.setEnabled(False)
             self.flight_state_plot.setTitle("Recorded flight state (not stored in batch run)")
             return
+        self.flight_state_checkbox.setEnabled(True)
         self.flight_state_plot.setTitle("Recorded flight state")
+        if not self.flight_state_checkbox.isChecked():
+            return
         self.flight_state_plot.plot(
             record.preview.time,
             record.preview.flight_state,
             pen=pg.mkPen((45, 120, 185), width=1.8),
+            name="Recorded flight state",
         )
 
     def _on_selected_sample_changed(self, sample_id: str | None) -> None:

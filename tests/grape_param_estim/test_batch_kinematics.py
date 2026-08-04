@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from grape_param_estim.batch.kinematics import (
+from grape_param_estim.batch.factors.kinematics import (
     evaluate_orientation_kinematic_factor,
     evaluate_position_kinematic_factor,
 )

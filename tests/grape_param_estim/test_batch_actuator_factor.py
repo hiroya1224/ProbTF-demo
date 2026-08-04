@@ -5,6 +5,7 @@ import numpy as np
 from grape_param_estim.batch.factors.actuator import (
     evaluate_actuator_interval_factor,
     evaluate_actuator_transition_factor,
+    evaluate_gimbal_position_factor,
 )
 from grape_param_estim.batch.variables import VariableKind
 from grape_param_estim.system import (
@@ -196,6 +197,35 @@ class BatchActuatorFactorTests(unittest.TestCase):
                 self.thrust_whitening,
                 self.gimbal_whitening,
             )
+
+    def test_actual_gimbal_observation_remains_asynchronous(self):
+        alpha = 0.31
+        observation = np.asarray((0.11, -0.22, 0.24, -0.28))
+        factor = evaluate_gimbal_position_factor(
+            "bag-a",
+            3,
+            alpha,
+            self.gimbal0,
+            self.gimbal1,
+            observation,
+            self.gimbal_whitening,
+        )
+        expected = self.gimbal_whitening @ (
+            observation
+            - (1.0 - alpha) * self.gimbal0
+            - alpha * self.gimbal1
+        )
+        np.testing.assert_allclose(factor.residual, expected, atol=1.0e-15)
+        np.testing.assert_allclose(
+            factor.jacobian_blocks[0].value,
+            -(1.0 - alpha) * self.gimbal_whitening,
+            atol=1.0e-15,
+        )
+        np.testing.assert_allclose(
+            factor.jacobian_blocks[1].value,
+            -alpha * self.gimbal_whitening,
+            atol=1.0e-15,
+        )
 
 
 if __name__ == "__main__":

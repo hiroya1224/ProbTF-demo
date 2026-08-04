@@ -181,7 +181,53 @@ def evaluate_actuator_interval_factor(
     )
 
 
+def evaluate_gimbal_position_factor(
+    bag_id: str,
+    left_knot_index: int,
+    interpolation_fraction: float,
+    gimbal_left: np.ndarray,
+    gimbal_right: np.ndarray,
+    observed_gimbal_position: np.ndarray,
+    square_root_information: np.ndarray,
+) -> FactorEvaluation:
+    """Evaluate an asynchronous actual joint-angle observation factor."""
+
+    alpha = float(interpolation_fraction)
+    if not np.isfinite(alpha) or alpha < 0.0 or alpha > 1.0:
+        raise ValueError("interpolation_fraction must be finite and in [0, 1]")
+    gimbal0 = _finite_vector4(gimbal_left, "gimbal_left")
+    gimbal1 = _finite_vector4(gimbal_right, "gimbal_right")
+    observation = _finite_vector4(
+        observed_gimbal_position,
+        "observed_gimbal_position",
+    )
+    whitening = _whitening4(
+        square_root_information,
+        "square_root_information",
+    )
+    residual = whitening @ (
+        observation - (1.0 - alpha) * gimbal0 - alpha * gimbal1
+    )
+    right_index = int(left_knot_index) + 1
+    return FactorEvaluation(
+        residual=residual,
+        jacobian_blocks=(
+            JacobianBlock(
+                _key(VariableKind.GIMBAL_ANGLE, bag_id, left_knot_index),
+                -(1.0 - alpha) * whitening,
+            ),
+            JacobianBlock(
+                _key(VariableKind.GIMBAL_ANGLE, bag_id, right_index),
+                -alpha * whitening,
+            ),
+        ),
+        squared_error=float(residual @ residual),
+        active_set={},
+    )
+
+
 __all__ = [
     "evaluate_actuator_interval_factor",
     "evaluate_actuator_transition_factor",
+    "evaluate_gimbal_position_factor",
 ]

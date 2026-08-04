@@ -12,6 +12,7 @@ from grape_param_estim.pid.particle_search import (
     CONTINUOUS_SPECTRAL_DENSITY,
     SAMPLE_MODEL_DISCREPANCY,
     ModelDiscrepancyConfiguration,
+    PidEvaluationCancelled,
     evaluate_pid_candidates,
     resolve_forecast_worker_count,
 )
@@ -149,6 +150,7 @@ class PidParallelEvaluationTests(unittest.TestCase):
         self.assertEqual(len(result.records), 4)
 
     def test_worker_failure_is_propagated_and_pool_stops(self):
+        completed = []
         with self.assertRaisesRegex(RuntimeError, "intentional worker failure"):
             evaluate_pid_candidates(
                 tuple(),
@@ -158,7 +160,52 @@ class PidParallelEvaluationTests(unittest.TestCase):
                 self.current,
                 self.discrepancy,
                 worker_count=2,
+                forecast_completed=completed.append,
             )
+        self.assertEqual(len(completed), 2)
+        self.assertTrue(all(value.sample_id == "sample-a" for value in completed))
+
+    def test_parallel_cancel_boundary_resumes_without_reordering_or_recompute(self):
+        reference = self._evaluate(1)
+        cancelled = [False]
+        completed = []
+
+        def report(count, _total, _record):
+            if count == 5:
+                cancelled[0] = True
+
+        with self.assertRaises(PidEvaluationCancelled) as raised:
+            evaluate_pid_candidates(
+                (self.user,),
+                self.posterior,
+                ("bag-a", "bag-b"),
+                _deterministic_evaluator,
+                self.current,
+                self.discrepancy,
+                worker_count=2,
+                cancellation_requested=lambda: cancelled[0],
+                progress=report,
+                forecast_completed=completed.append,
+            )
+        self.assertEqual(raised.exception.completed_forecasts, 5)
+        self.assertEqual(tuple(completed), reference.records[:5])
+
+        resumed_completions = []
+        resumed = evaluate_pid_candidates(
+            (self.user,),
+            self.posterior,
+            ("bag-a", "bag-b"),
+            _deterministic_evaluator,
+            self.current,
+            self.discrepancy,
+            worker_count=2,
+            initial_records=tuple(reversed(completed)),
+            forecast_completed=resumed_completions.append,
+        )
+        self.assertEqual(resumed.records, reference.records)
+        self.assertEqual(
+            tuple(resumed_completions), reference.records[len(completed) :]
+        )
 
 
 if __name__ == "__main__":

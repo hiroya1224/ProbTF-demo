@@ -590,11 +590,17 @@ class SparseLaplaceEStepSolver:
                 )
             solved[float(candidate_lag)] = solution
             return LagObjectiveResult(
-                objective=solution.marginal_objective.value,
+                # Delay profiling is the MAP profile Phi*(tau)=min J.
+                # The approximate marginal objective is retained separately
+                # for Q-candidate acceptance and artifact audit only.
+                objective=solution.lm.objective,
                 converged=True,
                 state=solution.lm.state,
                 inner_iterations=len(solution.lm.iterations),
                 termination_reason=solution.lm.reason.value,
+                approximate_marginal_objective=(
+                    solution.marginal_objective.value
+                ),
             )
 
         try:

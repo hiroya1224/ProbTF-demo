@@ -11,6 +11,9 @@ from grape_param_estim.batch.em_loop import (
     LaplaceEmResult,
     LaplaceEmTerminationReason,
 )
+from grape_param_estim.batch.evidence import (
+    compute_delay_static_laplace_geometry,
+)
 from grape_param_estim.batch.lag_profile import (
     LagProfilePoint,
     LagProfileResult,
@@ -30,7 +33,6 @@ from grape_param_estim.batch_artifact import (
 from grape_param_estim.batch_artifact_export import (
     ArtifactRunIdentity,
     BagPerformanceMeasurements,
-    DelayLocalGeometry,
     RunPerformanceMeasurements,
     SelectedConditionalTrajectory,
     _unit_quaternion_series,
@@ -163,43 +165,54 @@ class BatchArtifactExportTests(unittest.TestCase):
 
     def _final_q_lag_profile(self):
         delay = self.prepared.fixed_delay
-        objective = self.solution.marginal_objective.value
-        points = (
+        map_objective = self.solution.lm.objective
+        marginal = self.solution.marginal_objective.value
+        coordinate = self.solution.lm.state.value(
+            VariableKey(VariableKind.STATIC_PARAMETERS)
+        )
+        slope = np.linspace(-0.2, 0.3, coordinate.size)
+        curvature = 1.0e6
+        lags = (0.0, delay, 0.08)
+        points = tuple(
             LagProfilePoint(
-                lag=0.0,
+                lag=lag,
                 phase="coarse",
-                objective=objective + 1.0,
+                objective=(
+                    map_objective + 0.5 * curvature * (lag - delay) ** 2
+                ),
                 converged=True,
                 inner_iterations=len(self.solution.lm.iterations),
                 termination_reason=self.solution.lm.reason.value,
-                warm_start_lag=None,
-            ),
-            LagProfilePoint(
-                lag=delay,
-                phase="coarse",
-                objective=objective,
-                converged=True,
-                inner_iterations=len(self.solution.lm.iterations),
-                termination_reason=self.solution.lm.reason.value,
-                warm_start_lag=0.0,
-            ),
-            LagProfilePoint(
-                lag=0.08,
-                phase="coarse",
-                objective=objective + 2.0,
-                converged=True,
-                inner_iterations=len(self.solution.lm.iterations),
-                termination_reason=self.solution.lm.reason.value,
-                warm_start_lag=delay,
-            ),
+                warm_start_lag=None if index == 0 else lags[index - 1],
+                approximate_marginal_objective=(
+                    marginal + 0.5 * curvature * (lag - delay) ** 2
+                ),
+                static_coordinate=coordinate + slope * (lag - delay),
+            )
+            for index, lag in enumerate(lags)
         )
         return LagProfileResult(
             best_lag=delay,
-            best_objective=objective,
+            best_objective=map_objective,
             best_state=self.solution.lm.state,
             initial_refinement_bracket=(0.0, 0.08),
             final_refinement_bracket=(0.03, 0.04),
             points=points,
+        )
+
+    def _delay_geometry(self, profile=True):
+        delay = self.prepared.fixed_delay
+        coordinate = self.solution.lm.state.value(
+            VariableKey(VariableKind.STATIC_PARAMETERS)
+        )
+        delay_request = self.helper.payload["delay"]
+        return compute_delay_static_laplace_geometry(
+            ((self._final_q_lag_profile(),) if profile else ()),
+            tuple(delay_request["bounds_seconds"]),
+            self.solution.static_geometry().information.posterior.hessian,
+            delay,
+            coordinate,
+            float(delay_request["refinement_tolerance_seconds"]),
         )
 
     def _performance(self, mcmc):
@@ -384,11 +397,7 @@ class BatchArtifactExportTests(unittest.TestCase):
             em_result=self.em_result,
             static_geometry=self.solution.static_geometry(),
             final_q_lag_profile=self._final_q_lag_profile(),
-            delay_geometry=DelayLocalGeometry(
-                0.001,
-                "positive local quadratic profile curvature",
-                1.0e6,
-            ),
+            delay_geometry=self._delay_geometry(),
             identity=ArtifactRunIdentity(
                 estimator_revision="test-estimator-revision",
                 configuration_fingerprint="sha256:" + "1" * 64,
@@ -431,11 +440,7 @@ class BatchArtifactExportTests(unittest.TestCase):
             em_result=self.em_result,
             static_geometry=self.solution.static_geometry(),
             final_q_lag_profile=self._final_q_lag_profile(),
-            delay_geometry=DelayLocalGeometry(
-                0.001,
-                "positive local quadratic profile curvature",
-                1.0e6,
-            ),
+            delay_geometry=self._delay_geometry(),
             identity=ArtifactRunIdentity(
                 estimator_revision="test-estimator-revision",
                 configuration_fingerprint="sha256:" + "1" * 64,
@@ -499,11 +504,7 @@ class BatchArtifactExportTests(unittest.TestCase):
             em_result=self.em_result,
             static_geometry=self.solution.static_geometry(),
             final_q_lag_profile=self._final_q_lag_profile(),
-            delay_geometry=DelayLocalGeometry(
-                0.001,
-                "positive local quadratic profile curvature",
-                1.0e6,
-            ),
+            delay_geometry=self._delay_geometry(),
             identity=ArtifactRunIdentity(
                 estimator_revision="test-estimator-revision",
                 configuration_fingerprint="sha256:" + "1" * 64,
@@ -556,6 +557,20 @@ class BatchArtifactExportTests(unittest.TestCase):
         self.assertNotIn("residual_wrench", loaded.bags["flight-a"])
         self.assertTrue(loaded.laplace["delay_profile_available"][0])
         self.assertTrue(loaded.laplace["delay_profile_curvature_valid"][0])
+        self.assertEqual(
+            loaded.laplace["static_covariance_conditioning"][0],
+            "fixed_delay_conditional",
+        )
+        self.assertEqual(
+            loaded.laplace["joint_parameter_delay_information"].shape,
+            (19, 19),
+        )
+        self.assertGreater(
+            np.linalg.norm(
+                loaded.laplace["joint_parameter_delay_information"][:-1, -1]
+            ),
+            0.0,
+        )
         np.testing.assert_allclose(
             loaded.q_em["expected_residual_second_moment"],
             loaded.q_em["map_residual_second_moment"]
@@ -564,11 +579,7 @@ class BatchArtifactExportTests(unittest.TestCase):
 
         unavailable = dict(common)
         unavailable["final_q_lag_profile"] = None
-        unavailable["delay_geometry"] = DelayLocalGeometry(
-            0.08 / np.sqrt(12.0),
-            "uniform delay prior because local profile curvature is unavailable",
-            None,
-        )
+        unavailable["delay_geometry"] = self._delay_geometry(profile=False)
         no_profile = export_batch_estimation_artifact_payload(
             flight_data=(raw_flight,), **unavailable
         )
@@ -576,6 +587,14 @@ class BatchArtifactExportTests(unittest.TestCase):
         self.assertEqual(no_profile.laplace["delay_profile_grid"].size, 0)
         self.assertFalse(
             no_profile.laplace["delay_profile_curvature_valid"][0]
+        )
+        self.assertEqual(
+            no_profile.laplace["joint_parameter_delay_covariance"].shape,
+            (0, 0),
+        )
+        self.assertEqual(
+            no_profile.laplace["parameter_delay_cross_covariance"].shape,
+            (0,),
         )
 
 

@@ -91,7 +91,7 @@ class BatchArtifactTests(unittest.TestCase):
             "accepted_q": 1.5 * q,
             "alpha": np.asarray((0.5,)),
             "log_q_change": np.asarray((0.1,)),
-            "map_objective": np.asarray((12.0,)),
+            "map_objective": np.asarray((12.5,)),
             "approximate_marginal_objective": np.asarray((13.0,)),
             "lag": np.asarray((0.006,)),
             "accepted": np.asarray((True,), dtype=bool),
@@ -105,10 +105,36 @@ class BatchArtifactTests(unittest.TestCase):
     @staticmethod
     def _laplace():
         dimension = 18
+        posterior = 2.0 * np.eye(dimension)
+        conditional = 0.5 * np.eye(dimension)
+        sensitivity = np.linspace(-0.4, 0.5, dimension)
+        curvature = 1.0e6
+        grid = np.asarray((0.0, 0.006, 0.01))
+        objective = 12.5 + 0.5 * curvature * (grid - 0.006) ** 2
+        coordinate = np.outer(grid - 0.006, sensitivity)
+        information_times_sensitivity = posterior @ sensitivity
+        joint_information = np.empty((dimension + 1, dimension + 1))
+        joint_information[:-1, :-1] = posterior
+        joint_information[:-1, -1] = -information_times_sensitivity
+        joint_information[-1, :-1] = -information_times_sensitivity
+        joint_information[-1, -1] = curvature + float(
+            sensitivity @ information_times_sensitivity
+        )
+        joint_covariance = np.empty_like(joint_information)
+        cross = sensitivity / curvature
+        joint_covariance[:-1, :-1] = conditional + np.outer(
+            sensitivity, sensitivity
+        ) / curvature
+        joint_covariance[:-1, -1] = cross
+        joint_covariance[-1, :-1] = cross
+        joint_covariance[-1, -1] = 1.0 / curvature
         return {
             "reduced_likelihood_hessian": np.eye(dimension),
-            "reduced_posterior_hessian": 2.0 * np.eye(dimension),
-            "covariance": 0.5 * np.eye(dimension),
+            "reduced_posterior_hessian": posterior,
+            "covariance": conditional,
+            "static_covariance_conditioning": np.asarray(
+                ("fixed_delay_conditional",)
+            ),
             "eigenvalues": 2.0 * np.ones(dimension),
             "eigenvectors": np.eye(dimension),
             "effective_rank": np.asarray((dimension,), dtype=np.int64),
@@ -116,14 +142,32 @@ class BatchArtifactTests(unittest.TestCase):
             "ridge_alignment": np.asarray((1.0,)),
             "condition_number": np.asarray((2.0,)),
             "delay_profile_available": np.asarray((True,), dtype=bool),
-            "delay_profile_grid": np.asarray((0.0, 0.005, 0.01)),
-            "delay_profile_objective": np.asarray((2.0, 1.0, 3.0)),
+            "delay_profile_grid": grid,
+            "delay_profile_objective": objective,
+            "delay_profile_approximate_marginal_objective": objective + 0.5,
+            "delay_profile_static_coordinate": coordinate,
             "delay_local_uncertainty": np.asarray((0.001,)),
             "delay_uncertainty_source": np.asarray(
-                ("positive local quadratic profile curvature",)
+                ("three_point_final_q_map_profile_curvature",)
             ),
-            "delay_profile_curvature": np.asarray((1.0e6,)),
+            "delay_profile_curvature": np.asarray((curvature,)),
             "delay_profile_curvature_valid": np.asarray((True,), dtype=bool),
+            "delay_local_geometry_valid": np.asarray((True,), dtype=bool),
+            "delay_local_geometry_method": np.asarray(
+                ("nonuniform_three_point_map_profile_v1",)
+            ),
+            "delay_local_geometry_reason": np.asarray(("valid",)),
+            "delay_profile_support_lag": grid,
+            "delay_profile_support_map_objective": objective,
+            "delay_profile_support_static_coordinate": coordinate,
+            "delay_profile_gradient": np.asarray((0.0,)),
+            "delay_static_sensitivity": sensitivity,
+            "parameter_delay_cross_covariance": cross,
+            "joint_parameter_delay_information": joint_information,
+            "joint_parameter_delay_covariance": joint_covariance,
+            "mcmc_quadratic_surrogate_method": np.asarray(
+                ("joint_profile_information_v1",)
+            ),
         }
 
     def _diagnostics(self, mcmc=False):
@@ -653,15 +697,35 @@ class BatchArtifactTests(unittest.TestCase):
                 "delay_profile_available": np.asarray((False,), dtype=bool),
                 "delay_profile_grid": np.asarray((), dtype=float),
                 "delay_profile_objective": np.asarray((), dtype=float),
+                "delay_profile_approximate_marginal_objective": np.asarray(
+                    (), dtype=float
+                ),
+                "delay_profile_static_coordinate": np.empty((0, 18)),
                 "delay_uncertainty_source": np.asarray(
-                    (
-                        "uniform delay prior because local profile curvature "
-                        "is unavailable",
-                    )
+                    ("uniform_delay_prior_fallback",)
                 ),
                 "delay_profile_curvature": np.asarray((0.0,)),
                 "delay_profile_curvature_valid": np.asarray(
                     (False,), dtype=bool
+                ),
+                "delay_local_geometry_valid": np.asarray(
+                    (False,), dtype=bool
+                ),
+                "delay_local_geometry_reason": np.asarray(
+                    ("final_q_profile_unavailable",)
+                ),
+                "delay_profile_support_lag": np.asarray((), dtype=float),
+                "delay_profile_support_map_objective": np.asarray(
+                    (), dtype=float
+                ),
+                "delay_profile_support_static_coordinate": np.empty((0, 18)),
+                "delay_profile_gradient": np.asarray((), dtype=float),
+                "delay_static_sensitivity": np.asarray((), dtype=float),
+                "parameter_delay_cross_covariance": np.asarray((), dtype=float),
+                "joint_parameter_delay_information": np.empty((0, 0)),
+                "joint_parameter_delay_covariance": np.empty((0, 0)),
+                "mcmc_quadratic_surrogate_method": np.asarray(
+                    ("proposal_only_block_diagonal_fallback_v1",)
                 ),
             }
         )
@@ -692,6 +756,83 @@ class BatchArtifactTests(unittest.TestCase):
                 bags={
                     bag_id: self._bag(bag_id) for bag_id in self.bag_ids
                 },
+            )
+
+    def test_joint_delay_geometry_tampering_and_zero_filled_invalid_are_rejected(self):
+        common = dict(
+            manifest_metadata=self._manifest_metadata(),
+            map_static=self._map_static(),
+            q_em=self._q_em(),
+            diagnostics=self._diagnostics(),
+            bags={bag_id: self._bag(bag_id) for bag_id in self.bag_ids},
+        )
+        tampered = self._laplace()
+        tampered["parameter_delay_cross_covariance"] = tampered[
+            "parameter_delay_cross_covariance"
+        ].copy()
+        tampered["parameter_delay_cross_covariance"][0] += 1.0e-3
+        with self.assertRaisesRegex(
+            ArtifactValidationError, "joint static-delay algebra"
+        ):
+            write_batch_estimation_run(
+                Path(self.temporary.name) / "tampered-delay-cross",
+                laplace=tampered,
+                **common,
+            )
+
+        tampered = self._laplace()
+        tampered["joint_parameter_delay_information"] = tampered[
+            "joint_parameter_delay_information"
+        ].copy()
+        tampered["joint_parameter_delay_information"][0, -1] += 0.5
+        with self.assertRaisesRegex(
+            ArtifactValidationError, "joint static-delay algebra"
+        ):
+            write_batch_estimation_run(
+                Path(self.temporary.name) / "tampered-delay-information",
+                laplace=tampered,
+                **common,
+            )
+
+        invalid = self._laplace()
+        invalid.update(
+            {
+                "delay_uncertainty_source": np.asarray(
+                    ("uniform_delay_prior_fallback",)
+                ),
+                "delay_profile_curvature": np.asarray((0.0,)),
+                "delay_profile_curvature_valid": np.asarray(
+                    (False,), dtype=bool
+                ),
+                "delay_local_geometry_valid": np.asarray(
+                    (False,), dtype=bool
+                ),
+                "delay_local_geometry_reason": np.asarray(
+                    ("nonpositive_profile_curvature",)
+                ),
+                "delay_profile_support_lag": np.asarray((), dtype=float),
+                "delay_profile_support_map_objective": np.asarray(
+                    (), dtype=float
+                ),
+                "delay_profile_support_static_coordinate": np.empty((0, 18)),
+                "delay_profile_gradient": np.asarray((), dtype=float),
+                "delay_static_sensitivity": np.asarray((), dtype=float),
+                "parameter_delay_cross_covariance": np.asarray((), dtype=float),
+                "joint_parameter_delay_information": np.empty((0, 0)),
+                # A zero-filled 19-D covariance is ambiguous and forbidden.
+                "joint_parameter_delay_covariance": np.zeros((19, 19)),
+                "mcmc_quadratic_surrogate_method": np.asarray(
+                    ("proposal_only_block_diagonal_fallback_v1",)
+                ),
+            }
+        )
+        with self.assertRaisesRegex(
+            ArtifactValidationError, "expected \(0, 0\)"
+        ):
+            write_batch_estimation_run(
+                Path(self.temporary.name) / "zero-filled-invalid-geometry",
+                laplace=invalid,
+                **common,
             )
 
     def test_writer_round_trips_optional_mcmc_and_trajectory_subset(self):

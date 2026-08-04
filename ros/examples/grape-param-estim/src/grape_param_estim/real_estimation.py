@@ -14,7 +14,13 @@ from grape_param_estim.batch.em_loop import (
     LaplaceEmSettings,
     run_laplace_em,
 )
-from grape_param_estim.batch.evidence import StaticLaplaceGeometry
+from grape_param_estim.batch.evidence import (
+    DelayStaticLaplaceGeometry,
+    StaticLaplaceGeometry,
+    compute_delay_static_laplace_geometry,
+    mcmc_parameter_delay_initialization_covariance,
+    mcmc_quadratic_surrogate_information,
+)
 from grape_param_estim.batch.graph_builder import build_initial_batch_state
 from grape_param_estim.batch.lag_profile import (
     LagProfileResult,
@@ -116,33 +122,6 @@ class RealEstimationInputs:
 
 
 @dataclass(frozen=True)
-class DelayUncertaintyEstimate:
-    standard_deviation_seconds: float
-    source: str
-    curvature: Optional[float]
-
-    def __post_init__(self) -> None:
-        standard_deviation = float(self.standard_deviation_seconds)
-        if not np.isfinite(standard_deviation) or standard_deviation <= 0.0:
-            raise ValueError("delay standard deviation must be positive")
-        if (
-            not isinstance(self.source, str)
-            or not self.source
-            or self.source.strip() != self.source
-        ):
-            raise ValueError("delay uncertainty source must be canonical text")
-        curvature = self.curvature
-        if curvature is not None:
-            curvature = float(curvature)
-            if not np.isfinite(curvature) or curvature <= 0.0:
-                raise ValueError("delay curvature must be positive when present")
-        object.__setattr__(
-            self, "standard_deviation_seconds", standard_deviation
-        )
-        object.__setattr__(self, "curvature", curvature)
-
-
-@dataclass(frozen=True)
 class ModeEstimationResult:
     mode_id: str
     em: LaplaceEmResult
@@ -150,7 +129,7 @@ class ModeEstimationResult:
     static_geometry: StaticLaplaceGeometry
     lag_profile_history: Tuple[LagProfileResult, ...]
     final_q_lag_profile_history: Tuple[LagProfileResult, ...]
-    delay_uncertainty: DelayUncertaintyEstimate
+    delay_static_geometry: DelayStaticLaplaceGeometry
     nonlinear_iteration_seconds: Tuple[float, ...]
     em_iteration_seconds: Tuple[float, ...]
     elapsed_seconds: float
@@ -190,9 +169,9 @@ class ModeEstimationResult:
             raise ValueError(
                 "final-Q lag profiles must be part of chronological history"
             )
-        if not isinstance(self.delay_uncertainty, DelayUncertaintyEstimate):
+        if not isinstance(self.delay_static_geometry, DelayStaticLaplaceGeometry):
             raise TypeError(
-                "delay_uncertainty must be DelayUncertaintyEstimate"
+                "delay_static_geometry must be DelayStaticLaplaceGeometry"
             )
         for name in (
             "nonlinear_iteration_seconds",
@@ -473,47 +452,6 @@ def _graph_factory(inputs: RealEstimationInputs, mode_id: str):
     return factory
 
 
-def estimate_delay_uncertainty(
-    profiles: Sequence[LagProfileResult],
-    bounds: Tuple[float, float],
-) -> DelayUncertaintyEstimate:
-    """Fit local profile curvature, falling back explicitly to its prior."""
-
-    selected_profiles = tuple(profiles)
-    if any(
-        not isinstance(profile, LagProfileResult)
-        for profile in selected_profiles
-    ):
-        raise TypeError("profiles must contain LagProfileResult values")
-    points = {}
-    for profile in selected_profiles:
-        for point in profile.points:
-            if point.converged and point.objective is not None:
-                points[float(point.lag)] = float(point.objective)
-    if len(points) >= 3:
-        best_lag = min(points, key=lambda value: (points[value], value))
-        nearest = sorted(points, key=lambda value: abs(value - best_lag))[:5]
-        x = np.asarray(nearest, dtype=float) - best_lag
-        y = np.asarray(tuple(points[value] for value in nearest), dtype=float)
-        design = np.column_stack((np.ones(x.size), x, 0.5 * x * x))
-        coefficients, _, rank, _ = np.linalg.lstsq(design, y, rcond=None)
-        curvature = float(coefficients[2])
-        if rank == 3 and np.isfinite(curvature) and curvature > 0.0:
-            return DelayUncertaintyEstimate(
-                standard_deviation_seconds=float(np.sqrt(1.0 / curvature)),
-                source="positive local quadratic profile curvature",
-                curvature=curvature,
-            )
-    lower, upper = (float(value) for value in bounds)
-    if not np.all(np.isfinite((lower, upper))) or lower >= upper:
-        raise ValueError("delay bounds must be finite and increasing")
-    return DelayUncertaintyEstimate(
-        standard_deviation_seconds=(upper - lower) / np.sqrt(12.0),
-        source="uniform delay prior because local profile curvature is unavailable",
-        curvature=None,
-    )
-
-
 def estimate_mode(
     inputs: RealEstimationInputs,
     mode_id: str,
@@ -612,12 +550,18 @@ def estimate_mode(
         )
         if np.array_equal(profile_q, final_step.q)
     )
-    uncertainty = estimate_delay_uncertainty(
+    delay_static_geometry = compute_delay_static_laplace_geometry(
         final_q_profiles[-1:],
         (
             lag_settings.minimum_lag,
             lag_settings.maximum_lag,
         ),
+        geometry.information.posterior.hessian,
+        final_solution.prepared.fixed_delay,
+        final_solution.lm.state.value(
+            final_solution.lm.state.layout.variable_keys[0]
+        ),
+        lag_settings.refinement_tolerance,
     )
     return ModeEstimationResult(
         mode_id=mode_id,
@@ -626,7 +570,7 @@ def estimate_mode(
         static_geometry=geometry,
         lag_profile_history=profiles,
         final_q_lag_profile_history=final_q_profiles[-1:],
-        delay_uncertainty=uncertainty,
+        delay_static_geometry=delay_static_geometry,
         nonlinear_iteration_seconds=tuple(nonlinear_timings),
         em_iteration_seconds=tuple(em_timings),
         elapsed_seconds=time.perf_counter() - started,
@@ -665,7 +609,7 @@ def sample_selected_mode(
         mode.mode_id,
         mode.final_solution,
         mode.static_geometry,
-        mode.delay_uncertainty,
+        mode.delay_static_geometry,
         cancellation_requested=cancellation_requested,
         progress=progress,
         target_timing_callback=target_timing_callback,
@@ -686,7 +630,7 @@ def restore_laplace_checkpoint(
 ) -> Tuple[
     FixedGraphLaplaceSolution,
     StaticLaplaceGeometry,
-    DelayUncertaintyEstimate,
+    DelayStaticLaplaceGeometry,
 ]:
     """Rebuild and cross-check a completed MAP/EM/Laplace checkpoint."""
 
@@ -754,19 +698,78 @@ def restore_laplace_checkpoint(
         if not np.allclose(actual, expected, rtol=2.0e-9, atol=2.0e-10):
             raise ValueError("checkpoint {} does not reproduce".format(name))
     source_value = np.asarray(laplace["delay_uncertainty_source"])
-    if source_value.shape != (1,):
-        raise ValueError("checkpoint delay uncertainty source is invalid")
-    curvature_valid = bool(laplace["delay_profile_curvature_valid"][0])
-    uncertainty = DelayUncertaintyEstimate(
-        float(laplace["delay_local_uncertainty"][0]),
-        str(source_value[0]),
-        (
+    method_value = np.asarray(laplace["delay_local_geometry_method"])
+    reason_value = np.asarray(laplace["delay_local_geometry_reason"])
+    surrogate_value = np.asarray(
+        laplace["mcmc_quadratic_surrogate_method"]
+    )
+    if any(
+        value.shape != (1,)
+        for value in (
+            source_value,
+            method_value,
+            reason_value,
+            surrogate_value,
+        )
+    ):
+        raise ValueError("checkpoint delay geometry strings are invalid")
+    curvature_valid = bool(laplace["delay_local_geometry_valid"][0])
+    delay_static_geometry = DelayStaticLaplaceGeometry(
+        valid=curvature_valid,
+        method=str(method_value[0]),
+        reason=str(reason_value[0]),
+        standard_deviation_seconds=float(
+            laplace["delay_local_uncertainty"][0]
+        ),
+        source=str(source_value[0]),
+        curvature=(
             float(laplace["delay_profile_curvature"][0])
             if curvature_valid
             else None
         ),
+        profile_gradient=(
+            float(laplace["delay_profile_gradient"][0])
+            if curvature_valid
+            else None
+        ),
+        static_sensitivity=np.asarray(
+            laplace["delay_static_sensitivity"], dtype=float
+        ),
+        support_lag=np.asarray(
+            laplace["delay_profile_support_lag"], dtype=float
+        ),
+        support_map_objective=np.asarray(
+            laplace["delay_profile_support_map_objective"], dtype=float
+        ),
+        support_static_coordinate=np.asarray(
+            laplace["delay_profile_support_static_coordinate"], dtype=float
+        ),
+        joint_information=np.asarray(
+            laplace["joint_parameter_delay_information"], dtype=float
+        ),
+        joint_covariance=np.asarray(
+            laplace["joint_parameter_delay_covariance"], dtype=float
+        ),
+        parameter_delay_cross_covariance=np.asarray(
+            laplace["parameter_delay_cross_covariance"], dtype=float
+        ),
+        mcmc_quadratic_surrogate_method=str(surrogate_value[0]),
     )
-    return solution, geometry, uncertainty
+    mcmc_quadratic_surrogate_information(
+        geometry.information.posterior.hessian,
+        delay_static_geometry,
+        float(
+            inputs.request.payload["mcmc_settings"]["delay_scale_seconds"]
+        ),
+    )
+    mcmc_parameter_delay_initialization_covariance(
+        geometry.covariance,
+        delay_static_geometry,
+        float(
+            inputs.request.payload["mcmc_settings"]["delay_scale_seconds"]
+        ),
+    )
+    return solution, geometry, delay_static_geometry
 
 
 def sample_laplace_solution(
@@ -774,7 +777,7 @@ def sample_laplace_solution(
     mode_id: str,
     final: FixedGraphLaplaceSolution,
     static_geometry: StaticLaplaceGeometry,
-    delay_uncertainty: DelayUncertaintyEstimate,
+    delay_static_geometry: DelayStaticLaplaceGeometry,
     *,
     cancellation_requested: Optional[CancellationCheck] = None,
     progress: Optional[ProgressCallback] = None,
@@ -794,8 +797,10 @@ def sample_laplace_solution(
         raise TypeError("final must be FixedGraphLaplaceSolution")
     if not isinstance(static_geometry, StaticLaplaceGeometry):
         raise TypeError("static_geometry must be StaticLaplaceGeometry")
-    if not isinstance(delay_uncertainty, DelayUncertaintyEstimate):
-        raise TypeError("delay_uncertainty must be DelayUncertaintyEstimate")
+    if not isinstance(delay_static_geometry, DelayStaticLaplaceGeometry):
+        raise TypeError(
+            "delay_static_geometry must be DelayStaticLaplaceGeometry"
+        )
 
     raw = inputs.request.payload["mcmc_settings"]
     if not bool(raw["enabled"]):
@@ -808,12 +813,10 @@ def sample_laplace_solution(
     bounds = tuple(float(value) for value in delay_raw["bounds_seconds"])
     static_map = final.lm.state.value(final.lm.state.layout.variable_keys[0])
     map_point = PosteriorPoint(static_map, final.prepared.fixed_delay)
-    information = np.zeros((19, 19), dtype=float)
-    information[:18, :18] = (
-        static_geometry.information.posterior.hessian
-    )
-    information[-1, -1] = (
-        1.0 / delay_uncertainty.standard_deviation_seconds**2
+    information = mcmc_quadratic_surrogate_information(
+        static_geometry.information.posterior.hessian,
+        delay_static_geometry,
+        float(raw["delay_scale_seconds"]),
     )
     target_factory = make_fixed_q_laplace_problem_factory(
         _graph_factory(inputs, mode_id), final.prepared.dynamics.q
@@ -865,8 +868,11 @@ def sample_laplace_solution(
     )
     initializations = initialize_mcmc_chains(
         map_point,
-        static_geometry.covariance,
-        delay_uncertainty.standard_deviation_seconds,
+        mcmc_parameter_delay_initialization_covariance(
+            static_geometry.covariance,
+            delay_static_geometry,
+            float(raw["delay_scale_seconds"]),
+        ),
         static_geometry.exact_ridge_direction,
         bounds,
         settings.chain_count,
@@ -1010,13 +1016,12 @@ def run_real_estimation(
 
 __all__ = [
     "CancellationCheck",
-    "DelayUncertaintyEstimate",
+    "DelayStaticLaplaceGeometry",
     "FlightLoader",
     "ModeEstimationResult",
     "ProgressCallback",
     "RealEstimationInputs",
     "RealEstimationResult",
-    "estimate_delay_uncertainty",
     "estimate_mode",
     "estimate_real_modes",
     "prepare_real_estimation_inputs",

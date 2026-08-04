@@ -14,7 +14,6 @@ from grape_param_estim.batch_checkpoint import (
 )
 from grape_param_estim.batch_artifact_export import (
     ArtifactRunIdentity,
-    DelayLocalGeometry,
     export_batch_estimation_artifact_payload,
 )
 from grape_param_estim.batch_request import validate_batch_estimation_request
@@ -52,11 +51,7 @@ class BatchCheckpointTests(unittest.TestCase):
             em_result=self.helper.em_result,
             static_geometry=self.helper.solution.static_geometry(),
             final_q_lag_profile=self.helper._final_q_lag_profile(),
-            delay_geometry=DelayLocalGeometry(
-                0.001,
-                "positive local quadratic profile curvature",
-                1.0e6,
-            ),
+            delay_geometry=self.helper._delay_geometry(),
             identity=ArtifactRunIdentity(
                 estimator_revision=self.revision,
                 configuration_fingerprint=self.configuration,
@@ -157,7 +152,7 @@ class BatchCheckpointTests(unittest.TestCase):
             scaling=StateScaling.unit(),
             loading_seconds=0.0,
         )
-        solution, geometry, uncertainty = restore_laplace_checkpoint(
+        solution, geometry, delay_static_geometry = restore_laplace_checkpoint(
             inputs,
             "recorded-mode",
             checkpoint.state_values,
@@ -171,7 +166,7 @@ class BatchCheckpointTests(unittest.TestCase):
             checkpoint.core.laplace["covariance"],
         )
         self.assertAlmostEqual(
-            uncertainty.standard_deviation_seconds, 0.001
+            delay_static_geometry.standard_deviation_seconds, 0.001
         )
 
     def test_chain_updates_are_content_addressed_and_cancel_is_resumable(self):

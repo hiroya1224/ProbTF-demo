@@ -199,32 +199,32 @@ def _bounded_delay(value: float, bounds: Tuple[float, float]) -> float:
 
 def initialize_mcmc_chains(
     map_point: PosteriorPoint,
-    static_covariance: np.ndarray,
-    delay_standard_deviation: float,
+    parameter_delay_covariance: np.ndarray,
     exact_ridge_direction: np.ndarray,
     delay_bounds: Tuple[float, float],
     chain_count: int,
     random_seed: int,
 ) -> Tuple[ChainInitialization, ...]:
-    """Create MAP, Laplace, and ridge-dispersed chain initial points."""
+    """Create MAP, joint-Laplace, and ridge-dispersed chain initial points."""
 
     if not isinstance(map_point, PosteriorPoint):
         raise TypeError("map_point must be PosteriorPoint")
-    covariance = np.asarray(static_covariance, dtype=float)
+    covariance = np.asarray(parameter_delay_covariance, dtype=float)
     if (
         covariance.shape
-        != (STATIC_PARAMETER_DIMENSION, STATIC_PARAMETER_DIMENSION)
+        != (STATIC_PARAMETER_DIMENSION + 1, STATIC_PARAMETER_DIMENSION + 1)
         or not np.all(np.isfinite(covariance))
         or not np.allclose(covariance, covariance.T, rtol=0.0, atol=1.0e-10)
     ):
-        raise ValueError("static_covariance must be finite symmetric 18 by 18")
+        raise ValueError(
+            "parameter_delay_covariance must be finite symmetric 19 by 19"
+        )
     try:
         cholesky = np.linalg.cholesky(covariance)
     except np.linalg.LinAlgError as error:
-        raise ValueError("static_covariance must be positive definite") from error
-    delay_scale = _positive(
-        delay_standard_deviation, "delay_standard_deviation"
-    )
+        raise ValueError(
+            "parameter_delay_covariance must be positive definite"
+        ) from error
     ridge = np.asarray(exact_ridge_direction, dtype=float)
     if ridge.shape != (STATIC_PARAMETER_DIMENSION,) or not np.all(
         np.isfinite(ridge)
@@ -242,28 +242,29 @@ def initialize_mcmc_chains(
     count = _integer(chain_count, 2, "chain_count")
     seed = _integer(random_seed, 0, "random_seed")
     random = np.random.RandomState(seed)
-    ridge_deviation = float(np.sqrt(ridge @ covariance @ ridge))
+    ridge_deviation = float(
+        np.sqrt(ridge @ covariance[:-1, :-1] @ ridge)
+    )
 
     result = [
         ChainInitialization("chain-000", "map", map_point)
     ]
     for index in range(1, count):
         if index % 2:
-            coordinate = (
-                map_point.static_coordinate
-                + 0.5 * cholesky @ random.normal(size=18)
-            )
-            source = "laplace_dispersion"
+            deviation = 0.5 * cholesky @ random.normal(size=19)
+            coordinate = map_point.static_coordinate + deviation[:-1]
+            source = "joint_laplace_dispersion"
         else:
             sign = -1.0 if (index // 2) % 2 else 1.0
+            deviation = 0.1 * cholesky @ random.normal(size=19)
             coordinate = (
                 map_point.static_coordinate
                 + sign * max(ridge_deviation, 0.1) * ridge
-                + 0.1 * cholesky @ random.normal(size=18)
+                + deviation[:-1]
             )
-            source = "exact_ridge_dispersion"
+            source = "exact_ridge_plus_joint_laplace_dispersion"
         delay = _bounded_delay(
-            map_point.delay + delay_scale * random.normal(),
+            map_point.delay + deviation[-1],
             (lower, upper),
         )
         result.append(

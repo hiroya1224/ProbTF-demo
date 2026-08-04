@@ -23,6 +23,9 @@ class McmcRunTests(unittest.TestCase):
     def setUp(self):
         self.map_point = PosteriorPoint(np.zeros(18), 0.02)
         self.covariance = np.diag(np.linspace(0.02, 0.05, 18))
+        self.joint_covariance = np.zeros((19, 19))
+        self.joint_covariance[:-1, :-1] = self.covariance
+        self.joint_covariance[-1, -1] = 0.004**2
         self.ridge = np.eye(18)[0]
         self.settings = McmcRunSettings(
             mode_id="recorded-mode",
@@ -36,8 +39,7 @@ class McmcRunTests(unittest.TestCase):
         )
         self.initializations = initialize_mcmc_chains(
             self.map_point,
-            self.covariance,
-            delay_standard_deviation=0.004,
+            self.joint_covariance,
             exact_ridge_direction=self.ridge,
             delay_bounds=(0.0, 0.05),
             chain_count=2,
@@ -81,8 +83,12 @@ class McmcRunTests(unittest.TestCase):
     def test_initializers_include_map_and_dispersed_points_within_bounds(self):
         values = initialize_mcmc_chains(
             self.map_point,
-            self.covariance,
-            delay_standard_deviation=0.02,
+            np.block(
+                [
+                    [self.covariance, np.zeros((18, 1))],
+                    [np.zeros((1, 18)), np.asarray(((0.02**2,),))],
+                ]
+            ),
             exact_ridge_direction=self.ridge,
             delay_bounds=(0.0, 0.05),
             chain_count=4,
@@ -92,9 +98,9 @@ class McmcRunTests(unittest.TestCase):
             tuple(value.source for value in values),
             (
                 "map",
-                "laplace_dispersion",
-                "exact_ridge_dispersion",
-                "laplace_dispersion",
+                "joint_laplace_dispersion",
+                "exact_ridge_plus_joint_laplace_dispersion",
+                "joint_laplace_dispersion",
             ),
         )
         np.testing.assert_array_equal(
@@ -102,6 +108,30 @@ class McmcRunTests(unittest.TestCase):
         )
         self.assertTrue(
             all(0.0 <= value.point.delay <= 0.05 for value in values)
+        )
+
+    def test_joint_laplace_initializer_uses_parameter_delay_cross_covariance(self):
+        joint = self.joint_covariance.copy()
+        joint[0, -1] = 0.0002
+        joint[-1, 0] = 0.0002
+        seed = 31
+        values = initialize_mcmc_chains(
+            self.map_point,
+            joint,
+            exact_ridge_direction=self.ridge,
+            delay_bounds=(0.0, 0.05),
+            chain_count=2,
+            random_seed=seed,
+        )
+        random = np.random.RandomState(seed)
+        expected = 0.5 * np.linalg.cholesky(joint) @ random.normal(size=19)
+        np.testing.assert_allclose(
+            values[1].point.static_coordinate,
+            self.map_point.static_coordinate + expected[:-1],
+        )
+        self.assertAlmostEqual(
+            values[1].point.delay,
+            self.map_point.delay + expected[-1],
         )
 
     def test_runs_multiple_chains_and_can_resume_completed_chain(self):

@@ -224,10 +224,12 @@ class BatchEstimationCliTests(unittest.TestCase):
                 static_geometry=object(),
                 lag_profile_history=(object(),),
                 final_q_lag_profile_history=(object(),),
-                delay_uncertainty=SimpleNamespace(
+                delay_static_geometry=SimpleNamespace(
                     standard_deviation_seconds=0.01,
                     curvature=10000.0,
                     source="profile",
+                    valid=True,
+                    reason="valid",
                 ),
             )
             run.return_value = SimpleNamespace(
@@ -312,10 +314,12 @@ class BatchEstimationCliTests(unittest.TestCase):
                 ),
                 static_geometry=object(),
                 final_q_lag_profile_history=(),
-                delay_uncertainty=SimpleNamespace(
+                delay_static_geometry=SimpleNamespace(
                     standard_deviation_seconds=0.01,
                     source="profile",
                     curvature=10000.0,
+                    valid=True,
+                    reason="valid",
                 ),
             )
             estimate.return_value = ((selected,), "recorded-mode")

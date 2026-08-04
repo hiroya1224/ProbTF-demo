@@ -257,7 +257,7 @@ def execute_posterior_sampling(
     )
     derived = posterior_batch_request(request, estimation)
     sampling_inputs = replace(inputs, request=derived)
-    final_solution, geometry, delay_uncertainty = restore_laplace_checkpoint(
+    final_solution, geometry, delay_static_geometry = restore_laplace_checkpoint(
         sampling_inputs,
         str(checkpoint.manifest["selected_mode_id"]),
         checkpoint.state_values,
@@ -273,7 +273,7 @@ def execute_posterior_sampling(
             str(checkpoint.manifest["selected_mode_id"]),
             final_solution,
             geometry,
-            delay_uncertainty,
+            delay_static_geometry,
             cancellation_requested=lambda: cancellation.cancelled,
             progress=progress,
             target_timing_callback=target_timings.append,

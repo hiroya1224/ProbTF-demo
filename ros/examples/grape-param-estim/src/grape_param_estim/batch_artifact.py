@@ -1009,6 +1009,7 @@ _LAPLACE_KEYS = (
     "reduced_likelihood_hessian",
     "reduced_posterior_hessian",
     "covariance",
+    "static_covariance_conditioning",
     "eigenvalues",
     "eigenvectors",
     "effective_rank",
@@ -1018,10 +1019,24 @@ _LAPLACE_KEYS = (
     "delay_profile_available",
     "delay_profile_grid",
     "delay_profile_objective",
+    "delay_profile_approximate_marginal_objective",
+    "delay_profile_static_coordinate",
     "delay_local_uncertainty",
     "delay_uncertainty_source",
     "delay_profile_curvature",
     "delay_profile_curvature_valid",
+    "delay_local_geometry_valid",
+    "delay_local_geometry_method",
+    "delay_local_geometry_reason",
+    "delay_profile_support_lag",
+    "delay_profile_support_map_objective",
+    "delay_profile_support_static_coordinate",
+    "delay_profile_gradient",
+    "delay_static_sensitivity",
+    "parameter_delay_cross_covariance",
+    "joint_parameter_delay_information",
+    "joint_parameter_delay_covariance",
+    "mcmc_quadratic_surrogate_method",
 )
 
 
@@ -1039,6 +1054,36 @@ def _validate_laplace(arrays: Mapping[str, np.ndarray], location: str) -> None:
             raise ArtifactValidationError(
                 "{}:{} must be symmetric".format(location, key)
             )
+    conditioning = _strings(
+        arrays, "static_covariance_conditioning", 1, location
+    )
+    if conditioning[0] != "fixed_delay_conditional":
+        raise ArtifactValidationError(
+            "{}:covariance must be labelled fixed_delay_conditional".format(
+                location
+            )
+        )
+    posterior = arrays["reduced_posterior_hessian"]
+    conditional_covariance = arrays["covariance"]
+    if np.min(np.linalg.eigvalsh(posterior)) <= 0.0 or np.min(
+        np.linalg.eigvalsh(conditional_covariance)
+    ) <= 0.0:
+        raise ArtifactValidationError(
+            "{}:posterior Hessian and conditional covariance must be positive definite".format(
+                location
+            )
+        )
+    if not np.allclose(
+        posterior @ conditional_covariance,
+        np.eye(dimension),
+        rtol=2.0e-8,
+        atol=2.0e-8,
+    ):
+        raise ArtifactValidationError(
+            "{}:fixed-delay conditional covariance must invert posterior Hessian".format(
+                location
+            )
+        )
     _array(arrays, "eigenvalues", (dimension,), location)
     eigenvectors = _array(arrays, "eigenvectors", (dimension, dimension), location)
     if not np.allclose(
@@ -1098,19 +1143,26 @@ def _validate_laplace(arrays: Mapping[str, np.ndarray], location: str) -> None:
         "delay_profile_objective",
         (grid.size,),
         location,
-        finite=False,
     )
-    if np.any(np.isnan(objective)):
-        raise ArtifactValidationError(
-            "{}:delay_profile_objective must not contain NaN".format(location)
-        )
-    if available[0] and not np.any(np.isfinite(objective)):
-        raise ArtifactValidationError(
-            "{}:delay_profile_objective must retain a converged final-Q "
-            "point".format(location)
-        )
-    uncertainty = _array(arrays, "delay_local_uncertainty", (1,), location)
-    _positive(uncertainty, "{}:delay_local_uncertainty".format(location))
+    marginal = _array(
+        arrays,
+        "delay_profile_approximate_marginal_objective",
+        (grid.size,),
+        location,
+    )
+    coordinate = _array(
+        arrays,
+        "delay_profile_static_coordinate",
+        (grid.size, dimension),
+        location,
+    )
+    delay_standard_deviation = _array(
+        arrays, "delay_local_uncertainty", (1,), location
+    )
+    _positive(
+        delay_standard_deviation,
+        "{}:delay_local_uncertainty".format(location),
+    )
     _strings(arrays, "delay_uncertainty_source", 1, location)
     curvature = _array(
         arrays, "delay_profile_curvature", (1,), location
@@ -1122,6 +1174,36 @@ def _validate_laplace(arrays: Mapping[str, np.ndarray], location: str) -> None:
         location,
         kind="boolean",
     )
+    geometry_valid = _array(
+        arrays,
+        "delay_local_geometry_valid",
+        (1,),
+        location,
+        kind="boolean",
+    )
+    if not np.array_equal(curvature_valid, geometry_valid):
+        raise ArtifactValidationError(
+            "{}:delay curvature and local geometry validity must agree".format(
+                location
+            )
+        )
+    method = _strings(arrays, "delay_local_geometry_method", 1, location)
+    reason = _strings(arrays, "delay_local_geometry_reason", 1, location)
+    surrogate_method = _strings(
+        arrays, "mcmc_quadratic_surrogate_method", 1, location
+    )
+    if method[0] != "nonuniform_three_point_map_profile_v1":
+        raise ArtifactValidationError(
+            "{}:unknown delay local geometry method".format(location)
+        )
+    support_lag = arrays["delay_profile_support_lag"]
+    support_objective = arrays["delay_profile_support_map_objective"]
+    support_coordinate = arrays["delay_profile_support_static_coordinate"]
+    gradient = arrays["delay_profile_gradient"]
+    sensitivity = arrays["delay_static_sensitivity"]
+    cross = arrays["parameter_delay_cross_covariance"]
+    joint_information = arrays["joint_parameter_delay_information"]
+    joint_covariance = arrays["joint_parameter_delay_covariance"]
     if curvature_valid[0]:
         _positive(curvature, "{}:delay_profile_curvature".format(location))
         if not available[0]:
@@ -1129,11 +1211,173 @@ def _validate_laplace(arrays: Mapping[str, np.ndarray], location: str) -> None:
                 "{}:delay profile curvature cannot be valid without a "
                 "final-Q profile".format(location)
             )
+        if reason[0] != "valid":
+            raise ArtifactValidationError(
+                "{}:valid local geometry requires reason 'valid'".format(location)
+            )
+        if surrogate_method[0] != "joint_profile_information_v1":
+            raise ArtifactValidationError(
+                "{}:valid local geometry must use joint MCMC information".format(
+                    location
+                )
+            )
+        _array(arrays, "delay_profile_support_lag", (3,), location)
+        _array(
+            arrays, "delay_profile_support_map_objective", (3,), location
+        )
+        _array(
+            arrays,
+            "delay_profile_support_static_coordinate",
+            (3, dimension),
+            location,
+        )
+        _array(arrays, "delay_profile_gradient", (1,), location)
+        _array(arrays, "delay_static_sensitivity", (dimension,), location)
+        _array(
+            arrays,
+            "parameter_delay_cross_covariance",
+            (dimension,),
+            location,
+        )
+        _array(
+            arrays,
+            "joint_parameter_delay_information",
+            (dimension + 1, dimension + 1),
+            location,
+        )
+        _array(
+            arrays,
+            "joint_parameter_delay_covariance",
+            (dimension + 1, dimension + 1),
+            location,
+        )
+        _strictly_increasing(
+            support_lag, "{}:delay_profile_support_lag".format(location)
+        )
+        support_indices = []
+        for value in support_lag:
+            match = np.flatnonzero(
+                np.isclose(grid, value, rtol=0.0, atol=1.0e-14)
+            )
+            if match.size != 1:
+                raise ArtifactValidationError(
+                    "{}:local support lag is absent from profile grid".format(
+                        location
+                    )
+                )
+            support_indices.append(int(match[0]))
+        if not np.allclose(
+            support_objective,
+            objective[support_indices],
+            rtol=2.0e-10,
+            atol=2.0e-10,
+        ) or not np.allclose(
+            support_coordinate,
+            coordinate[support_indices],
+            rtol=2.0e-10,
+            atol=2.0e-10,
+        ):
+            raise ArtifactValidationError(
+                "{}:local support does not reproduce the MAP profile".format(
+                    location
+                )
+            )
+        left = support_lag[1] - support_lag[0]
+        right = support_lag[2] - support_lag[1]
+        first = np.asarray(
+            (
+                -right / (left * (left + right)),
+                (right - left) / (left * right),
+                left / (right * (left + right)),
+            )
+        )
+        second = np.asarray(
+            (
+                2.0 / (left * (left + right)),
+                -2.0 / (left * right),
+                2.0 / (right * (left + right)),
+            )
+        )
+        if not np.isclose(
+            gradient[0], first @ support_objective, rtol=2.0e-10, atol=1.0e-10
+        ) or not np.isclose(
+            curvature[0], second @ support_objective, rtol=2.0e-10, atol=1.0e-8
+        ) or not np.allclose(
+            sensitivity,
+            first @ support_coordinate,
+            rtol=2.0e-10,
+            atol=1.0e-9,
+        ):
+            raise ArtifactValidationError(
+                "{}:nonuniform three-point derivatives do not reproduce".format(
+                    location
+                )
+            )
+        expected_information = np.empty_like(joint_information)
+        information_times_sensitivity = posterior @ sensitivity
+        expected_information[:-1, :-1] = posterior
+        expected_information[:-1, -1] = -information_times_sensitivity
+        expected_information[-1, :-1] = -information_times_sensitivity
+        expected_information[-1, -1] = curvature[0] + float(
+            sensitivity @ information_times_sensitivity
+        )
+        expected_covariance = np.empty_like(joint_covariance)
+        expected_cross = sensitivity / curvature[0]
+        expected_covariance[:-1, :-1] = conditional_covariance + np.outer(
+            sensitivity, sensitivity
+        ) / curvature[0]
+        expected_covariance[:-1, -1] = expected_cross
+        expected_covariance[-1, :-1] = expected_cross
+        expected_covariance[-1, -1] = 1.0 / curvature[0]
+        if not np.allclose(
+            joint_information,
+            expected_information,
+            rtol=2.0e-9,
+            atol=2.0e-8,
+        ) or not np.allclose(
+            joint_covariance,
+            expected_covariance,
+            rtol=2.0e-9,
+            atol=2.0e-9,
+        ) or not np.allclose(
+            cross, expected_cross, rtol=2.0e-9, atol=2.0e-9
+        ):
+            raise ArtifactValidationError(
+                "{}:joint static-delay algebra is inconsistent".format(location)
+            )
+        if not np.isclose(
+            delay_standard_deviation[0] ** 2,
+            1.0 / curvature[0],
+            rtol=2.0e-9,
+            atol=1.0e-14,
+        ):
+            raise ArtifactValidationError(
+                "{}:delay uncertainty disagrees with curvature".format(location)
+            )
     elif curvature[0] != 0.0:
         raise ArtifactValidationError(
             "{}:delay_profile_curvature must use canonical zero when "
             "unavailable".format(location)
         )
+    else:
+        if surrogate_method[0] != "proposal_only_block_diagonal_fallback_v1":
+            raise ArtifactValidationError(
+                "{}:invalid geometry must audit proposal-only fallback".format(
+                    location
+                )
+            )
+        empty_shapes = {
+            "delay_profile_support_lag": (0,),
+            "delay_profile_support_map_objective": (0,),
+            "delay_profile_support_static_coordinate": (0, dimension),
+            "delay_profile_gradient": (0,),
+            "delay_static_sensitivity": (0,),
+            "parameter_delay_cross_covariance": (0,),
+            "joint_parameter_delay_information": (0, 0),
+            "joint_parameter_delay_covariance": (0, 0),
+        }
+        for key, shape in empty_shapes.items():
+            _array(arrays, key, shape, location)
 
 
 _DIAGNOSTIC_KEYS = (
@@ -2026,6 +2270,62 @@ def _load_validated_run(
         raise ArtifactValidationError(
             "map_static:delay must match the final lag in q_em"
         )
+    if bool(laplace["delay_profile_available"][0]):
+        grid = laplace["delay_profile_grid"]
+        objective = laplace["delay_profile_objective"]
+        best_index = min(
+            range(grid.size), key=lambda index: (objective[index], grid[index])
+        )
+        expected_map_objective = float(map_static["prior_objective"][0]) + float(
+            map_static["likelihood_objective"][0]
+        )
+        if not np.isclose(
+            q_em["map_objective"][-1],
+            expected_map_objective,
+            rtol=2.0e-9,
+            atol=2.0e-9 * max(1.0, abs(expected_map_objective)),
+        ):
+            raise ArtifactValidationError(
+                "final q_em MAP objective must reproduce map_static"
+            )
+        if not np.isclose(
+            grid[best_index],
+            map_static["delay"][0],
+            rtol=1.0e-12,
+            atol=1.0e-14,
+        ) or not np.isclose(
+            objective[best_index],
+            expected_map_objective,
+            rtol=2.0e-9,
+            atol=2.0e-9 * max(1.0, abs(expected_map_objective)),
+        ) or not np.allclose(
+            laplace["delay_profile_static_coordinate"][best_index],
+            map_static["parameter_coordinate_map"],
+            rtol=2.0e-9,
+            atol=2.0e-10,
+        ):
+            raise ArtifactValidationError(
+                "final-Q MAP profile center must reproduce map_static"
+            )
+        marginal = q_em["approximate_marginal_objective"][-1]
+        if not np.isclose(
+            laplace["delay_profile_approximate_marginal_objective"][best_index],
+            marginal,
+            rtol=2.0e-9,
+            atol=2.0e-9 * max(1.0, abs(marginal)),
+        ):
+            raise ArtifactValidationError(
+                "final-Q profile marginal audit must reproduce q_em"
+            )
+        if bool(laplace["delay_local_geometry_valid"][0]) and not np.isclose(
+            laplace["delay_profile_support_lag"][1],
+            map_static["delay"][0],
+            rtol=1.0e-12,
+            atol=1.0e-14,
+        ):
+            raise ArtifactValidationError(
+                "valid local geometry support must center on the final MAP delay"
+            )
 
     return BatchEstimationRun(
         root=run_root,

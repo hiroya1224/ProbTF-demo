@@ -34,7 +34,7 @@ exact delayed ZOH first-order response を用い、複数 command switch と不�
 truth delay `0.0873 s` は `4 us` 以内で回復し、異なる warm-start marker から同じ optimum を得た。
 zero-delay case は下限 `0.0 s` を選び、sub-sample delay を通常の smooth inner derivative に置き換えていない。
 
-command が全 event で一定の low-excitation case では全 profile objective が同じになり、curvature を捏造せず `uniform delay prior because local profile curvature is unavailable` を返した。
+command が全 event で一定の low-excitation case では全 profile objective が同じになり、boundary optimum として `valid=false`、reason `profile_optimum_at_boundary`、source `uniform_delay_prior_fallback` を返した。
 このとき uncertainty は区間幅 `0.14 s` の一様分布標準偏差 `0.14/sqrt(12)` と一致した。
 
 ## 5. asynchronous sensor、bias、lever arm、frame

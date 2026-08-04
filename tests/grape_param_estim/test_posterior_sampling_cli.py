@@ -14,7 +14,6 @@ from grape_param_estim.batch_artifact import (
 )
 from grape_param_estim.batch_artifact_export import (
     ArtifactRunIdentity,
-    DelayLocalGeometry,
     export_batch_estimation_artifact_payload,
 )
 from grape_param_estim.batch_checkpoint import (
@@ -65,11 +64,7 @@ class PosteriorSamplingCliTests(unittest.TestCase):
             em_result=self.helper.em_result,
             static_geometry=self.helper.solution.static_geometry(),
             final_q_lag_profile=self.helper._final_q_lag_profile(),
-            delay_geometry=DelayLocalGeometry(
-                0.001,
-                "positive local quadratic profile curvature",
-                1.0e6,
-            ),
+            delay_geometry=self.helper._delay_geometry(),
             identity=ArtifactRunIdentity(
                 estimator_revision=self.estimator_revision,
                 configuration_fingerprint=self.configuration,

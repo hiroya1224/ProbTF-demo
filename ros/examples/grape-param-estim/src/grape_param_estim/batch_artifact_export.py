@@ -20,7 +20,10 @@ import numpy as np
 from grape_param_estim.batch.dynamics_moments import (
     DynamicsIntervalLinearization,
 )
-from grape_param_estim.batch.evidence import StaticLaplaceGeometry
+from grape_param_estim.batch.evidence import (
+    DelayStaticLaplaceGeometry,
+    StaticLaplaceGeometry,
+)
 from grape_param_estim.batch.em_loop import LaplaceEmResult
 from grape_param_estim.batch.factors.dynamics_factor import (
     dynamics_square_root_information,
@@ -255,30 +258,6 @@ class RunPerformanceMeasurements:
         ):
             raise ValueError("peak_memory_bytes must be a non-negative integer")
         object.__setattr__(self, "peak_memory_bytes", int(self.peak_memory_bytes))
-
-
-@dataclass(frozen=True)
-class DelayLocalGeometry:
-    """Explicit local delay uncertainty from the caller's profile analysis."""
-
-    standard_deviation_seconds: float
-    source: str
-    curvature: Optional[float] = None
-
-    def __post_init__(self) -> None:
-        selected = _nonnegative_real(
-            self.standard_deviation_seconds, "standard_deviation_seconds"
-        )
-        if selected == 0.0:
-            raise ValueError("standard_deviation_seconds must be positive")
-        object.__setattr__(self, "standard_deviation_seconds", selected)
-        object.__setattr__(self, "source", _canonical_string(self.source, "source"))
-        curvature = self.curvature
-        if curvature is not None:
-            curvature = _nonnegative_real(curvature, "curvature")
-            if curvature == 0.0:
-                raise ValueError("curvature must be positive when present")
-        object.__setattr__(self, "curvature", curvature)
 
 
 @dataclass(frozen=True)
@@ -795,7 +774,7 @@ def _validate_solver_alignment(
 def _validate_final_q_lag_profile(
     solution: FixedGraphLaplaceSolution,
     profile: Optional[LagProfileResult],
-    delay_geometry: DelayLocalGeometry,
+    delay_geometry: DelayStaticLaplaceGeometry,
 ) -> None:
     if profile is None:
         if delay_geometry.curvature is not None:
@@ -814,15 +793,35 @@ def _validate_final_q_lag_profile(
         raise ValueError("final-Q profile best lag disagrees with final solution")
     if not np.isclose(
         profile.best_objective,
+        solution.lm.objective,
+        rtol=2.0e-10,
+        atol=2.0e-10,
+    ):
+        raise ValueError(
+            "final-Q MAP profile objective disagrees with final MAP objective"
+        )
+    if profile.best_state is None:
+        raise ValueError("available final-Q profile must retain its best state")
+    center_points = tuple(
+        point
+        for point in profile.points
+        if point.converged
+        and np.isclose(
+            point.lag, profile.best_lag, rtol=1.0e-12, atol=1.0e-14
+        )
+    )
+    if not center_points:
+        raise ValueError("final-Q profile has no converged best-lag point")
+    center_point = min(center_points, key=lambda point: point.objective)
+    if center_point.approximate_marginal_objective is None or not np.isclose(
+        center_point.approximate_marginal_objective,
         solution.marginal_objective.value,
         rtol=2.0e-10,
         atol=2.0e-10,
     ):
         raise ValueError(
-            "final-Q profile objective disagrees with final marginal objective"
+            "final-Q profile marginal audit disagrees with final solution"
         )
-    if profile.best_state is None:
-        raise ValueError("available final-Q profile must retain its best state")
     if profile.best_state.layout != solution.lm.state.layout:
         raise ValueError("final-Q profile state layout disagrees with final solution")
     for key in solution.lm.state.layout.variable_keys:
@@ -835,6 +834,50 @@ def _validate_final_q_lag_profile(
             raise ValueError(
                 "final-Q profile state disagrees with final solution"
             )
+
+
+def _validate_delay_static_geometry(
+    static_geometry: StaticLaplaceGeometry,
+    delay_geometry: DelayStaticLaplaceGeometry,
+) -> None:
+    """Cross-check the joint blocks against fixed-delay Laplace geometry."""
+
+    if not delay_geometry.valid:
+        return
+    posterior = static_geometry.information.posterior.hessian
+    conditional = static_geometry.covariance
+    sensitivity = delay_geometry.static_sensitivity
+    curvature = float(delay_geometry.curvature)
+    information_times_sensitivity = posterior @ sensitivity
+    expected_information = np.empty((PARAMETER_DIMENSION + 1,) * 2)
+    expected_information[:-1, :-1] = posterior
+    expected_information[:-1, -1] = -information_times_sensitivity
+    expected_information[-1, :-1] = -information_times_sensitivity
+    expected_information[-1, -1] = curvature + float(
+        sensitivity @ information_times_sensitivity
+    )
+    expected_covariance = np.empty_like(expected_information)
+    cross = sensitivity / curvature
+    expected_covariance[:-1, :-1] = conditional + np.outer(
+        sensitivity, sensitivity
+    ) / curvature
+    expected_covariance[:-1, -1] = cross
+    expected_covariance[-1, :-1] = cross
+    expected_covariance[-1, -1] = 1.0 / curvature
+    if not np.allclose(
+        delay_geometry.joint_information,
+        expected_information,
+        rtol=2.0e-10,
+        atol=2.0e-9,
+    ) or not np.allclose(
+        delay_geometry.joint_covariance,
+        expected_covariance,
+        rtol=2.0e-10,
+        atol=2.0e-10,
+    ):
+        raise ValueError(
+            "delay-static joint geometry disagrees with fixed-delay Hessian"
+        )
 
 
 def _physical_parameter_arrays(
@@ -988,46 +1031,67 @@ def _q_em_payload(result: LaplaceEmResult) -> Mapping[str, np.ndarray]:
 
 def _delay_profile_arrays(
     final_q_lag_profile: Optional[LagProfileResult],
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     if final_q_lag_profile is None:
-        return np.asarray((), dtype=float), np.asarray((), dtype=float)
+        return (
+            np.asarray((), dtype=float),
+            np.asarray((), dtype=float),
+            np.asarray((), dtype=float),
+            np.empty((0, PARAMETER_DIMENSION), dtype=float),
+        )
     if not isinstance(final_q_lag_profile, LagProfileResult):
         raise TypeError("final_q_lag_profile must be LagProfileResult or None")
     profile = {}
     for point in final_q_lag_profile.points:
+        if not point.converged:
+            continue
         lag = float(point.lag)
         if not np.isfinite(lag) or lag < 0.0:
             raise ValueError("final-Q lag profile contains an invalid lag")
-        objective = (
-            float(point.objective)
-            if point.converged and point.objective is not None
-            else float("inf")
-        )
-        if np.isnan(objective):
-            raise ValueError("final-Q lag profile objective cannot be NaN")
+        if (
+            point.objective is None
+            or point.approximate_marginal_objective is None
+            or point.static_coordinate is None
+        ):
+            raise ValueError(
+                "converged final-Q profile point must retain MAP, marginal, "
+                "and static coordinate"
+            )
+        objective = float(point.objective)
+        marginal = float(point.approximate_marginal_objective)
+        coordinate = np.asarray(point.static_coordinate, dtype=float)
         current = profile.get(lag)
-        profile[lag] = (
-            objective if current is None else min(current, objective)
-        )
+        if current is None or objective < current[0]:
+            profile[lag] = (objective, marginal, coordinate)
     if not profile:
-        raise ValueError("an available final-Q lag profile must contain points")
+        raise ValueError(
+            "an available final-Q lag profile must contain converged points"
+        )
     grid = np.asarray(tuple(sorted(profile)), dtype=float)
-    objective = np.asarray(tuple(profile[value] for value in grid), dtype=float)
-    if not np.any(np.isfinite(objective)):
-        raise ValueError("final-Q lag profile has no converged point")
-    return grid, objective
+    objective = np.asarray(
+        tuple(profile[value][0] for value in grid), dtype=float
+    )
+    marginal = np.asarray(
+        tuple(profile[value][1] for value in grid), dtype=float
+    )
+    coordinate = np.asarray(
+        tuple(profile[value][2] for value in grid), dtype=float
+    )
+    return grid, objective, marginal, coordinate
 
 
 def _laplace_payload(
     geometry: StaticLaplaceGeometry,
     final_q_lag_profile: Optional[LagProfileResult],
-    delay_geometry: DelayLocalGeometry,
+    delay_geometry: DelayStaticLaplaceGeometry,
 ) -> Mapping[str, np.ndarray]:
     if final_q_lag_profile is None and delay_geometry.curvature is not None:
         raise ValueError(
             "delay curvature cannot be exported without a final-Q profile"
         )
-    grid, objective = _delay_profile_arrays(final_q_lag_profile)
+    grid, objective, marginal, coordinate = _delay_profile_arrays(
+        final_q_lag_profile
+    )
     likelihood = geometry.information.likelihood
     posterior = geometry.information.posterior
     curvature_valid = delay_geometry.curvature is not None
@@ -1039,6 +1103,9 @@ def _laplace_payload(
             posterior.hessian, dtype=float
         ),
         "covariance": np.asarray(geometry.covariance, dtype=float),
+        "static_covariance_conditioning": np.asarray(
+            ("fixed_delay_conditional",)
+        ),
         "eigenvalues": np.asarray(likelihood.eigenvalues, dtype=float),
         "eigenvectors": np.asarray(likelihood.eigenvectors, dtype=float),
         "effective_rank": np.asarray(
@@ -1056,6 +1123,8 @@ def _laplace_payload(
         ),
         "delay_profile_grid": grid,
         "delay_profile_objective": objective,
+        "delay_profile_approximate_marginal_objective": marginal,
+        "delay_profile_static_coordinate": coordinate,
         "delay_local_uncertainty": np.asarray(
             (delay_geometry.standard_deviation_seconds,), dtype=float
         ),
@@ -1070,6 +1139,43 @@ def _laplace_payload(
         ),
         "delay_profile_curvature_valid": np.asarray(
             (curvature_valid,), dtype=bool
+        ),
+        "delay_local_geometry_valid": np.asarray(
+            (delay_geometry.valid,), dtype=bool
+        ),
+        "delay_local_geometry_method": np.asarray((delay_geometry.method,)),
+        "delay_local_geometry_reason": np.asarray((delay_geometry.reason,)),
+        "delay_profile_support_lag": np.asarray(
+            delay_geometry.support_lag, dtype=float
+        ),
+        "delay_profile_support_map_objective": np.asarray(
+            delay_geometry.support_map_objective, dtype=float
+        ),
+        "delay_profile_support_static_coordinate": np.asarray(
+            delay_geometry.support_static_coordinate, dtype=float
+        ),
+        "delay_profile_gradient": np.asarray(
+            (
+                (delay_geometry.profile_gradient,)
+                if delay_geometry.profile_gradient is not None
+                else ()
+            ),
+            dtype=float,
+        ).reshape((-1,)),
+        "delay_static_sensitivity": np.asarray(
+            delay_geometry.static_sensitivity, dtype=float
+        ),
+        "parameter_delay_cross_covariance": np.asarray(
+            delay_geometry.parameter_delay_cross_covariance, dtype=float
+        ),
+        "joint_parameter_delay_information": np.asarray(
+            delay_geometry.joint_information, dtype=float
+        ),
+        "joint_parameter_delay_covariance": np.asarray(
+            delay_geometry.joint_covariance, dtype=float
+        ),
+        "mcmc_quadratic_surrogate_method": np.asarray(
+            (delay_geometry.mcmc_quadratic_surrogate_method,)
         ),
     }
 
@@ -2089,7 +2195,7 @@ def export_batch_estimation_artifact_payload(
     em_result: LaplaceEmResult,
     static_geometry: StaticLaplaceGeometry,
     final_q_lag_profile: Optional[LagProfileResult],
-    delay_geometry: DelayLocalGeometry,
+    delay_geometry: DelayStaticLaplaceGeometry,
     identity: ArtifactRunIdentity,
     performance: RunPerformanceMeasurements,
     mcmc_chains: Sequence[McmcChainResult] = (),
@@ -2104,12 +2210,13 @@ def export_batch_estimation_artifact_payload(
         raise TypeError("identity must be ArtifactRunIdentity")
     if not isinstance(performance, RunPerformanceMeasurements):
         raise TypeError("performance must be RunPerformanceMeasurements")
-    if not isinstance(delay_geometry, DelayLocalGeometry):
-        raise TypeError("delay_geometry must be DelayLocalGeometry")
+    if not isinstance(delay_geometry, DelayStaticLaplaceGeometry):
+        raise TypeError("delay_geometry must be DelayStaticLaplaceGeometry")
     _validate_solver_alignment(final_solution, em_result, static_geometry)
     _validate_final_q_lag_profile(
         final_solution, final_q_lag_profile, delay_geometry
     )
+    _validate_delay_static_geometry(static_geometry, delay_geometry)
     flights, initialized, prepared_bags = _validate_primary_inputs(
         request, flight_data, initializations, final_solution
     )
@@ -2440,7 +2547,7 @@ __all__ = [
     "CONDITIONAL_TRAJECTORY_SAMPLE_ORDER",
     "CONDITIONAL_TRAJECTORY_SELECTION_POLICY",
     "CONDITIONAL_TRAJECTORY_WARM_START_POLICY",
-    "DelayLocalGeometry",
+    "DelayStaticLaplaceGeometry",
     "RunPerformanceMeasurements",
     "SelectedConditionalTrajectory",
     "export_batch_estimation_artifact_payload",

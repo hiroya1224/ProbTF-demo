@@ -86,6 +86,8 @@ LM damping を posterior precision や evidence に混ぜない。
 ## 7. delay との交互更新
 
 最初の E-step は full bounded delay profile を評価する。
+delay profile の目的関数は `Phi*(tau;Q)=min_{z,c} J` という MAP objective であり、Laplace volume を含む approximate marginal objective ではない。
+近似 marginal objective は Q candidate acceptance に使う一方、同じ profile point の別診断量として保存する。
 Q candidate の受理評価中は delay を固定し、Q を受理した後で local delay profile を再評価する。
 Q と delay の両方を一度に smooth variable として更新しないため、ZOH breakpoint と Q scale の相互作用を audit できる。
 各 iteration は input/output lag、lag change、profile failure、MAP/marginal objective change を保存する。
@@ -107,6 +109,13 @@ Q が finite で artifact が書けたことと、Laplace-EM が収束したこ�
 
 `map_static.npz` の `q_diagonal` は選択 mode の最終 accepted Q である。
 GUI の Q panel は最終値だけでなく iteration history と `sqrt(Q/dt)` reference band を表示する。
+
+`laplace.npz` の 18 次元 `covariance` は `static_covariance_conditioning=fixed_delay_conditional` と明示され、delay を積分した static marginal ではない。
+有効な最終 Q profile geometry が得られた場合は、非等間隔 lower/center/upper 三点、MAP objective、18 次元 static coordinate、profile gradient、curvature、`dc*/dtau`、19 次元 joint information/covariance、parameter--delay cross covariance を保存する。
+boundary optimum、両側 support 不足、非正 curvature、または不安定な stationarity では `delay_local_geometry_valid=false` と reason を保存し、cross と joint 配列は空にする。
+invalid geometry の MCMC surrogate は `proposal_only_block_diagonal_fallback_v1` として明示され、空の joint covariance をゼロ埋め covariance と解釈しない。
+invalid 時の `delay_local_uncertainty` は表示と診断のための一様 prior 標準偏差を保持する一方、MCMC surrogate と chain 初期化の delay block は request の proposal scale `delay_scale_seconds` を使い、二つを同じ推定分散として扱わない。
+MCMC chain の Laplace dispersion も valid 時は同じ 19 次元 joint covariance を使うため、parameter--delay cross covariance を初期値生成から捨てない。
 
 ## 10. 18--24 秒 run での確認
 

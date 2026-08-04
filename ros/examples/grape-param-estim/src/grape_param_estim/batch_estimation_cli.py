@@ -22,7 +22,6 @@ from grape_param_estim.batch_artifact import (
 )
 from grape_param_estim.batch_artifact_export import (
     ArtifactRunIdentity,
-    DelayLocalGeometry,
     complete_pending_mcmc_artifact_payload,
     export_batch_estimation_artifact_payload,
 )
@@ -440,8 +439,8 @@ def _warnings(result: object, estimator_revision: str) -> tuple:
                 )
             )
     selected = result.selected_mode
-    if selected.delay_uncertainty.curvature is None:
-        warnings.append(selected.delay_uncertainty.source)
+    if not selected.delay_static_geometry.valid:
+        warnings.append(selected.delay_static_geometry.reason)
     if result.mcmc is not None and not result.mcmc.diagnostics.converged:
         warnings.append("MCMC completed without satisfying convergence thresholds")
     return tuple(warnings)
@@ -549,11 +548,7 @@ def execute_batch_estimation(
             if selected.final_q_lag_profile_history
             else None
         ),
-        delay_geometry=DelayLocalGeometry(
-            selected.delay_uncertainty.standard_deviation_seconds,
-            selected.delay_uncertainty.source,
-            selected.delay_uncertainty.curvature,
-        ),
+        delay_geometry=selected.delay_static_geometry,
         identity=identity,
         performance=performance,
         mcmc_chains=(
@@ -614,7 +609,7 @@ def _execute_resumable_mcmc_run(
         checkpoint_root = checkpoint.root
         core = checkpoint.core
         selected_mode_id = str(checkpoint.manifest["selected_mode_id"])
-        final_solution, static_geometry, delay_uncertainty = (
+        final_solution, static_geometry, delay_static_geometry = (
             restore_laplace_checkpoint(
                 inputs,
                 selected_mode_id,
@@ -636,7 +631,7 @@ def _execute_resumable_mcmc_run(
         )
         final_solution = selected.final_solution
         static_geometry = selected.static_geometry
-        delay_uncertainty = selected.delay_uncertainty
+        delay_static_geometry = selected.delay_static_geometry
         performance = measure_estimation_modes_performance(
             modes, selected_mode_id
         )
@@ -663,11 +658,7 @@ def _execute_resumable_mcmc_run(
                 if selected.final_q_lag_profile_history
                 else None
             ),
-            delay_geometry=DelayLocalGeometry(
-                delay_uncertainty.standard_deviation_seconds,
-                delay_uncertainty.source,
-                delay_uncertainty.curvature,
-            ),
+            delay_geometry=delay_static_geometry,
             identity=identity,
             performance=performance,
             pending_mcmc_checkpoint=True,
@@ -693,7 +684,7 @@ def _execute_resumable_mcmc_run(
             selected_mode_id,
             final_solution,
             static_geometry,
-            delay_uncertainty,
+            delay_static_geometry,
             cancellation_requested=lambda: cancellation.cancelled,
             progress=progress,
             target_timing_callback=target_timings.append,

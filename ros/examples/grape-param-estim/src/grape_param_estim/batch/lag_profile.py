@@ -7,6 +7,8 @@ from typing import Callable, Optional, Tuple
 import numpy as np
 
 from grape_param_estim.batch.state import BatchState
+from grape_param_estim.batch.variables import VariableKind
+from grape_param_estim.parameterization import PARAMETER_DIMENSION
 
 
 LagEvaluator = Callable[[float, Optional[BatchState]], "LagObjectiveResult"]
@@ -14,13 +16,14 @@ LagEvaluator = Callable[[float, Optional[BatchState]], "LagObjectiveResult"]
 
 @dataclass(frozen=True)
 class LagObjectiveResult:
-    """One fixed-lag inner MAP result returned to the profile optimizer."""
+    """One fixed-lag inner result whose ``objective`` is the MAP objective."""
 
     objective: Optional[float]
     converged: bool
     state: Optional[BatchState]
     inner_iterations: int
     termination_reason: str
+    approximate_marginal_objective: Optional[float] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.converged, (bool, np.bool_)):
@@ -36,6 +39,14 @@ class LagObjectiveResult:
             raise ValueError("a converged lag evaluation requires a state")
         if self.state is not None and not isinstance(self.state, BatchState):
             raise TypeError("state must be a BatchState or None")
+        marginal = self.approximate_marginal_objective
+        if marginal is not None:
+            marginal = float(marginal)
+            if not np.isfinite(marginal):
+                raise ValueError(
+                    "approximate_marginal_objective must be finite when present"
+                )
+        object.__setattr__(self, "approximate_marginal_objective", marginal)
         if (
             isinstance(self.inner_iterations, bool)
             or not isinstance(self.inner_iterations, Integral)
@@ -104,7 +115,7 @@ class LagProfileSettings:
 
 @dataclass(frozen=True)
 class LagProfilePoint:
-    """One chronological objective evaluation and warm-start provenance."""
+    """One chronological MAP-profile evaluation and its audit quantities."""
 
     lag: float
     phase: str
@@ -113,11 +124,52 @@ class LagProfilePoint:
     inner_iterations: int
     termination_reason: str
     warm_start_lag: Optional[float]
+    approximate_marginal_objective: Optional[float] = None
+    static_coordinate: Optional[np.ndarray] = None
+
+    def __post_init__(self) -> None:
+        lag = float(self.lag)
+        if not np.isfinite(lag) or lag < 0.0:
+            raise ValueError("lag must be finite and non-negative")
+        if self.objective is not None and not np.isfinite(float(self.objective)):
+            raise ValueError("objective must be finite when present")
+        marginal = self.approximate_marginal_objective
+        if marginal is not None and not np.isfinite(float(marginal)):
+            raise ValueError(
+                "approximate_marginal_objective must be finite when present"
+            )
+        coordinate = self.static_coordinate
+        if coordinate is not None:
+            coordinate = np.asarray(coordinate, dtype=float)
+            if (
+                coordinate.shape != (PARAMETER_DIMENSION,)
+                or not np.all(np.isfinite(coordinate))
+            ):
+                raise ValueError("static_coordinate must contain 18 finite values")
+            coordinate = coordinate.copy()
+            coordinate.setflags(write=False)
+        if self.converged:
+            if self.objective is None:
+                raise ValueError("converged profile point requires a MAP objective")
+        elif coordinate is not None:
+            raise ValueError("failed profile point cannot retain a static coordinate")
+        object.__setattr__(self, "lag", lag)
+        object.__setattr__(
+            self,
+            "objective",
+            None if self.objective is None else float(self.objective),
+        )
+        object.__setattr__(
+            self,
+            "approximate_marginal_objective",
+            None if marginal is None else float(marginal),
+        )
+        object.__setattr__(self, "static_coordinate", coordinate)
 
 
 @dataclass(frozen=True)
 class LagProfileResult:
-    """Best converged continuous lag and all objective evaluations."""
+    """Best converged MAP-profile lag and all objective evaluations."""
 
     best_lag: float
     best_objective: float
@@ -172,6 +224,12 @@ def optimize_lag_profile(
         if not isinstance(result, LagObjectiveResult):
             raise TypeError("evaluator must return a LagObjectiveResult")
         cache[lag_value] = result
+        static_coordinate = None
+        if result.state is not None:
+            key = result.state.layout.variable_keys[0]
+            if key.kind is not VariableKind.STATIC_PARAMETERS:
+                raise ValueError("lag state must begin with static parameters")
+            static_coordinate = result.state.value(key)
         points.append(
             LagProfilePoint(
                 lag=lag_value,
@@ -181,6 +239,10 @@ def optimize_lag_profile(
                 inner_iterations=result.inner_iterations,
                 termination_reason=result.termination_reason,
                 warm_start_lag=warm_lag,
+                approximate_marginal_objective=(
+                    result.approximate_marginal_objective
+                ),
+                static_coordinate=static_coordinate,
             )
         )
         return result

@@ -42,6 +42,35 @@ def _state_with_marker(marker):
 
 
 class LagProfileTests(unittest.TestCase):
+    def test_selection_uses_map_profile_not_approximate_marginal_objective(self):
+        map_optimum = 0.013
+        marginal_optimum = 0.031
+
+        def evaluator(lag, _warm_start):
+            return LagObjectiveResult(
+                objective=(lag - map_optimum) ** 2,
+                converged=True,
+                state=_state_with_marker(lag),
+                inner_iterations=1,
+                termination_reason="synthetic",
+                approximate_marginal_objective=(lag - marginal_optimum) ** 2,
+            )
+
+        result = optimize_lag_profile(
+            evaluator,
+            LagProfileSettings(
+                0.0,
+                0.04,
+                coarse_grid_points=5,
+                refinement_tolerance=1.0e-7,
+                maximum_refinement_evaluations=32,
+            ),
+        )
+        self.assertAlmostEqual(result.best_lag, map_optimum, delta=2.0e-6)
+        best_point = min(result.points, key=lambda point: point.objective)
+        self.assertIsNotNone(best_point.approximate_marginal_objective)
+        self.assertEqual(best_point.static_coordinate.shape, (18,))
+
     def test_continuous_optimum_is_not_quantized_to_coarse_grid(self):
         optimum = 0.0137
         calls = []

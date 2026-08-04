@@ -138,9 +138,48 @@ LM は actual/predicted reduction ratio、scaled gradient、scaled step、relati
 ## 8. delay profile
 
 ZOH delay の breakpoint では ordinary smooth derivative を仮定できないため、delay を固定した inner sparse MAP を外側から評価する。
+delay の選択に使う profile は、近似周辺尤度ではなく次の MAP profile である。
+
+```math
+\Phi^\star(\tau;Q)=\min_{X,c}\Phi(X,c;\tau,Q).
+```
+
+Laplace log-determinant を含む approximate marginal objective は Q candidate の受理判定にだけ使い、delay profile の最小点を変えない。
 最初に bounded coarse grid を評価し、収束した最良点の隣接点から bracket を作り、golden-section refinement を行う。
 各候補は最も近い収束済み state を warm start に使うが、candidate objective 自体はそれぞれ完全な sparse solve である。
+各収束点について delay、MAP objective、approximate marginal objective、18 次元 static MAP coordinate を別々に保存する。
 これが実 bag run で単純な一回の forward simulation より時間がかかる主因である。
+
+### 8.1 static parameter--delay local geometry
+
+最終 Q の profile から、最終 MAP 点に最も近い収束済み lower/center/upper の三点だけを選ぶ。
+非等間隔三点公式を用いて、static MAP path の感度 `s=dc*/dtau`、MAP profile gradient、正の curvature `kappa=Phi*''` を計算する。
+固定 delay での 18 次元 reduced posterior Hessian を `A` とすると、有効な 19 次元 joint information は次である。
+
+```math
+I_{c,\tau}
+=
+\begin{bmatrix}
+A & -As\\
+-s^TA & \kappa+s^TAs
+\end{bmatrix}.
+```
+
+その逆行列は次であり、`A^-1` は固定 delay 条件付き covariance であって joint static marginal ではない。
+
+```math
+C_{c,\tau}
+=
+\begin{bmatrix}
+A^{-1}+ss^T/\kappa & s/\kappa\\
+s^T/\kappa & 1/\kappa
+\end{bmatrix}.
+```
+
+最良点が delay bound 上にある場合、両側 support がない場合、curvature が非正または非有限の場合、profile stationarity が refinement tolerance と support scale に対して不安定な場合は local geometry を `valid=false` とする。
+invalid geometry は reason と method を明示し、parameter--delay cross covariance と joint information/covariance を空配列で保存するため、ゼロ相関の有効な covariance と取り違えない。
+この場合の MCMC quadratic surrogate だけは、固定 delay の `A` と request の `delay_scale_seconds` から作る監査済み proposal-only block-diagonal fallback を使う。
+MCMC の Laplace-dispersion chain 初期値も同じ契約に従い、有効時は 19 次元 joint covariance から static coordinate と delay を相関させて同時に生成し、invalid 時だけ block-diagonal fallback covariance から生成する。
 
 ## 9. multi-bag の意味
 
@@ -158,6 +197,7 @@ bag ごとに別々に fit して最後に平均する方式ではない。
 | observation/model/dynamics factor | `batch/factors/` |
 | Schur solve と LM | `batch/sparse_solver.py`, `batch/lm.py` |
 | continuous delay profile | `batch/lag_profile.py` |
+| joint static--delay local geometry | `batch/evidence.py` |
 | rosbag preparation と graph build | `batch/preparation.py`, `batch/graph_builder.py`, `real_estimation.py` |
 | strict request と artifact | `batch_request.py`, `batch_artifact.py`, `batch_artifact_export.py` |
 

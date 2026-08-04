@@ -36,7 +36,9 @@ from grape_param_estim.geometry import (
     so3_exp,
     so3_geodesic_interpolation_with_right_jacobians,
 )
-from grape_param_estim.real_estimation import estimate_delay_uncertainty
+from grape_param_estim.batch.evidence import (
+    compute_delay_static_laplace_geometry,
+)
 from grape_param_estim.synthetic_batch import (
     generate_known_q_laplace_moments,
     generate_perfect_model_batch_trajectory,
@@ -357,9 +359,23 @@ class ContinuousLagSyntheticRecoveryTests(unittest.TestCase):
             sum(point.warm_start_lag is not None for point in first.points),
             5,
         )
-        uncertainty = estimate_delay_uncertainty((first,), (0.0, 0.14))
-        self.assertIsNotNone(uncertainty.curvature)
-        self.assertLess(uncertainty.standard_deviation_seconds, 0.01)
+        best_coordinate = next(
+            point.static_coordinate
+            for point in first.points
+            if point.lag == first.best_lag
+        )
+        delay_static_geometry = compute_delay_static_laplace_geometry(
+            (first,),
+            (0.0, 0.14),
+            np.eye(18),
+            first.best_lag,
+            best_coordinate,
+            2.0e-6,
+        )
+        self.assertIsNotNone(delay_static_geometry.curvature)
+        self.assertLess(
+            delay_static_geometry.standard_deviation_seconds, 0.01
+        )
 
     def test_low_excitation_reports_uniform_prior_uncertainty(self):
         constant = np.broadcast_to(np.asarray((0.4, -0.2)), (7, 2)).copy()
@@ -368,14 +384,25 @@ class ContinuousLagSyntheticRecoveryTests(unittest.TestCase):
         self.assertTrue(
             all(point.objective == 0.0 for point in profile.points)
         )
-        uncertainty = estimate_delay_uncertainty((profile,), (0.0, 0.14))
-        self.assertIsNone(uncertainty.curvature)
+        best_coordinate = next(
+            point.static_coordinate
+            for point in profile.points
+            if point.lag == profile.best_lag
+        )
+        delay_static_geometry = compute_delay_static_laplace_geometry(
+            (profile,),
+            (0.0, 0.14),
+            np.eye(18),
+            profile.best_lag,
+            best_coordinate,
+            2.0e-6,
+        )
+        self.assertIsNone(delay_static_geometry.curvature)
         self.assertEqual(
-            uncertainty.source,
-            "uniform delay prior because local profile curvature is unavailable",
+            delay_static_geometry.source, "uniform_delay_prior_fallback"
         )
         self.assertAlmostEqual(
-            uncertainty.standard_deviation_seconds,
+            delay_static_geometry.standard_deviation_seconds,
             0.14 / np.sqrt(12.0),
         )
 

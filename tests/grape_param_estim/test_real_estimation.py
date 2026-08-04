@@ -5,6 +5,9 @@ from unittest.mock import patch
 
 import numpy as np
 
+from grape_param_estim.batch.evidence import (
+    compute_delay_static_laplace_geometry,
+)
 from grape_param_estim.batch.lag_profile import (
     LagProfilePoint,
     LagProfileResult,
@@ -18,9 +21,7 @@ from grape_param_estim.posterior.laplace_target import (
 )
 from grape_param_estim.posterior.mcmc import McmcCancelled
 from grape_param_estim.real_estimation import (
-    DelayUncertaintyEstimate,
     RealEstimationInputs,
-    estimate_delay_uncertainty,
     prepare_real_estimation_inputs,
     production_state_scaling,
     sample_laplace_solution,
@@ -33,6 +34,7 @@ from tests.grape_param_estim.test_batch_preparation import (
 
 
 def _profile(points):
+    coordinate = np.linspace(-0.2, 0.3, 18)
     values = tuple(
         LagProfilePoint(
             lag=float(lag),
@@ -42,6 +44,8 @@ def _profile(points):
             inner_iterations=1,
             termination_reason="synthetic",
             warm_start_lag=None,
+            approximate_marginal_objective=float(objective) + 0.5,
+            static_coordinate=coordinate,
         )
         for lag, objective in points
     )
@@ -66,21 +70,37 @@ class RealEstimationTests(unittest.TestCase):
                 for lag in (0.025, 0.03, 0.035, 0.04, 0.045)
             )
         )
-        result = estimate_delay_uncertainty((profile,), (0.0, 0.08))
-        self.assertEqual(
-            result.source, "positive local quadratic profile curvature"
+        center_coordinate = next(
+            point.static_coordinate
+            for point in profile.points
+            if point.lag == profile.best_lag
         )
+        result = compute_delay_static_laplace_geometry(
+            (profile,),
+            (0.0, 0.08),
+            np.eye(18),
+            profile.best_lag,
+            center_coordinate,
+            1.0e-5,
+        )
+        self.assertTrue(result.valid)
+        self.assertEqual(result.source, "three_point_final_q_map_profile_curvature")
         self.assertAlmostEqual(
             result.standard_deviation_seconds, standard_deviation, places=10
         )
 
     def test_delay_uncertainty_reports_uniform_prior_fallback(self):
-        result = estimate_delay_uncertainty((), (0.0, 0.12))
-        self.assertIsNone(result.curvature)
-        self.assertEqual(
-            result.source,
-            "uniform delay prior because local profile curvature is unavailable",
+        result = compute_delay_static_laplace_geometry(
+            (),
+            (0.0, 0.12),
+            np.eye(18),
+            0.04,
+            np.zeros(18),
+            1.0e-5,
         )
+        self.assertIsNone(result.curvature)
+        self.assertFalse(result.valid)
+        self.assertEqual(result.reason, "final_q_profile_unavailable")
         self.assertAlmostEqual(
             result.standard_deviation_seconds, 0.12 / np.sqrt(12.0)
         )
@@ -196,9 +216,7 @@ class RealEstimationTests(unittest.TestCase):
                 mode_id="recorded-mode",
                 final=helper.solution,
                 static_geometry=helper.solution.static_geometry(),
-                delay_uncertainty=DelayUncertaintyEstimate(
-                    0.001, "test positive curvature", 1.0e6
-                ),
+                delay_static_geometry=helper._delay_geometry(),
             )
             with patch(
                 "grape_param_estim.real_estimation.LaplaceMarginalTarget",

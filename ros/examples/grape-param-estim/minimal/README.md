@@ -6,6 +6,8 @@
 
 ベースライン推定法は、GUI、Q、潜在状態、residual wrench、EM、MCMC を使わず、SciPy の `least_squares` だけで質量、慣性行列、CoG offset、相対 rotor effectiveness を推定します。
 
+固定 Q と 1 iteration の Laplace-EM を実 bag で比較した結果、解釈、残作業は [現時点の比較結果](RESULTS_ja.md) に記録しています。
+
 既定では同梱 rosbag の 19–24 秒を読み、記録された rotor thrust command と gimbal command を固定アクチュエータモデルへ入れます。
 
 最初に観測 gyro の時間微分と IMU specific force を使う局所運動方程式で初期化し、最後に最初の観測状態から一度も状態をリセットしない 5 秒間の open-loop 軌道誤差を直接最小化します。
@@ -56,9 +58,11 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
   --q-em-iterations 2
 ```
 
-probabilistic の結果は `minimal/output/probabilistic/result.json` と `minimal/output/probabilistic/trajectory.pdf` に生成されます。
+固定 Q の結果は `minimal/output/probabilistic/fixed_q/` に生成されます。
 
-deterministic、probabilistic、nominal、observed の四者比較は `minimal/output/method_comparison.pdf` に生成されます。
+Laplace-EM の結果は `minimal/output/probabilistic/laplace_em/` に生成されます。
+
+各 directory の `method_comparison.pdf` は deterministic、probabilistic、nominal、observed の四者を同じ図で比較します。
 
 現在の bridge では deterministic の推定結果を static parameter の初期値かつ prior mean とし、lag は既定の `0.01 s` に固定しています。
 

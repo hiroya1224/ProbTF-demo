@@ -593,7 +593,10 @@ def run(arguments: argparse.Namespace) -> int:
         baseline_payload["coordinates"]["estimated_full"], dtype=float
     )
     output_root = arguments.output_dir.expanduser().resolve()
-    probabilistic_output = output_root / "probabilistic"
+    policy_directory = (
+        "fixed_q" if arguments.q_policy == "fixed" else "laplace_em"
+    )
+    probabilistic_output = output_root / "probabilistic" / policy_directory
     probabilistic_output.mkdir(parents=True, exist_ok=True)
     request_payload = _request_payload(
         arguments,
@@ -725,7 +728,7 @@ def run(arguments: argparse.Namespace) -> int:
         },
         "baseline": {
             "schema": baseline_payload["schema"],
-            "result": "../result.json",
+            "result": "../../result.json",
             "estimated_full_coordinates": baseline_coordinates,
         },
         "graph": {
@@ -789,7 +792,7 @@ def run(arguments: argparse.Namespace) -> int:
         ],
         "outputs": {
             "trajectory_pdf": "trajectory.pdf",
-            "method_comparison_pdf": "../method_comparison.pdf",
+            "method_comparison_pdf": "method_comparison.pdf",
         },
     }
     baseline._write_json(
@@ -805,7 +808,7 @@ def run(arguments: argparse.Namespace) -> int:
         metrics["probabilistic"],
     )
     _plot_method_comparison(
-        output_root / "method_comparison.pdf",
+        probabilistic_output / "method_comparison.pdf",
         direct_problem,
         nominal_simulation,
         deterministic_simulation,
@@ -818,7 +821,9 @@ def run(arguments: argparse.Namespace) -> int:
         )
     )
     print("wrote {}".format(probabilistic_output / "result.json"))
-    print("wrote {}".format(output_root / "method_comparison.pdf"))
+    print(
+        "wrote {}".format(probabilistic_output / "method_comparison.pdf")
+    )
     return 0
 
 

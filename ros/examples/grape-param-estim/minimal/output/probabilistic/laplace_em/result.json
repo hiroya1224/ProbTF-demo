@@ -27,7 +27,7 @@
       0.0,
       0.0
     ],
-    "result": "../result.json",
+    "result": "../../result.json",
     "schema": "grape-param-estim/minimal-direct-shooting/v2"
   },
   "coordinates": {
@@ -52,27 +52,27 @@
       0.0
     ],
     "probabilistic_map_full": [
-      -0.09886560947431591,
-      0.9156151934816035,
-      0.3994083185906008,
-      -0.21436274110819548,
-      0.057371699570862404,
-      -0.4354100744163149,
-      0.03565520075887927,
-      0.0012284212365417852,
-      0.00014691505153550518,
-      0.01272470528745995,
-      -0.28330874240094917,
-      -0.1855808713989583,
-      -0.2713889050914204,
-      -0.264886261198893,
-      -0.036527298075629655,
-      -0.02890785347207484,
-      -0.04104738637504883,
-      -0.030072618010069472
+      -0.43490357562042253,
+      0.8507864718338581,
+      0.10515265231658963,
+      -0.22634959374596364,
+      0.06306949922462765,
+      -0.3967465825552722,
+      0.02887415349135364,
+      0.0027604928349579325,
+      -0.0009879698997164671,
+      0.007930490096946984,
+      -0.6287551926034507,
+      -0.5033297076491046,
+      -0.6065755418053503,
+      -0.6119927962594418,
+      -0.049071501078949566,
+      -0.04599941133238732,
+      -0.056762090931966366,
+      -0.046828595637473394
     ]
   },
-  "created_at": "2026-08-04T20:10:39.849672+00:00",
+  "created_at": "2026-08-04T20:13:56.712756+00:00",
   "graph": {
     "factor_count": 5547,
     "knot_count": 99,
@@ -85,27 +85,27 @@
     "factor covariance values currently match the GUI project's provisional unit defaults"
   ],
   "local_parameter_geometry": {
-    "exact_ridge_alignment": 0.001731478265479277,
+    "exact_ridge_alignment": 0.0014494730230641356,
     "likelihood_effective_rank": 18,
     "likelihood_eigenvalues": [
-      1.0665348076717757e-05,
-      0.0005791808828664905,
-      0.002336659388437998,
-      0.007812437376804459,
-      0.044873267690794,
-      0.11658768237082298,
-      0.12618529594848452,
-      0.26334570855644435,
-      0.35136268130536347,
-      0.796539630020618,
-      1.509933690110607,
-      2.5728361021315154,
-      3.5358168130380156,
-      4.548517083216695,
-      106.22232367532779,
-      663.0951762939878,
-      2117.8755926521685,
-      2200.731591624455
+      1.4656522672533777e-05,
+      0.0006338653109728632,
+      0.0031307380914901498,
+      0.016996806354822373,
+      0.08471311926666941,
+      0.14107100551409135,
+      0.20039096019894043,
+      0.5124509122564348,
+      0.5800551393011423,
+      1.2102307045389442,
+      2.668842786333918,
+      3.1253358450004645,
+      6.074488932504054,
+      8.751922423121043,
+      362.8599513971024,
+      837.4274676434742,
+      2525.996400146332,
+      3227.8339015481183
     ],
     "parameter_names": [
       "log_mass",
@@ -129,24 +129,24 @@
     ],
     "posterior_effective_rank": 18,
     "posterior_eigenvalues": [
-      1.0000106653480765,
-      1.0005791808828584,
-      1.0023366593884377,
-      1.0078124373766266,
-      1.0448732676907952,
-      1.1165876823708152,
-      1.1261852959484824,
-      1.263345708555814,
-      1.3513626813053543,
-      1.7965396300206489,
-      2.5099336901102434,
-      3.5728361021315114,
-      4.53581681303795,
-      5.54851708321659,
-      107.22232367532773,
-      664.0951762939864,
-      2118.8755926521685,
-      2201.7315916244556
+      1.0000146565226724,
+      1.0006338653109645,
+      1.0031307380914807,
+      1.0169968063544947,
+      1.0847131192666486,
+      1.1410710055140896,
+      1.2003909601989413,
+      1.5124509122564347,
+      1.580055139300745,
+      2.210230704538307,
+      3.668842786334066,
+      4.125335845000503,
+      7.074488932504252,
+      9.751922423121046,
+      363.85995139710224,
+      838.427467643472,
+      2526.9964001463313,
+      3228.833901548118
     ]
   },
   "method": {
@@ -155,46 +155,46 @@
     "lag_profile": false,
     "linearized_solver": "sparse_lm",
     "mcmc": false,
-    "q": "fixed",
+    "q": "GUI-backend diagonal body-wrench Laplace-EM",
     "trajectory": "GUI-backend latent full-trajectory MAP"
   },
   "objective_components": {
-    "dynamics/dynamics_residual": 0.9171936501528521,
-    "model/actuator_transition": 0.14422203446375675,
-    "model/controller_integral_transition": 0.000960586443217497,
-    "model/orientation_kinematic": 0.01383015862035028,
-    "model/position_kinematic": 0.012935107508687005,
-    "observation/accelerometer": 2.3681571951122695,
-    "observation/actual_gimbal": 0.10528953249527198,
-    "observation/controller_integral": 0.004264334266201316,
-    "observation/gyro": 0.2812095746239145,
-    "observation/issued_gimbal": 1.1215250863049435,
-    "observation/issued_thrust": 0.5009346596309808,
-    "observation/pose_orientation": 1.677322528736043,
-    "observation/pose_position": 0.48866606166044935,
-    "observation/velocity": 1.6031910245821706,
-    "prior/accelerometer_bias": 0.010096087316297938,
-    "prior/gyro_bias": 0.0001572432504343774,
-    "prior/initial_actuator_gimbal": 2.3788528321834313e-05,
-    "prior/initial_actuator_thrust": 1.4186963870159364e-05,
-    "prior/initial_angular_velocity": 0.0005366158453963305,
-    "prior/initial_controller_integral": 5.432967469556736e-06,
-    "prior/initial_linear_velocity": 0.015176361032379244,
-    "prior/initial_orientation": 0.007096164449783379,
-    "prior/initial_position": 0.0010693251002407104,
-    "prior/static_parameters": 0.33703573485076843
+    "dynamics/dynamics_residual": 1.9435816589498474,
+    "model/actuator_transition": 0.208819405697654,
+    "model/controller_integral_transition": 0.0009540923550770575,
+    "model/orientation_kinematic": 0.013833330644659468,
+    "model/position_kinematic": 0.01311658275372612,
+    "observation/accelerometer": 2.411086411872097,
+    "observation/actual_gimbal": 0.15399618371460874,
+    "observation/controller_integral": 0.0041328567172541535,
+    "observation/gyro": 0.29900570046099506,
+    "observation/issued_gimbal": 1.1357164040517953,
+    "observation/issued_thrust": 0.4824795091600423,
+    "observation/pose_orientation": 1.6623523319369244,
+    "observation/pose_position": 0.47185120131092895,
+    "observation/velocity": 1.6093536978200822,
+    "prior/accelerometer_bias": 0.0098160233512082,
+    "prior/gyro_bias": 0.0002680053955108365,
+    "prior/initial_actuator_gimbal": 6.083851080513783e-05,
+    "prior/initial_actuator_thrust": 8.379821337625125e-05,
+    "prior/initial_angular_velocity": 0.0007191121930711521,
+    "prior/initial_controller_integral": 6.473437385419628e-06,
+    "prior/initial_linear_velocity": 0.016135249886507254,
+    "prior/initial_orientation": 0.007035466236210424,
+    "prior/initial_position": 0.0011542069849529227,
+    "prior/static_parameters": 1.233640336871565
   },
   "optimizer": {
-    "approximate_marginal_objective": 4783.466970755905,
+    "approximate_marginal_objective": 4392.0082785636805,
     "converged": true,
-    "elapsed_seconds": 37.979415830690414,
-    "gradient_inf_norm": 1.3551865273629378e-05,
-    "iterations": 8,
-    "objective": 9.61091247490607,
+    "elapsed_seconds": 109.13041584379971,
+    "gradient_inf_norm": 4.930901219897255e-05,
+    "iterations": 10,
+    "objective": 11.67919887852629,
     "termination_reason": "relative_objective_tolerance"
   },
   "outputs": {
-    "method_comparison_pdf": "../method_comparison.pdf",
+    "method_comparison_pdf": "method_comparison.pdf",
     "trajectory_pdf": "trajectory.pdf"
   },
   "parameters": {
@@ -252,31 +252,31 @@
         0.0
       ],
       "cog_offset_m": [
-        0.0012284212365417852,
-        0.00014691505153550518,
-        0.01272470528745995
+        0.0027604928349579325,
+        -0.0009879698997164671,
+        0.007930490096946984
       ],
       "force_effectiveness": [
-        0.7532871802610127,
-        0.8306216593290454,
-        0.7623199686311303,
-        0.7672932160234819
+        0.5332551880290056,
+        0.604514448495331,
+        0.5452147409649013,
+        0.5422691596662519
       ],
       "inertia_kg_m2": [
         [
-          0.1736735149635188,
-          0.006719061563244104,
-          -0.0613891867951212
+          0.16114860694387587,
+          0.006437031045007179,
+          -0.05330983457446338
         ],
         [
-          0.006719061563244104,
-          0.09705688906908075,
-          0.0020539093837086226
+          0.006437031045007179,
+          0.07235160760154036,
+          0.0010651124569755236
         ],
         [
-          -0.0613891867951212,
-          0.0020539093837086226,
-          0.11928658613442622
+          -0.05330983457446338,
+          0.0010651124569755236,
+          0.11500743666885337
         ]
       ],
       "linear_drag": [
@@ -284,23 +284,23 @@
         0.0,
         0.0
       ],
-      "mass_kg": 2.1302286333939544,
+      "mass_kg": 1.5222528069246812,
       "torque_effectiveness": [
-        0.9641317745949927,
-        0.9715059812452417,
-        0.9597836482022805,
-        0.970375064283681
+        0.9521130501542855,
+        0.9550425243931521,
+        0.9448188235957109,
+        0.9542509463486347
       ]
     }
   },
   "q": {
     "final_diagonal": [
-      25.0,
-      25.0,
-      25.0,
-      1.0,
-      1.0,
-      1.0
+      3.847246768039576,
+      3.7795352556267585,
+      3.638226560942972,
+      0.4446512645747032,
+      0.32219898787077544,
+      0.4285315894961387
     ],
     "floor_diagonal": [
       1e-08,
@@ -312,9 +312,9 @@
     ],
     "history": [
       {
-        "accepted_alpha": 0.0,
-        "approximate_marginal_objective": 4783.466970755905,
-        "inner_iterations": 8,
+        "accepted_alpha": 0.5,
+        "approximate_marginal_objective": 4392.0082785636805,
+        "inner_iterations": 10,
         "input_q": [
           25.0,
           25.0,
@@ -324,16 +324,16 @@
           1.0
         ],
         "iteration": 0,
-        "map_objective": 9.61091247490607,
+        "map_objective": 11.67919887852629,
         "output_q": [
-          25.0,
-          25.0,
-          25.0,
-          1.0,
-          1.0,
-          1.0
+          3.847246768039576,
+          3.7795352556267585,
+          3.638226560942972,
+          0.4446512645747032,
+          0.32219898787077544,
+          0.4285315894961387
         ],
-        "q_accepted": false,
+        "q_accepted": true,
         "q_target": [
           0.5920523077676386,
           0.5713954699410252,
@@ -358,7 +358,7 @@
           0.010483738978763037,
           0.00017147490360858769
         ],
-        "termination_reason": "fixed_lag_wide_lag_profile"
+        "termination_reason": "fixed_lag_reuse"
       }
     ],
     "initial_diagonal": [
@@ -369,7 +369,7 @@
       1.0,
       1.0
     ],
-    "termination_reason": "fixed_by_request"
+    "termination_reason": "maximum_iterations"
   },
   "recorded_control_open_loop_metrics": {
     "deterministic": {
@@ -413,24 +413,24 @@
       "velocity_rmse_m_per_s": 31.29230507333503
     },
     "probabilistic": {
-      "angular_velocity_rmse_rad_per_s": 1.7032102817274124,
-      "orientation_angle_rmse_deg": 125.90305469010983,
-      "orientation_angle_rmse_rad": 2.1974228426609055,
+      "angular_velocity_rmse_rad_per_s": 1.670960756973373,
+      "orientation_angle_rmse_deg": 106.63873633936993,
+      "orientation_angle_rmse_rad": 1.8611970592881304,
       "position_component_rmse_m": [
-        33.65293131700853,
-        13.76641813625454,
-        33.86380905241449
+        29.64836343766187,
+        15.086088698457568,
+        35.14808159065861
       ],
-      "position_rmse_m": 49.686936090564906,
-      "specific_force_rmse_m_per_s2": 1.1676648450144005,
-      "terminal_orientation_error_deg": 160.46936011626408,
-      "terminal_position_error_m": 119.86213603687636,
+      "position_rmse_m": 48.39424724337604,
+      "specific_force_rmse_m_per_s2": 1.17769050463767,
+      "terminal_orientation_error_deg": 39.26587391127701,
+      "terminal_position_error_m": 109.74852687181973,
       "velocity_component_rmse_m_per_s": [
-        18.119450547621245,
-        10.110978405271773,
-        22.690802795068247
+        13.750950520581785,
+        10.574915265053097,
+        21.231900936182065
       ],
-      "velocity_rmse_m_per_s": 30.747665016131567
+      "velocity_rmse_m_per_s": 27.417350171859972
     }
   },
   "schema": "grape-param-estim/minimal-probabilistic-bridge/v1"

@@ -12,6 +12,8 @@ from grape_param_estim.batch.dynamics_moments import (
 from grape_param_estim.batch.em_loop import (
     LaplaceEmResult,
     LaplaceEmSettings,
+    QUpdatePolicy,
+    run_fixed_q,
     run_laplace_em,
 )
 from grape_param_estim.batch.evidence import (
@@ -459,7 +461,7 @@ def estimate_mode(
     cancellation_requested: Optional[CancellationCheck] = None,
     progress: Optional[ProgressCallback] = None,
 ) -> ModeEstimationResult:
-    """Run lag-profiled Laplace-EM and final undamped geometry for one mode."""
+    """Run fixed-Q or Laplace-EM inference and final geometry for one mode."""
 
     if mode_id not in _mode_ids(inputs.request):
         raise ValueError("mode_id is absent from the request")
@@ -508,33 +510,49 @@ def estimate_mode(
         lm_progress=lm_progress,
     )
 
+    q_update_policy = QUpdatePolicy(str(q_value["update_policy"]))
+
     def em_progress(record) -> None:
         now = time.perf_counter()
         em_timings.append(now - last_em_boundary[0])
         last_em_boundary[0] = now
         if progress is not None:
-            maximum = int(request.payload["em_settings"]["maximum_iterations"])
+            maximum = (
+                1
+                if q_update_policy is QUpdatePolicy.FIXED
+                else int(
+                    request.payload["em_settings"]["maximum_iterations"]
+                )
+            )
             progress(
                 "updating_model_error_covariance",
                 record.iteration + 1,
                 maximum,
-                "mode={} lag={:.6f}s".format(
-                    mode_id, record.output_step.lag
-                ),
+                (
+                    "mode={} Q fixed; Laplace-EM skipped; lag={:.6f}s"
+                    if q_update_policy is QUpdatePolicy.FIXED
+                    else "mode={} lag={:.6f}s"
+                ).format(mode_id, record.output_step.lag),
             )
 
-    em = run_laplace_em(
+    common_q_arguments = dict(
         definition=prepared_initial.dynamics.q_definition,
-        initial_q=initial_q,
         q_floor=q_floor,
         interval_time_steps=dynamics.time_step,
         initial_lag=initial_delay,
         solver=e_step,
-        settings=_em_settings(request),
         initial_warm_start=initial_state,
         cancellation_requested=cancellation_requested,
         progress=em_progress,
     )
+    if q_update_policy is QUpdatePolicy.FIXED:
+        em = run_fixed_q(fixed_q=initial_q, **common_q_arguments)
+    else:
+        em = run_laplace_em(
+            initial_q=initial_q,
+            settings=_em_settings(request),
+            **common_q_arguments,
+        )
     final_step = em.final_step
     # Reuse the exact solve selected by EM.  Re-solving from its converged
     # state can legitimately improve the objective further, but then the MAP,

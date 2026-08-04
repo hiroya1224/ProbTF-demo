@@ -64,7 +64,7 @@ class ProgressTests(unittest.TestCase):
                 ),
                 STAGE_REFINING_CONSTANT_DELAY: "Refining constant delay",
                 STAGE_UPDATING_MODEL_ERROR_COVARIANCE: (
-                    "Updating model-error covariance"
+                    "Finalizing model-error covariance"
                 ),
                 STAGE_COMPUTING_LOCAL_POSTERIOR_GEOMETRY: (
                     "Computing local posterior geometry"

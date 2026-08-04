@@ -590,6 +590,7 @@ def _validate_q(value: Any) -> None:
     _keys(
         q,
         (
+            "update_policy",
             "residual_quantity",
             "interval_model",
             "component_names",
@@ -598,6 +599,11 @@ def _validate_q(value: Any) -> None:
             "floor_diagonal",
         ),
         "request.q",
+    )
+    _choice(
+        q["update_policy"],
+        ("fixed", "laplace_em"),
+        "request.q.update_policy",
     )
     _choice(
         q["residual_quantity"],

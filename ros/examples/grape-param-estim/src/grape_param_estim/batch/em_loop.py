@@ -24,7 +24,13 @@ class EStepPhase(Enum):
     LOCAL_LAG_PROFILE = "local_lag_profile"
 
 
+class QUpdatePolicy(Enum):
+    FIXED = "fixed"
+    LAPLACE_EM = "laplace_em"
+
+
 class LaplaceEmTerminationReason(Enum):
+    FIXED_BY_REQUEST = "fixed_by_request"
     CONVERGENCE_TOLERANCES = "convergence_tolerances"
     MAXIMUM_ITERATIONS = "maximum_iterations"
     REPEATED_Q_REJECTION = "repeated_q_rejection"
@@ -216,6 +222,7 @@ class LaplaceEmResult:
     iterations: Tuple[LaplaceEmIteration, ...]
     final_step: LaplaceEStepResult
     reason: LaplaceEmTerminationReason
+    update_policy: QUpdatePolicy = QUpdatePolicy.LAPLACE_EM
 
     def __post_init__(self) -> None:
         if not isinstance(self.definition, DiagonalQDefinition):
@@ -239,10 +246,34 @@ class LaplaceEmResult:
             raise ValueError("final_step must be the final iteration output")
         if not isinstance(self.reason, LaplaceEmTerminationReason):
             raise TypeError("reason must be LaplaceEmTerminationReason")
+        if not isinstance(self.update_policy, QUpdatePolicy):
+            raise TypeError("update_policy must be QUpdatePolicy")
+        if self.update_policy is QUpdatePolicy.FIXED:
+            if self.reason is not LaplaceEmTerminationReason.FIXED_BY_REQUEST:
+                raise ValueError("fixed Q requires fixed_by_request termination")
+            if len(self.iterations) != 1:
+                raise ValueError("fixed Q requires one diagnostic solve record")
+            record = self.iterations[0]
+            if (
+                record.input_step is not record.output_step
+                or record.q_update.termination_reason != "fixed_by_request"
+                or record.q_update.attempts
+            ):
+                raise ValueError("fixed Q record cannot contain an update")
+        elif self.reason is LaplaceEmTerminationReason.FIXED_BY_REQUEST:
+            raise ValueError("Laplace-EM cannot terminate as fixed Q")
 
     @property
     def converged(self) -> bool:
         return self.reason is LaplaceEmTerminationReason.CONVERGENCE_TOLERANCES
+
+    @property
+    def em_iteration_count(self) -> int:
+        return (
+            0
+            if self.update_policy is QUpdatePolicy.FIXED
+            else len(self.iterations)
+        )
 
 
 class LaplaceEmCancelled(RuntimeError):
@@ -486,6 +517,112 @@ def run_laplace_em(
     )
 
 
+def run_fixed_q(
+    definition: DiagonalQDefinition,
+    fixed_q: np.ndarray,
+    q_floor: np.ndarray,
+    interval_time_steps: np.ndarray,
+    initial_lag: float,
+    solver: LaplaceEStepSolver,
+    *,
+    initial_warm_start: Optional[BatchState] = None,
+    cancellation_requested: Optional[Callable[[], bool]] = None,
+    progress: Optional[Callable[[LaplaceEmIteration], None]] = None,
+) -> LaplaceEmResult:
+    """Solve one delay-profiled MAP/Laplace problem without updating Q."""
+
+    if not isinstance(definition, DiagonalQDefinition):
+        raise TypeError("definition must be DiagonalQDefinition")
+    q = np.asarray(fixed_q, dtype=float)
+    floor = np.asarray(q_floor, dtype=float)
+    if (
+        q.shape != (6,)
+        or floor.shape != (6,)
+        or not np.all(np.isfinite(q))
+        or not np.all(np.isfinite(floor))
+        or np.any(q <= 0.0)
+        or np.any(floor <= 0.0)
+        or np.any(q < floor)
+    ):
+        raise ValueError("fixed_q must be finite, positive, and above q_floor")
+    time_steps = np.asarray(interval_time_steps, dtype=float)
+    definition.interval_weights(time_steps)
+    lag = float(initial_lag)
+    if not np.isfinite(lag) or lag < 0.0:
+        raise ValueError("initial_lag must be finite and non-negative")
+    if not callable(solver):
+        raise TypeError("solver must be callable")
+    if initial_warm_start is not None and not isinstance(
+        initial_warm_start, BatchState
+    ):
+        raise TypeError("initial_warm_start must be BatchState or None")
+    if cancellation_requested is not None and not callable(cancellation_requested):
+        raise TypeError("cancellation_requested must be callable")
+    if progress is not None and not callable(progress):
+        raise TypeError("progress must be callable")
+    try:
+        step = _solve_checked(
+            solver,
+            q,
+            EStepPhase.WIDE_LAG_PROFILE,
+            lag,
+            initial_warm_start,
+        )
+    except LaplaceEStepFailure as error:
+        raise LaplaceEStepFailure(
+            "fixed_q_wide_profile:{}".format(error.reason),
+            error.inner_iterations,
+        ) from error
+    if step.moments.interval_count != time_steps.size:
+        raise ValueError("E-step residual count disagrees with interval_time_steps")
+    target = compute_diagonal_q_target(
+        definition,
+        step.moments,
+        time_steps,
+        floor,
+    )
+    input_evaluation = QInnerEvaluation(
+        q=step.q,
+        successful=True,
+        map_objective=step.map_objective,
+        approximate_marginal_objective=step.approximate_marginal_objective,
+        lag=step.lag,
+        failure_reason="",
+        warm_start=step.state,
+    )
+    update = QUpdateResult(
+        input_evaluation=input_evaluation,
+        target=target,
+        attempts=(),
+        accepted=False,
+        accepted_q=step.q,
+        accepted_alpha=0.0,
+        max_log_q_change=0.0,
+        termination_reason="fixed_by_request",
+    )
+    record = LaplaceEmIteration(
+        iteration=0,
+        input_step=step,
+        q_target=target,
+        q_update=update,
+        output_step=step,
+        lag_refinement_failed=False,
+        lag_refinement_failure_reason="",
+        lag_change=0.0,
+        map_objective_change=0.0,
+        marginal_objective_change=0.0,
+    )
+    if progress is not None:
+        progress(record)
+    return LaplaceEmResult(
+        definition=definition,
+        iterations=(record,),
+        final_step=step,
+        reason=LaplaceEmTerminationReason.FIXED_BY_REQUEST,
+        update_policy=QUpdatePolicy.FIXED,
+    )
+
+
 __all__ = [
     "EStepPhase",
     "LaplaceEStepFailure",
@@ -496,5 +633,7 @@ __all__ = [
     "LaplaceEmResult",
     "LaplaceEmSettings",
     "LaplaceEmTerminationReason",
+    "QUpdatePolicy",
+    "run_fixed_q",
     "run_laplace_em",
 ]

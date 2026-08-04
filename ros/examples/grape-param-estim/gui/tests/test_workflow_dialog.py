@@ -18,6 +18,7 @@ class WorkflowLaunchDialogTests(unittest.TestCase):
         dialog = WorkflowLaunchDialog(selected_mode=WorkflowMode.STEP)
         dialog.start_button.click()
         self.assertEqual(dialog.launch_selection.mode, WorkflowMode.STEP)
+        self.assertEqual(dialog.launch_selection.q_update_policy, "fixed")
         self.assertIn("Estimate only", dialog.staged_mode_radio.text())
 
     def test_all_maps_to_estimate_and_sample_choice(self):
@@ -26,10 +27,21 @@ class WorkflowLaunchDialogTests(unittest.TestCase):
         self.assertEqual(dialog.launch_selection.mode, WorkflowMode.ALL)
         self.assertIn("sample posterior", dialog.all_mode_radio.text())
 
+    def test_laplace_em_q_policy_is_explicit(self):
+        dialog = WorkflowLaunchDialog(
+            selected_q_update_policy="laplace_em"
+        )
+        dialog.start_button.click()
+        self.assertEqual(
+            dialog.launch_selection.q_update_policy, "laplace_em"
+        )
+        self.assertTrue(dialog.estimate_q_radio.isChecked())
+
     def test_running_locks_launch(self):
         dialog = WorkflowLaunchDialog(running=True)
         self.assertFalse(dialog.start_button.isEnabled())
         self.assertFalse(dialog.staged_mode_radio.isEnabled())
+        self.assertFalse(dialog.fixed_q_radio.isEnabled())
 
 
 if __name__ == "__main__":

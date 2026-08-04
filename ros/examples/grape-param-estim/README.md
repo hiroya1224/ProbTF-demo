@@ -55,9 +55,14 @@ ROS worker の interpreter を明示する場合は `GRAPE_PARAM_ESTIM_WORKER_PY
 
 ## GUI workflow
 
-bag inspection 後に `Bag browser` で使用する区間と sensor contract を確認し、`Run estimation…` から `STEP` または `ALL` を選びます。
+bag inspection 後に `Bag browser` で使用する区間と sensor contract を確認し、`Run estimation…` から Q の扱いと停止境界を選びます。
 
-- `STEP` は `estimate_only` を実行し、疎な MAP、delay profile、Laplace-EM の Q 更新、Laplace 幾何を保存したところで止まるため、中間結果の点検に向きます。
+- `Keep the configured Q fixed` は project に保存した `initial_diagonal` を固定し、Q 候補ごとの MAP 再計算と Laplace-EM を省略するため、現在の実機データを診断する最初の実行に推奨します。
+- 固定 Q でも一つの wide delay profile、全軌道 MAP、Laplace 幾何は必要なので瞬時には終わりませんが、既定の複数 EM iteration より大幅に短くなります。
+- 固定 Q の request には `update_policy=fixed`、artifact には `fixed_by_request` と未適用の診断用 Q target を保存し、EM 収束とは表示しません。
+- 固定 Q で得る事後分布は選んだ Q に条件づけた `p(parameters, delay | data, Q_fixed)` であり、Q がデータから校正済みになったことを意味しません。
+- `Estimate Q with diagonal-Q Laplace-EM` は各 Q 候補で全軌道 MAP を解き直す従来経路で、Q 自体を更新したい場合だけ選びます。
+- `STEP` は `estimate_only` を実行し、疎な MAP、delay profile、選択した Q policy、Laplace 幾何を保存したところで止まるため、中間結果の点検に向きます。
 - `ALL` は `estimate_and_sample` を実行し、同じ推定に ridge-aware MCMC を続けて posterior sample まで生成します。
 
 表示する軌道は observed、nominal、MAP、保存された selected posterior-sample conditional trajectory です。
@@ -129,7 +134,7 @@ rosrun grape_param_estim grape_estimate_flights.py \
   --request /absolute/path/to/batch-estimation-request.json
 ```
 
-request は output directory、bag の絶対 path と SHA256、interval、全 observation/fixed/prior covariance、Q の quantity・単位・interval model、18 次元 prior、delay profile、actuator model、knot/interpolation/controller policy、mode、solver、EM、MCMC の全設定を明示します。
+request は output directory、bag の絶対 path と SHA256、interval、全 observation/fixed/prior covariance、Q の `update_policy`・quantity・単位・interval model、18 次元 prior、delay profile、actuator model、knot/interpolation/controller policy、mode、solver、EM、MCMC の全設定を明示します。
 covariance を message に記録されていない値から暗黙に補う default はなく、使用しない factor は理由付きで disabled にします。
 actuator model も request の必須情報であり、hidden default はありません。
 

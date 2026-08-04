@@ -2379,6 +2379,26 @@ def _load_validated_run(
         raise ArtifactValidationError(
             "map_static:q_diagonal must match the final accepted Q in q_em"
         )
+    em_status = manifest["substage_status"]["laplace_em"]
+    if em_status["termination_reason"] == "fixed_by_request":
+        fixed_q_record = (
+            q_em["iteration"].size == 1
+            and not bool(q_em["accepted"][0])
+            and float(q_em["alpha"][0]) == 0.0
+            and float(q_em["log_q_change"][0]) == 0.0
+            and np.array_equal(q_em["input_q"][0], q_em["accepted_q"][0])
+            and str(q_em["reason"][0]) == "fixed_by_request"
+            and not bool(em_status["converged"])
+            and em_status["termination_reason"] == "fixed_by_request"
+        )
+        if not fixed_q_record:
+            raise ArtifactValidationError(
+                "fixed Q policy requires one non-updating diagnostic record"
+            )
+    elif np.any(q_em["reason"] == "fixed_by_request"):
+        raise ArtifactValidationError(
+            "Q history fixed_by_request reason disagrees with substage status"
+        )
     if not np.isclose(
         map_static["delay"][0],
         q_em["lag"][-1],

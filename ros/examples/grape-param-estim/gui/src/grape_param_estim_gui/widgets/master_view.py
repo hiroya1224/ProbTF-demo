@@ -643,6 +643,25 @@ class MasterView(QWidget):
             return
 
         q_history = run.q_em
+        fixed_q = (
+            run.manifest["substage_status"]["laplace_em"][
+                "termination_reason"
+            ]
+            == "fixed_by_request"
+        )
+        self.em_plot.setTitle(
+            "Fixed Q diagonal (Laplace-EM skipped)"
+            if fixed_q
+            else "Laplace-EM accepted Q diagonal"
+        )
+        self.em_objective_plot.setTitle(
+            "Fixed-Q MAP and approximate marginal objectives"
+            if fixed_q
+            else "Laplace-EM MAP and approximate marginal objectives"
+        )
+        horizontal_label = "fixed-Q solve" if fixed_q else "EM iteration"
+        self.em_plot.setLabel("bottom", horizontal_label)
+        self.em_objective_plot.setLabel("bottom", horizontal_label)
         for component, label in enumerate(Q_COMPONENT_LABELS):
             self.em_plot.plot(
                 q_history.iteration,
@@ -668,14 +687,19 @@ class MasterView(QWidget):
         )
 
         substages = run.manifest["substage_status"]
-        stage_text = ", ".join(
-            "{}={} ({})".format(
-                name,
-                "converged" if value["converged"] else "not converged",
-                value["termination_reason"],
+        stage_parts = []
+        for name, value in substages.items():
+            state = "converged" if value["converged"] else "not converged"
+            if name == "laplace_em" and fixed_q:
+                state = "skipped"
+            stage_parts.append(
+                "{}={} ({})".format(
+                    name,
+                    state,
+                    value["termination_reason"],
+                )
             )
-            for name, value in substages.items()
-        )
+        stage_text = ", ".join(stage_parts)
         laplace = run.laplace
         mcmc_text = "disabled; MAP/Laplace result only"
         if run.mcmc is not None:
@@ -733,7 +757,7 @@ class MasterView(QWidget):
         self.diagnostic_label.setText(
             "run ID: {}\nsubstage status: {}\n"
             "Q definition: {} [{}]\n"
-            "Q diagonal: {}\nEM iterations: {}\n"
+            "Q policy: {}\nQ diagonal: {}\nEM iterations: {}\n"
             "Laplace rank: {}/18; condition number: {:.4g}; "
             "ridge alignment: {:.4g}\nDelay geometry: {}\n"
             "MCMC: {}\nwarnings: {}".format(
@@ -741,8 +765,13 @@ class MasterView(QWidget):
                 stage_text,
                 run.manifest["q_definition"]["definition"],
                 ", ".join(run.manifest["q_definition"]["units"]),
+                (
+                    "fixed (diagnostic target not applied)"
+                    if fixed_q
+                    else "Laplace-EM"
+                ),
                 np.array2string(run.static_map.q_diagonal, precision=5),
-                q_history.iteration.size,
+                0 if fixed_q else q_history.iteration.size,
                 laplace.effective_rank,
                 laplace.condition_number,
                 laplace.ridge_alignment,

@@ -135,7 +135,7 @@ class InspectionWorkloadSettings:
             self,
             "maximum_em_iterations",
             _positive_integer(
-                self.maximum_em_iterations, "maximum_em_iterations"
+                self.maximum_em_iterations, "maximum_em_iterations", 0
             ),
         )
         object.__setattr__(

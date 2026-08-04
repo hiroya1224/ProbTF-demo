@@ -33,6 +33,7 @@ def default_batch_estimator_settings() -> dict[str, object]:
 
     return {
         "q": {
+            "update_policy": "fixed",
             "residual_quantity": "body_wrench",
             "interval_model": "continuous_spectral_density",
             "component_names": ["x", "y", "z", "roll", "pitch", "yaw"],

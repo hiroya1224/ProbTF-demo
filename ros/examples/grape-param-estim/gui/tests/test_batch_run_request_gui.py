@@ -32,6 +32,9 @@ from grape_param_estim_gui.workflow import (
     canonical_fingerprint,
     completion_fingerprint,
 )
+from grape_param_estim_gui.widgets.workflow_dialog import (
+    WorkflowLaunchSelection,
+)
 
 
 def _inspection() -> dict[str, object]:
@@ -68,6 +71,7 @@ class BatchRunRequestGuiTests(unittest.TestCase):
         self.assertEqual(settings["delay"]["maximum_refinement_evaluations"], 8)
         self.assertEqual(settings["solver_settings"]["maximum_iterations"], 30)
         self.assertEqual(settings["em_settings"]["maximum_iterations"], 5)
+        self.assertEqual(settings["q"]["update_policy"], "fixed")
 
     def test_run_builds_backend_valid_estimate_only_request(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -130,7 +134,11 @@ class BatchRunRequestGuiTests(unittest.TestCase):
 
             window._start_worker = fake_start
             with mock.patch.object(
-                window, "_choose_workflow_mode", return_value=WorkflowMode.STEP
+                window,
+                "_choose_workflow_mode",
+                return_value=WorkflowLaunchSelection(
+                    WorkflowMode.STEP, "fixed"
+                ),
             ):
                 window.start_estimation()
             payload = json.loads(
@@ -139,6 +147,7 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             parsed = validate_batch_estimation_request(payload)
             self.assertEqual(parsed.payload["run_mode"], "estimate_only")
             self.assertFalse(parsed.payload["mcmc_settings"]["enabled"])
+            self.assertEqual(parsed.payload["q"]["update_policy"], "fixed")
             self.assertEqual(tuple(parsed.payload["bags"][0]["interval_seconds"]), (18.0, 24.0))
             self.assertEqual(
                 parsed.payload["bags"][0]["observation_factors"]["accelerometer"]["disabled_reason"],
@@ -295,7 +304,11 @@ class BatchRunRequestGuiTests(unittest.TestCase):
 
             window._start_worker = fake_start
             with mock.patch.object(
-                window, "_choose_workflow_mode", return_value=WorkflowMode.ALL
+                window,
+                "_choose_workflow_mode",
+                return_value=WorkflowLaunchSelection(
+                    WorkflowMode.ALL, "fixed"
+                ),
             ):
                 window.start_estimation()
             first_payload = json.loads(
@@ -326,7 +339,11 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             window._operation = None
             window._operation_context = {}
             with mock.patch.object(
-                window, "_choose_workflow_mode", return_value=WorkflowMode.ALL
+                window,
+                "_choose_workflow_mode",
+                return_value=WorkflowLaunchSelection(
+                    WorkflowMode.ALL, "fixed"
+                ),
             ):
                 window.start_estimation()
             resumed_payload = json.loads(

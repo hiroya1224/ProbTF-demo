@@ -108,10 +108,15 @@ class BatchProgressReporter:
         self._last_fraction = 0.0
         self._terminal = False
         payload = request.payload
+        fixed_q = payload["q"]["update_policy"] == "fixed"
         self._q_update_total = max(
             1,
             len(payload["mode_hypotheses"])
-            * int(payload["em_settings"]["maximum_iterations"]),
+            * (
+                1
+                if fixed_q
+                else int(payload["em_settings"]["maximum_iterations"])
+            ),
         )
         delay = payload["delay"]
         profile_evaluations = int(delay["coarse_grid_points"]) + int(
@@ -120,9 +125,12 @@ class BatchProgressReporter:
         typical_lm_iterations = min(
             int(payload["solver_settings"]["maximum_iterations"]), 5
         )
-        # One profile for the current Q and normally one for its proposed Q.
+        # Fixed Q needs one profile; EM normally profiles current and proposed Q.
         self._optimization_callbacks_per_q = max(
-            1, 2 * profile_evaluations * typical_lm_iterations
+            1,
+            (1 if fixed_q else 2)
+            * profile_evaluations
+            * typical_lm_iterations,
         )
         self._q_updates_seen = 0
         self._optimization_callbacks_since_q = 0

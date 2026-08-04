@@ -85,6 +85,7 @@ class BatchRequestTests(unittest.TestCase):
                 }
             ],
             "q": {
+                "update_policy": "laplace_em",
                 "residual_quantity": "body_wrench",
                 "interval_model": "continuous_spectral_density",
                 "component_names": ["x", "y", "z", "roll", "pitch", "yaw"],
@@ -206,6 +207,14 @@ class BatchRequestTests(unittest.TestCase):
         self.assertEqual(fresh.fingerprint, resumed.fingerprint)
 
     def test_q_scientific_definition_has_no_default(self):
+        request = copy.deepcopy(self.request)
+        del request["q"]["update_policy"]
+        with self.assertRaisesRegex(ArtifactValidationError, "update_policy"):
+            validate_batch_estimation_request(request)
+        request = copy.deepcopy(self.request)
+        request["q"]["update_policy"] = "automatic"
+        with self.assertRaisesRegex(ArtifactValidationError, "must be one of"):
+            validate_batch_estimation_request(request)
         request = copy.deepcopy(self.request)
         del request["q"]["residual_quantity"]
         with self.assertRaisesRegex(ArtifactValidationError, "residual_quantity"):

@@ -73,7 +73,10 @@ from .workflow_io import (
 from .widgets.bag_browser import BagBrowserView
 from .widgets.master_view import MasterView
 from .widgets.next_experiment import NextExperimentView
-from .widgets.workflow_dialog import WorkflowLaunchDialog
+from .widgets.workflow_dialog import (
+    WorkflowLaunchDialog,
+    WorkflowLaunchSelection,
+)
 
 
 class MainWindow(QMainWindow):
@@ -318,6 +321,7 @@ class MainWindow(QMainWindow):
             )
             record.status = "inspection queued"
         delay = settings.get("delay", {})
+        q = settings.get("q", {})
         solver = settings.get("solver_settings", {})
         em = settings.get("em_settings", {})
         mcmc = settings.get("mcmc_settings", {})
@@ -340,7 +344,11 @@ class MainWindow(QMainWindow):
             "workload_settings": {
                 "knot_period_seconds": float(knot["period_seconds"]),
                 "maximum_solver_iterations": int(solver["maximum_iterations"]),
-                "maximum_em_iterations": int(em["maximum_iterations"]),
+                "maximum_em_iterations": (
+                    0
+                    if q.get("update_policy", "fixed") == "fixed"
+                    else int(em["maximum_iterations"])
+                ),
                 "lag_profile_evaluations": int(delay["coarse_grid_points"])
                 + int(delay["maximum_refinement_evaluations"]),
                 "mcmc_proposals": mcmc_proposals,
@@ -524,10 +532,17 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError, WorkflowError, WorkflowIoError, GuiArtifactError) as error:
             self._show_error("Cannot run estimation", error)
             return
-        mode = self._choose_workflow_mode({})
-        if mode is None:
+        selection = self._choose_workflow_mode({})
+        if selection is None:
             return
+        mode = selection.mode
         try:
+            self.store.manifest["estimator_settings"]["q"][
+                "update_policy"
+            ] = selection.q_update_policy
+            write_project_manifest(
+                self.store.project_path, self.store.manifest
+            )
             self._workflow_state = self._workflow_state.with_mode(mode)
             self._save_workflow_state()
             if mode is WorkflowMode.ALL:
@@ -629,7 +644,7 @@ class MainWindow(QMainWindow):
 
     def _choose_workflow_mode(
         self, inputs: dict[str, object]
-    ) -> WorkflowMode | None:
+    ) -> WorkflowLaunchSelection | None:
         del inputs
         state = self._workflow_state
         if state is None:
@@ -637,12 +652,17 @@ class MainWindow(QMainWindow):
         dialog = WorkflowLaunchDialog(
             running=self.runner.running,
             selected_mode=state.mode,
+            selected_q_update_policy=str(
+                self.store.manifest["estimator_settings"]["q"].get(
+                    "update_policy", "fixed"
+                )
+            ),
             parent=self,
         )
         if dialog.exec() != QDialog.Accepted:
             return None
         selection = dialog.launch_selection
-        return None if selection is None else selection.mode
+        return selection
 
     def _launch_next_workflow_stage(self) -> None:
         state = self._workflow_state
@@ -1486,7 +1506,8 @@ class MainWindow(QMainWindow):
             return
         self.run_action.setEnabled(True)
         self.run_action.setToolTip(
-            "Run sparse full-trajectory MAP, Laplace-EM, and optional MCMC."
+            "Run sparse full-trajectory MAP with fixed Q or Laplace-EM, and "
+            "optional MCMC."
         )
 
     def _update_progress(self, event: object) -> None:

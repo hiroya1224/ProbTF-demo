@@ -10,6 +10,7 @@ from grape_param_estim.batch.em_loop import (
     LaplaceEmIteration,
     LaplaceEmResult,
     LaplaceEmTerminationReason,
+    QUpdatePolicy,
 )
 from grape_param_estim.batch.evidence import (
     compute_delay_static_laplace_geometry,
@@ -164,6 +165,27 @@ class BatchArtifactExportTests(unittest.TestCase):
             iterations=(iteration,),
             final_step=step,
             reason=LaplaceEmTerminationReason.MAXIMUM_ITERATIONS,
+        )
+
+    def _fixed_q_result(self):
+        record = self.em_result.iterations[0]
+        fixed_update = QUpdateResult(
+            input_evaluation=record.q_update.input_evaluation,
+            target=record.q_target,
+            attempts=(),
+            accepted=False,
+            accepted_q=record.input_step.q,
+            accepted_alpha=0.0,
+            max_log_q_change=0.0,
+            termination_reason="fixed_by_request",
+        )
+        fixed_record = replace(record, q_update=fixed_update)
+        return LaplaceEmResult(
+            definition=self.em_result.definition,
+            iterations=(fixed_record,),
+            final_step=fixed_record.output_step,
+            reason=LaplaceEmTerminationReason.FIXED_BY_REQUEST,
+            update_policy=QUpdatePolicy.FIXED,
         )
 
     def _final_q_lag_profile(self):
@@ -468,6 +490,42 @@ class BatchArtifactExportTests(unittest.TestCase):
                 Path(temporary) / "run", **completed.writer_arguments
             )
         self.assertEqual(loaded.mcmc_samples["sample_id"].size, 8)
+
+    def test_fixed_q_policy_round_trips_as_skipped_em(self):
+        payload = copy.deepcopy(self.helper.payload)
+        payload["q"]["update_policy"] = "fixed"
+        request = validate_batch_estimation_request(payload)
+        exported = export_batch_estimation_artifact_payload(
+            request=request,
+            flight_data=(self.helper.flight,),
+            initializations=(self.helper.initialization,),
+            final_solution=self.solution,
+            em_result=self._fixed_q_result(),
+            static_geometry=self.solution.static_geometry(),
+            final_q_lag_profile=self._final_q_lag_profile(),
+            delay_geometry=self._delay_geometry(),
+            identity=ArtifactRunIdentity(
+                estimator_revision="test-estimator-revision",
+                configuration_fingerprint="sha256:" + "1" * 64,
+                controller_snapshot_fingerprint="sha256:" + "2" * 64,
+            ),
+            performance=self._performance(mcmc=False),
+        )
+        self.assertEqual(
+            exported.manifest_metadata["substage_status"]["laplace_em"],
+            {"converged": False, "termination_reason": "fixed_by_request"},
+        )
+        self.assertEqual(exported.q_em["reason"].tolist(), ["fixed_by_request"])
+        with tempfile.TemporaryDirectory() as temporary:
+            loaded = write_batch_estimation_run(
+                Path(temporary) / "run", **exported.writer_arguments
+            )
+        self.assertEqual(
+            loaded.manifest["substage_status"]["laplace_em"][
+                "termination_reason"
+            ],
+            "fixed_by_request",
+        )
 
     def test_independent_sampling_replaces_estimate_only_with_rollback_boundary(self):
         request = validate_batch_estimation_request(self.helper.payload)

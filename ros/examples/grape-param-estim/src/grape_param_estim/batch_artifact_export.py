@@ -24,7 +24,7 @@ from grape_param_estim.batch.evidence import (
     DelayStaticLaplaceGeometry,
     StaticLaplaceGeometry,
 )
-from grape_param_estim.batch.em_loop import LaplaceEmResult
+from grape_param_estim.batch.em_loop import LaplaceEmResult, QUpdatePolicy
 from grape_param_estim.batch.factors.dynamics_factor import (
     dynamics_square_root_information,
 )
@@ -2203,6 +2203,11 @@ def export_batch_estimation_artifact_payload(
     )
     if em_result.definition != final_solution.prepared.dynamics.q_definition:
         raise ValueError("Laplace-EM Q definition disagrees with final graph")
+    requested_q_policy = QUpdatePolicy(
+        str(request.payload["q"]["update_policy"])
+    )
+    if em_result.update_policy is not requested_q_policy:
+        raise ValueError("Q update policy disagrees with the request")
     request_mcmc_enabled = bool(request.payload["mcmc_settings"]["enabled"])
     if request_mcmc_enabled:
         if pending_mcmc_checkpoint:

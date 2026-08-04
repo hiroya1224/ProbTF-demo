@@ -311,8 +311,18 @@ class QUpdateResult:
             raise ValueError("input_evaluation must be successful")
         if not isinstance(self.target, DiagonalQTarget):
             raise TypeError("target must be DiagonalQTarget")
-        if type(self.attempts) is not tuple or not self.attempts:
-            raise TypeError("attempts must be a non-empty tuple")
+        if (
+            not isinstance(self.termination_reason, str)
+            or not self.termination_reason
+        ):
+            raise ValueError("termination_reason must be a non-empty string")
+        if type(self.attempts) is not tuple:
+            raise TypeError("attempts must be a tuple")
+        fixed_by_request = self.termination_reason == "fixed_by_request"
+        if not self.attempts and not fixed_by_request:
+            raise TypeError("attempts must be non-empty for a Q update")
+        if self.attempts and fixed_by_request:
+            raise ValueError("fixed Q cannot contain update attempts")
         if any(not isinstance(value, QUpdateAttempt) for value in self.attempts):
             raise TypeError("attempts contain an invalid value")
         if not isinstance(self.accepted, (bool, np.bool_)):
@@ -341,8 +351,6 @@ class QUpdateResult:
             float(self.max_log_q_change), expected_change, rtol=1.0e-12, atol=1.0e-15
         ):
             raise ValueError("max_log_q_change is inconsistent")
-        if not isinstance(self.termination_reason, str) or not self.termination_reason:
-            raise ValueError("termination_reason must be a non-empty string")
         object.__setattr__(self, "accepted", accepted)
         object.__setattr__(self, "accepted_q", accepted_q)
         object.__setattr__(self, "accepted_alpha", float(self.accepted_alpha))

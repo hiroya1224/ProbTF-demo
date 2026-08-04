@@ -575,6 +575,7 @@ class BatchArtifactTests(unittest.TestCase):
         with self.assertRaisesRegex(ArtifactValidationError, "units"):
             load_batch_estimation_run(self.root)
 
+
     def test_artifact_paths_are_canonical_and_safe(self):
         manifest = self._read_manifest()
         manifest["artifacts"]["map_static"]["path"] = "../map_static.npz"

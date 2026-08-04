@@ -9,6 +9,8 @@ from grape_param_estim.batch.em_loop import (
     LaplaceEmCancelled,
     LaplaceEmSettings,
     LaplaceEmTerminationReason,
+    QUpdatePolicy,
+    run_fixed_q,
     run_laplace_em,
 )
 from grape_param_estim.batch.laplace_em import (
@@ -77,6 +79,43 @@ def _step(q, lag, marginal, residual=2.0):
 
 
 class BatchEmLoopTests(unittest.TestCase):
+    def test_fixed_q_runs_one_wide_profile_without_q_candidate(self):
+        calls = []
+
+        def solver(q, phase, lag, warm_start):
+            calls.append((phase, q.copy(), lag, warm_start is not None))
+            return _step(q, 0.012, 4.0)
+
+        progress = []
+        result = run_fixed_q(
+            _definition(),
+            np.asarray((1.0, 2.0, 3.0, 4.0, 5.0, 6.0)),
+            np.full(6, 1.0e-8),
+            np.ones(2),
+            0.02,
+            solver,
+            initial_warm_start=_state(),
+            progress=progress.append,
+        )
+        self.assertEqual(result.update_policy, QUpdatePolicy.FIXED)
+        self.assertEqual(
+            result.reason, LaplaceEmTerminationReason.FIXED_BY_REQUEST
+        )
+        self.assertEqual(result.em_iteration_count, 0)
+        self.assertFalse(result.converged)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][0], EStepPhase.WIDE_LAG_PROFILE)
+        np.testing.assert_array_equal(
+            result.final_step.q,
+            np.asarray((1.0, 2.0, 3.0, 4.0, 5.0, 6.0)),
+        )
+        self.assertEqual(result.iterations[0].q_update.attempts, ())
+        self.assertEqual(
+            result.iterations[0].q_update.termination_reason,
+            "fixed_by_request",
+        )
+        self.assertEqual(progress, [result.iterations[0]])
+
     def test_alternates_wide_fixed_and_local_phases_until_converged(self):
         calls = []
 

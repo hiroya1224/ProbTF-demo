@@ -387,6 +387,7 @@ def _request_payload(root, bag_specs):
         "output_directory": str(root / "run"),
         "bags": bags,
         "q": {
+            "update_policy": "laplace_em",
             "residual_quantity": "body_wrench",
             "interval_model": "continuous_spectral_density",
             "component_names": ["x", "y", "z", "roll", "pitch", "yaw"],

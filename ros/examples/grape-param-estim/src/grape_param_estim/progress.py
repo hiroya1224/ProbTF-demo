@@ -54,7 +54,7 @@ STAGE_LABELS = MappingProxyType(
         STAGE_OPTIMIZING_FULL_TRAJECTORY: "Optimizing full trajectory",
         STAGE_REFINING_CONSTANT_DELAY: "Refining constant delay",
         STAGE_UPDATING_MODEL_ERROR_COVARIANCE: (
-            "Updating model-error covariance"
+            "Finalizing model-error covariance"
         ),
         STAGE_COMPUTING_LOCAL_POSTERIOR_GEOMETRY: (
             "Computing local posterior geometry"

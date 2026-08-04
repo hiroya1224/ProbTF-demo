@@ -1,7 +1,8 @@
 """Continuous full six-DoF plant and closed-loop trajectory forecast."""
 
 from dataclasses import dataclass
-from typing import Callable, Optional, Sequence, Tuple
+from types import MappingProxyType
+from typing import Callable, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -60,6 +61,67 @@ class ActuatorWrenchJacobian:
                     "{} must be a finite {} array".format(name, shape)
                 )
             object.__setattr__(self, name, value.copy())
+
+
+@dataclass(frozen=True)
+class ActuatorTransitionJacobian:
+    """Analytic blocks of one piecewise-smooth actuator transition.
+
+    Each matrix is diagonal because the four actuator channels evolve
+    independently.  Time-step derivatives are column vectors represented as
+    length-four arrays.
+    """
+
+    thrust_previous: np.ndarray
+    thrust_command: np.ndarray
+    thrust_time_step: np.ndarray
+    gimbal_previous: np.ndarray
+    gimbal_command: np.ndarray
+    gimbal_time_step: np.ndarray
+
+    def __post_init__(self) -> None:
+        for name, shape in (
+            ("thrust_previous", (4, 4)),
+            ("thrust_command", (4, 4)),
+            ("thrust_time_step", (4,)),
+            ("gimbal_previous", (4, 4)),
+            ("gimbal_command", (4, 4)),
+            ("gimbal_time_step", (4,)),
+        ):
+            value = np.asarray(getattr(self, name), dtype=float)
+            if value.shape != shape or not np.all(np.isfinite(value)):
+                raise ValueError(
+                    "{} must be a finite {} array".format(name, shape)
+                )
+            result = value.copy()
+            result.setflags(write=False)
+            object.__setattr__(self, name, result)
+
+
+@dataclass(frozen=True)
+class ActuatorTransitionEvaluation:
+    """Next actuator state, analytic derivative blocks, and branch masks."""
+
+    next_state: ActuatorState
+    jacobian: ActuatorTransitionJacobian
+    active_set: Mapping[str, np.ndarray]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.next_state, ActuatorState):
+            raise TypeError("next_state must be an ActuatorState")
+        if not isinstance(self.jacobian, ActuatorTransitionJacobian):
+            raise TypeError("jacobian must be an ActuatorTransitionJacobian")
+        copied = {}
+        for name, mask in self.active_set.items():
+            if type(name) is not str or not name:
+                raise ValueError("active-set names must be non-empty strings")
+            value = np.asarray(mask)
+            if value.shape != (4,) or value.dtype != np.bool_:
+                raise ValueError("actuator active-set masks must be boolean (4,)")
+            result = value.copy()
+            result.setflags(write=False)
+            copied[name] = result
+        object.__setattr__(self, "active_set", MappingProxyType(copied))
 
 
 def _rotate_z(vector: np.ndarray, angle: float) -> np.ndarray:
@@ -269,54 +331,255 @@ def actuator_wrench_with_jacobian(
     return wrench, jacobian
 
 
+@dataclass(frozen=True)
+class _ActuatorTransitionPrimitives:
+    next_state: ActuatorState
+    thrust_target: np.ndarray
+    gimbal_target: np.ndarray
+    thrust_fraction: float
+    gimbal_fraction: float
+    thrust_fraction_time_derivative: float
+    gimbal_fraction_time_derivative: float
+    thrust_command_derivative: np.ndarray
+    gimbal_command_derivative: np.ndarray
+    rate_input_derivative: np.ndarray
+    rate_time_derivative: np.ndarray
+    final_angle_derivative: np.ndarray
+    active_set: Mapping[str, np.ndarray]
+
+
+def _clip_with_active_set(
+    value: np.ndarray,
+    lower: float,
+    upper: float,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    values = np.asarray(value, dtype=float)
+    clipped = np.clip(values, lower, upper)
+    lower_active = values <= lower
+    upper_active = values >= upper
+    derivative = (~lower_active & ~upper_active).astype(float)
+    scale = max(1.0, abs(float(lower)), abs(float(upper)))
+    tolerance = 64.0 * np.finfo(float).eps * scale
+    near_kink = (
+        (np.abs(values - lower) <= tolerance)
+        | (np.abs(values - upper) <= tolerance)
+    )
+    return clipped, derivative, lower_active, upper_active, near_kink
+
+
+def _response_fraction(time_step: float, time_constant: float) -> Tuple[float, float]:
+    if time_constant <= 0.0:
+        return 1.0, 0.0
+    decay = float(np.exp(-time_step / time_constant))
+    return 1.0 - decay, decay / time_constant
+
+
+def _actuator_transition_primitives(
+    state: ActuatorState,
+    command: ActuatorCommand,
+    parameters: ActuatorParameters,
+    time_step: float,
+) -> _ActuatorTransitionPrimitives:
+    if not isinstance(state, ActuatorState):
+        raise TypeError("state must be an ActuatorState")
+    if not isinstance(command, ActuatorCommand):
+        raise TypeError("command must be an ActuatorCommand")
+    if not isinstance(parameters, ActuatorParameters):
+        raise TypeError("parameters must be ActuatorParameters")
+    dt = float(time_step)
+    if not np.isfinite(dt) or dt <= 0.0:
+        raise ValueError("actuator time step must be positive")
+
+    (
+        target_thrust,
+        thrust_command_derivative,
+        thrust_lower_active,
+        thrust_upper_active,
+        thrust_near_kink,
+    ) = _clip_with_active_set(
+        command.thrust,
+        parameters.minimum_thrust,
+        parameters.maximum_thrust,
+    )
+    (
+        target_gimbal,
+        gimbal_command_derivative,
+        command_gimbal_lower_active,
+        command_gimbal_upper_active,
+        command_gimbal_near_kink,
+    ) = _clip_with_active_set(
+        command.gimbal_angle,
+        -parameters.maximum_gimbal_angle,
+        parameters.maximum_gimbal_angle,
+    )
+    thrust_fraction, thrust_fraction_time_derivative = _response_fraction(
+        dt,
+        parameters.thrust_time_constant,
+    )
+    if parameters.thrust_time_constant <= 0.0:
+        thrust = target_thrust.copy()
+    else:
+        thrust = state.thrust + thrust_fraction * (
+            target_thrust - state.thrust
+        )
+    gimbal_fraction, gimbal_fraction_time_derivative = _response_fraction(
+        dt,
+        parameters.gimbal_time_constant,
+    )
+    if parameters.gimbal_time_constant <= 0.0:
+        unconstrained_gimbal = target_gimbal.copy()
+    else:
+        unconstrained_gimbal = state.gimbal_angle + gimbal_fraction * (
+            target_gimbal - state.gimbal_angle
+        )
+    maximum_step = parameters.maximum_gimbal_rate * dt
+    (
+        limited_step,
+        rate_input_derivative,
+        rate_lower_active,
+        rate_upper_active,
+        rate_near_kink,
+    ) = _clip_with_active_set(
+        unconstrained_gimbal - state.gimbal_angle,
+        -maximum_step,
+        maximum_step,
+    )
+    rate_time_derivative = np.where(
+        rate_lower_active,
+        -parameters.maximum_gimbal_rate,
+        np.where(rate_upper_active, parameters.maximum_gimbal_rate, 0.0),
+    )
+    gimbal_before_angle_limit = state.gimbal_angle + limited_step
+    (
+        gimbal,
+        final_angle_derivative,
+        final_gimbal_lower_active,
+        final_gimbal_upper_active,
+        final_gimbal_near_kink,
+    ) = _clip_with_active_set(
+        gimbal_before_angle_limit,
+        -parameters.maximum_gimbal_angle,
+        parameters.maximum_gimbal_angle,
+    )
+    active_set = {
+        "thrust_command_lower": thrust_lower_active,
+        "thrust_command_upper": thrust_upper_active,
+        "thrust_command_near_kink": thrust_near_kink,
+        "gimbal_command_lower": command_gimbal_lower_active,
+        "gimbal_command_upper": command_gimbal_upper_active,
+        "gimbal_command_near_kink": command_gimbal_near_kink,
+        "gimbal_rate_lower": rate_lower_active,
+        "gimbal_rate_upper": rate_upper_active,
+        "gimbal_rate_near_kink": rate_near_kink,
+        "gimbal_angle_lower": final_gimbal_lower_active,
+        "gimbal_angle_upper": final_gimbal_upper_active,
+        "gimbal_angle_near_kink": final_gimbal_near_kink,
+    }
+    return _ActuatorTransitionPrimitives(
+        next_state=ActuatorState(thrust, gimbal),
+        thrust_target=target_thrust,
+        gimbal_target=target_gimbal,
+        thrust_fraction=thrust_fraction,
+        gimbal_fraction=gimbal_fraction,
+        thrust_fraction_time_derivative=thrust_fraction_time_derivative,
+        gimbal_fraction_time_derivative=gimbal_fraction_time_derivative,
+        thrust_command_derivative=thrust_command_derivative,
+        gimbal_command_derivative=gimbal_command_derivative,
+        rate_input_derivative=rate_input_derivative,
+        rate_time_derivative=rate_time_derivative,
+        final_angle_derivative=final_angle_derivative,
+        active_set=active_set,
+    )
+
+
 def advance_actuators(
     state: ActuatorState,
     command: ActuatorCommand,
     parameters: ActuatorParameters,
     time_step: float,
 ) -> ActuatorState:
+    """Advance the source-compatible piecewise actuator response."""
+
+    return _actuator_transition_primitives(
+        state,
+        command,
+        parameters,
+        time_step,
+    ).next_state
+
+
+def advance_actuators_with_jacobian(
+    state: ActuatorState,
+    command: ActuatorCommand,
+    parameters: ActuatorParameters,
+    time_step: float,
+) -> ActuatorTransitionEvaluation:
+    """Advance actuators and return the exact active-branch derivatives.
+
+    At an exact clamp boundary the saturated convention is used: the
+    derivative with respect to the clamp input is zero and ``near_kink`` is
+    true.  For an active rate limit, the time-step derivative follows the
+    moving rate bound.
+    """
+
     dt = float(time_step)
-    if not np.isfinite(dt) or dt <= 0.0:
-        raise ValueError("actuator time step must be positive")
+    primitive = _actuator_transition_primitives(
+        state,
+        command,
+        parameters,
+        dt,
+    )
+    thrust_previous_diagonal = np.full(
+        4, 1.0 - primitive.thrust_fraction, dtype=float
+    )
+    thrust_command_diagonal = (
+        primitive.thrust_fraction * primitive.thrust_command_derivative
+    )
+    thrust_time_step = (
+        primitive.thrust_fraction_time_derivative
+        * (primitive.thrust_target - state.thrust)
+    )
 
-    def response(current: np.ndarray, target: np.ndarray, tau: float):
-        if tau <= 0.0:
-            return target.copy()
-        fraction = 1.0 - np.exp(-dt / tau)
-        return current + fraction * (target - current)
-
-    target_thrust = np.clip(
-        command.thrust,
-        parameters.minimum_thrust,
-        parameters.maximum_thrust,
+    raw_gimbal_step_previous = np.full(
+        4, -primitive.gimbal_fraction, dtype=float
     )
-    target_gimbal = np.clip(
-        command.gimbal_angle,
-        -parameters.maximum_gimbal_angle,
-        parameters.maximum_gimbal_angle,
+    raw_gimbal_step_command = (
+        primitive.gimbal_fraction * primitive.gimbal_command_derivative
     )
-    thrust = response(
-        state.thrust,
-        target_thrust,
-        parameters.thrust_time_constant,
+    raw_gimbal_step_time = (
+        primitive.gimbal_fraction_time_derivative
+        * (primitive.gimbal_target - state.gimbal_angle)
     )
-    unconstrained_gimbal = response(
-        state.gimbal_angle,
-        target_gimbal,
-        parameters.gimbal_time_constant,
+    limited_step_previous = (
+        primitive.rate_input_derivative * raw_gimbal_step_previous
     )
-    maximum_step = parameters.maximum_gimbal_rate * dt
-    gimbal = state.gimbal_angle + np.clip(
-        unconstrained_gimbal - state.gimbal_angle,
-        -maximum_step,
-        maximum_step,
+    limited_step_command = (
+        primitive.rate_input_derivative * raw_gimbal_step_command
     )
-    gimbal = np.clip(
-        gimbal,
-        -parameters.maximum_gimbal_angle,
-        parameters.maximum_gimbal_angle,
+    limited_step_time = (
+        primitive.rate_input_derivative * raw_gimbal_step_time
+        + primitive.rate_time_derivative
     )
-    return ActuatorState(thrust, gimbal)
+    gimbal_previous_diagonal = primitive.final_angle_derivative * (
+        1.0 + limited_step_previous
+    )
+    gimbal_command_diagonal = (
+        primitive.final_angle_derivative * limited_step_command
+    )
+    gimbal_time_step = primitive.final_angle_derivative * limited_step_time
+    jacobian = ActuatorTransitionJacobian(
+        thrust_previous=np.diag(thrust_previous_diagonal),
+        thrust_command=np.diag(thrust_command_diagonal),
+        thrust_time_step=thrust_time_step,
+        gimbal_previous=np.diag(gimbal_previous_diagonal),
+        gimbal_command=np.diag(gimbal_command_diagonal),
+        gimbal_time_step=gimbal_time_step,
+    )
+    return ActuatorTransitionEvaluation(
+        next_state=primitive.next_state,
+        jacobian=jacobian,
+        active_set=primitive.active_set,
+    )
 
 
 def _advance_plant_and_actuators(

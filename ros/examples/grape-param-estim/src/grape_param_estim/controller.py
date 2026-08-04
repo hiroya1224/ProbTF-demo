@@ -36,6 +36,7 @@ PID_UPDATE_INPUTS = (
 
 _PID_KINK_RELATIVE_TOLERANCE = 1.0e-9
 _PID_CLAMP_REGIONS = ("interior", "lower", "upper")
+DEFAULT_ALLOCATION_CONDITION_THRESHOLD = 1.0e8
 
 
 @dataclass(frozen=True)
@@ -177,6 +178,117 @@ class PIDUpdateResult:
     @property
     def near_kink(self) -> bool:
         return self.active_set.near_kink
+
+
+@dataclass(frozen=True)
+class AllocationMatrixResult:
+    """Acceleration allocation matrix and current-gimbal Jacobian.
+
+    ``matrix`` has shape ``(6, 8)`` and ``gimbal_jacobian`` has shape
+    ``(6, 8, 4)``.  This boundary differentiates only current gimbal angle;
+    mass, inertia, and CoG-relative geometry are fixed controller-snapshot
+    inputs.  CoG has no separate column because ``geometry.rotor_origins`` is
+    already expressed about that snapshot's aggregate CoG.
+    """
+
+    matrix: np.ndarray
+    gimbal_jacobian: np.ndarray
+
+    def __post_init__(self) -> None:
+        for name, shape in (
+            ("matrix", (6, 8)),
+            ("gimbal_jacobian", (6, 8, 4)),
+        ):
+            value = np.asarray(getattr(self, name), dtype=float)
+            if value.shape != shape or not np.all(np.isfinite(value)):
+                raise ValueError(
+                    "{} must be a finite {} array".format(name, shape)
+                )
+            object.__setattr__(self, name, value.copy())
+
+
+@dataclass(frozen=True)
+class AllocationConditionDiagnostic:
+    """Rank and conditioning decision for analytic allocation inversion."""
+
+    row_rank: int
+    condition_number: float
+    condition_threshold: float
+    allocation_near_singular: bool
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.row_rank, (int, np.integer))
+            or self.row_rank < 0
+            or self.row_rank > 6
+        ):
+            raise ValueError("row_rank must be an integer from zero to six")
+        condition_number = float(self.condition_number)
+        condition_threshold = float(self.condition_threshold)
+        if np.isnan(condition_number) or condition_number < 0.0:
+            raise ValueError("condition_number must be non-negative")
+        if not np.isfinite(condition_threshold) or condition_threshold <= 0.0:
+            raise ValueError("condition_threshold must be finite and positive")
+        if not isinstance(self.allocation_near_singular, (bool, np.bool_)):
+            raise TypeError("allocation_near_singular must be boolean")
+        object.__setattr__(self, "row_rank", int(self.row_rank))
+        object.__setattr__(self, "condition_number", condition_number)
+        object.__setattr__(
+            self, "condition_threshold", condition_threshold
+        )
+        object.__setattr__(
+            self,
+            "allocation_near_singular",
+            bool(self.allocation_near_singular),
+        )
+
+
+class AllocationNearSingularError(ValueError):
+    """Explicit failure for a rank-deficient or ill-conditioned allocation."""
+
+    code = "allocation_near_singular"
+
+    def __init__(self, diagnostic: AllocationConditionDiagnostic):
+        if not isinstance(diagnostic, AllocationConditionDiagnostic):
+            raise TypeError(
+                "diagnostic must be an AllocationConditionDiagnostic"
+            )
+        self.diagnostic = diagnostic
+        super().__init__(
+            "allocation_near_singular: rank={}, condition={:.6g}, "
+            "threshold={:.6g}".format(
+                diagnostic.row_rank,
+                diagnostic.condition_number,
+                diagnostic.condition_threshold,
+            )
+        )
+
+
+@dataclass(frozen=True)
+class AllocationPseudoinverseResult:
+    """Full-row-rank analytic pseudoinverse and current-gimbal Jacobian."""
+
+    pseudoinverse: np.ndarray
+    gimbal_jacobian: np.ndarray
+    diagnostic: AllocationConditionDiagnostic
+
+    def __post_init__(self) -> None:
+        for name, shape in (
+            ("pseudoinverse", (8, 6)),
+            ("gimbal_jacobian", (8, 6, 4)),
+        ):
+            value = np.asarray(getattr(self, name), dtype=float)
+            if value.shape != shape or not np.all(np.isfinite(value)):
+                raise ValueError(
+                    "{} must be a finite {} array".format(name, shape)
+                )
+            object.__setattr__(self, name, value.copy())
+        if not isinstance(self.diagnostic, AllocationConditionDiagnostic):
+            raise TypeError(
+                "diagnostic must be an AllocationConditionDiagnostic"
+            )
+        if self.diagnostic.allocation_near_singular:
+            raise ValueError("successful result cannot be near singular")
 
 
 @dataclass(frozen=True)
@@ -480,24 +592,65 @@ def _rotate_z(vector: np.ndarray, angle: float) -> np.ndarray:
     )
 
 
-def acceleration_allocation_matrix(
+def _allocation_gimbal_angles(
     parameters: VehicleParameters,
     geometry: GrapeGeometry,
-    gimbal_angles: np.ndarray = None,
+    gimbal_angles: Optional[np.ndarray],
 ) -> np.ndarray:
-    """Port the fully actuated one-gimbal-DoF allocation matrix."""
+    if not isinstance(parameters, VehicleParameters):
+        raise TypeError("parameters must be a VehicleParameters instance")
+    if not isinstance(geometry, GrapeGeometry):
+        raise TypeError("geometry must be a GrapeGeometry instance")
+    angles = np.asarray(
+        np.zeros(4, dtype=float)
+        if gimbal_angles is None
+        else gimbal_angles,
+        dtype=float,
+    )
+    if angles.shape != (4,) or not np.all(np.isfinite(angles)):
+        raise ValueError("gimbal_angles must contain four finite values")
+    return angles
+
+
+def _acceleration_allocation_matrix_primitive(
+    parameters: VehicleParameters,
+    geometry: GrapeGeometry,
+    gimbal_angles: Optional[np.ndarray],
+    compute_jacobian: bool,
+) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+    angles = _allocation_gimbal_angles(
+        parameters,
+        geometry,
+        gimbal_angles,
+    )
 
     wrench_map = np.zeros((6, 8), dtype=float)
+    gimbal_jacobian = (
+        np.zeros((6, 8, 4), dtype=float)
+        if compute_jacobian
+        else None
+    )
     local_basis = (
         np.asarray((0.0, 1.0, 0.0)),
         np.asarray((0.0, 0.0, 1.0)),
     )
     inverse_inertia = np.linalg.inv(parameters.inertia)
-    origins = geometry.thrust_origins(
-        np.zeros(4) if gimbal_angles is None else gimbal_angles
-    )
+    origins = geometry.thrust_origins(angles)
     for rotor in range(4):
         origin = origins[rotor]
+        if compute_jacobian:
+            angle = float(angles[rotor])
+            origin_gimbal_derivative = _rotate_z(
+                np.asarray(
+                    (
+                        0.0,
+                        -geometry.thrust_offset * np.cos(angle),
+                        -geometry.thrust_offset * np.sin(angle),
+                    ),
+                    dtype=float,
+                ),
+                geometry.arm_yaws[rotor],
+            )
         for component, local_force in enumerate(local_basis):
             column = 2 * rotor + component
             force = _rotate_z(local_force, geometry.arm_yaws[rotor])
@@ -508,7 +661,126 @@ def acceleration_allocation_matrix(
             )
             wrench_map[:3, column] = force / parameters.mass
             wrench_map[3:, column] = inverse_inertia @ torque
-    return wrench_map
+            if compute_jacobian:
+                gimbal_jacobian[3:, column, rotor] = (
+                    inverse_inertia
+                    @ np.cross(origin_gimbal_derivative, force)
+                )
+    if not np.all(np.isfinite(wrench_map)):
+        raise ValueError("acceleration allocation matrix is not finite")
+    return wrench_map, gimbal_jacobian
+
+
+def acceleration_allocation_matrix(
+    parameters: VehicleParameters,
+    geometry: GrapeGeometry,
+    gimbal_angles: Optional[np.ndarray] = None,
+) -> np.ndarray:
+    """Port the fully actuated one-gimbal-DoF allocation matrix."""
+
+    matrix, _ = _acceleration_allocation_matrix_primitive(
+        parameters,
+        geometry,
+        gimbal_angles,
+        compute_jacobian=False,
+    )
+    return matrix
+
+
+def acceleration_allocation_matrix_with_jacobian(
+    parameters: VehicleParameters,
+    geometry: GrapeGeometry,
+    gimbal_angles: Optional[np.ndarray] = None,
+) -> AllocationMatrixResult:
+    """Return the allocation matrix and analytic current-gimbal derivative."""
+
+    matrix, gimbal_jacobian = _acceleration_allocation_matrix_primitive(
+        parameters,
+        geometry,
+        gimbal_angles,
+        compute_jacobian=True,
+    )
+    return AllocationMatrixResult(matrix, gimbal_jacobian)
+
+
+def allocation_pseudoinverse_with_jacobian(
+    allocation: AllocationMatrixResult,
+    *,
+    condition_threshold: float = DEFAULT_ALLOCATION_CONDITION_THRESHOLD,
+) -> AllocationPseudoinverseResult:
+    """Analytically invert a full-row-rank allocation linearization.
+
+    This uses ``A.T (A A.T)^-1`` and its exact differential.  Rank loss or a
+    condition number above ``condition_threshold`` raises
+    :class:`AllocationNearSingularError`; this path never inserts damping,
+    truncates singular values, or applies another hidden regularization.
+    """
+
+    if not isinstance(allocation, AllocationMatrixResult):
+        raise TypeError("allocation must be an AllocationMatrixResult")
+    condition_threshold = float(condition_threshold)
+    if not np.isfinite(condition_threshold) or condition_threshold <= 0.0:
+        raise ValueError("condition_threshold must be finite and positive")
+
+    matrix = allocation.matrix
+    singular_values = np.linalg.svd(matrix, compute_uv=False)
+    rank_tolerance = (
+        np.finfo(float).eps
+        * max(matrix.shape)
+        * float(singular_values[0])
+    )
+    row_rank = int(np.count_nonzero(singular_values > rank_tolerance))
+    minimum_singular_value = float(singular_values[-1])
+    condition_number = (
+        float(singular_values[0] / minimum_singular_value)
+        if minimum_singular_value > 0.0
+        else float("inf")
+    )
+    allocation_near_singular = bool(
+        row_rank < matrix.shape[0]
+        or not np.isfinite(condition_number)
+        or condition_number > condition_threshold
+    )
+    diagnostic = AllocationConditionDiagnostic(
+        row_rank=row_rank,
+        condition_number=condition_number,
+        condition_threshold=condition_threshold,
+        allocation_near_singular=allocation_near_singular,
+    )
+    if allocation_near_singular:
+        raise AllocationNearSingularError(diagnostic)
+
+    gram = matrix @ matrix.T
+    try:
+        gram_inverse = np.linalg.solve(gram, np.eye(6))
+    except np.linalg.LinAlgError as error:
+        failed_diagnostic = AllocationConditionDiagnostic(
+            row_rank=row_rank,
+            condition_number=condition_number,
+            condition_threshold=condition_threshold,
+            allocation_near_singular=True,
+        )
+        raise AllocationNearSingularError(failed_diagnostic) from error
+    pseudoinverse = matrix.T @ gram_inverse
+    gimbal_jacobian = np.empty((8, 6, 4), dtype=float)
+    for gimbal in range(4):
+        matrix_derivative = allocation.gimbal_jacobian[:, :, gimbal]
+        gram_derivative = (
+            matrix_derivative @ matrix.T
+            + matrix @ matrix_derivative.T
+        )
+        gimbal_jacobian[:, :, gimbal] = (
+            matrix_derivative.T @ gram_inverse
+            - matrix.T
+            @ gram_inverse
+            @ gram_derivative
+            @ gram_inverse
+        )
+    return AllocationPseudoinverseResult(
+        pseudoinverse=pseudoinverse,
+        gimbal_jacobian=gimbal_jacobian,
+        diagnostic=diagnostic,
+    )
 
 
 def _source_pseudoinverse(matrix: np.ndarray) -> np.ndarray:

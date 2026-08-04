@@ -9,7 +9,12 @@ import numpy as np
 
 from grape_param_estim.articulated import GrapeArticulatedModel
 from grape_param_estim.controller import (
+    AllocationConditionDiagnostic,
+    AllocationMatrixResult,
+    AllocationNearSingularError,
+    AllocationPseudoinverseResult,
     ControllerConfig,
+    DEFAULT_ALLOCATION_CONDITION_THRESHOLD,
     GrapeController,
     PIDActiveSet,
     PIDClampState,
@@ -18,7 +23,10 @@ from grape_param_estim.controller import (
     PIDUpdateResult,
     PID_UPDATE_INPUTS,
     _pid_update,
+    _source_pseudoinverse,
     acceleration_allocation_matrix,
+    acceleration_allocation_matrix_with_jacobian,
+    allocation_pseudoinverse_with_jacobian,
     pid_update_with_jacobian,
 )
 from grape_param_estim.dynamics import actuator_wrench
@@ -352,6 +360,57 @@ def _central_pid_jacobian(configuration, inputs, nonnegative_integral=False):
                 nonnegative_integral,
             )
         ) / (2.0 * step)
+    return result
+
+
+def _central_allocation_gimbal_jacobian(
+    parameters,
+    geometry,
+    gimbal_angles,
+):
+    angles = np.asarray(gimbal_angles, dtype=float)
+    step = 1.0e-6
+    result = np.empty((6, 8, 4), dtype=float)
+    for gimbal in range(4):
+        direction = np.zeros(4, dtype=float)
+        direction[gimbal] = step
+        result[:, :, gimbal] = (
+            acceleration_allocation_matrix(
+                parameters, geometry, angles + direction
+            )
+            - acceleration_allocation_matrix(
+                parameters, geometry, angles - direction
+            )
+        ) / (2.0 * step)
+    return result
+
+
+def _central_allocation_pseudoinverse_jacobian(
+    parameters,
+    geometry,
+    gimbal_angles,
+):
+    angles = np.asarray(gimbal_angles, dtype=float)
+    step = 1.0e-6
+    result = np.empty((8, 6, 4), dtype=float)
+    for gimbal in range(4):
+        direction = np.zeros(4, dtype=float)
+        direction[gimbal] = step
+        plus = allocation_pseudoinverse_with_jacobian(
+            acceleration_allocation_matrix_with_jacobian(
+                parameters,
+                geometry,
+                angles + direction,
+            )
+        ).pseudoinverse
+        minus = allocation_pseudoinverse_with_jacobian(
+            acceleration_allocation_matrix_with_jacobian(
+                parameters,
+                geometry,
+                angles - direction,
+            )
+        ).pseudoinverse
+        result[:, :, gimbal] = (plus - minus) / (2.0 * step)
     return result
 
 
@@ -738,6 +797,237 @@ class ControllerTests(unittest.TestCase):
                 0.0,
                 0.0,
                 nonnegative_integral=1,
+            )
+
+    def test_allocation_gimbal_jacobian_matches_central_difference(self):
+        generator = np.random.RandomState(88137)
+        nominal = VehicleParameters.nominal()
+        base_geometry = GrapeGeometry.grape()
+        cases = [
+            (
+                nominal,
+                replace(base_geometry, thrust_offset=0.0),
+                np.zeros(4),
+            )
+        ]
+        for index in range(8):
+            cases.append(
+                (
+                    replace(
+                        nominal,
+                        mass=generator.uniform(1.8, 3.6),
+                        inertia=(
+                            generator.uniform(0.7, 1.5)
+                            * nominal.inertia
+                        ),
+                    ),
+                    replace(
+                        base_geometry,
+                        thrust_offset=generator.uniform(0.015, 0.11),
+                    ),
+                    generator.uniform(-0.9, 0.9, 4),
+                )
+            )
+
+        for index, (parameters, geometry, angles) in enumerate(cases):
+            with self.subTest(index=index):
+                result = acceleration_allocation_matrix_with_jacobian(
+                    parameters,
+                    geometry,
+                    angles,
+                )
+                direct = acceleration_allocation_matrix(
+                    parameters,
+                    geometry,
+                    angles,
+                )
+                numerical = _central_allocation_gimbal_jacobian(
+                    parameters,
+                    geometry,
+                    angles,
+                )
+                self.assertIsInstance(result, AllocationMatrixResult)
+                np.testing.assert_array_equal(result.matrix, direct)
+                np.testing.assert_allclose(
+                    result.gimbal_jacobian,
+                    numerical,
+                    rtol=2.0e-7,
+                    atol=2.0e-8,
+                )
+                np.testing.assert_array_equal(
+                    result.gimbal_jacobian[:3],
+                    np.zeros((3, 8, 4)),
+                )
+                for gimbal in range(4):
+                    unrelated_columns = [
+                        column
+                        for column in range(8)
+                        if column // 2 != gimbal
+                    ]
+                    np.testing.assert_array_equal(
+                        result.gimbal_jacobian[
+                            :, unrelated_columns, gimbal
+                        ],
+                        np.zeros((6, 6)),
+                    )
+                if geometry.thrust_offset == 0.0:
+                    np.testing.assert_array_equal(
+                        result.gimbal_jacobian,
+                        np.zeros((6, 8, 4)),
+                    )
+                else:
+                    self.assertGreater(
+                        np.linalg.norm(result.gimbal_jacobian[3:]),
+                        1.0e-3,
+                    )
+
+    def test_allocation_pseudoinverse_jacobian_and_source_equivalence(self):
+        generator = np.random.RandomState(9921)
+        nominal = VehicleParameters.nominal()
+        geometry = GrapeGeometry.grape()
+        cases = [(nominal, np.zeros(4))]
+        for _ in range(7):
+            cases.append(
+                (
+                    replace(
+                        nominal,
+                        mass=generator.uniform(1.9, 3.2),
+                        inertia=(
+                            generator.uniform(0.75, 1.4)
+                            * nominal.inertia
+                        ),
+                    ),
+                    generator.uniform(-0.8, 0.8, 4),
+                )
+            )
+
+        for index, (parameters, angles) in enumerate(cases):
+            with self.subTest(index=index):
+                allocation = (
+                    acceleration_allocation_matrix_with_jacobian(
+                        parameters,
+                        geometry,
+                        angles,
+                    )
+                )
+                result = allocation_pseudoinverse_with_jacobian(allocation)
+                source_compatible = _source_pseudoinverse(
+                    allocation.matrix
+                )
+                numerical = (
+                    _central_allocation_pseudoinverse_jacobian(
+                        parameters,
+                        geometry,
+                        angles,
+                    )
+                )
+                self.assertIsInstance(
+                    result, AllocationPseudoinverseResult
+                )
+                self.assertIsInstance(
+                    result.diagnostic, AllocationConditionDiagnostic
+                )
+                self.assertEqual(result.diagnostic.row_rank, 6)
+                self.assertFalse(
+                    result.diagnostic.allocation_near_singular
+                )
+                self.assertLess(
+                    result.diagnostic.condition_number,
+                    DEFAULT_ALLOCATION_CONDITION_THRESHOLD,
+                )
+                np.testing.assert_allclose(
+                    result.pseudoinverse,
+                    source_compatible,
+                    rtol=3.0e-13,
+                    atol=3.0e-13,
+                )
+                np.testing.assert_allclose(
+                    allocation.matrix @ result.pseudoinverse,
+                    np.eye(6),
+                    rtol=2.0e-13,
+                    atol=2.0e-13,
+                )
+                np.testing.assert_allclose(
+                    result.gimbal_jacobian,
+                    numerical,
+                    rtol=3.0e-6,
+                    atol=3.0e-8,
+                )
+
+    def test_allocation_near_singular_is_an_explicit_failure(self):
+        rank_five = np.zeros((6, 8), dtype=float)
+        rank_five[:5, :5] = np.eye(5)
+        deficient = AllocationMatrixResult(
+            rank_five,
+            np.zeros((6, 8, 4)),
+        )
+        with self.assertRaisesRegex(
+            AllocationNearSingularError,
+            "allocation_near_singular",
+        ) as captured:
+            allocation_pseudoinverse_with_jacobian(deficient)
+        self.assertEqual(captured.exception.code, "allocation_near_singular")
+        self.assertEqual(captured.exception.diagnostic.row_rank, 5)
+        self.assertTrue(
+            captured.exception.diagnostic.allocation_near_singular
+        )
+        self.assertTrue(
+            np.isinf(captured.exception.diagnostic.condition_number)
+        )
+
+        actual = acceleration_allocation_matrix_with_jacobian(
+            VehicleParameters.nominal(),
+            GrapeGeometry.grape(),
+            np.zeros(4),
+        )
+        with self.assertRaises(AllocationNearSingularError) as captured:
+            allocation_pseudoinverse_with_jacobian(
+                actual,
+                condition_threshold=5.0,
+            )
+        self.assertEqual(captured.exception.diagnostic.row_rank, 6)
+        self.assertGreater(
+            captured.exception.diagnostic.condition_number,
+            captured.exception.diagnostic.condition_threshold,
+        )
+        self.assertTrue(
+            captured.exception.diagnostic.allocation_near_singular
+        )
+
+    def test_allocation_jacobian_typed_validation_and_scope(self):
+        result = acceleration_allocation_matrix_with_jacobian(
+            VehicleParameters.nominal(),
+            GrapeGeometry.grape(),
+        )
+        self.assertEqual(result.matrix.shape, (6, 8))
+        self.assertEqual(result.gimbal_jacobian.shape, (6, 8, 4))
+        self.assertTrue(np.all(np.isfinite(result.matrix)))
+        self.assertTrue(np.all(np.isfinite(result.gimbal_jacobian)))
+        self.assertFalse(hasattr(result, "mass_jacobian"))
+        self.assertFalse(hasattr(result, "inertia_jacobian"))
+        self.assertFalse(hasattr(result, "cog_jacobian"))
+
+        with self.assertRaisesRegex(ValueError, "matrix"):
+            AllocationMatrixResult(
+                np.zeros((5, 8)),
+                np.zeros((6, 8, 4)),
+            )
+        invalid_jacobian = np.zeros((6, 8, 4))
+        invalid_jacobian[0, 0, 0] = np.nan
+        with self.assertRaisesRegex(ValueError, "gimbal_jacobian"):
+            AllocationMatrixResult(np.zeros((6, 8)), invalid_jacobian)
+        with self.assertRaisesRegex(ValueError, "four finite"):
+            acceleration_allocation_matrix_with_jacobian(
+                VehicleParameters.nominal(),
+                GrapeGeometry.grape(),
+                np.zeros(3),
+            )
+        with self.assertRaises(TypeError):
+            allocation_pseudoinverse_with_jacobian(object())
+        with self.assertRaisesRegex(ValueError, "finite and positive"):
+            allocation_pseudoinverse_with_jacobian(
+                result,
+                condition_threshold=np.inf,
             )
 
     def test_articulated_q0_snapshot_matches_audited_controller_values(self):

@@ -261,10 +261,14 @@ source devel/setup.bash
 ```
 
 backend の synthetic generator は次で起動できます。
+この CLI は旧 pose-only closed-loop summary ではなく、production batch dynamics factor の解析 Jacobian で構成した variable-step perfect-model truth を生成します。
+出力は pickle-free の strict NPZ で、$SO(3)$ pose、world-frame velocity、body-frame angular velocity、actuator thrust、gimbal angle、18-D truth coordinate とその physical decode、単位、generator/factor provenance、payload SHA-256 を保存します。
 
 ```bash
 rosrun grape_param_estim grape_generate_synthetic_flight.py \
-  --output /tmp/grape_synthetic_closed_loop.npz
+  --output /tmp/grape_synthetic_batch_truth.npz \
+  --interval-count 36 \
+  --seed 917
 ```
 
 GUI test は package-local environment から実行します。

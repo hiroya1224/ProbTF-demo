@@ -1,78 +1,93 @@
-"""Command-line entry points for headless synthetic experiments."""
+"""CLI for the strict sparse-batch synthetic truth artifact."""
 
 import argparse
 import json
+from typing import Optional, Sequence
 
 import numpy as np
 
 from grape_param_estim.synthetic import (
-    run_perfect_model_experiment,
-    run_synthetic_experiment,
-    save_experiment,
+    SYNTHETIC_BATCH_TRUTH_SCHEMA,
+    SYNTHETIC_BATCH_TRUTH_SUMMARY_SCHEMA,
+    generate_perfect_model_batch_trajectory,
+    load_synthetic_batch_truth_artifact,
+    save_synthetic_batch_truth_artifact,
 )
 
 
-def main() -> None:
+def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
-            "Run one continuous full-6-DoF Grape closed-loop synthetic "
-            "episode and save pose-only observations plus latent truth."
+            "Generate a variable-step, perfect-model sparse-batch trajectory "
+            "from the production analytic dynamics factor and save its strict "
+            "pickle-free solver-truth artifact."
         )
     )
     parser.add_argument(
         "--output",
-        default="grape_synthetic_closed_loop.npz",
+        default="grape_synthetic_batch_truth.npz",
         help="destination NPZ (default: %(default)s)",
     )
-    parser.add_argument("--duration", type=float, default=6.0)
-    parser.add_argument("--time-step", type=float, default=0.02)
-    parser.add_argument("--seed", type=int, default=7)
     parser.add_argument(
-        "--perfect-model",
-        action="store_true",
-        help="disable parameter/model/actuator mismatch and pose noise",
+        "--interval-count",
+        type=int,
+        default=36,
+        help="number of variable-step dynamics intervals (default: %(default)s)",
     )
-    arguments = parser.parse_args()
-    if arguments.perfect_model:
-        experiment = run_perfect_model_experiment(
-            arguments.duration, arguments.time_step
-        )
-    else:
-        experiment = run_synthetic_experiment(
-            duration=arguments.duration,
-            time_step=arguments.time_step,
-            seed=arguments.seed,
-        )
-    destination = save_experiment(arguments.output, experiment)
-    translation = np.linalg.norm(
-        experiment.correction_translation, axis=1
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=917,
+        help="deterministic excitation seed (default: %(default)s)",
     )
-    rotation = np.linalg.norm(
-        experiment.correction_rotation_vector, axis=1
+    arguments = parser.parse_args(argv)
+
+    trajectory = generate_perfect_model_batch_trajectory(
+        interval_count=arguments.interval_count,
+        seed=arguments.seed,
     )
+    destination = save_synthetic_batch_truth_artifact(
+        arguments.output,
+        trajectory,
+        generator_seed=arguments.seed,
+    )
+    artifact = load_synthetic_batch_truth_artifact(str(destination))
+    time_step = artifact.trajectory.time_step
     print(
         json.dumps(
             {
-                "schema": "grape-param-estim/synthetic-closed-loop-summary/v1",
+                "schema": SYNTHETIC_BATCH_TRUTH_SUMMARY_SCHEMA,
+                "artifact_schema": SYNTHETIC_BATCH_TRUTH_SCHEMA,
                 "output": str(destination),
-                "samples": int(experiment.nominal.times.size),
+                "samples": int(artifact.trajectory.times.size),
+                "intervals": int(artifact.trajectory.interval_count),
                 "duration_s": float(
-                    experiment.nominal.times[-1]
-                    - experiment.nominal.times[0]
+                    artifact.trajectory.times[-1]
+                    - artifact.trajectory.times[0]
                 ),
-                "maximum_correction_translation_m": float(
-                    np.max(translation)
+                "minimum_time_step_s": float(np.min(time_step)),
+                "maximum_time_step_s": float(np.max(time_step)),
+                "truth_parameter_dimension": int(
+                    artifact.trajectory.truth_parameter_coordinates.size
                 ),
-                "maximum_correction_rotation_deg": float(
-                    np.rad2deg(np.max(rotation))
-                ),
-                "perfect_model": bool(arguments.perfect_model),
+                "direct_truth_channels": [
+                    "position",
+                    "rotation_so3",
+                    "linear_velocity",
+                    "angular_velocity",
+                    "actuator_thrust",
+                    "gimbal_angle",
+                ],
+                "payload_sha256": artifact.payload_sha256,
+                "perfect_model": True,
+                "production_factor_analytic_jacobian": True,
             },
             indent=2,
             sort_keys=True,
         )
     )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

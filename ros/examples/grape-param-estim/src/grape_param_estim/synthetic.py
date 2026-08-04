@@ -1,4 +1,9 @@
-"""Reproducible full closed-loop synthetic episodes for assimilation tests."""
+"""Synthetic truth APIs plus retained closed-loop dynamics-test helpers.
+
+The production CLI uses the sparse-batch truth generator and strict artifact
+functions re-exported here.  The older closed-loop helpers remain available to
+forward-dynamics tests, but they are not the parameter-estimation truth schema.
+"""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +37,14 @@ from grape_param_estim.system import (
     ReferenceState,
     RigidBodyState,
     VehicleParameters,
+)
+from grape_param_estim.synthetic_batch import (
+    SYNTHETIC_BATCH_TRUTH_SCHEMA,
+    SYNTHETIC_BATCH_TRUTH_SUMMARY_SCHEMA,
+    SyntheticBatchTruthArtifact,
+    generate_perfect_model_batch_trajectory,
+    load_synthetic_batch_truth_artifact,
+    save_synthetic_batch_truth_artifact,
 )
 
 

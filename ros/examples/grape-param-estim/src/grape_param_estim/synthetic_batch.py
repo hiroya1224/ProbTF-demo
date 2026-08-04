@@ -1,4 +1,4 @@
-"""ROS-free truth generators for sparse-batch statistical recovery tests.
+"""ROS-free truth generators and strict artifacts for sparse batch estimation.
 
 The helpers in this module generate data in the exact coordinates consumed by
 the production batch factors.  They do not run a second, simplified estimator
@@ -8,7 +8,12 @@ analytic rigid-body factor Jacobian itself.
 """
 
 from dataclasses import dataclass
-from typing import Sequence, Tuple
+import hashlib
+import json
+from numbers import Integral
+from pathlib import Path
+from types import MappingProxyType
+from typing import Mapping, Sequence, Tuple
 
 import numpy as np
 
@@ -34,6 +39,76 @@ from grape_param_estim.system import GrapeGeometry, VehicleParameters
 
 
 _GRAVITY_WORLD = np.asarray((0.0, 0.0, -9.80665), dtype=float)
+
+SYNTHETIC_BATCH_TRUTH_SCHEMA = "grape-param-estim/synthetic-batch-truth/v1"
+SYNTHETIC_BATCH_TRUTH_SUMMARY_SCHEMA = (
+    "grape-param-estim/synthetic-batch-truth-summary/v1"
+)
+
+_GENERATOR_PROVENANCE = (
+    "grape_param_estim.synthetic_batch.generate_perfect_model_batch_trajectory"
+)
+_DYNAMICS_FACTOR_PROVENANCE = (
+    "grape_param_estim.batch.factors.dynamics.evaluate_raw_dynamics_residual"
+)
+_PARAMETER_COORDINATE_ORDER = (
+    "log_mass_scale",
+    "relative_log_inertia_xx",
+    "relative_log_inertia_yy",
+    "relative_log_inertia_zz",
+    "relative_log_inertia_xy",
+    "relative_log_inertia_xz",
+    "relative_log_inertia_yz",
+    "cog_offset_x_m",
+    "cog_offset_y_m",
+    "cog_offset_z_m",
+    "log_force_effectiveness_0",
+    "log_force_effectiveness_1",
+    "log_force_effectiveness_2",
+    "log_force_effectiveness_3",
+    "log_torque_effectiveness_0",
+    "log_torque_effectiveness_1",
+    "log_torque_effectiveness_2",
+    "log_torque_effectiveness_3",
+)
+_SYNTHETIC_BATCH_UNITS = {
+    "times": "s",
+    "position": "m; world frame",
+    "rotation": "dimensionless SO(3); body-to-world",
+    "linear_velocity": "m/s; world frame",
+    "angular_velocity": "rad/s; body frame",
+    "actuator_thrust": "N; per rotor",
+    "gimbal_angle": "rad; per rotor",
+    "truth_parameter_coordinates": "mixed chart coordinates; see coordinate_order",
+    "truth_mass": "kg",
+    "truth_inertia": "kg*m^2; body frame",
+    "truth_cog_offset": "m; body frame",
+    "truth_force_effectiveness": "dimensionless; per rotor",
+    "truth_torque_effectiveness": "dimensionless; per rotor",
+    "truth_linear_drag": "N/(m/s); body axes",
+    "truth_angular_drag": "N*m/(rad/s); body axes",
+}
+_SYNTHETIC_BATCH_PAYLOAD_NAMES = (
+    "metadata_json",
+    "times",
+    "position",
+    "rotation",
+    "linear_velocity",
+    "angular_velocity",
+    "actuator_thrust",
+    "gimbal_angle",
+    "truth_parameter_coordinates",
+    "truth_mass",
+    "truth_inertia",
+    "truth_cog_offset",
+    "truth_force_effectiveness",
+    "truth_torque_effectiveness",
+    "truth_linear_drag",
+    "truth_angular_drag",
+)
+_SYNTHETIC_BATCH_ARCHIVE_NAMES = frozenset(
+    _SYNTHETIC_BATCH_PAYLOAD_NAMES + ("payload_sha256",)
+)
 
 
 def _immutable_array(value: object, shape: Tuple[int, ...], name: str) -> np.ndarray:
@@ -196,6 +271,58 @@ class PerfectModelBatchTrajectory:
         residual.setflags(write=False)
         jacobian.setflags(write=False)
         return residual, jacobian
+
+
+@dataclass(frozen=True)
+class SyntheticBatchTruthArtifact:
+    """Strictly loaded solver-truth artifact and decoded physical parameters."""
+
+    trajectory: PerfectModelBatchTrajectory
+    truth_parameters: VehicleParameters
+    generator_seed: int
+    payload_sha256: str
+    schema: str = SYNTHETIC_BATCH_TRUTH_SCHEMA
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.trajectory, PerfectModelBatchTrajectory):
+            raise TypeError("trajectory must be PerfectModelBatchTrajectory")
+        if not isinstance(self.truth_parameters, VehicleParameters):
+            raise TypeError("truth_parameters must be VehicleParameters")
+        if (
+            isinstance(self.generator_seed, (bool, np.bool_))
+            or not isinstance(self.generator_seed, Integral)
+        ):
+            raise TypeError("generator_seed must be an integer")
+        if self.schema != SYNTHETIC_BATCH_TRUTH_SCHEMA:
+            raise ValueError("synthetic batch truth schema is unsupported")
+        digest = self.payload_sha256
+        if (
+            type(digest) is not str
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise ValueError("payload_sha256 must be a lowercase SHA-256 digest")
+        decoded = self.trajectory.parameter_chart.decode(
+            self.trajectory.truth_parameter_coordinates
+        )
+        _assert_physical_parameters_equal(
+            self.truth_parameters,
+            decoded,
+            "artifact physical parameters",
+        )
+        object.__setattr__(self, "generator_seed", int(self.generator_seed))
+
+    @property
+    def units(self) -> Mapping[str, str]:
+        """Return the immutable unit contract recorded by schema v1."""
+
+        return MappingProxyType(dict(_SYNTHETIC_BATCH_UNITS))
+
+    @property
+    def parameter_coordinate_order(self) -> Tuple[str, ...]:
+        """Return the exact semantic order of the stored 18-D truth vector."""
+
+        return _PARAMETER_COORDINATE_ORDER
 
 
 def _truth_coordinates() -> np.ndarray:
@@ -371,6 +498,327 @@ def generate_perfect_model_batch_trajectory(
         parameter_chart=chart,
         truth_parameter_coordinates=coordinates,
         geometry=geometry,
+    )
+
+
+def _assert_physical_parameters_equal(
+    first: VehicleParameters,
+    second: VehicleParameters,
+    name: str,
+) -> None:
+    if not np.isclose(first.mass, second.mass, rtol=2.0e-14, atol=0.0):
+        raise ValueError("{} mass does not match the 18-D truth".format(name))
+    for field in (
+        "inertia",
+        "cog_offset",
+        "force_effectiveness",
+        "torque_effectiveness",
+        "linear_drag",
+        "angular_drag",
+    ):
+        if not np.allclose(
+            getattr(first, field),
+            getattr(second, field),
+            rtol=2.0e-14,
+            atol=2.0e-15,
+        ):
+            raise ValueError(
+                "{} {} does not match the 18-D truth".format(name, field)
+            )
+
+
+def _synthetic_batch_metadata(generator_seed: int, interval_count: int) -> dict:
+    return {
+        "schema": SYNTHETIC_BATCH_TRUTH_SCHEMA,
+        "coordinate_order": list(_PARAMETER_COORDINATE_ORDER),
+        "units": dict(_SYNTHETIC_BATCH_UNITS),
+        "provenance": {
+            "generator": _GENERATOR_PROVENANCE,
+            "dynamics_factor": _DYNAMICS_FACTOR_PROVENANCE,
+            "geometry": "grape_param_estim.system.GrapeGeometry.grape",
+            "construction_derivatives": "analytic production factor Jacobian",
+            "finite_difference_derivatives": False,
+            "perfect_model": True,
+            "variable_time_step": True,
+            "generator_seed": int(generator_seed),
+            "interval_count": int(interval_count),
+        },
+    }
+
+
+def _canonical_metadata_json(generator_seed: int, interval_count: int) -> str:
+    return json.dumps(
+        _synthetic_batch_metadata(generator_seed, interval_count),
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+
+
+def _payload_sha256(payload: Mapping[str, np.ndarray]) -> str:
+    digest = hashlib.sha256()
+    for name in _SYNTHETIC_BATCH_PAYLOAD_NAMES:
+        value = np.ascontiguousarray(payload[name])
+        digest.update(name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(value.dtype.str.encode("ascii"))
+        digest.update(b"\0")
+        digest.update(",".join(str(item) for item in value.shape).encode("ascii"))
+        digest.update(b"\0")
+        digest.update(value.tobytes(order="C"))
+    return digest.hexdigest()
+
+
+def _artifact_payload(
+    trajectory: PerfectModelBatchTrajectory,
+    generator_seed: int,
+) -> dict:
+    physical = trajectory.parameter_chart.decode(
+        trajectory.truth_parameter_coordinates
+    )
+    payload = {
+        "metadata_json": np.asarray(
+            _canonical_metadata_json(generator_seed, trajectory.interval_count)
+        ),
+        "times": np.asarray(trajectory.times, dtype=np.float64),
+        "position": np.asarray(trajectory.position, dtype=np.float64),
+        "rotation": np.asarray(trajectory.rotation, dtype=np.float64),
+        "linear_velocity": np.asarray(
+            trajectory.linear_velocity, dtype=np.float64
+        ),
+        "angular_velocity": np.asarray(
+            trajectory.angular_velocity, dtype=np.float64
+        ),
+        "actuator_thrust": np.asarray(
+            trajectory.actuator_thrust, dtype=np.float64
+        ),
+        "gimbal_angle": np.asarray(trajectory.gimbal_angle, dtype=np.float64),
+        "truth_parameter_coordinates": np.asarray(
+            trajectory.truth_parameter_coordinates, dtype=np.float64
+        ),
+        "truth_mass": np.asarray((physical.mass,), dtype=np.float64),
+        "truth_inertia": np.asarray(physical.inertia, dtype=np.float64),
+        "truth_cog_offset": np.asarray(
+            physical.cog_offset, dtype=np.float64
+        ),
+        "truth_force_effectiveness": np.asarray(
+            physical.force_effectiveness, dtype=np.float64
+        ),
+        "truth_torque_effectiveness": np.asarray(
+            physical.torque_effectiveness, dtype=np.float64
+        ),
+        "truth_linear_drag": np.asarray(
+            physical.linear_drag, dtype=np.float64
+        ),
+        "truth_angular_drag": np.asarray(
+            physical.angular_drag, dtype=np.float64
+        ),
+    }
+    return payload
+
+
+def save_synthetic_batch_truth_artifact(
+    path: str,
+    trajectory: PerfectModelBatchTrajectory,
+    *,
+    generator_seed: int,
+) -> Path:
+    """Save one canonical, pickle-free synthetic solver-truth NPZ artifact."""
+
+    if not isinstance(trajectory, PerfectModelBatchTrajectory):
+        raise TypeError("trajectory must be PerfectModelBatchTrajectory")
+    if (
+        isinstance(generator_seed, (bool, np.bool_))
+        or not isinstance(generator_seed, Integral)
+    ):
+        raise TypeError("generator_seed must be an integer")
+    destination = Path(path).expanduser().resolve()
+    if destination.suffix != ".npz":
+        raise ValueError("synthetic batch truth artifact must use a .npz suffix")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    payload = _artifact_payload(trajectory, int(generator_seed))
+    payload["payload_sha256"] = np.asarray(_payload_sha256(payload))
+    np.savez_compressed(str(destination), **payload)
+    return destination
+
+
+def _strict_json_object(serialized: str) -> dict:
+    def no_duplicate_keys(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("metadata_json contains duplicate keys")
+            result[key] = value
+        return result
+
+    try:
+        value = json.loads(serialized, object_pairs_hook=no_duplicate_keys)
+    except (TypeError, json.JSONDecodeError) as error:
+        raise ValueError("metadata_json is not valid JSON") from error
+    if type(value) is not dict:
+        raise ValueError("metadata_json must contain one JSON object")
+    return value
+
+
+def _validate_metadata(metadata: dict) -> Tuple[int, int]:
+    if set(metadata) != {"schema", "coordinate_order", "units", "provenance"}:
+        raise ValueError("synthetic batch metadata fields do not match schema v1")
+    if metadata["schema"] != SYNTHETIC_BATCH_TRUTH_SCHEMA:
+        raise ValueError("synthetic batch truth schema is unsupported")
+    if metadata["coordinate_order"] != list(_PARAMETER_COORDINATE_ORDER):
+        raise ValueError("synthetic batch parameter coordinate order is invalid")
+    if metadata["units"] != _SYNTHETIC_BATCH_UNITS:
+        raise ValueError("synthetic batch unit contract is invalid")
+    provenance = metadata["provenance"]
+    expected_fields = {
+        "generator",
+        "dynamics_factor",
+        "geometry",
+        "construction_derivatives",
+        "finite_difference_derivatives",
+        "perfect_model",
+        "variable_time_step",
+        "generator_seed",
+        "interval_count",
+    }
+    if type(provenance) is not dict or set(provenance) != expected_fields:
+        raise ValueError("synthetic batch provenance is invalid")
+    expected_fixed = {
+        "generator": _GENERATOR_PROVENANCE,
+        "dynamics_factor": _DYNAMICS_FACTOR_PROVENANCE,
+        "geometry": "grape_param_estim.system.GrapeGeometry.grape",
+        "construction_derivatives": "analytic production factor Jacobian",
+        "finite_difference_derivatives": False,
+        "perfect_model": True,
+        "variable_time_step": True,
+    }
+    for name, expected in expected_fixed.items():
+        if provenance[name] != expected or type(provenance[name]) is not type(expected):
+            raise ValueError("synthetic batch provenance {} is invalid".format(name))
+    seed = provenance["generator_seed"]
+    interval_count = provenance["interval_count"]
+    if type(seed) is not int:
+        raise ValueError("synthetic batch generator_seed must be an integer")
+    if type(interval_count) is not int or interval_count < 18:
+        raise ValueError("synthetic batch interval_count must be at least 18")
+    return seed, interval_count
+
+
+def _require_float64_array(
+    payload: Mapping[str, np.ndarray],
+    name: str,
+    shape: Tuple[int, ...],
+) -> np.ndarray:
+    value = payload[name]
+    if value.dtype != np.dtype(np.float64) or value.shape != shape:
+        raise ValueError(
+            "{} must be a float64 array with shape {}".format(name, shape)
+        )
+    if not np.all(np.isfinite(value)):
+        raise ValueError("{} must contain only finite values".format(name))
+    return value
+
+
+def load_synthetic_batch_truth_artifact(
+    path: str,
+) -> SyntheticBatchTruthArtifact:
+    """Strictly load and integrity-check a schema-v1 synthetic truth NPZ."""
+
+    source = Path(path).expanduser().resolve()
+    with np.load(str(source), allow_pickle=False) as archive:
+        names = tuple(archive.files)
+        if (
+            len(names) != len(_SYNTHETIC_BATCH_ARCHIVE_NAMES)
+            or set(names) != _SYNTHETIC_BATCH_ARCHIVE_NAMES
+        ):
+            raise ValueError(
+                "synthetic batch truth archive members do not match schema v1"
+            )
+        payload = {
+            name: np.asarray(archive[name]).copy()
+            for name in _SYNTHETIC_BATCH_PAYLOAD_NAMES
+        }
+        digest_array = np.asarray(archive["payload_sha256"]).copy()
+
+    for name, value in (
+        ("metadata_json", payload["metadata_json"]),
+        ("payload_sha256", digest_array),
+    ):
+        if value.shape != () or value.dtype.kind not in "US":
+            raise ValueError("{} must be one scalar string".format(name))
+    recorded_digest = str(digest_array.item())
+    computed_digest = _payload_sha256(payload)
+    if recorded_digest != computed_digest:
+        raise ValueError("synthetic batch truth payload checksum does not match")
+
+    metadata = _strict_json_object(str(payload["metadata_json"].item()))
+    generator_seed, interval_count = _validate_metadata(metadata)
+    sample_count = interval_count + 1
+    times = _require_float64_array(payload, "times", (sample_count,))
+    position = _require_float64_array(payload, "position", (sample_count, 3))
+    rotation = _require_float64_array(
+        payload, "rotation", (sample_count, 3, 3)
+    )
+    linear_velocity = _require_float64_array(
+        payload, "linear_velocity", (sample_count, 3)
+    )
+    angular_velocity = _require_float64_array(
+        payload, "angular_velocity", (sample_count, 3)
+    )
+    actuator_thrust = _require_float64_array(
+        payload, "actuator_thrust", (sample_count, 4)
+    )
+    gimbal_angle = _require_float64_array(
+        payload, "gimbal_angle", (sample_count, 4)
+    )
+    coordinates = _require_float64_array(
+        payload,
+        "truth_parameter_coordinates",
+        (PARAMETER_DIMENSION,),
+    )
+    truth_mass = _require_float64_array(payload, "truth_mass", (1,))
+    truth_inertia = _require_float64_array(payload, "truth_inertia", (3, 3))
+    truth_cog = _require_float64_array(payload, "truth_cog_offset", (3,))
+    truth_force = _require_float64_array(
+        payload, "truth_force_effectiveness", (4,)
+    )
+    truth_torque = _require_float64_array(
+        payload, "truth_torque_effectiveness", (4,)
+    )
+    truth_linear_drag = _require_float64_array(
+        payload, "truth_linear_drag", (3,)
+    )
+    truth_angular_drag = _require_float64_array(
+        payload, "truth_angular_drag", (3,)
+    )
+
+    chart = VehicleParameterChart(VehicleParameters.nominal())
+    trajectory = PerfectModelBatchTrajectory(
+        times=times,
+        position=position,
+        rotation=rotation,
+        linear_velocity=linear_velocity,
+        angular_velocity=angular_velocity,
+        actuator_thrust=actuator_thrust,
+        gimbal_angle=gimbal_angle,
+        parameter_chart=chart,
+        truth_parameter_coordinates=coordinates,
+        geometry=GrapeGeometry.grape(),
+    )
+    physical = VehicleParameters(
+        mass=float(truth_mass[0]),
+        inertia=truth_inertia,
+        cog_offset=truth_cog,
+        force_effectiveness=truth_force,
+        torque_effectiveness=truth_torque,
+        linear_drag=truth_linear_drag,
+        angular_drag=truth_angular_drag,
+    )
+    return SyntheticBatchTruthArtifact(
+        trajectory=trajectory,
+        truth_parameters=physical,
+        generator_seed=generator_seed,
+        payload_sha256=recorded_digest,
     )
 
 
@@ -597,7 +1045,12 @@ def simulate_delayed_zoh_first_order(
 __all__ = [
     "KnownQBatchMoments",
     "PerfectModelBatchTrajectory",
+    "SYNTHETIC_BATCH_TRUTH_SCHEMA",
+    "SYNTHETIC_BATCH_TRUTH_SUMMARY_SCHEMA",
+    "SyntheticBatchTruthArtifact",
     "generate_known_q_laplace_moments",
     "generate_perfect_model_batch_trajectory",
+    "load_synthetic_batch_truth_artifact",
+    "save_synthetic_batch_truth_artifact",
     "simulate_delayed_zoh_first_order",
 ]

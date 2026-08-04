@@ -64,7 +64,8 @@ observed は測定値、nominal は推定前モデル、MAP は全 factor を同
 
 worker は JSON Lines の progress を標準出力へ、診断を標準エラーへ出し、GUI は nonlinear iteration、lag profile point、EM iteration、MCMC proposal、PID forecast の境界で停止要求を処理します。
 不完全な directory は complete result として読み込みません。
-MCMC chain checkpoint の低位 API はありますが、現行の one-command worker は `resume=true` を既存 checkpoint へ接続していないため、中断した run の end-to-end resume は未完成です。
+同じ request identity と run directory に対する `resume=true` は、完了済み MAP/EM/Laplace と proposal-boundary MCMC checkpoint を検証して再利用します。
+疎 factorization の途中は保存せず、保存済み MAP 点から再生成します。
 
 ## 推定対象と次元
 
@@ -126,6 +127,17 @@ request は output directory、bag の絶対 path と SHA256、interval、全 ob
 covariance を message に記録されていない値から暗黙に補う default はなく、使用しない factor は理由付きで disabled にします。
 actuator model も request の必須情報であり、hidden default はありません。
 
+`estimate_only` の complete run へ後から MCMC を追加する場合は、同じ run directory と元の estimation request を束縛した `grape-param-estim/posterior-sampling-request/v1` を使います。
+この worker は MAP、delay profile、Laplace-EM を再実行せず、MCMC 完了時だけ run directory を原子的に置き換えます。
+
+```bash
+rosrun grape_param_estim grape_sample_parameter_posterior.py \
+  --request /absolute/path/to/posterior-sampling-request.json
+```
+
+cancel 時は元の complete estimate-only artifact を変更せず、同一 sampling request fingerprint の chain checkpoint だけを保持します。
+再実行時は同じ request の `resume` だけを `true` にし、upstream run ID、bag SHA256/interval、configuration、controller、estimator revision、元 request fingerprint のいずれかが変われば拒否します。
+
 PID evaluation request schema は `grape-param-estim/pid-proposal-evaluation-request/v1` です。
 完了した MCMC 付き estimation run、元 bag、current・sample-derived・user candidate、plant sample subset、model discrepancy policy、replicate seed、tail level を明示して実行します。
 
@@ -135,6 +147,8 @@ rosrun grape_param_estim grape_evaluate_pid_proposals.py \
 ```
 
 PID worker は candidate × retained plant sample × selected bag × discrepancy replicate の full closed-loop simulation を行います。
+request の `forecast_workers` は `auto` または `1--32` の明示値で、独立 forecast を deterministic process pool へ割り当てます。
+完了 forecast は content-addressed checkpoint に保存され、同一 request fingerprint の `resume=true` では未完了の Cartesian-product record だけを再計算します。
 current PID の正本は baseline rosbag の controller snapshot であり、repository の YAML を現在値として代用しません。
 出力 YAML は提案ファイルであり、controller や `dynamic_reconfigure` を自動変更しません。
 
@@ -209,7 +223,10 @@ GUI test は package-local environment から実行します。
 
 ```bash
 cd /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/gui
-.venv/bin/python -m pytest
+MPLCONFIGDIR=/tmp/grape-mpl-cache \
+QT_QPA_PLATFORM=offscreen \
+GRAPE_PARAM_ESTIM_DISABLE_3D=1 \
+.venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
 ## 安全上の境界

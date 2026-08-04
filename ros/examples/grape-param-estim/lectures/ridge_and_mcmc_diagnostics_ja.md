@@ -94,7 +94,10 @@ draw 数が多いこと、acceptance が高いこと、MAP 周辺に cloud が�
 `posterior/checkpoint.py` は一 chain の current target、retained draw、kernel counter、completed transition、NumPy RandomState を pickle-free NPZ に保存する。
 `run_mcmc_chains` は完了 chain と proposal-boundary checkpoint の両方を受け取って再開できる。
 同じ chain を completed と in-progress の両方で渡すことは拒否する。
-ただし現時点の `grape_estimate_flights.py` はこの低位 checkpoint API を run directory の `resume=true` と接続していないため、GUI/CLI 全体の resume 完成を意味しない。
+`grape_estimate_flights.py` は同一 batch request と run directory の `resume=true` をこの checkpoint へ接続する。
+`grape_sample_parameter_posterior.py` は complete な estimate-only run と元 request を全 fingerprint で照合し、MAP/EM/Laplace を再実行せず同じ directory へ MCMC を原子的に追加する。
+cancel 時は complete estimate-only artifact を変更せず proposal checkpoint を保持し、同一 sampling request fingerprint の `resume=true` だけを受け付ける。
+linear factorization の途中は保存せず、保存済み MAP state から undamped factorization を再生成する。
 
 ## 11. 18--24 秒 run の現在地
 
@@ -125,3 +128,4 @@ PID candidate を作る前に、data が識別した方向と prior が選んだ
 | proposal/chain runner | `posterior/mcmc.py`, `posterior/run.py` |
 | R-hat/ESS | `posterior/diagnostics.py` |
 | pickle-free checkpoint | `posterior/checkpoint.py` |
+| estimate-only への後段 sampling | `posterior_sampling_request.py`, `posterior_sampling_cli.py` |

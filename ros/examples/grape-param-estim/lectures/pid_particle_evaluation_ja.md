@@ -95,7 +95,7 @@ operator が `selected_candidate_id` を指定しても、selection policy を�
 ## 10. strict request と CLI
 
 request schema は `grape-param-estim/pid-proposal-evaluation-request/v1` である。
-主な必須 field は evaluation/output path、estimation run、baseline bag、bag path/SHA256、selected mode、fixed drag、model discrepancy policy/seed/replicates、plant subset、candidate、quantile/CVaR、selected candidate、maximum reference age である。
+主な必須 field は evaluation/output path、estimation run、resume、`forecast_workers`、baseline bag、bag path/SHA256、selected mode、fixed drag、model discrepancy policy/seed/replicates、plant subset、candidate、quantile/CVaR、selected candidate、maximum reference age である。
 
 ```bash
 cd /home/leus/catkin_ws
@@ -105,7 +105,10 @@ rosrun grape_param_estim grape_evaluate_pid_proposals.py \
 ```
 
 標準出力は strict JSONL progress、標準エラーは診断と完了 path である。
-現行 PID one-command worker は `resume=true` を checkpoint へ接続していないため、cancel 後は fresh evaluation として再実行する。
+`forecast_workers` は `auto` または `1--32` の明示値で、BLAS thread を一つに制限した deterministic process pool が独立 forecast を実行する。
+各完了 record は candidate、sample、bag、replicate の content key とともに atomic、pickle-free checkpoint へ保存する。
+同一 request fingerprint の `resume=true` は checkpoint を検証し、未完了 record だけを再計算して canonical order に戻す。
+request identity が異なる checkpoint、重複 record、異なる common-random seed は拒否する。
 
 ## 11. artifact
 

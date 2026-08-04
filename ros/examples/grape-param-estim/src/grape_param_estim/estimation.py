@@ -49,6 +49,7 @@ from grape_param_estim.batch.lm import (
     LMIterationRecord,
     LMSettings,
     LMSolveResult,
+    LMTerminationReason,
     solve_batch_map,
 )
 from grape_param_estim.batch.problem import (
@@ -325,6 +326,101 @@ def solve_fixed_graph_laplace(
     )
 
 
+def restore_fixed_graph_laplace(
+    graph_factory: PreparedGraphFactory,
+    q: np.ndarray,
+    fixed_delay: float,
+    state_values: dict,
+    expected_objective: float,
+) -> FixedGraphLaplaceSolution:
+    """Rebuild an undamped Laplace point from a completed MAP checkpoint.
+
+    A sparse factorization is intentionally recomputed: the documented
+    resume boundary is a completed MAP/Laplace substage, not an in-progress
+    numerical factorization.  No nonlinear iteration, lag profile, or EM
+    update is repeated.
+    """
+
+    if not callable(graph_factory):
+        raise TypeError("graph_factory must be callable")
+    selected_q = _positive_q(q)
+    delay = float(fixed_delay)
+    if not np.isfinite(delay) or delay < 0.0:
+        raise ValueError("fixed_delay must be finite and non-negative")
+    if not isinstance(state_values, dict):
+        raise TypeError("state_values must be a dict")
+    objective_checkpoint = float(expected_objective)
+    if not np.isfinite(objective_checkpoint) or objective_checkpoint < 0.0:
+        raise ValueError("expected_objective must be finite and non-negative")
+    static_key = next(
+        (
+            key
+            for key in state_values
+            if key.kind is VariableKind.STATIC_PARAMETERS
+        ),
+        None,
+    )
+    if static_key is None:
+        raise ValueError("checkpoint state has no static parameter block")
+    static = _static_coordinate(state_values[static_key])
+    prepared = graph_factory(selected_q.copy(), delay, static.copy())
+    if not isinstance(prepared, PreparedBatchGraphData):
+        raise TypeError("graph_factory must return PreparedBatchGraphData")
+    if not np.array_equal(prepared.dynamics.q, selected_q):
+        raise ValueError("restored graph Q differs from checkpoint Q")
+    if np.asarray((prepared.fixed_delay,), dtype="<f8").tobytes() != np.asarray(
+        (delay,), dtype="<f8"
+    ).tobytes():
+        raise ValueError("restored graph delay differs from checkpoint delay")
+    problem = build_fixed_batch_problem(prepared)
+    state = BatchState(problem.layout, state_values)
+    final = problem.linearize(state)
+    objective = 0.5 * float(
+        sum(factor.squared_error for factor in final.factors)
+    )
+    tolerance = 2.0e-10 * max(1.0, abs(objective_checkpoint))
+    if not np.isclose(
+        objective,
+        objective_checkpoint,
+        rtol=2.0e-10,
+        atol=tolerance,
+    ):
+        raise ValueError("checkpoint MAP objective does not reproduce")
+    factorization = ArrowheadLaplaceFactorization(final.sparse)
+    dynamics_linearizations = evaluate_prepared_dynamics_intervals(
+        prepared, state
+    )
+    dynamics = compute_expected_dynamics_moments(
+        dynamics_linearizations, factorization
+    )
+    marginal = approximate_marginal_objective(
+        objective,
+        factorization,
+        prepared.dynamics.q_definition,
+        prepared.dynamics.q,
+        dynamics.time_step,
+    )
+    lm = LMSolveResult(
+        state=state,
+        objective=objective,
+        reason=LMTerminationReason.GRADIENT_TOLERANCE,
+        iterations=(),
+        final_gradient_inf_norm=float(
+            np.linalg.norm(final.sparse.gradient, ord=np.inf)
+        ),
+        final_damping=0.0,
+    )
+    return FixedGraphLaplaceSolution(
+        prepared=prepared,
+        problem=problem,
+        lm=lm,
+        final_linearization=final,
+        factorization=factorization,
+        dynamics=dynamics,
+        marginal_objective=marginal,
+    )
+
+
 class SparseLaplaceEStepSolver:
     """Adapter implementing the E-step protocol used by ``run_laplace_em``."""
 
@@ -576,4 +672,5 @@ __all__ = [
     "SparseLaplaceEStepSolver",
     "make_fixed_q_laplace_problem_factory",
     "solve_fixed_graph_laplace",
+    "restore_fixed_graph_laplace",
 ]

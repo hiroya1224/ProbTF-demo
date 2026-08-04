@@ -10,6 +10,7 @@ from grape_param_estim.estimation import (
     EstimationCancelled,
     SparseLaplaceEStepSolver,
     make_fixed_q_laplace_problem_factory,
+    restore_fixed_graph_laplace,
     solve_fixed_graph_laplace,
 )
 from grape_param_estim.posterior.delayed_acceptance import PosteriorPoint
@@ -61,6 +62,42 @@ class EstimationOrchestrationTests(unittest.TestCase):
             geometry.information.posterior.hessian,
             result.factorization.reduced_hessian,
         )
+
+    def test_completed_map_checkpoint_restores_without_nonlinear_iterations(self):
+        solved = solve_fixed_graph_laplace(
+            self.factory,
+            self.prepared.dynamics.q,
+            self.prepared.fixed_delay,
+            self.prepared.initial_parameter_coordinates,
+        )
+        restored = restore_fixed_graph_laplace(
+            self.factory,
+            solved.prepared.dynamics.q,
+            solved.prepared.fixed_delay,
+            {
+                key: solved.lm.state.value(key)
+                for key in solved.lm.state.layout.variable_keys
+            },
+            solved.lm.objective,
+        )
+        self.assertEqual(restored.lm.iterations, ())
+        np.testing.assert_allclose(
+            restored.factorization.reduced_hessian,
+            solved.factorization.reduced_hessian,
+            rtol=1.0e-12,
+            atol=1.0e-12,
+        )
+        with self.assertRaisesRegex(ValueError, "objective"):
+            restore_fixed_graph_laplace(
+                self.factory,
+                solved.prepared.dynamics.q,
+                solved.prepared.fixed_delay,
+                {
+                    key: solved.lm.state.value(key)
+                    for key in solved.lm.state.layout.variable_keys
+                },
+                solved.lm.objective + 1.0,
+            )
 
     def test_em_adapter_profiles_delay_without_a_delay_derivative(self):
         solver = SparseLaplaceEStepSolver(

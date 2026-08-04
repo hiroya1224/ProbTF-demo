@@ -9,7 +9,9 @@ import numpy as np
 from grape_param_estim.artifact_io import ArtifactValidationError
 from grape_param_estim.batch_request import (
     BATCH_ESTIMATION_REQUEST_SCHEMA,
+    FIXED_FACTOR_COVARIANCE_BLOCKS,
     OBSERVATION_FACTOR_NAMES,
+    OBSERVATION_COVARIANCE_BLOCKS,
     load_batch_estimation_request,
     validate_batch_estimation_request,
 )
@@ -23,18 +25,37 @@ class BatchRequestTests(unittest.TestCase):
         self.bag = root / "flight.bag"
         self.bag.write_bytes(b"test bag")
         self.output = root / "run"
-        factor = {
-            "enabled": True,
-            "disabled_reason": None,
-            "covariance_source": "preflight_calibration",
-        }
-        factors = {
-            name: copy.deepcopy(factor) for name in OBSERVATION_FACTOR_NAMES
-        }
+
+        def diagonal_covariance(contract, source="project_configuration"):
+            coordinates, units = contract
+            return {
+                "source": source,
+                "representation": "diagonal",
+                "coordinates": list(coordinates),
+                "units": list(units),
+                "values": [1.0] * len(coordinates),
+            }
+
+        factors = {}
+        for name in OBSERVATION_FACTOR_NAMES:
+            factors[name] = {
+                "enabled": True,
+                "disabled_reason": None,
+                "covariances": {
+                    block_name: diagonal_covariance(contract)
+                    for block_name, contract in (
+                        OBSERVATION_COVARIANCE_BLOCKS[name].items()
+                    )
+                },
+            }
         factors["accelerometer"] = {
             "enabled": False,
             "disabled_reason": "physical sensor origin is not calibrated",
-            "covariance_source": "unavailable",
+            "covariances": None,
+        }
+        fixed_covariances = {
+            name: diagonal_covariance(contract, "numerical_tolerance")
+            for name, contract in FIXED_FACTOR_COVARIANCE_BLOCKS.items()
         }
         self.request = {
             "schema": BATCH_ESTIMATION_REQUEST_SCHEMA,
@@ -49,6 +70,7 @@ class BatchRequestTests(unittest.TestCase):
                     "sha256": file_sha256(self.bag),
                     "interval_seconds": [18.0, 24.0],
                     "observation_factors": factors,
+                    "fixed_factor_covariances": fixed_covariances,
                 }
             ],
             "q": {
@@ -189,10 +211,135 @@ class BatchRequestTests(unittest.TestCase):
         with self.assertRaisesRegex(ArtifactValidationError, "disabled_reason"):
             validate_batch_estimation_request(request)
         request = copy.deepcopy(self.request)
-        request["bags"][0]["observation_factors"]["pose"][
-            "covariance_source"
-        ] = "unavailable"
-        with self.assertRaisesRegex(ArtifactValidationError, "unavailable"):
+        request["bags"][0]["observation_factors"]["pose"]["covariances"] = None
+        with self.assertRaisesRegex(ArtifactValidationError, "must be an object"):
+            validate_batch_estimation_request(request)
+        request = copy.deepcopy(self.request)
+        request["bags"][0]["observation_factors"]["accelerometer"][
+            "covariances"
+        ] = {}
+        with self.assertRaisesRegex(ArtifactValidationError, "must be null"):
+            validate_batch_estimation_request(request)
+
+    def test_covariance_source_coordinates_and_units_are_protocol_fields(self):
+        request = copy.deepcopy(self.request)
+        covariance = request["bags"][0]["observation_factors"]["pose"][
+            "covariances"
+        ]["position_observation"]
+        covariance["source"] = "guessed_default"
+        with self.assertRaisesRegex(ArtifactValidationError, "source.*must be one of"):
+            validate_batch_estimation_request(request)
+
+        request = copy.deepcopy(self.request)
+        covariance = request["bags"][0]["observation_factors"]["pose"][
+            "covariances"
+        ]["position_observation"]
+        covariance["coordinates"][0] = "north"
+        with self.assertRaisesRegex(ArtifactValidationError, "coordinates.*residual order"):
+            validate_batch_estimation_request(request)
+
+        request = copy.deepcopy(self.request)
+        covariance = request["bags"][0]["observation_factors"]["gyro"][
+            "covariances"
+        ]["gyro_observation"]
+        covariance["units"] = ["degree/s"] * 3
+        with self.assertRaisesRegex(ArtifactValidationError, "units.*residual order"):
+            validate_batch_estimation_request(request)
+
+    def test_diagonal_covariance_is_finite_positive_and_exact_dimension(self):
+        location = self.request["bags"][0]["observation_factors"]["velocity"][
+            "covariances"
+        ]["velocity_observation"]
+        for invalid, message in (
+            ([1.0, 1.0], "3 finite numbers"),
+            ([1.0, float("nan"), 1.0], "finite numbers"),
+            ([1.0, 0.0, 1.0], "positive numbers"),
+            ([1.0, -0.1, 1.0], "positive numbers"),
+            ([1.0, True, 1.0], "finite numbers"),
+        ):
+            request = copy.deepcopy(self.request)
+            covariance = request["bags"][0]["observation_factors"][
+                "velocity"
+            ]["covariances"]["velocity_observation"]
+            covariance["values"] = invalid
+            with self.assertRaisesRegex(ArtifactValidationError, message):
+                validate_batch_estimation_request(request)
+        self.assertEqual(location["representation"], "diagonal")
+
+    def test_full_covariance_must_be_finite_symmetric_positive_definite(self):
+        request = copy.deepcopy(self.request)
+        covariance = request["bags"][0]["observation_factors"]["pose"][
+            "covariances"
+        ]["orientation_observation"]
+        covariance["representation"] = "full"
+        covariance["values"] = (
+            np.asarray(
+                [[2.0, 0.2, 0.0], [0.2, 1.5, 0.1], [0.0, 0.1, 1.0]]
+            ).tolist()
+        )
+        validate_batch_estimation_request(request)
+
+        request = copy.deepcopy(request)
+        request["bags"][0]["observation_factors"]["pose"]["covariances"][
+            "orientation_observation"
+        ]["values"][0][1] = 0.4
+        with self.assertRaisesRegex(ArtifactValidationError, "symmetric"):
+            validate_batch_estimation_request(request)
+
+        request = copy.deepcopy(self.request)
+        covariance = request["bags"][0]["observation_factors"]["pose"][
+            "covariances"
+        ]["orientation_observation"]
+        covariance["representation"] = "full"
+        covariance["values"] = np.diag([1.0, 0.0, 1.0]).tolist()
+        with self.assertRaisesRegex(ArtifactValidationError, "positive definite"):
+            validate_batch_estimation_request(request)
+
+        request = copy.deepcopy(self.request)
+        covariance = request["bags"][0]["observation_factors"]["pose"][
+            "covariances"
+        ]["orientation_observation"]
+        covariance["representation"] = "full"
+        covariance["values"] = np.eye(2).tolist()
+        with self.assertRaisesRegex(ArtifactValidationError, "3 by 3"):
+            validate_batch_estimation_request(request)
+
+    def test_pose_and_fixed_graph_covariance_blocks_are_complete_and_strict(self):
+        request = copy.deepcopy(self.request)
+        del request["bags"][0]["observation_factors"]["pose"]["covariances"][
+            "orientation_observation"
+        ]
+        with self.assertRaisesRegex(ArtifactValidationError, "missing keys"):
+            validate_batch_estimation_request(request)
+
+        request = copy.deepcopy(self.request)
+        del request["bags"][0]["fixed_factor_covariances"][
+            "position_kinematic"
+        ]
+        with self.assertRaisesRegex(ArtifactValidationError, "position_kinematic"):
+            validate_batch_estimation_request(request)
+
+        request = copy.deepcopy(self.request)
+        request["bags"][0]["fixed_factor_covariances"]["unknown_factor"] = {}
+        with self.assertRaisesRegex(ArtifactValidationError, "unknown keys"):
+            validate_batch_estimation_request(request)
+
+        request = copy.deepcopy(self.request)
+        covariance = request["bags"][0]["fixed_factor_covariances"][
+            "actuator_thrust_transition"
+        ]
+        covariance["implicit_default"] = True
+        with self.assertRaisesRegex(ArtifactValidationError, "unknown keys"):
+            validate_batch_estimation_request(request)
+
+    def test_old_source_only_factor_contract_is_rejected(self):
+        request = copy.deepcopy(self.request)
+        request["bags"][0]["observation_factors"]["pose"] = {
+            "enabled": True,
+            "disabled_reason": None,
+            "covariance_source": "message_covariance",
+        }
+        with self.assertRaisesRegex(ArtifactValidationError, "covariances"):
             validate_batch_estimation_request(request)
 
     def test_request_rejects_duplicate_bags_and_nonexistent_paths(self):

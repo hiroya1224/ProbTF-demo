@@ -36,6 +36,137 @@ OBSERVATION_FACTOR_NAMES = (
     "actual_gimbal_position",
     "controller_integral",
 )
+COVARIANCE_REPRESENTATIONS = ("diagonal", "full")
+COVARIANCE_SOURCES = (
+    "preflight_static_interval",
+    "message_covariance",
+    "sensor_specification",
+    "project_configuration",
+    "numerical_tolerance",
+    "reconstruction_tolerance",
+    "discretization_model",
+)
+
+
+# Covariance coordinates are part of the request protocol, not display labels.
+# The numeric values use products of the listed residual-coordinate units: a
+# diagonal entry is in unit[i]^2 and a full entry (i, j) is in
+# unit[i] * unit[j].  Pose deliberately has two independent blocks because the
+# batch graph represents position and SO(3)-tangent observations as separate
+# factors; accepting an unsupported 6-D cross covariance would silently lose
+# information.
+OBSERVATION_COVARIANCE_BLOCKS = MappingProxyType({
+    "pose": MappingProxyType({
+        "position_observation": (
+            ("position_x", "position_y", "position_z"),
+            ("m", "m", "m"),
+        ),
+        "orientation_observation": (
+            (
+                "orientation_tangent_x",
+                "orientation_tangent_y",
+                "orientation_tangent_z",
+            ),
+            ("rad", "rad", "rad"),
+        ),
+    }),
+    "velocity": MappingProxyType({
+        "velocity_observation": (
+            ("velocity_world_x", "velocity_world_y", "velocity_world_z"),
+            ("m/s", "m/s", "m/s"),
+        ),
+    }),
+    "gyro": MappingProxyType({
+        "gyro_observation": (
+            (
+                "angular_velocity_sensor_x",
+                "angular_velocity_sensor_y",
+                "angular_velocity_sensor_z",
+            ),
+            ("rad/s", "rad/s", "rad/s"),
+        ),
+    }),
+    "accelerometer": MappingProxyType({
+        "accelerometer_observation": (
+            (
+                "specific_force_sensor_x",
+                "specific_force_sensor_y",
+                "specific_force_sensor_z",
+            ),
+            ("m/s^2", "m/s^2", "m/s^2"),
+        ),
+    }),
+    "issued_rotor_command": MappingProxyType({
+        "issued_thrust_observation": (
+            tuple("rotor_{}_thrust".format(index) for index in range(1, 5)),
+            ("N", "N", "N", "N"),
+        ),
+    }),
+    "issued_gimbal_command": MappingProxyType({
+        "issued_gimbal_observation": (
+            tuple("gimbal_{}_angle".format(index) for index in range(1, 5)),
+            ("rad", "rad", "rad", "rad"),
+        ),
+    }),
+    "actual_gimbal_position": MappingProxyType({
+        "actual_gimbal_observation": (
+            tuple("gimbal_{}_angle".format(index) for index in range(1, 5)),
+            ("rad", "rad", "rad", "rad"),
+        ),
+    }),
+    "controller_integral": MappingProxyType({
+        "controller_integral_observation": (
+            (
+                "position_integral_x",
+                "position_integral_y",
+                "position_integral_z",
+                "attitude_integral_x",
+                "attitude_integral_y",
+                "attitude_integral_z",
+            ),
+            ("m*s", "m*s", "m*s", "rad*s", "rad*s", "rad*s"),
+        ),
+    }),
+})
+
+
+# These five covariances are not sensor observations and cannot be disabled:
+# the fixed graph always contains the corresponding controller, actuator, and
+# kinematic consistency factors.  Keeping them per bag permits a different
+# discretization tolerance when knot periods differ.
+FIXED_FACTOR_COVARIANCE_BLOCKS = MappingProxyType({
+    "controller_integral_transition": (
+        (
+            "position_integral_x",
+            "position_integral_y",
+            "position_integral_z",
+            "attitude_integral_x",
+            "attitude_integral_y",
+            "attitude_integral_z",
+        ),
+        ("m*s", "m*s", "m*s", "rad*s", "rad*s", "rad*s"),
+    ),
+    "actuator_thrust_transition": (
+        tuple("rotor_{}_thrust".format(index) for index in range(1, 5)),
+        ("N", "N", "N", "N"),
+    ),
+    "actuator_gimbal_transition": (
+        tuple("gimbal_{}_angle".format(index) for index in range(1, 5)),
+        ("rad", "rad", "rad", "rad"),
+    ),
+    "position_kinematic": (
+        ("position_defect_x", "position_defect_y", "position_defect_z"),
+        ("m", "m", "m"),
+    ),
+    "orientation_kinematic": (
+        (
+            "orientation_defect_x",
+            "orientation_defect_y",
+            "orientation_defect_z",
+        ),
+        ("rad", "rad", "rad"),
+    ),
+})
 
 
 _BAG_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -182,25 +313,128 @@ def _absolute_path(value: Any, location: str, must_be_file: bool) -> Path:
     return resolved
 
 
-def _validate_factor(value: Any, location: str) -> None:
+def _validate_covariance(
+    value: Any,
+    coordinates: Tuple[str, ...],
+    units: Tuple[str, ...],
+    location: str,
+) -> None:
+    covariance = _mapping(value, location)
+    _keys(
+        covariance,
+        ("source", "representation", "coordinates", "units", "values"),
+        location,
+    )
+    _choice(covariance["source"], COVARIANCE_SOURCES, location + ".source")
+    representation = _choice(
+        covariance["representation"],
+        COVARIANCE_REPRESENTATIONS,
+        location + ".representation",
+    )
+    supplied_coordinates = _strings(
+        covariance["coordinates"],
+        len(coordinates),
+        location + ".coordinates",
+        unique=True,
+    )
+    if supplied_coordinates != coordinates:
+        _error(
+            location + ".coordinates",
+            "must equal {} in residual order".format(list(coordinates)),
+        )
+    supplied_units = _strings(
+        covariance["units"],
+        len(units),
+        location + ".units",
+        unique=False,
+    )
+    if supplied_units != units:
+        _error(
+            location + ".units",
+            "must equal {} in residual order".format(list(units)),
+        )
+
+    dimension = len(coordinates)
+    if representation == "diagonal":
+        _vector(
+            covariance["values"],
+            dimension,
+            location + ".values",
+            positive=True,
+        )
+        return
+
+    rows = covariance["values"]
+    if (
+        not isinstance(rows, list)
+        or len(rows) != dimension
+        or any(
+            not isinstance(row, list)
+            or len(row) != dimension
+            or any(
+                isinstance(item, bool) or not isinstance(item, Real)
+                for item in row
+            )
+            for row in rows
+        )
+    ):
+        _error(
+            location + ".values",
+            "must be a finite {} by {} matrix".format(dimension, dimension),
+        )
+    matrix = np.asarray(rows, dtype=float)
+    if matrix.shape != (dimension, dimension) or not np.all(
+        np.isfinite(matrix)
+    ):
+        _error(
+            location + ".values",
+            "must be a finite {} by {} matrix".format(dimension, dimension),
+        )
+    if not np.allclose(matrix, matrix.T, rtol=0.0, atol=1.0e-12):
+        _error(location + ".values", "must be symmetric")
+    try:
+        np.linalg.cholesky(matrix)
+    except np.linalg.LinAlgError:
+        _error(location + ".values", "must be positive definite")
+
+
+def _validate_covariance_blocks(
+    value: Any,
+    expected: Mapping[str, Tuple[Tuple[str, ...], Tuple[str, ...]]],
+    location: str,
+) -> None:
+    blocks = _mapping(value, location)
+    _keys(blocks, tuple(expected), location)
+    for name, (coordinates, units) in expected.items():
+        _validate_covariance(
+            blocks[name], coordinates, units, location + "." + name
+        )
+
+
+def _validate_factor(value: Any, name: str, location: str) -> None:
     factor = _mapping(value, location)
     _keys(
         factor,
-        ("enabled", "disabled_reason", "covariance_source"),
+        ("enabled", "disabled_reason", "covariances"),
         location,
     )
     enabled = _boolean(factor["enabled"], location + ".enabled")
-    source = _string(
-        factor["covariance_source"], location + ".covariance_source"
-    )
     reason = factor["disabled_reason"]
     if enabled:
         if reason is not None:
             _error(location + ".disabled_reason", "must be null when enabled")
-        if source == "unavailable":
-            _error(location + ".covariance_source", "cannot be unavailable")
-    elif not isinstance(reason, str) or not reason:
-        _error(location + ".disabled_reason", "must explain why disabled")
+        _validate_covariance_blocks(
+            factor["covariances"],
+            OBSERVATION_COVARIANCE_BLOCKS[name],
+            location + ".covariances",
+        )
+        return
+    _string(reason, location + ".disabled_reason")
+    if factor["covariances"] is not None:
+        _error(
+            location + ".covariances",
+            "must be null when the factor is disabled",
+        )
 
 
 def _validate_bags(value: Any) -> Tuple[str, ...]:
@@ -219,6 +453,7 @@ def _validate_bags(value: Any) -> Tuple[str, ...]:
                 "sha256",
                 "interval_seconds",
                 "observation_factors",
+                "fixed_factor_covariances",
             ),
             location,
         )
@@ -244,8 +479,15 @@ def _validate_bags(value: Any) -> Tuple[str, ...]:
         _keys(factors, OBSERVATION_FACTOR_NAMES, location + ".observation_factors")
         for name in OBSERVATION_FACTOR_NAMES:
             _validate_factor(
-                factors[name], location + ".observation_factors." + name
+                factors[name],
+                name,
+                location + ".observation_factors." + name,
             )
+        _validate_covariance_blocks(
+            bag["fixed_factor_covariances"],
+            FIXED_FACTOR_COVARIANCE_BLOCKS,
+            location + ".fixed_factor_covariances",
+        )
         bag_ids.append(bag_id)
         paths.append(path)
     if len(set(bag_ids)) != len(bag_ids):
@@ -678,7 +920,11 @@ def load_batch_estimation_request(
 __all__ = [
     "BATCH_ESTIMATION_REQUEST_SCHEMA",
     "BatchEstimationRequest",
+    "COVARIANCE_REPRESENTATIONS",
+    "COVARIANCE_SOURCES",
+    "FIXED_FACTOR_COVARIANCE_BLOCKS",
     "OBSERVATION_FACTOR_NAMES",
+    "OBSERVATION_COVARIANCE_BLOCKS",
     "RUN_MODES",
     "load_batch_estimation_request",
     "validate_batch_estimation_request",

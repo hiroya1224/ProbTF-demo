@@ -42,7 +42,9 @@ backend の particle type は mutation generation と parent candidate provenanc
 
 ## 5. counterfactual scenario
 
-各 bag は estimation artifact と同じ selected interval、initial latent state、recorded reference/controller modeを使う。
+各 bag は estimation artifact と同じ selected interval、selected-mode MAP initial latent state、recorded reference/controller mode を使う。
+初期状態は全 posterior plant sample で明示的に同一の `shared_selected_mode_map_initial` とし、保存済み selected conditional trajectory は診断と可視化だけに使う。
+一部の retained draw だけ conditional trajectory initial state へ切り替える mixed fallback は行わない。
 plant static parameter と delay は各 MCMC sample の値へ置き換え、candidate PID で full closed-loop trajectory を最初から計算する。
 観測 pose による途中 reset は行わない。
 estimation 時に得た dynamics residual path を replay しない。
@@ -65,6 +67,7 @@ seed は `base_seed`、sample ID、bag ID、replicate index から安定に導�
 plant 側の `all_equal_weight_mcmc_samples` は全 retained sample、`explicit_equal_weight_mcmc_subset` は明示 sample ID の部分集合を使う。
 candidate 側は全 retained sample の raw proposal を必ず先に生成し、`all_raw_mcmc_samples` または `deterministic_k_medoids` を別に選ぶ。
 探索初期に subset を使った場合、最終 candidate は全 posterior sample で再評価してから推薦を判断する。
+評価 sample ID が retained posterior の真部分集合なら nondominated 診断は保存するが、改善候補があっても `recommendation_available=false` とし、`recommendation unavailable: strict posterior subset is exploratory; full-posterior finalist reevaluation required` を保存する。
 forecast 数は `candidate_count * sample_count * bag_count * replicate_count` であり、progress unit もこの Cartesian product を正本にする。
 各 forecast は独立なので、この段階は process parallelization と cache の対象にしやすい。
 

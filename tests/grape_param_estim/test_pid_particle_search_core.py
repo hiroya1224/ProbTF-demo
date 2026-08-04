@@ -9,6 +9,7 @@ from grape_param_estim.pid.particle_search import (
     BODY_WRENCH_MODEL_DISCREPANCY,
     CONTINUOUS_SPECTRAL_DENSITY,
     SAMPLE_MODEL_DISCREPANCY,
+    STRICT_SUBSET_RECOMMENDATION_REASON,
     ZERO_MODEL_DISCREPANCY,
     ModelDiscrepancyConfiguration,
     ParticleRefinementSettings,
@@ -161,6 +162,54 @@ class PidParticleSearchCoreTests(unittest.TestCase):
             0.0,
         )
 
+    def test_subset_is_exploratory_but_full_population_can_recommend(self):
+        improving = user_pid_candidate(
+            "user-improving", PidGainConfiguration(np.full((4, 3), 1.5))
+        )
+        discrepancy = ModelDiscrepancyConfiguration(
+            ZERO_MODEL_DISCREPANCY,
+            np.ones(6),
+            base_seed=11,
+            residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
+        )
+
+        def evaluator(candidate, _sample, _bag_id, _realization):
+            gain = float(candidate.configuration.values[0, 0])
+            return self._metrics(abs(gain - 1.5))
+
+        subset = evaluate_pid_candidates(
+            (improving,),
+            self.posterior,
+            ("bag-a",),
+            evaluator,
+            self.current,
+            discrepancy,
+            sample_ids=("chain-a:00000001", "chain-a:00000002"),
+            plant_sample_subset_method="explicit_equal_weight_mcmc_subset",
+        )
+        self.assertIn("user-improving", subset.decision.nondominated_candidate_ids)
+        self.assertFalse(subset.recommendation_available)
+        self.assertEqual(subset.decision.recommended_candidate_ids, tuple())
+        self.assertEqual(
+            subset.decision.rejection_reason,
+            STRICT_SUBSET_RECOMMENDATION_REASON,
+        )
+
+        full = evaluate_pid_candidates(
+            (improving,),
+            self.posterior,
+            ("bag-a",),
+            evaluator,
+            self.current,
+            discrepancy,
+        )
+        self.assertTrue(full.recommendation_available)
+        self.assertEqual(
+            full.decision.recommended_candidate_ids, ("user-improving",)
+        )
+        self.assertEqual(full.decision.rejection_reason, "")
+
     def test_refinement_uses_coarse_subset_then_all_samples_for_finalists(self):
         user = user_pid_candidate(
             "user-high", PidGainConfiguration(np.full((4, 3), 1.8))
@@ -206,7 +255,15 @@ class PidParticleSearchCoreTests(unittest.TestCase):
             result.initial_evaluation.plant_sample_ids,
             ("chain-a:00000001", "chain-a:00000002"),
         )
+        self.assertFalse(result.initial_evaluation.recommendation_available)
+        self.assertEqual(
+            result.initial_evaluation.decision.rejection_reason,
+            STRICT_SUBSET_RECOMMENDATION_REASON,
+        )
         self.assertEqual(len(result.generation_evaluations), 1)
+        self.assertFalse(
+            result.generation_evaluations[0].recommendation_available
+        )
         self.assertTrue(
             any(
                 candidate.source == "mutation"
@@ -221,6 +278,8 @@ class PidParticleSearchCoreTests(unittest.TestCase):
             result.final_evaluation.plant_sample_subset_method,
             "final_all_equal_weight_mcmc_samples",
         )
+        self.assertTrue(result.final_evaluation.recommendation_available)
+        self.assertEqual(result.final_evaluation.decision.rejection_reason, "")
         expected_per_candidate = 3 * 2 * discrepancy.replicates
         self.assertEqual(
             len(result.final_evaluation.records),

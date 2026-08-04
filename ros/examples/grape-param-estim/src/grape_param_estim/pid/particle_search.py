@@ -45,6 +45,10 @@ MODEL_DISCREPANCY_INTERVAL_MODELS = (
     CONTINUOUS_SPECTRAL_DENSITY,
     FIXED_INTERVAL_COVARIANCE,
 )
+STRICT_SUBSET_RECOMMENDATION_REASON = (
+    "recommendation unavailable: strict posterior subset is exploratory; "
+    "full-posterior finalist reevaluation required"
+)
 
 
 @dataclass(frozen=True)
@@ -652,13 +656,24 @@ def evaluate_pid_candidates(
     )
     if not method:
         raise ValueError("plant_sample_subset_method cannot be empty")
+    decision = decide_recommendation(summaries)
+    posterior_sample_ids = {value.sample_id for value in posterior.samples}
+    evaluated_sample_ids = {value.sample_id for value in samples}
+    if evaluated_sample_ids < posterior_sample_ids:
+        decision = RecommendationDecision(
+            nondominated_candidate_ids=decision.nondominated_candidate_ids,
+            recommended_candidate_ids=tuple(),
+            recommendation_available=False,
+            rejection_reason=STRICT_SUBSET_RECOMMENDATION_REASON,
+            selection_policy=decision.selection_policy,
+        )
     return PidCandidateEvaluation(
         candidates=selected_candidates,
         plant_sample_ids=tuple(value.sample_id for value in samples),
         bag_ids=selected_bags,
         records=records,
         summaries=summaries,
-        decision=decide_recommendation(summaries),
+        decision=decision,
         discrepancy=discrepancy,
         plant_sample_subset_method=method,
     )
@@ -1078,6 +1093,7 @@ __all__ = [
     "PidParticleSearchResult",
     "SAMPLE_MODEL_DISCREPANCY",
     "SPECIFIC_ACCELERATION_MODEL_DISCREPANCY",
+    "STRICT_SUBSET_RECOMMENDATION_REASON",
     "ZERO_MODEL_DISCREPANCY",
     "build_initial_candidate_population",
     "evaluate_pid_candidates",

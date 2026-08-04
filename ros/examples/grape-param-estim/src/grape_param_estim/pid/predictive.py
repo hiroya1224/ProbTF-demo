@@ -92,9 +92,9 @@ class PidForecastScenario:
     """One recorded-reference scenario evaluated against every plant sample.
 
     ``initial_conditions`` is explicitly sample-aligned.  A caller that uses
-    the same MAP initial state for all posterior draws must duplicate it with
-    a provenance string such as ``shared_map_initial`` rather than relying on
-    an implicit fallback.
+    the same selected-mode MAP initial state for all posterior draws must
+    duplicate it with the explicit ``shared_selected_mode_map_initial``
+    provenance rather than relying on an implicit fallback.
     """
 
     bag_id: str

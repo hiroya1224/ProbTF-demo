@@ -17,7 +17,9 @@ from grape_param_estim.system import (
 )
 
 
-def _batch_run(source_mode_id=("mode-map", "mode-map")):
+def _batch_run(
+    source_mode_id=("mode-map", "mode-map"), *, include_trajectory=True
+):
     nominal = VehicleParameters.nominal()
     mcmc = {
         "sample_id": np.asarray(("chain-a:1", "chain-b:1")),
@@ -73,7 +75,7 @@ def _batch_run(source_mode_id=("mode-map", "mode-map")):
         diagnostics={},
         bags={"bag-a": bag},
         mcmc_samples=mcmc,
-        trajectories={"bag-a": trajectory},
+        trajectories={"bag-a": trajectory} if include_trajectory else {},
     )
 
 
@@ -125,24 +127,70 @@ class PidInputTests(unittest.TestCase):
         )
         self.assertEqual(tuple(selected.sample_id), ("chain-b:1",))
 
-    def test_scenarios_use_stored_conditional_or_explicit_map_fallback(self):
+    def test_scenarios_share_selected_mode_map_initial_with_or_without_trajectories(
+        self,
+    ):
         posterior = physical_posterior_from_batch_run(
             self.run,
             fixed_linear_drag=np.zeros(3),
             fixed_angular_drag=np.zeros(3),
         )
-        scenarios = forecast_scenarios_from_batch_run(
+        stored = forecast_scenarios_from_batch_run(
             self.run, posterior, (self.model,)
         )
-        self.assertEqual(len(scenarios), 1)
-        scenario = scenarios[0]
-        first = scenario.initial_condition("chain-a:1")
-        second = scenario.initial_condition("chain-b:1")
-        self.assertEqual(first.source, "conditional_trajectory_initial")
-        self.assertEqual(second.source, "shared_map_initial")
-        self.assertEqual(first.rigid_body_state.position[0], 1.0)
-        self.assertEqual(second.rigid_body_state.position[0], 0.0)
-        self.assertEqual(len(scenario.references), scenario.times.size)
+        absent_run = _batch_run(include_trajectory=False)
+        absent = forecast_scenarios_from_batch_run(
+            absent_run, posterior, (self.model,)
+        )
+        self.assertEqual(len(stored), 1)
+        self.assertEqual(len(absent), 1)
+        shared = stored[0].initial_condition(posterior.sample_id[0])
+        for sample_id in posterior.sample_id:
+            with_trajectory = stored[0].initial_condition(sample_id)
+            without_trajectory = absent[0].initial_condition(sample_id)
+            self.assertEqual(
+                with_trajectory.source,
+                "shared_selected_mode_map_initial",
+            )
+            self.assertEqual(without_trajectory.source, with_trajectory.source)
+            np.testing.assert_array_equal(
+                with_trajectory.rigid_body_state.as_vector(),
+                without_trajectory.rigid_body_state.as_vector(),
+            )
+            np.testing.assert_array_equal(
+                with_trajectory.rigid_body_state.as_vector(),
+                shared.rigid_body_state.as_vector(),
+            )
+            np.testing.assert_array_equal(
+                with_trajectory.controller_state.integral_error,
+                without_trajectory.controller_state.integral_error,
+            )
+            np.testing.assert_array_equal(
+                with_trajectory.controller_state.integral_error,
+                shared.controller_state.integral_error,
+            )
+            np.testing.assert_array_equal(
+                with_trajectory.actuator_state.thrust,
+                without_trajectory.actuator_state.thrust,
+            )
+            np.testing.assert_array_equal(
+                with_trajectory.actuator_state.thrust,
+                shared.actuator_state.thrust,
+            )
+            np.testing.assert_array_equal(
+                with_trajectory.actuator_state.gimbal_angle,
+                without_trajectory.actuator_state.gimbal_angle,
+            )
+            np.testing.assert_array_equal(
+                with_trajectory.actuator_state.gimbal_angle,
+                shared.actuator_state.gimbal_angle,
+            )
+            self.assertEqual(with_trajectory.rigid_body_state.position[0], 0.0)
+        self.assertEqual(
+            dict(stored[0].provenance)["initial_condition_policy"],
+            "shared_selected_mode_map_initial",
+        )
+        self.assertEqual(len(stored[0].references), stored[0].times.size)
 
     def test_reference_age_and_bag_model_alignment_are_strict(self):
         posterior = physical_posterior_from_batch_run(

@@ -106,7 +106,7 @@ class PidPredictiveTests(unittest.TestCase):
                     rigid_body_state=initial_state,
                     controller_state=initial_controller_state(self.controller),
                     actuator_state=None,
-                    source="shared_map_initial",
+                    source="shared_selected_mode_map_initial",
                 )
                 for sample in self.posterior.samples
             ),

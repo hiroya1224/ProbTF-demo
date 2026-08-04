@@ -3,8 +3,8 @@
 The estimation artifact intentionally does not contain enough information to
 invent a controller or actuator model.  Callers must supply the exact recorded
 controller configuration and fixed actuator/geometry assumptions for every
-bag.  This module only aligns those audited inputs with MCMC samples, MAP or
-stored conditional initial states, and the recorded reference path.
+bag.  This module only aligns those audited inputs with MCMC samples, the
+shared selected-mode MAP initial state, and the recorded reference path.
 """
 
 from dataclasses import dataclass
@@ -175,48 +175,26 @@ def _references_at_knots(
 
 def _initial_condition(
     bag_arrays: Mapping[str, np.ndarray],
-    trajectory_arrays: Optional[Mapping[str, np.ndarray]],
     sample_id: str,
     roll_pitch_integration_active: bool,
 ) -> PidForecastInitialCondition:
-    selected_row = None
-    if trajectory_arrays is not None:
-        trajectory_ids = _strings(trajectory_arrays["sample_id"])
-        matches = tuple(
-            index for index, value in enumerate(trajectory_ids) if value == sample_id
-        )
-        if len(matches) > 1:
-            raise ValueError("conditional trajectory sample IDs are not unique")
-        if matches:
-            selected_row = matches[0]
-    if selected_row is None:
-        source = "shared_map_initial"
-        position = bag_arrays["map_position"][0]
-        orientation = bag_arrays["map_orientation_xyzw"][0]
-        velocity = bag_arrays["map_linear_velocity"][0]
-        omega = bag_arrays["map_angular_velocity"][0]
-        integral = bag_arrays["map_controller_integral"][0]
-        thrust = bag_arrays["map_actuator_thrust"][0]
-        gimbal = bag_arrays["map_actuator_gimbal"][0]
-    else:
-        row = selected_row
-        source = "conditional_trajectory_initial"
-        position = trajectory_arrays["conditional_position"][row, 0]
-        orientation = trajectory_arrays["conditional_orientation_xyzw"][row, 0]
-        velocity = trajectory_arrays["conditional_linear_velocity"][row, 0]
-        omega = trajectory_arrays["conditional_angular_velocity"][row, 0]
-        integral = trajectory_arrays["conditional_controller_integral"][row, 0]
-        thrust = trajectory_arrays["conditional_actuator_thrust"][row, 0]
-        gimbal = trajectory_arrays["conditional_actuator_gimbal"][row, 0]
     return PidForecastInitialCondition(
         sample_id=sample_id,
-        rigid_body_state=RigidBodyState(position, orientation, velocity, omega),
+        rigid_body_state=RigidBodyState(
+            bag_arrays["map_position"][0],
+            bag_arrays["map_orientation_xyzw"][0],
+            bag_arrays["map_linear_velocity"][0],
+            bag_arrays["map_angular_velocity"][0],
+        ),
         controller_state=ControllerState(
-            integral,
+            bag_arrays["map_controller_integral"][0],
             roll_pitch_integration_active=roll_pitch_integration_active,
         ),
-        actuator_state=ActuatorState(thrust, gimbal),
-        source=source,
+        actuator_state=ActuatorState(
+            bag_arrays["map_actuator_thrust"][0],
+            bag_arrays["map_actuator_gimbal"][0],
+        ),
+        source="shared_selected_mode_map_initial",
     )
 
 
@@ -225,7 +203,7 @@ def forecast_scenarios_from_batch_run(
     posterior: PhysicalPlantPosterior,
     bag_models: Sequence[PidBagForecastModel],
 ) -> Tuple[PidForecastScenario, ...]:
-    """Build all bag scenarios with exact sample/trajectory ID alignment."""
+    """Build all bag scenarios from one explicit selected-mode MAP state."""
 
     if not isinstance(run, BatchEstimationRun):
         raise TypeError("run must be a validated BatchEstimationRun")
@@ -242,7 +220,6 @@ def forecast_scenarios_from_batch_run(
     for bag_id in bag_ids:
         arrays = run.bags[bag_id]
         model = model_by_bag[bag_id]
-        trajectories = run.trajectories.get(bag_id)
         scenarios.append(
             PidForecastScenario(
                 bag_id=bag_id,
@@ -253,7 +230,6 @@ def forecast_scenarios_from_batch_run(
                 initial_conditions=tuple(
                     _initial_condition(
                         arrays,
-                        trajectories,
                         sample.sample_id,
                         model.roll_pitch_integration_active,
                     )
@@ -267,6 +243,10 @@ def forecast_scenarios_from_batch_run(
                 provenance=(
                     ("estimation_run_id", str(run.manifest["run_id"])),
                     ("reference_policy", "causal_zero_order_hold"),
+                    (
+                        "initial_condition_policy",
+                        "shared_selected_mode_map_initial",
+                    ),
                 ),
             )
         )

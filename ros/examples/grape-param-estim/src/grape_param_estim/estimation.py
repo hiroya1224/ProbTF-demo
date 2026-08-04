@@ -364,6 +364,33 @@ class SparseLaplaceEStepSolver:
         # downstream delay-curvature analysis cannot accidentally mix EM
         # iterations with different normalizing terms.
         self.profile_q_history = []  # type: list
+        # E-step results intentionally expose only the immutable quantities
+        # needed by EM.  Retain the corresponding full solve until the outer
+        # driver selects its final step, so it can export that exact Laplace
+        # point without running LM a second time and silently changing it.
+        self._returned_solutions = {}  # type: dict
+
+    def _remember_solution(
+        self,
+        result: LaplaceEStepResult,
+        solution: FixedGraphLaplaceSolution,
+    ) -> LaplaceEStepResult:
+        self._returned_solutions[id(result)] = (result, solution)
+        return result
+
+    def take_solution_for_result(
+        self, result: LaplaceEStepResult
+    ) -> FixedGraphLaplaceSolution:
+        """Return the exact solve behind an E-step and release the others."""
+
+        if not isinstance(result, LaplaceEStepResult):
+            raise TypeError("result must be LaplaceEStepResult")
+        selected = self._returned_solutions.get(id(result))
+        if selected is None or selected[0] is not result:
+            raise ValueError("E-step result was not produced by this solver")
+        solution = selected[1]
+        self._returned_solutions.clear()
+        return solution
 
     def _check_cancelled(self) -> None:
         if (
@@ -430,7 +457,9 @@ class SparseLaplaceEStepSolver:
         selected_q = _positive_q(q)
         if phase is EStepPhase.FIXED_LAG:
             try:
-                return self._solve(selected_q, lag, warm_start).as_e_step_result()
+                solution = self._solve(selected_q, lag, warm_start)
+                result = solution.as_e_step_result()
+                return self._remember_solution(result, solution)
             except FixedGraphSolveFailure as error:
                 raise LaplaceEStepFailure(
                     error.reason, error.inner_iterations
@@ -489,10 +518,11 @@ class SparseLaplaceEStepSolver:
         total_iterations = sum(
             point.inner_iterations for point in profile.points
         )
-        return best.as_e_step_result(
+        result = best.as_e_step_result(
             inner_iterations=total_iterations,
             termination_reason=phase.value,
         )
+        return self._remember_solution(result, best)
 
 
 def make_fixed_q_laplace_problem_factory(

@@ -32,7 +32,6 @@ from grape_param_estim.estimation import (
     FixedGraphLaplaceSolution,
     SparseLaplaceEStepSolver,
     make_fixed_q_laplace_problem_factory,
-    solve_fixed_graph_laplace,
 )
 from grape_param_estim.initialization import (
     FlightInitialization,
@@ -560,16 +559,11 @@ def estimate_mode(
         progress=em_progress,
     )
     final_step = em.final_step
-    final_solution = solve_fixed_graph_laplace(
-        factory,
-        final_step.q,
-        final_step.lag,
-        final_step.state.value(final_step.state.layout.variable_keys[0]),
-        _lm_settings(request),
-        warm_start=final_step.state,
-        cancellation_requested=cancellation_requested,
-        lm_progress=lm_progress,
-    )
+    # Reuse the exact solve selected by EM.  Re-solving from its converged
+    # state can legitimately improve the objective further, but then the MAP,
+    # marginal objective, delay profile, and EM record no longer describe one
+    # common posterior point.
+    final_solution = e_step.take_solution_for_result(final_step)
     geometry = final_solution.static_geometry()
     profiles = tuple(e_step.profile_history)
     final_q_profiles = tuple(

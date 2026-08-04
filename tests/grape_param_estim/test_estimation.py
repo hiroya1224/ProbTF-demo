@@ -92,6 +92,14 @@ class EstimationOrchestrationTests(unittest.TestCase):
         self.assertTrue(
             0.0 <= result.lag <= 0.02,
         )
+        solution = solver.take_solution_for_result(result)
+        self.assertIs(solution.lm.state, result.state)
+        self.assertEqual(
+            solution.marginal_objective.value,
+            result.approximate_marginal_objective,
+        )
+        with self.assertRaises(ValueError):
+            solver.take_solution_for_result(result)
 
     def test_mcmc_factory_preserves_exact_proposed_static_and_delay(self):
         factory = make_fixed_q_laplace_problem_factory(

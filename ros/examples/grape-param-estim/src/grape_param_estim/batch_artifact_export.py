@@ -2141,6 +2141,12 @@ def complete_pending_mcmc_artifact_payload(
         ),
     }
     metadata["substage_status"] = substage_status
+    if not mcmc_diagnostics.converged:
+        warnings = list(metadata["warnings"])
+        warning = "MCMC completed without satisfying convergence thresholds"
+        if warning not in warnings:
+            warnings.append(warning)
+        metadata["warnings"] = warnings
     return BatchArtifactPayload(
         manifest_metadata=metadata,
         map_static=core.map_static,

@@ -2,7 +2,7 @@
 
 import resource
 import time
-from typing import Tuple
+from typing import Sequence, Tuple
 
 import numpy as np
 from scipy.sparse.linalg import splu
@@ -15,7 +15,10 @@ from grape_param_estim.batch_artifact_export import (
     RunPerformanceMeasurements,
 )
 from grape_param_estim.estimation import FixedGraphLaplaceSolution
-from grape_param_estim.real_estimation import RealEstimationResult
+from grape_param_estim.real_estimation import (
+    ModeEstimationResult,
+    RealEstimationResult,
+)
 
 
 def _peak_memory_bytes() -> int:
@@ -143,24 +146,47 @@ def measure_run_performance(
 
     if not isinstance(result, RealEstimationResult):
         raise TypeError("result must be RealEstimationResult")
+    return measure_estimation_modes_performance(
+        result.modes,
+        result.selected_mode_id,
+        result.mcmc_target_seconds,
+    )
+
+
+def measure_estimation_modes_performance(
+    modes: Sequence[ModeEstimationResult],
+    selected_mode_id: str,
+    mcmc_target_seconds: Sequence[float] = (),
+) -> RunPerformanceMeasurements:
+    """Measure a completed inference core before or after posterior sampling."""
+
+    selected_modes = tuple(modes)
+    if not selected_modes or any(
+        not isinstance(value, ModeEstimationResult) for value in selected_modes
+    ):
+        raise TypeError("modes must contain ModeEstimationResult values")
+    by_id = {value.mode_id: value for value in selected_modes}
+    if len(by_id) != len(selected_modes) or selected_mode_id not in by_id:
+        raise ValueError("selected_mode_id must identify one unique mode")
     nonlinear = tuple(
         value
-        for mode in result.modes
+        for mode in selected_modes
         for value in mode.nonlinear_iteration_seconds
     )
     em = tuple(
-        value for mode in result.modes for value in mode.em_iteration_seconds
+        value for mode in selected_modes for value in mode.em_iteration_seconds
     )
     return RunPerformanceMeasurements(
-        bags=measure_final_solution_bags(result.selected_mode.final_solution),
+        bags=measure_final_solution_bags(by_id[selected_mode_id].final_solution),
         nonlinear_iteration_seconds=nonlinear,
         em_iteration_seconds=em,
-        mcmc_target_seconds=result.mcmc_target_seconds,
+        mcmc_target_seconds=tuple(mcmc_target_seconds),
         peak_memory_bytes=_peak_memory_bytes(),
     )
 
 
 __all__ = [
     "measure_final_solution_bags",
+    "measure_estimation_modes_performance",
     "measure_run_performance",
 ]

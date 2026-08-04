@@ -32,6 +32,7 @@ from grape_param_estim.estimation import (
     FixedGraphLaplaceSolution,
     SparseLaplaceEStepSolver,
     make_fixed_q_laplace_problem_factory,
+    restore_fixed_graph_laplace,
 )
 from grape_param_estim.initialization import (
     FlightInitialization,
@@ -672,6 +673,99 @@ def sample_selected_mode(
     )
 
 
+def restore_laplace_checkpoint(
+    inputs: RealEstimationInputs,
+    mode_id: str,
+    state_values: Mapping[object, np.ndarray],
+    map_static: Mapping[str, np.ndarray],
+    q_em: Mapping[str, np.ndarray],
+    laplace: Mapping[str, np.ndarray],
+) -> Tuple[
+    FixedGraphLaplaceSolution,
+    StaticLaplaceGeometry,
+    DelayUncertaintyEstimate,
+]:
+    """Rebuild and cross-check a completed MAP/EM/Laplace checkpoint."""
+
+    if not isinstance(inputs, RealEstimationInputs):
+        raise TypeError("inputs must be RealEstimationInputs")
+    if mode_id not in _mode_ids(inputs.request):
+        raise ValueError("mode_id is absent from request")
+    required_map = {
+        "parameter_coordinate_map",
+        "q_diagonal",
+        "delay",
+        "prior_objective",
+        "likelihood_objective",
+    }
+    if not required_map.issubset(map_static):
+        raise ValueError("checkpoint map_static is incomplete")
+    if "approximate_marginal_objective" not in q_em:
+        raise ValueError("checkpoint q_em is incomplete")
+    objective = float(map_static["prior_objective"][0]) + float(
+        map_static["likelihood_objective"][0]
+    )
+    solution = restore_fixed_graph_laplace(
+        _graph_factory(inputs, mode_id),
+        np.asarray(map_static["q_diagonal"], dtype=float),
+        float(map_static["delay"][0]),
+        dict(state_values),
+        objective,
+    )
+    static_coordinate = solution.lm.state.value(
+        solution.lm.state.layout.variable_keys[0]
+    )
+    if not np.array_equal(
+        static_coordinate,
+        np.asarray(map_static["parameter_coordinate_map"], dtype=float),
+    ):
+        raise ValueError("checkpoint MAP static coordinate mismatch")
+    marginal = float(q_em["approximate_marginal_objective"][-1])
+    if not np.isclose(
+        solution.marginal_objective.value,
+        marginal,
+        rtol=2.0e-10,
+        atol=2.0e-10 * max(1.0, abs(marginal)),
+    ):
+        raise ValueError("checkpoint marginal objective does not reproduce")
+    geometry = solution.static_geometry()
+    comparisons = (
+        (
+            geometry.information.likelihood.hessian,
+            laplace["reduced_likelihood_hessian"],
+            "likelihood Hessian",
+        ),
+        (
+            geometry.information.posterior.hessian,
+            laplace["reduced_posterior_hessian"],
+            "posterior Hessian",
+        ),
+        (geometry.covariance, laplace["covariance"], "covariance"),
+        (
+            geometry.exact_ridge_direction,
+            laplace["exact_ridge_direction"],
+            "exact ridge direction",
+        ),
+    )
+    for actual, expected, name in comparisons:
+        if not np.allclose(actual, expected, rtol=2.0e-9, atol=2.0e-10):
+            raise ValueError("checkpoint {} does not reproduce".format(name))
+    source_value = np.asarray(laplace["delay_uncertainty_source"])
+    if source_value.shape != (1,):
+        raise ValueError("checkpoint delay uncertainty source is invalid")
+    curvature_valid = bool(laplace["delay_profile_curvature_valid"][0])
+    uncertainty = DelayUncertaintyEstimate(
+        float(laplace["delay_local_uncertainty"][0]),
+        str(source_value[0]),
+        (
+            float(laplace["delay_profile_curvature"][0])
+            if curvature_valid
+            else None
+        ),
+    )
+    return solution, geometry, uncertainty
+
+
 def sample_laplace_solution(
     inputs: RealEstimationInputs,
     mode_id: str,
@@ -917,6 +1011,7 @@ __all__ = [
     "estimate_real_modes",
     "prepare_real_estimation_inputs",
     "production_state_scaling",
+    "restore_laplace_checkpoint",
     "run_real_estimation",
     "sample_laplace_solution",
     "sample_selected_mode",

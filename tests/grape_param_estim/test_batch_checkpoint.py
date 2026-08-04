@@ -18,10 +18,15 @@ from grape_param_estim.batch_artifact_export import (
     export_batch_estimation_artifact_payload,
 )
 from grape_param_estim.batch_request import validate_batch_estimation_request
+from grape_param_estim.batch.state import StateScaling
 from grape_param_estim.posterior.mcmc import (
     McmcCancelled,
     McmcChainSettings,
     run_mcmc_chain,
+)
+from grape_param_estim.real_estimation import (
+    RealEstimationInputs,
+    restore_laplace_checkpoint,
 )
 from tests.grape_param_estim.test_batch_artifact_export import (
     BatchArtifactExportTests,
@@ -139,6 +144,35 @@ class BatchCheckpointTests(unittest.TestCase):
                 configuration_fingerprint=self.configuration,
                 controller_snapshot_fingerprint=self.controller,
             )
+
+    def test_completed_core_reuses_map_em_and_laplace_without_optimization(self):
+        checkpoint = self._write()
+        inputs = RealEstimationInputs(
+            request=self.request,
+            flight_data=(self.helper.helper.flight,),
+            initializations=(self.helper.helper.initialization,),
+            parameter_chart=self.helper.helper.chart,
+            geometry=self.helper.helper.geometry,
+            actuator_parameters=self.helper.helper.actuators,
+            scaling=StateScaling.unit(),
+            loading_seconds=0.0,
+        )
+        solution, geometry, uncertainty = restore_laplace_checkpoint(
+            inputs,
+            "recorded-mode",
+            checkpoint.state_values,
+            checkpoint.core.map_static,
+            checkpoint.core.q_em,
+            checkpoint.core.laplace,
+        )
+        self.assertEqual(solution.lm.iterations, ())
+        np.testing.assert_allclose(
+            geometry.covariance,
+            checkpoint.core.laplace["covariance"],
+        )
+        self.assertAlmostEqual(
+            uncertainty.standard_deviation_seconds, 0.001
+        )
 
     def test_chain_updates_are_content_addressed_and_cancel_is_resumable(self):
         checkpoint = self._write()

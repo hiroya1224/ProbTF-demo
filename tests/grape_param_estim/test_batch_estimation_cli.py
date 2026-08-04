@@ -15,6 +15,7 @@ from grape_param_estim.batch_estimation_cli import (
 )
 from grape_param_estim.batch_request import validate_batch_estimation_request
 from grape_param_estim.progress import (
+    CancellationToken,
     ProgressEvent,
     STAGE_OPTIMIZING_FULL_TRAJECTORY,
     STAGE_PREPARING_TRAJECTORY,
@@ -34,6 +35,34 @@ class BatchEstimationCliTests(unittest.TestCase):
         return validate_batch_estimation_request(
             _request_payload(root, (("flight-a", bag, file_sha256(bag)),))
         )
+
+    def _mcmc_request(self, root, resume=False):
+        from grape_param_estim.batch_artifact import file_sha256
+
+        bag = root / "mcmc-flight.bag"
+        bag.write_bytes(b"batch cli mcmc request")
+        payload = _request_payload(
+            root, (("flight-a", bag, file_sha256(bag)),)
+        )
+        payload["run_mode"] = "estimate_and_sample"
+        payload["resume"] = resume
+        payload["mcmc_settings"] = {
+            "enabled": True,
+            "chain_count": 2,
+            "warmup_steps": 0,
+            "retained_draws": 4,
+            "thinning": 1,
+            "random_seed": 17,
+            "local_scale": 0.1,
+            "exact_ridge_scale": 0.2,
+            "near_ridge_scale": 0.1,
+            "identified_scale": 0.05,
+            "delay_scale_seconds": 0.001,
+            "near_relative_threshold": 1.0e-6,
+            "rhat_threshold": 1.01,
+            "minimum_effective_sample_size": 4.0,
+        }
+        return validate_batch_estimation_request(payload)
 
     def test_progress_adapter_has_stable_total_and_terminal_fraction(self):
         import tempfile
@@ -224,6 +253,151 @@ class BatchEstimationCliTests(unittest.TestCase):
             )
             self.assertEqual(progress[-1][0], "writing_artifacts")
             self.assertEqual(progress[-1][1:3], (1, 1))
+
+    @patch("grape_param_estim.batch_estimation_cli.mark_batch_checkpoint_published")
+    @patch("grape_param_estim.batch_estimation_cli.write_batch_estimation_run")
+    @patch("grape_param_estim.batch_estimation_cli.complete_pending_mcmc_artifact_payload")
+    @patch("grape_param_estim.batch_estimation_cli.sample_laplace_solution")
+    @patch("grape_param_estim.batch_estimation_cli.write_batch_estimation_checkpoint")
+    @patch("grape_param_estim.batch_estimation_cli.export_batch_estimation_artifact_payload")
+    @patch("grape_param_estim.batch_estimation_cli.measure_estimation_modes_performance")
+    @patch("grape_param_estim.batch_estimation_cli.estimate_real_modes")
+    @patch("grape_param_estim.batch_estimation_cli.prepare_real_estimation_inputs")
+    def test_mcmc_run_checkpoints_core_before_sampling(
+        self,
+        prepare,
+        estimate,
+        measure,
+        export,
+        write_checkpoint,
+        sample,
+        complete,
+        write,
+        mark_published,
+    ):
+        import tempfile
+        from grape_param_estim.controller import ControllerConfig
+
+        with tempfile.TemporaryDirectory() as temporary:
+            request = self._mcmc_request(Path(temporary))
+            inputs = SimpleNamespace(
+                flight_data=(
+                    SimpleNamespace(
+                        bag_id="flight-a",
+                        controller_configuration=ControllerConfig.grape(),
+                    ),
+                ),
+                initializations=(object(),),
+            )
+            prepare.return_value = inputs
+            selected = SimpleNamespace(
+                mode_id="recorded-mode",
+                em=SimpleNamespace(converged=True),
+                final_solution=SimpleNamespace(
+                    lm=SimpleNamespace(state=object())
+                ),
+                static_geometry=object(),
+                final_q_lag_profile_history=(),
+                delay_uncertainty=SimpleNamespace(
+                    standard_deviation_seconds=0.01,
+                    source="profile",
+                    curvature=10000.0,
+                ),
+            )
+            estimate.return_value = ((selected,), "recorded-mode")
+            measure.return_value = object()
+            core = SimpleNamespace(
+                writer_arguments={}, manifest_metadata={}
+            )
+            export.return_value = core
+            checkpoint_root = Path(temporary) / ".checkpoint"
+            write_checkpoint.return_value = SimpleNamespace(root=checkpoint_root)
+            sample.return_value = SimpleNamespace(
+                chains=(object(),), diagnostics=object()
+            )
+            completed = SimpleNamespace(writer_arguments={"strict": True})
+            complete.return_value = completed
+            written = SimpleNamespace(root=request.output_directory)
+            write.return_value = written
+
+            result = execute_batch_estimation(
+                request, estimator_revision="test-revision"
+            )
+            self.assertIs(result, written)
+            self.assertIsNotNone(
+                write_checkpoint.call_args.kwargs["state"]
+            )
+            self.assertTrue(export.call_args.kwargs["pending_mcmc_checkpoint"])
+            self.assertEqual(
+                sample.call_args.kwargs["chain_checkpoints"], {}
+            )
+            write.assert_called_once_with(
+                request.output_directory, strict=True
+            )
+            mark_published.assert_called_once_with(checkpoint_root)
+
+    @patch("grape_param_estim.batch_estimation_cli.mark_batch_checkpoint_cancelled")
+    @patch("grape_param_estim.batch_estimation_cli.sample_laplace_solution")
+    @patch("grape_param_estim.batch_estimation_cli.restore_laplace_checkpoint")
+    @patch("grape_param_estim.batch_estimation_cli.load_batch_estimation_checkpoint")
+    @patch("grape_param_estim.batch_estimation_cli.prepare_real_estimation_inputs")
+    def test_resume_reuses_core_and_preserves_chain_on_cancel(
+        self,
+        prepare,
+        load_checkpoint,
+        restore,
+        sample,
+        mark_cancelled,
+    ):
+        import tempfile
+        from grape_param_estim.controller import ControllerConfig
+
+        with tempfile.TemporaryDirectory() as temporary:
+            request = self._mcmc_request(Path(temporary), resume=True)
+            inputs = SimpleNamespace(
+                flight_data=(
+                    SimpleNamespace(
+                        bag_id="flight-a",
+                        controller_configuration=ControllerConfig.grape(),
+                    ),
+                ),
+                initializations=(object(),),
+            )
+            prepare.return_value = inputs
+            checkpoint_root = Path(temporary) / ".checkpoint"
+            existing_chain = object()
+            core = SimpleNamespace(
+                map_static=object(), q_em=object(), laplace=object()
+            )
+            load_checkpoint.return_value = SimpleNamespace(
+                root=checkpoint_root,
+                manifest={"selected_mode_id": "recorded-mode"},
+                core=core,
+                state_values=object(),
+                chain_checkpoints={"chain-000": existing_chain},
+            )
+            restore.return_value = (object(), object(), object())
+            token = CancellationToken()
+
+            def cancelled_sample(*_args, **kwargs):
+                self.assertEqual(
+                    kwargs["chain_checkpoints"],
+                    {"chain-000": existing_chain},
+                )
+                token.cancel("user_requested")
+                raise RuntimeError("cancel boundary")
+
+            sample.side_effect = cancelled_sample
+            with self.assertRaisesRegex(RuntimeError, "cancel boundary"):
+                execute_batch_estimation(
+                    request,
+                    estimator_revision="test-revision",
+                    cancellation_token=token,
+                )
+            restore.assert_called_once()
+            mark_cancelled.assert_called_once_with(
+                checkpoint_root, "user_requested"
+            )
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ import signal
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 import numpy as np
@@ -16,14 +17,27 @@ import numpy as np
 from grape_param_estim.artifact_io import request_fingerprint
 from grape_param_estim.batch_artifact import (
     BatchEstimationRun,
+    load_batch_estimation_run,
     write_batch_estimation_run,
 )
 from grape_param_estim.batch_artifact_export import (
     ArtifactRunIdentity,
     DelayLocalGeometry,
+    complete_pending_mcmc_artifact_payload,
     export_batch_estimation_artifact_payload,
 )
-from grape_param_estim.batch_performance import measure_run_performance
+from grape_param_estim.batch_checkpoint import (
+    batch_checkpoint_path,
+    load_batch_estimation_checkpoint,
+    mark_batch_checkpoint_cancelled,
+    mark_batch_checkpoint_published,
+    save_batch_chain_checkpoint,
+    write_batch_estimation_checkpoint,
+)
+from grape_param_estim.batch_performance import (
+    measure_estimation_modes_performance,
+    measure_run_performance,
+)
 from grape_param_estim.batch_request import (
     BatchEstimationRequest,
     load_batch_estimation_request,
@@ -45,8 +59,11 @@ from grape_param_estim.progress import (
     stage_label,
 )
 from grape_param_estim.real_estimation import (
+    estimate_real_modes,
     prepare_real_estimation_inputs,
+    restore_laplace_checkpoint,
     run_real_estimation,
+    sample_laplace_solution,
 )
 
 
@@ -440,10 +457,6 @@ def execute_batch_estimation(
         raise TypeError("request must be BatchEstimationRequest")
     if not isinstance(estimator_revision, str) or not estimator_revision.strip():
         raise ValueError("estimator_revision must be non-empty")
-    if request.payload["resume"]:
-        raise ValueError(
-            "resume requires an existing sparse-run checkpoint and is not a fresh run"
-        )
     cancellation = (
         CancellationToken() if cancellation_token is None else cancellation_token
     )
@@ -451,6 +464,9 @@ def execute_batch_estimation(
         raise TypeError("cancellation_token must be CancellationToken")
     if progress is not None and not callable(progress):
         raise TypeError("progress must be callable")
+    resume = bool(request.payload["resume"])
+    if not resume and request.output_directory.exists():
+        raise ValueError("fresh run output_directory already exists")
 
     cancellation.raise_if_cancelled()
     inputs = prepare_real_estimation_inputs(
@@ -459,6 +475,36 @@ def execute_batch_estimation(
         progress=progress,
     )
     cancellation.raise_if_cancelled()
+    selected_configuration_fingerprint = configuration_fingerprint(request)
+    selected_controller_fingerprint = controller_snapshot_fingerprint(inputs)
+    if resume and request.output_directory.exists():
+        completed = load_batch_estimation_run(request.output_directory)
+        expected = {
+            "run_id": str(request.payload["run_id"]),
+            "request_fingerprint": request.fingerprint,
+            "configuration_fingerprint": selected_configuration_fingerprint,
+            "controller_snapshot_fingerprint": selected_controller_fingerprint,
+            "estimator_revision": estimator_revision.strip(),
+        }
+        for key, value in expected.items():
+            if completed.manifest[key] != value:
+                raise ValueError("completed resume {} mismatch".format(key))
+        return completed
+
+    if bool(request.payload["mcmc_settings"]["enabled"]):
+        return _execute_resumable_mcmc_run(
+            request=request,
+            inputs=inputs,
+            estimator_revision=estimator_revision.strip(),
+            configuration_digest=selected_configuration_fingerprint,
+            controller_digest=selected_controller_fingerprint,
+            cancellation=cancellation,
+            progress=progress,
+        )
+    if resume:
+        raise ValueError(
+            "resume has neither a completed run nor an enabled-MCMC checkpoint"
+        )
     result = run_real_estimation(
         inputs,
         cancellation_requested=lambda: cancellation.cancelled,
@@ -469,8 +515,8 @@ def execute_batch_estimation(
     selected = result.selected_mode
     identity = ArtifactRunIdentity(
         estimator_revision=estimator_revision.strip(),
-        configuration_fingerprint=configuration_fingerprint(request),
-        controller_snapshot_fingerprint=controller_snapshot_fingerprint(inputs),
+        configuration_fingerprint=selected_configuration_fingerprint,
+        controller_snapshot_fingerprint=selected_controller_fingerprint,
         warnings=_warnings(result, estimator_revision),
     )
     payload = export_batch_estimation_artifact_payload(
@@ -505,6 +551,146 @@ def execute_batch_estimation(
     written = write_batch_estimation_run(
         request.output_directory, **payload.writer_arguments
     )
+    if progress is not None:
+        progress("writing_artifacts", 1, 1, "run complete")
+    return written
+
+
+def _execute_resumable_mcmc_run(
+    *,
+    request: BatchEstimationRequest,
+    inputs: object,
+    estimator_revision: str,
+    configuration_digest: str,
+    controller_digest: str,
+    cancellation: CancellationToken,
+    progress: Optional[StageProgress],
+) -> BatchEstimationRun:
+    """Reuse a completed inference core and proposal-boundary chain states."""
+
+    checkpoint_root = batch_checkpoint_path(request.output_directory)
+    if bool(request.payload["resume"]):
+        checkpoint = load_batch_estimation_checkpoint(
+            request.output_directory,
+            request=request,
+            estimator_revision=estimator_revision,
+            configuration_fingerprint=configuration_digest,
+            controller_snapshot_fingerprint=controller_digest,
+        )
+        checkpoint_root = checkpoint.root
+        core = checkpoint.core
+        selected_mode_id = str(checkpoint.manifest["selected_mode_id"])
+        final_solution, static_geometry, delay_uncertainty = (
+            restore_laplace_checkpoint(
+                inputs,
+                selected_mode_id,
+                checkpoint.state_values,
+                core.map_static,
+                core.q_em,
+                core.laplace,
+            )
+        )
+        chain_checkpoints = checkpoint.chain_checkpoints
+    else:
+        modes, selected_mode_id = estimate_real_modes(
+            inputs,
+            cancellation_requested=lambda: cancellation.cancelled,
+            progress=progress,
+        )
+        selected = next(
+            value for value in modes if value.mode_id == selected_mode_id
+        )
+        final_solution = selected.final_solution
+        static_geometry = selected.static_geometry
+        delay_uncertainty = selected.delay_uncertainty
+        performance = measure_estimation_modes_performance(
+            modes, selected_mode_id
+        )
+        provisional_result = SimpleNamespace(
+            modes=modes,
+            selected_mode=selected,
+            mcmc=None,
+        )
+        identity = ArtifactRunIdentity(
+            estimator_revision=estimator_revision,
+            configuration_fingerprint=configuration_digest,
+            controller_snapshot_fingerprint=controller_digest,
+            warnings=_warnings(provisional_result, estimator_revision),
+        )
+        core = export_batch_estimation_artifact_payload(
+            request=request,
+            flight_data=inputs.flight_data,
+            initializations=inputs.initializations,
+            final_solution=final_solution,
+            em_result=selected.em,
+            static_geometry=static_geometry,
+            final_q_lag_profile=(
+                selected.final_q_lag_profile_history[-1]
+                if selected.final_q_lag_profile_history
+                else None
+            ),
+            delay_geometry=DelayLocalGeometry(
+                delay_uncertainty.standard_deviation_seconds,
+                delay_uncertainty.source,
+                delay_uncertainty.curvature,
+            ),
+            identity=identity,
+            performance=performance,
+            pending_mcmc_checkpoint=True,
+        )
+        checkpoint = write_batch_estimation_checkpoint(
+            request.output_directory,
+            request=request,
+            estimator_revision=estimator_revision,
+            configuration_fingerprint=configuration_digest,
+            controller_snapshot_fingerprint=controller_digest,
+            selected_mode_id=selected_mode_id,
+            core=core,
+            state=final_solution.lm.state,
+        )
+        checkpoint_root = checkpoint.root
+        chain_checkpoints = {}
+
+    target_timings = []
+    try:
+        cancellation.raise_if_cancelled()
+        mcmc = sample_laplace_solution(
+            inputs,
+            selected_mode_id,
+            final_solution,
+            static_geometry,
+            delay_uncertainty,
+            cancellation_requested=lambda: cancellation.cancelled,
+            progress=progress,
+            target_timing_callback=target_timings.append,
+            chain_checkpoints=chain_checkpoints,
+            checkpoint_chain_proposal=lambda _chain_id, value: (
+                save_batch_chain_checkpoint(checkpoint_root, value)
+            ),
+        )
+        cancellation.raise_if_cancelled()
+    except Exception:
+        if cancellation.cancelled:
+            mark_batch_checkpoint_cancelled(
+                checkpoint_root, cancellation.reason
+            )
+        raise
+
+    completed_payload = complete_pending_mcmc_artifact_payload(
+        core,
+        request,
+        final_solution,
+        mcmc.chains,
+        mcmc.diagnostics,
+        target_timings,
+    )
+    if progress is not None:
+        progress("writing_artifacts", 0, 1, "publishing strict run")
+    cancellation.raise_if_cancelled()
+    written = write_batch_estimation_run(
+        request.output_directory, **completed_payload.writer_arguments
+    )
+    mark_batch_checkpoint_published(checkpoint_root)
     if progress is not None:
         progress("writing_artifacts", 1, 1, "run complete")
     return written

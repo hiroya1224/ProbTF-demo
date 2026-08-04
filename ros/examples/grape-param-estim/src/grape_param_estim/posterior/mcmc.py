@@ -12,6 +12,12 @@ from grape_param_estim.posterior.delayed_acceptance import (
     STATIC_PARAMETER_DIMENSION,
     TargetEvaluation,
 )
+from grape_param_estim.posterior.checkpoint import (
+    KernelCounterCheckpoint,
+    McmcChainCheckpoint,
+    NumpyRandomStateCheckpoint,
+    RetainedMcmcDraw,
+)
 
 
 @dataclass(frozen=True)
@@ -287,8 +293,17 @@ class McmcChainResult:
 class McmcCancelled(RuntimeError):
     """Cancellation observed at a proposal boundary."""
 
-    def __init__(self, completed_transitions: int):
+    def __init__(
+        self,
+        completed_transitions: int,
+        checkpoint: Optional[McmcChainCheckpoint] = None,
+    ):
         self.completed_transitions = int(completed_transitions)
+        if checkpoint is not None and not isinstance(
+            checkpoint, McmcChainCheckpoint
+        ):
+            raise TypeError("checkpoint must be McmcChainCheckpoint or None")
+        self.checkpoint = checkpoint
         super().__init__(
             "MCMC cancelled after {} transitions".format(
                 self.completed_transitions
@@ -321,6 +336,84 @@ def _update_counter(counter: dict, step: DelayedAcceptanceStep) -> None:
         )
 
 
+def _retained_draw(
+    draw_index: int,
+    current: TargetEvaluation,
+    step: DelayedAcceptanceStep,
+) -> RetainedMcmcDraw:
+    return RetainedMcmcDraw(
+        draw_index=draw_index,
+        evaluation=current,
+        attempted_kernel=step.kernel_name,
+        accepted=step.accepted,
+        stage_one_accepted=step.stage_one_accepted,
+        stage_two_attempted=step.stage_two_attempted,
+        full_target_cache_hit=step.full_target_cache_hit,
+        inner_solve_failed=step.inner_solve_failed,
+        inner_iterations=(
+            step.candidate_evaluation.inner_iterations
+            if step.candidate_evaluation is not None
+            else 0
+        ),
+    )
+
+
+def _chain_checkpoint(
+    settings: McmcChainSettings,
+    kernel_names: Tuple[str, ...],
+    completed_transition: int,
+    current: TargetEvaluation,
+    retained: Tuple[RetainedMcmcDraw, ...],
+    counters: Mapping[str, dict],
+    random_state: np.random.RandomState,
+) -> McmcChainCheckpoint:
+    return McmcChainCheckpoint(
+        chain_id=settings.chain_id,
+        mode_id=settings.mode_id,
+        warmup_steps=settings.warmup_steps,
+        retained_draws=settings.retained_draws,
+        thinning=settings.thinning,
+        kernel_names=kernel_names,
+        completed_transition=completed_transition,
+        current=current,
+        retained=retained,
+        kernel_counters={
+            name: KernelCounterCheckpoint.from_mapping(counters[name])
+            for name in kernel_names
+        },
+        random_state=NumpyRandomStateCheckpoint.capture(random_state),
+    )
+
+
+def _validate_resume_checkpoint(
+    checkpoint: McmcChainCheckpoint,
+    settings: McmcChainSettings,
+    kernel_names: Tuple[str, ...],
+) -> None:
+    if not isinstance(checkpoint, McmcChainCheckpoint):
+        raise TypeError("resume_checkpoint must be McmcChainCheckpoint")
+    expected = (
+        settings.chain_id,
+        settings.mode_id,
+        settings.warmup_steps,
+        settings.retained_draws,
+        settings.thinning,
+        kernel_names,
+    )
+    actual = (
+        checkpoint.chain_id,
+        checkpoint.mode_id,
+        checkpoint.warmup_steps,
+        checkpoint.retained_draws,
+        checkpoint.thinning,
+        checkpoint.kernel_names,
+    )
+    if actual != expected:
+        raise ValueError(
+            "resume checkpoint does not match chain settings and kernels"
+        )
+
+
 def run_mcmc_chain(
     sampler: DelayedAcceptanceSampler,
     initial: TargetEvaluation,
@@ -331,8 +424,12 @@ def run_mcmc_chain(
     progress: Optional[
         Callable[[int, int, DelayedAcceptanceStep], None]
     ] = None,
+    resume_checkpoint: Optional[McmcChainCheckpoint] = None,
+    checkpoint_callback: Optional[
+        Callable[[McmcChainCheckpoint], None]
+    ] = None,
 ) -> McmcChainResult:
-    """Run one fixed-kernel chain and check cancellation between proposals."""
+    """Run or resume one fixed-kernel chain at proposal boundaries."""
 
     if not isinstance(sampler, DelayedAcceptanceSampler):
         raise TypeError("sampler must be a DelayedAcceptanceSampler")
@@ -346,17 +443,59 @@ def run_mcmc_chain(
         raise TypeError("cancellation_requested must be callable")
     if progress is not None and not callable(progress):
         raise TypeError("progress must be callable")
+    if checkpoint_callback is not None and not callable(checkpoint_callback):
+        raise TypeError("checkpoint_callback must be callable")
+    kernel_names = tuple(
+        kernel.name for kernel in sampler.proposal.kernels
+    )
+    checkpoint_runtime_requested = (
+        resume_checkpoint is not None or checkpoint_callback is not None
+    )
+    if checkpoint_runtime_requested and not isinstance(
+        random_state, np.random.RandomState
+    ):
+        raise TypeError(
+            "checkpoint resume and callbacks require numpy.random.RandomState"
+        )
 
-    sampler.cache.store(initial)
-    current = initial
-    counters = {
-        kernel.name: _new_counter() for kernel in sampler.proposal.kernels
-    }
-    retained = []
+    if resume_checkpoint is None:
+        current = initial
+        counters = {name: _new_counter() for name in kernel_names}
+        retained = []
+        completed_transition = 0
+    else:
+        _validate_resume_checkpoint(
+            resume_checkpoint, settings, kernel_names
+        )
+        current = resume_checkpoint.current
+        counters = {
+            name: resume_checkpoint.kernel_counters[name].as_dict()
+            for name in kernel_names
+        }
+        retained = list(resume_checkpoint.retained)
+        completed_transition = resume_checkpoint.completed_transition
+        resume_checkpoint.random_state.restore(random_state)
+    # The exact cache itself is intentionally not serialized.  Restoring the
+    # current evaluation is sufficient to continue, and subsequent exact
+    # evaluations repopulate a fresh cache without unsafe warm-start objects.
+    sampler.cache.store(current)
     total = settings.total_transitions
-    for transition_index in range(1, total + 1):
+    latest_checkpoint = resume_checkpoint
+    for transition_index in range(completed_transition + 1, total + 1):
         if cancellation_requested is not None and cancellation_requested():
-            raise McmcCancelled(transition_index - 1)
+            if isinstance(random_state, np.random.RandomState):
+                latest_checkpoint = _chain_checkpoint(
+                    settings,
+                    kernel_names,
+                    transition_index - 1,
+                    current,
+                    tuple(retained),
+                    counters,
+                    random_state,
+                )
+            raise McmcCancelled(
+                transition_index - 1, latest_checkpoint
+            )
         step = sampler.step(current, random_state)
         current = step.current
         _update_counter(counters[step.kernel_name], step)
@@ -364,26 +503,43 @@ def run_mcmc_chain(
             progress(transition_index, total, step)
         after_warmup = transition_index - settings.warmup_steps
         if after_warmup > 0 and after_warmup % settings.thinning == 0:
-            retained.append((after_warmup // settings.thinning, current, step))
+            retained.append(
+                _retained_draw(
+                    after_warmup // settings.thinning, current, step
+                )
+            )
+        if checkpoint_callback is not None:
+            latest_checkpoint = _chain_checkpoint(
+                settings,
+                kernel_names,
+                transition_index,
+                current,
+                tuple(retained),
+                counters,
+                random_state,
+            )
+            checkpoint_callback(latest_checkpoint)
 
     sample_id = np.asarray(
         tuple(
             "{}:{:08d}".format(settings.chain_id, draw_index)
-            for draw_index, _, _ in retained
+            for draw_index in (value.draw_index for value in retained)
         )
     )
     draw_index = np.asarray(
-        tuple(item[0] for item in retained), dtype=np.int64
+        tuple(value.draw_index for value in retained), dtype=np.int64
     )
     static_coordinate = np.vstack(
-        tuple(item[1].point.static_coordinate for item in retained)
+        tuple(value.evaluation.point.static_coordinate for value in retained)
     )
-    delay = np.asarray(tuple(item[1].point.delay for item in retained))
+    delay = np.asarray(
+        tuple(value.evaluation.point.delay for value in retained)
+    )
     log_density = np.asarray(
-        tuple(item[1].log_density for item in retained)
+        tuple(value.evaluation.log_density for value in retained)
     )
     component_availability = tuple(
-        item[1].has_density_components for item in retained
+        value.evaluation.has_density_components for value in retained
     )
     if any(component_availability) and not all(component_availability):
         raise RuntimeError(
@@ -391,51 +547,54 @@ def run_mcmc_chain(
         )
     if all(component_availability):
         graph_objective = np.asarray(
-            tuple(item[1].graph_objective for item in retained), dtype=float
+            tuple(
+                value.evaluation.graph_objective for value in retained
+            ),
+            dtype=float,
         )
         local_log_determinant = np.asarray(
             tuple(
-                item[1].local_log_determinant for item in retained
+                value.evaluation.local_log_determinant
+                for value in retained
             ),
             dtype=float,
         )
         delay_log_prior = np.asarray(
-            tuple(item[1].delay_log_prior for item in retained), dtype=float
+            tuple(
+                value.evaluation.delay_log_prior for value in retained
+            ),
+            dtype=float,
         )
     else:
         graph_objective = None
         local_log_determinant = None
         delay_log_prior = None
     attempted_kernel = np.asarray(
-        tuple(item[2].kernel_name for item in retained)
+        tuple(value.attempted_kernel for value in retained)
     )
     accepted = np.asarray(
-        tuple(item[2].accepted for item in retained), dtype=bool
+        tuple(value.accepted for value in retained), dtype=bool
     )
     accepted_kernel = np.asarray(
         tuple(
-            item[2].kernel_name if item[2].accepted else ""
-            for item in retained
+            value.accepted_kernel for value in retained
         )
     )
     stage_one_accepted = np.asarray(
-        tuple(item[2].stage_one_accepted for item in retained), dtype=bool
+        tuple(value.stage_one_accepted for value in retained), dtype=bool
     )
     stage_two_attempted = np.asarray(
-        tuple(item[2].stage_two_attempted for item in retained), dtype=bool
+        tuple(value.stage_two_attempted for value in retained), dtype=bool
     )
     full_target_cache_hit = np.asarray(
-        tuple(item[2].full_target_cache_hit for item in retained), dtype=bool
+        tuple(value.full_target_cache_hit for value in retained), dtype=bool
     )
     inner_solve_failed = np.asarray(
-        tuple(item[2].inner_solve_failed for item in retained), dtype=bool
+        tuple(value.inner_solve_failed for value in retained), dtype=bool
     )
     inner_iterations = np.asarray(
         tuple(
-            item[2].candidate_evaluation.inner_iterations
-            if item[2].candidate_evaluation is not None
-            else 0
-            for item in retained
+            value.inner_iterations for value in retained
         ),
         dtype=np.int64,
     )

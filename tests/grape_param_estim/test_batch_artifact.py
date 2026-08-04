@@ -14,6 +14,7 @@ from grape_param_estim.batch_artifact import (
     BATCH_ESTIMATION_RUN_SCHEMA,
     file_sha256,
     load_batch_estimation_run,
+    write_batch_estimation_run,
 )
 
 
@@ -66,7 +67,7 @@ class BatchArtifactTests(unittest.TestCase):
             "force_effectiveness": np.ones(4),
             "torque_effectiveness": np.ones(4),
             "delay": np.asarray((0.006,)),
-            "q_diagonal": np.arange(1.0, 7.0),
+            "q_diagonal": 1.5 * np.arange(1.0, 7.0),
             "objective_component_names": np.asarray(
                 ("observation", "dynamics", "prior")
             ),
@@ -361,6 +362,14 @@ class BatchArtifactTests(unittest.TestCase):
         }
         self._write_manifest(manifest)
 
+    def _manifest_metadata(self):
+        manifest = self._read_manifest()
+        return {
+            key: value
+            for key, value in manifest.items()
+            if key not in {"schema", "status", "artifacts"}
+        }
+
     def test_loads_complete_pickle_free_run(self):
         run = load_batch_estimation_run(self.root)
 
@@ -491,6 +500,117 @@ class BatchArtifactTests(unittest.TestCase):
         self._write_manifest(manifest)
 
         with self.assertRaisesRegex(ArtifactValidationError, "particle fields"):
+            load_batch_estimation_run(self.root)
+
+    def test_writer_atomically_publishes_round_trip_with_sha_descriptors(self):
+        destination = Path(self.temporary.name) / "written-run"
+        run = write_batch_estimation_run(
+            destination,
+            manifest_metadata=self._manifest_metadata(),
+            map_static=self._map_static(),
+            q_em=self._q_em(),
+            laplace=self._laplace(),
+            diagnostics=self._diagnostics(),
+            bags={bag_id: self._bag(bag_id) for bag_id in self.bag_ids},
+        )
+
+        self.assertEqual(run.manifest["status"], "complete")
+        self.assertEqual(tuple(run.bags), self.bag_ids)
+        self.assertFalse(run.map_static["mass"].flags.writeable)
+        for descriptor in (
+            run.manifest["artifacts"]["map_static"],
+            run.manifest["artifacts"]["q_em"],
+            run.manifest["artifacts"]["laplace"],
+            run.manifest["artifacts"]["diagnostics"],
+        ):
+            self.assertEqual(
+                descriptor["sha256"],
+                file_sha256(destination / descriptor["path"]),
+            )
+        loaded = load_batch_estimation_run(destination)
+        self.assertEqual(loaded.manifest, run.manifest)
+
+    def test_writer_round_trips_optional_mcmc_and_trajectory_subset(self):
+        self._write_core_run(mcmc=True)
+        destination = Path(self.temporary.name) / "written-mcmc-run"
+        run = write_batch_estimation_run(
+            destination,
+            manifest_metadata=self._manifest_metadata(),
+            map_static=self._map_static(),
+            q_em=self._q_em(),
+            laplace=self._laplace(),
+            diagnostics=self._diagnostics(mcmc=True),
+            bags={bag_id: self._bag(bag_id) for bag_id in self.bag_ids},
+            mcmc_samples=self._mcmc(),
+            trajectories={self.bag_ids[0]: self._trajectory()},
+        )
+
+        self.assertTrue(
+            np.array_equal(run.mcmc_samples["sample_id"], (101, 107, 109))
+        )
+        self.assertEqual(tuple(run.trajectories), ("bag-a",))
+        self.assertIn("mcmc_samples", run.manifest["artifacts"])
+        self.assertIn("trajectories", run.manifest["artifacts"])
+
+    def test_writer_failure_leaves_authoritative_incomplete_status(self):
+        destination = Path(self.temporary.name) / "invalid-run"
+        invalid = self._q_em()
+        invalid["stale_old_field"] = np.asarray((1.0,))
+
+        with self.assertRaisesRegex(ArtifactValidationError, "unknown keys"):
+            write_batch_estimation_run(
+                destination,
+                manifest_metadata=self._manifest_metadata(),
+                map_static=self._map_static(),
+                q_em=invalid,
+                laplace=self._laplace(),
+                diagnostics=self._diagnostics(),
+                bags={
+                    bag_id: self._bag(bag_id) for bag_id in self.bag_ids
+                },
+            )
+
+        with (destination / "manifest.json").open(
+            "r", encoding="utf-8"
+        ) as stream:
+            self.assertEqual(json.load(stream)["status"], "writing")
+        with self.assertRaises(IncompleteArtifactError):
+            load_batch_estimation_run(destination)
+
+    def test_writer_rejects_object_dtype_without_creating_a_run(self):
+        destination = Path(self.temporary.name) / "object-run"
+        invalid = self._map_static()
+        invalid["mass"] = np.asarray(({"unsafe": True},), dtype=object)
+
+        with self.assertRaisesRegex(ArtifactValidationError, "object dtype"):
+            write_batch_estimation_run(
+                destination,
+                manifest_metadata=self._manifest_metadata(),
+                map_static=invalid,
+                q_em=self._q_em(),
+                laplace=self._laplace(),
+                diagnostics=self._diagnostics(),
+                bags={
+                    bag_id: self._bag(bag_id) for bag_id in self.bag_ids
+                },
+            )
+        self.assertFalse(destination.exists())
+
+    def test_exact_v1_rejects_unknown_manifest_and_array_fields(self):
+        manifest = self._read_manifest()
+        manifest["legacy_stage"] = {"schema": "old"}
+        self._write_manifest(manifest)
+        with self.assertRaisesRegex(ArtifactValidationError, "unknown keys"):
+            load_batch_estimation_run(self.root)
+
+        self._write_core_run(mcmc=False)
+        arrays = self._map_static()
+        arrays["member_id"] = np.asarray((1,), dtype=np.int64)
+        self._save(self.root / "map_static.npz", arrays)
+        manifest = self._read_manifest()
+        self._refresh_descriptor(manifest, "map_static")
+        self._write_manifest(manifest)
+        with self.assertRaisesRegex(ArtifactValidationError, "member_id"):
             load_batch_estimation_run(self.root)
 
 

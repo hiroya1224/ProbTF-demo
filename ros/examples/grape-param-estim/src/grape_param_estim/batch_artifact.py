@@ -15,8 +15,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import os
 import re
 from pathlib import Path
+import tempfile
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -27,6 +29,8 @@ from .artifact_io import (
     UnsupportedArtifactSchema,
     load_npz_strict,
     read_json,
+    write_json_atomic,
+    write_npz_atomic,
 )
 
 
@@ -34,9 +38,39 @@ BATCH_ESTIMATION_RUN_SCHEMA = "grape-param-estim/batch-estimation-run/v1"
 STATIC_PARAMETER_DIMENSION = 18
 DYNAMICS_RESIDUAL_DIMENSION = 6
 COMPLETE_STATUS = "complete"
+WRITING_STATUS = "writing"
 
 _BAG_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+_MANIFEST_KEYS = (
+    "schema",
+    "status",
+    "run_id",
+    "estimator_revision",
+    "selected_bag_ids",
+    "selected_intervals",
+    "selected_bag_sha256",
+    "configuration_fingerprint",
+    "controller_snapshot_fingerprint",
+    "sensor_contracts",
+    "observation_factors",
+    "parameter_prior",
+    "delay_prior",
+    "q_definition",
+    "knot_policy",
+    "interpolation_policy",
+    "solver_settings",
+    "em_settings",
+    "mcmc_settings",
+    "request_fingerprint",
+    "substage_status",
+    "warnings",
+    "artifacts",
+)
+_WRITER_METADATA_KEYS = tuple(
+    key for key in _MANIFEST_KEYS if key not in {"schema", "status", "artifacts"}
+)
 
 
 @dataclass(frozen=True)
@@ -336,6 +370,17 @@ def _nonnegative(value: np.ndarray, location: str) -> None:
         )
 
 
+def _positive_semidefinite(value: np.ndarray, location: str) -> None:
+    if value.shape[0] == 0:
+        return
+    eigenvalues = np.linalg.eigvalsh(value)
+    scale = np.maximum(1.0, np.max(np.abs(eigenvalues), axis=-1))
+    if np.any(np.min(eigenvalues, axis=-1) < -1.0e-10 * scale):
+        raise ArtifactValidationError(
+            "{} must be positive semidefinite".format(location)
+        )
+
+
 def _id_vector(
     arrays: Mapping[str, np.ndarray], key: str, location: str
 ) -> np.ndarray:
@@ -384,32 +429,8 @@ def _validate_manifest(
                 status
             )
         )
-    required = (
-        "schema",
-        "status",
-        "run_id",
-        "estimator_revision",
-        "selected_bag_ids",
-        "selected_intervals",
-        "selected_bag_sha256",
-        "configuration_fingerprint",
-        "controller_snapshot_fingerprint",
-        "sensor_contracts",
-        "observation_factors",
-        "parameter_prior",
-        "delay_prior",
-        "q_definition",
-        "knot_policy",
-        "interpolation_policy",
-        "solver_settings",
-        "em_settings",
-        "mcmc_settings",
-        "request_fingerprint",
-        "substage_status",
-        "warnings",
-        "artifacts",
-    )
-    _require_keys(manifest, required, "manifest")
+    _require_keys(manifest, _MANIFEST_KEYS, "manifest")
+    _reject_unknown_keys(manifest, _MANIFEST_KEYS, "manifest")
     _required_string(manifest, "run_id", "manifest")
     _required_string(manifest, "estimator_revision", "manifest")
     bag_ids = _string_list(manifest["selected_bag_ids"], "manifest.selected_bag_ids")
@@ -470,6 +491,9 @@ def _validate_manifest(
             if not isinstance(factor, Mapping):
                 raise ArtifactValidationError("{} must be an object".format(location))
             _require_keys(factor, ("enabled", "disabled_reason"), location)
+            _reject_unknown_keys(
+                factor, ("enabled", "disabled_reason"), location
+            )
             enabled = factor["enabled"]
             reason = factor["disabled_reason"]
             if not isinstance(enabled, bool):
@@ -516,6 +540,11 @@ def _validate_manifest(
         ("definition", "components", "units"),
         "manifest.q_definition",
     )
+    _reject_unknown_keys(
+        q_definition,
+        ("definition", "components", "units"),
+        "manifest.q_definition",
+    )
     _required_string(q_definition, "definition", "manifest.q_definition")
     components = _string_list(
         q_definition["components"], "manifest.q_definition.components"
@@ -552,6 +581,9 @@ def _validate_manifest(
             )
         location = "manifest.substage_status.{}".format(name)
         _require_keys(stage, ("converged", "termination_reason"), location)
+        _reject_unknown_keys(
+            stage, ("converged", "termination_reason"), location
+        )
         if not isinstance(stage["converged"], bool):
             raise ArtifactValidationError(
                 "{}.converged must be boolean".format(location)
@@ -684,6 +716,7 @@ def _validate_map_static(
     arrays: Mapping[str, np.ndarray], bag_ids: Tuple[str, ...], location: str
 ) -> None:
     _require_keys(arrays, _MAP_STATIC_KEYS, location)
+    _reject_unknown_keys(arrays, _MAP_STATIC_KEYS, location)
     _array(
         arrays,
         "parameter_coordinate_map",
@@ -700,14 +733,21 @@ def _validate_map_static(
             "{}:inertia must be positive definite".format(location)
         )
     _array(arrays, "cog", (3,), location)
-    _array(arrays, "force_effectiveness", (4,), location)
-    _array(arrays, "torque_effectiveness", (4,), location)
-    _array(arrays, "delay", (1,), location)
+    force = _array(arrays, "force_effectiveness", (4,), location)
+    torque = _array(arrays, "torque_effectiveness", (4,), location)
+    _positive(force, "{}:force_effectiveness".format(location))
+    _positive(torque, "{}:torque_effectiveness".format(location))
+    delay = _array(arrays, "delay", (1,), location)
+    _nonnegative(delay, "{}:delay".format(location))
     q = _array(arrays, "q_diagonal", (DYNAMICS_RESIDUAL_DIMENSION,), location)
     _positive(q, "{}:q_diagonal".format(location))
     component_names = _strings(
         arrays, "objective_component_names", None, location, unique=True
     )
+    if component_names.size == 0:
+        raise ArtifactValidationError(
+            "{}:objective_component_names must not be empty".format(location)
+        )
     _array(
         arrays,
         "objective_component_values",
@@ -745,6 +785,7 @@ _Q_EM_KEYS = (
 
 def _validate_q_em(arrays: Mapping[str, np.ndarray], location: str) -> None:
     _require_keys(arrays, _Q_EM_KEYS, location)
+    _reject_unknown_keys(arrays, _Q_EM_KEYS, location)
     iteration = _array(arrays, "iteration", (None,), location, kind="integer")
     count = iteration.size
     if count == 0 or not np.array_equal(iteration, np.arange(count)):
@@ -769,6 +810,8 @@ def _validate_q_em(arrays: Mapping[str, np.ndarray], location: str) -> None:
         _array(arrays, key, (count,), location)
     if np.any(arrays["alpha"] < 0.0) or np.any(arrays["alpha"] > 1.0):
         raise ArtifactValidationError("{}:alpha must lie in [0, 1]".format(location))
+    _nonnegative(arrays["log_q_change"], "{}:log_q_change".format(location))
+    _nonnegative(arrays["lag"], "{}:lag".format(location))
     _array(arrays, "accepted", (count,), location, kind="boolean")
     _strings(arrays, "reason", count, location)
     _array(
@@ -790,6 +833,16 @@ def _validate_q_em(arrays: Mapping[str, np.ndarray], location: str) -> None:
             location,
         )
         _nonnegative(value, "{}:{}".format(location, key))
+    if not np.allclose(
+        arrays["expected_residual_second_moment"],
+        arrays["map_residual_second_moment"] + arrays["covariance_correction"],
+        rtol=1.0e-9,
+        atol=1.0e-12,
+    ):
+        raise ArtifactValidationError(
+            "{}:expected residual second moment must equal MAP moment plus "
+            "covariance correction".format(location)
+        )
 
 
 _LAPLACE_KEYS = (
@@ -810,6 +863,7 @@ _LAPLACE_KEYS = (
 
 def _validate_laplace(arrays: Mapping[str, np.ndarray], location: str) -> None:
     _require_keys(arrays, _LAPLACE_KEYS, location)
+    _reject_unknown_keys(arrays, _LAPLACE_KEYS, location)
     dimension = STATIC_PARAMETER_DIMENSION
     for key in (
         "reduced_likelihood_hessian",
@@ -892,9 +946,13 @@ _DIAGNOSTIC_KEYS = (
 
 
 def _validate_diagnostics(
-    arrays: Mapping[str, np.ndarray], bag_ids: Tuple[str, ...], location: str
+    arrays: Mapping[str, np.ndarray],
+    bag_ids: Tuple[str, ...],
+    mcmc_enabled: bool,
+    location: str,
 ) -> None:
     _require_keys(arrays, _DIAGNOSTIC_KEYS, location)
+    _reject_unknown_keys(arrays, _DIAGNOSTIC_KEYS, location)
     actual_bags = _strings(arrays, "bag_id", len(bag_ids), location, unique=True)
     if tuple(actual_bags.tolist()) != bag_ids:
         raise ArtifactValidationError(
@@ -918,6 +976,18 @@ def _validate_diagnostics(
     ):
         value = _array(arrays, key, (None,), location)
         _nonnegative(value, "{}:{}".format(location, key))
+    if mcmc_enabled and arrays["mcmc_target_seconds"].size == 0:
+        raise ArtifactValidationError(
+            "{}:mcmc_target_seconds must not be empty when MCMC is enabled".format(
+                location
+            )
+        )
+    if not mcmc_enabled and arrays["mcmc_target_seconds"].size != 0:
+        raise ArtifactValidationError(
+            "{}:mcmc_target_seconds must be empty when MCMC is disabled".format(
+                location
+            )
+        )
     peak = _array(arrays, "peak_memory_bytes", (1,), location, kind="integer")
     if peak[0] < 0:
         raise ArtifactValidationError(
@@ -1034,12 +1104,16 @@ def _stream(
             raise ArtifactValidationError(
                 "{}:{}_covariance must be symmetric".format(location, prefix)
             )
+        _positive_semidefinite(
+            covariance, "{}:{}_covariance".format(location, prefix)
+        )
 
 
 def _validate_bag(
     arrays: Mapping[str, np.ndarray], bag_id: str, location: str
 ) -> None:
     _require_keys(arrays, _BAG_KEYS, location)
+    _reject_unknown_keys(arrays, _BAG_KEYS, location)
     stored_id = _strings(arrays, "bag_id", 1, location)
     if stored_id[0] != bag_id:
         raise ArtifactValidationError(
@@ -1206,10 +1280,24 @@ def _validate_mcmc(
                 location, ", ".join(sorted(forbidden))
             )
         )
+    _reject_unknown_keys(arrays, _MCMC_KEYS, location)
     sample_ids = _id_vector(arrays, "sample_id", location)
     count = sample_ids.size
-    _array(arrays, "chain_id", (count,), location, kind="integer")
-    _array(arrays, "draw_index", (count,), location, kind="integer")
+    chain_id = _array(
+        arrays, "chain_id", (count,), location, kind="integer"
+    )
+    draw_index = _array(
+        arrays, "draw_index", (count,), location, kind="integer"
+    )
+    if np.any(chain_id < 0) or np.any(draw_index < 0):
+        raise ArtifactValidationError(
+            "{}:chain_id and draw_index must be non-negative".format(location)
+        )
+    chain_draw = np.column_stack((chain_id, draw_index))
+    if np.unique(chain_draw, axis=0).shape[0] != count:
+        raise ArtifactValidationError(
+            "{} contains duplicate (chain_id, draw_index) pairs".format(location)
+        )
     _array(
         arrays,
         "parameter_coordinate",
@@ -1223,10 +1311,17 @@ def _validate_mcmc(
         inertia, np.swapaxes(inertia, 1, 2), rtol=1.0e-9, atol=1.0e-11
     ):
         raise ArtifactValidationError("{}:inertia must be symmetric".format(location))
+    if np.any(np.linalg.eigvalsh(inertia) <= 0.0):
+        raise ArtifactValidationError(
+            "{}:inertia must be positive definite".format(location)
+        )
     _array(arrays, "cog", (count, 3), location)
-    _array(arrays, "force_effectiveness", (count, 4), location)
-    _array(arrays, "torque_effectiveness", (count, 4), location)
-    _array(arrays, "delay", (count,), location)
+    force = _array(arrays, "force_effectiveness", (count, 4), location)
+    torque = _array(arrays, "torque_effectiveness", (count, 4), location)
+    _positive(force, "{}:force_effectiveness".format(location))
+    _positive(torque, "{}:torque_effectiveness".format(location))
+    delay = _array(arrays, "delay", (count,), location)
+    _nonnegative(delay, "{}:delay".format(location))
     for key in (
         "log_posterior",
         "log_likelihood_approximation",
@@ -1261,6 +1356,7 @@ def _validate_trajectory_subset(
     location: str,
 ) -> None:
     _require_keys(arrays, _TRAJECTORY_KEYS, location)
+    _reject_unknown_keys(arrays, _TRAJECTORY_KEYS, location)
     selected_ids = _id_vector(arrays, "sample_id", location)
     if selected_ids.dtype.kind != mcmc_sample_ids.dtype.kind:
         raise ArtifactValidationError(
@@ -1318,18 +1414,9 @@ def _freeze(arrays: Dict[str, np.ndarray]) -> Mapping[str, np.ndarray]:
     return arrays
 
 
-def load_batch_estimation_run(
-    root: Union[str, Path]
+def _load_validated_run(
+    run_root: Path, manifest: Mapping[str, Any]
 ) -> BatchEstimationRun:
-    """Load and validate a completed v1 sparse-batch estimation run."""
-
-    run_root = Path(root).expanduser().resolve()
-    manifest_path = run_root / "manifest.json"
-    if not manifest_path.is_file():
-        raise ArtifactValidationError(
-            "batch run has no manifest.json: {}".format(run_root)
-        )
-    manifest = read_json(manifest_path)
     (
         bag_ids,
         core_paths,
@@ -1345,7 +1432,13 @@ def load_batch_estimation_run(
     _validate_map_static(map_static, bag_ids, str(core_paths["map_static"]))
     _validate_q_em(q_em, str(core_paths["q_em"]))
     _validate_laplace(laplace, str(core_paths["laplace"]))
-    _validate_diagnostics(diagnostics, bag_ids, str(core_paths["diagnostics"]))
+    mcmc_enabled = mcmc_path is not None
+    _validate_diagnostics(
+        diagnostics,
+        bag_ids,
+        mcmc_enabled,
+        str(core_paths["diagnostics"]),
+    )
 
     bags: Dict[str, Mapping[str, np.ndarray]] = {}
     for bag_id in bag_ids:
@@ -1367,7 +1460,32 @@ def load_batch_estimation_run(
             )
         arrays = load_npz_strict(path)
         _validate_trajectory_subset(arrays, mcmc_sample_ids, str(path))
+        if not np.array_equal(arrays["knot_time"], bags[bag_id]["knot_time"]):
+            raise ArtifactValidationError(
+                "{}:knot_time must exactly match bags/{}/knot_time".format(
+                    path, bag_id
+                )
+            )
         trajectories[bag_id] = _freeze(arrays)
+
+    if not np.allclose(
+        map_static["q_diagonal"],
+        q_em["accepted_q"][-1],
+        rtol=1.0e-10,
+        atol=1.0e-12,
+    ):
+        raise ArtifactValidationError(
+            "map_static:q_diagonal must match the final accepted Q in q_em"
+        )
+    if not np.isclose(
+        map_static["delay"][0],
+        q_em["lag"][-1],
+        rtol=1.0e-10,
+        atol=1.0e-12,
+    ):
+        raise ArtifactValidationError(
+            "map_static:delay must match the final lag in q_em"
+        )
 
     return BatchEstimationRun(
         root=run_root,
@@ -1384,9 +1502,262 @@ def load_batch_estimation_run(
     )
 
 
+def _copy_array_mapping(
+    arrays: Mapping[str, np.ndarray], location: str
+) -> Dict[str, np.ndarray]:
+    if not isinstance(arrays, Mapping) or not arrays:
+        raise ArtifactValidationError(
+            "{} must be a non-empty array mapping".format(location)
+        )
+    copied: Dict[str, np.ndarray] = {}
+    for key, value in arrays.items():
+        if not isinstance(key, str) or not key:
+            raise ArtifactValidationError(
+                "{} keys must be non-empty strings".format(location)
+            )
+        selected = np.asarray(value)
+        if selected.dtype.hasobject:
+            raise ArtifactValidationError(
+                "{}:{} has forbidden object dtype".format(location, key)
+            )
+        copied[key] = np.array(selected, copy=True)
+    return copied
+
+
+def _fsync_directory(path: Path) -> None:
+    try:
+        descriptor = os.open(str(path), os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _publish_writing_directory(
+    destination: Path, manifest: Mapping[str, Any]
+) -> None:
+    if destination.exists() or destination.is_symlink():
+        raise ArtifactValidationError(
+            "batch run destination already exists: {}".format(destination)
+        )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(
+        tempfile.mkdtemp(
+            prefix=".{}-".format(destination.name),
+            suffix=".writing",
+            dir=str(destination.parent),
+        )
+    )
+    published = False
+    try:
+        write_json_atomic(staging / "manifest.json", manifest)
+        os.replace(str(staging), str(destination))
+        published = True
+        _fsync_directory(destination.parent)
+    finally:
+        if not published and staging.exists():
+            manifest_path = staging / "manifest.json"
+            if manifest_path.is_file():
+                manifest_path.unlink()
+            staging.rmdir()
+
+
+def _written_descriptor(destination: Path, relative: str) -> Dict[str, str]:
+    return {
+        "path": relative,
+        "sha256": file_sha256(destination / relative),
+    }
+
+
+def write_batch_estimation_run(
+    root: Union[str, Path],
+    *,
+    manifest_metadata: Mapping[str, Any],
+    map_static: Mapping[str, np.ndarray],
+    q_em: Mapping[str, np.ndarray],
+    laplace: Mapping[str, np.ndarray],
+    diagnostics: Mapping[str, np.ndarray],
+    bags: Mapping[str, Mapping[str, np.ndarray]],
+    mcmc_samples: Optional[Mapping[str, np.ndarray]] = None,
+    trajectories: Optional[
+        Mapping[str, Mapping[str, np.ndarray]]
+    ] = None,
+) -> BatchEstimationRun:
+    """Atomically publish one immutable strict-v1 estimation directory.
+
+    ``manifest_metadata`` contains every manifest field except ``schema``,
+    ``status``, and ``artifacts``.  Those three fields are writer-owned so a
+    caller cannot advertise completion before the payload and SHA-256
+    descriptors have validated.  The destination must not already exist.
+
+    The directory first appears atomically with ``status == "writing"``.
+    Every NPZ is then replaced atomically and validated from disk.  The final
+    atomic manifest replacement is the sole completion commit point.  An I/O
+    or validation failure therefore leaves an explicitly incomplete run that
+    the public loader refuses to consume.
+    """
+
+    if not isinstance(manifest_metadata, Mapping):
+        raise ArtifactValidationError("manifest_metadata must be an object")
+    _require_keys(
+        manifest_metadata, _WRITER_METADATA_KEYS, "manifest_metadata"
+    )
+    _reject_unknown_keys(
+        manifest_metadata, _WRITER_METADATA_KEYS, "manifest_metadata"
+    )
+    bag_ids = _string_list(
+        manifest_metadata["selected_bag_ids"],
+        "manifest_metadata.selected_bag_ids",
+    )
+    for index, bag_id in enumerate(bag_ids):
+        _safe_bag_id(
+            bag_id,
+            "manifest_metadata.selected_bag_ids[{}]".format(index),
+        )
+    if not isinstance(bags, Mapping) or set(bags) != set(bag_ids):
+        raise ArtifactValidationError(
+            "bags keys must exactly match manifest_metadata.selected_bag_ids"
+        )
+    selected_trajectories = {} if trajectories is None else trajectories
+    if not isinstance(selected_trajectories, Mapping):
+        raise ArtifactValidationError("trajectories must be an object")
+    if not set(selected_trajectories).issubset(set(bag_ids)):
+        raise ArtifactValidationError(
+            "trajectories contains an unknown bag ID"
+        )
+
+    mcmc_settings = _required_mapping(
+        manifest_metadata, "mcmc_settings", "manifest_metadata"
+    )
+    if not isinstance(mcmc_settings.get("enabled"), bool):
+        raise ArtifactValidationError(
+            "manifest_metadata.mcmc_settings.enabled must be explicit boolean"
+        )
+    mcmc_enabled = bool(mcmc_settings["enabled"])
+    if mcmc_enabled != (mcmc_samples is not None):
+        raise ArtifactValidationError(
+            "mcmc_samples presence must exactly match mcmc_settings.enabled"
+        )
+    if selected_trajectories and not mcmc_enabled:
+        raise ArtifactValidationError(
+            "trajectory subsets require enabled MCMC"
+        )
+
+    payload_map_static = _copy_array_mapping(map_static, "map_static")
+    payload_q_em = _copy_array_mapping(q_em, "q_em")
+    payload_laplace = _copy_array_mapping(laplace, "laplace")
+    payload_diagnostics = _copy_array_mapping(diagnostics, "diagnostics")
+    payload_bags = {
+        bag_id: _copy_array_mapping(bags[bag_id], "bags.{}".format(bag_id))
+        for bag_id in bag_ids
+    }
+    payload_mcmc = (
+        None
+        if mcmc_samples is None
+        else _copy_array_mapping(mcmc_samples, "mcmc_samples")
+    )
+    payload_trajectories = {
+        bag_id: _copy_array_mapping(
+            selected_trajectories[bag_id],
+            "trajectories.{}".format(bag_id),
+        )
+        for bag_id in bag_ids
+        if bag_id in selected_trajectories
+    }
+
+    destination = Path(root).expanduser().resolve()
+    writing_manifest = dict(manifest_metadata)
+    writing_manifest.update(
+        {
+            "schema": BATCH_ESTIMATION_RUN_SCHEMA,
+            "status": WRITING_STATUS,
+            "artifacts": {},
+        }
+    )
+    _publish_writing_directory(destination, writing_manifest)
+
+    write_npz_atomic(destination / "map_static.npz", payload_map_static)
+    write_npz_atomic(destination / "q_em.npz", payload_q_em)
+    write_npz_atomic(destination / "laplace.npz", payload_laplace)
+    write_npz_atomic(destination / "diagnostics.npz", payload_diagnostics)
+    for bag_id in bag_ids:
+        write_npz_atomic(
+            destination / "bags" / "{}.npz".format(bag_id),
+            payload_bags[bag_id],
+        )
+    if payload_mcmc is not None:
+        write_npz_atomic(destination / "mcmc_samples.npz", payload_mcmc)
+    for bag_id, arrays in payload_trajectories.items():
+        write_npz_atomic(
+            destination
+            / "trajectories"
+            / bag_id
+            / "selected_samples.npz",
+            arrays,
+        )
+
+    artifacts: Dict[str, Any] = {
+        "map_static": _written_descriptor(destination, "map_static.npz"),
+        "q_em": _written_descriptor(destination, "q_em.npz"),
+        "laplace": _written_descriptor(destination, "laplace.npz"),
+        "diagnostics": _written_descriptor(destination, "diagnostics.npz"),
+        "bags": {
+            bag_id: _written_descriptor(
+                destination, "bags/{}.npz".format(bag_id)
+            )
+            for bag_id in bag_ids
+        },
+    }
+    if payload_mcmc is not None:
+        artifacts["mcmc_samples"] = _written_descriptor(
+            destination, "mcmc_samples.npz"
+        )
+    if payload_trajectories:
+        artifacts["trajectories"] = {
+            bag_id: _written_descriptor(
+                destination,
+                "trajectories/{}/selected_samples.npz".format(bag_id),
+            )
+            for bag_id in bag_ids
+            if bag_id in payload_trajectories
+        }
+
+    complete_manifest = dict(manifest_metadata)
+    complete_manifest.update(
+        {
+            "schema": BATCH_ESTIMATION_RUN_SCHEMA,
+            "status": COMPLETE_STATUS,
+            "artifacts": artifacts,
+        }
+    )
+    # Validate the bytes read back from disk and their descriptors before the
+    # completion manifest can become authoritative.
+    _load_validated_run(destination, complete_manifest)
+    write_json_atomic(destination / "manifest.json", complete_manifest)
+    return load_batch_estimation_run(destination)
+
+
+def load_batch_estimation_run(
+    root: Union[str, Path]
+) -> BatchEstimationRun:
+    """Load and validate a completed v1 sparse-batch estimation run."""
+
+    run_root = Path(root).expanduser().resolve()
+    manifest_path = run_root / "manifest.json"
+    if not manifest_path.is_file():
+        raise ArtifactValidationError(
+            "batch run has no manifest.json: {}".format(run_root)
+        )
+    manifest = read_json(manifest_path)
+    return _load_validated_run(run_root, manifest)
+
+
 __all__ = [
     "BATCH_ESTIMATION_RUN_SCHEMA",
     "BatchEstimationRun",
     "file_sha256",
     "load_batch_estimation_run",
+    "write_batch_estimation_run",
 ]

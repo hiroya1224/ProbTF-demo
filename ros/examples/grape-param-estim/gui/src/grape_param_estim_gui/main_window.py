@@ -25,11 +25,9 @@ from PySide6.QtWidgets import (
 )
 
 from .artifact_loader import (
+    BatchEstimationRun,
     GuiArtifactError,
-    diagonal_q_stage_fingerprint,
-    load_augmented_parameter_assimilation,
-    load_assimilation,
-    load_diagonal_q_stage,
+    load_batch_estimation_run,
     load_inspection,
     load_pid_evaluation,
 )
@@ -81,14 +79,6 @@ from .widgets.next_experiment import NextExperimentView
 from .widgets.workflow_dialog import WorkflowLaunchDialog
 
 
-_STAGED_ASSIMILATION_SCHEMA = (
-    "grape-param-estim/fixed-q-augmented-parameter-estimate/v1"
-)
-_DIAGONAL_Q_SCHEMA = (
-    "grape-param-estim/diagonal-wrench-q-estimate/v2"
-)
-
-
 class MainWindow(QMainWindow):
     _PREFERRED_SIZE = QSize(1680, 1040)
     _MINIMUM_SIZE = QSize(960, 640)
@@ -116,7 +106,7 @@ class MainWindow(QMainWindow):
         self._configuration_prompt_timer.timeout.connect(
             self._show_pending_configuration_prompts
         )
-        self.setWindowTitle("Grape parameter assimilation")
+        self.setWindowTitle("Grape sparse batch parameter estimation")
         self._reload_workflow_state()
 
         self.tabs = QTabWidget()
@@ -407,7 +397,7 @@ class MainWindow(QMainWindow):
             self,
             "Confirm configuration group",
             "The bag did not record: {}.\n\n"
-            "To enable staged parameter estimation, explicitly assign a "
+            "To enable sparse batch estimation, explicitly assign a "
             "configuration group. "
             "Use the same ID for multiple bags only when you know they used "
             "the same payload, rotors, geometry, model, wiring, and hardware. "
@@ -581,46 +571,13 @@ class MainWindow(QMainWindow):
         )
         q_status = state.stage_status(DIAGONAL_Q_STAGE_ID, q_input)
         q_upstream = state.completion_ref(DIAGONAL_Q_STAGE_ID, q_input)
-        q_bundle = None
         q_path = None
         q_fingerprint = None
         q_detail = ""
         if q_upstream is not None:
-            q_attempt = state.attempt(q_upstream.attempt_id)
-            if q_attempt.artifact is None:
-                raise WorkflowError("completed Q attempt has no artifact")
-            q_path = self.store.project_path / q_attempt.artifact.relative_path
-            q_bundle = load_diagonal_q_stage(q_path)
-            self._verify_workflow_artifact(
-                q_attempt, q_bundle.root, q_bundle.manifest
-            )
-            if q_bundle.manifest["project_fingerprint"] != root_fingerprint:
-                raise WorkflowError(
-                    "completed Q artifact belongs to different project inputs"
-                )
-            q_fingerprint = diagonal_q_stage_fingerprint(q_path)
-            values = q_bundle.covariance.stationary_variance
-            em = q_bundle.manifest["em"]
-            trace = q_bundle.trace
-            last_iteration = int(trace["iteration"][-1])
-            last_trial_count = sum(
-                int(value) == last_iteration
-                for value in trace["trial_iteration"]
-            )
-            last_alpha = float(trace["accepted_step_fraction"][-1])
-            q_detail = (
-                "Q diag [Fx, Fy, Fz, tau_x, tau_y, tau_z] = [{}]. "
-                "EM {}/{}, converged={}, termination={}, last accepted "
-                "alpha={:.4g} ({} trial{})."
-            ).format(
-                ", ".join("{:.4g}".format(float(value)) for value in values),
-                int(em["completed_iterations"]),
-                int(em["maximum_iterations"]),
-                str(em["converged"]).lower(),
-                str(em["termination_reason"]),
-                last_alpha,
-                last_trial_count,
-                "" if last_trial_count == 1 else "s",
+            raise WorkflowError(
+                "legacy staged Q artifacts are unsupported; create a new "
+                "sparse batch estimation run"
             )
 
         parameter_settings = augmented_parameter_stage_settings(
@@ -644,20 +601,9 @@ class MainWindow(QMainWindow):
         )
         parameter_detail = ""
         if parameter_upstream is not None:
-            attempt = state.attempt(parameter_upstream.attempt_id)
-            if attempt.artifact is None:
-                raise WorkflowError(
-                    "completed parameter attempt has no artifact"
-                )
-            path = self.store.project_path / attempt.artifact.relative_path
-            run = load_augmented_parameter_assimilation(path)
-            self._verify_workflow_artifact(attempt, run.root, run.manifest)
-            if run.manifest["project_fingerprint"] != root_fingerprint:
-                raise WorkflowError(
-                    "completed parameter artifact belongs to different project inputs"
-                )
-            parameter_detail = "{} members across {} bag(s).".format(
-                run.shared_posterior.size, len(run.bag_results)
+            raise WorkflowError(
+                "legacy staged parameter artifacts are unsupported; create "
+                "a new sparse batch estimation run"
             )
         return {
             "selected": selected,
@@ -992,7 +938,7 @@ class MainWindow(QMainWindow):
 
         if self.runner.running:
             return
-        if self.store.assimilation_run is None:
+        if self.store.estimation_run is None:
             self._show_error(
                 "Cannot evaluate PID proposal",
                 "Complete fixed-Q parameter estimation before evaluating a PID proposal.",
@@ -1013,7 +959,7 @@ class MainWindow(QMainWindow):
         request_path = output.parent / "request.json"
         try:
             request = build_pid_evaluation_request(
-                self.store.assimilation_run, evaluation_id, options
+                self.store.estimation_run, evaluation_id, options
             )
             output.parent.mkdir(parents=True, exist_ok=False)
             self._write_request(request_path, request)
@@ -1029,7 +975,7 @@ class MainWindow(QMainWindow):
         )
         if started and self._operation == "pid_evaluation":
             self._operation_context["source_run_id"] = str(
-                self.store.assimilation_run.manifest["run_id"]
+                self.store.estimation_run.manifest["run_id"]
             )
             self.tabs.setCurrentWidget(self.next_experiment)
             self.statusBar().showMessage(
@@ -1125,71 +1071,20 @@ class MainWindow(QMainWindow):
                     )
                 else:
                     self.statusBar().showMessage("Rosbag inspection completed.")
-            elif self._operation == "assimilation":
-                run = load_assimilation(output)
+            elif self._operation == "batch_estimation":
+                run = load_batch_estimation_run(output)
                 self.store.manifest["run_request_fingerprint"] = self._operation_context[
                     "project_request_fingerprint"
                 ]
-                self.store.apply_assimilation(run)
-                self._update_freshness(self.store.results_stale)
-                self.statusBar().showMessage("Parameter estimation completed.")
-            elif self._operation == DIAGONAL_Q_STAGE_ID:
-                bundle = load_diagonal_q_stage(output)
-                if bundle.manifest["schema"] != _DIAGONAL_Q_SCHEMA:
-                    raise GuiArtifactError(
-                        "diagonal-Q stage must use schema v2"
-                    )
-                self._complete_workflow_attempt(bundle.root, bundle.manifest)
-                self._restore_transient_record_statuses()
-                values = bundle.covariance.stationary_variance
-                em = bundle.manifest["em"]
-                if em["converged"]:
-                    self.statusBar().showMessage(
-                        "Diagonal Q completed: [{}].".format(
-                            ", ".join(
-                                "{:.4g}".format(float(value))
-                                for value in values
-                            )
-                        )
-                    )
-                    continue_all = (
-                        self._workflow_state is not None
-                        and self._workflow_state.mode is WorkflowMode.ALL
-                        and not self._close_after_worker
-                    )
-                else:
-                    self.statusBar().showMessage(
-                        "WARNING: diagonal Q produced a reusable artifact "
-                        "but did not scientifically converge ({}, {}/{} EM "
-                        "iterations). Stage 2 is paused; review Q and choose "
-                        "Run estimation… again to continue explicitly.".format(
-                            em["termination_reason"],
-                            em["completed_iterations"],
-                            em["maximum_iterations"],
-                        )
-                    )
-            elif self._operation == STATIC_PARAMETERS_STAGE_ID:
-                run = load_augmented_parameter_assimilation(output)
-                self._complete_workflow_attempt(run.root, run.manifest)
-                root_input = self._operation_context.get(
-                    "root_input_fingerprint"
-                )
-                if not isinstance(root_input, str):
-                    raise WorkflowError(
-                        "parameter attempt has no root input fingerprint"
-                    )
-                self.store.manifest["run_request_fingerprint"] = root_input
-                self.store.apply_assimilation(run)
+                self.store.apply_estimation(run)
                 self._update_freshness(self.store.results_stale)
                 self.tabs.setCurrentWidget(self.master_view)
-                self.statusBar().showMessage(
-                    "Fixed-Q static parameter estimation completed."
-                )
+                self.statusBar().showMessage("Sparse batch estimation completed.")
             elif self._operation == "pid_evaluation":
                 evaluation = load_pid_evaluation(output)
-                if self.store.assimilation_run is None:
+                if self.store.estimation_run is None:
                     raise ProjectIoError(
-                        "the source assimilation run is no longer loaded"
+                        "the source batch estimation run is no longer loaded"
                     )
                 source_run_id = str(evaluation.manifest["source_run_id"])
                 if source_run_id != self._operation_context.get("source_run_id"):
@@ -1197,7 +1092,7 @@ class MainWindow(QMainWindow):
                         "PID evaluation source_run_id does not match its request"
                     )
                 if source_run_id != str(
-                    self.store.assimilation_run.manifest["run_id"]
+                    self.store.estimation_run.manifest["run_id"]
                 ):
                     raise ProjectIoError(
                         "PID evaluation source_run_id does not match the current run"
@@ -1414,7 +1309,7 @@ class MainWindow(QMainWindow):
             return
         self.run_action.setEnabled(True)
         self.run_action.setToolTip(
-            "Choose staged or continuous diagonal-Q and parameter estimation."
+            "Run sparse full-trajectory MAP, Laplace-EM, and optional MCMC."
         )
 
     def _update_progress(self, event: object) -> None:
@@ -1428,7 +1323,11 @@ class MainWindow(QMainWindow):
         if event.bag_id:
             record = self.store.get(event.bag_id)
             if record is not None:
-                record.status = "writing" if event.stage_id == "artifact_writing" else "running"
+                record.status = (
+                    "writing"
+                    if event.stage_id == "writing_artifacts"
+                    else "running"
+                )
                 self.store.recordChanged.emit(record.bag_id)
 
     def _worker_log(self, line: str) -> None:
@@ -1474,14 +1373,14 @@ class MainWindow(QMainWindow):
             inspection_path = project_path / "inspection"
             if (inspection_path / "manifest.json").is_file():
                 self.store.apply_inspection(load_inspection(inspection_path))
-            run_id = manifest.get("current_assimilation_run_id")
+            run_id = manifest.get("current_estimation_run_id")
             if run_id:
-                self.store.apply_assimilation(
-                    self._load_project_assimilation(
+                self.store.apply_estimation(
+                    self._load_project_estimation(
                         project_path
                         / "runs"
                         / str(run_id)
-                        / "assimilation_run"
+                        / "estimation_run"
                     )
                 )
             evaluation_id = manifest.get("current_pid_proposal_evaluation_id")
@@ -1495,16 +1394,10 @@ class MainWindow(QMainWindow):
             self._show_error("Cannot load project", error)
 
     @staticmethod
-    def _load_project_assimilation(path: Path) -> object:
-        """Dispatch legacy and fixed-Q run bundles by their declared schema."""
+    def _load_project_estimation(path: Path) -> BatchEstimationRun:
+        """Load only the strict sparse-batch estimation schema."""
 
-        manifest_path = path / "manifest.json"
-        value = json.loads(manifest_path.read_text(encoding="utf-8"))
-        if not isinstance(value, dict):
-            raise ProjectIoError("assimilation manifest must contain an object")
-        if value.get("schema") == _STAGED_ASSIMILATION_SCHEMA:
-            return load_augmented_parameter_assimilation(path)
-        return load_assimilation(path)
+        return load_batch_estimation_run(path)
 
     def import_pid_evaluation(self) -> None:
         source_name = QFileDialog.getExistingDirectory(
@@ -1515,11 +1408,11 @@ class MainWindow(QMainWindow):
         try:
             source = Path(source_name).resolve()
             evaluation = load_pid_evaluation(source)
-            if self.store.assimilation_run is None:
+            if self.store.estimation_run is None:
                 raise ProjectIoError(
-                    "load the source assimilation run before importing its PID evaluation"
+                    "load the source batch run before importing its PID evaluation"
                 )
-            if evaluation.manifest["source_run_id"] != self.store.assimilation_run.manifest["run_id"]:
+            if evaluation.manifest["source_run_id"] != self.store.estimation_run.manifest["run_id"]:
                 raise ProjectIoError("PID evaluation source_run_id does not match the current run")
             evaluation_id = str(evaluation.manifest["evaluation_id"])
             canonical = self.store.project_path / "pid_proposals" / evaluation_id / "pid_proposal_evaluation"
@@ -1566,9 +1459,9 @@ class MainWindow(QMainWindow):
 
     def _write_gui_state(self) -> None:
         payload = {
-            "schema": "grape-param-estim/gui-state/v1",
+            "schema": "grape-param-estim/gui-state/v2",
             "current_bag_id": self.store.current_bag_id,
-            "selected_member_id": self.store.selected_member_id,
+            "selected_sample_id": self.store.selected_sample_id,
             "selected_mode_id": self.store.selected_mode_id,
             "selected_pid_proposal_id": self.store.selected_pid_proposal_id,
             "bags": {
@@ -1585,7 +1478,7 @@ class MainWindow(QMainWindow):
         if not path.is_file():
             return
         value = json.loads(path.read_text(encoding="utf-8"))
-        if value.get("schema") != "grape-param-estim/gui-state/v1":
+        if value.get("schema") != "grape-param-estim/gui-state/v2":
             raise ProjectIoError("unsupported GUI state schema")
         for bag_id, state in value.get("bags", {}).items():
             record = self.store.get(bag_id)
@@ -1595,9 +1488,9 @@ class MainWindow(QMainWindow):
         current = value.get("current_bag_id")
         if current:
             self.store.set_current(str(current))
-        member = value.get("selected_member_id")
-        if member is not None:
-            self.store.set_selected_member(int(member))
+        sample = value.get("selected_sample_id")
+        if sample is not None:
+            self.store.set_selected_sample(str(sample))
         self.store.set_selected_mode(value.get("selected_mode_id"))
         self.store.set_selected_pid_proposal(value.get("selected_pid_proposal_id"))
 
@@ -1622,7 +1515,11 @@ class MainWindow(QMainWindow):
         self.freshness_label.setStyleSheet("padding-left: 8px; color: {}; font-weight: 600;".format(color))
 
     def _update_project_title(self) -> None:
-        self.setWindowTitle("Grape parameter assimilation — {}".format(self.store.project_id))
+        self.setWindowTitle(
+            "Grape sparse batch parameter estimation — {}".format(
+                self.store.project_id
+            )
+        )
 
     def _open_bag_from_master(self, bag_id: str) -> None:
         self.store.set_current(bag_id)

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 import numpy as np
 import pyqtgraph as pg
 from PySide6.QtCore import Qt, Signal
@@ -17,231 +15,194 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..artifact_loader import AssimilationRun, SharedPosterior
-from ..presentation import member_parameter_text
+from ..artifact_loader import BatchEstimationRun, McmcPosterior
+from ..presentation import map_parameter_text, sample_parameter_text
 from ..state import ProjectStore
 
 
-FIXED_Q_AUGMENTED_PARAMETER_SCHEMA = (
-    "grape-param-estim/fixed-q-augmented-parameter-estimate/v1"
-)
-FIXED_Q_BODY_COMPONENTS = ("Fx", "Fy", "Fz", "tau_x", "tau_y", "tau_z")
+Q_COMPONENT_LABELS = ("Fx", "Fy", "Fz", "τx", "τy", "τz")
 
 
-def _is_fixed_q_staged_run(run: AssimilationRun | None) -> bool:
-    return (
-        run is not None
-        and str(run.manifest.get("schema", ""))
-        == FIXED_Q_AUGMENTED_PARAMETER_SCHEMA
-    )
+class PosteriorPlotWidget(QWidget):
+    """Compact MAP/MCMC projection and Laplace ridge diagnostics."""
 
-
-def _fixed_q_variance_text(run: AssimilationRun) -> str:
-    reported: list[tuple[str, np.ndarray]] = []
-    for bag_id, result in sorted(run.bag_results.items()):
-        value = result.calibration.get("fixed_q_stationary_variance")
-        if value is None:
-            continue
-        try:
-            variance = np.asarray(value, dtype=float).reshape(-1)
-        except (TypeError, ValueError):
-            continue
-        if variance.shape == (6,) and np.all(np.isfinite(variance)):
-            reported.append((bag_id, variance))
-    if not reported:
-        return "not reported"
-
-    def format_variance(value: np.ndarray) -> str:
-        return np.array2string(value, precision=6, separator=", ")
-
-    first = reported[0][1]
-    if all(np.array_equal(first, value) for _bag_id, value in reported[1:]):
-        return format_variance(first)
-    return "; ".join(
-        "{}={}".format(bag_id, format_variance(value))
-        for bag_id, value in reported
-    )
-
-
-def _reported_array(value: object) -> str:
-    if value is None:
-        return "not reported"
-    array = np.asarray(value)
-    if array.size == 0:
-        return "not reported"
-    return np.array2string(array, precision=4)
-
-
-def _metric(value: object, default: float = float("nan")) -> float:
-    if isinstance(value, Mapping):
-        for key in ("value", "fraction", "mean"):
-            if key in value:
-                return _metric(value[key], default)
-    try:
-        result = float(value)
-    except (TypeError, ValueError):
-        return default
-    return result if np.isfinite(result) else default
-
-
-def _text_mode(value: object) -> str:
-    if value is None or np.asarray(value).size == 0:
-        return "—"
-    return str(np.asarray(value).reshape(-1)[0])
-
-
-class RidgePlotWidget(QWidget):
-    memberSelected = Signal(int)
+    sampleSelected = Signal(str)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.parameter_ensemble: SharedPosterior | None = None
-        self.selected_member_id: int | None = None
+        self.run: BatchEstimationRun | None = None
+        self.selected_sample_id: str | None = None
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        self.trans_plot = pg.PlotWidget(title="mass × mean force effectiveness")
+        self.trans_plot = pg.PlotWidget(
+            title="mass × mean force effectiveness"
+        )
         self.trans_plot.setLabel("bottom", "mass", units="kg")
         self.trans_plot.setLabel("left", "mean force effectiveness")
-        self.rot_plot = pg.PlotWidget(title="inertia trace × mean torque effectiveness")
+        self.rot_plot = pg.PlotWidget(
+            title="inertia trace × mean torque effectiveness"
+        )
         self.rot_plot.setLabel("bottom", "inertia trace", units="kg m²")
         self.rot_plot.setLabel("left", "mean torque effectiveness")
-        for plot in (self.trans_plot, self.rot_plot):
+        self.geometry_plot = pg.PlotWidget(
+            title="Laplace ridge directions in static coordinates"
+        )
+        self.geometry_plot.setLabel("bottom", "static coordinate index")
+        self.geometry_plot.setLabel("left", "unit direction component")
+        self.geometry_plot.addLegend()
+        for plot in (self.trans_plot, self.rot_plot, self.geometry_plot):
             plot.showGrid(x=True, y=True, alpha=0.18)
             layout.addWidget(plot, 1)
         self._selected_items: list[pg.ScatterPlotItem] = []
 
-    def set_ensemble(self, ensemble: SharedPosterior | None) -> None:
-        self.parameter_ensemble = ensemble
-        self.selected_member_id = (
-            None if ensemble is None or ensemble.size == 0 else int(ensemble.member_id[0])
-        )
+    def set_run(self, run: BatchEstimationRun | None) -> None:
+        self.run = run
+        if run is None or run.mcmc is None:
+            self.selected_sample_id = None
+        elif self.selected_sample_id not in set(run.mcmc.sample_id.tolist()):
+            self.selected_sample_id = str(run.mcmc.sample_id[0])
         self._render()
 
-    def set_selected_member(self, member_id: int | None) -> None:
-        self.selected_member_id = None if member_id is None else int(member_id)
+    def set_selected_sample(self, sample_id: str | None) -> None:
+        self.selected_sample_id = (
+            None if sample_id is None else str(sample_id)
+        )
         self._render_selected()
 
-    def _coordinates(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        assert self.parameter_ensemble is not None
-        ensemble = self.parameter_ensemble
+    @staticmethod
+    def _sample_coordinates(
+        posterior: McmcPosterior,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         return (
-            ensemble.mass,
-            np.mean(ensemble.force_effectiveness, axis=1),
-            np.trace(ensemble.inertia, axis1=1, axis2=2),
-            np.mean(ensemble.torque_effectiveness, axis=1),
+            posterior.mass,
+            np.mean(posterior.force_effectiveness, axis=1),
+            np.trace(posterior.inertia, axis1=1, axis2=2),
+            np.mean(posterior.torque_effectiveness, axis=1),
         )
 
     def _render(self) -> None:
-        # PlotWidget.clear() removes the selected markers as well.  Drop the
-        # Python references first so _render_selected() does not ask an old
-        # GraphicsScene to remove an item whose native scene is already gone.
         self._selected_items.clear()
-        for plot in (self.trans_plot, self.rot_plot):
+        for plot in (self.trans_plot, self.rot_plot, self.geometry_plot):
             plot.clear()
-        ensemble = self.parameter_ensemble
-        if ensemble is None or ensemble.size == 0:
+        if self.run is None:
             return
-        mass, force, inertia, torque = self._coordinates()
-        for plot, x_values, y_values in (
-            (self.trans_plot, mass, force),
-            (self.rot_plot, inertia, torque),
+
+        static_map = self.run.static_map
+        map_coordinates = (
+            static_map.mass,
+            float(np.mean(static_map.force_effectiveness)),
+            float(np.trace(static_map.inertia)),
+            float(np.mean(static_map.torque_effectiveness)),
+        )
+        for plot, x_value, y_value in (
+            (self.trans_plot, map_coordinates[0], map_coordinates[1]),
+            (self.rot_plot, map_coordinates[2], map_coordinates[3]),
         ):
-            spots = [
-                {
-                    "pos": (float(x), float(y)),
-                    "data": int(member_id),
-                    "size": 8.0,
-                    "brush": pg.mkBrush(55, 145, 105, 125),
-                    "pen": pg.mkPen(35, 105, 75, 130),
-                }
-                for x, y, member_id in zip(x_values, y_values, ensemble.member_id, strict=True)
-            ]
-            scatter = pg.ScatterPlotItem(spots=spots, hoverable=True)
-            scatter.sigClicked.connect(self._on_points_clicked)
-            plot.addItem(scatter)
-            if not self._add_expected_ridge_direction(plot, x_values, y_values):
-                self._add_principal_direction(plot, x_values, y_values)
+            plot.addItem(
+                pg.ScatterPlotItem(
+                    [x_value],
+                    [y_value],
+                    size=16,
+                    symbol="star",
+                    brush=pg.mkBrush(220, 115, 30, 230),
+                    pen=pg.mkPen(120, 55, 10, width=1.5),
+                )
+            )
+
+        posterior = self.run.mcmc
+        if posterior is not None and posterior.size:
+            mass, force, inertia, torque = self._sample_coordinates(posterior)
+            for plot, x_values, y_values in (
+                (self.trans_plot, mass, force),
+                (self.rot_plot, inertia, torque),
+            ):
+                spots = [
+                    {
+                        "pos": (float(x), float(y)),
+                        "data": str(sample_id),
+                        "size": 8.0,
+                        "brush": pg.mkBrush(55, 145, 105, 125),
+                        "pen": pg.mkPen(35, 105, 75, 130),
+                    }
+                    for x, y, sample_id in zip(
+                        x_values, y_values, posterior.sample_id, strict=True
+                    )
+                ]
+                scatter = pg.ScatterPlotItem(spots=spots, hoverable=True)
+                scatter.sigClicked.connect(self._on_points_clicked)
+                plot.addItem(scatter)
+
+        laplace = self.run.laplace
+        coordinate = np.arange(laplace.exact_ridge_direction.size)
+        numerical_index = int(np.argmin(np.abs(laplace.eigenvalues)))
+        numerical_direction = laplace.eigenvectors[:, numerical_index]
+        self.geometry_plot.plot(
+            coordinate,
+            laplace.exact_ridge_direction,
+            pen=pg.mkPen((45, 105, 190), width=2.0),
+            symbol="o",
+            symbolSize=4,
+            name="exact ridge",
+        )
+        self.geometry_plot.plot(
+            coordinate,
+            numerical_direction,
+            pen=pg.mkPen((155, 55, 165), width=1.8, style=Qt.DashLine),
+            symbol="t",
+            symbolSize=4,
+            name="numerical near-ridge",
+        )
+        self.geometry_plot.plot(
+            coordinate,
+            np.sqrt(np.maximum(np.diag(laplace.covariance), 0.0)),
+            pen=pg.mkPen((225, 125, 35), width=1.8),
+            symbol="s",
+            symbolSize=4,
+            name="Laplace marginal 1σ",
+        )
         self._render_selected()
 
     def _render_selected(self) -> None:
         for plot, item in zip(
-            (self.trans_plot, self.rot_plot), self._selected_items, strict=False
+            (self.trans_plot, self.rot_plot),
+            self._selected_items,
+            strict=False,
         ):
             plot.removeItem(item)
         self._selected_items.clear()
-        ensemble = self.parameter_ensemble
-        if ensemble is None or self.selected_member_id is None:
+        if (
+            self.run is None
+            or self.run.mcmc is None
+            or self.selected_sample_id is None
+        ):
             return
-        matches = np.flatnonzero(ensemble.member_id == self.selected_member_id)
-        if not matches.size:
+        try:
+            index = self.run.mcmc.index_of(self.selected_sample_id)
+        except KeyError:
             return
-        index = int(matches[0])
-        mass, force, inertia, torque = self._coordinates()
+        mass, force, inertia, torque = self._sample_coordinates(self.run.mcmc)
         for plot, x_values, y_values in (
             (self.trans_plot, mass, force),
             (self.rot_plot, inertia, torque),
         ):
             item = pg.ScatterPlotItem(
-                [float(x_values[index])], [float(y_values[index])], size=16,
+                [float(x_values[index])],
+                [float(y_values[index])],
+                size=16,
                 brush=pg.mkBrush(210, 70, 205, 210),
                 pen=pg.mkPen(95, 25, 95, width=2.2),
             )
             plot.addItem(item)
             self._selected_items.append(item)
 
-    @staticmethod
-    def _add_principal_direction(
-        plot: pg.PlotWidget, x_values: np.ndarray, y_values: np.ndarray
-    ) -> None:
-        if x_values.size < 2:
-            return
-        points = np.column_stack((x_values, y_values))
-        center = np.mean(points, axis=0)
-        covariance = np.cov(points.T)
-        eigenvalues, eigenvectors = np.linalg.eigh(covariance)
-        maximum = max(float(np.max(eigenvalues)), 0.0)
-        direction = eigenvectors[:, int(np.argmax(eigenvalues))]
-        endpoints = np.vstack(
-            (center - 1.7 * np.sqrt(maximum) * direction, center + 1.7 * np.sqrt(maximum) * direction)
-        )
-        plot.plot(
-            endpoints[:, 0], endpoints[:, 1],
-            pen=pg.mkPen((70, 70, 70), width=1.4, style=Qt.DashLine),
-        )
-
-    def _add_expected_ridge_direction(
-        self, plot: pg.PlotWidget, x_values: np.ndarray, y_values: np.ndarray
-    ) -> bool:
-        ensemble = self.parameter_ensemble
-        if ensemble is None or "expected_direction" not in ensemble.ridge:
-            return False
-        direction = np.asarray(ensemble.ridge["expected_direction"], dtype=float)
-        coordinates = np.asarray(ensemble.parameter_coordinate, dtype=float)
-        if direction.shape != (coordinates.shape[1],) or coordinates.shape[0] < 2:
-            return False
-        ridge_coordinate = (coordinates - np.mean(coordinates, axis=0)) @ direction
-        variance = float(np.dot(ridge_coordinate, ridge_coordinate))
-        if variance <= 0.0:
-            return False
-        centered_x = x_values - np.mean(x_values)
-        centered_y = y_values - np.mean(y_values)
-        slope = np.array(
-            [np.dot(ridge_coordinate, centered_x), np.dot(ridge_coordinate, centered_y)]
-        ) / variance
-        bounds = np.quantile(ridge_coordinate, (0.05, 0.95))
-        center = np.array([np.mean(x_values), np.mean(y_values)])
-        endpoints = center[None, :] + bounds[:, None] * slope[None, :]
-        plot.plot(
-            endpoints[:, 0], endpoints[:, 1],
-            pen=pg.mkPen((70, 70, 70), width=1.6, style=Qt.DashLine),
-        )
-        return True
-
     def _on_points_clicked(
-        self, _item: pg.ScatterPlotItem, points: list[pg.SpotItem], _event: object
+        self,
+        _item: pg.ScatterPlotItem,
+        points: list[pg.SpotItem],
+        _event: object,
     ) -> None:
         if points:
-            self.memberSelected.emit(int(points[0].data()))
+            self.sampleSelected.emit(str(points[0].data()))
 
 
 class MasterView(QWidget):
@@ -251,7 +212,6 @@ class MasterView(QWidget):
         super().__init__(parent)
         self.store = store
         self._refreshing = False
-        self._fixed_q_staged_run = False
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
         self.configuration_warning = QLabel()
@@ -260,13 +220,21 @@ class MasterView(QWidget):
 
         top_splitter = QSplitter(Qt.Horizontal)
         root.addWidget(top_splitter, 3)
-        self.bag_group = QGroupBox("Bags in staged parameter estimation")
+        self.bag_group = QGroupBox("Bags in sparse batch estimation")
         bag_layout = QVBoxLayout(self.bag_group)
         self.bag_table = QTableWidget(0, 10)
         self.bag_table.setHorizontalHeaderLabels(
             [
-                "Use", "Bag", "Config", "Auto interval", "Selected interval",
-                "State", "Samples", "Status", "Objective", "Coverage",
+                "Use",
+                "Bag",
+                "Config",
+                "Auto interval",
+                "Selected interval",
+                "State",
+                "Knots",
+                "Status",
+                "Objective",
+                "Sensor factors",
             ]
         )
         self.bag_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -279,88 +247,103 @@ class MasterView(QWidget):
         bag_layout.addWidget(self.bag_table)
         top_splitter.addWidget(self.bag_group)
 
-        ridge_group = QGroupBox("Shared static parameter ensemble (equal-weight raw members)")
-        ridge_layout = QVBoxLayout(ridge_group)
-        self.ridge_widget = RidgePlotWidget()
-        self.ridge_widget.set_ensemble(store.parameter_ensemble)
-        ridge_layout.addWidget(self.ridge_widget)
-        self.member_detail = QLabel("No completed parameter-estimation run")
-        self.member_detail.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.member_detail.setWordWrap(True)
-        ridge_layout.addWidget(self.member_detail)
-        top_splitter.addWidget(ridge_group)
-        top_splitter.setSizes([620, 760])
+        posterior_group = QGroupBox(
+            "Static parameter MAP, Laplace geometry, and MCMC posterior"
+        )
+        posterior_layout = QVBoxLayout(posterior_group)
+        self.posterior_widget = PosteriorPlotWidget()
+        self.posterior_widget.set_run(store.estimation_run)
+        posterior_layout.addWidget(self.posterior_widget)
+        self.sample_detail = QLabel("No completed sparse batch run")
+        self.sample_detail.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.sample_detail.setWordWrap(True)
+        posterior_layout.addWidget(self.sample_detail)
+        top_splitter.addWidget(posterior_group)
+        top_splitter.setSizes([620, 900])
 
         bottom_splitter = QSplitter(Qt.Horizontal)
         root.addWidget(bottom_splitter, 2)
-        contribution_group = QGroupBox("Bag contribution and consistency")
+        contribution_group = QGroupBox("Bag objective and Laplace-EM history")
         contribution_layout = QVBoxLayout(contribution_group)
-        self.objective_plot = pg.PlotWidget(title="per-bag objective contribution")
-        self.coverage_plot = pg.PlotWidget(title="correction-path coverage")
-        for plot in (self.objective_plot, self.coverage_plot):
+        self.objective_plot = pg.PlotWidget(title="per-bag MAP objective")
+        self.em_plot = pg.PlotWidget(title="Laplace-EM accepted Q diagonal")
+        self.em_objective_plot = pg.PlotWidget(
+            title="Laplace-EM MAP and approximate marginal objectives"
+        )
+        for plot in (
+            self.objective_plot,
+            self.em_plot,
+            self.em_objective_plot,
+        ):
             plot.showGrid(x=True, y=True, alpha=0.18)
             contribution_layout.addWidget(plot)
         self.objective_plot.setLabel("left", "objective")
-        self.coverage_plot.setLabel("left", "coverage")
-        self.coverage_plot.setYRange(0.0, 1.05)
+        self.em_plot.setLabel("bottom", "EM iteration")
+        self.em_objective_plot.setLabel("bottom", "EM iteration")
+        self.em_objective_plot.setLabel("left", "objective")
+        self.em_plot.addLegend()
+        self.em_objective_plot.addLegend()
         bottom_splitter.addWidget(contribution_group)
 
-        self.diagnostic_group = QGroupBox("Parameter-estimation diagnostics")
+        self.diagnostic_group = QGroupBox("Batch posterior diagnostics")
         diagnostic_layout = QVBoxLayout(self.diagnostic_group)
-        self.iteration_plot = pg.PlotWidget(title="iteration diagnostics")
-        self.iteration_plot.showGrid(x=True, y=True, alpha=0.18)
-        self.iteration_plot.setLabel("bottom", "iteration")
-        self.iteration_plot.setLabel("left", "objective")
-        diagnostic_layout.addWidget(self.iteration_plot)
-        self.diagnostic_label = QLabel(
-            "run status: not run\nconvergence: not reported\n"
-            "iterations: not reported\nraw members: —\n"
-            "residual-wrench Q time resolution: not reported\n"
-            "correction-path coverage: not reported"
-        )
+        self.diagnostic_label = QLabel("run status: not run")
         self.diagnostic_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.diagnostic_label.setWordWrap(True)
-        self.diagnostic_label.setToolTip(
-            "Availability depends on the artifact schema. Fixed-Q staged runs "
-            "do not report the legacy residual-wrench knot-resolution metric."
-        )
         diagnostic_layout.addWidget(self.diagnostic_label)
         bottom_splitter.addWidget(self.diagnostic_group)
-        bottom_splitter.setSizes([660, 620])
+        bottom_splitter.setSizes([720, 560])
 
-        self.ridge_widget.memberSelected.connect(self.store.set_selected_member)
+        self.posterior_widget.sampleSelected.connect(
+            self.store.set_selected_sample
+        )
         self.store.bagsChanged.connect(self.refresh)
         self.store.recordChanged.connect(lambda _bag_id: self.refresh())
-        self.store.selectedMemberChanged.connect(self._on_selected_member_changed)
+        self.store.selectedSampleChanged.connect(
+            self._on_selected_sample_changed
+        )
         self.store.posteriorChanged.connect(self.set_run)
-        self.set_run(self.store.assimilation_run)
+        self.set_run(self.store.estimation_run)
 
     @staticmethod
     def _range_text(value: tuple[float, float]) -> str:
         return "{:.2f}–{:.2f} s".format(*value) if value[1] > value[0] else "—"
 
+    @staticmethod
+    def _factor_text(run: BatchEstimationRun | None, bag_id: str) -> str:
+        if run is None or bag_id not in run.bags:
+            return "—"
+        factors = run.bags[bag_id].observation_factors
+        used = sorted(
+            name for name, value in factors.items() if bool(value["enabled"])
+        )
+        disabled = sorted(
+            name for name, value in factors.items() if not bool(value["enabled"])
+        )
+        return "used {}{}".format(
+            ", ".join(used) if used else "none",
+            " | disabled " + ", ".join(disabled) if disabled else "",
+        )
+
     def refresh(self) -> None:
         self._refreshing = True
         try:
+            run = self.store.estimation_run
             records = self.store.records()
             self.bag_table.setRowCount(len(records))
             for row, record in enumerate(records):
                 use_item = QTableWidgetItem()
                 use_item.setFlags(use_item.flags() | Qt.ItemIsUserCheckable)
-                use_item.setCheckState(Qt.Checked if record.included else Qt.Unchecked)
+                use_item.setCheckState(
+                    Qt.Checked if record.included else Qt.Unchecked
+                )
                 use_item.setData(Qt.UserRole, record.bag_id)
                 self.bag_table.setItem(row, 0, use_item)
-                data = record.data
-                objective = None if record.result is None else record.result.objective_contribution
-                coverage = None if record.result is None else _metric(record.result.coverage)
-                coverage_text = (
-                    "not reported"
-                    if self._fixed_q_staged_run and record.result is not None
-                    else (
-                        "—"
-                        if coverage is None or not np.isfinite(coverage)
-                        else "{:.3f}".format(coverage)
-                    )
+                result = record.result
+                objective = (
+                    None
+                    if run is None
+                    else run.static_map.bag_objective.get(record.bag_id)
                 )
                 values = (
                     record.display_name,
@@ -368,232 +351,179 @@ class MasterView(QWidget):
                     self._range_text(record.auto_range),
                     self._range_text(record.selected_range),
                     record.interval_state,
-                    "—" if data is None else str(data.sample_count),
+                    "—" if result is None else str(result.sample_count),
                     record.status,
-                    "—" if objective is None else "{:.4g}".format(float(objective)),
-                    coverage_text,
+                    "—" if objective is None else "{:.5g}".format(objective),
+                    self._factor_text(run, record.bag_id),
                 )
                 for column, text in enumerate(values, start=1):
                     item = QTableWidgetItem(text)
                     item.setData(Qt.UserRole, record.bag_id)
                     self.bag_table.setItem(row, column, item)
             self.bag_table.resizeColumnsToContents()
-            self._refresh_contribution_plots()
+            self._refresh_contribution_plot()
             self._refresh_configuration_warning()
         finally:
             self._refreshing = False
 
-    def set_run(self, run: AssimilationRun | None) -> None:
-        self._configure_schema_presentation(run)
+    def set_run(self, run: BatchEstimationRun | None) -> None:
+        self.posterior_widget.set_run(run)
+        self.objective_plot.clear()
+        self.em_plot.clear()
+        self.em_objective_plot.clear()
         if run is None:
-            self.ridge_widget.set_ensemble(None)
-            self.iteration_plot.clear()
-            self.diagnostic_label.setText(
-                "run status: not run\nconvergence: not reported\n"
-                "iterations: not reported\nraw members: —\n"
-                "residual-wrench Q time resolution: not reported\n"
-                "correction-path coverage: not reported"
-            )
-            self.member_detail.setText("No completed parameter-estimation run")
-            self.refresh()
-            return
-        self.ridge_widget.set_ensemble(run.shared_posterior)
-        diagnostics = run.diagnostics
-        history = next(
-            (
-                np.asarray(diagnostics[key], dtype=float).reshape(-1)
-                for key in ("objective_history", "objective", "iteration_objective")
-                if key in diagnostics
-            ),
-            np.empty(0),
-        )
-        self.iteration_plot.clear()
-        if history.size and not self._fixed_q_staged_run:
-            self.iteration_plot.plot(
-                np.arange(history.size), history,
-                pen=pg.mkPen((45, 120, 185), width=2.0), symbol="o", symbolSize=6,
-            )
-        run_warning_text = (
-            "none"
-            if not run.warnings
-            else "\n  - " + "\n  - ".join(str(value) for value in run.warnings)
-        )
-        if self._fixed_q_staged_run:
-            artifact_status = str(run.manifest.get("status", "not reported"))
-            self.diagnostic_label.setText(
-                "artifact status: {}\ntermination: not reported\n"
-                "convergence: not reported\n"
-                "iterations: not reported\nraw members: {} (equal weight)\n"
-                "fixed_q_stationary_variance (body order [{}]): {}\n"
-                "residual-wrench Q time resolution: not applicable\n"
-                "correction-path coverage: not reported\nrun warnings: {}".format(
-                    artifact_status,
-                    run.shared_posterior.size,
-                    ", ".join(FIXED_Q_BODY_COMPONENTS),
-                    _fixed_q_variance_text(run),
-                    run_warning_text,
-                )
-            )
-            self._on_selected_member_changed(self.store.selected_member_id)
+            self.diagnostic_label.setText("run status: not run")
+            self.sample_detail.setText("No completed sparse batch run")
             self.refresh()
             return
 
-        termination = str(run.manifest.get("termination_reason", "not reported"))
-        convergence = (
-            "not reported"
-            if "converged" not in run.manifest
-            else ("converged" if bool(run.manifest["converged"]) else "not converged")
-        )
-        q_resolution = [
-            record.result.q_resolution_sufficient
-            for record in self.store.records()
-            if record.result is not None
-        ]
-        q_resolution_text = (
-            "not reported"
-            if not any(value is not None for value in q_resolution)
-            else str(
-                sum(
-                    value is not None and not bool(value)
-                    for value in q_resolution
-                )
+        q_history = run.q_em
+        for component, label in enumerate(Q_COMPONENT_LABELS):
+            self.em_plot.plot(
+                q_history.iteration,
+                q_history.accepted_q[:, component],
+                pen=pg.intColor(component, hues=6),
+                symbol="o",
+                symbolSize=4,
+                name="Q {}".format(label),
             )
+        self.em_objective_plot.plot(
+            q_history.iteration,
+            q_history.map_objective,
+            pen=pg.mkPen((45, 120, 185), width=2.0),
+            symbol="o",
+            symbolSize=4,
+            name="MAP objective",
         )
-        coverage_count = sum(
-            record.result is not None
-            and np.isfinite(_metric(record.result.coverage))
-            for record in self.store.records()
+        self.em_objective_plot.plot(
+            q_history.iteration,
+            q_history.approximate_marginal_objective,
+            pen=pg.mkPen((30, 30, 30), width=2.0, style=Qt.DashLine),
+            name="approx. marginal objective",
         )
-        coverage_text = (
-            "not reported"
-            if coverage_count == 0
-            else "{} bag(s)".format(coverage_count)
+
+        substages = run.manifest["substage_status"]
+        stage_text = ", ".join(
+            "{}={} ({})".format(
+                name,
+                "converged" if value["converged"] else "not converged",
+                value["termination_reason"],
+            )
+            for name, value in substages.items()
         )
-        accepted = diagnostics.get("accepted_fraction")
-        gradient = diagnostics.get("gradient_norm")
-        step = diagnostics.get("step_norm")
-        mode_ids = run.shared_posterior.mode.get("mode_id")
-        mode_weights = run.shared_posterior.mode.get("mode_weight")
-        selected_mode = run.shared_posterior.mode.get("selected_mode_id")
-        mode_text = "—" if mode_ids is None else "{} weights {} (selected {})".format(
-            np.asarray(mode_ids).astype(str).tolist(),
-            np.asarray(mode_weights).tolist() if mode_weights is not None else "—",
-            _text_mode(selected_mode),
-        )
+        laplace = run.laplace
+        mcmc_text = "disabled; MAP/Laplace result only"
+        if run.mcmc is not None:
+            diagnostic = run.diagnostics.mcmc
+            assert diagnostic is not None
+            finite_rhat = diagnostic.split_rhat[
+                np.isfinite(diagnostic.split_rhat)
+            ]
+            mcmc_text = (
+                "{} retained equal-weight samples; completed={}; "
+                "converged={}; max R-hat={}; min ESS={:.4g}; "
+                "inner solve failures={}"
+            ).format(
+                run.mcmc.size,
+                diagnostic.completed,
+                diagnostic.converged,
+                "—" if not finite_rhat.size else "{:.4g}".format(
+                    float(np.max(finite_rhat))
+                ),
+                float(np.min(diagnostic.effective_sample_size)),
+                int(np.sum(diagnostic.kernel_inner_solve_failures)),
+            )
+        warning_text = "none" if not run.warnings else "; ".join(run.warnings)
         self.diagnostic_label.setText(
-            "termination: {}\nconvergence: {}\niterations: {}\n"
-            "raw members: {} (equal weight)\n"
-            "accepted fraction: {}\ngradient norm: {}\nstep norm: {}\n"
-            "residual-wrench Q time-resolution insufficient bags: {}\n"
-            "correction-path coverage: {}\nrun warnings: {}\nmode law: {}".format(
-                termination,
-                convergence,
-                str(history.size) if history.size else "not reported",
-                run.shared_posterior.size,
-                _reported_array(accepted),
-                _reported_array(gradient),
-                _reported_array(step),
-                q_resolution_text,
-                coverage_text,
-                run_warning_text,
-                mode_text,
+            "run ID: {}\nsubstage status: {}\n"
+            "Q definition: {} [{}]\n"
+            "Q diagonal: {}\nEM iterations: {}\n"
+            "Laplace rank: {}/18; condition number: {:.4g}; "
+            "ridge alignment: {:.4g}; delay σ: {:.4g} s\n"
+            "MCMC: {}\nwarnings: {}".format(
+                run.run_id,
+                stage_text,
+                run.manifest["q_definition"]["definition"],
+                ", ".join(run.manifest["q_definition"]["units"]),
+                np.array2string(run.static_map.q_diagonal, precision=5),
+                q_history.iteration.size,
+                laplace.effective_rank,
+                laplace.condition_number,
+                laplace.ridge_alignment,
+                laplace.delay_local_uncertainty,
+                mcmc_text,
+                warning_text,
             )
         )
-        self._on_selected_member_changed(self.store.selected_member_id)
+        self._on_selected_sample_changed(self.store.selected_sample_id)
         self.refresh()
 
-    def _configure_schema_presentation(
-        self, run: AssimilationRun | None
-    ) -> None:
-        self._fixed_q_staged_run = _is_fixed_q_staged_run(run)
-        objective_header = self.bag_table.horizontalHeaderItem(8)
-        if self._fixed_q_staged_run:
-            self.diagnostic_group.setTitle(
-                "Fixed-Q staged parameter-estimation diagnostics"
-            )
-            self.iteration_plot.setTitle("iteration diagnostics (not reported)")
-            self.objective_plot.setTitle("per-bag filter log likelihood")
-            self.objective_plot.setLabel("left", "filter log likelihood")
-            self.coverage_plot.setTitle(
-                "correction-path coverage (not reported)"
-            )
-            if objective_header is not None:
-                objective_header.setText("Log likelihood")
-            return
-
-        self.diagnostic_group.setTitle(
-            "Parameter-estimation diagnostics"
-            if run is None
-            else "IEnKS-Q diagnostics"
-        )
-        self.iteration_plot.setTitle(
-            "iteration diagnostics" if run is None else "objective by iteration"
-        )
-        self.objective_plot.setTitle("per-bag objective contribution")
-        self.objective_plot.setLabel("left", "objective")
-        self.coverage_plot.setTitle("correction-path coverage")
-        if objective_header is not None:
-            objective_header.setText("Objective")
-
-    def _refresh_contribution_plots(self) -> None:
-        records = self.store.records()
+    def _refresh_contribution_plot(self) -> None:
         self.objective_plot.clear()
-        self.coverage_plot.clear()
-        if not records:
+        run = self.store.estimation_run
+        records = self.store.records()
+        if run is None or not records:
             return
-        x_values = np.arange(len(records), dtype=float)
-        objectives = np.array(
+        values = np.asarray(
             [
-                np.nan if record.result is None or record.result.objective_contribution is None
-                else record.result.objective_contribution
+                run.static_map.bag_objective.get(record.bag_id, np.nan)
                 for record in records
-            ], dtype=float,
-        )
-        coverage = np.array(
-            [np.nan if record.result is None else _metric(record.result.coverage) for record in records],
+            ],
             dtype=float,
         )
-        for plot, values, color in (
-            (self.objective_plot, objectives, (75, 130, 190, 150)),
-            (self.coverage_plot, coverage, (50, 155, 105, 150)),
-        ):
-            finite = np.isfinite(values)
-            if np.any(finite):
-                plot.addItem(pg.BarGraphItem(x=x_values[finite], height=values[finite], width=0.62, brush=pg.mkBrush(*color)))
-            plot.getAxis("bottom").setTicks([[(float(i), str(i + 1)) for i in range(len(records))]])
+        finite = np.isfinite(values)
+        x_values = np.arange(len(records), dtype=float)
+        if np.any(finite):
+            self.objective_plot.addItem(
+                pg.BarGraphItem(
+                    x=x_values[finite],
+                    height=values[finite],
+                    width=0.62,
+                    brush=pg.mkBrush(75, 130, 190, 150),
+                )
+            )
+        self.objective_plot.getAxis("bottom").setTicks(
+            [[(float(index), record.display_name) for index, record in enumerate(records)]]
+        )
 
     def _refresh_configuration_warning(self) -> None:
-        groups = {record.configuration_group for record in self.store.included_records()}
+        groups = {
+            record.configuration_group for record in self.store.included_records()
+        }
         if len(groups) <= 1:
             self.configuration_warning.setText(
-                "Shared-parameter configuration fingerprint: {}".format(next(iter(groups), "none"))
+                "Shared-parameter configuration fingerprint: {}".format(
+                    next(iter(groups), "none")
+                )
             )
             self.configuration_warning.setStyleSheet("")
-        else:
-            self.configuration_warning.setText(
-                "Selected bags have different configuration fingerprints; "
-                "staged parameter estimation requires one shared confirmed "
-                "configuration group."
-            )
-            self.configuration_warning.setStyleSheet(
-                "background: #fff1c7; color: #6c4a00; padding: 6px; border-radius: 4px;"
-            )
+            return
+        self.configuration_warning.setText(
+            "Selected bags have different configuration fingerprints; "
+            "one sparse batch run requires a confirmed shared configuration."
+        )
+        self.configuration_warning.setStyleSheet(
+            "background: #fff1c7; color: #6c4a00; padding: 6px; "
+            "border-radius: 4px;"
+        )
 
-    def _on_selected_member_changed(self, member_id: int | None) -> None:
-        self.ridge_widget.set_selected_member(member_id)
-        ensemble = self.store.parameter_ensemble
-        if ensemble is None or member_id is None:
-            self.member_detail.setText("No completed parameter-estimation run")
-            return
-        matches = np.flatnonzero(ensemble.member_id == member_id)
-        if not matches.size:
-            return
-        self.member_detail.setText(member_parameter_text(ensemble, member_id))
+    def _on_selected_sample_changed(self, sample_id: str | None) -> None:
+        self.posterior_widget.set_selected_sample(sample_id)
+        run = self.store.estimation_run
+        if run is None:
+            self.sample_detail.setText("No completed sparse batch run")
+        elif sample_id is None or run.mcmc is None:
+            self.sample_detail.setText(map_parameter_text(run.static_map))
+        else:
+            self.sample_detail.setText(
+                sample_parameter_text(run.mcmc, sample_id)
+            )
 
     def _on_table_item_changed(self, item: QTableWidgetItem) -> None:
         if not self._refreshing and item.column() == 0:
             self.store.set_included(
-                str(item.data(Qt.UserRole)), item.checkState() == Qt.Checked
+                str(item.data(Qt.UserRole)),
+                item.checkState() == Qt.Checked,
             )
 
     def _on_bag_double_clicked(self, row: int, _column: int) -> None:
@@ -602,4 +532,4 @@ class MasterView(QWidget):
             self.bagActivated.emit(str(item.data(Qt.UserRole)))
 
 
-__all__ = ["MasterView", "RidgePlotWidget"]
+__all__ = ["MasterView", "PosteriorPlotWidget"]

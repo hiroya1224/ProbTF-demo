@@ -407,5 +407,191 @@ class SampleStateSynchronizationTests(unittest.TestCase):
         self.assertIsNone(self.store.snapshot().selected_sample_id)
 
 
+try:
+    from PySide6.QtWidgets import QApplication
+except ImportError:
+    QApplication = None
+
+
+@unittest.skipIf(QApplication is None, "PySide6 is unavailable")
+class BatchResultViewTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        assert QApplication is not None
+        cls.application = QApplication.instance() or QApplication([])
+
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.root = Path(self.temporary.name)
+        manifest = new_project_manifest("batch-view")
+        manifest["bags"] = [
+            {"bag_id": "bag-a", "sha256": "a" * 64}
+        ]
+        self.store = ProjectStore(self.root / "project", manifest)
+        self.store.add(
+            BagRecord(
+                bag_id="bag-a",
+                path=self.root / "bag-a.bag",
+                source_path=self.root / "bag-a.bag",
+                sha256="a" * 64,
+                included=True,
+                auto_interval=(0.0, 0.2),
+                selected_interval=(0.0, 0.2),
+                status="ready",
+                view_range=(0.0, 0.2),
+            )
+        )
+        self.widgets: list[object] = []
+
+    def tearDown(self) -> None:
+        for widget in self.widgets:
+            widget.close()
+            widget.deleteLater()
+        self.application.processEvents()
+        self.temporary.cleanup()
+
+    def _load_run(self, mcmc: bool) -> artifact_loader.BatchEstimationRun:
+        bundle = _backend_bundle(self.root / "run", mcmc)
+        bag = bundle.bags["bag-a"]
+        pose_time = np.asarray((0.0, 0.1, 0.2))
+        pose_orientation = np.zeros((3, 4))
+        pose_orientation[:, 3] = 1.0
+        bag.update(
+            {
+                "pose_time": pose_time,
+                "pose_record_time": 100.0 + pose_time,
+                "pose_position": np.zeros((3, 3)),
+                "pose_orientation_xyzw": pose_orientation,
+                "pose_valid": np.ones((3,), dtype=bool),
+                "pose_covariance": np.repeat(
+                    np.eye(6)[None, :, :], 3, axis=0
+                ),
+                "pose_covariance_valid": np.ones((3,), dtype=bool),
+            }
+        )
+        substages = {
+            "map": {"converged": True, "termination_reason": "done"},
+            "laplace_em": {
+                "converged": True,
+                "termination_reason": "done",
+            },
+            "laplace": {"converged": True, "termination_reason": "done"},
+        }
+        if mcmc:
+            substages["mcmc"] = {
+                "converged": True,
+                "termination_reason": "done",
+            }
+        bundle.manifest["substage_status"] = substages
+        bundle.manifest["q_definition"] = {
+            "definition": (
+                "specific_acceleration/continuous_spectral_density"
+            ),
+            "units": ["m/s^2"] * 3 + ["rad/s^2"] * 3,
+        }
+        with mock.patch.object(
+            artifact_loader.batch_artifact_io,
+            "load_batch_estimation_run",
+            return_value=bundle,
+        ):
+            run = artifact_loader.load_batch_estimation_run(bundle.root)
+        run.manifest["request_fingerprint"] = self.store.request_fingerprint()
+        self.store.apply_estimation(run)
+        return run
+
+    def test_master_shows_map_laplace_em_and_optional_mcmc(self) -> None:
+        from grape_param_estim_gui.widgets.master_view import MasterView
+
+        run = self._load_run(mcmc=True)
+        view = MasterView(self.store)
+        self.widgets.append(view)
+
+        self.assertIn("MCMC sample 101", view.sample_detail.text())
+        self.assertIn("Laplace rank: 18/18", view.diagnostic_label.text())
+        self.assertIn("3 retained equal-weight samples", view.diagnostic_label.text())
+        self.assertEqual(view.posterior_widget.run, run)
+        self.store.set_selected_sample("109")
+        self.assertIn("MCMC sample 109", view.sample_detail.text())
+
+        map_store = ProjectStore(
+            self.root / "map-project", new_project_manifest("map-view")
+        )
+        map_store.manifest["bags"] = [
+            {"bag_id": "bag-a", "sha256": "a" * 64}
+        ]
+        map_store.add(
+            BagRecord(
+                "bag-a",
+                self.root / "bag-a.bag",
+                self.root / "bag-a.bag",
+                "a" * 64,
+                included=True,
+            )
+        )
+        bundle = _backend_bundle(self.root / "map-run", False)
+        bundle.manifest["substage_status"] = {
+            "map": {"converged": True, "termination_reason": "done"},
+            "laplace_em": {"converged": True, "termination_reason": "done"},
+            "laplace": {"converged": True, "termination_reason": "done"},
+        }
+        bundle.manifest["q_definition"] = {
+            "definition": (
+                "specific_acceleration/continuous_spectral_density"
+            ),
+            "units": ["unit"] * 6,
+        }
+        with mock.patch.object(
+            artifact_loader.batch_artifact_io,
+            "load_batch_estimation_run",
+            return_value=bundle,
+        ):
+            map_run = artifact_loader.load_batch_estimation_run(bundle.root)
+        map_run.manifest["request_fingerprint"] = map_store.request_fingerprint()
+        map_store.apply_estimation(map_run)
+        map_view = MasterView(map_store)
+        self.widgets.append(map_view)
+        self.assertTrue(map_view.sample_detail.text().startswith("MAP |"))
+        self.assertIn("MAP/Laplace result only", map_view.diagnostic_label.text())
+
+    def test_bag_browser_uses_selected_conditional_and_dynamics_residual(self) -> None:
+        import os
+
+        os.environ["GRAPE_PARAM_ESTIM_DISABLE_3D"] = "1"
+        from grape_param_estim_gui.widgets.bag_browser import BagBrowserView
+
+        self._load_run(mcmc=True)
+        view = BagBrowserView(self.store)
+        self.widgets.append(view)
+
+        self.assertEqual(view.signal_tabs.tabText(2), "Dynamics residual")
+        self.assertTrue(
+            {
+                "reference",
+                "observed",
+                "nominal",
+                "map",
+                "selected",
+            }.issubset(view.trajectory_panel.series_data)
+        )
+        self.assertTrue(
+            {
+                "map",
+                "selected",
+                "q_upper",
+                "q_lower",
+                "map_normalized",
+                "selected_normalized",
+            }.issubset(view.dynamics_panel.series_data)
+        )
+        self.assertIn("pose: used", view.inspection_details.text())
+        view.dynamics_panel.dynamics_display_combo.setCurrentIndex(1)
+        self.assertIn("±1 after normalization", view.dynamics_panel.status_label.text())
+        self.store.set_selected_sample("107")
+        self.assertNotIn("selected", view.trajectory_panel.series_data)
+        self.store.set_selected_sample("109")
+        self.assertIn("selected", view.trajectory_panel.series_data)
+        self.assertEqual(view.sample_label.text(), "109")
+
+
 if __name__ == "__main__":
     unittest.main()

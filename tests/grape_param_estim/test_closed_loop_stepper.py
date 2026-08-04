@@ -19,12 +19,9 @@ from grape_param_estim.geometry import (
 )
 from grape_param_estim.synthetic import full_six_dof_reference
 from grape_param_estim.system import (
-    ActuatorCommand,
     ActuatorParameters,
     ActuatorState,
-    ControllerState,
     GrapeGeometry,
-    ReferenceState,
     RigidBodyState,
     VehicleParameters,
 )
@@ -65,7 +62,7 @@ class ClosedLoopStepperTest(unittest.TestCase):
             gimbal_angle=np.asarray((0.18, -0.13, 0.09, -0.05)),
         )
         base = np.asarray((0.3, -0.2, 0.1, 0.02, -0.015, 0.01))
-        cls.residual_cases = (
+        cls.discrepancy_cases = (
             ("none", None),
             ("zero", np.zeros((cls.times.size - 1, 6))),
             ("fixed", np.tile(base, (cls.times.size - 1, 1))),
@@ -105,28 +102,32 @@ class ClosedLoopStepperTest(unittest.TestCase):
             ),
         )
 
-    def _run_stepper(self, delay, initial_actuator, residual_path):
+    def _run_stepper(self, delay, initial_actuator, discrepancy_path):
         stepper = self._new_stepper(delay, initial_actuator)
         samples = []
         states = []
         for index in range(self.times.size - 1):
-            residual = (
-                None if residual_path is None else residual_path[index]
+            discrepancy = (
+                None
+                if discrepancy_path is None
+                else discrepancy_path[index]
             )
             samples.append(
                 stepper.advance_interval(
                     self.times[index + 1],
                     self.references[index],
-                    residual,
+                    discrepancy,
                 )
             )
             states.append(stepper.state)
-        final_residual = None if residual_path is None else residual_path[-1]
+        final_discrepancy = (
+            None if discrepancy_path is None else discrepancy_path[-1]
+        )
         samples.append(
             stepper.terminal_sample(
                 self.references[-1],
                 self.times[-1] - self.times[-2],
-                final_residual,
+                final_discrepancy,
             )
         )
         arrays = {
@@ -176,7 +177,7 @@ class ClosedLoopStepperTest(unittest.TestCase):
         }
         return stepper, tuple(samples), tuple(states), arrays
 
-    def _legacy_rollout(self, delay, initial_actuator, residual_path):
+    def _legacy_rollout(self, delay, initial_actuator, discrepancy_path):
         return simulate_closed_loop(
             times=self.times,
             references=self.references,
@@ -188,7 +189,7 @@ class ClosedLoopStepperTest(unittest.TestCase):
             plant=FullSixDofPlant(self.parameters, self.geometry),
             actuator_parameters=self._actuator_parameters(delay),
             initial_actuator_state=initial_actuator,
-            interval_residual_wrench=residual_path,
+            interval_model_discrepancy_wrench=discrepancy_path,
         )
 
     def test_twenty_four_rollouts_are_bit_exact(self):
@@ -197,18 +198,20 @@ class ClosedLoopStepperTest(unittest.TestCase):
                 ("command", None),
                 ("snapshot", self.initial_actuator_snapshot),
             ):
-                for residual_name, residual_path in self.residual_cases:
+                for discrepancy_name, discrepancy_path in (
+                    self.discrepancy_cases
+                ):
                     with self.subTest(
                         delay=delay,
                         initial=initial_name,
-                        residual=residual_name,
+                        discrepancy=discrepancy_name,
                     ):
                         expected = self._legacy_rollout(
-                            delay, initial_actuator, residual_path
+                            delay, initial_actuator, discrepancy_path
                         )
                         _stepper, _samples, _states, actual = (
                             self._run_stepper(
-                                delay, initial_actuator, residual_path
+                                delay, initial_actuator, discrepancy_path
                             )
                         )
                         for field in TRAJECTORY_FIELDS:
@@ -218,12 +221,12 @@ class ClosedLoopStepperTest(unittest.TestCase):
 
     def test_every_interval_state_and_complete_history_match_the_rollout(self):
         delay = 0.095
-        residual_path = self.residual_cases[-1][1]
+        discrepancy_path = self.discrepancy_cases[-1][1]
         expected = self._legacy_rollout(
-            delay, self.initial_actuator_snapshot, residual_path
+            delay, self.initial_actuator_snapshot, discrepancy_path
         )
         stepper, samples, states, _actual = self._run_stepper(
-            delay, self.initial_actuator_snapshot, residual_path
+            delay, self.initial_actuator_snapshot, discrepancy_path
         )
         for index, state in enumerate(states, start=1):
             self.assertEqual(state.time, self.times[index])
@@ -270,201 +273,6 @@ class ClosedLoopStepperTest(unittest.TestCase):
         external_times[0] = 123.0
         self.assertEqual(stepper.command_issue_times[0], self.times[0])
 
-    def test_analysis_replacement_preserves_time_and_command_history(self):
-        stepper = self._new_stepper(0.095, self.initial_actuator_snapshot)
-        first = stepper.advance_interval(
-            self.times[1], self.references[0]
-        )
-        stepper.advance_interval(self.times[2], self.references[1])
-        issue_times = stepper.command_issue_times.copy()
-        delayed_before = stepper.delayed_command_at(self.times[2])
-        old_time = stepper.state.time
-        old = stepper.state
-        replacement_rigid = RigidBodyState(
-            old.rigid_body_state.position + np.asarray((0.2, -0.1, 0.05)),
-            old.rigid_body_state.orientation_xyzw,
-            old.rigid_body_state.linear_velocity
-            + np.asarray((0.1, 0.0, -0.1)),
-            old.rigid_body_state.angular_velocity
-            + np.asarray((0.02, -0.01, 0.03)),
-        )
-        replacement_controller = ControllerState(
-            old.controller_state.integral_error
-            + np.asarray((0.1, -0.1, 0.2, 0.01, -0.02, 0.03)),
-            old.controller_state.roll_pitch_integration_active,
-        )
-        replacement_actuator = ActuatorState(
-            old.actuator_state.thrust + np.asarray((0.1, 0.2, 0.3, 0.4)),
-            old.actuator_state.gimbal_angle
-            + np.asarray((0.01, -0.01, 0.02, -0.02)),
-        )
-
-        replaced = stepper.replace_dynamic_state(
-            rigid_body_state=replacement_rigid,
-            controller_state=replacement_controller,
-            actuator_state=replacement_actuator,
-        )
-        self.assertIs(replaced, stepper.state)
-        self.assertEqual(stepper.state.time, old_time)
-        np.testing.assert_array_equal(stepper.command_issue_times, issue_times)
-        delayed_after = stepper.delayed_command_at(self.times[2])
-        np.testing.assert_array_equal(
-            delayed_after.thrust, delayed_before.thrust
-        )
-        np.testing.assert_array_equal(
-            delayed_after.gimbal_angle, delayed_before.gimbal_angle
-        )
-        np.testing.assert_array_equal(
-            delayed_after.thrust, first.command.thrust
-        )
-
-        sample = stepper.advance_interval(
-            self.times[3], self.references[2]
-        )
-        np.testing.assert_array_equal(
-            sample.rigid_body_state.position, replacement_rigid.position
-        )
-        np.testing.assert_array_equal(
-            sample.controller_state.integral_error,
-            replacement_controller.integral_error,
-        )
-        np.testing.assert_array_equal(
-            sample.actuator_state.thrust, replacement_actuator.thrust
-        )
-        np.testing.assert_array_equal(
-            stepper.command_issue_times,
-            (self.times[0], self.times[1], self.times[2]),
-        )
-
-    def test_static_model_replacement_preserves_state_and_command_history(self):
-        stepper = self._new_stepper(0.095, self.initial_actuator_snapshot)
-        first = stepper.advance_interval(
-            self.times[1], self.references[0]
-        )
-        state_before = stepper.state
-        issue_times = stepper.command_issue_times.copy()
-
-        changed_parameters = VehicleParameters(
-            mass=1.1 * self.parameters.mass,
-            inertia=self.parameters.inertia,
-            cog_offset=self.parameters.cog_offset,
-            force_effectiveness=self.parameters.force_effectiveness,
-            torque_effectiveness=self.parameters.torque_effectiveness,
-            linear_drag=self.parameters.linear_drag,
-            angular_drag=self.parameters.angular_drag,
-        )
-        changed_actuators = self._actuator_parameters(0.017)
-        stepper.replace_static_model(
-            controller=GrapeController(
-                self.configuration,
-                changed_parameters,
-                self.geometry,
-                articulated_model=GrapeArticulatedModel(),
-            ),
-            plant=FullSixDofPlant(changed_parameters, self.geometry),
-            actuator_parameters=changed_actuators,
-        )
-
-        self.assertIs(stepper.state, state_before)
-        np.testing.assert_array_equal(
-            stepper.command_issue_times, issue_times
-        )
-        delayed = stepper.delayed_command_at(self.times[1] + 0.017)
-        np.testing.assert_array_equal(delayed.thrust, first.command.thrust)
-        sample = stepper.advance_interval(
-            self.times[2], self.references[1]
-        )
-        np.testing.assert_array_equal(
-            sample.rigid_body_state.position,
-            state_before.rigid_body_state.position,
-        )
-
-    def test_analysis_can_replace_member_mixed_command_history(self):
-        stepper = self._new_stepper(0.095, self.initial_actuator_snapshot)
-        first = stepper.advance_interval(
-            self.times[1], self.references[0]
-        )
-        second = stepper.advance_interval(
-            self.times[2], self.references[1]
-        )
-        issue_times = stepper.command_issue_times.copy()
-        original = stepper.command_history_commands
-        mixed = tuple(
-            ActuatorCommand(
-                command.thrust + 0.5,
-                command.gimbal_angle - 0.02,
-                command.virtual_force + 0.1,
-                command.desired_acceleration - 0.1,
-            )
-            for command in original
-        )
-
-        stepper.replace_command_history(mixed)
-
-        np.testing.assert_array_equal(stepper.command_issue_times, issue_times)
-        replaced = stepper.command_history_commands
-        self.assertEqual(len(replaced), 2)
-        np.testing.assert_array_equal(replaced[0].thrust, mixed[0].thrust)
-        np.testing.assert_array_equal(
-            replaced[1].gimbal_angle, mixed[1].gimbal_angle
-        )
-        delayed = stepper.delayed_command_at(self.times[2])
-        np.testing.assert_array_equal(delayed.thrust, mixed[0].thrust)
-        mixed[0].thrust[:] = -999.0
-        np.testing.assert_array_equal(
-            stepper.delayed_command_at(self.times[2]).thrust,
-            first.command.thrust + 0.5,
-        )
-
-        before_invalid = stepper.command_history_commands
-        with self.assertRaisesRegex(ValueError, "align"):
-            stepper.replace_command_history((second.command,))
-        np.testing.assert_array_equal(
-            stepper.command_history_commands[0].thrust,
-            before_invalid[0].thrust,
-        )
-
-    def test_bounded_delay_history_keeps_only_causal_suffix(self):
-        stepper = self._new_stepper(0.05, self.initial_actuator_snapshot)
-        samples = []
-        for index in range(3):
-            samples.append(
-                stepper.advance_interval(
-                    self.times[index + 1], self.references[index]
-                )
-            )
-        np.testing.assert_array_equal(
-            stepper.command_issue_times, self.times[:3]
-        )
-
-        stepper.trim_command_history(self.times[3], 0.06)
-
-        np.testing.assert_array_equal(
-            stepper.command_issue_times, self.times[1:3]
-        )
-        at_maximum_delay = stepper.delayed_command_at(self.times[3])
-        np.testing.assert_array_equal(
-            at_maximum_delay.thrust, samples[1].command.thrust
-        )
-        with self.assertRaisesRegex(ValueError, "match state"):
-            stepper.trim_command_history(self.times[2], 0.06)
-
-    def test_static_model_replacement_validates_before_mutation(self):
-        stepper = self._new_stepper(0.095, self.initial_actuator_snapshot)
-        valid_controller = self._controller()
-        valid_plant = FullSixDofPlant(self.parameters, self.geometry)
-        valid_actuators = self._actuator_parameters(0.017)
-        for field in ("controller", "plant", "actuator_parameters"):
-            arguments = {
-                "controller": valid_controller,
-                "plant": valid_plant,
-                "actuator_parameters": valid_actuators,
-            }
-            arguments[field] = object()
-            with self.subTest(field=field), self.assertRaises(TypeError):
-                stepper.replace_static_model(**arguments)
-        self.assertEqual(stepper.command_issue_times.size, 0)
-
     def test_terminal_and_input_validation_block_continuation(self):
         stepper = self._new_stepper(0.017, None)
         for invalid_end in (self.times[0], -1.0, float("nan"), float("inf")):
@@ -472,16 +280,16 @@ class ClosedLoopStepperTest(unittest.TestCase):
                 stepper.advance_interval(invalid_end, self.references[0])
         with self.assertRaises(TypeError):
             stepper.advance_interval(self.times[1], object())
-        for invalid_residual in (
+        for invalid_discrepancy in (
             np.zeros(5),
             np.zeros(7),
             np.asarray((0.0, 0.0, 0.0, 0.0, 0.0, np.nan)),
         ):
             with self.subTest(
-                residual=invalid_residual.shape
+                discrepancy=invalid_discrepancy.shape
             ), self.assertRaises(ValueError):
                 stepper.advance_interval(
-                    self.times[1], self.references[0], invalid_residual
+                    self.times[1], self.references[0], invalid_discrepancy
                 )
         self.assertEqual(stepper.command_issue_times.size, 0)
 
@@ -501,20 +309,6 @@ class ClosedLoopStepperTest(unittest.TestCase):
             stepper.terminal_sample(self.references[0], 0.04)
         with self.assertRaises(RuntimeError):
             stepper.advance_interval(self.times[1], self.references[0])
-        with self.assertRaises(RuntimeError):
-            stepper.replace_dynamic_state(
-                rigid_body_state=self.initial_rigid_body,
-                controller_state=initial_controller_state(
-                    self.configuration, trim_hover=True
-                ),
-                actuator_state=self.initial_actuator_snapshot,
-            )
-        with self.assertRaises(RuntimeError):
-            stepper.replace_static_model(
-                controller=self._controller(),
-                plant=FullSixDofPlant(self.parameters, self.geometry),
-                actuator_parameters=self._actuator_parameters(0.0),
-            )
 
     def test_state_and_constructor_types_are_validated(self):
         controller_state = initial_controller_state(

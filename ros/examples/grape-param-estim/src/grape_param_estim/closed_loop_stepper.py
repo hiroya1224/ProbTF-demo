@@ -21,17 +21,17 @@ from grape_param_estim.system import (
 from grape_param_estim.timing import ZeroOrderHoldCommandHistory
 
 
-def _finite_interval_residual(
+def _finite_interval_discrepancy(
     value: Optional[Sequence[float]],
 ) -> Optional[np.ndarray]:
     if value is None:
         return None
-    residual = np.asarray(value, dtype=float)
-    if residual.shape != (6,) or np.any(~np.isfinite(residual)):
+    discrepancy = np.asarray(value, dtype=float)
+    if discrepancy.shape != (6,) or np.any(~np.isfinite(discrepancy)):
         raise ValueError(
-            "interval residual wrench must contain six finite values"
+            "interval model discrepancy wrench must contain six finite values"
         )
-    return residual.copy()
+    return discrepancy.copy()
 
 
 @dataclass(frozen=True)
@@ -39,8 +39,7 @@ class ClosedLoopStepperState:
     """Dynamic state at one observation time.
 
     The delayed command history is causal auxiliary state owned by the
-    corresponding :class:`ClosedLoopStepper`.  It is deliberately not part of
-    the numeric state replaced by an EnKF analysis.
+    corresponding :class:`ClosedLoopStepper`.
     """
 
     time: float
@@ -94,11 +93,10 @@ class ClosedLoopStepSample:
 
 
 class ClosedLoopStepper:
-    """Advance one causal closed-loop member across observation intervals.
+    """Advance one causal closed-loop forecast across time intervals.
 
-    One instance belongs to one ensemble member.  In particular, the command
-    history must not be reset at observation boundaries because a continuous
-    actuator delay can span one or more observation periods.
+    Command history remains continuous because actuator delay can span one or
+    more integration intervals.
     """
 
     def __init__(
@@ -137,7 +135,7 @@ class ClosedLoopStepper:
 
     @property
     def command_history_commands(self) -> Tuple[ActuatorCommand, ...]:
-        """Return defensive copies of the member's causal commands."""
+        """Return defensive copies of this forecast's causal commands."""
 
         return tuple(
             ActuatorCommand(
@@ -158,210 +156,13 @@ class ClosedLoopStepper:
 
         return self._command_history.value_at(plant_time)
 
-    def replace_dynamic_state(
-        self,
-        *,
-        rigid_body_state: RigidBodyState,
-        controller_state: ControllerState,
-        actuator_state: ActuatorState,
-    ) -> ClosedLoopStepperState:
-        """Apply an analysis state without clearing prior issued commands.
-
-        Time, plant parameters, actuator delay, and the complete causal command
-        history remain unchanged.  This is the explicit boundary intended for
-        an EnKF analysis update between two forecast intervals.
-        """
-
-        self._require_active()
-        replacement = ClosedLoopStepperState(
-            time=self._state.time,
-            rigid_body_state=rigid_body_state,
-            controller_state=controller_state,
-            actuator_state=actuator_state,
-        )
-        self._state = replacement
-        return replacement
-
-    def replace_command_history(
-        self, commands: Sequence[ActuatorCommand]
-    ) -> None:
-        """Replace command values while retaining their causal issue times.
-
-        A deterministic ensemble analysis mixes members.  Delayed commands
-        are auxiliary dynamic state and must receive the same member-space
-        analysis before the next forecast interval.  The common issue-time
-        grid and the currently analysed delay remain unchanged.
-        """
-
-        self._require_active()
-        selected = tuple(commands)
-        issue_times = self._command_history.issue_times
-        if len(selected) != issue_times.size or any(
-            not isinstance(command, ActuatorCommand)
-            for command in selected
-        ):
-            raise ValueError(
-                "commands must align with the retained command history"
-            )
-        self.replace_command_history_snapshot(issue_times, selected)
-
-    def replace_command_history_snapshot(
-        self,
-        issue_times: Sequence[float],
-        commands: Sequence[ActuatorCommand],
-    ) -> None:
-        """Replace the complete bounded causal-history snapshot.
-
-        Spawned forecast workers receive the parent process's authoritative
-        post-analysis history at every observation boundary.  Replacing both
-        issue times and command values prevents a worker's older, untrimmed
-        history from becoming hidden dynamic state.
-        """
-
-        self._require_active()
-        selected_times = np.asarray(issue_times, dtype=float)
-        selected_commands = tuple(commands)
-        if (
-            selected_times.ndim != 1
-            or np.any(~np.isfinite(selected_times))
-            or np.any(np.diff(selected_times) <= 0.0)
-            or (
-                selected_times.size
-                and selected_times[-1] >= self._state.time
-            )
-            or len(selected_commands) != selected_times.size
-            or any(
-                not isinstance(command, ActuatorCommand)
-                for command in selected_commands
-            )
-        ):
-            raise ValueError(
-                "history snapshot must contain increasing past issue times "
-                "and aligned commands"
-            )
-        replacement = ZeroOrderHoldCommandHistory[ActuatorCommand](
-            self._command_history.constant_delay
-        )
-        for time, command in zip(selected_times, selected_commands):
-            replacement.append(
-                float(time),
-                ActuatorCommand(
-                    command.thrust,
-                    command.gimbal_angle,
-                    command.virtual_force,
-                    command.desired_acceleration,
-                ),
-            )
-        self._command_history = replacement
-
-    def accept_external_interval_advance(
-        self,
-        next_state: ClosedLoopStepperState,
-        issued_command: ActuatorCommand,
-    ) -> ClosedLoopStepperState:
-        """Record one worker-computed interval in the parent-side history.
-
-        The expensive plant propagation may run in another process, but the
-        parent remains authoritative for bounded command history and the next
-        boundary time.  The command is recorded at the current left endpoint
-        exactly as :meth:`advance_interval` would have done.
-        """
-
-        self._require_active()
-        if not isinstance(next_state, ClosedLoopStepperState):
-            raise TypeError("next_state must be ClosedLoopStepperState")
-        if not isinstance(issued_command, ActuatorCommand):
-            raise TypeError("issued_command must be ActuatorCommand")
-        if (
-            next_state.time <= self._state.time
-            or next_state.actuator_state is None
-        ):
-            raise ValueError(
-                "external interval result must advance time with actuator state"
-            )
-        self._command_history.append(self._state.time, issued_command)
-        self._state = ClosedLoopStepperState(
-            time=next_state.time,
-            rigid_body_state=next_state.rigid_body_state,
-            controller_state=next_state.controller_state,
-            actuator_state=next_state.actuator_state,
-        )
-        return self._state
-
-    def trim_command_history(
-        self, current_time: float, maximum_delay: float
-    ) -> None:
-        """Discard commands that cannot affect any future bounded delay.
-
-        One predecessor at or before ``current_time - maximum_delay`` is
-        retained because zero-order hold may still select it at the left edge
-        of the admissible delay window.
-        """
-
-        self._require_active()
-        selected_time = float(current_time)
-        selected_maximum = float(maximum_delay)
-        if (
-            not np.isfinite(selected_time)
-            or not np.isfinite(selected_maximum)
-            or selected_maximum <= 0.0
-            or selected_time != self._state.time
-        ):
-            raise ValueError(
-                "current time/max delay must match state and be positive"
-            )
-        issue_times = self._command_history.issue_times
-        if issue_times.size < 2:
-            return
-        threshold = selected_time - selected_maximum
-        first = max(
-            int(np.searchsorted(issue_times, threshold, side="right") - 1),
-            0,
-        )
-        if first == 0:
-            return
-        commands = self.command_history_commands[first:]
-        replacement = ZeroOrderHoldCommandHistory[ActuatorCommand](
-            self._command_history.constant_delay
-        )
-        for time, command in zip(issue_times[first:], commands):
-            replacement.append(float(time), command)
-        self._command_history = replacement
-
-    def replace_static_model(
-        self,
-        *,
-        controller: GrapeController,
-        plant: FullSixDofPlant,
-        actuator_parameters: ActuatorParameters,
-    ) -> None:
-        """Apply updated static members without resetting causal history.
-
-        An augmented-state filter can update vehicle parameters and constant
-        delay at an observation boundary.  The controller and plant must then
-        use those analysed values for the next interval, while every command
-        already issued by this member remains available to ``u(t - delay)``.
-        """
-
-        self._require_active()
-        if not isinstance(controller, GrapeController):
-            raise TypeError("controller must be GrapeController")
-        if not isinstance(plant, FullSixDofPlant):
-            raise TypeError("plant must be FullSixDofPlant")
-        if not isinstance(actuator_parameters, ActuatorParameters):
-            raise TypeError(
-                "actuator_parameters must be ActuatorParameters"
-            )
-        self._controller = controller
-        self._plant = plant
-        self._actuator_parameters = actuator_parameters
-        self._command_history.constant_delay = actuator_parameters.delay
-
     def advance_interval(
         self,
         end_time: float,
         reference: ReferenceState,
-        interval_residual_wrench: Optional[Sequence[float]] = None,
+        interval_model_discrepancy_wrench: Optional[
+            Sequence[float]
+        ] = None,
     ) -> ClosedLoopStepSample:
         """Emit the current sample and propagate to ``end_time``."""
 
@@ -374,10 +175,12 @@ class ClosedLoopStepper:
             raise ValueError("interval end time must be finite and increasing")
         if not isinstance(reference, ReferenceState):
             raise TypeError("reference must be ReferenceState")
-        residual = _finite_interval_residual(interval_residual_wrench)
+        discrepancy = _finite_interval_discrepancy(
+            interval_model_discrepancy_wrench
+        )
         time_step = selected_end - self._state.time
         sample, next_controller_state = self._issue_sample(
-            reference, time_step, residual
+            reference, time_step, discrepancy
         )
         next_rigid_body, next_actuators = _advance_plant_and_actuators(
             start_time=sample.time,
@@ -387,7 +190,7 @@ class ClosedLoopStepper:
             command_history=self._command_history,
             actuator_parameters=self._actuator_parameters,
             plant=self._plant,
-            interval_residual_wrench=residual,
+            interval_model_discrepancy_wrench=discrepancy,
         )
         self._state = ClosedLoopStepperState(
             time=selected_end,
@@ -401,7 +204,9 @@ class ClosedLoopStepper:
         self,
         reference: ReferenceState,
         controller_time_step: float,
-        interval_residual_wrench: Optional[Sequence[float]] = None,
+        interval_model_discrepancy_wrench: Optional[
+            Sequence[float]
+        ] = None,
     ) -> ClosedLoopStepSample:
         """Emit the final sample without another plant transition."""
 
@@ -411,9 +216,11 @@ class ClosedLoopStepper:
             raise ValueError("terminal controller time step must be positive")
         if not isinstance(reference, ReferenceState):
             raise TypeError("reference must be ReferenceState")
-        residual = _finite_interval_residual(interval_residual_wrench)
+        discrepancy = _finite_interval_discrepancy(
+            interval_model_discrepancy_wrench
+        )
         sample, _unused_next_controller_state = self._issue_sample(
-            reference, selected_step, residual
+            reference, selected_step, discrepancy
         )
         # An initially absent actuator snapshot is initialised when the command
         # is issued, even if this is a one-sample terminal-only use.
@@ -435,7 +242,7 @@ class ClosedLoopStepper:
         self,
         reference: ReferenceState,
         time_step: float,
-        interval_residual_wrench: Optional[np.ndarray],
+        interval_model_discrepancy_wrench: Optional[np.ndarray],
     ):
         current = self._state
         command, next_controller_state = self._controller.step(
@@ -467,7 +274,7 @@ class ClosedLoopStepper:
             current.time,
             current.rigid_body_state,
             actuator_state,
-            interval_residual_wrench,
+            interval_model_discrepancy_wrench,
         )
         return (
             ClosedLoopStepSample(

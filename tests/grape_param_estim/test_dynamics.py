@@ -531,7 +531,7 @@ class DynamicsTests(unittest.TestCase):
             1.0e-8,
         )
 
-    def test_interval_residual_is_held_for_every_runge_kutta_stage(self):
+    def test_interval_discrepancy_is_held_for_every_runge_kutta_stage(self):
         parameters = VehicleParameters.nominal()
         geometry = GrapeGeometry.grape()
         state = RigidBodyState(
@@ -550,7 +550,7 @@ class DynamicsTests(unittest.TestCase):
         callback_plant = FullSixDofPlant(
             parameters,
             geometry,
-            residual_wrench=lambda _time, _state: residual,
+            model_discrepancy_wrench=lambda _time, _state: residual,
         )
         interval_plant = FullSixDofPlant(parameters, geometry)
         expected = callback_plant.step(0.0, state, actuators, 0.02)
@@ -559,7 +559,7 @@ class DynamicsTests(unittest.TestCase):
             state,
             actuators,
             0.02,
-            interval_residual_wrench=residual,
+            interval_model_discrepancy_wrench=residual,
         )
         np.testing.assert_allclose(actual.as_vector(), expected.as_vector())
 

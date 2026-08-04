@@ -28,7 +28,7 @@ from grape_param_estim.system import (
 from grape_param_estim.timing import ZeroOrderHoldCommandHistory
 
 
-ResidualWrench = Callable[[float, RigidBodyState], np.ndarray]
+ModelDiscrepancyWrench = Callable[[float, RigidBodyState], np.ndarray]
 
 
 @dataclass(frozen=True)
@@ -590,7 +590,7 @@ def _advance_plant_and_actuators(
     command_history: ZeroOrderHoldCommandHistory,
     actuator_parameters: ActuatorParameters,
     plant: "FullSixDofPlant",
-    interval_residual_wrench: Optional[Sequence[float]] = None,
+    interval_model_discrepancy_wrench: Optional[Sequence[float]] = None,
 ) -> Tuple[RigidBodyState, ActuatorState]:
     """Advance one controller interval without quantising actuator delay."""
 
@@ -610,7 +610,7 @@ def _advance_plant_and_actuators(
             current_state,
             midpoint_actuators,
             step,
-            interval_residual_wrench,
+            interval_model_discrepancy_wrench,
         )
         current_actuators = advance_actuators(
             midpoint_actuators, command, actuator_parameters, 0.5 * step
@@ -619,17 +619,17 @@ def _advance_plant_and_actuators(
 
 
 class FullSixDofPlant:
-    """Rigid-body dynamics with optional drag and additive residual wrench."""
+    """Rigid-body dynamics with optional future model-discrepancy wrench."""
 
     def __init__(
         self,
         parameters: VehicleParameters,
         geometry: GrapeGeometry,
-        residual_wrench: Optional[ResidualWrench] = None,
+        model_discrepancy_wrench: Optional[ModelDiscrepancyWrench] = None,
     ):
         self.parameters = parameters
         self.geometry = geometry
-        self.residual_wrench = residual_wrench
+        self.model_discrepancy_wrench = model_discrepancy_wrench
         self._inverse_inertia = np.linalg.inv(parameters.inertia)
 
     def total_body_wrench(
@@ -637,7 +637,9 @@ class FullSixDofPlant:
         time: float,
         state: RigidBodyState,
         actuators: ActuatorState,
-        interval_residual_wrench: Optional[Sequence[float]] = None,
+        interval_model_discrepancy_wrench: Optional[
+            Sequence[float]
+        ] = None,
     ) -> np.ndarray:
         wrench = actuator_wrench(actuators, self.parameters, self.geometry)
         rotation = quaternion_to_matrix(state.orientation_xyzw)
@@ -646,25 +648,30 @@ class FullSixDofPlant:
         wrench[3:] -= (
             self.parameters.angular_drag * state.angular_velocity
         )
-        if self.residual_wrench is not None:
-            residual = np.asarray(
-                self.residual_wrench(float(time), state), dtype=float
+        if self.model_discrepancy_wrench is not None:
+            discrepancy = np.asarray(
+                self.model_discrepancy_wrench(float(time), state), dtype=float
             )
-            if residual.shape != (6,) or not np.all(np.isfinite(residual)):
-                raise ValueError("residual wrench must contain six finite values")
-            wrench += residual
-        if interval_residual_wrench is not None:
-            interval_residual = np.asarray(
-                interval_residual_wrench, dtype=float
-            )
-            if (
-                interval_residual.shape != (6,)
-                or not np.all(np.isfinite(interval_residual))
+            if discrepancy.shape != (6,) or not np.all(
+                np.isfinite(discrepancy)
             ):
                 raise ValueError(
-                    "interval residual wrench must contain six finite values"
+                    "model discrepancy wrench must contain six finite values"
                 )
-            wrench += interval_residual
+            wrench += discrepancy
+        if interval_model_discrepancy_wrench is not None:
+            interval_discrepancy = np.asarray(
+                interval_model_discrepancy_wrench, dtype=float
+            )
+            if (
+                interval_discrepancy.shape != (6,)
+                or not np.all(np.isfinite(interval_discrepancy))
+            ):
+                raise ValueError(
+                    "interval model discrepancy wrench must contain six "
+                    "finite values"
+                )
+            wrench += interval_discrepancy
         return wrench
 
     def derivative(
@@ -672,13 +679,15 @@ class FullSixDofPlant:
         time: float,
         state_vector: Sequence[float],
         actuators: ActuatorState,
-        interval_residual_wrench: Optional[Sequence[float]] = None,
+        interval_model_discrepancy_wrench: Optional[
+            Sequence[float]
+        ] = None,
     ) -> np.ndarray:
         state = RigidBodyState.from_vector(state_vector)
         quaternion = state.orientation_xyzw
         rotation = quaternion_to_matrix(quaternion)
         wrench = self.total_body_wrench(
-            time, state, actuators, interval_residual_wrench
+            time, state, actuators, interval_model_discrepancy_wrench
         )
         pure_omega = np.concatenate(
             (state.angular_velocity, np.asarray((0.0,), dtype=float))
@@ -712,24 +721,26 @@ class FullSixDofPlant:
         state: RigidBodyState,
         actuators: ActuatorState,
         time_step: float,
-        interval_residual_wrench: Optional[Sequence[float]] = None,
+        interval_model_discrepancy_wrench: Optional[
+            Sequence[float]
+        ] = None,
     ) -> RigidBodyState:
         """Advance one controller interval with fourth-order Runge--Kutta."""
 
         dt = float(time_step)
         vector = state.as_vector()
         k1 = self.derivative(
-            time, vector, actuators, interval_residual_wrench
+            time, vector, actuators, interval_model_discrepancy_wrench
         )
         k2 = self.derivative(time + 0.5 * dt, vector + 0.5 * dt * k1,
-                             actuators, interval_residual_wrench)
+                             actuators, interval_model_discrepancy_wrench)
         k3 = self.derivative(time + 0.5 * dt, vector + 0.5 * dt * k2,
-                             actuators, interval_residual_wrench)
+                             actuators, interval_model_discrepancy_wrench)
         k4 = self.derivative(
             time + dt,
             vector + dt * k3,
             actuators,
-            interval_residual_wrench,
+            interval_model_discrepancy_wrench,
         )
         result = vector + dt / 6.0 * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
         result[3:7] = normalise_quaternion(result[3:7])
@@ -745,7 +756,7 @@ def simulate_closed_loop(
     plant: FullSixDofPlant,
     actuator_parameters: ActuatorParameters,
     initial_actuator_state: Optional[ActuatorState] = None,
-    interval_residual_wrench: Optional[np.ndarray] = None,
+    interval_model_discrepancy_wrench: Optional[np.ndarray] = None,
 ) -> ClosedLoopTrajectory:
     """Run one continuous episode without any observation-state resets."""
 
@@ -759,15 +770,18 @@ def simulate_closed_loop(
         raise ValueError("times must be strictly increasing")
     if len(references) != times.size:
         raise ValueError("one reference state is required per time")
-    residual_path = None
-    if interval_residual_wrench is not None:
-        residual_path = np.asarray(interval_residual_wrench, dtype=float)
+    discrepancy_path = None
+    if interval_model_discrepancy_wrench is not None:
+        discrepancy_path = np.asarray(
+            interval_model_discrepancy_wrench, dtype=float
+        )
         if (
-            residual_path.shape != (times.size - 1, 6)
-            or not np.all(np.isfinite(residual_path))
+            discrepancy_path.shape != (times.size - 1, 6)
+            or not np.all(np.isfinite(discrepancy_path))
         ):
             raise ValueError(
-                "interval residual wrench must have shape (N - 1, 6)"
+                "interval model discrepancy wrench must have shape "
+                "(N - 1, 6)"
             )
 
     sample_count = times.size
@@ -833,8 +847,10 @@ def simulate_closed_loop(
             state,
             actuator_state,
             None
-            if residual_path is None
-            else residual_path[min(index, residual_path.shape[0] - 1)],
+            if discrepancy_path is None
+            else discrepancy_path[
+                min(index, discrepancy_path.shape[0] - 1)
+            ],
         )
         if index + 1 == sample_count:
             break
@@ -848,8 +864,10 @@ def simulate_closed_loop(
             command_history=command_history,
             actuator_parameters=actuator_parameters,
             plant=plant,
-            interval_residual_wrench=(
-                None if residual_path is None else residual_path[index]
+            interval_model_discrepancy_wrench=(
+                None
+                if discrepancy_path is None
+                else discrepancy_path[index]
             ),
         )
 

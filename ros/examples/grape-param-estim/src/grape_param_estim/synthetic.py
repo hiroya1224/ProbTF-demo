@@ -12,7 +12,10 @@ from grape_param_estim.controller import (
     GrapeController,
     initial_controller_state,
 )
-from grape_param_estim.dynamics import FullSixDofPlant, ResidualWrench
+from grape_param_estim.dynamics import (
+    FullSixDofPlant,
+    ModelDiscrepancyWrench,
+)
 from grape_param_estim.dynamics import simulate_closed_loop
 from grape_param_estim.geometry import (
     correction_transform_path,
@@ -173,10 +176,10 @@ def default_truth_parameters() -> VehicleParameters:
     )
 
 
-def default_residual_wrench(
+def default_model_discrepancy_wrench(
     time: float, _state: RigidBodyState
 ) -> np.ndarray:
-    """A deterministic truth-only wind/motor residual in the body frame."""
+    """A deterministic truth-only wind/motor discrepancy in body frame."""
 
     return np.asarray(
         (
@@ -196,7 +199,9 @@ def run_synthetic_experiment(
     time_step: float = 0.02,
     truth_parameters: Optional[VehicleParameters] = None,
     truth_actuators: Optional[ActuatorParameters] = None,
-    truth_residual_wrench: Optional[ResidualWrench] = None,
+    truth_model_discrepancy_wrench: Optional[
+        ModelDiscrepancyWrench
+    ] = None,
     translation_noise: float = 0.004,
     rotation_noise: float = np.deg2rad(0.25),
     seed: int = 7,
@@ -249,10 +254,10 @@ def run_synthetic_experiment(
         gimbal_time_constant=0.065,
         delay=0.02,
     )
-    residual = (
-        default_residual_wrench
-        if truth_residual_wrench is None
-        else truth_residual_wrench
+    discrepancy = (
+        default_model_discrepancy_wrench
+        if truth_model_discrepancy_wrench is None
+        else truth_model_discrepancy_wrench
     )
     truth = simulate_closed_loop(
         times=times,
@@ -266,7 +271,9 @@ def run_synthetic_experiment(
             articulated_model=articulated_model,
         ),
         plant=FullSixDofPlant(
-            selected_truth, geometry, residual_wrench=residual
+            selected_truth,
+            geometry,
+            model_discrepancy_wrench=discrepancy,
         ),
         actuator_parameters=selected_actuators,
     )
@@ -308,7 +315,9 @@ def run_perfect_model_experiment(
         time_step=time_step,
         truth_parameters=nominal,
         truth_actuators=ActuatorParameters(),
-        truth_residual_wrench=lambda _time, _state: np.zeros(6),
+        truth_model_discrepancy_wrench=(
+            lambda _time, _state: np.zeros(6)
+        ),
         translation_noise=0.0,
         rotation_noise=0.0,
         seed=0,

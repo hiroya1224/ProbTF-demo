@@ -1,12 +1,11 @@
 """Grape rosbag adapters with ROS imports confined to the I/O boundary.
 
-The legacy :class:`RealFlightEpisode` path remains available while the sparse
-batch estimator migrates to
-:class:`~grape_param_estim.sensor_models.FlightData`.
-The new path keeps pose, velocity, IMU, joint, issued-command, flight-mode,
-and controller streams on their audited asynchronous time axes.  Observation
-streams are never resampled; the optional preflight accelerometer calibration
-uses only common pose/IMU support and never extrapolates.
+The production path builds
+:class:`~grape_param_estim.sensor_models.FlightData` while keeping pose,
+velocity, IMU, joint, issued-command, flight-mode, and controller streams on
+their audited asynchronous time axes.  Observation streams are never
+resampled; the optional preflight accelerometer calibration uses only common
+pose/IMU support and never extrapolates.
 """
 
 from dataclasses import dataclass
@@ -21,11 +20,7 @@ from grape_param_estim.controller import (
     ControllerConfig,
     PIDConfig,
 )
-from grape_param_estim.geometry import (
-    matrix_to_quaternion,
-    quaternion_to_matrix,
-    rotation_vector_from_matrix,
-)
+from grape_param_estim.geometry import quaternion_to_matrix
 from grape_param_estim.sensor_models import (
     CausalVectorSeries,
     FlightData,
@@ -43,14 +38,7 @@ from grape_param_estim.sensor_models import (
     UsageDecision,
     VectorSeries,
 )
-from grape_param_estim.system import (
-    ActuatorParameters,
-    ActuatorState,
-    ControllerState,
-    GRAVITY,
-    PoseObservations,
-    ReferenceState,
-)
+from grape_param_estim.system import GRAVITY
 
 
 DEFAULT_GRAPE_BAG = (
@@ -165,18 +153,6 @@ _ASYNC_HEADER_TOPICS = {
 }
 
 PID_AXIS_NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
-PID_CONFIG_FIELD_NAMES = (
-    "p_gain",
-    "i_gain",
-    "d_gain",
-    "limit_sum",
-    "limit_p",
-    "limit_i",
-    "limit_d",
-    "limit_error_p",
-    "limit_error_i",
-    "limit_error_d",
-)
 
 
 def _finite_times(value, name, minimum_size=1):
@@ -550,150 +526,6 @@ class ControllerGainSnapshot:
         )
 
 
-@dataclass(frozen=True)
-class EpisodeProvenance:
-    """Factual source, timing, calibration and anchor provenance."""
-
-    bag_path: str
-    bag_sha256: str
-    bag_size_bytes: int
-    bag_record_start: float
-    bag_record_end: float
-    time_basis: str
-    requested_window_start: float
-    requested_window_end: float
-    source_available_start: float
-    source_available_end: float
-    resample_period: float
-    selected_flight_state: int
-    flight_transition_record_times: np.ndarray
-    flight_transition_states: np.ndarray
-    static_window_start: float
-    static_window_end: float
-    static_position_samples: int
-    static_position_inliers: int
-    static_orientation_samples: int
-    static_orientation_inliers: int
-    static_position_center: np.ndarray
-    static_orientation_xyzw: np.ndarray
-    covariance_outlier_threshold: float
-    covariance_eigenvalue_floor: float
-    controller_state_anchor_record_time: float
-    joint_anchor_record_time: float
-    thrust_anchor_record_time: float
-    thrust_anchor_kind: str
-    reference_acceleration_kind: str
-    controller_static_source: str
-    controller_source_revision: str
-    topic_names: Tuple[str, ...]
-    topic_types: Tuple[str, ...]
-
-    def __post_init__(self) -> None:
-        numeric = np.asarray(
-            (
-                self.bag_record_start,
-                self.bag_record_end,
-                self.requested_window_start,
-                self.requested_window_end,
-                self.source_available_start,
-                self.source_available_end,
-                self.resample_period,
-                self.static_window_start,
-                self.static_window_end,
-                self.covariance_outlier_threshold,
-                self.covariance_eigenvalue_floor,
-                self.controller_state_anchor_record_time,
-                self.joint_anchor_record_time,
-                self.thrust_anchor_record_time,
-            ),
-            dtype=float,
-        )
-        if np.any(~np.isfinite(numeric)) or self.resample_period <= 0.0:
-            raise ValueError("episode provenance contains invalid numbers")
-        transition_times = _finite_times(
-            self.flight_transition_record_times,
-            "flight transition record_times",
-        )
-        transition_states = np.asarray(
-            self.flight_transition_states, dtype=np.int64
-        )
-        if transition_states.shape != transition_times.shape:
-            raise ValueError("flight transition provenance must align")
-        center = np.asarray(self.static_position_center, dtype=float)
-        quaternion = np.asarray(self.static_orientation_xyzw, dtype=float)
-        if (
-            center.shape != (3,)
-            or quaternion.shape != (4,)
-            or np.any(~np.isfinite(center))
-            or np.any(~np.isfinite(quaternion))
-        ):
-            raise ValueError("static pose provenance is invalid")
-        if len(self.topic_names) != len(self.topic_types):
-            raise ValueError("topic provenance must align")
-        object.__setattr__(
-            self, "selected_flight_state", int(self.selected_flight_state)
-        )
-        object.__setattr__(
-            self, "flight_transition_record_times", transition_times
-        )
-        object.__setattr__(
-            self, "flight_transition_states", transition_states.copy()
-        )
-        object.__setattr__(self, "static_position_center", center.copy())
-        object.__setattr__(
-            self, "static_orientation_xyzw", quaternion.copy()
-        )
-        object.__setattr__(
-            self, "topic_names", tuple(str(v) for v in self.topic_names)
-        )
-        object.__setattr__(
-            self, "topic_types", tuple(str(v) for v in self.topic_types)
-        )
-
-
-@dataclass(frozen=True)
-class RealFlightEpisode:
-    """Direct input contract for the real-data strong/weak problems."""
-
-    record_times: np.ndarray
-    window_start_record_time: float
-    window_end_record_time: float
-    window_start_local_time: float
-    window_end_local_time: float
-    observations: PoseObservations
-    references: Tuple[ReferenceState, ...]
-    controller_configuration: ControllerConfig
-    initial_controller_state: ControllerState
-    initial_actuator_state: ActuatorState
-    controller_snapshot: ControllerGainSnapshot
-    provenance: EpisodeProvenance
-
-    def __post_init__(self) -> None:
-        times = _finite_times(
-            self.record_times, "resampled record_times", minimum_size=2
-        )
-        if times.size != self.observations.times.size:
-            raise ValueError("record and observation times must align")
-        if len(self.references) != times.size:
-            raise ValueError("reference and observation lengths must agree")
-        if not np.allclose(
-            self.observations.times,
-            times - times[0],
-            atol=2.0e-7,
-            rtol=0.0,
-        ):
-            raise ValueError("observation time must be episode-relative")
-        if not np.isclose(
-            self.window_start_record_time, times[0], atol=2.0e-7, rtol=0.0
-        ):
-            raise ValueError("window start must equal first record time")
-        if not np.isclose(
-            self.window_end_record_time, times[-1], atol=2.0e-7, rtol=0.0
-        ):
-            raise ValueError("window end must equal last record time")
-        object.__setattr__(self, "record_times", times)
-
-
 def _compress_flight_states(series: FlightStateSeries):
     changed = np.concatenate(
         ((True,), series.states[1:] != series.states[:-1])
@@ -977,116 +809,6 @@ def select_continuous_flight_window(
     )
 
 
-def _static_window_before_episode(
-    series: FlightStateSeries, episode_start: float
-):
-    times, states = _compress_flight_states(series)
-    candidates = []
-    for index in range(times.size - 1):
-        if (
-            states[index] == ARM_OFF_FLIGHT_STATE
-            and times[index + 1] <= episode_start
-        ):
-            candidates.append((float(times[index]), float(times[index + 1])))
-    if not candidates:
-        raise ValueError("no preflight ARM_OFF calibration interval found")
-    return candidates[-1]
-
-
-def robust_covariance(
-    samples: np.ndarray,
-    outlier_threshold: float = 6.0,
-    eigenvalue_floor: float = 1.0e-12,
-):
-    """Median/MAD-filtered covariance with only a numerical SPD floor."""
-
-    values = np.asarray(samples, dtype=float)
-    threshold = float(outlier_threshold)
-    floor = float(eigenvalue_floor)
-    if (
-        values.ndim != 2
-        or values.shape[0] < max(4, values.shape[1] + 1)
-        or values.shape[1] < 1
-        or np.any(~np.isfinite(values))
-        or not np.isfinite(threshold)
-        or threshold <= 0.0
-        or not np.isfinite(floor)
-        or floor <= 0.0
-    ):
-        raise ValueError("robust covariance input is invalid")
-    center = np.median(values, axis=0)
-    deviation = np.abs(values - center)
-    scale = 1.4826 * np.median(deviation, axis=0)
-    scale = np.maximum(scale, np.sqrt(floor))
-    inliers = np.all(deviation <= threshold * scale, axis=1)
-    if np.count_nonzero(inliers) < values.shape[1] + 1:
-        raise ValueError("too few robust covariance inliers")
-    covariance = np.cov(values[inliers], rowvar=False)
-    covariance = np.atleast_2d(covariance)
-    covariance = 0.5 * (covariance + covariance.T)
-    eigenvalues, eigenvectors = np.linalg.eigh(covariance)
-    covariance = (
-        eigenvectors
-        @ np.diag(np.maximum(eigenvalues, floor))
-        @ eigenvectors.T
-    )
-    return center, covariance, inliers
-
-
-def robust_pose_covariances(
-    position_samples: np.ndarray,
-    orientation_samples: np.ndarray,
-    outlier_threshold: float = 6.0,
-    eigenvalue_floor: float = 1.0e-12,
-):
-    """Calibrate translation and SO(3)-tangent covariance preflight."""
-
-    position_center, translation_covariance, position_inliers = (
-        robust_covariance(
-            position_samples, outlier_threshold, eigenvalue_floor
-        )
-    )
-    quaternions = np.asarray(orientation_samples, dtype=float)
-    if (
-        quaternions.ndim != 2
-        or quaternions.shape[0] < 4
-        or quaternions.shape[1] != 4
-        or np.any(~np.isfinite(quaternions))
-    ):
-        raise ValueError("orientation calibration samples are invalid")
-    norms = np.linalg.norm(quaternions, axis=1)
-    if np.any(norms <= 1.0e-12):
-        raise ValueError("orientation calibration contains zero quaternion")
-    quaternions = quaternions / norms[:, None]
-    quaternions[quaternions @ quaternions[0] < 0.0] *= -1.0
-    _eigenvalues, eigenvectors = np.linalg.eigh(
-        quaternions.T @ quaternions
-    )
-    mean_quaternion = eigenvectors[:, -1]
-    if mean_quaternion[3] < 0.0:
-        mean_quaternion *= -1.0
-    mean_rotation = quaternion_to_matrix(mean_quaternion)
-    tangent = np.asarray(
-        [
-            rotation_vector_from_matrix(
-                mean_rotation.T @ quaternion_to_matrix(value)
-            )
-            for value in quaternions
-        ]
-    )
-    _rotation_center, rotation_covariance, orientation_inliers = (
-        robust_covariance(tangent, outlier_threshold, eigenvalue_floor)
-    )
-    return (
-        position_center,
-        mean_quaternion,
-        translation_covariance,
-        rotation_covariance,
-        position_inliers,
-        orientation_inliers,
-    )
-
-
 def linear_resample(
     source_times: Sequence[float],
     source_values: np.ndarray,
@@ -1262,308 +984,6 @@ def _controller_configuration(
         ),
         initial_height=float(initial_height),
         source_compatible_gyro_term=selected.source_compatible_gyro_term,
-    )
-
-
-def _latest_index_at_or_before(times: np.ndarray, query: float, name: str):
-    index = int(np.searchsorted(times, query, side="right") - 1)
-    if index < 0:
-        raise ValueError("{} has no causal anchor before the window".format(name))
-    return index
-
-
-def _check_stream_gap(
-    times: np.ndarray, start: float, end: float, maximum_gap: float, name: str
-):
-    left = max(0, int(np.searchsorted(times, start, side="right") - 1))
-    right = min(times.size, int(np.searchsorted(times, end, side="left") + 1))
-    selected = times[left:right]
-    if selected.size < 2 or np.max(np.diff(selected)) > maximum_gap:
-        raise ValueError("{} contains a gap inside the flight window".format(name))
-
-
-def build_real_flight_episode(
-    arrays: RosbagArrayData,
-    sample_period: float = 0.04,
-    episode_index: int = 0,
-    start_local: Optional[float] = None,
-    end_local: Optional[float] = None,
-    window_state: Optional[int] = HOVER_FLIGHT_STATE,
-    covariance_outlier_threshold: float = 6.0,
-    covariance_eigenvalue_floor: float = 1.0e-12,
-    base_controller_configuration: Optional[ControllerConfig] = None,
-    actuator_parameters: Optional[ActuatorParameters] = None,
-    controller_static_source: str = "ControllerConfig.grape",
-    controller_source_revision: str = "",
-) -> RealFlightEpisode:
-    """Build one resampled, continuous, pose-only real flight episode."""
-
-    period = float(sample_period)
-    if not np.isfinite(period) or period <= 0.0:
-        raise ValueError("sample_period must be positive")
-    selected_window = _select_continuous_flight_window_details(
-        arrays.flight_state,
-        arrays.bag_record_start,
-        episode_index,
-        start_local,
-        end_local,
-        window_state,
-    )
-    requested_start = selected_window.start_record_time
-    requested_end = selected_window.end_record_time
-    transition_times = selected_window.transition_record_times
-    transition_states = selected_window.transition_states
-    complete_start = selected_window.episode_start_record_time
-    static_start, static_end = _static_window_before_episode(
-        arrays.flight_state, complete_start
-    )
-    static_position_mask = (
-        (arrays.cog_position.record_times >= static_start)
-        & (arrays.cog_position.record_times < static_end)
-    )
-    static_orientation_mask = (
-        (arrays.baselink_orientation.record_times >= static_start)
-        & (arrays.baselink_orientation.record_times < static_end)
-    )
-    (
-        static_position,
-        static_orientation,
-        translation_covariance,
-        rotation_covariance,
-        position_inliers,
-        orientation_inliers,
-    ) = robust_pose_covariances(
-        arrays.cog_position.values[static_position_mask],
-        arrays.baselink_orientation.values[static_orientation_mask],
-        covariance_outlier_threshold,
-        covariance_eigenvalue_floor,
-    )
-    base_configuration = (
-        ControllerConfig.grape()
-        if base_controller_configuration is None
-        else base_controller_configuration
-    )
-    snapshot = _select_controller_snapshot(
-        arrays.controller_gain_events,
-        requested_start,
-        requested_end,
-    )
-    configuration = _controller_configuration(
-        snapshot, static_position[2], base_configuration
-    )
-
-    available_start = max(
-        requested_start,
-        arrays.cog_position.record_times[0],
-        arrays.baselink_orientation.record_times[0],
-        arrays.pid.record_times[0],
-        arrays.commanded_thrust.record_times[0],
-    )
-    available_end = min(
-        requested_end,
-        arrays.cog_position.record_times[-1],
-        arrays.baselink_orientation.record_times[-1],
-        arrays.pid.record_times[-1],
-    )
-    if available_end - available_start < period:
-        raise ValueError("common record-time flight window is too short")
-    maximum_gap = 0.10
-    for times, name in (
-        (arrays.cog_position.record_times, "CoG odometry"),
-        (arrays.baselink_orientation.record_times, "baselink odometry"),
-        (arrays.pid.record_times, "PoseControlPid"),
-    ):
-        _check_stream_gap(
-            times, available_start, available_end, maximum_gap, name
-        )
-    # Treat the requested end as exclusive.  In the default state-selected
-    # case it is exactly the transition into the next flight state.
-    exclusive_end = np.nextafter(available_end, available_start)
-    sample_count = int(np.floor(
-        (exclusive_end - available_start) / period
-    )) + 1
-    if sample_count < 2:
-        raise ValueError("common record-time flight window has too few samples")
-    relative_times = np.arange(sample_count, dtype=float) * period
-    record_times = available_start + relative_times
-    position = linear_resample(
-        arrays.cog_position.record_times,
-        arrays.cog_position.values,
-        record_times,
-    )
-    orientation = quaternion_slerp_resample(
-        arrays.baselink_orientation.record_times,
-        arrays.baselink_orientation.values,
-        record_times,
-    )
-    observations = PoseObservations(
-        times=relative_times,
-        position=position,
-        orientation_xyzw=orientation,
-        translation_covariance=translation_covariance,
-        rotation_covariance=rotation_covariance,
-    )
-
-    target_position = linear_resample(
-        arrays.pid.record_times, arrays.pid.target_position, record_times
-    )
-    target_velocity = linear_resample(
-        arrays.pid.record_times,
-        arrays.pid.target_linear_velocity,
-        record_times,
-    )
-    unwrapped_rpy = np.unwrap(arrays.pid.target_rpy, axis=0)
-    target_rpy = linear_resample(
-        arrays.pid.record_times, unwrapped_rpy, record_times
-    )
-    target_omega = linear_resample(
-        arrays.pid.record_times,
-        arrays.pid.target_angular_velocity,
-        record_times,
-    )
-    feedforward = (
-        arrays.pid.total
-        - arrays.pid.p_term
-        - arrays.pid.i_term
-        - arrays.pid.d_term
-    )
-    target_acceleration = linear_resample(
-        arrays.pid.record_times, feedforward, record_times
-    )
-    references = tuple(
-        ReferenceState(
-            position=target_position[index],
-            linear_velocity=target_velocity[index],
-            linear_acceleration=target_acceleration[index, :3],
-            rpy=target_rpy[index],
-            angular_velocity=target_omega[index],
-            angular_acceleration=target_acceleration[index, 3:],
-        )
-        for index in range(sample_count)
-    )
-
-    controller_state_index = _latest_index_at_or_before(
-        arrays.pid.record_times,
-        record_times[0],
-        "PoseControlPid controller state",
-    )
-    initial_i_term = arrays.pid.i_term[controller_state_index]
-    axis_gains = snapshot.axis_gains()
-    integral = np.zeros(6, dtype=float)
-    for axis in range(6):
-        gain = axis_gains[axis, 1]
-        limit_i = configuration.pid[axis].limit_i
-        if abs(initial_i_term[axis]) >= limit_i - 1.0e-10:
-            raise ValueError(
-                "saturated PID I term cannot uniquely reconstruct the "
-                "controller integral state"
-            )
-        if gain > 0.0:
-            integral[axis] = initial_i_term[axis] / gain
-        elif abs(initial_i_term[axis]) > 1.0e-12:
-            raise ValueError("nonzero I term cannot be decoded with zero gain")
-    history_mask = (
-        (arrays.cog_position.record_times >= complete_start)
-        & (arrays.cog_position.record_times <= record_times[0])
-    )
-    roll_pitch_active = bool(
-        np.any(
-            arrays.cog_position.values[history_mask, 2]
-            - configuration.initial_height
-            > configuration.start_roll_pitch_integration_height
-        )
-    )
-    controller_state = ControllerState(integral, roll_pitch_active)
-
-    joint_index = _latest_index_at_or_before(
-        arrays.joint_position.record_times,
-        record_times[0],
-        "joint_states",
-    )
-    thrust_index = _latest_index_at_or_before(
-        arrays.commanded_thrust.record_times,
-        record_times[0],
-        "four_axes command",
-    )
-    selected_actuator_parameters = (
-        ActuatorParameters()
-        if actuator_parameters is None
-        else actuator_parameters
-    )
-    thrust = np.clip(
-        arrays.commanded_thrust.values[thrust_index],
-        selected_actuator_parameters.minimum_thrust,
-        selected_actuator_parameters.maximum_thrust,
-    )
-    gimbal = np.clip(
-        arrays.joint_position.values[joint_index],
-        -selected_actuator_parameters.maximum_gimbal_angle,
-        selected_actuator_parameters.maximum_gimbal_angle,
-    )
-    actuator_state = ActuatorState(thrust, gimbal)
-
-    provenance = EpisodeProvenance(
-        bag_path=arrays.bag_path,
-        bag_sha256=arrays.bag_sha256,
-        bag_size_bytes=arrays.bag_size_bytes,
-        bag_record_start=arrays.bag_record_start,
-        bag_record_end=arrays.bag_record_end,
-        time_basis="rosbag_record_time",
-        requested_window_start=requested_start,
-        requested_window_end=requested_end,
-        source_available_start=available_start,
-        source_available_end=available_end,
-        resample_period=period,
-        selected_flight_state=selected_window.selected_state,
-        flight_transition_record_times=transition_times,
-        flight_transition_states=transition_states,
-        static_window_start=static_start,
-        static_window_end=static_end,
-        static_position_samples=int(np.count_nonzero(static_position_mask)),
-        static_position_inliers=int(np.count_nonzero(position_inliers)),
-        static_orientation_samples=int(
-            np.count_nonzero(static_orientation_mask)
-        ),
-        static_orientation_inliers=int(
-            np.count_nonzero(orientation_inliers)
-        ),
-        static_position_center=static_position,
-        static_orientation_xyzw=static_orientation,
-        covariance_outlier_threshold=covariance_outlier_threshold,
-        covariance_eigenvalue_floor=covariance_eigenvalue_floor,
-        controller_state_anchor_record_time=(
-            arrays.pid.record_times[controller_state_index]
-        ),
-        joint_anchor_record_time=(
-            arrays.joint_position.record_times[joint_index]
-        ),
-        thrust_anchor_record_time=(
-            arrays.commanded_thrust.record_times[thrust_index]
-        ),
-        thrust_anchor_kind="clipped_four_axes_command_proxy",
-        reference_acceleration_kind="PoseControlPid_total_minus_P_I_D",
-        controller_static_source=str(controller_static_source),
-        controller_source_revision=str(controller_source_revision),
-        topic_names=arrays.topic_names,
-        topic_types=arrays.topic_types,
-    )
-    return RealFlightEpisode(
-        record_times=record_times,
-        window_start_record_time=record_times[0],
-        window_end_record_time=record_times[-1],
-        window_start_local_time=(
-            record_times[0] - arrays.bag_record_start
-        ),
-        window_end_local_time=(
-            record_times[-1] - arrays.bag_record_start
-        ),
-        observations=observations,
-        references=references,
-        controller_configuration=configuration,
-        initial_controller_state=controller_state,
-        initial_actuator_state=actuator_state,
-        controller_snapshot=snapshot,
-        provenance=provenance,
     )
 
 
@@ -1754,30 +1174,6 @@ def read_grape_rosbag_arrays(
         joint_position=_series(joint_times, joint_position),
         joint_names=GIMBAL_JOINT_NAMES,
         commanded_thrust=_series(command_times, command_thrust),
-    )
-
-
-def load_grape_rosbag_episode(
-    path: str = DEFAULT_GRAPE_BAG,
-    sample_period: float = 0.04,
-    episode_index: int = 0,
-    start_local: Optional[float] = None,
-    end_local: Optional[float] = None,
-    window_state: Optional[int] = HOVER_FLIGHT_STATE,
-    compute_sha256: bool = True,
-    controller_source_revision: str = "",
-) -> RealFlightEpisode:
-    """Read and build one real episode; all topic alignment uses record time."""
-
-    arrays = read_grape_rosbag_arrays(path, compute_sha256=compute_sha256)
-    return build_real_flight_episode(
-        arrays,
-        sample_period=sample_period,
-        episode_index=episode_index,
-        start_local=start_local,
-        end_local=end_local,
-        window_state=window_state,
-        controller_source_revision=controller_source_revision,
     )
 
 
@@ -3223,182 +2619,6 @@ def load_flight_data(
     return result
 
 
-def save_real_flight_episode(path: str, episode: RealFlightEpisode) -> Path:
-    """Persist the adapter output as arrays only; loading never needs pickle."""
-
-    destination = Path(path).expanduser().resolve()
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    references = episode.references
-    configuration = episode.controller_configuration
-    pid_configuration = np.asarray(
-        [
-            [getattr(pid, name) for name in PID_CONFIG_FIELD_NAMES]
-            for pid in configuration.pid
-        ]
-    )
-    provenance = episode.provenance
-    np.savez_compressed(
-        str(destination),
-        schema=np.asarray(("grape-param-estim/flight-episode/v1",)),
-        record_times=episode.record_times,
-        times=episode.observations.times,
-        window_start_record_time=np.asarray(
-            (episode.window_start_record_time,)
-        ),
-        window_end_record_time=np.asarray((episode.window_end_record_time,)),
-        window_start_local_time=np.asarray((episode.window_start_local_time,)),
-        window_end_local_time=np.asarray((episode.window_end_local_time,)),
-        observations_position=episode.observations.position,
-        observations_orientation_xyzw=(
-            episode.observations.orientation_xyzw
-        ),
-        observation_translation_covariance=(
-            episode.observations.translation_covariance
-        ),
-        observation_rotation_covariance=(
-            episode.observations.rotation_covariance
-        ),
-        reference_position=np.asarray([value.position for value in references]),
-        reference_linear_velocity=np.asarray(
-            [value.linear_velocity for value in references]
-        ),
-        reference_linear_acceleration=np.asarray(
-            [value.linear_acceleration for value in references]
-        ),
-        reference_rpy=np.asarray([value.rpy for value in references]),
-        reference_angular_velocity=np.asarray(
-            [value.angular_velocity for value in references]
-        ),
-        reference_angular_acceleration=np.asarray(
-            [value.angular_acceleration for value in references]
-        ),
-        controller_pid_axis_names=np.asarray(PID_AXIS_NAMES),
-        controller_pid_field_names=np.asarray(PID_CONFIG_FIELD_NAMES),
-        controller_pid_configuration=pid_configuration,
-        controller_xy_control_mode=np.asarray(
-            (configuration.xy_control_mode,)
-        ),
-        controller_need_yaw_d_control=np.asarray(
-            (configuration.need_yaw_d_control,), dtype=bool
-        ),
-        controller_start_roll_pitch_integration_height=np.asarray(
-            (configuration.start_roll_pitch_integration_height,)
-        ),
-        controller_initial_height=np.asarray((configuration.initial_height,)),
-        controller_source_compatible_gyro_term=np.asarray(
-            (configuration.source_compatible_gyro_term,), dtype=bool
-        ),
-        initial_controller_integral_error=(
-            episode.initial_controller_state.integral_error
-        ),
-        initial_roll_pitch_integration_active=np.asarray(
-            (
-                episode.initial_controller_state
-                .roll_pitch_integration_active,
-            ),
-            dtype=bool,
-        ),
-        initial_actuator_thrust=episode.initial_actuator_state.thrust,
-        initial_actuator_gimbal_angle=(
-            episode.initial_actuator_state.gimbal_angle
-        ),
-        snapshot_group=np.asarray(episode.controller_snapshot.groups),
-        snapshot_record_time=episode.controller_snapshot.record_times,
-        snapshot_gain=episode.controller_snapshot.gains,
-        snapshot_pid_control_flag=(
-            episode.controller_snapshot.pid_control_flags
-        ),
-        snapshot_source_kind=np.asarray(
-            episode.controller_snapshot.source_kinds
-        ),
-        provenance_bag_path=np.asarray((provenance.bag_path,)),
-        provenance_bag_sha256=np.asarray((provenance.bag_sha256,)),
-        provenance_bag_size_bytes=np.asarray(
-            (provenance.bag_size_bytes,), dtype=np.int64
-        ),
-        provenance_bag_record_start=np.asarray(
-            (provenance.bag_record_start,)
-        ),
-        provenance_bag_record_end=np.asarray((provenance.bag_record_end,)),
-        provenance_time_basis=np.asarray((provenance.time_basis,)),
-        provenance_requested_window_start=np.asarray(
-            (provenance.requested_window_start,)
-        ),
-        provenance_requested_window_end=np.asarray(
-            (provenance.requested_window_end,)
-        ),
-        provenance_source_available_start=np.asarray(
-            (provenance.source_available_start,)
-        ),
-        provenance_source_available_end=np.asarray(
-            (provenance.source_available_end,)
-        ),
-        provenance_resample_period=np.asarray(
-            (provenance.resample_period,)
-        ),
-        provenance_selected_flight_state=np.asarray(
-            (provenance.selected_flight_state,), dtype=np.int64
-        ),
-        provenance_flight_transition_record_times=(
-            provenance.flight_transition_record_times
-        ),
-        provenance_flight_transition_states=(
-            provenance.flight_transition_states
-        ),
-        provenance_static_window_start=np.asarray(
-            (provenance.static_window_start,)
-        ),
-        provenance_static_window_end=np.asarray(
-            (provenance.static_window_end,)
-        ),
-        provenance_static_sample_counts=np.asarray(
-            (
-                provenance.static_position_samples,
-                provenance.static_position_inliers,
-                provenance.static_orientation_samples,
-                provenance.static_orientation_inliers,
-            ),
-            dtype=np.int64,
-        ),
-        provenance_static_position_center=(
-            provenance.static_position_center
-        ),
-        provenance_static_orientation_xyzw=(
-            provenance.static_orientation_xyzw
-        ),
-        provenance_covariance_outlier_threshold=np.asarray(
-            (provenance.covariance_outlier_threshold,)
-        ),
-        provenance_covariance_eigenvalue_floor=np.asarray(
-            (provenance.covariance_eigenvalue_floor,)
-        ),
-        provenance_controller_state_anchor_record_time=np.asarray(
-            (provenance.controller_state_anchor_record_time,)
-        ),
-        provenance_joint_anchor_record_time=np.asarray(
-            (provenance.joint_anchor_record_time,)
-        ),
-        provenance_thrust_anchor_record_time=np.asarray(
-            (provenance.thrust_anchor_record_time,)
-        ),
-        provenance_thrust_anchor_kind=np.asarray(
-            (provenance.thrust_anchor_kind,)
-        ),
-        provenance_reference_acceleration_kind=np.asarray(
-            (provenance.reference_acceleration_kind,)
-        ),
-        provenance_controller_static_source=np.asarray(
-            (provenance.controller_static_source,)
-        ),
-        provenance_controller_source_revision=np.asarray(
-            (provenance.controller_source_revision,)
-        ),
-        provenance_topic_names=np.asarray(provenance.topic_names),
-        provenance_topic_types=np.asarray(provenance.topic_types),
-    )
-    return destination
-
-
 __all__ = [
     "ACC_ONLY_TOPIC",
     "ASYNC_TOPIC_TYPE_CONTRACT",
@@ -3408,7 +2628,6 @@ __all__ = [
     "ControllerGainSnapshot",
     "DEFAULT_AUDITED_GRAPE_BAG",
     "DEFAULT_GRAPE_BAG",
-    "EpisodeProvenance",
     "FORCE_LANDING_STATE",
     "FlightEpisodeCandidate",
     "FLIGHT_STATE_TOPIC",
@@ -3422,21 +2641,15 @@ __all__ = [
     "NATIVE_IMU_TOPIC",
     "PidReferenceSeries",
     "RAW_MOCAP_POSE_TOPIC",
-    "RealFlightEpisode",
     "RosbagArrayData",
     "SmoothingIntervalRecommendation",
     "TimedVectorSeries",
     "build_flight_data_from_messages",
-    "build_real_flight_episode",
     "linear_resample",
     "list_flight_episode_candidates",
     "load_flight_data",
-    "load_grape_rosbag_episode",
     "quaternion_slerp_resample",
     "read_grape_rosbag_arrays",
     "recommend_smoothing_interval",
-    "robust_covariance",
-    "robust_pose_covariances",
-    "save_real_flight_episode",
     "select_continuous_flight_window",
 ]

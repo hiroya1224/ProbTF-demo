@@ -37,7 +37,6 @@ from grape_param_estim.real_rosbag import (
     TOPIC_TYPE_CONTRACT,
     TimedVectorSeries,
     _select_controller_snapshot,
-    build_real_flight_episode,
     list_flight_episode_candidates,
     recommend_smoothing_interval,
     select_continuous_flight_window,
@@ -169,22 +168,6 @@ class FlightIntervalCandidateTests(unittest.TestCase):
             window_state=None,
         )
         self.assertEqual(complete_manual[:2], (104.0, 112.5))
-
-    def test_topic_gap_inside_recommended_interval_is_rejected(self):
-        arrays = _fake_arrays()
-        times = arrays.cog_position.record_times
-        keep = ~((times > 104.0) & (times < 104.5))
-        with_gap = replace(
-            arrays,
-            cog_position=TimedVectorSeries(
-                times[keep], arrays.cog_position.values[keep]
-            ),
-        )
-        with self.assertRaisesRegex(
-            ValueError,
-            "CoG odometry contains a gap inside the flight window",
-        ):
-            build_real_flight_episode(with_gap, sample_period=0.04)
 
     def test_inspection_blocks_bag_with_no_valid_flight_interval(self):
         arrays = replace(

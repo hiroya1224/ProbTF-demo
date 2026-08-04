@@ -8,8 +8,6 @@ from grape_param_estim.geometry import (
     matrix_to_quaternion,
     quaternion_to_matrix,
     right_tangent_rotation_action_jacobian,
-    rotation_matrix_from_vector,
-    rotation_vector_from_matrix,
     so3_exp,
     so3_geodesic_interpolation,
     so3_geodesic_interpolation_with_right_jacobians,
@@ -52,10 +50,10 @@ class GeometryTests(unittest.TestCase):
             np.asarray((np.pi - 1.0e-6, 0.0, 0.0)),
         ):
             with self.subTest(vector=vector):
-                rotation = rotation_matrix_from_vector(vector)
-                recovered = rotation_vector_from_matrix(rotation)
+                rotation = so3_exp(vector)
+                recovered = so3_log(rotation)
                 np.testing.assert_allclose(
-                    rotation_matrix_from_vector(recovered),
+                    so3_exp(recovered),
                     rotation,
                     atol=1.0e-9,
                 )
@@ -64,18 +62,6 @@ class GeometryTests(unittest.TestCase):
                     rotation,
                     atol=1.0e-12,
                 )
-
-    def test_exp_and_log_wrappers_share_the_so3_source_of_truth(self):
-        vector = np.asarray((0.31, -0.27, 0.18))
-        rotation = so3_exp(vector)
-        np.testing.assert_array_equal(
-            rotation_matrix_from_vector(vector),
-            rotation,
-        )
-        np.testing.assert_array_equal(
-            rotation_vector_from_matrix(rotation),
-            so3_log(rotation),
-        )
 
     def test_exp_jacobians_match_central_differences(self):
         rng = np.random.RandomState(45817)
@@ -414,7 +400,7 @@ class GeometryTests(unittest.TestCase):
             [
                 matrix_to_quaternion(
                     quaternion_to_matrix(nominal_orientation[i])
-                    @ rotation_matrix_from_vector((0.02, -0.01, 0.03))
+                    @ so3_exp((0.02, -0.01, 0.03))
                 )
                 for i in range(count)
             ]
@@ -434,7 +420,7 @@ class GeometryTests(unittest.TestCase):
                 + nominal_rotation @ translation[index]
             )
             recovered_rotation = nominal_rotation @ (
-                rotation_matrix_from_vector(rotation_vector[index])
+                so3_exp(rotation_vector[index])
             )
             np.testing.assert_allclose(
                 recovered_position, candidate_position[index], atol=1.0e-12

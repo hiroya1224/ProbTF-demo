@@ -468,18 +468,6 @@ def so3_geodesic_midpoint_with_right_jacobians(
     )
 
 
-def rotation_matrix_from_vector(rotation_vector: Sequence[float]) -> np.ndarray:
-    """Backward-compatible direct wrapper for :func:`so3_exp`."""
-
-    return so3_exp(rotation_vector)
-
-
-def rotation_vector_from_matrix(rotation: np.ndarray) -> np.ndarray:
-    """Backward-compatible direct wrapper for :func:`so3_log`."""
-
-    return so3_log(rotation)
-
-
 def correction_transform_path(
     nominal_position: np.ndarray,
     nominal_orientation_xyzw: np.ndarray,
@@ -508,7 +496,7 @@ def correction_transform_path(
         translation[index] = nominal_rotation.T @ (
             candidate_position[index] - nominal_position[index]
         )
-        rotation_vector[index] = rotation_vector_from_matrix(
+        rotation_vector[index] = so3_log(
             nominal_rotation.T @ candidate_rotation
         )
     return translation, rotation_vector

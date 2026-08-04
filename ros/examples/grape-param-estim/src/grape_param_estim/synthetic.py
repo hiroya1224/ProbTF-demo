@@ -22,7 +22,7 @@ from grape_param_estim.geometry import (
     euler_xyz_to_matrix,
     matrix_to_quaternion,
     quaternion_to_matrix,
-    rotation_matrix_from_vector,
+    so3_exp,
 )
 from grape_param_estim.system import (
     ActuatorParameters,
@@ -149,7 +149,7 @@ def generate_pose_observations(
     for index, quaternion in enumerate(trajectory.orientation_xyzw):
         noise = generator.normal(0.0, rotation_sigma, 3)
         noisy_rotation = quaternion_to_matrix(quaternion) @ (
-            rotation_matrix_from_vector(noise)
+            so3_exp(noise)
         )
         orientation[index] = matrix_to_quaternion(noisy_rotation)
     return PoseObservations(

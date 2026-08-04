@@ -53,6 +53,44 @@ class PackageImportBoundaryTest(unittest.TestCase):
             env=environment,
         )
 
+    def test_removed_real_episode_api_is_absent_from_adapter_module(self):
+        environment = os.environ.copy()
+        environment["PYTHONPATH"] = str(PACKAGE_ROOT / "src")
+        script = (
+            "from grape_param_estim import real_rosbag; "
+            "removed = ('RealFlightEpisode', 'build_real_flight_episode', "
+            "'load_grape_rosbag_episode', 'save_real_flight_episode', "
+            "'EpisodeProvenance', 'robust_covariance', "
+            "'robust_pose_covariances'); "
+            "assert all(not hasattr(real_rosbag, name) for name in removed)"
+        )
+        subprocess.run(
+            [sys.executable, "-c", script],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            env=environment,
+        )
+
+    def test_removed_geometry_wrappers_are_absent(self):
+        environment = os.environ.copy()
+        environment["PYTHONPATH"] = str(PACKAGE_ROOT / "src")
+        script = (
+            "from grape_param_estim import geometry; "
+            "removed = ('rotation_matrix_from_vector', "
+            "'rotation_vector_from_matrix'); "
+            "assert all(not hasattr(geometry, name) for name in removed)"
+        )
+        subprocess.run(
+            [sys.executable, "-c", script],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+            env=environment,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

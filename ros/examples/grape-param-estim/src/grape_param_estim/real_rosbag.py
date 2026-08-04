@@ -1,15 +1,17 @@
-"""Record-time adapter from a Grape rosbag to the estimator contracts.
+"""Grape rosbag adapters with ROS imports confined to the I/O boundary.
 
-ROS is deliberately imported only by :func:`read_grape_rosbag_arrays`.
-Everything from episode selection through interpolation and covariance
-calibration is an array-level API and can be tested without a ROS install.
-Only CoG position and baselink orientation enter ``PoseObservations``;
-odometry twist, IMU, commands and joint data never enter the likelihood.
+The legacy :class:`RealFlightEpisode` path remains available while the sparse
+batch estimator migrates to
+:class:`~grape_param_estim.sensor_models.FlightData`.
+The new path keeps pose, velocity, IMU, joint, command, and controller streams
+on their audited asynchronous time axes; it performs no resampling or
+extrapolation.
 """
 
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Callable, Iterable, Mapping, Optional, Sequence, Tuple
 import hashlib
 
 import numpy as np
@@ -22,6 +24,19 @@ from grape_param_estim.geometry import (
     matrix_to_quaternion,
     quaternion_to_matrix,
     rotation_vector_from_matrix,
+)
+from grape_param_estim.sensor_models import (
+    FlightData,
+    FlightProvenance,
+    PidDebugSeries,
+    PoseSeries,
+    ReferenceSeries,
+    SensorContract,
+    TimeInterval,
+    TimestampSource,
+    TopicSensorContract,
+    UsageDecision,
+    VectorSeries,
 )
 from grape_param_estim.system import (
     ActuatorParameters,
@@ -37,12 +52,22 @@ DEFAULT_GRAPE_BAG = (
     "20260613_grape_hovering_3_2026-06-13-15-12-51.bag"
 )
 
+DEFAULT_AUDITED_GRAPE_BAG = (
+    "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/"
+    "20260612_grape_hovering_4_2026-06-12-17-33-59.bag"
+)
+
 COG_ODOM_TOPIC = "/gimbalrotor/uav/cog/odom"
 BASELINK_ODOM_TOPIC = "/gimbalrotor/uav/baselink/odom"
+RAW_MOCAP_POSE_TOPIC = "/gimbalrotor/mocap/pose"
+CONVERTED_IMU_TOPIC = "/gimbalrotor/sensor_plugin/imu1/ros_converted"
+NATIVE_IMU_TOPIC = "/gimbalrotor/imu"
+ACC_ONLY_TOPIC = "/gimbalrotor/sensor_plugin/imu1/acc_only"
 PID_TOPIC = "/gimbalrotor/debug/pose/pid"
 FLIGHT_STATE_TOPIC = "/gimbalrotor/flight_state"
 JOINT_STATE_TOPIC = "/gimbalrotor/joint_states"
 FOUR_AXIS_COMMAND_TOPIC = "/gimbalrotor/four_axes/command"
+TF_STATIC_TOPIC = "/tf_static"
 GAIN_TOPICS = (
     ("xy", "/gimbalrotor/controller/xy/parameter_updates"),
     ("z", "/gimbalrotor/controller/z/parameter_updates"),
@@ -53,6 +78,27 @@ GAIN_TOPICS = (
     ("yaw", "/gimbalrotor/controller/yaw/parameter_updates"),
 )
 GIMBAL_JOINT_NAMES = ("gimbal1", "gimbal2", "gimbal3", "gimbal4")
+
+# Audited fixed-joint translation from the physical main-body origin to the FC
+# sensor/pose origin.  This is a known geometry boundary, not an estimated CoG.
+MAIN_BODY_TO_FC_TRANSLATION = (
+    -0.0172999968682441,
+    -0.00110000084294132,
+    0.05706099896,
+)
+MAIN_BODY_TO_FC_URDF_SOURCE = (
+    "jsk_aerial_robot/robots/gimbalrotor/urdf/grape/"
+    "gimbalrotor.urdf.xacro:fc_joint"
+)
+
+
+class HeaderDuplicatePolicy(Enum):
+    """Explicit handling of duplicate authoritative header timestamps."""
+
+    REJECT = "reject"
+    KEEP_FIRST = "keep_first"
+
+
 ARM_OFF_FLIGHT_STATE = 0
 TAKEOFF_FLIGHT_STATE = 3
 LAND_FLIGHT_STATE = 4
@@ -76,6 +122,38 @@ TOPIC_TYPE_CONTRACT = (
 ) + tuple(
     (topic, "dynamic_reconfigure/Config") for _group, topic in GAIN_TOPICS
 )
+
+ASYNC_REQUIRED_TOPIC_TYPE_CONTRACT = (
+    (RAW_MOCAP_POSE_TOPIC, "geometry_msgs/PoseStamped"),
+    (BASELINK_ODOM_TOPIC, "nav_msgs/Odometry"),
+    (CONVERTED_IMU_TOPIC, "sensor_msgs/Imu"),
+    (JOINT_STATE_TOPIC, "sensor_msgs/JointState"),
+    (FOUR_AXIS_COMMAND_TOPIC, "spinal/FourAxisCommand"),
+    (PID_TOPIC, "aerial_robot_msgs/PoseControlPid"),
+    (TF_STATIC_TOPIC, "tf2_msgs/TFMessage"),
+) + tuple(
+    (topic, "dynamic_reconfigure/Config") for _group, topic in GAIN_TOPICS
+)
+
+ASYNC_OPTIONAL_AUDIT_TOPIC_TYPE_CONTRACT = (
+    (COG_ODOM_TOPIC, "nav_msgs/Odometry"),
+    (NATIVE_IMU_TOPIC, "spinal/Imu"),
+    (ACC_ONLY_TOPIC, "aerial_robot_msgs/Acc"),
+)
+
+ASYNC_TOPIC_TYPE_CONTRACT = (
+    ASYNC_REQUIRED_TOPIC_TYPE_CONTRACT
+    + ASYNC_OPTIONAL_AUDIT_TOPIC_TYPE_CONTRACT
+)
+
+_ASYNC_HEADER_TOPICS = {
+    RAW_MOCAP_POSE_TOPIC,
+    BASELINK_ODOM_TOPIC,
+    CONVERTED_IMU_TOPIC,
+    JOINT_STATE_TOPIC,
+    COG_ODOM_TOPIC,
+    ACC_ONLY_TOPIC,
+}
 
 PID_AXIS_NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
 PID_CONFIG_FIELD_NAMES = (
@@ -1694,6 +1772,1087 @@ def load_grape_rosbag_episode(
     )
 
 
+@dataclass(frozen=True)
+class _AuditedMessage:
+    """One message retained on its authoritative local time axis."""
+
+    time: float
+    record_time: float
+    header_time: Optional[float]
+    frame_id: Optional[str]
+    child_frame_id: Optional[str]
+    message: object
+
+
+def _stamp_seconds(value: object, name: str) -> float:
+    if hasattr(value, "to_sec"):
+        result = float(value.to_sec())
+    else:
+        result = float(value)
+    if not np.isfinite(result):
+        raise ValueError("{} must be finite".format(name))
+    return result
+
+
+def _header_metadata(
+    message: object, topic: str
+) -> Tuple[float, Optional[str]]:
+    if not hasattr(message, "header"):
+        raise ValueError("{} must have a ROS header".format(topic))
+    header = message.header
+    stamp = _stamp_seconds(header.stamp, "{} header stamp".format(topic))
+    raw_frame = str(getattr(header, "frame_id", ""))
+    frame_id = raw_frame if raw_frame else None
+    return stamp, frame_id
+
+
+def _strict_stream_entries(
+    entries: Sequence[_AuditedMessage],
+    timestamp_source: TimestampSource,
+    duplicate_policy: HeaderDuplicatePolicy,
+    topic: str,
+) -> Tuple[_AuditedMessage, ...]:
+    if not entries:
+        raise ValueError("{} has no samples inside the interval".format(topic))
+    times = np.asarray(tuple(entry.time for entry in entries), dtype=float)
+    differences = np.diff(times)
+    if np.any(differences < 0.0):
+        raise ValueError(
+            "{} has non-monotonic authoritative timestamps".format(topic)
+        )
+    duplicates = np.concatenate(
+        (np.asarray((False,)), differences == 0.0)
+    )
+    if np.any(duplicates):
+        if timestamp_source is not TimestampSource.HEADER:
+            raise ValueError(
+                "{} has duplicate record timestamps".format(topic)
+            )
+        if duplicate_policy is HeaderDuplicatePolicy.REJECT:
+            raise ValueError(
+                "{} has duplicate header timestamps under reject policy"
+                .format(topic)
+            )
+        return tuple(
+            entry for entry, duplicate in zip(entries, duplicates)
+            if not duplicate
+        )
+    return tuple(entries)
+
+
+def _timing_statistics(
+    raw_entries: Sequence[_AuditedMessage],
+    retained_entries: Optional[Sequence[_AuditedMessage]] = None,
+) -> Tuple[Optional[float], Optional[float], Optional[float], int, int]:
+    raw_times = np.asarray(
+        tuple(entry.time for entry in raw_entries), dtype=float
+    )
+    if raw_times.size > 1:
+        raw_differences = np.diff(raw_times)
+        duplicate_count = int(np.count_nonzero(raw_differences == 0.0))
+        nonmonotonic_count = int(np.count_nonzero(raw_differences < 0.0))
+    else:
+        duplicate_count = 0
+        nonmonotonic_count = 0
+
+    selected = raw_entries if retained_entries is None else retained_entries
+    selected_times = np.asarray(
+        tuple(entry.time for entry in selected), dtype=float
+    )
+    if selected_times.size < 2:
+        return None, None, None, duplicate_count, nonmonotonic_count
+    positive_gaps = np.diff(selected_times)
+    positive_gaps = positive_gaps[positive_gaps > 0.0]
+    if positive_gaps.size == 0:
+        return None, None, None, duplicate_count, nonmonotonic_count
+    median_gap = float(np.median(positive_gaps))
+    return (
+        1.0 / median_gap,
+        median_gap,
+        float(np.max(positive_gaps)),
+        duplicate_count,
+        nonmonotonic_count,
+    )
+
+
+def _observed_frame(
+    entries: Sequence[_AuditedMessage], attribute: str = "frame_id"
+) -> Optional[str]:
+    values = {
+        getattr(entry, attribute)
+        for entry in entries
+        if getattr(entry, attribute) is not None
+    }
+    if len(values) == 1:
+        return values.pop()
+    return None
+
+
+def _require_frame_tail(
+    frame_id: Optional[str], expected: str, topic: str, role: str
+) -> None:
+    if frame_id is None or frame_id.strip("/").split("/")[-1] != expected:
+        raise ValueError(
+            "{} {} must resolve to frame {}".format(topic, role, expected)
+        )
+
+
+def _topic_sensor_contract(
+    topic: str,
+    message_type: str,
+    timestamp_source: TimestampSource,
+    usage: UsageDecision,
+    raw_entries: Sequence[_AuditedMessage],
+    retained_entries: Sequence[_AuditedMessage],
+    frame_id: Optional[str],
+    fields: Tuple[str, ...],
+    units: Tuple[str, ...],
+    covariance_provenance: Optional[str],
+    unavailable_reason: Optional[str] = None,
+    mixed_frame_notes: Optional[str] = None,
+    timing_applicable: bool = True,
+) -> TopicSensorContract:
+    if timing_applicable:
+        (
+            rate,
+            median_gap,
+            maximum_gap,
+            duplicate_count,
+            nonmonotonic_count,
+        ) = _timing_statistics(raw_entries, retained_entries)
+    else:
+        rate = None
+        median_gap = None
+        maximum_gap = None
+        duplicate_count = 0
+        nonmonotonic_count = 0
+    return TopicSensorContract(
+        topic=topic,
+        message_type=message_type,
+        timestamp_source=timestamp_source,
+        usage=usage,
+        frame_id=frame_id,
+        fields=fields,
+        units=units,
+        sample_rate_hz=rate,
+        median_gap_seconds=median_gap,
+        maximum_gap_seconds=maximum_gap,
+        duplicate_timestamp_count=duplicate_count,
+        nonmonotonic_timestamp_count=nonmonotonic_count,
+        covariance_provenance=covariance_provenance,
+        unavailable_reason=unavailable_reason,
+        mixed_frame_notes=mixed_frame_notes,
+    )
+
+
+def _vector3(value: object) -> Tuple[float, float, float]:
+    return (float(value.x), float(value.y), float(value.z))
+
+
+def _quaternion_xyzw(value: object) -> Tuple[float, float, float, float]:
+    return (
+        float(value.x),
+        float(value.y),
+        float(value.z),
+        float(value.w),
+    )
+
+
+def _covariance_provenance(
+    values: Sequence[object], field_name: str
+) -> str:
+    matrices = tuple(np.asarray(value, dtype=float) for value in values)
+    if not matrices:
+        return "unknown: no {} covariance samples".format(field_name)
+    if any(
+        matrix.shape != (36,) or not np.all(np.isfinite(matrix))
+        for matrix in matrices
+    ):
+        raise ValueError("{} covariance is malformed".format(field_name))
+    stacked = np.vstack(matrices)
+    if np.all(stacked == 0.0):
+        return "unknown: {} covariance is all zero".format(field_name)
+    return "message {} covariance; not independently calibrated".format(
+        field_name
+    )
+
+
+def _imu_covariance_provenance(
+    entries: Sequence[_AuditedMessage], include_accelerometer: bool
+) -> str:
+    angular = tuple(
+        np.asarray(entry.message.angular_velocity_covariance, dtype=float)
+        for entry in entries
+    )
+    linear = tuple(
+        np.asarray(entry.message.linear_acceleration_covariance, dtype=float)
+        for entry in entries
+    )
+    selected = angular + linear if include_accelerometer else angular
+    if any(
+        value.shape != (9,) or not np.all(np.isfinite(value))
+        for value in selected
+    ):
+        raise ValueError("converted IMU covariance is malformed")
+    if any(value[0] == -1.0 for value in selected):
+        return "unknown: converted IMU covariance marks estimate unavailable"
+    if all(np.all(value == 0.0) for value in selected):
+        label = (
+            "angular-velocity and specific-force"
+            if include_accelerometer
+            else "angular-velocity"
+        )
+        return "unknown: converted IMU {} covariance is all zero".format(
+            label
+        )
+    return "message IMU covariance; not independently calibrated"
+
+
+def _parse_gain_events(
+    entries_by_topic: Mapping[str, Sequence[_AuditedMessage]],
+) -> ControllerGainEvents:
+    group_by_topic = {topic: group for group, topic in GAIN_TOPICS}
+    ordered = sorted(
+        (
+            entry.record_time,
+            topic,
+            entry.message,
+        )
+        for topic, entries in entries_by_topic.items()
+        if topic in group_by_topic
+        for entry in entries
+    )
+    times = []
+    groups = []
+    gains = []
+    flags = []
+    for record_time, topic, message in ordered:
+        doubles = {
+            str(value.name): float(value.value) for value in message.doubles
+        }
+        required = ("p_gain", "i_gain", "d_gain")
+        if any(name not in doubles for name in required):
+            raise ValueError("dynamic controller gain is incomplete")
+        bools = {
+            str(value.name): bool(value.value) for value in message.bools
+        }
+        times.append(record_time)
+        groups.append(group_by_topic[topic])
+        gains.append(tuple(doubles[name] for name in required))
+        flags.append(bools.get("pid_control_flag", False))
+    return ControllerGainEvents(
+        np.asarray(times),
+        tuple(groups),
+        np.asarray(gains),
+        np.asarray(flags),
+    )
+
+
+def _validate_main_body_to_fc(
+    entries: Sequence[_AuditedMessage],
+) -> Tuple[str, str]:
+    matches = []
+    for entry in entries:
+        for transform in entry.message.transforms:
+            parent = str(transform.header.frame_id)
+            child = str(transform.child_frame_id)
+            if (
+                parent.strip("/").split("/")[-1] == "main_body"
+                and child.strip("/").split("/")[-1] == "fc"
+            ):
+                translation = _vector3(transform.transform.translation)
+                rotation = _quaternion_xyzw(transform.transform.rotation)
+                matches.append((parent, child, translation, rotation))
+    if not matches:
+        raise ValueError("bag /tf_static has no main_body to FC transform")
+    for _parent, _child, translation, rotation in matches:
+        if not np.allclose(
+            translation,
+            MAIN_BODY_TO_FC_TRANSLATION,
+            rtol=0.0,
+            atol=1.0e-12,
+        ):
+            raise ValueError(
+                "bag main_body to FC translation disagrees with audited URDF"
+            )
+        quaternion = np.asarray(rotation, dtype=float)
+        if not (
+            np.allclose(quaternion[:3], 0.0, rtol=0.0, atol=1.0e-12)
+            and np.isclose(abs(quaternion[3]), 1.0, rtol=0.0, atol=1.0e-12)
+        ):
+            raise ValueError("bag main_body to FC rotation must be identity")
+    return matches[0][0], matches[0][1]
+
+
+def _pid_contract_fields() -> Tuple[Tuple[str, ...], Tuple[str, ...]]:
+    fields = []
+    units = []
+    for field_name in (
+        "target_p",
+        "error_p",
+        "target_d",
+        "error_d",
+        "total",
+        "p_term",
+        "i_term",
+        "d_term",
+    ):
+        for axis_index, axis_name in enumerate(PID_AXIS_NAMES):
+            fields.append("{}[{}]".format(field_name, axis_name))
+            if field_name in ("target_p", "error_p"):
+                units.append("m" if axis_index < 3 else "rad")
+            elif field_name in ("target_d", "error_d"):
+                units.append("m/s" if axis_index < 3 else "rad/s")
+            else:
+                units.append("m/s^2" if axis_index < 3 else "rad/s^2")
+    return tuple(fields), tuple(units)
+
+
+def _exact_pid_scalar(values: object, field_name: str) -> float:
+    result = np.asarray(values, dtype=float)
+    if result.shape != (1,) or not np.isfinite(result[0]):
+        raise ValueError(
+            "PoseControlPid {} must contain exactly one finite value"
+            .format(field_name)
+        )
+    return float(result[0])
+
+
+def build_flight_data_from_messages(
+    records: Iterable[Tuple[str, object, object]],
+    topic_types: Mapping[str, str],
+    bag_path: str,
+    bag_sha256: str,
+    bag_size_bytes: int,
+    bag_record_start: float,
+    bag_record_end: float,
+    start_local: float = 18.0,
+    end_local: float = 24.0,
+    include_fc_specific_force: bool = False,
+    header_duplicate_policy: HeaderDuplicatePolicy = (
+        HeaderDuplicatePolicy.REJECT
+    ),
+    bag_id: Optional[str] = None,
+) -> FlightData:
+    """Build audited asynchronous data from ROS-message-shaped records.
+
+    The function itself imports no ROS package, which gives synthetic tests a
+    stable seam.  Header-authoritative streams are selected by header time;
+    command and PID streams are selected by rosbag record time.  No stream is
+    interpolated, aligned by index, or extrapolated to the requested bounds.
+    """
+
+    if not isinstance(header_duplicate_policy, HeaderDuplicatePolicy):
+        raise TypeError(
+            "header_duplicate_policy must be a HeaderDuplicatePolicy"
+        )
+    if not isinstance(include_fc_specific_force, (bool, np.bool_)):
+        raise TypeError("include_fc_specific_force must be boolean")
+    include_accelerometer = bool(include_fc_specific_force)
+    bag_start = float(bag_record_start)
+    bag_end = float(bag_record_end)
+    local_start = float(start_local)
+    local_end = float(end_local)
+    numeric = np.asarray(
+        (bag_start, bag_end, local_start, local_end), dtype=float
+    )
+    if (
+        np.any(~np.isfinite(numeric))
+        or bag_end <= bag_start
+        or local_start < 0.0
+        or local_end <= local_start
+        or local_end > bag_end - bag_start + 2.0e-7
+    ):
+        raise ValueError("requested local flight interval is invalid")
+
+    actual_types = {
+        str(topic): str(message_type)
+        for topic, message_type in topic_types.items()
+    }
+    for topic, expected_type in ASYNC_REQUIRED_TOPIC_TYPE_CONTRACT:
+        if topic not in actual_types:
+            raise ValueError("required topic is missing: {}".format(topic))
+        if actual_types[topic] != expected_type:
+            raise ValueError(
+                "{} has type {}, expected {}".format(
+                    topic, actual_types[topic], expected_type
+                )
+            )
+    for topic, expected_type in ASYNC_OPTIONAL_AUDIT_TOPIC_TYPE_CONTRACT:
+        if topic in actual_types and actual_types[topic] != expected_type:
+            raise ValueError(
+                "{} has type {}, expected {}".format(
+                    topic, actual_types[topic], expected_type
+                )
+            )
+
+    known_topics = {
+        topic for topic, _message_type in ASYNC_TOPIC_TYPE_CONTRACT
+    }
+    entries_by_topic = {
+        topic: [] for topic in known_topics if topic in actual_types
+    }
+    for topic, message, record_stamp in records:
+        if topic not in entries_by_topic:
+            continue
+        record_time = _stamp_seconds(
+            record_stamp, "{} record time".format(topic)
+        )
+        header_time = None
+        frame_id = None
+        if topic in _ASYNC_HEADER_TOPICS:
+            header_time, frame_id = _header_metadata(message, topic)
+            authoritative_time = header_time
+        else:
+            authoritative_time = record_time
+            if hasattr(message, "header"):
+                header_time, frame_id = _header_metadata(message, topic)
+        child_value = str(getattr(message, "child_frame_id", ""))
+        child_frame_id = child_value if child_value else None
+        local_time = authoritative_time - bag_start
+        initialization_topic = topic == TF_STATIC_TOPIC or any(
+            topic == gain_topic for _group, gain_topic in GAIN_TOPICS
+        )
+        if initialization_topic or local_start <= local_time <= local_end:
+            entries_by_topic[topic].append(
+                _AuditedMessage(
+                    time=local_time,
+                    record_time=record_time,
+                    header_time=header_time,
+                    frame_id=frame_id,
+                    child_frame_id=child_frame_id,
+                    message=message,
+                )
+            )
+
+    required_stream_specs = (
+        (RAW_MOCAP_POSE_TOPIC, TimestampSource.HEADER),
+        (BASELINK_ODOM_TOPIC, TimestampSource.HEADER),
+        (CONVERTED_IMU_TOPIC, TimestampSource.HEADER),
+        (JOINT_STATE_TOPIC, TimestampSource.HEADER),
+        (FOUR_AXIS_COMMAND_TOPIC, TimestampSource.RECORD),
+        (PID_TOPIC, TimestampSource.RECORD),
+    )
+    retained = {}
+    for topic, timestamp_source in required_stream_specs:
+        retained[topic] = _strict_stream_entries(
+            entries_by_topic[topic],
+            timestamp_source,
+            header_duplicate_policy,
+            topic,
+        )
+
+    pose_entries = retained[RAW_MOCAP_POSE_TOPIC]
+    velocity_entries = retained[BASELINK_ODOM_TOPIC]
+    imu_entries = retained[CONVERTED_IMU_TOPIC]
+    joint_entries = retained[JOINT_STATE_TOPIC]
+    command_entries = retained[FOUR_AXIS_COMMAND_TOPIC]
+    pid_entries = retained[PID_TOPIC]
+
+    pose_frame = _observed_frame(pose_entries)
+    velocity_frame = _observed_frame(velocity_entries)
+    velocity_child_frame = _observed_frame(
+        velocity_entries, "child_frame_id"
+    )
+    imu_frame = _observed_frame(imu_entries)
+    _require_frame_tail(pose_frame, "world", RAW_MOCAP_POSE_TOPIC, "frame")
+    _require_frame_tail(
+        velocity_frame, "world", BASELINK_ODOM_TOPIC, "header frame"
+    )
+    _require_frame_tail(
+        velocity_child_frame, "fc", BASELINK_ODOM_TOPIC, "child frame"
+    )
+    _require_frame_tail(
+        imu_frame, "fc", CONVERTED_IMU_TOPIC, "sensor frame"
+    )
+
+    static_entries = entries_by_topic[TF_STATIC_TOPIC]
+    if not static_entries:
+        raise ValueError("bag has no /tf_static messages")
+    static_parent, static_child = _validate_main_body_to_fc(static_entries)
+
+    gain_events = _parse_gain_events(entries_by_topic)
+    absolute_start = bag_start + local_start
+    absolute_end = bag_start + local_end
+    controller_snapshot = _select_controller_snapshot(
+        gain_events, absolute_start, absolute_end
+    )
+
+    def local_times(entries):
+        return np.asarray(tuple(entry.time for entry in entries), dtype=float)
+
+    def record_times(entries):
+        return np.asarray(
+            tuple(entry.record_time for entry in entries), dtype=float
+        )
+
+    pose = PoseSeries(
+        times=local_times(pose_entries),
+        record_times=record_times(pose_entries),
+        positions=np.asarray(
+            tuple(
+                _vector3(entry.message.pose.position)
+                for entry in pose_entries
+            )
+        ),
+        orientations_xyzw=np.asarray(
+            tuple(
+                _quaternion_xyzw(entry.message.pose.orientation)
+                for entry in pose_entries
+            )
+        ),
+        timestamp_source=TimestampSource.HEADER,
+    )
+    velocity = VectorSeries(
+        times=local_times(velocity_entries),
+        record_times=record_times(velocity_entries),
+        values=np.asarray(
+            tuple(
+                _vector3(entry.message.twist.twist.linear)
+                for entry in velocity_entries
+            )
+        ),
+        field_names=("x", "y", "z"),
+        timestamp_source=TimestampSource.HEADER,
+    )
+    gyro = VectorSeries(
+        times=local_times(imu_entries),
+        record_times=record_times(imu_entries),
+        values=np.asarray(
+            tuple(
+                _vector3(entry.message.angular_velocity)
+                for entry in imu_entries
+            )
+        ),
+        field_names=("x", "y", "z"),
+        timestamp_source=TimestampSource.HEADER,
+    )
+    accelerometer = None
+    if include_accelerometer:
+        accelerometer = VectorSeries(
+            times=local_times(imu_entries),
+            record_times=record_times(imu_entries),
+            values=np.asarray(
+                tuple(
+                    _vector3(entry.message.linear_acceleration)
+                    for entry in imu_entries
+                )
+            ),
+            field_names=("x", "y", "z"),
+            timestamp_source=TimestampSource.HEADER,
+        )
+
+    joint_positions = []
+    for entry in joint_entries:
+        lookup = {
+            str(name): float(value)
+            for name, value in zip(
+                entry.message.name, entry.message.position
+            )
+        }
+        if any(name not in lookup for name in GIMBAL_JOINT_NAMES):
+            raise ValueError("joint_states is missing a Grape gimbal")
+        joint_positions.append(
+            tuple(lookup[name] for name in GIMBAL_JOINT_NAMES)
+        )
+    gimbal_position = VectorSeries(
+        times=local_times(joint_entries),
+        record_times=record_times(joint_entries),
+        values=np.asarray(joint_positions),
+        field_names=GIMBAL_JOINT_NAMES,
+        timestamp_source=TimestampSource.HEADER,
+    )
+
+    command_values = []
+    command_angles = []
+    for entry in command_entries:
+        value = np.asarray(entry.message.base_thrust, dtype=float)
+        if value.shape != (4,) or not np.all(np.isfinite(value)):
+            raise ValueError("FourAxisCommand base_thrust is invalid")
+        angles = np.asarray(entry.message.angles, dtype=float)
+        if angles.shape != (3,) or not np.all(np.isfinite(angles)):
+            raise ValueError("FourAxisCommand angles are invalid")
+        command_values.append(value)
+        command_angles.append(angles)
+    rotor_command = VectorSeries(
+        times=local_times(command_entries),
+        record_times=record_times(command_entries),
+        values=np.asarray(command_values),
+        field_names=("rotor_1", "rotor_2", "rotor_3", "rotor_4"),
+        timestamp_source=TimestampSource.RECORD,
+    )
+
+    pid_columns = {
+        name: []
+        for name in (
+            "target_p",
+            "error_p",
+            "target_d",
+            "error_d",
+            "total",
+            "p_term",
+            "i_term",
+            "d_term",
+        )
+    }
+    for entry in pid_entries:
+        axes = tuple(
+            getattr(entry.message, name) for name in PID_AXIS_NAMES
+        )
+        for name in ("target_p", "err_p", "target_d", "err_d"):
+            destination_name = name.replace("err_", "error_")
+            pid_columns[destination_name].append(
+                tuple(float(getattr(axis, name)) for axis in axes)
+            )
+        for name in ("total", "p_term", "i_term", "d_term"):
+            pid_columns[name].append(
+                tuple(
+                    _exact_pid_scalar(getattr(axis, name), name)
+                    for axis in axes
+                )
+            )
+    pid_arrays = {
+        name: np.asarray(values) for name, values in pid_columns.items()
+    }
+    pid_debug = PidDebugSeries(
+        times=local_times(pid_entries),
+        record_times=record_times(pid_entries),
+        axis_names=PID_AXIS_NAMES,
+        target_p=pid_arrays["target_p"],
+        error_p=pid_arrays["error_p"],
+        target_d=pid_arrays["target_d"],
+        error_d=pid_arrays["error_d"],
+        total=pid_arrays["total"],
+        p_term=pid_arrays["p_term"],
+        i_term=pid_arrays["i_term"],
+        d_term=pid_arrays["d_term"],
+        timestamp_source=TimestampSource.RECORD,
+    )
+    feedforward = (
+        pid_arrays["total"]
+        - pid_arrays["p_term"]
+        - pid_arrays["i_term"]
+        - pid_arrays["d_term"]
+    )
+    reference = ReferenceSeries(
+        times=local_times(pid_entries),
+        record_times=record_times(pid_entries),
+        position=pid_arrays["target_p"][:, :3],
+        linear_velocity=pid_arrays["target_d"][:, :3],
+        linear_acceleration=feedforward[:, :3],
+        rpy=pid_arrays["target_p"][:, 3:],
+        angular_velocity=pid_arrays["target_d"][:, 3:],
+        angular_acceleration=feedforward[:, 3:],
+        timestamp_source=TimestampSource.RECORD,
+    )
+
+    topic_contracts = []
+    topic_contracts.append(
+        _topic_sensor_contract(
+            RAW_MOCAP_POSE_TOPIC,
+            actual_types[RAW_MOCAP_POSE_TOPIC],
+            TimestampSource.HEADER,
+            UsageDecision.USED,
+            entries_by_topic[RAW_MOCAP_POSE_TOPIC],
+            pose_entries,
+            pose_frame,
+            (
+                "position.x",
+                "position.y",
+                "position.z",
+                "orientation.x",
+                "orientation.y",
+                "orientation.z",
+                "orientation.w",
+            ),
+            ("m", "m", "m", "1", "1", "1", "1"),
+            "unknown: PoseStamped has no covariance field",
+            mixed_frame_notes=(
+                "audited rigid-body pose is FC in the world frame; the "
+                "message has no child_frame_id"
+            ),
+        )
+    )
+    topic_contracts.append(
+        _topic_sensor_contract(
+            BASELINK_ODOM_TOPIC,
+            actual_types[BASELINK_ODOM_TOPIC],
+            TimestampSource.HEADER,
+            UsageDecision.USED,
+            entries_by_topic[BASELINK_ODOM_TOPIC],
+            velocity_entries,
+            velocity_frame,
+            (
+                "pose.position",
+                "pose.orientation",
+                "twist.linear.x",
+                "twist.linear.y",
+                "twist.linear.z",
+                "twist.angular",
+            ),
+            ("m", "1", "m/s", "m/s", "m/s", "rad/s"),
+            _covariance_provenance(
+                tuple(
+                    entry.message.twist.covariance
+                    for entry in velocity_entries
+                ),
+                "odometry twist",
+            ),
+            unavailable_reason=(
+                "odometry pose and angular twist are intentionally excluded"
+            ),
+            mixed_frame_notes=(
+                "header frame is {}; child frame is {}; only the audited "
+                "world-expressed linear velocity is used"
+                .format(velocity_frame, velocity_child_frame)
+            ),
+        )
+    )
+    imu_fields = (
+        "angular_velocity.x",
+        "angular_velocity.y",
+        "angular_velocity.z",
+        "linear_acceleration.x",
+        "linear_acceleration.y",
+        "linear_acceleration.z",
+    )
+    imu_units = (
+        "rad/s",
+        "rad/s",
+        "rad/s",
+        "m/s^2",
+        "m/s^2",
+        "m/s^2",
+    )
+    acceleration_reason = "physical_imu_origin_not_separately_calibrated"
+    if include_accelerometer:
+        acceleration_reason = None
+    topic_contracts.append(
+        _topic_sensor_contract(
+            CONVERTED_IMU_TOPIC,
+            actual_types[CONVERTED_IMU_TOPIC],
+            TimestampSource.HEADER,
+            UsageDecision.USED,
+            entries_by_topic[CONVERTED_IMU_TOPIC],
+            imu_entries,
+            imu_frame,
+            imu_fields,
+            imu_units,
+            _imu_covariance_provenance(
+                imu_entries, include_accelerometer
+            ),
+            unavailable_reason=acceleration_reason,
+            mixed_frame_notes=(
+                "converted gyro and specific force are expressed at FC; "
+                "C_SB is identity"
+            ),
+        )
+    )
+    topic_contracts.append(
+        _topic_sensor_contract(
+            JOINT_STATE_TOPIC,
+            actual_types[JOINT_STATE_TOPIC],
+            TimestampSource.HEADER,
+            UsageDecision.USED,
+            entries_by_topic[JOINT_STATE_TOPIC],
+            joint_entries,
+            _observed_frame(joint_entries),
+            tuple(
+                "position[{}]".format(name) for name in GIMBAL_JOINT_NAMES
+            ) + ("effort",),
+            ("rad", "rad", "rad", "rad", "actuator-native"),
+            "unknown: JointState has no position covariance",
+            unavailable_reason=(
+                "joint effort is actuator telemetry, not a position "
+                "observation"
+            ),
+        )
+    )
+    topic_contracts.append(
+        _topic_sensor_contract(
+            FOUR_AXIS_COMMAND_TOPIC,
+            actual_types[FOUR_AXIS_COMMAND_TOPIC],
+            TimestampSource.RECORD,
+            UsageDecision.INPUT,
+            entries_by_topic[FOUR_AXIS_COMMAND_TOPIC],
+            command_entries,
+            None,
+            tuple("base_thrust[{}]".format(index) for index in range(4))
+            + ("angles[roll]", "angles[pitch]", "angles[yaw]"),
+            ("N", "N", "N", "N", "rad", "rad", "rad"),
+            "not applicable: deterministic issued command",
+            unavailable_reason=(
+                "angles are available but are not rotor thrust commands; "
+                "selected values are all zero"
+                if np.all(np.asarray(command_angles) == 0.0)
+                else "angles are available but are not rotor thrust commands"
+            ),
+        )
+    )
+    pid_fields, pid_units = _pid_contract_fields()
+    topic_contracts.append(
+        _topic_sensor_contract(
+            PID_TOPIC,
+            actual_types[PID_TOPIC],
+            TimestampSource.RECORD,
+            UsageDecision.USED,
+            entries_by_topic[PID_TOPIC],
+            pid_entries,
+            _observed_frame(pid_entries),
+            pid_fields,
+            pid_units,
+            "unknown: controller debug has no covariance field",
+        )
+    )
+
+    disabled_specs = (
+        (
+            COG_ODOM_TOPIC,
+            TimestampSource.HEADER,
+            (
+                "pose.position",
+                "pose.orientation",
+                "twist.linear",
+                "twist.angular",
+            ),
+            ("m", "1", "m/s", "rad/s"),
+            "derived CoG odometry is not a direct raw pose observation",
+        ),
+        (
+            NATIVE_IMU_TOPIC,
+            TimestampSource.RECORD,
+            ("gyro", "acceleration"),
+            ("rad/s", "m/s^2"),
+            "native IMU duplicates the primary converted IMU stream",
+        ),
+        (
+            ACC_ONLY_TOPIC,
+            TimestampSource.HEADER,
+            ("acceleration",),
+            ("m/s^2",),
+            "acc_only duplicates converted specific force and is not used",
+        ),
+    )
+    optional_expected_types = dict(
+        ASYNC_OPTIONAL_AUDIT_TOPIC_TYPE_CONTRACT
+    )
+    for topic, source, fields, units, reason in disabled_specs:
+        present = topic in actual_types
+        raw = entries_by_topic.get(topic, ())
+        unavailable_reason = reason
+        if not present:
+            unavailable_reason = "topic_not_present; {}".format(reason)
+        topic_contracts.append(
+            _topic_sensor_contract(
+                topic,
+                actual_types.get(topic, optional_expected_types[topic]),
+                source,
+                UsageDecision.DISABLED,
+                raw,
+                raw,
+                _observed_frame(raw),
+                fields,
+                units,
+                "unknown: excluded observation source",
+                unavailable_reason=unavailable_reason,
+            mixed_frame_notes=(
+                "native message carries its own measurement stamp; record "
+                "timing is reported only because this duplicate is disabled"
+                if topic == NATIVE_IMU_TOPIC else None
+            ),
+            )
+        )
+
+    topic_contracts.append(
+        _topic_sensor_contract(
+            TF_STATIC_TOPIC,
+            actual_types[TF_STATIC_TOPIC],
+            TimestampSource.RECORD,
+            UsageDecision.INITIALIZATION,
+            static_entries,
+            static_entries,
+            static_parent,
+            (
+                "main_body_to_fc.translation.x",
+                "main_body_to_fc.translation.y",
+                "main_body_to_fc.translation.z",
+                "main_body_to_fc.rotation.x",
+                "main_body_to_fc.rotation.y",
+                "main_body_to_fc.rotation.z",
+                "main_body_to_fc.rotation.w",
+            ),
+            ("m", "m", "m", "1", "1", "1", "1"),
+            "not applicable: fixed transform",
+            mixed_frame_notes="{} to {}".format(static_parent, static_child),
+            timing_applicable=False,
+        )
+    )
+    for group, topic in GAIN_TOPICS:
+        entries = entries_by_topic[topic]
+        topic_contracts.append(
+            _topic_sensor_contract(
+                topic,
+                actual_types[topic],
+                TimestampSource.RECORD,
+                UsageDecision.INITIALIZATION,
+                entries,
+                entries,
+                None,
+                ("p_gain", "i_gain", "d_gain", "pid_control_flag"),
+                ("controller-native", "controller-native", "s", "1"),
+                "not applicable: recorded controller configuration",
+                mixed_frame_notes="controller group {}".format(group),
+            )
+        )
+
+    pid_header_times = np.asarray(
+        tuple(
+            entry.header_time
+            for entry in entries_by_topic[PID_TOPIC]
+            if entry.header_time is not None
+        ),
+        dtype=float,
+    )
+    pid_header_duplicates = 0
+    pid_header_nonmonotonic = 0
+    if pid_header_times.size > 1:
+        pid_header_differences = np.diff(pid_header_times)
+        pid_header_duplicates = int(
+            np.count_nonzero(pid_header_differences == 0.0)
+        )
+        pid_header_nonmonotonic = int(
+            np.count_nonzero(pid_header_differences < 0.0)
+        )
+
+    transform_text = "[{:.16g},{:.16g},{:.16g}]".format(
+        *MAIN_BODY_TO_FC_TRANSLATION
+    )
+    notes = (
+        "times=authoritative_timestamp-bag_record_start; "
+        "record_times=absolute_rosbag_record_time",
+        "header_duplicate_policy={}".format(
+            header_duplicate_policy.value
+        ),
+        "raw_mocap_pose_body=FC",
+        "main_body_to_fc_translation={}; urdf_source={}; "
+        "bag_tf_static_verified={}->{}".format(
+            transform_text,
+            MAIN_BODY_TO_FC_URDF_SOURCE,
+            static_parent,
+            static_child,
+        ),
+        "C_SB=I; converted_IMU_origin=FC",
+        "main_body_to_FC_is_fixed_geometry; estimated_CoG_to_FC_lever_arm_"
+        "belongs_to_the_factor",
+        "excluded_observations=CoG_odom,odom_angular,native_IMU,"
+        "acc_only,joint_effort",
+        "PoseControlPid_header_duplicates={}; "
+        "header_nonmonotonic={}; record_time_is_authoritative".format(
+            pid_header_duplicates, pid_header_nonmonotonic
+        ),
+        (
+            "accelerometer_opt_in=converted_specific_force; "
+            "accepted_C_SB=I_and_known_FC_origin; "
+            "no_separate_CoG_lever_arm_calibration"
+            if include_accelerometer
+            else "accelerometer_disabled={}"
+            .format("physical_imu_origin_not_separately_calibrated")
+        ),
+    )
+    provenance = FlightProvenance(
+        bag_path=bag_path,
+        bag_sha256=bag_sha256,
+        bag_size_bytes=bag_size_bytes,
+        bag_record_start=bag_start,
+        bag_record_end=bag_end,
+        adapter_revision="audited-asynchronous-flight-data/v1",
+        notes=notes,
+    )
+    resolved_bag_id = Path(bag_path).stem if bag_id is None else bag_id
+    return FlightData(
+        bag_id=resolved_bag_id,
+        interval=TimeInterval(local_start, local_end),
+        pose=pose,
+        velocity=velocity,
+        gyro=gyro,
+        accelerometer=accelerometer,
+        gimbal_position=gimbal_position,
+        rotor_command=rotor_command,
+        pid_debug=pid_debug,
+        reference=reference,
+        controller_snapshot=controller_snapshot,
+        sensor_contract=SensorContract(tuple(topic_contracts)),
+        provenance=provenance,
+    )
+
+
+def load_flight_data(
+    path: str = DEFAULT_AUDITED_GRAPE_BAG,
+    start_local: float = 18.0,
+    end_local: float = 24.0,
+    include_fc_specific_force: bool = False,
+    header_duplicate_policy: HeaderDuplicatePolicy = (
+        HeaderDuplicatePolicy.REJECT
+    ),
+    compute_sha256: bool = True,
+    checkpoint: Optional[Callable[[], None]] = None,
+    bag_id: Optional[str] = None,
+) -> FlightData:
+    """Load the audited 18--24 s asynchronous sparse-batch input contract."""
+
+    try:
+        import rosbag  # pylint: disable=import-outside-toplevel
+    except ImportError as error:
+        raise RuntimeError(
+            "rosbag is required only for reading; source the ROS workspace"
+        ) from error
+    source = Path(path).expanduser().resolve()
+    if not source.is_file():
+        raise ValueError("rosbag does not exist: {}".format(source))
+    if checkpoint is not None:
+        checkpoint()
+    bag_sha256 = (
+        _sha256(source, checkpoint) if compute_sha256 else "not-computed"
+    )
+    expected_types = dict(ASYNC_TOPIC_TYPE_CONTRACT)
+    with rosbag.Bag(str(source), "r") as bag:
+        bag_start = float(bag.get_start_time())
+        bag_end = float(bag.get_end_time())
+        topic_info = bag.get_type_and_topic_info().topics
+        topic_types = {
+            topic: str(topic_info[topic].msg_type)
+            for topic in expected_types
+            if topic in topic_info
+        }
+        selected_topics = tuple(topic_types)
+
+        def records():
+            for index, (topic, message, stamp) in enumerate(
+                bag.read_messages(topics=selected_topics)
+            ):
+                if checkpoint is not None and index % 256 == 0:
+                    checkpoint()
+                yield topic, message, stamp
+
+        result = build_flight_data_from_messages(
+            records=records(),
+            topic_types=topic_types,
+            bag_path=str(source),
+            bag_sha256=bag_sha256,
+            bag_size_bytes=source.stat().st_size,
+            bag_record_start=bag_start,
+            bag_record_end=bag_end,
+            start_local=start_local,
+            end_local=end_local,
+            include_fc_specific_force=include_fc_specific_force,
+            header_duplicate_policy=header_duplicate_policy,
+            bag_id=bag_id,
+        )
+    if checkpoint is not None:
+        checkpoint()
+    return result
+
+
 def save_real_flight_episode(path: str, episode: RealFlightEpisode) -> Path:
     """Persist the adapter output as arrays only; loading never needs pickle."""
 
@@ -1871,9 +3030,13 @@ def save_real_flight_episode(path: str, episode: RealFlightEpisode) -> Path:
 
 
 __all__ = [
+    "ACC_ONLY_TOPIC",
+    "ASYNC_TOPIC_TYPE_CONTRACT",
+    "CONVERTED_IMU_TOPIC",
     "CONTROL_ACTIVE_FLIGHT_STATES",
     "ControllerGainEvents",
     "ControllerGainSnapshot",
+    "DEFAULT_AUDITED_GRAPE_BAG",
     "DEFAULT_GRAPE_BAG",
     "EpisodeProvenance",
     "FORCE_LANDING_STATE",
@@ -1881,14 +3044,21 @@ __all__ = [
     "FlightStateSeries",
     "FlightStateIntervalCandidate",
     "HOVER_FLIGHT_STATE",
+    "HeaderDuplicatePolicy",
+    "MAIN_BODY_TO_FC_TRANSLATION",
+    "MAIN_BODY_TO_FC_URDF_SOURCE",
+    "NATIVE_IMU_TOPIC",
     "PidReferenceSeries",
+    "RAW_MOCAP_POSE_TOPIC",
     "RealFlightEpisode",
     "RosbagArrayData",
     "SmoothingIntervalRecommendation",
     "TimedVectorSeries",
+    "build_flight_data_from_messages",
     "build_real_flight_episode",
     "linear_resample",
     "list_flight_episode_candidates",
+    "load_flight_data",
     "load_grape_rosbag_episode",
     "quaternion_slerp_resample",
     "read_grape_rosbag_arrays",

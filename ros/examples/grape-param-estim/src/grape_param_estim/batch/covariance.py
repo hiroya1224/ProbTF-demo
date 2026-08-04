@@ -122,6 +122,8 @@ class ArrowheadLaplaceFactorization:
         self._local_factorizations = local_factorizations
         self._local_cross = local_cross
         self._local_cross_solutions = local_cross_solutions
+        reduced.setflags(write=False)
+        self._reduced_hessian = reduced
         self._reduced_cholesky = reduced_cholesky
         self._diagnostics = LaplaceFactorizationDiagnostics(
             total_dimension=dimension,
@@ -138,6 +140,12 @@ class ArrowheadLaplaceFactorization:
     @property
     def layout(self):
         return self._layout
+
+    @property
+    def reduced_hessian(self) -> np.ndarray:
+        """Return the undamped physical 18-D Schur complement at the MAP."""
+
+        return self._reduced_hessian
 
     def solve(self, right_hand_side: np.ndarray) -> np.ndarray:
         """Apply the MAP Hessian inverse to one or many right-hand sides."""

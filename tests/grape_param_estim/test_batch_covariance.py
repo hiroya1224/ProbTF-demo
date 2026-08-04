@@ -114,6 +114,23 @@ class BatchCovarianceTests(unittest.TestCase):
             logdet,
             places=10,
         )
+        shared = self.layout.shared_slice
+        local = slice(shared.stop, self.layout.total_dimension)
+        expected_reduced = (
+            self.dense_hessian[shared, shared]
+            - self.dense_hessian[shared, local]
+            @ np.linalg.solve(
+                self.dense_hessian[local, local],
+                self.dense_hessian[local, shared],
+            )
+        )
+        np.testing.assert_allclose(
+            self.factorization.reduced_hessian,
+            expected_reduced,
+            rtol=2.0e-12,
+            atol=2.0e-12,
+        )
+        self.assertFalse(self.factorization.reduced_hessian.flags.writeable)
 
     def test_factor_residual_covariance_matches_dense_oracle(self):
         factor = self.cross_factors[0]

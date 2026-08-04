@@ -11,5 +11,6 @@
 4. [ridge_and_mcmc_diagnostics_ja.md](ridge_and_mcmc_diagnostics_ja.md) は likelihood/posterior ridge、Laplace geometry、multiple-chain MCMC を説明する。
 5. [real_flight_validation_ja.md](real_flight_validation_ja.md) は失敗 rosbag `18--24 s` の end-to-end 結果と未解決点を記録する。
 6. [pid_particle_evaluation_ja.md](pid_particle_evaluation_ja.md) は MCMC sample 由来 PID 候補の posterior cross-evaluation を説明する。
+7. [synthetic_recovery_validation_ja.md](synthetic_recovery_validation_ja.md) は perfect-model、known-Q、lag、sensor、MCMC の truth recovery 結果を記録する。
 
 操作方法、収録 rosbag、CLI、artifact schema、GUI virtual environment は [README.md](../README.md) を参照する。

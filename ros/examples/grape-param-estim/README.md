@@ -111,6 +111,7 @@ bag-local sparse block を消去して 18 次元 Schur complement を解くた�
 - [ridge_and_mcmc_diagnostics_ja.md](lectures/ridge_and_mcmc_diagnostics_ja.md)
 - [real_flight_validation_ja.md](lectures/real_flight_validation_ja.md)
 - [pid_particle_evaluation_ja.md](lectures/pid_particle_evaluation_ja.md)
+- [synthetic_recovery_validation_ja.md](lectures/synthetic_recovery_validation_ja.md)
 
 ## one-command worker
 

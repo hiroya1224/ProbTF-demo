@@ -130,6 +130,9 @@ class BatchLMTests(unittest.TestCase):
         )
         self.assertLess(result.objective, 1.0e-16)
         self.assertTrue(any(record.accepted for record in result.iterations))
+        self.assertTrue(
+            all(record.elapsed_seconds >= 0.0 for record in result.iterations)
+        )
         for key in self.layout.variable_keys:
             if key.kind is VariableKind.ORIENTATION_TANGENT:
                 np.testing.assert_allclose(

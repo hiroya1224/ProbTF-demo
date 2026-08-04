@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from numbers import Integral, Real
+import time
 from typing import Callable, Optional, Tuple
 
 import numpy as np
@@ -136,6 +137,7 @@ class LMIterationRecord:
     model_evaluation_failed: bool
     factorization_failed: bool
     bag_diagnostics: Tuple[BagFactorizationDiagnostics, ...]
+    elapsed_seconds: float
 
 
 @dataclass(frozen=True)
@@ -297,6 +299,7 @@ def _solve_batch_map(
 
     for iteration in range(settings.maximum_iterations):
         check_cancelled()
+        iteration_started = time.perf_counter()
         gradient_inf_norm = _scaled_gradient_inf_norm(
             current.sparse, scale, optimize_shared
         )
@@ -343,6 +346,7 @@ def _solve_batch_map(
                     model_evaluation_failed=False,
                     factorization_failed=True,
                     bag_diagnostics=(),
+                    elapsed_seconds=time.perf_counter() - iteration_started,
                 )
             )
             if (
@@ -379,6 +383,7 @@ def _solve_batch_map(
                     model_evaluation_failed=False,
                     factorization_failed=False,
                     bag_diagnostics=step.bag_diagnostics,
+                    elapsed_seconds=time.perf_counter() - iteration_started,
                 )
             )
             return _result(
@@ -448,6 +453,7 @@ def _solve_batch_map(
                 model_evaluation_failed=model_evaluation_failed,
                 factorization_failed=False,
                 bag_diagnostics=step.bag_diagnostics,
+                elapsed_seconds=time.perf_counter() - iteration_started,
             )
         )
         damping = next_damping

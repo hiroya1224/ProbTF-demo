@@ -145,6 +145,8 @@ class ModeEstimationResult:
     static_geometry: StaticLaplaceGeometry
     lag_profile_history: Tuple[LagProfileResult, ...]
     delay_uncertainty: DelayUncertaintyEstimate
+    nonlinear_iteration_seconds: Tuple[float, ...]
+    em_iteration_seconds: Tuple[float, ...]
     elapsed_seconds: float
 
     def __post_init__(self) -> None:
@@ -169,6 +171,25 @@ class ModeEstimationResult:
             raise TypeError(
                 "delay_uncertainty must be DelayUncertaintyEstimate"
             )
+        for name in (
+            "nonlinear_iteration_seconds",
+            "em_iteration_seconds",
+        ):
+            values = getattr(self, name)
+            if (
+                type(values) is not tuple
+                or not values
+                or not np.all(np.isfinite(values))
+                or any(float(value) < 0.0 for value in values)
+            ):
+                raise ValueError(
+                    "{} must contain measured non-negative timings".format(
+                        name
+                    )
+                )
+            object.__setattr__(
+                self, name, tuple(float(value) for value in values)
+            )
         elapsed = float(self.elapsed_seconds)
         if not np.isfinite(elapsed) or elapsed < 0.0:
             raise ValueError("elapsed_seconds must be finite and non-negative")
@@ -181,6 +202,7 @@ class RealEstimationResult:
     modes: Tuple[ModeEstimationResult, ...]
     selected_mode_id: str
     mcmc: Optional[McmcRunResult]
+    mcmc_target_seconds: Tuple[float, ...]
     elapsed_seconds: float
 
     def __post_init__(self) -> None:
@@ -202,6 +224,24 @@ class RealEstimationResult:
         enabled = bool(self.inputs.request.payload["mcmc_settings"]["enabled"])
         if enabled != (self.mcmc is not None):
             raise ValueError("MCMC result presence disagrees with request")
+        timings = self.mcmc_target_seconds
+        if (
+            type(timings) is not tuple
+            or not np.all(np.isfinite(timings))
+            or any(float(value) < 0.0 for value in timings)
+        ):
+            raise ValueError(
+                "mcmc_target_seconds must contain non-negative timings"
+            )
+        if enabled != bool(timings):
+            raise ValueError(
+                "MCMC target timings presence disagrees with request"
+            )
+        object.__setattr__(
+            self,
+            "mcmc_target_seconds",
+            tuple(float(value) for value in timings),
+        )
         elapsed = float(self.elapsed_seconds)
         if not np.isfinite(elapsed) or elapsed < 0.0:
             raise ValueError("elapsed_seconds must be finite and non-negative")
@@ -448,8 +488,12 @@ def estimate_mode(
     if not dynamics.intervals:
         raise ValueError("mode has no valid free-flight dynamics interval")
     lag_settings = _lag_settings(request)
+    nonlinear_timings = []
+    em_timings = []
+    last_em_boundary = [time.perf_counter()]
 
     def lm_progress(record) -> None:
+        nonlinear_timings.append(float(record.elapsed_seconds))
         if progress is not None:
             maximum = int(request.payload["solver_settings"]["maximum_iterations"])
             progress(
@@ -471,6 +515,9 @@ def estimate_mode(
     )
 
     def em_progress(record) -> None:
+        now = time.perf_counter()
+        em_timings.append(now - last_em_boundary[0])
+        last_em_boundary[0] = now
         if progress is not None:
             maximum = int(request.payload["em_settings"]["maximum_iterations"])
             progress(
@@ -528,6 +575,8 @@ def estimate_mode(
         static_geometry=geometry,
         lag_profile_history=profiles,
         delay_uncertainty=uncertainty,
+        nonlinear_iteration_seconds=tuple(nonlinear_timings),
+        em_iteration_seconds=tuple(em_timings),
         elapsed_seconds=time.perf_counter() - started,
     )
 
@@ -549,12 +598,17 @@ def sample_selected_mode(
     *,
     cancellation_requested: Optional[CancellationCheck] = None,
     progress: Optional[ProgressCallback] = None,
+    target_timing_callback: Optional[Callable[[float], None]] = None,
 ) -> McmcRunResult:
     """Run ridge-aware delayed-acceptance MCMC for one selected mode."""
 
     raw = inputs.request.payload["mcmc_settings"]
     if not bool(raw["enabled"]):
         raise ValueError("request does not enable MCMC")
+    if target_timing_callback is not None and not callable(
+        target_timing_callback
+    ):
+        raise TypeError("target_timing_callback must be callable")
     delay_raw = inputs.request.payload["delay"]
     bounds = tuple(float(value) for value in delay_raw["bounds_seconds"])
     final = mode.final_solution
@@ -575,7 +629,12 @@ def sample_selected_mode(
         _uniform_delay_log_prior(bounds),
         _lm_settings(inputs.request),
     )
-    map_evaluation = target(map_point, None)
+    map_started = time.perf_counter()
+    try:
+        map_evaluation = target(map_point, None)
+    finally:
+        if target_timing_callback is not None:
+            target_timing_callback(time.perf_counter() - map_started)
     if not map_evaluation.successful:
         raise ValueError(
             "MCMC MAP target evaluation failed: {}".format(
@@ -623,8 +682,18 @@ def sample_selected_mode(
             _uniform_delay_log_prior(bounds),
             _lm_settings(inputs.request),
         )
+        def timed_target(point, warm_start):
+            target_started = time.perf_counter()
+            try:
+                return chain_target(point, warm_start)
+            finally:
+                if target_timing_callback is not None:
+                    target_timing_callback(
+                        time.perf_counter() - target_started
+                    )
+
         return DelayedAcceptanceSampler(
-            surrogate, proposal, bounds, chain_target
+            surrogate, proposal, bounds, timed_target
         )
 
     def mcmc_progress(
@@ -676,12 +745,14 @@ def run_real_estimation(
             value.mode_id,
         ),
     )
+    mcmc_target_seconds = []
     mcmc = (
         sample_selected_mode(
             inputs,
             selected,
             cancellation_requested=cancellation_requested,
             progress=progress,
+            target_timing_callback=mcmc_target_seconds.append,
         )
         if bool(inputs.request.payload["mcmc_settings"]["enabled"])
         else None
@@ -691,6 +762,7 @@ def run_real_estimation(
         modes=modes,
         selected_mode_id=selected.mode_id,
         mcmc=mcmc,
+        mcmc_target_seconds=tuple(mcmc_target_seconds),
         elapsed_seconds=time.perf_counter() - started,
     )
 

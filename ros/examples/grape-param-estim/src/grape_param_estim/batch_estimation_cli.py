@@ -8,6 +8,7 @@ from pathlib import Path
 import signal
 import subprocess
 import sys
+import time
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 import numpy as np
@@ -27,7 +28,16 @@ from grape_param_estim.batch_request import (
     BatchEstimationRequest,
     load_batch_estimation_request,
 )
-from grape_param_estim.progress import CancellationToken
+from grape_param_estim.progress import (
+    CancellationToken,
+    JsonlProgressWriter,
+    ProgressCallback,
+    ProgressEvent,
+    ProgressValidationError,
+    STAGE_LABELS,
+    STAGE_WRITING_ARTIFACTS,
+    stage_label,
+)
 from grape_param_estim.real_estimation import (
     prepare_real_estimation_inputs,
     run_real_estimation,
@@ -35,6 +45,171 @@ from grape_param_estim.real_estimation import (
 
 
 StageProgress = Callable[[str, int, int, str], None]
+
+
+def planned_progress_units(request: BatchEstimationRequest) -> int:
+    """Return a stable upper work budget for one request.
+
+    Nonlinear solves may terminate early and Laplace-EM may reject a trial Q,
+    so an exact callback count cannot be known before solving.  The budget is
+    deliberately an upper bound derived only from immutable request settings;
+    the final artifact event consumes any unused budget atomically.
+    """
+
+    if not isinstance(request, BatchEstimationRequest):
+        raise TypeError("request must be BatchEstimationRequest")
+    payload = request.payload
+    mode_count = len(payload["mode_hypotheses"])
+    bag_count = len(payload["bags"])
+    lm_iterations = int(payload["solver_settings"]["maximum_iterations"])
+    em_iterations = int(payload["em_settings"]["maximum_iterations"])
+    delay = payload["delay"]
+    profile_evaluations = int(delay["coarse_grid_points"]) + int(
+        delay["maximum_refinement_evaluations"]
+    )
+    # Four E-step passes per EM iteration cover accepted work plus rejected-Q
+    # retries without ever changing the progress wire total mid-run.
+    nonlinear = mode_count * (
+        em_iterations * (4 * profile_evaluations + 1) + 1
+    ) * lm_iterations
+    q_updates = mode_count * em_iterations
+    mcmc = payload["mcmc_settings"]
+    posterior_steps = 0
+    if bool(mcmc["enabled"]):
+        posterior_steps = int(mcmc["chain_count"]) * (
+            int(mcmc["warmup_steps"])
+            + int(mcmc["retained_draws"]) * int(mcmc["thinning"])
+        )
+    # Two local-geometry callbacks and two artifact callbacks are explicit in
+    # execute_batch_estimation.
+    return bag_count + nonlinear + q_updates + posterior_steps + 4
+
+
+class BatchProgressReporter:
+    """Adapt estimator-local counters to strict monotonic progress events."""
+
+    def __init__(
+        self,
+        request: BatchEstimationRequest,
+        callback: ProgressCallback,
+        *,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        if not isinstance(request, BatchEstimationRequest):
+            raise TypeError("request must be BatchEstimationRequest")
+        if not callable(callback):
+            raise TypeError("callback must be callable")
+        if not callable(clock):
+            raise TypeError("clock must be callable")
+        self._run_id = str(request.payload["run_id"])
+        self._total = planned_progress_units(request)
+        self._callback = callback
+        self._clock = clock
+        self._started = float(clock())
+        self._last_time = self._started
+        self._stage_started = self._started
+        self._stage_id: Optional[str] = None
+        self._observed = 0
+        self._terminal = False
+
+    @property
+    def total_units(self) -> int:
+        return self._total
+
+    def __call__(
+        self,
+        stage_id: str,
+        completed_units: int,
+        total_units: int,
+        message: str,
+    ) -> None:
+        if self._terminal:
+            raise ProgressValidationError(
+                "progress was emitted after the terminal artifact event"
+            )
+        if stage_id not in STAGE_LABELS:
+            raise ProgressValidationError(
+                "unsupported progress stage_id {!r}".format(stage_id)
+            )
+        if (
+            isinstance(completed_units, bool)
+            or isinstance(total_units, bool)
+            or not isinstance(completed_units, (int, np.integer))
+            or not isinstance(total_units, (int, np.integer))
+        ):
+            raise ProgressValidationError(
+                "stage progress units must be integers"
+            )
+        local_completed = int(completed_units)
+        local_total = int(total_units)
+        if local_total < 1 or not 0 <= local_completed <= local_total:
+            raise ProgressValidationError(
+                "stage progress units are outside their valid range"
+            )
+        if not isinstance(message, str):
+            raise ProgressValidationError("progress message must be text")
+
+        now = float(self._clock())
+        if not np.isfinite(now) or now < self._last_time:
+            raise ProgressValidationError("monotonic progress clock regressed")
+        if self._stage_id != stage_id:
+            self._stage_id = stage_id
+            self._stage_started = now
+        self._last_time = now
+        elapsed = now - self._started
+        stage_elapsed = now - self._stage_started
+
+        terminal = (
+            stage_id == STAGE_WRITING_ARTIFACTS
+            and local_completed == local_total
+            and message == "run complete"
+        )
+        if terminal:
+            overall_completed = self._total
+            self._terminal = True
+        else:
+            if self._observed >= self._total - 1:
+                raise ProgressValidationError(
+                    "request-derived progress budget was exhausted"
+                )
+            self._observed += 1
+            overall_completed = self._observed
+
+        stage_eta = None
+        if local_completed == local_total:
+            stage_eta = 0.0
+        elif local_completed > 0 and stage_elapsed > 0.0:
+            stage_eta = (
+                stage_elapsed
+                * float(local_total - local_completed)
+                / float(local_completed)
+            )
+        overall_eta = None
+        if overall_completed == self._total:
+            overall_eta = 0.0
+        elif overall_completed >= 2 and elapsed > 0.0:
+            overall_eta = (
+                elapsed
+                * float(self._total - overall_completed)
+                / float(overall_completed)
+            )
+        event = ProgressEvent(
+            run_id=self._run_id,
+            stage_id=stage_id,
+            stage_label=stage_label(stage_id),
+            stage_completed_units=local_completed,
+            stage_total_units=local_total,
+            stage_fraction=float(local_completed) / float(local_total),
+            completed_units=overall_completed,
+            total_units=self._total,
+            fraction=float(overall_completed) / float(self._total),
+            stage_elapsed_seconds=stage_elapsed,
+            stage_eta_seconds=stage_eta,
+            elapsed_seconds=elapsed,
+            eta_seconds=overall_eta,
+            message=message,
+        )
+        self._callback(event)
 
 
 def _jsonable(value: Any) -> Any:
@@ -323,8 +498,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         for signum in (signal.SIGINT, signal.SIGTERM)
     }
     try:
-        output = run_request(
-            arguments.request, cancellation_token=cancellation
+        request = load_batch_estimation_request(arguments.request)
+        progress = BatchProgressReporter(
+            request, JsonlProgressWriter(sys.stdout)
+        )
+        output = execute_batch_estimation(
+            request,
+            estimator_revision=discover_estimator_revision(),
+            cancellation_token=cancellation,
+            progress=progress,
         )
         print("batch estimation complete: {}".format(output.root), file=sys.stderr)
         return 0
@@ -341,11 +523,13 @@ if __name__ == "__main__":
 
 
 __all__ = [
+    "BatchProgressReporter",
     "StageProgress",
     "configuration_fingerprint",
     "controller_snapshot_fingerprint",
     "discover_estimator_revision",
     "execute_batch_estimation",
     "main",
+    "planned_progress_units",
     "run_request",
 ]

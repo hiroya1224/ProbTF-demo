@@ -1,19 +1,118 @@
+from contextlib import redirect_stderr, redirect_stdout
+import io
+import json
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 from grape_param_estim.batch_estimation_cli import (
+    BatchProgressReporter,
     configuration_fingerprint,
     execute_batch_estimation,
+    main,
+    planned_progress_units,
 )
 from grape_param_estim.batch_request import validate_batch_estimation_request
+from grape_param_estim.progress import (
+    ProgressEvent,
+    STAGE_OPTIMIZING_FULL_TRAJECTORY,
+    STAGE_PREPARING_TRAJECTORY,
+    STAGE_WRITING_ARTIFACTS,
+)
 from tests.grape_param_estim.test_batch_preparation import (
     _request_payload,
 )
 
 
 class BatchEstimationCliTests(unittest.TestCase):
+    def _request(self, root):
+        from grape_param_estim.batch_artifact import file_sha256
+
+        bag = root / "flight.bag"
+        bag.write_bytes(b"batch cli request")
+        return validate_batch_estimation_request(
+            _request_payload(root, (("flight-a", bag, file_sha256(bag)),))
+        )
+
+    def test_progress_adapter_has_stable_total_and_terminal_fraction(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temporary:
+            request = self._request(Path(temporary))
+            events = []
+            reporter = BatchProgressReporter(request, events.append)
+            expected_total = planned_progress_units(request)
+            reporter(STAGE_PREPARING_TRAJECTORY, 1, 1, "prepared")
+            reporter(
+                STAGE_OPTIMIZING_FULL_TRAJECTORY,
+                1,
+                3,
+                "iteration 1",
+            )
+            reporter(
+                STAGE_OPTIMIZING_FULL_TRAJECTORY,
+                2,
+                3,
+                "iteration 2",
+            )
+            reporter(STAGE_WRITING_ARTIFACTS, 0, 1, "publishing")
+            reporter(STAGE_WRITING_ARTIFACTS, 1, 1, "run complete")
+            self.assertTrue(all(v.total_units == expected_total for v in events))
+            self.assertEqual(events[-1].completed_units, expected_total)
+            self.assertEqual(events[-1].fraction, 1.0)
+            self.assertEqual(events[-1].eta_seconds, 0.0)
+            self.assertEqual(
+                [v.fraction for v in events],
+                sorted(v.fraction for v in events),
+            )
+
+    def test_main_reserves_stdout_for_strict_progress_jsonl(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            request = self._request(root)
+            request_path = root / "request.json"
+            request_path.write_text(
+                json.dumps(
+                    request.payload,
+                    default=lambda value: (
+                        dict(value)
+                        if hasattr(value, "items")
+                        else list(value)
+                    ),
+                ),
+                encoding="utf-8",
+            )
+
+            def fake_execute(selected, **kwargs):
+                callback = kwargs["progress"]
+                callback(
+                    STAGE_PREPARING_TRAJECTORY, 1, 1, "prepared flight-a"
+                )
+                callback(STAGE_WRITING_ARTIFACTS, 0, 1, "publishing strict run")
+                callback(STAGE_WRITING_ARTIFACTS, 1, 1, "run complete")
+                return SimpleNamespace(root=selected.output_directory)
+
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with patch(
+                "grape_param_estim.batch_estimation_cli.execute_batch_estimation",
+                side_effect=fake_execute,
+            ), patch(
+                "grape_param_estim.batch_estimation_cli.discover_estimator_revision",
+                return_value="test-revision",
+            ), redirect_stdout(stdout), redirect_stderr(stderr):
+                exit_code = main(("--request", str(request_path)))
+            self.assertEqual(exit_code, 0)
+            events = [
+                ProgressEvent.from_json(line)
+                for line in stdout.getvalue().splitlines()
+            ]
+            self.assertEqual(events[-1].fraction, 1.0)
+            self.assertIn("batch estimation complete", stderr.getvalue())
+
     def test_configuration_fingerprint_ignores_output_identity_not_science(self):
         import tempfile
 

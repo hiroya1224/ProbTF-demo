@@ -198,6 +198,13 @@ class BatchRequestTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             loaded.payload["new"] = True
 
+    def test_resume_flag_does_not_change_request_identity(self):
+        fresh = validate_batch_estimation_request(self.request)
+        resumed_payload = copy.deepcopy(self.request)
+        resumed_payload["resume"] = True
+        resumed = validate_batch_estimation_request(resumed_payload)
+        self.assertEqual(fresh.fingerprint, resumed.fingerprint)
+
     def test_q_scientific_definition_has_no_default(self):
         request = copy.deepcopy(self.request)
         del request["q"]["residual_quantity"]

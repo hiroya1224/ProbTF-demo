@@ -1029,10 +1029,15 @@ def validate_batch_estimation_request(
     _validate_em(request["em_settings"])
     _validate_mcmc(request["mcmc_settings"], run_mode)
     frozen = _freeze(request)
+    # ``resume`` is an execution instruction, not part of the inference
+    # request identity.  A stopped worker must be able to present the exact
+    # same fingerprint while changing only this flag from false to true.
+    fingerprint_payload = dict(request)
+    fingerprint_payload["resume"] = False
     return BatchEstimationRequest(
         source_path=Path(source_path),
         payload=frozen,
-        fingerprint=request_fingerprint(request),
+        fingerprint=request_fingerprint(fingerprint_payload),
         bag_ids=bag_ids,
         output_directory=output_directory,
     )

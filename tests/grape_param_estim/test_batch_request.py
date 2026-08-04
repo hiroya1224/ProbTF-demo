@@ -8,6 +8,7 @@ import numpy as np
 
 from grape_param_estim.artifact_io import ArtifactValidationError
 from grape_param_estim.batch_request import (
+    ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS,
     BATCH_ESTIMATION_REQUEST_SCHEMA,
     FIXED_FACTOR_COVARIANCE_BLOCKS,
     INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS,
@@ -254,6 +255,54 @@ class BatchRequestTests(unittest.TestCase):
         prior["coordinates"][0] = "observation_rotor_1"
         with self.assertRaisesRegex(ArtifactValidationError, "residual order"):
             validate_batch_estimation_request(request)
+
+    def test_accelerometer_bias_prior_exists_exactly_when_factor_enabled(self):
+        request = copy.deepcopy(self.request)
+        accelerometer = request["bags"][0]["observation_factors"][
+            "accelerometer"
+        ]
+        accelerometer.update(
+            enabled=True,
+            disabled_reason=None,
+            covariances={
+                name: {
+                    "source": "preflight_static_interval",
+                    "representation": "diagonal",
+                    "coordinates": list(contract[0]),
+                    "units": list(contract[1]),
+                    "values": [0.1] * len(contract[0]),
+                }
+                for name, contract in (
+                    OBSERVATION_COVARIANCE_BLOCKS["accelerometer"].items()
+                )
+            },
+        )
+        with self.assertRaisesRegex(
+            ArtifactValidationError, "accelerometer_bias"
+        ):
+            validate_batch_estimation_request(request)
+
+        prior_name, prior_contract = next(
+            iter(ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS.items())
+        )
+        prior = {
+            "source": "preflight_static_interval",
+            "representation": "diagonal",
+            "coordinates": list(prior_contract[0]),
+            "units": list(prior_contract[1]),
+            "values": [0.2] * len(prior_contract[0]),
+        }
+        request["bags"][0]["initial_state_prior_covariances"][
+            prior_name
+        ] = prior
+        validate_batch_estimation_request(request)
+
+        disabled = copy.deepcopy(self.request)
+        disabled["bags"][0]["initial_state_prior_covariances"][
+            prior_name
+        ] = copy.deepcopy(prior)
+        with self.assertRaisesRegex(ArtifactValidationError, "unknown keys"):
+            validate_batch_estimation_request(disabled)
 
     def test_covariance_source_coordinates_and_units_are_protocol_fields(self):
         request = copy.deepcopy(self.request)

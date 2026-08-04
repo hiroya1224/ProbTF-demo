@@ -27,6 +27,7 @@ from grape_param_estim.batch.graph_builder import (
     MeasurementBracket,
     OrientationGaussianPrior,
     PreparedActuatorInterval,
+    PreparedAccelerometerMeasurement,
     PreparedBagGraphData,
     PreparedBagPriors,
     PreparedBatchGraphData,
@@ -80,6 +81,7 @@ _TIME_TOLERANCE = 2.0e-9
 _PID_AXES = ("x", "y", "z", "roll", "pitch", "yaw")
 _VELOCITY_FIELDS = ("x", "y", "z")
 _GYRO_FIELDS = ("x", "y", "z")
+_ACCELEROMETER_FIELDS = ("x", "y", "z")
 _ROTOR_FIELDS = ("rotor_1", "rotor_2", "rotor_3", "rotor_4")
 _GIMBAL_FIELDS = ("gimbal1", "gimbal2", "gimbal3", "gimbal4")
 _KNOT_KINDS = (
@@ -141,6 +143,21 @@ def _as_mapping(value: object, name: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         raise TypeError("{} must be a mapping".format(name))
     return value
+
+
+def _normalized_flight_sha256(value: object) -> str:
+    if not isinstance(value, str):
+        raise TypeError("FlightData bag SHA-256 must be a string")
+    digest = value[7:] if value.startswith("sha256:") else value
+    if (
+        len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        raise ValueError(
+            "FlightData bag SHA-256 must be raw lowercase hex or "
+            "sha256:<lowercase hex>"
+        )
+    return "sha256:" + digest
 
 
 def _request_bags(
@@ -657,8 +674,19 @@ def _bag_priors(
     bag_request: Mapping[str, object],
     flight_data: FlightData,
     first_knot: PreparedKnotState,
+    accelerometer_enabled: bool,
 ) -> PreparedBagPriors:
     blocks = bag_request["initial_state_prior_covariances"]
+    accelerometer_bias_prior = None
+    if accelerometer_enabled:
+        accelerometer_bias_prior = VectorGaussianPrior(
+            mean=flight_data.imu_preflight.accelerometer_bias,
+            covariance=_covariance_block(
+                blocks,
+                "accelerometer_bias",
+                "initial state priors",
+            ),
+        )
     return PreparedBagPriors(
         gyro_bias=VectorGaussianPrior(
             mean=flight_data.imu_preflight.gyro_bias,
@@ -666,6 +694,7 @@ def _bag_priors(
                 blocks, "gyro_bias", "initial state priors"
             ),
         ),
+        accelerometer_bias=accelerometer_bias_prior,
         initial_knot=PreparedKnotPrior(
             position=VectorGaussianPrior(
                 first_knot.position,
@@ -729,6 +758,11 @@ def _prepared_covariances(
         ),
         gyro_observation=_observation_covariance(
             bag_request, "gyro", "gyro_observation"
+        ),
+        accelerometer_observation=_observation_covariance(
+            bag_request,
+            "accelerometer",
+            "accelerometer_observation",
         ),
         issued_thrust_observation=_observation_covariance(
             bag_request,
@@ -794,7 +828,10 @@ def _prepare_bag(
         requested_interval, actual_interval, rtol=0.0, atol=_TIME_TOLERANCE
     ):
         raise ValueError("FlightData interval does not equal request interval")
-    if flight_data.provenance.bag_sha256 != bag_request["sha256"]:
+    if (
+        _normalized_flight_sha256(flight_data.provenance.bag_sha256)
+        != bag_request["sha256"]
+    ):
         raise ValueError("FlightData bag SHA-256 does not equal request")
     if Path(flight_data.provenance.bag_path).resolve() != Path(
         str(bag_request["path"])
@@ -847,6 +884,12 @@ def _prepare_bag(
             extrinsics.velocity_sensor_position_in_body
         ),
         body_to_gyro_sensor_rotation=(
+            extrinsics.body_to_gyro_sensor_rotation
+        ),
+        accelerometer_sensor_position_in_body=(
+            extrinsics.gyro_sensor_position_in_body
+        ),
+        body_to_accelerometer_sensor_rotation=(
             extrinsics.body_to_gyro_sensor_rotation
         ),
     )
@@ -929,13 +972,74 @@ def _prepare_bag(
             for index in indices
         )
 
-    if _factor_enabled(bag_request, "accelerometer"):
-        raise ValueError(
-            "accelerometer factor is not implemented in batch graph v1"
-        )
-    accelerometer_reason = str(
-        _factor_contract(bag_request, "accelerometer")["disabled_reason"]
+    accelerometer_enabled = _factor_enabled(
+        bag_request, "accelerometer"
     )
+    accelerometer_measurements = ()
+    initial_accelerometer_bias = None
+    accelerometer_reason = _factor_contract(
+        bag_request, "accelerometer"
+    )["disabled_reason"]
+    if accelerometer_enabled:
+        if flight_data.accelerometer is None:
+            raise ValueError(
+                "enabled accelerometer factor has no specific-force stream"
+            )
+        if flight_data.imu_preflight.accelerometer_bias is None:
+            raise ValueError(
+                "enabled accelerometer factor has no preflight bias"
+            )
+        if flight_data.imu_preflight.orientation_topic is None:
+            raise ValueError(
+                "enabled accelerometer factor lacks gravity-calibration "
+                "orientation provenance"
+            )
+        _check_series_contract(
+            flight_data.accelerometer,
+            name="accelerometer",
+            fields=_ACCELEROMETER_FIELDS,
+            timestamp_source=TimestampSource.HEADER,
+        )
+        indices = _check_measurement_support(
+            flight_data.accelerometer.times,
+            knot_times,
+            maximum_gap,
+            "accelerometer",
+        )
+        accelerometer_measurements = tuple(
+            PreparedAccelerometerMeasurement(
+                _measurement_bracket(
+                    knot_times,
+                    flight_data.accelerometer.times[index],
+                    maximum_gap,
+                    "accelerometer",
+                ),
+                flight_data.accelerometer.values[index],
+            )
+            for index in indices
+        )
+        accelerometer_bias_key = VariableKey(
+            VariableKind.ACCELEROMETER_BIAS,
+            bag_id=bag_id,
+        )
+        if accelerometer_bias_key not in initialization.layout:
+            raise ValueError(
+                "enabled accelerometer bias is absent from initialization"
+            )
+        initial_accelerometer_bias = initialization.state.value(
+            accelerometer_bias_key
+        )
+        if not np.allclose(
+            initial_accelerometer_bias,
+            flight_data.imu_preflight.accelerometer_bias,
+            rtol=0.0,
+            atol=1.0e-12,
+        ):
+            raise ValueError(
+                "initial accelerometer bias does not match preflight "
+                "calibration"
+            )
+        accelerometer_reason = None
 
     actual_gimbal_measurements = ()
     if _factor_enabled(bag_request, "actual_gimbal_position"):
@@ -1096,7 +1200,13 @@ def _prepare_bag(
         bag_id=bag_id,
         knots=knots,
         initial_gyro_bias=flight_data.imu_preflight.gyro_bias,
-        priors=_bag_priors(bag_request, flight_data, knots[0]),
+        initial_accelerometer_bias=initial_accelerometer_bias,
+        priors=_bag_priors(
+            bag_request,
+            flight_data,
+            knots[0],
+            accelerometer_enabled,
+        ),
         controller=controller,
         controller_intervals=tuple(controller_intervals),
         actuator_parameters=actuator_parameters,
@@ -1105,6 +1215,7 @@ def _prepare_bag(
         pose_measurements=pose_measurements,
         velocity_measurements=velocity_measurements,
         gyro_measurements=gyro_measurements,
+        accelerometer_measurements=accelerometer_measurements,
         controller_integral_measurements=(
             controller_integral_measurements
         ),
@@ -1112,7 +1223,7 @@ def _prepare_bag(
         sensor_extrinsics=prepared_extrinsics,
         covariances=_prepared_covariances(bag_request),
         accelerometer=AccelerometerFactorContract(
-            enabled=False,
+            enabled=accelerometer_enabled,
             disabled_reason=accelerometer_reason,
         ),
     )

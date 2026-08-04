@@ -15,7 +15,9 @@ from grape_param_estim.batch.preparation import (
     prepare_fixed_batch_graph_data,
 )
 from grape_param_estim.batch.state import StateScaling
+from grape_param_estim.batch.variables import VariableKind
 from grape_param_estim.batch_request import (
+    ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS,
     BATCH_ESTIMATION_REQUEST_SCHEMA,
     FIXED_FACTOR_COVARIANCE_BLOCKS,
     INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS,
@@ -121,7 +123,13 @@ def _sensor_contract():
     )
 
 
-def _flight_data(path, digest, bag_id, mode_states=(3, 3, 3)):
+def _flight_data(
+    path,
+    digest,
+    bag_id,
+    mode_states=(3, 3, 3),
+    include_accelerometer=False,
+):
     pose_times = np.arange(0.0, 0.3000001, 0.025)
     pose = PoseSeries(
         times=pose_times,
@@ -150,6 +158,17 @@ def _flight_data(path, digest, bag_id, mode_states=(3, 3, 3)):
         np.tile((0.01, -0.02, 0.03), (sensor_times.size, 1)),
         ("x", "y", "z"),
     )
+    accelerometer_bias = np.asarray((0.04, -0.03, 0.06))
+    accelerometer = None
+    if include_accelerometer:
+        accelerometer = _vector(
+            sensor_times,
+            np.tile(
+                accelerometer_bias + np.asarray((0.0, 0.0, 9.80665)),
+                (sensor_times.size, 1),
+            ),
+            ("x", "y", "z"),
+        )
     gimbal_position = _vector(
         sensor_times,
         sensor_times[:, None] * np.asarray((0.1, -0.1, 0.08, -0.08)),
@@ -247,16 +266,22 @@ def _flight_data(path, digest, bag_id, mode_states=(3, 3, 3)):
         specific_force_mean=np.asarray((0.0, 0.0, 9.80665)),
         specific_force_standard_deviation=np.asarray((0.01, 0.01, 0.01)),
         specific_force_norm_mean=9.80665,
-        accelerometer_bias=None,
-        accelerometer_sample_count=0,
+        accelerometer_bias=(
+            accelerometer_bias if include_accelerometer else None
+        ),
+        accelerometer_sample_count=(20 if include_accelerometer else 0),
         gravity_magnitude=9.80665,
         frame_id="fc",
         timestamp_source=TimestampSource.HEADER,
         source_topic="/imu",
         state_topic="/flight_state",
-        orientation_topic=None,
+        orientation_topic=("/pose" if include_accelerometer else None),
         method="synthetic preflight static mean",
-        accelerometer_unavailable_reason="sensor origin not calibrated",
+        accelerometer_unavailable_reason=(
+            None
+            if include_accelerometer
+            else "sensor origin not calibrated"
+        ),
     )
     return FlightData(
         bag_id=bag_id,
@@ -264,7 +289,7 @@ def _flight_data(path, digest, bag_id, mode_states=(3, 3, 3)):
         pose=pose,
         velocity=velocity,
         gyro=gyro,
-        accelerometer=None,
+        accelerometer=accelerometer,
         gimbal_position=gimbal_position,
         gimbal_command=gimbal_command,
         rotor_command=rotor,
@@ -589,6 +614,23 @@ class BatchPreparationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no causal event"):
             self._prepare(flight=flight)
 
+    def test_adapter_raw_sha256_is_normalized_but_malformed_is_rejected(self):
+        raw = self.digest.split(":", 1)[1]
+        raw_flight = replace(
+            self.flight,
+            provenance=replace(self.flight.provenance, bag_sha256=raw),
+        )
+        self.assertEqual(self._prepare(flight=raw_flight).bags[0].bag_id, "flight-a")
+        malformed = replace(
+            self.flight,
+            provenance=replace(
+                self.flight.provenance,
+                bag_sha256="sha256:" + raw.upper(),
+            ),
+        )
+        with self.assertRaisesRegex(ValueError, "raw lowercase hex"):
+            self._prepare(flight=malformed)
+
     def test_enabled_factor_field_frame_and_support_contracts_fail_closed(self):
         wrong_order = VectorSeries(
             times=self.flight.gyro.times,
@@ -620,7 +662,16 @@ class BatchPreparationTests(unittest.TestCase):
                 flight=replace(self.flight, velocity=late_velocity)
             )
 
-    def test_accelerometer_enable_is_explicitly_rejected(self):
+    def test_calibrated_accelerometer_is_prepared_with_independent_bias(self):
+        flight = _flight_data(
+            self.bag,
+            self.digest,
+            "flight-a",
+            include_accelerometer=True,
+        )
+        initialization = build_flight_initialization(
+            flight, 0.1, pose_smoothing_window=1
+        )
         payload = copy.deepcopy(self.payload)
         factor = payload["bags"][0]["observation_factors"][
             "accelerometer"
@@ -635,8 +686,59 @@ class BatchPreparationTests(unittest.TestCase):
                 )
             },
         )
-        with self.assertRaisesRegex(ValueError, "not implemented"):
-            self._prepare(payload=payload)
+        payload["bags"][0]["initial_state_prior_covariances"].update(
+            {
+                name: _covariance(contract)
+                for name, contract in (
+                    ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS.items()
+                )
+            }
+        )
+        prepared = self._prepare(
+            payload=payload,
+            flight=flight,
+            initialization=initialization,
+        )
+        bag = prepared.bags[0]
+        self.assertTrue(bag.accelerometer.enabled)
+        self.assertEqual(len(bag.accelerometer_measurements), 7)
+        self.assertIsNotNone(bag.covariances.accelerometer_observation)
+        bias_keys = tuple(
+            key
+            for key in build_initial_batch_state(prepared).layout.variable_keys
+            if key.kind is VariableKind.ACCELEROMETER_BIAS
+        )
+        self.assertEqual(len(bias_keys), 1)
+        np.testing.assert_array_equal(
+            build_initial_batch_state(prepared).value(bias_keys[0]),
+            flight.imu_preflight.accelerometer_bias,
+        )
+
+    def test_disabled_calibrated_accelerometer_adds_no_graph_state(self):
+        flight = _flight_data(
+            self.bag,
+            self.digest,
+            "flight-a",
+            include_accelerometer=True,
+        )
+        initialization = build_flight_initialization(
+            flight, 0.1, pose_smoothing_window=1
+        )
+        prepared = self._prepare(
+            flight=flight,
+            initialization=initialization,
+        )
+        bag = prepared.bags[0]
+        self.assertFalse(bag.accelerometer.enabled)
+        self.assertEqual(bag.accelerometer_measurements, ())
+        self.assertIsNone(bag.covariances.accelerometer_observation)
+        self.assertFalse(
+            any(
+                key.kind is VariableKind.ACCELEROMETER_BIAS
+                for key in build_initial_batch_state(prepared)
+                .layout.variable_keys
+            )
+        )
 
     def test_mode_switch_marks_one_dynamics_interval_invalid_with_reason(self):
         flight = _flight_data(

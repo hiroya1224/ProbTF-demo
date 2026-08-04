@@ -223,6 +223,22 @@ INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS = MappingProxyType({
 })
 
 
+# This bag-local prior exists exactly when the calibrated accelerometer factor
+# exists.  Keeping it outside ``INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS`` makes
+# the disabled request carry neither an unused variable nor a fictitious
+# covariance.
+ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS = MappingProxyType({
+    "accelerometer_bias": (
+        (
+            "accelerometer_bias_sensor_x",
+            "accelerometer_bias_sensor_y",
+            "accelerometer_bias_sensor_z",
+        ),
+        ("m/s^2", "m/s^2", "m/s^2"),
+    ),
+})
+
+
 _BAG_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -465,6 +481,17 @@ def _validate_covariance_blocks(
         )
 
 
+def _validate_initial_state_prior_covariance_blocks(
+    value: Any,
+    accelerometer_enabled: bool,
+    location: str,
+) -> None:
+    expected = dict(INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS)
+    if accelerometer_enabled:
+        expected.update(ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS)
+    _validate_covariance_blocks(value, expected, location)
+
+
 def _validate_factor(value: Any, name: str, location: str) -> None:
     factor = _mapping(value, location)
     _keys(
@@ -543,9 +570,9 @@ def _validate_bags(value: Any) -> Tuple[str, ...]:
             FIXED_FACTOR_COVARIANCE_BLOCKS,
             location + ".fixed_factor_covariances",
         )
-        _validate_covariance_blocks(
+        _validate_initial_state_prior_covariance_blocks(
             bag["initial_state_prior_covariances"],
-            INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS,
+            bool(factors["accelerometer"]["enabled"]),
             location + ".initial_state_prior_covariances",
         )
         bag_ids.append(bag_id)
@@ -978,6 +1005,7 @@ def load_batch_estimation_request(
 
 
 __all__ = [
+    "ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS",
     "BATCH_ESTIMATION_REQUEST_SCHEMA",
     "BatchEstimationRequest",
     "COVARIANCE_REPRESENTATIONS",

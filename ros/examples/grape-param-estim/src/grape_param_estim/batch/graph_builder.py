@@ -26,7 +26,10 @@ from grape_param_estim.batch.factors.dynamics_factor import (
 from grape_param_estim.batch.dynamics_moments import (
     evaluate_prepared_dynamics_intervals,
 )
-from grape_param_estim.batch.factors.imu import evaluate_gyro_factor
+from grape_param_estim.batch.factors.imu import (
+    evaluate_accelerometer_factor,
+    evaluate_gyro_factor,
+)
 from grape_param_estim.batch.factors.kinematics import (
     evaluate_orientation_kinematic_factor,
     evaluate_position_kinematic_factor,
@@ -250,6 +253,7 @@ class PreparedKnotPrior:
 @dataclass(frozen=True)
 class PreparedBagPriors:
     gyro_bias: VectorGaussianPrior
+    accelerometer_bias: Optional[VectorGaussianPrior]
     initial_knot: PreparedKnotPrior
 
     def __post_init__(self) -> None:
@@ -257,6 +261,17 @@ class PreparedBagPriors:
             raise TypeError("gyro_bias must be VectorGaussianPrior")
         if self.gyro_bias.covariance.dimension != 3:
             raise ValueError("gyro bias prior must have dimension 3")
+        if self.accelerometer_bias is not None:
+            if not isinstance(
+                self.accelerometer_bias, VectorGaussianPrior
+            ):
+                raise TypeError(
+                    "accelerometer_bias must be VectorGaussianPrior or None"
+                )
+            if self.accelerometer_bias.covariance.dimension != 3:
+                raise ValueError(
+                    "accelerometer bias prior must have dimension 3"
+                )
         if not isinstance(self.initial_knot, PreparedKnotPrior):
             raise TypeError("initial_knot must be PreparedKnotPrior")
 
@@ -333,6 +348,25 @@ class PreparedGyroMeasurement:
                 self.angular_velocity_sensor,
                 3,
                 "angular_velocity_sensor",
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class PreparedAccelerometerMeasurement:
+    bracket: MeasurementBracket
+    specific_force_sensor: np.ndarray
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.bracket, MeasurementBracket):
+            raise TypeError("bracket must be MeasurementBracket")
+        object.__setattr__(
+            self,
+            "specific_force_sensor",
+            _immutable_vector(
+                self.specific_force_sensor,
+                3,
+                "specific_force_sensor",
             ),
         )
 
@@ -452,11 +486,14 @@ class PreparedSensorExtrinsics:
     pose_sensor_to_body_rotation: np.ndarray
     velocity_sensor_position_in_body: np.ndarray
     body_to_gyro_sensor_rotation: np.ndarray
+    accelerometer_sensor_position_in_body: np.ndarray
+    body_to_accelerometer_sensor_rotation: np.ndarray
 
     def __post_init__(self) -> None:
         for name in (
             "pose_sensor_position_in_body",
             "velocity_sensor_position_in_body",
+            "accelerometer_sensor_position_in_body",
         ):
             object.__setattr__(
                 self,
@@ -466,6 +503,7 @@ class PreparedSensorExtrinsics:
         for name in (
             "pose_sensor_to_body_rotation",
             "body_to_gyro_sensor_rotation",
+            "body_to_accelerometer_sensor_rotation",
         ):
             object.__setattr__(
                 self,
@@ -482,6 +520,7 @@ class PreparedFactorCovariances:
     orientation_observation: Optional[GaussianCovariance]
     velocity_observation: Optional[GaussianCovariance]
     gyro_observation: Optional[GaussianCovariance]
+    accelerometer_observation: Optional[GaussianCovariance]
     issued_thrust_observation: Optional[GaussianCovariance]
     issued_gimbal_observation: Optional[GaussianCovariance]
     actual_gimbal_observation: Optional[GaussianCovariance]
@@ -498,6 +537,7 @@ class PreparedFactorCovariances:
             ("orientation_observation", 3),
             ("velocity_observation", 3),
             ("gyro_observation", 3),
+            ("accelerometer_observation", 3),
             ("issued_thrust_observation", 4),
             ("issued_gimbal_observation", 4),
             ("actual_gimbal_observation", 4),
@@ -536,21 +576,21 @@ class PreparedFactorCovariances:
 
 @dataclass(frozen=True)
 class AccelerometerFactorContract:
-    """Explicit v1 accelerometer availability gate.
-
-    The factor is not yet implemented.  Callers must preserve the audited
-    disabled reason rather than silently omitting acceleration samples.
-    """
+    """Explicit calibrated accelerometer availability gate."""
 
     enabled: bool
-    disabled_reason: str
+    disabled_reason: Optional[str]
 
     def __post_init__(self) -> None:
         if not isinstance(self.enabled, (bool, np.bool_)):
             raise TypeError("accelerometer enabled must be boolean")
-        if bool(self.enabled):
-            raise ValueError("accelerometer factor is not implemented in v1")
-        if (
+        enabled = bool(self.enabled)
+        if enabled:
+            if self.disabled_reason is not None:
+                raise ValueError(
+                    "enabled accelerometer cannot have a disabled reason"
+                )
+        elif (
             not isinstance(self.disabled_reason, str)
             or not self.disabled_reason
             or self.disabled_reason.strip() != self.disabled_reason
@@ -558,7 +598,7 @@ class AccelerometerFactorContract:
             raise ValueError(
                 "disabled accelerometer requires a canonical reason"
             )
-        object.__setattr__(self, "enabled", False)
+        object.__setattr__(self, "enabled", enabled)
 
 
 @dataclass(frozen=True)
@@ -647,6 +687,7 @@ class PreparedBagGraphData:
     bag_id: str
     knots: Tuple[PreparedKnotState, ...]
     initial_gyro_bias: np.ndarray
+    initial_accelerometer_bias: Optional[np.ndarray]
     priors: PreparedBagPriors
     controller: GrapeController
     controller_intervals: Tuple[PreparedControllerInterval, ...]
@@ -656,6 +697,9 @@ class PreparedBagGraphData:
     pose_measurements: Tuple[PreparedPoseMeasurement, ...]
     velocity_measurements: Tuple[PreparedVelocityMeasurement, ...]
     gyro_measurements: Tuple[PreparedGyroMeasurement, ...]
+    accelerometer_measurements: Tuple[
+        PreparedAccelerometerMeasurement, ...
+    ]
     controller_integral_measurements: Tuple[
         PreparedControllerIntegralMeasurement, ...
     ]
@@ -683,6 +727,16 @@ class PreparedBagGraphData:
             "initial_gyro_bias",
             _immutable_vector(self.initial_gyro_bias, 3, "initial_gyro_bias"),
         )
+        if self.initial_accelerometer_bias is not None:
+            object.__setattr__(
+                self,
+                "initial_accelerometer_bias",
+                _immutable_vector(
+                    self.initial_accelerometer_bias,
+                    3,
+                    "initial_accelerometer_bias",
+                ),
+            )
         if not isinstance(self.priors, PreparedBagPriors):
             raise TypeError("priors must be PreparedBagPriors")
         if not isinstance(self.controller, GrapeController):
@@ -747,6 +801,10 @@ class PreparedBagGraphData:
             ("velocity_measurements", PreparedVelocityMeasurement),
             ("gyro_measurements", PreparedGyroMeasurement),
             (
+                "accelerometer_measurements",
+                PreparedAccelerometerMeasurement,
+            ),
+            (
                 "controller_integral_measurements",
                 PreparedControllerIntegralMeasurement,
             ),
@@ -766,6 +824,10 @@ class PreparedBagGraphData:
             ("orientation_observation", bool(self.pose_measurements)),
             ("velocity_observation", bool(self.velocity_measurements)),
             ("gyro_observation", bool(self.gyro_measurements)),
+            (
+                "accelerometer_observation",
+                bool(self.accelerometer_measurements),
+            ),
             (
                 "issued_thrust_observation",
                 any(
@@ -798,6 +860,19 @@ class PreparedBagGraphData:
                 )
         if not isinstance(self.accelerometer, AccelerometerFactorContract):
             raise TypeError("accelerometer must be AccelerometerFactorContract")
+        enabled = self.accelerometer.enabled
+        if enabled != bool(self.accelerometer_measurements):
+            raise ValueError(
+                "accelerometer measurements must exist exactly when enabled"
+            )
+        if enabled != (self.initial_accelerometer_bias is not None):
+            raise ValueError(
+                "accelerometer initial bias must exist exactly when enabled"
+            )
+        if enabled != (self.priors.accelerometer_bias is not None):
+            raise ValueError(
+                "accelerometer bias prior must exist exactly when enabled"
+            )
 
 
 @dataclass(frozen=True)
@@ -853,6 +928,13 @@ def _layout(prepared: PreparedBatchGraphData) -> VariableLayout:
     keys = [VariableKey(VariableKind.STATIC_PARAMETERS)]
     for bag in sorted(prepared.bags, key=lambda item: item.bag_id):
         keys.append(VariableKey(VariableKind.GYRO_BIAS, bag_id=bag.bag_id))
+        if bag.accelerometer.enabled:
+            keys.append(
+                VariableKey(
+                    VariableKind.ACCELEROMETER_BIAS,
+                    bag_id=bag.bag_id,
+                )
+            )
         for knot_index in range(len(bag.knots)):
             keys.extend(
                 VariableKey(
@@ -880,6 +962,13 @@ def build_initial_batch_state(prepared: PreparedBatchGraphData) -> BatchState:
         values[VariableKey(VariableKind.GYRO_BIAS, bag_id=bag.bag_id)] = (
             bag.initial_gyro_bias
         )
+        if bag.accelerometer.enabled:
+            values[
+                VariableKey(
+                    VariableKind.ACCELEROMETER_BIAS,
+                    bag_id=bag.bag_id,
+                )
+            ] = bag.initial_accelerometer_bias
         for knot_index, knot in enumerate(bag.knots):
             for kind, value in (
                 (VariableKind.POSITION, knot.position),
@@ -946,6 +1035,21 @@ def _evaluate_prepared_factors(
                 bias_prior.covariance.square_root_information,
             )
         )
+        if bag.accelerometer.enabled:
+            accelerometer_bias_key = VariableKey(
+                VariableKind.ACCELEROMETER_BIAS,
+                bag_id=bag.bag_id,
+            )
+            accelerometer_bias_prior = bag.priors.accelerometer_bias
+            factors.append(
+                evaluate_vector_prior_factor(
+                    accelerometer_bias_key,
+                    state.value(accelerometer_bias_key),
+                    accelerometer_bias_prior.mean,
+                    accelerometer_bias_prior
+                    .covariance.square_root_information,
+                )
+            )
         knot_prior = bag.priors.initial_knot
         for kind, selected_prior in (
             (VariableKind.POSITION, knot_prior.position),
@@ -1094,7 +1198,7 @@ def _evaluate_prepared_factors(
                 )
             )
 
-    # 4. Gyroscope observations.  Accelerometer omission is explicit above.
+    # 4. Asynchronous IMU observations in explicit sensor coordinates.
     for bag in bags:
         gyro_bias = state.value(
             VariableKey(VariableKind.GYRO_BIAS, bag_id=bag.bag_id)
@@ -1129,6 +1233,86 @@ def _evaluate_prepared_factors(
                     ),
                     square_root_information=(
                         bag.covariances.gyro_observation
+                        .square_root_information
+                    ),
+                )
+            )
+
+    for bag in bags:
+        if not bag.accelerometer.enabled:
+            continue
+        accelerometer_bias = state.value(
+            VariableKey(
+                VariableKind.ACCELEROMETER_BIAS,
+                bag_id=bag.bag_id,
+            )
+        )
+        for measurement in bag.accelerometer_measurements:
+            index = measurement.bracket.left_knot_index
+            dt = bag.knots[index + 1].time - bag.knots[index].time
+            factors.append(
+                evaluate_accelerometer_factor(
+                    bag_id=bag.bag_id,
+                    left_knot_index=index,
+                    interpolation_fraction=(
+                        measurement.bracket.interpolation_fraction
+                    ),
+                    rotation_left=_knot_value(
+                        state,
+                        bag.bag_id,
+                        index,
+                        VariableKind.ORIENTATION_TANGENT,
+                    ),
+                    rotation_right=_knot_value(
+                        state,
+                        bag.bag_id,
+                        index + 1,
+                        VariableKind.ORIENTATION_TANGENT,
+                    ),
+                    linear_velocity_left=_knot_value(
+                        state,
+                        bag.bag_id,
+                        index,
+                        VariableKind.LINEAR_VELOCITY,
+                    ),
+                    linear_velocity_right=_knot_value(
+                        state,
+                        bag.bag_id,
+                        index + 1,
+                        VariableKind.LINEAR_VELOCITY,
+                    ),
+                    angular_velocity_left=_knot_value(
+                        state,
+                        bag.bag_id,
+                        index,
+                        VariableKind.ANGULAR_VELOCITY,
+                    ),
+                    angular_velocity_right=_knot_value(
+                        state,
+                        bag.bag_id,
+                        index + 1,
+                        VariableKind.ANGULAR_VELOCITY,
+                    ),
+                    accelerometer_bias_sensor=accelerometer_bias,
+                    observed_specific_force_sensor=(
+                        measurement.specific_force_sensor
+                    ),
+                    body_to_sensor_rotation=(
+                        bag.sensor_extrinsics
+                        .body_to_accelerometer_sensor_rotation
+                    ),
+                    sensor_position_in_body=(
+                        bag.sensor_extrinsics
+                        .accelerometer_sensor_position_in_body
+                    ),
+                    cog_offset_in_body=parameters.cog_offset,
+                    cog_offset_chart_jacobian=(
+                        parameter_jacobian.cog_offset
+                    ),
+                    gravity_world=prepared.dynamics.gravity_world,
+                    time_step=dt,
+                    square_root_information=(
+                        bag.covariances.accelerometer_observation
                         .square_root_information
                     ),
                 )
@@ -1423,6 +1607,7 @@ __all__ = [
     "MeasurementBracket",
     "OrientationGaussianPrior",
     "PreparedActuatorInterval",
+    "PreparedAccelerometerMeasurement",
     "PreparedBagGraphData",
     "PreparedBagPriors",
     "PreparedBatchGraphData",

@@ -17,6 +17,7 @@ from grape_param_estim.batch.graph_builder import (
     GaussianCovariance,
     MeasurementBracket,
     OrientationGaussianPrior,
+    PreparedAccelerometerMeasurement,
     PreparedActuatorInterval,
     PreparedBagGraphData,
     PreparedBagPriors,
@@ -161,6 +162,7 @@ class BatchGraphBuilderTests(unittest.TestCase):
             orientation_observation=_covariance(3, 0.06),
             velocity_observation=_covariance(3, 0.12),
             gyro_observation=_covariance(3, 0.09),
+            accelerometer_observation=None,
             issued_thrust_observation=_covariance(4, 0.2),
             issued_gimbal_observation=_covariance(4, 0.1),
             actual_gimbal_observation=_covariance(4, 0.05),
@@ -187,8 +189,10 @@ class BatchGraphBuilderTests(unittest.TestCase):
             bag_id="bag-a",
             knots=(knot0, knot1),
             initial_gyro_bias=np.asarray((0.002, -0.001, 0.003)),
+            initial_accelerometer_bias=None,
             priors=PreparedBagPriors(
                 gyro_bias=_vector_prior((0.0, 0.0, 0.0), 0.4),
+                accelerometer_bias=None,
                 initial_knot=knot_prior,
             ),
             controller=controller,
@@ -242,6 +246,7 @@ class BatchGraphBuilderTests(unittest.TestCase):
                     bracket, np.asarray((0.034, -0.019, 0.045))
                 ),
             ),
+            accelerometer_measurements=(),
             controller_integral_measurements=(
                 PreparedControllerIntegralMeasurement(
                     bracket,
@@ -264,6 +269,10 @@ class BatchGraphBuilderTests(unittest.TestCase):
                     (-0.0173, -0.0011, 0.0571)
                 ),
                 body_to_gyro_sensor_rotation=np.eye(3),
+                accelerometer_sensor_position_in_body=np.asarray(
+                    (-0.0173, -0.0011, 0.0571)
+                ),
+                body_to_accelerometer_sensor_rotation=np.eye(3),
             ),
             covariances=covariances,
             accelerometer=AccelerometerFactorContract(
@@ -372,11 +381,12 @@ class BatchGraphBuilderTests(unittest.TestCase):
                 gravity_world=np.asarray((0.0, 0.0, -9.80665)),
             )
 
-    def test_accelerometer_and_prebracketing_fail_closed(self):
+    def test_accelerometer_contract_and_prebracketing_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "canonical reason"):
             AccelerometerFactorContract(False, "")
-        with self.assertRaisesRegex(ValueError, "not implemented"):
+        with self.assertRaisesRegex(ValueError, "disabled reason"):
             AccelerometerFactorContract(True, "requested")
+        self.assertTrue(AccelerometerFactorContract(True, None).enabled)
         with self.assertRaisesRegex(ValueError, "interpolation_fraction"):
             MeasurementBracket(0, 1.01)
         prepared = self._prepared()
@@ -388,6 +398,74 @@ class BatchGraphBuilderTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "outside knot support"):
             replace(bag, pose_measurements=(bad_pose,))
+
+    def test_enabled_accelerometer_adds_bias_prior_and_analytic_factor(self):
+        prepared = self._prepared()
+        bag = prepared.bags[0]
+        bias = np.asarray((0.08, -0.04, 0.11))
+        enabled_bag = replace(
+            bag,
+            initial_accelerometer_bias=bias,
+            priors=replace(
+                bag.priors,
+                accelerometer_bias=_vector_prior(bias, 0.03),
+            ),
+            accelerometer_measurements=(
+                PreparedAccelerometerMeasurement(
+                    MeasurementBracket(0, 0.37),
+                    np.asarray((0.3, -0.2, 9.7)),
+                ),
+            ),
+            sensor_extrinsics=replace(
+                bag.sensor_extrinsics,
+                accelerometer_sensor_position_in_body=np.asarray(
+                    (0.12, -0.06, 0.09)
+                ),
+                body_to_accelerometer_sensor_rotation=so3_exp(
+                    (-0.12, 0.08, 0.05)
+                ),
+            ),
+            covariances=replace(
+                bag.covariances,
+                accelerometer_observation=_covariance(3, 0.04),
+            ),
+            accelerometer=AccelerometerFactorContract(True, None),
+        )
+        enabled = replace(prepared, bags=(enabled_bag,))
+        problem = build_fixed_batch_problem(enabled)
+        state = build_initial_batch_state(enabled)
+        bias_key = next(
+            key
+            for key in problem.layout.variable_keys
+            if key.kind is VariableKind.ACCELEROMETER_BIAS
+        )
+        np.testing.assert_array_equal(state.value(bias_key), bias)
+        factors = problem.evaluate_factors(state)
+        accelerometer_factors = tuple(
+            factor
+            for factor in factors
+            if any(
+                block.variable_key == bias_key
+                for block in factor.jacobian_blocks
+            )
+        )
+        self.assertEqual(len(accelerometer_factors), 2)
+        self.assertEqual(
+            tuple(factor.residual.size for factor in accelerometer_factors),
+            (3, 3),
+        )
+        self.assertEqual(
+            tuple(
+                index
+                for index, factor in enumerate(factors)
+                if any(
+                    factor is selected
+                    for selected in accelerometer_factors
+                )
+            ),
+            (2, 14),
+        )
+        self.assertTrue(np.isfinite(problem.linearize(state).sparse.objective))
 
     def test_covariance_contract_is_spd_and_immutable(self):
         covariance = GaussianCovariance(

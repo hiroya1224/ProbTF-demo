@@ -15,6 +15,7 @@ from grape_param_estim.controller_config import PidGainConfiguration
 from grape_param_estim.pid.artifact import (
     PID_PROPOSAL_EVALUATION_SCHEMA,
     PidEvaluationArtifactIdentity,
+    PidEvaluationRuntimeDiagnostics,
     load_pid_proposal_evaluation,
     write_pid_proposal_evaluation,
 )
@@ -93,6 +94,12 @@ class PidEvaluationArtifactTests(unittest.TestCase):
                 posterior=self.posterior,
                 evaluation=self.evaluation,
                 selected_candidate_id="user-better",
+                runtime_diagnostics=PidEvaluationRuntimeDiagnostics(
+                    requested_forecast_workers="auto",
+                    used_forecast_workers=4,
+                    forecast_count=len(self.evaluation.records),
+                    resumed_forecast_count=3,
+                ),
             )
             self.assertEqual(
                 artifact.manifest["schema"], PID_PROPOSAL_EVALUATION_SCHEMA
@@ -111,6 +118,15 @@ class PidEvaluationArtifactTests(unittest.TestCase):
             self.assertEqual(artifact.bags["bag-a"]["candidate_id"].size, 8)
             self.assertIn("xy:", artifact.proposed_yaml)
             self.assertIn("current:", artifact.proposed_diff_yaml)
+            self.assertEqual(
+                artifact.manifest["runtime_diagnostics"],
+                {
+                    "requested_forecast_workers": "auto",
+                    "used_forecast_workers": 4,
+                    "forecast_count": len(self.evaluation.records),
+                    "resumed_forecast_count": 3,
+                },
+            )
             reloaded = load_pid_proposal_evaluation(destination)
             np.testing.assert_array_equal(
                 reloaded.source_samples["sample_id"], self.posterior.sample_id

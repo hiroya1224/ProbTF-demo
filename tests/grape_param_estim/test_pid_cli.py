@@ -1,17 +1,20 @@
 from contextlib import ExitStack
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 
+from grape_param_estim.artifact_io import ArtifactValidationError
 from grape_param_estim.batch_artifact import BatchEstimationRun, file_sha256
 from grape_param_estim.controller import ControllerConfig
 from grape_param_estim.controller_config import PidGainConfiguration
 from grape_param_estim.pid.cli import execute_pid_evaluation
 from grape_param_estim.pid.metrics import ForecastMetrics
+from grape_param_estim.pid.particle_search import PidEvaluationCancelled
 from grape_param_estim.pid.proposal import PhysicalPlantPosterior
 from grape_param_estim.pid.request import (
     PID_EVALUATION_REQUEST_SCHEMA,
@@ -30,6 +33,7 @@ def _request(root, bag_path, bag_sha):
         "estimation_run": str(run_path),
         "output_directory": str(root / "pid-output"),
         "resume": False,
+        "forecast_workers": 1,
         "baseline_bag_id": "bag-a",
         "selected_mode_id": "mode-map",
         "bags": [
@@ -95,7 +99,17 @@ class PidCliTests(unittest.TestCase):
             )
         )
 
-    def _run(self, request, bag_sha, progress):
+    def _run(
+        self,
+        request,
+        bag_sha,
+        progress,
+        *,
+        evaluator_override=None,
+        cancellation_token=None,
+        estimation_fingerprint="sha256:" + "d" * 64,
+        writer_mock=None,
+    ):
         run = BatchEstimationRun(
             root=request.estimation_run,
             manifest={
@@ -116,7 +130,7 @@ class PidCliTests(unittest.TestCase):
                     "maximum_gimbal_rate_radians_per_second": 6.0,
                 },
                 "run_id": "batch-run",
-                "request_fingerprint": "sha256:" + "d" * 64,
+                "request_fingerprint": estimation_fingerprint,
             },
             map_static={"q_diagonal": np.arange(1.0, 7.0)},
             q_em={},
@@ -127,7 +141,7 @@ class PidCliTests(unittest.TestCase):
             trajectories={},
         )
 
-        def evaluator(_candidate, _sample, _bag_id, _realization):
+        def default_evaluator(_candidate, _sample, _bag_id, _realization):
             return ForecastMetrics(
                 position_rmse=1.0,
                 orientation_rmse=1.0,
@@ -138,6 +152,12 @@ class PidCliTests(unittest.TestCase):
                 actuator_saturation_duration=0.0,
                 actuator_saturation_rate=0.0,
             )
+
+        evaluator = (
+            default_evaluator
+            if evaluator_override is None
+            else evaluator_override
+        )
 
         written = SimpleNamespace(root=request.output_directory)
         flight = SimpleNamespace(
@@ -172,12 +192,15 @@ class PidCliTests(unittest.TestCase):
                 "grape_param_estim.pid.cli.ClosedLoopPidForecastEvaluator",
                 return_value=evaluator,
             ))
-            writer = stack.enter_context(patch(
+            writer = writer_mock or Mock(return_value=written)
+            stack.enter_context(patch(
                 "grape_param_estim.pid.cli.write_pid_proposal_evaluation",
-                return_value=written,
+                new=writer,
             ))
             result = execute_pid_evaluation(
-                request, progress_callback=progress.append
+                request,
+                cancellation_token=cancellation_token,
+                progress_callback=progress.append,
             )
         return result, writer
 
@@ -222,6 +245,142 @@ class PidCliTests(unittest.TestCase):
             token.cancel("test")
             with self.assertRaises(ProgressCancelled):
                 execute_pid_evaluation(request, cancellation_token=token)
+
+    def test_cancel_checkpoint_resumes_only_missing_forecasts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bag = root / "flight.bag"
+            bag.write_bytes(b"strict test bag")
+            bag_sha = file_sha256(bag)
+            request = _request(root, bag, bag_sha)
+            token = CancellationToken()
+            first_calls = []
+
+            def cancel_after_first(candidate, sample, bag_id, realization):
+                first_calls.append(
+                    (candidate.candidate_id, sample.sample_id, bag_id, realization.seed)
+                )
+                token.cancel("test_boundary")
+                return ForecastMetrics(
+                    position_rmse=1.0,
+                    orientation_rmse=1.0,
+                    maximum_position_error=1.0,
+                    maximum_orientation_error=1.0,
+                    forecast_completion=1.0,
+                    numerical_failure_count=0,
+                    actuator_saturation_duration=0.0,
+                    actuator_saturation_rate=0.0,
+                )
+
+            cancelled_writer = Mock()
+            with self.assertRaises((PidEvaluationCancelled, ProgressCancelled)):
+                self._run(
+                    request,
+                    bag_sha,
+                    [],
+                    evaluator_override=cancel_after_first,
+                    cancellation_token=token,
+                    writer_mock=cancelled_writer,
+                )
+            cancelled_writer.assert_not_called()
+            checkpoint = (
+                request.output_directory.parent
+                / ".{}.pid-forecast-checkpoint".format(
+                    request.output_directory.name
+                )
+            )
+            self.assertTrue(checkpoint.is_dir())
+
+            resumed_calls = []
+
+            def resumed_evaluator(candidate, sample, bag_id, realization):
+                resumed_calls.append(
+                    (candidate.candidate_id, sample.sample_id, bag_id, realization.seed)
+                )
+                return ForecastMetrics(
+                    position_rmse=1.0,
+                    orientation_rmse=1.0,
+                    maximum_position_error=1.0,
+                    maximum_orientation_error=1.0,
+                    forecast_completion=1.0,
+                    numerical_failure_count=0,
+                    actuator_saturation_duration=0.0,
+                    actuator_saturation_rate=0.0,
+                )
+
+            progress = []
+            _result, writer = self._run(
+                replace(request, resume=True),
+                bag_sha,
+                progress,
+                evaluator_override=resumed_evaluator,
+            )
+            self.assertEqual(len(first_calls), 1)
+            self.assertEqual(len(resumed_calls), 1)
+            evaluation = writer.call_args.kwargs["evaluation"]
+            self.assertEqual(
+                tuple(value.candidate_id for value in evaluation.records),
+                ("current", "user-a"),
+            )
+            runtime = writer.call_args.kwargs["runtime_diagnostics"]
+            self.assertEqual(runtime.resumed_forecast_count, 1)
+            self.assertFalse(checkpoint.exists())
+            self.assertTrue(
+                any("Resumed 1 completed" in event.message for event in progress)
+            )
+
+    def test_resume_rejects_request_or_estimation_fingerprint_mismatch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            bag = root / "flight.bag"
+            bag.write_bytes(b"strict test bag")
+            bag_sha = file_sha256(bag)
+            request = _request(root, bag, bag_sha)
+            token = CancellationToken()
+
+            def cancel(_candidate, _sample, _bag_id, _realization):
+                token.cancel("test_boundary")
+                return ForecastMetrics(
+                    position_rmse=1.0,
+                    orientation_rmse=1.0,
+                    maximum_position_error=1.0,
+                    maximum_orientation_error=1.0,
+                    forecast_completion=1.0,
+                    numerical_failure_count=0,
+                    actuator_saturation_duration=0.0,
+                    actuator_saturation_rate=0.0,
+                )
+
+            with self.assertRaises((PidEvaluationCancelled, ProgressCancelled)):
+                self._run(
+                    request,
+                    bag_sha,
+                    [],
+                    evaluator_override=cancel,
+                    cancellation_token=token,
+                )
+            with self.assertRaisesRegex(
+                ArtifactValidationError, "request_fingerprint mismatch"
+            ):
+                self._run(
+                    replace(
+                        request,
+                        resume=True,
+                        fingerprint="sha256:" + "e" * 64,
+                    ),
+                    bag_sha,
+                    [],
+                )
+            with self.assertRaisesRegex(
+                ArtifactValidationError,
+                "estimation_request_fingerprint mismatch",
+            ):
+                self._run(
+                    replace(request, resume=True),
+                    bag_sha,
+                    [],
+                    estimation_fingerprint="sha256:" + "f" * 64,
+                )
 
 
 if __name__ == "__main__":

@@ -258,6 +258,35 @@ class PidPredictiveTests(unittest.TestCase):
             all(record.metrics.forecast_completion == 1.0 for record in result.records)
         )
 
+    def test_closed_loop_evaluator_is_spawn_safe_and_bit_identical(self):
+        evaluator = ClosedLoopPidForecastEvaluator((self.scenario,))
+        discrepancy = ModelDiscrepancyConfiguration(
+            ZERO_MODEL_DISCREPANCY,
+            np.ones(6),
+            base_seed=8,
+            residual_quantity=BODY_WRENCH_MODEL_DISCREPANCY,
+            interval_model=CONTINUOUS_SPECTRAL_DENSITY,
+        )
+        sequential = evaluate_pid_candidates(
+            tuple(),
+            self.posterior,
+            evaluator.bag_ids,
+            evaluator,
+            self.current,
+            discrepancy,
+            worker_count=1,
+        )
+        parallel = evaluate_pid_candidates(
+            tuple(),
+            self.posterior,
+            evaluator.bag_ids,
+            evaluator,
+            self.current,
+            discrepancy,
+            worker_count=2,
+        )
+        self.assertEqual(parallel.records, sequential.records)
+
     def test_numerical_failure_returns_a_finite_partial_forecast(self):
         original = ClosedLoopStepper.advance_interval
         call_count = 0

@@ -64,6 +64,7 @@ _MANIFEST_KEYS = (
     "recommendation_available",
     "rejection_reason",
     "selected_candidate_id",
+    "runtime_diagnostics",
     "artifacts",
 )
 
@@ -235,6 +236,49 @@ class PidEvaluationArtifactIdentity:
             "request_fingerprint",
             _sha256_identifier(self.request_fingerprint, "request_fingerprint"),
         )
+
+
+@dataclass(frozen=True)
+class PidEvaluationRuntimeDiagnostics:
+    """Non-scientific process settings and resume accounting."""
+
+    requested_forecast_workers: Union[str, int]
+    used_forecast_workers: int
+    forecast_count: int
+    resumed_forecast_count: int
+
+    def __post_init__(self) -> None:
+        requested = self.requested_forecast_workers
+        if requested != "auto" and (
+            isinstance(requested, (bool, np.bool_))
+            or not isinstance(requested, (int, np.integer))
+            or requested < 1
+            or requested > 32
+        ):
+            raise ValueError(
+                "requested_forecast_workers must be auto or an integer in [1, 32]"
+            )
+        for name, minimum in (
+            ("used_forecast_workers", 1),
+            ("forecast_count", 1),
+            ("resumed_forecast_count", 0),
+        ):
+            value = getattr(self, name)
+            if (
+                isinstance(value, (bool, np.bool_))
+                or not isinstance(value, (int, np.integer))
+                or value < minimum
+            ):
+                raise ValueError("{} is invalid".format(name))
+            object.__setattr__(self, name, int(value))
+        if (
+            self.used_forecast_workers > 32
+            or self.used_forecast_workers > self.forecast_count
+            or self.resumed_forecast_count > self.forecast_count
+        ):
+            raise ValueError("PID runtime diagnostic counts disagree")
+        if requested != "auto":
+            object.__setattr__(self, "requested_forecast_workers", int(requested))
 
 
 @dataclass(frozen=True)
@@ -570,6 +614,7 @@ def _manifest(
     identity: PidEvaluationArtifactIdentity,
     evaluation: PidCandidateEvaluation,
     selected_candidate_id: Optional[str],
+    runtime_diagnostics: PidEvaluationRuntimeDiagnostics,
     artifacts: Mapping[str, Any],
 ) -> Dict[str, Any]:
     discrepancy = evaluation.discrepancy
@@ -600,6 +645,12 @@ def _manifest(
         "recommendation_available": evaluation.decision.recommendation_available,
         "rejection_reason": evaluation.decision.rejection_reason,
         "selected_candidate_id": selected_candidate_id,
+        "runtime_diagnostics": {
+            "requested_forecast_workers": runtime_diagnostics.requested_forecast_workers,
+            "used_forecast_workers": runtime_diagnostics.used_forecast_workers,
+            "forecast_count": runtime_diagnostics.forecast_count,
+            "resumed_forecast_count": runtime_diagnostics.resumed_forecast_count,
+        },
         "artifacts": dict(artifacts),
     }
 
@@ -670,6 +721,36 @@ def _load(root: Path) -> PidProposalEvaluationArtifact:
         raise ArtifactValidationError("model discrepancy seed exceeds uint64")
     if manifest["model_discrepancy_replicates"] < 1:
         raise ArtifactValidationError("replicates must be positive")
+    runtime = manifest["runtime_diagnostics"]
+    if not isinstance(runtime, Mapping):
+        raise ArtifactValidationError("runtime_diagnostics must be an object")
+    _strict_keys(
+        runtime,
+        (
+            "requested_forecast_workers",
+            "used_forecast_workers",
+            "forecast_count",
+            "resumed_forecast_count",
+        ),
+        "runtime_diagnostics",
+    )
+    try:
+        diagnostics = PidEvaluationRuntimeDiagnostics(
+            requested_forecast_workers=runtime["requested_forecast_workers"],
+            used_forecast_workers=runtime["used_forecast_workers"],
+            forecast_count=runtime["forecast_count"],
+            resumed_forecast_count=runtime["resumed_forecast_count"],
+        )
+    except (TypeError, ValueError) as error:
+        raise ArtifactValidationError("runtime_diagnostics are invalid") from error
+    expected_forecasts = (
+        len(candidate_ids)
+        * len(sample_ids)
+        * len(bag_ids)
+        * int(manifest["model_discrepancy_replicates"])
+    )
+    if diagnostics.forecast_count != expected_forecasts:
+        raise ArtifactValidationError("runtime forecast count is incomplete")
 
     artifacts = manifest["artifacts"]
     required_artifacts = ("source_samples", "candidate_particles", "summary", "bags")
@@ -759,6 +840,7 @@ def write_pid_proposal_evaluation(
     posterior: PhysicalPlantPosterior,
     evaluation: PidCandidateEvaluation,
     selected_candidate_id: Optional[str] = None,
+    runtime_diagnostics: Optional[PidEvaluationRuntimeDiagnostics] = None,
 ) -> PidProposalEvaluationArtifact:
     """Atomically publish a complete immutable PID evaluation directory."""
 
@@ -768,6 +850,19 @@ def write_pid_proposal_evaluation(
         raise TypeError("posterior has the wrong type")
     if not isinstance(evaluation, PidCandidateEvaluation):
         raise TypeError("evaluation has the wrong type")
+    if runtime_diagnostics is None:
+        runtime_diagnostics = PidEvaluationRuntimeDiagnostics(
+            requested_forecast_workers=1,
+            used_forecast_workers=1,
+            forecast_count=len(evaluation.records),
+            resumed_forecast_count=0,
+        )
+    if not isinstance(runtime_diagnostics, PidEvaluationRuntimeDiagnostics):
+        raise TypeError("runtime_diagnostics has the wrong type")
+    if runtime_diagnostics.forecast_count != len(evaluation.records):
+        raise ArtifactValidationError(
+            "runtime diagnostics must cover the complete forecast product"
+        )
     selected = None if selected_candidate_id is None else str(selected_candidate_id)
     recommended = set(evaluation.decision.recommended_candidate_ids)
     if selected is not None and selected not in recommended:
@@ -850,7 +945,13 @@ def write_pid_proposal_evaluation(
                 "path": diff_path.name,
                 "sha256": _file_sha256(diff_path),
             }
-        manifest = _manifest(identity, evaluation, selected, artifact_descriptors)
+        manifest = _manifest(
+            identity,
+            evaluation,
+            selected,
+            runtime_diagnostics,
+            artifact_descriptors,
+        )
         _validate_payloads(manifest, source, candidates, summary, bags)
         write_json_atomic(staging / "manifest.json", manifest)
         _load(staging)
@@ -865,6 +966,7 @@ def write_pid_proposal_evaluation(
 __all__ = [
     "PID_PROPOSAL_EVALUATION_SCHEMA",
     "PidEvaluationArtifactIdentity",
+    "PidEvaluationRuntimeDiagnostics",
     "PidProposalEvaluationArtifact",
     "load_pid_proposal_evaluation",
     "write_pid_proposal_evaluation",

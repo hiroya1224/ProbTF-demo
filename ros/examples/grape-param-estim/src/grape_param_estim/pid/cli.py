@@ -18,8 +18,14 @@ from grape_param_estim.controller_config import (
 )
 from grape_param_estim.pid.artifact import (
     PidEvaluationArtifactIdentity,
+    PidEvaluationRuntimeDiagnostics,
     PidProposalEvaluationArtifact,
     write_pid_proposal_evaluation,
+)
+from grape_param_estim.pid.checkpoint import (
+    PidForecastCheckpointIdentity,
+    PidForecastCheckpointStore,
+    checkpoint_root_for_output,
 )
 from grape_param_estim.pid.input import (
     PidBagForecastModel,
@@ -31,6 +37,7 @@ from grape_param_estim.pid.particle_search import (
     MODEL_DISCREPANCY_QUANTITIES,
     ModelDiscrepancyConfiguration,
     evaluate_pid_candidates,
+    resolve_forecast_worker_count,
 )
 from grape_param_estim.pid.predictive import ClosedLoopPidForecastEvaluator
 from grape_param_estim.pid.proposal import (
@@ -140,8 +147,6 @@ def execute_pid_evaluation(
 
     if not isinstance(request, PidEvaluationRequest):
         raise TypeError("request must be PidEvaluationRequest")
-    if request.resume:
-        raise ValueError("PID evaluation resume requires a checkpoint; none exists")
     cancellation = (
         CancellationToken() if cancellation_token is None else cancellation_token
     )
@@ -245,6 +250,30 @@ def execute_pid_evaluation(
         STAGE_OPTIMIZING_FULL_TRAJECTORY, forecast_count
     )
 
+    checkpoint = PidForecastCheckpointStore.open(
+        checkpoint_root_for_output(request.output_directory),
+        PidForecastCheckpointIdentity(
+            evaluation_id=request.evaluation_id,
+            estimation_run_id=str(run.manifest["run_id"]),
+            request_fingerprint=request.fingerprint,
+            estimation_request_fingerprint=str(
+                run.manifest["request_fingerprint"]
+            ),
+        ),
+        resume=request.resume,
+        flush_size=resolve_forecast_worker_count(
+            request.forecast_workers, forecast_count
+        ),
+    )
+    resumed_forecasts = checkpoint.resumed_record_count
+    if resumed_forecasts:
+        evaluation_stage.emit(
+            resumed_forecasts,
+            message="Resumed {} completed PID forecasts".format(
+                resumed_forecasts
+            ),
+        )
+
     def report(completed, total, record):
         if total != forecast_count:
             raise RuntimeError("PID forecast work count changed during evaluation")
@@ -257,20 +286,28 @@ def execute_pid_evaluation(
             ),
         )
 
-    evaluation = evaluate_pid_candidates(
-        candidates,
-        posterior,
-        expected_bags,
-        ClosedLoopPidForecastEvaluator(scenarios),
-        current,
-        discrepancy,
-        sample_ids=request.plant_sample_ids,
-        plant_sample_subset_method=request.plant_sample_subset_method,
-        quantile_level=request.quantile_level,
-        cvar_level=request.cvar_level,
-        cancellation_requested=lambda: cancellation.cancelled,
-        progress=report,
-    )
+    try:
+        evaluation = evaluate_pid_candidates(
+            candidates,
+            posterior,
+            expected_bags,
+            ClosedLoopPidForecastEvaluator(scenarios),
+            current,
+            discrepancy,
+            sample_ids=request.plant_sample_ids,
+            plant_sample_subset_method=request.plant_sample_subset_method,
+            quantile_level=request.quantile_level,
+            cvar_level=request.cvar_level,
+            cancellation_requested=lambda: cancellation.cancelled,
+            progress=report,
+            worker_count=request.forecast_workers,
+            initial_records=checkpoint.records,
+            forecast_completed=checkpoint.record_completed,
+        )
+    except BaseException:
+        checkpoint.flush()
+        raise
+    checkpoint.flush()
     writing = tracker.begin_stage(STAGE_WRITING_ARTIFACTS, 1)
     artifact = write_pid_proposal_evaluation(
         request.output_directory,
@@ -283,7 +320,16 @@ def execute_pid_evaluation(
         posterior=posterior,
         evaluation=evaluation,
         selected_candidate_id=request.selected_candidate_id,
+        runtime_diagnostics=PidEvaluationRuntimeDiagnostics(
+            requested_forecast_workers=request.forecast_workers,
+            used_forecast_workers=resolve_forecast_worker_count(
+                request.forecast_workers, forecast_count
+            ),
+            forecast_count=forecast_count,
+            resumed_forecast_count=resumed_forecasts,
+        ),
     )
+    checkpoint.discard()
     writing.complete(message="PID evaluation artifact complete")
     return artifact
 

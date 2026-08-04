@@ -17,6 +17,7 @@ from grape_param_estim.controller_config import (
     select_baseline_pid_configuration,
 )
 from grape_param_estim.pid.artifact import (
+    PidCandidatePopulationAudit,
     PidEvaluationArtifactIdentity,
     PidEvaluationRuntimeDiagnostics,
     PidProposalEvaluationArtifact,
@@ -319,7 +320,14 @@ def execute_pid_evaluation(
             request_fingerprint=request.fingerprint,
         ),
         posterior=posterior,
+        proposals=proposals,
         evaluation=evaluation,
+        candidate_population=PidCandidatePopulationAudit(
+            method=request.derived_candidate_method,
+            maximum_candidates=request.maximum_derived_candidates,
+            required_source_sample_ids=request.required_derived_sample_ids,
+            raw_derived_candidate_count=len(posterior.samples),
+        ),
         selected_candidate_id=request.selected_candidate_id,
         runtime_diagnostics=PidEvaluationRuntimeDiagnostics(
             requested_forecast_workers=request.forecast_workers,

@@ -14,6 +14,7 @@ from grape_param_estim.artifact_io import (
 from grape_param_estim.controller_config import PidGainConfiguration
 from grape_param_estim.pid.artifact import (
     PID_PROPOSAL_EVALUATION_SCHEMA,
+    PidCandidatePopulationAudit,
     PidEvaluationArtifactIdentity,
     PidEvaluationRuntimeDiagnostics,
     load_pid_proposal_evaluation,
@@ -25,13 +26,15 @@ from grape_param_estim.pid.particle_search import (
     CONTINUOUS_SPECTRAL_DENSITY,
     SAMPLE_MODEL_DISCREPANCY,
     ModelDiscrepancyConfiguration,
+    build_initial_candidate_population,
     evaluate_pid_candidates,
 )
 from grape_param_estim.pid.proposal import (
     PhysicalPlantPosterior,
+    derive_pid_proposals,
     user_pid_candidate,
 )
-from grape_param_estim.system import VehicleParameters
+from grape_param_estim.system import GrapeGeometry, VehicleParameters
 
 
 class PidEvaluationArtifactTests(unittest.TestCase):
@@ -47,11 +50,28 @@ class PidEvaluationArtifactTests(unittest.TestCase):
         self.user = user_pid_candidate(
             "user-better", PidGainConfiguration(np.full((4, 3), 1.2))
         )
+        self.proposals = derive_pid_proposals(
+            self.posterior,
+            nominal,
+            GrapeGeometry.grape(),
+            self.current,
+        )
+        self.population_audit = PidCandidatePopulationAudit(
+            method="all_raw_mcmc_samples",
+            maximum_candidates=None,
+            required_source_sample_ids=("chain-a:000001",),
+            raw_derived_candidate_count=2,
+        )
 
         def evaluator(candidate, sample, bag_id, realization):
             del sample, bag_id
             realization.interval_average_residual((0.02,))
-            error = 1.0 if candidate.candidate_id == "current" else 0.5
+            if candidate.candidate_id == "current":
+                error = 1.0
+            elif candidate.candidate_id == "user-better":
+                error = 0.5
+            else:
+                error = 2.0
             return ForecastMetrics(
                 position_rmse=error,
                 orientation_rmse=2.0 * error,
@@ -64,7 +84,9 @@ class PidEvaluationArtifactTests(unittest.TestCase):
             )
 
         self.evaluation = evaluate_pid_candidates(
-            (self.user,),
+            build_initial_candidate_population(
+                self.proposals, user_candidates=(self.user,)
+            ),
             self.posterior,
             ("bag-a", "bag-b"),
             evaluator,
@@ -92,7 +114,9 @@ class PidEvaluationArtifactTests(unittest.TestCase):
                 destination,
                 identity=self.identity,
                 posterior=self.posterior,
+                proposals=self.proposals,
                 evaluation=self.evaluation,
+                candidate_population=self.population_audit,
                 selected_candidate_id="user-better",
                 runtime_diagnostics=PidEvaluationRuntimeDiagnostics(
                     requested_forecast_workers="auto",
@@ -113,9 +137,14 @@ class PidEvaluationArtifactTests(unittest.TestCase):
             )
             self.assertEqual(
                 tuple(artifact.candidate_particles["candidate_id"]),
-                ("current", "user-better"),
+                (
+                    "current",
+                    "sample_Y2hhaW4tYTowMDAwMDE",
+                    "sample_Y2hhaW4tYjowMDAwMDE",
+                    "user-better",
+                ),
             )
-            self.assertEqual(artifact.bags["bag-a"]["candidate_id"].size, 8)
+            self.assertEqual(artifact.bags["bag-a"]["candidate_id"].size, 16)
             self.assertIn("xy:", artifact.proposed_yaml)
             self.assertIn("current:", artifact.proposed_diff_yaml)
             self.assertEqual(
@@ -131,6 +160,16 @@ class PidEvaluationArtifactTests(unittest.TestCase):
             np.testing.assert_array_equal(
                 reloaded.source_samples["sample_id"], self.posterior.sample_id
             )
+            np.testing.assert_array_equal(
+                reloaded.source_samples["proposal_gain_values"],
+                self.proposals.exact_gain_values,
+            )
+            self.assertEqual(
+                reloaded.manifest["candidate_population"][
+                    "raw_derived_candidate_count"
+                ],
+                2,
+            )
 
     def test_common_random_seed_is_identical_across_candidates(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -138,7 +177,9 @@ class PidEvaluationArtifactTests(unittest.TestCase):
                 Path(temporary) / "pid-evaluation",
                 identity=self.identity,
                 posterior=self.posterior,
+                proposals=self.proposals,
                 evaluation=self.evaluation,
+                candidate_population=self.population_audit,
             )
             bag = artifact.bags["bag-a"]
             by_identity = {}
@@ -162,8 +203,43 @@ class PidEvaluationArtifactTests(unittest.TestCase):
                     Path(temporary) / "pid-evaluation",
                     identity=self.identity,
                     posterior=self.posterior,
+                    proposals=self.proposals,
                     evaluation=self.evaluation,
+                    candidate_population=self.population_audit,
                     selected_candidate_id="current",
+                )
+
+    def test_candidate_policy_cannot_hide_or_misalign_raw_proposals(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(
+                ArtifactValidationError, "candidate population"
+            ):
+                write_pid_proposal_evaluation(
+                    Path(temporary) / "too-small",
+                    identity=self.identity,
+                    posterior=self.posterior,
+                    proposals=self.proposals,
+                    evaluation=self.evaluation,
+                    candidate_population=PidCandidatePopulationAudit(
+                        method="deterministic_k_medoids",
+                        maximum_candidates=1,
+                        required_source_sample_ids=("chain-a:000001",),
+                        raw_derived_candidate_count=2,
+                    ),
+                )
+
+            misaligned = replace(
+                self.proposals,
+                source_sample_id=self.proposals.source_sample_id[::-1],
+            )
+            with self.assertRaisesRegex(ValueError, "align"):
+                write_pid_proposal_evaluation(
+                    Path(temporary) / "misaligned",
+                    identity=self.identity,
+                    posterior=self.posterior,
+                    proposals=misaligned,
+                    evaluation=self.evaluation,
+                    candidate_population=self.population_audit,
                 )
 
     def test_tampered_payload_is_rejected_by_sha256(self):
@@ -173,7 +249,9 @@ class PidEvaluationArtifactTests(unittest.TestCase):
                 destination,
                 identity=self.identity,
                 posterior=self.posterior,
+                proposals=self.proposals,
                 evaluation=self.evaluation,
+                candidate_population=self.population_audit,
             )
             with (destination / "summary.npz").open("ab") as stream:
                 stream.write(b"tamper")
@@ -187,7 +265,9 @@ class PidEvaluationArtifactTests(unittest.TestCase):
                 destination,
                 identity=self.identity,
                 posterior=self.posterior,
+                proposals=self.proposals,
                 evaluation=self.evaluation,
+                candidate_population=self.population_audit,
             )
             manifest_path = destination / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

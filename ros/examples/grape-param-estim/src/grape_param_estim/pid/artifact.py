@@ -33,11 +33,18 @@ from grape_param_estim.pid.particle_search import (
     MODEL_DISCREPANCY_INTERVAL_MODELS,
     PidCandidateEvaluation,
 )
-from grape_param_estim.pid.proposal import PhysicalPlantPosterior
+from grape_param_estim.pid.proposal import (
+    PhysicalPlantPosterior,
+    PidProposalPopulation,
+)
 
 
 PID_PROPOSAL_EVALUATION_SCHEMA = (
-    "grape-param-estim/pid-proposal-evaluation/v1"
+    "grape-param-estim/pid-proposal-evaluation/v2"
+)
+_CANDIDATE_POPULATION_METHODS = (
+    "all_raw_mcmc_samples",
+    "deterministic_k_medoids",
 )
 _COMPLETE_STATUS = "complete"
 _SAFE_FILE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
@@ -58,6 +65,7 @@ _MANIFEST_KEYS = (
     "plant_sample_ids",
     "bag_ids",
     "candidate_ids",
+    "candidate_population",
     "selection_policy",
     "nondominated_candidate_ids",
     "recommended_candidate_ids",
@@ -282,6 +290,53 @@ class PidEvaluationRuntimeDiagnostics:
 
 
 @dataclass(frozen=True)
+class PidCandidatePopulationAudit:
+    """Audited reduction from all raw MCMC proposals to evaluated candidates."""
+
+    method: str
+    maximum_candidates: Optional[int]
+    required_source_sample_ids: Tuple[str, ...]
+    raw_derived_candidate_count: int
+
+    def __post_init__(self) -> None:
+        method = _canonical(self.method, "candidate population method")
+        if method not in _CANDIDATE_POPULATION_METHODS:
+            raise ValueError("candidate population method is invalid")
+        maximum = self.maximum_candidates
+        if method == "all_raw_mcmc_samples":
+            if maximum is not None:
+                raise ValueError("all raw MCMC candidates require a null maximum")
+        elif (
+            isinstance(maximum, (bool, np.bool_))
+            or not isinstance(maximum, (int, np.integer))
+            or maximum < 1
+        ):
+            raise ValueError("k-medoids candidate maximum must be positive")
+        required = tuple(
+            _canonical(value, "required source sample ID")
+            for value in self.required_source_sample_ids
+        )
+        if len(set(required)) != len(required):
+            raise ValueError("required source sample IDs must be unique")
+        raw_count = self.raw_derived_candidate_count
+        if (
+            isinstance(raw_count, (bool, np.bool_))
+            or not isinstance(raw_count, (int, np.integer))
+            or raw_count < 1
+            or (maximum is not None and len(required) > int(maximum))
+        ):
+            raise ValueError("candidate population counts are invalid")
+        object.__setattr__(self, "method", method)
+        object.__setattr__(
+            self,
+            "maximum_candidates",
+            None if maximum is None else int(maximum),
+        )
+        object.__setattr__(self, "required_source_sample_ids", required)
+        object.__setattr__(self, "raw_derived_candidate_count", int(raw_count))
+
+
+@dataclass(frozen=True)
 class PidProposalEvaluationArtifact:
     root: Path
     manifest: Mapping[str, Any]
@@ -302,6 +357,9 @@ _SOURCE_KEYS = (
     "cog",
     "force_effectiveness",
     "torque_effectiveness",
+    "proposal_group_scales",
+    "proposal_gain_values",
+    "proposal_acceleration_response",
 )
 _CANDIDATE_KEYS = (
     "candidate_id",
@@ -336,7 +394,16 @@ _BAG_KEYS = (
 ) + FORECAST_COST_METRICS + ("forecast_completion",)
 
 
-def _source_payload(posterior: PhysicalPlantPosterior) -> Dict[str, np.ndarray]:
+def _source_payload(
+    posterior: PhysicalPlantPosterior,
+    proposals: PidProposalPopulation,
+) -> Dict[str, np.ndarray]:
+    if not isinstance(proposals, PidProposalPopulation):
+        raise TypeError("proposals has the wrong type")
+    if not np.array_equal(posterior.sample_id, proposals.source_sample_id):
+        raise ValueError("raw PID proposals must align with posterior sample IDs")
+    if not np.array_equal(posterior.delay, proposals.source_delay):
+        raise ValueError("raw PID proposals must align with posterior delays")
     return {
         "sample_id": posterior.sample_id,
         "source_mode_id": np.asarray(
@@ -356,6 +423,9 @@ def _source_payload(posterior: PhysicalPlantPosterior) -> Dict[str, np.ndarray]:
         "torque_effectiveness": np.asarray(
             tuple(value.parameters.torque_effectiveness for value in posterior.samples)
         ),
+        "proposal_group_scales": proposals.group_scales,
+        "proposal_gain_values": proposals.exact_gain_values,
+        "proposal_acceleration_response": proposals.acceleration_response,
     }
 
 
@@ -469,6 +539,9 @@ def _validate_payloads(
         ("cog", (source_count, 3)),
         ("force_effectiveness", (source_count, 4)),
         ("torque_effectiveness", (source_count, 4)),
+        ("proposal_group_scales", (source_count, 4)),
+        ("proposal_gain_values", (source_count, 4, 3)),
+        ("proposal_acceleration_response", (source_count, 6, 6)),
     ):
         _numeric_array(source, key, shape)
     if (
@@ -476,6 +549,8 @@ def _validate_payloads(
         or np.any(source["mass"] <= 0.0)
         or np.any(source["force_effectiveness"] <= 0.0)
         or np.any(source["torque_effectiveness"] <= 0.0)
+        or np.any(source["proposal_group_scales"] <= 0.0)
+        or np.any(source["proposal_gain_values"] < 0.0)
         or np.any(np.linalg.eigvalsh(source["inertia"]) <= 0.0)
         or not np.allclose(
             source["inertia"],
@@ -490,11 +565,11 @@ def _validate_payloads(
     candidate_ids = _string_array(
         candidates, "candidate_id", (candidate_count,), unique=True
     )
-    _string_array(candidates, "source", (candidate_count,))
-    _string_array(
+    candidate_source = _string_array(candidates, "source", (candidate_count,))
+    candidate_source_sample = _string_array(
         candidates, "source_sample_id", (candidate_count,), allow_empty=True
     )
-    _string_array(
+    candidate_source_mode = _string_array(
         candidates, "source_mode_id", (candidate_count,), allow_empty=True
     )
     _string_array(
@@ -504,8 +579,97 @@ def _validate_payloads(
         candidates, "generation", (candidate_count,), integer=True
     )
     gains = _numeric_array(candidates, "gain_values", (candidate_count, 4, 3))
-    if candidate_ids[0] != "current" or np.any(generation < 0) or np.any(gains < 0.0):
+    if (
+        candidate_ids[0] != "current"
+        or candidate_source[0] != "current"
+        or candidate_source_sample[0] != ""
+        or candidate_source_mode[0] != ""
+        or np.any(generation < 0)
+        or np.any(gains < 0.0)
+        or not np.allclose(
+            source["proposal_gain_values"],
+            gains[0][None, :, :] * source["proposal_group_scales"][:, :, None],
+            rtol=1.0e-12,
+            atol=1.0e-14,
+        )
+    ):
         raise ArtifactValidationError("candidate particle values are invalid")
+    source_index = {
+        sample_id: index for index, sample_id in enumerate(source_ids.tolist())
+    }
+    derived_ids = []
+    for index in range(candidate_count):
+        source_kind = str(candidate_source[index])
+        if source_kind == "sample-derived":
+            sample_id = str(candidate_source_sample[index])
+            if (
+                sample_id not in source_index
+                or not candidate_source_mode[index]
+                or generation[index] != 0
+                or not np.array_equal(
+                    gains[index],
+                    source["proposal_gain_values"][source_index[sample_id]],
+                )
+            ):
+                raise ArtifactValidationError(
+                    "sample-derived candidate is not a raw MCMC proposal"
+                )
+            derived_ids.append(sample_id)
+        elif source_kind == "current":
+            if index != 0:
+                raise ArtifactValidationError("current candidate is not unique")
+        elif source_kind not in ("user", "mutation"):
+            raise ArtifactValidationError("candidate source is invalid")
+
+    population = manifest["candidate_population"]
+    if not isinstance(population, Mapping):
+        raise ArtifactValidationError("candidate_population must be an object")
+    _strict_keys(
+        population,
+        (
+            "method",
+            "maximum_candidates",
+            "required_source_sample_ids",
+            "raw_derived_candidate_count",
+            "evaluated_derived_candidate_count",
+        ),
+        "candidate_population",
+    )
+    try:
+        population_audit = PidCandidatePopulationAudit(
+            method=population["method"],
+            maximum_candidates=population["maximum_candidates"],
+            required_source_sample_ids=tuple(
+                population["required_source_sample_ids"]
+            ),
+            raw_derived_candidate_count=population[
+                "raw_derived_candidate_count"
+            ],
+        )
+    except (TypeError, ValueError) as error:
+        raise ArtifactValidationError("candidate_population is invalid") from error
+    evaluated_count = population["evaluated_derived_candidate_count"]
+    if (
+        isinstance(evaluated_count, bool)
+        or not isinstance(evaluated_count, int)
+        or population_audit.raw_derived_candidate_count != source_count
+        or evaluated_count != len(derived_ids)
+        or len(set(derived_ids)) != len(derived_ids)
+        or not set(population_audit.required_source_sample_ids).issubset(
+            set(derived_ids)
+        )
+        or (
+            population_audit.method == "all_raw_mcmc_samples"
+            and set(derived_ids) != set(source_ids.tolist())
+        )
+        or (
+            population_audit.maximum_candidates is not None
+            and len(derived_ids) > population_audit.maximum_candidates
+        )
+    ):
+        raise ArtifactValidationError(
+            "candidate population does not match raw MCMC proposals"
+        )
 
     metric_count = len(FORECAST_COST_METRICS)
     if tuple(_string_array(summary, "metric_names", (metric_count,))) != tuple(
@@ -613,6 +777,7 @@ def _validate_payloads(
 def _manifest(
     identity: PidEvaluationArtifactIdentity,
     evaluation: PidCandidateEvaluation,
+    candidate_population: PidCandidatePopulationAudit,
     selected_candidate_id: Optional[str],
     runtime_diagnostics: PidEvaluationRuntimeDiagnostics,
     artifacts: Mapping[str, Any],
@@ -635,6 +800,20 @@ def _manifest(
         "plant_sample_ids": list(evaluation.plant_sample_ids),
         "bag_ids": list(evaluation.bag_ids),
         "candidate_ids": [value.candidate_id for value in evaluation.candidates],
+        "candidate_population": {
+            "method": candidate_population.method,
+            "maximum_candidates": candidate_population.maximum_candidates,
+            "required_source_sample_ids": list(
+                candidate_population.required_source_sample_ids
+            ),
+            "raw_derived_candidate_count": (
+                candidate_population.raw_derived_candidate_count
+            ),
+            "evaluated_derived_candidate_count": sum(
+                value.source == "sample-derived"
+                for value in evaluation.candidates
+            ),
+        },
         "selection_policy": evaluation.decision.selection_policy,
         "nondominated_candidate_ids": list(
             evaluation.decision.nondominated_candidate_ids
@@ -838,7 +1017,9 @@ def write_pid_proposal_evaluation(
     *,
     identity: PidEvaluationArtifactIdentity,
     posterior: PhysicalPlantPosterior,
+    proposals: PidProposalPopulation,
     evaluation: PidCandidateEvaluation,
+    candidate_population: PidCandidatePopulationAudit,
     selected_candidate_id: Optional[str] = None,
     runtime_diagnostics: Optional[PidEvaluationRuntimeDiagnostics] = None,
 ) -> PidProposalEvaluationArtifact:
@@ -848,8 +1029,18 @@ def write_pid_proposal_evaluation(
         raise TypeError("identity has the wrong type")
     if not isinstance(posterior, PhysicalPlantPosterior):
         raise TypeError("posterior has the wrong type")
+    if not isinstance(proposals, PidProposalPopulation):
+        raise TypeError("proposals has the wrong type")
     if not isinstance(evaluation, PidCandidateEvaluation):
         raise TypeError("evaluation has the wrong type")
+    if not isinstance(candidate_population, PidCandidatePopulationAudit):
+        raise TypeError("candidate_population has the wrong type")
+    if candidate_population.raw_derived_candidate_count != len(
+        posterior.samples
+    ):
+        raise ArtifactValidationError(
+            "candidate population must cover every raw posterior sample"
+        )
     if runtime_diagnostics is None:
         runtime_diagnostics = PidEvaluationRuntimeDiagnostics(
             requested_forecast_workers=1,
@@ -882,7 +1073,7 @@ def write_pid_proposal_evaluation(
     )
     published = False
     try:
-        source = _source_payload(posterior)
+        source = _source_payload(posterior, proposals)
         candidates = _candidate_payload(evaluation)
         summary = _summary_payload(evaluation)
         bags = {
@@ -948,6 +1139,7 @@ def write_pid_proposal_evaluation(
         manifest = _manifest(
             identity,
             evaluation,
+            candidate_population,
             selected,
             runtime_diagnostics,
             artifact_descriptors,
@@ -965,6 +1157,7 @@ def write_pid_proposal_evaluation(
 
 __all__ = [
     "PID_PROPOSAL_EVALUATION_SCHEMA",
+    "PidCandidatePopulationAudit",
     "PidEvaluationArtifactIdentity",
     "PidEvaluationRuntimeDiagnostics",
     "PidProposalEvaluationArtifact",

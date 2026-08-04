@@ -9,16 +9,9 @@ catkin_package()
 
 catkin_install_python(
   PROGRAMS
-    scripts/grape_assimilate_flights.py
-    scripts/grape_estimate_augmented_parameters.py
-    scripts/grape_estimate_diagonal_q.py
-    scripts/grape_evaluate_pid_proposals.py
+    scripts/grape_estimate_flights.py
     scripts/grape_generate_synthetic_flight.py
     scripts/grape_inspect_flights.py
-    scripts/grape_run_strong_constraint_experiment.py
-    scripts/grape_run_weak_constraint_experiment.py
-    scripts/grape_validate_assimilation.py
-    scripts/grape_validate_held_out_flight.py
     gui/run_gui.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

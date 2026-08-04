@@ -169,6 +169,60 @@ FIXED_FACTOR_COVARIANCE_BLOCKS = MappingProxyType({
 })
 
 
+# These Gaussian priors anchor otherwise gauge-like bag-local trajectory
+# variables at the first knot.  They are deliberately distinct from sensor
+# covariances: reusing an observation covariance here would count the same
+# evidence twice and would conflate measurement noise with initialization
+# uncertainty.  Prior means come from the audited initialization result (and
+# the preflight gyro bias); the request supplies only their independent
+# covariance and provenance.
+INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS = MappingProxyType({
+    "gyro_bias": (
+        ("gyro_bias_sensor_x", "gyro_bias_sensor_y", "gyro_bias_sensor_z"),
+        ("rad/s", "rad/s", "rad/s"),
+    ),
+    "position": (
+        ("position_x", "position_y", "position_z"),
+        ("m", "m", "m"),
+    ),
+    "orientation": (
+        (
+            "orientation_tangent_x",
+            "orientation_tangent_y",
+            "orientation_tangent_z",
+        ),
+        ("rad", "rad", "rad"),
+    ),
+    "linear_velocity": (
+        ("linear_velocity_x", "linear_velocity_y", "linear_velocity_z"),
+        ("m/s", "m/s", "m/s"),
+    ),
+    "angular_velocity": (
+        ("angular_velocity_x", "angular_velocity_y", "angular_velocity_z"),
+        ("rad/s", "rad/s", "rad/s"),
+    ),
+    "controller_integral": (
+        (
+            "position_integral_x",
+            "position_integral_y",
+            "position_integral_z",
+            "attitude_integral_x",
+            "attitude_integral_y",
+            "attitude_integral_z",
+        ),
+        ("m*s", "m*s", "m*s", "rad*s", "rad*s", "rad*s"),
+    ),
+    "actuator_thrust": (
+        tuple("rotor_{}_thrust".format(index) for index in range(1, 5)),
+        ("N", "N", "N", "N"),
+    ),
+    "gimbal_angle": (
+        tuple("gimbal_{}_angle".format(index) for index in range(1, 5)),
+        ("rad", "rad", "rad", "rad"),
+    ),
+})
+
+
 _BAG_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 
@@ -454,6 +508,7 @@ def _validate_bags(value: Any) -> Tuple[str, ...]:
                 "interval_seconds",
                 "observation_factors",
                 "fixed_factor_covariances",
+                "initial_state_prior_covariances",
             ),
             location,
         )
@@ -487,6 +542,11 @@ def _validate_bags(value: Any) -> Tuple[str, ...]:
             bag["fixed_factor_covariances"],
             FIXED_FACTOR_COVARIANCE_BLOCKS,
             location + ".fixed_factor_covariances",
+        )
+        _validate_covariance_blocks(
+            bag["initial_state_prior_covariances"],
+            INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS,
+            location + ".initial_state_prior_covariances",
         )
         bag_ids.append(bag_id)
         paths.append(path)
@@ -923,6 +983,7 @@ __all__ = [
     "COVARIANCE_REPRESENTATIONS",
     "COVARIANCE_SOURCES",
     "FIXED_FACTOR_COVARIANCE_BLOCKS",
+    "INITIAL_STATE_PRIOR_COVARIANCE_BLOCKS",
     "OBSERVATION_FACTOR_NAMES",
     "OBSERVATION_COVARIANCE_BLOCKS",
     "RUN_MODES",

@@ -601,9 +601,7 @@ class ProjectStore(QObject):
             self.manifest["current_pid_proposal_evaluation_id"] = None
             self.pidEvaluationChanged.emit(None)
             self.selectedPidProposalChanged.emit(None)
-        self._selected_sample_id = (
-            None if not run.sample_ids else run.sample_ids[0]
-        )
+        self._selected_sample_id = run.preferred_sample_id
         if run.mcmc is None or run.mcmc.source_mode_id.size == 0:
             self._selected_mode_id = None
         else:

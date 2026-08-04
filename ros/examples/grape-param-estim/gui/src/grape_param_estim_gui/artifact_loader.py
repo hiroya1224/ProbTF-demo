@@ -199,17 +199,34 @@ class QEmHistory:
 @dataclass(frozen=True)
 class LaplaceApproximation:
     reduced_likelihood_hessian: np.ndarray
+    reduced_prior_information: np.ndarray
     reduced_posterior_hessian: np.ndarray
-    covariance: np.ndarray
+    fixed_delay_conditional_static_covariance: np.ndarray
+    static_covariance_conditioning: str
     eigenvalues: np.ndarray
     eigenvectors: np.ndarray
     effective_rank: int
     exact_ridge_direction: np.ndarray
     ridge_alignment: float
     condition_number: float
+    delay_profile_available: bool
     delay_profile_grid: np.ndarray
     delay_profile_objective: np.ndarray
-    delay_local_uncertainty: float
+    delay_profile_approximate_marginal_objective: np.ndarray
+    delay_profile_static_coordinate: np.ndarray
+    delay_local_geometry_valid: bool
+    delay_local_geometry_method: str
+    delay_local_geometry_reason: str
+    delay_profile_curvature: float | None
+    delay_uncertainty_source: str
+    joint_delay_marginal_standard_deviation: float | None
+    fallback_delay_prior_standard_deviation: float | None
+    mcmc_delay_proposal_scale_seconds: float | None
+    parameter_delay_cross_covariance: np.ndarray | None
+    joint_parameter_delay_information: np.ndarray | None
+    joint_parameter_delay_covariance: np.ndarray | None
+    joint_static_parameter_marginal_covariance: np.ndarray | None
+    mcmc_quadratic_surrogate_method: str
 
 
 @dataclass(frozen=True)
@@ -507,6 +524,29 @@ class BatchEstimationRun:
             return ()
         return tuple(str(value) for value in self.mcmc.sample_id.tolist())
 
+    @property
+    def preferred_sample_id(self) -> str | None:
+        """Prefer the first MCMC sample with a stored conditional path."""
+
+        if self.mcmc is None:
+            return None
+        available = set(self.sample_ids)
+        bag_order = tuple(
+            str(value)
+            for value in self.manifest.get("selected_bag_ids", ())
+        )
+        if not bag_order:
+            bag_order = tuple(self.bags)
+        for bag_id in bag_order:
+            subset = self.selected_trajectories.get(bag_id)
+            if subset is None:
+                continue
+            for sample_id in subset.sample_id.tolist():
+                candidate = str(sample_id)
+                if candidate in available:
+                    return candidate
+        return None if not self.sample_ids else self.sample_ids[0]
+
     def selected_trajectory(
         self, bag_id: str, sample_id: str
     ) -> ConditionalTrajectory | None:
@@ -622,20 +662,146 @@ def _q_em(arrays: Mapping[str, np.ndarray]) -> QEmHistory:
     )
 
 
-def _laplace(arrays: Mapping[str, np.ndarray]) -> LaplaceApproximation:
+def _symmetric_information(
+    value: Any, name: str, shape: tuple[int, int]
+) -> np.ndarray:
+    information = np.asarray(value, dtype=float)
+    if information.shape != shape:
+        raise GuiArtifactError(
+            "{} must have shape {}, got {}".format(
+                name, shape, information.shape
+            )
+        )
+    if not np.all(np.isfinite(information)):
+        raise GuiArtifactError("{} must be finite".format(name))
+    if not np.allclose(
+        information, information.T, rtol=1.0e-9, atol=1.0e-11
+    ):
+        raise GuiArtifactError("{} must be symmetric".format(name))
+    return information
+
+
+def _laplace(
+    arrays: Mapping[str, np.ndarray], manifest: Mapping[str, Any]
+) -> LaplaceApproximation:
+    likelihood = _symmetric_information(
+        arrays["reduced_likelihood_hessian"],
+        "reduced likelihood information",
+        (18, 18),
+    )
+    posterior = _symmetric_information(
+        arrays["reduced_posterior_hessian"],
+        "reduced posterior information",
+        (18, 18),
+    )
+    prior = _symmetric_information(
+        posterior - likelihood,
+        "reduced prior information (posterior - likelihood)",
+        (18, 18),
+    )
+    prior_scale = max(1.0, float(np.linalg.norm(prior, ord=2)))
+    if float(np.min(np.linalg.eigvalsh(prior))) < -1.0e-9 * prior_scale:
+        raise GuiArtifactError(
+            "reduced prior information (posterior - likelihood) must be "
+            "positive semidefinite within numerical tolerance"
+        )
+    geometry_valid = bool(arrays["delay_local_geometry_valid"][0])
+    joint_information: np.ndarray | None = None
+    joint_covariance: np.ndarray | None = None
+    joint_static_marginal: np.ndarray | None = None
+    cross_covariance: np.ndarray | None = None
+    joint_delay_sigma: float | None = None
+    fallback_delay_prior_sigma: float | None = None
+    raw_delay_scale = float(arrays["delay_local_uncertainty"][0])
+    raw_curvature = float(arrays["delay_profile_curvature"][0])
+    if geometry_valid:
+        joint_information = _symmetric_information(
+            arrays["joint_parameter_delay_information"],
+            "joint parameter-delay information",
+            (19, 19),
+        )
+        joint_covariance = _symmetric_information(
+            arrays["joint_parameter_delay_covariance"],
+            "joint parameter-delay covariance",
+            (19, 19),
+        )
+        cross_covariance = _array(
+            arrays["parameter_delay_cross_covariance"]
+        )
+        if cross_covariance.shape != (18,):
+            raise GuiArtifactError(
+                "valid parameter-delay cross covariance must have shape (18,)"
+            )
+        joint_static_marginal = joint_covariance[:18, :18]
+        joint_delay_sigma = float(np.sqrt(joint_covariance[-1, -1]))
+    else:
+        fallback_delay_prior_sigma = raw_delay_scale
+    mcmc_settings = manifest.get("mcmc_settings", {})
+    proposal_value = (
+        mcmc_settings.get("delay_scale_seconds")
+        if isinstance(mcmc_settings, Mapping)
+        else None
+    )
+    proposal_scale = (
+        None if proposal_value is None else float(proposal_value)
+    )
+    if proposal_scale is not None and (
+        not np.isfinite(proposal_scale) or proposal_scale <= 0.0
+    ):
+        raise GuiArtifactError(
+            "manifest mcmc_settings.delay_scale_seconds must be positive"
+        )
+
     return LaplaceApproximation(
-        reduced_likelihood_hessian=_array(arrays["reduced_likelihood_hessian"]),
-        reduced_posterior_hessian=_array(arrays["reduced_posterior_hessian"]),
-        covariance=_array(arrays["covariance"]),
+        reduced_likelihood_hessian=likelihood,
+        reduced_prior_information=prior,
+        reduced_posterior_hessian=posterior,
+        fixed_delay_conditional_static_covariance=_array(
+            arrays["covariance"]
+        ),
+        static_covariance_conditioning=str(
+            _text_array(arrays["static_covariance_conditioning"])[0]
+        ),
         eigenvalues=_array(arrays["eigenvalues"]),
         eigenvectors=_array(arrays["eigenvectors"]),
         effective_rank=int(arrays["effective_rank"][0]),
         exact_ridge_direction=_array(arrays["exact_ridge_direction"]),
         ridge_alignment=float(arrays["ridge_alignment"][0]),
         condition_number=float(arrays["condition_number"][0]),
+        delay_profile_available=bool(arrays["delay_profile_available"][0]),
         delay_profile_grid=_array(arrays["delay_profile_grid"]),
         delay_profile_objective=_array(arrays["delay_profile_objective"]),
-        delay_local_uncertainty=float(arrays["delay_local_uncertainty"][0]),
+        delay_profile_approximate_marginal_objective=_array(
+            arrays["delay_profile_approximate_marginal_objective"]
+        ),
+        delay_profile_static_coordinate=_array(
+            arrays["delay_profile_static_coordinate"]
+        ),
+        delay_local_geometry_valid=geometry_valid,
+        delay_local_geometry_method=str(
+            _text_array(arrays["delay_local_geometry_method"])[0]
+        ),
+        delay_local_geometry_reason=str(
+            _text_array(arrays["delay_local_geometry_reason"])[0]
+        ),
+        delay_profile_curvature=(
+            raw_curvature if geometry_valid else None
+        ),
+        delay_uncertainty_source=str(
+            _text_array(arrays["delay_uncertainty_source"])[0]
+        ),
+        joint_delay_marginal_standard_deviation=joint_delay_sigma,
+        fallback_delay_prior_standard_deviation=(
+            fallback_delay_prior_sigma
+        ),
+        mcmc_delay_proposal_scale_seconds=proposal_scale,
+        parameter_delay_cross_covariance=cross_covariance,
+        joint_parameter_delay_information=joint_information,
+        joint_parameter_delay_covariance=joint_covariance,
+        joint_static_parameter_marginal_covariance=joint_static_marginal,
+        mcmc_quadratic_surrogate_method=str(
+            _text_array(arrays["mcmc_quadratic_surrogate_method"])[0]
+        ),
     )
 
 
@@ -910,7 +1076,7 @@ def load_batch_estimation_run(path: str | Path) -> BatchEstimationRun:
         manifest=bundle.manifest,
         static_map=_static_map(bundle.map_static),
         q_em=_q_em(bundle.q_em),
-        laplace=_laplace(bundle.laplace),
+        laplace=_laplace(bundle.laplace, bundle.manifest),
         diagnostics=_diagnostics(bundle.diagnostics),
         bags={
             bag_id: _bag_result(bag_id, arrays, bundle.manifest)

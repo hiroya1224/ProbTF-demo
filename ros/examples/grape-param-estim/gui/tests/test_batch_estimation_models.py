@@ -139,21 +139,105 @@ def _q_arrays() -> dict[str, np.ndarray]:
     }
 
 
-def _laplace_arrays() -> dict[str, np.ndarray]:
-    return {
+def _laplace_arrays(valid_geometry: bool = True) -> dict[str, np.ndarray]:
+    delay_grid = np.asarray((0.0, 0.006, 0.012))
+    curvature = 1.0e6
+    sensitivity = np.zeros(18)
+    sensitivity[0] = 2.0
+    coordinate = np.outer(delay_grid - 0.006, sensitivity)
+    objective = 0.5 * curvature * (delay_grid - 0.006) ** 2
+    conditional_covariance = 0.5 * np.eye(18)
+    joint_covariance = np.zeros((19, 19))
+    joint_covariance[:18, :18] = conditional_covariance + np.outer(
+        sensitivity, sensitivity
+    ) / curvature
+    joint_covariance[:18, -1] = sensitivity / curvature
+    joint_covariance[-1, :18] = sensitivity / curvature
+    joint_covariance[-1, -1] = 1.0 / curvature
+    arrays = {
         "reduced_likelihood_hessian": np.eye(18),
         "reduced_posterior_hessian": 2.0 * np.eye(18),
-        "covariance": 0.5 * np.eye(18),
+        "covariance": conditional_covariance,
+        "static_covariance_conditioning": np.asarray(
+            ("fixed_delay_conditional",)
+        ),
         "eigenvalues": 2.0 * np.ones(18),
         "eigenvectors": np.eye(18),
         "effective_rank": np.asarray((18,), dtype=np.int64),
         "exact_ridge_direction": np.eye(18)[0],
         "ridge_alignment": np.asarray((1.0,)),
         "condition_number": np.asarray((2.0,)),
-        "delay_profile_grid": np.asarray((0.0, 0.01)),
-        "delay_profile_objective": np.asarray((2.0, 3.0)),
-        "delay_local_uncertainty": np.asarray((0.001,)),
+        "delay_profile_available": np.asarray((True,), dtype=bool),
+        "delay_profile_grid": delay_grid,
+        "delay_profile_objective": objective,
+        "delay_profile_approximate_marginal_objective": objective + 0.5,
+        "delay_profile_static_coordinate": coordinate,
+        "delay_local_uncertainty": np.asarray(
+            (0.001 if valid_geometry else 0.003,)
+        ),
+        "delay_uncertainty_source": np.asarray(
+            (
+                "profile_curvature"
+                if valid_geometry
+                else "uniform_delay_prior_fallback",
+            )
+        ),
+        "delay_profile_curvature": np.asarray(
+            (curvature if valid_geometry else 0.0,)
+        ),
+        "delay_profile_curvature_valid": np.asarray(
+            (valid_geometry,), dtype=bool
+        ),
+        "delay_local_geometry_valid": np.asarray(
+            (valid_geometry,), dtype=bool
+        ),
+        "delay_local_geometry_method": np.asarray(
+            ("nonuniform_three_point_map_profile_v1",)
+        ),
+        "delay_local_geometry_reason": np.asarray(
+            ("valid" if valid_geometry else "map_delay_at_profile_boundary",)
+        ),
+        "delay_profile_support_lag": (
+            delay_grid if valid_geometry else np.empty((0,), dtype=float)
+        ),
+        "delay_profile_support_map_objective": (
+            objective if valid_geometry else np.empty((0,), dtype=float)
+        ),
+        "delay_profile_support_static_coordinate": (
+            coordinate if valid_geometry else np.empty((0, 18), dtype=float)
+        ),
+        "delay_profile_gradient": (
+            np.asarray((0.0,))
+            if valid_geometry
+            else np.empty((0,), dtype=float)
+        ),
+        "delay_static_sensitivity": (
+            sensitivity if valid_geometry else np.empty((0,), dtype=float)
+        ),
+        "parameter_delay_cross_covariance": (
+            sensitivity / curvature
+            if valid_geometry
+            else np.empty((0,), dtype=float)
+        ),
+        "joint_parameter_delay_information": (
+            np.linalg.inv(joint_covariance)
+            if valid_geometry
+            else np.empty((0, 0), dtype=float)
+        ),
+        "joint_parameter_delay_covariance": (
+            joint_covariance
+            if valid_geometry
+            else np.empty((0, 0), dtype=float)
+        ),
+        "mcmc_quadratic_surrogate_method": np.asarray(
+            (
+                "joint_profile_information_v1"
+                if valid_geometry
+                else "proposal_only_block_diagonal_fallback_v1",
+            )
+        ),
     }
+    return arrays
 
 
 def _mcmc_arrays() -> dict[str, np.ndarray]:
@@ -247,7 +331,9 @@ def _trajectory_arrays() -> dict[str, np.ndarray]:
     }
 
 
-def _backend_bundle(root: Path, mcmc: bool) -> SimpleNamespace:
+def _backend_bundle(
+    root: Path, mcmc: bool, valid_geometry: bool = True
+) -> SimpleNamespace:
     digest = "sha256:" + "a" * 64
     manifest = {
         "schema": "grape-param-estim/batch-estimation-run/v1",
@@ -255,6 +341,8 @@ def _backend_bundle(root: Path, mcmc: bool) -> SimpleNamespace:
         "run_id": "run-a",
         "request_fingerprint": digest,
         "warnings": [],
+        "selected_bag_ids": ["bag-a"],
+        "mcmc_settings": {"delay_scale_seconds": 0.0004},
         "sensor_contracts": {"bag-a": {"pose": {"frame": "world"}}},
         "observation_factors": {
             "bag-a": {
@@ -267,7 +355,7 @@ def _backend_bundle(root: Path, mcmc: bool) -> SimpleNamespace:
         manifest=manifest,
         map_static=_map_arrays(),
         q_em=_q_arrays(),
-        laplace=_laplace_arrays(),
+        laplace=_laplace_arrays(valid_geometry),
         diagnostics=_diagnostic_arrays(mcmc),
         bags={"bag-a": _bag_arrays()},
         mcmc_samples=_mcmc_arrays() if mcmc else None,
@@ -283,8 +371,10 @@ class BatchEstimationLoaderTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def _load(self, mcmc: bool) -> artifact_loader.BatchEstimationRun:
-        bundle = _backend_bundle(self.root, mcmc)
+    def _load(
+        self, mcmc: bool, valid_geometry: bool = True
+    ) -> artifact_loader.BatchEstimationRun:
+        bundle = _backend_bundle(self.root, mcmc, valid_geometry)
         with mock.patch.object(
             artifact_loader.batch_artifact_io,
             "load_batch_estimation_run",
@@ -303,6 +393,48 @@ class BatchEstimationLoaderTests(unittest.TestCase):
         self.assertEqual(run.sample_ids, ())
         self.assertEqual(run.selected_trajectories, {})
         self.assertIsNone(run.diagnostics.mcmc)
+
+    def test_valid_joint_geometry_is_exposed_without_covariance_alias(self) -> None:
+        run = self._load(mcmc=False, valid_geometry=True)
+        laplace = run.laplace
+
+        self.assertFalse(hasattr(laplace, "covariance"))
+        self.assertTrue(laplace.delay_local_geometry_valid)
+        self.assertEqual(laplace.delay_local_geometry_reason, "valid")
+        self.assertTrue(
+            np.allclose(laplace.reduced_prior_information, np.eye(18))
+        )
+        self.assertEqual(
+            laplace.fixed_delay_conditional_static_covariance.shape,
+            (18, 18),
+        )
+        self.assertEqual(laplace.joint_parameter_delay_covariance.shape, (19, 19))
+        self.assertEqual(
+            laplace.joint_static_parameter_marginal_covariance.shape,
+            (18, 18),
+        )
+        self.assertEqual(laplace.parameter_delay_cross_covariance.shape, (18,))
+        self.assertAlmostEqual(
+            laplace.joint_delay_marginal_standard_deviation, 0.001
+        )
+        self.assertIsNone(laplace.fallback_delay_prior_standard_deviation)
+
+    def test_invalid_geometry_cannot_be_misread_as_joint_marginal(self) -> None:
+        run = self._load(mcmc=False, valid_geometry=False)
+        laplace = run.laplace
+
+        self.assertFalse(laplace.delay_local_geometry_valid)
+        self.assertIsNone(laplace.joint_parameter_delay_information)
+        self.assertIsNone(laplace.joint_parameter_delay_covariance)
+        self.assertIsNone(laplace.joint_static_parameter_marginal_covariance)
+        self.assertIsNone(laplace.parameter_delay_cross_covariance)
+        self.assertIsNone(laplace.joint_delay_marginal_standard_deviation)
+        self.assertAlmostEqual(
+            laplace.fallback_delay_prior_standard_deviation, 0.003
+        )
+        self.assertAlmostEqual(
+            laplace.mcmc_delay_proposal_scale_seconds, 0.0004
+        )
 
     def test_mcmc_sample_and_selected_trajectory_share_string_identity(self) -> None:
         run = self._load(mcmc=True)
@@ -336,6 +468,55 @@ class BatchEstimationLoaderTests(unittest.TestCase):
                     artifact_loader.GuiArtifactError, str(error)
                 ):
                     artifact_loader.load_batch_estimation_run(self.root)
+
+    def test_derived_prior_information_must_remain_symmetric(self) -> None:
+        bundle = _backend_bundle(self.root, mcmc=False)
+        bundle.laplace["reduced_posterior_hessian"] = (
+            bundle.laplace["reduced_posterior_hessian"].copy()
+        )
+        bundle.laplace["reduced_posterior_hessian"][0, 1] = 0.2
+        with mock.patch.object(
+            artifact_loader.batch_artifact_io,
+            "load_batch_estimation_run",
+            return_value=bundle,
+        ):
+            with self.assertRaisesRegex(
+                artifact_loader.GuiArtifactError,
+                "posterior information.*symmetric",
+            ):
+                artifact_loader.load_batch_estimation_run(self.root)
+
+    def test_prior_psd_audit_tolerates_roundoff_but_rejects_real_negative_information(self) -> None:
+        tiny = _backend_bundle(self.root, mcmc=False)
+        tiny.laplace["reduced_posterior_hessian"] = (
+            tiny.laplace["reduced_posterior_hessian"].copy()
+        )
+        tiny.laplace["reduced_posterior_hessian"][0, 0] = 1.0 - 1.0e-12
+        with mock.patch.object(
+            artifact_loader.batch_artifact_io,
+            "load_batch_estimation_run",
+            return_value=tiny,
+        ):
+            run = artifact_loader.load_batch_estimation_run(self.root)
+        self.assertAlmostEqual(
+            run.laplace.reduced_prior_information[0, 0], -1.0e-12
+        )
+
+        negative = _backend_bundle(self.root, mcmc=False)
+        negative.laplace["reduced_posterior_hessian"] = (
+            negative.laplace["reduced_posterior_hessian"].copy()
+        )
+        negative.laplace["reduced_posterior_hessian"][0, 0] = 0.9
+        with mock.patch.object(
+            artifact_loader.batch_artifact_io,
+            "load_batch_estimation_run",
+            return_value=negative,
+        ):
+            with self.assertRaisesRegex(
+                artifact_loader.GuiArtifactError,
+                "positive semidefinite",
+            ):
+                artifact_loader.load_batch_estimation_run(self.root)
 
     def test_presentation_uses_map_and_mcmc_sample_vocabulary(self) -> None:
         run = self._load(mcmc=True)
@@ -373,8 +554,18 @@ class SampleStateSynchronizationTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def _run(self, mcmc: bool) -> artifact_loader.BatchEstimationRun:
+    def _run(
+        self, mcmc: bool, stored_first: str | None = None
+    ) -> artifact_loader.BatchEstimationRun:
         bundle = _backend_bundle(self.root / "run", mcmc)
+        if stored_first is not None:
+            subset = bundle.trajectories["bag-a"]
+            sample_ids = subset["sample_id"].tolist()
+            index = sample_ids.index(int(stored_first))
+            order = np.roll(np.arange(len(sample_ids)), -index)
+            for name, value in tuple(subset.items()):
+                if name != "knot_time" and value.shape[0] == len(sample_ids):
+                    subset[name] = value[order]
         with mock.patch.object(
             artifact_loader.batch_artifact_io,
             "load_batch_estimation_run",
@@ -398,6 +589,21 @@ class SampleStateSynchronizationTests(unittest.TestCase):
         self.assertEqual(self.store.selected_sample_id, "109")
         self.assertEqual(observed, ["101", "109"])
         self.assertEqual(self.store.snapshot().selected_sample_id, "109")
+
+    def test_default_prefers_stored_trajectory_but_nonstored_remains_selectable(self) -> None:
+        self.store.apply_estimation(
+            self._run(mcmc=True, stored_first="109")
+        )
+
+        self.assertEqual(self.store.selected_sample_id, "109")
+        self.assertIsNotNone(
+            self.store.estimation_run.selected_trajectory("bag-a", "109")
+        )
+        self.store.set_selected_sample("107")
+        self.assertEqual(self.store.selected_sample_id, "107")
+        self.assertIsNone(
+            self.store.estimation_run.selected_trajectory("bag-a", "107")
+        )
 
     def test_map_only_run_has_no_fake_sample_selection(self) -> None:
         self.store.apply_estimation(self._run(mcmc=False))
@@ -450,8 +656,12 @@ class BatchResultViewTests(unittest.TestCase):
         self.application.processEvents()
         self.temporary.cleanup()
 
-    def _load_run(self, mcmc: bool) -> artifact_loader.BatchEstimationRun:
-        bundle = _backend_bundle(self.root / "run", mcmc)
+    def _load_run(
+        self, mcmc: bool, valid_geometry: bool = True
+    ) -> artifact_loader.BatchEstimationRun:
+        bundle = _backend_bundle(
+            self.root / "run", mcmc, valid_geometry
+        )
         bag = bundle.bags["bag-a"]
         pose_time = np.asarray((0.0, 0.1, 0.2))
         pose_orientation = np.zeros((3, 4))
@@ -469,6 +679,39 @@ class BatchResultViewTests(unittest.TestCase):
                 "pose_covariance_valid": np.ones((3,), dtype=bool),
             }
         )
+        observation_valid = np.asarray((True, False, True), dtype=bool)
+        for prefix, value_name, dimension, _covariance_dimension in (
+            ("velocity", "velocity", 3, 3),
+            ("gyro", "gyro", 3, 3),
+            ("accelerometer", "accelerometer", 3, 3),
+            ("thrust_command", "thrust_command", 4, 4),
+            ("gimbal_command", "gimbal_command", 4, 4),
+            ("gimbal_observation", "gimbal_observation", 4, 4),
+            (
+                "controller_integral",
+                "controller_integral_observation",
+                6,
+                6,
+            ),
+        ):
+            bag.update(
+                {
+                    "{}_time".format(prefix): pose_time,
+                    "{}_record_time".format(prefix): 100.0 + pose_time,
+                    value_name: np.arange(
+                        pose_time.size * dimension, dtype=float
+                    ).reshape(pose_time.size, dimension),
+                    "{}_valid".format(prefix): observation_valid,
+                    "{}_covariance".format(prefix): np.repeat(
+                        np.eye(dimension)[None, :, :],
+                        pose_time.size,
+                        axis=0,
+                    ),
+                    "{}_covariance_valid".format(prefix): np.ones(
+                        pose_time.size, dtype=bool
+                    ),
+                }
+            )
         substages = {
             "map": {"converged": True, "termination_reason": "done"},
             "laplace_em": {
@@ -510,10 +753,34 @@ class BatchResultViewTests(unittest.TestCase):
         self.assertIn("Laplace rank: 18/18", view.diagnostic_label.text())
         self.assertIn("3 retained equal-weight samples", view.diagnostic_label.text())
         self.assertEqual(view.posterior_widget.run, run)
+        geometry_names = {
+            item.name()
+            for item in view.posterior_widget.geometry_plot.listDataItems()
+        }
+        self.assertIn("joint static marginal 1σ", geometry_names)
+        self.assertNotIn("fixed-delay conditional static 1σ", geometry_names)
+        self.assertEqual(
+            {
+                item.name()
+                for item in view.posterior_widget.information_plot.listDataItems()
+            },
+            {
+                "prior information",
+                "likelihood information",
+                "posterior information",
+            },
+        )
         trace = view.mcmc_trace_widget
         self.assertEqual(trace.chain_combo.count(), 3)
         self.assertEqual(len(trace.ridge_plot.listDataItems()), 2)
         self.assertEqual(len(trace.delay_plot.listDataItems()), 2)
+        self.assertEqual(
+            {
+                item.name()
+                for item in trace.delay_marginal_plot.listDataItems()
+            },
+            {"joint Laplace delay marginal", "MCMC delay samples"},
+        )
         self.assertIn("stage1 6/8", trace.kernel_label.text())
         self.assertIn("inner failures 0", trace.kernel_label.text())
         trace.chain_combo.setCurrentIndex(1)
@@ -521,6 +788,44 @@ class BatchResultViewTests(unittest.TestCase):
         self.assertEqual(trace.chain_combo.currentText(), "chain-0")
         self.store.set_selected_sample("109")
         self.assertIn("MCMC sample 109", view.sample_detail.text())
+
+    def test_master_labels_invalid_geometry_as_conditional_not_marginal(self) -> None:
+        from grape_param_estim_gui.widgets.master_view import MasterView
+
+        self._load_run(mcmc=True, valid_geometry=False)
+        view = MasterView(self.store)
+        self.widgets.append(view)
+
+        geometry_names = {
+            item.name()
+            for item in view.posterior_widget.geometry_plot.listDataItems()
+        }
+        self.assertIn(
+            "fixed-delay conditional static 1σ", geometry_names
+        )
+        self.assertNotIn("joint static marginal 1σ", geometry_names)
+        marginal_names = {
+            item.name()
+            for item in view.mcmc_trace_widget.delay_marginal_plot.listDataItems()
+        }
+        self.assertEqual(marginal_names, {"MCMC delay samples"})
+        self.assertIn(
+            "Joint local Laplace delay marginal unavailable",
+            view.mcmc_trace_widget.delay_marginal_status.text(),
+        )
+        self.assertIn("uniform-prior delay 1σ=0.003 s", view.diagnostic_label.text())
+        self.assertIn("MCMC proposal scale=0.0004 s", view.diagnostic_label.text())
+        estimate_only = self._load_run(
+            mcmc=False, valid_geometry=False
+        )
+        view.mcmc_trace_widget.set_run(estimate_only)
+        self.assertIn(
+            "MCMC was not run; configured fallback",
+            view.mcmc_trace_widget.delay_marginal_status.text(),
+        )
+
+    def test_master_map_only_run_keeps_mcmc_controls_empty(self) -> None:
+        from grape_param_estim_gui.widgets.master_view import MasterView
 
         map_store = ProjectStore(
             self.root / "map-project", new_project_manifest("map-view")
@@ -578,6 +883,7 @@ class BatchResultViewTests(unittest.TestCase):
         self.widgets.append(view)
 
         self.assertEqual(view.signal_tabs.tabText(2), "Dynamics residual")
+        self.assertEqual(view.signal_tabs.tabText(3), "Direct observations")
         self.assertTrue(
             {
                 "reference",
@@ -598,6 +904,26 @@ class BatchResultViewTests(unittest.TestCase):
             }.issubset(view.dynamics_panel.series_data)
         )
         self.assertIn("pose: used", view.inspection_details.text())
+        direct = view.direct_observation_panel
+        self.assertEqual(
+            set(direct.series_data),
+            {
+                "velocity",
+                "gyro",
+                "accelerometer",
+                "thrust_command",
+                "gimbal_command",
+                "gimbal_observation",
+                "controller_integral_observation",
+            },
+        )
+        self.assertEqual(direct.series_data["velocity"][0].tolist(), [0.0, 0.2])
+        self.assertEqual(len(direct.plot.listDataItems()), 3)
+        direct.observation_combo.setCurrentIndex(
+            direct.observation_combo.findData("thrust_command")
+        )
+        self.assertEqual(len(direct.plot.listDataItems()), 4)
+        self.assertIn("2/3 valid samples", direct.status_label.text())
         view.dynamics_panel.dynamics_display_combo.setCurrentIndex(1)
         self.assertIn("±1 after normalization", view.dynamics_panel.status_label.text())
         self.store.set_selected_sample("107")

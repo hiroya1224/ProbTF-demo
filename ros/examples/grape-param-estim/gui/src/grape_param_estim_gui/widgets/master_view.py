@@ -49,9 +49,23 @@ class PosteriorPlotWidget(QWidget):
             title="Laplace ridge directions in static coordinates"
         )
         self.geometry_plot.setLabel("bottom", "static coordinate index")
-        self.geometry_plot.setLabel("left", "unit direction component")
+        self.geometry_plot.setLabel("left", "direction / standard deviation")
         self.geometry_plot.addLegend()
-        for plot in (self.trans_plot, self.rot_plot, self.geometry_plot):
+        self.information_plot = pg.PlotWidget(
+            title="ridge information decomposition"
+        )
+        self.information_plot.setLabel("bottom", "ridge direction")
+        self.information_plot.setLabel("left", "quadratic information")
+        self.information_plot.getAxis("bottom").setTicks(
+            [[(0.0, "exact"), (1.0, "numerical")]]
+        )
+        self.information_plot.addLegend()
+        for plot in (
+            self.trans_plot,
+            self.rot_plot,
+            self.geometry_plot,
+            self.information_plot,
+        ):
             plot.showGrid(x=True, y=True, alpha=0.18)
             layout.addWidget(plot, 1)
         self._selected_items: list[pg.ScatterPlotItem] = []
@@ -61,7 +75,7 @@ class PosteriorPlotWidget(QWidget):
         if run is None or run.mcmc is None:
             self.selected_sample_id = None
         elif self.selected_sample_id not in set(run.mcmc.sample_id.tolist()):
-            self.selected_sample_id = str(run.mcmc.sample_id[0])
+            self.selected_sample_id = run.preferred_sample_id
         self._render()
 
     def set_selected_sample(self, sample_id: str | None) -> None:
@@ -83,7 +97,12 @@ class PosteriorPlotWidget(QWidget):
 
     def _render(self) -> None:
         self._selected_items.clear()
-        for plot in (self.trans_plot, self.rot_plot, self.geometry_plot):
+        for plot in (
+            self.trans_plot,
+            self.rot_plot,
+            self.geometry_plot,
+            self.information_plot,
+        ):
             plot.clear()
         if self.run is None:
             return
@@ -153,14 +172,53 @@ class PosteriorPlotWidget(QWidget):
             symbolSize=4,
             name="numerical near-ridge",
         )
+        if laplace.delay_local_geometry_valid:
+            covariance = laplace.joint_static_parameter_marginal_covariance
+            assert covariance is not None
+            uncertainty_name = "joint static marginal 1σ"
+        else:
+            covariance = laplace.fixed_delay_conditional_static_covariance
+            uncertainty_name = "fixed-delay conditional static 1σ"
         self.geometry_plot.plot(
             coordinate,
-            np.sqrt(np.maximum(np.diag(laplace.covariance), 0.0)),
+            np.sqrt(np.maximum(np.diag(covariance), 0.0)),
             pen=pg.mkPen((225, 125, 35), width=1.8),
             symbol="s",
             symbolSize=4,
-            name="Laplace marginal 1σ",
+            name=uncertainty_name,
         )
+        directions = (laplace.exact_ridge_direction, numerical_direction)
+        for information, name, color, style in (
+            (
+                laplace.reduced_prior_information,
+                "prior information",
+                (90, 90, 90),
+                Qt.DotLine,
+            ),
+            (
+                laplace.reduced_likelihood_hessian,
+                "likelihood information",
+                (45, 105, 190),
+                Qt.DashLine,
+            ),
+            (
+                laplace.reduced_posterior_hessian,
+                "posterior information",
+                (205, 90, 35),
+                Qt.SolidLine,
+            ),
+        ):
+            values = np.asarray(
+                [direction @ information @ direction for direction in directions]
+            )
+            self.information_plot.plot(
+                np.asarray((0.0, 1.0)),
+                values,
+                pen=pg.mkPen(color, width=2.0, style=style),
+                symbol="o",
+                symbolSize=5,
+                name=name,
+            )
         self._render_selected()
 
     def _render_selected(self) -> None:
@@ -223,16 +281,26 @@ class McmcTraceWidget(QWidget):
         root.addLayout(selector)
         self.ridge_plot = pg.PlotWidget(title="ridge coordinate trace")
         self.delay_plot = pg.PlotWidget(title="delay trace")
+        self.delay_marginal_plot = pg.PlotWidget(
+            title="delay marginal: local Laplace × MCMC"
+        )
         self.log_posterior_plot = pg.PlotWidget(title="log posterior trace")
         self.delay_plot.setLabel("left", "delay", units="s")
+        self.delay_marginal_plot.setLabel("bottom", "delay", units="s")
+        self.delay_marginal_plot.setLabel("left", "density")
+        self.delay_marginal_plot.addLegend()
         self.log_posterior_plot.setLabel("bottom", "retained draw")
-        for plot in (
-            self.ridge_plot,
-            self.delay_plot,
-            self.log_posterior_plot,
-        ):
+        for plot in (self.ridge_plot, self.log_posterior_plot):
             plot.showGrid(x=True, y=True, alpha=0.18)
             root.addWidget(plot, 1)
+        delay_row = QHBoxLayout()
+        for plot in (self.delay_plot, self.delay_marginal_plot):
+            plot.showGrid(x=True, y=True, alpha=0.18)
+            delay_row.addWidget(plot, 1)
+        root.insertLayout(2, delay_row, 1)
+        self.delay_marginal_status = QLabel()
+        self.delay_marginal_status.setWordWrap(True)
+        root.insertWidget(3, self.delay_marginal_status)
         self.kernel_label = QLabel("MCMC traces unavailable.")
         self.kernel_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         self.kernel_label.setWordWrap(True)
@@ -262,9 +330,11 @@ class McmcTraceWidget(QWidget):
         for plot in (
             self.ridge_plot,
             self.delay_plot,
+            self.delay_marginal_plot,
             self.log_posterior_plot,
         ):
             plot.clear()
+        self._render_delay_marginal()
         if self.run is None or self.run.diagnostics.mcmc is None:
             self.kernel_label.setText("MCMC traces unavailable.")
             return
@@ -301,6 +371,100 @@ class McmcTraceWidget(QWidget):
                 )
             )
         self.kernel_label.setText("Kernel diagnostics — " + "; ".join(kernel_parts))
+
+    def _selected_delay_samples(self) -> np.ndarray:
+        if self.run is None or self.run.mcmc is None:
+            return np.empty((0,), dtype=float)
+        selected = self.chain_combo.currentData()
+        if selected is None or self.run.diagnostics.mcmc is None:
+            return np.asarray(self.run.mcmc.delay, dtype=float)
+        chain_id = str(self.run.diagnostics.mcmc.chain_id[int(selected)])
+        return np.asarray(
+            self.run.mcmc.delay[self.run.mcmc.chain_id == chain_id],
+            dtype=float,
+        )
+
+    def _render_delay_marginal(self) -> None:
+        if self.run is None:
+            self.delay_marginal_status.setText(
+                "Delay marginal unavailable: no completed run."
+            )
+            return
+        laplace = self.run.laplace
+        samples = self._selected_delay_samples()
+        samples = samples[np.isfinite(samples)]
+        if samples.size:
+            center = float(np.mean(samples))
+            span = float(np.ptp(samples))
+            half_width = max(span * 0.6, abs(center) * 1.0e-3, 1.0e-6)
+            edges = np.linspace(
+                center - half_width,
+                center + half_width,
+                min(31, max(4, int(np.sqrt(samples.size)) + 2)),
+            )
+            density, edges = np.histogram(samples, bins=edges, density=True)
+            self.delay_marginal_plot.plot(
+                0.5 * (edges[:-1] + edges[1:]),
+                density,
+                pen=pg.mkPen((50, 145, 100), width=2.0),
+                symbol="o",
+                symbolSize=4,
+                name="MCMC delay samples",
+            )
+        sigma = laplace.joint_delay_marginal_standard_deviation
+        if laplace.delay_local_geometry_valid:
+            assert sigma is not None
+            mean = float(self.run.static_map.delay)
+            lower = mean - 4.0 * sigma
+            upper = mean + 4.0 * sigma
+            if samples.size:
+                lower = min(lower, float(np.min(samples)))
+                upper = max(upper, float(np.max(samples)))
+            delay = np.linspace(lower, upper, 161)
+            density = np.exp(-0.5 * ((delay - mean) / sigma) ** 2) / (
+                np.sqrt(2.0 * np.pi) * sigma
+            )
+            self.delay_marginal_plot.plot(
+                delay,
+                density,
+                pen=pg.mkPen((205, 90, 35), width=2.2),
+                name="joint Laplace delay marginal",
+            )
+            self.delay_marginal_status.setText(
+                "Joint local Laplace delay marginal (1σ {:.4g} s) and {}MCMC samples.".format(
+                    sigma,
+                    "selected-chain " if self.chain_combo.currentData() is not None else "",
+                )
+            )
+        else:
+            proposal = (
+                "proposal scale unavailable"
+                if laplace.mcmc_delay_proposal_scale_seconds is None
+                else "proposal scale {:.4g} s".format(
+                    laplace.mcmc_delay_proposal_scale_seconds
+                )
+            )
+            if self.run.mcmc is None:
+                mcmc_status = (
+                    "MCMC was not run; configured fallback is {} ({})"
+                ).format(
+                    laplace.mcmc_quadratic_surrogate_method,
+                    proposal,
+                )
+            else:
+                mcmc_status = (
+                    "MCMC samples are shown; their target used {} ({})"
+                ).format(
+                    laplace.mcmc_quadratic_surrogate_method,
+                    proposal,
+                )
+            self.delay_marginal_status.setText(
+                "Joint local Laplace delay marginal unavailable: {}. "
+                "{}.".format(
+                    laplace.delay_local_geometry_reason,
+                    mcmc_status,
+                )
+            )
 
 
 class MasterView(QWidget):
@@ -535,12 +699,43 @@ class MasterView(QWidget):
                 int(np.sum(diagnostic.kernel_inner_solve_failures)),
             )
         warning_text = "none" if not run.warnings else "; ".join(run.warnings)
+        if laplace.delay_local_geometry_valid:
+            assert laplace.joint_delay_marginal_standard_deviation is not None
+            delay_geometry_text = (
+                "joint parameter-delay geometry valid; joint delay marginal "
+                "1σ={:.4g} s; method={}; cross-covariance available"
+            ).format(
+                laplace.joint_delay_marginal_standard_deviation,
+                laplace.delay_local_geometry_method,
+            )
+        else:
+            assert (
+                laplace.fallback_delay_prior_standard_deviation is not None
+            )
+            proposal_text = (
+                "unavailable"
+                if laplace.mcmc_delay_proposal_scale_seconds is None
+                else "{:.4g} s".format(
+                    laplace.mcmc_delay_proposal_scale_seconds
+                )
+            )
+            delay_geometry_text = (
+                "joint parameter-delay geometry unavailable ({}); "
+                "fixed-delay conditional static covariance shown; "
+                "uniform-prior delay 1σ={:.4g} s; "
+                "MCMC proposal scale={}; method={}"
+            ).format(
+                laplace.delay_local_geometry_reason,
+                laplace.fallback_delay_prior_standard_deviation,
+                proposal_text,
+                laplace.mcmc_quadratic_surrogate_method,
+            )
         self.diagnostic_label.setText(
             "run ID: {}\nsubstage status: {}\n"
             "Q definition: {} [{}]\n"
             "Q diagonal: {}\nEM iterations: {}\n"
             "Laplace rank: {}/18; condition number: {:.4g}; "
-            "ridge alignment: {:.4g}; delay σ: {:.4g} s\n"
+            "ridge alignment: {:.4g}\nDelay geometry: {}\n"
             "MCMC: {}\nwarnings: {}".format(
                 run.run_id,
                 stage_text,
@@ -551,7 +746,7 @@ class MasterView(QWidget):
                 laplace.effective_rank,
                 laplace.condition_number,
                 laplace.ridge_alignment,
-                laplace.delay_local_uncertainty,
+                delay_geometry_text,
                 mcmc_text,
                 warning_text,
             )

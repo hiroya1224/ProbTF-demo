@@ -34,6 +34,7 @@ from ..artifact_loader import (
     ConditionalTrajectory,
     FlightResult,
     SelectedTrajectorySet,
+    VectorObservation,
 )
 from ..state import BagRecord, ProjectStore, TimeState
 
@@ -818,6 +819,165 @@ class BatchSignalPanel(QWidget):
         self.currentTimeRequested.emit(float(point.x()))
 
 
+class DirectObservationPanel(QWidget):
+    """Compact selector for the asynchronous vectors used by the batch."""
+
+    currentTimeRequested = Signal(float)
+    viewRangeRequested = Signal(float, float)
+
+    _SIGNALS = (
+        ("velocity", "Direct velocity", ("vx", "vy", "vz"), "m/s"),
+        ("gyro", "Direct gyro", ("ωx", "ωy", "ωz"), "rad/s"),
+        (
+            "accelerometer",
+            "Direct accelerometer",
+            ("ax", "ay", "az"),
+            "m/s²",
+        ),
+        (
+            "thrust_command",
+            "Thrust command",
+            ("motor 0", "motor 1", "motor 2", "motor 3"),
+            "command",
+        ),
+        (
+            "gimbal_command",
+            "Gimbal command",
+            ("gimbal 0", "gimbal 1", "gimbal 2", "gimbal 3"),
+            "rad",
+        ),
+        (
+            "gimbal_observation",
+            "Gimbal observation",
+            ("gimbal 0", "gimbal 1", "gimbal 2", "gimbal 3"),
+            "rad",
+        ),
+        (
+            "controller_integral_observation",
+            "Controller integral observation",
+            ("Fx", "Fy", "Fz", "τx", "τy", "τz"),
+            "state",
+        ),
+    )
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.result: BagEstimationResult | None = None
+        self.current_time = 0.0
+        self.series_data: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+        self._view_update = False
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        selector_row = QHBoxLayout()
+        selector_row.addWidget(QLabel("Recorded vector:"))
+        self.observation_combo = QComboBox()
+        for key, label, _components, _unit in self._SIGNALS:
+            self.observation_combo.addItem(label, key)
+        self.observation_combo.currentIndexChanged.connect(self._render)
+        selector_row.addWidget(self.observation_combo)
+        selector_row.addStretch(1)
+        layout.addLayout(selector_row)
+        self.status_label = QLabel("No completed batch result.")
+        self.status_label.setWordWrap(True)
+        layout.addWidget(self.status_label)
+        self.plot = pg.PlotWidget()
+        self.plot.showGrid(x=True, y=True, alpha=0.18)
+        self.plot.setLabel("bottom", "time", units="s")
+        self.plot.addLegend()
+        self.plot.getPlotItem().setClipToView(True)
+        self.plot.getPlotItem().setDownsampling(auto=True, mode="peak")
+        self.plot.getViewBox().sigXRangeChanged.connect(
+            self._x_range_changed
+        )
+        self.plot.scene().sigMouseClicked.connect(self._mouse_clicked)
+        layout.addWidget(self.plot, 1)
+        self.current_line: pg.InfiniteLine | None = None
+
+    def set_result(self, result: BagEstimationResult | None) -> None:
+        self.result = result
+        self.series_data = {}
+        if result is not None:
+            for key, _label, _components, _unit in self._SIGNALS:
+                observation: VectorObservation = getattr(result, key)
+                valid = np.asarray(observation.valid, dtype=bool).copy()
+                if observation.time.size:
+                    valid &= np.isfinite(observation.time)
+                    valid &= np.all(np.isfinite(observation.value), axis=1)
+                self.series_data[key] = (
+                    np.asarray(observation.time[valid], dtype=float),
+                    np.asarray(observation.value[valid], dtype=float),
+                )
+        self._render()
+
+    def set_current_time(self, value: float) -> None:
+        self.current_time = float(value)
+        if self.current_line is not None:
+            self.current_line.setValue(self.current_time)
+
+    def set_view_range(self, start: float, end: float) -> None:
+        self._view_update = True
+        try:
+            self.plot.setXRange(float(start), float(end), padding=0.0)
+        finally:
+            self._view_update = False
+
+    def _selected_spec(
+        self,
+    ) -> tuple[str, str, tuple[str, ...], str]:
+        key = str(self.observation_combo.currentData())
+        return next(spec for spec in self._SIGNALS if spec[0] == key)
+
+    def _render(self, _index: int = -1) -> None:
+        self.plot.clear()
+        key, label, components, unit = self._selected_spec()
+        self.plot.setTitle(label)
+        self.plot.setLabel("left", label, units=unit)
+        selected = self.series_data.get(key)
+        valid_count = 0 if selected is None else int(selected[0].size)
+        total_count = (
+            0
+            if self.result is None
+            else int(getattr(self.result, key).time.size)
+        )
+        self.status_label.setText(
+            "{}: {}/{} valid samples; invalid-mask entries are omitted.".format(
+                label, valid_count, total_count
+            )
+        )
+        if selected is not None:
+            time, values = selected
+            for component, component_label in enumerate(components):
+                self.plot.plot(
+                    time,
+                    values[:, component],
+                    pen=pg.mkPen(
+                        pg.intColor(component, hues=len(components)), width=1.8
+                    ),
+                    name=component_label,
+                )
+        self.current_line = pg.InfiniteLine(
+            angle=90,
+            movable=False,
+            pen=pg.mkPen((35, 35, 35), width=1.2),
+        )
+        self.current_line.setValue(self.current_time)
+        self.plot.addItem(self.current_line)
+
+    def _x_range_changed(self, _view_box: object, value: object) -> None:
+        if not self._view_update:
+            start, end = value
+            self.viewRangeRequested.emit(float(start), float(end))
+
+    def _mouse_clicked(self, event: Any) -> None:
+        if (
+            event.button() != Qt.LeftButton
+            or not self.plot.sceneBoundingRect().contains(event.scenePos())
+        ):
+            return
+        point = self.plot.getViewBox().mapSceneToView(event.scenePos())
+        self.currentTimeRequested.emit(float(point.x()))
+
+
 class BagBrowserView(QWidget):
     statusMessage = Signal(str)
     filesSelected = Signal(object)
@@ -863,9 +1023,13 @@ class BagBrowserView(QWidget):
         self.trajectory_panel = BatchSignalPanel("trajectory")
         self.correction_panel = BatchSignalPanel("correction")
         self.dynamics_panel = BatchSignalPanel("dynamics")
+        self.direct_observation_panel = DirectObservationPanel()
         self.signal_tabs.addTab(self.trajectory_panel, "Trajectory")
         self.signal_tabs.addTab(self.correction_panel, "Correction transform")
         self.signal_tabs.addTab(self.dynamics_panel, "Dynamics residual")
+        self.signal_tabs.addTab(
+            self.direct_observation_panel, "Direct observations"
+        )
         self.flight_state_plot = pg.PlotWidget(title="Recorded flight state")
         self.flight_state_plot.showGrid(x=True, y=True, alpha=0.18)
         self.signal_tabs.addTab(self.flight_state_plot, "Flight state")
@@ -1031,6 +1195,18 @@ class BagBrowserView(QWidget):
             self.time_state.viewRangeChanged.connect(panel.set_view_range)
             panel.currentTimeRequested.connect(self.time_state.set_current_time)
             panel.viewRangeRequested.connect(self.time_state.set_view_range)
+        self.time_state.currentTimeChanged.connect(
+            self.direct_observation_panel.set_current_time
+        )
+        self.time_state.viewRangeChanged.connect(
+            self.direct_observation_panel.set_view_range
+        )
+        self.direct_observation_panel.currentTimeRequested.connect(
+            self.time_state.set_current_time
+        )
+        self.direct_observation_panel.viewRangeRequested.connect(
+            self.time_state.set_view_range
+        )
         self.time_state.currentTimeChanged.connect(self._store_current_time)
         self.time_state.currentTimeChanged.connect(self._update_current_time_spin)
         self.time_state.estimationRangeChanged.connect(self.trajectory_panel.set_estimation_range)
@@ -1157,6 +1333,7 @@ class BagBrowserView(QWidget):
     def _reload_context(self) -> None:
         preview, result, subset, selected = self._selected_context()
         self.scene.set_context(preview, result, subset, selected)
+        self.direct_observation_panel.set_result(result)
         for panel in (self.trajectory_panel, self.correction_panel, self.dynamics_panel):
             panel.set_context(preview, result, subset, selected, self.store.estimation_run)
 
@@ -1363,4 +1540,5 @@ __all__ = [
     "BagBrowserView",
     "BatchSignalPanel",
     "BatchTrajectoryScene",
+    "DirectObservationPanel",
 ]

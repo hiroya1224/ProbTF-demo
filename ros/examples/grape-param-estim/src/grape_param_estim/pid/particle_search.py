@@ -2,7 +2,9 @@
 
 from dataclasses import dataclass
 import hashlib
-from typing import Callable, Optional, Sequence, Tuple
+import multiprocessing
+import os
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -205,6 +207,121 @@ PidForecastEvaluator = Callable[
     ForecastMetrics,
 ]
 PidForecastProgress = Callable[[int, int, ForecastMetricRecord], None]
+PidForecastCompleted = Callable[[ForecastMetricRecord], None]
+
+
+_BLAS_THREAD_ENVIRONMENT = (
+    "OPENBLAS_NUM_THREADS",
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+)
+_FORECAST_WORKER_CONTEXT = None
+_FORECAST_THREAD_LIMIT = None
+
+
+def available_forecast_cpu_count() -> int:
+    """Return the CPU affinity count used by the runtime-only worker policy."""
+
+    try:
+        count = len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        count = os.cpu_count() or 1
+    return max(1, int(count))
+
+
+def resolve_forecast_worker_count(
+    requested: Union[str, int], forecast_count: int
+) -> int:
+    """Resolve ``auto`` without making the result a scientific setting."""
+
+    if (
+        isinstance(forecast_count, (bool, np.bool_))
+        or not isinstance(forecast_count, (int, np.integer))
+        or forecast_count < 1
+    ):
+        raise ValueError("forecast_count must be a positive integer")
+    count = int(forecast_count)
+    if requested == "auto":
+        return min(count, 32, max(1, available_forecast_cpu_count() // 2))
+    if (
+        isinstance(requested, (bool, np.bool_))
+        or not isinstance(requested, (int, np.integer))
+        or requested < 1
+        or requested > 32
+    ):
+        raise ValueError("forecast worker count must be auto or an integer in [1, 32]")
+    return min(count, int(requested))
+
+
+def _initialize_forecast_worker(
+    evaluator: PidForecastEvaluator,
+    candidates: Tuple[PidCandidate, ...],
+    samples: Tuple[PhysicalPlantSample, ...],
+    bag_ids: Tuple[str, ...],
+    discrepancy: ModelDiscrepancyConfiguration,
+) -> None:
+    """Install immutable worker context and force one BLAS thread per process."""
+
+    global _FORECAST_WORKER_CONTEXT, _FORECAST_THREAD_LIMIT
+    for variable in _BLAS_THREAD_ENVIRONMENT:
+        os.environ[variable] = "1"
+    # ``spawn`` imports NumPy before this initializer.  threadpoolctl, when it
+    # is available through a numerical dependency, also constrains an already
+    # loaded BLAS runtime.  The environment variables remain the dependency-
+    # free contract and are inherited by any descendants.
+    try:
+        from threadpoolctl import threadpool_limits  # type: ignore
+
+        _FORECAST_THREAD_LIMIT = threadpool_limits(limits=1)
+        _FORECAST_THREAD_LIMIT.__enter__()
+    except ImportError:
+        _FORECAST_THREAD_LIMIT = None
+    _FORECAST_WORKER_CONTEXT = (
+        evaluator,
+        candidates,
+        samples,
+        bag_ids,
+        discrepancy,
+    )
+
+
+def _forecast_record(
+    evaluator: PidForecastEvaluator,
+    candidate: PidCandidate,
+    sample: PhysicalPlantSample,
+    bag_id: str,
+    discrepancy: ModelDiscrepancyConfiguration,
+    replicate: int,
+) -> ForecastMetricRecord:
+    realization = discrepancy.realization(sample.sample_id, bag_id, replicate)
+    metrics = evaluator(candidate, sample, bag_id, realization)
+    if not isinstance(metrics, ForecastMetrics):
+        raise TypeError("evaluator must return ForecastMetrics")
+    return ForecastMetricRecord(
+        candidate_id=candidate.candidate_id,
+        sample_id=sample.sample_id,
+        bag_id=bag_id,
+        replicate_index=replicate,
+        discrepancy_seed=realization.seed,
+        metrics=metrics,
+    )
+
+
+def _run_forecast_worker(task: Tuple[int, int, int, int, int]):
+    if _FORECAST_WORKER_CONTEXT is None:
+        raise RuntimeError("PID forecast worker was not initialized")
+    evaluator, candidates, samples, bag_ids, discrepancy = _FORECAST_WORKER_CONTEXT
+    ordinal, candidate_index, sample_index, bag_index, replicate = task
+    return ordinal, _forecast_record(
+        evaluator,
+        candidates[candidate_index],
+        samples[sample_index],
+        bag_ids[bag_index],
+        discrepancy,
+        replicate,
+    )
 
 
 class PidEvaluationCancelled(RuntimeError):
@@ -378,6 +495,9 @@ def evaluate_pid_candidates(
     cvar_level: float = 0.90,
     cancellation_requested: Optional[Callable[[], bool]] = None,
     progress: Optional[PidForecastProgress] = None,
+    worker_count: Union[str, int] = 1,
+    initial_records: Sequence[ForecastMetricRecord] = tuple(),
+    forecast_completed: Optional[PidForecastCompleted] = None,
 ) -> PidCandidateEvaluation:
     """Cross-evaluate every candidate on every selected sample and bag."""
 
@@ -399,38 +519,114 @@ def evaluate_pid_candidates(
             and candidate.source_sample_id not in known_sample_ids
         ):
             raise ValueError("derived candidate source sample is absent")
-    records = []
-    completed = 0
     total = (
         len(selected_candidates)
         * len(samples)
         * len(selected_bags)
         * discrepancy.replicates
     )
-    for candidate in selected_candidates:
-        for sample in samples:
-            for bag_id in selected_bags:
-                for replicate in range(discrepancy.replicates):
+    tasks = tuple(
+        (ordinal, candidate_index, sample_index, bag_index, replicate)
+        for ordinal, (candidate_index, sample_index, bag_index, replicate) in enumerate(
+            (
+                (candidate_index, sample_index, bag_index, replicate)
+                for candidate_index in range(len(selected_candidates))
+                for sample_index in range(len(samples))
+                for bag_index in range(len(selected_bags))
+                for replicate in range(discrepancy.replicates)
+            )
+        )
+    )
+    expected_identity = {
+        (
+            selected_candidates[candidate_index].candidate_id,
+            samples[sample_index].sample_id,
+            selected_bags[bag_index],
+            replicate,
+        ): ordinal
+        for ordinal, candidate_index, sample_index, bag_index, replicate in tasks
+    }
+    records_by_ordinal = {}
+    for record in tuple(initial_records):
+        if not isinstance(record, ForecastMetricRecord):
+            raise TypeError("initial_records must contain ForecastMetricRecord values")
+        identity = (
+            record.candidate_id,
+            record.sample_id,
+            record.bag_id,
+            record.replicate_index,
+        )
+        if identity not in expected_identity:
+            raise ValueError("initial PID forecast record is outside the request")
+        ordinal = expected_identity[identity]
+        if ordinal in records_by_ordinal:
+            raise ValueError("initial PID forecast records contain duplicates")
+        expected_seed = discrepancy.seed_for(
+            record.sample_id, record.bag_id, record.replicate_index
+        )
+        if record.discrepancy_seed != expected_seed:
+            raise ValueError("initial PID forecast record has the wrong seed")
+        records_by_ordinal[ordinal] = record
+    completed = len(records_by_ordinal)
+    pending = tuple(task for task in tasks if task[0] not in records_by_ordinal)
+
+    def accept(ordinal, record):
+        nonlocal completed
+        if ordinal in records_by_ordinal:
+            raise RuntimeError("PID forecast worker returned a duplicate record")
+        records_by_ordinal[ordinal] = record
+        completed += 1
+        if forecast_completed is not None:
+            forecast_completed(record)
+        if progress is not None:
+            progress(completed, total, record)
+
+    if pending:
+        workers = resolve_forecast_worker_count(worker_count, len(pending))
+        if workers == 1:
+            for ordinal, candidate_index, sample_index, bag_index, replicate in pending:
+                if cancellation_requested is not None and cancellation_requested():
+                    raise PidEvaluationCancelled(completed)
+                record = _forecast_record(
+                    evaluator,
+                    selected_candidates[candidate_index],
+                    samples[sample_index],
+                    selected_bags[bag_index],
+                    discrepancy,
+                    replicate,
+                )
+                accept(ordinal, record)
+        else:
+            if cancellation_requested is not None and cancellation_requested():
+                raise PidEvaluationCancelled(completed)
+            context = multiprocessing.get_context("spawn")
+            pool = context.Pool(
+                processes=workers,
+                initializer=_initialize_forecast_worker,
+                initargs=(
+                    evaluator,
+                    selected_candidates,
+                    samples,
+                    selected_bags,
+                    discrepancy,
+                ),
+            )
+            finished = False
+            try:
+                iterator = pool.imap(_run_forecast_worker, pending, chunksize=1)
+                for _task in pending:
                     if cancellation_requested is not None and cancellation_requested():
                         raise PidEvaluationCancelled(completed)
-                    realization = discrepancy.realization(
-                        sample.sample_id, bag_id, replicate
-                    )
-                    metrics = evaluator(candidate, sample, bag_id, realization)
-                    if not isinstance(metrics, ForecastMetrics):
-                        raise TypeError("evaluator must return ForecastMetrics")
-                    record = ForecastMetricRecord(
-                        candidate_id=candidate.candidate_id,
-                        sample_id=sample.sample_id,
-                        bag_id=bag_id,
-                        replicate_index=replicate,
-                        discrepancy_seed=realization.seed,
-                        metrics=metrics,
-                    )
-                    records.append(record)
-                    completed += 1
-                    if progress is not None:
-                        progress(completed, total, record)
+                    ordinal, record = next(iterator)
+                    accept(ordinal, record)
+                pool.close()
+                pool.join()
+                finished = True
+            finally:
+                if not finished:
+                    pool.terminate()
+                    pool.join()
+    records = tuple(records_by_ordinal[index] for index in range(total))
     summaries = tuple(
         summarize_forecast_records(
             tuple(
@@ -460,7 +656,7 @@ def evaluate_pid_candidates(
         candidates=selected_candidates,
         plant_sample_ids=tuple(value.sample_id for value in samples),
         bag_ids=selected_bags,
-        records=tuple(records),
+        records=records,
         summaries=summaries,
         decision=decide_recommendation(summaries),
         discrepancy=discrepancy,
@@ -850,6 +1046,8 @@ __all__ = [
     "ZERO_MODEL_DISCREPANCY",
     "build_initial_candidate_population",
     "evaluate_pid_candidates",
+    "available_forecast_cpu_count",
+    "resolve_forecast_worker_count",
     "refine_pid_candidate_particles",
     "select_proposal_medoids",
 ]

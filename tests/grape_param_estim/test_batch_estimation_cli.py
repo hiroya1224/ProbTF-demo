@@ -172,6 +172,8 @@ class BatchEstimationCliTests(unittest.TestCase):
                 configuration_fingerprint(third),
             )
 
+    @patch("grape_param_estim.batch_estimation_cli.mark_batch_checkpoint_published")
+    @patch("grape_param_estim.batch_estimation_cli.write_batch_estimation_checkpoint")
     @patch("grape_param_estim.batch_estimation_cli.write_batch_estimation_run")
     @patch("grape_param_estim.batch_estimation_cli.export_batch_estimation_artifact_payload")
     @patch("grape_param_estim.batch_estimation_cli.measure_run_performance")
@@ -184,6 +186,8 @@ class BatchEstimationCliTests(unittest.TestCase):
         measure,
         export,
         write,
+        write_checkpoint,
+        mark_published,
     ):
         import tempfile
         from grape_param_estim.batch_artifact import file_sha256
@@ -212,7 +216,10 @@ class BatchEstimationCliTests(unittest.TestCase):
             prepare.return_value = inputs
             em = SimpleNamespace(converged=True)
             selected = SimpleNamespace(
-                final_solution=object(),
+                mode_id="recorded-mode",
+                final_solution=SimpleNamespace(
+                    lm=SimpleNamespace(state=object())
+                ),
                 em=em,
                 static_geometry=object(),
                 lag_profile_history=(object(),),
@@ -235,6 +242,10 @@ class BatchEstimationCliTests(unittest.TestCase):
             )
             written = SimpleNamespace(root=request.output_directory)
             write.return_value = written
+            checkpoint_root = root / ".checkpoint"
+            write_checkpoint.return_value = SimpleNamespace(
+                root=checkpoint_root
+            )
             progress = []
             result = execute_batch_estimation(
                 request,
@@ -251,6 +262,7 @@ class BatchEstimationCliTests(unittest.TestCase):
                 request.output_directory,
                 manifest_metadata={"run": "strict"},
             )
+            mark_published.assert_called_once_with(checkpoint_root)
             self.assertEqual(progress[-1][0], "writing_artifacts")
             self.assertEqual(progress[-1][1:3], (1, 1))
 

@@ -502,9 +502,24 @@ def execute_batch_estimation(
             progress=progress,
         )
     if resume:
-        raise ValueError(
-            "resume has neither a completed run nor an enabled-MCMC checkpoint"
+        checkpoint = load_batch_estimation_checkpoint(
+            request.output_directory,
+            request=request,
+            estimator_revision=estimator_revision.strip(),
+            configuration_fingerprint=selected_configuration_fingerprint,
+            controller_snapshot_fingerprint=selected_controller_fingerprint,
         )
+        if bool(checkpoint.core.manifest_metadata["mcmc_settings"]["enabled"]):
+            raise ValueError("estimate-only resume checkpoint enables MCMC")
+        if progress is not None:
+            progress("writing_artifacts", 0, 1, "publishing strict run")
+        written = write_batch_estimation_run(
+            request.output_directory, **checkpoint.core.writer_arguments
+        )
+        mark_batch_checkpoint_published(checkpoint.root)
+        if progress is not None:
+            progress("writing_artifacts", 1, 1, "run complete")
+        return written
     result = run_real_estimation(
         inputs,
         cancellation_requested=lambda: cancellation.cancelled,
@@ -548,9 +563,20 @@ def execute_batch_estimation(
     if progress is not None:
         progress("writing_artifacts", 0, 1, "publishing strict run")
     cancellation.raise_if_cancelled()
+    checkpoint = write_batch_estimation_checkpoint(
+        request.output_directory,
+        request=request,
+        estimator_revision=estimator_revision.strip(),
+        configuration_fingerprint=selected_configuration_fingerprint,
+        controller_snapshot_fingerprint=selected_controller_fingerprint,
+        selected_mode_id=selected.mode_id,
+        core=payload,
+        state=selected.final_solution.lm.state,
+    )
     written = write_batch_estimation_run(
         request.output_directory, **payload.writer_arguments
     )
+    mark_batch_checkpoint_published(checkpoint.root)
     if progress is not None:
         progress("writing_artifacts", 1, 1, "run complete")
     return written

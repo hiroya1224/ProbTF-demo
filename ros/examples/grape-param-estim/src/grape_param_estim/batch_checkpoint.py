@@ -51,6 +51,7 @@ _MANIFEST_KEYS = {
     "core_artifacts",
     "chain_checkpoints",
     "cancellation_reason",
+    "sampling_context",
 }
 _DESCRIPTOR_KEYS = {"path", "sha256"}
 
@@ -206,8 +207,6 @@ def write_batch_estimation_checkpoint(
     output = Path(output_directory).expanduser().resolve()
     if output != request.output_directory:
         raise ValueError("checkpoint output must equal request output_directory")
-    if not bool(request.payload["mcmc_settings"]["enabled"]):
-        raise ValueError("batch checkpoints are required only before enabled MCMC")
     if core.mcmc_samples is not None or core.trajectories:
         raise ValueError("checkpoint core cannot contain posterior samples")
     if core.manifest_metadata.get("request_fingerprint") != request.fingerprint:
@@ -252,6 +251,7 @@ def write_batch_estimation_checkpoint(
             "core_artifacts": _core_descriptors(staging, request.bag_ids),
             "chain_checkpoints": {},
             "cancellation_reason": "",
+            "sampling_context": None,
         }
         write_json_atomic(staging / "manifest.json", manifest)
         os.replace(str(staging), str(root))
@@ -348,6 +348,7 @@ def load_batch_estimation_checkpoint(
     estimator_revision: str,
     configuration_fingerprint: str,
     controller_snapshot_fingerprint: str,
+    allow_published: bool = False,
 ) -> BatchEstimationCheckpoint:
     """Load a resumable checkpoint only for its exact request and output."""
 
@@ -360,7 +361,9 @@ def load_batch_estimation_checkpoint(
         raise ArtifactValidationError("checkpoint manifest keys are not exact")
     if manifest["schema"] != BATCH_ESTIMATION_CHECKPOINT_SCHEMA:
         raise ArtifactValidationError("unsupported batch checkpoint schema")
-    if manifest["status"] not in _STATUSES or manifest["status"] == "published":
+    if manifest["status"] not in _STATUSES or (
+        manifest["status"] == "published" and not allow_published
+    ):
         raise ArtifactValidationError("checkpoint is not resumable")
     expected = {
         "run_id": str(request.payload["run_id"]),
@@ -386,6 +389,9 @@ def load_batch_estimation_checkpoint(
         _canonical(reason, "cancellation_reason")
     elif reason != "":
         raise ArtifactValidationError("non-cancelled checkpoint has a reason")
+    sampling_context = manifest["sampling_context"]
+    if sampling_context is not None and not isinstance(sampling_context, Mapping):
+        raise ArtifactValidationError("sampling_context must be an object or null")
     core, state_values = _load_core(root, manifest, request.bag_ids)
     if core.manifest_metadata.get("request_fingerprint") != request.fingerprint:
         raise ArtifactValidationError("core request fingerprint mismatch")
@@ -457,6 +463,40 @@ def save_batch_chain_checkpoint(
     write_json_atomic(root / "manifest.json", updated)
 
 
+def begin_posterior_sampling_checkpoint(
+    checkpoint_root: Union[str, Path],
+    *,
+    sampling_request_fingerprint: str,
+    mcmc_settings: Mapping[str, Any],
+    sampler_revision: str,
+) -> None:
+    """Bind an estimate-only core to one independent sampling request."""
+
+    root = Path(checkpoint_root).expanduser().resolve()
+    manifest = read_json(root / "manifest.json")
+    if manifest.get("schema") != BATCH_ESTIMATION_CHECKPOINT_SCHEMA:
+        raise ArtifactValidationError("unsupported batch checkpoint schema")
+    if not isinstance(mcmc_settings, Mapping) or not mcmc_settings:
+        raise TypeError("mcmc_settings must be a non-empty mapping")
+    context = {
+        "sampling_request_fingerprint": _canonical(
+            sampling_request_fingerprint, "sampling_request_fingerprint"
+        ),
+        "mcmc_settings": dict(mcmc_settings),
+        "sampler_revision": _canonical(sampler_revision, "sampler_revision"),
+    }
+    existing = manifest.get("sampling_context")
+    if existing is not None and existing != context:
+        raise ArtifactValidationError(
+            "checkpoint belongs to a different posterior sampling request"
+        )
+    updated = dict(manifest)
+    updated["sampling_context"] = context
+    updated["status"] = "sampling"
+    updated["cancellation_reason"] = ""
+    write_json_atomic(root / "manifest.json", updated)
+
+
 def mark_batch_checkpoint_cancelled(
     checkpoint_root: Union[str, Path], reason: str
 ) -> None:
@@ -481,6 +521,7 @@ __all__ = [
     "BATCH_ESTIMATION_CHECKPOINT_SCHEMA",
     "BatchEstimationCheckpoint",
     "batch_checkpoint_path",
+    "begin_posterior_sampling_checkpoint",
     "load_batch_estimation_checkpoint",
     "mark_batch_checkpoint_cancelled",
     "mark_batch_checkpoint_published",

@@ -10,6 +10,7 @@ from grape_param_estim.geometry import (
     euler_xyz_to_matrix,
     matrix_to_euler_xyz,
     quaternion_to_matrix,
+    skew,
     wrap_angle,
 )
 from grape_param_estim.system import (
@@ -37,6 +38,19 @@ PID_UPDATE_INPUTS = (
 _PID_KINK_RELATIVE_TOLERANCE = 1.0e-9
 _PID_CLAMP_REGIONS = ("interior", "lower", "upper")
 DEFAULT_ALLOCATION_CONDITION_THRESHOLD = 1.0e8
+_CONTROLLER_RPY_GIMBAL_LOCK_FAILURE_COSINE = 1.0e-8
+_CONTROLLER_RPY_GIMBAL_LOCK_NEAR_COSINE = 1.0e-4
+_CONTROLLER_YAW_WRAP_NEAR_ANGLE = 1.0e-6
+_CONTROLLER_THRUST_FAILURE_THRESHOLD = 1.0e-10
+_CONTROLLER_THRUST_NEAR_THRESHOLD = 1.0e-5
+
+_CONTROLLER_POSITION_SLICE = slice(0, 3)
+_CONTROLLER_ORIENTATION_SLICE = slice(3, 6)
+_CONTROLLER_WORLD_VELOCITY_SLICE = slice(6, 9)
+_CONTROLLER_BODY_OMEGA_SLICE = slice(9, 12)
+_CONTROLLER_INTEGRAL_SLICE = slice(12, 18)
+_CONTROLLER_GIMBAL_SLICE = slice(18, 22)
+_CONTROLLER_LOCAL_DIMENSION = 22
 
 
 @dataclass(frozen=True)
@@ -289,6 +303,174 @@ class AllocationPseudoinverseResult:
             )
         if self.diagnostic.allocation_near_singular:
             raise ValueError("successful result cannot be near singular")
+
+
+@dataclass(frozen=True)
+class ControllerLocalJacobian:
+    """One controller output Jacobian split into local input blocks."""
+
+    position: np.ndarray
+    orientation_right_tangent: np.ndarray
+    world_velocity: np.ndarray
+    body_omega: np.ndarray
+    integral_error: np.ndarray
+    current_gimbal_angle: np.ndarray
+
+    def __post_init__(self) -> None:
+        position = np.asarray(self.position, dtype=float)
+        if position.ndim != 2 or position.shape[1] != 3:
+            raise ValueError("position Jacobian must have three columns")
+        row_count = position.shape[0]
+        for name, column_count in (
+            ("position", 3),
+            ("orientation_right_tangent", 3),
+            ("world_velocity", 3),
+            ("body_omega", 3),
+            ("integral_error", 6),
+            ("current_gimbal_angle", 4),
+        ):
+            value = np.asarray(getattr(self, name), dtype=float)
+            if value.shape != (row_count, column_count) or not np.all(
+                np.isfinite(value)
+            ):
+                raise ValueError(
+                    "{} Jacobian must be a finite ({}, {}) array".format(
+                        name, row_count, column_count
+                    )
+                )
+            object.__setattr__(self, name, value.copy())
+
+    @property
+    def row_count(self) -> int:
+        return int(self.position.shape[0])
+
+    def as_matrix(self) -> np.ndarray:
+        """Return columns in the documented controller local-input order."""
+
+        return np.concatenate(
+            (
+                self.position,
+                self.orientation_right_tangent,
+                self.world_velocity,
+                self.body_omega,
+                self.integral_error,
+                self.current_gimbal_angle,
+            ),
+            axis=1,
+        )
+
+
+@dataclass(frozen=True)
+class ControllerStepJacobian:
+    """Issued-command and next-integral controller Jacobian blocks."""
+
+    issued_thrust: ControllerLocalJacobian
+    issued_gimbal_angle: ControllerLocalJacobian
+    next_integral: ControllerLocalJacobian
+
+    def __post_init__(self) -> None:
+        for name, row_count in (
+            ("issued_thrust", 4),
+            ("issued_gimbal_angle", 4),
+            ("next_integral", 6),
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, ControllerLocalJacobian):
+                raise TypeError(
+                    "{} must be a ControllerLocalJacobian".format(name)
+                )
+            if value.row_count != row_count:
+                raise ValueError(
+                    "{} must have {} output rows".format(name, row_count)
+                )
+
+
+@dataclass(frozen=True)
+class ControllerStepDiagnostics:
+    """Piecewise-smooth diagnostics for a fixed controller schedule."""
+
+    pid_active_sets: Tuple[PIDActiveSet, ...]
+    rpy_gimbal_lock_near_kink: bool
+    yaw_wrap_near_kink: bool
+    thrust_atan2_near_kink: np.ndarray
+    allocation: AllocationConditionDiagnostic
+    roll_pitch_integration_active: bool
+    source_compatible_gyro_term: bool
+
+    def __post_init__(self) -> None:
+        if len(self.pid_active_sets) != 6 or any(
+            not isinstance(value, PIDActiveSet)
+            for value in self.pid_active_sets
+        ):
+            raise ValueError("pid_active_sets must contain six PIDActiveSet values")
+        for name in (
+            "rpy_gimbal_lock_near_kink",
+            "yaw_wrap_near_kink",
+            "roll_pitch_integration_active",
+            "source_compatible_gyro_term",
+        ):
+            if not isinstance(getattr(self, name), (bool, np.bool_)):
+                raise TypeError("{} must be boolean".format(name))
+            object.__setattr__(self, name, bool(getattr(self, name)))
+        thrust_near = np.asarray(
+            self.thrust_atan2_near_kink, dtype=bool
+        )
+        if thrust_near.shape != (4,):
+            raise ValueError(
+                "thrust_atan2_near_kink must contain four flags"
+            )
+        object.__setattr__(
+            self, "thrust_atan2_near_kink", thrust_near.copy()
+        )
+        if not isinstance(self.allocation, AllocationConditionDiagnostic):
+            raise TypeError(
+                "allocation must be an AllocationConditionDiagnostic"
+            )
+
+    @property
+    def pid_near_kink(self) -> np.ndarray:
+        return np.asarray(
+            [value.near_kink for value in self.pid_active_sets],
+            dtype=bool,
+        )
+
+    @property
+    def near_kink(self) -> bool:
+        return bool(
+            np.any(self.pid_near_kink)
+            or self.rpy_gimbal_lock_near_kink
+            or self.yaw_wrap_near_kink
+            or np.any(self.thrust_atan2_near_kink)
+            or self.allocation.allocation_near_singular
+        )
+
+
+class ControllerJacobianError(ValueError):
+    """Explicit failure when the requested local controller chart is invalid."""
+
+    def __init__(self, code: str, message: str):
+        self.code = str(code)
+        super().__init__("{}: {}".format(self.code, message))
+
+
+@dataclass(frozen=True)
+class ControllerStepResult:
+    """Existing forward step plus analytic fixed-schedule Jacobians."""
+
+    command: ActuatorCommand
+    next_state: ControllerState
+    jacobian: ControllerStepJacobian
+    diagnostics: ControllerStepDiagnostics
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.command, ActuatorCommand):
+            raise TypeError("command must be an ActuatorCommand")
+        if not isinstance(self.next_state, ControllerState):
+            raise TypeError("next_state must be a ControllerState")
+        if not isinstance(self.jacobian, ControllerStepJacobian):
+            raise TypeError("jacobian must be a ControllerStepJacobian")
+        if not isinstance(self.diagnostics, ControllerStepDiagnostics):
+            raise TypeError("diagnostics must be ControllerStepDiagnostics")
 
 
 @dataclass(frozen=True)
@@ -796,6 +978,83 @@ def _source_pseudoinverse(matrix: np.ndarray) -> np.ndarray:
     return right_transpose.T @ np.diag(inverse) @ left.T
 
 
+def _rpy_right_tangent_jacobian(
+    rpy: np.ndarray,
+) -> Tuple[np.ndarray, bool]:
+    roll, pitch, _yaw = np.asarray(rpy, dtype=float)
+    cosine_roll = float(np.cos(roll))
+    sine_roll = float(np.sin(roll))
+    cosine_pitch = float(np.cos(pitch))
+    if abs(cosine_pitch) <= _CONTROLLER_RPY_GIMBAL_LOCK_FAILURE_COSINE:
+        raise ControllerJacobianError(
+            "controller_rpy_gimbal_lock",
+            "right-tangent RPY derivative is undefined at gimbal lock",
+        )
+    tangent_pitch = float(np.sin(pitch) / cosine_pitch)
+    inverse_cosine_pitch = 1.0 / cosine_pitch
+    jacobian = np.asarray(
+        (
+            (
+                1.0,
+                sine_roll * tangent_pitch,
+                cosine_roll * tangent_pitch,
+            ),
+            (0.0, cosine_roll, -sine_roll),
+            (
+                0.0,
+                sine_roll * inverse_cosine_pitch,
+                cosine_roll * inverse_cosine_pitch,
+            ),
+        ),
+        dtype=float,
+    )
+    return (
+        jacobian,
+        abs(cosine_pitch) <= _CONTROLLER_RPY_GIMBAL_LOCK_NEAR_COSINE,
+    )
+
+
+def _compose_pid_local_rows(
+    result: PIDUpdateResult,
+    axis: int,
+    error_p_jacobian: np.ndarray,
+    error_d_jacobian: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    integral_jacobian = np.zeros(_CONTROLLER_LOCAL_DIMENSION, dtype=float)
+    integral_jacobian[_CONTROLLER_INTEGRAL_SLICE.start + axis] = 1.0
+    output = (
+        result.jacobian.output[0] * integral_jacobian
+        + result.jacobian.output[1] * error_p_jacobian
+        + result.jacobian.output[2] * error_d_jacobian
+    )
+    next_integral = (
+        result.jacobian.next_integral[0] * integral_jacobian
+        + result.jacobian.next_integral[1] * error_p_jacobian
+        + result.jacobian.next_integral[2] * error_d_jacobian
+    )
+    return output, next_integral
+
+
+def _controller_local_jacobian(matrix: np.ndarray) -> ControllerLocalJacobian:
+    value = np.asarray(matrix, dtype=float)
+    if (
+        value.ndim != 2
+        or value.shape[1] != _CONTROLLER_LOCAL_DIMENSION
+        or not np.all(np.isfinite(value))
+    ):
+        raise ValueError("controller local Jacobian matrix is invalid")
+    return ControllerLocalJacobian(
+        position=value[:, _CONTROLLER_POSITION_SLICE],
+        orientation_right_tangent=value[
+            :, _CONTROLLER_ORIENTATION_SLICE
+        ],
+        world_velocity=value[:, _CONTROLLER_WORLD_VELOCITY_SLICE],
+        body_omega=value[:, _CONTROLLER_BODY_OMEGA_SLICE],
+        integral_error=value[:, _CONTROLLER_INTEGRAL_SLICE],
+        current_gimbal_angle=value[:, _CONTROLLER_GIMBAL_SLICE],
+    )
+
+
 class GrapeController:
     """Stateful six-axis PID followed by Grape rotor/gimbal allocation."""
 
@@ -966,3 +1225,346 @@ class GrapeController:
         next_state = ControllerState(integral, roll_pitch_active)
         command = ActuatorCommand(thrust, gimbal, virtual_force, desired)
         return command, next_state
+
+    def step_with_jacobian(
+        self,
+        state: RigidBodyState,
+        reference: ReferenceState,
+        controller_state: ControllerState,
+        time_step: float,
+        current_gimbal_angle: np.ndarray,
+        *,
+        allocation_condition_threshold: float = (
+            DEFAULT_ALLOCATION_CONDITION_THRESHOLD
+        ),
+    ) -> ControllerStepResult:
+        """Return the existing forward step and fixed-schedule Jacobians.
+
+        The reference, PID configuration, vehicle snapshot, and discrete
+        ``roll_pitch_integration_active`` flag are fixed.  Local inputs are
+        position, right-tangent orientation, world velocity, body omega,
+        integral error, and current gimbal angle.  Version 1 deliberately
+        differentiates only the continuous outputs; the forward step's next
+        discrete integration flag is returned unchanged and has no Jacobian.
+        It also rejects ``articulated_model`` because its mass, inertia, aggregate
+        CoG, and geometry all vary with gimbal angle and require a separate
+        articulated-model derivative.
+        """
+
+        if self.articulated_model is not None:
+            raise ControllerJacobianError(
+                "controller_articulated_jacobian_unsupported",
+                "v1 supports only a fixed non-articulated controller snapshot",
+            )
+        if current_gimbal_angle is None:
+            raise ValueError(
+                "current_gimbal_angle must contain four finite values"
+            )
+        angles = _allocation_gimbal_angles(
+            self.nominal_parameters,
+            self.geometry,
+            current_gimbal_angle,
+        )
+
+        # Existing step() remains the sole issued-command forward source.
+        command, next_state = self.step(
+            state,
+            reference,
+            controller_state,
+            time_step,
+            angles,
+        )
+        dt = float(time_step)
+        rotation = quaternion_to_matrix(state.orientation_xyzw)
+        current_rpy = matrix_to_euler_xyz(rotation)
+        rpy_jacobian, rpy_near_kink = _rpy_right_tangent_jacobian(
+            current_rpy
+        )
+        target_rotation = euler_xyz_to_matrix(reference.rpy)
+        target_omega = rotation.T @ target_rotation @ (
+            reference.angular_velocity
+        )
+        target_omega_orientation_jacobian = skew(target_omega)
+
+        pid_output = np.zeros(6, dtype=float)
+        recomputed_integral = np.zeros(6, dtype=float)
+        pid_output_jacobian = np.zeros(
+            (6, _CONTROLLER_LOCAL_DIMENSION), dtype=float
+        )
+        next_integral_jacobian = np.zeros(
+            (6, _CONTROLLER_LOCAL_DIMENSION), dtype=float
+        )
+        pid_results = []
+
+        def evaluate_axis(
+            axis: int,
+            error_p: float,
+            integration_time: float,
+            error_d: float,
+            feedforward: float,
+            error_p_jacobian: np.ndarray,
+            error_d_jacobian: np.ndarray,
+            nonnegative_integral: bool = False,
+        ) -> None:
+            pid_result = pid_update_with_jacobian(
+                self.configuration.pid[axis],
+                integral_error=controller_state.integral_error[axis],
+                error_p=error_p,
+                time_step=integration_time,
+                error_d=error_d,
+                feedforward=feedforward,
+                nonnegative_integral=nonnegative_integral,
+            )
+            output_row, integral_row = _compose_pid_local_rows(
+                pid_result,
+                axis,
+                error_p_jacobian,
+                error_d_jacobian,
+            )
+            pid_output[axis] = pid_result.output
+            recomputed_integral[axis] = pid_result.next_integral
+            pid_output_jacobian[axis] = output_row
+            next_integral_jacobian[axis] = integral_row
+            pid_results.append(pid_result)
+
+        for axis in (0, 1):
+            error_p_jacobian = np.zeros(
+                _CONTROLLER_LOCAL_DIMENSION, dtype=float
+            )
+            error_d_jacobian = np.zeros(
+                _CONTROLLER_LOCAL_DIMENSION, dtype=float
+            )
+            if self.configuration.xy_control_mode == POSITION_CONTROL:
+                error_p = reference.position[axis] - state.position[axis]
+                error_d = (
+                    reference.linear_velocity[axis]
+                    - state.linear_velocity[axis]
+                )
+                error_p_jacobian[
+                    _CONTROLLER_POSITION_SLICE.start + axis
+                ] = -1.0
+                error_d_jacobian[
+                    _CONTROLLER_WORLD_VELOCITY_SLICE.start + axis
+                ] = -1.0
+            elif self.configuration.xy_control_mode == VELOCITY_CONTROL:
+                error_p = 0.0
+                error_d = (
+                    reference.linear_velocity[axis]
+                    - state.linear_velocity[axis]
+                )
+                error_d_jacobian[
+                    _CONTROLLER_WORLD_VELOCITY_SLICE.start + axis
+                ] = -1.0
+            else:
+                error_p = 0.0
+                error_d = 0.0
+            evaluate_axis(
+                axis,
+                error_p,
+                dt,
+                error_d,
+                reference.linear_acceleration[axis],
+                error_p_jacobian,
+                error_d_jacobian,
+            )
+
+        z_error_p_jacobian = np.zeros(
+            _CONTROLLER_LOCAL_DIMENSION, dtype=float
+        )
+        z_error_p_jacobian[_CONTROLLER_POSITION_SLICE.start + 2] = -1.0
+        z_error_d_jacobian = np.zeros(
+            _CONTROLLER_LOCAL_DIMENSION, dtype=float
+        )
+        z_error_d_jacobian[
+            _CONTROLLER_WORLD_VELOCITY_SLICE.start + 2
+        ] = -1.0
+        evaluate_axis(
+            2,
+            reference.position[2] - state.position[2],
+            dt,
+            reference.linear_velocity[2] - state.linear_velocity[2],
+            reference.linear_acceleration[2],
+            z_error_p_jacobian,
+            z_error_d_jacobian,
+            nonnegative_integral=True,
+        )
+
+        roll_pitch_dt = (
+            dt if controller_state.roll_pitch_integration_active else 0.0
+        )
+        for axis in (3, 4):
+            local_axis = axis - 3
+            error_p_jacobian = np.zeros(
+                _CONTROLLER_LOCAL_DIMENSION, dtype=float
+            )
+            error_p_jacobian[_CONTROLLER_ORIENTATION_SLICE] = (
+                -rpy_jacobian[local_axis]
+            )
+            error_d_jacobian = np.zeros(
+                _CONTROLLER_LOCAL_DIMENSION, dtype=float
+            )
+            error_d_jacobian[_CONTROLLER_ORIENTATION_SLICE] = (
+                target_omega_orientation_jacobian[local_axis]
+            )
+            error_d_jacobian[
+                _CONTROLLER_BODY_OMEGA_SLICE.start + local_axis
+            ] = -1.0
+            evaluate_axis(
+                axis,
+                reference.rpy[local_axis] - current_rpy[local_axis],
+                roll_pitch_dt,
+                target_omega[local_axis]
+                - state.angular_velocity[local_axis],
+                reference.angular_acceleration[local_axis],
+                error_p_jacobian,
+                error_d_jacobian,
+            )
+
+        yaw_error_unwrapped = reference.rpy[2] - current_rpy[2]
+        yaw_error = wrap_angle(yaw_error_unwrapped)
+        yaw_wrap_near_kink = bool(
+            np.pi - abs(yaw_error) <= _CONTROLLER_YAW_WRAP_NEAR_ANGLE
+        )
+        yaw_error_p_jacobian = np.zeros(
+            _CONTROLLER_LOCAL_DIMENSION, dtype=float
+        )
+        yaw_error_p_jacobian[_CONTROLLER_ORIENTATION_SLICE] = (
+            -rpy_jacobian[2]
+        )
+        yaw_error_d = target_omega[2] - state.angular_velocity[2]
+        yaw_error_d_jacobian = np.zeros(
+            _CONTROLLER_LOCAL_DIMENSION, dtype=float
+        )
+        yaw_error_d_jacobian[_CONTROLLER_ORIENTATION_SLICE] = (
+            target_omega_orientation_jacobian[2]
+        )
+        if self.configuration.need_yaw_d_control:
+            yaw_error_d_jacobian[
+                _CONTROLLER_BODY_OMEGA_SLICE.start + 2
+            ] = -1.0
+        else:
+            yaw_error_d = target_omega[2]
+        evaluate_axis(
+            5,
+            yaw_error,
+            dt,
+            yaw_error_d,
+            reference.angular_acceleration[2],
+            yaw_error_p_jacobian,
+            yaw_error_d_jacobian,
+        )
+
+        desired = np.zeros(6, dtype=float)
+        desired_jacobian = np.zeros(
+            (6, _CONTROLLER_LOCAL_DIMENSION), dtype=float
+        )
+        desired[:3] = rotation.T @ pid_output[:3]
+        desired_jacobian[:3] = rotation.T @ pid_output_jacobian[:3]
+        desired_jacobian[:3, _CONTROLLER_ORIENTATION_SLICE] += skew(
+            desired[:3]
+        )
+        desired[3:] = pid_output[3:]
+        desired_jacobian[3:] = pid_output_jacobian[3:]
+
+        inertia = self.nominal_parameters.inertia
+        omega = state.angular_velocity
+        inertia_omega = inertia @ omega
+        gyro = np.cross(omega, inertia_omega)
+        gyro_jacobian = -skew(inertia_omega) + skew(omega) @ inertia
+        if self.configuration.source_compatible_gyro_term:
+            desired[3:] += gyro
+            desired_jacobian[
+                3:, _CONTROLLER_BODY_OMEGA_SLICE
+            ] += gyro_jacobian
+        else:
+            desired[3:] += np.linalg.solve(inertia, gyro)
+            desired_jacobian[
+                3:, _CONTROLLER_BODY_OMEGA_SLICE
+            ] += np.linalg.solve(inertia, gyro_jacobian)
+
+        if not np.array_equal(
+            recomputed_integral, next_state.integral_error
+        ) or not np.array_equal(desired, command.desired_acceleration):
+            raise ControllerJacobianError(
+                "controller_forward_mismatch",
+                "analytic primitive no longer matches step() forward values",
+            )
+
+        allocation = acceleration_allocation_matrix_with_jacobian(
+            self.nominal_parameters,
+            self.geometry,
+            angles,
+        )
+        inverse = allocation_pseudoinverse_with_jacobian(
+            allocation,
+            condition_threshold=allocation_condition_threshold,
+        )
+        virtual_force_jacobian = (
+            inverse.pseudoinverse @ desired_jacobian
+        )
+        for gimbal in range(4):
+            virtual_force_jacobian[
+                :, _CONTROLLER_GIMBAL_SLICE.start + gimbal
+            ] += inverse.gimbal_jacobian[:, :, gimbal] @ desired
+
+        thrust_jacobian = np.empty(
+            (4, _CONTROLLER_LOCAL_DIMENSION), dtype=float
+        )
+        gimbal_jacobian = np.empty(
+            (4, _CONTROLLER_LOCAL_DIMENSION), dtype=float
+        )
+        thrust_near_kink = command.thrust <= (
+            _CONTROLLER_THRUST_NEAR_THRESHOLD
+        )
+        if np.any(command.thrust <= _CONTROLLER_THRUST_FAILURE_THRESHOLD):
+            raise ControllerJacobianError(
+                "controller_thrust_atan2_undefined",
+                "issued thrust is too small for a finite atan2 derivative",
+            )
+        for rotor in range(4):
+            lateral, axial = command.virtual_force[
+                2 * rotor:2 * rotor + 2
+            ]
+            squared_thrust = lateral * lateral + axial * axial
+            thrust_gradient = np.asarray(
+                (lateral, axial), dtype=float
+            ) / command.thrust[rotor]
+            gimbal_gradient = np.asarray(
+                (-axial, lateral), dtype=float
+            ) / squared_thrust
+            virtual_rows = virtual_force_jacobian[
+                2 * rotor:2 * rotor + 2
+            ]
+            thrust_jacobian[rotor] = thrust_gradient @ virtual_rows
+            gimbal_jacobian[rotor] = gimbal_gradient @ virtual_rows
+
+        jacobian = ControllerStepJacobian(
+            issued_thrust=_controller_local_jacobian(thrust_jacobian),
+            issued_gimbal_angle=_controller_local_jacobian(
+                gimbal_jacobian
+            ),
+            next_integral=_controller_local_jacobian(
+                next_integral_jacobian
+            ),
+        )
+        diagnostics = ControllerStepDiagnostics(
+            pid_active_sets=tuple(
+                result.active_set for result in pid_results
+            ),
+            rpy_gimbal_lock_near_kink=rpy_near_kink,
+            yaw_wrap_near_kink=yaw_wrap_near_kink,
+            thrust_atan2_near_kink=thrust_near_kink,
+            allocation=inverse.diagnostic,
+            roll_pitch_integration_active=(
+                controller_state.roll_pitch_integration_active
+            ),
+            source_compatible_gyro_term=(
+                self.configuration.source_compatible_gyro_term
+            ),
+        )
+        return ControllerStepResult(
+            command=command,
+            next_state=next_state,
+            jacobian=jacobian,
+            diagnostics=diagnostics,
+        )

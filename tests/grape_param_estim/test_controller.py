@@ -9,11 +9,17 @@ import numpy as np
 
 from grape_param_estim.articulated import GrapeArticulatedModel
 from grape_param_estim.controller import (
+    ACCELERATION_CONTROL,
     AllocationConditionDiagnostic,
     AllocationMatrixResult,
     AllocationNearSingularError,
     AllocationPseudoinverseResult,
     ControllerConfig,
+    ControllerJacobianError,
+    ControllerLocalJacobian,
+    ControllerStepDiagnostics,
+    ControllerStepJacobian,
+    ControllerStepResult,
     DEFAULT_ALLOCATION_CONDITION_THRESHOLD,
     GrapeController,
     PIDActiveSet,
@@ -22,6 +28,8 @@ from grape_param_estim.controller import (
     PIDUpdateJacobian,
     PIDUpdateResult,
     PID_UPDATE_INPUTS,
+    POSITION_CONTROL,
+    VELOCITY_CONTROL,
     _pid_update,
     _source_pseudoinverse,
     acceleration_allocation_matrix,
@@ -33,6 +41,8 @@ from grape_param_estim.dynamics import actuator_wrench
 from grape_param_estim.geometry import (
     euler_xyz_to_matrix,
     matrix_to_quaternion,
+    quaternion_to_matrix,
+    so3_exp,
 )
 from grape_param_estim.system import (
     ActuatorState,
@@ -411,6 +421,81 @@ def _central_allocation_pseudoinverse_jacobian(
             )
         ).pseudoinverse
         result[:, :, gimbal] = (plus - minus) / (2.0 * step)
+    return result
+
+
+def _evaluate_controller_local_step(
+    controller,
+    state,
+    reference,
+    controller_state,
+    time_step,
+    current_gimbal_angle,
+    perturbation,
+):
+    delta = np.asarray(perturbation, dtype=float)
+    rotation = quaternion_to_matrix(state.orientation_xyzw) @ so3_exp(
+        delta[3:6]
+    )
+    perturbed_state = RigidBodyState(
+        position=state.position + delta[0:3],
+        orientation_xyzw=matrix_to_quaternion(rotation),
+        linear_velocity=state.linear_velocity + delta[6:9],
+        angular_velocity=state.angular_velocity + delta[9:12],
+    )
+    perturbed_controller_state = ControllerState(
+        controller_state.integral_error + delta[12:18],
+        controller_state.roll_pitch_integration_active,
+    )
+    command, next_state = controller.step(
+        perturbed_state,
+        reference,
+        perturbed_controller_state,
+        time_step,
+        np.asarray(current_gimbal_angle) + delta[18:22],
+    )
+    return np.concatenate(
+        (
+            command.thrust,
+            command.gimbal_angle,
+            next_state.integral_error,
+        )
+    )
+
+
+def _central_controller_step_jacobian(
+    controller,
+    state,
+    reference,
+    controller_state,
+    time_step,
+    current_gimbal_angle,
+):
+    step = 1.0e-6
+    result = np.empty((14, 22), dtype=float)
+    for coordinate in range(22):
+        direction = np.zeros(22, dtype=float)
+        direction[coordinate] = step
+        result[:, coordinate] = (
+            _evaluate_controller_local_step(
+                controller,
+                state,
+                reference,
+                controller_state,
+                time_step,
+                current_gimbal_angle,
+                direction,
+            )
+            - _evaluate_controller_local_step(
+                controller,
+                state,
+                reference,
+                controller_state,
+                time_step,
+                current_gimbal_angle,
+                -direction,
+            )
+        ) / (2.0 * step)
     return result
 
 
@@ -1029,6 +1114,349 @@ class ControllerTests(unittest.TestCase):
                 result,
                 condition_threshold=np.inf,
             )
+
+    def test_controller_step_jacobian_matches_random_interior_differences(self):
+        generator = np.random.RandomState(60013)
+        parameters = VehicleParameters.nominal()
+        geometry = GrapeGeometry.grape()
+        pid = tuple(
+            PIDConfig(
+                1.2 + 0.15 * axis,
+                0.25 + 0.04 * axis,
+                0.7 + 0.08 * axis,
+                limit_sum=100.0,
+                limit_p=100.0,
+                limit_i=100.0,
+                limit_d=100.0,
+                limit_error_p=100.0,
+                limit_error_i=100.0,
+                limit_error_d=100.0,
+            )
+            for axis in range(6)
+        )
+        modes = (
+            POSITION_CONTROL,
+            VELOCITY_CONTROL,
+            ACCELERATION_CONTROL,
+        )
+        for case in range(6):
+            configuration = ControllerConfig(
+                pid=pid,
+                xy_control_mode=modes[case % len(modes)],
+                need_yaw_d_control=bool(case % 2),
+                source_compatible_gyro_term=bool((case // 2) % 2),
+            )
+            controller = GrapeController(
+                configuration,
+                parameters,
+                geometry,
+            )
+            rpy = generator.uniform(-0.25, 0.25, 3)
+            position = generator.uniform(-0.2, 0.2, 3)
+            position[2] += 1.0
+            velocity = generator.uniform(-0.25, 0.25, 3)
+            omega = generator.uniform(-0.3, 0.3, 3)
+            state = RigidBodyState(
+                position=position,
+                orientation_xyzw=matrix_to_quaternion(
+                    euler_xyz_to_matrix(rpy)
+                ),
+                linear_velocity=velocity,
+                angular_velocity=omega,
+            )
+            reference = ReferenceState(
+                position=position + generator.uniform(-0.12, 0.12, 3),
+                linear_velocity=(
+                    velocity + generator.uniform(-0.15, 0.15, 3)
+                ),
+                linear_acceleration=(
+                    np.asarray((0.0, 0.0, 9.8))
+                    + generator.uniform(-0.15, 0.15, 3)
+                ),
+                rpy=rpy + generator.uniform(-0.12, 0.12, 3),
+                angular_velocity=generator.uniform(-0.2, 0.2, 3),
+                angular_acceleration=generator.uniform(-0.1, 0.1, 3),
+            )
+            integral = generator.uniform(0.05, 0.3, 6)
+            integral[2] += 0.3
+            controller_state = ControllerState(
+                integral,
+                roll_pitch_integration_active=bool(case % 2),
+            )
+            current_gimbal_angle = generator.uniform(-0.5, 0.5, 4)
+            result = controller.step_with_jacobian(
+                state,
+                reference,
+                controller_state,
+                0.02,
+                current_gimbal_angle,
+            )
+            numerical = _central_controller_step_jacobian(
+                controller,
+                state,
+                reference,
+                controller_state,
+                0.02,
+                current_gimbal_angle,
+            )
+            analytic = np.vstack(
+                (
+                    result.jacobian.issued_thrust.as_matrix(),
+                    result.jacobian.issued_gimbal_angle.as_matrix(),
+                    result.jacobian.next_integral.as_matrix(),
+                )
+            )
+            direct_command, direct_next_state = controller.step(
+                state,
+                reference,
+                controller_state,
+                0.02,
+                current_gimbal_angle,
+            )
+            with self.subTest(
+                case=case,
+                mode=configuration.xy_control_mode,
+                source_compatible=(
+                    configuration.source_compatible_gyro_term
+                ),
+            ):
+                np.testing.assert_array_equal(
+                    result.command.thrust, direct_command.thrust
+                )
+                np.testing.assert_array_equal(
+                    result.command.gimbal_angle,
+                    direct_command.gimbal_angle,
+                )
+                np.testing.assert_array_equal(
+                    result.next_state.integral_error,
+                    direct_next_state.integral_error,
+                )
+                np.testing.assert_allclose(
+                    analytic,
+                    numerical,
+                    rtol=3.0e-6,
+                    atol=3.0e-7,
+                )
+                self.assertFalse(result.diagnostics.near_kink)
+                self.assertEqual(
+                    result.diagnostics.roll_pitch_integration_active,
+                    controller_state.roll_pitch_integration_active,
+                )
+                self.assertEqual(
+                    result.diagnostics.source_compatible_gyro_term,
+                    configuration.source_compatible_gyro_term,
+                )
+
+    def test_controller_step_jacobian_typed_blocks_and_diagnostics(self):
+        configuration = ControllerConfig.grape()
+        controller = GrapeController(
+            configuration,
+            VehicleParameters.nominal(),
+            GrapeGeometry.grape(),
+        )
+        state = RigidBodyState(
+            position=(0.1, -0.2, 1.0),
+            orientation_xyzw=matrix_to_quaternion(
+                euler_xyz_to_matrix((0.05, -0.03, 0.1))
+            ),
+            linear_velocity=(0.04, -0.02, 0.01),
+            angular_velocity=(0.02, -0.01, 0.03),
+        )
+        reference = ReferenceState(
+            position=(0.18, -0.12, 1.08),
+            linear_velocity=(0.02, 0.01, -0.03),
+            linear_acceleration=(0.12, -0.08, 9.8),
+            rpy=(0.08, -0.01, 0.15),
+            angular_velocity=(0.02, -0.03, 0.04),
+            angular_acceleration=(0.01, -0.02, 0.015),
+        )
+        result = controller.step_with_jacobian(
+            state,
+            reference,
+            ControllerState(np.full(6, 0.1), True),
+            0.02,
+            np.asarray((0.1, -0.2, 0.15, -0.1)),
+        )
+        self.assertIsInstance(result, ControllerStepResult)
+        self.assertIsInstance(result.jacobian, ControllerStepJacobian)
+        self.assertIsInstance(
+            result.jacobian.issued_thrust, ControllerLocalJacobian
+        )
+        self.assertIsInstance(
+            result.diagnostics, ControllerStepDiagnostics
+        )
+        self.assertEqual(
+            result.jacobian.issued_thrust.as_matrix().shape, (4, 22)
+        )
+        self.assertEqual(
+            result.jacobian.issued_gimbal_angle.as_matrix().shape,
+            (4, 22),
+        )
+        self.assertEqual(
+            result.jacobian.next_integral.as_matrix().shape, (6, 22)
+        )
+        self.assertEqual(len(result.diagnostics.pid_active_sets), 6)
+        self.assertEqual(result.diagnostics.pid_near_kink.shape, (6,))
+        self.assertEqual(
+            result.diagnostics.thrust_atan2_near_kink.shape, (4,)
+        )
+        for matrix in (
+            result.jacobian.issued_thrust.as_matrix(),
+            result.jacobian.issued_gimbal_angle.as_matrix(),
+            result.jacobian.next_integral.as_matrix(),
+        ):
+            self.assertTrue(np.all(np.isfinite(matrix)))
+
+        with self.assertRaisesRegex(ValueError, "four finite"):
+            controller.step_with_jacobian(
+                state,
+                reference,
+                ControllerState(np.full(6, 0.1), True),
+                0.02,
+                np.zeros(3),
+            )
+
+    def test_controller_step_jacobian_branch_diagnostics_and_failures(self):
+        wide_pid = tuple(
+            PIDConfig(
+                1.0,
+                0.2,
+                0.5,
+                limit_sum=100.0,
+                limit_p=100.0,
+                limit_i=100.0,
+                limit_d=100.0,
+                limit_error_p=100.0,
+                limit_error_i=100.0,
+                limit_error_d=100.0,
+            )
+            for _ in range(6)
+        )
+        parameters = VehicleParameters.nominal()
+        geometry = GrapeGeometry.grape()
+        configuration = ControllerConfig(pid=wide_pid)
+        controller = GrapeController(configuration, parameters, geometry)
+        base_state = RigidBodyState(
+            position=(0.0, 0.0, 1.0),
+            orientation_xyzw=(0.0, 0.0, 0.0, 1.0),
+            linear_velocity=np.zeros(3),
+            angular_velocity=np.zeros(3),
+        )
+        base_reference = ReferenceState(
+            position=(0.0, 0.0, 1.0),
+            linear_velocity=np.zeros(3),
+            linear_acceleration=(0.0, 0.0, 9.8),
+            rpy=(0.0, 0.0, 0.0),
+            angular_velocity=np.zeros(3),
+            angular_acceleration=np.zeros(3),
+        )
+        controller_state = ControllerState(np.full(6, 0.2), False)
+        angles = np.zeros(4)
+
+        yaw_wrap_reference = replace(
+            base_reference,
+            rpy=np.asarray((0.0, 0.0, np.pi)),
+        )
+        yaw_wrap = controller.step_with_jacobian(
+            base_state,
+            yaw_wrap_reference,
+            controller_state,
+            0.02,
+            angles,
+        )
+        self.assertTrue(yaw_wrap.diagnostics.yaw_wrap_near_kink)
+        self.assertTrue(yaw_wrap.diagnostics.near_kink)
+
+        near_pitch = np.pi / 2.0 - 5.0e-5
+        near_gimbal_state = replace(
+            base_state,
+            orientation_xyzw=matrix_to_quaternion(
+                euler_xyz_to_matrix((0.0, near_pitch, 0.0))
+            ),
+        )
+        near_gimbal = controller.step_with_jacobian(
+            near_gimbal_state,
+            base_reference,
+            controller_state,
+            0.02,
+            angles,
+        )
+        self.assertTrue(
+            near_gimbal.diagnostics.rpy_gimbal_lock_near_kink
+        )
+
+        gimbal_lock_state = replace(
+            base_state,
+            orientation_xyzw=matrix_to_quaternion(
+                euler_xyz_to_matrix((0.0, np.pi / 2.0, 0.0))
+            ),
+        )
+        with self.assertRaisesRegex(
+            ControllerJacobianError,
+            "controller_rpy_gimbal_lock",
+        ) as captured:
+            controller.step_with_jacobian(
+                gimbal_lock_state,
+                base_reference,
+                controller_state,
+                0.02,
+                angles,
+            )
+        self.assertEqual(
+            captured.exception.code, "controller_rpy_gimbal_lock"
+        )
+
+        zero_pid = tuple(PIDConfig(0.0, 0.0, 0.0) for _ in range(6))
+        zero_controller = GrapeController(
+            ControllerConfig(pid=zero_pid), parameters, geometry
+        )
+        zero_reference = replace(
+            base_reference,
+            linear_acceleration=np.zeros(3),
+        )
+        with self.assertRaisesRegex(
+            ControllerJacobianError,
+            "controller_thrust_atan2_undefined",
+        ):
+            zero_controller.step_with_jacobian(
+                base_state,
+                zero_reference,
+                ControllerState(np.zeros(6), True),
+                0.02,
+                angles,
+            )
+
+        with self.assertRaises(AllocationNearSingularError):
+            controller.step_with_jacobian(
+                base_state,
+                base_reference,
+                controller_state,
+                0.02,
+                angles,
+                allocation_condition_threshold=5.0,
+            )
+
+        articulated_controller = GrapeController(
+            configuration,
+            parameters,
+            geometry,
+            articulated_model=GrapeArticulatedModel(),
+        )
+        with self.assertRaisesRegex(
+            ControllerJacobianError,
+            "controller_articulated_jacobian_unsupported",
+        ) as captured:
+            articulated_controller.step_with_jacobian(
+                base_state,
+                base_reference,
+                controller_state,
+                0.02,
+                angles,
+            )
+        self.assertEqual(
+            captured.exception.code,
+            "controller_articulated_jacobian_unsupported",
+        )
 
     def test_articulated_q0_snapshot_matches_audited_controller_values(self):
         parameters, geometry = GrapeArticulatedModel().at(np.zeros(4))

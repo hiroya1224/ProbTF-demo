@@ -210,7 +210,7 @@ class FlightIntervalCandidateTests(unittest.TestCase):
             result.warnings,
         )
         self.assertEqual(
-            result.estimated_work_units["member_bag_forecast_units"], 0
+            result.estimated_work_units["nonlinear_iteration_units"], 0
         )
 
 
@@ -323,7 +323,9 @@ class InspectionBundleTests(unittest.TestCase):
                 set(CONFIGURATION_FINGERPRINT_FIELDS) - {"payload"},
             )
             self.assertGreater(
-                inspection["estimated_work_units"]["integration_step_units"],
+                inspection["estimated_work_units"][
+                    "nonlinear_iteration_units"
+                ],
                 0,
             )
             with np.load(

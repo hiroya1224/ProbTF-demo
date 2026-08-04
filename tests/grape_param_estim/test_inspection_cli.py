@@ -35,6 +35,13 @@ class InspectionCliTests(unittest.TestCase):
                     {
                         "schema": INSPECTION_REQUEST_SCHEMA,
                         "request_id": "cli-inspection",
+                        "workload_settings": {
+                            "knot_period_seconds": 0.05,
+                            "maximum_solver_iterations": 30,
+                            "maximum_em_iterations": 5,
+                            "lag_profile_evaluations": 7,
+                            "mcmc_proposals": 0,
+                        },
                         "bags": [
                             {
                                 "bag_id": "flight",

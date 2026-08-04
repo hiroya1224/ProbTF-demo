@@ -106,34 +106,50 @@ def _normalise_configuration_provenance(
 
 
 @dataclass(frozen=True)
-class InspectionEstimatorSettings:
-    sample_period: float = 0.04
-    ensemble_size: int = 128
-    maximum_iterations: int = 5
-    maximum_knots: int = 12
+class InspectionWorkloadSettings:
+    """Explicit sparse-batch work counts used only for preview estimates."""
+
+    knot_period_seconds: float = 0.05
+    maximum_solver_iterations: int = 30
+    maximum_em_iterations: int = 5
+    lag_profile_evaluations: int = 7
+    mcmc_proposals: int = 0
 
     def __post_init__(self) -> None:
         object.__setattr__(
             self,
-            "sample_period",
-            _finite_positive(self.sample_period, "sample_period"),
-        )
-        object.__setattr__(
-            self,
-            "ensemble_size",
-            _positive_integer(self.ensemble_size, "ensemble_size", 2),
-        )
-        object.__setattr__(
-            self,
-            "maximum_iterations",
-            _positive_integer(
-                self.maximum_iterations, "maximum_iterations"
+            "knot_period_seconds",
+            _finite_positive(
+                self.knot_period_seconds, "knot_period_seconds"
             ),
         )
         object.__setattr__(
             self,
-            "maximum_knots",
-            _positive_integer(self.maximum_knots, "maximum_knots", 2),
+            "maximum_solver_iterations",
+            _positive_integer(
+                self.maximum_solver_iterations,
+                "maximum_solver_iterations",
+            ),
+        )
+        object.__setattr__(
+            self,
+            "maximum_em_iterations",
+            _positive_integer(
+                self.maximum_em_iterations, "maximum_em_iterations"
+            ),
+        )
+        object.__setattr__(
+            self,
+            "lag_profile_evaluations",
+            _positive_integer(
+                self.lag_profile_evaluations,
+                "lag_profile_evaluations",
+            ),
+        )
+        object.__setattr__(
+            self,
+            "mcmc_proposals",
+            _positive_integer(self.mcmc_proposals, "mcmc_proposals", 0),
         )
 
 
@@ -168,8 +184,8 @@ class InspectionRequest:
     request_id: str
     bags: Tuple[InspectionBagRequest, ...]
     preview_max_samples: int = 1200
-    estimator_settings: InspectionEstimatorSettings = (
-        InspectionEstimatorSettings()
+    workload_settings: InspectionWorkloadSettings = (
+        InspectionWorkloadSettings()
     )
 
     def __post_init__(self) -> None:
@@ -184,9 +200,9 @@ class InspectionRequest:
         preview_count = _positive_integer(
             self.preview_max_samples, "preview_max_samples", 2
         )
-        if not isinstance(self.estimator_settings, InspectionEstimatorSettings):
+        if not isinstance(self.workload_settings, InspectionWorkloadSettings):
             raise TypeError(
-                "estimator_settings must be InspectionEstimatorSettings"
+                "workload_settings must be InspectionWorkloadSettings"
             )
         object.__setattr__(self, "request_id", request_id)
         object.__setattr__(self, "bags", bags)
@@ -337,7 +353,7 @@ def load_inspection_request(path: str) -> InspectionRequest:
         optional=(
             "request_id",
             "preview_max_samples",
-            "estimator_settings",
+            "workload_settings",
         ),
         name="inspection request",
     )
@@ -370,24 +386,25 @@ def load_inspection_request(path: str) -> InspectionRequest:
                 configuration_provenance=tuple(provenance.items()),
             )
         )
-    raw_settings = payload.get("estimator_settings", {})
+    raw_settings = payload.get("workload_settings", {})
     _check_keys(
         raw_settings,
         required=tuple(),
         optional=(
-            "sample_period",
-            "ensemble_size",
-            "maximum_iterations",
-            "maximum_knots",
+            "knot_period_seconds",
+            "maximum_solver_iterations",
+            "maximum_em_iterations",
+            "lag_profile_evaluations",
+            "mcmc_proposals",
         ),
-        name="estimator_settings",
+        name="workload_settings",
     )
-    settings = InspectionEstimatorSettings(**raw_settings)
+    settings = InspectionWorkloadSettings(**raw_settings)
     return InspectionRequest(
         request_id=payload.get("request_id", source.stem),
         bags=tuple(bags),
         preview_max_samples=payload.get("preview_max_samples", 1200),
-        estimator_settings=settings,
+        workload_settings=settings,
     )
 
 
@@ -503,26 +520,35 @@ def _preview(arrays: RosbagArrayData, maximum_samples: int) -> InspectionPreview
 
 def _estimated_work_units(
     recommendation: Optional[SmoothingIntervalRecommendation],
-    settings: InspectionEstimatorSettings,
+    settings: InspectionWorkloadSettings,
 ):
     if recommendation is None:
         sample_count = 0
         knot_count = 0
     else:
         duration = recommendation.interval.duration
-        sample_count = int(np.floor(duration / settings.sample_period)) + 1
-        knot_count = min(settings.maximum_knots, max(2, sample_count))
-    forecast_units = (
-        settings.ensemble_size * (settings.maximum_iterations + 2)
-        if sample_count >= 2 else 0
+        sample_count = (
+            int(np.floor(duration / settings.knot_period_seconds)) + 1
+        )
+        knot_count = max(2, sample_count)
+    lag_profile_units = (
+        settings.lag_profile_evaluations
+        * (settings.maximum_em_iterations + 1)
+        if sample_count >= 2
+        else 0
     )
-    integration_units = forecast_units * max(0, sample_count - 1)
+    nonlinear_iteration_units = (
+        lag_profile_units * settings.maximum_solver_iterations
+    )
     return {
         "sample_count": sample_count,
-        "estimated_knot_count": knot_count,
-        "member_bag_forecast_units": forecast_units,
-        "integration_step_units": integration_units,
-        "estimate_kind": "baseline_excluding_line_search_retries",
+        "knot_count": knot_count,
+        "lag_profile_point_units": lag_profile_units,
+        "nonlinear_iteration_units": nonlinear_iteration_units,
+        "mcmc_proposal_units": settings.mcmc_proposals,
+        "estimate_kind": (
+            "upper_bound_excluding_lm_retries_and_q_backtracking"
+        ),
     }
 
 
@@ -545,7 +571,7 @@ def inspect_flight_arrays(
     bag_request: InspectionBagRequest,
     arrays: RosbagArrayData,
     preview_max_samples: int = 1200,
-    estimator_settings: Optional[InspectionEstimatorSettings] = None,
+    workload_settings: Optional[InspectionWorkloadSettings] = None,
     source_path: Optional[Path] = None,
 ) -> FlightInspection:
     """Build one ROS-free inspection result from already parsed bag arrays."""
@@ -557,9 +583,9 @@ def inspect_flight_arrays(
     maximum_samples = _positive_integer(
         preview_max_samples, "preview_max_samples", 2
     )
-    settings = estimator_settings or InspectionEstimatorSettings()
-    if not isinstance(settings, InspectionEstimatorSettings):
-        raise TypeError("estimator_settings has the wrong type")
+    settings = workload_settings or InspectionWorkloadSettings()
+    if not isinstance(settings, InspectionWorkloadSettings):
+        raise TypeError("workload_settings has the wrong type")
 
     path = (
         Path(arrays.bag_path).expanduser().resolve()
@@ -937,7 +963,7 @@ def inspect_flights(
                 bag_request,
                 arrays,
                 preview_max_samples=request.preview_max_samples,
-                estimator_settings=request.estimator_settings,
+                workload_settings=request.workload_settings,
                 source_path=source,
             )
             final_result_stat = source.stat()
@@ -1007,7 +1033,7 @@ __all__ = [
     "INSPECTION_PREVIEW_SCHEMA",
     "INSPECTION_REQUEST_SCHEMA",
     "InspectionBagRequest",
-    "InspectionEstimatorSettings",
+    "InspectionWorkloadSettings",
     "InspectionPreview",
     "InspectionRequest",
     "inspect_flight_arrays",

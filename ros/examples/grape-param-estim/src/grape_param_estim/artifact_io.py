@@ -608,18 +608,53 @@ def _validate_flight_inspection(
         work = value["estimated_work_units"]
         if not isinstance(work, dict):
             raise TypeError("estimated_work_units must be an object")
-        units = int(work.get("member_bag_forecast_units", -1))
+        required_work = {
+            "sample_count",
+            "knot_count",
+            "lag_profile_point_units",
+            "nonlinear_iteration_units",
+            "mcmc_proposal_units",
+            "estimate_kind",
+        }
+        if set(work) != required_work:
+            raise TypeError(
+                "estimated_work_units must contain the sparse-batch fields"
+            )
+        count_keys = (
+            "sample_count",
+            "knot_count",
+            "lag_profile_point_units",
+            "nonlinear_iteration_units",
+            "mcmc_proposal_units",
+        )
+        if any(
+            isinstance(work[key], bool) or not isinstance(work[key], int)
+            for key in count_keys
+        ):
+            raise TypeError("sparse-batch work counts must be integers")
+        work_counts = tuple(
+            int(work[key])
+            for key in count_keys
+        )
+        estimate_kind = work["estimate_kind"]
     except (TypeError, ValueError) as error:
         raise ArtifactValidationError(
             "{} contains invalid numeric metadata".format(location)
         ) from error
     if (
         size < 0
-        or units < 0
+        or any(value < 0 for value in work_counts)
+        or not isinstance(estimate_kind, str)
+        or not estimate_kind
         or not np.isfinite(mtime)
         or not np.isfinite(start)
         or not np.isfinite(end)
         or end <= start
+        or (work_counts[0] == 0) != (work_counts[1] == 0)
+        or (
+            work_counts[0] > 0
+            and work_counts[1] != work_counts[0]
+        )
     ):
         raise ArtifactValidationError(
             "{} contains invalid time/size/work metadata".format(location)

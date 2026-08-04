@@ -373,7 +373,14 @@ class ArtifactIoTests(unittest.TestCase):
                 "missing_components": [],
             },
             "estimated_work_units": {
-                "member_bag_forecast_units": 25,
+                "sample_count": 151,
+                "knot_count": 151,
+                "lag_profile_point_units": 42,
+                "nonlinear_iteration_units": 1260,
+                "mcmc_proposal_units": 0,
+                "estimate_kind": (
+                    "upper_bound_excluding_lm_retries_and_q_backtracking"
+                ),
             },
             "status": "ready",
         }

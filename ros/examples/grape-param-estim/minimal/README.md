@@ -1,6 +1,8 @@
 # 最小構成の実機パラメータ推定
 
-このディレクトリの `estimate_recorded_control.py` は、GUI、Q、潜在状態、residual wrench、EM、MCMC を使わず、SciPy の `least_squares` だけで質量、慣性行列、CoG offset、相対 rotor effectiveness を推定します。
+このディレクトリの `estimate_recorded_control.py` は実行用エントリポイントで、既定では `deterministic_estimator.py` のベースライン推定法を呼び出します。
+
+ベースライン推定法は、GUI、Q、潜在状態、residual wrench、EM、MCMC を使わず、SciPy の `least_squares` だけで質量、慣性行列、CoG offset、相対 rotor effectiveness を推定します。
 
 既定では同梱 rosbag の 19–24 秒を読み、記録された rotor thrust command と gimbal command を固定アクチュエータモデルへ入れます。
 

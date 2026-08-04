@@ -50,6 +50,18 @@ class BatchRunRequestGuiTests(unittest.TestCase):
     def setUpClass(cls):
         cls.application = QApplication.instance() or QApplication([])
 
+    def test_default_settings_use_audited_actuator_contract_and_bounded_workload(self):
+        settings = default_batch_estimator_settings()
+        actuator = settings["actuator_model"]
+        self.assertEqual(actuator["thrust_time_constant_seconds"], 0.01)
+        self.assertEqual(actuator["gimbal_time_constant_seconds"], 0.02)
+        self.assertIn("gimbal time constant provisional", actuator["source"])
+        self.assertEqual(settings["knot_policy"]["period_seconds"], 0.05)
+        self.assertEqual(settings["delay"]["coarse_grid_points"], 5)
+        self.assertEqual(settings["delay"]["maximum_refinement_evaluations"], 8)
+        self.assertEqual(settings["solver_settings"]["maximum_iterations"], 30)
+        self.assertEqual(settings["em_settings"]["maximum_iterations"], 5)
+
     def test_run_builds_backend_valid_estimate_only_request(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

@@ -49,21 +49,24 @@ def default_batch_estimator_settings() -> dict[str, object]:
             "prior_kind": "uniform",
             "bounds_seconds": [0.0, 0.08],
             "initial_seconds": 0.035,
-            "coarse_grid_points": 9,
-            "refinement_tolerance_seconds": 1.0e-5,
-            "maximum_refinement_evaluations": 32,
+            "coarse_grid_points": 5,
+            "refinement_tolerance_seconds": 1.0e-4,
+            "maximum_refinement_evaluations": 8,
         },
         "actuator_model": {
-            "source": "provisional_project_configuration; verify against actuator calibration",
-            "thrust_time_constant_seconds": 0.04,
-            "gimbal_time_constant_seconds": 0.03,
+            "source": (
+                "gimbalrotor MotorInfo.yaml and gimbal_limits.urdf; "
+                "gimbal time constant provisional pending system identification"
+            ),
+            "thrust_time_constant_seconds": 0.01,
+            "gimbal_time_constant_seconds": 0.02,
             "minimum_thrust_newtons": 1.5,
             "maximum_thrust_newtons": 27.6145,
             "maximum_gimbal_angle_radians": 3.14,
             "maximum_gimbal_rate_radians_per_second": 6.0,
         },
         "knot_policy": {
-            "period_seconds": 0.02,
+            "period_seconds": 0.05,
             "origin": "interval_start",
             "maximum_measurement_gap_seconds": 0.06,
         },
@@ -79,7 +82,7 @@ def default_batch_estimator_settings() -> dict[str, object]:
         },
         "mode_hypotheses": [],
         "solver_settings": {
-            "maximum_iterations": 50,
+            "maximum_iterations": 30,
             "maximum_factorization_retries": 4,
             "maximum_model_evaluation_retries": 4,
             "acceptance_ratio": 1.0e-4,
@@ -91,7 +94,7 @@ def default_batch_estimator_settings() -> dict[str, object]:
             "maximum_damping": 1.0e12,
         },
         "em_settings": {
-            "maximum_iterations": 12,
+            "maximum_iterations": 5,
             "minimum_iterations": 2,
             "maximum_repeated_q_rejections": 3,
             "maximum_repeated_lag_profile_failures": 3,

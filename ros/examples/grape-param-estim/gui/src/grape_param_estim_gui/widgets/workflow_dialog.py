@@ -95,10 +95,18 @@ class WorkflowLaunchDialog(QDialog):
         self.maximum_iterations_spin.setRange(1, 10000)
         self.maximum_iterations_spin.setSuffix(" iterations")
         self.maximum_iterations_spin.setToolTip(
-            "IEKS relinearizes up to this many times and may stop earlier "
-            "when a convergence tolerance is met."
+            "Per lag candidate, IEKS relinearizes up to this many times and "
+            "may stop earlier when a convergence tolerance is met."
         )
         solver_layout.addWidget(self.maximum_iterations_spin)
+        iteration_help = QLabel(
+            "This is the nonlinear convergence limit for each delay-profile "
+            "candidate, not a count of complete estimation repetitions. "
+            "Values below 10 can stop before a usable Laplace point; 30 is "
+            "the default."
+        )
+        iteration_help.setWordWrap(True)
+        solver_layout.addWidget(iteration_help)
         root.addWidget(solver_group)
         q_group = QGroupBox("Model-error covariance Q")
         q_layout = QVBoxLayout(q_group)

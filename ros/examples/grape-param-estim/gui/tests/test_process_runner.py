@@ -91,6 +91,32 @@ class ProcessRunnerQtTest(unittest.TestCase):
         self.assertEqual(terminal[0], "failed")
         self.assertIn("progress JSONL", terminal[1])
 
+    def test_nonzero_exit_includes_last_stderr_diagnostic(self):
+        worker = self.root / "failed_worker.py"
+        worker.write_text(
+            "import sys\n"
+            "print('preliminary warning', file=sys.stderr, flush=True)\n"
+            "print('batch estimation failed: useful cause', "
+            "file=sys.stderr, flush=True)\n"
+            "raise SystemExit(1)\n"
+        )
+        runner = EstimatorProcessRunner()
+        logs = []
+        runner.stderrLog.connect(logs.append)
+        runner.start(
+            sys.executable,
+            [worker],
+            output_directory=self.root / "out",
+            run_id="run-a",
+        )
+        terminal = self._run_until_terminal(runner)
+        self.assertEqual(terminal[0], "failed")
+        self.assertEqual(
+            terminal[1],
+            "worker exited with code 1: batch estimation failed: useful cause",
+        )
+        self.assertEqual(logs[-1], "batch estimation failed: useful cause")
+
     def test_legacy_member_id_event_is_strict_protocol_error(self):
         worker = self.root / "legacy_worker.py"
         legacy = _event(completed=2, eta=0.0)

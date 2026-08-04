@@ -54,6 +54,12 @@ class WorkflowLaunchDialogTests(unittest.TestCase):
                 for label in dialog.findChildren(QLabel)
             )
         )
+        self.assertTrue(
+            any(
+                "each delay-profile candidate" in label.text()
+                for label in dialog.findChildren(QLabel)
+            )
+        )
 
     def test_running_locks_launch(self):
         dialog = WorkflowLaunchDialog(running=True)

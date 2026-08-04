@@ -95,7 +95,13 @@ class LaplaceEStepResult:
 class LaplaceEStepFailure(RuntimeError):
     """A fixed-Q trajectory solve or lag profile did not converge."""
 
-    def __init__(self, reason: str, inner_iterations: int = 0):
+    def __init__(
+        self,
+        reason: str,
+        inner_iterations: int = 0,
+        *,
+        detail: str = "",
+    ):
         if not isinstance(reason, str) or not reason:
             raise ValueError("failure reason must be a non-empty string")
         if (
@@ -104,9 +110,14 @@ class LaplaceEStepFailure(RuntimeError):
             or inner_iterations < 0
         ):
             raise ValueError("inner_iterations must be a non-negative integer")
+        if not isinstance(detail, str) or detail.strip() != detail:
+            raise ValueError("failure detail must be a canonical string")
         self.reason = reason
         self.inner_iterations = int(inner_iterations)
-        super().__init__(reason)
+        self.detail = detail
+        super().__init__(
+            reason if not detail else "{}: {}".format(reason, detail)
+        )
 
 
 LaplaceEStepSolver = Callable[
@@ -364,6 +375,7 @@ def run_laplace_em(
         raise LaplaceEStepFailure(
             "initial_wide_profile:{}".format(error.reason),
             error.inner_iterations,
+            detail=error.detail,
         ) from error
     if current.moments.interval_count != time_steps.size:
         raise ValueError("E-step residual count disagrees with interval_time_steps")
@@ -572,6 +584,7 @@ def run_fixed_q(
         raise LaplaceEStepFailure(
             "fixed_q_wide_profile:{}".format(error.reason),
             error.inner_iterations,
+            detail=error.detail,
         ) from error
     if step.moments.interval_count != time_steps.size:
         raise ValueError("E-step residual count disagrees with interval_time_steps")

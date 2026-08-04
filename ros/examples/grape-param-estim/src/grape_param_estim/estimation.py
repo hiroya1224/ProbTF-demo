@@ -568,6 +568,7 @@ class SparseLaplaceEStepSolver:
         )
         solved = {}  # type: dict
         failure_iterations = {}  # type: dict
+        failure_reasons = {}  # type: dict
 
         def evaluator(
             candidate_lag: float,
@@ -581,6 +582,7 @@ class SparseLaplaceEStepSolver:
                 failure_iterations[float(candidate_lag)] = (
                     error.inner_iterations
                 )
+                failure_reasons[float(candidate_lag)] = error.reason
                 return LagObjectiveResult(
                     objective=None,
                     converged=False,
@@ -609,8 +611,44 @@ class SparseLaplaceEStepSolver:
             )
         except LagProfileFailure as error:
             total = sum(failure_iterations.values())
+            counts = {}  # type: dict
+            for reason in failure_reasons.values():
+                counts[reason] = counts.get(reason, 0) + 1
+            if (
+                counts == {
+                    "lm_nonconverged:maximum_iterations": len(failure_reasons)
+                }
+                and failure_reasons
+            ):
+                solver_name = (
+                    "IEKS"
+                    if self.lm_settings.method.value == "ieks"
+                    else "sparse LM"
+                )
+                detail = (
+                    "all {} coarse lag candidates reached the {} maximum of "
+                    "{} nonlinear iterations without convergence; increase "
+                    "'Maximum nonlinear iterations' in the launch dialog "
+                    "(30 is the default)"
+                ).format(
+                    len(failure_reasons),
+                    solver_name,
+                    self.lm_settings.maximum_iterations,
+                )
+            elif counts:
+                summary = ", ".join(
+                    "{} ({} candidate{})".format(
+                        reason,
+                        count,
+                        "" if count == 1 else "s",
+                    )
+                    for reason, count in sorted(counts.items())
+                )
+                detail = "{}; failures: {}".format(error, summary)
+            else:
+                detail = str(error)
             raise LaplaceEStepFailure(
-                "lag_profile_failure", total
+                "lag_profile_failure", total, detail=detail
             ) from error
         self.profile_history.append(profile)
         profile_q = selected_q.copy()

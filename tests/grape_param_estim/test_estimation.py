@@ -1,13 +1,16 @@
 from dataclasses import replace
 import unittest
+from unittest import mock
 
 import numpy as np
 
 from grape_param_estim.batch.em_loop import EStepPhase
+from grape_param_estim.batch.em_loop import LaplaceEStepFailure
 from grape_param_estim.batch.lag_profile import LagProfileSettings
 from grape_param_estim.batch.lm import LMSettings
 from grape_param_estim.estimation import (
     EstimationCancelled,
+    FixedGraphSolveFailure,
     SparseLaplaceEStepSolver,
     make_fixed_q_laplace_problem_factory,
     restore_fixed_graph_laplace,
@@ -160,6 +163,35 @@ class EstimationOrchestrationTests(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             solver.take_solution_for_result(result)
+
+    def test_lag_profile_failure_explains_too_small_iteration_limit(self):
+        solver = SparseLaplaceEStepSolver(
+            self.factory,
+            self.prepared.initial_parameter_coordinates,
+            LMSettings(method="ieks", maximum_iterations=5),
+            LagProfileSettings(
+                minimum_lag=0.0,
+                maximum_lag=0.02,
+                coarse_grid_points=3,
+                refinement_tolerance=0.009,
+                maximum_refinement_evaluations=2,
+            ),
+        )
+        failure = FixedGraphSolveFailure(
+            "lm_nonconverged:maximum_iterations", 5
+        )
+        with mock.patch.object(solver, "_solve", side_effect=failure):
+            with self.assertRaises(LaplaceEStepFailure) as caught:
+                solver(
+                    self.prepared.dynamics.q,
+                    EStepPhase.WIDE_LAG_PROFILE,
+                    self.prepared.fixed_delay,
+                    None,
+                )
+        self.assertEqual(caught.exception.reason, "lag_profile_failure")
+        self.assertEqual(caught.exception.inner_iterations, 15)
+        self.assertIn("all 3 coarse lag candidates", str(caught.exception))
+        self.assertIn("IEKS maximum of 5", str(caught.exception))
 
     def test_mcmc_factory_preserves_exact_proposed_static_and_delay(self):
         factory = make_fixed_q_laplace_problem_factory(

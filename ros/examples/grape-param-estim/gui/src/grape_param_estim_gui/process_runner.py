@@ -58,6 +58,7 @@ class EstimatorProcessRunner(QObject):
         self._kill_after_ms = max(int(kill_after_ms), 1)
         self._stdout_buffer = ""
         self._stderr_buffer = ""
+        self._stderr_tail = []  # type: list[str]
         self._last_overall_fraction = 0.0
         self._overall_total_units: int | None = None
         self._last_elapsed_seconds = 0.0
@@ -92,6 +93,7 @@ class EstimatorProcessRunner(QObject):
             raise ValueError("worker program cannot be empty")
         self._stdout_buffer = ""
         self._stderr_buffer = ""
+        self._stderr_tail = []
         self._last_overall_fraction = 0.0
         self._overall_total_units = None
         self._last_elapsed_seconds = 0.0
@@ -164,7 +166,16 @@ class EstimatorProcessRunner(QObject):
         self._stderr_buffer += raw
         while "\n" in self._stderr_buffer:
             line, self._stderr_buffer = self._stderr_buffer.split("\n", 1)
-            self.stderrLog.emit(line.rstrip("\r"))
+            self._accept_stderr_line(line.rstrip("\r"))
+
+    def _accept_stderr_line(self, line: str) -> None:
+        """Forward diagnostics and retain a bounded tail for terminal errors."""
+
+        self.stderrLog.emit(line)
+        if not line:
+            return
+        self._stderr_tail.append(line)
+        del self._stderr_tail[:-20]
 
     def _accept_progress_line(self, line: str) -> None:
         if self._protocol_error is not None:
@@ -233,7 +244,7 @@ class EstimatorProcessRunner(QObject):
             self._accept_progress_line(self._stdout_buffer.rstrip("\r"))
             self._stdout_buffer = ""
         if self._stderr_buffer:
-            self.stderrLog.emit(self._stderr_buffer.rstrip("\r"))
+            self._accept_stderr_line(self._stderr_buffer.rstrip("\r"))
             self._stderr_buffer = ""
         self._terminate_timer.stop()
         self._kill_timer.stop()
@@ -262,7 +273,13 @@ class EstimatorProcessRunner(QObject):
             self._terminal_emitted = True
             self.cancelled.emit()
         elif exit_status != QProcess.NormalExit or exit_code != 0:
-            self._emit_failed("worker exited with code {}".format(exit_code))
+            message = "worker exited with code {}".format(exit_code)
+            if self._stderr_tail:
+                detail = self._stderr_tail[-1]
+                if len(detail) > 1000:
+                    detail = detail[:997] + "..."
+                message = "{}: {}".format(message, detail)
+            self._emit_failed(message)
         elif self._output_directory is None:
             self._emit_failed("worker output directory was not configured")
         else:

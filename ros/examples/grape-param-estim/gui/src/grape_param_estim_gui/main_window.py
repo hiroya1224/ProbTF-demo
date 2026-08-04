@@ -1392,6 +1392,8 @@ class MainWindow(QMainWindow):
             message = (
                 "{}; additionally could not persist workflow failure: {}"
             ).format(message, workflow_error)
+        self.stage_label.setText("failed")
+        self.eta_label.setText("ETA —")
         self._show_error("Estimator worker failed", message)
         self._operation = None
         self._operation_context = {}

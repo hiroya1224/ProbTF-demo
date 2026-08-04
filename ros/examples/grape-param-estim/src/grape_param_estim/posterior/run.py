@@ -17,7 +17,9 @@ from grape_param_estim.posterior.diagnostics import (
     McmcDiagnostics,
     diagnose_mcmc_chains,
 )
+from grape_param_estim.posterior.checkpoint import McmcChainCheckpoint
 from grape_param_estim.posterior.mcmc import (
+    McmcCancelled,
     McmcChainResult,
     McmcChainSettings,
     run_mcmc_chain,
@@ -30,6 +32,7 @@ McmcRunProgress = Callable[
     [int, int, int, int, DelayedAcceptanceStep], None
 ]
 CompletedChainCheckpoint = Callable[[McmcChainResult], None]
+ChainProposalCheckpoint = Callable[[str, McmcChainCheckpoint], None]
 
 
 def _integer(value: object, minimum: int, name: str) -> int:
@@ -280,15 +283,21 @@ def run_mcmc_chains(
     exact_ridge_direction: np.ndarray,
     *,
     completed_chains: Optional[Mapping[str, McmcChainResult]] = None,
+    chain_checkpoints: Optional[
+        Mapping[str, McmcChainCheckpoint]
+    ] = None,
     cancellation_requested: Optional[CancellationCheck] = None,
     progress: Optional[McmcRunProgress] = None,
     checkpoint_completed_chain: Optional[CompletedChainCheckpoint] = None,
+    checkpoint_chain_proposal: Optional[
+        ChainProposalCheckpoint
+    ] = None,
 ) -> McmcRunResult:
     """Run or resume independent chains and compute diagnostics.
 
-    ``completed_chains`` is the immutable chain-level resume boundary.  A
-    completed chain is never rerun, while the single-chain runner still checks
-    cancellation before every proposal.
+    ``completed_chains`` is the immutable chain-level resume boundary, while
+    ``chain_checkpoints`` resumes an unfinished chain at its latest proposal
+    boundary.  The same chain cannot appear in both mappings.
     """
 
     if not callable(sampler_factory):
@@ -311,8 +320,18 @@ def run_mcmc_chains(
     ):
         raise ValueError("initializations must match canonical chain IDs")
     resumed = {} if completed_chains is None else dict(completed_chains)
+    proposal_checkpoints = (
+        {} if chain_checkpoints is None else dict(chain_checkpoints)
+    )
     if not set(resumed).issubset(set(expected_ids)):
         raise ValueError("completed_chains contains an unknown chain ID")
+    if not set(proposal_checkpoints).issubset(set(expected_ids)):
+        raise ValueError("chain_checkpoints contains an unknown chain ID")
+    overlap = set(resumed).intersection(proposal_checkpoints)
+    if overlap:
+        raise ValueError(
+            "a chain cannot be both completed and proposal-checkpointed"
+        )
     for chain_id, chain in resumed.items():
         if (
             not isinstance(chain, McmcChainResult)
@@ -323,10 +342,25 @@ def run_mcmc_chains(
             or chain.thinning != settings.thinning
         ):
             raise ValueError("completed chain does not match run settings")
+    for chain_id, checkpoint in proposal_checkpoints.items():
+        chain_index = expected_ids.index(chain_id)
+        chain_settings = settings.chain_settings(chain_index)
+        if (
+            not isinstance(checkpoint, McmcChainCheckpoint)
+            or checkpoint.chain_id != chain_id
+            or checkpoint.mode_id != settings.mode_id
+            or checkpoint.warmup_steps != chain_settings.warmup_steps
+            or checkpoint.retained_draws != chain_settings.retained_draws
+            or checkpoint.thinning != chain_settings.thinning
+        ):
+            raise ValueError(
+                "proposal checkpoint does not match run settings"
+            )
     for callback, name in (
         (cancellation_requested, "cancellation_requested"),
         (progress, "progress"),
         (checkpoint_completed_chain, "checkpoint_completed_chain"),
+        (checkpoint_chain_proposal, "checkpoint_chain_proposal"),
     ):
         if callback is not None and not callable(callback):
             raise TypeError("{} must be callable".format(name))
@@ -337,24 +371,35 @@ def run_mcmc_chains(
         if chain_settings.chain_id in resumed:
             chains.append(resumed[chain_settings.chain_id])
             continue
+        proposal_checkpoint = proposal_checkpoints.get(
+            chain_settings.chain_id
+        )
         if cancellation_requested is not None and cancellation_requested():
-            from grape_param_estim.posterior.mcmc import McmcCancelled
-
-            raise McmcCancelled(0)
+            raise McmcCancelled(
+                (
+                    proposal_checkpoint.completed_transition
+                    if proposal_checkpoint is not None
+                    else 0
+                ),
+                proposal_checkpoint,
+            )
         sampler = sampler_factory(chain_settings.chain_id)
         if not isinstance(sampler, DelayedAcceptanceSampler):
             raise TypeError(
                 "sampler_factory must return DelayedAcceptanceSampler"
             )
-        initial = sampler.target_evaluator(initialization.point, None)
-        if not isinstance(initial, TargetEvaluation):
-            raise TypeError("target evaluator must return TargetEvaluation")
-        if not initial.successful:
-            raise ValueError(
-                "initial target failed for {}: {}".format(
-                    chain_settings.chain_id, initial.failure_reason
+        if proposal_checkpoint is None:
+            initial = sampler.target_evaluator(initialization.point, None)
+            if not isinstance(initial, TargetEvaluation):
+                raise TypeError("target evaluator must return TargetEvaluation")
+            if not initial.successful:
+                raise ValueError(
+                    "initial target failed for {}: {}".format(
+                        chain_settings.chain_id, initial.failure_reason
+                    )
                 )
-            )
+        else:
+            initial = proposal_checkpoint.current
         random = np.random.RandomState(
             (settings.random_seed + 104729 * (chain_index + 1))
             % (2**32)
@@ -370,6 +415,12 @@ def run_mcmc_chains(
                     step,
                 )
 
+        def chain_proposal_checkpoint(checkpoint):
+            if checkpoint_chain_proposal is not None:
+                checkpoint_chain_proposal(
+                    chain_settings.chain_id, checkpoint
+                )
+
         chain = run_mcmc_chain(
             sampler,
             initial,
@@ -377,6 +428,12 @@ def run_mcmc_chains(
             random,
             cancellation_requested=cancellation_requested,
             progress=chain_progress,
+            resume_checkpoint=proposal_checkpoint,
+            checkpoint_callback=(
+                chain_proposal_checkpoint
+                if checkpoint_chain_proposal is not None
+                else None
+            ),
         )
         chains.append(chain)
         if checkpoint_completed_chain is not None:
@@ -400,6 +457,7 @@ def run_mcmc_chains(
 
 __all__ = [
     "ChainInitialization",
+    "ChainProposalCheckpoint",
     "CompletedChainCheckpoint",
     "McmcRunProgress",
     "McmcRunResult",

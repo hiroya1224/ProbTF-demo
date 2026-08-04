@@ -1,3 +1,4 @@
+from dataclasses import replace
 import unittest
 
 import numpy as np
@@ -15,6 +16,7 @@ from grape_param_estim.posterior.run import (
     initialize_mcmc_chains,
     run_mcmc_chains,
 )
+from grape_param_estim.posterior.mcmc import McmcCancelled
 
 
 class McmcRunTests(unittest.TestCase):
@@ -148,6 +150,170 @@ class McmcRunTests(unittest.TestCase):
         np.testing.assert_allclose(
             resumed.chains[1].static_coordinate,
             first.chains[1].static_coordinate,
+        )
+
+    def _partial_first_chain(self, split_transition=3):
+        proposal_checkpoints = []
+
+        def checkpoint(chain_id, value):
+            proposal_checkpoints.append((chain_id, value))
+
+        with self.assertRaises(McmcCancelled) as context:
+            run_mcmc_chains(
+                self._sampler,
+                self.settings,
+                self.initializations,
+                self.ridge,
+                cancellation_requested=lambda: (
+                    len(proposal_checkpoints) >= split_transition
+                ),
+                checkpoint_chain_proposal=checkpoint,
+            )
+        self.assertEqual(context.exception.completed_transitions, split_transition)
+        self.assertIsNotNone(context.exception.checkpoint)
+        self.assertEqual(
+            tuple(value[0] for value in proposal_checkpoints),
+            ("chain-000",) * split_transition,
+        )
+        self.assertEqual(
+            context.exception.checkpoint.completed_transition,
+            split_transition,
+        )
+        return context.exception.checkpoint
+
+    def test_resumes_incomplete_chain_and_forwards_chain_aware_checkpoints(self):
+        checkpoint = self._partial_first_chain()
+        uninterrupted = run_mcmc_chains(
+            self._sampler,
+            self.settings,
+            self.initializations,
+            self.ridge,
+        )
+        events = []
+        completed = []
+        resumed = run_mcmc_chains(
+            self._sampler,
+            self.settings,
+            self.initializations,
+            self.ridge,
+            chain_checkpoints={"chain-000": checkpoint},
+            checkpoint_chain_proposal=lambda chain_id, value: events.append(
+                (chain_id, value.completed_transition)
+            ),
+            checkpoint_completed_chain=completed.append,
+        )
+        self.assertEqual(events[0], ("chain-000", 4))
+        self.assertIn(("chain-001", 1), events)
+        self.assertEqual(
+            tuple(value.chain_id for value in completed),
+            ("chain-000", "chain-001"),
+        )
+        for expected, actual in zip(uninterrupted.chains, resumed.chains):
+            for name in (
+                "sample_id",
+                "draw_index",
+                "static_coordinate",
+                "delay",
+                "log_density",
+                "attempted_kernel",
+                "accepted_kernel",
+                "accepted",
+                "stage_one_accepted",
+                "stage_two_attempted",
+                "full_target_cache_hit",
+                "inner_solve_failed",
+                "inner_iterations",
+            ):
+                np.testing.assert_array_equal(
+                    getattr(actual, name), getattr(expected, name), err_msg=name
+                )
+            self.assertEqual(
+                actual.kernel_summaries, expected.kernel_summaries
+            )
+
+    def test_rejects_checkpoint_overlap_unknown_id_and_settings_mismatch(self):
+        checkpoint = self._partial_first_chain()
+        completed = run_mcmc_chains(
+            self._sampler,
+            self.settings,
+            self.initializations,
+            self.ridge,
+        ).chains[0]
+        with self.assertRaises(ValueError):
+            run_mcmc_chains(
+                self._sampler,
+                self.settings,
+                self.initializations,
+                self.ridge,
+                completed_chains={"chain-000": completed},
+                chain_checkpoints={"chain-000": checkpoint},
+            )
+        with self.assertRaises(ValueError):
+            run_mcmc_chains(
+                self._sampler,
+                self.settings,
+                self.initializations,
+                self.ridge,
+                chain_checkpoints={"chain-999": checkpoint},
+            )
+        with self.assertRaises(ValueError):
+            run_mcmc_chains(
+                self._sampler,
+                self.settings,
+                self.initializations,
+                self.ridge,
+                chain_checkpoints={
+                    "chain-000": replace(checkpoint, mode_id="other-mode")
+                },
+            )
+        with self.assertRaises(ValueError):
+            run_mcmc_chains(
+                self._sampler,
+                self.settings,
+                self.initializations,
+                self.ridge,
+                chain_checkpoints={"chain-001": checkpoint},
+            )
+
+        def changed_kernel_factory(chain_id):
+            sampler = self._sampler(chain_id)
+            original = sampler.proposal.kernels[0]
+            sampler.proposal = ProposalMixture(
+                (
+                    GaussianSubspaceKernel(
+                        "changed-kernel",
+                        original.basis,
+                        original.scales,
+                    ),
+                ),
+                np.ones(1),
+            )
+            return sampler
+
+        with self.assertRaises(ValueError):
+            run_mcmc_chains(
+                changed_kernel_factory,
+                self.settings,
+                self.initializations,
+                self.ridge,
+                chain_checkpoints={"chain-000": checkpoint},
+            )
+
+    def test_pre_chain_cancellation_preserves_supplied_checkpoint(self):
+        checkpoint = self._partial_first_chain()
+        with self.assertRaises(McmcCancelled) as context:
+            run_mcmc_chains(
+                self._sampler,
+                self.settings,
+                self.initializations,
+                self.ridge,
+                chain_checkpoints={"chain-000": checkpoint},
+                cancellation_requested=lambda: True,
+            )
+        self.assertIs(context.exception.checkpoint, checkpoint)
+        self.assertEqual(
+            context.exception.completed_transitions,
+            checkpoint.completed_transition,
         )
 
 

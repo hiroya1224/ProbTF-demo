@@ -1,0 +1,437 @@
+{
+  "bag": {
+    "interval_seconds": [
+      19.0,
+      24.0
+    ],
+    "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/20260612_grape_hovering_4_2026-06-12-17-33-59.bag"
+  },
+  "baseline": {
+    "estimated_full_coordinates": [
+      0.029147130773504903,
+      0.9998177101944977,
+      0.9999999991253491,
+      -0.1978735057553745,
+      -0.022104249776164358,
+      -0.4999212843605836,
+      0.10352295795410889,
+      0.015041631521516687,
+      -0.011711553039196415,
+      0.07998795947252987,
+      -0.05903686550703389,
+      0.1432287675560043,
+      0.0010720327095816225,
+      -0.08526393475855205,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "result": "../result.json",
+    "schema": "grape-param-estim/minimal-direct-shooting/v2"
+  },
+  "coordinates": {
+    "deterministic_baseline_full": [
+      0.029147130773504903,
+      0.9998177101944977,
+      0.9999999991253491,
+      -0.1978735057553745,
+      -0.022104249776164358,
+      -0.4999212843605836,
+      0.10352295795410889,
+      0.015041631521516687,
+      -0.011711553039196415,
+      0.07998795947252987,
+      -0.05903686550703389,
+      0.1432287675560043,
+      0.0010720327095816225,
+      -0.08526393475855205,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "probabilistic_map_full": [
+      -0.09886560947431591,
+      0.9156151934816035,
+      0.3994083185906008,
+      -0.21436274110819548,
+      0.057371699570862404,
+      -0.4354100744163149,
+      0.03565520075887927,
+      0.0012284212365417852,
+      0.00014691505153550518,
+      0.01272470528745995,
+      -0.28330874240094917,
+      -0.1855808713989583,
+      -0.2713889050914204,
+      -0.264886261198893,
+      -0.036527298075629655,
+      -0.02890785347207484,
+      -0.04104738637504883,
+      -0.030072618010069472
+    ]
+  },
+  "created_at": "2026-08-04T20:10:39.849672+00:00",
+  "graph": {
+    "factor_count": 5547,
+    "knot_count": 99,
+    "total_dimension": 2598
+  },
+  "limitations": [
+    "constant command delay is fixed rather than profiled",
+    "MCMC and posterior parameter sampling are not included",
+    "GUI project, worker, checkpoint, and artifact orchestration are bypassed",
+    "factor covariance values currently match the GUI project's provisional unit defaults"
+  ],
+  "local_parameter_geometry": {
+    "exact_ridge_alignment": 0.001731478265479277,
+    "likelihood_effective_rank": 18,
+    "likelihood_eigenvalues": [
+      1.0665348076717757e-05,
+      0.0005791808828664905,
+      0.002336659388437998,
+      0.007812437376804459,
+      0.044873267690794,
+      0.11658768237082298,
+      0.12618529594848452,
+      0.26334570855644435,
+      0.35136268130536347,
+      0.796539630020618,
+      1.509933690110607,
+      2.5728361021315154,
+      3.5358168130380156,
+      4.548517083216695,
+      106.22232367532779,
+      663.0951762939878,
+      2117.8755926521685,
+      2200.731591624455
+    ],
+    "parameter_names": [
+      "log_mass",
+      "relative_log_inertia_xx",
+      "relative_log_inertia_yy",
+      "relative_log_inertia_zz",
+      "relative_log_inertia_xy",
+      "relative_log_inertia_xz",
+      "relative_log_inertia_yz",
+      "cog_offset_x",
+      "cog_offset_y",
+      "cog_offset_z",
+      "log_force_effectiveness_0",
+      "log_force_effectiveness_1",
+      "log_force_effectiveness_2",
+      "log_force_effectiveness_3",
+      "log_torque_effectiveness_0",
+      "log_torque_effectiveness_1",
+      "log_torque_effectiveness_2",
+      "log_torque_effectiveness_3"
+    ],
+    "posterior_effective_rank": 18,
+    "posterior_eigenvalues": [
+      1.0000106653480765,
+      1.0005791808828584,
+      1.0023366593884377,
+      1.0078124373766266,
+      1.0448732676907952,
+      1.1165876823708152,
+      1.1261852959484824,
+      1.263345708555814,
+      1.3513626813053543,
+      1.7965396300206489,
+      2.5099336901102434,
+      3.5728361021315114,
+      4.53581681303795,
+      5.54851708321659,
+      107.22232367532773,
+      664.0951762939864,
+      2118.8755926521685,
+      2201.7315916244556
+    ]
+  },
+  "method": {
+    "analytic_factor_jacobians": true,
+    "fixed_delay_seconds": 0.01,
+    "lag_profile": false,
+    "linearized_solver": "sparse_lm",
+    "mcmc": false,
+    "q": "fixed",
+    "trajectory": "GUI-backend latent full-trajectory MAP"
+  },
+  "objective_components": {
+    "dynamics/dynamics_residual": 0.9171936501528521,
+    "model/actuator_transition": 0.14422203446375675,
+    "model/controller_integral_transition": 0.000960586443217497,
+    "model/orientation_kinematic": 0.01383015862035028,
+    "model/position_kinematic": 0.012935107508687005,
+    "observation/accelerometer": 2.3681571951122695,
+    "observation/actual_gimbal": 0.10528953249527198,
+    "observation/controller_integral": 0.004264334266201316,
+    "observation/gyro": 0.2812095746239145,
+    "observation/issued_gimbal": 1.1215250863049435,
+    "observation/issued_thrust": 0.5009346596309808,
+    "observation/pose_orientation": 1.677322528736043,
+    "observation/pose_position": 0.48866606166044935,
+    "observation/velocity": 1.6031910245821706,
+    "prior/accelerometer_bias": 0.010096087316297938,
+    "prior/gyro_bias": 0.0001572432504343774,
+    "prior/initial_actuator_gimbal": 2.3788528321834313e-05,
+    "prior/initial_actuator_thrust": 1.4186963870159364e-05,
+    "prior/initial_angular_velocity": 0.0005366158453963305,
+    "prior/initial_controller_integral": 5.432967469556736e-06,
+    "prior/initial_linear_velocity": 0.015176361032379244,
+    "prior/initial_orientation": 0.007096164449783379,
+    "prior/initial_position": 0.0010693251002407104,
+    "prior/static_parameters": 0.33703573485076843
+  },
+  "optimizer": {
+    "approximate_marginal_objective": 4783.466970755905,
+    "converged": true,
+    "elapsed_seconds": 37.979415830690414,
+    "gradient_inf_norm": 1.3551865273629378e-05,
+    "iterations": 8,
+    "objective": 9.61091247490607,
+    "termination_reason": "relative_objective_tolerance"
+  },
+  "outputs": {
+    "method_comparison_pdf": "../method_comparison.pdf",
+    "trajectory_pdf": "trajectory.pdf"
+  },
+  "parameters": {
+    "deterministic_baseline": {
+      "angular_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cog_offset_m": [
+        0.015041631521516687,
+        -0.011711553039196415,
+        0.07998795947252987
+      ],
+      "force_effectiveness": [
+        0.9426720164346628,
+        1.1539937678053198,
+        1.0010726075420415,
+        0.9182698890731301
+      ],
+      "inertia_kg_m2": [
+        [
+          0.19243746981899382,
+          -0.007284136710838163,
+          -0.07579485375020525
+        ],
+        [
+          -0.007284136710838163,
+          0.17732767098046284,
+          0.016636790213061487
+        ],
+        [
+          -0.07579485375020525,
+          0.016636790213061487,
+          0.12780902724431242
+        ]
+      ],
+      "linear_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass_kg": 2.421148595551781,
+      "torque_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "probabilistic_map": {
+      "angular_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cog_offset_m": [
+        0.0012284212365417852,
+        0.00014691505153550518,
+        0.01272470528745995
+      ],
+      "force_effectiveness": [
+        0.7532871802610127,
+        0.8306216593290454,
+        0.7623199686311303,
+        0.7672932160234819
+      ],
+      "inertia_kg_m2": [
+        [
+          0.1736735149635188,
+          0.006719061563244104,
+          -0.0613891867951212
+        ],
+        [
+          0.006719061563244104,
+          0.09705688906908075,
+          0.0020539093837086226
+        ],
+        [
+          -0.0613891867951212,
+          0.0020539093837086226,
+          0.11928658613442622
+        ]
+      ],
+      "linear_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass_kg": 2.1302286333939544,
+      "torque_effectiveness": [
+        0.9641317745949927,
+        0.9715059812452417,
+        0.9597836482022805,
+        0.970375064283681
+      ]
+    }
+  },
+  "q": {
+    "final_diagonal": [
+      25.0,
+      25.0,
+      25.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "floor_diagonal": [
+      1e-08,
+      1e-08,
+      1e-08,
+      1e-08,
+      1e-08,
+      1e-08
+    ],
+    "history": [
+      {
+        "accepted_alpha": 0.0,
+        "approximate_marginal_objective": 4783.466970755905,
+        "inner_iterations": 8,
+        "input_q": [
+          25.0,
+          25.0,
+          25.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "iteration": 0,
+        "map_objective": 9.61091247490607,
+        "output_q": [
+          25.0,
+          25.0,
+          25.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "q_accepted": false,
+        "q_target": [
+          0.5920523077676386,
+          0.5713954699410252,
+          0.5294677003500371,
+          0.19771474708788273,
+          0.10381218778495209,
+          0.1836393231960871
+        ],
+        "q_target_covariance_contribution": [
+          0.463294926987207,
+          0.5656062394454022,
+          0.4815937831412754,
+          0.19694854435142553,
+          0.09332844880618905,
+          0.18346784829247853
+        ],
+        "q_target_map_contribution": [
+          0.1287573807804316,
+          0.005789230495622914,
+          0.047873917208761704,
+          0.0007662027364572065,
+          0.010483738978763037,
+          0.00017147490360858769
+        ],
+        "termination_reason": "fixed_lag_wide_lag_profile"
+      }
+    ],
+    "initial_diagonal": [
+      25.0,
+      25.0,
+      25.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "termination_reason": "fixed_by_request"
+  },
+  "recorded_control_open_loop_metrics": {
+    "deterministic": {
+      "angular_velocity_rmse_rad_per_s": 1.8299753967295305,
+      "orientation_angle_rmse_deg": 34.45618894589788,
+      "orientation_angle_rmse_rad": 0.6013739447951924,
+      "position_component_rmse_m": [
+        1.480249788594623,
+        0.1936700786109881,
+        0.14966649537756282
+      ],
+      "position_rmse_m": 1.500349157970309,
+      "specific_force_rmse_m_per_s2": 1.7058540847850636,
+      "terminal_orientation_error_deg": 70.79196116307622,
+      "terminal_position_error_m": 0.52385438173225,
+      "velocity_component_rmse_m_per_s": [
+        1.8330212855379362,
+        0.36460523378029475,
+        0.3840930297250186
+      ],
+      "velocity_rmse_m_per_s": 1.9079914740948074
+    },
+    "nominal": {
+      "angular_velocity_rmse_rad_per_s": 5.805364922725194,
+      "orientation_angle_rmse_deg": 134.09180388544317,
+      "orientation_angle_rmse_rad": 2.3403434777395087,
+      "position_component_rmse_m": [
+        16.124213531855084,
+        14.651699076442842,
+        47.3384720777632
+      ],
+      "position_rmse_m": 52.11135659819902,
+      "specific_force_rmse_m_per_s2": 2.800365812127242,
+      "terminal_orientation_error_deg": 159.79247732594501,
+      "terminal_position_error_m": 123.4248391115022,
+      "velocity_component_rmse_m_per_s": [
+        7.503735720583354,
+        6.242964964568819,
+        29.73092153784468
+      ],
+      "velocity_rmse_m_per_s": 31.29230507333503
+    },
+    "probabilistic": {
+      "angular_velocity_rmse_rad_per_s": 1.7032102817274124,
+      "orientation_angle_rmse_deg": 125.90305469010983,
+      "orientation_angle_rmse_rad": 2.1974228426609055,
+      "position_component_rmse_m": [
+        33.65293131700853,
+        13.76641813625454,
+        33.86380905241449
+      ],
+      "position_rmse_m": 49.686936090564906,
+      "specific_force_rmse_m_per_s2": 1.1676648450144005,
+      "terminal_orientation_error_deg": 160.46936011626408,
+      "terminal_position_error_m": 119.86213603687636,
+      "velocity_component_rmse_m_per_s": [
+        18.119450547621245,
+        10.110978405271773,
+        22.690802795068247
+      ],
+      "velocity_rmse_m_per_s": 30.747665016131567
+    }
+  },
+  "schema": "grape-param-estim/minimal-probabilistic-bridge/v1"
+}

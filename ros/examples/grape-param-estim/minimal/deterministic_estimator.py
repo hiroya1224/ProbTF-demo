@@ -476,7 +476,18 @@ class DirectShootingProblem:
         )
 
     def simulate(self, active: Sequence[float]) -> Simulation:
-        parameters = self.chart.decode(self.full_coordinates(active))
+        return self.simulate_full_coordinates(self.full_coordinates(active))
+
+    def simulate_full_coordinates(
+        self, full_coordinates: Sequence[float]
+    ) -> Simulation:
+        coordinates = np.asarray(full_coordinates, dtype=float)
+        if (
+            coordinates.shape != (PARAMETER_DIMENSION,)
+            or not np.all(np.isfinite(coordinates))
+        ):
+            raise ValueError("full parameter coordinates must be finite 18-D")
+        parameters = self.chart.decode(coordinates)
         plant = FullSixDofPlant(parameters, self.geometry)
         rigid = self._initial_rigid_state(parameters)
         actuators = self.initial_actuator_state
@@ -1088,7 +1099,7 @@ def _write_pdf(
             plt.close(figure)
 
 
-def _parse_arguments() -> argparse.Namespace:
+def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Directly fit mass, inertia, and CoG so one recorded-control "
@@ -1109,11 +1120,32 @@ def _parse_arguments() -> argparse.Namespace:
         type=Path,
         default=Path(__file__).resolve().parent / "output",
     )
-    return parser.parse_args()
+    return parser
 
 
-def main() -> int:
-    arguments = _parse_arguments()
+def parameter_bounds() -> tuple[np.ndarray, np.ndarray]:
+    lower = np.asarray(
+        (
+            -0.60,
+            -1.0,
+            -1.0,
+            -1.0,
+            -0.50,
+            -0.50,
+            -0.50,
+            -0.08,
+            -0.08,
+            -0.08,
+            -0.35,
+            -0.35,
+            -0.35,
+        ),
+        dtype=float,
+    )
+    return lower, -lower
+
+
+def run(arguments: argparse.Namespace) -> int:
     bag = arguments.bag.expanduser().resolve()
     if not bag.is_file():
         raise SystemExit("bag does not exist: {}".format(bag))
@@ -1148,25 +1180,7 @@ def main() -> int:
         prior_weight=arguments.prior_weight,
     )
     initial = np.zeros(ACTIVE_PARAMETER_DIMENSION, dtype=float)
-    lower = np.asarray(
-        (
-            -0.60,
-            -1.0,
-            -1.0,
-            -1.0,
-            -0.50,
-            -0.50,
-            -0.50,
-            -0.08,
-            -0.08,
-            -0.08,
-            -0.35,
-            -0.35,
-            -0.35,
-        ),
-        dtype=float,
-    )
-    upper = -lower
+    lower, upper = parameter_bounds()
     nominal_simulation = problem.simulate(initial)
     nominal_metrics = _metrics(problem, nominal_simulation)
     print("nominal metrics: {}".format(json.dumps(nominal_metrics, sort_keys=True)))
@@ -1348,6 +1362,10 @@ def main() -> int:
     print("wrote {}".format(json_path))
     print("wrote {}".format(pdf_path))
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    return run(create_argument_parser().parse_args(argv))
 
 
 if __name__ == "__main__":

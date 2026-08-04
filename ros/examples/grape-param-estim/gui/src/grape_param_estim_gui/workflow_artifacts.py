@@ -77,6 +77,16 @@ def preflight_batch_estimation_launch(
 ) -> str:
     """Validate the request and GUI/backend artifact handshake before work."""
 
+    if not isinstance(request, Mapping):
+        raise WorkflowError("batch-estimation request must be an object")
+    solver_settings = request.get("solver_settings")
+    if (
+        not isinstance(solver_settings, Mapping)
+        or "method" not in solver_settings
+    ):
+        raise WorkflowError(
+            "request.solver_settings.method must be explicit for a new run"
+        )
     if (
         validate_batch_estimation_request is None
         or BATCH_ESTIMATION_RUN_SCHEMA is None

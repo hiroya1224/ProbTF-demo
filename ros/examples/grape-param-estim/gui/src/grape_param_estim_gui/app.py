@@ -83,6 +83,7 @@ def default_batch_estimator_settings() -> dict[str, object]:
         },
         "mode_hypotheses": [],
         "solver_settings": {
+            "method": "sparse_lm",
             "maximum_iterations": 30,
             "maximum_factorization_retries": 4,
             "maximum_model_evaluation_retries": 4,

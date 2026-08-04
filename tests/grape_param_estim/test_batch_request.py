@@ -7,6 +7,7 @@ import unittest
 import numpy as np
 
 from grape_param_estim.artifact_io import ArtifactValidationError
+from grape_param_estim.batch.lm import LMSettings
 from grape_param_estim.batch_request import (
     ACCELEROMETER_BIAS_PRIOR_COVARIANCE_BLOCKS,
     BATCH_ESTIMATION_REQUEST_SCHEMA,
@@ -142,6 +143,7 @@ class BatchRequestTests(unittest.TestCase):
                 }
             ],
             "solver_settings": {
+                "method": "sparse_lm",
                 "maximum_iterations": 50,
                 "maximum_factorization_retries": 4,
                 "maximum_model_evaluation_retries": 4,
@@ -229,6 +231,26 @@ class BatchRequestTests(unittest.TestCase):
             validate_batch_estimation_request(request)
         request = copy.deepcopy(self.request)
         request["q"]["interval_model"] = "fixed_interval_covariance"
+        with self.assertRaisesRegex(ArtifactValidationError, "must be one of"):
+            validate_batch_estimation_request(request)
+
+    def test_solver_method_is_explicit_and_ieks_is_supported(self):
+        request = copy.deepcopy(self.request)
+        request["solver_settings"]["method"] = "ieks"
+        parsed = validate_batch_estimation_request(request)
+        self.assertEqual(parsed.payload["solver_settings"]["method"], "ieks")
+
+        legacy_request = copy.deepcopy(self.request)
+        del legacy_request["solver_settings"]["method"]
+        legacy = validate_batch_estimation_request(legacy_request)
+        self.assertNotIn("method", legacy.payload["solver_settings"])
+        self.assertEqual(
+            LMSettings(**dict(legacy.payload["solver_settings"])).method.value,
+            "sparse_lm",
+        )
+
+        request = copy.deepcopy(self.request)
+        request["solver_settings"]["method"] = "kalman_filter"
         with self.assertRaisesRegex(ArtifactValidationError, "must be one of"):
             validate_batch_estimation_request(request)
 

@@ -33,6 +33,9 @@ from grape_param_estim_gui.workflow import (
     canonical_fingerprint,
     completion_fingerprint,
 )
+from grape_param_estim_gui.workflow_artifacts import (
+    preflight_batch_estimation_launch,
+)
 from grape_param_estim_gui.widgets.workflow_dialog import (
     WorkflowLaunchSelection,
 )
@@ -71,6 +74,7 @@ class BatchRunRequestGuiTests(unittest.TestCase):
         self.assertEqual(settings["delay"]["coarse_grid_points"], 5)
         self.assertEqual(settings["delay"]["maximum_refinement_evaluations"], 8)
         self.assertEqual(settings["solver_settings"]["maximum_iterations"], 30)
+        self.assertEqual(settings["solver_settings"]["method"], "sparse_lm")
         self.assertEqual(settings["em_settings"]["maximum_iterations"], 5)
         self.assertEqual(settings["q"]["update_policy"], "fixed")
 
@@ -119,6 +123,15 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             sampled = validate_batch_estimation_request(sampled_request)
             self.assertEqual(sampled.payload["run_mode"], "estimate_and_sample")
             self.assertTrue(sampled.payload["mcmc_settings"]["enabled"])
+            missing_method = json.loads(json.dumps(sampled_request))
+            del missing_method["solver_settings"]["method"]
+            with self.assertRaisesRegex(
+                WorkflowError, "method must be explicit"
+            ):
+                preflight_batch_estimation_launch(
+                    missing_method,
+                    source_path=root / "missing-method.request.json",
+                )
             with mock.patch(
                 "grape_param_estim_gui.main_window."
                 "preflight_batch_estimation_launch",
@@ -148,7 +161,7 @@ class BatchRunRequestGuiTests(unittest.TestCase):
                 window,
                 "_choose_workflow_mode",
                 return_value=WorkflowLaunchSelection(
-                    WorkflowMode.STEP, "fixed"
+                    WorkflowMode.STEP, "fixed", "ieks", 12
                 ),
             ):
                 window.start_estimation()
@@ -159,6 +172,10 @@ class BatchRunRequestGuiTests(unittest.TestCase):
             self.assertEqual(parsed.payload["run_mode"], "estimate_only")
             self.assertFalse(parsed.payload["mcmc_settings"]["enabled"])
             self.assertEqual(parsed.payload["q"]["update_policy"], "fixed")
+            self.assertEqual(parsed.payload["solver_settings"]["method"], "ieks")
+            self.assertEqual(
+                parsed.payload["solver_settings"]["maximum_iterations"], 12
+            )
             self.assertEqual(tuple(parsed.payload["bags"][0]["interval_seconds"]), (18.0, 24.0))
             self.assertEqual(
                 parsed.payload["bags"][0]["observation_factors"]["accelerometer"]["disabled_reason"],
@@ -318,7 +335,7 @@ class BatchRunRequestGuiTests(unittest.TestCase):
                 window,
                 "_choose_workflow_mode",
                 return_value=WorkflowLaunchSelection(
-                    WorkflowMode.ALL, "fixed"
+                    WorkflowMode.ALL, "fixed", "sparse_lm", 30
                 ),
             ):
                 window.start_estimation()
@@ -353,7 +370,7 @@ class BatchRunRequestGuiTests(unittest.TestCase):
                 window,
                 "_choose_workflow_mode",
                 return_value=WorkflowLaunchSelection(
-                    WorkflowMode.ALL, "fixed"
+                    WorkflowMode.ALL, "fixed", "sparse_lm", 30
                 ),
             ):
                 window.start_estimation()

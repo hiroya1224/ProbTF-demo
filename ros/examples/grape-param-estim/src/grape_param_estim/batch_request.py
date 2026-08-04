@@ -781,8 +781,33 @@ def _validate_numeric_settings(
 
 
 def _validate_solver(value: Any) -> None:
+    settings = _mapping(value, "request.solver_settings")
+    numeric_names = (
+        "maximum_iterations",
+        "maximum_factorization_retries",
+        "maximum_model_evaluation_retries",
+        "acceptance_ratio",
+        "gradient_tolerance",
+        "scaled_step_tolerance",
+        "relative_objective_tolerance",
+        "initial_damping",
+        "minimum_damping",
+        "maximum_damping",
+    )
+    expected = (
+        ("method",) + numeric_names
+        if "method" in settings
+        else numeric_names
+    )
+    _keys(settings, expected, "request.solver_settings")
+    if "method" in settings:
+        _choice(
+            settings["method"],
+            ("sparse_lm", "ieks"),
+            "request.solver_settings.method",
+        )
     _validate_numeric_settings(
-        value,
+        {name: settings[name] for name in numeric_names},
         "request.solver_settings",
         {
             "maximum_iterations": 1,
@@ -797,7 +822,6 @@ def _validate_solver(value: Any) -> None:
         ),
         ("initial_damping", "minimum_damping", "maximum_damping"),
     )
-    settings = value
     if not (
         settings["minimum_damping"]
         <= settings["initial_damping"]

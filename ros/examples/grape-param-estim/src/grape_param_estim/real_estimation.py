@@ -492,12 +492,17 @@ def estimate_mode(
         nonlinear_timings.append(float(record.elapsed_seconds))
         if progress is not None:
             maximum = int(request.payload["solver_settings"]["maximum_iterations"])
+            solver_method = str(
+                request.payload["solver_settings"].get(
+                    "method", "sparse_lm"
+                )
+            )
             progress(
                 "optimizing_full_trajectory",
                 record.iteration + 1,
                 maximum,
-                "mode={} objective={:.9g}".format(
-                    mode_id, record.objective_before
+                "mode={} solver={} objective={:.9g}".format(
+                    mode_id, solver_method, record.objective_before
                 ),
             )
 

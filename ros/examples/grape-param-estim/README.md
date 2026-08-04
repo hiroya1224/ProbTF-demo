@@ -55,8 +55,13 @@ ROS worker の interpreter を明示する場合は `GRAPE_PARAM_ESTIM_WORKER_PY
 
 ## GUI workflow
 
-bag inspection 後に `Bag browser` で使用する区間と sensor contract を確認し、`Run estimation…` から Q の扱いと停止境界を選びます。
+bag inspection 後に `Bag browser` で使用する区間と sensor contract を確認し、`Run estimation…` から nonlinear solver、反復上限、Q の扱い、停止境界を選びます。
 
+- `Sparse batch Levenberg-Marquardt` は従来の sparse-LU/Schur solve を使います。
+- `Iterative Extended Kalman Smoother (IEKS)` は同じ解析 Jacobian 因子を反復再線形化し、bag ごとに 26 次元 knot を時刻順に前向き消去してから後ろ向き平滑化します。
+- IEKS の共有18変数と bag bias は小さな persistent reduced system で同時に更新しますが、command lag は IEKS state に入れず、各 fixed-lag IEKS solve の外側にある一次元 delay profile で別途最適化します。
+- `Maximum nonlinear iterations` は再線形化と smoothing の反復上限であり、収束判定を満たせば指定値より早く停止します。
+- 二つの solver は同じ posterior objective と trust-ratio globalization を使うため、同じ basin へ収束すれば同じ MAP を返し、IEKS 選択だけで統計モデルや観測情報が増えるわけではありません。
 - `Keep the configured Q fixed` は project に保存した `initial_diagonal` を固定し、Q 候補ごとの MAP 再計算と Laplace-EM を省略するため、現在の実機データを診断する最初の実行に推奨します。
 - 固定 Q でも一つの wide delay profile、全軌道 MAP、Laplace 幾何は必要なので瞬時には終わりませんが、既定の複数 EM iteration より大幅に短くなります。
 - 固定 Q の request には `update_policy=fixed`、artifact には `fixed_by_request` と未適用の診断用 Q target を保存し、EM 収束とは表示しません。
@@ -90,7 +95,7 @@ worker は JSON Lines の progress を標準出力へ、診断を標準エラー
 | log torque effectiveness | 4 |
 | 合計 | 18 |
 
-科学的には continuous constant delay 1 次元を加えた 19 個が共有未知量ですが、ZOH command に対する目的関数が区分的に滑らかなため、delay は 18 次元 Gauss--Newton block へ入れず、外側の一次元 profile optimization で求めます。
+科学的には continuous constant delay 1 次元を加えた 19 個が共有未知量ですが、ZOH command に対する目的関数が区分的に滑らかなため、delay は sparse LM と IEKS のどちらの状態にも入れず、外側の一次元 profile optimization で求めます。
 各 knot の local state は position 3、SO(3) tangent 3、world linear velocity 3、body angular velocity 3、PID integral 6、actual rotor thrust 4、actual gimbal angle 4、の合計 26 次元です。
 bag ごとに gyro bias 3 次元を持ち、calibrated accelerometer factor を有効にした場合だけ accelerometer bias 3 次元も持ちます。
 したがって inner MAP の次元は `18 + sum_b(26 N_b + 3 + accelerometer_bias_b)` であり、`N_b` は bag `b` の knot 数、`accelerometer_bias_b` は accelerometer 使用時だけ 3 です。
@@ -110,7 +115,8 @@ Q=\operatorname{diag}(q_{F_x},q_{F_y},q_{F_z},q_{\tau_x},q_{\tau_y},q_{\tau_z}).
 `body_wrench/continuous_spectral_density` の場合は interval-average residual の covariance を `Q / dt_k` と定義し、可変 sampling interval を明示的に扱います。
 Q は MAP residual の二乗だけではなく、Laplace covariance correction を加えた期待二乗から 6 成分を別々に更新します。
 production factor は解析 Jacobian block を返し、finite difference は derivative test の oracle にだけ使います。
-bag-local sparse block を消去して 18 次元 Schur complement を解くため、full dense Hessian や full covariance は作りません。
+従来法は bag-local sparse block を sparse LU で消去し、IEKS は block-tridiagonal な knot information を前向き消去と後ろ向き代入で解きます。
+どちらも共有座標の reduced system だけを dense に解くため、full dense Hessian や full covariance は作りません。
 
 詳しい導出と実装対応は次を参照してください。
 
@@ -134,7 +140,9 @@ rosrun grape_param_estim grape_estimate_flights.py \
   --request /absolute/path/to/batch-estimation-request.json
 ```
 
-request は output directory、bag の絶対 path と SHA256、interval、全 observation/fixed/prior covariance、Q の `update_policy`・quantity・単位・interval model、18 次元 prior、delay profile、actuator model、knot/interpolation/controller policy、mode、solver、EM、MCMC の全設定を明示します。
+request は output directory、bag の絶対 path と SHA256、interval、全 observation/fixed/prior covariance、Q の `update_policy`・quantity・単位・interval model、18 次元 prior、delay profile、actuator model、knot/interpolation/controller policy、mode、solver の `method` と反復条件、EM、MCMC の全設定を明示します。
+新しい GUI run の `solver_settings.method` は `sparse_lm` または `ieks` の必須値であり、不正値や欠落は worker 起動前の GUI preflight で拒否します。
+導入前に保存された v1 request だけは resume 互換性のため、`method` 欠落時に従来の `sparse_lm` として読み戻します。
 covariance を message に記録されていない値から暗黙に補う default はなく、使用しない factor は理由付きで disabled にします。
 actuator model も request の必須情報であり、hidden default はありません。
 
@@ -230,6 +238,8 @@ thrust time constant `0.01 s` は `MotorInfo.yaml` の情報に基づきます�
 assembly は 0.186 秒、bag-local factorization は 0.046 秒、Schur solve は 0.020 秒程度ですが、LM 一回は約 2.5 秒、EM 一回は 248.36 秒でした。
 時間の大半は単発の forward propagation ではなく、複数の delay 候補と Q 候補について sparse MAP を繰り返す lag profile と Laplace-EM に使われます。
 したがってこの処理を「ただの順方向 forecast」とみなして rollout だけを並列化しても支配時間は解消しません。
+2026 年 8 月 5 日の同じ実 bag に対する 135-knot fixed-lag smoke では、IEKS と sparse LM はともに 10 iteration で同じ objective `0.930498671675976` へ収束し、load 後の MAP/Laplace wall time はそれぞれ約 26.5 秒と 24.0 秒でした。
+この比較では factor 評価が支配的で IEKS は高速化になっていないため、solver 選択を wall time 短縮の保証とは解釈しません。
 詳細は [real_flight_validation_ja.md](lectures/real_flight_validation_ja.md) に記録しています。
 
 ## clean 短区間 E2E 配管検証

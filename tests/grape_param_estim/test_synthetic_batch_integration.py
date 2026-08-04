@@ -364,6 +364,40 @@ def _permutation_problem(input_bag_ids):
 
 
 class MultiBagInputPermutationIntegrationTests(unittest.TestCase):
+    def test_iterated_smoother_matches_sparse_lm_nonlinear_solution(self):
+        problem, initial = _permutation_problem(
+            ("bag-alpha", "bag-mu", "bag-zeta")
+        )
+        common = dict(
+            maximum_iterations=32,
+            initial_damping=0.04,
+            gradient_tolerance=2.0e-10,
+            scaled_step_tolerance=2.0e-10,
+            relative_objective_tolerance=1.0e-12,
+        )
+        sparse = solve_batch_map(
+            problem,
+            initial,
+            LMSettings(method="sparse_lm", **common),
+        )
+        ieks = solve_batch_map(
+            problem,
+            initial,
+            LMSettings(method="ieks", **common),
+        )
+
+        self.assertTrue(sparse.converged)
+        self.assertTrue(ieks.converged)
+        self.assertAlmostEqual(ieks.objective, sparse.objective, places=18)
+        self.assertGreater(len(ieks.iterations), 1)
+        for key in problem.layout.variable_keys:
+            np.testing.assert_allclose(
+                ieks.state.value(key),
+                sparse.state.value(key),
+                rtol=3.0e-10,
+                atol=3.0e-11,
+            )
+
     def test_actual_assembly_schur_and_lm_are_input_order_invariant(self):
         permutations = (
             ("bag-alpha", "bag-mu", "bag-zeta"),

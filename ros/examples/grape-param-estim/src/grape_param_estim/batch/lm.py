@@ -1,4 +1,4 @@
-"""Trust-ratio Levenberg--Marquardt iterations for sparse batch MAP."""
+"""Trust-ratio nonlinear iterations for sparse batch MAP and IEKS."""
 
 from dataclasses import dataclass
 from enum import Enum
@@ -9,13 +9,16 @@ from typing import Callable, Optional, Tuple
 import numpy as np
 
 from grape_param_estim.batch.factor import FactorEvaluation
+from grape_param_estim.batch.ieks import (
+    solve_scaled_conditional_ieks_step,
+    solve_scaled_ieks_step,
+)
 from grape_param_estim.batch.problem import (
     BatchProblem,
     ProblemLinearization,
     RecoverableModelEvaluationError,
 )
 from grape_param_estim.batch.sparse_solver import (
-    BagFactorizationDiagnostics,
     solve_scaled_conditional_lm_step,
     solve_scaled_lm_step,
 )
@@ -32,6 +35,13 @@ class LMTerminationReason(Enum):
     NUMERICAL_FACTORIZATION_FAILURE = "numerical_factorization_failure"
     NONFINITE_MODEL_EVALUATION = "nonfinite_model_evaluation"
     ACTIVE_SET_OSCILLATION = "active_set_oscillation"
+
+
+class NonlinearSolverMethod(Enum):
+    """Linearized solve used inside the common nonlinear globalization."""
+
+    SPARSE_LM = "sparse_lm"
+    IEKS = "ieks"
 
 
 _CONVERGED_REASONS = {
@@ -77,8 +87,14 @@ class LMSettings:
     relative_objective_tolerance: float = 1.0e-8
     maximum_factorization_retries: int = 4
     maximum_model_evaluation_retries: int = 4
+    method: NonlinearSolverMethod = NonlinearSolverMethod.SPARSE_LM
 
     def __post_init__(self) -> None:
+        try:
+            method = NonlinearSolverMethod(self.method)
+        except (TypeError, ValueError) as error:
+            raise ValueError("method must be sparse_lm or ieks") from error
+        object.__setattr__(self, "method", method)
         for name in (
             "maximum_iterations",
             "maximum_factorization_retries",
@@ -136,7 +152,7 @@ class LMIterationRecord:
     active_set_changed: bool
     model_evaluation_failed: bool
     factorization_failed: bool
-    bag_diagnostics: Tuple[BagFactorizationDiagnostics, ...]
+    bag_diagnostics: Tuple[object, ...]
     elapsed_seconds: float
 
 
@@ -315,16 +331,32 @@ def _solve_batch_map(
         damping_before = damping
         try:
             if optimize_shared:
-                step = solve_scaled_lm_step(
-                    current.sparse,
-                    scale,
-                    damping,
+                step = (
+                    solve_scaled_ieks_step(
+                        current.sparse,
+                        scale,
+                        damping,
+                    )
+                    if settings.method is NonlinearSolverMethod.IEKS
+                    else solve_scaled_lm_step(
+                        current.sparse,
+                        scale,
+                        damping,
+                    )
                 )
             else:
-                step = solve_scaled_conditional_lm_step(
-                    current.sparse,
-                    scale,
-                    damping,
+                step = (
+                    solve_scaled_conditional_ieks_step(
+                        current.sparse,
+                        scale,
+                        damping,
+                    )
+                    if settings.method is NonlinearSolverMethod.IEKS
+                    else solve_scaled_conditional_lm_step(
+                        current.sparse,
+                        scale,
+                        damping,
+                    )
                 )
         except np.linalg.LinAlgError:
             consecutive_factorization_failures += 1
@@ -545,6 +577,7 @@ __all__ = [
     "LMSettings",
     "LMSolveResult",
     "LMTerminationReason",
+    "NonlinearSolverMethod",
     "solve_batch_map",
     "solve_conditional_batch_map",
 ]

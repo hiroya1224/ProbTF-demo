@@ -445,6 +445,7 @@ def _request_payload(root, bag_specs):
             }
         ],
         "solver_settings": {
+            "method": "sparse_lm",
             "maximum_iterations": 20,
             "maximum_factorization_retries": 4,
             "maximum_model_evaluation_retries": 4,

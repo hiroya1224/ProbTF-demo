@@ -259,6 +259,24 @@ future discrepancy は `zero_model_discrepancy` とした。
 この clean E2E は estimate、posterior append、conditional trajectory、PID Cartesian product、別飛行 tuning artifact が整合することを検証した plumbing smoke test である。
 短い区間、EM 一回、4 draws/chain、2-sample PID subset、zero discrepancy、未確認の configuration compatibility という条件なので、parameter、Q、MCMC、PID の科学的成功を主張しない。
 
+### 10.4 IEKS solver smoke
+
+2026 年 8 月 5 日に IEKS を追加し、各 fixed-lag graph で 26 次元 knot information を時刻順に前向き消去し、共有18変数と bag bias の reduced system を解いてから後ろ向き平滑化する経路を確認した。
+command lag は IEKS state に追加せず、従来と同じ外側の一次元 profile parameter とした。
+
+失敗 bag の `17.9193058--24.7196323 s`、135 knots、固定 Q、固定 lag `0.035 s` に対する単発比較は次のとおりである。
+
+| solver | nonlinear iterations | MAP objective | load 後の MAP/Laplace wall |
+|---|---:|---:|---:|
+| sparse LM | 10 | `0.9304986716759760` | `24.02 s` |
+| IEKS | 10 | `0.9304986716759757` | `26.48 s` |
+
+両 solver は同じ解析 Jacobian、objective、damping、trust-ratio acceptance を使うため、この run では同じ反復数と数値精度内で同じ MAP へ収束した。
+IEKS はこの比較では高速化にならず、factor 評価が支配的であるという従来の profile と整合した。
+
+同じ bag の `18.0--18.3 s` では、外側 profile が lag `0.0`、`0.04`、`0.08`、`0.0152786`、`0.0247214 s` の5点で fixed-lag IEKS を呼び、`0.0152786 s` を選んで wall `3.95 s` で完走した。
+これは lag が IEKS state に混入せず別途最適化される配管の smoke test であり、短区間の選択 lag を物理的同定結果とは解釈しない。
+
 ## 11. 次の validation
 
 1. pose、velocity、gyro、command、fixed-factor covariance を実測または再現性試験から校正する。
@@ -269,6 +287,7 @@ future discrepancy は `zero_model_discrepancy` とした。
 6. ridge geometry が synthetic expectation と整合した後で multiple-chain MCMC を実行する。
 7. tuning に使わなかった別 bag を外部 validation として確保する。
 8. MCMC convergence と predictive diagnostics を満たした後にだけ PID candidate 評価へ進む。
+9. IEKS と sparse LM を複数初期値と長区間で比較し、収束 basin、iteration 上限、active-set 切替に対する robustness を記録する。
 
 現時点の結論は「新 backend が実 bag で finite に完走し、strict artifact と性能診断を生成した」である。
 「Q、delay、mass、effectiveness が実機の真値として同定された」または「次回 PID を変更できる」とは結論していない。

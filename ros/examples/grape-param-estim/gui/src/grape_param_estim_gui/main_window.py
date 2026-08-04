@@ -543,6 +543,12 @@ class MainWindow(QMainWindow):
             self.store.manifest["estimator_settings"]["q"][
                 "update_policy"
             ] = selection.q_update_policy
+            self.store.manifest["estimator_settings"]["solver_settings"][
+                "method"
+            ] = selection.solver_method
+            self.store.manifest["estimator_settings"]["solver_settings"][
+                "maximum_iterations"
+            ] = selection.maximum_iterations
             write_project_manifest(
                 self.store.project_path, self.store.manifest
             )
@@ -659,6 +665,16 @@ class MainWindow(QMainWindow):
                 self.store.manifest["estimator_settings"]["q"].get(
                     "update_policy", "fixed"
                 )
+            ),
+            selected_solver_method=str(
+                self.store.manifest["estimator_settings"][
+                    "solver_settings"
+                ].get("method", "sparse_lm")
+            ),
+            selected_maximum_iterations=int(
+                self.store.manifest["estimator_settings"][
+                    "solver_settings"
+                ]["maximum_iterations"]
             ),
             parent=self,
         )

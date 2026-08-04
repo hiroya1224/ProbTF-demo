@@ -63,6 +63,29 @@ class EstimationOrchestrationTests(unittest.TestCase):
             result.factorization.reduced_hessian,
         )
 
+    def test_ieks_relinearizes_the_production_graph_at_fixed_external_lag(self):
+        result = solve_fixed_graph_laplace(
+            self.factory,
+            self.prepared.dynamics.q,
+            self.prepared.fixed_delay,
+            self.prepared.initial_parameter_coordinates,
+            LMSettings(method="ieks", maximum_iterations=50),
+        )
+
+        self.assertTrue(result.lm.converged)
+        self.assertGreater(len(result.lm.iterations), 1)
+        self.assertEqual(
+            result.prepared.fixed_delay, self.prepared.fixed_delay
+        )
+        self.assertTrue(
+            all(
+                diagnostic.forward_factorizations
+                == diagnostic.backward_steps
+                for record in result.lm.iterations
+                for diagnostic in record.bag_diagnostics
+            )
+        )
+
     def test_completed_map_checkpoint_restores_without_nonlinear_iterations(self):
         solved = solve_fixed_graph_laplace(
             self.factory,

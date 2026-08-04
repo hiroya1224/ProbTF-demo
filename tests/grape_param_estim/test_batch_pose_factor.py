@@ -25,7 +25,7 @@ class PoseObservationFactorTests(unittest.TestCase):
         self.observed_position = np.asarray((0.25, -0.28, 0.98))
         self.observed_rotation = self.rotation0 @ so3_exp((0.05, 0.01, 0.04))
         self.sensor_position = np.asarray((-0.0173, -0.0011, 0.057061))
-        self.body_to_sensor = so3_exp((0.015, -0.02, 0.01))
+        self.sensor_to_body = so3_exp((0.015, -0.02, 0.01))
         self.cog = np.asarray((-0.002, 0.001, 0.008))
         self.cog_jacobian = np.zeros((3, 18), dtype=float)
         self.cog_jacobian[:, 7:10] = np.eye(3)
@@ -60,7 +60,7 @@ class PoseObservationFactorTests(unittest.TestCase):
                 else observed_rotation
             ),
             self.sensor_position,
-            self.body_to_sensor,
+            self.sensor_to_body,
             self.cog if cog is None else cog,
             self.cog_jacobian,
             self.position_whitening,
@@ -188,7 +188,7 @@ class PoseObservationFactorTests(unittest.TestCase):
             self.observed_position,
             self.observed_rotation,
             self.sensor_position,
-            self.body_to_sensor,
+            self.sensor_to_body,
             self.cog,
             self.cog_jacobian,
             self.position_whitening,

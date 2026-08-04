@@ -66,7 +66,7 @@ def evaluate_pose_observation_factors(
     observed_sensor_position: np.ndarray,
     observed_sensor_rotation: np.ndarray,
     sensor_position_in_body: np.ndarray,
-    body_to_sensor_rotation: np.ndarray,
+    sensor_to_body_rotation: np.ndarray,
     cog_offset_in_body: np.ndarray,
     cog_offset_chart_jacobian: np.ndarray,
     position_square_root_information: np.ndarray,
@@ -94,8 +94,8 @@ def evaluate_pose_observation_factors(
     sensor_position = _finite_vector3(
         sensor_position_in_body, "sensor_position_in_body"
     )
-    body_to_sensor = _proper_rotation(
-        body_to_sensor_rotation, "body_to_sensor_rotation"
+    sensor_to_body = _proper_rotation(
+        sensor_to_body_rotation, "sensor_to_body_rotation"
     )
     cog_offset = _finite_vector3(cog_offset_in_body, "cog_offset_in_body")
     cog_jacobian = np.asarray(cog_offset_chart_jacobian, dtype=float)
@@ -177,14 +177,14 @@ def evaluate_pose_observation_factors(
         active_set={},
     )
 
-    predicted_sensor_rotation = interpolated_rotation @ body_to_sensor
+    predicted_sensor_rotation = interpolated_rotation @ sensor_to_body
     raw_orientation_residual = so3_log(
         observed_rotation.T @ predicted_sensor_rotation
     )
     residual_log_jacobian = so3_right_jacobian_inverse(
         raw_orientation_residual
     )
-    body_tangent_to_sensor_tangent = body_to_sensor.T
+    body_tangent_to_sensor_tangent = sensor_to_body.T
     orientation_residual = orientation_whitening @ raw_orientation_residual
     orientation_blocks = (
         JacobianBlock(

@@ -147,6 +147,7 @@ class PidEvaluationRequest:
     estimation_run: Path
     output_directory: Path
     resume: bool
+    forecast_workers: Union[str, int]
     baseline_bag_id: str
     selected_mode_id: Optional[str]
     bags: Tuple[PidEvaluationBagRequest, ...]
@@ -256,6 +257,7 @@ def validate_pid_evaluation_request(
         "estimation_run",
         "output_directory",
         "resume",
+        "forecast_workers",
         "baseline_bag_id",
         "selected_mode_id",
         "bags",
@@ -280,6 +282,16 @@ def validate_pid_evaluation_request(
     resume = request["resume"]
     if not isinstance(resume, bool):
         _error("request.resume", "must be boolean")
+    raw_workers = request["forecast_workers"]
+    if raw_workers == "auto":
+        forecast_workers: Union[str, int] = "auto"
+    else:
+        forecast_workers = _integer(
+            raw_workers,
+            "request.forecast_workers",
+            minimum=1,
+            maximum=32,
+        )
     bags = _bags(request["bags"])
     baseline = _identifier(
         request["baseline_bag_id"], "request.baseline_bag_id", bag=True
@@ -357,14 +369,21 @@ def validate_pid_evaluation_request(
     if maximum_reference_age == 0.0:
         _error("request.maximum_reference_age_seconds", "must be positive")
     frozen = MappingProxyType(dict(request))
+    fingerprint_payload = dict(request)
+    # ``resume`` changes process control only.  As in the batch-estimation
+    # request, the interrupted and resumed invocations must retain one exact
+    # request identity.  The explicit worker setting remains part of that
+    # identity even though it is recorded as a non-scientific runtime setting.
+    fingerprint_payload["resume"] = False
     return PidEvaluationRequest(
         source_path=Path(source_path),
         payload=frozen,
-        fingerprint=request_fingerprint(request),
+        fingerprint=request_fingerprint(fingerprint_payload),
         evaluation_id=evaluation_id,
         estimation_run=estimation_run,
         output_directory=output_directory,
         resume=resume,
+        forecast_workers=forecast_workers,
         baseline_bag_id=baseline,
         selected_mode_id=selected_mode,
         bags=bags,

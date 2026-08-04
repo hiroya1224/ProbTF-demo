@@ -20,6 +20,7 @@ def _payload(root):
         "estimation_run": str(run),
         "output_directory": str(root / "result"),
         "resume": False,
+        "forecast_workers": "auto",
         "baseline_bag_id": "bag-a",
         "selected_mode_id": "mode-map",
         "bags": [
@@ -77,6 +78,7 @@ class PidRequestTests(unittest.TestCase):
             request = validate_pid_evaluation_request(payload)
             self.assertEqual(request.evaluation_id, "pid-evaluation")
             self.assertEqual(request.discrepancy_replicates, 3)
+            self.assertEqual(request.forecast_workers, "auto")
             self.assertEqual(request.plant_sample_ids, ("chain-a:1", "chain-b:1"))
             self.assertEqual(request.candidates[2].gain_values.shape, (4, 3))
             self.assertTrue(request.fingerprint.startswith("sha256:"))
@@ -114,6 +116,31 @@ class PidRequestTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(ArtifactValidationError, "must be null"):
                 validate_pid_evaluation_request(payload)
+
+    def test_worker_count_is_explicit_but_non_scientific_resume_is_normalized(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            payload = _payload(Path(temporary))
+            first = validate_pid_evaluation_request(payload)
+            payload["resume"] = True
+            resumed = validate_pid_evaluation_request(payload)
+            self.assertEqual(first.fingerprint, resumed.fingerprint)
+            payload["forecast_workers"] = 2
+            changed_runtime = validate_pid_evaluation_request(payload)
+            self.assertNotEqual(first.fingerprint, changed_runtime.fingerprint)
+            self.assertEqual(changed_runtime.forecast_workers, 2)
+
+    def test_worker_count_rejects_implicit_or_unbounded_values(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            payload = _payload(Path(temporary))
+            del payload["forecast_workers"]
+            with self.assertRaisesRegex(ArtifactValidationError, "missing"):
+                validate_pid_evaluation_request(payload)
+            for value in (0, 33, True, "automatic"):
+                with self.subTest(value=value):
+                    payload = _payload(Path(temporary))
+                    payload["forecast_workers"] = value
+                    with self.assertRaises(ArtifactValidationError):
+                        validate_pid_evaluation_request(payload)
 
 
 if __name__ == "__main__":

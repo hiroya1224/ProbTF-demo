@@ -1,41 +1,26 @@
 # grape_param_estim
 
-Grape の full closed-loop system を forecast operator として使い、対角 process-noise covariance `Q` の推定と fixed-Q static-parameter assimilation を分けた二段階 ensemble filter / smoother の実装です。
-現行の実 rosbag 推定は、Stage 1 の diagonal-Q EM と Stage 2 の augmented EnKF / EnRTS を順番に実行します。
+Grape の実 rosbag を一つの疎な全軌道問題として解き、静的物理パラメータ、一定 command delay、対角モデル誤差共分散、局所事後幾何、MCMC sample、PID 候補の posterior predictive 評価を一続きに扱う ROS package です。
+各 knot の状態を同時に推定する batch smoothing を使い、観測時刻ごとの reset や時刻ごとの residual-wrench 未知状態は使いません。
 
-現行の二段階推定に加え、synthetic experiment、旧 strong/weak-constraint 回帰、検証、実 rosbag inspection、posterior-predictive controller 評価を実装しています。
-旧 Streamlit GUI、rosbag open-loop replay、segment reset、static particle estimator、旧 result schema との後方互換は意図的に削除しました。
+## 収録 rosbag で GUI を起動する
 
-## 収録 rosbag で GUI を起動する最短デモ
-
-初回だけ後述の Desktop GUI セットアップと `catkin build grape_param_estim --no-deps` を済ませてください。
-次のコマンドは、指定された2026年6月12日の飛行を新しい一時projectへコピーし、GUIをbare `rosrun`で起動してinspectionを自動開始します。
-このbagは完結した `flight_state=5` を含まず、control-activeな `flight_state=3` を警告付きで選ぶ失敗飛行の例です。
+最初に package を build し、後述の GUI 用 Python 3.10 以上の環境を用意してください。
+次の例は失敗飛行を repository 内の sample から新規 project へコピーし、inspection を自動開始します。
+推定区間は record local time の `18.000 s` から `24.000 s` を推奨します。
 
 ```bash
 cd /home/leus/catkin_ws
+catkin build grape_param_estim --no-deps
 source devel/setup.bash
 rosrun grape_param_estim run_gui.py \
   --projects-root /tmp/grape-param-estim-failed-demo \
   --bag "$(rospack find grape_param_estim)/samples/rosbags/20260612_grape_hovering_4_2026-06-12-17-33-59.bag"
 ```
 
-inspectionが完了するとGUIは `Bag browser` へ自動的に移動し、`Trajectory`、`Flight state`、3D world trajectoryへpreviewを表示します。
-この失敗飛行で推定する場合は、`Bag browser` の `start` と `end` をlocal record timeの `18.000 s` と `24.000 s` にそれぞれ変更してから `Run estimation…` を開始してください。
-inspectionが自動選択する約 `7.39–24.90 s` の全区間は、数値破綻せず完走することを確認する回帰試験用であり、このbagの科学的推定に推奨するwindowではありません。
-`Master`、`Correction transform`、`Residual wrench` はStage 2のfixed-Q parameter estimation結果を表示する領域なので、Stage 2完了前は空です。
-このbagにはhardware configuration provenanceが記録されていないため、GUIはconfiguration group確認画面を開きます。
-単独bagのデモでは既定の `single-bag-bd3fc7f71797` をそのまま確認すると、欠落warningを保持したままこのbagだけのgroupとして `Use` が有効になり、toolbarの `Run estimation…` を実行できます。
-`Run estimation…` は二段階の実行方法を選ぶ画面を開き、推奨の `Run one stage at a time`（`STEP`）または連続実行する `Run all stages`（`ALL`）を選べます。
-同じgroup IDを複数bagへ指定する操作は、それらが同じpayload、rotor、geometry、robot model、wiring、hardwareであると利用者が確認できる場合に限ります。
-選択したbagのconfirmed configuration fingerprintが混在する場合、現行staged workflowは実行を拒否し、mismatchを許すoverrideはありません。
-実行中に `Stop` した場合、不完全なstage artifactは `cancelled` として読み込まず、bagは `ready` に戻るため同じstageを再試行できます。
-Stage 1 が完了していれば、そのartifactは次回起動でも検証後に再利用され、Stage 2 から再開できます。
-一方、実行中stageの数値計算途中から再開するcheckpointはなく、cancel・failure・アプリ再起動で中断されたstageは先頭から再試行します。
-
-次のコマンドは、2026年6月13日の成功飛行を同じGUI経路で開きます。
-このbagは完全hold-out検証にも使った例で、完結した `flight_state=5` 区間を211 samples含みます。
-選定された完結episodeはtakeoff、約21.06秒のhover、land、stopまで遷移し、hover位置referenceに対するRMSEは約0.0602 mです。
+次の例は飛行に成功した 2026 年 6 月 13 日の bag を同じ経路で開きます。
+inspection では complete episode `7.2259--65.6365 s` と state=5 区間 `41.8469--62.9066 s` を確認しており、短い tuning run には例えば `45--51 s` を明示的な候補にできます。
+この成功 bag は現時点では未実施の data split 候補であり、estimator や covariance の設定を確認するために使った場合は「完全な hold-out」とは呼びません。
 
 ```bash
 cd /home/leus/catkin_ws
@@ -45,297 +30,190 @@ rosrun grape_param_estim run_gui.py \
   --bag "$(rospack find grape_param_estim)/samples/rosbags/20260613_grape_hovering_3_2026-06-13-15-12-51.bag"
 ```
 
-両方を一つのprojectへ読み込む場合は、同じコマンドへ2個の `--bag` を指定できます。
-収録ファイルは元bagのbasenameと内容を維持しており、GUIはsourceを変更せずproject側へコピーします。
-どちらのbagもhardware configuration provenanceの一部を記録していないため、inspection後にGUIがconfiguration groupの確認を求めますが、これはtopic/data欠落を意味しません。
+二つの bag を一つの project に追加する場合は `--bag` を二回指定できますが、同じ configuration group にまとめるのは payload、rotor、geometry、wiring、robot model、hardware revision が同一だと確認できる場合だけです。
+成功 sample の topic contract は valid ですが、この六つの configuration provenance 項目は bag だけでは不足するため manual confirmation が必要です。
+sample の原本 SHA256 は失敗 bag が `bd3fc7f71797c0f5cb665acc50832da93c590e540fa170f9977182ecedf93bf8`、成功 bag が `a1569a48bf9a1d4d3f10a40bfc0e2c3c0cba192660b32204eeb37d1416425071` です。
 
-## Synthetic closed-loop flight
+## GUI の Python 環境
 
-- `PoseLinearController::controlCore()` と `GimbalrotorController::controlCore()` の対象実験 branch を移植した stateful Python controller
-  - position mode の x/y/z/roll/pitch/yaw PID
-  - yaw shortest-angle error
-  - z integral の非負制約
-  - roll/pitch integration gate
-  - P/I/D/error/output clamp
-  - `gimbal_calc_in_fc=false`、`gimbal_dof=1`、fully-actuated allocation
-- Grape URDF の四つの vectoring rotor、full inertia tensor、CoG、反トルク
-- actual gimbal angle に応じて全リンクから再計算する controller 側の CoG、full inertia、thrust-link origin と、固定 arm-coordinate basis
-- thrust/gimbal delay、first-order response、force/angle/rate saturation
-- position、quaternion、world velocity、body angular velocityを持つ full 6-DoF plant
-- nominal plant と、parameter mismatch・drag・actuator mismatch・時間変化外乱を持つ truth plant
-- x/y/z/roll/pitch/yaw を同時に励起する一つの連続 closed-loop episode
-- position/orientation だけの observation generator
-- `Z_k = T_nominal,k^-1 T_real,k` の correction-transform path
-
-## 現行の二段階推定
-
-### Stage 1: diagonal-Q EM
-
-- body-frame residual wrench を6次元の OU process state として EnKF / EnRTS で filtering / smoothing
-- `Q = diag(q_Fx, q_Fy, q_Fz, q_tau_x, q_tau_y, q_tau_z)` の6成分を別々に保持
-- position / orientation の observation covariance `R`、vehicle parameter、初期 delay、OU correlation time はこのstage中に固定
-- E-step の smoothed wrench pathからOU sufficient statisticsを集計し、M-stepで6個のstationary varianceのclosed-form targetを計算
-- closed-form targetへの変化をlog-Q空間でバックトラッキングし、candidateのE-stepが有限値で完了し、かつ近似filter log-likelihoodが入力Qから低下しないときだけ受理
-- 数値失敗または尤度低下のcandidateは棄却してより小さなstep fraction `alpha`を試し、全trialの棄却時は入力Qを保持して明示的に停止
-- `Q` の各成分、単位、frame、closed-form target、受理した `alpha`、全trialのcandidateと棄却理由、入出力尤度、入力fingerprintをstrict artifactへ保存
-
-`Q` を単位行列の定数倍にはせず、force 3軸とtorque 3軸の異なるスケールを保持します。
-成分ごとの下限floorは有効ですが、発散を隠すper-axisのhard upper capは設けません。
-residual wrenchの各時刻値はdynamic stochastic stateであり、時刻ごとの最適化変数としてparameter vectorへ追加しません。
-
-### Stage 2: fixed-Q static parameters
-
-Stage 1 の検証済み `Q` artifactを固定入力とし、19個のshared static coordinatesとbag-local dynamic stateをaugmented EnKFで逐次更新し、最後にEnRTSでfixed-interval smoothingします。
-shared static coordinatesの内訳は、vehicle parameter 18個とcontinuous constant delay 1個です。
-
-一つのbagに対する推定未知量の内訳は次のとおりです。
-
-| 区分 | 内訳 | 次元 |
-|---|---|---:|
-| shared static | mass 1、full SPD inertia 6、CoG 3、force effectiveness 4、torque effectiveness 4、delay 1 | 19 |
-| bag-local initial | position / orientation tangent / linear velocity / angular velocity 12、PID integral 6、actuator thrust / gimbal 8 | 26 |
-| 合計 | `19 + 26` | 45 |
-
-時刻ごとのfilter stateはshared static 19成分とdynamic 32成分からなる51次元です。
-dynamic 32成分の内訳はrigid-body state 12、PID integral 6、actuator state 8、現在のresidual wrench 6です。
-residual wrench 6成分は `Q` に従うMarkov processとして毎intervalで遷移し、全時刻分を未知parameterとして積み上げません。
-
-51次元analysis anomalyに直交する6本のprocess-noise directionをexact ensembleで確保するには、中心化で失う1自由度も含めて `51 + 6 + 1 = 58` members以上が必要です。
-そのため現行staged workflowはensemble sizeを58以上に制限し、既定値は128です。
-複数bagでは19個のstatic coordinatesだけを共有し、26個の初期座標とdynamic pathはbagごとに独立に保ちます。
-
-### 識別性と検証
-
-- common-scale exact ridge 上のfull closed-loop rolloutとpose likelihoodの不変性
-- raw ridge coordinate、17次元quotient law、prior-whitened information leak、correction-path coverage
-- position / orientationを分離したposterior predictive metricと完全hold-out flight
-- plant actuator channel wiringをmodeごとに独立同化するsynthetic regression
-
-mass・inertia・effectivenessにはpose-only観測で識別できないridgeが残るため、marginalの狭さだけを推定成功と解釈しません。
-解析・有限差分Jacobian、segment reset、parameter hard bounds、particle weightsは使いません。
-
-## Real rosbag assimilation
-
-- rosbag の header stamp ではなく record time を正本にした実データ adapter
-- `flight_state=5` の一つの連続 airborne 区間を既定 window とし、別 flight や不連続区間を連結しない episode selection
-- CoG odometry の位置と baselink odometry の姿勢だけを likelihood に使用（twist、IMU、加速度は観測へ追加しない）
-- 記録された `PoseControlPid` reference/feedforward、PID integral、dynamic-reconfigure update の gain snapshot、gimbal/thrust anchor の因果的復元
-- preflight 静止区間からロバスト推定する位置・SO(3) 観測 covariance
-- nominal vehicle modelを固定したStage 1で6成分のdiagonal `Q` をEM推定
-- Stage 1 artifactの `Q` を固定したStage 2でshared static parameterとbag-local stateをEnKF / EnRTS推定
-- raw static parameter、filter / smoother state、residual-wrench path、full latent trajectory、correction-transform path、ridge診断のmember-aligned保存
-
-既定では完結した episode 内の最長 `flight_state=5` interval を選びます。
-存在しない場合は control-active interval を警告付き候補として返し、人間が GUI 上で確認します。
-ground-contact model を持たないため、接地区間を free-flight forecast へ自動追加しません。
-
-## PID proposal evaluation
-
-- selected-mode raw physical member を平均化せず、各 member の mass、full inertia、CoG、rotor effectiveness から `xy`、`z`、`roll_pitch`、`yaw` の exact P/I/D proposal を導出
-- controller nominal model と PID limit は固定し、controller nominal mass を候補にしない
-- current、明示的に選択した member-derived candidate、exact user candidate を、全 raw member・全 selected bag の full closed-loop simulation で評価
-- position RMSE、orientation RMSE、各 maximum error、forecast completion、numerical failure を単位別に保持し、bag equal-weight mean / upper CVaR を計算
-- weighted sum で順位を作らず、独立した物理指標と completion による Pareto dominance を保存
-- candidate × member × bag の trajectory、true correction translation / rotation-vector、failure reason を pickle-free directory bundle に保存
-
-既定の scenario は、同化時と同じ reference・member 初期状態・posterior residual wrench path を繰り返す counterfactual です。
-したがって「同じ実験を controller parameter だけ変えて再試行する」提案であり、新しい風を予言したものではありません。
-request で `residual_policy="zero"` を選ぶ場合も、その仮定を artifact に明記します。
-
-位置・姿勢 threshold は実験要件として設定された場合だけ用い、未設定時は `Not configured` として Pareto 判定から外します。
-proposal YAML は exact gain だけを出力し、dynamic_reconfigure への自動書き込みは行いません。
-dynamic_reconfigure は利用者が選んだ gain を controller へ書き込む機構であり、parameter 推定や PID 候補生成は行いません。
-
-## 実行
-
-### Desktop GUI
-
-GUI は estimator の ROS Python 環境とは別の Python 3.10 以上の環境へインストールします。
-rosbag の inspection と同化 worker は `QProcess` から catkin 環境の `/usr/bin/python3` で起動されます。
-検証済み環境は pyenv の Python 3.10.18 と `gui/.venv` です。
+GUI は Python 3.10 以上、PySide6、pyqtgraph、PyVista、PyVistaQt、VTK を使います。
+推定 worker は ROS Python 環境で別 process として動くため、GUI の virtual environment と ROS の Python を同一にする必要はありません。
 
 ```bash
 /home/leus/.pyenv/versions/3.10.18/bin/python -m venv \
-  ros/examples/grape-param-estim/gui/.venv
-ros/examples/grape-param-estim/gui/.venv/bin/python -m pip install -e \
-  ros/examples/grape-param-estim/gui
-
-source /home/leus/catkin_ws/devel/setup.bash
-rosrun grape_param_estim run_gui.py
+  /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/gui/.venv
+/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/gui/.venv/bin/python -m pip install -e \
+  /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/gui
 ```
 
-devel space の `rosrun` は source script の shebang ではなく、catkin が生成した relay の Python で開始します。
-そのため host 固有の venv 絶対パスを shebang へ固定せず、launcher が PySide6 を import する前に interpreter を選んで `execve` します。
-選択順は `GRAPE_PARAM_ESTIM_GUI_PYTHON`、active `VIRTUAL_ENV`、package 内 `gui/.venv`、現在の Python 3.10 以上です。
-したがって上記 workspace では venv の activate や GUI 用環境変数なしで `rosrun grape_param_estim run_gui.py` を実行できます。
-検証環境の package-local `qt-runtime` も同じ再実行時にだけ自動追加します。
-worker interpreter を変更する場合は `GRAPE_PARAM_ESTIM_WORKER_PYTHON` に catkin/ROS package を読み込める interpreter の絶対パスを設定します。
-同化画面で `forecast` と表示される処理は、一本の順方向軌道だけではありません。
-Stage 1 は各EM iterationで全memberのEnKF forecastとEnRTS smoothingを行い、Stage 2も各観測intervalで全memberを順方向に伝播してanalysisした後、全区間を後向きにEnRTS smoothingします。
-したがって主な計算量は概ねmember数、時刻interval数、Stage 1のEM反復数に比例し、既定128 membersでは単一rolloutより大幅に重くなります。
+`run_gui.py` の shebang 自体に host 固有の virtual environment を埋め込んでいません。
+`rosrun` で起動された launcher は PySide6 を import する前に、`GRAPE_PARAM_ESTIM_GUI_PYTHON`、active な `VIRTUAL_ENV`、package 内 `gui/.venv`、現在の Python 3.10 以上、の順で interpreter を選び、必要なら `execve` で一度だけ再実行します。
+ROS worker の interpreter を明示する場合は `GRAPE_PARAM_ESTIM_WORKER_PYTHON` に ROS package を import できる Python の絶対 path を設定します。
 
-各memberの順方向伝播は独立なので、2 workers以上では `spawn` process poolをfilter pass中ずっと保持し、intervalごとのprocess生成を避けます。
-`forecast_workers="auto"` はCPU affinityの半数、ensemble size、32の最小値を使うため、自動選択の上限は32 workersです。
-明示値はproject manifestの `estimator_settings.forecast_workers` で指定でき、`1` はprocess間通信を使わない直列の参照経路です。
-GUIはBLASの入れ子並列によるoversubscriptionを避けるため、`OPENBLAS_NUM_THREADS`、`OMP_NUM_THREADS`、`MKL_NUM_THREADS` が未設定の場合だけ既定値1をworkerへ渡し、利用者が明示した環境変数は保持します。
-短いwindowや小さいensembleではprocess間通信の固定費により直列より遅い場合がありますが、長い実bagではpersistent poolによりmember並列を利用できます。
-GUI の `Save Project` は raw rosbag、inspection、run、PID evaluation、GUI state を含む標準 ZIP/ZIP64 を保存し、`Load Project` は同梱 bag の SHA256 を検査して `projects/` 以下へ展開します。
+## GUI workflow
 
-`Next experiment` では shared selection の raw member を明示し、current、member-derived exact candidate、任意で入力した exact 4 x 3 user candidate を評価します。
-user candidate の初期値は baseline bag の記録済み controller snapshot だけから復元し、別設定値へ fallback しません。
-baseline controller snapshot、`posterior_replay` / `zero`、CVaR level、explicit selection target を画面上で選択でき、threshold は既定で `Not configured` のままです。
-実行は同じ progress / ETA / cancel 経路を使い、complete artifact だけを自動ロードします。
-結果の3D比較も、画面で選択中の bag・member・candidate に対応する保存済み forecast path だけを表示します。
+bag inspection 後に `Bag browser` で使用する区間と sensor contract を確認し、`Run estimation…` から `STEP` または `ALL` を選びます。
 
-実環境では `gui/.venv` に PySide6 6.9.3、pyqtgraph 0.14.0、PyVista 0.46.5、PyVistaQt 0.11.4、VTK 9.5.2 を導入し、Qt widget、staged workflow、project、plot / 3DのGUI testを実行できる状態にしました。
-さらに `DISPLAY=:1`、Qt `xcb` backend、Mesa software rendering で実 UI と VTK を起動し、Master、Bag browser の world / correction、PID の translation / rotation / trajectory を視覚確認しました。
-14 枚の PNG と機械可読な `summary.json` は `/tmp/grape-gui-visual-acceptance` にあります。
-ウィンドウ画像は X server の `QScreen.grabWindow` で取得しているため、ネイティブ VTK 子画面も含みます。
-各 VTK framebuffer も別画像として保存しています。
-再実行には `gui/tests/visual_acceptance.py` へ strict-load 可能な assimilation bundle、同じ run ID の PID evaluation bundle、出力 directory を指定します。
+- `STEP` は `estimate_only` を実行し、疎な MAP、delay profile、Laplace-EM の Q 更新、Laplace 幾何を保存したところで止まるため、中間結果の点検に向きます。
+- `ALL` は `estimate_and_sample` を実行し、同じ推定に ridge-aware MCMC を続けて posterior sample まで生成します。
 
-ホスト側に不足していた `libxcb-cursor0` は sudo で system install せず、deb を `gui/.venv/qt-runtime` へ展開し、その `usr/lib/x86_64-linux-gnu` を受入実行時の `LD_LIBRARY_PATH` に追加しました。
-これは検証環境だけの補完であり、system library は変更していません。
-実 artifact は変更せず、GUI freshness 検査に必要な `project_request_fingerprint` は `/tmp/grape-visual-assimilation-run` の視覚確認用コピーにだけ追加しました。
+表示する軌道は observed、nominal、MAP、保存された selected posterior-sample conditional trajectory です。
+observed は測定値、nominal は推定前モデル、MAP は全 factor を同時に満たす最尤点ではなく prior を含む最大事後点、conditional trajectory は選択した static sample と delay に条件づけた局所 trajectory MAP です。
+観測と推定軌道が近いことだけでは十分でなく、normalized sensor residual、dynamics residual、Q band、ridge、MCMC 診断も一緒に確認してください。
+`Dynamics residual` は状態と物理パラメータから決まる interval residual の表示であり、推定された外力時系列ではありません。
 
-### Legacy synthetic regression tools
+worker は JSON Lines の progress を標準出力へ、診断を標準エラーへ出し、GUI は nonlinear iteration、lag profile point、EM iteration、MCMC proposal、PID forecast の境界で停止要求を処理します。
+不完全な directory は complete result として読み込みません。
+MCMC chain checkpoint の低位 API はありますが、現行の one-command worker は `resume=true` を既存 checkpoint へ接続していないため、中断した run の end-to-end resume は未完成です。
 
-次のstrong/weak-constraintコマンドはsynthetic回帰と旧方式の比較用であり、現行の実rosbag二段階workflowではありません。
+## 推定対象と次元
+
+全 selected bag で共有する静的 chart は 18 次元です。
+
+| 共有静的量 | 次元 |
+|---|---:|
+| log mass | 1 |
+| relative full-SPD inertia | 6 |
+| CoG offset | 3 |
+| log force effectiveness | 4 |
+| log torque effectiveness | 4 |
+| 合計 | 18 |
+
+科学的には continuous constant delay 1 次元を加えた 19 個が共有未知量ですが、ZOH command に対する目的関数が区分的に滑らかなため、delay は 18 次元 Gauss--Newton block へ入れず、外側の一次元 profile optimization で求めます。
+各 knot の local state は position 3、SO(3) tangent 3、world linear velocity 3、body angular velocity 3、PID integral 6、actual rotor thrust 4、actual gimbal angle 4、の合計 26 次元です。
+bag ごとに gyro bias 3 次元を持ち、calibrated accelerometer factor を有効にした場合だけ accelerometer bias 3 次元も持ちます。
+したがって inner MAP の次元は `18 + sum_b(26 N_b + 3 + accelerometer_bias_b)` であり、`N_b` は bag `b` の knot 数、`accelerometer_bias_b` は accelerometer 使用時だけ 3 です。
+18--24 秒の検証 run は 119 knots、gyro bias 有効、accelerometer 無効なので、inner MAP は `18 + 26*119 + 3 = 3115` 次元です。
+Q の 6 対角成分は Laplace-EM の hyperparameter、delay は外側 profile parameter であり、この 3115 次元には含めません。
+時刻ごとの residual wrench を未知変数として積み上げないため、軌道が長くなると増えるのは物理的な knot state だけです。
+
+## 数理の要点
+
+各 interval で required body wrench と actuator、drag から得る modeled body wrench の差を 6 次元 dynamics residual とします。
+
+```math
+\xi_k = w_{\mathrm{required},k} - w_{\mathrm{modeled},k},\qquad
+Q=\operatorname{diag}(q_{F_x},q_{F_y},q_{F_z},q_{\tau_x},q_{\tau_y},q_{\tau_z}).
+```
+
+`body_wrench/continuous_spectral_density` の場合は interval-average residual の covariance を `Q / dt_k` と定義し、可変 sampling interval を明示的に扱います。
+Q は MAP residual の二乗だけではなく、Laplace covariance correction を加えた期待二乗から 6 成分を別々に更新します。
+production factor は解析 Jacobian block を返し、finite difference は derivative test の oracle にだけ使います。
+bag-local sparse block を消去して 18 次元 Schur complement を解くため、full dense Hessian や full covariance は作りません。
+
+詳しい導出と実装対応は次を参照してください。
+
+- [batch_estimator_formulation_ja.md](lectures/batch_estimator_formulation_ja.md)
+- [analytic_jacobian_implementation_ja.md](lectures/analytic_jacobian_implementation_ja.md)
+- [laplace_em_q_estimation_ja.md](lectures/laplace_em_q_estimation_ja.md)
+- [ridge_and_mcmc_diagnostics_ja.md](lectures/ridge_and_mcmc_diagnostics_ja.md)
+- [real_flight_validation_ja.md](lectures/real_flight_validation_ja.md)
+- [pid_particle_evaluation_ja.md](lectures/pid_particle_evaluation_ja.md)
+
+## one-command worker
+
+GUI が保存する strict request JSON は CLI からも一回の command で実行できます。
+推定 request schema は `grape-param-estim/batch-estimation-request/v1` で、`run_mode` は `estimate_only` または `estimate_and_sample` です。
+
+```bash
+cd /home/leus/catkin_ws
+source devel/setup.bash
+rosrun grape_param_estim grape_estimate_flights.py \
+  --request /absolute/path/to/batch-estimation-request.json
+```
+
+request は output directory、bag の絶対 path と SHA256、interval、全 observation/fixed/prior covariance、Q の quantity・単位・interval model、18 次元 prior、delay profile、actuator model、knot/interpolation/controller policy、mode、solver、EM、MCMC の全設定を明示します。
+covariance を message に記録されていない値から暗黙に補う default はなく、使用しない factor は理由付きで disabled にします。
+actuator model も request の必須情報であり、hidden default はありません。
+
+PID evaluation request schema は `grape-param-estim/pid-proposal-evaluation-request/v1` です。
+完了した MCMC 付き estimation run、元 bag、current・sample-derived・user candidate、plant sample subset、model discrepancy policy、replicate seed、tail level を明示して実行します。
+
+```bash
+rosrun grape_param_estim grape_evaluate_pid_proposals.py \
+  --request /absolute/path/to/pid-proposal-evaluation-request.json
+```
+
+PID worker は candidate × retained plant sample × selected bag × discrepancy replicate の full closed-loop simulation を行います。
+current PID の正本は baseline rosbag の controller snapshot であり、repository の YAML を現在値として代用しません。
+出力 YAML は提案ファイルであり、controller や `dynamic_reconfigure` を自動変更しません。
+
+## Artifact schema
+
+推定 artifact は `grape-param-estim/batch-estimation-run/v1` の strict directory bundle です。
+
+```text
+estimation_run/
+  manifest.json
+  map_static.npz
+  q_em.npz
+  laplace.npz
+  diagnostics.npz
+  mcmc_samples.npz                 # estimate_and_sample のときだけ
+  bags/<bag_id>.npz
+  trajectories/<bag_id>/selected_samples.npz  # 保存対象があるときだけ
+```
+
+`manifest.json` は status、run/request/configuration/controller fingerprint、bag SHA256 と interval、sensor contract、factor on/off、prior、delay、明示的 actuator model、Q 定義、solver/EM/MCMC 設定、substage convergence、warning、各 file SHA256 を持ちます。
+`map_static.npz` は 18 次元 MAP の物理値、delay、最終 Q、objective decomposition を持ち、`q_em.npz` は input/target/accepted Q、alpha、MAP と marginal objective、expected residual moment、MAP moment、covariance correction を持ちます。
+`laplace.npz` は prior を分離した reduced likelihood/posterior Hessian、covariance、eigensystem、rank、ridge、delay profile を持ち、`mcmc_samples.npz` は equal-weight retained draw を `sample_id` で保持します。
+`bags/<bag_id>.npz` は raw observation、nominal/MAP trajectory、dynamics residual、normalized factor residual、covariance、数値診断を持ち、latent residual-wrench path は持ちません。
+NPZ は `allow_pickle=False` で読み、object dtype、unknown key、shape/単位不一致、SHA256 不一致、`status != complete` を拒否します。
+
+PID artifact は `grape-param-estim/pid-proposal-evaluation/v1` です。
+
+```text
+pid_proposal_evaluation/
+  manifest.json
+  source_samples.npz
+  candidate_particles.npz
+  summary.npz
+  proposed_GimbalrotorControl.yaml
+  proposed_GimbalrotorControl.diff.yaml
+  bags/<bag_id>.npz
+```
+
+推薦条件を満たさない場合、`recommendation_available=false` と理由を保存し、提案 YAML を実機へ自動適用しません。
+
+## 18--24 秒の実 bag 検証
+
+2026 年 8 月 4 日に失敗 sample の `18.0--24.0 s` を 0.05 s knot、MCMC 無効、EM 最大 1 iteration の短縮設定で end-to-end 実行し、251.75 秒で complete artifact を生成しました。
+MAP は `relative_objective_tolerance` で収束し、Laplace 幾何は完了しましたが、Laplace-EM は意図的に最大 1 iteration としたため `maximum_iterations` で非収束です。
+選択 delay は境界の `0.0 s`、mass MAP は `1.19122 kg`、Q は `[14.4779, 14.5221, 13.4510, 0.0527430, 0.0568025, 0.184592]` でした。
+初期 Q `[25, 25, 25, 1, 1, 1]` からの更新は `alpha=1` で受理されましたが、sensor/factor covariance と prior に暫定値を使い、EM を一回しか回していないため、これらを同定済みの実機値とは解釈しません。
+thrust time constant `0.01 s` は `MotorInfo.yaml` の情報に基づきますが、gimbal time constant `0.02 s` は暫定値であり、別途 system identification が必要です。
+
+この run は 119 knots、5495 factors、residual dimension 21859、Jacobian nnz 149367 でした。
+assembly は 0.186 秒、bag-local factorization は 0.046 秒、Schur solve は 0.020 秒程度ですが、LM 一回は約 2.5 秒、EM 一回は 248.36 秒でした。
+時間の大半は単発の forward propagation ではなく、複数の delay 候補と Q 候補について sparse MAP を繰り返す lag profile と Laplace-EM に使われます。
+したがってこの処理を「ただの順方向 forecast」とみなして rollout だけを並列化しても支配時間は解消しません。
+詳細は [real_flight_validation_ja.md](lectures/real_flight_validation_ja.md) に記録しています。
+
+## Build と test
 
 ```bash
 cd /home/leus/catkin_ws
 catkin build grape_param_estim --no-deps
+catkin run_tests grape_param_estim --no-deps
 source devel/setup.bash
+```
 
+backend の synthetic generator は次で起動できます。
+
+```bash
 rosrun grape_param_estim grape_generate_synthetic_flight.py \
   --output /tmp/grape_synthetic_closed_loop.npz
 ```
 
-perfect-model の恒等性を確認する場合は次を使います。
+GUI test は package-local environment から実行します。
 
 ```bash
-rosrun grape_param_estim grape_generate_synthetic_flight.py \
-  --perfect-model \
-  --duration 3.0 \
-  --output /tmp/grape_synthetic_perfect.npz
+cd /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/gui
+.venv/bin/python -m pytest
 ```
 
-Strong-constraint の Experiment A（観測 noise realization はゼロ、covariance は正定値）と Experiment B（位置姿勢 noise のみ）は次で実行します。
+## 安全上の境界
 
-```bash
-rosrun grape_param_estim grape_run_strong_constraint_experiment.py \
-  --experiment A \
-  --output /tmp/grape_strong_constraint_a.npz
-
-rosrun grape_param_estim grape_run_strong_constraint_experiment.py \
-  --experiment B \
-  --output /tmp/grape_strong_constraint_b.npz
-```
-
-Weak-constraint の Experiment C は次で実行します。
-
-```bash
-rosrun grape_param_estim grape_run_weak_constraint_experiment.py \
-  --output /tmp/grape_weak_constraint_c.npz
-```
-
-三つの検証は、それぞれ独立に実行できます。
-
-```bash
-rosrun grape_param_estim grape_validate_assimilation.py \
-  --section ridge \
-  --output /tmp/grape_ridge_validation.npz
-
-rosrun grape_param_estim grape_validate_assimilation.py \
-  --section convergence \
-  --output /tmp/grape_ensemble_convergence.npz
-
-rosrun grape_param_estim grape_validate_assimilation.py \
-  --section mode \
-  --output /tmp/grape_mode_validation.npz
-```
-
-実 rosbag の追加、inspection、区間選択、二段階推定、project 保存・復元は Desktop GUI から実行します。
-GUIはworker用request JSONをproject内へ保存し、inspectionには `grape_inspect_flights.py`、Stage 1には `grape_estimate_diagonal_q.py`、Stage 2には `grape_estimate_augmented_parameters.py` を起動します。
-
-Stage 1のdiagonal-Q artifactは、6個のstationary variance、固定 `R`、bag provenance、EM trace、smoothed residual-wrench lawを保存します。
-Stage 2のassimilation run directoryは、上流diagonal-Q artifactのcontent fingerprint、bag hash / record-time / window / controller provenance、shared posterior、bagごとのobserved / nominal / forecast / analysis / smoother trajectory、residual-wrench path、ridge診断を保存します。
-入力または上流artifactが変わると既存stageは `STALE` になり、自動再利用しません。
-
-Strong-constraint NPZ は member 順を保った control/physical parameter/full trajectory/ correction path ensemble、ridge covariance、iteration diagnostics を保存します。
-parameter posterior の一点化や Gaussian summary を正本にはしません。
-
-Weak-constraint NPZ は strong/weak の比較に加え、weak posterior の raw innovations、decoded residual-wrench path、static parameters、full trajectory、correction path を member-aligned arrays として保存します。
-
-Validation NPZ は ridge coordinate / quotient / path の raw law、各 ensemble size の raw law と convergence 指標、または mode 別の full posterior member と pose/independent-measurement weight を保存します。
-mode-conditioned posterior は選択 mode の raw ensemble そのもので、mode 横断の Gaussian summary ではありません。
-
-PID proposal evaluation directory は source member ID、mode law、scenario assumption、current/proposed exact PID、candidate/member/bag ごとの forecast success/reason、trajectory/correction path、単位別 mean/CVaR/Pareto 指標、提案 YAML を保存します。
-
-成功飛行を fitting から隔離した検証は専用 request で実行できます。
-source run から移送する値は raw physical member と constant delay だけで、held-out 側の residual wrench は zero、観測は先頭 pose / velocity anchor と最後の scoring 以外には使いません。
-
-```bash
-rosrun grape_param_estim grape_validate_held_out_flight.py \
-  --request /path/to/held-out-validation-request.json \
-  --output /path/to/held-out-validation
-```
-
-現行の実装契約は [`lectures/implementation_ja.md`](lectures/implementation_ja.md) に記録しています。
-指定された失敗bagと隔離した成功bagの [`lectures/real_flight_validation_ja.md`](lectures/real_flight_validation_ja.md) は、旧time-indexed residual-wrench optimizerによる過去結果であり、現行二段階推定の検証結果ではありません。
-
-NPZ は pickle を使わず、次を保存します。
-
-- reference position / RPY
-- nominal と truth の full latent trajectory
-- nominal と truth の rotor/gimbal command
-- pose-only observations と covariance
-- correction translation / rotation-vector path
-
-`particles` や `weights` は synthetic output には存在しません。
-
-## C++ controller golden
-
-`tests/grape_param_estim/test_controller.py` は、同一の state/reference/PID state を Python port と ROS 非依存 C++ exact oracle の両方へ入力します。
-比較対象は 4 rotor thrust、4 gimbal angle、8次元 vectoring force、PID integral stateです。
-
-oracle の provenance は次です。
-
-- repository: `/home/leus/catkin_ws/src/jsk_aerial_robot`
-- source commit: `9ae2159277489ef74892486291655deac2dc38dc`
-- protocol: `grape.exact-controller-oracle/v1`
-- fidelity: `pc_exact`
-
-C++ executable が build 済みなら unit test は live oracle も実行します。
-未 build 環境でも、同じ oracle から固定した数値 fixture との比較は必ず実行されます。
-
-actuator は estimator 用の明示的な連続近似です。
-FC firmware の battery/PWM 変換そのものではありません。
-対象 synthetic episode では rotor 上限が非活性で、truth 側だけへ delay・一次遅れを入れて actuator mismatch を生成します。
-
-## テスト
-
-```bash
-cd /home/leus/catkin_ws/src/ProbTF-demo
-PYTHONPATH=ros/examples/grape-param-estim/src:${PYTHONPATH} \
-  /usr/bin/python3 -m unittest discover \
-  -s tests/grape_param_estim -p 'test_*.py' -v
-```
-
-catkin からも同じ test directory を登録しています。
-
-```bash
-cd /home/leus/catkin_ws
-catkin run_tests grape_param_estim
-catkin_test_results build/grape_param_estim
-```
-
-GUI test suite は次で実行します。
-上記の検証済みvenvではQt widget、二段階workflow、artifact再利用、plot / 3D testを含むsuiteを実行します。
-依存 package が揃わない環境では Qt widget / 3D test だけを skip し、request、project archive、artifact loader、launcher、signal cancel の pure tests は実行されます。
-
-```bash
-PYTHONPATH=ros/examples/grape-param-estim/gui/src:ros/examples/grape-param-estim/src \
-  ros/examples/grape-param-estim/gui/.venv/bin/python -m unittest discover \
-  -s ros/examples/grape-param-estim/gui/tests -p 'test_*.py' -v
-```
+この package は parameter posterior と counterfactual PID 評価を研究用に生成しますが、飛行安全を保証しません。
+MAP の見栄え、狭い Laplace marginal、MCMC の sample 数、in-sample trajectory の一致だけで推定成功と判断しないでください。
+sensor frame、covariance provenance、actuator dynamics、delay 境界、Q 収束、likelihood ridge、R-hat/ESS、複数 bag の data split、PID の completion と tail metric を確認し、実機 controller の変更は人間が別手順で判断してください。

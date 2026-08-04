@@ -382,6 +382,44 @@ class FlightInitializationTests(unittest.TestCase):
             )
             self.assertAlmostEqual(np.linalg.det(rotation), 1.0, places=14)
 
+    def test_gyro_initialization_applies_numeric_sensor_rotation(self):
+        flight = _flight_data()
+        body_omega = np.asarray((0.3, -0.2, 0.1))
+        body_to_sensor = np.asarray(
+            (
+                (0.0, -1.0, 0.0),
+                (1.0, 0.0, 0.0),
+                (0.0, 0.0, 1.0),
+            )
+        )
+        sensor_values = np.tile(
+            flight.imu_preflight.gyro_bias
+            + body_to_sensor @ body_omega,
+            (flight.gyro.times.size, 1),
+        )
+        rotated = replace(
+            flight,
+            gyro=replace(flight.gyro, values=sensor_values),
+            sensor_extrinsics=replace(
+                flight.sensor_extrinsics,
+                body_to_gyro_sensor_rotation=body_to_sensor,
+                source="synthetic rotated IMU extrinsics",
+            ),
+        )
+        result = build_flight_initialization(
+            rotated, 0.1, pose_smoothing_window=1
+        )
+        np.testing.assert_allclose(
+            _knot_matrix(result, VariableKind.ANGULAR_VELOCITY),
+            np.tile(body_omega, (result.grid.count, 1)),
+            rtol=0.0,
+            atol=2.0e-15,
+        )
+        self.assertIn(
+            "C_SB transpose",
+            result.provenance.for_field("angular_velocity").method,
+        )
+
     def test_missing_velocity_and_gyro_use_only_initial_path_fallbacks(self):
         flight = replace(_flight_data(), velocity=None, gyro=None)
         result = build_flight_initialization(

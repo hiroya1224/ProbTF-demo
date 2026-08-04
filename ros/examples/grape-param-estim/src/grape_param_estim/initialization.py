@@ -718,9 +718,21 @@ def build_flight_initialization(
             grid.times,
             "gyro",
         )
-        angular_velocity = measured_omega - flight_data.imu_preflight.gyro_bias
+        sensor_omega = (
+            measured_omega - flight_data.imu_preflight.gyro_bias
+        )
+        # FlightData stores the numeric C_SB convention explicitly:
+        # y_S - b_S = C_SB omega_B.  Apply the inverse rotation here instead
+        # of assuming that the sensor axes equal the estimator body axes.
+        angular_velocity = (
+            sensor_omega
+            @ flight_data.sensor_extrinsics.body_to_gyro_sensor_rotation
+        )
         omega_source = "FlightData.gyro.values"
-        omega_method = "linear interpolation minus preflight gyro bias"
+        omega_method = (
+            "linear interpolation minus sensor-frame preflight gyro bias, "
+            "then C_SB transpose into the estimator body frame"
+        )
         omega_timestamp = flight_data.gyro.timestamp_source
         omega_count = int(flight_data.gyro.times.size)
         omega_offset = _maximum_nearest_offset(

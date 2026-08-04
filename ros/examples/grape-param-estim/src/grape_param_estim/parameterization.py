@@ -18,7 +18,8 @@ Linear and angular drag are fixed at their nominal values; they are not part
 of this static-parameter chart.
 """
 
-from typing import Sequence
+from dataclasses import dataclass
+from typing import Sequence, Tuple
 
 import numpy as np
 
@@ -37,6 +38,38 @@ _SYMMETRIC_COMPONENTS = (
     (0, 2),
     (1, 2),
 )
+
+
+@dataclass(frozen=True)
+class VehicleParameterJacobian:
+    """Jacobian of decoded physical parameters with respect to the chart.
+
+    ``mass`` is a row with shape ``(18,)``.  The remaining arrays have shapes
+    ``(3, 3, 18)``, ``(3, 18)``, ``(4, 18)``, and ``(4, 18)`` for ``inertia``,
+    ``cog_offset``, ``force_effectiveness``, and ``torque_effectiveness``.
+    Linear and angular drag have no rows because they are fixed by the chart.
+    """
+
+    mass: np.ndarray
+    inertia: np.ndarray
+    cog_offset: np.ndarray
+    force_effectiveness: np.ndarray
+    torque_effectiveness: np.ndarray
+
+    def __post_init__(self) -> None:
+        for name, shape in (
+            ("mass", (PARAMETER_DIMENSION,)),
+            ("inertia", (3, 3, PARAMETER_DIMENSION)),
+            ("cog_offset", (3, PARAMETER_DIMENSION)),
+            ("force_effectiveness", (4, PARAMETER_DIMENSION)),
+            ("torque_effectiveness", (4, PARAMETER_DIMENSION)),
+        ):
+            value = np.asarray(getattr(self, name), dtype=float)
+            if value.shape != shape or not np.all(np.isfinite(value)):
+                raise ValueError(
+                    "{} must be a finite {} array".format(name, shape)
+                )
+            object.__setattr__(self, name, value.copy())
 
 
 def _finite_matrix(value, shape, name):
@@ -62,6 +95,86 @@ def _symmetric_matrix_exponential(matrix: np.ndarray) -> np.ndarray:
         raise ValueError("matrix exponential is not representable")
     result = (eigenvectors * exponential) @ eigenvectors.T
     return 0.5 * (result + result.T)
+
+
+def _exponential_divided_difference(
+    first: float,
+    second: float,
+    exp_first: float,
+    exp_second: float,
+) -> float:
+    """Return the stable first divided difference of the exponential."""
+
+    difference = first - second
+    if difference == 0.0:
+        return exp_first
+
+    # expm1 avoids cancellation for repeated and nearly repeated eigenvalues.
+    # The direct quotient avoids an intermediate overflow when the eigenvalue
+    # separation is large but both endpoint exponentials are representable.
+    if abs(difference) <= 0.5:
+        result = exp_second * np.expm1(difference) / difference
+    else:
+        result = (exp_first - exp_second) / difference
+    if not np.isfinite(result) or result <= 0.0:
+        raise ValueError("matrix exponential derivative is not representable")
+    return float(result)
+
+
+def _symmetric_matrix_exponential_frechet(
+    matrix: np.ndarray,
+    direction: np.ndarray,
+) -> np.ndarray:
+    """Apply the Fréchet derivative of ``exp`` at a symmetric 3-by-3 matrix.
+
+    For ``matrix = V diag(lambda) V.T``, the derivative in ``direction`` is
+    ``V (F * (V.T direction V)) V.T``, where ``F`` is the exponential divided-
+    difference matrix.  The repeated-eigenvalue limit is evaluated without
+    subtracting nearly equal exponentials.
+    """
+
+    value = _finite_matrix(matrix, (3, 3), "symmetric matrix")
+    tangent = _finite_matrix(direction, (3, 3), "symmetric direction")
+    if not np.allclose(value, value.T, rtol=1.0e-12, atol=1.0e-12):
+        raise ValueError("matrix exponential input must be symmetric")
+    if not np.allclose(tangent, tangent.T, rtol=1.0e-12, atol=1.0e-12):
+        raise ValueError("matrix exponential direction must be symmetric")
+
+    eigenvalues, eigenvectors = np.linalg.eigh(0.5 * (value + value.T))
+    with np.errstate(over="raise", invalid="raise", under="ignore"):
+        try:
+            exponentials = np.exp(eigenvalues)
+        except FloatingPointError as error:
+            raise ValueError(
+                "matrix exponential derivative is not representable"
+            ) from error
+    if np.any(exponentials <= 0.0) or not np.all(np.isfinite(exponentials)):
+        raise ValueError("matrix exponential derivative is not representable")
+
+    divided_difference = np.empty((3, 3), dtype=float)
+    for row in range(3):
+        for column in range(row, 3):
+            entry = _exponential_divided_difference(
+                float(eigenvalues[row]),
+                float(eigenvalues[column]),
+                float(exponentials[row]),
+                float(exponentials[column]),
+            )
+            divided_difference[row, column] = entry
+            divided_difference[column, row] = entry
+
+    rotated_direction = (
+        eigenvectors.T
+        @ (0.5 * (tangent + tangent.T))
+        @ eigenvectors
+    )
+    result = eigenvectors @ (
+        divided_difference * rotated_direction
+    ) @ eigenvectors.T
+    result = 0.5 * (result + result.T)
+    if not np.all(np.isfinite(result)):
+        raise ValueError("matrix exponential derivative is not representable")
+    return result
 
 
 def _symmetric_matrix_logarithm(matrix: np.ndarray) -> np.ndarray:
@@ -140,9 +253,8 @@ class VehicleParameterChart:
         self._linear_drag = np.asarray(nominal.linear_drag, dtype=float).copy()
         self._angular_drag = np.asarray(nominal.angular_drag, dtype=float).copy()
 
-    def decode(self, coordinates: Sequence[float]) -> VehicleParameters:
-        """Map one unconstrained coordinate vector to physical parameters."""
-
+    @staticmethod
+    def _validated_coordinates(coordinates: Sequence[float]) -> np.ndarray:
         values = np.asarray(coordinates, dtype=float)
         if values.shape != (PARAMETER_DIMENSION,) or not np.all(
             np.isfinite(values)
@@ -152,7 +264,9 @@ class VehicleParameterChart:
                     PARAMETER_DIMENSION
                 )
             )
+        return values
 
+    def _decode_validated(self, values: np.ndarray) -> VehicleParameters:
         positive_scales = _positive_exponential(
             np.concatenate((values[0:1], values[10:18])),
             "positive parameter",
@@ -176,6 +290,69 @@ class VehicleParameterChart:
             linear_drag=self._linear_drag,
             angular_drag=self._angular_drag,
         )
+
+    def decode(self, coordinates: Sequence[float]) -> VehicleParameters:
+        """Map one unconstrained coordinate vector to physical parameters."""
+
+        values = self._validated_coordinates(coordinates)
+        return self._decode_validated(values)
+
+    def decode_with_jacobian(
+        self,
+        coordinates: Sequence[float],
+    ) -> Tuple[VehicleParameters, VehicleParameterJacobian]:
+        """Decode coordinates and return the exact analytic chart Jacobian."""
+
+        values = self._validated_coordinates(coordinates)
+        parameters = self._decode_validated(values)
+
+        mass = np.zeros(PARAMETER_DIMENSION, dtype=float)
+        mass[0] = parameters.mass
+
+        inertia = np.zeros((3, 3, PARAMETER_DIMENSION), dtype=float)
+        relative_log_inertia = _unpack_symmetric(values[1:7])
+        for local_index, (row, column) in enumerate(_SYMMETRIC_COMPONENTS):
+            direction = np.zeros((3, 3), dtype=float)
+            direction[row, column] = 1.0
+            direction[column, row] = 1.0
+            relative_derivative = _symmetric_matrix_exponential_frechet(
+                relative_log_inertia,
+                direction,
+            )
+            derivative = (
+                self._cholesky
+                @ relative_derivative
+                @ self._cholesky.T
+            )
+            inertia[:, :, 1 + local_index] = 0.5 * (
+                derivative + derivative.T
+            )
+
+        cog_offset = np.zeros((3, PARAMETER_DIMENSION), dtype=float)
+        cog_offset[:, 7:10] = np.eye(3)
+
+        force_effectiveness = np.zeros(
+            (4, PARAMETER_DIMENSION), dtype=float
+        )
+        force_effectiveness[:, 10:14] = np.diag(
+            parameters.force_effectiveness
+        )
+
+        torque_effectiveness = np.zeros(
+            (4, PARAMETER_DIMENSION), dtype=float
+        )
+        torque_effectiveness[:, 14:18] = np.diag(
+            parameters.torque_effectiveness
+        )
+
+        jacobian = VehicleParameterJacobian(
+            mass=mass,
+            inertia=inertia,
+            cog_offset=cog_offset,
+            force_effectiveness=force_effectiveness,
+            torque_effectiveness=torque_effectiveness,
+        )
+        return parameters, jacobian
 
     def encode(self, parameters: VehicleParameters) -> np.ndarray:
         """Map represented physical parameters back to chart coordinates.
@@ -245,4 +422,8 @@ class VehicleParameterChart:
         return direction
 
 
-__all__ = ["PARAMETER_DIMENSION", "VehicleParameterChart"]
+__all__ = [
+    "PARAMETER_DIMENSION",
+    "VehicleParameterChart",
+    "VehicleParameterJacobian",
+]

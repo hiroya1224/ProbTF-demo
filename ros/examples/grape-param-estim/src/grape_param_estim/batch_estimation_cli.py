@@ -573,6 +573,11 @@ def execute_batch_estimation(
         core=payload,
         state=selected.final_solution.lm.state,
     )
+    if cancellation.cancelled:
+        mark_batch_checkpoint_cancelled(
+            checkpoint.root, cancellation.reason
+        )
+        cancellation.raise_if_cancelled()
     written = write_batch_estimation_run(
         request.output_directory, **payload.writer_arguments
     )

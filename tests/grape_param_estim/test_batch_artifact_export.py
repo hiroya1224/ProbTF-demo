@@ -31,6 +31,7 @@ from grape_param_estim.batch_artifact_export import (
     RunPerformanceMeasurements,
     SelectedConditionalTrajectory,
     _unit_quaternion_series,
+    complete_pending_mcmc_artifact_payload,
     export_batch_estimation_artifact_payload,
 )
 from grape_param_estim.batch_request import validate_batch_estimation_request
@@ -330,6 +331,51 @@ class BatchArtifactExportTests(unittest.TestCase):
             minimum_effective_sample_size=4.0,
         )
         return tuple(chains), diagnostics
+
+    def test_pending_mcmc_core_is_completed_without_reexporting_map(self):
+        request = validate_batch_estimation_request(
+            self._mcmc_payload_request(self.helper.payload)
+        )
+        core = export_batch_estimation_artifact_payload(
+            request=request,
+            flight_data=(self.helper.flight,),
+            initializations=(self.helper.initialization,),
+            final_solution=self.solution,
+            em_result=self.em_result,
+            static_geometry=self.solution.static_geometry(),
+            final_q_lag_profile=self._final_q_lag_profile(),
+            delay_geometry=DelayLocalGeometry(
+                0.001,
+                "positive local quadratic profile curvature",
+                1.0e6,
+            ),
+            identity=ArtifactRunIdentity(
+                estimator_revision="test-estimator-revision",
+                configuration_fingerprint="sha256:" + "1" * 64,
+                controller_snapshot_fingerprint="sha256:" + "2" * 64,
+            ),
+            performance=self._performance(mcmc=False),
+            pending_mcmc_checkpoint=True,
+        )
+        self.assertIsNone(core.mcmc_samples)
+        self.assertNotIn("mcmc", core.manifest_metadata["substage_status"])
+        chains, diagnostics = self._chains_and_diagnostics()
+        completed = complete_pending_mcmc_artifact_payload(
+            core,
+            request,
+            self.solution,
+            chains,
+            diagnostics,
+            (0.2, 0.21),
+        )
+        self.assertIs(completed.map_static, core.map_static)
+        self.assertEqual(completed.mcmc_samples["sample_id"].size, 8)
+        self.assertIn("mcmc", completed.manifest_metadata["substage_status"])
+        with tempfile.TemporaryDirectory() as temporary:
+            loaded = write_batch_estimation_run(
+                Path(temporary) / "run", **completed.writer_arguments
+            )
+        self.assertEqual(loaded.mcmc_samples["sample_id"].size, 8)
 
     def test_exports_raw_or_labelled_sha_and_round_trips_complete_mcmc_run(self):
         request = validate_batch_estimation_request(

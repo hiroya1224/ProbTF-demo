@@ -1970,6 +1970,7 @@ def export_batch_estimation_artifact_payload(
     mcmc_chains: Sequence[McmcChainResult] = (),
     mcmc_diagnostics: Optional[McmcDiagnostics] = None,
     selected_trajectories: Sequence[SelectedConditionalTrajectory] = (),
+    pending_mcmc_checkpoint: bool = False,
 ) -> BatchArtifactPayload:
     """Build exact pickle-free arrays for the strict batch artifact writer."""
 
@@ -1990,14 +1991,31 @@ def export_batch_estimation_artifact_payload(
         raise ValueError("Laplace-EM Q definition disagrees with final graph")
     request_mcmc_enabled = bool(request.payload["mcmc_settings"]["enabled"])
     if request_mcmc_enabled:
-        if mcmc_diagnostics is None:
+        if pending_mcmc_checkpoint:
+            if mcmc_chains or mcmc_diagnostics is not None:
+                raise ValueError(
+                    "a pending MCMC checkpoint cannot contain completed chains"
+                )
+            if performance.mcmc_target_seconds:
+                raise ValueError(
+                    "a pending MCMC checkpoint cannot contain target timings"
+                )
+            if selected_trajectories:
+                raise ValueError(
+                    "a pending MCMC checkpoint cannot contain trajectories"
+                )
+            mcmc = None
+        elif mcmc_diagnostics is None:
             raise ValueError("enabled MCMC requires McmcDiagnostics")
-        if not performance.mcmc_target_seconds:
+        elif not performance.mcmc_target_seconds:
             raise ValueError("enabled MCMC requires measured target timings")
-        mcmc = _mcmc_payload(
-            final_solution, mcmc_chains, mcmc_diagnostics
-        )
+        else:
+            mcmc = _mcmc_payload(
+                final_solution, mcmc_chains, mcmc_diagnostics
+            )
     else:
+        if pending_mcmc_checkpoint:
+            raise ValueError("pending MCMC requires enabled MCMC settings")
         if mcmc_chains or mcmc_diagnostics is not None:
             raise ValueError("disabled MCMC cannot export chains or diagnostics")
         if performance.mcmc_target_seconds:
@@ -2063,6 +2081,80 @@ def export_batch_estimation_artifact_payload(
     )
 
 
+def complete_pending_mcmc_artifact_payload(
+    core: BatchArtifactPayload,
+    request: BatchEstimationRequest,
+    final_solution: FixedGraphLaplaceSolution,
+    mcmc_chains: Sequence[McmcChainResult],
+    mcmc_diagnostics: McmcDiagnostics,
+    mcmc_target_seconds: Sequence[float],
+) -> BatchArtifactPayload:
+    """Attach completed chains to a strictly identified core checkpoint."""
+
+    if not isinstance(core, BatchArtifactPayload):
+        raise TypeError("core must be BatchArtifactPayload")
+    if not isinstance(request, BatchEstimationRequest):
+        raise TypeError("request must be BatchEstimationRequest")
+    if not isinstance(final_solution, FixedGraphLaplaceSolution):
+        raise TypeError("final_solution must be FixedGraphLaplaceSolution")
+    if not bool(request.payload["mcmc_settings"]["enabled"]):
+        raise ValueError("request must enable MCMC")
+    if core.mcmc_samples is not None or core.trajectories:
+        raise ValueError("core checkpoint already contains posterior samples")
+    metadata = dict(core.manifest_metadata)
+    if metadata.get("request_fingerprint") != request.fingerprint:
+        raise ValueError("core checkpoint request fingerprint mismatch")
+    if metadata.get("run_id") != str(request.payload["run_id"]):
+        raise ValueError("core checkpoint run ID mismatch")
+    if metadata.get("mcmc_settings") != _plain(
+        request.payload["mcmc_settings"]
+    ):
+        raise ValueError("core checkpoint MCMC settings mismatch")
+    if not isinstance(mcmc_diagnostics, McmcDiagnostics):
+        raise TypeError("mcmc_diagnostics must be McmcDiagnostics")
+    timings = np.asarray(tuple(mcmc_target_seconds), dtype=float)
+    if timings.ndim != 1 or not timings.size or np.any(~np.isfinite(timings)):
+        raise ValueError("mcmc_target_seconds must be a non-empty finite vector")
+    if np.any(timings < 0.0):
+        raise ValueError("mcmc_target_seconds cannot be negative")
+
+    diagnostics = {
+        key: np.asarray(value).copy()
+        for key, value in core.diagnostics.items()
+    }
+    if diagnostics.get("mcmc_target_seconds", np.ones(1)).size != 0:
+        raise ValueError("core checkpoint already has MCMC timings")
+    diagnostics["mcmc_target_seconds"] = timings
+    diagnostics.update(_mcmc_diagnostic_arrays(mcmc_diagnostics))
+    substage_status = {
+        key: dict(value)
+        for key, value in metadata["substage_status"].items()
+    }
+    if "mcmc" in substage_status:
+        raise ValueError("core checkpoint already has an MCMC substage")
+    substage_status["mcmc"] = {
+        "converged": bool(mcmc_diagnostics.converged),
+        "termination_reason": (
+            "converged_diagnostics"
+            if mcmc_diagnostics.converged
+            else "completed_not_converged"
+        ),
+    }
+    metadata["substage_status"] = substage_status
+    return BatchArtifactPayload(
+        manifest_metadata=metadata,
+        map_static=core.map_static,
+        q_em=core.q_em,
+        laplace=core.laplace,
+        diagnostics=diagnostics,
+        bags=core.bags,
+        mcmc_samples=_mcmc_payload(
+            final_solution, mcmc_chains, mcmc_diagnostics
+        ),
+        trajectories={},
+    )
+
+
 __all__ = [
     "ArtifactRunIdentity",
     "BagPerformanceMeasurements",
@@ -2071,4 +2163,5 @@ __all__ = [
     "RunPerformanceMeasurements",
     "SelectedConditionalTrajectory",
     "export_batch_estimation_artifact_payload",
+    "complete_pending_mcmc_artifact_payload",
 ]

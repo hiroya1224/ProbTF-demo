@@ -17,6 +17,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "deterministic",
             "deterministic_sobol",
             "deterministic_tempered",
+            "deterministic_continuation",
             "deterministic_q",
             "probabilistic",
         ),
@@ -29,6 +30,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         from deterministic_sobol_estimator import main as selected_main
     elif selection.method == "deterministic_tempered":
         from deterministic_tempered_estimator import main as selected_main
+    elif selection.method == "deterministic_continuation":
+        from deterministic_continuation_estimator import main as selected_main
     elif selection.method == "deterministic_q":
         from deterministic_q_estimator import main as selected_main
     else:

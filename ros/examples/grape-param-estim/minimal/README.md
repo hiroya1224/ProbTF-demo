@@ -1,6 +1,6 @@
 # 最小構成の実機パラメータ推定
 
-このディレクトリの `estimate_recorded_control.py` は deterministic、deterministic-Sobol、deterministic-tempered、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
+このディレクトリの `estimate_recorded_control.py` は deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
 
 既定では `deterministic_estimator.py` のベースライン推定法を呼び出します。
 
@@ -101,6 +101,27 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
 ```
 
 温度を固定したい場合は `--temperature-min` と `--temperature-max`、探索幅を変える場合は `--proposal-scale` と15成分の `--local-prior-scales` を指定できます。結果は `minimal/output/deterministic_tempered/` に保存されます。Delay はこの局所探索でも固定です。
+
+### Trajectory-length continuation with delay profile
+
+`--method deterministic_continuation` は、Sobol点、tempering、時定数推定を使いません。推定対象は、mass 1、inertia Cholesky座標 6、CoG 3、相対force effectiveness 3と、外側でprofileするcommand delay 1の合計14次元です。Thrustとgimbalの時定数はそれぞれ `0.01 s`、`0.02 s`に固定します。
+
+最初にnominal delayで13物理座標の厳密なnominal値から開始し、同じ開始時刻の軌道を `0.5 s → 1 s → 2 s → 全区間` と伸ばします。各段階は前段階の解をwarm startにし、13列の解析Jacobianでleast-squaresを解きます。
+既定の評価上限は部分区間ごとに35回、最終の全区間だけ80回です。
+
+Delayはzero-order hold commandに対して微分せず、既定では `0–0.08 s`を`0.02 s`刻みで粗くprofileします。Nominal delayの解から正負それぞれの隣接delayへwarm startし、最良の粗delayの周囲だけを`0.0025 s`刻みで再探索します。最後に全delay候補を初期時刻から全区間replayし、trajectory lossが最小のものを採用します。
+
+```bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic_continuation \
+  --continuation-horizons 0.5 1.0 2.0 \
+  --coarse-delay-step 0.02 \
+  --fine-delay-step 0.0025
+```
+
+PID gainは各候補について計算してJSONへ記録しますが、既定では棄却しません。有効にする場合だけ `--pid-gain-min-scale` と `--pid-gain-max-scale` を両方指定します。
+
+結果は `minimal/output/deterministic_continuation/` の `result.json`、`trajectory.pdf`、`delay_profile.pdf` に保存されます。
 
 ### Deterministic baseline と対角 Q の交互推定
 

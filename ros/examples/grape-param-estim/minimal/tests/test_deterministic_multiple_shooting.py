@@ -34,46 +34,41 @@ class SegmentScheduleTests(unittest.TestCase):
         np.testing.assert_array_equal(boundaries, (0, 4, 8, 11))
 
 
-class DelayProfileTests(unittest.TestCase):
-    def test_default_initial_grid_retains_three_local_candidates(self):
+class FixedDelayAndLossMetricTests(unittest.TestCase):
+    def test_default_command_delay_is_fixed_at_160_ms(self):
         arguments = estimator.create_argument_parser().parse_args([])
-        np.testing.assert_allclose(
-            estimator._initial_delay_grid(arguments),
-            (0.0, 0.01, 0.02),
-        )
-        np.testing.assert_allclose(arguments.delay_bounds, (0.0, 0.16))
+        self.assertAlmostEqual(arguments.command_delay, 0.16)
+        self.assertFalse(hasattr(arguments, "delay_bounds"))
+        self.assertFalse(hasattr(arguments, "translation_scale"))
+        self.assertFalse(hasattr(arguments, "rotation_scale"))
 
-    def test_upper_edge_expands_geometrically(self):
-        first = estimator._delay_expansion_candidate(
-            (0.0, 0.01, 0.02),
-            0.02,
-            (0.0, 0.16),
-            2.0,
-        )
-        self.assertAlmostEqual(first, 0.04)
-        second = estimator._delay_expansion_candidate(
-            (0.0, 0.01, 0.02, first),
-            first,
-            (0.0, 0.16),
-            2.0,
-        )
-        self.assertAlmostEqual(second, 0.08)
-        third = estimator._delay_expansion_candidate(
-            (0.0, 0.01, 0.02, first, second),
-            second,
-            (0.0, 0.16),
-            2.0,
-        )
-        self.assertAlmostEqual(third, 0.16)
-
-    def test_refinement_adds_neighbor_midpoints(self):
+    def test_inertia_radius_factor_gives_requested_quadratic(self):
+        nominal = VehicleParameters.nominal()
+        factor = estimator.inertia_radius_se3_factor(nominal)
+        expected_metric = np.zeros((6, 6), dtype=float)
+        expected_metric[:3, :3] = np.eye(3)
+        expected_metric[3:, 3:] = nominal.inertia / nominal.mass
         np.testing.assert_allclose(
-            estimator._delay_refinement_candidates(
-                (0.0, 0.01, 0.02, 0.04),
-                0.02,
-            ),
-            (0.015, 0.03),
+            factor.T @ factor,
+            expected_metric,
+            rtol=1.0e-13,
+            atol=1.0e-15,
         )
+        rho = np.asarray((0.2, -0.3, 0.4))
+        phi = np.asarray((-0.1, 0.5, 0.2))
+        residual = np.concatenate((rho, phi))
+        expected = float(
+            rho @ rho + phi @ (nominal.inertia / nominal.mass) @ phi
+        )
+        transformed = factor @ residual
+        self.assertAlmostEqual(float(transformed @ transformed), expected)
+
+    def test_negative_fixed_delay_is_rejected(self):
+        arguments = estimator.create_argument_parser().parse_args(
+            ("--command-delay", "-0.01")
+        )
+        with self.assertRaises(SystemExit):
+            estimator._validate_arguments(arguments)
 
 
 class Se3ResidualTests(unittest.TestCase):
@@ -236,9 +231,10 @@ class EntryPointTests(unittest.TestCase):
 
     def test_physical_coordinates_have_no_box_bounds(self):
         arguments = estimator.create_argument_parser().parse_args([])
-        lower, upper, _delays = estimator._validate_arguments(arguments)
+        lower, upper, command_delay = estimator._validate_arguments(arguments)
         self.assertTrue(np.all(np.isneginf(lower)))
         self.assertTrue(np.all(np.isposinf(upper)))
+        self.assertAlmostEqual(command_delay, 0.16)
 
     def test_default_iteration_budgets_allow_continuity_refinement(self):
         arguments = estimator.create_argument_parser().parse_args([])

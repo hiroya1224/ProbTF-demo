@@ -35,11 +35,11 @@ source /home/leus/catkin_ws/devel/setup.bash
 python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
 ```
 
-Delay探索は、既定ではまず `0.00, 0.01, 0.02 s` を評価します。最良点が評価範囲の端なら `0.04 s`、`0.08 s`、さらに必要なら上限 `0.16 s` まで幾何的に外側へ展開します。その後、最良点と左右隣接点の中点を既定3段階追加します。各候補は最も近い既評価delayの解からwarm startし、最終的にcontinuityを満たす候補のfull-rollout lossで選びます。`delay_profile.pdf` に探索結果を出力します。初期候補を明示する場合は次のようにします。
+Command delayは既定で `0.16 s` に固定し、必要な場合だけ `--command-delay` で変更します。SE(3) log residual `[rho, phi]` の軌道lossは、従来の固定translation/rotation scaleではなく、nominal質量 `m0` とnominal慣性 `J0`による `||rho||^2 + phi^T (J0 / m0) phi` を各サンプルで評価して平均します。すなわち方位誤差をnominal慣性半径で位置誤差と同じ長さの次元へ正規化します。
 
 ```bash
 python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
-  --delay-values 0.005 0.010 0.015 \
+  --command-delay 0.16 \
   --segment-duration 0.5 \
   --max-nfev 120 \
   --augmented-lagrangian-iterations 10

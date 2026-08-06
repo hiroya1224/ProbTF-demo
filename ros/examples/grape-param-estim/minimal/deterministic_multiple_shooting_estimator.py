@@ -18,8 +18,9 @@ CoG offset, and three relative rotor-force-effectiveness contrasts.  The
 inertia is reconstructed as ``J = trace(Sigma) I - Sigma`` with
 ``Sigma = L L.T``.  This guarantees both positive principal moments and their
 triangle inequalities throughout optimization.  Recorded-command lag is
-profiled outside the smooth solve because causal zero-order-hold lookup is
-not smooth in lag.
+fixed outside the smooth solve because causal zero-order-hold lookup is not
+smooth in lag.  The pose loss uses the nominal inertia radius:
+``||rho||^2 + phi.T @ (J0 / m0) @ phi``.
 """
 
 from __future__ import annotations
@@ -71,7 +72,7 @@ from grape_param_estim.system import (
 )
 
 
-SCHEMA = "grape-param-estim/minimal-deterministic-multiple-shooting/v5"
+SCHEMA = "grape-param-estim/minimal-deterministic-multiple-shooting/v6"
 OUTPUT_SUBDIRECTORY = "deterministic_multiple_shooting"
 PHYSICAL_DIMENSION = 13
 NODE_DIMENSION = 20
@@ -398,6 +399,30 @@ def se3_log_error(
     relative_translation = observed_r.T @ (simulated_p - observed_p)
     rho = so3_left_jacobian_inverse(phi) @ relative_translation
     return np.concatenate((rho, phi))
+
+
+def inertia_radius_se3_factor(nominal: VehicleParameters) -> np.ndarray:
+    """Return ``W`` such that ``||W [rho, phi]||^2`` uses ``J0 / m0``.
+
+    The per-sample pose quadratic is
+
+        ||rho||^2 + phi.T @ (J0 / m0) @ phi,
+
+    where ``J0`` and ``m0`` are fixed nominal values.  The upper-triangular
+    Cholesky factor is used so that ``W.T @ W`` equals the desired metric.
+    """
+
+    if not isinstance(nominal, VehicleParameters):
+        raise TypeError("nominal must be VehicleParameters")
+    rotational_metric = np.asarray(nominal.inertia, dtype=float) / float(
+        nominal.mass
+    )
+    rotational_metric = 0.5 * (rotational_metric + rotational_metric.T)
+    rotational_factor = np.linalg.cholesky(rotational_metric).T
+    factor = np.zeros((6, 6), dtype=float)
+    factor[:3, :3] = np.eye(3)
+    factor[3:, 3:] = rotational_factor
+    return factor
 
 
 def _rho_rotation_derivative(phi: np.ndarray, translation: np.ndarray) -> np.ndarray:
@@ -831,8 +856,6 @@ class MultipleShootingProblem:
         direct_problem: baseline.DirectShootingProblem,
         delay: float,
         segment_duration: float,
-        translation_scale: float,
-        rotation_scale: float,
         prior_weight: float,
         node_position_bound: float,
         node_orientation_bound: float,
@@ -841,16 +864,18 @@ class MultipleShootingProblem:
     ) -> None:
         self.direct_problem = direct_problem
         self.delay = float(delay)
-        self.translation_scale = float(translation_scale)
-        self.rotation_scale = float(rotation_scale)
         self.prior_weight = float(prior_weight)
         self.direct_problem.actuator_parameters = ActuatorParameters(
             thrust_time_constant=0.0,
             gimbal_time_constant=0.0,
             delay=0.0,
         )
+        nominal_parameters = VehicleParameters.nominal()
         self.parameterization = FullyPhysicalInertiaParameterization(
-            VehicleParameters.nominal()
+            nominal_parameters
+        )
+        self.pose_residual_factor = inertia_radius_se3_factor(
+            nominal_parameters
         )
         self.boundaries = segment_boundaries(
             direct_problem.output_time.size,
@@ -893,7 +918,6 @@ class MultipleShootingProblem:
             ),
             dtype=float,
         )
-        nominal_parameters = VehicleParameters.nominal()
         nominal_actuator_simulation = direct_problem.simulate(
             np.zeros(baseline.ACTIVE_PARAMETER_DIMENSION, dtype=float)
         )
@@ -1434,20 +1458,17 @@ class MultipleShootingProblem:
             )
 
         count_scale = math.sqrt(self.direct_problem.output_time.size)
-        scale = np.asarray(
-            (
-                self.translation_scale,
-                self.translation_scale,
-                self.translation_scale,
-                self.rotation_scale,
-                self.rotation_scale,
-                self.rotation_scale,
-            ),
-            dtype=float,
+        normalized_pose = (
+            np.einsum("ij,nj->ni", self.pose_residual_factor, pose_residual)
+            / count_scale
         )
-        normalized_pose = pose_residual / scale[None, :] / count_scale
         normalized_pose_jacobian = (
-            pose_jacobian / scale[None, :, None] / count_scale
+            np.einsum(
+                "ij,njk->nik",
+                self.pose_residual_factor,
+                pose_jacobian,
+            )
+            / count_scale
         )
         prior_residual = (
             math.sqrt(self.prior_weight) * physical / self.prior_scales
@@ -1523,20 +1544,12 @@ class MultipleShootingProblem:
         finally:
             self.boundaries = original_boundaries
             self.segment_count = original_segment_count
-        scale = np.asarray(
-            (
-                self.translation_scale,
-                self.translation_scale,
-                self.translation_scale,
-                self.rotation_scale,
-                self.rotation_scale,
-                self.rotation_scale,
-            ),
-            dtype=float,
-        )
         residual = (
-            segment.pose_residual
-            / scale[None, :]
+            np.einsum(
+                "ij,nj->ni",
+                self.pose_residual_factor,
+                segment.pose_residual,
+            )
             / math.sqrt(self.direct_problem.output_time.size)
         ).reshape(-1)
         return (
@@ -1907,8 +1920,12 @@ def _parameter_summary_lines(
         (
             "",
             "Fit diagnostics",
-            "  stitched SE(3) loss         {:.12g}".format(stitched_loss),
-            "  full-rollout SE(3) loss     {:.12g}".format(full_rollout_loss),
+            "  stitched inertia-radius loss [m^2]     {:.12g}".format(
+                stitched_loss
+            ),
+            "  full-rollout inertia-radius loss [m^2] {:.12g}".format(
+                full_rollout_loss
+            ),
             "  broad soft-prior cost       {:.12g}".format(soft_prior_cost),
             "  position RMSE [m]           {:.12g}".format(
                 stitched_metrics["position_rmse_m"]
@@ -2217,14 +2234,14 @@ def _write_delay_profile_pdf(
             delays_ms,
             full_losses,
             marker="o",
-            label="full-rollout SE(3) loss",
+            label="full-rollout inertia-radius loss",
         )
         axes[0].plot(
             delays_ms,
             stitched_losses,
             marker=".",
             linestyle=":",
-            label="stitched SE(3) loss",
+            label="stitched inertia-radius loss",
         )
         axes[0].scatter(
             [delays_ms[selected_index]],
@@ -2249,39 +2266,13 @@ def _write_delay_profile_pdf(
         axes[1].set_ylabel("max normalized continuity residual")
         axes[1].grid(True, alpha=0.25)
         axes[1].legend(loc="best")
-        figure.suptitle("Adaptive delay profile")
+        figure.suptitle(
+            "Fixed command-delay evaluation"
+            if len(ordered) == 1
+            else "Adaptive delay profile"
+        )
         pdf.savefig(figure)
         plt.close(figure)
-
-
-def _initial_delay_grid(arguments: argparse.Namespace) -> np.ndarray:
-    lower, upper = (float(value) for value in arguments.delay_bounds)
-    if arguments.delay_values is not None:
-        values = np.asarray(arguments.delay_values, dtype=float)
-        if values.ndim != 1 or values.size < 1:
-            raise ValueError("delay-values must contain at least one value")
-        values = np.concatenate(
-            (values, np.asarray((float(arguments.nominal_delay),)))
-        )
-    else:
-        nominal = float(arguments.nominal_delay)
-        step = float(arguments.delay_step)
-        values = np.asarray(
-            (
-                nominal,
-                max(lower, nominal - step),
-                min(upper, nominal + step),
-            ),
-            dtype=float,
-        )
-    values = np.unique(np.round(values, 12))
-    if (
-        np.any(~np.isfinite(values))
-        or np.any(values < lower)
-        or np.any(values > upper)
-    ):
-        raise ValueError("delay grid contains invalid values")
-    return values
 
 
 def _solution_full_rollout_loss(solution: FixedDelaySolution) -> float:
@@ -2290,77 +2281,12 @@ def _solution_full_rollout_loss(solution: FixedDelaySolution) -> float:
     )
 
 
-def _best_profile_item(
-    solved: dict[float, tuple[MultipleShootingProblem, FixedDelaySolution]],
-    continuity_tolerance: float,
-) -> tuple[MultipleShootingProblem, FixedDelaySolution]:
-    values = list(solved.values())
-    if not values:
-        raise ValueError("delay profile is empty")
-    converged = [
-        item
-        for item in values
-        if (
-            item[1].evaluation.continuity_residual.size == 0
-            or float(
-                np.max(np.abs(item[1].evaluation.continuity_residual))
-            )
-            <= continuity_tolerance
-        )
-    ]
-    return min(
-        converged if converged else values,
-        key=lambda item: _solution_full_rollout_loss(item[1]),
-    )
-
-
-def _delay_expansion_candidate(
-    evaluated_delays: Sequence[float],
-    best_delay: float,
-    delay_bounds: Sequence[float],
-    expansion_factor: float,
-) -> Optional[float]:
-    values = np.unique(np.round(np.asarray(evaluated_delays, dtype=float), 12))
-    lower, upper = (float(value) for value in delay_bounds)
-    best_index = int(np.argmin(np.abs(values - float(best_delay))))
-    if not np.isclose(values[best_index], best_delay, atol=1.0e-12, rtol=0.0):
-        raise ValueError("best delay is absent from the evaluated profile")
-    if best_index == values.size - 1 and values[-1] < upper - 1.0e-12:
-        gap = values[-1] - values[-2] if values.size > 1 else upper - values[-1]
-        candidate = min(upper, values[-1] + expansion_factor * gap)
-    elif best_index == 0 and values[0] > lower + 1.0e-12:
-        gap = values[1] - values[0] if values.size > 1 else values[0] - lower
-        candidate = max(lower, values[0] - expansion_factor * gap)
-    else:
-        return None
-    candidate = round(float(candidate), 12)
-    if np.any(np.isclose(values, candidate, atol=1.0e-12, rtol=0.0)):
-        return None
-    return candidate
-
-
-def _delay_refinement_candidates(
-    evaluated_delays: Sequence[float],
-    best_delay: float,
-) -> np.ndarray:
-    values = np.unique(np.round(np.asarray(evaluated_delays, dtype=float), 12))
-    best_index = int(np.argmin(np.abs(values - float(best_delay))))
-    if not np.isclose(values[best_index], best_delay, atol=1.0e-12, rtol=0.0):
-        raise ValueError("best delay is absent from the evaluated profile")
-    candidates = []
-    if best_index > 0:
-        candidates.append(0.5 * (values[best_index - 1] + values[best_index]))
-    if best_index + 1 < values.size:
-        candidates.append(0.5 * (values[best_index] + values[best_index + 1]))
-    return np.unique(np.round(np.asarray(candidates, dtype=float), 12))
-
-
 def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Fit mass, fully physical second-moment/Cholesky inertia, CoG, "
-            "relative force effectiveness, and recorded-command lag by "
-            "SE(3)-only multiple shooting."
+            "relative force effectiveness at a fixed recorded-command lag "
+            "by inertia-radius-normalized SE(3)-only multiple shooting."
         )
     )
     parser.add_argument("--bag", type=Path, default=baseline.DEFAULT_BAG)
@@ -2369,8 +2295,6 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sample-step", type=float, default=0.05)
     parser.add_argument("--integration-step", type=float, default=0.025)
     parser.add_argument("--segment-duration", type=float, default=0.5)
-    parser.add_argument("--translation-scale", type=float, default=0.05)
-    parser.add_argument("--rotation-scale", type=float, default=0.10)
     parser.add_argument(
         "--prior-weight",
         type=float,
@@ -2400,39 +2324,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ftol", type=float, default=1.0e-6)
     parser.add_argument("--xtol", type=float, default=1.0e-6)
     parser.add_argument("--gtol", type=float, default=1.0e-6)
-    parser.add_argument(
-        "--delay-bounds",
-        type=float,
-        nargs=2,
-        default=(0.0, 0.16),
-        metavar=("MIN", "MAX"),
-    )
-    parser.add_argument(
-        "--delay-step",
-        type=float,
-        default=0.01,
-        help="initial spacing around nominal delay",
-    )
-    parser.add_argument("--delay-values", type=float, nargs="+", default=None)
-    parser.add_argument("--nominal-delay", type=float, default=0.01)
-    parser.add_argument(
-        "--delay-expansion-factor",
-        type=float,
-        default=2.0,
-        help="geometric outward expansion when the best delay is an edge",
-    )
-    parser.add_argument(
-        "--delay-expansion-limit",
-        type=int,
-        default=8,
-        help="maximum number of outward delay candidates",
-    )
-    parser.add_argument(
-        "--delay-refinement-levels",
-        type=int,
-        default=3,
-        help="number of midpoint-refinement levels around the current best",
-    )
+    parser.add_argument("--command-delay", type=float, default=0.16)
     parser.add_argument("--node-position-bound", type=float, default=2.0)
     parser.add_argument("--node-orientation-bound", type=float, default=1.5)
     parser.add_argument("--node-velocity-bound", type=float, default=5.0)
@@ -2449,13 +2341,11 @@ def create_argument_parser() -> argparse.ArgumentParser:
 
 def _validate_arguments(
     arguments: argparse.Namespace,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, float]:
     finite_positive = (
         arguments.sample_step,
         arguments.integration_step,
         arguments.segment_duration,
-        arguments.translation_scale,
-        arguments.rotation_scale,
         arguments.max_nfev,
         arguments.augmented_lagrangian_iterations,
         arguments.continuity_penalty_initial,
@@ -2466,8 +2356,6 @@ def _validate_arguments(
         arguments.ftol,
         arguments.xtol,
         arguments.gtol,
-        arguments.delay_step,
-        arguments.delay_expansion_factor,
         arguments.node_position_bound,
         arguments.node_orientation_bound,
         arguments.node_velocity_bound,
@@ -2480,35 +2368,15 @@ def _validate_arguments(
         or any(not np.isfinite(value) or value <= 0.0 for value in finite_positive)
         or not np.isfinite(arguments.prior_weight)
         or arguments.prior_weight < 0.0
+        or not np.isfinite(arguments.command_delay)
+        or arguments.command_delay < 0.0
         or arguments.continuity_penalty_growth <= 1.0
-        or arguments.delay_expansion_factor <= 1.0
-        or arguments.delay_expansion_limit < 0
-        or arguments.delay_refinement_levels < 0
         or not 0.0 < arguments.penalty_reduction_target < 1.0
     ):
         raise SystemExit("multiple-shooting settings are invalid")
-    delay_bounds = np.asarray(arguments.delay_bounds, dtype=float)
-    if (
-        delay_bounds.shape != (2,)
-        or np.any(~np.isfinite(delay_bounds))
-        or delay_bounds[0] < 0.0
-        or delay_bounds[1] <= delay_bounds[0]
-        or not delay_bounds[0]
-        <= arguments.nominal_delay
-        <= delay_bounds[1]
-    ):
-        raise SystemExit("delay bounds or nominal delay are invalid")
-    try:
-        delays = _initial_delay_grid(arguments)
-    except ValueError as error:
-        raise SystemExit(str(error)) from error
-    if not np.any(
-        np.isclose(delays, arguments.nominal_delay, rtol=0.0, atol=1.0e-12)
-    ):
-        raise SystemExit("nominal delay must be present in the delay grid")
     physical_lower = np.full(PHYSICAL_DIMENSION, -np.inf, dtype=float)
     physical_upper = np.full(PHYSICAL_DIMENSION, np.inf, dtype=float)
-    return physical_lower, physical_upper, delays
+    return physical_lower, physical_upper, float(arguments.command_delay)
 
 
 def _physical_payload(
@@ -2550,12 +2418,12 @@ def _solution_payload(
     return {
         "delay_seconds": solution.delay,
         "physical_coordinate": physical,
-        "stitched_se3_loss": 0.5
+        "stitched_inertia_radius_loss_m2": 0.5
         * float(
             solution.evaluation.data_residual[: problem.pose_residual_dimension]
             @ solution.evaluation.data_residual[: problem.pose_residual_dimension]
         ),
-        "full_rollout_se3_loss": 0.5
+        "full_rollout_inertia_radius_loss_m2": 0.5
         * float(solution.full_rollout_residual @ solution.full_rollout_residual),
         "stitched_metrics": _pose_metrics(stitched_unscaled),
         "stitched_recorded_control_metrics": (
@@ -2575,7 +2443,9 @@ def _solution_payload(
 
 
 def run(arguments: argparse.Namespace) -> int:
-    physical_lower, physical_upper, delays = _validate_arguments(arguments)
+    physical_lower, physical_upper, command_delay = _validate_arguments(
+        arguments
+    )
     bag = arguments.bag.expanduser().resolve()
     if not bag.is_file():
         raise SystemExit("bag does not exist: {}".format(bag))
@@ -2593,129 +2463,38 @@ def run(arguments: argparse.Namespace) -> int:
         include_fc_specific_force=True,
         compute_sha256=False,
     )
-    solved: dict[float, tuple[MultipleShootingProblem, FixedDelaySolution]] = {}
-    delay_phases: dict[float, str] = {}
-    expansion_history: list[dict[str, Any]] = []
-    refinement_history: list[dict[str, Any]] = []
-
-    def solve_delay(delay: float, phase: str) -> None:
-        selected_delay = float(delay)
-        key = round(selected_delay, 12)
-        if key in solved:
-            return
-        direct_problem = baseline.DirectShootingProblem(
-            flight=flight,
-            sample_step=arguments.sample_step,
-            integration_step=arguments.integration_step,
-            command_delay=selected_delay,
-            prior_weight=arguments.prior_weight,
-        )
-        problem = MultipleShootingProblem(
-            direct_problem=direct_problem,
-            delay=selected_delay,
-            segment_duration=arguments.segment_duration,
-            translation_scale=arguments.translation_scale,
-            rotation_scale=arguments.rotation_scale,
-            prior_weight=arguments.prior_weight,
-            node_position_bound=arguments.node_position_bound,
-            node_orientation_bound=arguments.node_orientation_bound,
-            node_velocity_bound=arguments.node_velocity_bound,
-            node_angular_velocity_bound=(
-                arguments.node_angular_velocity_bound
-            ),
-        )
-        bounds = problem.bounds(physical_lower, physical_upper)
-        if solved:
-            previous_problem, previous_solution = min(
-                solved.values(),
-                key=lambda item: abs(item[1].delay - selected_delay),
-            )
-            initial = problem.rebase_coordinate(
-                previous_problem,
-                previous_solution.coordinate,
-            )
-            warm_start = previous_solution.delay
-        else:
-            initial = problem.initial_coordinate()
-            warm_start = None
-        print(
-            "solving {} delay {:.6f}s ({:d} segments, {:d} variables; "
-            "warm start={})".format(
-                phase,
-                selected_delay,
-                problem.segment_count,
-                problem.variable_dimension,
-                "nominal" if warm_start is None else "{:.6f}s".format(warm_start),
-            ),
-            flush=True,
-        )
-        solution = _solve_fixed_delay(problem, initial, bounds, arguments)
-        solved[key] = (problem, solution)
-        delay_phases[key] = phase
-
-    initial_order = continuation.branch_order(delays, arguments.nominal_delay)
-    for branch in initial_order:
-        for delay in branch:
-            solve_delay(delay, "initial")
-
-    for expansion_index in range(arguments.delay_expansion_limit):
-        _best_problem, best_solution = _best_profile_item(
-            solved,
-            arguments.continuity_tolerance,
-        )
-        candidate = _delay_expansion_candidate(
-            [solution.delay for _problem, solution in solved.values()],
-            best_solution.delay,
-            arguments.delay_bounds,
-            arguments.delay_expansion_factor,
-        )
-        if candidate is None:
-            break
-        expansion_history.append(
-            {
-                "iteration": expansion_index + 1,
-                "best_before_seconds": best_solution.delay,
-                "candidate_seconds": candidate,
-            }
-        )
-        solve_delay(candidate, "expansion")
-
-    for level in range(arguments.delay_refinement_levels):
-        _best_problem, best_solution = _best_profile_item(
-            solved,
-            arguments.continuity_tolerance,
-        )
-        candidates = _delay_refinement_candidates(
-            [solution.delay for _problem, solution in solved.values()],
-            best_solution.delay,
-        )
-        candidates = np.asarray(
-            [
-                candidate
-                for candidate in candidates
-                if round(float(candidate), 12) not in solved
-            ],
-            dtype=float,
-        )
-        refinement_history.append(
-            {
-                "level": level + 1,
-                "best_before_seconds": best_solution.delay,
-                "candidate_seconds": candidates,
-            }
-        )
-        if candidates.size == 0:
-            break
-        for candidate in sorted(
-            candidates,
-            key=lambda value: abs(float(value) - best_solution.delay),
-        ):
-            solve_delay(candidate, "refinement_{}".format(level + 1))
-    if not solved:
-        raise RuntimeError("no delay candidate was solved")
-    selected_problem, selected_solution = _best_profile_item(
-        solved,
-        arguments.continuity_tolerance,
+    direct_problem = baseline.DirectShootingProblem(
+        flight=flight,
+        sample_step=arguments.sample_step,
+        integration_step=arguments.integration_step,
+        command_delay=command_delay,
+        prior_weight=arguments.prior_weight,
+    )
+    selected_problem = MultipleShootingProblem(
+        direct_problem=direct_problem,
+        delay=command_delay,
+        segment_duration=arguments.segment_duration,
+        prior_weight=arguments.prior_weight,
+        node_position_bound=arguments.node_position_bound,
+        node_orientation_bound=arguments.node_orientation_bound,
+        node_velocity_bound=arguments.node_velocity_bound,
+        node_angular_velocity_bound=arguments.node_angular_velocity_bound,
+    )
+    bounds = selected_problem.bounds(physical_lower, physical_upper)
+    print(
+        "solving fixed delay {:.6f}s ({:d} segments, {:d} variables; "
+        "start=nominal)".format(
+            command_delay,
+            selected_problem.segment_count,
+            selected_problem.variable_dimension,
+        ),
+        flush=True,
+    )
+    selected_solution = _solve_fixed_delay(
+        selected_problem,
+        selected_problem.initial_coordinate(),
+        bounds,
+        arguments,
     )
     nominal_problem = selected_problem
     nominal_position, nominal_orientation, nominal_residual = (
@@ -2729,21 +2508,22 @@ def run(arguments: argparse.Namespace) -> int:
     pdf_path = output_directory / "trajectory.pdf"
     delay_profile_path = output_directory / "delay_profile.pdf"
     parameters_path = output_directory / "parameters.txt"
-    ordered = sorted(solved.values(), key=lambda item: item[1].delay)
+    ordered = [(selected_problem, selected_solution)]
     selected_payload = _solution_payload(
         selected_problem,
         selected_solution,
         arguments.continuity_tolerance,
     )
-    selected_payload["search_phase"] = delay_phases[
-        round(selected_solution.delay, 12)
-    ]
     stitched_metrics = selected_payload["stitched_recorded_control_metrics"]
     parameter_lines = _parameter_summary_lines(
         selected_problem,
         selected_solution,
         stitched_metrics,
         arguments.continuity_tolerance,
+    )
+    nominal_parameters = VehicleParameters.nominal()
+    nominal_rotational_metric = (
+        nominal_parameters.inertia / nominal_parameters.mass
     )
     payload = {
         "schema": SCHEMA,
@@ -2763,8 +2543,10 @@ def run(arguments: argparse.Namespace) -> int:
         "method": {
             "name": "augmented_lagrangian_multiple_shooting_se3_only",
             "data_loss": (
-                "Log_SE3(T_observed^{-1} T_simulated), with translation "
-                "pushed through inverse SO(3) left Jacobian"
+                "least-squares residual metric for each "
+                "Log_SE3(T_observed^{-1} T_simulated) sample: ||rho||^2 + "
+                "phi^T (J0 / m0) phi, with translation pushed through "
+                "inverse SO(3) left Jacobian"
             ),
             "observation_terms": ["sensor_position", "sensor_orientation"],
             "excluded_observation_terms": [
@@ -2809,20 +2591,27 @@ def run(arguments: argparse.Namespace) -> int:
             "node_parameter_names": NODE_PARAMETER_NAMES,
             "physical_jacobian": "analytic forward sensitivity",
             "node_jacobian": "analytic forward sensitivity",
-            "lag_treatment": "external profile over causal ZOH command lookup",
-            "delay_search": (
-                "initial local grid, geometric edge expansion, then adaptive "
-                "midpoint refinement around the best full rollout"
-            ),
+            "lag_treatment": "fixed causal ZOH command lookup",
+            "delay_search": None,
         },
         "fixed_parameters": {
+            "command_delay_seconds": command_delay,
             "torque_effectiveness": [1.0] * 4,
             "linear_drag": [0.0] * 3,
             "angular_drag": [0.0] * 3,
         },
-        "loss_scales": {
-            "se3_translation_m": arguments.translation_scale,
-            "se3_rotation_rad": arguments.rotation_scale,
+        "loss_metric": {
+            "per_sample_pose_quadratic": (
+                "||rho||^2 + phi^T (J0 / m0) phi"
+            ),
+            "residual_reduction": "divide by sqrt(sample count)",
+            "reported_cost_convention": (
+                "one half of the mean per-sample pose quadratic"
+            ),
+            "nominal_mass_kg": nominal_parameters.mass,
+            "nominal_inertia_kg_m2": nominal_parameters.inertia,
+            "rotation_metric_J0_over_m0_m2": nominal_rotational_metric,
+            "se3_residual_factor": selected_problem.pose_residual_factor,
             "prior_weight": arguments.prior_weight,
             "soft_prior_standard_deviations": {
                 name: float(scale)
@@ -2832,34 +2621,18 @@ def run(arguments: argparse.Namespace) -> int:
                 )
             },
         },
-        "delay_profile_seconds": delays,
-        "adaptive_delay_profile": {
-            "bounds_seconds": arguments.delay_bounds,
-            "initial_grid_seconds": delays,
-            "initial_step_seconds": arguments.delay_step,
-            "expansion_factor": arguments.delay_expansion_factor,
-            "expansion_limit": arguments.delay_expansion_limit,
-            "expansion_history": expansion_history,
-            "refinement_levels_requested": arguments.delay_refinement_levels,
-            "refinement_history": refinement_history,
-            "evaluated_delay_seconds": [
-                solution.delay for _problem, solution in ordered
-            ],
-        },
+        "delay_profile_seconds": [command_delay],
         "delay_results": [
-            {
-                **_solution_payload(
-                    problem,
-                    solution,
-                    arguments.continuity_tolerance,
-                ),
-                "search_phase": delay_phases[round(solution.delay, 12)],
-            }
+            _solution_payload(
+                problem,
+                solution,
+                arguments.continuity_tolerance,
+            )
             for problem, solution in ordered
         ],
         "selection": selected_payload,
         "nominal_at_selected_delay": {
-            "full_rollout_se3_loss": 0.5
+            "full_rollout_inertia_radius_loss_m2": 0.5
             * float(nominal_residual @ nominal_residual),
             "metrics": _pose_metrics(
                 _unscaled_pose_residual(
@@ -2894,9 +2667,9 @@ def run(arguments: argparse.Namespace) -> int:
         arguments.continuity_tolerance,
     )
     print(
-        "selected delay {:.6f}s, full-rollout SE(3) loss {:.9g}".format(
+        "fixed delay {:.6f}s, full-rollout inertia-radius loss {:.9g}".format(
             selected_solution.delay,
-            selected_payload["full_rollout_se3_loss"],
+            selected_payload["full_rollout_inertia_radius_loss_m2"],
         ),
         flush=True,
     )

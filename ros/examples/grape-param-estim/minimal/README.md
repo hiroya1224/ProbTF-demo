@@ -1,24 +1,51 @@
 # 最小構成の実機パラメータ推定
 
-このディレクトリの `estimate_recorded_control.py` は deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
+このディレクトリの `estimate_recorded_control.py` は deterministic-multiple-shooting、deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
 
-既定では `deterministic_estimator.py` のベースライン推定法を呼び出します。
+既定では `deterministic_multiple_shooting_estimator.py` を呼び出します。
 
-ベースライン推定法は、GUI、Q、潜在状態、residual wrench、EM、MCMC を使わず、SciPy の `least_squares` だけで質量、慣性行列、CoG offset、相対 rotor effectiveness を推定します。
+各 method は同梱 rosbag の 19–24 秒を既定区間とし、記録された rotor thrust command と gimbal command を既知入力として使います。GUI には依存しません。
 
-固定 Q と 1 iteration の Laplace-EM を実 bag で比較した結果、解釈、残作業は [現時点の比較結果](RESULTS_ja.md) に記録しています。
-
-既定では同梱 rosbag の 19–24 秒を読み、記録された rotor thrust command と gimbal command を固定アクチュエータモデルへ入れます。
-
-最初に観測 gyro の時間微分と IMU specific force を使う局所運動方程式で初期化し、最後に最初の観測状態から一度も状態をリセットしない 5 秒間の open-loop 軌道誤差を直接最小化します。
+旧 deterministic baseline、固定 Q、Laplace-EM の比較結果は [現時点の比較結果](RESULTS_ja.md) に記録しています。
 
 ## 実行
+
+### SE(3)-only deterministic multiple shooting（既定）
+
+`deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、Cholesky 慣性座標、CoG offset、相対 rotor force effectiveness を推定します。command lag は causal zero-order-hold lookup に対して滑らかでないため、外側の一次元 profile で選びます。
+
+観測 Loss は各時刻の
+
+```text
+Log_SE(3)(T_observed^-1 T_simulated)
+```
+
+だけです。並進成分は相対並進を観測座標系へ移した後、`SO(3)` 左 Jacobian の逆を用いて `se(3)` の並進座標へ写します。velocity、angular velocity、specific force、acceleration は観測 Loss に入りません。velocity と gyro は shooting node の初期値を作るためだけに使います。
+
+全時系列を既定 0.5 秒の区間へ分け、内部境界の CoG pose、velocity、angular velocity、actuator thrust、gimbal angle を補助変数にします。区間終端と次区間始端の一致は augmented Lagrangian の連続性制約として反復的に強制します。最終選択は、推定物理パラメータを初期時刻から一本で再積分した full-rollout の SE(3) Loss で行います。
+
+```bash
+source /home/leus/catkin_ws/devel/setup.bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
+```
+
+既定の lag 候補は `0.00, 0.01, 0.02 s` です。明示する場合は次のようにします。
+
+```bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --delay-values 0.005 0.010 0.015 \
+  --segment-duration 0.5 \
+  --max-nfev 60
+```
+
+結果は `minimal/output/deterministic_multiple_shooting/` に保存されます。
 
 ### Deterministic baseline
 
 ```bash
 source /home/leus/catkin_ws/devel/setup.bash
-python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic
 ```
 
 推定結果は `minimal/output/result.json` に、軌道と時系列の比較図は `minimal/output/trajectory.pdf` に生成されます。
@@ -30,7 +57,8 @@ Observed は青の実線、nominal は橙の破線、estimated は緑の点線�
 試行時間を短くする場合は `--max-nfev` を小さくし、軌道 refinement を長く続ける場合は大きくします。
 
 ```bash
-python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" --max-nfev 50
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic --max-nfev 50
 ```
 
 ### Sobol multi-start deterministic baseline

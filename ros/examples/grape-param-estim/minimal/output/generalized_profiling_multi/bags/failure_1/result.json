@@ -1,0 +1,74 @@
+{
+  "analysis_minus_free_loss_m2": -114.87032046408244,
+  "analysis_pose_metrics": {
+    "inertia_radius_loss_m2": 0.04728647619865808,
+    "rotation_max_rad": 0.8719074435680862,
+    "rotation_rmse_deg": 21.247273169877985,
+    "rotation_rmse_rad": 0.3708348738850233,
+    "translation_max_m": 1.0150007356414286,
+    "translation_rmse_m": 0.2985295621183955
+  },
+  "free_rollout_pose_metrics": {
+    "inertia_radius_loss_m2": 114.9176069402811,
+    "rotation_max_rad": 0.8763984199608139,
+    "rotation_rmse_deg": 29.405012963759518,
+    "rotation_rmse_rad": 0.5132142928092196,
+    "translation_max_m": 36.687432228679924,
+    "translation_rmse_m": 15.159970571342624
+  },
+  "id": "failure_1",
+  "outputs": {
+    "analysis_npz": "analysis.npz",
+    "trajectory_pdf": "trajectory.pdf"
+  },
+  "required_minus_modeled_body_wrench": {
+    "component_max_abs": [
+      11.164768846951645,
+      3.1579594981285486,
+      5.486243304854209,
+      0.20406421125248347,
+      0.49901254604831546,
+      0.2535526451179537
+    ],
+    "component_mean": [
+      0.188863900925927,
+      0.1942700028810065,
+      0.0528644615954987,
+      -0.017475009330577183,
+      0.016413923044190065,
+      0.010622870209386261
+    ],
+    "component_rmse": [
+      2.8138607854443936,
+      0.8744953109120223,
+      1.9282496847037696,
+      0.06338326653257059,
+      0.14400323856388494,
+      0.08685851133661575
+    ],
+    "force_vector_rmse_N": 3.5214629651934497,
+    "torque_vector_rmse_Nm": 0.17971859165049967
+  },
+  "sample_count": 120,
+  "schema": "grape-param-estim/minimal-multi-bag-generalized-profiling/v1/bag-result",
+  "source": {
+    "normalized_weight": 0.5,
+    "path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+    "raw_weight": 1.0,
+    "requested_interval_seconds": [
+      19.0,
+      25.0
+    ],
+    "sha256": "bd3fc7f71797c0f5cb665acc50832da93c590e540fa170f9977182ecedf93bf8"
+  },
+  "spline": {
+    "coefficient_count": 14,
+    "coefficient_shape": [
+      14,
+      6
+    ],
+    "degree": 3,
+    "maximum_absolute_rotation_coefficient_rad": 0.30390498169686603,
+    "maximum_absolute_translation_coefficient_m": 1.9999999999999998
+  }
+}

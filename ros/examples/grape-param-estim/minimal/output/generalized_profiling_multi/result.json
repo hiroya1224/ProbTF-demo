@@ -1,0 +1,460 @@
+{
+  "alternating_history": [
+    {
+      "input_physical_coordinate": [
+        0.2509308126840298,
+        0.6934658181907125,
+        1.3297661283680218,
+        0.0013111629938505152,
+        -0.8481289134885318,
+        -0.07009316043402815,
+        0.3165463172950524,
+        0.06118241691081538,
+        -0.09363190793318918,
+        -0.010454651735755455,
+        -0.5667344180264173,
+        0.6308024865529654,
+        0.5626615738018588
+      ],
+      "iteration": 0,
+      "output_physical_coordinate": [
+        0.2509308126840298,
+        0.7721697589766604,
+        1.2779904267827,
+        0.0015187989647844132,
+        -0.7550408522837311,
+        -0.07640616380457797,
+        0.3376698871660213,
+        0.05873201501413823,
+        -0.08953591649060322,
+        -0.010367551638222398,
+        -0.5721232942684729,
+        0.6170917857886562,
+        0.5082027949863253
+      ],
+      "parameter_update": {
+        "cost": 0.09249964922780607,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 4,
+        "njev": 4,
+        "optimality": 1.706919551162314e-06,
+        "status": 2,
+        "success": true
+      },
+      "trajectory_fits": [
+        {
+          "cost": 0.14550206966022916,
+          "id": "failure_1",
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 9,
+          "njev": 9,
+          "optimality": 1.590710588541047e-06,
+          "status": 2,
+          "success": true
+        },
+        {
+          "cost": 0.054339721594190316,
+          "id": "failure_2",
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 9,
+          "njev": 9,
+          "optimality": 1.9816352172584346e-05,
+          "status": 2,
+          "success": true
+        }
+      ]
+    },
+    {
+      "input_physical_coordinate": [
+        0.2509308126840298,
+        0.7721697589766604,
+        1.2779904267827,
+        0.0015187989647844132,
+        -0.7550408522837311,
+        -0.07640616380457797,
+        0.3376698871660213,
+        0.05873201501413823,
+        -0.08953591649060322,
+        -0.010367551638222398,
+        -0.5721232942684729,
+        0.6170917857886562,
+        0.5082027949863253
+      ],
+      "iteration": 1,
+      "output_physical_coordinate": [
+        0.2509308126840298,
+        0.8087714450430094,
+        1.2546010123917752,
+        0.0015826273535925496,
+        -0.7409021260255744,
+        -0.07909145158255132,
+        0.3508358397799923,
+        0.05812094617094236,
+        -0.08825026603470229,
+        -0.00953857699318585,
+        -0.5741064457014324,
+        0.6150396538848933,
+        0.49027013160668514
+      ],
+      "parameter_update": {
+        "cost": 0.08967816314845467,
+        "message": "`gtol` termination condition is satisfied.",
+        "nfev": 4,
+        "njev": 4,
+        "optimality": 8.128768905702314e-07,
+        "status": 1,
+        "success": true
+      },
+      "trajectory_fits": [
+        {
+          "cost": 0.13378951713122889,
+          "id": "failure_1",
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 5,
+          "njev": 5,
+          "optimality": 1.3950890074446778e-05,
+          "status": 2,
+          "success": true
+        },
+        {
+          "cost": 0.05320335159474676,
+          "id": "failure_2",
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 5,
+          "njev": 5,
+          "optimality": 1.1370226530198645e-05,
+          "status": 2,
+          "success": true
+        }
+      ]
+    },
+    {
+      "iteration": "final_profile",
+      "physical_coordinate": [
+        0.2509308126840298,
+        0.8087714450430094,
+        1.2546010123917752,
+        0.0015826273535925496,
+        -0.7409021260255744,
+        -0.07909145158255132,
+        0.3508358397799923,
+        0.05812094617094236,
+        -0.08825026603470229,
+        -0.00953857699318585,
+        -0.5741064457014324,
+        0.6150396538848933,
+        0.49027013160668514
+      ],
+      "trajectory_fits": [
+        {
+          "cost": 0.12966306159394492,
+          "id": "failure_1",
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 5,
+          "njev": 5,
+          "optimality": 1.0274945937581725e-05,
+          "status": 2,
+          "success": true
+        },
+        {
+          "cost": 0.05328707383288589,
+          "id": "failure_2",
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 4,
+          "njev": 4,
+          "optimality": 6.807959687667877e-06,
+          "status": 2,
+          "success": true
+        }
+      ]
+    }
+  ],
+  "config_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/multiple_rosbag_sample.json",
+  "created_at": "2026-08-06T16:28:55.138977+00:00",
+  "elapsed_seconds": 132.29058624105528,
+  "initialization": {
+    "command_delay_seconds": 0.126553995291,
+    "corrected_mass_kg": 3.0223229841109034,
+    "estimator_result_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/deterministic_multiple_shooting_multi/result.json",
+    "initial_physical_coordinate": [
+      0.2509308126840298,
+      0.6934658181907125,
+      1.3297661283680218,
+      0.0013111629938505152,
+      -0.8481289134885318,
+      -0.07009316043402815,
+      0.3165463172950524,
+      0.06118241691081538,
+      -0.09363190793318918,
+      -0.010454651735755455,
+      -0.5667344180264173,
+      0.6308024865529654,
+      0.5626615738018588
+    ],
+    "kind": "estimator_result",
+    "missing_result_fallback": "nominal physical coordinate and config initial delay",
+    "source_mass_kg": 3.0223229841109034
+  },
+  "method": {
+    "analysis_trajectory": "T_bar(t) Exp(delta_xi(t)^)",
+    "command_model": "strict causal ZOH with recorded gimbal rate limit",
+    "continuous_derivatives": "CubicSpline position and RotationSpline SO(3), analytic order 1 and 2",
+    "correction_basis": "open-uniform B-spline in se(3)",
+    "dynamics_residual": "required minus modeled body wrench",
+    "mass_update": "fixed during parameter profiling",
+    "name": "multi_bag_generalized_profiling_se3_correction_spline",
+    "parameter_update_enabled": true
+  },
+  "outputs": {
+    "bags": {
+      "failure_1": {
+        "analysis_npz": "bags/failure_1/analysis.npz",
+        "result_json": "bags/failure_1/result.json",
+        "trajectory_pdf": "bags/failure_1/trajectory.pdf"
+      },
+      "failure_2": {
+        "analysis_npz": "bags/failure_2/analysis.npz",
+        "result_json": "bags/failure_2/result.json",
+        "trajectory_pdf": "bags/failure_2/trajectory.pdf"
+      }
+    },
+    "parameters_text": "parameters.txt",
+    "result_json": "result.json"
+  },
+  "schema": "grape-param-estim/minimal-multi-bag-generalized-profiling/v1",
+  "selection": {
+    "analysis_minus_free_loss_m2": -59.65191282129955,
+    "bags": [
+      {
+        "analysis_minus_free_loss_m2": -114.87032046408244,
+        "analysis_pose_metrics": {
+          "inertia_radius_loss_m2": 0.04728647619865808,
+          "rotation_max_rad": 0.8719074435680862,
+          "rotation_rmse_deg": 21.247273169877985,
+          "rotation_rmse_rad": 0.3708348738850233,
+          "translation_max_m": 1.0150007356414286,
+          "translation_rmse_m": 0.2985295621183955
+        },
+        "free_rollout_pose_metrics": {
+          "inertia_radius_loss_m2": 114.9176069402811,
+          "rotation_max_rad": 0.8763984199608139,
+          "rotation_rmse_deg": 29.405012963759518,
+          "rotation_rmse_rad": 0.5132142928092196,
+          "translation_max_m": 36.687432228679924,
+          "translation_rmse_m": 15.159970571342624
+        },
+        "id": "failure_1",
+        "outputs": {
+          "analysis_npz": "analysis.npz",
+          "trajectory_pdf": "trajectory.pdf"
+        },
+        "required_minus_modeled_body_wrench": {
+          "component_max_abs": [
+            11.164768846951645,
+            3.1579594981285486,
+            5.486243304854209,
+            0.20406421125248347,
+            0.49901254604831546,
+            0.2535526451179537
+          ],
+          "component_mean": [
+            0.188863900925927,
+            0.1942700028810065,
+            0.0528644615954987,
+            -0.017475009330577183,
+            0.016413923044190065,
+            0.010622870209386261
+          ],
+          "component_rmse": [
+            2.8138607854443936,
+            0.8744953109120223,
+            1.9282496847037696,
+            0.06338326653257059,
+            0.14400323856388494,
+            0.08685851133661575
+          ],
+          "force_vector_rmse_N": 3.5214629651934497,
+          "torque_vector_rmse_Nm": 0.17971859165049967
+        },
+        "sample_count": 120,
+        "schema": "grape-param-estim/minimal-multi-bag-generalized-profiling/v1/bag-result",
+        "source": {
+          "normalized_weight": 0.5,
+          "path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+          "raw_weight": 1.0,
+          "requested_interval_seconds": [
+            19.0,
+            25.0
+          ],
+          "sha256": "bd3fc7f71797c0f5cb665acc50832da93c590e540fa170f9977182ecedf93bf8"
+        },
+        "spline": {
+          "coefficient_count": 14,
+          "coefficient_shape": [
+            14,
+            6
+          ],
+          "degree": 3,
+          "maximum_absolute_rotation_coefficient_rad": 0.30390498169686603,
+          "maximum_absolute_translation_coefficient_m": 1.9999999999999998
+        }
+      },
+      {
+        "analysis_minus_free_loss_m2": -4.433505178516649,
+        "analysis_pose_metrics": {
+          "inertia_radius_loss_m2": 0.03257606691318151,
+          "rotation_max_rad": 0.8487943222910304,
+          "rotation_rmse_deg": 11.704786772992954,
+          "rotation_rmse_rad": 0.20428706743260913,
+          "translation_max_m": 1.0375603478190847,
+          "translation_rmse_m": 0.25232020197750943
+        },
+        "free_rollout_pose_metrics": {
+          "inertia_radius_loss_m2": 4.46608124542983,
+          "rotation_max_rad": 1.1548071256680499,
+          "rotation_rmse_deg": 22.195606126177623,
+          "rotation_rmse_rad": 0.3873864063776235,
+          "translation_max_m": 8.91006150734835,
+          "translation_rmse_m": 2.987722619370766
+        },
+        "id": "failure_2",
+        "outputs": {
+          "analysis_npz": "analysis.npz",
+          "trajectory_pdf": "trajectory.pdf"
+        },
+        "required_minus_modeled_body_wrench": {
+          "component_max_abs": [
+            5.992447503600151,
+            1.0675707923517495,
+            3.841440673691501,
+            0.11394198438928968,
+            0.25801909633748166,
+            0.08864161294468531
+          ],
+          "component_mean": [
+            0.10760519721334794,
+            0.020155814354055307,
+            -0.27732589929567525,
+            0.008734167296757191,
+            -0.007066387230606617,
+            0.00728619548912781
+          ],
+          "component_rmse": [
+            1.2353886144995991,
+            0.3457959243208652,
+            1.120870095322581,
+            0.028987404297753337,
+            0.0837796710954131,
+            0.02640856471915335
+          ],
+          "force_vector_rmse_N": 1.7035579299514918,
+          "torque_vector_rmse_Nm": 0.09250251449178402
+        },
+        "sample_count": 110,
+        "schema": "grape-param-estim/minimal-multi-bag-generalized-profiling/v1/bag-result",
+        "source": {
+          "normalized_weight": 0.5,
+          "path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_6_2026-06-12-17-40-34.bag",
+          "raw_weight": 1.0,
+          "requested_interval_seconds": [
+            25.5,
+            31.0
+          ],
+          "sha256": "c4515b73edd26f9cb68d93d9165e3e14fff2cbad95af6cef463821b791aeb665"
+        },
+        "spline": {
+          "coefficient_count": 14,
+          "coefficient_shape": [
+            14,
+            6
+          ],
+          "degree": 3,
+          "maximum_absolute_rotation_coefficient_rad": 0.3009804287916422,
+          "maximum_absolute_translation_coefficient_m": 1.9999999999999998
+        }
+      }
+    ],
+    "delay_seconds": 0.126553995291,
+    "joint_analysis_inertia_radius_loss_m2": 0.039931271555919794,
+    "joint_free_rollout_inertia_radius_loss_m2": 59.69184409285547,
+    "parameters": {
+      "angular_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cog_offset_m": [
+        0.05812094617094236,
+        -0.08825026603470229,
+        -0.00953857699318585
+      ],
+      "command_delay_seconds": 0.126553995291,
+      "force_effectiveness": [
+        0.9867516647040717,
+        2.2223656671983667,
+        0.6972236961625466,
+        0.6540402476376568
+      ],
+      "inertia_kg_m2": [
+        [
+          0.8298836580134897,
+          0.10726363772354958,
+          0.003406121326667909
+        ],
+        [
+          0.10726363772354958,
+          0.32618781082785997,
+          -0.024438044882431082
+        ],
+        [
+          0.003406121326667909,
+          -0.024438044882431082,
+          1.1536660780597146
+        ]
+      ],
+      "linear_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass_kg": 3.0223229841109034,
+      "torque_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "physical_coordinate": [
+      0.2509308126840298,
+      0.8087714450430094,
+      1.2546010123917752,
+      0.0015826273535925496,
+      -0.7409021260255744,
+      -0.07909145158255132,
+      0.3508358397799923,
+      0.05812094617094236,
+      -0.08825026603470229,
+      -0.00953857699318585,
+      -0.5741064457014324,
+      0.6150396538848933,
+      0.49027013160668514
+    ]
+  },
+  "settings": {
+    "alternating_iterations": 2,
+    "force_residual_scale_N": 10.0,
+    "integration_step_seconds": 0.025,
+    "lambda_dynamics": 1.0,
+    "lambda_smooth": 0.001,
+    "pose_scale_m": 1.0,
+    "robust_loss": "soft_l1",
+    "robust_scale": 1.0,
+    "sample_step_seconds": 0.05,
+    "smooth_rotation_scale_rad_per_s2": 1.0,
+    "smooth_translation_scale_m_per_s2": 1.0,
+    "spline_degree": 3,
+    "spline_knot_count_requested": 14,
+    "torque_residual_scale_Nm": 1.0
+  }
+}

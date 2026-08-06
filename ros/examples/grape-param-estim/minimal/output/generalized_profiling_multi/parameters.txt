@@ -1,0 +1,27 @@
+Generalized-profiling shared parameters
+
+Seed source: estimator_result
+Source mass [kg]: 3.02232298411
+Fixed corrected mass [kg]: 3.02232298411
+Command delay [s]: 0.126553995291
+Inertia [kg m^2]
+  [ 0.829883658013   0.107263637724   0.00340612132667]
+  [ 0.107263637724   0.326187810828  -0.0244380448824]
+  [ 0.00340612132667  -0.0244380448824   1.15366607806]
+CoG offset [m]: [0.0581209461709, -0.0882502660347, -0.00953857699319]
+Force effectiveness: [0.986751664704, 2.2223656672, 0.697223696163, 0.654040247638]
+
+Physical coordinate
+  log_mass_scale                               0.250930812684
+  log_second_moment_cholesky_xx_scale          0.808771445043
+  log_second_moment_cholesky_yy_scale          1.25460101239
+  log_second_moment_cholesky_zz_scale          0.00158262735359
+  normalized_second_moment_cholesky_yx_offset -0.740902126026
+  normalized_second_moment_cholesky_zx_offset -0.0790914515826
+  normalized_second_moment_cholesky_zy_offset  0.35083583978
+  cog_offset_x_m                               0.0581209461709
+  cog_offset_y_m                              -0.0882502660347
+  cog_offset_z_m                              -0.00953857699319
+  force_effectiveness_contrast_1              -0.574106445701
+  force_effectiveness_contrast_2               0.615039653885
+  force_effectiveness_contrast_3               0.490270131607

@@ -18,6 +18,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--method",
         choices=(
             "deterministic_multiple_shooting",
+            "deterministic_smooth_lag_multiple_shooting",
             "deterministic",
             "deterministic_sobol",
             "deterministic_tempered",
@@ -30,6 +31,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     selection, remaining = selector.parse_known_args(raw_arguments)
     if selection.method == "deterministic_multiple_shooting":
         from deterministic_multiple_shooting_estimator import main as selected_main
+    elif selection.method == "deterministic_smooth_lag_multiple_shooting":
+        from deterministic_smooth_lag_multiple_shooting_estimator import (
+            main as selected_main,
+        )
     elif selection.method == "deterministic":
         from deterministic_estimator import main as selected_main
     elif selection.method == "deterministic_sobol":

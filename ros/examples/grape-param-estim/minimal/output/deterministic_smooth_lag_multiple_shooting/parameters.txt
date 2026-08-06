@@ -1,0 +1,40 @@
+Selected multiple-shooting estimate
+
+Decoded physical parameters
+  mass [kg]                  2.59584935708
+  inertia [kg m^2]
+    [ 0.0837313036287  -0.00794774236842  -0.00180465388552]
+    [-0.00794774236842   0.294653865538  -0.000999592122333]
+    [-0.00180465388552  -0.000999592122333   0.377376117722]
+  principal inertia [kg m^2] [0.0834207202977, 0.294942406007, 0.377398160584]
+  CoG offset [m]             [0.0225972925888, 0.00917593188377, 0.00945015050417]
+  rotor force effectiveness  [0.943247879376, 1.02428843974, 1.23841182552, 0.835770043874]
+  command delay [s]           0.05272551227
+
+Thirteen optimized smooth coordinates
+  log_mass_scale                               0.0988188452428
+  log_second_moment_cholesky_xx_scale          0.758925552195
+  log_second_moment_cholesky_yy_scale          0.126007045662
+  log_second_moment_cholesky_zz_scale          0.00235231810666
+  normalized_second_moment_cholesky_yx_offset  0.0576910326107
+  normalized_second_moment_cholesky_zx_offset  0.0456094512929
+  normalized_second_moment_cholesky_zy_offset  0.0442346579369
+  cog_offset_x_m                               0.0225972925888
+  cog_offset_y_m                               0.00917593188377
+  cog_offset_z_m                               0.00945015050417
+  force_effectiveness_contrast_1              -0.0582828060265
+  force_effectiveness_contrast_2              -0.188646451367
+  force_effectiveness_contrast_3               0.207155321412
+
+Fit diagnostics
+  stitched inertia-radius loss [m^2]     0.283404291725
+  full-rollout inertia-radius loss [m^2] 0.283489813441
+  broad soft-prior cost       0.158285809668
+  position RMSE [m]           0.708849948534
+  orientation RMSE [deg]      48.3413068545
+  velocity RMSE [m/s]         1.47582526408
+  angular velocity RMSE       1.02751835581 rad/s
+  specific force RMSE         1.07472048224 m/s^2
+  continuity max (normalized) 0.000134283931852
+  continuity tolerance        0.001
+  continuity converged        True

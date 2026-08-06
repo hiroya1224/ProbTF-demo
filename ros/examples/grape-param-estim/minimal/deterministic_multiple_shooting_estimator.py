@@ -493,21 +493,31 @@ def _extend_parameter_jacobian(
     source: analytic.DecodedSearchJacobian,
     dimension: int,
 ) -> analytic.DecodedSearchJacobian:
-    if dimension < PHYSICAL_DIMENSION:
+    source_dimension = int(np.asarray(source.mass).size)
+    if source_dimension < PHYSICAL_DIMENSION or dimension < source_dimension:
         raise ValueError("extended derivative dimension is too small")
 
     def extend_vector(value: np.ndarray) -> np.ndarray:
+        source_value = np.asarray(value, dtype=float)
+        if source_value.shape != (source_dimension,):
+            raise ValueError("parameter derivative vector has inconsistent width")
         result = np.zeros(dimension, dtype=float)
-        result[:PHYSICAL_DIMENSION] = value
+        result[:source_dimension] = source_value
         return result
 
     def extend_matrix(value: np.ndarray) -> np.ndarray:
-        result = np.zeros((value.shape[0], dimension), dtype=float)
-        result[:, :PHYSICAL_DIMENSION] = value
+        source_value = np.asarray(value, dtype=float)
+        if source_value.ndim != 2 or source_value.shape[1] != source_dimension:
+            raise ValueError("parameter derivative matrix has inconsistent width")
+        result = np.zeros((source_value.shape[0], dimension), dtype=float)
+        result[:, :source_dimension] = source_value
         return result
 
+    source_inertia = np.asarray(source.inertia, dtype=float)
+    if source_inertia.shape != (3, 3, source_dimension):
+        raise ValueError("inertia derivative has inconsistent width")
     inertia = np.zeros((3, 3, dimension), dtype=float)
-    inertia[:, :, :PHYSICAL_DIMENSION] = source.inertia
+    inertia[:, :, :source_dimension] = source_inertia
     return analytic.DecodedSearchJacobian(
         mass=extend_vector(source.mass),
         inertia=inertia,
@@ -575,11 +585,18 @@ def _actuator_step_with_sensitivity(
     decoded: analytic.DecodedSearchPoint,
     parameter_jacobian: analytic.DecodedSearchJacobian,
     time_step: float,
+    command_sensitivity: Optional[np.ndarray] = None,
 ) -> tuple[ActuatorState, np.ndarray]:
     value = np.asarray(sensitivity, dtype=float)
     dimension = value.shape[1]
     if value.shape[0] != 8:
         raise ValueError("actuator sensitivity must have eight rows")
+    if command_sensitivity is None:
+        command_derivative = np.zeros_like(value)
+    else:
+        command_derivative = np.asarray(command_sensitivity, dtype=float)
+        if command_derivative.shape != value.shape:
+            raise ValueError("command sensitivity must match actuator sensitivity")
     evaluation = advance_actuators_with_jacobian(
         state,
         command,
@@ -588,8 +605,14 @@ def _actuator_step_with_sensitivity(
     )
     jacobian = evaluation.jacobian
     result = np.empty_like(value)
-    result[:4] = jacobian.thrust_previous @ value[:4]
-    result[4:] = jacobian.gimbal_previous @ value[4:]
+    result[:4] = (
+        jacobian.thrust_previous @ value[:4]
+        + jacobian.thrust_command @ command_derivative[:4]
+    )
+    result[4:] = (
+        jacobian.gimbal_previous @ value[4:]
+        + jacobian.gimbal_command @ command_derivative[4:]
+    )
 
     thrust_tau_derivative = parameter_jacobian.thrust_time_constant
     thrust_tau = decoded.actuator_parameters.thrust_time_constant
@@ -861,10 +884,14 @@ class MultipleShootingProblem:
         node_orientation_bound: float,
         node_velocity_bound: float,
         node_angular_velocity_bound: float,
+        global_dimension: int = PHYSICAL_DIMENSION,
     ) -> None:
         self.direct_problem = direct_problem
         self.delay = float(delay)
         self.prior_weight = float(prior_weight)
+        self.global_dimension = int(global_dimension)
+        if self.global_dimension < PHYSICAL_DIMENSION:
+            raise ValueError("global dimension cannot omit physical coordinates")
         self.direct_problem.actuator_parameters = ActuatorParameters(
             thrust_time_constant=0.0,
             gimbal_time_constant=0.0,
@@ -885,7 +912,7 @@ class MultipleShootingProblem:
         self.segment_count = self.boundaries.size - 1
         self.node_count = self.segment_count - 1
         self.variable_dimension = (
-            PHYSICAL_DIMENSION + self.node_count * NODE_DIMENSION
+            self.global_dimension + self.node_count * NODE_DIMENSION
         )
         self.pose_residual_dimension = direct_problem.output_time.size * 6
         self.data_residual_dimension = (
@@ -985,6 +1012,33 @@ class MultipleShootingProblem:
     def initial_coordinate(self) -> np.ndarray:
         return np.zeros(self.variable_dimension, dtype=float)
 
+    def _decode_global_coordinate(
+        self,
+        global_coordinate: Sequence[float],
+    ) -> tuple[
+        analytic.DecodedSearchPoint,
+        analytic.DecodedSearchJacobian,
+    ]:
+        return _physical_parameter_jacobian(
+            self.parameterization,
+            global_coordinate,
+            self.delay,
+        )
+
+    def coordinate_delay(self, coordinate: Sequence[float]) -> float:
+        del coordinate
+        return self.delay
+
+    def _command_with_sensitivity(
+        self,
+        step_index: int,
+        local_dimension: int,
+    ) -> tuple[Any, np.ndarray]:
+        return (
+            self.direct_problem.commands[step_index],
+            np.zeros((8, local_dimension), dtype=float),
+        )
+
     def split_coordinate(
         self, coordinate: Sequence[float]
     ) -> tuple[np.ndarray, np.ndarray]:
@@ -994,8 +1048,8 @@ class MultipleShootingProblem:
             or np.any(~np.isfinite(value))
         ):
             raise ValueError("multiple-shooting coordinate has the wrong shape")
-        physical = value[:PHYSICAL_DIMENSION]
-        nodes = value[PHYSICAL_DIMENSION:].reshape(
+        physical = value[: self.global_dimension]
+        nodes = value[self.global_dimension :].reshape(
             self.node_count, NODE_DIMENSION
         )
         return physical, nodes
@@ -1038,15 +1092,17 @@ class MultipleShootingProblem:
         if previous.node_count != self.node_count:
             raise ValueError("shooting schedules differ and cannot be rebased")
         result = self.initial_coordinate()
-        result[:PHYSICAL_DIMENSION] = previous_physical
+        if previous.global_dimension != self.global_dimension:
+            raise ValueError("global coordinate dimensions differ")
+        result[: self.global_dimension] = previous_physical
         for index in range(self.node_count):
             rigid, actuator, _, _ = _decode_node(
                 previous.node_references[index],
                 previous_nodes[index],
             )
             result[
-                PHYSICAL_DIMENSION
-                + index * NODE_DIMENSION : PHYSICAL_DIMENSION
+                self.global_dimension
+                + index * NODE_DIMENSION : self.global_dimension
                 + (index + 1) * NODE_DIMENSION
             ] = _encode_node(self.node_references[index], rigid, actuator)
         return result
@@ -1064,7 +1120,7 @@ class MultipleShootingProblem:
         np.ndarray,
         analytic.DecodedSearchJacobian,
     ]:
-        local_dimension = PHYSICAL_DIMENSION + (
+        local_dimension = self.global_dimension + (
             NODE_DIMENSION if segment_index > 0 else 0
         )
         extended_jacobian = _extend_parameter_jacobian(
@@ -1075,11 +1131,11 @@ class MultipleShootingProblem:
         actuator_sensitivity = np.zeros((8, local_dimension), dtype=float)
         if segment_index == 0:
             rigid = self.direct_problem._initial_rigid_state(decoded.parameters)
-            rigid_sensitivity[:3, :PHYSICAL_DIMENSION] = (
+            rigid_sensitivity[:3, : self.global_dimension] = (
                 self.direct_problem.initial_body_rotation
                 @ physical_jacobian.cog_offset
             )
-            rigid_sensitivity[7:10, :PHYSICAL_DIMENSION] = (
+            rigid_sensitivity[7:10, : self.global_dimension] = (
                 self.direct_problem.initial_body_rotation
                 @ skew(self.direct_problem.initial_omega_body)
                 @ physical_jacobian.cog_offset
@@ -1092,8 +1148,8 @@ class MultipleShootingProblem:
                 self.node_references[segment_index - 1],
                 node_coordinate,
             )
-            rigid_sensitivity[:, PHYSICAL_DIMENSION:] = node_rigid
-            actuator_sensitivity[:, PHYSICAL_DIMENSION:] = node_actuator
+            rigid_sensitivity[:, self.global_dimension :] = node_rigid
+            actuator_sensitivity[:, self.global_dimension :] = node_actuator
         return (
             rigid,
             actuator,
@@ -1236,7 +1292,10 @@ class MultipleShootingProblem:
         store(0, output_start)
         local_output_index = 1
         for step_index in range(internal_start, internal_end):
-            command = self.direct_problem.commands[step_index]
+            command, command_sensitivity = self._command_with_sensitivity(
+                step_index,
+                local_dimension,
+            )
             time_step = self.direct_problem.integration_step
             midpoint_actuator, midpoint_sensitivity = (
                 _actuator_step_with_sensitivity(
@@ -1246,6 +1305,7 @@ class MultipleShootingProblem:
                     decoded,
                     local_parameter_jacobian,
                     0.5 * time_step,
+                    command_sensitivity,
                 )
             )
             rigid, rigid_sensitivity = _rigid_step_with_sensitivity(
@@ -1265,6 +1325,7 @@ class MultipleShootingProblem:
                 decoded,
                 local_parameter_jacobian,
                 0.5 * time_step,
+                command_sensitivity,
             )
             if (step_index + 1) % self.direct_problem.output_stride == 0:
                 output_index = (step_index + 1) // self.direct_problem.output_stride
@@ -1302,12 +1363,12 @@ class MultipleShootingProblem:
         global_jacobian = np.zeros(
             (NODE_DIMENSION, self.variable_dimension), dtype=float
         )
-        local_columns = [np.arange(PHYSICAL_DIMENSION, dtype=int)]
+        local_columns = [np.arange(self.global_dimension, dtype=int)]
         if segment_index > 0:
-            start = PHYSICAL_DIMENSION + (segment_index - 1) * NODE_DIMENSION
+            start = self.global_dimension + (segment_index - 1) * NODE_DIMENSION
             local_columns.append(np.arange(start, start + NODE_DIMENSION))
         local_columns_array = np.concatenate(local_columns)
-        next_start = PHYSICAL_DIMENSION + segment_index * NODE_DIMENSION
+        next_start = self.global_dimension + segment_index * NODE_DIMENSION
         next_columns = np.arange(next_start, next_start + NODE_DIMENSION)
 
         end_rigid = segment.end_rigid
@@ -1389,11 +1450,9 @@ class MultipleShootingProblem:
         self,
         coordinate: Sequence[float],
     ) -> ProblemEvaluation:
-        physical, nodes = self.split_coordinate(coordinate)
-        decoded, physical_jacobian = _physical_parameter_jacobian(
-            self.parameterization,
-            physical,
-            self.delay,
+        global_coordinate, nodes = self.split_coordinate(coordinate)
+        decoded, physical_jacobian = self._decode_global_coordinate(
+            global_coordinate,
         )
         segment_evaluations: list[SegmentEvaluation] = []
         sensor_position = np.empty(
@@ -1433,10 +1492,10 @@ class MultipleShootingProblem:
                 node_coordinate,
             )
             segment_evaluations.append(segment)
-            local_columns = [np.arange(PHYSICAL_DIMENSION, dtype=int)]
+            local_columns = [np.arange(self.global_dimension, dtype=int)]
             if segment_index > 0:
                 start = (
-                    PHYSICAL_DIMENSION
+                    self.global_dimension
                     + (segment_index - 1) * NODE_DIMENSION
                 )
                 local_columns.append(np.arange(start, start + NODE_DIMENSION))
@@ -1471,7 +1530,9 @@ class MultipleShootingProblem:
             / count_scale
         )
         prior_residual = (
-            math.sqrt(self.prior_weight) * physical / self.prior_scales
+            math.sqrt(self.prior_weight)
+            * global_coordinate[:PHYSICAL_DIMENSION]
+            / self.prior_scales
         )
         prior_jacobian = np.zeros(
             (PHYSICAL_DIMENSION, self.variable_dimension), dtype=float
@@ -1521,12 +1582,10 @@ class MultipleShootingProblem:
 
     def full_rollout(
         self,
-        physical_coordinate: Sequence[float],
+        global_coordinate: Sequence[float],
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        decoded, physical_jacobian = _physical_parameter_jacobian(
-            self.parameterization,
-            physical_coordinate,
-            self.delay,
+        decoded, physical_jacobian = self._decode_global_coordinate(
+            global_coordinate,
         )
         original_boundaries = self.boundaries
         original_segment_count = self.segment_count
@@ -1686,7 +1745,7 @@ def _solve_fixed_delay(
     for outer_iteration in range(arguments.augmented_lagrangian_iterations):
         print(
             "delay {:.6f}s, augmented iteration {}/{}, penalty={:.3g}".format(
-                problem.delay,
+                problem.coordinate_delay(coordinate),
                 outer_iteration + 1,
                 arguments.augmented_lagrangian_iterations,
                 penalty,
@@ -1732,6 +1791,7 @@ def _solve_fixed_delay(
                 "njev": None if result.njev is None else int(result.njev),
                 "continuity_l2_normalized": continuity_norm,
                 "continuity_max_normalized": continuity_max,
+                "delay_seconds": problem.coordinate_delay(coordinate),
             }
         )
         print(
@@ -1756,7 +1816,7 @@ def _solve_fixed_delay(
     physical, _ = problem.split_coordinate(coordinate)
     full_position, full_orientation, full_residual = problem.full_rollout(physical)
     return FixedDelaySolution(
-        delay=problem.delay,
+        delay=problem.coordinate_delay(coordinate),
         coordinate=coordinate,
         optimizer_history=tuple(history),
         evaluation=final_evaluation,

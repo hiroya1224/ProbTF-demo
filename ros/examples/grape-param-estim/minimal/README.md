@@ -1,6 +1,6 @@
 # 最小構成の実機パラメータ推定
 
-このディレクトリの `estimate_recorded_control.py` は deterministic-multiple-shooting、deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
+このディレクトリの `estimate_recorded_control.py` は deterministic-multiple-shooting、smooth-lag multiple-shooting、deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
 
 既定では `deterministic_multiple_shooting_estimator.py` を呼び出します。
 
@@ -12,7 +12,7 @@
 
 ### SE(3)-only deterministic multiple shooting（既定）
 
-`deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、慣性、CoG offset、相対 rotor force effectiveness を推定します。慣性は二次モーメントを `Σ = L L^T`、`J = tr(Σ)I - Σ` と表す6次元 Cholesky 座標を用いるため、正定値性と主慣性モーメントの三角不等式を探索中も構造的に満たします。command lag は causal zero-order-hold lookup に対して滑らかでないため、外側の一次元 profile で選びます。
+`deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、慣性、CoG offset、相対 rotor force effectiveness を推定します。慣性は二次モーメントを `Σ = L L^T`、`J = tr(Σ)I - Σ` と表す6次元 Cholesky 座標を用いるため、正定値性と主慣性モーメントの三角不等式を探索中も構造的に満たします。この既定methodではcommand lagを `0.16 s` に固定します。
 
 Thrust と gimbal の一次遅れ時定数はモデルへ入れません。thrust command は即時反映し、gimbal command は一次遅れなしで、記録済みの角速度・角度制限だけを適用します。13個の物理座標にはbox上下限を置かず、mass、二次モーメント、force effectiveness の正値性と慣性の三角不等式だけを座標変換で保証します。
 
@@ -46,6 +46,32 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
 ```
 
 結果は `minimal/output/deterministic_multiple_shooting/` に保存されます。
+
+### Smooth-lag search + strict-ZOH multiple shooting
+
+`--method deterministic_smooth_lag_multiple_shooting` は、既定methodを変更せずに、13物理座標とcommand lagを同時に探索する別推定器です。rotor thrust commandとgimbal commandの各ZOH切替をquintic smoothstepで局所的に滑らかにし、command値からactuator、body wrench、剛体軌道、SE(3) pose residualまでのlag感度を14列目の解析forward sensitivityとして伝播します。重複command timestampは同一時刻の最後のmessageへまとめ、各切替半幅は隣接周期の49%以下としてtransitionの重複を防ぎます。
+
+Smooth searchはcommand周期に対する半幅比 `0.50 → 0.20 → 0.05` の3段階で行い、各段階で前段階の物理座標、lag、shooting nodeをwarm startします。入力モデルが変わる段階ごとにaugmented-Lagrangian multiplierはゼロから開始します。
+
+Smooth段階は、continuityが許容値へ入った後の小さなdata改善を長く追わないよう、augmented-Lagrangian 1反復あたり既定60評価（`--smooth-max-nfev`）で区切ります。最終strict-ZOH refinementには従来どおり `--max-nfev`（既定120）を使います。
+
+Smoothstep解は正式結果には使いません。推定lagの既定±4 msを1 ms刻みでstrict causal ZOH full rollout評価し、上位3候補だけをlag固定のmultiple shootingで再最適化します。continuity toleranceを満たす候補があれば、その中でstrict-ZOH full-rollout lossが最小のものを選びます。このため広い範囲のZOH profileは実行しません。
+
+```bash
+source /home/leus/catkin_ws/devel/setup.bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic_smooth_lag_multiple_shooting \
+  --delay-bounds 0.0 0.20 \
+  --initial-delay 0.01 \
+  --smoothstep-width-fractions 0.50 0.20 0.05 \
+  --zoh-polish-radius 0.004 \
+  --zoh-polish-step 0.001 \
+  --zoh-polish-top-k 3
+```
+
+Pose lossは既定methodと同じ固定nominal計量 `||rho||² + phiᵀ(J0/m0)phi` です。`--body-displacement-scale` はこの6次元残差全体へ適用する単一の長さscaleで、既定は `1.0 m` です。Thrust/gimbalの一次遅れ時定数は入りません。
+
+結果は `minimal/output/deterministic_smooth_lag_multiple_shooting/` に保存されます。`result.json` は各smoothstep段階のlag、continuity、full-rollout loss、lag gradientと、strict-ZOHのscreening/refinement結果を分離して記録します。`trajectory.pdf` と `parameters.txt` は最終strict-ZOH解だけを表示し、`delay_profile.pdf` はsmooth推定点、strict-ZOH局所profile、最終選択点を比較します。
 
 ### Deterministic baseline
 

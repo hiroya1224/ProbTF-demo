@@ -1,5 +1,5 @@
 {
-  "analysis_minus_free_loss_m2": -4.433505178516649,
+  "analysis_minus_free_loss_m2": -0.9690396325484533,
   "analysis_pose_metrics": {
     "inertia_radius_loss_m2": 0.03257606691318151,
     "rotation_max_rad": 0.8487943222910304,
@@ -8,7 +8,61 @@
     "translation_max_m": 1.0375603478190847,
     "translation_rmse_m": 0.25232020197750943
   },
+  "analysis_sensor_metrics": {
+    "angular_velocity_rmse_rad_per_s": 0.5148581077050431,
+    "orientation_angle_rmse_deg": 11.704786772992954,
+    "orientation_angle_rmse_rad": 0.20428706743260913,
+    "position_component_rmse_m": [
+      0.13604382184037705,
+      0.021377130164832583,
+      0.20768812127202957
+    ],
+    "position_rmse_m": 0.24919722886205153,
+    "specific_force_rmse_m_per_s2": 1.0504859959655035,
+    "terminal_orientation_error_deg": 48.632332341943005,
+    "terminal_position_error_m": 1.0091350140412096,
+    "velocity_component_rmse_m_per_s": [
+      0.4840279637852058,
+      0.08606383631340297,
+      0.3062904627569313
+    ],
+    "velocity_rmse_m_per_s": 0.5792269859242469
+  },
+  "free_rollout_definition": "strict rollout using source result.json physical_coordinate and selected delay, with corrected mass override",
   "free_rollout_pose_metrics": {
+    "inertia_radius_loss_m2": 1.0016156994616348,
+    "rotation_max_rad": 0.6552062365032741,
+    "rotation_rmse_deg": 13.08673859121932,
+    "rotation_rmse_rad": 0.2284066767645814,
+    "translation_max_m": 3.1846143701456744,
+    "translation_rmse_m": 1.4145583241633604
+  },
+  "free_rollout_sensor_metrics": {
+    "angular_velocity_rmse_rad_per_s": 0.42368651580395783,
+    "orientation_angle_rmse_deg": 13.08673859121932,
+    "orientation_angle_rmse_rad": 0.2284066767645814,
+    "position_component_rmse_m": [
+      0.40284346477170874,
+      0.5579970838897919,
+      1.2312134834814572
+    ],
+    "position_rmse_m": 1.410507087768555,
+    "specific_force_rmse_m_per_s2": 0.6525375126484713,
+    "terminal_orientation_error_deg": 37.54055206228806,
+    "terminal_position_error_m": 3.145445969831783,
+    "velocity_component_rmse_m_per_s": [
+      0.7010249587526024,
+      0.4814675824598243,
+      0.753172943664589
+    ],
+    "velocity_rmse_m_per_s": 1.1360090267344611
+  },
+  "id": "failure_2",
+  "outputs": {
+    "analysis_npz": "analysis.npz",
+    "trajectory_pdf": "trajectory.pdf"
+  },
+  "profiled_parameter_free_rollout_pose_metrics": {
     "inertia_radius_loss_m2": 4.46608124542983,
     "rotation_max_rad": 1.1548071256680499,
     "rotation_rmse_deg": 22.195606126177623,
@@ -16,10 +70,25 @@
     "translation_max_m": 8.91006150734835,
     "translation_rmse_m": 2.987722619370766
   },
-  "id": "failure_2",
-  "outputs": {
-    "analysis_npz": "analysis.npz",
-    "trajectory_pdf": "trajectory.pdf"
+  "profiled_parameter_free_rollout_sensor_metrics": {
+    "angular_velocity_rmse_rad_per_s": 0.507932286318099,
+    "orientation_angle_rmse_deg": 22.195606126177623,
+    "orientation_angle_rmse_rad": 0.3873864063776235,
+    "position_component_rmse_m": [
+      1.47210738479878,
+      2.533805792470188,
+      0.32004934648478817
+    ],
+    "position_rmse_m": 2.9478303089764037,
+    "specific_force_rmse_m_per_s2": 0.6016221010613326,
+    "terminal_orientation_error_deg": 66.16557445241294,
+    "terminal_position_error_m": 8.594400920727407,
+    "velocity_component_rmse_m_per_s": [
+      2.5491059380343564,
+      1.4206776845086022,
+      0.2823126617753334
+    ],
+    "velocity_rmse_m_per_s": 2.9318878910322295
   },
   "required_minus_modeled_body_wrench": {
     "component_max_abs": [
@@ -60,6 +129,14 @@
       31.0
     ],
     "sha256": "c4515b73edd26f9cb68d93d9165e3e14fff2cbad95af6cef463821b791aeb665"
+  },
+  "source_result_free_rollout_pose_metrics": {
+    "inertia_radius_loss_m2": 1.0016156994616348,
+    "rotation_max_rad": 0.6552062365032741,
+    "rotation_rmse_deg": 13.08673859121932,
+    "rotation_rmse_rad": 0.2284066767645814,
+    "translation_max_m": 3.1846143701456744,
+    "translation_rmse_m": 1.4145583241633604
   },
   "spline": {
     "coefficient_count": 14,

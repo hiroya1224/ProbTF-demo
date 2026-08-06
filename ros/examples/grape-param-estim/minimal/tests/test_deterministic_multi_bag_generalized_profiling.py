@@ -139,8 +139,61 @@ class RecordedFlightProfileTests(unittest.TestCase):
         self.assertEqual(evaluation.wrench_residual.shape, (problem.time.size, 6))
         self.assertTrue(np.all(np.isfinite(evaluation.body_acceleration_world)))
         self.assertTrue(np.all(np.isfinite(evaluation.angular_acceleration_body)))
+        self.assertEqual(
+            evaluation.sensor_velocity_world.shape,
+            (problem.time.size, 3),
+        )
+        self.assertEqual(
+            evaluation.angular_velocity_sensor.shape,
+            (problem.time.size, 3),
+        )
+        self.assertEqual(
+            evaluation.specific_force_sensor.shape,
+            (problem.time.size, 3),
+        )
+        self.assertTrue(np.all(np.isfinite(evaluation.sensor_velocity_world)))
+        self.assertTrue(np.all(np.isfinite(evaluation.angular_velocity_sensor)))
+        self.assertTrue(np.all(np.isfinite(evaluation.specific_force_sensor)))
         self.assertTrue(np.all(np.isfinite(problem.residual(coefficients, parameters))))
         self.assertAlmostEqual(parameters.mass, 3.0)
+
+    def test_primary_free_rollout_uses_seed_coordinate(self):
+        arguments = estimator.create_argument_parser().parse_args(
+            (
+                "--config",
+                "unused.json",
+                "--spline-knot-count",
+                "4",
+            )
+        )
+        seed = estimator.load_parameter_seed(None, 0.01, 3.0)
+        problem = estimator._make_bag_problem(
+            multi.BagSpecification(
+                "short",
+                baseline.DEFAULT_BAG,
+                19.0,
+                19.2,
+                1.0,
+            ),
+            1.0,
+            self.flight,
+            seed,
+            arguments,
+        )
+        expected_position, expected_orientation, _ = (
+            problem.strict_problem.full_rollout(seed.physical_coordinate)
+        )
+        np.testing.assert_allclose(
+            problem.source_free_rollout.sensor_position,
+            expected_position,
+            atol=1.0e-13,
+        )
+        np.testing.assert_allclose(
+            problem.source_free_rollout.sensor_orientation_xyzw,
+            expected_orientation,
+            atol=1.0e-13,
+        )
+        self.assertEqual(problem.source_free_label, "nominal fallback")
 
 
 if __name__ == "__main__":

@@ -111,6 +111,9 @@ class AnalysisEvaluation:
     angular_acceleration_body: np.ndarray
     sensor_position: np.ndarray
     sensor_rotation: np.ndarray
+    sensor_velocity_world: np.ndarray
+    angular_velocity_sensor: np.ndarray
+    specific_force_sensor: np.ndarray
     pose_residual: np.ndarray
     wrench_residual: np.ndarray
     smooth_second_derivative: np.ndarray
@@ -125,6 +128,8 @@ class BagProfileProblem:
     basis: SplineBasis
     base_body_position: np.ndarray
     base_body_rotation: np.ndarray
+    source_free_rollout: baseline.Simulation
+    source_free_label: str
     actuator_thrust: np.ndarray
     actuator_gimbal: np.ndarray
     pose_factor: np.ndarray
@@ -259,6 +264,44 @@ class BagProfileProblem:
             corrected_rotation,
             self.direct_problem.pose_body_to_sensor_rotation,
         )
+        velocity_lever = (
+            self.direct_problem.velocity_sensor_position
+            - parameters.cog_offset
+        )
+        sensor_velocity = body_velocity + np.asarray(
+            [
+                corrected_rotation[index]
+                @ np.cross(angular_velocity[index], velocity_lever)
+                for index in range(self.time.size)
+            ],
+            dtype=float,
+        )
+        angular_velocity_sensor = (
+            angular_velocity @ self.direct_problem.body_to_imu_rotation.T
+            + self.direct_problem.gyro_bias
+        )
+        imu_lever = (
+            self.direct_problem.imu_sensor_position - parameters.cog_offset
+        )
+        gravity_world = np.asarray((0.0, 0.0, -GRAVITY), dtype=float)
+        specific_force_body = np.asarray(
+            [
+                corrected_rotation[index].T
+                @ (body_acceleration[index] - gravity_world)
+                + np.cross(angular_acceleration[index], imu_lever)
+                + np.cross(
+                    angular_velocity[index],
+                    np.cross(angular_velocity[index], imu_lever),
+                )
+                for index in range(self.time.size)
+            ],
+            dtype=float,
+        )
+        specific_force_sensor = (
+            specific_force_body
+            @ self.direct_problem.body_to_imu_rotation.T
+            + self.direct_problem.accelerometer_bias
+        )
         pose_residual = np.asarray(
             [
                 strict.se3_log_error(
@@ -272,7 +315,6 @@ class BagProfileProblem:
             dtype=float,
         )
 
-        gravity_world = np.asarray((0.0, 0.0, -GRAVITY), dtype=float)
         plant = FullSixDofPlant(parameters, self.direct_problem.geometry)
         wrench_residual = np.empty((self.time.size, 6), dtype=float)
         for index, sample_time in enumerate(self.time):
@@ -315,6 +357,9 @@ class BagProfileProblem:
             angular_acceleration,
             sensor_position,
             sensor_rotation,
+            sensor_velocity,
+            angular_velocity_sensor,
+            specific_force_sensor,
             pose_residual,
             wrench_residual,
             smooth_second,
@@ -515,6 +560,47 @@ def _actuator_trajectory(
     return thrust, gimbal
 
 
+def _strict_full_rollout_simulation(
+    problem: strict.MultipleShootingProblem,
+    physical_coordinate: Sequence[float],
+) -> baseline.Simulation:
+    """Return all sensor channels from one correction-free strict rollout."""
+
+    coordinate = np.asarray(physical_coordinate, dtype=float)
+    if coordinate.shape != (strict.PHYSICAL_DIMENSION,):
+        raise ValueError("strict rollout coordinate has the wrong shape")
+    decoded, physical_jacobian = problem._decode_global_coordinate(coordinate)
+    original_boundaries = problem.boundaries
+    original_segment_count = problem.segment_count
+    try:
+        problem.boundaries = np.asarray(
+            (0, problem.direct_problem.output_time.size - 1), dtype=int
+        )
+        problem.segment_count = 1
+        segment = problem._evaluate_segment(
+            0,
+            decoded,
+            physical_jacobian,
+            None,
+        )
+    finally:
+        problem.boundaries = original_boundaries
+        problem.segment_count = original_segment_count
+    sample_count = problem.direct_problem.output_time.size
+    return baseline.Simulation(
+        time=problem.direct_problem.output_time,
+        sensor_position=segment.sensor_position,
+        sensor_orientation_xyzw=segment.sensor_orientation_xyzw,
+        sensor_velocity_world=segment.sensor_velocity_world,
+        angular_velocity_sensor=segment.angular_velocity_sensor,
+        specific_force_sensor=segment.specific_force_sensor,
+        cog_position=np.zeros((sample_count, 3), dtype=float),
+        cog_velocity_world=np.zeros((sample_count, 3), dtype=float),
+        actuator_thrust=np.zeros((sample_count, 4), dtype=float),
+        actuator_gimbal=np.zeros((sample_count, 4), dtype=float),
+    )
+
+
 def _make_bag_problem(
     specification: multi.BagSpecification,
     normalized_weight: float,
@@ -539,9 +625,12 @@ def _make_bag_problem(
         node_velocity_bound=np.inf,
         node_angular_velocity_bound=np.inf,
     )
-    base_sensor_position, base_sensor_orientation, _residual = (
-        strict_problem.full_rollout(seed.physical_coordinate)
+    source_free_rollout = _strict_full_rollout_simulation(
+        strict_problem,
+        seed.physical_coordinate,
     )
+    base_sensor_position = source_free_rollout.sensor_position
+    base_sensor_orientation = source_free_rollout.sensor_orientation_xyzw
     parameters = _decode_parameters(
         seed.physical_coordinate, seed.delay_seconds
     )
@@ -578,6 +667,12 @@ def _make_bag_problem(
         basis=basis,
         base_body_position=base_body_position,
         base_body_rotation=base_body_rotation,
+        source_free_rollout=source_free_rollout,
+        source_free_label=(
+            "source result.json"
+            if seed.source_kind == "estimator_result"
+            else "nominal fallback"
+        ),
         actuator_thrust=thrust,
         actuator_gimbal=gimbal,
         pose_factor=strict.inertia_radius_se3_factor(VehicleParameters.nominal()),
@@ -779,6 +874,31 @@ def _pose_metrics(
     }
 
 
+def _analysis_simulation(
+    problem: BagProfileProblem,
+    analysis: AnalysisEvaluation,
+) -> baseline.Simulation:
+    sample_count = problem.time.size
+    return baseline.Simulation(
+        time=problem.time,
+        sensor_position=analysis.sensor_position,
+        sensor_orientation_xyzw=np.asarray(
+            [
+                matrix_to_quaternion(rotation)
+                for rotation in analysis.sensor_rotation
+            ],
+            dtype=float,
+        ),
+        sensor_velocity_world=analysis.sensor_velocity_world,
+        angular_velocity_sensor=analysis.angular_velocity_sensor,
+        specific_force_sensor=analysis.specific_force_sensor,
+        cog_position=analysis.body_position,
+        cog_velocity_world=analysis.body_velocity_world,
+        actuator_thrust=np.zeros((sample_count, 4), dtype=float),
+        actuator_gimbal=np.zeros((sample_count, 4), dtype=float),
+    )
+
+
 def _wrench_metrics(residual: np.ndarray) -> Mapping[str, Any]:
     value = np.asarray(residual, dtype=float)
     interior = value[1:-1]
@@ -795,24 +915,95 @@ def _write_bag_pdf(
     path: Path,
     problem: BagProfileProblem,
     analysis: AnalysisEvaluation,
-    free_position: np.ndarray,
-    free_orientation: np.ndarray,
+    profiled_free: Optional[baseline.Simulation],
 ) -> None:
     observed = problem.direct_problem.observations
+    source_free = problem.source_free_rollout
+    source_free_legend = "free rollout ({})".format(
+        problem.source_free_label
+    )
     relative_time = problem.time - problem.time[0]
     observed_rpy = baseline._rpy_series(observed.sensor_orientation_xyzw)
     analysis_quaternion = np.asarray(
         [matrix_to_quaternion(value) for value in analysis.sensor_rotation]
     )
     analysis_rpy = baseline._rpy_series(analysis_quaternion)
-    free_rpy = baseline._rpy_series(free_orientation)
+    source_free_rpy = baseline._rpy_series(
+        source_free.sensor_orientation_xyzw
+    )
+    profiled_free_rpy = (
+        None
+        if profiled_free is None
+        else baseline._rpy_series(profiled_free.sensor_orientation_xyzw)
+    )
+
+    comparison_pages = (
+        (
+            "Sensor position",
+            observed.sensor_position,
+            analysis.sensor_position,
+            source_free.sensor_position,
+            None if profiled_free is None else profiled_free.sensor_position,
+            ("x [m]", "y [m]", "z [m]"),
+        ),
+        (
+            "Sensor orientation",
+            observed_rpy,
+            analysis_rpy,
+            source_free_rpy,
+            profiled_free_rpy,
+            ("roll [rad]", "pitch [rad]", "yaw [rad]"),
+        ),
+        (
+            "Velocity sensor linear velocity",
+            observed.sensor_velocity_world,
+            analysis.sensor_velocity_world,
+            source_free.sensor_velocity_world,
+            (
+                None
+                if profiled_free is None
+                else profiled_free.sensor_velocity_world
+            ),
+            ("vx [m/s]", "vy [m/s]", "vz [m/s]"),
+        ),
+        (
+            "Gyro angular velocity",
+            observed.angular_velocity_sensor,
+            analysis.angular_velocity_sensor,
+            source_free.angular_velocity_sensor,
+            (
+                None
+                if profiled_free is None
+                else profiled_free.angular_velocity_sensor
+            ),
+            ("wx [rad/s]", "wy [rad/s]", "wz [rad/s]"),
+        ),
+        (
+            "Accelerometer specific force",
+            observed.specific_force_sensor,
+            analysis.specific_force_sensor,
+            source_free.specific_force_sensor,
+            (
+                None
+                if profiled_free is None
+                else profiled_free.specific_force_sensor
+            ),
+            ("fx [m/s^2]", "fy [m/s^2]", "fz [m/s^2]"),
+        ),
+    )
+
     with PdfPages(path) as pdf:
         figure = plt.figure(figsize=(11.7, 8.3), constrained_layout=True)
         axis = figure.add_subplot(111, projection="3d")
         for label, value, color, style in (
             ("observed", observed.sensor_position, "#1e5abe", "-"),
             ("analysis", analysis.sensor_position, "#1e965f", ":"),
-            ("free rollout", free_position, "#d2691e", "--"),
+            (
+                source_free_legend,
+                source_free.sensor_position,
+                "#d2691e",
+                "--",
+            ),
         ):
             axis.plot(
                 value[:, 0],
@@ -822,30 +1013,35 @@ def _write_bag_pdf(
                 color=color,
                 linestyle=style,
             )
+        if profiled_free is not None:
+            axis.plot(
+                profiled_free.sensor_position[:, 0],
+                profiled_free.sensor_position[:, 1],
+                profiled_free.sensor_position[:, 2],
+                label="free rollout (profiled parameters)",
+                color="#8b4bb7",
+                linestyle="-.",
+            )
         axis.set_xlabel("x [m]")
         axis.set_ylabel("y [m]")
         axis.set_zlabel("z [m]")
         axis.legend(loc="best")
-        axis.set_title("Analysis trajectory and correction-free rollout")
+        axis.set_title(
+            "Analysis and correction-free rollout from {}".format(
+                problem.source_free_label
+            )
+        )
         pdf.savefig(figure)
         plt.close(figure)
 
-        for title, observed_value, analysis_value, free_value, labels in (
-            (
-                "Sensor position",
-                observed.sensor_position,
-                analysis.sensor_position,
-                free_position,
-                ("x [m]", "y [m]", "z [m]"),
-            ),
-            (
-                "Sensor orientation",
-                observed_rpy,
-                analysis_rpy,
-                free_rpy,
-                ("roll [rad]", "pitch [rad]", "yaw [rad]"),
-            ),
-        ):
+        for (
+            title,
+            observed_value,
+            analysis_value,
+            source_free_value,
+            profiled_free_value,
+            labels,
+        ) in comparison_pages:
             figure, axes = plt.subplots(
                 3,
                 1,
@@ -871,12 +1067,21 @@ def _write_bag_pdf(
                 )
                 axis.plot(
                     relative_time,
-                    free_value[:, component],
-                    label="free rollout",
+                    source_free_value[:, component],
+                    label=source_free_legend,
                     color="#d2691e",
                     linestyle="--",
                     linewidth=1.4,
                 )
+                if profiled_free_value is not None:
+                    axis.plot(
+                        relative_time,
+                        profiled_free_value[:, component],
+                        label="free rollout (profiled parameters)",
+                        color="#8b4bb7",
+                        linestyle="-.",
+                        linewidth=1.2,
+                    )
                 axis.set_ylabel(labels[component])
                 axis.grid(True, alpha=0.25)
             axes[0].set_title(title)
@@ -1203,28 +1408,62 @@ def run(arguments: argparse.Namespace) -> int:
     bag_payloads = []
     bag_outputs: dict[str, Any] = {}
     weighted_analysis_loss = 0.0
-    weighted_free_loss = 0.0
+    weighted_source_free_loss = 0.0
+    weighted_profiled_free_loss = 0.0
+    profiled_parameters_differ_from_source = not np.allclose(
+        coordinate,
+        seed.physical_coordinate,
+        rtol=0.0,
+        atol=1.0e-14,
+    )
     for problem, coefficient in zip(problems, coefficients):
         analysis = problem.evaluate(coefficient, parameters)
-        free_position, free_orientation, _ = (
-            problem.strict_problem.full_rollout(coordinate)
+        analysis_simulation = _analysis_simulation(problem, analysis)
+        source_free = problem.source_free_rollout
+        source_free_rotation = np.asarray(
+            [
+                quaternion_to_matrix(value)
+                for value in source_free.sensor_orientation_xyzw
+            ],
+            dtype=float,
         )
-        free_rotation = np.asarray(
-            [quaternion_to_matrix(value) for value in free_orientation], dtype=float
+        profiled_free = _strict_full_rollout_simulation(
+            problem.strict_problem,
+            coordinate,
+        )
+        profiled_free_rotation = np.asarray(
+            [
+                quaternion_to_matrix(value)
+                for value in profiled_free.sensor_orientation_xyzw
+            ],
+            dtype=float,
         )
         analysis_metrics = _pose_metrics(
             problem,
             analysis.sensor_position,
             analysis.sensor_rotation,
         )
-        free_metrics = _pose_metrics(problem, free_position, free_rotation)
+        source_free_metrics = _pose_metrics(
+            problem,
+            source_free.sensor_position,
+            source_free_rotation,
+        )
+        profiled_free_metrics = _pose_metrics(
+            problem,
+            profiled_free.sensor_position,
+            profiled_free_rotation,
+        )
         weighted_analysis_loss += (
             problem.normalized_weight
             * analysis_metrics["inertia_radius_loss_m2"]
         )
-        weighted_free_loss += (
+        weighted_source_free_loss += (
             problem.normalized_weight
-            * free_metrics["inertia_radius_loss_m2"]
+            * source_free_metrics["inertia_radius_loss_m2"]
+        )
+        weighted_profiled_free_loss += (
+            problem.normalized_weight
+            * profiled_free_metrics["inertia_radius_loss_m2"]
         )
         bag_directory = bags_directory / problem.specification.bag_id
         bag_directory.mkdir(parents=True, exist_ok=True)
@@ -1235,8 +1474,11 @@ def run(arguments: argparse.Namespace) -> int:
             trajectory_path,
             problem,
             analysis,
-            free_position,
-            free_orientation,
+            (
+                profiled_free
+                if profiled_parameters_differ_from_source
+                else None
+            ),
         )
         np.savez_compressed(
             arrays_path,
@@ -1251,8 +1493,54 @@ def run(arguments: argparse.Namespace) -> int:
             analysis_angular_acceleration_body=analysis.angular_acceleration_body,
             analysis_sensor_position=analysis.sensor_position,
             analysis_sensor_rotation=analysis.sensor_rotation,
-            free_sensor_position=free_position,
-            free_sensor_orientation_xyzw=free_orientation,
+            analysis_sensor_velocity_world=(
+                analysis.sensor_velocity_world
+            ),
+            analysis_angular_velocity_sensor=(
+                analysis.angular_velocity_sensor
+            ),
+            analysis_specific_force_sensor=analysis.specific_force_sensor,
+            free_sensor_position=source_free.sensor_position,
+            free_sensor_orientation_xyzw=(
+                source_free.sensor_orientation_xyzw
+            ),
+            free_sensor_velocity_world=(
+                source_free.sensor_velocity_world
+            ),
+            free_angular_velocity_sensor=(
+                source_free.angular_velocity_sensor
+            ),
+            free_specific_force_sensor=source_free.specific_force_sensor,
+            source_result_free_sensor_position=(
+                source_free.sensor_position
+            ),
+            source_result_free_sensor_orientation_xyzw=(
+                source_free.sensor_orientation_xyzw
+            ),
+            source_result_free_sensor_velocity_world=(
+                source_free.sensor_velocity_world
+            ),
+            source_result_free_angular_velocity_sensor=(
+                source_free.angular_velocity_sensor
+            ),
+            source_result_free_specific_force_sensor=(
+                source_free.specific_force_sensor
+            ),
+            profiled_parameter_free_sensor_position=(
+                profiled_free.sensor_position
+            ),
+            profiled_parameter_free_sensor_orientation_xyzw=(
+                profiled_free.sensor_orientation_xyzw
+            ),
+            profiled_parameter_free_sensor_velocity_world=(
+                profiled_free.sensor_velocity_world
+            ),
+            profiled_parameter_free_angular_velocity_sensor=(
+                profiled_free.angular_velocity_sensor
+            ),
+            profiled_parameter_free_specific_force_sensor=(
+                profiled_free.specific_force_sensor
+            ),
             pose_residual_se3=analysis.pose_residual,
             required_minus_modeled_body_wrench=analysis.wrench_residual,
             actuator_thrust=problem.actuator_thrust,
@@ -1284,10 +1572,33 @@ def run(arguments: argparse.Namespace) -> int:
                 ),
             },
             "analysis_pose_metrics": analysis_metrics,
-            "free_rollout_pose_metrics": free_metrics,
+            "analysis_sensor_metrics": baseline._metrics(
+                problem.direct_problem,
+                analysis_simulation,
+            ),
+            "free_rollout_definition": (
+                "strict rollout using {} physical_coordinate and selected "
+                "delay, with corrected mass override".format(
+                    problem.source_free_label
+                )
+            ),
+            "free_rollout_pose_metrics": source_free_metrics,
+            "free_rollout_sensor_metrics": baseline._metrics(
+                problem.direct_problem,
+                source_free,
+            ),
+            "source_result_free_rollout_pose_metrics": (
+                source_free_metrics
+            ),
+            "profiled_parameter_free_rollout_pose_metrics": (
+                profiled_free_metrics
+            ),
+            "profiled_parameter_free_rollout_sensor_metrics": (
+                baseline._metrics(problem.direct_problem, profiled_free)
+            ),
             "analysis_minus_free_loss_m2": (
                 analysis_metrics["inertia_radius_loss_m2"]
-                - free_metrics["inertia_radius_loss_m2"]
+                - source_free_metrics["inertia_radius_loss_m2"]
             ),
             "required_minus_modeled_body_wrench": _wrench_metrics(
                 analysis.wrench_residual
@@ -1326,6 +1637,17 @@ def run(arguments: argparse.Namespace) -> int:
             ),
             "dynamics_residual": "required minus modeled body wrench",
             "command_model": "strict causal ZOH with recorded gimbal rate limit",
+            "primary_free_rollout": (
+                "{} physical_coordinate and delay, with corrected mass "
+                "override".format(
+                    "source estimator result.json"
+                    if seed.source_kind == "estimator_result"
+                    else "nominal fallback"
+                )
+            ),
+            "secondary_free_rollout": (
+                "generalized-profiling updated physical parameters"
+            ),
             "mass_update": "fixed during parameter profiling",
             "parameter_update_enabled": not arguments.trajectory_only,
         },
@@ -1363,8 +1685,21 @@ def run(arguments: argparse.Namespace) -> int:
             ),
             "delay_seconds": seed.delay_seconds,
             "joint_analysis_inertia_radius_loss_m2": weighted_analysis_loss,
-            "joint_free_rollout_inertia_radius_loss_m2": weighted_free_loss,
-            "analysis_minus_free_loss_m2": weighted_analysis_loss - weighted_free_loss,
+            "joint_free_rollout_inertia_radius_loss_m2": (
+                weighted_source_free_loss
+            ),
+            "joint_source_result_free_rollout_inertia_radius_loss_m2": (
+                weighted_source_free_loss
+            ),
+            "joint_profiled_parameter_free_rollout_inertia_radius_loss_m2": (
+                weighted_profiled_free_loss
+            ),
+            "analysis_minus_free_loss_m2": (
+                weighted_analysis_loss - weighted_source_free_loss
+            ),
+            "profiled_parameters_differ_from_source": (
+                profiled_parameters_differ_from_source
+            ),
             "bags": bag_payloads,
         },
         "alternating_history": history,
@@ -1377,8 +1712,12 @@ def run(arguments: argparse.Namespace) -> int:
     }
     baseline._write_json(result_path, result)
     print(
-        "joint analysis loss {:.9g} m^2; free-rollout loss {:.9g} m^2".format(
-            weighted_analysis_loss, weighted_free_loss
+        "joint analysis loss {:.9g} m^2; source-result free-rollout "
+        "loss {:.9g} m^2; profiled-parameter free-rollout loss "
+        "{:.9g} m^2".format(
+            weighted_analysis_loss,
+            weighted_source_free_loss,
+            weighted_profiled_free_loss,
         ),
         flush=True,
     )

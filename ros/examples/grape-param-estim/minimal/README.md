@@ -146,7 +146,7 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
   --corrected-mass 3.05
 ```
 
-主要な重みは `--lambda-dynamics` と `--lambda-smooth`、splineの次元は `--spline-knot-count` で調整します。力とトルクは既定でそれぞれ10 N、1 N mで無次元化します。出力は `minimal/output/generalized_profiling_multi/` です。共有 `result.json` / `parameters.txt` に加え、各bagの `trajectory.pdf` はobserved、analysis、補正なしfree rolloutとrequired-minus-modeled wrenchを表示し、`analysis.npz` は軌道、解析微分、spline係数、wrench時系列を保存します。
+主要な重みは `--lambda-dynamics` と `--lambda-smooth`、splineの次元は `--spline-knot-count` で調整します。力とトルクは既定でそれぞれ10 N、1 N mで無次元化します。出力は `minimal/output/generalized_profiling_multi/` です。共有 `result.json` / `parameters.txt` に加え、各bagの `trajectory.pdf` はposition、orientation、velocity、gyro、specific forceについてobserved、analysis、source `result.json` の物理座標による補正なしfree rolloutを比較し、required-minus-modeled wrenchも表示します。外側更新後のparameterによるfree rolloutは別系列として明示します。`analysis.npz` は両free rolloutを含む全sensor時系列、analysis軌道と解析微分、spline係数、wrench時系列を保存します。
 
 ### Deterministic baseline
 

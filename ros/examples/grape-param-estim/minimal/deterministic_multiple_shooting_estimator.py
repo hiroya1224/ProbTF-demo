@@ -71,7 +71,7 @@ from grape_param_estim.system import (
 )
 
 
-SCHEMA = "grape-param-estim/minimal-deterministic-multiple-shooting/v4"
+SCHEMA = "grape-param-estim/minimal-deterministic-multiple-shooting/v5"
 OUTPUT_SUBDIRECTORY = "deterministic_multiple_shooting"
 PHYSICAL_DIMENSION = 13
 NODE_DIMENSION = 20
@@ -2166,22 +2166,193 @@ def _write_pdf(
         plt.close(figure)
 
 
-def _delay_grid(arguments: argparse.Namespace) -> np.ndarray:
+def _write_delay_profile_pdf(
+    path: Path,
+    ordered: Sequence[tuple[MultipleShootingProblem, FixedDelaySolution]],
+    selected_delay: float,
+    continuity_tolerance: float,
+) -> None:
+    delays_ms = np.asarray(
+        [solution.delay * 1000.0 for _problem, solution in ordered],
+        dtype=float,
+    )
+    full_losses = np.asarray(
+        [_solution_full_rollout_loss(solution) for _problem, solution in ordered],
+        dtype=float,
+    )
+    stitched_losses = np.asarray(
+        [
+            0.5
+            * float(
+                solution.evaluation.data_residual[: problem.pose_residual_dimension]
+                @ solution.evaluation.data_residual[: problem.pose_residual_dimension]
+            )
+            for problem, solution in ordered
+        ],
+        dtype=float,
+    )
+    continuity = np.asarray(
+        [
+            0.0
+            if solution.evaluation.continuity_residual.size == 0
+            else float(
+                np.max(np.abs(solution.evaluation.continuity_residual))
+            )
+            for _problem, solution in ordered
+        ],
+        dtype=float,
+    )
+    selected_index = int(
+        np.argmin(np.abs(delays_ms - float(selected_delay) * 1000.0))
+    )
+    with PdfPages(path) as pdf:
+        figure, axes = plt.subplots(
+            2,
+            1,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        axes[0].plot(
+            delays_ms,
+            full_losses,
+            marker="o",
+            label="full-rollout SE(3) loss",
+        )
+        axes[0].plot(
+            delays_ms,
+            stitched_losses,
+            marker=".",
+            linestyle=":",
+            label="stitched SE(3) loss",
+        )
+        axes[0].scatter(
+            [delays_ms[selected_index]],
+            [full_losses[selected_index]],
+            marker="*",
+            s=180,
+            color="#1e965f",
+            label="selected",
+            zorder=4,
+        )
+        axes[0].set_ylabel("loss")
+        axes[0].grid(True, alpha=0.25)
+        axes[0].legend(loc="best")
+        axes[1].semilogy(delays_ms, continuity, marker="o")
+        axes[1].axhline(
+            continuity_tolerance,
+            linestyle="--",
+            color="#555555",
+            label="continuity tolerance",
+        )
+        axes[1].set_xlabel("recorded-command delay [ms]")
+        axes[1].set_ylabel("max normalized continuity residual")
+        axes[1].grid(True, alpha=0.25)
+        axes[1].legend(loc="best")
+        figure.suptitle("Adaptive delay profile")
+        pdf.savefig(figure)
+        plt.close(figure)
+
+
+def _initial_delay_grid(arguments: argparse.Namespace) -> np.ndarray:
+    lower, upper = (float(value) for value in arguments.delay_bounds)
     if arguments.delay_values is not None:
         values = np.asarray(arguments.delay_values, dtype=float)
         if values.ndim != 1 or values.size < 1:
             raise ValueError("delay-values must contain at least one value")
-        values = np.unique(np.round(values, 12))
-    else:
-        values = continuation.inclusive_delay_grid(
-            float(arguments.delay_bounds[0]),
-            float(arguments.delay_bounds[1]),
-            float(arguments.delay_step),
-            required=(float(arguments.nominal_delay),),
+        values = np.concatenate(
+            (values, np.asarray((float(arguments.nominal_delay),)))
         )
-    if np.any(~np.isfinite(values)) or np.any(values < 0.0):
+    else:
+        nominal = float(arguments.nominal_delay)
+        step = float(arguments.delay_step)
+        values = np.asarray(
+            (
+                nominal,
+                max(lower, nominal - step),
+                min(upper, nominal + step),
+            ),
+            dtype=float,
+        )
+    values = np.unique(np.round(values, 12))
+    if (
+        np.any(~np.isfinite(values))
+        or np.any(values < lower)
+        or np.any(values > upper)
+    ):
         raise ValueError("delay grid contains invalid values")
     return values
+
+
+def _solution_full_rollout_loss(solution: FixedDelaySolution) -> float:
+    return 0.5 * float(
+        solution.full_rollout_residual @ solution.full_rollout_residual
+    )
+
+
+def _best_profile_item(
+    solved: dict[float, tuple[MultipleShootingProblem, FixedDelaySolution]],
+    continuity_tolerance: float,
+) -> tuple[MultipleShootingProblem, FixedDelaySolution]:
+    values = list(solved.values())
+    if not values:
+        raise ValueError("delay profile is empty")
+    converged = [
+        item
+        for item in values
+        if (
+            item[1].evaluation.continuity_residual.size == 0
+            or float(
+                np.max(np.abs(item[1].evaluation.continuity_residual))
+            )
+            <= continuity_tolerance
+        )
+    ]
+    return min(
+        converged if converged else values,
+        key=lambda item: _solution_full_rollout_loss(item[1]),
+    )
+
+
+def _delay_expansion_candidate(
+    evaluated_delays: Sequence[float],
+    best_delay: float,
+    delay_bounds: Sequence[float],
+    expansion_factor: float,
+) -> Optional[float]:
+    values = np.unique(np.round(np.asarray(evaluated_delays, dtype=float), 12))
+    lower, upper = (float(value) for value in delay_bounds)
+    best_index = int(np.argmin(np.abs(values - float(best_delay))))
+    if not np.isclose(values[best_index], best_delay, atol=1.0e-12, rtol=0.0):
+        raise ValueError("best delay is absent from the evaluated profile")
+    if best_index == values.size - 1 and values[-1] < upper - 1.0e-12:
+        gap = values[-1] - values[-2] if values.size > 1 else upper - values[-1]
+        candidate = min(upper, values[-1] + expansion_factor * gap)
+    elif best_index == 0 and values[0] > lower + 1.0e-12:
+        gap = values[1] - values[0] if values.size > 1 else values[0] - lower
+        candidate = max(lower, values[0] - expansion_factor * gap)
+    else:
+        return None
+    candidate = round(float(candidate), 12)
+    if np.any(np.isclose(values, candidate, atol=1.0e-12, rtol=0.0)):
+        return None
+    return candidate
+
+
+def _delay_refinement_candidates(
+    evaluated_delays: Sequence[float],
+    best_delay: float,
+) -> np.ndarray:
+    values = np.unique(np.round(np.asarray(evaluated_delays, dtype=float), 12))
+    best_index = int(np.argmin(np.abs(values - float(best_delay))))
+    if not np.isclose(values[best_index], best_delay, atol=1.0e-12, rtol=0.0):
+        raise ValueError("best delay is absent from the evaluated profile")
+    candidates = []
+    if best_index > 0:
+        candidates.append(0.5 * (values[best_index - 1] + values[best_index]))
+    if best_index + 1 < values.size:
+        candidates.append(0.5 * (values[best_index] + values[best_index + 1]))
+    return np.unique(np.round(np.asarray(candidates, dtype=float), 12))
 
 
 def create_argument_parser() -> argparse.ArgumentParser:
@@ -2233,12 +2404,35 @@ def create_argument_parser() -> argparse.ArgumentParser:
         "--delay-bounds",
         type=float,
         nargs=2,
-        default=(0.0, 0.02),
+        default=(0.0, 0.16),
         metavar=("MIN", "MAX"),
     )
-    parser.add_argument("--delay-step", type=float, default=0.01)
+    parser.add_argument(
+        "--delay-step",
+        type=float,
+        default=0.01,
+        help="initial spacing around nominal delay",
+    )
     parser.add_argument("--delay-values", type=float, nargs="+", default=None)
     parser.add_argument("--nominal-delay", type=float, default=0.01)
+    parser.add_argument(
+        "--delay-expansion-factor",
+        type=float,
+        default=2.0,
+        help="geometric outward expansion when the best delay is an edge",
+    )
+    parser.add_argument(
+        "--delay-expansion-limit",
+        type=int,
+        default=8,
+        help="maximum number of outward delay candidates",
+    )
+    parser.add_argument(
+        "--delay-refinement-levels",
+        type=int,
+        default=3,
+        help="number of midpoint-refinement levels around the current best",
+    )
     parser.add_argument("--node-position-bound", type=float, default=2.0)
     parser.add_argument("--node-orientation-bound", type=float, default=1.5)
     parser.add_argument("--node-velocity-bound", type=float, default=5.0)
@@ -2272,6 +2466,8 @@ def _validate_arguments(
         arguments.ftol,
         arguments.xtol,
         arguments.gtol,
+        arguments.delay_step,
+        arguments.delay_expansion_factor,
         arguments.node_position_bound,
         arguments.node_orientation_bound,
         arguments.node_velocity_bound,
@@ -2285,11 +2481,25 @@ def _validate_arguments(
         or not np.isfinite(arguments.prior_weight)
         or arguments.prior_weight < 0.0
         or arguments.continuity_penalty_growth <= 1.0
+        or arguments.delay_expansion_factor <= 1.0
+        or arguments.delay_expansion_limit < 0
+        or arguments.delay_refinement_levels < 0
         or not 0.0 < arguments.penalty_reduction_target < 1.0
     ):
         raise SystemExit("multiple-shooting settings are invalid")
+    delay_bounds = np.asarray(arguments.delay_bounds, dtype=float)
+    if (
+        delay_bounds.shape != (2,)
+        or np.any(~np.isfinite(delay_bounds))
+        or delay_bounds[0] < 0.0
+        or delay_bounds[1] <= delay_bounds[0]
+        or not delay_bounds[0]
+        <= arguments.nominal_delay
+        <= delay_bounds[1]
+    ):
+        raise SystemExit("delay bounds or nominal delay are invalid")
     try:
-        delays = _delay_grid(arguments)
+        delays = _initial_delay_grid(arguments)
     except ValueError as error:
         raise SystemExit(str(error)) from error
     if not np.any(
@@ -2383,75 +2593,129 @@ def run(arguments: argparse.Namespace) -> int:
         include_fc_specific_force=True,
         compute_sha256=False,
     )
-    delay_order = continuation.branch_order(delays, arguments.nominal_delay)
     solved: dict[float, tuple[MultipleShootingProblem, FixedDelaySolution]] = {}
-    anchor_problem: Optional[MultipleShootingProblem] = None
-    anchor_solution: Optional[FixedDelaySolution] = None
-    for branch_index, branch in enumerate(delay_order):
-        previous_problem = anchor_problem
-        previous_solution = anchor_solution
-        for local_index, delay in enumerate(branch):
-            key = round(float(delay), 12)
-            if key in solved:
-                previous_problem, previous_solution = solved[key]
-                if local_index == 0:
-                    anchor_problem, anchor_solution = solved[key]
-                continue
-            direct_problem = baseline.DirectShootingProblem(
-                flight=flight,
-                sample_step=arguments.sample_step,
-                integration_step=arguments.integration_step,
-                command_delay=float(delay),
-                prior_weight=arguments.prior_weight,
+    delay_phases: dict[float, str] = {}
+    expansion_history: list[dict[str, Any]] = []
+    refinement_history: list[dict[str, Any]] = []
+
+    def solve_delay(delay: float, phase: str) -> None:
+        selected_delay = float(delay)
+        key = round(selected_delay, 12)
+        if key in solved:
+            return
+        direct_problem = baseline.DirectShootingProblem(
+            flight=flight,
+            sample_step=arguments.sample_step,
+            integration_step=arguments.integration_step,
+            command_delay=selected_delay,
+            prior_weight=arguments.prior_weight,
+        )
+        problem = MultipleShootingProblem(
+            direct_problem=direct_problem,
+            delay=selected_delay,
+            segment_duration=arguments.segment_duration,
+            translation_scale=arguments.translation_scale,
+            rotation_scale=arguments.rotation_scale,
+            prior_weight=arguments.prior_weight,
+            node_position_bound=arguments.node_position_bound,
+            node_orientation_bound=arguments.node_orientation_bound,
+            node_velocity_bound=arguments.node_velocity_bound,
+            node_angular_velocity_bound=(
+                arguments.node_angular_velocity_bound
+            ),
+        )
+        bounds = problem.bounds(physical_lower, physical_upper)
+        if solved:
+            previous_problem, previous_solution = min(
+                solved.values(),
+                key=lambda item: abs(item[1].delay - selected_delay),
             )
-            problem = MultipleShootingProblem(
-                direct_problem=direct_problem,
-                delay=float(delay),
-                segment_duration=arguments.segment_duration,
-                translation_scale=arguments.translation_scale,
-                rotation_scale=arguments.rotation_scale,
-                prior_weight=arguments.prior_weight,
-                node_position_bound=arguments.node_position_bound,
-                node_orientation_bound=arguments.node_orientation_bound,
-                node_velocity_bound=arguments.node_velocity_bound,
-                node_angular_velocity_bound=(
-                    arguments.node_angular_velocity_bound
-                ),
+            initial = problem.rebase_coordinate(
+                previous_problem,
+                previous_solution.coordinate,
             )
-            bounds = problem.bounds(physical_lower, physical_upper)
-            if previous_problem is None or previous_solution is None:
-                initial = problem.initial_coordinate()
-            else:
-                initial = problem.rebase_coordinate(
-                    previous_problem,
-                    previous_solution.coordinate,
-                )
-            print(
-                "solving delay {:.6f}s ({:d} segments, {:d} variables)".format(
-                    delay,
-                    problem.segment_count,
-                    problem.variable_dimension,
-                ),
-                flush=True,
-            )
-            solution = _solve_fixed_delay(
-                problem,
-                initial,
-                bounds,
-                arguments,
-            )
-            solved[key] = (problem, solution)
-            previous_problem, previous_solution = problem, solution
-            if branch_index == 0 and local_index == 0:
-                anchor_problem, anchor_solution = problem, solution
+            warm_start = previous_solution.delay
+        else:
+            initial = problem.initial_coordinate()
+            warm_start = None
+        print(
+            "solving {} delay {:.6f}s ({:d} segments, {:d} variables; "
+            "warm start={})".format(
+                phase,
+                selected_delay,
+                problem.segment_count,
+                problem.variable_dimension,
+                "nominal" if warm_start is None else "{:.6f}s".format(warm_start),
+            ),
+            flush=True,
+        )
+        solution = _solve_fixed_delay(problem, initial, bounds, arguments)
+        solved[key] = (problem, solution)
+        delay_phases[key] = phase
+
+    initial_order = continuation.branch_order(delays, arguments.nominal_delay)
+    for branch in initial_order:
+        for delay in branch:
+            solve_delay(delay, "initial")
+
+    for expansion_index in range(arguments.delay_expansion_limit):
+        _best_problem, best_solution = _best_profile_item(
+            solved,
+            arguments.continuity_tolerance,
+        )
+        candidate = _delay_expansion_candidate(
+            [solution.delay for _problem, solution in solved.values()],
+            best_solution.delay,
+            arguments.delay_bounds,
+            arguments.delay_expansion_factor,
+        )
+        if candidate is None:
+            break
+        expansion_history.append(
+            {
+                "iteration": expansion_index + 1,
+                "best_before_seconds": best_solution.delay,
+                "candidate_seconds": candidate,
+            }
+        )
+        solve_delay(candidate, "expansion")
+
+    for level in range(arguments.delay_refinement_levels):
+        _best_problem, best_solution = _best_profile_item(
+            solved,
+            arguments.continuity_tolerance,
+        )
+        candidates = _delay_refinement_candidates(
+            [solution.delay for _problem, solution in solved.values()],
+            best_solution.delay,
+        )
+        candidates = np.asarray(
+            [
+                candidate
+                for candidate in candidates
+                if round(float(candidate), 12) not in solved
+            ],
+            dtype=float,
+        )
+        refinement_history.append(
+            {
+                "level": level + 1,
+                "best_before_seconds": best_solution.delay,
+                "candidate_seconds": candidates,
+            }
+        )
+        if candidates.size == 0:
+            break
+        for candidate in sorted(
+            candidates,
+            key=lambda value: abs(float(value) - best_solution.delay),
+        ):
+            solve_delay(candidate, "refinement_{}".format(level + 1))
     if not solved:
         raise RuntimeError("no delay candidate was solved")
-    selected_problem, selected_solution = min(
-        solved.values(),
-        key=lambda item: 0.5
-        * float(
-            item[1].full_rollout_residual @ item[1].full_rollout_residual
-        ),
+    selected_problem, selected_solution = _best_profile_item(
+        solved,
+        arguments.continuity_tolerance,
     )
     nominal_problem = selected_problem
     nominal_position, nominal_orientation, nominal_residual = (
@@ -2463,6 +2727,7 @@ def run(arguments: argparse.Namespace) -> int:
     output_directory.mkdir(parents=True, exist_ok=True)
     result_path = output_directory / "result.json"
     pdf_path = output_directory / "trajectory.pdf"
+    delay_profile_path = output_directory / "delay_profile.pdf"
     parameters_path = output_directory / "parameters.txt"
     ordered = sorted(solved.values(), key=lambda item: item[1].delay)
     selected_payload = _solution_payload(
@@ -2470,6 +2735,9 @@ def run(arguments: argparse.Namespace) -> int:
         selected_solution,
         arguments.continuity_tolerance,
     )
+    selected_payload["search_phase"] = delay_phases[
+        round(selected_solution.delay, 12)
+    ]
     stitched_metrics = selected_payload["stitched_recorded_control_metrics"]
     parameter_lines = _parameter_summary_lines(
         selected_problem,
@@ -2542,6 +2810,10 @@ def run(arguments: argparse.Namespace) -> int:
             "physical_jacobian": "analytic forward sensitivity",
             "node_jacobian": "analytic forward sensitivity",
             "lag_treatment": "external profile over causal ZOH command lookup",
+            "delay_search": (
+                "initial local grid, geometric edge expansion, then adaptive "
+                "midpoint refinement around the best full rollout"
+            ),
         },
         "fixed_parameters": {
             "torque_effectiveness": [1.0] * 4,
@@ -2561,12 +2833,28 @@ def run(arguments: argparse.Namespace) -> int:
             },
         },
         "delay_profile_seconds": delays,
+        "adaptive_delay_profile": {
+            "bounds_seconds": arguments.delay_bounds,
+            "initial_grid_seconds": delays,
+            "initial_step_seconds": arguments.delay_step,
+            "expansion_factor": arguments.delay_expansion_factor,
+            "expansion_limit": arguments.delay_expansion_limit,
+            "expansion_history": expansion_history,
+            "refinement_levels_requested": arguments.delay_refinement_levels,
+            "refinement_history": refinement_history,
+            "evaluated_delay_seconds": [
+                solution.delay for _problem, solution in ordered
+            ],
+        },
         "delay_results": [
-            _solution_payload(
-                problem,
-                solution,
-                arguments.continuity_tolerance,
-            )
+            {
+                **_solution_payload(
+                    problem,
+                    solution,
+                    arguments.continuity_tolerance,
+                ),
+                "search_phase": delay_phases[round(solution.delay, 12)],
+            }
             for problem, solution in ordered
         ],
         "selection": selected_payload,
@@ -2585,6 +2873,7 @@ def run(arguments: argparse.Namespace) -> int:
         "outputs": {
             "result_json": "result.json",
             "trajectory_pdf": "trajectory.pdf",
+            "delay_profile_pdf": "delay_profile.pdf",
             "parameters_text": "parameters.txt",
         },
     }
@@ -2598,6 +2887,12 @@ def run(arguments: argparse.Namespace) -> int:
         parameter_lines,
         arguments.continuity_tolerance,
     )
+    _write_delay_profile_pdf(
+        delay_profile_path,
+        ordered,
+        selected_solution.delay,
+        arguments.continuity_tolerance,
+    )
     print(
         "selected delay {:.6f}s, full-rollout SE(3) loss {:.9g}".format(
             selected_solution.delay,
@@ -2607,6 +2902,7 @@ def run(arguments: argparse.Namespace) -> int:
     )
     print("wrote {}".format(result_path), flush=True)
     print("wrote {}".format(pdf_path), flush=True)
+    print("wrote {}".format(delay_profile_path), flush=True)
     print("wrote {}".format(parameters_path), flush=True)
     return 0
 

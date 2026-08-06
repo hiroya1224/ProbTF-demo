@@ -34,6 +34,48 @@ class SegmentScheduleTests(unittest.TestCase):
         np.testing.assert_array_equal(boundaries, (0, 4, 8, 11))
 
 
+class DelayProfileTests(unittest.TestCase):
+    def test_default_initial_grid_retains_three_local_candidates(self):
+        arguments = estimator.create_argument_parser().parse_args([])
+        np.testing.assert_allclose(
+            estimator._initial_delay_grid(arguments),
+            (0.0, 0.01, 0.02),
+        )
+        np.testing.assert_allclose(arguments.delay_bounds, (0.0, 0.16))
+
+    def test_upper_edge_expands_geometrically(self):
+        first = estimator._delay_expansion_candidate(
+            (0.0, 0.01, 0.02),
+            0.02,
+            (0.0, 0.16),
+            2.0,
+        )
+        self.assertAlmostEqual(first, 0.04)
+        second = estimator._delay_expansion_candidate(
+            (0.0, 0.01, 0.02, first),
+            first,
+            (0.0, 0.16),
+            2.0,
+        )
+        self.assertAlmostEqual(second, 0.08)
+        third = estimator._delay_expansion_candidate(
+            (0.0, 0.01, 0.02, first, second),
+            second,
+            (0.0, 0.16),
+            2.0,
+        )
+        self.assertAlmostEqual(third, 0.16)
+
+    def test_refinement_adds_neighbor_midpoints(self):
+        np.testing.assert_allclose(
+            estimator._delay_refinement_candidates(
+                (0.0, 0.01, 0.02, 0.04),
+                0.02,
+            ),
+            (0.015, 0.03),
+        )
+
+
 class Se3ResidualTests(unittest.TestCase):
     def test_identical_poses_have_zero_error(self):
         position = np.asarray((1.0, -2.0, 0.5))

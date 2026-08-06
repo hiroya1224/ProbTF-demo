@@ -13,10 +13,13 @@ SO(3) left Jacobian.  Velocity, gyro, and accelerometer samples are not part
 of the observation loss.  They are used only to initialize shooting nodes.
 
 The thirteen smooth physical coordinates are mass, a six-dimensional
-Cholesky inertia chart, the three-dimensional CoG offset, and three relative
-rotor-force-effectiveness contrasts.  Recorded-command lag is profiled
-outside the smooth solve because causal zero-order-hold lookup is not smooth
-in lag.
+Cholesky chart of the mass-distribution second moment, the three-dimensional
+CoG offset, and three relative rotor-force-effectiveness contrasts.  The
+inertia is reconstructed as ``J = trace(Sigma) I - Sigma`` with
+``Sigma = L L.T``.  This guarantees both positive principal moments and their
+triangle inequalities throughout optimization.  Recorded-command lag is
+profiled outside the smooth solve because causal zero-order-hold lookup is
+not smooth in lag.
 """
 
 from __future__ import annotations
@@ -61,17 +64,33 @@ from grape_param_estim.geometry import (
 from grape_param_estim.real_rosbag import load_flight_data
 from grape_param_estim.system import (
     GRAVITY,
+    ActuatorParameters,
     ActuatorState,
     RigidBodyState,
     VehicleParameters,
 )
 
 
-SCHEMA = "grape-param-estim/minimal-deterministic-multiple-shooting/v1"
+SCHEMA = "grape-param-estim/minimal-deterministic-multiple-shooting/v2"
 OUTPUT_SUBDIRECTORY = "deterministic_multiple_shooting"
 PHYSICAL_DIMENSION = 13
 NODE_DIMENSION = 20
-PHYSICAL_PARAMETER_NAMES = analytic.SEARCH_PARAMETER_NAMES[:PHYSICAL_DIMENSION]
+PHYSICAL_PARAMETER_NAMES = (
+    "log_mass_scale",
+    "log_second_moment_cholesky_xx_scale",
+    "log_second_moment_cholesky_yy_scale",
+    "log_second_moment_cholesky_zz_scale",
+    "normalized_second_moment_cholesky_yx_offset",
+    "normalized_second_moment_cholesky_zx_offset",
+    "normalized_second_moment_cholesky_zy_offset",
+    "cog_offset_x_m",
+    "cog_offset_y_m",
+    "cog_offset_z_m",
+    "force_effectiveness_contrast_1",
+    "force_effectiveness_contrast_2",
+    "force_effectiveness_contrast_3",
+)
+_CHOLESKY_OFF_DIAGONALS = ((1, 0), (2, 0), (2, 1))
 NODE_PARAMETER_NAMES = (
     "cog_position_correction_x_m",
     "cog_position_correction_y_m",
@@ -126,6 +145,9 @@ class SegmentEvaluation:
     output_indices: np.ndarray
     sensor_position: np.ndarray
     sensor_orientation_xyzw: np.ndarray
+    sensor_velocity_world: np.ndarray
+    angular_velocity_sensor: np.ndarray
+    specific_force_sensor: np.ndarray
     pose_residual: np.ndarray
     pose_jacobian: np.ndarray
     end_rigid: RigidBodyState
@@ -142,6 +164,9 @@ class ProblemEvaluation:
     continuity_jacobian: np.ndarray
     sensor_position: np.ndarray
     sensor_orientation_xyzw: np.ndarray
+    sensor_velocity_world: np.ndarray
+    angular_velocity_sensor: np.ndarray
+    specific_force_sensor: np.ndarray
     decoded: analytic.DecodedSearchPoint
 
 
@@ -155,6 +180,164 @@ class FixedDelaySolution:
     full_rollout_orientation_xyzw: np.ndarray
     full_rollout_residual: np.ndarray
     elapsed_seconds: float
+
+
+class FullyPhysicalInertiaParameterization:
+    """Local physical chart whose inertia is fully physically consistent.
+
+    The positive-definite second moment ``Sigma = L L.T`` is represented by
+    six Cholesky coordinates centered at the nominal vehicle.  Mapping it to
+    ``J = trace(Sigma) I - Sigma`` makes every represented inertia positive
+    definite and gives it strict principal-moment triangle inequalities.
+    """
+
+    def __init__(self, nominal: VehicleParameters) -> None:
+        if not isinstance(nominal, VehicleParameters):
+            raise TypeError("nominal must be VehicleParameters")
+        second_moment = (
+            0.5 * float(np.trace(nominal.inertia)) * np.eye(3)
+            - nominal.inertia
+        )
+        second_moment = 0.5 * (second_moment + second_moment.T)
+        if np.any(np.linalg.eigvalsh(second_moment) <= 0.0):
+            raise ValueError(
+                "nominal inertia must satisfy strict triangle inequalities"
+            )
+        self.nominal = nominal
+        self.nominal_second_moment = second_moment
+        self.nominal_cholesky = np.linalg.cholesky(second_moment)
+
+    def _cholesky(self, coordinate: np.ndarray) -> np.ndarray:
+        cholesky = self.nominal_cholesky.copy()
+        cholesky[(0, 1, 2), (0, 1, 2)] *= np.exp(coordinate[1:4])
+        for local_index, (row, column) in enumerate(
+            _CHOLESKY_OFF_DIAGONALS
+        ):
+            scale = math.sqrt(
+                self.nominal_cholesky[row, row]
+                * self.nominal_cholesky[column, column]
+            )
+            cholesky[row, column] += coordinate[4 + local_index] * scale
+        return cholesky
+
+    def decode(
+        self, coordinate: Sequence[float]
+    ) -> analytic.DecodedSearchPoint:
+        value = np.asarray(coordinate, dtype=float)
+        if (
+            value.shape != (analytic.SEARCH_DIMENSION,)
+            or np.any(~np.isfinite(value))
+        ):
+            raise ValueError("search coordinate must be a finite 16-vector")
+        cholesky = self._cholesky(value)
+        second_moment = cholesky @ cholesky.T
+        inertia = np.trace(second_moment) * np.eye(3) - second_moment
+        inertia = 0.5 * (inertia + inertia.T)
+        principal = np.linalg.eigvalsh(inertia)
+        triangle_margin = float(principal[0] + principal[1] - principal[2])
+        log_effectiveness = (
+            baseline.FORCE_EFFECTIVENESS_CONTRAST_BASIS @ value[10:13]
+        )
+        parameters = VehicleParameters(
+            mass=self.nominal.mass * math.exp(float(value[0])),
+            inertia=inertia,
+            cog_offset=self.nominal.cog_offset + value[7:10],
+            force_effectiveness=(
+                self.nominal.force_effectiveness * np.exp(log_effectiveness)
+            ),
+            torque_effectiveness=self.nominal.torque_effectiveness,
+            linear_drag=self.nominal.linear_drag,
+            angular_drag=self.nominal.angular_drag,
+        )
+        actuator_parameters = ActuatorParameters(
+            thrust_time_constant=(
+                analytic.CURRENT_THRUST_TIME_CONSTANT
+                * math.exp(float(value[13]))
+            ),
+            gimbal_time_constant=(
+                analytic.CURRENT_GIMBAL_TIME_CONSTANT
+                * math.exp(float(value[14]))
+            ),
+            delay=0.0,
+        )
+        return analytic.DecodedSearchPoint(
+            parameters=parameters,
+            actuator_parameters=actuator_parameters,
+            delay=float(value[analytic.DELAY_INDEX]),
+            inertia_principal_moments=principal,
+            inertia_triangle_margin=triangle_margin,
+        )
+
+    def decode_with_jacobian(
+        self, coordinate: Sequence[float]
+    ) -> tuple[
+        analytic.DecodedSearchPoint,
+        analytic.DecodedSearchJacobian,
+    ]:
+        """Decode the chart and return its exact smooth Jacobian."""
+
+        value = np.asarray(coordinate, dtype=float)
+        decoded = self.decode(value)
+        dimension = analytic.SMOOTH_DIMENSION
+
+        mass = np.zeros(dimension, dtype=float)
+        mass[0] = decoded.parameters.mass
+
+        cholesky = self._cholesky(value)
+        inertia = np.zeros((3, 3, dimension), dtype=float)
+
+        def store_inertia_derivative(
+            coordinate_index: int,
+            cholesky_derivative: np.ndarray,
+        ) -> None:
+            second_moment_derivative = (
+                cholesky_derivative @ cholesky.T
+                + cholesky @ cholesky_derivative.T
+            )
+            inertia[:, :, coordinate_index] = (
+                np.trace(second_moment_derivative) * np.eye(3)
+                - second_moment_derivative
+            )
+
+        for axis in range(3):
+            derivative = np.zeros((3, 3), dtype=float)
+            derivative[axis, axis] = cholesky[axis, axis]
+            store_inertia_derivative(1 + axis, derivative)
+        for local_index, (row, column) in enumerate(
+            _CHOLESKY_OFF_DIAGONALS
+        ):
+            derivative = np.zeros((3, 3), dtype=float)
+            derivative[row, column] = math.sqrt(
+                self.nominal_cholesky[row, row]
+                * self.nominal_cholesky[column, column]
+            )
+            store_inertia_derivative(4 + local_index, derivative)
+
+        cog_offset = np.zeros((3, dimension), dtype=float)
+        cog_offset[:, 7:10] = np.eye(3)
+
+        force_effectiveness = np.zeros((4, dimension), dtype=float)
+        force_effectiveness[:, 10:13] = (
+            decoded.parameters.force_effectiveness[:, None]
+            * baseline.FORCE_EFFECTIVENESS_CONTRAST_BASIS
+        )
+
+        thrust_time_constant = np.zeros(dimension, dtype=float)
+        thrust_time_constant[13] = (
+            decoded.actuator_parameters.thrust_time_constant
+        )
+        gimbal_time_constant = np.zeros(dimension, dtype=float)
+        gimbal_time_constant[14] = (
+            decoded.actuator_parameters.gimbal_time_constant
+        )
+        return decoded, analytic.DecodedSearchJacobian(
+            mass=mass,
+            inertia=inertia,
+            cog_offset=cog_offset,
+            force_effectiveness=force_effectiveness,
+            thrust_time_constant=thrust_time_constant,
+            gimbal_time_constant=gimbal_time_constant,
+        )
 
 
 def segment_boundaries(
@@ -257,7 +440,7 @@ def _se3_log_error_with_jacobian(
 
 
 def _physical_parameter_jacobian(
-    parameterization: analytic.PhysicalSearchParameterization,
+    parameterization: FullyPhysicalInertiaParameterization,
     physical_coordinate: Sequence[float],
     delay: float,
 ) -> tuple[analytic.DecodedSearchPoint, analytic.DecodedSearchJacobian]:
@@ -651,7 +834,7 @@ class MultipleShootingProblem:
         self.translation_scale = float(translation_scale)
         self.rotation_scale = float(rotation_scale)
         self.prior_weight = float(prior_weight)
-        self.parameterization = analytic.PhysicalSearchParameterization(
+        self.parameterization = FullyPhysicalInertiaParameterization(
             VehicleParameters.nominal()
         )
         self.boundaries = segment_boundaries(
@@ -924,6 +1107,9 @@ class MultipleShootingProblem:
         output_indices = np.arange(output_start, output_end + 1, dtype=int)
         sensor_position = np.empty((output_indices.size, 3), dtype=float)
         sensor_orientation = np.empty((output_indices.size, 4), dtype=float)
+        sensor_velocity = np.empty((output_indices.size, 3), dtype=float)
+        angular_velocity_sensor = np.empty((output_indices.size, 3), dtype=float)
+        specific_force_sensor = np.empty((output_indices.size, 3), dtype=float)
         pose_residual = np.empty((output_indices.size, 6), dtype=float)
         pose_jacobian = np.empty(
             (output_indices.size, 6, local_dimension), dtype=float
@@ -973,9 +1159,58 @@ class MultipleShootingProblem:
             sensor_orientation[local_index] = matrix_to_quaternion(
                 sensor_rotation
             )
+            velocity_lever = (
+                self.direct_problem.velocity_sensor_position
+                - decoded.parameters.cog_offset
+            )
+            sensor_velocity[local_index] = (
+                rigid.linear_velocity
+                + rotation
+                @ np.cross(rigid.angular_velocity, velocity_lever)
+            )
+            angular_velocity_sensor[local_index] = (
+                self.direct_problem.body_to_imu_rotation
+                @ rigid.angular_velocity
+                + self.direct_problem.gyro_bias
+            )
+            wrench = plant.total_body_wrench(
+                float(self.direct_problem.output_time[output_index]),
+                rigid,
+                actuator,
+            )
+            inertia = decoded.parameters.inertia
+            angular_acceleration = np.linalg.solve(
+                inertia,
+                wrench[3:]
+                - np.cross(
+                    rigid.angular_velocity,
+                    inertia @ rigid.angular_velocity,
+                ),
+            )
+            imu_lever = (
+                self.direct_problem.imu_sensor_position
+                - decoded.parameters.cog_offset
+            )
+            specific_force_body = (
+                wrench[:3] / decoded.parameters.mass
+                + np.cross(angular_acceleration, imu_lever)
+                + np.cross(
+                    rigid.angular_velocity,
+                    np.cross(rigid.angular_velocity, imu_lever),
+                )
+            )
+            specific_force_sensor[local_index] = (
+                self.direct_problem.body_to_imu_rotation
+                @ specific_force_body
+                + self.direct_problem.accelerometer_bias
+            )
             pose_residual[local_index] = residual
             pose_jacobian[local_index] = jacobian
 
+        plant = FullSixDofPlant(
+            decoded.parameters,
+            self.direct_problem.geometry,
+        )
         store(0, output_start)
         local_output_index = 1
         for step_index in range(internal_start, internal_end):
@@ -1019,6 +1254,9 @@ class MultipleShootingProblem:
             output_indices=output_indices,
             sensor_position=sensor_position,
             sensor_orientation_xyzw=sensor_orientation,
+            sensor_velocity_world=sensor_velocity,
+            angular_velocity_sensor=angular_velocity_sensor,
+            specific_force_sensor=specific_force_sensor,
             pose_residual=pose_residual,
             pose_jacobian=pose_jacobian,
             end_rigid=rigid,
@@ -1135,16 +1373,21 @@ class MultipleShootingProblem:
             physical,
             self.delay,
         )
-        if decoded.inertia_triangle_margin <= 0.0:
-            raise ValueError(
-                "inertia principal moments violate the triangle inequality"
-            )
         segment_evaluations: list[SegmentEvaluation] = []
         sensor_position = np.empty(
             (self.direct_problem.output_time.size, 3), dtype=float
         )
         sensor_orientation = np.empty(
             (self.direct_problem.output_time.size, 4), dtype=float
+        )
+        sensor_velocity = np.empty(
+            (self.direct_problem.output_time.size, 3), dtype=float
+        )
+        angular_velocity_sensor = np.empty(
+            (self.direct_problem.output_time.size, 3), dtype=float
+        )
+        specific_force_sensor = np.empty(
+            (self.direct_problem.output_time.size, 3), dtype=float
         )
         pose_residual = np.empty(
             (self.direct_problem.output_time.size, 6), dtype=float
@@ -1180,6 +1423,13 @@ class MultipleShootingProblem:
             indices = segment.output_indices[local_slice]
             sensor_position[indices] = segment.sensor_position[local_slice]
             sensor_orientation[indices] = segment.sensor_orientation_xyzw[local_slice]
+            sensor_velocity[indices] = segment.sensor_velocity_world[local_slice]
+            angular_velocity_sensor[indices] = (
+                segment.angular_velocity_sensor[local_slice]
+            )
+            specific_force_sensor[indices] = (
+                segment.specific_force_sensor[local_slice]
+            )
             pose_residual[indices] = segment.pose_residual[local_slice]
             pose_jacobian[np.ix_(indices, np.arange(6), columns)] = (
                 segment.pose_jacobian[local_slice]
@@ -1244,6 +1494,9 @@ class MultipleShootingProblem:
             continuity_jacobian=continuity_jacobian,
             sensor_position=sensor_position,
             sensor_orientation_xyzw=sensor_orientation,
+            sensor_velocity_world=sensor_velocity,
+            angular_velocity_sensor=angular_velocity_sensor,
+            specific_force_sensor=specific_force_sensor,
             decoded=decoded,
         )
 
@@ -1543,88 +1796,346 @@ def _unscaled_pose_residual(
     )
 
 
+def _stitched_simulation(
+    problem: MultipleShootingProblem,
+    evaluation: ProblemEvaluation,
+) -> baseline.Simulation:
+    """Expose a stitched multiple-shooting trajectory as a Simulation."""
+
+    sample_count = problem.direct_problem.output_time.size
+    return baseline.Simulation(
+        time=problem.direct_problem.output_time,
+        sensor_position=evaluation.sensor_position,
+        sensor_orientation_xyzw=evaluation.sensor_orientation_xyzw,
+        sensor_velocity_world=evaluation.sensor_velocity_world,
+        angular_velocity_sensor=evaluation.angular_velocity_sensor,
+        specific_force_sensor=evaluation.specific_force_sensor,
+        cog_position=np.zeros((sample_count, 3), dtype=float),
+        cog_velocity_world=np.zeros((sample_count, 3), dtype=float),
+        actuator_thrust=np.zeros((sample_count, 4), dtype=float),
+        actuator_gimbal=np.zeros((sample_count, 4), dtype=float),
+    )
+
+
+def _plot_stitched_vector_comparison(
+    axes: Sequence[Any],
+    time_axis: np.ndarray,
+    target: np.ndarray,
+    stitched: np.ndarray,
+    labels: Sequence[str],
+    ylabel: str,
+) -> None:
+    relative_time = time_axis - time_axis[0]
+    for component, axis in enumerate(axes):
+        axis.plot(
+            relative_time,
+            target[:, component],
+            color="#1e5abe",
+            linewidth=2.0,
+            linestyle="-",
+            label="target (observed rosbag)",
+        )
+        axis.plot(
+            relative_time,
+            stitched[:, component],
+            color="#1e965f",
+            linewidth=1.8,
+            linestyle=":",
+            label="stitched estimate",
+        )
+        axis.set_ylabel("{} {}".format(labels[component], ylabel))
+        axis.grid(True, alpha=0.25)
+    axes[-1].set_xlabel("time since first common sample [s]")
+    axes[0].legend(loc="best", fontsize=8)
+
+
+def _parameter_summary_lines(
+    problem: MultipleShootingProblem,
+    solution: FixedDelaySolution,
+    stitched_metrics: dict[str, Any],
+    continuity_tolerance: float,
+) -> list[str]:
+    parameters = solution.evaluation.decoded.parameters
+    inertia = parameters.inertia
+    principal_moments = np.linalg.eigvalsh(inertia)
+    physical_coordinate, _ = problem.split_coordinate(solution.coordinate)
+    continuity = solution.evaluation.continuity_residual
+    continuity_max = (
+        0.0 if continuity.size == 0 else float(np.max(np.abs(continuity)))
+    )
+    stitched_loss = 0.5 * float(
+        solution.evaluation.data_residual[: problem.pose_residual_dimension]
+        @ solution.evaluation.data_residual[: problem.pose_residual_dimension]
+    )
+    full_rollout_loss = 0.5 * float(
+        solution.full_rollout_residual @ solution.full_rollout_residual
+    )
+    lines = [
+        "Selected multiple-shooting estimate",
+        "",
+        "Decoded physical parameters",
+        "  mass [kg]                  {:.12g}".format(parameters.mass),
+        "  inertia [kg m^2]",
+    ]
+    lines.extend(
+        "    [{: .12g}  {: .12g}  {: .12g}]".format(*row)
+        for row in inertia
+    )
+    lines.extend(
+        (
+            "  principal inertia [kg m^2] [{:.12g}, {:.12g}, {:.12g}]".format(
+                *principal_moments
+            ),
+            "  CoG offset [m]             [{:.12g}, {:.12g}, {:.12g}]".format(
+                *parameters.cog_offset
+            ),
+            "  rotor force effectiveness  [{:.12g}, {:.12g}, {:.12g}, {:.12g}]".format(
+                *parameters.force_effectiveness
+            ),
+            "  command delay [s]           {:.12g}".format(solution.delay),
+            "  thrust time constant [s]    {:.12g}  (fixed)".format(
+                solution.evaluation.decoded.actuator_parameters.thrust_time_constant
+            ),
+            "  gimbal time constant [s]    {:.12g}  (fixed)".format(
+                solution.evaluation.decoded.actuator_parameters.gimbal_time_constant
+            ),
+            "",
+            "Thirteen optimized smooth coordinates",
+        )
+    )
+    lines.extend(
+        "  {:<43s} {: .12g}".format(name, value)
+        for name, value in zip(PHYSICAL_PARAMETER_NAMES, physical_coordinate)
+    )
+    lines.extend(
+        (
+            "",
+            "Fit diagnostics",
+            "  stitched SE(3) loss         {:.12g}".format(stitched_loss),
+            "  full-rollout SE(3) loss     {:.12g}".format(full_rollout_loss),
+            "  position RMSE [m]           {:.12g}".format(
+                stitched_metrics["position_rmse_m"]
+            ),
+            "  orientation RMSE [deg]      {:.12g}".format(
+                stitched_metrics["orientation_angle_rmse_deg"]
+            ),
+            "  velocity RMSE [m/s]         {:.12g}".format(
+                stitched_metrics["velocity_rmse_m_per_s"]
+            ),
+            "  angular velocity RMSE       {:.12g} rad/s".format(
+                stitched_metrics["angular_velocity_rmse_rad_per_s"]
+            ),
+            "  specific force RMSE         {:.12g} m/s^2".format(
+                stitched_metrics["specific_force_rmse_m_per_s2"]
+            ),
+            "  continuity max (normalized) {:.12g}".format(continuity_max),
+            "  continuity tolerance        {:.12g}".format(
+                continuity_tolerance
+            ),
+            "  continuity converged        {}".format(
+                continuity_max <= continuity_tolerance
+            ),
+        )
+    )
+    return lines
+
+
+def _write_text(path: Path, lines: Sequence[str]) -> None:
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("w", encoding="utf-8") as stream:
+        stream.write("\n".join(lines))
+        stream.write("\n")
+    temporary.replace(path)
+
+
 def _write_pdf(
     path: Path,
     problem: MultipleShootingProblem,
-    nominal_position: np.ndarray,
-    nominal_orientation: np.ndarray,
     solution: FixedDelaySolution,
+    stitched_metrics: dict[str, Any],
+    parameter_lines: Sequence[str],
     continuity_tolerance: float,
 ) -> None:
     time_axis = problem.direct_problem.output_time
-    observed_position = problem.direct_problem.observations.sensor_position
-    observed_rpy = np.unwrap(
-        np.asarray(
-            [
-                matrix_to_euler_xyz(rotation)
-                for rotation in problem.direct_problem.observed_sensor_rotation
-            ]
+    target = problem.direct_problem.observations
+    stitched = _stitched_simulation(problem, solution.evaluation)
+    target_rpy = baseline._rpy_series(target.sensor_orientation_xyzw)
+    stitched_rpy = baseline._rpy_series(stitched.sensor_orientation_xyzw)
+    vector_specs = (
+        (
+            "Sensor position",
+            target.sensor_position,
+            stitched.sensor_position,
+            ("x", "y", "z"),
+            "[m]",
         ),
-        axis=0,
+        (
+            "Sensor orientation (display only; fit uses SO(3) log)",
+            target_rpy,
+            stitched_rpy,
+            ("roll", "pitch", "yaw"),
+            "[rad]",
+        ),
+        (
+            "World-frame sensor velocity (diagnostic; excluded from fit)",
+            target.sensor_velocity_world,
+            stitched.sensor_velocity_world,
+            ("vx", "vy", "vz"),
+            "[m/s]",
+        ),
+        (
+            "IMU angular velocity (diagnostic; excluded from fit)",
+            target.angular_velocity_sensor,
+            stitched.angular_velocity_sensor,
+            ("wx", "wy", "wz"),
+            "[rad/s]",
+        ),
+        (
+            "IMU specific force (diagnostic; excluded from fit)",
+            target.specific_force_sensor,
+            stitched.specific_force_sensor,
+            ("fx", "fy", "fz"),
+            "[m/s²]",
+        ),
     )
-
-    def rpy_series(quaternions: np.ndarray) -> np.ndarray:
-        return np.unwrap(
-            np.asarray(
-                [
-                    matrix_to_euler_xyz(quaternion_to_matrix(value))
-                    for value in quaternions
-                ]
+    with PdfPages(path) as pdf:
+        figure = plt.figure(figsize=(11.7, 8.3), constrained_layout=True)
+        figure.suptitle("Target and stitched multiple-shooting estimate", fontsize=15)
+        grid = figure.add_gridspec(2, 2)
+        axis_3d = figure.add_subplot(grid[:, 0], projection="3d")
+        for values, color, linestyle, linewidth, label in (
+            (
+                target.sensor_position,
+                "#1e5abe",
+                "-",
+                2.5,
+                "target (observed rosbag)",
             ),
-            axis=0,
+            (
+                stitched.sensor_position,
+                "#1e965f",
+                ":",
+                1.8,
+                "stitched estimate",
+            ),
+        ):
+            axis_3d.plot(
+                values[:, 0],
+                values[:, 1],
+                values[:, 2],
+                color=color,
+                linestyle=linestyle,
+                linewidth=linewidth,
+                label=label,
+            )
+        axis_3d.set_xlabel("x [m]")
+        axis_3d.set_ylabel("y [m]")
+        axis_3d.set_zlabel("z [m]")
+        axis_3d.set_title("Stitched trajectory")
+        axis_3d.legend(loc="best", fontsize=8)
+
+        metric_axis = figure.add_subplot(grid[0, 1])
+        metric_axis.axis("off")
+        continuity = solution.evaluation.continuity_residual
+        continuity_max = (
+            0.0
+            if continuity.size == 0
+            else float(np.max(np.abs(continuity)))
+        )
+        metric_lines = [
+            "actual common support: {:.3f}–{:.3f} s".format(
+                target.time[0], target.time[-1]
+            ),
+            "selected command delay: {:.6g} s".format(solution.delay),
+            "",
+            "metric                              stitched",
+        ]
+        for key, label in (
+            ("position_rmse_m", "position RMSE [m]"),
+            ("orientation_angle_rmse_deg", "orientation RMSE [deg]"),
+            ("velocity_rmse_m_per_s", "velocity RMSE [m/s]"),
+            (
+                "angular_velocity_rmse_rad_per_s",
+                "angular velocity RMSE [rad/s]",
+            ),
+            ("specific_force_rmse_m_per_s2", "specific force RMSE [m/s²]"),
+        ):
+            metric_lines.append(
+                "{:<35s} {:>10.5g}".format(label, stitched_metrics[key])
+            )
+        metric_lines.extend(
+            (
+                "",
+                "continuity max / tolerance:",
+                "{:.4g} / {:.4g} ({})".format(
+                    continuity_max,
+                    continuity_tolerance,
+                    "converged"
+                    if continuity_max <= continuity_tolerance
+                    else "not converged",
+                ),
+                "",
+                "Velocity and IMU metrics are diagnostic only;",
+                "the fit uses sensor position and orientation.",
+            )
+        )
+        metric_axis.text(
+            0.0,
+            1.0,
+            "\n".join(metric_lines),
+            va="top",
+            family="monospace",
+            fontsize=8.5,
         )
 
-    nominal_rpy = rpy_series(nominal_orientation)
-    stitched_rpy = rpy_series(solution.evaluation.sensor_orientation_xyzw)
-    full_rpy = rpy_series(solution.full_rollout_orientation_xyzw)
-    labels = ("x", "y", "z")
-    with PdfPages(path) as pdf:
-        figure, axes = plt.subplots(3, 1, figsize=(11.0, 8.5), sharex=True)
-        for axis, name, index in zip(axes, labels, range(3)):
-            axis.plot(time_axis, observed_position[:, index], label="observed")
-            axis.plot(time_axis, nominal_position[:, index], "--", label="nominal")
-            axis.plot(
-                time_axis,
-                solution.evaluation.sensor_position[:, index],
-                ":",
-                label="multiple-shooting stitched",
-            )
-            axis.plot(
-                time_axis,
-                solution.full_rollout_position[:, index],
-                "-.",
-                label="selected full rollout",
-            )
-            axis.set_ylabel("{} [m]".format(name))
-            axis.grid(True)
-        axes[-1].set_xlabel("time [s]")
-        axes[0].legend(loc="best")
-        figure.suptitle("SE(3)-only multiple shooting: position")
-        figure.tight_layout()
+        error_axis = figure.add_subplot(grid[1, 1])
+        relative_time = target.time - target.time[0]
+        error_axis.plot(
+            relative_time,
+            np.linalg.norm(
+                stitched.sensor_position - target.sensor_position,
+                axis=1,
+            ),
+            color="#1e965f",
+            linestyle=":",
+            linewidth=1.8,
+            label="stitched position error",
+        )
+        error_axis.set_xlabel("time since first common sample [s]")
+        error_axis.set_ylabel("position error norm [m]")
+        error_axis.grid(True, alpha=0.25)
+        error_axis.legend(loc="best", fontsize=8)
         pdf.savefig(figure)
         plt.close(figure)
 
-        figure, axes = plt.subplots(3, 1, figsize=(11.0, 8.5), sharex=True)
-        for axis, name, index in zip(axes, ("roll", "pitch", "yaw"), range(3)):
-            axis.plot(time_axis, observed_rpy[:, index], label="observed")
-            axis.plot(time_axis, nominal_rpy[:, index], "--", label="nominal")
-            axis.plot(time_axis, stitched_rpy[:, index], ":", label="stitched")
-            axis.plot(time_axis, full_rpy[:, index], "-.", label="full rollout")
-            axis.set_ylabel("{} [rad]".format(name))
-            axis.grid(True)
-        axes[-1].set_xlabel("time [s]")
-        axes[0].legend(loc="best")
-        figure.suptitle("SE(3)-only multiple shooting: orientation")
-        figure.tight_layout()
-        pdf.savefig(figure)
-        plt.close(figure)
+        for title, target_value, stitched_value, labels, ylabel in vector_specs:
+            figure, axes = plt.subplots(
+                3,
+                1,
+                figsize=(11.7, 8.3),
+                sharex=True,
+                constrained_layout=True,
+            )
+            figure.suptitle(title)
+            _plot_stitched_vector_comparison(
+                axes,
+                time_axis,
+                target_value,
+                stitched_value,
+                labels,
+                ylabel,
+            )
+            pdf.savefig(figure)
+            plt.close(figure)
 
-        continuity = solution.evaluation.continuity_residual.reshape(-1, NODE_DIMENSION)
+        continuity_by_boundary = solution.evaluation.continuity_residual.reshape(
+            -1, NODE_DIMENSION
+        )
         figure, axis = plt.subplots(figsize=(11.0, 5.5))
-        if continuity.size:
+        if continuity_by_boundary.size:
             axis.semilogy(
-                np.arange(continuity.shape[0]),
-                np.max(np.abs(continuity), axis=1),
+                np.arange(continuity_by_boundary.shape[0]),
+                np.max(np.abs(continuity_by_boundary), axis=1),
                 marker="o",
             )
         axis.axhline(
@@ -1638,6 +2149,22 @@ def _write_pdf(
         axis.legend(loc="best")
         figure.suptitle("Shooting continuity diagnostic")
         figure.tight_layout()
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        figure = plt.figure(figsize=(11.7, 8.3), constrained_layout=True)
+        axis = figure.add_subplot(111)
+        axis.axis("off")
+        axis.text(
+            0.02,
+            0.98,
+            "\n".join(parameter_lines),
+            va="top",
+            ha="left",
+            family="monospace",
+            fontsize=7.4,
+        )
+        figure.suptitle("Final estimated parameters", fontsize=15)
         pdf.savefig(figure)
         plt.close(figure)
 
@@ -1663,8 +2190,9 @@ def _delay_grid(arguments: argparse.Namespace) -> np.ndarray:
 def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Fit mass, Cholesky inertia, CoG, relative force effectiveness, "
-            "and recorded-command lag by SE(3)-only multiple shooting."
+            "Fit mass, fully physical second-moment/Cholesky inertia, CoG, "
+            "relative force effectiveness, and recorded-command lag by "
+            "SE(3)-only multiple shooting."
         )
     )
     parser.add_argument("--bag", type=Path, default=baseline.DEFAULT_BAG)
@@ -1676,9 +2204,9 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--translation-scale", type=float, default=0.05)
     parser.add_argument("--rotation-scale", type=float, default=0.10)
     parser.add_argument("--prior-weight", type=float, default=0.0)
-    parser.add_argument("--max-nfev", type=int, default=40)
+    parser.add_argument("--max-nfev", type=int, default=120)
     parser.add_argument(
-        "--augmented-lagrangian-iterations", type=int, default=4
+        "--augmented-lagrangian-iterations", type=int, default=10
     )
     parser.add_argument(
         "--continuity-penalty-initial", type=float, default=1.0
@@ -1808,6 +2336,10 @@ def _solution_payload(
     continuity_max = (
         0.0 if continuity.size == 0 else float(np.max(np.abs(continuity)))
     )
+    stitched_recorded_control_metrics = baseline._metrics(
+        problem.direct_problem,
+        _stitched_simulation(problem, solution.evaluation),
+    )
     return {
         "delay_seconds": solution.delay,
         "physical_coordinate": physical,
@@ -1819,6 +2351,9 @@ def _solution_payload(
         "full_rollout_se3_loss": 0.5
         * float(solution.full_rollout_residual @ solution.full_rollout_residual),
         "stitched_metrics": _pose_metrics(stitched_unscaled),
+        "stitched_recorded_control_metrics": (
+            stitched_recorded_control_metrics
+        ),
         "full_rollout_metrics": _pose_metrics(full_unscaled),
         "continuity_max_normalized": continuity_max,
         "continuity_l2_normalized": float(np.linalg.norm(continuity)),
@@ -1930,10 +2465,18 @@ def run(arguments: argparse.Namespace) -> int:
     output_directory.mkdir(parents=True, exist_ok=True)
     result_path = output_directory / "result.json"
     pdf_path = output_directory / "trajectory.pdf"
+    parameters_path = output_directory / "parameters.txt"
     ordered = sorted(solved.values(), key=lambda item: item[1].delay)
     selected_payload = _solution_payload(
         selected_problem,
         selected_solution,
+        arguments.continuity_tolerance,
+    )
+    stitched_metrics = selected_payload["stitched_recorded_control_metrics"]
+    parameter_lines = _parameter_summary_lines(
+        selected_problem,
+        selected_solution,
+        stitched_metrics,
         arguments.continuity_tolerance,
     )
     payload = {
@@ -1973,6 +2516,11 @@ def run(arguments: argparse.Namespace) -> int:
             "physical_dimension": PHYSICAL_DIMENSION,
             "node_dimension": NODE_DIMENSION,
             "physical_parameter_names": PHYSICAL_PARAMETER_NAMES,
+            "inertia_parameterization": (
+                "Sigma = L L^T; J = trace(Sigma) I - Sigma"
+            ),
+            "inertia_positive_definite_by_construction": True,
+            "inertia_triangle_inequalities_by_construction": True,
             "node_parameter_names": NODE_PARAMETER_NAMES,
             "physical_jacobian": "analytic forward sensitivity",
             "node_jacobian": "analytic forward sensitivity",
@@ -2015,15 +2563,17 @@ def run(arguments: argparse.Namespace) -> int:
         "outputs": {
             "result_json": "result.json",
             "trajectory_pdf": "trajectory.pdf",
+            "parameters_text": "parameters.txt",
         },
     }
     baseline._write_json(result_path, payload)
+    _write_text(parameters_path, parameter_lines)
     _write_pdf(
         pdf_path,
         selected_problem,
-        nominal_position,
-        nominal_orientation,
         selected_solution,
+        stitched_metrics,
+        parameter_lines,
         arguments.continuity_tolerance,
     )
     print(
@@ -2035,6 +2585,7 @@ def run(arguments: argparse.Namespace) -> int:
     )
     print("wrote {}".format(result_path), flush=True)
     print("wrote {}".format(pdf_path), flush=True)
+    print("wrote {}".format(parameters_path), flush=True)
     return 0
 
 

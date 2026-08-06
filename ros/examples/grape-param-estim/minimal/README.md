@@ -12,7 +12,7 @@
 
 ### SE(3)-only deterministic multiple shooting（既定）
 
-`deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、Cholesky 慣性座標、CoG offset、相対 rotor force effectiveness を推定します。command lag は causal zero-order-hold lookup に対して滑らかでないため、外側の一次元 profile で選びます。
+`deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、慣性、CoG offset、相対 rotor force effectiveness を推定します。慣性は二次モーメントを `Σ = L L^T`、`J = tr(Σ)I - Σ` と表す6次元 Cholesky 座標を用いるため、正定値性と主慣性モーメントの三角不等式を探索中も構造的に満たします。command lag は causal zero-order-hold lookup に対して滑らかでないため、外側の一次元 profile で選びます。
 
 観測 Loss は各時刻の
 
@@ -23,6 +23,8 @@ Log_SE(3)(T_observed^-1 T_simulated)
 だけです。並進成分は相対並進を観測座標系へ移した後、`SO(3)` 左 Jacobian の逆を用いて `se(3)` の並進座標へ写します。velocity、angular velocity、specific force、acceleration は観測 Loss に入りません。velocity と gyro は shooting node の初期値を作るためだけに使います。
 
 全時系列を既定 0.5 秒の区間へ分け、内部境界の CoG pose、velocity、angular velocity、actuator thrust、gimbal angle を補助変数にします。区間終端と次区間始端の一致は augmented Lagrangian の連続性制約として反復的に強制します。最終選択は、推定物理パラメータを初期時刻から一本で再積分した full-rollout の SE(3) Loss で行います。
+
+内側の最小二乗は既定 `max_nfev=120`、外側の augmented-Lagrangian は既定10反復です。短時間の動作確認では、`--max-nfev` と `--augmented-lagrangian-iterations` の両方を小さくできます。
 
 ```bash
 source /home/leus/catkin_ws/devel/setup.bash
@@ -35,7 +37,8 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
 python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
   --delay-values 0.005 0.010 0.015 \
   --segment-duration 0.5 \
-  --max-nfev 60
+  --max-nfev 120 \
+  --augmented-lagrangian-iterations 10
 ```
 
 結果は `minimal/output/deterministic_multiple_shooting/` に保存されます。

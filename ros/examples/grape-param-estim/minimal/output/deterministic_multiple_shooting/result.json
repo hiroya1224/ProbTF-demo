@@ -12,7 +12,7 @@
     "sample_count": 100,
     "sha256": "bd3fc7f71797c0f5cb665acc50832da93c590e540fa170f9977182ecedf93bf8"
   },
-  "created_at": "2026-08-06T03:59:54.954208+00:00",
+  "created_at": "2026-08-06T05:14:25.496744+00:00",
   "delay_profile_seconds": [
     0.0,
     0.01,
@@ -20,156 +20,114 @@
   ],
   "delay_results": [
     {
-      "continuity_converged": false,
-      "continuity_l2_normalized": 0.0027354071788829883,
-      "continuity_max_normalized": 0.0011694499397956696,
+      "continuity_converged": true,
+      "continuity_l2_normalized": 0.001311197127426744,
+      "continuity_max_normalized": 0.0006935270301732053,
       "delay_seconds": 0.0,
-      "elapsed_seconds": 124.34232734423131,
+      "elapsed_seconds": 199.79908142378554,
       "full_rollout_metrics": {
-        "se3_rotation_max_rad": 0.9410772807896345,
-        "se3_rotation_rmse_deg": 33.68337881077821,
-        "se3_rotation_rmse_rad": 0.5878858634445718,
-        "se3_translation_max_m": 1.3987089211242967,
-        "se3_translation_rmse_m": 0.8481676033079723
+        "se3_rotation_max_rad": 0.7544731589169613,
+        "se3_rotation_rmse_deg": 22.427033071088054,
+        "se3_rotation_rmse_rad": 0.39142556854414207,
+        "se3_translation_max_m": 0.7028246562220937,
+        "se3_translation_rmse_m": 0.34808964477528304
       },
-      "full_rollout_se3_loss": 161.15814608213643,
+      "full_rollout_se3_loss": 31.89397894546179,
       "optimizer_history": [
         {
-          "continuity_l2_normalized": 3.8204738628470634,
-          "continuity_max_normalized": 2.4273691921514233,
-          "cost": 10.994016708454158,
-          "data_cost": 3.696006440105376,
+          "continuity_l2_normalized": 2.7242309147263972,
+          "continuity_max_normalized": 1.273891734985625,
+          "cost": 8.571323555543767,
+          "data_cost": 4.860606517168256,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 16,
-          "njev": 16,
-          "optimality": 0.006033713875175304,
+          "nfev": 42,
+          "njev": 36,
+          "optimality": 0.05817116888457158,
           "outer_iteration": 1,
           "penalty": 1.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 3.2495244337113505,
-          "continuity_max_normalized": 2.1463123868835283,
-          "cost": 31.56850938667132,
-          "data_cost": 7.073019997434484,
+          "continuity_l2_normalized": 2.017550658588132,
+          "continuity_max_normalized": 0.8277962019061731,
+          "cost": 18.574733634684,
+          "data_cost": 7.596175657222355,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 9,
-          "njev": 8,
-          "optimality": 0.027890722412174194,
+          "nfev": 42,
+          "njev": 34,
+          "optimality": 0.08091134724639981,
           "outer_iteration": 2,
           "penalty": 1.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 2.170640595912085,
-          "continuity_max_normalized": 1.3338758038372414,
-          "cost": 65.02583437574859,
-          "data_cost": 25.409919868292285,
+          "continuity_l2_normalized": 1.0988831760151896,
+          "continuity_max_normalized": 0.5676160895854175,
+          "cost": 27.65801343478642,
+          "data_cost": 16.233861514463808,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 11,
-          "njev": 11,
-          "optimality": 0.15740738178728828,
+          "nfev": 59,
+          "njev": 54,
+          "optimality": 0.1769179215553694,
           "outer_iteration": 3,
           "penalty": 10.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 0.5392744154944247,
-          "continuity_max_normalized": 0.2282306903826034,
-          "cost": 143.77713227662267,
-          "data_cost": 112.37783458226332,
+          "continuity_l2_normalized": 0.16436849710134924,
+          "continuity_max_normalized": 0.0994533350685154,
+          "cost": 44.19005273592088,
+          "data_cost": 39.84784533659455,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 36,
-          "njev": 36,
-          "optimality": 0.4392967152850641,
+          "nfev": 50,
+          "njev": 41,
+          "optimality": 3.361480235335339,
           "outer_iteration": 4,
           "penalty": 100.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 0.17074243619100327,
-          "continuity_max_normalized": 0.06829426997150712,
-          "cost": 190.12895154651372,
-          "data_cost": 145.14607794589273,
+          "continuity_l2_normalized": 0.031206385038644265,
+          "continuity_max_normalized": 0.01827556595815843,
+          "cost": 48.98507401634359,
+          "data_cost": 43.754823024700755,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 27,
-          "njev": 27,
-          "optimality": 2.3043943118209067,
+          "nfev": 19,
+          "njev": 15,
+          "optimality": 8.245627624771483,
           "outer_iteration": 5,
           "penalty": 100.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 0.06357857958561486,
-          "continuity_max_normalized": 0.02600468360038288,
-          "cost": 205.69358692958946,
-          "data_cost": 155.36086544556582,
+          "continuity_l2_normalized": 0.006483386466742262,
+          "continuity_max_normalized": 0.0037426807785304194,
+          "cost": 49.931786369297825,
+          "data_cost": 44.510608470259164,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 13,
-          "njev": 12,
-          "optimality": 1.9974215198442227,
+          "nfev": 12,
+          "njev": 7,
+          "optimality": 2.476395657828199,
           "outer_iteration": 6,
           "penalty": 100.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 0.02718451282701054,
-          "continuity_max_normalized": 0.011964130284576662,
-          "cost": 211.33036744565143,
-          "data_cost": 158.88821036271958,
+          "continuity_l2_normalized": 0.001311197127426744,
+          "continuity_max_normalized": 0.0006935270301732053,
+          "cost": 50.12528229823523,
+          "data_cost": 44.66517667562876,
           "message": "`ftol` termination condition is satisfied.",
           "nfev": 9,
           "njev": 7,
-          "optimality": 1.6713265205899406,
+          "optimality": 1.6713942382181912,
           "outer_iteration": 7,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.012727830027818934,
-          "continuity_max_normalized": 0.005529894303063637,
-          "cost": 213.4934321578934,
-          "data_cost": 160.1547976636133,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 7,
-          "njev": 7,
-          "optimality": 0.6120203766936139,
-          "outer_iteration": 8,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.006113769204251166,
-          "continuity_max_normalized": 0.002753382307586049,
-          "cost": 214.40156693020978,
-          "data_cost": 160.67946181117188,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 5,
-          "njev": 4,
-          "optimality": 1.1767795577555513,
-          "outer_iteration": 9,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.0027354071788829883,
-          "continuity_max_normalized": 0.0011694499397956696,
-          "cost": 214.78741902687,
-          "data_cost": 160.89427237810142,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 5,
-          "njev": 4,
-          "optimality": 0.6685656684629148,
-          "outer_iteration": 10,
           "penalty": 100.0,
           "status": 2,
           "success": true
@@ -182,33 +140,32 @@
           0.0
         ],
         "cog_offset_m": [
-          0.07887817099155556,
-          0.035216515708018925,
-          0.010047450017585096
+          0.21357487781355947,
+          0.09070247488067107,
+          -0.07820017738599414
         ],
         "command_delay_seconds": 0.0,
         "force_effectiveness": [
-          0.8100809923872806,
-          1.0694379805687995,
-          1.9408053762170219,
-          0.5947493383579895
+          0.10413392339136142,
+          6.162858044274629,
+          13.128843579371516,
+          0.11868590079385001
         ],
-        "gimbal_time_constant_seconds": 0.02,
         "inertia_kg_m2": [
           [
-            0.09156850705505443,
-            -0.0637564247600631,
-            0.030343973711788926
+            2.0313518293758315,
+            0.8467303960225326,
+            -0.38208277114682804
           ],
           [
-            -0.0637564247600631,
-            0.2669436503797802,
-            -0.007919574147923143
+            0.8467303960225326,
+            1.04708638719464,
+            0.5900629610569524
           ],
           [
-            0.030343973711788926,
-            -0.007919574147923143,
-            0.34040367876038574
+            -0.38208277114682804,
+            0.5900629610569524,
+            2.6409279070333276
           ]
         ],
         "linear_drag": [
@@ -216,8 +173,7 @@
           0.0,
           0.0
         ],
-        "mass_kg": 2.806203826416603,
-        "thrust_time_constant_seconds": 0.01,
+        "mass_kg": 12.75662843504434,
         "torque_effectiveness": [
           1.0,
           1.0,
@@ -226,450 +182,159 @@
         ]
       },
       "physical_coordinate": [
-        0.17673769547814044,
-        0.693147180559945,
-        0.01700754804016437,
-        0.6931471805599444,
-        0.4943456551552978,
-        -0.799999999996513,
-        0.7999999999999291,
-        0.07887817099155556,
-        0.035216515708018925,
-        0.010047450017585096,
-        -0.196401952137003,
-        -0.5999999999925562,
-        0.5999999999998028
+        1.6909560907167112,
+        1.2765883105065856,
+        1.34319464355711,
+        0.010287634383592682,
+        -3.6633457369591373,
+        5.628748354418896,
+        -2.7475046834335615,
+        0.21357487781355947,
+        0.09070247488067107,
+        -0.07820017738599414,
+        -2.8854327451469977,
+        -2.2833980346874654,
+        2.460984118107563
       ],
+      "soft_prior_cost": 12.814303969606987,
       "stitched_metrics": {
-        "se3_rotation_max_rad": 0.9409974286022944,
-        "se3_rotation_rmse_deg": 33.6572247933154,
-        "se3_rotation_rmse_rad": 0.5874293897272217,
-        "se3_translation_max_m": 1.4324781497870416,
-        "se3_translation_rmse_m": 0.8474686070360854
+        "se3_rotation_max_rad": 0.7546167041146767,
+        "se3_rotation_rmse_deg": 22.43096148100416,
+        "se3_rotation_rmse_rad": 0.3914941322315461,
+        "se3_translation_max_m": 0.7110945977655075,
+        "se3_translation_rmse_m": 0.3477606211709084
       },
       "stitched_recorded_control_metrics": {
-        "angular_velocity_rmse_rad_per_s": 1.1542835458152707,
-        "orientation_angle_rmse_deg": 33.6572247933154,
-        "orientation_angle_rmse_rad": 0.5874293897272217,
+        "angular_velocity_rmse_rad_per_s": 0.7105180435112929,
+        "orientation_angle_rmse_deg": 22.43096148100416,
+        "orientation_angle_rmse_rad": 0.3914941322315461,
         "position_component_rmse_m": [
-          0.6951895085884492,
-          0.4477214490153005,
-          0.12324118277595635
+          0.276981646455007,
+          0.13245670359949627,
+          0.15855065480231142
         ],
-        "position_rmse_m": 0.836021134835613,
-        "specific_force_rmse_m_per_s2": 1.705545698089946,
-        "terminal_orientation_error_deg": 50.96961353435986,
-        "terminal_position_error_m": 1.393273555668875,
+        "position_rmse_m": 0.34554583044744297,
+        "specific_force_rmse_m_per_s2": 1.9791477685791026,
+        "terminal_orientation_error_deg": 43.2363522958434,
+        "terminal_position_error_m": 0.7003705753916805,
         "velocity_component_rmse_m_per_s": [
-          1.0506029868001718,
-          1.320672717415797,
-          0.3857625210750132
+          0.6053018258422014,
+          0.5217019401545252,
+          0.28868118816640415
         ],
-        "velocity_rmse_m_per_s": 1.7311140300586836
+        "velocity_rmse_m_per_s": 0.8496470108992706
       },
-      "stitched_se3_loss": 160.89427237810148
+      "stitched_se3_loss": 31.85087270602177
     },
     {
       "continuity_converged": true,
-      "continuity_l2_normalized": 0.0014321775510693809,
-      "continuity_max_normalized": 0.00045914243739397786,
+      "continuity_l2_normalized": 0.0007989741270227825,
+      "continuity_max_normalized": 0.0004664301371641301,
       "delay_seconds": 0.01,
-      "elapsed_seconds": 121.78624333720654,
+      "elapsed_seconds": 206.38562730280682,
       "full_rollout_metrics": {
-        "se3_rotation_max_rad": 0.8919019807511722,
-        "se3_rotation_rmse_deg": 30.906400913333634,
-        "se3_rotation_rmse_rad": 0.5394184558790546,
-        "se3_translation_max_m": 1.3906713774422066,
-        "se3_translation_rmse_m": 0.821524460586611
+        "se3_rotation_max_rad": 0.7407182787383576,
+        "se3_rotation_rmse_deg": 21.825910203015784,
+        "se3_rotation_rmse_rad": 0.3809339952872494,
+        "se3_translation_max_m": 0.707391886883081,
+        "se3_translation_rmse_m": 0.32008643120537705
       },
-      "full_rollout_se3_loss": 149.52910139557153,
+      "full_rollout_se3_loss": 27.746600126634213,
       "optimizer_history": [
         {
-          "continuity_l2_normalized": 3.5864455558451716,
-          "continuity_max_normalized": 2.220844740364244,
-          "cost": 9.719675699495362,
-          "data_cost": 3.288379836974569,
+          "continuity_l2_normalized": 2.6203225525512464,
+          "continuity_max_normalized": 1.1780144081641524,
+          "cost": 7.772855180801452,
+          "data_cost": 4.339810041097112,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 27,
-          "njev": 27,
-          "optimality": 0.002111839141454168,
+          "nfev": 60,
+          "njev": 48,
+          "optimality": 0.03593391034305099,
           "outer_iteration": 1,
           "penalty": 1.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 3.0600568493564007,
-          "continuity_max_normalized": 2.0017902567177637,
-          "cost": 27.861930901274913,
-          "data_cost": 6.233327851027429,
+          "continuity_l2_normalized": 1.9244946067529891,
+          "continuity_max_normalized": 0.7275993458048459,
+          "cost": 16.991401322463673,
+          "data_cost": 6.920824650765895,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 10,
-          "njev": 9,
-          "optimality": 0.010378061997494725,
+          "nfev": 57,
+          "njev": 51,
+          "optimality": 0.17162995070010906,
           "outer_iteration": 2,
           "penalty": 1.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 2.0715421221066075,
-          "continuity_max_normalized": 1.2984743454695074,
-          "cost": 58.05046492092991,
-          "data_cost": 22.197984750611692,
+          "continuity_l2_normalized": 1.0281640782365875,
+          "continuity_max_normalized": 0.5388949729367575,
+          "cost": 24.98319316523244,
+          "data_cost": 14.89678010669665,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 9,
-          "njev": 9,
-          "optimality": 0.025717170648304175,
+          "nfev": 42,
+          "njev": 37,
+          "optimality": 0.3948153868773708,
           "outer_iteration": 3,
           "penalty": 10.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 0.5295209481219906,
-          "continuity_max_normalized": 0.22932093781139698,
-          "cost": 132.75740599142708,
-          "data_cost": 102.84302703808103,
+          "continuity_l2_normalized": 0.1426454379765834,
+          "continuity_max_normalized": 0.08373632920229254,
+          "cost": 38.88369285309646,
+          "data_cost": 35.434659351816926,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 28,
-          "njev": 28,
-          "optimality": 0.523686360242104,
+          "nfev": 53,
+          "njev": 38,
+          "optimality": 1.86627761034433,
           "outer_iteration": 4,
           "penalty": 100.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 0.16608374733984502,
-          "continuity_max_normalized": 0.06754530554575033,
-          "cost": 177.28865481968677,
-          "data_cost": 134.44149129729527,
+          "continuity_l2_normalized": 0.023780739522667498,
+          "continuity_max_normalized": 0.014087410291550882,
+          "cost": 42.503776032382824,
+          "data_cost": 38.47067515878319,
           "message": "`ftol` termination condition is satisfied.",
-          "nfev": 27,
-          "njev": 27,
-          "optimality": 2.181393519520341,
-          "outer_iteration": 5,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.059081306094139946,
-          "continuity_max_normalized": 0.023153429611715987,
-          "cost": 192.0740690987545,
-          "data_cost": 144.1642674323021,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 14,
-          "njev": 13,
-          "optimality": 1.096745283003675,
-          "outer_iteration": 6,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.022350760313807724,
-          "continuity_max_normalized": 0.008844496462416807,
-          "cost": 197.37544992716184,
-          "data_cost": 147.58657821399362,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 9,
-          "njev": 8,
-          "optimality": 0.4111790190612588,
-          "outer_iteration": 7,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.008923024561399364,
-          "continuity_max_normalized": 0.003644197343469057,
-          "cost": 199.28937925324382,
-          "data_cost": 148.78635614724402,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 6,
-          "njev": 6,
-          "optimality": 0.4096551416560854,
-          "outer_iteration": 8,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.003977431234111186,
-          "continuity_max_normalized": 0.001768656680420002,
-          "cost": 200.00910600677344,
-          "data_cost": 149.22610157641253,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 3,
-          "njev": 3,
-          "optimality": 0.6172025768576769,
-          "outer_iteration": 9,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.0014321775510693809,
-          "continuity_max_normalized": 0.00045914243739397786,
-          "cost": 200.2900393481243,
-          "data_cost": 149.39556759980968,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 4,
-          "njev": 3,
-          "optimality": 0.4042856884570753,
-          "outer_iteration": 10,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        }
-      ],
-      "parameters": {
-        "angular_drag": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "cog_offset_m": [
-          0.07908925975455526,
-          0.0353750882790495,
-          0.008535252442978125
-        ],
-        "command_delay_seconds": 0.01,
-        "force_effectiveness": [
-          0.8079030293536514,
-          1.072320995362384,
-          1.9408053762167583,
-          0.5947493383601501
-        ],
-        "gimbal_time_constant_seconds": 0.02,
-        "inertia_kg_m2": [
-          [
-            0.10165624549569469,
-            -0.058265910936232415,
-            0.030343973711882504
-          ],
-          [
-            -0.058265910936232415,
-            0.2669436503793726,
-            -0.009967244580624573
-          ],
-          [
-            0.030343973711882504,
-            -0.009967244580624573,
-            0.3504914172006091
-          ]
-        ],
-        "linear_drag": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "mass_kg": 2.8130848445476344,
-        "thrust_time_constant_seconds": 0.01,
-        "torque_effectiveness": [
-          1.0,
-          1.0,
-          1.0,
-          1.0
-        ]
-      },
-      "physical_coordinate": [
-        0.17918676758433857,
-        0.6931471805591455,
-        0.10400124137083055,
-        0.693147180558967,
-        0.4517731043789907,
-        -0.7999999999996233,
-        0.7999999999977558,
-        0.07908925975455526,
-        0.0353750882790495,
-        0.008535252442978125,
-        -0.20020929099508672,
-        -0.5999999999938729,
-        0.5999999999956082
-      ],
-      "stitched_metrics": {
-        "se3_rotation_max_rad": 0.8921027155064556,
-        "se3_rotation_rmse_deg": 30.90202659466284,
-        "se3_rotation_rmse_rad": 0.5393421096157177,
-        "se3_translation_max_m": 1.4163328534628468,
-        "se3_translation_rmse_m": 0.8211305378548927
-      },
-      "stitched_recorded_control_metrics": {
-        "angular_velocity_rmse_rad_per_s": 1.104201028530055,
-        "orientation_angle_rmse_deg": 30.90202659466284,
-        "orientation_angle_rmse_rad": 0.5393421096157177,
-        "position_component_rmse_m": [
-          0.6853683149315819,
-          0.41957197458383166,
-          0.1123075387758359
-        ],
-        "position_rmse_m": 0.811408252505616,
-        "specific_force_rmse_m_per_s2": 1.601781327628884,
-        "terminal_orientation_error_deg": 45.86208763136265,
-        "terminal_position_error_m": 1.3840719387743896,
-        "velocity_component_rmse_m_per_s": [
-          1.069981829428882,
-          1.2745949916134098,
-          0.35753349950809143
-        ],
-        "velocity_rmse_m_per_s": 1.70214091990777
-      },
-      "stitched_se3_loss": 149.3955675998097
-    },
-    {
-      "continuity_converged": true,
-      "continuity_l2_normalized": 0.0010928339837744108,
-      "continuity_max_normalized": 0.00044494456824393944,
-      "delay_seconds": 0.02,
-      "elapsed_seconds": 104.71680656913668,
-      "full_rollout_metrics": {
-        "se3_rotation_max_rad": 0.8482396037536379,
-        "se3_rotation_rmse_deg": 28.43938225413228,
-        "se3_rotation_rmse_rad": 0.49636085756785503,
-        "se3_translation_max_m": 1.3859820042618938,
-        "se3_translation_rmse_m": 0.7969378937052194
-      },
-      "full_rollout_se3_loss": 139.3407063309371,
-      "optimizer_history": [
-        {
-          "continuity_l2_normalized": 3.3366171115110443,
-          "continuity_max_normalized": 1.9791620688708302,
-          "cost": 8.545583380351212,
-          "data_cost": 2.9790765059370554,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 15,
-          "njev": 15,
-          "optimality": 0.001766910114295814,
-          "outer_iteration": 1,
-          "penalty": 1.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 2.8519545106864492,
-          "continuity_max_normalized": 1.8240146772394006,
-          "cost": 24.243747456921653,
-          "data_cost": 5.523948980558085,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 8,
-          "njev": 7,
-          "optimality": 0.10480636116178065,
-          "outer_iteration": 2,
-          "penalty": 1.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 1.9697857347710117,
-          "continuity_max_normalized": 1.2470568544548661,
-          "cost": 51.119651109368796,
-          "data_cost": 19.00550756294019,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 7,
-          "njev": 7,
-          "optimality": 0.07296155154550588,
-          "outer_iteration": 3,
-          "penalty": 10.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.5280692729842702,
-          "continuity_max_normalized": 0.2604860944956229,
-          "cost": 122.42061853750819,
-          "data_cost": 93.23740076664761,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 24,
-          "njev": 23,
-          "optimality": 0.2337364606070498,
-          "outer_iteration": 4,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.16509966813493374,
-          "continuity_max_normalized": 0.06791643785851662,
-          "cost": 166.46126177206366,
-          "data_cost": 124.63739311227818,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 26,
-          "njev": 26,
-          "optimality": 0.3610183939994671,
-          "outer_iteration": 5,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.05655860614013667,
-          "continuity_max_normalized": 0.02311263092658805,
-          "cost": 180.91040513092491,
-          "data_cost": 134.07176546928955,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 15,
+          "nfev": 17,
           "njev": 14,
-          "optimality": 0.5526067621878535,
+          "optimality": 5.099031806968178,
+          "outer_iteration": 5,
+          "penalty": 100.0,
+          "status": 2,
+          "success": true
+        },
+        {
+          "continuity_l2_normalized": 0.00438193456129781,
+          "continuity_max_normalized": 0.0026133233197972623,
+          "cost": 43.12126745618066,
+          "data_cost": 38.9783045704645,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 9,
+          "njev": 6,
+          "optimality": 6.412939711482338,
           "outer_iteration": 6,
           "penalty": 100.0,
           "status": 2,
           "success": true
         },
         {
-          "continuity_l2_normalized": 0.020199737621978863,
-          "continuity_max_normalized": 0.007808475968218986,
-          "cost": 186.1395699431732,
-          "data_cost": 137.57412053722314,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 7,
-          "njev": 5,
-          "optimality": 1.5135404472319318,
-          "outer_iteration": 7,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.007267410916919337,
-          "continuity_max_normalized": 0.002718003603418423,
-          "cost": 187.89381601537573,
-          "data_cost": 138.71680359526127,
+          "continuity_l2_normalized": 0.0007989741270227825,
+          "continuity_max_normalized": 0.0004664301371641301,
+          "cost": 43.2322279359864,
+          "data_cost": 39.069324788876344,
           "message": "`ftol` termination condition is satisfied.",
           "nfev": 6,
           "njev": 4,
-          "optimality": 0.4161102825840839,
-          "outer_iteration": 8,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.002949038538642209,
-          "continuity_max_normalized": 0.0012614749117652486,
-          "cost": 188.50890208803696,
-          "data_cost": 139.10593220873878,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 3,
-          "njev": 3,
-          "optimality": 0.3823125915895291,
-          "outer_iteration": 9,
-          "penalty": 100.0,
-          "status": 2,
-          "success": true
-        },
-        {
-          "continuity_l2_normalized": 0.0010928339837744108,
-          "continuity_max_normalized": 0.00044494456824393944,
-          "cost": 188.73533930722635,
-          "data_cost": 139.24465148848293,
-          "message": "`ftol` termination condition is satisfied.",
-          "nfev": 4,
-          "njev": 3,
-          "optimality": 0.3701579482850824,
-          "outer_iteration": 10,
+          "optimality": 4.583736218530561,
+          "outer_iteration": 7,
           "penalty": 100.0,
           "status": 2,
           "success": true
@@ -682,33 +347,32 @@
           0.0
         ],
         "cog_offset_m": [
-          0.07926738606493818,
-          0.0355342175167526,
-          0.006762034307981034
+          0.21256153571054054,
+          0.08881739907994472,
+          -0.07997329240973779
         ],
-        "command_delay_seconds": 0.02,
+        "command_delay_seconds": 0.01,
         "force_effectiveness": [
-          0.8064897707928443,
-          1.0742000853157467,
-          1.940805376222208,
-          0.5947493383590584
+          0.12062999275155352,
+          5.6294691803306325,
+          11.80518315222257,
+          0.12473965055210061
         ],
-        "gimbal_time_constant_seconds": 0.02,
         "inertia_kg_m2": [
           [
-            0.11184470070445846,
-            -0.05412699939870884,
-            0.030343973711899334
+            1.8701306179019053,
+            0.7584029122154308,
+            -0.3356629446245251
           ],
           [
-            -0.05412699939870884,
-            0.2669436503796214,
-            -0.01167945799377724
+            0.7584029122154308,
+            0.9256110448157846,
+            0.5112087297107718
           ],
           [
-            0.030343973711899334,
-            -0.01167945799377724,
-            0.36067987240959465
+            -0.3356629446245251,
+            0.5112087297107718,
+            2.4290881284775665
           ]
         ],
         "linear_drag": [
@@ -716,8 +380,7 @@
           0.0,
           0.0
         ],
-        "mass_kg": 2.820760176131638,
-        "thrust_time_constant_seconds": 0.01,
+        "mass_kg": 11.559463799522486,
         "torque_effectiveness": [
           1.0,
           1.0,
@@ -726,64 +389,270 @@
         ]
       },
       "physical_coordinate": [
-        0.1819114915710224,
-        0.6931471805596018,
-        0.17430130101571778,
-        0.6931471805595668,
-        0.4196806577981684,
-        -0.7999999999997023,
-        0.7999999999989417,
-        0.07926738606493818,
-        0.0355342175167526,
-        0.006762034307981034,
-        -0.20268533020146737,
-        -0.5999999999965625,
-        0.5999999999977276
+        1.5924095549873627,
+        1.2217479004168748,
+        1.3242971211842804,
+        0.014762804325936603,
+        -3.4661688370783876,
+        5.223729410860081,
+        -2.3615118641711588,
+        0.21256153571054054,
+        0.08881739907994472,
+        -0.07997329240973779,
+        -2.717441400164361,
+        -2.1735504555760885,
+        2.4035397809373302
       ],
+      "soft_prior_cost": 11.34514163279868,
       "stitched_metrics": {
-        "se3_rotation_max_rad": 0.8484859521519216,
-        "se3_rotation_rmse_deg": 28.44119112012112,
-        "se3_rotation_rmse_rad": 0.4963924282350876,
-        "se3_translation_max_m": 1.4017180132468159,
-        "se3_translation_rmse_m": 0.7966315941136989
+        "se3_rotation_max_rad": 0.7408631244940767,
+        "se3_rotation_rmse_deg": 21.828761900301384,
+        "se3_rotation_rmse_rad": 0.38098376679415336,
+        "se3_translation_max_m": 0.7132884566923005,
+        "se3_translation_rmse_m": 0.31989648034985135
       },
       "stitched_recorded_control_metrics": {
-        "angular_velocity_rmse_rad_per_s": 1.0610800365040407,
-        "orientation_angle_rmse_deg": 28.44119112012112,
-        "orientation_angle_rmse_rad": 0.4963924282350876,
+        "angular_velocity_rmse_rad_per_s": 0.6735437971298364,
+        "orientation_angle_rmse_deg": 21.828761900301384,
+        "orientation_angle_rmse_rad": 0.38098376679415336,
         "position_component_rmse_m": [
-          0.6757201082726199,
-          0.3905927436987991,
-          0.11111168957355215
+          0.23676739582122308,
+          0.14101841740655255,
+          0.1585787927781912
         ],
-        "position_rmse_m": 0.7883566221666476,
-        "specific_force_rmse_m_per_s2": 1.4974006793313723,
-        "terminal_orientation_error_deg": 42.189119975693686,
-        "terminal_position_error_m": 1.3748402757755291,
+        "position_rmse_m": 0.3179500389853741,
+        "specific_force_rmse_m_per_s2": 1.8787855942531586,
+        "terminal_orientation_error_deg": 42.44833023038588,
+        "terminal_position_error_m": 0.7019939599081795,
         "velocity_component_rmse_m_per_s": [
-          1.0986020682758681,
-          1.2171112487461024,
-          0.3570734374394247
+          0.5931716499080129,
+          0.536170600313108,
+          0.28351577599890565
         ],
-        "velocity_rmse_m_per_s": 1.6780309103139663
+        "velocity_rmse_m_per_s": 0.8483588357145662
       },
-      "stitched_se3_loss": 139.24465148848287
+      "stitched_se3_loss": 27.724183156077657
+    },
+    {
+      "continuity_converged": true,
+      "continuity_l2_normalized": 0.00035163061949615676,
+      "continuity_max_normalized": 0.00022785162128296886,
+      "delay_seconds": 0.02,
+      "elapsed_seconds": 184.82975744316354,
+      "full_rollout_metrics": {
+        "se3_rotation_max_rad": 0.7293056417470963,
+        "se3_rotation_rmse_deg": 20.988767611477424,
+        "se3_rotation_rmse_rad": 0.36632310075622704,
+        "se3_translation_max_m": 0.7071995351976055,
+        "se3_translation_rmse_m": 0.29285701951996956
+      },
+      "full_rollout_se3_loss": 23.86267748380681,
+      "optimizer_history": [
+        {
+          "continuity_l2_normalized": 2.503669310594991,
+          "continuity_max_normalized": 1.0307386437127724,
+          "cost": 6.908065500721601,
+          "data_cost": 3.773885492314002,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 37,
+          "njev": 29,
+          "optimality": 0.0677745002568109,
+          "outer_iteration": 1,
+          "penalty": 1.0,
+          "status": 2,
+          "success": true
+        },
+        {
+          "continuity_l2_normalized": 1.8310580210995873,
+          "continuity_max_normalized": 0.5966166417155131,
+          "cost": 15.314720336184083,
+          "data_cost": 6.182592520789362,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 66,
+          "njev": 61,
+          "optimality": 0.08217039449495336,
+          "outer_iteration": 2,
+          "penalty": 1.0,
+          "status": 2,
+          "success": true
+        },
+        {
+          "continuity_l2_normalized": 0.9569750590595327,
+          "continuity_max_normalized": 0.5103211525005961,
+          "cost": 22.364285406518434,
+          "data_cost": 13.567724230215237,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 34,
+          "njev": 27,
+          "optimality": 0.26933845402630924,
+          "outer_iteration": 3,
+          "penalty": 10.0,
+          "status": 2,
+          "success": true
+        },
+        {
+          "continuity_l2_normalized": 0.11684168086927334,
+          "continuity_max_normalized": 0.06464478037197313,
+          "cost": 33.28186219013382,
+          "data_cost": 30.730325133745854,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 52,
+          "njev": 41,
+          "optimality": 0.5177805194063438,
+          "outer_iteration": 4,
+          "penalty": 100.0,
+          "status": 2,
+          "success": true
+        },
+        {
+          "continuity_l2_normalized": 0.015266711073285687,
+          "continuity_max_normalized": 0.0086805770456726,
+          "cost": 35.72142578234605,
+          "data_cost": 32.86296300462569,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 13,
+          "njev": 9,
+          "optimality": 20.844475648931034,
+          "outer_iteration": 5,
+          "penalty": 100.0,
+          "status": 2,
+          "success": true
+        },
+        {
+          "continuity_l2_normalized": 0.0020502289036143577,
+          "continuity_max_normalized": 0.0011258405380746785,
+          "cost": 36.04147957137335,
+          "data_cost": 33.141364793922016,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 8,
+          "njev": 6,
+          "optimality": 4.967707607242474,
+          "outer_iteration": 6,
+          "penalty": 100.0,
+          "status": 2,
+          "success": true
+        },
+        {
+          "continuity_l2_normalized": 0.00035163061949615676,
+          "continuity_max_normalized": 0.00022785162128296886,
+          "cost": 36.08336193098683,
+          "data_cost": 33.17623393893924,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 5,
+          "njev": 3,
+          "optimality": 4.445359764694196,
+          "outer_iteration": 7,
+          "penalty": 100.0,
+          "status": 2,
+          "success": true
+        }
+      ],
+      "parameters": {
+        "angular_drag": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cog_offset_m": [
+          0.2101012926908556,
+          0.08586862021586661,
+          -0.08093565788491049
+        ],
+        "command_delay_seconds": 0.02,
+        "force_effectiveness": [
+          0.1587396958309961,
+          4.785091035246573,
+          9.83271000369627,
+          0.13389088770332594
+        ],
+        "inertia_kg_m2": [
+          [
+            1.6966044577395065,
+            0.6276706738919123,
+            -0.2682873001192809
+          ],
+          [
+            0.6276706738919123,
+            0.7494683376289626,
+            0.4149670377856488
+          ],
+          [
+            -0.2682873001192809,
+            0.4149670377856488,
+            2.166684776992744
+          ]
+        ],
+        "linear_drag": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mass_kg": 9.752862828729954,
+        "torque_effectiveness": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "physical_coordinate": [
+        1.4224659423135673,
+        1.1234262214014021,
+        1.323685900678066,
+        0.020050815238643965,
+        -3.165062253394718,
+        4.606691522280767,
+        -1.9493508534645778,
+        0.2101012926908556,
+        0.08586862021586661,
+        -0.08093565788491049,
+        -2.4084018792788573,
+        -1.9785400948584486,
+        2.3217911077594846
+      ],
+      "soft_prior_cost": 9.32082657743636,
+      "stitched_metrics": {
+        "se3_rotation_max_rad": 0.7293773524614584,
+        "se3_rotation_rmse_deg": 20.990049862283417,
+        "se3_rotation_rmse_rad": 0.366345480254628,
+        "se3_translation_max_m": 0.7093282546418876,
+        "se3_translation_rmse_m": 0.29278795071137387
+      },
+      "stitched_recorded_control_metrics": {
+        "angular_velocity_rmse_rad_per_s": 0.6322115949534278,
+        "orientation_angle_rmse_deg": 20.990049862283417,
+        "orientation_angle_rmse_rad": 0.366345480254628,
+        "position_component_rmse_m": [
+          0.19822169848783508,
+          0.14325180316085792,
+          0.15787804527416502
+        ],
+        "position_rmse_m": 0.29109860535535154,
+        "specific_force_rmse_m_per_s2": 1.799836561802449,
+        "terminal_orientation_error_deg": 41.79024396846745,
+        "terminal_position_error_m": 0.6974336111514423,
+        "velocity_component_rmse_m_per_s": [
+          0.5929592924683093,
+          0.5389186661007576,
+          0.27462561709273675
+        ],
+        "velocity_rmse_m_per_s": 0.8470261393604712
+      },
+      "stitched_se3_loss": 23.855407361502873
     }
   ],
-  "elapsed_seconds": 354.45270349504426,
+  "elapsed_seconds": 594.5462988363579,
   "fixed_parameters": {
     "angular_drag": [
       0.0,
       0.0,
       0.0
     ],
-    "gimbal_time_constant_seconds": 0.02,
     "linear_drag": [
       0.0,
       0.0,
       0.0
     ],
-    "thrust_time_constant_seconds": 0.01,
     "torque_effectiveness": [
       1.0,
       1.0,
@@ -792,11 +661,27 @@
     ]
   },
   "loss_scales": {
-    "prior_weight": 0.0,
+    "prior_weight": 1.0,
     "se3_rotation_rad": 0.1,
-    "se3_translation_m": 0.05
+    "se3_translation_m": 0.05,
+    "soft_prior_standard_deviations": {
+      "cog_offset_x_m": 0.25,
+      "cog_offset_y_m": 0.25,
+      "cog_offset_z_m": 0.25,
+      "force_effectiveness_contrast_1": 1.5,
+      "force_effectiveness_contrast_2": 1.5,
+      "force_effectiveness_contrast_3": 1.5,
+      "log_mass_scale": 1.5,
+      "log_second_moment_cholesky_xx_scale": 1.5,
+      "log_second_moment_cholesky_yy_scale": 1.5,
+      "log_second_moment_cholesky_zz_scale": 1.5,
+      "normalized_second_moment_cholesky_yx_offset": 2.0,
+      "normalized_second_moment_cholesky_zx_offset": 2.0,
+      "normalized_second_moment_cholesky_zy_offset": 2.0
+    }
   },
   "method": {
+    "actuator_command_response": "instantaneous thrust; instantaneous gimbal target subject only to the configured gimbal rate and angle limits",
     "continuity_is_constraint_not_observation_loss": true,
     "data_loss": "Log_SE3(T_observed^{-1} T_simulated), with translation pushed through inverse SO(3) left Jacobian",
     "excluded_observation_terms": [
@@ -805,6 +690,7 @@
       "specific_force",
       "acceleration"
     ],
+    "gimbal_time_constant_model": null,
     "inertia_parameterization": "Sigma = L L^T; J = trace(Sigma) I - Sigma",
     "inertia_positive_definite_by_construction": true,
     "inertia_triangle_inequalities_by_construction": true,
@@ -839,6 +725,7 @@
       "sensor_position",
       "sensor_orientation"
     ],
+    "physical_coordinate_box_bounds": null,
     "physical_dimension": 13,
     "physical_jacobian": "analytic forward sensitivity",
     "physical_parameter_names": [
@@ -871,16 +758,37 @@
     ],
     "segment_count": 10,
     "segment_duration_requested_seconds": 0.5,
+    "soft_prior": {
+      "distribution": "independent Gaussian in physical coordinates",
+      "mean": "nominal coordinate (all zeros)",
+      "standard_deviations": {
+        "cog_offset_x_m": 0.25,
+        "cog_offset_y_m": 0.25,
+        "cog_offset_z_m": 0.25,
+        "force_effectiveness_contrast_1": 1.5,
+        "force_effectiveness_contrast_2": 1.5,
+        "force_effectiveness_contrast_3": 1.5,
+        "log_mass_scale": 1.5,
+        "log_second_moment_cholesky_xx_scale": 1.5,
+        "log_second_moment_cholesky_yy_scale": 1.5,
+        "log_second_moment_cholesky_zz_scale": 1.5,
+        "normalized_second_moment_cholesky_yx_offset": 2.0,
+        "normalized_second_moment_cholesky_zx_offset": 2.0,
+        "normalized_second_moment_cholesky_zy_offset": 2.0
+      },
+      "weight": 1.0
+    },
+    "thrust_time_constant_model": null,
     "variable_dimension": 193
   },
   "nominal_at_selected_delay": {
-    "full_rollout_se3_loss": 920733.2249448273,
+    "full_rollout_se3_loss": 900601.4430830929,
     "metrics": {
-      "se3_rotation_max_rad": 3.1341018517106285,
-      "se3_rotation_rmse_deg": 151.05037208009117,
-      "se3_rotation_rmse_rad": 2.6363263291601067,
-      "se3_translation_max_m": 143.3184723468753,
-      "se3_translation_rmse_m": 67.83751595242654
+      "se3_rotation_max_rad": 3.122071169287963,
+      "se3_rotation_rmse_deg": 134.53236333685393,
+      "se3_rotation_rmse_rad": 2.3480326907174063,
+      "se3_translation_max_m": 173.36443898442866,
+      "se3_translation_rmse_m": 67.09417933797458
     }
   },
   "outputs": {
@@ -888,158 +796,116 @@
     "result_json": "result.json",
     "trajectory_pdf": "trajectory.pdf"
   },
-  "schema": "grape-param-estim/minimal-deterministic-multiple-shooting/v2",
+  "schema": "grape-param-estim/minimal-deterministic-multiple-shooting/v4",
   "selection": {
     "continuity_converged": true,
-    "continuity_l2_normalized": 0.0010928339837744108,
-    "continuity_max_normalized": 0.00044494456824393944,
+    "continuity_l2_normalized": 0.00035163061949615676,
+    "continuity_max_normalized": 0.00022785162128296886,
     "delay_seconds": 0.02,
-    "elapsed_seconds": 104.71680656913668,
+    "elapsed_seconds": 184.82975744316354,
     "full_rollout_metrics": {
-      "se3_rotation_max_rad": 0.8482396037536379,
-      "se3_rotation_rmse_deg": 28.43938225413228,
-      "se3_rotation_rmse_rad": 0.49636085756785503,
-      "se3_translation_max_m": 1.3859820042618938,
-      "se3_translation_rmse_m": 0.7969378937052194
+      "se3_rotation_max_rad": 0.7293056417470963,
+      "se3_rotation_rmse_deg": 20.988767611477424,
+      "se3_rotation_rmse_rad": 0.36632310075622704,
+      "se3_translation_max_m": 0.7071995351976055,
+      "se3_translation_rmse_m": 0.29285701951996956
     },
-    "full_rollout_se3_loss": 139.3407063309371,
+    "full_rollout_se3_loss": 23.86267748380681,
     "optimizer_history": [
       {
-        "continuity_l2_normalized": 3.3366171115110443,
-        "continuity_max_normalized": 1.9791620688708302,
-        "cost": 8.545583380351212,
-        "data_cost": 2.9790765059370554,
+        "continuity_l2_normalized": 2.503669310594991,
+        "continuity_max_normalized": 1.0307386437127724,
+        "cost": 6.908065500721601,
+        "data_cost": 3.773885492314002,
         "message": "`ftol` termination condition is satisfied.",
-        "nfev": 15,
-        "njev": 15,
-        "optimality": 0.001766910114295814,
+        "nfev": 37,
+        "njev": 29,
+        "optimality": 0.0677745002568109,
         "outer_iteration": 1,
         "penalty": 1.0,
         "status": 2,
         "success": true
       },
       {
-        "continuity_l2_normalized": 2.8519545106864492,
-        "continuity_max_normalized": 1.8240146772394006,
-        "cost": 24.243747456921653,
-        "data_cost": 5.523948980558085,
+        "continuity_l2_normalized": 1.8310580210995873,
+        "continuity_max_normalized": 0.5966166417155131,
+        "cost": 15.314720336184083,
+        "data_cost": 6.182592520789362,
         "message": "`ftol` termination condition is satisfied.",
-        "nfev": 8,
-        "njev": 7,
-        "optimality": 0.10480636116178065,
+        "nfev": 66,
+        "njev": 61,
+        "optimality": 0.08217039449495336,
         "outer_iteration": 2,
         "penalty": 1.0,
         "status": 2,
         "success": true
       },
       {
-        "continuity_l2_normalized": 1.9697857347710117,
-        "continuity_max_normalized": 1.2470568544548661,
-        "cost": 51.119651109368796,
-        "data_cost": 19.00550756294019,
+        "continuity_l2_normalized": 0.9569750590595327,
+        "continuity_max_normalized": 0.5103211525005961,
+        "cost": 22.364285406518434,
+        "data_cost": 13.567724230215237,
         "message": "`ftol` termination condition is satisfied.",
-        "nfev": 7,
-        "njev": 7,
-        "optimality": 0.07296155154550588,
+        "nfev": 34,
+        "njev": 27,
+        "optimality": 0.26933845402630924,
         "outer_iteration": 3,
         "penalty": 10.0,
         "status": 2,
         "success": true
       },
       {
-        "continuity_l2_normalized": 0.5280692729842702,
-        "continuity_max_normalized": 0.2604860944956229,
-        "cost": 122.42061853750819,
-        "data_cost": 93.23740076664761,
+        "continuity_l2_normalized": 0.11684168086927334,
+        "continuity_max_normalized": 0.06464478037197313,
+        "cost": 33.28186219013382,
+        "data_cost": 30.730325133745854,
         "message": "`ftol` termination condition is satisfied.",
-        "nfev": 24,
-        "njev": 23,
-        "optimality": 0.2337364606070498,
+        "nfev": 52,
+        "njev": 41,
+        "optimality": 0.5177805194063438,
         "outer_iteration": 4,
         "penalty": 100.0,
         "status": 2,
         "success": true
       },
       {
-        "continuity_l2_normalized": 0.16509966813493374,
-        "continuity_max_normalized": 0.06791643785851662,
-        "cost": 166.46126177206366,
-        "data_cost": 124.63739311227818,
+        "continuity_l2_normalized": 0.015266711073285687,
+        "continuity_max_normalized": 0.0086805770456726,
+        "cost": 35.72142578234605,
+        "data_cost": 32.86296300462569,
         "message": "`ftol` termination condition is satisfied.",
-        "nfev": 26,
-        "njev": 26,
-        "optimality": 0.3610183939994671,
+        "nfev": 13,
+        "njev": 9,
+        "optimality": 20.844475648931034,
         "outer_iteration": 5,
         "penalty": 100.0,
         "status": 2,
         "success": true
       },
       {
-        "continuity_l2_normalized": 0.05655860614013667,
-        "continuity_max_normalized": 0.02311263092658805,
-        "cost": 180.91040513092491,
-        "data_cost": 134.07176546928955,
+        "continuity_l2_normalized": 0.0020502289036143577,
+        "continuity_max_normalized": 0.0011258405380746785,
+        "cost": 36.04147957137335,
+        "data_cost": 33.141364793922016,
         "message": "`ftol` termination condition is satisfied.",
-        "nfev": 15,
-        "njev": 14,
-        "optimality": 0.5526067621878535,
+        "nfev": 8,
+        "njev": 6,
+        "optimality": 4.967707607242474,
         "outer_iteration": 6,
         "penalty": 100.0,
         "status": 2,
         "success": true
       },
       {
-        "continuity_l2_normalized": 0.020199737621978863,
-        "continuity_max_normalized": 0.007808475968218986,
-        "cost": 186.1395699431732,
-        "data_cost": 137.57412053722314,
+        "continuity_l2_normalized": 0.00035163061949615676,
+        "continuity_max_normalized": 0.00022785162128296886,
+        "cost": 36.08336193098683,
+        "data_cost": 33.17623393893924,
         "message": "`ftol` termination condition is satisfied.",
-        "nfev": 7,
-        "njev": 5,
-        "optimality": 1.5135404472319318,
+        "nfev": 5,
+        "njev": 3,
+        "optimality": 4.445359764694196,
         "outer_iteration": 7,
-        "penalty": 100.0,
-        "status": 2,
-        "success": true
-      },
-      {
-        "continuity_l2_normalized": 0.007267410916919337,
-        "continuity_max_normalized": 0.002718003603418423,
-        "cost": 187.89381601537573,
-        "data_cost": 138.71680359526127,
-        "message": "`ftol` termination condition is satisfied.",
-        "nfev": 6,
-        "njev": 4,
-        "optimality": 0.4161102825840839,
-        "outer_iteration": 8,
-        "penalty": 100.0,
-        "status": 2,
-        "success": true
-      },
-      {
-        "continuity_l2_normalized": 0.002949038538642209,
-        "continuity_max_normalized": 0.0012614749117652486,
-        "cost": 188.50890208803696,
-        "data_cost": 139.10593220873878,
-        "message": "`ftol` termination condition is satisfied.",
-        "nfev": 3,
-        "njev": 3,
-        "optimality": 0.3823125915895291,
-        "outer_iteration": 9,
-        "penalty": 100.0,
-        "status": 2,
-        "success": true
-      },
-      {
-        "continuity_l2_normalized": 0.0010928339837744108,
-        "continuity_max_normalized": 0.00044494456824393944,
-        "cost": 188.73533930722635,
-        "data_cost": 139.24465148848293,
-        "message": "`ftol` termination condition is satisfied.",
-        "nfev": 4,
-        "njev": 3,
-        "optimality": 0.3701579482850824,
-        "outer_iteration": 10,
         "penalty": 100.0,
         "status": 2,
         "success": true
@@ -1052,33 +918,32 @@
         0.0
       ],
       "cog_offset_m": [
-        0.07926738606493818,
-        0.0355342175167526,
-        0.006762034307981034
+        0.2101012926908556,
+        0.08586862021586661,
+        -0.08093565788491049
       ],
       "command_delay_seconds": 0.02,
       "force_effectiveness": [
-        0.8064897707928443,
-        1.0742000853157467,
-        1.940805376222208,
-        0.5947493383590584
+        0.1587396958309961,
+        4.785091035246573,
+        9.83271000369627,
+        0.13389088770332594
       ],
-      "gimbal_time_constant_seconds": 0.02,
       "inertia_kg_m2": [
         [
-          0.11184470070445846,
-          -0.05412699939870884,
-          0.030343973711899334
+          1.6966044577395065,
+          0.6276706738919123,
+          -0.2682873001192809
         ],
         [
-          -0.05412699939870884,
-          0.2669436503796214,
-          -0.01167945799377724
+          0.6276706738919123,
+          0.7494683376289626,
+          0.4149670377856488
         ],
         [
-          0.030343973711899334,
-          -0.01167945799377724,
-          0.36067987240959465
+          -0.2682873001192809,
+          0.4149670377856488,
+          2.166684776992744
         ]
       ],
       "linear_drag": [
@@ -1086,8 +951,7 @@
         0.0,
         0.0
       ],
-      "mass_kg": 2.820760176131638,
-      "thrust_time_constant_seconds": 0.01,
+      "mass_kg": 9.752862828729954,
       "torque_effectiveness": [
         1.0,
         1.0,
@@ -1096,47 +960,48 @@
       ]
     },
     "physical_coordinate": [
-      0.1819114915710224,
-      0.6931471805596018,
-      0.17430130101571778,
-      0.6931471805595668,
-      0.4196806577981684,
-      -0.7999999999997023,
-      0.7999999999989417,
-      0.07926738606493818,
-      0.0355342175167526,
-      0.006762034307981034,
-      -0.20268533020146737,
-      -0.5999999999965625,
-      0.5999999999977276
+      1.4224659423135673,
+      1.1234262214014021,
+      1.323685900678066,
+      0.020050815238643965,
+      -3.165062253394718,
+      4.606691522280767,
+      -1.9493508534645778,
+      0.2101012926908556,
+      0.08586862021586661,
+      -0.08093565788491049,
+      -2.4084018792788573,
+      -1.9785400948584486,
+      2.3217911077594846
     ],
+    "soft_prior_cost": 9.32082657743636,
     "stitched_metrics": {
-      "se3_rotation_max_rad": 0.8484859521519216,
-      "se3_rotation_rmse_deg": 28.44119112012112,
-      "se3_rotation_rmse_rad": 0.4963924282350876,
-      "se3_translation_max_m": 1.4017180132468159,
-      "se3_translation_rmse_m": 0.7966315941136989
+      "se3_rotation_max_rad": 0.7293773524614584,
+      "se3_rotation_rmse_deg": 20.990049862283417,
+      "se3_rotation_rmse_rad": 0.366345480254628,
+      "se3_translation_max_m": 0.7093282546418876,
+      "se3_translation_rmse_m": 0.29278795071137387
     },
     "stitched_recorded_control_metrics": {
-      "angular_velocity_rmse_rad_per_s": 1.0610800365040407,
-      "orientation_angle_rmse_deg": 28.44119112012112,
-      "orientation_angle_rmse_rad": 0.4963924282350876,
+      "angular_velocity_rmse_rad_per_s": 0.6322115949534278,
+      "orientation_angle_rmse_deg": 20.990049862283417,
+      "orientation_angle_rmse_rad": 0.366345480254628,
       "position_component_rmse_m": [
-        0.6757201082726199,
-        0.3905927436987991,
-        0.11111168957355215
+        0.19822169848783508,
+        0.14325180316085792,
+        0.15787804527416502
       ],
-      "position_rmse_m": 0.7883566221666476,
-      "specific_force_rmse_m_per_s2": 1.4974006793313723,
-      "terminal_orientation_error_deg": 42.189119975693686,
-      "terminal_position_error_m": 1.3748402757755291,
+      "position_rmse_m": 0.29109860535535154,
+      "specific_force_rmse_m_per_s2": 1.799836561802449,
+      "terminal_orientation_error_deg": 41.79024396846745,
+      "terminal_position_error_m": 0.6974336111514423,
       "velocity_component_rmse_m_per_s": [
-        1.0986020682758681,
-        1.2171112487461024,
-        0.3570734374394247
+        0.5929592924683093,
+        0.5389186661007576,
+        0.27462561709273675
       ],
-      "velocity_rmse_m_per_s": 1.6780309103139663
+      "velocity_rmse_m_per_s": 0.8470261393604712
     },
-    "stitched_se3_loss": 139.24465148848287
+    "stitched_se3_loss": 23.855407361502873
   }
 }

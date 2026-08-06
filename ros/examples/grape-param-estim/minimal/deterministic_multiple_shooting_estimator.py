@@ -71,7 +71,7 @@ from grape_param_estim.system import (
 )
 
 
-SCHEMA = "grape-param-estim/minimal-deterministic-multiple-shooting/v2"
+SCHEMA = "grape-param-estim/minimal-deterministic-multiple-shooting/v4"
 OUTPUT_SUBDIRECTORY = "deterministic_multiple_shooting"
 PHYSICAL_DIMENSION = 13
 NODE_DIMENSION = 20
@@ -91,6 +91,24 @@ PHYSICAL_PARAMETER_NAMES = (
     "force_effectiveness_contrast_3",
 )
 _CHOLESKY_OFF_DIAGONALS = ((1, 0), (2, 0), (2, 1))
+BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS = np.asarray(
+    (
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        2.0,
+        2.0,
+        2.0,
+        0.25,
+        0.25,
+        0.25,
+        1.5,
+        1.5,
+        1.5,
+    ),
+    dtype=float,
+)
 NODE_PARAMETER_NAMES = (
     "cog_position_correction_x_m",
     "cog_position_correction_y_m",
@@ -250,14 +268,8 @@ class FullyPhysicalInertiaParameterization:
             angular_drag=self.nominal.angular_drag,
         )
         actuator_parameters = ActuatorParameters(
-            thrust_time_constant=(
-                analytic.CURRENT_THRUST_TIME_CONSTANT
-                * math.exp(float(value[13]))
-            ),
-            gimbal_time_constant=(
-                analytic.CURRENT_GIMBAL_TIME_CONSTANT
-                * math.exp(float(value[14]))
-            ),
+            thrust_time_constant=0.0,
+            gimbal_time_constant=0.0,
             delay=0.0,
         )
         return analytic.DecodedSearchPoint(
@@ -323,13 +335,7 @@ class FullyPhysicalInertiaParameterization:
         )
 
         thrust_time_constant = np.zeros(dimension, dtype=float)
-        thrust_time_constant[13] = (
-            decoded.actuator_parameters.thrust_time_constant
-        )
         gimbal_time_constant = np.zeros(dimension, dtype=float)
-        gimbal_time_constant[14] = (
-            decoded.actuator_parameters.gimbal_time_constant
-        )
         return decoded, analytic.DecodedSearchJacobian(
             mass=mass,
             inertia=inertia,
@@ -560,44 +566,48 @@ def _actuator_step_with_sensitivity(
     result[:4] = jacobian.thrust_previous @ value[:4]
     result[4:] = jacobian.gimbal_previous @ value[4:]
 
+    thrust_tau_derivative = parameter_jacobian.thrust_time_constant
     thrust_tau = decoded.actuator_parameters.thrust_time_constant
-    thrust_target = np.clip(
-        command.thrust,
-        decoded.actuator_parameters.minimum_thrust,
-        decoded.actuator_parameters.maximum_thrust,
-    )
-    thrust_fraction_tau = (
-        -math.exp(-time_step / thrust_tau) * time_step / thrust_tau**2
-    )
-    result[:4] += np.outer(
-        thrust_fraction_tau * (thrust_target - state.thrust),
-        parameter_jacobian.thrust_time_constant,
-    )
+    if thrust_tau > 0.0 and np.any(thrust_tau_derivative):
+        thrust_target = np.clip(
+            command.thrust,
+            decoded.actuator_parameters.minimum_thrust,
+            decoded.actuator_parameters.maximum_thrust,
+        )
+        thrust_fraction_tau = (
+            -math.exp(-time_step / thrust_tau) * time_step / thrust_tau**2
+        )
+        result[:4] += np.outer(
+            thrust_fraction_tau * (thrust_target - state.thrust),
+            thrust_tau_derivative,
+        )
 
+    gimbal_tau_derivative = parameter_jacobian.gimbal_time_constant
     gimbal_tau = decoded.actuator_parameters.gimbal_time_constant
-    gimbal_target = np.clip(
-        command.gimbal_angle,
-        -decoded.actuator_parameters.maximum_gimbal_angle,
-        decoded.actuator_parameters.maximum_gimbal_angle,
-    )
-    gimbal_fraction_tau = (
-        -math.exp(-time_step / gimbal_tau) * time_step / gimbal_tau**2
-    )
-    rate_free = ~(
-        evaluation.active_set["gimbal_rate_lower"]
-        | evaluation.active_set["gimbal_rate_upper"]
-    )
-    angle_free = ~(
-        evaluation.active_set["gimbal_angle_lower"]
-        | evaluation.active_set["gimbal_angle_upper"]
-    )
-    active_derivative = (rate_free & angle_free).astype(float)
-    result[4:] += np.outer(
-        active_derivative
-        * gimbal_fraction_tau
-        * (gimbal_target - state.gimbal_angle),
-        parameter_jacobian.gimbal_time_constant,
-    )
+    if gimbal_tau > 0.0 and np.any(gimbal_tau_derivative):
+        gimbal_target = np.clip(
+            command.gimbal_angle,
+            -decoded.actuator_parameters.maximum_gimbal_angle,
+            decoded.actuator_parameters.maximum_gimbal_angle,
+        )
+        gimbal_fraction_tau = (
+            -math.exp(-time_step / gimbal_tau) * time_step / gimbal_tau**2
+        )
+        rate_free = ~(
+            evaluation.active_set["gimbal_rate_lower"]
+            | evaluation.active_set["gimbal_rate_upper"]
+        )
+        angle_free = ~(
+            evaluation.active_set["gimbal_angle_lower"]
+            | evaluation.active_set["gimbal_angle_upper"]
+        )
+        active_derivative = (rate_free & angle_free).astype(float)
+        result[4:] += np.outer(
+            active_derivative
+            * gimbal_fraction_tau
+            * (gimbal_target - state.gimbal_angle),
+            gimbal_tau_derivative,
+        )
     if result.shape != (8, dimension):
         raise RuntimeError("actuator sensitivity propagation changed shape")
     return evaluation.next_state, result
@@ -834,6 +844,11 @@ class MultipleShootingProblem:
         self.translation_scale = float(translation_scale)
         self.rotation_scale = float(rotation_scale)
         self.prior_weight = float(prior_weight)
+        self.direct_problem.actuator_parameters = ActuatorParameters(
+            thrust_time_constant=0.0,
+            gimbal_time_constant=0.0,
+            delay=0.0,
+        )
         self.parameterization = FullyPhysicalInertiaParameterization(
             VehicleParameters.nominal()
         )
@@ -852,24 +867,7 @@ class MultipleShootingProblem:
             self.pose_residual_dimension + PHYSICAL_DIMENSION
         )
         self.continuity_dimension = self.node_count * NODE_DIMENSION
-        self.prior_scales = np.asarray(
-            (
-                0.50,
-                0.80,
-                0.80,
-                0.80,
-                0.40,
-                0.40,
-                0.40,
-                0.05,
-                0.05,
-                0.05,
-                0.25,
-                0.25,
-                0.25,
-            ),
-            dtype=float,
-        )
+        self.prior_scales = BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS.copy()
         self.continuity_scales = np.asarray(
             (
                 0.05,
@@ -1870,6 +1868,10 @@ def _parameter_summary_lines(
     full_rollout_loss = 0.5 * float(
         solution.full_rollout_residual @ solution.full_rollout_residual
     )
+    soft_prior_cost = 0.5 * problem.prior_weight * float(
+        (physical_coordinate / problem.prior_scales)
+        @ (physical_coordinate / problem.prior_scales)
+    )
     lines = [
         "Selected multiple-shooting estimate",
         "",
@@ -1893,12 +1895,6 @@ def _parameter_summary_lines(
                 *parameters.force_effectiveness
             ),
             "  command delay [s]           {:.12g}".format(solution.delay),
-            "  thrust time constant [s]    {:.12g}  (fixed)".format(
-                solution.evaluation.decoded.actuator_parameters.thrust_time_constant
-            ),
-            "  gimbal time constant [s]    {:.12g}  (fixed)".format(
-                solution.evaluation.decoded.actuator_parameters.gimbal_time_constant
-            ),
             "",
             "Thirteen optimized smooth coordinates",
         )
@@ -1913,6 +1909,7 @@ def _parameter_summary_lines(
             "Fit diagnostics",
             "  stitched SE(3) loss         {:.12g}".format(stitched_loss),
             "  full-rollout SE(3) loss     {:.12g}".format(full_rollout_loss),
+            "  broad soft-prior cost       {:.12g}".format(soft_prior_cost),
             "  position RMSE [m]           {:.12g}".format(
                 stitched_metrics["position_rmse_m"]
             ),
@@ -2203,7 +2200,15 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--segment-duration", type=float, default=0.5)
     parser.add_argument("--translation-scale", type=float, default=0.05)
     parser.add_argument("--rotation-scale", type=float, default=0.10)
-    parser.add_argument("--prior-weight", type=float, default=0.0)
+    parser.add_argument(
+        "--prior-weight",
+        type=float,
+        default=1.0,
+        help=(
+            "multiplier for the broad nominal-centered Gaussian soft prior; "
+            "zero disables it without adding hard bounds"
+        ),
+    )
     parser.add_argument("--max-nfev", type=int, default=120)
     parser.add_argument(
         "--augmented-lagrangian-iterations", type=int, default=10
@@ -2234,27 +2239,6 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--delay-step", type=float, default=0.01)
     parser.add_argument("--delay-values", type=float, nargs="+", default=None)
     parser.add_argument("--nominal-delay", type=float, default=0.01)
-    parser.add_argument(
-        "--mass-scale-bounds",
-        type=float,
-        nargs=2,
-        default=(0.5, 2.0),
-        metavar=("MIN", "MAX"),
-    )
-    parser.add_argument(
-        "--inertia-cholesky-diagonal-scale-bounds",
-        type=float,
-        nargs=2,
-        default=(0.5, 2.0),
-        metavar=("MIN", "MAX"),
-    )
-    parser.add_argument(
-        "--inertia-cholesky-offdiagonal-bound", type=float, default=0.8
-    )
-    parser.add_argument("--cog-bound", type=float, default=0.10)
-    parser.add_argument(
-        "--force-effectiveness-contrast-bound", type=float, default=0.60
-    )
     parser.add_argument("--node-position-bound", type=float, default=2.0)
     parser.add_argument("--node-orientation-bound", type=float, default=1.5)
     parser.add_argument("--node-velocity-bound", type=float, default=5.0)
@@ -2305,7 +2289,6 @@ def _validate_arguments(
     ):
         raise SystemExit("multiple-shooting settings are invalid")
     try:
-        physical_bounds = continuation._physical_bounds(arguments)
         delays = _delay_grid(arguments)
     except ValueError as error:
         raise SystemExit(str(error)) from error
@@ -2313,7 +2296,17 @@ def _validate_arguments(
         np.isclose(delays, arguments.nominal_delay, rtol=0.0, atol=1.0e-12)
     ):
         raise SystemExit("nominal delay must be present in the delay grid")
-    return physical_bounds[0], physical_bounds[1], delays
+    physical_lower = np.full(PHYSICAL_DIMENSION, -np.inf, dtype=float)
+    physical_upper = np.full(PHYSICAL_DIMENSION, np.inf, dtype=float)
+    return physical_lower, physical_upper, delays
+
+
+def _physical_payload(
+    decoded: analytic.DecodedSearchPoint,
+) -> dict[str, Any]:
+    result = baseline._physical_parameters(decoded.parameters)
+    result["command_delay_seconds"] = decoded.delay
+    return result
 
 
 def _solution_payload(
@@ -2336,6 +2329,10 @@ def _solution_payload(
     continuity_max = (
         0.0 if continuity.size == 0 else float(np.max(np.abs(continuity)))
     )
+    soft_prior_cost = 0.5 * problem.prior_weight * float(
+        (physical / problem.prior_scales)
+        @ (physical / problem.prior_scales)
+    )
     stitched_recorded_control_metrics = baseline._metrics(
         problem.direct_problem,
         _stitched_simulation(problem, solution.evaluation),
@@ -2355,12 +2352,13 @@ def _solution_payload(
             stitched_recorded_control_metrics
         ),
         "full_rollout_metrics": _pose_metrics(full_unscaled),
+        "soft_prior_cost": soft_prior_cost,
         "continuity_max_normalized": continuity_max,
         "continuity_l2_normalized": float(np.linalg.norm(continuity)),
         "continuity_converged": bool(
             continuity_max <= continuity_tolerance
         ),
-        "parameters": analytic._physical_payload(solution.evaluation.decoded),
+        "parameters": _physical_payload(solution.evaluation.decoded),
         "optimizer_history": list(solution.optimizer_history),
         "elapsed_seconds": solution.elapsed_seconds,
     }
@@ -2521,14 +2519,31 @@ def run(arguments: argparse.Namespace) -> int:
             ),
             "inertia_positive_definite_by_construction": True,
             "inertia_triangle_inequalities_by_construction": True,
+            "physical_coordinate_box_bounds": None,
+            "thrust_time_constant_model": None,
+            "gimbal_time_constant_model": None,
+            "actuator_command_response": (
+                "instantaneous thrust; instantaneous gimbal target subject "
+                "only to the configured gimbal rate and angle limits"
+            ),
+            "soft_prior": {
+                "distribution": "independent Gaussian in physical coordinates",
+                "mean": "nominal coordinate (all zeros)",
+                "standard_deviations": {
+                    name: float(scale)
+                    for name, scale in zip(
+                        PHYSICAL_PARAMETER_NAMES,
+                        BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS,
+                    )
+                },
+                "weight": arguments.prior_weight,
+            },
             "node_parameter_names": NODE_PARAMETER_NAMES,
             "physical_jacobian": "analytic forward sensitivity",
             "node_jacobian": "analytic forward sensitivity",
             "lag_treatment": "external profile over causal ZOH command lookup",
         },
         "fixed_parameters": {
-            "thrust_time_constant_seconds": analytic.CURRENT_THRUST_TIME_CONSTANT,
-            "gimbal_time_constant_seconds": analytic.CURRENT_GIMBAL_TIME_CONSTANT,
             "torque_effectiveness": [1.0] * 4,
             "linear_drag": [0.0] * 3,
             "angular_drag": [0.0] * 3,
@@ -2537,6 +2552,13 @@ def run(arguments: argparse.Namespace) -> int:
             "se3_translation_m": arguments.translation_scale,
             "se3_rotation_rad": arguments.rotation_scale,
             "prior_weight": arguments.prior_weight,
+            "soft_prior_standard_deviations": {
+                name: float(scale)
+                for name, scale in zip(
+                    PHYSICAL_PARAMETER_NAMES,
+                    BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS,
+                )
+            },
         },
         "delay_profile_seconds": delays,
         "delay_results": [

@@ -17,6 +17,7 @@ from grape_param_estim.geometry import (  # noqa: E402
     so3_left_jacobian,
 )
 from grape_param_estim.system import (  # noqa: E402
+    ActuatorCommand,
     ActuatorState,
     RigidBodyState,
     VehicleParameters,
@@ -96,6 +97,12 @@ class FullyPhysicalInertiaParameterizationTests(unittest.TestCase):
             atol=1.0e-14,
         )
         self.assertGreater(decoded.inertia_triangle_margin, 0.0)
+        self.assertEqual(
+            decoded.actuator_parameters.thrust_time_constant, 0.0
+        )
+        self.assertEqual(
+            decoded.actuator_parameters.gimbal_time_constant, 0.0
+        )
 
     def test_bounded_chart_always_has_strict_triangle_inequalities(self):
         rng = np.random.default_rng(20260806)
@@ -133,6 +140,35 @@ class FullyPhysicalInertiaParameterizationTests(unittest.TestCase):
                 atol=2.0e-10,
             )
 
+    def test_removed_time_constants_apply_commands_without_first_order_lag(self):
+        coordinate = np.zeros(estimator.analytic.SEARCH_DIMENSION)
+        decoded, jacobian = self.parameterization.decode_with_jacobian(
+            coordinate
+        )
+        state = ActuatorState(
+            thrust=np.full(4, 2.0),
+            gimbal_angle=np.zeros(4),
+        )
+        command = ActuatorCommand(
+            thrust=np.asarray((4.0, 5.0, 6.0, 7.0)),
+            gimbal_angle=np.asarray((0.01, -0.02, 0.03, -0.04)),
+            virtual_force=np.zeros(8),
+            desired_acceleration=np.zeros(6),
+        )
+        next_state, sensitivity = estimator._actuator_step_with_sensitivity(
+            state,
+            np.zeros((8, estimator.analytic.SMOOTH_DIMENSION)),
+            command,
+            decoded,
+            jacobian,
+            0.025,
+        )
+        np.testing.assert_allclose(next_state.thrust, command.thrust)
+        np.testing.assert_allclose(
+            next_state.gimbal_angle, command.gimbal_angle
+        )
+        self.assertTrue(np.all(np.isfinite(sensitivity)))
+
 
 class EntryPointTests(unittest.TestCase):
     def test_multiple_shooting_is_default(self):
@@ -145,13 +181,49 @@ class EntryPointTests(unittest.TestCase):
         arguments = estimator.create_argument_parser().parse_args([])
         self.assertFalse(hasattr(arguments, "thrust_time_constant_scale_bounds"))
         self.assertFalse(hasattr(arguments, "gimbal_time_constant_scale_bounds"))
+        self.assertFalse(hasattr(arguments, "mass_scale_bounds"))
+        self.assertFalse(
+            hasattr(arguments, "inertia_cholesky_diagonal_scale_bounds")
+        )
+        self.assertFalse(hasattr(arguments, "cog_bound"))
+        self.assertFalse(
+            hasattr(arguments, "force_effectiveness_contrast_bound")
+        )
         self.assertEqual(estimator.PHYSICAL_DIMENSION, 13)
         self.assertEqual(estimator.NODE_DIMENSION, 20)
+
+    def test_physical_coordinates_have_no_box_bounds(self):
+        arguments = estimator.create_argument_parser().parse_args([])
+        lower, upper, _delays = estimator._validate_arguments(arguments)
+        self.assertTrue(np.all(np.isneginf(lower)))
+        self.assertTrue(np.all(np.isposinf(upper)))
 
     def test_default_iteration_budgets_allow_continuity_refinement(self):
         arguments = estimator.create_argument_parser().parse_args([])
         self.assertEqual(arguments.max_nfev, 120)
         self.assertEqual(arguments.augmented_lagrangian_iterations, 10)
+
+    def test_default_soft_prior_is_broad_and_enabled(self):
+        arguments = estimator.create_argument_parser().parse_args([])
+        self.assertEqual(arguments.prior_weight, 1.0)
+        np.testing.assert_allclose(
+            estimator.BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS,
+            (
+                1.5,
+                1.5,
+                1.5,
+                1.5,
+                2.0,
+                2.0,
+                2.0,
+                0.25,
+                0.25,
+                0.25,
+                1.5,
+                1.5,
+                1.5,
+            ),
+        )
 
 
 if __name__ == "__main__":

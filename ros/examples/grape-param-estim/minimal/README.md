@@ -14,6 +14,10 @@
 
 `deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、慣性、CoG offset、相対 rotor force effectiveness を推定します。慣性は二次モーメントを `Σ = L L^T`、`J = tr(Σ)I - Σ` と表す6次元 Cholesky 座標を用いるため、正定値性と主慣性モーメントの三角不等式を探索中も構造的に満たします。command lag は causal zero-order-hold lookup に対して滑らかでないため、外側の一次元 profile で選びます。
 
+Thrust と gimbal の一次遅れ時定数はモデルへ入れません。thrust command は即時反映し、gimbal command は一次遅れなしで、記録済みの角速度・角度制限だけを適用します。13個の物理座標にはbox上下限を置かず、mass、二次モーメント、force effectiveness の正値性と慣性の三角不等式だけを座標変換で保証します。
+
+無制限座標に存在する識別不能なridgeを固定するため、nominal座標を平均とする独立Gaussian soft priorを既定で用います。標準偏差は、massの対数座標 `1.5`、二次モーメントCholesky対角の対数座標 `1.5`、同非対角座標 `2.0`、CoG `0.25 m`、force-effectiveness contrast `1.5` と広めです。hard clippingではなく二次ペナルティであり、`--prior-weight 0` で無効化できます。
+
 観測 Loss は各時刻の
 
 ```text

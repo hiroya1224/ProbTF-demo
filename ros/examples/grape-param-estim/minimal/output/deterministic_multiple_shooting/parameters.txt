@@ -1,41 +1,40 @@
 Selected multiple-shooting estimate
 
 Decoded physical parameters
-  mass [kg]                  2.82076017613
+  mass [kg]                  9.75286282873
   inertia [kg m^2]
-    [ 0.111844700704  -0.0541269993987   0.0303439737119]
-    [-0.0541269993987   0.26694365038  -0.0116794579938]
-    [ 0.0303439737119  -0.0116794579938   0.36067987241]
-  principal inertia [kg m^2] [0.0923910741415, 0.279146076355, 0.367931072997]
-  CoG offset [m]             [0.0792673860649, 0.0355342175168, 0.00676203430798]
-  rotor force effectiveness  [0.806489770793, 1.07420008532, 1.94080537622, 0.594749338359]
+    [ 1.69660445774   0.627670673892  -0.268287300119]
+    [ 0.627670673892   0.749468337629   0.414967037786]
+    [-0.268287300119   0.414967037786   2.16668477699]
+  principal inertia [kg m^2] [0.30696605495, 1.99986581258, 2.30592570483]
+  CoG offset [m]             [0.210101292691, 0.0858686202159, -0.0809356578849]
+  rotor force effectiveness  [0.158739695831, 4.78509103525, 9.8327100037, 0.133890887703]
   command delay [s]           0.02
-  thrust time constant [s]    0.01  (fixed)
-  gimbal time constant [s]    0.02  (fixed)
 
 Thirteen optimized smooth coordinates
-  log_mass_scale                               0.181911491571
-  log_second_moment_cholesky_xx_scale          0.69314718056
-  log_second_moment_cholesky_yy_scale          0.174301301016
-  log_second_moment_cholesky_zz_scale          0.69314718056
-  normalized_second_moment_cholesky_yx_offset  0.419680657798
-  normalized_second_moment_cholesky_zx_offset -0.8
-  normalized_second_moment_cholesky_zy_offset  0.799999999999
-  cog_offset_x_m                               0.0792673860649
-  cog_offset_y_m                               0.0355342175168
-  cog_offset_z_m                               0.00676203430798
-  force_effectiveness_contrast_1              -0.202685330201
-  force_effectiveness_contrast_2              -0.599999999997
-  force_effectiveness_contrast_3               0.599999999998
+  log_mass_scale                               1.42246594231
+  log_second_moment_cholesky_xx_scale          1.1234262214
+  log_second_moment_cholesky_yy_scale          1.32368590068
+  log_second_moment_cholesky_zz_scale          0.0200508152386
+  normalized_second_moment_cholesky_yx_offset -3.16506225339
+  normalized_second_moment_cholesky_zx_offset  4.60669152228
+  normalized_second_moment_cholesky_zy_offset -1.94935085346
+  cog_offset_x_m                               0.210101292691
+  cog_offset_y_m                               0.0858686202159
+  cog_offset_z_m                              -0.0809356578849
+  force_effectiveness_contrast_1              -2.40840187928
+  force_effectiveness_contrast_2              -1.97854009486
+  force_effectiveness_contrast_3               2.32179110776
 
 Fit diagnostics
-  stitched SE(3) loss         139.244651488
-  full-rollout SE(3) loss     139.340706331
-  position RMSE [m]           0.788356622167
-  orientation RMSE [deg]      28.4411911201
-  velocity RMSE [m/s]         1.67803091031
-  angular velocity RMSE       1.0610800365 rad/s
-  specific force RMSE         1.49740067933 m/s^2
-  continuity max (normalized) 0.000444944568244
+  stitched SE(3) loss         23.8554073615
+  full-rollout SE(3) loss     23.8626774838
+  broad soft-prior cost       9.32082657744
+  position RMSE [m]           0.291098605355
+  orientation RMSE [deg]      20.9900498623
+  velocity RMSE [m/s]         0.84702613936
+  angular velocity RMSE       0.632211594953 rad/s
+  specific force RMSE         1.7998365618 m/s^2
+  continuity max (normalized) 0.000227851621283
   continuity tolerance        0.001
   continuity converged        True

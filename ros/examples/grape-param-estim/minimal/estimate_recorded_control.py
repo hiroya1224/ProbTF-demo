@@ -19,6 +19,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         choices=(
             "deterministic_multiple_shooting",
             "deterministic_multiple_shooting_multi",
+            "generalized_profiling_multi",
             "deterministic_smooth_lag_multiple_shooting",
             "deterministic",
             "deterministic_sobol",
@@ -42,6 +43,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     ):
         from deterministic_multi_bag_multiple_shooting_estimator import (
+            main as selected_main,
+        )
+    elif selection.method == "generalized_profiling_multi":
+        from deterministic_multi_bag_generalized_profiling_estimator import (
             main as selected_main,
         )
     elif selection.method == "deterministic_multiple_shooting":

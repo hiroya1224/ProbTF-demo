@@ -1,6 +1,6 @@
 # 最小構成の実機パラメータ推定
 
-このディレクトリの `estimate_recorded_control.py` は deterministic-multiple-shooting、smooth-lag multiple-shooting、deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
+このディレクトリの `estimate_recorded_control.py` は deterministic-multiple-shooting、multi-bag generalized profiling、smooth-lag multiple-shooting、deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
 
 既定では `deterministic_multiple_shooting_estimator.py` を呼び出します。
 
@@ -121,6 +121,32 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
 Multi-bag版では、長い軌道の発散を人工的なshooting-node boxで遮らないよう、剛体node correctionの既定上下限を設けません。Thrustとgimbalのnodeはactuatorの物理範囲を維持します。Augmented-Lagrangian終了時にcontinuity toleranceへ達していない場合は、共有パラメータを固定したまま各bagのsegmentを先頭から順に伝播し、次nodeを直前segmentの終端へ置く構造的restorationを行います。これにより正式出力ではcontinuityを満たし、stitched軌道とfull rolloutを一致させます。明示的に有限node boundを指定してこの逐次解が範囲外になる場合だけ、bounded least-squares restorationへフォールバックします。
 
 出力は`minimal/output/deterministic_multiple_shooting_multi/`です。共有結果は`result.json`と`parameters.txt`、lag診断は`delay_profile.pdf`へ保存し、bag別の`result.json`と`trajectory.pdf`は`bags/<id>/`へ保存します。共有結果にはjoint loss、prior cost、bag別loss/RMSE/continuity、weighted contribution、stitched/full-rollout差を記録します。
+
+### Multi-bag generalized profiling
+
+`--method generalized_profiling_multi` は、上のmulti-bag multiple-shooting結果を初期値として使う第二推定器です。各bagのstrict-ZOH自由積分軌道を `T_bar(t)` とし、右作用の補正
+
+```text
+T_analysis(t) = T_bar(t) Exp(delta_xi(t)^)
+delta_xi(t) = sum_j B_j(t) c_j
+```
+
+をopen-uniform B-splineで表します。観測SE(3) pose residual、補正軌道から得た `required - modeled` body wrench、補正splineの二階微分を同時に罰します。位置にはcontinuous cubic spline、姿勢にはcontinuous `SO(3)` splineを使い、速度・加速度・body角速度・body角加速度はそれぞれの解析微分から計算します。
+
+既定の初期値ファイルは `minimal/output/deterministic_multiple_shooting_multi/result.json` です。ファイルが存在しなければnominal物理座標とconfigの `initial_delay_seconds`へフォールバックします。存在するファイルの形式や値が不正な場合は入力ミスとして停止します。別の結果は `--estimator-result` で指定できます。
+
+質量の独立補正値がある場合は `--corrected-mass`（kg）で与えます。質量はtrajectory profilingと自由積分の両方へ反映され、外側の物理parameter更新中は固定されます。inertia、CoG、相対force effectivenessはbag間共有のまま交互更新されます。軌道補正だけを調べる場合は `--trajectory-only` を指定します。
+
+```bash
+source /home/leus/catkin_ws/devel/setup.bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method generalized_profiling_multi \
+  --config /path/to/multi_bag_config.json \
+  --estimator-result /path/to/result.json \
+  --corrected-mass 3.05
+```
+
+主要な重みは `--lambda-dynamics` と `--lambda-smooth`、splineの次元は `--spline-knot-count` で調整します。力とトルクは既定でそれぞれ10 N、1 N mで無次元化します。出力は `minimal/output/generalized_profiling_multi/` です。共有 `result.json` / `parameters.txt` に加え、各bagの `trajectory.pdf` はobserved、analysis、補正なしfree rolloutとrequired-minus-modeled wrenchを表示し、`analysis.npz` は軌道、解析微分、spline係数、wrench時系列を保存します。
 
 ### Deterministic baseline
 

@@ -1,0 +1,328 @@
+{
+  "diagnostics": {
+    "continuity_converged": true,
+    "continuity_l2_normalized": 6.785605659050547e-15,
+    "continuity_max_normalized": 4.440892098500626e-15,
+    "delay_seconds": 0.126553995291,
+    "elapsed_seconds": 400.10862781619653,
+    "full_rollout_inertia_radius_loss_m2": 1.2324773054741545,
+    "full_rollout_metrics": {
+      "se3_rotation_max_rad": 0.7935015132895785,
+      "se3_rotation_rmse_deg": 20.948287930049077,
+      "se3_rotation_rmse_rad": 0.365616597035144,
+      "se3_translation_max_m": 3.5664343569440597,
+      "se3_translation_rmse_m": 1.568236653339449
+    },
+    "id": "failure_1",
+    "normalized_weight": 0.5,
+    "optimizer_history": [
+      {
+        "continuity_l2_normalized": 0.7982872226267197,
+        "continuity_max_normalized": 0.23537727342749717,
+        "cost": 1.1385266993065941,
+        "data_cost": 0.8198954544020531,
+        "delay_seconds": 0.126553995291,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 25,
+        "njev": 21,
+        "optimality": 0.006162886400868415,
+        "outer_iteration": 1,
+        "penalty": 1.0,
+        "per_bag_continuity_max_normalized": {
+          "failure_1": 0.2094629689301592,
+          "failure_2": 0.23537727342749717
+        },
+        "status": 2,
+        "success": true
+      },
+      {
+        "continuity_l2_normalized": 0.4295371260645263,
+        "continuity_max_normalized": 0.1594317912873234,
+        "cost": 1.9345982131631,
+        "data_cost": 1.1994036170107627,
+        "delay_seconds": 0.126553995291,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 34,
+        "njev": 30,
+        "optimality": 0.0053992152723502645,
+        "outer_iteration": 2,
+        "penalty": 1.0,
+        "per_bag_continuity_max_normalized": {
+          "failure_1": 0.13000302863385307,
+          "failure_2": 0.1594317912873234
+        },
+        "status": 2,
+        "success": true
+      },
+      {
+        "continuity_l2_normalized": 0.12004016869347588,
+        "continuity_max_normalized": 0.06149359402038835,
+        "cost": 1.9938862315496664,
+        "data_cost": 1.7335425749059916,
+        "delay_seconds": 0.126553995291,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 34,
+        "njev": 26,
+        "optimality": 0.06753180520043862,
+        "outer_iteration": 3,
+        "penalty": 10.0,
+        "per_bag_continuity_max_normalized": {
+          "failure_1": 0.03738726392406553,
+          "failure_2": 0.06149359402038835
+        },
+        "status": 2,
+        "success": true
+      },
+      {
+        "continuity_l2_normalized": 0.052047462669655875,
+        "continuity_max_normalized": 0.02817949570228304,
+        "cost": 2.282534818404386,
+        "data_cost": 1.907164707669638,
+        "delay_seconds": 0.126553995291,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 35,
+        "njev": 32,
+        "optimality": 0.023864791495139207,
+        "outer_iteration": 4,
+        "penalty": 10.0,
+        "per_bag_continuity_max_normalized": {
+          "failure_1": 0.015729622647150318,
+          "failure_2": 0.02817949570228304
+        },
+        "status": 2,
+        "success": true
+      },
+      {
+        "continuity_l2_normalized": 0.024342952017288557,
+        "continuity_max_normalized": 0.012981873742282978,
+        "cost": 2.4171284394102255,
+        "data_cost": 1.9844306992411922,
+        "delay_seconds": 0.126553995291,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 40,
+        "njev": 37,
+        "optimality": 0.03748677114982565,
+        "outer_iteration": 5,
+        "penalty": 10.0,
+        "per_bag_continuity_max_normalized": {
+          "failure_1": 0.008744644947176368,
+          "failure_2": 0.012981873742282978
+        },
+        "status": 2,
+        "success": true
+      },
+      {
+        "continuity_l2_normalized": 0.01139125550242439,
+        "continuity_max_normalized": 0.006061914404297455,
+        "cost": 2.4787161134004214,
+        "data_cost": 2.0172907583071646,
+        "delay_seconds": 0.126553995291,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 27,
+        "njev": 26,
+        "optimality": 0.012274086237254702,
+        "outer_iteration": 6,
+        "penalty": 10.0,
+        "per_bag_continuity_max_normalized": {
+          "failure_1": 0.0039981695655869065,
+          "failure_2": 0.006061914404297455
+        },
+        "status": 2,
+        "success": true
+      },
+      {
+        "continuity_l2_normalized": 7.628358254879947e-15,
+        "continuity_max_normalized": 4.440892098500626e-15,
+        "cost": 2.9095924832397524e-29,
+        "delay_seconds": 0.126553995291,
+        "message": "bag-local nodes reconstructed by sequential rollout",
+        "method": "sequential_rollout",
+        "nfev": 1,
+        "njev": 0,
+        "optimality": 0.0,
+        "per_bag_continuity_max_normalized": {
+          "failure_1": 4.440892098500626e-15,
+          "failure_2": 2.220446049250313e-15
+        },
+        "phase": "continuity_restoration",
+        "status": 1,
+        "success": true
+      }
+    ],
+    "parameters": {
+      "angular_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cog_offset_m": [
+        0.06118241691081538,
+        -0.09363190793318918,
+        -0.010454651735755455
+      ],
+      "command_delay_seconds": 0.126553995291,
+      "force_effectiveness": [
+        1.0193943660589406,
+        2.272072004373389,
+        0.7028430511263071,
+        0.614295487471063
+      ],
+      "inertia_kg_m2": [
+        [
+          0.9694214785109774,
+          0.10941523274423985,
+          0.0026941876972508333
+        ],
+        [
+          0.10941523274423985,
+          0.25912128367180287,
+          -0.02381958661220707
+        ],
+        [
+          0.0026941876972508333,
+          -0.02381958661220707,
+          1.226407814764262
+        ]
+      ],
+      "linear_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass_kg": 3.0223229841109034,
+      "torque_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "physical_coordinate": [
+      0.2509308126840297,
+      0.6934658181907125,
+      1.3297661283680218,
+      0.0013111629938505152,
+      -0.8481289134885318,
+      -0.07009316043402815,
+      0.3165463172950524,
+      0.06118241691081538,
+      -0.09363190793318918,
+      -0.010454651735755455,
+      -0.5667344180264173,
+      0.6308024865529654,
+      0.5626615738018588
+    ],
+    "raw_weight": 1.0,
+    "soft_prior_cost": 0.9479727278708354,
+    "stitched_full_rollout_loss_difference_m2": 2.220446049250313e-16,
+    "stitched_inertia_radius_loss_m2": 1.2324773054741547,
+    "stitched_metrics": {
+      "se3_rotation_max_rad": 0.7935015132895783,
+      "se3_rotation_rmse_deg": 20.948287930049073,
+      "se3_rotation_rmse_rad": 0.3656165970351439,
+      "se3_translation_max_m": 3.5664343569440566,
+      "se3_translation_rmse_m": 1.5682366533394494
+    },
+    "stitched_recorded_control_metrics": {
+      "angular_velocity_rmse_rad_per_s": 0.7076382409432334,
+      "orientation_angle_rmse_deg": 20.948287930049073,
+      "orientation_angle_rmse_rad": 0.3656165970351439,
+      "position_component_rmse_m": [
+        0.44503665165965645,
+        1.0148137672655257,
+        1.1060868926211431
+      ],
+      "position_rmse_m": 1.5656732793211943,
+      "specific_force_rmse_m_per_s2": 1.2194335281898423,
+      "terminal_orientation_error_deg": 44.24379552684593,
+      "terminal_position_error_m": 3.5486254348427444,
+      "velocity_component_rmse_m_per_s": [
+        0.774264972735512,
+        1.4811597603166724,
+        0.3688852467139385
+      ],
+      "velocity_rmse_m_per_s": 1.711548073771131
+    },
+    "weighted_full_rollout_loss_contribution_m2": 0.6162386527370772,
+    "weighted_stitched_loss_contribution_m2": 0.6162386527370773
+  },
+  "id": "failure_1",
+  "outputs": {
+    "trajectory_pdf": "trajectory.pdf"
+  },
+  "schema": "grape-param-estim/minimal-deterministic-multi-bag-shooting/v1/bag-result",
+  "shared_delay_seconds": 0.126553995291,
+  "shared_parameters": {
+    "angular_drag": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "cog_offset_m": [
+      0.06118241691081538,
+      -0.09363190793318918,
+      -0.010454651735755455
+    ],
+    "command_delay_seconds": 0.126553995291,
+    "force_effectiveness": [
+      1.0193943660589406,
+      2.272072004373389,
+      0.7028430511263071,
+      0.614295487471063
+    ],
+    "inertia_kg_m2": [
+      [
+        0.9694214785109774,
+        0.10941523274423985,
+        0.0026941876972508333
+      ],
+      [
+        0.10941523274423985,
+        0.25912128367180287,
+        -0.02381958661220707
+      ],
+      [
+        0.0026941876972508333,
+        -0.02381958661220707,
+        1.226407814764262
+      ]
+    ],
+    "linear_drag": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "mass_kg": 3.0223229841109034,
+    "torque_effectiveness": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ]
+  },
+  "shared_physical_coordinate": [
+    0.2509308126840297,
+    0.6934658181907125,
+    1.3297661283680218,
+    0.0013111629938505152,
+    -0.8481289134885318,
+    -0.07009316043402815,
+    0.3165463172950524,
+    0.06118241691081538,
+    -0.09363190793318918,
+    -0.010454651735755455,
+    -0.5667344180264173,
+    0.6308024865529654,
+    0.5626615738018588
+  ],
+  "source": {
+    "normalized_weight": 0.5,
+    "path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+    "raw_weight": 1.0,
+    "requested_interval_seconds": [
+      19.0,
+      25.0
+    ],
+    "sha256": "bd3fc7f71797c0f5cb665acc50832da93c590e540fa170f9977182ecedf93bf8"
+  }
+}

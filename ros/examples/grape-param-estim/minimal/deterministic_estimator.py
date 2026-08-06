@@ -229,6 +229,7 @@ class DirectShootingProblem:
             float(flight.velocity.times[0]),
             float(flight.gyro.times[0]),
             float(flight.accelerometer.times[0]),
+            float(flight.gimbal_position.times[0]),
         )
         support_end = min(
             float(flight.pose.times[-1]),

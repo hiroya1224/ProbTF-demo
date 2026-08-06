@@ -1,0 +1,46 @@
+Selected joint multiple-bag estimate
+
+Shared decoded physical parameters
+  mass [kg]                  3.02232298411
+  inertia [kg m^2]
+    [ 0.969421478511   0.109415232744   0.00269418769725]
+    [ 0.109415232744   0.259121283672  -0.0238195866122]
+    [ 0.00269418769725  -0.0238195866122   1.22640781476]
+  principal inertia [kg m^2] [0.242065895329, 0.985890660947, 1.22699402067]
+  CoG offset [m]             [0.0611824169108, -0.0936319079332, -0.0104546517358]
+  rotor force effectiveness  [1.01939436606, 2.27207200437, 0.702843051126, 0.614295487471]
+  shared command delay [s]    0.126553995291
+
+Thirteen shared optimized smooth coordinates
+  log_mass_scale                               0.250930812684
+  log_second_moment_cholesky_xx_scale          0.693465818191
+  log_second_moment_cholesky_yy_scale          1.32976612837
+  log_second_moment_cholesky_zz_scale          0.00131116299385
+  normalized_second_moment_cholesky_yx_offset -0.848128913489
+  normalized_second_moment_cholesky_zx_offset -0.070093160434
+  normalized_second_moment_cholesky_zy_offset  0.316546317295
+  cog_offset_x_m                               0.0611824169108
+  cog_offset_y_m                              -0.0936319079332
+  cog_offset_z_m                              -0.0104546517358
+  force_effectiveness_contrast_1              -0.566734418026
+  force_effectiveness_contrast_2               0.630802486553
+  force_effectiveness_contrast_3               0.562661573802
+
+Joint fit diagnostics
+  joint stitched loss [m^2]     1.11704650247
+  joint full-rollout loss [m^2] 1.11704650247
+  broad soft-prior cost          0.947972727871
+  continuity max (normalized)    4.4408920985e-15
+  continuity tolerance           0.001
+
+Per-bag diagnostics
+  failure_1
+    normalized weight        0.5
+    stitched loss [m^2]       1.23247730547
+    full-rollout loss [m^2]   1.23247730547
+    continuity max            4.4408920985e-15
+  failure_2
+    normalized weight        0.5
+    stitched loss [m^2]       1.00161569946
+    full-rollout loss [m^2]   1.00161569946
+    continuity max            2.22044604925e-15

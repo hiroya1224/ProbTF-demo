@@ -18,6 +18,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--method",
         choices=(
             "deterministic_multiple_shooting",
+            "deterministic_multiple_shooting_multi",
             "deterministic_smooth_lag_multiple_shooting",
             "deterministic",
             "deterministic_sobol",
@@ -29,7 +30,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=DEFAULT_METHOD,
     )
     selection, remaining = selector.parse_known_args(raw_arguments)
-    if selection.method == "deterministic_multiple_shooting":
+    config_requested = any(
+        value == "--config" or value.startswith("--config=")
+        for value in remaining
+    )
+    if (
+        selection.method == "deterministic_multiple_shooting_multi"
+        or (
+            selection.method == "deterministic_multiple_shooting"
+            and config_requested
+        )
+    ):
+        from deterministic_multi_bag_multiple_shooting_estimator import (
+            main as selected_main,
+        )
+    elif selection.method == "deterministic_multiple_shooting":
         from deterministic_multiple_shooting_estimator import main as selected_main
     elif selection.method == "deterministic_smooth_lag_multiple_shooting":
         from deterministic_smooth_lag_multiple_shooting_estimator import (

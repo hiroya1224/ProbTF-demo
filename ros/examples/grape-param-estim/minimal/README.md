@@ -73,6 +73,55 @@ Pose lossは既定methodと同じ固定nominal計量 `||rho||² + phiᵀ(J0/m0)p
 
 結果は `minimal/output/deterministic_smooth_lag_multiple_shooting/` に保存されます。`result.json` は各smoothstep段階のlag、continuity、full-rollout loss、lag gradientと、strict-ZOHのscreening/refinement結果を分離して記録します。`trajectory.pdf` と `parameters.txt` は最終strict-ZOH解だけを表示し、`delay_profile.pdf` はsmooth推定点、strict-ZOH局所profile、最終選択点を比較します。
 
+### Multiple-bag shared-parameter multiple shooting
+
+`deterministic_multi_bag_multiple_shooting_estimator.py` は、複数bagで13物理座標とcommand lagを共有し、shooting nodeだけをbagごとに独立に持つjoint問題を解きます。同一機体構成のbagだけを一つの設定へ含めてください。各bagの観測区間、初期状態、command history、サンプル数は異なって構いません。
+
+設定はJSONで、`bags`の各要素に一意な`id`、bagの`path`、record-localの`start` / `end`、正の`weight`を指定します。相対pathは設定JSONの親directoryを基準に解決します。weightは内部で総和1へ正規化するため、すべて`1.0`なら各bagの係数は`1 / B`です。`initial_delay_seconds`を省略した場合は`0.01 s`です。
+
+```json
+{
+  "bags": [
+    {
+      "id": "failure_1",
+      "path": "/absolute/path/to/example_1.bag",
+      "start": 19.0,
+      "end": 24.0,
+      "weight": 1.0
+    },
+    {
+      "id": "failure_2",
+      "path": "/absolute/path/to/example_2.bag",
+      "start": 12.5,
+      "end": 18.0,
+      "weight": 1.0
+    }
+  ],
+  "initial_delay_seconds": 0.01
+}
+```
+
+提示済みの既存method名に`--config`を加える呼び方と、明示的なmulti-bag method名の両方を受け付けます。`--config`がなければ従来のsingle-bag既定methodのままです。
+
+```bash
+source /home/leus/catkin_ws/devel/setup.bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic_multiple_shooting \
+  --config /path/to/multi_bag_config.json
+```
+
+```bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic_multiple_shooting_multi \
+  --config /path/to/multi_bag_config.json
+```
+
+各bagのpose residualは従来どおりサンプル数の平方根で正規化した後、正規化weightの平方根を掛けて連結します。共有soft priorはbagごとのblockから除外し、joint residualの末尾へ一度だけ追加します。Continuity residualはweightを掛けず、各bagについて独立の等式制約として連結します。smoothstep continuationと最終strict-ZOH polishも、全bagのweighted full-rollout lossを使って共通lagを選びます。
+
+Multi-bag版では、長い軌道の発散を人工的なshooting-node boxで遮らないよう、剛体node correctionの既定上下限を設けません。Thrustとgimbalのnodeはactuatorの物理範囲を維持します。Augmented-Lagrangian終了時にcontinuity toleranceへ達していない場合は、共有パラメータを固定したまま各bagのsegmentを先頭から順に伝播し、次nodeを直前segmentの終端へ置く構造的restorationを行います。これにより正式出力ではcontinuityを満たし、stitched軌道とfull rolloutを一致させます。明示的に有限node boundを指定してこの逐次解が範囲外になる場合だけ、bounded least-squares restorationへフォールバックします。
+
+出力は`minimal/output/deterministic_multiple_shooting_multi/`です。共有結果は`result.json`と`parameters.txt`、lag診断は`delay_profile.pdf`へ保存し、bag別の`result.json`と`trajectory.pdf`は`bags/<id>/`へ保存します。共有結果にはjoint loss、prior cost、bag別loss/RMSE/continuity、weighted contribution、stitched/full-rollout差を記録します。
+
 ### Deterministic baseline
 
 ```bash

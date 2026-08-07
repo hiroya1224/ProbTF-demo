@@ -1262,6 +1262,17 @@ class WrenchReplayProblem:
         self.target_sensor_rotation = (
             bag.spline_selection.spline.sensor_rotation(self.knot_time)
         )
+        _, target_cog_velocity, _ = cog_kinematics_from_pose_spline(
+            self.target_spline,
+            self.direct.pose_sensor_position,
+            self.parameters.cog_offset,
+        )
+        self.target_terminal_cog_velocity = (
+            target_cog_velocity[-1].copy()
+        )
+        self.target_terminal_angular_velocity = (
+            self.target_spline.body_angular_velocity[-1].copy()
+        )
 
     def _wrench_and_weights(
         self,
@@ -1687,6 +1698,29 @@ class WrenchReplayProblem:
             time=self.knot_time.copy(),
             **arrays,
         )
+
+        # The initial pose is copied directly from the spline, so its six
+        # residual rows are structurally zero.  Use those six rows instead
+        # to impose the missing terminal state information: CoG linear
+        # velocity in world coordinates and angular velocity in body
+        # coordinates.
+        terminal_velocity_error = np.concatenate(
+            (
+                rigid.linear_velocity
+                - self.target_terminal_cog_velocity,
+                rigid.angular_velocity
+                - self.target_terminal_angular_velocity,
+            )
+        )
+        terminal_velocity_jacobian = np.vstack(
+            (
+                rigid_sensitivity[7:10],
+                rigid_sensitivity[10:13],
+            )
+        )
+        residual[0] = self.pose_factor @ terminal_velocity_error
+        jacobian[0] = self.pose_factor @ terminal_velocity_jacobian
+
         flat_residual = residual.ravel()
         flat_jacobian = jacobian.reshape(
             -1, self.dimension

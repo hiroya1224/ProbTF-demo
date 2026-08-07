@@ -1,18 +1,55 @@
 # 最小構成の実機パラメータ推定
 
-このディレクトリの `estimate_recorded_control.py` は deterministic-multiple-shooting、multi-bag generalized profiling、smooth-lag multiple-shooting、deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
+このディレクトリの `estimate_recorded_control.py` は deterministic spline dynamics、deterministic-multiple-shooting、multi-bag generalized profiling、smooth-lag multiple-shooting、deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
 
-既定では `deterministic_multiple_shooting_estimator.py` を呼び出します。
+既定では `deterministic_spline_dynamics_estimator.py` を呼び出します。このmethodはmulti-bag設定を必要とします。
 
-各 method は同梱 rosbag の 19–24 秒を既定区間とし、記録された rotor thrust command と gimbal command を既知入力として使います。GUI には依存しません。
+single-bag methodは同梱rosbagの19–24秒を既定区間とし、multi-bag methodは設定JSONの区間を使います。いずれも記録されたrotor thrust commandとgimbal commandを既知入力として使い、GUIには依存しません。
 
 旧 deterministic baseline、固定 Q、Laplace-EM の比較結果は [現時点の比較結果](RESULTS_ja.md) に記録しています。
 
 ## 実行
 
-### SE(3)-only deterministic multiple shooting（既定）
+### Pose-only spline dynamics gradient matching（既定）
 
-`deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、慣性、CoG offset、相対 rotor force effectiveness を推定します。慣性は二次モーメントを `Σ = L L^T`、`J = tr(Σ)I - Σ` と表す6次元 Cholesky 座標を用いるため、正定値性と主慣性モーメントの三角不等式を探索中も構造的に満たします。この既定methodではcommand lagを `0.16 s` に固定します。
+`deterministic_spline_dynamics_estimator.py` は、bagごとに観測poseだけから連続時間splineを構成し、その解析微分が要求する並進・角加速度と既存の剛体・actuator wrench modelの差から、全bag共通の質量、完全物理慣性、CoG offset、相対rotor force effectiveness、command lagを推定します。shooting node、continuity constraint、augmented Lagrangianは使いません。velocity、gyro、specific forceはparameter Lossへ入れず、最終full forward rolloutの独立検証だけに使います。
+
+位置にはcubic B-spline、姿勢には`scipy.spatial.transform.RotationSpline`を使います。knot spacingは設定JSONの候補をpose-only blocked cross-validationで比較してbagごとに選び、parameter最適化中はsplineとその微分を固定します。並進残差と角加速度残差は固定nominal計量`J0/m0`で同じ長さ尺度へ写し、各bagをサンプル数で正規化して指定weightで結合します。soft priorは共有parameterへ一度だけ加えます。
+
+既定では`minimal/output/deterministic_multiple_shooting_multi/result.json`を初期値にします。存在しなければnominal physical parametersとconfigの`initial_delay_seconds`へ自然にfallbackします。別の結果は`--estimator-result`、補正後の初期質量は`--corrected-mass`で指定できます。
+
+```bash
+source /home/leus/catkin_ws/devel/setup.bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --config "$(rospack find grape_param_estim)/samples/rosbags/multiple_rosbag_sample.json"
+```
+
+明示指定も同じです。
+
+```bash
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic_spline_dynamics \
+  --config /path/to/multi_bag_config.json \
+  --estimator-result /path/to/result.json \
+  --corrected-mass 3.05
+```
+
+設定JSONには従来の`bags`と`initial_delay_seconds`に加えて、次を指定できます。
+
+```json
+"spline": {
+  "knot_spacing_candidates_seconds": [0.05, 0.1, 0.2],
+  "collocation_step_seconds": 0.01
+}
+```
+
+lagはquintic smoothstepの段階的縮小で探索した後、周辺のstrict causal ZOH候補を評価し、上位候補だけphysical parametersを再最適化します。正式parameterはstrict-ZOH解です。その後、推定parameterとnominal parameterをそれぞれ初期時刻から補正なしでfull forward simulationします。
+
+出力は`minimal/output/deterministic_spline_dynamics/`です。共有`result.json`、`parameters.txt`、`parameters.pdf`、`delay_profile.pdf`に加え、各`bags/<id>/`へ`result.json`、`spline_fit.pdf`、`trajectory_3d.pdf`、`sensor_validation.pdf`、`residual_wrench.pdf`、数値時系列`spline_dynamics.npz`を保存します。`trajectory_3d.pdf`は同じ軸範囲でestimated/nominalのfull rolloutを左右比較し、`sensor_validation.pdf`は実測とestimated full rolloutだけを比較します。
+
+### SE(3)-only deterministic multiple shooting（比較用）
+
+`deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、慣性、CoG offset、相対 rotor force effectiveness を推定します。慣性は二次モーメントを `Σ = L L^T`、`J = tr(Σ)I - Σ` と表す6次元 Cholesky 座標を用いるため、正定値性と主慣性モーメントの三角不等式を探索中も構造的に満たします。このmethodではcommand lagを `0.16 s` に固定します。
 
 Thrust と gimbal の一次遅れ時定数はモデルへ入れません。thrust command は即時反映し、gimbal command は一次遅れなしで、記録済みの角速度・角度制限だけを適用します。13個の物理座標にはbox上下限を置かず、mass、二次モーメント、force effectiveness の正値性と慣性の三角不等式だけを座標変換で保証します。
 
@@ -32,13 +69,15 @@ Log_SE(3)(T_observed^-1 T_simulated)
 
 ```bash
 source /home/leus/catkin_ws/devel/setup.bash
-python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
+python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic_multiple_shooting
 ```
 
 Command delayは既定で `0.16 s` に固定し、必要な場合だけ `--command-delay` で変更します。SE(3) log residual `[rho, phi]` の軌道lossは、従来の固定translation/rotation scaleではなく、nominal質量 `m0` とnominal慣性 `J0`による `||rho||^2 + phi^T (J0 / m0) phi` を各サンプルで評価して平均します。すなわち方位誤差をnominal慣性半径で位置誤差と同じ長さの次元へ正規化します。
 
 ```bash
 python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \
+  --method deterministic_multiple_shooting \
   --command-delay 0.16 \
   --segment-duration 0.5 \
   --max-nfev 120 \
@@ -49,7 +88,7 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
 
 ### Smooth-lag search + strict-ZOH multiple shooting
 
-`--method deterministic_smooth_lag_multiple_shooting` は、既定methodを変更せずに、13物理座標とcommand lagを同時に探索する別推定器です。rotor thrust commandとgimbal commandの各ZOH切替をquintic smoothstepで局所的に滑らかにし、command値からactuator、body wrench、剛体軌道、SE(3) pose residualまでのlag感度を14列目の解析forward sensitivityとして伝播します。重複command timestampは同一時刻の最後のmessageへまとめ、各切替半幅は隣接周期の49%以下としてtransitionの重複を防ぎます。
+`--method deterministic_smooth_lag_multiple_shooting` は、13物理座標とcommand lagを同時に探索する比較用の別推定器です。rotor thrust commandとgimbal commandの各ZOH切替をquintic smoothstepで局所的に滑らかにし、command値からactuator、body wrench、剛体軌道、SE(3) pose residualまでのlag感度を14列目の解析forward sensitivityとして伝播します。重複command timestampは同一時刻の最後のmessageへまとめ、各切替半幅は隣接周期の49%以下としてtransitionの重複を防ぎます。
 
 Smooth searchはcommand周期に対する半幅比 `0.50 → 0.20 → 0.05` の3段階で行い、各段階で前段階の物理座標、lag、shooting nodeをwarm startします。入力モデルが変わる段階ごとにaugmented-Lagrangian multiplierはゼロから開始します。
 
@@ -69,7 +108,7 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
   --zoh-polish-top-k 3
 ```
 
-Pose lossは既定methodと同じ固定nominal計量 `||rho||² + phiᵀ(J0/m0)phi` です。`--body-displacement-scale` はこの6次元残差全体へ適用する単一の長さscaleで、既定は `1.0 m` です。Thrust/gimbalの一次遅れ時定数は入りません。
+Pose lossはmultiple-shooting系と同じ固定nominal計量 `||rho||² + phiᵀ(J0/m0)phi` です。`--body-displacement-scale` はこの6次元残差全体へ適用する単一の長さscaleで、既定は `1.0 m` です。Thrust/gimbalの一次遅れ時定数は入りません。
 
 結果は `minimal/output/deterministic_smooth_lag_multiple_shooting/` に保存されます。`result.json` は各smoothstep段階のlag、continuity、full-rollout loss、lag gradientと、strict-ZOHのscreening/refinement結果を分離して記録します。`trajectory.pdf` と `parameters.txt` は最終strict-ZOH解だけを表示し、`delay_profile.pdf` はsmooth推定点、strict-ZOH局所profile、最終選択点を比較します。
 
@@ -101,7 +140,7 @@ Pose lossは既定methodと同じ固定nominal計量 `||rho||² + phiᵀ(J0/m0)p
 }
 ```
 
-提示済みの既存method名に`--config`を加える呼び方と、明示的なmulti-bag method名の両方を受け付けます。`--config`がなければ従来のsingle-bag既定methodのままです。
+提示済みのmultiple-shooting method名に`--config`を加える呼び方と、明示的なmulti-bag method名の両方を受け付けます。`--method deterministic_multiple_shooting`で`--config`を省略した場合は従来のsingle-bag版です。
 
 ```bash
 source /home/leus/catkin_ws/devel/setup.bash

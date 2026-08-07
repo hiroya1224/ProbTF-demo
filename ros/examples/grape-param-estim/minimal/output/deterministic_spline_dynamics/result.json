@@ -1,0 +1,842 @@
+{
+  "bag_diagnostics": [
+    {
+      "collocation_count": 596,
+      "dynamics_loss": 0.6691900973961946,
+      "estimated_forward_metrics": {
+        "orientation_angle_rmse_deg": 113.24608009620827,
+        "orientation_angle_rmse_rad": 1.976516962656051,
+        "position_component_rmse_m": [
+          4.567398472123177,
+          3.7260766290504166,
+          22.368013027837364
+        ],
+        "position_rmse_m": 23.13164029337761,
+        "terminal_orientation_error_deg": 168.17690405563636,
+        "terminal_position_error_m": 68.05436116455506
+      },
+      "estimated_forward_pose_score_m2": 267.60558535833013,
+      "estimated_improves_over_nominal": true,
+      "id": "failure_1",
+      "nominal_forward_metrics": {
+        "orientation_angle_rmse_deg": 140.15326118530703,
+        "orientation_angle_rmse_rad": 2.446135865091178,
+        "position_component_rmse_m": [
+          16.420129120123867,
+          8.684876149548197,
+          53.09995553133078
+        ],
+        "position_rmse_m": 56.25524856832327,
+        "terminal_orientation_error_deg": 173.23420801832938,
+        "terminal_position_error_m": 146.63476565130404
+      },
+      "nominal_forward_pose_score_m2": 1582.4395103064098,
+      "nominal_rollout_lag_seconds": 0.126553995291,
+      "normalized_weight": 0.5,
+      "residual_wrench_statistics": {
+        "component_names": [
+          "F_x",
+          "F_y",
+          "F_z",
+          "M_x",
+          "M_y",
+          "M_z"
+        ],
+        "cumulative_impulse": [
+          0.5412645833566759,
+          0.45017279993492815,
+          0.33002316996776354,
+          -0.17713184792859074,
+          -0.054915860230702246,
+          -0.05729876015871297
+        ],
+        "duration_seconds": 5.949999999999999,
+        "linear_trend_per_second": [
+          0.10583942128300033,
+          0.041043001541838035,
+          -0.567821725839286,
+          0.0034768077936276325,
+          -0.017555428638493017,
+          0.023260255511404954
+        ],
+        "mean": [
+          0.08804174407505902,
+          0.078711181654944,
+          0.05801929689484684,
+          -0.02979959180262419,
+          -0.009029113669520148,
+          -0.00958009517490564
+        ],
+        "rmse": [
+          1.1228171150525423,
+          0.7377140680097387,
+          1.471983256578629,
+          0.128495591721985,
+          0.6323765587671786,
+          0.42723740608995436
+        ]
+      },
+      "sensor_validation": {
+        "gyro": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": -0.20000000000000284,
+            "mean_bias": 1.4699093460773254,
+            "pearson_correlation": 0.4664430520437006,
+            "rmse": 1.923346316245265
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": -0.15000000000000213,
+            "mean_bias": 0.003123384643012939,
+            "pearson_correlation": 0.6994629845171452,
+            "rmse": 1.52787412837067
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": 1.2500000000000178,
+            "mean_bias": 0.06200042226818693,
+            "pearson_correlation": -0.11248045126227157,
+            "rmse": 0.6642985860101043
+          }
+        ],
+        "specific_force": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+            "mean_bias": -0.3149919482013665,
+            "pearson_correlation": 0.9616266775508212,
+            "rmse": 1.1311912171746514
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
+            "mean_bias": 0.0632921810427857,
+            "pearson_correlation": 0.6969248858900814,
+            "rmse": 0.303999209789688
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": -0.4736587990347391,
+            "pearson_correlation": 0.8828544176237718,
+            "rmse": 0.6795870112309209
+          }
+        ],
+        "world_velocity": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": -1.050000000000015,
+            "mean_bias": 0.1426837122471243,
+            "pearson_correlation": -0.1529765476482259,
+            "rmse": 3.458050801006944
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": -1.3000000000000185,
+            "mean_bias": -1.2786519845533377,
+            "pearson_correlation": 0.05594317378625933,
+            "rmse": 2.284451958898932
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": 1.050000000000015,
+            "mean_bias": -11.419759407534373,
+            "pearson_correlation": 0.0500778004618448,
+            "rmse": 17.80316953732258
+          }
+        ]
+      },
+      "spline": {
+        "blocked_cross_validation": [
+          {
+            "derivative_sanity_passed": false,
+            "effective_position_knot_spacing_seconds": 0.05085470085470085,
+            "effective_rotation_knot_spacing_seconds": 0.049999999999999996,
+            "maximum_acceleration_m_per_s2": 434623459.9152144,
+            "maximum_angular_acceleration_rad_per_s2": 55.130083896699,
+            "position_coefficient_count": 120,
+            "requested_knot_spacing_seconds": 0.05,
+            "rotation_knot_count": 120,
+            "score": null,
+            "validation_metric_rmse_m": 591431.729790177,
+            "validation_orientation_rmse_rad": 0.3569024658433032,
+            "validation_position_rmse_m": 591431.729790174
+          },
+          {
+            "derivative_sanity_passed": true,
+            "effective_position_knot_spacing_seconds": 0.09916666666666665,
+            "effective_rotation_knot_spacing_seconds": 0.09916666666666665,
+            "maximum_acceleration_m_per_s2": 2.885033205417311,
+            "maximum_angular_acceleration_rad_per_s2": 15.623516524138392,
+            "position_coefficient_count": 63,
+            "requested_knot_spacing_seconds": 0.1,
+            "rotation_knot_count": 61,
+            "score": 7.09080643967473,
+            "validation_metric_rmse_m": 7.09080643967473,
+            "validation_orientation_rmse_rad": 0.3569000192301672,
+            "validation_position_rmse_m": 7.090556142216591
+          },
+          {
+            "derivative_sanity_passed": true,
+            "effective_position_knot_spacing_seconds": 0.1983333333333333,
+            "effective_rotation_knot_spacing_seconds": 0.1983333333333333,
+            "maximum_acceleration_m_per_s2": 1.9859418699399833,
+            "maximum_angular_acceleration_rad_per_s2": 13.601629309797767,
+            "position_coefficient_count": 33,
+            "requested_knot_spacing_seconds": 0.2,
+            "rotation_knot_count": 31,
+            "score": 14.278508913096887,
+            "validation_metric_rmse_m": 14.278508913096887,
+            "validation_orientation_rmse_rad": 0.3568547780035205,
+            "validation_position_rmse_m": 14.2783846516426
+          }
+        ],
+        "fit_metrics": {
+          "maximum_acceleration_m_per_s2": 2.885033205417311,
+          "maximum_angular_acceleration_rad_per_s2": 16.247058670880868,
+          "orientation_angle_rmse_deg": 0.5288329247251192,
+          "orientation_angle_rmse_rad": 0.009229875729404658,
+          "position_rmse_m": 0.00021872540674157487,
+          "position_vector_rmse_m": 0.00037884351738257593
+        },
+        "selected_knot_spacing_seconds": 0.1
+      }
+    },
+    {
+      "collocation_count": 546,
+      "dynamics_loss": 0.09832713870197064,
+      "estimated_forward_metrics": {
+        "orientation_angle_rmse_deg": 133.5846517593069,
+        "orientation_angle_rmse_rad": 2.331492003329941,
+        "position_component_rmse_m": [
+          11.116896398019401,
+          23.1941968190692,
+          44.39920253768965
+        ],
+        "position_rmse_m": 51.3112593646736,
+        "terminal_orientation_error_deg": 170.8633067638473,
+        "terminal_position_error_m": 131.69635895747192
+      },
+      "estimated_forward_pose_score_m2": 1316.4995999979585,
+      "estimated_improves_over_nominal": false,
+      "id": "failure_2",
+      "nominal_forward_metrics": {
+        "orientation_angle_rmse_deg": 135.88031541460077,
+        "orientation_angle_rmse_rad": 2.371558892633187,
+        "position_component_rmse_m": [
+          10.543745948519769,
+          14.856155742452872,
+          46.86115306898328
+        ],
+        "position_rmse_m": 50.277665111116924,
+        "terminal_orientation_error_deg": 171.33964085060538,
+        "terminal_position_error_m": 134.71356956468563
+      },
+      "nominal_forward_pose_score_m2": 1264.000391139776,
+      "nominal_rollout_lag_seconds": 0.126553995291,
+      "normalized_weight": 0.5,
+      "residual_wrench_statistics": {
+        "component_names": [
+          "F_x",
+          "F_y",
+          "F_z",
+          "M_x",
+          "M_y",
+          "M_z"
+        ],
+        "cumulative_impulse": [
+          0.3919551344518122,
+          -1.966244534446867,
+          -0.11724497671883027,
+          0.14691235197280642,
+          0.12785802834426546,
+          0.07819270609580449
+        ],
+        "duration_seconds": 5.449999999999999,
+        "linear_trend_per_second": [
+          -0.03957701430659686,
+          0.0301144181156379,
+          -0.2816610860206175,
+          -0.009902346799104775,
+          0.04632406445739297,
+          0.003359759422519659
+        ],
+        "mean": [
+          0.07086246036485568,
+          -0.362078828672639,
+          -0.019716834188280997,
+          0.026932539068696238,
+          0.02430535822077984,
+          0.014470206462480517
+        ],
+        "rmse": [
+          0.24638409298824662,
+          0.44739830444164874,
+          0.7121961316723597,
+          0.04521020525541017,
+          0.2420998844928668,
+          0.08776019728443098
+        ]
+      },
+      "sensor_validation": {
+        "gyro": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": -4.450000000000063,
+            "mean_bias": -1.4471594937129624,
+            "pearson_correlation": 0.041110099170246,
+            "rmse": 1.5760837987617584
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": -0.25000000000000355,
+            "mean_bias": 0.0565826653803737,
+            "pearson_correlation": 0.5317038646781748,
+            "rmse": 0.629018830678314
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": -1.7500000000000249,
+            "mean_bias": 0.04820157770647609,
+            "pearson_correlation": -0.10390562244693465,
+            "rmse": 0.2498214569442539
+          }
+        ],
+        "specific_force": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+            "mean_bias": -0.06015990820604421,
+            "pearson_correlation": 0.971039933821293,
+            "rmse": 0.39187486287898526
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+            "mean_bias": 0.08185518748964192,
+            "pearson_correlation": 0.9217485272576909,
+            "rmse": 0.10574365268929692
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": 0.05000000000000071,
+            "mean_bias": -0.17169345562859037,
+            "pearson_correlation": 0.7725744795598823,
+            "rmse": 0.25094073543445516
+          }
+        ],
+        "world_velocity": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": 1.550000000000022,
+            "mean_bias": 5.384615560602918,
+            "pearson_correlation": 0.18888508251895048,
+            "rmse": 7.530365708392117
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": -2.900000000000041,
+            "mean_bias": 8.539704659395039,
+            "pearson_correlation": -0.1384957694666621,
+            "rmse": 9.903795209440863
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": -22.026907394520993,
+            "pearson_correlation": 0.4880790573156649,
+            "rmse": 30.842391939702832
+          }
+        ]
+      },
+      "spline": {
+        "blocked_cross_validation": [
+          {
+            "derivative_sanity_passed": false,
+            "effective_position_knot_spacing_seconds": 0.05093457943925233,
+            "effective_rotation_knot_spacing_seconds": 0.049999999999999996,
+            "maximum_acceleration_m_per_s2": 94146914.59224285,
+            "maximum_angular_acceleration_rad_per_s2": 24.72666992505334,
+            "position_coefficient_count": 110,
+            "requested_knot_spacing_seconds": 0.05,
+            "rotation_knot_count": 110,
+            "score": null,
+            "validation_metric_rmse_m": 40852.34410864497,
+            "validation_orientation_rmse_rad": 0.08914020735546373,
+            "validation_position_rmse_m": 40852.344108642246
+          },
+          {
+            "derivative_sanity_passed": true,
+            "effective_position_knot_spacing_seconds": 0.09909090909090908,
+            "effective_rotation_knot_spacing_seconds": 0.09909090909090908,
+            "maximum_acceleration_m_per_s2": 3.037698827909605,
+            "maximum_angular_acceleration_rad_per_s2": 12.944915971376329,
+            "position_coefficient_count": 58,
+            "requested_knot_spacing_seconds": 0.1,
+            "rotation_knot_count": 56,
+            "score": 7.708837820733696,
+            "validation_metric_rmse_m": 7.708837820733696,
+            "validation_orientation_rmse_rad": 0.08913689095588437,
+            "validation_position_rmse_m": 7.70882339979691
+          },
+          {
+            "derivative_sanity_passed": true,
+            "effective_position_knot_spacing_seconds": 0.19464285714285712,
+            "effective_rotation_knot_spacing_seconds": 0.19464285714285712,
+            "maximum_acceleration_m_per_s2": 0.9184356910374676,
+            "maximum_angular_acceleration_rad_per_s2": 5.088868606425386,
+            "position_coefficient_count": 31,
+            "requested_knot_spacing_seconds": 0.2,
+            "rotation_knot_count": 29,
+            "score": 4.00730661649123,
+            "validation_metric_rmse_m": 4.00730661649123,
+            "validation_orientation_rmse_rad": 0.08907134439347386,
+            "validation_position_rmse_m": 4.007278914097378
+          }
+        ],
+        "fit_metrics": {
+          "maximum_acceleration_m_per_s2": 0.9175831712102775,
+          "maximum_angular_acceleration_rad_per_s2": 5.089051112687037,
+          "orientation_angle_rmse_deg": 0.3701925197731221,
+          "orientation_angle_rmse_rad": 0.0064610783362951925,
+          "position_rmse_m": 0.00022864491034748204,
+          "position_vector_rmse_m": 0.00039602460161386986
+        },
+        "selected_knot_spacing_seconds": 0.2
+      }
+    }
+  ],
+  "bags": [
+    {
+      "id": "failure_1",
+      "normalized_weight": 0.5,
+      "path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+      "raw_weight": 1.0,
+      "requested_interval_seconds": [
+        19.0,
+        25.0
+      ],
+      "sha256": "bd3fc7f71797c0f5cb665acc50832da93c590e540fa170f9977182ecedf93bf8"
+    },
+    {
+      "id": "failure_2",
+      "normalized_weight": 0.5,
+      "path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_6_2026-06-12-17-40-34.bag",
+      "raw_weight": 1.0,
+      "requested_interval_seconds": [
+        25.5,
+        31.0
+      ],
+      "sha256": "c4515b73edd26f9cb68d93d9165e3e14fff2cbad95af6cef463821b791aeb665"
+    }
+  ],
+  "config_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/multiple_rosbag_sample.json",
+  "created_at": "2026-08-07T03:12:42.174602+00:00",
+  "elapsed_seconds": 74.25952873937786,
+  "initial_estimate": {
+    "delay_seconds": 0.126553995291,
+    "physical_coordinate": [
+      0.2509308126840298,
+      0.6934658181907125,
+      1.3297661283680218,
+      0.0013111629938505152,
+      -0.8481289134885318,
+      -0.07009316043402815,
+      0.3165463172950524,
+      0.06118241691081538,
+      -0.09363190793318918,
+      -0.010454651735755455,
+      -0.5667344180264173,
+      0.6308024865529654,
+      0.5626615738018588
+    ],
+    "selected_mass_kg": 3.0223229841109034,
+    "source_kind": "multiple_shooting_result",
+    "source_mass_kg": 3.0223229841109034,
+    "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/deterministic_multiple_shooting_multi/result.json"
+  },
+  "method": {
+    "command_mode_during_search": "quintic smoothstep ZOH",
+    "command_mode_final": "strict ZOH",
+    "description": "pose-only continuous-time spline gradient matching with shared physical parameters and command lag",
+    "name": "deterministic_spline_dynamics",
+    "pose_role": "constructs fixed bag-local splines only",
+    "sensor_channels_in_parameter_loss": false,
+    "uses_augmented_lagrangian": false,
+    "uses_continuity_constraints": false,
+    "uses_multiple_shooting_nodes": false
+  },
+  "outputs": {
+    "bags": {
+      "failure_1": {
+        "residual_wrench_pdf": "bags/failure_1/residual_wrench.pdf",
+        "result_json": "bags/failure_1/result.json",
+        "sensor_validation_pdf": "bags/failure_1/sensor_validation.pdf",
+        "spline_dynamics_npz": "bags/failure_1/spline_dynamics.npz",
+        "spline_fit_pdf": "bags/failure_1/spline_fit.pdf",
+        "trajectory_3d_pdf": "bags/failure_1/trajectory_3d.pdf"
+      },
+      "failure_2": {
+        "residual_wrench_pdf": "bags/failure_2/residual_wrench.pdf",
+        "result_json": "bags/failure_2/result.json",
+        "sensor_validation_pdf": "bags/failure_2/sensor_validation.pdf",
+        "spline_dynamics_npz": "bags/failure_2/spline_dynamics.npz",
+        "spline_fit_pdf": "bags/failure_2/spline_fit.pdf",
+        "trajectory_3d_pdf": "bags/failure_2/trajectory_3d.pdf"
+      }
+    },
+    "delay_profile_pdf": "delay_profile.pdf",
+    "parameters_pdf": "parameters.pdf",
+    "parameters_txt": "parameters.txt"
+  },
+  "schema": "grape-param-estim/minimal-deterministic-spline-dynamics/v1",
+  "selection": {
+    "delay_seconds": 0.048338405532,
+    "inertia_principal_moments_kg_m2": [
+      0.07274754890696378,
+      0.14549891268419923,
+      0.21728267428390324
+    ],
+    "inertia_triangle_margin_kg_m2": 0.0009637873072597669,
+    "joint_dynamics_loss": 0.3837586180490826,
+    "joint_objective_cost": 0.42943932251864775,
+    "optimizer": {
+      "cost": 0.42943932251864775,
+      "message": "`ftol` termination condition is satisfied.",
+      "nfev": 2,
+      "njev": 2,
+      "optimality": 4.152663050593919e-05,
+      "status": 2,
+      "success": true
+    },
+    "parameters": {
+      "angular_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cog_offset_m": [
+        -0.0028548317789032114,
+        -0.00025998396413470364,
+        -0.016291208175909507
+      ],
+      "force_effectiveness": [
+        1.0029488217946885,
+        1.034466928859695,
+        0.9724159309051449,
+        0.9911800476016539
+      ],
+      "inertia_kg_m2": [
+        [
+          0.07278190092307305,
+          -0.001575741286760246,
+          0.0001702121586696978
+        ],
+        [
+          -0.001575741286760246,
+          0.14546495903348267,
+          0.0001210490397428072
+        ],
+        [
+          0.0001702121586696978,
+          0.0001210490397428072,
+          0.21728227591851046
+        ]
+      ],
+      "linear_drag": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mass_kg": 2.763957199609499,
+      "torque_effectiveness": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "physical_coordinate": [
+      0.16156849778287885,
+      0.40518885245218716,
+      0.056805158332941565,
+      0.001660423849346636,
+      0.01628393504613756,
+      -0.004988647570331369,
+      -0.0059392026251908975,
+      -0.0028548317789032114,
+      -0.00025998396413470364,
+      -0.016291208175909507,
+      -0.021879133202722525,
+      0.037874842901561005,
+      0.010229582607364746
+    ],
+    "physical_parameter_names": [
+      "log_mass_scale",
+      "log_second_moment_cholesky_xx_scale",
+      "log_second_moment_cholesky_yy_scale",
+      "log_second_moment_cholesky_zz_scale",
+      "normalized_second_moment_cholesky_yx_offset",
+      "normalized_second_moment_cholesky_zx_offset",
+      "normalized_second_moment_cholesky_zy_offset",
+      "cog_offset_x_m",
+      "cog_offset_y_m",
+      "cog_offset_z_m",
+      "force_effectiveness_contrast_1",
+      "force_effectiveness_contrast_2",
+      "force_effectiveness_contrast_3"
+    ],
+    "soft_prior_cost": 0.04568070446956502
+  },
+  "settings": {
+    "collocation_step_seconds": 0.01,
+    "delay_bounds_seconds": [
+      0.0,
+      0.2
+    ],
+    "integration_step_seconds": 0.025,
+    "knot_spacing_candidates_seconds": [
+      0.05,
+      0.1,
+      0.2
+    ],
+    "maximum_spline_acceleration_m_per_s2": 250.0,
+    "maximum_spline_angular_acceleration_rad_per_s2": 1000.0,
+    "physical_coordinate_bounds": "unbounded",
+    "prior_weight": 1.0,
+    "sample_step_seconds": 0.05,
+    "smoothstep_width_fractions": [
+      0.5,
+      0.2,
+      0.05
+    ],
+    "spline_cv_folds": 5
+  },
+  "smoothstep_stages": [
+    {
+      "data_loss": 0.3831536840033897,
+      "delay_seconds": 0.04768587222904817,
+      "objective_cost": 0.42934936206920066,
+      "optimizer": {
+        "cost": 0.42934936206920066,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 16,
+        "njev": 15,
+        "optimality": 0.0015766474638365668,
+        "status": 2,
+        "success": true
+      },
+      "physical_coordinate": [
+        0.16160508439832563,
+        0.4078448373859154,
+        0.05683997372092073,
+        0.001663918721176116,
+        0.016372084076285858,
+        -0.004945135758510338,
+        -0.006295121611947599,
+        -0.002817999075048608,
+        -0.00036751842232456063,
+        -0.016356260025900016,
+        -0.022021461834339163,
+        0.038413120614631584,
+        0.011150211629947506
+      ],
+      "prior_cost": 0.046195678065810944,
+      "width_fraction": 0.5
+    },
+    {
+      "data_loss": 0.38380308982217515,
+      "delay_seconds": 0.04845784550343726,
+      "objective_cost": 0.4294677567363077,
+      "optimizer": {
+        "cost": 0.4294677567363077,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 10,
+        "njev": 9,
+        "optimality": 0.000720139594938705,
+        "status": 2,
+        "success": true
+      },
+      "physical_coordinate": [
+        0.1615952124710483,
+        0.4050868851866386,
+        0.05678782650612966,
+        0.0016603912225980953,
+        0.016264029903394036,
+        -0.004985758356949426,
+        -0.0059489458108721,
+        -0.002861079872814318,
+        -0.00025915387330039774,
+        -0.01629480903764331,
+        -0.0218437258264676,
+        0.03788391206918965,
+        0.010203667045438096
+      ],
+      "prior_cost": 0.04566466691413252,
+      "width_fraction": 0.2
+    },
+    {
+      "data_loss": 0.3837519432185258,
+      "delay_seconds": 0.04833840553246442,
+      "objective_cost": 0.4294374160861186,
+      "optimizer": {
+        "cost": 0.4294374160861186,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 4,
+        "njev": 3,
+        "optimality": 0.001391082868984003,
+        "status": 2,
+        "success": true
+      },
+      "physical_coordinate": [
+        0.16156869106609545,
+        0.4052062285803201,
+        0.056809376868135496,
+        0.0016607704151969142,
+        0.016292202728802437,
+        -0.004988609284332078,
+        -0.005939032864658349,
+        -0.002853925603688514,
+        -0.00025866908116107233,
+        -0.016298101081912774,
+        -0.021878910885432236,
+        0.03785625207908628,
+        0.010240563109097897
+      ],
+      "prior_cost": 0.04568547286759289,
+      "width_fraction": 0.05
+    }
+  ],
+  "strict_zoh_polish": [
+    {
+      "delay_seconds": 0.044338405532,
+      "refined": false,
+      "screening_cost": 0.4303201165639328,
+      "selected": false
+    },
+    {
+      "delay_seconds": 0.045338405532,
+      "refined": false,
+      "screening_cost": 0.4303842339024489,
+      "selected": false
+    },
+    {
+      "delay_seconds": 0.046338405532,
+      "refined": false,
+      "screening_cost": 0.4302966548156962,
+      "selected": false
+    },
+    {
+      "delay_seconds": 0.047338405532,
+      "refined": false,
+      "screening_cost": 0.43208906755971904,
+      "selected": false
+    },
+    {
+      "delay_seconds": 0.048338405532,
+      "optimizer": {
+        "cost": 0.42943932251864775,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 2,
+        "njev": 2,
+        "optimality": 4.152663050593919e-05,
+        "status": 2,
+        "success": true
+      },
+      "physical_coordinate": [
+        0.16156849778287885,
+        0.40518885245218716,
+        0.056805158332941565,
+        0.001660423849346636,
+        0.01628393504613756,
+        -0.004988647570331369,
+        -0.0059392026251908975,
+        -0.0028548317789032114,
+        -0.00025998396413470364,
+        -0.016291208175909507,
+        -0.021879133202722525,
+        0.037874842901561005,
+        0.010229582607364746
+      ],
+      "refined": true,
+      "refined_cost": 0.42943932251864775,
+      "screening_cost": 0.42943932480611896,
+      "selected": true
+    },
+    {
+      "delay_seconds": 0.049338405532,
+      "optimizer": {
+        "cost": 0.4298617647067502,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 3,
+        "njev": 3,
+        "optimality": 0.0009422812105662759,
+        "status": 2,
+        "success": true
+      },
+      "physical_coordinate": [
+        0.16160651990181923,
+        0.40453292282109654,
+        0.05675929316979828,
+        0.0016606574205811628,
+        0.016218855795158128,
+        -0.004983449790765754,
+        -0.005972422934088383,
+        -0.002875850420719587,
+        -0.0002572131657937661,
+        -0.0163100841631292,
+        -0.021763396806154134,
+        0.03786047043691542,
+        0.010193028678321987
+      ],
+      "refined": true,
+      "refined_cost": 0.4298617647067502,
+      "screening_cost": 0.4298626919031036,
+      "selected": false
+    },
+    {
+      "delay_seconds": 0.050338405532,
+      "optimizer": {
+        "cost": 0.42986783244080534,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 3,
+        "njev": 3,
+        "optimality": 0.0009826385553545758,
+        "status": 2,
+        "success": true
+      },
+      "physical_coordinate": [
+        0.1616069753952749,
+        0.40451983629650945,
+        0.05676752566483414,
+        0.0016607486558794789,
+        0.01621444409070159,
+        -0.004984216944061654,
+        -0.00597956165709876,
+        -0.002878583757536969,
+        -0.00025660420777044615,
+        -0.016307128172510215,
+        -0.0217384884032915,
+        0.03785459266945734,
+        0.010190757996876429
+      ],
+      "refined": true,
+      "refined_cost": 0.42986783244080534,
+      "screening_cost": 0.42986879872140693,
+      "selected": false
+    },
+    {
+      "delay_seconds": 0.051338405532,
+      "refined": false,
+      "screening_cost": 0.4299752162062298,
+      "selected": false
+    },
+    {
+      "delay_seconds": 0.052338405532,
+      "refined": false,
+      "screening_cost": 0.43247556873769016,
+      "selected": false
+    }
+  ]
+}

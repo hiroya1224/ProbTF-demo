@@ -8,7 +8,7 @@ import sys
 from typing import Sequence
 
 
-DEFAULT_METHOD = "deterministic_multiple_shooting"
+DEFAULT_METHOD = "deterministic_spline_dynamics"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -17,6 +17,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     selector.add_argument(
         "--method",
         choices=(
+            "deterministic_spline_dynamics",
             "deterministic_multiple_shooting",
             "deterministic_multiple_shooting_multi",
             "generalized_profiling_multi",
@@ -35,7 +36,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         value == "--config" or value.startswith("--config=")
         for value in remaining
     )
-    if (
+    if selection.method == "deterministic_spline_dynamics":
+        from deterministic_spline_dynamics_estimator import main as selected_main
+    elif (
         selection.method == "deterministic_multiple_shooting_multi"
         or (
             selection.method == "deterministic_multiple_shooting"

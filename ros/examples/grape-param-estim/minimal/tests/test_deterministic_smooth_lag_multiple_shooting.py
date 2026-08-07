@@ -53,10 +53,10 @@ class SmoothLagConfigurationTests(unittest.TestCase):
         self.assertEqual(arguments.smooth_max_nfev, 60)
         self.assertEqual(arguments.max_nfev, 120)
 
-    def test_entrypoint_exposes_new_method_without_changing_default(self):
+    def test_entrypoint_retains_explicit_smooth_lag_method(self):
         self.assertEqual(
             entrypoint.DEFAULT_METHOD,
-            "deterministic_multiple_shooting",
+            "deterministic_spline_dynamics",
         )
         with patch.object(estimator, "main", return_value=0) as selected_main:
             status = entrypoint.main(

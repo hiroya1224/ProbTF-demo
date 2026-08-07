@@ -208,10 +208,10 @@ class FullyPhysicalInertiaParameterizationTests(unittest.TestCase):
 
 
 class EntryPointTests(unittest.TestCase):
-    def test_multiple_shooting_is_default(self):
+    def test_spline_dynamics_is_default(self):
         self.assertEqual(
             entrypoint.DEFAULT_METHOD,
-            "deterministic_multiple_shooting",
+            "deterministic_spline_dynamics",
         )
 
     def test_parser_uses_only_requested_physical_family(self):

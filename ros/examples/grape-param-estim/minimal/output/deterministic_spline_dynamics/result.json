@@ -642,8 +642,8 @@
     }
   ],
   "config_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/multiple_rosbag_sample.json",
-  "created_at": "2026-08-07T05:22:42.188943+00:00",
-  "elapsed_seconds": 92.50641227792948,
+  "created_at": "2026-08-07T06:15:54.732362+00:00",
+  "elapsed_seconds": 92.53111877804622,
   "initial_estimate": {
     "delay_seconds": 0.01,
     "physical_coordinate": [
@@ -704,6 +704,7 @@
         "trajectory_pdf": "bags/failure_2/trajectory.pdf"
       }
     },
+    "data_dictionary_md": "DATA_DICTIONARY.md",
     "delay_profile_pdf": "delay_profile.pdf",
     "parameters_pdf": "parameters.pdf",
     "parameters_txt": "parameters.txt"

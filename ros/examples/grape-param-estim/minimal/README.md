@@ -18,6 +18,8 @@ single-bag methodは同梱rosbagの19–24秒を既定区間とし、multi-bag m
 
 物理parameterの既定初期値は、質量、慣性、CoG offset、相対rotor force effectivenessのすべてについて厳密なnominal値（13次元physical chartの原点）です。command lagだけはconfigの`initial_delay_seconds`から始めます。過去のmultiple-shooting `result.json`は自動では読みません。この推定器はobserved pose splineとその解析微分から単独でparameterを推定します。比較実験でwarm startが必要な場合だけ`--estimator-result`を明示し、初期質量だけを変更する場合は`--corrected-mass`を指定できます。
 
+NPZ/JSONの全変数、shape、単位、frame、計算元、forward系列の違いは[`deterministic_spline_dynamics_data_dictionary.md`](deterministic_spline_dynamics_data_dictionary.md)にまとめています。同じ文書を実行ごとにoutput直下の`DATA_DICTIONARY.md`へコピーします。
+
 ```bash
 source /home/leus/catkin_ws/devel/setup.bash
 python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py" \

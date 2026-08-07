@@ -59,6 +59,9 @@ from grape_param_estim.system import (  # noqa: E402
 
 SCHEMA = "grape-param-estim/minimal-deterministic-spline-dynamics/v1"
 OUTPUT_SUBDIRECTORY = "deterministic_spline_dynamics"
+DATA_DICTIONARY_SOURCE = Path(__file__).resolve().with_name(
+    "deterministic_spline_dynamics_data_dictionary.md"
+)
 GLOBAL_DIMENSION = strict.PHYSICAL_DIMENSION + 1
 DELAY_INDEX = strict.PHYSICAL_DIMENSION
 COMPONENT_NAMES = ("x", "y", "z")
@@ -2512,6 +2515,10 @@ def run(arguments: argparse.Namespace) -> int:
     )
     bags_directory = output_directory / "bags"
     bags_directory.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(
+        DATA_DICTIONARY_SOURCE,
+        output_directory / "DATA_DICTIONARY.md",
+    )
     bag_payloads = []
     bag_sources = []
     bag_outputs: dict[str, Any] = {}
@@ -2864,6 +2871,7 @@ def run(arguments: argparse.Namespace) -> int:
         "bag_diagnostics": bag_payloads,
         "elapsed_seconds": elapsed,
         "outputs": {
+            "data_dictionary_md": "DATA_DICTIONARY.md",
             "parameters_txt": "parameters.txt",
             "parameters_pdf": "parameters.pdf",
             "delay_profile_pdf": "delay_profile.pdf",

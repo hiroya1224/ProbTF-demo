@@ -203,6 +203,44 @@ class PoseSplineAnalyticTests(unittest.TestCase):
 
 
 class ConfigurationAndLagTests(unittest.TestCase):
+    def test_data_dictionary_covers_every_npz_export(self):
+        document = estimator.DATA_DICTIONARY_SOURCE.read_text(encoding="utf-8")
+        exported_keys = (
+            "collocation_time",
+            "output_time",
+            "observed_sensor_position",
+            "observed_sensor_orientation_xyzw",
+            "observed_sensor_velocity_world",
+            "observed_angular_velocity_sensor",
+            "observed_specific_force_sensor",
+            "spline_sensor_position",
+            "spline_sensor_velocity_world",
+            "spline_sensor_acceleration_world",
+            "spline_body_rotation",
+            "spline_body_angular_velocity",
+            "spline_body_angular_acceleration",
+            "required_body_wrench",
+            "modeled_body_wrench",
+            "residual_body_wrench",
+            "inferred_external_body_wrench_time",
+            "inferred_external_body_wrench",
+            "estimated_forward_sensor_position",
+            "estimated_forward_sensor_orientation_xyzw",
+            "estimated_forward_sensor_velocity_world",
+            "estimated_forward_angular_velocity_sensor",
+            "estimated_forward_specific_force_sensor",
+            "external_wrench_forward_sensor_position",
+            "external_wrench_forward_sensor_orientation_xyzw",
+            "external_wrench_forward_sensor_velocity_world",
+            "external_wrench_forward_angular_velocity_sensor",
+            "external_wrench_forward_specific_force_sensor",
+            "nominal_forward_sensor_position",
+            "nominal_forward_sensor_orientation_xyzw",
+        )
+        for key in exported_keys:
+            with self.subTest(key=key):
+                self.assertIn("`{}`".format(key), document)
+
     def test_body_wrench_history_interpolates_and_holds_endpoints(self):
         wrench = np.arange(18, dtype=float).reshape(3, 6)
         history = estimator.BodyWrenchHistory((1.0, 2.0, 4.0), wrench)

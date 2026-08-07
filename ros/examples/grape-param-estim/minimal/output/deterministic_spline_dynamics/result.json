@@ -18,19 +18,19 @@
       "estimated_forward_pose_score_m2": 1286.3977684282,
       "estimated_improves_over_nominal": true,
       "estimated_with_external_wrench_forward_metrics": {
-        "orientation_angle_rmse_deg": 107.9731065442231,
-        "orientation_angle_rmse_rad": 1.8844862128033295,
+        "orientation_angle_rmse_deg": 3.8411633060082306,
+        "orientation_angle_rmse_rad": 0.06704094679663411,
         "position_component_rmse_m": [
-          35.42405742768679,
-          6.093434841587422,
-          65.1731324848016
+          1.688364500997368,
+          0.3717415082879471,
+          0.04041206799102065
         ],
-        "position_rmse_m": 74.42802557296697,
-        "terminal_orientation_error_deg": 78.33340620146713,
-        "terminal_position_error_m": 171.98516261272104
+        "position_rmse_m": 1.7292771820768353,
+        "terminal_orientation_error_deg": 6.0451965732187745,
+        "terminal_position_error_m": 4.431531846051829
       },
-      "estimated_with_external_wrench_forward_pose_score_m2": 2769.8157992231118,
-      "external_wrench_improves_estimated_free_rollout": false,
+      "estimated_with_external_wrench_forward_pose_score_m2": 1.4952622380870049,
+      "external_wrench_improves_estimated_free_rollout": true,
       "id": "failure_1",
       "inferred_external_wrench": {
         "components": [
@@ -62,6 +62,18 @@
       "nominal_forward_pose_score_m2": 1920.106553355546,
       "nominal_rollout_lag_seconds": 0.01,
       "normalized_weight": 0.5,
+      "reconstruction_metrics": {
+        "orientation_angle_rmse_deg": 3.8411633060082306,
+        "orientation_angle_rmse_rad": 0.06704094679663411,
+        "position_component_rmse_m": [
+          1.688364500997368,
+          0.3717415082879471,
+          0.04041206799102065
+        ],
+        "position_rmse_m": 1.7292771820768353,
+        "terminal_orientation_error_deg": 6.0451965732187745,
+        "terminal_position_error_m": 4.431531846051829
+      },
       "residual_wrench_statistics": {
         "component_names": [
           "F_x",
@@ -103,6 +115,54 @@
           0.06936072254220944,
           0.47949167300438894,
           0.1349358097241204
+        ]
+      },
+      "sensor_consistency": {
+        "gyro": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+            "mean_bias": 0.004561966926617641,
+            "pearson_correlation": 0.862175868153147,
+            "rmse": 0.05258246808858915
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": 0.021917998622223805,
+            "pearson_correlation": 0.9972515363082336,
+            "rmse": 0.09897573195783602
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": -0.0011840628248899372,
+            "pearson_correlation": 0.969758063459084,
+            "rmse": 0.03879396402977655
+          }
+        ],
+        "specific_force": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+            "mean_bias": -0.20988724801735173,
+            "pearson_correlation": 0.9675496306327684,
+            "rmse": 0.9353004438991085
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
+            "mean_bias": 0.10414216822335583,
+            "pearson_correlation": 0.9276524111623496,
+            "rmse": 0.16147013390016385
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+            "mean_bias": 0.013998765004484909,
+            "pearson_correlation": 0.9144024253847444,
+            "rmse": 0.3378820965096469
+          }
         ]
       },
       "sensor_validation": {
@@ -151,99 +211,53 @@
             "pearson_correlation": 0.8940513634073178,
             "rmse": 0.5742774443504565
           }
-        ],
-        "world_velocity": [
-          {
-            "axis": "x",
-            "maximum_cross_correlation_time_shift_seconds": -4.850000000000069,
-            "mean_bias": -13.227572272182904,
-            "pearson_correlation": -0.030350028770323896,
-            "rmse": 15.234084228055158
-          },
-          {
-            "axis": "y",
-            "maximum_cross_correlation_time_shift_seconds": 0.5000000000000071,
-            "mean_bias": 2.60321250520453,
-            "pearson_correlation": 0.08488202056592126,
-            "rmse": 3.5263495803715057
-          },
-          {
-            "axis": "z",
-            "maximum_cross_correlation_time_shift_seconds": 1.050000000000015,
-            "mean_bias": -12.015520540676208,
-            "pearson_correlation": 0.14202308939823752,
-            "rmse": 14.701208805899642
-          }
         ]
       },
       "sensor_validation_with_external_wrench": {
         "gyro": [
           {
             "axis": "x",
-            "maximum_cross_correlation_time_shift_seconds": -1.7000000000000242,
-            "mean_bias": -0.3115753085839064,
-            "pearson_correlation": 0.19176401649904415,
-            "rmse": 0.4048541316765054
+            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+            "mean_bias": 0.004561966926617641,
+            "pearson_correlation": 0.862175868153147,
+            "rmse": 0.05258246808858915
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": -0.9717373149776142,
-            "pearson_correlation": 0.9645252093742934,
-            "rmse": 1.0339397800028673
+            "mean_bias": 0.021917998622223805,
+            "pearson_correlation": 0.9972515363082336,
+            "rmse": 0.09897573195783602
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": -0.11668609245519455,
-            "pearson_correlation": 0.5728385777044727,
-            "rmse": 0.23250683095424524
+            "mean_bias": -0.0011840628248899372,
+            "pearson_correlation": 0.969758063459084,
+            "rmse": 0.03879396402977655
           }
         ],
         "specific_force": [
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.3528863809551304,
-            "pearson_correlation": 0.9497377487088631,
-            "rmse": 1.2435637645282562
+            "mean_bias": -0.20988724801735173,
+            "pearson_correlation": 0.9675496306327684,
+            "rmse": 0.9353004438991085
           },
           {
             "axis": "y",
-            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": 0.10805203239142773,
-            "pearson_correlation": 0.8397822409535247,
-            "rmse": 0.21760976854434452
+            "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
+            "mean_bias": 0.10414216822335583,
+            "pearson_correlation": 0.9276524111623496,
+            "rmse": 0.16147013390016385
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.05121731438156105,
-            "pearson_correlation": 0.8355645162006881,
-            "rmse": 0.5073197233454069
-          }
-        ],
-        "world_velocity": [
-          {
-            "axis": "x",
-            "maximum_cross_correlation_time_shift_seconds": -4.850000000000069,
-            "mean_bias": -10.19633896178848,
-            "pearson_correlation": 0.004753941700186974,
-            "rmse": 12.08377206043131
-          },
-          {
-            "axis": "y",
-            "maximum_cross_correlation_time_shift_seconds": 0.4500000000000064,
-            "mean_bias": -2.306395043686242,
-            "pearson_correlation": 0.0779460503956648,
-            "rmse": 3.9817259590098213
-          },
-          {
-            "axis": "z",
-            "maximum_cross_correlation_time_shift_seconds": 1.0000000000000142,
-            "mean_bias": -26.94714307528996,
-            "pearson_correlation": 0.11337445183486335,
-            "rmse": 34.81549616626848
+            "mean_bias": 0.013998765004484909,
+            "pearson_correlation": 0.9144024253847444,
+            "rmse": 0.3378820965096469
           }
         ]
       },
@@ -342,18 +356,18 @@
       "estimated_forward_pose_score_m2": 1457.721558901324,
       "estimated_improves_over_nominal": true,
       "estimated_with_external_wrench_forward_metrics": {
-        "orientation_angle_rmse_deg": 101.30378841843566,
-        "orientation_angle_rmse_rad": 1.7680846526454013,
+        "orientation_angle_rmse_deg": 0.5718768468406974,
+        "orientation_angle_rmse_rad": 0.009981133893293501,
         "position_component_rmse_m": [
-          28.051580815271336,
-          6.453668963190204,
-          13.387264823908595
+          0.16567592974908515,
+          0.08630850552162093,
+          0.0025774181065272793
         ],
-        "position_rmse_m": 31.74523411140015,
-        "terminal_orientation_error_deg": 160.07176962365463,
-        "terminal_position_error_m": 77.76939079086172
+        "position_rmse_m": 0.18682696515143452,
+        "terminal_orientation_error_deg": 0.9601540200888179,
+        "terminal_position_error_m": 0.46312261299443896
       },
-      "estimated_with_external_wrench_forward_pose_score_m2": 503.9486172620059,
+      "estimated_with_external_wrench_forward_pose_score_m2": 0.017453647057717958,
       "external_wrench_improves_estimated_free_rollout": true,
       "id": "failure_2",
       "inferred_external_wrench": {
@@ -386,6 +400,18 @@
       "nominal_forward_pose_score_m2": 2212.368371976813,
       "nominal_rollout_lag_seconds": 0.01,
       "normalized_weight": 0.5,
+      "reconstruction_metrics": {
+        "orientation_angle_rmse_deg": 0.5718768468406974,
+        "orientation_angle_rmse_rad": 0.009981133893293501,
+        "position_component_rmse_m": [
+          0.16567592974908515,
+          0.08630850552162093,
+          0.0025774181065272793
+        ],
+        "position_rmse_m": 0.18682696515143452,
+        "terminal_orientation_error_deg": 0.9601540200888179,
+        "terminal_position_error_m": 0.46312261299443896
+      },
       "residual_wrench_statistics": {
         "component_names": [
           "F_x",
@@ -427,6 +453,54 @@
           0.054905776093442785,
           0.22184780990619796,
           0.0842437628210533
+        ]
+      },
+      "sensor_consistency": {
+        "gyro": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": 0.00606126067095301,
+            "pearson_correlation": 0.9266217346020503,
+            "rmse": 0.02828343129866328
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": 0.00621759146304717,
+            "pearson_correlation": 0.9962179899801653,
+            "rmse": 0.03921078631134456
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
+            "mean_bias": 0.0038196014189073296,
+            "pearson_correlation": 0.6178429182410206,
+            "rmse": 0.033983157058073206
+          }
+        ],
+        "specific_force": [
+          {
+            "axis": "x",
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": 0.07637314997074121,
+            "pearson_correlation": 0.9803436658385095,
+            "rmse": 0.3401356932971269
+          },
+          {
+            "axis": "y",
+            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+            "mean_bias": -0.07232081305062543,
+            "pearson_correlation": 0.9339776291136415,
+            "rmse": 0.09881832933502789
+          },
+          {
+            "axis": "z",
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": 0.012387912872090972,
+            "pearson_correlation": 0.960014051268798,
+            "rmse": 0.0849453430123788
+          }
         ]
       },
       "sensor_validation": {
@@ -475,29 +549,6 @@
             "pearson_correlation": 0.8025983363873163,
             "rmse": 0.3572742246070175
           }
-        ],
-        "world_velocity": [
-          {
-            "axis": "x",
-            "maximum_cross_correlation_time_shift_seconds": -3.9000000000000554,
-            "mean_bias": 9.935129342326935,
-            "pearson_correlation": 0.00441651745813415,
-            "rmse": 11.661981409158422
-          },
-          {
-            "axis": "y",
-            "maximum_cross_correlation_time_shift_seconds": -3.0500000000000433,
-            "mean_bias": 0.801380948880981,
-            "pearson_correlation": 0.19041703100111204,
-            "rmse": 1.3506906184211034
-          },
-          {
-            "axis": "z",
-            "maximum_cross_correlation_time_shift_seconds": -0.15000000000000213,
-            "mean_bias": -22.844774923404312,
-            "pearson_correlation": 0.456175494839496,
-            "rmse": 31.54917763672615
-          }
         ]
       },
       "sensor_validation_with_external_wrench": {
@@ -505,69 +556,46 @@
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": 0.032960099251983455,
-            "pearson_correlation": 0.28098847038398667,
-            "rmse": 0.20889082724622113
+            "mean_bias": 0.00606126067095301,
+            "pearson_correlation": 0.9266217346020503,
+            "rmse": 0.02828343129866328
           },
           {
             "axis": "y",
-            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": 0.31446336964965554,
-            "pearson_correlation": 0.7737980633383296,
-            "rmse": 0.4572478320727523
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": 0.00621759146304717,
+            "pearson_correlation": 0.9962179899801653,
+            "rmse": 0.03921078631134456
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
-            "mean_bias": -0.38317976842838336,
-            "pearson_correlation": 0.6058693861100957,
-            "rmse": 0.3852827727523974
+            "mean_bias": 0.0038196014189073296,
+            "pearson_correlation": 0.6178429182410206,
+            "rmse": 0.033983157058073206
           }
         ],
         "specific_force": [
           {
             "axis": "x",
-            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.049047218801080074,
-            "pearson_correlation": 0.9715921878069197,
-            "rmse": 0.39173968999265674
+            "maximum_cross_correlation_time_shift_seconds": 0.0,
+            "mean_bias": 0.07637314997074121,
+            "pearson_correlation": 0.9803436658385095,
+            "rmse": 0.3401356932971269
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.05121124326339277,
-            "pearson_correlation": 0.8398608965644444,
-            "rmse": 0.11949450871295235
-          },
-          {
-            "axis": "z",
-            "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.04061006862621432,
-            "pearson_correlation": 0.8811245087725996,
-            "rmse": 0.14620172695103076
-          }
-        ],
-        "world_velocity": [
-          {
-            "axis": "x",
-            "maximum_cross_correlation_time_shift_seconds": 1.5000000000000213,
-            "mean_bias": 12.11689688158668,
-            "pearson_correlation": 0.09548273905328361,
-            "rmse": 15.061175699005354
-          },
-          {
-            "axis": "y",
-            "maximum_cross_correlation_time_shift_seconds": 0.9000000000000128,
-            "mean_bias": -3.94851448941996,
-            "pearson_correlation": -0.21880180511440675,
-            "rmse": 6.860512903659236
+            "mean_bias": -0.07232081305062543,
+            "pearson_correlation": 0.9339776291136415,
+            "rmse": 0.09881832933502789
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": -6.467585438347298,
-            "pearson_correlation": 0.47878604672599406,
-            "rmse": 8.802612345467287
+            "mean_bias": 0.012387912872090972,
+            "pearson_correlation": 0.960014051268798,
+            "rmse": 0.0849453430123788
           }
         ]
       },
@@ -674,8 +702,8 @@
     }
   ],
   "config_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/multiple_rosbag_sample.json",
-  "created_at": "2026-08-07T11:59:25.513707+00:00",
-  "elapsed_seconds": 60.228750879876316,
+  "created_at": "2026-08-07T15:29:53.643613+00:00",
+  "elapsed_seconds": 40.53400349803269,
   "initial_estimate": {
     "delay_seconds": 0.01,
     "physical_coordinate": [
@@ -693,13 +721,9 @@
       0.0,
       0.0
     ],
-    "selected_mass_kg": 2.3515975908123767,
-    "source_kind": "nominal",
-    "source_mass_kg": 2.3515975908123767,
-    "source_path": null
+    "source_kind": "nominal"
   },
   "method": {
-    "automatic_previous_result_loading": false,
     "command_mode_during_search": "quintic smoothstep ZOH",
     "command_mode_final": "strict ZOH",
     "default_physical_initialization": "exact nominal 13-D physical chart origin",
@@ -719,22 +743,16 @@
     "bags": {
       "failure_1": {
         "external_wrench_pdf": "bags/failure_1/external_wrench.pdf",
-        "residual_wrench_pdf": "bags/failure_1/residual_wrench.pdf",
         "result_json": "bags/failure_1/result.json",
-        "sensor_validation_pdf": "bags/failure_1/sensor_validation.pdf",
+        "sensor_consistency_pdf": "bags/failure_1/sensor_consistency.pdf",
         "spline_dynamics_npz": "bags/failure_1/spline_dynamics.npz",
-        "spline_fit_pdf": "bags/failure_1/spline_fit.pdf",
-        "trajectory_3d_pdf": "bags/failure_1/trajectory_3d.pdf",
         "trajectory_pdf": "bags/failure_1/trajectory.pdf"
       },
       "failure_2": {
         "external_wrench_pdf": "bags/failure_2/external_wrench.pdf",
-        "residual_wrench_pdf": "bags/failure_2/residual_wrench.pdf",
         "result_json": "bags/failure_2/result.json",
-        "sensor_validation_pdf": "bags/failure_2/sensor_validation.pdf",
+        "sensor_consistency_pdf": "bags/failure_2/sensor_consistency.pdf",
         "spline_dynamics_npz": "bags/failure_2/spline_dynamics.npz",
-        "spline_fit_pdf": "bags/failure_2/spline_fit.pdf",
-        "trajectory_3d_pdf": "bags/failure_2/trajectory_3d.pdf",
         "trajectory_pdf": "bags/failure_2/trajectory.pdf"
       }
     },

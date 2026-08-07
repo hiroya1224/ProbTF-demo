@@ -81,16 +81,6 @@ class SplineEstimatorConfig:
 
 
 @dataclass(frozen=True)
-class InitialEstimate:
-    physical_coordinate: np.ndarray
-    delay_seconds: float
-    source_kind: str
-    source_path: Optional[Path]
-    source_mass_kg: float
-    selected_mass_kg: float
-
-
-@dataclass(frozen=True)
 class BagSplineData:
     specification: multi.BagSpecification
     normalized_weight: float
@@ -241,65 +231,6 @@ def load_spline_config(path: Path) -> SplineEstimatorConfig:
     )
 
 
-def load_initial_estimate(
-    path: Optional[Path],
-    fallback_delay: float,
-    corrected_mass: Optional[float],
-) -> InitialEstimate:
-    source_path = None if path is None else path.expanduser().resolve()
-    coordinate = np.zeros(strict.PHYSICAL_DIMENSION, dtype=float)
-    delay = float(fallback_delay)
-    source_kind = "nominal" if source_path is None else "nominal_fallback"
-    if source_path is not None and source_path.is_file():
-        try:
-            raw = json.loads(source_path.read_text(encoding="utf-8"))
-            selected = raw.get("selection", raw)
-            coordinate = np.asarray(
-                selected["physical_coordinate"], dtype=float
-            )
-            delay = float(selected["delay_seconds"])
-        except (
-            OSError,
-            json.JSONDecodeError,
-            KeyError,
-            TypeError,
-            ValueError,
-        ) as error:
-            raise ValueError(
-                "existing estimator result is not compatible: {}".format(
-                    source_path
-                )
-            ) from error
-        source_kind = "multiple_shooting_result"
-    if (
-        coordinate.shape != (strict.PHYSICAL_DIMENSION,)
-        or np.any(~np.isfinite(coordinate))
-        or not np.isfinite(delay)
-        or delay < 0.0
-    ):
-        raise ValueError("initial estimator coordinate or delay is invalid")
-    parameterization = strict.FullyPhysicalInertiaParameterization(
-        VehicleParameters.nominal()
-    )
-    decoded = parameterization.decode(
-        continuation._expand_coordinate(coordinate, delay)
-    )
-    source_mass = float(decoded.parameters.mass)
-    selected_mass = source_mass if corrected_mass is None else float(corrected_mass)
-    if not np.isfinite(selected_mass) or selected_mass <= 0.0:
-        raise ValueError("corrected mass must be finite and positive")
-    coordinate = coordinate.copy()
-    coordinate[0] = math.log(selected_mass / VehicleParameters.nominal().mass)
-    return InitialEstimate(
-        physical_coordinate=coordinate,
-        delay_seconds=delay,
-        source_kind=source_kind,
-        source_path=(
-            source_path if source_kind == "multiple_shooting_result" else None
-        ),
-        source_mass_kg=source_mass,
-        selected_mass_kg=selected_mass,
-    )
 
 
 def _collocation_grid(
@@ -969,6 +900,85 @@ def _solve_strict(
     )
 
 
+def _observations_at_times(
+    observations: baseline.Observations,
+    query_time: Sequence[float],
+) -> baseline.Observations:
+    time_value = np.asarray(query_time, dtype=float)
+    if (
+        time_value.ndim != 1
+        or time_value.size < 2
+        or np.any(~np.isfinite(time_value))
+        or np.any(np.diff(time_value) <= 0.0)
+    ):
+        raise ValueError("observation query times are invalid")
+
+    position, orientation, valid = baseline.interpolate_observed_pose(
+        observations.time,
+        observations.sensor_position,
+        observations.sensor_orientation_xyzw,
+        time_value,
+    )
+    if not np.all(valid):
+        raise ValueError("observed pose does not cover reconstruction time")
+
+    return baseline.Observations(
+        time=time_value.copy(),
+        sensor_position=position,
+        sensor_orientation_xyzw=orientation,
+        sensor_velocity_world=baseline._linear_interpolate(
+            observations.time,
+            observations.sensor_velocity_world,
+            time_value,
+        ),
+        angular_velocity_sensor=baseline._linear_interpolate(
+            observations.time,
+            observations.angular_velocity_sensor,
+            time_value,
+        ),
+        specific_force_sensor=baseline._linear_interpolate(
+            observations.time,
+            observations.specific_force_sensor,
+            time_value,
+        ),
+    )
+
+
+def _simulation_at_times(
+    simulation: baseline.Simulation,
+    query_time: Sequence[float],
+) -> baseline.Simulation:
+    time_value = np.asarray(query_time, dtype=float)
+    position, orientation, valid = baseline.interpolate_observed_pose(
+        simulation.time,
+        simulation.sensor_position,
+        simulation.sensor_orientation_xyzw,
+        time_value,
+    )
+    if not np.all(valid):
+        raise ValueError("simulation does not cover requested times")
+
+    def interp(values: np.ndarray) -> np.ndarray:
+        return baseline._linear_interpolate(
+            simulation.time,
+            np.asarray(values, dtype=float),
+            time_value,
+        )
+
+    return baseline.Simulation(
+        time=time_value.copy(),
+        sensor_position=position,
+        sensor_orientation_xyzw=orientation,
+        sensor_velocity_world=interp(simulation.sensor_velocity_world),
+        angular_velocity_sensor=interp(simulation.angular_velocity_sensor),
+        specific_force_sensor=interp(simulation.specific_force_sensor),
+        cog_position=interp(simulation.cog_position),
+        cog_velocity_world=interp(simulation.cog_velocity_world),
+        actuator_thrust=interp(simulation.actuator_thrust),
+        actuator_gimbal=interp(simulation.actuator_gimbal),
+    )
+
+
 def forward_rollout(
     bag: BagSplineData,
     physical_coordinate: Sequence[float],
@@ -1111,6 +1121,188 @@ def forward_rollout(
     return baseline.Simulation(time=direct.output_time, **arrays)
 
 
+def reconstruction_rollout(
+    bag: BagSplineData,
+    physical_coordinate: Sequence[float],
+    delay: float,
+    evaluation: BagDynamicsEvaluation,
+    external_body_wrench: BodyWrenchHistory,
+) -> baseline.Simulation:
+    # Reconstruct only on the same collocation support used to infer the wrench.
+    physical = np.asarray(physical_coordinate, dtype=float)
+    if (
+        physical.shape != (strict.PHYSICAL_DIMENSION,)
+        or np.any(~np.isfinite(physical))
+        or not np.isfinite(delay)
+        or delay < 0.0
+    ):
+        raise ValueError("reconstruction coordinate or delay is invalid")
+    if not isinstance(external_body_wrench, BodyWrenchHistory):
+        raise TypeError("external_body_wrench must be BodyWrenchHistory")
+
+    time_axis = np.asarray(bag.collocation_time, dtype=float)
+    if (
+        time_axis.ndim != 1
+        or time_axis.size < 2
+        or np.any(np.diff(time_axis) <= 0.0)
+    ):
+        raise ValueError("reconstruction collocation grid is invalid")
+    if (
+        evaluation.actuator_thrust.shape != (time_axis.size, 4)
+        or evaluation.actuator_gimbal.shape != (time_axis.size, 4)
+    ):
+        raise ValueError("evaluation actuator history has the wrong shape")
+
+    parameterization = strict.FullyPhysicalInertiaParameterization(
+        VehicleParameters.nominal()
+    )
+    decoded = parameterization.decode(
+        continuation._expand_coordinate(physical, delay)
+    )
+    parameters = decoded.parameters
+    actuator_parameters = decoded.actuator_parameters
+    direct = bag.direct_problem
+
+    start_time = float(time_axis[0])
+    initial_spline = bag.spline_selection.spline.evaluate(
+        np.asarray((start_time,), dtype=float)
+    )
+    rotation = initial_spline.body_rotation[0]
+    omega = initial_spline.body_angular_velocity[0]
+    pose_lever = direct.pose_sensor_position - parameters.cog_offset
+
+    rigid = RigidBodyState(
+        position=initial_spline.sensor_position[0] - rotation @ pose_lever,
+        orientation_xyzw=matrix_to_quaternion(rotation),
+        linear_velocity=(
+            initial_spline.sensor_velocity_world[0]
+            - rotation @ np.cross(omega, pose_lever)
+        ),
+        angular_velocity=omega,
+    )
+    actuators = ActuatorState(
+        thrust=np.asarray(evaluation.actuator_thrust[0], dtype=float).copy(),
+        gimbal_angle=np.asarray(
+            evaluation.actuator_gimbal[0], dtype=float
+        ).copy(),
+    )
+
+    plant = FullSixDofPlant(
+        parameters,
+        direct.geometry,
+        model_discrepancy_wrench=external_body_wrench,
+    )
+
+    count = time_axis.size
+    arrays = {
+        "sensor_position": np.empty((count, 3)),
+        "sensor_orientation_xyzw": np.empty((count, 4)),
+        "sensor_velocity_world": np.empty((count, 3)),
+        "angular_velocity_sensor": np.empty((count, 3)),
+        "specific_force_sensor": np.empty((count, 3)),
+        "cog_position": np.empty((count, 3)),
+        "cog_velocity_world": np.empty((count, 3)),
+        "actuator_thrust": np.empty((count, 4)),
+        "actuator_gimbal": np.empty((count, 4)),
+    }
+
+    def store(index: int, simulation_time: float) -> None:
+        body_rotation = quaternion_to_matrix(rigid.orientation_xyzw)
+        pose_lever_value = (
+            direct.pose_sensor_position - parameters.cog_offset
+        )
+        velocity_lever = (
+            direct.velocity_sensor_position - parameters.cog_offset
+        )
+        imu_lever = direct.imu_sensor_position - parameters.cog_offset
+
+        wrench = plant.total_body_wrench(
+            simulation_time, rigid, actuators
+        )
+        angular_acceleration = np.linalg.solve(
+            parameters.inertia,
+            wrench[3:]
+            - np.cross(
+                rigid.angular_velocity,
+                parameters.inertia @ rigid.angular_velocity,
+            ),
+        )
+        specific_force_body = (
+            wrench[:3] / parameters.mass
+            + np.cross(angular_acceleration, imu_lever)
+            + np.cross(
+                rigid.angular_velocity,
+                np.cross(rigid.angular_velocity, imu_lever),
+            )
+        )
+
+        arrays["sensor_position"][index] = (
+            rigid.position + body_rotation @ pose_lever_value
+        )
+        arrays["sensor_orientation_xyzw"][index] = matrix_to_quaternion(
+            body_rotation @ direct.pose_body_to_sensor_rotation
+        )
+        arrays["sensor_velocity_world"][index] = (
+            rigid.linear_velocity
+            + body_rotation
+            @ np.cross(rigid.angular_velocity, velocity_lever)
+        )
+        arrays["angular_velocity_sensor"][index] = (
+            direct.body_to_imu_rotation @ rigid.angular_velocity
+            + direct.gyro_bias
+        )
+        arrays["specific_force_sensor"][index] = (
+            direct.body_to_imu_rotation @ specific_force_body
+            + direct.accelerometer_bias
+        )
+        arrays["cog_position"][index] = rigid.position
+        arrays["cog_velocity_world"][index] = rigid.linear_velocity
+        arrays["actuator_thrust"][index] = actuators.thrust
+        arrays["actuator_gimbal"][index] = actuators.gimbal_angle
+
+    store(0, start_time)
+    for index in range(count - 1):
+        start = float(time_axis[index])
+        dt = float(time_axis[index + 1] - time_axis[index])
+        midpoint = start + 0.5 * dt
+        command = smooth._command(
+            bag.rotor_history.exact_zoh(midpoint, delay),
+            bag.gimbal_history.exact_zoh(midpoint, delay),
+        )
+
+        # Match _actuator_series(): same initial actuator state, same decoded
+        # actuator parameters, and two half-steps with one midpoint command.
+        midpoint_actuators = advance_actuators(
+            actuators,
+            command,
+            actuator_parameters,
+            0.5 * dt,
+        )
+        rigid = plant.step(start, rigid, midpoint_actuators, dt)
+        actuators = advance_actuators(
+            midpoint_actuators,
+            command,
+            actuator_parameters,
+            0.5 * dt,
+        )
+        store(index + 1, float(time_axis[index + 1]))
+
+    dense = baseline.Simulation(time=time_axis.copy(), **arrays)
+
+    observed_time = np.asarray(direct.observations.time, dtype=float)
+    tolerance = 1.0e-10
+    mask = (
+        (observed_time >= time_axis[0] - tolerance)
+        & (observed_time <= time_axis[-1] + tolerance)
+    )
+    output_time = observed_time[mask]
+    if output_time.size < 2:
+        raise ValueError(
+            "reconstruction support contains fewer than two observed samples"
+        )
+    return _simulation_at_times(dense, output_time)
+
+
 def _orientation_errors(
     observed_xyzw: np.ndarray,
     predicted_xyzw: np.ndarray,
@@ -1202,11 +1394,6 @@ def _sensor_metrics(
     simulation: baseline.Simulation,
 ) -> dict[str, Any]:
     return {
-        "world_velocity": _axis_validation_statistics(
-            observations.time,
-            observations.sensor_velocity_world,
-            simulation.sensor_velocity_world,
-        ),
         "gyro": _axis_validation_statistics(
             observations.time,
             observations.angular_velocity_sensor,
@@ -1218,7 +1405,6 @@ def _sensor_metrics(
             simulation.specific_force_sensor,
         ),
     }
-
 
 def _wrench_statistics(
     time_axis: np.ndarray,
@@ -1256,52 +1442,25 @@ def _common_3d_limits(*series: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 def _write_trajectory_pdf(
     path: Path,
     bag: BagSplineData,
-    estimated: baseline.Simulation,
-    estimated_with_external_wrench: baseline.Simulation,
-    nominal: baseline.Simulation,
+    reconstructed: baseline.Simulation,
 ) -> None:
-    observed = bag.direct_problem.observations
-    relative_time = observed.time - observed.time[0]
-    estimated_position_error = estimated.sensor_position - observed.sensor_position
-    estimated_orientation_error = _orientation_errors(
-        observed.sensor_orientation_xyzw,
-        estimated.sensor_orientation_xyzw,
+    observed = _observations_at_times(
+        bag.direct_problem.observations,
+        reconstructed.time,
     )
-    external_position_error = (
-        estimated_with_external_wrench.sensor_position
-        - observed.sensor_position
+    relative_time = reconstructed.time - reconstructed.time[0]
+    observed_rpy = baseline._rpy_series(observed.sensor_orientation_xyzw)
+    reconstructed_rpy = baseline._rpy_series(
+        reconstructed.sensor_orientation_xyzw
     )
-    external_orientation_error = _orientation_errors(
-        observed.sensor_orientation_xyzw,
-        estimated_with_external_wrench.sensor_orientation_xyzw,
-    )
-    observed_rpy = baseline._rpy_series(
-        observed.sensor_orientation_xyzw
-    )
-    estimated_rpy = baseline._rpy_series(
-        estimated.sensor_orientation_xyzw
-    )
-    external_rpy = baseline._rpy_series(
-        estimated_with_external_wrench.sensor_orientation_xyzw
-    )
-    primary_lower, primary_upper = _common_3d_limits(
+    lower, upper = _common_3d_limits(
         observed.sensor_position,
-        estimated.sensor_position,
-        estimated_with_external_wrench.sensor_position,
+        reconstructed.sensor_position,
     )
-    forced_lower, forced_upper = _common_3d_limits(
-        observed.sensor_position,
-        estimated_with_external_wrench.sensor_position,
-    )
-    comparison_lower, comparison_upper = _common_3d_limits(
-        observed.sensor_position,
-        estimated.sensor_position,
-        estimated_with_external_wrench.sensor_position,
-        nominal.sensor_position,
-    )
+
     with PdfPages(path) as pdf:
         figure = plt.figure(figsize=(11.7, 8.3), constrained_layout=True)
-        axis = figure.add_subplot(121, projection="3d")
+        axis = figure.add_subplot(111, projection="3d")
         axis.plot(
             observed.sensor_position[:, 0],
             observed.sensor_position[:, 1],
@@ -1311,103 +1470,39 @@ def _write_trajectory_pdf(
             label="observed",
         )
         axis.plot(
-            estimated.sensor_position[:, 0],
-            estimated.sensor_position[:, 1],
-            estimated.sensor_position[:, 2],
-            color="#d2691e",
-            linewidth=2.0,
-            linestyle="--",
-            label="estimated full forward rollout",
-        )
-        axis.plot(
-            estimated_with_external_wrench.sensor_position[:, 0],
-            estimated_with_external_wrench.sensor_position[:, 1],
-            estimated_with_external_wrench.sensor_position[:, 2],
+            reconstructed.sensor_position[:, 0],
+            reconstructed.sensor_position[:, 1],
+            reconstructed.sensor_position[:, 2],
             color="#1e965f",
             linewidth=2.0,
-            linestyle=":",
-            label="estimated + inferred external wrench",
+            linestyle="--",
+            label="estimated parameters + inferred external wrench",
         )
-        axis.set_xlim(primary_lower[0], primary_upper[0])
-        axis.set_ylim(primary_lower[1], primary_upper[1])
-        axis.set_zlim(primary_lower[2], primary_upper[2])
+        axis.set_xlim(lower[0], upper[0])
+        axis.set_ylim(lower[1], upper[1])
+        axis.set_zlim(lower[2], upper[2])
         axis.set_xlabel("x [m]")
         axis.set_ylabel("y [m]")
         axis.set_zlabel("z [m]")
-        axis.set_title(
-            "Observed vs estimated free/forced (full scale)"
-        )
+        axis.set_title("Observed and reconstructed 3D trajectory")
         axis.legend(loc="best")
-        forced_axis = figure.add_subplot(122, projection="3d")
-        forced_axis.plot(
-            observed.sensor_position[:, 0],
-            observed.sensor_position[:, 1],
-            observed.sensor_position[:, 2],
-            color="#1e5abe",
-            linewidth=2.5,
-            label="observed",
-        )
-        forced_axis.plot(
-            estimated_with_external_wrench.sensor_position[:, 0],
-            estimated_with_external_wrench.sensor_position[:, 1],
-            estimated_with_external_wrench.sensor_position[:, 2],
-            color="#1e965f",
-            linewidth=2.0,
-            linestyle=":",
-            label="estimated + external wrench",
-        )
-        forced_axis.set_xlim(forced_lower[0], forced_upper[0])
-        forced_axis.set_ylim(forced_lower[1], forced_upper[1])
-        forced_axis.set_zlim(forced_lower[2], forced_upper[2])
-        forced_axis.set_xlabel("x [m]")
-        forced_axis.set_ylabel("y [m]")
-        forced_axis.set_zlabel("z [m]")
-        forced_axis.set_title("Observed vs externally-forced estimated")
-        forced_axis.legend(loc="best")
-        figure.suptitle(
-            "PRIMARY trajectory comparison with inferred external body wrench"
-        )
         pdf.savefig(figure)
         plt.close(figure)
 
-        primary_pages = (
+        for title, reference, prediction, labels in (
             (
-                "PRIMARY: observed vs estimated sensor position",
+                "Observed and reconstructed sensor position",
                 observed.sensor_position,
-                estimated.sensor_position,
-                estimated_with_external_wrench.sensor_position,
+                reconstructed.sensor_position,
                 ("x [m]", "y [m]", "z [m]"),
             ),
             (
-                "PRIMARY: observed vs estimated sensor orientation",
+                "Observed and reconstructed sensor orientation",
                 observed_rpy,
-                estimated_rpy,
-                external_rpy,
+                reconstructed_rpy,
                 ("roll [rad]", "pitch [rad]", "yaw [rad]"),
             ),
-            (
-                "Observed vs estimated world-frame velocity",
-                observed.sensor_velocity_world,
-                estimated.sensor_velocity_world,
-                estimated_with_external_wrench.sensor_velocity_world,
-                ("v_x [m/s]", "v_y [m/s]", "v_z [m/s]"),
-            ),
-            (
-                "Observed vs estimated gyroscope",
-                observed.angular_velocity_sensor,
-                estimated.angular_velocity_sensor,
-                estimated_with_external_wrench.angular_velocity_sensor,
-                ("omega_x [rad/s]", "omega_y [rad/s]", "omega_z [rad/s]"),
-            ),
-            (
-                "Observed vs estimated specific force",
-                observed.specific_force_sensor,
-                estimated.specific_force_sensor,
-                estimated_with_external_wrench.specific_force_sensor,
-                ("f_x [m/s2]", "f_y [m/s2]", "f_z [m/s2]"),
-            ),
-        )
-        for title, reference, prediction, forced_prediction, labels in primary_pages:
+        ):
             figure, axes = plt.subplots(
                 3,
                 1,
@@ -1415,229 +1510,94 @@ def _write_trajectory_pdf(
                 sharex=True,
                 constrained_layout=True,
             )
-            for component, component_axis in enumerate(axes):
-                component_axis.plot(
+            for component, axis in enumerate(axes):
+                axis.plot(
                     relative_time,
                     reference[:, component],
                     color="#1e5abe",
                     linewidth=2.2,
                     label="observed",
                 )
-                component_axis.plot(
+                axis.plot(
                     relative_time,
                     prediction[:, component],
-                    color="#d2691e",
+                    color="#1e965f",
                     linewidth=1.8,
                     linestyle="--",
-                    label="estimated full forward rollout",
+                    label="reconstructed",
                 )
-                component_axis.plot(
-                    relative_time,
-                    forced_prediction[:, component],
-                    color="#1e965f",
-                    linewidth=1.8,
-                    linestyle=":",
-                    label="estimated + inferred external wrench",
-                )
-                component_axis.set_ylabel(labels[component])
-                component_axis.grid(True, alpha=0.25)
+                axis.set_ylabel(labels[component])
+                axis.grid(True, alpha=0.25)
             axes[0].set_title(title)
             axes[0].legend(loc="best")
-            axes[-1].set_xlabel("time [s]")
+            axes[-1].set_xlabel(
+                "time from reconstruction-support start [s]"
+            )
             pdf.savefig(figure)
             plt.close(figure)
-
-        for title, estimated_error, forced_error, labels in (
-            (
-                "Estimated free/externally-forced sensor position error",
-                estimated_position_error,
-                external_position_error,
-                ("x error [m]", "y error [m]", "z error [m]"),
-            ),
-            (
-                "Estimated free/externally-forced orientation log error",
-                estimated_orientation_error,
-                external_orientation_error,
-                ("roll-like [rad]", "pitch-like [rad]", "yaw-like [rad]"),
-            ),
-        ):
-            figure, axes = plt.subplots(
-                3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True
-            )
-            for component, component_axis in enumerate(axes):
-                component_axis.plot(
-                    relative_time,
-                    estimated_error[:, component],
-                    color="#d2691e",
-                    label="estimated minus observed",
-                )
-                component_axis.plot(
-                    relative_time,
-                    forced_error[:, component],
-                    color="#1e965f",
-                    linestyle=":",
-                    label="estimated + external wrench minus observed",
-                )
-                component_axis.axhline(
-                    0.0, color="black", linewidth=0.7, alpha=0.5
-                )
-                component_axis.set_ylabel(labels[component])
-                component_axis.grid(True, alpha=0.25)
-            axes[0].set_title(title)
-            axes[0].legend(loc="best")
-            axes[-1].set_xlabel("time [s]")
-            pdf.savefig(figure)
-            plt.close(figure)
-
-        figure = plt.figure(figsize=(11.7, 8.3), constrained_layout=True)
-        for subplot, rollout, title, color in (
-            (
-                121,
-                estimated,
-                "Estimated parameters",
-                "#d2691e",
-            ),
-            (
-                122,
-                nominal,
-                "Nominal parameters (auxiliary)",
-                "#8b4bb7",
-            ),
-        ):
-            axis = figure.add_subplot(subplot, projection="3d")
-            axis.plot(
-                observed.sensor_position[:, 0],
-                observed.sensor_position[:, 1],
-                observed.sensor_position[:, 2],
-                color="#1e5abe",
-                linewidth=2.0,
-                label="observed",
-            )
-            axis.plot(
-                rollout.sensor_position[:, 0],
-                rollout.sensor_position[:, 1],
-                rollout.sensor_position[:, 2],
-                color=color,
-                linestyle="--",
-                label=title,
-            )
-            if rollout is estimated:
-                axis.plot(
-                    estimated_with_external_wrench.sensor_position[:, 0],
-                    estimated_with_external_wrench.sensor_position[:, 1],
-                    estimated_with_external_wrench.sensor_position[:, 2],
-                    color="#1e965f",
-                    linestyle=":",
-                    label="estimated + external wrench",
-                )
-            axis.set_xlim(comparison_lower[0], comparison_upper[0])
-            axis.set_ylim(comparison_lower[1], comparison_upper[1])
-            axis.set_zlim(comparison_lower[2], comparison_upper[2])
-            axis.set_xlabel("x [m]")
-            axis.set_ylabel("y [m]")
-            axis.set_zlabel("z [m]")
-            axis.set_title(title)
-            axis.legend(loc="best")
-        figure.suptitle(
-            "Auxiliary estimated/nominal comparison; primary comparison is observed/estimated"
-        )
-        pdf.savefig(figure)
-        plt.close(figure)
-
 
 def _write_sensor_validation_pdf(
     path: Path,
     bag: BagSplineData,
-    estimated: baseline.Simulation,
+    reconstructed: baseline.Simulation,
     metrics: Mapping[str, Any],
-    estimated_with_external_wrench: baseline.Simulation,
-    external_metrics: Mapping[str, Any],
 ) -> None:
-    observed = bag.direct_problem.observations
-    relative_time = observed.time - observed.time[0]
+    del metrics
+    observed = _observations_at_times(
+        bag.direct_problem.observations,
+        reconstructed.time,
+    )
+    relative_time = reconstructed.time - reconstructed.time[0]
     pages = (
         (
-            "World-frame velocity",
-            "world_velocity",
-            observed.sensor_velocity_world,
-            estimated.sensor_velocity_world,
-            estimated_with_external_wrench.sensor_velocity_world,
-            ("v_x [m/s]", "v_y [m/s]", "v_z [m/s]"),
-        ),
-        (
             "Gyroscope",
-            "gyro",
             observed.angular_velocity_sensor,
-            estimated.angular_velocity_sensor,
-            estimated_with_external_wrench.angular_velocity_sensor,
+            reconstructed.angular_velocity_sensor,
             ("omega_x [rad/s]", "omega_y [rad/s]", "omega_z [rad/s]"),
         ),
         (
             "Specific force",
-            "specific_force",
             observed.specific_force_sensor,
-            estimated.specific_force_sensor,
-            estimated_with_external_wrench.specific_force_sensor,
+            reconstructed.specific_force_sensor,
             ("f_x [m/s^2]", "f_y [m/s^2]", "f_z [m/s^2]"),
         ),
     )
+
     with PdfPages(path) as pdf:
-        for title, key, reference, prediction, forced_prediction, labels in pages:
+        for title, reference, prediction, labels in pages:
             figure, axes = plt.subplots(
-                3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True
+                3,
+                1,
+                figsize=(11.7, 8.3),
+                sharex=True,
+                constrained_layout=True,
             )
             for component, axis in enumerate(axes):
-                statistic = metrics[key][component]
-                forced_statistic = external_metrics[key][component]
                 axis.plot(
                     relative_time,
                     reference[:, component],
                     color="#1e5abe",
                     linewidth=2.0,
-                    label="measured (validation only)",
+                    label="measured",
                 )
                 axis.plot(
                     relative_time,
                     prediction[:, component],
-                    color="#d2691e",
-                    linestyle="--",
-                    label="estimated full rollout",
-                )
-                axis.plot(
-                    relative_time,
-                    forced_prediction[:, component],
                     color="#1e965f",
-                    linestyle=":",
-                    label="estimated + inferred external wrench",
+                    linestyle="--",
+                    label="reconstructed",
                 )
                 axis.set_ylabel(labels[component])
                 axis.grid(True, alpha=0.25)
-                axis.text(
-                    0.01,
-                    0.03,
-                    "free: RMSE={:.4g}, bias={:.4g}, r={:.4g}, "
-                    "lag={:+.4g}s\nforced: RMSE={:.4g}, bias={:.4g}, "
-                    "r={:.4g}, lag={:+.4g}s".format(
-                        statistic["rmse"],
-                        statistic["mean_bias"],
-                        statistic["pearson_correlation"],
-                        statistic["maximum_cross_correlation_time_shift_seconds"],
-                        forced_statistic["rmse"],
-                        forced_statistic["mean_bias"],
-                        forced_statistic["pearson_correlation"],
-                        forced_statistic[
-                            "maximum_cross_correlation_time_shift_seconds"
-                        ],
-                    ),
-                    transform=axis.transAxes,
-                    fontsize=8,
-                )
-            axes[0].set_title(title + " (not used by estimator loss)")
+            axes[0].set_title(
+                title + " consistency (not used by parameter loss)"
+            )
             axes[0].legend(loc="best")
-            axes[-1].set_xlabel("time [s]")
+            axes[-1].set_xlabel(
+                "time from reconstruction-support start [s]"
+            )
             pdf.savefig(figure)
             plt.close(figure)
-
 
 def _write_residual_wrench_pdf(
     path: Path,
@@ -1645,117 +1605,45 @@ def _write_residual_wrench_pdf(
     evaluation: BagDynamicsEvaluation,
     statistics: Mapping[str, Any],
 ) -> None:
-    relative_time = bag.collocation_time - bag.collocation_time[0]
-    cumulative = np.zeros_like(evaluation.residual_body_wrench)
-    increments = 0.5 * (
-        evaluation.residual_body_wrench[1:]
-        + evaluation.residual_body_wrench[:-1]
-    ) * np.diff(bag.collocation_time)[:, None]
-    cumulative[1:] = np.cumsum(increments, axis=0)
-    names = statistics["component_names"]
+    del statistics
+    observed = bag.direct_problem.observations
+    relative_time = bag.collocation_time - observed.time[0]
+    full_duration = float(observed.time[-1] - observed.time[0])
+    names = ("F_x", "F_y", "F_z", "M_x", "M_y", "M_z")
     units = ("N", "N", "N", "N m", "N m", "N m")
+
     with PdfPages(path) as pdf:
-        figure, axes = plt.subplots(
-            3,
-            2,
-            figsize=(11.7, 8.3),
-            sharex=True,
-            constrained_layout=True,
-        )
-        for row in range(3):
-            for column, component in ((0, row), (1, row + 3)):
-                axis = axes[row, column]
+        for offset, title in (
+            (0, "Inferred external body force"),
+            (3, "Inferred external body torque"),
+        ):
+            figure, axes = plt.subplots(
+                3,
+                1,
+                figsize=(11.7, 8.3),
+                sharex=True,
+                constrained_layout=True,
+            )
+            for local, axis in enumerate(axes):
+                component = offset + local
                 axis.plot(
                     relative_time,
                     evaluation.residual_body_wrench[:, component],
                     color="#1e965f",
                     linewidth=1.5,
                 )
-                axis.axhline(
-                    0.0, color="black", linewidth=0.7, alpha=0.5
-                )
+                axis.axhline(0.0, color="black", linewidth=0.7, alpha=0.5)
+                axis.set_xlim(0.0, full_duration)
                 axis.set_ylabel(
                     "{} [{}]".format(names[component], units[component])
                 )
                 axis.grid(True, alpha=0.25)
-        axes[0, 0].set_title(
-            "Inferred external body wrench: force (left) and torque (right)"
-        )
-        axes[-1, 0].set_xlabel("time [s]")
-        axes[-1, 1].set_xlabel("time [s]")
-        pdf.savefig(figure)
-        plt.close(figure)
-
-        for offset, kind in ((0, "body force"), (3, "body torque")):
-            figure, axes = plt.subplots(
-                3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True
+            axes[0].set_title(
+                title + " = required by observed-pose spline - modeled wrench"
             )
-            for local, axis in enumerate(axes):
-                component = offset + local
-                axis.plot(
-                    relative_time,
-                    evaluation.required_body_wrench[:, component],
-                    color="#1e5abe",
-                    label="required by pose spline",
-                )
-                axis.plot(
-                    relative_time,
-                    evaluation.modeled_body_wrench[:, component],
-                    color="#d2691e",
-                    linestyle="--",
-                    label="physical model",
-                )
-                axis.set_ylabel("{} [{}]".format(names[component], units[component]))
-                axis.grid(True, alpha=0.25)
-            axes[0].set_title("Required and modeled " + kind)
-            axes[0].legend(loc="best")
-            axes[-1].set_xlabel("time [s]")
+            axes[-1].set_xlabel("time from requested interval start [s]")
             pdf.savefig(figure)
             plt.close(figure)
-
-            figure, axes = plt.subplots(
-                3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True
-            )
-            for local, axis in enumerate(axes):
-                component = offset + local
-                axis.plot(
-                    relative_time,
-                    evaluation.residual_body_wrench[:, component],
-                    color="#8b4bb7",
-                )
-                axis.axhline(0.0, color="black", linewidth=0.7, alpha=0.5)
-                axis.set_ylabel("{} residual [{}]".format(names[component], units[component]))
-                axis.grid(True, alpha=0.25)
-                axis.text(
-                    0.01,
-                    0.03,
-                    "mean={:.4g}, RMSE={:.4g}, trend={:+.4g}/s, impulse={:+.4g}".format(
-                        statistics["mean"][component],
-                        statistics["rmse"][component],
-                        statistics["linear_trend_per_second"][component],
-                        statistics["cumulative_impulse"][component],
-                    ),
-                    transform=axis.transAxes,
-                    fontsize=8,
-                )
-            axes[0].set_title("Residual " + kind)
-            axes[-1].set_xlabel("time [s]")
-            pdf.savefig(figure)
-            plt.close(figure)
-
-            figure, axes = plt.subplots(
-                3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True
-            )
-            for local, axis in enumerate(axes):
-                component = offset + local
-                axis.plot(relative_time, cumulative[:, component], color="#1e965f")
-                axis.set_ylabel("int {} dt".format(names[component]))
-                axis.grid(True, alpha=0.25)
-            axes[0].set_title("Cumulative residual " + kind + " impulse")
-            axes[-1].set_xlabel("time [s]")
-            pdf.savefig(figure)
-            plt.close(figure)
-
 
 def _write_spline_fit_pdf(path: Path, bag: BagSplineData) -> None:
     direct = bag.direct_problem
@@ -2002,188 +1890,155 @@ def _spline_fit_metrics(bag: BagSplineData) -> dict[str, Any]:
 
 
 def _parameter_lines(
-    initial: InitialEstimate,
     selected: DynamicsSolution,
+    initial_delay: float,
     bags: Sequence[BagSplineData],
     bag_payloads: Sequence[Mapping[str, Any]],
-    smooth_stages: Sequence[Mapping[str, Any]],
-    strict_candidates: Sequence[Mapping[str, Any]],
-    collocation_step: float,
 ) -> list[str]:
-    parameters = selected.evaluation.decoded.parameters
-    principal = np.linalg.eigvalsh(parameters.inertia)
+    nominal = VehicleParameters.nominal()
+    estimated = selected.evaluation.decoded.parameters
+    nominal_principal = np.linalg.eigvalsh(nominal.inertia)
+    estimated_principal = np.linalg.eigvalsh(estimated.inertia)
+
+    def update_line(
+        name: str,
+        before: float,
+        after: float,
+        unit: str = "",
+        *,
+        ratio: bool = True,
+    ) -> str:
+        delta = after - before
+        if ratio and abs(before) > 1.0e-15:
+            ratio_text = "{:.8g}".format(after / before)
+        else:
+            ratio_text = "-"
+        unit_text = " [{}]".format(unit) if unit else ""
+        return (
+            "  {:32s} {: .10g} -> {: .10g}   delta={:+.6g}   ratio={}"
+        ).format(name + unit_text, before, after, delta, ratio_text)
+
     lines = [
         "Deterministic pose-spline dynamics estimator",
         "",
-        "Estimator structure",
-        "  pose-only continuous-time spline -> analytic derivatives",
-        "  pose spline degree: 5 (position and normalized quaternion)",
-        "  fixed-spline gradient matching -> shared physical parameters and lag",
-        "  default physical initialization: exact nominal chart origin",
-        "  previous estimator result loading: explicit opt-in only",
-        "  shooting nodes: none",
-        "  continuity constraints: none",
-        "  sensor/IMU channels in loss: none",
-        "",
-        "Initial estimate",
-        "  source kind: {}".format(initial.source_kind),
-        "  source path: {}".format(initial.source_path),
-        "  source mass [kg]: {:.12g}".format(initial.source_mass_kg),
-        "  selected initial mass [kg]: {:.12g}".format(initial.selected_mass_kg),
-        "",
-        "Selected strict-ZOH parameters",
-        "  mass [kg]: {:.12g}".format(parameters.mass),
-        "  inertia [kg m^2]:",
+        "Shared parameter update: nominal -> estimated",
+        update_line("mass", nominal.mass, estimated.mass, "kg"),
     ]
-    lines.extend(
-        "    [{: .12g}, {: .12g}, {: .12g}]".format(*row)
-        for row in parameters.inertia
-    )
-    lines.extend(
-        [
-            "  principal moments [kg m^2]: "
-            "[{:.12g}, {:.12g}, {:.12g}]".format(*principal),
-            "  inertia triangle margin [kg m^2]: {:.12g}".format(
-                selected.evaluation.decoded.inertia_triangle_margin
-            ),
-            "  CoG offset [m]: [{:.12g}, {:.12g}, {:.12g}]".format(
-                *parameters.cog_offset
-            ),
-            "  rotor force effectiveness: "
-            "[{:.12g}, {:.12g}, {:.12g}, {:.12g}]".format(
-                *parameters.force_effectiveness
-            ),
-            "  lag [s]: {:.12g}".format(selected.delay_seconds),
-            "  joint dynamics loss: {:.12g}".format(selected.evaluation.data_loss),
-            "  soft-prior cost: {:.12g}".format(selected.evaluation.prior_cost),
-            "",
-            "Smooth physical coordinates",
-        ]
-    )
-    lines.extend(
-        "  {:50s} {: .12g}".format(name, value)
-        for name, value in zip(
-            strict.PHYSICAL_PARAMETER_NAMES,
-            selected.physical_coordinate,
+    for component, name in enumerate(("CoG x", "CoG y", "CoG z")):
+        lines.append(
+            update_line(
+                name,
+                float(nominal.cog_offset[component]),
+                float(estimated.cog_offset[component]),
+                "m",
+                ratio=False,
+            )
+        )
+    for component in range(4):
+        lines.append(
+            update_line(
+                "rotor effectiveness {}".format(component + 1),
+                float(nominal.force_effectiveness[component]),
+                float(estimated.force_effectiveness[component]),
+            )
+        )
+    lines.append(
+        update_line(
+            "command lag",
+            float(initial_delay),
+            float(selected.delay_seconds),
+            "s",
+            ratio=False,
         )
     )
+
+    lines.extend(["", "Inertia matrix [kg m^2]", "  nominal:"])
+    lines.extend(
+        "    [{: .10g}, {: .10g}, {: .10g}]".format(*row)
+        for row in nominal.inertia
+    )
+    lines.append("  estimated:")
+    lines.extend(
+        "    [{: .10g}, {: .10g}, {: .10g}]".format(*row)
+        for row in estimated.inertia
+    )
+    lines.extend(["", "Principal moments: nominal -> estimated"])
+    for component in range(3):
+        lines.append(
+            update_line(
+                "principal moment {}".format(component + 1),
+                float(nominal_principal[component]),
+                float(estimated_principal[component]),
+                "kg m^2",
+            )
+        )
+
     lines.extend(
         [
             "",
-            "Spline and collocation",
-            "  spline degree: 5",
-            "  collocation step [s]: {:.12g}".format(collocation_step),
+            "Optimization",
+            "  joint dynamics loss: {:.12g}".format(
+                selected.evaluation.data_loss
+            ),
+            "  soft-prior cost: {:.12g}".format(
+                selected.evaluation.prior_cost
+            ),
+            "  selected strict-ZOH lag [s]: {:.12g}".format(
+                selected.delay_seconds
+            ),
         ]
     )
+
     for bag, payload in zip(bags, bag_payloads):
+        pose = payload[
+            "estimated_with_external_wrench_forward_metrics"
+        ]
+        sensors = payload["sensor_validation_with_external_wrench"]
+        wrench = payload["residual_wrench_statistics"]
+        gyro_rmse = np.asarray(
+            [item["rmse"] for item in sensors["gyro"]],
+            dtype=float,
+        )
+        force_rmse = np.asarray(
+            [item["rmse"] for item in sensors["specific_force"]],
+            dtype=float,
+        )
+        wrench_rms = np.asarray(wrench["rmse"], dtype=float)
+
         lines.extend(
             [
                 "",
                 "Bag {}".format(bag.specification.bag_id),
-                "  selected spline knot spacing [s]: {:.12g}".format(
-                    bag.spline_selection.selected_spacing_seconds
+                "  reconstruction position RMSE [m]: {:.12g}".format(
+                    pose["position_rmse_m"]
                 ),
-                "  spline fit interval [s]: [{:.12g}, {:.12g}]".format(
-                    bag.spline_selection.spline.start_time,
-                    bag.spline_selection.spline.end_time,
-                ),
-                "  parameter-estimation interval [s]: "
-                "[{:.12g}, {:.12g}]".format(
-                    bag.collocation_time[0],
-                    bag.collocation_time[-1],
-                ),
-                "  excluded knot spans at each spline boundary: "
-                "{:.12g}".format(
-                    bag.boundary_exclusion_knot_spans_each_side
-                ),
-                "  actual boundary exclusion [s], start/end: "
-                "[{:.12g}, {:.12g}]".format(
-                    bag.collocation_time[0]
-                    - bag.spline_selection.spline.start_time,
-                    bag.spline_selection.spline.end_time
-                    - bag.collocation_time[-1],
-                ),
-                "  dynamics loss: {:.12g}".format(payload["dynamics_loss"]),
-                "  estimated forward position RMSE [m]: {:.12g}".format(
-                    payload["estimated_forward_metrics"]["position_rmse_m"]
-                ),
-                "  estimated + external wrench position RMSE [m]: "
-                "{:.12g}".format(
-                    payload[
-                        "estimated_with_external_wrench_forward_metrics"
-                    ]["position_rmse_m"]
-                ),
-                "  external wrench improves estimated free rollout: {}".format(
-                    payload[
-                        "external_wrench_improves_estimated_free_rollout"
-                    ]
-                ),
-                "  nominal forward position RMSE [m]: {:.12g}".format(
-                    payload["nominal_forward_metrics"]["position_rmse_m"]
-                ),
-                "  estimated improves nominal: {}".format(
-                    payload["estimated_improves_over_nominal"]
-                ),
-                "  residual wrench mean: {}".format(
+                "  reconstruction position component RMSE [m]: {}".format(
                     np.array2string(
-                        np.asarray(
-                            payload["residual_wrench_statistics"]["mean"]
-                        ),
+                        np.asarray(pose["position_component_rmse_m"]),
                         precision=6,
                     )
                 ),
-                "  residual wrench RMSE: {}".format(
-                    np.array2string(
-                        np.asarray(
-                            payload["residual_wrench_statistics"]["rmse"]
-                        ),
-                        precision=6,
-                    )
+                "  reconstruction orientation RMSE [deg]: {:.12g}".format(
+                    pose["orientation_angle_rmse_deg"]
                 ),
-                "  residual wrench trend/s: {}".format(
-                    np.array2string(
-                        np.asarray(
-                            payload["residual_wrench_statistics"][
-                                "linear_trend_per_second"
-                            ]
-                        ),
-                        precision=6,
-                    )
+                "  gyro consistency RMSE xyz [rad/s]: {}".format(
+                    np.array2string(gyro_rmse, precision=6)
                 ),
-                "  residual wrench cumulative impulse: {}".format(
-                    np.array2string(
-                        np.asarray(
-                            payload["residual_wrench_statistics"][
-                                "cumulative_impulse"
-                            ]
-                        ),
-                        precision=6,
-                    )
+                "  specific-force consistency RMSE xyz [m/s^2]: {}".format(
+                    np.array2string(force_rmse, precision=6)
+                ),
+                "  inferred external force RMS xyz [N]: {}".format(
+                    np.array2string(wrench_rms[:3], precision=6)
+                ),
+                "  inferred external torque RMS xyz [N m]: {}".format(
+                    np.array2string(wrench_rms[3:], precision=6)
+                ),
+                "  bag dynamics loss: {:.12g}".format(
+                    payload["dynamics_loss"]
                 ),
             ]
         )
-    lines.extend(["", "Smoothstep continuation"])
-    for stage in smooth_stages:
-        lines.append(
-            "  width={:.6g}: delay={:.9g}s, cost={:.12g}, nfev={}".format(
-                stage["width_fraction"],
-                stage["delay_seconds"],
-                stage["objective_cost"],
-                stage["optimizer"]["nfev"],
-            )
-        )
-    lines.extend(["", "Strict-ZOH polish"])
-    for candidate in strict_candidates:
-        lines.append(
-            "  delay={:.9g}s: screening={:.12g}, refined={:.12g}, selected={}".format(
-                candidate["delay_seconds"],
-                candidate["screening_cost"],
-                candidate.get("refined_cost", float("nan")),
-                candidate.get("selected", False),
-            )
-        )
     return lines
-
 
 def _write_parameters_pdf(path: Path, lines: Sequence[str]) -> None:
     wrapped_lines = []
@@ -2223,22 +2078,6 @@ def create_argument_parser() -> argparse.ArgumentParser:
         )
     )
     parser.add_argument("--config", type=Path, required=True)
-    parser.add_argument(
-        "--estimator-result",
-        type=Path,
-        default=None,
-        help=(
-            "optional explicit result.json warm start; omitted uses exact "
-            "nominal physical parameters, and a missing explicit path also "
-            "falls back to nominal"
-        ),
-    )
-    parser.add_argument(
-        "--corrected-mass",
-        type=float,
-        default=None,
-        help="override only the initial mass while retaining other seed coordinates",
-    )
     parser.add_argument("--sample-step", type=float, default=0.05)
     parser.add_argument("--integration-step", type=float, default=0.025)
     parser.add_argument("--prior-weight", type=float, default=1.0)
@@ -2389,43 +2228,22 @@ def _json_sanitize(value: Any) -> Any:
 def run(arguments: argparse.Namespace) -> int:
     try:
         config = load_spline_config(arguments.config)
-        initial = load_initial_estimate(
-            arguments.estimator_result,
-            config.multi_bag.initial_delay_seconds,
-            arguments.corrected_mass,
-        )
     except ValueError as error:
         raise SystemExit(str(error)) from error
+    initial_physical_coordinate = np.zeros(
+        strict.PHYSICAL_DIMENSION, dtype=float
+    )
     initial_delay = (
-        initial.delay_seconds
+        config.multi_bag.initial_delay_seconds
         if arguments.initial_delay is None
         else float(arguments.initial_delay)
     )
     _validate_arguments(arguments, config, initial_delay)
     started = time.perf_counter()
-    if initial.source_kind == "nominal":
-        print(
-            "initial physical parameters: exact nominal chart origin",
-            flush=True,
-        )
-    elif initial.source_kind == "nominal_fallback":
-        print(
-            "explicit estimator result not found; using exact nominal "
-            "physical parameters",
-            flush=True,
-        )
-    else:
-        print(
-            "initial physical parameters: {}".format(initial.source_path),
-            flush=True,
-        )
-    if arguments.corrected_mass is not None:
-        print(
-            "initial mass override: {:.9g} kg (source {:.9g} kg)".format(
-                initial.selected_mass_kg, initial.source_mass_kg
-            ),
-            flush=True,
-        )
+    print(
+        "initial physical parameters: exact nominal chart origin",
+        flush=True,
+    )
 
     raw_weights = np.asarray(
         [specification.weight for specification in config.multi_bag.bags],
@@ -2477,7 +2295,7 @@ def run(arguments: argparse.Namespace) -> int:
     problem = SplineDynamicsProblem(bags, arguments.prior_weight)
 
     physical_lower, physical_upper = _physical_bounds(
-        initial.physical_coordinate, arguments.physical_bound_scale
+        initial_physical_coordinate, arguments.physical_bound_scale
     )
     smooth_lower = np.concatenate(
         (physical_lower, np.asarray((arguments.delay_bounds[0],), dtype=float))
@@ -2486,7 +2304,7 @@ def run(arguments: argparse.Namespace) -> int:
         (physical_upper, np.asarray((arguments.delay_bounds[1],), dtype=float))
     )
     coordinate = np.concatenate(
-        (initial.physical_coordinate, np.asarray((initial_delay,), dtype=float))
+        (initial_physical_coordinate, np.asarray((initial_delay,), dtype=float))
     )
     coordinate = np.minimum(np.maximum(coordinate, smooth_lower), smooth_upper)
     smooth_stage_payloads = []
@@ -2580,7 +2398,7 @@ def run(arguments: argparse.Namespace) -> int:
         candidate_delays, screening_costs, strict_solutions, selected
     )
     print(
-        "selected strict lag {:.6f}s; producing correction-free rollouts and reports".format(
+        "selected strict lag {:.6f}s; producing reconstruction and reports".format(
             selected.delay_seconds
         ),
         flush=True,
@@ -2611,10 +2429,11 @@ def run(arguments: argparse.Namespace) -> int:
         estimated_rollout = forward_rollout(
             bag, selected.physical_coordinate, selected.delay_seconds
         )
-        external_wrench_rollout = forward_rollout(
+        external_wrench_rollout = reconstruction_rollout(
             bag,
             selected.physical_coordinate,
             selected.delay_seconds,
+            evaluation,
             external_body_wrench=external_wrench_history,
         )
         nominal_rollout = forward_rollout(
@@ -2623,19 +2442,34 @@ def run(arguments: argparse.Namespace) -> int:
             initial_delay,
         )
         observations = bag.direct_problem.observations
+        reconstruction_observations = _observations_at_times(
+            observations,
+            external_wrench_rollout.time,
+        )
         estimated_metrics = _pose_metrics(observations, estimated_rollout)
         external_wrench_metrics = _pose_metrics(
-            observations, external_wrench_rollout
+            reconstruction_observations,
+            external_wrench_rollout,
         )
         nominal_metrics = _pose_metrics(observations, nominal_rollout)
         estimated_score = _rollout_pose_score(observations, estimated_rollout)
         external_wrench_score = _rollout_pose_score(
-            observations, external_wrench_rollout
+            reconstruction_observations,
+            external_wrench_rollout,
+        )
+        estimated_on_reconstruction_support = _simulation_at_times(
+            estimated_rollout,
+            external_wrench_rollout.time,
+        )
+        estimated_support_score = _rollout_pose_score(
+            reconstruction_observations,
+            estimated_on_reconstruction_support,
         )
         nominal_score = _rollout_pose_score(observations, nominal_rollout)
         sensor_metrics = _sensor_metrics(observations, estimated_rollout)
         external_wrench_sensor_metrics = _sensor_metrics(
-            observations, external_wrench_rollout
+            reconstruction_observations,
+            external_wrench_rollout,
         )
         wrench_statistics = _wrench_statistics(
             bag.collocation_time, evaluation.residual_body_wrench
@@ -2709,13 +2543,14 @@ def run(arguments: argparse.Namespace) -> int:
             "estimated_with_external_wrench_forward_metrics": (
                 external_wrench_metrics
             ),
+            "reconstruction_metrics": external_wrench_metrics,
             "nominal_forward_metrics": nominal_metrics,
             "estimated_forward_pose_score_m2": estimated_score,
             "estimated_with_external_wrench_forward_pose_score_m2": (
                 external_wrench_score
             ),
             "external_wrench_improves_estimated_free_rollout": bool(
-                external_wrench_score < estimated_score
+                external_wrench_score < estimated_support_score
             ),
             "nominal_forward_pose_score_m2": nominal_score,
             "estimated_improves_over_nominal": bool(
@@ -2725,37 +2560,25 @@ def run(arguments: argparse.Namespace) -> int:
             "sensor_validation_with_external_wrench": (
                 external_wrench_sensor_metrics
             ),
+            "sensor_consistency": external_wrench_sensor_metrics,
             "nominal_rollout_lag_seconds": initial_delay,
         }
-        _write_spline_fit_pdf(bag_directory / "spline_fit.pdf", bag)
         _write_trajectory_pdf(
-            bag_directory / "trajectory_3d.pdf",
-            bag,
-            estimated_rollout,
-            external_wrench_rollout,
-            nominal_rollout,
-        )
-        shutil.copyfile(
-            bag_directory / "trajectory_3d.pdf",
             bag_directory / "trajectory.pdf",
+            bag,
+            external_wrench_rollout,
         )
         _write_sensor_validation_pdf(
-            bag_directory / "sensor_validation.pdf",
+            bag_directory / "sensor_consistency.pdf",
             bag,
-            estimated_rollout,
-            sensor_metrics,
             external_wrench_rollout,
             external_wrench_sensor_metrics,
         )
         _write_residual_wrench_pdf(
-            bag_directory / "residual_wrench.pdf",
+            bag_directory / "external_wrench.pdf",
             bag,
             evaluation,
             wrench_statistics,
-        )
-        shutil.copyfile(
-            bag_directory / "residual_wrench.pdf",
-            bag_directory / "external_wrench.pdf",
         )
         np.savez_compressed(
             bag_directory / "spline_dynamics.npz",
@@ -2820,6 +2643,8 @@ def run(arguments: argparse.Namespace) -> int:
             estimated_forward_specific_force_sensor=(
                 estimated_rollout.specific_force_sensor
             ),
+            reconstruction_time=external_wrench_rollout.time,
+            external_wrench_forward_time=external_wrench_rollout.time,
             external_wrench_forward_sensor_position=(
                 external_wrench_rollout.sensor_position
             ),
@@ -2860,11 +2685,8 @@ def run(arguments: argparse.Namespace) -> int:
             "shared_delay_seconds": selected.delay_seconds,
             "diagnostics": bag_payload,
             "outputs": {
-                "spline_fit_pdf": "spline_fit.pdf",
                 "trajectory_pdf": "trajectory.pdf",
-                "trajectory_3d_pdf": "trajectory_3d.pdf",
-                "sensor_validation_pdf": "sensor_validation.pdf",
-                "residual_wrench_pdf": "residual_wrench.pdf",
+                "sensor_consistency_pdf": "sensor_consistency.pdf",
                 "external_wrench_pdf": "external_wrench.pdf",
                 "spline_dynamics_npz": "spline_dynamics.npz",
             },
@@ -2877,23 +2699,17 @@ def run(arguments: argparse.Namespace) -> int:
         relative = "bags/{}/".format(bag_id)
         bag_outputs[bag_id] = {
             "result_json": relative + "result.json",
-            "spline_fit_pdf": relative + "spline_fit.pdf",
             "trajectory_pdf": relative + "trajectory.pdf",
-            "trajectory_3d_pdf": relative + "trajectory_3d.pdf",
-            "sensor_validation_pdf": relative + "sensor_validation.pdf",
-            "residual_wrench_pdf": relative + "residual_wrench.pdf",
+            "sensor_consistency_pdf": relative + "sensor_consistency.pdf",
             "external_wrench_pdf": relative + "external_wrench.pdf",
             "spline_dynamics_npz": relative + "spline_dynamics.npz",
         }
 
     lines = _parameter_lines(
-        initial,
         selected,
+        initial_delay,
         bags,
         bag_payloads,
-        smooth_stage_payloads,
-        strict_payloads,
-        config.spline.collocation_step_seconds,
     )
     strict._write_text(output_directory / "parameters.txt", lines)
     _write_parameters_pdf(output_directory / "parameters.pdf", lines)
@@ -2930,16 +2746,12 @@ def run(arguments: argparse.Namespace) -> int:
             "default_physical_initialization": (
                 "exact nominal 13-D physical chart origin"
             ),
-            "automatic_previous_result_loading": False,
             "command_mode_during_search": "quintic smoothstep ZOH",
             "command_mode_final": "strict ZOH",
         },
         "initial_estimate": {
-            "source_kind": initial.source_kind,
-            "source_path": initial.source_path,
-            "source_mass_kg": initial.source_mass_kg,
-            "selected_mass_kg": initial.selected_mass_kg,
-            "physical_coordinate": initial.physical_coordinate,
+            "source_kind": "nominal",
+            "physical_coordinate": initial_physical_coordinate,
             "delay_seconds": initial_delay,
         },
         "settings": {
@@ -2964,7 +2776,7 @@ def run(arguments: argparse.Namespace) -> int:
                 "unbounded"
                 if np.isinf(arguments.physical_bound_scale)
                 else {
-                    "center": "initial physical coordinate",
+                    "center": "nominal physical coordinate",
                     "soft_prior_standard_deviation_scale": (
                         arguments.physical_bound_scale
                     ),

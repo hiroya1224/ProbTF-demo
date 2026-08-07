@@ -1,100 +1,52 @@
 Deterministic pose-spline dynamics estimator
 
-Estimator structure
-  pose-only continuous-time spline -> analytic derivatives
-  pose spline degree: 5 (position and normalized quaternion)
-  fixed-spline gradient matching -> shared physical parameters and lag
-  default physical initialization: exact nominal chart origin
-  previous estimator result loading: explicit opt-in only
-  shooting nodes: none
-  continuity constraints: none
-  sensor/IMU channels in loss: none
+Shared parameter update: nominal -> estimated
+  mass [kg]                         2.351597591 ->  2.770070676   delta=+0.418473   ratio=1.1779527
+  CoG x [m]                         0 -> -0.002197569206   delta=-0.00219757   ratio=-
+  CoG y [m]                         0 ->  0.0007344321885   delta=+0.000734432   ratio=-
+  CoG z [m]                         0 -> -0.02207523269   delta=-0.0220752   ratio=-
+  rotor effectiveness 1             1 ->  0.9918543383   delta=-0.00814566   ratio=0.99185434
+  rotor effectiveness 2             1 ->  1.044524479   delta=+0.0445245   ratio=1.0445245
+  rotor effectiveness 3             1 ->  0.9785668916   delta=-0.0214331   ratio=0.97856689
+  rotor effectiveness 4             1 ->  0.9863770579   delta=-0.0136229   ratio=0.98637706
+  command lag [s]                   0.01 ->  0.03886824096   delta=+0.0288682   ratio=-
 
-Initial estimate
-  source kind: nominal
-  source path: None
-  source mass [kg]: 2.35159759081
-  selected initial mass [kg]: 2.35159759081
+Inertia matrix [kg m^2]
+  nominal:
+    [ 0.06500006148, -7.27899253e-07,  1.901508003e-05]
+    [-7.27899253e-07,  0.06495265634,  5.9167305e-08]
+    [ 1.901508003e-05,  5.9167305e-08,  0.1289921107]
+  estimated:
+    [ 0.07236800026, -0.002152126932,  6.605126651e-05]
+    [-0.002152126932,  0.1541579028,  0.0001600046787]
+    [ 6.605126651e-05,  0.0001600046787,  0.2255612778]
 
-Selected strict-ZOH parameters
-  mass [kg]: 2.77007067565
-  inertia [kg m^2]:
-    [ 0.0723680002638, -0.00215212693168,  6.60512665078e-05]
-    [-0.00215212693168,  0.154157902784,  0.000160004678748]
-    [ 6.60512665078e-05,  0.000160004678748,  0.225561277782]
-  principal moments [kg m^2]: [0.0723113785965, 0.154214141423, 0.22556166081]
-  inertia triangle margin [kg m^2]: 0.000963859209661
-  CoG offset [m]: [-0.00219756920562, 0.000734432188529, -0.0220752326934]
-  rotor force effectiveness: [0.99185433828, 1.04452447908, 0.978566891551, 0.986377057864]
-  lag [s]: 0.038868240958
+Principal moments: nominal -> estimated
+  principal moment 1 [kg m^2]       0.06495264516 ->  0.0723113786   delta=+0.00735873   ratio=1.1132938
+  principal moment 2 [kg m^2]       0.06500006701 ->  0.1542141414   delta=+0.0892141   ratio=2.3725228
+  principal moment 3 [kg m^2]       0.1289921163 ->  0.2255616608   delta=+0.0965695   ratio=1.7486469
+
+Optimization
   joint dynamics loss: 0.178477846339
   soft-prior cost: 0.0531116909237
-
-Smooth physical coordinates
-  log_mass_scale                                      0.163777911491
-  log_second_moment_cholesky_xx_scale                 0.434303665249
-  log_second_moment_cholesky_yy_scale                 0.0538431659632
-  log_second_moment_cholesky_zz_scale                 0.00169823212153
-  normalized_second_moment_cholesky_yx_offset         0.0216058838445
-  normalized_second_moment_cholesky_zx_offset        -0.00125479552757
-  normalized_second_moment_cholesky_zy_offset        -0.00795085414978
-  cog_offset_x_m                                     -0.00219756920562
-  cog_offset_y_m                                      0.000734432188529
-  cog_offset_z_m                                     -0.0220752326934
-  force_effectiveness_contrast_1                     -0.0365862399948
-  force_effectiveness_contrast_2                      0.0321352582
-  force_effectiveness_contrast_3                      0.0158385490699
-
-Spline and collocation
-  spline degree: 5
-  collocation step [s]: 0.01
+  selected strict-ZOH lag [s]: 0.038868240958
 
 Bag failure_1
-  selected spline knot spacing [s]: 0.2
-  spline fit interval [s]: [19.0092086792, 24.9592086792]
-  parameter-estimation interval [s]: [19.6042086792, 24.3642086792]
-  excluded knot spans at each spline boundary: 3
-  actual boundary exclusion [s], start/end: [0.595, 0.595]
-  dynamics loss: 0.274763331312
-  estimated forward position RMSE [m]: 50.7212899719
-  estimated + external wrench position RMSE [m]: 74.428025573
-  external wrench improves estimated free rollout: False
-  nominal forward position RMSE [m]: 61.968178935
-  estimated improves nominal: True
-  residual wrench mean: [ 0.015983  0.047153  0.114443 -0.037234  0.038256 -0.006387]
-  residual wrench RMSE: [0.557345 0.306524 1.19605  0.069361 0.479492 0.134936]
-  residual wrench trend/s: [-0.094774  0.054124 -0.535051 -0.011014  0.086096  0.00717 ]
-  residual wrench cumulative impulse: [ 0.069929  0.22393   0.550073 -0.177788  0.182601 -0.028672]
+  reconstruction position RMSE [m]: 1.72927718208
+  reconstruction position component RMSE [m]: [1.688365 0.371742 0.040412]
+  reconstruction orientation RMSE [deg]: 3.84116330601
+  gyro consistency RMSE xyz [rad/s]: [0.052582 0.098976 0.038794]
+  specific-force consistency RMSE xyz [m/s^2]: [0.9353   0.16147  0.337882]
+  inferred external force RMS xyz [N]: [0.557345 0.306524 1.19605 ]
+  inferred external torque RMS xyz [N m]: [0.069361 0.479492 0.134936]
+  bag dynamics loss: 0.274763331312
 
 Bag failure_2
-  selected spline knot spacing [s]: 0.2
-  spline fit interval [s]: [25.5140545368, 30.9640545368]
-  parameter-estimation interval [s]: [26.0979831082, 30.3779831082]
-  excluded knot spans at each spline boundary: 3
-  actual boundary exclusion [s], start/end: [0.583928571429, 0.586071428571]
-  dynamics loss: 0.082192361367
-  estimated forward position RMSE [m]: 53.9933985912
-  estimated + external wrench position RMSE [m]: 31.7452341114
-  external wrench improves estimated free rollout: True
-  nominal forward position RMSE [m]: 66.5168930072
-  estimated improves nominal: True
-  residual wrench mean: [ 0.100267 -0.324288 -0.121313  0.037526 -0.010797  0.017059]
-  residual wrench RMSE: [0.212873 0.383962 0.671271 0.054906 0.221848 0.084244]
-  residual wrench trend/s: [-0.053959  0.057419 -0.448224 -0.012237  0.00941   0.003789]
-  residual wrench cumulative impulse: [ 0.428758 -1.387366 -0.523687  0.160717 -0.048483  0.073007]
-
-Smoothstep continuation
-  width=0.5: delay=0.0381215801s, cost=0.231441860644, nfev=14
-  width=0.2: delay=0.037868071s, cost=0.23158612457, nfev=8
-  width=0.05: delay=0.037868241s, cost=0.231679846718, nfev=2
-
-Strict-ZOH polish
-  delay=0.033868241s: screening=0.233717531653, refined=nan, selected=False
-  delay=0.034868241s: screening=0.233703270236, refined=nan, selected=False
-  delay=0.035868241s: screening=0.233683558728, refined=nan, selected=False
-  delay=0.036868241s: screening=0.233640932667, refined=nan, selected=False
-  delay=0.037868241s: screening=0.231770490005, refined=nan, selected=False
-  delay=0.038868241s: screening=0.231589598614, refined=0.231589537263, selected=True
-  delay=0.039868241s: screening=0.231646587259, refined=0.231646506578, selected=False
-  delay=0.040868241s: screening=0.231639092216, refined=0.231638779725, selected=False
-  delay=0.041868241s: screening=0.231663602203, refined=nan, selected=False
+  reconstruction position RMSE [m]: 0.186826965151
+  reconstruction position component RMSE [m]: [0.165676 0.086309 0.002577]
+  reconstruction orientation RMSE [deg]: 0.571876846841
+  gyro consistency RMSE xyz [rad/s]: [0.028283 0.039211 0.033983]
+  specific-force consistency RMSE xyz [m/s^2]: [0.340136 0.098818 0.084945]
+  inferred external force RMS xyz [N]: [0.212873 0.383962 0.671271]
+  inferred external torque RMS xyz [N m]: [0.054906 0.221848 0.084244]
+  bag dynamics loss: 0.082192361367

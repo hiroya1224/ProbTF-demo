@@ -355,6 +355,8 @@
     }
   },
   "outputs": {
+    "diagnostic_json": "diagnostic.json",
+    "diagnostic_pdf": "diagnostic.pdf",
     "external_wrench_pdf": "external_wrench.pdf",
     "sensor_consistency_pdf": "sensor_consistency.pdf",
     "spline_dynamics_npz": "spline_dynamics.npz",

@@ -1897,6 +1897,138 @@ def _sensor_metrics(
         ),
     }
 
+
+def _sensor_pair_metrics(
+    time_axis: np.ndarray,
+    reference_gyro: np.ndarray,
+    reference_specific_force: np.ndarray,
+    predicted_gyro: np.ndarray,
+    predicted_specific_force: np.ndarray,
+) -> dict[str, Any]:
+    return {
+        "gyro": _axis_validation_statistics(
+            time_axis,
+            reference_gyro,
+            predicted_gyro,
+        ),
+        "specific_force": _axis_validation_statistics(
+            time_axis,
+            reference_specific_force,
+            predicted_specific_force,
+        ),
+    }
+
+
+def _pose_spline_implied_sensor_series(
+    bag: BagSplineData,
+    parameters: VehicleParameters,
+    time_axis: Sequence[float],
+) -> tuple[np.ndarray, np.ndarray]:
+    time_value = np.asarray(time_axis, dtype=float)
+    if (
+        time_value.ndim != 1
+        or time_value.size < 2
+        or np.any(~np.isfinite(time_value))
+        or np.any(np.diff(time_value) <= 0.0)
+    ):
+        raise ValueError("diagnostic time axis is invalid")
+
+    direct = bag.direct_problem
+    spline = bag.spline_selection.spline.evaluate(time_value)
+    _, _, cog_acceleration_world = cog_kinematics_from_pose_spline(
+        spline,
+        direct.pose_sensor_position,
+        parameters.cog_offset,
+    )
+
+    gravity_world = np.asarray((0.0, 0.0, -GRAVITY), dtype=float)
+    specific_force_cog_body = np.einsum(
+        "nji,nj->ni",
+        spline.body_rotation,
+        cog_acceleration_world - gravity_world,
+    )
+    omega = spline.body_angular_velocity
+    alpha = spline.body_angular_acceleration
+    imu_lever = direct.imu_sensor_position - parameters.cog_offset
+    specific_force_body = (
+        specific_force_cog_body
+        + np.cross(alpha, imu_lever)
+        + np.cross(
+            omega,
+            np.cross(omega, imu_lever),
+        )
+    )
+
+    gyro_sensor = (
+        np.einsum(
+            "ij,nj->ni",
+            direct.body_to_imu_rotation,
+            omega,
+        )
+        + direct.gyro_bias
+    )
+    specific_force_sensor = (
+        np.einsum(
+            "ij,nj->ni",
+            direct.body_to_imu_rotation,
+            specific_force_body,
+        )
+        + direct.accelerometer_bias
+    )
+    return gyro_sensor, specific_force_sensor
+
+
+def _diagnostic_payload(
+    observations: baseline.Observations,
+    spline_implied_gyro: np.ndarray,
+    spline_implied_specific_force: np.ndarray,
+    reconstructed: baseline.Simulation,
+) -> dict[str, Any]:
+    time_axis = np.asarray(observations.time, dtype=float)
+    return {
+        "schema": SCHEMA + "/diagnostic/v1",
+        "purpose": (
+            "Persistent structured debugging output. Future debug series and "
+            "metrics should be appended here, with matching pages in diagnostic.pdf."
+        ),
+        "time_seconds": time_axis,
+        "series": {
+            "measured": {
+                "gyro_rad_per_s": observations.angular_velocity_sensor,
+                "specific_force_m_per_s2": observations.specific_force_sensor,
+            },
+            "pose_spline_implied": {
+                "gyro_rad_per_s": spline_implied_gyro,
+                "specific_force_m_per_s2": spline_implied_specific_force,
+            },
+            "reconstructed": {
+                "gyro_rad_per_s": reconstructed.angular_velocity_sensor,
+                "specific_force_m_per_s2": reconstructed.specific_force_sensor,
+            },
+        },
+        "comparisons": {
+            "pose_spline_implied_vs_measured": _sensor_pair_metrics(
+                time_axis,
+                observations.angular_velocity_sensor,
+                observations.specific_force_sensor,
+                spline_implied_gyro,
+                spline_implied_specific_force,
+            ),
+            "reconstructed_vs_measured": _sensor_metrics(
+                observations,
+                reconstructed,
+            ),
+            "reconstructed_vs_pose_spline_implied": _sensor_pair_metrics(
+                time_axis,
+                spline_implied_gyro,
+                spline_implied_specific_force,
+                reconstructed.angular_velocity_sensor,
+                reconstructed.specific_force_sensor,
+            ),
+        },
+    }
+
+
 def _wrench_statistics(
     time_axis: np.ndarray,
     residual: np.ndarray,
@@ -2089,6 +2221,75 @@ def _write_sensor_validation_pdf(
             )
             pdf.savefig(figure)
             plt.close(figure)
+
+def _write_diagnostic_pdf(
+    path: Path,
+    observations: baseline.Observations,
+    spline_implied_gyro: np.ndarray,
+    spline_implied_specific_force: np.ndarray,
+    reconstructed: baseline.Simulation,
+) -> None:
+    relative_time = observations.time - observations.time[0]
+    pages = (
+        (
+            "Diagnostic: gyroscope",
+            observations.angular_velocity_sensor,
+            spline_implied_gyro,
+            reconstructed.angular_velocity_sensor,
+            ("omega_x [rad/s]", "omega_y [rad/s]", "omega_z [rad/s]"),
+        ),
+        (
+            "Diagnostic: specific force",
+            observations.specific_force_sensor,
+            spline_implied_specific_force,
+            reconstructed.specific_force_sensor,
+            ("f_x [m/s^2]", "f_y [m/s^2]", "f_z [m/s^2]"),
+        ),
+    )
+
+    with PdfPages(path) as pdf:
+        for title, measured, spline_implied, reconstructed_value, labels in pages:
+            figure, axes = plt.subplots(
+                3,
+                1,
+                figsize=(11.7, 8.3),
+                sharex=True,
+                constrained_layout=True,
+            )
+            for component, axis in enumerate(axes):
+                axis.plot(
+                    relative_time,
+                    measured[:, component],
+                    color="#1e5abe",
+                    linewidth=2.0,
+                    label="measured",
+                )
+                axis.plot(
+                    relative_time,
+                    spline_implied[:, component],
+                    color="#8b4bb7",
+                    linewidth=1.8,
+                    linestyle=":",
+                    label="pose-spline implied",
+                )
+                axis.plot(
+                    relative_time,
+                    reconstructed_value[:, component],
+                    color="#1e965f",
+                    linewidth=1.6,
+                    linestyle="--",
+                    label="reconstructed",
+                )
+                axis.set_ylabel(labels[component])
+                axis.grid(True, alpha=0.25)
+            axes[0].set_title(title)
+            axes[0].legend(loc="best")
+            axes[-1].set_xlabel(
+                "time from reconstruction-support start [s]"
+            )
+            pdf.savefig(figure)
+            plt.close(figure)
+
 
 def _write_residual_wrench_pdf(
     path: Path,
@@ -3006,6 +3207,20 @@ def run(arguments: argparse.Namespace) -> int:
             reconstruction_observations,
             external_wrench_rollout,
         )
+        (
+            spline_implied_gyro,
+            spline_implied_specific_force,
+        ) = _pose_spline_implied_sensor_series(
+            bag,
+            selected_parameters,
+            external_wrench_rollout.time,
+        )
+        diagnostic_payload = _diagnostic_payload(
+            reconstruction_observations,
+            spline_implied_gyro,
+            spline_implied_specific_force,
+            external_wrench_rollout,
+        )
         wrench_statistics = _wrench_statistics(
             external_wrench_time,
             external_wrench_value,
@@ -3117,6 +3332,17 @@ def run(arguments: argparse.Namespace) -> int:
             bag,
             external_wrench_rollout,
             external_wrench_sensor_metrics,
+        )
+        _write_diagnostic_pdf(
+            bag_directory / "diagnostic.pdf",
+            reconstruction_observations,
+            spline_implied_gyro,
+            spline_implied_specific_force,
+            external_wrench_rollout,
+        )
+        baseline._write_json(
+            bag_directory / "diagnostic.json",
+            _json_sanitize(diagnostic_payload),
         )
         _write_residual_wrench_pdf(
             bag_directory / "external_wrench.pdf",
@@ -3240,6 +3466,8 @@ def run(arguments: argparse.Namespace) -> int:
             "outputs": {
                 "trajectory_pdf": "trajectory.pdf",
                 "sensor_consistency_pdf": "sensor_consistency.pdf",
+                "diagnostic_pdf": "diagnostic.pdf",
+                "diagnostic_json": "diagnostic.json",
                 "external_wrench_pdf": "external_wrench.pdf",
                 "spline_dynamics_npz": "spline_dynamics.npz",
             },
@@ -3254,6 +3482,8 @@ def run(arguments: argparse.Namespace) -> int:
             "result_json": relative + "result.json",
             "trajectory_pdf": relative + "trajectory.pdf",
             "sensor_consistency_pdf": relative + "sensor_consistency.pdf",
+            "diagnostic_pdf": relative + "diagnostic.pdf",
+            "diagnostic_json": relative + "diagnostic.json",
             "external_wrench_pdf": relative + "external_wrench.pdf",
             "spline_dynamics_npz": relative + "spline_dynamics.npz",
         }

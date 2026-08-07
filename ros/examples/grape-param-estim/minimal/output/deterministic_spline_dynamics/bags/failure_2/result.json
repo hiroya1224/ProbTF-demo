@@ -16,7 +16,36 @@
     },
     "estimated_forward_pose_score_m2": 1316.4995999979585,
     "estimated_improves_over_nominal": false,
+    "estimated_with_external_wrench_forward_metrics": {
+      "orientation_angle_rmse_deg": 1.9035321871636277,
+      "orientation_angle_rmse_rad": 0.033222904083694244,
+      "position_component_rmse_m": [
+        0.8439338416469958,
+        0.23175715576624142,
+        0.007512323537654808
+      ],
+      "position_rmse_m": 0.875209771043976,
+      "terminal_orientation_error_deg": 3.245290543653127,
+      "terminal_position_error_m": 2.3684308855667457
+    },
+    "estimated_with_external_wrench_forward_pose_score_m2": 0.3830118108661926,
+    "external_wrench_improves_estimated_free_rollout": true,
     "id": "failure_2",
+    "inferred_external_wrench": {
+      "components": [
+        "F_x",
+        "F_y",
+        "F_z",
+        "M_x",
+        "M_y",
+        "M_z"
+      ],
+      "definition": "required body wrench minus modeled body wrench",
+      "force_unit": "N",
+      "frame": "body",
+      "rollout_interpolation": "linear in time with endpoint hold",
+      "torque_unit": "N m"
+    },
     "nominal_forward_metrics": {
       "orientation_angle_rmse_deg": 135.88031541460077,
       "orientation_angle_rmse_rad": 2.371558892633187,
@@ -146,6 +175,77 @@
         }
       ]
     },
+    "sensor_validation_with_external_wrench": {
+      "gyro": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.002512054504421522,
+          "pearson_correlation": 0.8638628308691426,
+          "rmse": 0.03165790839738665
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.015728195599463063,
+          "pearson_correlation": 0.9960690863029351,
+          "rmse": 0.04858561686616812
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": -0.0024690259780324754,
+          "pearson_correlation": 0.6298059956141782,
+          "rmse": 0.03720344272452191
+        }
+      ],
+      "specific_force": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": -0.014491153115894525,
+          "pearson_correlation": 0.9815852250267566,
+          "rmse": 0.31206870074077964
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": -0.08655606779734844,
+          "pearson_correlation": 0.9069987013623583,
+          "rmse": 0.11672756896259515
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": 0.026990824437551807,
+          "pearson_correlation": 0.9393021444319453,
+          "rmse": 0.10330767726340856
+        }
+      ],
+      "world_velocity": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.42023665265517335,
+          "pearson_correlation": 0.3909351445079337,
+          "rmse": 0.5850958490031929
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": 0.10771573788041085,
+          "pearson_correlation": 0.44898306580923175,
+          "rmse": 0.14201908374785457
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.0040408279810931055,
+          "pearson_correlation": 0.9887632340405762,
+          "rmse": 0.011274187927666705
+        }
+      ]
+    },
     "spline": {
       "blocked_cross_validation": [
         {
@@ -203,6 +303,7 @@
     }
   },
   "outputs": {
+    "external_wrench_pdf": "external_wrench.pdf",
     "residual_wrench_pdf": "residual_wrench.pdf",
     "sensor_validation_pdf": "sensor_validation.pdf",
     "spline_dynamics_npz": "spline_dynamics.npz",

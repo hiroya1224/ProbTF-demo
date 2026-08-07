@@ -193,6 +193,15 @@ class PoseSplineAnalyticTests(unittest.TestCase):
 
 
 class ConfigurationAndLagTests(unittest.TestCase):
+    def test_body_wrench_history_interpolates_and_holds_endpoints(self):
+        wrench = np.arange(18, dtype=float).reshape(3, 6)
+        history = estimator.BodyWrenchHistory((1.0, 2.0, 4.0), wrench)
+        np.testing.assert_allclose(history.value_at(0.0), wrench[0])
+        np.testing.assert_allclose(history.value_at(5.0), wrench[-1])
+        np.testing.assert_allclose(
+            history.value_at(3.0), 0.5 * (wrench[1] + wrench[2])
+        )
+
     def test_missing_result_falls_back_to_nominal_with_mass_override(self):
         with tempfile.TemporaryDirectory() as directory:
             seed = estimator.load_initial_estimate(
@@ -424,6 +433,30 @@ class RecordedAndSyntheticDynamicsTests(unittest.TestCase):
             rtol=0.0,
         )
 
+    def test_inferred_external_wrench_improves_short_forced_rollout(self):
+        coordinate = np.zeros(strict.PHYSICAL_DIMENSION)
+        problem = estimator.SplineDynamicsProblem(
+            (self.bag,), prior_weight=0.0
+        )
+        evaluation = problem.evaluate_strict(
+            coordinate, 0.02
+        ).bag_evaluations[0]
+        history = estimator.BodyWrenchHistory(
+            self.bag.collocation_time,
+            evaluation.residual_body_wrench,
+        )
+        free = estimator.forward_rollout(self.bag, coordinate, 0.02)
+        forced = estimator.forward_rollout(
+            self.bag,
+            coordinate,
+            0.02,
+            external_body_wrench=history,
+        )
+        observations = self.bag.direct_problem.observations
+        free_score = estimator._rollout_pose_score(observations, free)
+        forced_score = estimator._rollout_pose_score(observations, forced)
+        self.assertLess(forced_score, free_score)
+
     def test_trajectory_report_prioritizes_complete_observed_estimated_comparison(
         self,
     ):
@@ -449,10 +482,10 @@ class RecordedAndSyntheticDynamicsTests(unittest.TestCase):
         capture = CapturePdf()
         with patch.object(estimator, "PdfPages", return_value=capture):
             estimator._write_trajectory_pdf(
-                Path("unused.pdf"), self.bag, rollout, rollout
+                Path("unused.pdf"), self.bag, rollout, rollout, rollout
             )
         self.assertEqual(len(capture.saved), 9)
-        primary_title = capture.saved[0].axes[0].get_title()
+        primary_title = capture.saved[0].axes[0].get_title().lower()
         self.assertIn("observed vs estimated", primary_title)
         position_title = capture.saved[1].axes[0].get_title()
         orientation_title = capture.saved[2].axes[0].get_title()

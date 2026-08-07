@@ -45,7 +45,7 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
 
 lagはquintic smoothstepの段階的縮小で探索した後、周辺のstrict causal ZOH候補を評価し、上位候補だけphysical parametersを再最適化します。正式parameterはstrict-ZOH解です。その後、推定parameterとnominal parameterをそれぞれ初期時刻から補正なしでfull forward simulationします。
 
-出力は`minimal/output/deterministic_spline_dynamics/`です。共有`result.json`、`parameters.txt`、`parameters.pdf`、`delay_profile.pdf`に加え、各`bags/<id>/`へ`result.json`、`spline_fit.pdf`、`trajectory.pdf`、`trajectory_3d.pdf`、`sensor_validation.pdf`、`residual_wrench.pdf`、数値時系列`spline_dynamics.npz`を保存します。`trajectory.pdf`と`trajectory_3d.pdf`は同じ包括的レポートで、observedとestimated full rolloutの3D軌道、位置・姿勢の各軸時系列、誤差、velocity、gyro、specific forceを先に表示します。estimated/nominal比較は末尾の補助ページだけです。`sensor_validation.pdf`も実測とestimated full rolloutだけを比較します。
+出力は`minimal/output/deterministic_spline_dynamics/`です。共有`result.json`、`parameters.txt`、`parameters.pdf`、`delay_profile.pdf`に加え、各`bags/<id>/`へ`result.json`、`spline_fit.pdf`、`trajectory.pdf`、`trajectory_3d.pdf`、`sensor_validation.pdf`、`residual_wrench.pdf`、`external_wrench.pdf`、数値時系列`spline_dynamics.npz`を保存します。`required body wrench - modeled body wrench`を推定外力・外トルクのbody-frame時系列と定義し、線形時間補間した同じ6軸wrenchをestimated-parameter dynamicsへ加えたforced rolloutも生成します。`trajectory.pdf`と`trajectory_3d.pdf`は、observed、estimated free rollout、estimated + inferred external wrench rolloutの3D軌道、位置・姿勢、誤差、velocity、gyro、specific forceを先に表示します。estimated/nominal比較は末尾の補助ページだけです。`sensor_validation.pdf`にもfree/forcedの両estimated rolloutを表示します。
 
 ### SE(3)-only deterministic multiple shooting（比較用）
 

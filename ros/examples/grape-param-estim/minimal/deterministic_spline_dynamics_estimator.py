@@ -149,6 +149,48 @@ class DynamicsSolution:
     optimizer: Mapping[str, Any]
 
 
+class BodyWrenchHistory:
+    """Linearly interpolated body-frame external force and torque history."""
+
+    def __init__(
+        self,
+        time_axis: Sequence[float],
+        body_wrench: np.ndarray,
+    ) -> None:
+        time_value = np.asarray(time_axis, dtype=float)
+        wrench_value = np.asarray(body_wrench, dtype=float)
+        if (
+            time_value.ndim != 1
+            or time_value.size < 2
+            or np.any(~np.isfinite(time_value))
+            or np.any(np.diff(time_value) <= 0.0)
+            or wrench_value.shape != (time_value.size, 6)
+            or np.any(~np.isfinite(wrench_value))
+        ):
+            raise ValueError("external body wrench history is invalid")
+        self.time = time_value.copy()
+        self.body_wrench = wrench_value.copy()
+
+    def value_at(self, time_value: float) -> np.ndarray:
+        query = float(time_value)
+        if not np.isfinite(query):
+            raise ValueError("external body wrench query must be finite")
+        return np.asarray(
+            [
+                np.interp(query, self.time, self.body_wrench[:, component])
+                for component in range(6)
+            ],
+            dtype=float,
+        )
+
+    def __call__(
+        self,
+        time_value: float,
+        _state: RigidBodyState,
+    ) -> np.ndarray:
+        return self.value_at(time_value)
+
+
 def load_spline_config(path: Path) -> SplineEstimatorConfig:
     config_path = path.expanduser().resolve()
     base = multi.load_multi_bag_config(config_path)
@@ -880,8 +922,14 @@ def forward_rollout(
     bag: BagSplineData,
     physical_coordinate: Sequence[float],
     delay: float,
+    external_body_wrench: Optional[BodyWrenchHistory] = None,
 ) -> baseline.Simulation:
-    """Strict-ZOH open-loop rollout initialized only from the pose spline."""
+    """Strict-ZOH rollout, optionally driven by an external body wrench."""
+
+    if external_body_wrench is not None and not isinstance(
+        external_body_wrench, BodyWrenchHistory
+    ):
+        raise TypeError("external_body_wrench must be BodyWrenchHistory")
 
     parameterization = strict.FullyPhysicalInertiaParameterization(
         VehicleParameters.nominal()
@@ -919,7 +967,11 @@ def forward_rollout(
         ),
         gimbal_angle=bag.initial_gimbal,
     )
-    plant = FullSixDofPlant(parameters, direct.geometry)
+    plant = FullSixDofPlant(
+        parameters,
+        direct.geometry,
+        model_discrepancy_wrench=external_body_wrench,
+    )
     output_count = direct.output_time.size
     arrays = {
         "sensor_position": np.empty((output_count, 3)),
@@ -1154,6 +1206,7 @@ def _write_trajectory_pdf(
     path: Path,
     bag: BagSplineData,
     estimated: baseline.Simulation,
+    estimated_with_external_wrench: baseline.Simulation,
     nominal: baseline.Simulation,
 ) -> None:
     observed = bag.direct_problem.observations
@@ -1163,24 +1216,41 @@ def _write_trajectory_pdf(
         observed.sensor_orientation_xyzw,
         estimated.sensor_orientation_xyzw,
     )
+    external_position_error = (
+        estimated_with_external_wrench.sensor_position
+        - observed.sensor_position
+    )
+    external_orientation_error = _orientation_errors(
+        observed.sensor_orientation_xyzw,
+        estimated_with_external_wrench.sensor_orientation_xyzw,
+    )
     observed_rpy = baseline._rpy_series(
         observed.sensor_orientation_xyzw
     )
     estimated_rpy = baseline._rpy_series(
         estimated.sensor_orientation_xyzw
     )
+    external_rpy = baseline._rpy_series(
+        estimated_with_external_wrench.sensor_orientation_xyzw
+    )
     primary_lower, primary_upper = _common_3d_limits(
         observed.sensor_position,
         estimated.sensor_position,
+        estimated_with_external_wrench.sensor_position,
+    )
+    forced_lower, forced_upper = _common_3d_limits(
+        observed.sensor_position,
+        estimated_with_external_wrench.sensor_position,
     )
     comparison_lower, comparison_upper = _common_3d_limits(
         observed.sensor_position,
         estimated.sensor_position,
+        estimated_with_external_wrench.sensor_position,
         nominal.sensor_position,
     )
     with PdfPages(path) as pdf:
         figure = plt.figure(figsize=(11.7, 8.3), constrained_layout=True)
-        axis = figure.add_subplot(111, projection="3d")
+        axis = figure.add_subplot(121, projection="3d")
         axis.plot(
             observed.sensor_position[:, 0],
             observed.sensor_position[:, 1],
@@ -1198,6 +1268,15 @@ def _write_trajectory_pdf(
             linestyle="--",
             label="estimated full forward rollout",
         )
+        axis.plot(
+            estimated_with_external_wrench.sensor_position[:, 0],
+            estimated_with_external_wrench.sensor_position[:, 1],
+            estimated_with_external_wrench.sensor_position[:, 2],
+            color="#1e965f",
+            linewidth=2.0,
+            linestyle=":",
+            label="estimated + inferred external wrench",
+        )
         axis.set_xlim(primary_lower[0], primary_upper[0])
         axis.set_ylim(primary_lower[1], primary_upper[1])
         axis.set_zlim(primary_lower[2], primary_upper[2])
@@ -1205,9 +1284,38 @@ def _write_trajectory_pdf(
         axis.set_ylabel("y [m]")
         axis.set_zlabel("z [m]")
         axis.set_title(
-            "PRIMARY: observed vs estimated full forward trajectory"
+            "Observed vs estimated free/forced (full scale)"
         )
         axis.legend(loc="best")
+        forced_axis = figure.add_subplot(122, projection="3d")
+        forced_axis.plot(
+            observed.sensor_position[:, 0],
+            observed.sensor_position[:, 1],
+            observed.sensor_position[:, 2],
+            color="#1e5abe",
+            linewidth=2.5,
+            label="observed",
+        )
+        forced_axis.plot(
+            estimated_with_external_wrench.sensor_position[:, 0],
+            estimated_with_external_wrench.sensor_position[:, 1],
+            estimated_with_external_wrench.sensor_position[:, 2],
+            color="#1e965f",
+            linewidth=2.0,
+            linestyle=":",
+            label="estimated + external wrench",
+        )
+        forced_axis.set_xlim(forced_lower[0], forced_upper[0])
+        forced_axis.set_ylim(forced_lower[1], forced_upper[1])
+        forced_axis.set_zlim(forced_lower[2], forced_upper[2])
+        forced_axis.set_xlabel("x [m]")
+        forced_axis.set_ylabel("y [m]")
+        forced_axis.set_zlabel("z [m]")
+        forced_axis.set_title("Observed vs externally-forced estimated")
+        forced_axis.legend(loc="best")
+        figure.suptitle(
+            "PRIMARY trajectory comparison with inferred external body wrench"
+        )
         pdf.savefig(figure)
         plt.close(figure)
 
@@ -1216,34 +1324,39 @@ def _write_trajectory_pdf(
                 "PRIMARY: observed vs estimated sensor position",
                 observed.sensor_position,
                 estimated.sensor_position,
+                estimated_with_external_wrench.sensor_position,
                 ("x [m]", "y [m]", "z [m]"),
             ),
             (
                 "PRIMARY: observed vs estimated sensor orientation",
                 observed_rpy,
                 estimated_rpy,
+                external_rpy,
                 ("roll [rad]", "pitch [rad]", "yaw [rad]"),
             ),
             (
                 "Observed vs estimated world-frame velocity",
                 observed.sensor_velocity_world,
                 estimated.sensor_velocity_world,
+                estimated_with_external_wrench.sensor_velocity_world,
                 ("v_x [m/s]", "v_y [m/s]", "v_z [m/s]"),
             ),
             (
                 "Observed vs estimated gyroscope",
                 observed.angular_velocity_sensor,
                 estimated.angular_velocity_sensor,
+                estimated_with_external_wrench.angular_velocity_sensor,
                 ("omega_x [rad/s]", "omega_y [rad/s]", "omega_z [rad/s]"),
             ),
             (
                 "Observed vs estimated specific force",
                 observed.specific_force_sensor,
                 estimated.specific_force_sensor,
+                estimated_with_external_wrench.specific_force_sensor,
                 ("f_x [m/s2]", "f_y [m/s2]", "f_z [m/s2]"),
             ),
         )
-        for title, reference, prediction, labels in primary_pages:
+        for title, reference, prediction, forced_prediction, labels in primary_pages:
             figure, axes = plt.subplots(
                 3,
                 1,
@@ -1267,6 +1380,14 @@ def _write_trajectory_pdf(
                     linestyle="--",
                     label="estimated full forward rollout",
                 )
+                component_axis.plot(
+                    relative_time,
+                    forced_prediction[:, component],
+                    color="#1e965f",
+                    linewidth=1.8,
+                    linestyle=":",
+                    label="estimated + inferred external wrench",
+                )
                 component_axis.set_ylabel(labels[component])
                 component_axis.grid(True, alpha=0.25)
             axes[0].set_title(title)
@@ -1275,15 +1396,17 @@ def _write_trajectory_pdf(
             pdf.savefig(figure)
             plt.close(figure)
 
-        for title, estimated_error, labels in (
+        for title, estimated_error, forced_error, labels in (
             (
-                "Estimated full-rollout sensor position error",
+                "Estimated free/externally-forced sensor position error",
                 estimated_position_error,
+                external_position_error,
                 ("x error [m]", "y error [m]", "z error [m]"),
             ),
             (
-                "Estimated full-rollout sensor orientation log error",
+                "Estimated free/externally-forced orientation log error",
                 estimated_orientation_error,
+                external_orientation_error,
                 ("roll-like [rad]", "pitch-like [rad]", "yaw-like [rad]"),
             ),
         ):
@@ -1296,6 +1419,13 @@ def _write_trajectory_pdf(
                     estimated_error[:, component],
                     color="#d2691e",
                     label="estimated minus observed",
+                )
+                component_axis.plot(
+                    relative_time,
+                    forced_error[:, component],
+                    color="#1e965f",
+                    linestyle=":",
+                    label="estimated + external wrench minus observed",
                 )
                 component_axis.axhline(
                     0.0, color="black", linewidth=0.7, alpha=0.5
@@ -1340,6 +1470,15 @@ def _write_trajectory_pdf(
                 linestyle="--",
                 label=title,
             )
+            if rollout is estimated:
+                axis.plot(
+                    estimated_with_external_wrench.sensor_position[:, 0],
+                    estimated_with_external_wrench.sensor_position[:, 1],
+                    estimated_with_external_wrench.sensor_position[:, 2],
+                    color="#1e965f",
+                    linestyle=":",
+                    label="estimated + external wrench",
+                )
             axis.set_xlim(comparison_lower[0], comparison_upper[0])
             axis.set_ylim(comparison_lower[1], comparison_upper[1])
             axis.set_zlim(comparison_lower[2], comparison_upper[2])
@@ -1360,6 +1499,8 @@ def _write_sensor_validation_pdf(
     bag: BagSplineData,
     estimated: baseline.Simulation,
     metrics: Mapping[str, Any],
+    estimated_with_external_wrench: baseline.Simulation,
+    external_metrics: Mapping[str, Any],
 ) -> None:
     observed = bag.direct_problem.observations
     relative_time = observed.time - observed.time[0]
@@ -1369,6 +1510,7 @@ def _write_sensor_validation_pdf(
             "world_velocity",
             observed.sensor_velocity_world,
             estimated.sensor_velocity_world,
+            estimated_with_external_wrench.sensor_velocity_world,
             ("v_x [m/s]", "v_y [m/s]", "v_z [m/s]"),
         ),
         (
@@ -1376,6 +1518,7 @@ def _write_sensor_validation_pdf(
             "gyro",
             observed.angular_velocity_sensor,
             estimated.angular_velocity_sensor,
+            estimated_with_external_wrench.angular_velocity_sensor,
             ("omega_x [rad/s]", "omega_y [rad/s]", "omega_z [rad/s]"),
         ),
         (
@@ -1383,16 +1526,18 @@ def _write_sensor_validation_pdf(
             "specific_force",
             observed.specific_force_sensor,
             estimated.specific_force_sensor,
+            estimated_with_external_wrench.specific_force_sensor,
             ("f_x [m/s^2]", "f_y [m/s^2]", "f_z [m/s^2]"),
         ),
     )
     with PdfPages(path) as pdf:
-        for title, key, reference, prediction, labels in pages:
+        for title, key, reference, prediction, forced_prediction, labels in pages:
             figure, axes = plt.subplots(
                 3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True
             )
             for component, axis in enumerate(axes):
                 statistic = metrics[key][component]
+                forced_statistic = external_metrics[key][component]
                 axis.plot(
                     relative_time,
                     reference[:, component],
@@ -1407,16 +1552,31 @@ def _write_sensor_validation_pdf(
                     linestyle="--",
                     label="estimated full rollout",
                 )
+                axis.plot(
+                    relative_time,
+                    forced_prediction[:, component],
+                    color="#1e965f",
+                    linestyle=":",
+                    label="estimated + inferred external wrench",
+                )
                 axis.set_ylabel(labels[component])
                 axis.grid(True, alpha=0.25)
                 axis.text(
                     0.01,
                     0.03,
-                    "RMSE={:.4g}, bias={:.4g}, r={:.4g}, lag={:+.4g}s".format(
+                    "free: RMSE={:.4g}, bias={:.4g}, r={:.4g}, "
+                    "lag={:+.4g}s\nforced: RMSE={:.4g}, bias={:.4g}, "
+                    "r={:.4g}, lag={:+.4g}s".format(
                         statistic["rmse"],
                         statistic["mean_bias"],
                         statistic["pearson_correlation"],
                         statistic["maximum_cross_correlation_time_shift_seconds"],
+                        forced_statistic["rmse"],
+                        forced_statistic["mean_bias"],
+                        forced_statistic["pearson_correlation"],
+                        forced_statistic[
+                            "maximum_cross_correlation_time_shift_seconds"
+                        ],
                     ),
                     transform=axis.transAxes,
                     fontsize=8,
@@ -1444,6 +1604,37 @@ def _write_residual_wrench_pdf(
     names = statistics["component_names"]
     units = ("N", "N", "N", "N m", "N m", "N m")
     with PdfPages(path) as pdf:
+        figure, axes = plt.subplots(
+            3,
+            2,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        for row in range(3):
+            for column, component in ((0, row), (1, row + 3)):
+                axis = axes[row, column]
+                axis.plot(
+                    relative_time,
+                    evaluation.residual_body_wrench[:, component],
+                    color="#1e965f",
+                    linewidth=1.5,
+                )
+                axis.axhline(
+                    0.0, color="black", linewidth=0.7, alpha=0.5
+                )
+                axis.set_ylabel(
+                    "{} [{}]".format(names[component], units[component])
+                )
+                axis.grid(True, alpha=0.25)
+        axes[0, 0].set_title(
+            "Inferred external body wrench: force (left) and torque (right)"
+        )
+        axes[-1, 0].set_xlabel("time [s]")
+        axes[-1, 1].set_xlabel("time [s]")
+        pdf.savefig(figure)
+        plt.close(figure)
+
         for offset, kind in ((0, "body force"), (3, "body torque")):
             figure, axes = plt.subplots(
                 3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True
@@ -1840,6 +2031,17 @@ def _parameter_lines(
                 "  dynamics loss: {:.12g}".format(payload["dynamics_loss"]),
                 "  estimated forward position RMSE [m]: {:.12g}".format(
                     payload["estimated_forward_metrics"]["position_rmse_m"]
+                ),
+                "  estimated + external wrench position RMSE [m]: "
+                "{:.12g}".format(
+                    payload[
+                        "estimated_with_external_wrench_forward_metrics"
+                    ]["position_rmse_m"]
+                ),
+                "  external wrench improves estimated free rollout: {}".format(
+                    payload[
+                        "external_wrench_improves_estimated_free_rollout"
+                    ]
                 ),
                 "  nominal forward position RMSE [m]: {:.12g}".format(
                     payload["nominal_forward_metrics"]["position_rmse_m"]
@@ -2311,8 +2513,19 @@ def run(arguments: argparse.Namespace) -> int:
         bag_id = bag.specification.bag_id
         bag_directory = bags_directory / bag_id
         bag_directory.mkdir(parents=True, exist_ok=True)
+        evaluation = selected.evaluation.bag_evaluations[index]
+        external_wrench_history = BodyWrenchHistory(
+            bag.collocation_time,
+            evaluation.residual_body_wrench,
+        )
         estimated_rollout = forward_rollout(
             bag, selected.physical_coordinate, selected.delay_seconds
+        )
+        external_wrench_rollout = forward_rollout(
+            bag,
+            selected.physical_coordinate,
+            selected.delay_seconds,
+            external_body_wrench=external_wrench_history,
         )
         nominal_rollout = forward_rollout(
             bag,
@@ -2321,11 +2534,19 @@ def run(arguments: argparse.Namespace) -> int:
         )
         observations = bag.direct_problem.observations
         estimated_metrics = _pose_metrics(observations, estimated_rollout)
+        external_wrench_metrics = _pose_metrics(
+            observations, external_wrench_rollout
+        )
         nominal_metrics = _pose_metrics(observations, nominal_rollout)
         estimated_score = _rollout_pose_score(observations, estimated_rollout)
+        external_wrench_score = _rollout_pose_score(
+            observations, external_wrench_rollout
+        )
         nominal_score = _rollout_pose_score(observations, nominal_rollout)
         sensor_metrics = _sensor_metrics(observations, estimated_rollout)
-        evaluation = selected.evaluation.bag_evaluations[index]
+        external_wrench_sensor_metrics = _sensor_metrics(
+            observations, external_wrench_rollout
+        )
         wrench_statistics = _wrench_statistics(
             bag.collocation_time, evaluation.residual_body_wrench
         )
@@ -2346,14 +2567,34 @@ def run(arguments: argparse.Namespace) -> int:
             "collocation_count": int(bag.collocation_time.size),
             "dynamics_loss": evaluation.dynamics_loss,
             "residual_wrench_statistics": wrench_statistics,
+            "inferred_external_wrench": {
+                "definition": "required body wrench minus modeled body wrench",
+                "frame": "body",
+                "components": ("F_x", "F_y", "F_z", "M_x", "M_y", "M_z"),
+                "force_unit": "N",
+                "torque_unit": "N m",
+                "rollout_interpolation": "linear in time with endpoint hold",
+            },
             "estimated_forward_metrics": estimated_metrics,
+            "estimated_with_external_wrench_forward_metrics": (
+                external_wrench_metrics
+            ),
             "nominal_forward_metrics": nominal_metrics,
             "estimated_forward_pose_score_m2": estimated_score,
+            "estimated_with_external_wrench_forward_pose_score_m2": (
+                external_wrench_score
+            ),
+            "external_wrench_improves_estimated_free_rollout": bool(
+                external_wrench_score < estimated_score
+            ),
             "nominal_forward_pose_score_m2": nominal_score,
             "estimated_improves_over_nominal": bool(
                 estimated_score < nominal_score
             ),
             "sensor_validation": sensor_metrics,
+            "sensor_validation_with_external_wrench": (
+                external_wrench_sensor_metrics
+            ),
             "nominal_rollout_lag_seconds": initial_delay,
         }
         _write_spline_fit_pdf(bag_directory / "spline_fit.pdf", bag)
@@ -2361,6 +2602,7 @@ def run(arguments: argparse.Namespace) -> int:
             bag_directory / "trajectory_3d.pdf",
             bag,
             estimated_rollout,
+            external_wrench_rollout,
             nominal_rollout,
         )
         shutil.copyfile(
@@ -2372,12 +2614,18 @@ def run(arguments: argparse.Namespace) -> int:
             bag,
             estimated_rollout,
             sensor_metrics,
+            external_wrench_rollout,
+            external_wrench_sensor_metrics,
         )
         _write_residual_wrench_pdf(
             bag_directory / "residual_wrench.pdf",
             bag,
             evaluation,
             wrench_statistics,
+        )
+        shutil.copyfile(
+            bag_directory / "residual_wrench.pdf",
+            bag_directory / "external_wrench.pdf",
         )
         np.savez_compressed(
             bag_directory / "spline_dynamics.npz",
@@ -2413,6 +2661,10 @@ def run(arguments: argparse.Namespace) -> int:
             required_body_wrench=evaluation.required_body_wrench,
             modeled_body_wrench=evaluation.modeled_body_wrench,
             residual_body_wrench=evaluation.residual_body_wrench,
+            inferred_external_body_wrench_time=bag.collocation_time,
+            inferred_external_body_wrench=(
+                evaluation.residual_body_wrench
+            ),
             estimated_forward_sensor_position=(
                 estimated_rollout.sensor_position
             ),
@@ -2427,6 +2679,21 @@ def run(arguments: argparse.Namespace) -> int:
             ),
             estimated_forward_specific_force_sensor=(
                 estimated_rollout.specific_force_sensor
+            ),
+            external_wrench_forward_sensor_position=(
+                external_wrench_rollout.sensor_position
+            ),
+            external_wrench_forward_sensor_orientation_xyzw=(
+                external_wrench_rollout.sensor_orientation_xyzw
+            ),
+            external_wrench_forward_sensor_velocity_world=(
+                external_wrench_rollout.sensor_velocity_world
+            ),
+            external_wrench_forward_angular_velocity_sensor=(
+                external_wrench_rollout.angular_velocity_sensor
+            ),
+            external_wrench_forward_specific_force_sensor=(
+                external_wrench_rollout.specific_force_sensor
             ),
             nominal_forward_sensor_position=nominal_rollout.sensor_position,
             nominal_forward_sensor_orientation_xyzw=(
@@ -2458,6 +2725,7 @@ def run(arguments: argparse.Namespace) -> int:
                 "trajectory_3d_pdf": "trajectory_3d.pdf",
                 "sensor_validation_pdf": "sensor_validation.pdf",
                 "residual_wrench_pdf": "residual_wrench.pdf",
+                "external_wrench_pdf": "external_wrench.pdf",
                 "spline_dynamics_npz": "spline_dynamics.npz",
             },
         }
@@ -2474,6 +2742,7 @@ def run(arguments: argparse.Namespace) -> int:
             "trajectory_3d_pdf": relative + "trajectory_3d.pdf",
             "sensor_validation_pdf": relative + "sensor_validation.pdf",
             "residual_wrench_pdf": relative + "residual_wrench.pdf",
+            "external_wrench_pdf": relative + "external_wrench.pdf",
             "spline_dynamics_npz": relative + "spline_dynamics.npz",
         }
 

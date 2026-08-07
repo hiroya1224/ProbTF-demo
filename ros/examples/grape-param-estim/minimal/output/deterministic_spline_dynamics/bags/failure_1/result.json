@@ -207,7 +207,8 @@
     "sensor_validation_pdf": "sensor_validation.pdf",
     "spline_dynamics_npz": "spline_dynamics.npz",
     "spline_fit_pdf": "spline_fit.pdf",
-    "trajectory_3d_pdf": "trajectory_3d.pdf"
+    "trajectory_3d_pdf": "trajectory_3d.pdf",
+    "trajectory_pdf": "trajectory.pdf"
   },
   "schema": "grape-param-estim/minimal-deterministic-spline-dynamics/v1/bag-result",
   "shared_delay_seconds": 0.048338405532,

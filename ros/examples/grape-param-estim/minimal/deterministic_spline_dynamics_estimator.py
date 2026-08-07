@@ -10,6 +10,7 @@ import json
 import math
 import os
 from pathlib import Path
+import shutil
 import sys
 import textwrap
 import time
@@ -1158,25 +1159,169 @@ def _write_trajectory_pdf(
     observed = bag.direct_problem.observations
     relative_time = observed.time - observed.time[0]
     estimated_position_error = estimated.sensor_position - observed.sensor_position
-    nominal_position_error = nominal.sensor_position - observed.sensor_position
     estimated_orientation_error = _orientation_errors(
         observed.sensor_orientation_xyzw,
         estimated.sensor_orientation_xyzw,
     )
-    nominal_orientation_error = _orientation_errors(
-        observed.sensor_orientation_xyzw,
-        nominal.sensor_orientation_xyzw,
+    observed_rpy = baseline._rpy_series(
+        observed.sensor_orientation_xyzw
     )
-    lower, upper = _common_3d_limits(
+    estimated_rpy = baseline._rpy_series(
+        estimated.sensor_orientation_xyzw
+    )
+    primary_lower, primary_upper = _common_3d_limits(
+        observed.sensor_position,
+        estimated.sensor_position,
+    )
+    comparison_lower, comparison_upper = _common_3d_limits(
         observed.sensor_position,
         estimated.sensor_position,
         nominal.sensor_position,
     )
     with PdfPages(path) as pdf:
         figure = plt.figure(figsize=(11.7, 8.3), constrained_layout=True)
+        axis = figure.add_subplot(111, projection="3d")
+        axis.plot(
+            observed.sensor_position[:, 0],
+            observed.sensor_position[:, 1],
+            observed.sensor_position[:, 2],
+            color="#1e5abe",
+            linewidth=2.5,
+            label="observed",
+        )
+        axis.plot(
+            estimated.sensor_position[:, 0],
+            estimated.sensor_position[:, 1],
+            estimated.sensor_position[:, 2],
+            color="#d2691e",
+            linewidth=2.0,
+            linestyle="--",
+            label="estimated full forward rollout",
+        )
+        axis.set_xlim(primary_lower[0], primary_upper[0])
+        axis.set_ylim(primary_lower[1], primary_upper[1])
+        axis.set_zlim(primary_lower[2], primary_upper[2])
+        axis.set_xlabel("x [m]")
+        axis.set_ylabel("y [m]")
+        axis.set_zlabel("z [m]")
+        axis.set_title(
+            "PRIMARY: observed vs estimated full forward trajectory"
+        )
+        axis.legend(loc="best")
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        primary_pages = (
+            (
+                "PRIMARY: observed vs estimated sensor position",
+                observed.sensor_position,
+                estimated.sensor_position,
+                ("x [m]", "y [m]", "z [m]"),
+            ),
+            (
+                "PRIMARY: observed vs estimated sensor orientation",
+                observed_rpy,
+                estimated_rpy,
+                ("roll [rad]", "pitch [rad]", "yaw [rad]"),
+            ),
+            (
+                "Observed vs estimated world-frame velocity",
+                observed.sensor_velocity_world,
+                estimated.sensor_velocity_world,
+                ("v_x [m/s]", "v_y [m/s]", "v_z [m/s]"),
+            ),
+            (
+                "Observed vs estimated gyroscope",
+                observed.angular_velocity_sensor,
+                estimated.angular_velocity_sensor,
+                ("omega_x [rad/s]", "omega_y [rad/s]", "omega_z [rad/s]"),
+            ),
+            (
+                "Observed vs estimated specific force",
+                observed.specific_force_sensor,
+                estimated.specific_force_sensor,
+                ("f_x [m/s2]", "f_y [m/s2]", "f_z [m/s2]"),
+            ),
+        )
+        for title, reference, prediction, labels in primary_pages:
+            figure, axes = plt.subplots(
+                3,
+                1,
+                figsize=(11.7, 8.3),
+                sharex=True,
+                constrained_layout=True,
+            )
+            for component, component_axis in enumerate(axes):
+                component_axis.plot(
+                    relative_time,
+                    reference[:, component],
+                    color="#1e5abe",
+                    linewidth=2.2,
+                    label="observed",
+                )
+                component_axis.plot(
+                    relative_time,
+                    prediction[:, component],
+                    color="#d2691e",
+                    linewidth=1.8,
+                    linestyle="--",
+                    label="estimated full forward rollout",
+                )
+                component_axis.set_ylabel(labels[component])
+                component_axis.grid(True, alpha=0.25)
+            axes[0].set_title(title)
+            axes[0].legend(loc="best")
+            axes[-1].set_xlabel("time [s]")
+            pdf.savefig(figure)
+            plt.close(figure)
+
+        for title, estimated_error, labels in (
+            (
+                "Estimated full-rollout sensor position error",
+                estimated_position_error,
+                ("x error [m]", "y error [m]", "z error [m]"),
+            ),
+            (
+                "Estimated full-rollout sensor orientation log error",
+                estimated_orientation_error,
+                ("roll-like [rad]", "pitch-like [rad]", "yaw-like [rad]"),
+            ),
+        ):
+            figure, axes = plt.subplots(
+                3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True
+            )
+            for component, component_axis in enumerate(axes):
+                component_axis.plot(
+                    relative_time,
+                    estimated_error[:, component],
+                    color="#d2691e",
+                    label="estimated minus observed",
+                )
+                component_axis.axhline(
+                    0.0, color="black", linewidth=0.7, alpha=0.5
+                )
+                component_axis.set_ylabel(labels[component])
+                component_axis.grid(True, alpha=0.25)
+            axes[0].set_title(title)
+            axes[0].legend(loc="best")
+            axes[-1].set_xlabel("time [s]")
+            pdf.savefig(figure)
+            plt.close(figure)
+
+        figure = plt.figure(figsize=(11.7, 8.3), constrained_layout=True)
         for subplot, rollout, title, color in (
-            (121, estimated, "Estimated parameters: full forward rollout", "#d2691e"),
-            (122, nominal, "Nominal parameters: full forward rollout", "#8b4bb7"),
+            (
+                121,
+                estimated,
+                "Estimated parameters",
+                "#d2691e",
+            ),
+            (
+                122,
+                nominal,
+                "Nominal parameters (auxiliary)",
+                "#8b4bb7",
+            ),
         ):
             axis = figure.add_subplot(subplot, projection="3d")
             axis.plot(
@@ -1193,58 +1338,21 @@ def _write_trajectory_pdf(
                 rollout.sensor_position[:, 2],
                 color=color,
                 linestyle="--",
-                label="full forward rollout",
+                label=title,
             )
-            axis.set_xlim(lower[0], upper[0])
-            axis.set_ylim(lower[1], upper[1])
-            axis.set_zlim(lower[2], upper[2])
+            axis.set_xlim(comparison_lower[0], comparison_upper[0])
+            axis.set_ylim(comparison_lower[1], comparison_upper[1])
+            axis.set_zlim(comparison_lower[2], comparison_upper[2])
             axis.set_xlabel("x [m]")
             axis.set_ylabel("y [m]")
             axis.set_zlabel("z [m]")
             axis.set_title(title)
             axis.legend(loc="best")
+        figure.suptitle(
+            "Auxiliary estimated/nominal comparison; primary comparison is observed/estimated"
+        )
         pdf.savefig(figure)
         plt.close(figure)
-
-        for title, estimated_error, nominal_error, labels in (
-            (
-                "Sensor position error",
-                estimated_position_error,
-                nominal_position_error,
-                ("x error [m]", "y error [m]", "z error [m]"),
-            ),
-            (
-                "Sensor orientation log error",
-                estimated_orientation_error,
-                nominal_orientation_error,
-                ("roll-like [rad]", "pitch-like [rad]", "yaw-like [rad]"),
-            ),
-        ):
-            figure, axes = plt.subplots(
-                3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True
-            )
-            for component, axis in enumerate(axes):
-                axis.plot(
-                    relative_time,
-                    estimated_error[:, component],
-                    color="#d2691e",
-                    label="estimated parameters",
-                )
-                axis.plot(
-                    relative_time,
-                    nominal_error[:, component],
-                    color="#8b4bb7",
-                    linestyle="--",
-                    label="nominal parameters",
-                )
-                axis.axhline(0.0, color="black", linewidth=0.7, alpha=0.5)
-                axis.set_ylabel(labels[component])
-                axis.grid(True, alpha=0.25)
-            axes[0].set_title(title)
-            axes[0].legend(loc="best")
-            axes[-1].set_xlabel("time [s]")
-            pdf.savefig(figure)
-            plt.close(figure)
 
 
 def _write_sensor_validation_pdf(
@@ -2255,6 +2363,10 @@ def run(arguments: argparse.Namespace) -> int:
             estimated_rollout,
             nominal_rollout,
         )
+        shutil.copyfile(
+            bag_directory / "trajectory_3d.pdf",
+            bag_directory / "trajectory.pdf",
+        )
         _write_sensor_validation_pdf(
             bag_directory / "sensor_validation.pdf",
             bag,
@@ -2270,6 +2382,20 @@ def run(arguments: argparse.Namespace) -> int:
         np.savez_compressed(
             bag_directory / "spline_dynamics.npz",
             collocation_time=bag.collocation_time,
+            output_time=observations.time,
+            observed_sensor_position=observations.sensor_position,
+            observed_sensor_orientation_xyzw=(
+                observations.sensor_orientation_xyzw
+            ),
+            observed_sensor_velocity_world=(
+                observations.sensor_velocity_world
+            ),
+            observed_angular_velocity_sensor=(
+                observations.angular_velocity_sensor
+            ),
+            observed_specific_force_sensor=(
+                observations.specific_force_sensor
+            ),
             spline_sensor_position=bag.collocation.sensor_position,
             spline_sensor_velocity_world=(
                 bag.collocation.sensor_velocity_world
@@ -2290,7 +2416,22 @@ def run(arguments: argparse.Namespace) -> int:
             estimated_forward_sensor_position=(
                 estimated_rollout.sensor_position
             ),
+            estimated_forward_sensor_orientation_xyzw=(
+                estimated_rollout.sensor_orientation_xyzw
+            ),
+            estimated_forward_sensor_velocity_world=(
+                estimated_rollout.sensor_velocity_world
+            ),
+            estimated_forward_angular_velocity_sensor=(
+                estimated_rollout.angular_velocity_sensor
+            ),
+            estimated_forward_specific_force_sensor=(
+                estimated_rollout.specific_force_sensor
+            ),
             nominal_forward_sensor_position=nominal_rollout.sensor_position,
+            nominal_forward_sensor_orientation_xyzw=(
+                nominal_rollout.sensor_orientation_xyzw
+            ),
         )
         bag_result = {
             "schema": SCHEMA + "/bag-result",
@@ -2313,6 +2454,7 @@ def run(arguments: argparse.Namespace) -> int:
             "diagnostics": bag_payload,
             "outputs": {
                 "spline_fit_pdf": "spline_fit.pdf",
+                "trajectory_pdf": "trajectory.pdf",
                 "trajectory_3d_pdf": "trajectory_3d.pdf",
                 "sensor_validation_pdf": "sensor_validation.pdf",
                 "residual_wrench_pdf": "residual_wrench.pdf",
@@ -2328,6 +2470,7 @@ def run(arguments: argparse.Namespace) -> int:
         bag_outputs[bag_id] = {
             "result_json": relative + "result.json",
             "spline_fit_pdf": relative + "spline_fit.pdf",
+            "trajectory_pdf": relative + "trajectory.pdf",
             "trajectory_3d_pdf": relative + "trajectory_3d.pdf",
             "sensor_validation_pdf": relative + "sensor_validation.pdf",
             "residual_wrench_pdf": relative + "residual_wrench.pdf",

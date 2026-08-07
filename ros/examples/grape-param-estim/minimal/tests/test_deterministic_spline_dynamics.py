@@ -424,6 +424,41 @@ class RecordedAndSyntheticDynamicsTests(unittest.TestCase):
             rtol=0.0,
         )
 
+    def test_trajectory_report_prioritizes_complete_observed_estimated_comparison(
+        self,
+    ):
+        rollout = estimator.forward_rollout(
+            self.bag,
+            np.zeros(strict.PHYSICAL_DIMENSION),
+            0.02,
+        )
+
+        class CapturePdf:
+            def __init__(self):
+                self.saved = []
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_arguments):
+                return False
+
+            def savefig(self, figure):
+                self.saved.append(figure)
+
+        capture = CapturePdf()
+        with patch.object(estimator, "PdfPages", return_value=capture):
+            estimator._write_trajectory_pdf(
+                Path("unused.pdf"), self.bag, rollout, rollout
+            )
+        self.assertEqual(len(capture.saved), 9)
+        primary_title = capture.saved[0].axes[0].get_title()
+        self.assertIn("observed vs estimated", primary_title)
+        position_title = capture.saved[1].axes[0].get_title()
+        orientation_title = capture.saved[2].axes[0].get_title()
+        self.assertIn("observed vs estimated", position_title)
+        self.assertIn("observed vs estimated", orientation_title)
+
     def test_changing_imu_observations_does_not_change_estimator(self):
         problem = estimator.SplineDynamicsProblem((self.bag,), prior_weight=0.5)
         coordinate = np.zeros(estimator.GLOBAL_DIMENSION)

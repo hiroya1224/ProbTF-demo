@@ -215,6 +215,25 @@ class ConfigurationAndLagTests(unittest.TestCase):
             math.log(3.2 / VehicleParameters.nominal().mass),
         )
 
+    def test_omitted_result_uses_exact_nominal_physical_coordinate(self):
+        seed = estimator.load_initial_estimate(None, 0.03, None)
+        self.assertEqual(seed.source_kind, "nominal")
+        self.assertIsNone(seed.source_path)
+        self.assertAlmostEqual(seed.delay_seconds, 0.03)
+        self.assertAlmostEqual(
+            seed.selected_mass_kg, VehicleParameters.nominal().mass
+        )
+        np.testing.assert_array_equal(
+            seed.physical_coordinate,
+            np.zeros(estimator.strict.PHYSICAL_DIMENSION),
+        )
+
+    def test_parser_does_not_automatically_load_previous_result(self):
+        arguments = estimator.create_argument_parser().parse_args(
+            ("--config", "config.json")
+        )
+        self.assertIsNone(arguments.estimator_result)
+
     def test_entrypoint_routes_spline_dynamics_method(self):
         with patch.object(estimator, "main", return_value=0) as selected_main:
             status = entrypoint.main(

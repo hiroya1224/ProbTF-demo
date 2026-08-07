@@ -61,12 +61,6 @@ SCHEMA = "grape-param-estim/minimal-deterministic-spline-dynamics/v1"
 OUTPUT_SUBDIRECTORY = "deterministic_spline_dynamics"
 GLOBAL_DIMENSION = strict.PHYSICAL_DIMENSION + 1
 DELAY_INDEX = strict.PHYSICAL_DIMENSION
-DEFAULT_ESTIMATOR_RESULT = (
-    Path(__file__).resolve().parent
-    / "output"
-    / multi.OUTPUT_SUBDIRECTORY
-    / "result.json"
-)
 COMPONENT_NAMES = ("x", "y", "z")
 
 
@@ -229,7 +223,7 @@ def load_initial_estimate(
     source_path = None if path is None else path.expanduser().resolve()
     coordinate = np.zeros(strict.PHYSICAL_DIMENSION, dtype=float)
     delay = float(fallback_delay)
-    source_kind = "nominal_fallback"
+    source_kind = "nominal" if source_path is None else "nominal_fallback"
     if source_path is not None and source_path.is_file():
         try:
             raw = json.loads(source_path.read_text(encoding="utf-8"))
@@ -274,7 +268,9 @@ def load_initial_estimate(
         physical_coordinate=coordinate,
         delay_seconds=delay,
         source_kind=source_kind,
-        source_path=(source_path if source_kind != "nominal_fallback" else None),
+        source_path=(
+            source_path if source_kind == "multiple_shooting_result" else None
+        ),
         source_mass_kg=source_mass,
         selected_mass_kg=selected_mass,
     )
@@ -1967,6 +1963,8 @@ def _parameter_lines(
         "Estimator structure",
         "  pose-only continuous-time spline -> analytic derivatives",
         "  fixed-spline gradient matching -> shared physical parameters and lag",
+        "  default physical initialization: exact nominal chart origin",
+        "  previous estimator result loading: explicit opt-in only",
         "  shooting nodes: none",
         "  continuity constraints: none",
         "  sensor/IMU channels in loss: none",
@@ -2151,10 +2149,11 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--estimator-result",
         type=Path,
-        default=DEFAULT_ESTIMATOR_RESULT,
+        default=None,
         help=(
-            "initial multiple-shooting result.json; missing path falls back "
-            "to nominal physical parameters"
+            "optional explicit result.json warm start; omitted uses exact "
+            "nominal physical parameters, and a missing explicit path also "
+            "falls back to nominal"
         ),
     )
     parser.add_argument(
@@ -2327,9 +2326,15 @@ def run(arguments: argparse.Namespace) -> int:
     )
     _validate_arguments(arguments, config, initial_delay)
     started = time.perf_counter()
-    if initial.source_kind == "nominal_fallback":
+    if initial.source_kind == "nominal":
         print(
-            "initial estimator result not found; using nominal physical parameters",
+            "initial physical parameters: exact nominal chart origin",
+            flush=True,
+        )
+    elif initial.source_kind == "nominal_fallback":
+        print(
+            "explicit estimator result not found; using exact nominal "
+            "physical parameters",
             flush=True,
         )
     else:
@@ -2781,6 +2786,10 @@ def run(arguments: argparse.Namespace) -> int:
             "uses_augmented_lagrangian": False,
             "sensor_channels_in_parameter_loss": False,
             "pose_role": "constructs fixed bag-local splines only",
+            "default_physical_initialization": (
+                "exact nominal 13-D physical chart origin"
+            ),
+            "automatic_previous_result_loading": False,
             "command_mode_during_search": "quintic smoothstep ZOH",
             "command_mode_final": "strict ZOH",
         },

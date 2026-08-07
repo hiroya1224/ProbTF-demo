@@ -16,7 +16,7 @@ single-bag methodは同梱rosbagの19–24秒を既定区間とし、multi-bag m
 
 位置にはcubic B-spline、姿勢には`scipy.spatial.transform.RotationSpline`を使います。knot spacingは設定JSONの候補をpose-only blocked cross-validationで比較してbagごとに選び、parameter最適化中はsplineとその微分を固定します。並進残差と角加速度残差は固定nominal計量`J0/m0`で同じ長さ尺度へ写し、各bagをサンプル数で正規化して指定weightで結合します。soft priorは共有parameterへ一度だけ加えます。
 
-既定では`minimal/output/deterministic_multiple_shooting_multi/result.json`を初期値にします。存在しなければnominal physical parametersとconfigの`initial_delay_seconds`へ自然にfallbackします。別の結果は`--estimator-result`、補正後の初期質量は`--corrected-mass`で指定できます。
+物理parameterの既定初期値は、質量、慣性、CoG offset、相対rotor force effectivenessのすべてについて厳密なnominal値（13次元physical chartの原点）です。command lagだけはconfigの`initial_delay_seconds`から始めます。過去のmultiple-shooting `result.json`は自動では読みません。この推定器はobserved pose splineとその解析微分から単独でparameterを推定します。比較実験でwarm startが必要な場合だけ`--estimator-result`を明示し、初期質量だけを変更する場合は`--corrected-mass`を指定できます。
 
 ```bash
 source /home/leus/catkin_ws/devel/setup.bash

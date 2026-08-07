@@ -9,7 +9,7 @@ from typing import Any, Sequence
 
 import numpy as np
 from scipy.interpolate import BSpline
-from scipy.spatial.transform import Rotation, RotationSpline
+from scipy.spatial.transform import Rotation
 
 from grape_param_estim.geometry import (
     matrix_to_quaternion,
@@ -31,6 +31,7 @@ class PoseSplineEvaluation:
 
 @dataclass(frozen=True)
 class CrossValidationCandidate:
+    spline_degree: int
     requested_knot_spacing_seconds: float
     effective_position_knot_spacing_seconds: float
     effective_rotation_knot_spacing_seconds: float
@@ -55,8 +56,85 @@ class PoseSplineSelection:
     fit_metric_rmse_m: float
 
 
+class QuinticQuaternionSpline:
+    """C4 normalized-quaternion B-spline with analytic body kinematics."""
+
+    def __init__(self, component_spline: BSpline) -> None:
+        if component_spline.k != 5:
+            raise ValueError("rotation component spline must be quintic")
+        self.component_spline = component_spline
+        self.degree = int(component_spline.k)
+
+    def evaluate(
+        self, query_time: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        raw = np.asarray(self.component_spline(query_time, 0), dtype=float)
+        raw_first = np.asarray(
+            self.component_spline(query_time, 1), dtype=float
+        )
+        raw_second = np.asarray(
+            self.component_spline(query_time, 2), dtype=float
+        )
+        norm = np.linalg.norm(raw, axis=1)
+        if (
+            raw.shape != (query_time.size, 4)
+            or np.any(~np.isfinite(raw))
+            or np.any(~np.isfinite(raw_first))
+            or np.any(~np.isfinite(raw_second))
+            or np.any(norm <= 64.0 * np.finfo(float).eps)
+        ):
+            raise FloatingPointError("quintic quaternion spline is singular")
+        norm_squared = norm * norm
+        logarithmic_norm_rate = np.einsum(
+            "ni,ni->n", raw, raw_first
+        ) / norm_squared
+        logarithmic_norm_acceleration = (
+            (
+                np.einsum("ni,ni->n", raw_first, raw_first)
+                + np.einsum("ni,ni->n", raw, raw_second)
+            )
+            / norm_squared
+            - 2.0 * logarithmic_norm_rate**2
+        )
+        quaternion = raw / norm[:, None]
+        quaternion_first = (
+            raw_first - logarithmic_norm_rate[:, None] * raw
+        ) / norm[:, None]
+        quaternion_second = (
+            raw_second
+            - 2.0 * logarithmic_norm_rate[:, None] * raw_first
+            + (
+                logarithmic_norm_rate**2
+                - logarithmic_norm_acceleration
+            )[:, None]
+            * raw
+        ) / norm[:, None]
+        vector = quaternion[:, :3]
+        scalar = quaternion[:, 3]
+
+        def inverse_product_vector(derivative: np.ndarray) -> np.ndarray:
+            return (
+                scalar[:, None] * derivative[:, :3]
+                - derivative[:, 3, None] * vector
+                - np.cross(vector, derivative[:, :3])
+            )
+
+        body_angular_velocity = 2.0 * inverse_product_vector(
+            quaternion_first
+        )
+        body_angular_acceleration = 2.0 * inverse_product_vector(
+            quaternion_second
+        )
+        rotation = Rotation.from_quat(quaternion).as_matrix()
+        return (
+            np.asarray(rotation, dtype=float),
+            body_angular_velocity,
+            body_angular_acceleration,
+        )
+
+
 class PoseSpline:
-    """Cubic B-spline position and cubic SO(3) rotation spline."""
+    """Quintic position and normalized-quaternion pose spline."""
 
     def __init__(
         self,
@@ -64,7 +142,7 @@ class PoseSpline:
         start_time: float,
         end_time: float,
         position_spline: BSpline,
-        rotation_spline: RotationSpline,
+        rotation_spline: QuinticQuaternionSpline,
         body_to_pose_sensor_rotation: np.ndarray,
         requested_knot_spacing_seconds: float,
         effective_position_knot_spacing_seconds: float,
@@ -90,8 +168,11 @@ class PoseSpline:
         )
         self.position_coefficient_count = int(position_coefficient_count)
         self.rotation_knot_count = int(rotation_knot_count)
+        self.degree = int(position_spline.k)
         if (
             not self.start_time < self.end_time
+            or self.degree != 5
+            or rotation_spline.degree != 5
             or self.body_to_pose_sensor_rotation.shape != (3, 3)
             or np.any(~np.isfinite(self.body_to_pose_sensor_rotation))
         ):
@@ -123,15 +204,11 @@ class PoseSpline:
         sensor_acceleration = np.asarray(
             self.position_spline(clipped_time, 2), dtype=float
         )
-        body_rotation = np.asarray(
-            self.rotation_spline(clipped_time, 0).as_matrix(), dtype=float
-        )
-        body_angular_velocity = np.asarray(
-            self.rotation_spline(clipped_time, 1), dtype=float
-        )
-        body_angular_acceleration = np.asarray(
-            self.rotation_spline(clipped_time, 2), dtype=float
-        )
+        (
+            body_rotation,
+            body_angular_velocity,
+            body_angular_acceleration,
+        ) = self.rotation_spline.evaluate(clipped_time)
         arrays = (
             sensor_position,
             sensor_velocity,
@@ -267,21 +344,26 @@ def _fit_rotation_spline(
     time_value: np.ndarray,
     body_rotation: np.ndarray,
     requested_spacing: float,
-) -> tuple[RotationSpline, float, int]:
-    duration = float(time_value[-1] - time_value[0])
-    knot_count = min(
-        time_value.size,
-        max(2, int(math.ceil(duration / requested_spacing)) + 1),
+) -> tuple[QuinticQuaternionSpline, float, int]:
+    degree = 5
+    quaternion = Rotation.from_matrix(body_rotation).as_quat()
+    quaternion = np.asarray(quaternion, dtype=float)
+    for index in range(1, quaternion.shape[0]):
+        if float(np.dot(quaternion[index - 1], quaternion[index])) < 0.0:
+            quaternion[index] *= -1.0
+    component_spline, effective_spacing, coefficient_count = (
+        _fit_position_spline(
+            time_value,
+            quaternion,
+            requested_spacing,
+            degree,
+        )
     )
-    knot_time = np.linspace(time_value[0], time_value[-1], knot_count)
-    observation_spline = RotationSpline(
-        time_value,
-        Rotation.from_matrix(body_rotation),
+    return (
+        QuinticQuaternionSpline(component_spline),
+        effective_spacing,
+        coefficient_count,
     )
-    knot_rotation = observation_spline(knot_time)
-    spline = RotationSpline(knot_time, knot_rotation)
-    effective_spacing = duration / max(1, knot_count - 1)
-    return spline, effective_spacing, knot_count
 
 
 def fit_pose_spline_fixed(
@@ -291,7 +373,7 @@ def fit_pose_spline_fixed(
     sensor_orientation_xyzw: np.ndarray,
     body_to_pose_sensor_rotation: np.ndarray,
     knot_spacing_seconds: float,
-    degree: int = 3,
+    degree: int = 5,
 ) -> PoseSpline:
     time_value, position, body_rotation, extrinsic = _validate_observations(
         time_axis,
@@ -300,8 +382,8 @@ def fit_pose_spline_fixed(
         body_to_pose_sensor_rotation,
     )
     spacing = float(knot_spacing_seconds)
-    if not np.isfinite(spacing) or spacing <= 0.0 or degree != 3:
-        raise ValueError("only positive-spacing cubic pose splines are supported")
+    if not np.isfinite(spacing) or spacing <= 0.0 or degree != 5:
+        raise ValueError("only positive-spacing quintic pose splines are supported")
     position_spline, position_spacing, coefficient_count = (
         _fit_position_spline(time_value, position, spacing, degree)
     )
@@ -483,6 +565,7 @@ def select_pose_spline(
         score = metric_rmse if sanity else float("inf")
         records.append(
             CrossValidationCandidate(
+                spline_degree=final_spline.degree,
                 requested_knot_spacing_seconds=float(spacing),
                 effective_position_knot_spacing_seconds=(
                     final_spline.effective_position_knot_spacing_seconds

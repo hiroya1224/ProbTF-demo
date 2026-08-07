@@ -41,9 +41,12 @@ class PoseSplineAnalyticTests(unittest.TestCase):
         time = np.linspace(0.0, 2.0, 81)
         position = np.column_stack(
             (
-                1.0 + 2.0 * time - 0.5 * time**2 + 0.2 * time**3,
-                -0.3 + 0.4 * time**2 - 0.1 * time**3,
-                0.7 - 0.2 * time + 0.05 * time**3,
+                1.0 + 2.0 * time - 0.5 * time**2 + 0.2 * time**3
+                + 0.03 * time**4 - 0.01 * time**5,
+                -0.3 + 0.4 * time**2 - 0.1 * time**3
+                + 0.02 * time**5,
+                0.7 - 0.2 * time + 0.05 * time**3
+                - 0.04 * time**4 + 0.015 * time**5,
             )
         )
         quaternion = np.tile((0.0, 0.0, 0.0, 1.0), (time.size, 1))
@@ -54,27 +57,34 @@ class PoseSplineAnalyticTests(unittest.TestCase):
             body_to_pose_sensor_rotation=np.eye(3),
             knot_spacing_seconds=0.05,
         )
+        self.assertEqual(spline.degree, 5)
+        self.assertEqual(spline.position_spline.k, 5)
+        self.assertEqual(spline.rotation_spline.degree, 5)
         query = np.linspace(0.05, 1.95, 73)
         value = spline.evaluate(query)
         expected_velocity = np.column_stack(
             (
-                2.0 - query + 0.6 * query**2,
-                0.8 * query - 0.3 * query**2,
-                -0.2 + 0.15 * query**2,
+                2.0 - query + 0.6 * query**2
+                + 0.12 * query**3 - 0.05 * query**4,
+                0.8 * query - 0.3 * query**2 + 0.1 * query**4,
+                -0.2 + 0.15 * query**2
+                - 0.16 * query**3 + 0.075 * query**4,
             )
         )
         expected_acceleration = np.column_stack(
             (
-                -1.0 + 1.2 * query,
-                0.8 - 0.6 * query,
-                0.3 * query,
+                -1.0 + 1.2 * query + 0.36 * query**2 - 0.2 * query**3,
+                0.8 - 0.6 * query + 0.4 * query**3,
+                0.3 * query - 0.48 * query**2 + 0.3 * query**3,
             )
         )
         np.testing.assert_allclose(value.sensor_position, np.column_stack((
-            1.0 + 2.0 * query - 0.5 * query**2 + 0.2 * query**3,
-            -0.3 + 0.4 * query**2 - 0.1 * query**3,
-            0.7 - 0.2 * query + 0.05 * query**3,
-        )), atol=2.0e-12)
+            1.0 + 2.0 * query - 0.5 * query**2 + 0.2 * query**3
+            + 0.03 * query**4 - 0.01 * query**5,
+            -0.3 + 0.4 * query**2 - 0.1 * query**3 + 0.02 * query**5,
+            0.7 - 0.2 * query + 0.05 * query**3
+            - 0.04 * query**4 + 0.015 * query**5,
+        )), atol=2.0e-11)
         np.testing.assert_allclose(
             value.sensor_velocity_world, expected_velocity, atol=2.0e-11
         )

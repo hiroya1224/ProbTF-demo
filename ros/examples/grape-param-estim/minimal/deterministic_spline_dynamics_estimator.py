@@ -1962,6 +1962,7 @@ def _parameter_lines(
         "",
         "Estimator structure",
         "  pose-only continuous-time spline -> analytic derivatives",
+        "  pose spline degree: 5 (position and normalized quaternion)",
         "  fixed-spline gradient matching -> shared physical parameters and lag",
         "  default physical initialization: exact nominal chart origin",
         "  previous estimator result loading: explicit opt-in only",
@@ -2015,6 +2016,7 @@ def _parameter_lines(
         [
             "",
             "Spline and collocation",
+            "  spline degree: 5",
             "  collocation step [s]: {:.12g}".format(collocation_step),
         ]
     )
@@ -2560,6 +2562,8 @@ def run(arguments: argparse.Namespace) -> int:
             "id": bag_id,
             "normalized_weight": bag.normalized_weight,
             "spline": {
+                "degree": bag.spline_selection.spline.degree,
+                "rotation_representation": "normalized quaternion B-spline",
                 "selected_knot_spacing_seconds": (
                     bag.spline_selection.selected_spacing_seconds
                 ),
@@ -2786,6 +2790,10 @@ def run(arguments: argparse.Namespace) -> int:
             "uses_augmented_lagrangian": False,
             "sensor_channels_in_parameter_loss": False,
             "pose_role": "constructs fixed bag-local splines only",
+            "pose_spline_degree": 5,
+            "rotation_spline_representation": (
+                "normalized quaternion quintic B-spline"
+            ),
             "default_physical_initialization": (
                 "exact nominal 13-D physical chart origin"
             ),
@@ -2810,6 +2818,7 @@ def run(arguments: argparse.Namespace) -> int:
             "knot_spacing_candidates_seconds": (
                 config.spline.knot_spacing_candidates_seconds
             ),
+            "pose_spline_degree": 5,
             "prior_weight": arguments.prior_weight,
             "physical_coordinate_bounds": (
                 "unbounded"

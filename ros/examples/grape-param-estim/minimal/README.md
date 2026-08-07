@@ -14,7 +14,7 @@ single-bag methodは同梱rosbagの19–24秒を既定区間とし、multi-bag m
 
 `deterministic_spline_dynamics_estimator.py` は、bagごとに観測poseだけから連続時間splineを構成し、その解析微分が要求する並進・角加速度と既存の剛体・actuator wrench modelの差から、全bag共通の質量、完全物理慣性、CoG offset、相対rotor force effectiveness、command lagを推定します。shooting node、continuity constraint、augmented Lagrangianは使いません。velocity、gyro、specific forceはparameter Lossへ入れず、最終full forward rolloutの独立検証だけに使います。
 
-位置にはcubic B-spline、姿勢には`scipy.spatial.transform.RotationSpline`を使います。knot spacingは設定JSONの候補をpose-only blocked cross-validationで比較してbagごとに選び、parameter最適化中はsplineとその微分を固定します。並進残差と角加速度残差は固定nominal計量`J0/m0`で同じ長さ尺度へ写し、各bagをサンプル数で正規化して指定weightで結合します。soft priorは共有parameterへ一度だけ加えます。
+位置と姿勢の両方に5次B-splineを使います。姿勢は符号を連続化したquaternionの各成分を5次B-splineでfitして単位長へ正規化し、body角速度・角加速度まで解析微分します。これにより位置・姿勢はC4、加速度・角加速度は少なくともC2連続になります。knot spacingは設定JSONの候補をpose-only blocked cross-validationで比較してbagごとに選び、parameter最適化中はsplineとその微分を固定します。並進残差と角加速度残差は固定nominal計量`J0/m0`で同じ長さ尺度へ写し、各bagをサンプル数で正規化して指定weightで結合します。soft priorは共有parameterへ一度だけ加えます。
 
 物理parameterの既定初期値は、質量、慣性、CoG offset、相対rotor force effectivenessのすべてについて厳密なnominal値（13次元physical chartの原点）です。command lagだけはconfigの`initial_delay_seconds`から始めます。過去のmultiple-shooting `result.json`は自動では読みません。この推定器はobserved pose splineとその解析微分から単独でparameterを推定します。比較実験でwarm startが必要な場合だけ`--estimator-result`を明示し、初期質量だけを変更する場合は`--corrected-mass`を指定できます。
 

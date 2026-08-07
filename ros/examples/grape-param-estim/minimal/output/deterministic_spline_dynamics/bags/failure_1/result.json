@@ -17,18 +17,18 @@
     "estimated_forward_pose_score_m2": 1286.3977684282,
     "estimated_improves_over_nominal": true,
     "estimated_with_external_wrench_forward_metrics": {
-      "orientation_angle_rmse_deg": 3.8411633060082306,
-      "orientation_angle_rmse_rad": 0.06704094679663411,
+      "orientation_angle_rmse_deg": 0.49103266992103856,
+      "orientation_angle_rmse_rad": 0.008570136824980647,
       "position_component_rmse_m": [
-        1.688364500997368,
-        0.3717415082879471,
-        0.04041206799102065
+        0.0002636956811661476,
+        0.0002872829718905694,
+        0.00033091682589889143
       ],
-      "position_rmse_m": 1.7292771820768353,
-      "terminal_orientation_error_deg": 6.0451965732187745,
-      "terminal_position_error_m": 4.431531846051829
+      "position_rmse_m": 0.0005114419457445328,
+      "terminal_orientation_error_deg": 0.14313347793400824,
+      "terminal_position_error_m": 0.00037910611576307885
     },
-    "estimated_with_external_wrench_forward_pose_score_m2": 1.4952622380870049,
+    "estimated_with_external_wrench_forward_pose_score_m2": 1.3777506168791986e-06,
     "external_wrench_improves_estimated_free_rollout": true,
     "id": "failure_1",
     "inferred_external_wrench": {
@@ -40,11 +40,28 @@
         "M_y",
         "M_z"
       ],
-      "definition": "required body wrench minus modeled body wrench",
+      "definition": "piecewise-linear body wrench optimized so the fixed-parameter forward pose matches the observed pose spline",
       "force_unit": "N",
       "frame": "body",
-      "rollout_interpolation": "linear in time inside parameter-estimation support; zero outside, without endpoint extrapolation",
-      "torque_unit": "N m"
+      "initialization": "required body wrench minus modeled body wrench",
+      "knot_count": 98,
+      "optimizer": {
+        "coefficient_dimension": 588,
+        "cost": 1.3295233575102057e-13,
+        "final_pose_cost": 1.3295233575102057e-13,
+        "initial_pose_cost": 129.47045080024583,
+        "knot_count": 98,
+        "message": "`gtol` termination condition is satisfied.",
+        "nfev": 16,
+        "njev": 11,
+        "optimality": 9.372483721815828e-07,
+        "status": 1,
+        "success": true,
+        "uses_regularization": false
+      },
+      "rollout_interpolation": "continuous piecewise-linear interpolation between wrench knots",
+      "torque_unit": "N m",
+      "uses_regularization": false
     },
     "nominal_forward_metrics": {
       "orientation_angle_rmse_deg": 125.34080223658447,
@@ -62,16 +79,16 @@
     "nominal_rollout_lag_seconds": 0.01,
     "normalized_weight": 0.5,
     "reconstruction_metrics": {
-      "orientation_angle_rmse_deg": 3.8411633060082306,
-      "orientation_angle_rmse_rad": 0.06704094679663411,
+      "orientation_angle_rmse_deg": 0.49103266992103856,
+      "orientation_angle_rmse_rad": 0.008570136824980647,
       "position_component_rmse_m": [
-        1.688364500997368,
-        0.3717415082879471,
-        0.04041206799102065
+        0.0002636956811661476,
+        0.0002872829718905694,
+        0.00033091682589889143
       ],
-      "position_rmse_m": 1.7292771820768353,
-      "terminal_orientation_error_deg": 6.0451965732187745,
-      "terminal_position_error_m": 4.431531846051829
+      "position_rmse_m": 0.0005114419457445328,
+      "terminal_orientation_error_deg": 0.14313347793400824,
+      "terminal_position_error_m": 0.00037910611576307885
     },
     "residual_wrench_statistics": {
       "component_names": [
@@ -83,37 +100,37 @@
         "M_z"
       ],
       "cumulative_impulse": [
-        0.06992918921984329,
-        0.22393007834483278,
-        0.550073415186508,
-        -0.1777875129130208,
-        0.18260052393030796,
-        -0.028671787167525692
+        0.09911061713146305,
+        0.24653833817858356,
+        0.5392065178324723,
+        -0.17884478169412946,
+        0.18450078839849016,
+        -0.02809106003106833
       ],
       "duration_seconds": 4.759999999999998,
       "linear_trend_per_second": [
-        -0.09477384658279255,
-        0.054124047416097325,
-        -0.5350509408422242,
-        -0.011013571836186047,
-        0.08609620417118277,
-        0.007170089037615331
+        0.08319107869541027,
+        0.0459039064115118,
+        -0.4837780613200632,
+        -0.01211733315384598,
+        0.07468417628490905,
+        -0.001634381508752804
       ],
       "mean": [
-        0.015982770828972058,
-        0.047153386064168766,
-        0.11444287189366471,
-        -0.03723436527703415,
-        0.03825609986467249,
-        -0.006387227582756882
+        0.14154315452381108,
+        0.03740006429345018,
+        0.14407081830550014,
+        -0.03601791219859044,
+        0.02458257517212421,
+        -0.01633525977451574
       ],
       "rmse": [
-        0.5573445025725726,
-        0.30652395569899826,
-        1.1960497436562427,
-        0.06936072254220944,
-        0.47949167300438894,
-        0.1349358097241204
+        1.3740677021177927,
+        0.3428522338308553,
+        1.243350832949308,
+        0.07093666889516968,
+        0.5045055471551835,
+        0.16103383185269032
       ]
     },
     "sensor_consistency": {
@@ -121,46 +138,46 @@
         {
           "axis": "x",
           "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-          "mean_bias": 0.004561966926617641,
-          "pearson_correlation": 0.862175868153147,
-          "rmse": 0.05258246808858915
+          "mean_bias": 0.002561450612532194,
+          "pearson_correlation": 0.8721755646941973,
+          "rmse": 0.05038164291971523
         },
         {
           "axis": "y",
           "maximum_cross_correlation_time_shift_seconds": 0.0,
-          "mean_bias": 0.021917998622223805,
-          "pearson_correlation": 0.9972515363082336,
-          "rmse": 0.09897573195783602
+          "mean_bias": -0.0025516284579487217,
+          "pearson_correlation": 0.9978961060086344,
+          "rmse": 0.08569222317514909
         },
         {
           "axis": "z",
           "maximum_cross_correlation_time_shift_seconds": 0.0,
-          "mean_bias": -0.0011840628248899372,
-          "pearson_correlation": 0.969758063459084,
-          "rmse": 0.03879396402977655
+          "mean_bias": -9.181908298684939e-05,
+          "pearson_correlation": 0.9696050570067075,
+          "rmse": 0.038427344187508684
         }
       ],
       "specific_force": [
         {
           "axis": "x",
           "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-          "mean_bias": -0.20988724801735173,
-          "pearson_correlation": 0.9675496306327684,
-          "rmse": 0.9353004438991085
+          "mean_bias": -0.19791702782193238,
+          "pearson_correlation": 0.9652574144384147,
+          "rmse": 0.9630592962015797
         },
         {
           "axis": "y",
           "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
-          "mean_bias": 0.10414216822335583,
-          "pearson_correlation": 0.9276524111623496,
-          "rmse": 0.16147013390016385
+          "mean_bias": 0.10125887768946283,
+          "pearson_correlation": 0.9128218219691411,
+          "rmse": 0.16826206212019443
         },
         {
           "axis": "z",
           "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-          "mean_bias": 0.013998765004484909,
-          "pearson_correlation": 0.9144024253847444,
-          "rmse": 0.3378820965096469
+          "mean_bias": 0.020318568991996397,
+          "pearson_correlation": 0.9031767093291971,
+          "rmse": 0.35944971607201587
         }
       ]
     },
@@ -217,46 +234,46 @@
         {
           "axis": "x",
           "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-          "mean_bias": 0.004561966926617641,
-          "pearson_correlation": 0.862175868153147,
-          "rmse": 0.05258246808858915
+          "mean_bias": 0.002561450612532194,
+          "pearson_correlation": 0.8721755646941973,
+          "rmse": 0.05038164291971523
         },
         {
           "axis": "y",
           "maximum_cross_correlation_time_shift_seconds": 0.0,
-          "mean_bias": 0.021917998622223805,
-          "pearson_correlation": 0.9972515363082336,
-          "rmse": 0.09897573195783602
+          "mean_bias": -0.0025516284579487217,
+          "pearson_correlation": 0.9978961060086344,
+          "rmse": 0.08569222317514909
         },
         {
           "axis": "z",
           "maximum_cross_correlation_time_shift_seconds": 0.0,
-          "mean_bias": -0.0011840628248899372,
-          "pearson_correlation": 0.969758063459084,
-          "rmse": 0.03879396402977655
+          "mean_bias": -9.181908298684939e-05,
+          "pearson_correlation": 0.9696050570067075,
+          "rmse": 0.038427344187508684
         }
       ],
       "specific_force": [
         {
           "axis": "x",
           "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-          "mean_bias": -0.20988724801735173,
-          "pearson_correlation": 0.9675496306327684,
-          "rmse": 0.9353004438991085
+          "mean_bias": -0.19791702782193238,
+          "pearson_correlation": 0.9652574144384147,
+          "rmse": 0.9630592962015797
         },
         {
           "axis": "y",
           "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
-          "mean_bias": 0.10414216822335583,
-          "pearson_correlation": 0.9276524111623496,
-          "rmse": 0.16147013390016385
+          "mean_bias": 0.10125887768946283,
+          "pearson_correlation": 0.9128218219691411,
+          "rmse": 0.16826206212019443
         },
         {
           "axis": "z",
           "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-          "mean_bias": 0.013998765004484909,
-          "pearson_correlation": 0.9144024253847444,
-          "rmse": 0.3378820965096469
+          "mean_bias": 0.020318568991996397,
+          "pearson_correlation": 0.9031767093291971,
+          "rmse": 0.35944971607201587
         }
       ]
     },

@@ -1121,187 +1121,644 @@ def forward_rollout(
     return baseline.Simulation(time=direct.output_time, **arrays)
 
 
-def reconstruction_rollout(
-    bag: BagSplineData,
-    physical_coordinate: Sequence[float],
-    delay: float,
-    evaluation: BagDynamicsEvaluation,
-    external_body_wrench: BodyWrenchHistory,
-) -> baseline.Simulation:
-    # Reconstruct only on the same collocation support used to infer the wrench.
-    physical = np.asarray(physical_coordinate, dtype=float)
-    if (
-        physical.shape != (strict.PHYSICAL_DIMENSION,)
-        or np.any(~np.isfinite(physical))
-        or not np.isfinite(delay)
-        or delay < 0.0
-    ):
-        raise ValueError("reconstruction coordinate or delay is invalid")
-    if not isinstance(external_body_wrench, BodyWrenchHistory):
-        raise TypeError("external_body_wrench must be BodyWrenchHistory")
+@dataclass(frozen=True)
+class WrenchReplayEvaluation:
+    residual: np.ndarray
+    jacobian: np.ndarray
+    simulation: baseline.Simulation
+    knot_time: np.ndarray
+    coefficients: np.ndarray
 
-    time_axis = np.asarray(bag.collocation_time, dtype=float)
-    if (
-        time_axis.ndim != 1
-        or time_axis.size < 2
-        or np.any(np.diff(time_axis) <= 0.0)
-    ):
-        raise ValueError("reconstruction collocation grid is invalid")
-    if (
-        evaluation.actuator_thrust.shape != (time_axis.size, 4)
-        or evaluation.actuator_gimbal.shape != (time_axis.size, 4)
-    ):
-        raise ValueError("evaluation actuator history has the wrong shape")
 
-    parameterization = strict.FullyPhysicalInertiaParameterization(
-        VehicleParameters.nominal()
-    )
-    decoded = parameterization.decode(
-        continuation._expand_coordinate(physical, delay)
-    )
-    parameters = decoded.parameters
-    actuator_parameters = decoded.actuator_parameters
-    direct = bag.direct_problem
+class WrenchReplayProblem:
+    """Fit piecewise-linear external-wrench knot values to the pose spline."""
 
-    start_time = float(time_axis[0])
-    initial_spline = bag.spline_selection.spline.evaluate(
-        np.asarray((start_time,), dtype=float)
-    )
-    rotation = initial_spline.body_rotation[0]
-    omega = initial_spline.body_angular_velocity[0]
-    pose_lever = direct.pose_sensor_position - parameters.cog_offset
+    def __init__(
+        self,
+        bag: BagSplineData,
+        physical_coordinate: Sequence[float],
+        delay: float,
+        dynamics_evaluation: BagDynamicsEvaluation,
+    ) -> None:
+        self.bag = bag
+        self.physical_coordinate = np.asarray(
+            physical_coordinate, dtype=float
+        ).copy()
+        self.delay = float(delay)
+        self.dynamics_evaluation = dynamics_evaluation
+        if (
+            self.physical_coordinate.shape
+            != (strict.PHYSICAL_DIMENSION,)
+            or np.any(~np.isfinite(self.physical_coordinate))
+            or not np.isfinite(self.delay)
+            or self.delay < 0.0
+        ):
+            raise ValueError("wrench-replay parameter input is invalid")
 
-    rigid = RigidBodyState(
-        position=initial_spline.sensor_position[0] - rotation @ pose_lever,
-        orientation_xyzw=matrix_to_quaternion(rotation),
-        linear_velocity=(
-            initial_spline.sensor_velocity_world[0]
-            - rotation @ np.cross(omega, pose_lever)
-        ),
-        angular_velocity=omega,
-    )
-    actuators = ActuatorState(
-        thrust=np.asarray(evaluation.actuator_thrust[0], dtype=float).copy(),
-        gimbal_angle=np.asarray(
-            evaluation.actuator_gimbal[0], dtype=float
-        ).copy(),
-    )
-
-    plant = FullSixDofPlant(
-        parameters,
-        direct.geometry,
-        model_discrepancy_wrench=external_body_wrench,
-    )
-
-    count = time_axis.size
-    arrays = {
-        "sensor_position": np.empty((count, 3)),
-        "sensor_orientation_xyzw": np.empty((count, 4)),
-        "sensor_velocity_world": np.empty((count, 3)),
-        "angular_velocity_sensor": np.empty((count, 3)),
-        "specific_force_sensor": np.empty((count, 3)),
-        "cog_position": np.empty((count, 3)),
-        "cog_velocity_world": np.empty((count, 3)),
-        "actuator_thrust": np.empty((count, 4)),
-        "actuator_gimbal": np.empty((count, 4)),
-    }
-
-    def store(index: int, simulation_time: float) -> None:
-        body_rotation = quaternion_to_matrix(rigid.orientation_xyzw)
-        pose_lever_value = (
-            direct.pose_sensor_position - parameters.cog_offset
+        collocation_time = np.asarray(bag.collocation_time, dtype=float)
+        observed_time = np.asarray(
+            bag.direct_problem.observations.time, dtype=float
         )
-        velocity_lever = (
-            direct.velocity_sensor_position - parameters.cog_offset
+        mask = (
+            (observed_time >= collocation_time[0] - 1.0e-10)
+            & (observed_time <= collocation_time[-1] + 1.0e-10)
         )
-        imu_lever = direct.imu_sensor_position - parameters.cog_offset
+        knot_time = observed_time[mask]
+        if knot_time.size < 2:
+            raise ValueError(
+                "wrench reconstruction support has too few observations"
+            )
+        if not np.isclose(
+            knot_time[0], collocation_time[0], atol=1.0e-10, rtol=0.0
+        ):
+            knot_time = np.concatenate(
+                (np.asarray((collocation_time[0],)), knot_time)
+            )
+        if not np.isclose(
+            knot_time[-1], collocation_time[-1], atol=1.0e-10, rtol=0.0
+        ):
+            knot_time = np.concatenate(
+                (knot_time, np.asarray((collocation_time[-1],)))
+            )
+        self.knot_time = np.unique(knot_time)
+        self.integration_time = np.unique(
+            np.concatenate((collocation_time, self.knot_time))
+        )
+        self.knot_integration_indices = np.searchsorted(
+            self.integration_time, self.knot_time
+        )
+        if not np.allclose(
+            self.integration_time[self.knot_integration_indices],
+            self.knot_time,
+            atol=1.0e-12,
+            rtol=0.0,
+        ):
+            raise RuntimeError("wrench knots are missing from integration grid")
+        self.output_lookup = {
+            int(integration_index): output_index
+            for output_index, integration_index in enumerate(
+                self.knot_integration_indices
+            )
+        }
 
-        wrench = plant.total_body_wrench(
-            simulation_time, rigid, actuators
+        raw_wrench = np.asarray(
+            dynamics_evaluation.residual_body_wrench, dtype=float
         )
-        angular_acceleration = np.linalg.solve(
-            parameters.inertia,
-            wrench[3:]
-            - np.cross(
-                rigid.angular_velocity,
-                parameters.inertia @ rigid.angular_velocity,
+        self.initial_coefficients = np.column_stack(
+            [
+                np.interp(
+                    self.knot_time,
+                    collocation_time,
+                    raw_wrench[:, component],
+                )
+                for component in range(6)
+            ]
+        )
+        self.dimension = int(6 * self.knot_time.size)
+
+        parameterization = strict.FullyPhysicalInertiaParameterization(
+            VehicleParameters.nominal()
+        )
+        self.decoded = parameterization.decode(
+            continuation._expand_coordinate(
+                self.physical_coordinate, self.delay
+            )
+        )
+        self.parameters = self.decoded.parameters
+        self.actuator_parameters = self.decoded.actuator_parameters
+        self.direct = bag.direct_problem
+        self.zero_parameter_jacobian = (
+            strict.analytic.DecodedSearchJacobian(
+                mass=np.zeros(self.dimension, dtype=float),
+                inertia=np.zeros(
+                    (3, 3, self.dimension), dtype=float
+                ),
+                cog_offset=np.zeros(
+                    (3, self.dimension), dtype=float
+                ),
+                force_effectiveness=np.zeros(
+                    (4, self.dimension), dtype=float
+                ),
+                thrust_time_constant=np.zeros(
+                    self.dimension, dtype=float
+                ),
+                gimbal_time_constant=np.zeros(
+                    self.dimension, dtype=float
+                ),
+            )
+        )
+        self.zero_actuator_sensitivity = np.zeros(
+            (8, self.dimension), dtype=float
+        )
+        self.inverse_inertia = np.linalg.inv(
+            self.parameters.inertia
+        )
+        self.pose_factor = strict.inertia_radius_se3_factor(
+            VehicleParameters.nominal()
+        )
+        self.target_spline = bag.spline_selection.spline.evaluate(
+            self.knot_time
+        )
+        self.target_sensor_rotation = (
+            bag.spline_selection.spline.sensor_rotation(self.knot_time)
+        )
+
+    def _wrench_and_weights(
+        self,
+        coefficients: np.ndarray,
+        time_value: float,
+    ) -> tuple[np.ndarray, tuple[tuple[int, float], ...]]:
+        query = float(time_value)
+        if query <= self.knot_time[0]:
+            return coefficients[0], ((0, 1.0),)
+        if query >= self.knot_time[-1]:
+            last = self.knot_time.size - 1
+            return coefficients[last], ((last, 1.0),)
+
+        right = int(np.searchsorted(
+            self.knot_time, query, side="right"
+        ))
+        left = right - 1
+        span = float(self.knot_time[right] - self.knot_time[left])
+        fraction = (query - self.knot_time[left]) / span
+        return (
+            (1.0 - fraction) * coefficients[left]
+            + fraction * coefficients[right],
+            (
+                (left, 1.0 - fraction),
+                (right, fraction),
             ),
         )
-        specific_force_body = (
-            wrench[:3] / parameters.mass
-            + np.cross(angular_acceleration, imu_lever)
-            + np.cross(
-                rigid.angular_velocity,
-                np.cross(rigid.angular_velocity, imu_lever),
+
+    def _derivative_with_sensitivity(
+        self,
+        time_value: float,
+        state_vector: np.ndarray,
+        state_sensitivity: np.ndarray,
+        actuators: ActuatorState,
+        coefficients: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        derivative, derivative_sensitivity = (
+            strict._rigid_derivative_with_sensitivity(
+                self.direct,
+                self.decoded,
+                self.zero_parameter_jacobian,
+                state_vector,
+                state_sensitivity,
+                actuators,
+                self.zero_actuator_sensitivity,
             )
         )
 
-        arrays["sensor_position"][index] = (
-            rigid.position + body_rotation @ pose_lever_value
+        quaternion, normalization = (
+            strict.analytic._normalise_quaternion_with_jacobian(
+                state_vector[3:7]
+            )
         )
-        arrays["sensor_orientation_xyzw"][index] = matrix_to_quaternion(
-            body_rotation @ direct.pose_body_to_sensor_rotation
+        quaternion_sensitivity = (
+            normalization @ state_sensitivity[3:7]
         )
-        arrays["sensor_velocity_world"][index] = (
-            rigid.linear_velocity
-            + body_rotation
-            @ np.cross(rigid.angular_velocity, velocity_lever)
+        tangent = (
+            strict.analytic._quaternion_right_tangent_matrix(
+                quaternion
+            )
         )
-        arrays["angular_velocity_sensor"][index] = (
-            direct.body_to_imu_rotation @ rigid.angular_velocity
-            + direct.gyro_bias
+        rotation_right_sensitivity = (
+            2.0 * tangent.T @ quaternion_sensitivity
         )
-        arrays["specific_force_sensor"][index] = (
-            direct.body_to_imu_rotation @ specific_force_body
-            + direct.accelerometer_bias
-        )
-        arrays["cog_position"][index] = rigid.position
-        arrays["cog_velocity_world"][index] = rigid.linear_velocity
-        arrays["actuator_thrust"][index] = actuators.thrust
-        arrays["actuator_gimbal"][index] = actuators.gimbal_angle
+        rotation = quaternion_to_matrix(quaternion)
 
-    store(0, start_time)
-    for index in range(count - 1):
-        start = float(time_axis[index])
-        dt = float(time_axis[index + 1] - time_axis[index])
-        midpoint = start + 0.5 * dt
-        command = smooth._command(
-            bag.rotor_history.exact_zoh(midpoint, delay),
-            bag.gimbal_history.exact_zoh(midpoint, delay),
+        wrench, active_weights = self._wrench_and_weights(
+            coefficients, time_value
+        )
+        force_per_mass = wrench[:3] / self.parameters.mass
+        derivative[7:10] += rotation @ force_per_mass
+        derivative[10:13] += (
+            self.inverse_inertia @ wrench[3:]
         )
 
-        # Match _actuator_series(): same initial actuator state, same decoded
-        # actuator parameters, and two half-steps with one midpoint command.
-        midpoint_actuators = advance_actuators(
+        derivative_sensitivity[7:10] += (
+            -rotation
+            @ skew(force_per_mass)
+            @ rotation_right_sensitivity
+        )
+        for knot_index, weight in active_weights:
+            start = 6 * knot_index
+            derivative_sensitivity[
+                7:10, start : start + 3
+            ] += weight * rotation / self.parameters.mass
+            derivative_sensitivity[
+                10:13, start + 3 : start + 6
+            ] += weight * self.inverse_inertia
+
+        return derivative, derivative_sensitivity
+
+    def _step_with_sensitivity(
+        self,
+        time_value: float,
+        state: RigidBodyState,
+        state_sensitivity: np.ndarray,
+        actuators: ActuatorState,
+        time_step: float,
+        coefficients: np.ndarray,
+    ) -> tuple[RigidBodyState, np.ndarray]:
+        vector = state.as_vector()
+        sensitivity = np.asarray(
+            state_sensitivity, dtype=float
+        )
+        dt = float(time_step)
+
+        k1, j1 = self._derivative_with_sensitivity(
+            time_value,
+            vector,
+            sensitivity,
             actuators,
-            command,
-            actuator_parameters,
-            0.5 * dt,
+            coefficients,
         )
-        rigid = plant.step(start, rigid, midpoint_actuators, dt)
-        actuators = advance_actuators(
-            midpoint_actuators,
-            command,
-            actuator_parameters,
-            0.5 * dt,
+        k2, j2 = self._derivative_with_sensitivity(
+            time_value + 0.5 * dt,
+            vector + 0.5 * dt * k1,
+            sensitivity + 0.5 * dt * j1,
+            actuators,
+            coefficients,
         )
-        store(index + 1, float(time_axis[index + 1]))
+        k3, j3 = self._derivative_with_sensitivity(
+            time_value + 0.5 * dt,
+            vector + 0.5 * dt * k2,
+            sensitivity + 0.5 * dt * j2,
+            actuators,
+            coefficients,
+        )
+        k4, j4 = self._derivative_with_sensitivity(
+            time_value + dt,
+            vector + dt * k3,
+            sensitivity + dt * j3,
+            actuators,
+            coefficients,
+        )
 
-    dense = baseline.Simulation(time=time_axis.copy(), **arrays)
+        next_vector = vector + dt / 6.0 * (
+            k1 + 2.0 * k2 + 2.0 * k3 + k4
+        )
+        next_sensitivity = sensitivity + dt / 6.0 * (
+            j1 + 2.0 * j2 + 2.0 * j3 + j4
+        )
+        next_vector[3:7], normalization = (
+            strict.analytic._normalise_quaternion_with_jacobian(
+                next_vector[3:7]
+            )
+        )
+        next_sensitivity[3:7] = (
+            normalization @ next_sensitivity[3:7]
+        )
+        return (
+            RigidBodyState.from_vector(next_vector),
+            next_sensitivity,
+        )
 
-    observed_time = np.asarray(direct.observations.time, dtype=float)
-    tolerance = 1.0e-10
-    mask = (
-        (observed_time >= time_axis[0] - tolerance)
-        & (observed_time <= time_axis[-1] + tolerance)
+    def evaluate(
+        self,
+        correction_coordinate: Sequence[float],
+    ) -> WrenchReplayEvaluation:
+        correction = np.asarray(
+            correction_coordinate, dtype=float
+        )
+        if (
+            correction.shape != (self.dimension,)
+            or np.any(~np.isfinite(correction))
+        ):
+            raise ValueError(
+                "external-wrench correction has the wrong shape"
+            )
+        coefficients = (
+            self.initial_coefficients
+            + correction.reshape(-1, 6)
+        )
+        history = BodyWrenchHistory(
+            self.knot_time, coefficients
+        )
+        plant = FullSixDofPlant(
+            self.parameters,
+            self.direct.geometry,
+            model_discrepancy_wrench=history,
+        )
+
+        start_time = float(self.integration_time[0])
+        initial_spline = (
+            self.bag.spline_selection.spline.evaluate(
+                np.asarray((start_time,), dtype=float)
+            )
+        )
+        rotation = initial_spline.body_rotation[0]
+        omega = initial_spline.body_angular_velocity[0]
+        pose_lever = (
+            self.direct.pose_sensor_position
+            - self.parameters.cog_offset
+        )
+        rigid = RigidBodyState(
+            position=(
+                initial_spline.sensor_position[0]
+                - rotation @ pose_lever
+            ),
+            orientation_xyzw=matrix_to_quaternion(rotation),
+            linear_velocity=(
+                initial_spline.sensor_velocity_world[0]
+                - rotation @ np.cross(omega, pose_lever)
+            ),
+            angular_velocity=omega,
+        )
+        actuators = ActuatorState(
+            thrust=np.asarray(
+                self.dynamics_evaluation.actuator_thrust[0],
+                dtype=float,
+            ).copy(),
+            gimbal_angle=np.asarray(
+                self.dynamics_evaluation.actuator_gimbal[0],
+                dtype=float,
+            ).copy(),
+        )
+        rigid_sensitivity = np.zeros(
+            (13, self.dimension), dtype=float
+        )
+
+        output_count = self.knot_time.size
+        arrays = {
+            "sensor_position": np.empty((output_count, 3)),
+            "sensor_orientation_xyzw": np.empty(
+                (output_count, 4)
+            ),
+            "sensor_velocity_world": np.empty(
+                (output_count, 3)
+            ),
+            "angular_velocity_sensor": np.empty(
+                (output_count, 3)
+            ),
+            "specific_force_sensor": np.empty(
+                (output_count, 3)
+            ),
+            "cog_position": np.empty((output_count, 3)),
+            "cog_velocity_world": np.empty(
+                (output_count, 3)
+            ),
+            "actuator_thrust": np.empty((output_count, 4)),
+            "actuator_gimbal": np.empty((output_count, 4)),
+        }
+        residual = np.empty((output_count, 6), dtype=float)
+        jacobian = np.empty(
+            (output_count, 6, self.dimension), dtype=float
+        )
+
+        def store(
+            output_index: int,
+            simulation_time: float,
+        ) -> None:
+            quaternion = rigid.orientation_xyzw
+            body_rotation = quaternion_to_matrix(quaternion)
+            tangent = (
+                strict.analytic._quaternion_right_tangent_matrix(
+                    quaternion
+                )
+            )
+            rotation_right_sensitivity = (
+                2.0 * tangent.T @ rigid_sensitivity[3:7]
+            )
+            lever = (
+                self.direct.pose_sensor_position
+                - self.parameters.cog_offset
+            )
+            sensor_position = (
+                rigid.position + body_rotation @ lever
+            )
+            position_jacobian = (
+                rigid_sensitivity[:3]
+                - body_rotation
+                @ skew(lever)
+                @ rotation_right_sensitivity
+            )
+            sensor_rotation = (
+                body_rotation
+                @ self.direct.pose_body_to_sensor_rotation
+            )
+            sensor_rotation_right_sensitivity = (
+                self.direct.pose_body_to_sensor_rotation.T
+                @ rotation_right_sensitivity
+            )
+            pose_residual, pose_jacobian = (
+                strict._se3_log_error_with_jacobian(
+                    self.target_spline.sensor_position[
+                        output_index
+                    ],
+                    self.target_sensor_rotation[output_index],
+                    sensor_position,
+                    sensor_rotation,
+                    position_jacobian,
+                    sensor_rotation_right_sensitivity,
+                )
+            )
+            residual[output_index] = (
+                self.pose_factor @ pose_residual
+            )
+            jacobian[output_index] = (
+                self.pose_factor @ pose_jacobian
+            )
+
+            velocity_lever = (
+                self.direct.velocity_sensor_position
+                - self.parameters.cog_offset
+            )
+            imu_lever = (
+                self.direct.imu_sensor_position
+                - self.parameters.cog_offset
+            )
+            total_wrench = plant.total_body_wrench(
+                simulation_time, rigid, actuators
+            )
+            angular_acceleration = self.inverse_inertia @ (
+                total_wrench[3:]
+                - np.cross(
+                    rigid.angular_velocity,
+                    self.parameters.inertia
+                    @ rigid.angular_velocity,
+                )
+            )
+            specific_force_body = (
+                total_wrench[:3] / self.parameters.mass
+                + np.cross(angular_acceleration, imu_lever)
+                + np.cross(
+                    rigid.angular_velocity,
+                    np.cross(
+                        rigid.angular_velocity, imu_lever
+                    ),
+                )
+            )
+
+            arrays["sensor_position"][output_index] = (
+                sensor_position
+            )
+            arrays["sensor_orientation_xyzw"][output_index] = (
+                matrix_to_quaternion(sensor_rotation)
+            )
+            arrays["sensor_velocity_world"][output_index] = (
+                rigid.linear_velocity
+                + body_rotation
+                @ np.cross(
+                    rigid.angular_velocity,
+                    velocity_lever,
+                )
+            )
+            arrays["angular_velocity_sensor"][output_index] = (
+                self.direct.body_to_imu_rotation
+                @ rigid.angular_velocity
+                + self.direct.gyro_bias
+            )
+            arrays["specific_force_sensor"][output_index] = (
+                self.direct.body_to_imu_rotation
+                @ specific_force_body
+                + self.direct.accelerometer_bias
+            )
+            arrays["cog_position"][output_index] = (
+                rigid.position
+            )
+            arrays["cog_velocity_world"][output_index] = (
+                rigid.linear_velocity
+            )
+            arrays["actuator_thrust"][output_index] = (
+                actuators.thrust
+            )
+            arrays["actuator_gimbal"][output_index] = (
+                actuators.gimbal_angle
+            )
+
+        if 0 not in self.output_lookup:
+            raise RuntimeError(
+                "reconstruction grid does not start at a wrench knot"
+            )
+        store(self.output_lookup[0], start_time)
+
+        for integration_index in range(
+            self.integration_time.size - 1
+        ):
+            start = float(
+                self.integration_time[integration_index]
+            )
+            end = float(
+                self.integration_time[integration_index + 1]
+            )
+            dt = end - start
+            midpoint = start + 0.5 * dt
+            command = smooth._command(
+                self.bag.rotor_history.exact_zoh(
+                    midpoint, self.delay
+                ),
+                self.bag.gimbal_history.exact_zoh(
+                    midpoint, self.delay
+                ),
+            )
+            midpoint_actuators = advance_actuators(
+                actuators,
+                command,
+                self.actuator_parameters,
+                0.5 * dt,
+            )
+            rigid, rigid_sensitivity = (
+                self._step_with_sensitivity(
+                    start,
+                    rigid,
+                    rigid_sensitivity,
+                    midpoint_actuators,
+                    dt,
+                    coefficients,
+                )
+            )
+            actuators = advance_actuators(
+                midpoint_actuators,
+                command,
+                self.actuator_parameters,
+                0.5 * dt,
+            )
+            next_index = integration_index + 1
+            if next_index in self.output_lookup:
+                store(
+                    self.output_lookup[next_index],
+                    end,
+                )
+
+        simulation = baseline.Simulation(
+            time=self.knot_time.copy(),
+            **arrays,
+        )
+        flat_residual = residual.ravel()
+        flat_jacobian = jacobian.reshape(
+            -1, self.dimension
+        )
+        if (
+            np.any(~np.isfinite(flat_residual))
+            or np.any(~np.isfinite(flat_jacobian))
+        ):
+            raise FloatingPointError(
+                "external-wrench reconstruction is non-finite"
+            )
+        return WrenchReplayEvaluation(
+            residual=flat_residual,
+            jacobian=flat_jacobian,
+            simulation=simulation,
+            knot_time=self.knot_time.copy(),
+            coefficients=coefficients.copy(),
+        )
+
+
+def _solve_wrench_replay(
+    bag: BagSplineData,
+    physical_coordinate: Sequence[float],
+    delay: float,
+    dynamics_evaluation: BagDynamicsEvaluation,
+    arguments: argparse.Namespace,
+) -> tuple[
+    WrenchReplayProblem,
+    WrenchReplayEvaluation,
+    Mapping[str, Any],
+]:
+    problem = WrenchReplayProblem(
+        bag,
+        physical_coordinate,
+        delay,
+        dynamics_evaluation,
     )
-    output_time = observed_time[mask]
-    if output_time.size < 2:
-        raise ValueError(
-            "reconstruction support contains fewer than two observed samples"
-        )
-    return _simulation_at_times(dense, output_time)
-
+    objective = _CachedObjective(problem.evaluate)
+    initial = np.zeros(problem.dimension, dtype=float)
+    initial_evaluation = problem.evaluate(initial)
+    result = least_squares(
+        objective.residual,
+        initial,
+        jac=objective.jacobian,
+        method="trf",
+        x_scale="jac",
+        loss="linear",
+        ftol=arguments.ftol,
+        xtol=arguments.xtol,
+        gtol=arguments.gtol,
+        max_nfev=arguments.strict_max_nfev,
+        verbose=0,
+    )
+    evaluation = problem.evaluate(result.x)
+    optimizer = dict(_optimizer_payload(result))
+    optimizer.update(
+        {
+            "knot_count": int(problem.knot_time.size),
+            "coefficient_dimension": int(problem.dimension),
+            "uses_regularization": False,
+            "initial_pose_cost": 0.5
+            * float(
+                initial_evaluation.residual
+                @ initial_evaluation.residual
+            ),
+            "final_pose_cost": 0.5
+            * float(
+                evaluation.residual @ evaluation.residual
+            ),
+        }
+    )
+    return problem, evaluation, optimizer
 
 def _orientation_errors(
     observed_xyzw: np.ndarray,
@@ -1602,20 +2059,25 @@ def _write_sensor_validation_pdf(
 def _write_residual_wrench_pdf(
     path: Path,
     bag: BagSplineData,
-    evaluation: BagDynamicsEvaluation,
+    time_axis: np.ndarray,
+    body_wrench: np.ndarray,
     statistics: Mapping[str, Any],
 ) -> None:
     del statistics
     observed = bag.direct_problem.observations
-    relative_time = bag.collocation_time - observed.time[0]
-    full_duration = float(observed.time[-1] - observed.time[0])
+    time_value = np.asarray(time_axis, dtype=float)
+    wrench_value = np.asarray(body_wrench, dtype=float)
+    relative_time = time_value - observed.time[0]
+    full_duration = float(
+        observed.time[-1] - observed.time[0]
+    )
     names = ("F_x", "F_y", "F_z", "M_x", "M_y", "M_z")
     units = ("N", "N", "N", "N m", "N m", "N m")
 
     with PdfPages(path) as pdf:
         for offset, title in (
-            (0, "Inferred external body force"),
-            (3, "Inferred external body torque"),
+            (0, "Trajectory-fitted external body force"),
+            (3, "Trajectory-fitted external body torque"),
         ):
             figure, axes = plt.subplots(
                 3,
@@ -1628,20 +2090,30 @@ def _write_residual_wrench_pdf(
                 component = offset + local
                 axis.plot(
                     relative_time,
-                    evaluation.residual_body_wrench[:, component],
+                    wrench_value[:, component],
                     color="#1e965f",
                     linewidth=1.5,
                 )
-                axis.axhline(0.0, color="black", linewidth=0.7, alpha=0.5)
+                axis.axhline(
+                    0.0,
+                    color="black",
+                    linewidth=0.7,
+                    alpha=0.5,
+                )
                 axis.set_xlim(0.0, full_duration)
                 axis.set_ylabel(
-                    "{} [{}]".format(names[component], units[component])
+                    "{} [{}]".format(
+                        names[component], units[component]
+                    )
                 )
                 axis.grid(True, alpha=0.25)
             axes[0].set_title(
-                title + " = required by observed-pose spline - modeled wrench"
+                title
+                + " (piecewise-linear; optimized from inverse-dynamics initialization)"
             )
-            axes[-1].set_xlabel("time from requested interval start [s]")
+            axes[-1].set_xlabel(
+                "time from requested interval start [s]"
+            )
             pdf.savefig(figure)
             plt.close(figure)
 
@@ -2422,19 +2894,48 @@ def run(arguments: argparse.Namespace) -> int:
         bag_directory = bags_directory / bag_id
         bag_directory.mkdir(parents=True, exist_ok=True)
         evaluation = selected.evaluation.bag_evaluations[index]
-        external_wrench_history = BodyWrenchHistory(
-            bag.collocation_time,
-            evaluation.residual_body_wrench,
+        print(
+            "fitting piecewise-linear external wrench for {}".format(
+                bag_id
+            ),
+            flush=True,
         )
-        estimated_rollout = forward_rollout(
-            bag, selected.physical_coordinate, selected.delay_seconds
-        )
-        external_wrench_rollout = reconstruction_rollout(
+        (
+            wrench_replay_problem,
+            wrench_replay_evaluation,
+            wrench_replay_optimizer,
+        ) = _solve_wrench_replay(
             bag,
             selected.physical_coordinate,
             selected.delay_seconds,
             evaluation,
-            external_body_wrench=external_wrench_history,
+            arguments,
+        )
+        external_wrench_time = (
+            wrench_replay_evaluation.knot_time
+        )
+        external_wrench_value = (
+            wrench_replay_evaluation.coefficients
+        )
+        external_wrench_initial = (
+            wrench_replay_problem.initial_coefficients
+        )
+        external_wrench_correction = (
+            external_wrench_value - external_wrench_initial
+        )
+        external_wrench_rollout = (
+            wrench_replay_evaluation.simulation
+        )
+        print(
+            "  external-wrench pose cost {:.9g} -> {:.9g}, nfev={}".format(
+                wrench_replay_optimizer["initial_pose_cost"],
+                wrench_replay_optimizer["final_pose_cost"],
+                wrench_replay_optimizer["nfev"],
+            ),
+            flush=True,
+        )
+        estimated_rollout = forward_rollout(
+            bag, selected.physical_coordinate, selected.delay_seconds
         )
         nominal_rollout = forward_rollout(
             bag,
@@ -2472,7 +2973,8 @@ def run(arguments: argparse.Namespace) -> int:
             external_wrench_rollout,
         )
         wrench_statistics = _wrench_statistics(
-            bag.collocation_time, evaluation.residual_body_wrench
+            external_wrench_time,
+            external_wrench_value,
         )
         spline_metrics = _spline_fit_metrics(bag)
         spline_fit_bounds = np.asarray(
@@ -2529,14 +3031,22 @@ def run(arguments: argparse.Namespace) -> int:
             "dynamics_loss": evaluation.dynamics_loss,
             "residual_wrench_statistics": wrench_statistics,
             "inferred_external_wrench": {
-                "definition": "required body wrench minus modeled body wrench",
+                "definition": (
+                    "piecewise-linear body wrench optimized so the fixed-parameter "
+                    "forward pose matches the observed pose spline"
+                ),
+                "initialization": (
+                    "required body wrench minus modeled body wrench"
+                ),
                 "frame": "body",
                 "components": ("F_x", "F_y", "F_z", "M_x", "M_y", "M_z"),
                 "force_unit": "N",
                 "torque_unit": "N m",
+                "knot_count": int(external_wrench_time.size),
+                "uses_regularization": False,
+                "optimizer": wrench_replay_optimizer,
                 "rollout_interpolation": (
-                    "linear in time inside parameter-estimation support; "
-                    "zero outside, without endpoint extrapolation"
+                    "continuous piecewise-linear interpolation between wrench knots"
                 ),
             },
             "estimated_forward_metrics": estimated_metrics,
@@ -2577,7 +3087,8 @@ def run(arguments: argparse.Namespace) -> int:
         _write_residual_wrench_pdf(
             bag_directory / "external_wrench.pdf",
             bag,
-            evaluation,
+            external_wrench_time,
+            external_wrench_value,
             wrench_statistics,
         )
         np.savez_compressed(
@@ -2624,9 +3135,17 @@ def run(arguments: argparse.Namespace) -> int:
             required_body_wrench=evaluation.required_body_wrench,
             modeled_body_wrench=evaluation.modeled_body_wrench,
             residual_body_wrench=evaluation.residual_body_wrench,
-            inferred_external_body_wrench_time=bag.collocation_time,
-            inferred_external_body_wrench=(
+            raw_inferred_external_body_wrench_time=bag.collocation_time,
+            raw_inferred_external_body_wrench=(
                 evaluation.residual_body_wrench
+            ),
+            inferred_external_body_wrench_time=external_wrench_time,
+            inferred_external_body_wrench=external_wrench_value,
+            inferred_external_body_wrench_initial=(
+                external_wrench_initial
+            ),
+            inferred_external_body_wrench_correction=(
+                external_wrench_correction
             ),
             estimated_forward_sensor_position=(
                 estimated_rollout.sensor_position

@@ -32,21 +32,21 @@ Optimization
   selected strict-ZOH lag [s]: 0.038868240958
 
 Bag failure_1
-  reconstruction position RMSE [m]: 1.72927718208
-  reconstruction position component RMSE [m]: [1.688365 0.371742 0.040412]
-  reconstruction orientation RMSE [deg]: 3.84116330601
-  gyro consistency RMSE xyz [rad/s]: [0.052582 0.098976 0.038794]
-  specific-force consistency RMSE xyz [m/s^2]: [0.9353   0.16147  0.337882]
-  inferred external force RMS xyz [N]: [0.557345 0.306524 1.19605 ]
-  inferred external torque RMS xyz [N m]: [0.069361 0.479492 0.134936]
+  reconstruction position RMSE [m]: 0.000511441945745
+  reconstruction position component RMSE [m]: [0.000264 0.000287 0.000331]
+  reconstruction orientation RMSE [deg]: 0.491032669921
+  gyro consistency RMSE xyz [rad/s]: [0.050382 0.085692 0.038427]
+  specific-force consistency RMSE xyz [m/s^2]: [0.963059 0.168262 0.35945 ]
+  inferred external force RMS xyz [N]: [1.374068 0.342852 1.243351]
+  inferred external torque RMS xyz [N m]: [0.070937 0.504506 0.161034]
   bag dynamics loss: 0.274763331312
 
 Bag failure_2
-  reconstruction position RMSE [m]: 0.186826965151
-  reconstruction position component RMSE [m]: [0.165676 0.086309 0.002577]
-  reconstruction orientation RMSE [deg]: 0.571876846841
-  gyro consistency RMSE xyz [rad/s]: [0.028283 0.039211 0.033983]
-  specific-force consistency RMSE xyz [m/s^2]: [0.340136 0.098818 0.084945]
-  inferred external force RMS xyz [N]: [0.212873 0.383962 0.671271]
-  inferred external torque RMS xyz [N m]: [0.054906 0.221848 0.084244]
+  reconstruction position RMSE [m]: 0.000368116985237
+  reconstruction position component RMSE [m]: [0.000186 0.000244 0.000204]
+  reconstruction orientation RMSE [deg]: 0.245014695292
+  gyro consistency RMSE xyz [rad/s]: [0.028051 0.036276 0.033612]
+  specific-force consistency RMSE xyz [m/s^2]: [0.392948 0.101587 0.388787]
+  inferred external force RMS xyz [N]: [0.489502 0.388013 1.243443]
+  inferred external torque RMS xyz [N m]: [0.056385 0.227378 0.085845]
   bag dynamics loss: 0.082192361367

@@ -7,7 +7,7 @@
 | 記号 | 意味 |
 |---|---|
 | `N_o` | `output_time` 上の出力サンプル数。現行本番データではfailure_1が120、failure_2が110 |
-| `N_c` | `collocation_time` 上のspline/dynamics評価点数。現行本番データではfailure_1が596、failure_2が546 |
+| `N_c` | `collocation_time` 上のspline/dynamics評価点数。spline fit全区間から両端の境界影響区間を除いた点数 |
 | `W` | world frame |
 | `B` | main body frame |
 | `S_pose` | mocap pose sensor frame |
@@ -22,6 +22,7 @@
 - `observed`はbagの実測値、`spline`はobserved poseだけから作った5次spline、`estimated_forward`は推定parameterだけの補正なし自由積分です。
 - `external_wrench_forward`は推定parameterに同じbagから逆算した外力を加えた再積分です。これは独立な予測ではありません。
 - `nominal_forward`はnominal parameterとconfigのinitial lagによる補正なし自由積分です。
+- spline fitはobserved poseの全区間を使います。parameter loss、required/model/residual wrenchは、既定では5次basisの半supportに当たる3 knot spansを両端から除いた内側区間だけを使います。
 
 ## `bags/<id>/spline_dynamics.npz`
 
@@ -32,6 +33,11 @@
 | `output_time` | `(N_o,)` | observed channelと全forward rolloutの共通時刻。既定間隔は0.05 s |
 | `collocation_time` | `(N_c,)` | pose spline、解析微分、dynamics wrenchの評価時刻。設定上の間隔は0.01 s |
 | `inferred_external_body_wrench_time` | `(N_c,)` | 外力系列の時刻。現在は`collocation_time`と完全に同一の互換alias |
+| `spline_fit_time_bounds` | `(2,)` | splineをfitした全supportの`[start,end]` |
+| `parameter_estimation_time_bounds` | `(2,)` | parameter lossとwrench計算に使った内側supportの`[start,end]` |
+| `parameter_estimation_output_mask` | `(N_o,)` | `output_time`がparameter推定support内なら`True`となるboolean mask |
+| `spline_boundary_exclusion_seconds_start_end` | `(2,)` | spline fit supportから実際に除いた秒数の`[start side,end side]` |
+| `spline_boundary_exclusion_knot_spans_each_side` | scalar | 両端から除外するknot span数。既定は3.0 |
 
 `output_time`系列と`collocation_time`系列を同じplotへ載せる場合、明示的にinterpolationする必要があります。array indexをそのまま対応させてはいけません。
 
@@ -91,7 +97,7 @@ residual wrench = required wrench - modeled wrench
 
 ### Estimated rollout with inferred external wrench
 
-推定parameterのforward modelへ`inferred_external_body_wrench`をbody force/torqueとして加えた系列です。wrenchは`collocation_time`間を時間方向に線形補間し、端点外では端点値をholdします。共通時刻は`output_time`です。
+推定parameterのforward modelへ`inferred_external_body_wrench`をbody force/torqueとして加えた系列です。wrenchはparameter推定support内の`collocation_time`間だけを時間方向に線形補間します。有効support外では0とし、端点値のhold外挿はしません。共通時刻は`output_time`です。
 
 | key | shape | 単位／表現 | frame／位置 |
 |---|---:|---|---|
@@ -190,6 +196,10 @@ index順は`selection.physical_parameter_names`にも保存されています。
 | `shared_delay_seconds` | shared lagの複製 |
 | `diagnostics.spline.degree` | 5 |
 | `diagnostics.spline.selected_knot_spacing_seconds` | blocked CVで選ばれたbag別knot spacing |
+| `diagnostics.spline.fit_interval_seconds` | observed poseをspline fitした全区間 |
+| `diagnostics.spline.parameter_estimation_interval_seconds` | parameter lossとwrenchに使用した内側区間 |
+| `diagnostics.spline.boundary_exclusion_knot_spans_each_side` | 各端から除いたknot span数 |
+| `diagnostics.spline.actual_boundary_exclusion_seconds_start_end` | 実際の秒単位の開始側／終了側除外幅 |
 | `diagnostics.spline.blocked_cross_validation[]` | 各knot候補のpose validation errorと微分sanity |
 | `diagnostics.spline.fit_metrics` | 全pose sample上のspline fit errorと最大加速度 |
 | `diagnostics.dynamics_loss` | bag単独の平均spline dynamics loss |
@@ -251,4 +261,3 @@ comparison:
   estimated_forward_specific_force_sensor[:, 2]
   external_wrench_forward_specific_force_sensor[:, 2]
 ```
-

@@ -16,6 +16,8 @@ single-bag methodは同梱rosbagの19–24秒を既定区間とし、multi-bag m
 
 位置と姿勢の両方に5次B-splineを使います。姿勢は符号を連続化したquaternionの各成分を5次B-splineでfitして単位長へ正規化し、body角速度・角加速度まで解析微分します。これにより位置・姿勢はC4、加速度・角加速度は少なくともC2連続になります。knot spacingは設定JSONの候補をpose-only blocked cross-validationで比較してbagごとに選び、parameter最適化中はsplineとその微分を固定します。並進残差と角加速度残差は固定nominal計量`J0/m0`で同じ長さ尺度へ写し、各bagをサンプル数で正規化して指定weightで結合します。soft priorは共有parameterへ一度だけ加えます。
 
+spline fitting自体はobserved poseの全区間を使いますが、parameter lossとresidual wrenchはその内側だけを使います。5次B-spline basisのsupportは6 knot spansなので、既定では半supportに相当する3 spansを両端から除外します。実際に使用したfit区間、parameter推定区間、秒単位の除外幅はbag別`result.json`とNPZへ保存します。外力込みrolloutでも、この有効区間外のresidual wrenchは0とし、端点値のhold外挿はしません。
+
 物理parameterの既定初期値は、質量、慣性、CoG offset、相対rotor force effectivenessのすべてについて厳密なnominal値（13次元physical chartの原点）です。command lagだけはconfigの`initial_delay_seconds`から始めます。過去のmultiple-shooting `result.json`は自動では読みません。この推定器はobserved pose splineとその解析微分から単独でparameterを推定します。比較実験でwarm startが必要な場合だけ`--estimator-result`を明示し、初期質量だけを変更する場合は`--corrected-mass`を指定できます。
 
 NPZ/JSONの全変数、shape、単位、frame、計算元、forward系列の違いは[`deterministic_spline_dynamics_data_dictionary.md`](deterministic_spline_dynamics_data_dictionary.md)にまとめています。同じ文書を実行ごとにoutput直下の`DATA_DICTIONARY.md`へコピーします。
@@ -41,7 +43,8 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
 ```json
 "spline": {
   "knot_spacing_candidates_seconds": [0.05, 0.1, 0.2],
-  "collocation_step_seconds": 0.01
+  "collocation_step_seconds": 0.01,
+  "boundary_exclusion_knot_spans_each_side": 3.0
 }
 ```
 

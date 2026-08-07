@@ -17,33 +17,33 @@ Initial estimate
   selected initial mass [kg]: 2.35159759081
 
 Selected strict-ZOH parameters
-  mass [kg]: 2.76332418875
+  mass [kg]: 2.77007067565
   inertia [kg m^2]:
-    [ 0.071227673206, -0.00205598936875,  0.000151379334808]
-    [-0.00205598936875,  0.152541470205,  0.000640747269435]
-    [ 0.000151379334808,  0.000640747269435,  0.222793681867]
-  principal moments [kg m^2]: [0.0711755363771, 0.152587647386, 0.222799641515]
-  inertia triangle margin [kg m^2]: 0.000963542247835
-  CoG offset [m]: [-0.00663161744515, 0.000646509369453, -0.0169246331634]
-  rotor force effectiveness: [1.01394245002, 1.01764363594, 0.967518414904, 1.00168629891]
-  lag [s]: 0.041514156863
-  joint dynamics loss: 0.431909397151
-  soft-prior cost: 0.0503352330189
+    [ 0.0723680002638, -0.00215212693168,  6.60512665078e-05]
+    [-0.00215212693168,  0.154157902784,  0.000160004678748]
+    [ 6.60512665078e-05,  0.000160004678748,  0.225561277782]
+  principal moments [kg m^2]: [0.0723113785965, 0.154214141423, 0.22556166081]
+  inertia triangle margin [kg m^2]: 0.000963859209661
+  CoG offset [m]: [-0.00219756920562, 0.000734432188529, -0.0220752326934]
+  rotor force effectiveness: [0.99185433828, 1.04452447908, 0.978566891551, 0.986377057864]
+  lag [s]: 0.038868240958
+  joint dynamics loss: 0.178477846339
+  soft-prior cost: 0.0531116909237
 
 Smooth physical coordinates
-  log_mass_scale                                      0.161339448158
-  log_second_moment_cholesky_xx_scale                 0.428998757363
-  log_second_moment_cholesky_yy_scale                 0.0458229016676
-  log_second_moment_cholesky_zz_scale                 0.00157268707625
-  normalized_second_moment_cholesky_yx_offset         0.020750069629
-  normalized_second_moment_cholesky_zx_offset        -0.0042002163307
-  normalized_second_moment_cholesky_zy_offset        -0.0321889901428
-  cog_offset_x_m                                     -0.00663161744515
-  cog_offset_y_m                                      0.000646509369453
-  cog_offset_z_m                                     -0.0169246331634
-  force_effectiveness_contrast_1                     -0.00257644662559
-  force_effectiveness_contrast_2                      0.0397542320317
-  force_effectiveness_contrast_3                     -0.00194553035075
+  log_mass_scale                                      0.163777911491
+  log_second_moment_cholesky_xx_scale                 0.434303665249
+  log_second_moment_cholesky_yy_scale                 0.0538431659632
+  log_second_moment_cholesky_zz_scale                 0.00169823212153
+  normalized_second_moment_cholesky_yx_offset         0.0216058838445
+  normalized_second_moment_cholesky_zx_offset        -0.00125479552757
+  normalized_second_moment_cholesky_zy_offset        -0.00795085414978
+  cog_offset_x_m                                     -0.00219756920562
+  cog_offset_y_m                                      0.000734432188529
+  cog_offset_z_m                                     -0.0220752326934
+  force_effectiveness_contrast_1                     -0.0365862399948
+  force_effectiveness_contrast_2                      0.0321352582
+  force_effectiveness_contrast_3                      0.0158385490699
 
 Spline and collocation
   spline degree: 5
@@ -51,43 +51,50 @@ Spline and collocation
 
 Bag failure_1
   selected spline knot spacing [s]: 0.2
-  dynamics loss: 0.62719210085
-  estimated forward position RMSE [m]: 43.1028679899
-  estimated + external wrench position RMSE [m]: 0.806311619264
-  external wrench improves estimated free rollout: True
-  nominal forward position RMSE [m]: 68.7734508548
+  spline fit interval [s]: [19.0092086792, 24.9592086792]
+  parameter-estimation interval [s]: [19.6042086792, 24.3642086792]
+  excluded knot spans at each spline boundary: 3
+  actual boundary exclusion [s], start/end: [0.595, 0.595]
+  dynamics loss: 0.274763331312
+  estimated forward position RMSE [m]: 50.7212899719
+  estimated + external wrench position RMSE [m]: 74.428025573
+  external wrench improves estimated free rollout: False
+  nominal forward position RMSE [m]: 61.968178935
   estimated improves nominal: True
-  residual wrench mean: [ 0.188128  0.039747  0.029011 -0.028326 -0.011455 -0.022919]
-  residual wrench RMSE: [0.971552 0.957233 1.426551 0.159144 0.664478 0.260582]
-  residual wrench trend/s: [ 1.250227e-01 -1.109141e-02 -5.558662e-01 -1.119819e-02 -5.770317e-02
-  3.042122e-04]
-  residual wrench cumulative impulse: [ 1.063688  0.246719  0.159423 -0.165394 -0.03806  -0.127146]
+  residual wrench mean: [ 0.015983  0.047153  0.114443 -0.037234  0.038256 -0.006387]
+  residual wrench RMSE: [0.557345 0.306524 1.19605  0.069361 0.479492 0.134936]
+  residual wrench trend/s: [-0.094774  0.054124 -0.535051 -0.011014  0.086096  0.00717 ]
+  residual wrench cumulative impulse: [ 0.069929  0.22393   0.550073 -0.177788  0.182601 -0.028672]
 
 Bag failure_2
   selected spline knot spacing [s]: 0.2
-  dynamics loss: 0.236626693451
-  estimated forward position RMSE [m]: 50.2396039059
-  estimated + external wrench position RMSE [m]: 0.778601976086
+  spline fit interval [s]: [25.5140545368, 30.9640545368]
+  parameter-estimation interval [s]: [26.0979831082, 30.3779831082]
+  excluded knot spans at each spline boundary: 3
+  actual boundary exclusion [s], start/end: [0.583928571429, 0.586071428571]
+  dynamics loss: 0.082192361367
+  estimated forward position RMSE [m]: 53.9933985912
+  estimated + external wrench position RMSE [m]: 31.7452341114
   external wrench improves estimated free rollout: True
-  nominal forward position RMSE [m]: 66.3356799895
+  nominal forward position RMSE [m]: 66.5168930072
   estimated improves nominal: True
-  residual wrench mean: [ 0.053185 -0.304956 -0.001855  0.028605  0.034661  0.046538]
-  residual wrench RMSE: [0.544606 0.472273 0.847358 0.070878 0.30442  0.39373 ]
-  residual wrench trend/s: [-0.067324  0.030329 -0.317856 -0.007142  0.054269  0.002791]
-  residual wrench cumulative impulse: [ 0.327201 -1.691241 -0.050226  0.161195  0.199807  0.213931]
+  residual wrench mean: [ 0.100267 -0.324288 -0.121313  0.037526 -0.010797  0.017059]
+  residual wrench RMSE: [0.212873 0.383962 0.671271 0.054906 0.221848 0.084244]
+  residual wrench trend/s: [-0.053959  0.057419 -0.448224 -0.012237  0.00941   0.003789]
+  residual wrench cumulative impulse: [ 0.428758 -1.387366 -0.523687  0.160717 -0.048483  0.073007]
 
 Smoothstep continuation
-  width=0.5: delay=0.0391275156s, cost=0.482173850468, nfev=17
-  width=0.2: delay=0.0387613646s, cost=0.482218385371, nfev=6
-  width=0.05: delay=0.0405141569s, cost=0.482292000084, nfev=21
+  width=0.5: delay=0.0381215801s, cost=0.231441860644, nfev=14
+  width=0.2: delay=0.037868071s, cost=0.23158612457, nfev=8
+  width=0.05: delay=0.037868241s, cost=0.231679846718, nfev=2
 
 Strict-ZOH polish
-  delay=0.0365141569s: screening=0.486867018956, refined=nan, selected=False
-  delay=0.0375141569s: screening=0.482965816031, refined=nan, selected=False
-  delay=0.0385141569s: screening=0.482446795282, refined=nan, selected=False
-  delay=0.0395141569s: screening=0.482314125291, refined=0.482314122205, selected=False
-  delay=0.0405141569s: screening=0.482292581908, refined=0.482292581672, selected=False
-  delay=0.0415141569s: screening=0.482244639268, refined=0.48224463017, selected=True
-  delay=0.0425141569s: screening=0.484083793234, refined=nan, selected=False
-  delay=0.0435141569s: screening=0.483653862672, refined=nan, selected=False
-  delay=0.0445141569s: screening=0.483911523991, refined=nan, selected=False
+  delay=0.033868241s: screening=0.233717531653, refined=nan, selected=False
+  delay=0.034868241s: screening=0.233703270236, refined=nan, selected=False
+  delay=0.035868241s: screening=0.233683558728, refined=nan, selected=False
+  delay=0.036868241s: screening=0.233640932667, refined=nan, selected=False
+  delay=0.037868241s: screening=0.231770490005, refined=nan, selected=False
+  delay=0.038868241s: screening=0.231589598614, refined=0.231589537263, selected=True
+  delay=0.039868241s: screening=0.231646587259, refined=0.231646506578, selected=False
+  delay=0.040868241s: screening=0.231639092216, refined=0.231638779725, selected=False
+  delay=0.041868241s: screening=0.231663602203, refined=nan, selected=False

@@ -71,6 +71,7 @@ COMPONENT_NAMES = ("x", "y", "z")
 class SplineSettings:
     knot_spacing_candidates_seconds: tuple[float, ...]
     collocation_step_seconds: float
+    boundary_exclusion_knot_spans_each_side: float = 3.0
 
 
 @dataclass(frozen=True)
@@ -100,6 +101,7 @@ class BagSplineData:
     rotor_history: QuinticSmoothZoh
     gimbal_history: QuinticSmoothZoh
     initial_gimbal: np.ndarray
+    boundary_exclusion_knot_spans_each_side: float = 0.0
 
     @property
     def collocation_time(self) -> np.ndarray:
@@ -147,7 +149,7 @@ class DynamicsSolution:
 
 
 class BodyWrenchHistory:
-    """Linearly interpolated body-frame external force and torque history."""
+    """Body wrench interpolated only inside support and zero outside it."""
 
     def __init__(
         self,
@@ -174,7 +176,13 @@ class BodyWrenchHistory:
             raise ValueError("external body wrench query must be finite")
         return np.asarray(
             [
-                np.interp(query, self.time, self.body_wrench[:, component])
+                np.interp(
+                    query,
+                    self.time,
+                    self.body_wrench[:, component],
+                    left=0.0,
+                    right=0.0,
+                )
                 for component in range(6)
             ],
             dtype=float,
@@ -203,18 +211,33 @@ def load_spline_config(path: Path) -> SplineEstimatorConfig:
         collocation_step = float(
             spline_raw.get("collocation_step_seconds", 0.01)
         )
+        boundary_exclusion = float(
+            spline_raw.get(
+                "boundary_exclusion_knot_spans_each_side", 3.0
+            )
+        )
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as error:
         raise ValueError("spline settings in multi-bag config are invalid") from error
-    values = np.asarray(candidates + (collocation_step,), dtype=float)
+    values = np.asarray(
+        candidates + (collocation_step, boundary_exclusion), dtype=float
+    )
     if (
         not candidates
         or np.any(~np.isfinite(values))
-        or np.any(values <= 0.0)
+        or np.any(values[:-1] <= 0.0)
+        or boundary_exclusion < 0.0
     ):
-        raise ValueError("spline spacings must be finite and positive")
+        raise ValueError(
+            "spline spacings must be positive and boundary exclusion "
+            "must be finite and nonnegative"
+        )
     return SplineEstimatorConfig(
         multi_bag=base,
-        spline=SplineSettings(candidates, collocation_step),
+        spline=SplineSettings(
+            candidates,
+            collocation_step,
+            boundary_exclusion,
+        ),
     )
 
 
@@ -288,6 +311,21 @@ def _collocation_grid(
     if count < 3:
         raise ValueError("collocation support is too short")
     return start + step * np.arange(count, dtype=float)
+
+
+def _spline_boundary_exclusion_seconds(
+    selection: PoseSplineSelection,
+    knot_spans_each_side: float,
+) -> float:
+    spline = selection.spline
+    effective_spacing = max(
+        spline.effective_position_knot_spacing_seconds,
+        spline.effective_rotation_knot_spacing_seconds,
+    )
+    margin = float(knot_spans_each_side) * float(effective_spacing)
+    if not np.isfinite(margin) or margin < 0.0:
+        raise ValueError("spline boundary exclusion is invalid")
+    return margin
 
 
 def cog_kinematics_from_pose_spline(
@@ -364,9 +402,20 @@ def _build_bag_data(
             arguments.maximum_spline_angular_acceleration
         ),
     )
+    boundary_exclusion_seconds = _spline_boundary_exclusion_seconds(
+        selection,
+        settings.boundary_exclusion_knot_spans_each_side,
+    )
+    estimation_start = selection.spline.start_time + boundary_exclusion_seconds
+    estimation_end = selection.spline.end_time - boundary_exclusion_seconds
+    if estimation_end - estimation_start < 2.0 * settings.collocation_step_seconds:
+        raise ValueError(
+            "spline boundary exclusion leaves too little parameter-estimation "
+            "support"
+        )
     collocation_time = _collocation_grid(
-        float(direct.output_time[0]),
-        float(direct.output_time[-1]),
+        estimation_start,
+        estimation_end,
         settings.collocation_step_seconds,
     )
     collocation = selection.spline.evaluate(collocation_time)
@@ -391,6 +440,9 @@ def _build_bag_data(
             flight.gimbal_command.all_values,
         ),
         initial_gimbal=initial_gimbal,
+        boundary_exclusion_knot_spans_each_side=(
+            settings.boundary_exclusion_knot_spans_each_side
+        ),
     )
 
 
@@ -2031,6 +2083,26 @@ def _parameter_lines(
                 "  selected spline knot spacing [s]: {:.12g}".format(
                     bag.spline_selection.selected_spacing_seconds
                 ),
+                "  spline fit interval [s]: [{:.12g}, {:.12g}]".format(
+                    bag.spline_selection.spline.start_time,
+                    bag.spline_selection.spline.end_time,
+                ),
+                "  parameter-estimation interval [s]: "
+                "[{:.12g}, {:.12g}]".format(
+                    bag.collocation_time[0],
+                    bag.collocation_time[-1],
+                ),
+                "  excluded knot spans at each spline boundary: "
+                "{:.12g}".format(
+                    bag.boundary_exclusion_knot_spans_each_side
+                ),
+                "  actual boundary exclusion [s], start/end: "
+                "[{:.12g}, {:.12g}]".format(
+                    bag.collocation_time[0]
+                    - bag.spline_selection.spline.start_time,
+                    bag.spline_selection.spline.end_time
+                    - bag.collocation_time[-1],
+                ),
                 "  dynamics loss: {:.12g}".format(payload["dynamics_loss"]),
                 "  estimated forward position RMSE [m]: {:.12g}".format(
                     payload["estimated_forward_metrics"]["position_rmse_m"]
@@ -2391,9 +2463,13 @@ def run(arguments: argparse.Namespace) -> int:
             arguments,
         )
         print(
-            "  selected knot spacing {:.6g}s from {}".format(
+            "  selected knot spacing {:.6g}s from {}; parameter support "
+            "[{:.6f}, {:.6f}]s after excluding {:.6g} knot spans per side".format(
                 bag.spline_selection.selected_spacing_seconds,
                 tuple(config.spline.knot_spacing_candidates_seconds),
+                bag.collocation_time[0],
+                bag.collocation_time[-1],
+                bag.boundary_exclusion_knot_spans_each_side,
             ),
             flush=True,
         )
@@ -2565,6 +2641,28 @@ def run(arguments: argparse.Namespace) -> int:
             bag.collocation_time, evaluation.residual_body_wrench
         )
         spline_metrics = _spline_fit_metrics(bag)
+        spline_fit_bounds = np.asarray(
+            (
+                bag.spline_selection.spline.start_time,
+                bag.spline_selection.spline.end_time,
+            ),
+            dtype=float,
+        )
+        estimation_bounds = np.asarray(
+            (bag.collocation_time[0], bag.collocation_time[-1]),
+            dtype=float,
+        )
+        boundary_exclusion_seconds = np.asarray(
+            (
+                estimation_bounds[0] - spline_fit_bounds[0],
+                spline_fit_bounds[1] - estimation_bounds[1],
+            ),
+            dtype=float,
+        )
+        estimation_output_mask = (
+            (observations.time >= estimation_bounds[0])
+            & (observations.time <= estimation_bounds[1])
+        )
         bag_payload = {
             "id": bag_id,
             "normalized_weight": bag.normalized_weight,
@@ -2574,6 +2672,19 @@ def run(arguments: argparse.Namespace) -> int:
                 "selected_knot_spacing_seconds": (
                     bag.spline_selection.selected_spacing_seconds
                 ),
+                "fit_interval_seconds": spline_fit_bounds,
+                "parameter_estimation_interval_seconds": estimation_bounds,
+                "boundary_exclusion_knot_spans_each_side": (
+                    bag.boundary_exclusion_knot_spans_each_side
+                ),
+                "actual_boundary_exclusion_seconds_start_end": (
+                    boundary_exclusion_seconds
+                ),
+                "parameter_estimation_output_sample_count": int(
+                    np.count_nonzero(estimation_output_mask)
+                ),
+                "uses_spline_fit_boundaries_for_parameter_loss": False,
+                "uses_spline_extrapolation_for_parameter_loss": False,
                 "blocked_cross_validation": [
                     candidate_payload(candidate)
                     for candidate in bag.spline_selection.candidates
@@ -2589,7 +2700,10 @@ def run(arguments: argparse.Namespace) -> int:
                 "components": ("F_x", "F_y", "F_z", "M_x", "M_y", "M_z"),
                 "force_unit": "N",
                 "torque_unit": "N m",
-                "rollout_interpolation": "linear in time with endpoint hold",
+                "rollout_interpolation": (
+                    "linear in time inside parameter-estimation support; "
+                    "zero outside, without endpoint extrapolation"
+                ),
             },
             "estimated_forward_metrics": estimated_metrics,
             "estimated_with_external_wrench_forward_metrics": (
@@ -2647,6 +2761,16 @@ def run(arguments: argparse.Namespace) -> int:
             bag_directory / "spline_dynamics.npz",
             collocation_time=bag.collocation_time,
             output_time=observations.time,
+            spline_fit_time_bounds=spline_fit_bounds,
+            parameter_estimation_time_bounds=estimation_bounds,
+            parameter_estimation_output_mask=estimation_output_mask,
+            spline_boundary_exclusion_seconds_start_end=(
+                boundary_exclusion_seconds
+            ),
+            spline_boundary_exclusion_knot_spans_each_side=np.asarray(
+                bag.boundary_exclusion_knot_spans_each_side,
+                dtype=float,
+            ),
             observed_sensor_position=observations.sensor_position,
             observed_sensor_orientation_xyzw=(
                 observations.sensor_orientation_xyzw
@@ -2797,6 +2921,8 @@ def run(arguments: argparse.Namespace) -> int:
             "uses_augmented_lagrangian": False,
             "sensor_channels_in_parameter_loss": False,
             "pose_role": "constructs fixed bag-local splines only",
+            "spline_extrapolation_used": False,
+            "spline_fit_boundaries_used_for_parameter_loss": False,
             "pose_spline_degree": 5,
             "rotation_spline_representation": (
                 "normalized quaternion quintic B-spline"
@@ -2826,6 +2952,13 @@ def run(arguments: argparse.Namespace) -> int:
                 config.spline.knot_spacing_candidates_seconds
             ),
             "pose_spline_degree": 5,
+            "boundary_exclusion_knot_spans_each_side": (
+                config.spline.boundary_exclusion_knot_spans_each_side
+            ),
+            "boundary_exclusion_policy": (
+                "parameter loss and residual wrench use only the interior; "
+                "quintic half-support is excluded at both spline boundaries"
+            ),
             "prior_weight": arguments.prior_weight,
             "physical_coordinate_bounds": (
                 "unbounded"

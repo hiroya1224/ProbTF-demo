@@ -208,6 +208,11 @@ class ConfigurationAndLagTests(unittest.TestCase):
         exported_keys = (
             "collocation_time",
             "output_time",
+            "spline_fit_time_bounds",
+            "parameter_estimation_time_bounds",
+            "parameter_estimation_output_mask",
+            "spline_boundary_exclusion_seconds_start_end",
+            "spline_boundary_exclusion_knot_spans_each_side",
             "observed_sensor_position",
             "observed_sensor_orientation_xyzw",
             "observed_sensor_velocity_world",
@@ -241,11 +246,13 @@ class ConfigurationAndLagTests(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertIn("`{}`".format(key), document)
 
-    def test_body_wrench_history_interpolates_and_holds_endpoints(self):
+    def test_body_wrench_history_interpolates_without_endpoint_extrapolation(self):
         wrench = np.arange(18, dtype=float).reshape(3, 6)
         history = estimator.BodyWrenchHistory((1.0, 2.0, 4.0), wrench)
-        np.testing.assert_allclose(history.value_at(0.0), wrench[0])
-        np.testing.assert_allclose(history.value_at(5.0), wrench[-1])
+        np.testing.assert_allclose(history.value_at(0.0), np.zeros(6))
+        np.testing.assert_allclose(history.value_at(5.0), np.zeros(6))
+        np.testing.assert_allclose(history.value_at(1.0), wrench[0])
+        np.testing.assert_allclose(history.value_at(4.0), wrench[-1])
         np.testing.assert_allclose(
             history.value_at(3.0), 0.5 * (wrench[1] + wrench[2])
         )
@@ -366,7 +373,7 @@ class RecordedAndSyntheticDynamicsTests(unittest.TestCase):
         cls.specification = multi.BagSpecification(
             "short", baseline.DEFAULT_BAG, 19.0, 19.4, 1.0
         )
-        cls.settings = estimator.SplineSettings((0.1, 0.2), 0.02)
+        cls.settings = estimator.SplineSettings((0.1, 0.2), 0.02, 0.5)
         cls.bag = estimator._build_bag_data(
             cls.specification,
             1.0,
@@ -374,6 +381,26 @@ class RecordedAndSyntheticDynamicsTests(unittest.TestCase):
             0.02,
             cls.settings,
             cls.arguments,
+        )
+
+    def test_parameter_estimation_excludes_spline_boundaries(self):
+        spline = self.bag.spline_selection.spline
+        expected = (
+            self.bag.boundary_exclusion_knot_spans_each_side
+            * max(
+                spline.effective_position_knot_spacing_seconds,
+                spline.effective_rotation_knot_spacing_seconds,
+            )
+        )
+        self.assertAlmostEqual(
+            self.bag.collocation_time[0] - spline.start_time,
+            expected,
+        )
+        end_exclusion = spline.end_time - self.bag.collocation_time[-1]
+        self.assertGreaterEqual(end_exclusion + 1.0e-12, expected)
+        self.assertLess(
+            end_exclusion,
+            expected + self.settings.collocation_step_seconds + 1.0e-12,
         )
 
     @classmethod

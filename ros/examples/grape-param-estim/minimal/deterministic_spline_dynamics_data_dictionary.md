@@ -195,12 +195,12 @@ index順は`selection.physical_parameter_names`にも保存されています。
 | `shared_physical_coordinate` | shared 13次元座標の複製 |
 | `shared_delay_seconds` | shared lagの複製 |
 | `diagnostics.spline.degree` | 5 |
-| `diagnostics.spline.selected_knot_spacing_seconds` | blocked CVで選ばれたbag別knot spacing |
+| `diagnostics.spline.selected_knot_spacing_seconds` | 時間幅固定block CVで選ばれたbag別knot spacing |
 | `diagnostics.spline.fit_interval_seconds` | observed poseをspline fitした全区間 |
 | `diagnostics.spline.parameter_estimation_interval_seconds` | parameter lossとwrenchに使用した内側区間 |
 | `diagnostics.spline.boundary_exclusion_knot_spans_each_side` | 各端から除いたknot span数 |
 | `diagnostics.spline.actual_boundary_exclusion_seconds_start_end` | 実際の秒単位の開始側／終了側除外幅 |
-| `diagnostics.spline.blocked_cross_validation[]` | 各knot候補のpose validation errorと微分sanity |
+| `diagnostics.spline.blocked_cross_validation[]` | `settings.spline_cross_validation_block_seconds`幅の連続blockをfoldへ巡回配置したCVについて、各knot候補のpose validation error、CV成否・失敗理由、微分sanity |
 | `diagnostics.spline.fit_metrics` | 全pose sample上のspline fit errorと最大加速度 |
 | `diagnostics.dynamics_loss` | bag単独の平均spline dynamics loss |
 | `diagnostics.residual_wrench_statistics` | 6軸residualのmean、RMSE、一次trend、時間積分 |

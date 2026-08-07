@@ -1,0 +1,446 @@
+{
+  "diagnostics": {
+    "collocation_count": 876,
+    "dynamics_loss": 0.030540551074660884,
+    "estimated_forward_metrics": {
+      "orientation_angle_rmse_deg": 158.40494517569107,
+      "orientation_angle_rmse_rad": 2.7646878447569168,
+      "position_component_rmse_m": [
+        105.13124127461862,
+        13.77068223110639,
+        46.50080118431069
+      ],
+      "position_rmse_m": 115.77795166539686,
+      "terminal_orientation_error_deg": 176.9470982929107,
+      "terminal_position_error_m": 260.14169763493436
+    },
+    "estimated_forward_pose_score_m2": 6702.461815013876,
+    "estimated_improves_over_nominal": true,
+    "estimated_with_external_wrench_forward_metrics": {
+      "orientation_angle_rmse_deg": 0.15825044363354715,
+      "orientation_angle_rmse_rad": 0.0027619912841470966,
+      "position_component_rmse_m": [
+        9.684228362456068e-05,
+        0.00013064423848344468,
+        9.734566942550991e-05
+      ],
+      "position_rmse_m": 0.00018953238325531517,
+      "terminal_orientation_error_deg": 0.06123163076497339,
+      "terminal_position_error_m": 0.00014277519215352325
+    },
+    "estimated_with_external_wrench_forward_pose_score_m2": 1.4894150833694889e-07,
+    "external_wrench_improves_estimated_free_rollout": true,
+    "id": "success_single",
+    "inferred_external_wrench": {
+      "components": [
+        "F_x",
+        "F_y",
+        "F_z",
+        "M_x",
+        "M_y",
+        "M_z"
+      ],
+      "definition": "piecewise-linear body wrench optimized so the fixed-parameter forward pose matches the observed pose spline",
+      "force_unit": "N",
+      "frame": "body",
+      "initialization": "required body wrench minus modeled body wrench",
+      "knot_count": 177,
+      "optimizer": {
+        "coefficient_dimension": 1062,
+        "cost": 6.268075655544536e-25,
+        "final_pose_cost": 6.268075655544536e-25,
+        "initial_pose_cost": 2864.637077544306,
+        "knot_count": 177,
+        "message": "`gtol` termination condition is satisfied.",
+        "nfev": 10,
+        "njev": 10,
+        "optimality": 3.6648322737364853e-09,
+        "status": 1,
+        "success": true,
+        "uses_regularization": false
+      },
+      "rollout_interpolation": "continuous piecewise-linear interpolation between wrench knots",
+      "torque_unit": "N m",
+      "uses_regularization": false
+    },
+    "nominal_forward_metrics": {
+      "orientation_angle_rmse_deg": 149.373920261871,
+      "orientation_angle_rmse_rad": 2.6070667251811197,
+      "position_component_rmse_m": [
+        11.280388322030618,
+        179.56588078739017,
+        191.391617256685
+      ],
+      "position_rmse_m": 262.68213464142633,
+      "terminal_orientation_error_deg": 167.17182880537803,
+      "terminal_position_error_m": 631.1032045917058
+    },
+    "nominal_forward_pose_score_m2": 34501.06570148985,
+    "nominal_rollout_lag_seconds": 0.01,
+    "normalized_weight": 1.0,
+    "reconstruction_metrics": {
+      "orientation_angle_rmse_deg": 0.15825044363354715,
+      "orientation_angle_rmse_rad": 0.0027619912841470966,
+      "position_component_rmse_m": [
+        9.684228362456068e-05,
+        0.00013064423848344468,
+        9.734566942550991e-05
+      ],
+      "position_rmse_m": 0.00018953238325531517,
+      "terminal_orientation_error_deg": 0.06123163076497339,
+      "terminal_position_error_m": 0.00014277519215352325
+    },
+    "residual_wrench_statistics": {
+      "component_names": [
+        "F_x",
+        "F_y",
+        "F_z",
+        "M_x",
+        "M_y",
+        "M_z"
+      ],
+      "cumulative_impulse": [
+        -1.8122504953967216,
+        0.9976433826735612,
+        -0.0784810949622389,
+        0.039941221946932524,
+        -0.008898744579458445,
+        0.8809571586223238
+      ],
+      "duration_seconds": 8.75,
+      "linear_trend_per_second": [
+        -0.041241167919364816,
+        0.013410388803325688,
+        -0.04209428911843311,
+        -0.002218944688758993,
+        -0.00512117024311881,
+        -0.002694774265145208
+      ],
+      "mean": [
+        -0.2059651739013692,
+        0.11460726831669754,
+        -0.008704793322870339,
+        0.005390236831779313,
+        -0.00044879931004159846,
+        0.10097003079900946
+      ],
+      "rmse": [
+        0.2530128545065583,
+        0.1469879928695067,
+        0.2214514388477063,
+        0.04153279140036189,
+        0.059047876628054136,
+        0.10517111469982539
+      ]
+    },
+    "sensor_consistency": {
+      "gyro": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.00020018510789364584,
+          "pearson_correlation": 0.9402212765287018,
+          "rmse": 0.013531473215946775
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.0004324692307250838,
+          "pearson_correlation": 0.9701347295945866,
+          "rmse": 0.014214743027124943
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.0003559050594539012,
+          "pearson_correlation": 0.9931726215881723,
+          "rmse": 0.009353264467182173
+        }
+      ],
+      "specific_force": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.15919458400023417,
+          "pearson_correlation": 0.9665427397548206,
+          "rmse": 0.16905743074071264
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.03887892410366786,
+          "pearson_correlation": 0.9963954108237447,
+          "rmse": 0.05589972893136061
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": -0.04999999999999716,
+          "mean_bias": -0.003253084565787237,
+          "pearson_correlation": 0.9175388744587982,
+          "rmse": 0.03269736703198552
+        }
+      ]
+    },
+    "sensor_validation": {
+      "gyro": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": -1.599999999999909,
+          "mean_bias": -0.05631452028465629,
+          "pearson_correlation": 0.004050975491260881,
+          "rmse": 1.0734399096928726
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": -1.299999999999926,
+          "mean_bias": 0.13311695045975244,
+          "pearson_correlation": -0.0624341381219781,
+          "rmse": 1.088778030074193
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": -4.8999999999997215,
+          "mean_bias": -3.413632156445798,
+          "pearson_correlation": -0.17902363335124105,
+          "rmse": 3.8361471773396607
+        }
+      ],
+      "specific_force": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": -1.3999999999999204,
+          "mean_bias": 0.1117395155608756,
+          "pearson_correlation": 0.2689486662478206,
+          "rmse": 0.4698047831087944
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.08983066069589014,
+          "pearson_correlation": 0.7868476632425867,
+          "rmse": 0.4227882077548266
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": -0.19999999999998863,
+          "mean_bias": -0.1196423304722422,
+          "pearson_correlation": 0.4778401165958669,
+          "rmse": 0.15470946963715385
+        }
+      ]
+    },
+    "sensor_validation_with_external_wrench": {
+      "gyro": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.00020018510789364584,
+          "pearson_correlation": 0.9402212765287018,
+          "rmse": 0.013531473215946775
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.0004324692307250838,
+          "pearson_correlation": 0.9701347295945866,
+          "rmse": 0.014214743027124943
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.0003559050594539012,
+          "pearson_correlation": 0.9931726215881723,
+          "rmse": 0.009353264467182173
+        }
+      ],
+      "specific_force": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.15919458400023417,
+          "pearson_correlation": 0.9665427397548206,
+          "rmse": 0.16905743074071264
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.03887892410366786,
+          "pearson_correlation": 0.9963954108237447,
+          "rmse": 0.05589972893136061
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": -0.04999999999999716,
+          "mean_bias": -0.003253084565787237,
+          "pearson_correlation": 0.9175388744587982,
+          "rmse": 0.03269736703198552
+        }
+      ]
+    },
+    "spline": {
+      "actual_boundary_exclusion_seconds_start_end": [
+        0.5969999999999942,
+        0.6030000000000086
+      ],
+      "blocked_cross_validation": [
+        {
+          "derivative_sanity_passed": false,
+          "effective_position_knot_spacing_seconds": 0.05102564102564104,
+          "effective_rotation_knot_spacing_seconds": 0.05102564102564104,
+          "maximum_acceleration_m_per_s2": 18049.471967933987,
+          "maximum_angular_acceleration_rad_per_s2": 387077.9701447233,
+          "position_coefficient_count": 200,
+          "requested_knot_spacing_seconds": 0.05,
+          "rotation_knot_count": 200,
+          "score": null,
+          "spline_degree": 5,
+          "validation_failure": null,
+          "validation_metric_rmse_m": 67681.16695893378,
+          "validation_orientation_rmse_rad": 0.9306785473672812,
+          "validation_position_rmse_m": 67681.16695871728,
+          "validation_succeeded": true
+        },
+        {
+          "derivative_sanity_passed": true,
+          "effective_position_knot_spacing_seconds": 0.09950000000000003,
+          "effective_rotation_knot_spacing_seconds": 0.09950000000000003,
+          "maximum_acceleration_m_per_s2": 2.1921667161186584,
+          "maximum_angular_acceleration_rad_per_s2": 48.93968768424462,
+          "position_coefficient_count": 105,
+          "requested_knot_spacing_seconds": 0.1,
+          "rotation_knot_count": 105,
+          "score": 0.01977506902701969,
+          "spline_degree": 5,
+          "validation_failure": null,
+          "validation_metric_rmse_m": 0.01977506902701969,
+          "validation_orientation_rmse_rad": 0.11620437992625111,
+          "validation_position_rmse_m": 0.003521427620353272,
+          "validation_succeeded": true
+        },
+        {
+          "derivative_sanity_passed": true,
+          "effective_position_knot_spacing_seconds": 0.19900000000000007,
+          "effective_rotation_knot_spacing_seconds": 0.19900000000000007,
+          "maximum_acceleration_m_per_s2": 0.5966705568747949,
+          "maximum_angular_acceleration_rad_per_s2": 6.976501194365723,
+          "position_coefficient_count": 55,
+          "requested_knot_spacing_seconds": 0.2,
+          "rotation_knot_count": 55,
+          "score": 0.0007704366348044245,
+          "spline_degree": 5,
+          "validation_failure": null,
+          "validation_metric_rmse_m": 0.0007704366348044245,
+          "validation_orientation_rmse_rad": 0.003946040420906097,
+          "validation_position_rmse_m": 0.00026130231352745843,
+          "validation_succeeded": true
+        }
+      ],
+      "boundary_exclusion_knot_spans_each_side": 3.0,
+      "degree": 5,
+      "fit_interval_seconds": [
+        65.00249791145325,
+        74.95249791145325
+      ],
+      "fit_metrics": {
+        "maximum_acceleration_m_per_s2": 0.18299974618752327,
+        "maximum_angular_acceleration_rad_per_s2": 0.8932065949183441,
+        "orientation_angle_rmse_deg": 0.153431212173994,
+        "orientation_angle_rmse_rad": 0.0026778798277622023,
+        "position_rmse_m": 0.00010548910456660561,
+        "position_vector_rmse_m": 0.000182712488754307
+      },
+      "parameter_estimation_interval_seconds": [
+        65.59949791145324,
+        74.34949791145324
+      ],
+      "parameter_estimation_output_sample_count": 175,
+      "rotation_representation": "normalized quaternion B-spline",
+      "selected_knot_spacing_seconds": 0.2,
+      "uses_spline_extrapolation_for_parameter_loss": false,
+      "uses_spline_fit_boundaries_for_parameter_loss": false
+    }
+  },
+  "outputs": {
+    "diagnostic_json": "diagnostic.json",
+    "diagnostic_pdf": "diagnostic.pdf",
+    "external_wrench_pdf": "external_wrench.pdf",
+    "sensor_consistency_pdf": "sensor_consistency.pdf",
+    "spline_dynamics_npz": "spline_dynamics.npz",
+    "trajectory_pdf": "trajectory.pdf"
+  },
+  "schema": "grape-param-estim/minimal-deterministic-spline-dynamics/v1/bag-result",
+  "shared_delay_seconds": 0.076538986185,
+  "shared_parameters": {
+    "angular_drag": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "cog_offset_m": [
+      -0.005543419870254621,
+      -0.006856377694064323,
+      0.003996351346480449
+    ],
+    "force_effectiveness": [
+      1.0706293969931486,
+      1.0333300182778302,
+      0.9787111466440569,
+      0.9235645521312238
+    ],
+    "inertia_kg_m2": [
+      [
+        0.07694599689620328,
+        -0.0017213239420530737,
+        7.250480827108469e-05
+      ],
+      [
+        -0.0017213239420530737,
+        0.0824803931454775,
+        2.7935027655190308e-05
+      ],
+      [
+        7.250480827108469e-05,
+        2.7935027655190308e-05,
+        0.15846451459337513
+      ]
+    ],
+    "linear_drag": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "mass_kg": 2.8893181052182793,
+    "torque_effectiveness": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ]
+  },
+  "shared_physical_coordinate": [
+    0.20592560147561867,
+    0.12023805674958418,
+    0.08469486367046351,
+    0.0005894064430456466,
+    0.02365829260746185,
+    -0.002390322384173961,
+    -0.0012774147840517796,
+    -0.005543419870254621,
+    -0.006856377694064323,
+    0.003996351346480449,
+    0.025074064676039422,
+    0.05881664575787774,
+    0.09181553104559537
+  ],
+  "source": {
+    "id": "success_single",
+    "normalized_weight": 1.0,
+    "path": "/home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_1_2026-06-13-13-44-01.bag",
+    "raw_weight": 1.0,
+    "requested_interval_seconds": [
+      65.0,
+      75.0
+    ],
+    "sha256": "5e3f40a2c9cdf22938195a1c7a3c95d2a11e942875b0e7c87315005d235ef407"
+  }
+}

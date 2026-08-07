@@ -33,10 +33,64 @@ from smooth_command import QuinticSmoothZoh  # noqa: E402
 from spline_trajectory import (  # noqa: E402
     PoseSplineEvaluation,
     fit_pose_spline_fixed,
+    select_pose_spline,
 )
 
 
 class PoseSplineAnalyticTests(unittest.TestCase):
+    def test_short_time_blocks_keep_cross_validation_local(self):
+        time = np.linspace(0.0, 9.95, 200)
+        position = np.column_stack(
+            (0.1 * time, np.zeros(time.size), np.zeros(time.size))
+        )
+        quaternion = np.tile((0.0, 0.0, 0.0, 1.0), (time.size, 1))
+
+        selection = select_pose_spline(
+            time_axis=time,
+            sensor_position=position,
+            sensor_orientation_xyzw=quaternion,
+            body_to_pose_sensor_rotation=np.eye(3),
+            knot_spacing_candidates_seconds=(0.05, 0.1, 0.2),
+            rotational_metric=np.eye(3),
+            fold_count=5,
+            validation_block_duration_seconds=0.1,
+            derivative_check_step_seconds=0.01,
+            maximum_acceleration_m_per_s2=250.0,
+            maximum_angular_acceleration_rad_per_s2=1000.0,
+        )
+
+        self.assertTrue(
+            all(
+                candidate.validation_succeeded
+                for candidate in selection.candidates
+            )
+        )
+
+    def test_cv_failure_is_not_mislabeled_as_derivative_failure(self):
+        time = np.linspace(0.0, 9.95, 200)
+        position = np.column_stack(
+            (0.1 * time, np.zeros(time.size), np.zeros(time.size))
+        )
+        quaternion = np.tile((0.0, 0.0, 0.0, 1.0), (time.size, 1))
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "blocked-cross-validation score",
+        ):
+            select_pose_spline(
+                time_axis=time,
+                sensor_position=position,
+                sensor_orientation_xyzw=quaternion,
+                body_to_pose_sensor_rotation=np.eye(3),
+                knot_spacing_candidates_seconds=(0.05, 0.1, 0.2),
+                rotational_metric=np.eye(3),
+                fold_count=5,
+                validation_block_duration_seconds=2.0,
+                derivative_check_step_seconds=0.01,
+                maximum_acceleration_m_per_s2=250.0,
+                maximum_angular_acceleration_rad_per_s2=1000.0,
+            )
+
     def test_polynomial_position_derivatives_are_analytic(self):
         time = np.linspace(0.0, 2.0, 81)
         position = np.column_stack(

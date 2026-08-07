@@ -72,6 +72,7 @@ class SplineSettings:
     knot_spacing_candidates_seconds: tuple[float, ...]
     collocation_step_seconds: float
     boundary_exclusion_knot_spans_each_side: float = 3.0
+    cross_validation_block_seconds: float = 0.1
 
 
 @dataclass(frozen=True)
@@ -206,20 +207,24 @@ def load_spline_config(path: Path) -> SplineEstimatorConfig:
                 "boundary_exclusion_knot_spans_each_side", 3.0
             )
         )
+        cross_validation_block = float(
+            spline_raw.get("cross_validation_block_seconds", 0.1)
+        )
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as error:
         raise ValueError("spline settings in multi-bag config are invalid") from error
-    values = np.asarray(
-        candidates + (collocation_step, boundary_exclusion), dtype=float
+    positive_values = np.asarray(
+        candidates + (collocation_step, cross_validation_block), dtype=float
     )
     if (
         not candidates
-        or np.any(~np.isfinite(values))
-        or np.any(values[:-1] <= 0.0)
+        or np.any(~np.isfinite(positive_values))
+        or np.any(positive_values <= 0.0)
+        or not np.isfinite(boundary_exclusion)
         or boundary_exclusion < 0.0
     ):
         raise ValueError(
-            "spline spacings must be positive and boundary exclusion "
-            "must be finite and nonnegative"
+            "spline spacings and cross-validation block duration must be "
+            "positive; boundary exclusion must be finite and nonnegative"
         )
     return SplineEstimatorConfig(
         multi_bag=base,
@@ -227,6 +232,7 @@ def load_spline_config(path: Path) -> SplineEstimatorConfig:
             candidates,
             collocation_step,
             boundary_exclusion,
+            cross_validation_block,
         ),
     )
 
@@ -325,6 +331,9 @@ def _build_bag_data(
         ),
         rotational_metric=nominal.inertia / nominal.mass,
         fold_count=arguments.spline_cv_folds,
+        validation_block_duration_seconds=(
+            settings.cross_validation_block_seconds
+        ),
         derivative_check_step_seconds=settings.collocation_step_seconds,
         maximum_acceleration_m_per_s2=(
             arguments.maximum_spline_acceleration
@@ -2838,6 +2847,7 @@ def _validate_arguments(
         arguments.maximum_spline_acceleration,
         arguments.maximum_spline_angular_acceleration,
         config.spline.collocation_step_seconds,
+        config.spline.cross_validation_block_seconds,
     )
     bounds = np.asarray(arguments.delay_bounds, dtype=float)
     widths = np.asarray(arguments.smoothstep_width_fractions, dtype=float)
@@ -3566,6 +3576,9 @@ def run(arguments: argparse.Namespace) -> int:
                 }
             ),
             "spline_cv_folds": arguments.spline_cv_folds,
+            "spline_cross_validation_block_seconds": (
+                config.spline.cross_validation_block_seconds
+            ),
             "maximum_spline_acceleration_m_per_s2": (
                 arguments.maximum_spline_acceleration
             ),

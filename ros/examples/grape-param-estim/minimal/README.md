@@ -44,9 +44,12 @@ python3 "$(rospack find grape_param_estim)/minimal/estimate_recorded_control.py"
 "spline": {
   "knot_spacing_candidates_seconds": [0.05, 0.1, 0.2],
   "collocation_step_seconds": 0.01,
-  "boundary_exclusion_knot_spans_each_side": 3.0
+  "boundary_exclusion_knot_spans_each_side": 3.0,
+  "cross_validation_block_seconds": 0.1
 }
 ```
+
+blocked CVは既定で軌道を0.1秒幅の連続blockへ分け、各blockを5 foldへ巡回配置します。軌道全体が長くなっても、1つの連続holdout区間は0.1秒のままです。
 
 lagはquintic smoothstepの段階的縮小で探索した後、周辺のstrict causal ZOH候補を評価し、上位候補だけphysical parametersを再最適化します。正式parameterはstrict-ZOH解です。その後、推定parameterとnominal parameterをそれぞれ初期時刻から補正なしでfull forward simulationします。
 

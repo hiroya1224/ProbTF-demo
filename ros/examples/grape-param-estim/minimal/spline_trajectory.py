@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Any, Sequence
+from typing import Any, Optional, Sequence
 
 import numpy as np
 from scipy.interpolate import BSpline
@@ -37,6 +37,8 @@ class CrossValidationCandidate:
     effective_rotation_knot_spacing_seconds: float
     position_coefficient_count: int
     rotation_knot_count: int
+    validation_succeeded: bool
+    validation_failure: Optional[str]
     validation_position_rmse_m: float
     validation_orientation_rmse_rad: float
     validation_metric_rmse_m: float
@@ -437,15 +439,42 @@ def _pose_errors(
     return position_error, orientation_error, metric_squared
 
 
-def _blocked_validation_masks(sample_count: int, fold_count: int) -> tuple[np.ndarray, ...]:
-    if sample_count < 7 or fold_count < 2:
-        raise ValueError("blocked cross-validation requires more samples and folds")
-    interior = np.arange(1, sample_count - 1, dtype=int)
-    blocks = [value for value in np.array_split(interior, fold_count) if value.size]
+def _blocked_validation_masks(
+    time_axis: Sequence[float],
+    fold_count: int,
+    block_duration_seconds: float,
+) -> tuple[np.ndarray, ...]:
+    time_value = np.asarray(time_axis, dtype=float)
+    if (
+        time_value.ndim != 1
+        or time_value.size < 7
+        or np.any(~np.isfinite(time_value))
+        or np.any(np.diff(time_value) <= 0.0)
+        or fold_count < 2
+        or not np.isfinite(block_duration_seconds)
+        or block_duration_seconds <= 0.0
+    ):
+        raise ValueError("blocked cross-validation settings are invalid")
+    interior = np.arange(1, time_value.size - 1, dtype=int)
+    relative_time = time_value[interior] - time_value[0]
+    tolerance = 64.0 * np.finfo(float).eps * max(
+        1.0,
+        float(relative_time[-1]),
+        block_duration_seconds,
+    )
+    block_index = np.floor(
+        (relative_time + tolerance) / block_duration_seconds
+    ).astype(np.int64)
+    blocks = np.unique(block_index)
+    if blocks.size < fold_count:
+        raise ValueError(
+            "cross-validation interval contains fewer time blocks than folds"
+        )
     masks = []
-    for block in blocks:
-        mask = np.zeros(sample_count, dtype=bool)
-        mask[block] = True
+    for fold_index in range(fold_count):
+        validation_blocks = blocks[fold_index::fold_count]
+        mask = np.zeros(time_value.size, dtype=bool)
+        mask[interior[np.isin(block_index, validation_blocks)]] = True
         masks.append(mask)
     return tuple(masks)
 
@@ -459,6 +488,7 @@ def select_pose_spline(
     knot_spacing_candidates_seconds: Sequence[float],
     rotational_metric: np.ndarray,
     fold_count: int = 5,
+    validation_block_duration_seconds: float = 0.1,
     derivative_check_step_seconds: float = 0.01,
     maximum_acceleration_m_per_s2: float = 250.0,
     maximum_angular_acceleration_rad_per_s2: float = 250.0,
@@ -479,12 +509,17 @@ def select_pose_spline(
         or np.any(candidates <= 0.0)
         or metric.shape != (3, 3)
         or np.any(~np.isfinite(metric))
+        or validation_block_duration_seconds <= 0.0
         or derivative_check_step_seconds <= 0.0
         or maximum_acceleration_m_per_s2 <= 0.0
         or maximum_angular_acceleration_rad_per_s2 <= 0.0
     ):
         raise ValueError("pose spline selection settings are invalid")
-    masks = _blocked_validation_masks(time_value.size, fold_count)
+    masks = _blocked_validation_masks(
+        time_value,
+        fold_count,
+        validation_block_duration_seconds,
+    )
     dense_count = max(
         3,
         int(
@@ -502,7 +537,8 @@ def select_pose_spline(
         validation_orientation = []
         validation_metric = []
         failed = False
-        for holdout in masks:
+        validation_failure: Optional[str] = None
+        for fold_index, holdout in enumerate(masks):
             keep = ~holdout
             try:
                 fold_spline = fit_pose_spline_fixed(
@@ -519,8 +555,18 @@ def select_pose_spline(
                     orientation[holdout],
                     metric,
                 )
-            except (ValueError, FloatingPointError, np.linalg.LinAlgError):
+            except (
+                ValueError,
+                FloatingPointError,
+                np.linalg.LinAlgError,
+            ) as error:
                 failed = True
+                validation_failure = "fold {}/{}: {}: {}".format(
+                    fold_index + 1,
+                    len(masks),
+                    type(error).__name__,
+                    error,
+                )
                 break
             validation_position.append(position_error)
             validation_orientation.append(orientation_error)
@@ -539,9 +585,8 @@ def select_pose_spline(
         maximum_angular_acceleration = float(
             np.max(np.linalg.norm(dense.body_angular_acceleration, axis=1))
         )
-        sanity = bool(
-            not failed
-            and np.isfinite(maximum_acceleration)
+        derivative_sanity = bool(
+            np.isfinite(maximum_acceleration)
             and np.isfinite(maximum_angular_acceleration)
             and maximum_acceleration <= maximum_acceleration_m_per_s2
             and maximum_angular_acceleration
@@ -562,7 +607,11 @@ def select_pose_spline(
                 np.sqrt(np.mean(np.sum(orientation_errors**2, axis=1)))
             )
             metric_rmse = float(np.sqrt(np.mean(metric_values)))
-        score = metric_rmse if sanity else float("inf")
+        score = (
+            metric_rmse
+            if not failed and derivative_sanity
+            else float("inf")
+        )
         records.append(
             CrossValidationCandidate(
                 spline_degree=final_spline.degree,
@@ -577,6 +626,8 @@ def select_pose_spline(
                     final_spline.position_coefficient_count
                 ),
                 rotation_knot_count=final_spline.rotation_knot_count,
+                validation_succeeded=not failed,
+                validation_failure=validation_failure,
                 validation_position_rmse_m=position_rmse,
                 validation_orientation_rmse_rad=orientation_rmse,
                 validation_metric_rmse_m=metric_rmse,
@@ -584,17 +635,49 @@ def select_pose_spline(
                 maximum_angular_acceleration_rad_per_s2=(
                     maximum_angular_acceleration
                 ),
-                derivative_sanity_passed=sanity,
+                derivative_sanity_passed=derivative_sanity,
                 score=score,
             )
         )
-    valid_indices = [
+    cross_validation_indices = [
         index for index, record in enumerate(records) if np.isfinite(record.score)
     ]
-    if not valid_indices:
-        raise ValueError("no knot-spacing candidate passed derivative sanity")
+    if not cross_validation_indices:
+        derivative_safe_indices = [
+            index
+            for index, record in enumerate(records)
+            if record.derivative_sanity_passed
+        ]
+        if derivative_safe_indices:
+            failure_summary = "; ".join(
+                "{:.6g}s: {}".format(
+                    records[index].requested_knot_spacing_seconds,
+                    records[index].validation_failure or "no finite score",
+                )
+                for index in derivative_safe_indices
+            )
+            raise ValueError(
+                "no derivative-safe knot-spacing candidate produced a usable "
+                "blocked-cross-validation score; {}".format(failure_summary)
+            )
+        derivative_summary = "; ".join(
+            "{:.6g}s: max |a|={:.6g} m/s^2, max |alpha|={:.6g} rad/s^2".format(
+                record.requested_knot_spacing_seconds,
+                record.maximum_acceleration_m_per_s2,
+                record.maximum_angular_acceleration_rad_per_s2,
+            )
+            for record in records
+        )
+        raise ValueError(
+            "no knot-spacing candidate passed derivative sanity "
+            "(|a| <= {:.6g} m/s^2, |alpha| <= {:.6g} rad/s^2); {}".format(
+                maximum_acceleration_m_per_s2,
+                maximum_angular_acceleration_rad_per_s2,
+                derivative_summary,
+            )
+        )
     selected_index = min(
-        valid_indices,
+        cross_validation_indices,
         key=lambda index: (
             records[index].score,
             -records[index].requested_knot_spacing_seconds,

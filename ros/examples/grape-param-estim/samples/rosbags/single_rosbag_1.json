@@ -1,0 +1,17 @@
+{
+    "bags": [
+      {
+        "id": "failure_1_single",
+        "path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+        "start": 19.0,
+        "end": 25.0,
+        "weight": 1.0
+      }
+    ],
+    "initial_delay_seconds": 0.01,
+    "spline": {
+      "knot_spacing_candidates_seconds": [0.05, 0.1, 0.2],
+      "collocation_step_seconds": 0.01,
+      "boundary_exclusion_knot_spans_each_side": 3.0
+    }
+  }

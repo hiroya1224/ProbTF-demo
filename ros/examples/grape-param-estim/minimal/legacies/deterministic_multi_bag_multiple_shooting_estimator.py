@@ -19,9 +19,9 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.optimize import least_squares
 
-import deterministic_estimator as baseline
-import deterministic_multiple_shooting_estimator as strict
-import deterministic_smooth_lag_multiple_shooting_estimator as smooth
+from . import deterministic_estimator as baseline
+from . import deterministic_multiple_shooting_estimator as strict
+from . import deterministic_smooth_lag_multiple_shooting_estimator as smooth
 from grape_param_estim.real_rosbag import load_flight_data
 
 
@@ -1216,7 +1216,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent / "output",
+        default=Path(__file__).resolve().parent.parent / "output",
     )
     return parser
 

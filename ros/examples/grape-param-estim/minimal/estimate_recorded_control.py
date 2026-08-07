@@ -45,31 +45,35 @@ def main(argv: Sequence[str] | None = None) -> int:
             and config_requested
         )
     ):
-        from deterministic_multi_bag_multiple_shooting_estimator import (
+        from legacies.deterministic_multi_bag_multiple_shooting_estimator import (
             main as selected_main,
         )
     elif selection.method == "generalized_profiling_multi":
-        from deterministic_multi_bag_generalized_profiling_estimator import (
+        from legacies.deterministic_multi_bag_generalized_profiling_estimator import (
             main as selected_main,
         )
     elif selection.method == "deterministic_multiple_shooting":
-        from deterministic_multiple_shooting_estimator import main as selected_main
+        from legacies.deterministic_multiple_shooting_estimator import (
+            main as selected_main,
+        )
     elif selection.method == "deterministic_smooth_lag_multiple_shooting":
-        from deterministic_smooth_lag_multiple_shooting_estimator import (
+        from legacies.deterministic_smooth_lag_multiple_shooting_estimator import (
             main as selected_main,
         )
     elif selection.method == "deterministic":
-        from deterministic_estimator import main as selected_main
+        from legacies.deterministic_estimator import main as selected_main
     elif selection.method == "deterministic_sobol":
-        from deterministic_sobol_estimator import main as selected_main
+        from legacies.deterministic_sobol_estimator import main as selected_main
     elif selection.method == "deterministic_tempered":
-        from deterministic_tempered_estimator import main as selected_main
+        from legacies.deterministic_tempered_estimator import main as selected_main
     elif selection.method == "deterministic_continuation":
-        from deterministic_continuation_estimator import main as selected_main
+        from legacies.deterministic_continuation_estimator import (
+            main as selected_main,
+        )
     elif selection.method == "deterministic_q":
-        from deterministic_q_estimator import main as selected_main
+        from legacies.deterministic_q_estimator import main as selected_main
     else:
-        from probabilistic_estimator import main as selected_main
+        from legacies.probabilistic_estimator import main as selected_main
     return selected_main(remaining)
 
 

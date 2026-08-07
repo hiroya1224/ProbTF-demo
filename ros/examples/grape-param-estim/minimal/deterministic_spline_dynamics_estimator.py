@@ -25,11 +25,15 @@ from matplotlib import pyplot as plt  # noqa: E402
 from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 from scipy.optimize import least_squares  # noqa: E402
 
-import deterministic_continuation_estimator as continuation  # noqa: E402
-import deterministic_estimator as baseline  # noqa: E402
-import deterministic_multi_bag_multiple_shooting_estimator as multi  # noqa: E402
-import deterministic_multiple_shooting_estimator as strict  # noqa: E402
-import deterministic_smooth_lag_multiple_shooting_estimator as smooth  # noqa: E402
+from legacies import deterministic_continuation_estimator as continuation  # noqa: E402
+from legacies import deterministic_estimator as baseline  # noqa: E402
+from legacies import (  # noqa: E402
+    deterministic_multi_bag_multiple_shooting_estimator as multi,
+)
+from legacies import deterministic_multiple_shooting_estimator as strict  # noqa: E402
+from legacies import (  # noqa: E402
+    deterministic_smooth_lag_multiple_shooting_estimator as smooth,
+)
 from smooth_command import QuinticSmoothZoh  # noqa: E402
 from spline_trajectory import (  # noqa: E402
     PoseSplineEvaluation,

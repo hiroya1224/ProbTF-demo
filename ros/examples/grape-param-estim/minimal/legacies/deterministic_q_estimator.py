@@ -24,7 +24,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 from scipy.optimize import least_squares
 
-import deterministic_estimator as baseline
+from . import deterministic_estimator as baseline
 from grape_param_estim.system import ActuatorState, RigidBodyState
 
 

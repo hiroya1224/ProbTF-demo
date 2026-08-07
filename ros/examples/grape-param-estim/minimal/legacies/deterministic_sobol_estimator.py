@@ -44,7 +44,7 @@ import numpy as np
 from scipy.optimize import least_squares
 from scipy.stats import qmc
 
-import deterministic_estimator as baseline
+from . import deterministic_estimator as baseline
 from grape_param_estim.controller_config import PID_GROUPS
 from grape_param_estim.dynamics import (
     actuator_wrench_with_jacobian,
@@ -2074,7 +2074,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent / "output",
+        default=Path(__file__).resolve().parent.parent / "output",
     )
     return parser
 

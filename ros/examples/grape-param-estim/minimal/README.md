@@ -2,7 +2,7 @@
 
 このディレクトリの `estimate_recorded_control.py` は deterministic spline dynamics、deterministic-multiple-shooting、multi-bag generalized profiling、smooth-lag multiple-shooting、deterministic、deterministic-Sobol、deterministic-tempered、deterministic-continuation、deterministic-Q、probabilistic を切り替える共通エントリポイントです。
 
-既定では `deterministic_spline_dynamics_estimator.py` を呼び出します。このmethodはmulti-bag設定を必要とします。
+既定では `deterministic_spline_dynamics_estimator.py` を呼び出します。このmethodはmulti-bag設定を必要とします。比較・再現用の旧method実装は `legacies/` 以下にまとめていますが、従来どおり `estimate_recorded_control.py --method ...` から選択できます。
 
 single-bag methodは同梱rosbagの19–24秒を既定区間とし、multi-bag methodは設定JSONの区間を使います。いずれも記録されたrotor thrust commandとgimbal commandを既知入力として使い、GUIには依存しません。
 
@@ -57,7 +57,7 @@ lagはquintic smoothstepの段階的縮小で探索した後、周辺のstrict c
 
 ### SE(3)-only deterministic multiple shooting（比較用）
 
-`deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、慣性、CoG offset、相対 rotor force effectiveness を推定します。慣性は二次モーメントを `Σ = L L^T`、`J = tr(Σ)I - Σ` と表す6次元 Cholesky 座標を用いるため、正定値性と主慣性モーメントの三角不等式を探索中も構造的に満たします。このmethodではcommand lagを `0.16 s` に固定します。
+`legacies/deterministic_multiple_shooting_estimator.py` は、記録された rotor / gimbal command を既知入力として用い、全区間共通の質量、慣性、CoG offset、相対 rotor force effectiveness を推定します。慣性は二次モーメントを `Σ = L L^T`、`J = tr(Σ)I - Σ` と表す6次元 Cholesky 座標を用いるため、正定値性と主慣性モーメントの三角不等式を探索中も構造的に満たします。このmethodではcommand lagを `0.16 s` に固定します。
 
 Thrust と gimbal の一次遅れ時定数はモデルへ入れません。thrust command は即時反映し、gimbal command は一次遅れなしで、記録済みの角速度・角度制限だけを適用します。13個の物理座標にはbox上下限を置かず、mass、二次モーメント、force effectiveness の正値性と慣性の三角不等式だけを座標変換で保証します。
 
@@ -122,7 +122,7 @@ Pose lossはmultiple-shooting系と同じ固定nominal計量 `||rho||² + phiᵀ
 
 ### Multiple-bag shared-parameter multiple shooting
 
-`deterministic_multi_bag_multiple_shooting_estimator.py` は、複数bagで13物理座標とcommand lagを共有し、shooting nodeだけをbagごとに独立に持つjoint問題を解きます。同一機体構成のbagだけを一つの設定へ含めてください。各bagの観測区間、初期状態、command history、サンプル数は異なって構いません。
+`legacies/deterministic_multi_bag_multiple_shooting_estimator.py` は、複数bagで13物理座標とcommand lagを共有し、shooting nodeだけをbagごとに独立に持つjoint問題を解きます。同一機体構成のbagだけを一つの設定へ含めてください。各bagの観測区間、初期状態、command history、サンプル数は異なって構いません。
 
 設定はJSONで、`bags`の各要素に一意な`id`、bagの`path`、record-localの`start` / `end`、正の`weight`を指定します。相対pathは設定JSONの親directoryを基準に解決します。weightは内部で総和1へ正規化するため、すべて`1.0`なら各bagの係数は`1 / B`です。`initial_delay_seconds`を省略した場合は`0.01 s`です。
 

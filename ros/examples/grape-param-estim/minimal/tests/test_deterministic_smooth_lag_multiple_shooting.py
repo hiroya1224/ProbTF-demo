@@ -12,9 +12,11 @@ _PACKAGE = _MINIMAL.parent / "src"
 sys.path.insert(0, str(_MINIMAL))
 sys.path.insert(0, str(_PACKAGE))
 
-import deterministic_estimator as baseline  # noqa: E402
-import deterministic_multiple_shooting_estimator as strict  # noqa: E402
-import deterministic_smooth_lag_multiple_shooting_estimator as estimator  # noqa: E402
+from legacies import deterministic_estimator as baseline  # noqa: E402
+from legacies import deterministic_multiple_shooting_estimator as strict  # noqa: E402
+from legacies import (  # noqa: E402
+    deterministic_smooth_lag_multiple_shooting_estimator as estimator,
+)
 import estimate_recorded_control as entrypoint  # noqa: E402
 from grape_param_estim.dynamics import (  # noqa: E402
     advance_actuators_with_jacobian,

@@ -16,8 +16,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-import deterministic_estimator as baseline
-import deterministic_multiple_shooting_estimator as strict
+from . import deterministic_estimator as baseline
+from . import deterministic_multiple_shooting_estimator as strict
 from grape_param_estim.real_rosbag import load_flight_data
 from grape_param_estim.system import ActuatorCommand, ActuatorState
 from smooth_command import QuinticSmoothZoh
@@ -393,7 +393,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent / "output",
+        default=Path(__file__).resolve().parent.parent / "output",
     )
     return parser
 

@@ -22,7 +22,7 @@ from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
 
-import deterministic_estimator as baseline
+from . import deterministic_estimator as baseline
 from grape_param_estim.batch.em_loop import (
     EStepPhase,
     LaplaceEStepFailure,

@@ -40,9 +40,9 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.optimize import least_squares
 
-import deterministic_continuation_estimator as continuation
-import deterministic_estimator as baseline
-import deterministic_sobol_estimator as analytic
+from . import deterministic_continuation_estimator as continuation
+from . import deterministic_estimator as baseline
+from . import deterministic_sobol_estimator as analytic
 from grape_param_estim.dynamics import (
     FullSixDofPlant,
     actuator_wrench_with_jacobian,
@@ -2394,7 +2394,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent / "output",
+        default=Path(__file__).resolve().parent.parent / "output",
     )
     return parser
 

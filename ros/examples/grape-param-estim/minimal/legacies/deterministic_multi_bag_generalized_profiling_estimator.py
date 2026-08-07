@@ -40,10 +40,10 @@ from scipy.interpolate import BSpline, CubicSpline  # noqa: E402
 from scipy.optimize import least_squares  # noqa: E402
 from scipy.spatial.transform import Rotation, RotationSpline  # noqa: E402
 
-import deterministic_continuation_estimator as continuation  # noqa: E402
-import deterministic_estimator as baseline  # noqa: E402
-import deterministic_multi_bag_multiple_shooting_estimator as multi  # noqa: E402
-import deterministic_multiple_shooting_estimator as strict  # noqa: E402
+from . import deterministic_continuation_estimator as continuation  # noqa: E402
+from . import deterministic_estimator as baseline  # noqa: E402
+from . import deterministic_multi_bag_multiple_shooting_estimator as multi  # noqa: E402
+from . import deterministic_multiple_shooting_estimator as strict  # noqa: E402
 from grape_param_estim.dynamics import (  # noqa: E402
     FullSixDofPlant,
     advance_actuators,
@@ -69,7 +69,7 @@ from grape_param_estim.system import (  # noqa: E402
 SCHEMA = "grape-param-estim/minimal-multi-bag-generalized-profiling/v1"
 OUTPUT_SUBDIRECTORY = "generalized_profiling_multi"
 DEFAULT_ESTIMATOR_RESULT = (
-    Path(__file__).resolve().parent
+    Path(__file__).resolve().parent.parent
     / "output"
     / multi.OUTPUT_SUBDIRECTORY
     / "result.json"
@@ -1221,7 +1221,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent / "output",
+        default=Path(__file__).resolve().parent.parent / "output",
     )
     return parser
 

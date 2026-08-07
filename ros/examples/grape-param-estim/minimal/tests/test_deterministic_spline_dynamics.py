@@ -15,9 +15,11 @@ _PACKAGE = _MINIMAL.parent / "src"
 sys.path.insert(0, str(_MINIMAL))
 sys.path.insert(0, str(_PACKAGE))
 
-import deterministic_estimator as baseline  # noqa: E402
-import deterministic_multi_bag_multiple_shooting_estimator as multi  # noqa: E402
-import deterministic_multiple_shooting_estimator as strict  # noqa: E402
+from legacies import deterministic_estimator as baseline  # noqa: E402
+from legacies import (  # noqa: E402
+    deterministic_multi_bag_multiple_shooting_estimator as multi,
+)
+from legacies import deterministic_multiple_shooting_estimator as strict  # noqa: E402
 import deterministic_spline_dynamics_estimator as estimator  # noqa: E402
 import estimate_recorded_control as entrypoint  # noqa: E402
 from grape_param_estim.dynamics import FullSixDofPlant  # noqa: E402

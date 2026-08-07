@@ -10,7 +10,9 @@ _PACKAGE = _MINIMAL.parent / "src"
 sys.path.insert(0, str(_MINIMAL))
 sys.path.insert(0, str(_PACKAGE))
 
-import deterministic_multiple_shooting_estimator as estimator  # noqa: E402
+from legacies import (  # noqa: E402
+    deterministic_multiple_shooting_estimator as estimator,
+)
 import estimate_recorded_control as entrypoint  # noqa: E402
 from grape_param_estim.geometry import (  # noqa: E402
     so3_exp,

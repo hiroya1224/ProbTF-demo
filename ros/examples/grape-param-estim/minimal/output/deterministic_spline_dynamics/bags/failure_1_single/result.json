@@ -294,12 +294,14 @@
           "rotation_knot_count": 120,
           "score": null,
           "spline_degree": 5,
-          "validation_metric_rmse_m": null,
-          "validation_orientation_rmse_rad": null,
-          "validation_position_rmse_m": null
+          "validation_failure": null,
+          "validation_metric_rmse_m": 241581.13869087442,
+          "validation_orientation_rmse_rad": 1.3815203920637849,
+          "validation_position_rmse_m": 241581.13869074165,
+          "validation_succeeded": true
         },
         {
-          "derivative_sanity_passed": false,
+          "derivative_sanity_passed": true,
           "effective_position_knot_spacing_seconds": 0.09916666666666665,
           "effective_rotation_knot_spacing_seconds": 0.09916666666666665,
           "maximum_acceleration_m_per_s2": 23.100455169778748,
@@ -307,11 +309,13 @@
           "position_coefficient_count": 65,
           "requested_knot_spacing_seconds": 0.1,
           "rotation_knot_count": 65,
-          "score": null,
+          "score": 0.07137659356618131,
           "spline_degree": 5,
-          "validation_metric_rmse_m": null,
-          "validation_orientation_rmse_rad": null,
-          "validation_position_rmse_m": null
+          "validation_failure": null,
+          "validation_metric_rmse_m": 0.07137659356618131,
+          "validation_orientation_rmse_rad": 0.36212770006641387,
+          "validation_position_rmse_m": 0.021583815500484,
+          "validation_succeeded": true
         },
         {
           "derivative_sanity_passed": true,
@@ -322,11 +326,13 @@
           "position_coefficient_count": 35,
           "requested_knot_spacing_seconds": 0.2,
           "rotation_knot_count": 35,
-          "score": 126624.43104176286,
+          "score": 0.002708269101311957,
           "spline_degree": 5,
-          "validation_metric_rmse_m": 126624.43104176286,
-          "validation_orientation_rmse_rad": 2.650149626330195,
-          "validation_position_rmse_m": 126624.43104088378
+          "validation_failure": null,
+          "validation_metric_rmse_m": 0.002708269101311957,
+          "validation_orientation_rmse_rad": 0.014079176261975619,
+          "validation_position_rmse_m": 0.0008536153100736489,
+          "validation_succeeded": true
         }
       ],
       "boundary_exclusion_knot_spans_each_side": 3.0,

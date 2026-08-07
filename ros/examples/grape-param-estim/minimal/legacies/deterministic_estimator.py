@@ -67,7 +67,7 @@ from grape_param_estim.system import (  # noqa: E402
 
 
 DEFAULT_BAG = (
-    Path(__file__).resolve().parents[1]
+    Path(__file__).resolve().parents[2]
     / "samples"
     / "rosbags"
     / "20260612_grape_hovering_4_2026-06-12-17-33-59.bag"
@@ -1119,7 +1119,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path(__file__).resolve().parent / "output",
+        default=Path(__file__).resolve().parent.parent / "output",
     )
     return parser
 

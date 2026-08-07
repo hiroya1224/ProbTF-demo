@@ -1,15 +1,15 @@
 Deterministic pose-spline dynamics estimator
 
 Shared parameter update: nominal -> estimated
-  mass [kg]                         2.351597591 ->  2.889318105   delta=+0.537721   ratio=1.2286618
-  CoG x [m]                         0 -> -0.00554341987   delta=-0.00554342   ratio=-
-  CoG y [m]                         0 -> -0.006856377694   delta=-0.00685638   ratio=-
-  CoG z [m]                         0 ->  0.003996351346   delta=+0.00399635   ratio=-
-  rotor effectiveness 1             1 ->  1.070629397   delta=+0.0706294   ratio=1.0706294
-  rotor effectiveness 2             1 ->  1.033330018   delta=+0.03333   ratio=1.03333
-  rotor effectiveness 3             1 ->  0.9787111466   delta=-0.0212889   ratio=0.97871115
-  rotor effectiveness 4             1 ->  0.9235645521   delta=-0.0764354   ratio=0.92356455
-  command lag [s]                   0.01 ->  0.07653898619   delta=+0.066539   ratio=-
+  mass [kg]                         2.351597591 ->  2.761922494   delta=+0.410325   ratio=1.1744877
+  CoG x [m]                         0 -> -0.001223043103   delta=-0.00122304   ratio=-
+  CoG y [m]                         0 ->  0.002309951388   delta=+0.00230995   ratio=-
+  CoG z [m]                         0 -> -0.02762725296   delta=-0.0276273   ratio=-
+  rotor effectiveness 1             1 ->  0.9833530397   delta=-0.016647   ratio=0.98335304
+  rotor effectiveness 2             1 ->  1.057453341   delta=+0.0574533   ratio=1.0574533
+  rotor effectiveness 3             1 ->  0.9746359336   delta=-0.0253641   ratio=0.97463593
+  rotor effectiveness 4             1 ->  0.9867040316   delta=-0.013296   ratio=0.98670403
+  command lag [s]                   0.01 ->  0.04275679864   delta=+0.0327568   ratio=-
 
 Inertia matrix [kg m^2]
   nominal:
@@ -17,26 +17,26 @@ Inertia matrix [kg m^2]
     [-7.27899253e-07,  0.06495265634,  5.9167305e-08]
     [ 1.901508003e-05,  5.9167305e-08,  0.1289921107]
   estimated:
-    [ 0.0769459969, -0.001721323942,  7.250480827e-05]
-    [-0.001721323942,  0.08248039315,  2.793502766e-05]
-    [ 7.250480827e-05,  2.793502766e-05,  0.1584645146]
+    [ 0.06909224285, -0.002242554403,  1.760606701e-05]
+    [-0.002242554403,  0.16834866, -0.0001473277053]
+    [ 1.760606701e-05, -0.0001473277053,  0.2364764859]
 
 Principal moments: nominal -> estimated
-  principal moment 1 [kg m^2]       0.06495264516 ->  0.07645423544   delta=+0.0115016   ratio=1.1770765
-  principal moment 2 [kg m^2]       0.06500006701 ->  0.08297208094   delta=+0.017972   ratio=1.2764922
-  principal moment 3 [kg m^2]       0.1289921163 ->  0.1584645883   delta=+0.0294725   ratio=1.2284827
+  principal moment 1 [kg m^2]       0.06495264516 ->  0.06904160022   delta=+0.00408896   ratio=1.0629529
+  principal moment 2 [kg m^2]       0.06500006701 ->  0.168398981   delta=+0.103399   ratio=2.5907509
+  principal moment 3 [kg m^2]       0.1289921163 ->  0.2364768075   delta=+0.107485   ratio=1.8332656
 
 Optimization
-  joint dynamics loss: 0.0305405510747
-  soft-prior cost: 0.0178326331951
-  selected strict-ZOH lag [s]: 0.076538986185
+  joint dynamics loss: 0.251462884605
+  soft-prior cost: 0.0639975885038
+  selected strict-ZOH lag [s]: 0.042756798636
 
-Bag success_single
-  reconstruction position RMSE [m]: 0.000189532383255
-  reconstruction position component RMSE [m]: [9.684228e-05 1.306442e-04 9.734567e-05]
-  reconstruction orientation RMSE [deg]: 0.158250443634
-  gyro consistency RMSE xyz [rad/s]: [0.013531 0.014215 0.009353]
-  specific-force consistency RMSE xyz [m/s^2]: [0.169057 0.0559   0.032697]
-  inferred external force RMS xyz [N]: [0.253013 0.146988 0.221451]
-  inferred external torque RMS xyz [N m]: [0.041533 0.059048 0.105171]
-  bag dynamics loss: 0.0305405510747
+Bag failure_1_single
+  reconstruction position RMSE [m]: 0.000511441948808
+  reconstruction position component RMSE [m]: [0.000264 0.000287 0.000331]
+  reconstruction orientation RMSE [deg]: 0.491033445648
+  gyro consistency RMSE xyz [rad/s]: [0.050326 0.085763 0.038402]
+  specific-force consistency RMSE xyz [m/s^2]: [0.941624 0.163374 0.348233]
+  inferred external force RMS xyz [N]: [0.628769 0.310638 1.215816]
+  inferred external torque RMS xyz [N m]: [0.059489 0.476723 0.144709]
+  bag dynamics loss: 0.251462884605

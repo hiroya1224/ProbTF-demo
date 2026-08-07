@@ -10,7 +10,7 @@ _PACKAGE = _MINIMAL.parent / "src"
 sys.path.insert(0, str(_MINIMAL))
 sys.path.insert(0, str(_PACKAGE))
 
-import deterministic_sobol_estimator as estimator  # noqa: E402
+from legacies import deterministic_sobol_estimator as estimator  # noqa: E402
 from grape_param_estim.system import GrapeGeometry, VehicleParameters  # noqa: E402
 
 

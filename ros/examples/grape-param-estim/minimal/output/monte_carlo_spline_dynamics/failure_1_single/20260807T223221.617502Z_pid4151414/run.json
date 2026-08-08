@@ -1,0 +1,31 @@
+{
+  "algorithm": {
+    "external_wrench_reconstruction": false,
+    "forward_rollout_reports": false,
+    "lag": "estimated once from the nominal trajectory by the same smooth-continuation + strict-ZOH polish as the deterministic estimator, then frozen for every Monte Carlo pattern",
+    "physical_parameters": "13-D strict-ZOH least-squares solve at fixed lag for each perturbed spline, initialized from the nominal solution",
+    "spline_knot_spacing": "selected once by nominal blocked CV, then frozen; each Monte Carlo pattern refits only spline coefficients"
+  },
+  "bag": {
+    "config_weight_ignored_for_single_bag_mc": 1.0,
+    "end_seconds": 25.0,
+    "id": "failure_1_single",
+    "path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+    "start_seconds": 19.0
+  },
+  "config": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/single_rosbag_1.json",
+  "expected_base_commit": "9d113ea754e2f9b4520a148fcb134e8781d6a8e6",
+  "noise_model": {
+    "position": "independent additive Gaussian noise at every estimator pose observation; equal x/y/z sigma",
+    "position_sigma_m_per_axis": 0.05,
+    "rotation": "independent right-multiplicative SO(3) rotation-vector Gaussian noise at every estimator pose observation; equal local x/y/z sigma",
+    "rotation_sigma_deg_per_axis": 10.0,
+    "temporal_correlation": "none"
+  },
+  "patterns_requested": 10000,
+  "run_id": "20260807T223221.617502Z_pid4151414",
+  "schema": "grape-param-estim/monte-carlo-spline-dynamics/v1",
+  "seed": 0,
+  "started_utc": "2026-08-07T22:32:21.617626+00:00",
+  "status": "initializing"
+}

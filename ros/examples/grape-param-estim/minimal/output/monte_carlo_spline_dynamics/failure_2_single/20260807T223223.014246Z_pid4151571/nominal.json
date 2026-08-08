@@ -1,0 +1,536 @@
+{
+  "collocation_count": 429,
+  "collocation_time_bounds_seconds": [
+    26.09798310824803,
+    30.37798310824803
+  ],
+  "lag_search": {
+    "candidate_delays_seconds": [
+      0.043642568686,
+      0.044642568686,
+      0.045642568686,
+      0.046642568686,
+      0.047642568686,
+      0.048642568686,
+      0.049642568686,
+      0.050642568686,
+      0.051642568686
+    ],
+    "refined_candidates": [
+      {
+        "delay_seconds": 0.047642568686,
+        "rank": 0,
+        "refined": {
+          "data_loss": 0.09230682356829002,
+          "delay_seconds": 0.047642568686,
+          "objective_cost": 0.11675454705417745,
+          "optimizer": {
+            "cost": 0.11675454705417745,
+            "message": "`ftol` termination condition is satisfied.",
+            "nfev": 2,
+            "njev": 2,
+            "optimality": 2.7490350547526576e-05,
+            "status": 2,
+            "success": true
+          },
+          "parameters": {
+            "angular_drag": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "cog_offset_m": [
+              -0.004276539835294016,
+              0.0014475876764636396,
+              -0.01354005303247942
+            ],
+            "force_effectiveness": [
+              1.008259485160981,
+              1.0032151561652611,
+              1.0003065838188157,
+              0.9883265716822588
+            ],
+            "inertia_kg_m2": [
+              [
+                0.06633521267206678,
+                8.872587599360663e-05,
+                3.2996512664967675e-05
+              ],
+              [
+                8.872587599360663e-05,
+                0.11176515048974224,
+                2.0838157866631483e-05
+              ],
+              [
+                3.2996512664967675e-05,
+                2.0838157866631483e-05,
+                0.17713731005105257
+              ]
+            ],
+            "inertia_principal_moments_kg_m2": [
+              0.06633502958675395,
+              0.11176531708952671,
+              0.17713732653658093
+            ],
+            "linear_drag": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "mass_kg": 2.7788566449667367,
+            "torque_effectiveness": [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "physical_coordinate": [
+            0.16694464125854488,
+            0.27292281022717496,
+            0.010231414514916853,
+            0.0012603246432948305,
+            -0.0010585807910238648,
+            -0.0003220631008349779,
+            -0.001086613498246531,
+            -0.004276539835294016,
+            0.0014475876764636396,
+            -0.01354005303247942,
+            0.003546539084764566,
+            0.004418261904183508,
+            0.013558606547470502
+          ],
+          "physical_parameter_names": [
+            "log_mass_scale",
+            "log_second_moment_cholesky_xx_scale",
+            "log_second_moment_cholesky_yy_scale",
+            "log_second_moment_cholesky_zz_scale",
+            "normalized_second_moment_cholesky_yx_offset",
+            "normalized_second_moment_cholesky_zx_offset",
+            "normalized_second_moment_cholesky_zy_offset",
+            "cog_offset_x_m",
+            "cog_offset_y_m",
+            "cog_offset_z_m",
+            "force_effectiveness_contrast_1",
+            "force_effectiveness_contrast_2",
+            "force_effectiveness_contrast_3"
+          ],
+          "prior_cost": 0.02444772348588746
+        },
+        "screening_cost": 0.11675457225918134
+      },
+      {
+        "delay_seconds": 0.043642568686,
+        "rank": 1,
+        "refined": {
+          "data_loss": 0.0922554634210763,
+          "delay_seconds": 0.043642568686,
+          "objective_cost": 0.1168272276382726,
+          "optimizer": {
+            "cost": 0.1168272276382726,
+            "message": "`ftol` termination condition is satisfied.",
+            "nfev": 3,
+            "njev": 3,
+            "optimality": 0.0001756696390902701,
+            "status": 2,
+            "success": true
+          },
+          "parameters": {
+            "angular_drag": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "cog_offset_m": [
+              -0.004318115129106999,
+              0.0014576316936411626,
+              -0.01367535953280573
+            ],
+            "force_effectiveness": [
+              1.008396756829252,
+              1.0030495256638692,
+              1.0000961842354943,
+              0.9885631387943549
+            ],
+            "inertia_kg_m2": [
+              [
+                0.06635681866055024,
+                0.00010795562876668029,
+                3.4109982000867587e-05
+              ],
+              [
+                0.00010795562876668029,
+                0.11193134950253936,
+                2.0019059296745143e-05
+              ],
+              [
+                3.4109982000867587e-05,
+                2.0019059296745143e-05,
+                0.17732511040852436
+              ]
+            ],
+            "inertia_principal_moments_kg_m2": [
+              0.06635655248413856,
+              0.11193159904526007,
+              0.17732512704221526
+            ],
+            "linear_drag": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "mass_kg": 2.778895159717054,
+            "torque_effectiveness": [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "physical_coordinate": [
+            0.16695850108952398,
+            0.27366897891354186,
+            0.010395158786364819,
+            0.001262580864824937,
+            -0.001284612368957281,
+            -0.0003657853994878814,
+            -0.0010440131954938096,
+            -0.004318115129106999,
+            0.0014576316936411626,
+            -0.01367535953280573,
+            0.0037595558555136538,
+            0.004578188692693765,
+            0.013282249023268357
+          ],
+          "physical_parameter_names": [
+            "log_mass_scale",
+            "log_second_moment_cholesky_xx_scale",
+            "log_second_moment_cholesky_yy_scale",
+            "log_second_moment_cholesky_zz_scale",
+            "normalized_second_moment_cholesky_yx_offset",
+            "normalized_second_moment_cholesky_zx_offset",
+            "normalized_second_moment_cholesky_zy_offset",
+            "cog_offset_x_m",
+            "cog_offset_y_m",
+            "cog_offset_z_m",
+            "force_effectiveness_contrast_1",
+            "force_effectiveness_contrast_2",
+            "force_effectiveness_contrast_3"
+          ],
+          "prior_cost": 0.024571764217196274
+        },
+        "screening_cost": 0.11682797624916769
+      },
+      {
+        "delay_seconds": 0.044642568686,
+        "rank": 2,
+        "refined": {
+          "data_loss": 0.09225694916997516,
+          "delay_seconds": 0.044642568686,
+          "objective_cost": 0.11682867749758144,
+          "optimizer": {
+            "cost": 0.11682867749758144,
+            "message": "`ftol` termination condition is satisfied.",
+            "nfev": 3,
+            "njev": 3,
+            "optimality": 0.00017567367131066103,
+            "status": 2,
+            "success": true
+          },
+          "parameters": {
+            "angular_drag": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "cog_offset_m": [
+              -0.004318089787902927,
+              0.0014576598462748213,
+              -0.013675374022360878
+            ],
+            "force_effectiveness": [
+              1.0083965405425157,
+              1.003049504541422,
+              1.0000963759190777,
+              0.9885631821713937
+            ],
+            "inertia_kg_m2": [
+              [
+                0.06635681803379442,
+                0.00010795777929439897,
+                3.4110044187160926e-05
+              ],
+              [
+                0.00010795777929439897,
+                0.11193134964792485,
+                2.0018709324864616e-05
+              ],
+              [
+                3.4110044187160926e-05,
+                2.0018709324864616e-05,
+                0.17732510992759187
+              ]
+            ],
+            "inertia_principal_moments_kg_m2": [
+              0.06635655184716079,
+              0.11193159920104347,
+              0.17732512656110688
+            ],
+            "linear_drag": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "mass_kg": 2.778893774645941,
+            "torque_effectiveness": [
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "physical_coordinate": [
+            0.16695800266429411,
+            0.2736689795667705,
+            0.010395153999258762,
+            0.0012625808187017144,
+            -0.0012846377333549706,
+            -0.0003657878956815577,
+            -0.0010439949624323648,
+            -0.004318089787902927,
+            0.0014576598462748213,
+            -0.013675374022360878,
+            0.003759419081585038,
+            0.004577936038333432,
+            0.013282198356308372
+          ],
+          "physical_parameter_names": [
+            "log_mass_scale",
+            "log_second_moment_cholesky_xx_scale",
+            "log_second_moment_cholesky_yy_scale",
+            "log_second_moment_cholesky_zz_scale",
+            "normalized_second_moment_cholesky_yx_offset",
+            "normalized_second_moment_cholesky_zx_offset",
+            "normalized_second_moment_cholesky_zy_offset",
+            "cog_offset_x_m",
+            "cog_offset_y_m",
+            "cog_offset_z_m",
+            "force_effectiveness_contrast_1",
+            "force_effectiveness_contrast_2",
+            "force_effectiveness_contrast_3"
+          ],
+          "prior_cost": 0.024571728327606294
+        },
+        "screening_cost": 0.11682942578237532
+      }
+    ],
+    "screening_costs": [
+      0.11682797624916769,
+      0.11682942578237532,
+      0.11684152026892805,
+      0.11683726976167871,
+      0.11675457225918134,
+      0.11743581684995505,
+      0.11743581684995505,
+      0.11743017922632161,
+      0.11738648793201942
+    ],
+    "selected": {
+      "data_loss": 0.09230682356829002,
+      "delay_seconds": 0.047642568686,
+      "objective_cost": 0.11675454705417745,
+      "optimizer": {
+        "cost": 0.11675454705417745,
+        "message": "`ftol` termination condition is satisfied.",
+        "nfev": 2,
+        "njev": 2,
+        "optimality": 2.7490350547526576e-05,
+        "status": 2,
+        "success": true
+      },
+      "parameters": {
+        "angular_drag": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "cog_offset_m": [
+          -0.004276539835294016,
+          0.0014475876764636396,
+          -0.01354005303247942
+        ],
+        "force_effectiveness": [
+          1.008259485160981,
+          1.0032151561652611,
+          1.0003065838188157,
+          0.9883265716822588
+        ],
+        "inertia_kg_m2": [
+          [
+            0.06633521267206678,
+            8.872587599360663e-05,
+            3.2996512664967675e-05
+          ],
+          [
+            8.872587599360663e-05,
+            0.11176515048974224,
+            2.0838157866631483e-05
+          ],
+          [
+            3.2996512664967675e-05,
+            2.0838157866631483e-05,
+            0.17713731005105257
+          ]
+        ],
+        "inertia_principal_moments_kg_m2": [
+          0.06633502958675395,
+          0.11176531708952671,
+          0.17713732653658093
+        ],
+        "linear_drag": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "mass_kg": 2.7788566449667367,
+        "torque_effectiveness": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "physical_coordinate": [
+        0.16694464125854488,
+        0.27292281022717496,
+        0.010231414514916853,
+        0.0012603246432948305,
+        -0.0010585807910238648,
+        -0.0003220631008349779,
+        -0.001086613498246531,
+        -0.004276539835294016,
+        0.0014475876764636396,
+        -0.01354005303247942,
+        0.003546539084764566,
+        0.004418261904183508,
+        0.013558606547470502
+      ],
+      "physical_parameter_names": [
+        "log_mass_scale",
+        "log_second_moment_cholesky_xx_scale",
+        "log_second_moment_cholesky_yy_scale",
+        "log_second_moment_cholesky_zz_scale",
+        "normalized_second_moment_cholesky_yx_offset",
+        "normalized_second_moment_cholesky_zx_offset",
+        "normalized_second_moment_cholesky_zy_offset",
+        "cog_offset_x_m",
+        "cog_offset_y_m",
+        "cog_offset_z_m",
+        "force_effectiveness_contrast_1",
+        "force_effectiveness_contrast_2",
+        "force_effectiveness_contrast_3"
+      ],
+      "prior_cost": 0.02444772348588746
+    },
+    "smooth_stages": [
+      {
+        "data_loss": 0.09216384842887661,
+        "delay_seconds": 0.04710562101672883,
+        "objective_cost": 0.1166943481178945,
+        "optimizer": {
+          "cost": 0.1166943481178945,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 18,
+          "njev": 17,
+          "optimality": 0.0001051074309450506,
+          "status": 2,
+          "success": true
+        },
+        "physical_coordinate": [
+          0.16693698633200493,
+          0.2734479179694686,
+          0.010231610871021505,
+          0.0012619147872419073,
+          -0.0011213215886494096,
+          -0.00032785270186046743,
+          -0.001052349461907303,
+          -0.00427358436727362,
+          0.0014578151532277871,
+          -0.013627812420064396,
+          0.0036617660045839954,
+          0.004300436928001212,
+          0.013643291489278987
+        ],
+        "prior_cost": 0.02453049968901789,
+        "stage_index": 0,
+        "width_fraction": 0.5
+      },
+      {
+        "data_loss": 0.09220106131985832,
+        "delay_seconds": 0.04742573999306589,
+        "objective_cost": 0.116717771370289,
+        "optimizer": {
+          "cost": 0.116717771370289,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 4,
+          "njev": 4,
+          "optimality": 7.51209842879963e-05,
+          "status": 2,
+          "success": true
+        },
+        "physical_coordinate": [
+          0.16694030738194118,
+          0.2733404778589018,
+          0.010237136802932173,
+          0.0012617057460694988,
+          -0.0011215675647456061,
+          -0.0003278977726845527,
+          -0.0010569685095001132,
+          -0.004276380154773894,
+          0.0014550236192564638,
+          -0.013622359068619505,
+          0.003648534752045489,
+          0.004320722088956344,
+          0.01364952832921327
+        ],
+        "prior_cost": 0.024516710050430653,
+        "stage_index": 1,
+        "width_fraction": 0.2
+      },
+      {
+        "data_loss": 0.09226966629270093,
+        "delay_seconds": 0.04764256868620405,
+        "objective_cost": 0.11673167845193448,
+        "optimizer": {
+          "cost": 0.11673167845193448,
+          "message": "`ftol` termination condition is satisfied.",
+          "nfev": 8,
+          "njev": 8,
+          "optimality": 2.9081562571531272e-05,
+          "status": 2,
+          "success": true
+        },
+        "physical_coordinate": [
+          0.1669416716812009,
+          0.272995459238757,
+          0.010218761073147023,
+          0.0012604700787890641,
+          -0.0010161189135256636,
+          -0.00032175374399238206,
+          -0.0010738163365042034,
+          -0.004270248096671508,
+          0.0014483215332577507,
+          -0.013566169773614726,
+          0.003562287838894349,
+          0.004352103193297238,
+          0.013661326313679051
+        ],
+        "prior_cost": 0.024462012159233548,
+        "stage_index": 2,
+        "width_fraction": 0.05
+      }
+    ]
+  },
+  "observation_count": 110,
+  "selected_knot_spacing_seconds": 0.2
+}

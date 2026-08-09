@@ -34,7 +34,7 @@ import deterministic_spline_dynamics_estimator as base
 import savgol_trajectory as sg
 
 
-SCHEMA = "grape-param-estim/minimal-deterministic-savgol-dynamics/v1"
+SCHEMA = "grape-param-estim/minimal-deterministic-savgol-dynamics/v2"
 OUTPUT_SUBDIRECTORY = "deterministic_savgol_dynamics"
 DATA_DICTIONARY_SOURCE = Path(__file__).resolve().with_name(
     "deterministic_savgol_dynamics_data_dictionary.md"
@@ -128,13 +128,12 @@ def _validate_arguments(
         arguments.integration_step,
         arguments.smooth_max_nfev,
         arguments.strict_max_nfev,
-        arguments.ftol,
-        arguments.xtol,
         arguments.gtol,
         arguments.zoh_polish_radius,
         arguments.zoh_polish_step,
         arguments.zoh_polish_top_k,
     )
+    optional_tolerances = (arguments.ftol, arguments.xtol)
     ratio = arguments.sample_step / arguments.integration_step
     bounds = np.asarray(arguments.delay_bounds, dtype=float)
     widths = np.asarray(arguments.smoothstep_width_fractions, dtype=float)
@@ -142,6 +141,11 @@ def _validate_arguments(
         any(
             not np.isfinite(value) or value <= 0.0
             for value in positive
+        )
+        or any(
+            value is not None
+            and (not np.isfinite(value) or value <= 0.0)
+            for value in optional_tolerances
         )
         or not np.isclose(
             ratio,
@@ -269,6 +273,398 @@ def _build_bag_data(
     return bag
 
 
+
+def _reference_wrench_scaling(reference_parameters: Any) -> dict[str, Any]:
+    mass = float(reference_parameters.mass)
+    inertia = np.asarray(reference_parameters.inertia, dtype=float)
+    length = math.sqrt(float(np.trace(inertia)) / (3.0 * mass))
+    force = mass * float(base.GRAVITY)
+    torque = force * length
+    if not (
+        np.isfinite(mass)
+        and mass > 0.0
+        and np.isfinite(length)
+        and length > 0.0
+        and np.isfinite(force)
+        and force > 0.0
+        and np.isfinite(torque)
+        and torque > 0.0
+    ):
+        raise ValueError("reference wrench scaling is invalid")
+    raw_to_dimensionless = np.asarray(
+        (1.0 / force,) * 3 + (1.0 / torque,) * 3,
+        dtype=float,
+    )
+    return {
+        "mass_kg": mass,
+        "length_m": length,
+        "force_N": force,
+        "torque_Nm": torque,
+        "raw_to_dimensionless": raw_to_dimensionless,
+    }
+
+
+class SplineDynamicsProblem(base.SplineDynamicsProblem):
+    """SG dynamics problem using uncentered residual-wrench second moment."""
+
+    def __init__(
+        self,
+        bags: Sequence[base.BagSplineData],
+        reference_parameters: Any,
+        parameter_prior: Any,
+    ) -> None:
+        super().__init__(bags, reference_parameters, parameter_prior)
+        self.wrench_scaling = _reference_wrench_scaling(reference_parameters)
+        self.wrench_raw_to_dimensionless = np.asarray(
+            self.wrench_scaling["raw_to_dimensionless"], dtype=float
+        )
+
+    def _evaluate_joint(
+        self,
+        *,
+        physical_coordinate: np.ndarray,
+        delay: float,
+        dimension: int,
+        smooth_mode: bool,
+        width_fraction: float,
+    ) -> base.JointDynamicsEvaluation:
+        decoded, parameter_jacobian = self._decode(
+            physical_coordinate, delay, dimension
+        )
+        residual_blocks = []
+        jacobian_blocks = []
+        bag_evaluations = []
+        data_loss = 0.0
+        scale = self.wrench_raw_to_dimensionless
+        for bag in self.bags:
+            evaluation = self._evaluate_bag(
+                bag,
+                decoded,
+                parameter_jacobian,
+                dimension,
+                smooth_mode,
+                width_fraction,
+            )
+            bag_evaluations.append(evaluation)
+            dimensionless_wrench = (
+                evaluation.residual_body_wrench * scale[None, :]
+            )
+            dimensionless_jacobian = (
+                evaluation.residual_wrench_jacobian
+                * scale[None, :, None]
+            )
+            # Samples accumulate in the data term; the Gaussian physical prior
+            # is added once.  No mean is subtracted, so systematic residuals
+            # remain visible to the physical-parameter optimizer.
+            root_scale = math.sqrt(bag.normalized_weight)
+            residual_blocks.append(
+                root_scale * dimensionless_wrench.ravel()
+            )
+            jacobian_blocks.append(
+                root_scale
+                * dimensionless_jacobian.reshape(-1, dimension)
+            )
+            data_loss += (
+                0.5
+                * bag.normalized_weight
+                * float(
+                    np.sum(
+                        dimensionless_wrench * dimensionless_wrench
+                    )
+                )
+            )
+
+        prior_value = physical_parameter_vector(decoded.parameters)
+        prior_jacobian = physical_parameter_jacobian(parameter_jacobian)
+        prior_residual = (
+            prior_value - self.parameter_prior.mean
+        ) / self.parameter_prior.std
+        prior_jacobian = (
+            prior_jacobian / self.parameter_prior.std[:, None]
+        )
+        residual_blocks.append(prior_residual)
+        jacobian_blocks.append(prior_jacobian)
+        residual = np.concatenate(residual_blocks)
+        jacobian = np.vstack(jacobian_blocks)
+        prior_cost = 0.5 * float(prior_residual @ prior_residual)
+        if np.any(~np.isfinite(residual)) or np.any(~np.isfinite(jacobian)):
+            raise FloatingPointError("joint SG residual-wrench objective is non-finite")
+        return base.JointDynamicsEvaluation(
+            residual=residual,
+            jacobian=jacobian,
+            bag_evaluations=tuple(bag_evaluations),
+            decoded=decoded,
+            physical_coordinate=physical_coordinate.copy(),
+            delay_seconds=delay,
+            data_loss=float(data_loss),
+            prior_cost=prior_cost,
+        )
+
+
+def _jacobian_spectrum(jacobian: np.ndarray) -> dict[str, Any]:
+    value = np.asarray(jacobian, dtype=float)
+    singular = np.linalg.svd(value, compute_uv=False)
+    if singular.size == 0:
+        return {
+            "singular_values": singular,
+            "numerical_rank": 0,
+            "numerical_tolerance": 0.0,
+            "condition_number_nonzero_subspace": None,
+        }
+    tolerance = (
+        max(value.shape)
+        * np.finfo(float).eps
+        * float(singular[0])
+    )
+    positive = singular > tolerance
+    rank = int(np.count_nonzero(positive))
+    condition = (
+        None
+        if rank == 0
+        else float(singular[0] / singular[rank - 1])
+    )
+    return {
+        "singular_values": singular,
+        "numerical_rank": rank,
+        "numerical_tolerance": tolerance,
+        "condition_number_nonzero_subspace": condition,
+    }
+
+
+def _objective_point_diagnostics(evaluation: Any) -> dict[str, Any]:
+    residual = np.asarray(evaluation.residual, dtype=float)
+    jacobian = np.asarray(evaluation.jacobian, dtype=float)
+    gradient = jacobian.T @ residual
+    result = {
+        "cost": 0.5 * float(residual @ residual),
+        "residual_l2_norm": float(np.linalg.norm(residual)),
+        "gradient_l2_norm": float(np.linalg.norm(gradient)),
+        "gradient_inf_norm": float(np.linalg.norm(gradient, ord=np.inf)),
+        "jacobian": _jacobian_spectrum(jacobian),
+    }
+    return result
+
+
+def _directional_jacobian_checks(
+    evaluator: Any,
+    coordinate: np.ndarray,
+    evaluation: Any,
+    lower: np.ndarray,
+    upper: np.ndarray,
+) -> list[dict[str, Any]]:
+    x = np.asarray(coordinate, dtype=float)
+    residual = np.asarray(evaluation.residual, dtype=float)
+    jacobian = np.asarray(evaluation.jacobian, dtype=float)
+    gradient = jacobian.T @ residual
+    names = list(PHYSICAL_PARAMETER_NAMES)
+    if x.size == GLOBAL_DIMENSION:
+        names.append("command_delay_seconds")
+
+    gradient_norm = float(np.linalg.norm(gradient))
+    if gradient_norm > 0.0:
+        label = "negative_gradient"
+        direction = -gradient / gradient_norm
+    else:
+        label = "coordinate:{}".format(names[0])
+        direction = np.eye(x.size)[0]
+
+    checks = []
+    base_step = np.cbrt(np.finfo(float).eps) * max(1.0, float(np.linalg.norm(x)))
+    for label, direction in ((label, direction),):
+        step = float(base_step)
+        plus_limit = math.inf
+        minus_limit = math.inf
+        positive = direction > 0.0
+        negative = direction < 0.0
+        if np.any(positive):
+            plus_limit = min(
+                plus_limit,
+                float(np.min((upper[positive] - x[positive]) / direction[positive])),
+            )
+            minus_limit = min(
+                minus_limit,
+                float(np.min((x[positive] - lower[positive]) / direction[positive])),
+            )
+        if np.any(negative):
+            plus_limit = min(
+                plus_limit,
+                float(np.min((x[negative] - lower[negative]) / (-direction[negative]))),
+            )
+            minus_limit = min(
+                minus_limit,
+                float(np.min((upper[negative] - x[negative]) / (-direction[negative]))),
+            )
+        analytic = jacobian @ direction
+        if plus_limit > step and minus_limit > step:
+            plus = evaluator(x + step * direction).residual
+            minus = evaluator(x - step * direction).residual
+            finite_difference = (plus - minus) / (2.0 * step)
+            scheme = "central"
+        elif plus_limit > 0.0:
+            step = min(step, 0.5 * plus_limit)
+            plus = evaluator(x + step * direction).residual
+            finite_difference = (plus - residual) / step
+            scheme = "forward"
+        elif minus_limit > 0.0:
+            step = min(step, 0.5 * minus_limit)
+            minus = evaluator(x - step * direction).residual
+            finite_difference = (residual - minus) / step
+            scheme = "backward"
+        else:
+            checks.append(
+                {
+                    "direction": label,
+                    "scheme": "unavailable_at_bounds",
+                }
+            )
+            continue
+        difference = np.asarray(finite_difference, dtype=float) - analytic
+        denominator = max(
+            float(np.linalg.norm(finite_difference)),
+            float(np.linalg.norm(analytic)),
+            math.sqrt(np.finfo(float).eps),
+        )
+        checks.append(
+            {
+                "direction": label,
+                "scheme": scheme,
+                "step": step,
+                "analytic_l2_norm": float(np.linalg.norm(analytic)),
+                "finite_difference_l2_norm": float(np.linalg.norm(finite_difference)),
+                "difference_l2_norm": float(np.linalg.norm(difference)),
+                "relative_error": float(np.linalg.norm(difference) / denominator),
+            }
+        )
+    return checks
+
+
+def _optimizer_diagnostics(
+    evaluator: Any,
+    initial: np.ndarray,
+    result: Any,
+    final_evaluation: Any,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    arguments: argparse.Namespace,
+) -> dict[str, Any]:
+    initial_evaluation = evaluator(np.asarray(initial, dtype=float))
+    initial_point = _objective_point_diagnostics(initial_evaluation)
+    final_point = _objective_point_diagnostics(final_evaluation)
+    checks = _directional_jacobian_checks(
+        evaluator,
+        np.asarray(result.x, dtype=float),
+        final_evaluation,
+        np.asarray(lower, dtype=float),
+        np.asarray(upper, dtype=float),
+    )
+    finite_errors = [
+        float(item["relative_error"])
+        for item in checks
+        if item.get("relative_error") is not None
+    ]
+    return {
+        "tolerances": {
+            "ftol": arguments.ftol,
+            "xtol": arguments.xtol,
+            "gtol": arguments.gtol,
+        },
+        "initial": initial_point,
+        "final": final_point,
+        "coordinate_step_l2_norm": float(
+            np.linalg.norm(np.asarray(result.x, dtype=float) - np.asarray(initial, dtype=float))
+        ),
+        "cost_reduction": float(initial_point["cost"] - final_point["cost"]),
+        "gradient_tolerance_satisfied": bool(
+            float(result.optimality) <= float(arguments.gtol)
+        ),
+        "finite_difference_directional_checks": checks,
+        "finite_difference_max_relative_error": (
+            None if not finite_errors else max(finite_errors)
+        ),
+    }
+
+
+def _solve_smooth(
+    problem: SplineDynamicsProblem,
+    initial: np.ndarray,
+    width_fraction: float,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    arguments: argparse.Namespace,
+) -> tuple[np.ndarray, Any, Mapping[str, Any]]:
+    evaluator = lambda value: problem.evaluate_smooth(value, width_fraction)
+    objective = base._CachedObjective(evaluator)
+    result = base.least_squares(
+        objective.residual,
+        initial,
+        jac=objective.jacobian,
+        bounds=(lower, upper),
+        method="trf",
+        x_scale="jac",
+        loss="linear",
+        ftol=arguments.ftol,
+        xtol=arguments.xtol,
+        gtol=arguments.gtol,
+        max_nfev=arguments.smooth_max_nfev,
+        verbose=0,
+    )
+    final_evaluation = problem.evaluate_smooth(result.x, width_fraction)
+    payload = base._optimizer_payload(result)
+    payload["diagnostics"] = _optimizer_diagnostics(
+        evaluator,
+        np.asarray(initial, dtype=float),
+        result,
+        final_evaluation,
+        np.asarray(lower, dtype=float),
+        np.asarray(upper, dtype=float),
+        arguments,
+    )
+    return result.x, final_evaluation, payload
+
+
+def _solve_strict(
+    problem: SplineDynamicsProblem,
+    initial: np.ndarray,
+    delay: float,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    arguments: argparse.Namespace,
+) -> base.DynamicsSolution:
+    evaluator = lambda value: problem.evaluate_strict(value, delay)
+    objective = base._CachedObjective(evaluator)
+    result = base.least_squares(
+        objective.residual,
+        initial,
+        jac=objective.jacobian,
+        bounds=(lower, upper),
+        method="trf",
+        x_scale="jac",
+        loss="linear",
+        ftol=arguments.ftol,
+        xtol=arguments.xtol,
+        gtol=arguments.gtol,
+        max_nfev=arguments.strict_max_nfev,
+        verbose=0,
+    )
+    final_evaluation = problem.evaluate_strict(result.x, delay)
+    payload = base._optimizer_payload(result)
+    payload["diagnostics"] = _optimizer_diagnostics(
+        evaluator,
+        np.asarray(initial, dtype=float),
+        result,
+        final_evaluation,
+        np.asarray(lower, dtype=float),
+        np.asarray(upper, dtype=float),
+        arguments,
+    )
+    return base.DynamicsSolution(
+        physical_coordinate=np.asarray(result.x, dtype=float).copy(),
+        delay_seconds=float(delay),
+        evaluation=final_evaluation,
+        optimizer=payload,
+    )
+
+
 def _timestamp_interval_statistics(time_axis: Sequence[float]) -> dict[str, Any]:
     value = np.asarray(time_axis, dtype=float)
     differences = np.diff(value)
@@ -314,6 +710,14 @@ def _parameter_lines(
             "Deterministic pose-spline dynamics estimator",
             "Deterministic geometric Savitzky-Golay dynamics estimator",
         )
+        .replace(
+            "joint dynamics loss:",
+            "joint residual-wrench accumulated squared loss:",
+        )
+        .replace(
+            "bag dynamics loss:",
+            "legacy acceleration-residual loss diagnostic:",
+        )
         for line in lines
     ]
     lines.extend(["", "Recorded command timestamp intervals (data-derived)"])
@@ -340,6 +744,63 @@ def _parameter_lines(
                         statistics["maximum_seconds"],
                     )
                 )
+
+    scaling = _reference_wrench_scaling(reference_parameters)
+    lines.extend(
+        [
+            "",
+            "Parameter data objective",
+            "  sample-summed uncentered squared dimensionless residual body wrench",
+            "  force scale F* = {:.12g} N".format(scaling["force_N"]),
+            "  torque scale tau* = {:.12g} N m".format(scaling["torque_Nm"]),
+            "  residual mean is NOT subtracted before optimization",
+        ]
+    )
+    optimizer = selected.optimizer
+    diagnostics = optimizer.get("diagnostics") if isinstance(optimizer, Mapping) else None
+    lines.extend(
+        [
+            "",
+            "Selected optimizer diagnostics",
+            "  status={} success={} nfev={} njev={}".format(
+                optimizer.get("status"),
+                optimizer.get("success"),
+                optimizer.get("nfev"),
+                optimizer.get("njev"),
+            ),
+            "  message={}".format(optimizer.get("message")),
+            "  reported optimality={}".format(optimizer.get("optimality")),
+        ]
+    )
+    if isinstance(diagnostics, Mapping):
+        initial_point = diagnostics.get("initial", {})
+        final_point = diagnostics.get("final", {})
+        final_jacobian = final_point.get("jacobian", {})
+        lines.extend(
+            [
+                "  initial cost={}".format(initial_point.get("cost")),
+                "  final cost={}".format(final_point.get("cost")),
+                "  cost reduction={}".format(diagnostics.get("cost_reduction")),
+                "  coordinate step L2={}".format(
+                    diagnostics.get("coordinate_step_l2_norm")
+                ),
+                "  final gradient inf-norm={}".format(
+                    final_point.get("gradient_inf_norm")
+                ),
+                "  gradient tolerance satisfied={}".format(
+                    diagnostics.get("gradient_tolerance_satisfied")
+                ),
+                "  final Jacobian rank={}".format(
+                    final_jacobian.get("numerical_rank")
+                ),
+                "  final Jacobian cond(nonzero)={}".format(
+                    final_jacobian.get("condition_number_nonzero_subspace")
+                ),
+                "  max directional finite-difference Jacobian relative error={}".format(
+                    diagnostics.get("finite_difference_max_relative_error")
+                ),
+            ]
+        )
     return lines
 
 
@@ -715,6 +1176,12 @@ def _rewrite_npz(
         "definition": "required_body_wrench - modeled_body_wrench at raw centered SG evaluation times",
         "sample_count": int(raw_wrench.shape[0]),
         "mean": np.mean(raw_wrench, axis=0),
+        "covariance": (
+            np.cov(raw_wrench, rowvar=False, ddof=1)
+            if raw_wrench.shape[0] > 1
+            else np.full((6, 6), np.nan)
+        ),
+        "second_moment": (raw_wrench.T @ raw_wrench) / raw_wrench.shape[0],
         "std": np.std(raw_wrench, axis=0, ddof=1) if raw_wrench.shape[0] > 1 else np.full(6, np.nan),
         "rms": np.sqrt(np.mean(raw_wrench * raw_wrench, axis=0)),
         "time_interval_seconds": (float(raw_wrench_time[0]), float(raw_wrench_time[-1])),
@@ -742,6 +1209,11 @@ def _rewrite_diagnostics(
     trajectory = bag.spline_selection.spline
     candidate = bag.spline_selection.candidates[0]
     diagnostics.pop("collocation_count", None)
+    legacy_acceleration_loss = diagnostics.pop("dynamics_loss", None)
+    if legacy_acceleration_loss is not None:
+        diagnostics["legacy_acceleration_residual_loss_diagnostic"] = (
+            legacy_acceleration_loss
+        )
     diagnostics["evaluation_count"] = int(
         bag.collocation_time.size
     )
@@ -831,7 +1303,11 @@ def _rewrite_diagnostics(
     return diagnostics
 
 
-def _rewrite_json_outputs(output_directory: Path, initial_delay: float) -> None:
+def _rewrite_json_outputs(
+    output_directory: Path,
+    initial_delay: float,
+    arguments: argparse.Namespace,
+) -> None:
     root_path = output_directory / "result.json"
     if not root_path.is_file():
         raise RuntimeError("base estimator did not produce result.json")
@@ -855,6 +1331,10 @@ def _rewrite_json_outputs(output_directory: Path, initial_delay: float) -> None:
         "raw_pose_resampled_before_local_polynomial_fit": False,
         "polynomial_degree": sg.POLYNOMIAL_DEGREE,
         "window_seconds": _window(),
+        "parameter_data_objective": (
+            "weighted empirical uncentered second moment of reference-scaled "
+            "residual body wrench; no residual mean subtraction"
+        ),
         "command_mode_during_search": "quintic smoothstep ZOH",
         "command_mode_final": "strict ZOH",
     }
@@ -880,6 +1360,15 @@ def _rewrite_json_outputs(output_directory: Path, initial_delay: float) -> None:
         "smoothstep_width_fractions": old_settings.get(
             "smoothstep_width_fractions"
         ),
+        "optimizer_tolerances": {
+            "ftol": arguments.ftol,
+            "xtol": arguments.xtol,
+            "gtol": arguments.gtol,
+            "note": (
+                "ftol and xtol are disabled by default in the SG estimator; "
+                "gtol or max_nfev terminates the solve unless explicitly overridden"
+            ),
+        },
         "pose_resampling_used_in_parameter_loss": False,
         "collocation_grid_used_in_parameter_loss": False,
     }
@@ -908,7 +1397,92 @@ def _rewrite_json_outputs(output_directory: Path, initial_delay: float) -> None:
                             else float(selected_lag / float(median))
                         )
 
+    selection = root.get("selection")
+    if isinstance(selection, dict):
+        selection["joint_residual_wrench_accumulated_squared_loss_dimensionless"] = (
+            selection.get("joint_dynamics_loss")
+        )
+        selection["parameter_data_objective"] = (
+            "0.5 * weighted sample sum of squared reference-scaled residual body wrench"
+        )
+
+    optimizer_diagnostics = {
+        "schema": SCHEMA + "/optimizer-diagnostics",
+        "objective": root["method"]["parameter_data_objective"],
+        "optimizer_tolerances": root["settings"]["optimizer_tolerances"],
+        "smoothstep_stages": root.get("smoothstep_stages", []),
+        "strict_zoh_polish": root.get("strict_zoh_polish", []),
+        "selected_optimizer": (
+            selection.get("optimizer") if isinstance(selection, dict) else None
+        ),
+    }
+    optimizer_json = output_directory / "optimizer_diagnostics.json"
+    optimizer_json.write_text(
+        json.dumps(
+            _json_sanitize(optimizer_diagnostics),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        ) + "\n",
+        encoding="utf-8",
+    )
+    optimizer_lines = [
+        "Savitzky-Golay optimizer diagnostics",
+        "",
+        "Objective: {}".format(optimizer_diagnostics["objective"]),
+        "Tolerances: {}".format(optimizer_diagnostics["optimizer_tolerances"]),
+    ]
+    selected_optimizer = optimizer_diagnostics.get("selected_optimizer")
+    if isinstance(selected_optimizer, Mapping):
+        optimizer_lines.extend(
+            [
+                "",
+                "Selected strict-ZOH solve",
+                "status={} success={} nfev={} njev={}".format(
+                    selected_optimizer.get("status"),
+                    selected_optimizer.get("success"),
+                    selected_optimizer.get("nfev"),
+                    selected_optimizer.get("njev"),
+                ),
+                "message={}".format(selected_optimizer.get("message")),
+                "reported optimality={}".format(selected_optimizer.get("optimality")),
+            ]
+        )
+        diagnostics = selected_optimizer.get("diagnostics")
+        if isinstance(diagnostics, Mapping):
+            optimizer_lines.extend(
+                [
+                    "initial={}".format(diagnostics.get("initial")),
+                    "final={}".format(diagnostics.get("final")),
+                    "coordinate_step_l2_norm={}".format(
+                        diagnostics.get("coordinate_step_l2_norm")
+                    ),
+                    "cost_reduction={}".format(diagnostics.get("cost_reduction")),
+                    "gradient_tolerance_satisfied={}".format(
+                        diagnostics.get("gradient_tolerance_satisfied")
+                    ),
+                    "finite_difference_max_relative_error={}".format(
+                        diagnostics.get("finite_difference_max_relative_error")
+                    ),
+                    "finite_difference_directional_checks={}".format(
+                        diagnostics.get("finite_difference_directional_checks")
+                    ),
+                ]
+            )
+    optimizer_lines.extend(["", "All smoothstep and strict-ZOH stage details are in optimizer_diagnostics.json."])
+    base.strict._write_text(
+        output_directory / "optimizer_diagnostics.txt",
+        optimizer_lines,
+    )
+    base._write_parameters_pdf(
+        output_directory / "optimizer_diagnostics.pdf",
+        optimizer_lines,
+    )
+
     outputs = root.setdefault("outputs", {})
+    outputs["optimizer_diagnostics_json"] = "optimizer_diagnostics.json"
+    outputs["optimizer_diagnostics_txt"] = "optimizer_diagnostics.txt"
+    outputs["optimizer_diagnostics_pdf"] = "optimizer_diagnostics.pdf"
     bag_outputs = outputs.get("bags", {})
     for bag_id, entry in bag_outputs.items():
         if isinstance(entry, dict):
@@ -1012,8 +1586,18 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--integration-step", type=float, default=0.025)
     parser.add_argument("--smooth-max-nfev", type=int, default=60)
     parser.add_argument("--strict-max-nfev", type=int, default=80)
-    parser.add_argument("--ftol", type=float, default=1.0e-6)
-    parser.add_argument("--xtol", type=float, default=1.0e-6)
+    parser.add_argument(
+        "--ftol",
+        type=float,
+        default=None,
+        help="Function-change stopping tolerance. Disabled by default.",
+    )
+    parser.add_argument(
+        "--xtol",
+        type=float,
+        default=None,
+        help="Step-size stopping tolerance. Disabled by default.",
+    )
     parser.add_argument("--gtol", type=float, default=1.0e-6)
     parser.add_argument(
         "--delay-bounds",
@@ -1079,6 +1663,9 @@ def run(arguments: argparse.Namespace) -> int:
     base.load_spline_config = load_spline_config
     base._build_bag_data = _build_bag_data
     base._validate_arguments = _validate_arguments
+    base.SplineDynamicsProblem = SplineDynamicsProblem
+    base._solve_smooth = _solve_smooth
+    base._solve_strict = _solve_strict
     base.candidate_payload = sg.candidate_payload
     base._parameter_lines = _parameter_lines
 
@@ -1107,7 +1694,11 @@ def run(arguments: argparse.Namespace) -> int:
         )
         _rewrite_npz(bag_directory, bag)
 
-    _rewrite_json_outputs(output_directory, float(arguments.initial_delay))
+    _rewrite_json_outputs(
+        output_directory,
+        float(arguments.initial_delay),
+        arguments,
+    )
     print(
         "Savitzky-Golay reports written to {}".format(output_directory),
         flush=True,

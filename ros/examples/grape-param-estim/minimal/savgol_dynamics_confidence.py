@@ -25,7 +25,7 @@ import spline_dynamics_confidence as legacy
 from grape_param_estim.system import GRAVITY
 
 
-SCHEMA = "grape-param-estim/savgol-dynamics-confidence/v2"
+SCHEMA = "grape-param-estim/savgol-dynamics-confidence/v3"
 OUTPUT_SUBDIRECTORY = "savgol_dynamics_confidence"
 
 # The mature confidence helper functions refer to their module-global
@@ -86,6 +86,311 @@ def _translation_covariance_summary(bag: Any) -> dict[str, Any]:
             "freedom."
         ),
     }
+
+
+
+def _residual_parameter_diagnostics(
+    *,
+    wrench_raw: np.ndarray,
+    wrench_dimensionless: np.ndarray,
+    jacobian_dimensionless: np.ndarray,
+    wrench_covariance_dimensionless: np.ndarray,
+    wrench_scale: np.ndarray,
+    raw_per_dimensionless: np.ndarray,
+    selected: Any,
+    reference_parameters: Any,
+) -> dict[str, Any]:
+    wrench = np.asarray(wrench_dimensionless, dtype=float)
+    jacobian = np.asarray(jacobian_dimensionless, dtype=float)
+    count = wrench.shape[0]
+    matrix = jacobian.reshape(-1, deterministic.PHYSICAL_DIMENSION)
+    vector = wrench.reshape(-1)
+    u, singular, vt = np.linalg.svd(matrix, full_matrices=False)
+    tolerance = (
+        max(matrix.shape)
+        * np.finfo(float).eps
+        * (float(singular[0]) if singular.size else 0.0)
+    )
+    positive = singular > tolerance
+    rank = int(np.count_nonzero(positive))
+    if rank:
+        pseudoinverse = (
+            vt[positive].T
+            @ np.diag(1.0 / singular[positive])
+            @ u[:, positive].T
+        )
+    else:
+        pseudoinverse = np.zeros(
+            (deterministic.PHYSICAL_DIMENSION, vector.size), dtype=float
+        )
+
+    best_fit_delta_dimensionless = -(pseudoinverse @ vector)
+    parameter_change = matrix @ best_fit_delta_dimensionless
+    remaining = vector + parameter_change
+    absorbed = vector - remaining
+    total_energy = float(vector @ vector)
+    remaining_energy = float(remaining @ remaining)
+    absorbed_fraction = (
+        0.0 if total_energy <= 0.0 else 1.0 - remaining_energy / total_energy
+    )
+    remaining_series = remaining.reshape(count, 6)
+    absorbed_series = absorbed.reshape(count, 6)
+
+    mean_dimensionless = np.mean(wrench, axis=0)
+    repeated_mean = np.tile(mean_dimensionless, count)
+    mean_induced_bias_dimensionless = -(pseudoinverse @ repeated_mean)
+
+    covariance = np.asarray(wrench_covariance_dimensionless, dtype=float)
+    blocks = pseudoinverse.reshape(
+        deterministic.PHYSICAL_DIMENSION, count, 6
+    ).transpose(1, 0, 2)
+    parameter_covariance_dimensionless = np.einsum(
+        "nai,ij,nbj->ab",
+        blocks,
+        covariance,
+        blocks,
+    )
+    parameter_covariance_dimensionless = 0.5 * (
+        parameter_covariance_dimensionless
+        + parameter_covariance_dimensionless.T
+    )
+    parameter_second_moment_dimensionless = (
+        parameter_covariance_dimensionless
+        + np.outer(
+            mean_induced_bias_dimensionless,
+            mean_induced_bias_dimensionless,
+        )
+    )
+
+    raw_scale = np.asarray(raw_per_dimensionless, dtype=float)
+    best_fit_delta_raw = best_fit_delta_dimensionless * raw_scale
+    mean_induced_bias_raw = mean_induced_bias_dimensionless * raw_scale
+    parameter_covariance_raw = (
+        raw_scale[:, None]
+        * parameter_covariance_dimensionless
+        * raw_scale[None, :]
+    )
+    parameter_second_moment_raw = (
+        raw_scale[:, None]
+        * parameter_second_moment_dimensionless
+        * raw_scale[None, :]
+    )
+
+    parameterization = deterministic.SplinePhysicalParameterization(
+        reference_parameters
+    )
+    _decoded, parameter_jacobian = parameterization.decode_with_jacobian(
+        selected.physical_coordinate,
+        selected.delay_seconds,
+    )
+    physical_jacobian = deterministic.physical_parameter_jacobian(
+        parameter_jacobian
+    )
+    physical_best_fit_correction = physical_jacobian @ best_fit_delta_raw
+    physical_mean_induced_bias = physical_jacobian @ mean_induced_bias_raw
+    physical_covariance = (
+        physical_jacobian
+        @ parameter_covariance_raw
+        @ physical_jacobian.T
+    )
+    physical_covariance = 0.5 * (physical_covariance + physical_covariance.T)
+    physical_second_moment = (
+        physical_jacobian
+        @ parameter_second_moment_raw
+        @ physical_jacobian.T
+    )
+    physical_second_moment = 0.5 * (
+        physical_second_moment + physical_second_moment.T
+    )
+
+    wrench_scale_value = np.asarray(wrench_scale, dtype=float)
+    remaining_raw = remaining_series / wrench_scale_value[None, :]
+    absorbed_raw = absorbed_series / wrench_scale_value[None, :]
+    second_moment_raw = (
+        np.asarray(wrench_raw, dtype=float).T
+        @ np.asarray(wrench_raw, dtype=float)
+        / count
+    )
+    second_moment_dimensionless = wrench.T @ wrench / count
+    remaining_second_moment_dimensionless = (
+        remaining_series.T @ remaining_series / count
+    )
+
+    per_component_fraction = []
+    for component in range(6):
+        denominator = float(np.sum(wrench[:, component] ** 2))
+        numerator = float(np.sum(remaining_series[:, component] ** 2))
+        per_component_fraction.append(
+            None if denominator <= 0.0 else 1.0 - numerator / denominator
+        )
+
+    return {
+        "linearized_model": (
+            "w_bar(theta + delta) ~= w_bar(theta) + J_bar delta_bar"
+        ),
+        "metric": (
+            "same reference force/torque scaling as deterministic SG second-moment objective"
+        ),
+        "sample_count": int(count),
+        "objective_jacobian_singular_values": singular,
+        "objective_jacobian_numerical_rank": rank,
+        "objective_jacobian_numerical_tolerance": tolerance,
+        "absorbability": {
+            "total_second_moment_energy": total_energy / count,
+            "remaining_second_moment_energy_after_best_local_parameter_correction": (
+                remaining_energy / count
+            ),
+            "absorbable_fraction": absorbed_fraction,
+            "irreducible_fraction": 1.0 - absorbed_fraction,
+            "per_wrench_component_absorbable_fraction": per_component_fraction,
+            "best_fit_parameter_correction_dimensionless": (
+                best_fit_delta_dimensionless
+            ),
+            "best_fit_parameter_correction_raw_coordinate": best_fit_delta_raw,
+            "best_fit_physical_parameter_correction": (
+                physical_best_fit_correction
+            ),
+            "absorbed_wrench_dimensionless": absorbed_series,
+            "remaining_wrench_dimensionless": remaining_series,
+            "absorbed_wrench_raw": absorbed_raw,
+            "remaining_wrench_raw": remaining_raw,
+            "remaining_wrench_raw_mean": np.mean(remaining_raw, axis=0),
+            "remaining_wrench_raw_rms": np.sqrt(
+                np.mean(remaining_raw * remaining_raw, axis=0)
+            ),
+        },
+        "residual_wrench_second_moment": {
+            "raw": second_moment_raw,
+            "dimensionless": second_moment_dimensionless,
+            "remaining_dimensionless_after_best_local_parameter_correction": (
+                remaining_second_moment_dimensionless
+            ),
+        },
+        "residual_implied_parameter_error": {
+            "assumption": (
+                "current iid residual-wrench model with empirical nonzero mean and covariance"
+            ),
+            "mean_induced_bias_dimensionless": mean_induced_bias_dimensionless,
+            "covariance_dimensionless": parameter_covariance_dimensionless,
+            "second_moment_dimensionless": parameter_second_moment_dimensionless,
+            "std_dimensionless": np.sqrt(
+                np.maximum(0.0, np.diag(parameter_covariance_dimensionless))
+            ),
+            "mean_induced_bias_raw_coordinate": mean_induced_bias_raw,
+            "covariance_raw_coordinate": parameter_covariance_raw,
+            "second_moment_raw_coordinate": parameter_second_moment_raw,
+            "std_raw_coordinate": np.sqrt(
+                np.maximum(0.0, np.diag(parameter_covariance_raw))
+            ),
+            "physical_vector_order": deterministic.PHYSICAL_VALUE_NAMES,
+            "physical_mean_induced_bias": physical_mean_induced_bias,
+            "physical_covariance": physical_covariance,
+            "physical_second_moment": physical_second_moment,
+            "physical_std": np.sqrt(
+                np.maximum(0.0, np.diag(physical_covariance))
+            ),
+        },
+    }
+
+
+def _matrix_lines(name: str, matrix: np.ndarray) -> list[str]:
+    value = np.asarray(matrix, dtype=float)
+    lines = [name]
+    for row in value:
+        lines.append(
+            "  [" + ", ".join("{: .8g}".format(float(item)) for item in row) + "]"
+        )
+    return lines
+
+
+def _residual_parameter_diagnostic_lines(
+    diagnostics: Mapping[str, Any],
+) -> list[str]:
+    absorb = diagnostics["absorbability"]
+    error = diagnostics["residual_implied_parameter_error"]
+    lines = [
+        "Residual-wrench / parameter diagnostic",
+        "",
+        "Linearized model: {}".format(diagnostics["linearized_model"]),
+        "Metric: {}".format(diagnostics["metric"]),
+        "Sample count: {}".format(diagnostics["sample_count"]),
+        "Objective Jacobian rank: {}".format(
+            diagnostics["objective_jacobian_numerical_rank"]
+        ),
+        "Absorbable residual second-moment fraction: {:.12g}".format(
+            absorb["absorbable_fraction"]
+        ),
+        "Irreducible residual second-moment fraction: {:.12g}".format(
+            absorb["irreducible_fraction"]
+        ),
+        "Per-component absorbable fractions: {}".format(
+            absorb["per_wrench_component_absorbable_fraction"]
+        ),
+        "Remaining raw wrench mean [Fx,Fy,Fz,Mx,My,Mz]: {}".format(
+            np.asarray(absorb["remaining_wrench_raw_mean"])
+        ),
+        "Remaining raw wrench RMS [Fx,Fy,Fz,Mx,My,Mz]: {}".format(
+            np.asarray(absorb["remaining_wrench_raw_rms"])
+        ),
+        "",
+        "Best local correction for the realized residual",
+    ]
+    for name, value in zip(
+        deterministic.PHYSICAL_PARAMETER_NAMES,
+        absorb["best_fit_parameter_correction_raw_coordinate"],
+    ):
+        lines.append("  {:52s} {:+.10g}".format(name, float(value)))
+    lines.extend(["", "Mean-induced parameter bias under current iid residual model"])
+    for name, value, std in zip(
+        deterministic.PHYSICAL_PARAMETER_NAMES,
+        error["mean_induced_bias_raw_coordinate"],
+        error["std_raw_coordinate"],
+    ):
+        lines.append(
+            "  {:52s} bias={:+.10g}  std={:.10g}".format(
+                name, float(value), float(std)
+            )
+        )
+    lines.extend(["", "Physical parameter bias/std"])
+    for name, value, std in zip(
+        deterministic.PHYSICAL_VALUE_NAMES,
+        error["physical_mean_induced_bias"],
+        error["physical_std"],
+    ):
+        lines.append(
+            "  {:36s} bias={:+.10g}  std={:.10g}".format(
+                name, float(value), float(std)
+            )
+        )
+    lines.extend([""])
+    lines.extend(
+        _matrix_lines(
+            "Parameter covariance in raw 14-D coordinate",
+            error["covariance_raw_coordinate"],
+        )
+    )
+    lines.extend([""])
+    lines.extend(
+        _matrix_lines(
+            "Parameter second moment in raw 14-D coordinate",
+            error["second_moment_raw_coordinate"],
+        )
+    )
+    lines.extend([""])
+    lines.extend(
+        _matrix_lines(
+            "Physical parameter covariance",
+            error["physical_covariance"],
+        )
+    )
+    lines.extend([""])
+    lines.extend(
+        _matrix_lines(
+            "Physical parameter second moment",
+            error["physical_second_moment"],
+        )
+    )
+    return lines
 
 
 def create_argument_parser() -> argparse.ArgumentParser:
@@ -363,6 +668,16 @@ def run(arguments: argparse.Namespace) -> int:
         whitened_residual * whitened_residual,
         axis=1,
     )
+    residual_parameter_diagnostics = _residual_parameter_diagnostics(
+        wrench_raw=wrench_raw,
+        wrench_dimensionless=wrench_dimensionless,
+        jacobian_dimensionless=jacobian_dimensionless,
+        wrench_covariance_dimensionless=wrench_covariance_dimensionless,
+        wrench_scale=wrench_scale,
+        raw_per_dimensionless=raw_per_dimensionless,
+        selected=selected,
+        reference_parameters=vehicle_model.parameters,
+    )
 
     output_directory = (
         arguments.output_dir.expanduser().resolve()
@@ -431,7 +746,25 @@ def run(arguments: argparse.Namespace) -> int:
         "external_wrench_model": {
             "mean_dimensionless": wrench_mean_dimensionless,
             "covariance_dimensionless": wrench_covariance_dimensionless,
+            "second_moment_dimensionless": (
+                residual_parameter_diagnostics["residual_wrench_second_moment"][
+                    "dimensionless"
+                ]
+            ),
             "iid_scope": "all valid centered SG evaluation times",
+        },
+        "residual_parameter_absorbability": {
+            "absorbable_fraction": residual_parameter_diagnostics["absorbability"][
+                "absorbable_fraction"
+            ],
+            "irreducible_fraction": residual_parameter_diagnostics["absorbability"][
+                "irreducible_fraction"
+            ],
+            "best_fit_parameter_correction_raw_coordinate": (
+                residual_parameter_diagnostics["absorbability"][
+                    "best_fit_parameter_correction_raw_coordinate"
+                ]
+            ),
         },
     }
     posterior_payload = {
@@ -460,6 +793,9 @@ def run(arguments: argparse.Namespace) -> int:
         "savgol_observation_model": likelihood_payload[
             "savgol_observation_model"
         ],
+        "residual_implied_parameter_error": (
+            residual_parameter_diagnostics["residual_implied_parameter_error"]
+        ),
     }
     _write_json(
         output_directory / "parameter_likelihood.json",
@@ -537,6 +873,7 @@ def run(arguments: argparse.Namespace) -> int:
             "sample_count": int(wrench_raw.shape[0]),
             "sample_time_seconds": confidence_time,
         },
+        "residual_parameter_diagnostics": residual_parameter_diagnostics,
         "data_information": {
             "matrix_dimensionless": data_information,
             "svd": svd,
@@ -546,6 +883,21 @@ def run(arguments: argparse.Namespace) -> int:
         "prior_and_local_posterior": posterior,
         "trajectory_reconstruction_check": reconstruction,
         "elapsed_seconds": float(time.perf_counter() - started),
+    }
+    diagnostic_lines = _residual_parameter_diagnostic_lines(
+        residual_parameter_diagnostics
+    )
+    deterministic.strict._write_text(
+        output_directory / "residual_parameter_diagnostics.txt",
+        diagnostic_lines,
+    )
+    deterministic._write_parameters_pdf(
+        output_directory / "residual_parameter_diagnostics.pdf",
+        diagnostic_lines,
+    )
+    payload["outputs"] = {
+        "residual_parameter_diagnostics_txt": "residual_parameter_diagnostics.txt",
+        "residual_parameter_diagnostics_pdf": "residual_parameter_diagnostics.pdf",
     }
     _write_json(output_directory / "confidence.json", payload)
     legacy._write_pdf(
@@ -581,6 +933,12 @@ def run(arguments: argparse.Namespace) -> int:
     print(
         "data-only ridge check: weakest relative information {:.3e}".format(
             svd["weakest_relative_information_strength"]
+        ),
+        flush=True,
+    )
+    print(
+        "residual absorbability: {:.3%} locally absorbable by the 14-D parameter chart".format(
+            residual_parameter_diagnostics["absorbability"]["absorbable_fraction"]
         ),
         flush=True,
     )

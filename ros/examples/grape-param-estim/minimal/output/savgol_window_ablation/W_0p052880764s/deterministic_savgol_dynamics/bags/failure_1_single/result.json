@@ -9,7 +9,7 @@
         "minimum_seconds": 4.5299530029296875e-06,
         "positive_interval_count": 3523,
         "sample_count": 3524,
-        "selected_lag_over_median_interval": 0.8002107037492626
+        "selected_lag_over_median_interval": 6.5684010012323855
       },
       "note": "Publish/update intervals are measured directly from rosbag timestamps; no command period is hard-coded into the SG front end.",
       "rotor": {
@@ -20,40 +20,39 @@
         "minimum_seconds": 2.002716064453125e-05,
         "positive_interval_count": 3522,
         "sample_count": 3523,
-        "selected_lag_over_median_interval": 0.8003634011452647
+        "selected_lag_over_median_interval": 6.569654393275365
       },
-      "selected_lag_seconds": 0.004000000385
+      "selected_lag_seconds": 0.032833360527
     },
-    "dynamics_loss": 927.0269624542667,
     "estimated_forward_metrics": {
-      "orientation_angle_rmse_deg": 142.58323236750283,
-      "orientation_angle_rmse_rad": 2.488546862949074,
+      "orientation_angle_rmse_deg": 152.14693360048105,
+      "orientation_angle_rmse_rad": 2.655464938141585,
       "position_component_rmse_m": [
-        45.5467076627732,
-        7.012908081349409,
-        55.59989503891786
+        19.31423575950905,
+        20.231933399832492,
+        106.58330661655252
       ],
-      "position_rmse_m": 72.2151769852727,
-      "terminal_orientation_error_deg": 170.71898038610613,
-      "terminal_position_error_m": 167.14633177699602
+      "position_rmse_m": 110.19243205133102,
+      "terminal_orientation_error_deg": 179.59078176416182,
+      "terminal_position_error_m": 244.52999283945394
     },
-    "estimated_forward_pose_score_m2": 2607.6349248254473,
-    "estimated_improves_over_reference": true,
+    "estimated_forward_pose_score_m2": 6071.306721668273,
+    "estimated_improves_over_reference": false,
     "estimated_with_external_wrench_forward_metrics": {
-      "orientation_angle_rmse_deg": 151.46977662043744,
-      "orientation_angle_rmse_rad": 2.6436463192869626,
+      "orientation_angle_rmse_deg": 146.8930679326468,
+      "orientation_angle_rmse_rad": 2.563767683780387,
       "position_component_rmse_m": [
-        16.17355621522987,
-        2.49223961288214,
-        86.55802473074093
+        4.7887611809756265,
+        3.6872358266305367,
+        69.05736598413938
       ],
-      "position_rmse_m": 88.09135499141092,
-      "terminal_orientation_error_deg": 166.0731285705113,
-      "terminal_position_error_m": 197.67052082998055
+      "position_rmse_m": 69.32133681888266,
+      "terminal_orientation_error_deg": 167.4254942263265,
+      "terminal_position_error_m": 158.57198927918478
     },
-    "estimated_with_external_wrench_forward_pose_score_m2": 3880.1762048456126,
+    "estimated_with_external_wrench_forward_pose_score_m2": 2402.849498584068,
     "evaluation_count": 711,
-    "external_wrench_improves_estimated_free_rollout": false,
+    "external_wrench_improves_estimated_free_rollout": true,
     "id": "failure_1_single",
     "inferred_external_wrench": {
       "components": [
@@ -71,49 +70,150 @@
       "knot_count": 120,
       "optimizer": {
         "coefficient_dimension": 720,
-        "cost": 721862.1517569595,
-        "final_pose_cost": 721862.1517569595,
-        "initial_pose_cost": 947947.5127362276,
+        "cost": 471578.10745411937,
+        "final_pose_cost": 471578.10745411937,
+        "initial_pose_cost": 476707.10641325975,
         "knot_count": 120,
-        "message": "`ftol` termination condition is satisfied.",
-        "nfev": 22,
-        "njev": 10,
-        "optimality": 576347.0315734936,
-        "status": 2,
-        "success": true,
+        "message": "The maximum number of function evaluations is exceeded.",
+        "nfev": 80,
+        "njev": 23,
+        "optimality": 7406689.775995158,
+        "status": 0,
+        "success": false,
         "uses_regularization": false
       },
       "rollout_interpolation": "continuous piecewise-linear interpolation between wrench knots",
       "torque_unit": "N m",
       "uses_regularization": false
     },
+    "legacy_acceleration_residual_loss_diagnostic": 952.2266956455144,
     "normalized_weight": 1.0,
     "raw_inverse_dynamics_residual_wrench_statistics": {
+      "covariance": [
+        [
+          146.0601513557998,
+          28.2822047484709,
+          -1.2348713517447027,
+          -1.1378131475392708,
+          1.810297247226689,
+          -1.6554804907205147
+        ],
+        [
+          28.2822047484709,
+          152.33462039189502,
+          -1.184118822664545,
+          2.3475835185734146,
+          4.478365769405181,
+          -1.4002808283096075
+        ],
+        [
+          -1.2348713517447027,
+          -1.184118822664545,
+          83.044360757274,
+          1.1524122438418962,
+          0.4984109550087912,
+          -2.906137598162081
+        ],
+        [
+          -1.1378131475392708,
+          2.3475835185734146,
+          1.1524122438418962,
+          0.8585067996842968,
+          -0.08510461641792737,
+          -0.1295455991440655
+        ],
+        [
+          1.810297247226689,
+          4.478365769405181,
+          0.4984109550087912,
+          -0.08510461641792737,
+          0.6100118626825362,
+          -0.039225652575676305
+        ],
+        [
+          -1.6554804907205147,
+          -1.4002808283096075,
+          -2.906137598162081,
+          -0.1295455991440655,
+          -0.039225652575676305,
+          1.0833245657181332
+        ]
+      ],
       "definition": "required_body_wrench - modeled_body_wrench at raw centered SG evaluation times",
       "mean": [
-        0.4467007579140931,
-        0.8499398446036602,
-        -3.084109600900015,
-        0.08840905304572308,
-        0.038838663788606995,
-        -0.31508828605648737
+        0.3499281552009292,
+        0.6623611577578692,
+        -2.5453438316502237,
+        -0.1967432107060958,
+        0.1404730750316999,
+        -0.05803514806386543
       ],
       "rms": [
-        26.53130992279326,
-        25.04231911574688,
-        18.659514276397445,
-        7.250046075717007,
-        9.38297827935321,
-        13.825399531374634
+        12.082101302482432,
+        12.351481233361525,
+        9.455492403697194,
+        0.9465765826334167,
+        0.7930236971571185,
+        1.0417144430629754
       ],
       "sample_count": 711,
+      "second_moment": [
+        [
+          145.97717188344777,
+          28.474205500731546,
+          -2.1238220138913064,
+          -1.205058836524396,
+          1.8569066028914676,
+          -1.6734602397693563
+        ],
+        [
+          28.474205500731546,
+          152.5590886580819,
+          -2.868390282570842,
+          2.2139666525190647,
+          4.5651109919840644,
+          -1.436751603530054
+        ],
+        [
+          -2.1238220138913064,
+          -2.868390282570842,
+          89.4063365963754,
+          1.6515705286586628,
+          0.14015768002719312,
+          -2.7543307973659834
+        ],
+        [
+          -1.205058836524396,
+          2.2139666525190647,
+          1.6515705286586628,
+          0.8960072267899565,
+          -0.11262204314791745,
+          -0.11794537581232313
+        ],
+        [
+          1.8569066028914676,
+          4.5651109919840644,
+          0.14015768002719312,
+          -0.11262204314791745,
+          0.6288865842527446,
+          -0.0473228585899282
+        ],
+        [
+          -1.6734602397693563,
+          -1.436751603530054,
+          -2.7543307973659834,
+          -0.11794537581232313,
+          -0.0473228585899282,
+          1.0851689808860054
+        ]
+      ],
       "std": [
-        26.546223963401612,
-        25.0455104944143,
-        18.415828382185953,
-        7.254610503797493,
-        9.389503246752104,
-        13.83153879237859
+        12.085534798088158,
+        12.34239119424981,
+        9.112867866773552,
+        0.9265564201300944,
+        0.7810325618580427,
+        1.0408287878984386
       ],
       "time_interval_seconds": [
         19.039417266845703,
@@ -123,16 +223,16 @@
       "uses_replay_optimization": false
     },
     "reconstruction_metrics": {
-      "orientation_angle_rmse_deg": 151.46977662043744,
-      "orientation_angle_rmse_rad": 2.6436463192869626,
+      "orientation_angle_rmse_deg": 146.8930679326468,
+      "orientation_angle_rmse_rad": 2.563767683780387,
       "position_component_rmse_m": [
-        16.17355621522987,
-        2.49223961288214,
-        86.55802473074093
+        4.7887611809756265,
+        3.6872358266305367,
+        69.05736598413938
       ],
-      "position_rmse_m": 88.09135499141092,
-      "terminal_orientation_error_deg": 166.0731285705113,
-      "terminal_position_error_m": 197.67052082998055
+      "position_rmse_m": 69.32133681888266,
+      "terminal_orientation_error_deg": 167.4254942263265,
+      "terminal_position_error_m": 158.57198927918478
     },
     "reference_forward_metrics": {
       "orientation_angle_rmse_deg": 140.8883670606554,
@@ -158,37 +258,37 @@
         "M_z"
       ],
       "cumulative_impulse": [
-        1.0587952598971242,
-        -9.350085386556307,
-        -32.809951294988586,
-        -4.298760506228298,
-        2.3029975306214148,
-        4.976908765725261
+        6.250740988037768,
+        -3.600290641624006,
+        -17.64064863093536,
+        -1.8407177289480434,
+        0.9595991624676253,
+        0.1739467446675992
       ],
       "duration_seconds": 5.9164416790008545,
       "linear_trend_per_second": [
-        -1.5177883656992703,
-        0.9828611001209951,
-        -1.834139736012112,
-        -0.1354544429701885,
-        0.8010748940327098,
-        1.1778119346620457
+        0.3964644710012994,
+        0.41792697841055576,
+        -0.468118942934195,
+        -0.030115407986923134,
+        0.024501858933854426,
+        0.08123984804104355
       ],
       "mean": [
-        0.10083951182334885,
-        -1.5007813521054425,
-        -5.507175703931329,
-        -0.7022526201737972,
-        0.44094929167914854,
-        0.8442787887874862
+        1.0781178784322825,
+        -0.5787741521600549,
+        -2.9527900232697264,
+        -0.3095365967185778,
+        0.1653274291253389,
+        0.026592270451650225
       ],
       "rmse": [
-        17.644998737159728,
-        13.804448359770808,
-        12.992706516143755,
-        4.573090169782207,
-        6.473208176682032,
-        9.601725219017329
+        6.814098855878029,
+        6.93420764984256,
+        6.392500578187233,
+        0.6622205488603733,
+        0.5467085644641081,
+        0.6721335722475351
       ]
     },
     "savgol": {
@@ -244,47 +344,47 @@
       "gyro": [
         {
           "axis": "x",
-          "maximum_cross_correlation_time_shift_seconds": 0.5000000000000071,
-          "mean_bias": -3.3656614401097196,
-          "pearson_correlation": -0.06750978337447658,
-          "rmse": 56.148376989416924
+          "maximum_cross_correlation_time_shift_seconds": 0.30000000000000426,
+          "mean_bias": -8.10078674689303,
+          "pearson_correlation": 0.0858803351816108,
+          "rmse": 21.328973010478965
         },
         {
           "axis": "y",
-          "maximum_cross_correlation_time_shift_seconds": -1.200000000000017,
-          "mean_bias": 5.135541417279276,
-          "pearson_correlation": -0.03809799834679583,
-          "rmse": 58.08596462242136
+          "maximum_cross_correlation_time_shift_seconds": -4.700000000000067,
+          "mean_bias": -24.674238576696286,
+          "pearson_correlation": 0.08510830343723921,
+          "rmse": 37.449240154522336
         },
         {
           "axis": "z",
-          "maximum_cross_correlation_time_shift_seconds": 0.70000000000001,
-          "mean_bias": -6.194530131617108,
-          "pearson_correlation": 0.07136112175759221,
-          "rmse": 21.198648937753262
+          "maximum_cross_correlation_time_shift_seconds": -4.450000000000063,
+          "mean_bias": -16.75728245255101,
+          "pearson_correlation": -0.02625530291918945,
+          "rmse": 20.615691321875644
         }
       ],
       "specific_force": [
         {
           "axis": "x",
-          "maximum_cross_correlation_time_shift_seconds": -5.300000000000075,
-          "mean_bias": 60.288993430609736,
-          "pearson_correlation": -0.05077839241700014,
-          "rmse": 145.25566594824699
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -10.316677811405395,
+          "pearson_correlation": 0.1297276697436299,
+          "rmse": 24.2209207705207
         },
         {
           "axis": "y",
-          "maximum_cross_correlation_time_shift_seconds": -1.8000000000000256,
-          "mean_bias": 1.7070417493097088,
-          "pearson_correlation": -0.023953349820185467,
-          "rmse": 121.37103108464878
+          "maximum_cross_correlation_time_shift_seconds": -0.9500000000000135,
+          "mean_bias": -24.463615696013214,
+          "pearson_correlation": 0.2665202941307517,
+          "rmse": 29.767387301215813
         },
         {
           "axis": "z",
-          "maximum_cross_correlation_time_shift_seconds": 0.15000000000000213,
-          "mean_bias": -310.39130543501483,
-          "pearson_correlation": 0.5214878725446248,
-          "rmse": 396.42595431235134
+          "maximum_cross_correlation_time_shift_seconds": -0.15000000000000213,
+          "mean_bias": 12.171149863265908,
+          "pearson_correlation": 0.3709837098314927,
+          "rmse": 21.712273575908473
         }
       ]
     },
@@ -292,47 +392,47 @@
       "gyro": [
         {
           "axis": "x",
-          "maximum_cross_correlation_time_shift_seconds": 0.25000000000000355,
-          "mean_bias": -0.7797611515102939,
-          "pearson_correlation": 0.11008533794084785,
-          "rmse": 4.134722878809626
+          "maximum_cross_correlation_time_shift_seconds": -3.9000000000000554,
+          "mean_bias": -7.623551037253176,
+          "pearson_correlation": -0.4581992758599746,
+          "rmse": 13.231006200937927
         },
         {
           "axis": "y",
-          "maximum_cross_correlation_time_shift_seconds": -0.25000000000000355,
-          "mean_bias": 0.18962908862715697,
-          "pearson_correlation": 0.42675958419169185,
-          "rmse": 5.319736778860725
+          "maximum_cross_correlation_time_shift_seconds": -0.350000000000005,
+          "mean_bias": -25.618474169577688,
+          "pearson_correlation": 0.18007233035832915,
+          "rmse": 33.48915325668382
         },
         {
           "axis": "z",
-          "maximum_cross_correlation_time_shift_seconds": -0.4500000000000064,
-          "mean_bias": 2.6016585623225086,
-          "pearson_correlation": 0.01932514510747967,
-          "rmse": 2.621111054094187
+          "maximum_cross_correlation_time_shift_seconds": -0.20000000000000284,
+          "mean_bias": -12.482446267271424,
+          "pearson_correlation": 0.5496695613799462,
+          "rmse": 15.67994145381302
         }
       ],
       "specific_force": [
         {
           "axis": "x",
-          "maximum_cross_correlation_time_shift_seconds": -0.15000000000000213,
-          "mean_bias": 0.16371684225711505,
-          "pearson_correlation": 0.805401216953159,
-          "rmse": 2.9010633075627914
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": -5.736710332400482,
+          "pearson_correlation": 0.6979374637886685,
+          "rmse": 10.198018801551239
         },
         {
           "axis": "y",
-          "maximum_cross_correlation_time_shift_seconds": 0.15000000000000213,
-          "mean_bias": 0.01368896295305108,
-          "pearson_correlation": 0.5187549818292274,
-          "rmse": 1.4242335423342025
+          "maximum_cross_correlation_time_shift_seconds": 0.05000000000000071,
+          "mean_bias": -8.666608649372312,
+          "pearson_correlation": 0.44277863371469367,
+          "rmse": 11.172820147347654
         },
         {
           "axis": "z",
-          "maximum_cross_correlation_time_shift_seconds": 0.0,
-          "mean_bias": -0.619493131371735,
-          "pearson_correlation": 0.8132486293038136,
-          "rmse": 1.4952720451246913
+          "maximum_cross_correlation_time_shift_seconds": 3.600000000000051,
+          "mean_bias": 16.063052776608373,
+          "pearson_correlation": -0.4384546507583469,
+          "rmse": 23.798692078030633
         }
       ]
     },
@@ -340,47 +440,47 @@
       "gyro": [
         {
           "axis": "x",
-          "maximum_cross_correlation_time_shift_seconds": 0.5000000000000071,
-          "mean_bias": -3.3656614401097196,
-          "pearson_correlation": -0.06750978337447658,
-          "rmse": 56.148376989416924
+          "maximum_cross_correlation_time_shift_seconds": 0.30000000000000426,
+          "mean_bias": -8.10078674689303,
+          "pearson_correlation": 0.0858803351816108,
+          "rmse": 21.328973010478965
         },
         {
           "axis": "y",
-          "maximum_cross_correlation_time_shift_seconds": -1.200000000000017,
-          "mean_bias": 5.135541417279276,
-          "pearson_correlation": -0.03809799834679583,
-          "rmse": 58.08596462242136
+          "maximum_cross_correlation_time_shift_seconds": -4.700000000000067,
+          "mean_bias": -24.674238576696286,
+          "pearson_correlation": 0.08510830343723921,
+          "rmse": 37.449240154522336
         },
         {
           "axis": "z",
-          "maximum_cross_correlation_time_shift_seconds": 0.70000000000001,
-          "mean_bias": -6.194530131617108,
-          "pearson_correlation": 0.07136112175759221,
-          "rmse": 21.198648937753262
+          "maximum_cross_correlation_time_shift_seconds": -4.450000000000063,
+          "mean_bias": -16.75728245255101,
+          "pearson_correlation": -0.02625530291918945,
+          "rmse": 20.615691321875644
         }
       ],
       "specific_force": [
         {
           "axis": "x",
-          "maximum_cross_correlation_time_shift_seconds": -5.300000000000075,
-          "mean_bias": 60.288993430609736,
-          "pearson_correlation": -0.05077839241700014,
-          "rmse": 145.25566594824699
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -10.316677811405395,
+          "pearson_correlation": 0.1297276697436299,
+          "rmse": 24.2209207705207
         },
         {
           "axis": "y",
-          "maximum_cross_correlation_time_shift_seconds": -1.8000000000000256,
-          "mean_bias": 1.7070417493097088,
-          "pearson_correlation": -0.023953349820185467,
-          "rmse": 121.37103108464878
+          "maximum_cross_correlation_time_shift_seconds": -0.9500000000000135,
+          "mean_bias": -24.463615696013214,
+          "pearson_correlation": 0.2665202941307517,
+          "rmse": 29.767387301215813
         },
         {
           "axis": "z",
-          "maximum_cross_correlation_time_shift_seconds": 0.15000000000000213,
-          "mean_bias": -310.39130543501483,
-          "pearson_correlation": 0.5214878725446248,
-          "rmse": 396.42595431235134
+          "maximum_cross_correlation_time_shift_seconds": -0.15000000000000213,
+          "mean_bias": 12.171149863265908,
+          "pearson_correlation": 0.3709837098314927,
+          "rmse": 21.712273575908473
         }
       ]
     }
@@ -395,8 +495,8 @@
     "sensor_consistency_pdf": "sensor_consistency.pdf",
     "trajectory_pdf": "trajectory.pdf"
   },
-  "schema": "grape-param-estim/minimal-deterministic-savgol-dynamics/v1/bag-result",
-  "shared_delay_seconds": 0.004000000385,
+  "schema": "grape-param-estim/minimal-deterministic-savgol-dynamics/v2/bag-result",
+  "shared_delay_seconds": 0.032833360527,
   "shared_parameters": {
     "angular_drag": [
       0.0,
@@ -404,31 +504,31 @@
       0.0
     ],
     "cog_offset_m": [
-      -0.0020247085944759963,
-      -3.052663663008507e-05,
-      0.009509749675411275
+      -0.029883798182312935,
+      -0.03543048732242164,
+      0.05366855820926125
     ],
     "force_effectiveness": [
-      0.999999999946564,
-      0.999999999933015,
-      0.9999999999363602,
-      0.999999999935796
+      0.8692797991672913,
+      0.7147961592487276,
+      0.581552488681848,
+      0.6914601060931345
     ],
     "inertia_kg_m2": [
       [
-        0.06500006148419658,
-        -7.278992935270578e-07,
-        1.90150795064112e-05
+        0.008540177327068257,
+        -0.0013739774990628407,
+        -1.0494246873131766e-05
       ],
       [
-        -7.278992935270578e-07,
-        0.06495265634256539,
-        5.916651422739728e-08
+        -0.0013739774990628407,
+        0.005992069779597428,
+        -0.003116697777378643
       ],
       [
-        1.90150795064112e-05,
-        5.916651422739728e-08,
-        0.12899211066522132
+        -1.0494246873131766e-05,
+        -0.003116697777378643,
+        0.011625926915621948
       ]
     ],
     "linear_drag": [
@@ -436,7 +536,7 @@
       0.0,
       0.0
     ],
-    "mass_kg": 2.351597590843149,
+    "mass_kg": 1.686295756009235,
     "torque_effectiveness": [
       1.0,
       1.0,
@@ -445,20 +545,20 @@
     ]
   },
   "shared_physical_coordinate": [
-    1.3085775082008729e-11,
-    8.96569365829511e-12,
-    -2.811284156107859e-12,
-    1.2956995618235483e-09,
-    6.283792187068529e-13,
-    2.7810216574182524e-11,
-    4.1726079926029096e-11,
-    -3.2193996181947856e-11,
-    -5.768908506961666e-11,
-    7.596527509302452e-11,
-    -5.3436038650547953e-11,
-    -6.698507685638885e-11,
-    -6.363980660899223e-11,
-    -6.420398897018808e-11
+    -0.33256066011308183,
+    -1.326774833510751,
+    -1.1345934249315457,
+    -2306.1263900071995,
+    0.08029273224397018,
+    0.0030920148340577423,
+    0.5109223249994971,
+    -0.027859089620030936,
+    -0.03539996074348064,
+    0.044158808609815255,
+    -0.14009022721234482,
+    -0.3357578688943893,
+    -0.5420540468117863,
+    -0.3689498213808473
   ],
   "source": {
     "id": "failure_1_single",

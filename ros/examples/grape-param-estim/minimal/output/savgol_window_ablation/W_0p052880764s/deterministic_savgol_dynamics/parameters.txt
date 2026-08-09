@@ -1,15 +1,15 @@
 Deterministic geometric Savitzky-Golay dynamics estimator
 
 Shared parameter update: reference -> estimated
-  mass [kg]                         2.351597591 ->  2.351597591   delta=+3.07723e-11   ratio=1
-  CoG x [m]                        -0.002024708562 -> -0.002024708594   delta=-3.2194e-11   ratio=-
-  CoG y [m]                        -3.052657894e-05 -> -3.052663663e-05   delta=-5.76891e-11   ratio=-
-  CoG z [m]                         0.009509749599 ->  0.009509749675   delta=+7.59653e-11   ratio=-
-  rotor effectiveness 1             1 ->  0.9999999999   delta=-5.3436e-11   ratio=1
-  rotor effectiveness 2             1 ->  0.9999999999   delta=-6.6985e-11   ratio=1
-  rotor effectiveness 3             1 ->  0.9999999999   delta=-6.36398e-11   ratio=1
-  rotor effectiveness 4             1 ->  0.9999999999   delta=-6.4204e-11   ratio=1
-  command lag [s]                   0 ->  0.004000000385   delta=+0.004   ratio=-
+  mass [kg]                         2.351597591 ->  1.686295756   delta=-0.665302   ratio=0.71708517
+  CoG x [m]                        -0.002024708562 -> -0.02988379818   delta=-0.0278591   ratio=-
+  CoG y [m]                        -3.052657894e-05 -> -0.03543048732   delta=-0.0354   ratio=-
+  CoG z [m]                         0.009509749599 ->  0.05366855821   delta=+0.0441588   ratio=-
+  rotor effectiveness 1             1 ->  0.8692797992   delta=-0.13072   ratio=0.8692798
+  rotor effectiveness 2             1 ->  0.7147961592   delta=-0.285204   ratio=0.71479616
+  rotor effectiveness 3             1 ->  0.5815524887   delta=-0.418448   ratio=0.58155249
+  rotor effectiveness 4             1 ->  0.6914601061   delta=-0.30854   ratio=0.69146011
+  command lag [s]                   0 ->  0.03283336053   delta=+0.0328334   ratio=-
 
 Inertia matrix [kg m^2]
   reference:
@@ -17,31 +17,51 @@ Inertia matrix [kg m^2]
     [-7.27899253e-07,  0.06495265634,  5.9167305e-08]
     [ 1.901508003e-05,  5.9167305e-08,  0.1289921107]
   estimated:
-    [ 0.06500006148, -7.278992935e-07,  1.901507951e-05]
-    [-7.278992935e-07,  0.06495265634,  5.916651423e-08]
-    [ 1.901507951e-05,  5.916651423e-08,  0.1289921107]
+    [ 0.008540177327, -0.001373977499, -1.049424687e-05]
+    [-0.001373977499,  0.00599206978, -0.003116697777]
+    [-1.049424687e-05, -0.003116697777,  0.01162592692]
 
 Principal moments: reference -> estimated
-  principal moment 1 [kg m^2]       0.06495264516 ->  0.06495264517   delta=+2.39879e-12   ratio=1
-  principal moment 2 [kg m^2]       0.06500006701 ->  0.06500006701   delta=+8.83488e-13   ratio=1
-  principal moment 3 [kg m^2]       0.1289921163 ->  0.1289921163   delta=+7.93005e-13   ratio=1
+  principal moment 1 [kg m^2]       0.06495264516 ->  0.00423613421   delta=-0.0607165   ratio=0.06521881
+  principal moment 2 [kg m^2]       0.06500006701 ->  0.008842952801   delta=-0.0561571   ratio=0.13604529
+  principal moment 3 [kg m^2]       0.1289921163 ->  0.01307908701   delta=-0.115913   ratio=0.10139447
 
 Optimization
-  joint dynamics loss: 927.026962454
-  Gaussian-prior cost: 5.18026029722e-17
-  selected strict-ZOH lag [s]: 0.004000000385
+  joint residual-wrench accumulated squared loss: 306.855753546
+  Gaussian-prior cost: 535.867772688
+  selected strict-ZOH lag [s]: 0.032833360527
 
 Bag failure_1_single
-  reconstruction position RMSE [m]: 88.0913549914
-  reconstruction position component RMSE [m]: [16.173556  2.49224  86.558025]
-  reconstruction orientation RMSE [deg]: 151.46977662
-  gyro consistency RMSE xyz [rad/s]: [56.148377 58.085965 21.198649]
-  specific-force consistency RMSE xyz [m/s^2]: [145.255666 121.371031 396.425954]
-  inferred external force RMS xyz [N]: [17.644999 13.804448 12.992707]
-  inferred external torque RMS xyz [N m]: [4.57309  6.473208 9.601725]
-  bag dynamics loss: 927.026962454
+  reconstruction position RMSE [m]: 69.3213368189
+  reconstruction position component RMSE [m]: [ 4.788761  3.687236 69.057366]
+  reconstruction orientation RMSE [deg]: 146.893067933
+  gyro consistency RMSE xyz [rad/s]: [21.328973 37.44924  20.615691]
+  specific-force consistency RMSE xyz [m/s^2]: [24.220921 29.767387 21.712274]
+  inferred external force RMS xyz [N]: [6.814099 6.934208 6.392501]
+  inferred external torque RMS xyz [N m]: [0.662221 0.546709 0.672134]
+  legacy acceleration-residual loss diagnostic: 952.226695646
 
 Recorded command timestamp intervals (data-derived)
   Bag failure_1_single
     rotor: median dt=0.00499773026 s (200.091 Hz), min=2.00271606e-05 s, max=0.0138893127 s
     gimbal: median dt=0.00499868393 s (200.053 Hz), min=4.529953e-06 s, max=2.48282003 s
+
+Parameter data objective
+  sample-summed uncentered squared dimensionless residual body wrench
+  force scale F* = 23.0612945139 N
+  torque scale tau* = 4.41819797713 N m
+  residual mean is NOT subtracted before optimization
+
+Selected optimizer diagnostics
+  status=0 success=False nfev=80 njev=16
+  message=The maximum number of function evaluations is exceeded.
+  reported optimality=3.337655968493891e-06
+  initial cost=842.7235388823646
+  final cost=842.7235262339176
+  cost reduction=1.2648446954699466e-05
+  coordinate step L2=0.00047593948895730806
+  final gradient inf-norm=3.337655968493891e-06
+  gradient tolerance satisfied=False
+  final Jacobian rank=13
+  final Jacobian cond(nonzero)=93.3238309291668
+  max directional finite-difference Jacobian relative error=1.1675691017274014e-07

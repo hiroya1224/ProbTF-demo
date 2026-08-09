@@ -1,0 +1,492 @@
+{
+  "cases": [
+    {
+      "cog_position_body_m": [
+        -0.0020247085944759963,
+        -3.052663663008507e-05,
+        0.009509749675411275
+      ],
+      "confidence_disjoint_window_count": 102,
+      "confidence_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p052880764s/savgol_dynamics_confidence/failure_1_single/confidence.json",
+      "confidence_pdf": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p052880764s/savgol_dynamics_confidence/failure_1_single/confidence.pdf",
+      "confidence_status": "completed",
+      "data_information_numerical_rank": 14,
+      "elapsed_seconds": 111.71090742805973,
+      "force_effectiveness": [
+        0.999999999946564,
+        0.999999999933015,
+        0.9999999999363602,
+        0.999999999935796
+      ],
+      "gaussian_prior_cost": 5.1802602972191737e-17,
+      "gimbal_command_median_interval_seconds": 0.004998683929443359,
+      "inertia_kg_m2": [
+        [
+          0.06500006148419658,
+          -7.278992935270578e-07,
+          1.90150795064112e-05
+        ],
+        [
+          -7.278992935270578e-07,
+          0.06495265634256539,
+          5.916651422739728e-08
+        ],
+        [
+          1.90150795064112e-05,
+          5.916651422739728e-08,
+          0.12899211066522132
+        ]
+      ],
+      "inertia_principal_moments_kg_m2": [
+        0.06495264516648348,
+        0.06500006700994077,
+        0.12899211631555904
+      ],
+      "joint_dynamics_loss": 927.0269624542667,
+      "joint_objective_cost": 927.0269624542668,
+      "mass_kg": 2.351597590843149,
+      "parameter_likelihood_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p052880764s/savgol_dynamics_confidence/failure_1_single/parameter_likelihood.json",
+      "parameter_posterior_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p052880764s/savgol_dynamics_confidence/failure_1_single/parameter_posterior.json",
+      "posterior_physical_std": [
+        0.04459953006264287,
+        0.0030842672550853347,
+        0.0033813552629609034,
+        0.004358132189334923,
+        0.002382163251671723,
+        0.0027292501421771445,
+        0.0034768891744479617,
+        0.0033146152936294067,
+        0.0036964794949988595,
+        0.00409259760070715,
+        0.0820375560562242,
+        0.08385544697786804,
+        0.09247891291944192,
+        0.08518052211409302
+      ],
+      "preflight_disjoint_window_count": 102,
+      "result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p052880764s/deterministic_savgol_dynamics/result.json",
+      "rotor_command_median_interval_seconds": 0.004997730255126953,
+      "selected_delay_seconds": 0.004000000385,
+      "status": "completed",
+      "weakest_relative_information_strength": 5.028448096552424e-06,
+      "weighted_external_wrench_rms": [
+        17.644998737159728,
+        13.804448359770808,
+        12.992706516143755,
+        4.573090169782207,
+        6.473208176682032,
+        9.601725219017329
+      ],
+      "weighted_free_rollout_orientation_rmse_deg": 142.58323236750283,
+      "weighted_free_rollout_position_rmse_m": 72.2151769852727,
+      "weighted_raw_residual_wrench_rms": [
+        26.53130992279326,
+        25.04231911574688,
+        18.659514276397445,
+        7.250046075717007,
+        9.38297827935321,
+        13.825399531374634
+      ],
+      "weighted_replay_orientation_rmse_deg": 151.46977662043744,
+      "weighted_replay_position_rmse_m": 88.09135499141092,
+      "window_seconds": 0.0528807640068969
+    },
+    {
+      "cog_position_body_m": [
+        -0.002024708567761107,
+        -3.052655111691321e-05,
+        0.009509749616104768
+      ],
+      "confidence_disjoint_window_count": 11,
+      "confidence_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p5s/savgol_dynamics_confidence/failure_1_single/confidence.json",
+      "confidence_pdf": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p5s/savgol_dynamics_confidence/failure_1_single/confidence.pdf",
+      "confidence_status": "completed",
+      "data_information_numerical_rank": 14,
+      "elapsed_seconds": 277.4925933587365,
+      "force_effectiveness": [
+        0.9999999992717296,
+        0.9999999993907073,
+        0.999999998999646,
+        0.9999999989329177
+      ],
+      "gaussian_prior_cost": 2.0361299229952456e-16,
+      "gimbal_command_median_interval_seconds": 0.004998683929443359,
+      "inertia_kg_m2": [
+        [
+          0.06500006149169937,
+          -7.279002842399695e-07,
+          1.901508009861083e-05
+        ],
+        [
+          -7.279002842399695e-07,
+          0.06495265635584394,
+          5.916787921632697e-08
+        ],
+        [
+          1.901508009861083e-05,
+          5.916787921632697e-08,
+          0.12899211067251082
+        ]
+      ],
+      "inertia_principal_moments_kg_m2": [
+        0.0649526451797302,
+        0.065000067017475,
+        0.12899211632284885
+      ],
+      "joint_dynamics_loss": 2.8195154031598957,
+      "joint_objective_cost": 2.819515403159896,
+      "mass_kg": 2.351597591251113,
+      "parameter_likelihood_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p5s/savgol_dynamics_confidence/failure_1_single/parameter_likelihood.json",
+      "parameter_posterior_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p5s/savgol_dynamics_confidence/failure_1_single/parameter_posterior.json",
+      "posterior_physical_std": [
+        0.04628796400626292,
+        0.0047545973959813,
+        0.004901121455410495,
+        0.004863665465490586,
+        0.002612377094503017,
+        0.004712003830252513,
+        0.0036021353991731635,
+        0.006178388530530479,
+        0.00297458942356045,
+        0.007188656314359244,
+        0.02878776527040871,
+        0.03380610066202443,
+        0.03270673904049756,
+        0.029331569355537743
+      ],
+      "preflight_disjoint_window_count": 11,
+      "result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_0p5s/deterministic_savgol_dynamics/result.json",
+      "rotor_command_median_interval_seconds": 0.004997730255126953,
+      "selected_delay_seconds": 0.004000000392,
+      "status": "completed",
+      "weakest_relative_information_strength": 6.756169687965628e-09,
+      "weighted_external_wrench_rms": [
+        2.033544978260746,
+        0.6379897836286583,
+        4.088639312244488,
+        0.15458601395535526,
+        0.551072153329607,
+        0.21762804972465408
+      ],
+      "weighted_free_rollout_orientation_rmse_deg": 126.25938047660253,
+      "weighted_free_rollout_position_rmse_m": 59.062038659624704,
+      "weighted_raw_residual_wrench_rms": [
+        1.93532057592458,
+        0.5036449396271494,
+        4.069743381913853,
+        0.12567057635384374,
+        0.5214396338346916,
+        0.10645105000476171
+      ],
+      "weighted_replay_orientation_rmse_deg": 0.5288217193006646,
+      "weighted_replay_position_rmse_m": 0.0004972126401771191,
+      "window_seconds": 0.5
+    },
+    {
+      "cog_position_body_m": [
+        -0.002024708572239975,
+        -3.0526549224792584e-05,
+        0.009509749619271717
+      ],
+      "confidence_disjoint_window_count": 5,
+      "confidence_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1s/savgol_dynamics_confidence/failure_1_single/confidence.json",
+      "confidence_pdf": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1s/savgol_dynamics_confidence/failure_1_single/confidence.pdf",
+      "confidence_status": "completed",
+      "data_information_numerical_rank": 14,
+      "elapsed_seconds": 61.03010811470449,
+      "force_effectiveness": [
+        0.9999999992473033,
+        0.9999999994179084,
+        0.9999999989892135,
+        0.9999999988879784
+      ],
+      "gaussian_prior_cost": 2.133227876944936e-16,
+      "gimbal_command_median_interval_seconds": 0.004998683929443359,
+      "inertia_kg_m2": [
+        [
+          0.06500006149245155,
+          -7.279000048669654e-07,
+          1.9015080091627114e-05
+        ],
+        [
+          -7.279000048669654e-07,
+          0.06495265635730164,
+          5.916794325029458e-08
+        ],
+        [
+          1.9015080091627114e-05,
+          5.916794325029458e-08,
+          0.1289921106732529
+        ]
+      ],
+      "inertia_principal_moments_kg_m2": [
+        0.06495264518119633,
+        0.06500006701821877,
+        0.12899211632359092
+      ],
+      "joint_dynamics_loss": 2.7627931071455265,
+      "joint_objective_cost": 2.7627931071455265,
+      "mass_kg": 2.3515975912547753,
+      "parameter_likelihood_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1s/savgol_dynamics_confidence/failure_1_single/parameter_likelihood.json",
+      "parameter_posterior_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1s/savgol_dynamics_confidence/failure_1_single/parameter_posterior.json",
+      "posterior_physical_std": [
+        0.04690310270946406,
+        0.004968079415865022,
+        0.0049381251799447004,
+        0.004996550478848482,
+        0.0044487196467118805,
+        0.004962442763024341,
+        0.004766037252248341,
+        0.007220549960789293,
+        0.0070407033187174116,
+        0.008399739340273117,
+        0.07358073598640572,
+        0.042092563973395766,
+        0.043328721116081194,
+        0.04911190710774604
+      ],
+      "preflight_disjoint_window_count": 5,
+      "result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1s/deterministic_savgol_dynamics/result.json",
+      "rotor_command_median_interval_seconds": 0.004997730255126953,
+      "selected_delay_seconds": 0.004000000371,
+      "status": "completed",
+      "weakest_relative_information_strength": 3.2174502326103776e-10,
+      "weighted_external_wrench_rms": [
+        1.9821840819117418,
+        0.5462629071901678,
+        4.020006530408268,
+        0.12009460719147241,
+        0.5425335502267904,
+        0.11958181712137188
+      ],
+      "weighted_free_rollout_orientation_rmse_deg": 135.3722810965067,
+      "weighted_free_rollout_position_rmse_m": 66.61658784767216,
+      "weighted_raw_residual_wrench_rms": [
+        1.8475323297210233,
+        0.5037450929446172,
+        4.000189896981161,
+        0.11542378218973187,
+        0.532654219859551,
+        0.085697860772246
+      ],
+      "weighted_replay_orientation_rmse_deg": 0.5961670872911017,
+      "weighted_replay_position_rmse_m": 0.0006526429976639374,
+      "window_seconds": 1.0
+    },
+    {
+      "cog_position_body_m": [
+        -0.002024708584177949,
+        -3.052654895261333e-05,
+        0.009509749615491964
+      ],
+      "confidence_disjoint_window_count": 3,
+      "confidence_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1p5s/savgol_dynamics_confidence/failure_1_single/confidence.json",
+      "confidence_pdf": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1p5s/savgol_dynamics_confidence/failure_1_single/confidence.pdf",
+      "confidence_status": "completed",
+      "data_information_numerical_rank": 6,
+      "elapsed_seconds": 93.88694775523618,
+      "force_effectiveness": [
+        0.9999999991828504,
+        0.9999999994880916,
+        0.9999999990512951,
+        0.9999999988253649
+      ],
+      "gaussian_prior_cost": 2.1699351172518946e-16,
+      "gimbal_command_median_interval_seconds": 0.004998683929443359,
+      "inertia_kg_m2": [
+        [
+          0.06500006149251296,
+          -7.278992140679476e-07,
+          1.9015080077528267e-05
+        ],
+        [
+          -7.278992140679476e-07,
+          0.06495265635738863,
+          5.916802101030612e-08
+        ],
+        [
+          1.9015080077528267e-05,
+          5.916802101030612e-08,
+          0.12899211067330596
+        ]
+      ],
+      "inertia_principal_moments_kg_m2": [
+        0.06495264518130761,
+        0.06500006701825592,
+        0.12899211632364405
+      ],
+      "joint_dynamics_loss": 2.7343115025268205,
+      "joint_objective_cost": 2.73431150252682,
+      "mass_kg": 2.3515975912546496,
+      "parameter_likelihood_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1p5s/savgol_dynamics_confidence/failure_1_single/parameter_likelihood.json",
+      "parameter_posterior_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1p5s/savgol_dynamics_confidence/failure_1_single/parameter_posterior.json",
+      "posterior_physical_std": [
+        0.04921727842841664,
+        0.004999979782371705,
+        0.004992760238682202,
+        0.004999996292729405,
+        0.004997654020794533,
+        0.004999979289594366,
+        0.004999272809570461,
+        0.008665237198056891,
+        0.00975874509474614,
+        0.00960906483321166,
+        0.09771674083134019,
+        0.0909039457577088,
+        0.07868340402821256,
+        0.09235213471793012
+      ],
+      "preflight_disjoint_window_count": 3,
+      "result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_1p5s/deterministic_savgol_dynamics/result.json",
+      "rotor_command_median_interval_seconds": 0.004997730255126953,
+      "selected_delay_seconds": 0.004000000364,
+      "status": "completed",
+      "weakest_relative_information_strength": 3.220254129018958e-39,
+      "weighted_external_wrench_rms": [
+        1.8296242892906776,
+        0.5467272567388911,
+        3.981925923163604,
+        0.124850732018231,
+        0.5575209661938227,
+        0.10440649694618209
+      ],
+      "weighted_free_rollout_orientation_rmse_deg": 139.67667896009775,
+      "weighted_free_rollout_position_rmse_m": 82.71646921453464,
+      "weighted_raw_residual_wrench_rms": [
+        1.7155333383073799,
+        0.5184281185555367,
+        3.9832626156534476,
+        0.11718888670955653,
+        0.5396722158077081,
+        0.08180522898977177
+      ],
+      "weighted_replay_orientation_rmse_deg": 0.8451621705926077,
+      "weighted_replay_position_rmse_m": 0.0015656009070146753,
+      "window_seconds": 1.5
+    },
+    {
+      "cog_position_body_m": [
+        -0.0020247085924739536,
+        -3.052655096193276e-05,
+        0.009509749622639787
+      ],
+      "confidence_disjoint_window_count": 2,
+      "confidence_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_2s/savgol_dynamics_confidence/failure_1_single/confidence.json",
+      "confidence_pdf": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_2s/savgol_dynamics_confidence/failure_1_single/confidence.pdf",
+      "confidence_status": "completed",
+      "data_information_numerical_rank": 2,
+      "elapsed_seconds": 45.96240331698209,
+      "force_effectiveness": [
+        0.9999999992011656,
+        0.9999999995890346,
+        0.9999999991874409,
+        0.9999999988651995
+      ],
+      "gaussian_prior_cost": 1.8945524960510678e-16,
+      "gimbal_command_median_interval_seconds": 0.004998683929443359,
+      "inertia_kg_m2": [
+        [
+          0.06500006149161705,
+          -7.2789846631876e-07,
+          1.901508011336053e-05
+        ],
+        [
+          -7.2789846631876e-07,
+          0.06495265635562865,
+          5.916766820598124e-08
+        ],
+        [
+          1.901508011336053e-05,
+          5.916766820598124e-08,
+          0.1289921106724024
+        ]
+      ],
+      "inertia_principal_moments_kg_m2": [
+        0.06495264517957082,
+        0.06500006701733682,
+        0.12899211632274046
+      ],
+      "joint_dynamics_loss": 2.7087166078357763,
+      "joint_objective_cost": 2.7087166078357767,
+      "mass_kg": 2.3515975912191505,
+      "parameter_likelihood_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_2s/savgol_dynamics_confidence/failure_1_single/parameter_likelihood.json",
+      "parameter_posterior_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_2s/savgol_dynamics_confidence/failure_1_single/parameter_posterior.json",
+      "posterior_physical_std": [
+        0.04976348664671512,
+        0.004999999673278055,
+        0.004999741534846566,
+        0.004999999478394697,
+        0.0049999260149308535,
+        0.004999999253698095,
+        0.004999920966323779,
+        0.00991796262483278,
+        0.009965854456573806,
+        0.009999564200408968,
+        0.09967241424514427,
+        0.09940793027871137,
+        0.09575007894655682,
+        0.0995638751905197
+      ],
+      "preflight_disjoint_window_count": 2,
+      "result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output/savgol_window_ablation/W_2s/deterministic_savgol_dynamics/result.json",
+      "rotor_command_median_interval_seconds": 0.004997730255126953,
+      "selected_delay_seconds": 0.004000000253,
+      "status": "completed",
+      "weakest_relative_information_strength": 3.158700645665341e-40,
+      "weighted_external_wrench_rms": [
+        2.0390769014729297,
+        0.5758989758330507,
+        3.959760104490854,
+        0.12450178449434718,
+        0.5360865582753577,
+        0.10383261856572641
+      ],
+      "weighted_free_rollout_orientation_rmse_deg": 157.66249473403894,
+      "weighted_free_rollout_position_rmse_m": 77.08980036844122,
+      "weighted_raw_residual_wrench_rms": [
+        2.0059371398339683,
+        0.5461054893201712,
+        3.868757644978078,
+        0.12295993841398045,
+        0.5258462580070512,
+        0.07804440356099336
+      ],
+      "weighted_replay_orientation_rmse_deg": 1.636179086366054,
+      "weighted_replay_position_rmse_m": 0.004554057972547395,
+      "window_seconds": 2.0
+    }
+  ],
+  "config_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/single_rosbag_1.json",
+  "created_utc": "2026-08-09T17:52:45.680574+00:00",
+  "elapsed_seconds": 1136.186596909538,
+  "global_minimum_feasible_window_seconds": 0.0528807640068969,
+  "minimum_required_pose_samples_per_window": 6,
+  "notes": {
+    "confidence": "Unless --skip-confidence is given, each deterministic W result is reused to generate the SG confidence/ridge PDF and likelihood/posterior JSON without re-running the physical parameter optimizer.",
+    "independence": "Each completed W is a separate full estimator run with its own JSON/PDF/NPZ outputs.",
+    "minimum_window_covariance": "A degree-5 fit needs six samples. With exactly six samples the derivatives are defined but OLS residual covariance has zero residual degrees of freedom and is reported unavailable."
+  },
+  "parameter_prior_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_parameter_prior.json",
+  "per_bag_window_support": [
+    {
+      "id": "failure_1_single",
+      "minimum_feasible_window_seconds": 0.0528807640068969,
+      "raw_pose_interval_seconds": {
+        "maximum": 0.013398885726928711,
+        "median": 0.008289098739624023,
+        "minimum": 0.0025777816772460938
+      },
+      "raw_pose_sample_count": 720
+    }
+  ],
+  "polynomial_degree": 5,
+  "requested_windows_seconds": [
+    0.0528807640068969,
+    0.5,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "schema": "grape-param-estim/savgol-window-ablation/v1",
+  "vehicle_model_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json"
+}

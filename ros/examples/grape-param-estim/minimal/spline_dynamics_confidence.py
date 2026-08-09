@@ -398,7 +398,10 @@ def _svd_payload(
 
     directions = []
     for index in range(vt.shape[0] - 1, -1, -1):
-        vector = vt[index]
+        # Keep the signed right-singular vector exactly as returned by SVD.
+        # The complete vector has the standard global +/- ambiguity, while
+        # relative signs between components are meaningful.
+        vector = np.asarray(vt[index], dtype=float)
         order = np.argsort(
             np.abs(vector),
             kind="stable",
@@ -413,9 +416,9 @@ def _svd_payload(
                 ),
                 "dimensionless_direction": vector,
                 "interpretation": (
-                    "Large absolute coefficients identify parameters that can "
-                    "move together along this local weak/ridge direction. "
-                    "The coefficient sign gives the relative direction of motion."
+                    "Signed right-singular vector returned by SVD. The whole "
+                    "vector may be multiplied by -1 without changing the mode; "
+                    "relative signs between components are meaningful."
                 ),
                 "dominant_components": [
                     {
@@ -833,7 +836,15 @@ def _trajectory_reconstruction(
         flush=True,
     )
 
+    selected_parameter_payload = _parameter_payload(
+        selected.evaluation.decoded.parameters
+    )
+    selected_parameter_payload["delay_seconds"] = float(
+        selected.delay_seconds
+    )
+
     return {
+        "selected_physical_parameters": selected_parameter_payload,
         "meaning": {
             "nominal": (
                 "Nominal physical parameters and initial lag; no external wrench."
@@ -897,6 +908,348 @@ def _trajectory_reconstruction(
     }
 
 
+def _ridge_physical_effects(
+    *,
+    selected: Any,
+    raw_per_dimensionless: np.ndarray,
+    reference_scales: Mapping[str, float],
+    svd: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    """Map internal chart ridge vectors to physical dimensionless changes.
+
+    The SVD is performed in the dimensionless estimator chart.  A component
+    such as ``log_second_moment_cholesky_zz_scale`` is an internal coordinate,
+    not J_zz itself.  This function pushes each weak direction through the
+    physical parameter Jacobian so the report can display delta J directly.
+
+    The SVD has a global +/- ambiguity. _svd_payload removes that ambiguity
+    with a deterministic largest-component-positive convention. Signed values
+    are retained only to reconstruct the local tangent direction; the PDF
+    visualizes participation magnitudes with absolute values.
+    """
+
+    parameterization = deterministic.SplinePhysicalParameterization(
+        VehicleParameters.nominal()
+    )
+    decoded, jacobian = parameterization.decode_with_jacobian(
+        selected.physical_coordinate,
+        selected.delay_seconds,
+    )
+    raw_scale = np.asarray(raw_per_dimensionless, dtype=float)
+    mass_scale = float(reference_scales["mass_kg"])
+    length_scale = float(reference_scales["length_m"])
+    inertia_scale = mass_scale * length_scale**2
+
+    effects: list[dict[str, Any]] = []
+    for weak in list(svd["weak_directions"]):
+        direction_dimensionless = np.asarray(
+            weak["dimensionless_direction"],
+            dtype=float,
+        )
+        delta_raw_coordinate = raw_scale * direction_dimensionless
+
+        delta_mass = float(
+            np.asarray(jacobian.mass, dtype=float)
+            @ delta_raw_coordinate
+        )
+        delta_inertia = np.einsum(
+            "ijk,k->ij",
+            np.asarray(jacobian.inertia, dtype=float),
+            delta_raw_coordinate,
+        )
+        delta_cog = (
+            np.asarray(jacobian.cog_offset, dtype=float)
+            @ delta_raw_coordinate
+        )
+        delta_effectiveness = (
+            np.asarray(jacobian.force_effectiveness, dtype=float)
+            @ delta_raw_coordinate
+        )
+
+        effects.append(
+            {
+                "relative_information_strength": float(
+                    weak["relative_information_strength"]
+                ),
+                "internal_dimensionless_direction": direction_dimensionless,
+                "relative_mass_change": (
+                    delta_mass / float(decoded.parameters.mass)
+                ),
+                "dimensionless_inertia_change": (
+                    delta_inertia / inertia_scale
+                ),
+                "inertia_change_components": {
+                    "dJxx": float(delta_inertia[0, 0] / inertia_scale),
+                    "dJyy": float(delta_inertia[1, 1] / inertia_scale),
+                    "dJzz": float(delta_inertia[2, 2] / inertia_scale),
+                    "dJxy": float(delta_inertia[0, 1] / inertia_scale),
+                    "dJxz": float(delta_inertia[0, 2] / inertia_scale),
+                    "dJyz": float(delta_inertia[1, 2] / inertia_scale),
+                },
+                "dimensionless_cog_change": delta_cog / length_scale,
+                "relative_force_effectiveness_change": (
+                    delta_effectiveness
+                    / np.asarray(
+                        decoded.parameters.force_effectiveness,
+                        dtype=float,
+                    )
+                ),
+                "sign_note": (
+                    "Signed arrays use the deterministic "
+                    "largest-component-positive SVD convention. PDF bar plots "
+                    "use absolute values because they visualize participation "
+                    "magnitude rather than direction orientation."
+                ),
+            }
+        )
+    return effects
+
+
+
+def _physical_parameter_report(
+    *,
+    selected: Any,
+    raw_per_dimensionless: np.ndarray,
+    reference_scales: Mapping[str, float],
+    posterior: Mapping[str, Any],
+    svd: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Create a local 14-D report in named physical coordinates.
+
+    Report coordinates:
+      dm/m,
+      dJxx,dJyy,dJzz,dJxy,dJxz,dJyz divided by M*L*^2,
+      dCoG/L*,
+      de_i/e_i for the four rotor effectiveness values.
+
+    The optimizer and SVD still use their existing internal chart; this mapping
+    is only for human-readable reporting.
+    """
+
+    parameterization = deterministic.SplinePhysicalParameterization(
+        VehicleParameters.nominal()
+    )
+    decoded, jacobian = parameterization.decode_with_jacobian(
+        selected.physical_coordinate,
+        selected.delay_seconds,
+    )
+
+    raw_scale = np.asarray(raw_per_dimensionless, dtype=float)
+    mass = float(decoded.parameters.mass)
+    effectiveness = np.asarray(
+        decoded.parameters.force_effectiveness,
+        dtype=float,
+    )
+    mass_scale = float(reference_scales["mass_kg"])
+    length_scale = float(reference_scales["length_m"])
+    inertia_scale = mass_scale * length_scale**2
+
+    transform = np.zeros(
+        (
+            deterministic.PHYSICAL_DIMENSION,
+            deterministic.PHYSICAL_DIMENSION,
+        ),
+        dtype=float,
+    )
+    names = (
+        "mass",
+        "Jxx",
+        "Jyy",
+        "Jzz",
+        "Jxy",
+        "Jxz",
+        "Jyz",
+        "CoG x",
+        "CoG y",
+        "CoG z",
+        "rotor eff. 1",
+        "rotor eff. 2",
+        "rotor eff. 3",
+        "rotor eff. 4",
+    )
+
+    # q_raw = diag(raw_scale) q_bar.
+    transform[0] = (
+        np.asarray(jacobian.mass, dtype=float)
+        * raw_scale
+        / mass
+    )
+
+    inertia_jacobian = np.asarray(jacobian.inertia, dtype=float)
+    inertia_entries = (
+        (0, 0),
+        (1, 1),
+        (2, 2),
+        (0, 1),
+        (0, 2),
+        (1, 2),
+    )
+    for row, (i, j) in enumerate(inertia_entries, start=1):
+        transform[row] = (
+            inertia_jacobian[i, j]
+            * raw_scale
+            / inertia_scale
+        )
+
+    cog_jacobian = np.asarray(jacobian.cog_offset, dtype=float)
+    for axis in range(3):
+        transform[7 + axis] = (
+            cog_jacobian[axis]
+            * raw_scale
+            / length_scale
+        )
+
+    effectiveness_jacobian = np.asarray(
+        jacobian.force_effectiveness,
+        dtype=float,
+    )
+    for rotor in range(4):
+        transform[10 + rotor] = (
+            effectiveness_jacobian[rotor]
+            * raw_scale
+            / effectiveness[rotor]
+        )
+
+    prior_weight = float(posterior["prior_weight"])
+    if prior_weight > 0.0:
+        prior_std_q = (
+            np.asarray(
+                posterior["prior_standard_deviation_dimensionless"],
+                dtype=float,
+            )
+            / math.sqrt(prior_weight)
+        )
+        prior_cov_q = np.diag(prior_std_q**2)
+        posterior_cov_q = np.asarray(
+            posterior["posterior_covariance_dimensionless"],
+            dtype=float,
+        )
+        prior_cov = transform @ prior_cov_q @ transform.T
+        posterior_cov = transform @ posterior_cov_q @ transform.T
+        prior_std = np.sqrt(
+            np.maximum(0.0, np.diag(prior_cov))
+        )
+        posterior_std = np.sqrt(
+            np.maximum(0.0, np.diag(posterior_cov))
+        )
+        remaining_fraction = np.divide(
+            posterior_std,
+            prior_std,
+            out=np.full_like(posterior_std, np.nan),
+            where=prior_std > 0.0,
+        )
+    else:
+        prior_cov = None
+        posterior_cov = None
+        prior_std = None
+        posterior_std = None
+        remaining_fraction = None
+
+    combinations = []
+    # Existing storage order is least identified -> best identified.
+    for rank_from_least, mode in enumerate(
+        svd["weak_directions"],
+        start=1,
+    ):
+        internal_direction = np.asarray(
+            mode["dimensionless_direction"],
+            dtype=float,
+        )
+        physical_direction = transform @ internal_direction
+        norm = float(np.linalg.norm(physical_direction))
+        if norm > 0.0:
+            physical_direction = physical_direction / norm
+        combinations.append(
+            {
+                "rank_from_least_identified": rank_from_least,
+                "relative_information_strength": float(
+                    mode["relative_information_strength"]
+                ),
+                "physical_dimensionless_direction": physical_direction,
+                "absolute_composition": np.abs(physical_direction),
+            }
+        )
+
+    return {
+        "names": names,
+        "coordinate_definition": (
+            "dm/m; dJ/(M*L*^2); dCoG/L*; de/e"
+        ),
+        "internal_to_physical_dimensionless_jacobian": transform,
+        "prior_covariance": prior_cov,
+        "posterior_covariance": posterior_cov,
+        "prior_standard_deviation": prior_std,
+        "posterior_standard_deviation": posterior_std,
+        "posterior_to_prior_std_fraction": remaining_fraction,
+        "parameter_combinations_least_to_best_identified": combinations,
+        "interpretation": (
+            "posterior_to_prior_std_fraction: 1 means this bag leaves the "
+            "prior marginal uncertainty essentially unchanged; 0 means strong "
+            "reduction. Parameter combinations are local tangent-space "
+            "directions, not extra physical parameters."
+        ),
+    }
+
+
+
+def _angular_excitation_payload(bag: Any) -> dict[str, Any]:
+    omega = np.asarray(
+        bag.collocation.body_angular_velocity,
+        dtype=float,
+    )
+    alpha = np.asarray(
+        bag.collocation.body_angular_acceleration,
+        dtype=float,
+    )
+    if omega.ndim != 2 or omega.shape[1] != 3:
+        raise ValueError("angular velocity has unexpected shape")
+    if alpha.shape != omega.shape:
+        raise ValueError("angular acceleration has unexpected shape")
+    return {
+        "axis_names": ("body_x", "body_y", "body_z"),
+        "angular_velocity_rms_rad_per_s": np.sqrt(
+            np.mean(omega * omega, axis=0)
+        ),
+        "angular_acceleration_rms_rad_per_s2": np.sqrt(
+            np.mean(alpha * alpha, axis=0)
+        ),
+        "angular_velocity_peak_rad_per_s": np.max(
+            np.abs(omega), axis=0
+        ),
+        "angular_acceleration_peak_rad_per_s2": np.max(
+            np.abs(alpha), axis=0
+        ),
+        "interpretation": (
+            "These are only intuitive excitation diagnostics. "
+            "Actual parameter identifiability is determined by the full "
+            "wrench Jacobian/SVD, including Euler cross-coupling terms."
+        ),
+    }
+
+
+
+def _continuous_rpy_degrees(
+    orientation_xyzw: np.ndarray,
+) -> np.ndarray:
+    """Return continuous roll/pitch/yaw curves for plotting only.
+
+    scipy's lower-case ``xyz`` convention is the usual extrinsic XYZ
+    representation, equivalent to the common intrinsic ZYX yaw-pitch-roll
+    decomposition. Euler angles are used only for human-readable diagnostics;
+    orientation errors remain computed on SO(3).
+    """
+
+    from scipy.spatial.transform import Rotation as SciPyRotation
+
+    quaternion = np.asarray(orientation_xyzw, dtype=float)
+    rpy_rad = SciPyRotation.from_quat(quaternion).as_euler(
+        "xyz",
+        degrees=False,
+    )
+    return np.degrees(np.unwrap(rpy_rad, axis=0))
+
+
+
 def _write_pdf(
     path: Path,
     *,
@@ -908,6 +1261,8 @@ def _write_pdf(
     prefix: Mapping[str, Any],
     posterior: Mapping[str, Any],
     reconstruction: Mapping[str, Any],
+    physical_parameter_report: Mapping[str, Any],
+    angular_excitation: Mapping[str, Any],
     names: Sequence[str],
 ) -> None:
     """Write only plots whose numerical meaning is explicit in the labels."""
@@ -938,8 +1293,11 @@ def _write_pdf(
 
     with PdfPages(path) as pdf:
         # ------------------------------------------------------------------
-        # 1. Most important sanity check: does the 14-D solution still
-        #    reconstruct the measured trajectory?
+        # 1. Fine reconstruction view.
+        #
+        # Do NOT overlay nominal or parameter-only open-loop rollouts here.
+        # They can diverge by tens of metres and would destroy the scale needed
+        # to inspect the sub-millimetre replay reconstruction.
         # ------------------------------------------------------------------
         figure, axes = plt.subplots(
             3,
@@ -949,84 +1307,103 @@ def _write_pdf(
             constrained_layout=True,
         )
         labels = ("x [m]", "y [m]", "z [m]")
+        replay_observed_time = np.asarray(
+            replay["time"],
+            dtype=float,
+        )
+        replay_observed_position = np.asarray(
+            replay["observed_position_on_replay_support"],
+            dtype=float,
+        )
+        replay_position = np.asarray(
+            replay["sensor_position"],
+            dtype=float,
+        )
         for component, axis in enumerate(axes):
             axis.plot(
-                np.asarray(observed["time"]),
-                np.asarray(observed["sensor_position"])[:, component],
+                replay_observed_time,
+                replay_observed_position[:, component],
                 label="observed",
             )
             axis.plot(
-                np.asarray(parameter_only["time"]),
-                np.asarray(parameter_only["sensor_position"])[:, component],
-                label="14-D parameters only",
-            )
-            axis.plot(
-                np.asarray(replay["time"]),
-                np.asarray(replay["sensor_position"])[:, component],
-                label="14-D + external-wrench replay",
+                replay_observed_time,
+                replay_position[:, component],
+                label="14-D parameters + external-wrench replay",
             )
             axis.set_ylabel(labels[component])
             axis.grid(True, alpha=0.25)
         axes[0].set_title(
-            "Trajectory reproduction after adding independent rotor effectiveness"
+            "Fine pose reproduction: position"
         )
         axes[0].legend(loc="best")
         axes[-1].set_xlabel("record-local time [s]")
         pdf.savefig(figure)
         plt.close(figure)
 
-        observed_position = np.asarray(
-            observed["sensor_position"],
+        replay_observed_orientation = np.asarray(
+            replay["observed_orientation_xyzw_on_replay_support"],
             dtype=float,
         )
-        nominal_position_error = np.linalg.norm(
-            np.asarray(nominal["sensor_position"], dtype=float)
-            - observed_position,
-            axis=1,
+        replay_orientation = np.asarray(
+            replay["sensor_orientation_xyzw"],
+            dtype=float,
         )
-        parameter_position_error = np.linalg.norm(
-            np.asarray(parameter_only["sensor_position"], dtype=float)
-            - observed_position,
-            axis=1,
+        observed_rpy_deg = _continuous_rpy_degrees(
+            replay_observed_orientation
         )
-        replay_position_error = np.linalg.norm(
-            np.asarray(replay["sensor_position"], dtype=float)
-            - np.asarray(
-                replay["observed_position_on_replay_support"],
-                dtype=float,
-            ),
-            axis=1,
+        replay_rpy_deg = _continuous_rpy_degrees(
+            replay_orientation
         )
+        # Align the independently unwrapped plotting branches at the first
+        # sample. This changes only the displayed Euler branch, not SO(3).
+        for component in range(3):
+            replay_rpy_deg[:, component] += (
+                360.0
+                * np.round(
+                    (
+                        observed_rpy_deg[0, component]
+                        - replay_rpy_deg[0, component]
+                    )
+                    / 360.0
+                )
+            )
 
-        nominal_orientation_error = np.degrees(
-            np.linalg.norm(
-                deterministic._orientation_errors(
-                    np.asarray(
-                        observed["sensor_orientation_xyzw"],
-                        dtype=float,
-                    ),
-                    np.asarray(
-                        nominal["sensor_orientation_xyzw"],
-                        dtype=float,
-                    ),
-                ),
-                axis=1,
-            )
+        figure, axes = plt.subplots(
+            3,
+            1,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
         )
-        parameter_orientation_error = np.degrees(
-            np.linalg.norm(
-                deterministic._orientation_errors(
-                    np.asarray(
-                        observed["sensor_orientation_xyzw"],
-                        dtype=float,
-                    ),
-                    np.asarray(
-                        parameter_only["sensor_orientation_xyzw"],
-                        dtype=float,
-                    ),
-                ),
-                axis=1,
+        rpy_labels = (
+            "roll [deg]",
+            "pitch [deg]",
+            "yaw [deg]",
+        )
+        for component, axis in enumerate(axes):
+            axis.plot(
+                replay_observed_time,
+                observed_rpy_deg[:, component],
+                label="observed",
             )
+            axis.plot(
+                replay_observed_time,
+                replay_rpy_deg[:, component],
+                label="14-D parameters + external-wrench replay",
+            )
+            axis.set_ylabel(rpy_labels[component])
+            axis.grid(True, alpha=0.25)
+        axes[0].set_title(
+            "Fine pose reproduction: roll / pitch / yaw"
+        )
+        axes[0].legend(loc="best")
+        axes[-1].set_xlabel("record-local time [s]")
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        replay_position_error = np.linalg.norm(
+            replay_position - replay_observed_position,
+            axis=1,
         )
         replay_orientation_error = np.degrees(
             np.linalg.norm(
@@ -1050,49 +1427,169 @@ def _write_pdf(
             2,
             1,
             figsize=(11.7, 8.3),
+            sharex=True,
             constrained_layout=True,
         )
         axes[0].plot(
-            np.asarray(nominal["time"]),
-            nominal_position_error,
-            label="nominal",
-        )
-        axes[0].plot(
-            np.asarray(parameter_only["time"]),
-            parameter_position_error,
-            label="14-D parameters only",
-        )
-        axes[0].plot(
-            np.asarray(replay["time"]),
+            replay_observed_time,
             replay_position_error,
-            label="14-D + replay",
         )
         axes[0].set_ylabel("position error norm [m]")
         axes[0].set_title(
-            "Trajectory error: lower is better; replay verifies the full pipeline"
+            "Fine replay error after the 14-D change — lower is better"
         )
         axes[0].grid(True, alpha=0.25)
-        axes[0].legend(loc="best")
 
         axes[1].plot(
-            np.asarray(nominal["time"]),
-            nominal_orientation_error,
-            label="nominal",
-        )
-        axes[1].plot(
-            np.asarray(parameter_only["time"]),
-            parameter_orientation_error,
-            label="14-D parameters only",
-        )
-        axes[1].plot(
-            np.asarray(replay["time"]),
+            replay_observed_time,
             replay_orientation_error,
-            label="14-D + replay",
         )
         axes[1].set_ylabel("orientation error angle [deg]")
         axes[1].set_xlabel("record-local time [s]")
         axes[1].grid(True, alpha=0.25)
-        axes[1].legend(loc="best")
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        # Parameter-only open-loop rollout on its own scale, with the observed
+        # pose explicitly overlaid.
+        observed_time = np.asarray(observed["time"], dtype=float)
+        observed_position = np.asarray(
+            observed["sensor_position"], dtype=float
+        )
+        parameter_time = np.asarray(
+            parameter_only["time"], dtype=float
+        )
+        parameter_position = np.asarray(
+            parameter_only["sensor_position"], dtype=float
+        )
+
+        figure, axes = plt.subplots(
+            3,
+            1,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        for component, axis in enumerate(axes):
+            axis.plot(
+                observed_time,
+                observed_position[:, component],
+                label="observed",
+            )
+            axis.plot(
+                parameter_time,
+                parameter_position[:, component],
+                label="parameter-only open-loop rollout",
+            )
+            axis.set_ylabel(("x [m]", "y [m]", "z [m]")[component])
+            axis.grid(True, alpha=0.25)
+        axes[0].set_title("Parameter-only open-loop pose: position")
+        axes[0].legend(loc="best")
+        axes[-1].set_xlabel("record-local time [s]")
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        observed_parameter_rpy_deg = _continuous_rpy_degrees(
+            np.asarray(
+                observed["sensor_orientation_xyzw"], dtype=float
+            )
+        )
+        parameter_rpy_deg = _continuous_rpy_degrees(
+            np.asarray(
+                parameter_only["sensor_orientation_xyzw"], dtype=float
+            )
+        )
+        for component in range(3):
+            parameter_rpy_deg[:, component] += (
+                360.0
+                * np.round(
+                    (
+                        observed_parameter_rpy_deg[0, component]
+                        - parameter_rpy_deg[0, component]
+                    )
+                    / 360.0
+                )
+            )
+
+        figure, axes = plt.subplots(
+            3,
+            1,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        for component, axis in enumerate(axes):
+            axis.plot(
+                observed_time,
+                observed_parameter_rpy_deg[:, component],
+                label="observed",
+            )
+            axis.plot(
+                parameter_time,
+                parameter_rpy_deg[:, component],
+                label="parameter-only open-loop rollout",
+            )
+            axis.set_ylabel(
+                ("roll [deg]", "pitch [deg]", "yaw [deg]")[component]
+            )
+            axis.grid(True, alpha=0.25)
+        axes[0].set_title(
+            "Parameter-only open-loop pose: roll / pitch / yaw"
+        )
+        axes[0].legend(loc="best")
+        axes[-1].set_xlabel("record-local time [s]")
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        parameter_position_error = np.linalg.norm(
+            np.asarray(
+                parameter_only["sensor_position"],
+                dtype=float,
+            )
+            - np.asarray(
+                observed["sensor_position"],
+                dtype=float,
+            ),
+            axis=1,
+        )
+        parameter_orientation_error = np.degrees(
+            np.linalg.norm(
+                deterministic._orientation_errors(
+                    np.asarray(
+                        observed["sensor_orientation_xyzw"],
+                        dtype=float,
+                    ),
+                    np.asarray(
+                        parameter_only["sensor_orientation_xyzw"],
+                        dtype=float,
+                    ),
+                ),
+                axis=1,
+            )
+        )
+        figure, axes = plt.subplots(
+            2,
+            1,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        axes[0].plot(
+            np.asarray(parameter_only["time"]),
+            parameter_position_error,
+        )
+        axes[0].set_ylabel("position error norm [m]")
+        axes[0].set_title(
+            "Parameter-only open-loop rollout (separate diagnostic)"
+        )
+        axes[0].grid(True, alpha=0.25)
+        axes[1].plot(
+            np.asarray(parameter_only["time"]),
+            parameter_orientation_error,
+        )
+        axes[1].set_ylabel("orientation error angle [deg]")
+        axes[1].set_xlabel("record-local time [s]")
+        axes[1].grid(True, alpha=0.25)
         pdf.savefig(figure)
         plt.close(figure)
 
@@ -1154,72 +1651,160 @@ def _write_pdf(
             plt.close(figure)
 
         # ------------------------------------------------------------------
-        # 3. Data-only ridge geometry.  Normalize away the arbitrary overall
-        #    scale so the graph has one simple interpretation.
+        # 3. Literal SVD output: A = U diag(s) V^T.
         # ------------------------------------------------------------------
-        relative_information = np.asarray(
-            svd["relative_information_strength_descending"],
-            dtype=float,
+        singular_values = np.asarray(
+            svd["singular_values_descending"], dtype=float
         )
+        mode_index = np.arange(1, singular_values.size + 1)
         figure, axis = plt.subplots(
-            figsize=(11.7, 8.3),
-            constrained_layout=True,
+            figsize=(11.7, 8.3), constrained_layout=True
         )
         axis.semilogy(
-            np.arange(1, relative_information.size + 1),
-            np.maximum(
-                relative_information,
-                np.finfo(float).tiny,
-            ),
+            mode_index,
+            np.maximum(singular_values, np.finfo(float).tiny),
             marker="o",
         )
-        axis.set_xlabel(
-            "data-information mode (strongest → weakest)"
-        )
-        axis.set_ylabel(
-            "relative information strength\n"
-            "(1 = strongest; near 0 = ridge)"
-        )
+        axis.set_xticks(mode_index)
+        axis.set_xlabel("SVD mode i (largest s_i -> smallest s_i)")
+        axis.set_ylabel("singular value s_i")
         axis.set_title(
-            "Data-only identifiability spectrum\n"
-            "Small values mean the trajectory scarcely changes along that "
-            "parameter combination"
+            "Singular values S of the whitened dimensionless Jacobian"
         )
         axis.grid(True, alpha=0.25)
         pdf.savefig(figure)
         plt.close(figure)
 
-        # Weakest three data-only ridge directions, each as an ordinary bar
-        # plot instead of an unlabeled heatmap.
-        weak = list(svd["weak_directions"])
-        for rank, mode in enumerate(weak[:3], start=1):
-            direction = np.asarray(
-                mode["dimensionless_direction"],
-                dtype=float,
+        # _svd_payload stores modes from smallest s_i to largest s_i.
+        # Reverse only that storage order to reconstruct the ordinary V^T.
+        vt_rows = np.asarray(
+            [
+                mode["dimensionless_direction"]
+                for mode in reversed(svd["weak_directions"])
+            ],
+            dtype=float,
+        )
+        figure, axis = plt.subplots(
+            figsize=(11.7, 8.3), constrained_layout=True
+        )
+        image = axis.imshow(
+            vt_rows,
+            aspect="auto",
+            interpolation="nearest",
+            vmin=-1.0,
+            vmax=1.0,
+            cmap="coolwarm",
+        )
+        axis.set_xticks(
+            np.arange(len(names)), names, rotation=70, ha="right"
+        )
+        axis.set_yticks(
+            np.arange(vt_rows.shape[0]),
+            [
+                "v{}  s={:.3g}".format(i + 1, singular_values[i])
+                for i in range(vt_rows.shape[0])
+            ],
+        )
+        axis.set_xlabel("original dimensionless estimator coordinate")
+        axis.set_ylabel("right-singular vector v_i")
+        axis.set_title(
+            "Signed right-singular vectors V^T\n"
+            "A complete row may flip sign; relative signs inside the row matter"
+        )
+        figure.colorbar(
+            image, ax=axis, label="signed component of v_i"
+        )
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        # Decoded physical parameter values are shown separately from SVD.
+        decoded = reconstruction["selected_physical_parameters"]
+        inertia = np.asarray(decoded["inertia_kg_m2"], dtype=float)
+        principal = np.asarray(
+            decoded["inertia_principal_moments_kg_m2"], dtype=float
+        )
+        cog = np.asarray(decoded["cog_offset_m"], dtype=float)
+        effectiveness = np.asarray(
+            decoded["force_effectiveness"], dtype=float
+        )
+        physical_text = "\n".join(
+            (
+                "Decoded physical parameters at the selected estimate",
+                "",
+                "mass [kg]",
+                "  {:.12g}".format(decoded["mass_kg"]),
+                "",
+                "inertia J [kg m^2]",
+                "  [{: .8g}  {: .8g}  {: .8g}]".format(*inertia[0]),
+                "  [{: .8g}  {: .8g}  {: .8g}]".format(*inertia[1]),
+                "  [{: .8g}  {: .8g}  {: .8g}]".format(*inertia[2]),
+                "",
+                "principal moments [kg m^2]",
+                "  [{: .8g}, {: .8g}, {: .8g}]".format(*principal),
+                "",
+                "CoG offset [m]",
+                "  [{: .8g}, {: .8g}, {: .8g}]".format(*cog),
+                "",
+                "rotor force effectiveness",
+                "  [{: .8g}, {: .8g}, {: .8g}, {: .8g}]".format(
+                    *effectiveness
+                ),
+                "",
+                "selected delay [s]",
+                "  {:.12g}".format(decoded["delay_seconds"]),
             )
-            figure, axis = plt.subplots(
-                figsize=(11.7, 8.3),
-                constrained_layout=True,
-            )
-            y = np.arange(len(names))
-            axis.barh(y, direction)
-            axis.set_yticks(y, names)
-            axis.axvline(0.0, linewidth=1.0)
-            axis.set_xlabel(
-                "coefficient in dimensionless ridge direction\n"
-                "(large |value| = participates strongly; sign = coupled motion)"
-            )
-            axis.set_title(
-                "Ridge direction {}: relative information = {:.3e}\n"
-                "Changing these parameters together produces little change "
-                "in the wrench likelihood".format(
-                    rank,
-                    mode["relative_information_strength"],
-                )
-            )
-            axis.grid(True, axis="x", alpha=0.25)
-            pdf.savefig(figure)
-            plt.close(figure)
+        )
+        figure, axis = plt.subplots(
+            figsize=(11.7, 8.3), constrained_layout=True
+        )
+        axis.axis("off")
+        axis.text(
+            0.02,
+            0.98,
+            physical_text,
+            va="top",
+            ha="left",
+            family="monospace",
+            transform=axis.transAxes,
+        )
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        # Simple axis-wise angular-motion diagnostics.  These do not replace
+        # the full SVD; they help judge hypotheses such as insufficient yaw
+        # excitation.
+        axis_names = tuple(angular_excitation["axis_names"])
+        omega_rms = np.asarray(
+            angular_excitation["angular_velocity_rms_rad_per_s"],
+            dtype=float,
+        )
+        alpha_rms = np.asarray(
+            angular_excitation[
+                "angular_acceleration_rms_rad_per_s2"
+            ],
+            dtype=float,
+        )
+        figure, axes = plt.subplots(
+            2,
+            1,
+            figsize=(11.7, 8.3),
+            constrained_layout=True,
+        )
+        axes[0].bar(axis_names, omega_rms)
+        axes[0].set_ylabel("RMS angular velocity [rad/s]")
+        axes[0].set_title(
+            "Axis-wise rotational excitation diagnostic"
+        )
+        axes[0].grid(True, axis="y", alpha=0.25)
+        axes[1].bar(axis_names, alpha_rms)
+        axes[1].set_ylabel("RMS angular acceleration [rad/s^2]")
+        axes[1].set_xlabel(
+            "Low body-z values can support a yaw-excitation hypothesis, "
+            "but identifiability is decided by the full Jacobian."
+        )
+        axes[1].grid(True, axis="y", alpha=0.25)
+        pdf.savefig(figure)
+        plt.close(figure)
 
         # ------------------------------------------------------------------
         # 4. Confidence relative to the chosen proper prior.  This scale has
@@ -1235,26 +1820,31 @@ def _write_pdf(
                 ],
                 dtype=float,
             )
-            # Reverse so the weakest learned mode appears first.
-            remaining_weak_to_strong = remaining[::-1]
             figure, axis = plt.subplots(
                 figsize=(11.7, 8.3),
                 constrained_layout=True,
             )
             axis.bar(
                 np.arange(1, remaining.size + 1),
-                remaining_weak_to_strong,
+                remaining,
             )
             axis.set_ylim(0.0, 1.05)
+            axis.set_xticks(
+                np.arange(1, remaining.size + 1)
+            )
             axis.set_xlabel(
-                "prior-normalized mode (weakest learned → strongest learned)"
+                "prior-normalized local combination "
+                "(1 = best learned, {} = least learned)".format(
+                    remaining.size
+                )
             )
             axis.set_ylabel(
                 "fraction of prior standard deviation remaining\n"
-                "(1 = bag adds no confidence; 0 = strongly learned)"
+                "(0 = strong uncertainty reduction; "
+                "1 = prior essentially unchanged)"
             )
             axis.set_title(
-                "How much uncertainty remains after this bag?"
+                "How much uncertainty remains in every local combination?"
             )
             axis.grid(True, axis="y", alpha=0.25)
             pdf.savefig(figure)
@@ -1509,6 +2099,14 @@ def run(arguments: argparse.Namespace) -> int:
         arguments,
         initial_delay,
     )
+    physical_parameter_report = _physical_parameter_report(
+        selected=selected,
+        raw_per_dimensionless=raw_per_dimensionless,
+        reference_scales=scales,
+        posterior=posterior,
+        svd=svd,
+    )
+    angular_excitation = _angular_excitation_payload(bag)
 
     wrench_mean_raw = np.mean(
         wrench_raw,
@@ -1565,9 +2163,11 @@ def run(arguments: argparse.Namespace) -> int:
             "information_accumulation": (
                 "sample information matrices are summed, not averaged"
             ),
-            "ridge_definition": (
-                "right singular directions of the whitened dimensionless "
-                "residual-wrench Jacobian"
+            "local_parameter_combination_definition": (
+                "right singular vectors of the whitened dimensionless "
+                "residual-wrench Jacobian; large singular values are best "
+                "identified combinations and small singular values are poorly "
+                "identified/ridge combinations"
             ),
         },
         "nondimensionalization": {
@@ -1607,6 +2207,8 @@ def run(arguments: argparse.Namespace) -> int:
             "matrix_dimensionless": data_information,
             "svd": svd,
         },
+        "physical_parameter_report": physical_parameter_report,
+        "angular_excitation_diagnostic": angular_excitation,
         "information_vs_duration": prefix,
         "prior_and_local_posterior": posterior,
         "trajectory_reconstruction_check": reconstruction,
@@ -1627,6 +2229,8 @@ def run(arguments: argparse.Namespace) -> int:
         prefix=prefix,
         posterior=posterior,
         reconstruction=reconstruction,
+        physical_parameter_report=physical_parameter_report,
+        angular_excitation=angular_excitation,
         names=deterministic.PHYSICAL_PARAMETER_NAMES,
     )
 
@@ -1664,10 +2268,36 @@ def run(arguments: argparse.Namespace) -> int:
             dtype=float,
         )
         print(
-            "confidence relative to prior: least-learned mode retains "
-            "{:.1f}% of prior std; best-learned mode retains {:.1f}%".format(
-                100.0 * float(remaining[-1]),
+            "confidence across local parameter combinations: "
+            "best retains {:.1f}% of prior std; "
+            "least retains {:.1f}%".format(
                 100.0 * float(remaining[0]),
+                100.0 * float(remaining[-1]),
+            ),
+            flush=True,
+        )
+
+    parameter_remaining = physical_parameter_report[
+        "posterior_to_prior_std_fraction"
+    ]
+    if parameter_remaining is not None:
+        parameter_remaining = np.asarray(
+            parameter_remaining,
+            dtype=float,
+        )
+        report_names = tuple(
+            physical_parameter_report["names"]
+        )
+        best_index = int(np.nanargmin(parameter_remaining))
+        least_index = int(np.nanargmax(parameter_remaining))
+        print(
+            "named physical parameters: most constrained {} "
+            "({:.1f}% prior std remains); least constrained {} "
+            "({:.1f}% remains)".format(
+                report_names[best_index],
+                100.0 * float(parameter_remaining[best_index]),
+                report_names[least_index],
+                100.0 * float(parameter_remaining[least_index]),
             ),
             flush=True,
         )

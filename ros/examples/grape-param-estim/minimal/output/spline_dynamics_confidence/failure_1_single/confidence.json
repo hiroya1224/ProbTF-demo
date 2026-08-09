@@ -1,10 +1,38 @@
 {
+  "angular_excitation_diagnostic": {
+    "angular_acceleration_peak_rad_per_s2": [
+      2.1642789277145376,
+      10.414823613286288,
+      2.3212734848669108
+    ],
+    "angular_acceleration_rms_rad_per_s2": [
+      0.8942326291689696,
+      4.849369195373434,
+      0.8076205181138314
+    ],
+    "angular_velocity_peak_rad_per_s": [
+      0.28890254286677947,
+      2.423647971017844,
+      0.38922923291309247
+    ],
+    "angular_velocity_rms_rad_per_s": [
+      0.10836891531913354,
+      1.3185781182919771,
+      0.16200826138008254
+    ],
+    "axis_names": [
+      "body_x",
+      "body_y",
+      "body_z"
+    ],
+    "interpretation": "These are only intuitive excitation diagnostics. Actual parameter identifiability is determined by the full wrench Jacobian/SVD, including Euler cross-coupling terms."
+  },
   "assumptions": {
     "external_wrench": "collocation samples are treated as iid Gaussian with nonzero empirical mean and empirical 6x6 covariance",
     "external_wrench_source": "Confidence uses spline-implied residual_body_wrench at the selected deterministic parameter point. Refined replay wrench is used separately only for trajectory-reconstruction validation.",
     "information_accumulation": "sample information matrices are summed, not averaged",
-    "pose_uncertainty": "not modeled in this analysis",
-    "ridge_definition": "right singular directions of the whitened dimensionless residual-wrench Jacobian"
+    "local_parameter_combination_definition": "right singular vectors of the whitened dimensionless residual-wrench Jacobian; large singular values are best identified combinations and small singular values are poorly identified/ridge combinations",
+    "pose_uncertainty": "not modeled in this analysis"
   },
   "bag": {
     "collocation_count": 477,
@@ -493,7 +521,7 @@
     "selected_knot_spacing_seconds": 0.2,
     "start_seconds": 19.0
   },
-  "created_utc": "2026-08-09T07:41:40.580670+00:00",
+  "created_utc": "2026-08-09T08:32:01.573327+00:00",
   "data_information": {
     "matrix_dimensionless": [
       [
@@ -777,195 +805,195 @@
       "weak_directions": [
         {
           "dimensionless_direction": [
-            -0.00034364310371626125,
-            0.0015080544310730195,
-            0.005347564096649585,
-            -0.999911767168933,
-            -8.521017559509243e-05,
-            -0.001343829237357514,
-            0.011927001468554205,
-            0.00016103268642430306,
-            0.0003818740691354798,
-            0.0004879378854904795,
-            -0.0007757867828472293,
-            -0.0005937912289980543,
-            0.00012218753836867486,
-            -0.00015300032040078263
+            0.00034364310371626125,
+            -0.0015080544310730195,
+            -0.005347564096649585,
+            0.999911767168933,
+            8.521017559509243e-05,
+            0.001343829237357514,
+            -0.011927001468554205,
+            -0.00016103268642430306,
+            -0.0003818740691354798,
+            -0.0004879378854904795,
+            0.0007757867828472293,
+            0.0005937912289980543,
+            -0.00012218753836867486,
+            0.00015300032040078263
           ],
           "dominant_components": [
             {
               "absolute_coefficient": 0.999911767168933,
-              "coefficient": -0.999911767168933,
+              "coefficient": 0.999911767168933,
               "name": "log_second_moment_cholesky_zz_scale"
             },
             {
               "absolute_coefficient": 0.011927001468554205,
-              "coefficient": 0.011927001468554205,
+              "coefficient": -0.011927001468554205,
               "name": "normalized_second_moment_cholesky_zy_offset"
             },
             {
               "absolute_coefficient": 0.005347564096649585,
-              "coefficient": 0.005347564096649585,
+              "coefficient": -0.005347564096649585,
               "name": "log_second_moment_cholesky_yy_scale"
             },
             {
               "absolute_coefficient": 0.0015080544310730195,
-              "coefficient": 0.0015080544310730195,
+              "coefficient": -0.0015080544310730195,
               "name": "log_second_moment_cholesky_xx_scale"
             },
             {
               "absolute_coefficient": 0.001343829237357514,
-              "coefficient": -0.001343829237357514,
+              "coefficient": 0.001343829237357514,
               "name": "normalized_second_moment_cholesky_zx_offset"
             },
             {
               "absolute_coefficient": 0.0007757867828472293,
-              "coefficient": -0.0007757867828472293,
+              "coefficient": 0.0007757867828472293,
               "name": "log_force_effectiveness_1"
             },
             {
               "absolute_coefficient": 0.0005937912289980543,
-              "coefficient": -0.0005937912289980543,
+              "coefficient": 0.0005937912289980543,
               "name": "log_force_effectiveness_2"
             },
             {
               "absolute_coefficient": 0.0004879378854904795,
-              "coefficient": 0.0004879378854904795,
+              "coefficient": -0.0004879378854904795,
               "name": "cog_offset_z_m"
             }
           ],
           "information_eigenvalue": 0.05190727825520876,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 8.210004752130436e-09,
           "singular_index": 13,
           "singular_value": 0.2278316884351445
         },
         {
           "dimensionless_direction": [
-            -0.002308896636673525,
-            0.015446475503835502,
-            -0.006324086666405725,
-            0.00043084924600934725,
-            0.034553319229803946,
-            -0.9961506260411086,
-            -0.0744756385527294,
-            0.009391148286984705,
-            -0.006259236317922099,
-            -0.010798384490873825,
-            -0.005845148086051632,
-            0.012395007447697564,
-            -0.0017841192132038322,
-            -0.014977031003423541
+            0.002308896636673525,
+            -0.015446475503835502,
+            0.006324086666405725,
+            -0.00043084924600934725,
+            -0.034553319229803946,
+            0.9961506260411086,
+            0.0744756385527294,
+            -0.009391148286984705,
+            0.006259236317922099,
+            0.010798384490873825,
+            0.005845148086051632,
+            -0.012395007447697564,
+            0.0017841192132038322,
+            0.014977031003423541
           ],
           "dominant_components": [
             {
               "absolute_coefficient": 0.9961506260411086,
-              "coefficient": -0.9961506260411086,
+              "coefficient": 0.9961506260411086,
               "name": "normalized_second_moment_cholesky_zx_offset"
             },
             {
               "absolute_coefficient": 0.0744756385527294,
-              "coefficient": -0.0744756385527294,
+              "coefficient": 0.0744756385527294,
               "name": "normalized_second_moment_cholesky_zy_offset"
             },
             {
               "absolute_coefficient": 0.034553319229803946,
-              "coefficient": 0.034553319229803946,
+              "coefficient": -0.034553319229803946,
               "name": "normalized_second_moment_cholesky_yx_offset"
             },
             {
               "absolute_coefficient": 0.015446475503835502,
-              "coefficient": 0.015446475503835502,
+              "coefficient": -0.015446475503835502,
               "name": "log_second_moment_cholesky_xx_scale"
             },
             {
               "absolute_coefficient": 0.014977031003423541,
-              "coefficient": -0.014977031003423541,
+              "coefficient": 0.014977031003423541,
               "name": "log_force_effectiveness_4"
             },
             {
               "absolute_coefficient": 0.012395007447697564,
-              "coefficient": 0.012395007447697564,
+              "coefficient": -0.012395007447697564,
               "name": "log_force_effectiveness_2"
             },
             {
               "absolute_coefficient": 0.010798384490873825,
-              "coefficient": -0.010798384490873825,
+              "coefficient": 0.010798384490873825,
               "name": "cog_offset_z_m"
             },
             {
               "absolute_coefficient": 0.009391148286984705,
-              "coefficient": 0.009391148286984705,
+              "coefficient": -0.009391148286984705,
               "name": "cog_offset_x_m"
             }
           ],
           "information_eigenvalue": 95.84527668695395,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 1.5159534530019134e-05,
           "singular_index": 12,
           "singular_value": 9.790060096187048
         },
         {
           "dimensionless_direction": [
-            -0.0416472456441729,
-            -0.03418013593709545,
-            0.011752071270309031,
-            -0.011846007439445074,
-            -0.0028604022049709085,
-            0.07546150620924742,
-            -0.984427085662713,
-            0.010016085525768027,
-            -0.06627733533489885,
-            -0.0020694384625069375,
-            -0.0018911498854998095,
-            0.018425031080584076,
-            -0.08031809971941657,
-            -0.10357670237558039
+            0.0416472456441729,
+            0.03418013593709545,
+            -0.011752071270309031,
+            0.011846007439445074,
+            0.0028604022049709085,
+            -0.07546150620924742,
+            0.984427085662713,
+            -0.010016085525768027,
+            0.06627733533489885,
+            0.0020694384625069375,
+            0.0018911498854998095,
+            -0.018425031080584076,
+            0.08031809971941657,
+            0.10357670237558039
           ],
           "dominant_components": [
             {
               "absolute_coefficient": 0.984427085662713,
-              "coefficient": -0.984427085662713,
+              "coefficient": 0.984427085662713,
               "name": "normalized_second_moment_cholesky_zy_offset"
             },
             {
               "absolute_coefficient": 0.10357670237558039,
-              "coefficient": -0.10357670237558039,
+              "coefficient": 0.10357670237558039,
               "name": "log_force_effectiveness_4"
             },
             {
               "absolute_coefficient": 0.08031809971941657,
-              "coefficient": -0.08031809971941657,
+              "coefficient": 0.08031809971941657,
               "name": "log_force_effectiveness_3"
             },
             {
               "absolute_coefficient": 0.07546150620924742,
-              "coefficient": 0.07546150620924742,
+              "coefficient": -0.07546150620924742,
               "name": "normalized_second_moment_cholesky_zx_offset"
             },
             {
               "absolute_coefficient": 0.06627733533489885,
-              "coefficient": -0.06627733533489885,
+              "coefficient": 0.06627733533489885,
               "name": "cog_offset_y_m"
             },
             {
               "absolute_coefficient": 0.0416472456441729,
-              "coefficient": -0.0416472456441729,
+              "coefficient": 0.0416472456441729,
               "name": "log_mass_scale"
             },
             {
               "absolute_coefficient": 0.03418013593709545,
-              "coefficient": -0.03418013593709545,
+              "coefficient": 0.03418013593709545,
               "name": "log_second_moment_cholesky_xx_scale"
             },
             {
               "absolute_coefficient": 0.018425031080584076,
-              "coefficient": 0.018425031080584076,
+              "coefficient": -0.018425031080584076,
               "name": "log_force_effectiveness_2"
             }
           ],
           "information_eigenvalue": 214.9376294406091,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 3.399598319224096e-05,
           "singular_index": 11,
           "singular_value": 14.660751325924913
@@ -1030,72 +1058,72 @@
             }
           ],
           "information_eigenvalue": 415.53119556090576,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 6.572321271480155e-05,
           "singular_index": 10,
           "singular_value": 20.384582300378533
         },
         {
           "dimensionless_direction": [
-            0.0351107805097557,
-            -0.11005926828027982,
-            -0.7566946446799943,
-            -0.004778596655946417,
-            0.0025216300196077316,
-            -0.0076515816744505225,
-            -0.034036669120460925,
-            -0.3151734109901899,
-            0.024924164700643174,
-            0.06119275542819205,
-            0.2946061260691831,
-            -0.26625393874916603,
-            -0.21728069786089857,
-            0.32284097128673683
+            -0.0351107805097557,
+            0.11005926828027982,
+            0.7566946446799943,
+            0.004778596655946417,
+            -0.0025216300196077316,
+            0.0076515816744505225,
+            0.034036669120460925,
+            0.3151734109901899,
+            -0.024924164700643174,
+            -0.06119275542819205,
+            -0.2946061260691831,
+            0.26625393874916603,
+            0.21728069786089857,
+            -0.32284097128673683
           ],
           "dominant_components": [
             {
               "absolute_coefficient": 0.7566946446799943,
-              "coefficient": -0.7566946446799943,
+              "coefficient": 0.7566946446799943,
               "name": "log_second_moment_cholesky_yy_scale"
             },
             {
               "absolute_coefficient": 0.32284097128673683,
-              "coefficient": 0.32284097128673683,
+              "coefficient": -0.32284097128673683,
               "name": "log_force_effectiveness_4"
             },
             {
               "absolute_coefficient": 0.3151734109901899,
-              "coefficient": -0.3151734109901899,
+              "coefficient": 0.3151734109901899,
               "name": "cog_offset_x_m"
             },
             {
               "absolute_coefficient": 0.2946061260691831,
-              "coefficient": 0.2946061260691831,
+              "coefficient": -0.2946061260691831,
               "name": "log_force_effectiveness_1"
             },
             {
               "absolute_coefficient": 0.26625393874916603,
-              "coefficient": -0.26625393874916603,
+              "coefficient": 0.26625393874916603,
               "name": "log_force_effectiveness_2"
             },
             {
               "absolute_coefficient": 0.21728069786089857,
-              "coefficient": -0.21728069786089857,
+              "coefficient": 0.21728069786089857,
               "name": "log_force_effectiveness_3"
             },
             {
               "absolute_coefficient": 0.11005926828027982,
-              "coefficient": -0.11005926828027982,
+              "coefficient": 0.11005926828027982,
               "name": "log_second_moment_cholesky_xx_scale"
             },
             {
               "absolute_coefficient": 0.06119275542819205,
-              "coefficient": 0.06119275542819205,
+              "coefficient": -0.06119275542819205,
               "name": "cog_offset_z_m"
             }
           ],
           "information_eigenvalue": 3224.5308005992824,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 0.0005100135103626732,
           "singular_index": 9,
           "singular_value": 56.78495223736023
@@ -1160,72 +1188,72 @@
             }
           ],
           "information_eigenvalue": 3473.8013765658384,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 0.000549439823628219,
           "singular_index": 8,
           "singular_value": 58.93896314464514
         },
         {
           "dimensionless_direction": [
-            0.02705357020093049,
-            -0.8700404970357835,
-            -0.036861210549680744,
-            -0.0010231823659963405,
-            -0.10644244128537686,
-            -0.01954398956448517,
-            0.014043984217152321,
-            0.13559927641727448,
-            0.026674627797382253,
-            0.3861283573024232,
-            -0.10659107287809841,
-            0.0690686468779398,
-            0.20897923645418692,
-            -0.03209959299236771
+            -0.02705357020093049,
+            0.8700404970357835,
+            0.036861210549680744,
+            0.0010231823659963405,
+            0.10644244128537686,
+            0.01954398956448517,
+            -0.014043984217152321,
+            -0.13559927641727448,
+            -0.026674627797382253,
+            -0.3861283573024232,
+            0.10659107287809841,
+            -0.0690686468779398,
+            -0.20897923645418692,
+            0.03209959299236771
           ],
           "dominant_components": [
             {
               "absolute_coefficient": 0.8700404970357835,
-              "coefficient": -0.8700404970357835,
+              "coefficient": 0.8700404970357835,
               "name": "log_second_moment_cholesky_xx_scale"
             },
             {
               "absolute_coefficient": 0.3861283573024232,
-              "coefficient": 0.3861283573024232,
+              "coefficient": -0.3861283573024232,
               "name": "cog_offset_z_m"
             },
             {
               "absolute_coefficient": 0.20897923645418692,
-              "coefficient": 0.20897923645418692,
+              "coefficient": -0.20897923645418692,
               "name": "log_force_effectiveness_3"
             },
             {
               "absolute_coefficient": 0.13559927641727448,
-              "coefficient": 0.13559927641727448,
+              "coefficient": -0.13559927641727448,
               "name": "cog_offset_x_m"
             },
             {
               "absolute_coefficient": 0.10659107287809841,
-              "coefficient": -0.10659107287809841,
+              "coefficient": 0.10659107287809841,
               "name": "log_force_effectiveness_1"
             },
             {
               "absolute_coefficient": 0.10644244128537686,
-              "coefficient": -0.10644244128537686,
+              "coefficient": 0.10644244128537686,
               "name": "normalized_second_moment_cholesky_yx_offset"
             },
             {
               "absolute_coefficient": 0.0690686468779398,
-              "coefficient": 0.0690686468779398,
+              "coefficient": -0.0690686468779398,
               "name": "log_force_effectiveness_2"
             },
             {
               "absolute_coefficient": 0.036861210549680744,
-              "coefficient": -0.036861210549680744,
+              "coefficient": 0.036861210549680744,
               "name": "log_second_moment_cholesky_yy_scale"
             }
           ],
           "information_eigenvalue": 4399.009100254021,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 0.0006957769089756969,
           "singular_index": 7,
           "singular_value": 66.32502619866818
@@ -1290,137 +1318,137 @@
             }
           ],
           "information_eigenvalue": 18707.15142426548,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 0.0029588490719339795,
           "singular_index": 6,
           "singular_value": 136.77408900908637
         },
         {
           "dimensionless_direction": [
-            0.15074896210853472,
-            -0.40251526313947245,
-            -0.05190737200343155,
-            -0.0012055968908897931,
-            0.18586353835395286,
-            0.01067648532183815,
-            0.029371967710420072,
-            -0.042322754588049676,
-            -0.038691488751797794,
-            -0.8348276451850425,
-            0.005579342827622912,
-            0.24711969965805222,
-            -0.12017510298024121,
-            -0.03566027889112418
+            -0.15074896210853472,
+            0.40251526313947245,
+            0.05190737200343155,
+            0.0012055968908897931,
+            -0.18586353835395286,
+            -0.01067648532183815,
+            -0.029371967710420072,
+            0.042322754588049676,
+            0.038691488751797794,
+            0.8348276451850425,
+            -0.005579342827622912,
+            -0.24711969965805222,
+            0.12017510298024121,
+            0.03566027889112418
           ],
           "dominant_components": [
             {
               "absolute_coefficient": 0.8348276451850425,
-              "coefficient": -0.8348276451850425,
+              "coefficient": 0.8348276451850425,
               "name": "cog_offset_z_m"
             },
             {
               "absolute_coefficient": 0.40251526313947245,
-              "coefficient": -0.40251526313947245,
+              "coefficient": 0.40251526313947245,
               "name": "log_second_moment_cholesky_xx_scale"
             },
             {
               "absolute_coefficient": 0.24711969965805222,
-              "coefficient": 0.24711969965805222,
+              "coefficient": -0.24711969965805222,
               "name": "log_force_effectiveness_2"
             },
             {
               "absolute_coefficient": 0.18586353835395286,
-              "coefficient": 0.18586353835395286,
+              "coefficient": -0.18586353835395286,
               "name": "normalized_second_moment_cholesky_yx_offset"
             },
             {
               "absolute_coefficient": 0.15074896210853472,
-              "coefficient": 0.15074896210853472,
+              "coefficient": -0.15074896210853472,
               "name": "log_mass_scale"
             },
             {
               "absolute_coefficient": 0.12017510298024121,
-              "coefficient": -0.12017510298024121,
+              "coefficient": 0.12017510298024121,
               "name": "log_force_effectiveness_3"
             },
             {
               "absolute_coefficient": 0.05190737200343155,
-              "coefficient": -0.05190737200343155,
+              "coefficient": 0.05190737200343155,
               "name": "log_second_moment_cholesky_yy_scale"
             },
             {
               "absolute_coefficient": 0.042322754588049676,
-              "coefficient": -0.042322754588049676,
+              "coefficient": 0.042322754588049676,
               "name": "cog_offset_x_m"
             }
           ],
           "information_eigenvalue": 43693.26601529851,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 0.006910821250499747,
           "singular_index": 5,
           "singular_value": 209.02934247444426
         },
         {
           "dimensionless_direction": [
-            0.021827954882585918,
-            0.01719701164506164,
-            -0.015258054394033556,
-            0.00012440904261435583,
-            -0.9532109417966429,
-            -0.030488178416686034,
-            0.02632482255807978,
-            -0.12208927930483368,
-            -0.11318098624541241,
-            -0.14815944955703364,
-            0.05607361726127382,
-            0.12802997152258802,
-            -0.08714950456347431,
-            -0.10937752986649811
+            -0.021827954882585918,
+            -0.01719701164506164,
+            0.015258054394033556,
+            -0.00012440904261435583,
+            0.9532109417966429,
+            0.030488178416686034,
+            -0.02632482255807978,
+            0.12208927930483368,
+            0.11318098624541241,
+            0.14815944955703364,
+            -0.05607361726127382,
+            -0.12802997152258802,
+            0.08714950456347431,
+            0.10937752986649811
           ],
           "dominant_components": [
             {
               "absolute_coefficient": 0.9532109417966429,
-              "coefficient": -0.9532109417966429,
+              "coefficient": 0.9532109417966429,
               "name": "normalized_second_moment_cholesky_yx_offset"
             },
             {
               "absolute_coefficient": 0.14815944955703364,
-              "coefficient": -0.14815944955703364,
+              "coefficient": 0.14815944955703364,
               "name": "cog_offset_z_m"
             },
             {
               "absolute_coefficient": 0.12802997152258802,
-              "coefficient": 0.12802997152258802,
+              "coefficient": -0.12802997152258802,
               "name": "log_force_effectiveness_2"
             },
             {
               "absolute_coefficient": 0.12208927930483368,
-              "coefficient": -0.12208927930483368,
+              "coefficient": 0.12208927930483368,
               "name": "cog_offset_x_m"
             },
             {
               "absolute_coefficient": 0.11318098624541241,
-              "coefficient": -0.11318098624541241,
+              "coefficient": 0.11318098624541241,
               "name": "cog_offset_y_m"
             },
             {
               "absolute_coefficient": 0.10937752986649811,
-              "coefficient": -0.10937752986649811,
+              "coefficient": 0.10937752986649811,
               "name": "log_force_effectiveness_4"
             },
             {
               "absolute_coefficient": 0.08714950456347431,
-              "coefficient": -0.08714950456347431,
+              "coefficient": 0.08714950456347431,
               "name": "log_force_effectiveness_3"
             },
             {
               "absolute_coefficient": 0.05607361726127382,
-              "coefficient": 0.05607361726127382,
+              "coefficient": -0.05607361726127382,
               "name": "log_force_effectiveness_1"
             }
           ],
           "information_eigenvalue": 54059.5742309285,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 0.008550426380515029,
           "singular_index": 4,
           "singular_value": 232.50714877381404
@@ -1485,72 +1513,72 @@
             }
           ],
           "information_eigenvalue": 149141.23221157762,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 0.023589181832564508,
           "singular_index": 3,
           "singular_value": 386.1880788056224
         },
         {
           "dimensionless_direction": [
-            0.26042192736445857,
-            -0.023324751587902866,
-            -0.009252700179669008,
-            -1.8776531834784096e-05,
-            0.007850602238771525,
-            -0.0005993531056102035,
-            0.01212158773798284,
-            0.08514618528006121,
-            -0.017919643457753837,
-            -0.1140355748991576,
-            0.4726512677126872,
-            -0.5013587820061348,
-            0.3491062804635946,
-            -0.5604745273184416
+            -0.26042192736445857,
+            0.023324751587902866,
+            0.009252700179669008,
+            1.8776531834784096e-05,
+            -0.007850602238771525,
+            0.0005993531056102035,
+            -0.01212158773798284,
+            -0.08514618528006121,
+            0.017919643457753837,
+            0.1140355748991576,
+            -0.4726512677126872,
+            0.5013587820061348,
+            -0.3491062804635946,
+            0.5604745273184416
           ],
           "dominant_components": [
             {
               "absolute_coefficient": 0.5604745273184416,
-              "coefficient": -0.5604745273184416,
+              "coefficient": 0.5604745273184416,
               "name": "log_force_effectiveness_4"
             },
             {
               "absolute_coefficient": 0.5013587820061348,
-              "coefficient": -0.5013587820061348,
+              "coefficient": 0.5013587820061348,
               "name": "log_force_effectiveness_2"
             },
             {
               "absolute_coefficient": 0.4726512677126872,
-              "coefficient": 0.4726512677126872,
+              "coefficient": -0.4726512677126872,
               "name": "log_force_effectiveness_1"
             },
             {
               "absolute_coefficient": 0.3491062804635946,
-              "coefficient": 0.3491062804635946,
+              "coefficient": -0.3491062804635946,
               "name": "log_force_effectiveness_3"
             },
             {
               "absolute_coefficient": 0.26042192736445857,
-              "coefficient": 0.26042192736445857,
+              "coefficient": -0.26042192736445857,
               "name": "log_mass_scale"
             },
             {
               "absolute_coefficient": 0.1140355748991576,
-              "coefficient": -0.1140355748991576,
+              "coefficient": 0.1140355748991576,
               "name": "cog_offset_z_m"
             },
             {
               "absolute_coefficient": 0.08514618528006121,
-              "coefficient": 0.08514618528006121,
+              "coefficient": -0.08514618528006121,
               "name": "cog_offset_x_m"
             },
             {
               "absolute_coefficient": 0.023324751587902866,
-              "coefficient": -0.023324751587902866,
+              "coefficient": 0.023324751587902866,
               "name": "log_second_moment_cholesky_xx_scale"
             }
           ],
           "information_eigenvalue": 425421.6019629384,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 0.06728754600852498,
           "singular_index": 2,
           "singular_value": 652.2435143126671
@@ -1615,72 +1643,72 @@
             }
           ],
           "information_eigenvalue": 683172.1043089224,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 0.10805510154708162,
           "singular_index": 1,
           "singular_value": 826.5422580297528
         },
         {
           "dimensionless_direction": [
-            0.10749399820383848,
-            0.002583680460806661,
-            -0.002418532146027146,
-            3.205752701395206e-05,
-            0.008479503280693317,
-            4.075800690339442e-05,
-            0.004952604316647272,
-            0.026589268053509748,
-            -0.8481304271079008,
-            -0.06877809354577415,
-            -0.2777046221133063,
-            -0.28576266457861954,
-            0.20923214402986384,
-            0.24701254679517867
+            -0.10749399820383848,
+            -0.002583680460806661,
+            0.002418532146027146,
+            -3.205752701395206e-05,
+            -0.008479503280693317,
+            -4.075800690339442e-05,
+            -0.004952604316647272,
+            -0.026589268053509748,
+            0.8481304271079008,
+            0.06877809354577415,
+            0.2777046221133063,
+            0.28576266457861954,
+            -0.20923214402986384,
+            -0.24701254679517867
           ],
           "dominant_components": [
             {
               "absolute_coefficient": 0.8481304271079008,
-              "coefficient": -0.8481304271079008,
+              "coefficient": 0.8481304271079008,
               "name": "cog_offset_y_m"
             },
             {
               "absolute_coefficient": 0.28576266457861954,
-              "coefficient": -0.28576266457861954,
+              "coefficient": 0.28576266457861954,
               "name": "log_force_effectiveness_2"
             },
             {
               "absolute_coefficient": 0.2777046221133063,
-              "coefficient": -0.2777046221133063,
+              "coefficient": 0.2777046221133063,
               "name": "log_force_effectiveness_1"
             },
             {
               "absolute_coefficient": 0.24701254679517867,
-              "coefficient": 0.24701254679517867,
+              "coefficient": -0.24701254679517867,
               "name": "log_force_effectiveness_4"
             },
             {
               "absolute_coefficient": 0.20923214402986384,
-              "coefficient": 0.20923214402986384,
+              "coefficient": -0.20923214402986384,
               "name": "log_force_effectiveness_3"
             },
             {
               "absolute_coefficient": 0.10749399820383848,
-              "coefficient": 0.10749399820383848,
+              "coefficient": -0.10749399820383848,
               "name": "log_mass_scale"
             },
             {
               "absolute_coefficient": 0.06877809354577415,
-              "coefficient": -0.06877809354577415,
+              "coefficient": 0.06877809354577415,
               "name": "cog_offset_z_m"
             },
             {
               "absolute_coefficient": 0.026589268053509748,
-              "coefficient": 0.026589268053509748,
+              "coefficient": -0.026589268053509748,
               "name": "cog_offset_x_m"
             }
           ],
           "information_eigenvalue": 6322441.925717424,
-          "interpretation": "Large absolute coefficients identify parameters that can move together along this local weak/ridge direction. The coefficient sign gives the relative direction of motion.",
+          "interpretation": "This is the unit right-singular vector v for a weak data-information mode. A local perturbation delta_theta = epsilon * v changes the whitened residual wrench only weakly. absolute_coefficient is the magnitude shown in the PDF. The stored sign follows the deterministic largest-component-positive convention.",
           "relative_information_strength": 1.0,
           "singular_index": 0,
           "singular_value": 2514.4466440386886
@@ -1965,7 +1993,7 @@
       -0.09308299870292962
     ]
   },
-  "elapsed_seconds": 52.383983220905066,
+  "elapsed_seconds": 52.14929935801774,
   "external_wrench_model": {
     "covariance_diagnostics": {
       "eigenvalues": [
@@ -35578,6 +35606,1258 @@
       0.22633662076179248,
       0.22633662076179248,
       0.22633662076179248
+    ]
+  },
+  "physical_parameter_report": {
+    "coordinate_definition": "dm/m; dJ/(M*L*^2); dCoG/L*; de/e",
+    "internal_to_physical_dimensionless_jacobian": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.5658625833738027,
+        0.011164657239836777,
+        0.03165542153454421,
+        -4.470127019068858e-05,
+        0.0010710349956076454,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        3.638538147377493,
+        0.0,
+        0.011164657239836777,
+        0.0,
+        -4.470127019068858e-05,
+        0.0010710349956076454,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        3.638538147377493,
+        1.5658625833738027,
+        0.0,
+        0.03165542153454421,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -0.0246969319720415,
+        0.0,
+        0.0,
+        -1.1659288181538559,
+        -0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.00011872994384379569,
+        0.0,
+        0.0,
+        0.0,
+        -0.34247316127562544,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        -0.0018658538137937696,
+        0.0,
+        7.609136279362385e-05,
+        -0.004649139859847461,
+        -0.2247086042737676,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "interpretation": "posterior_to_prior_std_fraction: 1 means this bag leaves the prior marginal uncertainty essentially unchanged; 0 means strong reduction. Parameter combinations are local tangent-space directions, not extra physical parameters.",
+    "names": [
+      "mass",
+      "Jxx",
+      "Jyy",
+      "Jzz",
+      "Jxy",
+      "Jxz",
+      "Jyz",
+      "CoG x",
+      "CoG y",
+      "CoG z",
+      "rotor eff. 1",
+      "rotor eff. 2",
+      "rotor eff. 3",
+      "rotor eff. 4"
+    ],
+    "parameter_combinations_least_to_best_identified": [
+      {
+        "absolute_composition": [
+          0.02214570209198483,
+          0.17915305676694374,
+          0.3649924849696123,
+          0.8930614342898986,
+          0.004002267943295371,
+          0.029670261826919397,
+          0.17295689061652045,
+          0.010377574472057921,
+          0.02460945463555995,
+          0.03144462069690542,
+          0.04999472648815181,
+          0.03826622306694699,
+          0.007874241603579121,
+          0.009859937472720556
+        ],
+        "physical_dimensionless_direction": [
+          0.02214570209198483,
+          0.17915305676694374,
+          0.3649924849696123,
+          -0.8930614342898986,
+          -0.004002267943295371,
+          -0.029670261826919397,
+          0.17295689061652045,
+          -0.010377574472057921,
+          -0.02460945463555995,
+          -0.03144462069690542,
+          0.04999472648815181,
+          0.03826622306694699,
+          -0.007874241603579121,
+          0.009859937472720556
+        ],
+        "rank_from_least_identified": 1,
+        "relative_information_strength": 8.210004752130436e-09
+      },
+      {
+        "absolute_composition": [
+          0.006539887585173705,
+          0.025037015155953316,
+          0.1591061423158693,
+          0.13424149183035597,
+          0.11519155711248906,
+          0.9663171372813404,
+          0.060561077070441165,
+          0.026600174783511052,
+          0.01772911841875372,
+          0.030586133458768434,
+          0.016556224646134345,
+          0.03510852501484023,
+          0.00505346965627351,
+          0.04242203724769903
+        ],
+        "physical_dimensionless_direction": [
+          0.006539887585173705,
+          0.025037015155953316,
+          -0.1591061423158693,
+          -0.13424149183035597,
+          0.11519155711248906,
+          -0.9663171372813404,
+          -0.060561077070441165,
+          -0.026600174783511052,
+          0.01772911841875372,
+          0.030586133458768434,
+          0.016556224646134345,
+          -0.03510852501484023,
+          0.00505346965627351,
+          0.04242203724769903
+        ],
+        "rank_from_least_identified": 2,
+        "relative_information_strength": 1.5159534530019134e-05
+      },
+      {
+        "absolute_composition": [
+          0.1313636002264274,
+          0.05400487892607738,
+          0.396027405641994,
+          0.3345156290571006,
+          0.013181923306806738,
+          0.08152840798882162,
+          0.6965609785185677,
+          0.03159270281838652,
+          0.2090517451596391,
+          0.006527415743278326,
+          0.005965058521506569,
+          0.05811617021948232,
+          0.25333907631329755,
+          0.3267012815177879
+        ],
+        "physical_dimensionless_direction": [
+          0.1313636002264274,
+          -0.05400487892607738,
+          0.396027405641994,
+          0.3345156290571006,
+          -0.013181923306806738,
+          0.08152840798882162,
+          -0.6965609785185677,
+          -0.03159270281838652,
+          0.2090517451596391,
+          0.006527415743278326,
+          0.005965058521506569,
+          -0.05811617021948232,
+          0.25333907631329755,
+          0.3267012815177879
+        ],
+        "rank_from_least_identified": 3,
+        "relative_information_strength": 3.399598319224096e-05
+      },
+      {
+        "absolute_composition": [
+          0.3636848523011039,
+          0.11197056350648146,
+          0.3358642088785976,
+          0.4480285395449939,
+          0.0052493666522658135,
+          0.0005467249519630447,
+          0.017732956702637193,
+          0.004116932693733215,
+          0.0053364827243213165,
+          0.054849435220700155,
+          0.3666561745048206,
+          0.3671977359895087,
+          0.3702841021193445,
+          0.3631585575517904
+        ],
+        "physical_dimensionless_direction": [
+          0.3636848523011039,
+          0.11197056350648146,
+          0.3358642088785976,
+          0.4480285395449939,
+          0.0052493666522658135,
+          -0.0005467249519630447,
+          0.017732956702637193,
+          0.004116932693733215,
+          -0.0053364827243213165,
+          0.054849435220700155,
+          0.3666561745048206,
+          0.3671977359895087,
+          0.3702841021193445,
+          0.3631585575517904
+        ],
+        "rank_from_least_identified": 4,
+        "relative_information_strength": 6.572321271480155e-05
+      },
+      {
+        "absolute_composition": [
+          0.016566895869330505,
+          0.5590858479760074,
+          0.18899539621052347,
+          0.7479968178192914,
+          0.00010470972471314235,
+          0.0012302895243434195,
+          0.004291905141221326,
+          0.14871344370158276,
+          0.011760377731018196,
+          0.028873582199478158,
+          0.13900884406995406,
+          0.12563096615955086,
+          0.10252311807414209,
+          0.1523313545301219
+        ],
+        "physical_dimensionless_direction": [
+          -0.016566895869330505,
+          0.5590858479760074,
+          0.18899539621052347,
+          0.7479968178192914,
+          0.00010470972471314235,
+          -0.0012302895243434195,
+          -0.004291905141221326,
+          0.14871344370158276,
+          -0.011760377731018196,
+          -0.028873582199478158,
+          -0.13900884406995406,
+          0.12563096615955086,
+          0.10252311807414209,
+          -0.1523313545301219
+        ],
+        "rank_from_least_identified": 5,
+        "relative_information_strength": 0.0005100135103626732
+      },
+      {
+        "absolute_composition": [
+          0.0028595014920210623,
+          0.6706603656950318,
+          0.5470601543442538,
+          0.1235608619261044,
+          0.008218685545710478,
+          0.004820774047837374,
+          0.00016301279897499546,
+          0.24397378575169945,
+          0.008671034480259068,
+          0.011058206465485786,
+          0.19865111728105292,
+          0.22926935686543012,
+          0.20842791441353337,
+          0.20095772200582215
+        ],
+        "physical_dimensionless_direction": [
+          -0.0028595014920210623,
+          0.6706603656950318,
+          -0.5470601543442538,
+          0.1235608619261044,
+          0.008218685545710478,
+          0.004820774047837374,
+          -0.00016301279897499546,
+          -0.24397378575169945,
+          0.008671034480259068,
+          0.011058206465485786,
+          0.19865111728105292,
+          -0.22926935686543012,
+          -0.20842791441353337,
+          0.20095772200582215
+        ],
+        "rank_from_least_identified": 6,
+        "relative_information_strength": 0.000549439823628219
+      },
+      {
+        "absolute_composition": [
+          0.005947890689151124,
+          0.013429813358686404,
+          0.6959918858161859,
+          0.7094236742556659,
+          0.0320092009272379,
+          0.0014488495215254041,
+          0.0006605053682628467,
+          0.02981231932302216,
+          0.005864577914643027,
+          0.08489264981142156,
+          0.023434690697365507,
+          0.015185158876495916,
+          0.045945346418234216,
+          0.007057289254868027
+        ],
+        "physical_dimensionless_direction": [
+          -0.005947890689151124,
+          0.013429813358686404,
+          0.6959918858161859,
+          0.7094236742556659,
+          -0.0320092009272379,
+          -0.0014488495215254041,
+          0.0006605053682628467,
+          -0.02981231932302216,
+          -0.005864577914643027,
+          -0.08489264981142156,
+          0.023434690697365507,
+          -0.015185158876495916,
+          -0.045945346418234216,
+          0.007057289254868027
+        ],
+        "rank_from_least_identified": 7,
+        "relative_information_strength": 0.0006957769089756969
+      },
+      {
+        "absolute_composition": [
+          0.02536421529248025,
+          0.01406866465258612,
+          0.07651952752481753,
+          0.09084427190367013,
+          0.20356896951936376,
+          0.002181578335382181,
+          0.025422192258816204,
+          0.003166299358232338,
+          0.49484289058151365,
+          0.27169852901485136,
+          0.3899170818648004,
+          0.40426921340170785,
+          0.43352600976026723,
+          0.3476292647061276
+        ],
+        "physical_dimensionless_direction": [
+          0.02536421529248025,
+          0.01406866465258612,
+          0.07651952752481753,
+          0.09084427190367013,
+          0.20356896951936376,
+          0.002181578335382181,
+          0.025422192258816204,
+          -0.003166299358232338,
+          0.49484289058151365,
+          -0.27169852901485136,
+          -0.3899170818648004,
+          -0.40426921340170785,
+          0.43352600976026723,
+          0.3476292647061276
+        ],
+        "rank_from_least_identified": 8,
+        "relative_information_strength": 0.0029588490719339795
+      },
+      {
+        "absolute_composition": [
+          0.06508543453362324,
+          0.03254453960066643,
+          0.6323151217736389,
+          0.6648747907241973,
+          0.08926923357952778,
+          0.0015992779145347898,
+          0.002823097963878188,
+          0.018272728611158758,
+          0.016704939940816902,
+          0.3604344553193692,
+          0.0024088653564755284,
+          0.10669322567198092,
+          0.051885258035545,
+          0.015396223726886985
+        ],
+        "physical_dimensionless_direction": [
+          -0.06508543453362324,
+          0.03254453960066643,
+          0.6323151217736389,
+          0.6648747907241973,
+          0.08926923357952778,
+          0.0015992779145347898,
+          0.002823097963878188,
+          0.018272728611158758,
+          0.016704939940816902,
+          0.3604344553193692,
+          -0.0024088653564755284,
+          -0.10669322567198092,
+          0.051885258035545,
+          0.015396223726886985
+        ],
+        "rank_from_least_identified": 9,
+        "relative_information_strength": 0.006910821250499747
+      },
+      {
+        "absolute_composition": [
+          0.018923644861642594,
+          0.04684570971894638,
+          0.054273321175944696,
+          0.007373953344439786,
+          0.9631341891722014,
+          0.00905387885249874,
+          0.005043656068389287,
+          0.1058447378788451,
+          0.09812173427696333,
+          0.1284461517991558,
+          0.0486127639931382,
+          0.11099499361126802,
+          0.07555386123429225,
+          0.09482434530266486
+        ],
+        "physical_dimensionless_direction": [
+          -0.018923644861642594,
+          0.04684570971894638,
+          -0.054273321175944696,
+          -0.007373953344439786,
+          -0.9631341891722014,
+          -0.00905387885249874,
+          0.005043656068389287,
+          0.1058447378788451,
+          0.09812173427696333,
+          0.1284461517991558,
+          -0.0486127639931382,
+          -0.11099499361126802,
+          0.07555386123429225,
+          0.09482434530266486
+        ],
+        "rank_from_least_identified": 10,
+        "relative_information_strength": 0.008550426380515029
+      },
+      {
+        "absolute_composition": [
+          0.09903610463350017,
+          0.005448735353363536,
+          0.07356168729910291,
+          0.07901011341690144,
+          0.1317816082079618,
+          0.000878414773175112,
+          9.64492577087811e-05,
+          0.8388570957456783,
+          0.012233033285521236,
+          0.0970354579419069,
+          0.2521545857052699,
+          0.1640549799809042,
+          0.2679918243646689,
+          0.29253841536712727
+        ],
+        "physical_dimensionless_direction": [
+          -0.09903610463350017,
+          -0.005448735353363536,
+          -0.07356168729910291,
+          -0.07901011341690144,
+          0.1317816082079618,
+          0.000878414773175112,
+          -9.64492577087811e-05,
+          0.8388570957456783,
+          0.012233033285521236,
+          -0.0970354579419069,
+          0.2521545857052699,
+          -0.1640549799809042,
+          -0.2679918243646689,
+          0.29253841536712727
+        ],
+        "rank_from_least_identified": 11,
+        "relative_information_strength": 0.023589181832564508
+      },
+      {
+        "absolute_composition": [
+          0.25830379831733113,
+          0.014111427305900079,
+          0.08416503300751577,
+          0.09830185170621467,
+          0.008507431401031532,
+          0.000200846039359593,
+          0.00268119087821689,
+          0.08445365293411404,
+          0.017773894911515195,
+          0.11310807211149201,
+          0.4688069816748884,
+          0.49728100480070986,
+          0.3462668415550971,
+          0.5559159350812112
+        ],
+        "physical_dimensionless_direction": [
+          -0.25830379831733113,
+          0.014111427305900079,
+          0.08416503300751577,
+          0.09830185170621467,
+          0.008507431401031532,
+          -0.000200846039359593,
+          0.00268119087821689,
+          -0.08445365293411404,
+          0.017773894911515195,
+          0.11310807211149201,
+          -0.4688069816748884,
+          0.49728100480070986,
+          -0.3462668415550971,
+          0.5559159350812112
+        ],
+        "rank_from_least_identified": 12,
+        "relative_information_strength": 0.06728754600852498
+      },
+      {
+        "absolute_composition": [
+          0.8075909046348951,
+          0.006173850139364954,
+          0.17040115700409295,
+          0.17658317756856426,
+          0.01365570875670847,
+          8.276463269316856e-05,
+          0.0011452715017565133,
+          0.0846993489166033,
+          0.10630945900977888,
+          0.14228913171780722,
+          0.30142174952402667,
+          0.0823844986807669,
+          0.3829952114494692,
+          0.06559998513241269
+        ],
+        "physical_dimensionless_direction": [
+          0.8075909046348951,
+          0.006173850139364954,
+          0.17040115700409295,
+          0.17658317756856426,
+          0.01365570875670847,
+          8.276463269316856e-05,
+          0.0011452715017565133,
+          0.0846993489166033,
+          0.10630945900977888,
+          0.14228913171780722,
+          -0.30142174952402667,
+          -0.0823844986807669,
+          -0.3829952114494692,
+          -0.06559998513241269
+        ],
+        "rank_from_least_identified": 13,
+        "relative_information_strength": 0.10805510154708162
+      },
+      {
+        "absolute_composition": [
+          0.10748718902908959,
+          0.003512783711171805,
+          0.009405884568535527,
+          0.00588178057067145,
+          0.009949675920035718,
+          1.3650898468671271e-05,
+          0.0011078542676611163,
+          0.026587583764380616,
+          0.8480767025429526,
+          0.0687737368182761,
+          0.2776870309981544,
+          0.285744563029209,
+          0.20921889028309107,
+          0.246996899860239
+        ],
+        "physical_dimensionless_direction": [
+          -0.10748718902908959,
+          0.003512783711171805,
+          -0.009405884568535527,
+          -0.00588178057067145,
+          0.009949675920035718,
+          1.3650898468671271e-05,
+          0.0011078542676611163,
+          -0.026587583764380616,
+          0.8480767025429526,
+          0.0687737368182761,
+          0.2776870309981544,
+          0.285744563029209,
+          -0.20921889028309107,
+          -0.246996899860239
+        ],
+        "rank_from_least_identified": 14,
+        "relative_information_strength": 1.0
+      }
+    ],
+    "posterior_covariance": [
+      [
+        0.00046911993050394423,
+        0.0001251744118797625,
+        0.0004226847265609399,
+        0.0005322117259664991,
+        7.556835922576687e-06,
+        -4.146727236729603e-06,
+        -1.8931911965728803e-05,
+        1.6486795770893015e-07,
+        6.9992084246077266e-06,
+        6.933722624068342e-05,
+        0.0004646243132264505,
+        0.00045738629726230104,
+        0.0004815946336666304,
+        0.00048088348682103865
+      ],
+      [
+        0.0001251744118797625,
+        0.0007905471448374304,
+        0.00010158071057237426,
+        0.0007673788287608325,
+        6.8098518696065124e-06,
+        -3.5176169141457415e-05,
+        3.420170926397356e-05,
+        8.130398223932569e-06,
+        -1.4094378351237236e-05,
+        -2.2422787162237353e-06,
+        0.0001266482320114483,
+        0.0001420303022967995,
+        0.0001232848995177415,
+        0.00010497670865150935
+      ],
+      [
+        0.0004226847265609398,
+        0.00010158071057237427,
+        0.0031337735799650936,
+        0.002979788108362037,
+        -0.00011947016027041508,
+        0.00020195710617369484,
+        -6.363445866753514e-05,
+        3.195670705338347e-05,
+        2.2887229050699376e-06,
+        -0.00020941161937029656,
+        0.00040062665586531096,
+        0.00048611851384654773,
+        0.0004319986829872989,
+        0.0003899840873304044
+      ],
+      [
+        0.0005322117259664991,
+        0.0007673788287608324,
+        0.002979788108362037,
+        0.004368973352459699,
+        -0.00010984840357226204,
+        0.00018742486287816752,
+        -0.00014766434497151884,
+        4.742675859962951e-05,
+        4.652285578346342e-06,
+        -0.00018972354856458274,
+        0.0004926335916696694,
+        0.0006018925126991951,
+        0.000560159956144987,
+        0.0004872307313441255
+      ],
+      [
+        7.556835922576687e-06,
+        6.8098518696065124e-06,
+        -0.00011947016027041507,
+        -0.00010984840357226204,
+        4.8427950036960575e-05,
+        -0.00014433277913537837,
+        -4.6816722517607235e-06,
+        -2.071828543542656e-06,
+        5.563675809593266e-06,
+        1.6252224803302322e-05,
+        3.567130127535522e-06,
+        -3.353466068870271e-07,
+        1.5059947294644634e-05,
+        1.2928624783435026e-05
+      ],
+      [
+        -4.146727236729603e-06,
+        -3.517616914145742e-05,
+        0.0002019571061736948,
+        0.00018742486287816752,
+        -0.00014433277913537834,
+        0.0012147330838561661,
+        4.6855662891304814e-05,
+        3.144363869330266e-05,
+        -1.3767166744405173e-05,
+        -3.7064736274321306e-05,
+        -2.126806197171581e-05,
+        3.9666132507624105e-05,
+        2.2525851670111947e-06,
+        -4.068682184106162e-05
+      ],
+      [
+        -1.8931911965728803e-05,
+        3.4201709263973555e-05,
+        -6.363445866753517e-05,
+        -0.00014766434497151884,
+        -4.6816722517607235e-06,
+        4.685566289130482e-05,
+        0.0002470786981721333,
+        1.0807959465792176e-05,
+        -7.105585512660798e-05,
+        -4.117374946839106e-06,
+        2.3849265840885273e-05,
+        4.6090841361096855e-05,
+        -6.082091411909574e-05,
+        -8.50513038995493e-05
+      ],
+      [
+        1.6486795770893025e-07,
+        8.13039822393255e-06,
+        3.195670705338346e-05,
+        4.742675859962948e-05,
+        -2.071828543542655e-06,
+        3.144363869330266e-05,
+        1.0807959465792174e-05,
+        8.038458336504316e-05,
+        -6.3548120571721685e-06,
+        4.5837685292152435e-06,
+        -5.789202882147673e-05,
+        7.018855161491473e-05,
+        6.093513523926262e-05,
+        -6.384994808698189e-05
+      ],
+      [
+        6.999208424607728e-06,
+        -1.4094378351237231e-05,
+        2.288722905069941e-06,
+        4.652285578346346e-06,
+        5.563675809593265e-06,
+        -1.3767166744405173e-05,
+        -7.1055855126608e-05,
+        -6.3548120571721685e-06,
+        3.5273745370962474e-05,
+        -2.619361820578426e-06,
+        -1.4246107584331196e-05,
+        -2.795216184433283e-05,
+        2.827482574682263e-05,
+        3.9045305136039614e-05
+      ],
+      [
+        6.933722624068342e-05,
+        -2.24227871622373e-06,
+        -0.0002094116193702966,
+        -0.00018972354856458277,
+        1.6252224803302322e-05,
+        -3.7064736274321306e-05,
+        -4.1173749468391065e-06,
+        4.583768529215243e-06,
+        -2.619361820578426e-06,
+        6.774791926271302e-05,
+        7.239403420427155e-05,
+        6.810766833375664e-05,
+        8.035675979296376e-05,
+        7.212837818604194e-05
+      ],
+      [
+        0.00046462431322645043,
+        0.0001266482320114483,
+        0.00040062665586531096,
+        0.0004926335916696694,
+        3.567130127535522e-06,
+        -2.126806197171581e-05,
+        2.384926584088527e-05,
+        -5.789202882147673e-05,
+        -1.4246107584331196e-05,
+        7.239403420427155e-05,
+        0.0005321175951833177,
+        0.0004188862900421205,
+        0.00041012472512555237,
+        0.000512257443056901
+      ],
+      [
+        0.00045738629726230104,
+        0.0001420303022967995,
+        0.00048611851384654773,
+        0.0006018925126991951,
+        -3.353466068870246e-07,
+        3.96661325076241e-05,
+        4.6090841361096855e-05,
+        7.018855161491473e-05,
+        -2.795216184433283e-05,
+        6.810766833375665e-05,
+        0.00041888629004212057,
+        0.0005398503070140307,
+        0.0005058822264508117,
+        0.00038664611179027857
+      ],
+      [
+        0.0004815946336666304,
+        0.0001232848995177415,
+        0.0004319986829872989,
+        0.000560159956144987,
+        1.5059947294644634e-05,
+        2.2525851670111943e-06,
+        -6.082091411909574e-05,
+        6.093513523926262e-05,
+        2.827482574682263e-05,
+        8.035675979296376e-05,
+        0.0004101247251255523,
+        0.0005058822264508116,
+        0.0005697427134476304,
+        0.0004618666370740167
+      ],
+      [
+        0.0004808834868210386,
+        0.00010497670865150937,
+        0.0003899840873304044,
+        0.00048723073134412557,
+        1.2928624783435024e-05,
+        -4.068682184106162e-05,
+        -8.505130389954932e-05,
+        -6.384994808698188e-05,
+        3.9045305136039614e-05,
+        7.212837818604194e-05,
+        0.000512257443056901,
+        0.0003866461117902785,
+        0.0004618666370740167,
+        0.0005762875664421705
+      ]
+    ],
+    "posterior_standard_deviation": [
+      0.021659176588779736,
+      0.028116670230264294,
+      0.055980117720178954,
+      0.06609820990359497,
+      0.0069590193301183306,
+      0.03485302115823198,
+      0.015718737168492043,
+      0.0089657449977703,
+      0.005939170427842804,
+      0.008230912419817929,
+      0.02306767424738172,
+      0.023234678973767436,
+      0.023869283890549178,
+      0.02400599021998823
+    ],
+    "posterior_to_prior_std_fraction": [
+      0.01443945105918649,
+      0.01196602920492465,
+      0.01025683898296699,
+      0.011123720301759545,
+      0.002983947737656522,
+      0.050884308496268606,
+      0.03496766068382345,
+      0.0068708088158120455,
+      0.004551423729358893,
+      0.006307677234889696,
+      0.01537844949825448,
+      0.015489785982511625,
+      0.015912855927032784,
+      0.016003993479992155
+    ],
+    "prior_covariance": [
+      [
+        2.25,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        5.521125988364846,
+        0.00028505799204833125,
+        5.520840930372797,
+        -0.147631872871733,
+        6.1235941260964e-05,
+        -0.007525976023876015,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.00028505799204833125,
+        29.787944720314837,
+        29.78765966232279,
+        -0.2021866404827847,
+        0.0010332436585621498,
+        -0.0009618518261373018,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        5.520840930372797,
+        29.78765966232279,
+        35.30850059269559,
+        -0.3498185133545177,
+        0.0009720077173011859,
+        -0.006564124197738713,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -0.147631872871733,
+        -0.20218664048278467,
+        -0.3498185133545177,
+        5.438932397516459,
+        -6.597597028847692e-06,
+        -0.00035486845077474456,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        6.1235941260964e-05,
+        0.0010332436585621498,
+        0.0009720077173011859,
+        -6.597597028847693e-06,
+        0.46915149649428123,
+        0.006368822500057912,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -0.007525976023876014,
+        -0.0009618518261373018,
+        -0.006564124197738712,
+        -0.00035486845077474456,
+        0.006368822500057912,
+        0.20207014167750892,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.7027741038586164,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.7027741038586164,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.7027741038586164,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.25,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.25,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.25,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.25
+      ]
+    ],
+    "prior_standard_deviation": [
+      1.5,
+      2.349707638912732,
+      5.4578333357033575,
+      5.942095639813919,
+      2.3321518813140063,
+      0.6849463457047429,
+      0.4495221259042862,
+      1.304903867669422,
+      1.304903867669422,
+      1.304903867669422,
+      1.5,
+      1.5,
+      1.5,
+      1.5
     ]
   },
   "prior_and_local_posterior": {

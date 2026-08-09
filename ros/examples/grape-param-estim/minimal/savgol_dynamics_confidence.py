@@ -646,6 +646,14 @@ def run(arguments: argparse.Namespace) -> int:
         parameter_prior=parameter_prior,
         names=deterministic.PHYSICAL_PARAMETER_NAMES,
     )
+    posterior["numerical_linear_algebra"] = {
+        "precision_inverse": "Moore-Penrose pseudoinverse",
+        "posterior_mean_solver": "pseudoinverse times information vector",
+        "reason": (
+            "data/prior information may be rank deficient because ridge directions "
+            "are part of the intended model; ordinary matrix inversion is not used"
+        ),
+    }
     prefix = legacy._prefix_information(
         confidence_time,
         whitened_jacobian,

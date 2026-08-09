@@ -79,6 +79,13 @@
         },
         "residual_l2_norm": 41.05419683497327
       },
+      "invalid_trial_evaluations": {
+        "invalid_evaluation_count": 0,
+        "invalid_examples": [],
+        "invalid_exception_counts": {},
+        "penalty_residual_l2_norm": 41054196.83497327,
+        "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
+      },
       "tolerances": {
         "ftol": null,
         "gtol": 1e-06,
@@ -170,6 +177,13 @@
               ]
             },
             "residual_l2_norm": 119.72288681886842
+          },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 119722886.81886841,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
           },
           "tolerances": {
             "ftol": null,
@@ -281,6 +295,13 @@
             },
             "residual_l2_norm": 41.05657914369123
           },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41056579.143691234,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
+          },
           "tolerances": {
             "ftol": null,
             "gtol": 1e-06,
@@ -390,6 +411,13 @@
               ]
             },
             "residual_l2_norm": 41.05456367110611
+          },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41054563.67110611,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
           },
           "tolerances": {
             "ftol": null,
@@ -517,6 +545,13 @@
             },
             "residual_l2_norm": 41.05564918080325
           },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41055649.18080325,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
+          },
           "tolerances": {
             "ftol": null,
             "gtol": 1e-06,
@@ -624,6 +659,13 @@
               ]
             },
             "residual_l2_norm": 41.05419683497327
+          },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41054196.83497327,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
           },
           "tolerances": {
             "ftol": null,
@@ -738,6 +780,13 @@
               ]
             },
             "residual_l2_norm": 41.0564030837188
+          },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41056403.0837188,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
           },
           "tolerances": {
             "ftol": null,

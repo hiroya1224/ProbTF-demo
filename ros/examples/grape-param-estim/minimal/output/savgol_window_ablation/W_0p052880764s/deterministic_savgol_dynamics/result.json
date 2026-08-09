@@ -26,18 +26,18 @@
         "selected_lag_seconds": 0.032833360527
       },
       "estimated_forward_metrics": {
-        "orientation_angle_rmse_deg": 152.14693360048105,
-        "orientation_angle_rmse_rad": 2.655464938141585,
+        "orientation_angle_rmse_deg": 152.1469336004829,
+        "orientation_angle_rmse_rad": 2.6554649381416175,
         "position_component_rmse_m": [
-          19.31423575950905,
-          20.231933399832492,
-          106.58330661655252
+          19.314235759509113,
+          20.23193339983248,
+          106.58330661655229
         ],
-        "position_rmse_m": 110.19243205133102,
-        "terminal_orientation_error_deg": 179.59078176416182,
-        "terminal_position_error_m": 244.52999283945394
+        "position_rmse_m": 110.19243205133078,
+        "terminal_orientation_error_deg": 179.59078176486702,
+        "terminal_position_error_m": 244.52999283945297
       },
-      "estimated_forward_pose_score_m2": 6071.306721668273,
+      "estimated_forward_pose_score_m2": 6071.3067216682475,
       "estimated_improves_over_reference": false,
       "estimated_with_external_wrench_forward_metrics": {
         "orientation_angle_rmse_deg": 146.8930679326468,
@@ -236,18 +236,18 @@
         "terminal_position_error_m": 158.57198927918478
       },
       "reference_forward_metrics": {
-        "orientation_angle_rmse_deg": 140.8883670606554,
-        "orientation_angle_rmse_rad": 2.4589658829667624,
+        "orientation_angle_rmse_deg": 140.88836706072627,
+        "orientation_angle_rmse_rad": 2.4589658829679992,
         "position_component_rmse_m": [
-          40.15849385986836,
-          48.74947562406564,
-          51.79332850422297
+          40.15849385986846,
+          48.74947562406557,
+          51.793328504222984
         ],
-        "position_rmse_m": 81.68087218107316,
-        "terminal_orientation_error_deg": 167.42958713590764,
-        "terminal_position_error_m": 178.0761753081634
+        "position_rmse_m": 81.68087218107317,
+        "terminal_orientation_error_deg": 167.4295871359066,
+        "terminal_position_error_m": 178.0761753081635
       },
-      "reference_forward_pose_score_m2": 3336.014899690761,
+      "reference_forward_pose_score_m2": 3336.0148996907624,
       "reference_rollout_lag_seconds": 0.0,
       "residual_wrench_statistics": {
         "component_names": [
@@ -394,46 +394,46 @@
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": -3.9000000000000554,
-            "mean_bias": -7.623551037253176,
-            "pearson_correlation": -0.4581992758599746,
-            "rmse": 13.231006200937927
+            "mean_bias": -7.623551037253199,
+            "pearson_correlation": -0.45819927585997894,
+            "rmse": 13.231006200937932
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": -0.350000000000005,
-            "mean_bias": -25.618474169577688,
-            "pearson_correlation": 0.18007233035832915,
-            "rmse": 33.48915325668382
+            "mean_bias": -25.61847416957786,
+            "pearson_correlation": 0.18007233035832726,
+            "rmse": 33.48915325668401
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": -0.20000000000000284,
-            "mean_bias": -12.482446267271424,
-            "pearson_correlation": 0.5496695613799462,
-            "rmse": 15.67994145381302
+            "mean_bias": -12.482446267271483,
+            "pearson_correlation": 0.5496695613799399,
+            "rmse": 15.679941453813067
           }
         ],
         "specific_force": [
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -5.736710332400482,
-            "pearson_correlation": 0.6979374637886685,
-            "rmse": 10.198018801551239
+            "mean_bias": -5.73671033240048,
+            "pearson_correlation": 0.697937463788669,
+            "rmse": 10.198018801551267
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": 0.05000000000000071,
-            "mean_bias": -8.666608649372312,
-            "pearson_correlation": 0.44277863371469367,
-            "rmse": 11.172820147347654
+            "mean_bias": -8.666608649372286,
+            "pearson_correlation": 0.4427786337146879,
+            "rmse": 11.172820147347696
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": 3.600000000000051,
-            "mean_bias": 16.063052776608373,
-            "pearson_correlation": -0.4384546507583469,
-            "rmse": 23.798692078030633
+            "mean_bias": 16.063052776608544,
+            "pearson_correlation": -0.438454650758348,
+            "rmse": 23.79869207803099
           }
         ]
       },
@@ -501,8 +501,8 @@
     }
   ],
   "config_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/single_rosbag_1.json",
-  "created_at": "2026-08-09T21:10:52.430885+00:00",
-  "elapsed_seconds": 466.35015979083255,
+  "created_at": "2026-08-09T21:48:49.754893+00:00",
+  "elapsed_seconds": 733.1789949550293,
   "initial_estimate": {
     "delay_default": "zero unless --initial-delay is explicitly supplied",
     "delay_seconds": 0.0,
@@ -689,6 +689,13 @@
             ]
           },
           "residual_l2_norm": 41.05419683497327
+        },
+        "invalid_trial_evaluations": {
+          "invalid_evaluation_count": 0,
+          "invalid_examples": [],
+          "invalid_exception_counts": {},
+          "penalty_residual_l2_norm": 41054196.83497327,
+          "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
         },
         "tolerances": {
           "ftol": null,
@@ -888,6 +895,13 @@
             },
             "residual_l2_norm": 119.72288681886842
           },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 119722886.81886841,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
+          },
           "tolerances": {
             "ftol": null,
             "gtol": 1e-06,
@@ -998,6 +1012,13 @@
             },
             "residual_l2_norm": 41.05657914369123
           },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41056579.143691234,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
+          },
           "tolerances": {
             "ftol": null,
             "gtol": 1e-06,
@@ -1107,6 +1128,13 @@
               ]
             },
             "residual_l2_norm": 41.05456367110611
+          },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41054563.67110611,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
           },
           "tolerances": {
             "ftol": null,
@@ -1234,6 +1262,13 @@
             },
             "residual_l2_norm": 41.05564918080325
           },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41055649.18080325,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
+          },
           "tolerances": {
             "ftol": null,
             "gtol": 1e-06,
@@ -1341,6 +1376,13 @@
               ]
             },
             "residual_l2_norm": 41.05419683497327
+          },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41054196.83497327,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
           },
           "tolerances": {
             "ftol": null,
@@ -1455,6 +1497,13 @@
               ]
             },
             "residual_l2_norm": 41.0564030837188
+          },
+          "invalid_trial_evaluations": {
+            "invalid_evaluation_count": 0,
+            "invalid_examples": [],
+            "invalid_exception_counts": {},
+            "penalty_residual_l2_norm": 41056403.0837188,
+            "policy": "invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded"
           },
           "tolerances": {
             "ftol": null,

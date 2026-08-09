@@ -1,0 +1,19 @@
+Savitzky-Golay optimizer diagnostics
+
+Objective: weighted empirical uncentered second moment of reference-scaled residual body wrench; no residual mean subtraction
+Tolerances: {'ftol': None, 'xtol': None, 'gtol': 1e-06, 'note': 'ftol and xtol are disabled by default in the SG estimator; gtol or max_nfev terminates the solve unless explicitly overridden'}
+
+Selected strict-ZOH solve
+status=1 success=True nfev=4 njev=4
+message=`gtol` termination condition is satisfied.
+reported optimality=8.836106690779388e-08
+initial={'cost': 6.510815988888972, 'gradient_inf_norm': 0.5070640676134115, 'gradient_l2_norm': 0.7077901424589987, 'jacobian': {'condition_number_nonzero_subspace': 562.6276893002662, 'numerical_rank': 14, 'numerical_tolerance': 1.3512897109349326e-10, 'singular_values': [168.9524663696876, 162.64042200843173, 111.50859458834763, 54.05593529181772, 44.74150968566644, 25.894028522725176, 14.614108602424055, 14.383832150346928, 13.068179483528557, 12.685597713668745, 10.388312403181892, 3.822824767291076, 3.79408169550713, 0.3002917730192268]}, 'residual_l2_norm': 3.608549844158723}
+final={'cost': 6.510780249016224, 'gradient_inf_norm': 8.836106690779388e-08, 'gradient_l2_norm': 1.115935486713683e-07, 'jacobian': {'condition_number_nonzero_subspace': 552.667974385779, 'numerical_rank': 14, 'numerical_tolerance': 1.3513803636084642e-10, 'singular_values': [168.96380072134605, 162.6506923037099, 111.51067801118649, 54.055074454582495, 44.741718286262476, 25.893984267558707, 14.61488894006342, 14.385586096367302, 13.069344212464967, 12.686431123168399, 10.389324418117628, 3.822486052128464, 3.7944236480286406, 0.30572388586316784]}, 'residual_l2_norm': 3.6085399399247957}
+coordinate_step_l2_norm=0.00897143092107601
+cost_reduction=3.5739872747519996e-05
+gradient_tolerance_satisfied=True
+finite_difference_max_relative_error=7.267064508777685e-12
+finite_difference_directional_checks=[{'analytic_l2_norm': 151.83923110975587, 'difference_l2_norm': 1.1034254874379186e-09, 'direction': 'negative_gradient', 'finite_difference_l2_norm': 151.83923110977227, 'relative_error': 7.267064508777685e-12, 'scheme': 'central', 'step': 6.0554544523933395e-06}]
+invalid_trial_evaluations={'invalid_evaluation_count': 0, 'invalid_examples': [], 'invalid_exception_counts': {}, 'penalty_residual_l2_norm': 3608549.844158723, 'policy': 'invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded'}
+
+All smoothstep and strict-ZOH stage details are in optimizer_diagnostics.json.

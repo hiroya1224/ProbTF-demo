@@ -495,26 +495,37 @@ def _directional_jacobian_checks(
                 float(np.min((upper[negative] - x[negative]) / (-direction[negative]))),
             )
         analytic = jacobian @ direction
-        if plus_limit > step and minus_limit > step:
-            plus = evaluator(x + step * direction).residual
-            minus = evaluator(x - step * direction).residual
-            finite_difference = (plus - minus) / (2.0 * step)
-            scheme = "central"
-        elif plus_limit > 0.0:
-            step = min(step, 0.5 * plus_limit)
-            plus = evaluator(x + step * direction).residual
-            finite_difference = (plus - residual) / step
-            scheme = "forward"
-        elif minus_limit > 0.0:
-            step = min(step, 0.5 * minus_limit)
-            minus = evaluator(x - step * direction).residual
-            finite_difference = (residual - minus) / step
-            scheme = "backward"
-        else:
+        try:
+            if plus_limit > step and minus_limit > step:
+                plus = evaluator(x + step * direction).residual
+                minus = evaluator(x - step * direction).residual
+                finite_difference = (plus - minus) / (2.0 * step)
+                scheme = "central"
+            elif plus_limit > 0.0:
+                step = min(step, 0.5 * plus_limit)
+                plus = evaluator(x + step * direction).residual
+                finite_difference = (plus - residual) / step
+                scheme = "forward"
+            elif minus_limit > 0.0:
+                step = min(step, 0.5 * minus_limit)
+                minus = evaluator(x - step * direction).residual
+                finite_difference = (residual - minus) / step
+                scheme = "backward"
+            else:
+                checks.append(
+                    {
+                        "direction": label,
+                        "scheme": "unavailable_at_bounds",
+                    }
+                )
+                continue
+        except (ValueError, FloatingPointError, OverflowError, np.linalg.LinAlgError) as error:
             checks.append(
                 {
                     "direction": label,
-                    "scheme": "unavailable_at_bounds",
+                    "scheme": "finite_difference_trial_invalid",
+                    "exception_type": type(error).__name__,
+                    "message": str(error),
                 }
             )
             continue
@@ -584,6 +595,101 @@ def _optimizer_diagnostics(
     }
 
 
+
+class _SafeCachedObjective:
+    """Cache valid evaluations and reject numerically invalid trial points.
+
+    The physical chart is left unbounded.  This wrapper only prevents a trial
+    point that is outside the floating-point-valid part of that chart from
+    aborting the complete least-squares run.  Invalid trials receive a large
+    fixed residual so the trust-region step is rejected.  Every failure is
+    counted and reported in optimizer diagnostics.
+    """
+
+    _EXCEPTIONS = (ValueError, FloatingPointError, OverflowError, np.linalg.LinAlgError)
+
+    def __init__(self, evaluator: Any, initial: np.ndarray) -> None:
+        self.evaluator = evaluator
+        self.coordinate: Optional[np.ndarray] = None
+        self.evaluation: Optional[Any] = None
+        self.invalid_evaluation_count = 0
+        self.invalid_exception_counts: dict[str, int] = {}
+        self.invalid_examples: list[dict[str, Any]] = []
+        initial_value = np.asarray(initial, dtype=float)
+        initial_evaluation = evaluator(initial_value)
+        initial_residual = np.asarray(initial_evaluation.residual, dtype=float)
+        self.residual_size = int(initial_residual.size)
+        self.dimension = int(initial_value.size)
+        # Numerical rejection scale only.  It is not part of the scientific
+        # objective and is used exclusively for invalid floating-point trials.
+        self.penalty_residual_norm = 1.0e6 * max(
+            1.0,
+            float(np.linalg.norm(initial_residual)),
+        )
+        self.penalty_residual = np.full(
+            self.residual_size,
+            self.penalty_residual_norm / math.sqrt(self.residual_size),
+            dtype=float,
+        )
+        self.penalty_jacobian = np.zeros(
+            (self.residual_size, self.dimension),
+            dtype=float,
+        )
+        self.coordinate = initial_value.copy()
+        self.evaluation = initial_evaluation
+
+    def _record_invalid(self, value: np.ndarray, error: BaseException) -> None:
+        self.invalid_evaluation_count += 1
+        name = type(error).__name__
+        self.invalid_exception_counts[name] = self.invalid_exception_counts.get(name, 0) + 1
+        if len(self.invalid_examples) < 12:
+            self.invalid_examples.append(
+                {
+                    "exception_type": name,
+                    "message": str(error),
+                    "coordinate_l2_norm": float(np.linalg.norm(value)),
+                    "coordinate_inf_norm": float(np.linalg.norm(value, ord=np.inf)),
+                    "coordinate": value.copy(),
+                }
+            )
+
+    def _get(self, coordinate: np.ndarray) -> Optional[Any]:
+        value = np.asarray(coordinate, dtype=float)
+        if self.coordinate is not None and np.array_equal(value, self.coordinate):
+            return self.evaluation
+        self.coordinate = value.copy()
+        try:
+            self.evaluation = self.evaluator(value)
+        except self._EXCEPTIONS as error:
+            self._record_invalid(value, error)
+            self.evaluation = None
+        return self.evaluation
+
+    def residual(self, coordinate: np.ndarray) -> np.ndarray:
+        evaluation = self._get(coordinate)
+        if evaluation is None:
+            return self.penalty_residual
+        return np.asarray(evaluation.residual, dtype=float)
+
+    def jacobian(self, coordinate: np.ndarray) -> np.ndarray:
+        evaluation = self._get(coordinate)
+        if evaluation is None:
+            return self.penalty_jacobian
+        return np.asarray(evaluation.jacobian, dtype=float)
+
+    def diagnostics(self) -> dict[str, Any]:
+        return {
+            "policy": (
+                "invalid floating-point trial points are assigned a large fixed "
+                "residual so the trust-region trial is rejected; the scientific "
+                "parameter chart itself remains unbounded"
+            ),
+            "invalid_evaluation_count": int(self.invalid_evaluation_count),
+            "invalid_exception_counts": dict(self.invalid_exception_counts),
+            "invalid_examples": list(self.invalid_examples),
+            "penalty_residual_l2_norm": float(self.penalty_residual_norm),
+        }
+
 def _solve_smooth(
     problem: SplineDynamicsProblem,
     initial: np.ndarray,
@@ -593,7 +699,7 @@ def _solve_smooth(
     arguments: argparse.Namespace,
 ) -> tuple[np.ndarray, Any, Mapping[str, Any]]:
     evaluator = lambda value: problem.evaluate_smooth(value, width_fraction)
-    objective = base._CachedObjective(evaluator)
+    objective = _SafeCachedObjective(evaluator, np.asarray(initial, dtype=float))
     result = base.least_squares(
         objective.residual,
         initial,
@@ -619,6 +725,7 @@ def _solve_smooth(
         np.asarray(upper, dtype=float),
         arguments,
     )
+    payload["diagnostics"]["invalid_trial_evaluations"] = objective.diagnostics()
     return result.x, final_evaluation, payload
 
 
@@ -631,7 +738,7 @@ def _solve_strict(
     arguments: argparse.Namespace,
 ) -> base.DynamicsSolution:
     evaluator = lambda value: problem.evaluate_strict(value, delay)
-    objective = base._CachedObjective(evaluator)
+    objective = _SafeCachedObjective(evaluator, np.asarray(initial, dtype=float))
     result = base.least_squares(
         objective.residual,
         initial,
@@ -657,6 +764,7 @@ def _solve_strict(
         np.asarray(upper, dtype=float),
         arguments,
     )
+    payload["diagnostics"]["invalid_trial_evaluations"] = objective.diagnostics()
     return base.DynamicsSolution(
         physical_coordinate=np.asarray(result.x, dtype=float).copy(),
         delay_seconds=float(delay),
@@ -1466,6 +1574,9 @@ def _rewrite_json_outputs(
                     ),
                     "finite_difference_directional_checks={}".format(
                         diagnostics.get("finite_difference_directional_checks")
+                    ),
+                    "invalid_trial_evaluations={}".format(
+                        diagnostics.get("invalid_trial_evaluations")
                     ),
                 ]
             )

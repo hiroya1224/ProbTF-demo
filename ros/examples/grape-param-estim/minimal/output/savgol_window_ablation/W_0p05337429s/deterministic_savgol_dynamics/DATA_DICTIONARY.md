@@ -340,3 +340,123 @@ external-wrench replay optimization.  Its six-axis mean/std/RMS are stored in
 `diagnostics.raw_inverse_dynamics_residual_wrench_statistics` and are included
 explicitly in the W-ablation comparison.  This is the preferred diagnostic for
 checking whether a periodic wrench pattern moves or disappears as W changes.
+
+
+## 9. Residual-wrench uncentered squared parameter objective
+
+The SG deterministic physical-parameter objective now uses the residual body
+wrench itself.  For vehicle-model reference scales
+
+```math
+L_* = \sqrt{\operatorname{tr}(J_*)/(3m_*)},\qquad
+F_* = m_* g,\qquad
+\tau_* = F_* L_*,
+```
+
+each residual wrench is nondimensionalized by `F_*` for force and `tau_*` for
+torque.  The data term is the sample-accumulated uncentered squared residual:
+
+```math
+\frac{1}{2}\sum_b \omega_b
+\sum_k \|\bar w_{b,k}(\theta)\|^2.
+```
+
+For a fixed bag this has the same data-only minimizer as its empirical second
+moment; the sample sum is retained when combining the data term with the
+Gaussian prior so additional observations accumulate evidence instead of being
+averaged away.
+
+The residual mean is not subtracted.  A constant or slowly varying systematic
+wrench therefore remains visible to the physical-parameter optimizer.  The
+Gaussian physical prior remains a separate residual block in the same solve.
+
+The historical acceleration-residual loss, when present in per-bag diagnostic
+payloads produced by the compatibility backend, is retained only under
+`legacy_acceleration_residual_loss_diagnostic` and is not the SG parameter data
+objective.
+
+## 10. Optimizer termination and Jacobian diagnostics
+
+`ftol` and `xtol` are disabled by default for the SG estimator.  Unless the user
+explicitly supplies either option, the least-squares solve stops by `gtol` or by
+the configured evaluation limit.  This prevents a small change in objective or
+step size from being reported as convergence while the gradient optimality is
+still large.
+
+Every smooth-lag and strict-ZOH solve stores optimizer diagnostics including:
+
+- initial/final cost and residual norm;
+- initial/final gradient L2 and infinity norms;
+- coordinate step norm and cost reduction;
+- Jacobian singular values, numerical rank, and nonzero-subspace condition
+  number;
+- whether the gradient tolerance was actually satisfied;
+- one deterministic finite-difference directional check of the analytic Jacobian
+  along the final negative-gradient direction.
+
+The root output directory additionally contains:
+
+```text
+optimizer_diagnostics.json
+optimizer_diagnostics.txt
+optimizer_diagnostics.pdf
+```
+
+The PDF is text-only; no optimizer diagnostic plot is added.
+
+## 11. Residual absorbability and residual-implied parameter error
+
+The confidence analysis also evaluates the same reference-scaled residual
+wrench and its 14-D parameter Jacobian without centering.  With stacked
+quantities
+
+```math
+\bar w(\theta+\delta) \simeq \bar w(\theta) + A\delta,
+```
+
+the best local parameter correction to the realized residual is
+
+```math
+\delta_* = -A^\dagger \bar w.
+```
+
+The residual is decomposed into the component locally absorbable by the current
+14-D parameter chart and the orthogonal remainder.  JSON records the total and
+per-wrench-component absorbable second-moment fractions, the best local
+parameter correction, and the remaining wrench time series/statistics.
+
+Under the currently declared iid Gaussian residual-wrench model with empirical
+mean `mu_w` and covariance `Sigma_w`, the same pseudoinverse maps the residual
+model to parameter error:
+
+```math
+b_\theta = -A^\dagger (\mathbf 1\otimes\mu_w),
+```
+
+```math
+\Sigma_\theta = A^\dagger
+(I\otimes\Sigma_w)(A^\dagger)^T,
+```
+
+```math
+M_\theta = \Sigma_\theta + b_\theta b_\theta^T.
+```
+
+These are stored in dimensionless chart coordinates, raw 14-D chart
+coordinates, and first-order physical parameter coordinates.  The confidence
+output directory additionally contains:
+
+```text
+residual_parameter_diagnostics.txt
+residual_parameter_diagnostics.pdf
+```
+
+The PDF is text-only.  The full numerical objects are also stored in
+`confidence.json`, and the residual-implied parameter error is copied into
+`parameter_posterior.json` as a separate diagnostic object rather than silently
+replacing the prior/posterior covariance.
+
+The W-ablation root additionally contains text-only
+`ablation_diagnostics.txt/pdf`, with per-window optimizer termination,
+Jacobian-check, residual-sample-count, and absorbability summaries.  The same
+values are stored in `ablation.json`.

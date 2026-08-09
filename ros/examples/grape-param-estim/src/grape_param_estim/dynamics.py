@@ -630,7 +630,10 @@ class FullSixDofPlant:
         self.parameters = parameters
         self.geometry = geometry
         self.model_discrepancy_wrench = model_discrepancy_wrench
-        self._inverse_inertia = np.linalg.inv(parameters.inertia)
+        # Ridge/near-singular numerical states must not require an ordinary
+        # matrix inverse.  VehicleParameters still validates the physical
+        # inertia; pinv is used here only as the stable numerical operator.
+        self._inverse_inertia = np.linalg.pinv(parameters.inertia, hermitian=True)
 
     def total_body_wrench(
         self,

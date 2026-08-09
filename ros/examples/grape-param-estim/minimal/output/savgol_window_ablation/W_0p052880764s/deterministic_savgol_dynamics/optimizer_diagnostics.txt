@@ -14,5 +14,6 @@ cost_reduction=1.2648446954699466e-05
 gradient_tolerance_satisfied=False
 finite_difference_max_relative_error=1.1675691017274014e-07
 finite_difference_directional_checks=[{'analytic_l2_norm': 20.516676967475735, 'difference_l2_norm': 2.3954639750210094e-06, 'direction': 'negative_gradient', 'finite_difference_l2_norm': 20.516678383120585, 'relative_error': 1.1675691017274014e-07, 'scheme': 'central', 'step': 0.01396464855728762}]
+invalid_trial_evaluations={'invalid_evaluation_count': 0, 'invalid_examples': [], 'invalid_exception_counts': {}, 'penalty_residual_l2_norm': 41054196.83497327, 'policy': 'invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded'}
 
 All smoothstep and strict-ZOH stage details are in optimizer_diagnostics.json.

@@ -639,7 +639,7 @@ def _posterior_payload(
     prior_precision = 0.5 * (
         prior_precision + prior_precision.T
     )
-    prior_covariance = np.linalg.inv(prior_precision)
+    prior_covariance = np.linalg.pinv(prior_precision, hermitian=True)
     prior_covariance = 0.5 * (
         prior_covariance + prior_covariance.T
     )
@@ -651,13 +651,12 @@ def _posterior_payload(
     posterior_information_vector = (
         data_information_vector + prior_information_vector
     )
-    posterior_covariance = np.linalg.inv(posterior_precision)
+    posterior_covariance = np.linalg.pinv(posterior_precision, hermitian=True)
     posterior_covariance = 0.5 * (
         posterior_covariance + posterior_covariance.T
     )
-    posterior_delta_mean = np.linalg.solve(
-        posterior_precision,
-        posterior_information_vector,
+    posterior_delta_mean = (
+        posterior_covariance @ posterior_information_vector
     )
 
     selected_dimensionless = (

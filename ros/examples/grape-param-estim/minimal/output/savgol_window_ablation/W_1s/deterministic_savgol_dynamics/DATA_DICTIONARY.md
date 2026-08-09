@@ -294,25 +294,18 @@ output/savgol_dynamics_confidence/<bag-id>/parameter_likelihood.json
 output/savgol_dynamics_confidence/<bag-id>/parameter_posterior.json
 ```
 
-The deterministic parameter point still uses **all** valid centered raw-pose
-SG evaluations.  The confidence likelihood is deliberately more conservative:
-it selects a greedy ordered subset of centers whose complete centered W-second
-windows are pairwise disjoint.  Therefore the same raw mocap pose sample is not
-counted repeatedly as if it were independent merely because neighboring SG
-windows overlap.
+The deterministic parameter point and the confidence likelihood both use
+**all** valid centered raw-pose SG evaluations.  Therefore one residual body
+wrench sample and its parameter Jacobian are retained for every valid SG center;
+there is no confidence-specific temporal subsampling.
 
 The retained first-layer residual-wrench model is Gaussian with an empirical
-nonzero mean and 6x6 covariance, now estimated from those disjoint-window
+nonzero mean and 6x6 covariance estimated from all of those residual-wrench
 samples.  The raw data-only SVD/ridge information, local Gaussian likelihood
 factor, Gaussian-prior fusion, trajectory reconstruction check, and confidence
-PDF pages retain their previous meanings.
-
-This is intentionally not claimed to be the final full observation-noise model.
-The translation local-LS derivative covariance is reported, while a complete
-correlated `R^3 x SO(3)` mocap-noise propagation into the six-axis wrench
-likelihood remains a separate extension.  The disjoint-window rule prevents the
-most immediate information inflation caused by overlapping SG windows without
-inventing an unmeasured temporal covariance model.
+PDF pages retain their previous meanings.  The translation local-LS derivative
+covariance remains available as a separate diagnostic and is not used directly
+in this residual-wrench likelihood.
 
 By default the W-ablation runner also executes `savgol_dynamics_confidence.py`
 for each valid W, reusing that W's already optimized deterministic

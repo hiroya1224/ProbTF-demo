@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """Confidence/ridge analysis for the geometric Savitzky--Golay dynamics estimator.
 
-The deterministic point estimate uses every valid raw mocap center.  For the
-local Gaussian information factor, this script conservatively selects centers
-whose complete W-second SG windows do not overlap.  Thus one raw pose sample is
-not counted repeatedly merely because neighboring local-polynomial windows
-share it.  The remaining non-overlapping residual-wrench samples retain the
-same first-layer iid Gaussian model as spline_dynamics_confidence.py.
+The deterministic point estimate and the local Gaussian information factor both
+use every valid centered raw-mocap SG evaluation time.  The residual-wrench
+samples retain the same first-layer iid Gaussian model as
+``spline_dynamics_confidence.py``.
 """
 
 from __future__ import annotations
@@ -27,7 +25,7 @@ import spline_dynamics_confidence as legacy
 from grape_param_estim.system import GRAVITY
 
 
-SCHEMA = "grape-param-estim/savgol-dynamics-confidence/v1"
+SCHEMA = "grape-param-estim/savgol-dynamics-confidence/v2"
 OUTPUT_SUBDIRECTORY = "savgol_dynamics_confidence"
 
 # The mature confidence helper functions refer to their module-global
@@ -55,50 +53,6 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     )
 
 
-def _nonoverlapping_window_indices(
-    time_axis: Sequence[float],
-    window_seconds: float,
-) -> np.ndarray:
-    """Greedy maximum-cardinality ordered subset of disjoint equal windows."""
-
-    time_value = np.asarray(time_axis, dtype=float)
-    window = float(window_seconds)
-    if (
-        time_value.ndim != 1
-        or time_value.size < 1
-        or np.any(~np.isfinite(time_value))
-        or np.any(np.diff(time_value) <= 0.0)
-        or not np.isfinite(window)
-        or window <= 0.0
-    ):
-        raise ValueError("confidence window selection inputs are invalid")
-
-    selected: list[int] = []
-    previous_right = -math.inf
-    tolerance = 64.0 * np.finfo(float).eps * max(
-        1.0,
-        float(np.max(np.abs(time_value))),
-        window,
-    )
-    half = 0.5 * window
-    for index, center in enumerate(time_value):
-        left = float(center - half)
-        right = float(center + half)
-        # Strict separation also avoids sharing a raw sample exactly on a
-        # common boundary when timestamps happen to land there.
-        if left > previous_right + tolerance:
-            selected.append(index)
-            previous_right = right
-    result = np.asarray(selected, dtype=int)
-    if result.size < 2:
-        raise ValueError(
-            "W={:.12g}s leaves only {} non-overlapping confidence window(s); "
-            "at least two are required to estimate the 6x6 residual-wrench "
-            "covariance".format(window, result.size)
-        )
-    return result
-
-
 def _translation_covariance_summary(bag: Any) -> dict[str, Any]:
     covariance = np.asarray(
         bag.collocation.sensor_acceleration_world_covariance,
@@ -119,10 +73,8 @@ def _translation_covariance_summary(bag: Any) -> dict[str, Any]:
             "maximum_acceleration_std_xyz_m_per_s2": np.max(std, axis=0),
             "used_directly_in_this_confidence_factor": False,
             "note": (
-                "The local translation covariance is preserved as a diagnostic. "
-                "This v1 confidence factor instead prevents SG overlap double "
-                "counting by using disjoint windows; a later full correlated "
-                "R3/SO3 observation model can use these covariances explicitly."
+                "The local translation covariance is preserved as a diagnostic "
+                "and is not used directly in the current residual-wrench likelihood."
             ),
         }
     return {
@@ -331,19 +283,12 @@ def run(arguments: argparse.Namespace) -> int:
             )
         )
 
-    confidence_indices = _nonoverlapping_window_indices(
-        bag.collocation_time,
-        float(arguments.window_seconds),
-    )
-    confidence_time = np.asarray(
-        bag.collocation_time[confidence_indices],
-        dtype=float,
-    )
-    wrench_raw = wrench_raw_full[confidence_indices]
-    wrench_jacobian_raw = wrench_jacobian_raw_full[confidence_indices]
+    confidence_time = np.asarray(bag.collocation_time, dtype=float)
+    wrench_raw = wrench_raw_full
+    wrench_jacobian_raw = wrench_jacobian_raw_full
     print(
-        "confidence likelihood uses {} disjoint SG windows ({} full deterministic centers)"
-        .format(confidence_indices.size, bag.collocation_time.size),
+        "confidence likelihood uses {} residual-wrench samples (all valid SG centers)"
+        .format(confidence_time.size),
         flush=True,
     )
 
@@ -451,13 +396,11 @@ def run(arguments: argparse.Namespace) -> int:
         "savgol_observation_model": {
             "degree": 5,
             "window_seconds": float(arguments.window_seconds),
-            "deterministic_raw_center_count": int(bag.collocation_time.size),
-            "likelihood_disjoint_window_count": int(confidence_indices.size),
+            "raw_pose_sample_count": int(np.asarray(flight.pose.times).size),
+            "valid_center_count": int(confidence_time.size),
+            "residual_wrench_sample_count": int(wrench_raw.shape[0]),
             "likelihood_center_times_seconds": confidence_time,
-            "selection_rule": (
-                "earliest-center greedy subset whose complete centered W-second "
-                "raw-pose windows are pairwise disjoint"
-            ),
+            "selection_rule": "all valid centered SG evaluation times",
         },
         "linearization_point": {
             "coordinate_names": deterministic.PHYSICAL_PARAMETER_NAMES,
@@ -488,7 +431,7 @@ def run(arguments: argparse.Namespace) -> int:
         "external_wrench_model": {
             "mean_dimensionless": wrench_mean_dimensionless,
             "covariance_dimensionless": wrench_covariance_dimensionless,
-            "iid_scope": "pairwise-disjoint SG windows only",
+            "iid_scope": "all valid centered SG evaluation times",
         },
     }
     posterior_payload = {
@@ -537,8 +480,9 @@ def run(arguments: argparse.Namespace) -> int:
             "path": specification.path,
             "start_seconds": specification.start,
             "end_seconds": specification.end,
-            "deterministic_raw_center_count": int(bag.collocation_time.size),
-            "confidence_disjoint_window_count": int(confidence_indices.size),
+            "raw_pose_sample_count": int(np.asarray(flight.pose.times).size),
+            "valid_center_count": int(confidence_time.size),
+            "residual_wrench_sample_count": int(wrench_raw.shape[0]),
             "confidence_center_time_seconds": confidence_time,
             "window_seconds": float(arguments.window_seconds),
             "polynomial_degree": 5,
@@ -548,16 +492,13 @@ def run(arguments: argparse.Namespace) -> int:
                 "raw timestamped pose; degree-5 local polynomial in R3 and "
                 "geometric Savitzky-Golay on SO3"
             ),
-            "SG_overlap_handling": (
-                "the deterministic estimate uses every valid raw center; the "
-                "confidence factor uses only pairwise-disjoint complete SG "
-                "windows so shared raw pose samples are not counted as "
-                "independent likelihood samples"
+            "residual_wrench_sampling": (
+                "every valid centered SG evaluation time is used; there is no "
+                "confidence-specific temporal subsampling"
             ),
             "external_wrench": (
-                "the remaining disjoint-window residual-wrench samples are "
-                "treated as iid Gaussian with nonzero empirical mean and 6x6 "
-                "empirical covariance"
+                "all residual-wrench samples are treated as iid Gaussian with "
+                "nonzero empirical mean and 6x6 empirical covariance"
             ),
             "pose_measurement_covariance": (
                 "translation local-LS covariance is reported diagnostically; "
@@ -593,9 +534,8 @@ def run(arguments: argparse.Namespace) -> int:
             "mahalanobis_squared_per_sample": mahalanobis_squared,
             "mahalanobis_squared_mean": float(np.mean(mahalanobis_squared)),
             "mahalanobis_squared_median": float(np.median(mahalanobis_squared)),
-            "confidence_sample_indices_in_full_deterministic_support": (
-                confidence_indices
-            ),
+            "sample_count": int(wrench_raw.shape[0]),
+            "sample_time_seconds": confidence_time,
         },
         "data_information": {
             "matrix_dimensionless": data_information,

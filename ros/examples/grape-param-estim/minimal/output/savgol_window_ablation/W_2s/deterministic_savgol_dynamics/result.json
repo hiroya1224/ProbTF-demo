@@ -401,8 +401,8 @@
     }
   ],
   "config_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/single_rosbag_1.json",
-  "created_at": "2026-08-09T17:52:06.561762+00:00",
-  "elapsed_seconds": 45.96240331698209,
+  "created_at": "2026-08-09T19:30:15.251242+00:00",
+  "elapsed_seconds": 46.947284042835236,
   "initial_estimate": {
     "delay_default": "zero unless --initial-delay is explicitly supplied",
     "delay_seconds": 0.0,

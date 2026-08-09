@@ -1,0 +1,474 @@
+{
+  "diagnostics": {
+    "command_timestamp_intervals": {
+      "gimbal": {
+        "maximum_seconds": 0.15833187103271484,
+        "mean_seconds": 0.004999864185076427,
+        "median_frequency_hz": 201.72681800692575,
+        "median_seconds": 0.0049571990966796875,
+        "minimum_seconds": 2.6226043701171875e-06,
+        "positive_interval_count": 3847,
+        "sample_count": 3848,
+        "selected_lag_over_median_interval": 0.8069072990590966
+      },
+      "note": "Publish/update intervals are measured directly from rosbag timestamps; no command period is hard-coded into the SG front end.",
+      "rotor": {
+        "maximum_seconds": 0.1585249900817871,
+        "mean_seconds": 0.004999816169857731,
+        "median_frequency_hz": 201.70741560065403,
+        "median_seconds": 0.004957675933837891,
+        "minimum_seconds": 2.1457672119140625e-06,
+        "positive_interval_count": 3848,
+        "sample_count": 3849,
+        "selected_lag_over_median_interval": 0.8068296894314099
+      },
+      "selected_lag_seconds": 0.004000000134
+    },
+    "dynamics_loss": 1.7858494628125217,
+    "estimated_forward_metrics": {
+      "orientation_angle_rmse_deg": 137.58843548423715,
+      "orientation_angle_rmse_rad": 2.401371211867737,
+      "position_component_rmse_m": [
+        15.202579142057072,
+        10.999165572826021,
+        51.74776121491318
+      ],
+      "position_rmse_m": 55.044807626374926,
+      "terminal_orientation_error_deg": 178.41562934535847,
+      "terminal_position_error_m": 138.66000406844944
+    },
+    "estimated_forward_pose_score_m2": 1515.057980486076,
+    "estimated_improves_over_reference": true,
+    "estimated_with_external_wrench_forward_metrics": {
+      "orientation_angle_rmse_deg": 0.6739996618452002,
+      "orientation_angle_rmse_rad": 0.011763513256527143,
+      "position_component_rmse_m": [
+        0.001275173482532135,
+        0.0004547820699371265,
+        0.0010568896773469553
+      ],
+      "position_rmse_m": 0.0017175301836567477,
+      "terminal_orientation_error_deg": 0.6598580030703599,
+      "terminal_position_error_m": 0.003400002309061961
+    },
+    "estimated_with_external_wrench_forward_pose_score_m2": 3.6292233890479564e-06,
+    "evaluation_count": 420,
+    "external_wrench_improves_estimated_free_rollout": true,
+    "id": "failure_2_single",
+    "inferred_external_wrench": {
+      "components": [
+        "F_x",
+        "F_y",
+        "F_z",
+        "M_x",
+        "M_y",
+        "M_z"
+      ],
+      "definition": "piecewise-linear body wrench optimized so the fixed-parameter forward pose matches the geometric Savitzky-Golay pose estimate",
+      "force_unit": "N",
+      "frame": "body",
+      "initialization": "required body wrench minus modeled body wrench",
+      "knot_count": 72,
+      "optimizer": {
+        "coefficient_dimension": 432,
+        "cost": 6.745906255248867e-25,
+        "final_pose_cost": 6.745906255248867e-25,
+        "initial_pose_cost": 81.63964914975497,
+        "knot_count": 72,
+        "message": "`gtol` termination condition is satisfied.",
+        "nfev": 7,
+        "njev": 7,
+        "optimality": 6.514064397632116e-11,
+        "status": 1,
+        "success": true,
+        "uses_regularization": false
+      },
+      "rollout_interpolation": "continuous piecewise-linear interpolation between wrench knots",
+      "torque_unit": "N m",
+      "uses_regularization": false
+    },
+    "normalized_weight": 1.0,
+    "raw_inverse_dynamics_residual_wrench_statistics": {
+      "definition": "required_body_wrench - modeled_body_wrench at raw centered SG evaluation times",
+      "mean": [
+        -0.19843937646013118,
+        -0.03151753208765536,
+        -4.151101637482126,
+        -0.059156164290454984,
+        -0.08961269562087074,
+        0.015390900689028951
+      ],
+      "rms": [
+        0.6957261955794823,
+        0.1887155283965981,
+        4.172734398085959,
+        0.06418651939383249,
+        0.214336264205735,
+        0.020763485096025082
+      ],
+      "sample_count": 420,
+      "std": [
+        0.6676211398589281,
+        0.18628693350531259,
+        0.42484974727272506,
+        0.024938690900302256,
+        0.19493608005448973,
+        0.013953711879161508
+      ],
+      "time_interval_seconds": [
+        26.50076699256897,
+        29.99229145050049
+      ],
+      "uses_legacy_uniform_rollout_grid": false,
+      "uses_replay_optimization": false
+    },
+    "reconstruction_metrics": {
+      "orientation_angle_rmse_deg": 0.6739996618452002,
+      "orientation_angle_rmse_rad": 0.011763513256527143,
+      "position_component_rmse_m": [
+        0.001275173482532135,
+        0.0004547820699371265,
+        0.0010568896773469553
+      ],
+      "position_rmse_m": 0.0017175301836567477,
+      "terminal_orientation_error_deg": 0.6598580030703599,
+      "terminal_position_error_m": 0.003400002309061961
+    },
+    "reference_forward_metrics": {
+      "orientation_angle_rmse_deg": 138.1005258312369,
+      "orientation_angle_rmse_rad": 2.4103088744905627,
+      "position_component_rmse_m": [
+        14.995286306030145,
+        10.72719491123773,
+        52.201898678644916
+      ],
+      "position_rmse_m": 55.36216711544997,
+      "terminal_orientation_error_deg": 168.77185746188243,
+      "terminal_position_error_m": 138.98683085305586
+    },
+    "reference_forward_pose_score_m2": 1532.5746142256332,
+    "reference_rollout_lag_seconds": 0.0,
+    "residual_wrench_statistics": {
+      "component_names": [
+        "F_x",
+        "F_y",
+        "F_z",
+        "M_x",
+        "M_y",
+        "M_z"
+      ],
+      "cumulative_impulse": [
+        -0.7275882221554396,
+        -0.10335958666190476,
+        -14.491166398283097,
+        -0.2059254004779323,
+        -0.3175880221912129,
+        0.05333424570172213
+      ],
+      "duration_seconds": 3.4915244579315186,
+      "linear_trend_per_second": [
+        0.18418956203147194,
+        0.011251585245620534,
+        -0.33622183545586887,
+        -0.005868131880472045,
+        -0.050915378475576305,
+        -0.001871387133288603
+      ],
+      "mean": [
+        -0.23869458794448922,
+        -0.01987574138949703,
+        -4.134147835197286,
+        -0.058636634879034616,
+        -0.09623876555364604,
+        0.014361737481087815
+      ],
+      "rmse": [
+        0.7721441067026505,
+        0.2083297198574083,
+        4.157906427802852,
+        0.06621120551710073,
+        0.23323274769925018,
+        0.03873323084009075
+      ]
+    },
+    "savgol": {
+      "actual_boundary_exclusion_seconds_start_end": [
+        1.0000474452972412,
+        1.0045926570892334
+      ],
+      "centered_window_only_for_parameter_loss": true,
+      "degree": 5,
+      "fit_metrics": {
+        "maximum_acceleration_m_per_s2": 0.5670797964694695,
+        "maximum_angular_acceleration_rad_per_s2": 2.5070378281666423,
+        "orientation_angle_rmse_deg": 0.6788389611246476,
+        "orientation_angle_rmse_rad": 0.01184797496244289,
+        "position_rmse_m": 0.0009197723099175714,
+        "position_vector_rmse_m": 0.0015930923721722214
+      },
+      "maximum_window_sample_count": 241,
+      "minimum_required_points": 6,
+      "minimum_window_sample_count": 239,
+      "one_sided_shifted_full_window_used_only_for_edge_diagnostics": true,
+      "parameter_estimation_interval_seconds": [
+        26.50076699256897,
+        29.99229145050049
+      ],
+      "parameter_loss_evaluation_times": "all raw pose timestamps with a complete centered W-second window, intersected with actuator/dynamics support",
+      "raw_fit_interval_seconds": [
+        25.50071954727173,
+        30.99688410758972
+      ],
+      "raw_pose_resampled_before_fit": false,
+      "rotation": "degree-5 geometric Savitzky-Golay local polynomial on SO(3) (Jongeneel-Saccon IROS 2022)",
+      "translation": "degree-5 local least-squares polynomial in R^3",
+      "translation_covariance": "local ordinary-least-squares covariance estimated from position fit residuals when residual degrees of freedom are positive",
+      "window_definition": "physical time width; all raw mocap pose samples inside each local window are used",
+      "window_diagnostics": {
+        "failure": null,
+        "fit_metric_rmse_m": 0.002856635069018965,
+        "fit_orientation_rmse_rad": 0.01305648010431376,
+        "fit_position_rmse_m": 0.001636480027459336,
+        "maximum_acceleration_m_per_s2": 0.5670797964694695,
+        "maximum_angular_acceleration_rad_per_s2": 2.5070378281666423,
+        "maximum_window_sample_count": 241,
+        "minimum_required_points": 6,
+        "minimum_window_sample_count": 239,
+        "polynomial_degree": 5,
+        "valid": true,
+        "window_seconds": 2.0
+      },
+      "window_seconds": 2.0
+    },
+    "sensor_consistency": {
+      "gyro": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.002684358770230257,
+          "pearson_correlation": 0.5324891885759739,
+          "rmse": 0.04637887737381532
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.003314143750001944,
+          "pearson_correlation": 0.9898715607047996,
+          "rmse": 0.06603849534295797
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": 0.0032363810966837708,
+          "pearson_correlation": 0.8752098319404086,
+          "rmse": 0.016524756279520884
+        }
+      ],
+      "specific_force": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": 0.03856946907027239,
+          "pearson_correlation": 0.9691204095235963,
+          "rmse": 0.36310467655321294
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.0753947062892978,
+          "pearson_correlation": 0.9250199840760926,
+          "rmse": 0.10468515953630815
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.03027100090859321,
+          "pearson_correlation": 0.7772738453495533,
+          "rmse": 0.09508589125888095
+        }
+      ]
+    },
+    "sensor_validation": {
+      "gyro": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": 0.5000000000000071,
+          "mean_bias": 2.8292504659940128,
+          "pearson_correlation": 0.08384275315571857,
+          "rmse": 3.7048703329346013
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": -0.4000000000000057,
+          "mean_bias": 1.8749699426725406,
+          "pearson_correlation": 0.0663061817837964,
+          "rmse": 2.3810919936894615
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": -4.600000000000065,
+          "mean_bias": -0.2555532364070119,
+          "pearson_correlation": -0.2889811185989771,
+          "rmse": 0.33516198385851975
+        }
+      ],
+      "specific_force": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
+          "mean_bias": 0.06824919767847815,
+          "pearson_correlation": 0.9115793263065782,
+          "rmse": 0.8289216576211671
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.21362757285849004,
+          "pearson_correlation": 0.7116759681556868,
+          "rmse": 0.2956898983819008
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": 0.10000000000000142,
+          "mean_bias": 0.8201023051135239,
+          "pearson_correlation": 0.8192068473846477,
+          "rmse": 1.094938983579607
+        }
+      ]
+    },
+    "sensor_validation_with_external_wrench": {
+      "gyro": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.002684358770230257,
+          "pearson_correlation": 0.5324891885759739,
+          "rmse": 0.04637887737381532
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.003314143750001944,
+          "pearson_correlation": 0.9898715607047996,
+          "rmse": 0.06603849534295797
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": 0.0032363810966837708,
+          "pearson_correlation": 0.8752098319404086,
+          "rmse": 0.016524756279520884
+        }
+      ],
+      "specific_force": [
+        {
+          "axis": "x",
+          "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
+          "mean_bias": 0.03856946907027239,
+          "pearson_correlation": 0.9691204095235963,
+          "rmse": 0.36310467655321294
+        },
+        {
+          "axis": "y",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": -0.0753947062892978,
+          "pearson_correlation": 0.9250199840760926,
+          "rmse": 0.10468515953630815
+        },
+        {
+          "axis": "z",
+          "maximum_cross_correlation_time_shift_seconds": 0.0,
+          "mean_bias": 0.03027100090859321,
+          "pearson_correlation": 0.7772738453495533,
+          "rmse": 0.09508589125888095
+        }
+      ]
+    }
+  },
+  "outputs": {
+    "diagnostic_json": "diagnostic.json",
+    "diagnostic_pdf": "diagnostic.pdf",
+    "external_wrench_pdf": "external_wrench.pdf",
+    "raw_residual_wrench_pdf": "raw_residual_wrench.pdf",
+    "savgol_dynamics_npz": "savgol_dynamics.npz",
+    "savgol_fit_pdf": "savgol_fit.pdf",
+    "sensor_consistency_pdf": "sensor_consistency.pdf",
+    "trajectory_pdf": "trajectory.pdf"
+  },
+  "schema": "grape-param-estim/minimal-deterministic-savgol-dynamics/v1/bag-result",
+  "shared_delay_seconds": 0.004000000134,
+  "shared_parameters": {
+    "angular_drag": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "cog_offset_m": [
+      -0.002024708575000729,
+      -3.052657010564675e-05,
+      0.009509749601621832
+    ],
+    "force_effectiveness": [
+      0.9999999995110807,
+      0.999999999675651,
+      0.9999999995674786,
+      0.9999999993997439
+    ],
+    "inertia_kg_m2": [
+      [
+        0.06500006148412589,
+        -7.278988604074837e-07,
+        1.901508001014304e-05
+      ],
+      [
+        -7.278988604074837e-07,
+        0.0649526563415926,
+        5.91673074990721e-08
+      ],
+      [
+        1.901508001014304e-05,
+        5.91673074990721e-08,
+        0.1289921106651763
+      ]
+    ],
+    "linear_drag": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "mass_kg": 2.3515975910665805,
+    "torque_effectiveness": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ]
+  },
+  "shared_physical_coordinate": [
+    1.0809837265496996e-10,
+    5.293000439147748e-12,
+    5.097668012177087e-13,
+    7.756757052245565e-10,
+    -6.088256727551976e-12,
+    1.212045340614415e-12,
+    -1.379874551959608e-13,
+    -1.2718728880282159e-11,
+    8.835353247859389e-12,
+    2.175832360051428e-12,
+    -4.889194319300323e-10,
+    -3.243490761808592e-10,
+    -4.325214031488204e-10,
+    -6.002561300339927e-10
+  ],
+  "source": {
+    "id": "failure_2_single",
+    "normalized_weight": 1.0,
+    "path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_6_2026-06-12-17-40-34.bag",
+    "raw_weight": 1.0,
+    "requested_interval_seconds": [
+      25.5,
+      31.0
+    ],
+    "sha256": "c4515b73edd26f9cb68d93d9165e3e14fff2cbad95af6cef463821b791aeb665"
+  }
+}

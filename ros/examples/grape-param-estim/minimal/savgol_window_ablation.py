@@ -423,7 +423,10 @@ def _write_ablation_pdf(path: Path, completed: Sequence[Mapping[str, Any]]) -> N
                 dtype=float,
             )
             counts = np.asarray(
-                [item["confidence_disjoint_window_count"] for item in confidence_cases],
+                [
+                    item["confidence_residual_wrench_sample_count"]
+                    for item in confidence_cases
+                ],
                 dtype=float,
             )
             figure, axes = plt.subplots(3, 1, figsize=(11.7, 8.3), sharex=True, constrained_layout=True)
@@ -432,7 +435,7 @@ def _write_ablation_pdf(path: Path, completed: Sequence[Mapping[str, Any]]) -> N
             axes[1].plot(confidence_windows, rank, marker="o")
             axes[1].set_ylabel("data rank")
             axes[2].plot(confidence_windows, counts, marker="o")
-            axes[2].set_ylabel("disjoint SG\nconfidence windows")
+            axes[2].set_ylabel("residual-wrench\nsamples")
             axes[2].set_xlabel("W [s]")
             for axis in axes:
                 axis.grid(True, alpha=0.25)
@@ -552,93 +555,72 @@ def run(arguments: argparse.Namespace, passthrough: Sequence[str] = ()) -> int:
                 )
             else:
                 bag_id = str(per_bag_minimum[0]["id"])
-                deterministic_npz = (
+                confidence_argv = [
+                    "--config",
+                    str(arguments.config),
+                    "--vehicle-model-json",
+                    str(arguments.vehicle_model_json),
+                    "--prior-json",
+                    str(arguments.prior_json),
+                    "--window-seconds",
+                    "{:.17g}".format(window),
+                    "--output-dir",
+                    str(run_root),
+                    "--deterministic-result",
+                    str(result_path),
+                ] + list(passthrough)
+                confidence.main(confidence_argv)
+                confidence_directory = (
                     run_root
-                    / estimator.OUTPUT_SUBDIRECTORY
-                    / "bags"
+                    / confidence.OUTPUT_SUBDIRECTORY
                     / bag_id
-                    / "savgol_dynamics.npz"
                 )
-                with np.load(deterministic_npz, allow_pickle=False) as archive:
-                    deterministic_centers = np.asarray(
-                        archive["collocation_time"], dtype=float
-                    )
-                try:
-                    disjoint_indices = confidence._nonoverlapping_window_indices(
-                        deterministic_centers, window
-                    )
-                except ValueError as error:
-                    case["confidence_status"] = (
-                        "skipped_insufficient_disjoint_windows"
-                    )
-                    case["confidence_skip_reason"] = str(error)
-                else:
-                    confidence_argv = [
-                        "--config",
-                        str(arguments.config),
-                        "--vehicle-model-json",
-                        str(arguments.vehicle_model_json),
-                        "--prior-json",
-                        str(arguments.prior_json),
-                        "--window-seconds",
-                        "{:.17g}".format(window),
-                        "--output-dir",
-                        str(run_root),
-                        "--deterministic-result",
-                        str(result_path),
-                    ] + list(passthrough)
-                    confidence.main(confidence_argv)
-                    confidence_directory = (
-                        run_root
-                        / confidence.OUTPUT_SUBDIRECTORY
-                        / bag_id
-                    )
-                    confidence_json = confidence_directory / "confidence.json"
-                    if not confidence_json.is_file():
-                        raise RuntimeError(
-                            "W={} confidence run did not produce {}".format(
-                                window, confidence_json
-                            )
+                confidence_json = confidence_directory / "confidence.json"
+                if not confidence_json.is_file():
+                    raise RuntimeError(
+                        "W={} confidence run did not produce {}".format(
+                            window, confidence_json
                         )
-                    confidence_payload = json.loads(
-                        confidence_json.read_text(encoding="utf-8")
                     )
-                    svd_payload = confidence_payload["data_information"]["svd"]
-                    posterior_physical = confidence_payload[
-                        "prior_and_local_posterior"
-                    ]["posterior_physical"]
-                    case.update(
-                        {
-                            "confidence_status": "completed",
-                            "confidence_json": str(confidence_json),
-                            "confidence_pdf": str(confidence_directory / "confidence.pdf"),
-                            "parameter_likelihood_json": str(
-                                confidence_directory / "parameter_likelihood.json"
-                            ),
-                            "parameter_posterior_json": str(
-                                confidence_directory / "parameter_posterior.json"
-                            ),
-                            "confidence_disjoint_window_count": int(
-                                confidence_payload["bag"][
-                                    "confidence_disjoint_window_count"
-                                ]
-                            ),
-                            "preflight_disjoint_window_count": int(
-                                disjoint_indices.size
-                            ),
-                            "data_information_numerical_rank": int(
-                                svd_payload["numerical_rank"]
-                            ),
-                            "weakest_relative_information_strength": float(
-                                svd_payload[
-                                    "weakest_relative_information_strength"
-                                ]
-                            ),
-                            "posterior_physical_std": np.asarray(
-                                posterior_physical["std"], dtype=float
-                            ),
-                        }
-                    )
+                confidence_payload = json.loads(
+                    confidence_json.read_text(encoding="utf-8")
+                )
+                svd_payload = confidence_payload["data_information"]["svd"]
+                posterior_physical = confidence_payload[
+                    "prior_and_local_posterior"
+                ]["posterior_physical"]
+                case.update(
+                    {
+                        "confidence_status": "completed",
+                        "confidence_json": str(confidence_json),
+                        "confidence_pdf": str(confidence_directory / "confidence.pdf"),
+                        "parameter_likelihood_json": str(
+                            confidence_directory / "parameter_likelihood.json"
+                        ),
+                        "parameter_posterior_json": str(
+                            confidence_directory / "parameter_posterior.json"
+                        ),
+                        "confidence_valid_center_count": int(
+                            confidence_payload["bag"]["valid_center_count"]
+                        ),
+                        "confidence_residual_wrench_sample_count": int(
+                            confidence_payload["bag"][
+                                "residual_wrench_sample_count"
+                            ]
+                        ),
+                        "data_information_numerical_rank": int(
+                            svd_payload["numerical_rank"]
+                        ),
+                        "weakest_relative_information_strength": float(
+                            svd_payload[
+                                "weakest_relative_information_strength"
+                            ]
+                        ),
+                        "posterior_physical_std": np.asarray(
+                            posterior_physical["std"], dtype=float
+                        ),
+                    }
+                )
 
         cases.append(case)
         completed.append(case)

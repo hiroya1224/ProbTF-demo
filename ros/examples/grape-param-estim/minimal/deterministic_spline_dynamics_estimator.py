@@ -56,12 +56,13 @@ from grape_param_estim.system import (  # noqa: E402
     GRAVITY,
     ActuatorParameters,
     ActuatorState,
+    GrapeGeometry,
     RigidBodyState,
     VehicleParameters,
 )
 
 
-SCHEMA = "grape-param-estim/minimal-deterministic-spline-dynamics/v2"
+SCHEMA = "grape-param-estim/minimal-deterministic-spline-dynamics/v3"
 OUTPUT_SUBDIRECTORY = "deterministic_spline_dynamics"
 DATA_DICTIONARY_SOURCE = Path(__file__).resolve().with_name(
     "deterministic_spline_dynamics_data_dictionary.md"
@@ -84,33 +85,320 @@ PHYSICAL_PARAMETER_NAMES = (
     "normalized_second_moment_cholesky_yx_offset",
     "normalized_second_moment_cholesky_zx_offset",
     "normalized_second_moment_cholesky_zy_offset",
-    "cog_offset_x_m",
-    "cog_offset_y_m",
-    "cog_offset_z_m",
+    "cog_position_body_x_m",
+    "cog_position_body_y_m",
+    "cog_position_body_z_m",
     "log_force_effectiveness_1",
     "log_force_effectiveness_2",
     "log_force_effectiveness_3",
     "log_force_effectiveness_4",
 )
-BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS = np.asarray(
-    (
-        1.5,
-        1.5,
-        1.5,
-        1.5,
-        2.0,
-        2.0,
-        2.0,
-        0.25,
-        0.25,
-        0.25,
-        1.5,
-        1.5,
-        1.5,
-        1.5,
-    ),
-    dtype=float,
+
+PHYSICAL_VALUE_NAMES = (
+    "mass_kg",
+    "inertia_xx_kg_m2",
+    "inertia_yy_kg_m2",
+    "inertia_zz_kg_m2",
+    "inertia_xy_kg_m2",
+    "inertia_xz_kg_m2",
+    "inertia_yz_kg_m2",
+    "cog_position_body_x_m",
+    "cog_position_body_y_m",
+    "cog_position_body_z_m",
+    "force_effectiveness_1",
+    "force_effectiveness_2",
+    "force_effectiveness_3",
+    "force_effectiveness_4",
 )
+_INERTIA_VALUE_COMPONENTS = (
+    (0, 0),
+    (1, 1),
+    (2, 2),
+    (0, 1),
+    (0, 2),
+    (1, 2),
+)
+
+
+@dataclass(frozen=True)
+class VehicleModelInput:
+    """Deterministic vehicle-model reference used to define the local chart."""
+
+    source_path: Path
+    parameters: VehicleParameters
+    geometry: GrapeGeometry
+    raw: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class GaussianPhysicalPrior:
+    """Independent Gaussian prior in user-facing physical coordinates."""
+
+    source_path: Path
+    mean: np.ndarray
+    std: np.ndarray
+    raw: Mapping[str, Any]
+
+    def __post_init__(self) -> None:
+        mean = np.asarray(self.mean, dtype=float)
+        std = np.asarray(self.std, dtype=float)
+        expected = (len(PHYSICAL_VALUE_NAMES),)
+        if (
+            mean.shape != expected
+            or std.shape != expected
+            or np.any(~np.isfinite(mean))
+            or np.any(~np.isfinite(std))
+            or np.any(std <= 0.0)
+        ):
+            raise ValueError("physical Gaussian prior vectors are invalid")
+        object.__setattr__(self, "mean", mean.copy())
+        object.__setattr__(self, "std", std.copy())
+
+
+def _read_json_object(path: Path, label: str) -> tuple[Path, dict[str, Any]]:
+    source = path.expanduser().resolve()
+    try:
+        raw = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError("{} JSON cannot be read: {}".format(label, source)) from error
+    if not isinstance(raw, dict):
+        raise ValueError("{} JSON root must be an object".format(label))
+    return source, raw
+
+
+def _finite_vector(value: Any, size: int, name: str) -> np.ndarray:
+    result = np.asarray(value, dtype=float)
+    if result.shape != (size,) or np.any(~np.isfinite(result)):
+        raise ValueError("{} must contain {} finite values".format(name, size))
+    return result
+
+
+def load_vehicle_model(path: Path) -> VehicleModelInput:
+    """Load the deterministic reference model.
+
+    This file is not a prior and carries no uncertainty.  In particular,
+    ``cog_position_body_m`` is the actual CoG position expressed from the
+    physical body-frame origin used by the sensor extrinsics and geometry.
+    """
+
+    source, raw = _read_json_object(path, "vehicle model")
+    required = (
+        "mass_kg",
+        "inertia_kg_m2",
+        "cog_position_body_m",
+        "force_effectiveness",
+        "torque_effectiveness",
+        "linear_drag",
+        "angular_drag",
+        "geometry",
+    )
+    missing = [name for name in required if name not in raw]
+    if missing:
+        raise ValueError(
+            "vehicle model JSON is missing: {}".format(", ".join(missing))
+        )
+
+    inertia = np.asarray(raw["inertia_kg_m2"], dtype=float)
+    if (
+        inertia.shape != (3, 3)
+        or np.any(~np.isfinite(inertia))
+        or not np.allclose(inertia, inertia.T, atol=1.0e-12, rtol=0.0)
+    ):
+        raise ValueError("inertia_kg_m2 must be a finite symmetric 3x3 matrix")
+
+    parameters = VehicleParameters(
+        mass=float(raw["mass_kg"]),
+        inertia=inertia,
+        # VehicleParameters retains the historical field name ``cog_offset``.
+        # In this estimator it means the absolute body-frame CoG position.
+        cog_offset=_finite_vector(
+            raw["cog_position_body_m"], 3, "cog_position_body_m"
+        ),
+        force_effectiveness=_finite_vector(
+            raw["force_effectiveness"], 4, "force_effectiveness"
+        ),
+        torque_effectiveness=_finite_vector(
+            raw["torque_effectiveness"], 4, "torque_effectiveness"
+        ),
+        linear_drag=_finite_vector(raw["linear_drag"], 3, "linear_drag"),
+        angular_drag=_finite_vector(raw["angular_drag"], 3, "angular_drag"),
+    )
+
+    geometry_raw = raw["geometry"]
+    if not isinstance(geometry_raw, dict):
+        raise ValueError("geometry must be an object")
+    geometry_required = (
+        "rotor_origins_body_m",
+        "arm_yaws_rad",
+        "rotor_directions",
+        "moment_force_rate_m",
+        "thrust_offset_m",
+    )
+    missing_geometry = [
+        name for name in geometry_required if name not in geometry_raw
+    ]
+    if missing_geometry:
+        raise ValueError(
+            "vehicle model geometry is missing: {}".format(
+                ", ".join(missing_geometry)
+            )
+        )
+
+    rotor_origins = np.asarray(
+        geometry_raw["rotor_origins_body_m"], dtype=float
+    )
+    if rotor_origins.shape != (4, 3) or np.any(~np.isfinite(rotor_origins)):
+        raise ValueError("rotor_origins_body_m must be a finite 4x3 array")
+    geometry = GrapeGeometry(
+        rotor_origins=rotor_origins,
+        arm_yaws=_finite_vector(
+            geometry_raw["arm_yaws_rad"], 4, "arm_yaws_rad"
+        ),
+        rotor_directions=_finite_vector(
+            geometry_raw["rotor_directions"], 4, "rotor_directions"
+        ),
+        moment_force_rate=float(geometry_raw["moment_force_rate_m"]),
+        thrust_offset=float(geometry_raw["thrust_offset_m"]),
+    )
+    return VehicleModelInput(
+        source_path=source,
+        parameters=parameters,
+        geometry=geometry,
+        raw=raw,
+    )
+
+
+def load_parameter_prior(path: Path) -> GaussianPhysicalPrior:
+    """Load the deliberately small all-Gaussian physical prior."""
+
+    source, raw = _read_json_object(path, "parameter prior")
+    required = (
+        "mass_kg",
+        "inertia_kg_m2",
+        "cog_position_body_m",
+        "force_effectiveness",
+    )
+    missing = [name for name in required if name not in raw]
+    if missing:
+        raise ValueError(
+            "parameter prior JSON is missing: {}".format(", ".join(missing))
+        )
+
+    def block(name: str) -> Mapping[str, Any]:
+        value = raw[name]
+        if (
+            not isinstance(value, dict)
+            or "mean" not in value
+            or "std" not in value
+        ):
+            raise ValueError("{} prior requires mean and std".format(name))
+        return value
+
+    mass = block("mass_kg")
+    inertia = block("inertia_kg_m2")
+    cog = block("cog_position_body_m")
+    effectiveness = block("force_effectiveness")
+
+    mass_mean = float(mass["mean"])
+    mass_std = float(mass["std"])
+    inertia_mean = np.asarray(inertia["mean"], dtype=float)
+    inertia_std = float(inertia["std"])
+    cog_mean = _finite_vector(cog["mean"], 3, "cog_position_body_m.mean")
+    cog_std = float(cog["std"])
+    effectiveness_mean = _finite_vector(
+        effectiveness["mean"], 4, "force_effectiveness.mean"
+    )
+    effectiveness_std = float(effectiveness["std"])
+
+    if (
+        not np.isfinite(mass_mean)
+        or mass_mean <= 0.0
+        or not np.isfinite(mass_std)
+        or mass_std <= 0.0
+        or inertia_mean.shape != (3, 3)
+        or np.any(~np.isfinite(inertia_mean))
+        or not np.allclose(inertia_mean, inertia_mean.T, atol=1.0e-12, rtol=0.0)
+        or not np.isfinite(inertia_std)
+        or inertia_std <= 0.0
+        or not np.isfinite(cog_std)
+        or cog_std <= 0.0
+        or np.any(effectiveness_mean <= 0.0)
+        or not np.isfinite(effectiveness_std)
+        or effectiveness_std <= 0.0
+    ):
+        raise ValueError("parameter prior mean/std values are invalid")
+
+    principal = np.linalg.eigvalsh(inertia_mean)
+    if (
+        np.any(principal <= 0.0)
+        or principal[0] + principal[1] <= principal[2]
+    ):
+        raise ValueError(
+            "inertia_kg_m2.mean must be physically admissible"
+        )
+
+    mean = np.concatenate(
+        (
+            np.asarray((mass_mean,), dtype=float),
+            np.asarray(
+                [inertia_mean[i, j] for i, j in _INERTIA_VALUE_COMPONENTS],
+                dtype=float,
+            ),
+            cog_mean,
+            effectiveness_mean,
+        )
+    )
+    std = np.concatenate(
+        (
+            np.asarray((mass_std,), dtype=float),
+            np.full(6, inertia_std, dtype=float),
+            np.full(3, cog_std, dtype=float),
+            np.full(4, effectiveness_std, dtype=float),
+        )
+    )
+    return GaussianPhysicalPrior(
+        source_path=source,
+        mean=mean,
+        std=std,
+        raw=raw,
+    )
+
+
+def physical_parameter_vector(parameters: VehicleParameters) -> np.ndarray:
+    inertia = np.asarray(parameters.inertia, dtype=float)
+    return np.concatenate(
+        (
+            np.asarray((parameters.mass,), dtype=float),
+            np.asarray(
+                [inertia[i, j] for i, j in _INERTIA_VALUE_COMPONENTS],
+                dtype=float,
+            ),
+            np.asarray(parameters.cog_offset, dtype=float),
+            np.asarray(parameters.force_effectiveness, dtype=float),
+        )
+    )
+
+
+def physical_parameter_jacobian(parameter_jacobian: Any) -> np.ndarray:
+    mass = np.asarray(parameter_jacobian.mass, dtype=float)
+    dimension = mass.size
+    inertia = np.asarray(parameter_jacobian.inertia, dtype=float)
+    cog = np.asarray(parameter_jacobian.cog_offset, dtype=float)
+    effectiveness = np.asarray(
+        parameter_jacobian.force_effectiveness, dtype=float
+    )
+    if (
+        inertia.shape != (3, 3, dimension)
+        or cog.shape != (3, dimension)
+        or effectiveness.shape != (4, dimension)
+    ):
+        raise ValueError("physical parameter Jacobian has inconsistent shape")
+    rows = [mass]
+    rows.extend(inertia[i, j] for i, j in _INERTIA_VALUE_COMPONENTS)
+    rows.extend(cog[index] for index in range(3))
+    rows.extend(effectiveness[index] for index in range(4))
+    return np.vstack(rows)
+
 _CHOLESKY_OFF_DIAGONALS = ((1, 0), (2, 0), (2, 1))
 COMPONENT_NAMES = ("x", "y", "z")
 
@@ -349,6 +637,7 @@ def cog_kinematics_from_pose_spline(
     return position, velocity, acceleration
 
 
+
 def _build_bag_data(
     specification: multi.BagSpecification,
     normalized_weight: float,
@@ -356,6 +645,8 @@ def _build_bag_data(
     initial_delay: float,
     settings: SplineSettings,
     arguments: argparse.Namespace,
+    reference_parameters: VehicleParameters,
+    geometry: GrapeGeometry,
 ) -> BagSplineData:
     direct = baseline.DirectShootingProblem(
         flight=flight,
@@ -363,8 +654,9 @@ def _build_bag_data(
         integration_step=arguments.integration_step,
         command_delay=initial_delay,
         prior_weight=0.0,
+        reference_parameters=reference_parameters,
+        geometry=geometry,
     )
-    nominal = VehicleParameters.nominal()
     selection = select_pose_spline(
         time_axis=direct.output_time,
         sensor_position=direct.observations.sensor_position,
@@ -377,7 +669,9 @@ def _build_bag_data(
         knot_spacing_candidates_seconds=(
             settings.knot_spacing_candidates_seconds
         ),
-        rotational_metric=nominal.inertia / nominal.mass,
+        rotational_metric=(
+            reference_parameters.inertia / reference_parameters.mass
+        ),
         fold_count=arguments.spline_cv_folds,
         validation_block_duration_seconds=(
             settings.cross_validation_block_seconds
@@ -394,12 +688,19 @@ def _build_bag_data(
         selection,
         settings.boundary_exclusion_knot_spans_each_side,
     )
-    estimation_start = selection.spline.start_time + boundary_exclusion_seconds
-    estimation_end = selection.spline.end_time - boundary_exclusion_seconds
-    if estimation_end - estimation_start < 2.0 * settings.collocation_step_seconds:
+    estimation_start = (
+        selection.spline.start_time + boundary_exclusion_seconds
+    )
+    estimation_end = (
+        selection.spline.end_time - boundary_exclusion_seconds
+    )
+    if (
+        estimation_end - estimation_start
+        < 2.0 * settings.collocation_step_seconds
+    ):
         raise ValueError(
-            "spline boundary exclusion leaves too little parameter-estimation "
-            "support"
+            "spline boundary exclusion leaves too little "
+            "parameter-estimation support"
         )
     collocation_time = _collocation_grid(
         estimation_start,
@@ -436,57 +737,41 @@ def _build_bag_data(
 
 
 class SplinePhysicalParameterization:
-    """14-D physical chart used by the current spline-dynamics estimator.
+    """14-D local chart around an explicit external vehicle-model reference.
 
-    The rigid-body part keeps the existing physically consistent second-moment
-    Cholesky chart.  Rotor force effectiveness uses four independent log
-    coordinates, intentionally retaining the common-scale ridge.
+    The reference values define only the coordinate chart.  They are not a
+    prior.  The Gaussian prior is evaluated separately in physical coordinates.
     """
 
-    def __init__(self, nominal: VehicleParameters) -> None:
-        if not isinstance(nominal, VehicleParameters):
-            raise TypeError("nominal must be VehicleParameters")
+    def __init__(self, reference: VehicleParameters) -> None:
+        if not isinstance(reference, VehicleParameters):
+            raise TypeError("reference must be VehicleParameters")
         second_moment = (
-            0.5 * float(np.trace(nominal.inertia)) * np.eye(3)
-            - nominal.inertia
+            0.5 * float(np.trace(reference.inertia)) * np.eye(3)
+            - reference.inertia
         )
-        second_moment = 0.5 * (
-            second_moment + second_moment.T
-        )
-        if np.any(
-            np.linalg.eigvalsh(second_moment) <= 0.0
-        ):
+        second_moment = 0.5 * (second_moment + second_moment.T)
+        if np.any(np.linalg.eigvalsh(second_moment) <= 0.0):
             raise ValueError(
-                "nominal inertia must satisfy strict triangle inequalities"
+                "reference inertia must satisfy strict triangle inequalities"
             )
-        self.nominal = nominal
-        self.nominal_cholesky = np.linalg.cholesky(
-            second_moment
-        )
+        self.reference = reference
+        self.reference_cholesky = np.linalg.cholesky(second_moment)
 
-    def _cholesky(
-        self,
-        coordinate: np.ndarray,
-    ) -> np.ndarray:
+    def _cholesky(self, coordinate: np.ndarray) -> np.ndarray:
         value = np.asarray(coordinate, dtype=float)
         if value.shape != (PHYSICAL_DIMENSION,):
-            raise ValueError(
-                "physical coordinate must be 14-D"
-            )
-        cholesky = self.nominal_cholesky.copy()
-        cholesky[(0, 1, 2), (0, 1, 2)] *= np.exp(
-            value[1:4]
-        )
+            raise ValueError("physical coordinate must be 14-D")
+        cholesky = self.reference_cholesky.copy()
+        cholesky[(0, 1, 2), (0, 1, 2)] *= np.exp(value[1:4])
         for local_index, (row, column) in enumerate(
             _CHOLESKY_OFF_DIAGONALS
         ):
             scale = math.sqrt(
-                self.nominal_cholesky[row, row]
-                * self.nominal_cholesky[column, column]
+                self.reference_cholesky[row, row]
+                * self.reference_cholesky[column, column]
             )
-            cholesky[row, column] += (
-                value[4 + local_index] * scale
-            )
+            cholesky[row, column] += value[4 + local_index] * scale
         return cholesky
 
     def decode(
@@ -505,19 +790,14 @@ class SplinePhysicalParameterization:
         physical_coordinate: Sequence[float],
         delay: float,
     ) -> tuple[Any, Any]:
-        value = np.asarray(
-            physical_coordinate,
-            dtype=float,
-        )
+        value = np.asarray(physical_coordinate, dtype=float)
         if (
             value.shape != (PHYSICAL_DIMENSION,)
             or np.any(~np.isfinite(value))
             or not np.isfinite(delay)
             or delay < 0.0
         ):
-            raise ValueError(
-                "physical coordinate or delay is invalid"
-            )
+            raise ValueError("physical coordinate or delay is invalid")
 
         cholesky = self._cholesky(value)
         second_moment = cholesky @ cholesky.T
@@ -532,25 +812,17 @@ class SplinePhysicalParameterization:
         )
 
         force_effectiveness = (
-            self.nominal.force_effectiveness
+            self.reference.force_effectiveness
             * np.exp(value[10:14])
         )
         parameters = VehicleParameters(
-            mass=(
-                self.nominal.mass
-                * math.exp(float(value[0]))
-            ),
+            mass=self.reference.mass * math.exp(float(value[0])),
             inertia=inertia,
-            cog_offset=(
-                self.nominal.cog_offset
-                + value[7:10]
-            ),
+            cog_offset=self.reference.cog_offset + value[7:10],
             force_effectiveness=force_effectiveness,
-            torque_effectiveness=(
-                self.nominal.torque_effectiveness
-            ),
-            linear_drag=self.nominal.linear_drag,
-            angular_drag=self.nominal.angular_drag,
+            torque_effectiveness=self.reference.torque_effectiveness,
+            linear_drag=self.reference.linear_drag,
+            angular_drag=self.reference.angular_drag,
         )
         actuator_parameters = ActuatorParameters(
             thrust_time_constant=0.0,
@@ -582,47 +854,27 @@ class SplinePhysicalParameterization:
                 cholesky_derivative @ cholesky.T
                 + cholesky @ cholesky_derivative.T
             )
-            inertia_jacobian[
-                :, :, coordinate_index
-            ] = (
-                np.trace(second_moment_derivative)
-                * np.eye(3)
+            inertia_jacobian[:, :, coordinate_index] = (
+                np.trace(second_moment_derivative) * np.eye(3)
                 - second_moment_derivative
             )
 
         for axis in range(3):
-            derivative = np.zeros(
-                (3, 3),
-                dtype=float,
-            )
-            derivative[axis, axis] = (
-                cholesky[axis, axis]
-            )
-            store_inertia_derivative(
-                1 + axis,
-                derivative,
-            )
+            derivative = np.zeros((3, 3), dtype=float)
+            derivative[axis, axis] = cholesky[axis, axis]
+            store_inertia_derivative(1 + axis, derivative)
         for local_index, (row, column) in enumerate(
             _CHOLESKY_OFF_DIAGONALS
         ):
-            derivative = np.zeros(
-                (3, 3),
-                dtype=float,
-            )
+            derivative = np.zeros((3, 3), dtype=float)
             derivative[row, column] = math.sqrt(
-                self.nominal_cholesky[row, row]
-                * self.nominal_cholesky[column, column]
+                self.reference_cholesky[row, row]
+                * self.reference_cholesky[column, column]
             )
-            store_inertia_derivative(
-                4 + local_index,
-                derivative,
-            )
+            store_inertia_derivative(4 + local_index, derivative)
 
-        cog_offset = np.zeros(
-            (3, dimension),
-            dtype=float,
-        )
-        cog_offset[:, 7:10] = np.eye(3)
+        cog_position = np.zeros((3, dimension), dtype=float)
+        cog_position[:, 7:10] = np.eye(3)
 
         effectiveness_jacobian = np.zeros(
             (4, dimension),
@@ -636,7 +888,8 @@ class SplinePhysicalParameterization:
         jacobian = strict.analytic.DecodedSearchJacobian(
             mass=mass,
             inertia=inertia_jacobian,
-            cog_offset=cog_offset,
+            # Historical field name in the shared dynamics API.
+            cog_offset=cog_position,
             force_effectiveness=effectiveness_jacobian,
             thrust_time_constant=zero.copy(),
             gimbal_time_constant=zero.copy(),
@@ -741,26 +994,37 @@ class SplineDynamicsProblem:
     def __init__(
         self,
         bags: Sequence[BagSplineData],
-        prior_weight: float,
+        reference_parameters: VehicleParameters,
+        parameter_prior: GaussianPhysicalPrior,
     ) -> None:
         self.bags = tuple(bags)
         if not self.bags:
             raise ValueError("spline dynamics requires at least one bag")
         weights = np.asarray(
-            [bag.normalized_weight for bag in self.bags], dtype=float
+            [bag.normalized_weight for bag in self.bags],
+            dtype=float,
         )
-        if not np.isclose(np.sum(weights), 1.0, atol=1.0e-12, rtol=0.0):
-            raise ValueError("normalized bag weights must sum to one")
-        self.prior_weight = float(prior_weight)
-        if not np.isfinite(self.prior_weight) or self.prior_weight < 0.0:
-            raise ValueError("prior weight must be finite and nonnegative")
-        self.prior_scales = BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS.copy()
+        if not np.isclose(
+            np.sum(weights), 1.0, atol=1.0e-12, rtol=0.0
+        ):
+            raise ValueError(
+                "normalized bag weights must sum to one"
+            )
+        if not isinstance(reference_parameters, VehicleParameters):
+            raise TypeError(
+                "reference_parameters must be VehicleParameters"
+            )
+        if not isinstance(parameter_prior, GaussianPhysicalPrior):
+            raise TypeError(
+                "parameter_prior must be GaussianPhysicalPrior"
+            )
+        self.reference_parameters = reference_parameters
+        self.parameter_prior = parameter_prior
         self.parameterization = SplinePhysicalParameterization(
-            VehicleParameters.nominal()
+            reference_parameters
         )
-        nominal = VehicleParameters.nominal()
         self.angular_factor = np.linalg.cholesky(
-            nominal.inertia / nominal.mass
+            reference_parameters.inertia / reference_parameters.mass
         ).T
 
     def _decode(
@@ -1121,22 +1385,25 @@ class SplineDynamicsProblem:
                 * evaluation.acceleration_jacobian.reshape(-1, dimension)
             )
             data_loss += bag.normalized_weight * evaluation.dynamics_loss
+        prior_value = physical_parameter_vector(
+            decoded.parameters
+        )
+        prior_jacobian = physical_parameter_jacobian(
+            parameter_jacobian
+        )
         prior_residual = (
-            math.sqrt(self.prior_weight)
-            * physical_coordinate
-            / self.prior_scales
-        )
-        prior_jacobian = np.zeros(
-            (PHYSICAL_DIMENSION, dimension), dtype=float
-        )
-        prior_jacobian[:, : PHYSICAL_DIMENSION] = np.diag(
-            math.sqrt(self.prior_weight) / self.prior_scales
+            prior_value - self.parameter_prior.mean
+        ) / self.parameter_prior.std
+        prior_jacobian = (
+            prior_jacobian / self.parameter_prior.std[:, None]
         )
         residual_blocks.append(prior_residual)
         jacobian_blocks.append(prior_jacobian)
         residual = np.concatenate(residual_blocks)
         jacobian = np.vstack(jacobian_blocks)
-        prior_cost = 0.5 * float(prior_residual @ prior_residual)
+        prior_cost = 0.5 * float(
+            prior_residual @ prior_residual
+        )
         if np.any(~np.isfinite(residual)) or np.any(~np.isfinite(jacobian)):
             raise FloatingPointError("joint spline dynamics is non-finite")
         return JointDynamicsEvaluation(
@@ -1185,17 +1452,17 @@ def _optimizer_payload(result: Any) -> dict[str, Any]:
     }
 
 
+
 def _physical_bounds(
     initial_coordinate: np.ndarray,
-    scale: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    if np.isinf(scale):
-        return (
-            np.full(PHYSICAL_DIMENSION, -np.inf),
-            np.full(PHYSICAL_DIMENSION, np.inf),
-        )
-    span = scale * BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS
-    return initial_coordinate - span, initial_coordinate + span
+    value = np.asarray(initial_coordinate, dtype=float)
+    if value.shape != (PHYSICAL_DIMENSION,):
+        raise ValueError("initial physical coordinate must be 14-D")
+    return (
+        np.full(PHYSICAL_DIMENSION, -np.inf),
+        np.full(PHYSICAL_DIMENSION, np.inf),
+    )
 
 
 def _solve_smooth(
@@ -1343,6 +1610,7 @@ def forward_rollout(
     bag: BagSplineData,
     physical_coordinate: Sequence[float],
     delay: float,
+    reference_parameters: VehicleParameters,
     external_body_wrench: Optional[BodyWrenchHistory] = None,
 ) -> baseline.Simulation:
     """Strict-ZOH rollout, optionally driven by an external body wrench."""
@@ -1353,7 +1621,7 @@ def forward_rollout(
         raise TypeError("external_body_wrench must be BodyWrenchHistory")
 
     parameterization = SplinePhysicalParameterization(
-        VehicleParameters.nominal()
+        reference_parameters
     )
     decoded = parameterization.decode(
         physical_coordinate,
@@ -1500,6 +1768,7 @@ class WrenchReplayProblem:
         physical_coordinate: Sequence[float],
         delay: float,
         dynamics_evaluation: BagDynamicsEvaluation,
+        reference_parameters: VehicleParameters,
     ) -> None:
         self.bag = bag
         self.physical_coordinate = np.asarray(
@@ -1578,7 +1847,7 @@ class WrenchReplayProblem:
         self.dimension = int(6 * self.knot_time.size)
 
         parameterization = SplinePhysicalParameterization(
-            VehicleParameters.nominal()
+            reference_parameters
         )
         self.decoded = parameterization.decode(
             self.physical_coordinate,
@@ -1614,7 +1883,7 @@ class WrenchReplayProblem:
             self.parameters.inertia
         )
         self.pose_factor = strict.inertia_radius_se3_factor(
-            VehicleParameters.nominal()
+            reference_parameters
         )
         self.target_spline = bag.spline_selection.spline.evaluate(
             self.knot_time
@@ -2107,6 +2376,7 @@ def _solve_wrench_replay(
     delay: float,
     dynamics_evaluation: BagDynamicsEvaluation,
     arguments: argparse.Namespace,
+    reference_parameters: VehicleParameters,
 ) -> tuple[
     WrenchReplayProblem,
     WrenchReplayEvaluation,
@@ -2117,6 +2387,7 @@ def _solve_wrench_replay(
         physical_coordinate,
         delay,
         dynamics_evaluation,
+        reference_parameters,
     )
     objective = _CachedObjective(problem.evaluate)
     initial = np.zeros(problem.dimension, dtype=float)
@@ -2961,10 +3232,11 @@ def _parameter_lines(
     initial_delay: float,
     bags: Sequence[BagSplineData],
     bag_payloads: Sequence[Mapping[str, Any]],
+    reference_parameters: VehicleParameters,
 ) -> list[str]:
-    nominal = VehicleParameters.nominal()
+    reference = reference_parameters
     estimated = selected.evaluation.decoded.parameters
-    nominal_principal = np.linalg.eigvalsh(nominal.inertia)
+    reference_principal = np.linalg.eigvalsh(reference.inertia)
     estimated_principal = np.linalg.eigvalsh(estimated.inertia)
 
     def update_line(
@@ -2988,14 +3260,14 @@ def _parameter_lines(
     lines = [
         "Deterministic pose-spline dynamics estimator",
         "",
-        "Shared parameter update: nominal -> estimated",
-        update_line("mass", nominal.mass, estimated.mass, "kg"),
+        "Shared parameter update: reference -> estimated",
+        update_line("mass", reference.mass, estimated.mass, "kg"),
     ]
     for component, name in enumerate(("CoG x", "CoG y", "CoG z")):
         lines.append(
             update_line(
                 name,
-                float(nominal.cog_offset[component]),
+                float(reference.cog_offset[component]),
                 float(estimated.cog_offset[component]),
                 "m",
                 ratio=False,
@@ -3005,7 +3277,7 @@ def _parameter_lines(
         lines.append(
             update_line(
                 "rotor effectiveness {}".format(component + 1),
-                float(nominal.force_effectiveness[component]),
+                float(reference.force_effectiveness[component]),
                 float(estimated.force_effectiveness[component]),
             )
         )
@@ -3019,22 +3291,22 @@ def _parameter_lines(
         )
     )
 
-    lines.extend(["", "Inertia matrix [kg m^2]", "  nominal:"])
+    lines.extend(["", "Inertia matrix [kg m^2]", "  reference:"])
     lines.extend(
         "    [{: .10g}, {: .10g}, {: .10g}]".format(*row)
-        for row in nominal.inertia
+        for row in reference.inertia
     )
     lines.append("  estimated:")
     lines.extend(
         "    [{: .10g}, {: .10g}, {: .10g}]".format(*row)
         for row in estimated.inertia
     )
-    lines.extend(["", "Principal moments: nominal -> estimated"])
+    lines.extend(["", "Principal moments: reference -> estimated"])
     for component in range(3):
         lines.append(
             update_line(
                 "principal moment {}".format(component + 1),
-                float(nominal_principal[component]),
+                float(reference_principal[component]),
                 float(estimated_principal[component]),
                 "kg m^2",
             )
@@ -3047,7 +3319,7 @@ def _parameter_lines(
             "  joint dynamics loss: {:.12g}".format(
                 selected.evaluation.data_loss
             ),
-            "  soft-prior cost: {:.12g}".format(
+            "  Gaussian-prior cost: {:.12g}".format(
                 selected.evaluation.prior_cost
             ),
             "  selected strict-ZOH lag [s]: {:.12g}".format(
@@ -3137,6 +3409,7 @@ def _write_parameters_pdf(path: Path, lines: Sequence[str]) -> None:
             plt.close(figure)
 
 
+
 def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -3145,15 +3418,36 @@ def create_argument_parser() -> argparse.ArgumentParser:
         )
     )
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument(
+        "--vehicle-model-json",
+        type=Path,
+        required=True,
+        help=(
+            "Deterministic vehicle-model reference. This file contains no "
+            "uncertainty and defines the local parameter chart and geometry."
+        ),
+    )
+    parser.add_argument(
+        "--prior-json",
+        type=Path,
+        required=True,
+        help=(
+            "Independent Gaussian physical-parameter prior with mean/std."
+        ),
+    )
     parser.add_argument("--sample-step", type=float, default=0.05)
     parser.add_argument("--integration-step", type=float, default=0.025)
-    parser.add_argument("--prior-weight", type=float, default=1.0)
     parser.add_argument("--smooth-max-nfev", type=int, default=60)
     parser.add_argument("--strict-max-nfev", type=int, default=80)
     parser.add_argument("--ftol", type=float, default=1.0e-6)
     parser.add_argument("--xtol", type=float, default=1.0e-6)
     parser.add_argument("--gtol", type=float, default=1.0e-6)
-    parser.add_argument("--delay-bounds", type=float, nargs=2, default=(0.0, 0.20))
+    parser.add_argument(
+        "--delay-bounds",
+        type=float,
+        nargs=2,
+        default=(0.0, 0.20),
+    )
     parser.add_argument("--initial-delay", type=float, default=None)
     parser.add_argument(
         "--smoothstep-width-fractions",
@@ -3164,11 +3458,16 @@ def create_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--zoh-polish-radius", type=float, default=0.004)
     parser.add_argument("--zoh-polish-step", type=float, default=0.001)
     parser.add_argument("--zoh-polish-top-k", type=int, default=3)
-    parser.add_argument("--physical-bound-scale", type=float, default=np.inf)
     parser.add_argument("--spline-cv-folds", type=int, default=5)
-    parser.add_argument("--maximum-spline-acceleration", type=float, default=250.0)
     parser.add_argument(
-        "--maximum-spline-angular-acceleration", type=float, default=1000.0
+        "--maximum-spline-acceleration",
+        type=float,
+        default=250.0,
+    )
+    parser.add_argument(
+        "--maximum-spline-angular-acceleration",
+        type=float,
+        default=1000.0,
     )
     parser.add_argument(
         "--output-dir",
@@ -3176,6 +3475,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
         default=Path(__file__).resolve().parent / "output",
     )
     return parser
+
 
 
 def _validate_arguments(
@@ -3201,15 +3501,19 @@ def _validate_arguments(
         config.spline.cross_validation_block_seconds,
     )
     bounds = np.asarray(arguments.delay_bounds, dtype=float)
-    widths = np.asarray(arguments.smoothstep_width_fractions, dtype=float)
+    widths = np.asarray(
+        arguments.smoothstep_width_fractions,
+        dtype=float,
+    )
     ratio = arguments.sample_step / arguments.integration_step
     if (
-        any(not np.isfinite(value) or value <= 0.0 for value in positive)
-        or np.isnan(arguments.physical_bound_scale)
-        or arguments.physical_bound_scale <= 0.0
-        or not np.isclose(ratio, round(ratio), atol=1.0e-12, rtol=0.0)
-        or not np.isfinite(arguments.prior_weight)
-        or arguments.prior_weight < 0.0
+        any(
+            not np.isfinite(value) or value <= 0.0
+            for value in positive
+        )
+        or not np.isclose(
+            ratio, round(ratio), atol=1.0e-12, rtol=0.0
+        )
         or bounds.shape != (2,)
         or np.any(~np.isfinite(bounds))
         or bounds[0] < 0.0
@@ -3220,7 +3524,9 @@ def _validate_arguments(
         or np.any(~np.isfinite(widths))
         or np.any(widths <= 0.0)
     ):
-        raise SystemExit("spline-dynamics estimator settings are invalid")
+        raise SystemExit(
+            "spline-dynamics estimator settings are invalid"
+        )
 
 
 def _solution_cost(solution: DynamicsSolution) -> float:
@@ -3228,19 +3534,27 @@ def _solution_cost(solution: DynamicsSolution) -> float:
     return 0.5 * float(residual @ residual)
 
 
+
 def _rollout_pose_score(
     observations: baseline.Observations,
     simulation: baseline.Simulation,
+    reference_parameters: VehicleParameters,
 ) -> float:
-    position_error = simulation.sensor_position - observations.sensor_position
+    position_error = (
+        simulation.sensor_position - observations.sensor_position
+    )
     orientation_error = _orientation_errors(
         observations.sensor_orientation_xyzw,
         simulation.sensor_orientation_xyzw,
     )
-    nominal = VehicleParameters.nominal()
-    rotational_metric = nominal.inertia / nominal.mass
+    rotational_metric = (
+        reference_parameters.inertia / reference_parameters.mass
+    )
     squared = np.sum(position_error**2, axis=1) + np.einsum(
-        "ni,ij,nj->n", orientation_error, rotational_metric, orientation_error
+        "ni,ij,nj->n",
+        orientation_error,
+        rotational_metric,
+        orientation_error,
     )
     return 0.5 * float(np.mean(squared))
 
@@ -3296,10 +3610,19 @@ def _json_sanitize(value: Any) -> Any:
 def run(arguments: argparse.Namespace) -> int:
     try:
         config = load_spline_config(arguments.config)
+        vehicle_model = load_vehicle_model(
+            arguments.vehicle_model_json
+        )
+        parameter_prior = load_parameter_prior(
+            arguments.prior_json
+        )
     except ValueError as error:
         raise SystemExit(str(error)) from error
+
+    reference_parameters = vehicle_model.parameters
     initial_physical_coordinate = np.zeros(
-        PHYSICAL_DIMENSION, dtype=float
+        PHYSICAL_DIMENSION,
+        dtype=float,
     )
     initial_delay = (
         config.multi_bag.initial_delay_seconds
@@ -3309,7 +3632,15 @@ def run(arguments: argparse.Namespace) -> int:
     _validate_arguments(arguments, config, initial_delay)
     started = time.perf_counter()
     print(
-        "initial physical parameters: exact nominal chart origin",
+        "vehicle-model reference: {}".format(
+            vehicle_model.source_path
+        ),
+        flush=True,
+    )
+    print(
+        "Gaussian parameter prior: {}".format(
+            parameter_prior.source_path
+        ),
         flush=True,
     )
 
@@ -3347,6 +3678,8 @@ def run(arguments: argparse.Namespace) -> int:
             initial_delay,
             config.spline,
             arguments,
+            reference_parameters,
+            vehicle_model.geometry,
         )
         print(
             "  selected knot spacing {:.6g}s from {}; parameter support "
@@ -3360,10 +3693,14 @@ def run(arguments: argparse.Namespace) -> int:
             flush=True,
         )
         bags.append(bag)
-    problem = SplineDynamicsProblem(bags, arguments.prior_weight)
+    problem = SplineDynamicsProblem(
+        bags,
+        reference_parameters,
+        parameter_prior,
+    )
 
     physical_lower, physical_upper = _physical_bounds(
-        initial_physical_coordinate, arguments.physical_bound_scale
+        initial_physical_coordinate
     )
     smooth_lower = np.concatenate(
         (physical_lower, np.asarray((arguments.delay_bounds[0],), dtype=float))
@@ -3506,6 +3843,7 @@ def run(arguments: argparse.Namespace) -> int:
             selected.delay_seconds,
             evaluation,
             arguments,
+            reference_parameters,
         )
         external_wrench_time = (
             wrench_replay_evaluation.knot_time
@@ -3531,12 +3869,16 @@ def run(arguments: argparse.Namespace) -> int:
             flush=True,
         )
         estimated_rollout = forward_rollout(
-            bag, selected.physical_coordinate, selected.delay_seconds
+            bag,
+            selected.physical_coordinate,
+            selected.delay_seconds,
+            reference_parameters,
         )
-        nominal_rollout = forward_rollout(
+        reference_rollout = forward_rollout(
             bag,
             np.zeros(PHYSICAL_DIMENSION, dtype=float),
             initial_delay,
+            reference_parameters,
         )
         observations = bag.direct_problem.observations
         reconstruction_observations = _observations_at_times(
@@ -3548,11 +3890,12 @@ def run(arguments: argparse.Namespace) -> int:
             reconstruction_observations,
             external_wrench_rollout,
         )
-        nominal_metrics = _pose_metrics(observations, nominal_rollout)
-        estimated_score = _rollout_pose_score(observations, estimated_rollout)
+        reference_metrics = _pose_metrics(observations, reference_rollout)
+        estimated_score = _rollout_pose_score(observations, estimated_rollout, reference_parameters)
         external_wrench_score = _rollout_pose_score(
             reconstruction_observations,
             external_wrench_rollout,
+            reference_parameters,
         )
         estimated_on_reconstruction_support = _simulation_at_times(
             estimated_rollout,
@@ -3561,8 +3904,9 @@ def run(arguments: argparse.Namespace) -> int:
         estimated_support_score = _rollout_pose_score(
             reconstruction_observations,
             estimated_on_reconstruction_support,
+            reference_parameters,
         )
-        nominal_score = _rollout_pose_score(observations, nominal_rollout)
+        reference_score = _rollout_pose_score(observations, reference_rollout, reference_parameters)
         sensor_metrics = _sensor_metrics(observations, estimated_rollout)
         external_wrench_sensor_metrics = _sensor_metrics(
             reconstruction_observations,
@@ -3664,7 +4008,7 @@ def run(arguments: argparse.Namespace) -> int:
                 external_wrench_metrics
             ),
             "reconstruction_metrics": external_wrench_metrics,
-            "nominal_forward_metrics": nominal_metrics,
+            "reference_forward_metrics": reference_metrics,
             "estimated_forward_pose_score_m2": estimated_score,
             "estimated_with_external_wrench_forward_pose_score_m2": (
                 external_wrench_score
@@ -3672,16 +4016,16 @@ def run(arguments: argparse.Namespace) -> int:
             "external_wrench_improves_estimated_free_rollout": bool(
                 external_wrench_score < estimated_support_score
             ),
-            "nominal_forward_pose_score_m2": nominal_score,
-            "estimated_improves_over_nominal": bool(
-                estimated_score < nominal_score
+            "reference_forward_pose_score_m2": reference_score,
+            "estimated_improves_over_reference": bool(
+                estimated_score < reference_score
             ),
             "sensor_validation": sensor_metrics,
             "sensor_validation_with_external_wrench": (
                 external_wrench_sensor_metrics
             ),
             "sensor_consistency": external_wrench_sensor_metrics,
-            "nominal_rollout_lag_seconds": initial_delay,
+            "reference_rollout_lag_seconds": initial_delay,
         }
         _write_trajectory_pdf(
             bag_directory / "trajectory.pdf",
@@ -3800,9 +4144,9 @@ def run(arguments: argparse.Namespace) -> int:
             external_wrench_forward_specific_force_sensor=(
                 external_wrench_rollout.specific_force_sensor
             ),
-            nominal_forward_sensor_position=nominal_rollout.sensor_position,
-            nominal_forward_sensor_orientation_xyzw=(
-                nominal_rollout.sensor_orientation_xyzw
+            reference_forward_sensor_position=reference_rollout.sensor_position,
+            reference_forward_sensor_orientation_xyzw=(
+                reference_rollout.sensor_orientation_xyzw
             ),
         )
         bag_result = {
@@ -3854,6 +4198,7 @@ def run(arguments: argparse.Namespace) -> int:
         initial_delay,
         bags,
         bag_payloads,
+        reference_parameters,
     )
     strict._write_text(output_directory / "parameters.txt", lines)
     _write_parameters_pdf(output_directory / "parameters.pdf", lines)
@@ -3870,6 +4215,10 @@ def run(arguments: argparse.Namespace) -> int:
         "schema": SCHEMA,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "config_path": str(arguments.config.expanduser().resolve()),
+        "vehicle_model_path": str(vehicle_model.source_path),
+        "parameter_prior_path": str(parameter_prior.source_path),
+        "vehicle_model": vehicle_model.raw,
+        "parameter_prior": parameter_prior.raw,
         "method": {
             "name": "deterministic_spline_dynamics",
             "description": (
@@ -3888,13 +4237,13 @@ def run(arguments: argparse.Namespace) -> int:
                 "normalized quaternion quintic B-spline"
             ),
             "default_physical_initialization": (
-                "exact nominal 13-D physical chart origin"
+                "zero coordinate of the external vehicle-model 14-D chart"
             ),
             "command_mode_during_search": "quintic smoothstep ZOH",
             "command_mode_final": "strict ZOH",
         },
         "initial_estimate": {
-            "source_kind": "nominal",
+            "source_kind": "vehicle_model_reference",
             "physical_coordinate": initial_physical_coordinate,
             "delay_seconds": initial_delay,
         },
@@ -3915,17 +4264,7 @@ def run(arguments: argparse.Namespace) -> int:
                 "parameter loss and residual wrench use only the interior; "
                 "quintic half-support is excluded at both spline boundaries"
             ),
-            "prior_weight": arguments.prior_weight,
-            "physical_coordinate_bounds": (
-                "unbounded"
-                if np.isinf(arguments.physical_bound_scale)
-                else {
-                    "center": "nominal physical coordinate",
-                    "soft_prior_standard_deviation_scale": (
-                        arguments.physical_bound_scale
-                    ),
-                }
-            ),
+            "physical_coordinate_bounds": "unbounded",
             "spline_cv_folds": arguments.spline_cv_folds,
             "spline_cross_validation_block_seconds": (
                 config.spline.cross_validation_block_seconds
@@ -3956,7 +4295,7 @@ def run(arguments: argparse.Namespace) -> int:
                 selected.evaluation.decoded.inertia_triangle_margin
             ),
             "joint_dynamics_loss": selected.evaluation.data_loss,
-            "soft_prior_cost": selected.evaluation.prior_cost,
+            "gaussian_prior_cost": selected.evaluation.prior_cost,
             "joint_objective_cost": _solution_cost(selected),
             "optimizer": selected.optimizer,
         },

@@ -10,9 +10,9 @@ Model used by this first confidence layer
 1. The deterministic spline-dynamics estimator provides a MAP-like physical
    parameter point, spline-implied residual body wrench, and its analytic
    parameter Jacobian.
-2. Rigid-body quantities are nondimensionalized by fixed nominal reference
+2. Rigid-body quantities are nondimensionalized by fixed vehicle-model reference
    scales:
-       M* = nominal mass
+       M* = vehicle-model reference mass
        L* = sqrt(trace(J*) / (3 M*))
        T* = sqrt(L* / g)
    so dimensionless gravity has magnitude one.
@@ -23,13 +23,13 @@ Model used by this first confidence layer
 4. The parameter-to-wrench Jacobian is whitened with Sigma_w and SVD is used
    to expose data-constrained and ridge directions without hand-designed
    drone-specific ridge coordinates.
-5. The data information matrix is kept separate from the broad proper prior.
-   The posterior precision is their sum.
+5. The data information matrix is kept separate from the externally supplied
+   Gaussian physical-parameter prior. The posterior precision is their sum.
 6. Prefix information spectra are stored without dividing by sample count, so
    longer bags accumulate information under the iid approximation.
 
-Run after applying ``apply_spline_dynamics_confidence_patch.py`` to
-``deterministic_spline_dynamics_estimator.py``.
+The deterministic estimator must use the same explicit vehicle-model and
+Gaussian-prior JSON inputs; no embedded nominal model is used.
 """
 
 from __future__ import annotations
@@ -47,10 +47,10 @@ import numpy as np
 
 import deterministic_spline_dynamics_estimator as deterministic
 from grape_param_estim.real_rosbag import load_flight_data
-from grape_param_estim.system import GRAVITY, VehicleParameters
+from grape_param_estim.system import GRAVITY
 
 
-SCHEMA = "grape-param-estim/spline-dynamics-confidence/v1"
+SCHEMA = "grape-param-estim/spline-dynamics-confidence/v2"
 OUTPUT_SUBDIRECTORY = "spline_dynamics_confidence"
 
 
@@ -88,7 +88,7 @@ def _parameter_payload(parameters: Any) -> dict[str, Any]:
         "mass_kg": float(parameters.mass),
         "inertia_kg_m2": inertia,
         "inertia_principal_moments_kg_m2": np.linalg.eigvalsh(inertia),
-        "cog_offset_m": np.asarray(parameters.cog_offset, dtype=float),
+        "cog_position_body_m": np.asarray(parameters.cog_offset, dtype=float),
         "force_effectiveness": np.asarray(
             parameters.force_effectiveness, dtype=float
         ),
@@ -102,12 +102,15 @@ def _estimate_solution(
     bag: Any,
     arguments: argparse.Namespace,
     initial_delay: float,
+    reference_parameters: Any,
+    parameter_prior: Any,
 ) -> tuple[Any, dict[str, Any]]:
     """Run the same smooth-lag -> strict-ZOH physical solve as the estimator."""
 
     problem = deterministic.SplineDynamicsProblem(
         (bag,),
-        arguments.prior_weight,
+        reference_parameters,
+        parameter_prior,
     )
     initial_physical = np.zeros(
         deterministic.PHYSICAL_DIMENSION,
@@ -115,7 +118,6 @@ def _estimate_solution(
     )
     physical_lower, physical_upper = deterministic._physical_bounds(
         initial_physical,
-        arguments.physical_bound_scale,
     )
     smooth_lower = np.concatenate(
         (
@@ -261,11 +263,12 @@ def _estimate_solution(
     }
 
 
-def _reference_scales() -> dict[str, float]:
-    nominal = VehicleParameters.nominal()
-    mass_scale = float(nominal.mass)
+def _reference_scales(
+    reference_parameters: Any,
+) -> dict[str, float]:
+    mass_scale = float(reference_parameters.mass)
     length_scale = math.sqrt(
-        float(np.trace(nominal.inertia))
+        float(np.trace(reference_parameters.inertia))
         / (3.0 * mass_scale)
     )
     if not (
@@ -276,7 +279,7 @@ def _reference_scales() -> dict[str, float]:
         and np.isfinite(GRAVITY)
         and GRAVITY > 0.0
     ):
-        raise ValueError("nominal nondimensionalization scales are invalid")
+        raise ValueError("vehicle-model nondimensionalization scales are invalid")
     time_scale = math.sqrt(length_scale / float(GRAVITY))
     force_scale = mass_scale * length_scale / time_scale**2
     torque_scale = (
@@ -451,69 +454,60 @@ def _svd_payload(
 
 
 
+def _symmetric_covariance_sqrt(
+    covariance: np.ndarray,
+) -> np.ndarray:
+    value = np.asarray(covariance, dtype=float)
+    value = 0.5 * (value + value.T)
+    eigenvalues, eigenvectors = np.linalg.eigh(value)
+    tolerance = (
+        value.shape[0]
+        * np.finfo(float).eps
+        * max(1.0, float(np.max(np.abs(eigenvalues))))
+    )
+    if np.any(eigenvalues < -tolerance):
+        raise ValueError("covariance is not positive semidefinite")
+    return (
+        eigenvectors
+        @ np.diag(np.sqrt(np.maximum(eigenvalues, 0.0)))
+        @ eigenvectors.T
+    )
+
+
 def _prefix_information(
     time_axis: np.ndarray,
     sample_jacobian: np.ndarray,
-    prior_standard_deviation_dimensionless: np.ndarray,
-    prior_weight: float,
+    prior_covariance_dimensionless: np.ndarray,
 ) -> dict[str, Any]:
-    """Track interpretable confidence accumulation as the bag becomes longer.
-
-    For every prefix, data information is measured relative to the proper
-    parameter prior.  If ``g`` is an eigenvalue of the prior-whitened data
-    information, the local posterior standard deviation along that generalized
-    mode is reduced by
-
-        remaining_std_fraction = 1 / sqrt(1 + g).
-
-    Hence:
-        1 -> this bag has taught us essentially nothing beyond the prior;
-        0 -> data strongly constrain that mode relative to the prior.
-    """
+    """Accumulate data information and compare it with the supplied prior."""
 
     time_value = np.asarray(time_axis, dtype=float)
     jacobian = np.asarray(sample_jacobian, dtype=float)
-    prior_std = np.asarray(
-        prior_standard_deviation_dimensionless,
+    prior_covariance = np.asarray(
+        prior_covariance_dimensionless,
         dtype=float,
     )
     dimension = jacobian.shape[2]
-    if prior_std.shape != (dimension,):
-        raise ValueError("prefix prior scale has the wrong dimension")
-
-    cumulative = np.zeros(
-        (dimension, dimension),
-        dtype=float,
+    if prior_covariance.shape != (dimension, dimension):
+        raise ValueError("prefix prior covariance has the wrong dimension")
+    prior_covariance_sqrt = _symmetric_covariance_sqrt(
+        prior_covariance
     )
+
+    cumulative = np.zeros((dimension, dimension), dtype=float)
     eigenvalue_history = np.empty(
-        (time_value.size, dimension),
-        dtype=float,
+        (time_value.size, dimension), dtype=float
     )
     relative_history = np.empty(
-        (time_value.size, dimension),
-        dtype=float,
+        (time_value.size, dimension), dtype=float
     )
-    numerical_rank_history = np.empty(
-        time_value.size,
-        dtype=int,
+    generalized_information_history = np.empty(
+        (time_value.size, dimension), dtype=float
     )
-
-    if prior_weight > 0.0:
-        effective_prior_std = prior_std / math.sqrt(float(prior_weight))
-        prior_covariance_sqrt = np.diag(effective_prior_std)
-        generalized_information_history = np.empty(
-            (time_value.size, dimension),
-            dtype=float,
-        )
-        remaining_history = np.empty(
-            (time_value.size, dimension),
-            dtype=float,
-        )
-    else:
-        effective_prior_std = None
-        prior_covariance_sqrt = None
-        generalized_information_history = None
-        remaining_history = None
+    remaining_history = np.empty(
+        (time_value.size, dimension), dtype=float
+    )
+    numerical_rank_history = np.empty(time_value.size, dtype=int)
 
     for index in range(time_value.size):
         block = jacobian[index]
@@ -537,218 +531,254 @@ def _prefix_information(
             np.count_nonzero(eigenvalues > tolerance)
         )
 
-        if prior_covariance_sqrt is not None:
-            prior_whitened = (
-                prior_covariance_sqrt
-                @ symmetric
-                @ prior_covariance_sqrt
-            )
-            generalized = np.linalg.eigvalsh(
-                0.5 * (prior_whitened + prior_whitened.T)
-            )[::-1]
-            generalized = np.maximum(generalized, 0.0)
-            generalized_information_history[index] = generalized
-            remaining_history[index] = (
-                1.0 / np.sqrt(1.0 + generalized)
-            )
+        prior_whitened = (
+            prior_covariance_sqrt
+            @ symmetric
+            @ prior_covariance_sqrt
+        )
+        generalized = np.linalg.eigvalsh(
+            0.5 * (prior_whitened + prior_whitened.T)
+        )[::-1]
+        generalized = np.maximum(generalized, 0.0)
+        generalized_information_history[index] = generalized
+        remaining_history[index] = 1.0 / np.sqrt(1.0 + generalized)
 
-    payload: dict[str, Any] = {
-        "time_seconds_from_analysis_start": (
-            time_value - time_value[0]
-        ),
+    return {
+        "time_seconds_from_analysis_start": time_value - time_value[0],
         "information_eigenvalues_descending": eigenvalue_history,
         "relative_information_strength_descending": relative_history,
         "numerical_rank": numerical_rank_history,
-        "relative_information_interpretation": (
-            "1 means as informative as the strongest direction at that prefix; "
-            "values near 0 indicate weak/ridge directions."
+        "prior_normalized_data_information_descending": (
+            generalized_information_history
+        ),
+        "remaining_std_fraction_by_mode": remaining_history,
+        "remaining_std_fraction_strongest_mode": remaining_history[:, 0],
+        "remaining_std_fraction_median_mode": np.median(
+            remaining_history,
+            axis=1,
+        ),
+        "remaining_std_fraction_weakest_mode": remaining_history[:, -1],
+        "remaining_std_fraction_interpretation": (
+            "1 means the bag did not reduce prior uncertainty; "
+            "0 means the data dominate the prior along that generalized mode."
         ),
     }
 
-    if remaining_history is not None:
-        # generalized eigenvalues are descending, so remaining fractions are
-        # ascending: [strongest learned, ..., weakest learned].
-        payload.update(
-            {
-                "prior_weight": float(prior_weight),
-                "effective_prior_standard_deviation_dimensionless": (
-                    effective_prior_std
-                ),
-                "prior_normalized_data_information_descending": (
-                    generalized_information_history
-                ),
-                "remaining_std_fraction_by_mode": remaining_history,
-                "remaining_std_fraction_strongest_mode": (
-                    remaining_history[:, 0]
-                ),
-                "remaining_std_fraction_median_mode": np.median(
-                    remaining_history,
-                    axis=1,
-                ),
-                "remaining_std_fraction_weakest_mode": (
-                    remaining_history[:, -1]
-                ),
-                "remaining_std_fraction_interpretation": (
-                    "1 means the bag did not reduce the prior uncertainty; "
-                    "0 means the data dominate the prior along that generalized mode."
-                ),
-            }
-        )
-    return payload
 
+
+def _physical_distribution_payload(
+    mean: np.ndarray,
+    covariance: np.ndarray,
+) -> dict[str, Any]:
+    mean = np.asarray(mean, dtype=float)
+    covariance = np.asarray(covariance, dtype=float)
+    std = np.sqrt(np.maximum(0.0, np.diag(covariance)))
+    z95 = 1.959963984540054
+    lower = mean - z95 * std
+    upper = mean + z95 * std
+    return {
+        "vector_order": deterministic.PHYSICAL_VALUE_NAMES,
+        "mean": mean,
+        "covariance": covariance,
+        "std": std,
+        "interval_95": np.column_stack((lower, upper)),
+    }
 
 
 def _posterior_payload(
     *,
     data_information: np.ndarray,
-    selected_coordinate: np.ndarray,
+    data_information_vector: np.ndarray,
+    selected: Any,
     raw_per_dimensionless: np.ndarray,
-    prior_raw_standard_deviation: np.ndarray,
-    prior_weight: float,
+    reference_parameters: Any,
+    parameter_prior: Any,
     names: Sequence[str],
 ) -> dict[str, Any]:
-    data_information = np.asarray(
-        data_information,
+    """Fuse the local data likelihood with the external physical Gaussian prior."""
+
+    data_information = np.asarray(data_information, dtype=float)
+    data_information_vector = np.asarray(
+        data_information_vector,
         dtype=float,
     )
-    raw_per_dimensionless = np.asarray(
-        raw_per_dimensionless,
-        dtype=float,
+    raw_scale = np.asarray(raw_per_dimensionless, dtype=float)
+
+    parameterization = deterministic.SplinePhysicalParameterization(
+        reference_parameters
     )
-    selected_raw = np.asarray(
-        selected_coordinate,
-        dtype=float,
+    decoded, jacobian_raw = parameterization.decode_with_jacobian(
+        selected.physical_coordinate,
+        selected.delay_seconds,
     )
-    prior_raw = np.asarray(
-        prior_raw_standard_deviation,
-        dtype=float,
+    physical_reference = deterministic.physical_parameter_vector(
+        decoded.parameters
+    )
+    physical_jacobian_raw = deterministic.physical_parameter_jacobian(
+        jacobian_raw
+    )
+    physical_jacobian_dimensionless = (
+        physical_jacobian_raw * raw_scale[None, :]
     )
 
-    selected_dimensionless = selected_raw / raw_per_dimensionless
-    prior_dimensionless = prior_raw / raw_per_dimensionless
+    inverse_variance = 1.0 / (parameter_prior.std**2)
     prior_precision = (
-        float(prior_weight)
-        * np.diag(1.0 / prior_dimensionless**2)
+        physical_jacobian_dimensionless.T
+        @ (
+            inverse_variance[:, None]
+            * physical_jacobian_dimensionless
+        )
     )
-    posterior_precision = data_information + prior_precision
-    posterior_covariance = np.linalg.pinv(
-        posterior_precision,
-        hermitian=True,
+    prior_information_vector = (
+        physical_jacobian_dimensionless.T
+        @ (
+            inverse_variance
+            * (parameter_prior.mean - physical_reference)
+        )
     )
-    raw_scale_matrix = np.diag(raw_per_dimensionless)
-    posterior_covariance_raw = (
-        raw_scale_matrix
-        @ posterior_covariance
-        @ raw_scale_matrix
+    prior_precision = 0.5 * (
+        prior_precision + prior_precision.T
+    )
+    prior_covariance = np.linalg.inv(prior_precision)
+    prior_covariance = 0.5 * (
+        prior_covariance + prior_covariance.T
     )
 
-    payload: dict[str, Any] = {
-        "selected_coordinate_raw": selected_raw,
+    posterior_precision = data_information + prior_precision
+    posterior_precision = 0.5 * (
+        posterior_precision + posterior_precision.T
+    )
+    posterior_information_vector = (
+        data_information_vector + prior_information_vector
+    )
+    posterior_covariance = np.linalg.inv(posterior_precision)
+    posterior_covariance = 0.5 * (
+        posterior_covariance + posterior_covariance.T
+    )
+    posterior_delta_mean = np.linalg.solve(
+        posterior_precision,
+        posterior_information_vector,
+    )
+
+    selected_dimensionless = (
+        selected.physical_coordinate / raw_scale
+    )
+    posterior_mean_dimensionless = (
+        selected_dimensionless + posterior_delta_mean
+    )
+    posterior_physical_mean = (
+        physical_reference
+        + physical_jacobian_dimensionless @ posterior_delta_mean
+    )
+    posterior_physical_covariance = (
+        physical_jacobian_dimensionless
+        @ posterior_covariance
+        @ physical_jacobian_dimensionless.T
+    )
+    posterior_physical_covariance = 0.5 * (
+        posterior_physical_covariance
+        + posterior_physical_covariance.T
+    )
+
+    prior_covariance_sqrt = _symmetric_covariance_sqrt(
+        prior_covariance
+    )
+    prior_whitened_information = (
+        prior_covariance_sqrt
+        @ data_information
+        @ prior_covariance_sqrt
+    )
+    eigenvalues, eigenvectors = np.linalg.eigh(
+        0.5
+        * (
+            prior_whitened_information
+            + prior_whitened_information.T
+        )
+    )
+    order = np.argsort(eigenvalues)[::-1]
+    eigenvalues = np.maximum(eigenvalues[order], 0.0)
+    eigenvectors = eigenvectors[:, order]
+    remaining_std = 1.0 / np.sqrt(1.0 + eigenvalues)
+
+    generalized_modes = []
+    for rank_from_weakest, index in enumerate(
+        range(eigenvalues.size - 1, -1, -1)
+    ):
+        direction = (
+            prior_covariance_sqrt @ eigenvectors[:, index]
+        )
+        norm = np.linalg.norm(direction)
+        if norm > 0.0:
+            direction = direction / norm
+        component_order = np.argsort(
+            np.abs(direction),
+            kind="stable",
+        )[::-1]
+        generalized_modes.append(
+            {
+                "rank_from_weakest": rank_from_weakest + 1,
+                "data_to_prior_precision_ratio": float(
+                    eigenvalues[index]
+                ),
+                "remaining_prior_std_fraction": float(
+                    remaining_std[index]
+                ),
+                "dimensionless_parameter_direction": direction,
+                "dominant_components": [
+                    {
+                        "name": str(names[column]),
+                        "coefficient": float(direction[column]),
+                    }
+                    for column in component_order[
+                        : min(8, len(component_order))
+                    ]
+                ],
+            }
+        )
+
+    return {
+        "selected_coordinate_raw": selected.physical_coordinate,
         "selected_coordinate_dimensionless": selected_dimensionless,
-        "prior_weight": float(prior_weight),
-        "prior_standard_deviation_raw": prior_raw,
-        "prior_standard_deviation_dimensionless": prior_dimensionless,
-        "prior_precision_dimensionless": prior_precision,
         "data_information_dimensionless": data_information,
+        "data_information_vector_dimensionless": (
+            data_information_vector
+        ),
+        "prior_precision_dimensionless": prior_precision,
+        "prior_covariance_dimensionless": prior_covariance,
+        "prior_information_vector_dimensionless": (
+            prior_information_vector
+        ),
         "posterior_precision_dimensionless": posterior_precision,
         "posterior_covariance_dimensionless": posterior_covariance,
-        "posterior_standard_deviation_dimensionless": np.sqrt(
-            np.maximum(0.0, np.diag(posterior_covariance))
+        "posterior_information_vector_dimensionless": (
+            posterior_information_vector
         ),
-        "posterior_covariance_raw_coordinate": posterior_covariance_raw,
-        "posterior_standard_deviation_raw_coordinate": np.sqrt(
-            np.maximum(0.0, np.diag(posterior_covariance_raw))
+        "posterior_delta_mean_dimensionless": posterior_delta_mean,
+        "posterior_mean_dimensionless": posterior_mean_dimensionless,
+        "physical_linearization_point": physical_reference,
+        "physical_jacobian_dimensionless": (
+            physical_jacobian_dimensionless
         ),
-    }
-
-    if prior_weight > 0.0:
-        effective_prior_std = (
-            prior_dimensionless / math.sqrt(float(prior_weight))
-        )
-        prior_covariance_sqrt = np.diag(effective_prior_std)
-        prior_whitened_information = (
-            prior_covariance_sqrt
-            @ data_information
-            @ prior_covariance_sqrt
-        )
-        eigenvalues, eigenvectors = np.linalg.eigh(
-            0.5
-            * (
-                prior_whitened_information
-                + prior_whitened_information.T
-            )
-        )
-        order = np.argsort(eigenvalues)[::-1]
-        eigenvalues = np.maximum(eigenvalues[order], 0.0)
-        eigenvectors = eigenvectors[:, order]
-        remaining_std = 1.0 / np.sqrt(1.0 + eigenvalues)
-
-        generalized_modes = []
-        # Store weakest-learning modes first because those are the ones that
-        # matter for "I am not confident".
-        for rank_from_weakest, index in enumerate(
-            range(eigenvalues.size - 1, -1, -1)
-        ):
-            direction = eigenvectors[:, index]
-            physical_direction = (
-                prior_covariance_sqrt @ direction
-            )
-            norm = np.linalg.norm(physical_direction)
-            if norm > 0.0:
-                physical_direction = physical_direction / norm
-            component_order = np.argsort(
-                np.abs(physical_direction),
-                kind="stable",
-            )[::-1]
-            generalized_modes.append(
-                {
-                    "rank_from_weakest": rank_from_weakest + 1,
-                    "data_to_prior_precision_ratio": float(
-                        eigenvalues[index]
-                    ),
-                    "remaining_prior_std_fraction": float(
-                        remaining_std[index]
-                    ),
-                    "dimensionless_parameter_direction": (
-                        physical_direction
-                    ),
-                    "dominant_components": [
-                        {
-                            "name": str(names[column]),
-                            "coefficient": float(
-                                physical_direction[column]
-                            ),
-                        }
-                        for column in component_order[
-                            : min(8, len(component_order))
-                        ]
-                    ],
-                }
-            )
-
-        marginal_prior_std = effective_prior_std
-        marginal_posterior_std = np.sqrt(
-            np.maximum(0.0, np.diag(posterior_covariance))
-        )
-        marginal_remaining_fraction = (
-            marginal_posterior_std / marginal_prior_std
-        )
-        payload["prior_normalized_confidence"] = {
+        "prior_physical": _physical_distribution_payload(
+            parameter_prior.mean,
+            np.diag(parameter_prior.std**2),
+        ),
+        "posterior_physical": _physical_distribution_payload(
+            posterior_physical_mean,
+            posterior_physical_covariance,
+        ),
+        "prior_normalized_confidence": {
             "data_to_prior_precision_ratio_descending": eigenvalues,
-            "remaining_prior_std_fraction_descending_modes": remaining_std,
-            "interpretation": (
-                "data_to_prior_precision_ratio > 1 means the data add more "
-                "precision than the prior along that generalized mode. "
-                "remaining_prior_std_fraction = 1 means no learning beyond "
-                "the prior; values near 0 mean strong data constraint."
+            "remaining_prior_std_fraction_descending_modes": (
+                remaining_std
             ),
             "weak_modes": generalized_modes,
-            "marginal_remaining_prior_std_fraction": (
-                marginal_remaining_fraction
+            "interpretation": (
+                "The data-only information is compared against the supplied "
+                "Gaussian prior. Ridge information itself remains in data SVD."
             ),
-        }
-
-    return payload
+        },
+    }
 
 
 
@@ -758,11 +788,12 @@ def _trajectory_reconstruction(
     dynamics_evaluation: Any,
     arguments: argparse.Namespace,
     initial_delay: float,
+    reference_parameters: Any,
 ) -> dict[str, Any]:
     """Validate that the 14-D parameterization still reproduces the trajectory.
 
     Three rollouts are kept distinct:
-    - nominal: nominal physical parameters;
+    - reference: reference physical parameters;
     - parameter_only: selected 14-D parameters with no external wrench;
     - external_wrench_replay: selected 14-D parameters held fixed while the
       existing external-wrench replay is refined.
@@ -774,18 +805,20 @@ def _trajectory_reconstruction(
 
     observations = bag.direct_problem.observations
 
-    nominal_rollout = deterministic.forward_rollout(
+    reference_rollout = deterministic.forward_rollout(
         bag,
         np.zeros(
             deterministic.PHYSICAL_DIMENSION,
             dtype=float,
         ),
         initial_delay,
+        reference_parameters,
     )
     parameter_rollout = deterministic.forward_rollout(
         bag,
         selected.physical_coordinate,
         selected.delay_seconds,
+        reference_parameters,
     )
 
     print(
@@ -802,6 +835,7 @@ def _trajectory_reconstruction(
         selected.delay_seconds,
         dynamics_evaluation,
         arguments,
+        reference_parameters,
     )
     replay_rollout = wrench_evaluation.simulation
     replay_observations = deterministic._observations_at_times(
@@ -809,9 +843,9 @@ def _trajectory_reconstruction(
         replay_rollout.time,
     )
 
-    nominal_metrics = deterministic._pose_metrics(
+    reference_metrics = deterministic._pose_metrics(
         observations,
-        nominal_rollout,
+        reference_rollout,
     )
     parameter_metrics = deterministic._pose_metrics(
         observations,
@@ -823,11 +857,11 @@ def _trajectory_reconstruction(
     )
 
     print(
-        "  pose RMSE: nominal {:.6g} m / {:.6g} deg; "
+        "  pose RMSE: reference {:.6g} m / {:.6g} deg; "
         "14-D parameter-only {:.6g} m / {:.6g} deg; "
         "14-D + replay {:.6g} m / {:.6g} deg".format(
-            nominal_metrics["position_rmse_m"],
-            nominal_metrics["orientation_angle_rmse_deg"],
+            reference_metrics["position_rmse_m"],
+            reference_metrics["orientation_angle_rmse_deg"],
             parameter_metrics["position_rmse_m"],
             parameter_metrics["orientation_angle_rmse_deg"],
             replay_metrics["position_rmse_m"],
@@ -846,8 +880,8 @@ def _trajectory_reconstruction(
     return {
         "selected_physical_parameters": selected_parameter_payload,
         "meaning": {
-            "nominal": (
-                "Nominal physical parameters and initial lag; no external wrench."
+            "reference": (
+                "Vehicle-model reference parameters and initial lag; no external wrench."
             ),
             "parameter_only": (
                 "Selected 14-D physical parameters and selected lag; "
@@ -860,12 +894,12 @@ def _trajectory_reconstruction(
                 "after adding the fourth rotor-effectiveness degree of freedom."
             ),
         },
-        "nominal": {
-            "metrics": nominal_metrics,
-            "time": nominal_rollout.time,
-            "sensor_position": nominal_rollout.sensor_position,
+        "reference": {
+            "metrics": reference_metrics,
+            "time": reference_rollout.time,
+            "sensor_position": reference_rollout.sensor_position,
             "sensor_orientation_xyzw": (
-                nominal_rollout.sensor_orientation_xyzw
+                reference_rollout.sensor_orientation_xyzw
             ),
         },
         "parameter_only": {
@@ -906,290 +940,6 @@ def _trajectory_reconstruction(
             ),
         },
     }
-
-
-def _ridge_physical_effects(
-    *,
-    selected: Any,
-    raw_per_dimensionless: np.ndarray,
-    reference_scales: Mapping[str, float],
-    svd: Mapping[str, Any],
-) -> list[dict[str, Any]]:
-    """Map internal chart ridge vectors to physical dimensionless changes.
-
-    The SVD is performed in the dimensionless estimator chart.  A component
-    such as ``log_second_moment_cholesky_zz_scale`` is an internal coordinate,
-    not J_zz itself.  This function pushes each weak direction through the
-    physical parameter Jacobian so the report can display delta J directly.
-
-    The SVD has a global +/- ambiguity. _svd_payload removes that ambiguity
-    with a deterministic largest-component-positive convention. Signed values
-    are retained only to reconstruct the local tangent direction; the PDF
-    visualizes participation magnitudes with absolute values.
-    """
-
-    parameterization = deterministic.SplinePhysicalParameterization(
-        VehicleParameters.nominal()
-    )
-    decoded, jacobian = parameterization.decode_with_jacobian(
-        selected.physical_coordinate,
-        selected.delay_seconds,
-    )
-    raw_scale = np.asarray(raw_per_dimensionless, dtype=float)
-    mass_scale = float(reference_scales["mass_kg"])
-    length_scale = float(reference_scales["length_m"])
-    inertia_scale = mass_scale * length_scale**2
-
-    effects: list[dict[str, Any]] = []
-    for weak in list(svd["weak_directions"]):
-        direction_dimensionless = np.asarray(
-            weak["dimensionless_direction"],
-            dtype=float,
-        )
-        delta_raw_coordinate = raw_scale * direction_dimensionless
-
-        delta_mass = float(
-            np.asarray(jacobian.mass, dtype=float)
-            @ delta_raw_coordinate
-        )
-        delta_inertia = np.einsum(
-            "ijk,k->ij",
-            np.asarray(jacobian.inertia, dtype=float),
-            delta_raw_coordinate,
-        )
-        delta_cog = (
-            np.asarray(jacobian.cog_offset, dtype=float)
-            @ delta_raw_coordinate
-        )
-        delta_effectiveness = (
-            np.asarray(jacobian.force_effectiveness, dtype=float)
-            @ delta_raw_coordinate
-        )
-
-        effects.append(
-            {
-                "relative_information_strength": float(
-                    weak["relative_information_strength"]
-                ),
-                "internal_dimensionless_direction": direction_dimensionless,
-                "relative_mass_change": (
-                    delta_mass / float(decoded.parameters.mass)
-                ),
-                "dimensionless_inertia_change": (
-                    delta_inertia / inertia_scale
-                ),
-                "inertia_change_components": {
-                    "dJxx": float(delta_inertia[0, 0] / inertia_scale),
-                    "dJyy": float(delta_inertia[1, 1] / inertia_scale),
-                    "dJzz": float(delta_inertia[2, 2] / inertia_scale),
-                    "dJxy": float(delta_inertia[0, 1] / inertia_scale),
-                    "dJxz": float(delta_inertia[0, 2] / inertia_scale),
-                    "dJyz": float(delta_inertia[1, 2] / inertia_scale),
-                },
-                "dimensionless_cog_change": delta_cog / length_scale,
-                "relative_force_effectiveness_change": (
-                    delta_effectiveness
-                    / np.asarray(
-                        decoded.parameters.force_effectiveness,
-                        dtype=float,
-                    )
-                ),
-                "sign_note": (
-                    "Signed arrays use the deterministic "
-                    "largest-component-positive SVD convention. PDF bar plots "
-                    "use absolute values because they visualize participation "
-                    "magnitude rather than direction orientation."
-                ),
-            }
-        )
-    return effects
-
-
-
-def _physical_parameter_report(
-    *,
-    selected: Any,
-    raw_per_dimensionless: np.ndarray,
-    reference_scales: Mapping[str, float],
-    posterior: Mapping[str, Any],
-    svd: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Create a local 14-D report in named physical coordinates.
-
-    Report coordinates:
-      dm/m,
-      dJxx,dJyy,dJzz,dJxy,dJxz,dJyz divided by M*L*^2,
-      dCoG/L*,
-      de_i/e_i for the four rotor effectiveness values.
-
-    The optimizer and SVD still use their existing internal chart; this mapping
-    is only for human-readable reporting.
-    """
-
-    parameterization = deterministic.SplinePhysicalParameterization(
-        VehicleParameters.nominal()
-    )
-    decoded, jacobian = parameterization.decode_with_jacobian(
-        selected.physical_coordinate,
-        selected.delay_seconds,
-    )
-
-    raw_scale = np.asarray(raw_per_dimensionless, dtype=float)
-    mass = float(decoded.parameters.mass)
-    effectiveness = np.asarray(
-        decoded.parameters.force_effectiveness,
-        dtype=float,
-    )
-    mass_scale = float(reference_scales["mass_kg"])
-    length_scale = float(reference_scales["length_m"])
-    inertia_scale = mass_scale * length_scale**2
-
-    transform = np.zeros(
-        (
-            deterministic.PHYSICAL_DIMENSION,
-            deterministic.PHYSICAL_DIMENSION,
-        ),
-        dtype=float,
-    )
-    names = (
-        "mass",
-        "Jxx",
-        "Jyy",
-        "Jzz",
-        "Jxy",
-        "Jxz",
-        "Jyz",
-        "CoG x",
-        "CoG y",
-        "CoG z",
-        "rotor eff. 1",
-        "rotor eff. 2",
-        "rotor eff. 3",
-        "rotor eff. 4",
-    )
-
-    # q_raw = diag(raw_scale) q_bar.
-    transform[0] = (
-        np.asarray(jacobian.mass, dtype=float)
-        * raw_scale
-        / mass
-    )
-
-    inertia_jacobian = np.asarray(jacobian.inertia, dtype=float)
-    inertia_entries = (
-        (0, 0),
-        (1, 1),
-        (2, 2),
-        (0, 1),
-        (0, 2),
-        (1, 2),
-    )
-    for row, (i, j) in enumerate(inertia_entries, start=1):
-        transform[row] = (
-            inertia_jacobian[i, j]
-            * raw_scale
-            / inertia_scale
-        )
-
-    cog_jacobian = np.asarray(jacobian.cog_offset, dtype=float)
-    for axis in range(3):
-        transform[7 + axis] = (
-            cog_jacobian[axis]
-            * raw_scale
-            / length_scale
-        )
-
-    effectiveness_jacobian = np.asarray(
-        jacobian.force_effectiveness,
-        dtype=float,
-    )
-    for rotor in range(4):
-        transform[10 + rotor] = (
-            effectiveness_jacobian[rotor]
-            * raw_scale
-            / effectiveness[rotor]
-        )
-
-    prior_weight = float(posterior["prior_weight"])
-    if prior_weight > 0.0:
-        prior_std_q = (
-            np.asarray(
-                posterior["prior_standard_deviation_dimensionless"],
-                dtype=float,
-            )
-            / math.sqrt(prior_weight)
-        )
-        prior_cov_q = np.diag(prior_std_q**2)
-        posterior_cov_q = np.asarray(
-            posterior["posterior_covariance_dimensionless"],
-            dtype=float,
-        )
-        prior_cov = transform @ prior_cov_q @ transform.T
-        posterior_cov = transform @ posterior_cov_q @ transform.T
-        prior_std = np.sqrt(
-            np.maximum(0.0, np.diag(prior_cov))
-        )
-        posterior_std = np.sqrt(
-            np.maximum(0.0, np.diag(posterior_cov))
-        )
-        remaining_fraction = np.divide(
-            posterior_std,
-            prior_std,
-            out=np.full_like(posterior_std, np.nan),
-            where=prior_std > 0.0,
-        )
-    else:
-        prior_cov = None
-        posterior_cov = None
-        prior_std = None
-        posterior_std = None
-        remaining_fraction = None
-
-    combinations = []
-    # Existing storage order is least identified -> best identified.
-    for rank_from_least, mode in enumerate(
-        svd["weak_directions"],
-        start=1,
-    ):
-        internal_direction = np.asarray(
-            mode["dimensionless_direction"],
-            dtype=float,
-        )
-        physical_direction = transform @ internal_direction
-        norm = float(np.linalg.norm(physical_direction))
-        if norm > 0.0:
-            physical_direction = physical_direction / norm
-        combinations.append(
-            {
-                "rank_from_least_identified": rank_from_least,
-                "relative_information_strength": float(
-                    mode["relative_information_strength"]
-                ),
-                "physical_dimensionless_direction": physical_direction,
-                "absolute_composition": np.abs(physical_direction),
-            }
-        )
-
-    return {
-        "names": names,
-        "coordinate_definition": (
-            "dm/m; dJ/(M*L*^2); dCoG/L*; de/e"
-        ),
-        "internal_to_physical_dimensionless_jacobian": transform,
-        "prior_covariance": prior_cov,
-        "posterior_covariance": posterior_cov,
-        "prior_standard_deviation": prior_std,
-        "posterior_standard_deviation": posterior_std,
-        "posterior_to_prior_std_fraction": remaining_fraction,
-        "parameter_combinations_least_to_best_identified": combinations,
-        "interpretation": (
-            "posterior_to_prior_std_fraction: 1 means this bag leaves the "
-            "prior marginal uncertainty essentially unchanged; 0 means strong "
-            "reduction. Parameter combinations are local tangent-space "
-            "directions, not extra physical parameters."
-        ),
-    }
-
 
 
 def _angular_excitation_payload(bag: Any) -> dict[str, Any]:
@@ -1261,7 +1011,6 @@ def _write_pdf(
     prefix: Mapping[str, Any],
     posterior: Mapping[str, Any],
     reconstruction: Mapping[str, Any],
-    physical_parameter_report: Mapping[str, Any],
     angular_excitation: Mapping[str, Any],
     names: Sequence[str],
 ) -> None:
@@ -1289,13 +1038,12 @@ def _write_pdf(
     observed = reconstruction["observed"]
     parameter_only = reconstruction["parameter_only"]
     replay = reconstruction["external_wrench_replay"]
-    nominal = reconstruction["nominal"]
 
     with PdfPages(path) as pdf:
         # ------------------------------------------------------------------
         # 1. Fine reconstruction view.
         #
-        # Do NOT overlay nominal or parameter-only open-loop rollouts here.
+        # Do NOT overlay reference or parameter-only open-loop rollouts here.
         # They can diverge by tens of metres and would destroy the scale needed
         # to inspect the sub-millimetre replay reconstruction.
         # ------------------------------------------------------------------
@@ -1723,7 +1471,7 @@ def _write_pdf(
         principal = np.asarray(
             decoded["inertia_principal_moments_kg_m2"], dtype=float
         )
-        cog = np.asarray(decoded["cog_offset_m"], dtype=float)
+        cog = np.asarray(decoded["cog_position_body_m"], dtype=float)
         effectiveness = np.asarray(
             decoded["force_effectiveness"], dtype=float
         )
@@ -1742,7 +1490,7 @@ def _write_pdf(
                 "principal moments [kg m^2]",
                 "  [{: .8g}, {: .8g}, {: .8g}]".format(*principal),
                 "",
-                "CoG offset [m]",
+                "CoG position in body frame [m]",
                 "  [{: .8g}, {: .8g}, {: .8g}]".format(*cog),
                 "",
                 "rotor force effectiveness",
@@ -1930,6 +1678,12 @@ def run(arguments: argparse.Namespace) -> int:
         config = deterministic.load_spline_config(
             arguments.config
         )
+        vehicle_model = deterministic.load_vehicle_model(
+            arguments.vehicle_model_json
+        )
+        parameter_prior = deterministic.load_parameter_prior(
+            arguments.prior_json
+        )
     except ValueError as error:
         raise SystemExit(str(error)) from error
     specification = _only_bag(config)
@@ -1968,6 +1722,8 @@ def run(arguments: argparse.Namespace) -> int:
         initial_delay,
         config.spline,
         arguments,
+        vehicle_model.parameters,
+        vehicle_model.geometry,
     )
     print(
         "selected spline knot spacing {:.6g}s; support [{:.6f}, {:.6f}]s"
@@ -1983,6 +1739,8 @@ def run(arguments: argparse.Namespace) -> int:
         bag,
         arguments,
         initial_delay,
+        vehicle_model.parameters,
+        parameter_prior,
     )
     evaluation = selected.evaluation.bag_evaluations[0]
     print(
@@ -1993,7 +1751,7 @@ def run(arguments: argparse.Namespace) -> int:
         flush=True,
     )
 
-    scales = _reference_scales()
+    scales = _reference_scales(vehicle_model.parameters)
     raw_per_dimensionless = (
         _parameter_raw_per_dimensionless(
             scales["length_m"]
@@ -2067,30 +1825,27 @@ def run(arguments: argparse.Namespace) -> int:
     data_information = (
         stacked_jacobian.T @ stacked_jacobian
     )
+    data_information_vector = -(
+        stacked_jacobian.T @ whitened_residual.reshape(-1)
+    )
 
     svd = _svd_payload(
         stacked_jacobian,
         deterministic.PHYSICAL_PARAMETER_NAMES,
     )
-    prior_dimensionless = (
-        deterministic.BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS
-        / raw_per_dimensionless
+    posterior = _posterior_payload(
+        data_information=data_information,
+        data_information_vector=data_information_vector,
+        selected=selected,
+        raw_per_dimensionless=raw_per_dimensionless,
+        reference_parameters=vehicle_model.parameters,
+        parameter_prior=parameter_prior,
+        names=deterministic.PHYSICAL_PARAMETER_NAMES,
     )
     prefix = _prefix_information(
         bag.collocation_time,
         whitened_jacobian,
-        prior_dimensionless,
-        arguments.prior_weight,
-    )
-    posterior = _posterior_payload(
-        data_information=data_information,
-        selected_coordinate=selected.physical_coordinate,
-        raw_per_dimensionless=raw_per_dimensionless,
-        prior_raw_standard_deviation=(
-            deterministic.BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS
-        ),
-        prior_weight=arguments.prior_weight,
-        names=deterministic.PHYSICAL_PARAMETER_NAMES,
+        posterior["prior_covariance_dimensionless"],
     )
     reconstruction = _trajectory_reconstruction(
         bag,
@@ -2098,13 +1853,7 @@ def run(arguments: argparse.Namespace) -> int:
         evaluation,
         arguments,
         initial_delay,
-    )
-    physical_parameter_report = _physical_parameter_report(
-        selected=selected,
-        raw_per_dimensionless=raw_per_dimensionless,
-        reference_scales=scales,
-        posterior=posterior,
-        svd=svd,
+        vehicle_model.parameters,
     )
     angular_excitation = _angular_excitation_payload(bag)
 
@@ -2131,11 +1880,103 @@ def run(arguments: argparse.Namespace) -> int:
         parents=True,
         exist_ok=True,
     )
+
+    vt = np.asarray(
+        [
+            mode["dimensionless_direction"]
+            for mode in reversed(svd["weak_directions"])
+        ],
+        dtype=float,
+    )
+    likelihood_payload = {
+        "schema": "grape-param-estim/parameter-likelihood/v1",
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "bag": {
+            "id": specification.bag_id,
+            "path": specification.path,
+            "start_seconds": specification.start,
+            "end_seconds": specification.end,
+        },
+        "vehicle_model": {
+            "source_path": vehicle_model.source_path,
+            "reference_parameters": _parameter_payload(
+                vehicle_model.parameters
+            ),
+        },
+        "linearization_point": {
+            "coordinate_names": deterministic.PHYSICAL_PARAMETER_NAMES,
+            "raw_coordinate": selected.physical_coordinate,
+            "dimensionless_coordinate": (
+                selected.physical_coordinate / raw_per_dimensionless
+            ),
+            "physical_vector_order": deterministic.PHYSICAL_VALUE_NAMES,
+            "physical_vector": deterministic.physical_parameter_vector(
+                selected.evaluation.decoded.parameters
+            ),
+            "delay_seconds": float(selected.delay_seconds),
+        },
+        "local_gaussian_likelihood": {
+            "coordinate": "dimensionless delta from linearization_point",
+            "information_matrix": data_information,
+            "information_vector": data_information_vector,
+            "definition": (
+                "-log L(delta) = 0.5 delta^T Lambda delta "
+                "- eta^T delta + constant"
+            ),
+        },
+        "identifiability": {
+            "singular_values": svd["singular_values_descending"],
+            "Vt": vt,
+            "numerical_rank": svd["numerical_rank"],
+            "nullity": svd["nullity"],
+        },
+        "external_wrench_model": {
+            "mean_dimensionless": wrench_mean_dimensionless,
+            "covariance_dimensionless": (
+                wrench_covariance_dimensionless
+            ),
+        },
+    }
+    posterior_payload = {
+        "schema": "grape-param-estim/parameter-posterior/v1",
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "vehicle_model_path": vehicle_model.source_path,
+        "prior": {
+            "source_path": parameter_prior.source_path,
+            "input": parameter_prior.raw,
+            "vector_order": deterministic.PHYSICAL_VALUE_NAMES,
+            "mean": parameter_prior.mean,
+            "std": parameter_prior.std,
+        },
+        "posterior_coordinate": {
+            "coordinate_names": deterministic.PHYSICAL_PARAMETER_NAMES,
+            "mean_dimensionless": posterior["posterior_mean_dimensionless"],
+            "covariance_dimensionless": (
+                posterior["posterior_covariance_dimensionless"]
+            ),
+            "precision_dimensionless": (
+                posterior["posterior_precision_dimensionless"]
+            ),
+        },
+        "posterior_physical": posterior["posterior_physical"],
+        "data_identifiability": likelihood_payload["identifiability"],
+    }
+    _write_json(
+        output_directory / "parameter_likelihood.json",
+        likelihood_payload,
+    )
+    _write_json(
+        output_directory / "parameter_posterior.json",
+        posterior_payload,
+    )
+
     payload = {
         "schema": SCHEMA,
         "created_utc": datetime.now(
             timezone.utc
         ).isoformat(),
+        "vehicle_model_path": vehicle_model.source_path,
+        "parameter_prior_path": parameter_prior.source_path,
         "bag": {
             "id": specification.bag_id,
             "path": specification.path,
@@ -2207,7 +2048,6 @@ def run(arguments: argparse.Namespace) -> int:
             "matrix_dimensionless": data_information,
             "svd": svd,
         },
-        "physical_parameter_report": physical_parameter_report,
         "angular_excitation_diagnostic": angular_excitation,
         "information_vs_duration": prefix,
         "prior_and_local_posterior": posterior,
@@ -2229,7 +2069,6 @@ def run(arguments: argparse.Namespace) -> int:
         prefix=prefix,
         posterior=posterior,
         reconstruction=reconstruction,
-        physical_parameter_report=physical_parameter_report,
         angular_excitation=angular_excitation,
         names=deterministic.PHYSICAL_PARAMETER_NAMES,
     )
@@ -2277,30 +2116,6 @@ def run(arguments: argparse.Namespace) -> int:
             flush=True,
         )
 
-    parameter_remaining = physical_parameter_report[
-        "posterior_to_prior_std_fraction"
-    ]
-    if parameter_remaining is not None:
-        parameter_remaining = np.asarray(
-            parameter_remaining,
-            dtype=float,
-        )
-        report_names = tuple(
-            physical_parameter_report["names"]
-        )
-        best_index = int(np.nanargmin(parameter_remaining))
-        least_index = int(np.nanargmax(parameter_remaining))
-        print(
-            "named physical parameters: most constrained {} "
-            "({:.1f}% prior std remains); least constrained {} "
-            "({:.1f}% remains)".format(
-                report_names[best_index],
-                100.0 * float(parameter_remaining[best_index]),
-                report_names[least_index],
-                100.0 * float(parameter_remaining[least_index]),
-            ),
-            flush=True,
-        )
     return 0
 
 

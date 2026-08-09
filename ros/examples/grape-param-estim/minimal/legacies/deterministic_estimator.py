@@ -213,6 +213,8 @@ class DirectShootingProblem:
         integration_step: float,
         command_delay: float,
         prior_weight: float,
+        reference_parameters: VehicleParameters,
+        geometry: GrapeGeometry,
     ) -> None:
         ratio = int(round(sample_step / integration_step))
         if ratio < 1 or not np.isclose(
@@ -286,8 +288,14 @@ class DirectShootingProblem:
             gimbal_time_constant=0.02,
             delay=0.0,
         )
-        self.chart = VehicleParameterChart(VehicleParameters.nominal())
-        self.geometry = GrapeGeometry.grape()
+        if not isinstance(reference_parameters, VehicleParameters):
+            raise TypeError(
+                "reference_parameters must be VehicleParameters"
+            )
+        if not isinstance(geometry, GrapeGeometry):
+            raise TypeError("geometry must be GrapeGeometry")
+        self.chart = VehicleParameterChart(reference_parameters)
+        self.geometry = geometry
         self.pose_sensor_position = np.asarray(
             flight.sensor_extrinsics.pose_sensor_position_in_body,
             dtype=float,

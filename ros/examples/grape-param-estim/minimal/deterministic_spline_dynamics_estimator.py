@@ -61,13 +61,57 @@ from grape_param_estim.system import (  # noqa: E402
 )
 
 
-SCHEMA = "grape-param-estim/minimal-deterministic-spline-dynamics/v1"
+SCHEMA = "grape-param-estim/minimal-deterministic-spline-dynamics/v2"
 OUTPUT_SUBDIRECTORY = "deterministic_spline_dynamics"
 DATA_DICTIONARY_SOURCE = Path(__file__).resolve().with_name(
     "deterministic_spline_dynamics_data_dictionary.md"
 )
-GLOBAL_DIMENSION = strict.PHYSICAL_DIMENSION + 1
-DELAY_INDEX = strict.PHYSICAL_DIMENSION
+
+# Current spline-dynamics physical chart.
+#
+# Rotor force effectiveness is deliberately represented by four independent
+# log coordinates.  There is no sum-to-zero / geometric-mean normalization:
+# common thrust scale is left in the parameter space so data-only ridge
+# structure can be exposed later by the confidence analysis.
+PHYSICAL_DIMENSION = 14
+GLOBAL_DIMENSION = PHYSICAL_DIMENSION + 1
+DELAY_INDEX = PHYSICAL_DIMENSION
+PHYSICAL_PARAMETER_NAMES = (
+    "log_mass_scale",
+    "log_second_moment_cholesky_xx_scale",
+    "log_second_moment_cholesky_yy_scale",
+    "log_second_moment_cholesky_zz_scale",
+    "normalized_second_moment_cholesky_yx_offset",
+    "normalized_second_moment_cholesky_zx_offset",
+    "normalized_second_moment_cholesky_zy_offset",
+    "cog_offset_x_m",
+    "cog_offset_y_m",
+    "cog_offset_z_m",
+    "log_force_effectiveness_1",
+    "log_force_effectiveness_2",
+    "log_force_effectiveness_3",
+    "log_force_effectiveness_4",
+)
+BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS = np.asarray(
+    (
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+        2.0,
+        2.0,
+        2.0,
+        0.25,
+        0.25,
+        0.25,
+        1.5,
+        1.5,
+        1.5,
+        1.5,
+    ),
+    dtype=float,
+)
+_CHOLESKY_OFF_DIAGONALS = ((1, 0), (2, 0), (2, 1))
 COMPONENT_NAMES = ("x", "y", "z")
 
 
@@ -390,6 +434,307 @@ def _build_bag_data(
     )
 
 
+
+class SplinePhysicalParameterization:
+    """14-D physical chart used by the current spline-dynamics estimator.
+
+    The rigid-body part keeps the existing physically consistent second-moment
+    Cholesky chart.  Rotor force effectiveness uses four independent log
+    coordinates, intentionally retaining the common-scale ridge.
+    """
+
+    def __init__(self, nominal: VehicleParameters) -> None:
+        if not isinstance(nominal, VehicleParameters):
+            raise TypeError("nominal must be VehicleParameters")
+        second_moment = (
+            0.5 * float(np.trace(nominal.inertia)) * np.eye(3)
+            - nominal.inertia
+        )
+        second_moment = 0.5 * (
+            second_moment + second_moment.T
+        )
+        if np.any(
+            np.linalg.eigvalsh(second_moment) <= 0.0
+        ):
+            raise ValueError(
+                "nominal inertia must satisfy strict triangle inequalities"
+            )
+        self.nominal = nominal
+        self.nominal_cholesky = np.linalg.cholesky(
+            second_moment
+        )
+
+    def _cholesky(
+        self,
+        coordinate: np.ndarray,
+    ) -> np.ndarray:
+        value = np.asarray(coordinate, dtype=float)
+        if value.shape != (PHYSICAL_DIMENSION,):
+            raise ValueError(
+                "physical coordinate must be 14-D"
+            )
+        cholesky = self.nominal_cholesky.copy()
+        cholesky[(0, 1, 2), (0, 1, 2)] *= np.exp(
+            value[1:4]
+        )
+        for local_index, (row, column) in enumerate(
+            _CHOLESKY_OFF_DIAGONALS
+        ):
+            scale = math.sqrt(
+                self.nominal_cholesky[row, row]
+                * self.nominal_cholesky[column, column]
+            )
+            cholesky[row, column] += (
+                value[4 + local_index] * scale
+            )
+        return cholesky
+
+    def decode(
+        self,
+        physical_coordinate: Sequence[float],
+        delay: float,
+    ) -> Any:
+        decoded, _jacobian = self.decode_with_jacobian(
+            physical_coordinate,
+            delay,
+        )
+        return decoded
+
+    def decode_with_jacobian(
+        self,
+        physical_coordinate: Sequence[float],
+        delay: float,
+    ) -> tuple[Any, Any]:
+        value = np.asarray(
+            physical_coordinate,
+            dtype=float,
+        )
+        if (
+            value.shape != (PHYSICAL_DIMENSION,)
+            or np.any(~np.isfinite(value))
+            or not np.isfinite(delay)
+            or delay < 0.0
+        ):
+            raise ValueError(
+                "physical coordinate or delay is invalid"
+            )
+
+        cholesky = self._cholesky(value)
+        second_moment = cholesky @ cholesky.T
+        inertia = (
+            np.trace(second_moment) * np.eye(3)
+            - second_moment
+        )
+        inertia = 0.5 * (inertia + inertia.T)
+        principal = np.linalg.eigvalsh(inertia)
+        triangle_margin = float(
+            principal[0] + principal[1] - principal[2]
+        )
+
+        force_effectiveness = (
+            self.nominal.force_effectiveness
+            * np.exp(value[10:14])
+        )
+        parameters = VehicleParameters(
+            mass=(
+                self.nominal.mass
+                * math.exp(float(value[0]))
+            ),
+            inertia=inertia,
+            cog_offset=(
+                self.nominal.cog_offset
+                + value[7:10]
+            ),
+            force_effectiveness=force_effectiveness,
+            torque_effectiveness=(
+                self.nominal.torque_effectiveness
+            ),
+            linear_drag=self.nominal.linear_drag,
+            angular_drag=self.nominal.angular_drag,
+        )
+        actuator_parameters = ActuatorParameters(
+            thrust_time_constant=0.0,
+            gimbal_time_constant=0.0,
+            delay=0.0,
+        )
+        decoded = strict.analytic.DecodedSearchPoint(
+            parameters=parameters,
+            actuator_parameters=actuator_parameters,
+            delay=float(delay),
+            inertia_principal_moments=principal,
+            inertia_triangle_margin=triangle_margin,
+        )
+
+        dimension = PHYSICAL_DIMENSION
+        mass = np.zeros(dimension, dtype=float)
+        mass[0] = parameters.mass
+
+        inertia_jacobian = np.zeros(
+            (3, 3, dimension),
+            dtype=float,
+        )
+
+        def store_inertia_derivative(
+            coordinate_index: int,
+            cholesky_derivative: np.ndarray,
+        ) -> None:
+            second_moment_derivative = (
+                cholesky_derivative @ cholesky.T
+                + cholesky @ cholesky_derivative.T
+            )
+            inertia_jacobian[
+                :, :, coordinate_index
+            ] = (
+                np.trace(second_moment_derivative)
+                * np.eye(3)
+                - second_moment_derivative
+            )
+
+        for axis in range(3):
+            derivative = np.zeros(
+                (3, 3),
+                dtype=float,
+            )
+            derivative[axis, axis] = (
+                cholesky[axis, axis]
+            )
+            store_inertia_derivative(
+                1 + axis,
+                derivative,
+            )
+        for local_index, (row, column) in enumerate(
+            _CHOLESKY_OFF_DIAGONALS
+        ):
+            derivative = np.zeros(
+                (3, 3),
+                dtype=float,
+            )
+            derivative[row, column] = math.sqrt(
+                self.nominal_cholesky[row, row]
+                * self.nominal_cholesky[column, column]
+            )
+            store_inertia_derivative(
+                4 + local_index,
+                derivative,
+            )
+
+        cog_offset = np.zeros(
+            (3, dimension),
+            dtype=float,
+        )
+        cog_offset[:, 7:10] = np.eye(3)
+
+        effectiveness_jacobian = np.zeros(
+            (4, dimension),
+            dtype=float,
+        )
+        effectiveness_jacobian[:, 10:14] = np.diag(
+            force_effectiveness
+        )
+
+        zero = np.zeros(dimension, dtype=float)
+        jacobian = strict.analytic.DecodedSearchJacobian(
+            mass=mass,
+            inertia=inertia_jacobian,
+            cog_offset=cog_offset,
+            force_effectiveness=effectiveness_jacobian,
+            thrust_time_constant=zero.copy(),
+            gimbal_time_constant=zero.copy(),
+        )
+        return decoded, jacobian
+
+
+def _extend_parameter_jacobian(
+    source: Any,
+    dimension: int,
+) -> Any:
+    """Append zero columns, e.g. for the smooth lag coordinate."""
+
+    source_dimension = int(
+        np.asarray(source.mass).size
+    )
+    if (
+        source_dimension != PHYSICAL_DIMENSION
+        or dimension < source_dimension
+    ):
+        raise ValueError(
+            "extended derivative dimension is invalid"
+        )
+
+    def extend_vector(value: np.ndarray) -> np.ndarray:
+        source_value = np.asarray(
+            value,
+            dtype=float,
+        )
+        if source_value.shape != (source_dimension,):
+            raise ValueError(
+                "parameter derivative vector has inconsistent width"
+            )
+        result = np.zeros(
+            dimension,
+            dtype=float,
+        )
+        result[:source_dimension] = source_value
+        return result
+
+    def extend_matrix(value: np.ndarray) -> np.ndarray:
+        source_value = np.asarray(
+            value,
+            dtype=float,
+        )
+        if (
+            source_value.ndim != 2
+            or source_value.shape[1]
+            != source_dimension
+        ):
+            raise ValueError(
+                "parameter derivative matrix has inconsistent width"
+            )
+        result = np.zeros(
+            (source_value.shape[0], dimension),
+            dtype=float,
+        )
+        result[:, :source_dimension] = source_value
+        return result
+
+    source_inertia = np.asarray(
+        source.inertia,
+        dtype=float,
+    )
+    if source_inertia.shape != (
+        3,
+        3,
+        source_dimension,
+    ):
+        raise ValueError(
+            "inertia derivative has inconsistent width"
+        )
+    inertia = np.zeros(
+        (3, 3, dimension),
+        dtype=float,
+    )
+    inertia[:, :, :source_dimension] = (
+        source_inertia
+    )
+    return strict.analytic.DecodedSearchJacobian(
+        mass=extend_vector(source.mass),
+        inertia=inertia,
+        cog_offset=extend_matrix(
+            source.cog_offset
+        ),
+        force_effectiveness=extend_matrix(
+            source.force_effectiveness
+        ),
+        thrust_time_constant=extend_vector(
+            source.thrust_time_constant
+        ),
+        gimbal_time_constant=extend_vector(
+            source.gimbal_time_constant
+        ),
+    )
+
+
+
 class SplineDynamicsProblem:
     """Shared physical parameters against fixed bag-local pose splines."""
 
@@ -409,8 +754,8 @@ class SplineDynamicsProblem:
         self.prior_weight = float(prior_weight)
         if not np.isfinite(self.prior_weight) or self.prior_weight < 0.0:
             raise ValueError("prior weight must be finite and nonnegative")
-        self.prior_scales = strict.BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS.copy()
-        self.parameterization = strict.FullyPhysicalInertiaParameterization(
+        self.prior_scales = BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS.copy()
+        self.parameterization = SplinePhysicalParameterization(
             VehicleParameters.nominal()
         )
         nominal = VehicleParameters.nominal()
@@ -424,12 +769,14 @@ class SplineDynamicsProblem:
         delay: float,
         dimension: int,
     ) -> tuple[Any, Any]:
-        decoded, jacobian = strict._physical_parameter_jacobian(
-            self.parameterization,
+        decoded, jacobian = self.parameterization.decode_with_jacobian(
             physical_coordinate,
             delay,
         )
-        return decoded, strict._extend_parameter_jacobian(jacobian, dimension)
+        return decoded, _extend_parameter_jacobian(
+            jacobian,
+            dimension,
+        )
 
     @staticmethod
     def _command(
@@ -707,9 +1054,9 @@ class SplineDynamicsProblem:
     ) -> JointDynamicsEvaluation:
         value = np.asarray(coordinate, dtype=float)
         if value.shape != (GLOBAL_DIMENSION,) or np.any(~np.isfinite(value)):
-            raise ValueError("smooth spline-dynamics coordinate must be 14-D")
+            raise ValueError("smooth spline-dynamics coordinate must be 15-D")
         return self._evaluate_joint(
-            physical_coordinate=value[: strict.PHYSICAL_DIMENSION],
+            physical_coordinate=value[: PHYSICAL_DIMENSION],
             delay=float(value[DELAY_INDEX]),
             dimension=GLOBAL_DIMENSION,
             smooth_mode=True,
@@ -723,7 +1070,7 @@ class SplineDynamicsProblem:
     ) -> JointDynamicsEvaluation:
         physical = np.asarray(physical_coordinate, dtype=float)
         if (
-            physical.shape != (strict.PHYSICAL_DIMENSION,)
+            physical.shape != (PHYSICAL_DIMENSION,)
             or np.any(~np.isfinite(physical))
             or not np.isfinite(delay)
             or delay < 0.0
@@ -732,7 +1079,7 @@ class SplineDynamicsProblem:
         return self._evaluate_joint(
             physical_coordinate=physical,
             delay=float(delay),
-            dimension=strict.PHYSICAL_DIMENSION,
+            dimension=PHYSICAL_DIMENSION,
             smooth_mode=False,
             width_fraction=1.0,
         )
@@ -780,9 +1127,9 @@ class SplineDynamicsProblem:
             / self.prior_scales
         )
         prior_jacobian = np.zeros(
-            (strict.PHYSICAL_DIMENSION, dimension), dtype=float
+            (PHYSICAL_DIMENSION, dimension), dtype=float
         )
-        prior_jacobian[:, : strict.PHYSICAL_DIMENSION] = np.diag(
+        prior_jacobian[:, : PHYSICAL_DIMENSION] = np.diag(
             math.sqrt(self.prior_weight) / self.prior_scales
         )
         residual_blocks.append(prior_residual)
@@ -844,10 +1191,10 @@ def _physical_bounds(
 ) -> tuple[np.ndarray, np.ndarray]:
     if np.isinf(scale):
         return (
-            np.full(strict.PHYSICAL_DIMENSION, -np.inf),
-            np.full(strict.PHYSICAL_DIMENSION, np.inf),
+            np.full(PHYSICAL_DIMENSION, -np.inf),
+            np.full(PHYSICAL_DIMENSION, np.inf),
         )
-    span = scale * strict.BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS
+    span = scale * BROAD_SOFT_PRIOR_STANDARD_DEVIATIONS
     return initial_coordinate - span, initial_coordinate + span
 
 
@@ -1005,11 +1352,12 @@ def forward_rollout(
     ):
         raise TypeError("external_body_wrench must be BodyWrenchHistory")
 
-    parameterization = strict.FullyPhysicalInertiaParameterization(
+    parameterization = SplinePhysicalParameterization(
         VehicleParameters.nominal()
     )
     decoded = parameterization.decode(
-        continuation._expand_coordinate(physical_coordinate, delay)
+        physical_coordinate,
+        delay,
     )
     parameters = decoded.parameters
     direct = bag.direct_problem
@@ -1161,7 +1509,7 @@ class WrenchReplayProblem:
         self.dynamics_evaluation = dynamics_evaluation
         if (
             self.physical_coordinate.shape
-            != (strict.PHYSICAL_DIMENSION,)
+            != (PHYSICAL_DIMENSION,)
             or np.any(~np.isfinite(self.physical_coordinate))
             or not np.isfinite(self.delay)
             or self.delay < 0.0
@@ -1229,13 +1577,12 @@ class WrenchReplayProblem:
         )
         self.dimension = int(6 * self.knot_time.size)
 
-        parameterization = strict.FullyPhysicalInertiaParameterization(
+        parameterization = SplinePhysicalParameterization(
             VehicleParameters.nominal()
         )
         self.decoded = parameterization.decode(
-            continuation._expand_coordinate(
-                self.physical_coordinate, self.delay
-            )
+            self.physical_coordinate,
+            self.delay,
         )
         self.parameters = self.decoded.parameters
         self.actuator_parameters = self.decoded.actuator_parameters
@@ -2952,7 +3299,7 @@ def run(arguments: argparse.Namespace) -> int:
     except ValueError as error:
         raise SystemExit(str(error)) from error
     initial_physical_coordinate = np.zeros(
-        strict.PHYSICAL_DIMENSION, dtype=float
+        PHYSICAL_DIMENSION, dtype=float
     )
     initial_delay = (
         config.multi_bag.initial_delay_seconds
@@ -3061,7 +3408,7 @@ def run(arguments: argparse.Namespace) -> int:
                 "objective_cost": stage_cost,
                 "data_loss": evaluation.data_loss,
                 "prior_cost": evaluation.prior_cost,
-                "physical_coordinate": coordinate[: strict.PHYSICAL_DIMENSION],
+                "physical_coordinate": coordinate[: PHYSICAL_DIMENSION],
                 "delay_seconds": float(coordinate[DELAY_INDEX]),
                 "optimizer": optimizer,
             }
@@ -3069,7 +3416,7 @@ def run(arguments: argparse.Namespace) -> int:
     if final_smooth_evaluation is None:
         raise RuntimeError("smooth continuation did not run")
 
-    smooth_physical = coordinate[: strict.PHYSICAL_DIMENSION].copy()
+    smooth_physical = coordinate[: PHYSICAL_DIMENSION].copy()
     smooth_delay = float(coordinate[DELAY_INDEX])
     candidate_delays = smooth.zoh_polish_delays(
         smooth_delay,
@@ -3188,7 +3535,7 @@ def run(arguments: argparse.Namespace) -> int:
         )
         nominal_rollout = forward_rollout(
             bag,
-            np.zeros(strict.PHYSICAL_DIMENSION, dtype=float),
+            np.zeros(PHYSICAL_DIMENSION, dtype=float),
             initial_delay,
         )
         observations = bag.direct_problem.observations
@@ -3598,7 +3945,7 @@ def run(arguments: argparse.Namespace) -> int:
         "smoothstep_stages": smooth_stage_payloads,
         "strict_zoh_polish": strict_payloads,
         "selection": {
-            "physical_parameter_names": strict.PHYSICAL_PARAMETER_NAMES,
+            "physical_parameter_names": PHYSICAL_PARAMETER_NAMES,
             "physical_coordinate": selected.physical_coordinate,
             "delay_seconds": selected.delay_seconds,
             "parameters": baseline._physical_parameters(selected_parameters),

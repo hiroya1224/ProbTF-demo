@@ -330,6 +330,18 @@ For each channel, the median positive recorded timestamp interval is the
 channel's data-derived publish period.  Unless explicitly overridden, the
 initial lag is one measured publish period for that channel.
 
+Actuator state and SG kinematics are synchronized at the same evaluation time.
+Because the estimated thrust time constant is fixed to zero in this method,
+rotor thrust at an SG center `t_i` is the clipped delayed command
+`rotor_command(t_i - rotor_delay_seconds)` evaluated at `t_i` itself.  It is not
+carried over from the previous SG interval midpoint.
+
+The gimbal angle has a finite rate limit.  Its state at the first SG center is
+conditioned on the measured `gimbal_position` value and therefore has zero lag
+sensitivity at that initial time.  Under strict ZOH, subsequent propagation is
+split exactly at every delayed recorded gimbal-command switch time before the
+state is sampled at the next SG center.
+
 ### Smooth continuation
 
 The smooth command is the ZOH initial value plus a sum of command jumps, with
@@ -348,8 +360,10 @@ screened on a 2-D lag grid whose axis steps are the measured rotor and gimbal
 publish periods.  The initial grid spans one period around the smooth result.
 If the best point lies on an edge, that axis is extended by one publish period
 in the improving direction.  Physical parameters are optimized at the selected
-lag pair, the lag grid is screened again, and the alternation stops when the
-same pair remains selected.
+lag pair and the lag grid is screened again.  A fixed lag pair terminates the
+alternation normally.  Repeated lag pairs are detected as discrete cycles and
+the best already-refined solution is retained; a finite iteration guard is also
+applied.
 
 Detailed history is written to `delay_profile.json`, `delay_profile.txt`, the
 text-only `delay_profile.pdf`, and `optimizer_diagnostics.json`.

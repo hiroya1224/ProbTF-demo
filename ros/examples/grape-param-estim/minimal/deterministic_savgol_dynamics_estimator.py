@@ -4152,7 +4152,7 @@ _SharedSplineDynamicsProblem = SplineDynamicsProblem
 _shared_parameter_lines = _parameter_lines
 _shared_run = run
 
-SCHEMA = "grape-param-estim/minimal-deterministic-savgol-dynamics/v3"
+SCHEMA = "grape-param-estim/minimal-deterministic-savgol-dynamics/v4"
 OUTPUT_SUBDIRECTORY = "deterministic_savgol_dynamics"
 DATA_DICTIONARY_SOURCE = Path(__file__).resolve().with_name(
     "deterministic_savgol_dynamics_data_dictionary.md"
@@ -4362,59 +4362,252 @@ def _build_bag_data(
 class SplineDynamicsProblem(_SharedSplineDynamicsProblem):
     """Acceleration-residual SG problem with separate rotor/gimbal lags."""
 
-    def _actuator_series(self, bag, decoded, parameter_jacobian, dimension, smooth_mode, width_fraction):
-        time_axis = bag.collocation_time
+
+    def _actuator_series(
+        self,
+        bag,
+        decoded,
+        parameter_jacobian,
+        dimension,
+        smooth_mode,
+        width_fraction,
+    ):
+        """Evaluate actuator state at the same times as the SG dynamics samples.
+
+        Rotor thrust is algebraic because this estimator fixes the thrust time
+        constant to zero. Therefore thrust at an SG center t_i is the clipped
+        delayed command evaluated at t_i itself, not a state left over from the
+        previous integration interval.
+
+        Gimbal angle retains the physical rate limit. Its initial state is the
+        measured gimbal_position interpolated at the first SG center. For strict
+        ZOH, propagation is split at every delayed recorded gimbal-command switch
+        so the rate-limited state at each SG center is exact for the declared
+        piecewise-constant command model.
+        """
+
+        time_axis = np.asarray(bag.collocation_time, dtype=float)
+        if (
+            time_axis.ndim != 1
+            or time_axis.size < 1
+            or np.any(~np.isfinite(time_axis))
+            or np.any(np.diff(time_axis) <= 0.0)
+        ):
+            raise ValueError("SG actuator evaluation times are invalid")
+
         rotor_delay = float(self._active_rotor_delay)
         gimbal_delay = float(self._active_gimbal_delay)
-        if smooth_mode:
-            rotor0 = bag.rotor_history.evaluate(float(time_axis[0]), rotor_delay, width_fraction)
-            gimbal0 = bag.gimbal_history.evaluate(float(time_axis[0]), gimbal_delay, width_fraction)
-            initial_command = smooth._command(rotor0.value, gimbal0.value)
-        else:
-            initial_command = smooth._command(
-                bag.rotor_history.exact_zoh(float(time_axis[0]), rotor_delay),
-                bag.gimbal_history.exact_zoh(float(time_axis[0]), gimbal_delay),
+        actuator_parameters = decoded.actuator_parameters
+        if (
+            actuator_parameters.thrust_time_constant != 0.0
+            or actuator_parameters.gimbal_time_constant != 0.0
+        ):
+            raise RuntimeError(
+                "SG lag timing assumes zero thrust/gimbal time constants"
             )
-        state = ActuatorState(
-            thrust=initial_command.thrust,
-            gimbal_angle=initial_command.gimbal_angle,
+
+        count = time_axis.size
+        thrust = np.empty((count, 4), dtype=float)
+        gimbal = np.empty((count, 4), dtype=float)
+        state_jacobian = np.zeros(
+            (count, 8, dimension),
+            dtype=float,
         )
-        sensitivity = np.zeros((8, dimension), dtype=float)
-        if smooth_mode:
-            sensitivity[:4, ROTOR_DELAY_INDEX] = rotor0.delay_derivative
-            sensitivity[4:, GIMBAL_DELAY_INDEX] = gimbal0.delay_derivative
-        thrust = np.empty((time_axis.size, 4), dtype=float)
-        gimbal = np.empty((time_axis.size, 4), dtype=float)
-        state_jacobian = np.empty((time_axis.size, 8, dimension), dtype=float)
-        for index, sample_time in enumerate(time_axis):
-            thrust[index] = state.thrust
-            gimbal[index] = state.gimbal_angle
-            state_jacobian[index] = sensitivity
-            if index == time_axis.size - 1:
-                break
-            dt = float(time_axis[index + 1] - sample_time)
-            midpoint = float(sample_time + 0.5 * dt)
-            command_sensitivity = np.zeros((8, dimension), dtype=float)
+
+        def rotor_state_at(time_value):
             if smooth_mode:
-                rotor = bag.rotor_history.evaluate(midpoint, rotor_delay, width_fraction)
-                gimbal_eval = bag.gimbal_history.evaluate(midpoint, gimbal_delay, width_fraction)
-                command = smooth._command(rotor.value, gimbal_eval.value)
-                command_sensitivity[:4, ROTOR_DELAY_INDEX] = rotor.delay_derivative
-                command_sensitivity[4:, GIMBAL_DELAY_INDEX] = gimbal_eval.delay_derivative
-            else:
-                command = smooth._command(
-                    bag.rotor_history.exact_zoh(midpoint, rotor_delay),
-                    bag.gimbal_history.exact_zoh(midpoint, gimbal_delay),
+                evaluation = bag.rotor_history.evaluate(
+                    float(time_value),
+                    rotor_delay,
+                    float(width_fraction),
                 )
-            state, sensitivity = strict._actuator_step_with_sensitivity(
-                state, sensitivity, command, decoded, parameter_jacobian,
-                0.5 * dt, command_sensitivity,
+                raw = np.asarray(evaluation.value, dtype=float)
+                derivative = np.asarray(
+                    evaluation.delay_derivative,
+                    dtype=float,
+                )
+                free = (
+                    (raw > actuator_parameters.minimum_thrust)
+                    & (raw < actuator_parameters.maximum_thrust)
+                )
+                clipped = np.clip(
+                    raw,
+                    actuator_parameters.minimum_thrust,
+                    actuator_parameters.maximum_thrust,
+                )
+                return clipped, np.where(free, derivative, 0.0)
+
+            raw = bag.rotor_history.exact_zoh(
+                float(time_value),
+                rotor_delay,
             )
-            state, sensitivity = strict._actuator_step_with_sensitivity(
-                state, sensitivity, command, decoded, parameter_jacobian,
-                0.5 * dt, command_sensitivity,
+            clipped = np.clip(
+                raw,
+                actuator_parameters.minimum_thrust,
+                actuator_parameters.maximum_thrust,
+            )
+            return clipped, np.zeros(4, dtype=float)
+
+        # Zero thrust time constant makes thrust a pointwise algebraic state.
+        for index, sample_time in enumerate(time_axis):
+            rotor_value, rotor_derivative = rotor_state_at(sample_time)
+            thrust[index] = rotor_value
+            if smooth_mode:
+                state_jacobian[
+                    index,
+                    :4,
+                    ROTOR_DELAY_INDEX,
+                ] = rotor_derivative
+
+        initial_gimbal = np.asarray(
+            bag.initial_gimbal,
+            dtype=float,
+        )
+        if (
+            initial_gimbal.shape != (4,)
+            or np.any(~np.isfinite(initial_gimbal))
+        ):
+            raise ValueError("measured initial gimbal state is invalid")
+
+        # Condition on the measured actuator state at the first SG center.
+        # It is data, not a delayed command evaluation, so its lag derivative
+        # is exactly zero.
+        current_state = ActuatorState(
+            thrust=thrust[0].copy(),
+            gimbal_angle=initial_gimbal.copy(),
+        )
+        current_sensitivity = np.zeros(
+            (8, dimension),
+            dtype=float,
+        )
+        gimbal[0] = current_state.gimbal_angle
+
+        shifted_gimbal_switches = (
+            np.asarray(bag.gimbal_history.times[1:], dtype=float)
+            + gimbal_delay
+        )
+
+        for index in range(count - 1):
+            left = float(time_axis[index])
+            right = float(time_axis[index + 1])
+
+            if smooth_mode:
+                # Continuous smooth command: two midpoint substeps remove the
+                # previous one-midpoint sample-phase error while preserving the
+                # analytic lag sensitivity.
+                middle = 0.5 * (left + right)
+                subintervals = (
+                    (left, middle),
+                    (middle, right),
+                )
+                for sub_left, sub_right in subintervals:
+                    dt = float(sub_right - sub_left)
+                    if dt <= 0.0:
+                        continue
+                    query = 0.5 * (sub_left + sub_right)
+                    rotor_evaluation = bag.rotor_history.evaluate(
+                        query,
+                        rotor_delay,
+                        float(width_fraction),
+                    )
+                    gimbal_evaluation = bag.gimbal_history.evaluate(
+                        query,
+                        gimbal_delay,
+                        float(width_fraction),
+                    )
+                    command = smooth._command(
+                        rotor_evaluation.value,
+                        gimbal_evaluation.value,
+                    )
+                    command_sensitivity = np.zeros(
+                        (8, dimension),
+                        dtype=float,
+                    )
+                    command_sensitivity[
+                        :4,
+                        ROTOR_DELAY_INDEX,
+                    ] = rotor_evaluation.delay_derivative
+                    command_sensitivity[
+                        4:,
+                        GIMBAL_DELAY_INDEX,
+                    ] = gimbal_evaluation.delay_derivative
+                    (
+                        current_state,
+                        current_sensitivity,
+                    ) = strict._actuator_step_with_sensitivity(
+                        current_state,
+                        current_sensitivity,
+                        command,
+                        decoded,
+                        parameter_jacobian,
+                        dt,
+                        command_sensitivity,
+                    )
+            else:
+                # A source switch at t_cmd appears at t_cmd + tau_g in
+                # evaluation time. Split exactly at those delayed switch times.
+                first = int(
+                    np.searchsorted(
+                        shifted_gimbal_switches,
+                        left,
+                        side="right",
+                    )
+                )
+                last = int(
+                    np.searchsorted(
+                        shifted_gimbal_switches,
+                        right,
+                        side="left",
+                    )
+                )
+                internal = shifted_gimbal_switches[first:last]
+                boundaries = np.concatenate(
+                    (
+                        np.asarray((left,), dtype=float),
+                        internal,
+                        np.asarray((right,), dtype=float),
+                    )
+                )
+                for sub_left, sub_right in zip(
+                    boundaries[:-1],
+                    boundaries[1:],
+                ):
+                    dt = float(sub_right - sub_left)
+                    if dt <= 0.0:
+                        continue
+                    query = 0.5 * (sub_left + sub_right)
+                    command = smooth._command(
+                        bag.rotor_history.exact_zoh(
+                            query,
+                            rotor_delay,
+                        ),
+                        bag.gimbal_history.exact_zoh(
+                            query,
+                            gimbal_delay,
+                        ),
+                    )
+                    current_state = advance_actuators(
+                        current_state,
+                        command,
+                        actuator_parameters,
+                        dt,
+                    )
+
+            gimbal[index + 1] = current_state.gimbal_angle
+            if smooth_mode:
+                state_jacobian[
+                    index + 1,
+                    4:,
+                    :,
+                ] = current_sensitivity[4:]
+
+        arrays = (thrust, gimbal, state_jacobian)
+        if any(np.any(~np.isfinite(value)) for value in arrays):
+            raise FloatingPointError(
+                "SG actuator series contains non-finite values"
             )
         return thrust, gimbal, state_jacobian
+
 
     def evaluate_smooth(self, coordinate: Sequence[float], width_fraction: float):
         value = np.asarray(coordinate, dtype=float)
@@ -4505,63 +4698,179 @@ def _objective_point_diagnostics(evaluation: Any) -> dict[str, Any]:
     return result
 
 
-def _directional_jacobian_checks(evaluator, coordinate, evaluation, lower, upper):
+
+def _directional_jacobian_checks(
+    evaluator,
+    coordinate,
+    evaluation,
+    lower,
+    upper,
+):
+    """Check analytic Jacobian directions without collapsing at active bounds."""
+
     x = np.asarray(coordinate, dtype=float)
     residual = np.asarray(evaluation.residual, dtype=float)
     jacobian = np.asarray(evaluation.jacobian, dtype=float)
+    lower_value = np.asarray(lower, dtype=float)
+    upper_value = np.asarray(upper, dtype=float)
     gradient = jacobian.T @ residual
+
     directions = []
     gradient_norm = float(np.linalg.norm(gradient))
     if gradient_norm > 0.0:
-        directions.append(("negative_gradient", -gradient / gradient_norm))
+        directions.append(
+            ("negative_gradient", -gradient / gradient_norm)
+        )
     if x.size == GLOBAL_DIMENSION:
-        r = np.zeros(x.size); r[ROTOR_DELAY_INDEX] = 1.0
-        g = np.zeros(x.size); g[GIMBAL_DELAY_INDEX] = 1.0
-        directions.extend((("rotor_delay_seconds", r), ("gimbal_delay_seconds", g)))
+        rotor_direction = np.zeros(x.size, dtype=float)
+        rotor_direction[ROTOR_DELAY_INDEX] = 1.0
+        gimbal_direction = np.zeros(x.size, dtype=float)
+        gimbal_direction[GIMBAL_DELAY_INDEX] = 1.0
+        directions.extend(
+            (
+                ("rotor_delay_seconds", rotor_direction),
+                ("gimbal_delay_seconds", gimbal_direction),
+            )
+        )
     if not directions:
-        d = np.zeros(x.size); d[0] = 1.0
-        directions.append(("coordinate:" + PHYSICAL_PARAMETER_NAMES[0], d))
+        direction = np.zeros(x.size, dtype=float)
+        direction[0] = 1.0
+        directions.append(
+            (
+                "coordinate:" + PHYSICAL_PARAMETER_NAMES[0],
+                direction,
+            )
+        )
+
     checks = []
-    base_step = np.cbrt(np.finfo(float).eps) * max(1.0, float(np.linalg.norm(x)))
+    scale = max(1.0, float(np.linalg.norm(x)))
+    base_step = np.cbrt(np.finfo(float).eps) * scale
+    minimum_usable_step = (
+        1024.0 * np.finfo(float).eps * scale
+    )
+
     for label, direction in directions:
-        step = float(base_step)
         plus_limit = math.inf
         minus_limit = math.inf
         positive = direction > 0.0
         negative = direction < 0.0
+
         if np.any(positive):
-            plus_limit = min(plus_limit, float(np.min((upper[positive] - x[positive]) / direction[positive])))
-            minus_limit = min(minus_limit, float(np.min((x[positive] - lower[positive]) / direction[positive])))
+            plus_limit = min(
+                plus_limit,
+                float(
+                    np.min(
+                        (upper_value[positive] - x[positive])
+                        / direction[positive]
+                    )
+                ),
+            )
+            minus_limit = min(
+                minus_limit,
+                float(
+                    np.min(
+                        (x[positive] - lower_value[positive])
+                        / direction[positive]
+                    )
+                ),
+            )
         if np.any(negative):
-            plus_limit = min(plus_limit, float(np.min((x[negative] - lower[negative]) / (-direction[negative]))))
-            minus_limit = min(minus_limit, float(np.min((upper[negative] - x[negative]) / (-direction[negative]))))
+            plus_limit = min(
+                plus_limit,
+                float(
+                    np.min(
+                        (x[negative] - lower_value[negative])
+                        / (-direction[negative])
+                    )
+                ),
+            )
+            minus_limit = min(
+                minus_limit,
+                float(
+                    np.min(
+                        (upper_value[negative] - x[negative])
+                        / (-direction[negative])
+                    )
+                ),
+            )
+
+        plus_step = (
+            min(base_step, 0.5 * plus_limit)
+            if plus_limit > minimum_usable_step
+            else 0.0
+        )
+        minus_step = (
+            min(base_step, 0.5 * minus_limit)
+            if minus_limit > minimum_usable_step
+            else 0.0
+        )
+
         analytic = jacobian @ direction
-        if plus_limit > step and minus_limit > step:
+
+        if (
+            plus_step >= base_step
+            and minus_step >= base_step
+        ):
+            step = base_step
             plus = evaluator(x + step * direction).residual
             minus = evaluator(x - step * direction).residual
             finite = (plus - minus) / (2.0 * step)
             scheme = "central"
-        elif plus_limit > 0.0:
-            step = min(step, 0.5 * plus_limit)
-            finite = (evaluator(x + step * direction).residual - residual) / step
+        elif plus_step >= minus_step and plus_step > 0.0:
+            step = plus_step
+            finite = (
+                evaluator(x + step * direction).residual
+                - residual
+            ) / step
             scheme = "forward"
-        elif minus_limit > 0.0:
-            step = min(step, 0.5 * minus_limit)
-            finite = (residual - evaluator(x - step * direction).residual) / step
+        elif minus_step > 0.0:
+            step = minus_step
+            finite = (
+                residual
+                - evaluator(x - step * direction).residual
+            ) / step
             scheme = "backward"
         else:
-            raise RuntimeError("finite-difference diagnostic has no feasible step")
+            checks.append(
+                {
+                    "direction": label,
+                    "scheme": "unavailable_at_active_bounds",
+                    "step": None,
+                    "analytic_l2_norm": float(
+                        np.linalg.norm(analytic)
+                    ),
+                    "finite_difference_l2_norm": None,
+                    "difference_l2_norm": None,
+                    "relative_error": None,
+                }
+            )
+            continue
+
         difference = np.asarray(finite) - analytic
-        denominator = max(float(np.linalg.norm(finite)), float(np.linalg.norm(analytic)), math.sqrt(np.finfo(float).eps))
-        checks.append({
-            "direction": label,
-            "scheme": scheme,
-            "step": step,
-            "analytic_l2_norm": float(np.linalg.norm(analytic)),
-            "finite_difference_l2_norm": float(np.linalg.norm(finite)),
-            "difference_l2_norm": float(np.linalg.norm(difference)),
-            "relative_error": float(np.linalg.norm(difference) / denominator),
-        })
+        denominator = max(
+            float(np.linalg.norm(finite)),
+            float(np.linalg.norm(analytic)),
+            math.sqrt(np.finfo(float).eps),
+        )
+        checks.append(
+            {
+                "direction": label,
+                "scheme": scheme,
+                "step": float(step),
+                "analytic_l2_norm": float(
+                    np.linalg.norm(analytic)
+                ),
+                "finite_difference_l2_norm": float(
+                    np.linalg.norm(finite)
+                ),
+                "difference_l2_norm": float(
+                    np.linalg.norm(difference)
+                ),
+                "relative_error": float(
+                    np.linalg.norm(difference) / denominator
+                ),
+            }
+        )
     return checks
 
 
@@ -4840,82 +5149,312 @@ def _strict_pair_screen(problem, physical, center_rotor, center_gimbal, rotor_pe
     }
 
 
-def _split_command_lag_search(problem, initial_physical, physical_lower, physical_upper, arguments):
+
+def _split_command_lag_search(
+    problem,
+    initial_physical,
+    physical_lower,
+    physical_upper,
+    arguments,
+):
     rotor_period = float(_ACTIVE_ROTOR_PERIOD_SECONDS)
     gimbal_period = float(_ACTIVE_GIMBAL_PERIOD_SECONDS)
     lower_lag, upper_lag = map(float, arguments.delay_bounds)
-    coordinate = np.concatenate((initial_physical, np.asarray((arguments.initial_delay, arguments.initial_gimbal_delay))))
-    lower = np.concatenate((physical_lower, np.asarray((lower_lag, lower_lag))))
-    upper = np.concatenate((physical_upper, np.asarray((upper_lag, upper_lag))))
+
+    coordinate = np.concatenate(
+        (
+            initial_physical,
+            np.asarray(
+                (
+                    arguments.initial_delay,
+                    arguments.initial_gimbal_delay,
+                )
+            ),
+        )
+    )
+    lower = np.concatenate(
+        (
+            physical_lower,
+            np.asarray((lower_lag, lower_lag)),
+        )
+    )
+    upper = np.concatenate(
+        (
+            physical_upper,
+            np.asarray((upper_lag, upper_lag)),
+        )
+    )
+
     smooth_stages = []
-    for index, width in enumerate(arguments.smoothstep_width_fractions):
-        print(f"smooth lag {index+1}/{len(arguments.smoothstep_width_fractions)}: half-width={width} publish periods", flush=True)
-        coordinate, evaluation, optimizer = _solve_smooth_pair(problem, coordinate, float(width), lower, upper, arguments)
-        smooth_stages.append({
-            "half_width_period_multiplier": float(width),
-            "rotor_transition_half_width_seconds": float(width) * rotor_period,
-            "gimbal_transition_half_width_seconds": float(width) * gimbal_period,
-            "objective_cost": 0.5 * float(evaluation.residual @ evaluation.residual),
-            "data_loss": evaluation.data_loss,
-            "prior_cost": evaluation.prior_cost,
-            "physical_coordinate": coordinate[:PHYSICAL_DIMENSION],
-            "rotor_delay_seconds": float(coordinate[ROTOR_DELAY_INDEX]),
-            "gimbal_delay_seconds": float(coordinate[GIMBAL_DELAY_INDEX]),
-            "optimizer": optimizer,
-        })
-        print(f"  rotor={coordinate[ROTOR_DELAY_INDEX]:.6f}s gimbal={coordinate[GIMBAL_DELAY_INDEX]:.6f}s cost={smooth_stages[-1]['objective_cost']:.9g}", flush=True)
+    for index, width in enumerate(
+        arguments.smoothstep_width_fractions
+    ):
+        print(
+            "smooth lag {}/{}: half-width={} publish periods".format(
+                index + 1,
+                len(arguments.smoothstep_width_fractions),
+                width,
+            ),
+            flush=True,
+        )
+        coordinate, evaluation, optimizer = _solve_smooth_pair(
+            problem,
+            coordinate,
+            float(width),
+            lower,
+            upper,
+            arguments,
+        )
+        smooth_stages.append(
+            {
+                "half_width_period_multiplier": float(width),
+                "rotor_transition_half_width_seconds": (
+                    float(width) * rotor_period
+                ),
+                "gimbal_transition_half_width_seconds": (
+                    float(width) * gimbal_period
+                ),
+                "objective_cost": 0.5
+                * float(evaluation.residual @ evaluation.residual),
+                "data_loss": evaluation.data_loss,
+                "prior_cost": evaluation.prior_cost,
+                "physical_coordinate": coordinate[
+                    :PHYSICAL_DIMENSION
+                ],
+                "rotor_delay_seconds": float(
+                    coordinate[ROTOR_DELAY_INDEX]
+                ),
+                "gimbal_delay_seconds": float(
+                    coordinate[GIMBAL_DELAY_INDEX]
+                ),
+                "optimizer": optimizer,
+            }
+        )
+        print(
+            "  rotor={:.6f}s gimbal={:.6f}s cost={:.9g}".format(
+                coordinate[ROTOR_DELAY_INDEX],
+                coordinate[GIMBAL_DELAY_INDEX],
+                smooth_stages[-1]["objective_cost"],
+            ),
+            flush=True,
+        )
+
     physical = coordinate[:PHYSICAL_DIMENSION].copy()
-    rotor = float(coordinate[ROTOR_DELAY_INDEX]); gimbal = float(coordinate[GIMBAL_DELAY_INDEX])
+    rotor = float(coordinate[ROTOR_DELAY_INDEX])
+    gimbal = float(coordinate[GIMBAL_DELAY_INDEX])
+
     profile = []
-    while True:
-        screen = _strict_pair_screen(problem, physical, rotor, gimbal, rotor_period, gimbal_period, arguments.delay_bounds)
+    visited_pairs = set()
+    refined_solutions = []
+    termination = None
+    maximum_iterations = 32
+
+    for iteration_index in range(maximum_iterations):
+        screen = _strict_pair_screen(
+            problem,
+            physical,
+            rotor,
+            gimbal,
+            rotor_period,
+            gimbal_period,
+            arguments.delay_bounds,
+        )
         best_rotor, best_gimbal = screen["best_pair"]
-        solution = _solve_strict_pair(problem, physical, best_rotor, best_gimbal, physical_lower, physical_upper, arguments)
-        verify = _strict_pair_screen(problem, solution.physical_coordinate, best_rotor, best_gimbal, rotor_period, gimbal_period, arguments.delay_bounds)
-        profile.append({
-            "iteration": len(profile) + 1,
-            "screening": screen,
-            "refined_solution": {
-                "rotor_delay_seconds": best_rotor,
-                "gimbal_delay_seconds": best_gimbal,
-                "objective_cost": _solution_cost(solution),
-                "physical_coordinate": solution.physical_coordinate,
-                "optimizer": solution.optimizer,
-            },
-            "post_refinement_screening": verify,
-        })
+        current_pair = (
+            round(float(best_rotor), 12),
+            round(float(best_gimbal), 12),
+        )
+        visited_pairs.add(current_pair)
+
+        solution = _solve_strict_pair(
+            problem,
+            physical,
+            best_rotor,
+            best_gimbal,
+            physical_lower,
+            physical_upper,
+            arguments,
+        )
+        refined_solutions.append(solution)
+
+        verify = _strict_pair_screen(
+            problem,
+            solution.physical_coordinate,
+            best_rotor,
+            best_gimbal,
+            rotor_period,
+            gimbal_period,
+            arguments.delay_bounds,
+        )
+        profile.append(
+            {
+                "iteration": iteration_index + 1,
+                "screening": screen,
+                "refined_solution": {
+                    "rotor_delay_seconds": best_rotor,
+                    "gimbal_delay_seconds": best_gimbal,
+                    "objective_cost": _solution_cost(solution),
+                    "physical_coordinate": (
+                        solution.physical_coordinate
+                    ),
+                    "optimizer": solution.optimizer,
+                },
+                "post_refinement_screening": verify,
+            }
+        )
+
         next_rotor, next_gimbal = verify["best_pair"]
-        if np.isclose(next_rotor, best_rotor, atol=5e-13, rtol=0.0) and np.isclose(next_gimbal, best_gimbal, atol=5e-13, rtol=0.0):
+        next_pair = (
+            round(float(next_rotor), 12),
+            round(float(next_gimbal), 12),
+        )
+
+        if (
+            np.isclose(
+                next_rotor,
+                best_rotor,
+                atol=5.0e-13,
+                rtol=0.0,
+            )
+            and np.isclose(
+                next_gimbal,
+                best_gimbal,
+                atol=5.0e-13,
+                rtol=0.0,
+            )
+        ):
             selected = solution
+            termination = "fixed_point"
             break
-        physical = solution.physical_coordinate.copy(); rotor = float(next_rotor); gimbal = float(next_gimbal)
+
+        if next_pair in visited_pairs:
+            selected = min(
+                refined_solutions,
+                key=_solution_cost,
+            )
+            termination = "cycle_guard_best_refined_solution"
+            break
+
+        physical = solution.physical_coordinate.copy()
+        rotor = float(next_rotor)
+        gimbal = float(next_gimbal)
+    else:
+        selected = min(
+            refined_solutions,
+            key=_solution_cost,
+        )
+        termination = "maximum_iteration_guard_best_refined_solution"
+
+    if not profile:
+        raise RuntimeError("strict split-lag search produced no iteration")
+
     final_candidates = []
-    for item in profile[-1]["post_refinement_screening"]["candidates"]:
+    for item in profile[-1][
+        "post_refinement_screening"
+    ]["candidates"]:
         value = dict(item)
         value["selected"] = bool(
-            np.isclose(value["rotor_delay_seconds"], selected.delay_seconds, atol=5e-13, rtol=0.0)
-            and np.isclose(value["gimbal_delay_seconds"], selected.gimbal_delay_seconds, atol=5e-13, rtol=0.0)
+            np.isclose(
+                value["rotor_delay_seconds"],
+                selected.delay_seconds,
+                atol=5.0e-13,
+                rtol=0.0,
+            )
+            and np.isclose(
+                value["gimbal_delay_seconds"],
+                selected.gimbal_delay_seconds,
+                atol=5.0e-13,
+                rtol=0.0,
+            )
         )
         final_candidates.append(value)
+
+    selected_rotor = float(selected.delay_seconds)
+    selected_gimbal = float(selected.gimbal_delay_seconds)
+    boundary_proximity = {
+        "rotor_distance_to_lower_seconds": (
+            selected_rotor - lower_lag
+        ),
+        "rotor_distance_to_upper_seconds": (
+            upper_lag - selected_rotor
+        ),
+        "gimbal_distance_to_lower_seconds": (
+            selected_gimbal - lower_lag
+        ),
+        "gimbal_distance_to_upper_seconds": (
+            upper_lag - selected_gimbal
+        ),
+        "rotor_within_one_publish_period_of_bound": bool(
+            selected_rotor - lower_lag <= rotor_period
+            or upper_lag - selected_rotor <= rotor_period
+        ),
+        "gimbal_within_one_publish_period_of_bound": bool(
+            selected_gimbal - lower_lag <= gimbal_period
+            or upper_lag - selected_gimbal <= gimbal_period
+        ),
+    }
+
     return {
-        "schema": SCHEMA + "/command-lag-search/v1",
-        "recorded_command_period_seconds": {"rotor": rotor_period, "gimbal": gimbal_period},
-        "initial_delay_seconds": {"rotor": float(arguments.initial_delay), "gimbal": float(arguments.initial_gimbal_delay)},
+        "schema": SCHEMA + "/command-lag-search/v2",
+        "recorded_command_period_seconds": {
+            "rotor": rotor_period,
+            "gimbal": gimbal_period,
+        },
+        "initial_delay_seconds": {
+            "rotor": float(arguments.initial_delay),
+            "gimbal": float(arguments.initial_gimbal_delay),
+        },
         "delay_bounds_seconds": (lower_lag, upper_lag),
+        "actuator_timing_policy": {
+            "rotor": (
+                "zero-time-constant thrust evaluated at each SG "
+                "sample time using the delayed command"
+            ),
+            "gimbal_initial_state": (
+                "measured gimbal_position at the first SG sample"
+            ),
+            "gimbal_strict_propagation": (
+                "rate-limited propagation split at every delayed "
+                "recorded gimbal-command switch"
+            ),
+        },
         "smooth_surrogate": {
-            "representation": "sum of overlapping quintic-smoothed ZOH jumps",
-            "half_width_period_multipliers": list(arguments.smoothstep_width_fractions),
+            "representation": (
+                "sum of overlapping quintic-smoothed ZOH jumps"
+            ),
+            "half_width_period_multipliers": list(
+                arguments.smoothstep_width_fractions
+            ),
+            "gimbal_integration": (
+                "two midpoint substeps per SG interval"
+            ),
         },
         "smooth_stages": smooth_stages,
-        "smooth_result": {"rotor_delay_seconds": float(coordinate[ROTOR_DELAY_INDEX]), "gimbal_delay_seconds": float(coordinate[GIMBAL_DELAY_INDEX])},
+        "smooth_result": {
+            "rotor_delay_seconds": float(
+                coordinate[ROTOR_DELAY_INDEX]
+            ),
+            "gimbal_delay_seconds": float(
+                coordinate[GIMBAL_DELAY_INDEX]
+            ),
+        },
         "strict_zoh": {
-            "grid_step_seconds": {"rotor": rotor_period, "gimbal": gimbal_period},
+            "grid_step_seconds": {
+                "rotor": rotor_period,
+                "gimbal": gimbal_period,
+            },
             "profile_iterations": profile,
-            "termination": "same lag pair remains selected after physical-parameter refinement",
+            "termination": termination,
+            "maximum_iterations": maximum_iterations,
         },
         "strict_candidates": final_candidates,
         "selected_solution": selected,
-        "selected": {"rotor_delay_seconds": float(selected.delay_seconds), "gimbal_delay_seconds": float(selected.gimbal_delay_seconds), "objective_cost": _solution_cost(selected)},
+        "selected": {
+            "rotor_delay_seconds": selected_rotor,
+            "gimbal_delay_seconds": selected_gimbal,
+            "objective_cost": _solution_cost(selected),
+        },
+        "selected_boundary_proximity": boundary_proximity,
     }
 
 

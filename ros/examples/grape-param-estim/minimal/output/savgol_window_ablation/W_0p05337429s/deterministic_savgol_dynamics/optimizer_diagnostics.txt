@@ -4,15 +4,15 @@ Objective: mean squared translational/angular acceleration residual; angular res
 Tolerances: {'ftol': None, 'xtol': None, 'gtol': 1e-06, 'note': 'ftol and xtol are disabled by default in the SG estimator; gtol or max_nfev terminates the solve unless explicitly overridden'}
 
 Selected strict-ZOH solve
-status=0 success=False nfev=80 njev=6
-message=The maximum number of function evaluations is exceeded.
-reported optimality=7.88752095104428e-06
-initial={'cost': 583.2421632430004, 'gradient_inf_norm': 0.01569152974195731, 'gradient_l2_norm': 0.017541869922718285, 'jacobian': {'condition_number_nonzero_subspace': 324.5677178162147, 'numerical_rank': 14, 'numerical_tolerance': 1.6698122317628218e-10, 'singular_values': [191.54777750243863, 174.73326607317125, 152.6688903509138, 48.52381283874322, 44.760278213303486, 25.941479744077085, 13.174578223969108, 11.997446999567352, 11.665379483169488, 10.772322107016365, 9.272683530978469, 3.817025075898144, 3.7877080783348736, 0.5901627518325833]}, 'residual_l2_norm': 34.15383326196345}
-final={'cost': 583.2421630275993, 'gradient_inf_norm': 7.88752095104428e-06, 'gradient_l2_norm': 1.1155482309803043e-05, 'jacobian': {'condition_number_nonzero_subspace': 324.730746272064, 'numerical_rank': 14, 'numerical_tolerance': 1.6698152844829302e-10, 'singular_values': [191.54812768657368, 174.7333336131906, 152.6689203078987, 48.52384630173439, 44.76035804439255, 25.941533211511825, 13.174555771813676, 11.997415402037637, 11.665373759925682, 10.772338384570281, 9.272815461239842, 3.8170567145487704, 3.7876868155933456, 0.5898675437591363]}, 'residual_l2_norm': 34.15383325565666}
-coordinate_step_l2_norm=0.00028055998027753763
-cost_reduction=2.1540108718909323e-07
-gradient_tolerance_satisfied=False
-finite_difference_max_relative_error=5.1508985782697236e-12
-finite_difference_directional_checks=[{'analytic_l2_norm': 177.87289742727805, 'difference_l2_norm': 9.1620525447151e-10, 'direction': 'negative_gradient', 'finite_difference_l2_norm': 177.8728974273998, 'relative_error': 5.1508985782697236e-12, 'scheme': 'central', 'step': 6.0554544523933395e-06}]
+status=1 success=True nfev=6 njev=6
+message=`gtol` termination condition is satisfied.
+reported optimality=8.306048471240501e-07
+initial={'cost': 583.2574682595425, 'gradient_inf_norm': 0.06132937771576508, 'gradient_l2_norm': 0.09525936213437144, 'jacobian': {'condition_number_nonzero_subspace': 323.4036682465926, 'numerical_rank': 14, 'numerical_tolerance': 1.669787750700851e-10, 'singular_values': [191.54496922680008, 174.73261076399075, 152.66820856598744, 48.523762813532024, 44.75982314756852, 25.941212101153077, 13.174640035842126, 11.996761150742078, 11.66429702660792, 10.772021077649892, 9.272600435443676, 3.8170572217885956, 3.7876329497550585, 0.5922782826345329]}, 'residual_l2_norm': 34.15428137904654}
+final={'cost': 583.2574676144673, 'gradient_inf_norm': 8.306048471240501e-07, 'gradient_l2_norm': 1.0965989108637812e-06, 'jacobian': {'condition_number_nonzero_subspace': 324.10067165340627, 'numerical_rank': 14, 'numerical_tolerance': 1.6698028029742595e-10, 'singular_values': [191.54669590568224, 174.73297665244993, 152.66856326722535, 48.523895868153424, 44.76010117453063, 25.941367720166127, 13.174576775182857, 11.996850138089409, 11.664639101686367, 10.77224380567949, 9.272816986174188, 3.8170937432826393, 3.787617803027176, 0.5910098702619245]}, 'residual_l2_norm': 34.15428136015944}
+coordinate_step_l2_norm=0.0010755743343700917
+cost_reduction=6.450752607634058e-07
+gradient_tolerance_satisfied=True
+finite_difference_max_relative_error=4.710650673165391e-12
+finite_difference_directional_checks=[{'analytic_l2_norm': 181.28757272400682, 'difference_l2_norm': 8.539824264890797e-10, 'direction': 'negative_gradient', 'finite_difference_l2_norm': 181.28757272405292, 'relative_error': 4.710650673165391e-12, 'scheme': 'central', 'step': 6.0554544523933395e-06}]
 
 All smoothstep and strict-ZOH stage details are in optimizer_diagnostics.json.

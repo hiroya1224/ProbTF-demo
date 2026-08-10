@@ -10,7 +10,7 @@
           "minimum_seconds": 4.5299530029296875e-06,
           "positive_interval_count": 3523,
           "sample_count": 3524,
-          "selected_lag_over_median_interval": 8.045527638807615
+          "selected_lag_over_median_interval": 7.280599917237151
         },
         "note": "Publish/update intervals are measured directly from rosbag timestamps; no command period is hard-coded into the SG front end.",
         "rotor": {
@@ -21,39 +21,39 @@
           "minimum_seconds": 2.002716064453125e-05,
           "positive_interval_count": 3522,
           "sample_count": 3523,
-          "selected_lag_over_median_interval": 40.018166205514746
+          "selected_lag_over_median_interval": 39.01816620554015
         },
-        "selected_gimbal_lag_seconds": 0.040217049712,
-        "selected_rotor_lag_seconds": 0.2
+        "selected_gimbal_lag_seconds": 0.036393417803,
+        "selected_rotor_lag_seconds": 0.195002269745
       },
-      "dynamics_loss": 1.0792047277442087,
+      "dynamics_loss": 1.0830162381987127,
       "estimated_forward_metrics": {
-        "orientation_angle_rmse_deg": 96.23878885447071,
-        "orientation_angle_rmse_rad": 1.6796837336421357,
+        "orientation_angle_rmse_deg": 110.65828829518932,
+        "orientation_angle_rmse_rad": 1.9313514753721566,
         "position_component_rmse_m": [
-          7.9763486675403295,
-          22.562646371687453,
-          15.376819108130533
+          2.2688924860847273,
+          31.52830107615051,
+          15.132181313565201
         ],
-        "position_rmse_m": 28.445416418891842,
-        "terminal_orientation_error_deg": 154.0110370057634,
-        "terminal_position_error_m": 73.2005143122227
+        "position_rmse_m": 35.04517874356495,
+        "terminal_orientation_error_deg": 90.53781653178244,
+        "terminal_position_error_m": 86.98041464129646
       },
-      "estimated_forward_pose_score_m2": 404.62865362144413,
+      "estimated_forward_pose_score_m2": 614.1672872657326,
       "estimated_improves_over_reference": true,
       "estimated_with_external_wrench_forward_metrics": {
-        "orientation_angle_rmse_deg": 0.5961670872910266,
-        "orientation_angle_rmse_rad": 0.010405078565252857,
+        "orientation_angle_rmse_deg": 0.5961670872911077,
+        "orientation_angle_rmse_rad": 0.01040507856525427,
         "position_component_rmse_m": [
-          0.00033982826224865755,
-          0.0003243018240867575,
-          0.00045308714307983213
+          0.0003398282625210657,
+          0.000324301824136167,
+          0.00045308714560451507
         ],
-        "position_rmse_m": 0.0006526429959427933,
-        "terminal_orientation_error_deg": 0.533769836061271,
-        "terminal_position_error_m": 0.0008147931091195016
+        "position_rmse_m": 0.0006526429978619082,
+        "terminal_orientation_error_deg": 0.5337698360577648,
+        "terminal_position_error_m": 0.0008147931183192349
       },
-      "estimated_with_external_wrench_forward_pose_score_m2": 2.03282160058687e-06,
+      "estimated_with_external_wrench_forward_pose_score_m2": 2.0328216018398346e-06,
       "evaluation_count": 598,
       "external_wrench_improves_estimated_free_rollout": true,
       "id": "failure_1_single",
@@ -73,14 +73,14 @@
         "knot_count": 101,
         "optimizer": {
           "coefficient_dimension": 606,
-          "cost": 1.540508743787483e-20,
-          "final_pose_cost": 1.540508743787483e-20,
-          "initial_pose_cost": 2307.8242792346064,
+          "cost": 3.0646453138097434e-25,
+          "final_pose_cost": 3.0646453138097434e-25,
+          "initial_pose_cost": 759.7690202627381,
           "knot_count": 101,
           "message": "`gtol` termination condition is satisfied.",
-          "nfev": 11,
-          "njev": 11,
-          "optimality": 2.0448933791800435e-08,
+          "nfev": 27,
+          "njev": 23,
+          "optimality": 4.4203315454151526e-10,
           "status": 1,
           "success": true,
           "uses_regularization": false
@@ -93,129 +93,129 @@
       "raw_inverse_dynamics_residual_wrench_statistics": {
         "covariance": [
           [
-            0.6698489374328228,
-            -0.07116549722788612,
-            0.3100011147625008,
-            -0.002634038175065071,
-            0.05673140222168512,
-            0.0013051757812686585
+            0.5741420115991418,
+            -0.08612736599799503,
+            0.2882878684837618,
+            -0.0038750552000183626,
+            0.0731386956001299,
+            -0.007441296611359999
           ],
           [
-            -0.07116549722788612,
-            0.0935156253286268,
-            -0.18883029805247725,
-            -0.0051845908844324615,
-            -0.035866765379250196,
-            0.004088952317025656
+            -0.08612736599799503,
+            0.09017834594669114,
+            -0.20554400034734321,
+            -0.005031673133783894,
+            -0.03561071331990197,
+            0.003914835786499703
           ],
           [
-            0.3100011147625008,
-            -0.18883029805247725,
-            1.3133502917035533,
-            0.01221184389395103,
-            -0.010026145654750193,
-            0.0033899116662683307
+            0.2882878684837618,
+            -0.20554400034734321,
+            1.3665987534562072,
+            0.013251443660594489,
+            -0.013346452919216894,
+            0.0019733700062284183
           ],
           [
-            -0.002634038175065071,
-            -0.0051845908844324615,
-            0.01221184389395103,
-            0.001528035490637674,
-            -0.0024290154335076673,
-            0.0004356093741588812
+            -0.0038750552000183626,
+            -0.005031673133783894,
+            0.013251443660594489,
+            0.001427969342160118,
+            -0.002385929917393,
+            0.0003823757334424931
           ],
           [
-            0.05673140222168512,
-            -0.035866765379250196,
-            -0.010026145654750193,
-            -0.0024290154335076673,
-            0.054817958316275436,
-            -0.00548006430388981
+            0.0731386956001299,
+            -0.03561071331990197,
+            -0.013346452919216894,
+            -0.002385929917393,
+            0.05749071181506386,
+            -0.006605851782299754
           ],
           [
-            0.0013051757812686585,
-            0.004088952317025656,
-            0.0033899116662683307,
-            0.0004356093741588812,
-            -0.00548006430388981,
-            0.004062587321741875
+            -0.007441296611359999,
+            0.003914835786499703,
+            0.0019733700062284183,
+            0.0003823757334424931,
+            -0.006605851782299754,
+            0.004046891852268298
           ]
         ],
         "definition": "required_body_wrench - modeled_body_wrench at raw centered SG evaluation times",
         "mean": [
-          -0.10781155265770975,
-          0.18747561825061645,
-          -2.7765953387481295,
-          -0.05229178122447887,
-          -0.022038516389135843,
-          -0.029130677991868584
+          -0.10342202932424058,
+          0.1969298404228766,
+          -2.7757122999880206,
+          -0.05185891327334849,
+          -0.02144312382998619,
+          -0.029775499170574277
         ],
         "rms": [
-          0.8248346013562265,
-          0.3584778265426127,
-          3.0034373189589654,
-          0.06526799086053632,
-          0.23497230835631208,
-          0.07003135082035734
+          0.7641191164015986,
+          0.3588995793896406,
+          3.011460151415681,
+          0.06414770704751546,
+          0.240529376710164,
+          0.07019048956550869
         ],
         "sample_count": 598,
         "second_moment": [
           [
-            0.6803521195944852,
-            -0.09125852886874196,
-            0.6088317728221158,
-            0.003008024696095416,
-            0.059012540326282045,
-            0.004443616837347685
+            0.5838780240503595,
+            -0.106350224033379,
+            0.5748755806321829,
+            0.0014947788746792175,
+            0.07523408147064099,
+            -0.004349410423178645
           ],
           [
-            -0.09125852886874196,
-            0.1285063521227154,
-            -0.7090584560868781,
-            -0.014979355014495491,
-            -0.03993847199610263,
-            -0.001379177262464263
+            -0.106350224033379,
+            0.12880890808606085,
+            -0.7518208615796731,
+            -0.015235826480088172,
+            -0.0397739545860832,
+            -0.0019553950618109287
           ],
           [
-            0.6088317728221158,
-            -0.7090584560868781,
-            9.020635728915403,
-            0.15738453875304056,
-            0.05118266235410617,
-            0.08426834764445755
+            0.5748755806321829,
+            -0.7518208615796731,
+            9.068892243564559,
+            0.1571747074926561,
+            0.046195808128984515,
+            0.08461828934243106
           ],
           [
-            0.003008024696095416,
-            -0.014979355014495491,
-            0.15738453875304056,
-            0.004259910630971056,
-            -0.0012725202572566408,
-            0.0019581759708609176
+            0.0014947788746792175,
+            -0.015235826480088172,
+            0.1571747074926561,
+            0.0041149283194538665,
+            -0.001269922969023886,
+            0.0019258613382965454
           ],
           [
-            0.059012540326282045,
-            -0.03993847199610263,
-            0.05118266235410617,
-            -0.0012725202572566408,
-            0.055211985694293794,
-            -0.00482890339240912
+            0.07523408147064099,
+            -0.0397739545860832,
+            0.046195808128984515,
+            -0.001269922969023886,
+            0.05785438106057998,
+            -0.005956325491598689
           ],
           [
-            0.004443616837347685,
-            -0.001379177262464263,
-            0.08426834764445755,
-            0.0019581759708609176,
-            -0.00482890339240912,
-            0.00490439009772397
+            -0.004349410423178645,
+            -0.0019553950618109287,
+            0.08461828934243106,
+            0.0019258613382965454,
+            -0.005956325491598689,
+            0.004926704825445783
           ]
         ],
         "std": [
-          0.8184429958358878,
-          0.305803246105444,
-          1.1460149613785822,
-          0.039090094533496274,
-          0.23413235213501674,
-          0.06373842892433008
+          0.7577215924065657,
+          0.30029709613429684,
+          1.1690161476456202,
+          0.03778848160696743,
+          0.23977220817906286,
+          0.06361518570489515
         ],
         "time_interval_seconds": [
           19.514070987701416,
@@ -225,16 +225,16 @@
         "uses_replay_optimization": false
       },
       "reconstruction_metrics": {
-        "orientation_angle_rmse_deg": 0.5961670872910266,
-        "orientation_angle_rmse_rad": 0.010405078565252857,
+        "orientation_angle_rmse_deg": 0.5961670872911077,
+        "orientation_angle_rmse_rad": 0.01040507856525427,
         "position_component_rmse_m": [
-          0.00033982826224865755,
-          0.0003243018240867575,
-          0.00045308714307983213
+          0.0003398282625210657,
+          0.000324301824136167,
+          0.00045308714560451507
         ],
-        "position_rmse_m": 0.0006526429959427933,
-        "terminal_orientation_error_deg": 0.533769836061271,
-        "terminal_position_error_m": 0.0008147931091195016
+        "position_rmse_m": 0.0006526429978619082,
+        "terminal_orientation_error_deg": 0.5337698360577648,
+        "terminal_position_error_m": 0.0008147931183192349
       },
       "reference_forward_metrics": {
         "orientation_angle_rmse_deg": 139.97669004849337,
@@ -260,37 +260,37 @@
           "M_z"
         ],
         "cumulative_impulse": [
-          -0.510540233761091,
-          0.9731597977807498,
-          -13.843812368168825,
-          -0.2565151969732866,
-          -0.11197574570592347,
-          -0.14729982032447606
+          -0.5325438344086936,
+          0.9949768584142374,
+          -13.821474136032748,
+          -0.2551473894778321,
+          -0.10982198778532168,
+          -0.14754262332179058
         ],
         "duration_seconds": 4.975879192352295,
         "linear_trend_per_second": [
-          -0.08554195073767076,
-          0.05609062701961759,
-          -0.5740284484273022,
-          -0.0032911742972126447,
-          0.014324412075642718,
-          0.004067105976789566
+          -0.084923992214116,
+          0.06111228499880231,
+          -0.573861728884371,
+          -0.003250395655627206,
+          0.017182607279410976,
+          0.0037742486429602363
         ],
         "mean": [
-          -0.0983105781403583,
-          0.19538543570371358,
-          -2.7719884857708186,
-          -0.05045828742488749,
-          -0.01615342444427168,
-          -0.02940013781372489
+          -0.10197929556310852,
+          0.1998727972135783,
+          -2.767875386656666,
+          -0.05007396858903951,
+          -0.01552229421405651,
+          -0.02949209009265205
         ],
         "rmse": [
-          0.7859083855404683,
-          0.3854046863681451,
-          2.99501942649121,
-          0.07214398611156368,
-          0.24256390358631463,
-          0.10615737008576914
+          0.7682669552515322,
+          0.3864989351690153,
+          2.994559125005466,
+          0.0713973360676751,
+          0.24969698741935592,
+          0.10605165176360871
         ]
       },
       "savgol": {
@@ -347,46 +347,46 @@
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": 0.0028095271272812407,
-            "pearson_correlation": 0.9102003492031967,
-            "rmse": 0.04107611520761351
+            "mean_bias": 0.002783134610384917,
+            "pearson_correlation": 0.9101269632947132,
+            "rmse": 0.04108848861461089
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": -0.004737000368376247,
-            "pearson_correlation": 0.9977739381737815,
-            "rmse": 0.08596423725049344
+            "mean_bias": -0.004709697422579232,
+            "pearson_correlation": 0.9977737766374747,
+            "rmse": 0.08597427055171857
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": 0.0007386981798010223,
-            "pearson_correlation": 0.9864352881293363,
-            "rmse": 0.02657478722421721
+            "mean_bias": 0.0007476072195944813,
+            "pearson_correlation": 0.9864210568110433,
+            "rmse": 0.026584017167642533
           }
         ],
         "specific_force": [
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.2541211519866943,
-            "pearson_correlation": 0.9706600059155318,
-            "rmse": 0.938567595037974
+            "mean_bias": -0.25417632339239365,
+            "pearson_correlation": 0.9702020106373137,
+            "rmse": 0.9451524085822941
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
-            "mean_bias": 0.10205845484147473,
-            "pearson_correlation": 0.9201138685888193,
-            "rmse": 0.16351066492985938
+            "mean_bias": 0.10329035713654139,
+            "pearson_correlation": 0.9228402641041182,
+            "rmse": 0.16268308604541634
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.004974076751290574,
-            "pearson_correlation": 0.9238828958150345,
-            "rmse": 0.33954427436732604
+            "mean_bias": -0.011417577159321901,
+            "pearson_correlation": 0.9262619580184663,
+            "rmse": 0.33691925909780573
           }
         ]
       },
@@ -395,46 +395,46 @@
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": 3.650000000000052,
-            "mean_bias": -0.5201676301017659,
-            "pearson_correlation": -0.3234302887689041,
-            "rmse": 1.1452631213206814
+            "mean_bias": -0.5350767088974343,
+            "pearson_correlation": -0.32338445513889236,
+            "rmse": 1.1939233706502417
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": 0.5384255379500689,
-            "pearson_correlation": 0.9092743089149081,
-            "rmse": 1.5865186640287163
+            "mean_bias": 0.5311236582982489,
+            "pearson_correlation": 0.8997182087316421,
+            "rmse": 1.6490924727169678
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": -5.400000000000077,
-            "mean_bias": 1.113941444309091,
-            "pearson_correlation": 0.02039040780663277,
-            "rmse": 1.1914493010301284
+            "mean_bias": 1.114743518635312,
+            "pearson_correlation": 0.02971406486870682,
+            "rmse": 1.19629545744166
           }
         ],
         "specific_force": [
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.21827521834459554,
-            "pearson_correlation": 0.981680497669484,
-            "rmse": 1.0003248722357696
+            "mean_bias": -0.2251144698241589,
+            "pearson_correlation": 0.9765610436152569,
+            "rmse": 1.0790167152707628
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": 0.10000000000000142,
-            "mean_bias": 0.05310811780341071,
-            "pearson_correlation": 0.5246445031639793,
-            "rmse": 0.36053888970796916
+            "mean_bias": 0.053792766988442174,
+            "pearson_correlation": 0.49958914925646236,
+            "rmse": 0.37931092963200297
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": 0.9305453014391348,
-            "pearson_correlation": 0.8178520193906443,
-            "rmse": 1.0962670433808488
+            "mean_bias": 0.9179319096643817,
+            "pearson_correlation": 0.8037495287630979,
+            "rmse": 1.102689840302093
           }
         ]
       },
@@ -443,46 +443,46 @@
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": 0.0028095271272812407,
-            "pearson_correlation": 0.9102003492031967,
-            "rmse": 0.04107611520761351
+            "mean_bias": 0.002783134610384917,
+            "pearson_correlation": 0.9101269632947132,
+            "rmse": 0.04108848861461089
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": -0.004737000368376247,
-            "pearson_correlation": 0.9977739381737815,
-            "rmse": 0.08596423725049344
+            "mean_bias": -0.004709697422579232,
+            "pearson_correlation": 0.9977737766374747,
+            "rmse": 0.08597427055171857
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": 0.0,
-            "mean_bias": 0.0007386981798010223,
-            "pearson_correlation": 0.9864352881293363,
-            "rmse": 0.02657478722421721
+            "mean_bias": 0.0007476072195944813,
+            "pearson_correlation": 0.9864210568110433,
+            "rmse": 0.026584017167642533
           }
         ],
         "specific_force": [
           {
             "axis": "x",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.2541211519866943,
-            "pearson_correlation": 0.9706600059155318,
-            "rmse": 0.938567595037974
+            "mean_bias": -0.25417632339239365,
+            "pearson_correlation": 0.9702020106373137,
+            "rmse": 0.9451524085822941
           },
           {
             "axis": "y",
             "maximum_cross_correlation_time_shift_seconds": -0.10000000000000142,
-            "mean_bias": 0.10205845484147473,
-            "pearson_correlation": 0.9201138685888193,
-            "rmse": 0.16351066492985938
+            "mean_bias": 0.10329035713654139,
+            "pearson_correlation": 0.9228402641041182,
+            "rmse": 0.16268308604541634
           },
           {
             "axis": "z",
             "maximum_cross_correlation_time_shift_seconds": -0.05000000000000071,
-            "mean_bias": -0.004974076751290574,
-            "pearson_correlation": 0.9238828958150345,
-            "rmse": 0.33954427436732604
+            "mean_bias": -0.011417577159321901,
+            "pearson_correlation": 0.9262619580184663,
+            "rmse": 0.33691925909780573
           }
         ]
       }
@@ -502,6 +502,11 @@
     }
   ],
   "command_lag_search": {
+    "actuator_timing_policy": {
+      "gimbal_initial_state": "measured gimbal_position at the first SG sample",
+      "gimbal_strict_propagation": "rate-limited propagation split at every delayed recorded gimbal-command switch",
+      "rotor": "zero-time-constant thrust evaluated at each SG sample time using the delayed command"
+    },
     "delay_bounds_seconds": [
       0.0,
       0.2
@@ -514,124 +519,132 @@
       "gimbal": 0.004998683929443359,
       "rotor": 0.004997730255126953
     },
-    "schema": "grape-param-estim/minimal-deterministic-savgol-dynamics/v3/command-lag-search/v1",
+    "schema": "grape-param-estim/minimal-deterministic-savgol-dynamics/v4/command-lag-search/v2",
     "selected": {
-      "gimbal_delay_seconds": 0.040217049712,
-      "objective_cost": 1.4156311624620588,
-      "rotor_delay_seconds": 0.2
+      "gimbal_delay_seconds": 0.036393417803,
+      "objective_cost": 1.420628905726001,
+      "rotor_delay_seconds": 0.195002269745
+    },
+    "selected_boundary_proximity": {
+      "gimbal_distance_to_lower_seconds": 0.036393417803,
+      "gimbal_distance_to_upper_seconds": 0.16360658219700003,
+      "gimbal_within_one_publish_period_of_bound": false,
+      "rotor_distance_to_lower_seconds": 0.195002269745,
+      "rotor_distance_to_upper_seconds": 0.004997730254999999,
+      "rotor_within_one_publish_period_of_bound": true
     },
     "smooth_result": {
-      "gimbal_delay_seconds": 0.035218365783011206,
+      "gimbal_delay_seconds": 0.036393417803010114,
       "rotor_delay_seconds": 0.19999999999999998
     },
     "smooth_stages": [
       {
-        "data_loss": 1.077723716169492,
-        "gimbal_delay_seconds": 0.03550808897117884,
+        "data_loss": 1.0787395202359689,
+        "gimbal_delay_seconds": 0.03743453933210118,
         "gimbal_transition_half_width_seconds": 0.019994735717773438,
         "half_width_period_multiplier": 4.0,
-        "objective_cost": 1.4142938239872789,
+        "objective_cost": 1.4157009341610245,
         "optimizer": {
-          "cost": 1.4142938239872789,
+          "cost": 1.4157009341610245,
           "diagnostics": {
-            "coordinate_step_l2_norm": 0.2531566849684588,
-            "cost_reduction": 1.334499681662998,
+            "coordinate_step_l2_norm": 0.2542877854433261,
+            "cost_reduction": 1.3734430077490536,
             "final": {
               "command_lag_gradient": {
-                "gimbal": -2.634008490265405e-06,
-                "rotor": -0.3029846273480847
+                "gimbal": -8.005418672407671e-07,
+                "rotor": -0.447274034409095
               },
-              "cost": 1.4142938239872789,
-              "gradient_inf_norm": 0.3029846273480847,
-              "gradient_l2_norm": 0.30298462736101367,
+              "cost": 1.4157009341610245,
+              "gradient_inf_norm": 0.447274034409095,
+              "gradient_l2_norm": 0.4472740344099301,
               "jacobian": {
-                "condition_number_nonzero_subspace": 406.9809006829239,
+                "condition_number_nonzero_subspace": 405.6708160055853,
                 "numerical_rank": 16,
-                "numerical_tolerance": 9.540821874334441e-11,
+                "numerical_tolerance": 9.540677114985963e-11,
                 "singular_values": [
-                  119.2893998835671,
-                  118.14245719975484,
-                  102.63771578377457,
-                  48.605865423128684,
-                  44.725719161844076,
-                  25.86727641850853,
-                  17.21420051215568,
-                  12.988025643631804,
-                  11.720260977737889,
-                  11.326242344974604,
-                  11.046941963024778,
-                  9.878192696593276,
-                  7.946315734889539,
-                  3.7982316077364042,
-                  3.7927046188113107,
-                  0.2931081033124566
+                  119.28758994978624,
+                  118.13595605871357,
+                  102.6426766846101,
+                  48.60586298424032,
+                  44.7259564177875,
+                  25.867690936987252,
+                  17.18556441878419,
+                  12.988684440678936,
+                  11.720576597423966,
+                  11.325650635368834,
+                  11.047003814137087,
+                  9.878416768271203,
+                  7.957536260409152,
+                  3.7982356006558997,
+                  3.792761634896176,
+                  0.2940502132353141
                 ]
               },
-              "residual_l2_norm": 1.6818405536716488
+              "residual_l2_norm": 1.6826769946493145
             },
             "finite_difference_directional_checks": [
               {
-                "analytic_l2_norm": 7.9717198621302385,
-                "difference_l2_norm": 7.9717198621302385,
+                "analytic_l2_norm": 7.984924186477807,
+                "difference_l2_norm": 0.0007818443727450856,
                 "direction": "negative_gradient",
-                "finite_difference_l2_norm": 0.0,
-                "relative_error": 1.0,
-                "scheme": "forward",
-                "step": 1.387778780840665e-17
+                "finite_difference_l2_norm": 7.98492726697488,
+                "relative_error": 9.791502747667359e-05,
+                "scheme": "backward",
+                "step": 6.0554544523933395e-06
               },
               {
-                "analytic_l2_norm": 7.971731435020553,
-                "difference_l2_norm": 7.971731435020553,
+                "analytic_l2_norm": 7.984926576649946,
+                "difference_l2_norm": 0.000781844211689216,
                 "direction": "rotor_delay_seconds",
-                "finite_difference_l2_norm": 0.0,
-                "relative_error": 1.0,
-                "scheme": "forward",
-                "step": 1.3877787807814457e-17
+                "finite_difference_l2_norm": 7.984929656676238,
+                "relative_error": 9.791497800303255e-05,
+                "scheme": "backward",
+                "step": 6.0554544523933395e-06
               },
               {
-                "analytic_l2_norm": 17.20508236588638,
-                "difference_l2_norm": 6.97912807359031e-07,
+                "analytic_l2_norm": 17.17554030173863,
+                "difference_l2_norm": 7.092134352530405e-07,
                 "direction": "gimbal_delay_seconds",
-                "finite_difference_l2_norm": 17.2050822851243,
-                "relative_error": 4.056433979896705e-08,
+                "finite_difference_l2_norm": 17.175540220978167,
+                "relative_error": 4.129205968450663e-08,
                 "scheme": "central",
                 "step": 6.0554544523933395e-06
               }
             ],
-            "finite_difference_max_relative_error": 1.0,
+            "finite_difference_max_relative_error": 9.791502747667359e-05,
             "gradient_tolerance_satisfied": true,
             "initial": {
               "command_lag_gradient": {
-                "gimbal": -4.59379930060485,
-                "rotor": -7.145556795423709
+                "gimbal": -5.054919920449661,
+                "rotor": -7.234203547237788
               },
-              "cost": 2.748793505650277,
-              "gradient_inf_norm": 20.595518786097454,
-              "gradient_l2_norm": 34.6413224155606,
+              "cost": 2.789143941910078,
+              "gradient_inf_norm": 20.63507431908954,
+              "gradient_l2_norm": 34.71565307328781,
               "jacobian": {
-                "condition_number_nonzero_subspace": 542.946873336738,
+                "condition_number_nonzero_subspace": 542.956914006286,
                 "numerical_rank": 16,
-                "numerical_tolerance": 9.659315619992493e-11,
+                "numerical_tolerance": 9.659616370166188e-11,
                 "singular_values": [
-                  120.77093344489784,
-                  119.56904028417064,
-                  103.12709653348034,
-                  48.46271081473119,
-                  44.74871364762181,
-                  25.910701922536315,
-                  17.606049226061415,
-                  13.018350042248935,
-                  12.166174537606832,
-                  11.743860320148514,
-                  11.503620157136437,
-                  10.2787154291768,
-                  8.176581197066039,
-                  3.8081601154826537,
-                  3.7888031886189983,
-                  0.22243600502326713
+                  120.77469374020652,
+                  119.57017911811175,
+                  103.13285551733196,
+                  48.46314018579455,
+                  44.74903750648848,
+                  25.911239684031802,
+                  17.60312573183722,
+                  13.018851950517611,
+                  12.16700406203454,
+                  11.744184046661605,
+                  11.50432476113064,
+                  10.27913094393261,
+                  8.175176870262321,
+                  3.8082340041690315,
+                  3.7888026313269343,
+                  0.22243881719647512
                 ]
               },
-              "residual_l2_norm": 2.344693372554406
+              "residual_l2_norm": 2.3618399361134013
             },
             "tolerances": {
               "ftol": null,
@@ -642,137 +655,137 @@
           "message": "`gtol` termination condition is satisfied.",
           "nfev": 18,
           "njev": 18,
-          "optimality": 8.709094707626264e-07,
+          "optimality": 3.050475960719723e-07,
           "status": 1,
           "success": true
         },
         "physical_coordinate": [
-          0.00602161731191855,
-          0.0011160852340394171,
-          -0.0011015234716609378,
-          0.13843599413519833,
-          0.00036860738776863845,
-          -0.00018446170692532838,
-          -0.0005438395579665603,
-          -0.0003362614642010561,
-          0.000903598157002088,
-          0.0010183920310802537,
-          -0.03521131369129955,
-          -0.027193301314605303,
-          -0.042686777653416906,
-          -0.04609174782645086
+          0.0060208588338240485,
+          0.0011321452921958712,
+          -0.0011183445671003867,
+          0.1400358476941269,
+          0.00037585691803613495,
+          -0.0001789989198887147,
+          -0.0005055663282419226,
+          -0.00033456451686506304,
+          0.0009013109787925438,
+          0.0010224363392881376,
+          -0.035208377797253956,
+          -0.0272225938889369,
+          -0.04273634780251282,
+          -0.04610848718302838
         ],
-        "prior_cost": 0.336570107817787,
+        "prior_cost": 0.33696141392505546,
         "rotor_delay_seconds": 0.19999999999999998,
         "rotor_transition_half_width_seconds": 0.019990921020507812
       },
       {
-        "data_loss": 1.0790712161719802,
-        "gimbal_delay_seconds": 0.035373403956880135,
+        "data_loss": 1.0800379430215699,
+        "gimbal_delay_seconds": 0.037361478469877044,
         "gimbal_transition_half_width_seconds": 0.009997367858886719,
         "half_width_period_multiplier": 2.0,
-        "objective_cost": 1.4156207806636627,
+        "objective_cost": 1.41698239298579,
         "optimizer": {
-          "cost": 1.4156207806636627,
+          "cost": 1.41698239298579,
           "diagnostics": {
-            "coordinate_step_l2_norm": 0.00024773484205539665,
-            "cost_reduction": 2.2538425639151427e-06,
+            "coordinate_step_l2_norm": 0.00018195888361359364,
+            "cost_reduction": 6.678038348972848e-07,
             "final": {
               "command_lag_gradient": {
-                "gimbal": 3.819073831845543e-06,
-                "rotor": -0.30943002181043744
+                "gimbal": 5.818633143722662e-06,
+                "rotor": -0.40878921360262604
               },
-              "cost": 1.4156207806636627,
-              "gradient_inf_norm": 0.30943002181043744,
-              "gradient_l2_norm": 0.30943002183468593,
+              "cost": 1.41698239298579,
+              "gradient_inf_norm": 0.40878921360262604,
+              "gradient_l2_norm": 0.4087892136454123,
               "jacobian": {
-                "condition_number_nonzero_subspace": 406.8047186875547,
+                "condition_number_nonzero_subspace": 405.5290916360579,
                 "numerical_rank": 16,
-                "numerical_tolerance": 9.540699778132644e-11,
+                "numerical_tolerance": 9.540571721286296e-11,
                 "singular_values": [
-                  119.28787330830636,
-                  118.14016074159144,
-                  102.63867661997371,
-                  48.60573726056949,
-                  44.72579002678077,
-                  25.867377599173455,
-                  19.015513438451737,
-                  12.988136034088097,
-                  11.720408848625102,
-                  11.326310359906685,
-                  11.047230937415984,
-                  9.878422872665292,
-                  8.746297343211758,
-                  3.798235506537928,
-                  3.792713375702267,
-                  0.2932312921373095
+                  119.28627220679193,
+                  118.13394513228495,
+                  102.64349800173329,
+                  48.605750522357475,
+                  44.72602161276776,
+                  25.867784434707364,
+                  18.684019820501526,
+                  12.988774714083927,
+                  11.720826155224884,
+                  11.325831467066978,
+                  11.047277406975573,
+                  9.878592714621886,
+                  8.839135408330122,
+                  3.798240459700918,
+                  3.792769009104221,
+                  0.29414972850787585
                 ]
               },
-              "residual_l2_norm": 1.6826293594631365
+              "residual_l2_norm": 1.683438381994298
             },
             "finite_difference_directional_checks": [
               {
-                "analytic_l2_norm": 8.764019391342663,
-                "difference_l2_norm": 8.764019391342663,
+                "analytic_l2_norm": 8.858621093318575,
+                "difference_l2_norm": 0.003075567195603299,
                 "direction": "negative_gradient",
-                "finite_difference_l2_norm": 0.0,
-                "relative_error": 1.0,
-                "scheme": "forward",
-                "step": 1.387778780890199e-17
+                "finite_difference_l2_norm": 8.858666925424814,
+                "relative_error": 0.00034718171723741736,
+                "scheme": "backward",
+                "step": 6.0554544523933395e-06
               },
               {
-                "analytic_l2_norm": 8.764006959236921,
-                "difference_l2_norm": 8.764006959236921,
+                "analytic_l2_norm": 8.858606591037159,
+                "difference_l2_norm": 0.0030755671869557447,
                 "direction": "rotor_delay_seconds",
-                "finite_difference_l2_norm": 0.0,
-                "relative_error": 1.0,
-                "scheme": "forward",
-                "step": 1.3877787807814457e-17
+                "finite_difference_l2_norm": 8.858652421238515,
+                "relative_error": 0.00034718228469852915,
+                "scheme": "backward",
+                "step": 6.0554544523933395e-06
               },
               {
-                "analytic_l2_norm": 19.010281380757547,
-                "difference_l2_norm": 5.2255057429364035e-06,
+                "analytic_l2_norm": 18.677881152810823,
+                "difference_l2_norm": 5.279582558228024e-06,
                 "direction": "gimbal_delay_seconds",
-                "finite_difference_l2_norm": 19.010280624844683,
-                "relative_error": 2.748778746760544e-07,
+                "finite_difference_l2_norm": 18.677880511656927,
+                "relative_error": 2.826649615678437e-07,
                 "scheme": "central",
                 "step": 6.0554544523933395e-06
               }
             ],
-            "finite_difference_max_relative_error": 1.0,
+            "finite_difference_max_relative_error": 0.00034718228469852915,
             "gradient_tolerance_satisfied": true,
             "initial": {
               "command_lag_gradient": {
-                "gimbal": 0.03325740308967262,
-                "rotor": -0.31066504832963454
+                "gimbal": 0.018421318812899184,
+                "rotor": -0.409487943113436
               },
-              "cost": 1.4156230345062266,
-              "gradient_inf_norm": 0.31066504832963454,
-              "gradient_l2_norm": 0.3127982198676272,
+              "cost": 1.416983060789625,
+              "gradient_inf_norm": 0.409487943113436,
+              "gradient_l2_norm": 0.4100502878973583,
               "jacobian": {
-                "condition_number_nonzero_subspace": 406.97333317294607,
+                "condition_number_nonzero_subspace": 405.6633047140019,
                 "numerical_rank": 16,
-                "numerical_tolerance": 9.540695894323894e-11,
+                "numerical_tolerance": 9.540566796241427e-11,
                 "singular_values": [
-                  119.28782474884039,
-                  118.14041708176018,
-                  102.6386747528952,
-                  48.60578749565683,
-                  44.72577108846638,
-                  25.867378909694583,
-                  19.00256099894608,
-                  12.988117494834457,
-                  11.720372688074695,
-                  11.326298024459591,
-                  11.047207425223665,
-                  9.878397397259075,
-                  8.746410834493139,
-                  3.7982436605810683,
-                  3.7927046935681434,
-                  0.2931096831795321
+                  119.28621062869577,
+                  118.13413007733918,
+                  102.64351622028822,
+                  48.6057923573736,
+                  44.725999168807014,
+                  25.867780675927534,
+                  18.698225434768794,
+                  12.98875569368847,
+                  11.720799967722975,
+                  11.32582153214514,
+                  11.047259141438868,
+                  9.878572878303478,
+                  8.839208404989934,
+                  3.79824736750409,
+                  3.7927611139457857,
+                  0.29405225772834975
                 ]
               },
-              "residual_l2_norm": 1.6826306989391502
+              "residual_l2_norm": 1.6834387786846452
             },
             "tolerances": {
               "ftol": null,
@@ -781,280 +794,139 @@
             }
           },
           "message": "`gtol` termination condition is satisfied.",
-          "nfev": 9,
-          "njev": 9,
-          "optimality": 5.948742760608638e-07,
+          "nfev": 8,
+          "njev": 8,
+          "optimality": 9.861002983058142e-07,
           "status": 1,
           "success": true
         },
         "physical_coordinate": [
-          0.0060203595052807386,
-          0.0011185203683680848,
-          -0.0011034308346789296,
-          0.13864354042033514,
-          0.00036994586863312365,
-          -0.00018601163847867418,
-          -0.0005378665992344733,
-          -0.0003362135373864548,
-          0.0009037410120008954,
-          0.0010197157976703688,
-          -0.03520879084021438,
-          -0.027183890422624986,
-          -0.04268969355045217,
-          -0.04609084716630176
+          0.006019792272104733,
+          0.0011343325912961865,
+          -0.0011199687028307494,
+          0.1402016522170052,
+          0.00037655347134695253,
+          -0.0001815502169618278,
+          -0.0004924927193758667,
+          -0.00033471582961710865,
+          0.0009012927657428639,
+          0.001023248541411103,
+          -0.03520797083865838,
+          -0.027213091823438104,
+          -0.04273721261537734,
+          -0.046109770563334485
         ],
-        "prior_cost": 0.33654956449168233,
+        "prior_cost": 0.3369444499642201,
         "rotor_delay_seconds": 0.19999999999999998,
         "rotor_transition_half_width_seconds": 0.009995460510253906
       },
       {
-        "data_loss": 1.0793345902684697,
-        "gimbal_delay_seconds": 0.03547603148161384,
+        "data_loss": 1.0819109821724184,
+        "gimbal_delay_seconds": 0.03707890036661619,
         "gimbal_transition_half_width_seconds": 0.004998683929443359,
         "half_width_period_multiplier": 1.0,
-        "objective_cost": 1.4158622894670698,
+        "objective_cost": 1.4189650087705217,
         "optimizer": {
-          "cost": 1.4158622894670698,
+          "cost": 1.4189650087705217,
           "diagnostics": {
-            "coordinate_step_l2_norm": 0.0002661701705005148,
-            "cost_reduction": 1.3691791134196052e-06,
+            "coordinate_step_l2_norm": 0.00035031747353257757,
+            "cost_reduction": 2.732954889039796e-05,
             "final": {
               "command_lag_gradient": {
-                "gimbal": -5.844775814070613e-06,
-                "rotor": -0.13975287011138368
+                "gimbal": 0.02286610321069174,
+                "rotor": -0.5404711913391944
               },
-              "cost": 1.4158622894670698,
-              "gradient_inf_norm": 0.13975287011138368,
-              "gradient_l2_norm": 0.13975287023394323,
+              "cost": 1.4189650087705217,
+              "gradient_inf_norm": 0.5404711913391944,
+              "gradient_l2_norm": 0.5409549274177347,
               "jacobian": {
-                "condition_number_nonzero_subspace": 406.9970825825061,
+                "condition_number_nonzero_subspace": 405.3649391686234,
                 "numerical_rank": 16,
-                "numerical_tolerance": 9.540711745530559e-11,
+                "numerical_tolerance": 9.540624790781125e-11,
                 "singular_values": [
-                  119.28802293731465,
-                  118.14049242287979,
-                  102.6387464088613,
-                  48.605765614889236,
-                  44.72574167682953,
-                  26.44161021684967,
-                  25.866178952397746,
-                  12.988036695089509,
-                  11.721989192636766,
-                  11.332000271155248,
-                  11.0553590534526,
-                  10.880240800092778,
-                  9.878448393544458,
-                  3.7982336505073455,
-                  3.792703886588725,
-                  0.2930930663689283
+                  119.28693573748915,
+                  118.13483449129589,
+                  102.64204448096187,
+                  48.60578910293252,
+                  44.7260860845303,
+                  26.163375695890107,
+                  25.864659541482272,
+                  12.988873391747486,
+                  11.72211220413046,
+                  11.32649016943507,
+                  11.059471161006355,
+                  10.69471622196398,
+                  9.878454804986253,
+                  3.7982411545287196,
+                  3.792776560749111,
+                  0.29427048126593963
                 ]
               },
-              "residual_l2_norm": 1.6827728839430887
+              "residual_l2_norm": 1.6846156883814907
             },
             "finite_difference_directional_checks": [
               {
-                "analytic_l2_norm": 10.909099655638693,
-                "difference_l2_norm": 10.909099655638693,
+                "analytic_l2_norm": 10.819479721997611,
+                "difference_l2_norm": 0.010069750783404932,
                 "direction": "negative_gradient",
-                "finite_difference_l2_norm": 0.0,
-                "relative_error": 1.0,
-                "scheme": "forward",
-                "step": 1.3877787819984907e-17
+                "finite_difference_l2_norm": 10.820030460680568,
+                "relative_error": 0.0009306582657043237,
+                "scheme": "backward",
+                "step": 6.0554544523933395e-06
               },
               {
-                "analytic_l2_norm": 10.909140071717017,
-                "difference_l2_norm": 10.909140071717017,
+                "analytic_l2_norm": 10.725587354933714,
+                "difference_l2_norm": 0.010086880403996345,
                 "direction": "rotor_delay_seconds",
-                "finite_difference_l2_norm": 0.0,
-                "relative_error": 1.0,
-                "scheme": "forward",
-                "step": 1.3877787807814457e-17
+                "finite_difference_l2_norm": 10.726167695173112,
+                "relative_error": 0.0009403992824516017,
+                "scheme": "backward",
+                "step": 6.0554544523933395e-06
               },
               {
-                "analytic_l2_norm": 26.437388537955943,
-                "difference_l2_norm": 2.6615628304924346e-05,
+                "analytic_l2_norm": 26.156050842934444,
+                "difference_l2_norm": 2.146332389323925,
                 "direction": "gimbal_delay_seconds",
-                "finite_difference_l2_norm": 26.437369126555442,
-                "relative_error": 1.0067419581443344e-06,
+                "finite_difference_l2_norm": 25.91820652599986,
+                "relative_error": 0.08205873288030083,
                 "scheme": "central",
                 "step": 6.0554544523933395e-06
               }
             ],
-            "finite_difference_max_relative_error": 1.0,
-            "gradient_tolerance_satisfied": true,
-            "initial": {
-              "command_lag_gradient": {
-                "gimbal": -0.02217439354543127,
-                "rotor": -0.1384573318790471
-              },
-              "cost": 1.4158636586461832,
-              "gradient_inf_norm": 0.1384573318790471,
-              "gradient_l2_norm": 0.1458497458671463,
-              "jacobian": {
-                "condition_number_nonzero_subspace": 406.7988551351188,
-                "numerical_rank": 16,
-                "numerical_tolerance": 9.540710118631813e-11,
-                "singular_values": [
-                  119.2880025961137,
-                  118.14016077823423,
-                  102.6387056499632,
-                  48.60574400738908,
-                  44.72572550105386,
-                  26.711571590643608,
-                  25.86649095961832,
-                  12.988050548389598,
-                  11.721978702014598,
-                  11.331965783881957,
-                  11.055291231309706,
-                  10.879672779980178,
-                  9.87844427370327,
-                  3.798223790731647,
-                  3.792711125605287,
-                  0.2932358365573375
-                ]
-              },
-              "residual_l2_norm": 1.6827736975875176
-            },
-            "tolerances": {
-              "ftol": null,
-              "gtol": 1e-06,
-              "xtol": null
-            }
-          },
-          "message": "`gtol` termination condition is satisfied.",
-          "nfev": 19,
-          "njev": 19,
-          "optimality": 9.616057120311784e-07,
-          "status": 1,
-          "success": true
-        },
-        "physical_coordinate": [
-          0.00602081649424139,
-          0.0011164784510711674,
-          -0.0011011532501665792,
-          0.13839989168613584,
-          0.0003685898504514049,
-          -0.00018945441095609064,
-          -0.0005161195195340074,
-          -0.0003376880733614784,
-          0.0009038825061078466,
-          0.0010167856285361215,
-          -0.03521505760345908,
-          -0.027171504765647312,
-          -0.04267988312158085,
-          -0.04610323873810791
-        ],
-        "prior_cost": 0.3365276991986002,
-        "rotor_delay_seconds": 0.19999999999999998,
-        "rotor_transition_half_width_seconds": 0.004997730255126953
-      },
-      {
-        "data_loss": 1.0793560114289777,
-        "gimbal_delay_seconds": 0.035218365783011206,
-        "gimbal_transition_half_width_seconds": 0.0024993419647216797,
-        "half_width_period_multiplier": 0.5,
-        "objective_cost": 1.4158436637643956,
-        "optimizer": {
-          "cost": 1.4158436637643956,
-          "diagnostics": {
-            "coordinate_step_l2_norm": 0.0005054329334582037,
-            "cost_reduction": 1.4028582621783414e-05,
-            "final": {
-              "command_lag_gradient": {
-                "gimbal": -0.015443049343798407,
-                "rotor": -0.06101303447052212
-              },
-              "cost": 1.4158436637643956,
-              "gradient_inf_norm": 0.06101303447052212,
-              "gradient_l2_norm": 0.06293723963752082,
-              "jacobian": {
-                "condition_number_nonzero_subspace": 407.3482276238235,
-                "numerical_rank": 16,
-                "numerical_tolerance": 9.540732170262967e-11,
-                "singular_values": [
-                  119.28827830882288,
-                  118.14093825285235,
-                  102.639107975748,
-                  48.605824013125314,
-                  44.72567349876535,
-                  38.59874824139103,
-                  25.86692112824664,
-                  14.664424526632382,
-                  12.98775838440857,
-                  11.71932087167902,
-                  11.325359949279308,
-                  11.04544466516263,
-                  9.878453317532466,
-                  3.798228249258255,
-                  3.7926875673658516,
-                  0.2928410392372759
-                ]
-              },
-              "residual_l2_norm": 1.6827618154476858
-            },
-            "finite_difference_directional_checks": [
-              {
-                "analytic_l2_norm": 16.77401079875116,
-                "difference_l2_norm": 16.77401079875116,
-                "direction": "negative_gradient",
-                "finite_difference_l2_norm": 0.0,
-                "relative_error": 1.0,
-                "scheme": "forward",
-                "step": 1.43154600402816e-17
-              },
-              {
-                "analytic_l2_norm": 14.678103118837408,
-                "difference_l2_norm": 14.678103118837408,
-                "direction": "rotor_delay_seconds",
-                "finite_difference_l2_norm": 0.0,
-                "relative_error": 1.0,
-                "scheme": "forward",
-                "step": 1.3877787807814457e-17
-              },
-              {
-                "analytic_l2_norm": 38.59360103505382,
-                "difference_l2_norm": 1.1199114519178093,
-                "direction": "gimbal_delay_seconds",
-                "finite_difference_l2_norm": 38.609740170494916,
-                "relative_error": 0.02900593080845521,
-                "scheme": "central",
-                "step": 6.0554544523933395e-06
-              }
-            ],
-            "finite_difference_max_relative_error": 1.0,
+            "finite_difference_max_relative_error": 0.08205873288030083,
             "gradient_tolerance_satisfied": false,
             "initial": {
               "command_lag_gradient": {
-                "gimbal": 0.1010963186065261,
-                "rotor": -0.06669896039212632
+                "gimbal": 0.14717305817335108,
+                "rotor": -0.5441250276361277
               },
-              "cost": 1.4158576923470174,
-              "gradient_inf_norm": 0.1010963186065261,
-              "gradient_l2_norm": 0.1314207130484285,
+              "cost": 1.418992338319412,
+              "gradient_inf_norm": 0.5441250276361277,
+              "gradient_l2_norm": 0.5643777195473583,
               "jacobian": {
-                "condition_number_nonzero_subspace": 406.9947479496505,
+                "condition_number_nonzero_subspace": 405.53063241565854,
                 "numerical_rank": 16,
-                "numerical_tolerance": 9.540725549560619e-11,
+                "numerical_tolerance": 9.540635683522192e-11,
                 "singular_values": [
-                  119.2881955298317,
-                  118.14033250542711,
-                  102.63896311046722,
-                  48.605786824685204,
-                  44.725673811350106,
-                  37.54999225344502,
-                  25.866924906123224,
-                  14.669784358004026,
-                  12.987823843005602,
-                  11.719278922193457,
-                  11.325292839403518,
-                  11.045423307555904,
-                  9.878410040466239,
-                  3.7982137434699754,
-                  3.7927016468426746,
-                  0.29309517169638977
+                  119.2870719300061,
+                  118.13513612792731,
+                  102.64221351023753,
+                  48.605776638727704,
+                  44.72610279979547,
+                  25.87096555655348,
+                  25.485445872028087,
+                  12.988864310916036,
+                  11.722229563527996,
+                  11.3264783675596,
+                  11.05958944272247,
+                  10.695535776432619,
+                  9.87856191101947,
+                  3.7982544094523023,
+                  3.792765556368745,
+                  0.2941505829521157
                 ]
               },
-              "residual_l2_norm": 1.6827701520689136
+              "residual_l2_norm": 1.6846319113203407
             },
             "tolerances": {
               "ftol": null,
@@ -1064,33 +936,175 @@
           },
           "message": "The maximum number of function evaluations is exceeded.",
           "nfev": 60,
-          "njev": 21,
-          "optimality": 0.0025447309081646978,
+          "njev": 19,
+          "optimality": 0.0008478499627220015,
           "status": 0,
           "success": false
         },
         "physical_coordinate": [
-          0.006021538286870633,
-          0.0011124664139956515,
-          -0.001096949674079805,
-          0.13796622767892416,
-          0.00036726382676974636,
-          -0.00019285423099810054,
-          -0.0005016783507264693,
-          -0.00033932858967670185,
-          0.0009043617802655592,
-          0.0010139674044471745,
-          -0.03521738175437526,
-          -0.027154468354543406,
-          -0.04266677696441108,
-          -0.046119729316211076
+          0.006020361978596089,
+          0.0011367017396576673,
+          -0.0011222329684935537,
+          0.14040546871157372,
+          0.0003699947165478821,
+          -0.00018528134783197658,
+          -0.0004660262043619853,
+          -0.00033334118711098314,
+          0.0009009018516988197,
+          0.0010225788467748639,
+          -0.035202949898654676,
+          -0.027226056313035124,
+          -0.042755852311189856,
+          -0.046114139542427296
         ],
-        "prior_cost": 0.33648765233541855,
+        "prior_cost": 0.3370540265981036,
+        "rotor_delay_seconds": 0.19999999999999998,
+        "rotor_transition_half_width_seconds": 0.004997730255126953
+      },
+      {
+        "data_loss": 1.083668118573465,
+        "gimbal_delay_seconds": 0.036393417803010114,
+        "gimbal_transition_half_width_seconds": 0.0024993419647216797,
+        "half_width_period_multiplier": 0.5,
+        "objective_cost": 1.4208121704446108,
+        "optimizer": {
+          "cost": 1.4208121704446108,
+          "diagnostics": {
+            "coordinate_step_l2_norm": 0.0006890347944330011,
+            "cost_reduction": 0.0002310829116654034,
+            "final": {
+              "command_lag_gradient": {
+                "gimbal": 0.017787688546570757,
+                "rotor": -0.873909674972295
+              },
+              "cost": 1.4208121704446108,
+              "gradient_inf_norm": 0.873909674972295,
+              "gradient_l2_norm": 0.8740907175894115,
+              "jacobian": {
+                "condition_number_nonzero_subspace": 405.31496632017456,
+                "numerical_rank": 16,
+                "numerical_tolerance": 9.540671973855511e-11,
+                "singular_values": [
+                  119.28752566996062,
+                  118.13608590361598,
+                  102.640639368148,
+                  48.605809870344416,
+                  44.72618027698391,
+                  38.71809697219062,
+                  25.868002058152115,
+                  13.33123469735318,
+                  12.988596590381398,
+                  11.717563887464431,
+                  11.32424849856933,
+                  11.042320939560936,
+                  9.878473488024074,
+                  3.798242522258875,
+                  3.792780718231806,
+                  0.2943082185021774
+                ]
+              },
+              "residual_l2_norm": 1.6857118202377361
+            },
+            "finite_difference_directional_checks": [
+              {
+                "analytic_l2_norm": 13.370612092602888,
+                "difference_l2_norm": 0.03143145820038082,
+                "direction": "negative_gradient",
+                "finite_difference_l2_norm": 13.373422078582804,
+                "relative_error": 0.0023502928431996103,
+                "scheme": "backward",
+                "step": 6.0554544523933395e-06
+              },
+              {
+                "analytic_l2_norm": 13.33255468923799,
+                "difference_l2_norm": 0.03144432531535249,
+                "direction": "rotor_delay_seconds",
+                "finite_difference_l2_norm": 13.335354326615752,
+                "relative_error": 0.002357966990992765,
+                "scheme": "backward",
+                "step": 6.0554544523933395e-06
+              },
+              {
+                "analytic_l2_norm": 38.71731300031717,
+                "difference_l2_norm": 2.1104336667251045,
+                "direction": "gimbal_delay_seconds",
+                "finite_difference_l2_norm": 38.56694343557728,
+                "relative_error": 0.05450878439595785,
+                "scheme": "central",
+                "step": 6.0554544523933395e-06
+              }
+            ],
+            "finite_difference_max_relative_error": 0.05450878439595785,
+            "gradient_tolerance_satisfied": false,
+            "initial": {
+              "command_lag_gradient": {
+                "gimbal": 0.09978731508298741,
+                "rotor": -0.8861531692568192
+              },
+              "cost": 1.4210432533562762,
+              "gradient_inf_norm": 0.8861531692568192,
+              "gradient_l2_norm": 0.8925393889656058,
+              "jacobian": {
+                "condition_number_nonzero_subspace": 405.3659966105262,
+                "numerical_rank": 16,
+                "numerical_tolerance": 9.540654251429532e-11,
+                "singular_values": [
+                  119.28730408553243,
+                  118.13576279988158,
+                  102.64084345392071,
+                  48.60579823357485,
+                  44.72620567055509,
+                  36.367531975192286,
+                  25.868062597483153,
+                  13.33039004750183,
+                  12.988674929133216,
+                  11.71760674891118,
+                  11.324408524256325,
+                  11.042360873997318,
+                  9.878600469956668,
+                  3.7982597664192728,
+                  3.792775770363786,
+                  0.2942706223091107
+                ]
+              },
+              "residual_l2_norm": 1.6858488979480197
+            },
+            "tolerances": {
+              "ftol": null,
+              "gtol": 1e-06,
+              "xtol": null
+            }
+          },
+          "message": "The maximum number of function evaluations is exceeded.",
+          "nfev": 60,
+          "njev": 27,
+          "optimality": 0.0006473547810251673,
+          "status": 0,
+          "success": false
+        },
+        "physical_coordinate": [
+          0.006020907672776904,
+          0.0011377093010587844,
+          -0.0011230156872175368,
+          0.14047041390147827,
+          0.000364418491309421,
+          -0.00018730389646950626,
+          -0.0004541169761896993,
+          -0.00033193398423241895,
+          0.000900424153231445,
+          0.0010234772434127572,
+          -0.035194356178132345,
+          -0.02723442470991852,
+          -0.04277394735847134,
+          -0.04611752429576245
+        ],
+        "prior_cost": 0.3371440518711457,
         "rotor_delay_seconds": 0.19999999999999998,
         "rotor_transition_half_width_seconds": 0.0024988651275634766
       }
     ],
     "smooth_surrogate": {
+      "gimbal_integration": "two midpoint substeps per SG interval",
       "half_width_period_multipliers": [
         4.0,
         2.0,
@@ -1101,38 +1115,56 @@
     },
     "strict_candidates": [
       {
-        "cost": 1.4235271342918858,
-        "gimbal_delay_seconds": 0.035218365783,
+        "cost": 1.4293880732834108,
+        "gimbal_delay_seconds": 0.031394733874,
+        "rotor_delay_seconds": 0.19000453949,
+        "selected": false
+      },
+      {
+        "cost": 1.4270500294011566,
+        "gimbal_delay_seconds": 0.036393417803,
+        "rotor_delay_seconds": 0.19000453949,
+        "selected": false
+      },
+      {
+        "cost": 1.4286410714150612,
+        "gimbal_delay_seconds": 0.041392101732,
+        "rotor_delay_seconds": 0.19000453949,
+        "selected": false
+      },
+      {
+        "cost": 1.423176153930454,
+        "gimbal_delay_seconds": 0.031394733874,
         "rotor_delay_seconds": 0.195002269745,
         "selected": false
       },
       {
-        "cost": 1.4223968643482479,
-        "gimbal_delay_seconds": 0.040217049712,
+        "cost": 1.420628905726001,
+        "gimbal_delay_seconds": 0.036393417803,
         "rotor_delay_seconds": 0.195002269745,
-        "selected": false
-      },
-      {
-        "cost": 1.4375678382048327,
-        "gimbal_delay_seconds": 0.045215733641,
-        "rotor_delay_seconds": 0.195002269745,
-        "selected": false
-      },
-      {
-        "cost": 1.416787873750051,
-        "gimbal_delay_seconds": 0.035218365783,
-        "rotor_delay_seconds": 0.2,
-        "selected": false
-      },
-      {
-        "cost": 1.4156311624620588,
-        "gimbal_delay_seconds": 0.040217049712,
-        "rotor_delay_seconds": 0.2,
         "selected": true
       },
       {
-        "cost": 1.4302503852380697,
-        "gimbal_delay_seconds": 0.045215733641,
+        "cost": 1.4217659992006666,
+        "gimbal_delay_seconds": 0.041392101732,
+        "rotor_delay_seconds": 0.195002269745,
+        "selected": false
+      },
+      {
+        "cost": 1.4246614684939163,
+        "gimbal_delay_seconds": 0.031394733874,
+        "rotor_delay_seconds": 0.2,
+        "selected": false
+      },
+      {
+        "cost": 1.4220338228331242,
+        "gimbal_delay_seconds": 0.036393417803,
+        "rotor_delay_seconds": 0.2,
+        "selected": false
+      },
+      {
+        "cost": 1.4228861481814292,
+        "gimbal_delay_seconds": 0.041392101732,
         "rotor_delay_seconds": 0.2,
         "selected": false
       }
@@ -1142,137 +1174,156 @@
         "gimbal": 0.004998683929443359,
         "rotor": 0.004997730255126953
       },
+      "maximum_iterations": 32,
       "profile_iterations": [
         {
           "iteration": 1,
           "post_refinement_screening": {
-            "best_cost": 1.4156311624620588,
+            "best_cost": 1.420628905726001,
             "best_pair": [
-              0.2,
-              0.040217049712
+              0.195002269745,
+              0.036393417803
             ],
             "candidates": [
               {
-                "cost": 1.4235271342918858,
-                "gimbal_delay_seconds": 0.035218365783,
+                "cost": 1.4293880732834108,
+                "gimbal_delay_seconds": 0.031394733874,
+                "rotor_delay_seconds": 0.19000453949,
+                "selected": false
+              },
+              {
+                "cost": 1.4270500294011566,
+                "gimbal_delay_seconds": 0.036393417803,
+                "rotor_delay_seconds": 0.19000453949,
+                "selected": false
+              },
+              {
+                "cost": 1.4286410714150612,
+                "gimbal_delay_seconds": 0.041392101732,
+                "rotor_delay_seconds": 0.19000453949,
+                "selected": false
+              },
+              {
+                "cost": 1.423176153930454,
+                "gimbal_delay_seconds": 0.031394733874,
                 "rotor_delay_seconds": 0.195002269745,
                 "selected": false
               },
               {
-                "cost": 1.4223968643482479,
-                "gimbal_delay_seconds": 0.040217049712,
+                "cost": 1.420628905726001,
+                "gimbal_delay_seconds": 0.036393417803,
                 "rotor_delay_seconds": 0.195002269745,
-                "selected": false
-              },
-              {
-                "cost": 1.4375678382048327,
-                "gimbal_delay_seconds": 0.045215733641,
-                "rotor_delay_seconds": 0.195002269745,
-                "selected": false
-              },
-              {
-                "cost": 1.416787873750051,
-                "gimbal_delay_seconds": 0.035218365783,
-                "rotor_delay_seconds": 0.2,
-                "selected": false
-              },
-              {
-                "cost": 1.4156311624620588,
-                "gimbal_delay_seconds": 0.040217049712,
-                "rotor_delay_seconds": 0.2,
                 "selected": true
               },
               {
-                "cost": 1.4302503852380697,
-                "gimbal_delay_seconds": 0.045215733641,
+                "cost": 1.4217659992006666,
+                "gimbal_delay_seconds": 0.041392101732,
+                "rotor_delay_seconds": 0.195002269745,
+                "selected": false
+              },
+              {
+                "cost": 1.4246614684939163,
+                "gimbal_delay_seconds": 0.031394733874,
+                "rotor_delay_seconds": 0.2,
+                "selected": false
+              },
+              {
+                "cost": 1.4220338228331242,
+                "gimbal_delay_seconds": 0.036393417803,
+                "rotor_delay_seconds": 0.2,
+                "selected": false
+              },
+              {
+                "cost": 1.4228861481814292,
+                "gimbal_delay_seconds": 0.041392101732,
                 "rotor_delay_seconds": 0.2,
                 "selected": false
               }
             ],
             "expansions": [],
             "gimbal_range_seconds": [
-              0.035218365783,
-              0.045215733641
+              0.031394733874,
+              0.041392101732
             ],
             "rotor_range_seconds": [
-              0.195002269745,
+              0.19000453949,
               0.2
             ]
           },
           "refined_solution": {
-            "gimbal_delay_seconds": 0.040217049712,
-            "objective_cost": 1.4156311624620588,
+            "gimbal_delay_seconds": 0.036393417803,
+            "objective_cost": 1.420628905726001,
             "optimizer": {
-              "cost": 1.4156311624620588,
+              "cost": 1.420628905726001,
               "diagnostics": {
-                "coordinate_step_l2_norm": 0.0005127896673439322,
-                "cost_reduction": 3.452344070620228e-07,
+                "coordinate_step_l2_norm": 0.00028345052051270204,
+                "cost_reduction": 5.255704564888219e-07,
                 "final": {
-                  "cost": 1.4156311624620588,
-                  "gradient_inf_norm": 1.8594785267112002e-08,
-                  "gradient_l2_norm": 3.011991092196547e-08,
+                  "cost": 1.420628905726001,
+                  "gradient_inf_norm": 1.412937660205671e-07,
+                  "gradient_l2_norm": 2.0921343218342325e-07,
                   "jacobian": {
-                    "condition_number_nonzero_subspace": 406.9245366549322,
+                    "condition_number_nonzero_subspace": 405.0893028901442,
                     "numerical_rank": 14,
-                    "numerical_tolerance": 9.540621366493406e-11,
+                    "numerical_tolerance": 9.540695944606147e-11,
                     "singular_values": [
-                      119.28689292343891,
-                      118.13837775114501,
-                      102.64030055744644,
-                      48.60572321038924,
-                      44.72568727550868,
-                      25.867075635050803,
-                      12.988033801746914,
-                      11.719751814942125,
-                      11.325338914731379,
-                      11.04581132508363,
-                      9.87842978820393,
-                      3.7982364108291167,
-                      3.7927000517437874,
-                      0.29314254162214104
+                      119.28782537752205,
+                      118.13186225386,
+                      102.648330362545,
+                      48.60621398727305,
+                      44.725990220826276,
+                      25.867545293755164,
+                      12.988875396783898,
+                      11.720279331439366,
+                      11.32446007017322,
+                      11.045614258443992,
+                      9.87871202958631,
+                      3.7982219245629794,
+                      3.79278574738097,
+                      0.29447290887824706
                     ]
                   },
-                  "residual_l2_norm": 1.6826355294371143
+                  "residual_l2_norm": 1.685603100214283
                 },
                 "finite_difference_directional_checks": [
                   {
-                    "analytic_l2_norm": 98.8487221224677,
-                    "difference_l2_norm": 7.813925866911972e-10,
+                    "analytic_l2_norm": 87.31736356979816,
+                    "difference_l2_norm": 6.403257671567297e-10,
                     "direction": "negative_gradient",
-                    "finite_difference_l2_norm": 98.84872212263856,
-                    "relative_error": 7.904933618886317e-12,
+                    "finite_difference_l2_norm": 87.31736356965725,
+                    "relative_error": 7.33331540232405e-12,
                     "scheme": "central",
                     "step": 6.0554544523933395e-06
                   }
                 ],
-                "finite_difference_max_relative_error": 7.904933618886317e-12,
+                "finite_difference_max_relative_error": 7.33331540232405e-12,
                 "gradient_tolerance_satisfied": true,
                 "initial": {
-                  "cost": 1.4156315076964658,
-                  "gradient_inf_norm": 0.05221419046103826,
-                  "gradient_l2_norm": 0.06510024523463871,
+                  "cost": 1.4206294312964576,
+                  "gradient_inf_norm": 0.0377105352581939,
+                  "gradient_l2_norm": 0.05415474848763546,
                   "jacobian": {
-                    "condition_number_nonzero_subspace": 407.3398381326683,
+                    "condition_number_nonzero_subspace": 405.3061925815292,
                     "numerical_rank": 14,
-                    "numerical_tolerance": 9.540614684264724e-11,
+                    "numerical_tolerance": 9.540767286417267e-11,
                     "singular_values": [
-                      119.28680937518072,
-                      118.13898883626935,
-                      102.64038502137774,
-                      48.60576762874349,
-                      44.725731233208535,
-                      25.867104260760534,
-                      12.987971803006689,
-                      11.719762536981703,
-                      11.325383250703641,
-                      11.045781651493806,
-                      9.878416397906813,
-                      3.7982524361265533,
-                      3.7926876963020293,
-                      0.29284346437121545
+                      119.28871736795509,
+                      118.13316616931783,
+                      102.64851500440028,
+                      48.60611998465352,
+                      44.72601485169613,
+                      25.867565316880995,
+                      12.98883716392602,
+                      11.72055696278085,
+                      11.324756502423742,
+                      11.045939607104708,
+                      9.878998819233527,
+                      3.7982312942476866,
+                      3.7927787000184057,
+                      0.2943175296882729
                     ]
                   },
-                  "residual_l2_norm": 1.682635734611901
+                  "residual_l2_norm": 1.685603412013904
                 },
                 "tolerances": {
                   "ftol": null,
@@ -1283,80 +1334,86 @@
               "message": "`gtol` termination condition is satisfied.",
               "nfev": 4,
               "njev": 4,
-              "optimality": 1.8594785267112002e-08,
+              "optimality": 1.412937660205671e-07,
               "status": 1,
               "success": true
             },
             "physical_coordinate": [
-              0.006020476991308754,
-              0.0011166320626150089,
-              -0.0011022817883084362,
-              0.13847659252618036,
-              0.00037736955209415686,
-              -0.0001868807204815555,
-              -0.0004913280070917831,
-              -0.00034239262588623434,
-              0.000904375710245183,
-              0.001010957068403868,
-              -0.03525298890176549,
-              -0.027156542149058584,
-              -0.042640208295807065,
-              -0.04610585117800514
+              0.006024750826793923,
+              0.001140794232113969,
+              -0.0011267522008777118,
+              0.14073431054674934,
+              0.00037672269301708633,
+              -0.00018544234393952195,
+              -0.0003799368356782384,
+              -0.00033392025408218354,
+              0.0008988421247771825,
+              0.0010198932984792726,
+              -0.03521502394104902,
+              -0.027234000475304602,
+              -0.042805722605953556,
+              -0.046177111731756024
             ],
-            "rotor_delay_seconds": 0.2
+            "rotor_delay_seconds": 0.195002269745
           },
           "screening": {
-            "best_cost": 1.4156315076964658,
+            "best_cost": 1.4206294312964576,
             "best_pair": [
-              0.2,
-              0.040217049712
+              0.195002269745,
+              0.036393417803
             ],
             "candidates": [
               {
-                "cost": 1.4235079035089775,
-                "gimbal_delay_seconds": 0.030219681854,
+                "cost": 1.4293880065594629,
+                "gimbal_delay_seconds": 0.031394733874,
+                "rotor_delay_seconds": 0.19000453949,
+                "selected": false
+              },
+              {
+                "cost": 1.4270507257970892,
+                "gimbal_delay_seconds": 0.036393417803,
+                "rotor_delay_seconds": 0.19000453949,
+                "selected": false
+              },
+              {
+                "cost": 1.4286422121099773,
+                "gimbal_delay_seconds": 0.041392101732,
+                "rotor_delay_seconds": 0.19000453949,
+                "selected": false
+              },
+              {
+                "cost": 1.4231759702870093,
+                "gimbal_delay_seconds": 0.031394733874,
                 "rotor_delay_seconds": 0.195002269745,
                 "selected": false
               },
               {
-                "cost": 1.4235259769531399,
-                "gimbal_delay_seconds": 0.035218365783,
+                "cost": 1.4206294312964576,
+                "gimbal_delay_seconds": 0.036393417803,
                 "rotor_delay_seconds": 0.195002269745,
-                "selected": false
-              },
-              {
-                "cost": 1.422396541915867,
-                "gimbal_delay_seconds": 0.040217049712,
-                "rotor_delay_seconds": 0.195002269745,
-                "selected": false
-              },
-              {
-                "cost": 1.4375684110806224,
-                "gimbal_delay_seconds": 0.045215733641,
-                "rotor_delay_seconds": 0.195002269745,
-                "selected": false
-              },
-              {
-                "cost": 1.4170911880725254,
-                "gimbal_delay_seconds": 0.030219681854,
-                "rotor_delay_seconds": 0.2,
-                "selected": false
-              },
-              {
-                "cost": 1.4167874307755395,
-                "gimbal_delay_seconds": 0.035218365783,
-                "rotor_delay_seconds": 0.2,
-                "selected": false
-              },
-              {
-                "cost": 1.4156315076964658,
-                "gimbal_delay_seconds": 0.040217049712,
-                "rotor_delay_seconds": 0.2,
                 "selected": true
               },
               {
-                "cost": 1.4302515485168297,
-                "gimbal_delay_seconds": 0.045215733641,
+                "cost": 1.4217668920670248,
+                "gimbal_delay_seconds": 0.041392101732,
+                "rotor_delay_seconds": 0.195002269745,
+                "selected": false
+              },
+              {
+                "cost": 1.4246605800442038,
+                "gimbal_delay_seconds": 0.031394733874,
+                "rotor_delay_seconds": 0.2,
+                "selected": false
+              },
+              {
+                "cost": 1.4220335989240256,
+                "gimbal_delay_seconds": 0.036393417803,
+                "rotor_delay_seconds": 0.2,
+                "selected": false
+              },
+              {
+                "cost": 1.422886218491872,
+                "gimbal_delay_seconds": 0.041392101732,
                 "rotor_delay_seconds": 0.2,
                 "selected": false
               }
@@ -1365,34 +1422,34 @@
               {
                 "added": [
                   {
-                    "axis": "gimbal",
-                    "delay_seconds": 0.045215733641
+                    "axis": "rotor",
+                    "delay_seconds": 0.19000453949
                   }
                 ],
                 "best_before_expansion": {
-                  "cost": 1.4156315076964658,
-                  "gimbal_delay_seconds": 0.040217049712,
-                  "rotor_delay_seconds": 0.2
+                  "cost": 1.4206294312964576,
+                  "gimbal_delay_seconds": 0.036393417803,
+                  "rotor_delay_seconds": 0.195002269745
                 }
               }
             ],
             "gimbal_range_seconds": [
-              0.030219681854,
-              0.045215733641
+              0.031394733874,
+              0.041392101732
             ],
             "rotor_range_seconds": [
-              0.195002269745,
+              0.19000453949,
               0.2
             ]
           }
         }
       ],
-      "termination": "same lag pair remains selected after physical-parameter refinement"
+      "termination": "fixed_point"
     }
   },
   "config_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/samples/rosbags/single_rosbag_1.json",
-  "created_at": "2026-08-10T10:17:20.702955+00:00",
-  "elapsed_seconds": 118.25879108393565,
+  "created_at": "2026-08-10T22:53:22.155225+00:00",
+  "elapsed_seconds": 199.1544937128201,
   "initial_estimate": {
     "delay_default": "one measured median publish period per command channel unless explicitly supplied",
     "delay_seconds": 0.004997730255126953,
@@ -1503,90 +1560,90 @@
     }
   },
   "parameter_prior_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_parameter_prior.json",
-  "schema": "grape-param-estim/minimal-deterministic-savgol-dynamics/v3",
+  "schema": "grape-param-estim/minimal-deterministic-savgol-dynamics/v4",
   "selection": {
-    "delay_seconds": 0.2,
-    "gaussian_prior_cost": 0.33642643471785,
-    "gimbal_delay_seconds": 0.040217049712,
+    "delay_seconds": 0.195002269745,
+    "gaussian_prior_cost": 0.3376126675272883,
+    "gimbal_delay_seconds": 0.036393417803,
     "inertia_principal_moments_kg_m2": [
-      0.06500864275120274,
-      0.06525267680099217,
-      0.12899419319373173
+      0.06500843262694216,
+      0.0652585929064857,
+      0.1289941645984175
     ],
-    "inertia_triangle_margin_kg_m2": 0.0012671263584631831,
-    "joint_dynamics_loss": 1.0792047277442087,
-    "joint_objective_cost": 1.4156311624620588,
+    "inertia_triangle_margin_kg_m2": 0.0012728609350103337,
+    "joint_dynamics_loss": 1.0830162381987127,
+    "joint_objective_cost": 1.420628905726001,
     "optimizer": {
-      "cost": 1.4156311624620588,
+      "cost": 1.420628905726001,
       "diagnostics": {
-        "coordinate_step_l2_norm": 0.0005127896673439322,
-        "cost_reduction": 3.452344070620228e-07,
+        "coordinate_step_l2_norm": 0.00028345052051270204,
+        "cost_reduction": 5.255704564888219e-07,
         "final": {
-          "cost": 1.4156311624620588,
-          "gradient_inf_norm": 1.8594785267112002e-08,
-          "gradient_l2_norm": 3.011991092196547e-08,
+          "cost": 1.420628905726001,
+          "gradient_inf_norm": 1.412937660205671e-07,
+          "gradient_l2_norm": 2.0921343218342325e-07,
           "jacobian": {
-            "condition_number_nonzero_subspace": 406.9245366549322,
+            "condition_number_nonzero_subspace": 405.0893028901442,
             "numerical_rank": 14,
-            "numerical_tolerance": 9.540621366493406e-11,
+            "numerical_tolerance": 9.540695944606147e-11,
             "singular_values": [
-              119.28689292343891,
-              118.13837775114501,
-              102.64030055744644,
-              48.60572321038924,
-              44.72568727550868,
-              25.867075635050803,
-              12.988033801746914,
-              11.719751814942125,
-              11.325338914731379,
-              11.04581132508363,
-              9.87842978820393,
-              3.7982364108291167,
-              3.7927000517437874,
-              0.29314254162214104
+              119.28782537752205,
+              118.13186225386,
+              102.648330362545,
+              48.60621398727305,
+              44.725990220826276,
+              25.867545293755164,
+              12.988875396783898,
+              11.720279331439366,
+              11.32446007017322,
+              11.045614258443992,
+              9.87871202958631,
+              3.7982219245629794,
+              3.79278574738097,
+              0.29447290887824706
             ]
           },
-          "residual_l2_norm": 1.6826355294371143
+          "residual_l2_norm": 1.685603100214283
         },
         "finite_difference_directional_checks": [
           {
-            "analytic_l2_norm": 98.8487221224677,
-            "difference_l2_norm": 7.813925866911972e-10,
+            "analytic_l2_norm": 87.31736356979816,
+            "difference_l2_norm": 6.403257671567297e-10,
             "direction": "negative_gradient",
-            "finite_difference_l2_norm": 98.84872212263856,
-            "relative_error": 7.904933618886317e-12,
+            "finite_difference_l2_norm": 87.31736356965725,
+            "relative_error": 7.33331540232405e-12,
             "scheme": "central",
             "step": 6.0554544523933395e-06
           }
         ],
-        "finite_difference_max_relative_error": 7.904933618886317e-12,
+        "finite_difference_max_relative_error": 7.33331540232405e-12,
         "gradient_tolerance_satisfied": true,
         "initial": {
-          "cost": 1.4156315076964658,
-          "gradient_inf_norm": 0.05221419046103826,
-          "gradient_l2_norm": 0.06510024523463871,
+          "cost": 1.4206294312964576,
+          "gradient_inf_norm": 0.0377105352581939,
+          "gradient_l2_norm": 0.05415474848763546,
           "jacobian": {
-            "condition_number_nonzero_subspace": 407.3398381326683,
+            "condition_number_nonzero_subspace": 405.3061925815292,
             "numerical_rank": 14,
-            "numerical_tolerance": 9.540614684264724e-11,
+            "numerical_tolerance": 9.540767286417267e-11,
             "singular_values": [
-              119.28680937518072,
-              118.13898883626935,
-              102.64038502137774,
-              48.60576762874349,
-              44.725731233208535,
-              25.867104260760534,
-              12.987971803006689,
-              11.719762536981703,
-              11.325383250703641,
-              11.045781651493806,
-              9.878416397906813,
-              3.7982524361265533,
-              3.7926876963020293,
-              0.29284346437121545
+              119.28871736795509,
+              118.13316616931783,
+              102.64851500440028,
+              48.60611998465352,
+              44.72601485169613,
+              25.867565316880995,
+              12.98883716392602,
+              11.72055696278085,
+              11.324756502423742,
+              11.045939607104708,
+              9.878998819233527,
+              3.7982312942476866,
+              3.7927787000184057,
+              0.2943175296882729
             ]
           },
-          "residual_l2_norm": 1.682635734611901
+          "residual_l2_norm": 1.685603412013904
         },
         "tolerances": {
           "ftol": null,
@@ -1597,7 +1654,7 @@
       "message": "`gtol` termination condition is satisfied.",
       "nfev": 4,
       "njev": 4,
-      "optimality": 1.8594785267112002e-08,
+      "optimality": 1.412937660205671e-07,
       "status": 1,
       "success": true
     },
@@ -1608,31 +1665,31 @@
         0.0
       ],
       "cog_offset_m": [
-        -0.0023671011881682344,
-        0.000873849131304183,
-        0.010520706667849867
+        -0.0023586288163641835,
+        0.0008683155458361825,
+        0.010529642897925271
       ],
       "force_effectiveness": [
-        0.9653611597021703,
-        0.9732088813894809,
-        0.9582561006468137,
-        0.954940875224154
+        0.9653978102963904,
+        0.9731335011778909,
+        0.958097508674354,
+        0.9548728280331553
       ],
       "inertia_kg_m2": [
         [
-          0.06501125892316298,
-          -2.5090274186070006e-05,
-          2.2580027397309923e-05
+          0.06501097499114591,
+          -2.504912062607167e-05,
+          2.2553297289203457e-05
         ],
         [
-          -2.5090274186070006e-05,
-          0.0652500699720844,
-          9.368878048523862e-06
+          -2.504912062607167e-05,
+          0.06525605931696485,
+          7.259953624758088e-06
         ],
         [
-          2.2580027397309923e-05,
-          9.368878048523862e-06,
-          0.12899418385067923
+          2.2553297289203457e-05,
+          7.259953624758088e-06,
+          0.12899415582373458
         ]
       ],
       "linear_drag": [
@@ -1640,7 +1697,7 @@
         0.0,
         0.0
       ],
-      "mass_kg": 2.3657980338283204,
+      "mass_kg": 2.3658081448815143,
       "torque_effectiveness": [
         1.0,
         1.0,
@@ -1649,20 +1706,20 @@
       ]
     },
     "physical_coordinate": [
-      0.006020476991308754,
-      0.0011166320626150089,
-      -0.0011022817883084362,
-      0.13847659252618036,
-      0.00037736955209415686,
-      -0.0001868807204815555,
-      -0.0004913280070917831,
-      -0.00034239262588623434,
-      0.000904375710245183,
-      0.001010957068403868,
-      -0.03525298890176549,
-      -0.027156542149058584,
-      -0.042640208295807065,
-      -0.04610585117800514
+      0.006024750826793923,
+      0.001140794232113969,
+      -0.0011267522008777118,
+      0.14073431054674934,
+      0.00037672269301708633,
+      -0.00018544234393952195,
+      -0.0003799368356782384,
+      -0.00033392025408218354,
+      0.0008988421247771825,
+      0.0010198932984792726,
+      -0.03521502394104902,
+      -0.027234000475304602,
+      -0.042805722605953556,
+      -0.046177111731756024
     ],
     "physical_parameter_names": [
       "log_mass_scale",
@@ -1680,7 +1737,7 @@
       "log_force_effectiveness_3",
       "log_force_effectiveness_4"
     ],
-    "rotor_delay_seconds": 0.2
+    "rotor_delay_seconds": 0.195002269745
   },
   "settings": {
     "collocation_grid_used_in_parameter_loss": false,
@@ -1715,112 +1772,112 @@
   },
   "smoothstep_stages": [
     {
-      "data_loss": 1.077723716169492,
-      "gimbal_delay_seconds": 0.03550808897117884,
+      "data_loss": 1.0787395202359689,
+      "gimbal_delay_seconds": 0.03743453933210118,
       "gimbal_transition_half_width_seconds": 0.019994735717773438,
       "half_width_period_multiplier": 4.0,
-      "objective_cost": 1.4142938239872789,
+      "objective_cost": 1.4157009341610245,
       "optimizer": {
-        "cost": 1.4142938239872789,
+        "cost": 1.4157009341610245,
         "diagnostics": {
-          "coordinate_step_l2_norm": 0.2531566849684588,
-          "cost_reduction": 1.334499681662998,
+          "coordinate_step_l2_norm": 0.2542877854433261,
+          "cost_reduction": 1.3734430077490536,
           "final": {
             "command_lag_gradient": {
-              "gimbal": -2.634008490265405e-06,
-              "rotor": -0.3029846273480847
+              "gimbal": -8.005418672407671e-07,
+              "rotor": -0.447274034409095
             },
-            "cost": 1.4142938239872789,
-            "gradient_inf_norm": 0.3029846273480847,
-            "gradient_l2_norm": 0.30298462736101367,
+            "cost": 1.4157009341610245,
+            "gradient_inf_norm": 0.447274034409095,
+            "gradient_l2_norm": 0.4472740344099301,
             "jacobian": {
-              "condition_number_nonzero_subspace": 406.9809006829239,
+              "condition_number_nonzero_subspace": 405.6708160055853,
               "numerical_rank": 16,
-              "numerical_tolerance": 9.540821874334441e-11,
+              "numerical_tolerance": 9.540677114985963e-11,
               "singular_values": [
-                119.2893998835671,
-                118.14245719975484,
-                102.63771578377457,
-                48.605865423128684,
-                44.725719161844076,
-                25.86727641850853,
-                17.21420051215568,
-                12.988025643631804,
-                11.720260977737889,
-                11.326242344974604,
-                11.046941963024778,
-                9.878192696593276,
-                7.946315734889539,
-                3.7982316077364042,
-                3.7927046188113107,
-                0.2931081033124566
+                119.28758994978624,
+                118.13595605871357,
+                102.6426766846101,
+                48.60586298424032,
+                44.7259564177875,
+                25.867690936987252,
+                17.18556441878419,
+                12.988684440678936,
+                11.720576597423966,
+                11.325650635368834,
+                11.047003814137087,
+                9.878416768271203,
+                7.957536260409152,
+                3.7982356006558997,
+                3.792761634896176,
+                0.2940502132353141
               ]
             },
-            "residual_l2_norm": 1.6818405536716488
+            "residual_l2_norm": 1.6826769946493145
           },
           "finite_difference_directional_checks": [
             {
-              "analytic_l2_norm": 7.9717198621302385,
-              "difference_l2_norm": 7.9717198621302385,
+              "analytic_l2_norm": 7.984924186477807,
+              "difference_l2_norm": 0.0007818443727450856,
               "direction": "negative_gradient",
-              "finite_difference_l2_norm": 0.0,
-              "relative_error": 1.0,
-              "scheme": "forward",
-              "step": 1.387778780840665e-17
+              "finite_difference_l2_norm": 7.98492726697488,
+              "relative_error": 9.791502747667359e-05,
+              "scheme": "backward",
+              "step": 6.0554544523933395e-06
             },
             {
-              "analytic_l2_norm": 7.971731435020553,
-              "difference_l2_norm": 7.971731435020553,
+              "analytic_l2_norm": 7.984926576649946,
+              "difference_l2_norm": 0.000781844211689216,
               "direction": "rotor_delay_seconds",
-              "finite_difference_l2_norm": 0.0,
-              "relative_error": 1.0,
-              "scheme": "forward",
-              "step": 1.3877787807814457e-17
+              "finite_difference_l2_norm": 7.984929656676238,
+              "relative_error": 9.791497800303255e-05,
+              "scheme": "backward",
+              "step": 6.0554544523933395e-06
             },
             {
-              "analytic_l2_norm": 17.20508236588638,
-              "difference_l2_norm": 6.97912807359031e-07,
+              "analytic_l2_norm": 17.17554030173863,
+              "difference_l2_norm": 7.092134352530405e-07,
               "direction": "gimbal_delay_seconds",
-              "finite_difference_l2_norm": 17.2050822851243,
-              "relative_error": 4.056433979896705e-08,
+              "finite_difference_l2_norm": 17.175540220978167,
+              "relative_error": 4.129205968450663e-08,
               "scheme": "central",
               "step": 6.0554544523933395e-06
             }
           ],
-          "finite_difference_max_relative_error": 1.0,
+          "finite_difference_max_relative_error": 9.791502747667359e-05,
           "gradient_tolerance_satisfied": true,
           "initial": {
             "command_lag_gradient": {
-              "gimbal": -4.59379930060485,
-              "rotor": -7.145556795423709
+              "gimbal": -5.054919920449661,
+              "rotor": -7.234203547237788
             },
-            "cost": 2.748793505650277,
-            "gradient_inf_norm": 20.595518786097454,
-            "gradient_l2_norm": 34.6413224155606,
+            "cost": 2.789143941910078,
+            "gradient_inf_norm": 20.63507431908954,
+            "gradient_l2_norm": 34.71565307328781,
             "jacobian": {
-              "condition_number_nonzero_subspace": 542.946873336738,
+              "condition_number_nonzero_subspace": 542.956914006286,
               "numerical_rank": 16,
-              "numerical_tolerance": 9.659315619992493e-11,
+              "numerical_tolerance": 9.659616370166188e-11,
               "singular_values": [
-                120.77093344489784,
-                119.56904028417064,
-                103.12709653348034,
-                48.46271081473119,
-                44.74871364762181,
-                25.910701922536315,
-                17.606049226061415,
-                13.018350042248935,
-                12.166174537606832,
-                11.743860320148514,
-                11.503620157136437,
-                10.2787154291768,
-                8.176581197066039,
-                3.8081601154826537,
-                3.7888031886189983,
-                0.22243600502326713
+                120.77469374020652,
+                119.57017911811175,
+                103.13285551733196,
+                48.46314018579455,
+                44.74903750648848,
+                25.911239684031802,
+                17.60312573183722,
+                13.018851950517611,
+                12.16700406203454,
+                11.744184046661605,
+                11.50432476113064,
+                10.27913094393261,
+                8.175176870262321,
+                3.8082340041690315,
+                3.7888026313269343,
+                0.22243881719647512
               ]
             },
-            "residual_l2_norm": 2.344693372554406
+            "residual_l2_norm": 2.3618399361134013
           },
           "tolerances": {
             "ftol": null,
@@ -1831,137 +1888,137 @@
         "message": "`gtol` termination condition is satisfied.",
         "nfev": 18,
         "njev": 18,
-        "optimality": 8.709094707626264e-07,
+        "optimality": 3.050475960719723e-07,
         "status": 1,
         "success": true
       },
       "physical_coordinate": [
-        0.00602161731191855,
-        0.0011160852340394171,
-        -0.0011015234716609378,
-        0.13843599413519833,
-        0.00036860738776863845,
-        -0.00018446170692532838,
-        -0.0005438395579665603,
-        -0.0003362614642010561,
-        0.000903598157002088,
-        0.0010183920310802537,
-        -0.03521131369129955,
-        -0.027193301314605303,
-        -0.042686777653416906,
-        -0.04609174782645086
+        0.0060208588338240485,
+        0.0011321452921958712,
+        -0.0011183445671003867,
+        0.1400358476941269,
+        0.00037585691803613495,
+        -0.0001789989198887147,
+        -0.0005055663282419226,
+        -0.00033456451686506304,
+        0.0009013109787925438,
+        0.0010224363392881376,
+        -0.035208377797253956,
+        -0.0272225938889369,
+        -0.04273634780251282,
+        -0.04610848718302838
       ],
-      "prior_cost": 0.336570107817787,
+      "prior_cost": 0.33696141392505546,
       "rotor_delay_seconds": 0.19999999999999998,
       "rotor_transition_half_width_seconds": 0.019990921020507812
     },
     {
-      "data_loss": 1.0790712161719802,
-      "gimbal_delay_seconds": 0.035373403956880135,
+      "data_loss": 1.0800379430215699,
+      "gimbal_delay_seconds": 0.037361478469877044,
       "gimbal_transition_half_width_seconds": 0.009997367858886719,
       "half_width_period_multiplier": 2.0,
-      "objective_cost": 1.4156207806636627,
+      "objective_cost": 1.41698239298579,
       "optimizer": {
-        "cost": 1.4156207806636627,
+        "cost": 1.41698239298579,
         "diagnostics": {
-          "coordinate_step_l2_norm": 0.00024773484205539665,
-          "cost_reduction": 2.2538425639151427e-06,
+          "coordinate_step_l2_norm": 0.00018195888361359364,
+          "cost_reduction": 6.678038348972848e-07,
           "final": {
             "command_lag_gradient": {
-              "gimbal": 3.819073831845543e-06,
-              "rotor": -0.30943002181043744
+              "gimbal": 5.818633143722662e-06,
+              "rotor": -0.40878921360262604
             },
-            "cost": 1.4156207806636627,
-            "gradient_inf_norm": 0.30943002181043744,
-            "gradient_l2_norm": 0.30943002183468593,
+            "cost": 1.41698239298579,
+            "gradient_inf_norm": 0.40878921360262604,
+            "gradient_l2_norm": 0.4087892136454123,
             "jacobian": {
-              "condition_number_nonzero_subspace": 406.8047186875547,
+              "condition_number_nonzero_subspace": 405.5290916360579,
               "numerical_rank": 16,
-              "numerical_tolerance": 9.540699778132644e-11,
+              "numerical_tolerance": 9.540571721286296e-11,
               "singular_values": [
-                119.28787330830636,
-                118.14016074159144,
-                102.63867661997371,
-                48.60573726056949,
-                44.72579002678077,
-                25.867377599173455,
-                19.015513438451737,
-                12.988136034088097,
-                11.720408848625102,
-                11.326310359906685,
-                11.047230937415984,
-                9.878422872665292,
-                8.746297343211758,
-                3.798235506537928,
-                3.792713375702267,
-                0.2932312921373095
+                119.28627220679193,
+                118.13394513228495,
+                102.64349800173329,
+                48.605750522357475,
+                44.72602161276776,
+                25.867784434707364,
+                18.684019820501526,
+                12.988774714083927,
+                11.720826155224884,
+                11.325831467066978,
+                11.047277406975573,
+                9.878592714621886,
+                8.839135408330122,
+                3.798240459700918,
+                3.792769009104221,
+                0.29414972850787585
               ]
             },
-            "residual_l2_norm": 1.6826293594631365
+            "residual_l2_norm": 1.683438381994298
           },
           "finite_difference_directional_checks": [
             {
-              "analytic_l2_norm": 8.764019391342663,
-              "difference_l2_norm": 8.764019391342663,
+              "analytic_l2_norm": 8.858621093318575,
+              "difference_l2_norm": 0.003075567195603299,
               "direction": "negative_gradient",
-              "finite_difference_l2_norm": 0.0,
-              "relative_error": 1.0,
-              "scheme": "forward",
-              "step": 1.387778780890199e-17
+              "finite_difference_l2_norm": 8.858666925424814,
+              "relative_error": 0.00034718171723741736,
+              "scheme": "backward",
+              "step": 6.0554544523933395e-06
             },
             {
-              "analytic_l2_norm": 8.764006959236921,
-              "difference_l2_norm": 8.764006959236921,
+              "analytic_l2_norm": 8.858606591037159,
+              "difference_l2_norm": 0.0030755671869557447,
               "direction": "rotor_delay_seconds",
-              "finite_difference_l2_norm": 0.0,
-              "relative_error": 1.0,
-              "scheme": "forward",
-              "step": 1.3877787807814457e-17
+              "finite_difference_l2_norm": 8.858652421238515,
+              "relative_error": 0.00034718228469852915,
+              "scheme": "backward",
+              "step": 6.0554544523933395e-06
             },
             {
-              "analytic_l2_norm": 19.010281380757547,
-              "difference_l2_norm": 5.2255057429364035e-06,
+              "analytic_l2_norm": 18.677881152810823,
+              "difference_l2_norm": 5.279582558228024e-06,
               "direction": "gimbal_delay_seconds",
-              "finite_difference_l2_norm": 19.010280624844683,
-              "relative_error": 2.748778746760544e-07,
+              "finite_difference_l2_norm": 18.677880511656927,
+              "relative_error": 2.826649615678437e-07,
               "scheme": "central",
               "step": 6.0554544523933395e-06
             }
           ],
-          "finite_difference_max_relative_error": 1.0,
+          "finite_difference_max_relative_error": 0.00034718228469852915,
           "gradient_tolerance_satisfied": true,
           "initial": {
             "command_lag_gradient": {
-              "gimbal": 0.03325740308967262,
-              "rotor": -0.31066504832963454
+              "gimbal": 0.018421318812899184,
+              "rotor": -0.409487943113436
             },
-            "cost": 1.4156230345062266,
-            "gradient_inf_norm": 0.31066504832963454,
-            "gradient_l2_norm": 0.3127982198676272,
+            "cost": 1.416983060789625,
+            "gradient_inf_norm": 0.409487943113436,
+            "gradient_l2_norm": 0.4100502878973583,
             "jacobian": {
-              "condition_number_nonzero_subspace": 406.97333317294607,
+              "condition_number_nonzero_subspace": 405.6633047140019,
               "numerical_rank": 16,
-              "numerical_tolerance": 9.540695894323894e-11,
+              "numerical_tolerance": 9.540566796241427e-11,
               "singular_values": [
-                119.28782474884039,
-                118.14041708176018,
-                102.6386747528952,
-                48.60578749565683,
-                44.72577108846638,
-                25.867378909694583,
-                19.00256099894608,
-                12.988117494834457,
-                11.720372688074695,
-                11.326298024459591,
-                11.047207425223665,
-                9.878397397259075,
-                8.746410834493139,
-                3.7982436605810683,
-                3.7927046935681434,
-                0.2931096831795321
+                119.28621062869577,
+                118.13413007733918,
+                102.64351622028822,
+                48.6057923573736,
+                44.725999168807014,
+                25.867780675927534,
+                18.698225434768794,
+                12.98875569368847,
+                11.720799967722975,
+                11.32582153214514,
+                11.047259141438868,
+                9.878572878303478,
+                8.839208404989934,
+                3.79824736750409,
+                3.7927611139457857,
+                0.29405225772834975
               ]
             },
-            "residual_l2_norm": 1.6826306989391502
+            "residual_l2_norm": 1.6834387786846452
           },
           "tolerances": {
             "ftol": null,
@@ -1970,280 +2027,139 @@
           }
         },
         "message": "`gtol` termination condition is satisfied.",
-        "nfev": 9,
-        "njev": 9,
-        "optimality": 5.948742760608638e-07,
+        "nfev": 8,
+        "njev": 8,
+        "optimality": 9.861002983058142e-07,
         "status": 1,
         "success": true
       },
       "physical_coordinate": [
-        0.0060203595052807386,
-        0.0011185203683680848,
-        -0.0011034308346789296,
-        0.13864354042033514,
-        0.00036994586863312365,
-        -0.00018601163847867418,
-        -0.0005378665992344733,
-        -0.0003362135373864548,
-        0.0009037410120008954,
-        0.0010197157976703688,
-        -0.03520879084021438,
-        -0.027183890422624986,
-        -0.04268969355045217,
-        -0.04609084716630176
+        0.006019792272104733,
+        0.0011343325912961865,
+        -0.0011199687028307494,
+        0.1402016522170052,
+        0.00037655347134695253,
+        -0.0001815502169618278,
+        -0.0004924927193758667,
+        -0.00033471582961710865,
+        0.0009012927657428639,
+        0.001023248541411103,
+        -0.03520797083865838,
+        -0.027213091823438104,
+        -0.04273721261537734,
+        -0.046109770563334485
       ],
-      "prior_cost": 0.33654956449168233,
+      "prior_cost": 0.3369444499642201,
       "rotor_delay_seconds": 0.19999999999999998,
       "rotor_transition_half_width_seconds": 0.009995460510253906
     },
     {
-      "data_loss": 1.0793345902684697,
-      "gimbal_delay_seconds": 0.03547603148161384,
+      "data_loss": 1.0819109821724184,
+      "gimbal_delay_seconds": 0.03707890036661619,
       "gimbal_transition_half_width_seconds": 0.004998683929443359,
       "half_width_period_multiplier": 1.0,
-      "objective_cost": 1.4158622894670698,
+      "objective_cost": 1.4189650087705217,
       "optimizer": {
-        "cost": 1.4158622894670698,
+        "cost": 1.4189650087705217,
         "diagnostics": {
-          "coordinate_step_l2_norm": 0.0002661701705005148,
-          "cost_reduction": 1.3691791134196052e-06,
+          "coordinate_step_l2_norm": 0.00035031747353257757,
+          "cost_reduction": 2.732954889039796e-05,
           "final": {
             "command_lag_gradient": {
-              "gimbal": -5.844775814070613e-06,
-              "rotor": -0.13975287011138368
+              "gimbal": 0.02286610321069174,
+              "rotor": -0.5404711913391944
             },
-            "cost": 1.4158622894670698,
-            "gradient_inf_norm": 0.13975287011138368,
-            "gradient_l2_norm": 0.13975287023394323,
+            "cost": 1.4189650087705217,
+            "gradient_inf_norm": 0.5404711913391944,
+            "gradient_l2_norm": 0.5409549274177347,
             "jacobian": {
-              "condition_number_nonzero_subspace": 406.9970825825061,
+              "condition_number_nonzero_subspace": 405.3649391686234,
               "numerical_rank": 16,
-              "numerical_tolerance": 9.540711745530559e-11,
+              "numerical_tolerance": 9.540624790781125e-11,
               "singular_values": [
-                119.28802293731465,
-                118.14049242287979,
-                102.6387464088613,
-                48.605765614889236,
-                44.72574167682953,
-                26.44161021684967,
-                25.866178952397746,
-                12.988036695089509,
-                11.721989192636766,
-                11.332000271155248,
-                11.0553590534526,
-                10.880240800092778,
-                9.878448393544458,
-                3.7982336505073455,
-                3.792703886588725,
-                0.2930930663689283
+                119.28693573748915,
+                118.13483449129589,
+                102.64204448096187,
+                48.60578910293252,
+                44.7260860845303,
+                26.163375695890107,
+                25.864659541482272,
+                12.988873391747486,
+                11.72211220413046,
+                11.32649016943507,
+                11.059471161006355,
+                10.69471622196398,
+                9.878454804986253,
+                3.7982411545287196,
+                3.792776560749111,
+                0.29427048126593963
               ]
             },
-            "residual_l2_norm": 1.6827728839430887
+            "residual_l2_norm": 1.6846156883814907
           },
           "finite_difference_directional_checks": [
             {
-              "analytic_l2_norm": 10.909099655638693,
-              "difference_l2_norm": 10.909099655638693,
+              "analytic_l2_norm": 10.819479721997611,
+              "difference_l2_norm": 0.010069750783404932,
               "direction": "negative_gradient",
-              "finite_difference_l2_norm": 0.0,
-              "relative_error": 1.0,
-              "scheme": "forward",
-              "step": 1.3877787819984907e-17
+              "finite_difference_l2_norm": 10.820030460680568,
+              "relative_error": 0.0009306582657043237,
+              "scheme": "backward",
+              "step": 6.0554544523933395e-06
             },
             {
-              "analytic_l2_norm": 10.909140071717017,
-              "difference_l2_norm": 10.909140071717017,
+              "analytic_l2_norm": 10.725587354933714,
+              "difference_l2_norm": 0.010086880403996345,
               "direction": "rotor_delay_seconds",
-              "finite_difference_l2_norm": 0.0,
-              "relative_error": 1.0,
-              "scheme": "forward",
-              "step": 1.3877787807814457e-17
+              "finite_difference_l2_norm": 10.726167695173112,
+              "relative_error": 0.0009403992824516017,
+              "scheme": "backward",
+              "step": 6.0554544523933395e-06
             },
             {
-              "analytic_l2_norm": 26.437388537955943,
-              "difference_l2_norm": 2.6615628304924346e-05,
+              "analytic_l2_norm": 26.156050842934444,
+              "difference_l2_norm": 2.146332389323925,
               "direction": "gimbal_delay_seconds",
-              "finite_difference_l2_norm": 26.437369126555442,
-              "relative_error": 1.0067419581443344e-06,
+              "finite_difference_l2_norm": 25.91820652599986,
+              "relative_error": 0.08205873288030083,
               "scheme": "central",
               "step": 6.0554544523933395e-06
             }
           ],
-          "finite_difference_max_relative_error": 1.0,
-          "gradient_tolerance_satisfied": true,
-          "initial": {
-            "command_lag_gradient": {
-              "gimbal": -0.02217439354543127,
-              "rotor": -0.1384573318790471
-            },
-            "cost": 1.4158636586461832,
-            "gradient_inf_norm": 0.1384573318790471,
-            "gradient_l2_norm": 0.1458497458671463,
-            "jacobian": {
-              "condition_number_nonzero_subspace": 406.7988551351188,
-              "numerical_rank": 16,
-              "numerical_tolerance": 9.540710118631813e-11,
-              "singular_values": [
-                119.2880025961137,
-                118.14016077823423,
-                102.6387056499632,
-                48.60574400738908,
-                44.72572550105386,
-                26.711571590643608,
-                25.86649095961832,
-                12.988050548389598,
-                11.721978702014598,
-                11.331965783881957,
-                11.055291231309706,
-                10.879672779980178,
-                9.87844427370327,
-                3.798223790731647,
-                3.792711125605287,
-                0.2932358365573375
-              ]
-            },
-            "residual_l2_norm": 1.6827736975875176
-          },
-          "tolerances": {
-            "ftol": null,
-            "gtol": 1e-06,
-            "xtol": null
-          }
-        },
-        "message": "`gtol` termination condition is satisfied.",
-        "nfev": 19,
-        "njev": 19,
-        "optimality": 9.616057120311784e-07,
-        "status": 1,
-        "success": true
-      },
-      "physical_coordinate": [
-        0.00602081649424139,
-        0.0011164784510711674,
-        -0.0011011532501665792,
-        0.13839989168613584,
-        0.0003685898504514049,
-        -0.00018945441095609064,
-        -0.0005161195195340074,
-        -0.0003376880733614784,
-        0.0009038825061078466,
-        0.0010167856285361215,
-        -0.03521505760345908,
-        -0.027171504765647312,
-        -0.04267988312158085,
-        -0.04610323873810791
-      ],
-      "prior_cost": 0.3365276991986002,
-      "rotor_delay_seconds": 0.19999999999999998,
-      "rotor_transition_half_width_seconds": 0.004997730255126953
-    },
-    {
-      "data_loss": 1.0793560114289777,
-      "gimbal_delay_seconds": 0.035218365783011206,
-      "gimbal_transition_half_width_seconds": 0.0024993419647216797,
-      "half_width_period_multiplier": 0.5,
-      "objective_cost": 1.4158436637643956,
-      "optimizer": {
-        "cost": 1.4158436637643956,
-        "diagnostics": {
-          "coordinate_step_l2_norm": 0.0005054329334582037,
-          "cost_reduction": 1.4028582621783414e-05,
-          "final": {
-            "command_lag_gradient": {
-              "gimbal": -0.015443049343798407,
-              "rotor": -0.06101303447052212
-            },
-            "cost": 1.4158436637643956,
-            "gradient_inf_norm": 0.06101303447052212,
-            "gradient_l2_norm": 0.06293723963752082,
-            "jacobian": {
-              "condition_number_nonzero_subspace": 407.3482276238235,
-              "numerical_rank": 16,
-              "numerical_tolerance": 9.540732170262967e-11,
-              "singular_values": [
-                119.28827830882288,
-                118.14093825285235,
-                102.639107975748,
-                48.605824013125314,
-                44.72567349876535,
-                38.59874824139103,
-                25.86692112824664,
-                14.664424526632382,
-                12.98775838440857,
-                11.71932087167902,
-                11.325359949279308,
-                11.04544466516263,
-                9.878453317532466,
-                3.798228249258255,
-                3.7926875673658516,
-                0.2928410392372759
-              ]
-            },
-            "residual_l2_norm": 1.6827618154476858
-          },
-          "finite_difference_directional_checks": [
-            {
-              "analytic_l2_norm": 16.77401079875116,
-              "difference_l2_norm": 16.77401079875116,
-              "direction": "negative_gradient",
-              "finite_difference_l2_norm": 0.0,
-              "relative_error": 1.0,
-              "scheme": "forward",
-              "step": 1.43154600402816e-17
-            },
-            {
-              "analytic_l2_norm": 14.678103118837408,
-              "difference_l2_norm": 14.678103118837408,
-              "direction": "rotor_delay_seconds",
-              "finite_difference_l2_norm": 0.0,
-              "relative_error": 1.0,
-              "scheme": "forward",
-              "step": 1.3877787807814457e-17
-            },
-            {
-              "analytic_l2_norm": 38.59360103505382,
-              "difference_l2_norm": 1.1199114519178093,
-              "direction": "gimbal_delay_seconds",
-              "finite_difference_l2_norm": 38.609740170494916,
-              "relative_error": 0.02900593080845521,
-              "scheme": "central",
-              "step": 6.0554544523933395e-06
-            }
-          ],
-          "finite_difference_max_relative_error": 1.0,
+          "finite_difference_max_relative_error": 0.08205873288030083,
           "gradient_tolerance_satisfied": false,
           "initial": {
             "command_lag_gradient": {
-              "gimbal": 0.1010963186065261,
-              "rotor": -0.06669896039212632
+              "gimbal": 0.14717305817335108,
+              "rotor": -0.5441250276361277
             },
-            "cost": 1.4158576923470174,
-            "gradient_inf_norm": 0.1010963186065261,
-            "gradient_l2_norm": 0.1314207130484285,
+            "cost": 1.418992338319412,
+            "gradient_inf_norm": 0.5441250276361277,
+            "gradient_l2_norm": 0.5643777195473583,
             "jacobian": {
-              "condition_number_nonzero_subspace": 406.9947479496505,
+              "condition_number_nonzero_subspace": 405.53063241565854,
               "numerical_rank": 16,
-              "numerical_tolerance": 9.540725549560619e-11,
+              "numerical_tolerance": 9.540635683522192e-11,
               "singular_values": [
-                119.2881955298317,
-                118.14033250542711,
-                102.63896311046722,
-                48.605786824685204,
-                44.725673811350106,
-                37.54999225344502,
-                25.866924906123224,
-                14.669784358004026,
-                12.987823843005602,
-                11.719278922193457,
-                11.325292839403518,
-                11.045423307555904,
-                9.878410040466239,
-                3.7982137434699754,
-                3.7927016468426746,
-                0.29309517169638977
+                119.2870719300061,
+                118.13513612792731,
+                102.64221351023753,
+                48.605776638727704,
+                44.72610279979547,
+                25.87096555655348,
+                25.485445872028087,
+                12.988864310916036,
+                11.722229563527996,
+                11.3264783675596,
+                11.05958944272247,
+                10.695535776432619,
+                9.87856191101947,
+                3.7982544094523023,
+                3.792765556368745,
+                0.2941505829521157
               ]
             },
-            "residual_l2_norm": 1.6827701520689136
+            "residual_l2_norm": 1.6846319113203407
           },
           "tolerances": {
             "ftol": null,
@@ -2253,66 +2169,225 @@
         },
         "message": "The maximum number of function evaluations is exceeded.",
         "nfev": 60,
-        "njev": 21,
-        "optimality": 0.0025447309081646978,
+        "njev": 19,
+        "optimality": 0.0008478499627220015,
         "status": 0,
         "success": false
       },
       "physical_coordinate": [
-        0.006021538286870633,
-        0.0011124664139956515,
-        -0.001096949674079805,
-        0.13796622767892416,
-        0.00036726382676974636,
-        -0.00019285423099810054,
-        -0.0005016783507264693,
-        -0.00033932858967670185,
-        0.0009043617802655592,
-        0.0010139674044471745,
-        -0.03521738175437526,
-        -0.027154468354543406,
-        -0.04266677696441108,
-        -0.046119729316211076
+        0.006020361978596089,
+        0.0011367017396576673,
+        -0.0011222329684935537,
+        0.14040546871157372,
+        0.0003699947165478821,
+        -0.00018528134783197658,
+        -0.0004660262043619853,
+        -0.00033334118711098314,
+        0.0009009018516988197,
+        0.0010225788467748639,
+        -0.035202949898654676,
+        -0.027226056313035124,
+        -0.042755852311189856,
+        -0.046114139542427296
       ],
-      "prior_cost": 0.33648765233541855,
+      "prior_cost": 0.3370540265981036,
+      "rotor_delay_seconds": 0.19999999999999998,
+      "rotor_transition_half_width_seconds": 0.004997730255126953
+    },
+    {
+      "data_loss": 1.083668118573465,
+      "gimbal_delay_seconds": 0.036393417803010114,
+      "gimbal_transition_half_width_seconds": 0.0024993419647216797,
+      "half_width_period_multiplier": 0.5,
+      "objective_cost": 1.4208121704446108,
+      "optimizer": {
+        "cost": 1.4208121704446108,
+        "diagnostics": {
+          "coordinate_step_l2_norm": 0.0006890347944330011,
+          "cost_reduction": 0.0002310829116654034,
+          "final": {
+            "command_lag_gradient": {
+              "gimbal": 0.017787688546570757,
+              "rotor": -0.873909674972295
+            },
+            "cost": 1.4208121704446108,
+            "gradient_inf_norm": 0.873909674972295,
+            "gradient_l2_norm": 0.8740907175894115,
+            "jacobian": {
+              "condition_number_nonzero_subspace": 405.31496632017456,
+              "numerical_rank": 16,
+              "numerical_tolerance": 9.540671973855511e-11,
+              "singular_values": [
+                119.28752566996062,
+                118.13608590361598,
+                102.640639368148,
+                48.605809870344416,
+                44.72618027698391,
+                38.71809697219062,
+                25.868002058152115,
+                13.33123469735318,
+                12.988596590381398,
+                11.717563887464431,
+                11.32424849856933,
+                11.042320939560936,
+                9.878473488024074,
+                3.798242522258875,
+                3.792780718231806,
+                0.2943082185021774
+              ]
+            },
+            "residual_l2_norm": 1.6857118202377361
+          },
+          "finite_difference_directional_checks": [
+            {
+              "analytic_l2_norm": 13.370612092602888,
+              "difference_l2_norm": 0.03143145820038082,
+              "direction": "negative_gradient",
+              "finite_difference_l2_norm": 13.373422078582804,
+              "relative_error": 0.0023502928431996103,
+              "scheme": "backward",
+              "step": 6.0554544523933395e-06
+            },
+            {
+              "analytic_l2_norm": 13.33255468923799,
+              "difference_l2_norm": 0.03144432531535249,
+              "direction": "rotor_delay_seconds",
+              "finite_difference_l2_norm": 13.335354326615752,
+              "relative_error": 0.002357966990992765,
+              "scheme": "backward",
+              "step": 6.0554544523933395e-06
+            },
+            {
+              "analytic_l2_norm": 38.71731300031717,
+              "difference_l2_norm": 2.1104336667251045,
+              "direction": "gimbal_delay_seconds",
+              "finite_difference_l2_norm": 38.56694343557728,
+              "relative_error": 0.05450878439595785,
+              "scheme": "central",
+              "step": 6.0554544523933395e-06
+            }
+          ],
+          "finite_difference_max_relative_error": 0.05450878439595785,
+          "gradient_tolerance_satisfied": false,
+          "initial": {
+            "command_lag_gradient": {
+              "gimbal": 0.09978731508298741,
+              "rotor": -0.8861531692568192
+            },
+            "cost": 1.4210432533562762,
+            "gradient_inf_norm": 0.8861531692568192,
+            "gradient_l2_norm": 0.8925393889656058,
+            "jacobian": {
+              "condition_number_nonzero_subspace": 405.3659966105262,
+              "numerical_rank": 16,
+              "numerical_tolerance": 9.540654251429532e-11,
+              "singular_values": [
+                119.28730408553243,
+                118.13576279988158,
+                102.64084345392071,
+                48.60579823357485,
+                44.72620567055509,
+                36.367531975192286,
+                25.868062597483153,
+                13.33039004750183,
+                12.988674929133216,
+                11.71760674891118,
+                11.324408524256325,
+                11.042360873997318,
+                9.878600469956668,
+                3.7982597664192728,
+                3.792775770363786,
+                0.2942706223091107
+              ]
+            },
+            "residual_l2_norm": 1.6858488979480197
+          },
+          "tolerances": {
+            "ftol": null,
+            "gtol": 1e-06,
+            "xtol": null
+          }
+        },
+        "message": "The maximum number of function evaluations is exceeded.",
+        "nfev": 60,
+        "njev": 27,
+        "optimality": 0.0006473547810251673,
+        "status": 0,
+        "success": false
+      },
+      "physical_coordinate": [
+        0.006020907672776904,
+        0.0011377093010587844,
+        -0.0011230156872175368,
+        0.14047041390147827,
+        0.000364418491309421,
+        -0.00018730389646950626,
+        -0.0004541169761896993,
+        -0.00033193398423241895,
+        0.000900424153231445,
+        0.0010234772434127572,
+        -0.035194356178132345,
+        -0.02723442470991852,
+        -0.04277394735847134,
+        -0.04611752429576245
+      ],
+      "prior_cost": 0.3371440518711457,
       "rotor_delay_seconds": 0.19999999999999998,
       "rotor_transition_half_width_seconds": 0.0024988651275634766
     }
   ],
   "strict_zoh_polish": [
     {
-      "cost": 1.4235271342918858,
-      "gimbal_delay_seconds": 0.035218365783,
+      "cost": 1.4293880732834108,
+      "gimbal_delay_seconds": 0.031394733874,
+      "rotor_delay_seconds": 0.19000453949,
+      "selected": false
+    },
+    {
+      "cost": 1.4270500294011566,
+      "gimbal_delay_seconds": 0.036393417803,
+      "rotor_delay_seconds": 0.19000453949,
+      "selected": false
+    },
+    {
+      "cost": 1.4286410714150612,
+      "gimbal_delay_seconds": 0.041392101732,
+      "rotor_delay_seconds": 0.19000453949,
+      "selected": false
+    },
+    {
+      "cost": 1.423176153930454,
+      "gimbal_delay_seconds": 0.031394733874,
       "rotor_delay_seconds": 0.195002269745,
       "selected": false
     },
     {
-      "cost": 1.4223968643482479,
-      "gimbal_delay_seconds": 0.040217049712,
+      "cost": 1.420628905726001,
+      "gimbal_delay_seconds": 0.036393417803,
       "rotor_delay_seconds": 0.195002269745,
-      "selected": false
-    },
-    {
-      "cost": 1.4375678382048327,
-      "gimbal_delay_seconds": 0.045215733641,
-      "rotor_delay_seconds": 0.195002269745,
-      "selected": false
-    },
-    {
-      "cost": 1.416787873750051,
-      "gimbal_delay_seconds": 0.035218365783,
-      "rotor_delay_seconds": 0.2,
-      "selected": false
-    },
-    {
-      "cost": 1.4156311624620588,
-      "gimbal_delay_seconds": 0.040217049712,
-      "rotor_delay_seconds": 0.2,
       "selected": true
     },
     {
-      "cost": 1.4302503852380697,
-      "gimbal_delay_seconds": 0.045215733641,
+      "cost": 1.4217659992006666,
+      "gimbal_delay_seconds": 0.041392101732,
+      "rotor_delay_seconds": 0.195002269745,
+      "selected": false
+    },
+    {
+      "cost": 1.4246614684939163,
+      "gimbal_delay_seconds": 0.031394733874,
+      "rotor_delay_seconds": 0.2,
+      "selected": false
+    },
+    {
+      "cost": 1.4220338228331242,
+      "gimbal_delay_seconds": 0.036393417803,
+      "rotor_delay_seconds": 0.2,
+      "selected": false
+    },
+    {
+      "cost": 1.4228861481814292,
+      "gimbal_delay_seconds": 0.041392101732,
       "rotor_delay_seconds": 0.2,
       "selected": false
     }

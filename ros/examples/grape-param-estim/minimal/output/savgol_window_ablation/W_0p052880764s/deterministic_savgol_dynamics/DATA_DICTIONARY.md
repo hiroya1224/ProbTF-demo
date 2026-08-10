@@ -314,149 +314,76 @@ The per-W directory additionally contains the confidence/ridge PDF and the
 likelihood/posterior JSON files.  Use `--skip-confidence` only when a faster
 pure deterministic ablation is desired.
 
-## 7. Command timestamp diagnostics
+## 7. Command lags
 
-The SG estimator does not assume a command publish period.  For each bag it
-measures the positive intervals between recorded rotor-command timestamps and
-between recorded gimbal-command timestamps and reports minimum/median/mean/
-maximum interval and the reciprocal of the median interval.  The selected lag
-is also reported as a ratio to each channel's measured median interval.  These
-quantities are diagnostics only; they do not set the lag initial value.  The
-default lag initial value remains exactly zero.
-
-## 8. Raw inverse-dynamics residual wrench
-
-In addition to the retained `external_wrench.pdf` (the trajectory-fitted replay
-wrench), each SG bag now contains
+The recorded control input contains two separately timestamped command channels:
 
 ```text
-raw_residual_wrench.pdf
+rotor_command   : four rotor thrust commands
+gimbal_command  : four gimbal angle commands
 ```
 
-This plots `required_body_wrench - modeled_body_wrench` directly at the raw
-centered SG dynamics-evaluation timestamps.  It does not pass through the
-legacy uniform forward-rollout grid and it is not altered by the subsequent
-external-wrench replay optimization.  Its six-axis mean/std/RMS are stored in
-`diagnostics.raw_inverse_dynamics_residual_wrench_statistics` and are included
-explicitly in the W-ablation comparison.  This is the preferred diagnostic for
-checking whether a periodic wrench pattern moves or disappears as W changes.
+The estimator therefore uses two lag coordinates, `rotor_delay_seconds` and
+`gimbal_delay_seconds`.  A single common lag is not imposed.
 
+For each channel, the median positive recorded timestamp interval is the
+channel's data-derived publish period.  Unless explicitly overridden, the
+initial lag is one measured publish period for that channel.
 
-## 9. Residual-wrench uncentered squared parameter objective
+### Smooth continuation
 
-The SG deterministic physical-parameter objective now uses the residual body
-wrench itself.  For vehicle-model reference scales
+The smooth command is the ZOH initial value plus a sum of command jumps, with
+each Heaviside jump replaced by a quintic smoothstep.  Transition supports are
+allowed to overlap.  The default transition half-widths are `4, 2, 1, 0.5`
+times each channel's measured publish period.
 
-```math
-L_* = \sqrt{\operatorname{tr}(J_*)/(3m_*)},\qquad
-F_* = m_* g,\qquad
-\tau_* = F_* L_*,
-```
+Both lag columns are included in the analytic Jacobian.  Optimizer diagnostics
+record rotor/gimbal lag gradients and finite-difference checks along both lag
+axes.
 
-each residual wrench is nondimensionalized by `F_*` for force and `tau_*` for
-torque.  The data term is the sample-accumulated uncentered squared residual:
+### Strict-ZOH refinement
 
-```math
-\frac{1}{2}\sum_b \omega_b
-\sum_k \|\bar w_{b,k}(\theta)\|^2.
-```
+The previous fixed `±4 ms`, `1 ms`, `top-k=3` polish is removed.  Strict ZOH is
+screened on a 2-D lag grid whose axis steps are the measured rotor and gimbal
+publish periods.  The initial grid spans one period around the smooth result.
+If the best point lies on an edge, that axis is extended by one publish period
+in the improving direction.  Physical parameters are optimized at the selected
+lag pair, the lag grid is screened again, and the alternation stops when the
+same pair remains selected.
 
-For a fixed bag this has the same data-only minimizer as its empirical second
-moment; the sample sum is retained when combining the data term with the
-Gaussian prior so additional observations accumulate evidence instead of being
-averaged away.
+Detailed history is written to `delay_profile.json`, `delay_profile.txt`, the
+text-only `delay_profile.pdf`, and `optimizer_diagnostics.json`.
 
-The residual mean is not subtracted.  A constant or slowly varying systematic
-wrench therefore remains visible to the physical-parameter optimizer.  The
-Gaussian physical prior remains a separate residual block in the same solve.
+## 8. Deterministic parameter objective
 
-The historical acceleration-residual loss, when present in per-bag diagnostic
-payloads produced by the compatibility backend, is retained only under
-`legacy_acceleration_residual_loss_diagnostic` and is not the SG parameter data
-objective.
+The deterministic SG objective is again the original acceleration-domain
+gradient-matching objective.  Translation uses body-frame acceleration error;
+rotation uses angular-acceleration error with the reference inertia/mass metric.
+The bag data term is the mean squared residual over valid centered SG times.
+The Gaussian physical prior is a separate residual block.
 
-## 10. Optimizer termination and Jacobian diagnostics
+Residual body-wrench mean, covariance, second moment, standard deviation and RMS
+remain diagnostics; they are not the deterministic parameter objective.
 
-`ftol` and `xtol` are disabled by default for the SG estimator.  Unless the user
-explicitly supplies either option, the least-squares solve stops by `gtol` or by
-the configured evaluation limit.  This prevents a small change in objective or
-step size from being reported as convergence while the gradient optimality is
-still large.
+## 9. Residual wrench and confidence
 
-Every smooth-lag and strict-ZOH solve stores optimizer diagnostics including:
+A raw residual-wrench sample is retained at every valid centered SG evaluation
+time.  No confidence-specific temporal thinning is applied.
 
-- initial/final cost and residual norm;
-- initial/final gradient L2 and infinity norms;
-- coordinate step norm and cost reduction;
-- Jacobian singular values, numerical rank, and nonzero-subspace condition
-  number;
-- whether the gradient tolerance was actually satisfied;
-- one deterministic finite-difference directional check of the analytic Jacobian
-  along the final negative-gradient direction.
+The temporary residual-parameter absorbability and residual-implied parameter
+bias/covariance/second-moment diagnostics are removed.  The data-only SVD,
+information matrix, residual-wrench Gaussian model, and Gaussian-prior fusion
+remain.
 
-The root output directory additionally contains:
+Moore--Penrose pseudoinverse is used only where rank-deficient information or
+precision matrices are intentionally part of the model.
 
-```text
-optimizer_diagnostics.json
-optimizer_diagnostics.txt
-optimizer_diagnostics.pdf
-```
+## 10. Numerical failure policy
 
-The PDF is text-only; no optimizer diagnostic plot is added.
+Invalid optimizer trials are not replaced by an artificial large residual or a
+zero Jacobian.  Numerical exceptions propagate at the point where the actual
+calculation becomes invalid and stop the run.
 
-## 11. Residual absorbability and residual-implied parameter error
-
-The confidence analysis also evaluates the same reference-scaled residual
-wrench and its 14-D parameter Jacobian without centering.  With stacked
-quantities
-
-```math
-\bar w(\theta+\delta) \simeq \bar w(\theta) + A\delta,
-```
-
-the best local parameter correction to the realized residual is
-
-```math
-\delta_* = -A^\dagger \bar w.
-```
-
-The residual is decomposed into the component locally absorbable by the current
-14-D parameter chart and the orthogonal remainder.  JSON records the total and
-per-wrench-component absorbable second-moment fractions, the best local
-parameter correction, and the remaining wrench time series/statistics.
-
-Under the currently declared iid Gaussian residual-wrench model with empirical
-mean `mu_w` and covariance `Sigma_w`, the same pseudoinverse maps the residual
-model to parameter error:
-
-```math
-b_\theta = -A^\dagger (\mathbf 1\otimes\mu_w),
-```
-
-```math
-\Sigma_\theta = A^\dagger
-(I\otimes\Sigma_w)(A^\dagger)^T,
-```
-
-```math
-M_\theta = \Sigma_\theta + b_\theta b_\theta^T.
-```
-
-These are stored in dimensionless chart coordinates, raw 14-D chart
-coordinates, and first-order physical parameter coordinates.  The confidence
-output directory additionally contains:
-
-```text
-residual_parameter_diagnostics.txt
-residual_parameter_diagnostics.pdf
-```
-
-The PDF is text-only.  The full numerical objects are also stored in
-`confidence.json`, and the residual-implied parameter error is copied into
-`parameter_posterior.json` as a separate diagnostic object rather than silently
-replacing the prior/posterior covariance.
-
-The W-ablation root additionally contains text-only
-`ablation_diagnostics.txt/pdf`, with per-window optimizer termination,
-Jacobian-check, residual-sample-count, and absorbability summaries.  The same
-values are stored in `ablation.json`.
+Physical inertia dynamics use solve-based linear algebra and therefore fail on
+a genuinely singular physical inertia.  Pseudoinverse is reserved for intended
+rank-deficient information/precision calculations.

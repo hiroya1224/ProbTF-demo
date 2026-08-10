@@ -633,7 +633,6 @@ class FullSixDofPlant:
         # Ridge/near-singular numerical states must not require an ordinary
         # matrix inverse.  VehicleParameters still validates the physical
         # inertia; pinv is used here only as the stable numerical operator.
-        self._inverse_inertia = np.linalg.pinv(parameters.inertia, hermitian=True)
 
     def total_body_wrench(
         self,
@@ -702,12 +701,13 @@ class FullSixDofPlant:
             np.asarray((0.0, 0.0, -GRAVITY))
             + rotation @ wrench[:3] / self.parameters.mass
         )
-        angular_acceleration = self._inverse_inertia @ (
+        angular_acceleration = np.linalg.solve(
+            self.parameters.inertia,
             wrench[3:]
             - np.cross(
                 state.angular_velocity,
                 self.parameters.inertia @ state.angular_velocity,
-            )
+            ),
         )
         return np.concatenate(
             (

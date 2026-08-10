@@ -314,29 +314,76 @@ The per-W directory additionally contains the confidence/ridge PDF and the
 likelihood/posterior JSON files.  Use `--skip-confidence` only when a faster
 pure deterministic ablation is desired.
 
-## 7. Command timestamp diagnostics
+## 7. Command lags
 
-The SG estimator does not assume a command publish period.  For each bag it
-measures the positive intervals between recorded rotor-command timestamps and
-between recorded gimbal-command timestamps and reports minimum/median/mean/
-maximum interval and the reciprocal of the median interval.  The selected lag
-is also reported as a ratio to each channel's measured median interval.  These
-quantities are diagnostics only; they do not set the lag initial value.  The
-default lag initial value remains exactly zero.
-
-## 8. Raw inverse-dynamics residual wrench
-
-In addition to the retained `external_wrench.pdf` (the trajectory-fitted replay
-wrench), each SG bag now contains
+The recorded control input contains two separately timestamped command channels:
 
 ```text
-raw_residual_wrench.pdf
+rotor_command   : four rotor thrust commands
+gimbal_command  : four gimbal angle commands
 ```
 
-This plots `required_body_wrench - modeled_body_wrench` directly at the raw
-centered SG dynamics-evaluation timestamps.  It does not pass through the
-legacy uniform forward-rollout grid and it is not altered by the subsequent
-external-wrench replay optimization.  Its six-axis mean/std/RMS are stored in
-`diagnostics.raw_inverse_dynamics_residual_wrench_statistics` and are included
-explicitly in the W-ablation comparison.  This is the preferred diagnostic for
-checking whether a periodic wrench pattern moves or disappears as W changes.
+The estimator therefore uses two lag coordinates, `rotor_delay_seconds` and
+`gimbal_delay_seconds`.  A single common lag is not imposed.
+
+For each channel, the median positive recorded timestamp interval is the
+channel's data-derived publish period.  Unless explicitly overridden, the
+initial lag is one measured publish period for that channel.
+
+### Smooth continuation
+
+The smooth command is the ZOH initial value plus a sum of command jumps, with
+each Heaviside jump replaced by a quintic smoothstep.  Transition supports are
+allowed to overlap.  The default transition half-widths are `4, 2, 1, 0.5`
+times each channel's measured publish period.
+
+Both lag columns are included in the analytic Jacobian.  Optimizer diagnostics
+record rotor/gimbal lag gradients and finite-difference checks along both lag
+axes.
+
+### Strict-ZOH refinement
+
+The previous fixed `±4 ms`, `1 ms`, `top-k=3` polish is removed.  Strict ZOH is
+screened on a 2-D lag grid whose axis steps are the measured rotor and gimbal
+publish periods.  The initial grid spans one period around the smooth result.
+If the best point lies on an edge, that axis is extended by one publish period
+in the improving direction.  Physical parameters are optimized at the selected
+lag pair, the lag grid is screened again, and the alternation stops when the
+same pair remains selected.
+
+Detailed history is written to `delay_profile.json`, `delay_profile.txt`, the
+text-only `delay_profile.pdf`, and `optimizer_diagnostics.json`.
+
+## 8. Deterministic parameter objective
+
+The deterministic SG objective is again the original acceleration-domain
+gradient-matching objective.  Translation uses body-frame acceleration error;
+rotation uses angular-acceleration error with the reference inertia/mass metric.
+The bag data term is the mean squared residual over valid centered SG times.
+The Gaussian physical prior is a separate residual block.
+
+Residual body-wrench mean, covariance, second moment, standard deviation and RMS
+remain diagnostics; they are not the deterministic parameter objective.
+
+## 9. Residual wrench and confidence
+
+A raw residual-wrench sample is retained at every valid centered SG evaluation
+time.  No confidence-specific temporal thinning is applied.
+
+The temporary residual-parameter absorbability and residual-implied parameter
+bias/covariance/second-moment diagnostics are removed.  The data-only SVD,
+information matrix, residual-wrench Gaussian model, and Gaussian-prior fusion
+remain.
+
+Moore--Penrose pseudoinverse is used only where rank-deficient information or
+precision matrices are intentionally part of the model.
+
+## 10. Numerical failure policy
+
+Invalid optimizer trials are not replaced by an artificial large residual or a
+zero Jacobian.  Numerical exceptions propagate at the point where the actual
+calculation becomes invalid and stop the run.
+
+Physical inertia dynamics use solve-based linear algebra and therefore fail on
+a genuinely singular physical inertia.  Pseudoinverse is reserved for intended
+rank-deficient information/precision calculations.

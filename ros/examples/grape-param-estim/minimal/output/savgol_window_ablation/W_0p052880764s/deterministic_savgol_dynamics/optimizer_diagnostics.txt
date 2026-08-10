@@ -1,19 +1,18 @@
 Savitzky-Golay optimizer diagnostics
 
-Objective: weighted empirical uncentered second moment of reference-scaled residual body wrench; no residual mean subtraction
+Objective: mean squared translational/angular acceleration residual; angular residual uses the reference inertia/mass metric
 Tolerances: {'ftol': None, 'xtol': None, 'gtol': 1e-06, 'note': 'ftol and xtol are disabled by default in the SG estimator; gtol or max_nfev terminates the solve unless explicitly overridden'}
 
 Selected strict-ZOH solve
-status=0 success=False nfev=80 njev=16
+status=0 success=False nfev=80 njev=6
 message=The maximum number of function evaluations is exceeded.
-reported optimality=3.337655968493891e-06
-initial={'cost': 842.7235388823646, 'gradient_inf_norm': 0.3992528868852787, 'gradient_l2_norm': 0.4116537044626169, 'jacobian': {'condition_number_nonzero_subspace': 93.33367928077757, 'numerical_rank': 13, 'numerical_tolerance': 3.874280675564741e-10, 'singular_values': [407.6684347383664, 380.1432051432364, 295.14671076675495, 45.1924442978017, 21.37779972092004, 16.22039530919293, 14.103879147185037, 12.166339300771662, 12.020792104651965, 9.46265573015221, 8.356918421260398, 7.44614946253298, 4.367859896661411, 9.93430660519622e-15]}, 'residual_l2_norm': 41.05419683497327}
-final={'cost': 842.7235262339176, 'gradient_inf_norm': 3.337655968493891e-06, 'gradient_l2_norm': 4.484176143224626e-06, 'jacobian': {'condition_number_nonzero_subspace': 93.3238309291668, 'numerical_rank': 13, 'numerical_tolerance': 3.874435583861176e-10, 'singular_values': [407.68473485392946, 380.1585808344055, 295.1587905274326, 45.19430596705722, 21.373209876703203, 16.221337777424083, 14.10509596749835, 12.16761304366537, 12.027654797647761, 9.466137698907506, 8.357751565366835, 7.446636554782577, 4.368495493539736, 1.1568073821019579e-14]}, 'residual_l2_norm': 41.05419652688182}
-coordinate_step_l2_norm=0.00047593948895730806
-cost_reduction=1.2648446954699466e-05
+reported optimality=1.2624563623830909e-05
+initial={'cost': 861.254740620267, 'gradient_inf_norm': 0.0426175778391098, 'gradient_l2_norm': 0.06235242176017062, 'jacobian': {'condition_number_nonzero_subspace': 429.790154554383, 'numerical_rank': 14, 'numerical_tolerance': 2.1551810338576138e-10, 'singular_values': [226.77739488311005, 214.30129585984474, 175.24770669792971, 48.58633918565074, 44.66661191305999, 25.860229205276834, 13.131141924328379, 12.18761005143159, 11.742433227647608, 10.944721334478631, 9.769584111718158, 3.823490926142325, 3.7782333506665684, 0.5276467887409809]}, 'residual_l2_norm': 41.50312616226076}
+final={'cost': 861.2547387045346, 'gradient_inf_norm': 1.2624563623830909e-05, 'gradient_l2_norm': 1.3004253257283628e-05, 'jacobian': {'condition_number_nonzero_subspace': 430.4615570220279, 'numerical_rank': 14, 'numerical_tolerance': 2.1551881121274534e-10, 'singular_values': [226.7781396890309, 214.3026209499731, 175.24669554926157, 48.586489861807316, 44.66666579363386, 25.860377259944425, 13.130820795909754, 12.18738952056772, 11.742540723844222, 10.94485492749247, 9.769788009515693, 3.8235620466500984, 3.77818764529506, 0.5268255341032139]}, 'residual_l2_norm': 41.50312611610202}
+coordinate_step_l2_norm=0.0008234398350711468
+cost_reduction=1.915732354973443e-06
 gradient_tolerance_satisfied=False
-finite_difference_max_relative_error=1.1675691017274014e-07
-finite_difference_directional_checks=[{'analytic_l2_norm': 20.516676967475735, 'difference_l2_norm': 2.3954639750210094e-06, 'direction': 'negative_gradient', 'finite_difference_l2_norm': 20.516678383120585, 'relative_error': 1.1675691017274014e-07, 'scheme': 'central', 'step': 0.01396464855728762}]
-invalid_trial_evaluations={'invalid_evaluation_count': 0, 'invalid_examples': [], 'invalid_exception_counts': {}, 'penalty_residual_l2_norm': 41054196.83497327, 'policy': 'invalid floating-point trial points are assigned a large fixed residual so the trust-region trial is rejected; the scientific parameter chart itself remains unbounded'}
+finite_difference_max_relative_error=4.636641855461156e-12
+finite_difference_directional_checks=[{'analytic_l2_norm': 187.6432727786216, 'difference_l2_norm': 8.700346524610719e-10, 'direction': 'negative_gradient', 'finite_difference_l2_norm': 187.64327277856574, 'relative_error': 4.636641855461156e-12, 'scheme': 'central', 'step': 6.0554544523933395e-06}]
 
 All smoothstep and strict-ZOH stage details are in optimizer_diagnostics.json.

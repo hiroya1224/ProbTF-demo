@@ -25,7 +25,7 @@ import savgol_trajectory as sg
 import savgol_dynamics_confidence as confidence
 
 
-SCHEMA = "grape-param-estim/savgol-window-ablation/v2"
+SCHEMA = "grape-param-estim/savgol-window-ablation/v3"
 DEFAULT_WINDOWS_SECONDS = (0.5, 1.0, 1.5, 2.0)
 
 
@@ -70,7 +70,7 @@ def _deduplicated(values: Sequence[float]) -> list[float]:
 def _minimum_windows(
     config_path: Path,
 ) -> tuple[float, list[dict[str, Any]]]:
-    config = estimator.base.multi.load_multi_bag_config(
+    config = estimator.multi.load_multi_bag_config(
         config_path.expanduser().resolve()
     )
     per_bag: list[dict[str, Any]] = []
@@ -241,6 +241,8 @@ def _summary_from_result(
         "result_json": str(result_path),
         "elapsed_seconds": float(root.get("elapsed_seconds", math.nan)),
         "selected_delay_seconds": float(selection["delay_seconds"]),
+        "selected_rotor_delay_seconds": float(selection.get("rotor_delay_seconds", selection["delay_seconds"])),
+        "selected_gimbal_delay_seconds": float(selection.get("gimbal_delay_seconds", selection["delay_seconds"])),
         "optimizer_status": optimizer.get("status") if isinstance(optimizer, Mapping) else None,
         "optimizer_success": optimizer.get("success") if isinstance(optimizer, Mapping) else None,
         "optimizer_nfev": optimizer.get("nfev") if isinstance(optimizer, Mapping) else None,
@@ -259,12 +261,6 @@ def _summary_from_result(
         "rotor_command_median_interval_seconds": rotor_median_interval,
         "gimbal_command_median_interval_seconds": gimbal_median_interval,
         "joint_dynamics_loss": float(selection["joint_dynamics_loss"]),
-        "joint_residual_wrench_accumulated_squared_loss_dimensionless": float(
-            selection.get(
-                "joint_residual_wrench_accumulated_squared_loss_dimensionless",
-                selection["joint_dynamics_loss"],
-            )
-        ),
         "gaussian_prior_cost": float(selection["gaussian_prior_cost"]),
         "joint_objective_cost": float(selection["joint_objective_cost"]),
         "mass_kg": float(parameters["mass_kg"]),
@@ -307,8 +303,8 @@ def _summary_from_result(
 def _write_ablation_pdf(path: Path, completed: Sequence[Mapping[str, Any]]) -> None:
     if not completed:
         return
-    plt = estimator.base.plt
-    PdfPages = estimator.base.PdfPages
+    plt = estimator.plt
+    PdfPages = estimator.PdfPages
     ordered = sorted(completed, key=lambda item: float(item["window_seconds"]))
     windows = np.asarray([item["window_seconds"] for item in ordered], dtype=float)
 
@@ -318,12 +314,13 @@ def _write_ablation_pdf(path: Path, completed: Sequence[Mapping[str, Any]]) -> N
     with PdfPages(path) as pdf:
         figure, axes = plt.subplots(2, 2, figsize=(11.7, 8.3), constrained_layout=True)
         axes[0, 0].plot(windows, vector("joint_dynamics_loss"), marker="o")
-        axes[0, 0].set_ylabel("residual-wrench accumulated squared loss")
+        axes[0, 0].set_ylabel("acceleration-residual dynamics loss")
         axes[0, 1].plot(windows, vector("gaussian_prior_cost"), marker="o")
         axes[0, 1].set_ylabel("Gaussian prior cost")
         axes[1, 0].plot(windows, vector("joint_objective_cost"), marker="o")
         axes[1, 0].set_ylabel("joint objective cost")
-        axes[1, 1].plot(windows, 1000.0 * vector("selected_delay_seconds"), marker="o", label="selected lag")
+        axes[1, 1].plot(windows, 1000.0 * vector("selected_rotor_delay_seconds"), marker="o", label="rotor lag")
+        axes[1, 1].plot(windows, 1000.0 * vector("selected_gimbal_delay_seconds"), marker="o", label="gimbal lag")
         rotor_period = vector("rotor_command_median_interval_seconds")
         gimbal_period = vector("gimbal_command_median_interval_seconds")
         if np.any(np.isfinite(rotor_period)):
@@ -494,10 +491,9 @@ def _ablation_diagnostic_lines(cases: Sequence[Mapping[str, Any]]) -> list[str]:
         lines.extend(
             [
                 "W={:.12g} s".format(float(item["window_seconds"])),
-                "  residual-wrench accumulated squared loss={}".format(
-                    item.get("joint_residual_wrench_accumulated_squared_loss_dimensionless")
-                ),
-                "  selected delay={} s".format(item.get("selected_delay_seconds")),
+                "  acceleration-residual dynamics loss={}".format(item.get("joint_dynamics_loss")),
+                "  selected rotor delay={} s".format(item.get("selected_rotor_delay_seconds")),
+                "  selected gimbal delay={} s".format(item.get("selected_gimbal_delay_seconds")),
                 "  optimizer status={} success={} nfev={} optimality={}".format(
                     item.get("optimizer_status"),
                     item.get("optimizer_success"),
@@ -516,12 +512,6 @@ def _ablation_diagnostic_lines(cases: Sequence[Mapping[str, Any]]) -> list[str]:
                 ),
                 "  finite-difference Jacobian max relative error={}".format(
                     item.get("optimizer_finite_difference_max_relative_error")
-                ),
-                "  residual absorbable fraction={}".format(
-                    item.get("residual_absorbable_fraction")
-                ),
-                "  residual irreducible fraction={}".format(
-                    item.get("residual_irreducible_fraction")
                 ),
                 "  confidence residual sample count={}".format(
                     item.get("confidence_residual_wrench_sample_count")
@@ -707,28 +697,6 @@ def run(arguments: argparse.Namespace, passthrough: Sequence[str] = ()) -> int:
                         "posterior_physical_std": np.asarray(
                             posterior_physical["std"], dtype=float
                         ),
-                            "residual_absorbable_fraction": float(
-                                confidence_payload["residual_parameter_diagnostics"][
-                                    "absorbability"
-                                ]["absorbable_fraction"]
-                            ),
-                            "residual_irreducible_fraction": float(
-                                confidence_payload["residual_parameter_diagnostics"][
-                                    "absorbability"
-                                ]["irreducible_fraction"]
-                            ),
-                            "residual_implied_parameter_bias_raw_coordinate": np.asarray(
-                                confidence_payload["residual_parameter_diagnostics"][
-                                    "residual_implied_parameter_error"
-                                ]["mean_induced_bias_raw_coordinate"],
-                                dtype=float,
-                            ),
-                            "residual_implied_parameter_std_raw_coordinate": np.asarray(
-                                confidence_payload["residual_parameter_diagnostics"][
-                                    "residual_implied_parameter_error"
-                                ]["std_raw_coordinate"],
-                                dtype=float,
-                            ),
                         }
                     )
 
@@ -771,11 +739,11 @@ def run(arguments: argparse.Namespace, passthrough: Sequence[str] = ()) -> int:
         },
     }
     diagnostic_lines = _ablation_diagnostic_lines(cases)
-    estimator.base.strict._write_text(
+    estimator.strict._write_text(
         output_directory / "ablation_diagnostics.txt",
         diagnostic_lines,
     )
-    estimator.base._write_parameters_pdf(
+    estimator._write_parameters_pdf(
         output_directory / "ablation_diagnostics.pdf",
         diagnostic_lines,
     )
@@ -806,10 +774,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise SystemExit(
             "--window-seconds/--output-dir are controlled by the ablation runner"
         )
-    try:
-        return run(arguments, passthrough)
-    except ValueError as error:
-        raise SystemExit(str(error)) from error
+    return run(arguments, passthrough)
 
 
 if __name__ == "__main__":

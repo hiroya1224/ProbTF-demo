@@ -1,0 +1,18 @@
+Savitzky-Golay optimizer diagnostics
+
+Objective: mean squared translational/angular acceleration residual; angular residual uses the reference inertia/mass metric
+Tolerances: {'ftol': None, 'xtol': None, 'gtol': 1e-06, 'note': 'ftol and xtol are disabled by default in the SG estimator; gtol or max_nfev terminates the solve unless explicitly overridden'}
+
+Selected strict-ZOH solve
+status=1 success=True nfev=4 njev=4
+message=`gtol` termination condition is satisfied.
+reported optimality=7.994731454630255e-08
+initial={'cost': 1.49807485555288, 'gradient_inf_norm': 0.03721642693152383, 'gradient_l2_norm': 0.038166546656475335, 'jacobian': {'condition_number_nonzero_subspace': 392.16734667852205, 'numerical_rank': 14, 'numerical_tolerance': 7.625698345400176e-11, 'singular_values': [119.16409516580167, 118.0485709016932, 102.52282387289964, 48.598181393547044, 44.722939700698284, 25.861900072383975, 12.985440275976076, 11.726756394495961, 11.30984968075327, 11.038066571247748, 9.886017651947542, 3.7962549118380964, 3.793355081210535, 0.30386031926183305]}, 'residual_l2_norm': 1.7309389680476202}
+final={'cost': 1.4980747545219253, 'gradient_inf_norm': 7.994731454630255e-08, 'gradient_l2_norm': 1.2697207475702364e-07, 'jacobian': {'condition_number_nonzero_subspace': 392.2063177156247, 'numerical_rank': 14, 'numerical_tolerance': 7.62571047656735e-11, 'singular_values': [119.16428473526719, 118.04878122332853, 102.52285109566907, 48.59817439060614, 44.722937318696246, 25.861902539610643, 12.985442047446412, 11.726802643584502, 11.309920062586333, 11.03809148578758, 9.886053888640639, 3.796257815013618, 3.793352670999031, 0.3038306099435887]}, 'residual_l2_norm': 1.7309389096799028}
+coordinate_step_l2_norm=5.622224279402233e-05
+cost_reduction=1.0103095471336587e-07
+gradient_tolerance_satisfied=True
+finite_difference_max_relative_error=8.60942559528201e-12
+finite_difference_directional_checks=[{'analytic_l2_norm': 106.12653692469037, 'difference_l2_norm': 9.136885233395163e-10, 'direction': 'negative_gradient', 'finite_difference_l2_norm': 106.1265369248583, 'relative_error': 8.60942559528201e-12, 'scheme': 'central', 'step': 6.0554544523933395e-06}]
+
+All smoothstep and strict-ZOH stage details are in optimizer_diagnostics.json.

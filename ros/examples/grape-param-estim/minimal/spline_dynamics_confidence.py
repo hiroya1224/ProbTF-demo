@@ -804,20 +804,21 @@ def _trajectory_reconstruction(
 
     observations = bag.direct_problem.observations
 
+    selected_gimbal_delay = (
+        selected.delay_seconds if getattr(selected, "gimbal_delay_seconds", None) is None
+        else float(selected.gimbal_delay_seconds)
+    )
+    initial_gimbal_delay = float(getattr(arguments, "initial_gimbal_delay", initial_delay))
     reference_rollout = deterministic.forward_rollout(
         bag,
-        np.zeros(
-            deterministic.PHYSICAL_DIMENSION,
-            dtype=float,
-        ),
+        np.zeros(deterministic.PHYSICAL_DIMENSION, dtype=float),
         initial_delay,
         reference_parameters,
+        gimbal_delay=initial_gimbal_delay,
     )
     parameter_rollout = deterministic.forward_rollout(
-        bag,
-        selected.physical_coordinate,
-        selected.delay_seconds,
-        reference_parameters,
+        bag, selected.physical_coordinate, selected.delay_seconds, reference_parameters,
+        gimbal_delay=selected_gimbal_delay,
     )
 
     print(
@@ -835,6 +836,7 @@ def _trajectory_reconstruction(
         dynamics_evaluation,
         arguments,
         reference_parameters,
+        gimbal_delay=selected_gimbal_delay,
     )
     replay_rollout = wrench_evaluation.simulation
     replay_observations = deterministic._observations_at_times(

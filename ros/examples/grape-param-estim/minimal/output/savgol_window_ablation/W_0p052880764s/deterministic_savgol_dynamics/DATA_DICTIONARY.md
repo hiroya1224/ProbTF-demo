@@ -82,8 +82,13 @@ components.
 ## 2. Parameter-estimation inputs
 
 `vehicle_model.json` is deterministic model/chart/geometry input only.
-`parameter_prior.json` is the independent finite Gaussian physical-parameter
-prior.
+Its zero coordinate is the deterministic optimizer's initial point.
+
+`parameter_prior.json` is accepted for workflow compatibility with the
+confidence/posterior stage. It is **not** appended to the deterministic SG
+least-squares objective and therefore does not move the deterministic point
+estimate. Gaussian-prior fusion is performed only in
+`savgol_dynamics_confidence.py`.
 
 The estimated physical chart is the same 14-dimensional chart as the current
 spline estimator:
@@ -93,9 +98,8 @@ spline estimator:
 3. body-frame CoG position x/y/z;
 4. four independent rotor force-effectiveness log scales.
 
-Command lag is searched separately.  Its default initial value in this SG
-estimator is exactly `0 s`; a nonzero value is used only when explicitly passed
-with `--initial-delay`.
+Command lag is searched separately. For each command channel the default
+initial lag is one measured median publish period unless explicitly overridden.
 
 ## 3. Per-bag output files
 
@@ -301,9 +305,11 @@ there is no confidence-specific temporal subsampling.
 
 The retained first-layer residual-wrench model is Gaussian with an empirical
 nonzero mean and 6x6 covariance estimated from all of those residual-wrench
-samples.  The raw data-only SVD/ridge information, local Gaussian likelihood
-factor, Gaussian-prior fusion, trajectory reconstruction check, and confidence
-PDF pages retain their previous meanings.  The translation local-LS derivative
+samples. The deterministic point around which this layer is built is itself
+data-only. The raw data-only SVD/ridge information and local Gaussian likelihood
+factor are constructed first; Gaussian-prior fusion is then applied only when
+forming the posterior. The trajectory reconstruction check and confidence PDF
+pages retain their previous meanings. The translation local-LS derivative
 covariance remains available as a separate diagnostic and is not used directly
 in this residual-wrench likelihood.
 
@@ -370,11 +376,20 @@ text-only `delay_profile.pdf`, and `optimizer_diagnostics.json`.
 
 ## 8. Deterministic parameter objective
 
-The deterministic SG objective is again the original acceleration-domain
-gradient-matching objective.  Translation uses body-frame acceleration error;
-rotation uses angular-acceleration error with the reference inertia/mass metric.
-The bag data term is the mean squared residual over valid centered SG times.
-The Gaussian physical prior is a separate residual block.
+The deterministic SG objective is the acceleration-domain
+gradient-matching **data term only**. Translation uses body-frame acceleration
+error; rotation uses angular-acceleration error with the reference inertia/mass
+metric. The bag data term is the mean squared residual over valid centered SG
+times.
+
+No Gaussian physical-prior residual is appended to the deterministic residual
+vector. The vehicle model defines the 14-D coordinate chart and supplies the
+zero-coordinate initial point; it does not regularize the solve.
+
+The split-lag physical solves use SciPy `least_squares` with `method="trf"`,
+`tr_solver="exact"`, and `x_scale="jac"`. Thus the dense trust-region solve is
+rank-aware without introducing a probabilistic prior. The reported Jacobian
+spectrum remains the diagnostic for exact or near ridge directions.
 
 Residual body-wrench mean, covariance, second moment, standard deviation and RMS
 remain diagnostics; they are not the deterministic parameter objective.
@@ -401,3 +416,24 @@ calculation becomes invalid and stop the run.
 Physical inertia dynamics use solve-based linear algebra and therefore fail on
 a genuinely singular physical inertia.  Pseudoinverse is reserved for intended
 rank-deficient information/precision calculations.
+
+
+## 11. Deterministic/prior responsibility
+
+For this estimator version the responsibility boundary is explicit:
+
+```text
+vehicle-model reference
+        |
+        v
+data-only deterministic SG fit
+        |
+        +--> residual wrench / Jacobian / ridge / likelihood
+                                      |
+parameter_prior.json -----------------+--> posterior
+```
+
+The required `--prior-json` CLI argument is retained only so the existing
+window-ablation workflow can invoke the downstream confidence/posterior stage
+without a second configuration path. The deterministic objective is unchanged
+if the prior file's numerical mean or covariance is changed.

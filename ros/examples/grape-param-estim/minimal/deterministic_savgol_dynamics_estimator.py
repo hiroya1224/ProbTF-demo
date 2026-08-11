@@ -4152,7 +4152,7 @@ _SharedSplineDynamicsProblem = SplineDynamicsProblem
 _shared_parameter_lines = _parameter_lines
 _shared_run = run
 
-SCHEMA = "grape-param-estim/minimal-deterministic-savgol-dynamics/v4"
+SCHEMA = "grape-param-estim/minimal-deterministic-savgol-dynamics/v6"
 OUTPUT_SUBDIRECTORY = "deterministic_savgol_dynamics"
 DATA_DICTIONARY_SOURCE = Path(__file__).resolve().with_name(
     "deterministic_savgol_dynamics_data_dictionary.md"
@@ -4609,6 +4609,97 @@ class SplineDynamicsProblem(_SharedSplineDynamicsProblem):
         return thrust, gimbal, state_jacobian
 
 
+
+    def _evaluate_joint(
+        self,
+        *,
+        physical_coordinate: np.ndarray,
+        delay: float,
+        dimension: int,
+        smooth_mode: bool,
+        width_fraction: float,
+    ) -> JointDynamicsEvaluation:
+        """Evaluate the deterministic SG objective using data only.
+
+        The vehicle-model reference defines the local physical coordinate chart
+        and the zero-coordinate initialization. No Gaussian parameter-prior
+        residual is appended here. Prior fusion belongs to the downstream
+        confidence/posterior layer.
+        """
+
+        decoded, parameter_jacobian = self._decode(
+            physical_coordinate,
+            delay,
+            dimension,
+        )
+        residual_blocks = []
+        jacobian_blocks = []
+        bag_evaluations = []
+        data_loss = 0.0
+
+        for bag in self.bags:
+            evaluation = self._evaluate_bag(
+                bag,
+                decoded,
+                parameter_jacobian,
+                dimension,
+                smooth_mode,
+                width_fraction,
+            )
+            bag_evaluations.append(evaluation)
+            root_scale = math.sqrt(
+                bag.normalized_weight / bag.collocation_time.size
+            )
+            residual_blocks.append(
+                root_scale * evaluation.acceleration_residual.ravel()
+            )
+            jacobian_blocks.append(
+                root_scale
+                * evaluation.acceleration_jacobian.reshape(
+                    -1,
+                    dimension,
+                )
+            )
+            data_loss += (
+                bag.normalized_weight * evaluation.dynamics_loss
+            )
+
+        residual = np.concatenate(residual_blocks)
+        jacobian = np.vstack(jacobian_blocks)
+        if (
+            np.any(~np.isfinite(residual))
+            or np.any(~np.isfinite(jacobian))
+        ):
+            raise FloatingPointError(
+                "joint SG dynamics data objective is non-finite"
+            )
+
+        objective_cost = 0.5 * float(residual @ residual)
+        if not np.isclose(
+            objective_cost,
+            data_loss,
+            rtol=1.0e-11,
+            atol=1.0e-13,
+        ):
+            raise RuntimeError(
+                "data-only SG residual scaling is inconsistent with "
+                "the reported data loss"
+            )
+
+        return JointDynamicsEvaluation(
+            residual=residual,
+            jacobian=jacobian,
+            bag_evaluations=tuple(bag_evaluations),
+            decoded=decoded,
+            physical_coordinate=physical_coordinate.copy(),
+            delay_seconds=delay,
+            data_loss=float(data_loss),
+            # Historical dataclass field retained for ABI compatibility.
+            # It is exactly zero because no prior residual exists.
+            prior_cost=0.0,
+        )
+
+
     def evaluate_smooth(self, coordinate: Sequence[float], width_fraction: float):
         value = np.asarray(coordinate, dtype=float)
         if value.shape != (GLOBAL_DIMENSION,) or np.any(~np.isfinite(value)):
@@ -5058,42 +5149,823 @@ def _resolve_lag_defaults(arguments):
     arguments.initial_gimbal_delay = gimbal_initial
 
 
-def _solve_smooth_pair(problem, initial, width, lower, upper, arguments):
-    evaluator = lambda value: problem.evaluate_smooth(value, width)
-    objective = _CachedObjective(evaluator)
-    result = least_squares(
-        objective.residual, initial, jac=objective.jacobian,
-        bounds=(lower, upper), method="trf", x_scale="jac", loss="linear",
-        ftol=arguments.ftol, xtol=arguments.xtol, gtol=arguments.gtol,
-        max_nfev=arguments.smooth_max_nfev, verbose=0,
+
+@dataclass(frozen=True)
+class _RankAwareLeastSquaresResult:
+    x: np.ndarray
+    cost: float
+    optimality: float
+    nfev: int
+    njev: int
+    status: int
+    success: bool
+    message: str
+    singular_values: np.ndarray
+    svd_threshold: float
+    numerical_rank: int
+    truncated_dimension: int
+    truncated_right_singular_vectors: np.ndarray
+    accepted_steps: int
+    backtrack_evaluations: int
+    final_trust_radius: float
+    maximum_gauge_projection_scaled_norm: float
+
+
+def _rank_aware_decomposition(
+    jacobian: np.ndarray,
+    svd_rcond: float,
+):
+    """Column-scale the Jacobian and return its truncated SVD."""
+
+    value = np.asarray(jacobian, dtype=float)
+    if value.ndim != 2 or np.any(~np.isfinite(value)):
+        raise ValueError("rank-aware Jacobian must be a finite matrix")
+    if not np.isfinite(svd_rcond) or not 0.0 < svd_rcond < 1.0:
+        raise ValueError(
+            "optimizer SVD rcond must lie strictly between 0 and 1"
+        )
+
+    column_norm = np.linalg.norm(value, axis=0)
+    maximum_column_norm = max(
+        1.0,
+        float(np.max(column_norm)) if column_norm.size else 1.0,
     )
-    evaluation = evaluator(result.x)
+    column_floor = (
+        math.sqrt(np.finfo(float).eps) * maximum_column_norm
+    )
+    coordinate_scale = np.ones(value.shape[1], dtype=float)
+    informative_column = column_norm > column_floor
+    coordinate_scale[informative_column] = (
+        1.0 / column_norm[informative_column]
+    )
+
+    scaled_jacobian = value * coordinate_scale[None, :]
+    u, singular, vt = np.linalg.svd(
+        scaled_jacobian,
+        full_matrices=False,
+    )
+    if singular.size == 0:
+        threshold = 0.0
+        retained = np.zeros(0, dtype=bool)
+    else:
+        machine_threshold = (
+            max(scaled_jacobian.shape)
+            * np.finfo(float).eps
+            * float(singular[0])
+        )
+        threshold = max(
+            machine_threshold,
+            float(svd_rcond) * float(singular[0]),
+        )
+        retained = singular > threshold
+
+    return (
+        coordinate_scale,
+        u,
+        singular,
+        vt,
+        float(threshold),
+        retained,
+    )
+
+
+def _rank_aware_result(
+    *,
+    x,
+    residual,
+    jacobian,
+    svd_rcond,
+    nfev,
+    njev,
+    status,
+    success,
+    message,
+    accepted_steps,
+    backtrack_evaluations,
+    trust_radius,
+    maximum_gauge_projection_scaled_norm,
+    lower,
+    upper,
+):
+    (
+        coordinate_scale,
+        _u,
+        singular,
+        vt,
+        threshold,
+        retained,
+    ) = _rank_aware_decomposition(
+        jacobian,
+        svd_rcond,
+    )
+
+    scaled_gradient = (
+        (jacobian * coordinate_scale[None, :]).T @ residual
+    )
+    bound_tolerance = (
+        128.0
+        * np.finfo(float).eps
+        * np.maximum(1.0, np.abs(x))
+    )
+    feasible_gradient = scaled_gradient.copy()
+    at_lower = (
+        np.isfinite(lower)
+        & (x <= lower + bound_tolerance)
+    )
+    at_upper = (
+        np.isfinite(upper)
+        & (x >= upper - bound_tolerance)
+    )
+    feasible_gradient[
+        at_lower & (scaled_gradient > 0.0)
+    ] = 0.0
+    feasible_gradient[
+        at_upper & (scaled_gradient < 0.0)
+    ] = 0.0
+
+    if np.any(retained):
+        retained_v = vt[retained].T
+        projected_gradient = (
+            retained_v.T @ feasible_gradient
+        )
+        optimality = float(
+            np.max(np.abs(projected_gradient))
+        )
+    else:
+        optimality = 0.0
+
+    truncated_vectors = (
+        vt[~retained].copy()
+        if vt.size
+        else np.empty((0, x.size), dtype=float)
+    )
+
+    return _RankAwareLeastSquaresResult(
+        x=np.asarray(x, dtype=float).copy(),
+        cost=0.5 * float(residual @ residual),
+        optimality=optimality,
+        nfev=int(nfev),
+        njev=int(njev),
+        status=int(status),
+        success=bool(success),
+        message=str(message),
+        singular_values=np.asarray(
+            singular,
+            dtype=float,
+        ).copy(),
+        svd_threshold=float(threshold),
+        numerical_rank=int(np.count_nonzero(retained)),
+        truncated_dimension=int(
+            x.size - np.count_nonzero(retained)
+        ),
+        truncated_right_singular_vectors=truncated_vectors,
+        accepted_steps=int(accepted_steps),
+        backtrack_evaluations=int(backtrack_evaluations),
+        final_trust_radius=float(trust_radius),
+        maximum_gauge_projection_scaled_norm=float(
+            maximum_gauge_projection_scaled_norm
+        ),
+    )
+
+
+def _rank_aware_least_squares(
+    evaluator,
+    initial,
+    lower,
+    upper,
+    gauge_reference,
+    *,
+    gtol,
+    max_nfev,
+    svd_rcond,
+):
+    """Truncated-SVD Gauss--Newton with local gauge projection."""
+
+    x = np.asarray(initial, dtype=float).copy()
+    lower_value = np.asarray(lower, dtype=float)
+    upper_value = np.asarray(upper, dtype=float)
+    anchor = np.asarray(gauge_reference, dtype=float)
+
+    if (
+        x.ndim != 1
+        or lower_value.shape != x.shape
+        or upper_value.shape != x.shape
+        or anchor.shape != x.shape
+        or np.any(~np.isfinite(x))
+        or np.any(lower_value > upper_value)
+        or np.any(x < lower_value)
+        or np.any(x > upper_value)
+        or np.any(anchor < lower_value)
+        or np.any(anchor > upper_value)
+        or not np.isfinite(gtol)
+        or gtol <= 0.0
+        or int(max_nfev) < 1
+    ):
+        raise ValueError(
+            "rank-aware least-squares inputs are invalid"
+        )
+
+    trust_radius = 1.0
+    minimum_trust_radius = 1.0e-8
+    maximum_trust_radius = 8.0
+    maximum_backtracks = 14
+
+    nfev = 0
+    njev = 0
+    accepted_steps = 0
+    backtrack_evaluations = 0
+    maximum_projection_norm = 0.0
+
+    def evaluate(value):
+        nonlocal nfev, njev
+        evaluation = evaluator(
+            np.asarray(value, dtype=float)
+        )
+        nfev += 1
+        njev += 1
+        residual = np.asarray(
+            evaluation.residual,
+            dtype=float,
+        )
+        jacobian = np.asarray(
+            evaluation.jacobian,
+            dtype=float,
+        )
+        if (
+            residual.ndim != 1
+            or jacobian.shape != (residual.size, x.size)
+            or np.any(~np.isfinite(residual))
+            or np.any(~np.isfinite(jacobian))
+        ):
+            raise FloatingPointError(
+                "rank-aware objective produced non-finite "
+                "residual/Jacobian"
+            )
+        return evaluation, residual, jacobian
+
+    evaluation, residual, jacobian = evaluate(x)
+
+    while True:
+        (
+            coordinate_scale,
+            u,
+            singular,
+            vt,
+            _threshold,
+            retained,
+        ) = _rank_aware_decomposition(
+            jacobian,
+            svd_rcond,
+        )
+        rank = int(np.count_nonzero(retained))
+
+        if rank == 0:
+            return (
+                _rank_aware_result(
+                    x=x,
+                    residual=residual,
+                    jacobian=jacobian,
+                    svd_rcond=svd_rcond,
+                    nfev=nfev,
+                    njev=njev,
+                    status=2,
+                    success=True,
+                    message=(
+                        "no identifiable Jacobian directions "
+                        "remain after SVD truncation"
+                    ),
+                    accepted_steps=accepted_steps,
+                    backtrack_evaluations=(
+                        backtrack_evaluations
+                    ),
+                    trust_radius=trust_radius,
+                    maximum_gauge_projection_scaled_norm=(
+                        maximum_projection_norm
+                    ),
+                    lower=lower_value,
+                    upper=upper_value,
+                ),
+                evaluation,
+            )
+
+        retained_u = u[:, retained]
+        retained_s = singular[retained]
+        retained_v = vt[retained].T
+
+        scaled_jacobian = (
+            jacobian * coordinate_scale[None, :]
+        )
+        scaled_gradient = (
+            scaled_jacobian.T @ residual
+        )
+
+        bound_tolerance = (
+            128.0
+            * np.finfo(float).eps
+            * np.maximum(1.0, np.abs(x))
+        )
+        feasible_gradient = scaled_gradient.copy()
+        at_lower = (
+            np.isfinite(lower_value)
+            & (x <= lower_value + bound_tolerance)
+        )
+        at_upper = (
+            np.isfinite(upper_value)
+            & (x >= upper_value - bound_tolerance)
+        )
+        feasible_gradient[
+            at_lower & (scaled_gradient > 0.0)
+        ] = 0.0
+        feasible_gradient[
+            at_upper & (scaled_gradient < 0.0)
+        ] = 0.0
+
+        projected_gradient = (
+            retained_v.T @ feasible_gradient
+        )
+        optimality = float(
+            np.max(np.abs(projected_gradient))
+        )
+        if optimality <= float(gtol):
+            return (
+                _rank_aware_result(
+                    x=x,
+                    residual=residual,
+                    jacobian=jacobian,
+                    svd_rcond=svd_rcond,
+                    nfev=nfev,
+                    njev=njev,
+                    status=1,
+                    success=True,
+                    message=(
+                        "projected gradient tolerance is satisfied"
+                    ),
+                    accepted_steps=accepted_steps,
+                    backtrack_evaluations=(
+                        backtrack_evaluations
+                    ),
+                    trust_radius=trust_radius,
+                    maximum_gauge_projection_scaled_norm=(
+                        maximum_projection_norm
+                    ),
+                    lower=lower_value,
+                    upper=upper_value,
+                ),
+                evaluation,
+            )
+
+        step_scaled = -retained_v @ (
+            (retained_u.T @ residual) / retained_s
+        )
+        step_scaled_norm = float(
+            np.linalg.norm(step_scaled)
+        )
+        if step_scaled_norm > trust_radius:
+            step_scaled *= (
+                trust_radius / step_scaled_norm
+            )
+        step = coordinate_scale * step_scaled
+
+        blocked_lower = at_lower & (step < 0.0)
+        blocked_upper = at_upper & (step > 0.0)
+        step[
+            blocked_lower | blocked_upper
+        ] = 0.0
+        step_scaled = step / coordinate_scale
+        step_scaled_norm = float(
+            np.linalg.norm(step_scaled)
+        )
+
+        numerical_step_floor = (
+            256.0
+            * np.finfo(float).eps
+            * max(
+                1.0,
+                float(
+                    np.linalg.norm(
+                        (x - anchor)
+                        / coordinate_scale
+                    )
+                ),
+            )
+        )
+        if step_scaled_norm <= numerical_step_floor:
+            return (
+                _rank_aware_result(
+                    x=x,
+                    residual=residual,
+                    jacobian=jacobian,
+                    svd_rcond=svd_rcond,
+                    nfev=nfev,
+                    njev=njev,
+                    status=3,
+                    success=True,
+                    message=(
+                        "rank-aware step is below numerical "
+                        "resolution after active-bound projection"
+                    ),
+                    accepted_steps=accepted_steps,
+                    backtrack_evaluations=(
+                        backtrack_evaluations
+                    ),
+                    trust_radius=trust_radius,
+                    maximum_gauge_projection_scaled_norm=(
+                        maximum_projection_norm
+                    ),
+                    lower=lower_value,
+                    upper=upper_value,
+                ),
+                evaluation,
+            )
+
+        current_cost = 0.5 * float(
+            residual @ residual
+        )
+
+        alpha_bound = 1.0
+        positive_step = step > 0.0
+        negative_step = step < 0.0
+        upper_mask = (
+            positive_step & np.isfinite(upper_value)
+        )
+        lower_mask = (
+            negative_step & np.isfinite(lower_value)
+        )
+        if np.any(upper_mask):
+            alpha_bound = min(
+                alpha_bound,
+                float(
+                    np.min(
+                        (
+                            upper_value[upper_mask]
+                            - x[upper_mask]
+                        )
+                        / step[upper_mask]
+                    )
+                ),
+            )
+        if np.any(lower_mask):
+            alpha_bound = min(
+                alpha_bound,
+                float(
+                    np.min(
+                        (
+                            lower_value[lower_mask]
+                            - x[lower_mask]
+                        )
+                        / step[lower_mask]
+                    )
+                ),
+            )
+        alpha = min(
+            1.0,
+            max(0.0, alpha_bound),
+        )
+        if alpha < 1.0:
+            alpha *= 0.995
+
+        accepted = False
+        for backtrack in range(
+            maximum_backtracks + 1
+        ):
+            if nfev >= int(max_nfev):
+                break
+
+            trial = x + alpha * step
+
+            total_scaled_displacement = (
+                (trial - anchor)
+                / coordinate_scale
+            )
+            identifiable_displacement = (
+                retained_v
+                @ (
+                    retained_v.T
+                    @ total_scaled_displacement
+                )
+            )
+            projected_trial = (
+                anchor
+                + coordinate_scale
+                * identifiable_displacement
+            )
+            projected_trial = np.maximum(
+                projected_trial,
+                lower_value,
+            )
+            projected_trial = np.minimum(
+                projected_trial,
+                upper_value,
+            )
+
+            projection_norm = float(
+                np.linalg.norm(
+                    (projected_trial - trial)
+                    / coordinate_scale
+                )
+            )
+            maximum_projection_norm = max(
+                maximum_projection_norm,
+                projection_norm,
+            )
+
+            trial_displacement_norm = float(
+                np.linalg.norm(
+                    (projected_trial - x)
+                    / coordinate_scale
+                )
+            )
+            if (
+                trial_displacement_norm
+                <= numerical_step_floor
+            ):
+                alpha *= 0.5
+                backtrack_evaluations += 1
+                continue
+
+            (
+                trial_evaluation,
+                trial_residual,
+                trial_jacobian,
+            ) = evaluate(projected_trial)
+            trial_cost = 0.5 * float(
+                trial_residual @ trial_residual
+            )
+
+            if trial_cost < current_cost:
+                x = projected_trial
+                evaluation = trial_evaluation
+                residual = trial_residual
+                jacobian = trial_jacobian
+                accepted = True
+                accepted_steps += 1
+                if backtrack == 0:
+                    trust_radius = min(
+                        maximum_trust_radius,
+                        2.0 * trust_radius,
+                    )
+                elif backtrack >= 2:
+                    trust_radius = max(
+                        minimum_trust_radius,
+                        0.5 * trust_radius,
+                    )
+                break
+
+            alpha *= 0.5
+            backtrack_evaluations += 1
+
+        if not accepted:
+            if nfev >= int(max_nfev):
+                message = (
+                    "maximum number of rank-aware objective "
+                    "evaluations reached"
+                )
+            else:
+                message = (
+                    "rank-aware monotone backtracking found no "
+                    "acceptable descent step"
+                )
+            return (
+                _rank_aware_result(
+                    x=x,
+                    residual=residual,
+                    jacobian=jacobian,
+                    svd_rcond=svd_rcond,
+                    nfev=nfev,
+                    njev=njev,
+                    status=0,
+                    success=False,
+                    message=message,
+                    accepted_steps=accepted_steps,
+                    backtrack_evaluations=(
+                        backtrack_evaluations
+                    ),
+                    trust_radius=trust_radius,
+                    maximum_gauge_projection_scaled_norm=(
+                        maximum_projection_norm
+                    ),
+                    lower=lower_value,
+                    upper=upper_value,
+                ),
+                evaluation,
+            )
+
+
+def _rank_aware_payload(
+    result,
+    coordinate_names,
+    svd_rcond,
+):
+    singular = np.asarray(
+        result.singular_values,
+        dtype=float,
+    )
+    relative = (
+        singular / singular[0]
+        if singular.size and singular[0] > 0.0
+        else np.zeros_like(singular)
+    )
+    names = tuple(
+        str(name) for name in coordinate_names
+    )
+    weak_directions = []
+    for vector in np.asarray(
+        result.truncated_right_singular_vectors,
+        dtype=float,
+    ):
+        order = np.argsort(
+            np.abs(vector)
+        )[::-1]
+        weak_directions.append(
+            {
+                "scaled_coordinate_direction": vector,
+                "dominant_components": [
+                    {
+                        "name": names[int(index)],
+                        "coefficient": float(
+                            vector[index]
+                        ),
+                    }
+                    for index in order[
+                        : min(6, len(names))
+                    ]
+                ],
+            }
+        )
+
+    return {
+        "method": (
+            "truncated-SVD Gauss-Newton with "
+            "local gauge projection"
+        ),
+        "svd_rcond": float(svd_rcond),
+        "svd_threshold": float(
+            result.svd_threshold
+        ),
+        "singular_values_scaled_jacobian": singular,
+        "relative_singular_values": relative,
+        "numerical_rank": int(
+            result.numerical_rank
+        ),
+        "truncated_dimension": int(
+            result.truncated_dimension
+        ),
+        "truncated_weak_directions": weak_directions,
+        "gauge_reference_policy": (
+            "vehicle-model zero coordinate for physical "
+            "parameters; initial lag coordinates during "
+            "smooth continuation"
+        ),
+        "accepted_steps": int(
+            result.accepted_steps
+        ),
+        "backtrack_evaluations": int(
+            result.backtrack_evaluations
+        ),
+        "final_trust_radius_scaled": float(
+            result.final_trust_radius
+        ),
+        "maximum_gauge_projection_scaled_norm": float(
+            result.maximum_gauge_projection_scaled_norm
+        ),
+    }
+
+
+def _solve_smooth_pair(
+    problem,
+    initial,
+    width,
+    lower,
+    upper,
+    arguments,
+):
+    evaluator = lambda value: problem.evaluate_smooth(
+        value,
+        width,
+    )
+    gauge_reference = np.concatenate(
+        (
+            np.zeros(
+                PHYSICAL_DIMENSION,
+                dtype=float,
+            ),
+            np.asarray(
+                (
+                    float(arguments.initial_delay),
+                    float(
+                        arguments.initial_gimbal_delay
+                    ),
+                ),
+                dtype=float,
+            ),
+        )
+    )
+    result, evaluation = _rank_aware_least_squares(
+        evaluator,
+        np.asarray(initial, dtype=float),
+        np.asarray(lower, dtype=float),
+        np.asarray(upper, dtype=float),
+        gauge_reference,
+        gtol=float(arguments.gtol),
+        max_nfev=int(
+            arguments.smooth_max_nfev
+        ),
+        svd_rcond=float(
+            arguments.optimizer_svd_rcond
+        ),
+    )
     payload = _optimizer_payload(result)
-    payload["diagnostics"] = _optimizer_diagnostics(
-        evaluator, np.asarray(initial), result, evaluation,
-        np.asarray(lower), np.asarray(upper), arguments,
+    payload["rank_aware_svd"] = (
+        _rank_aware_payload(
+            result,
+            PHYSICAL_PARAMETER_NAMES
+            + (
+                "rotor_delay_seconds",
+                "gimbal_delay_seconds",
+            ),
+            float(
+                arguments.optimizer_svd_rcond
+            ),
+        )
+    )
+    payload["diagnostics"] = (
+        _optimizer_diagnostics(
+            evaluator,
+            np.asarray(initial, dtype=float),
+            result,
+            evaluation,
+            np.asarray(lower, dtype=float),
+            np.asarray(upper, dtype=float),
+            arguments,
+        )
     )
     return result.x, evaluation, payload
 
 
-def _solve_strict_pair(problem, initial, rotor_delay, gimbal_delay, lower, upper, arguments):
-    evaluator = lambda value: problem.evaluate_strict(value, rotor_delay, gimbal_delay)
-    objective = _CachedObjective(evaluator)
-    result = least_squares(
-        objective.residual, initial, jac=objective.jacobian,
-        bounds=(lower, upper), method="trf", x_scale="jac", loss="linear",
-        ftol=arguments.ftol, xtol=arguments.xtol, gtol=arguments.gtol,
-        max_nfev=arguments.strict_max_nfev, verbose=0,
+def _solve_strict_pair(
+    problem,
+    initial,
+    rotor_delay,
+    gimbal_delay,
+    lower,
+    upper,
+    arguments,
+):
+    evaluator = lambda value: problem.evaluate_strict(
+        value,
+        rotor_delay,
+        gimbal_delay,
     )
-    evaluation = evaluator(result.x)
+    gauge_reference = np.zeros(
+        PHYSICAL_DIMENSION,
+        dtype=float,
+    )
+    result, evaluation = _rank_aware_least_squares(
+        evaluator,
+        np.asarray(initial, dtype=float),
+        np.asarray(lower, dtype=float),
+        np.asarray(upper, dtype=float),
+        gauge_reference,
+        gtol=float(arguments.gtol),
+        max_nfev=int(
+            arguments.strict_max_nfev
+        ),
+        svd_rcond=float(
+            arguments.optimizer_svd_rcond
+        ),
+    )
     payload = _optimizer_payload(result)
-    payload["diagnostics"] = _optimizer_diagnostics(
-        evaluator, np.asarray(initial), result, evaluation,
-        np.asarray(lower), np.asarray(upper), arguments,
+    payload["rank_aware_svd"] = (
+        _rank_aware_payload(
+            result,
+            PHYSICAL_PARAMETER_NAMES,
+            float(
+                arguments.optimizer_svd_rcond
+            ),
+        )
+    )
+    payload["diagnostics"] = (
+        _optimizer_diagnostics(
+            evaluator,
+            np.asarray(initial, dtype=float),
+            result,
+            evaluation,
+            np.asarray(lower, dtype=float),
+            np.asarray(upper, dtype=float),
+            arguments,
+        )
     )
     return DynamicsSolution(
-        physical_coordinate=np.asarray(result.x).copy(), delay_seconds=float(rotor_delay),
-        gimbal_delay_seconds=float(gimbal_delay), evaluation=evaluation, optimizer=payload,
+        physical_coordinate=np.asarray(
+            result.x,
+            dtype=float,
+        ).copy(),
+        delay_seconds=float(rotor_delay),
+        gimbal_delay_seconds=float(
+            gimbal_delay
+        ),
+        evaluation=evaluation,
+        optimizer=payload,
     )
 
 
@@ -5217,7 +6089,6 @@ def _split_command_lag_search(
                 "objective_cost": 0.5
                 * float(evaluation.residual @ evaluation.residual),
                 "data_loss": evaluation.data_loss,
-                "prior_cost": evaluation.prior_cost,
                 "physical_coordinate": coordinate[
                     :PHYSICAL_DIMENSION
                 ],
@@ -5518,6 +6389,21 @@ def _parameter_lines(
         )
         for line in lines
     ]
+    lines = [
+        line
+        for line in lines
+        if "Gaussian-prior cost:" not in line
+    ]
+    try:
+        optimization_index = lines.index("Optimization")
+    except ValueError as error:
+        raise RuntimeError(
+            "parameter report is missing its Optimization section"
+        ) from error
+    lines.insert(
+        optimization_index + 1,
+        "  parameter-estimation prior: none (data-only objective)",
+    )
     initial_gimbal = initial_delay if _ACTIVE_INITIAL_GIMBAL_DELAY_SECONDS is None else float(_ACTIVE_INITIAL_GIMBAL_DELAY_SECONDS)
     selected_gimbal = selected.delay_seconds if selected.gimbal_delay_seconds is None else float(selected.gimbal_delay_seconds)
     lines.append("  gimbal command lag [s] {: .10g} -> {: .10g}".format(initial_gimbal, selected_gimbal))
@@ -5547,6 +6433,41 @@ def _parameter_lines(
                 )
 
     optimizer = selected.optimizer
+    rank_aware = (
+        optimizer.get("rank_aware_svd")
+        if isinstance(optimizer, Mapping)
+        else None
+    )
+    if isinstance(rank_aware, Mapping):
+        lines.extend(
+            [
+                "",
+                "Rank-aware data-only solver",
+                "  method={}".format(rank_aware.get("method")),
+                "  svd rcond={}".format(rank_aware.get("svd_rcond")),
+                "  retained rank={} / {}".format(
+                    rank_aware.get("numerical_rank"),
+                    PHYSICAL_DIMENSION,
+                ),
+                "  truncated dimension={}".format(
+                    rank_aware.get("truncated_dimension")
+                ),
+                "  relative singular values={}".format(
+                    rank_aware.get("relative_singular_values")
+                ),
+                "  accepted steps={}".format(
+                    rank_aware.get("accepted_steps")
+                ),
+                "  backtrack evaluations={}".format(
+                    rank_aware.get("backtrack_evaluations")
+                ),
+                "  max gauge projection scaled norm={}".format(
+                    rank_aware.get(
+                        "maximum_gauge_projection_scaled_norm"
+                    )
+                ),
+            ]
+        )
     diagnostics = optimizer.get("diagnostics") if isinstance(optimizer, Mapping) else None
     lines.extend(
         [
@@ -5608,6 +6529,10 @@ class _RewritingStdout:
         text = text.replace(
             "selected strict lag",
             "selected strict lag",
+        )
+        text = text.replace(
+            "Gaussian parameter prior:",
+            "downstream posterior prior (not used by deterministic fit):",
         )
         pattern = re.compile(
             r"selected knot spacing ([0-9eE+.\-]+)s from .*?; parameter support "
@@ -6100,6 +7025,10 @@ def _rewrite_json_outputs(
 
     root = json.loads(root_path.read_text(encoding="utf-8"))
     root["schema"] = SCHEMA
+    downstream_prior_path = root.pop("parameter_prior_path", None)
+    root.pop("parameter_prior", None)
+    root["downstream_posterior_prior_path"] = downstream_prior_path
+    root["downstream_posterior_prior_used_in_deterministic_estimate"] = False
     root["method"] = {
         "name": "deterministic_savgol_dynamics",
         "description": (
@@ -6120,6 +7049,14 @@ def _rewrite_json_outputs(
         "parameter_data_objective": (
             "mean squared translational/angular acceleration residual; "
             "angular residual uses the reference inertia/mass metric"
+        ),
+        "parameter_estimation_prior": "none",
+        "reference_model_role": (
+            "physical coordinate chart and zero-coordinate initialization only"
+        ),
+        "optimizer_rank_handling": (
+            "custom truncated-SVD Gauss-Newton in Jacobian-scaled "
+            "coordinates with local gauge projection; no prior regularization"
         ),
         "command_mode_during_search": "overlapping quintic-smoothed ZOH jumps with separate rotor/gimbal lags",
         "command_mode_final": "strict ZOH with separate rotor/gimbal lags",
@@ -6154,10 +7091,17 @@ def _rewrite_json_outputs(
             "xtol": arguments.xtol,
             "gtol": arguments.gtol,
             "note": (
-                "ftol and xtol are disabled by default in the SG estimator; "
-                "gtol or max_nfev terminates the solve unless explicitly overridden"
+                "The active rank-aware optimizer uses projected-gradient "
+                "gtol and max_nfev. ftol/xtol are retained only for CLI/report "
+                "compatibility with earlier runs."
             ),
         },
+        "optimizer_svd_rcond": float(
+            arguments.optimizer_svd_rcond
+        ),
+        "optimizer_gauge_reference": (
+            "vehicle-model zero coordinate for physical parameters"
+        ),
         "pose_resampling_used_in_parameter_loss": False,
         "collocation_grid_used_in_parameter_loss": False,
     }
@@ -6192,6 +7136,14 @@ def _rewrite_json_outputs(
                         )
 
     selection = root.get("selection")
+    if isinstance(selection, dict):
+        # Keep the legacy numeric key at exact zero for downstream readers
+        # that still expect it, while making the data-only semantics explicit.
+        selection["gaussian_prior_cost"] = 0.0
+        selection["parameter_estimation_prior"] = "none"
+        selection["joint_objective_cost"] = float(
+            selection["joint_dynamics_loss"]
+        )
 
     optimizer_diagnostics = {
         "schema": SCHEMA + "/optimizer-diagnostics",
@@ -6355,6 +7307,10 @@ def create_argument_parser() -> argparse.ArgumentParser:
         "--prior-json",
         type=Path,
         required=True,
+        help=(
+            "Gaussian prior used only by the downstream confidence/posterior "
+            "workflow. It is not part of the deterministic SG objective."
+        ),
     )
     parser.add_argument(
         "--window-seconds",
@@ -6390,6 +7346,16 @@ def create_argument_parser() -> argparse.ArgumentParser:
         help="Step-size stopping tolerance. Disabled by default.",
     )
     parser.add_argument("--gtol", type=float, default=1.0e-6)
+    parser.add_argument(
+        "--optimizer-svd-rcond",
+        type=float,
+        default=1.0e-8,
+        help=(
+            "Relative singular-value threshold for the data-only "
+            "rank-aware optimizer. Directions with sigma/sigma_max "
+            "below this value are treated as local gauge/ridge directions."
+        ),
+    )
     parser.add_argument(
         "--delay-bounds",
         type=float,
@@ -6436,6 +7402,13 @@ def run(arguments: argparse.Namespace) -> int:
     arguments.maximum_spline_angular_acceleration = math.inf
 
     _resolve_lag_defaults(arguments)
+    if (
+        not np.isfinite(arguments.optimizer_svd_rcond)
+        or not 0.0 < arguments.optimizer_svd_rcond < 1.0
+    ):
+        raise ValueError(
+            "--optimizer-svd-rcond must lie strictly between 0 and 1"
+        )
 
 
     original_stdout = sys.stdout

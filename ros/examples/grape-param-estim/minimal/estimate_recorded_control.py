@@ -17,6 +17,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     selector.add_argument(
         "--method",
         choices=(
+            "deterministic_savgol_dimensionless",
+            "deterministic_savgol_dynamics",
             "deterministic_spline_dynamics",
             "deterministic_multiple_shooting",
             "deterministic_multiple_shooting_multi",
@@ -36,8 +38,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         value == "--config" or value.startswith("--config=")
         for value in remaining
     )
-    if selection.method == "deterministic_spline_dynamics":
-        from deterministic_spline_dynamics_estimator import main as selected_main
+
+    if selection.method in (
+        "deterministic_savgol_dimensionless",
+        "deterministic_savgol_dynamics",
+    ):
+        from dimensionless_savgol_experiment import main as selected_main
+
+        remaining = ["--mode", "fit"] + remaining
+    elif selection.method == "deterministic_spline_dynamics":
+        from deterministic_spline_dynamics_estimator import (
+            main as selected_main,
+        )
     elif (
         selection.method == "deterministic_multiple_shooting_multi"
         or (
@@ -63,15 +75,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     elif selection.method == "deterministic":
         from legacies.deterministic_estimator import main as selected_main
     elif selection.method == "deterministic_sobol":
-        from legacies.deterministic_sobol_estimator import main as selected_main
+        from legacies.deterministic_sobol_estimator import (
+            main as selected_main,
+        )
     elif selection.method == "deterministic_tempered":
-        from legacies.deterministic_tempered_estimator import main as selected_main
+        from legacies.deterministic_tempered_estimator import (
+            main as selected_main,
+        )
     elif selection.method == "deterministic_continuation":
         from legacies.deterministic_continuation_estimator import (
             main as selected_main,
         )
     elif selection.method == "deterministic_q":
-        from legacies.deterministic_q_estimator import main as selected_main
+        from legacies.deterministic_q_estimator import (
+            main as selected_main,
+        )
     else:
         from legacies.probabilistic_estimator import main as selected_main
     return selected_main(remaining)

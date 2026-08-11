@@ -1,0 +1,50 @@
+Dimensionless geometric Savitzky-Golay experiment
+
+Fixed reference scales
+  mass_kg: 2.3515975908123767
+  length_m: 0.19158499426207065
+  time_s: 0.13977207332379268
+  force_n: 23.061294513940194
+  torque_nm: 4.418197977129154
+  dimensionless_gravity: 1.0
+
+Selected deterministic point (prior-free)
+  objective cost: 5.66638537851116
+  rotor delay [s]: 0.062194245347
+  gimbal delay [s]: 0.00575675695
+  optimizer success: False
+  optimizer message: The maximum number of function evaluations is exceeded.
+  Jacobian rank: 13
+  Jacobian nullity: 1
+  common-scale analytic null norm: 1.565335980961261e-16
+  common-scale FD null norm: 2.399193632655114e-10
+
+Dimensionless coordinate
+  log_mass_scale                                   -0.643808194233
+  log_second_moment_mode_xx                        -5.99999981746
+  log_second_moment_mode_yy                        -2.74336461548
+  log_second_moment_mode_zz                         5.99999998896
+  log_second_moment_mode_xy                        -1.94829139775
+  log_second_moment_mode_xz                         3.33585625931
+  log_second_moment_mode_yz                        -1.49308183113
+  dimensionless_cog_displacement_x                 -0.24629838251
+  dimensionless_cog_displacement_y                 -0.391191928449
+  dimensionless_cog_displacement_z                  0.0515382371964
+  log_force_effectiveness_1                        -0.38094828024
+  log_force_effectiveness_2                        -1.20101210355
+  log_force_effectiveness_3                        -2.58335527515
+  log_force_effectiveness_4                        -0.31784489556
+
+Physical representative
+  mass [kg]: 1.2352664907966204
+  CoG body [m]: [-0.04921178 -0.07497703  0.0193837 ]
+  force effectiveness: [0.68321322 0.30088953 0.07552019 0.72771565]
+  inertia [kg m^2]:
+    [ 1.277730499,  1.32271517, -0.8001510137]
+    [ 1.32271517,  2.216412112,  0.564077201]
+    [-0.8001510137,  0.564077201,  2.810980064]
+  principal moments [kg m^2]: [2.31708769e-03 3.15026200e+00 3.15254359e+00]
+
+Per-bag raw residual-wrench RMS
+  failure_2_single: [  8.22219372  11.29581567   4.09800163 190.43818197 245.40620557
+ 257.14973588]

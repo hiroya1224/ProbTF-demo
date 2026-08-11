@@ -1,0 +1,50 @@
+Dimensionless geometric Savitzky-Golay experiment
+
+Fixed reference scales
+  mass_kg: 2.3515975908123767
+  length_m: 0.19158499426207065
+  time_s: 0.13977207332379268
+  force_n: 23.061294513940194
+  torque_nm: 4.418197977129154
+  dimensionless_gravity: 1.0
+
+Selected deterministic point (prior-free)
+  objective cost: 0.0008863407705020074
+  rotor delay [s]: 0.112579848611
+  gimbal delay [s]: 0.046993930096
+  optimizer success: True
+  optimizer message: `gtol` termination condition is satisfied.
+  Jacobian rank: 13
+  Jacobian nullity: 1
+  common-scale analytic null norm: 1.0916248867146022e-14
+  common-scale FD null norm: 2.2470630402884174e-09
+
+Dimensionless coordinate
+  log_mass_scale                                   -4.92277929953
+  log_second_moment_mode_xx                        -5.99992195833
+  log_second_moment_mode_yy                         0.227892845071
+  log_second_moment_mode_zz                         5.99994779906
+  log_second_moment_mode_xy                         0.789721947594
+  log_second_moment_mode_xz                        -0.374276629953
+  log_second_moment_mode_yz                         3.86133844724
+  dimensionless_cog_displacement_x                  0.110520455097
+  dimensionless_cog_displacement_y                  3.96114911853
+  dimensionless_cog_displacement_z                  0.335512504632
+  log_force_effectiveness_1                        -5.36940760832
+  log_force_effectiveness_2                        -5.0024282363
+  log_force_effectiveness_3                        -4.88142494741
+  log_force_effectiveness_4                        -5.13509125279
+
+Physical representative
+  mass [kg]: 0.017116979130899
+  CoG body [m]: [0.01914935 0.7588662  0.07378891]
+  force effectiveness: [0.00465689 0.00672161 0.0075862  0.00588651]
+  inertia [kg m^2]:
+    [ 11.06627219,  0.0900436225,  0.02032671968]
+    [ 0.0900436225,  0.497473019, -2.28629908]
+    [ 0.02032671968, -2.28629908,  10.57155221]
+  principal moments [kg m^2]: [2.11244709e-03 1.10656497e+01 1.10675353e+01]
+
+Per-bag raw residual-wrench RMS
+  failure_1_single: [3.76562885e-03 1.53523178e-03 4.89904988e-03 3.91909231e+00
+ 1.51740737e+00 6.96623898e+00]

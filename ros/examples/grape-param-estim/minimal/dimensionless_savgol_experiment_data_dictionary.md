@@ -1,7 +1,3 @@
-# Compatibility note
-
-`deterministic_savgol_dynamics_estimator.py` now routes to `dimensionless_savgol_experiment.py`.
-
 # Dimensionless geometric Savitzky--Golay experiment
 
 This document describes `dimensionless_savgol_experiment.py`.  The script is a

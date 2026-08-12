@@ -80,3 +80,97 @@ def test_random_chart_points_remain_physical() -> None:
         assert np.all(np.isfinite(principal))
         assert np.all(principal > 0.0)
         assert principal[0] + principal[1] > principal[2]
+
+def test_gauge_constrained_lm_keeps_exact_gauge_and_does_not_threshold_weak_mode() -> None:
+    from types import SimpleNamespace
+
+    direction = experiment._normalized_scale_gauge(
+        experiment.PHYSICAL_DIMENSION
+    )
+    projector = (
+        np.eye(experiment.PHYSICAL_DIMENSION)
+        - np.outer(direction, direction)
+    )
+    u, _s, _vt = np.linalg.svd(projector)
+    basis = u[
+        :,
+        : experiment.PHYSICAL_DIMENSION - 1,
+    ]
+    singular = np.geomspace(
+        1.0,
+        1.0e-7,
+        experiment.PHYSICAL_DIMENSION - 1,
+    )
+    jacobian = (
+        np.diag(singular) @ basis.T
+    )
+    target = basis @ np.linspace(
+        -0.4,
+        0.4,
+        experiment.PHYSICAL_DIMENSION - 1,
+    )
+
+    def evaluator(coordinate):
+        residual = jacobian @ (
+            np.asarray(
+                coordinate,
+                dtype=float,
+            )
+            - target
+        )
+        return SimpleNamespace(
+            residual=residual,
+            jacobian=jacobian,
+        )
+
+    arguments = SimpleNamespace(
+        numeric_coordinate_guard=50.0,
+        lm_initial_damping_relative=1.0e-3,
+        lm_initial_trust_radius=1.0,
+        lm_maximum_trust_radius=8.0,
+        lm_minimum_trust_radius=1.0e-10,
+        lm_acceptance_ratio=1.0e-4,
+        ftol=1.0e-12,
+        xtol=1.0e-12,
+        gtol=1.0e-10,
+    )
+    initial = np.zeros(
+        experiment.PHYSICAL_DIMENSION
+    )
+    lower = np.full_like(
+        initial,
+        -np.inf,
+    )
+    upper = np.full_like(
+        initial,
+        np.inf,
+    )
+    (
+        coordinate,
+        evaluation,
+        payload,
+    ) = experiment._adaptive_lm(
+        evaluator,
+        initial,
+        lower,
+        upper,
+        160,
+        True,
+        arguments,
+    )
+
+    assert abs(
+        direction @ coordinate
+    ) < 1.0e-10
+    assert payload[
+        "ridge_threshold_used"
+    ] is None
+    assert not payload[
+        "near_ridge_handling"
+    ][
+        "unknown_weak_modes_removed"
+    ]
+    assert 0.5 * float(
+        evaluation.residual
+        @ evaluation.residual
+    ) < 1.0e-8

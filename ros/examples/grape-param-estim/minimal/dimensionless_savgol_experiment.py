@@ -41,11 +41,13 @@ Code is deliberately flat and experimental.  It is not a refactoring target.
 from __future__ import annotations
 
 import argparse
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 import math
 import os
+import shutil
 from pathlib import Path
 import sys
 import time
@@ -59,6 +61,7 @@ from matplotlib import pyplot as plt  # noqa: E402
 from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 from scipy.linalg import expm, expm_frechet  # noqa: E402
 from scipy.optimize import least_squares  # noqa: E402
+import deterministic_spline_dynamics_estimator as spline_reports  # noqa: E402
 
 import savgol_trajectory as sg  # noqa: E402
 from smooth_command import QuinticSmoothZoh  # noqa: E402
@@ -86,6 +89,7 @@ from grape_param_estim.system import (  # noqa: E402
     ActuatorParameters,
     ActuatorState,
     GrapeGeometry,
+    RigidBodyState,
     VehicleParameters,
 )
 
@@ -1028,6 +1032,11 @@ class BagData:
     @property
     def time(self) -> np.ndarray:
         return np.asarray(self.kinematics.time, dtype=float)
+
+    @property
+    def spline_selection(self) -> Any:
+        # Compatibility alias used only by report helpers.
+        return self.selection
 
 
 @dataclass(frozen=True)
@@ -2052,21 +2061,11 @@ class DimensionlessDynamicsProblem:
 def _physical_bounds(
     arguments: argparse.Namespace,
 ) -> tuple[np.ndarray, np.ndarray]:
-    lower = np.empty(PHYSICAL_DIMENSION, dtype=float)
-    upper = np.empty(PHYSICAL_DIMENSION, dtype=float)
-
-    lower[0] = -arguments.log_scale_bound
-    upper[0] = arguments.log_scale_bound
-
-    lower[1:7] = -arguments.matrix_log_bound
-    upper[1:7] = arguments.matrix_log_bound
-
-    lower[7:10] = -arguments.cog_bound
-    upper[7:10] = arguments.cog_bound
-
-    lower[10:14] = -arguments.log_scale_bound
-    upper[10:14] = arguments.log_scale_bound
-    return lower, upper
+    del arguments
+    return (
+        np.full(PHYSICAL_DIMENSION, -np.inf, dtype=float),
+        np.full(PHYSICAL_DIMENSION, np.inf, dtype=float),
+    )
 
 
 def _jacobian_spectrum(
@@ -2086,18 +2085,11 @@ def _jacobian_spectrum(
             * float(singular[0])
         )
     )
-    rank = int(
-        np.count_nonzero(
-            singular > tolerance
-        )
-    )
+    rank = int(np.count_nonzero(singular > tolerance))
     condition = (
         None
         if rank == 0
-        else float(
-            singular[0]
-            / singular[rank - 1]
-        )
+        else float(singular[0] / singular[rank - 1])
     )
     return {
         "singular_values": singular,
@@ -2106,7 +2098,28 @@ def _jacobian_spectrum(
         "numerical_rank": rank,
         "nullity": int(value.shape[1] - rank),
         "condition_number_nonzero_subspace": condition,
+        "rank_threshold_interpretation": (
+            "machine-precision numerical rank only; "
+            "not a scientific ridge cutoff"
+        ),
     }
+
+
+def _normalized_scale_gauge(
+    dimension: int,
+) -> np.ndarray:
+    if dimension < PHYSICAL_DIMENSION:
+        raise ValueError(
+            "gauge dimension is smaller than physical dimension"
+        )
+    direction = np.zeros(dimension, dtype=float)
+    direction[:PHYSICAL_DIMENSION] = COMMON_SCALE_DIRECTION
+    norm = float(np.linalg.norm(direction))
+    if not np.isfinite(norm) or norm <= 0.0:
+        raise RuntimeError(
+            "common-scale gauge direction is invalid"
+        )
+    return direction / norm
 
 
 def _gauge_diagnostics(
@@ -2116,16 +2129,9 @@ def _gauge_diagnostics(
     exact_expected: bool,
 ) -> dict[str, Any]:
     value = np.asarray(coordinate, dtype=float)
-    direction = np.zeros(value.size, dtype=float)
-    direction[:PHYSICAL_DIMENSION] = (
-        COMMON_SCALE_DIRECTION
-    )
-    direction /= np.linalg.norm(direction)
+    direction = _normalized_scale_gauge(value.size)
 
-    jacobian = np.asarray(
-        evaluation.jacobian,
-        dtype=float,
-    )
+    jacobian = np.asarray(evaluation.jacobian, dtype=float)
     image = jacobian @ direction
     denominator = max(
         float(np.linalg.norm(jacobian)),
@@ -2136,12 +2142,8 @@ def _gauge_diagnostics(
     )
 
     step = 1.0e-5
-    plus = evaluator(
-        value + step * direction
-    ).residual
-    minus = evaluator(
-        value - step * direction
-    ).residual
+    plus = evaluator(value + step * direction).residual
+    minus = evaluator(value - step * direction).residual
     finite = (plus - minus) / (2.0 * step)
     residual_scale = max(
         float(np.linalg.norm(evaluation.residual)),
@@ -2158,24 +2160,16 @@ def _gauge_diagnostics(
             spectrum["right_singular_vectors"][-1],
             dtype=float,
         )
-        alignment = float(
-            abs(weakest @ direction)
-        )
+        alignment = float(abs(weakest @ direction))
 
     payload = {
         "exact_symmetry_expected": exact_expected,
         "coordinate_component_along_normalized_gauge": float(
             value @ direction
         ),
-        "analytic_jacobian_relative_null_norm": (
-            analytic_relative
-        ),
-        "finite_difference_relative_null_norm": (
-            finite_relative
-        ),
-        "weakest_right_singular_vector_alignment": (
-            alignment
-        ),
+        "analytic_jacobian_relative_null_norm": analytic_relative,
+        "finite_difference_relative_null_norm": finite_relative,
+        "weakest_right_singular_vector_alignment": alignment,
         "normalized_common_scale_direction": direction,
     }
     if (
@@ -2192,52 +2186,607 @@ def _gauge_diagnostics(
     return payload
 
 
-def _optimizer_payload(
-    result: Any,
-    initial: np.ndarray,
-    evaluation: JointEvaluation,
-    gauge: Mapping[str, Any],
-) -> dict[str, Any]:
-    gradient = (
-        evaluation.jacobian.T
-        @ evaluation.residual
+def _project_away_exact_gauge(
+    vector: np.ndarray,
+    direction: Optional[np.ndarray],
+) -> np.ndarray:
+    value = np.asarray(vector, dtype=float)
+    if direction is None:
+        return value.copy()
+    return value - direction * float(direction @ value)
+
+
+def _trial_coordinate_is_safe(
+    coordinate: np.ndarray,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    arguments: argparse.Namespace,
+) -> tuple[bool, Optional[str]]:
+    value = np.asarray(coordinate, dtype=float)
+    if np.any(~np.isfinite(value)):
+        return False, "nonfinite_coordinate"
+    if np.any(value < lower) or np.any(value > upper):
+        return False, "explicit_delay_bound"
+    guard = float(arguments.numeric_coordinate_guard)
+    physical = value[:PHYSICAL_DIMENSION]
+    if np.max(np.abs(physical)) > guard:
+        return False, "broad_numeric_coordinate_guard"
+    return True, None
+
+
+def _solve_lm_kkt_step(
+    jacobian: np.ndarray,
+    residual: np.ndarray,
+    damping: float,
+    gauge_direction: Optional[np.ndarray],
+) -> tuple[np.ndarray, float, float, float]:
+    value = np.asarray(jacobian, dtype=float)
+    r = np.asarray(residual, dtype=float)
+    hessian = value.T @ value
+    gradient = value.T @ r
+    dimension = hessian.shape[0]
+    regularized = (
+        hessian + float(damping) * np.eye(dimension)
     )
-    return {
+
+    if gauge_direction is None:
+        step = np.linalg.solve(regularized, -gradient)
+        multiplier = 0.0
+        constraint_violation = 0.0
+    else:
+        direction = np.asarray(
+            gauge_direction,
+            dtype=float,
+        )
+        kkt = np.zeros(
+            (dimension + 1, dimension + 1),
+            dtype=float,
+        )
+        kkt[:dimension, :dimension] = regularized
+        kkt[:dimension, dimension] = direction
+        kkt[dimension, :dimension] = direction
+        rhs = np.concatenate(
+            (-gradient, np.asarray((0.0,), dtype=float))
+        )
+        solution = np.linalg.solve(kkt, rhs)
+        step = solution[:dimension]
+        multiplier = float(solution[dimension])
+        constraint_violation = abs(
+            float(direction @ step)
+        )
+
+    predicted_reduction = -float(
+        gradient @ step
+        + 0.5 * step @ (hessian @ step)
+    )
+    return (
+        step,
+        predicted_reduction,
+        multiplier,
+        constraint_violation,
+    )
+
+
+def _adaptive_lm(
+    evaluator: Any,
+    initial: np.ndarray,
+    lower: np.ndarray,
+    upper: np.ndarray,
+    max_nfev: int,
+    exact_gauge: bool,
+    arguments: argparse.Namespace,
+) -> tuple[np.ndarray, Any, dict[str, Any]]:
+    started = time.perf_counter()
+    initial_value = np.asarray(initial, dtype=float).copy()
+    lower_value = np.asarray(lower, dtype=float)
+    upper_value = np.asarray(upper, dtype=float)
+    if (
+        initial_value.ndim != 1
+        or lower_value.shape != initial_value.shape
+        or upper_value.shape != initial_value.shape
+    ):
+        raise ValueError(
+            "LM initial/bound dimensions are inconsistent"
+        )
+
+    gauge_direction = (
+        _normalized_scale_gauge(initial_value.size)
+        if exact_gauge
+        else None
+    )
+    coordinate = _project_away_exact_gauge(
+        initial_value,
+        gauge_direction,
+    )
+    allowed, reason = _trial_coordinate_is_safe(
+        coordinate,
+        lower_value,
+        upper_value,
+        arguments,
+    )
+    if not allowed:
+        raise ValueError(
+            "initial LM coordinate violates numerical domain: "
+            + str(reason)
+        )
+
+    evaluation_seconds = 0.0
+    linear_solve_seconds = 0.0
+    diagnostics = []
+    nfev = 0
+    linear_solve_count = 0
+    rejected_steps = 0
+    domain_guard_rejections = 0
+    small_reduction_count = 0
+
+    tick = time.perf_counter()
+    current = evaluator(coordinate)
+    evaluation_seconds += time.perf_counter() - tick
+    nfev += 1
+
+    residual = np.asarray(current.residual, dtype=float)
+    jacobian = np.asarray(current.jacobian, dtype=float)
+    cost = 0.5 * float(residual @ residual)
+    hessian = jacobian.T @ jacobian
+    diagonal_scale = max(
+        float(np.max(np.diag(hessian))),
+        1.0,
+    )
+    damping = (
+        float(arguments.lm_initial_damping_relative)
+        * diagonal_scale
+    )
+    trust_radius = float(
+        arguments.lm_initial_trust_radius
+    )
+    maximum_trust_radius = float(
+        arguments.lm_maximum_trust_radius
+    )
+    minimum_trust_radius = max(
+        float(arguments.lm_minimum_trust_radius),
+        100.0 * np.finfo(float).eps,
+    )
+    acceptance_ratio = float(
+        arguments.lm_acceptance_ratio
+    )
+    ftol = (
+        math.sqrt(np.finfo(float).eps)
+        if arguments.ftol is None
+        else float(arguments.ftol)
+    )
+    xtol = (
+        math.sqrt(np.finfo(float).eps)
+        if arguments.xtol is None
+        else float(arguments.xtol)
+    )
+
+    status = 0
+    success = False
+    message = (
+        "maximum number of objective evaluations exceeded"
+    )
+
+    while nfev < int(max_nfev):
+        residual = np.asarray(current.residual, dtype=float)
+        jacobian = np.asarray(current.jacobian, dtype=float)
+        gradient = jacobian.T @ residual
+        projected_gradient = _project_away_exact_gauge(
+            gradient,
+            gauge_direction,
+        )
+        gradient_inf = float(
+            np.linalg.norm(
+                projected_gradient,
+                ord=np.inf,
+            )
+        )
+        if gradient_inf <= float(arguments.gtol):
+            status = 1
+            success = True
+            message = (
+                "projected gradient tolerance satisfied"
+            )
+            break
+
+        old_cost = cost
+        accepted = False
+        inner_attempt = 0
+        while (
+            inner_attempt < 48
+            and nfev < int(max_nfev)
+        ):
+            inner_attempt += 1
+            tick = time.perf_counter()
+            try:
+                (
+                    step,
+                    predicted_reduction,
+                    kkt_multiplier,
+                    constraint_violation,
+                ) = _solve_lm_kkt_step(
+                    jacobian,
+                    residual,
+                    damping,
+                    gauge_direction,
+                )
+            except np.linalg.LinAlgError:
+                linear_solve_seconds += (
+                    time.perf_counter() - tick
+                )
+                linear_solve_count += 1
+                damping *= 10.0
+                trust_radius = max(
+                    minimum_trust_radius,
+                    0.5 * trust_radius,
+                )
+                continue
+            linear_solve_seconds += (
+                time.perf_counter() - tick
+            )
+            linear_solve_count += 1
+
+            step_norm = float(np.linalg.norm(step))
+            if (
+                not np.isfinite(step_norm)
+                or step_norm > trust_radius
+                or predicted_reduction <= 0.0
+                or not np.isfinite(
+                    predicted_reduction
+                )
+            ):
+                damping *= 4.0
+                continue
+
+            trial_coordinate = coordinate + step
+            if gauge_direction is not None:
+                trial_coordinate = (
+                    _project_away_exact_gauge(
+                        trial_coordinate,
+                        gauge_direction,
+                    )
+                )
+            allowed, guard_reason = (
+                _trial_coordinate_is_safe(
+                    trial_coordinate,
+                    lower_value,
+                    upper_value,
+                    arguments,
+                )
+            )
+            if not allowed:
+                domain_guard_rejections += 1
+                diagnostics.append(
+                    {
+                        "accepted": False,
+                        "reason": guard_reason,
+                        "cost_before": old_cost,
+                        "damping": damping,
+                        "trust_radius": trust_radius,
+                        "step_l2": step_norm,
+                    }
+                )
+                damping *= 4.0
+                trust_radius = max(
+                    minimum_trust_radius,
+                    0.5 * trust_radius,
+                )
+                continue
+
+            tick = time.perf_counter()
+            try:
+                trial = evaluator(trial_coordinate)
+                trial_residual = np.asarray(
+                    trial.residual,
+                    dtype=float,
+                )
+                trial_cost = 0.5 * float(
+                    trial_residual @ trial_residual
+                )
+                if not np.isfinite(trial_cost):
+                    raise FloatingPointError(
+                        "trial objective is non-finite"
+                    )
+            except (
+                FloatingPointError,
+                OverflowError,
+                ValueError,
+                np.linalg.LinAlgError,
+            ) as error:
+                evaluation_seconds += (
+                    time.perf_counter() - tick
+                )
+                nfev += 1
+                rejected_steps += 1
+                diagnostics.append(
+                    {
+                        "accepted": False,
+                        "reason": (
+                            "trial_evaluation_failure"
+                        ),
+                        "error_type": (
+                            type(error).__name__
+                        ),
+                        "cost_before": old_cost,
+                        "damping": damping,
+                        "trust_radius": trust_radius,
+                        "step_l2": step_norm,
+                    }
+                )
+                damping *= 4.0
+                trust_radius = max(
+                    minimum_trust_radius,
+                    0.5 * trust_radius,
+                )
+                continue
+            evaluation_seconds += (
+                time.perf_counter() - tick
+            )
+            nfev += 1
+
+            actual_reduction = old_cost - trial_cost
+            ratio = (
+                actual_reduction
+                / predicted_reduction
+                if predicted_reduction > 0.0
+                else -np.inf
+            )
+            accepted = bool(
+                actual_reduction > 0.0
+                and ratio > acceptance_ratio
+            )
+            diagnostics.append(
+                {
+                    "accepted": accepted,
+                    "cost_before": old_cost,
+                    "cost_after": trial_cost,
+                    "actual_reduction": (
+                        actual_reduction
+                    ),
+                    "predicted_reduction": (
+                        predicted_reduction
+                    ),
+                    "reduction_ratio": ratio,
+                    "damping": damping,
+                    "trust_radius": trust_radius,
+                    "step_l2": step_norm,
+                    "kkt_multiplier": (
+                        kkt_multiplier
+                    ),
+                    "gauge_step_constraint_abs": (
+                        constraint_violation
+                    ),
+                }
+            )
+
+            if not accepted:
+                rejected_steps += 1
+                damping *= 4.0
+                trust_radius = max(
+                    minimum_trust_radius,
+                    0.5 * trust_radius,
+                )
+                continue
+
+            coordinate = trial_coordinate
+            current = trial
+            cost = trial_cost
+
+            if ratio > 0.75:
+                damping = max(
+                    damping / 3.0,
+                    np.finfo(float).tiny,
+                )
+                trust_radius = min(
+                    maximum_trust_radius,
+                    max(
+                        trust_radius,
+                        2.0
+                        * max(
+                            step_norm,
+                            minimum_trust_radius,
+                        ),
+                    ),
+                )
+            elif ratio < 0.25:
+                damping *= 4.0
+                trust_radius = max(
+                    minimum_trust_radius,
+                    0.5 * trust_radius,
+                )
+
+            relative_reduction = (
+                actual_reduction
+                / max(old_cost, 1.0)
+            )
+            if relative_reduction <= ftol:
+                small_reduction_count += 1
+            else:
+                small_reduction_count = 0
+
+            if step_norm <= xtol * (
+                xtol
+                + float(np.linalg.norm(coordinate))
+            ):
+                status = 3
+                success = True
+                message = "step tolerance satisfied"
+            elif small_reduction_count >= 3:
+                status = 2
+                success = True
+                message = (
+                    "three consecutive accepted steps "
+                    "satisfied relative objective-"
+                    "reduction tolerance"
+                )
+            break
+
+        if success:
+            break
+        if not accepted:
+            if trust_radius <= minimum_trust_radius:
+                status = -2
+                message = (
+                    "trust region collapsed before an "
+                    "acceptable step could be found"
+                )
+                break
+            if nfev >= int(max_nfev):
+                break
+
+    final_residual = np.asarray(
+        current.residual,
+        dtype=float,
+    )
+    final_jacobian = np.asarray(
+        current.jacobian,
+        dtype=float,
+    )
+    final_gradient = (
+        final_jacobian.T @ final_residual
+    )
+    projected_final_gradient = (
+        _project_away_exact_gauge(
+            final_gradient,
+            gauge_direction,
+        )
+    )
+    gauge_coordinate = (
+        None
+        if gauge_direction is None
+        else float(gauge_direction @ coordinate)
+    )
+
+    payload = {
         "method": (
-            "scipy.optimize.least_squares("
-            "method='trf', tr_solver='exact', x_scale=1.0)"
+            "adaptive Levenberg-Marquardt / "
+            "trust region with KKT hard constraint "
+            "for analytically known common-scale gauge"
         ),
-        "cost": float(result.cost),
-        "optimality": float(result.optimality),
-        "nfev": int(result.nfev),
-        "njev": (
-            None
-            if result.njev is None
-            else int(result.njev)
+        "cost": 0.5
+        * float(final_residual @ final_residual),
+        "optimality": float(
+            np.linalg.norm(
+                projected_final_gradient,
+                ord=np.inf,
+            )
         ),
-        "status": int(result.status),
-        "success": bool(result.success),
-        "message": str(result.message),
+        "nfev": int(nfev),
+        "njev": int(nfev),
+        "status": int(status),
+        "success": bool(success),
+        "message": message,
         "coordinate_step_l2": float(
             np.linalg.norm(
-                np.asarray(result.x, dtype=float)
-                - np.asarray(initial, dtype=float)
+                coordinate - initial_value
             )
         ),
         "gradient_l2": float(
-            np.linalg.norm(gradient)
+            np.linalg.norm(
+                projected_final_gradient
+            )
         ),
         "gradient_inf": float(
             np.linalg.norm(
-                gradient,
+                projected_final_gradient,
                 ord=np.inf,
             )
         ),
         "jacobian_spectrum": _jacobian_spectrum(
-            evaluation.jacobian
+            final_jacobian
         ),
-        "common_scale_gauge": gauge,
+        "known_exact_gauge_handling": {
+            "hard_constraint_applied": bool(
+                gauge_direction is not None
+            ),
+            "constraint": (
+                "v_scale^T step = 0"
+                if gauge_direction is not None
+                else None
+            ),
+            "normalized_direction": (
+                gauge_direction
+            ),
+            "final_coordinate_component": (
+                gauge_coordinate
+            ),
+            "maximum_recorded_step_constraint_abs": (
+                max(
+                    (
+                        float(
+                            item.get(
+                                "gauge_step_constraint_abs",
+                                0.0,
+                            )
+                        )
+                        for item in diagnostics
+                    ),
+                    default=0.0,
+                )
+            ),
+        },
+        "near_ridge_handling": {
+            "hard_singular_value_threshold": None,
+            "unknown_weak_modes_removed": False,
+            "mechanism": (
+                "continuous LM damping plus trust "
+                "radius; scientific ridge interpretation "
+                "is deferred to raw-Jacobian output"
+            ),
+        },
+        "numerical_safety": {
+            "physical_box_bounds_active": False,
+            "broad_trial_coordinate_guard_abs": (
+                float(
+                    arguments.numeric_coordinate_guard
+                )
+            ),
+            "domain_guard_rejections": int(
+                domain_guard_rejections
+            ),
+            "rejected_steps": int(
+                rejected_steps
+            ),
+        },
+        "lm": {
+            "initial_damping_relative": float(
+                arguments.lm_initial_damping_relative
+            ),
+            "final_damping": float(damping),
+            "initial_trust_radius": float(
+                arguments.lm_initial_trust_radius
+            ),
+            "final_trust_radius": float(
+                trust_radius
+            ),
+            "maximum_trust_radius": (
+                maximum_trust_radius
+            ),
+            "minimum_trust_radius": (
+                minimum_trust_radius
+            ),
+            "acceptance_ratio": acceptance_ratio,
+            "effective_ftol": ftol,
+            "effective_xtol": xtol,
+            "gtol": float(arguments.gtol),
+            "trial_history": diagnostics,
+        },
+        "timing": {
+            "elapsed_seconds": float(
+                time.perf_counter() - started
+            ),
+            "objective_evaluation_seconds": float(
+                evaluation_seconds
+            ),
+            "linear_kkt_solve_seconds": float(
+                linear_solve_seconds
+            ),
+            "linear_kkt_solve_count": int(
+                linear_solve_count
+            ),
+        },
+        "ridge_threshold_used": None,
     }
+    return coordinate.copy(), current, payload
 
 
 def _solve_smooth(
@@ -2247,47 +2796,42 @@ def _solve_smooth(
     lower: np.ndarray,
     upper: np.ndarray,
     arguments: argparse.Namespace,
-) -> tuple[np.ndarray, JointEvaluation, Mapping[str, Any]]:
+) -> tuple[
+    np.ndarray,
+    JointEvaluation,
+    Mapping[str, Any],
+]:
     evaluator = lambda value: problem.evaluate_smooth(
         value,
         width_fraction,
     )
-    objective = CachedObjective(evaluator)
-    result = least_squares(
-        objective.residual,
-        np.asarray(initial, dtype=float),
-        jac=objective.jacobian,
-        bounds=(
+    coordinate, evaluation, optimizer = (
+        _adaptive_lm(
+            evaluator,
+            np.asarray(initial, dtype=float),
             np.asarray(lower, dtype=float),
             np.asarray(upper, dtype=float),
-        ),
-        method="trf",
-        tr_solver="exact",
-        x_scale=1.0,
-        loss="linear",
-        ftol=arguments.ftol,
-        xtol=arguments.xtol,
-        gtol=arguments.gtol,
-        max_nfev=arguments.smooth_max_nfev,
-        verbose=0,
+            int(arguments.smooth_max_nfev),
+            problem.exact_common_scale_symmetry,
+            arguments,
+        )
     )
-    evaluation = evaluator(result.x)
+    tick = time.perf_counter()
     gauge = _gauge_diagnostics(
         evaluator,
-        np.asarray(result.x, dtype=float),
+        coordinate,
         evaluation,
         problem.exact_common_scale_symmetry,
     )
-    return (
-        np.asarray(result.x, dtype=float).copy(),
-        evaluation,
-        _optimizer_payload(
-            result,
-            np.asarray(initial, dtype=float),
-            evaluation,
-            gauge,
-        ),
+    optimizer = dict(optimizer)
+    optimizer["common_scale_gauge"] = gauge
+    optimizer["timing"] = dict(
+        optimizer["timing"]
     )
+    optimizer["timing"][
+        "gauge_diagnostics_seconds"
+    ] = float(time.perf_counter() - tick)
+    return coordinate, evaluation, optimizer
 
 
 def _solve_strict(
@@ -2304,37 +2848,34 @@ def _solve_strict(
         rotor_delay_seconds,
         gimbal_delay_seconds,
     )
-    objective = CachedObjective(evaluator)
-    result = least_squares(
-        objective.residual,
-        np.asarray(initial, dtype=float),
-        jac=objective.jacobian,
-        bounds=(
+    coordinate, evaluation, optimizer = (
+        _adaptive_lm(
+            evaluator,
+            np.asarray(initial, dtype=float),
             np.asarray(lower, dtype=float),
             np.asarray(upper, dtype=float),
-        ),
-        method="trf",
-        tr_solver="exact",
-        x_scale=1.0,
-        loss="linear",
-        ftol=arguments.ftol,
-        xtol=arguments.xtol,
-        gtol=arguments.gtol,
-        max_nfev=arguments.strict_max_nfev,
-        verbose=0,
+            int(arguments.strict_max_nfev),
+            problem.exact_common_scale_symmetry,
+            arguments,
+        )
     )
-    evaluation = evaluator(result.x)
+    tick = time.perf_counter()
     gauge = _gauge_diagnostics(
         evaluator,
-        np.asarray(result.x, dtype=float),
+        coordinate,
         evaluation,
         problem.exact_common_scale_symmetry,
     )
+    optimizer = dict(optimizer)
+    optimizer["common_scale_gauge"] = gauge
+    optimizer["timing"] = dict(
+        optimizer["timing"]
+    )
+    optimizer["timing"][
+        "gauge_diagnostics_seconds"
+    ] = float(time.perf_counter() - tick)
     return Solution(
-        physical_coordinate=np.asarray(
-            result.x,
-            dtype=float,
-        ).copy(),
+        physical_coordinate=coordinate,
         rotor_delay_seconds=float(
             rotor_delay_seconds
         ),
@@ -2342,14 +2883,8 @@ def _solve_strict(
             gimbal_delay_seconds
         ),
         evaluation=evaluation,
-        optimizer=_optimizer_payload(
-            result,
-            np.asarray(initial, dtype=float),
-            evaluation,
-            gauge,
-        ),
+        optimizer=optimizer,
     )
-
 
 def _median_command_period(
     bags: Sequence[BagData],
@@ -2385,6 +2920,7 @@ def _strict_screen(
     gimbal_period: float,
     delay_bounds: Sequence[float],
 ) -> dict[str, Any]:
+    started = time.perf_counter()
     lower, upper = map(float, delay_bounds)
     rotor_values = {
         round(
@@ -2558,6 +3094,9 @@ def _strict_screen(
         ),
     )
     return {
+        "elapsed_seconds": float(
+            time.perf_counter() - started
+        ),
         "best_pair": best,
         "best_cost": costs[best],
         "rotor_range_seconds": (
@@ -2582,7 +3121,7 @@ def _strict_screen(
     }
 
 
-def _lag_search(
+def _lag_search_impl(
     problem: DimensionlessDynamicsProblem,
     arguments: argparse.Namespace,
 ) -> tuple[Solution, dict[str, Any]]:
@@ -2871,6 +3410,70 @@ def _lag_search(
         ),
     }
 
+
+def _lag_search(
+    problem: DimensionlessDynamicsProblem,
+    arguments: argparse.Namespace,
+) -> tuple[Solution, dict[str, Any]]:
+    started = time.perf_counter()
+    solution, payload = _lag_search_impl(
+        problem,
+        arguments,
+    )
+    result = dict(payload)
+    result["elapsed_seconds"] = float(
+        time.perf_counter() - started
+    )
+    smooth_seconds = [
+        float(
+            item.get("optimizer", {})
+            .get("timing", {})
+            .get("elapsed_seconds", 0.0)
+        )
+        for item in result.get("smooth_stages", ())
+    ]
+    strict_iterations = result.get(
+        "strict_iterations",
+        (),
+    )
+    result["timing"] = {
+        "elapsed_seconds": result["elapsed_seconds"],
+        "smooth_optimizer_seconds": float(
+            sum(smooth_seconds)
+        ),
+        "strict_screen_seconds": float(
+            sum(
+                float(
+                    item.get("screening", {}).get(
+                        "elapsed_seconds",
+                        0.0,
+                    )
+                )
+                + float(
+                    item.get(
+                        "post_refinement_screening",
+                        {},
+                    ).get(
+                        "elapsed_seconds",
+                        0.0,
+                    )
+                )
+                for item in strict_iterations
+            )
+        ),
+        "strict_optimizer_seconds": float(
+            sum(
+                float(
+                    item.get("solution", {})
+                    .get("optimizer", {})
+                    .get("timing", {})
+                    .get("elapsed_seconds", 0.0)
+                )
+                for item in strict_iterations
+            )
+        ),
+    }
+    return solution, result
 
 def _pseudo_whitener(
     covariance: np.ndarray,
@@ -3244,6 +3847,1810 @@ def _parameter_payload(
     }
 
 
+def _experiment_namespace(
+    arguments: argparse.Namespace,
+) -> str:
+    config = arguments.config.expanduser().resolve()
+    model = (
+        arguments.vehicle_model_json
+        .expanduser()
+        .resolve()
+    )
+    prior = (
+        None
+        if arguments.prior_json is None
+        else arguments.prior_json.expanduser().resolve()
+    )
+    digest = hashlib.sha256()
+    for label, path in (
+        ("config", config),
+        ("vehicle", model),
+        ("prior", prior),
+    ):
+        digest.update(label.encode("ascii"))
+        digest.update(b"\0")
+        if path is None:
+            digest.update(b"<none>")
+        else:
+            digest.update(
+                str(path).encode("utf-8")
+            )
+            digest.update(b"\0")
+            digest.update(path.read_bytes())
+        digest.update(b"\0")
+    stem = "".join(
+        character
+        if (
+            character.isalnum()
+            or character in ("-", "_")
+        )
+        else "_"
+        for character in config.stem
+    ).strip("_")
+    return "{}_{}".format(
+        stem or "experiment",
+        digest.hexdigest()[:12],
+    )
+
+
+def _write_text_pdf(
+    path: Path,
+    title: str,
+    text: str,
+) -> None:
+    lines = text.splitlines()
+    page_size = 56
+    with PdfPages(path) as pdf:
+        for start in range(
+            0,
+            max(len(lines), 1),
+            page_size,
+        ):
+            figure = plt.figure(
+                figsize=(8.3, 11.7),
+                constrained_layout=True,
+            )
+            figure.text(
+                0.04,
+                0.98,
+                title
+                + "\n\n"
+                + "\n".join(
+                    lines[start : start + page_size]
+                ),
+                va="top",
+                ha="left",
+                family="monospace",
+                fontsize=7.4,
+            )
+            pdf.savefig(figure)
+            plt.close(figure)
+
+
+def _write_savgol_fit_pdf(
+    path: Path,
+    bag: BagData,
+) -> None:
+    raw_time = np.asarray(
+        bag.flight.pose.times,
+        dtype=float,
+    )
+    raw_position = np.asarray(
+        bag.flight.pose.positions,
+        dtype=float,
+    )
+    raw_orientation = np.asarray(
+        bag.flight.pose.orientations_xyzw,
+        dtype=float,
+    )
+    fitted = bag.selection.spline.evaluate(raw_time)
+    fitted_sensor_rotation = np.einsum(
+        "nij,jk->nik",
+        np.asarray(
+            fitted.body_rotation,
+            dtype=float,
+        ),
+        np.asarray(
+            bag.direct_problem
+            .pose_body_to_sensor_rotation,
+            dtype=float,
+        ),
+    )
+    fitted_orientation = np.asarray(
+        [
+            matrix_to_quaternion(rotation)
+            for rotation in fitted_sensor_rotation
+        ],
+        dtype=float,
+    )
+    raw_rpy = baseline._rpy_series(
+        raw_orientation
+    )
+    fitted_rpy = baseline._rpy_series(
+        fitted_orientation
+    )
+    relative_time = raw_time - raw_time[0]
+
+    with PdfPages(path) as pdf:
+        figure, axes = plt.subplots(
+            3,
+            1,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        for component, axis in enumerate(axes):
+            axis.plot(
+                relative_time,
+                raw_position[:, component],
+                label="raw mocap",
+            )
+            axis.plot(
+                relative_time,
+                fitted.sensor_position[
+                    :, component
+                ],
+                linestyle="--",
+                label="geometric SG",
+            )
+            axis.set_ylabel(
+                ("x [m]", "y [m]", "z [m]")[
+                    component
+                ]
+            )
+            axis.grid(True, alpha=0.25)
+        axes[0].legend(loc="best")
+        axes[-1].set_xlabel(
+            "time from raw-pose start [s]"
+        )
+        figure.suptitle(
+            "Raw mocap and geometric-SG position"
+        )
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        figure, axes = plt.subplots(
+            3,
+            1,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        for component, axis in enumerate(axes):
+            axis.plot(
+                relative_time,
+                raw_rpy[:, component],
+                label="raw mocap",
+            )
+            axis.plot(
+                relative_time,
+                fitted_rpy[:, component],
+                linestyle="--",
+                label="geometric SG",
+            )
+            axis.set_ylabel(
+                (
+                    "roll [rad]",
+                    "pitch [rad]",
+                    "yaw [rad]",
+                )[component]
+            )
+            axis.grid(True, alpha=0.25)
+        axes[0].legend(loc="best")
+        axes[-1].set_xlabel(
+            "time from raw-pose start [s]"
+        )
+        figure.suptitle(
+            "Raw mocap and geometric-SG orientation"
+        )
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        center_time = bag.time - raw_time[0]
+        figure, axes = plt.subplots(
+            3,
+            2,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        for component in range(3):
+            axes[component, 0].plot(
+                center_time,
+                bag.kinematics
+                .sensor_velocity_world[
+                    :, component
+                ],
+                label="velocity",
+            )
+            axes[component, 0].plot(
+                center_time,
+                bag.kinematics
+                .sensor_acceleration_world[
+                    :, component
+                ],
+                label="acceleration",
+            )
+            axes[component, 1].plot(
+                center_time,
+                bag.kinematics
+                .body_angular_velocity[
+                    :, component
+                ],
+                label="omega",
+            )
+            axes[component, 1].plot(
+                center_time,
+                bag.kinematics
+                .body_angular_acceleration[
+                    :, component
+                ],
+                label="alpha",
+            )
+            axes[component, 0].grid(
+                True,
+                alpha=0.25,
+            )
+            axes[component, 1].grid(
+                True,
+                alpha=0.25,
+            )
+        axes[0, 0].legend(loc="best")
+        axes[0, 1].legend(loc="best")
+        axes[-1, 0].set_xlabel("time [s]")
+        axes[-1, 1].set_xlabel("time [s]")
+        figure.suptitle(
+            "Geometric-SG derivatives"
+        )
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        figure, axes = plt.subplots(
+            2,
+            1,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        axes[0].plot(
+            center_time,
+            bag.kinematics.window_sample_count,
+        )
+        axes[0].set_ylabel(
+            "samples / SG window"
+        )
+        axes[1].semilogy(
+            center_time,
+            bag.kinematics
+            .position_fit_condition_number,
+            label="position",
+        )
+        axes[1].semilogy(
+            center_time,
+            bag.kinematics
+            .rotation_fit_condition_number,
+            label="rotation",
+        )
+        axes[1].set_ylabel(
+            "local fit condition"
+        )
+        axes[1].set_xlabel("time [s]")
+        axes[1].legend(loc="best")
+        for axis in axes:
+            axis.grid(True, alpha=0.25)
+        figure.suptitle(
+            "SG support / conditioning"
+        )
+        pdf.savefig(figure)
+        plt.close(figure)
+
+
+def _diagnostic_forward_rollout(
+    bag: BagData,
+    parameters: VehicleParameters,
+    rotor_delay_seconds: float,
+    gimbal_delay_seconds: float,
+    external_body_wrench: Optional[Any] = None,
+) -> Any:
+    time_axis = np.asarray(
+        bag.time,
+        dtype=float,
+    )
+    if time_axis.size < 2:
+        raise ValueError(
+            "diagnostic rollout requires "
+            "at least two SG times"
+        )
+    rotation = np.asarray(
+        bag.kinematics.body_rotation[0],
+        dtype=float,
+    )
+    omega = np.asarray(
+        bag.kinematics.body_angular_velocity[0],
+        dtype=float,
+    )
+    pose_lever = (
+        np.asarray(
+            bag.direct_problem
+            .pose_sensor_position,
+            dtype=float,
+        )
+        - np.asarray(
+            parameters.cog_offset,
+            dtype=float,
+        )
+    )
+    rigid = RigidBodyState(
+        position=np.asarray(
+            bag.kinematics.sensor_position[0],
+            dtype=float,
+        )
+        - rotation @ pose_lever,
+        orientation_xyzw=matrix_to_quaternion(
+            rotation
+        ),
+        linear_velocity=np.asarray(
+            bag.kinematics
+            .sensor_velocity_world[0],
+            dtype=float,
+        )
+        - rotation
+        @ np.cross(
+            omega,
+            pose_lever,
+        ),
+        angular_velocity=omega,
+    )
+    plant = FullSixDofPlant(
+        parameters,
+        bag.direct_problem.geometry,
+        model_discrepancy_wrench=(
+            external_body_wrench
+        ),
+    )
+    actuator_parameters = ActuatorParameters(
+        thrust_time_constant=0.0,
+        gimbal_time_constant=0.0,
+        delay=0.0,
+    )
+
+    count = time_axis.size
+    arrays = {
+        "sensor_position": np.empty(
+            (count, 3)
+        ),
+        "sensor_orientation_xyzw": np.empty(
+            (count, 4)
+        ),
+        "sensor_velocity_world": np.empty(
+            (count, 3)
+        ),
+        "angular_velocity_sensor": np.empty(
+            (count, 3)
+        ),
+        "specific_force_sensor": np.empty(
+            (count, 3)
+        ),
+        "cog_position": np.empty(
+            (count, 3)
+        ),
+        "cog_velocity_world": np.empty(
+            (count, 3)
+        ),
+        "actuator_thrust": np.empty(
+            (count, 4)
+        ),
+        "actuator_gimbal": np.empty(
+            (count, 4)
+        ),
+    }
+
+    def actuator_at(
+        query_time: float,
+    ) -> ActuatorState:
+        thrust = np.clip(
+            bag.rotor_history.exact_zoh(
+                query_time,
+                rotor_delay_seconds,
+            ),
+            actuator_parameters.minimum_thrust,
+            actuator_parameters.maximum_thrust,
+        )
+        if np.isclose(
+            query_time,
+            float(time_axis[0]),
+            atol=1.0e-12,
+            rtol=0.0,
+        ):
+            gimbal = np.asarray(
+                bag.initial_gimbal,
+                dtype=float,
+            )
+        else:
+            gimbal = (
+                bag.gimbal_history.exact_zoh(
+                    query_time,
+                    gimbal_delay_seconds,
+                )
+            )
+        return ActuatorState(
+            thrust=np.asarray(
+                thrust,
+                dtype=float,
+            ),
+            gimbal_angle=np.asarray(
+                gimbal,
+                dtype=float,
+            ),
+        )
+
+    def store(index: int) -> None:
+        body_rotation = quaternion_to_matrix(
+            rigid.orientation_xyzw
+        )
+        actuator = actuator_at(
+            float(time_axis[index])
+        )
+        velocity_lever = (
+            np.asarray(
+                bag.direct_problem
+                .velocity_sensor_position,
+                dtype=float,
+            )
+            - np.asarray(
+                parameters.cog_offset,
+                dtype=float,
+            )
+        )
+        imu_lever = (
+            np.asarray(
+                bag.direct_problem
+                .imu_sensor_position,
+                dtype=float,
+            )
+            - np.asarray(
+                parameters.cog_offset,
+                dtype=float,
+            )
+        )
+        wrench = plant.total_body_wrench(
+            float(time_axis[index]),
+            rigid,
+            actuator,
+        )
+        angular_acceleration = np.linalg.solve(
+            parameters.inertia,
+            wrench[3:]
+            - np.cross(
+                rigid.angular_velocity,
+                parameters.inertia
+                @ rigid.angular_velocity,
+            ),
+        )
+        specific_force_body = (
+            wrench[:3] / parameters.mass
+            + np.cross(
+                angular_acceleration,
+                imu_lever,
+            )
+            + np.cross(
+                rigid.angular_velocity,
+                np.cross(
+                    rigid.angular_velocity,
+                    imu_lever,
+                ),
+            )
+        )
+        arrays["sensor_position"][index] = (
+            rigid.position
+            + body_rotation @ pose_lever
+        )
+        arrays[
+            "sensor_orientation_xyzw"
+        ][index] = matrix_to_quaternion(
+            body_rotation
+            @ bag.direct_problem
+            .pose_body_to_sensor_rotation
+        )
+        arrays[
+            "sensor_velocity_world"
+        ][index] = (
+            rigid.linear_velocity
+            + body_rotation
+            @ np.cross(
+                rigid.angular_velocity,
+                velocity_lever,
+            )
+        )
+        arrays[
+            "angular_velocity_sensor"
+        ][index] = (
+            bag.direct_problem
+            .body_to_imu_rotation
+            @ rigid.angular_velocity
+            + bag.direct_problem.gyro_bias
+        )
+        arrays[
+            "specific_force_sensor"
+        ][index] = (
+            bag.direct_problem
+            .body_to_imu_rotation
+            @ specific_force_body
+            + bag.direct_problem
+            .accelerometer_bias
+        )
+        arrays["cog_position"][index] = (
+            rigid.position
+        )
+        arrays[
+            "cog_velocity_world"
+        ][index] = rigid.linear_velocity
+        arrays[
+            "actuator_thrust"
+        ][index] = actuator.thrust
+        arrays[
+            "actuator_gimbal"
+        ][index] = actuator.gimbal_angle
+
+    store(0)
+    rotor_switches = (
+        np.asarray(
+            bag.rotor_history.times[1:],
+            dtype=float,
+        )
+        + float(rotor_delay_seconds)
+    )
+    gimbal_switches = (
+        np.asarray(
+            bag.gimbal_history.times[1:],
+            dtype=float,
+        )
+        + float(gimbal_delay_seconds)
+    )
+    maximum_step = float(
+        bag.direct_problem.integration_step
+    )
+
+    for index in range(count - 1):
+        left = float(time_axis[index])
+        right = float(time_axis[index + 1])
+        switches = np.concatenate(
+            (
+                rotor_switches[
+                    (rotor_switches > left)
+                    & (rotor_switches < right)
+                ],
+                gimbal_switches[
+                    (gimbal_switches > left)
+                    & (gimbal_switches < right)
+                ],
+            )
+        )
+        boundaries = np.unique(
+            np.concatenate(
+                (
+                    np.asarray(
+                        (left,),
+                        dtype=float,
+                    ),
+                    switches,
+                    np.asarray(
+                        (right,),
+                        dtype=float,
+                    ),
+                )
+            )
+        )
+        for (
+            segment_left,
+            segment_right,
+        ) in zip(
+            boundaries[:-1],
+            boundaries[1:],
+        ):
+            segment_span = float(
+                segment_right - segment_left
+            )
+            sub_count = max(
+                1,
+                int(
+                    math.ceil(
+                        segment_span
+                        / maximum_step
+                    )
+                ),
+            )
+            sub_boundaries = np.linspace(
+                segment_left,
+                segment_right,
+                sub_count + 1,
+            )
+            for (
+                sub_left,
+                sub_right,
+            ) in zip(
+                sub_boundaries[:-1],
+                sub_boundaries[1:],
+            ):
+                dt = float(
+                    sub_right - sub_left
+                )
+                midpoint = 0.5 * float(
+                    sub_left + sub_right
+                )
+                actuator = actuator_at(
+                    midpoint
+                )
+                rigid = plant.step(
+                    float(sub_left),
+                    rigid,
+                    actuator,
+                    dt,
+                )
+        store(index + 1)
+
+    simulation = baseline.Simulation(
+        time=time_axis.copy(),
+        **arrays,
+    )
+    for value in arrays.values():
+        if np.any(~np.isfinite(value)):
+            raise FloatingPointError(
+                "diagnostic forward rollout "
+                "became non-finite"
+            )
+    return simulation
+
+
+def _trajectory_rmse(
+    bag: BagData,
+    simulation: Any,
+) -> dict[str, float]:
+    observed = (
+        spline_reports
+        ._observations_at_times(
+            bag.direct_problem.observations,
+            simulation.time,
+        )
+    )
+    position_error = (
+        simulation.sensor_position
+        - observed.sensor_position
+    )
+    orientation_error = np.empty(
+        simulation.time.size,
+        dtype=float,
+    )
+    for index in range(
+        simulation.time.size
+    ):
+        observed_rotation = (
+            quaternion_to_matrix(
+                observed
+                .sensor_orientation_xyzw[
+                    index
+                ]
+            )
+        )
+        simulated_rotation = (
+            quaternion_to_matrix(
+                simulation
+                .sensor_orientation_xyzw[
+                    index
+                ]
+            )
+        )
+        orientation_error[index] = (
+            math.degrees(
+                float(
+                    np.linalg.norm(
+                        so3_log(
+                            observed_rotation.T
+                            @ simulated_rotation
+                        )
+                    )
+                )
+            )
+        )
+    return {
+        "position_rmse_m": float(
+            np.sqrt(
+                np.mean(
+                    np.sum(
+                        position_error**2,
+                        axis=1,
+                    )
+                )
+            )
+        ),
+        "orientation_angle_rmse_deg": (
+            float(
+                np.sqrt(
+                    np.mean(
+                        orientation_error**2
+                    )
+                )
+            )
+        ),
+    }
+
+
+def _write_free_trajectory_pdf(
+    path: Path,
+    bag: BagData,
+    free_rollout: Any,
+) -> None:
+    observed = spline_reports._observations_at_times(
+        bag.direct_problem.observations,
+        free_rollout.time,
+    )
+    relative_time = free_rollout.time - free_rollout.time[0]
+    observed_rpy = baseline._rpy_series(
+        observed.sensor_orientation_xyzw
+    )
+    free_rpy = baseline._rpy_series(
+        free_rollout.sensor_orientation_xyzw
+    )
+    lower, upper = spline_reports._common_3d_limits(
+        observed.sensor_position,
+        free_rollout.sensor_position,
+    )
+
+    with PdfPages(path) as pdf:
+        figure = plt.figure(
+            figsize=(11.7, 8.3),
+            constrained_layout=True,
+        )
+        axis = figure.add_subplot(111, projection="3d")
+        axis.plot(
+            observed.sensor_position[:, 0],
+            observed.sensor_position[:, 1],
+            observed.sensor_position[:, 2],
+            linewidth=2.5,
+            label="observed",
+        )
+        axis.plot(
+            free_rollout.sensor_position[:, 0],
+            free_rollout.sensor_position[:, 1],
+            free_rollout.sensor_position[:, 2],
+            linewidth=2.0,
+            linestyle="--",
+            label="free rollout with estimated parameters",
+        )
+        axis.set_xlim(lower[0], upper[0])
+        axis.set_ylim(lower[1], upper[1])
+        axis.set_zlim(lower[2], upper[2])
+        axis.set_xlabel("x [m]")
+        axis.set_ylabel("y [m]")
+        axis.set_zlabel("z [m]")
+        axis.set_title("Observed and free-rollout 3D trajectory")
+        axis.legend(loc="best")
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        for title, reference, prediction, labels in (
+            (
+                "Observed and free-rollout sensor position",
+                observed.sensor_position,
+                free_rollout.sensor_position,
+                ("x [m]", "y [m]", "z [m]"),
+            ),
+            (
+                "Observed and free-rollout sensor orientation",
+                observed_rpy,
+                free_rpy,
+                ("roll [rad]", "pitch [rad]", "yaw [rad]"),
+            ),
+        ):
+            figure, axes = plt.subplots(
+                3,
+                1,
+                figsize=(11.7, 8.3),
+                sharex=True,
+                constrained_layout=True,
+            )
+            for component, axis in enumerate(axes):
+                axis.plot(
+                    relative_time,
+                    reference[:, component],
+                    linewidth=2.2,
+                    label="observed",
+                )
+                axis.plot(
+                    relative_time,
+                    prediction[:, component],
+                    linewidth=1.8,
+                    linestyle="--",
+                    label="free rollout",
+                )
+                axis.set_ylabel(labels[component])
+                axis.grid(True, alpha=0.25)
+            axes[0].set_title(title)
+            axes[0].legend(loc="best")
+            axes[-1].set_xlabel("time from rollout-support start [s]")
+            pdf.savefig(figure)
+            plt.close(figure)
+
+
+def _write_trajectory_3d_pdf(
+    path: Path,
+    bag: BagData,
+    free_rollout: Any,
+    wrench_rollout: Any,
+) -> None:
+    reference = np.asarray(
+        bag.kinematics.sensor_position,
+        dtype=float,
+    )
+    lower, upper = (
+        spline_reports._common_3d_limits(
+            reference,
+            free_rollout.sensor_position,
+            wrench_rollout.sensor_position,
+        )
+    )
+    with PdfPages(path) as pdf:
+        figure = plt.figure(
+            figsize=(11.7, 8.3),
+            constrained_layout=True,
+        )
+        axis = figure.add_subplot(
+            111,
+            projection="3d",
+        )
+        axis.plot(
+            reference[:, 0],
+            reference[:, 1],
+            reference[:, 2],
+            label="SG trajectory",
+            linewidth=2.4,
+        )
+        axis.plot(
+            free_rollout
+            .sensor_position[:, 0],
+            free_rollout
+            .sensor_position[:, 1],
+            free_rollout
+            .sensor_position[:, 2],
+            linestyle="--",
+            label="free rollout",
+        )
+        axis.plot(
+            wrench_rollout
+            .sensor_position[:, 0],
+            wrench_rollout
+            .sensor_position[:, 1],
+            wrench_rollout
+            .sensor_position[:, 2],
+            linestyle=":",
+            label=(
+                "raw-residual-wrench rollout"
+            ),
+        )
+        axis.set_xlim(
+            lower[0],
+            upper[0],
+        )
+        axis.set_ylim(
+            lower[1],
+            upper[1],
+        )
+        axis.set_zlim(
+            lower[2],
+            upper[2],
+        )
+        axis.set_xlabel("x [m]")
+        axis.set_ylabel("y [m]")
+        axis.set_zlabel("z [m]")
+        axis.legend(loc="best")
+        axis.set_title(
+            "Trajectory comparison"
+        )
+        pdf.savefig(figure)
+        plt.close(figure)
+
+
+def _write_raw_wrench_pdf(
+    path: Path,
+    time_axis: np.ndarray,
+    wrench: np.ndarray,
+    title: str,
+) -> None:
+    relative_time = (
+        np.asarray(
+            time_axis,
+            dtype=float,
+        )
+        - float(time_axis[0])
+    )
+    values = np.asarray(
+        wrench,
+        dtype=float,
+    )
+    labels = (
+        "F_x [N]",
+        "F_y [N]",
+        "F_z [N]",
+        "M_x [N m]",
+        "M_y [N m]",
+        "M_z [N m]",
+    )
+    with PdfPages(path) as pdf:
+        figure, axes = plt.subplots(
+            3,
+            2,
+            figsize=(11.7, 8.3),
+            sharex=True,
+            constrained_layout=True,
+        )
+        for component, axis in enumerate(
+            axes.ravel()
+        ):
+            axis.plot(
+                relative_time,
+                values[:, component],
+            )
+            axis.axhline(
+                0.0,
+                linewidth=0.8,
+            )
+            axis.set_ylabel(
+                labels[component]
+            )
+            axis.grid(True, alpha=0.25)
+        axes[-1, 0].set_xlabel(
+            "time [s]"
+        )
+        axes[-1, 1].set_xlabel(
+            "time [s]"
+        )
+        figure.suptitle(title)
+        pdf.savefig(figure)
+        plt.close(figure)
+
+
+def _ridge_payload(
+    evaluation: JointEvaluation,
+    exact_common_scale_expected: bool,
+) -> dict[str, Any]:
+    jacobian = np.asarray(
+        evaluation.jacobian,
+        dtype=float,
+    )
+    spectrum = _jacobian_spectrum(
+        jacobian
+    )
+    information = (
+        jacobian.T @ jacobian
+    )
+    direction = (
+        _normalized_scale_gauge(
+            PHYSICAL_DIMENSION
+        )
+    )
+    image_relative = float(
+        np.linalg.norm(
+            jacobian @ direction
+        )
+        / max(
+            np.linalg.norm(jacobian),
+            np.finfo(float).tiny,
+        )
+    )
+    weakest_alignment = None
+    if spectrum[
+        "right_singular_vectors"
+    ].size:
+        weakest_alignment = float(
+            abs(
+                np.asarray(
+                    spectrum[
+                        "right_singular_vectors"
+                    ][-1],
+                    dtype=float,
+                )
+                @ direction
+            )
+        )
+    return {
+        "schema": (
+            SCHEMA
+            + "/raw-ridge-analysis/v1"
+        ),
+        "source": (
+            "raw final deterministic data "
+            "Jacobian; solver LM damping "
+            "and KKT stabilization are "
+            "not included"
+        ),
+        "jacobian_shape": (
+            jacobian.shape
+        ),
+        "data_information_matrix": (
+            information
+        ),
+        "singular_values": (
+            spectrum["singular_values"]
+        ),
+        "right_singular_vectors": (
+            spectrum[
+                "right_singular_vectors"
+            ]
+        ),
+        "machine_rank": (
+            spectrum["numerical_rank"]
+        ),
+        "machine_nullity": (
+            spectrum["nullity"]
+        ),
+        "machine_rank_tolerance": (
+            spectrum[
+                "numerical_tolerance"
+            ]
+        ),
+        "condition_number_nonzero_subspace": (
+            spectrum[
+                "condition_number_nonzero_subspace"
+            ]
+        ),
+        "scientific_ridge_threshold": None,
+        "known_common_scale_gauge": {
+            "exact_expected": bool(
+                exact_common_scale_expected
+            ),
+            "normalized_direction": direction,
+            "relative_jacobian_image_norm": (
+                image_relative
+            ),
+            "weakest_mode_alignment": (
+                weakest_alignment
+            ),
+        },
+    }
+
+
+def _write_ridge_pdf(
+    path: Path,
+    ridge: Mapping[str, Any],
+) -> None:
+    singular = np.asarray(
+        ridge["singular_values"],
+        dtype=float,
+    )
+    vectors = np.asarray(
+        ridge["right_singular_vectors"],
+        dtype=float,
+    )
+    with PdfPages(path) as pdf:
+        figure = plt.figure(
+            figsize=(11.7, 8.3),
+            constrained_layout=True,
+        )
+        axis = figure.add_subplot(111)
+        axis.semilogy(
+            np.arange(
+                1,
+                singular.size + 1,
+            ),
+            singular,
+            marker="o",
+        )
+        axis.set_xlabel(
+            "singular index"
+        )
+        axis.set_ylabel(
+            "raw data-Jacobian "
+            "singular value"
+        )
+        axis.grid(True, alpha=0.25)
+        axis.set_title(
+            "Raw deterministic Jacobian "
+            "spectrum (no LM/KKT "
+            "stabilization included)"
+        )
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        weak_count = min(
+            4,
+            singular.size,
+        )
+        for offset in range(
+            weak_count
+        ):
+            index = (
+                singular.size
+                - weak_count
+                + offset
+            )
+            figure = plt.figure(
+                figsize=(11.7, 8.3),
+                constrained_layout=True,
+            )
+            axis = figure.add_subplot(111)
+            axis.bar(
+                np.arange(
+                    PHYSICAL_DIMENSION
+                ),
+                vectors[index],
+            )
+            axis.set_xticks(
+                np.arange(
+                    PHYSICAL_DIMENSION
+                )
+            )
+            axis.set_xticklabels(
+                PHYSICAL_PARAMETER_NAMES,
+                rotation=75,
+                ha="right",
+            )
+            axis.set_ylabel(
+                "right-singular-vector "
+                "component"
+            )
+            axis.grid(
+                True,
+                axis="y",
+                alpha=0.25,
+            )
+            axis.set_title(
+                "weak mode {} / "
+                "sigma={:.6g}".format(
+                    index + 1,
+                    singular[index],
+                )
+            )
+            pdf.savefig(figure)
+            plt.close(figure)
+
+
+def _write_confidence_pdf(
+    path: Path,
+    confidence: Mapping[str, Any],
+) -> None:
+    spectrum = confidence.get(
+        "data_spectrum",
+        {},
+    )
+    singular = np.asarray(
+        spectrum.get(
+            "singular_values",
+            (),
+        ),
+        dtype=float,
+    )
+    with PdfPages(path) as pdf:
+        if singular.size:
+            figure = plt.figure(
+                figsize=(11.7, 8.3),
+                constrained_layout=True,
+            )
+            axis = figure.add_subplot(111)
+            axis.semilogy(
+                np.arange(
+                    1,
+                    singular.size + 1,
+                ),
+                singular,
+                marker="o",
+            )
+            axis.set_xlabel(
+                "singular index"
+            )
+            axis.set_ylabel(
+                "whitened likelihood-"
+                "Jacobian singular value"
+            )
+            axis.grid(
+                True,
+                alpha=0.25,
+            )
+            axis.set_title(
+                "Local data-likelihood "
+                "spectrum"
+            )
+            pdf.savefig(figure)
+            plt.close(figure)
+
+        posterior = confidence.get(
+            "posterior"
+        )
+        if isinstance(
+            posterior,
+            Mapping,
+        ):
+            mean = np.asarray(
+                posterior.get(
+                    "posterior_physical_"
+                    "mean_linearized",
+                    (),
+                ),
+                dtype=float,
+            )
+            std = np.asarray(
+                posterior.get(
+                    "posterior_physical_"
+                    "std_linearized",
+                    (),
+                ),
+                dtype=float,
+            )
+            if (
+                mean.shape
+                == (
+                    len(
+                        PHYSICAL_VALUE_NAMES
+                    ),
+                )
+                and std.shape
+                == mean.shape
+            ):
+                figure = plt.figure(
+                    figsize=(11.7, 8.3),
+                    constrained_layout=True,
+                )
+                axis = (
+                    figure.add_subplot(111)
+                )
+                positions = np.arange(
+                    mean.size
+                )
+                axis.errorbar(
+                    positions,
+                    mean,
+                    yerr=std,
+                    fmt="o",
+                )
+                axis.set_xticks(
+                    positions
+                )
+                axis.set_xticklabels(
+                    PHYSICAL_VALUE_NAMES,
+                    rotation=75,
+                    ha="right",
+                )
+                axis.grid(
+                    True,
+                    axis="y",
+                    alpha=0.25,
+                )
+                axis.set_title(
+                    "Linearized posterior "
+                    "mean +/- 1 std"
+                )
+                pdf.savefig(figure)
+                plt.close(figure)
+
+
+def _write_delay_profile_pdf(
+    path: Path,
+    lag_search: Mapping[str, Any],
+) -> None:
+    with PdfPages(path) as pdf:
+        figure = plt.figure(
+            figsize=(11.7, 8.3),
+            constrained_layout=True,
+        )
+        axis = figure.add_subplot(111)
+        axis.axis("off")
+        text = "\n".join(
+            (
+                "Command-lag search",
+                "",
+                "mode: {}".format(
+                    lag_search.get("mode")
+                ),
+                (
+                    "rotor period [s]: {}"
+                ).format(
+                    lag_search.get(
+                        "rotor_period_seconds"
+                    )
+                ),
+                (
+                    "gimbal period [s]: {}"
+                ).format(
+                    lag_search.get(
+                        "gimbal_period_seconds"
+                    )
+                ),
+                (
+                    "selected rotor lag [s]: {}"
+                ).format(
+                    lag_search.get(
+                        "selected_rotor_delay_seconds"
+                    )
+                ),
+                (
+                    "selected gimbal lag [s]: {}"
+                ).format(
+                    lag_search.get(
+                        "selected_gimbal_delay_seconds"
+                    )
+                ),
+                "termination: {}".format(
+                    lag_search.get(
+                        "termination"
+                    )
+                ),
+                "elapsed [s]: {}".format(
+                    lag_search.get(
+                        "elapsed_seconds"
+                    )
+                ),
+            )
+        )
+        axis.text(
+            0.02,
+            0.98,
+            text,
+            va="top",
+            family="monospace",
+        )
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        stages = lag_search.get(
+            "smooth_stages",
+            (),
+        )
+        if stages:
+            stage_index = np.arange(
+                1,
+                len(stages) + 1,
+            )
+            rotor = np.asarray(
+                [
+                    item[
+                        "rotor_delay_seconds"
+                    ]
+                    for item in stages
+                ],
+                dtype=float,
+            )
+            gimbal = np.asarray(
+                [
+                    item[
+                        "gimbal_delay_seconds"
+                    ]
+                    for item in stages
+                ],
+                dtype=float,
+            )
+            cost = np.asarray(
+                [
+                    item[
+                        "objective_cost"
+                    ]
+                    for item in stages
+                ],
+                dtype=float,
+            )
+            figure, axes = plt.subplots(
+                2,
+                1,
+                figsize=(11.7, 8.3),
+                constrained_layout=True,
+            )
+            axes[0].plot(
+                stage_index,
+                rotor,
+                marker="o",
+                label="rotor",
+            )
+            axes[0].plot(
+                stage_index,
+                gimbal,
+                marker="o",
+                label="gimbal",
+            )
+            axes[0].set_ylabel(
+                "lag [s]"
+            )
+            axes[0].legend(loc="best")
+            axes[1].semilogy(
+                stage_index,
+                cost,
+                marker="o",
+            )
+            axes[1].set_ylabel(
+                "objective"
+            )
+            axes[1].set_xlabel(
+                "smooth stage"
+            )
+            for axis in axes:
+                axis.grid(
+                    True,
+                    alpha=0.25,
+                )
+            pdf.savefig(figure)
+            plt.close(figure)
+
+
+def _write_per_bag_outputs(
+    bag_directory: Path,
+    bag: BagData,
+    evaluation: BagEvaluation,
+    solution: Solution,
+    scales: ReferenceScales,
+) -> tuple[
+    dict[str, Any],
+    dict[str, Any],
+]:
+    started = time.perf_counter()
+    bag_directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    timing: dict[str, Any] = {}
+
+    tick = time.perf_counter()
+    _write_bag_npz(
+        bag_directory
+        / "savgol_dynamics.npz",
+        bag,
+        evaluation,
+        scales,
+    )
+    timing[
+        "write_savgol_npz_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+
+    tick = time.perf_counter()
+    _write_savgol_fit_pdf(
+        bag_directory
+        / "savgol_fit.pdf",
+        bag,
+    )
+    timing[
+        "write_savgol_fit_pdf_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+
+    tick = time.perf_counter()
+    free_rollout = (
+        _diagnostic_forward_rollout(
+            bag,
+            solution.evaluation
+            .decoded.parameters,
+            solution.rotor_delay_seconds,
+            solution.gimbal_delay_seconds,
+            external_body_wrench=None,
+        )
+    )
+    timing[
+        "free_rollout_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+
+    raw_wrench_history = (
+        spline_reports.BodyWrenchHistory(
+            bag.time,
+            evaluation.residual_body_wrench,
+        )
+    )
+    tick = time.perf_counter()
+    wrench_rollout = (
+        _diagnostic_forward_rollout(
+            bag,
+            solution.evaluation
+            .decoded.parameters,
+            solution.rotor_delay_seconds,
+            solution.gimbal_delay_seconds,
+            external_body_wrench=(
+                raw_wrench_history
+            ),
+        )
+    )
+    timing[
+        "raw_residual_wrench_"
+        "rollout_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+
+    tick = time.perf_counter()
+    spline_reports._write_trajectory_pdf(
+        bag_directory / "trajectory.pdf",
+        bag,
+        wrench_rollout,
+    )
+    _write_free_trajectory_pdf(
+        bag_directory
+        / "trajectory_free.pdf",
+        bag,
+        free_rollout,
+    )
+    _write_trajectory_3d_pdf(
+        bag_directory
+        / "trajectory_3d.pdf",
+        bag,
+        free_rollout,
+        wrench_rollout,
+    )
+    timing[
+        "write_trajectory_pdfs_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+
+    observed = (
+        spline_reports
+        ._observations_at_times(
+            bag.direct_problem.observations,
+            wrench_rollout.time,
+        )
+    )
+    sg_gyro, sg_force = (
+        spline_reports
+        ._pose_spline_implied_sensor_series(
+            bag,
+            solution.evaluation
+            .decoded.parameters,
+            wrench_rollout.time,
+        )
+    )
+
+    tick = time.perf_counter()
+    wrench_sensor_metrics = (
+        spline_reports._sensor_metrics(
+            observed,
+            wrench_rollout,
+        )
+    )
+    free_observed = (
+        spline_reports
+        ._observations_at_times(
+            bag.direct_problem.observations,
+            free_rollout.time,
+        )
+    )
+    free_sensor_metrics = (
+        spline_reports._sensor_metrics(
+            free_observed,
+            free_rollout,
+        )
+    )
+    spline_reports._write_sensor_validation_pdf(
+        bag_directory
+        / "sensor_consistency.pdf",
+        bag,
+        wrench_rollout,
+        wrench_sensor_metrics,
+    )
+    spline_reports._write_sensor_validation_pdf(
+        bag_directory
+        / "sensor_consistency_free.pdf",
+        bag,
+        free_rollout,
+        free_sensor_metrics,
+    )
+    spline_reports._write_diagnostic_pdf(
+        bag_directory / "diagnostic.pdf",
+        observed,
+        sg_gyro,
+        sg_force,
+        wrench_rollout,
+    )
+    timing[
+        "write_sensor_diagnostic_"
+        "pdfs_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+
+    wrench_statistics = (
+        _residual_wrench_statistics(
+            evaluation,
+            scales,
+        )
+    )
+    tick = time.perf_counter()
+    _write_raw_wrench_pdf(
+        bag_directory
+        / "raw_residual_wrench.pdf",
+        bag.time,
+        evaluation.residual_body_wrench,
+        (
+            "Raw inverse-dynamics "
+            "residual body wrench"
+        ),
+    )
+    _write_raw_wrench_pdf(
+        bag_directory
+        / "external_wrench.pdf",
+        bag.time,
+        evaluation.residual_body_wrench,
+        (
+            "External-wrench diagnostic: "
+            "raw inverse-dynamics residual "
+            "(no external-wrench minimization)"
+        ),
+    )
+    timing[
+        "write_wrench_pdfs_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+
+    tick = time.perf_counter()
+    np.savez_compressed(
+        bag_directory
+        / "rollout_diagnostics.npz",
+        time=wrench_rollout.time,
+        free_sensor_position=(
+            free_rollout.sensor_position
+        ),
+        free_sensor_orientation_xyzw=(
+            free_rollout
+            .sensor_orientation_xyzw
+        ),
+        free_sensor_velocity_world=(
+            free_rollout
+            .sensor_velocity_world
+        ),
+        free_angular_velocity_sensor=(
+            free_rollout
+            .angular_velocity_sensor
+        ),
+        free_specific_force_sensor=(
+            free_rollout
+            .specific_force_sensor
+        ),
+        wrench_sensor_position=(
+            wrench_rollout.sensor_position
+        ),
+        wrench_sensor_orientation_xyzw=(
+            wrench_rollout
+            .sensor_orientation_xyzw
+        ),
+        wrench_sensor_velocity_world=(
+            wrench_rollout
+            .sensor_velocity_world
+        ),
+        wrench_angular_velocity_sensor=(
+            wrench_rollout
+            .angular_velocity_sensor
+        ),
+        wrench_specific_force_sensor=(
+            wrench_rollout
+            .specific_force_sensor
+        ),
+    )
+    timing[
+        "write_rollout_npz_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+
+    diagnostic = {
+        "schema": (
+            SCHEMA
+            + "/bag-diagnostic/v1"
+        ),
+        "free_rollout": {
+            "trajectory": _trajectory_rmse(
+                bag,
+                free_rollout,
+            ),
+            "sensor": (
+                free_sensor_metrics
+            ),
+        },
+        "raw_residual_wrench_rollout": {
+            "trajectory": _trajectory_rmse(
+                bag,
+                wrench_rollout,
+            ),
+            "sensor": (
+                wrench_sensor_metrics
+            ),
+        },
+        "pose_sg_implied_vs_measured": (
+            spline_reports
+            ._sensor_pair_metrics(
+                observed.time,
+                observed
+                .angular_velocity_sensor,
+                observed
+                .specific_force_sensor,
+                sg_gyro,
+                sg_force,
+            )
+        ),
+        "raw_residual_wrench_statistics": (
+            wrench_statistics
+        ),
+        "external_wrench_interpretation": (
+            "diagnostic residual wrench "
+            "only; its magnitude is not "
+            "part of the deterministic "
+            "parameter objective"
+        ),
+        "timing": timing,
+    }
+    _write_json(
+        bag_directory / "diagnostic.json",
+        diagnostic,
+    )
+    _write_json(
+        bag_directory
+        / "external_wrench.json",
+        {
+            "time_seconds": bag.time,
+            "body_wrench_physical": (
+                evaluation
+                .residual_body_wrench
+            ),
+            "statistics": (
+                wrench_statistics
+            ),
+        },
+    )
+
+    outputs = {
+        "result_json": "result.json",
+        "diagnostic_json": (
+            "diagnostic.json"
+        ),
+        "diagnostic_pdf": (
+            "diagnostic.pdf"
+        ),
+        "savgol_fit_pdf": (
+            "savgol_fit.pdf"
+        ),
+        "trajectory_pdf": (
+            "trajectory.pdf"
+        ),
+        "trajectory_free_pdf": (
+            "trajectory_free.pdf"
+        ),
+        "trajectory_3d_pdf": (
+            "trajectory_3d.pdf"
+        ),
+        "sensor_consistency_pdf": (
+            "sensor_consistency.pdf"
+        ),
+        "sensor_consistency_free_pdf": (
+            "sensor_consistency_free.pdf"
+        ),
+        "raw_residual_wrench_pdf": (
+            "raw_residual_wrench.pdf"
+        ),
+        "external_wrench_pdf": (
+            "external_wrench.pdf"
+        ),
+        "external_wrench_json": (
+            "external_wrench.json"
+        ),
+        "savgol_dynamics_npz": (
+            "savgol_dynamics.npz"
+        ),
+        "rollout_diagnostics_npz": (
+            "rollout_diagnostics.npz"
+        ),
+    }
+    timing["elapsed_seconds"] = float(
+        time.perf_counter() - started
+    )
+    return outputs, diagnostic
+
+
+def _parameters_pdf(
+    path: Path,
+    text: str,
+) -> None:
+    _write_text_pdf(
+        path,
+        "Dimensionless SG parameter result",
+        text,
+    )
+
 def _write_bag_npz(
     path: Path,
     bag: BagData,
@@ -3532,6 +5939,8 @@ def _parameters_text(
             "  optimizer message: {}".format(
                 result["optimizer"]["message"]
             ),
+            "  exact scale gauge: KKT hard constraint",
+            "  unknown weak-mode cutoff: none",
             "  Jacobian rank: {}".format(
                 result["optimizer"][
                     "jacobian_spectrum"
@@ -3626,7 +6035,14 @@ def _load_problem(
     DimensionlessDynamicsProblem,
     VehicleModelInput,
     Optional[GaussianPhysicalPrior],
+    dict[str, Any],
 ]:
+    total_started = time.perf_counter()
+    timing: dict[str, Any] = {
+        "per_bag": {},
+    }
+
+    tick = time.perf_counter()
     config = multi.load_multi_bag_config(
         arguments.config
     )
@@ -3644,6 +6060,11 @@ def _load_problem(
         scales,
     )
     parameterization.self_test()
+    timing[
+        "config_model_parameterization_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
 
     raw_weights = np.asarray(
         [
@@ -3656,10 +6077,15 @@ def _load_problem(
         raw_weights / np.sum(raw_weights)
     )
     bags = []
+    rosbag_total = 0.0
+    sg_total = 0.0
     for specification, weight in zip(
         config.bags,
         normalized_weights,
     ):
+        bag_timing: dict[str, float] = {}
+
+        tick = time.perf_counter()
         flight = load_flight_data(
             str(specification.path),
             start_local=specification.start,
@@ -3667,24 +6093,57 @@ def _load_problem(
             include_fc_specific_force=True,
             compute_sha256=False,
         )
-        bags.append(
-            _build_bag(
-                specification,
-                float(weight),
-                flight,
-                window_seconds,
-                arguments,
-                model,
-                scales,
-            )
+        elapsed = time.perf_counter() - tick
+        rosbag_total += elapsed
+        bag_timing[
+            "rosbag_loading_seconds"
+        ] = float(elapsed)
+
+        tick = time.perf_counter()
+        bag = _build_bag(
+            specification,
+            float(weight),
+            flight,
+            window_seconds,
+            arguments,
+            model,
+            scales,
         )
+        elapsed = time.perf_counter() - tick
+        sg_total += elapsed
+        bag_timing[
+            "savgol_and_problem_"
+            "construction_seconds"
+        ] = float(elapsed)
+
+        timing["per_bag"][
+            str(specification.bag_id)
+        ] = bag_timing
+        bags.append(bag)
+
+    timing[
+        "rosbag_loading_seconds"
+    ] = float(rosbag_total)
+    timing[
+        "savgol_and_problem_"
+        "construction_seconds"
+    ] = float(sg_total)
+
+    tick = time.perf_counter()
     problem = DimensionlessDynamicsProblem(
         bags,
         model,
         scales,
     )
-    return problem, model, prior
-
+    timing[
+        "joint_problem_construction_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+    timing["elapsed_seconds"] = float(
+        time.perf_counter() - total_started
+    )
+    return problem, model, prior, timing
 
 def run_window(
     arguments: argparse.Namespace,
@@ -3692,19 +6151,62 @@ def run_window(
     output_directory: Path,
 ) -> dict[str, Any]:
     started = time.perf_counter()
+    if output_directory.exists():
+        shutil.rmtree(output_directory)
+    output_directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+    timing: dict[str, Any] = {
+        "per_bag": {},
+    }
+
     (
         problem,
         model,
         prior,
+        setup_timing,
     ) = _load_problem(
         arguments,
         window_seconds,
     )
+    timing["problem_setup"] = setup_timing
 
+    tick = time.perf_counter()
     solution, lag_search = _lag_search(
         problem,
         arguments,
     )
+    timing[
+        "lag_and_physical_optimization_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+    timing["lag_search"] = (
+        lag_search.get(
+            "timing",
+            {
+                "elapsed_seconds": (
+                    lag_search.get(
+                        "elapsed_seconds"
+                    )
+                )
+            },
+        )
+    )
+
+    tick = time.perf_counter()
+    ridge = _ridge_payload(
+        solution.evaluation,
+        problem.exact_common_scale_symmetry,
+    )
+    timing[
+        "final_raw_jacobian_ridge_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
+
+    tick = time.perf_counter()
     confidence = (
         None
         if arguments.skip_confidence
@@ -3714,16 +6216,24 @@ def run_window(
             prior,
         )
     )
+    timing["confidence_seconds"] = float(
+        time.perf_counter() - tick
+    )
 
     selection_parameters = _parameter_payload(
-        solution.evaluation.decoded.parameters
+        solution.evaluation
+        .decoded.parameters
     )
-    bag_payloads = []
-    output_directory.mkdir(
+    bags_directory = (
+        output_directory / "bags"
+    )
+    bags_directory.mkdir(
         parents=True,
         exist_ok=True,
     )
+    bag_payloads = []
 
+    tick_reports = time.perf_counter()
     for bag, evaluation in zip(
         problem.bags,
         solution.evaluation.bag_evaluations,
@@ -3731,63 +6241,85 @@ def run_window(
         bag_id = str(
             bag.specification.bag_id
         )
-        npz_name = "{}_dynamics.npz".format(
-            bag_id
+        bag_directory = (
+            bags_directory / bag_id
         )
-        pdf_name = "{}_diagnostic.pdf".format(
-            bag_id
+        outputs, diagnostic = (
+            _write_per_bag_outputs(
+                bag_directory,
+                bag,
+                evaluation,
+                solution,
+                problem.scales,
+            )
         )
-        _write_bag_npz(
-            output_directory / npz_name,
-            bag,
-            evaluation,
-            problem.scales,
+        timing["per_bag"][bag_id] = dict(
+            diagnostic.get(
+                "timing",
+                {},
+            )
         )
-        _write_bag_pdf(
-            output_directory / pdf_name,
-            bag,
-            evaluation,
-        )
-        bag_payloads.append(
-            {
-                "id": bag_id,
-                "path": bag.specification.path,
-                "start_seconds": (
-                    bag.specification.start
-                ),
-                "end_seconds": (
-                    bag.specification.end
-                ),
-                "normalized_weight": (
-                    bag.normalized_weight
-                ),
-                "valid_sg_center_count": int(
-                    bag.time.size
-                ),
-                "sg_window_seconds": float(
-                    window_seconds
-                ),
-                "minimum_window_sample_count": int(
-                    np.min(
-                        bag.kinematics.window_sample_count
+        payload = {
+            "id": bag_id,
+            "path": bag.specification.path,
+            "start_seconds": (
+                bag.specification.start
+            ),
+            "end_seconds": (
+                bag.specification.end
+            ),
+            "normalized_weight": (
+                bag.normalized_weight
+            ),
+            "valid_sg_center_count": int(
+                bag.time.size
+            ),
+            "sg_window_seconds": float(
+                window_seconds
+            ),
+            "minimum_window_sample_count": int(
+                np.min(
+                    bag.kinematics
+                    .window_sample_count
+                )
+            ),
+            "maximum_window_sample_count": int(
+                np.max(
+                    bag.kinematics
+                    .window_sample_count
+                )
+            ),
+            "data_loss": (
+                evaluation.data_loss
+            ),
+            "residual_wrench_statistics": (
+                _residual_wrench_statistics(
+                    evaluation,
+                    problem.scales,
+                )
+            ),
+            "outputs": {
+                key: (
+                    "bags/{}/{}".format(
+                        bag_id,
+                        value,
                     )
-                ),
-                "maximum_window_sample_count": int(
-                    np.max(
-                        bag.kinematics.window_sample_count
-                    )
-                ),
-                "data_loss": evaluation.data_loss,
-                "residual_wrench_statistics": (
-                    _residual_wrench_statistics(
-                        evaluation,
-                        problem.scales,
-                    )
-                ),
-                "npz": npz_name,
-                "diagnostic_pdf": pdf_name,
-            }
+                )
+                for key, value in outputs.items()
+            },
+            "diagnostic": diagnostic,
+        }
+        _write_json(
+            bag_directory / "result.json",
+            payload,
         )
+        bag_payloads.append(payload)
+
+    timing[
+        "per_bag_reporting_seconds"
+    ] = float(
+        time.perf_counter() - tick_reports
+    )
 
     objective_cost = 0.5 * float(
         solution.evaluation.residual
@@ -3818,7 +6350,9 @@ def run_window(
             "coordinate_names": (
                 PHYSICAL_PARAMETER_NAMES
             ),
-            "dimension": PHYSICAL_DIMENSION,
+            "dimension": (
+                PHYSICAL_DIMENSION
+            ),
             "second_moment_chart": (
                 "Sigma_bar = B0 exp(S) B0"
             ),
@@ -3826,25 +6360,35 @@ def run_window(
                 "(c - c_reference) / L_*"
             ),
             "lag_coordinate": (
-                "delay_seconds / T_* during smooth solve"
+                "delay_seconds / T_* "
+                "during smooth solve"
             ),
             "common_scale_ridge_retained": True,
             "common_scale_direction": (
                 COMMON_SCALE_DIRECTION
             ),
-            "numerical_bounds": {
-                "log_scale_abs": (
+            "physical_box_bounds_active": False,
+            "broad_numeric_trial_guard_abs": (
+                float(
+                    arguments
+                    .numeric_coordinate_guard
+                )
+            ),
+            "old_box_bound_arguments": {
+                "log_scale_bound": (
                     arguments.log_scale_bound
                 ),
-                "matrix_log_abs": (
-                    arguments.matrix_log_bound
+                "matrix_log_bound": (
+                    arguments
+                    .matrix_log_bound
                 ),
-                "dimensionless_cog_abs": (
+                "cog_bound": (
                     arguments.cog_bound
                 ),
                 "interpretation": (
-                    "floating-point domain guards, "
-                    "not a probabilistic prior"
+                    "deprecated compatibility "
+                    "values; not used as "
+                    "optimization box constraints"
                 ),
             },
         },
@@ -3863,39 +6407,147 @@ def run_window(
                 solution.evaluation.data_loss
             ),
             "parameters": selection_parameters,
+            "interpretation": (
+                "one gauge-fixed numerical "
+                "representative; scientific "
+                "ridge information is in "
+                "ridge.json"
+            ),
         },
         "optimizer": solution.optimizer,
         "lag_search": lag_search,
+        "ridge_path": "ridge.json",
         "bags": bag_payloads,
         "confidence_path": (
             None
             if confidence is None
             else "confidence.json"
         ),
-        "elapsed_seconds": float(
-            time.perf_counter() - started
-        ),
+        "outputs": {
+            "result_json": "result.json",
+            "arguments_json": (
+                "arguments.json"
+            ),
+            "timing_json": "timing.json",
+            "parameters_txt": (
+                "parameters.txt"
+            ),
+            "parameters_pdf": (
+                "parameters.pdf"
+            ),
+            "summary_pdf": "summary.pdf",
+            "ridge_json": "ridge.json",
+            "ridge_pdf": "ridge.pdf",
+            "delay_profile_json": (
+                "delay_profile.json"
+            ),
+            "delay_profile_pdf": (
+                "delay_profile.pdf"
+            ),
+            "confidence_json": (
+                None
+                if confidence is None
+                else "confidence.json"
+            ),
+            "confidence_pdf": (
+                None
+                if confidence is None
+                else "confidence.pdf"
+            ),
+            "data_dictionary": (
+                "DATA_DICTIONARY.md"
+            ),
+            "bags_directory": "bags",
+        },
     }
 
+    tick = time.perf_counter()
     _write_json(
-        output_directory / "result.json",
-        result,
+        output_directory / "ridge.json",
+        ridge,
+    )
+    _write_ridge_pdf(
+        output_directory / "ridge.pdf",
+        ridge,
+    )
+    _write_json(
+        output_directory
+        / "delay_profile.json",
+        lag_search,
+    )
+    _write_delay_profile_pdf(
+        output_directory
+        / "delay_profile.pdf",
+        lag_search,
     )
     if confidence is not None:
         _write_json(
-            output_directory / "confidence.json",
+            output_directory
+            / "confidence.json",
             confidence,
         )
-    (output_directory / "parameters.txt").write_text(
-        _parameters_text(result),
+        _write_confidence_pdf(
+            output_directory
+            / "confidence.pdf",
+            confidence,
+        )
+    parameters_text = _parameters_text(
+        result
+    )
+    (
+        output_directory / "parameters.txt"
+    ).write_text(
+        parameters_text,
         encoding="utf-8",
+    )
+    _parameters_pdf(
+        output_directory / "parameters.pdf",
+        parameters_text,
     )
     _write_summary_pdf(
         output_directory / "summary.pdf",
         result,
     )
-    return result
+    _write_json(
+        output_directory / "arguments.json",
+        vars(arguments),
+    )
+    dictionary_source = (
+        Path(__file__)
+        .resolve()
+        .with_name(
+            "dimensionless_savgol_"
+            "experiment_data_dictionary.md"
+        )
+    )
+    if dictionary_source.is_file():
+        shutil.copyfile(
+            dictionary_source,
+            output_directory
+            / "DATA_DICTIONARY.md",
+        )
+    timing[
+        "root_reporting_seconds"
+    ] = float(
+        time.perf_counter() - tick
+    )
 
+    timing["elapsed_seconds"] = float(
+        time.perf_counter() - started
+    )
+    result["timing"] = timing
+    result["elapsed_seconds"] = (
+        timing["elapsed_seconds"]
+    )
+    _write_json(
+        output_directory / "timing.json",
+        timing,
+    )
+    _write_json(
+        output_directory / "result.json",
+        result,
+    )
+    return result
 
 def _minimum_window(
     arguments: argparse.Namespace,
@@ -4042,7 +6694,10 @@ def run_ablation(
     output_root = (
         arguments.output_dir.expanduser().resolve()
         / OUTPUT_SUBDIRECTORY
+        / _experiment_namespace(arguments)
     )
+    if output_root.exists():
+        shutil.rmtree(output_root)
     output_root.mkdir(
         parents=True,
         exist_ok=True,
@@ -4145,6 +6800,7 @@ def run_fit(arguments: argparse.Namespace) -> int:
     output_directory = (
         arguments.output_dir.expanduser().resolve()
         / OUTPUT_SUBDIRECTORY
+        / _experiment_namespace(arguments)
         / "W_{}s".format(
             _safe_label(
                 arguments.window_seconds
@@ -4229,7 +6885,7 @@ def run_confidence_only(
             "deterministic result cannot be read"
         ) from error
 
-    problem, _model, prior = _load_problem(
+    problem, _model, prior, setup_timing = _load_problem(
         arguments,
         window,
     )
@@ -4257,6 +6913,14 @@ def run_confidence_only(
         result_path.parent / "confidence.json"
     )
     _write_json(output_path, confidence)
+    _write_confidence_pdf(
+        result_path.parent / "confidence.pdf",
+        confidence,
+    )
+    _write_json(
+        result_path.parent / "confidence_timing.json",
+        {"problem_setup": setup_timing},
+    )
     print("wrote {}".format(output_path), flush=True)
     return 0
 
@@ -4356,27 +7020,72 @@ def create_argument_parser() -> argparse.ArgumentParser:
         "--log-scale-bound",
         type=float,
         default=8.0,
+        help=(
+            "Deprecated compatibility option. It no longer "
+            "defines an active optimization box bound."
+        ),
     )
     parser.add_argument(
         "--optimizer-svd-rcond",
         type=float,
         default=None,
         help=(
-            "Deprecated compatibility option. The new deterministic "
-            "solver uses only the dense exact SVD rank handling built "
-            "into SciPy and does not apply a user SVD cutoff."
+            "Deprecated no-op. Unknown weak modes are not removed "
+            "by an SVD cutoff in the gauge-constrained LM solver."
         ),
     )
     parser.add_argument(
         "--matrix-log-bound",
         type=float,
         default=6.0,
+        help=(
+            "Deprecated compatibility option. It no longer "
+            "defines an active matrix-log box bound."
+        ),
     )
     parser.add_argument(
         "--cog-bound",
         type=float,
         default=10.0,
-        help="Absolute dimensionless CoG displacement bound.",
+        help=(
+            "Deprecated compatibility option. It no longer "
+            "defines an active CoG box bound."
+        ),
+    )
+    parser.add_argument(
+        "--numeric-coordinate-guard",
+        type=float,
+        default=50.0,
+        help=(
+            "Broad floating-point safety guard for trial physical "
+            "coordinates. Guarded trials are rejected and LM damping "
+            "is increased; this is not an active box constraint."
+        ),
+    )
+    parser.add_argument(
+        "--lm-initial-damping-relative",
+        type=float,
+        default=1.0e-3,
+    )
+    parser.add_argument(
+        "--lm-initial-trust-radius",
+        type=float,
+        default=1.0,
+    )
+    parser.add_argument(
+        "--lm-maximum-trust-radius",
+        type=float,
+        default=8.0,
+    )
+    parser.add_argument(
+        "--lm-minimum-trust-radius",
+        type=float,
+        default=1.0e-10,
+    )
+    parser.add_argument(
+        "--lm-acceptance-ratio",
+        type=float,
+        default=1.0e-4,
     )
     parser.add_argument(
         "--delay-bounds",
@@ -4413,15 +7122,17 @@ def create_argument_parser() -> argparse.ArgumentParser:
         "--search-lags",
         action="store_true",
         help=(
-            "Enable the smooth/strict rotor and gimbal lag search. "
-            "The experimental default keeps the data-derived initial "
-            "lags fixed because lag is not the target of this study."
+            "Deprecated no-op compatibility flag. Lag search is on "
+            "by default; use --skip-lag-search to disable it."
         ),
     )
     parser.add_argument(
         "--skip-lag-search",
         action="store_true",
-        help="Deprecated compatibility alias for the default behavior.",
+        help=(
+            "Skip smooth/strict lag search and keep the data-derived "
+            "initial rotor/gimbal lags fixed."
+        ),
     )
     parser.add_argument(
         "--skip-confidence",
@@ -4468,6 +7179,11 @@ def _validate_arguments(
         arguments.log_scale_bound,
         arguments.matrix_log_bound,
         arguments.cog_bound,
+        arguments.numeric_coordinate_guard,
+        arguments.lm_initial_damping_relative,
+        arguments.lm_initial_trust_radius,
+        arguments.lm_maximum_trust_radius,
+        arguments.lm_minimum_trust_radius,
     )
     if any(
         not np.isfinite(value)
@@ -4500,7 +7216,12 @@ def _validate_arguments(
         dtype=float,
     )
     if (
-        bounds.shape != (2,)
+        not (0.0 < arguments.lm_acceptance_ratio < 1.0)
+        or arguments.lm_maximum_trust_radius
+        < arguments.lm_initial_trust_radius
+        or arguments.lm_initial_trust_radius
+        < arguments.lm_minimum_trust_radius
+        or bounds.shape != (2,)
         or np.any(~np.isfinite(bounds))
         or bounds[0] < 0.0
         or bounds[1] <= bounds[0]

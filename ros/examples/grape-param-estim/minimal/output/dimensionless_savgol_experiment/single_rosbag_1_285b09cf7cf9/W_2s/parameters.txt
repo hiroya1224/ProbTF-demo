@@ -1,0 +1,52 @@
+Dimensionless geometric Savitzky-Golay experiment
+
+Fixed reference scales
+  mass_kg: 2.3515975908123767
+  length_m: 0.19158499426207065
+  time_s: 0.13977207332379268
+  force_n: 23.061294513940194
+  torque_nm: 4.418197977129154
+  dimensionless_gravity: 1.0
+
+Selected deterministic point (prior-free)
+  objective cost: 0.0008864918852971233
+  rotor delay [s]: 0.112521096281
+  gimbal delay [s]: 0.046667489993
+  optimizer success: True
+  optimizer message: three consecutive accepted steps satisfied relative objective-reduction tolerance
+  exact scale gauge: KKT hard constraint
+  unknown weak-mode cutoff: none
+  Jacobian rank: 13
+  Jacobian nullity: 1
+  common-scale analytic null norm: 2.022883282921508e-13
+  common-scale FD null norm: 1.093711701906961e-09
+
+Dimensionless coordinate
+  log_mass_scale                                   -1.75705396387
+  log_second_moment_mode_xx                        -5.38344331305
+  log_second_moment_mode_yy                         3.76186426691
+  log_second_moment_mode_zz                         11.1032331488
+  log_second_moment_mode_xy                         1.10463311054
+  log_second_moment_mode_xz                        -0.519583503965
+  log_second_moment_mode_yz                         4.91194788065
+  dimensionless_cog_displacement_x                  0.108068186189
+  dimensionless_cog_displacement_y                  3.94375718495
+  dimensionless_cog_displacement_z                  0.334254762005
+  log_force_effectiveness_1                        -2.20133553469
+  log_force_effectiveness_2                        -1.83898563113
+  log_force_effectiveness_3                        -1.7171268454
+  log_force_effectiveness_4                        -1.96715212758
+
+Physical representative
+  mass [kg]: 0.40577395285096834
+  CoG body [m]: [0.01867953 0.75553417 0.07354795]
+  force effectiveness: [0.11065528 0.15897861 0.17958137 0.13985458]
+  inertia [kg m^2]:
+    [ 2443.581473,  20.08975361,  4.376387316]
+    [ 20.08975361,  109.9279728, -505.993209]
+    [ 4.376387316, -505.993209,  2334.020868]
+  principal moments [kg m^2]: [5.00346161e-02 2.44371534e+03 2.44376494e+03]
+
+Per-bag raw residual-wrench RMS
+  failure_1_single: [8.88154961e-02 3.63994528e-02 1.16379502e-01 8.78207640e+02
+ 3.34905828e+02 1.53461721e+03]

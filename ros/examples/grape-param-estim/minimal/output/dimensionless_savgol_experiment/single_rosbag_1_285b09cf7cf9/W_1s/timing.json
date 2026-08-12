@@ -1,0 +1,40 @@
+{
+  "confidence_seconds": 0.00843945611268282,
+  "elapsed_seconds": 81.56013574404642,
+  "final_raw_jacobian_ridge_seconds": 0.008934109937399626,
+  "lag_and_physical_optimization_seconds": 68.94544936809689,
+  "lag_search": {
+    "elapsed_seconds": 68.94543965300545,
+    "smooth_optimizer_seconds": 53.209765144623816,
+    "strict_optimizer_seconds": 1.9847316169179976,
+    "strict_screen_seconds": 8.140662959776819
+  },
+  "per_bag": {
+    "failure_1_single": {
+      "elapsed_seconds": 9.421463403850794,
+      "free_rollout_seconds": 2.5500042410567403,
+      "raw_residual_wrench_rollout_seconds": 2.770405712071806,
+      "write_rollout_npz_seconds": 0.002673185896128416,
+      "write_savgol_fit_pdf_seconds": 1.103501291014254,
+      "write_savgol_npz_seconds": 0.028618510346859694,
+      "write_sensor_diagnostic_pdfs_seconds": 1.1389747709035873,
+      "write_trajectory_pdfs_seconds": 0.963325496762991,
+      "write_wrench_pdfs_seconds": 0.5739728398621082
+    }
+  },
+  "per_bag_reporting_seconds": 9.422117487061769,
+  "problem_setup": {
+    "config_model_parameterization_seconds": 0.002650848124176264,
+    "elapsed_seconds": 2.0842727567069232,
+    "joint_problem_construction_seconds": 0.00012517394497990608,
+    "per_bag": {
+      "failure_1_single": {
+        "rosbag_loading_seconds": 1.3265345110557973,
+        "savgol_and_problem_construction_seconds": 0.7549484339542687
+      }
+    },
+    "rosbag_loading_seconds": 1.3265345110557973,
+    "savgol_and_problem_construction_seconds": 0.7549484339542687
+  },
+  "root_reporting_seconds": 1.0907224765978754
+}

@@ -104,24 +104,34 @@ configured bag weights are normalized to sum to one.
 
 ## Optimization
 
-The active solver is SciPy `least_squares` with
+The deterministic objective is prior-free. Numerical stabilization is separate
+from scientific ridge analysis.
 
-```text
-method="trf"
-tr_solver="exact"
-x_scale=1.0
-loss="linear"
+The analytically known common mass/inertia/thrust scale gauge is enforced only
+inside each optimization step by the hard KKT constraint
+
+```math
+v_{\mathrm{scale}}^{T}p=0.
 ```
 
-There is no custom SVD threshold in the deterministic step.  Because every coordinate has already been nondimensionalized, no adaptive
-Jacobian-column rescaling is used. The exact scale ridge is straight in the
-chart and is handled by the dense SVD trust-region solve.  Broad finite coordinate bounds are floating-point domain guards, not a
-probabilistic prior.
+The physical step is computed with adaptive Levenberg--Marquardt damping and a
+trust radius. Unknown weak directions are not removed with a singular-value
+cutoff. Therefore a direction that is weakly identifiable remains in the
+optimization problem; LM damping only suppresses numerically dangerous large
+steps. Machine precision is used only when reporting numerical rank.
 
-By default, rotor and gimbal lags are fixed to their data-derived median
-publish periods; lag is not the target of this experiment. Pass `--search-lags`
-to enable the smooth/strict split-lag search. During that optional smooth solve,
-lag coordinates are divided by \(T_*\). Reported lags are seconds.
+The old `--log-scale-bound`, `--matrix-log-bound`, and `--cog-bound` options are
+retained for command-line compatibility but do not define active physical box
+constraints. A deliberately broad numerical trial guard rejects pathological
+trial points before model evaluation. A rejected trial increases LM damping and
+shrinks the trust radius, so the safety guard cannot become an artificial
+boundary optimum.
+
+Rotor and gimbal lag search is enabled by default. The smooth stage estimates
+continuous split rotor/gimbal lags, followed by strict ZOH lag screening and
+physical refinement. `--skip-lag-search` fixes both lags to their data-derived
+initial values. During the smooth solve, lag coordinates are divided by
+\(T_*\); reported lags are seconds.
 
 ## Residual wrench
 
@@ -148,28 +158,81 @@ prior is introduced.  When `--prior-json` is supplied, its physical Gaussian
 factor is linearized into the 14-D dimensionless chart and added to the data
 information matrix.
 
-## Output
+## Output and persistent diagnostics
 
-For one window \(W\):
+Every completed window writes raw ridge analysis from the unstabilized final
+data Jacobian:
 
 ```text
-output/dimensionless_savgol_experiment/W_<W>s/
+ridge.json
+ridge.pdf
+```
+
+`ridge.json` contains the raw data information matrix, singular values, right
+singular vectors, machine-precision rank, and the known common-scale gauge
+diagnostic. LM damping and the KKT constraint are not added to this information
+matrix. No scientific singular-value threshold is used.
+
+Outputs are isolated by an experiment namespace derived from the config,
+vehicle-model, and optional-prior contents:
+
+```text
+output/dimensionless_savgol_experiment/<config>_<hash>/W_<...>s/
+```
+
+The window root contains:
+
+```text
+result.json
+arguments.json
+timing.json
+parameters.txt
+parameters.pdf
+summary.pdf
+ridge.json
+ridge.pdf
+delay_profile.json
+delay_profile.pdf
+confidence.json            # unless --skip-confidence
+confidence.pdf             # unless --skip-confidence
+DATA_DICTIONARY.md
+bags/
+```
+
+Each bag has an independent directory:
+
+```text
+bags/<bag-id>/
     result.json
-    confidence.json                  # unless --skip-confidence
-    parameters.txt
-    summary.pdf
-    <bag-id>_dynamics.npz
-    <bag-id>_diagnostic.pdf
+    diagnostic.json
+    diagnostic.pdf
+    savgol_fit.pdf
+    trajectory.pdf
+    trajectory_free.pdf
+    trajectory_3d.pdf
+    sensor_consistency.pdf
+    sensor_consistency_free.pdf
+    raw_residual_wrench.pdf
+    external_wrench.pdf
+    external_wrench.json
+    savgol_dynamics.npz
+    rollout_diagnostics.npz
 ```
 
-Ablation mode additionally writes:
+`external_wrench.*` is the raw inverse-dynamics residual wrench used only for
+diagnostics and diagnostic replay. Its magnitude is not part of the
+deterministic parameter objective.
 
-```text
-output/dimensionless_savgol_experiment/
-    ablation.json
-    ablation.pdf
-```
+Ablation mode writes `ablation.json` and `ablation.pdf` in the experiment
+namespace and regenerates each window directory independently, preventing stale
+files from another config/bag run from being mixed into the current result.
 
-Legacy forward replay and external-wrench optimization are intentionally not
-called by this experiment.  They were a separate source of stale mixed-version
-outputs and are not required to evaluate the dimensionless deterministic core.
+### Timing
+
+`timing.json` and `result.json["timing"]` record wall-clock durations for
+config/model setup, rosbag loading per bag and in total, Savitzky--Golay/problem
+construction per bag and in total, lag and physical optimization, each adaptive
+LM solve (including objective-evaluation and KKT linear-solve time), strict lag
+screening, final raw-Jacobian ridge analysis, confidence/posterior construction,
+free and raw-residual-wrench rollouts, per-bag report/file output, root
+report/file output, and total execution.

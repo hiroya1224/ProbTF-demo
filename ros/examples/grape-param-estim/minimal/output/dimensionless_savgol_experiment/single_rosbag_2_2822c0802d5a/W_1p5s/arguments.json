@@ -1,0 +1,51 @@
+{
+  "cog_bound": 10.0,
+  "config": "../samples/rosbags/single_rosbag_2.json",
+  "delay_bounds": [
+    0.0,
+    0.2
+  ],
+  "deterministic_result": null,
+  "ftol": null,
+  "gtol": 1e-08,
+  "include_minimum_window": true,
+  "initial_delay": null,
+  "initial_gimbal_delay": null,
+  "initial_rotor_delay": null,
+  "integration_step": 0.025,
+  "lm_acceptance_ratio": 0.0001,
+  "lm_initial_damping_relative": 0.001,
+  "lm_initial_trust_radius": 1.0,
+  "lm_maximum_trust_radius": 8.0,
+  "lm_minimum_trust_radius": 1e-10,
+  "log_scale_bound": 8.0,
+  "matrix_log_bound": 6.0,
+  "mode": "ablation",
+  "numeric_coordinate_guard": 50.0,
+  "optimizer_svd_rcond": null,
+  "output_dir": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/output",
+  "prior_json": "grape_parameter_prior.json",
+  "sample_step": 0.05,
+  "search_lags": false,
+  "self_test": false,
+  "skip_confidence": false,
+  "skip_lag_search": false,
+  "smooth_max_nfev": 80,
+  "smoothstep_width_fractions": [
+    4.0,
+    2.0,
+    1.0,
+    0.5
+  ],
+  "strict_alternations": 8,
+  "strict_max_nfev": 120,
+  "vehicle_model_json": "grape_vehicle_model.json",
+  "window_seconds": null,
+  "windows_seconds": [
+    0.5,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "xtol": null
+}

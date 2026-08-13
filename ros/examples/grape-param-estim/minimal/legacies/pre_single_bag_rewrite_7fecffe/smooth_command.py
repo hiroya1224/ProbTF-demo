@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict and differentiable causal zero-order-hold command histories."""
+"""Differentiable local smoothing of a causal zero-order-hold command."""
 
 from __future__ import annotations
 
@@ -11,8 +11,6 @@ import numpy as np
 
 @dataclass(frozen=True)
 class CommandEvaluation:
-    """A smoothed command value and its derivative with respect to lag."""
-
     value: np.ndarray
     delay_derivative: np.ndarray
 
@@ -26,32 +24,34 @@ class CommandEvaluation:
             or np.any(~np.isfinite(derivative))
         ):
             raise ValueError("command evaluation must contain finite vectors")
-        object.__setattr__(self, "value", _readonly(value))
-        object.__setattr__(self, "delay_derivative", _readonly(derivative))
-
-
-def _readonly(value: np.ndarray) -> np.ndarray:
-    result = np.asarray(value, dtype=float).copy()
-    result.setflags(write=False)
-    return result
+        value = value.copy()
+        derivative = derivative.copy()
+        value.setflags(write=False)
+        derivative.setflags(write=False)
+        object.__setattr__(self, "value", value)
+        object.__setattr__(self, "delay_derivative", derivative)
 
 
 def _deduplicate_last(
-    times: np.ndarray, values: np.ndarray
+    times: np.ndarray,
+    values: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Collapse equal adjacent timestamps while retaining the final message."""
+    """Collapse equal adjacent timestamps, retaining the final message."""
 
     retained = np.concatenate((times[1:] != times[:-1], np.asarray((True,))))
     return times[retained].copy(), values[retained].copy()
 
 
 class QuinticSmoothZoh:
-    """Quintic-smooth continuation of a causal zero-order hold.
+    """Differentiable surrogate of a causal ZOH command.
 
-    ``width_fraction`` is the transition half-width divided by the median
-    command publication period.  Overlapping transitions are intentional.
-    The strict estimator uses :meth:`exact_zoh`; :meth:`evaluate` is only for
-    continuation during lag search.
+    The ZOH is written as its initial value plus command jumps.  Each Heaviside
+    jump is replaced by a quintic smoothstep.  Transition supports are allowed
+    to overlap deliberately, so broad continuation stages have a broad lag
+    derivative.
+
+    ``width_fraction`` is the transition half-width in units of the median
+    recorded publish period.  It is not clipped to avoid overlap.
     """
 
     def __init__(self, times: Sequence[float], values: np.ndarray) -> None:
@@ -68,19 +68,17 @@ class QuinticSmoothZoh:
             or np.any(np.diff(sample_times) < 0.0)
         ):
             raise ValueError("command history must be finite and time ordered")
-        sample_times, sample_values = _deduplicate_last(
-            sample_times, sample_values
-        )
+        sample_times, sample_values = _deduplicate_last(sample_times, sample_values)
         if sample_times.size > 1 and np.any(np.diff(sample_times) <= 0.0):
             raise RuntimeError("deduplicated command times are not strict")
-        self.times = _readonly(sample_times)
-        self.values = _readonly(sample_values)
-        self.dimension = int(sample_values.shape[1])
+        self.times = sample_times
+        self.values = sample_values
+        self.dimension = sample_values.shape[1]
         self.median_period = (
-            float(np.median(np.diff(sample_times)))
-            if sample_times.size > 1
-            else 0.0
+            float(np.median(np.diff(sample_times))) if sample_times.size > 1 else 0.0
         )
+        self.times.setflags(write=False)
+        self.values.setflags(write=False)
 
     def transition_half_widths(self, width_fraction: float) -> np.ndarray:
         fraction = float(width_fraction)
@@ -101,16 +99,15 @@ class QuinticSmoothZoh:
         index = min(max(index, 0), self.times.size - 1)
         return self.values[index].copy()
 
-    def evaluate(
-        self, time: float, delay: float, width_fraction: float
-    ) -> CommandEvaluation:
+    def evaluate(self, time: float, delay: float, width_fraction: float) -> CommandEvaluation:
         evaluation_time = float(time)
         lag = float(delay)
         if not np.isfinite(evaluation_time) or not np.isfinite(lag):
             raise ValueError("evaluation time and delay must be finite")
         if self.times.size < 2:
             return CommandEvaluation(
-                self.values[0], np.zeros(self.dimension, dtype=float)
+                value=self.values[0],
+                delay_derivative=np.zeros(self.dimension, dtype=float),
             )
         fraction = float(width_fraction)
         if not np.isfinite(fraction) or fraction <= 0.0:
@@ -121,12 +118,8 @@ class QuinticSmoothZoh:
 
         query = evaluation_time - lag
         transitions = self.times[1:]
-        completed = int(
-            np.searchsorted(transitions, query - half_width, side="right")
-        )
-        active_end = int(
-            np.searchsorted(transitions, query + half_width, side="left")
-        )
+        completed = int(np.searchsorted(transitions, query - half_width, side="right"))
+        active_end = int(np.searchsorted(transitions, query + half_width, side="left"))
         value = self.values[completed].copy()
         delay_derivative = np.zeros(self.dimension, dtype=float)
         for local_index in range(completed, active_end):
@@ -135,12 +128,7 @@ class QuinticSmoothZoh:
             q = (query - transition_time + half_width) / (2.0 * half_width)
             smooth = q**3 * (q * (6.0 * q - 15.0) + 10.0)
             smooth_derivative = 30.0 * q**2 * (1.0 - q) ** 2
-            delta = (
-                self.values[transition_index]
-                - self.values[transition_index - 1]
-            )
+            delta = self.values[transition_index] - self.values[transition_index - 1]
             value += delta * smooth
-            delay_derivative -= (
-                delta * smooth_derivative / (2.0 * half_width)
-            )
-        return CommandEvaluation(value, delay_derivative)
+            delay_derivative += -delta * smooth_derivative / (2.0 * half_width)
+        return CommandEvaluation(value=value, delay_derivative=delay_derivative)

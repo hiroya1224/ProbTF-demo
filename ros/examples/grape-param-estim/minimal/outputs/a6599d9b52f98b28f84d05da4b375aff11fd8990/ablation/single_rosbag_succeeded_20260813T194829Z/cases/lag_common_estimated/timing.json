@@ -1,0 +1,83 @@
+{
+  "elapsed_seconds": 1070.569502600003,
+  "nfev": 242,
+  "stages": [
+    {
+      "elapsed_seconds": 742.2361867749132,
+      "message": "cost tolerance satisfied",
+      "nfev": 169,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 4.0
+    },
+    {
+      "elapsed_seconds": 96.58956208312884,
+      "message": "cost tolerance satisfied",
+      "nfev": 23,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 2.0
+    },
+    {
+      "elapsed_seconds": 52.85179655998945,
+      "message": "cost tolerance satisfied",
+      "nfev": 13,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 1.0
+    },
+    {
+      "elapsed_seconds": 67.31416514143348,
+      "message": "cost tolerance satisfied",
+      "nfev": 17,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 0.5
+    },
+    {
+      "gimbal_lag_seconds": 0.05587146591382079,
+      "rotor_lag_seconds": 0.05587146591382079,
+      "stage": "strict_lag_screen",
+      "success": true,
+      "trace": [
+        {
+          "candidate_count": 22,
+          "channel": "common",
+          "cost": 508171.56282376405,
+          "selected": 0.05587146591382079
+        }
+      ]
+    },
+    {
+      "elapsed_seconds": 28.281490076798946,
+      "gimbal_lag_seconds": 0.05587146591382079,
+      "iteration": 1,
+      "message": "cost tolerance satisfied",
+      "nfev": 20,
+      "rotor_lag_seconds": 0.05587146591382079,
+      "stage": "strict_physical_refinement",
+      "status": "ftol",
+      "success": true
+    },
+    {
+      "fixed_point": true,
+      "gimbal_lag_seconds": 0.05587146591382079,
+      "iteration": 1,
+      "rotor_lag_seconds": 0.05587146591382079,
+      "stage": "strict_post_refinement_screen",
+      "success": true,
+      "trace": [
+        {
+          "candidate_count": 22,
+          "channel": "common",
+          "cost": 508129.10727426014,
+          "selected": 0.05587146591382079
+        }
+      ]
+    }
+  ]
+}

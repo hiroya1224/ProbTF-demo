@@ -1,0 +1,91 @@
+{
+  "elapsed_seconds": 2929.014807871077,
+  "nfev": 761,
+  "stages": [
+    {
+      "elapsed_seconds": 2508.7063036090694,
+      "message": "cost tolerance satisfied",
+      "nfev": 629,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 4.0
+    },
+    {
+      "elapsed_seconds": 108.49804464913905,
+      "message": "cost tolerance satisfied",
+      "nfev": 29,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 2.0
+    },
+    {
+      "elapsed_seconds": 204.9263736619614,
+      "message": "cost tolerance satisfied",
+      "nfev": 56,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 1.0
+    },
+    {
+      "elapsed_seconds": 42.898648750036955,
+      "message": "cost tolerance satisfied",
+      "nfev": 12,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 0.5
+    },
+    {
+      "gimbal_lag_seconds": 0.04210917892804241,
+      "rotor_lag_seconds": 0.07028053409797806,
+      "stage": "strict_lag_screen",
+      "success": true,
+      "trace": [
+        {
+          "candidate_count": 9,
+          "channel": "split_pair",
+          "cost": 180310.49054002232,
+          "expansions": [],
+          "gimbal_candidate_count": 3,
+          "rotor_candidate_count": 3,
+          "selected_gimbal_lag_seconds": 0.04210917892804241,
+          "selected_rotor_lag_seconds": 0.07028053409797806
+        }
+      ]
+    },
+    {
+      "elapsed_seconds": 31.381469497922808,
+      "gimbal_lag_seconds": 0.04210917892804241,
+      "iteration": 1,
+      "message": "cost tolerance satisfied",
+      "nfev": 35,
+      "rotor_lag_seconds": 0.07028053409797806,
+      "stage": "strict_physical_refinement",
+      "status": "ftol",
+      "success": true
+    },
+    {
+      "fixed_point": true,
+      "gimbal_lag_seconds": 0.04210917892804241,
+      "iteration": 1,
+      "rotor_lag_seconds": 0.07028053409797806,
+      "stage": "strict_post_refinement_screen",
+      "success": true,
+      "trace": [
+        {
+          "candidate_count": 9,
+          "channel": "split_pair",
+          "cost": 180191.34140552714,
+          "expansions": [],
+          "gimbal_candidate_count": 3,
+          "rotor_candidate_count": 3,
+          "selected_gimbal_lag_seconds": 0.04210917892804241,
+          "selected_rotor_lag_seconds": 0.07028053409797806
+        }
+      ]
+    }
+  ]
+}

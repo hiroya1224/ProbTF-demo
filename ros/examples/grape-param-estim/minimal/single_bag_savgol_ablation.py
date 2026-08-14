@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from copy import deepcopy
 import json
+import multiprocessing
 from pathlib import Path
 import re
 import sys
@@ -379,6 +381,183 @@ def run_case_sequence(
     return summaries
 
 
+def _case_summary(case_name: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "case_name": case_name,
+        "status": payload.get("status", "failed"),
+        "failure_reason": payload.get("message"),
+        "elapsed_seconds": payload.get("elapsed_seconds"),
+        "point_estimate": payload.get("parameters"),
+        "common_evaluation": payload.get("common_evaluation"),
+        "ridge": payload.get("ridge"),
+        "uncertainty": payload.get("uncertainty"),
+    }
+
+
+def _record_case_failure(
+    *,
+    case_name: str,
+    directory: Path,
+    source_revision: str,
+    error: BaseException,
+    started: float,
+) -> dict[str, Any]:
+    payload = {
+        "status": "failed",
+        "case_name": case_name,
+        "source_commit": source_revision,
+        "base_plan_commit": BASE_PLAN_COMMIT,
+        "failure_stage": "ablation_case_top_level",
+        "exception_type": type(error).__name__,
+        "message": str(error),
+        "elapsed_seconds": time.perf_counter() - started,
+        "traceback": traceback.format_exc(),
+    }
+    write_json(directory / "status.json", payload)
+    write_json(directory / "result.json", payload)
+    write_json(directory / "arguments.json", {})
+    write_json(
+        directory / "timing.json",
+        {"elapsed_seconds": payload["elapsed_seconds"]},
+    )
+    write_failure_report_pdf(
+        directory / "report.pdf",
+        case_name=case_name,
+        failure_stage="ablation_case_top_level",
+        exception_type=type(error).__name__,
+        message=str(error),
+    )
+    return payload
+
+
+def _run_estimator_case_task(task: Mapping[str, Any]) -> dict[str, Any]:
+    """Execute one case in a spawned process and persist its terminal state."""
+
+    case_name = str(task["case_name"])
+    directory = Path(task["directory"])
+    directory.mkdir(parents=True, exist_ok=True)
+    started = time.perf_counter()
+    try:
+        override_error = task.get("override_error")
+        if override_error:
+            raise ValueError(str(override_error))
+        proposal = task.get("proposal")
+        if proposal is not None:
+            write_json(directory / "proposal.json", proposal)
+        base = argparse.Namespace(**dict(task["base_arguments"]))
+        case_arguments = _clone_arguments(base, dict(task["overrides"]))
+        _directory, payload = run_estimator(
+            case_arguments,
+            case_name=case_name,
+            output_directory=directory,
+        )
+        return dict(payload)
+    except Exception as error:  # Each worker must leave a terminal record.
+        return _record_case_failure(
+            case_name=case_name,
+            directory=directory,
+            source_revision=str(task["source_revision"]),
+            error=error,
+            started=started,
+        )
+
+
+def _load_terminal_case(directory: Path) -> Optional[dict[str, Any]]:
+    required = (
+        directory / "status.json",
+        directory / "result.json",
+        directory / "arguments.json",
+        directory / "timing.json",
+        directory / "report.pdf",
+    )
+    if not all(path.is_file() for path in required):
+        return None
+    try:
+        status = json.loads(required[0].read_text(encoding="utf-8"))
+        payload = json.loads(required[1].read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(status, dict) or not isinstance(payload, dict):
+        return None
+    terminal_status = status.get("status")
+    if terminal_status not in ("completed", "failed"):
+        return None
+    if payload.get("status") != terminal_status:
+        return None
+    if terminal_status == "completed" and not (directory / "arrays.npz").is_file():
+        return None
+    return payload
+
+
+def run_estimator_case_tasks(
+    *,
+    run_directory: Path,
+    case_names: Sequence[str],
+    source_revision: str,
+    base_arguments: argparse.Namespace,
+    override_lookup: Mapping[str, Mapping[str, Any]],
+    override_failures: Mapping[str, Exception],
+    proposal_lookup: Mapping[str, Mapping[str, Any]],
+    case_workers: int,
+    resume_existing: bool,
+) -> list[dict[str, Any]]:
+    """Run independent estimator cases, optionally resuming terminal outputs."""
+
+    payloads: dict[str, dict[str, Any]] = {}
+    tasks: list[dict[str, Any]] = []
+    base_values = deepcopy(vars(base_arguments))
+    for case_name in case_names:
+        directory = run_directory / "cases" / _safe_name(case_name)
+        if resume_existing:
+            terminal = _load_terminal_case(directory)
+            if terminal is not None:
+                payloads[case_name] = terminal
+                continue
+        tasks.append(
+            {
+                "case_name": case_name,
+                "directory": directory,
+                "source_revision": source_revision,
+                "base_arguments": base_values,
+                "overrides": dict(override_lookup.get(case_name, {})),
+                "override_error": (
+                    str(override_failures[case_name])
+                    if case_name in override_failures
+                    else None
+                ),
+                "proposal": proposal_lookup.get(case_name),
+            }
+        )
+
+    if case_workers == 1:
+        for task in tasks:
+            payloads[str(task["case_name"])] = _run_estimator_case_task(task)
+    elif tasks:
+        context = multiprocessing.get_context("spawn")
+        with ProcessPoolExecutor(
+            max_workers=case_workers, mp_context=context
+        ) as pool:
+            futures = {
+                pool.submit(_run_estimator_case_task, task): task for task in tasks
+            }
+            for future in as_completed(futures):
+                task = futures[future]
+                case_name = str(task["case_name"])
+                try:
+                    payloads[case_name] = future.result()
+                except BaseException as error:
+                    directory = Path(task["directory"])
+                    directory.mkdir(parents=True, exist_ok=True)
+                    payloads[case_name] = _record_case_failure(
+                        case_name=case_name,
+                        directory=directory,
+                        source_revision=source_revision,
+                        error=error,
+                        started=time.perf_counter(),
+                    )
+    return [_case_summary(name, payloads[name]) for name in case_names]
+
+
 def build_argument_parser() -> argparse.ArgumentParser:
     base = build_estimator_argument_parser()
     base.description = __doc__
@@ -391,18 +570,18 @@ def build_argument_parser() -> argparse.ArgumentParser:
     base.add_argument("--kkt-scale-offsets", type=float, nargs=3, default=None)
     base.add_argument("--sweep-config", type=Path, default=None)
     base.add_argument("--ablation-run-id", default=None)
+    base.add_argument("--case-workers", type=int, default=1)
+    base.add_argument("--resume-existing", action="store_true")
     return base
 
 
 def run_ablation(arguments: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
     arguments = resolve_bag_arguments(arguments)
+    if arguments.case_workers < 1:
+        raise ValueError("--case-workers must be at least 1")
+    if arguments.resume_existing and not arguments.ablation_run_id:
+        raise ValueError("--resume-existing requires --ablation-run-id")
     revision = source_commit(_HERE.parent)
-    run_directory = output_run_directory(
-        arguments.output_root,
-        "ablation",
-        arguments.ablation_run_id,
-        commit=revision,
-    )
     selected = (
         list(FIXED_CASE_NAMES)
         if "all" in arguments.cases
@@ -425,7 +604,52 @@ def run_ablation(arguments: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         "case_names": all_names,
         "fixed_case_names": selected,
         "sweep_config": config,
+        "case_workers": arguments.case_workers,
     }
+    if arguments.resume_existing:
+        run_directory = (
+            Path(arguments.output_root)
+            / revision
+            / "ablation"
+            / str(arguments.ablation_run_id)
+        )
+        if not run_directory.is_dir():
+            raise ValueError(
+                "ablation run directory does not exist: {}".format(run_directory)
+            )
+        manifest_path = run_directory / "manifest.json"
+        try:
+            existing_manifest = json.loads(
+                manifest_path.read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(
+                "existing ablation manifest cannot be read: {}".format(
+                    manifest_path
+                )
+            ) from error
+        expected_manifest = json_sanitize(manifest)
+        for key in (
+            "source_commit",
+            "base_plan_commit",
+            "bag_path",
+            "bag_start",
+            "bag_end",
+            "case_names",
+            "fixed_case_names",
+            "sweep_config",
+        ):
+            if existing_manifest.get(key) != expected_manifest.get(key):
+                raise ValueError(
+                    "existing ablation manifest mismatch for {}".format(key)
+                )
+    else:
+        run_directory = output_run_directory(
+            arguments.output_root,
+            "ablation",
+            arguments.ablation_run_id,
+            commit=revision,
+        )
     write_json(run_directory / "manifest.json", manifest)
     override_lookup: dict[str, dict[str, Any]] = {}
     override_failures: dict[str, Exception] = {}
@@ -438,25 +662,16 @@ def run_ablation(arguments: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
     proposal_lookup = {name: proposal for name, _, proposal in candidates}
     override_lookup.update({name: override for name, override, _ in candidates})
 
-    def execute(case_name: str, directory: Path) -> Mapping[str, Any]:
-        if case_name in override_failures:
-            raise override_failures[case_name]
-        if case_name in proposal_lookup:
-            # Proposal metadata is deliberately committed before execution.
-            write_json(directory / "proposal.json", proposal_lookup[case_name])
-        case_arguments = _clone_arguments(arguments, override_lookup[case_name])
-        _directory, payload = run_estimator(
-            case_arguments,
-            case_name=case_name,
-            output_directory=directory,
-        )
-        return payload
-
-    summaries = run_case_sequence(
+    summaries = run_estimator_case_tasks(
         run_directory=run_directory,
         case_names=all_names,
         source_revision=revision,
-        executor=execute,
+        base_arguments=arguments,
+        override_lookup=override_lookup,
+        override_failures=override_failures,
+        proposal_lookup=proposal_lookup,
+        case_workers=arguments.case_workers,
+        resume_existing=arguments.resume_existing,
     )
     summary = {
         "source_commit": revision,

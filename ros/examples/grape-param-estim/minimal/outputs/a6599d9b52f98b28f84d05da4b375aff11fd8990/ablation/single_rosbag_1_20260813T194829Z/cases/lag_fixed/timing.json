@@ -1,0 +1,17 @@
+{
+  "elapsed_seconds": 204.4630849477835,
+  "nfev": 191,
+  "stages": [
+    {
+      "elapsed_seconds": 194.84579361090437,
+      "gimbal_lag_seconds": 0.004998683929443359,
+      "iteration": 1,
+      "message": "cost tolerance satisfied",
+      "nfev": 191,
+      "rotor_lag_seconds": 0.004997730255126953,
+      "stage": "strict_physical_refinement",
+      "status": "ftol",
+      "success": true
+    }
+  ]
+}

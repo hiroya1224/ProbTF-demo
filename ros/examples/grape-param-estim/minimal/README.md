@@ -37,7 +37,10 @@ Run all 29 fixed cases independently for all three bag JSONs with:
 The embedded lag seeds are the median recorded command periods in each
 selected bag interval. They are not read from the
 discarded JSON options. Use `--dry-run` to print the three commands without
-starting the estimators.
+starting the estimators. The three independent bags run in parallel, with up
+to three failure-isolated case processes per bag. Set
+`GRAPE_ABLATION_CASE_WORKERS` and `GRAPE_ABLATION_NUMERIC_THREADS` to adjust
+that concurrency for a different host.
 
 The previous `minimal/` tree, including its tracked `output/`, is retained at
 `minimal/legacies/pre_single_bag_rewrite_7fecffe/`.  New modules never import

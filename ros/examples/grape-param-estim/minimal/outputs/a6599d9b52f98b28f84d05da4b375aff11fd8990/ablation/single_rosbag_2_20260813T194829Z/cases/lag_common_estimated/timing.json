@@ -1,0 +1,83 @@
+{
+  "elapsed_seconds": 476.15816900134087,
+  "nfev": 185,
+  "stages": [
+    {
+      "elapsed_seconds": 248.06457099784166,
+      "message": "cost tolerance satisfied",
+      "nfev": 109,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 4.0
+    },
+    {
+      "elapsed_seconds": 52.60499648191035,
+      "message": "cost tolerance satisfied",
+      "nfev": 24,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 2.0
+    },
+    {
+      "elapsed_seconds": 32.42612344492227,
+      "message": "cost tolerance satisfied",
+      "nfev": 15,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 1.0
+    },
+    {
+      "elapsed_seconds": 34.58041593711823,
+      "message": "cost tolerance satisfied",
+      "nfev": 16,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 0.5
+    },
+    {
+      "gimbal_lag_seconds": 0.043538144456882144,
+      "rotor_lag_seconds": 0.043538144456882144,
+      "stage": "strict_lag_screen",
+      "success": true,
+      "trace": [
+        {
+          "candidate_count": 43,
+          "channel": "common",
+          "cost": 469995.2441845166,
+          "selected": 0.043538144456882144
+        }
+      ]
+    },
+    {
+      "elapsed_seconds": 18.57333992095664,
+      "gimbal_lag_seconds": 0.043538144456882144,
+      "iteration": 1,
+      "message": "cost tolerance satisfied",
+      "nfev": 21,
+      "rotor_lag_seconds": 0.043538144456882144,
+      "stage": "strict_physical_refinement",
+      "status": "ftol",
+      "success": true
+    },
+    {
+      "fixed_point": true,
+      "gimbal_lag_seconds": 0.043538144456882144,
+      "iteration": 1,
+      "rotor_lag_seconds": 0.043538144456882144,
+      "stage": "strict_post_refinement_screen",
+      "success": true,
+      "trace": [
+        {
+          "candidate_count": 43,
+          "channel": "common",
+          "cost": 469869.3305240838,
+          "selected": 0.043538144456882144
+        }
+      ]
+    }
+  ]
+}

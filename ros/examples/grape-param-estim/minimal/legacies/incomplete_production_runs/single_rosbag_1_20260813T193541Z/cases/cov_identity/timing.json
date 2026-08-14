@@ -1,0 +1,140 @@
+{
+  "elapsed_seconds": 267.86030437098816,
+  "nfev": 136,
+  "stages": [
+    {
+      "elapsed_seconds": 102.32809476228431,
+      "message": "cost tolerance satisfied",
+      "nfev": 27,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 4.0
+    },
+    {
+      "elapsed_seconds": 7.264600562863052,
+      "message": "cost tolerance satisfied",
+      "nfev": 2,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 2.0
+    },
+    {
+      "elapsed_seconds": 7.048271272331476,
+      "message": "cost tolerance satisfied",
+      "nfev": 2,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 1.0
+    },
+    {
+      "elapsed_seconds": 6.963212416972965,
+      "message": "cost tolerance satisfied",
+      "nfev": 2,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 0.5
+    },
+    {
+      "gimbal_lag_seconds": 0.027547344570309273,
+      "rotor_lag_seconds": 0.19999999946550712,
+      "stage": "strict_lag_screen",
+      "success": true,
+      "trace": [
+        {
+          "candidate_count": 12,
+          "channel": "split_pair",
+          "cost": 1471.5872672309333,
+          "expansions": [
+            {
+              "channel": "gimbal",
+              "lag_seconds": 0.03254602849975263
+            }
+          ],
+          "gimbal_candidate_count": 4,
+          "rotor_candidate_count": 3,
+          "selected_gimbal_lag_seconds": 0.027547344570309273,
+          "selected_rotor_lag_seconds": 0.19999999946550712
+        }
+      ]
+    },
+    {
+      "elapsed_seconds": 77.83183429716155,
+      "gimbal_lag_seconds": 0.027547344570309273,
+      "iteration": 1,
+      "message": "cost tolerance satisfied",
+      "nfev": 86,
+      "rotor_lag_seconds": 0.19999999946550712,
+      "stage": "strict_physical_refinement",
+      "status": "ftol",
+      "success": true
+    },
+    {
+      "fixed_point": false,
+      "gimbal_lag_seconds": 0.04254339635863935,
+      "iteration": 1,
+      "rotor_lag_seconds": 0.19999999946550712,
+      "stage": "strict_post_refinement_screen",
+      "success": true,
+      "trace": [
+        {
+          "candidate_count": 18,
+          "channel": "split_pair",
+          "cost": 860.4312999051983,
+          "expansions": [
+            {
+              "channel": "gimbal",
+              "lag_seconds": 0.03754471242919599
+            },
+            {
+              "channel": "gimbal",
+              "lag_seconds": 0.04254339635863935
+            },
+            {
+              "channel": "gimbal",
+              "lag_seconds": 0.04754208028808271
+            }
+          ],
+          "gimbal_candidate_count": 6,
+          "rotor_candidate_count": 3,
+          "selected_gimbal_lag_seconds": 0.04254339635863935,
+          "selected_rotor_lag_seconds": 0.19999999946550712
+        }
+      ]
+    },
+    {
+      "elapsed_seconds": 15.332690003793687,
+      "gimbal_lag_seconds": 0.04254339635863935,
+      "iteration": 2,
+      "message": "cost tolerance satisfied",
+      "nfev": 17,
+      "rotor_lag_seconds": 0.19999999946550712,
+      "stage": "strict_physical_refinement",
+      "status": "ftol",
+      "success": true
+    },
+    {
+      "fixed_point": true,
+      "gimbal_lag_seconds": 0.04254339635863935,
+      "iteration": 2,
+      "rotor_lag_seconds": 0.19999999946550712,
+      "stage": "strict_post_refinement_screen",
+      "success": true,
+      "trace": [
+        {
+          "candidate_count": 9,
+          "channel": "split_pair",
+          "cost": 858.6819957200216,
+          "expansions": [],
+          "gimbal_candidate_count": 3,
+          "rotor_candidate_count": 3,
+          "selected_gimbal_lag_seconds": 0.04254339635863935,
+          "selected_rotor_lag_seconds": 0.19999999946550712
+        }
+      ]
+    }
+  ]
+}

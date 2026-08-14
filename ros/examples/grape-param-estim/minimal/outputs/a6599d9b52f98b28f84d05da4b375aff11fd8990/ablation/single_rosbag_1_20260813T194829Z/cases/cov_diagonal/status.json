@@ -1,0 +1,8 @@
+{
+  "base_plan_commit": "7fecffe27aa25865c70669f919cefb16b624c46e",
+  "case_name": "cov_diagonal",
+  "elapsed_seconds": 229.35225637676194,
+  "message": "all stages completed",
+  "source_commit": "a6599d9b52f98b28f84d05da4b375aff11fd8990",
+  "status": "completed"
+}

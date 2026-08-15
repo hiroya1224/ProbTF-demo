@@ -1,0 +1,57 @@
+{
+  "bag_end": 25.0,
+  "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+  "bag_start": 19.0,
+  "base_plan_commit": "fb45718f1f9a4d3d4b94c35d4061fa17c07bd8d8",
+  "case_names": [
+    "default_full_covariance",
+    "cov_identity",
+    "sweep__sg_window_covariance__000",
+    "sweep__sg_window_covariance__001",
+    "sweep__sg_window_covariance__002",
+    "sweep__sg_window_covariance__003",
+    "sweep__sg_window_covariance__004",
+    "sweep__sg_window_covariance__005",
+    "sweep__lag_bounds__000"
+  ],
+  "case_workers": 3,
+  "fixed_case_names": [
+    "default_full_covariance",
+    "cov_identity"
+  ],
+  "source_commit": "05345f1fda0e758876f05a9603a44865bbab50e8",
+  "sweep_config": {
+    "lag_bounds": [
+      [
+        0.0,
+        0.4
+      ]
+    ],
+    "sg_window_covariance": [
+      {
+        "covariance_mode": "full",
+        "window_seconds": 1.0
+      },
+      {
+        "covariance_mode": "identity",
+        "window_seconds": 1.0
+      },
+      {
+        "covariance_mode": "full",
+        "window_seconds": 1.5
+      },
+      {
+        "covariance_mode": "identity",
+        "window_seconds": 1.5
+      },
+      {
+        "covariance_mode": "full",
+        "window_seconds": 2.0
+      },
+      {
+        "covariance_mode": "identity",
+        "window_seconds": 2.0
+      }
+    ]
+  }
+}

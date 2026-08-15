@@ -1,0 +1,888 @@
+{
+  "elapsed_seconds": 420.70765876211226,
+  "nfev": 211,
+  "stages": [
+    {
+      "elapsed_seconds": 36.50950475083664,
+      "message": "cost tolerance satisfied",
+      "nfev": 24,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 4.0
+    },
+    {
+      "elapsed_seconds": 2.9988445467315614,
+      "message": "cost tolerance satisfied",
+      "nfev": 2,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 2.0
+    },
+    {
+      "elapsed_seconds": 3.000553627964109,
+      "message": "cost tolerance satisfied",
+      "nfev": 2,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 1.0
+    },
+    {
+      "elapsed_seconds": 2.882181608118117,
+      "message": "cost tolerance satisfied",
+      "nfev": 2,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "success": true,
+      "width_fraction": 0.5
+    },
+    {
+      "gimbal_lag_seconds": 8.457045514758027e-14,
+      "rotor_lag_seconds": 0.15537010215922034,
+      "stage": "strict_lag_screen",
+      "success": true,
+      "trace": [
+        {
+          "bounds_seconds": [
+            0.0,
+            0.2
+          ],
+          "candidate_count": 42,
+          "candidate_table": [
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.03536878608866371,
+              "selected": false,
+              "strict_cost": 1317.6160647841477
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.03536878608866371,
+              "selected": false,
+              "strict_cost": 1317.616064784166
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.03536878608866371,
+              "selected": false,
+              "strict_cost": 1328.0369961138317
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.045368895761210094,
+              "selected": false,
+              "strict_cost": 1287.8588423680892
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.045368895761210094,
+              "selected": false,
+              "strict_cost": 1287.858842368093
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.045368895761210094,
+              "selected": false,
+              "strict_cost": 1297.930133382555
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.05536900543375648,
+              "selected": false,
+              "strict_cost": 1256.3917190229745
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.05536900543375648,
+              "selected": false,
+              "strict_cost": 1256.3917190229813
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.05536900543375648,
+              "selected": false,
+              "strict_cost": 1265.8621270759918
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.06536911510630286,
+              "selected": false,
+              "strict_cost": 1226.6153111782328
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.06536911510630286,
+              "selected": false,
+              "strict_cost": 1226.6153111782344
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.06536911510630286,
+              "selected": false,
+              "strict_cost": 1235.7182236940243
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.07536922477884925,
+              "selected": false,
+              "strict_cost": 1202.168978089137
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.07536922477884925,
+              "selected": false,
+              "strict_cost": 1202.168978089133
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.07536922477884925,
+              "selected": false,
+              "strict_cost": 1210.7445038825465
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.08536933445139563,
+              "selected": false,
+              "strict_cost": 1177.911735339906
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.08536933445139563,
+              "selected": false,
+              "strict_cost": 1177.9117353399035
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.08536933445139563,
+              "selected": false,
+              "strict_cost": 1185.8100133687572
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.09536944412394202,
+              "selected": false,
+              "strict_cost": 1161.7041363197548
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.09536944412394202,
+              "selected": false,
+              "strict_cost": 1161.70413631974
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.09536944412394202,
+              "selected": false,
+              "strict_cost": 1169.3754898809334
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.10536955379648841,
+              "selected": false,
+              "strict_cost": 1146.8765280450864
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.10536955379648841,
+              "selected": false,
+              "strict_cost": 1146.8765280450732
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.10536955379648841,
+              "selected": false,
+              "strict_cost": 1153.8326670680274
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.1153696634690348,
+              "selected": false,
+              "strict_cost": 1134.68495500775
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.1153696634690348,
+              "selected": false,
+              "strict_cost": 1134.6849550077268
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.1153696634690348,
+              "selected": false,
+              "strict_cost": 1141.276211401305
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.12536977314158118,
+              "selected": false,
+              "strict_cost": 1123.3170542473003
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.12536977314158118,
+              "selected": false,
+              "strict_cost": 1123.3170542472749
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.12536977314158118,
+              "selected": false,
+              "strict_cost": 1129.2622485829634
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.13536988281412757,
+              "selected": false,
+              "strict_cost": 1113.5602305134548
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.13536988281412757,
+              "selected": false,
+              "strict_cost": 1113.560230513428
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.13536988281412757,
+              "selected": false,
+              "strict_cost": 1118.8025298827881
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 1110.5041480843392
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 1110.5041480843101
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 1115.3168376828783
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": false,
+              "strict_cost": 1107.7115651351007
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": true,
+              "strict_cost": 1107.7115651350719
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": false,
+              "strict_cost": 1111.7437267136909
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 1112.163530148666
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 1112.1635301486247
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 1115.656381940915
+            }
+          ],
+          "channel": "split_pair",
+          "cost": 1107.7115651350719,
+          "expansions": [
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.06536911510630286
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.07536922477884925
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.08536933445139563
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.09536944412394202
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.10536955379648841
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.1153696634690348
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.12536977314158118
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.13536988281412757
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.14536999248667395
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.15537010215922034
+            },
+            {
+              "channel": "rotor",
+              "lag_seconds": 0.16537021183176673
+            }
+          ],
+          "gimbal_candidate_count": 3,
+          "rotor_candidate_count": 14,
+          "selected_gimbal_lag_seconds": 8.457045514758027e-14,
+          "selected_rotor_lag_seconds": 0.15537010215922034
+        }
+      ]
+    },
+    {
+      "elapsed_seconds": 224.05757505306974,
+      "gimbal_lag_seconds": 8.457045514758027e-14,
+      "iteration": 1,
+      "message": "cost tolerance satisfied",
+      "nfev": 157,
+      "rotor_lag_seconds": 0.15537010215922034,
+      "stage": "strict_physical_refinement",
+      "status": "ftol",
+      "success": true
+    },
+    {
+      "fixed_point": false,
+      "gimbal_lag_seconds": 0.03000032901772373,
+      "iteration": 1,
+      "rotor_lag_seconds": 0.15537010215922034,
+      "stage": "strict_post_refinement_screen",
+      "success": true,
+      "trace": [
+        {
+          "bounds_seconds": [
+            0.0,
+            0.2
+          ],
+          "candidate_count": 18,
+          "candidate_table": [
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 106.93921127840889
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 106.9392112784042
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 106.72143539517138
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.020000219345177345,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 106.58717638763639
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.03000032901772373,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 106.51196336958523
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.04000043869027012,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 106.5730532220831
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": false,
+              "strict_cost": 106.5778908282063
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": false,
+              "strict_cost": 106.5778908282016
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": false,
+              "strict_cost": 106.3651081918273
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.020000219345177345,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": false,
+              "strict_cost": 106.23595184854824
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.03000032901772373,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": true,
+              "strict_cost": 106.16968650833171
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.04000043869027012,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": false,
+              "strict_cost": 106.23665501015772
+            },
+            {
+              "gimbal_at_lower_bound": true,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.0,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 107.61752244642963
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 8.457045514758027e-14,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 107.61752244642462
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.010000109672630958,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 107.40720369454061
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.020000219345177345,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 107.28370708355631
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.03000032901772373,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 107.21861892558975
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.04000043869027012,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 107.294117124676
+            }
+          ],
+          "channel": "split_pair",
+          "cost": 106.16968650833171,
+          "expansions": [
+            {
+              "channel": "gimbal",
+              "lag_seconds": 0.020000219345177345
+            },
+            {
+              "channel": "gimbal",
+              "lag_seconds": 0.03000032901772373
+            },
+            {
+              "channel": "gimbal",
+              "lag_seconds": 0.04000043869027012
+            }
+          ],
+          "gimbal_candidate_count": 6,
+          "rotor_candidate_count": 3,
+          "selected_gimbal_lag_seconds": 0.03000032901772373,
+          "selected_rotor_lag_seconds": 0.15537010215922034
+        }
+      ]
+    },
+    {
+      "elapsed_seconds": 34.60325467586517,
+      "gimbal_lag_seconds": 0.03000032901772373,
+      "iteration": 2,
+      "message": "cost tolerance satisfied",
+      "nfev": 24,
+      "rotor_lag_seconds": 0.15537010215922034,
+      "stage": "strict_physical_refinement",
+      "status": "ftol",
+      "success": true
+    },
+    {
+      "fixed_point": true,
+      "gimbal_lag_seconds": 0.03000032901772373,
+      "iteration": 2,
+      "rotor_lag_seconds": 0.15537010215922034,
+      "stage": "strict_post_refinement_screen",
+      "success": true,
+      "trace": [
+        {
+          "bounds_seconds": [
+            0.0,
+            0.2
+          ],
+          "candidate_count": 9,
+          "candidate_table": [
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.020000219345177345,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 106.56762667840442
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.03000032901772373,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 106.4735300403315
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.04000043869027012,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.14536999248667395,
+              "selected": false,
+              "strict_cost": 106.51555678493536
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.020000219345177345,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": false,
+              "strict_cost": 106.22448121585336
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.03000032901772373,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": true,
+              "strict_cost": 106.14137552355287
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.04000043869027012,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.15537010215922034,
+              "selected": false,
+              "strict_cost": 106.19148103260567
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.020000219345177345,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 107.26176293280325
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.03000032901772373,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 107.18137282919896
+            },
+            {
+              "gimbal_at_lower_bound": false,
+              "gimbal_at_upper_bound": false,
+              "gimbal_lag_seconds": 0.04000043869027012,
+              "rotor_at_lower_bound": false,
+              "rotor_at_upper_bound": false,
+              "rotor_lag_seconds": 0.16537021183176673,
+              "selected": false,
+              "strict_cost": 107.24241838809496
+            }
+          ],
+          "channel": "split_pair",
+          "cost": 106.14137552355287,
+          "expansions": [],
+          "gimbal_candidate_count": 3,
+          "rotor_candidate_count": 3,
+          "selected_gimbal_lag_seconds": 0.03000032901772373,
+          "selected_rotor_lag_seconds": 0.15537010215922034
+        }
+      ]
+    }
+  ]
+}

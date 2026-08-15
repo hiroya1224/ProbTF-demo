@@ -144,7 +144,6 @@ def estimator_config_from_arguments(
         strict_alternations=arguments.strict_alternations,
         kkt_enabled=not arguments.disable_kkt,
         solver_type=arguments.solver_type,
-        jacobian_mode=arguments.jacobian_mode,
         initial_physical_coordinate=np.asarray(arguments.initial_coordinate),
         scale_initial_offset=arguments.scale_initial_offset,
         lm=LmSettings(
@@ -216,7 +215,6 @@ def run_estimator(
             model,
             actuator_parameters,
             actuator_propagation=config.actuator_propagation,
-            jacobian_mode=config.jacobian_mode,
         )
         stage = "parameter_estimation"
         result = estimate_single_bag(problem, config)
@@ -334,11 +332,6 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--solver-type",
         choices=("custom_kkt_lm", "standard_least_squares"),
         default="custom_kkt_lm",
-    )
-    parser.add_argument(
-        "--jacobian-mode",
-        choices=("analytic", "finite_difference"),
-        default="analytic",
     )
     parser.add_argument(
         "--initial-coordinate", type=float, nargs=14, default=np.zeros(14)

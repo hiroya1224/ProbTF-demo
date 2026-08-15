@@ -63,6 +63,8 @@ run_stamp="${GRAPE_ABLATION_RUN_STAMP:-${run_stamp}}"
 case_workers="${GRAPE_ABLATION_CASE_WORKERS:-3}"
 numeric_threads="${GRAPE_ABLATION_NUMERIC_THREADS:-6}"
 resume_existing="${GRAPE_ABLATION_RESUME_EXISTING:-false}"
+focused_validation="${GRAPE_ABLATION_FOCUSED_VALIDATION:-false}"
+focused_sweep_config="${script_dir}/single_bag_savgol_revision_sweep.json"
 overall_status=0
 
 if [[ ! "${case_workers}" =~ ^[1-9][0-9]*$ ]]; then
@@ -77,13 +79,17 @@ if [[ "${resume_existing}" != false && "${resume_existing}" != true ]]; then
   printf 'GRAPE_ABLATION_RESUME_EXISTING must be true or false\n' >&2
   exit 2
 fi
+if [[ "${focused_validation}" != false && "${focused_validation}" != true ]]; then
+  printf 'GRAPE_ABLATION_FOCUSED_VALIDATION must be true or false\n' >&2
+  exit 2
+fi
 
 export OMP_NUM_THREADS="${numeric_threads}"
 export OPENBLAS_NUM_THREADS="${numeric_threads}"
 export MKL_NUM_THREADS="${numeric_threads}"
 export NUMEXPR_NUM_THREADS="${numeric_threads}"
 
-for required_file in "${estimator}" "${vehicle_model}"; do
+for required_file in "${estimator}" "${vehicle_model}" "${focused_sweep_config}"; do
   if [[ ! -f "${required_file}" ]]; then
     printf 'required file not found: %s\n' "${required_file}" >&2
     exit 1
@@ -114,16 +120,28 @@ run_bag() {
     --kkt-scale-offsets -1.0 0.0 1.0
     --smooth-max-nfev 2000
     --strict-max-nfev 2000
-    --cases all
     --case-workers "${case_workers}"
     --ablation-run-id "${bag_id}_${run_stamp}"
   )
+  local case_count=27
+  local run_kind=full
+  if [[ "${focused_validation}" == true ]]; then
+    ablation_command+=(
+      --cases default_full_covariance cov_identity
+      --sweep-config "${focused_sweep_config}"
+    )
+    case_count=9
+    run_kind=focused
+  else
+    ablation_command+=(--cases all)
+  fi
   if [[ "${resume_existing}" == true ]]; then
     ablation_command+=(--resume-existing)
   fi
 
-  printf '[%s] full ablation (%d fixed cases, %s workers)\n' \
-    "${bag_id}" 29 "${case_workers}"
+  printf '[%s] %s ablation (%d cases, %s workers)\n' \
+    "${bag_id}" "${run_kind}" \
+    "${case_count}" "${case_workers}"
   if [[ "${dry_run}" == true ]]; then
     printf '  %q' "${ablation_command[@]}"
     printf '\n'

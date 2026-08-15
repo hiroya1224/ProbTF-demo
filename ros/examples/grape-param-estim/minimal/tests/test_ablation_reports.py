@@ -3,21 +3,33 @@ from __future__ import annotations
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
 
 import numpy as np
 
 from _support import synthetic_problem_parts
-from single_bag_savgol_ablation import run_case_sequence
+from single_bag_savgol_ablation import (
+    FIXED_CASE_NAMES,
+    fixed_case_overrides,
+    run_case_sequence,
+    sweep_cases,
+)
 from single_bag_savgol_core import (
     COMMON_SCALE_DIRECTION,
     EstimationResult,
     SingleBagDynamicsProblem,
+    acceleration_wrench_closure,
+    covariance_weighting_diagnostics,
+    estimation_diagnostics,
     ridge_analysis,
+    strict_lag_screen,
 )
 from single_bag_savgol_covariance import parameter_covariances, sum_mean_invariance
 from single_bag_savgol_reports import (
     WRENCH_LINE_STYLES,
+    arrays_payload,
     output_run_directory,
+    result_payload,
     write_report_pdf,
 )
 from single_bag_wrench_replay import fit_external_wrench_replay
@@ -29,12 +41,27 @@ def _synthetic_result(dataset, model, actuator):
     reference = problem.evaluate_physical(
         np.zeros(14), 0.0, 0.0, reference=True
     )
-    ridge = ridge_analysis(evaluation.jacobian_matrix, COMMON_SCALE_DIRECTION)
+    ridge = ridge_analysis(
+        evaluation.jacobian_matrix,
+        COMMON_SCALE_DIRECTION,
+        evaluation.acceleration_jacobian.reshape(-1, 14),
+    )
     uncertainty = parameter_covariances(
         evaluation.acceleration_jacobian,
         dataset.covariance,
         COMMON_SCALE_DIRECTION,
     )
+    diagnostics = estimation_diagnostics(
+        problem=problem,
+        final=evaluation,
+        nominal_reference=reference,
+        estimated_reference=reference,
+        ridge=ridge,
+        uncertainty=uncertainty,
+        lag_layout=None,
+        lag_trace=(),
+    )
+    ridge.update(diagnostics["ridge"])
     return EstimationResult(
         physical_coordinate=np.zeros(14),
         rotor_lag_seconds=0.0,
@@ -49,10 +76,33 @@ def _synthetic_result(dataset, model, actuator):
         elapsed_seconds=0.0,
         ridge=ridge,
         uncertainty=uncertainty,
+        diagnostics=diagnostics,
     )
 
 
 class AblationReportTests(unittest.TestCase):
+    def test_removed_numerical_jacobian_ablation(self):
+        self.assertNotIn("jacobian_finite_difference", FIXED_CASE_NAMES)
+        self.assertNotIn("jacobian_analytic", FIXED_CASE_NAMES)
+        arguments = SimpleNamespace(kkt_scale_offsets=(-1.0, 0.0, 1.0))
+        self.assertNotIn("jacobian_mode", fixed_case_overrides("naive_all", arguments))
+
+    def test_focused_window_covariance_sweep_is_explicit(self):
+        cases = sweep_cases(
+            {
+                "sg_window_covariance": [
+                    {"window_seconds": 1.0, "covariance_mode": "full"},
+                    {"window_seconds": 1.0, "covariance_mode": "identity"},
+                ],
+                "lag_bounds": [[0.0, 0.4]],
+            }
+        )
+        self.assertEqual(len(cases), 3)
+        self.assertEqual(
+            cases[0][1], {"sg_window": 1.0, "covariance_mode": "full"}
+        )
+        self.assertEqual(cases[-1][1], {"lag_bounds": [0.0, 0.4]})
+
     def test_sum_mean_invariance_algebra(self):
         rng = np.random.default_rng(2)
         residual = rng.standard_normal((7, 6))
@@ -112,6 +162,33 @@ class AblationReportTests(unittest.TestCase):
         replay = fit_external_wrench_replay(
             dataset=dataset, model=model, evaluation=result.evaluation
         )
+        arrays = arrays_payload(dataset, result, replay)
+        required = {
+            "sigma_z_eigenvalues",
+            "whitening_gain",
+            "mahalanobis_contribution_per_time",
+            "whitened_physical_jacobian_singular_values",
+            "parameter_displacement_ridge_coordinates",
+            "uncertainty_variance_inflation_in_ridge_basis",
+            "force_acceleration_closure_error",
+            "lag_candidate_selected",
+        }
+        self.assertTrue(required.issubset(arrays))
+        payload = result_payload(
+            case_name="synthetic",
+            source_revision="abc123",
+            model=model,
+            result=result,
+            replay=replay,
+        )
+        self.assertEqual(payload["ridge"]["dimension"], 14)
+        self.assertIn("covariance", payload["diagnostics"])
+        self.assertEqual(
+            payload["diagnostics"]["overlap_correction"][
+                "cross_time_covariance_model"
+            ],
+            "pairwise_mean_local_raw_pose_covariance",
+        )
         self.assertTrue(
             np.array_equal(result.physical_coordinate, coordinate_before)
         )
@@ -135,6 +212,74 @@ class AblationReportTests(unittest.TestCase):
             WRENCH_LINE_STYLES["raw_sg_inverse_dynamics"],
             WRENCH_LINE_STYLES["trajectory_fitted_external"],
         )
+
+    def test_covariance_mode_sum_and_ridge_basis_variance_consistency(self):
+        dataset, model, actuator = synthetic_problem_parts()
+        result = _synthetic_result(dataset, model, actuator)
+        covariance = covariance_weighting_diagnostics(
+            dataset.covariance, result.evaluation.acceleration_residual
+        )
+        self.assertTrue(
+            np.allclose(
+                np.sum(
+                    covariance[
+                        "covariance_eigenmode_mahalanobis_contribution"
+                    ],
+                    axis=1,
+                ),
+                covariance["mahalanobis_contribution_per_time"],
+            )
+        )
+        right = result.ridge["whitened_right_singular_vectors"]
+        expected = np.einsum(
+            "ij,jk,ik->i", right, result.uncertainty.naive, right
+        )
+        self.assertTrue(
+            np.allclose(
+                expected,
+                result.diagnostics["overlap_correction"][
+                    "uncertainty_variance_naive_in_ridge_basis"
+                ],
+            )
+        )
+        closure = acceleration_wrench_closure(dataset, result.evaluation)
+        self.assertLess(
+            closure["force_acceleration_closure_error_max_abs"], 2e-13
+        )
+        self.assertLess(
+            closure["torque_acceleration_closure_error_max_abs"], 2e-13
+        )
+
+    def test_strict_lag_candidate_table_and_boundary_flag(self):
+        dataset, _model, _actuator = synthetic_problem_parts()
+
+        class CostProblem:
+            def __init__(self):
+                self.dataset = dataset
+
+            @staticmethod
+            def evaluate_physical(_coordinate, rotor, gimbal, **_kwargs):
+                return SimpleNamespace(
+                    cost=(float(rotor) - 0.4) ** 2
+                    + (float(gimbal) - 0.2) ** 2
+                )
+
+        rotor, gimbal, trace = strict_lag_screen(
+            CostProblem(),
+            np.zeros(14),
+            0.2,
+            0.2,
+            lag_layout="split",
+            bounds=(0.0, 0.4),
+            alternations=1,
+        )
+        table = trace[-1]["candidate_table"]
+        self.assertGreater(len(table), 1)
+        self.assertEqual(sum(row["selected"] for row in table), 1)
+        selected = next(row for row in table if row["selected"])
+        self.assertEqual((rotor, gimbal), (0.4, 0.2))
+        self.assertTrue(selected["rotor_at_upper_bound"])
+        self.assertFalse(selected["gimbal_at_upper_bound"])
 
 
 if __name__ == "__main__":

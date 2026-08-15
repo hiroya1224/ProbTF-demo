@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 import json
 import math
 from pathlib import Path
@@ -61,7 +61,7 @@ except ImportError:  # pragma: no cover - direct CLI import
     from smooth_command import QuinticSmoothZoh  # type: ignore
 
 
-BASE_PLAN_COMMIT = "7fecffe27aa25865c70669f919cefb16b624c46e"
+BASE_PLAN_COMMIT = "fb45718f1f9a4d3d4b94c35d4061fa17c07bd8d8"
 DEFAULT_SMOOTH_MAX_NFEV = 2000
 DEFAULT_STRICT_MAX_NFEV = 2000
 PHYSICAL_DIMENSION = 14
@@ -330,6 +330,8 @@ class ActuatorHistory:
     time: np.ndarray
     actual_thrust: np.ndarray
     actual_gimbal: np.ndarray
+    actual_thrust_lag_jacobian: np.ndarray
+    actual_gimbal_lag_jacobian: np.ndarray
     active_set_counts: Mapping[str, int]
     propagation_mode: str
     command_mode: str
@@ -340,12 +342,19 @@ class ActuatorHistory:
         count = time_axis.size
         thrust = np.asarray(self.actual_thrust, dtype=float)
         gimbal = np.asarray(self.actual_gimbal, dtype=float)
+        thrust_lag = np.asarray(self.actual_thrust_lag_jacobian, dtype=float)
+        gimbal_lag = np.asarray(self.actual_gimbal_lag_jacobian, dtype=float)
         if (
             time_axis.ndim != 1
             or count < 1
             or thrust.shape != (count, 4)
             or gimbal.shape != (count, 4)
-            or any(np.any(~np.isfinite(x)) for x in (time_axis, thrust, gimbal))
+            or thrust_lag.shape != (count, 4, 2)
+            or gimbal_lag.shape != (count, 4, 2)
+            or any(
+                np.any(~np.isfinite(x))
+                for x in (time_axis, thrust, gimbal, thrust_lag, gimbal_lag)
+            )
             or self.propagation_mode not in ("stateful", "direct_command")
             or self.command_mode not in ("strict", "smooth")
         ):
@@ -353,6 +362,12 @@ class ActuatorHistory:
         object.__setattr__(self, "time", _readonly(time_axis))
         object.__setattr__(self, "actual_thrust", _readonly(thrust))
         object.__setattr__(self, "actual_gimbal", _readonly(gimbal))
+        object.__setattr__(
+            self, "actual_thrust_lag_jacobian", _readonly(thrust_lag)
+        )
+        object.__setattr__(
+            self, "actual_gimbal_lag_jacobian", _readonly(gimbal_lag)
+        )
         object.__setattr__(
             self,
             "active_set_counts",
@@ -407,28 +422,48 @@ def generate_actuator_history(
     initial = _finite_vector(initial_gimbal, 4, "initial_gimbal")
     thrust = np.empty((times.size, 4))
     gimbal = np.empty((times.size, 4))
+    thrust_lag_jacobian = np.zeros((times.size, 4, 2))
+    gimbal_lag_jacobian = np.zeros((times.size, 4, 2))
     counts: dict[str, int] = {}
 
     def complete_counts() -> dict[str, int]:
         return {name: int(counts.get(name, 0)) for name in ACTUATOR_ACTIVE_SET_NAMES}
 
-    def command_at(query: float) -> ActuatorCommand:
+    def command_at(
+        query: float,
+    ) -> tuple[ActuatorCommand, np.ndarray, np.ndarray]:
         if command_mode == "strict":
             rotor = rotor_history.exact_zoh(query, rotor_lag_seconds)
             gimbal_value = gimbal_history.exact_zoh(query, gimbal_lag_seconds)
+            rotor_derivative = np.zeros(4)
+            gimbal_derivative = np.zeros(4)
         else:
             assert smooth_width_fraction is not None
-            rotor = rotor_history.evaluate(
+            rotor_evaluation = rotor_history.evaluate(
                 query, rotor_lag_seconds, smooth_width_fraction
-            ).value
-            gimbal_value = gimbal_history.evaluate(
+            )
+            gimbal_evaluation = gimbal_history.evaluate(
                 query, gimbal_lag_seconds, smooth_width_fraction
-            ).value
-        return _command(rotor, gimbal_value)
+            )
+            rotor = rotor_evaluation.value
+            gimbal_value = gimbal_evaluation.value
+            rotor_derivative = rotor_evaluation.delay_derivative
+            gimbal_derivative = gimbal_evaluation.delay_derivative
+        thrust_command_jacobian = np.zeros((4, 2))
+        gimbal_command_jacobian = np.zeros((4, 2))
+        thrust_command_jacobian[:, 0] = rotor_derivative
+        gimbal_command_jacobian[:, 1] = gimbal_derivative
+        return (
+            _command(rotor, gimbal_value),
+            thrust_command_jacobian,
+            gimbal_command_jacobian,
+        )
 
     if propagation_mode == "direct_command":
         for index, sample_time in enumerate(times):
-            command = command_at(float(sample_time))
+            command, thrust_command_jacobian, gimbal_command_jacobian = (
+                command_at(float(sample_time))
+            )
             thrust[index] = np.clip(
                 command.thrust,
                 actuator_parameters.minimum_thrust,
@@ -438,6 +473,20 @@ def generate_actuator_history(
                 command.gimbal_angle,
                 -actuator_parameters.maximum_gimbal_angle,
                 actuator_parameters.maximum_gimbal_angle,
+            )
+            thrust_interior = (
+                (command.thrust > actuator_parameters.minimum_thrust)
+                & (command.thrust < actuator_parameters.maximum_thrust)
+            )
+            gimbal_interior = (
+                (command.gimbal_angle > -actuator_parameters.maximum_gimbal_angle)
+                & (command.gimbal_angle < actuator_parameters.maximum_gimbal_angle)
+            )
+            thrust_lag_jacobian[index] = (
+                thrust_interior[:, None] * thrust_command_jacobian
+            )
+            gimbal_lag_jacobian[index] = (
+                gimbal_interior[:, None] * gimbal_command_jacobian
             )
             _count_mask(
                 counts,
@@ -463,6 +512,8 @@ def generate_actuator_history(
             times,
             thrust,
             gimbal,
+            thrust_lag_jacobian,
+            gimbal_lag_jacobian,
             complete_counts(),
             propagation_mode,
             command_mode,
@@ -488,6 +539,8 @@ def generate_actuator_history(
         actuator_parameters.maximum_thrust,
     )
     state = ActuatorState(initial_thrust, initial)
+    state_thrust_lag_jacobian = np.zeros((4, 2))
+    state_gimbal_lag_jacobian = np.zeros((4, 2))
     thrust[0], gimbal[0] = state.thrust, state.gimbal_angle
     rotor_switches = np.asarray(rotor_history.times[1:]) + rotor_lag_seconds
     gimbal_switches = np.asarray(gimbal_history.times[1:]) + gimbal_lag_seconds
@@ -508,20 +561,39 @@ def generate_actuator_history(
             step = float(sub_right - sub_left)
             if step <= 0.0:
                 continue
+            command, thrust_command_jacobian, gimbal_command_jacobian = (
+                command_at(0.5 * (float(sub_left) + float(sub_right)))
+            )
             transition = advance_actuators_with_jacobian(
                 state,
-                command_at(0.5 * (float(sub_left) + float(sub_right))),
+                command,
                 actuator_parameters,
                 step,
+            )
+            state_thrust_lag_jacobian = (
+                transition.jacobian.thrust_previous
+                @ state_thrust_lag_jacobian
+                + transition.jacobian.thrust_command
+                @ thrust_command_jacobian
+            )
+            state_gimbal_lag_jacobian = (
+                transition.jacobian.gimbal_previous
+                @ state_gimbal_lag_jacobian
+                + transition.jacobian.gimbal_command
+                @ gimbal_command_jacobian
             )
             state = transition.next_state
             for name, mask in transition.active_set.items():
                 _count_mask(counts, name, mask)
         thrust[index + 1], gimbal[index + 1] = state.thrust, state.gimbal_angle
+        thrust_lag_jacobian[index + 1] = state_thrust_lag_jacobian
+        gimbal_lag_jacobian[index + 1] = state_gimbal_lag_jacobian
     return ActuatorHistory(
         times,
         thrust,
         gimbal,
+        thrust_lag_jacobian,
+        gimbal_lag_jacobian,
         complete_counts(),
         propagation_mode,
         command_mode,
@@ -700,8 +772,10 @@ class DynamicsEvaluation:
     actuator_history: ActuatorHistory
     acceleration_residual: np.ndarray
     acceleration_jacobian: np.ndarray
+    acceleration_lag_jacobian: np.ndarray
     whitened_residual: np.ndarray
     whitened_jacobian: np.ndarray
+    whitened_lag_jacobian: np.ndarray
     modeled_wrench: np.ndarray
     required_wrench: np.ndarray
     raw_residual_wrench: np.ndarray
@@ -732,17 +806,13 @@ class SingleBagDynamicsProblem:
         actuator_parameters: ActuatorParameters,
         *,
         actuator_propagation: str = "stateful",
-        jacobian_mode: str = "analytic",
     ) -> None:
         if actuator_propagation not in ("stateful", "direct_command"):
             raise ValueError("unknown actuator propagation mode")
-        if jacobian_mode not in ("analytic", "finite_difference"):
-            raise ValueError("unknown Jacobian mode")
         self.dataset = dataset
         self.model = model
         self.actuator_parameters = actuator_parameters
         self.actuator_propagation = actuator_propagation
-        self.jacobian_mode = jacobian_mode
         self.chart = SiParameterChart(model.parameters)
 
     def actuator_history(
@@ -790,6 +860,7 @@ class SingleBagDynamicsProblem:
         count = self.dataset.time.size
         residual = np.empty((count, 6))
         residual_jacobian = np.empty((count, 6, PHYSICAL_DIMENSION))
+        residual_lag_jacobian = np.empty((count, 6, 2))
         modeled = np.empty((count, 6))
         required = np.empty((count, 6))
         predicted_s = np.empty((count, 3))
@@ -813,6 +884,12 @@ class SingleBagDynamicsProblem:
                 + actuator_jacobian.force_effectiveness
                 @ parameter_jacobian.force_effectiveness
             )
+            wrench_lag_jacobian = (
+                actuator_jacobian.actual_thrust
+                @ history.actual_thrust_lag_jacobian[index]
+                + actuator_jacobian.actual_gimbal_angle
+                @ history.actual_gimbal_lag_jacobian[index]
+            )
             force, torque = wrench[:3], wrench[3:]
             force_jacobian, torque_jacobian = (
                 wrench_jacobian[:3],
@@ -834,6 +911,9 @@ class SingleBagDynamicsProblem:
                 - canonical_skew(omega) @ inertia_omega_jacobian
                 - inertia_alpha_jacobian,
             )
+            alpha_lag_jacobian = np.linalg.solve(
+                inertia, wrench_lag_jacobian[3:]
+            )
             centripetal_matrix = canonical_skew(omega) @ canonical_skew(omega)
             sensor_specific = (
                 force / parameters.mass
@@ -847,10 +927,16 @@ class SingleBagDynamicsProblem:
                 + (canonical_skew(alpha_hat) + centripetal_matrix)
                 @ lever_jacobian
             )
+            sensor_specific_lag_jacobian = (
+                wrench_lag_jacobian[:3] / parameters.mass
+                - canonical_skew(lever) @ alpha_lag_jacobian
+            )
             residual[index, :3] = covariance.z[index, :3] - sensor_specific
             residual[index, 3:] = covariance.z[index, 3:] - alpha_hat
             residual_jacobian[index, :3] = -sensor_specific_jacobian
             residual_jacobian[index, 3:] = -alpha_jacobian
+            residual_lag_jacobian[index, :3] = -sensor_specific_lag_jacobian
+            residual_lag_jacobian[index, 3:] = -alpha_lag_jacobian
             modeled[index] = wrench
             required_force = parameters.mass * (
                 covariance.z[index, :3]
@@ -870,11 +956,16 @@ class SingleBagDynamicsProblem:
         whitened_jacobian = np.einsum(
             "nij,njk->nik", covariance.whitening, residual_jacobian
         )
+        whitened_lag_jacobian = np.einsum(
+            "nij,njk->nik", covariance.whitening, residual_lag_jacobian
+        )
         arrays = (
             residual,
             residual_jacobian,
+            residual_lag_jacobian,
             whitened_residual,
             whitened_jacobian,
+            whitened_lag_jacobian,
             modeled,
             required,
             predicted_s,
@@ -891,8 +982,10 @@ class SingleBagDynamicsProblem:
             actuator_history=history,
             acceleration_residual=_readonly(residual),
             acceleration_jacobian=_readonly(residual_jacobian),
+            acceleration_lag_jacobian=_readonly(residual_lag_jacobian),
             whitened_residual=_readonly(whitened_residual),
             whitened_jacobian=_readonly(whitened_jacobian),
+            whitened_lag_jacobian=_readonly(whitened_lag_jacobian),
             modeled_wrench=_readonly(modeled),
             required_wrench=_readonly(required),
             raw_residual_wrench=_readonly(required - modeled),
@@ -911,51 +1004,13 @@ class SingleBagDynamicsProblem:
         reference: bool = False,
     ) -> DynamicsEvaluation:
         value = np.asarray(coordinate, dtype=float)
-        analytic = self._evaluate_analytic(
+        return self._evaluate_analytic(
             value,
             rotor_lag_seconds,
             gimbal_lag_seconds,
             command_mode=command_mode,
             smooth_width_fraction=smooth_width_fraction,
             reference=reference,
-        )
-        if self.jacobian_mode == "analytic":
-            return analytic
-        finite = np.empty_like(analytic.whitened_jacobian)
-        raw_finite = np.empty_like(analytic.acceleration_jacobian)
-        for column in range(PHYSICAL_DIMENSION):
-            step = np.cbrt(np.finfo(float).eps) * max(1.0, abs(value[column]))
-            plus, minus = value.copy(), value.copy()
-            plus[column] += step
-            minus[column] -= step
-            plus_evaluation = self._evaluate_analytic(
-                plus,
-                rotor_lag_seconds,
-                gimbal_lag_seconds,
-                command_mode=command_mode,
-                smooth_width_fraction=smooth_width_fraction,
-                reference=reference,
-            )
-            minus_evaluation = self._evaluate_analytic(
-                minus,
-                rotor_lag_seconds,
-                gimbal_lag_seconds,
-                command_mode=command_mode,
-                smooth_width_fraction=smooth_width_fraction,
-                reference=reference,
-            )
-            finite[:, :, column] = (
-                plus_evaluation.whitened_residual
-                - minus_evaluation.whitened_residual
-            ) / (2.0 * step)
-            raw_finite[:, :, column] = (
-                plus_evaluation.acceleration_residual
-                - minus_evaluation.acceleration_residual
-            ) / (2.0 * step)
-        return replace(
-            analytic,
-            acceleration_jacobian=_readonly(raw_finite),
-            whitened_jacobian=_readonly(finite),
         )
 
     def global_residual_jacobian(
@@ -983,29 +1038,11 @@ class SingleBagDynamicsProblem:
         dimension = value.size
         jacobian = np.zeros((evaluation.residual_vector.size, dimension))
         jacobian[:, :14] = evaluation.jacobian_matrix
-        lag_columns = (14, 15) if lag_layout == "split" else (14,)
-        for column in lag_columns:
-            step = np.cbrt(np.finfo(float).eps) * max(1.0, abs(value[column]))
-            plus, minus = value.copy(), value.copy()
-            plus[column] += step
-            minus[column] -= step
-
-            def lag_residual(point: np.ndarray) -> np.ndarray:
-                if lag_layout == "split":
-                    rotor, gimbal_value = float(point[14]), float(point[15])
-                else:
-                    rotor = gimbal_value = float(point[14])
-                return self.evaluate_physical(
-                    point[:14],
-                    rotor,
-                    gimbal_value,
-                    command_mode=command_mode,
-                    smooth_width_fraction=smooth_width_fraction,
-                ).residual_vector
-
-            jacobian[:, column] = (
-                lag_residual(plus) - lag_residual(minus)
-            ) / (2.0 * step)
+        lag_jacobian = evaluation.whitened_lag_jacobian.reshape(-1, 2)
+        if lag_layout == "split":
+            jacobian[:, 14:16] = lag_jacobian
+        else:
+            jacobian[:, 14] = lag_jacobian[:, 0] + lag_jacobian[:, 1]
         return evaluation.residual_vector, jacobian, evaluation
 
 
@@ -1434,13 +1471,28 @@ def strict_lag_screen(
             )
         )
         costs = np.asarray([cost(value, value) for value in candidates])
-        selected = float(candidates[int(np.argmin(costs))])
+        selected_index = int(np.argmin(costs))
+        selected = float(candidates[selected_index])
+        candidate_table = [
+            {
+                "lag_seconds": float(value),
+                "strict_cost": float(candidate_cost),
+                "selected": bool(index == selected_index),
+                "at_lower_bound": bool(value == lower),
+                "at_upper_bound": bool(value == upper),
+            }
+            for index, (value, candidate_cost) in enumerate(
+                zip(candidates, costs)
+            )
+        ]
         trace.append(
             {
                 "channel": "common",
                 "candidate_count": int(candidates.size),
                 "selected": selected,
                 "cost": float(np.min(costs)),
+                "bounds_seconds": (lower, upper),
+                "candidate_table": candidate_table,
             }
         )
         return selected, selected, trace
@@ -1507,6 +1559,19 @@ def strict_lag_screen(
     evaluate_new()
     best = min(costs, key=lambda pair: (costs[pair], pair[0], pair[1]))
     rotor_lag, gimbal_lag = best
+    candidate_table = [
+        {
+            "rotor_lag_seconds": float(pair[0]),
+            "gimbal_lag_seconds": float(pair[1]),
+            "strict_cost": float(costs[pair]),
+            "selected": bool(pair == best),
+            "rotor_at_lower_bound": bool(pair[0] == lower),
+            "rotor_at_upper_bound": bool(pair[0] == upper),
+            "gimbal_at_lower_bound": bool(pair[1] == lower),
+            "gimbal_at_upper_bound": bool(pair[1] == upper),
+        }
+        for pair in sorted(costs)
+    ]
     trace.append(
         {
             "channel": "split_pair",
@@ -1516,6 +1581,8 @@ def strict_lag_screen(
             "selected_rotor_lag_seconds": rotor_lag,
             "selected_gimbal_lag_seconds": gimbal_lag,
             "cost": costs[best],
+            "bounds_seconds": (lower, upper),
+            "candidate_table": candidate_table,
             "expansions": expansions,
         }
     )
@@ -1541,7 +1608,6 @@ class EstimatorConfig:
     strict_alternations: int = 8
     kkt_enabled: bool = True
     solver_type: str = "custom_kkt_lm"
-    jacobian_mode: str = "analytic"
     initial_physical_coordinate: np.ndarray = field(
         default_factory=lambda: np.zeros(PHYSICAL_DIMENSION)
     )
@@ -1607,6 +1673,10 @@ class EstimationResult:
     elapsed_seconds: float
     ridge: Mapping[str, Any]
     uncertainty: ParameterCovarianceResult
+    diagnostics: Mapping[str, Any] = field(default_factory=dict)
+    first_failure_stage: Optional[str] = None
+    first_failure_status: Optional[str] = None
+    first_failure_message: Optional[str] = None
 
 
 def _solve_stage(
@@ -1649,11 +1719,20 @@ def _solve_stage(
 def ridge_analysis(
     whitened_jacobian: np.ndarray,
     gauge_direction: Sequence[float],
+    unwhitened_jacobian: Optional[np.ndarray] = None,
 ) -> dict[str, Any]:
-    """Raw data-Jacobian ridge products with machine-precision rank only."""
+    """14-D physical ridge products with machine-precision rank only."""
 
     jacobian = np.asarray(whitened_jacobian, dtype=float)
     direction = np.asarray(gauge_direction, dtype=float)
+    if (
+        jacobian.ndim != 2
+        or jacobian.shape[1] != PHYSICAL_DIMENSION
+        or direction.shape != (PHYSICAL_DIMENSION,)
+        or np.any(~np.isfinite(jacobian))
+        or np.any(~np.isfinite(direction))
+    ):
+        raise ValueError("scientific ridge inputs must be finite and 14-D")
     _u, singular, vt = np.linalg.svd(jacobian, full_matrices=False)
     tolerance = (
         0.0
@@ -1661,17 +1740,278 @@ def ridge_analysis(
         else max(jacobian.shape) * np.finfo(float).eps * float(singular[0])
     )
     rank = int(np.count_nonzero(singular > tolerance))
-    return {
+    result = {
+        "dimension": PHYSICAL_DIMENSION,
         "raw_whitened_jacobian": _readonly(jacobian),
         "jtj": _readonly(jacobian.T @ jacobian),
         "singular_values": _readonly(singular),
+        "whitened_singular_values": _readonly(singular),
         "right_singular_vectors": _readonly(vt),
+        "whitened_right_singular_vectors": _readonly(vt),
         "machine_rank_tolerance": tolerance,
         "machine_numerical_rank": rank,
         "nullity": int(jacobian.shape[1] - rank),
         "exact_scale_gauge_direction": _readonly(direction),
         "j_v_scale": _readonly(jacobian @ direction),
         "j_v_scale_norm": float(np.linalg.norm(jacobian @ direction)),
+    }
+    if unwhitened_jacobian is not None:
+        raw = np.asarray(unwhitened_jacobian, dtype=float)
+        if raw.shape != jacobian.shape or np.any(~np.isfinite(raw)):
+            raise ValueError("unwhitened ridge Jacobian shape mismatch")
+        _raw_u, raw_singular, raw_vt = np.linalg.svd(
+            raw, full_matrices=False
+        )
+        result.update(
+            {
+                "raw_acceleration_jacobian": _readonly(raw),
+                "unwhitened_diagnostic_singular_values": _readonly(
+                    raw_singular
+                ),
+                "unwhitened_diagnostic_right_singular_vectors": _readonly(
+                    raw_vt
+                ),
+            }
+        )
+    return result
+
+
+def covariance_weighting_diagnostics(
+    covariance: SgCovarianceEvaluation,
+    residual: np.ndarray,
+) -> dict[str, np.ndarray]:
+    """Return exact eigenmode decomposition of the weighted objective."""
+
+    acceleration_residual = np.asarray(residual, dtype=float)
+    if acceleration_residual.shape != covariance.z.shape:
+        raise ValueError("covariance diagnostic residual shape mismatch")
+    count = acceleration_residual.shape[0]
+    eigenvalues = np.empty((count, 6))
+    ranks = np.empty(count, dtype=int)
+    condition = np.empty(count)
+    gains = np.zeros((count, 6))
+    eigenmode_residual = np.empty((count, 6))
+    contributions = np.zeros((count, 6))
+    for index, matrix in enumerate(covariance.local_sigma_z):
+        values, vectors = np.linalg.eigh(0.5 * (matrix + matrix.T))
+        scale = float(np.max(np.abs(values))) if values.size else 0.0
+        tolerance = max(matrix.shape) * np.finfo(float).eps * scale
+        retained = values > tolerance
+        projected = vectors.T @ acceleration_residual[index]
+        eigenvalues[index] = values
+        ranks[index] = int(np.count_nonzero(retained))
+        condition[index] = (
+            float(np.max(values[retained]) / np.min(values[retained]))
+            if np.any(retained)
+            else np.nan
+        )
+        gains[index, retained] = 1.0 / np.sqrt(values[retained])
+        eigenmode_residual[index] = projected
+        contributions[index, retained] = (
+            projected[retained] ** 2 / values[retained]
+        )
+    mahalanobis = np.sum(contributions, axis=1)
+    whitened = np.einsum(
+        "nij,nj->ni", covariance.whitening, acceleration_residual
+    )
+    if not np.allclose(
+        mahalanobis,
+        np.sum(whitened**2, axis=1),
+        rtol=2.0e-10,
+        atol=2.0e-10,
+    ):
+        raise RuntimeError("covariance eigenmode contributions are inconsistent")
+    return {
+        "sigma_z_eigenvalues": _readonly(eigenvalues),
+        "sigma_z_machine_rank": _readonly(ranks),
+        "sigma_z_retained_condition_number": _readonly(condition),
+        "whitening_gain": _readonly(gains),
+        "mahalanobis_contribution_per_time": _readonly(mahalanobis),
+        "covariance_eigenmode_residual": _readonly(eigenmode_residual),
+        "covariance_eigenmode_mahalanobis_contribution": _readonly(
+            contributions
+        ),
+    }
+
+
+def metric_cross_evaluation(
+    evaluation: DynamicsEvaluation,
+) -> dict[str, float]:
+    """Evaluate one physical point under full and identity metrics."""
+
+    residual = np.asarray(evaluation.acceleration_residual)
+    whitened = np.asarray(evaluation.whitened_residual)
+    return {
+        "full_covariance_objective_sum": 0.5
+        * float(np.sum(whitened**2)),
+        "identity_objective_sum": 0.5 * float(np.sum(residual**2)),
+        "specific_acceleration_rmse_m_per_s2": float(
+            np.sqrt(np.mean(np.sum(residual[:, :3] ** 2, axis=1)))
+        ),
+        "angular_acceleration_rmse_rad_per_s2": float(
+            np.sqrt(np.mean(np.sum(residual[:, 3:] ** 2, axis=1)))
+        ),
+    }
+
+
+def acceleration_wrench_closure(
+    dataset: SingleBagDataset,
+    evaluation: DynamicsEvaluation,
+) -> dict[str, np.ndarray | float]:
+    """Check the exact Newton--Euler residual identities used by the model."""
+
+    residual = np.asarray(evaluation.acceleration_residual)
+    raw = np.asarray(evaluation.raw_residual_wrench)
+    parameters = evaluation.parameters
+    inertia = np.asarray(parameters.inertia)
+    lever = (
+        np.asarray(dataset.pose_sensor_position_in_body)
+        - np.asarray(parameters.cog_offset)
+    )
+    reconstructed_force = float(parameters.mass) * (
+        residual[:, :3] + np.cross(lever, residual[:, 3:])
+    )
+    reconstructed_torque = np.einsum(
+        "ij,nj->ni", inertia, residual[:, 3:]
+    )
+    force_error = raw[:, :3] - reconstructed_force
+    torque_error = raw[:, 3:] - reconstructed_torque
+    return {
+        "force_acceleration_closure_error": _readonly(force_error),
+        "torque_acceleration_closure_error": _readonly(torque_error),
+        "force_acceleration_closure_error_max_abs": float(
+            np.max(np.abs(force_error))
+        ),
+        "force_acceleration_closure_error_rms": float(
+            np.sqrt(np.mean(force_error**2))
+        ),
+        "torque_acceleration_closure_error_max_abs": float(
+            np.max(np.abs(torque_error))
+        ),
+        "torque_acceleration_closure_error_rms": float(
+            np.sqrt(np.mean(torque_error**2))
+        ),
+    }
+
+
+def _lag_diagnostics(
+    lag_layout: Optional[str],
+    trace: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    candidate_table: list[Mapping[str, Any]] = []
+    if trace:
+        table = trace[-1].get("candidate_table", [])
+        if isinstance(table, list):
+            candidate_table = table
+    selected = [row for row in candidate_table if bool(row.get("selected"))]
+    if candidate_table and len(selected) != 1:
+        raise RuntimeError("strict lag candidate table must select exactly once")
+    row = selected[0] if selected else {}
+    if lag_layout == "common":
+        rotor_lower = gimbal_lower = bool(row.get("at_lower_bound", False))
+        rotor_upper = gimbal_upper = bool(row.get("at_upper_bound", False))
+    else:
+        rotor_lower = bool(row.get("rotor_at_lower_bound", False))
+        rotor_upper = bool(row.get("rotor_at_upper_bound", False))
+        gimbal_lower = bool(row.get("gimbal_at_lower_bound", False))
+        gimbal_upper = bool(row.get("gimbal_at_upper_bound", False))
+    return {
+        "lag_layout": lag_layout if lag_layout is not None else "fixed_physical",
+        "candidate_table": candidate_table,
+        "rotor_at_lower_bound": rotor_lower,
+        "rotor_at_upper_bound": rotor_upper,
+        "gimbal_at_lower_bound": gimbal_lower,
+        "gimbal_at_upper_bound": gimbal_upper,
+    }
+
+
+def estimation_diagnostics(
+    *,
+    problem: SingleBagDynamicsProblem,
+    final: DynamicsEvaluation,
+    nominal_reference: DynamicsEvaluation,
+    estimated_reference: DynamicsEvaluation,
+    ridge: Mapping[str, Any],
+    uncertainty: ParameterCovarianceResult,
+    lag_layout: Optional[str],
+    lag_trace: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Build post-fit diagnostics without feeding them back to optimization."""
+
+    covariance = covariance_weighting_diagnostics(
+        problem.dataset.covariance, final.acceleration_residual
+    )
+    right = np.asarray(ridge["whitened_right_singular_vectors"])
+    coordinate = np.asarray(final.physical_coordinate)
+    displacement = right @ coordinate
+    energy = float(coordinate @ coordinate)
+    displacement_fraction = (
+        np.zeros_like(displacement)
+        if energy == 0.0
+        else displacement**2 / energy
+    )
+    naive_variance = np.einsum(
+        "ij,jk,ik->i", right, uncertainty.naive, right
+    )
+    overlap_variance = np.einsum(
+        "ij,jk,ik->i", right, uncertainty.overlap_corrected, right
+    )
+    inflation = np.full_like(naive_variance, np.nan)
+    np.divide(
+        overlap_variance,
+        naive_variance,
+        out=inflation,
+        where=naive_variance > 0.0,
+    )
+    closure = acceleration_wrench_closure(problem.dataset, final)
+    nominal_moments, nominal_axes = np.linalg.eigh(
+        np.asarray(problem.model.parameters.inertia)
+    )
+    estimated_moments, estimated_axes = np.linalg.eigh(
+        np.asarray(final.parameters.inertia)
+    )
+    lag = _lag_diagnostics(lag_layout, lag_trace)
+    return {
+        "covariance": covariance,
+        "metric_cross_evaluation": {
+            "nominal": metric_cross_evaluation(nominal_reference),
+            "estimated": metric_cross_evaluation(estimated_reference),
+        },
+        "ridge": {
+            "parameter_displacement_ridge_coordinates": _readonly(
+                displacement
+            ),
+            "parameter_displacement_ridge_energy_fraction": _readonly(
+                displacement_fraction
+            ),
+        },
+        "lag": lag,
+        "closure": closure,
+        "inertia": {
+            "nominal_principal_moments_kg_m2": _readonly(nominal_moments),
+            "nominal_principal_axes_body": _readonly(nominal_axes),
+            "estimated_principal_moments_kg_m2": _readonly(
+                estimated_moments
+            ),
+            "estimated_principal_axes_body": _readonly(estimated_axes),
+            "estimated_to_nominal_ratio": _readonly(
+                estimated_moments / nominal_moments
+            ),
+        },
+        "overlap_correction": {
+            "cross_time_covariance_model": (
+                "pairwise_mean_local_raw_pose_covariance"
+            ),
+            "uncertainty_variance_naive_in_ridge_basis": _readonly(
+                naive_variance
+            ),
+            "uncertainty_variance_overlap_in_ridge_basis": _readonly(
+                overlap_variance
+            ),
+            "uncertainty_variance_inflation_in_ridge_basis": _readonly(
+                inflation
+            ),
+        },
     }
 
 
@@ -1702,7 +2042,10 @@ def estimate_single_bag(
 
     total_nfev = 0
     stage_success = True
-    last_status, last_message = "not_started", ""
+    first_failure_stage: Optional[str] = None
+    first_failure_status: Optional[str] = None
+    first_failure_message: Optional[str] = None
+    lag_trace_for_final: Sequence[Mapping[str, Any]] = ()
     if lag_layout is not None and config.lag_mode != "split_strict_only":
         coordinate = (
             np.concatenate((physical, np.asarray((rotor_lag,))))
@@ -1738,8 +2081,11 @@ def estimate_single_bag(
                 }
             )
             stage_success = stage_success and solved.success
-            last_status, last_message = solved.status, solved.message
             if not solved.success:
+                if first_failure_stage is None:
+                    first_failure_stage = "smooth_continuation"
+                    first_failure_status = solved.status
+                    first_failure_message = solved.message
                 break
         physical = coordinate[:14]
         if lag_layout == "common":
@@ -1758,6 +2104,7 @@ def estimate_single_bag(
             bounds=config.lag_bounds,
             alternations=config.strict_alternations,
         )
+        lag_trace_for_final = screen_trace
         stages.append(
             {
                 "stage": "strict_lag_screen",
@@ -1807,7 +2154,10 @@ def estimate_single_bag(
             }
         )
         stage_success = stage_success and physical_result.success
-        last_status, last_message = physical_result.status, physical_result.message
+        if not physical_result.success and first_failure_stage is None:
+            first_failure_stage = "strict_physical_refinement"
+            first_failure_status = physical_result.status
+            first_failure_message = physical_result.message
         if not physical_result.success or lag_layout is None:
             break
         assert config.lag_bounds is not None
@@ -1836,6 +2186,7 @@ def estimate_single_bag(
             }
         )
         if fixed_point:
+            lag_trace_for_final = verify_trace
             break
         next_pair = (round(next_rotor, 12), round(next_gimbal, 12))
         if next_pair in visited_lags:
@@ -1858,6 +2209,7 @@ def estimate_single_bag(
                 }
             )
             break
+        lag_trace_for_final = verify_trace
         rotor_lag, gimbal_lag = next_rotor, next_gimbal
     final = problem.evaluate_physical(
         physical, rotor_lag, gimbal_lag, command_mode="strict"
@@ -1867,64 +2219,37 @@ def estimate_single_bag(
     reference = problem.evaluate_physical(
         physical, rotor_lag, gimbal_lag, command_mode="strict", reference=True
     )
-    if lag_layout is None:
-        ridge_jacobian = final.jacobian_matrix
-        ridge_gauge = COMMON_SCALE_DIRECTION
-        raw_global_jacobian = np.asarray(final.acceleration_jacobian)
-    else:
-        global_coordinate = (
-            np.concatenate((physical, np.asarray((rotor_lag,))))
-            if lag_layout == "common"
-            else np.concatenate((physical, np.asarray((rotor_lag, gimbal_lag))))
-        )
-        _ridge_residual, ridge_jacobian, _ridge_payload = (
-            problem.global_residual_jacobian(
-                global_coordinate,
-                lag_layout=lag_layout,
-                command_mode="strict",
-                smooth_width_fraction=None,
-            )
-        )
-        ridge_gauge = np.zeros(global_coordinate.size)
-        ridge_gauge[:14] = COMMON_SCALE_DIRECTION
-        raw_global_jacobian = np.zeros(
-            (
-                final.acceleration_residual.shape[0],
-                6,
-                global_coordinate.size,
-            )
-        )
-        raw_global_jacobian[:, :, :14] = final.acceleration_jacobian
-        lag_columns = (14,) if lag_layout == "common" else (14, 15)
-        for column in lag_columns:
-            step = np.cbrt(np.finfo(float).eps) * max(
-                1.0, abs(float(global_coordinate[column]))
-            )
-            plus, minus = global_coordinate.copy(), global_coordinate.copy()
-            plus[column] += step
-            minus[column] -= step
-
-            def raw_residual(point: np.ndarray) -> np.ndarray:
-                if lag_layout == "common":
-                    rotor_value = gimbal_value = float(point[14])
-                else:
-                    rotor_value, gimbal_value = float(point[14]), float(point[15])
-                return problem.evaluate_physical(
-                    point[:14],
-                    rotor_value,
-                    gimbal_value,
-                    command_mode="strict",
-                ).acceleration_residual
-
-            raw_global_jacobian[:, :, column] = (
-                raw_residual(plus) - raw_residual(minus)
-            ) / (2.0 * step)
-    ridge = ridge_analysis(ridge_jacobian, ridge_gauge)
-    ridge["raw_acceleration_jacobian"] = _readonly(raw_global_jacobian)
+    nominal_reference = problem.evaluate_physical(
+        np.zeros(PHYSICAL_DIMENSION),
+        rotor_lag,
+        gimbal_lag,
+        command_mode="strict",
+        reference=True,
+    )
+    ridge = ridge_analysis(
+        final.jacobian_matrix,
+        COMMON_SCALE_DIRECTION,
+        final.acceleration_jacobian.reshape(-1, PHYSICAL_DIMENSION),
+    )
     uncertainty = parameter_covariances(
         final.acceleration_jacobian,
         problem.dataset.covariance,
         COMMON_SCALE_DIRECTION,
+    )
+    diagnostics = estimation_diagnostics(
+        problem=problem,
+        final=final,
+        nominal_reference=nominal_reference,
+        estimated_reference=reference,
+        ridge=ridge,
+        uncertainty=uncertainty,
+        lag_layout=lag_layout,
+        lag_trace=lag_trace_for_final,
+    )
+    ridge.update(diagnostics["ridge"])
+    final_status = "completed" if stage_success else str(first_failure_status)
+    final_message = (
+        "all stages completed" if stage_success else str(first_failure_message)
     )
     return EstimationResult(
         physical_coordinate=_readonly(physical),
@@ -1933,11 +2258,15 @@ def estimate_single_bag(
         evaluation=final,
         reference_evaluation=reference,
         success=bool(stage_success),
-        status="completed" if stage_success else last_status,
-        message="all stages completed" if stage_success else last_message,
+        status=final_status,
+        message=final_message,
         stages=tuple(stages),
         total_nfev=total_nfev,
         elapsed_seconds=time.perf_counter() - started,
         ridge=ridge,
         uncertainty=uncertainty,
+        diagnostics=diagnostics,
+        first_failure_stage=first_failure_stage,
+        first_failure_status=first_failure_status,
+        first_failure_message=first_failure_message,
     )

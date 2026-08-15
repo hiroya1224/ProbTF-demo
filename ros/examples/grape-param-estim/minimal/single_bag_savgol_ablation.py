@@ -60,8 +60,6 @@ FIXED_CASE_NAMES = (
     "so3_naive_rotation_vector_derivatives",
     "solver_custom_kkt_lm",
     "solver_standard_gauge_least_squares",
-    "jacobian_analytic",
-    "jacobian_finite_difference",
     "external_wrench_raw_only",
     "external_wrench_trajectory_fitted",
     "naive_all",
@@ -146,8 +144,6 @@ def fixed_case_overrides(
         "solver_standard_gauge_least_squares": {
             "solver_type": "standard_least_squares"
         },
-        "jacobian_analytic": {"jacobian_mode": "analytic"},
-        "jacobian_finite_difference": {"jacobian_mode": "finite_difference"},
         # Replay is post-fit in both cases so reports retain the standardized
         # raw-vs-fitted comparison.  The case name records whether fitted replay
         # is part of the case algorithm or evaluation-only.
@@ -160,7 +156,6 @@ def fixed_case_overrides(
             "lag_mode": "zero",
             "actuator_propagation": "direct_command",
             "naive_so3_derivatives": True,
-            "jacobian_mode": "finite_difference",
             "disable_replay": False,
         },
     }
@@ -202,6 +197,22 @@ def sweep_cases(config: Mapping[str, Any]) -> list[tuple[str, dict[str, Any]]]:
                     {argument_name: value},
                 )
             )
+    for index, value in enumerate(members("sg_window_covariance")):
+        if not isinstance(value, dict):
+            raise ValueError("sg_window_covariance members must be objects")
+        if set(value) != {"window_seconds", "covariance_mode"}:
+            raise ValueError(
+                "sg_window_covariance requires window_seconds and covariance_mode"
+            )
+        result.append(
+            (
+                "sweep__sg_window_covariance__{:03d}".format(index),
+                {
+                    "sg_window": value["window_seconds"],
+                    "covariance_mode": value["covariance_mode"],
+                },
+            )
+        )
     for index, value in enumerate(members("lag_initials")):
         if not isinstance(value, list) or len(value) != 2:
             raise ValueError("each lag_initials member must be [rotor, gimbal]")

@@ -96,6 +96,7 @@ class SingleBagInputTests(unittest.TestCase):
         self.assertEqual(arguments.strict_max_nfev, DEFAULT_STRICT_MAX_NFEV)
         self.assertEqual(DEFAULT_SMOOTH_MAX_NFEV, 2000)
         self.assertEqual(DEFAULT_STRICT_MAX_NFEV, 2000)
+        self.assertFalse(hasattr(arguments, "jacobian_mode"))
 
     @staticmethod
     def _repository_json(name):

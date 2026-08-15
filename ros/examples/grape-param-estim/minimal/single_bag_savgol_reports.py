@@ -42,6 +42,64 @@ WRENCH_LINE_STYLES = {
     "additional": ":",
     "additional_2": "-.",
 }
+DIAGNOSTIC_QUANTILES = (0.0, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1.0)
+
+
+def _quantile_summary(value: np.ndarray) -> dict[str, Any]:
+    array = np.asarray(value, dtype=float).reshape(-1)
+    finite = array[np.isfinite(array)]
+    if finite.size == 0:
+        return {
+            "minimum": None,
+            "median": None,
+            "maximum": None,
+            "quantiles": {},
+        }
+    quantiles = np.quantile(finite, DIAGNOSTIC_QUANTILES)
+    return {
+        "minimum": float(np.min(finite)),
+        "median": float(np.median(finite)),
+        "maximum": float(np.max(finite)),
+        "quantiles": {
+            "{:g}".format(level): float(item)
+            for level, item in zip(DIAGNOSTIC_QUANTILES, quantiles)
+        },
+    }
+
+
+def _covariance_summary(value: Mapping[str, Any]) -> dict[str, Any]:
+    eigenvalues = np.asarray(value["sigma_z_eigenvalues"])
+    gains = np.asarray(value["whitening_gain"])
+    ranks = np.asarray(value["sigma_z_machine_rank"], dtype=int)
+    unique, counts = np.unique(ranks, return_counts=True)
+    return {
+        "sigma_z_eigenvalue_summary": {
+            "overall": _quantile_summary(eigenvalues),
+            "per_eigenmode": [
+                _quantile_summary(eigenvalues[:, index])
+                for index in range(eigenvalues.shape[1])
+            ],
+        },
+        "sigma_z_rank_summary": {
+            "minimum": int(np.min(ranks)),
+            "median": float(np.median(ranks)),
+            "maximum": int(np.max(ranks)),
+            "counts": {
+                str(int(rank)): int(count)
+                for rank, count in zip(unique, counts)
+            },
+        },
+        "whitening_gain_summary": {
+            "overall": _quantile_summary(gains),
+            "per_eigenmode": [
+                _quantile_summary(gains[:, index])
+                for index in range(gains.shape[1])
+            ],
+        },
+        "mahalanobis_contribution_summary": _quantile_summary(
+            np.asarray(value["mahalanobis_contribution_per_time"])
+        ),
+    }
 
 
 def json_sanitize(value: Any) -> Any:
@@ -139,8 +197,17 @@ def common_metrics(
 ) -> dict[str, Any]:
     reference = result.reference_evaluation
     acceleration = reference.acceleration_residual
+    cross = result.diagnostics.get("metric_cross_evaluation", {}).get(
+        "estimated", {}
+    )
     metrics: dict[str, Any] = {
         "reference_objective_sum": reference.cost,
+        "full_covariance_objective_sum": cross.get(
+            "full_covariance_objective_sum", reference.cost
+        ),
+        "identity_objective_sum": cross.get(
+            "identity_objective_sum", 0.5 * float(np.sum(acceleration**2))
+        ),
         "specific_acceleration_rmse_m_per_s2": float(
             np.sqrt(np.mean(np.sum(acceleration[:, :3] ** 2, axis=1)))
         ),
@@ -192,6 +259,40 @@ def result_payload(
     result: EstimationResult,
     replay: Optional[WrenchReplayResult],
 ) -> dict[str, Any]:
+    diagnostics = result.diagnostics
+    covariance = diagnostics.get("covariance", {})
+    closure = diagnostics.get("closure", {})
+    overlap = diagnostics.get("overlap_correction", {})
+    diagnostic_payload = {
+        "covariance": _covariance_summary(covariance),
+        "metric_cross_evaluation": diagnostics.get(
+            "metric_cross_evaluation", {}
+        ),
+        "lag": diagnostics.get("lag", {}),
+        "closure": {
+            key: value
+            for key, value in closure.items()
+            if not key.endswith("_error")
+        },
+        "inertia": diagnostics.get("inertia", {}),
+        "overlap_correction": {
+            "cross_time_covariance_model": overlap.get(
+                "cross_time_covariance_model"
+            ),
+            "uncertainty_variance_naive_in_ridge_basis": overlap.get(
+                "uncertainty_variance_naive_in_ridge_basis"
+            ),
+            "uncertainty_variance_overlap_in_ridge_basis": overlap.get(
+                "uncertainty_variance_overlap_in_ridge_basis"
+            ),
+            "uncertainty_variance_inflation_in_ridge_basis": overlap.get(
+                "uncertainty_variance_inflation_in_ridge_basis"
+            ),
+            "variance_inflation_in_ridge_basis": overlap.get(
+                "uncertainty_variance_inflation_in_ridge_basis"
+            ),
+        },
+    }
     payload = {
         "status": "completed" if result.success else "failed",
         "case_name": case_name,
@@ -209,6 +310,7 @@ def result_payload(
         ),
         "strict_final_evaluation": result.evaluation.actuator_history.strict_final,
         "stages": result.stages,
+        "diagnostics": diagnostic_payload,
         "ridge": {
             key: value
             for key, value in result.ridge.items()
@@ -224,9 +326,12 @@ def result_payload(
     if not result.success:
         payload.update(
             {
-                "failure_stage": "parameter_estimation",
+                "failure_stage": result.first_failure_stage,
                 "exception_type": "OptimizerNonSuccess",
                 "failure_reason": result.message,
+                "first_failure_stage": result.first_failure_stage,
+                "first_failure_status": result.first_failure_status,
+                "first_failure_message": result.first_failure_message,
             }
         )
     return payload
@@ -240,6 +345,22 @@ def arrays_payload(
     sg = dataset.sg
     covariance = dataset.covariance
     evaluation = result.evaluation
+    diagnostics = result.diagnostics
+    covariance_diagnostics = diagnostics["covariance"]
+    ridge_diagnostics = diagnostics["ridge"]
+    overlap = diagnostics["overlap_correction"]
+    closure = diagnostics["closure"]
+    lag_table = diagnostics["lag"]["candidate_table"]
+    lag_rotor: list[float] = []
+    lag_gimbal: list[float] = []
+    lag_cost: list[float] = []
+    lag_selected: list[bool] = []
+    for row in lag_table:
+        common = row.get("lag_seconds")
+        lag_rotor.append(float(row.get("rotor_lag_seconds", common)))
+        lag_gimbal.append(float(row.get("gimbal_lag_seconds", common)))
+        lag_cost.append(float(row["strict_cost"]))
+        lag_selected.append(bool(row["selected"]))
     arrays: dict[str, np.ndarray] = {
         "sg_time": np.asarray(dataset.time),
         "sg_R": np.asarray(sg.body_rotation),
@@ -263,7 +384,7 @@ def arrays_payload(
         "whitened_residual": np.asarray(evaluation.whitened_residual),
         "raw_physical_jacobian": np.asarray(evaluation.acceleration_jacobian),
         "whitened_physical_jacobian": np.asarray(evaluation.whitened_jacobian),
-        "raw_jacobian": np.asarray(result.ridge["raw_acceleration_jacobian"]),
+        "raw_jacobian": np.asarray(evaluation.acceleration_jacobian),
         "whitened_jacobian": np.asarray(
             result.ridge["raw_whitened_jacobian"]
         ),
@@ -274,6 +395,68 @@ def arrays_payload(
         "right_singular_vectors": np.asarray(
             result.ridge["right_singular_vectors"]
         ),
+        "sigma_z_eigenvalues": np.asarray(
+            covariance_diagnostics["sigma_z_eigenvalues"]
+        ),
+        "sigma_z_machine_rank": np.asarray(
+            covariance_diagnostics["sigma_z_machine_rank"]
+        ),
+        "sigma_z_retained_condition_number": np.asarray(
+            covariance_diagnostics["sigma_z_retained_condition_number"]
+        ),
+        "whitening_gain": np.asarray(
+            covariance_diagnostics["whitening_gain"]
+        ),
+        "mahalanobis_contribution_per_time": np.asarray(
+            covariance_diagnostics["mahalanobis_contribution_per_time"]
+        ),
+        "covariance_eigenmode_residual": np.asarray(
+            covariance_diagnostics["covariance_eigenmode_residual"]
+        ),
+        "covariance_eigenmode_mahalanobis_contribution": np.asarray(
+            covariance_diagnostics[
+                "covariance_eigenmode_mahalanobis_contribution"
+            ]
+        ),
+        "unwhitened_physical_jacobian_singular_values": np.asarray(
+            result.ridge["unwhitened_diagnostic_singular_values"]
+        ),
+        "unwhitened_physical_jacobian_right_singular_vectors": np.asarray(
+            result.ridge["unwhitened_diagnostic_right_singular_vectors"]
+        ),
+        "whitened_physical_jacobian_singular_values": np.asarray(
+            result.ridge["whitened_singular_values"]
+        ),
+        "whitened_physical_jacobian_right_singular_vectors": np.asarray(
+            result.ridge["whitened_right_singular_vectors"]
+        ),
+        "parameter_displacement_ridge_coordinates": np.asarray(
+            ridge_diagnostics["parameter_displacement_ridge_coordinates"]
+        ),
+        "parameter_displacement_ridge_energy_fraction": np.asarray(
+            ridge_diagnostics[
+                "parameter_displacement_ridge_energy_fraction"
+            ]
+        ),
+        "uncertainty_variance_naive_in_ridge_basis": np.asarray(
+            overlap["uncertainty_variance_naive_in_ridge_basis"]
+        ),
+        "uncertainty_variance_overlap_in_ridge_basis": np.asarray(
+            overlap["uncertainty_variance_overlap_in_ridge_basis"]
+        ),
+        "uncertainty_variance_inflation_in_ridge_basis": np.asarray(
+            overlap["uncertainty_variance_inflation_in_ridge_basis"]
+        ),
+        "force_acceleration_closure_error": np.asarray(
+            closure["force_acceleration_closure_error"]
+        ),
+        "torque_acceleration_closure_error": np.asarray(
+            closure["torque_acceleration_closure_error"]
+        ),
+        "lag_candidate_rotor_seconds": np.asarray(lag_rotor),
+        "lag_candidate_gimbal_seconds": np.asarray(lag_gimbal),
+        "lag_candidate_strict_cost": np.asarray(lag_cost),
+        "lag_candidate_selected": np.asarray(lag_selected, dtype=bool),
         "parameter_covariance_naive": np.asarray(result.uncertainty.naive),
         "parameter_covariance_overlap_corrected": np.asarray(
             result.uncertainty.overlap_corrected
@@ -335,7 +518,7 @@ def write_report_pdf(
     result: EstimationResult,
     replay: Optional[WrenchReplayResult],
 ) -> None:
-    """Write the standardized four-section report for one completed case."""
+    """Write four standard sections followed by diagnostic pages."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     time_axis = np.asarray(dataset.time) - float(dataset.time[0])
@@ -483,6 +666,251 @@ def write_report_pdf(
         pdf.savefig(figure)
         plt.close(figure)
 
+        covariance_diagnostics = result.diagnostics["covariance"]
+        figure, axes = plt.subplots(3, 1, figsize=(10.5, 9.0), sharex=True)
+        eigenvalues = np.asarray(
+            covariance_diagnostics["sigma_z_eigenvalues"]
+        )
+        gains = np.asarray(covariance_diagnostics["whitening_gain"])
+        for mode in range(eigenvalues.shape[1]):
+            axes[0].semilogy(
+                time_axis,
+                np.where(eigenvalues[:, mode] > 0.0, eigenvalues[:, mode], np.nan),
+                label="mode {}".format(mode),
+            )
+            axes[1].semilogy(
+                time_axis,
+                np.where(gains[:, mode] > 0.0, gains[:, mode], np.nan),
+            )
+        axes[2].plot(
+            time_axis,
+            covariance_diagnostics["mahalanobis_contribution_per_time"],
+            "-",
+        )
+        axes[0].set_ylabel("Sigma_z eigenvalue")
+        axes[1].set_ylabel("whitening gain")
+        axes[2].set_ylabel("Mahalanobis contribution")
+        axes[2].set_xlabel("time [s]")
+        axes[0].legend(loc="best", ncol=3, fontsize=7)
+        for axis in axes:
+            axis.grid(True, alpha=0.3)
+        figure.suptitle("{}: covariance weighting".format(case_name))
+        figure.tight_layout()
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        figure, axes = plt.subplots(2, 2, figsize=(11.0, 8.5))
+        whitened_singular = np.asarray(result.ridge["whitened_singular_values"])
+        unwhitened_singular = np.asarray(
+            result.ridge["unwhitened_diagnostic_singular_values"]
+        )
+        indices = np.arange(whitened_singular.size)
+        axes[0, 0].semilogy(
+            indices,
+            np.where(whitened_singular > 0.0, whitened_singular, np.nan),
+            "o-",
+            label="whitened scientific ridge",
+        )
+        axes[0, 0].semilogy(
+            indices,
+            np.where(unwhitened_singular > 0.0, unwhitened_singular, np.nan),
+            "s--",
+            label="unwhitened diagnostic",
+        )
+        axes[0, 0].set_ylabel("singular value")
+        axes[0, 0].legend(loc="best", fontsize=8)
+        displacement = np.asarray(
+            result.diagnostics["ridge"][
+                "parameter_displacement_ridge_coordinates"
+            ]
+        )
+        energy_fraction = np.asarray(
+            result.diagnostics["ridge"][
+                "parameter_displacement_ridge_energy_fraction"
+            ]
+        )
+        axes[0, 1].bar(indices, displacement)
+        axes[0, 1].set_ylabel("V^T delta q")
+        axes[1, 0].bar(indices, energy_fraction)
+        axes[1, 0].set_ylabel("displacement energy fraction")
+        inflation = np.asarray(
+            result.diagnostics["overlap_correction"][
+                "uncertainty_variance_inflation_in_ridge_basis"
+            ]
+        )
+        axes[1, 1].bar(indices, inflation)
+        axes[1, 1].set_ylabel("overlap / naive variance")
+        for axis in axes.flat:
+            axis.set_xlabel("whitened ridge direction index")
+            axis.grid(True, alpha=0.3)
+        figure.text(
+            0.5,
+            0.01,
+            "exact scale gauge: ||J v_scale||={:.6g}, rank={}, nullity={}".format(
+                result.ridge["j_v_scale_norm"],
+                result.ridge["machine_numerical_rank"],
+                result.ridge["nullity"],
+            ),
+            ha="center",
+        )
+        figure.suptitle("{}: parameter ridge".format(case_name))
+        figure.tight_layout(rect=(0.0, 0.04, 1.0, 0.96))
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        figure = plt.figure(figsize=(10.5, 8.0))
+        axis = figure.add_subplot(111)
+        lag = result.diagnostics["lag"]
+        table = lag["candidate_table"]
+        if table:
+            rotor_candidates = np.asarray(
+                [
+                    row.get("rotor_lag_seconds", row.get("lag_seconds"))
+                    for row in table
+                ],
+                dtype=float,
+            )
+            gimbal_candidates = np.asarray(
+                [
+                    row.get("gimbal_lag_seconds", row.get("lag_seconds"))
+                    for row in table
+                ],
+                dtype=float,
+            )
+            candidate_cost = np.asarray(
+                [row["strict_cost"] for row in table], dtype=float
+            )
+            selected = np.asarray([row["selected"] for row in table], dtype=bool)
+            if lag["lag_layout"] == "common":
+                axis.plot(rotor_candidates, candidate_cost, "o-")
+                axis.plot(
+                    rotor_candidates[selected],
+                    candidate_cost[selected],
+                    "r*",
+                    markersize=14,
+                    label="selected",
+                )
+                axis.set_xlabel("common lag [s]")
+                axis.set_ylabel("strict cost")
+            else:
+                points = axis.scatter(
+                    rotor_candidates,
+                    gimbal_candidates,
+                    c=candidate_cost,
+                    cmap="viridis",
+                )
+                axis.scatter(
+                    rotor_candidates[selected],
+                    gimbal_candidates[selected],
+                    marker="*",
+                    s=180,
+                    facecolors="none",
+                    edgecolors="red",
+                    linewidths=1.5,
+                    label="selected",
+                )
+                figure.colorbar(points, ax=axis, label="strict cost")
+                axis.set_xlabel("rotor lag [s]")
+                axis.set_ylabel("gimbal lag [s]")
+            axis.legend(loc="best")
+        else:
+            axis.axis("off")
+            axis.text(
+                0.5,
+                0.5,
+                "No strict lag candidate grid for this fixed-lag case.",
+                ha="center",
+                va="center",
+            )
+        axis.grid(True, alpha=0.3)
+        figure.text(
+            0.5,
+            0.02,
+            (
+                "boundary flags: rotor lower={} upper={}; "
+                "gimbal lower={} upper={}"
+            ).format(
+                lag["rotor_at_lower_bound"],
+                lag["rotor_at_upper_bound"],
+                lag["gimbal_at_lower_bound"],
+                lag["gimbal_at_upper_bound"],
+            ),
+            ha="center",
+        )
+        figure.suptitle("{}: strict lag candidates".format(case_name))
+        figure.tight_layout(rect=(0.0, 0.05, 1.0, 0.96))
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        figure, axes = plt.subplots(2, 2, figsize=(11.0, 8.5), sharex=False)
+        angular_residual = result.evaluation.acceleration_residual[:, 3:]
+        raw_torque = result.evaluation.raw_residual_wrench[:, 3:]
+        for component in range(3):
+            axes[0, 0].plot(
+                time_axis,
+                angular_residual[:, component],
+                label="{}".format("xyz"[component]),
+            )
+            axes[0, 1].plot(
+                time_axis,
+                raw_torque[:, component],
+                label="{}".format("xyz"[component]),
+            )
+        axes[0, 0].set_title("angular-acceleration residual")
+        axes[0, 0].set_ylabel("rad/s^2")
+        axes[0, 1].set_title("raw torque residual")
+        axes[0, 1].set_ylabel("N m")
+        closure = result.diagnostics["closure"]
+        axes[1, 0].plot(
+            time_axis,
+            np.asarray(closure["torque_acceleration_closure_error"]),
+        )
+        axes[1, 0].set_title("torque closure error")
+        axes[1, 0].set_ylabel("N m")
+        axes[1, 0].set_xlabel("time [s]")
+        axes[1, 1].axis("off")
+        inertia = result.diagnostics["inertia"]
+        axes[1, 1].text(
+            0.02,
+            0.98,
+            (
+                "principal moments [kg m^2]\n"
+                "nominal: {}\n"
+                "estimated: {}\n"
+                "estimated / nominal: {}\n\n"
+                "force closure max/rms: {:.6g} / {:.6g}\n"
+                "torque closure max/rms: {:.6g} / {:.6g}"
+            ).format(
+                np.array2string(
+                    np.asarray(inertia["nominal_principal_moments_kg_m2"]),
+                    precision=6,
+                ),
+                np.array2string(
+                    np.asarray(inertia["estimated_principal_moments_kg_m2"]),
+                    precision=6,
+                ),
+                np.array2string(
+                    np.asarray(inertia["estimated_to_nominal_ratio"]),
+                    precision=6,
+                ),
+                closure["force_acceleration_closure_error_max_abs"],
+                closure["force_acceleration_closure_error_rms"],
+                closure["torque_acceleration_closure_error_max_abs"],
+                closure["torque_acceleration_closure_error_rms"],
+            ),
+            va="top",
+            family="monospace",
+            fontsize=8,
+        )
+        for axis in (axes[0, 0], axes[0, 1], axes[1, 0]):
+            axis.grid(True, alpha=0.3)
+        axes[0, 0].legend(loc="best", fontsize=8)
+        axes[0, 1].legend(loc="best", fontsize=8)
+        figure.suptitle("{}: acceleration/wrench closure".format(case_name))
+        figure.tight_layout()
+        pdf.savefig(figure)
+        plt.close(figure)
+
 
 def write_failure_report_pdf(
     path: Path,
@@ -540,9 +968,12 @@ def write_completed_case(
     if not result.success:
         status.update(
             {
-                "failure_stage": "parameter_estimation",
+                "failure_stage": result.first_failure_stage,
                 "exception_type": "OptimizerNonSuccess",
                 "failure_reason": result.message,
+                "first_failure_stage": result.first_failure_stage,
+                "first_failure_status": result.first_failure_status,
+                "first_failure_message": result.first_failure_message,
             }
         )
     write_json(directory / "status.json", status)

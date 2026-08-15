@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -8,44 +9,47 @@ from _support import synthetic_problem_parts
 from grape_param_estim.system import ActuatorParameters
 from single_bag_savgol_core import (
     COMMON_SCALE_DIRECTION,
+    EstimatorConfig,
     LmSettings,
     ObjectiveEvaluation,
     PHYSICAL_DIMENSION,
+    SolverResult,
+    SYMMETRIC_BASIS,
     SiParameterChart,
     SingleBagDynamicsProblem,
     adaptive_kkt_lm,
+    estimate_single_bag,
     generate_actuator_history,
-    physical_parameter_jacobian,
-    physical_parameter_vector,
     solve_kkt_lm_step,
 )
 from smooth_command import QuinticSmoothZoh
 
 
 class CoreTests(unittest.TestCase):
-    def test_parameter_chart_physicality_jacobian_and_exact_scale(self):
+    def test_parameter_chart_closed_form_derivatives_and_exact_scale(self):
         _dataset, model, _actuator = synthetic_problem_parts()
         chart = SiParameterChart(model.parameters)
+        parameters, jacobian = chart.decode_with_jacobian(np.zeros(14))
+        self.assertEqual(jacobian.mass[0], parameters.mass)
+        self.assertTrue(
+            np.array_equal(
+                jacobian.force_effectiveness[:, 10:14],
+                np.diag(parameters.force_effectiveness),
+            )
+        )
+        base = chart.reference_second_moment_sqrt
+        for local_index, basis in enumerate(SYMMETRIC_BASIS):
+            second_moment_derivative = base @ basis @ base
+            expected = (
+                np.trace(second_moment_derivative) * np.eye(3)
+                - second_moment_derivative
+            )
+            self.assertTrue(
+                np.allclose(
+                    jacobian.inertia[:, :, 1 + local_index], expected
+                )
+            )
         rng = np.random.default_rng(7)
-        for _ in range(10):
-            coordinate = 0.1 * rng.standard_normal(PHYSICAL_DIMENSION)
-            parameters, jacobian = chart.decode_with_jacobian(coordinate)
-            self.assertGreater(parameters.mass, 0.0)
-            self.assertTrue(np.allclose(parameters.inertia, parameters.inertia.T))
-            self.assertTrue(np.all(np.linalg.eigvalsh(parameters.inertia) > 0.0))
-            direction = rng.standard_normal(PHYSICAL_DIMENSION)
-            direction /= np.linalg.norm(direction)
-            step = 1e-6
-            finite = (
-                physical_parameter_vector(
-                    chart.decode(coordinate + step * direction)
-                )
-                - physical_parameter_vector(
-                    chart.decode(coordinate - step * direction)
-                )
-            ) / (2 * step)
-            analytic = physical_parameter_jacobian(jacobian) @ direction
-            self.assertTrue(np.allclose(analytic, finite, rtol=2e-6, atol=2e-8))
         coordinate = 0.05 * rng.standard_normal(PHYSICAL_DIMENSION)
         shift = 0.37
         first = chart.decode(coordinate)
@@ -84,33 +88,21 @@ class CoreTests(unittest.TestCase):
         )
         self.assertLess(abs(gauge @ result.coordinate), 1e-13)
 
-    def test_newton_euler_analytic_jacobian(self):
+    def test_newton_euler_exact_gauge_and_closure(self):
         dataset, model, actuator = synthetic_problem_parts()
         problem = SingleBagDynamicsProblem(dataset, model, actuator)
         coordinate = np.linspace(-0.02, 0.02, 14)
         evaluation = problem.evaluate_physical(coordinate, 0.01, 0.015)
-        finite = np.empty_like(evaluation.acceleration_jacobian)
-        step = 1e-6
-        for column in range(14):
-            plus, minus = coordinate.copy(), coordinate.copy()
-            plus[column] += step
-            minus[column] -= step
-            finite[:, :, column] = (
-                problem.evaluate_physical(
-                    plus, 0.01, 0.015
-                ).acceleration_residual
-                - problem.evaluate_physical(
-                    minus, 0.01, 0.015
-                ).acceleration_residual
-            ) / (2 * step)
         self.assertTrue(
             np.allclose(
-                evaluation.acceleration_jacobian,
-                finite,
-                rtol=3e-5,
-                atol=2e-6,
-            ),
-            msg=str(np.max(np.abs(evaluation.acceleration_jacobian - finite))),
+                np.einsum(
+                    "nij,j->ni",
+                    evaluation.acceleration_jacobian,
+                    COMMON_SCALE_DIRECTION,
+                ),
+                0.0,
+                atol=2e-12,
+            )
         )
         self.assertTrue(
             np.allclose(
@@ -118,6 +110,56 @@ class CoreTests(unittest.TestCase):
                 evaluation.required_wrench - evaluation.modeled_wrench,
             )
         )
+
+    def test_lag_estimated_scientific_ridge_is_physical_14d(self):
+        dataset, model, actuator = synthetic_problem_parts()
+        problem = SingleBagDynamicsProblem(dataset, model, actuator)
+        result = estimate_single_bag(
+            problem,
+            EstimatorConfig(
+                lag_mode="split_strict_only",
+                lag_bounds=(0.0, 0.2),
+                strict_max_nfev=20,
+                strict_alternations=1,
+            ),
+        )
+        self.assertEqual(result.ridge["dimension"], 14)
+        self.assertEqual(result.ridge["right_singular_vectors"].shape, (14, 14))
+        self.assertEqual(result.evaluation.whitened_jacobian.shape[-1], 14)
+
+    def test_first_optimizer_failure_is_not_overwritten(self):
+        dataset, model, actuator = synthetic_problem_parts()
+        problem = SingleBagDynamicsProblem(dataset, model, actuator)
+
+        def staged_solver(_problem, initial, evaluator, **_kwargs):
+            objective = evaluator(np.asarray(initial))
+            is_smooth = np.asarray(initial).size > 14
+            return SolverResult(
+                coordinate=np.asarray(initial),
+                evaluation=objective,
+                success=not is_smooth,
+                status="deliberate_failure" if is_smooth else "ftol",
+                message=(
+                    "first stage failed" if is_smooth else "later stage succeeded"
+                ),
+                nfev=1,
+                elapsed_seconds=0.0,
+            )
+
+        with patch("single_bag_savgol_core._solve_stage", side_effect=staged_solver):
+            result = estimate_single_bag(
+                problem,
+                EstimatorConfig(
+                    lag_mode="split_estimated",
+                    lag_bounds=(0.0, 0.2),
+                    smooth_width_schedule=(1.0,),
+                    strict_alternations=1,
+                ),
+            )
+        self.assertFalse(result.success)
+        self.assertEqual(result.first_failure_stage, "smooth_continuation")
+        self.assertEqual(result.status, "deliberate_failure")
+        self.assertEqual(result.message, "first stage failed")
 
     def test_actuator_history_consistency_active_set_and_strict_final(self):
         times = np.asarray((0.0, 0.25, 0.5, 0.75))

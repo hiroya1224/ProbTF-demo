@@ -61,9 +61,21 @@ def factorial_design(
 
 
 def left_jacobian_with_directional_derivative(
-    phi: Sequence[float], direction: Optional[Sequence[float]] = None
-) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-    """Return the SO(3) left Jacobian and, optionally, ``D J_l[direction]``."""
+    phi: Sequence[float],
+    direction: Optional[Sequence[float]] = None,
+    second_direction: Optional[Sequence[float]] = None,
+) -> (
+    np.ndarray
+    | tuple[np.ndarray, np.ndarray]
+    | tuple[np.ndarray, np.ndarray, np.ndarray]
+):
+    """Return ``J_l`` and optional first/second directional derivatives.
+
+    When both directions are supplied, the third returned value is
+    ``D^2 J_l[direction, second_direction]``.  All scalar coefficients use the
+    same small-angle branch so covariance propagation never needs numerical
+    differentiation.
+    """
 
     value = np.asarray(phi, dtype=float)
     if value.shape != (3,) or np.any(~np.isfinite(value)):
@@ -76,6 +88,8 @@ def left_jacobian_with_directional_derivative(
         b = 1.0 / 6.0 - s / 120.0 + s**2 / 5040.0 - s**3 / 362880.0
         c = -1.0 / 12.0 + s / 180.0 - s**2 / 6720.0 + s**3 / 453600.0
         d = -1.0 / 60.0 + s / 1260.0 - s**2 / 60480.0 + s**3 / 4989600.0
+        e = 1.0 / 90.0 - s / 1680.0 + s**2 / 75600.0 - s**3 / 5987520.0
+        f = 1.0 / 630.0 - s / 15120.0 + s**2 / 831600.0 - s**3 / 77837760.0
     else:
         radius = math.sqrt(radius_squared)
         a = (1.0 - math.cos(radius)) / radius_squared
@@ -89,21 +103,58 @@ def left_jacobian_with_directional_derivative(
             * (radius - math.sin(radius))
             / (radius_squared**2 * radius)
         )
+        e = (
+            radius_squared * math.cos(radius)
+            - 5.0 * radius * math.sin(radius)
+            + 8.0 * (1.0 - math.cos(radius))
+        ) / radius**6
+        f = (
+            radius_squared * math.sin(radius)
+            + 7.0 * radius * math.cos(radius)
+            + 8.0 * radius
+            - 15.0 * math.sin(radius)
+        ) / radius**7
     jacobian = np.eye(3) + a * wedge + b * (wedge @ wedge)
     if direction is None:
+        if second_direction is not None:
+            raise ValueError("second SO(3) direction requires the first direction")
         return jacobian
-    zeta = np.asarray(direction, dtype=float)
-    if zeta.shape != (3,) or np.any(~np.isfinite(zeta)):
+    eta = np.asarray(direction, dtype=float)
+    if eta.shape != (3,) or np.any(~np.isfinite(eta)):
         raise ValueError("SO(3) Jacobian direction is invalid")
-    zeta_wedge = skew(zeta)
-    inner = float(value @ zeta)
+    eta_wedge = skew(eta)
+    inner = float(value @ eta)
     directional = (
-        a * zeta_wedge
-        + b * (zeta_wedge @ wedge + wedge @ zeta_wedge)
+        a * eta_wedge
+        + b * (eta_wedge @ wedge + wedge @ eta_wedge)
         + c * inner * wedge
         + d * inner * (wedge @ wedge)
     )
-    return jacobian, directional
+    if second_direction is None:
+        return jacobian, directional
+    zeta = np.asarray(second_direction, dtype=float)
+    if zeta.shape != (3,) or np.any(~np.isfinite(zeta)):
+        raise ValueError("second SO(3) Jacobian direction is invalid")
+    zeta_wedge = skew(zeta)
+    phi_eta = inner
+    phi_zeta = float(value @ zeta)
+    eta_zeta = float(eta @ zeta)
+    second = (
+        c * phi_zeta * eta_wedge
+        + d
+        * phi_zeta
+        * (eta_wedge @ wedge + wedge @ eta_wedge)
+        + b * (eta_wedge @ zeta_wedge + zeta_wedge @ eta_wedge)
+        + e * phi_eta * phi_zeta * wedge
+        + c * eta_zeta * wedge
+        + c * phi_eta * zeta_wedge
+        + f * phi_eta * phi_zeta * (wedge @ wedge)
+        + d * eta_zeta * (wedge @ wedge)
+        + d
+        * phi_eta
+        * (zeta_wedge @ wedge + wedge @ zeta_wedge)
+    )
+    return jacobian, directional, second
 
 
 @dataclass(frozen=True)

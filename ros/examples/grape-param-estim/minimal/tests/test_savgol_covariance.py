@@ -6,7 +6,11 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from _support import synthetic_problem_parts
-from savgol_trajectory import GeometricSavitzkyGolayPose
+from savgol_trajectory import (
+    GeometricSavitzkyGolayPose,
+    left_jacobian_with_directional_derivative,
+    skew,
+)
 from single_bag_savgol_covariance import (
     GRAVITY_WORLD,
     build_sg_covariance,
@@ -130,39 +134,72 @@ class SavgolCovarianceTests(unittest.TestCase):
         global_covariance = values["global_full"].local_sigma_z
         self.assertTrue(np.allclose(global_covariance, global_covariance[0]))
 
-    def test_covariance_propagation_jacobian_matches_central_difference(self):
-        xi = np.asarray(
-            (
-                0.3,
-                -0.4,
-                9.5,
-                0.1,
-                -0.05,
-                0.08,
-                0.2,
-                -0.1,
-                0.3,
-                -0.4,
-                0.2,
-                0.1,
+    def test_so3_directional_derivatives_closed_form_symmetry_bilinearity(self):
+        eta = np.asarray((0.2, -0.1, 0.3))
+        zeta = np.asarray((-0.4, 0.5, 0.1))
+        jacobian, first, second = left_jacobian_with_directional_derivative(
+            np.zeros(3), eta, zeta
+        )
+        self.assertTrue(np.array_equal(jacobian, np.eye(3)))
+        self.assertTrue(np.allclose(first, 0.5 * skew(eta)))
+        self.assertTrue(
+            np.allclose(
+                second,
+                (skew(eta) @ skew(zeta) + skew(zeta) @ skew(eta)) / 6.0,
             )
         )
-        reference = Rotation.from_rotvec((0.02, -0.03, 0.01)).as_matrix()
-        analytic = propagation_jacobian(xi, reference)
-        finite = np.empty_like(analytic)
-        step = 1.0e-6
-        for column in range(12):
-            plus, minus = xi.copy(), xi.copy()
-            plus[column] += step
-            minus[column] -= step
-            finite[:, column] = (
-                generalized_acceleration_from_xi(plus, reference)
-                - generalized_acceleration_from_xi(minus, reference)
-            ) / (2 * step)
-        self.assertTrue(
-            np.allclose(analytic, finite, rtol=3e-6, atol=3e-7),
-            msg=str(np.max(np.abs(analytic - finite))),
+
+        phi = np.asarray((0.1, -0.05, 0.08))
+        eta_two = np.asarray((0.07, 0.03, -0.02))
+        zeta_two = np.asarray((-0.06, 0.04, 0.09))
+        _, _, combined_first = left_jacobian_with_directional_derivative(
+            phi, eta + eta_two, zeta
         )
+        _, _, separate_first_a = left_jacobian_with_directional_derivative(
+            phi, eta, zeta
+        )
+        _, _, separate_first_b = left_jacobian_with_directional_derivative(
+            phi, eta_two, zeta
+        )
+        self.assertTrue(
+            np.allclose(combined_first, separate_first_a + separate_first_b)
+        )
+        _, _, combined_second = left_jacobian_with_directional_derivative(
+            phi, eta, zeta + zeta_two
+        )
+        _, _, separate_second_a = left_jacobian_with_directional_derivative(
+            phi, eta, zeta
+        )
+        _, _, separate_second_b = left_jacobian_with_directional_derivative(
+            phi, eta, zeta_two
+        )
+        self.assertTrue(
+            np.allclose(combined_second, separate_second_a + separate_second_b)
+        )
+        _, _, reversed_directions = left_jacobian_with_directional_derivative(
+            phi, zeta, eta
+        )
+        self.assertTrue(np.allclose(separate_first_a, reversed_directions))
+
+    def test_covariance_propagation_zero_rotation_special_case(self):
+        acceleration = np.asarray((0.3, -0.4, 9.5))
+        rho2 = np.asarray((-0.4, 0.2, 0.1))
+        xi = np.concatenate(
+            (acceleration, np.zeros(3), np.zeros(3), rho2)
+        )
+        jacobian = propagation_jacobian(xi, np.eye(3))
+        expected = np.zeros((6, 12))
+        expected[:3, :3] = np.eye(3)
+        expected[:3, 3:6] = skew(acceleration - GRAVITY_WORLD)
+        expected[3:, 3:6] = 0.5 * skew(rho2)
+        expected[3:, 9:12] = np.eye(3)
+        self.assertTrue(np.allclose(jacobian, expected, atol=2e-15))
+
+        no_geometric = propagation_jacobian(
+            xi, np.eye(3), geometric_correction=False
+        )
+        expected[3:, 3:6] = skew(rho2)
+        self.assertTrue(np.allclose(no_geometric, expected, atol=2e-15))
 
 
 if __name__ == "__main__":

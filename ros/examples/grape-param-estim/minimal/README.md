@@ -2,7 +2,7 @@
 
 `single_bag_savgol_estimator.py` fits one rosbag with the prior-free,
 full-covariance acceleration objective specified in
-`../single_bag_savgol_ablation_implementation_plan.md`.
+`../single_bag_savgol_revision_implementation_plan.md`.
 
 Each file in `bag_jsons/` contains only `bag_path`, `start_seconds`, and
 `end_seconds`. Other algorithm settings are supplied explicitly on the CLI;
@@ -28,10 +28,17 @@ failure guard rather than the expected stopping condition.
 explicit sweep values from `--sweep-config`.  Outputs are written beneath
 `minimal/outputs/<source-commit>/`.
 
-Run all 29 fixed cases independently for all three bag JSONs with:
+Run all 27 fixed cases independently for all three bag JSONs with:
 
 ```bash
 ./minimal/run_full_ablation.sh
+```
+
+Run the revision's nine-case focused validation (four SG windows under full
+and identity covariance, plus the predeclared expanded lag bound) with:
+
+```bash
+GRAPE_ABLATION_FOCUSED_VALIDATION=true ./minimal/run_full_ablation.sh
 ```
 
 The embedded lag seeds are the median recorded command periods in each

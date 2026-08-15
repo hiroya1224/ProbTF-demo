@@ -115,14 +115,7 @@ def propagation_jacobian(
     include_rotation_uncertainty_in_specific_force: bool = True,
     gravity_world: np.ndarray = GRAVITY_WORLD,
 ) -> np.ndarray:
-    """Jacobian of :func:`generalized_acceleration_from_xi`.
-
-    The specific-force block and the rho1/rho2 angular blocks are analytic.
-    Only the derivative of the geometric angular-acceleration expression with
-    respect to rho0 uses a centered local numerical derivative (it contains a
-    second directional derivative of ``J_l``).  This derivative is local to
-    covariance propagation and never participates in parameter optimization.
-    """
+    """Fully analytic Jacobian of :func:`generalized_acceleration_from_xi`."""
 
     value = np.asarray(xi, dtype=float)
     reference = np.asarray(rotation_reference, dtype=float)
@@ -144,6 +137,7 @@ def propagation_jacobian(
         _left, directional_rho1 = left_jacobian_with_directional_derivative(
             rho0, rho1
         )
+        spatial_alpha = directional_rho1 @ rho1 + left @ rho2
         for column in range(3):
             direction = np.eye(3)[column]
             _, directional_basis = left_jacobian_with_directional_derivative(
@@ -154,32 +148,25 @@ def propagation_jacobian(
             )
         result[3:, 9:12] = rotation.T @ left
     else:
+        spatial_alpha = rho2
         result[3:, 9:12] = rotation.T
 
-    # The complete rho0 derivative includes both Exp(rho0) and D^2 J_l.
-    # A cube-root-epsilon step balances truncation and roundoff for this smooth
-    # three-dimensional map without introducing a scientific cutoff.
     for column in range(3):
-        step = np.cbrt(np.finfo(float).eps) * max(1.0, abs(float(rho0[column])))
-        plus = value.copy()
-        minus = value.copy()
-        plus[3 + column] += step
-        minus[3 + column] -= step
-        derivative = (
-            generalized_acceleration_from_xi(
-                plus,
-                reference,
-                geometric_correction=geometric_correction,
-                gravity_world=gravity,
+        zeta = np.eye(3)[column]
+        spatial_directional = np.zeros(3)
+        if geometric_correction:
+            _, directional_zeta = left_jacobian_with_directional_derivative(
+                rho0, zeta
             )
-            - generalized_acceleration_from_xi(
-                minus,
-                reference,
-                geometric_correction=geometric_correction,
-                gravity_world=gravity,
+            _, _, second = (
+                left_jacobian_with_directional_derivative(
+                    rho0, rho1, zeta
+                )
             )
-        ) / (2.0 * step)
-        result[3:, 3 + column] = derivative[3:]
+            spatial_directional = second @ rho1 + directional_zeta @ rho2
+        result[3:, 3 + column] = rotation.T @ (
+            skew(spatial_alpha) @ left @ zeta + spatial_directional
+        )
     if np.any(~np.isfinite(result)):
         raise FloatingPointError("covariance propagation Jacobian is non-finite")
     return result

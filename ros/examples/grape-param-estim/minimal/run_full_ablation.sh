@@ -44,18 +44,8 @@ bag_ids=(
   single_rosbag_2
   single_rosbag_succeeded
 )
-declare -A rotor_lag=(
-  [single_rosbag_1]=0.0049977302551269531
-  [single_rosbag_2]=0.0049576759338378906
-  [single_rosbag_succeeded]=0.010000109672546387
-)
-declare -A gimbal_lag=(
-  [single_rosbag_1]=0.0049986839294433594
-  [single_rosbag_2]=0.0049571990966796875
-  [single_rosbag_succeeded]=0.010000109672546387
-)
-
 estimator="${script_dir}/single_bag_savgol_ablation.py"
+consensus_estimator="${script_dir}/single_bag_cross_bag_consensus.py"
 vehicle_model="${script_dir}/grape_vehicle_model.json"
 bag_json_dir="${script_dir}/bag_jsons"
 run_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -64,7 +54,8 @@ case_workers="${GRAPE_ABLATION_CASE_WORKERS:-3}"
 numeric_threads="${GRAPE_ABLATION_NUMERIC_THREADS:-6}"
 resume_existing="${GRAPE_ABLATION_RESUME_EXISTING:-false}"
 focused_validation="${GRAPE_ABLATION_FOCUSED_VALIDATION:-false}"
-focused_sweep_config="${script_dir}/single_bag_savgol_revision_sweep.json"
+focused_sweep_config="${script_dir}/single_bag_savgol_sweep.json"
+source_revision="$(git -C "${project_root}" rev-parse HEAD)"
 overall_status=0
 
 if [[ ! "${case_workers}" =~ ^[1-9][0-9]*$ ]]; then
@@ -89,7 +80,7 @@ export OPENBLAS_NUM_THREADS="${numeric_threads}"
 export MKL_NUM_THREADS="${numeric_threads}"
 export NUMEXPR_NUM_THREADS="${numeric_threads}"
 
-for required_file in "${estimator}" "${vehicle_model}" "${focused_sweep_config}"; do
+for required_file in "${estimator}" "${consensus_estimator}" "${vehicle_model}" "${focused_sweep_config}"; do
   if [[ ! -f "${required_file}" ]]; then
     printf 'required file not found: %s\n' "${required_file}" >&2
     exit 1
@@ -111,26 +102,21 @@ run_bag() {
     python3 "${estimator}"
     --bag-json "${bag_json}"
     --vehicle-model "${vehicle_model}"
-    --sg-window 0.5
-    --lag-bounds 0.0 0.2
-    --initial-rotor-lag "${rotor_lag[$bag_id]}"
-    --initial-gimbal-lag "${gimbal_lag[$bag_id]}"
-    --fixed-rotor-lag "${rotor_lag[$bag_id]}"
-    --fixed-gimbal-lag "${gimbal_lag[$bag_id]}"
+    --sg-window 1.0
     --kkt-scale-offsets -1.0 0.0 1.0
     --smooth-max-nfev 2000
     --strict-max-nfev 2000
     --case-workers "${case_workers}"
     --ablation-run-id "${bag_id}_${run_stamp}"
   )
-  local case_count=27
+  local case_count=21
   local run_kind=full
   if [[ "${focused_validation}" == true ]]; then
     ablation_command+=(
-      --cases default_full_covariance cov_identity
+      --cases default
       --sweep-config "${focused_sweep_config}"
     )
-    case_count=9
+    case_count=12
     run_kind=focused
   else
     ablation_command+=(--cases all)
@@ -150,10 +136,33 @@ run_bag() {
   "${ablation_command[@]}"
 }
 
+run_consensus() {
+  local -a consensus_command=(
+    python3 "${consensus_estimator}"
+    --vehicle-model "${vehicle_model}"
+    --run-id "three_bag_${run_stamp}"
+  )
+  local bag_id
+  for bag_id in "${bag_ids[@]}"; do
+    consensus_command+=(
+      --case-directory
+      "${script_dir}/outputs/${source_revision}/ablation/${bag_id}_${run_stamp}/cases/default"
+    )
+  done
+  printf '[consensus] three-bag quotient and cross-evaluation\n'
+  if [[ "${dry_run}" == true ]]; then
+    printf '  %q' "${consensus_command[@]}"
+    printf '\n'
+    return 0
+  fi
+  "${consensus_command[@]}"
+}
+
 if [[ "${dry_run}" == true ]]; then
   for bag_id in "${bag_ids[@]}"; do
     run_bag "${bag_id}"
   done
+  run_consensus
   exit 0
 fi
 
@@ -184,5 +193,12 @@ for bag_id in "${bag_ids[@]}"; do
   fi
 done
 trap - INT TERM
+
+if (( overall_status == 0 )); then
+  if ! run_consensus; then
+    printf '[consensus] failed.\n' >&2
+    overall_status=1
+  fi
+fi
 
 exit "${overall_status}"

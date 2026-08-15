@@ -36,32 +36,26 @@ from single_bag_savgol_reports import (  # noqa: E402
 
 
 FIXED_CASE_NAMES = (
-    "default_full_covariance",
-    "cov_identity",
+    "default",
+    "cov_full",
     "cov_diagonal",
     "cov_block_s_alpha",
     "cov_full_no_R_uncertainty_in_s",
     "cov_full_no_position_rotation_cross",
     "cov_global_full",
-    "kkt_on_scale_negative",
-    "kkt_on_scale_zero",
-    "kkt_on_scale_positive",
-    "kkt_off_scale_negative",
-    "kkt_off_scale_zero",
-    "kkt_off_scale_positive",
+    "gimbal_measured_linear",
+    "gimbal_command_replay",
     "lag_zero",
-    "lag_fixed",
-    "lag_common_estimated",
-    "lag_split_estimated",
-    "lag_split_strict_only",
-    "actuator_stateful",
-    "actuator_direct_command",
-    "so3_geometric_correction",
+    "lag_fixed_one_period",
+    "lag_strict_only",
+    "lag_pow2_depth_6",
+    "lag_pow2_depth_12",
+    "lag_legacy_smooth_schedule",
     "so3_naive_rotation_vector_derivatives",
-    "solver_custom_kkt_lm",
+    "kkt_scale_negative",
+    "kkt_scale_positive",
+    "kkt_disabled",
     "solver_standard_gauge_least_squares",
-    "external_wrench_raw_only",
-    "external_wrench_trajectory_fitted",
     "naive_all",
 )
 
@@ -103,8 +97,8 @@ def fixed_case_overrides(
     if name not in FIXED_CASE_NAMES:
         raise ValueError("unknown fixed case: {}".format(name))
     covariance = {
-        "default_full_covariance": "full",
-        "cov_identity": "identity",
+        "default": "identity",
+        "cov_full": "full",
         "cov_diagonal": "diagonal",
         "cov_block_s_alpha": "block_s_alpha",
         "cov_full_no_R_uncertainty_in_s": "full_no_R_uncertainty_in_s",
@@ -113,50 +107,43 @@ def fixed_case_overrides(
     }
     if name in covariance:
         return {"covariance_mode": covariance[name]}
-    if name.startswith("kkt_"):
+    if name in ("kkt_scale_negative", "kkt_scale_positive"):
         negative, zero, positive = _scale_offsets(arguments)
-        offset = (
-            negative
-            if name.endswith("negative")
-            else positive if name.endswith("positive") else zero
-        )
+        del zero
+        offset = negative if name.endswith("negative") else positive
         return {
-            "disable_kkt": name.startswith("kkt_off"),
+            "disable_kkt": False,
             "solver_type": "custom_kkt_lm",
             "scale_initial_offset": offset,
         }
     direct: dict[str, dict[str, Any]] = {
+        "gimbal_measured_linear": {"gimbal_source": "measured_linear"},
+        "gimbal_command_replay": {"gimbal_source": "command_replay"},
         "lag_zero": {"lag_mode": "zero"},
-        "lag_fixed": {"lag_mode": "fixed"},
-        "lag_common_estimated": {"lag_mode": "common_estimated"},
-        "lag_split_estimated": {"lag_mode": "split_estimated"},
-        "lag_split_strict_only": {"lag_mode": "split_strict_only"},
-        "actuator_stateful": {"actuator_propagation": "stateful"},
-        "actuator_direct_command": {"actuator_propagation": "direct_command"},
-        "so3_geometric_correction": {"naive_so3_derivatives": False},
+        "lag_fixed_one_period": {"lag_mode": "fixed", "fixed_rotor_lag": None},
+        "lag_strict_only": {"disable_lag_continuation": True},
+        "lag_pow2_depth_6": {"lag_continuation_depth": 6},
+        "lag_pow2_depth_12": {"lag_continuation_depth": 12},
+        "lag_legacy_smooth_schedule": {
+            "lag_continuation_schedule": (8.0, 4.0, 2.0, 1.0)
+        },
         "so3_naive_rotation_vector_derivatives": {
             "naive_so3_derivatives": True
         },
-        "solver_custom_kkt_lm": {
+        "kkt_disabled": {
             "solver_type": "custom_kkt_lm",
-            "disable_kkt": False,
+            "disable_kkt": True,
         },
         "solver_standard_gauge_least_squares": {
             "solver_type": "standard_least_squares"
         },
-        # Replay is post-fit in both cases so reports retain the standardized
-        # raw-vs-fitted comparison.  The case name records whether fitted replay
-        # is part of the case algorithm or evaluation-only.
-        "external_wrench_raw_only": {"disable_replay": True},
-        "external_wrench_trajectory_fitted": {"disable_replay": False},
         "naive_all": {
             "covariance_mode": "identity",
             "disable_kkt": True,
             "solver_type": "custom_kkt_lm",
             "lag_mode": "zero",
-            "actuator_propagation": "direct_command",
+            "gimbal_source": "command_replay",
             "naive_so3_derivatives": True,
-            "disable_replay": False,
         },
     }
     return direct[name]
@@ -213,31 +200,21 @@ def sweep_cases(config: Mapping[str, Any]) -> list[tuple[str, dict[str, Any]]]:
                 },
             )
         )
-    for index, value in enumerate(members("lag_initials")):
-        if not isinstance(value, list) or len(value) != 2:
-            raise ValueError("each lag_initials member must be [rotor, gimbal]")
+    for index, value in enumerate(members("lag_initial_multipliers")):
         result.append(
             (
-                "sweep__lag_initials__{:03d}".format(index),
-                {"initial_rotor_lag": value[0], "initial_gimbal_lag": value[1]},
+                "sweep__lag_initial_multiplier__{:03d}".format(index),
+                {
+                    "initial_rotor_lag": None,
+                    "initial_rotor_lag_multiplier": value,
+                },
             )
         )
-    for index, value in enumerate(members("lag_bounds")):
-        if not isinstance(value, list) or len(value) != 2:
-            raise ValueError("each lag_bounds member must be [lower, upper]")
+    for index, value in enumerate(members("lag_continuation_depths")):
         result.append(
             (
-                "sweep__lag_bounds__{:03d}".format(index),
-                {"lag_bounds": value},
-            )
-        )
-    for index, value in enumerate(members("smooth_schedules")):
-        if not isinstance(value, list) or not value:
-            raise ValueError("each smooth schedule must be a non-empty list")
-        result.append(
-            (
-                "sweep__smooth_schedule__{:03d}".format(index),
-                {"smooth_width_schedule": value},
+                "sweep__lag_continuation_depth__{:03d}".format(index),
+                {"lag_continuation_depth": value},
             )
         )
     mapping_groups = {
@@ -254,7 +231,6 @@ def sweep_cases(config: Mapping[str, Any]) -> list[tuple[str, dict[str, Any]]]:
         "termination_limits": {
             "smooth_max_nfev": "smooth_max_nfev",
             "strict_max_nfev": "strict_max_nfev",
-            "strict_alternations": "strict_alternations",
         },
         "actuator_settings": {
             "minimum_thrust": "minimum_thrust",

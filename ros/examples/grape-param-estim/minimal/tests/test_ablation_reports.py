@@ -22,8 +22,8 @@ from single_bag_savgol_core import (
     covariance_weighting_diagnostics,
     estimation_diagnostics,
     ridge_analysis,
-    strict_lag_screen,
 )
+from rotor_lag import StrictZohCellGrid, local_strict_cell_descent
 from single_bag_savgol_covariance import parameter_covariances, sum_mean_invariance
 from single_bag_savgol_reports import (
     WRENCH_LINE_STYLES,
@@ -33,13 +33,14 @@ from single_bag_savgol_reports import (
     write_report_pdf,
 )
 from single_bag_wrench_replay import fit_external_wrench_replay
+from single_bag_cross_bag_consensus import _pairwise_distance
 
 
 def _synthetic_result(dataset, model, actuator):
     problem = SingleBagDynamicsProblem(dataset, model, actuator)
-    evaluation = problem.evaluate_physical(np.zeros(14), 0.0, 0.0)
+    evaluation = problem.evaluate_physical(np.zeros(14), 0.0)
     reference = problem.evaluate_physical(
-        np.zeros(14), 0.0, 0.0, reference=True
+        np.zeros(14), 0.0, reference=True
     )
     ridge = ridge_analysis(
         evaluation.jacobian_matrix,
@@ -58,14 +59,37 @@ def _synthetic_result(dataset, model, actuator):
         estimated_reference=reference,
         ridge=ridge,
         uncertainty=uncertainty,
-        lag_layout=None,
-        lag_trace=(),
+        strict_lag={
+            "mode": "zero",
+            "data_support_lower_seconds": 0.0,
+            "data_support_upper_seconds": dataset.rotor_lag_data_support_upper,
+            "lag_reached_data_support_boundary": False,
+            "final_smooth_rotor_lag_seconds": 0.0,
+            "strict_lag_cell_lower_seconds": 0.0,
+            "strict_lag_cell_upper_seconds": 0.1,
+            "strict_lag_cell_representative_seconds": 0.0,
+            "strict_lag_cell_width_seconds": 0.1,
+            "candidate_table": [],
+            "neighbor_cells": [],
+        },
+        continuation={
+            "epsilon": np.empty(0),
+            "rotor_lag_seconds": np.empty(0),
+            "smooth_cost": np.empty(0),
+            "strict_cost": np.empty(0),
+            "absolute_cost_difference": np.empty(0),
+            "command_max_error": np.empty(0),
+            "rotor_lag_step": np.empty(0),
+            "physical_step_norm": np.empty(0),
+            "lag_jacobian_norm": np.empty(0),
+            "physical_coordinate": np.empty((0, 14)),
+        },
     )
     ridge.update(diagnostics["ridge"])
     return EstimationResult(
         physical_coordinate=np.zeros(14),
         rotor_lag_seconds=0.0,
-        gimbal_lag_seconds=0.0,
+        final_smooth_rotor_lag_seconds=0.0,
         evaluation=evaluation,
         reference_evaluation=reference,
         success=True,
@@ -81,27 +105,37 @@ def _synthetic_result(dataset, model, actuator):
 
 
 class AblationReportTests(unittest.TestCase):
+    def test_new_fixed_set_has_exactly_twenty_one_cases(self):
+        self.assertEqual(len(FIXED_CASE_NAMES), 21)
+        self.assertEqual(FIXED_CASE_NAMES[0], "default")
+        self.assertIn("gimbal_command_replay", FIXED_CASE_NAMES)
+        self.assertIn("lag_pow2_depth_12", FIXED_CASE_NAMES)
+        self.assertNotIn("external_wrench_raw_only", FIXED_CASE_NAMES)
+
     def test_removed_numerical_jacobian_ablation(self):
         self.assertNotIn("jacobian_finite_difference", FIXED_CASE_NAMES)
         self.assertNotIn("jacobian_analytic", FIXED_CASE_NAMES)
         arguments = SimpleNamespace(kkt_scale_offsets=(-1.0, 0.0, 1.0))
         self.assertNotIn("jacobian_mode", fixed_case_overrides("naive_all", arguments))
 
-    def test_focused_window_covariance_sweep_is_explicit(self):
+    def test_focused_window_covariance_and_lag_seed_sweep_is_explicit(self):
         cases = sweep_cases(
             {
                 "sg_window_covariance": [
                     {"window_seconds": 1.0, "covariance_mode": "full"},
                     {"window_seconds": 1.0, "covariance_mode": "identity"},
                 ],
-                "lag_bounds": [[0.0, 0.4]],
+                "lag_initial_multipliers": [0.5],
             }
         )
         self.assertEqual(len(cases), 3)
         self.assertEqual(
             cases[0][1], {"sg_window": 1.0, "covariance_mode": "full"}
         )
-        self.assertEqual(cases[-1][1], {"lag_bounds": [0.0, 0.4]})
+        self.assertEqual(
+            cases[-1][1],
+            {"initial_rotor_lag": None, "initial_rotor_lag_multiplier": 0.5},
+        )
 
     def test_sum_mean_invariance_algebra(self):
         rng = np.random.default_rng(2)
@@ -114,6 +148,14 @@ class AblationReportTests(unittest.TestCase):
         self.assertTrue(
             np.allclose(result["hessian_sum"], 7 * result["hessian_mean"])
         )
+
+    def test_cross_bag_distribution_distance_is_symmetric_and_nominal_free(self):
+        coordinate = np.asarray(((0.0, 0.0), (1.0, -2.0), (0.5, 1.0)))
+        covariance = np.stack((np.eye(2), 2.0 * np.eye(2), 0.5 * np.eye(2)))
+        squared, distance = _pairwise_distance(coordinate, covariance)
+        self.assertTrue(np.allclose(squared, squared.T))
+        self.assertTrue(np.allclose(distance**2, squared))
+        self.assertTrue(np.array_equal(np.diag(distance), np.zeros(3)))
 
     def test_ablation_failure_continues_and_records_reason(self):
         executed = []
@@ -172,6 +214,9 @@ class AblationReportTests(unittest.TestCase):
             "uncertainty_variance_inflation_in_ridge_basis",
             "force_acceleration_closure_error",
             "lag_candidate_selected",
+            "gimbal_raw_time",
+            "lag_continuation_epsilon",
+            "quotient_basis",
         }
         self.assertTrue(required.issubset(arrays))
         payload = result_payload(
@@ -250,36 +295,19 @@ class AblationReportTests(unittest.TestCase):
             closure["torque_acceleration_closure_error_max_abs"], 2e-13
         )
 
-    def test_strict_lag_candidate_table_and_boundary_flag(self):
+    def test_exact_strict_cell_descent_selects_local_minimum(self):
         dataset, _model, _actuator = synthetic_problem_parts()
-
-        class CostProblem:
-            def __init__(self):
-                self.dataset = dataset
-
-            @staticmethod
-            def evaluate_physical(_coordinate, rotor, gimbal, **_kwargs):
-                return SimpleNamespace(
-                    cost=(float(rotor) - 0.4) ** 2
-                    + (float(gimbal) - 0.2) ** 2
-                )
-
-        rotor, gimbal, trace = strict_lag_screen(
-            CostProblem(),
-            np.zeros(14),
-            0.2,
-            0.2,
-            lag_layout="split",
-            bounds=(0.0, 0.4),
-            alternations=1,
+        grid = StrictZohCellGrid(
+            dataset.time, dataset.rotor_history.times
         )
-        table = trace[-1]["candidate_table"]
-        self.assertGreater(len(table), 1)
-        self.assertEqual(sum(row["selected"] for row in table), 1)
-        selected = next(row for row in table if row["selected"])
-        self.assertEqual((rotor, gimbal), (0.4, 0.2))
-        self.assertTrue(selected["rotor_at_upper_bound"])
-        self.assertFalse(selected["gimbal_at_upper_bound"])
+        target = min(3, grid.cell_count - 1)
+        result = local_strict_cell_descent(
+            grid,
+            grid.cell(0).representative,
+            lambda cell: ((cell.index - target) ** 2, cell.index),
+        )
+        self.assertEqual(result.selected.cell.index, target)
+        self.assertEqual(result.selected.payload, target)
 
 
 if __name__ == "__main__":

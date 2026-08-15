@@ -1,54 +1,51 @@
-# Single-bag geometric SG estimator
+# Single-bag measured-gimbal SG estimator
 
-`single_bag_savgol_estimator.py` fits one rosbag with the prior-free,
-full-covariance acceleration objective specified in
-`../single_bag_savgol_revision_implementation_plan.md`.
+`single_bag_savgol_estimator.py` estimates one bag at a time. The default
+scientific path uses a 1.0 s, degree-5 geometric pose SG; the same centered
+irregular-time SG for all four measured gimbal angles; identity acceleration
+weighting; one estimated rotor-command lag; `epsilon_k = 2^-k` continuation
+through `k=9`; and exact strict-ZOH cell refinement. Full SG covariance is
+still calculated for reference diagnostics.
 
 Each file in `bag_jsons/` contains only `bag_path`, `start_seconds`, and
-`end_seconds`. Other algorithm settings are supplied explicitly on the CLI;
-the JSON loader ignores any other member. A typical invocation is:
+`end_seconds`. A default run is:
 
 ```bash
 python3 minimal/single_bag_savgol_estimator.py \
   --bag-json minimal/bag_jsons/single_rosbag_1.json \
-  --vehicle-model MODEL.json --sg-window WINDOW \
-  --lag-mode split_estimated --lag-bounds LOWER UPPER \
-  --initial-rotor-lag ROTOR --initial-gimbal-lag GIMBAL
+  --vehicle-model minimal/grape_vehicle_model.json
 ```
 
-The direct `--bag BAG.bag --bag-start START --bag-end END` form remains
-available. Run the command once per JSON; no joint multi-bag objective is
-formed.
+The lag domain is inferred from recorded rotor-command prehistory. There is no
+manual lag bound or gimbal lag. The primary lag result is the exact strict-ZOH
+interval `(lower, upper]`, with its representative and final smooth lag also
+saved.
 
-Both smooth and strict optimizer evaluation ceilings default to 2000. Normal
-termination is controlled by `gtol`, `ftol`, and `xtol`; the ceiling is a
-failure guard rather than the expected stopping condition.
+`single_bag_savgol_ablation.py` provides the 21 fixed cases defined in
+`../new_implementation_idea.md`. Optional focused sweeps are declared in
+`single_bag_savgol_sweep.json`. Every completed case writes JSON, NPZ, and a
+ten-page PDF beneath `minimal/outputs/<source-commit>/`.
 
-`single_bag_savgol_ablation.py` exposes every fixed case and reads optional,
-explicit sweep values from `--sweep-config`.  Outputs are written beneath
-`minimal/outputs/<source-commit>/`.
-
-Run all 27 fixed cases independently for all three bag JSONs with:
+Run all 21 fixed cases independently on all three production bags, followed by
+the three-bag quotient/cross-evaluation consensus:
 
 ```bash
 ./minimal/run_full_ablation.sh
 ```
 
-Run the revision's nine-case focused validation (four SG windows under full
-and identity covariance, plus the predeclared expanded lag bound) with:
+Run the 12-case focused validation (eight tied pose/gimbal SG window and
+covariance combinations, plus three initial-lag multipliers, alongside the
+default case) with:
 
 ```bash
 GRAPE_ABLATION_FOCUSED_VALIDATION=true ./minimal/run_full_ablation.sh
 ```
 
-The embedded lag seeds are the median recorded command periods in each
-selected bag interval. They are not read from the
-discarded JSON options. Use `--dry-run` to print the three commands without
-starting the estimators. The three independent bags run in parallel, with up
-to three failure-isolated case processes per bag. Set
-`GRAPE_ABLATION_CASE_WORKERS` and `GRAPE_ABLATION_NUMERIC_THREADS` to adjust
-that concurrency for a different host.
+Use `--dry-run` to print commands. The bag jobs and failure-isolated case jobs
+run concurrently; `GRAPE_ABLATION_CASE_WORKERS` and
+`GRAPE_ABLATION_NUMERIC_THREADS` control concurrency. Optimizer evaluation
+ceilings default to 2000 and normal termination remains tolerance-driven.
 
-The previous `minimal/` tree, including its tracked `output/`, is retained at
-`minimal/legacies/pre_single_bag_rewrite_7fecffe/`.  New modules never import
-that snapshot at runtime.
+`single_bag_cross_bag_consensus.py` remains post-fit: it does not create a
+multi-bag estimator. It compares `J/m`, `f/m`, and CoG in the fixed 13-D scale
+quotient and profiles only each target bag's rotor lag during cross-evaluation.

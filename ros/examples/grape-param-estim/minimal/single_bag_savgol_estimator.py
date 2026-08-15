@@ -107,41 +107,23 @@ def actuator_parameters_from_arguments(
 def estimator_config_from_arguments(
     arguments: argparse.Namespace,
 ) -> EstimatorConfig:
-    if arguments.lag_mode in (
-        "common_estimated",
-        "split_estimated",
-        "split_strict_only",
-    ):
-        if arguments.lag_bounds is None:
-            raise ValueError("estimated lag mode requires --lag-bounds")
-        if arguments.initial_rotor_lag is None or arguments.initial_gimbal_lag is None:
-            raise ValueError(
-                "estimated lag mode requires both channel-specific initial lags"
-            )
-    initial_rotor = (
-        0.0 if arguments.initial_rotor_lag is None else arguments.initial_rotor_lag
-    )
-    initial_gimbal = (
-        0.0 if arguments.initial_gimbal_lag is None else arguments.initial_gimbal_lag
-    )
     return EstimatorConfig(
         covariance_mode=arguments.covariance_mode,
         geometric_correction=not arguments.naive_so3_derivatives,
-        actuator_propagation=arguments.actuator_propagation,
+        gimbal_source=arguments.gimbal_source,
         lag_mode=arguments.lag_mode,
-        initial_rotor_lag=float(initial_rotor),
-        initial_gimbal_lag=float(initial_gimbal),
+        initial_rotor_lag=arguments.initial_rotor_lag,
+        initial_rotor_lag_multiplier=arguments.initial_rotor_lag_multiplier,
         fixed_rotor_lag=arguments.fixed_rotor_lag,
-        fixed_gimbal_lag=arguments.fixed_gimbal_lag,
-        lag_bounds=(
+        lag_continuation_depth=arguments.lag_continuation_depth,
+        lag_continuation_schedule=(
             None
-            if arguments.lag_bounds is None
-            else tuple(float(value) for value in arguments.lag_bounds)
+            if arguments.lag_continuation_schedule is None
+            else tuple(arguments.lag_continuation_schedule)
         ),
-        smooth_width_schedule=tuple(arguments.smooth_width_schedule),
+        lag_continuation_enabled=not arguments.disable_lag_continuation,
         smooth_max_nfev=arguments.smooth_max_nfev,
         strict_max_nfev=arguments.strict_max_nfev,
-        strict_alternations=arguments.strict_alternations,
         kkt_enabled=not arguments.disable_kkt,
         solver_type=arguments.solver_type,
         initial_physical_coordinate=np.asarray(arguments.initial_coordinate),
@@ -162,7 +144,7 @@ def estimator_config_from_arguments(
 def run_estimator(
     arguments: argparse.Namespace,
     *,
-    case_name: str = "default_full_covariance",
+    case_name: str = "default",
     output_directory: Optional[Path] = None,
 ) -> tuple[Path, Mapping[str, Any]]:
     """Execute one case.  Ablation runner reuses this exact pipeline."""
@@ -196,11 +178,6 @@ def run_estimator(
             compute_sha256=not arguments.skip_bag_sha256,
             bag_id=arguments.bag_id,
         )
-        maximum_lag = (
-            0.0
-            if config.lag_bounds is None
-            else max(0.0, float(config.lag_bounds[1]))
-        )
         stage = "geometric_sg_covariance"
         dataset = prepare_single_bag_dataset(
             flight=flight,
@@ -208,13 +185,12 @@ def run_estimator(
             degree=int(arguments.sg_degree),
             covariance_mode=config.covariance_mode,
             geometric_correction=config.geometric_correction,
-            maximum_lag_seconds=maximum_lag,
         )
         problem = SingleBagDynamicsProblem(
             dataset,
             model,
             actuator_parameters,
-            actuator_propagation=config.actuator_propagation,
+            gimbal_source=config.gimbal_source,
         )
         stage = "parameter_estimation"
         result = estimate_single_bag(problem, config)
@@ -277,7 +253,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bag-end", type=float, default=None)
     parser.add_argument("--skip-bag-sha256", action="store_true")
     parser.add_argument("--vehicle-model", type=Path, required=True)
-    parser.add_argument("--sg-window", type=float, required=True)
+    parser.add_argument("--sg-window", type=float, default=1.0)
     parser.add_argument("--sg-degree", type=int, default=5)
     parser.add_argument(
         "--covariance-mode",
@@ -290,43 +266,44 @@ def build_argument_parser() -> argparse.ArgumentParser:
             "full_no_position_rotation_cross",
             "global_full",
         ),
-        default="full",
+        default="identity",
     )
     parser.add_argument("--naive-so3-derivatives", action="store_true")
     parser.add_argument(
-        "--actuator-propagation",
-        choices=("stateful", "direct_command"),
-        default="stateful",
+        "--gimbal-source",
+        choices=("measured_sg", "measured_linear", "command_replay"),
+        default="measured_sg",
     )
     parser.add_argument(
         "--lag-mode",
-        choices=(
-            "zero",
-            "fixed",
-            "common_estimated",
-            "split_estimated",
-            "split_strict_only",
-        ),
-        default="split_estimated",
+        choices=("estimated", "zero", "fixed"),
+        default="estimated",
     )
     parser.add_argument("--initial-rotor-lag", type=float, default=None)
-    parser.add_argument("--initial-gimbal-lag", type=float, default=None)
-    parser.add_argument("--fixed-rotor-lag", type=float, default=None)
-    parser.add_argument("--fixed-gimbal-lag", type=float, default=None)
-    parser.add_argument("--lag-bounds", type=float, nargs=2, default=None)
     parser.add_argument(
-        "--smooth-width-schedule",
+        "--initial-rotor-lag-multiplier", type=float, default=1.0
+    )
+    parser.add_argument("--fixed-rotor-lag", type=float, default=None)
+    parser.add_argument(
+        "--lag-continuation-depth",
+        type=int,
+        default=9,
+        help="maximum k in epsilon_k=2^-k (inclusive)",
+    )
+    parser.add_argument(
+        "--lag-continuation-schedule",
         type=float,
         nargs="+",
-        default=(4.0, 2.0, 1.0, 0.5),
+        default=None,
+        help="explicit epsilon schedule for the legacy-schedule ablation",
     )
+    parser.add_argument("--disable-lag-continuation", action="store_true")
     parser.add_argument(
         "--smooth-max-nfev", type=int, default=DEFAULT_SMOOTH_MAX_NFEV
     )
     parser.add_argument(
         "--strict-max-nfev", type=int, default=DEFAULT_STRICT_MAX_NFEV
     )
-    parser.add_argument("--strict-alternations", type=int, default=8)
     parser.add_argument("--disable-kkt", action="store_true")
     parser.add_argument(
         "--solver-type",
@@ -359,14 +336,6 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--maximum-gimbal-rate", type=float, default=defaults.maximum_gimbal_rate
-    )
-    parser.add_argument(
-        "--disable-replay",
-        action="store_true",
-        help=(
-            "Exclude replay from the case algorithm; standardized post-fit "
-            "replay is still generated for comparable output/reporting."
-        ),
     )
     parser.add_argument("--output-root", type=Path, default=_HERE / "outputs")
     parser.add_argument("--run-id", default=None)

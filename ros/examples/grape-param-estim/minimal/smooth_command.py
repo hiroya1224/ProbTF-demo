@@ -48,10 +48,11 @@ def _deduplicate_last(
 class QuinticSmoothZoh:
     """Quintic-smooth continuation of a causal zero-order hold.
 
-    ``width_fraction`` is the transition half-width divided by the median
-    command publication period.  Overlapping transitions are intentional.
-    The strict estimator uses :meth:`exact_zoh`; :meth:`evaluate` is only for
-    continuation during lag search.
+    ``epsilon`` is the *full* transition width divided by the median command
+    publication period.  Thus the half-width is
+    ``0.5 * epsilon * median_period``.  Overlapping transitions are
+    intentional.  The strict estimator uses :meth:`exact_zoh`;
+    :meth:`evaluate` is only for continuation during lag search.
     """
 
     def __init__(self, times: Sequence[float], values: np.ndarray) -> None:
@@ -82,13 +83,13 @@ class QuinticSmoothZoh:
             else 0.0
         )
 
-    def transition_half_widths(self, width_fraction: float) -> np.ndarray:
-        fraction = float(width_fraction)
-        if not np.isfinite(fraction) or fraction <= 0.0:
-            raise ValueError("width fraction must be finite and positive")
+    def transition_half_widths(self, epsilon: float) -> np.ndarray:
+        smoothing = float(epsilon)
+        if not np.isfinite(smoothing) or smoothing <= 0.0:
+            raise ValueError("epsilon must be finite and positive")
         if self.times.size < 2:
             return np.empty(0, dtype=float)
-        half_width = fraction * self.median_period
+        half_width = 0.5 * smoothing * self.median_period
         if not np.isfinite(half_width) or half_width <= 0.0:
             raise ValueError("transition half-width is invalid")
         return np.full(self.times.size - 1, half_width, dtype=float)
@@ -102,7 +103,7 @@ class QuinticSmoothZoh:
         return self.values[index].copy()
 
     def evaluate(
-        self, time: float, delay: float, width_fraction: float
+        self, time: float, delay: float, epsilon: float
     ) -> CommandEvaluation:
         evaluation_time = float(time)
         lag = float(delay)
@@ -112,10 +113,10 @@ class QuinticSmoothZoh:
             return CommandEvaluation(
                 self.values[0], np.zeros(self.dimension, dtype=float)
             )
-        fraction = float(width_fraction)
-        if not np.isfinite(fraction) or fraction <= 0.0:
-            raise ValueError("width fraction must be finite and positive")
-        half_width = fraction * self.median_period
+        smoothing = float(epsilon)
+        if not np.isfinite(smoothing) or smoothing <= 0.0:
+            raise ValueError("epsilon must be finite and positive")
+        half_width = 0.5 * smoothing * self.median_period
         if not np.isfinite(half_width) or half_width <= 0.0:
             raise ValueError("transition half-width is invalid")
 

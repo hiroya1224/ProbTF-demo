@@ -17,9 +17,10 @@ from single_bag_savgol_core import (
     SYMMETRIC_BASIS,
     SiParameterChart,
     SingleBagDynamicsProblem,
+    _standard_gauge_least_squares,
     adaptive_kkt_lm,
     estimate_single_bag,
-    generate_actuator_history,
+    generate_gimbal_command_replay,
     solve_kkt_lm_step,
 )
 from smooth_command import QuinticSmoothZoh
@@ -88,11 +89,41 @@ class CoreTests(unittest.TestCase):
         )
         self.assertLess(abs(gauge @ result.coordinate), 1e-13)
 
+    def test_standard_solver_rejects_numerically_invalid_trials(self):
+        invalid_trials = []
+
+        def evaluator(value):
+            if abs(value[0]) > 0.25:
+                invalid_trials.append(value.copy())
+                raise ValueError("synthetic chart overflow")
+            return ObjectiveEvaluation(
+                np.asarray((value[0] - 1.0, value[0] - 1.0)),
+                np.asarray(((1.0, 0.0), (1.0, 0.0))),
+            )
+
+        result = _standard_gauge_least_squares(
+            evaluator,
+            np.zeros(2),
+            np.asarray((0.0, 1.0)),
+            max_nfev=200,
+            settings=LmSettings(),
+            lower=np.full(2, -np.inf),
+            upper=np.full(2, np.inf),
+        )
+        self.assertTrue(invalid_trials)
+        self.assertTrue(np.isfinite(result.evaluation.residual).all())
+        self.assertLessEqual(abs(result.coordinate[0]), 0.25)
+        self.assertGreater(result.diagnostics[0]["invalid_trial_count"], 0)
+        self.assertEqual(
+            result.diagnostics[0]["invalid_trial_exception_types"],
+            ["ValueError"],
+        )
+
     def test_newton_euler_exact_gauge_and_closure(self):
         dataset, model, actuator = synthetic_problem_parts()
         problem = SingleBagDynamicsProblem(dataset, model, actuator)
         coordinate = np.linspace(-0.02, 0.02, 14)
-        evaluation = problem.evaluate_physical(coordinate, 0.01, 0.015)
+        evaluation = problem.evaluate_physical(coordinate, 0.01)
         self.assertTrue(
             np.allclose(
                 np.einsum(
@@ -117,10 +148,9 @@ class CoreTests(unittest.TestCase):
         result = estimate_single_bag(
             problem,
             EstimatorConfig(
-                lag_mode="split_strict_only",
-                lag_bounds=(0.0, 0.2),
+                lag_mode="estimated",
+                lag_continuation_enabled=False,
                 strict_max_nfev=20,
-                strict_alternations=1,
             ),
         )
         self.assertEqual(result.ridge["dimension"], 14)
@@ -150,10 +180,8 @@ class CoreTests(unittest.TestCase):
             result = estimate_single_bag(
                 problem,
                 EstimatorConfig(
-                    lag_mode="split_estimated",
-                    lag_bounds=(0.0, 0.2),
-                    smooth_width_schedule=(1.0,),
-                    strict_alternations=1,
+                    lag_mode="estimated",
+                    lag_continuation_schedule=(1.0,),
                 ),
             )
         self.assertFalse(result.success)
@@ -161,13 +189,9 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(result.status, "deliberate_failure")
         self.assertEqual(result.message, "first stage failed")
 
-    def test_actuator_history_consistency_active_set_and_strict_final(self):
+    def test_gimbal_replay_consistency_and_rate_limit_active_set(self):
         times = np.asarray((0.0, 0.25, 0.5, 0.75))
         command_times = np.asarray((-0.1, 0.3, 0.6))
-        rotor = QuinticSmoothZoh(
-            command_times,
-            np.asarray(((-2.0,) * 4, (100.0,) * 4, (5.0,) * 4)),
-        )
         gimbal = QuinticSmoothZoh(
             command_times,
             np.asarray(((2.0,) * 4, (-2.0,) * 4, (0.0,) * 4)),
@@ -180,27 +204,14 @@ class CoreTests(unittest.TestCase):
         )
         kwargs = dict(
             time_axis=times,
-            rotor_history=rotor,
             gimbal_history=gimbal,
             initial_gimbal=np.zeros(4),
-            rotor_lag_seconds=0.0,
-            gimbal_lag_seconds=0.0,
             actuator_parameters=parameters,
-            propagation_mode="stateful",
-            command_mode="strict",
         )
-        first = generate_actuator_history(**kwargs)
-        second = generate_actuator_history(**kwargs)
-        self.assertTrue(np.array_equal(first.actual_thrust, second.actual_thrust))
-        self.assertTrue(np.array_equal(first.actual_gimbal, second.actual_gimbal))
+        first = generate_gimbal_command_replay(**kwargs)
+        second = generate_gimbal_command_replay(**kwargs)
+        self.assertTrue(np.array_equal(first.angle, second.angle))
         self.assertGreater(first.active_set_counts.get("gimbal_rate_lower", 0), 0)
-        self.assertGreater(first.active_set_counts.get("thrust_command_upper", 0), 0)
-        smooth = generate_actuator_history(
-            **{**kwargs, "command_mode": "smooth", "smooth_width_fraction": 1.0}
-        )
-        self.assertFalse(smooth.strict_final)
-        strict = generate_actuator_history(**kwargs)
-        self.assertTrue(strict.strict_final)
 
 
 if __name__ == "__main__":

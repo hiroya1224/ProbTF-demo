@@ -10,6 +10,7 @@ from pathlib import Path
 import sys
 import time
 from typing import Any, Callable, Mapping, Optional, Sequence
+import warnings
 
 import numpy as np
 from scipy.linalg import expm, expm_frechet, null_space
@@ -38,6 +39,13 @@ from grape_param_estim.system import (  # noqa: E402
 
 try:  # noqa: E402
     from .savgol_trajectory import GeometricSavitzkyGolayPose, PoseSgEvaluation
+    from .gimbal_savgol import IrregularSavitzkyGolayGimbal
+    from .rotor_lag import (
+        StrictLagCell,
+        StrictZohCellGrid,
+        local_strict_cell_descent,
+        power_of_two_epsilon,
+    )
     from .single_bag_savgol_covariance import (
         COVARIANCE_MODES,
         ParameterCovarianceResult,
@@ -51,6 +59,13 @@ except ImportError:  # pragma: no cover - direct CLI import
         GeometricSavitzkyGolayPose,
         PoseSgEvaluation,
     )
+    from gimbal_savgol import IrregularSavitzkyGolayGimbal  # type: ignore
+    from rotor_lag import (  # type: ignore
+        StrictLagCell,
+        StrictZohCellGrid,
+        local_strict_cell_descent,
+        power_of_two_epsilon,
+    )
     from single_bag_savgol_covariance import (  # type: ignore
         COVARIANCE_MODES,
         ParameterCovarianceResult,
@@ -61,13 +76,11 @@ except ImportError:  # pragma: no cover - direct CLI import
     from smooth_command import QuinticSmoothZoh  # type: ignore
 
 
-BASE_PLAN_COMMIT = "fb45718f1f9a4d3d4b94c35d4061fa17c07bd8d8"
+BASE_PLAN_COMMIT = "ac03f309efbd659a9cc1a85f23bde5715cdd4934"
 DEFAULT_SMOOTH_MAX_NFEV = 2000
 DEFAULT_STRICT_MAX_NFEV = 2000
 PHYSICAL_DIMENSION = 14
-GLOBAL_SPLIT_DIMENSION = 16
 ROTOR_LAG_INDEX = 14
-GIMBAL_LAG_INDEX = 15
 GRAVITY_WORLD = np.asarray((0.0, 0.0, -9.80665), dtype=float)
 INERTIA_COMPONENTS = (
     (0, 0),
@@ -327,13 +340,14 @@ class SiParameterChart:
 
 @dataclass(frozen=True)
 class ActuatorHistory:
+    """Direct rotor command and selected observed/replayed gimbal trajectory."""
+
     time: np.ndarray
     actual_thrust: np.ndarray
     actual_gimbal: np.ndarray
     actual_thrust_lag_jacobian: np.ndarray
-    actual_gimbal_lag_jacobian: np.ndarray
     active_set_counts: Mapping[str, int]
-    propagation_mode: str
+    gimbal_source: str
     command_mode: str
     strict_final: bool
 
@@ -343,19 +357,18 @@ class ActuatorHistory:
         thrust = np.asarray(self.actual_thrust, dtype=float)
         gimbal = np.asarray(self.actual_gimbal, dtype=float)
         thrust_lag = np.asarray(self.actual_thrust_lag_jacobian, dtype=float)
-        gimbal_lag = np.asarray(self.actual_gimbal_lag_jacobian, dtype=float)
         if (
             time_axis.ndim != 1
             or count < 1
             or thrust.shape != (count, 4)
             or gimbal.shape != (count, 4)
-            or thrust_lag.shape != (count, 4, 2)
-            or gimbal_lag.shape != (count, 4, 2)
+            or thrust_lag.shape != (count, 4)
             or any(
                 np.any(~np.isfinite(x))
-                for x in (time_axis, thrust, gimbal, thrust_lag, gimbal_lag)
+                for x in (time_axis, thrust, gimbal, thrust_lag)
             )
-            or self.propagation_mode not in ("stateful", "direct_command")
+            or self.gimbal_source
+            not in ("measured_sg", "measured_linear", "command_replay")
             or self.command_mode not in ("strict", "smooth")
         ):
             raise ValueError("actuator history is invalid")
@@ -366,8 +379,30 @@ class ActuatorHistory:
             self, "actual_thrust_lag_jacobian", _readonly(thrust_lag)
         )
         object.__setattr__(
-            self, "actual_gimbal_lag_jacobian", _readonly(gimbal_lag)
+            self,
+            "active_set_counts",
+            {str(name): int(value) for name, value in self.active_set_counts.items()},
         )
+
+
+@dataclass(frozen=True)
+class GimbalCommandReplay:
+    time: np.ndarray
+    angle: np.ndarray
+    active_set_counts: Mapping[str, int]
+
+    def __post_init__(self) -> None:
+        time = np.asarray(self.time, dtype=float)
+        angle = np.asarray(self.angle, dtype=float)
+        if (
+            time.ndim != 1
+            or angle.shape != (time.size, 4)
+            or np.any(~np.isfinite(time))
+            or np.any(~np.isfinite(angle))
+        ):
+            raise ValueError("gimbal command replay is invalid")
+        object.__setattr__(self, "time", _readonly(time))
+        object.__setattr__(self, "angle", _readonly(angle))
         object.__setattr__(
             self,
             "active_set_counts",
@@ -388,20 +423,19 @@ def _count_mask(counts: dict[str, int], name: str, mask: np.ndarray) -> None:
     counts[name] = counts.get(name, 0) + int(np.count_nonzero(mask))
 
 
-def generate_actuator_history(
+def generate_gimbal_command_replay(
     *,
     time_axis: Sequence[float],
-    rotor_history: QuinticSmoothZoh,
     gimbal_history: QuinticSmoothZoh,
     initial_gimbal: Sequence[float],
-    rotor_lag_seconds: float,
-    gimbal_lag_seconds: float,
     actuator_parameters: ActuatorParameters,
-    propagation_mode: str = "stateful",
-    command_mode: str = "strict",
-    smooth_width_fraction: Optional[float] = None,
-) -> ActuatorHistory:
-    """Generate actual actuator states for fitting and standardized rollout."""
+) -> GimbalCommandReplay:
+    """Replay recorded gimbal commands from the first measured angle.
+
+    This is diagnostic-only for the default estimator.  The
+    ``gimbal_command_replay`` ablation may explicitly select it as its gimbal
+    source, but it never introduces an estimated gimbal lag.
+    """
 
     times = np.asarray(time_axis, dtype=float)
     if (
@@ -409,160 +443,29 @@ def generate_actuator_history(
         or times.size < 1
         or np.any(~np.isfinite(times))
         or np.any(np.diff(times) <= 0.0)
-        or propagation_mode not in ("stateful", "direct_command")
-        or command_mode not in ("strict", "smooth")
     ):
-        raise ValueError("actuator-history request is invalid")
-    if command_mode == "smooth" and (
-        smooth_width_fraction is None
-        or not np.isfinite(smooth_width_fraction)
-        or smooth_width_fraction <= 0.0
-    ):
-        raise ValueError("smooth actuator history requires a positive width")
+        raise ValueError("gimbal replay time axis is invalid")
     initial = _finite_vector(initial_gimbal, 4, "initial_gimbal")
-    thrust = np.empty((times.size, 4))
     gimbal = np.empty((times.size, 4))
-    thrust_lag_jacobian = np.zeros((times.size, 4, 2))
-    gimbal_lag_jacobian = np.zeros((times.size, 4, 2))
     counts: dict[str, int] = {}
-
-    def complete_counts() -> dict[str, int]:
-        return {name: int(counts.get(name, 0)) for name in ACTUATOR_ACTIVE_SET_NAMES}
-
-    def command_at(
-        query: float,
-    ) -> tuple[ActuatorCommand, np.ndarray, np.ndarray]:
-        if command_mode == "strict":
-            rotor = rotor_history.exact_zoh(query, rotor_lag_seconds)
-            gimbal_value = gimbal_history.exact_zoh(query, gimbal_lag_seconds)
-            rotor_derivative = np.zeros(4)
-            gimbal_derivative = np.zeros(4)
-        else:
-            assert smooth_width_fraction is not None
-            rotor_evaluation = rotor_history.evaluate(
-                query, rotor_lag_seconds, smooth_width_fraction
-            )
-            gimbal_evaluation = gimbal_history.evaluate(
-                query, gimbal_lag_seconds, smooth_width_fraction
-            )
-            rotor = rotor_evaluation.value
-            gimbal_value = gimbal_evaluation.value
-            rotor_derivative = rotor_evaluation.delay_derivative
-            gimbal_derivative = gimbal_evaluation.delay_derivative
-        thrust_command_jacobian = np.zeros((4, 2))
-        gimbal_command_jacobian = np.zeros((4, 2))
-        thrust_command_jacobian[:, 0] = rotor_derivative
-        gimbal_command_jacobian[:, 1] = gimbal_derivative
-        return (
-            _command(rotor, gimbal_value),
-            thrust_command_jacobian,
-            gimbal_command_jacobian,
-        )
-
-    if propagation_mode == "direct_command":
-        for index, sample_time in enumerate(times):
-            command, thrust_command_jacobian, gimbal_command_jacobian = (
-                command_at(float(sample_time))
-            )
-            thrust[index] = np.clip(
-                command.thrust,
-                actuator_parameters.minimum_thrust,
-                actuator_parameters.maximum_thrust,
-            )
-            gimbal[index] = np.clip(
-                command.gimbal_angle,
-                -actuator_parameters.maximum_gimbal_angle,
-                actuator_parameters.maximum_gimbal_angle,
-            )
-            thrust_interior = (
-                (command.thrust > actuator_parameters.minimum_thrust)
-                & (command.thrust < actuator_parameters.maximum_thrust)
-            )
-            gimbal_interior = (
-                (command.gimbal_angle > -actuator_parameters.maximum_gimbal_angle)
-                & (command.gimbal_angle < actuator_parameters.maximum_gimbal_angle)
-            )
-            thrust_lag_jacobian[index] = (
-                thrust_interior[:, None] * thrust_command_jacobian
-            )
-            gimbal_lag_jacobian[index] = (
-                gimbal_interior[:, None] * gimbal_command_jacobian
-            )
-            _count_mask(
-                counts,
-                "thrust_command_lower",
-                command.thrust <= actuator_parameters.minimum_thrust,
-            )
-            _count_mask(
-                counts,
-                "thrust_command_upper",
-                command.thrust >= actuator_parameters.maximum_thrust,
-            )
-            _count_mask(
-                counts,
-                "gimbal_command_lower",
-                command.gimbal_angle <= -actuator_parameters.maximum_gimbal_angle,
-            )
-            _count_mask(
-                counts,
-                "gimbal_command_upper",
-                command.gimbal_angle >= actuator_parameters.maximum_gimbal_angle,
-            )
-        return ActuatorHistory(
-            times,
-            thrust,
-            gimbal,
-            thrust_lag_jacobian,
-            gimbal_lag_jacobian,
-            complete_counts(),
-            propagation_mode,
-            command_mode,
-            command_mode == "strict",
-        )
-
-    raw_initial_thrust = rotor_history.exact_zoh(
-        float(times[0]), rotor_lag_seconds
-    )
-    _count_mask(
-        counts,
-        "thrust_command_lower",
-        raw_initial_thrust <= actuator_parameters.minimum_thrust,
-    )
-    _count_mask(
-        counts,
-        "thrust_command_upper",
-        raw_initial_thrust >= actuator_parameters.maximum_thrust,
-    )
-    initial_thrust = np.clip(
-        raw_initial_thrust,
-        actuator_parameters.minimum_thrust,
-        actuator_parameters.maximum_thrust,
-    )
-    state = ActuatorState(initial_thrust, initial)
-    state_thrust_lag_jacobian = np.zeros((4, 2))
-    state_gimbal_lag_jacobian = np.zeros((4, 2))
-    thrust[0], gimbal[0] = state.thrust, state.gimbal_angle
-    rotor_switches = np.asarray(rotor_history.times[1:]) + rotor_lag_seconds
-    gimbal_switches = np.asarray(gimbal_history.times[1:]) + gimbal_lag_seconds
+    dummy_thrust = np.full(4, actuator_parameters.minimum_thrust, dtype=float)
+    state = ActuatorState(dummy_thrust, initial)
+    gimbal[0] = state.gimbal_angle
+    gimbal_switches = np.asarray(gimbal_history.times[1:])
     for index, (left, right) in enumerate(zip(times[:-1], times[1:])):
-        if command_mode == "strict":
-            switches = np.concatenate(
-                (
-                    rotor_switches[(rotor_switches > left) & (rotor_switches < right)],
-                    gimbal_switches[(gimbal_switches > left) & (gimbal_switches < right)],
-                )
-            )
-            boundaries = np.concatenate(
-                (np.asarray((left,)), np.unique(switches), np.asarray((right,)))
-            )
-        else:
-            boundaries = np.asarray((left, 0.5 * (left + right), right))
+        switches = gimbal_switches[
+            (gimbal_switches > left) & (gimbal_switches < right)
+        ]
+        boundaries = np.concatenate(
+            (np.asarray((left,)), switches, np.asarray((right,)))
+        )
         for sub_left, sub_right in zip(boundaries[:-1], boundaries[1:]):
             step = float(sub_right - sub_left)
             if step <= 0.0:
                 continue
-            command, thrust_command_jacobian, gimbal_command_jacobian = (
-                command_at(0.5 * (float(sub_left) + float(sub_right)))
+            midpoint = 0.5 * (float(sub_left) + float(sub_right))
+            command = _command(
+                dummy_thrust, gimbal_history.exact_zoh(midpoint, 0.0)
             )
             transition = advance_actuators_with_jacobian(
                 state,
@@ -570,34 +473,18 @@ def generate_actuator_history(
                 actuator_parameters,
                 step,
             )
-            state_thrust_lag_jacobian = (
-                transition.jacobian.thrust_previous
-                @ state_thrust_lag_jacobian
-                + transition.jacobian.thrust_command
-                @ thrust_command_jacobian
-            )
-            state_gimbal_lag_jacobian = (
-                transition.jacobian.gimbal_previous
-                @ state_gimbal_lag_jacobian
-                + transition.jacobian.gimbal_command
-                @ gimbal_command_jacobian
-            )
             state = transition.next_state
             for name, mask in transition.active_set.items():
                 _count_mask(counts, name, mask)
-        thrust[index + 1], gimbal[index + 1] = state.thrust, state.gimbal_angle
-        thrust_lag_jacobian[index + 1] = state_thrust_lag_jacobian
-        gimbal_lag_jacobian[index + 1] = state_gimbal_lag_jacobian
-    return ActuatorHistory(
+        gimbal[index + 1] = state.gimbal_angle
+    return GimbalCommandReplay(
         times,
-        thrust,
         gimbal,
-        thrust_lag_jacobian,
-        gimbal_lag_jacobian,
-        complete_counts(),
-        propagation_mode,
-        command_mode,
-        command_mode == "strict",
+        {
+            name: int(counts.get(name, 0))
+            for name in ACTUATOR_ACTIVE_SET_NAMES
+            if name.startswith("gimbal_")
+        },
     )
 
 
@@ -611,7 +498,12 @@ class SingleBagDataset:
     reference_covariance: SgCovarianceEvaluation
     rotor_history: QuinticSmoothZoh
     gimbal_history: QuinticSmoothZoh
+    gimbal_raw_time: np.ndarray
+    gimbal_raw_angle: np.ndarray
+    gimbal_sg_angle: np.ndarray
+    gimbal_linear_angle: np.ndarray
     initial_gimbal: np.ndarray
+    rotor_lag_data_support_upper: float
     pose_sensor_position_in_body: np.ndarray
     pose_sensor_to_body_rotation: np.ndarray
     gyro_sensor_position_in_body: np.ndarray
@@ -626,6 +518,10 @@ class SingleBagDataset:
         time_axis = np.asarray(self.time, dtype=float)
         count = time_axis.size
         expected = {
+            "gimbal_raw_time": (np.asarray(self.gimbal_raw_time).size,),
+            "gimbal_raw_angle": (np.asarray(self.gimbal_raw_time).size, 4),
+            "gimbal_sg_angle": (count, 4),
+            "gimbal_linear_angle": (count, 4),
             "initial_gimbal": (4,),
             "pose_sensor_position_in_body": (3,),
             "pose_sensor_to_body_rotation": (3, 3),
@@ -640,6 +536,19 @@ class SingleBagDataset:
             time_axis, self.sg.time, rtol=0.0, atol=0.0
         ):
             raise ValueError("dataset time and SG evaluation disagree")
+        raw_time = np.asarray(self.gimbal_raw_time, dtype=float)
+        if (
+            raw_time.ndim != 1
+            or raw_time.size < 1
+            or np.any(~np.isfinite(raw_time))
+            or np.any(np.diff(raw_time) <= 0.0)
+        ):
+            raise ValueError("raw gimbal time is invalid")
+        if (
+            not np.isfinite(self.rotor_lag_data_support_upper)
+            or self.rotor_lag_data_support_upper <= 0.0
+        ):
+            raise ValueError("rotor lag data-support upper bound is invalid")
         object.__setattr__(self, "time", _readonly(time_axis))
         for name, shape in expected.items():
             value = np.asarray(getattr(self, name), dtype=float)
@@ -673,7 +582,6 @@ def prepare_single_bag_dataset(
     degree: int,
     covariance_mode: str,
     geometric_correction: bool,
-    maximum_lag_seconds: float,
 ) -> SingleBagDataset:
     """Prepare one loaded ``FlightData`` object; IMU remains diagnostic only."""
 
@@ -691,13 +599,18 @@ def prepare_single_bag_dataset(
         window_seconds=window_seconds,
         degree=degree,
     )
+    gimbal_smoother = IrregularSavitzkyGolayGimbal(
+        flight.gimbal_position.times,
+        flight.gimbal_position.values,
+        window_seconds=window_seconds,
+        degree=degree,
+    )
     support_start = max(
         trajectory.valid_start_time,
-        float(flight.rotor_command.all_times[0]) + float(maximum_lag_seconds),
-        float(flight.gimbal_command.all_times[0]) + float(maximum_lag_seconds),
-        float(flight.gimbal_position.times[0]),
+        gimbal_smoother.valid_start_time,
+        float(flight.rotor_command.all_times[0]),
     )
-    support_end = trajectory.valid_end_time
+    support_end = min(trajectory.valid_end_time, gimbal_smoother.valid_end_time)
     time_axis = trajectory.centered_raw_times(
         support_start=support_start,
         support_end=support_end,
@@ -722,11 +635,21 @@ def prepare_single_bag_dataset(
     reference_covariance = build_sg_covariance(
         reference_sg, degree=degree, mode="full", geometric_correction=True
     )
+    gimbal_sg = gimbal_smoother.evaluate(time_axis)
+    gimbal_linear = _linear_interpolate(
+        gimbal_smoother.time,
+        gimbal_smoother.raw_angle,
+        time_axis,
+    )
     initial_gimbal = _linear_interpolate(
-        flight.gimbal_position.times,
-        flight.gimbal_position.values,
+        gimbal_smoother.time,
+        gimbal_smoother.raw_angle,
         np.asarray((time_axis[0],)),
     )[0]
+    rotor_history = QuinticSmoothZoh(
+        flight.rotor_command.all_times, flight.rotor_command.all_values
+    )
+    data_support_upper = float(time_axis[0] - rotor_history.times[0])
 
     def diagnostic(stream: Any) -> np.ndarray:
         if stream is None:
@@ -741,13 +664,16 @@ def prepare_single_bag_dataset(
         covariance=covariance,
         reference_sg=reference_sg,
         reference_covariance=reference_covariance,
-        rotor_history=QuinticSmoothZoh(
-            flight.rotor_command.all_times, flight.rotor_command.all_values
-        ),
+        rotor_history=rotor_history,
         gimbal_history=QuinticSmoothZoh(
             flight.gimbal_command.all_times, flight.gimbal_command.all_values
         ),
+        gimbal_raw_time=gimbal_smoother.time,
+        gimbal_raw_angle=gimbal_smoother.raw_angle,
+        gimbal_sg_angle=gimbal_sg.angle,
+        gimbal_linear_angle=gimbal_linear,
         initial_gimbal=initial_gimbal,
+        rotor_lag_data_support_upper=data_support_upper,
         pose_sensor_position_in_body=extrinsics.pose_sensor_position_in_body,
         pose_sensor_to_body_rotation=extrinsics.pose_sensor_to_body_rotation,
         gyro_sensor_position_in_body=extrinsics.gyro_sensor_position_in_body,
@@ -766,7 +692,6 @@ def prepare_single_bag_dataset(
 class DynamicsEvaluation:
     physical_coordinate: np.ndarray
     rotor_lag_seconds: float
-    gimbal_lag_seconds: float
     parameters: VehicleParameters
     parameter_jacobian: PhysicalParameterJacobian
     actuator_history: ActuatorHistory
@@ -805,53 +730,130 @@ class SingleBagDynamicsProblem:
         model: VehicleModelInput,
         actuator_parameters: ActuatorParameters,
         *,
-        actuator_propagation: str = "stateful",
+        gimbal_source: str = "measured_sg",
     ) -> None:
-        if actuator_propagation not in ("stateful", "direct_command"):
-            raise ValueError("unknown actuator propagation mode")
+        if gimbal_source not in (
+            "measured_sg",
+            "measured_linear",
+            "command_replay",
+        ):
+            raise ValueError("unknown gimbal source")
         self.dataset = dataset
         self.model = model
         self.actuator_parameters = actuator_parameters
-        self.actuator_propagation = actuator_propagation
+        self.gimbal_source = gimbal_source
         self.chart = SiParameterChart(model.parameters)
+        self.strict_lag_grid = StrictZohCellGrid(
+            dataset.time, dataset.rotor_history.times
+        )
+        if not np.isclose(
+            self.strict_lag_grid.data_support_upper,
+            dataset.rotor_lag_data_support_upper,
+            rtol=0.0,
+            atol=2.0e-12,
+        ):
+            raise RuntimeError("rotor lag support calculations disagree")
+        self.gimbal_replay = generate_gimbal_command_replay(
+            time_axis=dataset.time,
+            gimbal_history=dataset.gimbal_history,
+            initial_gimbal=dataset.initial_gimbal,
+            actuator_parameters=actuator_parameters,
+        )
 
     def actuator_history(
         self,
         rotor_lag_seconds: float,
-        gimbal_lag_seconds: float,
         *,
         command_mode: str,
-        smooth_width_fraction: Optional[float] = None,
+        epsilon: Optional[float] = None,
     ) -> ActuatorHistory:
-        return generate_actuator_history(
-            time_axis=self.dataset.time,
-            rotor_history=self.dataset.rotor_history,
-            gimbal_history=self.dataset.gimbal_history,
-            initial_gimbal=self.dataset.initial_gimbal,
-            rotor_lag_seconds=rotor_lag_seconds,
-            gimbal_lag_seconds=gimbal_lag_seconds,
-            actuator_parameters=self.actuator_parameters,
-            propagation_mode=self.actuator_propagation,
+        if command_mode not in ("strict", "smooth"):
+            raise ValueError("unknown rotor command mode")
+        if command_mode == "smooth" and (
+            epsilon is None or not np.isfinite(epsilon) or epsilon <= 0.0
+        ):
+            raise ValueError("smooth rotor evaluation requires positive epsilon")
+        lag = float(rotor_lag_seconds)
+        if (
+            not np.isfinite(lag)
+            or lag < 0.0
+            or lag > self.strict_lag_grid.data_support_upper
+        ):
+            raise ValueError("rotor lag lies outside recorded data support")
+        thrust = np.empty((self.dataset.time.size, 4))
+        derivative = np.zeros_like(thrust)
+        counts: dict[str, int] = {}
+        for index, sample_time in enumerate(self.dataset.time):
+            if command_mode == "strict":
+                raw = self.dataset.rotor_history.exact_zoh(sample_time, lag)
+                raw_derivative = np.zeros(4)
+            else:
+                assert epsilon is not None
+                command = self.dataset.rotor_history.evaluate(
+                    sample_time, lag, epsilon
+                )
+                raw = command.value
+                raw_derivative = command.delay_derivative
+            thrust[index] = np.clip(
+                raw,
+                self.actuator_parameters.minimum_thrust,
+                self.actuator_parameters.maximum_thrust,
+            )
+            interior = (
+                (raw > self.actuator_parameters.minimum_thrust)
+                & (raw < self.actuator_parameters.maximum_thrust)
+            )
+            derivative[index] = interior * raw_derivative
+            _count_mask(
+                counts,
+                "thrust_command_lower",
+                raw <= self.actuator_parameters.minimum_thrust,
+            )
+            _count_mask(
+                counts,
+                "thrust_command_upper",
+                raw >= self.actuator_parameters.maximum_thrust,
+            )
+        if self.gimbal_source == "measured_sg":
+            gimbal = self.dataset.gimbal_sg_angle
+        elif self.gimbal_source == "measured_linear":
+            gimbal = self.dataset.gimbal_linear_angle
+        else:
+            gimbal = self.gimbal_replay.angle
+        combined_counts = {
+            name: int(counts.get(name, 0))
+            + (
+                int(self.gimbal_replay.active_set_counts.get(name, 0))
+                if name.startswith("gimbal_")
+                else 0
+            )
+            for name in ACTUATOR_ACTIVE_SET_NAMES
+        }
+        return ActuatorHistory(
+            time=self.dataset.time,
+            actual_thrust=thrust,
+            actual_gimbal=gimbal,
+            actual_thrust_lag_jacobian=derivative,
+            active_set_counts=combined_counts,
+            gimbal_source=self.gimbal_source,
             command_mode=command_mode,
-            smooth_width_fraction=smooth_width_fraction,
+            strict_final=command_mode == "strict",
         )
 
     def _evaluate_analytic(
         self,
         coordinate: np.ndarray,
         rotor_lag_seconds: float,
-        gimbal_lag_seconds: float,
         *,
         command_mode: str,
-        smooth_width_fraction: Optional[float],
+        epsilon: Optional[float],
         reference: bool,
     ) -> DynamicsEvaluation:
         parameters, parameter_jacobian = self.chart.decode_with_jacobian(coordinate)
         history = self.actuator_history(
             rotor_lag_seconds,
-            gimbal_lag_seconds,
             command_mode=command_mode,
-            smooth_width_fraction=smooth_width_fraction,
+            epsilon=epsilon,
         )
         sg = self.dataset.reference_sg if reference else self.dataset.sg
         covariance = (
@@ -860,7 +862,7 @@ class SingleBagDynamicsProblem:
         count = self.dataset.time.size
         residual = np.empty((count, 6))
         residual_jacobian = np.empty((count, 6, PHYSICAL_DIMENSION))
-        residual_lag_jacobian = np.empty((count, 6, 2))
+        residual_lag_jacobian = np.empty((count, 6))
         modeled = np.empty((count, 6))
         required = np.empty((count, 6))
         predicted_s = np.empty((count, 3))
@@ -887,8 +889,6 @@ class SingleBagDynamicsProblem:
             wrench_lag_jacobian = (
                 actuator_jacobian.actual_thrust
                 @ history.actual_thrust_lag_jacobian[index]
-                + actuator_jacobian.actual_gimbal_angle
-                @ history.actual_gimbal_lag_jacobian[index]
             )
             force, torque = wrench[:3], wrench[3:]
             force_jacobian, torque_jacobian = (
@@ -957,7 +957,7 @@ class SingleBagDynamicsProblem:
             "nij,njk->nik", covariance.whitening, residual_jacobian
         )
         whitened_lag_jacobian = np.einsum(
-            "nij,njk->nik", covariance.whitening, residual_lag_jacobian
+            "nij,nj->ni", covariance.whitening, residual_lag_jacobian
         )
         arrays = (
             residual,
@@ -976,7 +976,6 @@ class SingleBagDynamicsProblem:
         return DynamicsEvaluation(
             physical_coordinate=_readonly(coordinate),
             rotor_lag_seconds=float(rotor_lag_seconds),
-            gimbal_lag_seconds=float(gimbal_lag_seconds),
             parameters=parameters,
             parameter_jacobian=parameter_jacobian,
             actuator_history=history,
@@ -997,19 +996,17 @@ class SingleBagDynamicsProblem:
         self,
         coordinate: Sequence[float],
         rotor_lag_seconds: float,
-        gimbal_lag_seconds: float,
         *,
         command_mode: str = "strict",
-        smooth_width_fraction: Optional[float] = None,
+        epsilon: Optional[float] = None,
         reference: bool = False,
     ) -> DynamicsEvaluation:
         value = np.asarray(coordinate, dtype=float)
         return self._evaluate_analytic(
             value,
             rotor_lag_seconds,
-            gimbal_lag_seconds,
             command_mode=command_mode,
-            smooth_width_fraction=smooth_width_fraction,
+            epsilon=epsilon,
             reference=reference,
         )
 
@@ -1017,32 +1014,23 @@ class SingleBagDynamicsProblem:
         self,
         coordinate: Sequence[float],
         *,
-        lag_layout: str,
         command_mode: str,
-        smooth_width_fraction: Optional[float],
+        epsilon: Optional[float],
     ) -> tuple[np.ndarray, np.ndarray, DynamicsEvaluation]:
         value = np.asarray(coordinate, dtype=float)
-        if lag_layout == "split" and value.shape == (16,):
-            rotor_lag, gimbal_lag = float(value[14]), float(value[15])
-        elif lag_layout == "common" and value.shape == (15,):
-            rotor_lag = gimbal_lag = float(value[14])
-        else:
+        if value.shape != (15,):
             raise ValueError("global coordinate/lag layout mismatch")
+        rotor_lag = float(value[14])
         evaluation = self.evaluate_physical(
             value[:14],
             rotor_lag,
-            gimbal_lag,
             command_mode=command_mode,
-            smooth_width_fraction=smooth_width_fraction,
+            epsilon=epsilon,
         )
         dimension = value.size
         jacobian = np.zeros((evaluation.residual_vector.size, dimension))
         jacobian[:, :14] = evaluation.jacobian_matrix
-        lag_jacobian = evaluation.whitened_lag_jacobian.reshape(-1, 2)
-        if lag_layout == "split":
-            jacobian[:, 14:16] = lag_jacobian
-        else:
-            jacobian[:, 14] = lag_jacobian[:, 0] + lag_jacobian[:, 1]
+        jacobian[:, 14] = evaluation.whitened_lag_jacobian.reshape(-1)
         return evaluation.residual_vector, jacobian, evaluation
 
 
@@ -1299,16 +1287,14 @@ def adaptive_kkt_lm(
 def _objective_from_problem(
     problem: SingleBagDynamicsProblem,
     *,
-    lag_layout: str,
     command_mode: str,
-    smooth_width_fraction: Optional[float],
+    epsilon: Optional[float],
 ) -> Callable[[np.ndarray], ObjectiveEvaluation]:
     def evaluate(coordinate: np.ndarray) -> ObjectiveEvaluation:
         residual, jacobian, payload = problem.global_residual_jacobian(
             coordinate,
-            lag_layout=lag_layout,
             command_mode=command_mode,
-            smooth_width_fraction=smooth_width_fraction,
+            epsilon=epsilon,
         )
         return ObjectiveEvaluation(residual, jacobian, payload)
 
@@ -1318,11 +1304,10 @@ def _objective_from_problem(
 def _physical_objective(
     problem: SingleBagDynamicsProblem,
     rotor_lag: float,
-    gimbal_lag: float,
 ) -> Callable[[np.ndarray], ObjectiveEvaluation]:
     def evaluate(coordinate: np.ndarray) -> ObjectiveEvaluation:
         payload = problem.evaluate_physical(
-            coordinate, rotor_lag, gimbal_lag, command_mode="strict"
+            coordinate, rotor_lag, command_mode="strict"
         )
         return ObjectiveEvaluation(
             payload.residual_vector, payload.jacobian_matrix, payload
@@ -1352,11 +1337,75 @@ def _standard_gauge_least_squares(
     def full(reduced: np.ndarray) -> np.ndarray:
         return basis @ reduced
 
+    initial_evaluation = evaluator(full(reduced_initial))
+    residual_shape = initial_evaluation.residual.shape
+    jacobian_shape = (initial_evaluation.residual.size, reduced_initial.size)
+    if (
+        initial_evaluation.residual.ndim != 1
+        or initial_evaluation.jacobian.shape
+        != (initial_evaluation.residual.size, initial.size)
+        or np.any(~np.isfinite(initial_evaluation.residual))
+        or np.any(~np.isfinite(initial_evaluation.jacobian))
+    ):
+        raise ValueError("initial standard-solver evaluation is invalid")
+    # scipy.optimize.least_squares does not provide an exception boundary for
+    # trial residual evaluations.  The exponential inertia chart is physical
+    # for every finite coordinate, but sufficiently extreme rejected trials
+    # can lose SPD through floating-point cancellation.  Return a finite cost
+    # that is guaranteed to exceed the initial cost so TRF rejects such a
+    # trial, matching the rejection semantics of adaptive_kkt_lm.
+    maximum_initial_component = max(
+        1.0, float(np.max(np.abs(initial_evaluation.residual)))
+    )
+    maximum_safe_component = math.sqrt(
+        np.finfo(float).max / max(initial_evaluation.residual.size, 1)
+    ) / 4.0
+    penalty_component = min(
+        maximum_safe_component, 1.0e6 * maximum_initial_component
+    )
+    invalid_residual = np.full(residual_shape, penalty_component)
+    invalid_jacobian = np.zeros(jacobian_shape)
+    invalid_trial_count = 0
+    invalid_exception_types: set[str] = set()
+
+    def safe_evaluation(reduced: np.ndarray) -> ObjectiveEvaluation:
+        nonlocal invalid_trial_count
+        try:
+            # Promote numerical warnings from extreme matrix-exponential
+            # trials to a rejected evaluation without polluting production
+            # logs or continuing with NaNs.
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", RuntimeWarning)
+                evaluation = evaluator(full(reduced))
+            if (
+                evaluation.residual.shape != residual_shape
+                or evaluation.jacobian.shape
+                != (initial_evaluation.residual.size, initial.size)
+                or np.any(~np.isfinite(evaluation.residual))
+                or np.any(~np.isfinite(evaluation.jacobian))
+            ):
+                raise FloatingPointError("non-finite standard-solver trial")
+            return ObjectiveEvaluation(
+                evaluation.residual,
+                evaluation.jacobian @ basis,
+                evaluation.payload,
+            )
+        except (
+            ValueError,
+            FloatingPointError,
+            OverflowError,
+            RuntimeWarning,
+            np.linalg.LinAlgError,
+        ) as error:
+            invalid_trial_count += 1
+            invalid_exception_types.add(type(error).__name__)
+            return ObjectiveEvaluation(invalid_residual, invalid_jacobian)
+
     def residual(reduced: np.ndarray) -> np.ndarray:
-        return evaluator(full(reduced)).residual
+        return safe_evaluation(reduced).residual
 
     def jacobian(reduced: np.ndarray) -> np.ndarray:
-        return evaluator(full(reduced)).jacobian @ basis
+        return safe_evaluation(reduced).jacobian
 
     # Bounds concern lag only.  Transforming finite lag bounds through a dense
     # gauge basis is awkward, so the supplied gauge vector is constructed with
@@ -1394,218 +1443,33 @@ def _standard_gauge_least_squares(
         message=str(result.message),
         nfev=int(result.nfev),
         elapsed_seconds=time.perf_counter() - started,
-    )
-
-
-def strict_lag_candidates(
-    evaluation_time: Sequence[float],
-    command_time: Sequence[float],
-    bounds: tuple[float, float],
-    current: float,
-) -> np.ndarray:
-    """A data-period local strict-ZOH screen around one current lag."""
-
-    lower, upper = map(float, bounds)
-    if not lower <= current <= upper or lower > upper:
-        raise ValueError("strict lag bounds/current value are invalid")
-    commands = np.asarray(command_time, dtype=float)
-    del evaluation_time
-    positive = np.diff(commands)
-    positive = positive[positive > 0.0]
-    if positive.size == 0:
-        raise ValueError("strict lag screen needs command timestamp intervals")
-    period = float(np.median(positive))
-    return np.unique(
-        np.clip(
-            np.asarray((current - period, current, current + period)),
-            lower,
-            upper,
-        )
-    )
-
-
-def strict_lag_screen(
-    problem: SingleBagDynamicsProblem,
-    physical_coordinate: np.ndarray,
-    rotor_lag: float,
-    gimbal_lag: float,
-    *,
-    lag_layout: str,
-    bounds: tuple[float, float],
-    alternations: int,
-) -> tuple[float, float, list[dict[str, Any]]]:
-    """Data-period strict screen extracted from the prior implementation."""
-
-    trace: list[dict[str, Any]] = []
-    del alternations
-    lower, upper = map(float, bounds)
-
-    def period(history: QuinticSmoothZoh) -> float:
-        positive = np.diff(history.times)
-        positive = positive[positive > 0.0]
-        if positive.size == 0:
-            raise ValueError("strict lag screen requires command intervals")
-        return float(np.median(positive))
-
-    rotor_period = period(problem.dataset.rotor_history)
-    gimbal_period = period(problem.dataset.gimbal_history)
-
-    def cost(rotor: float, gimbal: float) -> float:
-        return problem.evaluate_physical(
-            physical_coordinate, rotor, gimbal, command_mode="strict"
-        ).cost
-
-    if lag_layout == "common":
-        # The finer measured publication period defines a data-derived grid;
-        # no hand-selected lag increment is introduced.
-        screen_period = min(rotor_period, gimbal_period)
-        grid_count = int(math.ceil((upper - lower) / screen_period))
-        candidates = lower + screen_period * np.arange(grid_count + 1)
-        candidates = np.unique(
-            np.clip(
-                np.concatenate(
-                    (candidates, np.asarray((lower, rotor_lag, gimbal_lag, upper)))
+        diagnostics=(
+            {
+                "invalid_trial_count": invalid_trial_count,
+                "invalid_trial_exception_types": sorted(
+                    invalid_exception_types
                 ),
-                lower,
-                upper,
-            )
-        )
-        costs = np.asarray([cost(value, value) for value in candidates])
-        selected_index = int(np.argmin(costs))
-        selected = float(candidates[selected_index])
-        candidate_table = [
-            {
-                "lag_seconds": float(value),
-                "strict_cost": float(candidate_cost),
-                "selected": bool(index == selected_index),
-                "at_lower_bound": bool(value == lower),
-                "at_upper_bound": bool(value == upper),
-            }
-            for index, (value, candidate_cost) in enumerate(
-                zip(candidates, costs)
-            )
-        ]
-        trace.append(
-            {
-                "channel": "common",
-                "candidate_count": int(candidates.size),
-                "selected": selected,
-                "cost": float(np.min(costs)),
-                "bounds_seconds": (lower, upper),
-                "candidate_table": candidate_table,
-            }
-        )
-        return selected, selected, trace
-
-    rotor_values = set(
-        float(value)
-        for value in strict_lag_candidates(
-            problem.dataset.time,
-            problem.dataset.rotor_history.times,
-            bounds,
-            rotor_lag,
-        )
+            },
+        ),
     )
-    gimbal_values = set(
-        float(value)
-        for value in strict_lag_candidates(
-            problem.dataset.time,
-            problem.dataset.gimbal_history.times,
-            bounds,
-            gimbal_lag,
-        )
-    )
-    costs: dict[tuple[float, float], float] = {}
-    expansions: list[dict[str, Any]] = []
-
-    def evaluate_new() -> None:
-        for rotor in sorted(rotor_values):
-            for gimbal_value in sorted(gimbal_values):
-                pair = (rotor, gimbal_value)
-                if pair not in costs:
-                    costs[pair] = cost(rotor, gimbal_value)
-
-    for _ in range(256):
-        evaluate_new()
-        best = min(costs, key=lambda pair: (costs[pair], pair[0], pair[1]))
-        rotor_order = sorted(rotor_values)
-        gimbal_order = sorted(gimbal_values)
-        additions: list[dict[str, Any]] = []
-        if best[0] == rotor_order[0] and best[0] > lower:
-            candidate = max(lower, best[0] - rotor_period)
-            if candidate not in rotor_values:
-                rotor_values.add(candidate)
-                additions.append({"channel": "rotor", "lag_seconds": candidate})
-        elif best[0] == rotor_order[-1] and best[0] < upper:
-            candidate = min(upper, best[0] + rotor_period)
-            if candidate not in rotor_values:
-                rotor_values.add(candidate)
-                additions.append({"channel": "rotor", "lag_seconds": candidate})
-        if best[1] == gimbal_order[0] and best[1] > lower:
-            candidate = max(lower, best[1] - gimbal_period)
-            if candidate not in gimbal_values:
-                gimbal_values.add(candidate)
-                additions.append({"channel": "gimbal", "lag_seconds": candidate})
-        elif best[1] == gimbal_order[-1] and best[1] < upper:
-            candidate = min(upper, best[1] + gimbal_period)
-            if candidate not in gimbal_values:
-                gimbal_values.add(candidate)
-                additions.append({"channel": "gimbal", "lag_seconds": candidate})
-        if not additions:
-            break
-        expansions.extend(additions)
-    else:
-        raise RuntimeError("strict lag screen did not terminate")
-    evaluate_new()
-    best = min(costs, key=lambda pair: (costs[pair], pair[0], pair[1]))
-    rotor_lag, gimbal_lag = best
-    candidate_table = [
-        {
-            "rotor_lag_seconds": float(pair[0]),
-            "gimbal_lag_seconds": float(pair[1]),
-            "strict_cost": float(costs[pair]),
-            "selected": bool(pair == best),
-            "rotor_at_lower_bound": bool(pair[0] == lower),
-            "rotor_at_upper_bound": bool(pair[0] == upper),
-            "gimbal_at_lower_bound": bool(pair[1] == lower),
-            "gimbal_at_upper_bound": bool(pair[1] == upper),
-        }
-        for pair in sorted(costs)
-    ]
-    trace.append(
-        {
-            "channel": "split_pair",
-            "candidate_count": len(costs),
-            "rotor_candidate_count": len(rotor_values),
-            "gimbal_candidate_count": len(gimbal_values),
-            "selected_rotor_lag_seconds": rotor_lag,
-            "selected_gimbal_lag_seconds": gimbal_lag,
-            "cost": costs[best],
-            "bounds_seconds": (lower, upper),
-            "candidate_table": candidate_table,
-            "expansions": expansions,
-        }
-    )
-    return rotor_lag, gimbal_lag, trace
 
 
 @dataclass(frozen=True)
 class EstimatorConfig:
-    covariance_mode: str = "full"
+    covariance_mode: str = "identity"
     geometric_correction: bool = True
-    actuator_propagation: str = "stateful"
-    lag_mode: str = "split_estimated"
-    initial_rotor_lag: float = 0.0
-    initial_gimbal_lag: float = 0.0
+    gimbal_source: str = "measured_sg"
+    lag_mode: str = "estimated"
+    initial_rotor_lag: Optional[float] = None
+    initial_rotor_lag_multiplier: float = 1.0
     fixed_rotor_lag: Optional[float] = None
-    fixed_gimbal_lag: Optional[float] = None
-    lag_bounds: Optional[tuple[float, float]] = None
-    smooth_width_schedule: tuple[float, ...] = (4.0, 2.0, 1.0, 0.5)
+    lag_continuation_depth: int = 9
+    lag_continuation_schedule: Optional[tuple[float, ...]] = None
+    lag_continuation_enabled: bool = True
     # These are safety ceilings; gtol/ftol/xtol remain the normal termination
     # criteria.  Real-bag validation required more than the former 80/120.
     smooth_max_nfev: int = DEFAULT_SMOOTH_MAX_NFEV
     strict_max_nfev: int = DEFAULT_STRICT_MAX_NFEV
-    strict_alternations: int = 8
     kkt_enabled: bool = True
     solver_type: str = "custom_kkt_lm"
     initial_physical_coordinate: np.ndarray = field(
@@ -1617,13 +1481,13 @@ class EstimatorConfig:
     def __post_init__(self) -> None:
         if self.covariance_mode not in COVARIANCE_MODES:
             raise ValueError("unknown covariance mode")
-        if self.lag_mode not in (
-            "zero",
-            "fixed",
-            "common_estimated",
-            "split_estimated",
-            "split_strict_only",
+        if self.gimbal_source not in (
+            "measured_sg",
+            "measured_linear",
+            "command_replay",
         ):
+            raise ValueError("unknown gimbal source")
+        if self.lag_mode not in ("estimated", "zero", "fixed"):
             raise ValueError("unknown lag mode")
         if self.solver_type not in ("custom_kkt_lm", "standard_least_squares"):
             raise ValueError("unknown solver type")
@@ -1631,38 +1495,49 @@ class EstimatorConfig:
         if coordinate.shape != (14,) or np.any(~np.isfinite(coordinate)):
             raise ValueError("initial physical coordinate must be finite 14-D")
         object.__setattr__(self, "initial_physical_coordinate", _readonly(coordinate))
-        if self.lag_mode in ("common_estimated", "split_estimated", "split_strict_only"):
-            if self.lag_bounds is None:
-                raise ValueError("estimated lag mode requires explicit lag bounds")
-            lower, upper = self.lag_bounds
-            if not np.isfinite(lower) or not np.isfinite(upper) or lower > upper:
-                raise ValueError("lag bounds are invalid")
-            if not (
-                lower <= self.initial_rotor_lag <= upper
-                and lower <= self.initial_gimbal_lag <= upper
-            ):
-                raise ValueError("initial lag lies outside bounds")
-        if self.lag_mode == "fixed" and (
-            self.fixed_rotor_lag is None or self.fixed_gimbal_lag is None
+        if self.initial_rotor_lag is not None and (
+            not np.isfinite(self.initial_rotor_lag)
+            or self.initial_rotor_lag < 0.0
         ):
-            raise ValueError("fixed lag mode requires both fixed values")
+            raise ValueError("initial rotor lag must be finite and non-negative")
+        if (
+            not np.isfinite(self.initial_rotor_lag_multiplier)
+            or self.initial_rotor_lag_multiplier <= 0.0
+        ):
+            raise ValueError("initial rotor lag multiplier must be positive")
+        if self.fixed_rotor_lag is not None and (
+            not np.isfinite(self.fixed_rotor_lag) or self.fixed_rotor_lag < 0.0
+        ):
+            raise ValueError("fixed rotor lag must be finite and non-negative")
+        schedule = self.lag_continuation_schedule
+        if schedule is not None:
+            schedule = tuple(float(value) for value in schedule)
+            if not schedule or any(
+                not np.isfinite(value) or value <= 0.0 for value in schedule
+            ):
+                raise ValueError("lag continuation schedule is invalid")
+            object.__setattr__(self, "lag_continuation_schedule", schedule)
         if (
             self.smooth_max_nfev < 1
             or self.strict_max_nfev < 1
-            or self.strict_alternations < 1
-            or any(
-                (not np.isfinite(value) or value <= 0.0)
-                for value in self.smooth_width_schedule
-            )
+            or self.lag_continuation_depth < 0
         ):
             raise ValueError("estimator termination/smoothing settings are invalid")
+
+    @property
+    def continuation_epsilon(self) -> tuple[float, ...]:
+        return (
+            power_of_two_epsilon(self.lag_continuation_depth)
+            if self.lag_continuation_schedule is None
+            else self.lag_continuation_schedule
+        )
 
 
 @dataclass(frozen=True)
 class EstimationResult:
     physical_coordinate: np.ndarray
     rotor_lag_seconds: float
-    gimbal_lag_seconds: float
+    final_smooth_rotor_lag_seconds: float
     evaluation: DynamicsEvaluation
     reference_evaluation: DynamicsEvaluation
     success: bool
@@ -1692,9 +1567,10 @@ def _solve_stage(
     gauge[:14] = COMMON_SCALE_DIRECTION
     lower, upper = np.full(initial.size, -np.inf), np.full(initial.size, np.inf)
     if lag_columns:
-        assert config.lag_bounds is not None
-        lower[-lag_columns:] = config.lag_bounds[0]
-        upper[-lag_columns:] = config.lag_bounds[1]
+        if lag_columns != 1:
+            raise ValueError("scientific objective has exactly one lag column")
+        lower[-1] = 0.0
+        upper[-1] = problem.strict_lag_grid.data_support_upper
     if config.solver_type == "standard_least_squares":
         return _standard_gauge_least_squares(
             evaluator,
@@ -1894,35 +1770,17 @@ def acceleration_wrench_closure(
     }
 
 
-def _lag_diagnostics(
-    lag_layout: Optional[str],
-    trace: Sequence[Mapping[str, Any]],
-) -> dict[str, Any]:
-    candidate_table: list[Mapping[str, Any]] = []
-    if trace:
-        table = trace[-1].get("candidate_table", [])
-        if isinstance(table, list):
-            candidate_table = table
-    selected = [row for row in candidate_table if bool(row.get("selected"))]
-    if candidate_table and len(selected) != 1:
-        raise RuntimeError("strict lag candidate table must select exactly once")
-    row = selected[0] if selected else {}
-    if lag_layout == "common":
-        rotor_lower = gimbal_lower = bool(row.get("at_lower_bound", False))
-        rotor_upper = gimbal_upper = bool(row.get("at_upper_bound", False))
-    else:
-        rotor_lower = bool(row.get("rotor_at_lower_bound", False))
-        rotor_upper = bool(row.get("rotor_at_upper_bound", False))
-        gimbal_lower = bool(row.get("gimbal_at_lower_bound", False))
-        gimbal_upper = bool(row.get("gimbal_at_upper_bound", False))
-    return {
-        "lag_layout": lag_layout if lag_layout is not None else "fixed_physical",
-        "candidate_table": candidate_table,
-        "rotor_at_lower_bound": rotor_lower,
-        "rotor_at_upper_bound": rotor_upper,
-        "gimbal_at_lower_bound": gimbal_lower,
-        "gimbal_at_upper_bound": gimbal_upper,
-    }
+def common_scale_quotient_basis() -> np.ndarray:
+    """Return one deterministic orthonormal basis for scale-quotient space."""
+
+    basis = null_space(COMMON_SCALE_DIRECTION.reshape(1, -1))
+    for column in range(basis.shape[1]):
+        pivot = int(np.argmax(np.abs(basis[:, column])))
+        if basis[pivot, column] < 0.0:
+            basis[:, column] *= -1.0
+    if basis.shape != (PHYSICAL_DIMENSION, PHYSICAL_DIMENSION - 1):
+        raise RuntimeError("scale quotient basis has unexpected dimension")
+    return _readonly(basis)
 
 
 def estimation_diagnostics(
@@ -1933,13 +1791,17 @@ def estimation_diagnostics(
     estimated_reference: DynamicsEvaluation,
     ridge: Mapping[str, Any],
     uncertainty: ParameterCovarianceResult,
-    lag_layout: Optional[str],
-    lag_trace: Sequence[Mapping[str, Any]],
+    strict_lag: Mapping[str, Any],
+    continuation: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Build post-fit diagnostics without feeding them back to optimization."""
 
     covariance = covariance_weighting_diagnostics(
         problem.dataset.covariance, final.acceleration_residual
+    )
+    reference_full_covariance = covariance_weighting_diagnostics(
+        problem.dataset.reference_covariance,
+        estimated_reference.acceleration_residual,
     )
     right = np.asarray(ridge["whitened_right_singular_vectors"])
     coordinate = np.asarray(final.physical_coordinate)
@@ -1970,9 +1832,18 @@ def estimation_diagnostics(
     estimated_moments, estimated_axes = np.linalg.eigh(
         np.asarray(final.parameters.inertia)
     )
-    lag = _lag_diagnostics(lag_layout, lag_trace)
+    quotient = common_scale_quotient_basis()
+    quotient_coordinate = quotient.T @ coordinate
+    quotient_jtj = (
+        quotient.T @ final.jacobian_matrix.T @ final.jacobian_matrix @ quotient
+    )
+    gimbal_error = (
+        np.asarray(problem.gimbal_replay.angle)
+        - np.asarray(problem.dataset.gimbal_sg_angle)
+    )
     return {
         "covariance": covariance,
+        "reference_full_covariance": reference_full_covariance,
         "metric_cross_evaluation": {
             "nominal": metric_cross_evaluation(nominal_reference),
             "estimated": metric_cross_evaluation(estimated_reference),
@@ -1985,7 +1856,32 @@ def estimation_diagnostics(
                 displacement_fraction
             ),
         },
-        "lag": lag,
+        "lag": dict(strict_lag),
+        "continuation": dict(continuation),
+        "gimbal": {
+            "objective_source": problem.gimbal_source,
+            "command_replay_angle": _readonly(problem.gimbal_replay.angle),
+            "command_replay_rmse_rad": _readonly(
+                np.sqrt(np.mean(gimbal_error**2, axis=0))
+            ),
+            "command_replay_max_abs_error_rad": _readonly(
+                np.max(np.abs(gimbal_error), axis=0)
+            ),
+            "command_replay_rate_limit_active_counts": dict(
+                problem.gimbal_replay.active_set_counts
+            ),
+        },
+        "quotient": {
+            "basis": quotient,
+            "coordinate": _readonly(quotient_coordinate),
+            "jtj": _readonly(quotient_jtj),
+            "covariance_naive": _readonly(
+                quotient.T @ uncertainty.naive @ quotient
+            ),
+            "covariance_overlap_corrected": _readonly(
+                quotient.T @ uncertainty.overlap_corrected @ quotient
+            ),
+        },
         "closure": closure,
         "inertia": {
             "nominal_principal_moments_kg_m2": _readonly(nominal_moments),
@@ -2018,7 +1914,7 @@ def estimation_diagnostics(
 def estimate_single_bag(
     problem: SingleBagDynamicsProblem, config: EstimatorConfig
 ) -> EstimationResult:
-    """Run smooth continuation, strict screen, then strict physical refinement."""
+    """Run one-rotor-lag continuation and exact strict-cell refinement."""
 
     started = time.perf_counter()
     stages: list[Mapping[str, Any]] = []
@@ -2028,201 +1924,238 @@ def estimate_single_bag(
         * COMMON_SCALE_DIRECTION
         / np.linalg.norm(COMMON_SCALE_DIRECTION)
     )
+    period = float(problem.dataset.rotor_history.median_period)
+    if not np.isfinite(period) or period <= 0.0:
+        raise ValueError("rotor command history has no positive median period")
+    default_initial = period * float(config.initial_rotor_lag_multiplier)
+    initial_lag = (
+        default_initial
+        if config.initial_rotor_lag is None
+        else float(config.initial_rotor_lag)
+    )
     if config.lag_mode == "zero":
-        rotor_lag = gimbal_lag = 0.0
-        lag_layout = None
+        rotor_lag = 0.0
     elif config.lag_mode == "fixed":
-        rotor_lag = float(config.fixed_rotor_lag)  # type: ignore[arg-type]
-        gimbal_lag = float(config.fixed_gimbal_lag)  # type: ignore[arg-type]
-        lag_layout = None
+        rotor_lag = (
+            period
+            if config.fixed_rotor_lag is None
+            else float(config.fixed_rotor_lag)
+        )
     else:
-        rotor_lag = float(config.initial_rotor_lag)
-        gimbal_lag = float(config.initial_gimbal_lag)
-        lag_layout = "common" if config.lag_mode == "common_estimated" else "split"
+        rotor_lag = initial_lag
+    if not 0.0 <= rotor_lag <= problem.strict_lag_grid.data_support_upper:
+        raise ValueError("initial/fixed rotor lag lies outside recorded data support")
 
     total_nfev = 0
     stage_success = True
     first_failure_stage: Optional[str] = None
     first_failure_status: Optional[str] = None
     first_failure_message: Optional[str] = None
-    lag_trace_for_final: Sequence[Mapping[str, Any]] = ()
-    if lag_layout is not None and config.lag_mode != "split_strict_only":
-        coordinate = (
-            np.concatenate((physical, np.asarray((rotor_lag,))))
-            if lag_layout == "common"
-            else np.concatenate((physical, np.asarray((rotor_lag, gimbal_lag))))
-        )
-        for width in config.smooth_width_schedule:
-            objective = _objective_from_problem(
-                problem,
-                lag_layout=lag_layout,
-                command_mode="smooth",
-                smooth_width_fraction=float(width),
-            )
+
+    def record_failure(stage: str, solved: SolverResult) -> None:
+        nonlocal stage_success, first_failure_stage
+        nonlocal first_failure_status, first_failure_message
+        stage_success = stage_success and solved.success
+        if not solved.success and first_failure_stage is None:
+            first_failure_stage = stage
+            first_failure_status = solved.status
+            first_failure_message = solved.message
+
+    continuation_epsilon: list[float] = []
+    continuation_lag: list[float] = []
+    continuation_smooth_cost: list[float] = []
+    continuation_strict_cost: list[float] = []
+    continuation_command_error: list[float] = []
+    continuation_lag_step: list[float] = []
+    continuation_physical_step: list[float] = []
+    continuation_lag_jacobian_norm: list[float] = []
+    continuation_physical: list[np.ndarray] = []
+
+    if config.lag_mode == "estimated" and config.lag_continuation_enabled:
+        coordinate = np.concatenate((physical, np.asarray((rotor_lag,))))
+        previous = coordinate.copy()
+        for stage_index, epsilon in enumerate(config.continuation_epsilon):
             solved = _solve_stage(
                 problem,
                 coordinate,
-                objective,
+                _objective_from_problem(
+                    problem, command_mode="smooth", epsilon=float(epsilon)
+                ),
                 config=config,
                 max_nfev=config.smooth_max_nfev,
-                lag_columns=1 if lag_layout == "common" else 2,
+                lag_columns=1,
             )
             total_nfev += solved.nfev
             coordinate = np.asarray(solved.coordinate).copy()
+            smooth_evaluation = problem.evaluate_physical(
+                coordinate[:14],
+                float(coordinate[14]),
+                command_mode="smooth",
+                epsilon=float(epsilon),
+            )
+            strict_evaluation = problem.evaluate_physical(
+                coordinate[:14], float(coordinate[14]), command_mode="strict"
+            )
+            command_error = float(
+                np.max(
+                    np.abs(
+                        smooth_evaluation.actuator_history.actual_thrust
+                        - strict_evaluation.actuator_history.actual_thrust
+                    )
+                )
+            )
+            continuation_epsilon.append(float(epsilon))
+            continuation_lag.append(float(coordinate[14]))
+            continuation_smooth_cost.append(float(smooth_evaluation.cost))
+            continuation_strict_cost.append(float(strict_evaluation.cost))
+            continuation_command_error.append(command_error)
+            continuation_lag_step.append(float(abs(coordinate[14] - previous[14])))
+            continuation_physical_step.append(
+                float(np.linalg.norm(coordinate[:14] - previous[:14]))
+            )
+            continuation_lag_jacobian_norm.append(
+                float(np.linalg.norm(smooth_evaluation.whitened_lag_jacobian))
+            )
+            continuation_physical.append(coordinate[:14].copy())
             stages.append(
                 {
                     "stage": "smooth_continuation",
-                    "width_fraction": float(width),
+                    "index": stage_index,
+                    "epsilon": float(epsilon),
+                    "transition_full_width_seconds": float(epsilon * period),
                     "success": solved.success,
                     "status": solved.status,
                     "message": solved.message,
                     "nfev": solved.nfev,
                     "elapsed_seconds": solved.elapsed_seconds,
+                    "rotor_lag_seconds": float(coordinate[14]),
+                    "smooth_cost": float(smooth_evaluation.cost),
+                    "strict_cost_at_same_point": float(strict_evaluation.cost),
+                    "command_max_error": command_error,
                 }
             )
-            stage_success = stage_success and solved.success
+            record_failure("smooth_continuation", solved)
+            previous = coordinate.copy()
             if not solved.success:
-                if first_failure_stage is None:
-                    first_failure_stage = "smooth_continuation"
-                    first_failure_status = solved.status
-                    first_failure_message = solved.message
                 break
-        physical = coordinate[:14]
-        if lag_layout == "common":
-            rotor_lag = gimbal_lag = float(coordinate[14])
-        else:
-            rotor_lag, gimbal_lag = float(coordinate[14]), float(coordinate[15])
+        physical = coordinate[:14].copy()
+        rotor_lag = float(coordinate[14])
 
-    if lag_layout is not None:
-        assert config.lag_bounds is not None
-        rotor_lag, gimbal_lag, screen_trace = strict_lag_screen(
-            problem,
-            physical,
-            rotor_lag,
-            gimbal_lag,
-            lag_layout=lag_layout,
-            bounds=config.lag_bounds,
-            alternations=config.strict_alternations,
+    final_smooth_lag = float(rotor_lag)
+    strict_initial_physical = physical.copy()
+    candidate_rows: list[dict[str, Any]] = []
+    final_neighbor_rows: list[dict[str, Any]] = []
+
+    if config.lag_mode == "estimated":
+        def profile_cell(cell: StrictLagCell) -> tuple[float, SolverResult]:
+            nonlocal total_nfev
+            solved = _solve_stage(
+                problem,
+                strict_initial_physical.copy(),
+                _physical_objective(problem, cell.representative),
+                config=config,
+                max_nfev=config.strict_max_nfev,
+                lag_columns=0,
+            )
+            total_nfev += solved.nfev
+            record_failure("strict_cell_physical_refinement", solved)
+            cost = 0.5 * float(solved.evaluation.residual @ solved.evaluation.residual)
+            return cost, solved
+
+        profile = local_strict_cell_descent(
+            problem.strict_lag_grid, rotor_lag, profile_cell
         )
-        lag_trace_for_final = screen_trace
+        selected_cell = profile.selected.cell
+        selected_solver = profile.selected.payload
+        physical = np.asarray(selected_solver.coordinate).copy()
+        rotor_lag = float(selected_cell.representative)
+        neighbor_indices = {item.cell.index for item in profile.final_neighbors}
+        for item in profile.evaluated:
+            solved = item.payload
+            row = {
+                "cell_index": item.cell.index,
+                "cell_lower_seconds": item.cell.lower,
+                "cell_upper_seconds": item.cell.upper,
+                "representative_seconds": item.cell.representative,
+                "strict_cost": item.cost,
+                "selected": item.cell.index == selected_cell.index,
+                "final_neighbor": item.cell.index in neighbor_indices,
+                "optimizer_success": solved.success,
+                "optimizer_status": solved.status,
+                "optimizer_message": solved.message,
+                "nfev": solved.nfev,
+            }
+            candidate_rows.append(row)
+            if row["final_neighbor"]:
+                final_neighbor_rows.append(row)
         stages.append(
             {
-                "stage": "strict_lag_screen",
-                "success": True,
-                "rotor_lag_seconds": rotor_lag,
-                "gimbal_lag_seconds": gimbal_lag,
-                "trace": screen_trace,
+                "stage": "strict_zoh_cell_refinement",
+                "success": all(
+                    item.payload.success for item in profile.evaluated
+                ),
+                "initial_lag_seconds": final_smooth_lag,
+                "selected_cell_index": selected_cell.index,
+                "selected_cell_lower_seconds": selected_cell.lower,
+                "selected_cell_upper_seconds": selected_cell.upper,
+                "selected_representative_seconds": selected_cell.representative,
+                "evaluated_cell_count": len(profile.evaluated),
+                "same_physical_initial_for_every_cell": True,
             }
         )
-    strict_iteration_limit = config.strict_alternations if lag_layout is not None else 1
-    visited_lags: set[tuple[float, float]] = set()
-    for strict_iteration in range(strict_iteration_limit):
-        pair = (round(rotor_lag, 12), round(gimbal_lag, 12))
-        if pair in visited_lags:
-            stages.append(
-                {
-                    "stage": "strict_cycle_guard",
-                    "success": True,
-                    "iteration": strict_iteration + 1,
-                    "rotor_lag_seconds": rotor_lag,
-                    "gimbal_lag_seconds": gimbal_lag,
-                }
-            )
-            break
-        visited_lags.add(pair)
-        physical_result = _solve_stage(
+    else:
+        selected_cell = problem.strict_lag_grid.containing(rotor_lag)
+        solved = _solve_stage(
             problem,
             physical,
-            _physical_objective(problem, rotor_lag, gimbal_lag),
+            _physical_objective(problem, rotor_lag),
             config=config,
             max_nfev=config.strict_max_nfev,
             lag_columns=0,
         )
-        total_nfev += physical_result.nfev
-        physical = np.asarray(physical_result.coordinate).copy()
+        total_nfev += solved.nfev
+        record_failure("strict_physical_refinement", solved)
+        physical = np.asarray(solved.coordinate).copy()
+        cost = 0.5 * float(solved.evaluation.residual @ solved.evaluation.residual)
+        candidate_rows.append(
+            {
+                "cell_index": selected_cell.index,
+                "cell_lower_seconds": selected_cell.lower,
+                "cell_upper_seconds": selected_cell.upper,
+                "representative_seconds": selected_cell.representative,
+                "evaluated_lag_seconds": rotor_lag,
+                "strict_cost": cost,
+                "selected": True,
+                "final_neighbor": False,
+                "optimizer_success": solved.success,
+                "optimizer_status": solved.status,
+                "optimizer_message": solved.message,
+                "nfev": solved.nfev,
+            }
+        )
         stages.append(
             {
                 "stage": "strict_physical_refinement",
-                "iteration": strict_iteration + 1,
-                "success": physical_result.success,
-                "status": physical_result.status,
-                "message": physical_result.message,
-                "nfev": physical_result.nfev,
-                "elapsed_seconds": physical_result.elapsed_seconds,
+                "success": solved.success,
+                "status": solved.status,
+                "message": solved.message,
+                "nfev": solved.nfev,
+                "elapsed_seconds": solved.elapsed_seconds,
                 "rotor_lag_seconds": rotor_lag,
-                "gimbal_lag_seconds": gimbal_lag,
             }
         )
-        stage_success = stage_success and physical_result.success
-        if not physical_result.success and first_failure_stage is None:
-            first_failure_stage = "strict_physical_refinement"
-            first_failure_status = physical_result.status
-            first_failure_message = physical_result.message
-        if not physical_result.success or lag_layout is None:
-            break
-        assert config.lag_bounds is not None
-        next_rotor, next_gimbal, verify_trace = strict_lag_screen(
-            problem,
-            physical,
-            rotor_lag,
-            gimbal_lag,
-            lag_layout=lag_layout,
-            bounds=config.lag_bounds,
-            alternations=1,
-        )
-        fixed_point = bool(
-            np.isclose(next_rotor, rotor_lag, rtol=0.0, atol=5.0e-13)
-            and np.isclose(next_gimbal, gimbal_lag, rtol=0.0, atol=5.0e-13)
-        )
-        stages.append(
-            {
-                "stage": "strict_post_refinement_screen",
-                "iteration": strict_iteration + 1,
-                "success": True,
-                "fixed_point": fixed_point,
-                "rotor_lag_seconds": next_rotor,
-                "gimbal_lag_seconds": next_gimbal,
-                "trace": verify_trace,
-            }
-        )
-        if fixed_point:
-            lag_trace_for_final = verify_trace
-            break
-        next_pair = (round(next_rotor, 12), round(next_gimbal, 12))
-        if next_pair in visited_lags:
-            stages.append(
-                {
-                    "stage": "strict_cycle_guard",
-                    "success": True,
-                    "iteration": strict_iteration + 1,
-                    "rejected_revisited_pair": next_pair,
-                }
-            )
-            break
-        if strict_iteration + 1 >= strict_iteration_limit:
-            stages.append(
-                {
-                    "stage": "strict_alternation_limit",
-                    "success": True,
-                    "iteration_limit": strict_iteration_limit,
-                    "unrefined_next_pair": next_pair,
-                }
-            )
-            break
-        lag_trace_for_final = verify_trace
-        rotor_lag, gimbal_lag = next_rotor, next_gimbal
+
     final = problem.evaluate_physical(
-        physical, rotor_lag, gimbal_lag, command_mode="strict"
+        physical, rotor_lag, command_mode="strict"
     )
     if not final.actuator_history.strict_final:
         raise RuntimeError("final estimator result was not evaluated with strict ZOH")
     reference = problem.evaluate_physical(
-        physical, rotor_lag, gimbal_lag, command_mode="strict", reference=True
+        physical, rotor_lag, command_mode="strict", reference=True
     )
     nominal_reference = problem.evaluate_physical(
         np.zeros(PHYSICAL_DIMENSION),
         rotor_lag,
-        gimbal_lag,
         command_mode="strict",
         reference=True,
     )
@@ -2236,6 +2169,42 @@ def estimate_single_bag(
         problem.dataset.covariance,
         COMMON_SCALE_DIRECTION,
     )
+    continuation = {
+        "epsilon": _readonly(np.asarray(continuation_epsilon)),
+        "rotor_lag_seconds": _readonly(np.asarray(continuation_lag)),
+        "smooth_cost": _readonly(np.asarray(continuation_smooth_cost)),
+        "strict_cost": _readonly(np.asarray(continuation_strict_cost)),
+        "absolute_cost_difference": _readonly(
+            np.abs(
+                np.asarray(continuation_smooth_cost)
+                - np.asarray(continuation_strict_cost)
+            )
+        ),
+        "command_max_error": _readonly(np.asarray(continuation_command_error)),
+        "rotor_lag_step": _readonly(np.asarray(continuation_lag_step)),
+        "physical_step_norm": _readonly(np.asarray(continuation_physical_step)),
+        "lag_jacobian_norm": _readonly(
+            np.asarray(continuation_lag_jacobian_norm)
+        ),
+        "physical_coordinate": _readonly(
+            np.asarray(continuation_physical).reshape(-1, PHYSICAL_DIMENSION)
+        ),
+    }
+    strict_lag = {
+        "mode": config.lag_mode,
+        "data_support_lower_seconds": 0.0,
+        "data_support_upper_seconds": problem.strict_lag_grid.data_support_upper,
+        "lag_reached_data_support_boundary": bool(
+            selected_cell.at_data_support_boundary
+        ),
+        "final_smooth_rotor_lag_seconds": final_smooth_lag,
+        "strict_lag_cell_lower_seconds": selected_cell.lower,
+        "strict_lag_cell_upper_seconds": selected_cell.upper,
+        "strict_lag_cell_representative_seconds": rotor_lag,
+        "strict_lag_cell_width_seconds": selected_cell.width,
+        "candidate_table": candidate_rows,
+        "neighbor_cells": final_neighbor_rows,
+    }
     diagnostics = estimation_diagnostics(
         problem=problem,
         final=final,
@@ -2243,8 +2212,8 @@ def estimate_single_bag(
         estimated_reference=reference,
         ridge=ridge,
         uncertainty=uncertainty,
-        lag_layout=lag_layout,
-        lag_trace=lag_trace_for_final,
+        strict_lag=strict_lag,
+        continuation=continuation,
     )
     ridge.update(diagnostics["ridge"])
     final_status = "completed" if stage_success else str(first_failure_status)
@@ -2254,7 +2223,7 @@ def estimate_single_bag(
     return EstimationResult(
         physical_coordinate=_readonly(physical),
         rotor_lag_seconds=rotor_lag,
-        gimbal_lag_seconds=gimbal_lag,
+        final_smooth_rotor_lag_seconds=final_smooth_lag,
         evaluation=final,
         reference_evaluation=reference,
         success=bool(stage_success),

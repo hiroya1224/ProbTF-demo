@@ -62,7 +62,22 @@ def synthetic_problem_parts():
         reference_covariance=reference_covariance,
         rotor_history=QuinticSmoothZoh(command_time, rotor_values),
         gimbal_history=QuinticSmoothZoh(command_time, gimbal_values),
+        gimbal_raw_time=command_time,
+        gimbal_raw_angle=gimbal_values,
+        gimbal_sg_angle=np.column_stack(
+            [
+                np.interp(time_axis, command_time, gimbal_values[:, column])
+                for column in range(4)
+            ]
+        ),
+        gimbal_linear_angle=np.column_stack(
+            [
+                np.interp(time_axis, command_time, gimbal_values[:, column])
+                for column in range(4)
+            ]
+        ),
         initial_gimbal=np.zeros(4),
+        rotor_lag_data_support_upper=float(time_axis[0] - command_time[0]),
         pose_sensor_position_in_body=np.asarray((0.03, -0.01, 0.02)),
         pose_sensor_to_body_rotation=np.eye(3),
         gyro_sensor_position_in_body=np.asarray((0.02, 0.0, 0.01)),

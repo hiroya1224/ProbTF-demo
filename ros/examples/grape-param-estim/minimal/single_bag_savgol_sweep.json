@@ -1,13 +1,11 @@
 {
-  "lag_bounds": [
-    [
-      0.0,
-      0.4
-    ]
-  ],
   "sg_window_covariance": [
     {
-      "window_seconds": 1.0,
+      "window_seconds": 0.5,
+      "covariance_mode": "identity"
+    },
+    {
+      "window_seconds": 0.5,
       "covariance_mode": "full"
     },
     {
@@ -15,7 +13,7 @@
       "covariance_mode": "identity"
     },
     {
-      "window_seconds": 1.5,
+      "window_seconds": 1.0,
       "covariance_mode": "full"
     },
     {
@@ -23,12 +21,21 @@
       "covariance_mode": "identity"
     },
     {
-      "window_seconds": 2.0,
+      "window_seconds": 1.5,
       "covariance_mode": "full"
     },
     {
       "window_seconds": 2.0,
       "covariance_mode": "identity"
+    },
+    {
+      "window_seconds": 2.0,
+      "covariance_mode": "full"
     }
+  ],
+  "lag_initial_multipliers": [
+    0.5,
+    1.0,
+    2.0
   ]
 }

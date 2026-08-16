@@ -1229,6 +1229,8 @@ def adaptive_kkt_lm(
             break
         accepted = False
         old_cost = cost
+        iteration_nfev = nfev
+        numerical_stagnation = False
         for _ in range(48):
             try:
                 step, predicted, multiplier, violation = solve_kkt_lm_step(
@@ -1238,23 +1240,51 @@ def adaptive_kkt_lm(
                     direction,
                 )
             except np.linalg.LinAlgError:
-                damping *= 10.0
+                candidate_damping = damping * 10.0
+                if not np.isfinite(candidate_damping):
+                    numerical_stagnation = True
+                    status = "numerical_stagnation"
+                    message = "LM damping overflowed before a finite KKT step"
+                    break
+                damping = candidate_damping
                 trust = max(settings.minimum_trust_radius, 0.5 * trust)
                 continue
             step_norm = float(np.linalg.norm(step))
+            step_tolerance = settings.xtol * (
+                settings.xtol + np.linalg.norm(coordinate)
+            )
+            if np.isfinite(step_norm) and step_norm <= step_tolerance:
+                success, status, message = (
+                    True,
+                    "xtol",
+                    "LM step tolerance satisfied before trial evaluation",
+                )
+                break
             if (
                 not np.isfinite(step_norm)
                 or step_norm > trust
                 or not np.isfinite(predicted)
                 or predicted <= 0.0
             ):
-                damping *= 4.0
+                candidate_damping = damping * 4.0
+                if not np.isfinite(candidate_damping):
+                    numerical_stagnation = True
+                    status = "numerical_stagnation"
+                    message = "LM damping overflowed while constructing a trial step"
+                    break
+                damping = candidate_damping
                 continue
             trial_coordinate = _project_gauge(coordinate + step, direction)
             if np.any(trial_coordinate < lower_value) or np.any(
                 trial_coordinate > upper_value
             ):
-                damping *= 4.0
+                candidate_damping = damping * 4.0
+                if not np.isfinite(candidate_damping):
+                    numerical_stagnation = True
+                    status = "numerical_stagnation"
+                    message = "LM damping overflowed after an invalid trial"
+                    break
+                damping = candidate_damping
                 trust = max(settings.minimum_trust_radius, 0.5 * trust)
                 continue
             try:
@@ -1296,7 +1326,13 @@ def adaptive_kkt_lm(
                 }
             )
             if not accepted:
-                damping *= 4.0
+                candidate_damping = damping * 4.0
+                if not np.isfinite(candidate_damping):
+                    numerical_stagnation = True
+                    status = "numerical_stagnation"
+                    message = "LM damping overflowed after a rejected trial"
+                    break
+                damping = candidate_damping
                 trust = max(settings.minimum_trust_radius, 0.5 * trust)
                 continue
             coordinate, current, cost = trial_coordinate, trial, trial_cost
@@ -1319,10 +1355,18 @@ def adaptive_kkt_lm(
             break
         if success:
             break
+        if numerical_stagnation:
+            break
         if not accepted and trust <= settings.minimum_trust_radius:
             status, message = "trust_region_collapse", "trust region collapsed"
             break
         if not accepted and nfev >= int(max_nfev):
+            break
+        if not accepted and nfev == iteration_nfev:
+            status = "numerical_stagnation"
+            message = (
+                "unable to construct a finite descent trial in 48 LM attempts"
+            )
             break
     return SolverResult(
         coordinate=_readonly(coordinate),

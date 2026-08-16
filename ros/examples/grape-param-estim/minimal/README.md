@@ -100,6 +100,10 @@ Use `--dry-run` to inspect the exact commands or `--resume-existing` to retain
 terminal per-case outputs from an interrupted fixed-ID production run.
 `GRAPE_PRIOR_ABLATION_CASE_WORKERS` controls process concurrency; numeric
 libraries default to one thread per process to prevent oversubscription.
+The production wrapper raises both optimizer evaluation safety ceilings to
+10000 while retaining tolerance-driven termination. For numerical
+investigation, override them with `GRAPE_PRIOR_ABLATION_SMOOTH_MAX_NFEV` and
+`GRAPE_PRIOR_ABLATION_STRICT_MAX_NFEV`.
 Outputs live under
 `minimal/outputs/<source-commit>/prior_ablation/<run-id>/` and include the
 resolved prior targets, source SHA256 values, separate data/prior/total

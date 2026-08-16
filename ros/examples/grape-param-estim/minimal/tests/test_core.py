@@ -89,6 +89,52 @@ class CoreTests(unittest.TestCase):
         )
         self.assertLess(abs(gauge @ result.coordinate), 1e-13)
 
+    def test_kkt_solver_bounds_non_evaluating_lm_rejections(self):
+        def evaluator(value):
+            return ObjectiveEvaluation(
+                np.asarray((value[0] - 1.0,)), np.asarray(((1.0, 0.0),))
+            )
+
+        invalid_step = (np.asarray((1.0, 0.0)), -1.0, 0.0, 0.0)
+        with patch(
+            "single_bag_savgol_core.solve_kkt_lm_step",
+            return_value=invalid_step,
+        ) as mocked_step:
+            result = adaptive_kkt_lm(
+                evaluator,
+                np.zeros(2),
+                settings=LmSettings(),
+                max_nfev=30,
+                gauge_direction=np.asarray((0.0, 1.0)),
+            )
+
+        self.assertFalse(result.success)
+        self.assertEqual(result.status, "numerical_stagnation")
+        self.assertEqual(result.nfev, 1)
+        self.assertEqual(mocked_step.call_count, 48)
+
+    def test_kkt_solver_accepts_tiny_step_as_xtol_without_trial(self):
+        def evaluator(value):
+            return ObjectiveEvaluation(
+                np.asarray((value[0] - 1.0,)), np.asarray(((1.0, 0.0),))
+            )
+
+        with patch(
+            "single_bag_savgol_core.solve_kkt_lm_step",
+            return_value=(np.zeros(2), 0.0, 0.0, 0.0),
+        ):
+            result = adaptive_kkt_lm(
+                evaluator,
+                np.zeros(2),
+                settings=LmSettings(),
+                max_nfev=30,
+                gauge_direction=np.asarray((0.0, 1.0)),
+            )
+
+        self.assertTrue(result.success)
+        self.assertEqual(result.status, "xtol")
+        self.assertEqual(result.nfev, 1)
+
     def test_standard_solver_rejects_numerically_invalid_trials(self):
         invalid_trials = []
 

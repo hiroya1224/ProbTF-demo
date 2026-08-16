@@ -53,6 +53,8 @@ manifest="${script_dir}/config/prior_ablation/nominal_pseudo_conditioning.json"
 bag_json_dir="${script_dir}/bag_jsons"
 case_workers="${GRAPE_PRIOR_ABLATION_CASE_WORKERS:-4}"
 numeric_threads="${GRAPE_PRIOR_ABLATION_NUMERIC_THREADS:-1}"
+smooth_max_nfev="${GRAPE_PRIOR_ABLATION_SMOOTH_MAX_NFEV:-10000}"
+strict_max_nfev="${GRAPE_PRIOR_ABLATION_STRICT_MAX_NFEV:-10000}"
 source_revision="$(git -C "${project_root}" rev-parse HEAD)"
 output_namespace="${script_dir}/outputs/${source_revision}/prior_ablation"
 
@@ -62,6 +64,14 @@ if [[ ! "${case_workers}" =~ ^[1-9][0-9]*$ ]]; then
 fi
 if [[ ! "${numeric_threads}" =~ ^[1-9][0-9]*$ ]]; then
   printf 'GRAPE_PRIOR_ABLATION_NUMERIC_THREADS must be a positive integer\n' >&2
+  exit 2
+fi
+if [[ ! "${smooth_max_nfev}" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'GRAPE_PRIOR_ABLATION_SMOOTH_MAX_NFEV must be a positive integer\n' >&2
+  exit 2
+fi
+if [[ ! "${strict_max_nfev}" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'GRAPE_PRIOR_ABLATION_STRICT_MAX_NFEV must be a positive integer\n' >&2
   exit 2
 fi
 
@@ -94,6 +104,8 @@ run_bag() {
     --manifest "${manifest}"
     --case-workers "${case_workers}"
     --ablation-run-id "${run_id}"
+    --smooth-max-nfev "${smooth_max_nfev}"
+    --strict-max-nfev "${strict_max_nfev}"
   )
   if [[ "${resume_existing}" == true ]]; then
     command+=(--resume-existing)

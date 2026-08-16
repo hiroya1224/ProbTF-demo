@@ -129,6 +129,7 @@ class CoreTests(unittest.TestCase):
                 settings=LmSettings(),
                 max_nfev=30,
                 gauge_direction=np.asarray((0.0, 1.0)),
+                allow_pretrial_xtol=True,
             )
 
         self.assertTrue(result.success)

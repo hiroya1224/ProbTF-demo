@@ -1188,6 +1188,7 @@ def adaptive_kkt_lm(
     gauge_direction: Optional[Sequence[float]],
     lower: Optional[Sequence[float]] = None,
     upper: Optional[Sequence[float]] = None,
+    allow_pretrial_xtol: bool = False,
 ) -> SolverResult:
     """Custom trust-region LM; damping never enters reported information."""
 
@@ -1253,7 +1254,11 @@ def adaptive_kkt_lm(
             step_tolerance = settings.xtol * (
                 settings.xtol + np.linalg.norm(coordinate)
             )
-            if np.isfinite(step_norm) and step_norm <= step_tolerance:
+            if (
+                allow_pretrial_xtol
+                and np.isfinite(step_norm)
+                and step_norm <= step_tolerance
+            ):
                 success, status, message = (
                     True,
                     "xtol",
@@ -1702,6 +1707,7 @@ def _solve_stage(
         gauge_direction=gauge if config.kkt_enabled else None,
         lower=lower,
         upper=upper,
+        allow_pretrial_xtol=problem.parameter_prior is not None,
     )
 
 

@@ -301,6 +301,7 @@ def result_payload(
             if not key.endswith("_error")
         },
         "inertia": diagnostics.get("inertia", {}),
+        "residual_wrench": diagnostics.get("residual_wrench", {}),
         "overlap_correction": {
             "cross_time_covariance_model": overlap.get(
                 "cross_time_covariance_model"
@@ -347,6 +348,9 @@ def result_payload(
             "parameter_covariance_overlap_corrected": (
                 result.uncertainty.overlap_corrected
             ),
+            "parameter_covariance_wrench_corrected": (
+                result.uncertainty.wrench_corrected
+            ),
         },
     }
     if not result.success:
@@ -377,6 +381,7 @@ def arrays_payload(
     ridge_diagnostics = diagnostics["ridge"]
     overlap = diagnostics["overlap_correction"]
     closure = diagnostics["closure"]
+    residual_wrench = result.residual_wrench_uncertainty
     lag_table = diagnostics["lag"]["candidate_table"]
     lag_rotor: list[float] = []
     lag_cost: list[float] = []
@@ -415,6 +420,70 @@ def arrays_payload(
         "modeled_wrench": np.asarray(evaluation.modeled_wrench),
         "required_wrench": np.asarray(evaluation.required_wrench),
         "raw_residual_wrench": np.asarray(evaluation.raw_residual_wrench),
+        "modeled_wrench_nominal_mass_gauge": np.asarray(
+            residual_wrench.modeled_wrench
+        ),
+        "required_wrench_nominal_mass_gauge": np.asarray(
+            residual_wrench.required_wrench
+        ),
+        "residual_wrench_nominal_mass_gauge": np.asarray(
+            residual_wrench.wrench
+        ),
+        "residual_wrench_mass_gauge_scale": np.asarray(
+            residual_wrench.mass_gauge_scale
+        ),
+        "residual_wrench_fixed_mass_kg": np.asarray(
+            residual_wrench.fixed_mass_kg
+        ),
+        "residual_wrench_centered": np.asarray(
+            residual_wrench.centered_wrench
+        ),
+        "residual_wrench_mean": np.asarray(residual_wrench.mean),
+        "residual_wrench_total_empirical_covariance": np.asarray(
+            residual_wrench.empirical_covariance
+        ),
+        "residual_wrench_total_empirical_std": np.asarray(
+            residual_wrench.empirical_std
+        ),
+        "residual_wrench_total_empirical_correlation": np.asarray(
+            residual_wrench.empirical_correlation
+        ),
+        "residual_wrench_sg_covariance_per_time": np.asarray(
+            residual_wrench.sg_covariance_per_time
+        ),
+        "residual_wrench_sg_covariance_mean": np.asarray(
+            residual_wrench.sg_covariance_mean
+        ),
+        "residual_wrench_excess_covariance_raw": np.asarray(
+            residual_wrench.excess_covariance_raw
+        ),
+        "residual_wrench_excess_covariance_raw_eigenvalues": np.asarray(
+            residual_wrench.excess_covariance_raw_eigenvalues
+        ),
+        "residual_wrench_model_discrepancy_covariance": np.asarray(
+            residual_wrench.model_discrepancy_covariance
+        ),
+        "residual_wrench_model_discrepancy_eigenvalues": np.asarray(
+            residual_wrench.model_discrepancy_eigenvalues
+        ),
+        "residual_wrench_model_discrepancy_std": np.asarray(
+            residual_wrench.model_discrepancy_std
+        ),
+        "residual_wrench_model_discrepancy_correlation": np.asarray(
+            residual_wrench.model_discrepancy_correlation
+        ),
+        "residual_acceleration_model_discrepancy_covariance": np.asarray(
+            residual_wrench.acceleration_model_discrepancy_covariance
+        ),
+        "residual_acceleration_model_discrepancy_eigenvalues": np.asarray(
+            residual_wrench.acceleration_model_discrepancy_eigenvalues
+        ),
+        "residual_acceleration_model_discrepancy_std": np.asarray(
+            residual_wrench.acceleration_model_discrepancy_std
+        ),
+        "residual_acceleration_model_discrepancy_correlation": np.asarray(
+            residual_wrench.acceleration_model_discrepancy_correlation
+        ),
         "residual_acceleration": np.asarray(evaluation.acceleration_residual),
         "whitened_residual": np.asarray(evaluation.whitened_residual),
         "raw_physical_jacobian": np.asarray(evaluation.acceleration_jacobian),
@@ -556,9 +625,24 @@ def arrays_payload(
         "quotient_covariance_overlap_corrected": np.asarray(
             quotient["covariance_overlap_corrected"]
         ),
+        "quotient_covariance_wrench_corrected": np.asarray(
+            quotient["covariance_wrench_corrected"]
+        ),
         "parameter_covariance_naive": np.asarray(result.uncertainty.naive),
         "parameter_covariance_overlap_corrected": np.asarray(
             result.uncertainty.overlap_corrected
+        ),
+        "parameter_covariance_wrench_corrected": np.asarray(
+            result.uncertainty.wrench_corrected
+        ),
+        "parameter_sandwich_middle_sg": np.asarray(
+            result.uncertainty.sandwich_middle
+        ),
+        "parameter_sandwich_middle_wrench": np.asarray(
+            result.uncertainty.sandwich_middle_wrench
+        ),
+        "parameter_sandwich_middle_total": np.asarray(
+            result.uncertainty.sandwich_middle_total
         ),
         "measured_gyro": np.asarray(dataset.measured_gyro),
         "measured_specific_force": np.asarray(dataset.measured_specific_force),
@@ -608,6 +692,149 @@ def arrays_payload(
     return arrays
 
 
+def _residual_wrench_history_figure(
+    *,
+    case_name: str,
+    time_axis: np.ndarray,
+    result: EstimationResult,
+) -> plt.Figure:
+    residual = result.residual_wrench_uncertainty
+    wrench = np.asarray(residual.wrench)
+    mean = np.asarray(residual.mean)
+    standard_deviation = np.asarray(residual.empirical_std)
+    names = ("Fx", "Fy", "Fz", "Tx", "Ty", "Tz")
+    units = ("N", "N", "N", "Nm", "Nm", "Nm")
+    figure, axes = plt.subplots(3, 2, figsize=(11.0, 9.0), sharex=True)
+    for component, axis in enumerate(axes.flat):
+        axis.plot(time_axis, wrench[:, component], lw=0.9, label="raw residual")
+        axis.axhline(mean[component], color="tab:orange", lw=1.2, label="mean")
+        axis.fill_between(
+            time_axis,
+            mean[component] - standard_deviation[component],
+            mean[component] + standard_deviation[component],
+            color="tab:orange",
+            alpha=0.18,
+            label="mean +/- 1 sigma total",
+        )
+        axis.set_ylabel("{} [{}]".format(names[component], units[component]))
+        axis.grid(True, alpha=0.3)
+    axes[0, 0].legend(loc="best", fontsize=8)
+    axes[-1, 0].set_xlabel("time [s]")
+    axes[-1, 1].set_xlabel("time [s]")
+    force_rms = float(np.sqrt(np.mean(np.sum(wrench[:, :3] ** 2, axis=1))))
+    torque_rms = float(np.sqrt(np.mean(np.sum(wrench[:, 3:] ** 2, axis=1))))
+    figure.suptitle(
+        (
+            "{}: raw Newton--Euler residual wrench (not trajectory-fitted external wrench)\n"
+            "mass gauge fixed to nominal mass = {:.9g} kg"
+        ).format(case_name, residual.fixed_mass_kg)
+    )
+    figure.text(
+        0.5,
+        0.012,
+        (
+            "vector RMS about zero: force {:.5g} N, torque {:.5g} Nm; "
+            "component std about mean: force {}, torque {}"
+        ).format(
+            force_rms,
+            torque_rms,
+            np.array2string(standard_deviation[:3], precision=4),
+            np.array2string(standard_deviation[3:], precision=4),
+        ),
+        ha="center",
+        fontsize=8,
+    )
+    figure.tight_layout(rect=(0.0, 0.045, 1.0, 0.93))
+    return figure
+
+
+def _residual_wrench_covariance_figure(
+    *, case_name: str, result: EstimationResult
+) -> plt.Figure:
+    residual = result.residual_wrench_uncertainty
+    labels = ("Fx", "Fy", "Fz", "Tx", "Ty", "Tz")
+    columns = (
+        (
+            "empirical total",
+            np.asarray(residual.empirical_covariance),
+            np.asarray(residual.empirical_correlation),
+        ),
+        (
+            "mean full-SG prediction",
+            np.asarray(residual.sg_covariance_mean),
+            np.asarray(residual.sg_correlation),
+        ),
+        (
+            "PSD excess model discrepancy",
+            np.asarray(residual.model_discrepancy_covariance),
+            np.asarray(residual.model_discrepancy_correlation),
+        ),
+    )
+    figure, axes = plt.subplots(2, 3, figsize=(12.0, 8.2))
+    for column, (title, covariance, correlation) in enumerate(columns):
+        covariance_image = axes[0, column].imshow(covariance, cmap="coolwarm")
+        correlation_image = axes[1, column].imshow(
+            correlation, cmap="coolwarm", vmin=-1.0, vmax=1.0
+        )
+        axes[0, column].set_title("{} covariance".format(title), fontsize=9)
+        axes[1, column].set_title("{} correlation".format(title), fontsize=9)
+        figure.colorbar(
+            covariance_image,
+            ax=axes[0, column],
+            fraction=0.046,
+            pad=0.04,
+            label="component-unit product",
+        )
+        figure.colorbar(
+            correlation_image,
+            ax=axes[1, column],
+            fraction=0.046,
+            pad=0.04,
+        )
+        for row in range(2):
+            axes[row, column].set_xticks(np.arange(6))
+            axes[row, column].set_yticks(np.arange(6))
+            axes[row, column].set_xticklabels(labels)
+            axes[row, column].set_yticklabels(labels)
+    figure.suptitle(
+        (
+            "{}: residual-wrench covariance decomposition in nominal-mass gauge\n"
+            "force [N], torque [Nm]; raw excess eigenvalues {}"
+        ).format(
+            case_name,
+            np.array2string(
+                residual.excess_covariance_raw_eigenvalues, precision=3
+            ),
+        )
+    )
+    figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.92))
+    return figure
+
+
+def write_residual_wrench_pdf(
+    path: Path,
+    *,
+    case_name: str,
+    dataset: SingleBagDataset,
+    result: EstimationResult,
+) -> None:
+    """Write the two-page standalone residual-wrench scientific report."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    time_axis = np.asarray(dataset.time) - float(dataset.time[0])
+    with PdfPages(path) as pdf:
+        for figure in (
+            _residual_wrench_history_figure(
+                case_name=case_name, time_axis=time_axis, result=result
+            ),
+            _residual_wrench_covariance_figure(
+                case_name=case_name, result=result
+            ),
+        ):
+            pdf.savefig(figure)
+            plt.close(figure)
+
+
 def write_report_pdf(
     path: Path,
     *,
@@ -617,7 +844,7 @@ def write_report_pdf(
     result: EstimationResult,
     replay: Optional[WrenchReplayResult],
 ) -> None:
-    """Write the ten-page measured-gimbal/one-lag diagnostic report."""
+    """Write the twelve-page measured-gimbal/one-lag diagnostic report."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     time_axis = np.asarray(dataset.time) - float(dataset.time[0])
@@ -643,7 +870,19 @@ def write_report_pdf(
         pdf.savefig(figure)
         plt.close(figure)
 
-        # Page 2 -- acceleration objective.
+        # Pages 2--3 -- first-class residual-wrench diagnostics.
+        for figure in (
+            _residual_wrench_history_figure(
+                case_name=case_name, time_axis=time_axis, result=result
+            ),
+            _residual_wrench_covariance_figure(
+                case_name=case_name, result=result
+            ),
+        ):
+            pdf.savefig(figure)
+            plt.close(figure)
+
+        # Page 4 -- acceleration objective.
         figure, axes = plt.subplots(3, 2, figsize=(11.0, 9.0), sharex=True)
         observed = np.asarray(dataset.covariance.z)
         predicted = np.column_stack(
@@ -1004,5 +1243,11 @@ def write_completed_case(
         model=model,
         result=result,
         replay=replay,
+    )
+    write_residual_wrench_pdf(
+        directory / "residual_wrench.pdf",
+        case_name=case_name,
+        dataset=dataset,
+        result=result,
     )
     return payload

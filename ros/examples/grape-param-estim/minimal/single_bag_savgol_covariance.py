@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Optional, Sequence
 
 import numpy as np
 from scipy.linalg import null_space
@@ -45,6 +45,232 @@ def _readonly(value: np.ndarray) -> np.ndarray:
 def _symmetric(value: np.ndarray) -> np.ndarray:
     array = np.asarray(value, dtype=float)
     return 0.5 * (array + array.T)
+
+
+def _covariance_std_correlation(
+    value: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return component standard deviations and a zero-safe correlation."""
+
+    covariance = _symmetric(value)
+    diagonal = np.diag(covariance)
+    scale = float(np.max(np.abs(diagonal))) if diagonal.size else 0.0
+    tolerance = max(covariance.shape) * np.finfo(float).eps * scale
+    variance = np.where(diagonal >= -tolerance, np.maximum(diagonal, 0.0), diagonal)
+    if np.any(variance < 0.0):
+        raise ValueError("covariance has a materially negative diagonal")
+    standard_deviation = np.sqrt(variance)
+    denominator = np.outer(standard_deviation, standard_deviation)
+    correlation = np.zeros_like(covariance)
+    np.divide(
+        covariance,
+        denominator,
+        out=correlation,
+        where=denominator > 0.0,
+    )
+    nonzero = standard_deviation > 0.0
+    correlation[np.diag_indices_from(correlation)] = nonzero.astype(float)
+    return _readonly(standard_deviation), _readonly(_symmetric(correlation))
+
+
+def wrench_acceleration_closure_maps(
+    mass_kg: float,
+    inertia_kg_m2: np.ndarray,
+    lever_arm_m: Sequence[float],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Build the exact acceleration-to-wrench map and its inverse."""
+
+    mass = float(mass_kg)
+    inertia = _symmetric(np.asarray(inertia_kg_m2, dtype=float))
+    lever = np.asarray(lever_arm_m, dtype=float)
+    if (
+        not np.isfinite(mass)
+        or mass <= 0.0
+        or inertia.shape != (3, 3)
+        or lever.shape != (3,)
+        or np.any(~np.isfinite(inertia))
+        or np.any(~np.isfinite(lever))
+    ):
+        raise ValueError("wrench closure-map inputs are invalid")
+    try:
+        inertia_inverse = np.linalg.inv(inertia)
+    except np.linalg.LinAlgError as error:
+        raise ValueError("wrench closure inertia must be invertible") from error
+    cross = skew(lever)
+    acceleration_to_wrench = np.zeros((6, 6), dtype=float)
+    acceleration_to_wrench[:3, :3] = mass * np.eye(3)
+    acceleration_to_wrench[:3, 3:] = mass * cross
+    acceleration_to_wrench[3:, 3:] = inertia
+    wrench_to_acceleration = np.zeros((6, 6), dtype=float)
+    wrench_to_acceleration[:3, :3] = np.eye(3) / mass
+    wrench_to_acceleration[:3, 3:] = -cross @ inertia_inverse
+    wrench_to_acceleration[3:, 3:] = inertia_inverse
+    closure = wrench_to_acceleration @ acceleration_to_wrench
+    if not np.allclose(closure, np.eye(6), rtol=3.0e-14, atol=3.0e-14):
+        raise RuntimeError("wrench closure maps are not machine-precision inverses")
+    return _readonly(acceleration_to_wrench), _readonly(wrench_to_acceleration)
+
+
+@dataclass(frozen=True)
+class ResidualWrenchUncertainty:
+    """Post-fit residual-wrench products in the nominal-mass gauge."""
+
+    mass_gauge_scale: float
+    fixed_mass_kg: float
+    modeled_wrench: np.ndarray
+    required_wrench: np.ndarray
+    wrench: np.ndarray
+    centered_wrench: np.ndarray
+    mean: np.ndarray
+    empirical_covariance: np.ndarray
+    empirical_std: np.ndarray
+    empirical_correlation: np.ndarray
+    sg_covariance_per_time: np.ndarray
+    sg_covariance_mean: np.ndarray
+    sg_std: np.ndarray
+    sg_correlation: np.ndarray
+    excess_covariance_raw: np.ndarray
+    excess_covariance_raw_eigenvalues: np.ndarray
+    appreciably_negative_raw_eigenvalues: np.ndarray
+    raw_negative_eigenvalue_tolerance: float
+    model_discrepancy_covariance: np.ndarray
+    model_discrepancy_eigenvalues: np.ndarray
+    model_discrepancy_std: np.ndarray
+    model_discrepancy_correlation: np.ndarray
+    acceleration_model_discrepancy_covariance: np.ndarray
+    acceleration_model_discrepancy_eigenvalues: np.ndarray
+    acceleration_model_discrepancy_std: np.ndarray
+    acceleration_model_discrepancy_correlation: np.ndarray
+    acceleration_to_wrench: np.ndarray
+    wrench_to_acceleration: np.ndarray
+
+
+def residual_wrench_uncertainty(
+    *,
+    raw_residual_wrench: np.ndarray,
+    modeled_wrench: np.ndarray,
+    required_wrench: np.ndarray,
+    estimated_mass_kg: float,
+    estimated_inertia_kg_m2: np.ndarray,
+    fixed_mass_kg: float,
+    lever_arm_m: Sequence[float],
+    reference_sigma_z: np.ndarray,
+) -> ResidualWrenchUncertainty:
+    """Estimate excess wrench fluctuation without feeding it into the fit.
+
+    ``reference_sigma_z`` is deliberately explicit: callers must provide the
+    full reference SG covariance, independently of the optimization metric.
+    """
+
+    raw = np.asarray(raw_residual_wrench, dtype=float)
+    modeled = np.asarray(modeled_wrench, dtype=float)
+    required = np.asarray(required_wrench, dtype=float)
+    sigma_z = np.asarray(reference_sigma_z, dtype=float)
+    estimated_mass = float(estimated_mass_kg)
+    fixed_mass = float(fixed_mass_kg)
+    inertia = np.asarray(estimated_inertia_kg_m2, dtype=float)
+    if (
+        raw.ndim != 2
+        or raw.shape[1] != 6
+        or raw.shape[0] < 2
+        or modeled.shape != raw.shape
+        or required.shape != raw.shape
+        or sigma_z.shape != (raw.shape[0], 6, 6)
+        or inertia.shape != (3, 3)
+        or any(np.any(~np.isfinite(item)) for item in (raw, modeled, required, sigma_z, inertia))
+        or not np.isfinite(estimated_mass)
+        or estimated_mass <= 0.0
+        or not np.isfinite(fixed_mass)
+        or fixed_mass <= 0.0
+    ):
+        raise ValueError("residual-wrench uncertainty inputs are invalid")
+
+    scale = fixed_mass / estimated_mass
+    fixed_inertia = scale * inertia
+    acceleration_to_wrench, wrench_to_acceleration = (
+        wrench_acceleration_closure_maps(
+            fixed_mass, fixed_inertia, lever_arm_m
+        )
+    )
+    wrench = scale * raw
+    modeled_fixed = scale * modeled
+    required_fixed = scale * required
+    mean = np.mean(wrench, axis=0)
+    centered = wrench - mean
+    empirical = _symmetric(centered.T @ centered / (wrench.shape[0] - 1))
+    empirical_std, empirical_correlation = _covariance_std_correlation(empirical)
+
+    sg_per_time = np.asarray(
+        [
+            acceleration_to_wrench @ _symmetric(item) @ acceleration_to_wrench.T
+            for item in sigma_z
+        ],
+        dtype=float,
+    )
+    sg_per_time = np.asarray([_symmetric(item) for item in sg_per_time])
+    sg_mean = _symmetric(np.mean(sg_per_time, axis=0))
+    sg_std, sg_correlation = _covariance_std_correlation(sg_mean)
+    excess_raw = _symmetric(empirical - sg_mean)
+    raw_eigenvalues, raw_eigenvectors = np.linalg.eigh(excess_raw)
+    raw_scale = max(
+        float(np.linalg.norm(empirical, ord=2)),
+        float(np.linalg.norm(sg_mean, ord=2)),
+        float(np.max(np.abs(raw_eigenvalues))),
+    )
+    raw_negative_tolerance = 6.0 * np.finfo(float).eps * raw_scale
+    appreciably_negative = raw_eigenvalues[
+        raw_eigenvalues < -raw_negative_tolerance
+    ]
+    projected_eigenvalues = np.maximum(raw_eigenvalues, 0.0)
+    model_discrepancy = _symmetric(
+        (raw_eigenvectors * projected_eigenvalues) @ raw_eigenvectors.T
+    )
+    model_std, model_correlation = _covariance_std_correlation(
+        model_discrepancy
+    )
+    acceleration_discrepancy = _symmetric(
+        wrench_to_acceleration
+        @ model_discrepancy
+        @ wrench_to_acceleration.T
+    )
+    acceleration_eigenvalues = np.linalg.eigvalsh(acceleration_discrepancy)
+    acceleration_std, acceleration_correlation = _covariance_std_correlation(
+        acceleration_discrepancy
+    )
+    return ResidualWrenchUncertainty(
+        mass_gauge_scale=scale,
+        fixed_mass_kg=fixed_mass,
+        modeled_wrench=_readonly(modeled_fixed),
+        required_wrench=_readonly(required_fixed),
+        wrench=_readonly(wrench),
+        centered_wrench=_readonly(centered),
+        mean=_readonly(mean),
+        empirical_covariance=_readonly(empirical),
+        empirical_std=empirical_std,
+        empirical_correlation=empirical_correlation,
+        sg_covariance_per_time=_readonly(sg_per_time),
+        sg_covariance_mean=_readonly(sg_mean),
+        sg_std=sg_std,
+        sg_correlation=sg_correlation,
+        excess_covariance_raw=_readonly(excess_raw),
+        excess_covariance_raw_eigenvalues=_readonly(raw_eigenvalues),
+        appreciably_negative_raw_eigenvalues=_readonly(appreciably_negative),
+        raw_negative_eigenvalue_tolerance=raw_negative_tolerance,
+        model_discrepancy_covariance=_readonly(model_discrepancy),
+        model_discrepancy_eigenvalues=_readonly(projected_eigenvalues),
+        model_discrepancy_std=model_std,
+        model_discrepancy_correlation=model_correlation,
+        acceleration_model_discrepancy_covariance=_readonly(
+            acceleration_discrepancy
+        ),
+        acceleration_model_discrepancy_eigenvalues=_readonly(
+            acceleration_eigenvalues
+        ),
+        acceleration_model_discrepancy_std=acceleration_std,
+        acceleration_model_discrepancy_correlation=acceleration_correlation,
+        acceleration_to_wrench=acceleration_to_wrench,
+        wrench_to_acceleration=wrench_to_acceleration,
+    )
 
 
 def machine_pseudoinverse_symmetric(value: np.ndarray) -> np.ndarray:
@@ -401,14 +627,18 @@ class ParameterCovarianceResult:
     naive: np.ndarray
     overlap_corrected: np.ndarray
     gauge_basis: np.ndarray
+    wrench_corrected: np.ndarray
+    sandwich_middle_wrench: np.ndarray
+    sandwich_middle_total: np.ndarray
 
 
 def parameter_covariances(
     raw_parameter_jacobian: np.ndarray,
     covariance: SgCovarianceEvaluation,
     gauge_direction: Sequence[float],
+    additional_residual_covariance: Optional[np.ndarray] = None,
 ) -> ParameterCovarianceResult:
-    """Compute naive and overlap-corrected covariance on the exact gauge section."""
+    """Compute SG and optional excess-wrench covariance on the gauge section."""
 
     jacobian = np.asarray(raw_parameter_jacobian, dtype=float)
     direction = np.asarray(gauge_direction, dtype=float)
@@ -422,9 +652,33 @@ def parameter_covariances(
     ):
         raise ValueError("parameter covariance inputs are invalid")
     weights = covariance.weight
+    additional = (
+        np.zeros((6, 6), dtype=float)
+        if additional_residual_covariance is None
+        else _symmetric(np.asarray(additional_residual_covariance, dtype=float))
+    )
+    if additional.shape != (6, 6) or np.any(~np.isfinite(additional)):
+        raise ValueError("additional residual covariance must be finite 6x6")
+    additional_eigenvalues = np.linalg.eigvalsh(additional)
+    additional_scale = (
+        float(np.max(np.abs(additional_eigenvalues)))
+        if additional_eigenvalues.size
+        else 0.0
+    )
+    additional_tolerance = 6.0 * np.finfo(float).eps * additional_scale
+    if np.any(additional_eigenvalues < -additional_tolerance):
+        raise ValueError("additional residual covariance must be PSD")
     curvature = np.zeros((dimension, dimension), dtype=float)
+    middle_wrench = np.zeros((dimension, dimension), dtype=float)
     for index in range(count):
         curvature += jacobian[index].T @ weights[index] @ jacobian[index]
+        middle_wrench += (
+            jacobian[index].T
+            @ weights[index]
+            @ additional
+            @ weights[index]
+            @ jacobian[index]
+        )
     middle = np.zeros_like(curvature)
     for first in range(count):
         # Centered windows have compact overlap.  Stop once raw index ranges
@@ -455,12 +709,20 @@ def parameter_covariances(
     overlap = basis @ (
         reduced_inverse @ reduced_middle @ reduced_inverse
     ) @ basis.T
+    middle_total = _symmetric(middle + middle_wrench)
+    reduced_total = _symmetric(basis.T @ middle_total @ basis)
+    wrench_corrected = basis @ (
+        reduced_inverse @ reduced_total @ reduced_inverse
+    ) @ basis.T
     return ParameterCovarianceResult(
         curvature=_readonly(_symmetric(curvature)),
         sandwich_middle=_readonly(_symmetric(middle)),
         naive=_readonly(_symmetric(naive)),
         overlap_corrected=_readonly(_symmetric(overlap)),
         gauge_basis=_readonly(basis),
+        wrench_corrected=_readonly(_symmetric(wrench_corrected)),
+        sandwich_middle_wrench=_readonly(_symmetric(middle_wrench)),
+        sandwich_middle_total=_readonly(middle_total),
     )
 
 

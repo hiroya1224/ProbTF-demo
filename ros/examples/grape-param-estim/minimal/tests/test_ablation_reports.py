@@ -24,13 +24,17 @@ from single_bag_savgol_core import (
     ridge_analysis,
 )
 from rotor_lag import StrictZohCellGrid, local_strict_cell_descent
-from single_bag_savgol_covariance import parameter_covariances, sum_mean_invariance
+from single_bag_savgol_covariance import (
+    parameter_covariances,
+    residual_wrench_uncertainty,
+    sum_mean_invariance,
+)
 from single_bag_savgol_reports import (
     WRENCH_LINE_STYLES,
     arrays_payload,
     output_run_directory,
     result_payload,
-    write_report_pdf,
+    write_completed_case,
 )
 from single_bag_wrench_replay import fit_external_wrench_replay
 from single_bag_cross_bag_consensus import _pairwise_distance
@@ -47,10 +51,24 @@ def _synthetic_result(dataset, model, actuator):
         COMMON_SCALE_DIRECTION,
         evaluation.acceleration_jacobian.reshape(-1, 14),
     )
+    residual_wrench = residual_wrench_uncertainty(
+        raw_residual_wrench=evaluation.raw_residual_wrench,
+        modeled_wrench=evaluation.modeled_wrench,
+        required_wrench=evaluation.required_wrench,
+        estimated_mass_kg=evaluation.parameters.mass,
+        estimated_inertia_kg_m2=evaluation.parameters.inertia,
+        fixed_mass_kg=model.parameters.mass,
+        lever_arm_m=(
+            dataset.pose_sensor_position_in_body
+            - evaluation.parameters.cog_offset
+        ),
+        reference_sigma_z=dataset.reference_covariance.local_sigma_z,
+    )
     uncertainty = parameter_covariances(
         evaluation.acceleration_jacobian,
         dataset.covariance,
         COMMON_SCALE_DIRECTION,
+        residual_wrench.acceleration_model_discrepancy_covariance,
     )
     diagnostics = estimation_diagnostics(
         problem=problem,
@@ -59,6 +77,7 @@ def _synthetic_result(dataset, model, actuator):
         estimated_reference=reference,
         ridge=ridge,
         uncertainty=uncertainty,
+        residual_wrench=residual_wrench,
         strict_lag={
             "mode": "zero",
             "data_support_lower_seconds": 0.0,
@@ -100,6 +119,7 @@ def _synthetic_result(dataset, model, actuator):
         elapsed_seconds=0.0,
         ridge=ridge,
         uncertainty=uncertainty,
+        residual_wrench_uncertainty=residual_wrench,
         diagnostics=diagnostics,
     )
 
@@ -217,6 +237,11 @@ class AblationReportTests(unittest.TestCase):
             "gimbal_raw_time",
             "lag_continuation_epsilon",
             "quotient_basis",
+            "residual_wrench_nominal_mass_gauge",
+            "residual_wrench_model_discrepancy_covariance",
+            "residual_acceleration_model_discrepancy_covariance",
+            "parameter_covariance_wrench_corrected",
+            "parameter_sandwich_middle_total",
         }
         self.assertTrue(required.issubset(arrays))
         payload = result_payload(
@@ -243,16 +268,34 @@ class AblationReportTests(unittest.TestCase):
             )
         )
         with tempfile.TemporaryDirectory() as temporary:
-            output = Path(temporary) / "report.pdf"
-            write_report_pdf(
+            output = Path(temporary)
+            write_completed_case(
                 output,
                 case_name="synthetic",
+                source_revision="abc123",
+                arguments={},
                 dataset=dataset,
                 model=model,
                 result=result,
                 replay=replay,
             )
-            self.assertTrue(output.is_file() and output.stat().st_size > 0)
+            for name in (
+                "report.pdf",
+                "residual_wrench.pdf",
+                "arrays.npz",
+                "result.json",
+            ):
+                self.assertTrue(
+                    (output / name).is_file()
+                    and (output / name).stat().st_size > 0
+                )
+            with np.load(output / "arrays.npz") as archive:
+                self.assertTrue(required.issubset(archive.files))
+            result_json = (output / "result.json").read_text()
+            self.assertIn('"residual_wrench"', result_json)
+            self.assertIn(
+                '"parameter_covariance_wrench_corrected"', result_json
+            )
         self.assertNotEqual(
             WRENCH_LINE_STYLES["raw_sg_inverse_dynamics"],
             WRENCH_LINE_STYLES["trajectory_fitted_external"],

@@ -49,9 +49,11 @@ try:  # noqa: E402
     from .single_bag_savgol_covariance import (
         COVARIANCE_MODES,
         ParameterCovarianceResult,
+        ResidualWrenchUncertainty,
         SgCovarianceEvaluation,
         build_sg_covariance,
         parameter_covariances,
+        residual_wrench_uncertainty,
     )
     from .smooth_command import QuinticSmoothZoh
 except ImportError:  # pragma: no cover - direct CLI import
@@ -69,9 +71,11 @@ except ImportError:  # pragma: no cover - direct CLI import
     from single_bag_savgol_covariance import (  # type: ignore
         COVARIANCE_MODES,
         ParameterCovarianceResult,
+        ResidualWrenchUncertainty,
         SgCovarianceEvaluation,
         build_sg_covariance,
         parameter_covariances,
+        residual_wrench_uncertainty,
     )
     from smooth_command import QuinticSmoothZoh  # type: ignore
 
@@ -1548,6 +1552,7 @@ class EstimationResult:
     elapsed_seconds: float
     ridge: Mapping[str, Any]
     uncertainty: ParameterCovarianceResult
+    residual_wrench_uncertainty: ResidualWrenchUncertainty
     diagnostics: Mapping[str, Any] = field(default_factory=dict)
     first_failure_stage: Optional[str] = None
     first_failure_status: Optional[str] = None
@@ -1791,6 +1796,7 @@ def estimation_diagnostics(
     estimated_reference: DynamicsEvaluation,
     ridge: Mapping[str, Any],
     uncertainty: ParameterCovarianceResult,
+    residual_wrench: ResidualWrenchUncertainty,
     strict_lag: Mapping[str, Any],
     continuation: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -1817,6 +1823,9 @@ def estimation_diagnostics(
     )
     overlap_variance = np.einsum(
         "ij,jk,ik->i", right, uncertainty.overlap_corrected, right
+    )
+    wrench_variance = np.einsum(
+        "ij,jk,ik->i", right, uncertainty.wrench_corrected, right
     )
     inflation = np.full_like(naive_variance, np.nan)
     np.divide(
@@ -1881,6 +1890,61 @@ def estimation_diagnostics(
             "covariance_overlap_corrected": _readonly(
                 quotient.T @ uncertainty.overlap_corrected @ quotient
             ),
+            "covariance_wrench_corrected": _readonly(
+                quotient.T @ uncertainty.wrench_corrected @ quotient
+            ),
+        },
+        "residual_wrench": {
+            "mass_gauge_scale": residual_wrench.mass_gauge_scale,
+            "fixed_mass_kg": residual_wrench.fixed_mass_kg,
+            "mean": residual_wrench.mean,
+            "empirical_covariance": residual_wrench.empirical_covariance,
+            "empirical_std": residual_wrench.empirical_std,
+            "empirical_correlation": residual_wrench.empirical_correlation,
+            "sg_covariance_mean": residual_wrench.sg_covariance_mean,
+            "sg_std": residual_wrench.sg_std,
+            "sg_correlation": residual_wrench.sg_correlation,
+            "excess_covariance_raw": residual_wrench.excess_covariance_raw,
+            "excess_covariance_raw_eigenvalues": (
+                residual_wrench.excess_covariance_raw_eigenvalues
+            ),
+            "appreciably_negative_raw_eigenvalues": (
+                residual_wrench.appreciably_negative_raw_eigenvalues
+            ),
+            "raw_negative_eigenvalue_tolerance": (
+                residual_wrench.raw_negative_eigenvalue_tolerance
+            ),
+            "model_discrepancy_covariance": (
+                residual_wrench.model_discrepancy_covariance
+            ),
+            "model_discrepancy_eigenvalues": (
+                residual_wrench.model_discrepancy_eigenvalues
+            ),
+            "model_discrepancy_std": residual_wrench.model_discrepancy_std,
+            "model_discrepancy_correlation": (
+                residual_wrench.model_discrepancy_correlation
+            ),
+            "acceleration_model_discrepancy_covariance": (
+                residual_wrench.acceleration_model_discrepancy_covariance
+            ),
+            "acceleration_model_discrepancy_eigenvalues": (
+                residual_wrench.acceleration_model_discrepancy_eigenvalues
+            ),
+            "acceleration_model_discrepancy_std": (
+                residual_wrench.acceleration_model_discrepancy_std
+            ),
+            "acceleration_model_discrepancy_correlation": (
+                residual_wrench.acceleration_model_discrepancy_correlation
+            ),
+            "closure_inverse_error_max_abs": float(
+                np.max(
+                    np.abs(
+                        residual_wrench.wrench_to_acceleration
+                        @ residual_wrench.acceleration_to_wrench
+                        - np.eye(6)
+                    )
+                )
+            ),
         },
         "closure": closure,
         "inertia": {
@@ -1903,6 +1967,9 @@ def estimation_diagnostics(
             ),
             "uncertainty_variance_overlap_in_ridge_basis": _readonly(
                 overlap_variance
+            ),
+            "uncertainty_variance_wrench_corrected_in_ridge_basis": (
+                _readonly(wrench_variance)
             ),
             "uncertainty_variance_inflation_in_ridge_basis": _readonly(
                 inflation
@@ -2164,10 +2231,26 @@ def estimate_single_bag(
         COMMON_SCALE_DIRECTION,
         final.acceleration_jacobian.reshape(-1, PHYSICAL_DIMENSION),
     )
+    postfit_residual_wrench = residual_wrench_uncertainty(
+        raw_residual_wrench=final.raw_residual_wrench,
+        modeled_wrench=final.modeled_wrench,
+        required_wrench=final.required_wrench,
+        estimated_mass_kg=final.parameters.mass,
+        estimated_inertia_kg_m2=final.parameters.inertia,
+        fixed_mass_kg=problem.model.parameters.mass,
+        lever_arm_m=(
+            np.asarray(problem.dataset.pose_sensor_position_in_body)
+            - np.asarray(final.parameters.cog_offset)
+        ),
+        reference_sigma_z=problem.dataset.reference_covariance.local_sigma_z,
+    )
     uncertainty = parameter_covariances(
         final.acceleration_jacobian,
         problem.dataset.covariance,
         COMMON_SCALE_DIRECTION,
+        additional_residual_covariance=(
+            postfit_residual_wrench.acceleration_model_discrepancy_covariance
+        ),
     )
     continuation = {
         "epsilon": _readonly(np.asarray(continuation_epsilon)),
@@ -2212,6 +2295,7 @@ def estimate_single_bag(
         estimated_reference=reference,
         ridge=ridge,
         uncertainty=uncertainty,
+        residual_wrench=postfit_residual_wrench,
         strict_lag=strict_lag,
         continuation=continuation,
     )
@@ -2234,6 +2318,7 @@ def estimate_single_bag(
         elapsed_seconds=time.perf_counter() - started,
         ridge=ridge,
         uncertainty=uncertainty,
+        residual_wrench_uncertainty=postfit_residual_wrench,
         diagnostics=diagnostics,
         first_failure_stage=first_failure_stage,
         first_failure_status=first_failure_status,

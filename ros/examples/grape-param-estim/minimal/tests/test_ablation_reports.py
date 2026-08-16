@@ -69,6 +69,7 @@ def _synthetic_result(dataset, model, actuator):
         dataset.covariance,
         COMMON_SCALE_DIRECTION,
         residual_wrench.acceleration_model_discrepancy_covariance,
+        evaluation.acceleration_residual,
     )
     diagnostics = estimation_diagnostics(
         problem=problem,
@@ -242,6 +243,15 @@ class AblationReportTests(unittest.TestCase):
             "residual_acceleration_model_discrepancy_covariance",
             "parameter_covariance_wrench_corrected",
             "parameter_sandwich_middle_total",
+            "residual_wrench_uncentered_second_moment",
+            "residual_acceleration_uncentered_second_moment",
+            "residual_acceleration_recovered_from_nominal_mass_wrench",
+            "residual_acceleration_recovery_error_from_nominal_mass_wrench",
+            "parameter_sandwich_middle_residual_uncentered",
+            "parameter_sandwich_middle_conservative_fusion",
+            "parameter_covariance_conservative_fusion",
+            "quotient_covariance_conservative_fusion",
+            "nominal_mass_gauge_force_effectiveness_std_conservative_fusion",
         }
         self.assertTrue(required.issubset(arrays))
         payload = result_payload(
@@ -295,6 +305,13 @@ class AblationReportTests(unittest.TestCase):
             self.assertIn('"residual_wrench"', result_json)
             self.assertIn(
                 '"parameter_covariance_wrench_corrected"', result_json
+            )
+            self.assertIn(
+                '"parameter_covariance_conservative_fusion"', result_json
+            )
+            self.assertIn('"conservative_fusion"', result_json)
+            self.assertIn(
+                '"sandwich_middle_residual_to_sg_trace_ratio"', result_json
             )
         self.assertNotEqual(
             WRENCH_LINE_STYLES["raw_sg_inverse_dynamics"],

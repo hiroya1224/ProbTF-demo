@@ -302,6 +302,7 @@ def result_payload(
         },
         "inertia": diagnostics.get("inertia", {}),
         "residual_wrench": diagnostics.get("residual_wrench", {}),
+        "conservative_fusion": diagnostics.get("conservative_fusion", {}),
         "overlap_correction": {
             "cross_time_covariance_model": overlap.get(
                 "cross_time_covariance_model"
@@ -351,6 +352,9 @@ def result_payload(
             "parameter_covariance_wrench_corrected": (
                 result.uncertainty.wrench_corrected
             ),
+            "parameter_covariance_conservative_fusion": (
+                result.uncertainty.conservative_fusion
+            ),
         },
     }
     if not result.success:
@@ -382,6 +386,8 @@ def arrays_payload(
     overlap = diagnostics["overlap_correction"]
     closure = diagnostics["closure"]
     residual_wrench = result.residual_wrench_uncertainty
+    conservative = diagnostics["conservative_fusion"]
+    nominal_mass = conservative["nominal_mass_gauge"]
     lag_table = diagnostics["lag"]["candidate_table"]
     lag_rotor: list[float] = []
     lag_cost: list[float] = []
@@ -439,6 +445,9 @@ def arrays_payload(
             residual_wrench.centered_wrench
         ),
         "residual_wrench_mean": np.asarray(residual_wrench.mean),
+        "residual_wrench_uncentered_second_moment": np.asarray(
+            residual_wrench.uncentered_second_moment
+        ),
         "residual_wrench_total_empirical_covariance": np.asarray(
             residual_wrench.empirical_covariance
         ),
@@ -483,6 +492,17 @@ def arrays_payload(
         ),
         "residual_acceleration_model_discrepancy_correlation": np.asarray(
             residual_wrench.acceleration_model_discrepancy_correlation
+        ),
+        "residual_acceleration_uncentered_second_moment": np.asarray(
+            conservative["residual_uncentered_second_moment"]
+        ),
+        "residual_acceleration_recovered_from_nominal_mass_wrench": np.asarray(
+            conservative["residual_recovered_from_nominal_mass_wrench"]
+        ),
+        "residual_acceleration_recovery_error_from_nominal_mass_wrench": np.asarray(
+            conservative[
+                "residual_recovery_error_from_nominal_mass_wrench"
+            ]
         ),
         "residual_acceleration": np.asarray(evaluation.acceleration_residual),
         "whitened_residual": np.asarray(evaluation.whitened_residual),
@@ -628,12 +648,18 @@ def arrays_payload(
         "quotient_covariance_wrench_corrected": np.asarray(
             quotient["covariance_wrench_corrected"]
         ),
+        "quotient_covariance_conservative_fusion": np.asarray(
+            quotient["covariance_conservative_fusion"]
+        ),
         "parameter_covariance_naive": np.asarray(result.uncertainty.naive),
         "parameter_covariance_overlap_corrected": np.asarray(
             result.uncertainty.overlap_corrected
         ),
         "parameter_covariance_wrench_corrected": np.asarray(
             result.uncertainty.wrench_corrected
+        ),
+        "parameter_covariance_conservative_fusion": np.asarray(
+            result.uncertainty.conservative_fusion
         ),
         "parameter_sandwich_middle_sg": np.asarray(
             result.uncertainty.sandwich_middle
@@ -643,6 +669,71 @@ def arrays_payload(
         ),
         "parameter_sandwich_middle_total": np.asarray(
             result.uncertainty.sandwich_middle_total
+        ),
+        "parameter_sandwich_middle_residual_uncentered": np.asarray(
+            result.uncertainty.sandwich_middle_residual_uncentered
+        ),
+        "parameter_sandwich_middle_residual_centered_time_aligned": np.asarray(
+            result.uncertainty.sandwich_middle_residual_centered_time_aligned
+        ),
+        "parameter_sandwich_middle_residual_mean_remainder": np.asarray(
+            result.uncertainty.sandwich_middle_residual_mean_remainder
+        ),
+        "parameter_sandwich_middle_conservative_fusion": np.asarray(
+            result.uncertainty.sandwich_middle_conservative_fusion
+        ),
+        "uncertainty_variance_conservative_fusion_in_ridge_basis": np.asarray(
+            conservative["variance_conservative_fusion_in_ridge_basis"]
+        ),
+        "conservative_to_overlap_variance_ratio_in_ridge_basis": np.asarray(
+            conservative[
+                "conservative_to_overlap_variance_ratio_in_ridge_basis"
+            ]
+        ),
+        "nominal_mass_gauge_covariance_overlap_corrected": np.asarray(
+            nominal_mass["covariance_overlap_corrected"]
+        ),
+        "nominal_mass_gauge_covariance_wrench_corrected": np.asarray(
+            nominal_mass["covariance_wrench_corrected"]
+        ),
+        "nominal_mass_gauge_covariance_conservative_fusion": np.asarray(
+            nominal_mass["covariance_conservative_fusion"]
+        ),
+        "nominal_mass_gauge_force_effectiveness": np.asarray(
+            nominal_mass["force_effectiveness"]
+        ),
+        "nominal_mass_gauge_force_effectiveness_std_overlap_corrected": np.asarray(
+            nominal_mass["force_effectiveness_std_overlap_corrected"]
+        ),
+        "nominal_mass_gauge_force_effectiveness_std_wrench_corrected": np.asarray(
+            nominal_mass["force_effectiveness_std_wrench_corrected"]
+        ),
+        "nominal_mass_gauge_force_effectiveness_std_conservative_fusion": np.asarray(
+            nominal_mass["force_effectiveness_std_conservative_fusion"]
+        ),
+        "nominal_mass_gauge_cog_offset": np.asarray(
+            nominal_mass["cog_offset_m"]
+        ),
+        "nominal_mass_gauge_cog_offset_std_overlap_corrected": np.asarray(
+            nominal_mass["cog_offset_std_overlap_corrected"]
+        ),
+        "nominal_mass_gauge_cog_offset_std_wrench_corrected": np.asarray(
+            nominal_mass["cog_offset_std_wrench_corrected"]
+        ),
+        "nominal_mass_gauge_cog_offset_std_conservative_fusion": np.asarray(
+            nominal_mass["cog_offset_std_conservative_fusion"]
+        ),
+        "nominal_mass_gauge_principal_inertia_moments": np.asarray(
+            nominal_mass["principal_inertia_moments_kg_m2"]
+        ),
+        "nominal_mass_gauge_principal_inertia_moments_std_overlap_corrected": np.asarray(
+            nominal_mass["principal_inertia_moments_std_overlap_corrected"]
+        ),
+        "nominal_mass_gauge_principal_inertia_moments_std_wrench_corrected": np.asarray(
+            nominal_mass["principal_inertia_moments_std_wrench_corrected"]
+        ),
+        "nominal_mass_gauge_principal_inertia_moments_std_conservative_fusion": np.asarray(
+            nominal_mass["principal_inertia_moments_std_conservative_fusion"]
         ),
         "measured_gyro": np.asarray(dataset.measured_gyro),
         "measured_specific_force": np.asarray(dataset.measured_specific_force),
@@ -835,6 +926,149 @@ def write_residual_wrench_pdf(
             plt.close(figure)
 
 
+def _conservative_fusion_figure(
+    *, case_name: str, result: EstimationResult
+) -> plt.Figure:
+    diagnostic = result.diagnostics["conservative_fusion"]
+    nominal = diagnostic["nominal_mass_gauge"]
+    overlap = np.asarray(diagnostic["variance_overlap_in_ridge_basis"])
+    wrench = np.asarray(
+        diagnostic["variance_wrench_corrected_in_ridge_basis"]
+    )
+    conservative = np.asarray(
+        diagnostic["variance_conservative_fusion_in_ridge_basis"]
+    )
+    ratio = np.asarray(
+        diagnostic["conservative_to_overlap_variance_ratio_in_ridge_basis"]
+    )
+    figure, axes = plt.subplots(2, 2, figsize=(12.0, 9.0))
+    direction = np.arange(overlap.size)
+
+    def machine_positive(value: np.ndarray) -> np.ndarray:
+        scale = float(np.max(np.abs(value))) if value.size else 0.0
+        tolerance = value.size * np.finfo(float).eps * scale
+        return np.where(value > tolerance, value, np.nan)
+
+    axes[0, 0].semilogy(
+        direction, machine_positive(overlap), "o-", label="SG overlap"
+    )
+    axes[0, 0].semilogy(
+        direction,
+        machine_positive(wrench),
+        "s--",
+        label="centered excess wrench",
+    )
+    axes[0, 0].semilogy(
+        direction,
+        machine_positive(conservative),
+        "^-",
+        label="conservative fusion",
+    )
+    axes[0, 0].set_ylabel("variance")
+    axes[0, 0].set_xlabel("local ridge direction")
+    axes[0, 0].legend(loc="best", fontsize=8)
+    axes[0, 0].grid(True, alpha=0.3)
+
+    axes[0, 1].bar(direction, ratio)
+    axes[0, 1].set_xlabel("local ridge direction")
+    axes[0, 1].set_ylabel("conservative / SG-overlap variance")
+    axes[0, 1].grid(True, alpha=0.3)
+
+    force = np.asarray(nominal["force_effectiveness"])
+    force_index = np.arange(force.size)
+    series = (
+        (
+            "SG overlap",
+            "force_effectiveness_std_overlap_corrected",
+            -0.18,
+        ),
+        (
+            "centered excess wrench",
+            "force_effectiveness_std_wrench_corrected",
+            0.0,
+        ),
+        (
+            "conservative fusion",
+            "force_effectiveness_std_conservative_fusion",
+            0.18,
+        ),
+    )
+    for label, key, offset in series:
+        axes[1, 0].errorbar(
+            force_index + offset,
+            force,
+            yerr=np.asarray(nominal[key]),
+            fmt="o",
+            capsize=3,
+            label=label,
+        )
+    axes[1, 0].set_xticks(force_index, ["f1", "f2", "f3", "f4"])
+    axes[1, 0].set_ylabel("nominal-mass force effectiveness")
+    axes[1, 0].legend(loc="best", fontsize=7)
+    axes[1, 0].grid(True, alpha=0.3)
+
+    axes[1, 1].axis("off")
+    trace_ratio = diagnostic[
+        "sandwich_middle_residual_to_sg_trace_ratio"
+    ]
+    trace_ratio_text = (
+        "{:.4g}".format(trace_ratio)
+        if np.isfinite(trace_ratio)
+        else "undefined"
+    )
+    lines = [
+        "Top three non-gauge ambiguous directions",
+        "tr(M_res) / tr(M_SG) = {}".format(trace_ratio_text),
+        "wrench-to-acceleration recovery max error = {:.3g}".format(
+            diagnostic["residual_recovery_error_max_abs"]
+        ),
+        "exact scale gauge ridge index = {} (alignment {:.6g})".format(
+            diagnostic["exact_scale_gauge_ridge_direction_index"],
+            diagnostic["exact_scale_gauge_ridge_alignment"],
+        ),
+    ]
+    for item in diagnostic["top_ambiguous_non_gauge_directions"]:
+        lines.append(
+            "\nindex {}: variance={:.4g}, ratio={:.4g}".format(
+                item["ridge_direction_index"],
+                item["conservative_variance"],
+                item["conservative_to_overlap_variance_ratio"],
+            )
+        )
+        components = item["physical_chart_components"]
+        component_lines = [
+            "{}={:+.3g}".format(label, value)
+            for label, value in components.items()
+        ]
+        for start in range(0, len(component_lines), 2):
+            lines.append("  " + "; ".join(component_lines[start : start + 2]))
+    axes[1, 1].text(
+        0.0,
+        1.0,
+        "\n".join(lines),
+        va="top",
+        family="monospace",
+        fontsize=5.6,
+    )
+    figure.suptitle("{}: Conservative fusion uncertainty".format(case_name))
+    figure.text(
+        0.5,
+        0.012,
+        (
+            "The conservative fusion covariance deliberately retains the "
+            "existing SG-overlap uncertainty and adds the uncentered empirical "
+            "residual score second moment without subtracting the SG "
+            "contribution. It is intended as a conservative fusion "
+            "distribution, not as a calibrated generative noise covariance."
+        ),
+        ha="center",
+        fontsize=6.5,
+        wrap=True,
+    )
+    figure.tight_layout(rect=(0.0, 0.045, 1.0, 0.95))
+    return figure
+
+
 def write_report_pdf(
     path: Path,
     *,
@@ -844,7 +1078,7 @@ def write_report_pdf(
     result: EstimationResult,
     replay: Optional[WrenchReplayResult],
 ) -> None:
-    """Write the twelve-page measured-gimbal/one-lag diagnostic report."""
+    """Write the thirteen-page measured-gimbal/one-lag diagnostic report."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     time_axis = np.asarray(dataset.time) - float(dataset.time[0])
@@ -1100,6 +1334,13 @@ def write_report_pdf(
             )
         )
         figure.tight_layout()
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        # Conservative fusion uncertainty (new post-fit page).
+        figure = _conservative_fusion_figure(
+            case_name=case_name, result=result
+        )
         pdf.savefig(figure)
         plt.close(figure)
 

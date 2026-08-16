@@ -125,6 +125,22 @@ COMMON_SCALE_DIRECTION = np.asarray(
     (1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0),
     dtype=float,
 )
+PHYSICAL_CHART_LABELS = (
+    "log_mass",
+    "second_moment_diag_1",
+    "second_moment_diag_2",
+    "second_moment_diag_3",
+    "second_moment_offdiag_12",
+    "second_moment_offdiag_13",
+    "second_moment_offdiag_23",
+    "cog_x",
+    "cog_y",
+    "cog_z",
+    "log_force_eff_1",
+    "log_force_eff_2",
+    "log_force_eff_3",
+    "log_force_eff_4",
+)
 ACTUATOR_ACTIVE_SET_NAMES = (
     "thrust_command_lower",
     "thrust_command_upper",
@@ -1788,6 +1804,98 @@ def common_scale_quotient_basis() -> np.ndarray:
     return _readonly(basis)
 
 
+def _covariance_component_std(covariance: np.ndarray) -> np.ndarray:
+    matrix = 0.5 * (
+        np.asarray(covariance, dtype=float)
+        + np.asarray(covariance, dtype=float).T
+    )
+    diagonal = np.diag(matrix)
+    scale = float(np.max(np.abs(diagonal))) if diagonal.size else 0.0
+    tolerance = max(matrix.shape) * np.finfo(float).eps * scale
+    if np.any(diagonal < -tolerance):
+        raise RuntimeError("physical uncertainty has negative variance")
+    return _readonly(np.sqrt(np.maximum(diagonal, 0.0)))
+
+
+def nominal_mass_gauge_uncertainty(
+    problem: SingleBagDynamicsProblem,
+    final: DynamicsEvaluation,
+    uncertainty: ParameterCovarianceResult,
+) -> dict[str, Any]:
+    """Transform chart covariance to nominal mass and physical summaries."""
+
+    coordinate = np.asarray(final.physical_coordinate)
+    transform = np.eye(PHYSICAL_DIMENSION)
+    transform[:, 0] -= COMMON_SCALE_DIRECTION
+    fixed_coordinate = coordinate - coordinate[0] * COMMON_SCALE_DIRECTION
+    fixed_parameters, fixed_jacobian = problem.chart.decode_with_jacobian(
+        fixed_coordinate
+    )
+    if not np.isclose(
+        fixed_parameters.mass,
+        problem.model.parameters.mass,
+        rtol=3.0e-15,
+        atol=3.0e-15,
+    ):
+        raise RuntimeError("nominal-mass chart transformation is inconsistent")
+    moments, axes = np.linalg.eigh(np.asarray(fixed_parameters.inertia))
+    moment_jacobian = np.empty((3, PHYSICAL_DIMENSION), dtype=float)
+    for index in range(3):
+        axis = axes[:, index]
+        moment_jacobian[index] = np.einsum(
+            "i,ijp,j->p", axis, fixed_jacobian.inertia, axis
+        )
+
+    covariance_inputs = {
+        "overlap_corrected": uncertainty.overlap_corrected,
+        "wrench_corrected": uncertainty.wrench_corrected,
+        "conservative_fusion": uncertainty.conservative_fusion,
+    }
+    result: dict[str, Any] = {
+        "transform": _readonly(transform),
+        "coordinate": _readonly(fixed_coordinate),
+        "mass_kg": float(fixed_parameters.mass),
+        "force_effectiveness": _readonly(
+            np.asarray(fixed_parameters.force_effectiveness)
+        ),
+        "cog_offset_m": _readonly(np.asarray(fixed_parameters.cog_offset)),
+        "principal_inertia_moments_kg_m2": _readonly(moments),
+    }
+    for name, covariance in covariance_inputs.items():
+        fixed_covariance = transform @ np.asarray(covariance) @ transform.T
+        fixed_covariance = 0.5 * (fixed_covariance + fixed_covariance.T)
+        if abs(float(fixed_covariance[0, 0])) > (
+            50.0
+            * np.finfo(float).eps
+            * max(float(np.max(np.abs(fixed_covariance))), np.finfo(float).tiny)
+        ):
+            raise RuntimeError("fixed-mass covariance retains mass variance")
+        force_covariance = (
+            fixed_jacobian.force_effectiveness
+            @ fixed_covariance
+            @ fixed_jacobian.force_effectiveness.T
+        )
+        cog_covariance = (
+            fixed_jacobian.cog_offset
+            @ fixed_covariance
+            @ fixed_jacobian.cog_offset.T
+        )
+        moment_covariance = (
+            moment_jacobian @ fixed_covariance @ moment_jacobian.T
+        )
+        result["covariance_{}".format(name)] = _readonly(fixed_covariance)
+        result["force_effectiveness_std_{}".format(name)] = (
+            _covariance_component_std(force_covariance)
+        )
+        result["cog_offset_std_{}".format(name)] = (
+            _covariance_component_std(cog_covariance)
+        )
+        result["principal_inertia_moments_std_{}".format(name)] = (
+            _covariance_component_std(moment_covariance)
+        )
+    return result
+
+
 def estimation_diagnostics(
     *,
     problem: SingleBagDynamicsProblem,
@@ -1827,6 +1935,20 @@ def estimation_diagnostics(
     wrench_variance = np.einsum(
         "ij,jk,ik->i", right, uncertainty.wrench_corrected, right
     )
+    conservative_variance = np.einsum(
+        "ij,jk,ik->i", right, uncertainty.conservative_fusion, right
+    )
+    conservative_ratio = np.full_like(overlap_variance, np.nan)
+    overlap_scale = float(np.max(np.abs(overlap_variance)))
+    overlap_tolerance = (
+        overlap_variance.size * np.finfo(float).eps * overlap_scale
+    )
+    np.divide(
+        conservative_variance,
+        overlap_variance,
+        out=conservative_ratio,
+        where=overlap_variance > overlap_tolerance,
+    )
     inflation = np.full_like(naive_variance, np.nan)
     np.divide(
         overlap_variance,
@@ -1845,6 +1967,91 @@ def estimation_diagnostics(
     quotient_coordinate = quotient.T @ coordinate
     quotient_jtj = (
         quotient.T @ final.jacobian_matrix.T @ final.jacobian_matrix @ quotient
+    )
+    quotient_conservative = (
+        quotient.T @ uncertainty.conservative_fusion @ quotient
+    )
+    quotient_overlap = quotient.T @ uncertainty.overlap_corrected @ quotient
+    conservative_order_eigenvalues = np.linalg.eigvalsh(
+        0.5
+        * (
+            quotient_conservative
+            - quotient_overlap
+            + (quotient_conservative - quotient_overlap).T
+        )
+    )
+    normalized_scale = COMMON_SCALE_DIRECTION / np.linalg.norm(
+        COMMON_SCALE_DIRECTION
+    )
+    scale_alignment = np.abs(right @ normalized_scale)
+    gauge_ridge_index = int(np.argmax(scale_alignment))
+    non_gauge_indices = [
+        index for index in range(right.shape[0]) if index != gauge_ridge_index
+    ]
+    top_indices = sorted(
+        non_gauge_indices,
+        key=lambda index: float(conservative_variance[index]),
+        reverse=True,
+    )[:3]
+    singular_values = np.asarray(ridge["whitened_singular_values"])
+    top_directions = []
+    for index in top_indices:
+        top_directions.append(
+            {
+                "ridge_direction_index": index,
+                "singular_value": float(singular_values[index]),
+                "conservative_variance": float(conservative_variance[index]),
+                "conservative_to_overlap_variance_ratio": float(
+                    conservative_ratio[index]
+                ),
+                "physical_chart_components": {
+                    label: float(value)
+                    for label, value in zip(PHYSICAL_CHART_LABELS, right[index])
+                },
+            }
+        )
+    residual_mean = np.mean(final.acceleration_residual, axis=0)
+    acceleration_second_moment = (
+        np.asarray(final.acceleration_residual).T
+        @ np.asarray(final.acceleration_residual)
+        / final.acceleration_residual.shape[0]
+    )
+    acceleration_second_moment = 0.5 * (
+        acceleration_second_moment + acceleration_second_moment.T
+    )
+    recovered_acceleration_residual = np.einsum(
+        "ij,nj->ni",
+        residual_wrench.wrench_to_acceleration,
+        residual_wrench.wrench,
+    )
+    acceleration_recovery_error = (
+        recovered_acceleration_residual - final.acceleration_residual
+    )
+    recovery_scale = max(
+        float(np.max(np.abs(final.acceleration_residual))), 1.0
+    )
+    recovery_tolerance = (
+        100.0 * np.finfo(float).eps * recovery_scale
+    )
+    if np.max(np.abs(acceleration_recovery_error)) > recovery_tolerance:
+        raise RuntimeError(
+            "nominal-mass residual wrench does not recover acceleration residual"
+        )
+    sg_middle_trace = float(np.trace(uncertainty.sandwich_middle))
+    residual_middle_trace = float(
+        np.trace(uncertainty.sandwich_middle_residual_uncentered)
+    )
+    trace_scale = max(abs(sg_middle_trace), abs(residual_middle_trace))
+    trace_tolerance = (
+        PHYSICAL_DIMENSION * np.finfo(float).eps * trace_scale
+    )
+    residual_to_sg_trace_ratio = (
+        residual_middle_trace / sg_middle_trace
+        if sg_middle_trace > trace_tolerance
+        else np.nan
+    )
+    nominal_mass_uncertainty = nominal_mass_gauge_uncertainty(
+        problem, final, uncertainty
     )
     gimbal_error = (
         np.asarray(problem.gimbal_replay.angle)
@@ -1893,11 +2100,17 @@ def estimation_diagnostics(
             "covariance_wrench_corrected": _readonly(
                 quotient.T @ uncertainty.wrench_corrected @ quotient
             ),
+            "covariance_conservative_fusion": _readonly(
+                quotient_conservative
+            ),
         },
         "residual_wrench": {
             "mass_gauge_scale": residual_wrench.mass_gauge_scale,
             "fixed_mass_kg": residual_wrench.fixed_mass_kg,
             "mean": residual_wrench.mean,
+            "uncentered_second_moment": (
+                residual_wrench.uncentered_second_moment
+            ),
             "empirical_covariance": residual_wrench.empirical_covariance,
             "empirical_std": residual_wrench.empirical_std,
             "empirical_correlation": residual_wrench.empirical_correlation,
@@ -1946,6 +2159,61 @@ def estimation_diagnostics(
                 )
             ),
         },
+        "conservative_fusion": {
+            "interpretation": (
+                "The conservative fusion covariance deliberately retains the "
+                "existing SG-overlap uncertainty and adds the uncentered "
+                "empirical residual score second moment without subtracting "
+                "the SG contribution. It is intended as a conservative fusion "
+                "distribution, not as a calibrated generative noise covariance."
+            ),
+            "residual_mean": _readonly(residual_mean),
+            "residual_uncentered_second_moment": _readonly(
+                acceleration_second_moment
+            ),
+            "residual_recovered_from_nominal_mass_wrench": _readonly(
+                recovered_acceleration_residual
+            ),
+            "residual_recovery_error_from_nominal_mass_wrench": _readonly(
+                acceleration_recovery_error
+            ),
+            "residual_recovery_error_max_abs": float(
+                np.max(np.abs(acceleration_recovery_error))
+            ),
+            "sandwich_middle_residual_trace": residual_middle_trace,
+            "sandwich_middle_sg_trace": sg_middle_trace,
+            "sandwich_middle_residual_to_sg_trace_ratio": (
+                residual_to_sg_trace_ratio
+            ),
+            "sandwich_middle_existing_wrench_trace": float(
+                np.trace(uncertainty.sandwich_middle_wrench)
+            ),
+            "sandwich_middle_conservative_trace": float(
+                np.trace(uncertainty.sandwich_middle_conservative_fusion)
+            ),
+            "covariance_psd_order_min_eigenvalue": float(
+                conservative_order_eigenvalues[0]
+            ),
+            "covariance_psd_order_eigenvalues": _readonly(
+                conservative_order_eigenvalues
+            ),
+            "variance_overlap_in_ridge_basis": _readonly(overlap_variance),
+            "variance_wrench_corrected_in_ridge_basis": _readonly(
+                wrench_variance
+            ),
+            "variance_conservative_fusion_in_ridge_basis": _readonly(
+                conservative_variance
+            ),
+            "conservative_to_overlap_variance_ratio_in_ridge_basis": (
+                _readonly(conservative_ratio)
+            ),
+            "exact_scale_gauge_ridge_direction_index": gauge_ridge_index,
+            "exact_scale_gauge_ridge_alignment": float(
+                scale_alignment[gauge_ridge_index]
+            ),
+            "top_ambiguous_non_gauge_directions": top_directions,
+            "nominal_mass_gauge": nominal_mass_uncertainty,
+        },
         "closure": closure,
         "inertia": {
             "nominal_principal_moments_kg_m2": _readonly(nominal_moments),
@@ -1970,6 +2238,9 @@ def estimation_diagnostics(
             ),
             "uncertainty_variance_wrench_corrected_in_ridge_basis": (
                 _readonly(wrench_variance)
+            ),
+            "uncertainty_variance_conservative_fusion_in_ridge_basis": (
+                _readonly(conservative_variance)
             ),
             "uncertainty_variance_inflation_in_ridge_basis": _readonly(
                 inflation
@@ -2251,6 +2522,7 @@ def estimate_single_bag(
         additional_residual_covariance=(
             postfit_residual_wrench.acceleration_model_discrepancy_covariance
         ),
+        uncentered_residual=final.acceleration_residual,
     )
     continuation = {
         "epsilon": _readonly(np.asarray(continuation_epsilon)),

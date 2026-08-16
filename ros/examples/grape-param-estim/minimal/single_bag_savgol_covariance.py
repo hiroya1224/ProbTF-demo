@@ -122,6 +122,7 @@ class ResidualWrenchUncertainty:
     wrench: np.ndarray
     centered_wrench: np.ndarray
     mean: np.ndarray
+    uncentered_second_moment: np.ndarray
     empirical_covariance: np.ndarray
     empirical_std: np.ndarray
     empirical_correlation: np.ndarray
@@ -197,7 +198,19 @@ def residual_wrench_uncertainty(
     required_fixed = scale * required
     mean = np.mean(wrench, axis=0)
     centered = wrench - mean
+    uncentered_second_moment = _symmetric(wrench.T @ wrench / wrench.shape[0])
     empirical = _symmetric(centered.T @ centered / (wrench.shape[0] - 1))
+    reconstructed_second_moment = (
+        (wrench.shape[0] - 1) / wrench.shape[0] * empirical
+        + np.outer(mean, mean)
+    )
+    if not np.allclose(
+        uncentered_second_moment,
+        reconstructed_second_moment,
+        rtol=3.0e-14,
+        atol=3.0e-14,
+    ):
+        raise RuntimeError("wrench second-moment decomposition is inconsistent")
     empirical_std, empirical_correlation = _covariance_std_correlation(empirical)
 
     sg_per_time = np.asarray(
@@ -245,6 +258,7 @@ def residual_wrench_uncertainty(
         wrench=_readonly(wrench),
         centered_wrench=_readonly(centered),
         mean=_readonly(mean),
+        uncentered_second_moment=_readonly(uncentered_second_moment),
         empirical_covariance=_readonly(empirical),
         empirical_std=empirical_std,
         empirical_correlation=empirical_correlation,
@@ -630,6 +644,49 @@ class ParameterCovarianceResult:
     wrench_corrected: np.ndarray
     sandwich_middle_wrench: np.ndarray
     sandwich_middle_total: np.ndarray
+    conservative_fusion: np.ndarray
+    sandwich_middle_residual_uncentered: np.ndarray
+    sandwich_middle_conservative_fusion: np.ndarray
+    sandwich_middle_residual_centered_time_aligned: np.ndarray
+    sandwich_middle_residual_mean_remainder: np.ndarray
+
+
+def residual_score_sandwich_middles(
+    raw_parameter_jacobian: np.ndarray,
+    weights: np.ndarray,
+    uncentered_residual: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Return uncentered, centered, and mean/remainder score middles."""
+
+    jacobian = np.asarray(raw_parameter_jacobian, dtype=float)
+    weight = np.asarray(weights, dtype=float)
+    residual = np.asarray(uncentered_residual, dtype=float)
+    if (
+        jacobian.ndim != 3
+        or jacobian.shape[1] != 6
+        or weight.shape != (jacobian.shape[0], 6, 6)
+        or residual.shape != (jacobian.shape[0], 6)
+        or any(np.any(~np.isfinite(item)) for item in (jacobian, weight, residual))
+    ):
+        raise ValueError("residual score sandwich inputs are invalid")
+    dimension = jacobian.shape[2]
+    mean = np.mean(residual, axis=0)
+    uncentered = np.zeros((dimension, dimension), dtype=float)
+    centered = np.zeros_like(uncentered)
+    for index in range(jacobian.shape[0]):
+        score = jacobian[index].T @ weight[index] @ residual[index]
+        centered_score = (
+            jacobian[index].T @ weight[index] @ (residual[index] - mean)
+        )
+        uncentered += np.outer(score, score)
+        centered += np.outer(centered_score, centered_score)
+    uncentered = _symmetric(uncentered)
+    centered = _symmetric(centered)
+    return (
+        _readonly(uncentered),
+        _readonly(centered),
+        _readonly(_symmetric(uncentered - centered)),
+    )
 
 
 def parameter_covariances(
@@ -637,6 +694,7 @@ def parameter_covariances(
     covariance: SgCovarianceEvaluation,
     gauge_direction: Sequence[float],
     additional_residual_covariance: Optional[np.ndarray] = None,
+    uncentered_residual: Optional[np.ndarray] = None,
 ) -> ParameterCovarianceResult:
     """Compute SG and optional excess-wrench covariance on the gauge section."""
 
@@ -652,6 +710,13 @@ def parameter_covariances(
     ):
         raise ValueError("parameter covariance inputs are invalid")
     weights = covariance.weight
+    residual = (
+        np.zeros((count, 6), dtype=float)
+        if uncentered_residual is None
+        else np.asarray(uncentered_residual, dtype=float)
+    )
+    if residual.shape != (count, 6) or np.any(~np.isfinite(residual)):
+        raise ValueError("uncentered residual must be finite Nx6")
     additional = (
         np.zeros((6, 6), dtype=float)
         if additional_residual_covariance is None
@@ -714,6 +779,18 @@ def parameter_covariances(
     wrench_corrected = basis @ (
         reduced_inverse @ reduced_total @ reduced_inverse
     ) @ basis.T
+    (
+        middle_residual,
+        middle_residual_centered,
+        middle_residual_mean_remainder,
+    ) = residual_score_sandwich_middles(jacobian, weights, residual)
+    middle_conservative = _symmetric(middle + middle_residual)
+    reduced_conservative = _symmetric(
+        basis.T @ middle_conservative @ basis
+    )
+    conservative_fusion = basis @ (
+        reduced_inverse @ reduced_conservative @ reduced_inverse
+    ) @ basis.T
     return ParameterCovarianceResult(
         curvature=_readonly(_symmetric(curvature)),
         sandwich_middle=_readonly(_symmetric(middle)),
@@ -723,6 +800,15 @@ def parameter_covariances(
         wrench_corrected=_readonly(_symmetric(wrench_corrected)),
         sandwich_middle_wrench=_readonly(_symmetric(middle_wrench)),
         sandwich_middle_total=_readonly(middle_total),
+        conservative_fusion=_readonly(_symmetric(conservative_fusion)),
+        sandwich_middle_residual_uncentered=middle_residual,
+        sandwich_middle_conservative_fusion=_readonly(middle_conservative),
+        sandwich_middle_residual_centered_time_aligned=(
+            middle_residual_centered
+        ),
+        sandwich_middle_residual_mean_remainder=(
+            middle_residual_mean_remainder
+        ),
     )
 
 

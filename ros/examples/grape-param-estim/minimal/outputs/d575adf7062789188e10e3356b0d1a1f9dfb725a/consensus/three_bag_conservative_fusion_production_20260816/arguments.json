@@ -1,0 +1,9 @@
+{
+  "case_directory": [
+    "outputs/d575adf7062789188e10e3356b0d1a1f9dfb725a/default/single_rosbag_1_conservative_fusion_production_20260816",
+    "outputs/d575adf7062789188e10e3356b0d1a1f9dfb725a/default/single_rosbag_2_conservative_fusion_production_20260816",
+    "outputs/d575adf7062789188e10e3356b0d1a1f9dfb725a/default/single_rosbag_succeeded_conservative_fusion_production_20260816"
+  ],
+  "run_id": "three_bag_conservative_fusion_production_20260816",
+  "vehicle_model": "grape_vehicle_model.json"
+}

@@ -9,6 +9,7 @@ import math
 from pathlib import Path
 import sys
 import time
+import traceback
 from typing import Any, Callable, Mapping, Optional, Sequence
 import warnings
 
@@ -52,6 +53,7 @@ try:  # noqa: E402
         ResidualWrenchUncertainty,
         SgCovarianceEvaluation,
         build_sg_covariance,
+        machine_pseudoinverse_symmetric,
         parameter_covariances,
         residual_wrench_uncertainty,
     )
@@ -74,6 +76,7 @@ except ImportError:  # pragma: no cover - direct CLI import
         ResidualWrenchUncertainty,
         SgCovarianceEvaluation,
         build_sg_covariance,
+        machine_pseudoinverse_symmetric,
         parameter_covariances,
         residual_wrench_uncertainty,
     )
@@ -742,7 +745,7 @@ class DynamicsEvaluation:
 
 
 class SingleBagDynamicsProblem:
-    """Prior-free Newton--Euler acceleration objective for exactly one bag."""
+    """Newton--Euler acceleration objective for exactly one bag."""
 
     def __init__(
         self,
@@ -751,6 +754,7 @@ class SingleBagDynamicsProblem:
         actuator_parameters: ActuatorParameters,
         *,
         gimbal_source: str = "measured_sg",
+        parameter_prior: Optional[Any] = None,
     ) -> None:
         if gimbal_source not in (
             "measured_sg",
@@ -763,6 +767,7 @@ class SingleBagDynamicsProblem:
         self.actuator_parameters = actuator_parameters
         self.gimbal_source = gimbal_source
         self.chart = SiParameterChart(model.parameters)
+        self.parameter_prior = parameter_prior
         self.strict_lag_grid = StrictZohCellGrid(
             dataset.time, dataset.rotor_history.times
         )
@@ -1051,7 +1056,34 @@ class SingleBagDynamicsProblem:
         jacobian = np.zeros((evaluation.residual_vector.size, dimension))
         jacobian[:, :14] = evaluation.jacobian_matrix
         jacobian[:, 14] = evaluation.whitened_lag_jacobian.reshape(-1)
-        return evaluation.residual_vector, jacobian, evaluation
+        if self.parameter_prior is None:
+            return evaluation.residual_vector, jacobian, evaluation
+        prior = self.parameter_prior.evaluate(self.chart, value[:14])
+        prior_jacobian = np.zeros((prior.residual.size, dimension))
+        prior_jacobian[:, :14] = prior.jacobian
+        return (
+            np.concatenate((evaluation.residual_vector, prior.residual)),
+            np.vstack((jacobian, prior_jacobian)),
+            evaluation,
+        )
+
+    def physical_residual_jacobian(
+        self, coordinate: Sequence[float], rotor_lag_seconds: float
+    ) -> tuple[np.ndarray, np.ndarray, DynamicsEvaluation]:
+        """Return strict data rows plus optional parameter-prior rows."""
+
+        value = np.asarray(coordinate, dtype=float)
+        evaluation = self.evaluate_physical(
+            value, rotor_lag_seconds, command_mode="strict"
+        )
+        if self.parameter_prior is None:
+            return evaluation.residual_vector, evaluation.jacobian_matrix, evaluation
+        prior = self.parameter_prior.evaluate(self.chart, value)
+        return (
+            np.concatenate((evaluation.residual_vector, prior.residual)),
+            np.vstack((evaluation.jacobian_matrix, prior.jacobian)),
+            evaluation,
+        )
 
 
 @dataclass(frozen=True)
@@ -1326,12 +1358,10 @@ def _physical_objective(
     rotor_lag: float,
 ) -> Callable[[np.ndarray], ObjectiveEvaluation]:
     def evaluate(coordinate: np.ndarray) -> ObjectiveEvaluation:
-        payload = problem.evaluate_physical(
-            coordinate, rotor_lag, command_mode="strict"
+        residual, jacobian, payload = problem.physical_residual_jacobian(
+            coordinate, rotor_lag
         )
-        return ObjectiveEvaluation(
-            payload.residual_vector, payload.jacobian_matrix, payload
-        )
+        return ObjectiveEvaluation(residual, jacobian, payload)
 
     return evaluate
 
@@ -1567,12 +1597,30 @@ class EstimationResult:
     total_nfev: int
     elapsed_seconds: float
     ridge: Mapping[str, Any]
-    uncertainty: ParameterCovarianceResult
-    residual_wrench_uncertainty: ResidualWrenchUncertainty
+    uncertainty: Optional[ParameterCovarianceResult]
+    residual_wrench_uncertainty: Optional[ResidualWrenchUncertainty]
     diagnostics: Mapping[str, Any] = field(default_factory=dict)
     first_failure_stage: Optional[str] = None
     first_failure_status: Optional[str] = None
     first_failure_message: Optional[str] = None
+    prior_evaluation: Optional[Any] = None
+    prior_diagnostics: Mapping[str, Any] = field(
+        default_factory=lambda: {"active": False}
+    )
+    postfit_uncertainty_status: str = "completed"
+    postfit_uncertainty_failure: Optional[Mapping[str, Any]] = None
+
+    @property
+    def optimization_status(self) -> str:
+        return "completed" if self.success else "failed"
+
+    @property
+    def overall_case_status(self) -> str:
+        if not self.success:
+            return "failed"
+        if self.postfit_uncertainty_status == "completed":
+            return "completed"
+        return "point_estimate_completed"
 
 
 def _solve_stage(
@@ -2249,6 +2297,156 @@ def estimation_diagnostics(
     }
 
 
+def _point_estimate_diagnostics(
+    *,
+    problem: SingleBagDynamicsProblem,
+    final: DynamicsEvaluation,
+    nominal_reference: DynamicsEvaluation,
+    estimated_reference: DynamicsEvaluation,
+    ridge: Mapping[str, Any],
+    strict_lag: Mapping[str, Any],
+    continuation: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build diagnostics that do not depend on post-fit uncertainty."""
+
+    coordinate = np.asarray(final.physical_coordinate)
+    right = np.asarray(ridge["whitened_right_singular_vectors"])
+    displacement = right @ coordinate
+    energy = float(coordinate @ coordinate)
+    displacement_fraction = (
+        np.zeros_like(displacement)
+        if energy == 0.0
+        else displacement**2 / energy
+    )
+    quotient = common_scale_quotient_basis()
+    gimbal_error = (
+        np.asarray(problem.gimbal_replay.angle)
+        - np.asarray(problem.dataset.gimbal_sg_angle)
+    )
+    nominal_moments, nominal_axes = np.linalg.eigh(
+        np.asarray(problem.model.parameters.inertia)
+    )
+    estimated_moments, estimated_axes = np.linalg.eigh(
+        np.asarray(final.parameters.inertia)
+    )
+    diagnostics: dict[str, Any] = {
+        "metric_cross_evaluation": {
+            "nominal": metric_cross_evaluation(nominal_reference),
+            "estimated": metric_cross_evaluation(estimated_reference),
+        },
+        "ridge": {
+            "parameter_displacement_ridge_coordinates": _readonly(
+                displacement
+            ),
+            "parameter_displacement_ridge_energy_fraction": _readonly(
+                displacement_fraction
+            ),
+        },
+        "lag": dict(strict_lag),
+        "continuation": dict(continuation),
+        "gimbal": {
+            "objective_source": problem.gimbal_source,
+            "command_replay_angle": _readonly(problem.gimbal_replay.angle),
+            "command_replay_rmse_rad": _readonly(
+                np.sqrt(np.mean(gimbal_error**2, axis=0))
+            ),
+            "command_replay_max_abs_error_rad": _readonly(
+                np.max(np.abs(gimbal_error), axis=0)
+            ),
+            "command_replay_rate_limit_active_counts": dict(
+                problem.gimbal_replay.active_set_counts
+            ),
+        },
+        "quotient": {
+            "basis": quotient,
+            "coordinate": _readonly(quotient.T @ coordinate),
+            "jtj": _readonly(
+                quotient.T
+                @ final.jacobian_matrix.T
+                @ final.jacobian_matrix
+                @ quotient
+            ),
+        },
+        "closure": acceleration_wrench_closure(problem.dataset, final),
+        "inertia": {
+            "nominal_principal_moments_kg_m2": _readonly(nominal_moments),
+            "nominal_principal_axes_body": _readonly(nominal_axes),
+            "estimated_principal_moments_kg_m2": _readonly(
+                estimated_moments
+            ),
+            "estimated_principal_axes_body": _readonly(estimated_axes),
+            "estimated_to_nominal_ratio": _readonly(
+                estimated_moments / nominal_moments
+            ),
+        },
+    }
+    try:
+        diagnostics["covariance"] = covariance_weighting_diagnostics(
+            problem.dataset.covariance, final.acceleration_residual
+        )
+        diagnostics["reference_full_covariance"] = (
+            covariance_weighting_diagnostics(
+                problem.dataset.reference_covariance,
+                estimated_reference.acceleration_residual,
+            )
+        )
+    except Exception as error:
+        diagnostics["covariance_diagnostic_failure"] = {
+            "exception_type": type(error).__name__,
+            "message": str(error),
+        }
+    return diagnostics
+
+
+def _parameter_prior_diagnostics(
+    problem: SingleBagDynamicsProblem,
+    final: DynamicsEvaluation,
+) -> tuple[Optional[Any], dict[str, Any]]:
+    prior = problem.parameter_prior
+    if prior is None:
+        return None, {"active": False}
+    evaluation = prior.evaluate(problem.chart, final.physical_coordinate)
+    data_jacobian = np.asarray(final.jacobian_matrix)
+    prior_jacobian = np.asarray(evaluation.jacobian)
+    data_information = data_jacobian.T @ data_jacobian
+    prior_information = prior_jacobian.T @ prior_jacobian
+    total_curvature = data_information + prior_information
+    quotient = common_scale_quotient_basis()
+    reduced = quotient.T @ total_curvature @ quotient
+    reduced_covariance = machine_pseudoinverse_symmetric(reduced)
+    augmented_covariance = quotient @ reduced_covariance @ quotient.T
+    augmented_covariance = 0.5 * (
+        augmented_covariance + augmented_covariance.T
+    )
+    metadata = dict(prior.metadata(evaluation))
+    metadata.update(
+        {
+            "prior_residual": evaluation.residual,
+            "prior_objective_sum": evaluation.objective,
+            "data_objective_sum": final.cost,
+            "total_objective_sum": final.cost + evaluation.objective,
+            "prior_jacobian": evaluation.jacobian,
+            "prior_information_matrix": _readonly(prior_information),
+            "data_local_curvature": _readonly(data_information),
+            "total_local_curvature": _readonly(total_curvature),
+            "prior_augmented_local_curvature": _readonly(total_curvature),
+            "parameter_covariance_prior_augmented_local_curvature": (
+                _readonly(augmented_covariance)
+            ),
+            "prior_augmented_covariance_interpretation": (
+                "local prior-augmented curvature / pseudo-posterior diagnostic"
+            ),
+            "prior_jacobian_scale_gauge_norm": float(
+                np.linalg.norm(prior_jacobian @ COMMON_SCALE_DIRECTION)
+            ),
+            "total_curvature_scale_gauge_norm": float(
+                np.linalg.norm(total_curvature @ COMMON_SCALE_DIRECTION)
+            ),
+        }
+    )
+    return evaluation, metadata
+
+
 def estimate_single_bag(
     problem: SingleBagDynamicsProblem, config: EstimatorConfig
 ) -> EstimationResult:
@@ -2334,6 +2532,13 @@ def estimate_single_bag(
             strict_evaluation = problem.evaluate_physical(
                 coordinate[:14], float(coordinate[14]), command_mode="strict"
             )
+            smooth_prior_cost = (
+                0.0
+                if problem.parameter_prior is None
+                else problem.parameter_prior.evaluate(
+                    problem.chart, coordinate[:14]
+                ).objective
+            )
             command_error = float(
                 np.max(
                     np.abs(
@@ -2368,6 +2573,11 @@ def estimate_single_bag(
                     "elapsed_seconds": solved.elapsed_seconds,
                     "rotor_lag_seconds": float(coordinate[14]),
                     "smooth_cost": float(smooth_evaluation.cost),
+                    "smooth_data_cost": float(smooth_evaluation.cost),
+                    "smooth_prior_cost": float(smooth_prior_cost),
+                    "smooth_total_cost": float(
+                        smooth_evaluation.cost + smooth_prior_cost
+                    ),
                     "strict_cost_at_same_point": float(strict_evaluation.cost),
                     "command_max_error": command_error,
                 }
@@ -2416,6 +2626,10 @@ def estimate_single_bag(
                 "cell_upper_seconds": item.cell.upper,
                 "representative_seconds": item.cell.representative,
                 "strict_cost": item.cost,
+                "strict_data_cost": float(solved.evaluation.payload.cost),
+                "strict_prior_cost": float(
+                    item.cost - solved.evaluation.payload.cost
+                ),
                 "selected": item.cell.index == selected_cell.index,
                 "final_neighbor": item.cell.index in neighbor_indices,
                 "optimizer_success": solved.success,
@@ -2463,6 +2677,10 @@ def estimate_single_bag(
                 "representative_seconds": selected_cell.representative,
                 "evaluated_lag_seconds": rotor_lag,
                 "strict_cost": cost,
+                "strict_data_cost": float(solved.evaluation.payload.cost),
+                "strict_prior_cost": float(
+                    cost - solved.evaluation.payload.cost
+                ),
                 "selected": True,
                 "final_neighbor": False,
                 "optimizer_success": solved.success,
@@ -2502,27 +2720,8 @@ def estimate_single_bag(
         COMMON_SCALE_DIRECTION,
         final.acceleration_jacobian.reshape(-1, PHYSICAL_DIMENSION),
     )
-    postfit_residual_wrench = residual_wrench_uncertainty(
-        raw_residual_wrench=final.raw_residual_wrench,
-        modeled_wrench=final.modeled_wrench,
-        required_wrench=final.required_wrench,
-        estimated_mass_kg=final.parameters.mass,
-        estimated_inertia_kg_m2=final.parameters.inertia,
-        fixed_mass_kg=problem.model.parameters.mass,
-        lever_arm_m=(
-            np.asarray(problem.dataset.pose_sensor_position_in_body)
-            - np.asarray(final.parameters.cog_offset)
-        ),
-        reference_sigma_z=problem.dataset.reference_covariance.local_sigma_z,
-    )
-    uncertainty = parameter_covariances(
-        final.acceleration_jacobian,
-        problem.dataset.covariance,
-        COMMON_SCALE_DIRECTION,
-        additional_residual_covariance=(
-            postfit_residual_wrench.acceleration_model_discrepancy_covariance
-        ),
-        uncentered_residual=final.acceleration_residual,
+    prior_evaluation, prior_diagnostics = _parameter_prior_diagnostics(
+        problem, final
     )
     continuation = {
         "epsilon": _readonly(np.asarray(continuation_epsilon)),
@@ -2560,17 +2759,69 @@ def estimate_single_bag(
         "candidate_table": candidate_rows,
         "neighbor_cells": final_neighbor_rows,
     }
-    diagnostics = estimation_diagnostics(
-        problem=problem,
-        final=final,
-        nominal_reference=nominal_reference,
-        estimated_reference=reference,
-        ridge=ridge,
-        uncertainty=uncertainty,
-        residual_wrench=postfit_residual_wrench,
-        strict_lag=strict_lag,
-        continuation=continuation,
-    )
+    postfit_status = "completed"
+    postfit_failure: Optional[dict[str, Any]] = None
+    postfit_stage = "residual_wrench_uncertainty"
+    postfit_residual_wrench: Optional[ResidualWrenchUncertainty] = None
+    uncertainty: Optional[ParameterCovarianceResult] = None
+    try:
+        postfit_residual_wrench = residual_wrench_uncertainty(
+            raw_residual_wrench=final.raw_residual_wrench,
+            modeled_wrench=final.modeled_wrench,
+            required_wrench=final.required_wrench,
+            estimated_mass_kg=final.parameters.mass,
+            estimated_inertia_kg_m2=final.parameters.inertia,
+            fixed_mass_kg=problem.model.parameters.mass,
+            lever_arm_m=(
+                np.asarray(problem.dataset.pose_sensor_position_in_body)
+                - np.asarray(final.parameters.cog_offset)
+            ),
+            reference_sigma_z=(
+                problem.dataset.reference_covariance.local_sigma_z
+            ),
+        )
+        postfit_stage = "parameter_covariance"
+        uncertainty = parameter_covariances(
+            final.acceleration_jacobian,
+            problem.dataset.covariance,
+            COMMON_SCALE_DIRECTION,
+            additional_residual_covariance=(
+                postfit_residual_wrench.acceleration_model_discrepancy_covariance
+            ),
+            uncentered_residual=final.acceleration_residual,
+        )
+        postfit_stage = "postfit_diagnostics"
+        diagnostics = estimation_diagnostics(
+            problem=problem,
+            final=final,
+            nominal_reference=nominal_reference,
+            estimated_reference=reference,
+            ridge=ridge,
+            uncertainty=uncertainty,
+            residual_wrench=postfit_residual_wrench,
+            strict_lag=strict_lag,
+            continuation=continuation,
+        )
+        diagnostics["postfit_uncertainty"] = {"status": "completed"}
+    except Exception as error:
+        postfit_status = "failed"
+        postfit_failure = {
+            "status": "failed",
+            "failure_stage": postfit_stage,
+            "exception_type": type(error).__name__,
+            "message": str(error),
+            "traceback": traceback.format_exc(),
+        }
+        diagnostics = _point_estimate_diagnostics(
+            problem=problem,
+            final=final,
+            nominal_reference=nominal_reference,
+            estimated_reference=reference,
+            ridge=ridge,
+            strict_lag=strict_lag,
+            continuation=continuation,
+        )
+        diagnostics["postfit_uncertainty"] = dict(postfit_failure)
     ridge.update(diagnostics["ridge"])
     final_status = "completed" if stage_success else str(first_failure_status)
     final_message = (
@@ -2595,4 +2846,8 @@ def estimate_single_bag(
         first_failure_stage=first_failure_stage,
         first_failure_status=first_failure_status,
         first_failure_message=first_failure_message,
+        prior_evaluation=prior_evaluation,
+        prior_diagnostics=prior_diagnostics,
+        postfit_uncertainty_status=postfit_status,
+        postfit_uncertainty_failure=postfit_failure,
     )

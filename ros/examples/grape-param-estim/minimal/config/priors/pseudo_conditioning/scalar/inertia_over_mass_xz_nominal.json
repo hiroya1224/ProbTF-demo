@@ -1,0 +1,7 @@
+{
+  "schema": "grape-param-estim/parameter-prior/v1",
+  "name": "pseudo_condition_inertia_over_mass_xz_nominal",
+  "description": "Intentionally tight artificial standard deviation for an ablation-style pseudo-conditioning experiment; not a calibrated physical uncertainty.",
+  "role": "pseudo_conditioning_ablation",
+  "factors": [{"name": "inertia_over_mass_xz_nominal", "quantity": "inertia_over_mass_m2", "components": ["xz"], "target": {"source": "vehicle_model_nominal"}, "std": [1e-6]}]
+}

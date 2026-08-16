@@ -284,9 +284,17 @@ def result_payload(
     closure = diagnostics.get("closure", {})
     overlap = diagnostics.get("overlap_correction", {})
     diagnostic_payload = {
-        "covariance": _covariance_summary(covariance),
-        "reference_full_covariance": _covariance_summary(
-            diagnostics.get("reference_full_covariance", covariance)
+        "covariance": (
+            _covariance_summary(covariance)
+            if covariance
+            else {"available": False}
+        ),
+        "reference_full_covariance": (
+            _covariance_summary(
+                diagnostics.get("reference_full_covariance", covariance)
+            )
+            if diagnostics.get("reference_full_covariance", covariance)
+            else {"available": False}
         ),
         "metric_cross_evaluation": diagnostics.get(
             "metric_cross_evaluation", {}
@@ -320,9 +328,15 @@ def result_payload(
                 "uncertainty_variance_inflation_in_ridge_basis"
             ),
         },
+        "postfit_uncertainty": diagnostics.get(
+            "postfit_uncertainty", {"status": "unknown"}
+        ),
     }
     payload = {
-        "status": "completed" if result.success else "failed",
+        "status": result.overall_case_status,
+        "overall_case_status": result.overall_case_status,
+        "optimization_status": result.optimization_status,
+        "postfit_uncertainty_status": result.postfit_uncertainty_status,
         "case_name": case_name,
         "source_commit": source_revision,
         "base_plan_commit": BASE_PLAN_COMMIT,
@@ -345,18 +359,39 @@ def result_payload(
             if key not in ("raw_whitened_jacobian", "raw_acceleration_jacobian")
         },
         "uncertainty": {
-            "parameter_covariance_naive": result.uncertainty.naive,
-            "parameter_covariance_overlap_corrected": (
-                result.uncertainty.overlap_corrected
+            "available": result.uncertainty is not None,
+        },
+        "prior": result.prior_diagnostics,
+        "optimization_objective": {
+            "data_objective_sum": result.evaluation.cost,
+            "prior_objective_sum": result.prior_diagnostics.get(
+                "prior_objective_sum", 0.0
             ),
-            "parameter_covariance_wrench_corrected": (
-                result.uncertainty.wrench_corrected
-            ),
-            "parameter_covariance_conservative_fusion": (
-                result.uncertainty.conservative_fusion
+            "total_objective_sum": (
+                result.evaluation.cost
+                + result.prior_diagnostics.get("prior_objective_sum", 0.0)
             ),
         },
     }
+    if result.uncertainty is not None:
+        payload["uncertainty"].update(
+            {
+                "parameter_covariance_naive": result.uncertainty.naive,
+                "parameter_covariance_overlap_corrected": (
+                    result.uncertainty.overlap_corrected
+                ),
+                "parameter_covariance_wrench_corrected": (
+                    result.uncertainty.wrench_corrected
+                ),
+                "parameter_covariance_conservative_fusion": (
+                    result.uncertainty.conservative_fusion
+                ),
+            }
+        )
+    else:
+        payload["uncertainty"]["failure"] = (
+            result.postfit_uncertainty_failure
+        )
     if not result.success:
         payload.update(
             {
@@ -368,7 +403,88 @@ def result_payload(
                 "first_failure_message": result.first_failure_message,
             }
         )
+    elif result.postfit_uncertainty_status != "completed":
+        payload["postfit_uncertainty_failure"] = (
+            result.postfit_uncertainty_failure
+        )
     return payload
+
+
+def _prior_arrays(result: EstimationResult) -> dict[str, np.ndarray]:
+    prior = result.prior_diagnostics
+    if not prior.get("active", False):
+        return {"prior_active": np.asarray(False)}
+    return {
+        "prior_active": np.asarray(True),
+        "prior_residual": np.asarray(prior["prior_residual"]),
+        "prior_jacobian": np.asarray(prior["prior_jacobian"]),
+        "prior_information_matrix": np.asarray(
+            prior["prior_information_matrix"]
+        ),
+        "prior_augmented_local_curvature": np.asarray(
+            prior["prior_augmented_local_curvature"]
+        ),
+        "parameter_covariance_prior_augmented_local_curvature": np.asarray(
+            prior[
+                "parameter_covariance_prior_augmented_local_curvature"
+            ]
+        ),
+    }
+
+
+def _point_estimate_arrays_payload(
+    dataset: SingleBagDataset,
+    result: EstimationResult,
+    replay: Optional[WrenchReplayResult],
+) -> dict[str, np.ndarray]:
+    evaluation = result.evaluation
+    arrays: dict[str, np.ndarray] = {
+        "sg_time": np.asarray(dataset.time),
+        "physical_coordinate": np.asarray(result.physical_coordinate),
+        "rotor_lag_seconds": np.asarray(result.rotor_lag_seconds),
+        "residual_acceleration": np.asarray(
+            evaluation.acceleration_residual
+        ),
+        "whitened_residual": np.asarray(evaluation.whitened_residual),
+        "raw_physical_jacobian": np.asarray(
+            evaluation.acceleration_jacobian
+        ),
+        "whitened_physical_jacobian": np.asarray(
+            evaluation.whitened_jacobian
+        ),
+        "modeled_wrench": np.asarray(evaluation.modeled_wrench),
+        "required_wrench": np.asarray(evaluation.required_wrench),
+        "raw_residual_wrench": np.asarray(
+            evaluation.raw_residual_wrench
+        ),
+        "predicted_specific_acceleration": np.asarray(
+            evaluation.predicted_specific_acceleration
+        ),
+        "predicted_angular_acceleration": np.asarray(
+            evaluation.predicted_angular_acceleration
+        ),
+        "actual_thrust_history": np.asarray(
+            evaluation.actuator_history.actual_thrust
+        ),
+        "actual_gimbal_history": np.asarray(
+            evaluation.actuator_history.actual_gimbal
+        ),
+        "quotient_basis": np.asarray(
+            result.diagnostics["quotient"]["basis"]
+        ),
+        "quotient_coordinate": np.asarray(
+            result.diagnostics["quotient"]["coordinate"]
+        ),
+        "quotient_jtj": np.asarray(
+            result.diagnostics["quotient"]["jtj"]
+        ),
+    }
+    arrays.update(_prior_arrays(result))
+    if replay is not None:
+        arrays["fitted_external_wrench"] = np.asarray(
+            replay.fitted_external_wrench
+        )
+    return arrays
 
 
 def arrays_payload(
@@ -376,6 +492,12 @@ def arrays_payload(
     result: EstimationResult,
     replay: Optional[WrenchReplayResult],
 ) -> dict[str, np.ndarray]:
+    if (
+        result.postfit_uncertainty_status != "completed"
+        or result.uncertainty is None
+        or result.residual_wrench_uncertainty is None
+    ):
+        return _point_estimate_arrays_payload(dataset, result, replay)
     sg = dataset.sg
     covariance = dataset.covariance
     evaluation = result.evaluation
@@ -780,6 +902,7 @@ def arrays_payload(
                 ),
             }
         )
+    arrays.update(_prior_arrays(result))
     return arrays
 
 
@@ -911,6 +1034,8 @@ def write_residual_wrench_pdf(
 ) -> None:
     """Write the two-page standalone residual-wrench scientific report."""
 
+    if result.residual_wrench_uncertainty is None:
+        raise ValueError("residual-wrench report is unavailable after post-fit failure")
     path.parent.mkdir(parents=True, exist_ok=True)
     time_axis = np.asarray(dataset.time) - float(dataset.time[0])
     with PdfPages(path) as pdf:
@@ -1069,6 +1194,175 @@ def _conservative_fusion_figure(
     return figure
 
 
+def _prior_figure(
+    *, case_name: str, result: EstimationResult
+) -> plt.Figure:
+    prior = result.prior_diagnostics
+    figure = plt.figure(figsize=(11.0, 8.5))
+    axis = figure.add_subplot(111)
+    axis.axis("off")
+    lines = [
+        "Optional physical parameter prior",
+        "",
+        "The parameter prior is optional external information. The default estimator is prior-free.",
+        "name: {}".format(prior.get("name")),
+        "role: {}".format(prior.get("role")),
+        "source: {}".format(prior.get("source_path")),
+        "SHA256: {}".format(prior.get("source_sha256")),
+        "",
+        "data objective:  {:.12g}".format(
+            prior.get("data_objective_sum", result.evaluation.cost)
+        ),
+        "prior objective: {:.12g}".format(
+            prior.get("prior_objective_sum", 0.0)
+        ),
+        "total objective: {:.12g}".format(
+            prior.get("total_objective_sum", result.evaluation.cost)
+        ),
+        "",
+    ]
+    if prior.get("role") == "pseudo_conditioning_ablation":
+        lines.extend(
+            (
+                "This configuration uses an intentionally tight artificial standard deviation",
+                "for an ablation-style pseudo-conditioning experiment; it is not a calibrated",
+                "physical uncertainty.",
+                "",
+            )
+        )
+    resolved_by_name = {
+        factor["name"]: factor
+        for factor in prior.get("resolved_factors", [])
+    }
+    for factor in prior.get("factor_evaluations", []):
+        resolved = resolved_by_name.get(factor["factor_name"], {})
+        lines.extend(
+            (
+                "factor: {} ({})".format(
+                    factor["factor_name"], factor["quantity"]
+                ),
+                "  components: {}".format(", ".join(factor["components"])),
+                "  target: {}".format(
+                    np.array2string(np.asarray(factor["physical_target"]), precision=8)
+                ),
+                "  std:    {}".format(
+                    np.array2string(
+                        np.asarray(resolved.get("std", [])), precision=8
+                    )
+                ),
+                "  final:  {}".format(
+                    np.array2string(np.asarray(factor["physical_value"]), precision=8)
+                ),
+                "  error:  {}".format(
+                    np.array2string(np.asarray(factor["physical_error"]), precision=8)
+                ),
+                "  standardized residual: {}".format(
+                    np.array2string(
+                        np.asarray(factor["standardized_residual"]), precision=8
+                    )
+                ),
+                "  factor objective: {:.12g}".format(
+                    factor["factor_objective"]
+                ),
+                "",
+            )
+        )
+    axis.text(
+        0.03,
+        0.97,
+        "\n".join(lines),
+        va="top",
+        family="monospace",
+        fontsize=8,
+    )
+    figure.suptitle("{}: optional parameter-prior audit".format(case_name))
+    return figure
+
+
+def _write_point_estimate_report_pdf(
+    path: Path,
+    *,
+    case_name: str,
+    dataset: SingleBagDataset,
+    model: VehicleModelInput,
+    result: EstimationResult,
+) -> None:
+    """Write a truthful report when optimization succeeded but post-fit failed."""
+
+    time_axis = np.asarray(dataset.time) - float(dataset.time[0])
+    with PdfPages(path) as pdf:
+        figure, axes = plt.subplots(3, 2, figsize=(11.0, 9.0), sharex=True)
+        residual = np.asarray(result.evaluation.acceleration_residual)
+        for index, axis in enumerate(axes.flat):
+            axis.plot(time_axis, residual[:, index])
+            axis.set_ylabel(("s_x", "s_y", "s_z", "a_x", "a_y", "a_z")[index])
+            axis.grid(True, alpha=0.3)
+        axes[-1, 0].set_xlabel("time [s]")
+        axes[-1, 1].set_xlabel("time [s]")
+        figure.suptitle("{}: preserved final data residual".format(case_name))
+        figure.tight_layout()
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        figure = plt.figure(figsize=(11.0, 8.5))
+        axis = figure.add_subplot(111)
+        axis.axis("off")
+        estimated = result.evaluation.parameters
+        lines = [
+            "optimization_status: {}".format(result.optimization_status),
+            "postfit_uncertainty_status: {}".format(
+                result.postfit_uncertainty_status
+            ),
+            "rotor lag [s]: {:.12g}".format(result.rotor_lag_seconds),
+            "data objective: {:.12g}".format(result.evaluation.cost),
+            "",
+            "mass [kg]: {:.12g}".format(estimated.mass),
+            "CoG [m]: {}".format(
+                np.array2string(np.asarray(estimated.cog_offset), precision=8)
+            ),
+            "force effectiveness: {}".format(
+                np.array2string(
+                    np.asarray(estimated.force_effectiveness), precision=8
+                )
+            ),
+            "J/m [m^2]:",
+            np.array2string(
+                np.asarray(estimated.inertia) / estimated.mass, precision=8
+            ),
+        ]
+        axis.text(0.03, 0.97, "\n".join(lines), va="top", family="monospace", fontsize=9)
+        figure.suptitle("{}: preserved strict point estimate".format(case_name))
+        pdf.savefig(figure)
+        plt.close(figure)
+
+        if result.prior_diagnostics.get("active", False):
+            figure = _prior_figure(case_name=case_name, result=result)
+            pdf.savefig(figure)
+            plt.close(figure)
+
+        figure = plt.figure(figsize=(11.0, 8.5))
+        axis = figure.add_subplot(111)
+        axis.axis("off")
+        failure = result.postfit_uncertainty_failure or {}
+        axis.text(
+            0.03,
+            0.97,
+            "post-fit uncertainty unavailable\n\n"
+            "stage: {}\nexception: {}\nmessage: {}\n\n"
+            "No covariance was fabricated and the closure tolerance was not relaxed.".format(
+                failure.get("failure_stage"),
+                failure.get("exception_type"),
+                failure.get("message"),
+            ),
+            va="top",
+            family="monospace",
+            fontsize=9,
+        )
+        figure.suptitle("{}: post-fit diagnostic failure".format(case_name))
+        pdf.savefig(figure)
+        plt.close(figure)
+
+
 def write_report_pdf(
     path: Path,
     *,
@@ -1078,9 +1372,18 @@ def write_report_pdf(
     result: EstimationResult,
     replay: Optional[WrenchReplayResult],
 ) -> None:
-    """Write the thirteen-page measured-gimbal/one-lag diagnostic report."""
+    """Write the ordinary diagnostic report and optional prior audit."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
+    if result.postfit_uncertainty_status != "completed":
+        _write_point_estimate_report_pdf(
+            path,
+            case_name=case_name,
+            dataset=dataset,
+            model=model,
+            result=result,
+        )
+        return
     time_axis = np.asarray(dataset.time) - float(dataset.time[0])
     labels = "xyz"
     with PdfPages(path) as pdf:
@@ -1400,6 +1703,12 @@ def write_report_pdf(
         pdf.savefig(figure)
         plt.close(figure)
 
+        # Optional final page -- resolved targets and attained residuals.
+        if result.prior_diagnostics.get("active", False):
+            figure = _prior_figure(case_name=case_name, result=result)
+            pdf.savefig(figure)
+            plt.close(figure)
+
 
 def write_failure_report_pdf(
     path: Path,
@@ -1448,6 +1757,9 @@ def write_completed_case(
     )
     status = {
         "status": payload["status"],
+        "overall_case_status": result.overall_case_status,
+        "optimization_status": result.optimization_status,
+        "postfit_uncertainty_status": result.postfit_uncertainty_status,
         "case_name": case_name,
         "source_commit": source_revision,
         "base_plan_commit": BASE_PLAN_COMMIT,
@@ -1463,6 +1775,16 @@ def write_completed_case(
                 "first_failure_stage": result.first_failure_stage,
                 "first_failure_status": result.first_failure_status,
                 "first_failure_message": result.first_failure_message,
+            }
+        )
+    elif result.postfit_uncertainty_status != "completed":
+        failure = result.postfit_uncertainty_failure or {}
+        status.update(
+            {
+                "failure_stage": failure.get("failure_stage"),
+                "exception_type": failure.get("exception_type"),
+                "failure_reason": failure.get("message"),
+                "postfit_uncertainty_failure": failure,
             }
         )
     write_json(directory / "status.json", status)
@@ -1485,10 +1807,11 @@ def write_completed_case(
         result=result,
         replay=replay,
     )
-    write_residual_wrench_pdf(
-        directory / "residual_wrench.pdf",
-        case_name=case_name,
-        dataset=dataset,
-        result=result,
-    )
+    if result.residual_wrench_uncertainty is not None:
+        write_residual_wrench_pdf(
+            directory / "residual_wrench.pdf",
+            case_name=case_name,
+            dataset=dataset,
+            result=result,
+        )
     return payload

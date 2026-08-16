@@ -16,6 +16,25 @@ python3 minimal/single_bag_savgol_estimator.py \
   --vehicle-model minimal/grape_vehicle_model.json
 ```
 
+The estimator remains prior-free unless `--prior-json` is supplied. Optional
+v1 Gaussian factors are restricted to the exact common-scale-invariant
+physical quotient: CoG, inertia/mass, and the four force-effectiveness/mass
+ratios. For example:
+
+```bash
+python3 minimal/single_bag_savgol_estimator.py \
+  --bag-json minimal/bag_jsons/single_rosbag_1.json \
+  --vehicle-model minimal/grape_vehicle_model.json \
+  --prior-json minimal/config/priors/pseudo_conditioning/group/cog_all_nominal.json
+```
+
+The schema, SI units, supported components, and covariance rules are documented
+in [`config/priors/README.md`](config/priors/README.md). An ordinary prior is
+external physical information with a defensible target and covariance. The
+configs under `config/priors/pseudo_conditioning/` instead use deliberately
+tight artificial standard deviations to probe parameter compensation; they
+are not calibrated uncertainty and are not required for convergence.
+
 The lag domain is inferred from recorded rotor-command prehistory. There is no
 manual lag bound or gimbal lag. The primary lag result is the exact strict-ZOH
 interval `(lower, upper]`, with its representative and final smooth lag also
@@ -49,3 +68,40 @@ ceilings default to 2000 and normal termination remains tolerance-driven.
 `single_bag_cross_bag_consensus.py` remains post-fit: it does not create a
 multi-bag estimator. It compares `J/m`, `f/m`, and CoG in the fixed 13-D scale
 quotient and profiles only each target bag's rotor lag during cross-evaluation.
+
+## Nominal pseudo-conditioning ablation
+
+`single_bag_prior_ablation.py` runs the explicit manifest at
+`config/prior_ablation/nominal_pseudo_conditioning.json`: one prior-free
+baseline, 13 scalar factors, and three group factors. All 17 cases use the same
+normal estimator entry point and default initialization; no case is warm-started
+from another. Case failures are isolated. A completed strict point estimate is
+retained and marked `point_estimate_completed` if only post-fit uncertainty
+construction fails; no covariance is fabricated and no closure tolerance is
+relaxed.
+
+One-bag example:
+
+```bash
+python3 minimal/single_bag_prior_ablation.py \
+  --bag-json minimal/bag_jsons/single_rosbag_1.json \
+  --vehicle-model minimal/grape_vehicle_model.json \
+  --manifest minimal/config/prior_ablation/nominal_pseudo_conditioning.json
+```
+
+Run the fixed 51-run production study (17 independent cases on each of the
+three bags), then build the three-bag point-spread summary, with:
+
+```bash
+./minimal/run_prior_ablation.sh
+```
+
+Use `--dry-run` to inspect the exact commands or `--resume-existing` to retain
+terminal per-case outputs from an interrupted fixed-ID production run.
+`GRAPE_PRIOR_ABLATION_CASE_WORKERS` controls process concurrency; numeric
+libraries default to one thread per process to prevent oversubscription.
+Outputs live under
+`minimal/outputs/<source-commit>/prior_ablation/<run-id>/` and include the
+resolved prior targets, source SHA256 values, separate data/prior/total
+objectives, six-page per-bag summaries, and a three-bag physical point-spread
+report.

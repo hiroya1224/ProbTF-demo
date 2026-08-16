@@ -1,0 +1,7 @@
+{
+  "schema": "grape-param-estim/parameter-prior/v1",
+  "name": "pseudo_condition_force_over_mass_rotor_2_nominal",
+  "description": "Intentionally tight artificial standard deviation for an ablation-style pseudo-conditioning experiment; not a calibrated physical uncertainty.",
+  "role": "pseudo_conditioning_ablation",
+  "factors": [{"name": "force_over_mass_rotor_2_nominal", "quantity": "force_effectiveness_over_mass", "components": ["rotor_2"], "target": {"source": "vehicle_model_nominal"}, "std": [1e-5]}]
+}

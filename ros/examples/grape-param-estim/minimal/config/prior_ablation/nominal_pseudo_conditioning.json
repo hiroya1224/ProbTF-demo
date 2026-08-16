@@ -1,0 +1,23 @@
+{
+  "schema": "grape-param-estim/prior-ablation/v1",
+  "name": "nominal_pseudo_conditioning",
+  "include_prior_free_baseline": true,
+  "cases": [
+    {"case_name": "cog_x_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/cog_x_nominal.json"},
+    {"case_name": "cog_y_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/cog_y_nominal.json"},
+    {"case_name": "cog_z_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/cog_z_nominal.json"},
+    {"case_name": "inertia_over_mass_xx_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/inertia_over_mass_xx_nominal.json"},
+    {"case_name": "inertia_over_mass_yy_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/inertia_over_mass_yy_nominal.json"},
+    {"case_name": "inertia_over_mass_zz_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/inertia_over_mass_zz_nominal.json"},
+    {"case_name": "inertia_over_mass_xy_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/inertia_over_mass_xy_nominal.json"},
+    {"case_name": "inertia_over_mass_xz_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/inertia_over_mass_xz_nominal.json"},
+    {"case_name": "inertia_over_mass_yz_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/inertia_over_mass_yz_nominal.json"},
+    {"case_name": "force_over_mass_rotor_1_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/force_over_mass_rotor_1_nominal.json"},
+    {"case_name": "force_over_mass_rotor_2_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/force_over_mass_rotor_2_nominal.json"},
+    {"case_name": "force_over_mass_rotor_3_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/force_over_mass_rotor_3_nominal.json"},
+    {"case_name": "force_over_mass_rotor_4_nominal", "prior_json": "../priors/pseudo_conditioning/scalar/force_over_mass_rotor_4_nominal.json"},
+    {"case_name": "cog_all_nominal", "prior_json": "../priors/pseudo_conditioning/group/cog_all_nominal.json"},
+    {"case_name": "inertia_over_mass_all_nominal", "prior_json": "../priors/pseudo_conditioning/group/inertia_over_mass_all_nominal.json"},
+    {"case_name": "force_over_mass_all_nominal", "prior_json": "../priors/pseudo_conditioning/group/force_over_mass_all_nominal.json"}
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "schema": "grape-param-estim/parameter-prior/v1",
+  "name": "pseudo_condition_cog_all_nominal",
+  "description": "Intentionally tight artificial standard deviations for an ablation-style pseudo-conditioning experiment; not calibrated physical uncertainty.",
+  "role": "pseudo_conditioning_ablation",
+  "factors": [{"name": "cog_all_nominal", "quantity": "cog_position_body_m", "components": ["x", "y", "z"], "target": {"source": "vehicle_model_nominal"}, "std": [1e-5, 1e-5, 1e-5]}]
+}

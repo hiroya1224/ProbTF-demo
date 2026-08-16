@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI for prior-free geometric-SG estimation of one rosbag."""
+"""CLI for geometric-SG estimation with an optional physical parameter prior."""
 
 from __future__ import annotations
 
@@ -35,6 +35,7 @@ from single_bag_savgol_core import (  # noqa: E402
     prepare_single_bag_dataset,
 )
 from single_bag_input import load_single_bag_input  # noqa: E402
+from single_bag_parameter_prior import load_parameter_prior  # noqa: E402
 from single_bag_savgol_reports import (  # noqa: E402
     output_run_directory,
     source_commit,
@@ -169,6 +170,13 @@ def run_estimator(
         actuator_parameters = actuator_parameters_from_arguments(arguments)
         stage = "vehicle_model"
         model = load_vehicle_model(arguments.vehicle_model)
+        stage = "parameter_prior"
+        prior_path = getattr(arguments, "prior_json", None)
+        parameter_prior = (
+            None
+            if prior_path is None
+            else load_parameter_prior(Path(prior_path), model)
+        )
         stage = "single_bag_load"
         flight = load_flight_data(
             path=str(arguments.bag),
@@ -191,6 +199,7 @@ def run_estimator(
             model,
             actuator_parameters,
             gimbal_source=config.gimbal_source,
+            parameter_prior=parameter_prior,
         )
         stage = "parameter_estimation"
         result = estimate_single_bag(problem, config)
@@ -253,6 +262,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bag-end", type=float, default=None)
     parser.add_argument("--skip-bag-sha256", action="store_true")
     parser.add_argument("--vehicle-model", type=Path, required=True)
+    parser.add_argument(
+        "--prior-json",
+        type=Path,
+        default=None,
+        help="optional v1 Gaussian prior on gauge-invariant physical quantities",
+    )
     parser.add_argument("--sg-window", type=float, default=1.0)
     parser.add_argument("--sg-degree", type=int, default=5)
     parser.add_argument(
@@ -346,7 +361,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     arguments = build_argument_parser().parse_args(argv)
     directory, payload = run_estimator(arguments)
     print(directory)
-    return 0 if payload.get("status") == "completed" else 1
+    return (
+        0
+        if payload.get("status")
+        in ("completed", "point_estimate_completed")
+        else 1
+    )
 
 
 if __name__ == "__main__":

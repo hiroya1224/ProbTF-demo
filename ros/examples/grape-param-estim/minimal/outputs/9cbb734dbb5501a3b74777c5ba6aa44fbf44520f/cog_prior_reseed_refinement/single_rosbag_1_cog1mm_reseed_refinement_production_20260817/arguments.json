@@ -1,0 +1,19 @@
+{
+  "baseline_case_directory": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/d575adf7062789188e10e3356b0d1a1f9dfb725a/default/single_rosbag_1_conservative_fusion_production_20260816",
+  "baseline_case_source_commit": "d575adf7062789188e10e3356b0d1a1f9dfb725a",
+  "baseline_repository_commit": "b2daa3066ed1838b213d88f5a5f10abba1d3ab35",
+  "cog_prior_std_m": [
+    0.001,
+    0.001,
+    0.001
+  ],
+  "conditioning_prior_role": "initialization_only",
+  "conditioning_source_covariance_name": "parameter_covariance_conservative_fusion",
+  "output_root": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs",
+  "refinement_all_parameters_free": true,
+  "refinement_existing_estimator_reused": true,
+  "refinement_lag_reestimated": true,
+  "refinement_prior_role": "none",
+  "run_id": "single_rosbag_1_cog1mm_reseed_refinement_production_20260817",
+  "source_commit": "9cbb734dbb5501a3b74777c5ba6aa44fbf44520f"
+}

@@ -1,0 +1,18 @@
+{
+  "baseline_case_directory": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/d575adf7062789188e10e3356b0d1a1f9dfb725a/default/single_rosbag_2_conservative_fusion_production_20260816",
+  "baseline_case_source_commit": "d575adf7062789188e10e3356b0d1a1f9dfb725a",
+  "baseline_repository_commit": "b2daa3066ed1838b213d88f5a5f10abba1d3ab35",
+  "conditioning_prior_role": "initialization_only",
+  "conditioning_source_covariance_name": "parameter_covariance_conservative_fusion",
+  "elapsed_seconds": 159.80279438663274,
+  "exception_type": "RuntimeError",
+  "failure_stage": "prior_free_full_refinement",
+  "message": "prior-free refinement failed: wrench closure maps are not machine-precision inverses",
+  "refinement_all_parameters_free": true,
+  "refinement_existing_estimator_reused": true,
+  "refinement_lag_reestimated": true,
+  "refinement_prior_role": "none",
+  "source_commit": "9cbb734dbb5501a3b74777c5ba6aa44fbf44520f",
+  "status": "failed",
+  "traceback": "Traceback (most recent call last):\n  File \"single_bag_cog_prior_reseed_refinement.py\", line 1045, in run_cog_prior_reseed_refinement\n    raise RuntimeError(\nRuntimeError: prior-free refinement failed: wrench closure maps are not machine-precision inverses\n"
+}

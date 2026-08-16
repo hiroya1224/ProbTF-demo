@@ -1,0 +1,8 @@
+{
+  "base_plan_commit": "ac03f309efbd659a9cc1a85f23bde5715cdd4934",
+  "case_name": "default",
+  "elapsed_seconds": 288.97168913297355,
+  "message": "all stages completed",
+  "source_commit": "1264f5c376537941a7cfe78e8a2946bf34939f07",
+  "status": "completed"
+}

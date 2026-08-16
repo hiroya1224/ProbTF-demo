@@ -1,0 +1,17 @@
+{
+  "elapsed_seconds": 129.45878307288513,
+  "nfev": 207,
+  "stages": [
+    {
+      "evaluated_cell_count": 3,
+      "initial_lag_seconds": 0.004957675933837891,
+      "same_physical_initial_for_every_cell": true,
+      "selected_cell_index": 514,
+      "selected_cell_lower_seconds": 0.0049304962158203125,
+      "selected_cell_upper_seconds": 0.0049669742584228516,
+      "selected_representative_seconds": 0.004948735237121582,
+      "stage": "strict_zoh_cell_refinement",
+      "success": true
+    }
+  ]
+}

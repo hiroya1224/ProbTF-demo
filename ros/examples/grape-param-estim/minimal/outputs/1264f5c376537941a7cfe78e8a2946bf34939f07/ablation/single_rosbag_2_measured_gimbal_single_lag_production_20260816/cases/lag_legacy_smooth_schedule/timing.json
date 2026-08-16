@@ -1,0 +1,77 @@
+{
+  "elapsed_seconds": 121.56492133578286,
+  "nfev": 187,
+  "stages": [
+    {
+      "command_max_error": 0.03144051869040343,
+      "elapsed_seconds": 23.586242652032524,
+      "epsilon": 8.0,
+      "index": 0,
+      "message": "cost tolerance satisfied",
+      "nfev": 48,
+      "rotor_lag_seconds": 0.2745200442686935,
+      "smooth_cost": 111.20890154823356,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "strict_cost_at_same_point": 113.18667684066406,
+      "success": true,
+      "transition_full_width_seconds": 0.039661407470703125
+    },
+    {
+      "command_max_error": 0.02755111937267163,
+      "elapsed_seconds": 7.861196412239224,
+      "epsilon": 4.0,
+      "index": 1,
+      "message": "cost tolerance satisfied",
+      "nfev": 17,
+      "rotor_lag_seconds": 0.2753594942619653,
+      "smooth_cost": 112.07235159786653,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "strict_cost_at_same_point": 112.64979471699009,
+      "success": true,
+      "transition_full_width_seconds": 0.019830703735351562
+    },
+    {
+      "command_max_error": 0.027233589263621738,
+      "elapsed_seconds": 14.004498364869505,
+      "epsilon": 2.0,
+      "index": 2,
+      "message": "cost tolerance satisfied",
+      "nfev": 27,
+      "rotor_lag_seconds": 0.2778177436677932,
+      "smooth_cost": 112.53951528744193,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "strict_cost_at_same_point": 113.1028592900148,
+      "success": true,
+      "transition_full_width_seconds": 0.009915351867675781
+    },
+    {
+      "command_max_error": 0.02340135237147578,
+      "elapsed_seconds": 11.825886338949203,
+      "epsilon": 1.0,
+      "index": 3,
+      "message": "cost tolerance satisfied",
+      "nfev": 27,
+      "rotor_lag_seconds": 0.27890965836470283,
+      "smooth_cost": 112.75549468424465,
+      "stage": "smooth_continuation",
+      "status": "ftol",
+      "strict_cost_at_same_point": 112.9385800425955,
+      "success": true,
+      "transition_full_width_seconds": 0.004957675933837891
+    },
+    {
+      "evaluated_cell_count": 4,
+      "initial_lag_seconds": 0.27890965836470283,
+      "same_physical_initial_for_every_cell": true,
+      "selected_cell_index": 29629,
+      "selected_cell_lower_seconds": 0.27887964248657227,
+      "selected_cell_upper_seconds": 0.27889466285705566,
+      "selected_representative_seconds": 0.27888715267181396,
+      "stage": "strict_zoh_cell_refinement",
+      "success": true
+    }
+  ]
+}

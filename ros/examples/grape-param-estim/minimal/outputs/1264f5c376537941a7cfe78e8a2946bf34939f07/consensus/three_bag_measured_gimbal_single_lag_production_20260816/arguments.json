@@ -1,0 +1,9 @@
+{
+  "case_directory": [
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/1264f5c376537941a7cfe78e8a2946bf34939f07/ablation/single_rosbag_1_measured_gimbal_single_lag_production_20260816/cases/default",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/1264f5c376537941a7cfe78e8a2946bf34939f07/ablation/single_rosbag_2_measured_gimbal_single_lag_production_20260816/cases/default",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/1264f5c376537941a7cfe78e8a2946bf34939f07/ablation/single_rosbag_succeeded_measured_gimbal_single_lag_production_20260816/cases/default"
+  ],
+  "run_id": "three_bag_measured_gimbal_single_lag_production_20260816",
+  "vehicle_model": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json"
+}

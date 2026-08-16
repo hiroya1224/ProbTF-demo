@@ -1,0 +1,32 @@
+{
+  "bag_end": 25.0,
+  "bag_id": "single_rosbag_1",
+  "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+  "bag_start": 19.0,
+  "base_plan_commit": "ac03f309efbd659a9cc1a85f23bde5715cdd4934",
+  "case_names": [
+    "prior_free",
+    "cog_x_nominal",
+    "cog_y_nominal",
+    "cog_z_nominal",
+    "inertia_over_mass_xx_nominal",
+    "inertia_over_mass_yy_nominal",
+    "inertia_over_mass_zz_nominal",
+    "inertia_over_mass_xy_nominal",
+    "inertia_over_mass_xz_nominal",
+    "inertia_over_mass_yz_nominal",
+    "force_over_mass_rotor_1_nominal",
+    "force_over_mass_rotor_2_nominal",
+    "force_over_mass_rotor_3_nominal",
+    "force_over_mass_rotor_4_nominal",
+    "cog_all_nominal",
+    "inertia_over_mass_all_nominal",
+    "force_over_mass_all_nominal"
+  ],
+  "case_workers": 4,
+  "manifest_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/config/prior_ablation/nominal_pseudo_conditioning.json",
+  "manifest_sha256": "d9cbe81a37d9e59c6de8a01c153a497e6c72f1a732fa1279f8e8270d487804f4",
+  "same_default_initialization_for_every_case": true,
+  "schema": "grape-param-estim/prior-ablation/v1",
+  "source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1"
+}

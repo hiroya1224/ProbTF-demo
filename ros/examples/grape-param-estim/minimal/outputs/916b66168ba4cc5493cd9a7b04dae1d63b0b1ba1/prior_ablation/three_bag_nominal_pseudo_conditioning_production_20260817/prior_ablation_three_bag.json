@@ -1,0 +1,1654 @@
+{
+  "bag_ids": [
+    "single_rosbag_1",
+    "single_rosbag_2",
+    "single_rosbag_succeeded"
+  ],
+  "base_plan_commit": "ac03f309efbd659a9cc1a85f23bde5715cdd4934",
+  "case_names": [
+    "prior_free",
+    "cog_x_nominal",
+    "cog_y_nominal",
+    "cog_z_nominal",
+    "inertia_over_mass_xx_nominal",
+    "inertia_over_mass_yy_nominal",
+    "inertia_over_mass_zz_nominal",
+    "inertia_over_mass_xy_nominal",
+    "inertia_over_mass_xz_nominal",
+    "inertia_over_mass_yz_nominal",
+    "force_over_mass_rotor_1_nominal",
+    "force_over_mass_rotor_2_nominal",
+    "force_over_mass_rotor_3_nominal",
+    "force_over_mass_rotor_4_nominal",
+    "cog_all_nominal",
+    "inertia_over_mass_all_nominal",
+    "force_over_mass_all_nominal"
+  ],
+  "cases": [
+    {
+      "case_name": "prior_free",
+      "cog_spread_m": 0.04122770688604047,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 268.5288866161428,
+        "single_rosbag_2": 112.65248318638058,
+        "single_rosbag_succeeded": 28.34274465911067
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 0.0,
+        "single_rosbag_2": 0.0,
+        "single_rosbag_succeeded": 0.0
+      },
+      "force_over_mass_spread_kg_inverse": 0.11154359699272424,
+      "inertia_over_mass_spread_m2_frobenius": 0.08310249818437059,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.07123153190909658,
+        "single_rosbag_1__single_rosbag_succeeded": 0.07451802549848627,
+        "single_rosbag_2__single_rosbag_succeeded": 0.06834213249103167
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.16695293946342324,
+        "single_rosbag_1__single_rosbag_succeeded": 0.18652868386073473,
+        "single_rosbag_2__single_rosbag_succeeded": 0.22206200118971767
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.08802067940274326,
+        "single_rosbag_1__single_rosbag_succeeded": 0.1493626318780216,
+        "single_rosbag_2__single_rosbag_succeeded": 0.17915744761605623
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.10158054018422182,
+          0.0773554236085356,
+          0.17154796155897253,
+          -0.00012288037088154194,
+          -0.016491563434487468,
+          9.522579905719139e-06,
+          0.01762808455164713,
+          -0.004117347605464899,
+          -0.044375619044664395,
+          0.334909059692197,
+          0.4312630940226663,
+          0.3765981597473399,
+          0.3122384711993267
+        ],
+        "single_rosbag_2": [
+          0.07372410025718905,
+          0.03479631877107993,
+          0.10521337820072238,
+          0.0018250300353024535,
+          -0.0004302699514227599,
+          -0.010866722099086935,
+          -0.026434996192316533,
+          0.011339285215928372,
+          0.009415351901138498,
+          0.3818016994079881,
+          0.30900865027352614,
+          0.3408600498451482,
+          0.4094547394889996
+        ],
+        "single_rosbag_succeeded": [
+          0.231928222070605,
+          0.10967003033664902,
+          0.1288948496174623,
+          -0.005147327433808617,
+          0.018047042928137465,
+          -0.003059277394594808,
+          -0.019822621494596338,
+          -0.05513055177329313,
+          -0.005030559108728537,
+          0.4445305230323221,
+          0.43500472439541377,
+          0.22950664760210043,
+          0.2786799859091929
+        ]
+      }
+    },
+    {
+      "case_name": "cog_x_nominal",
+      "cog_spread_m": 0.03734851075695056,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 271.9843863147729,
+        "single_rosbag_2": 114.62848372668886,
+        "single_rosbag_succeeded": 29.683279377282172
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 3.455499698630092,
+        "single_rosbag_2": 1.9760005403082772,
+        "single_rosbag_succeeded": 1.3405347181715008
+      },
+      "force_over_mass_spread_kg_inverse": 0.09115321409198618,
+      "inertia_over_mass_spread_m2_frobenius": 0.082049307331266,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.05706011838104589,
+        "single_rosbag_1__single_rosbag_succeeded": 0.0727568414836183,
+        "single_rosbag_2__single_rosbag_succeeded": 0.06328338019991611
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.042948961087759474,
+        "single_rosbag_1__single_rosbag_succeeded": 0.17428771534406798,
+        "single_rosbag_2__single_rosbag_succeeded": 0.20629918801421018
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.06950710302725031,
+        "single_rosbag_1__single_rosbag_succeeded": 0.15819597227722598,
+        "single_rosbag_2__single_rosbag_succeeded": 0.17530429682665294
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.10282195945417139,
+          0.07892643919466892,
+          0.17091978305826708,
+          0.00041628522179665663,
+          -0.019868880957875996,
+          -0.0019027992599010917,
+          -0.0020246745216304634,
+          0.0008360987540104914,
+          -0.045749662677370656,
+          0.35830622682052427,
+          0.39261521449763,
+          0.35033991180910007,
+          0.3507300247541077
+        ],
+        "single_rosbag_2": [
+          0.10197501072031498,
+          0.033603719814078566,
+          0.13296995692913915,
+          0.0011297480350949173,
+          0.005685461143096899,
+          -0.00571822813495541,
+          -0.0020247222153644074,
+          0.002897086707776051,
+          0.011273222538226157,
+          0.3625303777300411,
+          0.3569021159524459,
+          0.3737405016915876,
+          0.35266826959547803
+        ],
+        "single_rosbag_succeeded": [
+          0.25556657303643476,
+          0.11127273460671326,
+          0.14835811686164482,
+          -0.0010426087646866816,
+          -0.014899085283292687,
+          -0.008463385227215032,
+          -0.0020247218938013204,
+          -0.05857644158010926,
+          -0.003753138610292075,
+          0.41991550393717947,
+          0.4731004724849529,
+          0.2493955434125796,
+          0.25116666588770703
+        ]
+      }
+    },
+    {
+      "case_name": "cog_y_nominal",
+      "cog_spread_m": 0.04663476382434762,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 268.83833868934596,
+        "single_rosbag_2": 113.74156803876147,
+        "single_rosbag_succeeded": 33.14090627215048
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 0.30945207320314694,
+        "single_rosbag_2": 1.0890848523808927,
+        "single_rosbag_succeeded": 4.7981616130398095
+      },
+      "force_over_mass_spread_kg_inverse": 0.1005270476578807,
+      "inertia_over_mass_spread_m2_frobenius": 0.6495525630518866,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.06497131064979442,
+        "single_rosbag_1__single_rosbag_succeeded": 0.08506677996738818,
+        "single_rosbag_2__single_rosbag_succeeded": 0.09008652791068156
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.12052543629704285,
+        "single_rosbag_1__single_rosbag_succeeded": 0.2444273686641233,
+        "single_rosbag_2__single_rosbag_succeeded": 0.129151331586742
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.07091707954704292,
+        "single_rosbag_1__single_rosbag_succeeded": 1.3564300600992034,
+        "single_rosbag_2__single_rosbag_succeeded": 1.3972598360338233
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.09879086361469397,
+          0.07773899345804086,
+          0.1691154455321423,
+          -2.4966969541903638e-05,
+          -0.016495517014683683,
+          -0.0016835128880171345,
+          0.015481502075473054,
+          -3.0541358970307775e-05,
+          -0.04453683317028049,
+          0.3327738470442886,
+          0.42118810945960894,
+          0.37933820893710596,
+          0.32103954069693974
+        ],
+        "single_rosbag_2": [
+          0.08746153772152765,
+          0.03321392537439139,
+          0.1205874902026935,
+          0.0024120338370056467,
+          0.0001088759190169503,
+          -0.0019525247109577362,
+          -0.01820326513562805,
+          -3.0510394206513336e-05,
+          0.011020413571121834,
+          0.3853722504654885,
+          0.34224381383264435,
+          0.33491062761451384,
+          0.380653104236793
+        ],
+        "single_rosbag_succeeded": [
+          1.0732986645739413,
+          0.23837039102630914,
+          0.9689624106082809,
+          0.03434400696354125,
+          0.07280566638289593,
+          -0.32290585405781597,
+          -0.06718949310625077,
+          -3.053136569447716e-05,
+          -0.06458336927214434,
+          0.4276490210540988,
+          0.27284528973201116,
+          0.24388483431927432,
+          0.4229720234911024
+        ]
+      }
+    },
+    {
+      "case_name": "cog_z_nominal",
+      "cog_spread_m": 0.034578467809279284,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 458.8468272092969,
+        "single_rosbag_2": 112.65288539550023,
+        "single_rosbag_succeeded": 28.987222344141752
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 190.3179405931541,
+        "single_rosbag_2": 0.00040220911965604955,
+        "single_rosbag_succeeded": 0.6444776850310809
+      },
+      "force_over_mass_spread_kg_inverse": 0.1110041617069602,
+      "inertia_over_mass_spread_m2_frobenius": 0.07771083938729009,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.04545568171927966,
+        "single_rosbag_1__single_rosbag_succeeded": 0.06454764622567542,
+        "single_rosbag_2__single_rosbag_succeeded": 0.06729350853163228
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.14956362213176033,
+        "single_rosbag_1__single_rosbag_succeeded": 0.19670011514609176,
+        "single_rosbag_2__single_rosbag_succeeded": 0.2232422515625727
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.019116999768186746,
+        "single_rosbag_1__single_rosbag_succeeded": 0.16310176219402325,
+        "single_rosbag_2__single_rosbag_succeeded": 0.16547847749348613
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.07453380183983921,
+          0.04114270044951593,
+          0.11209728078867448,
+          0.0006895239356890157,
+          -0.008216820404316602,
+          -0.0021627845376984167,
+          0.01766943128446998,
+          -4.017243274380931e-06,
+          0.009508539105400827,
+          0.32691502116286797,
+          0.4143113388438722,
+          0.3836754726439727,
+          0.3287616884739306
+        ],
+        "single_rosbag_2": [
+          0.0736433305061767,
+          0.034710435007240345,
+          0.10506346913446934,
+          0.0018277317287321423,
+          -0.00044113197619594384,
+          -0.010831824300306082,
+          -0.02636313105612536,
+          0.011281037157162957,
+          0.009509749564131248,
+          0.3817695636465362,
+          0.30921846377444795,
+          0.3408697921788192,
+          0.4092813603786085
+        ],
+        "single_rosbag_succeeded": [
+          0.21964817808212972,
+          0.10540374758021223,
+          0.12044205988158721,
+          -0.004649135623939764,
+          0.017151002097254554,
+          -0.0028068782552240603,
+          -0.015823674737411864,
+          -0.05518200634072927,
+          0.009509740388648205,
+          0.4411697449420149,
+          0.43858172555530794,
+          0.23538665514260498,
+          0.2734609802907616
+        ]
+      }
+    },
+    {
+      "case_name": "inertia_over_mass_xx_nominal",
+      "cog_spread_m": 0.1035297738729117,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 416.5206261311673,
+        "single_rosbag_2": 125.5635523433259,
+        "single_rosbag_succeeded": 63.69156117029615
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 147.9917395150245,
+        "single_rosbag_2": 12.911069156945317,
+        "single_rosbag_succeeded": 35.348816511185476
+      },
+      "force_over_mass_spread_kg_inverse": 0.31784620495350924,
+      "inertia_over_mass_spread_m2_frobenius": 3.1240340220784897,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.0393747817445346,
+        "single_rosbag_1__single_rosbag_succeeded": 0.22089040737977353,
+        "single_rosbag_2__single_rosbag_succeeded": 0.21476215028201326
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.0720470760679212,
+        "single_rosbag_1__single_rosbag_succeeded": 0.6656184735548938,
+        "single_rosbag_2__single_rosbag_succeeded": 0.6789677139029883
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.04348986039333179,
+        "single_rosbag_1__single_rosbag_succeeded": 6.605494091460209,
+        "single_rosbag_2__single_rosbag_succeeded": 6.6484474563361315
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.027640822209888664,
+          0.06206471504628585,
+          0.08929271452221445,
+          -0.00029192756115482225,
+          0.0004650605195035801,
+          -0.0023531181375281065,
+          0.0006390491481039376,
+          0.007636694660525407,
+          -0.021259679965150068,
+          0.339577990635477,
+          0.3816103717796062,
+          0.36057381662981736,
+          0.36064053760431186
+        ],
+        "single_rosbag_2": [
+          0.027640811060745733,
+          0.03249469440819092,
+          0.058234681225073796,
+          0.0019793395219217134,
+          -0.00405708331969032,
+          -0.003115852061532603,
+          -0.019939572849079136,
+          0.004335541896121109,
+          0.012146848506884467,
+          0.3757198476990355,
+          0.3374313247385178,
+          0.3332709170797346,
+          0.3950979144144162
+        ],
+        "single_rosbag_succeeded": [
+          0.027640809716854876,
+          4.753179041260751,
+          4.737270309046023,
+          0.04596035095908539,
+          0.09499835676768764,
+          -0.011048426357834363,
+          -0.0017076181662472596,
+          -0.20954163265880157,
+          0.01899748545539761,
+          0.6470616948340288,
+          0.7246830057436843,
+          0.019334660361264806,
+          0.022470861193252645
+        ]
+      }
+    },
+    {
+      "case_name": "inertia_over_mass_yy_nominal",
+      "cog_spread_m": 0.1546928257347057,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 378.45555258317023,
+        "single_rosbag_2": 115.94725921844297,
+        "single_rosbag_succeeded": 38.60130217273865
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 109.92666596702742,
+        "single_rosbag_2": 3.294776032062387,
+        "single_rosbag_succeeded": 10.258557513627977
+      },
+      "force_over_mass_spread_kg_inverse": 0.48063201085354945,
+      "inertia_over_mass_spread_m2_frobenius": 1.5940718256871818,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.20554639445646572,
+        "single_rosbag_1__single_rosbag_succeeded": 0.3735911861334834,
+        "single_rosbag_2__single_rosbag_succeeded": 0.18316423879517568
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.6578745260052572,
+        "single_rosbag_1__single_rosbag_succeeded": 1.1692826738888944,
+        "single_rosbag_2__single_rosbag_succeeded": 0.5282454971798003
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.6471587965415324,
+        "single_rosbag_1__single_rosbag_succeeded": 3.0114831747611293,
+        "single_rosbag_2__single_rosbag_succeeded": 3.6581059920724726
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.5322683003540873,
+          0.027620654066148626,
+          0.5590905717127568,
+          -0.004765840576890244,
+          -0.0016664143076731846,
+          -0.012046005203080431,
+          0.1740553099088467,
+          -0.02908390626402932,
+          -0.024463694373325934,
+          0.10905871463219301,
+          0.7294728066265431,
+          0.588721597875473,
+          0.046380571338348435
+        ],
+        "single_rosbag_2": [
+          0.07481581072575187,
+          0.027620652169176956,
+          0.1015407105813864,
+          0.002278230249202699,
+          -0.0012772885511198935,
+          -0.004963931097599733,
+          -0.02449034078210896,
+          0.0046441854111718955,
+          0.01666246150960619,
+          0.386419934345111,
+          0.32449669916581064,
+          0.33008639890834657,
+          0.3998941241297406
+        ],
+        "single_rosbag_succeeded": [
+          2.6793522206257,
+          0.027620651047959112,
+          2.668046444638929,
+          0.05383835952008534,
+          0.012251390448806517,
+          -0.057380109992788114,
+          -0.1994454018993946,
+          -0.022992949090756064,
+          -0.0299857298742549,
+          0.6751997621977802,
+          0.0631115029539041,
+          0.017642835460777953,
+          0.5722493247404719
+        ]
+      }
+    },
+    {
+      "case_name": "inertia_over_mass_zz_nominal",
+      "cog_spread_m": 0.03923127275482749,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 316.00561002661556,
+        "single_rosbag_2": 115.69523362912285,
+        "single_rosbag_succeeded": 37.225376467446246
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 47.476723410472744,
+        "single_rosbag_2": 3.0427504427422747,
+        "single_rosbag_succeeded": 8.882631808335574
+      },
+      "force_over_mass_spread_kg_inverse": 0.09850427154539299,
+      "inertia_over_mass_spread_m2_frobenius": 0.05387404708093268,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.0630358086686438,
+        "single_rosbag_1__single_rosbag_succeeded": 0.08037823121919518,
+        "single_rosbag_2__single_rosbag_succeeded": 0.05846077000208564
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.1147405941057005,
+        "single_rosbag_1__single_rosbag_succeeded": 0.1910429220794337,
+        "single_rosbag_2__single_rosbag_succeeded": 0.19407478352897617
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.0602864695220171,
+        "single_rosbag_1__single_rosbag_succeeded": 0.07291440383345596,
+        "single_rosbag_2__single_rosbag_succeeded": 0.13103720023752635
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.09948027534350463,
+          0.07703770025859442,
+          0.05485297047967423,
+          -0.0006477575790221081,
+          -0.0004335635141434588,
+          -0.0007394731017685561,
+          0.00865193931962443,
+          0.014206126567329606,
+          -0.04343431857242438,
+          0.3260599133868919,
+          0.3844007643019655,
+          0.3915002116678543,
+          0.34867644619668675
+        ],
+        "single_rosbag_2": [
+          0.05921279317001572,
+          0.03411756152894371,
+          0.05485296955477766,
+          0.0024112709250600313,
+          -0.006044393463202268,
+          -0.00741674208138518,
+          -0.024274988916132213,
+          0.009241076883676268,
+          0.010088376175748143,
+          0.37719147862262753,
+          0.32059333604079265,
+          0.3363683080527232,
+          0.4073284050279142
+        ],
+        "single_rosbag_succeeded": [
+          0.16275294465082757,
+          0.10897711926385265,
+          0.05485296995903071,
+          -0.005183515461355397,
+          0.0008703934751074117,
+          0.010405173862740268,
+          -0.013853462935389547,
+          -0.04778285820578719,
+          0.00251709805497362,
+          0.44107368514850165,
+          0.41415404112127324,
+          0.266868582689204,
+          0.2659061015166106
+        ]
+      }
+    },
+    {
+      "case_name": "inertia_over_mass_xy_nominal",
+      "cog_spread_m": 0.04116800511956742,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 268.5343611865281,
+        "single_rosbag_2": 112.97555402426424,
+        "single_rosbag_succeeded": 28.3693001497947
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 0.005474570385274546,
+        "single_rosbag_2": 0.3230708378836624,
+        "single_rosbag_succeeded": 0.026555490684028626
+      },
+      "force_over_mass_spread_kg_inverse": 0.1117452154957526,
+      "inertia_over_mass_spread_m2_frobenius": 0.08290522014244328,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.06988803084933967,
+        "single_rosbag_1__single_rosbag_succeeded": 0.07463508788612212,
+        "single_rosbag_2__single_rosbag_succeeded": 0.0692712682860299
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.16297451913069785,
+        "single_rosbag_1__single_rosbag_succeeded": 0.18650010297810726,
+        "single_rosbag_2__single_rosbag_succeeded": 0.22592024340240716
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.08741417255121584,
+        "single_rosbag_1__single_rosbag_succeeded": 0.1502127318261371,
+        "single_rosbag_2__single_rosbag_succeeded": 0.17791677092482908
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.1018228438215541,
+          0.07731476699464553,
+          0.17125474431174917,
+          -3.0963596819199717e-07,
+          -0.017005722834879018,
+          -1.7694681331887478e-05,
+          0.017456560406971425,
+          -0.004050425090896368,
+          -0.04430242728265273,
+          0.3349691194537144,
+          0.43097674442325784,
+          0.3762785694258832,
+          0.3127217767381476
+        ],
+        "single_rosbag_2": [
+          0.075870418152996,
+          0.03515992627130609,
+          0.1066721612946769,
+          -3.091861418324217e-07,
+          0.002072719652520923,
+          -0.012096490227132392,
+          -0.024427241459537084,
+          0.012326767506842145,
+          0.00919403577633735,
+          0.38084086535445183,
+          0.3068642901956655,
+          0.3495873171705396,
+          0.4040462125291548
+        ],
+        "single_rosbag_succeeded": [
+          0.23388968729827062,
+          0.10989619441903066,
+          0.1292023616722493,
+          -3.0954445811128777e-07,
+          0.01671020134922185,
+          -0.0030782723165164384,
+          -0.01956323560338334,
+          -0.055359552978547166,
+          -0.004713231249775409,
+          0.444118833271205,
+          0.43620922266182066,
+          0.22909430068449538,
+          0.27839918081431925
+        ]
+      }
+    },
+    {
+      "case_name": "inertia_over_mass_xz_nominal",
+      "cog_spread_m": 0.04169315221310822,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 270.4322148041587,
+        "single_rosbag_2": 112.65267594364221,
+        "single_rosbag_succeeded": 28.492914047166163
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 1.9033281880159052,
+        "single_rosbag_2": 0.00019275726162959472,
+        "single_rosbag_succeeded": 0.15016938805549174
+      },
+      "force_over_mass_spread_kg_inverse": 0.11350435304221852,
+      "inertia_over_mass_spread_m2_frobenius": 0.083716338134233,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.07240434813762617,
+        "single_rosbag_1__single_rosbag_succeeded": 0.07482909888825856,
+        "single_rosbag_2__single_rosbag_succeeded": 0.06930430580797528
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.1725909052031042,
+        "single_rosbag_1__single_rosbag_succeeded": 0.18745804037331776,
+        "single_rosbag_2__single_rosbag_succeeded": 0.2258782990381367
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.08456876538446743,
+        "single_rosbag_1__single_rosbag_succeeded": 0.15183348478777578,
+        "single_rosbag_2__single_rosbag_succeeded": 0.18130235589752905
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.09616593002305099,
+          0.07714101551062653,
+          0.1733032914294508,
+          -0.0015855222936568905,
+          8.085807238235273e-06,
+          -0.00041882215597126586,
+          0.019828127980317523,
+          -0.0034507005504509445,
+          -0.0442527959424843,
+          0.3317701818675412,
+          0.4325981291117408,
+          0.3824576467697897,
+          0.3084027954297105
+        ],
+        "single_rosbag_2": [
+          0.07385384664038222,
+          0.03481722788790608,
+          0.1053472516299689,
+          0.0018119227785426196,
+          8.08602152684425e-06,
+          -0.010945820868301261,
+          -0.02646294774313365,
+          0.011424203275979322,
+          0.009396651153965145,
+          0.38176554480615554,
+          0.308763982903008,
+          0.34101197803747935,
+          0.40957317162525947
+        ],
+        "single_rosbag_succeeded": [
+          0.23691280560704617,
+          0.11002641066684439,
+          0.12698372566854552,
+          -0.002483358958078531,
+          8.086042179739976e-06,
+          -0.003172048257450333,
+          -0.01654605286141225,
+          -0.055664256290748,
+          -0.00488202498893541,
+          0.4403142502559887,
+          0.4412477047961179,
+          0.23397077769922606,
+          0.273252593831569
+        ]
+      }
+    },
+    {
+      "case_name": "inertia_over_mass_yz_nominal",
+      "cog_spread_m": 0.03845114578321933,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 268.5286024581536,
+        "single_rosbag_2": 113.92792701174906,
+        "single_rosbag_succeeded": 28.354072201054965
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": -0.00028415798919922963,
+        "single_rosbag_2": 1.2754438253684839,
+        "single_rosbag_succeeded": 0.011327541944293529
+      },
+      "force_over_mass_spread_kg_inverse": 0.09827237699391687,
+      "inertia_over_mass_spread_m2_frobenius": 0.07894296283931831,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.06689655164559362,
+        "single_rosbag_1__single_rosbag_succeeded": 0.07443028356686734,
+        "single_rosbag_2__single_rosbag_succeeded": 0.05737072227596242
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.13594076737007504,
+        "single_rosbag_1__single_rosbag_succeeded": 0.18613940066795404,
+        "single_rosbag_2__single_rosbag_succeeded": 0.1838188565031366
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.07843765859542697,
+        "single_rosbag_1__single_rosbag_succeeded": 0.1468068875127313,
+        "single_rosbag_2__single_rosbag_succeeded": 0.16847312524418084
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.10158616384738121,
+          0.0773576197241262,
+          0.1715394829446285,
+          -0.00011975310358105739,
+          -0.01651118775416915,
+          2.515786856529043e-08,
+          0.017615153897460396,
+          -0.00409940663875201,
+          -0.04437641224528402,
+          0.3349027237902741,
+          0.4312161362858633,
+          0.37660138575462665,
+          0.3122853253298972
+        ],
+        "single_rosbag_2": [
+          0.08091263297989834,
+          0.033418863522333,
+          0.11430700147559865,
+          0.0025606533580391166,
+          -0.000628319339718093,
+          2.4956331287262864e-08,
+          -0.020250383711797354,
+          0.00010397479521906825,
+          0.010611597976527151,
+          0.3867864940828854,
+          0.3404317298941301,
+          0.3300164329678315,
+          0.38560653879053974
+        ],
+        "single_rosbag_succeeded": [
+          0.2285479482124858,
+          0.10888615910054246,
+          0.12576535195592714,
+          -0.004904886800706855,
+          0.017384628064488077,
+          2.515285465264158e-08,
+          -0.019654941611020552,
+          -0.055096983048264485,
+          -0.005005683359614047,
+          0.44434971416274377,
+          0.4351017023923693,
+          0.22996258401894987,
+          0.2783560314823898
+        ]
+      }
+    },
+    {
+      "case_name": "force_over_mass_rotor_1_nominal",
+      "cog_spread_m": 3.7886884277297592,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 288.25104679675115,
+        "single_rosbag_2": 106.73978061272364,
+        "single_rosbag_succeeded": 29.036267433497947
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 19.72216018060834,
+        "single_rosbag_2": -5.912702573656944,
+        "single_rosbag_succeeded": 0.6935227743872758
+      },
+      "force_over_mass_spread_kg_inverse": 0.10433886578692973,
+      "inertia_over_mass_spread_m2_frobenius": 6963173.050907941,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "point_estimate_completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 8.048963234446932,
+        "single_rosbag_1__single_rosbag_succeeded": 0.05116488835045754,
+        "single_rosbag_2__single_rosbag_succeeded": 8.024899564881935
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.2380140258077959,
+        "single_rosbag_1__single_rosbag_succeeded": 0.0804128189568439,
+        "single_rosbag_2__single_rosbag_succeeded": 0.18671500285061754
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 14771120.627957197,
+        "single_rosbag_1__single_rosbag_succeeded": 0.13955995518579573,
+        "single_rosbag_2__single_rosbag_succeeded": 14771120.669277359
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "failed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.19165912337216956,
+          0.08032542322687335,
+          0.2563298344628539,
+          0.00012934505310592426,
+          -0.023263173437051206,
+          0.00818224894030444,
+          -0.011047930448861269,
+          -0.03070113560293243,
+          -0.049481803208546,
+          0.4252427957313008,
+          0.4206961961250856,
+          0.29535515390293654,
+          0.31528905265319696
+        ],
+        "single_rosbag_2": [
+          10434889.754864087,
+          13448.46842219531,
+          10441181.377754463,
+          320869.7544986182,
+          5942.991226022085,
+          -193203.12644787453,
+          0.289993233632715,
+          -8.07356856361063,
+          -0.13589304379487424,
+          0.42524282318310475,
+          0.5875454326050393,
+          0.29933252040383607,
+          0.14559465285459613
+        ],
+        "single_rosbag_succeeded": [
+          0.24982203685148227,
+          0.11059655572098974,
+          0.1393047498134266,
+          -0.0023461163036267853,
+          -0.0002132740226112431,
+          -0.00610048790331857,
+          -0.009066221245848903,
+          -0.055317049731616046,
+          -0.004671364690732363,
+          0.4252428304449223,
+          0.45653422213616546,
+          0.24284942528471792,
+          0.2660447046883382
+        ]
+      }
+    },
+    {
+      "case_name": "force_over_mass_rotor_2_nominal",
+      "cog_spread_m": 0.05430463987838367,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 268.58789626471423,
+        "single_rosbag_2": 109.20666238613069,
+        "single_rosbag_succeeded": 28.39620677860563
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 0.05900964857141844,
+        "single_rosbag_2": -3.4458208002498907,
+        "single_rosbag_succeeded": 0.05346211949495938
+      },
+      "force_over_mass_spread_kg_inverse": 0.15627716239228884,
+      "inertia_over_mass_spread_m2_frobenius": 5.078906011528174,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.13233163820103894,
+        "single_rosbag_1__single_rosbag_succeeded": 0.07380783534548976,
+        "single_rosbag_2__single_rosbag_succeeded": 0.05984719027265062
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.38056471828960553,
+        "single_rosbag_1__single_rosbag_succeeded": 0.1849199034687071,
+        "single_rosbag_2__single_rosbag_succeeded": 0.2019358508604888
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 10.804852170042269,
+        "single_rosbag_1__single_rosbag_succeeded": 0.15042866748188397,
+        "single_rosbag_2__single_rosbag_succeeded": 10.741979206131694
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.10051643251848943,
+          0.07749121601407152,
+          0.17046592403148672,
+          -6.433951038614411e-05,
+          -0.016664897622428978,
+          -0.000514219644296399,
+          0.015463844028428242,
+          -0.0027645306555148835,
+          -0.04437830099267704,
+          0.33666475557507963,
+          0.4252428260007713,
+          0.3752371506779614,
+          0.3172113558171484
+        ],
+        "single_rosbag_2": [
+          7.776009048685523,
+          0.037011491523356865,
+          7.7663551127400705,
+          0.24807824327142503,
+          0.01334061105384726,
+          -0.06184201316633001,
+          -0.05896075166794113,
+          -0.09762640163927491,
+          0.010154876595494817,
+          0.6143160423712773,
+          0.4252428256418317,
+          0.11750201804457465,
+          0.2809916215040292
+        ],
+        "single_rosbag_succeeded": [
+          0.230513945286853,
+          0.11015888582192285,
+          0.12999446462603162,
+          -0.006209611849431604,
+          0.02161574897247082,
+          -0.0035117557694214646,
+          -0.02220890427138894,
+          -0.053174345410607976,
+          -0.005813924033068992,
+          0.44758525023211965,
+          0.42524282492514937,
+          0.23141772655601955,
+          0.28245523679982243
+        ]
+      }
+    },
+    {
+      "case_name": "force_over_mass_rotor_3_nominal",
+      "cog_spread_m": 3.7661316204958792,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 274.79486728925815,
+        "single_rosbag_2": 107.97578458796016,
+        "single_rosbag_succeeded": 37.823430148998426
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 6.265980673115337,
+        "single_rosbag_2": -4.6766985984204155,
+        "single_rosbag_succeeded": 9.480685489887755
+      },
+      "force_over_mass_spread_kg_inverse": 0.18720863837341417,
+      "inertia_over_mass_spread_m2_frobenius": 4698663.93628665,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "point_estimate_completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 7.960387722850337,
+        "single_rosbag_1__single_rosbag_succeeded": 0.07316244976558038,
+        "single_rosbag_2__single_rosbag_succeeded": 8.017518381889008
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.22904201989420872,
+        "single_rosbag_1__single_rosbag_succeeded": 0.23197956615801846,
+        "single_rosbag_2__single_rosbag_succeeded": 0.4573280032346241
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 9967372.893056504,
+        "single_rosbag_1__single_rosbag_succeeded": 3.2424888181268314,
+        "single_rosbag_2__single_rosbag_succeeded": 9967369.898132538
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "failed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.10461426933413387,
+          0.0761502876572572,
+          0.1775995276874428,
+          -0.0009367837416897261,
+          -0.010707296238956743,
+          -0.00226636760955604,
+          0.03807631746364825,
+          0.0008736599026840914,
+          -0.044182638093776275,
+          0.3017746211447467,
+          0.4513235383237893,
+          0.42524279931705483,
+          0.2813930502512558
+        ],
+        "single_rosbag_2": [
+          7041800.315178198,
+          9444.734656776682,
+          7044749.185106421,
+          208845.49448167282,
+          4486.288043889306,
+          -151197.3364518549,
+          0.32519366499261654,
+          -7.953468786461983,
+          -0.1615392434283868,
+          0.3000128340611282,
+          0.6169058384010679,
+          0.42524282382062945,
+          0.12315384877258131
+        ],
+        "single_rosbag_succeeded": [
+          2.416006140803607,
+          0.4672315633320653,
+          2.0776422845193285,
+          -0.15281245499402699,
+          -0.005284067124791849,
+          -0.8274642373186615,
+          -0.0061652671710168624,
+          0.056572098415809624,
+          -0.06130309930001752,
+          0.24700338260414448,
+          0.2791737618917359,
+          0.4252428202099942,
+          0.42692340797082073
+        ]
+      }
+    },
+    {
+      "case_name": "force_over_mass_rotor_4_nominal",
+      "cog_spread_m": 0.047053051903089844,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 290.0180582754878,
+        "single_rosbag_2": 112.81618274820416,
+        "single_rosbag_succeeded": 32.592883521636566
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 21.489171659345004,
+        "single_rosbag_2": 0.16369956182357726,
+        "single_rosbag_succeeded": 4.250138862525894
+      },
+      "force_over_mass_spread_kg_inverse": 0.09880303159929214,
+      "inertia_over_mass_spread_m2_frobenius": 0.5311895729840903,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.057942533540195414,
+        "single_rosbag_1__single_rosbag_succeeded": 0.07874439074386479,
+        "single_rosbag_2__single_rosbag_succeeded": 0.10182284112061828
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.03602429736342454,
+        "single_rosbag_1__single_rosbag_succeeded": 0.21488532215767076,
+        "single_rosbag_2__single_rosbag_succeeded": 0.20095994575925355
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.11061112224504001,
+        "single_rosbag_1__single_rosbag_succeeded": 1.0815937973151142,
+        "single_rosbag_2__single_rosbag_succeeded": 1.165067079299877
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.12702485978191208,
+          0.0812679392165044,
+          0.18237954133976195,
+          0.0005018364054624951,
+          -0.028514683090513533,
+          -0.010739452969084882,
+          -0.028277082219071933,
+          0.01966923258292144,
+          -0.04904194859448536,
+          0.36767108437380025,
+          0.327942086421938,
+          0.3294133746387561,
+          0.4252427911926653
+        ],
+        "single_rosbag_2": [
+          0.07541495095604152,
+          0.03532744708074282,
+          0.1062206033780922,
+          0.0021211236785298663,
+          0.00017600369111483427,
+          -0.012857214478158888,
+          -0.03252513605236342,
+          0.01415967729855454,
+          0.008481403465826915,
+          0.38499977039095534,
+          0.29660301962739904,
+          0.33332866950552914,
+          0.4252428217775872
+        ],
+        "single_rosbag_succeeded": [
+          0.90441082526537,
+          0.19376889930791327,
+          0.8321482531419483,
+          0.0567997997635704,
+          0.07574623897854717,
+          -0.23721324516521952,
+          -0.09242306709205633,
+          -0.02315426793503372,
+          -0.06492021996406488,
+          0.4991905307879949,
+          0.2677174708009287,
+          0.17050669583949835,
+          0.42524282187389884
+        ]
+      }
+    },
+    {
+      "case_name": "cog_all_nominal",
+      "cog_spread_m": 5.776579879225873e-07,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 469.1815613583579,
+        "single_rosbag_2": 114.8290106737677,
+        "single_rosbag_succeeded": 37.1311788605268
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 200.65267474221508,
+        "single_rosbag_2": 2.176527487387119,
+        "single_rosbag_succeeded": 8.78843420141613
+      },
+      "force_over_mass_spread_kg_inverse": 0.023628975069568563,
+      "inertia_over_mass_spread_m2_frobenius": 0.7017177443615332,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 1.2400830992154655e-06,
+        "single_rosbag_1__single_rosbag_succeeded": 1.2100347695202136e-06,
+        "single_rosbag_2__single_rosbag_succeeded": 3.4763812927780644e-08
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.032506493190171445,
+        "single_rosbag_1__single_rosbag_succeeded": 0.03546102777752969,
+        "single_rosbag_2__single_rosbag_succeeded": 0.05206533947822907
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.04044090512817607,
+        "single_rosbag_1__single_rosbag_succeeded": 1.5034926333591851,
+        "single_rosbag_2__single_rosbag_succeeded": 1.4729373949335456
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.08636999237141647,
+          0.04151729238845104,
+          0.12103827050876514,
+          0.001176739425801465,
+          -0.011249361015626635,
+          -0.0025405385710612514,
+          -0.0020246068830421867,
+          -3.0486995647178452e-05,
+          0.009508531283809777,
+          0.3560145819407179,
+          0.38411834046665033,
+          0.34880875211196843,
+          0.36203629699726986
+        ],
+        "single_rosbag_2": [
+          0.1097335636576044,
+          0.03498054623803696,
+          0.14254749195660055,
+          0.0014800244631479082,
+          0.005825877157338678,
+          -0.0032199522372607244,
+          -0.0020247206534248783,
+          -3.052318387825037e-05,
+          0.009509765606622056,
+          0.3657628268711529,
+          0.36333853773011643,
+          0.36783709429999567,
+          0.34908385274512227
+        ],
+        "single_rosbag_succeeded": [
+          1.155198955798273,
+          0.2446594723347317,
+          1.0184619308380187,
+          0.04637417256588462,
+          0.07169377126333658,
+          -0.35864026603777127,
+          -0.002024706418142747,
+          -3.0535196890462604e-05,
+          0.00950973625416101,
+          0.33393311035826917,
+          0.3794581056939494,
+          0.33067212682040203,
+          0.34156099141496254
+        ]
+      }
+    },
+    {
+      "case_name": "inertia_over_mass_all_nominal",
+      "cog_spread_m": 0.034413066085050584,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 953.4100372831813,
+        "single_rosbag_2": 130.59153795962763,
+        "single_rosbag_succeeded": 295.3814617414626
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 684.8811506670385,
+        "single_rosbag_2": 17.93905477324705,
+        "single_rosbag_succeeded": 267.0387170823519
+      },
+      "force_over_mass_spread_kg_inverse": 0.10815335339666805,
+      "inertia_over_mass_spread_m2_frobenius": 2.685599363962084e-08,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.03734639341890172,
+        "single_rosbag_1__single_rosbag_succeeded": 0.0731003057022229,
+        "single_rosbag_2__single_rosbag_succeeded": 0.06260929852033724
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 0.1165721437585145,
+        "single_rosbag_1__single_rosbag_succeeded": 0.2224554922950592,
+        "single_rosbag_2__single_rosbag_succeeded": 0.20542351351733862
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 6.264328291505962e-08,
+        "single_rosbag_1__single_rosbag_succeeded": 4.684154795688031e-08,
+        "single_rosbag_2__single_rosbag_succeeded": 1.9310309162964627e-08
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.027640815455206236,
+          0.027620713494078897,
+          0.05485297126841672,
+          -3.141693536739028e-07,
+          8.086640518134493e-06,
+          2.8247281855075523e-08,
+          0.024568720543557937,
+          7.704878393155988e-05,
+          0.02385705327211155,
+          0.30632413362062727,
+          0.40542031357855857,
+          0.3827048070793599,
+          0.307128444428607
+        ],
+        "single_rosbag_2": [
+          0.027640810872862402,
+          0.027620651902055777,
+          0.05485296954786558,
+          -3.0798300108249917e-07,
+          8.085643523160801e-06,
+          2.449791548707874e-08,
+          -0.012151727722728456,
+          0.0006853089605116362,
+          0.017075327822054093,
+          0.37659088541020674,
+          0.347270346335106,
+          0.34770977128419134,
+          0.3707332954439004
+        ],
+        "single_rosbag_succeeded": [
+          0.027640816955206825,
+          0.027620666740372682,
+          0.054852970193012794,
+          -3.137706755758515e-07,
+          8.08569635344552e-06,
+          2.9412248026934313e-08,
+          -0.015509744331722577,
+          -0.06094268663795231,
+          0.02759379463894949,
+          0.44163122660204435,
+          0.45082084316271936,
+          0.21583685566492708,
+          0.27145891477956985
+        ]
+      }
+    },
+    {
+      "case_name": "force_over_mass_all_nominal",
+      "cog_spread_m": 0.052177377937535324,
+      "data_objective_per_bag": {
+        "single_rosbag_1": 1138.7217548665922,
+        "single_rosbag_2": 913.9513433019545,
+        "single_rosbag_succeeded": 2765.0154011800146
+      },
+      "delta_data_objective_per_bag": {
+        "single_rosbag_1": 870.1928682504494,
+        "single_rosbag_2": 801.2988601155739,
+        "single_rosbag_succeeded": 2736.6726565209037
+      },
+      "force_over_mass_spread_kg_inverse": 1.0033379319212485e-06,
+      "inertia_over_mass_spread_m2_frobenius": 1.825144291266778,
+      "optimization_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "overall_case_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "pairwise_cog_distance_m": {
+        "single_rosbag_1__single_rosbag_2": 0.06355001734962382,
+        "single_rosbag_1__single_rosbag_succeeded": 0.06487910863834091,
+        "single_rosbag_2__single_rosbag_succeeded": 0.12749276635591703
+      },
+      "pairwise_force_over_mass_distance_kg_inverse": {
+        "single_rosbag_1__single_rosbag_2": 1.24475116236334e-07,
+        "single_rosbag_1__single_rosbag_succeeded": 2.0655809440348153e-06,
+        "single_rosbag_2__single_rosbag_succeeded": 2.185878395466286e-06
+      },
+      "pairwise_inertia_over_mass_distance_m2_frobenius": {
+        "single_rosbag_1__single_rosbag_2": 0.08403642851660388,
+        "single_rosbag_1__single_rosbag_succeeded": 3.8642415679115545,
+        "single_rosbag_2__single_rosbag_succeeded": 3.8782650939563177
+      },
+      "postfit_uncertainty_status_per_bag": {
+        "single_rosbag_1": "completed",
+        "single_rosbag_2": "completed",
+        "single_rosbag_succeeded": "completed"
+      },
+      "x_per_bag": {
+        "single_rosbag_1": [
+          0.12414038197211484,
+          0.09772065862241722,
+          0.2083327241629992,
+          1.577386221845371e-05,
+          -0.02402703132639845,
+          -0.006968723816629062,
+          -0.007621640065225482,
+          0.009621243228537612,
+          -0.04995782209216037,
+          0.425242117739644,
+          0.4252421856034308,
+          0.42524212620925206,
+          0.4252421175317136
+        ],
+        "single_rosbag_2": [
+          0.14742075981062655,
+          0.037747966621533666,
+          0.18066897766369766,
+          0.0032004729162275094,
+          0.008620203780428232,
+          -0.005212288087388857,
+          -0.004389034214036532,
+          0.0018279706892785552,
+          0.01302963592669587,
+          0.42524218159314375,
+          0.4252422206142798,
+          0.4252422074299194,
+          0.42524217748360077
+        ],
+        "single_rosbag_succeeded": [
+          2.7683969430365036,
+          0.737152584649887,
+          2.4479077917243592,
+          -0.3178718772869885,
+          -0.1193678843686724,
+          -1.0782799739101383,
+          -0.01715828638923996,
+          0.0032404028050436644,
+          -0.11381419209614829,
+          0.42524105634311726,
+          0.4252412271324973,
+          0.4252411556362349,
+          0.4252409864333371
+        ]
+      }
+    }
+  ],
+  "cross_evaluation": {
+    "phase": "secondary_explicit_phase",
+    "reason": "Primary study uses covariance-independent point spreads and all 17 predefined cases.",
+    "status": "not_run"
+  },
+  "manifest_sha256": "d9cbe81a37d9e59c6de8a01c153a497e6c72f1a732fa1279f8e8270d487804f4",
+  "quotient_component_labels": [
+    "Jxx_over_m",
+    "Jyy_over_m",
+    "Jzz_over_m",
+    "Jxy_over_m",
+    "Jxz_over_m",
+    "Jyz_over_m",
+    "CoG_x",
+    "CoG_y",
+    "CoG_z",
+    "f1_over_m",
+    "f2_over_m",
+    "f3_over_m",
+    "f4_over_m"
+  ],
+  "quotient_component_units": [
+    "m^2",
+    "m^2",
+    "m^2",
+    "m^2",
+    "m^2",
+    "m^2",
+    "m",
+    "m",
+    "m",
+    "kg^-1",
+    "kg^-1",
+    "kg^-1",
+    "kg^-1"
+  ],
+  "schema": "grape-param-estim/prior-ablation-three-bag/v1",
+  "source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+  "source_directories": [
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_1_nominal_pseudo_conditioning_production_20260817",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_2_nominal_pseudo_conditioning_production_20260817",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_succeeded_nominal_pseudo_conditioning_production_20260817"
+  ],
+  "status": "completed"
+}

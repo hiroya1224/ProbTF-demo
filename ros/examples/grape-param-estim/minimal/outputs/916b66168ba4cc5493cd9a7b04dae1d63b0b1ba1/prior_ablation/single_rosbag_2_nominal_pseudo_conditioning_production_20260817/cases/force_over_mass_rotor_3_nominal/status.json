@@ -1,0 +1,21 @@
+{
+  "base_plan_commit": "ac03f309efbd659a9cc1a85f23bde5715cdd4934",
+  "case_name": "force_over_mass_rotor_3_nominal",
+  "elapsed_seconds": 135.50349074508995,
+  "exception_type": "RuntimeError",
+  "failure_reason": "wrench closure maps are not machine-precision inverses",
+  "failure_stage": "residual_wrench_uncertainty",
+  "message": "all stages completed",
+  "optimization_status": "completed",
+  "overall_case_status": "point_estimate_completed",
+  "postfit_uncertainty_failure": {
+    "exception_type": "RuntimeError",
+    "failure_stage": "residual_wrench_uncertainty",
+    "message": "wrench closure maps are not machine-precision inverses",
+    "status": "failed",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_savgol_core.py\", line 2818, in estimate_single_bag\n    postfit_residual_wrench = residual_wrench_uncertainty(\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_savgol_covariance.py\", line 192, in residual_wrench_uncertainty\n    wrench_acceleration_closure_maps(\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_savgol_covariance.py\", line 110, in wrench_acceleration_closure_maps\n    raise RuntimeError(\"wrench closure maps are not machine-precision inverses\")\nRuntimeError: wrench closure maps are not machine-precision inverses\n"
+  },
+  "postfit_uncertainty_status": "failed",
+  "source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+  "status": "point_estimate_completed"
+}

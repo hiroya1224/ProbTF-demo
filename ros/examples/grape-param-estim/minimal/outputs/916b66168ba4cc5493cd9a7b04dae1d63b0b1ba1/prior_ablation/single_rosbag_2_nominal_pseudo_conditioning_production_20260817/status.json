@@ -1,0 +1,9 @@
+{
+  "bag_id": "single_rosbag_2",
+  "case_count": 17,
+  "failed_count": 0,
+  "point_estimate_count": 17,
+  "postfit_uncertainty_failed_count": 2,
+  "source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+  "status": "completed"
+}

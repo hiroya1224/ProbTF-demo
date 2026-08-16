@@ -1,0 +1,11 @@
+{
+  "base_plan_commit": "ac03f309efbd659a9cc1a85f23bde5715cdd4934",
+  "case_name": "inertia_over_mass_zz_nominal",
+  "elapsed_seconds": 470.28793887561187,
+  "message": "all stages completed",
+  "optimization_status": "completed",
+  "overall_case_status": "completed",
+  "postfit_uncertainty_status": "completed",
+  "source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+  "status": "completed"
+}

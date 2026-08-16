@@ -1,0 +1,10 @@
+{
+  "bag_ids": [
+    "single_rosbag_1",
+    "single_rosbag_2",
+    "single_rosbag_succeeded"
+  ],
+  "case_count": 17,
+  "source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+  "status": "completed"
+}

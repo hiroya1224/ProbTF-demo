@@ -227,6 +227,7 @@ class AblationReportTests(unittest.TestCase):
         )
         arrays = arrays_payload(dataset, result, replay)
         required = {
+            "physical_coordinate",
             "sigma_z_eigenvalues",
             "whitening_gain",
             "mahalanobis_contribution_per_time",

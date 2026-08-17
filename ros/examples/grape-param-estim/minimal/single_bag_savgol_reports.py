@@ -523,6 +523,7 @@ def arrays_payload(
     lag = diagnostics["lag"]
     arrays: dict[str, np.ndarray] = {
         "sg_time": np.asarray(dataset.time),
+        "physical_coordinate": np.asarray(result.physical_coordinate),
         "sg_R": np.asarray(sg.body_rotation),
         "sg_omega": np.asarray(sg.body_angular_velocity),
         "sg_a_S": np.asarray(sg.sensor_acceleration_world),

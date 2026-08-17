@@ -1,0 +1,39 @@
+<launch>
+  <!--
+    Flagship-style synthetic scene:
+      * Kasuga starts looking well away from the shared moons.
+      * Both eye-in-hand tool edges carry small joint-derived uncertainty.
+      * After the global Bingham ambiguity is resolved, repeated visual bearings
+        condition a demo-local 12-D correlated Gaussian of joint zero offsets.
+
+    The latent Gaussian currently lives in the demo node.  The companion core
+    plan describes how to move it into probtf_core as a dependency-aware
+    smoothing backend without sampling.
+  -->
+  <arg name="start_rviz" default="true" />
+  <arg name="kasuga_initial_gaze_yaw_offset_deg" default="125.0" />
+  <arg name="tou_initial_gaze_yaw_offset_deg" default="0.0" />
+  <arg name="gaze_speed_deg" default="16.0" />
+  <arg name="publish_rate" default="20.0" />
+  <arg name="sample_count" default="500" />
+  <arg name="joint_prior_sigma_deg" default="1.5" />
+  <arg name="joint_sigma_floor_deg" default="0.18" />
+  <arg name="joint_update_rate" default="3.0" />
+  <arg name="joint_bearing_noise_deg" default="0.45" />
+
+  <include file="$(find probtf_global_fusion_demo)/launch/global_fusion_demo.launch">
+    <arg name="start_rviz" value="$(arg start_rviz)" />
+    <arg name="active_view" value="true" />
+    <arg name="publish_rate" value="$(arg publish_rate)" />
+    <arg name="sample_count" value="$(arg sample_count)" />
+    <arg name="gaze_speed_deg" value="$(arg gaze_speed_deg)" />
+    <arg name="tou_initial_gaze_yaw_offset_deg" value="$(arg tou_initial_gaze_yaw_offset_deg)" />
+    <arg name="kasuga_initial_gaze_yaw_offset_deg" value="$(arg kasuga_initial_gaze_yaw_offset_deg)" />
+    <arg name="enable_joint_uncertainty" value="true" />
+    <arg name="joint_prior_sigma_deg" value="$(arg joint_prior_sigma_deg)" />
+    <arg name="joint_sigma_floor_deg" value="$(arg joint_sigma_floor_deg)" />
+    <arg name="joint_update_rate" value="$(arg joint_update_rate)" />
+    <arg name="joint_bearing_noise_deg" value="$(arg joint_bearing_noise_deg)" />
+    <arg name="joint_update_start_phase" value="2" />
+  </include>
+</launch>

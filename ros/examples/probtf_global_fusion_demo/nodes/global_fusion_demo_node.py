@@ -15,9 +15,21 @@ from probtf.distributions import (
     TransformDistribution,
     TransformDistributionStamped,
 )
-from probtf.geometry import quat_to_rotmat, rpy_to_quat
+from probtf.geometry import (
+    DeterministicTransform,
+    quat_to_rotmat,
+    relative_transform,
+    rpy_to_quat,
+    se3_log,
+)
 from probtf.probability.sampling import sample_bingham_orientation
-from probtf.provenance import TransformProvenance
+from probtf.provenance import (
+    ApproximationInfo,
+    ApproximationKind,
+    ComponentProvenance,
+    TransformProvenance,
+)
+from probtf.temporal.backends import component_from_pose_covariance
 from probtf_estimators.orientation_imu import vector_alignment_bingham_evidence
 from probtf_msgs.msg import ProbabilisticTransformStamped
 from probtf_ros.v2_conversions import transform_distribution_to_msg
@@ -33,6 +45,8 @@ class GlobalFusionDemoNode:
         self.world_frame = rospy.get_param("~world_frame", "world").lstrip("/")
         self.base_frame = rospy.get_param("~base_frame", "kasuga_base").lstrip("/")
         self.tool_frame = rospy.get_param("~tool_frame", "kasuga_tool").lstrip("/")
+        self.tou_base_frame = rospy.get_param("~tou_base_frame", "tou_base").lstrip("/")
+        self.tou_tool_frame = rospy.get_param("~tou_tool_frame", "tou_tool").lstrip("/")
         self.phase_duration = float(rospy.get_param("~phase_duration", 5.0))
         self.publish_rate = float(rospy.get_param("~publish_rate", 10.0))
         self.concentration = float(rospy.get_param("~concentration", 80.0))
@@ -43,6 +57,46 @@ class GlobalFusionDemoNode:
         self.active_start_delay = float(rospy.get_param("~active_start_delay", 1.5))
         self.gaze_speed = math.radians(float(rospy.get_param("~gaze_speed_deg", 10.0)))
         self.motion_cost_weight = float(rospy.get_param("~motion_cost_weight", 0.10))
+        self.tou_initial_gaze_yaw_offset = math.radians(
+            float(rospy.get_param("~tou_initial_gaze_yaw_offset_deg", 0.0))
+        )
+        self.kasuga_initial_gaze_yaw_offset = math.radians(
+            float(rospy.get_param("~kasuga_initial_gaze_yaw_offset_deg", 0.0))
+        )
+        self.enable_joint_uncertainty = bool(
+            rospy.get_param("~enable_joint_uncertainty", False)
+        )
+        self.joint_prior_sigma = math.radians(
+            float(rospy.get_param("~joint_prior_sigma_deg", 1.5))
+        )
+        self.joint_sigma_floor = math.radians(
+            float(rospy.get_param("~joint_sigma_floor_deg", 0.12))
+        )
+        self.joint_update_rate = float(rospy.get_param("~joint_update_rate", 5.0))
+        self.joint_bearing_noise = math.radians(
+            float(rospy.get_param("~joint_bearing_noise_deg", 0.35))
+        )
+        self.joint_update_start_phase = int(
+            rospy.get_param("~joint_update_start_phase", PHASE_TWO_VECTORS)
+        )
+        self.tou_joint_bias_truth = np.radians(
+            np.asarray(
+                rospy.get_param(
+                    "~tou_joint_bias_truth_deg",
+                    [0.7, -0.5, 0.6, 0.8, -0.4, 0.5],
+                ),
+                dtype=float,
+            )
+        )
+        self.kasuga_joint_bias_truth = np.radians(
+            np.asarray(
+                rospy.get_param(
+                    "~kasuga_joint_bias_truth_deg",
+                    [-0.6, 0.8, -0.5, -0.7, 0.6, -0.4],
+                ),
+                dtype=float,
+            )
+        )
         self.arm_length = float(rospy.get_param("~arm_length", 0.35))
         self.base_translation = np.asarray(
             rospy.get_param("~base_translation", [0.75, 0.0, 0.0]),
@@ -86,6 +140,16 @@ class GlobalFusionDemoNode:
             raise ValueError("~gaze_speed_deg must be positive")
         if self.motion_cost_weight < 0.0:
             raise ValueError("~motion_cost_weight must be non-negative")
+        if self.joint_prior_sigma <= 0.0:
+            raise ValueError("~joint_prior_sigma_deg must be positive")
+        if self.joint_sigma_floor < 0.0 or self.joint_sigma_floor > self.joint_prior_sigma:
+            raise ValueError("~joint_sigma_floor_deg must lie in [0, joint_prior_sigma_deg]")
+        if self.joint_update_rate <= 0.0:
+            raise ValueError("~joint_update_rate must be positive")
+        if self.joint_bearing_noise <= 0.0:
+            raise ValueError("~joint_bearing_noise_deg must be positive")
+        if self.joint_update_start_phase not in (PHASE_UNIFORM, PHASE_ONE_VECTOR, PHASE_TWO_VECTORS):
+            raise ValueError("~joint_update_start_phase must be 0, 1, or 2")
         if self.base_translation.shape != (3,) or not np.all(np.isfinite(self.base_translation)):
             raise ValueError("~base_translation must contain three finite values")
         if self.tou_base_position.shape != (3,) or not np.all(np.isfinite(self.tou_base_position)):
@@ -94,6 +158,10 @@ class GlobalFusionDemoNode:
             raise ValueError("~tou_arm_joints_deg must contain three finite values")
         if self.kasuga_arm_joints.shape != (3,) or not np.all(np.isfinite(self.kasuga_arm_joints)):
             raise ValueError("~kasuga_arm_joints_deg must contain three finite values")
+        if self.tou_joint_bias_truth.shape != (6,) or not np.all(np.isfinite(self.tou_joint_bias_truth)):
+            raise ValueError("~tou_joint_bias_truth_deg must contain six finite values")
+        if self.kasuga_joint_bias_truth.shape != (6,) or not np.all(np.isfinite(self.kasuga_joint_bias_truth)):
+            raise ValueError("~kasuga_joint_bias_truth_deg must contain six finite values")
         if not 0.0 < self.camera_hfov < math.pi or not 0.0 < self.camera_vfov < math.pi:
             raise ValueError("camera FOV values must be in (0, 180) degrees")
 
@@ -156,6 +224,28 @@ class GlobalFusionDemoNode:
         )
         self.tou_gaze_forward = self.tou_arm_state["camera_rotation"][:, 0].copy()
         self.kasuga_gaze_forward = self.kasuga_arm_state["camera_rotation"][:, 0].copy()
+        if abs(self.tou_initial_gaze_yaw_offset) > 1.0e-12:
+            self.tou_gaze_forward = self._rotation_z(self.tou_initial_gaze_yaw_offset) @ self.tou_gaze_forward
+            self.tou_arm_state = self._state_with_forward(self.tou_arm_state, self.tou_gaze_forward)
+        if abs(self.kasuga_initial_gaze_yaw_offset) > 1.0e-12:
+            self.kasuga_gaze_forward = self._rotation_z(self.kasuga_initial_gaze_yaw_offset) @ self.kasuga_gaze_forward
+            self.kasuga_arm_state = self._state_with_forward(self.kasuga_arm_state, self.kasuga_gaze_forward)
+
+        # Demo-local latent Gaussian for the twelve joint zero offsets.  This is
+        # deliberately kept outside probtf_core until the dependency-aware
+        # smoother described in PROBTF_DEPENDENCY_SMOOTHER_PLAN.md is added.
+        # The inference below is matrix-only; no particles are used.  The
+        # resulting marginal camera-pose covariance is encoded back into the
+        # native Bingham + conditional-Gaussian transform component so both
+        # Tou and Kasuga publish stochastic tool edges today.
+        self.joint_bias_mean = np.zeros(12, dtype=float)
+        self.joint_bias_truth = np.concatenate(
+            [self.tou_joint_bias_truth, self.kasuga_joint_bias_truth]
+        )
+        self.joint_bias_covariance = (self.joint_prior_sigma ** 2) * np.eye(12, dtype=float)
+        self.joint_update_count = 0
+        self.joint_landmark_cursor = 0
+        self.last_joint_update_time = None
 
         self.evidence_by_landmark = {1: self.evidence_1, 2: self.evidence_2}
         self.active_parameter_matrix = np.zeros((4, 4), dtype=float)
@@ -167,7 +257,7 @@ class GlobalFusionDemoNode:
         self.active_phase = PHASE_UNIFORM
         self.active_target_landmark = None
         self.last_timer_time = None
-        self._refresh_kasuga_camera_local()
+        self._refresh_camera_locals()
 
         self.probtf_publisher = rospy.Publisher(
             "~probtf",
@@ -215,6 +305,19 @@ class GlobalFusionDemoNode:
         vertical = anchor + 0.38 * (self.true_rotation @ np.array([0.0, 0.0, 1.0]))
         horizontal = anchor + 0.42 * (self.true_rotation @ np.array([1.0, 0.0, 0.0]))
         return np.vstack([anchor, vertical, horizontal])
+
+    @staticmethod
+    def _rotation_x(angle):
+        cosine = math.cos(angle)
+        sine = math.sin(angle)
+        return np.array(
+            [
+                [1.0, 0.0, 0.0],
+                [0.0, cosine, -sine],
+                [0.0, sine, cosine],
+            ],
+            dtype=float,
+        )
 
     @staticmethod
     def _rotation_y(angle):
@@ -275,8 +378,83 @@ class GlobalFusionDemoNode:
             is_static=False,
         )
 
+    def _joint_tool_record(self, name, parent, child, edge_id, stamp):
+        if not self.enable_joint_uncertainty:
+            if name == "tou":
+                translation = self.tou_camera_local
+                rotation = self.tou_camera_rotation_local
+            elif name == "kasuga":
+                translation = self.kasuga_camera_local
+                rotation = self.kasuga_camera_rotation_local
+            else:
+                raise ValueError("unknown robot {}".format(name))
+            return self._record(
+                parent,
+                child,
+                edge_id,
+                "articulated_eye_in_hand_geometry",
+                BinghamOrientation.dirac(self._quat_from_rotation(rotation).tolist()),
+                translation,
+                stamp,
+            )
+
+        transform, covariance = self._camera_pose_moments(name)
+        approximation = ApproximationInfo(
+            kind=ApproximationKind.TANGENT_SURROGATE,
+            lossy=True,
+            detail=(
+                "Demo-local correlated joint-zero Gaussian is pushed through the "
+                "6-DoF eye-in-hand kinematics by J Sigma J^T and encoded as a "
+                "native ProbTF Bingham/conditional-Gaussian marginal."
+            ),
+            source="probtf_global_fusion_demo.joint_latent",
+        )
+        dependency_id = "latent_joint_bias:{}".format(name)
+        component = component_from_pose_covariance(
+            component_id=edge_id + "_component",
+            raw_weight=1.0,
+            transform=transform,
+            covariance=covariance,
+            provenance=ComponentProvenance(
+                source_ids=(dependency_id,),
+                method="joint_latent_marginal",
+                detail=(
+                    "Temporary demo-side marginal. The core plan moves this latent "
+                    "Gaussian and its cross-edge dependencies into probtf_core."
+                ),
+            ),
+            approximation=approximation,
+        )
+        return TransformDistributionStamped(
+            parent_frame_id=parent,
+            child_frame_id=child,
+            stamp=stamp,
+            edge_id=edge_id,
+            authority="probtf_global_fusion_demo",
+            distribution=TransformDistribution((component,)),
+            provenance=TransformProvenance(
+                source_ids=(dependency_id,),
+                method="joint_latent_marginal",
+                detail=(
+                    "All six joint zero offsets are kept jointly Gaussian in the "
+                    "demo node; this edge is their current camera-pose marginal."
+                ),
+            ),
+            is_static=False,
+            approximation=approximation,
+        )
+
     def _publish_probtf(self, orientation, stamp):
-        base_record = self._record(
+        tou_base_record = self._record(
+            self.world_frame,
+            self.tou_base_frame,
+            "world__to__tou_base",
+            "synthetic_tou_base",
+            BinghamOrientation.dirac([1.0, 0.0, 0.0, 0.0]),
+            self.tou_base_position,
+            stamp,
+        )
+        kasuga_base_record = self._record(
             self.world_frame,
             self.base_frame,
             "world__to__kasuga_base",
@@ -285,18 +463,27 @@ class GlobalFusionDemoNode:
             self.base_translation,
             stamp,
         )
-        camera_quaternion = self._quat_from_rotation(self.kasuga_camera_rotation_local)
-        tool_record = self._record(
+        tou_tool_record = self._joint_tool_record(
+            "tou",
+            self.tou_base_frame,
+            self.tou_tool_frame,
+            "tou_base__to__tou_tool",
+            stamp,
+        )
+        kasuga_tool_record = self._joint_tool_record(
+            "kasuga",
             self.base_frame,
             self.tool_frame,
             "kasuga_base__to__kasuga_tool",
-            "articulated_eye_in_hand_geometry",
-            BinghamOrientation.dirac(camera_quaternion.tolist()),
-            self.kasuga_camera_local,
             stamp,
         )
-        self.probtf_publisher.publish(transform_distribution_to_msg(base_record))
-        self.probtf_publisher.publish(transform_distribution_to_msg(tool_record))
+        for record in (
+            tou_base_record,
+            kasuga_base_record,
+            tou_tool_record,
+            kasuga_tool_record,
+        ):
+            self.probtf_publisher.publish(transform_distribution_to_msg(record))
 
     @staticmethod
     def _color(red, green, blue, alpha=1.0):
@@ -397,11 +584,224 @@ class GlobalFusionDemoNode:
         updated["camera_position"] = state["wrist"] + rotation[:, 0] * self.camera_offset
         return updated
 
-    def _refresh_kasuga_camera_local(self):
+    def _refresh_camera_locals(self):
+        self.tou_camera_local = self.tou_arm_state["camera_position"] - self.tou_base_position
+        self.tou_camera_rotation_local = self.tou_arm_state["camera_rotation"].copy()
         self.kasuga_camera_local = self.true_rotation.T @ (
             self.kasuga_arm_state["camera_position"] - self.base_translation
         )
         self.kasuga_camera_rotation_local = self.true_rotation.T @ self.kasuga_arm_state["camera_rotation"]
+
+    @staticmethod
+    def _wrap_angle(angle):
+        return math.atan2(math.sin(angle), math.cos(angle))
+
+    @staticmethod
+    def _robot_joint_slice(name):
+        if name == "tou":
+            return slice(0, 6)
+        if name == "kasuga":
+            return slice(6, 12)
+        raise ValueError("unknown robot {}".format(name))
+
+    def _robot_position_joints(self, name):
+        if name == "tou":
+            return self.tou_arm_joints
+        if name == "kasuga":
+            return self.kasuga_arm_joints
+        raise ValueError("unknown robot {}".format(name))
+
+    def _robot_nominal_camera_rotation_local(self, name):
+        if name == "tou":
+            return self.tou_camera_rotation_local
+        if name == "kasuga":
+            return self.kasuga_camera_rotation_local
+        raise ValueError("unknown robot {}".format(name))
+
+    def _robot_base_pose(self, name):
+        if name == "tou":
+            return self.tou_base_position, np.eye(3, dtype=float)
+        if name == "kasuga":
+            return self.base_translation, self.true_rotation
+        raise ValueError("unknown robot {}".format(name))
+
+    def _camera_pose_local_from_joint_bias(self, name, bias):
+        bias = np.asarray(bias, dtype=float).reshape(6)
+        q1, q2, q3 = self._robot_position_joints(name) + bias[:3]
+
+        shoulder = np.array([0.0, 0.0, self.shoulder_height], dtype=float)
+        upper_rotation = self._rotation_z(q1) @ self._rotation_y(q2)
+        elbow = shoulder + upper_rotation @ np.array(
+            [self.upper_arm_length, 0.0, 0.0], dtype=float
+        )
+        forearm_rotation = upper_rotation @ self._rotation_y(q3)
+        wrist = elbow + forearm_rotation @ np.array(
+            [self.forearm_length, 0.0, 0.0], dtype=float
+        )
+
+        nominal_rotation = self._robot_nominal_camera_rotation_local(name)
+        wrist_error = (
+            self._rotation_x(bias[3])
+            @ self._rotation_y(bias[4])
+            @ self._rotation_z(bias[5])
+        )
+        camera_rotation = nominal_rotation @ wrist_error
+        camera_position = wrist + camera_rotation[:, 0] * self.camera_offset
+        return DeterministicTransform(
+            camera_position,
+            self._quat_from_rotation(camera_rotation),
+        )
+
+    def _camera_pose_jacobian(self, name, bias, epsilon=1.0e-6):
+        bias = np.asarray(bias, dtype=float).reshape(6)
+        nominal = self._camera_pose_local_from_joint_bias(name, bias)
+        jacobian = np.zeros((6, 6), dtype=float)
+        for column in range(6):
+            delta = np.zeros(6, dtype=float)
+            delta[column] = epsilon
+            positive = self._camera_pose_local_from_joint_bias(name, bias + delta)
+            negative = self._camera_pose_local_from_joint_bias(name, bias - delta)
+            jacobian[:3, column] = (
+                positive.translation - negative.translation
+            ) / (2.0 * epsilon)
+            plus_rotation = se3_log(relative_transform(nominal, positive))[3:]
+            minus_rotation = se3_log(relative_transform(nominal, negative))[3:]
+            jacobian[3:, column] = (
+                plus_rotation - minus_rotation
+            ) / (2.0 * epsilon)
+        return nominal, jacobian
+
+    def _camera_pose_moments(self, name):
+        joint_slice = self._robot_joint_slice(name)
+        bias = self.joint_bias_mean[joint_slice]
+        covariance = self.joint_bias_covariance[joint_slice, joint_slice]
+        transform, jacobian = self._camera_pose_jacobian(name, bias)
+        pose_covariance = jacobian @ covariance @ jacobian.T
+        pose_covariance = 0.5 * (pose_covariance + pose_covariance.T)
+        return transform, pose_covariance
+
+    def _camera_world_pose_from_joint_bias(self, name, bias):
+        local = self._camera_pose_local_from_joint_bias(name, bias)
+        base_translation, base_rotation = self._robot_base_pose(name)
+        world_rotation = base_rotation @ quat_to_rotmat(local.rotation_wxyz)
+        world_translation = base_translation + base_rotation @ local.translation
+        return DeterministicTransform(
+            world_translation,
+            self._quat_from_rotation(world_rotation),
+        )
+
+    def _camera_state_from_joint_bias(self, name, bias):
+        pose = self._camera_world_pose_from_joint_bias(name, bias)
+        return {
+            "camera_position": pose.translation,
+            "camera_rotation": quat_to_rotmat(pose.rotation_wxyz),
+        }
+
+    def _bearing_from_joint_bias(self, name, bias, point):
+        pose = self._camera_world_pose_from_joint_bias(name, bias)
+        local = quat_to_rotmat(pose.rotation_wxyz).T @ (
+            np.asarray(point, dtype=float) - pose.translation
+        )
+        if local[0] <= 1.0e-8:
+            return None
+        return np.array(
+            [
+                math.atan2(local[1], local[0]),
+                math.atan2(local[2], local[0]),
+            ],
+            dtype=float,
+        )
+
+    def _bearing_jacobian(self, name, bias, point, epsilon=1.0e-6):
+        bias = np.asarray(bias, dtype=float).reshape(6)
+        nominal = self._bearing_from_joint_bias(name, bias, point)
+        if nominal is None:
+            return None
+        jacobian = np.zeros((2, 6), dtype=float)
+        for column in range(6):
+            delta = np.zeros(6, dtype=float)
+            delta[column] = epsilon
+            positive = self._bearing_from_joint_bias(name, bias + delta, point)
+            negative = self._bearing_from_joint_bias(name, bias - delta, point)
+            if positive is None or negative is None:
+                return None
+            difference = np.array(
+                [
+                    self._wrap_angle(positive[0] - negative[0]),
+                    self._wrap_angle(positive[1] - negative[1]),
+                ],
+                dtype=float,
+            )
+            jacobian[:, column] = difference / (2.0 * epsilon)
+        return jacobian
+
+    def _update_joint_belief_for_observation(self, name, landmark_index):
+        joint_slice = self._robot_joint_slice(name)
+        mean = self.joint_bias_mean[joint_slice].copy()
+        truth = self.joint_bias_truth[joint_slice]
+        point = self.landmarks_world[landmark_index]
+        measurement = self._bearing_from_joint_bias(name, truth, point)
+        prediction = self._bearing_from_joint_bias(name, mean, point)
+        local_jacobian = self._bearing_jacobian(name, mean, point)
+        if measurement is None or prediction is None or local_jacobian is None:
+            return False
+
+        residual = np.array(
+            [
+                self._wrap_angle(measurement[0] - prediction[0]),
+                self._wrap_angle(measurement[1] - prediction[1]),
+            ],
+            dtype=float,
+        )
+        jacobian = np.zeros((2, 12), dtype=float)
+        jacobian[:, joint_slice] = local_jacobian
+        measurement_covariance = (self.joint_bearing_noise ** 2) * np.eye(2, dtype=float)
+        covariance = self.joint_bias_covariance
+        innovation_covariance = (
+            jacobian @ covariance @ jacobian.T + measurement_covariance
+        )
+        try:
+            gain = covariance @ jacobian.T @ np.linalg.inv(innovation_covariance)
+        except np.linalg.LinAlgError:
+            return False
+
+        self.joint_bias_mean = self.joint_bias_mean + gain @ residual
+        identity = np.eye(12, dtype=float)
+        correction = identity - gain @ jacobian
+        updated = (
+            correction @ covariance @ correction.T
+            + gain @ measurement_covariance @ gain.T
+        )
+        updated = 0.5 * (updated + updated.T)
+        if self.joint_sigma_floor > 0.0:
+            eigenvalues, eigenvectors = np.linalg.eigh(updated)
+            floor_variance = self.joint_sigma_floor ** 2
+            updated = eigenvectors @ np.diag(np.maximum(eigenvalues, floor_variance)) @ eigenvectors.T
+            updated = 0.5 * (updated + updated.T)
+        self.joint_bias_covariance = updated
+        self.joint_update_count += 1
+        return True
+
+    def _maybe_update_joint_belief(self, now, phase):
+        if not self.enable_joint_uncertainty or phase < self.joint_update_start_phase:
+            return
+        if self.last_joint_update_time is not None:
+            if now - self.last_joint_update_time < 1.0 / self.joint_update_rate:
+                return
+        self.last_joint_update_time = now
+        self._update_visibility()
+        visible = sorted(self.common_visible)
+        if not visible:
+            return
+        landmark_index = visible[self.joint_landmark_cursor % len(visible)]
+        self.joint_landmark_cursor += 1
+        self._update_joint_belief_for_observation("tou", landmark_index)
+        self._update_joint_belief_for_observation("kasuga", landmark_index)
+
+    def _joint_sigma_rms_deg(self, name):
+        joint_slice = self._robot_joint_slice(name)
+        covariance = self.joint_bias_covariance[joint_slice, joint_slice]
+        return math.degrees(math.sqrt(max(0.0, float(np.trace(covariance)) / 6.0)))
 
     def _camera_visible(self, state, point):
         delta = np.asarray(point, dtype=float) - state["camera_position"]
@@ -413,15 +813,25 @@ class GlobalFusionDemoNode:
         return horizontal <= 0.5 * self.camera_hfov and vertical <= 0.5 * self.camera_vfov
 
     def _update_visibility(self):
+        if self.enable_joint_uncertainty:
+            tou_state = self._camera_state_from_joint_bias(
+                "tou", self.joint_bias_truth[self._robot_joint_slice("tou")]
+            )
+            kasuga_state = self._camera_state_from_joint_bias(
+                "kasuga", self.joint_bias_truth[self._robot_joint_slice("kasuga")]
+            )
+        else:
+            tou_state = self.tou_arm_state
+            kasuga_state = self.kasuga_arm_state
         self.tou_visible = {
             index
             for index, point in enumerate(self.landmarks_world)
-            if self._camera_visible(self.tou_arm_state, point)
+            if self._camera_visible(tou_state, point)
         }
         self.kasuga_visible = {
             index
             for index, point in enumerate(self.landmarks_world)
-            if self._camera_visible(self.kasuga_arm_state, point)
+            if self._camera_visible(kasuga_state, point)
         }
         self.common_visible = self.tou_visible & self.kasuga_visible
 
@@ -504,7 +914,7 @@ class GlobalFusionDemoNode:
         self.kasuga_gaze_forward = self._rotate_toward(self.kasuga_gaze_forward, kasuga_desired, max_angle)
         self.tou_arm_state = self._state_with_forward(self.tou_arm_state, self.tou_gaze_forward)
         self.kasuga_arm_state = self._state_with_forward(self.kasuga_arm_state, self.kasuga_gaze_forward)
-        self._refresh_kasuga_camera_local()
+        self._refresh_camera_locals()
 
     def _acquire_active_evidence(self, now):
         self._update_visibility()
@@ -534,19 +944,32 @@ class GlobalFusionDemoNode:
     def _phase_label(self, phase):
         if self.active_view:
             if phase == PHASE_UNIFORM:
-                return "Active view: waiting for the initial shared moon pair; relative orientation is uniform on SO(3)"
-            if phase == PHASE_ONE_VECTOR:
+                label = "Active view: seeking the initial shared moon pair; relative orientation is uniform on SO(3)"
+            elif phase == PHASE_ONE_VECTOR:
                 if self.active_target_landmark is None:
-                    return "Active view: one shared direction leaves S1; selecting the next informative gaze"
-                return "Active view: S1 remains; continuous information servo turns toward moon_{}".format(
-                    self.active_target_landmark
-                )
-            return "Active view: second non-collinear direction acquired; orientation localized and gaze motion stops"
-        if phase == PHASE_UNIFORM:
-            return "Tou and Kasuga share no common moons: Kasuga relative orientation is uniform on SO(3)"
-        if phase == PHASE_ONE_VECTOR:
-            return "Both robots observe moon_0 and moon_1: one shared direction leaves a global S1 yaw ambiguity"
-        return "Both robots also observe moon_2: a second non-collinear direction localizes Kasuga orientation"
+                    label = "Active view: one shared direction leaves S1; selecting the next informative gaze"
+                else:
+                    label = "Active view: S1 remains; continuous information servo turns toward moon_{}".format(
+                        self.active_target_landmark
+                    )
+            else:
+                label = "Active view: second non-collinear direction acquired; relative orientation localized"
+        elif phase == PHASE_UNIFORM:
+            label = "Tou and Kasuga share no common moons: Kasuga relative orientation is uniform on SO(3)"
+        elif phase == PHASE_ONE_VECTOR:
+            label = "Both robots observe moon_0 and moon_1: one shared direction leaves a global S1 yaw ambiguity"
+        else:
+            label = "Both robots also observe moon_2: a second non-collinear direction localizes Kasuga orientation"
+
+        if self.enable_joint_uncertainty:
+            label += (
+                "\nJoint-bias posterior RMS: Tou {:.2f} deg | Kasuga {:.2f} deg | visual updates {}"
+            ).format(
+                self._joint_sigma_rms_deg("tou"),
+                self._joint_sigma_rms_deg("kasuga"),
+                self.joint_update_count,
+            )
+        return label
 
     def _text_marker(self, phase, stamp):
         marker = Marker()
@@ -632,6 +1055,88 @@ class GlobalFusionDemoNode:
         marker.scale.z = float(scale[2])
         marker.color = color
         return marker
+
+    def _covariance_ellipsoid_marker(
+        self,
+        marker_id,
+        namespace,
+        center,
+        covariance,
+        color,
+        stamp,
+        sigma_scale=2.5,
+    ):
+        covariance = 0.5 * (
+            np.asarray(covariance, dtype=float) + np.asarray(covariance, dtype=float).T
+        )
+        eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+        eigenvalues = np.maximum(eigenvalues, 0.0)
+        if np.linalg.det(eigenvectors) < 0.0:
+            eigenvectors[:, 0] *= -1.0
+        diameters = 2.0 * sigma_scale * np.sqrt(eigenvalues)
+        diameters = np.maximum(diameters, 0.004)
+
+        marker = Marker()
+        marker.header.frame_id = self.world_frame
+        marker.header.stamp = rospy.Time.from_sec(stamp)
+        marker.ns = namespace
+        marker.id = marker_id
+        marker.type = Marker.SPHERE
+        marker.action = Marker.ADD
+        marker.pose.position = self._point(center)
+        quaternion = self._quat_from_rotation(eigenvectors)
+        marker.pose.orientation.w = float(quaternion[0])
+        marker.pose.orientation.x = float(quaternion[1])
+        marker.pose.orientation.y = float(quaternion[2])
+        marker.pose.orientation.z = float(quaternion[3])
+        marker.scale.x = float(diameters[0])
+        marker.scale.y = float(diameters[1])
+        marker.scale.z = float(diameters[2])
+        marker.color = color
+        return marker
+
+    def _joint_uncertainty_markers(self, stamp):
+        if not self.enable_joint_uncertainty:
+            return []
+        markers = []
+        specifications = (
+            ("tou", 350, self._color(0.25, 0.75, 1.0, 0.24)),
+            ("kasuga", 360, self._color(1.0, 0.45, 0.75, 0.24)),
+        )
+        for name, marker_id, color in specifications:
+            transform, covariance = self._camera_pose_moments(name)
+            base_translation, base_rotation = self._robot_base_pose(name)
+            center = base_translation + base_rotation @ transform.translation
+            world_translation_covariance = (
+                base_rotation @ covariance[:3, :3] @ base_rotation.T
+            )
+            markers.append(
+                self._covariance_ellipsoid_marker(
+                    marker_id,
+                    "{}_joint_camera_uncertainty".format(name),
+                    center,
+                    world_translation_covariance,
+                    color,
+                    stamp,
+                )
+            )
+
+            label = Marker()
+            label.header.frame_id = self.world_frame
+            label.header.stamp = rospy.Time.from_sec(stamp)
+            label.ns = "{}_joint_camera_uncertainty".format(name)
+            label.id = marker_id + 1
+            label.type = Marker.TEXT_VIEW_FACING
+            label.action = Marker.ADD
+            label.pose.position = self._point(center + np.array([0.0, 0.0, 0.10]))
+            label.pose.orientation.w = 1.0
+            label.scale.z = 0.034
+            label.color = self._color(color.r, color.g, color.b, 0.92)
+            label.text = "{} joint RMS sigma = {:.2f} deg".format(
+                name, self._joint_sigma_rms_deg(name)
+            )
+            markers.append(label)
+        return markers
 
     def _cylinder_marker(self, marker_id, namespace, start, end, color, stamp, radius=0.018):
         start = np.asarray(start, dtype=float)
@@ -884,8 +1389,16 @@ class GlobalFusionDemoNode:
 
     def _observation_markers(self, phase, stamp):
         markers = []
-        tou_camera = self.tou_arm_state["camera_position"]
-        kasuga_camera = self.kasuga_arm_state["camera_position"]
+        if self.enable_joint_uncertainty:
+            tou_camera = self._camera_state_from_joint_bias(
+                "tou", self.joint_bias_truth[self._robot_joint_slice("tou")]
+            )["camera_position"]
+            kasuga_camera = self._camera_state_from_joint_bias(
+                "kasuga", self.joint_bias_truth[self._robot_joint_slice("kasuga")]
+            )["camera_position"]
+        else:
+            tou_camera = self.tou_arm_state["camera_position"]
+            kasuga_camera = self.kasuga_arm_state["camera_position"]
         tou_color = self._color(0.25, 0.75, 1.0, 0.42)
         kasuga_color = self._color(1.0, 0.45, 0.75, 0.42)
 
@@ -915,8 +1428,12 @@ class GlobalFusionDemoNode:
             self.sample_count,
             rng=self.random_seed + phase,
         )
+        if self.enable_joint_uncertainty:
+            kasuga_camera_local = self._camera_pose_moments("kasuga")[0].translation
+        else:
+            kasuga_camera_local = self.kasuga_camera_local
         points = [
-            self.base_translation + quat_to_rotmat(quaternion) @ self.kasuga_camera_local
+            self.base_translation + quat_to_rotmat(quaternion) @ kasuga_camera_local
             for quaternion in samples
         ]
 
@@ -938,6 +1455,7 @@ class GlobalFusionDemoNode:
         markers = [self._text_marker(phase, stamp)]
         markers.extend(self._landmark_markers(phase, stamp))
         markers.extend(self._robot_markers(stamp))
+        markers.extend(self._joint_uncertainty_markers(stamp))
         markers.extend(self._observation_markers(phase, stamp))
         markers.append(self._camera_cloud_marker(orientation, phase, stamp))
         self.marker_publisher.publish(MarkerArray(markers=markers))
@@ -955,7 +1473,9 @@ class GlobalFusionDemoNode:
         else:
             phase = self._phase(now)
             orientation = self._orientation_for_phase(phase)
+            self._update_visibility()
 
+        self._maybe_update_joint_belief(now, phase)
         self._publish_probtf(orientation, now)
         self._publish_markers(orientation, phase, now)
         if phase != self.last_phase:

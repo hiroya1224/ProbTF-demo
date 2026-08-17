@@ -146,3 +146,65 @@ small safe qdot candidates
 
 That version can use the same compact ProbTF belief at TF-rate while reserving
 sampling, if needed, for the much slower action-selection loop.
+
+## Look-away + uncertain-joint launch
+
+A second launch is provided for the next-stage demonstration:
+
+```bash
+roslaunch probtf_global_fusion_demo furisake_joint_uncertainty.launch
+```
+
+Its default scene deliberately starts Kasuga about 125 degrees away from the
+shared moon field. The eye-in-hand gaze servo turns continuously until common
+landmarks enter the FOV, produces the global Bingham `SO(3) -> S1 -> local`
+sequence, and then keeps the camera transform stochastic instead of replacing
+the arm by a deterministic endpoint.
+
+Both robots carry a demo-local six-joint zero-offset belief. The twelve offsets
+are stored as one Gaussian state
+
+```text
+b = [b_tou_1 ... b_tou_6 b_kasuga_1 ... b_kasuga_6]
+```
+
+with a full `12 x 12` covariance. Each camera-pose marginal is obtained from the
+current kinematic Jacobian by
+
+```text
+Sigma_camera = J_camera Sigma_b J_camera^T
+```
+
+and encoded back into the existing native ProbTF
+Bingham/conditional-Gaussian component. Therefore both
+`tou_base -> tou_tool` and `kasuga_base -> kasuga_tool` are stochastic edges in
+this launch. The translucent ellipsoids around the cameras show the local
+position part of these joint-derived marginals, while the orange support still
+shows the global Kasuga-base Bingham uncertainty.
+
+After the relative orientation has reached the two-vector state, common visual
+landmark bearings condition the joint-offset Gaussian with an EKF/Joseph matrix
+update. The status text reports the RMS joint posterior sigma for each arm, so
+the local camera ellipsoids visibly contract as observations accumulate.
+Inference in this joint-update path is matrix-only; the Bingham point cloud is
+used only as the existing RViz visualization of the global orientation law.
+
+### Important boundary of this patch
+
+The correlated joint Gaussian currently lives inside the demo node. The
+published tool edge is its **marginal**, not a new core-level latent factor.
+Consequently this patch does not claim to solve arbitrary cross-edge smoothing
+inside `probtf_core`. The companion `ros/core/probtf_core/docs/PROBTF_DEPENDENCY_SMOOTHER_PLAN.md`
+specifies the core work needed to make per-joint edges share a latent Gaussian,
+condition that joint posterior from loop-closure-like observations, and answer
+dependency-aware spatial queries without sampling.
+
+Useful overrides include:
+
+```bash
+roslaunch probtf_global_fusion_demo furisake_joint_uncertainty.launch \
+  kasuga_initial_gaze_yaw_offset_deg:=155 \
+  gaze_speed_deg:=12 \
+  joint_prior_sigma_deg:=2.0 \
+  joint_update_rate:=2.0
+```

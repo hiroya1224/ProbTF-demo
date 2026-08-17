@@ -1,0 +1,508 @@
+{
+  "bag_order": [
+    "failure1",
+    "failure2",
+    "success"
+  ],
+  "bags": {
+    "failure1": {
+      "bag_interval_seconds": [
+        19.0,
+        25.0
+      ],
+      "bag_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/bag_jsons/single_rosbag_1.json",
+      "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+      "controller_gain_snapshot": {
+        "adapter_revision": "audited-asynchronous-flight-data/v2",
+        "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+        "controller_yaml_template_gains": {
+          "roll_pitch": {
+            "d_gain": 20.0,
+            "i_gain": 1.0,
+            "p_gain": 13.0
+          },
+          "xy": {
+            "d_gain": 2.0,
+            "i_gain": 0.1,
+            "p_gain": 4.0
+          },
+          "yaw": {
+            "d_gain": 2.0,
+            "i_gain": 1.0,
+            "p_gain": 6.0
+          },
+          "z": {
+            "d_gain": 2.5,
+            "i_gain": 1.0,
+            "p_gain": 5.0
+          }
+        },
+        "gain_order": [
+          "p_gain",
+          "i_gain",
+          "d_gain"
+        ],
+        "gains": {
+          "roll_pitch": {
+            "d_gain": 8.0,
+            "i_gain": 1.0,
+            "p_gain": 20.0
+          },
+          "xy": {
+            "d_gain": 1.0,
+            "i_gain": 0.1,
+            "p_gain": 3.0
+          },
+          "yaw": {
+            "d_gain": 2.0,
+            "i_gain": 1.0,
+            "p_gain": 4.0
+          },
+          "z": {
+            "d_gain": 2.5,
+            "i_gain": 1.0,
+            "p_gain": 5.0
+          }
+        },
+        "group_order": [
+          "xy",
+          "z",
+          "roll_pitch",
+          "yaw"
+        ],
+        "pid_control_flags": [
+          false,
+          false,
+          false,
+          false
+        ],
+        "record_times": [
+          1781253241.437599,
+          1781253241.4378889,
+          1781253241.4380202,
+          1781253241.4380155
+        ],
+        "recorded_gains_differ_from_yaml": true,
+        "source": "rosbag_recorded_dynamic_reconfigure",
+        "source_kinds": [
+          "recorded_startup_parameter_update",
+          "recorded_startup_parameter_update",
+          "recorded_startup_parameter_update",
+          "recorded_startup_parameter_update"
+        ]
+      },
+      "controller_gain_source": "rosbag_recorded_dynamic_reconfigure",
+      "controller_yaml": "/home/leus/catkin_ws/src/jsk_aerial_robot/robots/gimbalrotor/config/grape/GimbalrotorControl.yaml",
+      "controller_yaml_sha256": "fd5649d86e67483a6d5e8fe1cb6e4c508a0e03311b74cf0c83a7469df9d6cc8f",
+      "error_after_frobenius": 0.44348763401730684,
+      "error_before_frobenius": 1.3001646609934676,
+      "estimator_result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_1_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+      "estimator_source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+      "gain_groups": {
+        "roll_pitch": {
+          "old": {
+            "d_gain": 8.0,
+            "i_gain": 1.0,
+            "p_gain": 20.0
+          },
+          "proposed": {
+            "d_gain": 28.230194482147336,
+            "i_gain": 3.528774310268417,
+            "p_gain": 70.57548620536834
+          },
+          "scale": 3.528774310268417
+        },
+        "xy": {
+          "old": {
+            "d_gain": 1.0,
+            "i_gain": 0.1,
+            "p_gain": 3.0
+          },
+          "proposed": {
+            "d_gain": 1.152044762905967,
+            "i_gain": 0.1152044762905967,
+            "p_gain": 3.4561342887179007
+          },
+          "scale": 1.152044762905967
+        },
+        "yaw": {
+          "old": {
+            "d_gain": 2.0,
+            "i_gain": 1.0,
+            "p_gain": 4.0
+          },
+          "proposed": {
+            "d_gain": 6.757735806902796,
+            "i_gain": 3.378867903451398,
+            "p_gain": 13.515471613805593
+          },
+          "scale": 3.378867903451398
+        },
+        "z": {
+          "old": {
+            "d_gain": 2.5,
+            "i_gain": 1.0,
+            "p_gain": 5.0
+          },
+          "proposed": {
+            "d_gain": 2.92441205939427,
+            "i_gain": 1.169764823757708,
+            "p_gain": 5.84882411878854
+          },
+          "scale": 1.169764823757708
+        }
+      },
+      "off_diagonal_coupling_ratio": 0.11628596475010197,
+      "proposal_status": "review_required",
+      "warnings": [
+        "controller_mode_resolved_from_source_default",
+        "recorded_controller_gains_differ_from_yaml",
+        "large_static_gain_change",
+        "static_correction_does_not_cover_rotor_lag",
+        "feedforward_not_corrected"
+      ]
+    },
+    "failure2": {
+      "bag_interval_seconds": [
+        25.5,
+        31.0
+      ],
+      "bag_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/bag_jsons/single_rosbag_2.json",
+      "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_6_2026-06-12-17-40-34.bag",
+      "controller_gain_snapshot": {
+        "adapter_revision": "audited-asynchronous-flight-data/v2",
+        "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_6_2026-06-12-17-40-34.bag",
+        "controller_yaml_template_gains": {
+          "roll_pitch": {
+            "d_gain": 20.0,
+            "i_gain": 1.0,
+            "p_gain": 13.0
+          },
+          "xy": {
+            "d_gain": 2.0,
+            "i_gain": 0.1,
+            "p_gain": 4.0
+          },
+          "yaw": {
+            "d_gain": 2.0,
+            "i_gain": 1.0,
+            "p_gain": 6.0
+          },
+          "z": {
+            "d_gain": 2.5,
+            "i_gain": 1.0,
+            "p_gain": 5.0
+          }
+        },
+        "gain_order": [
+          "p_gain",
+          "i_gain",
+          "d_gain"
+        ],
+        "gains": {
+          "roll_pitch": {
+            "d_gain": 8.0,
+            "i_gain": 1.0,
+            "p_gain": 10.0
+          },
+          "xy": {
+            "d_gain": 1.0,
+            "i_gain": 0.1,
+            "p_gain": 3.0
+          },
+          "yaw": {
+            "d_gain": 2.0,
+            "i_gain": 1.0,
+            "p_gain": 4.0
+          },
+          "z": {
+            "d_gain": 2.5,
+            "i_gain": 1.0,
+            "p_gain": 5.0
+          }
+        },
+        "group_order": [
+          "xy",
+          "z",
+          "roll_pitch",
+          "yaw"
+        ],
+        "pid_control_flags": [
+          false,
+          false,
+          false,
+          false
+        ],
+        "record_times": [
+          1781253636.17426,
+          1781253636.174264,
+          1781253636.174565,
+          1781253636.1746614
+        ],
+        "recorded_gains_differ_from_yaml": true,
+        "source": "rosbag_recorded_dynamic_reconfigure",
+        "source_kinds": [
+          "recorded_startup_parameter_update",
+          "recorded_startup_parameter_update",
+          "recorded_startup_parameter_update",
+          "recorded_startup_parameter_update"
+        ]
+      },
+      "controller_gain_source": "rosbag_recorded_dynamic_reconfigure",
+      "controller_yaml": "/home/leus/catkin_ws/src/jsk_aerial_robot/robots/gimbalrotor/config/grape/GimbalrotorControl.yaml",
+      "controller_yaml_sha256": "fd5649d86e67483a6d5e8fe1cb6e4c508a0e03311b74cf0c83a7469df9d6cc8f",
+      "error_after_frobenius": 0.6038351770476678,
+      "error_before_frobenius": 0.9824216564392905,
+      "estimator_result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_2_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+      "estimator_source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+      "gain_groups": {
+        "roll_pitch": {
+          "old": {
+            "d_gain": 8.0,
+            "i_gain": 1.0,
+            "p_gain": 10.0
+          },
+          "proposed": {
+            "d_gain": 13.795891454356683,
+            "i_gain": 1.7244864317945854,
+            "p_gain": 17.244864317945854
+          },
+          "scale": 1.7244864317945854
+        },
+        "xy": {
+          "old": {
+            "d_gain": 1.0,
+            "i_gain": 0.1,
+            "p_gain": 3.0
+          },
+          "proposed": {
+            "d_gain": 1.1787877617832054,
+            "i_gain": 0.11787877617832054,
+            "p_gain": 3.5363632853496165
+          },
+          "scale": 1.1787877617832054
+        },
+        "yaw": {
+          "old": {
+            "d_gain": 2.0,
+            "i_gain": 1.0,
+            "p_gain": 4.0
+          },
+          "proposed": {
+            "d_gain": 3.995594268015413,
+            "i_gain": 1.9977971340077065,
+            "p_gain": 7.991188536030826
+          },
+          "scale": 1.9977971340077065
+        },
+        "z": {
+          "old": {
+            "d_gain": 2.5,
+            "i_gain": 1.0,
+            "p_gain": 5.0
+          },
+          "proposed": {
+            "d_gain": 2.9474809145057073,
+            "i_gain": 1.178992365802283,
+            "p_gain": 5.8949618290114145
+          },
+          "scale": 1.178992365802283
+        }
+      },
+      "off_diagonal_coupling_ratio": 0.10480970317839239,
+      "proposal_status": "review_required",
+      "warnings": [
+        "controller_mode_resolved_from_source_default",
+        "recorded_controller_gains_differ_from_yaml",
+        "static_correction_does_not_cover_rotor_lag",
+        "feedforward_not_corrected"
+      ]
+    },
+    "success": {
+      "bag_interval_seconds": [
+        65.0,
+        75.0
+      ],
+      "bag_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/bag_jsons/single_rosbag_succeeded.json",
+      "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_1_2026-06-13-13-44-01.bag",
+      "controller_gain_snapshot": {
+        "adapter_revision": "audited-asynchronous-flight-data/v2",
+        "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260613_grape_hovering/20260613_grape_hovering_1_2026-06-13-13-44-01.bag",
+        "controller_yaml_template_gains": {
+          "roll_pitch": {
+            "d_gain": 20.0,
+            "i_gain": 1.0,
+            "p_gain": 13.0
+          },
+          "xy": {
+            "d_gain": 2.0,
+            "i_gain": 0.1,
+            "p_gain": 4.0
+          },
+          "yaw": {
+            "d_gain": 2.0,
+            "i_gain": 1.0,
+            "p_gain": 6.0
+          },
+          "z": {
+            "d_gain": 2.5,
+            "i_gain": 1.0,
+            "p_gain": 5.0
+          }
+        },
+        "gain_order": [
+          "p_gain",
+          "i_gain",
+          "d_gain"
+        ],
+        "gains": {
+          "roll_pitch": {
+            "d_gain": 20.0,
+            "i_gain": 1.0,
+            "p_gain": 13.0
+          },
+          "xy": {
+            "d_gain": 2.0,
+            "i_gain": 0.1,
+            "p_gain": 4.0
+          },
+          "yaw": {
+            "d_gain": 2.0,
+            "i_gain": 1.0,
+            "p_gain": 6.0
+          },
+          "z": {
+            "d_gain": 2.5,
+            "i_gain": 1.0,
+            "p_gain": 5.0
+          }
+        },
+        "group_order": [
+          "xy",
+          "z",
+          "roll_pitch",
+          "yaw"
+        ],
+        "pid_control_flags": [
+          false,
+          false,
+          false,
+          false
+        ],
+        "record_times": [
+          1781325843.2023034,
+          1781325843.2023165,
+          1781325843.2025836,
+          1781325843.2027407
+        ],
+        "recorded_gains_differ_from_yaml": false,
+        "source": "rosbag_recorded_dynamic_reconfigure",
+        "source_kinds": [
+          "recorded_startup_parameter_update",
+          "recorded_startup_parameter_update",
+          "recorded_startup_parameter_update",
+          "recorded_startup_parameter_update"
+        ]
+      },
+      "controller_gain_source": "rosbag_recorded_dynamic_reconfigure",
+      "controller_yaml": "/home/leus/catkin_ws/src/jsk_aerial_robot/robots/gimbalrotor/config/grape/GimbalrotorControl.yaml",
+      "controller_yaml_sha256": "fd5649d86e67483a6d5e8fe1cb6e4c508a0e03311b74cf0c83a7469df9d6cc8f",
+      "error_after_frobenius": 0.968271591191453,
+      "error_before_frobenius": 1.4312545698788446,
+      "estimator_result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_succeeded_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+      "estimator_source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+      "gain_groups": {
+        "roll_pitch": {
+          "old": {
+            "d_gain": 20.0,
+            "i_gain": 1.0,
+            "p_gain": 13.0
+          },
+          "proposed": {
+            "d_gain": 83.11805664918828,
+            "i_gain": 4.155902832459414,
+            "p_gain": 54.02673682197238
+          },
+          "scale": 4.155902832459414
+        },
+        "xy": {
+          "old": {
+            "d_gain": 2.0,
+            "i_gain": 0.1,
+            "p_gain": 4.0
+          },
+          "proposed": {
+            "d_gain": 2.42902673617569,
+            "i_gain": 0.1214513368087845,
+            "p_gain": 4.85805347235138
+          },
+          "scale": 1.214513368087845
+        },
+        "yaw": {
+          "old": {
+            "d_gain": 2.0,
+            "i_gain": 1.0,
+            "p_gain": 6.0
+          },
+          "proposed": {
+            "d_gain": 4.981828618465281,
+            "i_gain": 2.4909143092326405,
+            "p_gain": 14.945485855395843
+          },
+          "scale": 2.4909143092326405
+        },
+        "z": {
+          "old": {
+            "d_gain": 2.5,
+            "i_gain": 1.0,
+            "p_gain": 5.0
+          },
+          "proposed": {
+            "d_gain": 3.062312336362021,
+            "i_gain": 1.2249249345448083,
+            "p_gain": 6.124624672724042
+          },
+          "scale": 1.2249249345448083
+        }
+      },
+      "off_diagonal_coupling_ratio": 0.15660736881114162,
+      "proposal_status": "review_required",
+      "warnings": [
+        "controller_mode_resolved_from_source_default",
+        "large_static_gain_change",
+        "static_correction_does_not_cover_rotor_lag",
+        "feedforward_not_corrected"
+      ]
+    }
+  },
+  "deployment_yaml_generated": false,
+  "method": "diagnostic_comparison_without_automatic_averaging",
+  "scale_statistics": {
+    "roll_pitch": {
+      "max": 4.155902832459414,
+      "mean": 3.136387858174139,
+      "min": 1.7244864317945854,
+      "standard_deviation": 1.030670259004896
+    },
+    "xy": {
+      "max": 1.214513368087845,
+      "mean": 1.1817819642590057,
+      "min": 1.152044762905967,
+      "standard_deviation": 0.02559043564422601
+    },
+    "yaw": {
+      "max": 3.378867903451398,
+      "mean": 2.6225264488972484,
+      "min": 1.9977971340077065,
+      "standard_deviation": 0.5714487052123284
+    },
+    "z": {
+      "max": 1.2249249345448083,
+      "mean": 1.1912273747015998,
+      "min": 1.169764823757708,
+      "standard_deviation": 0.024123723283468842
+    }
+  },
+  "schema": "grape-param-estim/gimbalrotor-pid-postprocess-three-bag/v1",
+  "source_commit": "585db5ba8a236232d85f2097615cf64b7eb76ff0"
+}

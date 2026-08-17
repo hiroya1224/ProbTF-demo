@@ -1,0 +1,6 @@
+{
+  "deployment_yaml_generated": false,
+  "schema": "grape-param-estim/gimbalrotor-pid-postprocess-three-bag/v1/status/v1",
+  "source_commit": "585db5ba8a236232d85f2097615cf64b7eb76ff0",
+  "status": "completed"
+}

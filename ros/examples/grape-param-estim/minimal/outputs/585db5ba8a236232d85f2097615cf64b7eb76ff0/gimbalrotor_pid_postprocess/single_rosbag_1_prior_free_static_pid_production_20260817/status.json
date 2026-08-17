@@ -1,0 +1,16 @@
+{
+  "controller_gain_source": "rosbag_recorded_dynamic_reconfigure",
+  "estimator_case_name": "prior_free",
+  "estimator_source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+  "proposal_status": "review_required",
+  "schema": "grape-param-estim/gimbalrotor-pid-postprocess/v1/status/v1",
+  "source_commit": "585db5ba8a236232d85f2097615cf64b7eb76ff0",
+  "status": "completed",
+  "warnings": [
+    "controller_mode_resolved_from_source_default",
+    "recorded_controller_gains_differ_from_yaml",
+    "large_static_gain_change",
+    "static_correction_does_not_cover_rotor_lag",
+    "feedforward_not_corrected"
+  ]
+}

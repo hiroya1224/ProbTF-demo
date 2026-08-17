@@ -1,4 +1,5 @@
 #include <probtf_core/latest_snapshot.hpp>
+#include <probtf_core/transform_moments.hpp>
 
 #include <Eigen/Eigenvalues>
 #include <Eigen/Geometry>
@@ -12,6 +13,9 @@
 #include <cmath>
 #include <complex>
 #include <limits>
+#include <map>
+#include <mutex>
+#include <set>
 #include <sstream>
 #include <unordered_set>
 #include <utility>
@@ -24,6 +28,14 @@ using Matrix4d = Eigen::Matrix4d;
 void setError(std::string* output, const std::string& value) {
   if (output != nullptr) {
     *output = value;
+  }
+}
+
+void appendUniqueString(std::vector<std::string>* output,
+                        const std::string& value) {
+  if (!value.empty() &&
+      std::find(output->begin(), output->end(), value) == output->end()) {
+    output->push_back(value);
   }
 }
 
@@ -710,6 +722,213 @@ bool applyInverse(const probtf_msgs::ProbabilisticTransformStamped& record,
   return true;
 }
 
+Eigen::Matrix3d skewMatrix(const Eigen::Vector3d& value) {
+  Eigen::Matrix3d output;
+  output << 0.0, -value.z(), value.y(), value.z(), 0.0, -value.x(),
+      -value.y(), value.x(), 0.0;
+  return output;
+}
+
+Eigen::Matrix<double, 4, 3> quaternionRightTangentBasis(
+    const Eigen::Quaterniond& quaternion_value) {
+  const double w = quaternion_value.w();
+  const double x = quaternion_value.x();
+  const double y = quaternion_value.y();
+  const double z = quaternion_value.z();
+  Eigen::Matrix4d left;
+  left << w, -x, -y, -z,
+          x,  w, -z,  y,
+          y,  z,  w, -x,
+          z, -y,  x,  w;
+  return left.block<4, 3>(0, 1);
+}
+
+Eigen::Matrix<double, 9, 3> rightRotationJacobian(
+    const Eigen::Matrix3d& rotation) {
+  Eigen::Matrix<double, 9, 3> output;
+  for (int index = 0; index < 3; ++index) {
+    output.col(index) =
+        rotationVector(rotation * skewMatrix(Eigen::Vector3d::Unit(index)));
+  }
+  return output;
+}
+
+bool validatedCovariance6(Matrix6d* covariance, std::string* error) {
+  *covariance = 0.5 * (*covariance + covariance->transpose());
+  if (!covariance->allFinite()) {
+    setError(error, "Transform covariance contains non-finite values.");
+    return false;
+  }
+  Eigen::SelfAdjointEigenSolver<Matrix6d> solver(*covariance);
+  if (solver.info() != Eigen::Success) {
+    setError(error, "Transform covariance eigendecomposition failed.");
+    return false;
+  }
+  const double scale =
+      std::max(1.0, covariance->cwiseAbs().rowwise().sum().maxCoeff());
+  if (solver.eigenvalues()(0) < -1.0e-10 * scale) {
+    setError(error, "Transform covariance is not positive semidefinite.");
+    return false;
+  }
+  *covariance = solver.eigenvectors() *
+                solver.eigenvalues().cwiseMax(0.0).asDiagonal() *
+                solver.eigenvectors().transpose();
+  *covariance = 0.5 * (*covariance + covariance->transpose());
+  return true;
+}
+
+bool localComponentMoments(
+    const probtf_msgs::ProbabilisticTransformStamped& record,
+    Eigen::Isometry3d* mean,
+    Matrix6d* covariance,
+    std::string* error) {
+  std::vector<std::pair<const probtf_msgs::ProbabilisticTransformComponent*,
+                        double>>
+      components;
+  if (!normalizedComponents(record, &components, error)) {
+    return false;
+  }
+  if (components.size() != 1U) {
+    setError(error,
+             "Transform moments require one concentrated local component per "
+             "edge.");
+    return false;
+  }
+  const auto& component = *components.front().first;
+  Eigen::Quaterniond reference;
+  if (!validatedOrientation(component.orientation, &reference, error)) {
+    return false;
+  }
+  if (component.orientation.kind ==
+      probtf_msgs::BinghamOrientation::UNIFORM) {
+    setError(error,
+             "A uniform Bingham orientation has no finite local transform "
+             "covariance.");
+    return false;
+  }
+
+  Eigen::Quaterniond mode = reference;
+  Eigen::Matrix3d rotation_covariance = Eigen::Matrix3d::Zero();
+  if (component.orientation.kind ==
+      probtf_msgs::BinghamOrientation::FINITE_BINGHAM) {
+    Matrix4d parameter =
+        unpackSymmetric4(component.orientation.shape_upper_wxyz) /
+        component.orientation.inverse_concentration;
+    Eigen::SelfAdjointEigenSolver<Matrix4d> parameter_solver(parameter);
+    if (parameter_solver.info() != Eigen::Success) {
+      setError(error, "Finite Bingham mode eigendecomposition failed.");
+      return false;
+    }
+    parameter -= parameter_solver.eigenvalues()(3) * Matrix4d::Identity();
+    const Eigen::Vector4d mode_vector =
+        parameter_solver.eigenvectors().col(3);
+    mode = Eigen::Quaterniond(mode_vector(0), mode_vector(1), mode_vector(2),
+                              mode_vector(3));
+    mode.normalize();
+    const Eigen::Matrix<double, 4, 3> basis =
+        quaternionRightTangentBasis(mode);
+    Eigen::Matrix3d precision =
+        -0.5 * basis.transpose() * parameter * basis;
+    precision = 0.5 * (precision + precision.transpose());
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> precision_solver(precision);
+    if (precision_solver.info() != Eigen::Success ||
+        precision_solver.eigenvalues()(0) <= 0.0) {
+      setError(error,
+               "Finite Bingham orientation has no positive local precision.");
+      return false;
+    }
+    rotation_covariance =
+        precision_solver.eigenvectors() *
+        precision_solver.eigenvalues().cwiseInverse().asDiagonal() *
+        precision_solver.eigenvectors().transpose();
+  }
+
+  const Eigen::Matrix3d mode_rotation = mode.toRotationMatrix();
+  const Eigen::Matrix3d reference_rotation = reference.toRotationMatrix();
+  const Eigen::Matrix<double, 3, 9> coupling =
+      couplingMatrix(component.translation.rotation_coupling);
+  const Eigen::Vector3d translation =
+      vector3(component.translation.mean_at_reference) +
+      coupling * (rotationVector(mode_rotation) -
+                  rotationVector(reference_rotation));
+  Eigen::Matrix3d residual =
+      unpackSymmetric3(component.translation.residual_covariance_upper);
+  if (!translation.allFinite() || !coupling.allFinite() ||
+      !validatedCovariance(&residual, error)) {
+    setError(error, "Local transform component has invalid translation data.");
+    return false;
+  }
+  const Eigen::Matrix3d linear =
+      coupling * rightRotationJacobian(mode_rotation);
+  const Eigen::Matrix3d cross = linear * rotation_covariance;
+  covariance->setZero();
+  covariance->block<3, 3>(0, 0) =
+      residual + linear * rotation_covariance * linear.transpose();
+  covariance->block<3, 3>(0, 3) = cross;
+  covariance->block<3, 3>(3, 0) = cross.transpose();
+  covariance->block<3, 3>(3, 3) = rotation_covariance;
+  if (!validatedCovariance6(covariance, error)) {
+    return false;
+  }
+  *mean = Eigen::Isometry3d::Identity();
+  mean->linear() = mode_rotation;
+  mean->translation() = translation;
+  return true;
+}
+
+Eigen::Isometry3d applyMixedPerturbation(
+    const Eigen::Isometry3d& input,
+    const Eigen::Matrix<double, 6, 1>& perturbation) {
+  Eigen::Isometry3d output = input;
+  output.translation() += perturbation.head<3>();
+  const Eigen::Vector3d rotation_vector_value = perturbation.tail<3>();
+  const double angle = rotation_vector_value.norm();
+  if (angle > 0.0) {
+    output.linear() =
+        input.rotation() *
+        Eigen::AngleAxisd(angle, rotation_vector_value / angle)
+            .toRotationMatrix();
+  }
+  return output;
+}
+
+Matrix6d inverseMixedJacobian(const Eigen::Isometry3d& transform) {
+  const Eigen::Matrix3d rotation = transform.rotation();
+  Matrix6d output = Matrix6d::Zero();
+  output.block<3, 3>(0, 0) = -rotation.transpose();
+  output.block<3, 3>(0, 3) =
+      -skewMatrix(rotation.transpose() * transform.translation());
+  output.block<3, 3>(3, 3) = -rotation;
+  return output;
+}
+
+bool posesClose(const Eigen::Isometry3d& left,
+                const Eigen::Isometry3d& right) {
+  if ((left.translation() - right.translation()).cwiseAbs().maxCoeff() >
+      1.0e-8) {
+    return false;
+  }
+  const Eigen::AngleAxisd difference(left.rotation().transpose() *
+                                     right.rotation());
+  return std::abs(difference.angle()) <= 1.0e-8;
+}
+
+std::set<std::string> recordDependencies(
+    const probtf_msgs::ProbabilisticTransformStamped& record) {
+  std::set<std::string> output;
+  if (!record.edge_id.empty()) {
+    output.insert(record.edge_id);
+  }
+  output.insert(record.provenance.derived_from_edge_ids.begin(),
+                record.provenance.derived_from_edge_ids.end());
+  for (const auto& component : record.components) {
+    output.insert(component.provenance.derived_from_edge_ids.begin(),
+                  component.provenance.derived_from_edge_ids.end());
+  }
+  output.erase(std::string());
+  return output;
+}
+
 void setExactApproximation(probtf_msgs::ApproximationInfo* approximation) {
   approximation->kind = probtf_msgs::ApproximationInfo::EXACT;
   approximation->lossy = false;
@@ -721,9 +940,32 @@ void setExactApproximation(probtf_msgs::ApproximationInfo* approximation) {
 
 }  // namespace
 
+struct LatestSnapshot::TransformMomentCache {
+  struct Entry {
+    std::uint64_t latent_revision = 0;
+    TransformMomentObservation observation;
+  };
+
+  std::mutex mutex;
+  std::map<std::pair<std::string, std::string>, Entry> entries;
+};
+
+Eigen::Isometry3d applyMixedPosePerturbation(
+    const Eigen::Isometry3d& transform,
+    const Eigen::Matrix<double, 6, 1>& perturbation) {
+  return applyMixedPerturbation(transform, perturbation);
+}
+
+Matrix6d inverseMixedPoseJacobian(const Eigen::Isometry3d& transform) {
+  return inverseMixedJacobian(transform);
+}
+
 LatestSnapshot::LatestSnapshot(
     const probtf_msgs::ProbabilisticTransformArray& dynamic_records,
-    const probtf_msgs::ProbabilisticTransformArray& static_records) {
+    const probtf_msgs::ProbabilisticTransformArray& static_records,
+    std::shared_ptr<const GaussianLatentStore> latent_store)
+    : latent_store_(std::move(latent_store)),
+      transform_moment_cache_(std::make_shared<TransformMomentCache>()) {
   addRecords(static_records, true);
   if (valid_) {
     addRecords(dynamic_records, false);
@@ -843,7 +1085,8 @@ bool LatestSnapshot::analyzePath(
     const std::string& source_frame,
     const std::vector<PathStep>& path,
     TransformPathObservation* observation,
-    std::string* error) const {
+    std::string* error,
+    bool allow_dependency_resolution) const {
   bool all_deterministic = true;
   bool repeated_dependency = false;
   std::unordered_set<std::string> path_dependencies;
@@ -872,7 +1115,8 @@ bool LatestSnapshot::analyzePath(
       }
     }
   }
-  if (repeated_dependency && !all_deterministic) {
+  if (repeated_dependency && !all_deterministic &&
+      !allow_dependency_resolution) {
     setError(error,
              "Repeated latent edge dependencies require a dependency-aware "
              "stochastic evaluator.");
@@ -965,6 +1209,313 @@ bool LatestSnapshot::lookupPointMoments(
   observation->resolved_stamp = path_observation.resolved_stamp;
   observation->edge_ids = std::move(path_observation.edge_ids);
   observation->moments = std::move(current);
+  return true;
+}
+
+bool LatestSnapshot::lookupTransformMoments(
+    const std::string& target_frame,
+    const std::string& source_frame,
+    TransformMomentObservation* observation,
+    std::string* error) const {
+  if (observation == nullptr) {
+    setError(error, "Transform-moment output must not be null.");
+    return false;
+  }
+  const std::pair<std::string, std::string> cache_key(
+      cleanFrame(target_frame), cleanFrame(source_frame));
+  const std::uint64_t observed_revision =
+      latent_store_ == nullptr ? 0 : latent_store_->revision();
+  if (!cache_key.first.empty() && !cache_key.second.empty()) {
+    std::lock_guard<std::mutex> guard(transform_moment_cache_->mutex);
+    const auto cached = transform_moment_cache_->entries.find(cache_key);
+    if (cached != transform_moment_cache_->entries.end() &&
+        cached->second.latent_revision == observed_revision) {
+      *observation = cached->second.observation;
+      return true;
+    }
+  }
+  std::vector<PathStep> path;
+  if (!buildPath(target_frame, source_frame, &path, error)) {
+    return false;
+  }
+  TransformPathObservation path_observation;
+  if (!analyzePath(target_frame, source_frame, path, &path_observation, error,
+                   latent_store_ != nullptr)) {
+    return false;
+  }
+
+  GaussianLatentSnapshot latent_snapshot;
+  if (latent_store_ != nullptr) {
+    latent_snapshot = latent_store_->snapshot();
+  }
+  struct LocalEdge {
+    const PathStep* step = nullptr;
+    Eigen::Isometry3d physical_mean = Eigen::Isometry3d::Identity();
+    Eigen::Isometry3d directed_mean = Eigen::Isometry3d::Identity();
+    Matrix6d directed_map = Matrix6d::Identity();
+    Matrix6d residual_covariance = Matrix6d::Zero();
+    std::vector<EdgeLatentBinding> bindings;
+    std::set<std::string> dependencies;
+  };
+  std::vector<LocalEdge> edges;
+  edges.reserve(path.size());
+  std::map<std::string, int> dependency_counts;
+  for (const PathStep& step : path) {
+    LocalEdge edge;
+    edge.step = &step;
+    if (!localComponentMoments(*step.record, &edge.physical_mean,
+                               &edge.residual_covariance, error)) {
+      return false;
+    }
+    edge.dependencies = recordDependencies(*step.record);
+    for (const std::string& dependency : edge.dependencies) {
+      ++dependency_counts[dependency];
+    }
+    const std::vector<EdgeLatentBinding>* selected_bindings =
+        latent_snapshot.bindingsForEdge(step.record->edge_id);
+    if (selected_bindings != nullptr) {
+      edge.bindings = *selected_bindings;
+    }
+    if (!edge.bindings.empty()) {
+      const Eigen::Isometry3d& reference =
+          edge.bindings.front().linearization_pose;
+      if (!posesClose(reference, edge.physical_mean)) {
+        setError(error,
+                 "Binding linearization pose does not match its physical "
+                 "edge.");
+        return false;
+      }
+      Eigen::Matrix<double, 6, 1> perturbation =
+          Eigen::Matrix<double, 6, 1>::Zero();
+      for (const EdgeLatentBinding& binding : edge.bindings) {
+        if (binding.edge_id != step.record->edge_id ||
+            binding.linearization_stamp != step.record->header.stamp ||
+            binding.perturbation_convention !=
+                kPosePerturbationConvention ||
+            !posesClose(binding.linearization_pose, reference)) {
+          setError(error,
+                   "Edge bindings do not share the required linearization "
+                   "metadata.");
+          return false;
+        }
+        const GaussianLatentFactor* factor =
+            latent_snapshot.factor(binding.factor_id);
+        if (factor == nullptr || factor->version != binding.factor_version ||
+            binding.sensitivity.rows() != 6 ||
+            binding.sensitivity.cols() != factor->mean.size()) {
+          setError(error,
+                   "Edge binding has no matching Gaussian factor version.");
+          return false;
+        }
+        perturbation += binding.sensitivity * factor->mean;
+      }
+      edge.physical_mean =
+          applyMixedPerturbation(reference, perturbation);
+    }
+    edge.directed_mean = edge.physical_mean;
+    if (step.inverse) {
+      edge.directed_map = inverseMixedJacobian(edge.physical_mean);
+      edge.directed_mean = edge.physical_mean.inverse();
+    }
+    edges.push_back(std::move(edge));
+  }
+
+  std::vector<std::string> repeated_dependencies;
+  for (const auto& count : dependency_counts) {
+    if (count.second > 1) {
+      repeated_dependencies.push_back(count.first);
+    }
+  }
+  for (const std::string& dependency : repeated_dependencies) {
+    if (latent_snapshot.factor(dependency) == nullptr) {
+      setError(error,
+               "Repeated latent dependency has no Gaussian factor.");
+      return false;
+    }
+    for (const LocalEdge& edge : edges) {
+      if (edge.dependencies.count(dependency) == 0U) {
+        continue;
+      }
+      const bool found = std::any_of(
+          edge.bindings.begin(), edge.bindings.end(),
+          [&dependency](const EdgeLatentBinding& binding) {
+            return binding.factor_id == dependency;
+          });
+      if (!found) {
+        setError(error,
+                 "A participating edge lacks a repeated-dependency "
+                 "sensitivity binding.");
+        return false;
+      }
+    }
+  }
+
+  const std::size_t count = edges.size();
+  std::vector<Eigen::Isometry3d> prefixes(
+      count + 1, Eigen::Isometry3d::Identity());
+  for (std::size_t index = 0; index < count; ++index) {
+    prefixes[index + 1] = edges[index].directed_mean * prefixes[index];
+  }
+  std::vector<Eigen::Isometry3d> suffixes(
+      count + 1, Eigen::Isometry3d::Identity());
+  for (std::size_t offset = 0; offset < count; ++offset) {
+    const std::size_t index = count - offset - 1;
+    suffixes[index] = suffixes[index + 1] * edges[index].directed_mean;
+  }
+  std::vector<Matrix6d> path_jacobians(count, Matrix6d::Zero());
+  for (std::size_t index = 0; index < count; ++index) {
+    const Eigen::Matrix3d rotation_before = prefixes[index].rotation();
+    const Eigen::Matrix3d rotation_after = suffixes[index + 1].rotation();
+    const Eigen::Matrix3d rotation_edge = edges[index].directed_mean.rotation();
+    Matrix6d& jacobian = path_jacobians[index];
+    jacobian.block<3, 3>(0, 0) = rotation_after;
+    jacobian.block<3, 3>(0, 3) =
+        -rotation_after * rotation_edge *
+        skewMatrix(prefixes[index].translation());
+    jacobian.block<3, 3>(3, 3) = rotation_before.transpose();
+  }
+
+  struct ResidualAggregate {
+    Matrix6d covariance = Matrix6d::Zero();
+    Matrix6d sensitivity = Matrix6d::Zero();
+  };
+  std::map<std::string, ResidualAggregate> residual_aggregates;
+  std::map<std::string, Eigen::MatrixXd> latent_aggregates;
+  for (std::size_t index = 0; index < count; ++index) {
+    const LocalEdge& edge = edges[index];
+    const Matrix6d mapped =
+        path_jacobians[index] * edge.directed_map;
+    const std::string& edge_id = edge.step->record->edge_id;
+    const auto residual = residual_aggregates.find(edge_id);
+    if (residual == residual_aggregates.end()) {
+      ResidualAggregate value;
+      value.covariance = edge.residual_covariance;
+      value.sensitivity = mapped;
+      residual_aggregates[edge_id] = value;
+    } else {
+      if ((residual->second.covariance - edge.residual_covariance)
+              .cwiseAbs()
+              .maxCoeff() > 1.0e-12) {
+        setError(error,
+                 "Repeated physical edge changed residual covariance.");
+        return false;
+      }
+      residual->second.sensitivity += mapped;
+    }
+    for (const EdgeLatentBinding& binding : edge.bindings) {
+      const Eigen::MatrixXd contribution = mapped * binding.sensitivity;
+      const auto existing = latent_aggregates.find(binding.factor_id);
+      if (existing == latent_aggregates.end()) {
+        latent_aggregates[binding.factor_id] = contribution;
+      } else {
+        existing->second += contribution;
+      }
+    }
+  }
+
+  Matrix6d output_covariance = Matrix6d::Zero();
+  for (const auto& residual : residual_aggregates) {
+    output_covariance +=
+        residual.second.sensitivity * residual.second.covariance *
+        residual.second.sensitivity.transpose();
+  }
+  std::vector<std::string> factor_order;
+  for (const auto& latent : latent_aggregates) {
+    factor_order.push_back(latent.first);
+  }
+  if (!factor_order.empty()) {
+    Eigen::VectorXd joint_mean;
+    Eigen::MatrixXd joint_covariance;
+    std::map<std::string, std::pair<int, int>> offsets;
+    if (!latent_snapshot.jointMeanCovariance(
+            factor_order, &joint_mean, &joint_covariance, &offsets, error)) {
+      return false;
+    }
+    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(joint_covariance);
+    const double scale =
+        std::max(1.0,
+                 joint_covariance.cwiseAbs().rowwise().sum().maxCoeff());
+    if (solver.info() != Eigen::Success ||
+        solver.eigenvalues()(0) < -1.0e-10 * scale) {
+      setError(error,
+               "Path-local latent covariance is not positive semidefinite.");
+      return false;
+    }
+    Eigen::MatrixXd aggregate =
+        Eigen::MatrixXd::Zero(6, joint_covariance.rows());
+    for (const std::string& factor_id : factor_order) {
+      const auto offset = offsets.at(factor_id);
+      aggregate.block(0, offset.first, 6, offset.second) =
+          latent_aggregates.at(factor_id);
+    }
+    output_covariance +=
+        aggregate * joint_covariance * aggregate.transpose();
+  }
+  if (!validatedCovariance6(&output_covariance, error)) {
+    return false;
+  }
+
+  observation->target_frame = std::move(path_observation.target_frame);
+  observation->source_frame = std::move(path_observation.source_frame);
+  observation->resolved_stamp = path_observation.resolved_stamp;
+  observation->edge_ids = std::move(path_observation.edge_ids);
+  observation->moments.mean = prefixes.back();
+  observation->moments.covariance = output_covariance;
+  observation->moments.factor_versions.clear();
+  for (const std::string& factor_id : factor_order) {
+    observation->moments.factor_versions.emplace_back(
+        factor_id, latent_snapshot.factors.at(factor_id).version);
+  }
+  observation->moments.perturbation_convention =
+      kPosePerturbationConvention;
+  if (output_covariance.cwiseAbs().maxCoeff() > 1.0e-15) {
+    observation->moments.approximation.kind =
+        probtf_msgs::ApproximationInfo::MOMENT_SUMMARY;
+    observation->moments.approximation.lossy = true;
+    observation->moments.approximation.detail =
+        "Local Gaussian transform moments in the existing mixed "
+        "translation/right-rotation chart.";
+    observation->moments.approximation.source =
+        "probtf.dependency.DependencyAwareMomentEvaluator";
+    observation->moments.approximation.has_error_bound = false;
+    observation->moments.approximation.error_bound = 0.0;
+  } else {
+    setExactApproximation(&observation->moments.approximation);
+  }
+  observation->moments.provenance = probtf_msgs::Provenance();
+  for (const LocalEdge& edge : edges) {
+    for (const std::string& source_id :
+         edge.step->record->provenance.source_ids) {
+      appendUniqueString(&observation->moments.provenance.source_ids,
+                         source_id);
+    }
+    appendUniqueString(
+        &observation->moments.provenance.derived_from_edge_ids,
+        edge.step->record->edge_id);
+  }
+  observation->moments.provenance.method =
+      "dependency_aware_local_gaussian_moments";
+  observation->moments.provenance.detail = kPosePerturbationConvention;
+  observation->moments.diagnostics.clear();
+  if (!repeated_dependencies.empty()) {
+    std::ostringstream diagnostic;
+    diagnostic << "resolved repeated dependencies: ";
+    for (std::size_t index = 0; index < repeated_dependencies.size();
+         ++index) {
+      if (index != 0U) {
+        diagnostic << ", ";
+      }
+      diagnostic << repeated_dependencies[index];
+    }
+    observation->moments.diagnostics.push_back(diagnostic.str());
+  }
+  if (!cache_key.first.empty() && !cache_key.second.empty()) {
+    TransformMomentCache::Entry cached;
+    cached.latent_revision = latent_snapshot.revision;
+    cached.observation = *observation;
+    std::lock_guard<std::mutex> guard(transform_moment_cache_->mutex);
+    transform_moment_cache_->entries[cache_key] = std::move(cached);
+  }
   return true;
 }
 

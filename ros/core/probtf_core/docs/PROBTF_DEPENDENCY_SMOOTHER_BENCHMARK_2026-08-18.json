@@ -1,0 +1,69 @@
+{
+  "schema": "probtf/dependency-smoother-benchmark/v1",
+  "date": "2026-08-18",
+  "base_commit": "e6e6d148f31499131be10d3f7c5716d2b259b329",
+  "build_type": "Release",
+  "compiler": "g++ 9.4.0",
+  "host": {
+    "cpu": "AMD Ryzen Threadripper 7970X 32-Cores",
+    "logical_cpus": 64
+  },
+  "method": {
+    "warmup_queries": 10,
+    "measured_queries": 100,
+    "uncached": "one query on a fresh LatestSnapshot per sample",
+    "cached": "repeated frame-pair query with unchanged latent-store revision",
+    "global_edge": "concentrated_finite_bingham",
+    "units": "microseconds"
+  },
+  "cases": [
+    {"path_length": 4, "factor_count": 0, "factor_dimension": 0, "uncached_p50_us": 9.775, "uncached_p95_us": 10.5365, "cached_p50_us": 0.181, "cached_p95_us": 0.2},
+    {"path_length": 4, "factor_count": 1, "factor_dimension": 6, "uncached_p50_us": 15.99, "uncached_p95_us": 16.4155, "cached_p50_us": 0.2, "cached_p95_us": 0.21},
+    {"path_length": 4, "factor_count": 1, "factor_dimension": 12, "uncached_p50_us": 18.223, "uncached_p95_us": 18.6495, "cached_p50_us": 0.2, "cached_p95_us": 0.211},
+    {"path_length": 4, "factor_count": 1, "factor_dimension": 24, "uncached_p50_us": 23.0, "uncached_p95_us": 23.347, "cached_p50_us": 0.19, "cached_p95_us": 0.191},
+    {"path_length": 4, "factor_count": 1, "factor_dimension": 48, "uncached_p50_us": 42.4245, "uncached_p95_us": 43.0381, "cached_p50_us": 0.19, "cached_p95_us": 0.20005},
+    {"path_length": 4, "factor_count": 4, "factor_dimension": 6, "uncached_p50_us": 32.946, "uncached_p95_us": 34.299, "cached_p50_us": 0.211, "cached_p95_us": 0.221},
+    {"path_length": 4, "factor_count": 4, "factor_dimension": 12, "uncached_p50_us": 51.979, "uncached_p95_us": 53.542, "cached_p50_us": 0.22, "cached_p95_us": 0.231},
+    {"path_length": 4, "factor_count": 4, "factor_dimension": 24, "uncached_p50_us": 166.684, "uncached_p95_us": 169.636, "cached_p50_us": 0.21, "cached_p95_us": 0.221},
+    {"path_length": 4, "factor_count": 4, "factor_dimension": 48, "uncached_p50_us": 902.075, "uncached_p95_us": 927.769, "cached_p50_us": 0.21, "cached_p95_us": 0.22},
+    {"path_length": 8, "factor_count": 0, "factor_dimension": 0, "uncached_p50_us": 17.066, "uncached_p95_us": 17.3875, "cached_p50_us": 0.23, "cached_p95_us": 0.24},
+    {"path_length": 8, "factor_count": 1, "factor_dimension": 6, "uncached_p50_us": 26.971, "uncached_p95_us": 27.3924, "cached_p50_us": 0.24, "cached_p95_us": 0.25},
+    {"path_length": 8, "factor_count": 1, "factor_dimension": 12, "uncached_p50_us": 31.433, "uncached_p95_us": 32.0995, "cached_p50_us": 0.24, "cached_p95_us": 0.241},
+    {"path_length": 8, "factor_count": 1, "factor_dimension": 24, "uncached_p50_us": 36.185, "uncached_p95_us": 38.0075, "cached_p50_us": 0.24, "cached_p95_us": 0.25},
+    {"path_length": 8, "factor_count": 1, "factor_dimension": 48, "uncached_p50_us": 55.865, "uncached_p95_us": 56.4205, "cached_p50_us": 0.241, "cached_p95_us": 0.251},
+    {"path_length": 8, "factor_count": 4, "factor_dimension": 6, "uncached_p50_us": 51.839, "uncached_p95_us": 54.517, "cached_p50_us": 0.25, "cached_p95_us": 0.261},
+    {"path_length": 8, "factor_count": 4, "factor_dimension": 12, "uncached_p50_us": 71.8845, "uncached_p95_us": 76.1795, "cached_p50_us": 0.25, "cached_p95_us": 0.261},
+    {"path_length": 8, "factor_count": 4, "factor_dimension": 24, "uncached_p50_us": 170.394, "uncached_p95_us": 179.27, "cached_p50_us": 0.2505, "cached_p95_us": 0.261},
+    {"path_length": 8, "factor_count": 4, "factor_dimension": 48, "uncached_p50_us": 929.362, "uncached_p95_us": 976.885, "cached_p50_us": 0.26, "cached_p95_us": 0.271},
+    {"path_length": 16, "factor_count": 0, "factor_dimension": 0, "uncached_p50_us": 35.1685, "uncached_p95_us": 36.2111, "cached_p50_us": 0.311, "cached_p95_us": 0.321},
+    {"path_length": 16, "factor_count": 1, "factor_dimension": 6, "uncached_p50_us": 51.5985, "uncached_p95_us": 52.3515, "cached_p50_us": 0.331, "cached_p95_us": 0.341},
+    {"path_length": 16, "factor_count": 1, "factor_dimension": 12, "uncached_p50_us": 58.6445, "uncached_p95_us": 59.726, "cached_p50_us": 0.351, "cached_p95_us": 0.361},
+    {"path_length": 16, "factor_count": 1, "factor_dimension": 24, "uncached_p50_us": 67.2425, "uncached_p95_us": 68.922, "cached_p50_us": 0.33, "cached_p95_us": 0.331},
+    {"path_length": 16, "factor_count": 1, "factor_dimension": 48, "uncached_p50_us": 88.204, "uncached_p95_us": 93.4406, "cached_p50_us": 0.321, "cached_p95_us": 0.331},
+    {"path_length": 16, "factor_count": 4, "factor_dimension": 6, "uncached_p50_us": 92.2355, "uncached_p95_us": 96.7706, "cached_p50_us": 0.37, "cached_p95_us": 0.371},
+    {"path_length": 16, "factor_count": 4, "factor_dimension": 12, "uncached_p50_us": 117.199, "uncached_p95_us": 123.957, "cached_p50_us": 0.35, "cached_p95_us": 0.351},
+    {"path_length": 16, "factor_count": 4, "factor_dimension": 24, "uncached_p50_us": 236.825, "uncached_p95_us": 243.341, "cached_p50_us": 0.361, "cached_p95_us": 0.371},
+    {"path_length": 16, "factor_count": 4, "factor_dimension": 48, "uncached_p50_us": 1038.47, "uncached_p95_us": 1068.29, "cached_p50_us": 0.361, "cached_p95_us": 0.371},
+    {"path_length": 32, "factor_count": 0, "factor_dimension": 0, "uncached_p50_us": 67.3275, "uncached_p95_us": 71.479, "cached_p50_us": 0.491, "cached_p95_us": 0.501},
+    {"path_length": 32, "factor_count": 1, "factor_dimension": 6, "uncached_p50_us": 105.672, "uncached_p95_us": 108.153, "cached_p50_us": 0.5355, "cached_p95_us": 0.55005},
+    {"path_length": 32, "factor_count": 1, "factor_dimension": 12, "uncached_p50_us": 112.621, "uncached_p95_us": 117.069, "cached_p50_us": 0.531, "cached_p95_us": 0.541},
+    {"path_length": 32, "factor_count": 1, "factor_dimension": 24, "uncached_p50_us": 128.511, "uncached_p95_us": 130.47, "cached_p50_us": 0.531, "cached_p95_us": 0.531},
+    {"path_length": 32, "factor_count": 1, "factor_dimension": 48, "uncached_p50_us": 160.655, "uncached_p95_us": 165.638, "cached_p50_us": 0.5305, "cached_p95_us": 0.541},
+    {"path_length": 32, "factor_count": 4, "factor_dimension": 6, "uncached_p50_us": 181.322, "uncached_p95_us": 184.009, "cached_p50_us": 0.551, "cached_p95_us": 0.561},
+    {"path_length": 32, "factor_count": 4, "factor_dimension": 12, "uncached_p50_us": 213.991, "uncached_p95_us": 230.197, "cached_p50_us": 0.551, "cached_p95_us": 0.561},
+    {"path_length": 32, "factor_count": 4, "factor_dimension": 24, "uncached_p50_us": 358.396, "uncached_p95_us": 377.285, "cached_p50_us": 0.551, "cached_p95_us": 0.561},
+    {"path_length": 32, "factor_count": 4, "factor_dimension": 48, "uncached_p50_us": 1169.64, "uncached_p95_us": 1224.96, "cached_p50_us": 0.561, "cached_p95_us": 0.571}
+  ],
+  "summary": {
+    "mycobot_reference": {
+      "path_length": 8,
+      "factor_count": 1,
+      "factor_dimension": 12,
+      "uncached_p50_us": 31.433,
+      "uncached_p95_us": 32.0995,
+      "cached_p50_us": 0.24,
+      "cached_p95_us": 0.241
+    },
+    "sparse_backend_observation": "Dense uncached cost steepens between 96 and 192 total path-local dimensions; evaluate a sparse backend by 192 dimensions."
+  }
+}

@@ -25,11 +25,26 @@ class ProbTfGraph:
         max_records_per_edge=None,
         authority_conflict_policy=AuthorityConflictPolicy.REJECT,
         parent_change_policy=ParentChangePolicy.REJECT,
+        latent_store=None,
     ):
+        from probtf.dependency import (
+            DependencyAwareMomentEvaluator,
+            GaussianLatentStore,
+        )
+
         EdgeTimeBuffer(max_records_per_edge, authority_conflict_policy)
+        if latent_store is not None and not isinstance(
+            latent_store,
+            GaussianLatentStore,
+        ):
+            raise TypeError("latent_store must be GaussianLatentStore or None.")
         self.topology = ProbTfTopology(parent_change_policy)
         self.max_records_per_edge = max_records_per_edge
         self.authority_conflict_policy = authority_conflict_policy
+        self.latent_store = (
+            GaussianLatentStore() if latent_store is None else latent_store
+        )
+        self._dependency_moment_evaluator = DependencyAwareMomentEvaluator()
         self._buffers = {}
         self._temporal_models = {}
         self._default_temporal_models = {}
@@ -438,3 +453,47 @@ class ProbTfGraph:
                 latest_common_model_policy=latest_common_model_policy,
             )
             return kernel_from_path(path, self.resolved_records(path))
+
+    def lookup_transform_moments(
+        self,
+        target_frame,
+        source_frame,
+        stamp=None,
+        policy=TemporalPolicy.EXACT,
+        tolerance=0.0,
+        max_age=None,
+        *,
+        model_id=None,
+        max_prediction_horizon=None,
+        random_seed=None,
+        random_stream="",
+        query_mode=TemporalQueryMode.ONLINE,
+        max_uncertainty_trace=None,
+        allow_degraded=False,
+        latest_common_model_policy=None,
+        latent_snapshot=None,
+    ):
+        """Return a dependency-aware local transform mean and 6x6 covariance."""
+
+        kernel = self.lookup_kernel(
+            target_frame,
+            source_frame,
+            stamp,
+            policy,
+            tolerance,
+            max_age,
+            model_id=model_id,
+            max_prediction_horizon=max_prediction_horizon,
+            random_seed=random_seed,
+            random_stream=random_stream,
+            query_mode=query_mode,
+            max_uncertainty_trace=max_uncertainty_trace,
+            allow_degraded=allow_degraded,
+            latest_common_model_policy=latest_common_model_policy,
+        )
+        selected = (
+            self.latent_store.snapshot()
+            if latent_snapshot is None
+            else latent_snapshot
+        )
+        return self._dependency_moment_evaluator.evaluate(kernel, selected)

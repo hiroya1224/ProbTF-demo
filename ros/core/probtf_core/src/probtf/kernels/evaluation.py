@@ -192,12 +192,30 @@ def _transform_moments(summary, transform):
 
 
 class KernelEvaluator:
-    def __init__(self, isl_backend=None, bingham_integration_steps=120):
+    def __init__(
+        self,
+        isl_backend=None,
+        bingham_integration_steps=120,
+        *,
+        latent_store=None,
+        dependency_moment_evaluator=None,
+    ):
         self.isl_backend = UnavailableExactIslBackend() if isl_backend is None else isl_backend
         steps = int(bingham_integration_steps)
         if steps < 1 or steps != bingham_integration_steps:
             raise ValueError("bingham_integration_steps must be a positive integer.")
         self.bingham_integration_steps = steps
+        if latent_store is not None:
+            from probtf.dependency import GaussianLatentStore
+
+            if not isinstance(latent_store, GaussianLatentStore):
+                raise TypeError("latent_store must be GaussianLatentStore or None.")
+        if dependency_moment_evaluator is None:
+            from probtf.dependency import DependencyAwareMomentEvaluator
+
+            dependency_moment_evaluator = DependencyAwareMomentEvaluator()
+        self.latent_store = latent_store
+        self.dependency_moment_evaluator = dependency_moment_evaluator
 
     def apply_to_point(
         self,
@@ -211,6 +229,54 @@ class KernelEvaluator:
         elif options.representation is not representation:
             raise ValueError("options.representation must match representation.")
         return self.apply(kernel, DiracPointLaw(np.asarray(point, dtype=float)), options)
+
+    def transform_moments(self, kernel, latent_state=None):
+        """Evaluate one local transform marginal without sampling."""
+
+        selected = self.latent_store if latent_state is None else latent_state
+        return self.dependency_moment_evaluator.evaluate(kernel, selected)
+
+    def _dependency_moment_result(self, kernel, input_law, diagnostics):
+        from probtf.dependency import DependencyMomentError
+
+        try:
+            transform = self.transform_moments(kernel)
+        except DependencyMomentError as error:
+            repeated = (
+                error.repeated_dependency_ids
+                or _repeated_dependencies(kernel)
+            )
+            return KernelResult(
+                DistributionStatus.INVALID,
+                KernelRepresentation.MOMENTS,
+                UnavailableKernelValue(error.code, str(error)),
+                ApproximationInfo(
+                    kind=ApproximationKind.UNAVAILABLE,
+                    detail=str(error),
+                ),
+                KernelDiagnostics(
+                    (KernelDiagnosticCode.DEPENDENCY_UNRESOLVED,),
+                    (str(error),),
+                    repeated,
+                ),
+            )
+        input_summary = _input_moments(input_law)
+        value = transform.apply_to_point(
+            input_summary.mean,
+            input_summary.covariance,
+        )
+        merged_diagnostics = KernelDiagnostics(
+            diagnostics.codes,
+            diagnostics.messages + transform.diagnostics,
+            _repeated_dependencies(kernel),
+        )
+        return KernelResult(
+            DistributionStatus.OK,
+            KernelRepresentation.MOMENTS,
+            value,
+            transform.approximation,
+            merged_diagnostics,
+        )
 
     def _distribution_status(self, kernel):
         diagnostics = []
@@ -482,6 +548,22 @@ class KernelEvaluator:
                 diagnostics,
             )
         repeated = _repeated_dependencies(kernel)
+        if (
+            options.representation is KernelRepresentation.MOMENTS
+            and self.latent_store is not None
+        ):
+            snapshot = self.latent_store.snapshot()
+            edge_ids = tuple(
+                _record_for_kernel(expression).edge_id
+                for expression in _kernel_sequence(kernel)
+                if _record_for_kernel(expression) is not None
+            )
+            if repeated or snapshot.bindings_for_path(edge_ids):
+                return self._dependency_moment_result(
+                    kernel,
+                    input_law,
+                    diagnostics,
+                )
         if (
             repeated
             and self._deterministic_transforms(kernel) is None

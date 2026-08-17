@@ -41,6 +41,7 @@ include_directories(
 )
 
 add_library(probtf_runtime_cpp
+  src/gaussian_latent_store.cpp
   src/latest_snapshot.cpp
   src/sampling.cpp
 )
@@ -130,4 +131,26 @@ if(CATKIN_ENABLE_TESTING)
       ${catkin_LIBRARIES}
     )
   endif()
+
+  catkin_add_gtest(test_dependency_smoother
+    test/test_dependency_smoother.cpp
+  )
+  if(TARGET test_dependency_smoother)
+    add_dependencies(test_dependency_smoother ${catkin_EXPORTED_TARGETS})
+    target_link_libraries(
+      test_dependency_smoother
+      probtf_runtime_cpp
+      ${catkin_LIBRARIES}
+    )
+  endif()
+
+  add_executable(dependency_smoother_benchmark
+    test/dependency_smoother_benchmark.cpp
+  )
+  add_dependencies(dependency_smoother_benchmark ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(
+    dependency_smoother_benchmark
+    probtf_runtime_cpp
+    ${catkin_LIBRARIES}
+  )
 endif()

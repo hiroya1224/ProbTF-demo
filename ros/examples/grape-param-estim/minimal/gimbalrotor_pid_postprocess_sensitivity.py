@@ -558,12 +558,29 @@ class SamplingCoordinates:
                 "sampling coordinate must be finite and 13-D"
             )
         if self.mode == "estimator_quotient":
-            return plant_from_coordinate(
-                self.estimator_chart,
-                self.estimator_center_coordinate
-                + self.quotient_basis @ selected,
-                self.center_plant.rotor_lag_seconds,
-            )
+            try:
+                return plant_from_coordinate(
+                    self.estimator_chart,
+                    self.estimator_center_coordinate
+                    + self.quotient_basis @ selected,
+                    self.center_plant.rotor_lag_seconds,
+                )
+            except ValueError as error:
+                message = str(error)
+                numerical_messages = (
+                    "mass must be finite and positive",
+                    "inertia must be symmetric positive definite",
+                    "force_effectiveness must contain 4 finite values",
+                    "force_effectiveness must be positive",
+                    "inertia_over_mass must be positive definite",
+                    "force_effectiveness_over_mass must be positive",
+                )
+                if message in numerical_messages:
+                    raise PostprocessNumericalError(
+                        "estimator-chart sample lost floating-point physical "
+                        "validity: {}".format(message)
+                    ) from error
+                raise
         if self.mode == "centered_scale_free_spd":
             assert self.centered_spd_chart is not None
             return self.centered_spd_chart.decode(selected)

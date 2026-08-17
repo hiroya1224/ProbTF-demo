@@ -1,0 +1,463 @@
+{
+  "allocation_diagnostics": {
+    "infinite_condition_fraction": 0.0,
+    "max_finite_condition_number": 6.366845480125827e+17,
+    "source_threshold_rank_histogram": {
+      "4": 2265,
+      "5": 111,
+      "6": 7617
+    }
+  },
+  "center": {
+    "recorded_gain_source": "rosbag_recorded_dynamic_reconfigure",
+    "recorded_gains": {
+      "roll_pitch": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 10.0
+      },
+      "xy": {
+        "d_gain": 1.0,
+        "i_gain": 0.1,
+        "p_gain": 3.0
+      },
+      "yaw": {
+        "d_gain": 2.0,
+        "i_gain": 1.0,
+        "p_gain": 4.0
+      },
+      "z": {
+        "d_gain": 2.5,
+        "i_gain": 1.0,
+        "p_gain": 5.0
+      }
+    },
+    "scales": {
+      "roll_pitch": 1.7244864317945854,
+      "xy": 1.1787877617832059,
+      "yaw": 1.9977971340077068,
+      "z": 1.1789923658022832
+    },
+    "static_postprocess_source_commit": "585db5ba8a236232d85f2097615cf64b7eb76ff0"
+  },
+  "distribution_contract": {
+    "input_distribution": "Gaussian approximation in the estimator's native 13-D common-scale quotient coordinate",
+    "output_distribution": "empirical nonlinear Monte Carlo push-forward; no Gaussian refit is applied to the PID gain scales",
+    "quantile_ranges": {
+      "range_68": [
+        0.16,
+        0.84
+      ],
+      "range_95": [
+        0.025,
+        0.975
+      ]
+    },
+    "rotor_lag_treatment": "held fixed at the fitted value because the static PID map does not model delay"
+  },
+  "estimator_covariance": {
+    "eigenvalues_descending": [
+      340.72421857248196,
+      2.862446951873097,
+      0.008677662682575315,
+      0.0009644453034622026,
+      0.00036510478956459545,
+      0.0002768910379663757,
+      4.494067789262919e-05,
+      8.35344030847308e-06,
+      7.244534607520403e-07,
+      6.770381348175559e-08,
+      6.440374612312899e-09,
+      1.469814658011672e-09,
+      5.099663322778209e-14
+    ],
+    "psd_negative_tolerance": 9.83527668517118e-11
+  },
+  "gain_scale_distribution": {
+    "roll_pitch": {
+      "max": 12.44072347318122,
+      "mean": 2.527704768295397,
+      "min": 0.0031622420982264717,
+      "nonpositive_fraction": 0.0,
+      "quantiles": {
+        "q025": 1.68266544851859,
+        "q16": 1.9436819514626913,
+        "q50": 2.5118840377947973,
+        "q84": 3.065247395968459,
+        "q975": 3.6008056931134447
+      },
+      "standard_deviation": 0.5426037554929437
+    },
+    "xy": {
+      "max": 1.1847532118970812,
+      "mean": 1.1792899705085589,
+      "min": 1.1711008945488937,
+      "nonpositive_fraction": 0.0,
+      "quantiles": {
+        "q025": 1.1760843687929303,
+        "q16": 1.1777764625586313,
+        "q50": 1.1793490008382668,
+        "q84": 1.1808312822479103,
+        "q975": 1.1822109439980497
+      },
+      "standard_deviation": 0.0015687999168863902
+    },
+    "yaw": {
+      "max": 18.037563239719248,
+      "mean": 2.43078959478768,
+      "min": 3.3627958060041916e-06,
+      "nonpositive_fraction": 0.0,
+      "quantiles": {
+        "q025": 0.05630462302529134,
+        "q16": 0.1558557065810394,
+        "q50": 1.9650952274624927,
+        "q84": 5.06530047470227,
+        "q975": 8.754480534212195
+      },
+      "standard_deviation": 2.5499874889195953
+    },
+    "z": {
+      "max": 1.1843995460686911,
+      "mean": 1.1788607572577163,
+      "min": 1.1709015729135805,
+      "nonpositive_fraction": 0.0,
+      "quantiles": {
+        "q025": 1.1757691471702578,
+        "q16": 1.1773895354612276,
+        "q50": 1.1789183142994408,
+        "q84": 1.180344206060521,
+        "q975": 1.1816937172424047
+      },
+      "standard_deviation": 0.0015207001731451146
+    }
+  },
+  "input": {
+    "arrays_npz": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_2_nominal_pseudo_conditioning_production_20260817/cases/prior_free/arrays.npz",
+    "coordinate_mode": "estimator_quotient",
+    "covariance_mode": "conservative_fusion",
+    "covariance_source": "quotient_covariance_conservative_fusion",
+    "estimator_case_name": "prior_free",
+    "estimator_result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_2_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+    "estimator_source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+    "sample_count": 10000,
+    "seed": 0,
+    "static_pid_postprocess_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/585db5ba8a236232d85f2097615cf64b7eb76ff0/gimbalrotor_pid_postprocess/single_rosbag_2_prior_free_static_pid_production_20260817/pid_gain_postprocess.json",
+    "vehicle_model_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json"
+  },
+  "joint_gain_scale_distribution": {
+    "correlation": [
+      [
+        0.9999999999999999,
+        0.9778795023952395,
+        0.2864639765283796,
+        -0.05354076594049939
+      ],
+      [
+        0.9778795023952395,
+        1.0,
+        0.20998489630502815,
+        -0.04131576283412473
+      ],
+      [
+        0.2864639765283796,
+        0.20998489630502815,
+        0.9999999999999998,
+        0.32676004092895006
+      ],
+      [
+        -0.053540765940499384,
+        -0.04131576283412472,
+        0.32676004092895006,
+        1.0
+      ]
+    ],
+    "covariance": [
+      [
+        2.4611331792227445e-06,
+        2.3329020024843927e-06,
+        0.0002438486576457978,
+        -0.00021418555948653694
+      ],
+      [
+        2.3329020024843927e-06,
+        2.3125290166035814e-06,
+        0.0001732664386077382,
+        -0.00016021287756619798
+      ],
+      [
+        0.0002438486576457978,
+        0.0001732664386077382,
+        0.2944188354750463,
+        0.45211590642045835
+      ],
+      [
+        -0.00021418555948653694,
+        -0.00016021287756619798,
+        0.45211590642045835,
+        6.502436193646463
+      ]
+    ],
+    "group_order": [
+      "xy",
+      "z",
+      "roll_pitch",
+      "yaw"
+    ]
+  },
+  "method": "native_quotient_gaussian_monte_carlo_static_pid_pushforward",
+  "pid_gain_proposal": {
+    "roll_pitch": {
+      "gains": {
+        "d_gain": {
+          "median": 20.09507230235838,
+          "range_68": [
+            15.54945561170153,
+            24.521979167747674
+          ],
+          "range_95": [
+            13.46132358814872,
+            28.806445544907557
+          ],
+          "recorded": 8.0
+        },
+        "i_gain": {
+          "median": 2.5118840377947973,
+          "range_68": [
+            1.9436819514626913,
+            3.065247395968459
+          ],
+          "range_95": [
+            1.68266544851859,
+            3.6008056931134447
+          ],
+          "recorded": 1.0
+        },
+        "p_gain": {
+          "median": 25.118840377947972,
+          "range_68": [
+            19.43681951462691,
+            30.652473959684592
+          ],
+          "range_95": [
+            16.826654485185898,
+            36.00805693113445
+          ],
+          "recorded": 10.0
+        }
+      },
+      "scale": {
+        "median": 2.5118840377947973,
+        "range_68": [
+          1.9436819514626913,
+          3.065247395968459
+        ],
+        "range_95": [
+          1.68266544851859,
+          3.6008056931134447
+        ]
+      }
+    },
+    "xy": {
+      "gains": {
+        "d_gain": {
+          "median": 1.1793490008382668,
+          "range_68": [
+            1.1777764625586313,
+            1.1808312822479103
+          ],
+          "range_95": [
+            1.1760843687929303,
+            1.1822109439980497
+          ],
+          "recorded": 1.0
+        },
+        "i_gain": {
+          "median": 0.11793490008382668,
+          "range_68": [
+            0.11777764625586314,
+            0.11808312822479104
+          ],
+          "range_95": [
+            0.11760843687929304,
+            0.11822109439980498
+          ],
+          "recorded": 0.1
+        },
+        "p_gain": {
+          "median": 3.5380470025148005,
+          "range_68": [
+            3.533329387675894,
+            3.542493846743731
+          ],
+          "range_95": [
+            3.528253106378791,
+            3.546632831994149
+          ],
+          "recorded": 3.0
+        }
+      },
+      "scale": {
+        "median": 1.1793490008382668,
+        "range_68": [
+          1.1777764625586313,
+          1.1808312822479103
+        ],
+        "range_95": [
+          1.1760843687929303,
+          1.1822109439980497
+        ]
+      }
+    },
+    "yaw": {
+      "gains": {
+        "d_gain": {
+          "median": 3.9301904549249853,
+          "range_68": [
+            0.3117114131620788,
+            10.13060094940454
+          ],
+          "range_95": [
+            0.11260924605058267,
+            17.50896106842439
+          ],
+          "recorded": 2.0
+        },
+        "i_gain": {
+          "median": 1.9650952274624927,
+          "range_68": [
+            0.1558557065810394,
+            5.06530047470227
+          ],
+          "range_95": [
+            0.05630462302529134,
+            8.754480534212195
+          ],
+          "recorded": 1.0
+        },
+        "p_gain": {
+          "median": 7.860380909849971,
+          "range_68": [
+            0.6234228263241576,
+            20.26120189880908
+          ],
+          "range_95": [
+            0.22521849210116535,
+            35.01792213684878
+          ],
+          "recorded": 4.0
+        }
+      },
+      "scale": {
+        "median": 1.9650952274624927,
+        "range_68": [
+          0.1558557065810394,
+          5.06530047470227
+        ],
+        "range_95": [
+          0.05630462302529134,
+          8.754480534212195
+        ]
+      }
+    },
+    "z": {
+      "gains": {
+        "d_gain": {
+          "median": 2.947295785748602,
+          "range_68": [
+            2.9434738386530688,
+            2.9508605151513025
+          ],
+          "range_95": [
+            2.9394228679256447,
+            2.954234293106012
+          ],
+          "recorded": 2.5
+        },
+        "i_gain": {
+          "median": 1.1789183142994408,
+          "range_68": [
+            1.1773895354612276,
+            1.180344206060521
+          ],
+          "range_95": [
+            1.1757691471702578,
+            1.1816937172424047
+          ],
+          "recorded": 1.0
+        },
+        "p_gain": {
+          "median": 5.894591571497204,
+          "range_68": [
+            5.8869476773061375,
+            5.901721030302605
+          ],
+          "range_95": [
+            5.878845735851289,
+            5.908468586212024
+          ],
+          "recorded": 5.0
+        }
+      },
+      "scale": {
+        "median": 1.1789183142994408,
+        "range_68": [
+          1.1773895354612276,
+          1.180344206060521
+        ],
+        "range_95": [
+          1.1757691471702578,
+          1.1816937172424047
+        ]
+      }
+    }
+  },
+  "sampling": {
+    "invalid_count": 7,
+    "invalid_examples": [
+      {
+        "exception_type": "PostprocessNumericalError",
+        "message": "estimator-chart sample lost floating-point physical validity: inertia_over_mass must be positive definite",
+        "sample_index": 1047
+      },
+      {
+        "exception_type": "PostprocessNumericalError",
+        "message": "estimator-chart sample lost floating-point physical validity: inertia_over_mass must be positive definite",
+        "sample_index": 1813
+      },
+      {
+        "exception_type": "PostprocessNumericalError",
+        "message": "estimator-chart sample lost floating-point physical validity: inertia must be symmetric positive definite",
+        "sample_index": 3415
+      },
+      {
+        "exception_type": "PostprocessNumericalError",
+        "message": "estimator-chart sample lost floating-point physical validity: inertia must be symmetric positive definite",
+        "sample_index": 3814
+      },
+      {
+        "exception_type": "PostprocessNumericalError",
+        "message": "estimator-chart sample lost floating-point physical validity: inertia_over_mass must be positive definite",
+        "sample_index": 3911
+      },
+      {
+        "exception_type": "PostprocessNumericalError",
+        "message": "estimator-chart sample lost floating-point physical validity: inertia must be symmetric positive definite",
+        "sample_index": 6580
+      },
+      {
+        "exception_type": "PostprocessNumericalError",
+        "message": "estimator-chart sample lost floating-point physical validity: inertia must be symmetric positive definite",
+        "sample_index": 8923
+      }
+    ],
+    "requested_count": 10000,
+    "valid_count": 9993,
+    "valid_fraction": 0.9993
+  },
+  "schema": "grape-param-estim/gimbalrotor-pid-monte-carlo-postprocess/v1",
+  "source_commit": "6ca58b1e7d531bacf396c683b56953aa89df1612",
+  "warnings": [
+    "numerically_undefined_samples_present",
+    "source_threshold_rank_loss_present"
+  ]
+}

@@ -1,0 +1,422 @@
+{
+  "allocation_diagnostics": {
+    "infinite_condition_fraction": 0.0,
+    "max_finite_condition_number": 4.729437148975091,
+    "source_threshold_rank_histogram": {
+      "6": 10000
+    }
+  },
+  "center": {
+    "recorded_gain_source": "rosbag_recorded_dynamic_reconfigure",
+    "recorded_gains": {
+      "roll_pitch": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 20.0
+      },
+      "xy": {
+        "d_gain": 1.0,
+        "i_gain": 0.1,
+        "p_gain": 3.0
+      },
+      "yaw": {
+        "d_gain": 2.0,
+        "i_gain": 1.0,
+        "p_gain": 4.0
+      },
+      "z": {
+        "d_gain": 2.5,
+        "i_gain": 1.0,
+        "p_gain": 5.0
+      }
+    },
+    "scales": {
+      "roll_pitch": 3.5287743102684157,
+      "xy": 1.152044762905967,
+      "yaw": 3.378867903451397,
+      "z": 1.169764823757708
+    },
+    "static_postprocess_source_commit": "585db5ba8a236232d85f2097615cf64b7eb76ff0"
+  },
+  "distribution_contract": {
+    "input_distribution": "Gaussian approximation in the estimator's native 13-D common-scale quotient coordinate",
+    "output_distribution": "empirical nonlinear Monte Carlo push-forward; no Gaussian refit is applied to the PID gain scales",
+    "quantile_ranges": {
+      "range_68": [
+        0.16,
+        0.84
+      ],
+      "range_95": [
+        0.025,
+        0.975
+      ]
+    },
+    "rotor_lag_treatment": "held fixed at the fitted value because the static PID map does not model delay"
+  },
+  "estimator_covariance": {
+    "eigenvalues_descending": [
+      1.0222163317033435,
+      0.07348491403394014,
+      0.000629361057674252,
+      4.8602359615641356e-05,
+      2.5565654332623735e-05,
+      4.502954727549456e-06,
+      2.556128700247174e-06,
+      1.411980857235402e-06,
+      1.9475276806824223e-08,
+      3.899824115962986e-10,
+      1.8593964588576235e-10,
+      3.020238119831937e-11,
+      0.0
+    ],
+    "psd_negative_tolerance": 2.9507090797727877e-13
+  },
+  "gain_scale_distribution": {
+    "roll_pitch": {
+      "max": 4.286878870909041,
+      "mean": 3.588849067205809,
+      "min": 3.4034677132568305,
+      "nonpositive_fraction": 0.0,
+      "quantiles": {
+        "q025": 3.4827709545944057,
+        "q16": 3.5206373043124866,
+        "q50": 3.567611057134675,
+        "q84": 3.654629764968676,
+        "q975": 3.819910241540681
+      },
+      "standard_deviation": 0.08570987634227765
+    },
+    "xy": {
+      "max": 1.1596641894345974,
+      "mean": 1.152620871669069,
+      "min": 1.1508480464826003,
+      "nonpositive_fraction": 0.0,
+      "quantiles": {
+        "q025": 1.1515700823786066,
+        "q16": 1.1519561657030217,
+        "q50": 1.1524298889894276,
+        "q84": 1.1532894420698625,
+        "q975": 1.1548052297933193
+      },
+      "standard_deviation": 0.0008154098070360512
+    },
+    "yaw": {
+      "max": 4.063294790036229,
+      "mean": 3.4008137202211364,
+      "min": 2.7513999613854696,
+      "nonpositive_fraction": 0.0,
+      "quantiles": {
+        "q025": 3.24802336403157,
+        "q16": 3.3172318480226184,
+        "q50": 3.3917213096501495,
+        "q84": 3.4813113932288604,
+        "q975": 3.6137479581239687
+      },
+      "standard_deviation": 0.09257648704355313
+    },
+    "z": {
+      "max": 1.1701241162197744,
+      "mean": 1.169761155329475,
+      "min": 1.1692200138584568,
+      "nonpositive_fraction": 0.0,
+      "quantiles": {
+        "q025": 1.1695407106052147,
+        "q16": 1.1696669651442675,
+        "q50": 1.169769288726565,
+        "q84": 1.169855253401502,
+        "q975": 1.1699293976625338
+      },
+      "standard_deviation": 9.889818380163514e-05
+    }
+  },
+  "input": {
+    "arrays_npz": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_1_nominal_pseudo_conditioning_production_20260817/cases/prior_free/arrays.npz",
+    "coordinate_mode": "estimator_quotient",
+    "covariance_mode": "overlap_corrected",
+    "covariance_source": "quotient_covariance_overlap_corrected",
+    "estimator_case_name": "prior_free",
+    "estimator_result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_1_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+    "estimator_source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+    "sample_count": 10000,
+    "seed": 0,
+    "static_pid_postprocess_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/585db5ba8a236232d85f2097615cf64b7eb76ff0/gimbalrotor_pid_postprocess/single_rosbag_1_prior_free_static_pid_production_20260817/pid_gain_postprocess.json",
+    "vehicle_model_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json"
+  },
+  "joint_gain_scale_distribution": {
+    "correlation": [
+      [
+        1.0,
+        0.1674535375677011,
+        0.8301463266381007,
+        0.06105747794736314
+      ],
+      [
+        0.1674535375677011,
+        1.0,
+        0.13199822509874862,
+        0.11385558768376994
+      ],
+      [
+        0.8301463266381007,
+        0.13199822509874864,
+        1.0,
+        0.3491345880565112
+      ],
+      [
+        0.06105747794736313,
+        0.11385558768376994,
+        0.3491345880565112,
+        1.0
+      ]
+    ],
+    "covariance": [
+      [
+        6.648931534105699e-07,
+        1.3503880103487532e-08,
+        5.801782577002067e-05,
+        4.6090931839948936e-06
+      ],
+      [
+        1.3503880103487532e-08,
+        9.780850759262007e-09,
+        1.118889700701885e-06,
+        1.0424215050653697e-06
+      ],
+      [
+        5.801782577002067e-05,
+        1.118889700701885e-06,
+        0.007346182902608526,
+        0.0027702849390339097
+      ],
+      [
+        4.6090931839948936e-06,
+        1.0424215050653697e-06,
+        0.0027702849390339097,
+        0.008570405953325165
+      ]
+    ],
+    "group_order": [
+      "xy",
+      "z",
+      "roll_pitch",
+      "yaw"
+    ]
+  },
+  "method": "native_quotient_gaussian_monte_carlo_static_pid_pushforward",
+  "pid_gain_proposal": {
+    "roll_pitch": {
+      "gains": {
+        "d_gain": {
+          "median": 28.5408884570774,
+          "range_68": [
+            28.165098434499892,
+            29.237038119749407
+          ],
+          "range_95": [
+            27.862167636755245,
+            30.559281932325447
+          ],
+          "recorded": 8.0
+        },
+        "i_gain": {
+          "median": 3.567611057134675,
+          "range_68": [
+            3.5206373043124866,
+            3.654629764968676
+          ],
+          "range_95": [
+            3.4827709545944057,
+            3.819910241540681
+          ],
+          "recorded": 1.0
+        },
+        "p_gain": {
+          "median": 71.35222114269351,
+          "range_68": [
+            70.41274608624973,
+            73.09259529937351
+          ],
+          "range_95": [
+            69.65541909188812,
+            76.39820483081363
+          ],
+          "recorded": 20.0
+        }
+      },
+      "scale": {
+        "median": 3.567611057134675,
+        "range_68": [
+          3.5206373043124866,
+          3.654629764968676
+        ],
+        "range_95": [
+          3.4827709545944057,
+          3.819910241540681
+        ]
+      }
+    },
+    "xy": {
+      "gains": {
+        "d_gain": {
+          "median": 1.1524298889894276,
+          "range_68": [
+            1.1519561657030217,
+            1.1532894420698625
+          ],
+          "range_95": [
+            1.1515700823786066,
+            1.1548052297933193
+          ],
+          "recorded": 1.0
+        },
+        "i_gain": {
+          "median": 0.11524298889894276,
+          "range_68": [
+            0.11519561657030218,
+            0.11532894420698625
+          ],
+          "range_95": [
+            0.11515700823786067,
+            0.11548052297933194
+          ],
+          "recorded": 0.1
+        },
+        "p_gain": {
+          "median": 3.4572896669682827,
+          "range_68": [
+            3.455868497109065,
+            3.4598683262095875
+          ],
+          "range_95": [
+            3.4547102471358198,
+            3.4644156893799583
+          ],
+          "recorded": 3.0
+        }
+      },
+      "scale": {
+        "median": 1.1524298889894276,
+        "range_68": [
+          1.1519561657030217,
+          1.1532894420698625
+        ],
+        "range_95": [
+          1.1515700823786066,
+          1.1548052297933193
+        ]
+      }
+    },
+    "yaw": {
+      "gains": {
+        "d_gain": {
+          "median": 6.783442619300299,
+          "range_68": [
+            6.634463696045237,
+            6.962622786457721
+          ],
+          "range_95": [
+            6.49604672806314,
+            7.227495916247937
+          ],
+          "recorded": 2.0
+        },
+        "i_gain": {
+          "median": 3.3917213096501495,
+          "range_68": [
+            3.3172318480226184,
+            3.4813113932288604
+          ],
+          "range_95": [
+            3.24802336403157,
+            3.6137479581239687
+          ],
+          "recorded": 1.0
+        },
+        "p_gain": {
+          "median": 13.566885238600598,
+          "range_68": [
+            13.268927392090474,
+            13.925245572915442
+          ],
+          "range_95": [
+            12.99209345612628,
+            14.454991832495875
+          ],
+          "recorded": 4.0
+        }
+      },
+      "scale": {
+        "median": 3.3917213096501495,
+        "range_68": [
+          3.3172318480226184,
+          3.4813113932288604
+        ],
+        "range_95": [
+          3.24802336403157,
+          3.6137479581239687
+        ]
+      }
+    },
+    "z": {
+      "gains": {
+        "d_gain": {
+          "median": 2.9244232218164123,
+          "range_68": [
+            2.924167412860669,
+            2.9246381335037555
+          ],
+          "range_95": [
+            2.923851776513037,
+            2.9248234941563345
+          ],
+          "recorded": 2.5
+        },
+        "i_gain": {
+          "median": 1.169769288726565,
+          "range_68": [
+            1.1696669651442675,
+            1.169855253401502
+          ],
+          "range_95": [
+            1.1695407106052147,
+            1.1699293976625338
+          ],
+          "recorded": 1.0
+        },
+        "p_gain": {
+          "median": 5.848846443632825,
+          "range_68": [
+            5.848334825721338,
+            5.849276267007511
+          ],
+          "range_95": [
+            5.847703553026074,
+            5.849646988312669
+          ],
+          "recorded": 5.0
+        }
+      },
+      "scale": {
+        "median": 1.169769288726565,
+        "range_68": [
+          1.1696669651442675,
+          1.169855253401502
+        ],
+        "range_95": [
+          1.1695407106052147,
+          1.1699293976625338
+        ]
+      }
+    }
+  },
+  "sampling": {
+    "invalid_count": 0,
+    "invalid_examples": [],
+    "requested_count": 10000,
+    "valid_count": 10000,
+    "valid_fraction": 1.0
+  },
+  "schema": "grape-param-estim/gimbalrotor-pid-monte-carlo-postprocess/v1",
+  "source_commit": "6ca58b1e7d531bacf396c683b56953aa89df1612",
+  "warnings": []
+}

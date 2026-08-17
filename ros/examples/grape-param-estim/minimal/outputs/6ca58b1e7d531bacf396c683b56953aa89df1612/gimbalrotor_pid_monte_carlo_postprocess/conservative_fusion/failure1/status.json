@@ -1,0 +1,10 @@
+{
+  "covariance_mode": "conservative_fusion",
+  "invalid_sample_count": 0,
+  "sample_count": 10000,
+  "schema": "grape-param-estim/gimbalrotor-pid-monte-carlo-postprocess/v1/status/v1",
+  "source_commit": "6ca58b1e7d531bacf396c683b56953aa89df1612",
+  "status": "completed",
+  "valid_sample_count": 10000,
+  "warnings": []
+}

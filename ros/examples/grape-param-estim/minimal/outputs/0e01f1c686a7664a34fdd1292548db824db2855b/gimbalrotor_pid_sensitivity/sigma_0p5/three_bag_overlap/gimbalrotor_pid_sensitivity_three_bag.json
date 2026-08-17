@@ -1,0 +1,153 @@
+{
+  "bag_labels": [
+    "failure1",
+    "failure2",
+    "success"
+  ],
+  "covariance_modes": [
+    "overlap_corrected"
+  ],
+  "per_bag": {
+    "failure1": {
+      "covariance_mode": "overlap_corrected",
+      "estimator_result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_1_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+      "groups": {
+        "roll_pitch": {
+          "center_scale": 3.5287743102684157,
+          "eigen_point_max": 3.5473210863195206,
+          "eigen_point_min": 3.516591469143426,
+          "relative_within_local_linear_one_sigma": 0.009812992439690629,
+          "within_local_linear_one_sigma": 0.03462783562803848
+        },
+        "xy": {
+          "center_scale": 1.152044762905967,
+          "eigen_point_max": 1.1522900243875123,
+          "eigen_point_min": 1.151929021109613,
+          "relative_within_local_linear_one_sigma": 0.00033705748353788327,
+          "within_local_linear_one_sigma": 0.00038830530870808256
+        },
+        "yaw": {
+          "center_scale": 3.378867903451397,
+          "eigen_point_max": 3.4123209042891705,
+          "eigen_point_min": 3.3531735965225895,
+          "relative_within_local_linear_one_sigma": 0.022459675382828205,
+          "within_local_linear_one_sigma": 0.07588827627297569
+        },
+        "z": {
+          "center_scale": 1.169764823757708,
+          "eigen_point_max": 1.169796292478613,
+          "eigen_point_min": 1.1697315960447534,
+          "relative_within_local_linear_one_sigma": 8.101291122893763e-05,
+          "within_local_linear_one_sigma": 9.476605382581707e-05
+        }
+      }
+    },
+    "failure2": {
+      "covariance_mode": "overlap_corrected",
+      "estimator_result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_2_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+      "groups": {
+        "roll_pitch": {
+          "center_scale": 1.7244864317945854,
+          "eigen_point_max": 3.2522642920018527,
+          "eigen_point_min": 1.7176221642347385,
+          "relative_within_local_linear_one_sigma": 0.11938703878749585,
+          "within_local_linear_one_sigma": 0.20588132852117047
+        },
+        "xy": {
+          "center_scale": 1.1787877617832059,
+          "eigen_point_max": 1.1794631734532182,
+          "eigen_point_min": 1.1787608339466042,
+          "relative_within_local_linear_one_sigma": 8.674811824055053e-05,
+          "within_local_linear_one_sigma": 0.00010225762013968345
+        },
+        "yaw": {
+          "center_scale": 1.9977971340077068,
+          "eigen_point_max": 3.1410973586827287,
+          "eigen_point_min": 1.9818526998316464,
+          "relative_within_local_linear_one_sigma": 0.026197848760058255,
+          "within_local_linear_one_sigma": 0.052337987170011736
+        },
+        "z": {
+          "center_scale": 1.1789923658022832,
+          "eigen_point_max": 1.179237349861327,
+          "eigen_point_min": 1.178945077937485,
+          "relative_within_local_linear_one_sigma": 0.00012971323091792838,
+          "within_local_linear_one_sigma": 0.00015293090899578624
+        }
+      }
+    },
+    "success": {
+      "covariance_mode": "overlap_corrected",
+      "estimator_result_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_succeeded_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+      "groups": {
+        "roll_pitch": {
+          "center_scale": 4.155902832459414,
+          "eigen_point_max": 4.162751982936765,
+          "eigen_point_min": 4.149024504578056,
+          "relative_within_local_linear_one_sigma": 0.0037349262357189005,
+          "within_local_linear_one_sigma": 0.015521990522051153
+        },
+        "xy": {
+          "center_scale": 1.2145133680878448,
+          "eigen_point_max": 1.2145590626938998,
+          "eigen_point_min": 1.2144673004840314,
+          "relative_within_local_linear_one_sigma": 8.759952779243425e-05,
+          "within_local_linear_one_sigma": 0.0001063907975420941
+        },
+        "yaw": {
+          "center_scale": 2.490914309232642,
+          "eigen_point_max": 2.493915778659671,
+          "eigen_point_min": 2.4879047718138527,
+          "relative_within_local_linear_one_sigma": 0.0030362550741147524,
+          "within_local_linear_one_sigma": 0.007563051210592652
+        },
+        "z": {
+          "center_scale": 1.2249249345448083,
+          "eigen_point_max": 1.224943887573569,
+          "eigen_point_min": 1.2249058415205232,
+          "relative_within_local_linear_one_sigma": 3.655545881843402e-05,
+          "within_local_linear_one_sigma": 4.477769300042573e-05
+        }
+      }
+    }
+  },
+  "schema": "grape-param-estim/gimbalrotor-pid-postprocess-sensitivity-three-bag/v1",
+  "within_vs_between": {
+    "roll_pitch": {
+      "between_bag_center_standard_deviation": 1.0306702590048957,
+      "between_to_within_std_ratio": 8.527246215190567,
+      "center_max": 4.155902832459414,
+      "center_mean": 3.1363878581741385,
+      "center_min": 1.7244864317945854,
+      "note": "descriptive comparison only; with this small bag count this is not a random-effects inference",
+      "within_bag_local_sigma_rms": 0.1208678901717232
+    },
+    "xy": {
+      "between_bag_center_standard_deviation": 0.0255904356442259,
+      "between_to_within_std_ratio": 106.70197903998917,
+      "center_max": 1.2145133680878448,
+      "center_mean": 1.181781964259006,
+      "center_min": 1.152044762905967,
+      "note": "descriptive comparison only; with this small bag count this is not a random-effects inference",
+      "within_bag_local_sigma_rms": 0.00023983093729344288
+    },
+    "yaw": {
+      "between_bag_center_standard_deviation": 0.5714487052123276,
+      "between_to_within_std_ratio": 10.700776822588296,
+      "center_max": 3.378867903451397,
+      "center_mean": 2.6225264488972484,
+      "center_min": 1.9977971340077068,
+      "note": "descriptive comparison only; with this small bag count this is not a random-effects inference",
+      "within_bag_local_sigma_rms": 0.05340254401026804
+    },
+    "z": {
+      "between_bag_center_standard_deviation": 0.024123723283468807,
+      "between_to_within_std_ratio": 225.36840273321218,
+      "center_max": 1.2249249345448083,
+      "center_mean": 1.1912273747015998,
+      "center_min": 1.169764823757708,
+      "note": "descriptive comparison only; with this small bag count this is not a random-effects inference",
+      "within_bag_local_sigma_rms": 0.00010704128436330144
+    }
+  }
+}

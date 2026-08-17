@@ -1,0 +1,9 @@
+{
+  "covariance_mode": "conservative_fusion",
+  "invalid_eigen_sample_count": 0,
+  "monte_carlo_enabled": true,
+  "schema": "grape-param-estim/gimbalrotor-pid-postprocess-sensitivity/v1/status/v1",
+  "source_commit": "0e01f1c686a7664a34fdd1292548db824db2855b",
+  "status": "completed",
+  "valid_eigen_sample_count": 27
+}

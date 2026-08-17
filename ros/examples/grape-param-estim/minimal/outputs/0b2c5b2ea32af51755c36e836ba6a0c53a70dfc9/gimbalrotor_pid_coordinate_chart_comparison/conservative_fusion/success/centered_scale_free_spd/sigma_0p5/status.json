@@ -1,0 +1,14 @@
+{
+  "coordinate_mode": "centered_scale_free_spd",
+  "covariance_mode": "conservative_fusion",
+  "finite_sigma_multiple": 0.5,
+  "invalid_eigen_sample_count": 2,
+  "monte_carlo_enabled": false,
+  "monte_carlo_invalid_sample_count": null,
+  "monte_carlo_valid_sample_count": null,
+  "schema": "grape-param-estim/gimbalrotor-pid-postprocess-sensitivity/v1/status/v1",
+  "source_commit": "0b2c5b2ea32af51755c36e836ba6a0c53a70dfc9",
+  "status": "completed",
+  "valid_eigen_sample_count": 25,
+  "valid_local_derivative_direction_count": 13
+}

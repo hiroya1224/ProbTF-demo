@@ -1,0 +1,1735 @@
+{
+  "comparison": {
+    "covariance_modes": {
+      "conservative_fusion": {
+        "failure1": {
+          "centered_chart_pushforward_condition_number": 13.780506433124403,
+          "centered_chart_pushforward_singular_values": [
+            13.780506433119708,
+            6.952751924316021,
+            2.828427124754244,
+            1.1347848111388597,
+            1.0000000000193348,
+            1.0000000000000029,
+            1.0000000000000002,
+            1.0,
+            0.9999999999999999,
+            0.9999999999999999,
+            0.9999999999999999,
+            0.9999999999999997,
+            0.9999999999996593
+          ],
+          "finite_sampling_validity": {
+            "0.5": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "1.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 2,
+                "valid_direction_pair_count": 12,
+                "valid_sample_count": 25
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "2.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            }
+          },
+          "groups": {
+            "roll_pitch": {
+              "center_scale": 3.5287743102684157,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.10176487107565853,
+                    "finite_to_local_sigma_ratio": 1.3254197300768833,
+                    "sigma_point_max": 3.852734462194012,
+                    "sigma_point_min": 3.497653752245743
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.07768202663939824,
+                    "finite_to_local_sigma_ratio": 1.0117566834326184,
+                    "sigma_point_max": 3.6002626035882943,
+                    "sigma_point_min": 3.4992207265398103
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 3.5866620989823157,
+                    "sigma_point_min": 3.416526057468832
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.08079953897995247,
+                    "finite_to_local_sigma_ratio": 1.052360206315474,
+                    "sigma_point_max": 3.7996001546333167,
+                    "sigma_point_min": 3.4681521453457482
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.43239357641815135,
+                    "finite_to_local_sigma_ratio": 5.631638612474072,
+                    "sigma_point_max": 7.382204828651528,
+                    "sigma_point_min": 3.1233372744650088
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0812870269106206,
+                    "finite_to_local_sigma_ratio": 1.0587094120878175,
+                    "sigma_point_max": 4.457892445294894,
+                    "sigma_point_min": 3.4015842213718885
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.2637247455558554e-08,
+              "local_one_sigma_centered_scale_free_spd": 0.07677935431801326,
+              "local_one_sigma_estimator_quotient": 0.07677935605608655
+            },
+            "xy": {
+              "center_scale": 1.152044762905967,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0020956696385138413,
+                    "finite_to_local_sigma_ratio": 0.9585659047435808,
+                    "sigma_point_max": 1.163879234874529,
+                    "sigma_point_min": 1.1512712353476708
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.002179780087085912,
+                    "finite_to_local_sigma_ratio": 0.9970382880317611,
+                    "sigma_point_max": 1.152972350150529,
+                    "sigma_point_min": 1.1512031507373015
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1579671143727488,
+                    "sigma_point_min": 1.150497988362079
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0021686875420626637,
+                    "finite_to_local_sigma_ratio": 0.9919645229462749,
+                    "sigma_point_max": 1.154914966624558,
+                    "sigma_point_min": 1.1503620215635548
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.002170623629638532,
+                    "finite_to_local_sigma_ratio": 0.9928500967727849,
+                    "sigma_point_max": 1.1687251586036604,
+                    "sigma_point_min": 1.148952336190296
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0021922597070330153,
+                    "finite_to_local_sigma_ratio": 1.002746505562999,
+                    "sigma_point_max": 1.1604772063299058,
+                    "sigma_point_min": 1.1486812126545842
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 1.2709335842699221e-09,
+              "local_one_sigma_centered_scale_free_spd": 0.002186255142336237,
+              "local_one_sigma_estimator_quotient": 0.0021862551451148223
+            },
+            "yaw": {
+              "center_scale": 3.378867903451397,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.1215951405000256,
+                    "finite_to_local_sigma_ratio": 0.6138642251236982,
+                    "sigma_point_max": 5.0858641798275475,
+                    "sigma_point_min": 1.5302353935584208
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.20844189943665295,
+                    "finite_to_local_sigma_ratio": 1.0523037579188583,
+                    "sigma_point_max": 3.4837856604662516,
+                    "sigma_point_min": 3.303182834088347
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 7.7485451068188,
+                    "sigma_point_min": 3.2837336276528033
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.2420569896530406,
+                    "finite_to_local_sigma_ratio": 1.2220070942110723,
+                    "sigma_point_max": 3.649462242551018,
+                    "sigma_point_min": 3.2123158088986785
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.17320555540913452,
+                    "finite_to_local_sigma_ratio": 0.8744156519834421,
+                    "sigma_point_max": 3.5697056459904513,
+                    "sigma_point_min": 0.7605635332898049
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.39003971800375925,
+                    "finite_to_local_sigma_ratio": 1.969087127406952,
+                    "sigma_point_max": 4.271569539733003,
+                    "sigma_point_min": 2.7676318855033633
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 1.3974787336095658e-08,
+              "local_one_sigma_centered_scale_free_spd": 0.19808149021149307,
+              "local_one_sigma_estimator_quotient": 0.1980814929796398
+            },
+            "z": {
+              "center_scale": 1.169764823757708,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.002063004955261103,
+                    "finite_to_local_sigma_ratio": 0.9993056740789058,
+                    "sigma_point_max": 1.170623324071787,
+                    "sigma_point_min": 1.168906892843076
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0020644028621495713,
+                    "finite_to_local_sigma_ratio": 0.9999828133215147,
+                    "sigma_point_max": 1.1706718462224037,
+                    "sigma_point_min": 1.1688585018265745
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1714823941281083,
+                    "sigma_point_min": 1.1680495309852836
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.002064357862178227,
+                    "finite_to_local_sigma_ratio": 0.9999610156391101,
+                    "sigma_point_max": 1.171579569758216,
+                    "sigma_point_min": 1.167952879891851
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.002065686769285209,
+                    "finite_to_local_sigma_ratio": 1.0006047266886822,
+                    "sigma_point_max": 1.1732022448396182,
+                    "sigma_point_min": 1.1663365130707422
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.002064806004072673,
+                    "finite_to_local_sigma_ratio": 1.0001780925481727,
+                    "sigma_point_max": 1.1733971221954231,
+                    "sigma_point_min": 1.1661437338650364
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.582405432045397e-09,
+              "local_one_sigma_centered_scale_free_spd": 0.0020644383483188417,
+              "local_one_sigma_estimator_quotient": 0.002064438342987625
+            }
+          }
+        },
+        "failure2": {
+          "centered_chart_pushforward_condition_number": 64.8875713559341,
+          "centered_chart_pushforward_singular_values": [
+            64.88757134344212,
+            26.130683360697596,
+            2.828427124636635,
+            1.2075561711789748,
+            1.0000000002129343,
+            1.0000000000000007,
+            1.0000000000000002,
+            1.0000000000000002,
+            1.0000000000000002,
+            1.0,
+            0.9999999999999998,
+            0.9999999999999997,
+            0.9999999998074828
+          ],
+          "finite_sampling_validity": {
+            "0.5": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 4,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 23
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "1.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 3,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 24
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "2.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 4,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 23
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            }
+          },
+          "groups": {
+            "roll_pitch": {
+              "center_scale": 1.7244864317945854,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.7524423963000815,
+                    "sigma_point_min": 1.6967790977094315
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.5148368280659291,
+                    "finite_to_local_sigma_ratio": 8.619322063335947,
+                    "sigma_point_max": 3.2915217131079832,
+                    "sigma_point_min": 1.6963833056151623
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.7806377561096463,
+                    "sigma_point_min": 6.5755808293097e-129
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.3121671628654995,
+                    "finite_to_local_sigma_ratio": 5.226256490708981,
+                    "sigma_point_max": 2.806744938516804,
+                    "sigma_point_min": 1.668593198396272
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.8377066642648532,
+                    "sigma_point_min": 1.6152322483238237
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.2156123017396427,
+                    "finite_to_local_sigma_ratio": 3.6097492801605915,
+                    "sigma_point_max": 2.721995970078947,
+                    "sigma_point_min": 1.6139664173199324
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.6771747057097658e-06,
+              "local_one_sigma_centered_scale_free_spd": 0.0597303878396369,
+              "local_one_sigma_estimator_quotient": 0.05973054774874849
+            },
+            "xy": {
+              "center_scale": 1.1787877617832059,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1792688051301952,
+                    "sigma_point_min": 1.1783057271258428
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.001371690623273,
+                    "finite_to_local_sigma_ratio": 1.0170667181677138,
+                    "sigma_point_max": 1.179936071623094,
+                    "sigma_point_min": 1.178238253531651
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1797488568507244,
+                    "sigma_point_min": 1.1778227014808664
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0013749040204767001,
+                    "finite_to_local_sigma_ratio": 1.0194493540862553,
+                    "sigma_point_max": 1.1800088766086612,
+                    "sigma_point_min": 1.1776888516275184
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1807059841813794,
+                    "sigma_point_min": 1.1768536785525507
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.001380224526726548,
+                    "finite_to_local_sigma_ratio": 1.023394347030518,
+                    "sigma_point_max": 1.1809868498420635,
+                    "sigma_point_min": 1.176590368536766
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.2862561584947196e-08,
+              "local_one_sigma_centered_scale_free_spd": 0.0013486732287381474,
+              "local_one_sigma_estimator_quotient": 0.0013486731979040227
+            },
+            "yaw": {
+              "center_scale": 1.9977971340077068,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.0458396395211134,
+                    "sigma_point_min": 1.9500641703132744
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.2435945025045166,
+                    "finite_to_local_sigma_ratio": 1.51195427913203,
+                    "sigma_point_max": 8.189849730521782,
+                    "sigma_point_min": 1.9497638905384311
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.0939990454608126,
+                    "sigma_point_min": 8.501607769121558e-133
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.2096205092316241,
+                    "finite_to_local_sigma_ratio": 1.3010828350722436,
+                    "sigma_point_max": 2.1985612302363275,
+                    "sigma_point_min": 0.15142720703098916
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.1897793960327427,
+                    "sigma_point_min": 1.8103115681282405
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.23527279888842478,
+                    "finite_to_local_sigma_ratio": 1.4603027218815323,
+                    "sigma_point_max": 2.6224100758460374,
+                    "sigma_point_min": 0.07364765286582277
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 1.7754852450949709e-07,
+              "local_one_sigma_centered_scale_free_spd": 0.16111231841912096,
+              "local_one_sigma_estimator_quotient": 0.16111234702438046
+            },
+            "z": {
+              "center_scale": 1.1789923658022832,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1794681066468016,
+                    "sigma_point_min": 1.178516245050596
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0014423463954081038,
+                    "finite_to_local_sigma_ratio": 0.9948394231225087,
+                    "sigma_point_max": 1.179538791030142,
+                    "sigma_point_min": 1.178446182118036
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1799434671544098,
+                    "sigma_point_min": 1.178039744820559
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0014436748105156514,
+                    "finite_to_local_sigma_ratio": 0.9957556799408896,
+                    "sigma_point_max": 1.1800854578853133,
+                    "sigma_point_min": 1.177900239893682
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.180893045435317,
+                    "sigma_point_min": 1.1770856076361302
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0014465575857269045,
+                    "finite_to_local_sigma_ratio": 0.9977440361618954,
+                    "sigma_point_max": 1.1811795168123262,
+                    "sigma_point_min": 1.176809079489703
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 3.379176489014815e-08,
+              "local_one_sigma_centered_scale_free_spd": 0.001449828297054787,
+              "local_one_sigma_estimator_quotient": 0.0014498283460470456
+            }
+          }
+        },
+        "success": {
+          "centered_chart_pushforward_condition_number": 1374.9216834732447,
+          "centered_chart_pushforward_singular_values": [
+            1374.9216812138354,
+            167.71950609229646,
+            2.828427124218274,
+            2.2324179356787526,
+            1.0000000000149247,
+            1.000000000000024,
+            1.0000000000000004,
+            1.0000000000000004,
+            1.0000000000000002,
+            0.9999999999999999,
+            0.9999999999999998,
+            0.9999999999999998,
+            0.9999999983566997
+          ],
+          "finite_sampling_validity": {
+            "0.5": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 2,
+                "valid_direction_pair_count": 12,
+                "valid_sample_count": 25
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "1.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 2,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 25
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "2.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 3,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 24
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            }
+          },
+          "groups": {
+            "roll_pitch": {
+              "center_scale": 4.155902832459414,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 4.1744213113328925,
+                    "sigma_point_min": 3.084786004236221
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.05944148850932265,
+                    "finite_to_local_sigma_ratio": 0.9999073667905706,
+                    "sigma_point_max": 4.1784791154552705,
+                    "sigma_point_min": 4.132768943024709
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 4.192493841207348,
+                    "sigma_point_min": 1.0164903180031271e-47
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.05942523224589725,
+                    "finite_to_local_sigma_ratio": 0.9996339086729631,
+                    "sigma_point_max": 4.200482749041554,
+                    "sigma_point_min": 4.1090928131252245
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 4.227265375589396,
+                    "sigma_point_min": 1.084575654970107e-110
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.05936390019834757,
+                    "finite_to_local_sigma_ratio": 0.9986021988739117,
+                    "sigma_point_max": 4.242713667064227,
+                    "sigma_point_min": 4.060176753511519
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.4935822090465572e-08,
+              "local_one_sigma_centered_scale_free_spd": 0.05944699675764567,
+              "local_one_sigma_estimator_quotient": 0.059446995275285935
+            },
+            "xy": {
+              "center_scale": 1.2145133680878448,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.2181889361479126,
+                    "sigma_point_min": 1.2142290451601996
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0008974888260472202,
+                    "finite_to_local_sigma_ratio": 0.9999964921130595,
+                    "sigma_point_max": 1.2147898661222742,
+                    "sigma_point_min": 1.2142239893125435
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.220869586833401,
+                    "sigma_point_min": 1.2139316397199424
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0008974869242050287,
+                    "finite_to_local_sigma_ratio": 0.9999943730498858,
+                    "sigma_point_max": 1.215053469520303,
+                    "sigma_point_min": 1.213921744288948
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.2212030047873645,
+                    "sigma_point_min": 1.2132976341156574
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0008975828271936483,
+                    "finite_to_local_sigma_ratio": 1.000101229703049,
+                    "sigma_point_max": 1.2155419398158178,
+                    "sigma_point_min": 1.213278716446341
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 1.415340531291505e-07,
+              "local_one_sigma_centered_scale_free_spd": 0.000897492101373291,
+              "local_one_sigma_estimator_quotient": 0.0008974919743475962
+            },
+            "yaw": {
+              "center_scale": 2.490914309232642,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.5171649450256517,
+                    "sigma_point_min": 1.3927758158198966
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.06515818134089807,
+                    "finite_to_local_sigma_ratio": 0.9998539607600416,
+                    "sigma_point_max": 2.5206696161613062,
+                    "sigma_point_min": 2.4609204514016896
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.5428214825518527,
+                    "sigma_point_min": 7.064681168586528e-47
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.06512924704806092,
+                    "finite_to_local_sigma_ratio": 0.9994099632957223,
+                    "sigma_point_max": 2.550163408112636,
+                    "sigma_point_min": 2.430710954507216
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.5922423320684875,
+                    "sigma_point_min": 7.518787566720846e-110
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.06500775666477018,
+                    "finite_to_local_sigma_ratio": 0.9975456902539078,
+                    "sigma_point_max": 2.623774805322236,
+                    "sigma_point_min": 2.3697361481242747
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 3.648141776200125e-08,
+              "local_one_sigma_centered_scale_free_spd": 0.06516770075944973,
+              "local_one_sigma_estimator_quotient": 0.06516769838203962
+            },
+            "z": {
+              "center_scale": 1.2249249345448083,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.2251404162617294,
+                    "sigma_point_min": 1.2246983955287287
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0005143083065844254,
+                    "finite_to_local_sigma_ratio": 0.9999933635350804,
+                    "sigma_point_max": 1.2251412171360785,
+                    "sigma_point_min": 1.2246976685584159
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.225344831698984,
+                    "sigma_point_min": 1.2244608086551985
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0005142980950794942,
+                    "finite_to_local_sigma_ratio": 0.9999735088350258,
+                    "sigma_point_max": 1.2253465073849403,
+                    "sigma_point_min": 1.2244594285773456
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.2257204301229068,
+                    "sigma_point_min": 1.2239525314037034
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.000514257817200449,
+                    "finite_to_local_sigma_ratio": 0.9998951946969361,
+                    "sigma_point_max": 1.2257240773362006,
+                    "sigma_point_min": 1.2239500664941805
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 4.5997098048145937e-07,
+              "local_one_sigma_centered_scale_free_spd": 0.0005143119563646864,
+              "local_one_sigma_estimator_quotient": 0.0005143117197961115
+            }
+          }
+        }
+      },
+      "overlap_corrected": {
+        "failure1": {
+          "centered_chart_pushforward_condition_number": 13.780506433124403,
+          "centered_chart_pushforward_singular_values": [
+            13.780506433119708,
+            6.952751924316021,
+            2.828427124754244,
+            1.1347848111388597,
+            1.0000000000193348,
+            1.0000000000000029,
+            1.0000000000000002,
+            1.0,
+            0.9999999999999999,
+            0.9999999999999999,
+            0.9999999999999999,
+            0.9999999999999997,
+            0.9999999999996593
+          ],
+          "finite_sampling_validity": {
+            "0.5": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "1.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "2.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 1,
+                "valid_direction_pair_count": 12,
+                "valid_sample_count": 26
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            }
+          },
+          "groups": {
+            "roll_pitch": {
+              "center_scale": 3.5287743102684157,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.03436270525333336,
+                    "finite_to_local_sigma_ratio": 0.9904409502835284,
+                    "sigma_point_max": 3.9221770933983,
+                    "sigma_point_min": 3.5160550364973537
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.03462783562803838,
+                    "finite_to_local_sigma_ratio": 0.9980828423451913,
+                    "sigma_point_max": 3.5473210863195206,
+                    "sigma_point_min": 3.516591469143426
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0334231732149095,
+                    "finite_to_local_sigma_ratio": 0.9633606899228259,
+                    "sigma_point_max": 3.828736306953244,
+                    "sigma_point_min": 3.5029191362297007
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.03445144123820568,
+                    "finite_to_local_sigma_ratio": 0.9929986027216378,
+                    "sigma_point_max": 3.593982657582368,
+                    "sigma_point_min": 3.503976897126203
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 3.8343649464474376,
+                    "sigma_point_min": 3.431344186878288
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.034023237461637615,
+                    "finite_to_local_sigma_ratio": 0.9806564267043201,
+                    "sigma_point_max": 3.764329990471052,
+                    "sigma_point_min": 3.4774615583158264
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 3.0387896445105833e-09,
+              "local_one_sigma_centered_scale_free_spd": 0.03469435027246857,
+              "local_one_sigma_estimator_quotient": 0.034694350167039735
+            },
+            "xy": {
+              "center_scale": 1.152044762905967,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0003324980407783661,
+                    "finite_to_local_sigma_ratio": 0.8535646797471139,
+                    "sigma_point_max": 1.163811271507842,
+                    "sigma_point_min": 1.1519380061724973
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.00038830530870796834,
+                    "finite_to_local_sigma_ratio": 0.9968290181213335,
+                    "sigma_point_max": 1.1522900243875123,
+                    "sigma_point_min": 1.151929021109613
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.000323177485600467,
+                    "finite_to_local_sigma_ratio": 0.8296376314046192,
+                    "sigma_point_max": 1.163803706221912,
+                    "sigma_point_min": 1.1518297758508635
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0003850355994684382,
+                    "finite_to_local_sigma_ratio": 0.9884352594533717,
+                    "sigma_point_max": 1.1528090601377163,
+                    "sigma_point_min": 1.1518120950737962
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1637769664171989,
+                    "sigma_point_min": 1.1516089006695303
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0003772969039984279,
+                    "finite_to_local_sigma_ratio": 0.9685690458479533,
+                    "sigma_point_max": 1.1545259945898112,
+                    "sigma_point_min": 1.1515746971326628
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.881501150213816e-09,
+              "local_one_sigma_centered_scale_free_spd": 0.00038954053356199733,
+              "local_one_sigma_estimator_quotient": 0.00038954053468445883
+            },
+            "yaw": {
+              "center_scale": 3.378867903451397,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.13660300135582132,
+                    "finite_to_local_sigma_ratio": 1.82442948435133,
+                    "sigma_point_max": 3.8002975758368267,
+                    "sigma_point_min": 2.2716658457417775
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.07588827627297569,
+                    "finite_to_local_sigma_ratio": 1.013541477936418,
+                    "sigma_point_max": 3.4123209042891705,
+                    "sigma_point_min": 3.3531735965225895
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.05851918380323982,
+                    "finite_to_local_sigma_ratio": 0.7815649968971622,
+                    "sigma_point_max": 5.038504225848612,
+                    "sigma_point_min": 1.541221297657505
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0790246776759969,
+                    "finite_to_local_sigma_ratio": 1.0554303317823708,
+                    "sigma_point_max": 3.457185260240604,
+                    "sigma_point_min": 3.3309613071879975
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 7.606658469673309,
+                    "sigma_point_min": 1.5582702512651736
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.09284475219802944,
+                    "finite_to_local_sigma_ratio": 1.2400071787497113,
+                    "sigma_point_max": 3.5942159726631093,
+                    "sigma_point_min": 3.275377057661489
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 6.242463951479078e-09,
+              "local_one_sigma_centered_scale_free_spd": 0.0748743662210601,
+              "local_one_sigma_estimator_quotient": 0.07487436668846063
+            },
+            "z": {
+              "center_scale": 1.169764823757708,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 9.639186962124759e-05,
+                    "finite_to_local_sigma_ratio": 1.0173183873888336,
+                    "sigma_point_max": 1.1699687932679335,
+                    "sigma_point_min": 1.1697417495820963
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 9.476605382585708e-05,
+                    "finite_to_local_sigma_ratio": 1.0001595245898574,
+                    "sigma_point_max": 1.169796292478613,
+                    "sigma_point_min": 1.1697315960447534
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 9.754335212347695e-05,
+                    "finite_to_local_sigma_ratio": 1.0294711169383,
+                    "sigma_point_max": 1.1700163444880178,
+                    "sigma_point_min": 1.1697157440678612
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 9.480853331377162e-05,
+                    "finite_to_local_sigma_ratio": 1.000607852474392,
+                    "sigma_point_max": 1.1698260561918523,
+                    "sigma_point_min": 1.1696965397109982
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1701256198219898,
+                    "sigma_point_min": 1.169654973723725
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 9.494076259287047e-05,
+                    "finite_to_local_sigma_ratio": 1.0020033983221,
+                    "sigma_point_max": 1.1698805991402441,
+                    "sigma_point_min": 1.1696205949776122
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.65810907053107e-08,
+              "local_one_sigma_centered_scale_free_spd": 9.475093620263568e-05,
+              "local_one_sigma_estimator_quotient": 9.475093872121897e-05
+            }
+          }
+        },
+        "failure2": {
+          "centered_chart_pushforward_condition_number": 64.8875713559341,
+          "centered_chart_pushforward_singular_values": [
+            64.88757134344212,
+            26.130683360697596,
+            2.828427124636635,
+            1.2075561711789748,
+            1.0000000002129343,
+            1.0000000000000007,
+            1.0000000000000002,
+            1.0000000000000002,
+            1.0000000000000002,
+            1.0,
+            0.9999999999999998,
+            0.9999999999999997,
+            0.9999999998074828
+          ],
+          "finite_sampling_validity": {
+            "0.5": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 2,
+                "valid_direction_pair_count": 12,
+                "valid_sample_count": 25
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "1.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 3,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 24
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "2.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 3,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 24
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            }
+          },
+          "groups": {
+            "roll_pitch": {
+              "center_scale": 1.7244864317945854,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.7313532860816383,
+                    "sigma_point_min": 1.4233777241894603
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.2058813285211687,
+                    "finite_to_local_sigma_ratio": 13.61431601069004,
+                    "sigma_point_max": 3.252264292001852,
+                    "sigma_point_min": 1.7176221642347385
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.738234539857402,
+                    "sigma_point_min": 1.4212534523265
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.2817107270538474,
+                    "finite_to_local_sigma_ratio": 18.62868716294485,
+                    "sigma_point_max": 3.261588178002092,
+                    "sigma_point_min": 1.7107748746980385
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.7520396457144174,
+                    "sigma_point_min": 0.003783350350835977
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.1747947168953799,
+                    "finite_to_local_sigma_ratio": 11.558651432386311,
+                    "sigma_point_max": 2.8368088224946533,
+                    "sigma_point_min": 1.69713158248452
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 5.043565100184569e-07,
+              "local_one_sigma_centered_scale_free_spd": 0.015122422029659816,
+              "local_one_sigma_estimator_quotient": 0.015122414402567818
+            },
+            "xy": {
+              "center_scale": 1.1787877617832059,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.179640746084216,
+                    "sigma_point_min": 1.1787605192554256
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.00010225762013968345,
+                    "finite_to_local_sigma_ratio": 1.214374840268789,
+                    "sigma_point_max": 1.1794631734532182,
+                    "sigma_point_min": 1.1787608339466042
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1796707735358314,
+                    "sigma_point_min": 1.1787312087709108
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.000141182735590834,
+                    "finite_to_local_sigma_ratio": 1.6766355577963916,
+                    "sigma_point_max": 1.179956338897154,
+                    "sigma_point_min": 1.1787318961950253
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1796250267818524,
+                    "sigma_point_min": 1.1786663656370882
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.00014364362442520546,
+                    "finite_to_local_sigma_ratio": 1.7058601914332483,
+                    "sigma_point_max": 1.1800571647360856,
+                    "sigma_point_min": 1.1786679760176524
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 1.7376487560763788e-06,
+              "local_one_sigma_centered_scale_free_spd": 8.420612354352217e-05,
+              "local_one_sigma_estimator_quotient": 8.420597722285634e-05
+            },
+            "yaw": {
+              "center_scale": 1.9977971340077068,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.01384504107436,
+                    "sigma_point_min": 0.6826730684876936
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.05233798717001218,
+                    "finite_to_local_sigma_ratio": 1.049047279210332,
+                    "sigma_point_max": 3.1410973586827287,
+                    "sigma_point_min": 1.9818526998316464
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.0299316642658294,
+                    "sigma_point_min": 0.680450961422552
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.20591642241088604,
+                    "finite_to_local_sigma_ratio": 4.127328434950495,
+                    "sigma_point_max": 8.236685845810213,
+                    "sigma_point_min": 1.965962540228813
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.062196068995031,
+                    "sigma_point_min": 0.0001717537815522926
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.07527433647184245,
+                    "finite_to_local_sigma_ratio": 1.5087767440050563,
+                    "sigma_point_max": 2.083951614829142,
+                    "sigma_point_min": 0.12295844696243928
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.9688641173558926e-07,
+              "local_one_sigma_centered_scale_free_spd": 0.049890955983387386,
+              "local_one_sigma_estimator_quotient": 0.049890970795338684
+            },
+            "z": {
+              "center_scale": 1.1789923658022832,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1790558354337328,
+                    "sigma_point_min": 1.1789587296097497
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.00015293090899578624,
+                    "finite_to_local_sigma_ratio": 0.8930039078240598,
+                    "sigma_point_max": 1.179237349861327,
+                    "sigma_point_min": 1.178945077937485
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1790925930393044,
+                    "sigma_point_min": 1.17892284693245
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.00015273497844585729,
+                    "finite_to_local_sigma_ratio": 0.8918598176731702,
+                    "sigma_point_max": 1.1793054461189187,
+                    "sigma_point_min": 1.1788928103085619
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.1791044848676437,
+                    "sigma_point_min": 1.1788443341559813
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.00015592236497600676,
+                    "finite_to_local_sigma_ratio": 0.9104718081848312,
+                    "sigma_point_max": 1.179355317888556,
+                    "sigma_point_min": 1.1787732359916312
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.307954144358409e-07,
+              "local_one_sigma_centered_scale_free_spd": 0.00017125450734497508,
+              "local_one_sigma_estimator_quotient": 0.0001712544678202201
+            }
+          }
+        },
+        "success": {
+          "centered_chart_pushforward_condition_number": 1374.9216834732447,
+          "centered_chart_pushforward_singular_values": [
+            1374.9216812138354,
+            167.71950609229646,
+            2.828427124218274,
+            2.2324179356787526,
+            1.0000000000149247,
+            1.000000000000024,
+            1.0000000000000004,
+            1.0000000000000004,
+            1.0000000000000002,
+            0.9999999999999999,
+            0.9999999999999998,
+            0.9999999999999998,
+            0.9999999983566997
+          ],
+          "finite_sampling_validity": {
+            "0.5": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 2,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 25
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "1.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 2,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 25
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            },
+            "2.0": {
+              "centered_scale_free_spd": {
+                "invalid_sample_count": 4,
+                "valid_direction_pair_count": 11,
+                "valid_sample_count": 23
+              },
+              "estimator_quotient": {
+                "invalid_sample_count": 0,
+                "valid_direction_pair_count": 13,
+                "valid_sample_count": 27
+              }
+            }
+          },
+          "groups": {
+            "roll_pitch": {
+              "center_scale": 4.155902832459414,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 4.162316855445949,
+                    "sigma_point_min": 0.23609443095726107
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.015521990522051153,
+                    "finite_to_local_sigma_ratio": 0.9999993846762146,
+                    "sigma_point_max": 4.162751982936765,
+                    "sigma_point_min": 4.149024504578056
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 4.168697730200105,
+                    "sigma_point_min": 0.2357164977859351
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.01552196051769867,
+                    "finite_to_local_sigma_ratio": 0.99999745165519,
+                    "sigma_point_max": 4.169571693725689,
+                    "sigma_point_min": 4.142117262247493
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 4.181359130571491,
+                    "sigma_point_min": 4.129919829981293
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.015521833961992243,
+                    "finite_to_local_sigma_ratio": 0.9999892983433856,
+                    "sigma_point_max": 4.1831217506007,
+                    "sigma_point_min": 4.128217089262572
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.0843967366818206e-08,
+              "local_one_sigma_centered_scale_free_spd": 0.015522000396647065,
+              "local_one_sigma_estimator_quotient": 0.015522000073106995
+            },
+            "xy": {
+              "center_scale": 1.2145133680878448,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.2205776953419287,
+                    "sigma_point_min": 1.2144689273967753
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0001063907975420941,
+                    "finite_to_local_sigma_ratio": 0.9999979299802888,
+                    "sigma_point_max": 1.2145590626938998,
+                    "sigma_point_min": 1.2144673004840314
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.2205848044963605,
+                    "sigma_point_min": 1.2144240914048285
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0001063901430824873,
+                    "finite_to_local_sigma_ratio": 0.9999917785248323,
+                    "sigma_point_max": 1.214604384102924,
+                    "sigma_point_min": 1.2144208600821123
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.214687172144958,
+                    "sigma_point_min": 1.2143332346616575
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.00010638753066655078,
+                    "finite_to_local_sigma_ratio": 0.9999672236705675,
+                    "sigma_point_max": 1.2146939065346893,
+                    "sigma_point_min": 1.2143268616844518
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 2.7163576011471027e-07,
+              "local_one_sigma_centered_scale_free_spd": 0.00010639104667321082,
+              "local_one_sigma_estimator_quotient": 0.00010639101777359799
+            },
+            "yaw": {
+              "center_scale": 2.490914309232642,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.4936486298904152,
+                    "sigma_point_min": -0.004916218131185058
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.007563051210592652,
+                    "finite_to_local_sigma_ratio": 0.9999999516555791,
+                    "sigma_point_max": 2.493915778659671,
+                    "sigma_point_min": 2.4879047718138527
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.496380804920983,
+                    "sigma_point_min": -0.005044032590618096
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.00756305007729084,
+                    "finite_to_local_sigma_ratio": 0.9999998018084174,
+                    "sigma_point_max": 2.4969091291112786,
+                    "sigma_point_min": 2.4848872174898182
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 2.501838610759608,
+                    "sigma_point_min": 2.4799561043233354
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 0.0075630457688464405,
+                    "finite_to_local_sigma_ratio": 0.9999992321383105,
+                    "sigma_point_max": 2.5028712696812043,
+                    "sigma_point_min": 2.4788282629728857
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 4.801983202962136e-09,
+              "local_one_sigma_centered_scale_free_spd": 0.007563051612541648,
+              "local_one_sigma_estimator_quotient": 0.007563051576224001
+            },
+            "z": {
+              "center_scale": 1.2249249345448083,
+              "finite_sigma_comparison": {
+                "0.5": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.2251945992295283,
+                    "sigma_point_min": 1.2249170790552657
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 4.477769300042573e-05,
+                    "finite_to_local_sigma_ratio": 0.9999991120221501,
+                    "sigma_point_max": 1.224943887573569,
+                    "sigma_point_min": 1.2249058415205232
+                  }
+                },
+                "1.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.2251749954618767,
+                    "sigma_point_min": 1.2249091986575726
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 4.477757498208525e-05,
+                    "finite_to_local_sigma_ratio": 0.9999964763741795,
+                    "sigma_point_max": 1.2249627004469137,
+                    "sigma_point_min": 1.2248866086404766
+                  }
+                },
+                "2.0": {
+                  "centered_scale_free_spd": {
+                    "finite_secant_complete": false,
+                    "finite_secant_one_sigma": null,
+                    "finite_to_local_sigma_ratio": null,
+                    "sigma_point_max": 1.2249561073925668,
+                    "sigma_point_min": 1.22489336314353
+                  },
+                  "estimator_quotient": {
+                    "finite_secant_complete": true,
+                    "finite_secant_one_sigma": 4.4777103531650235e-05,
+                    "finite_to_local_sigma_ratio": 0.9999859476938303,
+                    "sigma_point_max": 1.2249999049890015,
+                    "sigma_point_min": 1.2248477237698159
+                  }
+                }
+              },
+              "local_coordinate_relative_difference": 3.1626246113995074e-07,
+              "local_one_sigma_centered_scale_free_spd": 4.4777718600544624e-05,
+              "local_one_sigma_estimator_quotient": 4.477773276206059e-05
+            }
+          }
+        }
+      }
+    },
+    "interpretation": {
+      "automatic_preference": false,
+      "local_invariance_check": "the infinitesimal propagated one-sigma should agree between coordinate charts up to numerical differentiation and covariance push-forward error",
+      "purpose": "compare finite nonlinear sensitivity in the original estimator quotient chart and an estimate-centered scale-free SPD chart",
+      "straightening_diagnostic": "for finite excursions, compare finite_secant_one_sigma / infinitesimal_one_sigma across 0.5, 1, and 2 sigma; values staying near one indicate a more nearly linear map over that excursion"
+    },
+    "schema": "grape-param-estim/gimbalrotor-pid-coordinate-chart-comparison/v1"
+  },
+  "input": {
+    "bags": {
+      "failure1": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_1_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+      "failure2": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_2_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+      "success": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_succeeded_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json"
+    },
+    "coordinate_modes": [
+      "estimator_quotient",
+      "centered_scale_free_spd"
+    ],
+    "covariance_modes": [
+      "conservative_fusion",
+      "overlap_corrected"
+    ],
+    "derivative_sigma_fraction": 1e-05,
+    "monte_carlo_samples": 0,
+    "seed": 0,
+    "sigma_multiples": [
+      0.5,
+      1.0,
+      2.0
+    ],
+    "vehicle_model_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json"
+  },
+  "schema": "grape-param-estim/gimbalrotor-pid-coordinate-chart-comparison/v1",
+  "source_commit": "0b2c5b2ea32af51755c36e836ba6a0c53a70dfc9"
+}

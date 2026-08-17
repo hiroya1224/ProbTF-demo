@@ -1,39 +1,65 @@
 <launch>
   <!--
-    Flagship-style synthetic scene:
-      * Kasuga starts looking well away from the shared moons.
-      * Both eye-in-hand tool edges carry small joint-derived uncertainty.
-      * After the global Bingham ambiguity is resolved, repeated visual bearings
-        condition a demo-local 12-D correlated Gaussian of joint zero offsets.
+    Dependency-aware flagship synthetic scene for ProbTF core >= 49adffcb.
 
-    The latent Gaussian currently lives in the demo node.  The companion core
-    plan describes how to move it into probtf_core as a dependency-aware
-    smoothing backend without sampling.
+    * Tou and Kasuga both start away from the initial shared keypoint pair.
+    * Their six joint-zero offsets are Gaussian latent factors owned by
+      probtf_core, not by the demo.
+    * Shared keypoints add one atomic cross-robot Gaussian observation factor.
+    * Both eye-in-hand cameras pursue the same information target with a common
+      progress fraction, so their exploratory motion is simultaneous.
+    * More keypoints remain after global orientation localization, allowing the
+      joint posterior to keep shrinking rather than ending at moon_2.
   -->
+
   <arg name="start_rviz" default="true" />
-  <arg name="kasuga_initial_gaze_yaw_offset_deg" default="125.0" />
-  <arg name="tou_initial_gaze_yaw_offset_deg" default="0.0" />
-  <arg name="gaze_speed_deg" default="16.0" />
   <arg name="publish_rate" default="20.0" />
   <arg name="sample_count" default="500" />
-  <arg name="joint_prior_sigma_deg" default="1.5" />
-  <arg name="joint_sigma_floor_deg" default="0.18" />
-  <arg name="joint_update_rate" default="3.0" />
-  <arg name="joint_bearing_noise_deg" default="0.45" />
+  <arg name="landmark_count" default="9" />
+  <arg name="concentration" default="45.0" />
+  <arg name="true_yaw_deg" default="55.0" />
 
-  <include file="$(find probtf_global_fusion_demo)/launch/global_fusion_demo.launch">
-    <arg name="start_rviz" value="$(arg start_rviz)" />
-    <arg name="active_view" value="true" />
-    <arg name="publish_rate" value="$(arg publish_rate)" />
-    <arg name="sample_count" value="$(arg sample_count)" />
-    <arg name="gaze_speed_deg" value="$(arg gaze_speed_deg)" />
-    <arg name="tou_initial_gaze_yaw_offset_deg" value="$(arg tou_initial_gaze_yaw_offset_deg)" />
-    <arg name="kasuga_initial_gaze_yaw_offset_deg" value="$(arg kasuga_initial_gaze_yaw_offset_deg)" />
-    <arg name="enable_joint_uncertainty" value="true" />
-    <arg name="joint_prior_sigma_deg" value="$(arg joint_prior_sigma_deg)" />
-    <arg name="joint_sigma_floor_deg" value="$(arg joint_sigma_floor_deg)" />
-    <arg name="joint_update_rate" value="$(arg joint_update_rate)" />
-    <arg name="joint_bearing_noise_deg" value="$(arg joint_bearing_noise_deg)" />
-    <arg name="joint_update_start_phase" value="2" />
-  </include>
+  <!-- Both robots move from the first frame; Kasuga is deliberately far away. -->
+  <arg name="tou_initial_gaze_yaw_offset_deg" default="-55.0" />
+  <arg name="kasuga_initial_gaze_yaw_offset_deg" default="125.0" />
+  <arg name="gaze_speed_deg" default="16.0" />
+  <arg name="motion_cost_weight" default="0.08" />
+  <arg name="joint_information_weight" default="0.65" />
+  <arg name="active_start_delay" default="0.8" />
+
+  <arg name="joint_prior_sigma_deg" default="1.5" />
+  <arg name="joint_bearing_noise_deg" default="0.45" />
+  <arg name="camera_hfov_deg" default="56.0" />
+  <arg name="camera_vfov_deg" default="65.0" />
+
+  <node pkg="probtf_global_fusion_demo"
+        type="furisake_dependency_demo_node.py"
+        name="global_fusion_demo"
+        output="screen">
+    <param name="publish_rate" value="$(arg publish_rate)" />
+    <param name="sample_count" value="$(arg sample_count)" />
+    <param name="landmark_count" value="$(arg landmark_count)" />
+    <param name="concentration" value="$(arg concentration)" />
+    <param name="true_yaw_deg" value="$(arg true_yaw_deg)" />
+    <param name="tou_initial_gaze_yaw_offset_deg" value="$(arg tou_initial_gaze_yaw_offset_deg)" />
+    <param name="kasuga_initial_gaze_yaw_offset_deg" value="$(arg kasuga_initial_gaze_yaw_offset_deg)" />
+    <param name="gaze_speed_deg" value="$(arg gaze_speed_deg)" />
+    <param name="motion_cost_weight" value="$(arg motion_cost_weight)" />
+    <param name="joint_information_weight" value="$(arg joint_information_weight)" />
+    <param name="active_start_delay" value="$(arg active_start_delay)" />
+    <param name="joint_prior_sigma_deg" value="$(arg joint_prior_sigma_deg)" />
+    <param name="joint_bearing_noise_deg" value="$(arg joint_bearing_noise_deg)" />
+    <param name="camera_hfov_deg" value="$(arg camera_hfov_deg)" />
+    <param name="camera_vfov_deg" value="$(arg camera_vfov_deg)" />
+    <rosparam param="tou_arm_joints_deg">[15.0, -30.0, 70.0]</rosparam>
+    <rosparam param="kasuga_arm_joints_deg">[150.0, -25.0, 60.0]</rosparam>
+  </node>
+
+  <!-- Keep the historical node name so the existing RViz private topics work. -->
+  <node if="$(arg start_rviz)"
+        pkg="rviz"
+        type="rviz"
+        name="rviz"
+        args="-d $(find probtf_global_fusion_demo)/rviz/global_fusion_demo.rviz"
+        output="screen" />
 </launch>

@@ -25,6 +25,7 @@ catkin_package(
 catkin_install_python(
   PROGRAMS
     nodes/global_fusion_demo_node.py
+    nodes/furisake_dependency_demo_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

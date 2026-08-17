@@ -42,7 +42,6 @@ from grape_param_estim.gimbalrotor_pid_postprocess import (  # noqa: E402
     build_real_scale_free_allocation,
     characteristic_length,
     dimensionless_effectiveness,
-    group_scale,
     load_estimator_result,
     load_vehicle_model,
     source_compatible_pseudoinverse,
@@ -50,6 +49,7 @@ from grape_param_estim.gimbalrotor_pid_postprocess import (  # noqa: E402
 from single_bag_savgol_core import (  # noqa: E402
     COMMON_SCALE_DIRECTION,
     PHYSICAL_CHART_LABELS,
+    SYMMETRIC_BASIS,
     SiParameterChart,
 )
 
@@ -64,6 +64,27 @@ COVARIANCE_MODES = (
     "conservative_fusion",
 )
 DEFAULT_COVARIANCE_MODE = "conservative_fusion"
+COORDINATE_MODES = (
+    "estimator_quotient",
+    "centered_scale_free_spd",
+)
+DEFAULT_COORDINATE_MODE = "estimator_quotient"
+DEFAULT_DERIVATIVE_SIGMA_FRACTION = 1.0e-5
+CENTERED_SCALE_FREE_SPD_LABELS = (
+    "log_second_moment_11",
+    "log_second_moment_22",
+    "log_second_moment_33",
+    "log_second_moment_12_sqrt2",
+    "log_second_moment_13_sqrt2",
+    "log_second_moment_23_sqrt2",
+    "delta_cog_x",
+    "delta_cog_y",
+    "delta_cog_z",
+    "log_f1_over_m_ratio",
+    "log_f2_over_m_ratio",
+    "log_f3_over_m_ratio",
+    "log_f4_over_m_ratio",
+)
 SCALE_FREE_LABELS = (
     "Jxx_over_m",
     "Jyy_over_m",
@@ -150,6 +171,7 @@ class StaticScaleEvaluation:
     effectiveness_dimensionless: np.ndarray
     effectiveness_diagonal: np.ndarray
     coupling_ratio: float
+    allocation_source_threshold_rank: int
     allocation_condition_number: float
 
     def __post_init__(self) -> None:
@@ -159,7 +181,6 @@ class StaticScaleEvaluation:
             tuple(self.scales) != tuple(PID_GROUPS)
             or any(
                 not np.isfinite(float(self.scales[group]))
-                or float(self.scales[group]) <= 0.0
                 for group in PID_GROUPS
             )
             or matrix.shape != (6, 6)
@@ -167,7 +188,10 @@ class StaticScaleEvaluation:
             or diagonal.shape != (6,)
             or np.any(~np.isfinite(diagonal))
             or not np.isfinite(float(self.coupling_ratio))
-            or not np.isfinite(float(self.allocation_condition_number))
+            or int(self.allocation_source_threshold_rank) < 0
+            or int(self.allocation_source_threshold_rank) > 6
+            or np.isnan(float(self.allocation_condition_number))
+            or float(self.allocation_condition_number) < 0.0
         ):
             raise PostprocessNumericalError(
                 "static sensitivity evaluation is invalid"
@@ -203,6 +227,19 @@ def write_json(path: Path, payload: Mapping[str, Any]) -> None:
     )
 
 
+def _json_condition_number(value: float) -> Any:
+    """Return a strict-JSON value without discarding positive infinity."""
+
+    selected = float(value)
+    if np.isposinf(selected):
+        return "infinity"
+    if not np.isfinite(selected) or selected < 0.0:
+        raise PostprocessNumericalError(
+            "condition number must be non-negative or positive infinity"
+        )
+    return selected
+
+
 def scale_free_vector(plant: ScaleFreePlant) -> np.ndarray:
     inertia = np.asarray(plant.inertia_over_mass, dtype=float)
     return np.concatenate(
@@ -228,6 +265,377 @@ def plant_from_coordinate(
             decoded.force_effectiveness / decoded.mass
         ),
         rotor_lag_seconds=rotor_lag_seconds,
+    )
+
+
+def _second_moment_over_mass(inertia_over_mass: np.ndarray) -> np.ndarray:
+    inertia = np.asarray(inertia_over_mass, dtype=float)
+    if inertia.shape != (3, 3) or np.any(~np.isfinite(inertia)):
+        raise PostprocessNumericalError(
+            "inertia_over_mass must be a finite 3x3 matrix"
+        )
+    inertia = 0.5 * (inertia + inertia.T)
+    result = 0.5 * float(np.trace(inertia)) * np.eye(3) - inertia
+    return 0.5 * (result + result.T)
+
+
+def _symmetric_coordinates(matrix: np.ndarray) -> np.ndarray:
+    selected = np.asarray(matrix, dtype=float)
+    if selected.shape != (3, 3) or np.any(~np.isfinite(selected)):
+        raise PostprocessNumericalError(
+            "symmetric-coordinate input must be a finite 3x3 matrix"
+        )
+    selected = 0.5 * (selected + selected.T)
+    return np.asarray(
+        [float(np.sum(selected * basis)) for basis in SYMMETRIC_BASIS],
+        dtype=float,
+    )
+
+
+def _symmetric_matrix(coordinate: Sequence[float]) -> np.ndarray:
+    selected = np.asarray(coordinate, dtype=float)
+    if selected.shape != (6,) or np.any(~np.isfinite(selected)):
+        raise PostprocessInputError(
+            "symmetric matrix coordinate must be finite and 6-D"
+        )
+    return sum(
+        (
+            float(coefficient) * basis
+            for coefficient, basis in zip(selected, SYMMETRIC_BASIS)
+        ),
+        start=np.zeros((3, 3), dtype=float),
+    )
+
+
+def _symmetric_spd_power(matrix: np.ndarray, exponent: float) -> np.ndarray:
+    selected = np.asarray(matrix, dtype=float)
+    selected = 0.5 * (selected + selected.T)
+    eigenvalues, eigenvectors = np.linalg.eigh(selected)
+    if np.any(eigenvalues <= 0.0):
+        raise PostprocessNumericalError(
+            "SPD matrix function received a non-positive eigenvalue"
+        )
+    with np.errstate(over="raise", invalid="raise", divide="raise"):
+        powered = eigenvalues ** float(exponent)
+    result = eigenvectors @ np.diag(powered) @ eigenvectors.T
+    return 0.5 * (result + result.T)
+
+
+def _symmetric_spd_log(matrix: np.ndarray) -> np.ndarray:
+    selected = np.asarray(matrix, dtype=float)
+    selected = 0.5 * (selected + selected.T)
+    eigenvalues, eigenvectors = np.linalg.eigh(selected)
+    if np.any(eigenvalues <= 0.0):
+        raise PostprocessNumericalError(
+            "matrix logarithm received a non-positive SPD eigenvalue"
+        )
+    with np.errstate(over="raise", invalid="raise", divide="raise"):
+        logged = np.log(eigenvalues)
+    result = eigenvectors @ np.diag(logged) @ eigenvectors.T
+    return 0.5 * (result + result.T)
+
+
+def _symmetric_exp(matrix: np.ndarray) -> np.ndarray:
+    selected = np.asarray(matrix, dtype=float)
+    selected = 0.5 * (selected + selected.T)
+    eigenvalues, eigenvectors = np.linalg.eigh(selected)
+    with np.errstate(over="raise", invalid="raise"):
+        exponentiated = np.exp(eigenvalues)
+    result = eigenvectors @ np.diag(exponentiated) @ eigenvectors.T
+    return 0.5 * (result + result.T)
+
+
+def _inertia_over_mass_from_second_moment(
+    second_moment: np.ndarray,
+) -> np.ndarray:
+    """Compute J/m = tr(K)I-K without subtractive cancellation."""
+
+    selected = np.asarray(second_moment, dtype=float)
+    if selected.shape != (3, 3) or np.any(~np.isfinite(selected)):
+        raise PostprocessNumericalError(
+            "scale-free second moment must be a finite 3x3 matrix"
+        )
+    selected = 0.5 * (selected + selected.T)
+    eigenvalues, eigenvectors = np.linalg.eigh(selected)
+    if np.any(~np.isfinite(eigenvalues)) or np.any(eigenvalues <= 0.0):
+        raise PostprocessNumericalError(
+            "scale-free second moment lost numerical positive definiteness"
+        )
+
+    # In K's eigenbasis, each inertia eigenvalue is the sum of the other
+    # two positive K eigenvalues.  Direct pairwise sums avoid cancellation
+    # in trace(K) - lambda_max(K) for highly anisotropic finite samples.
+    inertia_eigenvalues = np.asarray(
+        (
+            eigenvalues[1] + eigenvalues[2],
+            eigenvalues[0] + eigenvalues[2],
+            eigenvalues[0] + eigenvalues[1],
+        ),
+        dtype=float,
+    )
+    if (
+        np.any(~np.isfinite(inertia_eigenvalues))
+        or np.any(inertia_eigenvalues <= 0.0)
+    ):
+        raise PostprocessNumericalError(
+            "scale-free inertia is not representable as a positive finite matrix"
+        )
+    inertia = eigenvectors @ np.diag(inertia_eigenvalues) @ eigenvectors.T
+    inertia = 0.5 * (inertia + inertia.T)
+    represented_eigenvalues = np.linalg.eigvalsh(inertia)
+    if (
+        np.any(~np.isfinite(represented_eigenvalues))
+        or np.any(represented_eigenvalues <= 0.0)
+    ):
+        raise PostprocessNumericalError(
+            "scale-free inertia lost numerical positive definiteness"
+        )
+    return inertia
+
+
+@dataclass(frozen=True)
+class CenteredScaleFreeSpdChart:
+    """Estimate-centered chart on SPD(3) x R^3 x R_+^4.
+
+    The SPD variable is the scale-free second moment K = Sigma / m, where
+    J/m = tr(K) I - K.  The fitted plant is the chart origin.
+    """
+
+    center_plant: ScaleFreePlant
+    second_moment_over_mass: np.ndarray
+    second_moment_sqrt: np.ndarray
+    second_moment_inverse_sqrt: np.ndarray
+
+    @classmethod
+    def from_plant(
+        cls, center_plant: ScaleFreePlant
+    ) -> "CenteredScaleFreeSpdChart":
+        second_moment = _second_moment_over_mass(
+            center_plant.inertia_over_mass
+        )
+        square_root = _symmetric_spd_power(second_moment, 0.5)
+        inverse_square_root = _symmetric_spd_power(second_moment, -0.5)
+        return cls(
+            center_plant=center_plant,
+            second_moment_over_mass=second_moment,
+            second_moment_sqrt=square_root,
+            second_moment_inverse_sqrt=inverse_square_root,
+        )
+
+    def encode(self, plant: ScaleFreePlant) -> np.ndarray:
+        second_moment = _second_moment_over_mass(plant.inertia_over_mass)
+        normalized = (
+            self.second_moment_inverse_sqrt
+            @ second_moment
+            @ self.second_moment_inverse_sqrt
+        )
+        log_second_moment = _symmetric_spd_log(normalized)
+        force = np.asarray(plant.force_effectiveness_over_mass, dtype=float)
+        center_force = np.asarray(
+            self.center_plant.force_effectiveness_over_mass, dtype=float
+        )
+        with np.errstate(over="raise", invalid="raise", divide="raise"):
+            log_force_ratio = np.log(force / center_force)
+        return np.concatenate(
+            (
+                _symmetric_coordinates(log_second_moment),
+                np.asarray(plant.cog_position_body)
+                - np.asarray(self.center_plant.cog_position_body),
+                log_force_ratio,
+            )
+        )
+
+    def decode(self, coordinate: Sequence[float]) -> ScaleFreePlant:
+        selected = np.asarray(coordinate, dtype=float)
+        if selected.shape != (13,) or np.any(~np.isfinite(selected)):
+            raise PostprocessInputError(
+                "centered scale-free SPD coordinate must be finite and 13-D"
+            )
+        log_second_moment = _symmetric_matrix(selected[:6])
+        normalized = _symmetric_exp(log_second_moment)
+        second_moment = (
+            self.second_moment_sqrt
+            @ normalized
+            @ self.second_moment_sqrt
+        )
+        second_moment = 0.5 * (second_moment + second_moment.T)
+        inertia_over_mass = _inertia_over_mass_from_second_moment(
+            second_moment
+        )
+        with np.errstate(
+            over="raise", invalid="raise", under="raise"
+        ):
+            force = (
+                np.asarray(
+                    self.center_plant.force_effectiveness_over_mass,
+                    dtype=float,
+                )
+                * np.exp(selected[9:13])
+            )
+        return ScaleFreePlant(
+            inertia_over_mass=inertia_over_mass,
+            cog_position_body=(
+                np.asarray(self.center_plant.cog_position_body, dtype=float)
+                + selected[6:9]
+            ),
+            force_effectiveness_over_mass=force,
+            rotor_lag_seconds=self.center_plant.rotor_lag_seconds,
+        )
+
+
+def centered_scale_free_spd_pushforward_jacobian(
+    *,
+    estimator_chart: SiParameterChart,
+    center_coordinate: np.ndarray,
+    quotient_basis: np.ndarray,
+    centered_chart: CenteredScaleFreeSpdChart,
+) -> np.ndarray:
+    """Return dy/dz at the fitted point for the centered 13-D chart."""
+
+    parameters, jacobian = estimator_chart.decode_with_jacobian(
+        center_coordinate
+    )
+    mass = float(parameters.mass)
+    inertia_over_mass = np.asarray(parameters.inertia, dtype=float) / mass
+    force_over_mass = (
+        np.asarray(parameters.force_effectiveness, dtype=float) / mass
+    )
+    result = np.zeros((13, 13), dtype=float)
+    for column in range(13):
+        direction = np.asarray(quotient_basis[:, column], dtype=float)
+        dmass = float(np.dot(np.asarray(jacobian.mass), direction))
+        dinertia = np.tensordot(
+            np.asarray(jacobian.inertia), direction, axes=(2, 0)
+        )
+        dcog = np.asarray(jacobian.cog_offset) @ direction
+        dforce = np.asarray(jacobian.force_effectiveness) @ direction
+        dinertia_over_mass = (
+            dinertia / mass
+            - inertia_over_mass * (dmass / mass)
+        )
+        dsecond_moment = (
+            0.5 * float(np.trace(dinertia_over_mass)) * np.eye(3)
+            - dinertia_over_mass
+        )
+        dlog_second_moment = (
+            centered_chart.second_moment_inverse_sqrt
+            @ dsecond_moment
+            @ centered_chart.second_moment_inverse_sqrt
+        )
+        dforce_over_mass = (
+            dforce / mass
+            - force_over_mass * (dmass / mass)
+        )
+        result[:6, column] = _symmetric_coordinates(
+            dlog_second_moment
+        )
+        result[6:9, column] = dcog
+        result[9:13, column] = dforce_over_mass / force_over_mass
+    if np.any(~np.isfinite(result)):
+        raise PostprocessNumericalError(
+            "centered scale-free SPD push-forward Jacobian is non-finite"
+        )
+    return result
+
+
+@dataclass(frozen=True)
+class SamplingCoordinates:
+    mode: str
+    covariance: np.ndarray
+    covariance_source: str
+    coordinate_labels: tuple[str, ...]
+    center_plant: ScaleFreePlant
+    estimator_chart: SiParameterChart
+    estimator_center_coordinate: np.ndarray
+    quotient_basis: np.ndarray
+    centered_spd_chart: Optional[CenteredScaleFreeSpdChart]
+    pushforward_jacobian: np.ndarray
+
+    def decode(self, delta: Sequence[float]) -> ScaleFreePlant:
+        selected = np.asarray(delta, dtype=float)
+        if selected.shape != (13,) or np.any(~np.isfinite(selected)):
+            raise PostprocessInputError(
+                "sampling coordinate must be finite and 13-D"
+            )
+        if self.mode == "estimator_quotient":
+            return plant_from_coordinate(
+                self.estimator_chart,
+                self.estimator_center_coordinate
+                + self.quotient_basis @ selected,
+                self.center_plant.rotor_lag_seconds,
+            )
+        if self.mode == "centered_scale_free_spd":
+            assert self.centered_spd_chart is not None
+            return self.centered_spd_chart.decode(selected)
+        raise RuntimeError("unknown sampling coordinate mode")
+
+
+def prepare_sampling_coordinates(
+    *,
+    result: EstimatorResult,
+    artifacts: SensitivityArtifacts,
+    model: VehicleModel,
+    coordinate_mode: str,
+) -> SamplingCoordinates:
+    mode = str(coordinate_mode)
+    if mode not in COORDINATE_MODES:
+        raise PostprocessInputError(
+            "coordinate_mode must be one of {}".format(
+                ", ".join(COORDINATE_MODES)
+            )
+        )
+    estimator_chart = SiParameterChart(model.parameters)
+    center_plant = validate_center_matches_result(
+        result, estimator_chart, artifacts.physical_coordinate
+    )
+    if mode == "estimator_quotient":
+        return SamplingCoordinates(
+            mode=mode,
+            covariance=np.asarray(artifacts.covariance, dtype=float),
+            covariance_source=artifacts.covariance_source,
+            coordinate_labels=tuple(
+                "estimator_quotient_{:02d}".format(index)
+                for index in range(13)
+            ),
+            center_plant=center_plant,
+            estimator_chart=estimator_chart,
+            estimator_center_coordinate=np.asarray(
+                artifacts.physical_coordinate, dtype=float
+            ),
+            quotient_basis=np.asarray(
+                artifacts.quotient_basis, dtype=float
+            ),
+            centered_spd_chart=None,
+            pushforward_jacobian=np.eye(13),
+        )
+    centered_chart = CenteredScaleFreeSpdChart.from_plant(center_plant)
+    pushforward = centered_scale_free_spd_pushforward_jacobian(
+        estimator_chart=estimator_chart,
+        center_coordinate=np.asarray(
+            artifacts.physical_coordinate, dtype=float
+        ),
+        quotient_basis=np.asarray(artifacts.quotient_basis, dtype=float),
+        centered_chart=centered_chart,
+    )
+    covariance = pushforward @ artifacts.covariance @ pushforward.T
+    covariance = 0.5 * (covariance + covariance.T)
+    return SamplingCoordinates(
+        mode=mode,
+        covariance=covariance,
+        covariance_source=(
+            "{} pushed forward to centered_scale_free_spd".format(
+                artifacts.covariance_source
+            )
+        ),
+        coordinate_labels=CENTERED_SCALE_FREE_SPD_LABELS,
+        center_plant=center_plant,
+        estimator_chart=estimator_chart,
+        estimator_center_coordinate=np.asarray(
+            artifacts.physical_coordinate, dtype=float
+        ),
+        quotient_basis=np.asarray(artifacts.quotient_basis, dtype=float),
+        centered_spd_chart=centered_chart,
+        pushforward_jacobian=pushforward,
     )
 
 
@@ -386,6 +794,43 @@ def validate_center_matches_result(
     return decoded
 
 
+
+def sensitivity_group_scale(
+    matrix: np.ndarray, axes: Sequence[int]
+) -> float:
+    """Least-squares group scale with no plausibility rejection.
+
+    A negative finite scale is retained as a diagnostic result.  The only
+    rejected denominator is exact machine zero, where the requested quotient
+    is mathematically undefined in the current floating-point calculation.
+    """
+
+    selected = np.asarray(matrix, dtype=float)
+    indices = tuple(int(value) for value in axes)
+    if (
+        selected.shape != (6, 6)
+        or np.any(~np.isfinite(selected))
+        or not indices
+        or any(value < 0 or value >= 6 for value in indices)
+        or len(set(indices)) != len(indices)
+    ):
+        raise PostprocessNumericalError(
+            "sensitivity group-scale inputs are invalid"
+        )
+    denominator = float(np.sum(selected[:, indices] ** 2))
+    numerator = float(sum(selected[index, index] for index in indices))
+    if denominator == 0.0:
+        raise PostprocessNumericalError(
+            "sensitivity gain-group denominator is exactly zero"
+        )
+    scale = numerator / denominator
+    if not np.isfinite(scale):
+        raise PostprocessNumericalError(
+            "sensitivity gain-group scale is non-finite"
+        )
+    return float(scale)
+
+
 def evaluate_static_scales(
     plant: ScaleFreePlant,
     model: VehicleModel,
@@ -394,16 +839,14 @@ def evaluate_static_scales(
     characteristic_length_m: float,
 ) -> StaticScaleEvaluation:
     real = build_real_scale_free_allocation(plant, model)
-    if real.source_threshold_rank < 6:
-        raise PostprocessNumericalError(
-            "sampled real allocation is rank deficient under source threshold"
-        )
     effectiveness = real.matrix @ nominal_pseudoinverse
     normalized = dimensionless_effectiveness(
         effectiveness, characteristic_length_m
     )
     scales = {
-        group: group_scale(normalized, GAIN_GROUP_AXES[group])
+        group: sensitivity_group_scale(
+            normalized, GAIN_GROUP_AXES[group]
+        )
         for group in PID_GROUPS
     }
     norm = float(np.linalg.norm(normalized, ord="fro"))
@@ -422,35 +865,38 @@ def evaluate_static_scales(
         effectiveness_dimensionless=normalized,
         effectiveness_diagonal=np.diag(normalized),
         coupling_ratio=coupling,
+        allocation_source_threshold_rank=real.source_threshold_rank,
         allocation_condition_number=real.condition_number,
     )
+
 
 
 def _sample_record(
     *,
     sample_name: str,
-    coordinate: np.ndarray,
+    delta_coordinate: np.ndarray,
     center_vector: np.ndarray,
-    chart: SiParameterChart,
-    result: EstimatorResult,
+    sampling: SamplingCoordinates,
     model: VehicleModel,
     nominal_pseudoinverse: np.ndarray,
     characteristic_length_m: float,
 ) -> Mapping[str, Any]:
     try:
-        plant = plant_from_coordinate(
-            chart, coordinate, result.plant.rotor_lag_seconds
-        )
-        evaluation = evaluate_static_scales(
-            plant,
-            model,
-            nominal_pseudoinverse=nominal_pseudoinverse,
-            characteristic_length_m=characteristic_length_m,
-        )
+        with np.errstate(over="raise", invalid="raise", divide="raise"):
+            plant = sampling.decode(delta_coordinate)
+            evaluation = evaluate_static_scales(
+                plant,
+                model,
+                nominal_pseudoinverse=nominal_pseudoinverse,
+                characteristic_length_m=characteristic_length_m,
+            )
         vector = scale_free_vector(plant)
         return {
             "name": sample_name,
             "valid": True,
+            "sampling_coordinate": np.asarray(
+                delta_coordinate, dtype=float
+            ).tolist(),
             "scale_free_vector": vector.tolist(),
             "scale_free_delta_from_center": (
                 vector - center_vector
@@ -463,23 +909,31 @@ def _sample_record(
                 evaluation.effectiveness_diagonal.tolist()
             ),
             "coupling_ratio": evaluation.coupling_ratio,
+            "A_real_source_threshold_rank": (
+                evaluation.allocation_source_threshold_rank
+            ),
             "A_real_condition_number": (
-                evaluation.allocation_condition_number
+                _json_condition_number(
+                    evaluation.allocation_condition_number
+                )
             ),
         }
     except (
-        PostprocessInputError,
         PostprocessNumericalError,
         OverflowError,
-        ValueError,
+        FloatingPointError,
         np.linalg.LinAlgError,
     ) as error:
         return {
             "name": sample_name,
             "valid": False,
+            "sampling_coordinate": np.asarray(
+                delta_coordinate, dtype=float
+            ).tolist(),
             "exception_type": type(error).__name__,
             "message": str(error),
         }
+
 
 
 def analyze_eigen_directions(
@@ -488,6 +942,8 @@ def analyze_eigen_directions(
     artifacts: SensitivityArtifacts,
     model: VehicleModel,
     sigma_multiple: float,
+    coordinate_mode: str = DEFAULT_COORDINATE_MODE,
+    derivative_sigma_fraction: float = DEFAULT_DERIVATIVE_SIGMA_FRACTION,
     characteristic_length_override: Optional[float] = None,
 ) -> Mapping[str, Any]:
     multiplier = float(sigma_multiple)
@@ -495,10 +951,18 @@ def analyze_eigen_directions(
         raise PostprocessInputError(
             "sigma_multiple must be finite and positive"
         )
-    chart = SiParameterChart(model.parameters)
-    center_plant = validate_center_matches_result(
-        result, chart, artifacts.physical_coordinate
+    derivative_fraction = float(derivative_sigma_fraction)
+    if not np.isfinite(derivative_fraction) or derivative_fraction <= 0.0:
+        raise PostprocessInputError(
+            "derivative_sigma_fraction must be finite and positive"
+        )
+    sampling = prepare_sampling_coordinates(
+        result=result,
+        artifacts=artifacts,
+        model=model,
+        coordinate_mode=coordinate_mode,
     )
+    center_plant = sampling.center_plant
     center_vector = scale_free_vector(center_plant)
     nominal = build_nominal_controller_allocation(model)
     nominal_pseudoinverse = source_compatible_pseudoinverse(
@@ -514,13 +978,14 @@ def analyze_eigen_directions(
         characteristic_length_m=length,
     )
     eigenvalues, eigenvectors, psd_tolerance = _psd_eigendecomposition(
-        artifacts.covariance
+        sampling.covariance
     )
     directions = []
-    samples = [
+    finite_samples = [
         {
             "name": "center",
             "valid": True,
+            "sampling_coordinate": np.zeros(13).tolist(),
             "scale_free_vector": center_vector.tolist(),
             "scale_free_delta_from_center": np.zeros(13).tolist(),
             "scales": {
@@ -531,62 +996,125 @@ def analyze_eigen_directions(
                 center.effectiveness_diagonal.tolist()
             ),
             "coupling_ratio": center.coupling_ratio,
-            "A_real_condition_number": center.allocation_condition_number,
+            "A_real_source_threshold_rank": (
+                center.allocation_source_threshold_rank
+            ),
+            "A_real_condition_number": _json_condition_number(
+                center.allocation_condition_number
+            ),
         }
     ]
-    one_sigma_effects = {
-        group: np.zeros(13, dtype=float) for group in PID_GROUPS
+    local_effects = {
+        group: np.full(13, np.nan, dtype=float)
+        for group in PID_GROUPS
+    }
+    finite_effects = {
+        group: np.full(13, np.nan, dtype=float)
+        for group in PID_GROUPS
     }
     for index in range(13):
         eigenvalue = float(eigenvalues[index])
         sigma = float(np.sqrt(eigenvalue))
-        quotient_direction = eigenvectors[:, index]
-        chart_direction = artifacts.quotient_basis @ quotient_direction
-        offset = multiplier * sigma * chart_direction
+        sampling_direction = eigenvectors[:, index]
+
+        finite_offset = multiplier * sigma * sampling_direction
         minus = _sample_record(
             sample_name="direction_{:02d}_minus".format(index),
-            coordinate=artifacts.physical_coordinate - offset,
+            delta_coordinate=-finite_offset,
             center_vector=center_vector,
-            chart=chart,
-            result=result,
+            sampling=sampling,
             model=model,
             nominal_pseudoinverse=nominal_pseudoinverse,
             characteristic_length_m=length,
         )
         plus = _sample_record(
             sample_name="direction_{:02d}_plus".format(index),
-            coordinate=artifacts.physical_coordinate + offset,
+            delta_coordinate=finite_offset,
             center_vector=center_vector,
-            chart=chart,
-            result=result,
+            sampling=sampling,
             model=model,
             nominal_pseudoinverse=nominal_pseudoinverse,
             characteristic_length_m=length,
         )
-        samples.extend((minus, plus))
+        finite_samples.extend((minus, plus))
+
+        derivative_offset = (
+            derivative_fraction * sigma * sampling_direction
+        )
+        derivative_minus = _sample_record(
+            sample_name="direction_{:02d}_derivative_minus".format(index),
+            delta_coordinate=-derivative_offset,
+            center_vector=center_vector,
+            sampling=sampling,
+            model=model,
+            nominal_pseudoinverse=nominal_pseudoinverse,
+            characteristic_length_m=length,
+        )
+        derivative_plus = _sample_record(
+            sample_name="direction_{:02d}_derivative_plus".format(index),
+            delta_coordinate=derivative_offset,
+            center_vector=center_vector,
+            sampling=sampling,
+            model=model,
+            nominal_pseudoinverse=nominal_pseudoinverse,
+            characteristic_length_m=length,
+        )
         direction_report: dict[str, Any] = {
             "direction_index": index,
             "covariance_eigenvalue": eigenvalue,
-            "one_sigma_quotient_coordinate": sigma,
-            "quotient_eigenvector": quotient_direction.tolist(),
-            "physical_chart_direction": chart_direction.tolist(),
-            "minus": minus,
-            "plus": plus,
-            "valid_pair": bool(minus["valid"] and plus["valid"]),
+            "one_sigma_sampling_coordinate": sigma,
+            "sampling_eigenvector": sampling_direction.tolist(),
+            "finite_minus": minus,
+            "finite_plus": plus,
+            "finite_pair_valid": bool(minus["valid"] and plus["valid"]),
+            "derivative_sigma_fraction": derivative_fraction,
+            "derivative_minus": derivative_minus,
+            "derivative_plus": derivative_plus,
+            "derivative_pair_valid": bool(
+                derivative_minus["valid"] and derivative_plus["valid"]
+            ),
         }
-        if minus["valid"] and plus["valid"]:
+        if sampling.mode == "estimator_quotient":
+            direction_report["one_sigma_quotient_coordinate"] = sigma
+            direction_report["quotient_eigenvector"] = (
+                sampling_direction.tolist()
+            )
+            direction_report["physical_chart_direction"] = (
+                sampling.quotient_basis @ sampling_direction
+            ).tolist()
+
+        if derivative_minus["valid"] and derivative_plus["valid"]:
             physical_one_sigma_effect = (
                 np.asarray(
-                    plus["scale_free_delta_from_center"], dtype=float
+                    derivative_plus[
+                        "scale_free_delta_from_center"
+                    ],
+                    dtype=float,
                 )
                 - np.asarray(
-                    minus["scale_free_delta_from_center"], dtype=float
+                    derivative_minus[
+                        "scale_free_delta_from_center"
+                    ],
+                    dtype=float,
                 )
-            ) / (2.0 * multiplier)
-            direction_report["scale_free_one_sigma_effect"] = (
+            ) / (2.0 * derivative_fraction)
+            direction_report["scale_free_local_one_sigma_effect"] = (
                 physical_one_sigma_effect.tolist()
             )
-            scale_effects = {}
+            local_scale_effects = {}
+            for group in PID_GROUPS:
+                effect = (
+                    float(derivative_plus["scales"][group])
+                    - float(derivative_minus["scales"][group])
+                ) / (2.0 * derivative_fraction)
+                local_effects[group][index] = effect
+                local_scale_effects[group] = effect
+            direction_report["local_one_sigma_scale_effect"] = (
+                local_scale_effects
+            )
+
+        if minus["valid"] and plus["valid"]:
+            finite_scale_effects = {}
             nonlinearities = {}
             for group in PID_GROUPS:
                 minus_scale = float(minus["scales"][group])
@@ -598,26 +1126,53 @@ def analyze_eigen_directions(
                 curvature = (
                     plus_scale + minus_scale - 2.0 * center_scale
                 ) / (multiplier * multiplier)
-                one_sigma_effects[group][index] = effect
-                scale_effects[group] = effect
+                finite_effects[group][index] = effect
+                finite_scale_effects[group] = effect
                 nonlinearities[group] = curvature
-            direction_report["scale_one_sigma_effect"] = scale_effects
-            direction_report["scale_second_difference_per_sigma2"] = (
-                nonlinearities
-            )
+            direction_report[
+                "finite_secant_one_sigma_scale_effect"
+            ] = finite_scale_effects
+            direction_report[
+                "scale_second_difference_per_sigma2"
+            ] = nonlinearities
         directions.append(direction_report)
 
     group_summary = {}
-    valid_samples = [sample for sample in samples if sample["valid"]]
+    valid_finite_samples = [
+        sample for sample in finite_samples if sample["valid"]
+    ]
+    derivative_valid_direction_count = sum(
+        bool(direction["derivative_pair_valid"])
+        for direction in directions
+    )
+    finite_valid_direction_count = sum(
+        bool(direction["finite_pair_valid"])
+        for direction in directions
+    )
     for group in PID_GROUPS:
         center_scale = float(center.scales[group])
-        effects = one_sigma_effects[group]
-        sigma_linear = float(np.sqrt(np.sum(effects**2)))
+        local = local_effects[group]
+        finite = finite_effects[group]
+        local_complete = bool(np.all(np.isfinite(local)))
+        finite_complete = bool(np.all(np.isfinite(finite)))
+        sigma_linear = (
+            float(np.sqrt(np.sum(local**2)))
+            if local_complete
+            else None
+        )
+        sigma_finite = (
+            float(np.sqrt(np.sum(finite**2)))
+            if finite_complete
+            else None
+        )
         values = np.asarray(
-            [sample["scales"][group] for sample in valid_samples],
+            [
+                sample["scales"][group]
+                for sample in valid_finite_samples
+            ],
             dtype=float,
         )
-        contribution = effects**2
+        contribution = np.where(np.isfinite(local), local**2, 0.0)
         contribution_sum = float(np.sum(contribution))
         order = np.argsort(contribution)[::-1]
         top = []
@@ -625,8 +1180,10 @@ def analyze_eigen_directions(
             top.append(
                 {
                     "direction_index": int(direction_index),
-                    "one_sigma_scale_effect": float(
-                        effects[direction_index]
+                    "one_sigma_scale_effect": (
+                        float(local[direction_index])
+                        if np.isfinite(local[direction_index])
+                        else None
                     ),
                     "variance_contribution_fraction": (
                         float(
@@ -643,11 +1200,28 @@ def analyze_eigen_directions(
             "linearized_one_sigma": sigma_linear,
             "relative_linearized_one_sigma": (
                 sigma_linear / abs(center_scale)
-                if center_scale != 0.0
+                if sigma_linear is not None and center_scale != 0.0
                 else None
             ),
-            "sigma_point_min": float(np.min(values)),
-            "sigma_point_max": float(np.max(values)),
+            "linearized_complete": local_complete,
+            "finite_secant_one_sigma": sigma_finite,
+            "finite_to_local_sigma_ratio": (
+                sigma_finite / sigma_linear
+                if sigma_finite is not None
+                and sigma_linear is not None
+                and sigma_linear != 0.0
+                else None
+            ),
+            "finite_secant_complete": finite_complete,
+            "sigma_point_min": (
+                float(np.min(values)) if values.size else None
+            ),
+            "sigma_point_max": (
+                float(np.max(values)) if values.size else None
+            ),
+            "sigma_point_envelope_complete": (
+                len(valid_finite_samples) == len(finite_samples)
+            ),
             "top_eigen_directions": top,
         }
 
@@ -664,7 +1238,17 @@ def analyze_eigen_directions(
         if retained.size > 0
         else None
     )
+    transform_singular = np.linalg.svd(
+        sampling.pushforward_jacobian, compute_uv=False
+    )
+    transform_condition = (
+        float(transform_singular[0] / transform_singular[-1])
+        if transform_singular[-1] > 0.0
+        else float("inf")
+    )
     return {
+        "coordinate_mode": sampling.mode,
+        "coordinate_labels": list(sampling.coordinate_labels),
         "characteristic_length_m": length,
         "center": {
             "scale_free_vector": center_vector.tolist(),
@@ -679,29 +1263,53 @@ def analyze_eigen_directions(
                 center.effectiveness_diagonal.tolist()
             ),
             "coupling_ratio": center.coupling_ratio,
-            "A_real_condition_number": center.allocation_condition_number,
+            "A_real_condition_number": _json_condition_number(
+                center.allocation_condition_number
+            ),
+            "A_real_source_threshold_rank": (
+                center.allocation_source_threshold_rank
+            ),
+        },
+        "coordinate_transform": {
+            "source": "estimator_quotient",
+            "target": sampling.mode,
+            "pushforward_jacobian": (
+                sampling.pushforward_jacobian.tolist()
+            ),
+            "singular_values": transform_singular.tolist(),
+            "condition_number": _json_condition_number(
+                transform_condition
+            ),
         },
         "covariance": {
             "mode": artifacts.covariance_mode,
-            "source": artifacts.covariance_source,
+            "source": sampling.covariance_source,
             "eigenvalues_descending": eigenvalues.tolist(),
             "numerical_rank": int(retained.size),
             "retained_condition_number": covariance_condition,
             "psd_negative_tolerance": psd_tolerance,
             "interpretation": (
-                "local quotient-space sensitivity covariance; "
-                "not asserted to be a calibrated posterior"
+                "local sensitivity covariance in the selected coordinate "
+                "chart; not asserted to be a calibrated posterior"
             ),
         },
         "eigen_sampling": {
             "sigma_multiple": multiplier,
             "expected_sample_count": 27,
-            "valid_sample_count": len(valid_samples),
-            "invalid_sample_count": len(samples) - len(valid_samples),
+            "valid_sample_count": len(valid_finite_samples),
+            "invalid_sample_count": (
+                len(finite_samples) - len(valid_finite_samples)
+            ),
+            "valid_direction_pair_count": finite_valid_direction_count,
+            "derivative_sigma_fraction": derivative_fraction,
+            "derivative_valid_direction_count": (
+                derivative_valid_direction_count
+            ),
             "directions": directions,
         },
         "group_summary": group_summary,
     }
+
 
 
 def analyze_monte_carlo(
@@ -712,6 +1320,7 @@ def analyze_monte_carlo(
     sample_count: int,
     seed: int,
     characteristic_length_m: float,
+    coordinate_mode: str = DEFAULT_COORDINATE_MODE,
 ) -> Mapping[str, Any]:
     count = int(sample_count)
     if count < 0:
@@ -727,15 +1336,17 @@ def analyze_monte_carlo(
                 "sensitivity remains available"
             ),
         }
+    sampling = prepare_sampling_coordinates(
+        result=result,
+        artifacts=artifacts,
+        model=model,
+        coordinate_mode=coordinate_mode,
+    )
     eigenvalues, eigenvectors, _tolerance = _psd_eigendecomposition(
-        artifacts.covariance
+        sampling.covariance
     )
     factor = eigenvectors @ np.diag(np.sqrt(eigenvalues))
-    chart = SiParameterChart(model.parameters)
-    center_plant = validate_center_matches_result(
-        result, chart, artifacts.physical_coordinate
-    )
-    center_vector = scale_free_vector(center_plant)
+    center_vector = scale_free_vector(sampling.center_plant)
     nominal = build_nominal_controller_allocation(model)
     nominal_pseudoinverse = source_compatible_pseudoinverse(
         nominal.matrix
@@ -744,17 +1355,12 @@ def analyze_monte_carlo(
     values = {group: [] for group in PID_GROUPS}
     invalid_reasons: list[Mapping[str, str]] = []
     for sample_index in range(count):
-        delta_quotient = factor @ rng.standard_normal(13)
-        coordinate = (
-            artifacts.physical_coordinate
-            + artifacts.quotient_basis @ delta_quotient
-        )
+        delta = factor @ rng.standard_normal(13)
         sample = _sample_record(
             sample_name="monte_carlo_{:06d}".format(sample_index),
-            coordinate=coordinate,
+            delta_coordinate=delta,
             center_vector=center_vector,
-            chart=chart,
-            result=result,
+            sampling=sampling,
             model=model,
             nominal_pseudoinverse=nominal_pseudoinverse,
             characteristic_length_m=characteristic_length_m,
@@ -794,9 +1400,11 @@ def analyze_monte_carlo(
         }
     return {
         "enabled": True,
+        "coordinate_mode": sampling.mode,
         "sampling_model": (
-            "Gaussian draws in the selected local quotient covariance; "
-            "used only as a nonlinear sensitivity stress test"
+            "Gaussian draws in the selected local covariance expressed in "
+            "{} coordinates; used only as a nonlinear sensitivity stress "
+            "test".format(sampling.mode)
         ),
         "seed": int(seed),
         "sample_count_requested": count,
@@ -805,6 +1413,7 @@ def analyze_monte_carlo(
         "invalid_examples": invalid_reasons,
         "group_summary": summaries,
     }
+
 
 
 def build_report(
@@ -816,10 +1425,30 @@ def build_report(
     eigen_analysis: Mapping[str, Any],
     monte_carlo: Mapping[str, Any],
 ) -> Mapping[str, Any]:
+    coordinate_mode = str(eigen_analysis["coordinate_mode"])
+    if coordinate_mode == "estimator_quotient":
+        sampling_space = (
+            "13-D common-scale quotient of the estimator's 14-D SI chart"
+        )
+        physical_validity = (
+            "samples are decoded through SiParameterChart, preserving "
+            "positive mass, positive force effectiveness, and the "
+            "inertia second-moment parameterization"
+        )
+    else:
+        sampling_space = (
+            "13-D estimate-centered scale-free chart on "
+            "SPD(3) x R^3 x R_+^4"
+        )
+        physical_validity = (
+            "the scale-free second moment is decoded by an SPD matrix "
+            "exponential, force-over-mass by exponentials, and CoG "
+            "additively; no common-scale gauge remains"
+        )
     return {
         "schema": SENSITIVITY_SCHEMA,
         "source_commit": str(revision),
-        "method": "quotient_chart_eigen_direction_sensitivity",
+        "method": "coordinate_chart_eigen_direction_sensitivity",
         "input": {
             "estimator_result_json": str(result.source_path),
             "estimator_source_commit": result.source_commit,
@@ -829,10 +1458,12 @@ def build_report(
             "covariance_mode": artifacts.covariance_mode,
             "covariance_source": artifacts.covariance_source,
             "coordinate_source": artifacts.coordinate_source,
+            "coordinate_mode": coordinate_mode,
         },
         "coordinate_contract": {
-            "sampling_space": (
-                "13-D common-scale quotient of the estimator's 14-D SI chart"
+            "sampling_space": sampling_space,
+            "sampling_coordinate_labels": list(
+                eigen_analysis["coordinate_labels"]
             ),
             "physical_chart_labels": list(PHYSICAL_CHART_LABELS),
             "scale_free_output_labels": list(SCALE_FREE_LABELS),
@@ -840,10 +1471,9 @@ def build_report(
             "common_scale_direction": (
                 np.asarray(COMMON_SCALE_DIRECTION, dtype=float).tolist()
             ),
-            "physical_validity": (
-                "samples are decoded through SiParameterChart, preserving "
-                "positive mass, positive force effectiveness, and the "
-                "inertia second-moment parameterization"
+            "physical_validity": physical_validity,
+            "covariance_pushforward": (
+                eigen_analysis["coordinate_transform"]
             ),
         },
         "interpretation": {
@@ -851,13 +1481,19 @@ def build_report(
             "posterior_claim": False,
             "note": (
                 "The covariance is used to define local perturbation scales. "
-                "In particular, conservative_fusion is a conservative "
-                "sensitivity distribution rather than a calibrated "
-                "generative posterior."
+                "The infinitesimal linear sensitivity and the finite "
+                "sigma-envelope are reported separately.  In particular, "
+                "conservative_fusion is a conservative sensitivity "
+                "distribution rather than a calibrated generative posterior."
             ),
             "rotor_lag_treatment": (
                 "held fixed at the fitted point because the v1 static H "
                 "does not model delay"
+            ),
+            "rank_treatment": (
+                "sampled A_real source-threshold rank and condition number "
+                "are diagnostics only; a finite calculation is not rejected "
+                "for rank loss or large condition number"
             ),
         },
         "center_and_eigen_sensitivity": eigen_analysis,
@@ -865,10 +1501,18 @@ def build_report(
     }
 
 
+
+def _format_optional(value: Any, fmt: str = ".8g") -> str:
+    if value is None:
+        return "incomplete"
+    return format(float(value), fmt)
+
+
 def render_markdown(report: Mapping[str, Any]) -> str:
     analysis = report["center_and_eigen_sensitivity"]
     groups = analysis["group_summary"]
     mc = report["monte_carlo"]
+    sampling = analysis["eigen_sampling"]
     lines = [
         "# Gimbalrotor PID postprocess sensitivity",
         "",
@@ -883,44 +1527,75 @@ def render_markdown(report: Mapping[str, Any]) -> str:
         "- covariance mode: `{}`".format(
             report["input"]["covariance_mode"]
         ),
+        "- coordinate mode: `{}`".format(
+            report["input"]["coordinate_mode"]
+        ),
         "- center coordinate source: `{}`".format(
             report["input"]["coordinate_source"]
         ),
         "- characteristic length: `{:.9g} m`".format(
             analysis["characteristic_length_m"]
         ),
-        "- valid eigen samples: `{}/{}`".format(
-            analysis["eigen_sampling"]["valid_sample_count"],
-            analysis["eigen_sampling"]["expected_sample_count"],
+        "- finite sigma multiple: `{:.9g}`".format(
+            sampling["sigma_multiple"]
+        ),
+        "- local derivative sigma fraction: `{:.9g}`".format(
+            sampling["derivative_sigma_fraction"]
+        ),
+        "- valid finite eigen samples: `{}/{}`".format(
+            sampling["valid_sample_count"],
+            sampling["expected_sample_count"],
+        ),
+        "- valid local-derivative directions: `{}/13`".format(
+            sampling["derivative_valid_direction_count"]
         ),
         "",
         "## Gain-scale sensitivity",
         "",
-        "| group | center | local linear 1-sigma | relative | eigen-point min | eigen-point max |",
-        "|---|---:|---:|---:|---:|---:|",
+        (
+            "| group | center | infinitesimal 1-sigma | relative | "
+            "finite secant 1-sigma | finite/local | eigen-point min | "
+            "eigen-point max |"
+        ),
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for group in PID_GROUPS:
         item = groups[group]
         relative = item["relative_linearized_one_sigma"]
+        ratio = item["finite_to_local_sigma_ratio"]
         lines.append(
-            "| {} | {:.8g} | {:.8g} | {:.3%} | {:.8g} | {:.8g} |".format(
+            "| {} | {:.8g} | {} | {} | {} | {} | {} | {} |".format(
                 group,
                 item["center_scale"],
-                item["linearized_one_sigma"],
-                0.0 if relative is None else relative,
-                item["sigma_point_min"],
-                item["sigma_point_max"],
+                _format_optional(item["linearized_one_sigma"]),
+                (
+                    "incomplete"
+                    if relative is None
+                    else "{:.3%}".format(relative)
+                ),
+                _format_optional(item["finite_secant_one_sigma"]),
+                _format_optional(ratio),
+                _format_optional(item["sigma_point_min"]),
+                _format_optional(item["sigma_point_max"]),
             )
         )
     lines.extend(
         (
             "",
-            "The `local linear 1-sigma` column is reconstructed from the",
-            "centered +/- eigen-direction evaluations. A large value means that",
-            "the corresponding static PID correction is sensitive to the",
-            "identified-plant ridge even when the point estimate itself is fixed.",
+            "The infinitesimal value uses a dedicated small centered finite",
+            "difference and is independent of the requested finite sigma",
+            "excursion up to numerical differentiation error. The finite",
+            "secant value uses the requested +/- k-sigma points. A",
+            "`finite/local` ratio far from one therefore measures chart/output",
+            "nonlinearity over that finite excursion rather than changing the",
+            "definition of the local covariance.",
             "",
-            "## Dominant covariance directions",
+            "Sampled `A_real` rank loss or a large condition number is retained",
+            "as a diagnostic. A sample is only marked invalid after the",
+            "floating-point calculation itself becomes non-finite or otherwise",
+            "mathematically undefined.",
+            "",
+            "## Dominant local covariance directions",
             "",
         )
     )
@@ -929,15 +1604,20 @@ def render_markdown(report: Mapping[str, Any]) -> str:
             (
                 "### {}".format(group),
                 "",
-                "| direction | 1-sigma scale effect | variance contribution |",
+                "| direction | local 1-sigma scale effect | variance contribution |",
                 "|---:|---:|---:|",
             )
         )
         for item in groups[group]["top_eigen_directions"]:
+            effect = item["one_sigma_scale_effect"]
             lines.append(
-                "| {} | {:+.8g} | {:.2%} |".format(
+                "| {} | {} | {:.2%} |".format(
                     item["direction_index"],
-                    item["one_sigma_scale_effect"],
+                    (
+                        "incomplete"
+                        if effect is None
+                        else "{:+.8g}".format(effect)
+                    ),
                     item["variance_contribution_fraction"],
                 )
             )
@@ -946,6 +1626,11 @@ def render_markdown(report: Mapping[str, Any]) -> str:
         lines.extend(
             (
                 "## Optional Monte Carlo stress test",
+                "",
+                "- valid samples: `{}/{}`".format(
+                    mc["valid_sample_count"],
+                    mc["sample_count_requested"],
+                ),
                 "",
                 "| group | mean | std | q16 | median | q84 | q2.5 | q97.5 |",
                 "|---|---:|---:|---:|---:|---:|---:|---:|",
@@ -977,9 +1662,9 @@ def render_markdown(report: Mapping[str, Any]) -> str:
             (
                 "",
                 "Monte Carlo here is a nonlinear stress test of the selected local",
-                "covariance model. Do not relabel these quantiles as posterior",
-                "credible intervals without an independent probabilistic",
-                "calibration argument.",
+                "covariance model in the selected coordinate chart. Do not",
+                "relabel these quantiles as posterior credible intervals without",
+                "an independent probabilistic calibration argument.",
                 "",
             )
         )
@@ -988,19 +1673,22 @@ def render_markdown(report: Mapping[str, Any]) -> str:
             (
                 "## Monte Carlo",
                 "",
-                "Disabled for this run. The deterministic 27-point eigen-direction",
-                "analysis is the primary result.",
+                "Disabled for this run. The deterministic eigen-direction",
+                "analysis remains available.",
                 "",
             )
         )
     return "\n".join(lines) + "\n"
 
 
+
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Propagate the estimator's local common-scale quotient "
-            "covariance through the static Gimbalrotor PID correction."
+            "covariance through the static Gimbalrotor PID correction in "
+            "either the estimator quotient chart or an estimate-centered "
+            "scale-free SPD chart."
         )
     )
     parser.add_argument("--result", type=Path, required=True)
@@ -1020,18 +1708,32 @@ def build_argument_parser() -> argparse.ArgumentParser:
         default=DEFAULT_COVARIANCE_MODE,
     )
     parser.add_argument(
+        "--coordinate-mode",
+        choices=COORDINATE_MODES,
+        default=DEFAULT_COORDINATE_MODE,
+    )
+    parser.add_argument(
         "--sigma-multiple",
         type=float,
         default=1.0,
-        help="Evaluate +/- this many local standard deviations.",
+        help="Evaluate the finite envelope at +/- this many sigma.",
+    )
+    parser.add_argument(
+        "--derivative-sigma-fraction",
+        type=float,
+        default=DEFAULT_DERIVATIVE_SIGMA_FRACTION,
+        help=(
+            "Small fraction of one covariance sigma used only for the "
+            "infinitesimal centered derivative."
+        ),
     )
     parser.add_argument(
         "--monte-carlo-samples",
         type=int,
         default=0,
         help=(
-            "Optional Gaussian quotient-space stress-test sample count. "
-            "Zero disables it."
+            "Optional Gaussian stress-test sample count in the selected "
+            "coordinate chart. Zero disables it."
         ),
     )
     parser.add_argument("--seed", type=int, default=0)
@@ -1039,6 +1741,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--allow-non-prior-free-result", action="store_true")
     parser.add_argument("--allow-point-estimate-only", action="store_true")
     return parser
+
 
 
 def execute(arguments: argparse.Namespace) -> Mapping[str, Any]:
@@ -1064,6 +1767,8 @@ def execute(arguments: argparse.Namespace) -> Mapping[str, Any]:
         artifacts=artifacts,
         model=model,
         sigma_multiple=arguments.sigma_multiple,
+        coordinate_mode=arguments.coordinate_mode,
+        derivative_sigma_fraction=arguments.derivative_sigma_fraction,
         characteristic_length_override=arguments.characteristic_length,
     )
     monte_carlo = analyze_monte_carlo(
@@ -1075,6 +1780,7 @@ def execute(arguments: argparse.Namespace) -> Mapping[str, Any]:
         characteristic_length_m=eigen_analysis[
             "characteristic_length_m"
         ],
+        coordinate_mode=arguments.coordinate_mode,
     )
     report = build_report(
         revision=source_commit(),
@@ -1098,14 +1804,24 @@ def execute(arguments: argparse.Namespace) -> Mapping[str, Any]:
             "status": "completed",
             "source_commit": report["source_commit"],
             "covariance_mode": report["input"]["covariance_mode"],
+            "coordinate_mode": report["input"]["coordinate_mode"],
             "valid_eigen_sample_count": report[
                 "center_and_eigen_sensitivity"
             ]["eigen_sampling"]["valid_sample_count"],
             "invalid_eigen_sample_count": report[
                 "center_and_eigen_sensitivity"
             ]["eigen_sampling"]["invalid_sample_count"],
+            "valid_local_derivative_direction_count": report[
+                "center_and_eigen_sensitivity"
+            ]["eigen_sampling"]["derivative_valid_direction_count"],
             "monte_carlo_enabled": bool(
                 report["monte_carlo"].get("enabled", False)
+            ),
+            "monte_carlo_valid_sample_count": (
+                report["monte_carlo"].get("valid_sample_count")
+            ),
+            "monte_carlo_invalid_sample_count": (
+                report["monte_carlo"].get("invalid_sample_count")
             ),
         },
     )

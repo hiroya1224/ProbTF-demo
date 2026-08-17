@@ -271,6 +271,53 @@ class ControllerYaml:
 
 
 @dataclass(frozen=True)
+class RecordedControllerGains:
+    """One fixed PID gain snapshot reconstructed from a selected ROS bag."""
+
+    bag_path: str
+    adapter_revision: str
+    gains: Mapping[str, ControllerGainGroup]
+    record_times: np.ndarray
+    pid_control_flags: np.ndarray
+    source_kinds: Tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        bag_path = str(self.bag_path)
+        adapter_revision = str(self.adapter_revision)
+        groups = tuple(self.gains)
+        times = np.asarray(self.record_times, dtype=float)
+        flags = np.asarray(self.pid_control_flags, dtype=bool)
+        source_kinds = tuple(str(value) for value in self.source_kinds)
+        if (
+            not bag_path
+            or not Path(bag_path).is_absolute()
+            or not adapter_revision
+            or groups != tuple(PID_GROUPS)
+            or any(
+                not isinstance(self.gains[group], ControllerGainGroup)
+                for group in PID_GROUPS
+            )
+            or times.shape != (len(PID_GROUPS),)
+            or np.any(~np.isfinite(times))
+            or flags.shape != (len(PID_GROUPS),)
+            or len(source_kinds) != len(PID_GROUPS)
+            or any(not value for value in source_kinds)
+        ):
+            raise PostprocessInputError(
+                "recorded controller gain snapshot is invalid"
+            )
+        copied_times = times.copy()
+        copied_times.setflags(write=False)
+        copied_flags = flags.copy()
+        copied_flags.setflags(write=False)
+        object.__setattr__(self, "bag_path", bag_path)
+        object.__setattr__(self, "adapter_revision", adapter_revision)
+        object.__setattr__(self, "record_times", copied_times)
+        object.__setattr__(self, "pid_control_flags", copied_flags)
+        object.__setattr__(self, "source_kinds", source_kinds)
+
+
+@dataclass(frozen=True)
 class AllocationDiagnostics:
     matrix: np.ndarray
     singular_values: np.ndarray
@@ -632,6 +679,82 @@ def load_controller_yaml(path: Path) -> ControllerYaml:
     )
 
 
+def recorded_controller_gains_from_snapshot(
+    snapshot: Any,
+    *,
+    bag_path: str,
+    adapter_revision: str,
+) -> RecordedControllerGains:
+    """Adapt the existing rosbag snapshot contract without consulting YAML."""
+
+    groups = tuple(str(value) for value in getattr(snapshot, "groups", ()))
+    if groups != tuple(PID_GROUPS):
+        raise PostprocessInputError(
+            "ROS bag controller snapshot has non-canonical gain groups"
+        )
+    values = np.asarray(getattr(snapshot, "gains", None), dtype=float)
+    if values.shape != (len(PID_GROUPS), len(PID_GAIN_NAMES)):
+        raise PostprocessInputError(
+            "ROS bag controller snapshot must contain four P/I/D rows"
+        )
+    gains = {
+        group: ControllerGainGroup(*values[index])
+        for index, group in enumerate(PID_GROUPS)
+    }
+    return RecordedControllerGains(
+        bag_path=bag_path,
+        adapter_revision=adapter_revision,
+        gains=gains,
+        record_times=np.asarray(getattr(snapshot, "record_times", None)),
+        pid_control_flags=np.asarray(
+            getattr(snapshot, "pid_control_flags", None)
+        ),
+        source_kinds=tuple(getattr(snapshot, "source_kinds", ())),
+    )
+
+
+def load_recorded_controller_gains(
+    bag: BagProvenance,
+) -> RecordedControllerGains:
+    """Read the effective PID gains from the selected ROS bag interval.
+
+    This deliberately reuses :func:`grape_param_estim.real_rosbag.load_flight_data`
+    and its dynamic-reconfigure event policy.  The controller YAML is not a
+    fallback source for flight-time gains.
+    """
+
+    if not isinstance(bag, BagProvenance):
+        raise TypeError("bag must be a BagProvenance")
+    try:
+        from grape_param_estim.real_rosbag import load_flight_data
+
+        flight = load_flight_data(
+            path=bag.bag_path,
+            start_local=bag.start_seconds,
+            end_local=bag.end_seconds,
+            include_fc_specific_force=False,
+            compute_sha256=False,
+            bag_id=bag.source_path.stem,
+        )
+    except (OSError, RuntimeError, TypeError, ValueError) as error:
+        raise PostprocessInputError(
+            "ROS bag controller gains cannot be reconstructed: {}".format(
+                error
+            )
+        ) from error
+    actual_path = str(Path(flight.provenance.bag_path).expanduser().resolve())
+    expected_path = str(Path(bag.bag_path).expanduser().resolve())
+    if actual_path != expected_path:
+        raise PostprocessInputError(
+            "ROS bag adapter returned a different bag path"
+        )
+    return recorded_controller_gains_from_snapshot(
+        flight.controller_snapshot,
+        bag_path=actual_path,
+        adapter_revision=flight.provenance.adapter_revision,
+    )
+
+
 def build_controller_snapshot_geometry(model: VehicleModel) -> GrapeGeometry:
     """Convert BODY thrust-link origins to controller CoG-relative origins."""
 
@@ -854,6 +977,7 @@ def compute_static_pid_proposal(
     result: EstimatorResult,
     model: VehicleModel,
     controller: ControllerYaml,
+    recorded_gains: RecordedControllerGains,
     *,
     characteristic_length_override: Optional[float] = None,
     large_scale_min: float = DEFAULT_LARGE_SCALE_MIN,
@@ -877,7 +1001,11 @@ def compute_static_pid_proposal(
     effectiveness = real.matrix @ pseudoinverse
     length = characteristic_length(model, characteristic_length_override)
     dimensionless = dimensionless_effectiveness(effectiveness, length)
-    corrections = calculate_gain_corrections(dimensionless, controller.gains)
+    if not isinstance(recorded_gains, RecordedControllerGains):
+        raise TypeError("recorded_gains must be RecordedControllerGains")
+    corrections = calculate_gain_corrections(
+        dimensionless, recorded_gains.gains
+    )
     group_scales = np.ones(6)
     for correction in corrections.values():
         group_scales[np.asarray(correction.axes, dtype=int)] = correction.scale
@@ -917,6 +1045,12 @@ def compute_static_pid_proposal(
         warnings.append("controller_mode_resolved_from_source_default")
     if controller.reference_values_differ:
         warnings.append("controller_reference_values_differ")
+    if any(
+        recorded_gains.gains[group].as_dict()
+        != controller.gains[group].as_dict()
+        for group in PID_GROUPS
+    ):
+        warnings.append("recorded_controller_gains_differ_from_yaml")
     if (
         real.source_threshold_rank < 6
         or not np.isfinite(real.condition_number)
@@ -944,6 +1078,7 @@ def compute_static_pid_proposal(
         "large_static_gain_change",
         "strong_axis_coupling",
         "controller_reference_values_differ",
+        "recorded_controller_gains_differ_from_yaml",
     }
     proposal_status = (
         "review_required"
@@ -1014,6 +1149,7 @@ def build_report(
     bag: BagProvenance,
     model: VehicleModel,
     controller: ControllerYaml,
+    recorded_gains: RecordedControllerGains,
     proposal: StaticPidProposal,
 ) -> Mapping[str, Any]:
     controller_geometry = build_controller_snapshot_geometry(model)
@@ -1046,6 +1182,32 @@ def build_report(
             "vehicle_model_json": str(model.source_path),
             "controller_yaml": str(controller.source_path),
             "controller_yaml_sha256": controller.sha256,
+            "controller_gain_source": "rosbag_recorded_dynamic_reconfigure",
+        },
+        "controller_gain_snapshot": {
+            "source": "rosbag_recorded_dynamic_reconfigure",
+            "bag_path": recorded_gains.bag_path,
+            "adapter_revision": recorded_gains.adapter_revision,
+            "group_order": list(PID_GROUPS),
+            "gain_order": list(PID_GAIN_NAMES),
+            "gains": {
+                group: dict(recorded_gains.gains[group].as_dict())
+                for group in PID_GROUPS
+            },
+            "record_times": recorded_gains.record_times.tolist(),
+            "pid_control_flags": (
+                recorded_gains.pid_control_flags.tolist()
+            ),
+            "source_kinds": list(recorded_gains.source_kinds),
+            "controller_yaml_template_gains": {
+                group: dict(controller.gains[group].as_dict())
+                for group in PID_GROUPS
+            },
+            "recorded_gains_differ_from_yaml": any(
+                recorded_gains.gains[group].as_dict()
+                != controller.gains[group].as_dict()
+                for group in PID_GROUPS
+            ),
         },
         "controller_mode": {
             "gimbal_dof": mode.gimbal_dof,
@@ -1143,6 +1305,7 @@ __all__ = [
     "POSTPROCESS_SCHEMA",
     "PostprocessInputError",
     "PostprocessNumericalError",
+    "RecordedControllerGains",
     "SOURCE_SVD_THRESHOLD",
     "ScaleFreePlant",
     "StaticPidProposal",
@@ -1160,8 +1323,10 @@ __all__ = [
     "load_bag_provenance",
     "load_controller_yaml",
     "load_estimator_result",
+    "load_recorded_controller_gains",
     "load_scale_free_plant",
     "load_vehicle_model",
     "resolve_controller_mode",
+    "recorded_controller_gains_from_snapshot",
     "source_compatible_pseudoinverse",
 ]

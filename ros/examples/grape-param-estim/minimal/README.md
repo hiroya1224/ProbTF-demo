@@ -116,10 +116,15 @@ report.
 It combines one prior-free scale-free plant result with the existing nominal
 Gimbalrotor controller allocation at zero gimbal, then fits multiplicative
 scales for the `xy`, `z`, `roll_pitch`, and `yaw` PID groups. P, I, and D are
-scaled together. The physical estimator, controller limits, source controller
-YAML, and controller's nominal plant model are not modified.
+scaled together. The baseline gains are reconstructed from the selected ROS
+bag's four recorded dynamic-reconfigure streams; YAML gain values are never a
+fallback for what the flight used. The supplied controller YAML is only the
+proposal-file template and controller-mode contract. The physical estimator,
+controller limits, source controller YAML, and controller's nominal plant
+model are not modified.
 
 ```bash
+source /home/leus/catkin_ws/devel/setup.bash
 python3 minimal/gimbalrotor_pid_postprocess.py \
   --result minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_1_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json \
   --bag-json minimal/bag_jsons/single_rosbag_1.json \
@@ -129,7 +134,9 @@ python3 minimal/gimbalrotor_pid_postprocess.py \
 ```
 
 The result contains raw and mixed-unit-normalized effectiveness matrices,
-four gain scales, full provenance, an overlay YAML, and a full proposal YAML.
+four gain scales, the exact bag-recorded baseline gain snapshot and its event
+provenance, an overlay YAML, and a full proposal YAML. Unlike the purely static
+matrix calculation, the postprocessor opens the bag to obtain those gains.
 It reports the identified rotor lag but does not turn delay into an unsupported
 static D-gain rule. Large scales or strong coupling are marked
 `review_required`; generated gains are not flight-approved deployment values.

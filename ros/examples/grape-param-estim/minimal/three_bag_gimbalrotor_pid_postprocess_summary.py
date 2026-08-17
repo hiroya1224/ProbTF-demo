@@ -140,6 +140,10 @@ def build_three_bag_summary(
             "bag_interval_seconds": list(source["bag_interval_seconds"]),
             "controller_yaml": source["controller_yaml"],
             "controller_yaml_sha256": source["controller_yaml_sha256"],
+            "controller_gain_source": source["controller_gain_source"],
+            "controller_gain_snapshot": dict(
+                report["controller_gain_snapshot"]
+            ),
             "gain_groups": group_rows,
             "error_before_frobenius": float(
                 overall["error_before_frobenius"]

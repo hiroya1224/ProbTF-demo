@@ -4,7 +4,9 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 import yaml
@@ -17,7 +19,9 @@ from grape_param_estim.controller import (
 from grape_param_estim.controller_config import PID_GAIN_NAMES, PID_GROUPS
 from grape_param_estim.gimbalrotor_pid_postprocess import (
     BagProvenance,
+    ControllerGainGroup,
     PostprocessInputError,
+    RecordedControllerGains,
     ScaleFreePlant,
     apply_gain_corrections_to_yaml,
     build_controller_snapshot_geometry,
@@ -32,7 +36,9 @@ from grape_param_estim.gimbalrotor_pid_postprocess import (
     load_bag_provenance,
     load_controller_yaml,
     load_estimator_result,
+    load_recorded_controller_gains,
     load_vehicle_model,
+    recorded_controller_gains_from_snapshot,
     source_compatible_pseudoinverse,
 )
 from grape_param_estim.system import GrapeGeometry
@@ -117,6 +123,28 @@ def _controller_document():
     }
 
 
+def _recorded_failure1_gains():
+    values = np.asarray(
+        (
+            (3.0, 0.1, 1.0),
+            (5.0, 1.0, 2.5),
+            (20.0, 1.0, 8.0),
+            (4.0, 1.0, 2.0),
+        )
+    )
+    return RecordedControllerGains(
+        bag_path="/tmp/recorded-failure1.bag",
+        adapter_revision="audited-asynchronous-flight-data/v2",
+        gains={
+            group: ControllerGainGroup(*values[index])
+            for index, group in enumerate(PID_GROUPS)
+        },
+        record_times=np.asarray((10.0, 10.1, 10.2, 10.3)),
+        pid_control_flags=np.zeros(4, dtype=bool),
+        source_kinds=("recorded_startup_parameter_update",) * 4,
+    )
+
+
 def _strip_gain_leaves(document):
     copied = deepcopy(document)
     for group in PID_GROUPS:
@@ -164,6 +192,7 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
             encoding="utf-8",
         )
         self.controller = load_controller_yaml(self.controller_path)
+        self.recorded_gains = _recorded_failure1_gains()
 
     def _write_result(self, payload=None, name="result.json"):
         path = self.directory / name
@@ -205,7 +234,7 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
         self.assertEqual(result.case_name, "prior_free")
         self.assertAlmostEqual(result.plant.rotor_lag_seconds, 0.19719922542572021)
         proposal = compute_static_pid_proposal(
-            result, self.model, self.controller
+            result, self.model, self.controller, self.recorded_gains
         )
         expected = {
             "xy": 1.15204476,
@@ -225,9 +254,12 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
         self.assertAlmostEqual(proposal.coupling_ratio, 0.11628596, places=7)
         self.assertEqual(proposal.proposal_status, "review_required")
         self.assertIn("large_static_gain_change", proposal.warnings)
+        self.assertIn(
+            "recorded_controller_gains_differ_from_yaml", proposal.warnings
+        )
         self.assertAlmostEqual(
             proposal.corrections["roll_pitch"].proposed.p_gain,
-            45.874066,
+            70.575486,
             places=5,
         )
 
@@ -356,7 +388,7 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
     def test_nominal_identity_invariant_and_unit_scales(self):
         result = self._estimator_with_plant(self._nominal_plant())
         proposal = compute_static_pid_proposal(
-            result, self.model, self.controller
+            result, self.model, self.controller, self.recorded_gains
         )
         self.assertTrue(
             np.allclose(proposal.effectiveness, np.eye(6), atol=8.0e-15)
@@ -387,10 +419,10 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
         one = load_estimator_result(self._write_result(first, "one.json"))
         two = load_estimator_result(self._write_result(second, "two.json"))
         proposal_one = compute_static_pid_proposal(
-            one, self.model, self.controller
+            one, self.model, self.controller, self.recorded_gains
         )
         proposal_two = compute_static_pid_proposal(
-            two, self.model, self.controller
+            two, self.model, self.controller, self.recorded_gains
         )
         self.assertTrue(
             np.array_equal(
@@ -408,7 +440,7 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
             self._nominal_plant(force_scale=force_scale)
         )
         proposal = compute_static_pid_proposal(
-            result, self.model, self.controller
+            result, self.model, self.controller, self.recorded_gains
         )
         self.assertTrue(
             np.allclose(
@@ -458,7 +490,7 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
             )
         )
         proposal = compute_static_pid_proposal(
-            result, self.model, self.controller
+            result, self.model, self.controller, self.recorded_gains
         )
         off_diagonal = proposal.dimensionless_effectiveness - np.diag(
             np.diag(proposal.dimensionless_effectiveness)
@@ -490,7 +522,7 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
         original_text = self.controller_path.read_text(encoding="utf-8")
         result = load_estimator_result(FAILURE1_RESULT)
         proposal = compute_static_pid_proposal(
-            result, self.model, self.controller
+            result, self.model, self.controller, self.recorded_gains
         )
         full, overlay = apply_gain_corrections_to_yaml(
             self.controller, proposal.corrections
@@ -511,6 +543,94 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
         self.assertEqual(set(overlay["controller"]), set(PID_GROUPS))
         self.assertEqual(
             self.controller_path.read_text(encoding="utf-8"), original_text
+        )
+
+    def test_recorded_rosbag_gains_are_authoritative_over_yaml_values(self):
+        altered = _controller_document()
+        for index, group in enumerate(PID_GROUPS):
+            altered["controller"][group]["p_gain"] = 100.0 + index
+            altered["controller"][group]["i_gain"] = 10.0 + index
+            altered["controller"][group]["d_gain"] = 50.0 + index
+        altered_path = self.directory / "altered-template.yaml"
+        altered_path.write_text(
+            yaml.safe_dump(altered, sort_keys=False), encoding="utf-8"
+        )
+        altered_controller = load_controller_yaml(altered_path)
+        result = load_estimator_result(FAILURE1_RESULT)
+        proposal = compute_static_pid_proposal(
+            result,
+            self.model,
+            altered_controller,
+            self.recorded_gains,
+        )
+        for group in PID_GROUPS:
+            self.assertEqual(
+                proposal.corrections[group].old,
+                self.recorded_gains.gains[group],
+            )
+            self.assertNotEqual(
+                proposal.corrections[group].old,
+                altered_controller.gains[group],
+            )
+        full, _overlay = apply_gain_corrections_to_yaml(
+            altered_controller, proposal.corrections
+        )
+        self.assertAlmostEqual(
+            full["controller"]["xy"]["p_gain"],
+            3.0 * proposal.corrections["xy"].scale,
+        )
+        self.assertIn(
+            "recorded_controller_gains_differ_from_yaml", proposal.warnings
+        )
+
+    def test_existing_rosbag_adapter_supplies_the_recorded_snapshot(self):
+        snapshot = SimpleNamespace(
+            groups=tuple(PID_GROUPS),
+            gains=np.asarray(
+                [
+                    tuple(
+                        self.recorded_gains.gains[group].as_dict()[gain]
+                        for gain in PID_GAIN_NAMES
+                    )
+                    for group in PID_GROUPS
+                ]
+            ),
+            record_times=np.asarray((11.0, 12.0, 13.0, 14.0)),
+            pid_control_flags=np.asarray((False, True, False, True)),
+            source_kinds=(
+                "recorded_startup_parameter_update",
+                "dynamic_reconfigure_applied",
+                "recorded_startup_parameter_update",
+                "dynamic_reconfigure_applied",
+            ),
+        )
+        bag = BagProvenance(
+            self.directory / "bag.json", "/tmp/recorded.bag", 19.0, 25.0
+        )
+        flight = SimpleNamespace(
+            controller_snapshot=snapshot,
+            provenance=SimpleNamespace(
+                bag_path="/tmp/recorded.bag",
+                adapter_revision="audited-asynchronous-flight-data/v2",
+            ),
+        )
+        with patch(
+            "grape_param_estim.real_rosbag.load_flight_data",
+            return_value=flight,
+        ) as loader:
+            recorded = load_recorded_controller_gains(bag)
+        loader.assert_called_once_with(
+            path="/tmp/recorded.bag",
+            start_local=19.0,
+            end_local=25.0,
+            include_fc_specific_force=False,
+            compute_sha256=False,
+            bag_id="bag",
+        )
+        self.assertEqual(recorded.gains, self.recorded_gains.gains)
+        self.assertTrue(np.array_equal(recorded.record_times, (11, 12, 13, 14)))
+        self.assertEqual(
+            recorded.source_kinds[1], "dynamic_reconfigure_applied"
         )
 
     def test_source_default_controller_modes_are_resolved(self):
@@ -551,7 +671,7 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
         self.assertEqual((bag.start_seconds, bag.end_seconds), (19.0, 25.0))
         result = load_estimator_result(FAILURE1_RESULT)
         proposal = compute_static_pid_proposal(
-            result, self.model, self.controller
+            result, self.model, self.controller, self.recorded_gains
         )
         report = build_report(
             source_commit="source-test",
@@ -559,6 +679,7 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
             bag=bag,
             model=self.model,
             controller=self.controller,
+            recorded_gains=self.recorded_gains,
             proposal=proposal,
         )
         self.assertEqual(
@@ -568,12 +689,25 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
             "fixed_nominal_vehicle_model",
         )
         self.assertEqual(report["input"]["bag_interval_seconds"], [19.0, 25.0])
+        self.assertEqual(
+            report["input"]["controller_gain_source"],
+            "rosbag_recorded_dynamic_reconfigure",
+        )
+        self.assertEqual(
+            report["gain_groups"]["xy"]["old"],
+            {"p_gain": 3.0, "i_gain": 0.1, "d_gain": 1.0},
+        )
+        self.assertTrue(
+            report["controller_gain_snapshot"][
+                "recorded_gains_differ_from_yaml"
+            ]
+        )
         self.assertNotIn("estimated", report["scale_free_plant"])
 
     def test_three_bag_summary_reports_spread_without_deployment_yaml(self):
         result = load_estimator_result(FAILURE1_RESULT)
         proposal = compute_static_pid_proposal(
-            result, self.model, self.controller
+            result, self.model, self.controller, self.recorded_gains
         )
         base = build_report(
             source_commit="source-test",
@@ -583,6 +717,7 @@ class GimbalrotorPidPostprocessTests(unittest.TestCase):
             ),
             model=self.model,
             controller=self.controller,
+            recorded_gains=self.recorded_gains,
             proposal=proposal,
         )
         reports = {}

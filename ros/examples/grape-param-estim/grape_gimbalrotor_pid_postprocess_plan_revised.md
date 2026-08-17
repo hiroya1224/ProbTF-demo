@@ -41,9 +41,9 @@ The revisions in this document are primarily implementation/provenance correctio
 3. distinguish the current estimator's BODY-coordinate rotor geometry from the
    controller allocation's CoG-relative geometry;
 4. use the current `result.json` scale-free contract exactly as committed;
-5. make the actual supplied controller YAML authoritative for the file to be
-   modified, while recognizing that the current rosbag adapter already contains
-   recorded controller gain snapshots for later validation;
+5. use each rosbag's recorded dynamic-reconfigure snapshot as the authoritative
+   baseline for gains actually used in flight; use the supplied controller YAML
+   only as the proposal-file template and controller-mode contract;
 6. write production outputs under a commit-namespaced output directory;
 7. require source commit, production-results commit, and `git push origin HEAD`;
 8. retain the static method as the interpretable v1 gain proposal, but describe
@@ -241,7 +241,9 @@ Selected interval:
 65.0 s <= t <= 75.0 s
 ```
 
-The v1 static postprocessor does not need to open the `.bag` files.
+The static matrix calculation does not depend on flight signals, but the v1
+postprocessor opens each `.bag` through the existing rosbag adapter to recover
+the P/I/D gains actually used in that selected interval.
 
 Nevertheless these exact paths and intervals must be written in this plan and
 in production provenance so the PID proposal is traceable to the flight from
@@ -485,7 +487,7 @@ Do not use the default cutoff of `np.linalg.pinv()`.
 
 There are three distinct sources and they have different roles.
 
-## 10.1 Actual YAML to be modified
+## 10.1 Actual YAML proposal template
 
 Reference repository file:
 
@@ -521,7 +523,10 @@ If the expected checkout does not exist, fail clearly.
 
 Do not silently fall back to a checked-in fixture.
 
-The supplied YAML is authoritative for the gains that are to be changed.
+The supplied YAML is authoritative for the output file structure and
+controller-mode settings. It is not authoritative for the P/I/D values used in
+the recorded flight. The 12 proposal leaves are replaced with scaled values
+whose baseline comes from the bag snapshot.
 
 Reference values are:
 
@@ -558,10 +563,11 @@ Grape gains and limits.
 
 Use it as a parity/reference implementation.
 
-Do **not** make it the production source of the YAML gains.
+Do **not** make it the production source of the flight-time gains.
 
-If the actual supplied YAML differs, apply the computed scale to the supplied
-YAML values and report the difference.
+If the supplied YAML gains differ from the bag-recorded gains, apply the scale
+to the bag-recorded values, write those proposals into the output YAML copy,
+and report the difference explicitly.
 
 ## 10.3 Controller snapshot recorded in each bag
 
@@ -581,13 +587,18 @@ FlightData.controller_snapshot
 FlightData.controller_configuration
 ```
 
-These are not required by the v1 static postprocessor, which deliberately does
-not reopen the bag.
+These are required by v1 and are the sole source of its current P/I/D baseline.
+Call the existing rosbag adapter and use `FlightData.controller_snapshot`; do
+not invent another gain-history parser. Record gains, event record times,
+`pid_control_flags`, and `source_kinds` in the result.
 
-They are the correct source for later closed-loop replay validation of **what
-the recorded flight actually used**.
+The current production snapshots are:
 
-Do not invent another gain-history parser in Phase 2.
+```text
+failure1: xy=[3,0.1,1], z=[5,1,2.5], roll_pitch=[20,1,8], yaw=[4,1,2]
+failure2: xy=[3,0.1,1], z=[5,1,2.5], roll_pitch=[10,1,8], yaw=[4,1,2]
+success:  xy=[4,0.1,2], z=[5,1,2.5], roll_pitch=[13,1,20], yaw=[6,1,2]
+```
 
 ---
 
@@ -1367,6 +1378,11 @@ selected bag interval
 vehicle-model path
 controller-YAML path
 controller-YAML SHA256
+controller gain source = rosbag recorded dynamic reconfigure
+recorded P/I/D snapshot
+snapshot event record times
+snapshot pid_control_flags
+snapshot source_kinds
 ```
 
 ## Estimated plant
@@ -1625,18 +1641,22 @@ considered.
 
 ---
 
-# 32. v1 does not reopen the bag
+# 32. v1 opens the bag only for the controller gain snapshot
 
-Despite documenting the bag paths, the static v1 calculation consumes:
+The static v1 calculation consumes:
 
 ```text
 result.json
 vehicle model JSON
 controller YAML
-bag JSON only for provenance
+bag JSON
+the selected bag's recorded controller gain snapshot
 ```
 
-It does not parse the `.bag`.
+Use the existing `load_flight_data()` adapter and
+`FlightData.controller_snapshot`. Do not derive the gains from YAML and do not
+create a second dynamic-reconfigure parser. Other flight signals do not enter
+the static matrix calculation.
 
 Recommended optional CLI field:
 
@@ -1646,13 +1666,16 @@ Recommended optional CLI field:
 
 For the three production runs, this argument is mandatory.
 
-The CLI may load the tiny bag JSON to record:
+The CLI loads the bag JSON to obtain:
 
 ```text
 bag_path
 start_seconds
 end_seconds
 ```
+
+and opens that exact bag and interval to reconstruct the effective P/I/D
+snapshot. A ROS environment providing `rosbag` is therefore required.
 
 but it must not open the actual rosbag in v1.
 
@@ -1763,13 +1786,13 @@ off-diagonal coupling ratio =
 0.11628596
 ```
 
-For the reference controller gains this implies approximately:
+For the failure-1 bag-recorded controller gains this implies approximately:
 
 ```text
 xy:
-  P 4.0 -> 4.60818
+  P 3.0 -> 3.45613
   I 0.1 -> 0.115204
-  D 2.0 -> 2.30409
+  D 1.0 -> 1.15204
 
 z:
   P 5.0 -> 5.84882
@@ -1777,12 +1800,12 @@ z:
   D 2.5 -> 2.92441
 
 roll_pitch:
-  P 13.0 -> 45.8741
+  P 20.0 -> 70.5755
   I 1.0  -> 3.52877
-  D 20.0 -> 70.5755
+  D 8.0  -> 28.2302
 
 yaw:
-  P 6.0 -> 20.2732
+  P 4.0 -> 13.5155
   I 1.0 -> 3.37887
   D 2.0 -> 6.75774
 ```
@@ -1973,6 +1996,14 @@ gimbal_calc_in_fc == true
 yaw.need_d_control == false
 ```
 
+## Test 21 — ROS bag gains are authoritative
+
+Supply YAML gains that intentionally differ from a recorded controller
+snapshot. Verify that every `old` gain and every proposed gain uses the
+recorded snapshot, while the YAML is used only as the semantic output template.
+Verify that the existing rosbag adapter is called with the exact bag path and
+selected interval.
+
 ---
 
 # 36. Existing tests
@@ -2039,15 +2070,14 @@ Use exactly one:
 minimal/grape_vehicle_model.json
 ```
 
-and exactly one actual supplied:
+and exactly one actual supplied YAML proposal template:
 
 ```text
 GimbalrotorControl.yaml
 ```
 
-for all three.
-
-Do not choose different controller baselines by bag.
+for all three. Each run must nevertheless use its own bag-recorded P/I/D
+baseline because the three flights did not use identical gains.
 
 Do not use pseudo-conditioned estimates in the primary production set.
 
@@ -2139,7 +2169,16 @@ Include:
     "bag_interval_seconds": [0.0, 0.0],
     "vehicle_model_json": "...",
     "controller_yaml": "...",
-    "controller_yaml_sha256": "..."
+    "controller_yaml_sha256": "...",
+    "controller_gain_source": "rosbag_recorded_dynamic_reconfigure"
+  },
+  "controller_gain_snapshot": {
+    "gains": {},
+    "record_times": [],
+    "pid_control_flags": [],
+    "source_kinds": [],
+    "controller_yaml_template_gains": {},
+    "recorded_gains_differ_from_yaml": true
   },
   "controller_mode": {
     "gimbal_dof": 1,
@@ -2282,6 +2321,7 @@ Production outputs must be generated from this exact committed source revision.
 From:
 
 ```bash
+source /home/leus/catkin_ws/devel/setup.bash
 cd /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim
 ```
 
@@ -2336,6 +2376,7 @@ Inspect:
 
 ```text
 three gain proposals
+three bag-recorded baseline gain snapshots and event provenance
 four scale factors per bag
 warning sets
 A_cmd identity/parity
@@ -2468,6 +2509,9 @@ The task is complete only when all of the following are true:
       length;
 - [ ] exactly four gain-group scales are computed;
 - [ ] P/I/D are scaled together inside each group;
+- [ ] each P/I/D baseline comes from that bag's recorded controller snapshot,
+      never from YAML;
+- [ ] the existing rosbag adapter is reused without another gain-history parser;
 - [ ] controller limits and non-gain fields are unchanged;
 - [ ] source-default controller options are resolved correctly when absent from
       YAML;

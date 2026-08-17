@@ -37,6 +37,7 @@ from grape_param_estim.gimbalrotor_pid_postprocess import (  # noqa: E402
     load_bag_provenance,
     load_controller_yaml,
     load_estimator_result,
+    load_recorded_controller_gains,
     load_vehicle_model,
 )
 
@@ -102,6 +103,7 @@ def terminal_summary(report: Mapping[str, Any]) -> str:
             source["estimator_source_commit"]
         ),
         "controller YAML: {}".format(source["controller_yaml"]),
+        "PID gain source: {}".format(source["controller_gain_source"]),
         "rotor lag: {:.9g} s".format(plant["rotor_lag_seconds"]),
         "characteristic length: {:.9g} m".format(
             report["linearization"]["characteristic_length_m"]
@@ -227,11 +229,14 @@ def execute(arguments: argparse.Namespace) -> Mapping[str, Any]:
         bag = load_bag_provenance(arguments.bag_json)
         model = load_vehicle_model(arguments.vehicle_model)
         controller = load_controller_yaml(arguments.controller_yaml)
+        stage = "controller_gain_snapshot"
+        recorded_gains = load_recorded_controller_gains(bag)
         stage = "static_allocation"
         proposal = compute_static_pid_proposal(
             result,
             model,
             controller,
+            recorded_gains,
             characteristic_length_override=arguments.characteristic_length,
             large_scale_min=arguments.large_scale_min,
             large_scale_max=arguments.large_scale_max,
@@ -243,6 +248,7 @@ def execute(arguments: argparse.Namespace) -> Mapping[str, Any]:
             bag=bag,
             model=model,
             controller=controller,
+            recorded_gains=recorded_gains,
             proposal=proposal,
         )
         full_yaml, overlay_yaml = apply_gain_corrections_to_yaml(
@@ -270,6 +276,9 @@ def execute(arguments: argparse.Namespace) -> Mapping[str, Any]:
             "warnings": list(proposal.warnings),
             "estimator_case_name": result.case_name,
             "estimator_source_commit": result.source_commit,
+            "controller_gain_source": (
+                "rosbag_recorded_dynamic_reconfigure"
+            ),
         }
         write_json(directory / "status.json", status)
         print(terminal_summary(report), end="")

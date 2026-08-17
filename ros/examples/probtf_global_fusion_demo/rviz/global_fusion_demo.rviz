@@ -1,0 +1,129 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 70
+    Name: Displays
+    Property Tree Widget:
+      Expanded: ~
+      Splitter Ratio: 0.5
+    Tree Height: 1016
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.3499999940395355
+      Cell Size: 0.10000000149011612
+      Class: rviz/Grid
+      Color: 110; 118; 128
+      Enabled: true
+      Line Style:
+        Line Width: 0.019999999552965164
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 20
+      Reference Frame: world
+      Value: true
+    - Alpha: 0.41999998688697815
+      Axis Length: 0.07999999821186066
+      Class: probtf_rviz/ProbabilisticTF
+      Dynamic Snapshot Topic: ""
+      Dynamic Topic: /global_fusion_demo/probtf
+      Enabled: true
+      Frame Timeout: 2
+      Name: ProbTF global orientation
+      Point Size: 0.006000000052154064
+      Point Style: Spheres
+      Queue Size: 10
+      Random Seed: 29
+      Representative Radius: 0.003000000026077032
+      Root Frame: world
+      Sample Count: 700
+      Show Representatives: false
+      Static Topic: ""
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /global_fusion_demo/markers
+      Name: Demo explanation
+      Namespaces:
+        kasuga_camera: true
+        kasuga_joints: true
+        kasuga_labels: true
+        kasuga_observations: true
+        kasuga_robot: true
+        kasuga_wrist_axes: true
+        shared_landmark_labels: true
+        shared_landmarks: true
+        status: true
+        tool_support: true
+        tou_camera: true
+        tou_joints: true
+        tou_labels: true
+        tou_observations: true
+        tou_robot: true
+        tou_wrist_axes: true
+      Queue Size: 2
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 34; 38; 44
+    Default Light: true
+    Fixed Frame: world
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 2.1500000953674316
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.785398006439209
+      Focal Point:
+        X: 0.44999998807907104
+        Y: 0
+        Z: 0.18000000715255737
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.3499999940395355
+      Target Frame: world
+      Yaw: 4.855006217956543
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 2096
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd000000010000000000000158000007d6fc0200000002fb000000100044006900730070006c006100790073010000003d0000047b000000c900fffffffb0000000a0056006900650077007301000004be00000355000000a400ffffff00000d5a000007d600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 3768
+  X: 72
+  Y: 27

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>probtf_global_fusion_demo</name>
+  <version>0.1.0</version>
+  <description>Global SO(3) observability and late-fusion simulation for ProbTF.</description>
+
+  <maintainer email="leus@todo.todo">leus</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>probtf_core</depend>
+  <depend>probtf_msgs</depend>
+  <depend>probtf_rviz</depend>
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>rviz</exec_depend>
+
+  <export />
+</package>

@@ -87,6 +87,27 @@ class FurisakeDependencyDemoNode:
         self.joint_bearing_noise = math.radians(
             float(rospy.get_param("~joint_bearing_noise_deg", 0.45))
         )
+        self.enable_position_uncertainty = bool(
+            rospy.get_param("~enable_position_uncertainty", False)
+        )
+        self.kasuga_position_prior_sigma = np.asarray(
+            rospy.get_param(
+                "~kasuga_position_prior_sigma_m", [0.18, 0.18, 0.07]
+            ),
+            dtype=float,
+        )
+        self.kasuga_position_truth_offset = np.asarray(
+            rospy.get_param(
+                "~kasuga_position_truth_offset_m", [0.12, -0.10, 0.035]
+            ),
+            dtype=float,
+        )
+        self.pixel_sigma = float(rospy.get_param("~pixel_sigma", 1.0))
+        self.image_width = int(rospy.get_param("~image_width", 640))
+        self.image_height = int(rospy.get_param("~image_height", 480))
+        self.position_information_weight = float(
+            rospy.get_param("~position_information_weight", 0.90)
+        )
         self.camera_hfov = math.radians(
             float(rospy.get_param("~camera_hfov_deg", 56.0))
         )
@@ -140,7 +161,20 @@ class FurisakeDependencyDemoNode:
         self.true_quaternion = rpy_to_quat(0.0, 0.0, true_yaw)
         self.true_rotation = quat_to_rotmat(self.true_quaternion)
 
+        # The rendered Kasuga base is the hidden physical truth.  The ProbTF
+        # base edge is linearized at a deliberately displaced reference pose;
+        # the 3-D Gaussian latent factor below estimates the offset that maps
+        # this reference onto the physical base position.
+        self.kasuga_base_reference_position = (
+            self.kasuga_base_position - self.kasuga_position_truth_offset
+        )
+
         self._validate_parameters()
+
+        self.fx = 0.5 * self.image_width / math.tan(0.5 * self.camera_hfov)
+        self.fy = 0.5 * self.image_height / math.tan(0.5 * self.camera_vfov)
+        self.cx = 0.5 * self.image_width
+        self.cy = 0.5 * self.image_height
 
         reach_scale = self.arm_length / 0.35
         self.shoulder_height = 0.10 * reach_scale
@@ -223,6 +257,22 @@ class FurisakeDependencyDemoNode:
                 detail="Synthetic six-joint zero-offset prior for Kasuga.",
             ),
         )
+        self.kasuga_position_factor_id = "kasuga_base_translation"
+        if self.enable_position_uncertainty:
+            self.latent_store.put_factor(
+                self.kasuga_position_factor_id,
+                np.zeros(3, dtype=float),
+                np.diag(self.kasuga_position_prior_sigma ** 2),
+                initial_stamp,
+                Provenance(
+                    source_ids=("kasuga_rough_placement",),
+                    method="base_translation_prior",
+                    detail=(
+                        "Three-dimensional Kasuga base-position prior.  The "
+                        "orientation remains represented globally by Bingham."
+                    ),
+                ),
+            )
         self.graph = ProbTfGraph(
             max_records_per_edge=4,
             latent_store=self.latent_store,
@@ -232,7 +282,15 @@ class FurisakeDependencyDemoNode:
         self.acquired_evidence = set()
         self.observed_landmarks = set()
         self.joint_used_landmarks = set()
+        self.position_used_landmarks = set()
         self.joint_update_queue = []
+        self.position_update_count = 0
+        pixel_rng = np.random.default_rng(self.random_seed + 1009)
+        self.pixel_noise = {
+            (name, index): pixel_rng.normal(0.0, self.pixel_sigma, size=2)
+            for name in ("tou", "kasuga")
+            for index in range(len(self.landmarks_world))
+        }
         self.tou_visible = set()
         self.kasuga_visible = set()
         self.common_visible = set()
@@ -276,6 +334,24 @@ class FurisakeDependencyDemoNode:
             raise ValueError("~joint_prior_sigma_deg must be positive")
         if self.joint_bearing_noise <= 0.0:
             raise ValueError("~joint_bearing_noise_deg must be positive")
+        if self.kasuga_position_prior_sigma.shape != (3,) or np.any(
+            self.kasuga_position_prior_sigma <= 0.0
+        ):
+            raise ValueError(
+                "~kasuga_position_prior_sigma_m must contain three positive values"
+            )
+        if self.kasuga_position_truth_offset.shape != (3,) or not np.all(
+            np.isfinite(self.kasuga_position_truth_offset)
+        ):
+            raise ValueError(
+                "~kasuga_position_truth_offset_m must contain three finite values"
+            )
+        if self.pixel_sigma <= 0.0:
+            raise ValueError("~pixel_sigma must be positive")
+        if self.image_width <= 0 or self.image_height <= 0:
+            raise ValueError("image dimensions must be positive")
+        if self.position_information_weight < 0.0:
+            raise ValueError("~position_information_weight must be non-negative")
         if self.active_start_delay < 0.0:
             raise ValueError("~active_start_delay must be non-negative")
         for value, name in (
@@ -584,6 +660,259 @@ class FurisakeDependencyDemoNode:
             "camera_rotation": quat_to_rotmat(pose.rotation_wxyz),
         }
 
+    def _kasuga_position_factor(self, snapshot=None):
+        if not self.enable_position_uncertainty:
+            return None
+        selected = self.latent_store.snapshot() if snapshot is None else snapshot
+        return selected.factor(self.kasuga_position_factor_id)
+
+    def _estimated_kasuga_base_position(self, snapshot=None):
+        factor = self._kasuga_position_factor(snapshot)
+        if factor is None:
+            return self.kasuga_base_position.copy()
+        return self.kasuga_base_reference_position + factor.mean
+
+    def _display_arm_state(self, name):
+        """Return the state drawn in RViz, using the current base estimate.
+
+        The synthetic measurement generator continues to use the hidden
+        physical truth. Only the rendered Kasuga chain is translated by the
+        posterior base-position mean, so its motion visualizes inference rather
+        than changing the data that drive the inference.
+        """
+        if name == "tou":
+            return self.tou_arm_state
+        if name != "kasuga":
+            raise ValueError("unknown robot {}".format(name))
+        if not self.enable_position_uncertainty:
+            return self.kasuga_arm_state
+
+        displacement = (
+            self._estimated_kasuga_base_position()
+            - self.kasuga_base_position
+        )
+        state = dict(self.kasuga_arm_state)
+        for key in ("base", "shoulder", "elbow", "wrist", "camera_position"):
+            state[key] = np.asarray(state[key], dtype=float) + displacement
+        return state
+
+    def _display_camera_state(self, name):
+        state = self._display_arm_state(name)
+        return {
+            "camera_position": state["camera_position"],
+            "camera_rotation": state["camera_rotation"],
+        }
+
+    def _camera_world_pose_from_latents(
+        self, name, bias, kasuga_translation_delta=None
+    ):
+        local = self._camera_pose_local_from_joint_bias(name, bias)
+        if name == "tou":
+            base_translation = self.tou_base_position
+            base_rotation = np.eye(3, dtype=float)
+        elif name == "kasuga":
+            base_rotation = self.true_rotation
+            if kasuga_translation_delta is None:
+                base_translation = self.kasuga_base_position
+            else:
+                base_translation = (
+                    self.kasuga_base_reference_position
+                    + np.asarray(kasuga_translation_delta, dtype=float)
+                )
+        else:
+            raise ValueError("unknown robot {}".format(name))
+        world_rotation = base_rotation @ quat_to_rotmat(local.rotation_wxyz)
+        world_translation = base_translation + base_rotation @ local.translation
+        return DeterministicTransform(
+            world_translation, self._quat_from_rotation(world_rotation)
+        )
+
+    def _project_pixel(self, pose, point):
+        local = quat_to_rotmat(pose.rotation_wxyz).T @ (
+            np.asarray(point, dtype=float) - pose.translation
+        )
+        depth = float(local[0])
+        if depth <= 1.0e-8:
+            return None
+        return np.array(
+            [
+                self.cx + self.fx * local[1] / depth,
+                self.cy - self.fy * local[2] / depth,
+            ],
+            dtype=float,
+        )
+
+    def _pixel_to_local_ray(self, pixel):
+        pixel = np.asarray(pixel, dtype=float)
+        return self._normalize(
+            np.array(
+                [
+                    1.0,
+                    (pixel[0] - self.cx) / self.fx,
+                    -(pixel[1] - self.cy) / self.fy,
+                ],
+                dtype=float,
+            )
+        )
+
+    def _measured_pixel(self, name, landmark_index):
+        point = self.landmarks_world[landmark_index]
+        pose = self._camera_world_pose_from_latents(
+            name,
+            self._truth_bias(name),
+            (
+                self.kasuga_position_truth_offset
+                if name == "kasuga"
+                else None
+            ),
+        )
+        pixel = self._project_pixel(pose, point)
+        if pixel is None:
+            return None
+        return pixel + self.pixel_noise[(name, landmark_index)]
+
+    def _predicted_pixel(self, name, bias, point, position_delta=None):
+        pose = self._camera_world_pose_from_latents(
+            name, bias, position_delta
+        )
+        return self._project_pixel(pose, point)
+
+    def _pinhole_linearization(self, landmark_index, epsilon=1.0e-6):
+        if not self.enable_position_uncertainty:
+            return None
+        snapshot = self.latent_store.snapshot()
+        tou_mean = snapshot.factor(self.tou_factor_id).mean
+        kasuga_mean = snapshot.factor(self.kasuga_factor_id).mean
+        position_mean = snapshot.factor(
+            self.kasuga_position_factor_id
+        ).mean
+        point = self.landmarks_world[landmark_index]
+        tou_measurement = self._measured_pixel("tou", landmark_index)
+        kasuga_measurement = self._measured_pixel("kasuga", landmark_index)
+        tou_prediction = self._predicted_pixel("tou", tou_mean, point)
+        kasuga_prediction = self._predicted_pixel(
+            "kasuga", kasuga_mean, point, position_mean
+        )
+        if any(
+            value is None
+            for value in (
+                tou_measurement,
+                kasuga_measurement,
+                tou_prediction,
+                kasuga_prediction,
+            )
+        ):
+            return None
+
+        residual = np.concatenate(
+            (
+                tou_prediction - tou_measurement,
+                kasuga_prediction - kasuga_measurement,
+            )
+        )
+        tou_jacobian = np.zeros((4, 6), dtype=float)
+        kasuga_jacobian = np.zeros((4, 6), dtype=float)
+        position_jacobian = np.zeros((4, 3), dtype=float)
+
+        for column in range(6):
+            delta = np.zeros(6, dtype=float)
+            delta[column] = epsilon
+            plus = self._predicted_pixel("tou", tou_mean + delta, point)
+            minus = self._predicted_pixel("tou", tou_mean - delta, point)
+            if plus is None or minus is None:
+                return None
+            tou_jacobian[:2, column] = (plus - minus) / (2.0 * epsilon)
+
+            plus = self._predicted_pixel(
+                "kasuga", kasuga_mean + delta, point, position_mean
+            )
+            minus = self._predicted_pixel(
+                "kasuga", kasuga_mean - delta, point, position_mean
+            )
+            if plus is None or minus is None:
+                return None
+            kasuga_jacobian[2:, column] = (plus - minus) / (2.0 * epsilon)
+
+        for column in range(3):
+            delta = np.zeros(3, dtype=float)
+            delta[column] = epsilon
+            plus = self._predicted_pixel(
+                "kasuga", kasuga_mean, point, position_mean + delta
+            )
+            minus = self._predicted_pixel(
+                "kasuga", kasuga_mean, point, position_mean - delta
+            )
+            if plus is None or minus is None:
+                return None
+            position_jacobian[2:, column] = (plus - minus) / (2.0 * epsilon)
+
+        return (
+            snapshot,
+            residual,
+            tou_jacobian,
+            kasuga_jacobian,
+            position_jacobian,
+        )
+
+    def _pinhole_information_gain(self, landmark_index):
+        linearization = self._pinhole_linearization(landmark_index)
+        if linearization is None:
+            return 0.0
+        snapshot, _, _, _, position_jacobian = linearization
+        covariance = snapshot.factor(
+            self.kasuga_position_factor_id
+        ).covariance
+        jacobian = position_jacobian[2:, :]
+        information = np.eye(2, dtype=float) + (
+            jacobian @ covariance @ jacobian.T
+        ) / (self.pixel_sigma ** 2)
+        sign, logdet = np.linalg.slogdet(information)
+        return 0.0 if sign <= 0.0 else 0.5 * float(logdet)
+
+    def _apply_pinhole_observation(self, landmark_index, stamp):
+        if landmark_index in self.position_used_landmarks:
+            return False
+        linearization = self._pinhole_linearization(landmark_index)
+        if linearization is None:
+            return False
+        snapshot, residual, tou_jacobian, kasuga_jacobian, position_jacobian = (
+            linearization
+        )
+        factor_ids = (
+            self.tou_factor_id,
+            self.kasuga_factor_id,
+            self.kasuga_position_factor_id,
+        )
+        observation = GaussianObservationFactor(
+            observation_id="shared_moon_{:02d}_pinhole".format(landmark_index),
+            latent_factor_ids=factor_ids,
+            residual=residual,
+            jacobian_blocks=(
+                tou_jacobian,
+                kasuga_jacobian,
+                position_jacobian,
+            ),
+            noise_covariance=(self.pixel_sigma ** 2) * np.eye(4, dtype=float),
+            stamp=stamp,
+            provenance=Provenance(
+                source_ids=("moon_{}_pixels".format(landmark_index),),
+                method="shared_landmark_pinhole_reprojection",
+                detail=(
+                    "Two noisy pinhole pixels condition both joint-zero "
+                    "factors and the Kasuga base-translation factor."
+                ),
+            ),
+        )
+        expected_versions = dict(snapshot.factor_versions(factor_ids))
+        self.latent_store.apply_observation(
+            observation, expected_versions=expected_versions
+        )
+        self.position_used_landmarks.add(landmark_index)
+        self.joint_used_landmarks.add(landmark_index)
+        self.position_update_count += 1
+        self.joint_update_count += 1
+        return True
+
     def _measured_local_ray(self, name, point):
         pose = self._camera_world_pose_from_joint_bias(
             name, self._truth_bias(name)
@@ -795,6 +1124,36 @@ class FurisakeDependencyDemoNode:
         )
         return record, binding
 
+    def _kasuga_position_binding(self, orientation, stamp):
+        if (
+            not self.enable_position_uncertainty
+            or self.active_phase != PHASE_LOCALIZED
+        ):
+            return None
+        factor = self._kasuga_position_factor()
+        sensitivity = np.zeros((6, 3), dtype=float)
+        sensitivity[:3, :] = np.eye(3, dtype=float)
+        linearization_pose = DeterministicTransform(
+            self.kasuga_base_reference_position,
+            orientation.mode_wxyz,
+        )
+        return EdgeLatentBinding(
+            edge_id="world__to__kasuga_base",
+            factor_id=self.kasuga_position_factor_id,
+            sensitivity=sensitivity,
+            factor_version=factor.version,
+            linearization_stamp=stamp,
+            linearization_pose=linearization_pose,
+        )
+
+    def _kasuga_position_sigma_mm(self):
+        factor = self._kasuga_position_factor()
+        if factor is None:
+            return None
+        return 1000.0 * math.sqrt(
+            max(0.0, float(np.trace(factor.covariance)) / 3.0)
+        )
+
     def _marginal_record(self, name, summary, stamp):
         parent, child, edge_id = self._tool_edge_spec(name)
         component = summary.to_component(edge_id + "_marginal_component")
@@ -826,7 +1185,11 @@ class FurisakeDependencyDemoNode:
             self.kasuga_base_frame,
             "world__to__kasuga_base",
             orientation,
-            self.kasuga_base_position,
+            (
+                self.kasuga_base_reference_position
+                if self.enable_position_uncertainty
+                else self.kasuga_base_position
+            ),
             stamp,
             "shared_moon_bingham",
             "global_orientation_posterior",
@@ -847,6 +1210,9 @@ class FurisakeDependencyDemoNode:
             self.graph.insert(record)
         self.latent_store.bind_edge(tou_binding)
         self.latent_store.bind_edge(kasuga_binding)
+        position_binding = self._kasuga_position_binding(orientation, stamp)
+        if position_binding is not None:
+            self.latent_store.bind_edge(position_binding)
 
         tou_summary = self.graph.lookup_transform_moments(
             self.tou_base_frame, self.tou_tool_frame, stamp
@@ -920,6 +1286,12 @@ class FurisakeDependencyDemoNode:
                 if self.active_phase == PHASE_LOCALIZED
                 else 0.0
             )
+            position_gain = (
+                self._pinhole_information_gain(index)
+                if self.enable_position_uncertainty
+                and self.active_phase == PHASE_LOCALIZED
+                else 0.0
+            )
             point = self.landmarks_world[index]
             tou_desired = self._normalize(
                 point - self.tou_arm_state["wrist"]
@@ -935,6 +1307,7 @@ class FurisakeDependencyDemoNode:
             score = (
                 bingham_gain
                 + self.joint_information_weight * joint_gain
+                + self.position_information_weight * position_gain
                 - self.motion_cost_weight * motion_cost
             )
             if score > best_score:
@@ -1091,7 +1464,16 @@ class FurisakeDependencyDemoNode:
         self._acquire_target_if_visible(now)
         if self.active_phase == PHASE_LOCALIZED and self.joint_update_queue:
             index = self.joint_update_queue.pop(0)
-            self._apply_joint_observation(index, now)
+            if (
+                self.enable_position_uncertainty
+                and self.joint_update_count > 0
+            ):
+                self._apply_pinhole_observation(index, now)
+            else:
+                # Keep one genuine cross-camera epipolar closure before the
+                # pinhole phase.  It creates Tou/Kasuga joint cross-covariance
+                # without reusing the same keypoint in the reprojection update.
+                self._apply_joint_observation(index, now)
         return self._orientation()
 
     def _joint_sigma_rms_deg(self, name):
@@ -1357,14 +1739,23 @@ class FurisakeDependencyDemoNode:
 
     def _observation_markers(self, stamp):
         markers = []
-        tou_state = self._camera_state_from_joint_bias(
-            "tou", self.tou_joint_bias_truth
-        )
-        kasuga_state = self._camera_state_from_joint_bias(
-            "kasuga", self.kasuga_joint_bias_truth
-        )
-        for marker_id, namespace, state, visible, color in (
+        if self.enable_position_uncertainty:
+            # Draw measured rays from the current estimate. Pixel samples are
+            # still generated from hidden truth by _measured_pixel(). The
+            # visible ray/landmark mismatch therefore shrinks together with the
+            # position posterior instead of revealing the hidden pose.
+            tou_state = self._display_camera_state("tou")
+            kasuga_state = self._display_camera_state("kasuga")
+        else:
+            tou_state = self._camera_state_from_joint_bias(
+                "tou", self.tou_joint_bias_truth
+            )
+            kasuga_state = self._camera_state_from_joint_bias(
+                "kasuga", self.kasuga_joint_bias_truth
+            )
+        for name, marker_id, namespace, state, visible, color in (
             (
+                "tou",
                 210,
                 "tou_observations",
                 tou_state,
@@ -1372,6 +1763,7 @@ class FurisakeDependencyDemoNode:
                 self._color(0.25, 0.75, 1.0, 0.38),
             ),
             (
+                "kasuga",
                 211,
                 "kasuga_observations",
                 kasuga_state,
@@ -1381,9 +1773,24 @@ class FurisakeDependencyDemoNode:
         ):
             points = []
             for index in sorted(visible):
-                points.extend(
-                    [state["camera_position"], self.landmarks_world[index]]
-                )
+                if self.enable_position_uncertainty:
+                    pixel = self._measured_pixel(name, index)
+                    if pixel is None:
+                        continue
+                    ray_local = self._pixel_to_local_ray(pixel)
+                    ray_world = state["camera_rotation"] @ ray_local
+                    distance = float(
+                        np.linalg.norm(
+                            self.landmarks_world[index]
+                            - state["camera_position"]
+                        )
+                    )
+                    endpoint = (
+                        state["camera_position"] + distance * ray_world
+                    )
+                else:
+                    endpoint = self.landmarks_world[index]
+                points.extend([state["camera_position"], endpoint])
             if points:
                 markers.append(
                     self._line_marker(
@@ -1402,6 +1809,8 @@ class FurisakeDependencyDemoNode:
             if summary is None:
                 continue
             base_translation, base_rotation = self._base_pose(name)
+            if name == "kasuga" and self.enable_position_uncertainty:
+                base_translation = self._estimated_kasuga_base_position()
             center = base_translation + base_rotation @ summary.mean.translation
             covariance = (
                 base_rotation
@@ -1415,6 +1824,19 @@ class FurisakeDependencyDemoNode:
                     center,
                     covariance,
                     color,
+                    stamp,
+                )
+            )
+        if self.enable_position_uncertainty:
+            factor = self._kasuga_position_factor()
+            center = self.kasuga_base_reference_position + factor.mean
+            markers.append(
+                self._ellipsoid_marker(
+                    320,
+                    "kasuga_base_position_uncertainty",
+                    center,
+                    factor.covariance,
+                    self._color(0.95, 0.72, 0.18, 0.26),
                     stamp,
                 )
             )
@@ -1445,9 +1867,14 @@ class FurisakeDependencyDemoNode:
         marker.scale.x = 0.011
         marker.scale.y = 0.011
         marker.color = self._color(1.0, 0.42, 0.08, 0.48)
+        base_position = (
+            self._estimated_kasuga_base_position()
+            if self.enable_position_uncertainty
+            else self.kasuga_base_position
+        )
         marker.points = [
             self._point(
-                self.kasuga_base_position
+                base_position
                 + quat_to_rotmat(quaternion) @ local
             )
             for quaternion in samples
@@ -1460,7 +1887,7 @@ class FurisakeDependencyDemoNode:
         elif self.active_phase == PHASE_ONE_VECTOR:
             state = "S1 ridge: seeking a non-collinear shared keypoint"
         else:
-            state = "localized Bingham: continuing keypoints for joint smoothing"
+            state = "localized Bingham: pinhole position + joint smoothing"
         target = (
             "none"
             if self.active_target_landmark is None
@@ -1472,19 +1899,27 @@ class FurisakeDependencyDemoNode:
             if relative_sigma is None
             else "{:.1f} mm".format(relative_sigma)
         )
+        position_sigma = self._kasuga_position_sigma_mm()
+        position_text = (
+            "off"
+            if position_sigma is None
+            else "{:.1f} mm".format(position_sigma)
+        )
         text = (
             "{}\n"
-            "target={} | Bingham evidence {}/{} | joint closures={}\n"
+            "target={} | Bingham evidence {}/{} | joint closures={} | pinhole={}\n"
             "joint RMS: Tou {:.2f} deg | Kasuga {:.2f} deg | "
-            "cross-cov Fro={:.2e} | relative camera sigma={}"
+            "Kasuga base sigma={} | cross-cov Fro={:.2e} | relative camera sigma={}"
         ).format(
             state,
             target,
             len(self.acquired_evidence),
             len(self.evidence_by_landmark),
             self.joint_update_count,
+            self.position_update_count,
             self._joint_sigma_rms_deg("tou"),
             self._joint_sigma_rms_deg("kasuga"),
+            position_text,
             self._cross_covariance_norm(),
             relative_text,
         )
@@ -1517,7 +1952,7 @@ class FurisakeDependencyDemoNode:
         markers.extend(
             self._robot_markers(
                 "kasuga",
-                self.kasuga_arm_state,
+                self._display_arm_state("kasuga"),
                 50,
                 self._color(1.0, 0.45, 0.75, 0.95),
                 stamp,

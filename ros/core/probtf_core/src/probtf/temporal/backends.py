@@ -133,8 +133,16 @@ def _orientation_from_tangent_covariance(quaternion, covariance):
     if float(eigenvalues[0]) < -1.0e-9:
         raise ValueError("orientation covariance must be positive semidefinite.")
     inverse = eigenvectors @ np.diag(1.0 / np.maximum(eigenvalues, 1.0e-10)) @ eigenvectors.T
+    # ``inverse`` and the lifted quaternion parameter are mathematically
+    # symmetric. Very concentrated posteriors can make the eigenvalue floor
+    # produce entries near 1e10, so round-off after the matrix products can be
+    # larger than the distribution validator's absolute symmetry tolerance.
+    # Canonicalize both matrices explicitly instead of asking the immutable
+    # Bingham constructor to accept a numerically non-symmetric parameter.
+    inverse = 0.5 * (inverse + inverse.T)
     tangent_basis = quat_left_matrix(quaternion)[:, 1:]
     parameter = tangent_basis @ (-2.0 * inverse) @ tangent_basis.T
+    parameter = 0.5 * (parameter + parameter.T)
     return BinghamOrientation.from_parameter_matrix(
         parameter,
         reference_quaternion_wxyz=quaternion,

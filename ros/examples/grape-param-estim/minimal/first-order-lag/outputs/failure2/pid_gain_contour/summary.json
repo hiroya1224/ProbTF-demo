@@ -89,11 +89,11 @@
   ],
   "interpretation": "Each caused-break count uses the same plant samples. Other PID groups are fixed at success-flight gains, and only the named group is restored to this failure bag's recorded gain. A unique culprit sample is broken by exactly one of the four single-group interventions.",
   "sample_count": 512,
-  "schema": "grape-param-estim/first-order-lag-pid-group-survival/v3-summary",
+  "schema": "grape-param-estim/first-order-lag-pid-group-survival/v5-summary",
   "single_group_cause_overlap": {
     "samples_broken_by_exactly_one_single_group": 417,
     "samples_broken_by_multiple_single_groups": 1,
     "samples_broken_by_no_single_group": 94
   },
-  "source_commit": "0e7fb732f1fcdaa652c91fa311dfc75dc66ebedb"
+  "source_commit": "f9ca0aad551b944e7d986c242242e8ac63b1035e"
 }

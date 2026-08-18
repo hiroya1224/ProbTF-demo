@@ -1,95 +1,313 @@
 {
   "affine_matrix_audit": {
     "basis_ratio": 1.12,
+    "failure_policy": "sample-local exact full-evaluator fallback; no sample is discarded",
     "fallback_samples": 0,
-    "maximum_relative_frobenius_error": 8.832684864813095e-10,
-    "median_relative_frobenius_error": 7.081510092380929e-11,
+    "maximum_relative_frobenius_error": 8.699773311163766e-10,
+    "median_relative_frobenius_error": 6.989314690390619e-11,
+    "phase": "completed_before_grid_evaluation",
     "piecewise_near_kink_samples": 0,
     "tolerance": 1.5019429324804243e-07,
     "valid_samples": 512
   },
-  "alpha": 0.95,
+  "all_success_baseline": {
+    "stable_count": 507,
+    "stable_fraction": 0.990234375,
+    "unstable_count": 5
+  },
+  "alpha_reference": 0.95,
   "case_name": "failure2",
+  "caused_break_boundary_fraction": 0.050000000000000044,
   "controller_dt_seconds": 0.005007743835449219,
   "covariance": "conservative_fusion",
+  "definition": {
+    "baseline": "all four PID groups use success-flight recorded gains on this bag's plant distribution",
+    "caused_break_sample": "stable under all-success baseline and unstable under the single-group intervention",
+    "plot": "other three groups fixed at success gains; hidden selected-group gain fixed at its failure recorded value",
+    "single_group_intervention": "only this group is replaced by the analyzed bag's recorded gain"
+  },
   "estimate_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/estimate.json",
+  "failure_gain_single_group_intervention": {
+    "caused_break_count": 0,
+    "caused_break_fraction_conditioned_on_success_baseline": 0.0,
+    "caused_break_fraction_of_all_samples": 0.0,
+    "counterdirection_rescued_count": 0,
+    "unstable_count": 5,
+    "unstable_fraction": 0.009765625
+  },
   "files": {
     "npz": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/pid_gain_contour/z/gain_contour.npz",
     "png": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/pid_gain_contour/z/gain_contour.png"
   },
   "first_order_time_constant_seconds": 0.39860758650756456,
   "gain_domain": {
-    "coordinate": "log(gain / recorded_gain)",
+    "coordinate": "log(gain / this-bag recorded group gain)",
     "ratio_max": 3.0000000000000004,
     "ratio_min": 0.3499999999999999
   },
   "group": "z",
   "method": {
-    "boundary": "Phi=0 predictor-corrector pseudo-arclength Newton continuation",
+    "affine_matrix_audit": "pre-grid audited raw-gain affine 26x26 Jacobian with exact full-evaluator fallback per failed sample",
+    "boundary": "piecewise-linear threshold segments from locally refined boundary cells",
     "closed_loop_model": "full_26_state_sampled_data_first_order_actuator",
-    "coarse_grid_role": "connected-component seeding and interior shading only",
-    "eigenvalue_gradient": "left/right eigenvector sensitivity when differentiable",
-    "nonsmooth_gradient_fallback": "central finite difference in log-gain coordinates",
-    "projection": "minimize robust scalar over hidden gain",
-    "robust_scalar": "ceil(alpha*N)-th order statistic of log spectral radius",
-    "topology_limitation": "components smaller than the coarse seed cells are not certified absent"
+    "global_grid_sequence": "3x3 -> 5x5 -> 9x9 -> 17x17 by default; every global level is evaluated",
+    "grid_reuse": "all repeated global and local points are cached and never reevaluated",
+    "local_boundary_refinement": "threshold candidate cells are split dyadically three additional times by default",
+    "no_newton_continuation": true,
+    "raster": "nested dyadic global grid plus boundary-cell local refinement",
+    "topology_limitation": "the final cell-center probe reduces but does not mathematically certify absence of a sub-cell boundary island",
+    "topology_probe": "after the final global grid, every unbracketed cell center is probed once before declaring the boundary absent"
   },
   "projections": [
     {
-      "boundary_point_count": 0,
-      "coarse_seed_grid_size": 9,
-      "coarse_seed_max": 0.0005441693258731261,
-      "coarse_seed_min": 0.0005132491166713306,
-      "component_count": 0,
+      "boundary_first_seen_global_grid_size": 3,
+      "boundary_leaf_cell_count": 170,
+      "boundary_segment_count": 451,
+      "effective_local_equivalent_grid_size": 129,
+      "global_grid_size": 17,
+      "global_levels": [
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 9,
+          "size": 3,
+          "total_cached_point_count": 9
+        },
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 16,
+          "size": 5,
+          "total_cached_point_count": 25
+        },
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 56,
+          "size": 9,
+          "total_cached_point_count": 81
+        },
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 208,
+          "size": 17,
+          "total_cached_point_count": 289
+        }
+      ],
       "hidden_axis": 2,
+      "hidden_gain_fixed_at_failure_recorded": 2.5,
+      "initial_boundary_candidate_cell_count": 21,
+      "local_refinement_levels": [
+        {
+          "boundary_cell_count": 43,
+          "input_cell_count": 21,
+          "level": 1,
+          "new_point_count": 86,
+          "total_cached_point_count": 610
+        },
+        {
+          "boundary_cell_count": 85,
+          "input_cell_count": 43,
+          "level": 2,
+          "new_point_count": 174,
+          "total_cached_point_count": 784
+        },
+        {
+          "boundary_cell_count": 170,
+          "input_cell_count": 85,
+          "level": 3,
+          "new_point_count": 342,
+          "total_cached_point_count": 1126
+        }
+      ],
+      "maximum_break_fraction": 0.990234375,
+      "minimum_break_fraction": 0.0,
       "name": "pi",
+      "stop_reason": "boundary_refined_locally",
+      "topology_center_probe_detected_cell_count": 0,
+      "topology_center_probe_new_point_count": 235,
       "visible_axes": [
         0,
         1
       ]
     },
     {
-      "boundary_point_count": 0,
-      "coarse_seed_grid_size": 9,
-      "coarse_seed_max": 0.0023403729916896825,
-      "coarse_seed_min": 0.0005131586156793934,
-      "component_count": 0,
+      "boundary_first_seen_global_grid_size": 3,
+      "boundary_leaf_cell_count": 143,
+      "boundary_segment_count": 399,
+      "effective_local_equivalent_grid_size": 129,
+      "global_grid_size": 17,
+      "global_levels": [
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 9,
+          "size": 3,
+          "total_cached_point_count": 9
+        },
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 16,
+          "size": 5,
+          "total_cached_point_count": 25
+        },
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 56,
+          "size": 9,
+          "total_cached_point_count": 81
+        },
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 208,
+          "size": 17,
+          "total_cached_point_count": 289
+        }
+      ],
       "hidden_axis": 0,
+      "hidden_gain_fixed_at_failure_recorded": 5.0,
+      "initial_boundary_candidate_cell_count": 18,
+      "local_refinement_levels": [
+        {
+          "boundary_cell_count": 35,
+          "input_cell_count": 18,
+          "level": 1,
+          "new_point_count": 73,
+          "total_cached_point_count": 600
+        },
+        {
+          "boundary_cell_count": 71,
+          "input_cell_count": 35,
+          "level": 2,
+          "new_point_count": 141,
+          "total_cached_point_count": 741
+        },
+        {
+          "boundary_cell_count": 143,
+          "input_cell_count": 71,
+          "level": 3,
+          "new_point_count": 285,
+          "total_cached_point_count": 1026
+        }
+      ],
+      "maximum_break_fraction": 0.990234375,
+      "minimum_break_fraction": 0.0,
       "name": "id",
+      "stop_reason": "boundary_refined_locally",
+      "topology_center_probe_detected_cell_count": 0,
+      "topology_center_probe_new_point_count": 238,
       "visible_axes": [
         1,
         2
       ]
     },
     {
-      "boundary_point_count": 0,
-      "coarse_seed_grid_size": 9,
-      "coarse_seed_max": 0.003892030358652443,
-      "coarse_seed_min": 0.0005137006579770626,
-      "component_count": 0,
+      "boundary_first_seen_global_grid_size": 3,
+      "boundary_leaf_cell_count": 218,
+      "boundary_segment_count": 474,
+      "effective_local_equivalent_grid_size": 129,
+      "global_grid_size": 17,
+      "global_levels": [
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 9,
+          "size": 3,
+          "total_cached_point_count": 9
+        },
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 16,
+          "size": 5,
+          "total_cached_point_count": 25
+        },
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 56,
+          "size": 9,
+          "total_cached_point_count": 81
+        },
+        {
+          "boundary_present": true,
+          "maximum_break_fraction": 0.990234375,
+          "minimum_break_fraction": 0.0,
+          "new_point_count": 208,
+          "size": 17,
+          "total_cached_point_count": 289
+        }
+      ],
       "hidden_axis": 1,
+      "hidden_gain_fixed_at_failure_recorded": 1.0,
+      "initial_boundary_candidate_cell_count": 27,
+      "local_refinement_levels": [
+        {
+          "boundary_cell_count": 55,
+          "input_cell_count": 27,
+          "level": 1,
+          "new_point_count": 109,
+          "total_cached_point_count": 627
+        },
+        {
+          "boundary_cell_count": 109,
+          "input_cell_count": 55,
+          "level": 2,
+          "new_point_count": 221,
+          "total_cached_point_count": 848
+        },
+        {
+          "boundary_cell_count": 218,
+          "input_cell_count": 109,
+          "level": 3,
+          "new_point_count": 437,
+          "total_cached_point_count": 1285
+        }
+      ],
+      "maximum_break_fraction": 0.990234375,
+      "minimum_break_fraction": 0.0,
       "name": "dp",
+      "stop_reason": "boundary_refined_locally",
+      "topology_center_probe_detected_cell_count": 0,
+      "topology_center_probe_new_point_count": 229,
       "visible_axes": [
         2,
         0
       ]
     }
   ],
-  "recorded_gain": {
+  "recorded_failure_group_gain": {
     "d_gain": 2.5,
-    "exact_stable_fraction": 0.1640625,
+    "i_gain": 1.0,
+    "p_gain": 5.0
+  },
+  "recorded_success_group_gain": {
+    "d_gain": 2.5,
     "i_gain": 1.0,
     "p_gain": 5.0
   },
   "sample_count": 512,
-  "schema": "grape-param-estim/first-order-lag-pid-gain-contour/v1",
+  "schema": "grape-param-estim/first-order-lag-pid-group-break/v2",
   "seed": 0,
-  "source_commit": "2b8b24e13b75e5bdf13a65672839c24ea842f5e5",
-  "success_group_only": {
-    "d_gain": 2.5,
-    "exact_stable_fraction_with_other_groups_kept_at_this_bag_recorded_values": 0.1640625,
-    "i_gain": 1.0,
-    "p_gain": 5.0
+  "source_commit": "774e251d4ffc4d3a3f9c51f1b0118cfa5c43977f",
+  "success_gain_check": {
+    "caused_break_count": 0,
+    "unstable_count": 5
   },
   "success_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/success/estimate.json"
 }

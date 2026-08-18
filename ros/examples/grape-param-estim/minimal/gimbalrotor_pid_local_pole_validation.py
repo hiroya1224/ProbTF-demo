@@ -147,6 +147,37 @@ class AugmentedState:
 
 
 @dataclass(frozen=True)
+class HoverTrimResidualEvaluation:
+    trim_vector: np.ndarray
+    residual: np.ndarray
+    jacobian: np.ndarray
+    controller_evaluation: Any
+    actuator_state: ActuatorState
+
+
+@dataclass(frozen=True)
+class ClosedLoopStepEvaluation:
+    next_state: AugmentedState
+    jacobian: np.ndarray
+    near_kink: bool
+
+
+@dataclass(frozen=True)
+class TrimPointEvaluation:
+    trim_vector: np.ndarray
+    residual: np.ndarray
+    residual_jacobian: np.ndarray
+    command: ActuatorCommand
+    next_controller: ControllerState
+    controller_jacobian: Any
+    actuator_state: ActuatorState
+    next_augmented_state: AugmentedState
+    closed_loop_jacobian: np.ndarray
+    near_kink: bool
+    closed_loop_wall_seconds: float
+
+
+@dataclass(frozen=True)
 class TrimResult:
     state: AugmentedState
     issued_command: ActuatorCommand
@@ -154,6 +185,9 @@ class TrimResult:
     root_message: str
     root_nfev: int
     root_njev: Optional[int]
+    root_initial_step_norm: float
+    root_initial_step_infinity_norm: float
+    root_initial_unchanged: bool
     residual: np.ndarray
     residual_norm: float
     one_step_defect: np.ndarray
@@ -163,6 +197,7 @@ class TrimResult:
     equilibrium_tolerance: float
     equilibrium_valid: bool
     piecewise_linearization_near_kink: bool
+    point_evaluation: Optional[TrimPointEvaluation]
 
     @property
     def trim_vector(self) -> np.ndarray:
@@ -582,6 +617,32 @@ def advance_augmented_state(
         controller_dt,
         state.actuators.gimbal_angle,
     )
+    return (
+        _advance_augmented_state_with_command(
+            state,
+            command=command,
+            next_controller=next_controller,
+            plant=plant,
+            actuator_parameters=actuator_parameters,
+            controller_dt=controller_dt,
+            delay=delay,
+        ),
+        command,
+    )
+
+
+def _advance_augmented_state_with_command(
+    state: AugmentedState,
+    *,
+    command: ActuatorCommand,
+    next_controller: ControllerState,
+    plant: FullSixDofPlant,
+    actuator_parameters: ActuatorParameters,
+    controller_dt: float,
+    delay: DelayDecomposition,
+) -> AugmentedState:
+    """Propagate a controller step whose command was already evaluated."""
+
     rigid = state.rigid_body
     actuators = state.actuators
     elapsed = 0.0
@@ -596,14 +657,11 @@ def advance_augmented_state(
             elapsed,
         )
         elapsed += duration
-    return (
-        AugmentedState(
-            rigid,
-            next_controller,
-            actuators,
-            shift_thrust_queue(state.thrust_queue, command.thrust),
-        ),
-        command,
+    return AugmentedState(
+        rigid,
+        next_controller,
+        actuators,
+        shift_thrust_queue(state.thrust_queue, command.thrust),
     )
 
 
@@ -667,9 +725,10 @@ def _delayed_thrust_segments_with_jacobian(
     )
 
 
-def analytic_closed_loop_jacobian(
+def _analytic_closed_loop_evaluation(
     context: PoleContext,
-) -> tuple[np.ndarray, bool]:
+    controller_evaluation: Optional[Any] = None,
+) -> ClosedLoopStepEvaluation:
     """Differentiate the implemented sampled closed loop by exact chain rule.
 
     The only piecewise operations are the controller and actuator clamps.  On
@@ -679,14 +738,15 @@ def analytic_closed_loop_jacobian(
 
     dimension = context.local_dimension
     state = context.trim
-    controller_evaluation = context.controller.step_with_jacobian(
-        state.rigid_body,
-        context.reference,
-        state.controller,
-        context.controller_dt,
-        state.actuators.gimbal_angle,
-        allocation_condition_threshold=np.finfo(float).max,
-    )
+    if controller_evaluation is None:
+        controller_evaluation = context.controller.step_with_jacobian(
+            state.rigid_body,
+            context.reference,
+            state.controller,
+            context.controller_dt,
+            state.actuators.gimbal_angle,
+            allocation_condition_threshold=np.finfo(float).max,
+        )
     command = controller_evaluation.command
     command_thrust_jacobian = _embed_controller_local_jacobian(
         controller_evaluation.jacobian.issued_thrust, dimension
@@ -799,7 +859,22 @@ def analytic_closed_loop_jacobian(
         jacobian[26:] = next_queue_jacobian
     if np.any(~np.isfinite(jacobian)):
         raise LocalPoleNumericalError("analytic closed-loop Jacobian became non-finite")
-    return jacobian, near_kink
+    next_state = AugmentedState(
+        rigid,
+        controller_evaluation.next_state,
+        actuators,
+        shift_thrust_queue(state.thrust_queue, command.thrust),
+    )
+    return ClosedLoopStepEvaluation(next_state, jacobian, near_kink)
+
+
+def analytic_closed_loop_jacobian(
+    context: PoleContext,
+) -> tuple[np.ndarray, bool]:
+    """Return the exact active-branch Jacobian using the public legacy API."""
+
+    evaluation = _analytic_closed_loop_evaluation(context)
+    return evaluation.jacobian, evaluation.near_kink
 
 
 def _trim_residual(
@@ -833,15 +908,15 @@ def _trim_residual(
     return result
 
 
-def _trim_residual_with_jacobian(
+def _evaluate_hover_trim_residual(
     candidate: Sequence[float],
     controller: GrapeController,
     plant: FullSixDofPlant,
     actuator_parameters: ActuatorParameters,
     reference: ReferenceState,
     controller_dt: float,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Hover-trim residual and exact active-branch 10x10 Jacobian."""
+) -> HoverTrimResidualEvaluation:
+    """Evaluate the hover residual, Jacobian, and reusable controller data."""
 
     selected = np.asarray(candidate, dtype=float)
     if selected.shape != (10,) or np.any(~np.isfinite(selected)):
@@ -919,7 +994,34 @@ def _trim_residual_with_jacobian(
     )
     if np.any(~np.isfinite(residual)) or np.any(~np.isfinite(jacobian)):
         raise LocalPoleNumericalError("analytic hover-trim linearization became non-finite")
-    return residual, jacobian
+    return HoverTrimResidualEvaluation(
+        trim_vector=selected.copy(),
+        residual=residual,
+        jacobian=jacobian,
+        controller_evaluation=controller_evaluation,
+        actuator_state=actuator_state,
+    )
+
+
+def _trim_residual_with_jacobian(
+    candidate: Sequence[float],
+    controller: GrapeController,
+    plant: FullSixDofPlant,
+    actuator_parameters: ActuatorParameters,
+    reference: ReferenceState,
+    controller_dt: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Hover-trim residual and exact active-branch 10x10 Jacobian."""
+
+    evaluation = _evaluate_hover_trim_residual(
+        candidate,
+        controller,
+        plant,
+        actuator_parameters,
+        reference,
+        controller_dt,
+    )
+    return evaluation.residual, evaluation.jacobian
 
 
 def _near_actuator_kink(command: ActuatorCommand, state: ActuatorState, parameters: ActuatorParameters) -> bool:
@@ -970,6 +1072,7 @@ def solve_hover_trim(
     controller_dt: float,
     delay: DelayDecomposition,
     initial: Optional[np.ndarray] = None,
+    build_point_evaluation: bool = False,
 ) -> TrimResult:
     if initial is None:
         selected_initial = np.concatenate(
@@ -985,14 +1088,30 @@ def solve_hover_trim(
         if selected_initial.shape != (10,) or np.any(~np.isfinite(selected_initial)):
             raise ValueError("hover-trim initial value must be finite shape (10,)")
         selected_initial = selected_initial.copy()
-    objective: Callable[[np.ndarray], np.ndarray] = lambda value: _trim_residual(
-        value, controller, plant, actuator_parameters, reference, controller_dt
-    )
-    jacobian: Callable[[np.ndarray], np.ndarray] = lambda value: (
-        _trim_residual_with_jacobian(
-            value, controller, plant, actuator_parameters, reference, controller_dt
-        )[1]
-    )
+    cached_evaluation: Optional[HoverTrimResidualEvaluation] = None
+
+    def evaluate(value: np.ndarray) -> HoverTrimResidualEvaluation:
+        nonlocal cached_evaluation
+        selected = np.asarray(value, dtype=float)
+        if cached_evaluation is None or not np.array_equal(
+            selected, cached_evaluation.trim_vector
+        ):
+            cached_evaluation = _evaluate_hover_trim_residual(
+                selected,
+                controller,
+                plant,
+                actuator_parameters,
+                reference,
+                controller_dt,
+            )
+        return cached_evaluation
+
+    objective: Callable[[np.ndarray], np.ndarray] = lambda value: evaluate(
+        value
+    ).residual
+    jacobian: Callable[[np.ndarray], np.ndarray] = lambda value: evaluate(
+        value
+    ).jacobian
     solved = least_squares(
         objective,
         selected_initial,
@@ -1004,35 +1123,42 @@ def solve_hover_trim(
         max_nfev=2000,
     )
     candidate = np.asarray(solved.x, dtype=float)
-    residual = objective(candidate)
     if np.any(~np.isfinite(candidate)):
         raise LocalPoleNumericalError("trim solver returned a non-finite point")
+    final_evaluation = evaluate(candidate)
+    residual = np.asarray(solved.fun, dtype=float)
+    if not np.array_equal(residual, final_evaluation.residual):
+        raise RuntimeError("least_squares final residual no longer matches trim bundle")
     rigid = hover_rigid_body()
     controller_state = ControllerState(candidate[:6], True)
     gimbal = candidate[6:]
-    command, _ = controller.step(
-        rigid, reference, controller_state, controller_dt, gimbal
-    )
-    clipped_thrust = np.clip(
-        command.thrust,
-        actuator_parameters.minimum_thrust,
-        actuator_parameters.maximum_thrust,
-    )
-    actuator_state = ActuatorState(clipped_thrust, gimbal)
+    command = final_evaluation.controller_evaluation.command
+    next_controller = final_evaluation.controller_evaluation.next_state
+    actuator_state = final_evaluation.actuator_state
     queue = np.repeat(command.thrust[None, :], delay.depth, axis=0)
     state = AugmentedState(rigid, controller_state, actuator_state, queue)
-    next_state, _ = advance_augmented_state(
-        state,
-        controller=controller,
-        plant=plant,
-        actuator_parameters=actuator_parameters,
-        reference=reference,
-        controller_dt=controller_dt,
-        delay=delay,
-    )
     temporary = PoleContext(
         controller, plant, actuator_parameters, reference, controller_dt, delay, state
     )
+    point_evaluation = None
+    if build_point_evaluation:
+        closed_loop_started = time.perf_counter()
+        closed_loop = _analytic_closed_loop_evaluation(
+            temporary,
+            controller_evaluation=final_evaluation.controller_evaluation,
+        )
+        closed_loop_wall_seconds = time.perf_counter() - closed_loop_started
+        next_state = closed_loop.next_state
+    else:
+        next_state = _advance_augmented_state_with_command(
+            state,
+            command=command,
+            next_controller=next_controller,
+            plant=plant,
+            actuator_parameters=actuator_parameters,
+            controller_dt=controller_dt,
+            delay=delay,
+        )
     defect = encode_local_state(next_state, temporary)
     scale = max(
         1.0,
@@ -1048,6 +1174,28 @@ def solve_hover_trim(
         and np.all(np.isfinite(residual))
         and defect_norm <= tolerance
     )
+    trim_near_kink = _near_piecewise_kink(
+        command,
+        actuator_state,
+        controller_state,
+        controller.configuration,
+        actuator_parameters,
+    )
+    if build_point_evaluation:
+        point_evaluation = TrimPointEvaluation(
+            trim_vector=candidate.copy(),
+            residual=residual.copy(),
+            residual_jacobian=final_evaluation.jacobian.copy(),
+            command=command,
+            next_controller=next_controller,
+            controller_jacobian=final_evaluation.controller_evaluation.jacobian,
+            actuator_state=actuator_state,
+            next_augmented_state=next_state,
+            closed_loop_jacobian=closed_loop.jacobian.copy(),
+            near_kink=bool(trim_near_kink or closed_loop.near_kink),
+            closed_loop_wall_seconds=float(closed_loop_wall_seconds),
+        )
+    initial_step = candidate - selected_initial
     return TrimResult(
         state=state,
         issued_command=command,
@@ -1055,6 +1203,11 @@ def solve_hover_trim(
         root_message=str(solved.message),
         root_nfev=int(solved.nfev),
         root_njev=(None if solved.njev is None else int(solved.njev)),
+        root_initial_step_norm=float(np.linalg.norm(initial_step)),
+        root_initial_step_infinity_norm=float(
+            np.linalg.norm(initial_step, ord=np.inf)
+        ),
+        root_initial_unchanged=bool(np.array_equal(candidate, selected_initial)),
         residual=residual.copy(),
         residual_norm=float(np.linalg.norm(residual)),
         one_step_defect=defect,
@@ -1063,13 +1216,8 @@ def solve_hover_trim(
         gimbal_fixed_point_defect=gimbal_defect,
         equilibrium_tolerance=tolerance,
         equilibrium_valid=valid,
-        piecewise_linearization_near_kink=_near_piecewise_kink(
-            command,
-            actuator_state,
-            controller_state,
-            controller.configuration,
-            actuator_parameters,
-        ),
+        piecewise_linearization_near_kink=trim_near_kink,
+        point_evaluation=point_evaluation,
     )
 
 
@@ -1234,8 +1382,17 @@ def _analyze_plant(
         controller_dt=controller_dt,
         delay=delay,
         initial=initial_trim,
+        build_point_evaluation=True,
     )
-    trim_wall_seconds = time.perf_counter() - trim_started
+    total_trim_bundle_wall_seconds = time.perf_counter() - trim_started
+    point_evaluation = trim.point_evaluation
+    if point_evaluation is None:
+        raise RuntimeError("requested final trim evaluation bundle is unavailable")
+    trim_wall_seconds = max(
+        0.0,
+        total_trim_bundle_wall_seconds
+        - point_evaluation.closed_loop_wall_seconds,
+    )
     context = PoleContext(
         controller,
         plant,
@@ -1254,17 +1411,15 @@ def _analyze_plant(
         "finite_difference_diagnostic": None,
         "analytic_piecewise_near_kink": None,
         "trim_wall_seconds": float(trim_wall_seconds),
-        "analytic_jacobian_wall_seconds": 0.0,
+        "analytic_jacobian_wall_seconds": float(
+            point_evaluation.closed_loop_wall_seconds
+        ),
     }
     if not trim.equilibrium_valid:
         return result
-    jacobian_started = time.perf_counter()
-    jacobian, analytic_near_kink = analytic_closed_loop_jacobian(context)
-    result["analytic_jacobian_wall_seconds"] = float(
-        time.perf_counter() - jacobian_started
-    )
+    jacobian = point_evaluation.closed_loop_jacobian
     result["jacobian"] = jacobian
-    result["analytic_piecewise_near_kink"] = bool(analytic_near_kink)
+    result["analytic_piecewise_near_kink"] = bool(point_evaluation.near_kink)
     if compute_eigenvalues:
         eigenvalues = np.linalg.eigvals(jacobian)
         if np.any(~np.isfinite(eigenvalues)):
@@ -1285,6 +1440,9 @@ def _trim_json(trim: TrimResult) -> Mapping[str, Any]:
         "trim_root_message": trim.root_message,
         "trim_root_nfev": trim.root_nfev,
         "trim_root_njev": trim.root_njev,
+        "trim_root_initial_step_norm": trim.root_initial_step_norm,
+        "trim_root_initial_step_infinity_norm": trim.root_initial_step_infinity_norm,
+        "trim_root_initial_unchanged": trim.root_initial_unchanged,
         "trim_residual_vector": trim.residual.tolist(),
         "trim_residual_norm": trim.residual_norm,
         "full_one_step_trim_defect": trim.one_step_defect.tolist(),

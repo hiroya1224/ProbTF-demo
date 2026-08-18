@@ -274,6 +274,8 @@ def test_hover_trim_explicit_initial_matches_default_solution():
     assert np.allclose(explicit.trim_vector, default.trim_vector, rtol=1e-12, atol=1e-12)
     assert explicit.root_nfev > 0
     assert explicit.root_njev is None or explicit.root_njev > 0
+    assert explicit.root_initial_unchanged
+    assert explicit.root_initial_step_infinity_norm == 0.0
 
 
 def test_hover_trim_rejects_invalid_explicit_initial():
@@ -292,6 +294,46 @@ def test_hover_trim_rejects_invalid_explicit_initial():
     invalid[3] = np.nan
     with pytest.raises(ValueError, match="finite shape"):
         local_poles.solve_hover_trim(**common, initial=invalid)
+
+
+def test_final_trim_bundle_reuses_exact_forward_and_jacobian():
+    _model, controller, plant, actuator, default, context = nominal_bundle()
+    bundled = local_poles.solve_hover_trim(
+        controller=controller,
+        plant=plant,
+        actuator_parameters=actuator,
+        reference=context.reference,
+        controller_dt=context.controller_dt,
+        delay=context.delay,
+        initial=default.trim_vector,
+        build_point_evaluation=True,
+    )
+    assert bundled.point_evaluation is not None
+    bundled_context = replace(context, trim=bundled.state)
+    legacy_next, _command = local_poles.advance_augmented_state(
+        bundled.state,
+        controller=controller,
+        plant=plant,
+        actuator_parameters=actuator,
+        reference=context.reference,
+        controller_dt=context.controller_dt,
+        delay=context.delay,
+    )
+    assert np.array_equal(
+        local_poles.encode_local_state(legacy_next, bundled_context),
+        local_poles.encode_local_state(
+            bundled.point_evaluation.next_augmented_state,
+            bundled_context,
+        ),
+    )
+    legacy_jacobian, legacy_near_kink = (
+        local_poles.analytic_closed_loop_jacobian(bundled_context)
+    )
+    assert np.array_equal(
+        legacy_jacobian,
+        bundled.point_evaluation.closed_loop_jacobian,
+    )
+    assert legacy_near_kink == bundled.point_evaluation.near_kink
 
 
 def test_filled_nonzero_delay_queue_preserves_trim():

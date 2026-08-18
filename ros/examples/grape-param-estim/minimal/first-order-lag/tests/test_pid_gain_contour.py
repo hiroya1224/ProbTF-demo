@@ -51,6 +51,8 @@ def test_unresolved_trim_is_returned_as_an_invalid_pole_sample() -> None:
         piecewise_linearization_near_kink=False,
         root_nfev=11,
         trim_vector=np.zeros(10),
+        root_initial_step_infinity_norm=0.0,
+        root_initial_unchanged=True,
     )
     task = ((7,), (object(),), object(), object(), 0.01, object(), None, None)
     with patch(
@@ -199,12 +201,16 @@ def test_trim_fallback_retries_nearest_then_generic_without_dropping_sample() ->
         piecewise_linearization_near_kink=False,
         root_nfev=9,
         trim_vector=np.zeros(10),
+        root_initial_step_infinity_norm=1.0,
+        root_initial_unchanged=False,
     )
     valid = SimpleNamespace(
         equilibrium_valid=True,
         piecewise_linearization_near_kink=False,
         root_nfev=4,
         trim_vector=np.arange(10, dtype=float),
+        root_initial_step_infinity_norm=2.0,
+        root_initial_unchanged=False,
     )
     calls = []
 

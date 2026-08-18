@@ -136,6 +136,8 @@ class GainPointEvaluation:
     trim_wall_seconds: float
     analytic_jacobian_wall_seconds: float
     eigensystem_wall_seconds: float
+    initial_step_infinity_norm: np.ndarray
+    initial_unchanged: np.ndarray
     stage: str
 
 
@@ -251,6 +253,8 @@ def _exact_matrix_with_configuration(
     bool,
     float,
     float,
+    float,
+    bool,
 ]:
     """Solve one exact sample, retrying continuation failures conservatively."""
 
@@ -334,6 +338,8 @@ def _exact_matrix_with_configuration(
             cold_primary,
             float(trim_seconds),
             float(jacobian_seconds),
+            float("nan"),
+            False,
         )
 
     trim = final_result["trim"]
@@ -353,6 +359,8 @@ def _exact_matrix_with_configuration(
             cold_primary,
             float(trim_seconds),
             float(jacobian_seconds),
+            float(trim.root_initial_step_infinity_norm),
+            bool(trim.root_initial_unchanged),
         )
     matrix = final_result.get("jacobian")
     if matrix is None:
@@ -372,6 +380,8 @@ def _exact_matrix_with_configuration(
         cold_primary,
         float(trim_seconds),
         float(jacobian_seconds),
+        float(trim.root_initial_step_infinity_norm),
+        bool(trim.root_initial_unchanged),
     )
 
 
@@ -401,6 +411,8 @@ def _exact_matrix_chunk_task(
     cold_primary = np.zeros(selected_indices.size, dtype=bool)
     trim_seconds = np.zeros(selected_indices.size, dtype=float)
     jacobian_seconds = np.zeros(selected_indices.size, dtype=float)
+    initial_step_infinity_norm = np.full(selected_indices.size, np.nan, dtype=float)
+    initial_unchanged = np.zeros(selected_indices.size, dtype=bool)
     for local_index, plant in enumerate(plants):
         row_initial = None if initial_trims is None else initial_trims[local_index]
         row_nearest = None if nearest_trims is None else nearest_trims[local_index]
@@ -416,6 +428,8 @@ def _exact_matrix_chunk_task(
             row_cold_primary,
             row_trim_seconds,
             row_jacobian_seconds,
+            row_initial_step_infinity_norm,
+            row_initial_unchanged,
         ) = _exact_matrix_with_configuration(
             plant=plant,
             vehicle_model=vehicle_model,
@@ -440,6 +454,8 @@ def _exact_matrix_chunk_task(
         cold_primary[local_index] = row_cold_primary
         trim_seconds[local_index] = row_trim_seconds
         jacobian_seconds[local_index] = row_jacobian_seconds
+        initial_step_infinity_norm[local_index] = row_initial_step_infinity_norm
+        initial_unchanged[local_index] = row_initial_unchanged
     return (
         selected_indices,
         matrices,
@@ -454,6 +470,8 @@ def _exact_matrix_chunk_task(
         cold_primary,
         trim_seconds,
         jacobian_seconds,
+        initial_step_infinity_norm,
+        initial_unchanged,
     )
 
 
@@ -620,6 +638,8 @@ class ExactGroupGainEvaluator:
         cold_primary = np.zeros(sample_count, dtype=bool)
         trim_seconds = np.zeros(sample_count, dtype=float)
         jacobian_seconds = np.zeros(sample_count, dtype=float)
+        initial_step_infinity_norm = np.full(sample_count, np.nan, dtype=float)
+        initial_unchanged = np.zeros(sample_count, dtype=bool)
         filled = np.zeros(sample_count, dtype=bool)
         for row in rows:
             (
@@ -636,6 +656,8 @@ class ExactGroupGainEvaluator:
                 chunk_cold_primary,
                 chunk_trim_seconds,
                 chunk_jacobian_seconds,
+                chunk_initial_step_infinity_norm,
+                chunk_initial_unchanged,
             ) = row
             matrices[indices] = chunk_matrices
             pole_valid[indices] = chunk_pole_valid
@@ -649,6 +671,8 @@ class ExactGroupGainEvaluator:
             cold_primary[indices] = chunk_cold_primary
             trim_seconds[indices] = chunk_trim_seconds
             jacobian_seconds[indices] = chunk_jacobian_seconds
+            initial_step_infinity_norm[indices] = chunk_initial_step_infinity_norm
+            initial_unchanged[indices] = chunk_initial_unchanged
             filled[indices] = True
         if not np.all(filled):
             raise RuntimeError("exact plant sample ordering changed during evaluation")
@@ -665,6 +689,8 @@ class ExactGroupGainEvaluator:
             cold_primary,
             trim_seconds,
             jacobian_seconds,
+            initial_step_infinity_norm,
+            initial_unchanged,
         )
 
     @staticmethod
@@ -709,6 +735,8 @@ class ExactGroupGainEvaluator:
             cold_primary,
             trim_seconds,
             jacobian_seconds,
+            initial_step_infinity_norm,
+            initial_unchanged,
         ) = self._matrix_stack(key, initial, nearest)
         # NumPy accepts a stack of square matrices.  All 512 eigensystems are
         # therefore dispatched in one call rather than a Python eigvals loop.
@@ -739,6 +767,8 @@ class ExactGroupGainEvaluator:
             trim_wall_seconds=float(np.sum(trim_seconds)),
             analytic_jacobian_wall_seconds=float(np.sum(jacobian_seconds)),
             eigensystem_wall_seconds=float(eigensystem_seconds),
+            initial_step_infinity_norm=initial_step_infinity_norm,
+            initial_unchanged=initial_unchanged,
             stage=str(stage),
         )
         self._evaluation_cache[key] = result
@@ -792,6 +822,23 @@ class ExactGroupGainEvaluator:
             attempts = np.concatenate(
                 [row.attempt_nfev[row.attempt_nfev >= 0] for row in selected]
             ) if selected else np.empty(0, dtype=int)
+            nfev_one_displacements = np.concatenate(
+                [
+                    row.initial_step_infinity_norm[
+                        (row.trim_nfev == 1)
+                        & np.isfinite(row.initial_step_infinity_norm)
+                    ]
+                    for row in selected
+                ]
+            ) if selected else np.empty(0, dtype=float)
+            nfev_one_unchanged_count = int(
+                sum(
+                    np.count_nonzero(
+                        (row.trim_nfev == 1) & row.initial_unchanged
+                    )
+                    for row in selected
+                )
+            )
             return {
                 "unique_gain_point_count": len(selected),
                 "trim_solve_count": int(attempts.size),
@@ -810,6 +857,25 @@ class ExactGroupGainEvaluator:
                 "trim_nfev_mean": (None if attempts.size == 0 else float(np.mean(attempts))),
                 "trim_nfev_median": (None if attempts.size == 0 else float(np.median(attempts))),
                 "trim_nfev_max": (None if attempts.size == 0 else int(np.max(attempts))),
+                "trim_nfev_one_count": int(nfev_one_displacements.size),
+                "trim_nfev_one_initial_exactly_unchanged_count": nfev_one_unchanged_count,
+                "trim_nfev_one_initial_exactly_unchanged_fraction": (
+                    None
+                    if nfev_one_displacements.size == 0
+                    else float(
+                        nfev_one_unchanged_count / nfev_one_displacements.size
+                    )
+                ),
+                "trim_nfev_one_initial_step_infinity_norm_median": (
+                    None
+                    if nfev_one_displacements.size == 0
+                    else float(np.median(nfev_one_displacements))
+                ),
+                "trim_nfev_one_initial_step_infinity_norm_max": (
+                    None
+                    if nfev_one_displacements.size == 0
+                    else float(np.max(nfev_one_displacements))
+                ),
                 "trim_wall_seconds_sum_over_workers": float(
                     sum(row.trim_wall_seconds for row in selected)
                 ),

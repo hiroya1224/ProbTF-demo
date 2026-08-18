@@ -1,0 +1,90 @@
+{
+  "affine_matrix_audit": {
+    "basis_ratio": 1.12,
+    "fallback_samples": 0,
+    "maximum_relative_frobenius_error": 8.659407246209526e-10,
+    "median_relative_frobenius_error": 4.377637419566961e-10,
+    "piecewise_near_kink_samples": 0,
+    "tolerance": 1.5019429324804243e-07,
+    "valid_samples": 512
+  },
+  "alpha": 0.95,
+  "case_name": "success",
+  "controller_dt_seconds": 0.009998321533203125,
+  "covariance": "conservative_fusion",
+  "estimate_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/success/estimate.json",
+  "files": {
+    "npz": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/success/pid_gain_contour/z/gain_contour.npz",
+    "png": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/success/pid_gain_contour/z/gain_contour.png"
+  },
+  "first_order_time_constant_seconds": 0.24061176285952063,
+  "gain_domain": {
+    "coordinate": "log(gain / recorded_gain)",
+    "ratio_max": 3.0000000000000004,
+    "ratio_min": 0.3499999999999999
+  },
+  "group": "z",
+  "method": {
+    "boundary": "Phi=0 predictor-corrector pseudo-arclength Newton continuation",
+    "closed_loop_model": "full_26_state_sampled_data_first_order_actuator",
+    "coarse_grid_role": "connected-component seeding and interior shading only",
+    "eigenvalue_gradient": "left/right eigenvector sensitivity when differentiable",
+    "nonsmooth_gradient_fallback": "central finite difference in log-gain coordinates",
+    "projection": "minimize robust scalar over hidden gain",
+    "robust_scalar": "ceil(alpha*N)-th order statistic of log spectral radius",
+    "topology_limitation": "components smaller than the coarse seed cells are not certified absent"
+  },
+  "projections": [
+    {
+      "boundary_point_count": 0,
+      "coarse_seed_grid_size": 9,
+      "coarse_seed_max": -0.00023604203354254147,
+      "coarse_seed_min": -0.00025307492353302197,
+      "component_count": 0,
+      "hidden_axis": 2,
+      "name": "pi",
+      "visible_axes": [
+        0,
+        1
+      ]
+    },
+    {
+      "boundary_point_count": 24,
+      "coarse_seed_grid_size": 9,
+      "coarse_seed_max": 0.0035581112270547974,
+      "coarse_seed_min": -0.00025307492353324407,
+      "component_count": 1,
+      "hidden_axis": 0,
+      "name": "id",
+      "visible_axes": [
+        1,
+        2
+      ]
+    },
+    {
+      "boundary_point_count": 0,
+      "coarse_seed_grid_size": 9,
+      "coarse_seed_max": 0.006315871071293623,
+      "coarse_seed_min": -0.0002530749235325778,
+      "component_count": 0,
+      "hidden_axis": 1,
+      "name": "dp",
+      "visible_axes": [
+        2,
+        0
+      ]
+    }
+  ],
+  "recorded_gain": {
+    "d_gain": 2.5,
+    "exact_stable_fraction": 1.0,
+    "i_gain": 1.0,
+    "p_gain": 5.0
+  },
+  "sample_count": 512,
+  "schema": "grape-param-estim/first-order-lag-pid-gain-contour/v1",
+  "seed": 0,
+  "source_commit": "2b8b24e13b75e5bdf13a65672839c24ea842f5e5",
+  "success_group_only": null,
+  "success_json": null
+}

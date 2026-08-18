@@ -70,7 +70,7 @@ def _write_case_summary(case: str, groups: Sequence[str]) -> None:
 
     assert baseline_reference is not None
     schemas = {str(row["schema"]) for row in rows}
-    if schemas != {"grape-param-estim/first-order-lag-pid-group-survival/v4"}:
+    if schemas != {"grape-param-estim/first-order-lag-pid-group-survival/v5"}:
         raise RuntimeError(f"unexpected group contour schemas: {sorted(schemas)}")
     source_commits = {str(row["source_commit"]) for row in rows}
     if len(source_commits) != 1:
@@ -100,7 +100,7 @@ def _write_case_summary(case: str, groups: Sequence[str]) -> None:
         )
 
     summary = {
-        "schema": "grape-param-estim/first-order-lag-pid-group-survival/v4-summary",
+        "schema": "grape-param-estim/first-order-lag-pid-group-survival/v5-summary",
         "source_commit": source_commits.pop(),
         "case_name": case,
         "sample_count": int(baseline_reference.size),

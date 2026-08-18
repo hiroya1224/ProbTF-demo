@@ -18,11 +18,14 @@ The three views are slices through the failure gain:
     ID: P = P_failure
     DP: I = I_failure
 
-Global search uses nested dyadic grids 3x3 -> 5x5 -> 9x9 -> 17x17 only until
-the boundary is first detected.  From that point onward, only boundary cells
-are split, until the local spacing reaches the configured final equivalent
-grid size (33x33 by default).  If no boundary is found through 17x17, the
-search stops there.  Every repeated gain point is cached exactly.
+Global search uses nested dyadic grids 3x3 -> 5x5 -> 9x9 only until the
+boundary is first detected.  From that point onward, only boundary cells are
+split, until the local spacing reaches the configured final equivalent grid
+size (33x33 by default).  If no boundary is found through 9x9, one exact
+center probe is evaluated in every 9x9 cell.  Only cells made suspicious by
+those probes are refined to 17x17-equivalent spacing, after which confirmed
+boundary cells alone are refined to 33x33-equivalent spacing.  Every repeated
+gain point is cached exactly.
 """
 
 from __future__ import annotations
@@ -76,14 +79,14 @@ from gimbalrotor_pid_local_pole_validation import (  # noqa: E402
 from single_bag_savgol_reports import source_commit, write_json  # noqa: E402
 
 
-CONTOUR_SCHEMA = "grape-param-estim/first-order-lag-pid-group-survival/v4"
+CONTOUR_SCHEMA = "grape-param-estim/first-order-lag-pid-group-survival/v5"
 DEFAULT_ALPHA = 0.95
 DEFAULT_SAMPLE_COUNT = 512
 DEFAULT_SEED = 0
 DEFAULT_GROUP = "roll_pitch"
 DEFAULT_SCALE_MIN = 0.35
 DEFAULT_SCALE_MAX = 3.0
-DEFAULT_MAX_GRID_SIZE = 17
+DEFAULT_MAX_GRID_SIZE = 9
 DEFAULT_FINAL_BOUNDARY_GRID_SIZE = 33
 DEFAULT_WORKERS = min(12, os.cpu_count() or 1)
 PROJECTION_SPECS = (
@@ -165,7 +168,8 @@ class GridLevel:
 class LocalRefinementLevel:
     level: int
     equivalent_grid_size: int
-    input_boundary_cell_count: int
+    input_cell_kind: str
+    input_cell_count: int
     output_boundary_cell_count: int
     new_point_count: int
     total_cached_point_count: int
@@ -185,6 +189,13 @@ class AdaptiveCell:
 
 
 @dataclass(frozen=True)
+class CenterProbeResult:
+    coordinates: np.ndarray
+    survival_fraction: np.ndarray
+    suspicious_mask: np.ndarray
+
+
+@dataclass(frozen=True)
 class ProjectionGrid:
     name: str
     first_axis: int
@@ -196,6 +207,7 @@ class ProjectionGrid:
     global_levels: tuple[GridLevel, ...]
     boundary_first_seen_grid_size: Optional[int]
     local_refinement_levels: tuple[LocalRefinementLevel, ...]
+    center_probe: Optional[CenterProbeResult]
     adaptive_cells: tuple[AdaptiveCell, ...]
     final_boundary_cells: tuple[AdaptiveCell, ...]
     boundary_segments_log_ratio: np.ndarray
@@ -1586,6 +1598,61 @@ def _split_cell(
     )
 
 
+def _refine_cells_one_level(
+    evaluator: SliceGridEvaluator,
+    cells: Sequence[AdaptiveCell],
+    threshold: float,
+    *,
+    level: int,
+    next_equivalent_grid_size: int,
+    stage_prefix: str,
+    input_cell_kind: str,
+) -> tuple[
+    tuple[AdaptiveCell, ...],
+    tuple[AdaptiveCell, ...],
+    LocalRefinementLevel,
+]:
+    """Split selected cells once and retain only confirmed boundary children."""
+
+    before = evaluator.cached_point_count
+    coordinates = []
+    for cell in cells:
+        xm = 0.5 * (cell.x0 + cell.x1)
+        ym = 0.5 * (cell.y0 + cell.y1)
+        coordinates.extend(
+            (float(x), float(y))
+            for x in (cell.x0, xm, cell.x1)
+            for y in (cell.y0, ym, cell.y1)
+        )
+    _evaluate_coordinates_from_parent_cells(
+        evaluator,
+        coordinates,
+        cells,
+        stage=(
+            f"{stage_prefix}:local_{level}_eq_{next_equivalent_grid_size}"
+        ),
+    )
+    boundary: list[AdaptiveCell] = []
+    leaves: list[AdaptiveCell] = []
+    for cell in cells:
+        for child in _split_cell(evaluator, cell):
+            if _cell_brackets(child.values, threshold):
+                boundary.append(child)
+            else:
+                leaves.append(child)
+    after = evaluator.cached_point_count
+    diagnostics = LocalRefinementLevel(
+        level=int(level),
+        equivalent_grid_size=int(next_equivalent_grid_size),
+        input_cell_kind=str(input_cell_kind),
+        input_cell_count=len(cells),
+        output_boundary_cell_count=len(boundary),
+        new_point_count=int(after - before),
+        total_cached_point_count=int(after),
+    )
+    return tuple(leaves), tuple(boundary), diagnostics
+
+
 def _refine_boundary_to_target(
     evaluator: SliceGridEvaluator,
     base_cells: Sequence[AdaptiveCell],
@@ -1606,44 +1673,108 @@ def _refine_boundary_to_target(
     level = 0
     current = boundary
     while current and effective < int(target_grid_size):
-        before = evaluator.cached_point_count
         next_effective = _next_nested_size(effective)
-        coordinates = []
-        for cell in current:
-            xm = 0.5 * (cell.x0 + cell.x1)
-            ym = 0.5 * (cell.y0 + cell.y1)
-            coordinates.extend(
-                (float(x), float(y))
-                for x in (cell.x0, xm, cell.x1)
-                for y in (cell.y0, ym, cell.y1)
-            )
-        _evaluate_coordinates_from_parent_cells(
-            evaluator,
-            coordinates,
-            current,
-            stage=f"{stage_prefix}:local_{level + 1}_eq_{next_effective}",
-        )
-        next_boundary: list[AdaptiveCell] = []
-        for cell in current:
-            for child in _split_cell(evaluator, cell):
-                if _cell_brackets(child.values, threshold):
-                    next_boundary.append(child)
-                else:
-                    leaves.append(child)
-        after = evaluator.cached_point_count
         level += 1
-        effective = next_effective
-        diagnostics.append(
-            LocalRefinementLevel(
-                level=level,
-                equivalent_grid_size=effective,
-                input_boundary_cell_count=len(current),
-                output_boundary_cell_count=len(next_boundary),
-                new_point_count=int(after - before),
-                total_cached_point_count=int(after),
-            )
+        new_leaves, next_boundary, row = _refine_cells_one_level(
+            evaluator,
+            current,
+            threshold,
+            level=level,
+            next_equivalent_grid_size=next_effective,
+            stage_prefix=stage_prefix,
+            input_cell_kind="boundary",
         )
+        leaves.extend(new_leaves)
+        effective = next_effective
+        diagnostics.append(row)
+        current = list(next_boundary)
+    leaves.extend(current)
+    return tuple(leaves), tuple(current), tuple(diagnostics), int(effective)
+
+
+def _probe_cell_centers(
+    evaluator: SliceGridEvaluator,
+    cells: Sequence[AdaptiveCell],
+    threshold: float,
+    *,
+    stage: str,
+) -> tuple[CenterProbeResult, tuple[AdaptiveCell, ...]]:
+    """Exactly evaluate every cell center and identify hidden crossings."""
+
+    coordinates = tuple(
+        (
+            0.5 * (cell.x0 + cell.x1),
+            0.5 * (cell.y0 + cell.y1),
+        )
+        for cell in cells
+    )
+    _evaluate_coordinates_from_parent_cells(
+        evaluator,
+        coordinates,
+        cells,
+        stage=stage,
+    )
+    values = np.asarray(
+        [evaluator.evaluate(*coordinate) for coordinate in coordinates],
+        dtype=float,
+    )
+    suspicious = np.asarray(
+        [
+            not _cell_brackets(cell.values, threshold)
+            and min(*cell.values, float(center)) <= float(threshold)
+            <= max(*cell.values, float(center))
+            for cell, center in zip(cells, values)
+        ],
+        dtype=bool,
+    )
+    return (
+        CenterProbeResult(
+            coordinates=np.asarray(coordinates, dtype=float),
+            survival_fraction=values,
+            suspicious_mask=suspicious,
+        ),
+        tuple(cell for cell, selected in zip(cells, suspicious) if selected),
+    )
+
+
+def _refine_suspicious_to_target(
+    evaluator: SliceGridEvaluator,
+    base_cells: Sequence[AdaptiveCell],
+    suspicious_cells: Sequence[AdaptiveCell],
+    threshold: float,
+    starting_grid_size: int,
+    target_grid_size: int,
+    stage_prefix: str,
+) -> tuple[
+    tuple[AdaptiveCell, ...],
+    tuple[AdaptiveCell, ...],
+    tuple[LocalRefinementLevel, ...],
+    int,
+]:
+    """Refine probe-selected cells once, then follow confirmed boundaries."""
+
+    suspicious = set(suspicious_cells)
+    leaves = [cell for cell in base_cells if cell not in suspicious]
+    current = tuple(suspicious_cells)
+    diagnostics = []
+    effective = int(starting_grid_size)
+    level = 0
+    while current and effective < int(target_grid_size):
+        level += 1
+        next_effective = _next_nested_size(effective)
+        new_leaves, next_boundary, row = _refine_cells_one_level(
+            evaluator,
+            current,
+            threshold,
+            level=level,
+            next_equivalent_grid_size=next_effective,
+            stage_prefix=stage_prefix,
+            input_cell_kind=("suspicious" if level == 1 else "boundary"),
+        )
+        leaves.extend(new_leaves)
         current = next_boundary
+        diagnostics.append(row)
+        effective = next_effective
     leaves.extend(current)
     return tuple(leaves), tuple(current), tuple(diagnostics), int(effective)
 
@@ -1742,6 +1873,8 @@ def _adaptive_projection_grid(
     maximum_grid_size: int,
     final_boundary_grid_size: int,
 ) -> ProjectionGrid:
+    if int(maximum_grid_size) != DEFAULT_MAX_GRID_SIZE:
+        raise ValueError("global PID contour search size must be fixed at 9x9")
     levels: list[GridLevel] = []
     size = 3
     center = 0.5 * (float(lower) + float(upper))
@@ -1786,6 +1919,7 @@ def _adaptive_projection_grid(
     base_cells = _grid_cells(final_axis, final_field)
     first_seen = int(final_axis.size) if boundary else None
     local_levels: tuple[LocalRefinementLevel, ...] = ()
+    center_probe: Optional[CenterProbeResult] = None
     if boundary:
         adaptive_cells, final_boundary_cells, local_levels, effective = (
             _refine_boundary_to_target(
@@ -1798,13 +1932,43 @@ def _adaptive_projection_grid(
             )
         )
         segments = _boundary_segments_from_cells(final_boundary_cells, threshold)
-        stop_reason = "boundary_found_then_refined_locally_to_target_spacing"
+        stop_reason = (
+            "boundary_found_on_global_grid_then_refined_locally_to_target_spacing"
+        )
     else:
-        adaptive_cells = tuple(base_cells)
-        final_boundary_cells = ()
-        effective = int(final_axis.size)
-        segments = np.empty((0, 2, 2), dtype=float)
-        stop_reason = "no_boundary_detected_through_global_17x17_search"
+        center_probe, suspicious_cells = _probe_cell_centers(
+            evaluator,
+            base_cells,
+            threshold,
+            stage=f"{name}:center_probe_{final_axis.size}x{final_axis.size}_cells",
+        )
+        if suspicious_cells:
+            adaptive_cells, final_boundary_cells, local_levels, effective = (
+                _refine_suspicious_to_target(
+                    evaluator,
+                    base_cells,
+                    suspicious_cells,
+                    threshold,
+                    int(final_axis.size),
+                    int(final_boundary_grid_size),
+                    str(name),
+                )
+            )
+            segments = _boundary_segments_from_cells(
+                final_boundary_cells, threshold
+            )
+            stop_reason = (
+                "center_probe_detected_suspicious_cells_then_refined_"
+                "locally_to_target_spacing"
+            )
+        else:
+            adaptive_cells = tuple(base_cells)
+            final_boundary_cells = ()
+            effective = int(final_axis.size)
+            segments = np.empty((0, 2, 2), dtype=float)
+            stop_reason = (
+                "no_boundary_detected_through_global_{}x{}_and_cell_center_probes"
+            ).format(final_axis.size, final_axis.size)
 
     hidden_gain = float(evaluator.group_evaluator.base_gain[hidden_axis])
     return ProjectionGrid(
@@ -1818,6 +1982,7 @@ def _adaptive_projection_grid(
         global_levels=tuple(levels),
         boundary_first_seen_grid_size=first_seen,
         local_refinement_levels=local_levels,
+        center_probe=center_probe,
         adaptive_cells=adaptive_cells,
         final_boundary_cells=tuple(final_boundary_cells),
         boundary_segments_log_ratio=segments,
@@ -1927,15 +2092,49 @@ def _projection_payload(projection: ProjectionGrid) -> Mapping[str, Any]:
         [value for cell in projection.adaptive_cells for value in cell.values],
         dtype=float,
     )
+    probe = projection.center_probe
+    evaluated_values = (
+        adaptive_values
+        if probe is None
+        else np.concatenate((adaptive_values, probe.survival_fraction))
+    )
     return {
         "name": projection.name,
         "visible_axes": [projection.first_axis, projection.second_axis],
         "hidden_axis": projection.hidden_axis,
         "hidden_gain_fixed_at_failure_recorded": projection.hidden_gain,
         "global_grid_size_at_stop": int(projection.axis_log_ratio.size),
-        "minimum_survival_fraction": float(np.min(adaptive_values)),
-        "maximum_survival_fraction": float(np.max(adaptive_values)),
+        "minimum_survival_fraction": float(np.min(evaluated_values)),
+        "maximum_survival_fraction": float(np.max(evaluated_values)),
         "boundary_first_seen_global_grid_size": projection.boundary_first_seen_grid_size,
+        "boundary_detection_source": (
+            "global_grid"
+            if projection.boundary_first_seen_grid_size is not None
+            else (
+                "center_probe"
+                if probe is not None and np.any(probe.suspicious_mask)
+                else None
+            )
+        ),
+        "center_probe": {
+            "performed": probe is not None,
+            "evaluated_point_count": (
+                0 if probe is None else int(probe.coordinates.shape[0])
+            ),
+            "suspicious_cell_count": (
+                0 if probe is None else int(np.count_nonzero(probe.suspicious_mask))
+            ),
+            "minimum_survival_fraction": (
+                None
+                if probe is None
+                else float(np.min(probe.survival_fraction))
+            ),
+            "maximum_survival_fraction": (
+                None
+                if probe is None
+                else float(np.max(probe.survival_fraction))
+            ),
+        },
         "adaptive_leaf_cell_count": int(len(projection.adaptive_cells)),
         "final_boundary_cell_count": int(len(projection.final_boundary_cells)),
         "boundary_segment_count": int(projection.boundary_segments_log_ratio.shape[0]),
@@ -1956,7 +2155,18 @@ def _projection_payload(projection: ProjectionGrid) -> Mapping[str, Any]:
             {
                 "level": level.level,
                 "equivalent_grid_size": level.equivalent_grid_size,
-                "input_boundary_cell_count": level.input_boundary_cell_count,
+                "input_cell_kind": level.input_cell_kind,
+                "input_cell_count": level.input_cell_count,
+                "input_boundary_cell_count": (
+                    level.input_cell_count
+                    if level.input_cell_kind == "boundary"
+                    else 0
+                ),
+                "input_suspicious_cell_count": (
+                    level.input_cell_count
+                    if level.input_cell_kind == "suspicious"
+                    else 0
+                ),
                 "output_boundary_cell_count": level.output_boundary_cell_count,
                 "new_point_count": level.new_point_count,
                 "total_cached_point_count": level.total_cached_point_count,
@@ -2128,6 +2338,28 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             projection_arrays[
                 f"{projection.name}_adaptive_cells_log_ratio_and_survival"
             ] = _adaptive_cell_array(projection.adaptive_cells)
+            probe = projection.center_probe
+            projection_arrays[
+                f"{projection.name}_center_probe_log_ratio"
+            ] = (
+                np.empty((0, 2), dtype=float)
+                if probe is None
+                else probe.coordinates
+            )
+            projection_arrays[
+                f"{projection.name}_center_probe_survival_fraction"
+            ] = (
+                np.empty(0, dtype=float)
+                if probe is None
+                else probe.survival_fraction
+            )
+            projection_arrays[
+                f"{projection.name}_center_probe_suspicious_mask"
+            ] = (
+                np.empty(0, dtype=bool)
+                if probe is None
+                else probe.suspicious_mask
+            )
         np.savez_compressed(
             output / "gain_contour.npz",
             base_gain=group_evaluator.base_gain,
@@ -2175,15 +2407,16 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "linearization": "exact active-branch analytic Jacobian of the implemented sampled closed-loop map",
                 "gain_surrogate": None,
                 "eigensystems": "batched numpy.linalg.eigvals on the complete sample-by-26-by-26 Jacobian stack",
-                "global_search": "nested 3x3 -> 5x5 -> 9x9 -> 17x17, stopping globally as soon as the survival boundary is detected",
-                "local_refinement": "after first detection, only boundary cells are split dyadically until 33x33-equivalent spacing by default",
+                "global_search": "nested 3x3 -> 5x5 -> 9x9, stopping globally as soon as the survival boundary is detected; no global 17x17 grid is constructed",
+                "center_probe": "if 9x9 corners show no boundary, exactly evaluate one center per 9x9 cell and mark only cells where corners plus center bracket alpha",
+                "local_refinement": "refine global boundary cells directly to 33x33-equivalent spacing; otherwise refine center-probe suspicious cells to 17x17-equivalent spacing and only confirmed boundary cells to 33x33-equivalent spacing",
                 "grid_reuse": "all repeated gain points are cached and never reevaluated",
-                "trim_continuation": "cold 1x1 center anchor; exact warm-corrected parent-cell bilinear predictors for global and local refinement",
+                "trim_continuation": "cold 1x1 center anchor; parent-cell bilinear trim initial guesses for nested global points, center probes, and local refinement; every final point uses exact nonlinear trim",
                 "refinement_scheduling": "freeze all predictors for one adaptive wave, then queue every gain-by-plant-chunk task before the next wave",
                 "trim_fallback": "per sample: warm predictor, nearest already-converged visible gain point, then the original generic initialization",
                 "boundary": "piecewise-linear alpha-survival segments retained as numeric diagnostics but not overlaid on the heatmap",
                 "heatmap": "adaptive leaf cells retain their survival values; only boundary neighborhoods become finer",
-                "topology_limitation": "if no sampled cell brackets alpha through the 17x17 global search, sub-cell boundary islands are not certified absent",
+                "topology_limitation": "If no boundary is detected through the global 9x9 grid and one center probe per cell, sub-cell boundary islands away from the cell center are not certified absent.",
             },
             "gain_domain": {
                 "ratio_min": float(math.exp(lower)),
@@ -2278,6 +2511,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--max-grid-size",
         type=int,
         default=DEFAULT_MAX_GRID_SIZE,
+        help="fixed global nested-grid cap (must be 9)",
     )
     parser.add_argument(
         "--final-boundary-grid-size",
@@ -2312,6 +2546,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         raise SystemExit("gain scale bounds must satisfy 0 < min < max")
     if not _is_dyadic_nested_size(arguments.max_grid_size):
         raise SystemExit("--max-grid-size must be 2^k + 1 and at least three")
+    if arguments.max_grid_size != DEFAULT_MAX_GRID_SIZE:
+        raise SystemExit("--max-grid-size must be 9")
     if not _is_dyadic_nested_size(arguments.final_boundary_grid_size):
         raise SystemExit(
             "--final-boundary-grid-size must be 2^k + 1 and at least three"

@@ -107,7 +107,7 @@ def test_adaptive_grid_stops_global_search_then_refines_only_boundary_cells() ->
         lower=-1.0,
         upper=1.0,
         threshold=0.95,
-        maximum_grid_size=17,
+        maximum_grid_size=9,
         final_boundary_grid_size=33,
     )
     assert result.axis_log_ratio.size == 3
@@ -118,7 +118,10 @@ def test_adaptive_grid_stops_global_search_then_refines_only_boundary_cells() ->
     assert len(result.local_refinement_levels) == 4
     assert result.boundary_segments_log_ratio.shape[0] > 0
     assert result.effective_local_equivalent_grid_size == 33
-    assert result.stop_reason == "boundary_found_then_refined_locally_to_target_spacing"
+    assert result.stop_reason == (
+        "boundary_found_on_global_grid_then_refined_locally_to_target_spacing"
+    )
+    assert result.center_probe is None
     assert evaluator.cached_point_count == group.calls
     assert group.calls > 3 * 3
     assert group.calls < 33 * 33
@@ -134,7 +137,7 @@ def test_boundary_detection_requires_a_crossing_cell() -> None:
     assert _boundary_present(mixed, 0.05)
 
 
-def test_no_boundary_uses_full_nested_global_search() -> None:
+def test_no_boundary_stops_after_9x9_and_all_cell_center_probes() -> None:
     class _IslandGroup(_SyntheticGroupEvaluator):
         def survival_fraction(self, coordinate):
             self.calls += 1
@@ -158,16 +161,21 @@ def test_no_boundary_uses_full_nested_global_search() -> None:
         lower=-1.0,
         upper=1.0,
         threshold=0.95,
-        maximum_grid_size=17,
+        maximum_grid_size=9,
         final_boundary_grid_size=33,
     )
-    assert [level.size for level in result.global_levels] == [3, 5, 9, 17]
-    assert [level.new_point_count for level in result.global_levels] == [8, 16, 56, 208]
+    assert [level.size for level in result.global_levels] == [3, 5, 9]
+    assert [level.new_point_count for level in result.global_levels] == [8, 16, 56]
     assert result.boundary_first_seen_grid_size is None
     assert not result.local_refinement_levels
     assert result.boundary_segments_log_ratio.shape == (0, 2, 2)
-    assert result.stop_reason == "no_boundary_detected_through_global_17x17_search"
-    assert evaluator.cached_point_count == group.calls == 17 * 17
+    assert result.stop_reason == (
+        "no_boundary_detected_through_global_9x9_and_cell_center_probes"
+    )
+    assert result.center_probe is not None
+    assert result.center_probe.coordinates.shape == (64, 2)
+    assert not np.any(result.center_probe.suspicious_mask)
+    assert evaluator.cached_point_count == group.calls == 9 * 9 + 64
 
 
 def test_bilinear_trim_predictor_has_expected_midpoint_algebra() -> None:
@@ -248,6 +256,12 @@ def test_refinement_coordinates_are_submitted_as_one_frozen_wave() -> None:
         and set(np.unique(request.nearest_trims)).issubset({0.0, 1.0, 2.0, 3.0})
         for request in requests
     )
+    center_request = next(
+        request
+        for request in requests
+        if np.array_equal(request.log_ratio, np.asarray((0.5, 0.5, 0.0)))
+    )
+    assert np.array_equal(center_request.initial_trims, np.full((2, 10), 1.5))
     assert evaluator.cached_point_count == len(corners) + len(coordinates)
 
 
@@ -333,8 +347,12 @@ def test_trim_fallback_retries_nearest_then_generic_without_dropping_sample() ->
 
 
 def test_boundary_discovery_schedule_reaches_same_33_equivalent_spacing() -> None:
-    expected = {0.5: (5, 3), 0.25: (9, 2), 0.125: (17, 1)}
-    for center, (first_seen, local_count) in expected.items():
+    expected = {
+        0.5: (5, 3, "global_grid"),
+        0.25: (9, 2, "global_grid"),
+        0.125: (None, 2, "center_probe"),
+    }
+    for center, (first_seen, local_count, detection_source) in expected.items():
         class _LateBoundary(_SyntheticGroupEvaluator):
             def survival_fraction(self, coordinate):
                 self.calls += 1
@@ -347,8 +365,24 @@ def test_boundary_discovery_schedule_reaches_same_33_equivalent_spacing() -> Non
         result = _adaptive_projection_grid(
             evaluator, name="pi", first_axis=0, second_axis=1, hidden_axis=2,
             lower=-1.0, upper=1.0, threshold=0.95,
-            maximum_grid_size=17, final_boundary_grid_size=33,
+            maximum_grid_size=9, final_boundary_grid_size=33,
         )
         assert result.boundary_first_seen_grid_size == first_seen
         assert len(result.local_refinement_levels) == local_count
         assert result.effective_local_equivalent_grid_size == 33
+        if detection_source == "center_probe":
+            assert result.center_probe is not None
+            assert np.count_nonzero(result.center_probe.suspicious_mask) == 1
+            assert [
+                level.input_cell_kind for level in result.local_refinement_levels
+            ] == ["suspicious", "boundary"]
+            assert result.stop_reason == (
+                "center_probe_detected_suspicious_cells_then_refined_"
+                "locally_to_target_spacing"
+            )
+        else:
+            assert result.center_probe is None
+            assert all(
+                level.input_cell_kind == "boundary"
+                for level in result.local_refinement_levels
+            )

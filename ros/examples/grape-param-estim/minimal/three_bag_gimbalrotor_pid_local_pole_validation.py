@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import os
 from pathlib import Path
 import sys
 from typing import Any, Mapping, Optional, Sequence
@@ -32,6 +34,7 @@ from gimbalrotor_pid_local_pole_validation import (  # noqa: E402
 THREE_BAG_SCHEMA = "grape-param-estim/gimbalrotor-pid-local-poles-three-bag/v1"
 DEFAULT_COVARIANCE_MODES = ("conservative_fusion", "overlap_corrected")
 DEFAULT_DELAY_MODES = ("fitted_thrust_delay", "zero_thrust_delay")
+DEFAULT_WORKERS = min(6, os.cpu_count() or 1)
 _ESTIMATOR_ROOT = (
     _HERE
     / "outputs"
@@ -229,6 +232,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--fd-check-samples", type=int, default=DEFAULT_FD_CHECK_SAMPLES)
     parser.add_argument("--controller-dt", type=float)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=DEFAULT_WORKERS,
+        help="Independent case workers; sample order inside every case is unchanged.",
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
         "--covariance-mode", action="append", choices=COVARIANCE_MODES,
@@ -245,36 +254,85 @@ def build_argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _execute_case(task: Mapping[str, Any]) -> Mapping[str, Any]:
+    definition = task["definition"]
+    estimator = Path(definition["estimator"])
+    report, arrays, status = analyze_case(
+        result_path=estimator / "result.json",
+        arrays_path=estimator / "arrays.npz",
+        static_postprocess_path=Path(definition["static"]),
+        arguments_path=estimator / "arguments.json",
+        bag_json_path=Path(definition["bag_json"]),
+        controller_yaml_path=Path(task["controller_yaml"]),
+        vehicle_model_path=Path(task["vehicle_model"]),
+        covariance_mode=str(task["covariance_mode"]),
+        sample_count=int(task["samples"]),
+        seed=int(task["seed"]),
+        delay_mode=str(task["delay_mode"]),
+        controller_dt_override=task["controller_dt"],
+        fd_check_samples=int(task["fd_check_samples"]),
+        flight_outcome=str(definition["outcome"]),
+    )
+    case_output = (
+        Path(task["output"])
+        / str(task["covariance_mode"])
+        / str(task["delay_mode"])
+        / str(task["name"])
+    )
+    write_outputs(case_output, report, arrays, status)
+    return _case_row(str(task["name"]), report)
+
+
 def execute(arguments: argparse.Namespace) -> Mapping[str, Any]:
     output = Path(arguments.output_dir).expanduser().resolve()
     covariance_modes = tuple(arguments.covariance_mode or DEFAULT_COVARIANCE_MODES)
     delay_modes = tuple(arguments.delay_mode or DEFAULT_DELAY_MODES)
     cases = tuple(arguments.case or CASE_DEFINITIONS)
-    rows: list[Mapping[str, Any]] = []
+    workers = int(arguments.workers)
+    if workers <= 0:
+        raise ValueError("workers must be positive")
+    tasks: list[Mapping[str, Any]] = []
     for name in cases:
         definition = CASE_DEFINITIONS[name]
-        estimator = Path(definition["estimator"])
         for covariance_mode in covariance_modes:
             for delay_mode in delay_modes:
-                report, arrays, status = analyze_case(
-                    result_path=estimator / "result.json",
-                    arrays_path=estimator / "arrays.npz",
-                    static_postprocess_path=Path(definition["static"]),
-                    arguments_path=estimator / "arguments.json",
-                    bag_json_path=Path(definition["bag_json"]),
-                    controller_yaml_path=arguments.controller_yaml,
-                    vehicle_model_path=arguments.vehicle_model,
-                    covariance_mode=covariance_mode,
-                    sample_count=arguments.samples,
-                    seed=arguments.seed,
-                    delay_mode=delay_mode,
-                    controller_dt_override=arguments.controller_dt,
-                    fd_check_samples=arguments.fd_check_samples,
-                    flight_outcome=str(definition["outcome"]),
+                tasks.append(
+                    {
+                        "name": name,
+                        "definition": definition,
+                        "covariance_mode": covariance_mode,
+                        "delay_mode": delay_mode,
+                        "controller_yaml": Path(arguments.controller_yaml),
+                        "vehicle_model": Path(arguments.vehicle_model),
+                        "samples": arguments.samples,
+                        "seed": arguments.seed,
+                        "controller_dt": arguments.controller_dt,
+                        "fd_check_samples": arguments.fd_check_samples,
+                        "output": output,
+                    }
                 )
-                case_output = output / covariance_mode / delay_mode / name
-                write_outputs(case_output, report, arrays, status)
-                rows.append(_case_row(name, report))
+    if workers == 1:
+        rows = [_execute_case(task) for task in tasks]
+    else:
+        rows = []
+        with ProcessPoolExecutor(max_workers=min(workers, len(tasks))) as pool:
+            futures = [pool.submit(_execute_case, task) for task in tasks]
+            for future in as_completed(futures):
+                rows.append(future.result())
+    order = {
+        (case, covariance, delay): index
+        for index, (case, covariance, delay) in enumerate(
+            (case, covariance, delay)
+            for case in cases
+            for covariance in covariance_modes
+            for delay in delay_modes
+        )
+    }
+    rows.sort(
+        key=lambda row: order[
+            (row["case"], row["covariance_mode"], row["delay_mode"])
+        ]
+    )
     summary = build_summary(rows)
     output.mkdir(parents=True, exist_ok=True)
     write_json(output / "three_bag_local_pole_summary.json", summary)

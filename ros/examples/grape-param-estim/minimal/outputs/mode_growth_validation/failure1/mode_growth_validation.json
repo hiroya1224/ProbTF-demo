@@ -1,0 +1,115 @@
+{
+  "actual_outcome": "crashed",
+  "case": "failure1",
+  "comparison": {
+    "frequency_difference_hz": -0.044690429671828125,
+    "frequency_ratio": 0.9318706116465406,
+    "growth_rate_difference_per_second": 0.15051668004045007,
+    "growth_rate_ratio": 3.7697364103051103
+  },
+  "fit_method": {
+    "flight_label_used_in_fit": false,
+    "frequency_grid_size": 4000,
+    "frequency_initialization": "Lomb-Scargle peak",
+    "frequency_search_max_hz": 2.0,
+    "frequency_search_min_hz": 0.2,
+    "growth_bounds": "numerical representability only: +/- 600/window_duration",
+    "model": "c0 + c1*t + exp(sigma*t)*(a*cos(2*pi*f*t) + b*sin(2*pi*f*t))",
+    "predicted_pole_used_as_fit_initialization": false
+  },
+  "fit_window": {
+    "duration_seconds": 5.98856258392334,
+    "end_seconds": 5.98856258392334,
+    "sample_count": 720,
+    "start_seconds": 0.0,
+    "time_origin": "first valid pose sample in selected bag interval"
+  },
+  "inputs": {
+    "bag_interval_seconds": [
+      19.0,
+      25.0
+    ],
+    "bag_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/bag_jsons/single_rosbag_1.json",
+    "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_4_2026-06-12-17-33-59.bag",
+    "controller_yaml": "/home/leus/catkin_ws/src/jsk_aerial_robot/robots/gimbalrotor/config/grape/GimbalrotorControl.yaml",
+    "estimator_result": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_1_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+    "static_postprocess": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/585db5ba8a236232d85f2097615cf64b7eb76ff0/gimbalrotor_pid_postprocess/single_rosbag_1_prior_free_static_pid_production_20260817/pid_gain_postprocess.json",
+    "vehicle_model": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json"
+  },
+  "observed_fit": {
+    "amplitude_at_start_rad": 0.2387023315206401,
+    "cosine_coefficient_rad": -0.14382295327732403,
+    "doubling_time_seconds": 3.3835164047407913,
+    "frequency_hz": 0.6112736227275786,
+    "growth_rate_per_second": 0.20486000292144196,
+    "initial_frequency_hz_from_lomb_scargle": 0.6136534133533383,
+    "intercept_rad": -0.040269506784501835,
+    "optimizer_message": "`ftol` termination condition is satisfied.",
+    "optimizer_status": 2,
+    "r_squared": 0.9676663515715732,
+    "residual_rms_rad": 0.06215681759289342,
+    "sine_coefficient_rad": 0.1905092154830791,
+    "slope_rad_per_second": -0.0030297328592379796
+  },
+  "pole_model": {
+    "center_equilibrium_valid": true,
+    "center_one_step_trim_defect_norm": 1.3420254491025574e-15,
+    "controller_dt_seconds": 0.0049953460693359375,
+    "controller_dt_source": "recorded_thrust_command_median",
+    "delay_mode": "fitted_thrust_delay",
+    "fitted_thrust_delay_seconds": 0.19719922542572021
+  },
+  "predicted_mode": {
+    "doubling_time_seconds": 12.754964985816002,
+    "eigenvalue": {
+      "angle_rad": 0.020588537101779228,
+      "imag": 0.020592671998446842,
+      "magnitude": 1.000271500553954,
+      "real": 1.0000595065696958
+    },
+    "frequency_hz": 0.6559640523994067,
+    "growth_rate_per_second": 0.0543433228809919,
+    "orientation_axis_xyz": [
+      0.05208737805241053,
+      0.996192092734833,
+      0.0699158023641222
+    ],
+    "orientation_subspace_singular_values": [
+      0.023440763290508808,
+      0.001506272690297599
+    ],
+    "right_eigenvector_omega_imag": [
+      -0.006117135813046761,
+      0.0,
+      -0.0011342029352967619
+    ],
+    "right_eigenvector_omega_real": [
+      -0.005007586365838837,
+      -0.09625273870350835,
+      -0.006750906072080549
+    ],
+    "right_eigenvector_orientation_imag": [
+      0.0011951953272489534,
+      0.023349671615848968,
+      0.0016339904317420435
+    ],
+    "right_eigenvector_orientation_real": [
+      -0.0014999440503443175,
+      -0.0003078613576332045,
+      -0.00029673072006345123
+    ]
+  },
+  "recorded_signal": {
+    "definition": "q(t) = u^T Log(R_ref(t)^T R_pose(t)); u is the principal orientation direction of the dominant oscillatory center right eigenvector",
+    "orientation_axis_xyz": [
+      0.05208737805241053,
+      0.996192092734833,
+      0.0699158023641222
+    ],
+    "pose_sample_count": 720
+  },
+  "schema": "grape-param-estim/gimbalrotor-pid-mode-growth-validation/v1",
+  "scientific_role": "one-shot post-hoc validation; no feedback to estimator, pole classifier, or PID proposal",
+  "source_commit": "48380765deb7195b5e952a16937a734747211e0b",
+  "validation_base_commit": "e640e9d3d80fbd028afd7782a075214ceee9195a"
+}

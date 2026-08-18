@@ -1,0 +1,33 @@
+{
+  "rows": [
+    {
+      "actual_outcome": "crashed",
+      "case": "failure1",
+      "fit_r_squared": 0.9676663515715732,
+      "frequency_ratio": 0.9318706116465406,
+      "growth_rate_ratio": 3.7697364103051103,
+      "observed_doubling_time_seconds": 3.3835164047407913,
+      "observed_frequency_hz": 0.6112736227275786,
+      "observed_growth_rate_per_second": 0.20486000292144196,
+      "predicted_doubling_time_seconds": 12.754964985816002,
+      "predicted_frequency_hz": 0.6559640523994067,
+      "predicted_growth_rate_per_second": 0.0543433228809919
+    },
+    {
+      "actual_outcome": "crashed",
+      "case": "failure2",
+      "fit_r_squared": 0.8431729446713552,
+      "frequency_ratio": 0.8940215152545267,
+      "growth_rate_ratio": 0.6571226473555377,
+      "observed_doubling_time_seconds": 1.756194083460983,
+      "observed_frequency_hz": 0.5531885268349084,
+      "observed_growth_rate_per_second": 0.39468711749326696,
+      "predicted_doubling_time_seconds": 1.1540349053940133,
+      "predicted_frequency_hz": 0.6187642214375751,
+      "predicted_growth_rate_per_second": 0.6006293027361156
+    }
+  ],
+  "schema": "grape-param-estim/gimbalrotor-pid-mode-growth-validation/v1-summary",
+  "source_commit": "48380765deb7195b5e952a16937a734747211e0b",
+  "validation_base_commit": "e640e9d3d80fbd028afd7782a075214ceee9195a"
+}

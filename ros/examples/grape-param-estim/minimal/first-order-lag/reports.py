@@ -10,6 +10,7 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 from scipy.signal import lombscargle
+from scipy.spatial.transform import Rotation
 
 _HERE = Path(__file__).resolve().parent
 _MINIMAL = _HERE.parent
@@ -24,6 +25,7 @@ from matplotlib import pyplot as plt  # noqa: E402
 from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 
 from single_bag_savgol_reports import write_json  # noqa: E402
+from single_bag_wrench_replay import fit_external_wrench_replay  # noqa: E402
 
 
 STANDARD_OUTPUT_FILENAMES = (
@@ -34,8 +36,10 @@ STANDARD_OUTPUT_FILENAMES = (
     "residual_wrench.pdf",
     "residual_wrench_summary.json",
     "result.json",
+    "sensor_reconstruction.pdf",
     "status.json",
     "timing.json",
+    "trajectory_replay.pdf",
 )
 
 WRENCH_LABELS = ("Fx", "Fy", "Fz", "Tx", "Ty", "Tz")
@@ -247,6 +251,290 @@ def write_residual_wrench_pdf(path: Path, *, case_name: str, dataset: Any, evalu
             plt.close(figure)
 
 
+def _trajectory_position_figure(
+    case_name: str,
+    time: np.ndarray,
+    dataset: Any,
+    replay: Any,
+) -> plt.Figure:
+    observed = np.asarray(dataset.reference_sg.sensor_position, dtype=float)
+    reconstructed = np.asarray(replay.reconstructed_sensor_position, dtype=float)
+    error = reconstructed - observed
+    component_rmse = np.sqrt(np.mean(error**2, axis=0))
+    vector_rmse = float(np.sqrt(np.mean(np.sum(error**2, axis=1))))
+
+    figure = plt.figure(figsize=(11.0, 8.5))
+    labels = ("x", "y", "z")
+    for component in range(3):
+        axis = figure.add_subplot(2, 2, component + 1)
+        axis.plot(time, observed[:, component], label="SG observed")
+        axis.plot(
+            time,
+            reconstructed[:, component],
+            "--",
+            label="external-wrench replay",
+        )
+        axis.set_ylabel("{} [m]".format(labels[component]))
+        axis.set_xlabel("time [s]")
+        axis.set_title("RMSE {:.4g} m".format(component_rmse[component]))
+        axis.grid(True, alpha=0.3)
+        if component == 0:
+            axis.legend(loc="best", fontsize=8)
+
+    axis3d = figure.add_subplot(2, 2, 4, projection="3d")
+    axis3d.plot(
+        observed[:, 0],
+        observed[:, 1],
+        observed[:, 2],
+        label="SG observed",
+    )
+    axis3d.plot(
+        reconstructed[:, 0],
+        reconstructed[:, 1],
+        reconstructed[:, 2],
+        "--",
+        label="external-wrench replay",
+    )
+    axis3d.set_xlabel("x [m]")
+    axis3d.set_ylabel("y [m]")
+    axis3d.set_zlabel("z [m]")
+    axis3d.legend(loc="best", fontsize=8)
+    figure.suptitle(
+        "{}: first-order actuator + fitted external wrench trajectory; "
+        "sensor-position vector RMSE {:.4g} m".format(case_name, vector_rmse)
+    )
+    figure.tight_layout()
+    return figure
+
+
+def _trajectory_orientation_figure(
+    case_name: str,
+    time: np.ndarray,
+    dataset: Any,
+    replay: Any,
+) -> plt.Figure:
+    observed = Rotation.from_matrix(
+        np.asarray(dataset.reference_sg.body_rotation, dtype=float).copy()
+    )
+    reconstructed = Rotation.from_quat(
+        np.asarray(
+            replay.reconstructed_body_orientation_xyzw,
+            dtype=float,
+        ).copy()
+    )
+    observed_rpy = np.unwrap(observed.as_euler("xyz"), axis=0)
+    reconstructed_rpy = np.unwrap(
+        reconstructed.as_euler("xyz"),
+        axis=0,
+    )
+    geodesic_error = (reconstructed.inv() * observed).magnitude()
+    error_rms_deg = float(
+        np.rad2deg(np.sqrt(np.mean(geodesic_error**2)))
+    )
+
+    figure, axes = plt.subplots(
+        4,
+        1,
+        figsize=(11.0, 8.5),
+        sharex=True,
+    )
+    labels = ("roll", "pitch", "yaw")
+    for component in range(3):
+        axes[component].plot(
+            time,
+            observed_rpy[:, component],
+            label="SG observed",
+        )
+        axes[component].plot(
+            time,
+            reconstructed_rpy[:, component],
+            "--",
+            label="external-wrench replay",
+        )
+        axes[component].set_ylabel(
+            "{} [rad]".format(labels[component])
+        )
+        axes[component].grid(True, alpha=0.3)
+    axes[0].legend(loc="best", fontsize=8)
+    axes[3].plot(time, np.rad2deg(geodesic_error))
+    axes[3].set_ylabel("SO(3) error [deg]")
+    axes[3].set_xlabel("time [s]")
+    axes[3].grid(True, alpha=0.3)
+    figure.suptitle(
+        "{}: body-orientation replay; geodesic RMS {:.4g} deg".format(
+            case_name,
+            error_rms_deg,
+        )
+    )
+    figure.tight_layout()
+    return figure
+
+
+def _fitted_external_wrench_figure(
+    case_name: str,
+    time: np.ndarray,
+    replay: Any,
+) -> plt.Figure:
+    wrench = np.asarray(replay.fitted_external_wrench, dtype=float)
+    figure, axes = plt.subplots(
+        3,
+        2,
+        figsize=(11.0, 8.5),
+        sharex=True,
+    )
+    for component, axis in enumerate(axes.flat):
+        axis.plot(time, wrench[:, component])
+        axis.set_ylabel(
+            "{} [{}]".format(
+                WRENCH_LABELS[component],
+                WRENCH_UNITS[component],
+            )
+        )
+        axis.grid(True, alpha=0.3)
+    axes[-1, 0].set_xlabel("time [s]")
+    axes[-1, 1].set_xlabel("time [s]")
+    figure.suptitle(
+        "{}: trajectory-fitted external wrench used by replay".format(
+            case_name
+        )
+    )
+    figure.tight_layout()
+    return figure
+
+
+def write_trajectory_replay_pdf(
+    path: Path,
+    *,
+    case_name: str,
+    dataset: Any,
+    replay: Any,
+) -> None:
+    relative = (
+        np.asarray(dataset.time, dtype=float)
+        - float(dataset.time[0])
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with PdfPages(path) as pdf:
+        for figure in (
+            _trajectory_position_figure(
+                case_name,
+                relative,
+                dataset,
+                replay,
+            ),
+            _trajectory_orientation_figure(
+                case_name,
+                relative,
+                dataset,
+                replay,
+            ),
+            _fitted_external_wrench_figure(
+                case_name,
+                relative,
+                replay,
+            ),
+        ):
+            pdf.savefig(figure)
+            plt.close(figure)
+
+
+def write_sensor_reconstruction_pdf(
+    path: Path,
+    *,
+    case_name: str,
+    dataset: Any,
+    replay: Any,
+) -> None:
+    relative = (
+        np.asarray(dataset.time, dtype=float)
+        - float(dataset.time[0])
+    )
+    measured_gyro = np.asarray(dataset.measured_gyro, dtype=float)
+    predicted_gyro = np.asarray(replay.predicted_gyro, dtype=float)
+    measured_specific = np.asarray(
+        dataset.measured_specific_force,
+        dtype=float,
+    )
+    predicted_specific = np.asarray(
+        replay.predicted_specific_force,
+        dtype=float,
+    )
+
+    gyro_rmse = np.sqrt(
+        np.mean((predicted_gyro - measured_gyro) ** 2, axis=0)
+    )
+    specific_rmse = np.sqrt(
+        np.mean(
+            (predicted_specific - measured_specific) ** 2,
+            axis=0,
+        )
+    )
+
+    figure, axes = plt.subplots(
+        3,
+        2,
+        figsize=(11.0, 8.5),
+        sharex=True,
+    )
+    labels = ("x", "y", "z")
+    for component in range(3):
+        axes[component, 0].plot(
+            relative,
+            measured_gyro[:, component],
+            label="measured",
+        )
+        axes[component, 0].plot(
+            relative,
+            predicted_gyro[:, component],
+            "--",
+            label="reconstructed",
+        )
+        axes[component, 0].set_ylabel(
+            "{} [rad/s]".format(labels[component])
+        )
+        axes[component, 0].grid(True, alpha=0.3)
+
+        axes[component, 1].plot(
+            relative,
+            measured_specific[:, component],
+            label="measured",
+        )
+        axes[component, 1].plot(
+            relative,
+            predicted_specific[:, component],
+            "--",
+            label="reconstructed",
+        )
+        axes[component, 1].set_ylabel(
+            "{} [m/s^2]".format(labels[component])
+        )
+        axes[component, 1].grid(True, alpha=0.3)
+
+    axes[0, 0].set_title(
+        "gyro RMSE {}".format(
+            np.array2string(gyro_rmse, precision=4)
+        )
+    )
+    axes[0, 1].set_title(
+        "specific-force RMSE {}".format(
+            np.array2string(specific_rmse, precision=4)
+        )
+    )
+    axes[0, 0].legend(loc="best", fontsize=8)
+    axes[0, 1].legend(loc="best", fontsize=8)
+    axes[-1, 0].set_xlabel("time [s]")
+    axes[-1, 1].set_xlabel("time [s]")
+    figure.suptitle(
+        "{}: sensor reconstruction from first-order + "
+        "external-wrench replay".format(case_name)
+    )
+    figure.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with PdfPages(path) as pdf:
+        pdf.savefig(figure)
+    plt.close(figure)
+
+
 def write_report_pdf(
     path: Path,
     *,
@@ -419,6 +707,23 @@ def write_standard_outputs(
         case_name=case_name,
         dataset=dataset,
         evaluation=evaluation,
+    )
+    replay = fit_external_wrench_replay(
+        dataset=dataset,
+        model=model,
+        evaluation=evaluation,
+    )
+    write_trajectory_replay_pdf(
+        directory / "trajectory_replay.pdf",
+        case_name=case_name,
+        dataset=dataset,
+        replay=replay,
+    )
+    write_sensor_reconstruction_pdf(
+        directory / "sensor_reconstruction.pdf",
+        case_name=case_name,
+        dataset=dataset,
+        replay=replay,
     )
     write_report_pdf(
         directory / "report.pdf",

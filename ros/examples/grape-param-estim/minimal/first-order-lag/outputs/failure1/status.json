@@ -11,8 +11,10 @@
     "residual_wrench.pdf",
     "residual_wrench_summary.json",
     "result.json",
+    "sensor_reconstruction.pdf",
     "status.json",
-    "timing.json"
+    "timing.json",
+    "trajectory_replay.pdf"
   ],
   "status": "completed"
 }

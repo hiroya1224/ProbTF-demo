@@ -94,6 +94,12 @@ PROJECTION_SPECS = (
     ("id", 1, 2, 0, "I", "D", "P"),
     ("dp", 2, 0, 1, "D", "P", "I"),
 )
+INTEGRAL_AXES_BY_GROUP = {
+    "xy": (0, 1),
+    "z": (2,),
+    "roll_pitch": (3, 4),
+    "yaw": (5,),
+}
 
 _EPS = np.finfo(float).eps
 
@@ -609,6 +615,22 @@ class ExactGroupGainEvaluator:
         if selected.shape != (3,) or np.any(~np.isfinite(selected)):
             raise ValueError("log gain ratio must be finite length three")
         return self.base_gain * np.exp(selected)
+
+    def integral_gain_vector(self, log_ratio: Sequence[float]) -> np.ndarray:
+        """Return the six-axis I gains used at one selected-group gain point."""
+
+        selected_integral_gain = float(self.gain_from_log_ratio(log_ratio)[1])
+        result = np.empty(6, dtype=float)
+        for group, axes in INTEGRAL_AXES_BY_GROUP.items():
+            integral_gain = (
+                selected_integral_gain
+                if group == self.group
+                else float(self.hybrid_failure_gains[group].i)
+            )
+            result[np.asarray(axes, dtype=int)] = integral_gain
+        if np.any(~np.isfinite(result)) or np.any(result <= 0.0):
+            raise ValueError("integral gains must be finite and strictly positive")
+        return result
 
     def _matrix_tasks(
         self,
@@ -1220,6 +1242,12 @@ class SliceGridEvaluator:
         coordinate[self.hidden_axis] = 0.0
         return coordinate
 
+    def integral_gain_vector(self, first: float, second: float) -> np.ndarray:
+        key = self._visible_key(first, second)
+        return self.group_evaluator.integral_gain_vector(
+            self._full_coordinate(*key)
+        )
+
     def evaluate(
         self,
         first: float,
@@ -1372,6 +1400,71 @@ def _bilinear_trim_predictor(
     return sum(weight * value for weight, value in zip(weights, selected))
 
 
+def _gain_scaled_bilinear_trim_predictor(
+    *,
+    x: float,
+    y: float,
+    x0: float,
+    x1: float,
+    y0: float,
+    y1: float,
+    corner_trims: Sequence[np.ndarray],
+    corner_integral_gains: Sequence[np.ndarray],
+    target_integral_gains: np.ndarray,
+) -> np.ndarray:
+    """Interpolate trim in ``K_I * integral_error`` coordinates.
+
+    Integral components whose corner and target gains are exactly constant
+    retain the raw bilinear result bit for bit.  This avoids introducing a
+    multiply/divide round trip in constant-I slices such as DP.
+    """
+
+    result = _bilinear_trim_predictor(
+        x=x,
+        y=y,
+        x0=x0,
+        x1=x1,
+        y0=y0,
+        y1=y1,
+        corner_trims=corner_trims,
+    )
+    selected_trims = [np.asarray(value, dtype=float) for value in corner_trims]
+    selected_gains = [
+        np.asarray(value, dtype=float) for value in corner_integral_gains
+    ]
+    target_gains = np.asarray(target_integral_gains, dtype=float)
+    if len(selected_gains) != 4 or any(value.shape != (6,) for value in selected_gains):
+        raise ValueError("corner integral gains must contain four length-six vectors")
+    if target_gains.shape != (6,):
+        raise ValueError("target integral gains must have length six")
+    gain_stack = np.asarray(selected_gains, dtype=float)
+    if (
+        np.any(~np.isfinite(gain_stack))
+        or np.any(gain_stack <= 0.0)
+        or np.any(~np.isfinite(target_gains))
+        or np.any(target_gains <= 0.0)
+    ):
+        raise ValueError("integral gains must be finite and strictly positive")
+
+    a = (float(x) - float(x0)) / (float(x1) - float(x0))
+    b = (float(y) - float(y0)) / (float(y1) - float(y0))
+    weights = np.asarray(
+        ((1.0 - a) * (1.0 - b), a * (1.0 - b), a * b, (1.0 - a) * b),
+        dtype=float,
+    )
+    for component in range(6):
+        if np.all(gain_stack[:, component] == target_gains[component]):
+            continue
+        scaled = [
+            gains[component] * trim[:, component]
+            for gains, trim in zip(selected_gains, selected_trims)
+        ]
+        result[:, component] = sum(
+            weight * value for weight, value in zip(weights, scaled)
+        ) / target_gains[component]
+    return result
+
+
 def _average_trim_predictors(predictors: Sequence[np.ndarray]) -> np.ndarray:
     if not predictors:
         raise ValueError("at least one trim predictor is required")
@@ -1401,7 +1494,13 @@ def _cell_trim_predictor(
     )
     if any(value is None for value in corners):
         return None
-    return _bilinear_trim_predictor(
+    corner_coordinates = (
+        (cell.x0, cell.y0),
+        (cell.x1, cell.y0),
+        (cell.x1, cell.y1),
+        (cell.x0, cell.y1),
+    )
+    return _gain_scaled_bilinear_trim_predictor(
         x=x,
         y=y,
         x0=cell.x0,
@@ -1409,6 +1508,11 @@ def _cell_trim_predictor(
         y0=cell.y0,
         y1=cell.y1,
         corner_trims=[value for value in corners if value is not None],
+        corner_integral_gains=[
+            evaluator.integral_gain_vector(*coordinate)
+            for coordinate in corner_coordinates
+        ],
+        target_integral_gains=evaluator.integral_gain_vector(x, y),
     )
 
 
@@ -2411,7 +2515,7 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "center_probe": "if 9x9 corners show no boundary, exactly evaluate one center per 9x9 cell and mark only cells where corners plus center bracket alpha",
                 "local_refinement": "refine global boundary cells directly to 33x33-equivalent spacing; otherwise refine center-probe suspicious cells to 17x17-equivalent spacing and only confirmed boundary cells to 33x33-equivalent spacing",
                 "grid_reuse": "all repeated gain points are cached and never reevaluated",
-                "trim_continuation": "cold 1x1 center anchor; parent-cell bilinear trim initial guesses for nested global points, center probes, and local refinement; every final point uses exact nonlinear trim",
+                "trim_continuation": "cold 1x1 center anchor; parent-cell bilinear continuation in gain-scaled PID-integral coordinates (K_I * integral_error), mapped back to raw integral state before the exact nonlinear trim solve, for nested global points, center probes, and local refinement",
                 "refinement_scheduling": "freeze all predictors for one adaptive wave, then queue every gain-by-plant-chunk task before the next wave",
                 "trim_fallback": "per sample: warm predictor, nearest already-converged visible gain point, then the original generic initialization",
                 "boundary": "piecewise-linear alpha-survival segments retained as numeric diagnostics but not overlaid on the heatmap",

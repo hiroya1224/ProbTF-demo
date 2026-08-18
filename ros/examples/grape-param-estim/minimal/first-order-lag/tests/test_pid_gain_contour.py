@@ -25,6 +25,7 @@ from pid_gain_contour import (  # noqa: E402
     _evaluate_coordinates_from_parent_cells,
     _exact_matrix_with_configuration,
     _exact_matrix_chunk_task,
+    _gain_scaled_bilinear_trim_predictor,
 )
 
 
@@ -206,6 +207,47 @@ def test_shared_predictor_average_is_order_independent() -> None:
     assert np.array_equal(_average_trim_predictors((second, first)), expected)
 
 
+def test_gain_scaled_predictor_tracks_reciprocal_integral_state() -> None:
+    corner_gains = (
+        np.full(6, 1.0),
+        np.full(6, 4.0),
+        np.full(6, 4.0),
+        np.full(6, 1.0),
+    )
+    corner_trims = []
+    for gain in corner_gains:
+        trim = np.zeros((2, 10), dtype=float)
+        trim[:, :6] = 12.0 / gain
+        trim[:, 6:] = 3.0
+        corner_trims.append(trim)
+    target_gain = np.full(6, 2.0)
+    predicted = _gain_scaled_bilinear_trim_predictor(
+        x=0.5, y=0.5, x0=0.0, x1=1.0, y0=0.0, y1=1.0,
+        corner_trims=corner_trims,
+        corner_integral_gains=corner_gains,
+        target_integral_gains=target_gain,
+    )
+    assert np.array_equal(predicted[:, :6], np.full((2, 6), 6.0))
+    assert np.array_equal(predicted[:, 6:], np.full((2, 4), 3.0))
+
+
+def test_gain_scaled_predictor_preserves_constant_i_raw_result_bitwise() -> None:
+    rng = np.random.default_rng(7)
+    corners = [rng.normal(size=(3, 10)) for _ in range(4)]
+    raw = _bilinear_trim_predictor(
+        x=0.37, y=0.61, x0=-1.0, x1=2.0, y0=-2.0, y1=3.0,
+        corner_trims=corners,
+    )
+    gain = np.asarray((1.0, 1.0, 2.0, 3.0, 3.0, 4.0))
+    scaled = _gain_scaled_bilinear_trim_predictor(
+        x=0.37, y=0.61, x0=-1.0, x1=2.0, y0=-2.0, y1=3.0,
+        corner_trims=corners,
+        corner_integral_gains=(gain, gain, gain, gain),
+        target_integral_gains=gain,
+    )
+    assert np.array_equal(scaled, raw)
+
+
 def test_refinement_coordinates_are_submitted_as_one_frozen_wave() -> None:
     class _WaveGroup:
         def __init__(self) -> None:
@@ -230,6 +272,11 @@ def test_refinement_coordinates_are_submitted_as_one_frozen_wave() -> None:
 
         def survival_fraction(self, coordinate):
             return float(np.sum(coordinate))
+
+        @staticmethod
+        def integral_gain_vector(coordinate):
+            del coordinate
+            return np.ones(6, dtype=float)
 
     group = _WaveGroup()
     evaluator = SliceGridEvaluator(

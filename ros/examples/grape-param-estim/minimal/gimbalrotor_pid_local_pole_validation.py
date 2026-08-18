@@ -14,6 +14,7 @@ from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
 import sys
+import time
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 import numpy as np
@@ -151,6 +152,8 @@ class TrimResult:
     issued_command: ActuatorCommand
     root_status: int
     root_message: str
+    root_nfev: int
+    root_njev: Optional[int]
     residual: np.ndarray
     residual_norm: float
     one_step_defect: np.ndarray
@@ -160,6 +163,15 @@ class TrimResult:
     equilibrium_tolerance: float
     equilibrium_valid: bool
     piecewise_linearization_near_kink: bool
+
+    @property
+    def trim_vector(self) -> np.ndarray:
+        return np.concatenate(
+            (
+                self.state.controller.integral_error,
+                self.state.actuators.gimbal_angle,
+            )
+        )
 
 
 @dataclass(frozen=True)
@@ -957,13 +969,22 @@ def solve_hover_trim(
     reference: ReferenceState,
     controller_dt: float,
     delay: DelayDecomposition,
+    initial: Optional[np.ndarray] = None,
 ) -> TrimResult:
-    initial = np.concatenate(
-        (
-            initial_controller_state(controller.configuration, trim_hover=True).integral_error,
-            np.zeros(4, dtype=float),
+    if initial is None:
+        selected_initial = np.concatenate(
+            (
+                initial_controller_state(
+                    controller.configuration, trim_hover=True
+                ).integral_error,
+                np.zeros(4, dtype=float),
+            )
         )
-    )
+    else:
+        selected_initial = np.asarray(initial, dtype=float)
+        if selected_initial.shape != (10,) or np.any(~np.isfinite(selected_initial)):
+            raise ValueError("hover-trim initial value must be finite shape (10,)")
+        selected_initial = selected_initial.copy()
     objective: Callable[[np.ndarray], np.ndarray] = lambda value: _trim_residual(
         value, controller, plant, actuator_parameters, reference, controller_dt
     )
@@ -974,7 +995,7 @@ def solve_hover_trim(
     )
     solved = least_squares(
         objective,
-        initial,
+        selected_initial,
         jac=jacobian,
         method="trf",
         ftol=np.sqrt(np.finfo(float).eps),
@@ -1032,6 +1053,8 @@ def solve_hover_trim(
         issued_command=command,
         root_status=int(solved.status),
         root_message=str(solved.message),
+        root_nfev=int(solved.nfev),
+        root_njev=(None if solved.njev is None else int(solved.njev)),
         residual=residual.copy(),
         residual_norm=float(np.linalg.norm(residual)),
         one_step_defect=defect,
@@ -1192,6 +1215,7 @@ def _analyze_plant(
     delay: DelayDecomposition,
     fd_check: bool,
     compute_eigenvalues: bool = True,
+    initial_trim: Optional[np.ndarray] = None,
 ) -> Mapping[str, Any]:
     parameters = physical_plant_from_scale_free(scale_free, inputs.vehicle_model)
     controller = GrapeController(
@@ -1201,6 +1225,7 @@ def _analyze_plant(
     )
     plant = FullSixDofPlant(parameters, inputs.vehicle_model.body_geometry)
     reference = hover_reference()
+    trim_started = time.perf_counter()
     trim = solve_hover_trim(
         controller=controller,
         plant=plant,
@@ -1208,7 +1233,9 @@ def _analyze_plant(
         reference=reference,
         controller_dt=controller_dt,
         delay=delay,
+        initial=initial_trim,
     )
+    trim_wall_seconds = time.perf_counter() - trim_started
     context = PoleContext(
         controller,
         plant,
@@ -1226,10 +1253,16 @@ def _analyze_plant(
         "classification": None,
         "finite_difference_diagnostic": None,
         "analytic_piecewise_near_kink": None,
+        "trim_wall_seconds": float(trim_wall_seconds),
+        "analytic_jacobian_wall_seconds": 0.0,
     }
     if not trim.equilibrium_valid:
         return result
+    jacobian_started = time.perf_counter()
     jacobian, analytic_near_kink = analytic_closed_loop_jacobian(context)
+    result["analytic_jacobian_wall_seconds"] = float(
+        time.perf_counter() - jacobian_started
+    )
     result["jacobian"] = jacobian
     result["analytic_piecewise_near_kink"] = bool(analytic_near_kink)
     if compute_eigenvalues:
@@ -1250,6 +1283,8 @@ def _trim_json(trim: TrimResult) -> Mapping[str, Any]:
     return {
         "trim_root_status": trim.root_status,
         "trim_root_message": trim.root_message,
+        "trim_root_nfev": trim.root_nfev,
+        "trim_root_njev": trim.root_njev,
         "trim_residual_vector": trim.residual.tolist(),
         "trim_residual_norm": trim.residual_norm,
         "full_one_step_trim_defect": trim.one_step_defect.tolist(),

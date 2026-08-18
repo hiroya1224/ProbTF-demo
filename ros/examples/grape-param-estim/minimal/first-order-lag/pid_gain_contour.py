@@ -35,6 +35,7 @@ import math
 import os
 from pathlib import Path
 import sys
+import time
 from types import SimpleNamespace
 from typing import Any, Mapping, Optional, Sequence
 
@@ -68,13 +69,14 @@ from grape_param_estim.gimbalrotor_pid_postprocess import (  # noqa: E402
     load_vehicle_model,
 )
 from gimbalrotor_pid_local_pole_validation import (  # noqa: E402
+    NUMERICAL_SAMPLE_EXCEPTIONS,
     _analyze_plant,
     decompose_thrust_delay,
 )
 from single_bag_savgol_reports import source_commit, write_json  # noqa: E402
 
 
-CONTOUR_SCHEMA = "grape-param-estim/first-order-lag-pid-group-survival/v3"
+CONTOUR_SCHEMA = "grape-param-estim/first-order-lag-pid-group-survival/v4"
 DEFAULT_ALPHA = 0.95
 DEFAULT_SAMPLE_COUNT = 512
 DEFAULT_SEED = 0
@@ -115,6 +117,26 @@ class BreakEvaluation:
     caused_break_fraction: float
     unstable_count: int
     unstable_fraction: float
+
+
+@dataclass(frozen=True)
+class GainPointEvaluation:
+    log_ratio: np.ndarray
+    log_spectral_radius: np.ndarray
+    trim_vectors: np.ndarray
+    trim_nfev: np.ndarray
+    attempt_nfev: np.ndarray
+    pole_valid_mask: np.ndarray
+    stable_mask: np.ndarray
+    piecewise_near_kink: np.ndarray
+    warm_primary_success_mask: np.ndarray
+    nearest_fallback_mask: np.ndarray
+    generic_fallback_mask: np.ndarray
+    cold_primary_mask: np.ndarray
+    trim_wall_seconds: float
+    analytic_jacobian_wall_seconds: float
+    eigensystem_wall_seconds: float
+    stage: str
 
 
 @dataclass(frozen=True)
@@ -215,39 +237,147 @@ def _exact_matrix_with_configuration(
     actuator_parameters: Any,
     controller_dt: float,
     controller_configuration: Any,
-) -> tuple[Optional[np.ndarray], bool]:
-    result = _analyze_plant(
-        scale_free=plant,
-        inputs=_inputs(
-            vehicle_model,
-            actuator_parameters,
-            controller_configuration,
-        ),
-        controller_dt=float(controller_dt),
-        delay=decompose_thrust_delay(0.0, float(controller_dt)),
-        fd_check=False,
-        compute_eigenvalues=False,
+    initial_trim: Optional[np.ndarray],
+    nearest_trim: Optional[np.ndarray],
+) -> tuple[
+    Optional[np.ndarray],
+    bool,
+    np.ndarray,
+    int,
+    np.ndarray,
+    bool,
+    bool,
+    bool,
+    bool,
+    float,
+    float,
+]:
+    """Solve one exact sample, retrying continuation failures conservatively."""
+
+    inputs = _inputs(vehicle_model, actuator_parameters, controller_configuration)
+    delay = decompose_thrust_delay(0.0, float(controller_dt))
+    attempt_nfev = np.full(3, -1, dtype=int)
+    trim_seconds = 0.0
+    jacobian_seconds = 0.0
+    final_result: Optional[Mapping[str, Any]] = None
+    warm_primary_success = False
+    nearest_attempted = False
+    generic_attempted = False
+    cold_primary = False
+
+    def attempt(initial: Optional[np.ndarray], slot: int) -> Optional[Mapping[str, Any]]:
+        nonlocal trim_seconds, jacobian_seconds
+        started = time.perf_counter()
+        try:
+            result = _analyze_plant(
+                scale_free=plant,
+                inputs=inputs,
+                controller_dt=float(controller_dt),
+                delay=delay,
+                fd_check=False,
+                compute_eigenvalues=False,
+                initial_trim=initial,
+            )
+        except NUMERICAL_SAMPLE_EXCEPTIONS:
+            trim_seconds += time.perf_counter() - started
+            return None
+        trim = result.get("trim")
+        if trim is None:
+            raise RuntimeError("hover-trim diagnostics are unavailable")
+        attempt_nfev[slot] = int(trim.root_nfev)
+        trim_seconds += float(result.get("trim_wall_seconds", 0.0))
+        jacobian_seconds += float(
+            result.get("analytic_jacobian_wall_seconds", 0.0)
+        )
+        return result
+
+    selected_initial = None
+    if initial_trim is not None:
+        candidate = np.asarray(initial_trim, dtype=float)
+        if candidate.shape == (10,) and np.all(np.isfinite(candidate)):
+            selected_initial = candidate
+    if selected_initial is not None:
+        final_result = attempt(selected_initial, 0)
+        warm_primary_success = bool(
+            final_result is not None
+            and final_result["trim"].equilibrium_valid
+        )
+
+    if not warm_primary_success and nearest_trim is not None:
+        candidate = np.asarray(nearest_trim, dtype=float)
+        if candidate.shape == (10,) and np.all(np.isfinite(candidate)):
+            nearest_attempted = True
+            final_result = attempt(candidate, 1)
+            if final_result is not None and final_result["trim"].equilibrium_valid:
+                selected_initial = candidate
+
+    valid = bool(
+        final_result is not None and final_result["trim"].equilibrium_valid
     )
-    matrix = result.get("jacobian")
-    trim = result.get("trim")
-    if trim is None:
-        raise RuntimeError("hover-trim diagnostics are unavailable")
+    if not valid:
+        if initial_trim is None and not nearest_attempted:
+            cold_primary = True
+        else:
+            generic_attempted = True
+        final_result = attempt(None, 0 if cold_primary else 2)
+
+    if final_result is None:
+        return (
+            None,
+            False,
+            np.full(10, np.nan, dtype=float),
+            -1,
+            attempt_nfev,
+            warm_primary_success,
+            nearest_attempted,
+            generic_attempted,
+            cold_primary,
+            float(trim_seconds),
+            float(jacobian_seconds),
+        )
+
+    trim = final_result["trim"]
     near_kink = bool(trim.piecewise_linearization_near_kink) or bool(
-        result.get("analytic_piecewise_near_kink", False)
+        final_result.get("analytic_piecewise_near_kink", False)
     )
     if not bool(trim.equilibrium_valid):
-        return None, near_kink
+        return (
+            None,
+            near_kink,
+            np.full(10, np.nan, dtype=float),
+            int(trim.root_nfev),
+            attempt_nfev,
+            warm_primary_success,
+            nearest_attempted,
+            generic_attempted,
+            cold_primary,
+            float(trim_seconds),
+            float(jacobian_seconds),
+        )
+    matrix = final_result.get("jacobian")
     if matrix is None:
         raise RuntimeError("valid hover trim has no full 26-state pole Jacobian")
     selected = np.asarray(matrix, dtype=float)
     if selected.shape != (26, 26) or np.any(~np.isfinite(selected)):
         raise RuntimeError("first-order closed-loop Jacobian must be finite 26x26")
-    return selected, near_kink
+    return (
+        selected,
+        near_kink,
+        np.asarray(trim.trim_vector, dtype=float),
+        int(trim.root_nfev),
+        attempt_nfev,
+        warm_primary_success,
+        nearest_attempted,
+        generic_attempted,
+        cold_primary,
+        float(trim_seconds),
+        float(jacobian_seconds),
+    )
 
 
 def _exact_matrix_chunk_task(
     task: tuple[Any, ...],
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[Any, ...]:
     (
         indices,
         plants,
@@ -255,18 +385,45 @@ def _exact_matrix_chunk_task(
         actuator_parameters,
         controller_dt,
         controller_configuration,
+        initial_trims,
+        nearest_trims,
     ) = task
     selected_indices = np.asarray(indices, dtype=int)
     matrices = np.empty((selected_indices.size, 26, 26), dtype=float)
     pole_valid = np.zeros(selected_indices.size, dtype=bool)
     near_kink = np.empty(selected_indices.size, dtype=bool)
+    trim_vectors = np.full((selected_indices.size, 10), np.nan, dtype=float)
+    trim_nfev = np.full(selected_indices.size, -1, dtype=int)
+    attempt_nfev = np.full((selected_indices.size, 3), -1, dtype=int)
+    warm_primary_success = np.zeros(selected_indices.size, dtype=bool)
+    nearest_fallback = np.zeros(selected_indices.size, dtype=bool)
+    generic_fallback = np.zeros(selected_indices.size, dtype=bool)
+    cold_primary = np.zeros(selected_indices.size, dtype=bool)
+    trim_seconds = np.zeros(selected_indices.size, dtype=float)
+    jacobian_seconds = np.zeros(selected_indices.size, dtype=float)
     for local_index, plant in enumerate(plants):
-        matrix, near = _exact_matrix_with_configuration(
+        row_initial = None if initial_trims is None else initial_trims[local_index]
+        row_nearest = None if nearest_trims is None else nearest_trims[local_index]
+        (
+            matrix,
+            near,
+            trim_vector,
+            final_nfev,
+            row_attempt_nfev,
+            row_primary_success,
+            row_nearest_fallback,
+            row_generic_fallback,
+            row_cold_primary,
+            row_trim_seconds,
+            row_jacobian_seconds,
+        ) = _exact_matrix_with_configuration(
             plant=plant,
             vehicle_model=vehicle_model,
             actuator_parameters=actuator_parameters,
             controller_dt=controller_dt,
             controller_configuration=controller_configuration,
+            initial_trim=row_initial,
+            nearest_trim=row_nearest,
         )
         if matrix is None:
             matrices[local_index] = 0.0
@@ -274,7 +431,30 @@ def _exact_matrix_chunk_task(
             matrices[local_index] = matrix
             pole_valid[local_index] = True
         near_kink[local_index] = near
-    return selected_indices, matrices, pole_valid, near_kink
+        trim_vectors[local_index] = trim_vector
+        trim_nfev[local_index] = final_nfev
+        attempt_nfev[local_index] = row_attempt_nfev
+        warm_primary_success[local_index] = row_primary_success
+        nearest_fallback[local_index] = row_nearest_fallback
+        generic_fallback[local_index] = row_generic_fallback
+        cold_primary[local_index] = row_cold_primary
+        trim_seconds[local_index] = row_trim_seconds
+        jacobian_seconds[local_index] = row_jacobian_seconds
+    return (
+        selected_indices,
+        matrices,
+        pole_valid,
+        near_kink,
+        trim_vectors,
+        trim_nfev,
+        attempt_nfev,
+        warm_primary_success,
+        nearest_fallback,
+        generic_fallback,
+        cold_primary,
+        trim_seconds,
+        jacobian_seconds,
+    )
 
 
 class ExactGroupGainEvaluator:
@@ -309,14 +489,17 @@ class ExactGroupGainEvaluator:
             if self.workers <= 1
             else ProcessPoolExecutor(max_workers=self.workers)
         )
-        self._radius_cache: dict[tuple[float, float, float], np.ndarray] = {}
-        self._pole_valid_cache: dict[tuple[float, float, float], np.ndarray] = {}
-        self._near_kink_cache: dict[tuple[float, float, float], np.ndarray] = {}
+        self._evaluation_cache: dict[
+            tuple[float, float, float], GainPointEvaluation
+        ] = {}
         self._break_cache: dict[tuple[float, float, float], BreakEvaluation] = {}
         self.success_log_ratio = np.log(self.success_gain / self.base_gain)
-        self.success_log_radius = self.log_spectral_radius(self.success_log_ratio)
-        self.success_pole_valid_mask = self.pole_valid_mask(self.success_log_ratio)
-        self.success_stable_mask = self.success_log_radius < 0.0
+        success = self.evaluate(
+            self.success_log_ratio, stage="all_success_baseline"
+        )
+        self.success_log_radius = success.log_spectral_radius.copy()
+        self.success_pole_valid_mask = success.pole_valid_mask.copy()
+        self.success_stable_mask = success.stable_mask.copy()
         self.success_stable_count = int(np.count_nonzero(self.success_stable_mask))
         if self.success_stable_count <= 0:
             raise RuntimeError(
@@ -334,26 +517,32 @@ class ExactGroupGainEvaluator:
 
     @property
     def evaluated_gain_point_count(self) -> int:
-        return len(self._radius_cache)
+        return len(self._evaluation_cache)
 
     @property
     def gain_points_with_any_near_kink(self) -> int:
         return int(
-            sum(bool(np.any(value)) for value in self._near_kink_cache.values())
+            sum(
+                bool(np.any(value.piecewise_near_kink))
+                for value in self._evaluation_cache.values()
+            )
         )
 
     @property
     def gain_points_with_any_unresolved_trim(self) -> int:
         return int(
-            sum(bool(np.any(~value)) for value in self._pole_valid_cache.values())
+            sum(
+                bool(np.any(~value.pole_valid_mask))
+                for value in self._evaluation_cache.values()
+            )
         )
 
     @property
     def unresolved_trim_sample_evaluation_count(self) -> int:
         return int(
             sum(
-                np.count_nonzero(~value)
-                for value in self._pole_valid_cache.values()
+                np.count_nonzero(~value.pole_valid_mask)
+                for value in self._evaluation_cache.values()
             )
         )
 
@@ -372,8 +561,11 @@ class ExactGroupGainEvaluator:
         return self.base_gain * np.exp(selected)
 
     def _matrix_stack(
-        self, log_ratio: Sequence[float]
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        self,
+        log_ratio: Sequence[float],
+        initial_trims: Optional[np.ndarray],
+        nearest_trims: Optional[np.ndarray],
+    ) -> tuple[Any, ...]:
         gain = self.gain_from_log_ratio(log_ratio)
         gains = _replace_group(
             self.hybrid_failure_gains,
@@ -399,6 +591,16 @@ class ExactGroupGainEvaluator:
                 self.actuator_parameters,
                 self.controller_dt,
                 controller_configuration,
+                (
+                    None
+                    if initial_trims is None
+                    else np.asarray(initial_trims, dtype=float)[chunk]
+                ),
+                (
+                    None
+                    if nearest_trims is None
+                    else np.asarray(nearest_trims, dtype=float)[chunk]
+                ),
             )
             for chunk in index_chunks
         ]
@@ -409,43 +611,145 @@ class ExactGroupGainEvaluator:
         matrices = np.empty((sample_count, 26, 26), dtype=float)
         pole_valid = np.empty(sample_count, dtype=bool)
         near_kink = np.empty(sample_count, dtype=bool)
+        trim_vectors = np.full((sample_count, 10), np.nan, dtype=float)
+        trim_nfev = np.full(sample_count, -1, dtype=int)
+        attempt_nfev = np.full((sample_count, 3), -1, dtype=int)
+        warm_primary_success = np.zeros(sample_count, dtype=bool)
+        nearest_fallback = np.zeros(sample_count, dtype=bool)
+        generic_fallback = np.zeros(sample_count, dtype=bool)
+        cold_primary = np.zeros(sample_count, dtype=bool)
+        trim_seconds = np.zeros(sample_count, dtype=float)
+        jacobian_seconds = np.zeros(sample_count, dtype=float)
         filled = np.zeros(sample_count, dtype=bool)
-        for indices, chunk_matrices, chunk_pole_valid, chunk_near_kink in rows:
+        for row in rows:
+            (
+                indices,
+                chunk_matrices,
+                chunk_pole_valid,
+                chunk_near_kink,
+                chunk_trim_vectors,
+                chunk_trim_nfev,
+                chunk_attempt_nfev,
+                chunk_primary_success,
+                chunk_nearest_fallback,
+                chunk_generic_fallback,
+                chunk_cold_primary,
+                chunk_trim_seconds,
+                chunk_jacobian_seconds,
+            ) = row
             matrices[indices] = chunk_matrices
             pole_valid[indices] = chunk_pole_valid
             near_kink[indices] = chunk_near_kink
+            trim_vectors[indices] = chunk_trim_vectors
+            trim_nfev[indices] = chunk_trim_nfev
+            attempt_nfev[indices] = chunk_attempt_nfev
+            warm_primary_success[indices] = chunk_primary_success
+            nearest_fallback[indices] = chunk_nearest_fallback
+            generic_fallback[indices] = chunk_generic_fallback
+            cold_primary[indices] = chunk_cold_primary
+            trim_seconds[indices] = chunk_trim_seconds
+            jacobian_seconds[indices] = chunk_jacobian_seconds
             filled[indices] = True
         if not np.all(filled):
             raise RuntimeError("exact plant sample ordering changed during evaluation")
-        return matrices, pole_valid, near_kink
+        return (
+            matrices,
+            pole_valid,
+            near_kink,
+            trim_vectors,
+            trim_nfev,
+            attempt_nfev,
+            warm_primary_success,
+            nearest_fallback,
+            generic_fallback,
+            cold_primary,
+            trim_seconds,
+            jacobian_seconds,
+        )
 
-    def log_spectral_radius(self, log_ratio: Sequence[float]) -> np.ndarray:
+    @staticmethod
+    def _validate_trim_matrix(
+        value: Optional[np.ndarray], sample_count: int, name: str
+    ) -> Optional[np.ndarray]:
+        if value is None:
+            return None
+        selected = np.asarray(value, dtype=float)
+        if selected.shape != (sample_count, 10):
+            raise ValueError(f"{name} must have shape (sample_count, 10)")
+        return selected.copy()
+
+    def evaluate(
+        self,
+        log_ratio: Sequence[float],
+        *,
+        initial_trims: Optional[np.ndarray] = None,
+        nearest_trims: Optional[np.ndarray] = None,
+        stage: str = "cold",
+    ) -> GainPointEvaluation:
         key = self._key(log_ratio)
-        cached = self._radius_cache.get(key)
+        cached = self._evaluation_cache.get(key)
         if cached is not None:
-            return cached.copy()
-        matrices, pole_valid, near_kink = self._matrix_stack(key)
+            return cached
+        initial = self._validate_trim_matrix(
+            initial_trims, self.sample_count, "initial_trims"
+        )
+        nearest = self._validate_trim_matrix(
+            nearest_trims, self.sample_count, "nearest_trims"
+        )
+        (
+            matrices,
+            pole_valid,
+            near_kink,
+            trim_vectors,
+            trim_nfev,
+            attempt_nfev,
+            warm_primary_success,
+            nearest_fallback,
+            generic_fallback,
+            cold_primary,
+            trim_seconds,
+            jacobian_seconds,
+        ) = self._matrix_stack(key, initial, nearest)
         # NumPy accepts a stack of square matrices.  All 512 eigensystems are
         # therefore dispatched in one call rather than a Python eigvals loop.
         radii = np.full(self.sample_count, np.inf, dtype=float)
+        eigensystem_started = time.perf_counter()
         if np.any(pole_valid):
             eigenvalues = np.linalg.eigvals(matrices[pole_valid])
             radii[pole_valid] = np.max(np.abs(eigenvalues), axis=1)
+        eigensystem_seconds = time.perf_counter() - eigensystem_started
         if np.any(~np.isfinite(radii[pole_valid])) or np.any(
             radii[pole_valid] <= 0.0
         ):
             raise FloatingPointError("closed-loop spectral radius became invalid")
-        result = np.log(radii)
-        self._radius_cache[key] = result.copy()
-        self._pole_valid_cache[key] = pole_valid.copy()
-        self._near_kink_cache[key] = near_kink.copy()
+        log_radii = np.log(radii)
+        result = GainPointEvaluation(
+            log_ratio=np.asarray(key, dtype=float),
+            log_spectral_radius=log_radii,
+            trim_vectors=trim_vectors,
+            trim_nfev=trim_nfev,
+            attempt_nfev=attempt_nfev,
+            pole_valid_mask=pole_valid,
+            stable_mask=log_radii < 0.0,
+            piecewise_near_kink=near_kink,
+            warm_primary_success_mask=warm_primary_success,
+            nearest_fallback_mask=nearest_fallback,
+            generic_fallback_mask=generic_fallback,
+            cold_primary_mask=cold_primary,
+            trim_wall_seconds=float(np.sum(trim_seconds)),
+            analytic_jacobian_wall_seconds=float(np.sum(jacobian_seconds)),
+            eigensystem_wall_seconds=float(eigensystem_seconds),
+            stage=str(stage),
+        )
+        self._evaluation_cache[key] = result
         return result
+
+    def log_spectral_radius(self, log_ratio: Sequence[float]) -> np.ndarray:
+        return self.evaluate(log_ratio).log_spectral_radius.copy()
 
     def pole_valid_mask(self, log_ratio: Sequence[float]) -> np.ndarray:
         key = self._key(log_ratio)
-        if key not in self._pole_valid_cache:
-            self.log_spectral_radius(key)
-        return self._pole_valid_cache[key].copy()
+        return self.evaluate(key).pole_valid_mask.copy()
 
     def break_evaluation(self, log_ratio: Sequence[float]) -> BreakEvaluation:
         key = self._key(log_ratio)
@@ -460,8 +764,8 @@ class ExactGroupGainEvaluator:
                 cached.unstable_count,
                 cached.unstable_fraction,
             )
-        log_radius = self.log_spectral_radius(key)
-        stable = log_radius < 0.0
+        gain_point = self.evaluate(key)
+        stable = gain_point.stable_mask
         caused = self.success_stable_mask & ~stable
         result = BreakEvaluation(
             log_ratio=np.asarray(key, dtype=float),
@@ -481,6 +785,109 @@ class ExactGroupGainEvaluator:
             1.0 - evaluation.caused_break_count / self.success_stable_count
         )
 
+    def diagnostic_payload(self) -> Mapping[str, Any]:
+        rows = tuple(self._evaluation_cache.values())
+
+        def summarize(selected: Sequence[GainPointEvaluation]) -> Mapping[str, Any]:
+            attempts = np.concatenate(
+                [row.attempt_nfev[row.attempt_nfev >= 0] for row in selected]
+            ) if selected else np.empty(0, dtype=int)
+            return {
+                "unique_gain_point_count": len(selected),
+                "trim_solve_count": int(attempts.size),
+                "warm_start_primary_success_count": int(
+                    sum(np.count_nonzero(row.warm_primary_success_mask) for row in selected)
+                ),
+                "nearest_neighbor_fallback_count": int(
+                    sum(np.count_nonzero(row.nearest_fallback_mask) for row in selected)
+                ),
+                "generic_cold_fallback_count": int(
+                    sum(np.count_nonzero(row.generic_fallback_mask) for row in selected)
+                ),
+                "generic_cold_primary_count": int(
+                    sum(np.count_nonzero(row.cold_primary_mask) for row in selected)
+                ),
+                "trim_nfev_mean": (None if attempts.size == 0 else float(np.mean(attempts))),
+                "trim_nfev_median": (None if attempts.size == 0 else float(np.median(attempts))),
+                "trim_nfev_max": (None if attempts.size == 0 else int(np.max(attempts))),
+                "trim_wall_seconds_sum_over_workers": float(
+                    sum(row.trim_wall_seconds for row in selected)
+                ),
+                "analytic_jacobian_wall_seconds_sum_over_workers": float(
+                    sum(row.analytic_jacobian_wall_seconds for row in selected)
+                ),
+                "batched_eigensystem_wall_seconds": float(
+                    sum(row.eigensystem_wall_seconds for row in selected)
+                ),
+            }
+
+        stages = sorted({row.stage for row in rows})
+        result = dict(summarize(rows))
+        result["by_stage"] = {
+            stage: summarize([row for row in rows if row.stage == stage])
+            for stage in stages
+        }
+        return result
+
+    def cold_start_audit(
+        self, log_ratios: Sequence[Sequence[float]]
+    ) -> Mapping[str, Any]:
+        rows = []
+        for coordinate in log_ratios:
+            key = self._key(coordinate)
+            warm = self._evaluation_cache.get(key)
+            if warm is None:
+                raise ValueError("cold-start audit point has not been warm-solved")
+            cold_stack = self._matrix_stack(key, None, None)
+            matrices = cold_stack[0]
+            cold_valid = np.asarray(cold_stack[1], dtype=bool)
+            cold_trims = np.asarray(cold_stack[3], dtype=float)
+            cold_radii = np.full(self.sample_count, np.inf, dtype=float)
+            if np.any(cold_valid):
+                eigenvalues = np.linalg.eigvals(matrices[cold_valid])
+                cold_radii[cold_valid] = np.max(np.abs(eigenvalues), axis=1)
+            cold_stable = cold_radii < 1.0
+            common = cold_valid & warm.pole_valid_mask
+            trim_delta = np.linalg.norm(
+                cold_trims[common] - warm.trim_vectors[common],
+                ord=np.inf,
+                axis=1,
+            ) if np.any(common) else np.empty(0, dtype=float)
+            warm_radii = np.exp(warm.log_spectral_radius[common])
+            radius_delta = np.abs(cold_radii[common] - warm_radii)
+            classification_disagreement = int(
+                np.count_nonzero(cold_stable != warm.stable_mask)
+            )
+            possible_branch = bool(
+                classification_disagreement
+                or (trim_delta.size and float(np.max(trim_delta)) > 1.0e-7)
+            )
+            rows.append(
+                {
+                    "log_gain_ratio": list(key),
+                    "common_valid_sample_count": int(np.count_nonzero(common)),
+                    "pole_valid_mask_disagreement_count": int(
+                        np.count_nonzero(cold_valid != warm.pole_valid_mask)
+                    ),
+                    "stability_classification_disagreement_count": classification_disagreement,
+                    "maximum_trim_vector_infinity_norm_difference": (
+                        None if trim_delta.size == 0 else float(np.max(trim_delta))
+                    ),
+                    "maximum_spectral_radius_absolute_difference": (
+                        None if radius_delta.size == 0 else float(np.max(radius_delta))
+                    ),
+                    "possible_multiple_trim_branch": possible_branch,
+                }
+            )
+        return {
+            "enabled": True,
+            "equilibrium_acceptance": "both warm and cold paths use the unchanged strict equilibrium-validity check",
+            "possible_multiple_trim_branch_detected": bool(
+                any(row["possible_multiple_trim_branch"] for row in rows)
+            ),
+            "points": rows,
+        }
+
 
 class SliceGridEvaluator:
     """Cached 2-D group slice evaluated in conditional survival fraction."""
@@ -492,12 +899,15 @@ class SliceGridEvaluator:
         first_axis: int,
         second_axis: int,
         hidden_axis: int,
+        projection_name: str = "projection",
     ) -> None:
         self.group_evaluator = group_evaluator
         self.first_axis = int(first_axis)
         self.second_axis = int(second_axis)
         self.hidden_axis = int(hidden_axis)
+        self.projection_name = str(projection_name)
         self._cache: dict[tuple[float, float], float] = {}
+        self._trim_cache: dict[tuple[float, float], np.ndarray] = {}
 
     @staticmethod
     def _visible_key(first: float, second: float) -> tuple[float, float]:
@@ -511,16 +921,58 @@ class SliceGridEvaluator:
         coordinate[self.hidden_axis] = 0.0
         return coordinate
 
-    def evaluate(self, first: float, second: float) -> float:
+    def evaluate(
+        self,
+        first: float,
+        second: float,
+        *,
+        initial_trims: Optional[np.ndarray] = None,
+        nearest_trims: Optional[np.ndarray] = None,
+        stage: str = "cold",
+    ) -> float:
         key = self._visible_key(first, second)
         cached = self._cache.get(key)
         if cached is not None:
             return float(cached)
-        value = self.group_evaluator.survival_fraction(
-            self._full_coordinate(*key)
-        )
+        coordinate = self._full_coordinate(*key)
+        exact_evaluate = getattr(self.group_evaluator, "evaluate", None)
+        if callable(exact_evaluate):
+            point = exact_evaluate(
+                coordinate,
+                initial_trims=initial_trims,
+                nearest_trims=nearest_trims,
+                stage=stage,
+            )
+            self._trim_cache[key] = np.asarray(point.trim_vectors, dtype=float).copy()
+        value = self.group_evaluator.survival_fraction(coordinate)
         self._cache[key] = float(value)
         return float(value)
+
+    def trim_matrix(self, first: float, second: float) -> Optional[np.ndarray]:
+        selected = self._trim_cache.get(self._visible_key(first, second))
+        return None if selected is None else selected.copy()
+
+    def nearest_trim_matrix(self, first: float, second: float) -> Optional[np.ndarray]:
+        if not self._trim_cache:
+            return None
+        target = np.asarray(self._visible_key(first, second), dtype=float)
+        ordered = sorted(
+            self._trim_cache.items(),
+            key=lambda item: (
+                float(np.linalg.norm(np.asarray(item[0], dtype=float) - target)),
+                item[0],
+            ),
+        )
+        sample_count = next(iter(self._trim_cache.values())).shape[0]
+        result = np.full((sample_count, 10), np.nan, dtype=float)
+        unresolved = np.ones(sample_count, dtype=bool)
+        for _coordinate, trims in ordered:
+            valid = unresolved & np.all(np.isfinite(trims), axis=1)
+            result[valid] = trims[valid]
+            unresolved[valid] = False
+            if not np.any(unresolved):
+                break
+        return result
 
     @property
     def cached_point_count(self) -> int:
@@ -540,6 +992,117 @@ class SliceGridEvaluator:
                     float(first), float(second)
                 )
         return axis, field
+
+
+def _bilinear_trim_predictor(
+    *,
+    x: float,
+    y: float,
+    x0: float,
+    x1: float,
+    y0: float,
+    y1: float,
+    corner_trims: Sequence[np.ndarray],
+) -> np.ndarray:
+    if not (x1 > x0 and y1 > y0) or len(corner_trims) != 4:
+        raise ValueError("bilinear predictor requires an ordered cell and four corners")
+    selected = [np.asarray(value, dtype=float) for value in corner_trims]
+    if any(value.ndim != 2 or value.shape[1] != 10 for value in selected):
+        raise ValueError("trim predictors must have shape (sample_count, 10)")
+    if len({value.shape for value in selected}) != 1:
+        raise ValueError("trim predictor corner shapes differ")
+    a = (float(x) - float(x0)) / (float(x1) - float(x0))
+    b = (float(y) - float(y0)) / (float(y1) - float(y0))
+    weights = np.asarray(
+        ((1.0 - a) * (1.0 - b), a * (1.0 - b), a * b, (1.0 - a) * b),
+        dtype=float,
+    )
+    if not np.isclose(float(np.sum(weights)), 1.0, rtol=0.0, atol=64.0 * _EPS):
+        raise RuntimeError("bilinear predictor weights do not sum to one")
+    return sum(weight * value for weight, value in zip(weights, selected))
+
+
+def _average_trim_predictors(predictors: Sequence[np.ndarray]) -> np.ndarray:
+    if not predictors:
+        raise ValueError("at least one trim predictor is required")
+    stack = np.asarray(predictors, dtype=float)
+    if stack.ndim != 3 or stack.shape[2] != 10:
+        raise ValueError("trim predictor stack must be parent-by-sample-by-10")
+    valid = np.all(np.isfinite(stack), axis=2)
+    result = np.full(stack.shape[1:], np.nan, dtype=float)
+    for sample in range(stack.shape[1]):
+        available = stack[valid[:, sample], sample]
+        if available.size:
+            result[sample] = np.mean(available, axis=0)
+    return result
+
+
+def _cell_trim_predictor(
+    evaluator: SliceGridEvaluator,
+    cell: AdaptiveCell,
+    x: float,
+    y: float,
+) -> Optional[np.ndarray]:
+    corners = (
+        evaluator.trim_matrix(cell.x0, cell.y0),
+        evaluator.trim_matrix(cell.x1, cell.y0),
+        evaluator.trim_matrix(cell.x1, cell.y1),
+        evaluator.trim_matrix(cell.x0, cell.y1),
+    )
+    if any(value is None for value in corners):
+        return None
+    return _bilinear_trim_predictor(
+        x=x,
+        y=y,
+        x0=cell.x0,
+        x1=cell.x1,
+        y0=cell.y0,
+        y1=cell.y1,
+        corner_trims=[value for value in corners if value is not None],
+    )
+
+
+def _evaluate_coordinates_from_parent_cells(
+    evaluator: SliceGridEvaluator,
+    coordinates: Sequence[tuple[float, float]],
+    parent_cells: Sequence[AdaptiveCell],
+    *,
+    stage: str,
+) -> None:
+    contributions: dict[tuple[float, float], list[np.ndarray]] = {}
+    tolerance = 128.0 * _EPS
+    new_coordinates = [
+        evaluator._visible_key(*coordinate)
+        for coordinate in coordinates
+        if evaluator._visible_key(*coordinate) not in evaluator._cache
+    ]
+    for coordinate in sorted(set(new_coordinates)):
+        x, y = coordinate
+        for cell in parent_cells:
+            if (
+                cell.x0 - tolerance <= x <= cell.x1 + tolerance
+                and cell.y0 - tolerance <= y <= cell.y1 + tolerance
+            ):
+                predictor = _cell_trim_predictor(evaluator, cell, x, y)
+                if predictor is not None:
+                    contributions.setdefault(coordinate, []).append(predictor)
+    predictors = {
+        coordinate: _average_trim_predictors(values)
+        for coordinate, values in contributions.items()
+    }
+    # Snapshot nearest-known fallbacks before solving this stage so results do
+    # not depend on the order in which shared new vertices are visited.
+    nearest = {
+        coordinate: evaluator.nearest_trim_matrix(*coordinate)
+        for coordinate in sorted(set(new_coordinates))
+    }
+    for coordinate in sorted(set(new_coordinates)):
+        evaluator.evaluate(
+            *coordinate,
+            initial_trims=predictors.get(coordinate),
+            nearest_trims=nearest[coordinate],
+            stage=stage,
+        )
 
 
 def _cell_brackets(values: Sequence[float], threshold: float) -> bool:
@@ -593,6 +1156,62 @@ def _grid_cells(axis: np.ndarray, field: np.ndarray) -> list[AdaptiveCell]:
     return cells
 
 
+def _nested_regular_grid(
+    evaluator: SliceGridEvaluator,
+    lower: float,
+    upper: float,
+    size: int,
+    *,
+    previous_axis: Optional[np.ndarray],
+    stage: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    axis = np.linspace(float(lower), float(upper), int(size))
+    coordinates = [
+        (float(first), float(second)) for first in axis for second in axis
+    ]
+    if previous_axis is None:
+        center = (float(axis[axis.size // 2]), float(axis[axis.size // 2]))
+        anchor = evaluator.trim_matrix(*center)
+        nearest = {
+            evaluator._visible_key(*coordinate): evaluator.nearest_trim_matrix(*coordinate)
+            for coordinate in coordinates
+            if evaluator._visible_key(*coordinate) not in evaluator._cache
+        }
+        for coordinate in coordinates:
+            key = evaluator._visible_key(*coordinate)
+            if key in evaluator._cache:
+                continue
+            evaluator.evaluate(
+                *key,
+                initial_trims=anchor,
+                nearest_trims=nearest[key],
+                stage=stage,
+            )
+    else:
+        coarse = np.asarray(previous_axis, dtype=float)
+        coarse_field = np.asarray(
+            [
+                [evaluator.evaluate(float(first), float(second)) for second in coarse]
+                for first in coarse
+            ],
+            dtype=float,
+        )
+        _evaluate_coordinates_from_parent_cells(
+            evaluator,
+            coordinates,
+            _grid_cells(coarse, coarse_field),
+            stage=stage,
+        )
+    field = np.asarray(
+        [
+            [evaluator.evaluate(float(first), float(second)) for second in axis]
+            for first in axis
+        ],
+        dtype=float,
+    )
+    return axis, field
+
+
 def _cell_from_bounds(
     evaluator: SliceGridEvaluator,
     x0: float,
@@ -634,6 +1253,7 @@ def _refine_boundary_to_target(
     threshold: float,
     starting_grid_size: int,
     target_grid_size: int,
+    stage_prefix: str,
 ) -> tuple[
     tuple[AdaptiveCell, ...],
     tuple[AdaptiveCell, ...],
@@ -648,6 +1268,22 @@ def _refine_boundary_to_target(
     current = boundary
     while current and effective < int(target_grid_size):
         before = evaluator.cached_point_count
+        next_effective = _next_nested_size(effective)
+        coordinates = []
+        for cell in current:
+            xm = 0.5 * (cell.x0 + cell.x1)
+            ym = 0.5 * (cell.y0 + cell.y1)
+            coordinates.extend(
+                (float(x), float(y))
+                for x in (cell.x0, xm, cell.x1)
+                for y in (cell.y0, ym, cell.y1)
+            )
+        _evaluate_coordinates_from_parent_cells(
+            evaluator,
+            coordinates,
+            current,
+            stage=f"{stage_prefix}:local_{level + 1}_eq_{next_effective}",
+        )
         next_boundary: list[AdaptiveCell] = []
         for cell in current:
             for child in _split_cell(evaluator, cell):
@@ -657,7 +1293,7 @@ def _refine_boundary_to_target(
                     leaves.append(child)
         after = evaluator.cached_point_count
         level += 1
-        effective = _next_nested_size(effective)
+        effective = next_effective
         diagnostics.append(
             LocalRefinementLevel(
                 level=level,
@@ -769,12 +1405,25 @@ def _adaptive_projection_grid(
 ) -> ProjectionGrid:
     levels: list[GridLevel] = []
     size = 3
+    center = 0.5 * (float(lower) + float(upper))
+    evaluator.evaluate(
+        center,
+        center,
+        stage=f"{name}:anchor_1x1",
+    )
     final_axis = None
     final_field = None
     boundary = False
     while True:
         before = evaluator.cached_point_count
-        axis, field = evaluator.regular_grid(lower, upper, size)
+        axis, field = _nested_regular_grid(
+            evaluator,
+            lower,
+            upper,
+            size,
+            previous_axis=(None if final_axis is None else final_axis),
+            stage=f"{name}:global_{size}x{size}",
+        )
         after = evaluator.cached_point_count
         boundary = _boundary_present(field, threshold)
         levels.append(
@@ -806,6 +1455,7 @@ def _adaptive_projection_grid(
                 threshold,
                 int(final_axis.size),
                 int(final_boundary_grid_size),
+                str(name),
             )
         )
         segments = _boundary_segments_from_cells(final_boundary_cells, threshold)
@@ -882,15 +1532,6 @@ def _plot_projection(
     )
     collection.set_clim(0.0, 1.0)
     axis.add_collection(collection)
-
-    for index, segment in enumerate(projection.boundary_segments_log_ratio):
-        axis.plot(
-            base[first] * np.exp(segment[:, 0]),
-            base[second] * np.exp(segment[:, 1]),
-            color="black",
-            linewidth=2.0,
-            label=(f"{100.0 * threshold:.0f}% survival boundary" if index == 0 else None),
-        )
 
     failure = failure_gain.array()
     success = success_gain.array()
@@ -1006,6 +1647,7 @@ def _adaptive_cell_array(cells: Sequence[AdaptiveCell]) -> np.ndarray:
 
 
 def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
+    analysis_started = time.perf_counter()
     estimate_path = Path(arguments.estimate_json).expanduser().resolve()
     success_path = Path(arguments.success_json).expanduser().resolve()
     estimate = load_estimate_json(estimate_path)
@@ -1068,6 +1710,7 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 first_axis=first,
                 second_axis=second,
                 hidden_axis=hidden,
+                projection_name=name,
             )
             projections.append(
                 _adaptive_projection_grid(
@@ -1083,6 +1726,22 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     final_boundary_grid_size=int(arguments.final_boundary_grid_size),
                 )
             )
+
+        cold_audit: Mapping[str, Any] = {"enabled": False}
+        if bool(arguments.trim_cold_audit):
+            audit_points = []
+            for projection_name, *_unused in PROJECTION_SPECS:
+                candidates = sorted(
+                    (
+                        row.log_ratio
+                        for row in group_evaluator._evaluation_cache.values()
+                        if row.stage == f"{projection_name}:global_3x3"
+                    ),
+                    key=lambda value: tuple(value),
+                )
+                if candidates:
+                    audit_points.append(candidates[0])
+            cold_audit = group_evaluator.cold_start_audit(audit_points)
 
         output = (
             Path(arguments.output_dir).expanduser().resolve()
@@ -1109,7 +1768,7 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             "survival fraction among all-success-stable plant samples"
         )
         figure.suptitle(
-            "{} / {} / single-group survival; {:.1f}% boundary".format(
+            "{} / {} / single-group survival; alpha={:.1f}%".format(
                 estimate["case_name"],
                 group,
                 100.0 * threshold,
@@ -1180,7 +1839,9 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "global_search": "nested 3x3 -> 5x5 -> 9x9 -> 17x17, stopping globally as soon as the survival boundary is detected",
                 "local_refinement": "after first detection, only boundary cells are split dyadically until 33x33-equivalent spacing by default",
                 "grid_reuse": "all repeated gain points are cached and never reevaluated",
-                "boundary": "piecewise-linear alpha-survival segments from final locally refined cells",
+                "trim_continuation": "cold 1x1 center anchor; exact warm-corrected parent-cell bilinear predictors for global and local refinement",
+                "trim_fallback": "per sample: warm predictor, nearest already-converged visible gain point, then the original generic initialization",
+                "boundary": "piecewise-linear alpha-survival segments retained as numeric diagnostics but not overlaid on the heatmap",
                 "heatmap": "adaptive leaf cells retain their survival values; only boundary neighborhoods become finer",
                 "topology_limitation": "if no sampled cell brackets alpha through the 17x17 global search, sub-cell boundary islands are not certified absent",
             },
@@ -1241,6 +1902,11 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "gain_points_with_any_unresolved_trim": group_evaluator.gain_points_with_any_unresolved_trim,
                 "unresolved_trim_sample_evaluation_count": group_evaluator.unresolved_trim_sample_evaluation_count,
             },
+            "trim_continuation_diagnostics": {
+                **group_evaluator.diagnostic_payload(),
+                "analysis_wall_seconds": float(time.perf_counter() - analysis_started),
+            },
+            "trim_cold_start_audit": cold_audit,
             "projections": [_projection_payload(item) for item in projections],
             "files": {
                 "npz": str(output / "gain_contour.npz"),
@@ -1279,6 +1945,11 @@ def build_argument_parser() -> argparse.ArgumentParser:
         default=DEFAULT_FINAL_BOUNDARY_GRID_SIZE,
     )
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS)
+    parser.add_argument(
+        "--trim-cold-audit",
+        action="store_true",
+        help="cold-solve deterministic anchor points and report branch equivalence",
+    )
     parser.add_argument("--output-dir", type=Path, default=None)
     return parser
 

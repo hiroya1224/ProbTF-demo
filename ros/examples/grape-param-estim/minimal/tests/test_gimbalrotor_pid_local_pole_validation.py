@@ -258,6 +258,42 @@ def test_nominal_trim_integral_is_unchanged():
     assert np.array_equal(trim.controller_integral_defect, np.zeros(6))
 
 
+def test_hover_trim_explicit_initial_matches_default_solution():
+    _model, controller, plant, actuator, default, context = nominal_bundle()
+    explicit = local_poles.solve_hover_trim(
+        controller=controller,
+        plant=plant,
+        actuator_parameters=actuator,
+        reference=context.reference,
+        controller_dt=context.controller_dt,
+        delay=context.delay,
+        initial=default.trim_vector,
+    )
+    assert explicit.equilibrium_valid
+    assert explicit.trim_vector.shape == (10,)
+    assert np.allclose(explicit.trim_vector, default.trim_vector, rtol=1e-12, atol=1e-12)
+    assert explicit.root_nfev > 0
+    assert explicit.root_njev is None or explicit.root_njev > 0
+
+
+def test_hover_trim_rejects_invalid_explicit_initial():
+    _model, controller, plant, actuator, _default, context = nominal_bundle()
+    common = dict(
+        controller=controller,
+        plant=plant,
+        actuator_parameters=actuator,
+        reference=context.reference,
+        controller_dt=context.controller_dt,
+        delay=context.delay,
+    )
+    with pytest.raises(ValueError, match="finite shape"):
+        local_poles.solve_hover_trim(**common, initial=np.zeros(9))
+    invalid = np.zeros(10)
+    invalid[3] = np.nan
+    with pytest.raises(ValueError, match="finite shape"):
+        local_poles.solve_hover_trim(**common, initial=invalid)
+
+
 def test_filled_nonzero_delay_queue_preserves_trim():
     _model, _controller, _plant, _actuator, trim, _context = nominal_bundle(0.015)
     assert trim.equilibrium_valid

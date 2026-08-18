@@ -4,6 +4,7 @@ from dataclasses import replace
 from functools import lru_cache
 from pathlib import Path
 import sys
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -21,6 +22,7 @@ import three_bag_gimbalrotor_pid_local_pole_validation as three_bag
 from grape_param_estim.controller import ControllerConfig, GrapeController
 from grape_param_estim.controller_config import PID_GAIN_NAMES, PID_GROUPS
 from grape_param_estim.dynamics import FullSixDofPlant
+import grape_param_estim.dynamics as dynamics
 from grape_param_estim.geometry import quaternion_to_matrix
 from grape_param_estim.gimbalrotor_pid_postprocess import (
     PostprocessInputError,
@@ -97,6 +99,22 @@ def nominal_bundle(delay_seconds: float = 0.0):
         trim.state,
     )
     return model, controller, plant, actuator, trim, context
+
+
+def test_rk4_analytic_step_reuses_one_actuator_wrench_evaluation():
+    _model, _controller, plant, _actuator, trim, _context = nominal_bundle()
+    with patch.object(
+        dynamics,
+        "actuator_wrench_with_jacobian",
+        wraps=dynamics.actuator_wrench_with_jacobian,
+    ) as wrapped:
+        plant.step_with_jacobian(
+            0.0,
+            trim.state.rigid_body,
+            trim.state.actuators,
+            0.01,
+        )
+    assert wrapped.call_count == 1
 
 
 # Input and provenance contract.

@@ -15,11 +15,14 @@ if str(FIRST_ORDER) not in sys.path:
     sys.path.insert(0, str(FIRST_ORDER))
 
 from pid_gain_contour import (  # noqa: E402
+    AdaptiveCell,
+    ExactGroupGainEvaluator,
     SliceGridEvaluator,
     _average_trim_predictors,
     _adaptive_projection_grid,
     _bilinear_trim_predictor,
     _boundary_present,
+    _evaluate_coordinates_from_parent_cells,
     _exact_matrix_with_configuration,
     _exact_matrix_chunk_task,
 )
@@ -193,6 +196,92 @@ def test_shared_predictor_average_is_order_independent() -> None:
     expected = 0.5 * (first + second)
     assert np.array_equal(_average_trim_predictors((first, second)), expected)
     assert np.array_equal(_average_trim_predictors((second, first)), expected)
+
+
+def test_refinement_coordinates_are_submitted_as_one_frozen_wave() -> None:
+    class _WaveGroup:
+        def __init__(self) -> None:
+            self.requests = []
+
+        @staticmethod
+        def _key(coordinate):
+            return tuple(float(value) for value in np.round(coordinate, 14))
+
+        def evaluate_wave(self, requests):
+            self.requests.append(tuple(requests))
+            # Return in reverse insertion order to ensure visible results are
+            # associated by canonical gain key rather than completion order.
+            return {
+                self._key(request.log_ratio): SimpleNamespace(
+                    trim_vectors=np.full(
+                        (2, 10), float(np.sum(request.log_ratio))
+                    )
+                )
+                for request in reversed(requests)
+            }
+
+        def survival_fraction(self, coordinate):
+            return float(np.sum(coordinate))
+
+    group = _WaveGroup()
+    evaluator = SliceGridEvaluator(
+        group, first_axis=0, second_axis=1, hidden_axis=2
+    )
+    corners = ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0))
+    for index, coordinate in enumerate(corners):
+        key = evaluator._visible_key(*coordinate)
+        evaluator._cache[key] = float(index)
+        evaluator._trim_cache[key] = np.full((2, 10), float(index))
+    parent = AdaptiveCell(0.0, 1.0, 0.0, 1.0, (0.0, 1.0, 2.0, 3.0))
+    coordinates = ((0.5, 0.0), (1.0, 0.5), (0.5, 0.5), (0.5, 1.0))
+    _evaluate_coordinates_from_parent_cells(
+        evaluator, coordinates, (parent,), stage="test:wave"
+    )
+    assert len(group.requests) == 1
+    requests = group.requests[0]
+    assert len(requests) == len(coordinates)
+    assert all(request.stage == "test:wave" for request in requests)
+    # Every nearest fallback was frozen from the four predecessor corners;
+    # no current-wave trim can appear in another request.
+    assert all(
+        request.nearest_trims is not None
+        and set(np.unique(request.nearest_trims)).issubset({0.0, 1.0, 2.0, 3.0})
+        for request in requests
+    )
+    assert evaluator.cached_point_count == len(corners) + len(coordinates)
+
+
+def test_chunk_assembly_restores_sample_index_order() -> None:
+    def row(indices):
+        selected = np.asarray(indices, dtype=int)
+        count = selected.size
+        matrices = np.asarray(
+            [np.full((26, 26), float(index)) for index in selected]
+        )
+        return (
+            selected,
+            matrices,
+            np.ones(count, dtype=bool),
+            np.zeros(count, dtype=bool),
+            np.repeat(selected[:, None], 10, axis=1).astype(float),
+            np.ones(count, dtype=int),
+            np.ones((count, 3), dtype=int),
+            np.ones(count, dtype=bool),
+            np.zeros(count, dtype=bool),
+            np.zeros(count, dtype=bool),
+            np.zeros(count, dtype=bool),
+            np.zeros(count),
+            np.zeros(count),
+            np.zeros(count),
+            np.ones(count, dtype=bool),
+        )
+
+    evaluator = SimpleNamespace(plants=(None,) * 4)
+    stack = ExactGroupGainEvaluator._assemble_matrix_rows(
+        evaluator, (row((2, 0)), row((3, 1)))
+    )
+    assert np.array_equal(stack[0][:, 0, 0], np.arange(4, dtype=float))
+    assert np.array_equal(stack[3][:, 0], np.arange(4, dtype=float))
 
 
 def test_trim_fallback_retries_nearest_then_generic_without_dropping_sample() -> None:

@@ -28,7 +28,7 @@ search stops there.  Every repeated gain point is cached exactly.
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 import json
 import math
@@ -138,6 +138,16 @@ class GainPointEvaluation:
     eigensystem_wall_seconds: float
     initial_step_infinity_norm: np.ndarray
     initial_unchanged: np.ndarray
+    stage: str
+
+
+@dataclass(frozen=True)
+class GainPointRequest:
+    """One deterministic gain evaluation prepared before a worker wave."""
+
+    log_ratio: np.ndarray
+    initial_trims: Optional[np.ndarray]
+    nearest_trims: Optional[np.ndarray]
     stage: str
 
 
@@ -475,6 +485,15 @@ def _exact_matrix_chunk_task(
     )
 
 
+def _keyed_exact_matrix_chunk_task(
+    task: tuple[tuple[float, float, float], tuple[Any, ...]],
+) -> tuple[tuple[float, float, float], tuple[Any, ...]]:
+    """Keep gain identity explicit when chunks from many gains interleave."""
+
+    gain_key, chunk_task = task
+    return gain_key, _exact_matrix_chunk_task(chunk_task)
+
+
 class ExactGroupGainEvaluator:
     """Exact per-gain Monte Carlo pole evaluator with batched eigensystems."""
 
@@ -511,6 +530,7 @@ class ExactGroupGainEvaluator:
             tuple[float, float, float], GainPointEvaluation
         ] = {}
         self._break_cache: dict[tuple[float, float, float], BreakEvaluation] = {}
+        self._scheduling_rows: list[Mapping[str, float]] = []
         self.success_log_ratio = np.log(self.success_gain / self.base_gain)
         success = self.evaluate(
             self.success_log_ratio, stage="all_success_baseline"
@@ -578,12 +598,12 @@ class ExactGroupGainEvaluator:
             raise ValueError("log gain ratio must be finite length three")
         return self.base_gain * np.exp(selected)
 
-    def _matrix_stack(
+    def _matrix_tasks(
         self,
         log_ratio: Sequence[float],
         initial_trims: Optional[np.ndarray],
         nearest_trims: Optional[np.ndarray],
-    ) -> tuple[Any, ...]:
+    ) -> list[tuple[Any, ...]]:
         gain = self.gain_from_log_ratio(log_ratio)
         gains = _replace_group(
             self.hybrid_failure_gains,
@@ -601,7 +621,7 @@ class ExactGroupGainEvaluator:
             for chunk in np.array_split(np.arange(sample_count, dtype=int), chunk_count)
             if chunk.size
         ]
-        tasks = [
+        return [
             (
                 tuple(int(index) for index in chunk),
                 tuple(self.plants[int(index)] for index in chunk),
@@ -622,10 +642,24 @@ class ExactGroupGainEvaluator:
             )
             for chunk in index_chunks
         ]
+
+    def _matrix_stack(
+        self,
+        log_ratio: Sequence[float],
+        initial_trims: Optional[np.ndarray],
+        nearest_trims: Optional[np.ndarray],
+    ) -> tuple[Any, ...]:
+        tasks = self._matrix_tasks(log_ratio, initial_trims, nearest_trims)
         if self._executor is None:
             rows = [_exact_matrix_chunk_task(task) for task in tasks]
         else:
             rows = list(self._executor.map(_exact_matrix_chunk_task, tasks))
+        return self._assemble_matrix_rows(rows)
+
+    def _assemble_matrix_rows(
+        self, rows: Sequence[tuple[Any, ...]]
+    ) -> tuple[Any, ...]:
+        sample_count = len(self.plants)
         matrices = np.empty((sample_count, 26, 26), dtype=float)
         pole_valid = np.empty(sample_count, dtype=bool)
         near_kink = np.empty(sample_count, dtype=bool)
@@ -722,6 +756,52 @@ class ExactGroupGainEvaluator:
         nearest = self._validate_trim_matrix(
             nearest_trims, self.sample_count, "nearest_trims"
         )
+        wave_started = time.perf_counter()
+        stack = self._matrix_stack(key, initial, nearest)
+        queue_seconds = time.perf_counter() - wave_started
+        result = self._gain_point_from_matrix_stack(key, stack, stage)
+        total_seconds = time.perf_counter() - wave_started
+        self._record_scheduling_wave(
+            gain_count=1,
+            task_count=min(self.sample_count, max(1, 2 * self.workers)),
+            queue_seconds=queue_seconds,
+            total_seconds=total_seconds,
+            worker_seconds=float(np.sum(stack[10]) + np.sum(stack[11])),
+            task_preparation_seconds=0.0,
+            submission_seconds=0.0,
+        )
+        self._evaluation_cache[key] = result
+        return result
+
+    def _record_scheduling_wave(
+        self,
+        *,
+        gain_count: int,
+        task_count: int,
+        queue_seconds: float,
+        total_seconds: float,
+        worker_seconds: float,
+        task_preparation_seconds: float,
+        submission_seconds: float,
+    ) -> None:
+        self._scheduling_rows.append(
+            {
+                "gain_count": float(gain_count),
+                "task_count": float(task_count),
+                "queue_seconds": float(queue_seconds),
+                "total_seconds": float(total_seconds),
+                "worker_seconds": float(worker_seconds),
+                "task_preparation_seconds": float(task_preparation_seconds),
+                "submission_seconds": float(submission_seconds),
+            }
+        )
+
+    def _gain_point_from_matrix_stack(
+        self,
+        key: tuple[float, float, float],
+        stack: tuple[Any, ...],
+        stage: str,
+    ) -> GainPointEvaluation:
         (
             matrices,
             pole_valid,
@@ -737,7 +817,7 @@ class ExactGroupGainEvaluator:
             jacobian_seconds,
             initial_step_infinity_norm,
             initial_unchanged,
-        ) = self._matrix_stack(key, initial, nearest)
+        ) = stack
         # NumPy accepts a stack of square matrices.  All 512 eigensystems are
         # therefore dispatched in one call rather than a Python eigvals loop.
         radii = np.full(self.sample_count, np.inf, dtype=float)
@@ -751,7 +831,7 @@ class ExactGroupGainEvaluator:
         ):
             raise FloatingPointError("closed-loop spectral radius became invalid")
         log_radii = np.log(radii)
-        result = GainPointEvaluation(
+        return GainPointEvaluation(
             log_ratio=np.asarray(key, dtype=float),
             log_spectral_radius=log_radii,
             trim_vectors=trim_vectors,
@@ -771,8 +851,102 @@ class ExactGroupGainEvaluator:
             initial_unchanged=initial_unchanged,
             stage=str(stage),
         )
-        self._evaluation_cache[key] = result
-        return result
+
+    def evaluate_wave(
+        self, requests: Sequence[GainPointRequest]
+    ) -> Mapping[tuple[float, float, float], GainPointEvaluation]:
+        """Evaluate one frozen-predictor refinement wave in a shared queue."""
+
+        prepared: dict[
+            tuple[float, float, float],
+            tuple[Optional[np.ndarray], Optional[np.ndarray], str],
+        ] = {}
+        for request in requests:
+            if not isinstance(request, GainPointRequest):
+                raise TypeError("wave requests must be GainPointRequest values")
+            key = self._key(request.log_ratio)
+            if key in self._evaluation_cache:
+                continue
+            if key in prepared:
+                raise ValueError("duplicate uncached gain in one refinement wave")
+            prepared[key] = (
+                self._validate_trim_matrix(
+                    request.initial_trims, self.sample_count, "initial_trims"
+                ),
+                self._validate_trim_matrix(
+                    request.nearest_trims, self.sample_count, "nearest_trims"
+                ),
+                str(request.stage),
+            )
+
+        wave_started = time.perf_counter()
+        keyed_tasks = []
+        expected_rows = {}
+        for key in sorted(prepared):
+            initial, nearest, _stage = prepared[key]
+            tasks = self._matrix_tasks(key, initial, nearest)
+            expected_rows[key] = len(tasks)
+            keyed_tasks.extend((key, task) for task in tasks)
+        task_count = len(keyed_tasks)
+        task_preparation_seconds = time.perf_counter() - wave_started
+        rows_by_gain: dict[
+            tuple[float, float, float], list[tuple[Any, ...]]
+        ] = {key: [] for key in prepared}
+        wave_results: dict[
+            tuple[float, float, float], GainPointEvaluation
+        ] = {}
+        worker_seconds = 0.0
+
+        def accept(completed: tuple[tuple[float, float, float], tuple[Any, ...]]) -> None:
+            nonlocal worker_seconds
+            key, row = completed
+            rows_by_gain[key].append(row)
+            worker_seconds += float(np.sum(row[11])) + float(np.sum(row[12]))
+            if len(rows_by_gain[key]) == expected_rows[key]:
+                _initial, _nearest, stage = prepared[key]
+                stack = self._assemble_matrix_rows(rows_by_gain.pop(key))
+                wave_results[key] = self._gain_point_from_matrix_stack(
+                    key, stack, stage
+                )
+
+        if self._executor is None:
+            submission_seconds = 0.0
+            for task in keyed_tasks:
+                accept(_keyed_exact_matrix_chunk_task(task))
+        else:
+            submission_started = time.perf_counter()
+            futures = [
+                self._executor.submit(_keyed_exact_matrix_chunk_task, task)
+                for task in keyed_tasks
+            ]
+            submission_seconds = time.perf_counter() - submission_started
+            del keyed_tasks
+            completed_futures = as_completed(futures)
+            del futures
+            for future in completed_futures:
+                accept(future.result())
+        queue_seconds = time.perf_counter() - wave_started
+        if rows_by_gain:
+            raise RuntimeError("refinement wave finished with incomplete gains")
+        for key in sorted(wave_results):
+            self._evaluation_cache[key] = wave_results[key]
+        total_seconds = time.perf_counter() - wave_started
+        if prepared:
+            self._record_scheduling_wave(
+                gain_count=len(prepared),
+                task_count=task_count,
+                queue_seconds=queue_seconds,
+                total_seconds=total_seconds,
+                worker_seconds=worker_seconds,
+                task_preparation_seconds=task_preparation_seconds,
+                submission_seconds=submission_seconds,
+            )
+        return {
+            self._key(request.log_ratio): self._evaluation_cache[
+                self._key(request.log_ratio)
+            ]
+            for request in requests
+        }
 
     def log_spectral_radius(self, log_ratio: Sequence[float]) -> np.ndarray:
         return self.evaluate(log_ratio).log_spectral_radius.copy()
@@ -892,6 +1066,53 @@ class ExactGroupGainEvaluator:
         result["by_stage"] = {
             stage: summarize([row for row in rows if row.stage == stage])
             for stage in stages
+        }
+        scheduling = tuple(self._scheduling_rows)
+        queue_seconds = float(
+            sum(row["queue_seconds"] for row in scheduling)
+        )
+        ideal_worker_seconds = float(
+            sum(row["worker_seconds"] / self.workers for row in scheduling)
+        )
+        result["refinement_wave_scheduling"] = {
+            "wave_count": len(scheduling),
+            "multi_gain_wave_count": int(
+                sum(row["gain_count"] > 1.0 for row in scheduling)
+            ),
+            "scheduled_gain_point_count": int(
+                sum(row["gain_count"] for row in scheduling)
+            ),
+            "scheduled_plant_chunk_task_count": int(
+                sum(row["task_count"] for row in scheduling)
+            ),
+            "maximum_gain_points_in_one_wave": int(
+                max((row["gain_count"] for row in scheduling), default=0.0)
+            ),
+            "queue_and_collection_wall_seconds": queue_seconds,
+            "total_wave_wall_seconds": float(
+                sum(row["total_seconds"] for row in scheduling)
+            ),
+            "timed_worker_compute_seconds": float(
+                sum(row["worker_seconds"] for row in scheduling)
+            ),
+            "task_preparation_wall_seconds": float(
+                sum(row["task_preparation_seconds"] for row in scheduling)
+            ),
+            "executor_submission_wall_seconds": float(
+                sum(row["submission_seconds"] for row in scheduling)
+            ),
+            "ideal_timed_worker_wall_seconds": ideal_worker_seconds,
+            "queue_excess_over_ideal_timed_worker_seconds": float(
+                max(0.0, queue_seconds - ideal_worker_seconds)
+            ),
+            "timed_worker_utilization_fraction": (
+                None
+                if queue_seconds <= 0.0
+                else float(min(1.0, ideal_worker_seconds / queue_seconds))
+            ),
+            "per_gain_barriers_removed_within_waves": int(
+                sum(max(0.0, row["gain_count"] - 1.0) for row in scheduling)
+            ),
         }
         return result
 
@@ -1013,6 +1234,57 @@ class SliceGridEvaluator:
         value = self.group_evaluator.survival_fraction(coordinate)
         self._cache[key] = float(value)
         return float(value)
+
+    def evaluate_wave(
+        self,
+        coordinates: Sequence[tuple[float, float]],
+        *,
+        initial_trims: Mapping[tuple[float, float], np.ndarray],
+        nearest_trims: Mapping[
+            tuple[float, float], Optional[np.ndarray]
+        ],
+        stage: str,
+    ) -> None:
+        """Evaluate all new visible coordinates with frozen predictors."""
+
+        keys = sorted(
+            {
+                self._visible_key(*coordinate)
+                for coordinate in coordinates
+                if self._visible_key(*coordinate) not in self._cache
+            }
+        )
+        exact_wave = getattr(self.group_evaluator, "evaluate_wave", None)
+        if callable(exact_wave) and keys:
+            requests = [
+                GainPointRequest(
+                    log_ratio=self._full_coordinate(*key),
+                    initial_trims=initial_trims.get(key),
+                    nearest_trims=nearest_trims.get(key),
+                    stage=str(stage),
+                )
+                for key in keys
+            ]
+            evaluated = exact_wave(requests)
+            for key, request in zip(keys, requests):
+                point = evaluated[
+                    self.group_evaluator._key(request.log_ratio)
+                ]
+                self._trim_cache[key] = np.asarray(
+                    point.trim_vectors, dtype=float
+                ).copy()
+                value = self.group_evaluator.survival_fraction(
+                    request.log_ratio
+                )
+                self._cache[key] = float(value)
+            return
+        for key in keys:
+            self.evaluate(
+                *key,
+                initial_trims=initial_trims.get(key),
+                nearest_trims=nearest_trims.get(key),
+                stage=stage,
+            )
 
     def trim_matrix(self, first: float, second: float) -> Optional[np.ndarray]:
         selected = self._trim_cache.get(self._visible_key(first, second))
@@ -1162,13 +1434,12 @@ def _evaluate_coordinates_from_parent_cells(
         coordinate: evaluator.nearest_trim_matrix(*coordinate)
         for coordinate in sorted(set(new_coordinates))
     }
-    for coordinate in sorted(set(new_coordinates)):
-        evaluator.evaluate(
-            *coordinate,
-            initial_trims=predictors.get(coordinate),
-            nearest_trims=nearest[coordinate],
-            stage=stage,
-        )
+    evaluator.evaluate_wave(
+        sorted(set(new_coordinates)),
+        initial_trims=predictors,
+        nearest_trims=nearest,
+        stage=stage,
+    )
 
 
 def _cell_brackets(values: Sequence[float], threshold: float) -> bool:
@@ -1243,16 +1514,18 @@ def _nested_regular_grid(
             for coordinate in coordinates
             if evaluator._visible_key(*coordinate) not in evaluator._cache
         }
-        for coordinate in coordinates:
-            key = evaluator._visible_key(*coordinate)
-            if key in evaluator._cache:
-                continue
-            evaluator.evaluate(
-                *key,
-                initial_trims=anchor,
-                nearest_trims=nearest[key],
-                stage=stage,
-            )
+        initial = {
+            evaluator._visible_key(*coordinate): anchor
+            for coordinate in coordinates
+            if evaluator._visible_key(*coordinate) not in evaluator._cache
+            and anchor is not None
+        }
+        evaluator.evaluate_wave(
+            coordinates,
+            initial_trims=initial,
+            nearest_trims=nearest,
+            stage=stage,
+        )
     else:
         coarse = np.asarray(previous_axis, dtype=float)
         coarse_field = np.asarray(
@@ -1906,6 +2179,7 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "local_refinement": "after first detection, only boundary cells are split dyadically until 33x33-equivalent spacing by default",
                 "grid_reuse": "all repeated gain points are cached and never reevaluated",
                 "trim_continuation": "cold 1x1 center anchor; exact warm-corrected parent-cell bilinear predictors for global and local refinement",
+                "refinement_scheduling": "freeze all predictors for one adaptive wave, then queue every gain-by-plant-chunk task before the next wave",
                 "trim_fallback": "per sample: warm predictor, nearest already-converged visible gain point, then the original generic initialization",
                 "boundary": "piecewise-linear alpha-survival segments retained as numeric diagnostics but not overlaid on the heatmap",
                 "heatmap": "adaptive leaf cells retain their survival values; only boundary neighborhoods become finer",

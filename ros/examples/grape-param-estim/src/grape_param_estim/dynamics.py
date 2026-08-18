@@ -64,6 +64,30 @@ class ActuatorWrenchJacobian:
 
 
 @dataclass(frozen=True)
+class ActuatorWrenchEvaluation:
+    """RK4-invariant actuator wrench and its analytic Jacobian.
+
+    A plant step holds the actual actuator state fixed across all four RK4
+    stages.  Keeping that state in the bundle makes the dependency explicit
+    and prevents a bundle from being reused with a different actuator object.
+    """
+
+    actuator_state: ActuatorState
+    body_wrench: np.ndarray
+    jacobian: ActuatorWrenchJacobian
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.actuator_state, ActuatorState):
+            raise TypeError("actuator_state must be an ActuatorState")
+        wrench = np.asarray(self.body_wrench, dtype=float)
+        if wrench.shape != (6,) or not np.all(np.isfinite(wrench)):
+            raise ValueError("body_wrench must be a finite (6,) array")
+        if not isinstance(self.jacobian, ActuatorWrenchJacobian):
+            raise TypeError("jacobian must be an ActuatorWrenchJacobian")
+        object.__setattr__(self, "body_wrench", wrench.copy())
+
+
+@dataclass(frozen=True)
 class ActuatorTransitionJacobian:
     """Analytic blocks of one piecewise-smooth actuator transition.
 
@@ -757,6 +781,16 @@ class FullSixDofPlant:
             wrench += interval_discrepancy
         return wrench
 
+    def actuator_wrench_evaluation(
+        self, actuators: ActuatorState
+    ) -> ActuatorWrenchEvaluation:
+        """Evaluate the state-independent actuator part of plant dynamics."""
+
+        wrench, jacobian = actuator_wrench_with_jacobian(
+            actuators, self.parameters, self.geometry
+        )
+        return ActuatorWrenchEvaluation(actuators, wrench, jacobian)
+
     def derivative(
         self,
         time: float,
@@ -807,6 +841,9 @@ class FullSixDofPlant:
         interval_model_discrepancy_wrench: Optional[
             Sequence[float]
         ] = None,
+        precomputed_actuator_wrench: Optional[
+            ActuatorWrenchEvaluation
+        ] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Return the continuous derivative and exact active-branch Jacobians.
 
@@ -836,9 +873,22 @@ class FullSixDofPlant:
         velocity = state.linear_velocity
         omega = state.angular_velocity
 
-        actuator_body_wrench, wrench_jacobian = actuator_wrench_with_jacobian(
-            actuators, self.parameters, self.geometry
-        )
+        if precomputed_actuator_wrench is None:
+            actuator_evaluation = self.actuator_wrench_evaluation(actuators)
+        else:
+            actuator_evaluation = precomputed_actuator_wrench
+            if not isinstance(actuator_evaluation, ActuatorWrenchEvaluation):
+                raise TypeError(
+                    "precomputed_actuator_wrench must be an "
+                    "ActuatorWrenchEvaluation"
+                )
+            if actuator_evaluation.actuator_state is not actuators:
+                raise ValueError(
+                    "precomputed actuator wrench belongs to a different "
+                    "actuator state"
+                )
+        actuator_body_wrench = actuator_evaluation.body_wrench
+        wrench_jacobian = actuator_evaluation.jacobian
         body_velocity = rotation.T @ velocity
         wrench = actuator_body_wrench.copy()
         wrench[:3] -= self.parameters.linear_drag * body_velocity
@@ -972,9 +1022,14 @@ class FullSixDofPlant:
             raise ValueError("plant time step must be positive")
         vector = state.as_vector()
         identity = np.eye(13, dtype=float)
+        actuator_evaluation = self.actuator_wrench_evaluation(actuators)
 
         k1, a1, bt1, bg1 = self.derivative_with_jacobian(
-            time, vector, actuators, interval_model_discrepancy_wrench
+            time,
+            vector,
+            actuators,
+            interval_model_discrepancy_wrench,
+            actuator_evaluation,
         )
         k1_x = a1
         k1_t = bt1
@@ -989,6 +1044,7 @@ class FullSixDofPlant:
             stage2,
             actuators,
             interval_model_discrepancy_wrench,
+            actuator_evaluation,
         )
         k2_x = a2 @ stage2_x
         k2_t = a2 @ stage2_t + bt2
@@ -1003,6 +1059,7 @@ class FullSixDofPlant:
             stage3,
             actuators,
             interval_model_discrepancy_wrench,
+            actuator_evaluation,
         )
         k3_x = a3 @ stage3_x
         k3_t = a3 @ stage3_t + bt3
@@ -1017,6 +1074,7 @@ class FullSixDofPlant:
             stage4,
             actuators,
             interval_model_discrepancy_wrench,
+            actuator_evaluation,
         )
         k4_x = a4 @ stage4_x
         k4_t = a4 @ stage4_t + bt4

@@ -32,6 +32,7 @@ from core import (  # noqa: E402
     physical_point_payload,
     quotient_distribution_payload,
 )
+from reports import write_failure_outputs, write_standard_outputs  # noqa: E402
 from grape_param_estim.real_rosbag import load_flight_data  # noqa: E402
 from grape_param_estim.system import ActuatorParameters  # noqa: E402
 from single_bag_input import load_single_bag_input  # noqa: E402
@@ -46,7 +47,6 @@ from single_bag_savgol_covariance import parameter_covariances  # noqa: E402
 from single_bag_savgol_reports import source_commit, write_json  # noqa: E402
 
 
-DEFAULT_INITIAL_TAU_MULTIPLIERS = (1.0, 4.0, 16.0, 64.0)
 DEFAULT_MAX_NFEV = 10000
 
 
@@ -258,10 +258,7 @@ def run_estimate(arguments: argparse.Namespace) -> tuple[Path, Mapping[str, Any]
         if not np.isfinite(command_period) or command_period <= 0.0:
             raise ValueError("rotor command history has no positive median period")
         if arguments.initial_tau is None:
-            initial_taus = tuple(
-                command_period * float(multiplier)
-                for multiplier in arguments.initial_tau_multipliers
-            )
+            initial_taus = (command_period,)
         else:
             initial_taus = (float(arguments.initial_tau),)
 
@@ -350,15 +347,48 @@ def run_estimate(arguments: argparse.Namespace) -> tuple[Path, Mapping[str, Any]
             "elapsed_seconds": float(time.perf_counter() - started),
         }
         write_json(output_dir / "estimate.json", payload)
+        report_arguments = dict(vars(arguments))
+        report_arguments.update(
+            {
+                "resolved_case_name": case_name,
+                "resolved_bag_json": str(Path(bag_json_path).expanduser().resolve()),
+                "bag": bag_input.bag_path,
+                "bag_start": float(bag_input.start_seconds),
+                "bag_end": float(bag_input.end_seconds),
+                "resolved_initial_tau_seconds": float(initial_taus[0]),
+            }
+        )
+        standard_outputs = ("estimate.json", "status.json")
+        standard_output_failure = None
+        try:
+            standard_outputs = write_standard_outputs(
+                output_dir,
+                estimate=payload,
+                arguments=report_arguments,
+                dataset=dataset,
+                model=model,
+                evaluation=final,
+                solver_runs=starts,
+            )
+        except Exception as output_error:
+            standard_output_failure = {
+                "exception_type": type(output_error).__name__,
+                "message": str(output_error),
+                "traceback": traceback.format_exc(),
+            }
+        status_payload = {
+            "schema": ESTIMATE_SCHEMA + "-status",
+            "status": "completed",
+            "case_name": case_name,
+            "source_commit": revision,
+            "estimate_json": str(output_dir / "estimate.json"),
+            "standard_outputs": list(standard_outputs),
+        }
+        if standard_output_failure is not None:
+            status_payload["standard_output_failure"] = standard_output_failure
         write_json(
             output_dir / "status.json",
-            {
-                "schema": ESTIMATE_SCHEMA + "-status",
-                "status": "completed",
-                "case_name": case_name,
-                "source_commit": revision,
-                "estimate_json": str(output_dir / "estimate.json"),
-            },
+            status_payload,
         )
         return output_dir, payload
     except Exception as error:
@@ -374,6 +404,14 @@ def run_estimate(arguments: argparse.Namespace) -> tuple[Path, Mapping[str, Any]
             "elapsed_seconds": float(time.perf_counter() - started),
         }
         write_json(output_dir / "status.json", failure)
+        try:
+            write_failure_outputs(
+                output_dir,
+                failure=failure,
+                arguments=dict(vars(arguments)),
+            )
+        except Exception:
+            pass
         return output_dir, failure
 
 
@@ -399,13 +437,6 @@ def build_argument_parser() -> argparse.ArgumentParser:
         default="measured_sg",
     )
     parser.add_argument("--initial-tau", type=float, default=None)
-    parser.add_argument(
-        "--initial-tau-multipliers",
-        type=float,
-        nargs="+",
-        default=DEFAULT_INITIAL_TAU_MULTIPLIERS,
-        help="used only when --initial-tau is omitted; multiplied by command period",
-    )
     parser.add_argument("--max-nfev", type=int, default=DEFAULT_MAX_NFEV)
     parser.add_argument("--gtol", type=float, default=1.0e-8)
     parser.add_argument("--ftol", type=float, default=float(np.sqrt(np.finfo(float).eps)))

@@ -1,0 +1,21 @@
+{
+  "bag_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/bag_jsons/single_rosbag_1.json",
+  "case": "failure1",
+  "covariance_mode": "identity",
+  "gimbal_source": "measured_sg",
+  "gimbal_time_constant": 0.0,
+  "initial_tau": [
+    0.004997730255126953,
+    0.019990921020507812,
+    0.07996368408203125,
+    0.319854736328125
+  ],
+  "maximum_gimbal_angle": 3.14,
+  "maximum_gimbal_rate": 6.0,
+  "maximum_thrust": 27.6145,
+  "minimum_thrust": 1.5,
+  "reconstructed_from_estimate_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/estimate.json",
+  "sg_degree": 5,
+  "sg_window": 1.0,
+  "vehicle_model": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json"
+}

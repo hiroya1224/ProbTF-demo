@@ -3,5 +3,16 @@
   "estimate_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/estimate.json",
   "schema": "grape-param-estim/first-order-lag-estimate/v1-status",
   "source_commit": "8f089b4aa2abbeabeb6831b802215e788fa78a66",
+  "standard_outputs": [
+    "arguments.json",
+    "arrays.npz",
+    "estimate.json",
+    "report.pdf",
+    "residual_wrench.pdf",
+    "residual_wrench_summary.json",
+    "result.json",
+    "status.json",
+    "timing.json"
+  ],
   "status": "completed"
 }

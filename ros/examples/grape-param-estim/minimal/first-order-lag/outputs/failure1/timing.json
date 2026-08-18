@@ -1,0 +1,57 @@
+{
+  "elapsed_seconds": 212.3700498198159,
+  "final_tau_seconds": 0.2523097647102586,
+  "initial_tau_seconds": [
+    0.004997730255126953,
+    0.019990921020507812,
+    0.07996368408203125,
+    0.319854736328125
+  ],
+  "nfev": 116,
+  "solver_runs": [
+    {
+      "data_cost": 301.26249557405345,
+      "elapsed_seconds": 59.383729385212064,
+      "final_tau_seconds": 0.2523097647102586,
+      "initial_tau_seconds": 0.004997730255126953,
+      "message": "`ftol` termination condition is satisfied.",
+      "nfev": 116,
+      "selected": true,
+      "status": 2,
+      "success": true
+    },
+    {
+      "data_cost": 301.26251046343407,
+      "elapsed_seconds": 56.08219701284543,
+      "final_tau_seconds": 0.25230801748867643,
+      "initial_tau_seconds": 0.019990921020507812,
+      "message": "`ftol` termination condition is satisfied.",
+      "nfev": 109,
+      "selected": false,
+      "status": 2,
+      "success": true
+    },
+    {
+      "data_cost": 301.26261246285287,
+      "elapsed_seconds": 31.521434044931084,
+      "final_tau_seconds": 0.2523090160682632,
+      "initial_tau_seconds": 0.07996368408203125,
+      "message": "`ftol` termination condition is satisfied.",
+      "nfev": 62,
+      "selected": false,
+      "status": 2,
+      "success": true
+    },
+    {
+      "data_cost": 301.2625719489018,
+      "elapsed_seconds": 39.033576163928956,
+      "final_tau_seconds": 0.2523081392946872,
+      "initial_tau_seconds": 0.319854736328125,
+      "message": "`ftol` termination condition is satisfied.",
+      "nfev": 76,
+      "selected": false,
+      "status": 2,
+      "success": true
+    }
+  ]
+}

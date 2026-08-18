@@ -378,6 +378,17 @@ def test_zero_and_fitted_delay_issue_identical_instantaneous_command():
 
 
 # Linearization and exact classification.
+def test_active_branch_analytic_jacobian_matches_central_difference():
+    *_, context = nominal_bundle()
+    analytic, near_kink = local_poles.analytic_closed_loop_jacobian(context)
+    finite_difference = local_poles.central_difference_jacobian(context)
+    relative_error = np.linalg.norm(analytic - finite_difference) / np.linalg.norm(
+        finite_difference
+    )
+    assert not near_kink
+    assert relative_error < 2e-5
+
+
 def test_h_and_half_h_central_differences_agree():
     *_, context = nominal_bundle()
     full = local_poles.central_difference_jacobian(context)

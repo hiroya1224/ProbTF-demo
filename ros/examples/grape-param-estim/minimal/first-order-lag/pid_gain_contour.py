@@ -1,44 +1,28 @@
 #!/usr/bin/env python3
-"""Adaptive group-only PID break maps for the first-order Gimbalrotor model.
+"""Exact adaptive single-group PID survival maps for first-order Gimbalrotor.
 
-The closed-loop model is the full 26-state sampled-data system used by the
-first-order-lag pole validation.  For one selected PID gain group, the other
-three groups are fixed at the recorded gains of the successful flight.  The
-selected group is varied around the recorded gain of the analyzed failure bag.
+For one selected PID group, the other three groups are held at the recorded
+successful-flight gains.  The selected group is varied around the gain recorded
+in the analyzed failure bag.  For every queried gain point and every sampled
+plant, the full sampled closed-loop model is trimmed and analytically
+linearized; no gain-affine surrogate is used.
 
-For plant sample n, let F_n(K) be the full 26-state one-step Jacobian and let
-rho_n(K) be its spectral radius.  The all-success controller defines a baseline
-stable mask.  At a queried gain of one selected group, a sample is counted as
-"caused to break by this group" exactly when
+The plotted scalar is the conditional survival fraction among plant samples
+that are stable under the all-success controller.  A value of one is therefore
+best.  The displayed boundary is the requested alpha survival level (0.95 by
+default).
 
-    rho_n(K_success) < 1  and  rho_n(K_group_only) >= 1.
-
-Thus the plotted value is a directly interpretable fraction of the requested
-plant samples, not the stability fraction of the whole failure controller.
-
-The selected group's three 2-D views are slices through its recorded failure
-point:
+The three views are slices through the failure gain:
 
     PI: D = D_failure
     ID: P = P_failure
     DP: I = I_failure
 
-The global raster is evaluated on nested dyadic grids
-
-    3x3 -> 5x5 -> 9x9 -> 17x17
-
-and every old point is reused exactly.  Global refinement continues through
-the configured maximum grid even when a boundary appears early.  If the 5%
-boundary is detected by that stage, only cells near the boundary are split
-dyadically three more times by default.  The final boundary line is built from
-those locally refined cells, giving eight times finer spacing than the 17x17
-global grid without evaluating a dense 129x129 raster.
-
-Before any raster evaluation, the expensive nonlinear one-step Jacobian is
-audited for affine dependence on the selected raw P/I/D gains.  Samples that
-pass the audit use cached 26x26 affine matrices.  Samples that do not pass fall
-back to the original full 26-state evaluator at each queried point; they are
-never discarded.
+Global search uses nested dyadic grids 3x3 -> 5x5 -> 9x9 -> 17x17 only until
+the boundary is first detected.  From that point onward, only boundary cells
+are split, until the local spacing reaches the configured final equivalent
+grid size (33x33 by default).  If no boundary is found through 17x17, the
+search stops there.  Every repeated gain point is cached exactly.
 """
 
 from __future__ import annotations
@@ -55,6 +39,7 @@ from types import SimpleNamespace
 from typing import Any, Mapping, Optional, Sequence
 
 import matplotlib.pyplot as plt
+from matplotlib.collections import PolyCollection
 import numpy as np
 
 _HERE = Path(__file__).resolve().parent
@@ -83,23 +68,21 @@ from grape_param_estim.gimbalrotor_pid_postprocess import (  # noqa: E402
     load_vehicle_model,
 )
 from gimbalrotor_pid_local_pole_validation import (  # noqa: E402
-    NUMERICAL_SAMPLE_EXCEPTIONS,
     _analyze_plant,
     decompose_thrust_delay,
 )
 from single_bag_savgol_reports import source_commit, write_json  # noqa: E402
 
 
-CONTOUR_SCHEMA = "grape-param-estim/first-order-lag-pid-group-break/v2"
+CONTOUR_SCHEMA = "grape-param-estim/first-order-lag-pid-group-survival/v3"
 DEFAULT_ALPHA = 0.95
 DEFAULT_SAMPLE_COUNT = 512
 DEFAULT_SEED = 0
 DEFAULT_GROUP = "roll_pitch"
 DEFAULT_SCALE_MIN = 0.35
 DEFAULT_SCALE_MAX = 3.0
-DEFAULT_AFFINE_BASIS_RATIO = 1.12
 DEFAULT_MAX_GRID_SIZE = 17
-DEFAULT_LOCAL_REFINEMENT_LEVELS = 3
+DEFAULT_FINAL_BOUNDARY_GRID_SIZE = 33
 DEFAULT_WORKERS = min(12, os.cpu_count() or 1)
 PROJECTION_SPECS = (
     ("pi", 0, 1, 2, "P", "I", "D"),
@@ -108,7 +91,6 @@ PROJECTION_SPECS = (
 )
 
 _EPS = np.finfo(float).eps
-_AFFINE_AUDIT_TOLERANCE = float(4096.0 * _EPS ** (2.0 / 3.0))
 
 
 @dataclass(frozen=True)
@@ -122,16 +104,6 @@ class GainTriple:
         if result.shape != (3,) or np.any(~np.isfinite(result)) or np.any(result <= 0.0):
             raise ValueError("PID gains must be finite and strictly positive")
         return result
-
-
-@dataclass(frozen=True)
-class AffineSampleResult:
-    index: int
-    base_matrix: np.ndarray
-    gain_derivatives: np.ndarray
-    audit_relative_errors: np.ndarray
-    affine_valid: bool
-    piecewise_near_kink: bool
 
 
 @dataclass(frozen=True)
@@ -150,18 +122,32 @@ class GridLevel:
     size: int
     new_point_count: int
     total_cached_point_count: int
-    minimum_break_fraction: float
-    maximum_break_fraction: float
+    minimum_survival_fraction: float
+    maximum_survival_fraction: float
     boundary_present: bool
 
 
 @dataclass(frozen=True)
 class LocalRefinementLevel:
     level: int
-    input_cell_count: int
-    boundary_cell_count: int
+    equivalent_grid_size: int
+    input_boundary_cell_count: int
+    output_boundary_cell_count: int
     new_point_count: int
     total_cached_point_count: int
+
+
+@dataclass(frozen=True)
+class AdaptiveCell:
+    x0: float
+    x1: float
+    y0: float
+    y1: float
+    values: tuple[float, float, float, float]
+
+    @property
+    def mean_value(self) -> float:
+        return float(np.mean(np.asarray(self.values, dtype=float)))
 
 
 @dataclass(frozen=True)
@@ -172,15 +158,13 @@ class ProjectionGrid:
     hidden_axis: int
     hidden_gain: float
     axis_log_ratio: np.ndarray
-    break_fraction: np.ndarray
-    levels: tuple[GridLevel, ...]
+    survival_fraction: np.ndarray
+    global_levels: tuple[GridLevel, ...]
     boundary_first_seen_grid_size: Optional[int]
-    initial_boundary_candidate_cell_count: int
-    topology_probe_new_point_count: int
-    topology_probe_detected_cell_count: int
     local_refinement_levels: tuple[LocalRefinementLevel, ...]
+    adaptive_cells: tuple[AdaptiveCell, ...]
+    final_boundary_cells: tuple[AdaptiveCell, ...]
     boundary_segments_log_ratio: np.ndarray
-    boundary_leaf_cell_count: int
     effective_local_equivalent_grid_size: int
     stop_reason: str
 
@@ -215,163 +199,93 @@ def _replace_group(
 def _inputs(
     vehicle_model: Any,
     actuator_parameters: Any,
-    gains: Mapping[str, GainTriple],
+    controller_configuration: Any,
 ) -> Any:
     return SimpleNamespace(
         vehicle_model=vehicle_model,
         actuator_parameters=actuator_parameters,
-        controller_configuration=_configuration(gains),
+        controller_configuration=controller_configuration,
     )
 
 
-def _exact_matrix(
+def _exact_matrix_with_configuration(
     *,
     plant: ScaleFreePlant,
     vehicle_model: Any,
     actuator_parameters: Any,
     controller_dt: float,
-    gains: Mapping[str, GainTriple],
+    controller_configuration: Any,
 ) -> tuple[np.ndarray, bool]:
     result = _analyze_plant(
         scale_free=plant,
-        inputs=_inputs(vehicle_model, actuator_parameters, gains),
+        inputs=_inputs(
+            vehicle_model,
+            actuator_parameters,
+            controller_configuration,
+        ),
         controller_dt=float(controller_dt),
         delay=decompose_thrust_delay(0.0, float(controller_dt)),
         fd_check=False,
+        compute_eigenvalues=False,
     )
     matrix = result.get("jacobian")
     trim = result.get("trim")
     if matrix is None or trim is None or not bool(trim.equilibrium_valid):
-        raise RuntimeError("full 26-state pole Jacobian is unavailable at the requested gain")
+        raise RuntimeError(
+            "full 26-state pole Jacobian is unavailable at the requested gain"
+        )
     selected = np.asarray(matrix, dtype=float)
     if selected.shape != (26, 26) or np.any(~np.isfinite(selected)):
         raise RuntimeError("first-order closed-loop Jacobian must be finite 26x26")
-    return selected, bool(trim.piecewise_linearization_near_kink)
+    near_kink = bool(trim.piecewise_linearization_near_kink) or bool(
+        result.get("analytic_piecewise_near_kink", False)
+    )
+    return selected, near_kink
 
 
-def _relative_matrix_error(actual: np.ndarray, predicted: np.ndarray) -> float:
-    numerator = float(np.linalg.norm(actual - predicted, ord="fro"))
-    denominator = float(np.linalg.norm(actual, ord="fro"))
-    if denominator == 0.0:
-        return 0.0 if numerator == 0.0 else float("inf")
-    return numerator / denominator
-
-
-def _audit_triples(
-    base: GainTriple,
-    success: GainTriple,
-    scale_min: float,
-    scale_max: float,
-) -> tuple[GainTriple, GainTriple]:
-    center = base.array()
-    success_value = success.array()
-    midpoint = math.sqrt(float(scale_min) * float(scale_max))
-    first = GainTriple(*success_value)
-    second = GainTriple(*(center * np.asarray((scale_max, midpoint, scale_min))))
-    return first, second
-
-
-def _build_affine_sample(task: tuple[Any, ...]) -> AffineSampleResult:
+def _exact_matrix_chunk_task(
+    task: tuple[Any, ...],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     (
-        index,
-        plant,
+        indices,
+        plants,
         vehicle_model,
         actuator_parameters,
         controller_dt,
-        hybrid_failure_gains,
-        group,
-        success_group_gain,
-        scale_min,
-        scale_max,
-        basis_ratio,
+        controller_configuration,
     ) = task
-    base = hybrid_failure_gains[group]
-    base_values = base.array()
-    base_matrix, piecewise = _exact_matrix(
-        plant=plant,
-        vehicle_model=vehicle_model,
-        actuator_parameters=actuator_parameters,
-        controller_dt=controller_dt,
-        gains=hybrid_failure_gains,
-    )
-    derivatives = np.empty((3, 26, 26), dtype=float)
-    for axis in range(3):
-        perturbed = base_values.copy()
-        perturbed[axis] *= float(basis_ratio)
-        delta = float(perturbed[axis] - base_values[axis])
-        if delta == 0.0:
-            raise RuntimeError("affine basis perturbation vanished")
-        matrix, near_kink = _exact_matrix(
+    selected_indices = np.asarray(indices, dtype=int)
+    matrices = np.empty((selected_indices.size, 26, 26), dtype=float)
+    near_kink = np.empty(selected_indices.size, dtype=bool)
+    for local_index, plant in enumerate(plants):
+        matrix, near = _exact_matrix_with_configuration(
             plant=plant,
             vehicle_model=vehicle_model,
             actuator_parameters=actuator_parameters,
             controller_dt=controller_dt,
-            gains=_replace_group(
-                hybrid_failure_gains,
-                group,
-                GainTriple(*perturbed),
-            ),
+            controller_configuration=controller_configuration,
         )
-        derivatives[axis] = (matrix - base_matrix) / delta
-        piecewise = piecewise or near_kink
-
-    errors = []
-    for triple in _audit_triples(base, success_group_gain, scale_min, scale_max):
-        values = triple.array()
-        actual, near_kink = _exact_matrix(
-            plant=plant,
-            vehicle_model=vehicle_model,
-            actuator_parameters=actuator_parameters,
-            controller_dt=controller_dt,
-            gains=_replace_group(hybrid_failure_gains, group, triple),
-        )
-        predicted = base_matrix + np.einsum(
-            "j,jkl->kl", values - base_values, derivatives
-        )
-        errors.append(_relative_matrix_error(actual, predicted))
-        piecewise = piecewise or near_kink
-    audit = np.asarray(errors, dtype=float)
-    valid = bool(
-        np.all(np.isfinite(audit))
-        and float(np.max(audit)) <= _AFFINE_AUDIT_TOLERANCE
-    )
-    return AffineSampleResult(
-        index=int(index),
-        base_matrix=base_matrix,
-        gain_derivatives=derivatives,
-        audit_relative_errors=audit,
-        affine_valid=valid,
-        piecewise_near_kink=piecewise,
-    )
+        matrices[local_index] = matrix
+        near_kink[local_index] = near
+    return selected_indices, matrices, near_kink
 
 
-class GroupGainEvaluator:
-    """Full 26-state spectral radii with audited affine matrix reuse."""
+class ExactGroupGainEvaluator:
+    """Exact per-gain Monte Carlo pole evaluator with batched eigensystems."""
 
     def __init__(
         self,
         *,
         plants: Sequence[ScaleFreePlant],
-        sample_results: Sequence[AffineSampleResult],
         hybrid_failure_gains: Mapping[str, GainTriple],
         success_gains: Mapping[str, GainTriple],
         group: str,
         vehicle_model: Any,
         actuator_parameters: Any,
         controller_dt: float,
+        workers: int,
     ) -> None:
         self.plants = tuple(plants)
-        ordered = sorted(sample_results, key=lambda item: item.index)
-        if len(ordered) != len(self.plants) or any(
-            item.index != index for index, item in enumerate(ordered)
-        ):
-            raise ValueError("affine sample results do not align with plant samples")
-        self.sample_results = tuple(ordered)
-        self.base_matrix = np.asarray([item.base_matrix for item in ordered], dtype=float)
-        self.derivative = np.asarray(
-            [item.gain_derivatives for item in ordered], dtype=float
-        )
-        self.affine_valid = np.asarray([item.affine_valid for item in ordered], dtype=bool)
         self.hybrid_failure_gains = dict(hybrid_failure_gains)
         self.success_gains = dict(success_gains)
         self.group = str(group)
@@ -380,20 +294,44 @@ class GroupGainEvaluator:
         self.vehicle_model = vehicle_model
         self.actuator_parameters = actuator_parameters
         self.controller_dt = float(controller_dt)
+        self.workers = min(int(workers), len(self.plants))
+        if self.workers <= 0:
+            raise ValueError("workers must be positive")
+        self._executor = (
+            None
+            if self.workers <= 1
+            else ProcessPoolExecutor(max_workers=self.workers)
+        )
         self._radius_cache: dict[tuple[float, float, float], np.ndarray] = {}
+        self._near_kink_cache: dict[tuple[float, float, float], np.ndarray] = {}
         self._break_cache: dict[tuple[float, float, float], BreakEvaluation] = {}
-        success_ratio = np.log(self.success_gain / self.base_gain)
-        self.success_log_ratio = success_ratio
-        self.success_log_radius = self.log_spectral_radius(success_ratio)
+        self.success_log_ratio = np.log(self.success_gain / self.base_gain)
+        self.success_log_radius = self.log_spectral_radius(self.success_log_ratio)
         self.success_stable_mask = self.success_log_radius < 0.0
+        self.success_stable_count = int(np.count_nonzero(self.success_stable_mask))
+        if self.success_stable_count <= 0:
+            raise RuntimeError(
+                "all-success controller has no stable plant sample; conditional survival is undefined"
+            )
 
-    @property
-    def fallback_count(self) -> int:
-        return int(np.count_nonzero(~self.affine_valid))
+    def close(self) -> None:
+        if self._executor is not None:
+            self._executor.shutdown(wait=True)
+            self._executor = None
 
     @property
     def sample_count(self) -> int:
         return len(self.plants)
+
+    @property
+    def evaluated_gain_point_count(self) -> int:
+        return len(self._radius_cache)
+
+    @property
+    def gain_points_with_any_near_kink(self) -> int:
+        return int(
+            sum(bool(np.any(value)) for value in self._near_kink_cache.values())
+        )
 
     @staticmethod
     def _key(log_ratio: Sequence[float]) -> tuple[float, float, float]:
@@ -409,36 +347,65 @@ class GroupGainEvaluator:
             raise ValueError("log gain ratio must be finite length three")
         return self.base_gain * np.exp(selected)
 
-    def _matrices(self, log_ratio: Sequence[float]) -> np.ndarray:
+    def _matrix_stack(self, log_ratio: Sequence[float]) -> tuple[np.ndarray, np.ndarray]:
         gain = self.gain_from_log_ratio(log_ratio)
-        delta = gain - self.base_gain
-        matrices = self.base_matrix + np.einsum("j,njkl->nkl", delta, self.derivative)
-        fallback = np.flatnonzero(~self.affine_valid)
-        if fallback.size:
-            triple = GainTriple(*gain)
-            gains = _replace_group(self.hybrid_failure_gains, self.group, triple)
-            for index in fallback:
-                matrices[index], _near_kink = _exact_matrix(
-                    plant=self.plants[int(index)],
-                    vehicle_model=self.vehicle_model,
-                    actuator_parameters=self.actuator_parameters,
-                    controller_dt=self.controller_dt,
-                    gains=gains,
-                )
-        return matrices
+        gains = _replace_group(
+            self.hybrid_failure_gains,
+            self.group,
+            GainTriple(*gain),
+        )
+        controller_configuration = _configuration(gains)
+        sample_count = len(self.plants)
+        # Send a small number of plant chunks to persistent workers.  This
+        # avoids 512 IPC round trips at every gain point while preserving one
+        # independently trimmed/linearized Jacobian per plant sample.
+        chunk_count = min(sample_count, max(1, 2 * self.workers))
+        index_chunks = [
+            chunk
+            for chunk in np.array_split(np.arange(sample_count, dtype=int), chunk_count)
+            if chunk.size
+        ]
+        tasks = [
+            (
+                tuple(int(index) for index in chunk),
+                tuple(self.plants[int(index)] for index in chunk),
+                self.vehicle_model,
+                self.actuator_parameters,
+                self.controller_dt,
+                controller_configuration,
+            )
+            for chunk in index_chunks
+        ]
+        if self._executor is None:
+            rows = [_exact_matrix_chunk_task(task) for task in tasks]
+        else:
+            rows = list(self._executor.map(_exact_matrix_chunk_task, tasks))
+        matrices = np.empty((sample_count, 26, 26), dtype=float)
+        near_kink = np.empty(sample_count, dtype=bool)
+        filled = np.zeros(sample_count, dtype=bool)
+        for indices, chunk_matrices, chunk_near_kink in rows:
+            matrices[indices] = chunk_matrices
+            near_kink[indices] = chunk_near_kink
+            filled[indices] = True
+        if not np.all(filled):
+            raise RuntimeError("exact plant sample ordering changed during evaluation")
+        return matrices, near_kink
 
     def log_spectral_radius(self, log_ratio: Sequence[float]) -> np.ndarray:
         key = self._key(log_ratio)
         cached = self._radius_cache.get(key)
         if cached is not None:
             return cached.copy()
-        matrices = self._matrices(key)
+        matrices, near_kink = self._matrix_stack(key)
+        # NumPy accepts a stack of square matrices.  All 512 eigensystems are
+        # therefore dispatched in one call rather than a Python eigvals loop.
         eigenvalues = np.linalg.eigvals(matrices)
         radii = np.max(np.abs(eigenvalues), axis=1)
         if np.any(~np.isfinite(radii)) or np.any(radii <= 0.0):
             raise FloatingPointError("closed-loop spectral radius became invalid")
         result = np.log(radii)
         self._radius_cache[key] = result.copy()
+        self._near_kink_cache[key] = near_kink.copy()
         return result
 
     def break_evaluation(self, log_ratio: Sequence[float]) -> BreakEvaluation:
@@ -469,13 +436,19 @@ class GroupGainEvaluator:
         self._break_cache[key] = result
         return result
 
+    def survival_fraction(self, log_ratio: Sequence[float]) -> float:
+        evaluation = self.break_evaluation(log_ratio)
+        return float(
+            1.0 - evaluation.caused_break_count / self.success_stable_count
+        )
+
 
 class SliceGridEvaluator:
-    """Cached 2-D group slice with nested dyadic refinement."""
+    """Cached 2-D group slice evaluated in conditional survival fraction."""
 
     def __init__(
         self,
-        group_evaluator: GroupGainEvaluator,
+        group_evaluator: ExactGroupGainEvaluator,
         *,
         first_axis: int,
         second_axis: int,
@@ -496,7 +469,6 @@ class SliceGridEvaluator:
         coordinate = np.zeros(3, dtype=float)
         coordinate[self.first_axis] = float(first)
         coordinate[self.second_axis] = float(second)
-        # The hidden gain remains exactly at the recorded failure value.
         coordinate[self.hidden_axis] = 0.0
         return coordinate
 
@@ -505,9 +477,9 @@ class SliceGridEvaluator:
         cached = self._cache.get(key)
         if cached is not None:
             return float(cached)
-        value = self.group_evaluator.break_evaluation(
+        value = self.group_evaluator.survival_fraction(
             self._full_coordinate(*key)
-        ).caused_break_fraction
+        )
         self._cache[key] = float(value)
         return float(value)
 
@@ -515,7 +487,12 @@ class SliceGridEvaluator:
     def cached_point_count(self) -> int:
         return len(self._cache)
 
-    def regular_grid(self, lower: float, upper: float, size: int) -> tuple[np.ndarray, np.ndarray]:
+    def regular_grid(
+        self,
+        lower: float,
+        upper: float,
+        size: int,
+    ) -> tuple[np.ndarray, np.ndarray]:
         axis = np.linspace(float(lower), float(upper), int(size))
         field = np.empty((axis.size, axis.size), dtype=float)
         for first_index, first in enumerate(axis):
@@ -538,7 +515,7 @@ def _cell_brackets(values: Sequence[float], threshold: float) -> bool:
 def _boundary_present(field: np.ndarray, threshold: float) -> bool:
     value = np.asarray(field, dtype=float)
     if value.ndim != 2 or min(value.shape) < 2 or np.any(~np.isfinite(value)):
-        raise ValueError("break-fraction field must be finite 2-D")
+        raise ValueError("survival-fraction field must be finite 2-D")
     for first in range(value.shape[0] - 1):
         for second in range(value.shape[1] - 1):
             corners = (
@@ -556,13 +533,25 @@ def _next_nested_size(size: int) -> int:
     return 2 * (int(size) - 1) + 1
 
 
-@dataclass(frozen=True)
-class _BoundaryCell:
-    x0: float
-    x1: float
-    y0: float
-    y1: float
-    values: tuple[float, float, float, float]
+def _grid_cells(axis: np.ndarray, field: np.ndarray) -> list[AdaptiveCell]:
+    cells = []
+    for first in range(axis.size - 1):
+        for second in range(axis.size - 1):
+            cells.append(
+                AdaptiveCell(
+                    float(axis[first]),
+                    float(axis[first + 1]),
+                    float(axis[second]),
+                    float(axis[second + 1]),
+                    (
+                        float(field[first, second]),
+                        float(field[first + 1, second]),
+                        float(field[first + 1, second + 1]),
+                        float(field[first, second + 1]),
+                    ),
+                )
+            )
+    return cells
 
 
 def _cell_from_bounds(
@@ -571,109 +560,78 @@ def _cell_from_bounds(
     x1: float,
     y0: float,
     y1: float,
-) -> _BoundaryCell:
-    values = (
-        evaluator.evaluate(float(x0), float(y0)),
-        evaluator.evaluate(float(x1), float(y0)),
-        evaluator.evaluate(float(x1), float(y1)),
-        evaluator.evaluate(float(x0), float(y1)),
-    )
-    return _BoundaryCell(
+) -> AdaptiveCell:
+    return AdaptiveCell(
         float(x0),
         float(x1),
         float(y0),
         float(y1),
-        tuple(float(value) for value in values),
+        (
+            evaluator.evaluate(float(x0), float(y0)),
+            evaluator.evaluate(float(x1), float(y0)),
+            evaluator.evaluate(float(x1), float(y1)),
+            evaluator.evaluate(float(x0), float(y1)),
+        ),
     )
 
 
-def _global_candidate_cells(
+def _split_cell(
     evaluator: SliceGridEvaluator,
-    axis: np.ndarray,
-    field: np.ndarray,
-    threshold: float,
-) -> tuple[list[_BoundaryCell], int, int]:
-    """Find threshold cells and probe unbracketed cell centers once.
-
-    The center probe is a small topology audit.  It can detect a compact island
-    whose four global-grid corners all lie on the same side of the threshold.
-    It does not mathematically certify that no still-smaller island exists.
-    """
-
-    before = evaluator.cached_point_count
-    candidates: list[_BoundaryCell] = []
-    center_detected = 0
-    for first in range(axis.size - 1):
-        for second in range(axis.size - 1):
-            cell = _BoundaryCell(
-                float(axis[first]),
-                float(axis[first + 1]),
-                float(axis[second]),
-                float(axis[second + 1]),
-                (
-                    float(field[first, second]),
-                    float(field[first + 1, second]),
-                    float(field[first + 1, second + 1]),
-                    float(field[first, second + 1]),
-                ),
-            )
-            if _cell_brackets(cell.values, threshold):
-                candidates.append(cell)
-                continue
-            center_value = evaluator.evaluate(
-                0.5 * (cell.x0 + cell.x1),
-                0.5 * (cell.y0 + cell.y1),
-            )
-            if _cell_brackets((*cell.values, center_value), threshold):
-                candidates.append(cell)
-                center_detected += 1
-    after = evaluator.cached_point_count
-    return candidates, int(after - before), int(center_detected)
-
-
-def _split_boundary_cell(
-    evaluator: SliceGridEvaluator,
-    cell: _BoundaryCell,
-    threshold: float,
-) -> list[_BoundaryCell]:
+    cell: AdaptiveCell,
+) -> tuple[AdaptiveCell, AdaptiveCell, AdaptiveCell, AdaptiveCell]:
     xm = 0.5 * (cell.x0 + cell.x1)
     ym = 0.5 * (cell.y0 + cell.y1)
-    children = (
+    return (
         _cell_from_bounds(evaluator, cell.x0, xm, cell.y0, ym),
         _cell_from_bounds(evaluator, xm, cell.x1, cell.y0, ym),
         _cell_from_bounds(evaluator, xm, cell.x1, ym, cell.y1),
         _cell_from_bounds(evaluator, cell.x0, xm, ym, cell.y1),
     )
-    return [child for child in children if _cell_brackets(child.values, threshold)]
 
 
-def _refine_boundary_cells(
+def _refine_boundary_to_target(
     evaluator: SliceGridEvaluator,
-    cells: Sequence[_BoundaryCell],
+    base_cells: Sequence[AdaptiveCell],
     threshold: float,
-    levels: int,
-) -> tuple[list[_BoundaryCell], tuple[LocalRefinementLevel, ...]]:
-    current = list(cells)
-    diagnostics: list[LocalRefinementLevel] = []
-    for level in range(1, int(levels) + 1):
-        if not current:
-            break
+    starting_grid_size: int,
+    target_grid_size: int,
+) -> tuple[
+    tuple[AdaptiveCell, ...],
+    tuple[AdaptiveCell, ...],
+    tuple[LocalRefinementLevel, ...],
+    int,
+]:
+    boundary = [cell for cell in base_cells if _cell_brackets(cell.values, threshold)]
+    leaves = [cell for cell in base_cells if not _cell_brackets(cell.values, threshold)]
+    diagnostics = []
+    effective = int(starting_grid_size)
+    level = 0
+    current = boundary
+    while current and effective < int(target_grid_size):
         before = evaluator.cached_point_count
-        refined: list[_BoundaryCell] = []
+        next_boundary: list[AdaptiveCell] = []
         for cell in current:
-            refined.extend(_split_boundary_cell(evaluator, cell, threshold))
+            for child in _split_cell(evaluator, cell):
+                if _cell_brackets(child.values, threshold):
+                    next_boundary.append(child)
+                else:
+                    leaves.append(child)
         after = evaluator.cached_point_count
+        level += 1
+        effective = _next_nested_size(effective)
         diagnostics.append(
             LocalRefinementLevel(
-                level=int(level),
-                input_cell_count=int(len(current)),
-                boundary_cell_count=int(len(refined)),
+                level=level,
+                equivalent_grid_size=effective,
+                input_boundary_cell_count=len(current),
+                output_boundary_cell_count=len(next_boundary),
                 new_point_count=int(after - before),
                 total_cached_point_count=int(after),
             )
         )
-        current = refined
-    return current, tuple(diagnostics)
+        current = next_boundary
+    leaves.extend(current)
+    return tuple(leaves), tuple(current), tuple(diagnostics), int(effective)
 
 
 def _triangle_segment(
@@ -715,10 +673,11 @@ def _triangle_segment(
 
 
 def _boundary_segments_from_cells(
-    evaluator: SliceGridEvaluator,
-    cells: Sequence[_BoundaryCell],
+    cells: Sequence[AdaptiveCell],
     threshold: float,
 ) -> np.ndarray:
+    """Piecewise-linear boundary using only already-evaluated cell corners."""
+
     segments: list[np.ndarray] = []
     seen: set[tuple[float, ...]] = set()
     for cell in cells:
@@ -726,17 +685,20 @@ def _boundary_segments_from_cells(
             (0.5 * (cell.x0 + cell.x1), 0.5 * (cell.y0 + cell.y1)),
             dtype=float,
         )
-        center_value = evaluator.evaluate(float(center[0]), float(center[1]))
+        # Bilinear-center interpolation avoids an extra expensive gain query.
+        center_value = float(np.mean(np.asarray(cell.values, dtype=float)))
         points = (
             np.asarray((cell.x0, cell.y0), dtype=float),
             np.asarray((cell.x1, cell.y0), dtype=float),
             np.asarray((cell.x1, cell.y1), dtype=float),
             np.asarray((cell.x0, cell.y1), dtype=float),
         )
-        values = cell.values
         for first, second in ((0, 1), (1, 2), (2, 3), (3, 0)):
             triangle_points = np.asarray((points[first], points[second], center))
-            triangle_values = np.asarray((values[first], values[second], center_value))
+            triangle_values = np.asarray(
+                (cell.values[first], cell.values[second], center_value),
+                dtype=float,
+            )
             segment = _triangle_segment(triangle_points, triangle_values, threshold)
             if segment is None:
                 continue
@@ -764,76 +726,57 @@ def _adaptive_projection_grid(
     upper: float,
     threshold: float,
     maximum_grid_size: int,
-    local_refinement_levels: int,
+    final_boundary_grid_size: int,
 ) -> ProjectionGrid:
-    if maximum_grid_size < 3:
-        raise ValueError("maximum grid size must be at least three")
-    if (maximum_grid_size - 1) & (maximum_grid_size - 2):
-        raise ValueError("maximum grid size must be 2^k + 1")
-    if local_refinement_levels < 0:
-        raise ValueError("local refinement levels must be non-negative")
-
     levels: list[GridLevel] = []
     size = 3
     final_axis = None
     final_field = None
-    first_seen = None
+    boundary = False
     while True:
         before = evaluator.cached_point_count
         axis, field = evaluator.regular_grid(lower, upper, size)
         after = evaluator.cached_point_count
         boundary = _boundary_present(field, threshold)
-        if boundary and first_seen is None:
-            first_seen = int(size)
         levels.append(
             GridLevel(
                 size=int(size),
                 new_point_count=int(after - before),
                 total_cached_point_count=int(after),
-                minimum_break_fraction=float(np.min(field)),
-                maximum_break_fraction=float(np.max(field)),
+                minimum_survival_fraction=float(np.min(field)),
+                maximum_survival_fraction=float(np.max(field)),
                 boundary_present=bool(boundary),
             )
         )
         final_axis = axis
         final_field = field
-        if size >= maximum_grid_size:
+        # Once a boundary exists, global refinement stops immediately.
+        if boundary or size >= int(maximum_grid_size):
             break
-        next_size = _next_nested_size(size)
-        if next_size > maximum_grid_size:
-            next_size = maximum_grid_size
-        if next_size == size:
-            break
-        size = next_size
+        size = _next_nested_size(size)
 
     assert final_axis is not None and final_field is not None
-    candidates, probe_new, probe_detected = _global_candidate_cells(
-        evaluator,
-        np.asarray(final_axis, dtype=float),
-        np.asarray(final_field, dtype=float),
-        threshold,
-    )
-    if first_seen is None and candidates:
-        first_seen = int(final_axis.size)
-
-    leaf_cells: list[_BoundaryCell] = list(candidates)
+    base_cells = _grid_cells(final_axis, final_field)
+    first_seen = int(final_axis.size) if boundary else None
     local_levels: tuple[LocalRefinementLevel, ...] = ()
-    if leaf_cells and local_refinement_levels:
-        leaf_cells, local_levels = _refine_boundary_cells(
-            evaluator,
-            leaf_cells,
-            threshold,
-            local_refinement_levels,
+    if boundary:
+        adaptive_cells, final_boundary_cells, local_levels, effective = (
+            _refine_boundary_to_target(
+                evaluator,
+                base_cells,
+                threshold,
+                int(final_axis.size),
+                int(final_boundary_grid_size),
+            )
         )
-    segments = _boundary_segments_from_cells(evaluator, leaf_cells, threshold)
-    completed_local_levels = len(local_levels)
-    effective = int((final_axis.size - 1) * (2 ** completed_local_levels) + 1)
-    if candidates and segments.size:
-        stop_reason = "boundary_refined_locally"
-    elif candidates:
-        stop_reason = "boundary_candidate_without_final_segment"
+        segments = _boundary_segments_from_cells(final_boundary_cells, threshold)
+        stop_reason = "boundary_found_then_refined_locally_to_target_spacing"
     else:
-        stop_reason = "no_boundary_detected_through_global_and_center_probe"
+        adaptive_cells = tuple(base_cells)
+        final_boundary_cells = ()
+        effective = int(final_axis.size)
+        segments = np.empty((0, 2, 2), dtype=float)
+        stop_reason = "no_boundary_detected_through_global_17x17_search"
 
     hidden_gain = float(evaluator.group_evaluator.base_gain[hidden_axis])
     return ProjectionGrid(
@@ -843,18 +786,17 @@ def _adaptive_projection_grid(
         hidden_axis=int(hidden_axis),
         hidden_gain=hidden_gain,
         axis_log_ratio=np.asarray(final_axis, dtype=float),
-        break_fraction=np.asarray(final_field, dtype=float),
-        levels=tuple(levels),
+        survival_fraction=np.asarray(final_field, dtype=float),
+        global_levels=tuple(levels),
         boundary_first_seen_grid_size=first_seen,
-        initial_boundary_candidate_cell_count=int(len(candidates)),
-        topology_probe_new_point_count=int(probe_new),
-        topology_probe_detected_cell_count=int(probe_detected),
         local_refinement_levels=local_levels,
+        adaptive_cells=adaptive_cells,
+        final_boundary_cells=tuple(final_boundary_cells),
         boundary_segments_log_ratio=segments,
-        boundary_leaf_cell_count=int(len(leaf_cells)),
-        effective_local_equivalent_grid_size=effective,
+        effective_local_equivalent_grid_size=int(effective),
         stop_reason=stop_reason,
     )
+
 
 def _range_with_success(
     failure: GainTriple,
@@ -874,45 +816,77 @@ def _plot_projection(
     axis: Any,
     *,
     projection: ProjectionGrid,
-    group_evaluator: GroupGainEvaluator,
+    group_evaluator: ExactGroupGainEvaluator,
     failure_gain: GainTriple,
     success_gain: GainTriple,
     threshold: float,
     labels: Sequence[str],
 ) -> Any:
-    log_axis = projection.axis_log_ratio
-    first_gain = group_evaluator.base_gain[projection.first_axis] * np.exp(log_axis)
-    second_gain = group_evaluator.base_gain[projection.second_axis] * np.exp(log_axis)
-    x, y = np.meshgrid(first_gain, second_gain, indexing="ij")
-    field = projection.break_fraction
-    color = axis.pcolormesh(x, y, field, shading="auto", vmin=0.0, vmax=1.0)
-    for segment in projection.boundary_segments_log_ratio:
+    first = projection.first_axis
+    second = projection.second_axis
+    base = group_evaluator.base_gain
+    polygons = []
+    values = []
+    for cell in projection.adaptive_cells:
+        x0 = base[first] * math.exp(cell.x0)
+        x1 = base[first] * math.exp(cell.x1)
+        y0 = base[second] * math.exp(cell.y0)
+        y1 = base[second] * math.exp(cell.y1)
+        polygons.append(((x0, y0), (x1, y0), (x1, y1), (x0, y1)))
+        values.append(cell.mean_value)
+    collection = PolyCollection(
+        polygons,
+        array=np.asarray(values, dtype=float),
+        cmap="RdYlGn",
+        edgecolors=(0.0, 0.0, 0.0, 0.10),
+        linewidths=0.25,
+    )
+    collection.set_clim(0.0, 1.0)
+    axis.add_collection(collection)
+
+    for index, segment in enumerate(projection.boundary_segments_log_ratio):
         axis.plot(
-            group_evaluator.base_gain[projection.first_axis] * np.exp(segment[:, 0]),
-            group_evaluator.base_gain[projection.second_axis] * np.exp(segment[:, 1]),
-            linewidth=2.2,
+            base[first] * np.exp(segment[:, 0]),
+            base[second] * np.exp(segment[:, 1]),
+            color="black",
+            linewidth=2.0,
+            label=(f"{100.0 * threshold:.0f}% survival boundary" if index == 0 else None),
         )
+
     failure = failure_gain.array()
     success = success_gain.array()
     axis.plot(
-        failure[projection.first_axis],
-        failure[projection.second_axis],
+        failure[first],
+        failure[second],
         marker="x",
         markersize=9,
         markeredgewidth=2.0,
+        linestyle="none",
+        color="black",
         label="failure recorded",
     )
     axis.plot(
-        success[projection.first_axis],
-        success[projection.second_axis],
+        success[first],
+        success[second],
         marker="o",
         markersize=6,
+        linestyle="none",
+        markerfacecolor="white",
+        markeredgecolor="black",
         label="success recorded",
     )
     axis.set_xscale("log")
     axis.set_yscale("log")
-    axis.set_xlabel(labels[projection.first_axis])
-    axis.set_ylabel(labels[projection.second_axis])
+    axis.set_xlim(
+        base[first] * math.exp(float(projection.axis_log_ratio[0])),
+        base[first] * math.exp(float(projection.axis_log_ratio[-1])),
+    )
+    axis.set_ylim(
+        base[second] * math.exp(float(projection.axis_log_ratio[0])),
+        base[second] * math.exp(float(projection.axis_log_ratio[-1])),
+    )
+    axis.set_xlabel(labels[first])
+    axis.set_ylabel(labels[second])
     hidden_label = labels[projection.hidden_axis]
     axis.set_title(
         "{} slice; {}={:.4g}; global {}x{}, local eq. {}".format(
@@ -926,24 +900,26 @@ def _plot_projection(
     )
     axis.grid(True, alpha=0.3)
     axis.legend(loc="best", fontsize=8)
-    return color
+    return collection
 
 
 def _projection_payload(projection: ProjectionGrid) -> Mapping[str, Any]:
+    adaptive_values = np.asarray(
+        [value for cell in projection.adaptive_cells for value in cell.values],
+        dtype=float,
+    )
     return {
         "name": projection.name,
         "visible_axes": [projection.first_axis, projection.second_axis],
         "hidden_axis": projection.hidden_axis,
         "hidden_gain_fixed_at_failure_recorded": projection.hidden_gain,
-        "global_grid_size": int(projection.axis_log_ratio.size),
-        "minimum_break_fraction": float(np.min(projection.break_fraction)),
-        "maximum_break_fraction": float(np.max(projection.break_fraction)),
+        "global_grid_size_at_stop": int(projection.axis_log_ratio.size),
+        "minimum_survival_fraction": float(np.min(adaptive_values)),
+        "maximum_survival_fraction": float(np.max(adaptive_values)),
         "boundary_first_seen_global_grid_size": projection.boundary_first_seen_grid_size,
-        "initial_boundary_candidate_cell_count": projection.initial_boundary_candidate_cell_count,
-        "topology_center_probe_new_point_count": projection.topology_probe_new_point_count,
-        "topology_center_probe_detected_cell_count": projection.topology_probe_detected_cell_count,
+        "adaptive_leaf_cell_count": int(len(projection.adaptive_cells)),
+        "final_boundary_cell_count": int(len(projection.final_boundary_cells)),
         "boundary_segment_count": int(projection.boundary_segments_log_ratio.shape[0]),
-        "boundary_leaf_cell_count": projection.boundary_leaf_cell_count,
         "effective_local_equivalent_grid_size": projection.effective_local_equivalent_grid_size,
         "stop_reason": projection.stop_reason,
         "global_levels": [
@@ -951,23 +927,43 @@ def _projection_payload(projection: ProjectionGrid) -> Mapping[str, Any]:
                 "size": level.size,
                 "new_point_count": level.new_point_count,
                 "total_cached_point_count": level.total_cached_point_count,
-                "minimum_break_fraction": level.minimum_break_fraction,
-                "maximum_break_fraction": level.maximum_break_fraction,
+                "minimum_survival_fraction": level.minimum_survival_fraction,
+                "maximum_survival_fraction": level.maximum_survival_fraction,
                 "boundary_present": level.boundary_present,
             }
-            for level in projection.levels
+            for level in projection.global_levels
         ],
         "local_refinement_levels": [
             {
                 "level": level.level,
-                "input_cell_count": level.input_cell_count,
-                "boundary_cell_count": level.boundary_cell_count,
+                "equivalent_grid_size": level.equivalent_grid_size,
+                "input_boundary_cell_count": level.input_boundary_cell_count,
+                "output_boundary_cell_count": level.output_boundary_cell_count,
                 "new_point_count": level.new_point_count,
                 "total_cached_point_count": level.total_cached_point_count,
             }
             for level in projection.local_refinement_levels
         ],
     }
+
+
+def _adaptive_cell_array(cells: Sequence[AdaptiveCell]) -> np.ndarray:
+    if not cells:
+        return np.empty((0, 9), dtype=float)
+    return np.asarray(
+        [
+            (
+                cell.x0,
+                cell.x1,
+                cell.y0,
+                cell.y1,
+                *cell.values,
+                cell.mean_value,
+            )
+            for cell in cells
+        ],
+        dtype=float,
+    )
 
 
 def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
@@ -981,11 +977,8 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
 
     failure_gains = _recorded_gains(estimate)
     success_gains = _recorded_gains(success_estimate)
-    # Other groups are always held at the successful-flight gains.  Only the
-    # selected group is placed at this bag's failure gain at the affine origin.
     hybrid_failure_gains = dict(success_gains)
     hybrid_failure_gains[group] = failure_gains[group]
-
     failure_group_gain = failure_gains[group]
     success_group_gain = success_gains[group]
     lower, upper = _range_with_success(
@@ -1012,225 +1005,196 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
         ScaleFreePlant,
     )
 
-    tasks = [
-        (
-            index,
-            plant,
-            vehicle_model,
-            actuator_parameters,
-            controller_dt,
-            hybrid_failure_gains,
-            group,
-            success_group_gain,
-            math.exp(lower),
-            math.exp(upper),
-            float(arguments.affine_basis_ratio),
-        )
-        for index, plant in enumerate(plants)
-    ]
-    workers = min(int(arguments.workers), len(tasks))
-    if workers <= 1:
-        sample_results = [_build_affine_sample(task) for task in tasks]
-    else:
-        with ProcessPoolExecutor(max_workers=workers) as executor:
-            sample_results = list(executor.map(_build_affine_sample, tasks, chunksize=1))
-
-    group_evaluator = GroupGainEvaluator(
+    group_evaluator = ExactGroupGainEvaluator(
         plants=plants,
-        sample_results=sample_results,
         hybrid_failure_gains=hybrid_failure_gains,
         success_gains=success_gains,
         group=group,
         vehicle_model=vehicle_model,
         actuator_parameters=actuator_parameters,
         controller_dt=controller_dt,
+        workers=int(arguments.workers),
     )
-
-    failure_evaluation = group_evaluator.break_evaluation(np.zeros(3))
-    success_evaluation = group_evaluator.break_evaluation(
-        group_evaluator.success_log_ratio
-    )
-    threshold = 1.0 - float(arguments.alpha)
-
-    projections = []
-    for name, first, second, hidden, _first_label, _second_label, _hidden_label in PROJECTION_SPECS:
-        slice_evaluator = SliceGridEvaluator(
-            group_evaluator,
-            first_axis=first,
-            second_axis=second,
-            hidden_axis=hidden,
+    try:
+        failure_evaluation = group_evaluator.break_evaluation(np.zeros(3))
+        success_evaluation = group_evaluator.break_evaluation(
+            group_evaluator.success_log_ratio
         )
-        projections.append(
-            _adaptive_projection_grid(
-                slice_evaluator,
-                name=name,
+        threshold = float(arguments.alpha)
+
+        projections = []
+        for name, first, second, hidden, _first_label, _second_label, _hidden_label in PROJECTION_SPECS:
+            slice_evaluator = SliceGridEvaluator(
+                group_evaluator,
                 first_axis=first,
                 second_axis=second,
                 hidden_axis=hidden,
-                lower=lower,
-                upper=upper,
+            )
+            projections.append(
+                _adaptive_projection_grid(
+                    slice_evaluator,
+                    name=name,
+                    first_axis=first,
+                    second_axis=second,
+                    hidden_axis=hidden,
+                    lower=lower,
+                    upper=upper,
+                    threshold=threshold,
+                    maximum_grid_size=int(arguments.max_grid_size),
+                    final_boundary_grid_size=int(arguments.final_boundary_grid_size),
+                )
+            )
+
+        output = (
+            Path(arguments.output_dir).expanduser().resolve()
+            if arguments.output_dir is not None
+            else estimate_path.parent / "pid_gain_contour" / group
+        )
+        output.mkdir(parents=True, exist_ok=True)
+
+        labels = (f"{group} P", f"{group} I", f"{group} D")
+        figure, axes = plt.subplots(1, 3, figsize=(15.0, 4.8), constrained_layout=True)
+        color = None
+        for axis, projection in zip(axes, projections):
+            color = _plot_projection(
+                axis,
+                projection=projection,
+                group_evaluator=group_evaluator,
+                failure_gain=failure_group_gain,
+                success_gain=success_group_gain,
                 threshold=threshold,
-                maximum_grid_size=int(arguments.max_grid_size),
-                local_refinement_levels=int(arguments.local_refinement_levels),
+                labels=labels,
+            )
+        assert color is not None
+        figure.colorbar(color, ax=axes, shrink=0.92).set_label(
+            "survival fraction among all-success-stable plant samples"
+        )
+        figure.suptitle(
+            "{} / {} / single-group survival; {:.1f}% boundary".format(
+                estimate["case_name"],
+                group,
+                100.0 * threshold,
             )
         )
+        figure.savefig(output / "gain_contour.png", dpi=180)
+        plt.close(figure)
 
-    output = (
-        Path(arguments.output_dir).expanduser().resolve()
-        if arguments.output_dir is not None
-        else estimate_path.parent / "pid_gain_contour" / group
-    )
-    output.mkdir(parents=True, exist_ok=True)
-
-    labels = (f"{group} P", f"{group} I", f"{group} D")
-    figure, axes = plt.subplots(1, 3, figsize=(15.0, 4.8), constrained_layout=True)
-    color = None
-    for axis, projection in zip(axes, projections):
-        color = _plot_projection(
-            axis,
-            projection=projection,
-            group_evaluator=group_evaluator,
-            failure_gain=failure_group_gain,
-            success_gain=success_group_gain,
-            threshold=threshold,
-            labels=labels,
+        projection_arrays: dict[str, np.ndarray] = {}
+        for projection in projections:
+            projection_arrays[f"{projection.name}_axis_log_ratio"] = projection.axis_log_ratio
+            projection_arrays[
+                f"{projection.name}_survival_fraction"
+            ] = projection.survival_fraction
+            projection_arrays[
+                f"{projection.name}_boundary_segments_log_ratio"
+            ] = projection.boundary_segments_log_ratio
+            projection_arrays[
+                f"{projection.name}_adaptive_cells_log_ratio_and_survival"
+            ] = _adaptive_cell_array(projection.adaptive_cells)
+        np.savez_compressed(
+            output / "gain_contour.npz",
+            base_gain=group_evaluator.base_gain,
+            success_gain=group_evaluator.success_gain,
+            success_group_log_ratio=group_evaluator.success_log_ratio,
+            success_baseline_stable_mask=group_evaluator.success_stable_mask,
+            failure_group_stable_mask=failure_evaluation.stable_mask,
+            caused_break_mask=failure_evaluation.caused_break_mask,
+            projection_names=np.asarray([item.name for item in projections]),
+            **projection_arrays,
         )
-    assert color is not None
-    figure.colorbar(color, ax=axes, shrink=0.92).set_label(
-        "fraction of all plant samples newly unstable vs all-success controller"
-    )
-    figure.suptitle(
-        "{} / {} / group-only caused-break fraction; {:.1f}% boundary".format(
-            estimate["case_name"],
-            group,
-            100.0 * threshold,
+
+        baseline_stable_count = group_evaluator.success_stable_count
+        conditional_failure_fraction = float(
+            failure_evaluation.caused_break_count / baseline_stable_count
         )
-    )
-    figure.savefig(output / "gain_contour.png", dpi=180)
-    plt.close(figure)
-
-    audit_errors = np.asarray(
-        [item.audit_relative_errors for item in sample_results], dtype=float
-    )
-    projection_arrays: dict[str, np.ndarray] = {}
-    for projection in projections:
-        projection_arrays[f"{projection.name}_axis_log_ratio"] = projection.axis_log_ratio
-        projection_arrays[f"{projection.name}_break_fraction"] = projection.break_fraction
-        projection_arrays[
-            f"{projection.name}_boundary_segments_log_ratio"
-        ] = projection.boundary_segments_log_ratio
-    np.savez_compressed(
-        output / "gain_contour.npz",
-        base_gain=group_evaluator.base_gain,
-        success_gain=group_evaluator.success_gain,
-        success_group_log_ratio=group_evaluator.success_log_ratio,
-        affine_valid=group_evaluator.affine_valid,
-        affine_audit_relative_error=audit_errors,
-        piecewise_near_kink=np.asarray(
-            [item.piecewise_near_kink for item in sample_results], dtype=bool
-        ),
-        success_baseline_stable_mask=group_evaluator.success_stable_mask,
-        failure_group_stable_mask=failure_evaluation.stable_mask,
-        caused_break_mask=failure_evaluation.caused_break_mask,
-        projection_names=np.asarray([item.name for item in projections]),
-        **projection_arrays,
-    )
-
-    baseline_stable_count = int(np.count_nonzero(group_evaluator.success_stable_mask))
-    conditional_denominator = max(baseline_stable_count, 1)
-    payload = {
-        "schema": CONTOUR_SCHEMA,
-        "source_commit": source_commit(_PROJECT_ROOT),
-        "case_name": str(estimate["case_name"]),
-        "group": group,
-        "estimate_json": str(estimate_path),
-        "success_json": str(success_path),
-        "first_order_time_constant_seconds": float(
-            estimate["actuator_model"]["thrust_time_constant_seconds"]
-        ),
-        "controller_dt_seconds": controller_dt,
-        "sample_count": int(arguments.samples),
-        "covariance": str(arguments.covariance),
-        "seed": int(arguments.seed),
-        "alpha_reference": float(arguments.alpha),
-        "caused_break_boundary_fraction": threshold,
-        "definition": {
-            "baseline": "all four PID groups use success-flight recorded gains on this bag's plant distribution",
-            "single_group_intervention": "only this group is replaced by the analyzed bag's recorded gain",
-            "caused_break_sample": "stable under all-success baseline and unstable under the single-group intervention",
-            "plot": "other three groups fixed at success gains; hidden selected-group gain fixed at its failure recorded value",
-        },
-        "method": {
-            "closed_loop_model": "full_26_state_sampled_data_first_order_actuator",
-            "raster": "nested dyadic global grid plus boundary-cell local refinement",
-            "global_grid_sequence": "3x3 -> 5x5 -> 9x9 -> 17x17 by default; every global level is evaluated",
-            "grid_reuse": "all repeated global and local points are cached and never reevaluated",
-            "topology_probe": "after the final global grid, every unbracketed cell center is probed once before declaring the boundary absent",
-            "local_boundary_refinement": "threshold candidate cells are split dyadically three additional times by default",
-            "boundary": "piecewise-linear threshold segments from locally refined boundary cells",
-            "no_newton_continuation": True,
-            "affine_matrix_audit": "pre-grid audited raw-gain affine 26x26 Jacobian with exact full-evaluator fallback per failed sample",
-            "topology_limitation": "the final cell-center probe reduces but does not mathematically certify absence of a sub-cell boundary island",
-        },
-        "gain_domain": {
-            "ratio_min": float(math.exp(lower)),
-            "ratio_max": float(math.exp(upper)),
-            "coordinate": "log(gain / this-bag recorded group gain)",
-        },
-        "recorded_failure_group_gain": {
-            "p_gain": failure_group_gain.p,
-            "i_gain": failure_group_gain.i,
-            "d_gain": failure_group_gain.d,
-        },
-        "recorded_success_group_gain": {
-            "p_gain": success_group_gain.p,
-            "i_gain": success_group_gain.i,
-            "d_gain": success_group_gain.d,
-        },
-        "all_success_baseline": {
-            "stable_count": baseline_stable_count,
-            "unstable_count": int(arguments.samples) - baseline_stable_count,
-            "stable_fraction": float(np.mean(group_evaluator.success_stable_mask)),
-        },
-        "failure_gain_single_group_intervention": {
-            "unstable_count": failure_evaluation.unstable_count,
-            "unstable_fraction": failure_evaluation.unstable_fraction,
-            "caused_break_count": failure_evaluation.caused_break_count,
-            "caused_break_fraction_of_all_samples": failure_evaluation.caused_break_fraction,
-            "caused_break_fraction_conditioned_on_success_baseline": float(
-                failure_evaluation.caused_break_count / conditional_denominator
+        payload = {
+            "schema": CONTOUR_SCHEMA,
+            "source_commit": source_commit(_PROJECT_ROOT),
+            "case_name": str(estimate["case_name"]),
+            "group": group,
+            "estimate_json": str(estimate_path),
+            "success_json": str(success_path),
+            "first_order_time_constant_seconds": float(
+                estimate["actuator_model"]["thrust_time_constant_seconds"]
             ),
-            "counterdirection_rescued_count": int(
-                np.count_nonzero(
-                    ~group_evaluator.success_stable_mask & failure_evaluation.stable_mask
-                )
-            ),
-        },
-        "success_gain_check": {
-            "caused_break_count": success_evaluation.caused_break_count,
-            "unstable_count": success_evaluation.unstable_count,
-        },
-        "affine_matrix_audit": {
-            "phase": "completed_before_grid_evaluation",
-            "failure_policy": "sample-local exact full-evaluator fallback; no sample is discarded",
-            "basis_ratio": float(arguments.affine_basis_ratio),
-            "tolerance": _AFFINE_AUDIT_TOLERANCE,
-            "valid_samples": int(np.count_nonzero(group_evaluator.affine_valid)),
-            "fallback_samples": group_evaluator.fallback_count,
-            "maximum_relative_frobenius_error": float(np.max(audit_errors)),
-            "median_relative_frobenius_error": float(np.median(audit_errors)),
-            "piecewise_near_kink_samples": int(
-                np.count_nonzero([item.piecewise_near_kink for item in sample_results])
-            ),
-        },
-        "projections": [_projection_payload(item) for item in projections],
-        "files": {
-            "npz": str(output / "gain_contour.npz"),
-            "png": str(output / "gain_contour.png"),
-        },
-    }
-    write_json(output / "gain_contour.json", payload)
-    return payload
+            "controller_dt_seconds": controller_dt,
+            "sample_count": int(arguments.samples),
+            "covariance": str(arguments.covariance),
+            "seed": int(arguments.seed),
+            "alpha_reference": threshold,
+            "survival_boundary_fraction": threshold,
+            "definition": {
+                "baseline": "all four PID groups use success-flight recorded gains on this bag's plant distribution",
+                "single_group_intervention": "only this group is varied; the other three groups stay at success-flight gains",
+                "caused_break_sample": "stable under all-success baseline and unstable under the single-group intervention",
+                "survival_fraction": "one minus caused-break count divided by the number of all-success-stable samples",
+                "plot": "other three groups fixed at success gains; hidden selected-group gain fixed at its failure recorded value",
+            },
+            "method": {
+                "closed_loop_model": "full_26_state_sampled_data_first_order_actuator",
+                "linearization": "exact active-branch analytic Jacobian of the implemented sampled closed-loop map",
+                "gain_surrogate": None,
+                "eigensystems": "batched numpy.linalg.eigvals on the complete sample-by-26-by-26 Jacobian stack",
+                "global_search": "nested 3x3 -> 5x5 -> 9x9 -> 17x17, stopping globally as soon as the survival boundary is detected",
+                "local_refinement": "after first detection, only boundary cells are split dyadically until 33x33-equivalent spacing by default",
+                "grid_reuse": "all repeated gain points are cached and never reevaluated",
+                "boundary": "piecewise-linear alpha-survival segments from final locally refined cells",
+                "heatmap": "adaptive leaf cells retain their survival values; only boundary neighborhoods become finer",
+                "topology_limitation": "if no sampled cell brackets alpha through the 17x17 global search, sub-cell boundary islands are not certified absent",
+            },
+            "gain_domain": {
+                "ratio_min": float(math.exp(lower)),
+                "ratio_max": float(math.exp(upper)),
+                "coordinate": "log(gain / this-bag recorded group gain)",
+            },
+            "recorded_failure_group_gain": {
+                "p_gain": failure_group_gain.p,
+                "i_gain": failure_group_gain.i,
+                "d_gain": failure_group_gain.d,
+            },
+            "recorded_success_group_gain": {
+                "p_gain": success_group_gain.p,
+                "i_gain": success_group_gain.i,
+                "d_gain": success_group_gain.d,
+            },
+            "all_success_baseline": {
+                "stable_count": baseline_stable_count,
+                "unstable_count": int(arguments.samples) - baseline_stable_count,
+                "stable_fraction": float(np.mean(group_evaluator.success_stable_mask)),
+            },
+            "failure_gain_single_group_intervention": {
+                "unstable_count": failure_evaluation.unstable_count,
+                "unstable_fraction": failure_evaluation.unstable_fraction,
+                "caused_break_count": failure_evaluation.caused_break_count,
+                "caused_break_fraction_of_all_samples": failure_evaluation.caused_break_fraction,
+                "caused_break_fraction_conditioned_on_success_baseline": conditional_failure_fraction,
+                "survival_fraction_conditioned_on_success_baseline": 1.0 - conditional_failure_fraction,
+                "counterdirection_rescued_count": int(
+                    np.count_nonzero(
+                        ~group_evaluator.success_stable_mask
+                        & failure_evaluation.stable_mask
+                    )
+                ),
+            },
+            "success_gain_check": {
+                "caused_break_count": success_evaluation.caused_break_count,
+                "unstable_count": success_evaluation.unstable_count,
+                "survival_fraction_conditioned_on_success_baseline": 1.0,
+            },
+            "analytic_active_branch_diagnostics": {
+                "evaluated_gain_point_count": group_evaluator.evaluated_gain_point_count,
+                "gain_points_with_any_sample_near_piecewise_kink": group_evaluator.gain_points_with_any_near_kink,
+            },
+            "projections": [_projection_payload(item) for item in projections],
+            "files": {
+                "npz": str(output / "gain_contour.npz"),
+                "png": str(output / "gain_contour.png"),
+            },
+        }
+        write_json(output / "gain_contour.json", payload)
+        return payload
+    finally:
+        group_evaluator.close()
 
 
 def build_argument_parser() -> argparse.ArgumentParser:
@@ -1249,19 +1213,14 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--scale-min", type=float, default=DEFAULT_SCALE_MIN)
     parser.add_argument("--scale-max", type=float, default=DEFAULT_SCALE_MAX)
     parser.add_argument(
-        "--affine-basis-ratio",
-        type=float,
-        default=DEFAULT_AFFINE_BASIS_RATIO,
-    )
-    parser.add_argument(
         "--max-grid-size",
         type=int,
         default=DEFAULT_MAX_GRID_SIZE,
     )
     parser.add_argument(
-        "--local-refinement-levels",
+        "--final-boundary-grid-size",
         type=int,
-        default=DEFAULT_LOCAL_REFINEMENT_LEVELS,
+        default=DEFAULT_FINAL_BOUNDARY_GRID_SIZE,
     )
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS)
     parser.add_argument("--output-dir", type=Path, default=None)
@@ -1284,12 +1243,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         raise SystemExit("--samples must be positive")
     if arguments.scale_min <= 0.0 or arguments.scale_max <= arguments.scale_min:
         raise SystemExit("gain scale bounds must satisfy 0 < min < max")
-    if arguments.affine_basis_ratio <= 1.0:
-        raise SystemExit("--affine-basis-ratio must exceed one")
     if not _is_dyadic_nested_size(arguments.max_grid_size):
         raise SystemExit("--max-grid-size must be 2^k + 1 and at least three")
-    if arguments.local_refinement_levels < 0:
-        raise SystemExit("--local-refinement-levels must be non-negative")
+    if not _is_dyadic_nested_size(arguments.final_boundary_grid_size):
+        raise SystemExit(
+            "--final-boundary-grid-size must be 2^k + 1 and at least three"
+        )
+    if arguments.final_boundary_grid_size < arguments.max_grid_size:
+        raise SystemExit(
+            "--final-boundary-grid-size must be at least --max-grid-size"
+        )
     if arguments.workers <= 0:
         raise SystemExit("--workers must be positive")
     payload = analyze(arguments)

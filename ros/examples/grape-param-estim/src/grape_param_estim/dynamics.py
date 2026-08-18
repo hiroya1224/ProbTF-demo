@@ -124,6 +124,46 @@ class ActuatorTransitionEvaluation:
         object.__setattr__(self, "active_set", MappingProxyType(copied))
 
 
+@dataclass(frozen=True)
+class RigidBodyStepJacobian:
+    """Exact active-branch Jacobian of one RK4 rigid-body step.
+
+    ``state`` maps the 12-dimensional local rigid-body chart
+    ``(p, right-tangent rotation, v, omega)`` to the same chart at the end of
+    the step.  The actuator blocks differentiate with respect to the actual
+    midpoint actuator state used by :meth:`FullSixDofPlant.step`.
+    """
+
+    state: np.ndarray
+    actual_thrust: np.ndarray
+    actual_gimbal_angle: np.ndarray
+
+    def __post_init__(self) -> None:
+        for name, shape in (
+            ("state", (12, 12)),
+            ("actual_thrust", (12, 4)),
+            ("actual_gimbal_angle", (12, 4)),
+        ):
+            value = np.asarray(getattr(self, name), dtype=float)
+            if value.shape != shape or not np.all(np.isfinite(value)):
+                raise ValueError("{} must be a finite {} array".format(name, shape))
+            object.__setattr__(self, name, value.copy())
+
+
+@dataclass(frozen=True)
+class RigidBodyStepEvaluation:
+    """Forward RK4 rigid-body step plus its exact local Jacobian."""
+
+    next_state: RigidBodyState
+    jacobian: RigidBodyStepJacobian
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.next_state, RigidBodyState):
+            raise TypeError("next_state must be a RigidBodyState")
+        if not isinstance(self.jacobian, RigidBodyStepJacobian):
+            raise TypeError("jacobian must be a RigidBodyStepJacobian")
+
+
 def _rotate_z(vector: np.ndarray, angle: float) -> np.ndarray:
     cosine = float(np.cos(angle))
     sine = float(np.sin(angle))
@@ -618,6 +658,47 @@ def _advance_plant_and_actuators(
     return current_state, current_actuators
 
 
+def _normalise_quaternion_with_jacobian(
+    quaternion_xyzw: Sequence[float],
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Canonical quaternion normalization and its active-branch derivative."""
+
+    raw = np.asarray(quaternion_xyzw, dtype=float)
+    if raw.shape != (4,) or not np.all(np.isfinite(raw)):
+        raise ValueError("quaternion must contain four finite values")
+    norm = float(np.linalg.norm(raw))
+    if norm <= np.finfo(float).eps:
+        raise ValueError("quaternion norm must be positive")
+    unit = raw / norm
+    sign = -1.0 if unit[3] < 0.0 else 1.0
+    canonical = sign * unit
+    jacobian = sign * (np.eye(4) - np.outer(unit, unit)) / norm
+    return canonical, jacobian
+
+
+def _quaternion_right_tangent_lift(quaternion_xyzw: Sequence[float]) -> np.ndarray:
+    """Map a right SO(3) tangent perturbation to an ``xyzw`` quaternion."""
+
+    quaternion = normalise_quaternion(quaternion_xyzw)
+    vector = quaternion[:3]
+    scalar = float(quaternion[3])
+    return 0.5 * np.vstack(
+        (
+            scalar * np.eye(3) + skew(vector),
+            -vector[None, :],
+        )
+    )
+
+
+def _quaternion_right_tangent_projection(
+    quaternion_xyzw: Sequence[float],
+) -> np.ndarray:
+    """Map a tangent quaternion variation back to the right SO(3) chart."""
+
+    # For a unit quaternion E^T E = I / 4, where E is the lift above.
+    return 4.0 * _quaternion_right_tangent_lift(quaternion_xyzw).T
+
+
 class FullSixDofPlant:
     """Rigid-body dynamics with optional future model-discrepancy wrench."""
 
@@ -718,6 +799,131 @@ class FullSixDofPlant:
             )
         )
 
+    def derivative_with_jacobian(
+        self,
+        time: float,
+        state_vector: Sequence[float],
+        actuators: ActuatorState,
+        interval_model_discrepancy_wrench: Optional[
+            Sequence[float]
+        ] = None,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Return the continuous derivative and exact active-branch Jacobians.
+
+        The state Jacobian is with respect to the ambient 13-vector used by
+        the RK4 implementation.  Quaternion normalization performed by
+        :class:`RigidBodyState` is differentiated explicitly.  The two
+        actuator Jacobians are with respect to actual thrust and gimbal angle.
+
+        A state-dependent ``model_discrepancy_wrench`` callback has no
+        derivative contract and is therefore rejected here.  A fixed interval
+        discrepancy wrench is constant with respect to the state and remains
+        supported.
+        """
+
+        if self.model_discrepancy_wrench is not None:
+            raise ValueError(
+                "analytic plant Jacobian requires model_discrepancy_wrench=None"
+            )
+        raw_state = np.asarray(state_vector, dtype=float)
+        if raw_state.shape != (13,) or not np.all(np.isfinite(raw_state)):
+            raise ValueError("rigid-body state vector must contain 13 finite values")
+        state = RigidBodyState.from_vector(raw_state)
+        quaternion, quaternion_normalization = _normalise_quaternion_with_jacobian(
+            raw_state[3:7]
+        )
+        rotation = quaternion_to_matrix(quaternion)
+        velocity = state.linear_velocity
+        omega = state.angular_velocity
+
+        actuator_body_wrench, wrench_jacobian = actuator_wrench_with_jacobian(
+            actuators, self.parameters, self.geometry
+        )
+        body_velocity = rotation.T @ velocity
+        wrench = actuator_body_wrench.copy()
+        wrench[:3] -= self.parameters.linear_drag * body_velocity
+        wrench[3:] -= self.parameters.angular_drag * omega
+        if interval_model_discrepancy_wrench is not None:
+            discrepancy = np.asarray(interval_model_discrepancy_wrench, dtype=float)
+            if discrepancy.shape != (6,) or not np.all(np.isfinite(discrepancy)):
+                raise ValueError("interval model discrepancy wrench must contain six finite values")
+            wrench += discrepancy
+
+        pure_omega = np.concatenate((omega, np.asarray((0.0,), dtype=float)))
+        quaternion_rate = 0.5 * quaternion_multiply(quaternion, pure_omega)
+        linear_acceleration = (
+            np.asarray((0.0, 0.0, -GRAVITY))
+            + rotation @ wrench[:3] / self.parameters.mass
+        )
+        inertia = self.parameters.inertia
+        inertia_omega = inertia @ omega
+        angular_acceleration = np.linalg.solve(
+            inertia, wrench[3:] - np.cross(omega, inertia_omega)
+        )
+        derivative = np.concatenate(
+            (velocity, quaternion_rate, linear_acceleration, angular_acceleration)
+        )
+
+        state_jacobian = np.zeros((13, 13), dtype=float)
+        thrust_jacobian = np.zeros((13, 4), dtype=float)
+        gimbal_jacobian = np.zeros((13, 4), dtype=float)
+        state_jacobian[:3, 7:10] = np.eye(3)
+
+        quaternion_vector = quaternion[:3]
+        quaternion_scalar = float(quaternion[3])
+        right_pure_omega = np.block(
+            [
+                [-skew(omega), omega[:, None]],
+                [-omega[None, :], np.zeros((1, 1), dtype=float)],
+            ]
+        )
+        omega_quaternion_jacobian = np.vstack(
+            (
+                quaternion_scalar * np.eye(3) + skew(quaternion_vector),
+                -quaternion_vector[None, :],
+            )
+        )
+        state_jacobian[3:7, 3:7] = (
+            0.5 * right_pure_omega @ quaternion_normalization
+        )
+        state_jacobian[3:7, 10:13] = 0.5 * omega_quaternion_jacobian
+
+        quaternion_to_right_tangent = (
+            _quaternion_right_tangent_projection(quaternion)
+            @ quaternion_normalization
+        )
+        linear_drag = np.diag(self.parameters.linear_drag)
+        acceleration_right_tangent = (
+            rotation
+            @ (-skew(wrench[:3]) - linear_drag @ skew(body_velocity))
+            / self.parameters.mass
+        )
+        state_jacobian[7:10, 3:7] = (
+            acceleration_right_tangent @ quaternion_to_right_tangent
+        )
+        state_jacobian[7:10, 7:10] = (
+            -rotation @ linear_drag @ rotation.T / self.parameters.mass
+        )
+        thrust_jacobian[7:10] = (
+            rotation @ wrench_jacobian.actual_thrust[:3] / self.parameters.mass
+        )
+        gimbal_jacobian[7:10] = (
+            rotation @ wrench_jacobian.actual_gimbal_angle[:3] / self.parameters.mass
+        )
+
+        angular_drag = np.diag(self.parameters.angular_drag)
+        state_jacobian[10:13, 10:13] = np.linalg.solve(
+            inertia,
+            -angular_drag + skew(inertia_omega) - skew(omega) @ inertia,
+        )
+        thrust_jacobian[10:13] = np.linalg.solve(
+            inertia, wrench_jacobian.actual_thrust[3:]
+        )
+        gimbal_jacobian[10:13] = np.linalg.solve(
+            inertia, wrench_jacobian.actual_gimbal_angle[3:]
+        )
+        return derivative, state_jacobian, thrust_jacobian, gimbal_jacobian
+
     def step(
         self,
         time: float,
@@ -748,6 +954,120 @@ class FullSixDofPlant:
         result = vector + dt / 6.0 * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
         result[3:7] = normalise_quaternion(result[3:7])
         return RigidBodyState.from_vector(result)
+
+    def step_with_jacobian(
+        self,
+        time: float,
+        state: RigidBodyState,
+        actuators: ActuatorState,
+        time_step: float,
+        interval_model_discrepancy_wrench: Optional[
+            Sequence[float]
+        ] = None,
+    ) -> RigidBodyStepEvaluation:
+        """Advance RK4 and differentiate the implemented discrete step exactly."""
+
+        dt = float(time_step)
+        if not np.isfinite(dt) or dt <= 0.0:
+            raise ValueError("plant time step must be positive")
+        vector = state.as_vector()
+        identity = np.eye(13, dtype=float)
+
+        k1, a1, bt1, bg1 = self.derivative_with_jacobian(
+            time, vector, actuators, interval_model_discrepancy_wrench
+        )
+        k1_x = a1
+        k1_t = bt1
+        k1_g = bg1
+
+        stage2 = vector + 0.5 * dt * k1
+        stage2_x = identity + 0.5 * dt * k1_x
+        stage2_t = 0.5 * dt * k1_t
+        stage2_g = 0.5 * dt * k1_g
+        k2, a2, bt2, bg2 = self.derivative_with_jacobian(
+            time + 0.5 * dt,
+            stage2,
+            actuators,
+            interval_model_discrepancy_wrench,
+        )
+        k2_x = a2 @ stage2_x
+        k2_t = a2 @ stage2_t + bt2
+        k2_g = a2 @ stage2_g + bg2
+
+        stage3 = vector + 0.5 * dt * k2
+        stage3_x = identity + 0.5 * dt * k2_x
+        stage3_t = 0.5 * dt * k2_t
+        stage3_g = 0.5 * dt * k2_g
+        k3, a3, bt3, bg3 = self.derivative_with_jacobian(
+            time + 0.5 * dt,
+            stage3,
+            actuators,
+            interval_model_discrepancy_wrench,
+        )
+        k3_x = a3 @ stage3_x
+        k3_t = a3 @ stage3_t + bt3
+        k3_g = a3 @ stage3_g + bg3
+
+        stage4 = vector + dt * k3
+        stage4_x = identity + dt * k3_x
+        stage4_t = dt * k3_t
+        stage4_g = dt * k3_g
+        k4, a4, bt4, bg4 = self.derivative_with_jacobian(
+            time + dt,
+            stage4,
+            actuators,
+            interval_model_discrepancy_wrench,
+        )
+        k4_x = a4 @ stage4_x
+        k4_t = a4 @ stage4_t + bt4
+        k4_g = a4 @ stage4_g + bg4
+
+        raw_result = vector + dt / 6.0 * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
+        ambient_state_jacobian = identity + dt / 6.0 * (
+            k1_x + 2.0 * k2_x + 2.0 * k3_x + k4_x
+        )
+        ambient_thrust_jacobian = dt / 6.0 * (
+            k1_t + 2.0 * k2_t + 2.0 * k3_t + k4_t
+        )
+        ambient_gimbal_jacobian = dt / 6.0 * (
+            k1_g + 2.0 * k2_g + 2.0 * k3_g + k4_g
+        )
+
+        normalized_quaternion, output_normalization = (
+            _normalise_quaternion_with_jacobian(raw_result[3:7])
+        )
+        output_normalization_matrix = np.eye(13, dtype=float)
+        output_normalization_matrix[3:7, 3:7] = output_normalization
+        ambient_state_jacobian = output_normalization_matrix @ ambient_state_jacobian
+        ambient_thrust_jacobian = output_normalization_matrix @ ambient_thrust_jacobian
+        ambient_gimbal_jacobian = output_normalization_matrix @ ambient_gimbal_jacobian
+        raw_result[3:7] = normalized_quaternion
+        next_state = RigidBodyState.from_vector(raw_result)
+
+        input_lift = np.zeros((13, 12), dtype=float)
+        input_lift[:3, :3] = np.eye(3)
+        input_lift[3:7, 3:6] = _quaternion_right_tangent_lift(
+            state.orientation_xyzw
+        )
+        input_lift[7:10, 6:9] = np.eye(3)
+        input_lift[10:13, 9:12] = np.eye(3)
+
+        output_projection = np.zeros((12, 13), dtype=float)
+        output_projection[:3, :3] = np.eye(3)
+        output_projection[3:6, 3:7] = _quaternion_right_tangent_projection(
+            next_state.orientation_xyzw
+        )
+        output_projection[6:9, 7:10] = np.eye(3)
+        output_projection[9:12, 10:13] = np.eye(3)
+
+        return RigidBodyStepEvaluation(
+            next_state=next_state,
+            jacobian=RigidBodyStepJacobian(
+                state=output_projection @ ambient_state_jacobian @ input_lift,
+                actual_thrust=output_projection @ ambient_thrust_jacobian,
+                actual_gimbal_angle=output_projection @ ambient_gimbal_jacobian,
+            ),
+        )
 
 
 def simulate_closed_loop(

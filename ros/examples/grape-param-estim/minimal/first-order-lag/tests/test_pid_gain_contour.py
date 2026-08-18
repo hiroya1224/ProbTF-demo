@@ -16,13 +16,7 @@ from pid_gain_contour import (  # noqa: E402
     SliceGridEvaluator,
     _adaptive_projection_grid,
     _boundary_present,
-    _global_candidate_cells,
 )
-
-
-class _SyntheticBreakEvaluation:
-    def __init__(self, fraction: float) -> None:
-        self.caused_break_fraction = float(fraction)
 
 
 class _SyntheticGroupEvaluator:
@@ -30,12 +24,17 @@ class _SyntheticGroupEvaluator:
         self.base_gain = np.ones(3)
         self.calls = 0
 
-    def break_evaluation(self, coordinate):
+    def survival_fraction(self, coordinate):
         self.calls += 1
         selected = np.asarray(coordinate, dtype=float)
-        # Circular break boundary in the two visible coordinates.
-        fraction = float(np.clip(0.05 + 0.2 * (selected[0] ** 2 + selected[1] ** 2 - 0.5), 0.0, 1.0))
-        return _SyntheticBreakEvaluation(fraction)
+        # Circular 95% survival boundary in the two visible coordinates.
+        return float(
+            np.clip(
+                0.95 + 0.1 * (selected[0] ** 2 + selected[1] ** 2 - 0.5),
+                0.0,
+                1.0,
+            )
+        )
 
 
 def test_nested_grid_reuses_all_previous_points() -> None:
@@ -54,7 +53,7 @@ def test_nested_grid_reuses_all_previous_points() -> None:
     assert group.calls == 81
 
 
-def test_adaptive_grid_refines_only_boundary_cells_after_global_17() -> None:
+def test_adaptive_grid_stops_global_search_then_refines_only_boundary_cells() -> None:
     group = _SyntheticGroupEvaluator()
     evaluator = SliceGridEvaluator(
         group,
@@ -70,20 +69,20 @@ def test_adaptive_grid_refines_only_boundary_cells_after_global_17() -> None:
         hidden_axis=2,
         lower=-1.0,
         upper=1.0,
-        threshold=0.05,
+        threshold=0.95,
         maximum_grid_size=17,
-        local_refinement_levels=3,
+        final_boundary_grid_size=33,
     )
-    assert result.axis_log_ratio.size == 17
-    assert [level.size for level in result.levels] == [3, 5, 9, 17]
-    assert [level.new_point_count for level in result.levels] == [9, 16, 56, 208]
-    assert len(result.local_refinement_levels) == 3
+    assert result.axis_log_ratio.size == 3
+    assert [level.size for level in result.global_levels] == [3]
+    assert [level.new_point_count for level in result.global_levels] == [9]
+    assert len(result.local_refinement_levels) == 4
     assert result.boundary_segments_log_ratio.shape[0] > 0
-    assert result.effective_local_equivalent_grid_size == 129
-    assert result.stop_reason == "boundary_refined_locally"
+    assert result.effective_local_equivalent_grid_size == 33
+    assert result.stop_reason == "boundary_found_then_refined_locally_to_target_spacing"
     assert evaluator.cached_point_count == group.calls
-    assert group.calls > 17 * 17
-    assert group.calls < 129 * 129
+    assert group.calls > 3 * 3
+    assert group.calls < 33 * 33
 
 
 def test_boundary_detection_requires_a_crossing_cell() -> None:
@@ -91,19 +90,18 @@ def test_boundary_detection_requires_a_crossing_cell() -> None:
     above = np.ones((3, 3), dtype=float)
     mixed = below.copy()
     mixed[1:, 1:] = 0.1
-    assert not _boundary_present(below, 0.05)
-    assert not _boundary_present(above, 0.05)
+    assert not _boundary_present(below, 0.95)
+    assert not _boundary_present(above, 0.95)
     assert _boundary_present(mixed, 0.05)
 
 
-def test_center_probe_detects_subcell_boundary_island() -> None:
+def test_no_boundary_uses_full_nested_global_search() -> None:
     class _IslandGroup(_SyntheticGroupEvaluator):
-        def break_evaluation(self, coordinate):
+        def survival_fraction(self, coordinate):
             self.calls += 1
             selected = np.asarray(coordinate, dtype=float)
             radius_squared = (selected[0] - 0.0625) ** 2 + (selected[1] - 0.0625) ** 2
-            fraction = 0.1 if radius_squared < 0.02 ** 2 else 0.0
-            return _SyntheticBreakEvaluation(fraction)
+            return 0.9 if radius_squared < 0.02 ** 2 else 1.0
 
     group = _IslandGroup()
     evaluator = SliceGridEvaluator(
@@ -112,11 +110,22 @@ def test_center_probe_detects_subcell_boundary_island() -> None:
         second_axis=1,
         hidden_axis=2,
     )
-    axis, field = evaluator.regular_grid(-1.0, 1.0, 17)
-    assert not _boundary_present(field, 0.05)
-    candidates, new_points, center_detected = _global_candidate_cells(
-        evaluator, axis, field, 0.05
+    result = _adaptive_projection_grid(
+        evaluator,
+        name="pi",
+        first_axis=0,
+        second_axis=1,
+        hidden_axis=2,
+        lower=-1.0,
+        upper=1.0,
+        threshold=0.95,
+        maximum_grid_size=17,
+        final_boundary_grid_size=33,
     )
-    assert new_points > 0
-    assert center_detected >= 1
-    assert candidates
+    assert [level.size for level in result.global_levels] == [3, 5, 9, 17]
+    assert [level.new_point_count for level in result.global_levels] == [9, 16, 56, 208]
+    assert result.boundary_first_seen_grid_size is None
+    assert not result.local_refinement_levels
+    assert result.boundary_segments_log_ratio.shape == (0, 2, 2)
+    assert result.stop_reason == "no_boundary_detected_through_global_17x17_search"
+    assert evaluator.cached_point_count == group.calls == 17 * 17

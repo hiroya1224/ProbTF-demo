@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run adaptive single-group PID break maps for the recorded failure bags."""
+"""Run exact adaptive single-group PID survival maps for the failure bags."""
 
 from __future__ import annotations
 
@@ -69,6 +69,14 @@ def _write_case_summary(case: str, groups: Sequence[str]) -> None:
         caused_masks.append(caused)
 
     assert baseline_reference is not None
+    schemas = {str(row["schema"]) for row in rows}
+    if schemas != {"grape-param-estim/first-order-lag-pid-group-survival/v3"}:
+        raise RuntimeError(f"unexpected group contour schemas: {sorted(schemas)}")
+    source_commits = {str(row["source_commit"]) for row in rows}
+    if len(source_commits) != 1:
+        raise RuntimeError(
+            "PID group contours were generated from different source commits"
+        )
     cause_matrix = np.column_stack(caused_masks)
     cause_multiplicity = np.sum(cause_matrix, axis=1)
     group_summary = []
@@ -80,6 +88,10 @@ def _write_case_summary(case: str, groups: Sequence[str]) -> None:
                 "group": group,
                 "caused_break_count": int(np.count_nonzero(caused)),
                 "caused_break_fraction_of_all_samples": float(np.mean(caused)),
+                "survival_fraction_conditioned_on_success_baseline": float(
+                    row["failure_gain_single_group_intervention"]
+                    ["survival_fraction_conditioned_on_success_baseline"]
+                ),
                 "unique_single_group_culprit_count": int(np.count_nonzero(unique)),
                 "unique_single_group_culprit_fraction_of_all_samples": float(np.mean(unique)),
                 "recorded_failure_group_gain": row["recorded_failure_group_gain"],
@@ -88,7 +100,8 @@ def _write_case_summary(case: str, groups: Sequence[str]) -> None:
         )
 
     summary = {
-        "schema": "grape-param-estim/first-order-lag-pid-group-break/v2-summary",
+        "schema": "grape-param-estim/first-order-lag-pid-group-survival/v3-summary",
+        "source_commit": source_commits.pop(),
         "case_name": case,
         "sample_count": int(baseline_reference.size),
         "groups": list(groups),

@@ -40,12 +40,14 @@ from grape_param_estim.controller_config import (  # noqa: E402
 from grape_param_estim.dynamics import (  # noqa: E402
     FullSixDofPlant,
     advance_actuators,
+    advance_actuators_with_jacobian,
 )
 from grape_param_estim.geometry import (  # noqa: E402
     matrix_to_quaternion,
     quaternion_to_matrix,
     so3_exp,
     so3_log,
+    so3_right_jacobian_inverse,
 )
 from grape_param_estim.gimbalrotor_pid_postprocess import (  # noqa: E402
     PostprocessInputError,
@@ -593,6 +595,201 @@ def advance_augmented_state(
     )
 
 
+def _embed_controller_local_jacobian(block: Any, dimension: int) -> np.ndarray:
+    """Embed the controller's 22-column local chart into the augmented state."""
+
+    local = np.asarray(block.as_matrix(), dtype=float)
+    if local.ndim != 2 or local.shape[1] != 22:
+        raise ValueError("controller local Jacobian must have 22 columns")
+    result = np.zeros((local.shape[0], int(dimension)), dtype=float)
+    # p, theta, v, omega, integral occupy augmented columns 0:18.
+    result[:, :18] = local[:, :18]
+    # Controller current-gimbal columns are the final four local columns.
+    result[:, 22:26] = local[:, 18:22]
+    return result
+
+
+def _actuator_transition_near_kink(evaluation: Any) -> bool:
+    return any(
+        name.endswith("near_kink") and bool(np.any(mask))
+        for name, mask in evaluation.active_set.items()
+    )
+
+
+def _delayed_thrust_segments_with_jacobian(
+    delay: DelayDecomposition,
+    queue: np.ndarray,
+    current_issued_thrust: np.ndarray,
+    current_issued_thrust_jacobian: np.ndarray,
+    queue_jacobian: np.ndarray,
+) -> tuple[tuple[float, np.ndarray, np.ndarray], ...]:
+    """Exact delayed-thrust segments with derivatives wrt augmented state."""
+
+    forward = delayed_thrust_segments(delay, queue, current_issued_thrust)
+    dimension = int(current_issued_thrust_jacobian.shape[1])
+    if queue_jacobian.shape != (4 * delay.depth, dimension):
+        raise ValueError("delay queue Jacobian shape mismatch")
+
+    def queue_row(row: int) -> np.ndarray:
+        start = 4 * int(row)
+        return queue_jacobian[start : start + 4]
+
+    if delay.depth == 0:
+        sensitivities = (current_issued_thrust_jacobian,)
+    elif delay.remainder_seconds == 0.0:
+        row = delay.depth - delay.whole_steps
+        sensitivities = (queue_row(row),)
+    else:
+        old_row = delay.depth - (delay.whole_steps + 1)
+        recent = (
+            current_issued_thrust_jacobian
+            if delay.whole_steps == 0
+            else queue_row(delay.depth - delay.whole_steps)
+        )
+        sensitivities = (queue_row(old_row), recent)
+    if len(forward) != len(sensitivities):
+        raise RuntimeError("delayed-thrust derivative segmentation mismatch")
+    return tuple(
+        (float(duration), np.asarray(thrust, dtype=float), np.asarray(jacobian, dtype=float))
+        for (duration, thrust), jacobian in zip(forward, sensitivities)
+    )
+
+
+def analytic_closed_loop_jacobian(
+    context: PoleContext,
+) -> tuple[np.ndarray, bool]:
+    """Differentiate the implemented sampled closed loop by exact chain rule.
+
+    The only piecewise operations are the controller and actuator clamps.  On
+    a fixed active branch their derivatives are exact; the returned boolean
+    reports whether the nominal point is near a branch boundary.
+    """
+
+    dimension = context.local_dimension
+    state = context.trim
+    controller_evaluation = context.controller.step_with_jacobian(
+        state.rigid_body,
+        context.reference,
+        state.controller,
+        context.controller_dt,
+        state.actuators.gimbal_angle,
+        allocation_condition_threshold=np.finfo(float).max,
+    )
+    command = controller_evaluation.command
+    command_thrust_jacobian = _embed_controller_local_jacobian(
+        controller_evaluation.jacobian.issued_thrust, dimension
+    )
+    command_gimbal_jacobian = _embed_controller_local_jacobian(
+        controller_evaluation.jacobian.issued_gimbal_angle, dimension
+    )
+    next_integral_jacobian = _embed_controller_local_jacobian(
+        controller_evaluation.jacobian.next_integral, dimension
+    )
+    near_kink = bool(controller_evaluation.diagnostics.near_kink)
+
+    rigid_jacobian = np.zeros((12, dimension), dtype=float)
+    rigid_jacobian[:, :12] = np.eye(12)
+    thrust_jacobian = np.zeros((4, dimension), dtype=float)
+    thrust_jacobian[:, 18:22] = np.eye(4)
+    gimbal_jacobian = np.zeros((4, dimension), dtype=float)
+    gimbal_jacobian[:, 22:26] = np.eye(4)
+    queue_jacobian = np.zeros((4 * context.delay.depth, dimension), dtype=float)
+    if context.delay.depth:
+        queue_jacobian[:, 26:] = np.eye(4 * context.delay.depth)
+
+    rigid = state.rigid_body
+    actuators = state.actuators
+    elapsed = 0.0
+    segments = _delayed_thrust_segments_with_jacobian(
+        context.delay,
+        state.thrust_queue,
+        command.thrust,
+        command_thrust_jacobian,
+        queue_jacobian,
+    )
+    for duration, thrust_target, thrust_target_jacobian in segments:
+        segment_command = _segment_command(command, thrust_target)
+        first_actuator = advance_actuators_with_jacobian(
+            actuators,
+            segment_command,
+            context.actuator_parameters,
+            0.5 * duration,
+        )
+        near_kink = near_kink or _actuator_transition_near_kink(first_actuator)
+        midpoint_thrust_jacobian = (
+            first_actuator.jacobian.thrust_previous @ thrust_jacobian
+            + first_actuator.jacobian.thrust_command @ thrust_target_jacobian
+        )
+        midpoint_gimbal_jacobian = (
+            first_actuator.jacobian.gimbal_previous @ gimbal_jacobian
+            + first_actuator.jacobian.gimbal_command @ command_gimbal_jacobian
+        )
+
+        plant_step = context.plant.step_with_jacobian(
+            elapsed,
+            rigid,
+            first_actuator.next_state,
+            duration,
+        )
+        next_rigid_jacobian = (
+            plant_step.jacobian.state @ rigid_jacobian
+            + plant_step.jacobian.actual_thrust @ midpoint_thrust_jacobian
+            + plant_step.jacobian.actual_gimbal_angle @ midpoint_gimbal_jacobian
+        )
+
+        second_actuator = advance_actuators_with_jacobian(
+            first_actuator.next_state,
+            segment_command,
+            context.actuator_parameters,
+            0.5 * duration,
+        )
+        near_kink = near_kink or _actuator_transition_near_kink(second_actuator)
+        next_thrust_jacobian = (
+            second_actuator.jacobian.thrust_previous @ midpoint_thrust_jacobian
+            + second_actuator.jacobian.thrust_command @ thrust_target_jacobian
+        )
+        next_gimbal_jacobian = (
+            second_actuator.jacobian.gimbal_previous @ midpoint_gimbal_jacobian
+            + second_actuator.jacobian.gimbal_command @ command_gimbal_jacobian
+        )
+        rigid = plant_step.next_state
+        actuators = second_actuator.next_state
+        rigid_jacobian = next_rigid_jacobian
+        thrust_jacobian = next_thrust_jacobian
+        gimbal_jacobian = next_gimbal_jacobian
+        elapsed += duration
+
+    # The chained rigid sensitivity is expressed in a right tangent at the
+    # nominal final rotation.  encode_local_state() uses Log(R_trim^T R), so
+    # include the exact logarithm-chart derivative even for a tiny nonzero
+    # trim defect.
+    relative_rotation = (
+        quaternion_to_matrix(state.rigid_body.orientation_xyzw).T
+        @ quaternion_to_matrix(rigid.orientation_xyzw)
+    )
+    relative_vector = so3_log(relative_rotation)
+    rigid_jacobian[3:6] = (
+        so3_right_jacobian_inverse(relative_vector) @ rigid_jacobian[3:6]
+    )
+
+    next_queue_jacobian = np.zeros_like(queue_jacobian)
+    if context.delay.depth:
+        if context.delay.depth > 1:
+            next_queue_jacobian[:-4] = queue_jacobian[4:]
+        next_queue_jacobian[-4:] = command_thrust_jacobian
+
+    jacobian = np.zeros((dimension, dimension), dtype=float)
+    jacobian[:12] = rigid_jacobian
+    jacobian[12:18] = next_integral_jacobian
+    jacobian[18:22] = thrust_jacobian
+    jacobian[22:26] = gimbal_jacobian
+    if context.delay.depth:
+        jacobian[26:] = next_queue_jacobian
+    if np.any(~np.isfinite(jacobian)):
+        raise LocalPoleNumericalError("analytic closed-loop Jacobian became non-finite")
+    return jacobian, near_kink
+
+
 def _trim_residual(
     candidate: Sequence[float],
     controller: GrapeController,
@@ -622,6 +819,95 @@ def _trim_residual(
     if np.any(~np.isfinite(result)):
         raise LocalPoleNumericalError("trim residual became non-finite")
     return result
+
+
+def _trim_residual_with_jacobian(
+    candidate: Sequence[float],
+    controller: GrapeController,
+    plant: FullSixDofPlant,
+    actuator_parameters: ActuatorParameters,
+    reference: ReferenceState,
+    controller_dt: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Hover-trim residual and exact active-branch 10x10 Jacobian."""
+
+    selected = np.asarray(candidate, dtype=float)
+    if selected.shape != (10,) or np.any(~np.isfinite(selected)):
+        raise ValueError("hover trim candidate must contain ten finite values")
+    rigid = hover_rigid_body()
+    controller_state = ControllerState(selected[:6], True)
+    gimbal = selected[6:]
+    controller_evaluation = controller.step_with_jacobian(
+        rigid,
+        reference,
+        controller_state,
+        controller_dt,
+        gimbal,
+        allocation_condition_threshold=np.finfo(float).max,
+    )
+    command = controller_evaluation.command
+    thrust_command_jacobian = np.concatenate(
+        (
+            controller_evaluation.jacobian.issued_thrust.integral_error,
+            controller_evaluation.jacobian.issued_thrust.current_gimbal_angle,
+        ),
+        axis=1,
+    )
+    gimbal_command_jacobian = np.concatenate(
+        (
+            controller_evaluation.jacobian.issued_gimbal_angle.integral_error,
+            controller_evaluation.jacobian.issued_gimbal_angle.current_gimbal_angle,
+        ),
+        axis=1,
+    )
+
+    clipped_thrust = np.clip(
+        command.thrust,
+        actuator_parameters.minimum_thrust,
+        actuator_parameters.maximum_thrust,
+    )
+    thrust_clip_slope = (
+        (command.thrust > actuator_parameters.minimum_thrust)
+        & (command.thrust < actuator_parameters.maximum_thrust)
+    ).astype(float)
+    actual_thrust_jacobian = thrust_clip_slope[:, None] * thrust_command_jacobian
+    actual_gimbal_jacobian = np.zeros((4, 10), dtype=float)
+    actual_gimbal_jacobian[:, 6:] = np.eye(4)
+    actuator_state = ActuatorState(clipped_thrust, gimbal)
+
+    actuator_evaluation = advance_actuators_with_jacobian(
+        actuator_state,
+        command,
+        actuator_parameters,
+        controller_dt,
+    )
+    derivative, _state_jacobian, derivative_thrust, derivative_gimbal = (
+        plant.derivative_with_jacobian(0.0, rigid.as_vector(), actuator_state)
+    )
+    dynamics_jacobian = (
+        derivative_thrust[7:13] @ actual_thrust_jacobian
+        + derivative_gimbal[7:13] @ actual_gimbal_jacobian
+    )
+    target_gimbal_jacobian = (
+        actuator_evaluation.jacobian.gimbal_previous @ actual_gimbal_jacobian
+        + actuator_evaluation.jacobian.gimbal_command @ gimbal_command_jacobian
+    )
+    residual = np.concatenate(
+        (
+            derivative[7:10],
+            derivative[10:13],
+            actuator_evaluation.next_state.gimbal_angle - gimbal,
+        )
+    )
+    jacobian = np.vstack(
+        (
+            dynamics_jacobian,
+            target_gimbal_jacobian - actual_gimbal_jacobian,
+        )
+    )
+    if np.any(~np.isfinite(residual)) or np.any(~np.isfinite(jacobian)):
+        raise LocalPoleNumericalError("analytic hover-trim linearization became non-finite")
+    return residual, jacobian
 
 
 def _near_actuator_kink(command: ActuatorCommand, state: ActuatorState, parameters: ActuatorParameters) -> bool:
@@ -681,9 +967,15 @@ def solve_hover_trim(
     objective: Callable[[np.ndarray], np.ndarray] = lambda value: _trim_residual(
         value, controller, plant, actuator_parameters, reference, controller_dt
     )
+    jacobian: Callable[[np.ndarray], np.ndarray] = lambda value: (
+        _trim_residual_with_jacobian(
+            value, controller, plant, actuator_parameters, reference, controller_dt
+        )[1]
+    )
     solved = least_squares(
         objective,
         initial,
+        jac=jacobian,
         method="trf",
         ftol=np.sqrt(np.finfo(float).eps),
         xtol=np.sqrt(np.finfo(float).eps),
@@ -899,6 +1191,7 @@ def _analyze_plant(
     controller_dt: float,
     delay: DelayDecomposition,
     fd_check: bool,
+    compute_eigenvalues: bool = True,
 ) -> Mapping[str, Any]:
     parameters = physical_plant_from_scale_free(scale_free, inputs.vehicle_model)
     controller = GrapeController(
@@ -932,19 +1225,24 @@ def _analyze_plant(
         "eigenvalues": None,
         "classification": None,
         "finite_difference_diagnostic": None,
+        "analytic_piecewise_near_kink": None,
     }
     if not trim.equilibrium_valid:
         return result
-    jacobian = central_difference_jacobian(context)
-    eigenvalues = np.linalg.eigvals(jacobian)
-    if np.any(~np.isfinite(eigenvalues)):
-        raise LocalPoleNumericalError("eigenvalue calculation became non-finite")
+    jacobian, analytic_near_kink = analytic_closed_loop_jacobian(context)
     result["jacobian"] = jacobian
-    result["eigenvalues"] = eigenvalues
-    result["classification"] = classify_eigenvalues(eigenvalues)
+    result["analytic_piecewise_near_kink"] = bool(analytic_near_kink)
+    if compute_eigenvalues:
+        eigenvalues = np.linalg.eigvals(jacobian)
+        if np.any(~np.isfinite(eigenvalues)):
+            raise LocalPoleNumericalError("eigenvalue calculation became non-finite")
+        result["eigenvalues"] = eigenvalues
+        result["classification"] = classify_eigenvalues(eigenvalues)
     if fd_check:
-        half = central_difference_jacobian(context, divisor=2.0)
-        result["finite_difference_diagnostic"] = finite_difference_diagnostic(jacobian, half)
+        numerical = central_difference_jacobian(context)
+        result["finite_difference_diagnostic"] = finite_difference_diagnostic(
+            jacobian, numerical
+        )
     return result
 
 

@@ -1,0 +1,419 @@
+{
+  "case_count": 12,
+  "cases_are_averaged": false,
+  "fitted_versus_zero_delay": [
+    {
+      "case": "failure1",
+      "covariance_mode": "conservative_fusion",
+      "fitted_delay_median_spectral_radius": 1.000134773257037,
+      "fitted_delay_stable_fraction": 0.3671875,
+      "median_spectral_radius_difference_fitted_minus_zero": 0.00025212007032471284,
+      "stable_fraction_difference_fitted_minus_zero": -0.6328125,
+      "zero_delay_median_spectral_radius": 0.9998826531867122,
+      "zero_delay_stable_fraction": 1.0
+    },
+    {
+      "case": "failure1",
+      "covariance_mode": "overlap_corrected",
+      "fitted_delay_median_spectral_radius": 1.0002445526164312,
+      "fitted_delay_stable_fraction": 0.033203125,
+      "median_spectral_radius_difference_fitted_minus_zero": 0.0003619372416506783,
+      "stable_fraction_difference_fitted_minus_zero": -0.966796875,
+      "zero_delay_median_spectral_radius": 0.9998826153747805,
+      "zero_delay_stable_fraction": 1.0
+    },
+    {
+      "case": "failure2",
+      "covariance_mode": "conservative_fusion",
+      "fitted_delay_median_spectral_radius": 1.0000817853462167,
+      "fitted_delay_stable_fraction": 0.22265625,
+      "median_spectral_radius_difference_fitted_minus_zero": 5.259407473223732e-05,
+      "stable_fraction_difference_fitted_minus_zero": -0.09375,
+      "zero_delay_median_spectral_radius": 1.0000291912714845,
+      "zero_delay_stable_fraction": 0.31640625
+    },
+    {
+      "case": "failure2",
+      "covariance_mode": "overlap_corrected",
+      "fitted_delay_median_spectral_radius": 1.0002207056121222,
+      "fitted_delay_stable_fraction": 0.322265625,
+      "median_spectral_radius_difference_fitted_minus_zero": 0.0003894211121981961,
+      "stable_fraction_difference_fitted_minus_zero": -0.248046875,
+      "zero_delay_median_spectral_radius": 0.999831284499924,
+      "zero_delay_stable_fraction": 0.5703125
+    },
+    {
+      "case": "success",
+      "covariance_mode": "conservative_fusion",
+      "fitted_delay_median_spectral_radius": 0.9997469563250643,
+      "fitted_delay_stable_fraction": 1.0,
+      "median_spectral_radius_difference_fitted_minus_zero": 1.723066134218243e-12,
+      "stable_fraction_difference_fitted_minus_zero": 0.0,
+      "zero_delay_median_spectral_radius": 0.9997469563233412,
+      "zero_delay_stable_fraction": 1.0
+    },
+    {
+      "case": "success",
+      "covariance_mode": "overlap_corrected",
+      "fitted_delay_median_spectral_radius": 0.9997469563317007,
+      "fitted_delay_stable_fraction": 1.0,
+      "median_spectral_radius_difference_fitted_minus_zero": 1.4424017535930034e-12,
+      "stable_fraction_difference_fitted_minus_zero": 0.0,
+      "zero_delay_median_spectral_radius": 0.9997469563302583,
+      "zero_delay_stable_fraction": 1.0
+    }
+  ],
+  "plan_base_commit": "aba27b2e51efab80271aa6cd94cd8e521a3a2efd",
+  "rows": [
+    {
+      "actual_outcome": "crashed",
+      "case": "failure1",
+      "center_spectral_radius": 1.0002715005539535,
+      "controller_dt_seconds": 0.0049953460693359375,
+      "covariance_mode": "conservative_fusion",
+      "delay_mode": "fitted_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.19719922542572021,
+      "median_unstable_pole_count": 2.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 20.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 1.0003316113115015,
+        "mean": 1.0000884292435681,
+        "min": 0.9998766402426612,
+        "q025": 0.999879441190386,
+        "q16": 0.9998830806903717,
+        "q50": 1.000134773257037,
+        "q84": 1.0002587397834792,
+        "q975": 1.0002894591517573,
+        "standard_deviation": 0.00015833901557331888
+      },
+      "stable_fraction": 0.3671875
+    },
+    {
+      "actual_outcome": "crashed",
+      "case": "failure1",
+      "center_spectral_radius": 0.9998825721107053,
+      "controller_dt_seconds": 0.0049953460693359375,
+      "covariance_mode": "conservative_fusion",
+      "delay_mode": "zero_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.19719922542572021,
+      "median_unstable_pole_count": 0.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 20.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 0.9998881306385847,
+        "mean": 0.9998825408048143,
+        "min": 0.9998741081541332,
+        "q025": 0.9998783469166715,
+        "q16": 0.9998803890974325,
+        "q50": 0.9998826531867122,
+        "q84": 0.999884625185156,
+        "q975": 0.9998867490845379,
+        "standard_deviation": 2.1606902775800055e-06
+      },
+      "stable_fraction": 1.0
+    },
+    {
+      "actual_outcome": "crashed",
+      "case": "failure1",
+      "center_spectral_radius": 1.0002715005539535,
+      "controller_dt_seconds": 0.0049953460693359375,
+      "covariance_mode": "overlap_corrected",
+      "delay_mode": "fitted_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.19719922542572021,
+      "median_unstable_pole_count": 2.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 20.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 1.0002861777261642,
+        "mean": 1.0002120844912508,
+        "min": 0.9998810503925011,
+        "q025": 0.9999822498394992,
+        "q16": 1.0001452966205222,
+        "q50": 1.0002445526164312,
+        "q84": 1.0002688878172268,
+        "q975": 1.0002777562824166,
+        "standard_deviation": 7.797330187072336e-05
+      },
+      "stable_fraction": 0.033203125
+    },
+    {
+      "actual_outcome": "crashed",
+      "case": "failure1",
+      "center_spectral_radius": 0.9998825721107053,
+      "controller_dt_seconds": 0.0049953460693359375,
+      "covariance_mode": "overlap_corrected",
+      "delay_mode": "zero_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.19719922542572021,
+      "median_unstable_pole_count": 0.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 20.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 0.9998848803277988,
+        "mean": 0.9998825995365747,
+        "min": 0.9998796772822318,
+        "q025": 0.9998808092229124,
+        "q16": 0.9998817701548476,
+        "q50": 0.9998826153747805,
+        "q84": 0.9998835095754762,
+        "q975": 0.9998842121629326,
+        "standard_deviation": 8.764529805636834e-07
+      },
+      "stable_fraction": 1.0
+    },
+    {
+      "actual_outcome": "crashed",
+      "case": "failure2",
+      "center_spectral_radius": 1.0030123256502241,
+      "controller_dt_seconds": 0.005007743835449219,
+      "covariance_mode": "conservative_fusion",
+      "delay_mode": "fitted_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.27108919620513916,
+      "median_unstable_pole_count": 4.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 10.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 1.0031856631839948,
+        "mean": 1.0002653446519227,
+        "min": 0.9998312838654959,
+        "q025": 0.9998312841100776,
+        "q16": 0.9998312847140011,
+        "q50": 1.0000817853462167,
+        "q84": 1.0003597894048437,
+        "q975": 1.0026060555137375,
+        "standard_deviation": 0.0006331536914803492
+      },
+      "stable_fraction": 0.22265625
+    },
+    {
+      "actual_outcome": "crashed",
+      "case": "failure2",
+      "center_spectral_radius": 0.999831284367488,
+      "controller_dt_seconds": 0.005007743835449219,
+      "covariance_mode": "conservative_fusion",
+      "delay_mode": "zero_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.27108919620513916,
+      "median_unstable_pole_count": 4.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 10.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 1.0003706474608718,
+        "mean": 1.0000571120973727,
+        "min": 0.9998312838026163,
+        "q025": 0.999831284063608,
+        "q16": 0.9998312844507855,
+        "q50": 1.0000291912714845,
+        "q84": 1.0003014674515796,
+        "q975": 1.0003668534094756,
+        "standard_deviation": 0.00018480752068915674
+      },
+      "stable_fraction": 0.31640625
+    },
+    {
+      "actual_outcome": "crashed",
+      "case": "failure2",
+      "center_spectral_radius": 1.0030123256502241,
+      "controller_dt_seconds": 0.005007743835449219,
+      "covariance_mode": "overlap_corrected",
+      "delay_mode": "fitted_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.27108919620513916,
+      "median_unstable_pole_count": 2.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 10.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 1.0030467644187326,
+        "mean": 1.0004751724113148,
+        "min": 0.9998312841499717,
+        "q025": 0.9998312842646357,
+        "q16": 0.999831284375998,
+        "q50": 1.0002207056121222,
+        "q84": 1.0012546033759553,
+        "q975": 1.0028965309981297,
+        "standard_deviation": 0.0008639893026822067
+      },
+      "stable_fraction": 0.322265625
+    },
+    {
+      "actual_outcome": "crashed",
+      "case": "failure2",
+      "center_spectral_radius": 0.999831284367488,
+      "controller_dt_seconds": 0.005007743835449219,
+      "covariance_mode": "overlap_corrected",
+      "delay_mode": "zero_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.27108919620513916,
+      "median_unstable_pole_count": 0.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 10.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 1.0003711929786259,
+        "mean": 1.0000099047968585,
+        "min": 0.9998312841499186,
+        "q025": 0.99983128423259,
+        "q16": 0.9998312843251644,
+        "q50": 0.999831284499924,
+        "q84": 1.0003122097363095,
+        "q975": 1.0003655432744087,
+        "standard_deviation": 0.0002131846108102912
+      },
+      "stable_fraction": 0.5703125
+    },
+    {
+      "actual_outcome": "successful",
+      "case": "success",
+      "center_spectral_radius": 0.9997469563301962,
+      "controller_dt_seconds": 0.009998321533203125,
+      "covariance_mode": "conservative_fusion",
+      "delay_mode": "fitted_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.17559731006622314,
+      "median_unstable_pole_count": 0.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 20.0,
+        "i_gain": 1.0,
+        "p_gain": 13.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 0.9997469570898446,
+        "mean": 0.999746956324653,
+        "min": 0.9997469558604186,
+        "q025": 0.9997469559989846,
+        "q16": 0.9997469561478811,
+        "q50": 0.9997469563250643,
+        "q84": 0.9997469564979516,
+        "q975": 0.9997469566525938,
+        "standard_deviation": 1.785003948909931e-10
+      },
+      "stable_fraction": 1.0
+    },
+    {
+      "actual_outcome": "successful",
+      "case": "success",
+      "center_spectral_radius": 0.9997469563288534,
+      "controller_dt_seconds": 0.009998321533203125,
+      "covariance_mode": "conservative_fusion",
+      "delay_mode": "zero_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.17559731006622314,
+      "median_unstable_pole_count": 0.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 20.0,
+        "i_gain": 1.0,
+        "p_gain": 13.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 0.9997469570899503,
+        "mean": 0.9997469563232353,
+        "min": 0.9997469558582983,
+        "q025": 0.9997469559974509,
+        "q16": 0.9997469561461757,
+        "q50": 0.9997469563233412,
+        "q84": 0.9997469564967598,
+        "q975": 0.9997469566517091,
+        "standard_deviation": 1.7884123066348178e-10
+      },
+      "stable_fraction": 1.0
+    },
+    {
+      "actual_outcome": "successful",
+      "case": "success",
+      "center_spectral_radius": 0.9997469563301962,
+      "controller_dt_seconds": 0.009998321533203125,
+      "covariance_mode": "overlap_corrected",
+      "delay_mode": "fitted_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.17559731006622314,
+      "median_unstable_pole_count": 0.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 20.0,
+        "i_gain": 1.0,
+        "p_gain": 13.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 0.9997469564780985,
+        "mean": 0.9997469563313159,
+        "min": 0.9997469561495019,
+        "q025": 0.9997469562275555,
+        "q16": 0.9997469562792506,
+        "q50": 0.9997469563317007,
+        "q84": 0.9997469563849958,
+        "q975": 0.9997469564377732,
+        "standard_deviation": 5.411748032733515e-11
+      },
+      "stable_fraction": 1.0
+    },
+    {
+      "actual_outcome": "successful",
+      "case": "success",
+      "center_spectral_radius": 0.9997469563288534,
+      "controller_dt_seconds": 0.009998321533203125,
+      "covariance_mode": "overlap_corrected",
+      "delay_mode": "zero_thrust_delay",
+      "fitted_thrust_delay_seconds": 0.17559731006622314,
+      "median_unstable_pole_count": 0.0,
+      "pole_valid_samples": 512,
+      "recorded_roll_pitch_pid": {
+        "d_gain": 20.0,
+        "i_gain": 1.0,
+        "p_gain": 13.0
+      },
+      "requested_samples": 512,
+      "spectral_radius": {
+        "max": 0.9997469564769379,
+        "mean": 0.9997469563298622,
+        "min": 0.9997469561478216,
+        "q025": 0.9997469562259875,
+        "q16": 0.9997469562778928,
+        "q50": 0.9997469563302583,
+        "q84": 0.9997469563836167,
+        "q975": 0.9997469564365139,
+        "standard_deviation": 5.417175239961394e-11
+      },
+      "stable_fraction": 1.0
+    }
+  ],
+  "schema": "grape-param-estim/gimbalrotor-pid-local-poles-three-bag/v1",
+  "source_commit": "2acaa170ebc26e66ac83cffd63f059db73de897e"
+}

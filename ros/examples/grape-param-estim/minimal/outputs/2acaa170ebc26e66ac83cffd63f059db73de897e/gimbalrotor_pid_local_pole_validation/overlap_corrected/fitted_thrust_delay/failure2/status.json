@@ -1,0 +1,13 @@
+{
+  "equilibrium_valid_samples": 512,
+  "numerical_failure_count": 0,
+  "numerical_valid_samples": 512,
+  "pole_valid_samples": 512,
+  "requested_samples": 512,
+  "schema": "grape-param-estim/gimbalrotor-pid-local-poles-status/v1",
+  "status": "completed",
+  "trim_unresolved_count": 0,
+  "warnings": [
+    "constant_controller_dt_approximates_recorded_timing_jitter"
+  ]
+}

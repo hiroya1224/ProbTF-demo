@@ -1,0 +1,595 @@
+{
+  "center_result": {
+    "actual_gimbal_angle": [
+      5.9623239818880766e-05,
+      7.50961595722623e-05,
+      6.826816088667759e-05,
+      5.332681314320976e-05
+    ],
+    "actual_thrust": [
+      6.862857230080451,
+      6.581844185238464,
+      6.713781508596064,
+      6.994894678415094
+    ],
+    "controller_integral_defect": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "eigenvalues": [
+      {
+        "imag": 0.0,
+        "magnitude": 0.0,
+        "real": 0.0
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.0,
+        "real": 0.0
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.0,
+        "real": 0.0
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.0,
+        "real": 0.0
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.00020747584470874516,
+        "real": -0.00020747584470874516
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 9.543078739228776e-05,
+        "real": -9.543078739228776e-05
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 3.3876411426287694e-06,
+        "real": -3.3876411426287694e-06
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 2.5946223331317105e-09,
+        "real": -2.5946223331317105e-09
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.9811199349984805,
+        "real": 0.9811199349984805
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.991923494275927,
+        "real": 0.991923494275927
+      },
+      {
+        "imag": 0.008570021269745312,
+        "magnitude": 0.9952521063692702,
+        "real": 0.9952152078660701
+      },
+      {
+        "imag": -0.008570021269745312,
+        "magnitude": 0.9952521063692702,
+        "real": 0.9952152078660701
+      },
+      {
+        "imag": 0.006195742732394033,
+        "magnitude": 0.9940541161443294,
+        "real": 0.9940348075371797
+      },
+      {
+        "imag": -0.006195742732394033,
+        "magnitude": 0.9940541161443294,
+        "real": 0.9940348075371797
+      },
+      {
+        "imag": 0.006171173092784854,
+        "magnitude": 0.9985611755085049,
+        "real": 0.9985421062006279
+      },
+      {
+        "imag": -0.006171173092784854,
+        "magnitude": 0.9985611755085049,
+        "real": 0.9985421062006279
+      },
+      {
+        "imag": 0.007674405164626307,
+        "magnitude": 0.9979728409065645,
+        "real": 0.9979433324054469
+      },
+      {
+        "imag": -0.007674405164626307,
+        "magnitude": 0.9979728409065645,
+        "real": 0.9979433324054469
+      },
+      {
+        "imag": 0.007689463860005573,
+        "magnitude": 0.997945291309449,
+        "real": 0.997915666072162
+      },
+      {
+        "imag": -0.007689463860005573,
+        "magnitude": 0.997945291309449,
+        "real": 0.997915666072162
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.9986145573727064,
+        "real": 0.9986145573727064
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.9988891206287042,
+        "real": 0.9988891206287042
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.9994489424376389,
+        "real": 0.9994489424376389
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.9994615592362307,
+        "real": 0.9994615592362307
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.999831284367488,
+        "real": 0.999831284367488
+      },
+      {
+        "imag": 0.0,
+        "magnitude": 0.9998312836239632,
+        "real": 0.9998312836239632
+      }
+    ],
+    "equilibrium_tolerance": 1.3548908615325954e-08,
+    "equilibrium_valid": true,
+    "full_one_step_trim_defect": [
+      9.939168908374382e-17,
+      1.641519262609709e-16,
+      -7.449881892340951e-15,
+      -7.761438129912613e-16,
+      4.6174116334790445e-15,
+      9.060430942899397e-16,
+      3.973298991043136e-14,
+      6.556558715199893e-14,
+      -2.97534464107534e-12,
+      -3.099774423352219e-13,
+      1.844108558745733e-12,
+      3.6185680580391065e-13,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.5964721474599937e-12,
+      -2.6163426216111937e-12,
+      -3.1742128863516614e-12,
+      1.491926651935472e-12
+    ],
+    "full_one_step_trim_defect_norm": 3.1742128863516614e-12,
+    "gimbal_fixed_point_defect": [
+      -1.5964721474599937e-12,
+      -2.6163426216111937e-12,
+      -3.1742128863516614e-12,
+      1.491926651935472e-12
+    ],
+    "integral_error": [
+      -0.00021681070555003274,
+      -0.0005123835687102013,
+      11.546778943841968,
+      0.9187828347024173,
+      1.0843150166299766,
+      -0.004394971875208677
+    ],
+    "issued_gimbal_angle": [
+      5.962323822240862e-05,
+      7.509615695591968e-05,
+      6.82681577124647e-05,
+      5.332681463513641e-05
+    ],
+    "issued_thrust": [
+      6.862857230080451,
+      6.581844185238464,
+      6.713781508596064,
+      6.994894678415094
+    ],
+    "local_dimension": 26,
+    "marginal_pole_count": 0,
+    "piecewise_linearization_near_kink": false,
+    "spectral_margin": 0.0001687156325119732,
+    "spectral_radius": 0.999831284367488,
+    "stable": true,
+    "steady_gimbal_angle": [
+      5.9623239818880766e-05,
+      7.50961595722623e-05,
+      6.826816088667759e-05,
+      5.332681314320976e-05
+    ],
+    "trim_residual_norm": 6.975722785140382e-10,
+    "trim_residual_vector": [
+      3.3136141270045527e-12,
+      4.127628244271766e-12,
+      -5.941505065720776e-10,
+      -6.085141978201945e-11,
+      3.5898899121106316e-10,
+      3.108947399147324e-11,
+      -1.5964721474599937e-12,
+      -2.6163426216111937e-12,
+      -3.1742128863516614e-12,
+      1.491926651935472e-12
+    ],
+    "trim_root_message": "`gtol` termination condition is satisfied.",
+    "trim_root_status": 1,
+    "unstable_pole_count": 0
+  },
+  "controller": {
+    "gain_source": "rosbag_recorded_dynamic_reconfigure",
+    "gains": {
+      "roll_pitch": {
+        "d_gain": 8.0,
+        "i_gain": 1.0,
+        "p_gain": 10.0
+      },
+      "xy": {
+        "d_gain": 1.0,
+        "i_gain": 0.1,
+        "p_gain": 3.0
+      },
+      "yaw": {
+        "d_gain": 2.0,
+        "i_gain": 1.0,
+        "p_gain": 4.0
+      },
+      "z": {
+        "d_gain": 2.5,
+        "i_gain": 1.0,
+        "p_gain": 5.0
+      }
+    },
+    "mode": {
+      "gimbal_calc_in_fc": false,
+      "gimbal_calc_in_fc_source": "yaml",
+      "gimbal_dof": 1,
+      "gimbal_dof_source": "cpp_default",
+      "hovering_approximate": false,
+      "hovering_approximate_source": "cpp_default",
+      "underactuate": false,
+      "underactuate_source": "cpp_default",
+      "yaw_need_d_control": true
+    },
+    "nominal_allocation_uses_sampled_plant": false,
+    "pid_control_flags": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "record_times": [
+      1781253636.17426,
+      1781253636.174264,
+      1781253636.174565,
+      1781253636.1746614
+    ],
+    "source_kinds": [
+      "recorded_startup_parameter_update",
+      "recorded_startup_parameter_update",
+      "recorded_startup_parameter_update",
+      "recorded_startup_parameter_update"
+    ]
+  },
+  "controller_timing": {
+    "interval_count": 1100,
+    "max_seconds": 0.011551380157470703,
+    "mean_seconds": 0.004999745325608687,
+    "median_seconds": 0.005007743835449219,
+    "min_seconds": 0.00016617774963378906,
+    "sample_count": 1101,
+    "selected_controller_dt_seconds": 0.005007743835449219,
+    "selection": "median",
+    "standard_deviation_seconds": 0.0005639861996922923
+  },
+  "delay_model": {
+    "delay_depth": 0,
+    "fitted_rotor_lag_seconds": 0.27108919620513916,
+    "generic_actuator_delay_seconds": 0.0,
+    "gimbal_delay_seconds": 0.0,
+    "kind": "exact_thrust_only_zero_order_hold_queue",
+    "mode": "zero_thrust_delay",
+    "queue_state_dimension": 0,
+    "remainder_seconds": 0.0,
+    "selected_delay_seconds": 0.0,
+    "whole_steps": 0
+  },
+  "finite_difference_diagnostics": {
+    "checks": [
+      {
+        "maximum_absolute_entry_difference": 1.6134152590330242e-09,
+        "relative_frobenius_difference": 3.7866416519911484e-10,
+        "sample": "center",
+        "spectral_radius_difference": 2.9531932455029164e-14
+      },
+      {
+        "maximum_absolute_entry_difference": 2.8601452334992006e-09,
+        "relative_frobenius_difference": 4.992503046061045e-10,
+        "sample": 0,
+        "spectral_radius_difference": 7.16093850883226e-14
+      },
+      {
+        "maximum_absolute_entry_difference": 1.9801005453345955e-09,
+        "relative_frobenius_difference": 4.765009044924451e-10,
+        "sample": 1,
+        "spectral_radius_difference": 1.0103029524088925e-14
+      },
+      {
+        "maximum_absolute_entry_difference": 1.760089373727125e-09,
+        "relative_frobenius_difference": 4.332390976557116e-10,
+        "sample": 2,
+        "spectral_radius_difference": 2.2648549702353193e-14
+      },
+      {
+        "maximum_absolute_entry_difference": 1.833426521713477e-09,
+        "relative_frobenius_difference": 4.0542886329262624e-10,
+        "sample": 3,
+        "spectral_radius_difference": 1.2301271112846734e-13
+      }
+    ],
+    "requested_monte_carlo_samples": 4,
+    "used_as_sample_rejection": false
+  },
+  "flight_outcome": "crashed",
+  "input": {
+    "arguments_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_2_nominal_pseudo_conditioning_production_20260817/cases/prior_free/arguments.json",
+    "arrays": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_2_nominal_pseudo_conditioning_production_20260817/cases/prior_free/arrays.npz",
+    "bag_interval_seconds": [
+      25.5,
+      31.0
+    ],
+    "bag_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/bag_jsons/single_rosbag_2.json",
+    "bag_path": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_6_2026-06-12-17-40-34.bag",
+    "controller_yaml": "/home/leus/catkin_ws/src/jsk_aerial_robot/robots/gimbalrotor/config/grape/GimbalrotorControl.yaml",
+    "controller_yaml_sha256": "fd5649d86e67483a6d5e8fe1cb6e4c508a0e03311b74cf0c83a7469df9d6cc8f",
+    "estimator_case_name": "prior_free",
+    "estimator_source_commit": "916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1",
+    "result": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/916b66168ba4cc5493cd9a7b04dae1d63b0b1ba1/prior_ablation/single_rosbag_2_nominal_pseudo_conditioning_production_20260817/cases/prior_free/result.json",
+    "static_postprocess": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/outputs/585db5ba8a236232d85f2097615cf64b7eb76ff0/gimbalrotor_pid_postprocess/single_rosbag_2_prior_free_static_pid_production_20260817/pid_gain_postprocess.json",
+    "static_postprocess_source_commit": "585db5ba8a236232d85f2097615cf64b7eb76ff0",
+    "vehicle_model": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json"
+  },
+  "method": {
+    "coordinate_mode": "estimator_quotient",
+    "equilibrium": "unbounded_10d_nonlinear_least_squares",
+    "finite_difference_base_step": "machine_epsilon**(1/3) times local state scale",
+    "jacobian": "full_central_finite_difference_of_augmented_forward_map",
+    "stability_criterion": "all(abs(discrete_pole) < 1) exactly",
+    "state_coordinate": "26 + 4 * thrust_delay_depth, right_orientation_tangent"
+  },
+  "plan_base_commit": "aba27b2e51efab80271aa6cd94cd8e521a3a2efd",
+  "plant_distribution": {
+    "angular_drag_source": "nominal_vehicle_model",
+    "coordinate_labels": [
+      "estimator_quotient_00",
+      "estimator_quotient_01",
+      "estimator_quotient_02",
+      "estimator_quotient_03",
+      "estimator_quotient_04",
+      "estimator_quotient_05",
+      "estimator_quotient_06",
+      "estimator_quotient_07",
+      "estimator_quotient_08",
+      "estimator_quotient_09",
+      "estimator_quotient_10",
+      "estimator_quotient_11",
+      "estimator_quotient_12"
+    ],
+    "covariance_mode": "conservative_fusion",
+    "covariance_source": "quotient_covariance_conservative_fusion",
+    "linear_drag_source": "nominal_vehicle_model",
+    "mass_kg": 2.3515975908123767,
+    "physical_gauge": "nominal_mass_gauge",
+    "rotor_lag_is_sampled": false,
+    "scale_free_labels": [
+      "Jxx_over_m",
+      "Jyy_over_m",
+      "Jzz_over_m",
+      "Jxy_over_m",
+      "Jxz_over_m",
+      "Jyz_over_m",
+      "CoG_x",
+      "CoG_y",
+      "CoG_z",
+      "f1_over_m",
+      "f2_over_m",
+      "f3_over_m",
+      "f4_over_m"
+    ],
+    "torque_effectiveness_source": "nominal_vehicle_model"
+  },
+  "sampling": {
+    "covariance_eigenvalues": [
+      340.72421857248196,
+      2.862446951873097,
+      0.008677662682575315,
+      0.0009644453034622026,
+      0.00036510478956459545,
+      0.0002768910379663757,
+      4.494067789262919e-05,
+      8.35344030847308e-06,
+      7.244534607520403e-07,
+      6.770381348175559e-08,
+      6.440374612312899e-09,
+      1.469814658011672e-09,
+      5.099663322778209e-14
+    ],
+    "covariance_psd_tolerance": 9.83527668517118e-11,
+    "equilibrium_valid_count": 512,
+    "failures": [],
+    "numerical_valid_count": 512,
+    "piecewise_linearization_near_kink_count": 0,
+    "pole_valid_count": 512,
+    "prefix_summaries": {
+      "128": {
+        "pole_valid_fraction_of_requested": 1.0,
+        "pole_valid_samples": 128,
+        "requested_samples": 128,
+        "spectral_margin": {
+          "max": 0.00016871609279422994,
+          "mean": -5.9513650524064925e-05,
+          "min": -0.00036895964451244545,
+          "q025": -0.0003589209725573972,
+          "q16": -0.0002968686252565167,
+          "q50": -3.4779254283634486e-05,
+          "q84": 0.0001687155533987461,
+          "q975": 0.00016871588893915547,
+          "standard_deviation": 0.00018786162705286178
+        },
+        "spectral_radius": {
+          "max": 1.0003689596445124,
+          "mean": 1.0000595136505241,
+          "min": 0.9998312839072058,
+          "q025": 0.9998312841110608,
+          "q16": 0.9998312844466013,
+          "q50": 1.0000347792542836,
+          "q84": 1.0002968686252565,
+          "q975": 1.0003589209725574,
+          "standard_deviation": 0.00018786162705286178
+        },
+        "stable_fraction_among_pole_valid": 0.3125,
+        "unstable_fraction_among_pole_valid": 0.6875,
+        "unstable_pole_count_histogram": {
+          "0": 40,
+          "2": 16,
+          "4": 72
+        },
+        "unstable_pole_count_median": 4.0
+      },
+      "256": {
+        "pole_valid_fraction_of_requested": 1.0,
+        "pole_valid_samples": 256,
+        "requested_samples": 256,
+        "spectral_margin": {
+          "max": 0.00016871619738367816,
+          "mean": -5.5051415245109536e-05,
+          "min": -0.0003706474608717869,
+          "q025": -0.0003633091528612853,
+          "q16": -0.00029348155223503093,
+          "q50": -3.271283706096639e-05,
+          "q84": 0.00016871553872777056,
+          "q975": 0.0001687159553428047,
+          "standard_deviation": 0.00018534337717268415
+        },
+        "spectral_radius": {
+          "max": 1.0003706474608718,
+          "mean": 1.000055051415245,
+          "min": 0.9998312838026163,
+          "q025": 0.9998312840446572,
+          "q16": 0.9998312844612722,
+          "q50": 1.000032712837061,
+          "q84": 1.000293481552235,
+          "q975": 1.0003633091528612,
+          "standard_deviation": 0.00018534337717268412
+        },
+        "stable_fraction_among_pole_valid": 0.3203125,
+        "unstable_fraction_among_pole_valid": 0.6796875,
+        "unstable_pole_count_histogram": {
+          "0": 82,
+          "2": 38,
+          "4": 136
+        },
+        "unstable_pole_count_median": 4.0
+      },
+      "512": {
+        "pole_valid_fraction_of_requested": 1.0,
+        "pole_valid_samples": 512,
+        "requested_samples": 512,
+        "spectral_margin": {
+          "max": 0.00016871619738367816,
+          "mean": -5.711209737260326e-05,
+          "min": -0.0003706474608717869,
+          "q025": -0.00036685340947559817,
+          "q16": -0.000301467451579569,
+          "q50": -2.9191271484596548e-05,
+          "q84": 0.00016871554921454645,
+          "q975": 0.0001687159363919527,
+          "standard_deviation": 0.00018480752068915674
+        },
+        "spectral_radius": {
+          "max": 1.0003706474608718,
+          "mean": 1.0000571120973727,
+          "min": 0.9998312838026163,
+          "q025": 0.999831284063608,
+          "q16": 0.9998312844507855,
+          "q50": 1.0000291912714845,
+          "q84": 1.0003014674515796,
+          "q975": 1.0003668534094756,
+          "standard_deviation": 0.00018480752068915674
+        },
+        "stable_fraction_among_pole_valid": 0.31640625,
+        "unstable_fraction_among_pole_valid": 0.68359375,
+        "unstable_pole_count_histogram": {
+          "0": 162,
+          "2": 73,
+          "4": 277
+        },
+        "unstable_pole_count_median": 4.0
+      }
+    },
+    "requested_count": 512,
+    "seed": 0
+  },
+  "schema": "grape-param-estim/gimbalrotor-pid-local-poles/v1",
+  "source_commit": "2acaa170ebc26e66ac83cffd63f059db73de897e",
+  "stability_distribution": {
+    "pole_valid_fraction_of_requested": 1.0,
+    "pole_valid_samples": 512,
+    "requested_samples": 512,
+    "spectral_margin": {
+      "max": 0.00016871619738367816,
+      "mean": -5.711209737260326e-05,
+      "min": -0.0003706474608717869,
+      "q025": -0.00036685340947559817,
+      "q16": -0.000301467451579569,
+      "q50": -2.9191271484596548e-05,
+      "q84": 0.00016871554921454645,
+      "q975": 0.0001687159363919527,
+      "standard_deviation": 0.00018480752068915674
+    },
+    "spectral_radius": {
+      "max": 1.0003706474608718,
+      "mean": 1.0000571120973727,
+      "min": 0.9998312838026163,
+      "q025": 0.999831284063608,
+      "q16": 0.9998312844507855,
+      "q50": 1.0000291912714845,
+      "q84": 1.0003014674515796,
+      "q975": 1.0003668534094756,
+      "standard_deviation": 0.00018480752068915674
+    },
+    "stable_fraction_among_pole_valid": 0.31640625,
+    "unstable_fraction_among_pole_valid": 0.68359375,
+    "unstable_pole_count_histogram": {
+      "0": 162,
+      "2": 73,
+      "4": 277
+    },
+    "unstable_pole_count_median": 4.0
+  },
+  "warnings": [
+    "constant_controller_dt_approximates_recorded_timing_jitter"
+  ]
+}

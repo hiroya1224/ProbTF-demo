@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 
@@ -16,6 +18,7 @@ from pid_gain_contour import (  # noqa: E402
     SliceGridEvaluator,
     _adaptive_projection_grid,
     _boundary_present,
+    _exact_matrix_chunk_task,
 )
 
 
@@ -35,6 +38,27 @@ class _SyntheticGroupEvaluator:
                 1.0,
             )
         )
+
+
+def test_unresolved_trim_is_returned_as_an_invalid_pole_sample() -> None:
+    trim = SimpleNamespace(
+        equilibrium_valid=False,
+        piecewise_linearization_near_kink=False,
+    )
+    task = ((7,), (object(),), object(), object(), 0.01, object())
+    with patch(
+        "pid_gain_contour._analyze_plant",
+        return_value={
+            "jacobian": None,
+            "trim": trim,
+            "analytic_piecewise_near_kink": False,
+        },
+    ):
+        indices, matrices, pole_valid, near_kink = _exact_matrix_chunk_task(task)
+    assert np.array_equal(indices, np.asarray((7,)))
+    assert matrices.shape == (1, 26, 26)
+    assert not pole_valid[0]
+    assert not near_kink[0]
 
 
 def test_nested_grid_reuses_all_previous_points() -> None:

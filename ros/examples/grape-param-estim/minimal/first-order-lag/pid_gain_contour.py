@@ -215,7 +215,7 @@ def _exact_matrix_with_configuration(
     actuator_parameters: Any,
     controller_dt: float,
     controller_configuration: Any,
-) -> tuple[np.ndarray, bool]:
+) -> tuple[Optional[np.ndarray], bool]:
     result = _analyze_plant(
         scale_free=plant,
         inputs=_inputs(
@@ -230,22 +230,24 @@ def _exact_matrix_with_configuration(
     )
     matrix = result.get("jacobian")
     trim = result.get("trim")
-    if matrix is None or trim is None or not bool(trim.equilibrium_valid):
-        raise RuntimeError(
-            "full 26-state pole Jacobian is unavailable at the requested gain"
-        )
-    selected = np.asarray(matrix, dtype=float)
-    if selected.shape != (26, 26) or np.any(~np.isfinite(selected)):
-        raise RuntimeError("first-order closed-loop Jacobian must be finite 26x26")
+    if trim is None:
+        raise RuntimeError("hover-trim diagnostics are unavailable")
     near_kink = bool(trim.piecewise_linearization_near_kink) or bool(
         result.get("analytic_piecewise_near_kink", False)
     )
+    if not bool(trim.equilibrium_valid):
+        return None, near_kink
+    if matrix is None:
+        raise RuntimeError("valid hover trim has no full 26-state pole Jacobian")
+    selected = np.asarray(matrix, dtype=float)
+    if selected.shape != (26, 26) or np.any(~np.isfinite(selected)):
+        raise RuntimeError("first-order closed-loop Jacobian must be finite 26x26")
     return selected, near_kink
 
 
 def _exact_matrix_chunk_task(
     task: tuple[Any, ...],
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     (
         indices,
         plants,
@@ -256,6 +258,7 @@ def _exact_matrix_chunk_task(
     ) = task
     selected_indices = np.asarray(indices, dtype=int)
     matrices = np.empty((selected_indices.size, 26, 26), dtype=float)
+    pole_valid = np.zeros(selected_indices.size, dtype=bool)
     near_kink = np.empty(selected_indices.size, dtype=bool)
     for local_index, plant in enumerate(plants):
         matrix, near = _exact_matrix_with_configuration(
@@ -265,9 +268,13 @@ def _exact_matrix_chunk_task(
             controller_dt=controller_dt,
             controller_configuration=controller_configuration,
         )
-        matrices[local_index] = matrix
+        if matrix is None:
+            matrices[local_index] = 0.0
+        else:
+            matrices[local_index] = matrix
+            pole_valid[local_index] = True
         near_kink[local_index] = near
-    return selected_indices, matrices, near_kink
+    return selected_indices, matrices, pole_valid, near_kink
 
 
 class ExactGroupGainEvaluator:
@@ -303,10 +310,12 @@ class ExactGroupGainEvaluator:
             else ProcessPoolExecutor(max_workers=self.workers)
         )
         self._radius_cache: dict[tuple[float, float, float], np.ndarray] = {}
+        self._pole_valid_cache: dict[tuple[float, float, float], np.ndarray] = {}
         self._near_kink_cache: dict[tuple[float, float, float], np.ndarray] = {}
         self._break_cache: dict[tuple[float, float, float], BreakEvaluation] = {}
         self.success_log_ratio = np.log(self.success_gain / self.base_gain)
         self.success_log_radius = self.log_spectral_radius(self.success_log_ratio)
+        self.success_pole_valid_mask = self.pole_valid_mask(self.success_log_ratio)
         self.success_stable_mask = self.success_log_radius < 0.0
         self.success_stable_count = int(np.count_nonzero(self.success_stable_mask))
         if self.success_stable_count <= 0:
@@ -333,6 +342,21 @@ class ExactGroupGainEvaluator:
             sum(bool(np.any(value)) for value in self._near_kink_cache.values())
         )
 
+    @property
+    def gain_points_with_any_unresolved_trim(self) -> int:
+        return int(
+            sum(bool(np.any(~value)) for value in self._pole_valid_cache.values())
+        )
+
+    @property
+    def unresolved_trim_sample_evaluation_count(self) -> int:
+        return int(
+            sum(
+                np.count_nonzero(~value)
+                for value in self._pole_valid_cache.values()
+            )
+        )
+
     @staticmethod
     def _key(log_ratio: Sequence[float]) -> tuple[float, float, float]:
         selected = np.asarray(log_ratio, dtype=float)
@@ -347,7 +371,9 @@ class ExactGroupGainEvaluator:
             raise ValueError("log gain ratio must be finite length three")
         return self.base_gain * np.exp(selected)
 
-    def _matrix_stack(self, log_ratio: Sequence[float]) -> tuple[np.ndarray, np.ndarray]:
+    def _matrix_stack(
+        self, log_ratio: Sequence[float]
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         gain = self.gain_from_log_ratio(log_ratio)
         gains = _replace_group(
             self.hybrid_failure_gains,
@@ -381,32 +407,45 @@ class ExactGroupGainEvaluator:
         else:
             rows = list(self._executor.map(_exact_matrix_chunk_task, tasks))
         matrices = np.empty((sample_count, 26, 26), dtype=float)
+        pole_valid = np.empty(sample_count, dtype=bool)
         near_kink = np.empty(sample_count, dtype=bool)
         filled = np.zeros(sample_count, dtype=bool)
-        for indices, chunk_matrices, chunk_near_kink in rows:
+        for indices, chunk_matrices, chunk_pole_valid, chunk_near_kink in rows:
             matrices[indices] = chunk_matrices
+            pole_valid[indices] = chunk_pole_valid
             near_kink[indices] = chunk_near_kink
             filled[indices] = True
         if not np.all(filled):
             raise RuntimeError("exact plant sample ordering changed during evaluation")
-        return matrices, near_kink
+        return matrices, pole_valid, near_kink
 
     def log_spectral_radius(self, log_ratio: Sequence[float]) -> np.ndarray:
         key = self._key(log_ratio)
         cached = self._radius_cache.get(key)
         if cached is not None:
             return cached.copy()
-        matrices, near_kink = self._matrix_stack(key)
+        matrices, pole_valid, near_kink = self._matrix_stack(key)
         # NumPy accepts a stack of square matrices.  All 512 eigensystems are
         # therefore dispatched in one call rather than a Python eigvals loop.
-        eigenvalues = np.linalg.eigvals(matrices)
-        radii = np.max(np.abs(eigenvalues), axis=1)
-        if np.any(~np.isfinite(radii)) or np.any(radii <= 0.0):
+        radii = np.full(self.sample_count, np.inf, dtype=float)
+        if np.any(pole_valid):
+            eigenvalues = np.linalg.eigvals(matrices[pole_valid])
+            radii[pole_valid] = np.max(np.abs(eigenvalues), axis=1)
+        if np.any(~np.isfinite(radii[pole_valid])) or np.any(
+            radii[pole_valid] <= 0.0
+        ):
             raise FloatingPointError("closed-loop spectral radius became invalid")
         result = np.log(radii)
         self._radius_cache[key] = result.copy()
+        self._pole_valid_cache[key] = pole_valid.copy()
         self._near_kink_cache[key] = near_kink.copy()
         return result
+
+    def pole_valid_mask(self, log_ratio: Sequence[float]) -> np.ndarray:
+        key = self._key(log_ratio)
+        if key not in self._pole_valid_cache:
+            self.log_spectral_radius(key)
+        return self._pole_valid_cache[key].copy()
 
     def break_evaluation(self, log_ratio: Sequence[float]) -> BreakEvaluation:
         key = self._key(log_ratio)
@@ -1096,7 +1135,9 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             base_gain=group_evaluator.base_gain,
             success_gain=group_evaluator.success_gain,
             success_group_log_ratio=group_evaluator.success_log_ratio,
+            success_baseline_pole_valid_mask=group_evaluator.success_pole_valid_mask,
             success_baseline_stable_mask=group_evaluator.success_stable_mask,
+            failure_group_pole_valid_mask=group_evaluator.pole_valid_mask(np.zeros(3)),
             failure_group_stable_mask=failure_evaluation.stable_mask,
             caused_break_mask=failure_evaluation.caused_break_mask,
             projection_names=np.asarray([item.name for item in projections]),
@@ -1128,6 +1169,7 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "single_group_intervention": "only this group is varied; the other three groups stay at success-flight gains",
                 "caused_break_sample": "stable under all-success baseline and unstable under the single-group intervention",
                 "survival_fraction": "one minus caused-break count divided by the number of all-success-stable samples",
+                "unresolved_trim": "excluded from the all-success-stable conditioning set at baseline; treated as unstable under an intervention",
                 "plot": "other three groups fixed at success gains; hidden selected-group gain fixed at its failure recorded value",
             },
             "method": {
@@ -1158,11 +1200,23 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "d_gain": success_group_gain.d,
             },
             "all_success_baseline": {
+                "pole_valid_count": int(
+                    np.count_nonzero(group_evaluator.success_pole_valid_mask)
+                ),
+                "trim_unresolved_count": int(
+                    np.count_nonzero(~group_evaluator.success_pole_valid_mask)
+                ),
                 "stable_count": baseline_stable_count,
                 "unstable_count": int(arguments.samples) - baseline_stable_count,
                 "stable_fraction": float(np.mean(group_evaluator.success_stable_mask)),
             },
             "failure_gain_single_group_intervention": {
+                "pole_valid_count": int(
+                    np.count_nonzero(group_evaluator.pole_valid_mask(np.zeros(3)))
+                ),
+                "trim_unresolved_count": int(
+                    np.count_nonzero(~group_evaluator.pole_valid_mask(np.zeros(3)))
+                ),
                 "unstable_count": failure_evaluation.unstable_count,
                 "unstable_fraction": failure_evaluation.unstable_fraction,
                 "caused_break_count": failure_evaluation.caused_break_count,
@@ -1184,6 +1238,8 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             "analytic_active_branch_diagnostics": {
                 "evaluated_gain_point_count": group_evaluator.evaluated_gain_point_count,
                 "gain_points_with_any_sample_near_piecewise_kink": group_evaluator.gain_points_with_any_near_kink,
+                "gain_points_with_any_unresolved_trim": group_evaluator.gain_points_with_any_unresolved_trim,
+                "unresolved_trim_sample_evaluation_count": group_evaluator.unresolved_trim_sample_evaluation_count,
             },
             "projections": [_projection_payload(item) for item in projections],
             "files": {

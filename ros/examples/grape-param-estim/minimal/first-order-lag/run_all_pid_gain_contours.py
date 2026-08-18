@@ -106,6 +106,10 @@ def _write_case_summary(case: str, groups: Sequence[str]) -> None:
         "sample_count": int(baseline_reference.size),
         "groups": list(groups),
         "all_success_baseline": {
+            "pole_valid_count": int(rows[0]["all_success_baseline"]["pole_valid_count"]),
+            "trim_unresolved_count": int(
+                rows[0]["all_success_baseline"]["trim_unresolved_count"]
+            ),
             "stable_count": int(np.count_nonzero(baseline_reference)),
             "unstable_count": int(np.count_nonzero(~baseline_reference)),
             "stable_fraction": float(np.mean(baseline_reference)),
@@ -146,6 +150,19 @@ def _parse(argv: Sequence[str]) -> tuple[int, tuple[str, ...], tuple[str, ...], 
 
 def main() -> int:
     case_workers, cases, groups, forwarded = _parse(sys.argv[1:])
+    if case_workers == 1:
+        for case in cases:
+            return_code = _run_case(case, groups, forwarded)
+            if return_code != 0:
+                print(
+                    f"{case} failed with return code {return_code}",
+                    file=sys.stderr,
+                )
+                return return_code
+        for case in cases:
+            _write_case_summary(case, groups)
+        return 0
+
     failures = []
     with ThreadPoolExecutor(max_workers=min(case_workers, len(cases))) as executor:
         pending = {

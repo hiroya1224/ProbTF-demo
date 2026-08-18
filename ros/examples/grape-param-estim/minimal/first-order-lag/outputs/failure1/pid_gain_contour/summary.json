@@ -1,7 +1,9 @@
 {
   "all_success_baseline": {
+    "pole_valid_count": 512,
     "stable_count": 500,
     "stable_fraction": 0.9765625,
+    "trim_unresolved_count": 0,
     "unstable_count": 12
   },
   "case_name": "failure1",
@@ -20,6 +22,7 @@
         "i_gain": 0.1,
         "p_gain": 4.0
       },
+      "survival_fraction_conditioned_on_success_baseline": 1.0,
       "unique_single_group_culprit_count": 0,
       "unique_single_group_culprit_fraction_of_all_samples": 0.0
     },
@@ -37,6 +40,7 @@
         "i_gain": 1.0,
         "p_gain": 5.0
       },
+      "survival_fraction_conditioned_on_success_baseline": 1.0,
       "unique_single_group_culprit_count": 0,
       "unique_single_group_culprit_fraction_of_all_samples": 0.0
     },
@@ -54,6 +58,7 @@
         "i_gain": 1.0,
         "p_gain": 13.0
       },
+      "survival_fraction_conditioned_on_success_baseline": 0.558,
       "unique_single_group_culprit_count": 220,
       "unique_single_group_culprit_fraction_of_all_samples": 0.4296875
     },
@@ -71,6 +76,7 @@
         "i_gain": 1.0,
         "p_gain": 6.0
       },
+      "survival_fraction_conditioned_on_success_baseline": 0.986,
       "unique_single_group_culprit_count": 6,
       "unique_single_group_culprit_fraction_of_all_samples": 0.01171875
     }
@@ -83,10 +89,11 @@
   ],
   "interpretation": "Each caused-break count uses the same plant samples. Other PID groups are fixed at success-flight gains, and only the named group is restored to this failure bag's recorded gain. A unique culprit sample is broken by exactly one of the four single-group interventions.",
   "sample_count": 512,
-  "schema": "grape-param-estim/first-order-lag-pid-group-break/v2-summary",
+  "schema": "grape-param-estim/first-order-lag-pid-group-survival/v3-summary",
   "single_group_cause_overlap": {
     "samples_broken_by_exactly_one_single_group": 226,
     "samples_broken_by_multiple_single_groups": 1,
     "samples_broken_by_no_single_group": 285
-  }
+  },
+  "source_commit": "0e7fb732f1fcdaa652c91fa311dfc75dc66ebedb"
 }

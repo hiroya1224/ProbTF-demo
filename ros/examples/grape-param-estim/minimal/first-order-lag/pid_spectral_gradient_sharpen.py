@@ -19,11 +19,15 @@ and
     grad delta_tau = -sum_i w_i grad rho_i.
 
 At each temperature:
-  1. project the current point normally onto delta_tau = 0,
-  2. move toward the failed gain in the tangent space of delta_tau = 0,
-  3. exact-forward correct back to the boundary,
-  4. repeat until the tangential displacement toward failure is below the
+  1. choose eta_tau = hard_margin_target + tau log(N),
+  2. project normally onto delta_tau = eta_tau,
+  3. move toward the failed gain in the tangent space of that level set,
+  4. exact-forward correct back to the target level,
+  5. repeat until the tangential displacement toward failure is below the
      finite-difference coordinate resolution.
+
+Since delta_hard >= delta_tau - tau log(N), this soft target guarantees the
+requested sampled hard margin at a resolved target point.
 
 Then tau is halved.  The same rho_i and d rho_i/dq_j at the stage endpoint
 immediately give the new softmax weights and the first sharpen correction.
@@ -51,6 +55,9 @@ import time
 from typing import Any, Mapping, Optional, Sequence
 
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.colors import TwoSlopeNorm
+from matplotlib.lines import Line2D
 import numpy as np
 from scipy.special import logsumexp
 from tqdm.auto import tqdm
@@ -88,13 +95,14 @@ from pid_spectral_gradient_path import (  # noqa: E402
 from single_bag_savgol_reports import source_commit, write_json  # noqa: E402
 
 
-SCHEMA = "grape-param-estim/pid-spectral-gradient-sharpen/v2"
+SCHEMA = "grape-param-estim/pid-spectral-gradient-sharpen/v3"
 DEFAULT_PLANT_SAMPLES = 128
 DEFAULT_SEED = 0
 DEFAULT_TAU = 1.0e-4
 DEFAULT_FD_STEP = 0.01
 DEFAULT_PATH_STEP = 0.15
 DEFAULT_CONTOUR_GRID = 81
+DEFAULT_HARD_MARGIN_TARGET = 5.0e-5
 DEFAULT_WORKERS = min(12, os.cpu_count() or 1)
 
 GROUPS = ("xy", "z", "roll_pitch", "yaw")
@@ -134,18 +142,77 @@ def _softmax_summary(radii: Sequence[float], tau: float) -> Mapping[str, Any]:
     }
 
 
+def _soft_target_margin(
+    tau: float,
+    sample_count: int,
+    hard_margin_target: float,
+) -> float:
+    return float(hard_margin_target) + float(tau) * math.log(float(sample_count))
+
+
+def _target_residual(
+    summary: Mapping[str, Any],
+    soft_target_margin: float,
+) -> float:
+    return float(summary["delta_soft"]) - float(soft_target_margin)
+
+
+def _target_level_status(
+    summary: Mapping[str, Any],
+    soft_target_margin: float,
+    hard_margin_target: float,
+    gradient: np.ndarray,
+    fd_step: float,
+) -> Mapping[str, Any]:
+    residual = _target_residual(summary, soft_target_margin)
+    gradient_norm = float(np.linalg.norm(np.asarray(gradient, dtype=float)))
+    equivalent_gain_displacement = (
+        float("inf")
+        if gradient_norm == 0.0
+        else abs(residual) / gradient_norm
+    )
+    hard_target_satisfied = bool(
+        float(summary["delta_hard"]) >= float(hard_margin_target)
+    )
+    within_fd_resolution = bool(
+        equivalent_gain_displacement <= float(fd_step)
+    )
+    return {
+        "residual": float(residual),
+        "equivalent_gain_displacement": float(
+            equivalent_gain_displacement
+        ),
+        "within_fd_resolution": within_fd_resolution,
+        "hard_target_satisfied": hard_target_satisfied,
+        "resolved": bool(within_fd_resolution and hard_target_satisfied),
+    }
+
+
 def _point_payload(
     q: np.ndarray,
     summary: Mapping[str, Any],
     tau: float,
+    *,
+    hard_margin_target: float,
+    sample_count: int,
 ) -> Mapping[str, Any]:
     selected = np.asarray(q, dtype=float)
+    soft_target_margin = _soft_target_margin(
+        tau,
+        sample_count,
+        hard_margin_target,
+    )
     return {
         "q": selected.tolist(),
         "gain_matrix": (
             selected.reshape(4, 3) * GAIN_CAPS
         ).tolist(),
         "tau": float(tau),
+        "hard_margin_target": float(hard_margin_target),
+        "soft_target_margin": float(soft_target_margin),
+        "target_residual": float(
+            _target_residual(summary, soft_target_margin)
+        ),
         "delta_soft": float(summary["delta_soft"]),
         "delta_hard": float(summary["delta_hard"]),
         "smooth_max": float(summary["smooth_max"]),
@@ -269,7 +336,7 @@ def _gradient_bundle(
 
 
 def _normal_newton_step(
-    delta_soft: float,
+    target_residual: float,
     gradient: np.ndarray,
 ) -> np.ndarray:
     g = np.asarray(gradient, dtype=float)
@@ -278,7 +345,7 @@ def _normal_newton_step(
         raise RuntimeError(
             "soft-margin gradient vanishes, so the local boundary normal is undefined"
         )
-    return (-float(delta_soft) / norm_sq) * g
+    return (-float(target_residual) / norm_sq) * g
 
 
 def _tangent_direction(
@@ -300,11 +367,14 @@ def _exact_normal_projection(
     evaluator: BatchedForwardMarginEvaluator,
     q: np.ndarray,
     tau: float,
+    soft_target_margin: float,
+    hard_margin_target: float,
+    fd_step: float,
     gradient: np.ndarray,
     *,
     progress: bool,
 ) -> tuple[np.ndarray, Mapping[str, Any], Mapping[str, Any]]:
-    """Correct q toward delta_tau=0 along a supplied local normal.
+    """Correct q toward delta_tau=soft_target_margin along a local normal.
 
     The normal is held fixed within this corrector.  If the full nonlinear
     boundary bends enough that a fresh normal is needed, the outer continuation
@@ -319,7 +389,6 @@ def _exact_normal_projection(
 
     corrections = 0
     backtracks = 0
-    previous_abs_delta = None
     while True:
         row = evaluator.evaluate(current)
         if not np.all(row.pole_valid_mask):
@@ -330,21 +399,30 @@ def _exact_normal_projection(
             }
 
         summary = _softmax_summary(row.spectral_radius, tau)
-        delta = float(summary["delta_soft"])
-        if delta == 0.0:
+        residual = _target_residual(summary, soft_target_margin)
+        target_status = _target_level_status(
+            summary,
+            soft_target_margin,
+            hard_margin_target,
+            g,
+            fd_step,
+        )
+        if bool(target_status["resolved"]):
             return current, summary, {
                 "resolved": True,
                 "normal_updates": int(corrections),
                 "backtracks": int(backtracks),
+                "target_level_status": dict(target_status),
             }
 
-        correction = (-delta / norm_sq) * g
+        correction = (-residual / norm_sq) * g
         candidate = np.clip(current + correction, 0.0, 1.0)
         if np.array_equal(candidate, current):
             return current, summary, {
-                "resolved": True,
+                "resolved": bool(target_status["resolved"]),
                 "normal_updates": int(corrections),
                 "backtracks": int(backtracks),
+                "target_level_status": dict(target_status),
             }
 
         candidate_row = evaluator.evaluate(candidate)
@@ -354,13 +432,12 @@ def _exact_normal_projection(
                 tau,
             )
             candidate_abs = abs(
-                float(candidate_summary["delta_soft"])
+                _target_residual(candidate_summary, soft_target_margin)
             )
-            current_abs = abs(delta)
+            current_abs = abs(residual)
             if candidate_abs < current_abs:
                 current = candidate
                 corrections += 1
-                previous_abs_delta = candidate_abs
                 continue
 
         # The Newton correction overshot/non-improved.  Backtrack on this
@@ -376,9 +453,10 @@ def _exact_normal_projection(
             )
             if np.array_equal(backtracked, current):
                 return current, summary, {
-                    "resolved": True,
+                    "resolved": False,
                     "normal_updates": int(corrections),
                     "backtracks": int(backtracks),
+                    "target_level_status": dict(target_status),
                 }
             backtracked_row = evaluator.evaluate(backtracked)
             if np.all(backtracked_row.pole_valid_mask):
@@ -386,48 +464,112 @@ def _exact_normal_projection(
                     backtracked_row.spectral_radius,
                     tau,
                 )
-                if abs(
-                    float(backtracked_summary["delta_soft"])
-                ) < abs(delta):
+                if abs(_target_residual(
+                    backtracked_summary,
+                    soft_target_margin,
+                )) < abs(residual):
                     current = backtracked
                     corrections += 1
-                    previous_abs_delta = abs(
-                        float(backtracked_summary["delta_soft"])
-                    )
                     accepted = True
                     break
             scale *= 0.5
 
         if not accepted:
             return current, summary, {
-                "resolved": True,
+                "resolved": False,
                 "normal_updates": int(corrections),
                 "backtracks": int(backtracks),
+                "target_level_status": dict(target_status),
             }
 
-        if (
-            previous_abs_delta is not None
-            and previous_abs_delta == 0.0
-        ):
-            row = evaluator.evaluate(current)
-            return current, _softmax_summary(
-                row.spectral_radius, tau
-            ), {
+
+def _fresh_normal_projection(
+    evaluator: BatchedForwardMarginEvaluator,
+    q: np.ndarray,
+    tau: float,
+    soft_target_margin: float,
+    hard_margin_target: float,
+    fd_step: float,
+    *,
+    progress: bool,
+) -> tuple[np.ndarray, Mapping[str, Any], Mapping[str, Any]]:
+    """Project with refreshed plantwise gain gradients until resolved."""
+
+    current = np.asarray(q, dtype=float).copy()
+    total_updates = 0
+    total_backtracks = 0
+    gradient_refreshes = 0
+    while True:
+        bundle = _gradient_bundle(
+            evaluator,
+            current,
+            tau,
+            fd_step,
+            progress=progress,
+        )
+        summary = bundle["summary"]
+        gradient = bundle["gradient"]
+        target_status = _target_level_status(
+            summary,
+            soft_target_margin,
+            hard_margin_target,
+            gradient,
+            fd_step,
+        )
+        if bool(target_status["resolved"]):
+            return current, summary, {
                 "resolved": True,
-                "normal_updates": int(corrections),
-                "backtracks": int(backtracks),
+                "normal_updates": int(total_updates),
+                "backtracks": int(total_backtracks),
+                "gradient_refreshes": int(gradient_refreshes),
+                "target_level_status": dict(target_status),
             }
+
+        projected, projected_summary, projection = _exact_normal_projection(
+            evaluator,
+            current,
+            tau,
+            soft_target_margin,
+            hard_margin_target,
+            fd_step,
+            gradient,
+            progress=progress,
+        )
+        total_updates += int(projection["normal_updates"])
+        total_backtracks += int(projection["backtracks"])
+        if bool(projection["resolved"]):
+            return projected, projected_summary, {
+                "resolved": True,
+                "normal_updates": int(total_updates),
+                "backtracks": int(total_backtracks),
+                "gradient_refreshes": int(gradient_refreshes),
+                "target_level_status": dict(
+                    projection["target_level_status"]
+                ),
+            }
+        if np.array_equal(projected, current):
+            return current, summary, {
+                "resolved": False,
+                "normal_updates": int(total_updates),
+                "backtracks": int(total_backtracks),
+                "gradient_refreshes": int(gradient_refreshes),
+                "target_level_status": dict(target_status),
+            }
+        current = projected
+        gradient_refreshes += 1
 
 
 def _project_failure_to_boundary(
     evaluator: BatchedForwardMarginEvaluator,
     failure_q: np.ndarray,
     tau: float,
+    soft_target_margin: float,
+    hard_margin_target: float,
     fd_step: float,
     *,
     progress: bool,
 ) -> tuple[np.ndarray, Mapping[str, Any], Mapping[str, Any]]:
-    """Start exactly at failure and Newton-project to the soft boundary."""
+    """Start at failure and Newton-project to the chosen soft level set."""
 
     current = np.asarray(failure_q, dtype=float).copy()
     total_corrections = 0
@@ -437,6 +579,7 @@ def _project_failure_to_boundary(
     failure_fd_coverage = None
     failure_gradient_weight_coverage = None
     failure_fd_scheme_counts = None
+    terminal_target_status = None
 
     def diagnostics() -> Mapping[str, Any]:
         return {
@@ -453,10 +596,15 @@ def _project_failure_to_boundary(
                 failure_gradient_weight_coverage
             ),
             "failure_fd_scheme_counts": failure_fd_scheme_counts,
+            "target_level_status": terminal_target_status,
+            "resolved": bool(
+                terminal_target_status is not None
+                and terminal_target_status["resolved"]
+            ),
         }
 
     bar = tqdm(
-        desc="Failure -> soft boundary",
+        desc="Failure -> target soft level",
         unit="normal-update",
         dynamic_ncols=True,
         disable=not progress,
@@ -472,7 +620,14 @@ def _project_failure_to_boundary(
             )
             summary = bundle["summary"]
             gradient = bundle["gradient"]
-            delta = float(summary["delta_soft"])
+            residual = _target_residual(summary, soft_target_margin)
+            terminal_target_status = _target_level_status(
+                summary,
+                soft_target_margin,
+                hard_margin_target,
+                gradient,
+                fd_step,
+            )
             if failure_gradient is None:
                 failure_gradient = np.asarray(
                     gradient,
@@ -511,11 +666,11 @@ def _project_failure_to_boundary(
                     for axis, label in enumerate(GAIN_LABELS)
                 ]
 
-            if delta == 0.0:
+            if bool(terminal_target_status["resolved"]):
                 return current, bundle, diagnostics()
 
             normal_step = _normal_newton_step(
-                delta,
+                residual,
                 gradient,
             )
             proposal = np.clip(
@@ -536,25 +691,33 @@ def _project_failure_to_boundary(
                     predictor_diagnostics = {
                         "step_norm": float(np.linalg.norm(normal_step)),
                         "linearized_residual": float(
-                            delta + np.dot(gradient, normal_step)
+                            residual + np.dot(gradient, normal_step)
                         ),
                         "exact_residual": float(
-                            proposal_summary["delta_soft"]
+                            _target_residual(
+                                proposal_summary,
+                                soft_target_margin,
+                            )
                         ),
                         "exact_residual_reduced": bool(
-                            abs(float(proposal_summary["delta_soft"]))
-                            < abs(delta)
+                            abs(_target_residual(
+                                proposal_summary,
+                                soft_target_margin,
+                            )) < abs(residual)
                         ),
                     }
-                if abs(
-                    float(proposal_summary["delta_soft"])
-                ) < abs(delta):
+                if abs(_target_residual(
+                    proposal_summary,
+                    soft_target_margin,
+                )) < abs(residual):
                     current = proposal
                     total_corrections += 1
                     bar.update(1)
                     if progress:
                         bar.set_postfix(
-                            delta=f"{proposal_summary['delta_soft']:.3e}"
+                            residual=(
+                                f"{_target_residual(proposal_summary, soft_target_margin):.3e}"
+                            )
                         )
                     continue
 
@@ -577,9 +740,10 @@ def _project_failure_to_boundary(
                         candidate_row.spectral_radius,
                         tau,
                     )
-                    if abs(
-                        float(candidate_summary["delta_soft"])
-                    ) < abs(delta):
+                    if abs(_target_residual(
+                        candidate_summary,
+                        soft_target_margin,
+                    )) < abs(residual):
                         current = candidate
                         total_corrections += 1
                         bar.update(1)
@@ -594,12 +758,14 @@ def _walk_tangent_to_nearest_failure(
     start_q: np.ndarray,
     failure_q: np.ndarray,
     tau: float,
+    soft_target_margin: float,
+    hard_margin_target: float,
     fd_step: float,
     path_step: float,
     *,
     progress: bool,
 ) -> tuple[np.ndarray, list[Mapping[str, Any]], Mapping[str, Any]]:
-    """Follow delta_tau=0 while decreasing distance to the failed gain."""
+    """Follow a chosen delta_tau level while approaching the failed gain."""
 
     current = np.asarray(start_q, dtype=float).copy()
     history: list[Mapping[str, Any]] = []
@@ -629,13 +795,22 @@ def _walk_tangent_to_nearest_failure(
             # Tangent geometry is defined on the level set.  Finish the local
             # normal correction first, then rebuild J_rho at the corrected
             # point before constructing a tangent predictor.
-            if float(summary["delta_soft"]) != 0.0:
+            target_status = _target_level_status(
+                summary,
+                soft_target_margin,
+                hard_margin_target,
+                gradient,
+                fd_step,
+            )
+            if not bool(target_status["resolved"]):
                 projected, _projected_summary, projection = (
-                    _exact_normal_projection(
+                    _fresh_normal_projection(
                         evaluator,
                         current,
                         tau,
-                        gradient,
+                        soft_target_margin,
+                        hard_margin_target,
+                        fd_step,
                         progress=progress,
                     )
                 )
@@ -701,6 +876,10 @@ def _walk_tangent_to_nearest_failure(
                 "delta_soft": float(
                     summary["delta_soft"]
                 ),
+                "soft_target_margin": float(soft_target_margin),
+                "target_residual": float(
+                    _target_residual(summary, soft_target_margin)
+                ),
                 "delta_hard": float(
                     summary["delta_hard"]
                 ),
@@ -719,6 +898,9 @@ def _walk_tangent_to_nearest_failure(
                     "total_normal_updates": int(total_normal_updates),
                     "total_normal_backtracks": int(total_normal_backtracks),
                     "terminal_tangent_norm": tangent_norm,
+                    "terminal_reason": (
+                        "tangent norm is within finite-difference resolution"
+                    ),
                 }
 
             step = min(
@@ -730,9 +912,24 @@ def _walk_tangent_to_nearest_failure(
             accepted = False
 
             while True:
+                trial_step = trial_scale * step
+                if trial_step <= fd_step:
+                    return current, history, {
+                        "total_backtracks": int(total_backtracks),
+                        "total_normal_updates": int(total_normal_updates),
+                        "total_normal_backtracks": int(
+                            total_normal_backtracks
+                        ),
+                        "terminal_tangent_norm": tangent_norm,
+                        "terminal_trial_step": float(trial_step),
+                        "terminal_reason": (
+                            "no distance-decreasing target-level tangent "
+                            "step remains above finite-difference resolution"
+                        ),
+                    }
                 predictor = np.clip(
                     current
-                    + trial_scale * step * direction,
+                    + trial_step * direction,
                     0.0,
                     1.0,
                 )
@@ -742,6 +939,9 @@ def _walk_tangent_to_nearest_failure(
                         "total_normal_updates": int(total_normal_updates),
                         "total_normal_backtracks": int(total_normal_backtracks),
                         "terminal_tangent_norm": tangent_norm,
+                        "terminal_reason": (
+                            "box-constrained tangent predictor cannot move"
+                        ),
                     }
 
                 # First correct back to the current local boundary using the
@@ -757,29 +957,68 @@ def _walk_tangent_to_nearest_failure(
                             evaluator,
                             predictor,
                             tau,
+                            soft_target_margin,
+                            hard_margin_target,
+                            fd_step,
                             gradient,
                             progress=progress,
                         )
                     )
                     total_normal_updates += int(correction["normal_updates"])
                     total_normal_backtracks += int(correction["backtracks"])
-                    if bool(correction["resolved"]):
+                    corrected, corrected_summary, refreshed = (
+                        _fresh_normal_projection(
+                            evaluator,
+                            corrected,
+                            tau,
+                            soft_target_margin,
+                            hard_margin_target,
+                            fd_step,
+                            progress=progress,
+                        )
+                    )
+                    total_normal_updates += int(refreshed["normal_updates"])
+                    total_normal_backtracks += int(refreshed["backtracks"])
+                    if bool(refreshed["resolved"]):
+                        corrected_displacement = float(
+                            np.linalg.norm(corrected - current)
+                        )
                         new_distance = float(
                             np.linalg.norm(
                                 corrected - failure_q
                             )
                         )
+                        if corrected_displacement <= fd_step:
+                            return current, history, {
+                                "total_backtracks": int(total_backtracks),
+                                "total_normal_updates": int(
+                                    total_normal_updates
+                                ),
+                                "total_normal_backtracks": int(
+                                    total_normal_backtracks
+                                ),
+                                "terminal_tangent_norm": tangent_norm,
+                                "terminal_corrected_displacement": (
+                                    corrected_displacement
+                                ),
+                                "terminal_reason": (
+                                    "corrected target-level motion is within "
+                                    "finite-difference resolution"
+                                ),
+                            }
                         if new_distance < distance:
-                            # Accept the exact-forward corrected point.  It
-                            # need not have delta exactly zero; the next fresh
-                            # gradient bundle reprojects as necessary.
+                            # Accept the exact-forward corrected point.  Any
+                            # residual left at floating-point resolution is
+                            # revisited with the next fresh gradient bundle.
                             current = corrected
                             accepted = True
                             bar.update(1)
                             if progress:
                                 bar.set_postfix(
                                     distance=f"{new_distance:.4f}",
-                                    delta=f"{corrected_summary['delta_soft']:.2e}",
+                                    residual=(
+                                        f"{_target_residual(corrected_summary, soft_target_margin):.2e}"
+                                    ),
                                     tangent=f"{tangent_norm:.3e}",
                                 )
                             break
@@ -793,6 +1032,9 @@ def _walk_tangent_to_nearest_failure(
                     "total_normal_updates": int(total_normal_updates),
                     "total_normal_backtracks": int(total_normal_backtracks),
                     "terminal_tangent_norm": tangent_norm,
+                    "terminal_reason": (
+                        "tangent correction found no accepted predictor"
+                    ),
                 }
     finally:
         bar.close()
@@ -804,12 +1046,11 @@ def _linearized_group_contours(
     failure_q: np.ndarray,
     rho: np.ndarray,
     rho_jacobian: np.ndarray,
-    tau_values: Sequence[float],
-    final_gradient: np.ndarray,
+    hard_margin_target: float,
     fd_step: float,
     grid_size: int,
-) -> None:
-    """Draw cheap local PI/ID/DP soft-margin views for every PID group."""
+) -> tuple[plt.Figure, Mapping[str, np.ndarray]]:
+    """Draw local hard-margin fields from the retained plantwise Jacobian."""
 
     q0 = np.asarray(final_q, dtype=float)
     qf = np.asarray(failure_q, dtype=float)
@@ -822,6 +1063,8 @@ def _linearized_group_contours(
         figsize=(16.0, 17.0),
         constrained_layout=True,
     )
+
+    panel_fields: list[Mapping[str, Any]] = []
 
     for group_index, group in enumerate(GROUPS):
         base = 3 * group_index
@@ -853,98 +1096,197 @@ def _linearized_group_contours(
                 axis=0,
             )
 
-            tau_sequence = list(dict.fromkeys(
-                float(value) for value in tau_values
-            ))
-            for tau_index, tau in enumerate(tau_sequence):
-                scaled = predicted / tau
-                soft_max = tau * (
-                    logsumexp(scaled, axis=0)
-                    - math.log(float(rho0.size))
-                )
-                delta = 1.0 - soft_max
-                linestyle = "-" if tau_index == len(tau_sequence) - 1 else ":"
-                linewidth = 2.0 if tau_index == len(tau_sequence) - 1 else 1.0
-                if np.nanmin(delta) <= 0.0 <= np.nanmax(delta):
-                    axis.contour(
-                        qa * GAIN_CAPS.reshape(-1)[a],
-                        qb * GAIN_CAPS.reshape(-1)[b],
-                        delta.T,
-                        levels=[0.0],
-                        linestyles=linestyle,
-                        linewidths=linewidth,
-                    )
+            panel_fields.append({
+                "axis": axis,
+                "group_index": group_index,
+                "column": column,
+                "axis_a": a,
+                "axis_b": b,
+                "qa": qa,
+                "qb": qb,
+                "hard_delta": hard_delta,
+            })
 
-            if np.nanmin(hard_delta) <= 0.0 <= np.nanmax(hard_delta):
+    color_limit = max(
+        float(np.max(np.abs(panel["hard_delta"])))
+        for panel in panel_fields
+    )
+    if color_limit == 0.0:
+        color_limit = float(np.finfo(float).eps)
+    normalization = TwoSlopeNorm(
+        vmin=-color_limit,
+        vcenter=0.0,
+        vmax=color_limit,
+    )
+
+    image = None
+    contour_levels = (
+        -float(hard_margin_target),
+        0.0,
+        float(hard_margin_target),
+        2.0 * float(hard_margin_target),
+    )
+    contour_styles = (":", "--", "-", "-.")
+    contour_widths = (1.0, 1.7, 2.2, 1.0)
+    caps = GAIN_CAPS.reshape(-1)
+
+    for panel in panel_fields:
+        axis = panel["axis"]
+        a = int(panel["axis_a"])
+        b = int(panel["axis_b"])
+        qa = np.asarray(panel["qa"], dtype=float)
+        qb = np.asarray(panel["qb"], dtype=float)
+        hard_delta = np.asarray(panel["hard_delta"], dtype=float)
+        x = qa * caps[a]
+        y = qb * caps[b]
+
+        image = axis.pcolormesh(
+            x,
+            y,
+            hard_delta.T,
+            shading="auto",
+            cmap="RdYlGn",
+            norm=normalization,
+            rasterized=True,
+        )
+        field_min = float(np.min(hard_delta))
+        field_max = float(np.max(hard_delta))
+        for level, linestyle, linewidth in zip(
+            contour_levels,
+            contour_styles,
+            contour_widths,
+        ):
+            if field_min <= level <= field_max:
                 axis.contour(
-                    qa * GAIN_CAPS.reshape(-1)[a],
-                    qb * GAIN_CAPS.reshape(-1)[b],
+                    x,
+                    y,
                     hard_delta.T,
-                    levels=[0.0],
-                    linestyles="--",
-                    linewidths=1.5,
+                    levels=[level],
+                    colors="black",
+                    linestyles=linestyle,
+                    linewidths=linewidth,
                 )
 
-            axis.scatter(
-                [q0[a] * GAIN_CAPS.reshape(-1)[a]],
-                [q0[b] * GAIN_CAPS.reshape(-1)[b]],
-                marker="^",
-                s=55,
-                label="final",
-            )
-            axis.scatter(
-                [qf[a] * GAIN_CAPS.reshape(-1)[a]],
-                [qf[b] * GAIN_CAPS.reshape(-1)[b]],
-                marker="o",
-                s=42,
-                label="failure",
-            )
+        axis.scatter(
+            [qf[a] * caps[a]],
+            [qf[b] * caps[b]],
+            marker="x",
+            s=120,
+            linewidths=2.4,
+            c="red",
+            zorder=6,
+        )
+        axis.scatter(
+            [q0[a] * caps[a]],
+            [q0[b] * caps[b]],
+            marker="*",
+            s=210,
+            c="limegreen",
+            edgecolors="black",
+            linewidths=0.6,
+            zorder=7,
+        )
+        axis.scatter(
+            [q0[a] * caps[a]],
+            [q0[b] * caps[b]],
+            marker="o",
+            s=62,
+            facecolors="none",
+            edgecolors="white",
+            linewidths=1.8,
+            zorder=8,
+        )
 
-            g2 = np.asarray(
-                (final_gradient[a], final_gradient[b]),
-                dtype=float,
-            )
-            if np.linalg.norm(g2) > 0.0:
-                tangent2 = np.asarray(
-                    (-g2[1], g2[0]),
-                    dtype=float,
-                )
-                tangent2 /= np.linalg.norm(tangent2)
-                center_x = q0[a] * GAIN_CAPS.reshape(-1)[a]
-                center_y = q0[b] * GAIN_CAPS.reshape(-1)[b]
-                dx = 0.12 * (a_max - a_min) * GAIN_CAPS.reshape(-1)[a] * tangent2[0]
-                dy = 0.12 * (b_max - b_min) * GAIN_CAPS.reshape(-1)[b] * tangent2[1]
-                axis.plot(
-                    [center_x - dx, center_x + dx],
-                    [center_y - dy, center_y + dy],
-                    linestyle="-.",
-                    linewidth=1.0,
-                )
+        group_index = int(panel["group_index"])
+        column = int(panel["column"])
+        axis.set_xlabel(GAIN_LABELS[a])
+        axis.set_ylabel(GAIN_LABELS[b])
+        axis.set_title(f"{GROUPS[group_index]} {PROJECTIONS[column][0]}")
+        axis.grid(True, alpha=0.18)
 
-            axis.set_xlabel(GAIN_LABELS[a])
-            axis.set_ylabel(GAIN_LABELS[b])
-            axis.set_title(f"{group} {projection_name}")
-            axis.grid(True, alpha=0.2)
-            if group_index == 0 and column == 0:
-                axis.legend(fontsize=8)
+    if image is None:
+        raise RuntimeError("local hard-margin contour grid has no panels")
+    colorbar = figure.colorbar(
+        image,
+        ax=axes,
+        orientation="horizontal",
+        fraction=0.025,
+        pad=0.025,
+    )
+    colorbar.set_label(
+        r"linearized sampled hard margin $1-\max_i\widehat{\rho}_i$"
+    )
+
+    legend_handles = [
+        Line2D(
+            [0], [0], marker="x", color="red", linestyle="none",
+            markersize=10, markeredgewidth=2.2, label="recorded failure",
+        ),
+        Line2D(
+            [0], [0], marker="*", color="limegreen", markeredgecolor="black",
+            linestyle="none", markersize=14, label="proposed gain",
+        ),
+        Line2D(
+            [0], [0], marker="o", color="white", markerfacecolor="none",
+            linestyle="none", markersize=7, markeredgewidth=1.6,
+            label="local linearization center",
+        ),
+        Line2D(
+            [0], [0], color="black", linestyle="--", linewidth=1.7,
+            label="hard margin = 0",
+        ),
+        Line2D(
+            [0], [0], color="black", linestyle="-", linewidth=2.2,
+            label=f"hard margin = target ({hard_margin_target:.2g})",
+        ),
+    ]
+    figure.legend(
+        handles=legend_handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.965),
+        ncol=5,
+        fontsize=8,
+    )
 
     figure.suptitle(
-        "Local spectral-radius contours: soft boundaries sharpen toward hard max\n"
-        "solid = final tau, dotted = earlier tau, dashed = linearized hard-max boundary",
+        "Linearized local sampled hard-margin field "
+        "(green = safer, red = unsafe)\n"
+        "Contours are local first-order diagnostics, not exact global boundaries",
         fontsize=13,
     )
     figure.savefig(
         output / "spectral_gradient_group_contours.png",
         dpi=180,
     )
-    plt.close(figure)
+    contour_data = {
+        "q_a": np.asarray(
+            [panel["qa"] for panel in panel_fields],
+            dtype=float,
+        ).reshape(4, 3, grid_size),
+        "q_b": np.asarray(
+            [panel["qb"] for panel in panel_fields],
+            dtype=float,
+        ).reshape(4, 3, grid_size),
+        "hard_margin": np.asarray(
+            [panel["hard_delta"] for panel in panel_fields],
+            dtype=float,
+        ).reshape(4, 3, grid_size, grid_size),
+        "axis_pairs": np.asarray(
+            [
+                (panel["axis_a"], panel["axis_b"])
+                for panel in panel_fields
+            ],
+            dtype=int,
+        ).reshape(4, 3, 2),
+    }
+    return figure, contour_data
 
 
 def _plot_path(
     output: Path,
     failure_q: np.ndarray,
     stage_records: Sequence[Mapping[str, Any]],
-) -> None:
+) -> plt.Figure:
     figure, axes = plt.subplots(
         1,
         3,
@@ -953,7 +1295,7 @@ def _plot_path(
     )
 
     axis = axes[0]
-    for stage in stage_records:
+    for stage_index, stage in enumerate(stage_records):
         history = stage["history"]
         distance = [
             float(row["distance_to_failure"])
@@ -966,6 +1308,10 @@ def _plot_path(
         hard = [
             float(row["delta_hard"])
             for row in history
+        ]
+        target = [
+            float(stage["soft_target_margin"])
+            for _row in history
         ]
         axis.plot(
             distance,
@@ -981,13 +1327,24 @@ def _plot_path(
             alpha=0.6,
             label=(
                 "hard-max margin"
-                if stage is stage_records[0] else None
+                if stage_index == 0 else None
+            ),
+        )
+        axis.plot(
+            distance,
+            target,
+            linestyle="none",
+            marker="s",
+            markerfacecolor="none",
+            label=(
+                "soft target m + tau log(N)"
+                if stage_index == 0 else None
             ),
         )
     axis.axhline(0.0)
     axis.set_xlabel("normalized 12-D distance to failure")
     axis.set_ylabel("margin")
-    axis.set_title("Boundary continuation and sharpening")
+    axis.set_title("Target-level continuation and sharpening")
     axis.legend(fontsize=8)
     axis.grid(True, alpha=0.25)
 
@@ -1008,7 +1365,7 @@ def _plot_path(
     axis.axhline(1.0)
     axis.set_xlabel("empirical quantile")
     axis.set_ylabel("spectral radius")
-    axis.set_title("Order-statistic curve at each sharpened boundary")
+    axis.set_title("Order-statistic curve at each sharpened target level")
     axis.legend(fontsize=8)
     axis.grid(True, alpha=0.25)
 
@@ -1044,12 +1401,168 @@ def _plot_path(
         output / "spectral_gradient_sharpen.png",
         dpi=180,
     )
-    plt.close(figure)
+    return figure
+
+
+def _build_gain_update_table(
+    failure_q: np.ndarray,
+    proposal_q: np.ndarray,
+) -> list[list[str]]:
+    failure = np.asarray(failure_q, dtype=float).reshape(4, 3)
+    proposal = np.asarray(proposal_q, dtype=float).reshape(4, 3)
+    caps = np.asarray(GAIN_CAPS, dtype=float).reshape(4, 3)
+    rows: list[list[str]] = []
+    for group_index, group in enumerate(GROUPS):
+        for local_index, gain_name in enumerate(("P", "I", "D")):
+            failure_value = float(
+                failure[group_index, local_index]
+                * caps[group_index, local_index]
+            )
+            proposal_value = float(
+                proposal[group_index, local_index]
+                * caps[group_index, local_index]
+            )
+            delta = proposal_value - failure_value
+            normalized_delta = float(
+                proposal[group_index, local_index]
+                - failure[group_index, local_index]
+            )
+            rows.append([
+                group,
+                gain_name,
+                f"{failure_value:.7g}",
+                f"{proposal_value:.7g}",
+                f"{delta:+.7g}",
+                f"{normalized_delta:+.7g}",
+            ])
+    return rows
+
+
+def _build_pdf_report(
+    output: Path,
+    overview_figure: plt.Figure,
+    contour_figure: plt.Figure,
+    failure_q: np.ndarray,
+    proposal_q: np.ndarray,
+    hard_margin_target: float,
+    sample_count: int,
+    tau_initial: float,
+    tau_final: float,
+    final_soft_target_margin: float,
+    final_summary: Mapping[str, Any],
+) -> Path:
+    """Write the overview, local field, and gain table as one PDF."""
+
+    pdf_path = output / "spectral_gradient_hard_margin_report.pdf"
+    table_rows = _build_gain_update_table(failure_q, proposal_q)
+    distance = float(np.linalg.norm(
+        np.asarray(proposal_q, dtype=float)
+        - np.asarray(failure_q, dtype=float)
+    ))
+    target_residual = _target_residual(
+        final_summary,
+        final_soft_target_margin,
+    )
+
+    with PdfPages(pdf_path) as pdf:
+        pdf.savefig(overview_figure, bbox_inches="tight")
+        pdf.savefig(contour_figure, bbox_inches="tight")
+
+        table_figure, axis = plt.subplots(
+            figsize=(11.69, 8.27),
+            constrained_layout=True,
+        )
+        axis.axis("off")
+        axis.set_title(
+            "PID gain update: recorded failure to hard-margin proposal",
+            fontsize=16,
+            pad=14,
+        )
+        table = axis.table(
+            cellText=table_rows,
+            colLabels=(
+                "Group",
+                "Gain",
+                "Failure",
+                "Proposed",
+                "Delta",
+                "Delta / cap",
+            ),
+            cellLoc="right",
+            colLoc="center",
+            bbox=(0.04, 0.27, 0.92, 0.62),
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(9)
+        table.scale(1.0, 1.25)
+        for (row_index, _column_index), cell in table.get_celld().items():
+            if row_index == 0:
+                cell.set_facecolor("#d9e5f3")
+                cell.set_text_props(weight="bold")
+            elif row_index % 2 == 0:
+                cell.set_facecolor("#f3f5f7")
+
+        summary_lines = (
+            f"Hard-margin target m: {hard_margin_target:.7g}",
+            f"Soft target at final tau: {final_soft_target_margin:.7g}",
+            f"Sample count N: {sample_count}",
+            f"Initial / final tau: {tau_initial:.7g} / {tau_final:.7g}",
+            f"Exact final soft margin: {float(final_summary['delta_soft']):+.7g}",
+            f"Exact final hard margin: {float(final_summary['delta_hard']):+.7g}",
+            f"Final soft-level residual: {target_residual:+.3e}",
+            f"Normalized 12-D distance from failure: {distance:.7g}",
+        )
+        axis.text(
+            0.04,
+            0.22,
+            "\n".join(summary_lines),
+            va="top",
+            ha="left",
+            fontsize=10,
+            family="monospace",
+            transform=axis.transAxes,
+            bbox={
+                "boxstyle": "round,pad=0.6",
+                "facecolor": "#f7f7f7",
+                "edgecolor": "#888888",
+            },
+        )
+        axis.text(
+            0.55,
+            0.16,
+            (
+                "The proposal is evaluated with the exact sampled forward "
+                "model. Contour fields on page 2 are local first-order "
+                "diagnostics only."
+            ),
+            va="top",
+            ha="left",
+            fontsize=9,
+            style="italic",
+            wrap=True,
+            transform=axis.transAxes,
+            bbox={
+                "boxstyle": "round,pad=0.5",
+                "facecolor": "#fff8dc",
+                "edgecolor": "#c0a96b",
+            },
+        )
+        pdf.savefig(table_figure, bbox_inches="tight")
+        plt.close(table_figure)
+
+        metadata = pdf.infodict()
+        metadata["Title"] = "PID spectral-gradient hard-margin report"
+        metadata["Subject"] = (
+            "Failure-start continuation with sampled hard-margin target"
+        )
+
+    return pdf_path
 
 
 def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
     started = time.perf_counter()
     progress = not bool(arguments.no_progress)
+    hard_margin_target = float(arguments.hard_margin_target)
 
     estimate_path = Path(
         arguments.estimate_json
@@ -1112,20 +1625,37 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             )
 
         tau = float(arguments.tau)
+        soft_target_margin = _soft_target_margin(
+            tau,
+            int(arguments.samples),
+            hard_margin_target,
+        )
         current_q, initial_bundle, initial_projection = (
             _project_failure_to_boundary(
                 evaluator,
                 failure_q,
                 tau,
+                soft_target_margin,
+                hard_margin_target,
                 float(arguments.fd_step),
                 progress=progress,
             )
         )
+        if not bool(initial_projection["resolved"]):
+            raise RuntimeError(
+                "failure-start projection cannot resolve the hard-margin "
+                "target level"
+            )
 
         stage_records: list[Mapping[str, Any]] = []
         tau_values: list[float] = []
 
         while True:
+            soft_target_margin = _soft_target_margin(
+                tau,
+                int(arguments.samples),
+                hard_margin_target,
+            )
             # Reproject with a fresh local rho Jacobian before tangent motion.
             boundary_bundle = _gradient_bundle(
                 evaluator,
@@ -1142,14 +1672,27 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "backtracks": 0,
             }
 
-            if float(boundary_summary["delta_soft"]) != 0.0:
-                projected, _summary, stage_projection = _exact_normal_projection(
+            boundary_status = _target_level_status(
+                boundary_summary,
+                soft_target_margin,
+                hard_margin_target,
+                boundary_gradient,
+                float(arguments.fd_step),
+            )
+            if not bool(boundary_status["resolved"]):
+                projected, _summary, stage_projection = _fresh_normal_projection(
                     evaluator,
                     current_q,
                     tau,
-                    boundary_gradient,
+                    soft_target_margin,
+                    hard_margin_target,
+                    float(arguments.fd_step),
                     progress=progress,
                 )
+                if not bool(stage_projection["resolved"]):
+                    raise RuntimeError(
+                        "current tau stage cannot resolve its target level"
+                    )
                 current_q = projected
 
             current_q, history, tangent_diagnostics = (
@@ -1158,6 +1701,8 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     current_q,
                     failure_q,
                     tau,
+                    soft_target_margin,
+                    hard_margin_target,
                     float(arguments.fd_step),
                     float(arguments.path_step),
                     progress=progress,
@@ -1187,6 +1732,17 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
 
             stage_records.append({
                 "tau": float(tau),
+                "hard_margin_target": float(hard_margin_target),
+                "soft_target_margin": float(soft_target_margin),
+                "target_level_status": dict(
+                    _target_level_status(
+                        final_summary,
+                        soft_target_margin,
+                        hard_margin_target,
+                        final_gradient,
+                        float(arguments.fd_step),
+                    )
+                ),
                 "gap_bound": float(
                     tau
                     * math.log(float(arguments.samples))
@@ -1202,6 +1758,8 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                         current_q,
                         final_summary,
                         tau,
+                        hard_margin_target=hard_margin_target,
+                        sample_count=int(arguments.samples),
                     ),
                     "distance_to_failure": float(
                         np.linalg.norm(
@@ -1223,6 +1781,11 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 break
 
             tau *= 0.5
+            sharper_soft_target_margin = _soft_target_margin(
+                tau,
+                int(arguments.samples),
+                hard_margin_target,
+            )
 
             # Sharpen at exactly the current q using the *same* retained
             # rho_i and J_rho first; no new finite differences are needed to
@@ -1238,8 +1801,9 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             proposal = np.clip(
                 current_q
                 + _normal_newton_step(
-                    float(
-                        sharper_summary["delta_soft"]
+                    _target_residual(
+                        sharper_summary,
+                        sharper_soft_target_margin,
                     ),
                     sharper_gradient,
                 ),
@@ -1267,6 +1831,11 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             progress=progress,
         )
         final_summary = final_bundle["summary"]
+        final_soft_target_margin = _soft_target_margin(
+            tau,
+            int(arguments.samples),
+            hard_margin_target,
+        )
 
         output = (
             Path(arguments.output_dir).expanduser().resolve()
@@ -1279,22 +1848,36 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             exist_ok=True,
         )
 
-        _plot_path(
+        overview_figure = _plot_path(
             output,
             failure_q,
             stage_records,
         )
-        _linearized_group_contours(
+        contour_figure, contour_data = _linearized_group_contours(
             output,
             current_q,
             failure_q,
             final_bundle["row"].spectral_radius,
             final_bundle["rho_jacobian"],
-            tau_values,
-            final_bundle["gradient"],
+            hard_margin_target,
             float(arguments.fd_step),
             int(arguments.contour_grid),
         )
+        report_pdf = _build_pdf_report(
+            output,
+            overview_figure,
+            contour_figure,
+            failure_q,
+            current_q,
+            hard_margin_target,
+            int(arguments.samples),
+            float(arguments.tau),
+            float(tau),
+            final_soft_target_margin,
+            final_summary,
+        )
+        plt.close(overview_figure)
+        plt.close(contour_figure)
 
         # Flatten stage history for numerical post-analysis.
         flat_history = [
@@ -1314,6 +1897,13 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 ),
                 stage_tau=np.asarray(
                     [item[2]["tau"] for item in flat_history],
+                    dtype=float,
+                ),
+                stage_soft_target_margin=np.asarray(
+                    [
+                        item[2]["soft_target_margin"]
+                        for item in flat_history
+                    ],
                     dtype=float,
                 ),
                 path_q=np.asarray(
@@ -1373,6 +1963,10 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     [item[3]["delta_soft"] for item in flat_history],
                     dtype=float,
                 ),
+                path_target_residual=np.asarray(
+                    [item[3]["target_residual"] for item in flat_history],
+                    dtype=float,
+                ),
                 path_delta_hard=np.asarray(
                     [item[3]["delta_hard"] for item in flat_history],
                     dtype=float,
@@ -1386,6 +1980,21 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     dtype=float,
                 ),
                 final_q=current_q,
+                hard_margin_target=np.asarray(
+                    hard_margin_target,
+                    dtype=float,
+                ),
+                final_soft_target_margin=np.asarray(
+                    final_soft_target_margin,
+                    dtype=float,
+                ),
+                final_target_residual=np.asarray(
+                    _target_residual(
+                        final_summary,
+                        final_soft_target_margin,
+                    ),
+                    dtype=float,
+                ),
                 final_rho=np.asarray(
                     final_bundle["row"].spectral_radius,
                     dtype=float,
@@ -1426,6 +2035,22 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     final_bundle["gradient_weight_coverage"],
                     dtype=float,
                 ),
+                contour_q_a=np.asarray(
+                    contour_data["q_a"],
+                    dtype=float,
+                ),
+                contour_q_b=np.asarray(
+                    contour_data["q_b"],
+                    dtype=float,
+                ),
+                contour_axis_pairs=np.asarray(
+                    contour_data["axis_pairs"],
+                    dtype=int,
+                ),
+                contour_linearized_hard_margin=np.asarray(
+                    contour_data["hard_margin"],
+                    dtype=float,
+                ),
                 tau_values=np.asarray(
                     tau_values,
                     dtype=float,
@@ -1458,8 +2083,12 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 ),
                 "external_seed_artifact": None,
                 "method": (
-                    "failure normal projection -> soft-boundary tangent "
-                    "continuation -> tau sharpening"
+                    "failure normal projection -> hard-margin-guaranteeing "
+                    "soft-level tangent continuation -> tau sharpening"
+                ),
+                "hard_margin_target": float(hard_margin_target),
+                "soft_target_rule": (
+                    "delta_tau target = hard_margin_target + tau*log(N)"
                 ),
                 "rho_jacobian": (
                     "finite-difference per-plant d rho_i/dq_j, with all "
@@ -1497,6 +2126,8 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                         float(arguments.tau),
                     ),
                     float(arguments.tau),
+                    hard_margin_target=hard_margin_target,
+                    sample_count=int(arguments.samples),
                 ),
                 "pole_valid_count": int(np.count_nonzero(
                     failure_row.pole_valid_mask
@@ -1508,6 +2139,15 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             "stages": [
                 {
                     "tau": float(stage["tau"]),
+                    "hard_margin_target": float(
+                        stage["hard_margin_target"]
+                    ),
+                    "soft_target_margin": float(
+                        stage["soft_target_margin"]
+                    ),
+                    "target_level_status": dict(
+                        stage["target_level_status"]
+                    ),
                     "gap_bound": float(stage["gap_bound"]),
                     "gain_distance_gap_bound": float(
                         stage["gain_distance_gap_bound"]
@@ -1532,6 +2172,8 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     current_q,
                     final_summary,
                     tau,
+                    hard_margin_target=hard_margin_target,
+                    sample_count=int(arguments.samples),
                 ),
                 "distance_to_failure": float(
                     np.linalg.norm(
@@ -1544,16 +2186,43 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                         final_bundle["gradient"]
                     )
                 ),
+                "target_residual": float(
+                    _target_residual(
+                        final_summary,
+                        final_soft_target_margin,
+                    )
+                ),
+                "hard_margin_target_satisfied": bool(
+                    float(final_summary["delta_hard"])
+                    >= hard_margin_target
+                ),
+                "target_level_status": dict(
+                    _target_level_status(
+                        final_summary,
+                        final_soft_target_margin,
+                        hard_margin_target,
+                        final_bundle["gradient"],
+                        float(arguments.fd_step),
+                    )
+                ),
             },
             "contours": {
                 "figure": (
-                    "4x3 group PI/ID/DP views from the final per-plant "
-                    "linear rho model"
+                    "4x3 group PI/ID/DP views of the linearized local "
+                    "sampled hard-margin field"
                 ),
-                "solid": "final-tau soft boundary",
-                "dotted": "earlier-tau soft boundaries",
-                "dashed": "linearized hard-max boundary",
-                "dash_dot": "final local tangent direction",
+                "background": (
+                    "green is positive/safer hard margin; red is "
+                    "negative/unsafe hard margin"
+                ),
+                "solid": "linearized hard-margin target contour",
+                "dashed": "linearized zero hard-margin contour",
+                "failure_marker": "large red X",
+                "proposal_marker": "large green star",
+                "linearization_marker": "small white open circle",
+                "warning": (
+                    "local first-order diagnostic, not an exact global boundary"
+                ),
                 "exact_grid_re_evaluation": False,
             },
             "retained_information": {
@@ -1592,6 +2261,7 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     output
                     / "spectral_gradient_group_contours.png"
                 ),
+                "report_pdf": str(report_pdf),
                 "npz": str(
                     output
                     / "spectral_gradient_sharpen.npz"
@@ -1652,6 +2322,15 @@ def _parser() -> argparse.ArgumentParser:
         default=DEFAULT_CONTOUR_GRID,
     )
     parser.add_argument(
+        "--hard-margin-target",
+        type=float,
+        default=DEFAULT_HARD_MARGIN_TARGET,
+        help=(
+            "Target sampled hard stability margin m; the continuation uses "
+            "delta_tau = m + tau*log(N)"
+        ),
+    )
+    parser.add_argument(
         "--workers",
         type=int,
         default=DEFAULT_WORKERS,
@@ -1692,6 +2371,13 @@ def main() -> None:
     ):
         raise ValueError(
             "--path-step must be finite and positive"
+        )
+    if (
+        not np.isfinite(arguments.hard_margin_target)
+        or arguments.hard_margin_target <= 0.0
+    ):
+        raise ValueError(
+            "--hard-margin-target must be finite and positive"
         )
     if int(arguments.contour_grid) < 3:
         raise ValueError(

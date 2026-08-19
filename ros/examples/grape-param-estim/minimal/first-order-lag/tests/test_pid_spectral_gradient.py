@@ -17,9 +17,12 @@ if str(FIRST_ORDER) not in sys.path:
 from pid_safe_margin_slices import ForwardMarginEvaluator  # noqa: E402
 from pid_spectral_gradient_path import _finite_difference_jacobian  # noqa: E402
 from pid_spectral_gradient_sharpen import (  # noqa: E402
+    _build_gain_update_table,
     _normal_newton_step,
     _softmax_summary,
+    _soft_target_margin,
     _tangent_direction,
+    _target_residual,
 )
 
 
@@ -143,3 +146,32 @@ def test_tau_sharpening_reuses_the_same_plant_radii() -> None:
     assert sharp["smooth_max"] >= broad["smooth_max"]
     assert np.isclose(np.sum(broad["weights"]), 1.0)
     assert np.isclose(np.sum(sharp["weights"]), 1.0)
+
+
+def test_soft_target_guarantees_requested_hard_margin_bound() -> None:
+    tau = 1.0e-4
+    sample_count = 128
+    hard_margin_target = 5.0e-5
+    soft_target = _soft_target_margin(
+        tau,
+        sample_count,
+        hard_margin_target,
+    )
+    summary = {"delta_soft": soft_target}
+
+    assert _target_residual(summary, soft_target) == 0.0
+    assert np.isclose(
+        soft_target - tau * np.log(sample_count),
+        hard_margin_target,
+    )
+
+
+def test_gain_update_table_reports_physical_and_normalized_changes() -> None:
+    failure = np.zeros(12, dtype=float)
+    proposal = np.full(12, 0.1, dtype=float)
+    rows = _build_gain_update_table(failure, proposal)
+
+    assert len(rows) == 12
+    assert rows[0][:2] == ["xy", "P"]
+    assert rows[-1][:2] == ["yaw", "D"]
+    assert rows[0][-1] == "+0.1"

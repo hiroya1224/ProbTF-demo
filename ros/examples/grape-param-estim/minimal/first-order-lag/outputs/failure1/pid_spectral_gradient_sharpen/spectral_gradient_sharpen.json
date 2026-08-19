@@ -1,0 +1,564 @@
+{
+  "case_name": "failure1",
+  "contours": {
+    "dash_dot": "final local tangent direction",
+    "dashed": "linearized hard-max boundary",
+    "dotted": "earlier-tau soft boundaries",
+    "exact_grid_re_evaluation": false,
+    "figure": "4x3 group PI/ID/DP views from the final per-plant linear rho model",
+    "solid": "final-tau soft boundary"
+  },
+  "elapsed_seconds": 70.09970494918525,
+  "estimate_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/estimate.json",
+  "failure": {
+    "delta_hard": -0.00018586712937707084,
+    "delta_soft": -4.631108474995038e-05,
+    "gain_matrix": [
+      [
+        3.0,
+        0.1,
+        1.0
+      ],
+      [
+        5.0,
+        1.0,
+        2.5
+      ],
+      [
+        20.0,
+        1.0,
+        8.0
+      ],
+      [
+        4.0,
+        1.0,
+        2.0
+      ]
+    ],
+    "gap_bound": 0.0004852030263919617,
+    "hard_max": 1.000185867129377,
+    "hard_minus_soft": 0.00013955604462712046,
+    "pole_invalid_count": 0,
+    "pole_valid_count": 128,
+    "q": [
+      0.25,
+      0.008333333333333333,
+      0.08333333333333333,
+      0.2,
+      0.04,
+      0.1,
+      1.0,
+      0.05,
+      0.4,
+      0.2,
+      0.05,
+      0.1
+    ],
+    "smooth_max": 1.00004631108475,
+    "stable_fraction": 0.484375,
+    "tau": 0.0001
+  },
+  "files": {
+    "group_contours": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_spectral_gradient_sharpen/spectral_gradient_group_contours.png",
+    "json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_spectral_gradient_sharpen/spectral_gradient_sharpen.json",
+    "npz": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_spectral_gradient_sharpen/spectral_gradient_sharpen.npz",
+    "path_figure": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_spectral_gradient_sharpen/spectral_gradient_sharpen.png"
+  },
+  "final": {
+    "delta_hard": -4.760027237948883e-05,
+    "delta_soft": 0.0,
+    "distance_to_failure": 0.018217955074769792,
+    "gain_matrix": [
+      [
+        2.99936934199305,
+        0.09961074452934773,
+        1.0032471719735396
+      ],
+      [
+        4.9996388130490885,
+        0.9992356641007019,
+        2.5110128235242417
+      ],
+      [
+        19.93395630518589,
+        0.9847582164502187,
+        8.258531206740392
+      ],
+      [
+        4.049734005127883,
+        0.7716724022824667,
+        2.081297184887048
+      ]
+    ],
+    "gap_bound": 6.0650378298995215e-05,
+    "gradient_norm": 0.006836264243324135,
+    "hard_max": 1.0000476002723795,
+    "hard_minus_soft": 4.760027237948883e-05,
+    "q": [
+      0.2499474451660875,
+      0.008300895377445645,
+      0.08360393099779496,
+      0.19998555252196354,
+      0.03996942656402808,
+      0.10044051294096967,
+      0.9966978152592946,
+      0.04923791082251093,
+      0.4129265603370196,
+      0.20248670025639415,
+      0.038583620114123335,
+      0.10406485924435241
+    ],
+    "smooth_max": 1.0,
+    "stable_fraction": 0.7890625,
+    "tau": 1.25e-05
+  },
+  "plant_sampling": {
+    "effective_rank": 12,
+    "eigenvalues": [
+      -4.998623868135289e-16,
+      1.3572098945259969e-08,
+      2.011973152012862e-08,
+      2.993205394507139e-07,
+      1.416545505886494e-06,
+      1.3413581486334659e-05,
+      2.2567566612600124e-05,
+      5.249680371933565e-05,
+      0.00030161338672965465,
+      0.0007329601552328868,
+      0.0033251616563093013,
+      0.576149130793776,
+      10.094628679269597
+    ],
+    "method": "scrambled Sobol in positive-eigenvalue whitened coordinates, inverse-normal transformed",
+    "psd_tolerance": 2.9138951880393006e-14,
+    "sample_count": 128,
+    "seed": 0
+  },
+  "retained_information": {
+    "finite_difference_scheme_codes": {
+      "1": "central",
+      "2": "baseline-to-plus one-sided",
+      "3": "minus-to-baseline one-sided"
+    },
+    "order_statistics": "sorted rho_(1)(q),...,rho_(N)(q)",
+    "paired_rho": "rho_i(q) for the same ordered plant samples",
+    "rho_gain_jacobian": "finite-difference d rho_i/dq_j",
+    "softmax_weights": "tau-dependent aggregation weights retained separately"
+  },
+  "schema": "grape-param-estim/pid-spectral-gradient-sharpen/v2",
+  "search": {
+    "external_seed_artifact": null,
+    "fd_step_in_normalized_gain": 0.01,
+    "final_tau": 1.25e-05,
+    "in_process_cache": "only exact evaluations already computed during this run are cached to avoid duplicate work",
+    "initial_failure_projection": {
+      "backtracks": 10,
+      "failure_fd_coverage": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "failure_fd_scheme_counts": [
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "xy:P",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 0,
+          "forward": 128,
+          "label": "xy:I",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "xy:D",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "z:P",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "z:I",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "z:D",
+          "refinements": 0
+        },
+        {
+          "backward": 128,
+          "central": 0,
+          "forward": 0,
+          "label": "roll_pitch:P",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "roll_pitch:I",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "roll_pitch:D",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "yaw:P",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "yaw:I",
+          "refinements": 0
+        },
+        {
+          "backward": 0,
+          "central": 128,
+          "forward": 0,
+          "label": "yaw:D",
+          "refinements": 0
+        }
+      ],
+      "failure_gradient": [
+        -2.713558621626381e-05,
+        -1.3779176696595267e-05,
+        0.00015554642442015837,
+        -3.024803534601103e-06,
+        -1.662594140267793e-05,
+        0.00023957055222158127,
+        -0.001787018809016798,
+        -0.0003891150878190344,
+        0.00703147188007581,
+        0.0001425275567273514,
+        -0.0006295983168862258,
+        0.0002393616971069314
+      ],
+      "failure_gradient_norm": 0.007303646093527188,
+      "failure_gradient_weight_coverage": [
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292,
+        1.0000000000004292
+      ],
+      "first_predictor": {
+        "exact_residual": -1.9737420446919174e-06,
+        "exact_residual_reduced": true,
+        "linearized_residual": -6.776263578034403e-21,
+        "step_norm": 0.006340817196905706
+      },
+      "normal_updates": 5
+    },
+    "initial_tau": 0.0001,
+    "method": "failure normal projection -> soft-boundary tangent continuation -> tau sharpening",
+    "nominal_tangent_step_in_normalized_gain": 0.15,
+    "rho_jacobian": "finite-difference per-plant d rho_i/dq_j, with all gain perturbations submitted in batched worker waves",
+    "sharpen_rule": "tau <- tau / 2",
+    "sharpen_stop": "tau*log(N)/||grad delta_tau|| <= fd_step",
+    "start": "exactly the PID gains recorded in the failed bag"
+  },
+  "source_commit": "53a244050ab7dfc308fe11aa4216e2033e9e0876",
+  "stages": [
+    {
+      "accepted_path_point_count": 1,
+      "endpoint": {
+        "delta_hard": -0.00017905156416642143,
+        "delta_soft": 1.1102230246251565e-16,
+        "distance_to_failure": 0.006639073645240677,
+        "gain_matrix": [
+          [
+            2.999704483523847,
+            0.09984933363578427,
+            1.001697450118951
+          ],
+          [
+            4.999931262144617,
+            0.9996229002546106,
+            2.5054408080877097
+          ],
+          [
+            19.96750606514714,
+            0.9930546521491724,
+            8.12780428883903
+          ],
+          [
+            4.002662272242118,
+            0.9882391342501615,
+            2.004487211390606
+          ]
+        ],
+        "gap_bound": 0.0004852030263919617,
+        "gradient_norm": 0.0065716604374671,
+        "hard_max": 1.0001790515641664,
+        "hard_minus_soft": 0.00017905156416653245,
+        "q": [
+          0.24997537362698724,
+          0.008320777802982023,
+          0.08347478750991259,
+          0.19999725048578468,
+          0.039984916010184425,
+          0.10021763232350839,
+          0.998375303257357,
+          0.04965273260745862,
+          0.4063902144419515,
+          0.20013311361210587,
+          0.04941195671250807,
+          0.1002243605695303
+        ],
+        "smooth_max": 0.9999999999999999,
+        "stable_fraction": 0.6015625,
+        "tau": 0.0001
+      },
+      "gain_distance_gap_bound": 0.07383263803857955,
+      "gap_bound": 0.0004852030263919617,
+      "normal_projection": {
+        "backtracks": 10,
+        "normal_updates": 0,
+        "resolved": true
+      },
+      "tangent_diagnostics": {
+        "terminal_tangent_norm": 0.0004199860048340584,
+        "total_backtracks": 0,
+        "total_normal_backtracks": 10,
+        "total_normal_updates": 0
+      },
+      "tau": 0.0001
+    },
+    {
+      "accepted_path_point_count": 1,
+      "endpoint": {
+        "delta_hard": -0.00016564937776686328,
+        "delta_soft": 0.0,
+        "distance_to_failure": 0.010324230451830528,
+        "gain_matrix": [
+          [
+            2.9995352489980265,
+            0.09977079648153381,
+            1.0025245552500246
+          ],
+          [
+            4.999812430236909,
+            0.9994200356400454,
+            2.5083671068381475
+          ],
+          [
+            19.94999382052263,
+            0.9887232345727991,
+            8.196246369966271
+          ],
+          [
+            4.007962276405853,
+            0.9653686180812964,
+            2.0130095813715907
+          ]
+        ],
+        "gap_bound": 0.00024260151319598086,
+        "gradient_norm": 0.0064757339337939025,
+        "hard_max": 1.0001656493777669,
+        "hard_minus_soft": 0.00016564937776686328,
+        "q": [
+          0.24996127074983554,
+          0.008314233040127817,
+          0.08354371293750205,
+          0.19999249720947634,
+          0.03997680142560182,
+          0.1003346842735259,
+          0.9974996910261313,
+          0.04943616172863995,
+          0.40981231849831357,
+          0.20039811382029266,
+          0.04826843090406482,
+          0.10065047906857953
+        ],
+        "smooth_max": 1.0,
+        "stable_fraction": 0.671875,
+        "tau": 5e-05
+      },
+      "gain_distance_gap_bound": 0.03746316875836331,
+      "gap_bound": 0.00024260151319598086,
+      "normal_projection": {
+        "backtracks": 0,
+        "normal_updates": 5,
+        "resolved": true
+      },
+      "tangent_diagnostics": {
+        "terminal_tangent_norm": 0.0027694754061135377,
+        "total_backtracks": 0,
+        "total_normal_backtracks": 0,
+        "total_normal_updates": 0
+      },
+      "tau": 5e-05
+    },
+    {
+      "accepted_path_point_count": 1,
+      "endpoint": {
+        "delta_hard": -9.584228169257081e-05,
+        "delta_soft": 1.1102230246251565e-16,
+        "distance_to_failure": 0.014692297450821845,
+        "gain_matrix": [
+          [
+            2.999428357674105,
+            0.0996712078183628,
+            1.0029880432758491
+          ],
+          [
+            4.9997090864762335,
+            0.999301866587532,
+            2.5100612213718945
+          ],
+          [
+            19.939819628072208,
+            0.9861941279296951,
+            8.235796394703229
+          ],
+          [
+            4.034093582380875,
+            0.8493168851447469,
+            2.0545370335211377
+          ]
+        ],
+        "gap_bound": 0.00012130075659799043,
+        "gradient_norm": 0.006740753901085116,
+        "hard_max": 1.0000958422816926,
+        "hard_minus_soft": 9.584228169268183e-05,
+        "q": [
+          0.24995236313950875,
+          0.008305933984863567,
+          0.0835823369396541,
+          0.19998836345904933,
+          0.03997207466350128,
+          0.10040244885487577,
+          0.9969909814036104,
+          0.049309706396484757,
+          0.4117898197351615,
+          0.20170467911904374,
+          0.042465844257237345,
+          0.10272685167605689
+        ],
+        "smooth_max": 0.9999999999999999,
+        "stable_fraction": 0.734375,
+        "tau": 2.5e-05
+      },
+      "gain_distance_gap_bound": 0.017995132054659885,
+      "gap_bound": 0.00012130075659799043,
+      "normal_projection": {
+        "backtracks": 13,
+        "normal_updates": 6,
+        "resolved": true
+      },
+      "tangent_diagnostics": {
+        "terminal_tangent_norm": 0.0010426072209624385,
+        "total_backtracks": 0,
+        "total_normal_backtracks": 12,
+        "total_normal_updates": 0
+      },
+      "tau": 2.5e-05
+    },
+    {
+      "accepted_path_point_count": 1,
+      "endpoint": {
+        "delta_hard": -4.760027237948883e-05,
+        "delta_soft": 0.0,
+        "distance_to_failure": 0.018217955074769792,
+        "gain_matrix": [
+          [
+            2.99936934199305,
+            0.09961074452934773,
+            1.0032471719735396
+          ],
+          [
+            4.9996388130490885,
+            0.9992356641007019,
+            2.5110128235242417
+          ],
+          [
+            19.93395630518589,
+            0.9847582164502187,
+            8.258531206740392
+          ],
+          [
+            4.049734005127883,
+            0.7716724022824667,
+            2.081297184887048
+          ]
+        ],
+        "gap_bound": 6.0650378298995215e-05,
+        "gradient_norm": 0.006836264243324135,
+        "hard_max": 1.0000476002723795,
+        "hard_minus_soft": 4.760027237948883e-05,
+        "q": [
+          0.2499474451660875,
+          0.008300895377445645,
+          0.08360393099779496,
+          0.19998555252196354,
+          0.03996942656402808,
+          0.10044051294096967,
+          0.9966978152592946,
+          0.04923791082251093,
+          0.4129265603370196,
+          0.20248670025639415,
+          0.038583620114123335,
+          0.10406485924435241
+        ],
+        "smooth_max": 1.0,
+        "stable_fraction": 0.7890625,
+        "tau": 1.25e-05
+      },
+      "gain_distance_gap_bound": 0.00887185985506961,
+      "gap_bound": 6.0650378298995215e-05,
+      "normal_projection": {
+        "backtracks": 1,
+        "normal_updates": 6,
+        "resolved": true
+      },
+      "tangent_diagnostics": {
+        "terminal_tangent_norm": 0.0021257069462311652,
+        "total_backtracks": 0,
+        "total_normal_backtracks": 0,
+        "total_normal_updates": 0
+      },
+      "tau": 1.25e-05
+    }
+  ]
+}

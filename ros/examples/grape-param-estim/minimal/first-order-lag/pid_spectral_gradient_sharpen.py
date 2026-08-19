@@ -5,7 +5,8 @@ The starting point is exactly the PID gain recorded in the failed bag.  No
 previous safe-gain artifact, seed JSON, or saved safe cloud is read.  One
 scrambled-Sobol sequence is mapped through the failure-bag quotient-space
 Gaussian posterior and fixed for the entire run.  The search refines nested
-prefixes of that sequence (16, 32, 64, ..., N_max); it never resamples plants.
+prefixes of that sequence (16, 32, 64, ..., N_max) while halving tau at each
+prefix refinement; it never resamples plants.
 
 For the fixed ordered plant samples theta_i and normalized gain q,
 
@@ -48,7 +49,9 @@ cheap 4 x 3 group contour diagnostic figure.
 When a plant prefix grows, the same gain is first revalidated at the larger
 Gaussian-QMC resolution.  Cached leading-plant evaluations are retained and
 only the newly added suffix is evaluated.  All reported final values use an
-exact forward evaluation over the full N_max prefix.
+exact forward evaluation over the full N_max prefix.  Once N_max is reached,
+tau alone is halved further until the softmax gap has reached finite-difference
+gain resolution.
 """
 
 from __future__ import annotations
@@ -1709,7 +1712,7 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     f"N={sample_count}"
                 )
 
-            tau = float(arguments.tau)
+            prefix_initial_tau = float(tau)
             soft_target_margin = _soft_target_margin(
                 tau,
                 sample_count,
@@ -1871,10 +1874,21 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 })
                 tau_values.append(float(tau))
 
-                if sharpen_distance_bound <= float(arguments.fd_step):
+                final_prefix = prefix_index == len(prefix_counts) - 1
+                if (
+                    final_prefix
+                    and sharpen_distance_bound <= float(arguments.fd_step)
+                ):
                     break
 
                 tau *= 0.5
+                if not final_prefix:
+                    # Coordinate the two numerical refinements: one converged
+                    # continuation stage per proper QMC prefix, then double N
+                    # while halving tau.  The larger prefix starts with an
+                    # exact suffix-only revalidation and a fresh projection.
+                    break
+
                 sharper_soft_target_margin = _soft_target_margin(
                     tau,
                     sample_count,
@@ -1915,7 +1929,7 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     **_point_payload(
                         prefix_start_q,
                         revalidation_summary,
-                        float(arguments.tau),
+                        prefix_initial_tau,
                         hard_margin_target=hard_margin_target,
                         sample_count=sample_count,
                     ),
@@ -1926,12 +1940,14 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "initial_projection": dict(prefix_projection),
                 "stage_index_start": int(prefix_stage_start),
                 "stage_index_stop": int(len(stage_records)),
-                "final_tau": float(tau),
+                "initial_tau": prefix_initial_tau,
+                "final_tau": float(stage_records[-1]["tau"]),
+                "next_tau": float(tau),
                 "final": {
                     **_point_payload(
                         current_q,
                         final_summary,
-                        tau,
+                        float(stage_records[-1]["tau"]),
                         hard_margin_target=hard_margin_target,
                         sample_count=sample_count,
                     ),
@@ -2284,9 +2300,10 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 ),
                 "external_seed_artifact": None,
                 "method": (
-                    "nested Gaussian-QMC prefix refinement; within each "
-                    "prefix: normal projection -> hard-margin-guaranteeing "
-                    "soft-level tangent continuation -> tau sharpening"
+                    "coordinated nested Gaussian-QMC/tau refinement; one "
+                    "converged projection/continuation stage per proper "
+                    "prefix while N doubles and tau halves, followed by tau "
+                    "sharpening at N_max"
                 ),
                 "hard_margin_target": float(hard_margin_target),
                 "soft_target_rule": (
@@ -2308,7 +2325,10 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 "nominal_tangent_step_in_normalized_gain": float(
                     arguments.path_step
                 ),
-                "sharpen_rule": "tau <- tau / 2",
+                "sharpen_rule": (
+                    "tau <- tau/2 when N doubles; after N_max, continue "
+                    "tau <- tau/2 until the gap-resolution stop"
+                ),
                 "sharpen_stop": (
                     "tau*log(N)/||grad delta_tau|| <= fd_step"
                 ),

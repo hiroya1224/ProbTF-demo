@@ -1,0 +1,237 @@
+{
+  "case_name": "failure1",
+  "elapsed_seconds": 289.84291063901037,
+  "estimate_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/estimate.json",
+  "failure": {
+    "delta_hard": -0.00018586712937596062,
+    "delta_soft": -4.631108474972834e-05,
+    "gain_matrix": [
+      [
+        3.0,
+        0.1,
+        1.0
+      ],
+      [
+        5.0,
+        1.0,
+        2.5
+      ],
+      [
+        20.0,
+        1.0,
+        8.0
+      ],
+      [
+        4.0,
+        1.0,
+        2.0
+      ]
+    ],
+    "hard_max": 1.000185867129376,
+    "hard_minus_soft": 0.00013955604462623228,
+    "q": [
+      0.25,
+      0.008333333333333333,
+      0.08333333333333333,
+      0.2,
+      0.04,
+      0.1,
+      1.0,
+      0.05,
+      0.4,
+      0.2,
+      0.05,
+      0.1
+    ],
+    "smooth_max": 1.0000463110847497,
+    "stable_fraction": 0.484375
+  },
+  "files": {
+    "figure": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_spectral_gradient_path/spectral_gradient_path.png",
+    "npz": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_spectral_gradient_path/spectral_gradient_path.npz"
+  },
+  "final": {
+    "delta_hard": -0.0001757443031011885,
+    "delta_soft": 4.440892098500626e-16,
+    "distance_to_failure": 0.006629279064748376,
+    "gain_matrix": [
+      [
+        2.999716236103644,
+        0.1,
+        1.0017130961988414
+      ],
+      [
+        4.999933537742111,
+        0.9996396896106865,
+        2.505352777182849
+      ],
+      [
+        19.967394438522298,
+        0.9959649522826503,
+        8.1269258600419
+      ],
+      [
+        4.003887615562418,
+        0.9826669349431788,
+        2.006856421936103
+      ]
+    ],
+    "hard_max": 1.0001757443031012,
+    "hard_minus_soft": 0.00017574430310163258,
+    "q": [
+      0.249976353008637,
+      0.008333333333333333,
+      0.08347609134990346,
+      0.19999734150968443,
+      0.03998558758442746,
+      0.10021411108731396,
+      0.9983697219261148,
+      0.04979824761413251,
+      0.406346293002095,
+      0.2001943807781209,
+      0.04913334674715894,
+      0.10034282109680515
+    ],
+    "smooth_max": 0.9999999999999996,
+    "stable_fraction": 0.6015625
+  },
+  "plant_sampling": {
+    "effective_rank": 12,
+    "eigenvalues": [
+      -4.998623868135289e-16,
+      1.3572098945259969e-08,
+      2.011973152012862e-08,
+      2.993205394507139e-07,
+      1.416545505886494e-06,
+      1.3413581486334659e-05,
+      2.2567566612600124e-05,
+      5.249680371933565e-05,
+      0.00030161338672965465,
+      0.0007329601552328868,
+      0.0033251616563093013,
+      0.576149130793776,
+      10.094628679269597
+    ],
+    "method": "scrambled Sobol in positive-eigenvalue whitened coordinates, inverse-normal transformed",
+    "psd_tolerance": 2.9138951880393006e-14,
+    "sample_count": 128,
+    "seed": 0
+  },
+  "retained_information": {
+    "order_statistics": "sorted rho_(1)(K),...,rho_(N)(K) at every path point",
+    "paired_rho": "rho_i(K) for the same ordered plant samples at every path point",
+    "rho_gain_jacobian": "finite-difference d rho_i / d q_j, shape path x plant x 12",
+    "softmax_weights": "weights over plant samples used only to aggregate the retained rho Jacobian into the search gradient"
+  },
+  "schema": "grape-param-estim/pid-spectral-gradient-path/v1",
+  "search": {
+    "accepted_path_point_count": 44,
+    "artificial_max_path_step_count": null,
+    "fd_step_in_normalized_gain": 0.01,
+    "method": "finite-difference per-plant rho Jacobian + softmax-gradient predictor + exact forward corrector",
+    "nominal_path_step_in_normalized_gain": 0.15,
+    "seed_revalidation": {
+      "artifact_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_safe_margin_full/safe_margin_full.json",
+      "artifact_npz": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_safe_margin_full/safe_margin_full.npz",
+      "artifact_used": true,
+      "candidate_count": 40,
+      "candidate_sources": [
+        "json:best_evaluated",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "json:top_evaluated_points",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q",
+        "npz:safe_scan_q"
+      ],
+      "loaded_candidate_count": 61,
+      "resolved_candidate_count": 35,
+      "selected_candidate_index": 3,
+      "soft_safe_candidate_count": 35,
+      "unique_candidate_count": 40
+    },
+    "seed_source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_safe_margin_full/safe_margin_full.json",
+    "softmax_hard_gap_bound": 0.0004852030263919617,
+    "stop_condition": "failure reached or exact-corrector step became numerically identical to current point after repeated halving",
+    "tau": 0.0001,
+    "total_exact_correction_halvings": 1124
+  },
+  "seed": {
+    "delta_hard": 0.0004236410283163794,
+    "delta_soft": 0.0009045321318599253,
+    "gain_matrix": [
+      [
+        10.852660283446312,
+        3.4913316518068314,
+        4.453666515648365
+      ],
+      [
+        15.833489573560655,
+        9.83723122626543,
+        20.70632209070027
+      ],
+      [
+        0.6514322385191917,
+        10.801651887595654,
+        17.52343913540244
+      ],
+      [
+        14.7956408187747,
+        3.6126858554780483,
+        11.662490162998438
+      ]
+    ],
+    "hard_max": 0.9995763589716836,
+    "hard_minus_soft": 0.0004808911035435459,
+    "q": [
+      0.9043883569538593,
+      0.29094430431723595,
+      0.3711388763040304,
+      0.6333395829424262,
+      0.3934892490506172,
+      0.8282528836280107,
+      0.03257161192595959,
+      0.5400825943797827,
+      0.876171956770122,
+      0.739782040938735,
+      0.18063429277390242,
+      0.5831245081499219
+    ],
+    "smooth_max": 0.9990954678681401,
+    "stable_fraction": 1.0
+  },
+  "source_commit": "410ea9f3609e980f76ff17d98a5499d3dd949e4c"
+}

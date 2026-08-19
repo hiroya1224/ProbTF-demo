@@ -2,7 +2,10 @@
 """Failure-started spectral-gradient continuation with automatic softmax sharpening.
 
 The starting point is exactly the PID gain recorded in the failed bag.  No
-previous safe-gain artifact, seed JSON, or saved safe cloud is read.
+previous safe-gain artifact, seed JSON, or saved safe cloud is read.  One
+scrambled-Sobol sequence is mapped through the failure-bag quotient-space
+Gaussian posterior and fixed for the entire run.  The search refines nested
+prefixes of that sequence (16, 32, 64, ..., N_max); it never resamples plants.
 
 For the fixed ordered plant samples theta_i and normalized gain q,
 
@@ -41,6 +44,11 @@ larger than the coordinate scale used for the finite differences.
 All acceptance/correction decisions use exact forward pole evaluations.
 The linearized per-plant rho model is used only for predictors and for the
 cheap 4 x 3 group contour diagnostic figure.
+
+When a plant prefix grows, the same gain is first revalidated at the larger
+Gaussian-QMC resolution.  Cached leading-plant evaluations are retained and
+only the newly added suffix is evaluated.  All reported final values use an
+exact forward evaluation over the full N_max prefix.
 """
 
 from __future__ import annotations
@@ -95,8 +103,9 @@ from pid_spectral_gradient_path import (  # noqa: E402
 from single_bag_savgol_reports import source_commit, write_json  # noqa: E402
 
 
-SCHEMA = "grape-param-estim/pid-spectral-gradient-sharpen/v3"
+SCHEMA = "grape-param-estim/pid-spectral-gradient-sharpen/v4"
 DEFAULT_PLANT_SAMPLES = 128
+DEFAULT_INITIAL_PLANT_PREFIX = 16
 DEFAULT_SEED = 0
 DEFAULT_TAU = 1.0e-4
 DEFAULT_FD_STEP = 0.01
@@ -111,6 +120,54 @@ PROJECTIONS = (
     ("ID", 1, 2),
     ("DP", 2, 0),
 )
+
+
+def _nested_prefix_counts(
+    maximum_sample_count: int,
+    initial_sample_count: int = DEFAULT_INITIAL_PLANT_PREFIX,
+) -> tuple[int, ...]:
+    maximum = int(maximum_sample_count)
+    initial = int(initial_sample_count)
+    if maximum <= 0 or initial <= 0:
+        raise ValueError("plant sample counts must be positive")
+    if maximum <= initial:
+        return (maximum,)
+
+    counts: list[int] = []
+    selected = initial
+    while selected < maximum:
+        counts.append(selected)
+        selected *= 2
+    if not counts or counts[-1] != maximum:
+        counts.append(maximum)
+    return tuple(counts)
+
+
+def _pad_plant_prefix_arrays(
+    values: Sequence[np.ndarray],
+    maximum_sample_count: int,
+    *,
+    dtype: Any,
+    fill_value: Any,
+) -> np.ndarray:
+    """Stack plant-indexed prefix arrays without inventing suffix values."""
+
+    arrays = [np.asarray(value, dtype=dtype) for value in values]
+    if not arrays:
+        return np.empty((0, int(maximum_sample_count)), dtype=dtype)
+    trailing_shape = arrays[0].shape[1:]
+    result = np.full(
+        (len(arrays), int(maximum_sample_count), *trailing_shape),
+        fill_value,
+        dtype=dtype,
+    )
+    for row_index, value in enumerate(arrays):
+        if value.shape[1:] != trailing_shape:
+            raise ValueError("plant-prefix arrays have inconsistent shapes")
+        if value.shape[0] > int(maximum_sample_count):
+            raise ValueError("plant-prefix array exceeds N_max")
+        result[row_index, :value.shape[0]] = value
+    return result
 
 
 def _softmax_summary(radii: Sequence[float], tau: float) -> Mapping[str, Any]:
@@ -1317,7 +1374,10 @@ def _plot_path(
             distance,
             soft,
             marker="o",
-            label=f"soft tau={stage['tau']:.1e}",
+            label=(
+                f"soft N={stage['sample_count']}, "
+                f"tau={stage['tau']:.1e}"
+            ),
         )
         axis.plot(
             distance,
@@ -1360,7 +1420,10 @@ def _plot_path(
         axis.plot(
             u,
             selected,
-            label=f"tau={stage['tau']:.1e}",
+            label=(
+                f"N={stage['sample_count']}, "
+                f"tau={stage['tau']:.1e}"
+            ),
         )
     axis.axhline(1.0)
     axis.set_xlabel("empirical quantile")
@@ -1383,7 +1446,10 @@ def _plot_path(
                 x,
                 stage["history"][-1]["q"],
                 marker=".",
-                label=f"tau={stage['tau']:.1e}",
+                label=(
+                    f"N={stage['sample_count']}, "
+                    f"tau={stage['tau']:.1e}"
+                ),
             )
     axis.set_xticks(x)
     axis.set_xticklabels(
@@ -1446,6 +1512,7 @@ def _build_pdf_report(
     proposal_q: np.ndarray,
     hard_margin_target: float,
     sample_count: int,
+    prefix_counts: Sequence[int],
     tau_initial: float,
     tau_final: float,
     final_soft_target_margin: float,
@@ -1505,7 +1572,9 @@ def _build_pdf_report(
         summary_lines = (
             f"Hard-margin target m: {hard_margin_target:.7g}",
             f"Soft target at final tau: {final_soft_target_margin:.7g}",
-            f"Sample count N: {sample_count}",
+            f"Final sample count N_max: {sample_count}",
+            "Nested Gaussian-QMC prefixes: "
+            + " -> ".join(str(int(n)) for n in prefix_counts),
             f"Initial / final tau: {tau_initial:.7g} / {tau_final:.7g}",
             f"Exact final soft margin: {float(final_summary['delta_soft']):+.7g}",
             f"Exact final hard margin: {float(final_summary['delta_hard']):+.7g}",
@@ -1613,216 +1682,284 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
     )
 
     try:
-        failure_row = evaluator.evaluate(
-            failure_q
-        )
-        if not np.all(
-            failure_row.pole_valid_mask
-        ):
-            raise RuntimeError(
-                "recorded failure gain has unresolved plant poles; "
-                "the failure-started rho Jacobian is undefined"
-            )
-
-        tau = float(arguments.tau)
-        soft_target_margin = _soft_target_margin(
-            tau,
+        prefix_counts = _nested_prefix_counts(
             int(arguments.samples),
-            hard_margin_target,
+            int(arguments.initial_prefix_samples),
         )
-        current_q, initial_bundle, initial_projection = (
-            _project_failure_to_boundary(
-                evaluator,
-                failure_q,
-                tau,
-                soft_target_margin,
-                hard_margin_target,
-                float(arguments.fd_step),
-                progress=progress,
-            )
-        )
-        if not bool(initial_projection["resolved"]):
-            raise RuntimeError(
-                "failure-start projection cannot resolve the hard-margin "
-                "target level"
-            )
-
+        current_q = failure_q.copy()
         stage_records: list[Mapping[str, Any]] = []
+        prefix_records: list[Mapping[str, Any]] = []
         tau_values: list[float] = []
+        initial_projection: Optional[Mapping[str, Any]] = None
+        final_bundle: Mapping[str, Any]
+        final_summary: Mapping[str, Any]
+        tau = float(arguments.tau)
 
-        while True:
+        for prefix_index, sample_count in enumerate(prefix_counts):
+            evaluator.set_active_sample_count(sample_count)
+            cache_before = dict(evaluator.cache_diagnostics())
+            prefix_start_q = current_q.copy()
+            revalidation_row = evaluator.evaluate(current_q)
+            cache_after_revalidation = dict(
+                evaluator.cache_diagnostics()
+            )
+            if not np.all(revalidation_row.pole_valid_mask):
+                raise RuntimeError(
+                    f"gain revalidation has unresolved plant poles at "
+                    f"N={sample_count}"
+                )
+
+            tau = float(arguments.tau)
             soft_target_margin = _soft_target_margin(
                 tau,
-                int(arguments.samples),
+                sample_count,
                 hard_margin_target,
             )
-            # Reproject with a fresh local rho Jacobian before tangent motion.
-            boundary_bundle = _gradient_bundle(
-                evaluator,
-                current_q,
+            revalidation_summary = _softmax_summary(
+                revalidation_row.spectral_radius,
                 tau,
-                float(arguments.fd_step),
-                progress=progress,
             )
-            boundary_summary = boundary_bundle["summary"]
-            boundary_gradient = boundary_bundle["gradient"]
-            stage_projection: Mapping[str, Any] = {
-                "resolved": True,
-                "normal_updates": 0,
-                "backtracks": 0,
-            }
-
-            boundary_status = _target_level_status(
-                boundary_summary,
-                soft_target_margin,
-                hard_margin_target,
-                boundary_gradient,
-                float(arguments.fd_step),
-            )
-            if not bool(boundary_status["resolved"]):
-                projected, _summary, stage_projection = _fresh_normal_projection(
-                    evaluator,
-                    current_q,
-                    tau,
-                    soft_target_margin,
-                    hard_margin_target,
-                    float(arguments.fd_step),
-                    progress=progress,
-                )
-                if not bool(stage_projection["resolved"]):
-                    raise RuntimeError(
-                        "current tau stage cannot resolve its target level"
-                    )
-                current_q = projected
-
-            current_q, history, tangent_diagnostics = (
-                _walk_tangent_to_nearest_failure(
-                    evaluator,
-                    current_q,
-                    failure_q,
-                    tau,
-                    soft_target_margin,
-                    hard_margin_target,
-                    float(arguments.fd_step),
-                    float(arguments.path_step),
-                    progress=progress,
-                )
-            )
-
-            final_bundle = _gradient_bundle(
-                evaluator,
-                current_q,
-                tau,
-                float(arguments.fd_step),
-                progress=progress,
-            )
-            final_summary = final_bundle["summary"]
-            final_gradient = final_bundle["gradient"]
-            gradient_norm = float(
-                np.linalg.norm(final_gradient)
-            )
-            if gradient_norm == 0.0:
-                sharpen_distance_bound = float("inf")
-            else:
-                sharpen_distance_bound = float(
-                    tau
-                    * math.log(float(arguments.samples))
-                    / gradient_norm
-                )
-
-            stage_records.append({
-                "tau": float(tau),
-                "hard_margin_target": float(hard_margin_target),
-                "soft_target_margin": float(soft_target_margin),
-                "target_level_status": dict(
-                    _target_level_status(
-                        final_summary,
+            if prefix_index == 0:
+                current_q, _initial_bundle, prefix_projection = (
+                    _project_failure_to_boundary(
+                        evaluator,
+                        current_q,
+                        tau,
                         soft_target_margin,
                         hard_margin_target,
-                        final_gradient,
                         float(arguments.fd_step),
+                        progress=progress,
                     )
-                ),
-                "gap_bound": float(
-                    tau
-                    * math.log(float(arguments.samples))
-                ),
-                "gain_distance_gap_bound": sharpen_distance_bound,
-                "history": history,
-                "normal_projection": dict(stage_projection),
-                "tangent_diagnostics": dict(
-                    tangent_diagnostics
-                ),
-                "endpoint": {
+                )
+                initial_projection = dict(prefix_projection)
+            else:
+                current_q, _summary, prefix_projection = (
+                    _fresh_normal_projection(
+                        evaluator,
+                        current_q,
+                        tau,
+                        soft_target_margin,
+                        hard_margin_target,
+                        float(arguments.fd_step),
+                        progress=progress,
+                    )
+                )
+            if not bool(prefix_projection["resolved"]):
+                raise RuntimeError(
+                    f"plant-prefix projection cannot resolve the "
+                    f"hard-margin target level at N={sample_count}"
+                )
+
+            prefix_stage_start = len(stage_records)
+
+            while True:
+                soft_target_margin = _soft_target_margin(
+                    tau,
+                    sample_count,
+                    hard_margin_target,
+                )
+                # Reproject with a fresh local rho Jacobian before tangent motion.
+                boundary_bundle = _gradient_bundle(
+                    evaluator,
+                    current_q,
+                    tau,
+                    float(arguments.fd_step),
+                    progress=progress,
+                )
+                boundary_summary = boundary_bundle["summary"]
+                boundary_gradient = boundary_bundle["gradient"]
+                stage_projection: Mapping[str, Any] = {
+                    "resolved": True,
+                    "normal_updates": 0,
+                    "backtracks": 0,
+                }
+
+                boundary_status = _target_level_status(
+                    boundary_summary,
+                    soft_target_margin,
+                    hard_margin_target,
+                    boundary_gradient,
+                    float(arguments.fd_step),
+                )
+                if not bool(boundary_status["resolved"]):
+                    projected, _summary, stage_projection = (
+                        _fresh_normal_projection(
+                            evaluator,
+                            current_q,
+                            tau,
+                            soft_target_margin,
+                            hard_margin_target,
+                            float(arguments.fd_step),
+                            progress=progress,
+                        )
+                    )
+                    if not bool(stage_projection["resolved"]):
+                        raise RuntimeError(
+                            "current tau stage cannot resolve its target "
+                            f"level at N={sample_count}"
+                        )
+                    current_q = projected
+
+                current_q, history, tangent_diagnostics = (
+                    _walk_tangent_to_nearest_failure(
+                        evaluator,
+                        current_q,
+                        failure_q,
+                        tau,
+                        soft_target_margin,
+                        hard_margin_target,
+                        float(arguments.fd_step),
+                        float(arguments.path_step),
+                        progress=progress,
+                    )
+                )
+
+                final_bundle = _gradient_bundle(
+                    evaluator,
+                    current_q,
+                    tau,
+                    float(arguments.fd_step),
+                    progress=progress,
+                )
+                final_summary = final_bundle["summary"]
+                final_gradient = final_bundle["gradient"]
+                gradient_norm = float(np.linalg.norm(final_gradient))
+                if gradient_norm == 0.0:
+                    sharpen_distance_bound = float("inf")
+                else:
+                    sharpen_distance_bound = float(
+                        tau
+                        * math.log(float(sample_count))
+                        / gradient_norm
+                    )
+
+                stage_records.append({
+                    "prefix_index": int(prefix_index),
+                    "sample_count": int(sample_count),
+                    "tau": float(tau),
+                    "hard_margin_target": float(hard_margin_target),
+                    "soft_target_margin": float(soft_target_margin),
+                    "target_level_status": dict(
+                        _target_level_status(
+                            final_summary,
+                            soft_target_margin,
+                            hard_margin_target,
+                            final_gradient,
+                            float(arguments.fd_step),
+                        )
+                    ),
+                    "gap_bound": float(
+                        tau * math.log(float(sample_count))
+                    ),
+                    "gain_distance_gap_bound": sharpen_distance_bound,
+                    "history": history,
+                    "normal_projection": dict(stage_projection),
+                    "tangent_diagnostics": dict(tangent_diagnostics),
+                    "endpoint": {
+                        **_point_payload(
+                            current_q,
+                            final_summary,
+                            tau,
+                            hard_margin_target=hard_margin_target,
+                            sample_count=sample_count,
+                        ),
+                        "distance_to_failure": float(
+                            np.linalg.norm(current_q - failure_q)
+                        ),
+                        "gradient_norm": gradient_norm,
+                    },
+                })
+                tau_values.append(float(tau))
+
+                if sharpen_distance_bound <= float(arguments.fd_step):
+                    break
+
+                tau *= 0.5
+                sharper_soft_target_margin = _soft_target_margin(
+                    tau,
+                    sample_count,
+                    hard_margin_target,
+                )
+
+                # Reuse the retained prefix rho_i and J_rho for the first
+                # sharpen predictor at this same QMC resolution.
+                sharper_summary = _softmax_summary(
+                    final_bundle["row"].spectral_radius,
+                    tau,
+                )
+                sharper_gradient, _coverage = _soft_gradient(
+                    final_bundle["rho_jacobian"],
+                    sharper_summary["weights"],
+                )
+                proposal = np.clip(
+                    current_q
+                    + _normal_newton_step(
+                        _target_residual(
+                            sharper_summary,
+                            sharper_soft_target_margin,
+                        ),
+                        sharper_gradient,
+                    ),
+                    0.0,
+                    1.0,
+                )
+                proposal_row = evaluator.evaluate(proposal)
+                if np.all(proposal_row.pole_valid_mask):
+                    current_q = proposal
+
+            prefix_records.append({
+                "prefix_index": int(prefix_index),
+                "sample_count": int(sample_count),
+                "start_q": prefix_start_q.tolist(),
+                "start_revalidation": {
+                    **_point_payload(
+                        prefix_start_q,
+                        revalidation_summary,
+                        float(arguments.tau),
+                        hard_margin_target=hard_margin_target,
+                        sample_count=sample_count,
+                    ),
+                    "pole_valid_count": int(np.count_nonzero(
+                        revalidation_row.pole_valid_mask
+                    )),
+                },
+                "initial_projection": dict(prefix_projection),
+                "stage_index_start": int(prefix_stage_start),
+                "stage_index_stop": int(len(stage_records)),
+                "final_tau": float(tau),
+                "final": {
                     **_point_payload(
                         current_q,
                         final_summary,
                         tau,
                         hard_margin_target=hard_margin_target,
-                        sample_count=int(arguments.samples),
+                        sample_count=sample_count,
                     ),
                     "distance_to_failure": float(
-                        np.linalg.norm(
-                            current_q
-                            - failure_q
-                        )
+                        np.linalg.norm(current_q - failure_q)
                     ),
-                    "gradient_norm": gradient_norm,
                 },
-            })
-            tau_values.append(
-                float(tau)
-            )
-
-            if (
-                sharpen_distance_bound
-                <= float(arguments.fd_step)
-            ):
-                break
-
-            tau *= 0.5
-            sharper_soft_target_margin = _soft_target_margin(
-                tau,
-                int(arguments.samples),
-                hard_margin_target,
-            )
-
-            # Sharpen at exactly the current q using the *same* retained
-            # rho_i and J_rho first; no new finite differences are needed to
-            # compute the new weights and first normal predictor.
-            sharper_summary = _softmax_summary(
-                final_bundle["row"].spectral_radius,
-                tau,
-            )
-            sharper_gradient, _coverage = _soft_gradient(
-                final_bundle["rho_jacobian"],
-                sharper_summary["weights"],
-            )
-            proposal = np.clip(
-                current_q
-                + _normal_newton_step(
-                    _target_residual(
-                        sharper_summary,
-                        sharper_soft_target_margin,
-                    ),
-                    sharper_gradient,
+                "cache_before": cache_before,
+                "cache_after_revalidation": cache_after_revalidation,
+                "revalidation_new_plant_evaluation_count": int(
+                    cache_after_revalidation[
+                        "new_plant_evaluation_count"
+                    ]
+                    - cache_before["new_plant_evaluation_count"]
                 ),
-                0.0,
-                1.0,
-            )
-            proposal_row = evaluator.evaluate(
-                proposal
-            )
-            if np.all(
-                proposal_row.pole_valid_mask
-            ):
-                current_q = proposal
-            else:
-                # If the one-shot sharpen predictor leaves the resolved
-                # branch, keep the current point.  The next stage immediately
-                # recomputes its exact gradient and projects from there.
-                current_q = current_q.copy()
+                "revalidation_reused_plant_count": int(
+                    cache_after_revalidation["cache_hit_count"]
+                    - cache_before["cache_hit_count"]
+                ),
+                "cache_after": dict(evaluator.cache_diagnostics()),
+            })
 
+        if initial_projection is None:
+            raise RuntimeError("nested plant refinement did not run")
+
+        # Both proposal and failure are now exact at N_max.  Extending the
+        # cached failure row evaluates only the previously unseen suffix.
+        failure_row = evaluator.evaluate(failure_q)
         final_bundle = _gradient_bundle(
             evaluator,
             current_q,
@@ -1871,6 +2008,7 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             current_q,
             hard_margin_target,
             int(arguments.samples),
+            prefix_counts,
             float(arguments.tau),
             float(tau),
             final_soft_target_margin,
@@ -1895,6 +2033,14 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     [item[0] for item in flat_history],
                     dtype=int,
                 ),
+                stage_prefix_index=np.asarray(
+                    [item[2]["prefix_index"] for item in flat_history],
+                    dtype=int,
+                ),
+                stage_sample_count=np.asarray(
+                    [item[2]["sample_count"] for item in flat_history],
+                    dtype=int,
+                ),
                 stage_tau=np.asarray(
                     [item[2]["tau"] for item in flat_history],
                     dtype=float,
@@ -1910,25 +2056,35 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     [item[3]["q"] for item in flat_history],
                     dtype=float,
                 ),
-                path_rho=np.asarray(
+                path_rho=_pad_plant_prefix_arrays(
                     [item[3]["rho"] for item in flat_history],
+                    int(arguments.samples),
                     dtype=float,
+                    fill_value=np.nan,
                 ),
-                path_sorted_rho=np.asarray(
+                path_sorted_rho=_pad_plant_prefix_arrays(
                     [item[3]["sorted_rho"] for item in flat_history],
+                    int(arguments.samples),
                     dtype=float,
+                    fill_value=np.nan,
                 ),
-                path_rho_order=np.asarray(
+                path_rho_order=_pad_plant_prefix_arrays(
                     [item[3]["rho_order"] for item in flat_history],
+                    int(arguments.samples),
                     dtype=int,
+                    fill_value=-1,
                 ),
-                path_rho_jacobian=np.asarray(
+                path_rho_jacobian=_pad_plant_prefix_arrays(
                     [item[3]["rho_jacobian"] for item in flat_history],
+                    int(arguments.samples),
                     dtype=float,
+                    fill_value=np.nan,
                 ),
-                path_softmax_weights=np.asarray(
+                path_softmax_weights=_pad_plant_prefix_arrays(
                     [item[3]["weights"] for item in flat_history],
+                    int(arguments.samples),
                     dtype=float,
+                    fill_value=np.nan,
                 ),
                 path_soft_gradient=np.asarray(
                     [item[3]["gradient"] for item in flat_history],
@@ -1945,12 +2101,14 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     ],
                     dtype=int,
                 ),
-                path_fd_difference_scheme=np.asarray(
+                path_fd_difference_scheme=_pad_plant_prefix_arrays(
                     [
                         item[3]["fd_difference_scheme"]
                         for item in flat_history
                     ],
+                    int(arguments.samples),
                     dtype=np.uint8,
+                    fill_value=0,
                 ),
                 path_gradient_weight_coverage=np.asarray(
                     [
@@ -2051,6 +2209,29 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     contour_data["hard_margin"],
                     dtype=float,
                 ),
+                prefix_sample_count=np.asarray(
+                    prefix_counts,
+                    dtype=int,
+                ),
+                prefix_start_q=np.asarray(
+                    [row["start_q"] for row in prefix_records],
+                    dtype=float,
+                ),
+                prefix_final_q=np.asarray(
+                    [row["final"]["q"] for row in prefix_records],
+                    dtype=float,
+                ),
+                prefix_start_hard_margin=np.asarray(
+                    [
+                        row["start_revalidation"]["delta_hard"]
+                        for row in prefix_records
+                    ],
+                    dtype=float,
+                ),
+                prefix_final_hard_margin=np.asarray(
+                    [row["final"]["delta_hard"] for row in prefix_records],
+                    dtype=float,
+                ),
                 tau_values=np.asarray(
                     tau_values,
                     dtype=float,
@@ -2070,8 +2251,28 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             ),
             "plant_sampling": {
                 **dict(plant_sampling),
-                "sample_count": int(
+                "distribution": (
+                    "failure-bag quotient-space Gaussian posterior "
+                    "theta ~ N(mu, Sigma)"
+                ),
+                "qmc_role": (
+                    "scrambled Sobol supplies fixed Gaussian integration "
+                    "points u; z=Phi^-1(u), theta=mu+Lz"
+                ),
+                "maximum_sample_count": int(
                     arguments.samples
+                ),
+                "sample_count": int(arguments.samples),
+                "covariance": str(arguments.covariance),
+                "nested_prefix_counts": [
+                    int(value) for value in prefix_counts
+                ],
+                "initial_prefix_sample_count": int(
+                    arguments.initial_prefix_samples
+                ),
+                "sequence_generation": (
+                    "one N_max plant sequence generated once; no plant "
+                    "resampling during search"
                 ),
                 "seed": int(
                     arguments.seed
@@ -2083,7 +2284,8 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                 ),
                 "external_seed_artifact": None,
                 "method": (
-                    "failure normal projection -> hard-margin-guaranteeing "
+                    "nested Gaussian-QMC prefix refinement; within each "
+                    "prefix: normal projection -> hard-margin-guaranteeing "
                     "soft-level tangent continuation -> tau sharpening"
                 ),
                 "hard_margin_target": float(hard_margin_target),
@@ -2111,9 +2313,12 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
                     "tau*log(N)/||grad delta_tau|| <= fd_step"
                 ),
                 "in_process_cache": (
-                    "only exact evaluations already computed during this "
-                    "run are cached to avoid duplicate work"
+                    "exact gain evaluations retain their evaluated plant "
+                    "prefix; increasing N evaluates only the new suffix for "
+                    "that same gain"
                 ),
+                "nested_prefix_refinement": prefix_records,
+                "evaluation_cache": dict(evaluator.cache_diagnostics()),
                 "initial_failure_projection": dict(
                     initial_projection
                 ),
@@ -2138,6 +2343,8 @@ def analyze(arguments: argparse.Namespace) -> Mapping[str, Any]:
             },
             "stages": [
                 {
+                    "prefix_index": int(stage["prefix_index"]),
+                    "sample_count": int(stage["sample_count"]),
                     "tau": float(stage["tau"]),
                     "hard_margin_target": float(
                         stage["hard_margin_target"]
@@ -2295,6 +2502,16 @@ def _parser() -> argparse.ArgumentParser:
         "--samples",
         type=int,
         default=DEFAULT_PLANT_SAMPLES,
+        help="Maximum Gaussian-QMC plant count N_max",
+    )
+    parser.add_argument(
+        "--initial-prefix-samples",
+        type=int,
+        default=DEFAULT_INITIAL_PLANT_PREFIX,
+        help=(
+            "First nested Gaussian-QMC prefix; doubled until N_max "
+            "(default: 16)"
+        ),
     )
     parser.add_argument(
         "--seed",
@@ -2350,6 +2567,10 @@ def main() -> None:
     if int(arguments.samples) <= 1:
         raise ValueError(
             "--samples must be greater than one"
+        )
+    if int(arguments.initial_prefix_samples) <= 0:
+        raise ValueError(
+            "--initial-prefix-samples must be positive"
         )
     if (
         not np.isfinite(arguments.tau)

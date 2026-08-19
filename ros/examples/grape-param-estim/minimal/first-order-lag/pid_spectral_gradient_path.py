@@ -102,33 +102,84 @@ def _keyed_safe_chunk_task(task: tuple[int, tuple[Any, ...]]) -> tuple[int, tupl
 class BatchedForwardMarginEvaluator(ForwardMarginEvaluator):
     """Forward evaluator that can submit many gain points in one worker wave."""
 
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._active_sample_count = len(self.plants)
+        self._prefix_started = False
+        self._new_plant_evaluation_count = 0
+        self._cache_hit_count = 0
+
+    @property
+    def active_sample_count(self) -> int:
+        return int(self._active_sample_count)
+
+    def set_active_sample_count(self, sample_count: int) -> None:
+        """Select a monotone nested prefix of the fixed plant sequence."""
+
+        selected = int(sample_count)
+        if selected <= 0 or selected > len(self.plants):
+            raise ValueError(
+                "active plant prefix must lie in [1, len(plants)]"
+            )
+        if self._prefix_started and selected < self._active_sample_count:
+            raise ValueError("active plant prefix cannot decrease")
+        self._active_sample_count = selected
+        self._prefix_started = True
+
+    def cache_diagnostics(self) -> Mapping[str, int]:
+        return {
+            "active_sample_count": int(self._active_sample_count),
+            "cached_gain_count": int(len(self._cache)),
+            "new_plant_evaluation_count": int(
+                self._new_plant_evaluation_count
+            ),
+            "cache_hit_count": int(self._cache_hit_count),
+        }
+
+    def evaluate(self, q: Sequence[float]) -> MarginEvaluation:
+        return self.evaluate_many(
+            [q],
+            progress=False,
+            description="Exact plant-prefix evaluation",
+        )[0]
+
     def _assemble_rows(
         self,
         selected_q: np.ndarray,
         rows: Sequence[tuple[Any, ...]],
         wall_seconds: float,
+        prior: Optional[MarginEvaluation] = None,
     ) -> MarginEvaluation:
-        sample_count = len(self.plants)
-        matrices = np.zeros((sample_count, 26, 26), dtype=float)
+        sample_count = self.active_sample_count
         pole_valid = np.zeros(sample_count, dtype=bool)
         near_kink = np.zeros(sample_count, dtype=bool)
         trims = np.full((sample_count, 10), np.nan, dtype=float)
+        radii = np.full(sample_count, np.nan, dtype=float)
         filled = np.zeros(sample_count, dtype=bool)
+
+        if prior is not None:
+            prior_count = int(np.asarray(prior.spectral_radius).size)
+            if prior_count > sample_count:
+                raise RuntimeError("cached plant prefix exceeds active prefix")
+            pole_valid[:prior_count] = prior.pole_valid_mask
+            near_kink[:prior_count] = prior.near_kink_mask
+            trims[:prior_count] = prior.trim_vectors
+            radii[:prior_count] = prior.spectral_radius
+            filled[:prior_count] = True
 
         for row in rows:
             indices = np.asarray(row[0], dtype=int)
-            matrices[indices] = np.asarray(row[1], dtype=float)
-            pole_valid[indices] = np.asarray(row[2], dtype=bool)
+            matrices = np.asarray(row[1], dtype=float)
+            valid = np.asarray(row[2], dtype=bool)
+            pole_valid[indices] = valid
             near_kink[indices] = np.asarray(row[3], dtype=bool)
             trims[indices] = np.asarray(row[4], dtype=float)
+            if np.any(valid):
+                eig = np.linalg.eigvals(matrices[valid])
+                radii[indices[valid]] = np.max(np.abs(eig), axis=1)
             filled[indices] = True
         if not np.all(filled):
             raise RuntimeError("plant sample ordering changed during batched evaluation")
-
-        radii = np.full(sample_count, np.nan, dtype=float)
-        if np.any(pole_valid):
-            eig = np.linalg.eigvals(matrices[pole_valid])
-            radii[pole_valid] = np.max(np.abs(eig), axis=1)
 
         if np.all(pole_valid):
             worst = int(np.argmax(radii))
@@ -166,24 +217,45 @@ class BatchedForwardMarginEvaluator(ForwardMarginEvaluator):
             raise ValueError("batched gain coordinates must be M-by-12")
 
         results: list[Optional[MarginEvaluation]] = [None] * q_matrix.shape[0]
-        uncached: list[tuple[int, tuple[float, ...], np.ndarray]] = []
+        uncached: list[
+            tuple[
+                int,
+                tuple[float, ...],
+                np.ndarray,
+                Optional[MarginEvaluation],
+                np.ndarray,
+            ]
+        ] = []
+        sample_count = self.active_sample_count
         for row_index, q in enumerate(q_matrix):
             key = self._key(q)
             cached = self._cache.get(key)
-            if cached is not None:
+            cached_count = (
+                0
+                if cached is None
+                else int(np.asarray(cached.spectral_radius).size)
+            )
+            if cached_count == sample_count:
                 results[row_index] = cached
+                self._cache_hit_count += sample_count
+            elif cached_count < sample_count:
+                self._cache_hit_count += cached_count
+                missing = np.arange(
+                    cached_count,
+                    sample_count,
+                    dtype=int,
+                )
+                uncached.append((
+                    row_index,
+                    key,
+                    np.asarray(key, dtype=float),
+                    cached,
+                    missing,
+                ))
             else:
-                uncached.append((row_index, key, np.asarray(key, dtype=float)))
+                raise RuntimeError("cached plant prefix exceeds active prefix")
 
         if uncached:
-            sample_count = len(self.plants)
-            chunk_count = min(sample_count, max(1, 2 * self.workers))
-            chunks = [
-                chunk
-                for chunk in np.array_split(np.arange(sample_count, dtype=int), chunk_count)
-                if chunk.size
-            ]
-
             warm = None
             if initial_trims is not None:
                 warm = np.asarray(initial_trims, dtype=float)
@@ -191,8 +263,31 @@ class BatchedForwardMarginEvaluator(ForwardMarginEvaluator):
                     raise ValueError("initial_trims must have shape (sample_count, 10)")
 
             tasks: list[tuple[int, tuple[Any, ...]]] = []
-            for row_index, _key, q in uncached:
+            for row_index, _key, q, _cached, missing in uncached:
                 configuration = _controller_configuration(q.reshape(4, 3) * GAIN_CAPS)
+                chunk_count = min(
+                    missing.size,
+                    max(1, 2 * self.workers),
+                )
+                chunks = [
+                    chunk
+                    for chunk in np.array_split(missing, chunk_count)
+                    if chunk.size
+                ]
+
+                eligible = [
+                    row
+                    for row in self._cache.values()
+                    if np.asarray(row.trim_vectors).shape[0] >= sample_count
+                ]
+                nearest = (
+                    None
+                    if not eligible
+                    else min(
+                        eligible,
+                        key=lambda row: float(np.linalg.norm(row.q - q)),
+                    ).trim_vectors
+                )
                 for chunk in chunks:
                     tasks.append(
                         (
@@ -205,7 +300,7 @@ class BatchedForwardMarginEvaluator(ForwardMarginEvaluator):
                                 self.controller_dt,
                                 configuration,
                                 None if warm is None else warm[chunk],
-                                None,
+                                None if nearest is None else nearest[chunk],
                             ),
                         )
                     )
@@ -217,7 +312,8 @@ class BatchedForwardMarginEvaluator(ForwardMarginEvaluator):
                 iterator = self._executor.map(_keyed_safe_chunk_task, tasks)
 
             grouped: dict[int, list[tuple[Any, ...]]] = {
-                row_index: [] for row_index, _key, _q in uncached
+                row_index: []
+                for row_index, _key, _q, _cached, _missing in uncached
             }
             bar = tqdm(
                 iterator,
@@ -233,10 +329,16 @@ class BatchedForwardMarginEvaluator(ForwardMarginEvaluator):
             total_wall = time.perf_counter() - started
 
             per_gain_wall = total_wall / max(1, len(uncached))
-            for row_index, key, q in uncached:
-                result = self._assemble_rows(q, grouped[row_index], per_gain_wall)
+            for row_index, key, q, cached, missing in uncached:
+                result = self._assemble_rows(
+                    q,
+                    grouped[row_index],
+                    per_gain_wall,
+                    prior=cached,
+                )
                 self._cache[key] = result
                 results[row_index] = result
+                self._new_plant_evaluation_count += int(missing.size)
 
         final = [row for row in results if row is not None]
         if len(final) != q_matrix.shape[0]:

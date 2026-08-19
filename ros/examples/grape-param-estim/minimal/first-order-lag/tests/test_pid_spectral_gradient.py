@@ -15,9 +15,14 @@ if str(FIRST_ORDER) not in sys.path:
     sys.path.insert(0, str(FIRST_ORDER))
 
 from pid_safe_margin_slices import ForwardMarginEvaluator  # noqa: E402
-from pid_spectral_gradient_path import _finite_difference_jacobian  # noqa: E402
+import pid_spectral_gradient_path as spectral_path  # noqa: E402
+from pid_spectral_gradient_path import (  # noqa: E402
+    BatchedForwardMarginEvaluator,
+    _finite_difference_jacobian,
+)
 from pid_spectral_gradient_sharpen import (  # noqa: E402
     _build_gain_update_table,
+    _nested_prefix_counts,
     _normal_newton_step,
     _softmax_summary,
     _soft_target_margin,
@@ -146,6 +151,60 @@ def test_tau_sharpening_reuses_the_same_plant_radii() -> None:
     assert sharp["smooth_max"] >= broad["smooth_max"]
     assert np.isclose(np.sum(broad["weights"]), 1.0)
     assert np.isclose(np.sum(sharp["weights"]), 1.0)
+
+
+def test_nested_prefix_schedule_reaches_exact_requested_maximum() -> None:
+    assert _nested_prefix_counts(128) == (16, 32, 64, 128)
+    assert _nested_prefix_counts(20) == (16, 20)
+    assert _nested_prefix_counts(8) == (8,)
+
+
+def test_batched_evaluator_extends_cached_gain_with_suffix_only() -> None:
+    original_task = spectral_path._keyed_safe_chunk_task
+
+    def fake_task(task: tuple[int, tuple[object, ...]]) -> tuple[int, tuple[object, ...]]:
+        row_index, payload = task
+        indices = np.asarray(payload[0], dtype=int)
+        plants = payload[1]
+        matrices = np.zeros((indices.size, 26, 26), dtype=float)
+        for local_index, plant in enumerate(plants):
+            matrices[local_index] = np.eye(26) * (0.5 + 0.01 * int(plant))
+        return row_index, (
+            tuple(int(index) for index in indices),
+            matrices,
+            np.ones(indices.size, dtype=bool),
+            np.zeros(indices.size, dtype=bool),
+            np.zeros((indices.size, 10), dtype=float),
+        )
+
+    spectral_path._keyed_safe_chunk_task = fake_task
+    evaluator = BatchedForwardMarginEvaluator(
+        plants=tuple(range(4)),
+        vehicle_model=None,
+        actuator_parameters=None,
+        controller_dt=0.01,
+        workers=1,
+    )
+    try:
+        q = np.full(12, 0.5, dtype=float)
+        evaluator.set_active_sample_count(2)
+        first = evaluator.evaluate(q)
+        evaluator.set_active_sample_count(4)
+        extended = evaluator.evaluate(q)
+
+        assert first.spectral_radius.shape == (2,)
+        assert extended.spectral_radius.shape == (4,)
+        assert np.array_equal(
+            extended.spectral_radius[:2],
+            first.spectral_radius,
+        )
+        assert evaluator.cache_diagnostics()[
+            "new_plant_evaluation_count"
+        ] == 4
+        assert evaluator.cache_diagnostics()["cache_hit_count"] == 2
+    finally:
+        evaluator.close()
+        spectral_path._keyed_safe_chunk_task = original_task
 
 
 def test_soft_target_guarantees_requested_hard_margin_bound() -> None:

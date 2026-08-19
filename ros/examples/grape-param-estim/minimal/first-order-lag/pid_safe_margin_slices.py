@@ -261,7 +261,10 @@ class ForwardMarginEvaluator:
             raise ValueError("normalized gain coordinate must be finite length 12")
         if np.any(selected < 0.0) or np.any(selected > 1.0):
             raise ValueError("normalized gain coordinate must lie in [0,1]^12")
-        return tuple(float(x) for x in np.round(selected, decimals=14))
+        # Exact in-process memoization must not merge nearby finite-difference
+        # points.  The same deterministic floating-point coordinate produces
+        # the same tuple without quantizing the search itself.
+        return tuple(float(x) for x in selected)
 
     def _nearest_trims(self, q: np.ndarray) -> Optional[np.ndarray]:
         if not self._cache:

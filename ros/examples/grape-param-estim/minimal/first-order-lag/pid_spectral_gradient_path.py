@@ -283,73 +283,171 @@ def _finite_difference_jacobian(
         raise RuntimeError("finite-difference center has unresolved plant poles")
 
     q = np.asarray(q, dtype=float)
-    points: list[np.ndarray] = []
-    metadata: list[tuple[int, str, float]] = []
-    minus_q = []
-    plus_q = []
-    for axis in range(12):
-        qm = q.copy()
-        qp = q.copy()
-        qm[axis] = max(0.0, q[axis] - fd_step)
-        qp[axis] = min(1.0, q[axis] + fd_step)
-        minus_q.append(qm)
-        plus_q.append(qp)
-        if qm[axis] != q[axis]:
-            points.append(qm)
-            metadata.append((axis, "minus", float(qm[axis])))
-        if qp[axis] != q[axis]:
-            points.append(qp)
-            metadata.append((axis, "plus", float(qp[axis])))
+    if q.shape != (12,) or np.any(~np.isfinite(q)):
+        raise ValueError("finite-difference center must be finite length 12")
+    if not np.isfinite(fd_step) or fd_step <= 0.0:
+        raise ValueError("finite-difference step must be finite and positive")
 
-    rows = evaluator.evaluate_many(
-        points,
-        initial_trims=baseline.trim_vectors,
-        progress=progress,
-        description="24-point rho finite differences",
-    )
+    baseline_rho = np.asarray(baseline.spectral_radius, dtype=float)
+    sample_count = baseline_rho.size
+    jacobian = np.full((sample_count, 12), np.nan, dtype=float)
+    # 1 = central, 2 = baseline-to-plus, 3 = minus-to-baseline.
+    difference_scheme = np.zeros((sample_count, 12), dtype=np.uint8)
+
+    # Use symmetric points whenever q is in the box interior.  Close to a box
+    # face, shorten both sides to the available symmetric displacement rather
+    # than taking an off-center secant.  At the face itself, use the available
+    # one-sided perturbation.
+    minus_points: list[Optional[np.ndarray]] = [None] * 12
+    plus_points: list[Optional[np.ndarray]] = [None] * 12
+    for axis in range(12):
+        lower_room = float(q[axis])
+        upper_room = float(1.0 - q[axis])
+        if lower_room > 0.0 and upper_room > 0.0:
+            displacement = min(float(fd_step), lower_room, upper_room)
+            minus_points[axis] = q.copy()
+            plus_points[axis] = q.copy()
+            minus_points[axis][axis] = q[axis] - displacement
+            plus_points[axis][axis] = q[axis] + displacement
+        elif lower_room > 0.0:
+            minus_points[axis] = q.copy()
+            minus_points[axis][axis] = max(0.0, q[axis] - fd_step)
+        elif upper_room > 0.0:
+            plus_points[axis] = q.copy()
+            plus_points[axis][axis] = min(1.0, q[axis] + fd_step)
 
     minus_rows: list[Optional[MarginEvaluation]] = [None] * 12
     plus_rows: list[Optional[MarginEvaluation]] = [None] * 12
-    for meta, row in zip(metadata, rows):
-        axis, side, _coordinate = meta
-        if side == "minus":
-            minus_rows[axis] = row
-        else:
-            plus_rows[axis] = row
+    refinement_count = np.zeros(12, dtype=int)
 
-    baseline_rho = np.asarray(baseline.spectral_radius, dtype=float)
-    jacobian = np.full((baseline_rho.size, 12), np.nan, dtype=float)
-    coverage = np.zeros(12, dtype=float)
+    while True:
+        requests: list[np.ndarray] = []
+        metadata: list[tuple[int, str]] = []
+        for axis in range(12):
+            if np.all(np.isfinite(jacobian[:, axis])):
+                continue
+            if minus_points[axis] is not None:
+                requests.append(minus_points[axis])
+                metadata.append((axis, "minus"))
+            if plus_points[axis] is not None:
+                requests.append(plus_points[axis])
+                metadata.append((axis, "plus"))
 
-    for axis in range(12):
-        qm = minus_q[axis]
-        qp = plus_q[axis]
-        minus = minus_rows[axis]
-        plus = plus_rows[axis]
+        if not requests:
+            unresolved = {
+                GAIN_LABELS[axis]: np.flatnonzero(
+                    ~np.isfinite(jacobian[:, axis])
+                ).tolist()
+                for axis in range(12)
+                if np.any(~np.isfinite(jacobian[:, axis]))
+            }
+            raise RuntimeError(
+                "no distinct floating-point gain perturbation resolves the "
+                "finite difference for plant indices: "
+                + json.dumps(unresolved, sort_keys=True)
+            )
 
-        if minus is not None and plus is not None:
-            width = float(qp[axis] - qm[axis])
-            valid = minus.pole_valid_mask & plus.pole_valid_mask
-            jacobian[valid, axis] = (
-                plus.spectral_radius[valid] - minus.spectral_radius[valid]
-            ) / width
-        elif plus is not None:
-            width = float(qp[axis] - q[axis])
-            valid = baseline.pole_valid_mask & plus.pole_valid_mask
-            jacobian[valid, axis] = (
-                plus.spectral_radius[valid] - baseline_rho[valid]
-            ) / width
-        elif minus is not None:
-            width = float(q[axis] - qm[axis])
-            valid = baseline.pole_valid_mask & minus.pole_valid_mask
-            jacobian[valid, axis] = (
-                baseline_rho[valid] - minus.spectral_radius[valid]
-            ) / width
-        coverage[axis] = float(np.mean(np.isfinite(jacobian[:, axis])))
+        rows = evaluator.evaluate_many(
+            requests,
+            initial_trims=baseline.trim_vectors,
+            progress=progress,
+            description=(
+                "24-point rho finite differences"
+                if not np.any(refinement_count)
+                else "Refined rho finite differences"
+            ),
+        )
+        for (axis, side), row in zip(metadata, rows):
+            if side == "minus":
+                minus_rows[axis] = row
+            else:
+                plus_rows[axis] = row
+
+        for axis in range(12):
+            unresolved = ~np.isfinite(jacobian[:, axis])
+            if not np.any(unresolved):
+                continue
+            minus = minus_rows[axis]
+            plus = plus_rows[axis]
+            minus_valid = (
+                np.zeros(sample_count, dtype=bool)
+                if minus is None else np.asarray(minus.pole_valid_mask, dtype=bool)
+            )
+            plus_valid = (
+                np.zeros(sample_count, dtype=bool)
+                if plus is None else np.asarray(plus.pole_valid_mask, dtype=bool)
+            )
+
+            central = unresolved & minus_valid & plus_valid
+            if np.any(central):
+                width = float(
+                    plus_points[axis][axis] - minus_points[axis][axis]
+                )
+                jacobian[central, axis] = (
+                    plus.spectral_radius[central]
+                    - minus.spectral_radius[central]
+                ) / width
+                difference_scheme[central, axis] = 1
+
+            unresolved = ~np.isfinite(jacobian[:, axis])
+            forward = unresolved & plus_valid
+            if np.any(forward):
+                width = float(plus_points[axis][axis] - q[axis])
+                jacobian[forward, axis] = (
+                    plus.spectral_radius[forward] - baseline_rho[forward]
+                ) / width
+                difference_scheme[forward, axis] = 2
+
+            unresolved = ~np.isfinite(jacobian[:, axis])
+            backward = unresolved & minus_valid
+            if np.any(backward):
+                width = float(q[axis] - minus_points[axis][axis])
+                jacobian[backward, axis] = (
+                    baseline_rho[backward] - minus.spectral_radius[backward]
+                ) / width
+                difference_scheme[backward, axis] = 3
+
+        if np.all(np.isfinite(jacobian)):
+            break
+
+        # Only plants for which neither side resolved reach this point.  Move
+        # both available perturbations geometrically toward the already
+        # resolved baseline.  Termination is defined by floating-point
+        # identity, not by an arbitrary retry count.
+        for axis in range(12):
+            if np.all(np.isfinite(jacobian[:, axis])):
+                continue
+            refinement_count[axis] += 1
+            for collection in (minus_points, plus_points):
+                point = collection[axis]
+                if point is None:
+                    continue
+                refined = point.copy()
+                refined[axis] = q[axis] + 0.5 * (point[axis] - q[axis])
+                if refined[axis] == q[axis]:
+                    collection[axis] = None
+                else:
+                    collection[axis] = refined
+            minus_rows[axis] = None
+            plus_rows[axis] = None
+
+    coverage = np.mean(np.isfinite(jacobian), axis=0)
 
     return {
         "jacobian": jacobian,
         "coverage": coverage,
+        "minus_q": tuple(
+            None if point is None else point.copy()
+            for point in minus_points
+        ),
+        "plus_q": tuple(
+            None if point is None else point.copy()
+            for point in plus_points
+        ),
+        "minus_rows": tuple(minus_rows),
+        "plus_rows": tuple(plus_rows),
+        "refinement_count": refinement_count,
+        "difference_scheme": difference_scheme,
     }
 
 

@@ -1,0 +1,221 @@
+{
+  "case_name": "failure1",
+  "covariance": "conservative_fusion",
+  "definition": {
+    "delta": "1 - maximum spectral radius over the fixed failure-bag plant sample set",
+    "probability_interpretation": null,
+    "safe_on_fixed_sample_set": "delta > 0 and every sampled plant has a resolved hover-trim pole evaluation",
+    "success_controller_role": "optional comparison projection only; not used in plant sampling, axis selection, or margin evaluation"
+  },
+  "diagnostic_only": "This slice is not a certified 12-D safe set or an optimized controller; it is a forward-evaluated direction diagnostic.",
+  "elapsed_seconds": 27.212753945961595,
+  "estimate_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/estimate.json",
+  "files": {
+    "figure": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_safe_margin_slices/safe_margin_slice.png",
+    "npz": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_safe_margin_slices/safe_margin_slice.npz"
+  },
+  "gain_coordinate": {
+    "cap_semantics": "supplied YAML limit_p/limit_i/limit_d numeric values reused only as exploration caps",
+    "caps": [
+      [
+        12.0,
+        12.0,
+        12.0
+      ],
+      [
+        25.0,
+        25.0,
+        25.0
+      ],
+      [
+        20.0,
+        20.0,
+        20.0
+      ],
+      [
+        20.0,
+        20.0,
+        20.0
+      ]
+    ],
+    "coordinate": "q_j = K_j / K_max_j in [0,1]",
+    "gain_order_within_group": [
+      "P",
+      "I",
+      "D"
+    ],
+    "groups": [
+      "xy",
+      "z",
+      "roll_pitch",
+      "yaw"
+    ]
+  },
+  "local_forward_probe": {
+    "d_delta_d_q": [
+      -1.3535375398276985e-06,
+      null,
+      3.1431327385256225e-06,
+      -2.734266146831033e-09,
+      null,
+      0.002802731220890031,
+      -2.850992064651334e-07,
+      null,
+      0.0038026589541506626,
+      0.0017315843707055305,
+      null,
+      0.002188026807072862
+    ],
+    "labels": [
+      "xy:P",
+      "xy:I",
+      "xy:D",
+      "z:P",
+      "z:I",
+      "z:D",
+      "roll_pitch:P",
+      "roll_pitch:I",
+      "roll_pitch:D",
+      "yaw:P",
+      "yaw:I",
+      "yaw:D"
+    ],
+    "minus_delta": [
+      -0.0001857734662378263,
+      null,
+      -0.00018603465889066584,
+      -0.00018586695205935477,
+      null,
+      -0.0004661404722701157,
+      -0.00018585287441563736,
+      null,
+      -0.0005664733254269194,
+      -0.0003167487919655265,
+      null,
+      -0.00036534373916219387
+    ],
+    "normalized_probe_step": 0.05,
+    "plus_delta": [
+      -0.00018590881999180908,
+      -0.00018632010941144195,
+      -0.00018572034561681328,
+      -0.00018586722548596946,
+      -0.00018586672807474613,
+      -0.00018586735018111256,
+      -0.00018586712937596062,
+      -0.00018488381692671751,
+      -0.00018620743001185325,
+      -0.00014359035489497352,
+      -0.0005735563426467749,
+      -0.0001465410584549076
+    ],
+    "selected_two_axes": [
+      {
+        "d_delta_d_q": 0.0038026589541506626,
+        "flat_index": 8,
+        "label": "roll_pitch:D"
+      },
+      {
+        "d_delta_d_q": 0.002802731220890031,
+        "flat_index": 5,
+        "label": "z:D"
+      }
+    ]
+  },
+  "plant_sampling": {
+    "effective_rank": 12,
+    "eigenvalues": [
+      -4.998623868135289e-16,
+      1.3572098945259969e-08,
+      2.011973152012862e-08,
+      2.993205394507139e-07,
+      1.416545505886494e-06,
+      1.3413581486334659e-05,
+      2.2567566612600124e-05,
+      5.249680371933565e-05,
+      0.00030161338672965465,
+      0.0007329601552328868,
+      0.0033251616563093013,
+      0.576149130793776,
+      10.094628679269597
+    ],
+    "method": "scrambled Sobol in positive-eigenvalue whitened coordinates, inverse-normal transformed",
+    "psd_tolerance": 2.9138951880393006e-14
+  },
+  "recorded_failure": {
+    "delta": -0.00018586712937596062,
+    "gain_matrix": [
+      [
+        3.0,
+        0.1,
+        1.0
+      ],
+      [
+        5.0,
+        1.0,
+        2.5
+      ],
+      [
+        20.0,
+        1.0,
+        8.0
+      ],
+      [
+        4.0,
+        1.0,
+        2.0
+      ]
+    ],
+    "near_piecewise_kink_count": 0,
+    "pole_invalid_count": 0,
+    "pole_valid_count": 128,
+    "safe_on_fixed_sample_set": false,
+    "worst_sample_index": 26,
+    "worst_spectral_radius": 1.000185867129376
+  },
+  "sample_count": 128,
+  "schema": "grape-param-estim/pid-forward-safe-margin-slice/v1",
+  "seed": 0,
+  "source_commit": "3d5da42d917485d8a7bf6432e13ca54ba1ab664a",
+  "success_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/success/estimate.json",
+  "two_dimensional_exact_slice": {
+    "best_evaluated_grid_point": {
+      "delta": -0.00018654506461457387,
+      "gain_matrix": [
+        [
+          3.0,
+          0.1,
+          1.0
+        ],
+        [
+          5.0,
+          1.0,
+          3.125
+        ],
+        [
+          20.0,
+          1.0,
+          10.0
+        ],
+        [
+          4.0,
+          1.0,
+          2.0
+        ]
+      ],
+      "grid_index": [
+        4,
+        1
+      ]
+    },
+    "finite_grid_point_count": 81,
+    "first_axis": "roll_pitch:D",
+    "grid_size": 9,
+    "maximum_delta": -0.00018654506461457387,
+    "minimum_delta": -0.003486911554444916,
+    "other_ten_gains": "fixed at the recorded failure controller",
+    "safe_grid_point_count": 0,
+    "second_axis": "z:D",
+    "unresolved_grid_point_count": 0
+  }
+}

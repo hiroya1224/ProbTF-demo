@@ -34,6 +34,97 @@ roslaunch deflecomp_ros deflecomp_frames.launch model:=/abs/path/to/robot.urdf
 
 ## Parameter Files
 
+### 自動収束確認・RViz録画・rosbag解析
+
+山口アームの姿勢変更、静止、手先荷重の追加、除去を一度に実行する。
+起動済みのROS環境とは別のROS masterを使い、試験が終わると自分で起動したプロセスを終了する。
+
+```bash
+source /home/leus/catkin_ws/devel/setup.bash
+rosrun deflecomp_debug run_convergence_demo.py run --live-plot
+```
+
+初回は `catkin build deflecomp_core deflecomp_ros deflecomp_sim deflecomp_debug --cmake-args -DPYTHON_EXECUTABLE=/usr/bin/python3` が必要。録画にはX11の `DISPLAY` と
+`ffmpeg`、`ffprobe`、`xwininfo`、`xprop` を使う。既定モデルはこのworkspaceの
+`nejineji-urdfs/yamaguchi_arm_nejineji`。別の配置では `--model` と `--imu-config` で指定する。
+
+既定の試験時間は174秒。曲げた姿勢でピッチ、ヨーを変え、各姿勢で10〜18秒静止する。
+最後の姿勢を固定したまま、無荷重で18秒、0.5 kg相当の下向き荷重で60秒、荷重を除去して25秒観測する。
+角度、待機時間、荷重、判定基準は `deflecomp_debug/config/convergence_demo.yaml` で変更できる。
+荷重を変える段階では目標姿勢を変えない。RVizに経過時刻、段階名、荷重、予測誤差を表示する。
+緑の球が目標手先位置、ピンクがsimulatorの手先位置、青が `theta_eq_hat` から求めた予測位置。
+
+短い姿勢変更から荷重ステップを観測する場合は、次のシナリオを指定する。
+
+```bash
+rosrun deflecomp_debug run_convergence_demo.py run \
+  --scenario "$(rospack find deflecomp_debug)/config/tip_load_step.yaml"
+```
+
+ゼロ姿勢で1秒待ち、肩を−π/3へ0.5秒で動かして1秒待ち、肘をπ/5へ0.5秒で動かして
+1秒待つ。その姿勢のまま0.5 kg相当の荷重を加える。荷重追加後は最低5秒観測し、
+予測の関節RMS誤差が0.5度以下かつ手先位置誤差が5 mm以下の状態が3秒以上続いたら解除する。
+解除後も同じ条件で再収束を観測する。追加後の待機上限は180秒、解除後は90秒。
+上限までに条件を満たさない場合は `hold_timeout` イベントを記録し、その結果を解析に残す。
+7番目のグリッパ角度は0に固定する。曲げる平面を横から見る画角で録画する。
+
+シナリオの `hold_until: prediction_stable` は、`hold_s` を待機上限として、予測精度が
+`criteria` を満たすまで静止する。`min_hold_s` は待機の最小時間。
+`check_convergence: false` を付けた短い静止段階は、記録には残すが全体の収束判定からは除く。
+オンラインの解除判定では、bag解析のサンプル時刻との差をカバーするため、
+`max_sample_gap_s` の分だけ確認時間に余裕を加える。
+
+成功した記録は [tip_load_prediction_recovery](outputs/tip_load_prediction_recovery/README.md) に保存している。
+RViz動画、bag、CSV、グラフ、実行設定を含み、同ページに結果と再解析手順をまとめた。
+
+```bash
+rosrun deflecomp_debug run_convergence_demo.py analyze \
+  "$(rospack find deflecomp_debug)/../outputs/tip_load_prediction_recovery" \
+  --output /tmp/tip_load_prediction_recovery_analysis
+```
+
+保存先は `outputs/convergence_demo/YYYYMMDD_HHMMSS/`。`--output /abs/path/new_directory` でも指定できる。
+既存の保存先には上書きしない。
+
+| ファイル | 内容 |
+| --- | --- |
+| `rviz.mp4` | RVizウィンドウの20 fps録画。マウスポインタは含まない |
+| `preview.png` | 録画開始2秒後のRViz。画角を確認するための静止画 |
+| `experiment.bag` | 隔離master上の全topic。TF、IMU、参照・指令・実姿勢、推定値、荷重、段階イベントを含む |
+| `overview.png` / `.pdf` | 手先位置・姿勢の予測誤差、追従誤差、剛性更新、荷重、静止gate |
+| `stiffness.png` / `.pdf` | 各関節の `K_est`、log空間での±2σ、`K_exec`、評価用 `K_true` |
+| `joint_states.png` / `.pdf` | 各関節の目標、物理姿勢、内部平衡予測、ばね基準角 |
+| `samples.csv` | bagから再計算した10 Hzの評価値と各関節信号 |
+| `estimation_gates.csv` | 間引かずに保存したgate理由、更新有無、更新量 |
+| `summary.json` | 段階別の更新回数、終盤の誤差、最初に安定条件を満たした時刻、終了時の判定 |
+| `manifest.json`、`parameters.yaml`、`model.urdf`、`imu_frames.yaml` | 実行したシナリオ、時刻、録画情報、モデル・設定のsnapshot |
+
+同じbagからグラフと判定を作り直す場合は次を実行する。
+
+```bash
+rosrun deflecomp_debug run_convergence_demo.py analyze /abs/path/to/experiment_directory
+```
+
+`--output /abs/path/analysis_directory` を付けると再解析結果を別の場所に保存する。
+録画なしの試験は `run --no-video`、待機時間の倍率は `--time-scale`、
+ROS masterのport変更は `--port`。Ctrl+Cでも荷重を解除し、bagと動画を閉じる。
+`run` または `analyze` に `--require-convergence` を付けると、未収束の段階がある場合は終了code 2を返す。
+記録・解析だけを行う既定モードでは、判定結果は `summary.json` とterminalに残す。
+
+判定では、直近3秒間の全サンプルで予測の関節RMS誤差が2度以下、
+`K_est` のlog値の変動幅が0.03以下、`max|log(K_exec/K_est)|` が0.05以下であることを確認する。
+gateが一度も開かないwindow、0.5秒を超えるデータ欠落、終盤の記録欠落は安定と判定しない。
+最初に条件を満たした時刻と、段階終了時に満たしているかを別々に残す。
+`prediction_stable_at_end` は予測精度だけの3秒継続判定、`stable_at_end` は剛性の安定も含む判定。
+予測は合っていても剛性が更新中である状態を区別できる。
+条件を満たさない段階も、収束したように扱わず記録する。
+
+荷重を加えた際の `K_est` は外乱を吸収した有効剛性であり、材料剛性の同定値ではない。
+simulatorの実姿勢と真の剛性は評価だけに使う。時間軸はROSの記録時刻であり、
+Python timerによるsimulator内部の物理時間とは一致を保証しない。
+
+### 起動時に読み込む設定
+
 `deflecomp_frames.launch` loads these parameter files:
 
 - `deflecomp_ros/config/simple6r.yaml`: URDF-independent ROS topic/frame wiring.

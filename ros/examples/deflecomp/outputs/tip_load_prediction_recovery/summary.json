@@ -1,0 +1,318 @@
+{
+  "completed": true,
+  "all_holds_stable_at_end": false,
+  "all_predictions_stable_at_end": true,
+  "criteria": {
+    "prediction_joint_rms_deg": 0.5,
+    "prediction_tip_mm": 5.0,
+    "stable_log_k_range": 0.03,
+    "execution_log_k_gap": 0.05,
+    "window_s": 3.0,
+    "max_sample_gap_s": 0.5
+  },
+  "valid_samples": 198,
+  "discarded_stale_or_incomplete_samples": 1,
+  "sample_attempts": 199,
+  "phases": [
+    {
+      "phase": "zero_pose",
+      "mass_kg": 0,
+      "hold_start_s": 0.0013806819915771484,
+      "hold_end_s": 1.0021300315856934,
+      "samples": 9,
+      "first_stable_window_s": null,
+      "stable_at_end": false,
+      "first_prediction_stable_window_s": null,
+      "prediction_stable_at_end": false,
+      "updates": 20,
+      "first_update_s": 0.03403759002685547,
+      "gate_reason_counts": {
+        "ready": 20
+      },
+      "skip_reason_counts": {
+        "none": 20
+      },
+      "peak_prediction_joint_rms_deg": 0.004398916023144132,
+      "hold_termination": "duration",
+      "tail_median_prediction_joint_rms_deg": 0.003367879929033399,
+      "tail_median_prediction_tip_mm": 0.02440799169637129,
+      "tail_median_prediction_tip_deg": 0.0027367173211558355,
+      "tail_median_tracking_tip_mm": 0.030172462315725825,
+      "tail_median_tracking_tip_deg": 0.0025267750919440216,
+      "tail_median_execution_log_k_gap": 0.006160103421251057,
+      "final_kp_est": [
+        22.36067977499789,
+        4.995426773465347,
+        5.007301042519602,
+        22.36065902176883,
+        19.775635652764905,
+        22.360679459667885
+      ],
+      "convergence_checked": false
+    },
+    {
+      "phase": "shoulder_bend",
+      "mass_kg": 0,
+      "hold_start_s": 1.5024921894073486,
+      "hold_end_s": 2.5029983520507812,
+      "samples": 9,
+      "first_stable_window_s": null,
+      "stable_at_end": false,
+      "first_prediction_stable_window_s": null,
+      "prediction_stable_at_end": false,
+      "updates": 0,
+      "first_update_s": null,
+      "gate_reason_counts": {
+        "waiting_for_all_imu_frames": 51
+      },
+      "skip_reason_counts": {
+        "not_attempted": 51
+      },
+      "peak_prediction_joint_rms_deg": 14.965563222321533,
+      "hold_termination": "duration",
+      "tail_median_prediction_joint_rms_deg": 6.051411372948646,
+      "tail_median_prediction_tip_mm": 112.8008730473726,
+      "tail_median_prediction_tip_deg": 15.23515044090765,
+      "tail_median_tracking_tip_mm": 124.25914367560804,
+      "tail_median_tracking_tip_deg": 16.73655836287456,
+      "tail_median_execution_log_k_gap": 0.0007516643888565596,
+      "final_kp_est": [
+        22.36067977499789,
+        4.995833949658112,
+        5.0069820574416655,
+        22.360659021757616,
+        19.800480025999597,
+        22.360679459666425
+      ],
+      "convergence_checked": false
+    },
+    {
+      "phase": "elbow_bend",
+      "mass_kg": 0,
+      "hold_start_s": 3.0034923553466797,
+      "hold_end_s": 4.0038886070251465,
+      "samples": 9,
+      "first_stable_window_s": null,
+      "stable_at_end": false,
+      "first_prediction_stable_window_s": null,
+      "prediction_stable_at_end": false,
+      "updates": 0,
+      "first_update_s": null,
+      "gate_reason_counts": {
+        "waiting_for_all_imu_frames": 42,
+        "command_not_settled": 9
+      },
+      "skip_reason_counts": {
+        "not_attempted": 51
+      },
+      "peak_prediction_joint_rms_deg": 5.7910335238723825,
+      "hold_termination": "duration",
+      "tail_median_prediction_joint_rms_deg": 1.133265448990819,
+      "tail_median_prediction_tip_mm": 10.008682044878306,
+      "tail_median_prediction_tip_deg": 2.701499136620104,
+      "tail_median_tracking_tip_mm": 14.731635558396519,
+      "tail_median_tracking_tip_deg": 3.922461343952859,
+      "tail_median_execution_log_k_gap": 3.894779594397035e-05,
+      "final_kp_est": [
+        22.36067977499789,
+        4.995833949658112,
+        5.0069820574416655,
+        22.360659021757616,
+        19.800480025999597,
+        22.360679459666425
+      ],
+      "convergence_checked": false
+    },
+    {
+      "phase": "load_added",
+      "mass_kg": 0.5,
+      "hold_start_s": 4.004412412643433,
+      "hold_end_s": 13.487459659576416,
+      "samples": 82,
+      "first_stable_window_s": 9.007492303848267,
+      "stable_at_end": true,
+      "first_prediction_stable_window_s": 9.007492303848267,
+      "prediction_stable_at_end": true,
+      "updates": 59,
+      "first_update_s": 0.9568920135498047,
+      "gate_reason_counts": {
+        "waiting_for_all_imu_frames": 136,
+        "ready": 59,
+        "command_not_settled": 210
+      },
+      "skip_reason_counts": {
+        "not_attempted": 346,
+        "none": 59
+      },
+      "peak_prediction_joint_rms_deg": 13.769892388623903,
+      "hold_termination": "converged",
+      "tail_median_prediction_joint_rms_deg": 0.058078760506967295,
+      "tail_median_prediction_tip_mm": 0.7470471769981458,
+      "tail_median_prediction_tip_deg": 0.1075827880953362,
+      "tail_median_tracking_tip_mm": 1.0021428843557374,
+      "tail_median_tracking_tip_deg": 0.14043261471984034,
+      "tail_median_execution_log_k_gap": 0.0019175710741106686,
+      "final_kp_est": [
+        22.36067977499789,
+        2.2543826995528113,
+        1.5115725107916298,
+        22.360265945855257,
+        26.18027662165808,
+        22.360670878448946
+      ],
+      "convergence_checked": true
+    },
+    {
+      "phase": "load_removed",
+      "mass_kg": 0,
+      "hold_start_s": 13.487884998321533,
+      "hold_end_s": 22.967127323150635,
+      "samples": 77,
+      "first_stable_window_s": null,
+      "stable_at_end": false,
+      "first_prediction_stable_window_s": 9.108699560165405,
+      "prediction_stable_at_end": true,
+      "updates": 16,
+      "first_update_s": 0.018185138702392578,
+      "gate_reason_counts": {
+        "ready": 16,
+        "waiting_for_all_imu_frames": 127,
+        "command_not_settled": 256
+      },
+      "skip_reason_counts": {
+        "none": 16,
+        "not_attempted": 383
+      },
+      "peak_prediction_joint_rms_deg": 12.844611787135117,
+      "hold_termination": "converged",
+      "tail_median_prediction_joint_rms_deg": 0.13857227734258123,
+      "tail_median_prediction_tip_mm": 0.5895639663104606,
+      "tail_median_prediction_tip_deg": 0.015251759698136606,
+      "tail_median_tracking_tip_mm": 0.625041335813556,
+      "tail_median_tracking_tip_deg": 0.03260568265568686,
+      "tail_median_execution_log_k_gap": 0.01450849946976567,
+      "final_kp_est": [
+        22.36067977499789,
+        4.994312699644104,
+        5.0140662987773785,
+        22.36053107729263,
+        26.181237459920837,
+        22.360666294993017
+      ],
+      "convergence_checked": true
+    }
+  ],
+  "recorded_topics": {
+    "/cmd/joint_states": {
+      "messages": 1164,
+      "mean_hz_over_bag": 37.92390053430524
+    },
+    "/deflecomp/debug": {
+      "messages": 1120,
+      "mean_hz_over_bag": 36.490351029572054
+    },
+    "/deflecomp/estimation_gate_status": {
+      "messages": 1120,
+      "mean_hz_over_bag": 36.490351029572054
+    },
+    "/deflecomp/kp_cov_diag": {
+      "messages": 1163,
+      "mean_hz_over_bag": 37.89131986374313
+    },
+    "/deflecomp/kp_est": {
+      "messages": 1163,
+      "mean_hz_over_bag": 37.89131986374313
+    },
+    "/deflecomp/kp_exec": {
+      "messages": 1163,
+      "mean_hz_over_bag": 37.89131986374313
+    },
+    "/deflecomp/kp_exec_target": {
+      "messages": 1163,
+      "mean_hz_over_bag": 37.89131986374313
+    },
+    "/deflecomp/kp_hat": {
+      "messages": 1164,
+      "mean_hz_over_bag": 37.92390053430524
+    },
+    "/deflecomp/particle_scan_debug": {
+      "messages": 1120,
+      "mean_hz_over_bag": 36.490351029572054
+    },
+    "/deflecomp/particle_scan_status": {
+      "messages": 1120,
+      "mean_hz_over_bag": 36.490351029572054
+    },
+    "/deflecomp/probtf_batch": {
+      "messages": 1470,
+      "mean_hz_over_bag": 47.893585726313326
+    },
+    "/deflecomp/probtf_point_moments": {
+      "messages": 1469,
+      "mean_hz_over_bag": 47.86100505575121
+    },
+    "/deflecomp/probtf_static": {
+      "messages": 1,
+      "mean_hz_over_bag": 0.03258067056211791
+    },
+    "/deflecomp/tau_hat": {
+      "messages": 1120,
+      "mean_hz_over_bag": 36.490351029572054
+    },
+    "/deflecomp/theta_eq_hat": {
+      "messages": 1163,
+      "mean_hz_over_bag": 37.89131986374313
+    },
+    "/deflecomp_demo/event": {
+      "messages": 13,
+      "mean_hz_over_bag": 0.4235487173075328
+    },
+    "/deflecomp_demo/markers": {
+      "messages": 223,
+      "mean_hz_over_bag": 7.265489535352293
+    },
+    "/deflecomp_sim/external_wrench": {
+      "messages": 241,
+      "mean_hz_over_bag": 7.851941605470415
+    },
+    "/deflecomp_sim/external_wrench_marker": {
+      "messages": 949,
+      "mean_hz_over_bag": 30.919056363449894
+    },
+    "/equil/joint_states": {
+      "messages": 2938,
+      "mean_hz_over_bag": 95.72201011150241
+    },
+    "/imu": {
+      "messages": 14691,
+      "mean_hz_over_bag": 478.64263122807415
+    },
+    "/ref/joint_states": {
+      "messages": 1134,
+      "mean_hz_over_bag": 36.946480417441705
+    },
+    "/rosout": {
+      "messages": 37,
+      "mean_hz_over_bag": 1.2054848107983624
+    },
+    "/rosout_agg": {
+      "messages": 32,
+      "mean_hz_over_bag": 1.042581457987773
+    },
+    "/tf": {
+      "messages": 5228,
+      "mean_hz_over_bag": 170.33174569875243
+    },
+    "/tf_static": {
+      "messages": 6,
+      "mean_hz_over_bag": 0.19548402337270743
+    }
+  },
+  "interpretation": [
+    "K_est is a pose- and load-dependent effective stiffness, not material identification.",
+    "Full tip/joint errors are evaluated against simulator truth, never supplied to the estimator.",
+    "Prediction convergence and K_est/K_exec stability are reported separately under the recorded criteria.",
+    "Brief holds marked check_convergence=false are observations, excluded from the overall convergence result.",
+    "Time is ROS receipt/wall time; Python timer integration is not a deterministic physical clock."
+  ]
+}

@@ -3,6 +3,8 @@
   <arg name="urdf_path" default="$(arg model)" />
   <arg name="rviz_config" default="$(find deflecomp_description)/rviz/deflecomp.rviz" />
   <arg name="viewer" default="false" />
+  <arg name="start_reference_publisher" default="true" />
+  <arg name="start_kp_plotter" default="$(arg viewer)" />
   <arg name="imu_config" default="$(find deflecomp_ros)/config/imu_frames.yaml" />
   <arg name="particle_scan_enabled" default="false" />
   <arg name="publish_imu_static_tf" default="false" />
@@ -30,14 +32,17 @@
 
   <group ns="ref">
     <param name="robot_description" textfile="$(arg urdf_path)" />
-    <node if="$(arg viewer)" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="angle_controller" output="screen">
-      <param name="rate" value="50" />
-      <remap from="joint_states" to="/ref/joint_states" />
-    </node>
-    <node unless="$(arg viewer)" pkg="joint_state_publisher" type="joint_state_publisher" name="angle_controller" output="screen">
-      <param name="rate" value="50" />
-      <remap from="joint_states" to="/ref/joint_states" />
-    </node>
+    <group if="$(arg start_reference_publisher)">
+      <!-- Use the system Python that provides ROS Noetic's Python and Qt modules. -->
+      <node if="$(arg viewer)" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="angle_controller" output="screen" launch-prefix="/usr/bin/python3">
+        <param name="rate" value="50" />
+        <remap from="joint_states" to="/ref/joint_states" />
+      </node>
+      <node unless="$(arg viewer)" pkg="joint_state_publisher" type="joint_state_publisher" name="angle_controller" output="screen" launch-prefix="/usr/bin/python3">
+        <param name="rate" value="50" />
+        <remap from="joint_states" to="/ref/joint_states" />
+      </node>
+    </group>
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="rsp_ref" output="screen">
       <param name="tf_prefix" value="ref" />
       <param name="ignore_timestamp" value="true" />
@@ -123,5 +128,5 @@
     </node>
   </group>
 
-  <include if="$(arg viewer)" file="$(find deflecomp_debug)/launch/kp_plotter.launch" />
+  <include if="$(arg start_kp_plotter)" file="$(find deflecomp_debug)/launch/kp_plotter.launch" />
 </launch>

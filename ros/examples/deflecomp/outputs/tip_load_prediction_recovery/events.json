@@ -1,0 +1,222 @@
+[
+  {
+    "kind": "phase",
+    "phase": "zero_pose",
+    "label": "Zero pose",
+    "stamp": 1791393638.5761452,
+    "time_s": 0.0008704662322998047,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "hold",
+    "phase": "zero_pose",
+    "label": "Zero pose",
+    "stamp": 1791393638.5766554,
+    "time_s": 0.0013806819915771484,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "phase",
+    "phase": "shoulder_bend",
+    "label": "Shoulder -pi/3, then hold 1 s",
+    "stamp": 1791393639.5774047,
+    "time_s": 1.0021300315856934,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      -60,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "hold",
+    "phase": "shoulder_bend",
+    "label": "Shoulder -pi/3, then hold 1 s",
+    "stamp": 1791393640.077767,
+    "time_s": 1.5024921894073486,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      -60,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "phase",
+    "phase": "elbow_bend",
+    "label": "Elbow +pi/5, then hold 1 s",
+    "stamp": 1791393641.078273,
+    "time_s": 2.5029983520507812,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      -60,
+      36,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "hold",
+    "phase": "elbow_bend",
+    "label": "Elbow +pi/5, then hold 1 s",
+    "stamp": 1791393641.578767,
+    "time_s": 3.0034923553466797,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      -60,
+      36,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "phase",
+    "phase": "load_added",
+    "label": "Add tip load; wait for prediction convergence",
+    "stamp": 1791393642.5791633,
+    "time_s": 4.0038886070251465,
+    "mass_kg": 0.5,
+    "target_deg": [
+      0,
+      -60,
+      36,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "hold",
+    "phase": "load_added",
+    "label": "Add tip load; wait for prediction convergence",
+    "stamp": 1791393642.579687,
+    "time_s": 4.004412412643433,
+    "mass_kg": 0.5,
+    "target_deg": [
+      0,
+      -60,
+      36,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "converged",
+    "phase": "load_added",
+    "label": "Add tip load; wait for prediction convergence",
+    "stamp": 1791393652.0624151,
+    "time_s": 13.487140417098999,
+    "mass_kg": 0.5,
+    "target_deg": [
+      0,
+      -60,
+      36,
+      0,
+      0,
+      0
+    ],
+    "details": {
+      "hold_elapsed_s": 9.481690820073709,
+      "required_window_s": 3.5,
+      "prediction_joint_rms_deg": 0.007961934646318619,
+      "prediction_tip_mm": 0.11382946308198251
+    }
+  },
+  {
+    "kind": "phase",
+    "phase": "load_removed",
+    "label": "Remove tip load; observe prediction recovery",
+    "stamp": 1791393652.0627344,
+    "time_s": 13.487459659576416,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      -60,
+      36,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "hold",
+    "phase": "load_removed",
+    "label": "Remove tip load; observe prediction recovery",
+    "stamp": 1791393652.0631597,
+    "time_s": 13.487884998321533,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      -60,
+      36,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "kind": "converged",
+    "phase": "load_removed",
+    "label": "Remove tip load; observe prediction recovery",
+    "stamp": 1791393661.5421357,
+    "time_s": 22.96686100959778,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      -60,
+      36,
+      0,
+      0,
+      0
+    ],
+    "details": {
+      "hold_elapsed_s": 9.4780585069675,
+      "required_window_s": 3.5,
+      "prediction_joint_rms_deg": 0.025374180755003372,
+      "prediction_tip_mm": 0.20527141452537667
+    }
+  },
+  {
+    "kind": "finished",
+    "phase": "load_removed",
+    "label": "Remove tip load; observe prediction recovery",
+    "stamp": 1791393661.542402,
+    "time_s": 22.967127323150635,
+    "mass_kg": 0,
+    "target_deg": [
+      0,
+      -60,
+      36,
+      0,
+      0,
+      0
+    ]
+  }
+]

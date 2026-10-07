@@ -1,0 +1,62 @@
+# Six controllable joints of yamaguchi_6axis_arm_nejineji, in model order.
+# Each move is a smooth reference interpolation followed by an exact hold.
+# Times are wall/ROS seconds, not the simulator's internal integration time.
+joint_names: [joint1, module1_joint1, module2_joint1, module3_joint1, module4_joint1, module4_joint2]
+load_frame: module5_gripper_dummy_link
+rate_hz: 50.0
+analysis_rate_hz: 10.0
+criteria:
+  prediction_joint_rms_deg: 2.0
+  stable_log_k_range: 0.03
+  execution_log_k_gap: 0.05
+  window_s: 3.0
+  max_sample_gap_s: 0.5
+phases:
+  - name: bend_and_settle
+    label: Bend arm and settle
+    target_deg: [0, 30, -45, 0, -20, 25]
+    move_s: 3
+    hold_s: 12
+    mass_kg: 0
+  - name: pitch_up
+    label: Pitch up, then hold
+    target_deg: [0, 30, -45, 0, -20, 45]
+    move_s: 2
+    hold_s: 10
+    mass_kg: 0
+  - name: pitch_down
+    label: Pitch down, then hold
+    target_deg: [0, 30, -45, 0, -20, -10]
+    move_s: 3
+    hold_s: 10
+    mass_kg: 0
+  - name: yaw_left
+    label: Yaw left, then hold
+    target_deg: [0, 30, -45, 35, -20, -10]
+    move_s: 3
+    hold_s: 10
+    mass_kg: 0
+  - name: yaw_right
+    label: Yaw right with pitch, then hold
+    target_deg: [0, 30, -45, -30, -20, 30]
+    move_s: 3
+    hold_s: 12
+    mass_kg: 0
+  - name: no_load_baseline
+    label: Fixed pose, no load baseline
+    target_deg: [20, 50, -30, 10, -20, 20]
+    move_s: 3
+    hold_s: 18
+    mass_kg: 0
+  - name: load_added
+    label: Add 0.5 kg equivalent tip load
+    target_deg: [20, 50, -30, 10, -20, 20]
+    move_s: 0
+    hold_s: 60
+    mass_kg: 0.5
+  - name: load_removed
+    label: Remove tip load and recover
+    target_deg: [20, 50, -30, 10, -20, 20]
+    move_s: 0
+    hold_s: 25
+    mass_kg: 0

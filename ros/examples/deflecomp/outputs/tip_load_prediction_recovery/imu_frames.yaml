@@ -1,0 +1,18 @@
+# deflecomp IMU frame configuration for yamaguchi_6axis_arm_nejineji.
+#
+# These entries use existing URDF frames directly, so no additional static TF is
+# needed. For real IMUs mounted as fixed child frames, set frame_id to the IMU
+# frame, model_frame/parent_frame to the URDF link frame, add xyz/rpy, and set
+# publish_static_tf: true.
+imu_frames:
+  - frame_id: module1_link1
+    model_frame: module1_link1
+  - frame_id: module2_link1
+    model_frame: module2_link1
+  - frame_id: module3_link1
+    model_frame: module3_link1
+  - frame_id: module4_link2
+    model_frame: module4_link2
+  - frame_id: module5_d405_link
+    model_frame: module5_d405_link
+static_transforms: []

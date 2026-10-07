@@ -1,0 +1,93 @@
+joint_names:
+- joint1
+- module1_joint1
+- module2_joint1
+- module3_joint1
+- module4_joint1
+- module4_joint2
+load_frame: module5_gripper_dummy_link
+rate_hz: 50.0
+analysis_rate_hz: 10.0
+criteria:
+  prediction_joint_rms_deg: 0.5
+  prediction_tip_mm: 5.0
+  stable_log_k_range: 0.03
+  execution_log_k_gap: 0.05
+  window_s: 3.0
+  max_sample_gap_s: 0.5
+rviz_view:
+  Distance: 1.25
+  Pitch: 0.15
+  Yaw: 0.0
+  Focal Point:
+    X: 0.0
+    Y: 0.12
+    Z: 0.36
+phases:
+- name: zero_pose
+  label: Zero pose
+  target_deg:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  move_s: 0.0
+  hold_s: 1.0
+  check_convergence: false
+  mass_kg: 0
+- name: shoulder_bend
+  label: Shoulder -pi/3, then hold 1 s
+  target_deg:
+  - 0
+  - -60
+  - 0
+  - 0
+  - 0
+  - 0
+  move_s: 0.5
+  hold_s: 1.0
+  check_convergence: false
+  mass_kg: 0
+- name: elbow_bend
+  label: Elbow +pi/5, then hold 1 s
+  target_deg:
+  - 0
+  - -60
+  - 36
+  - 0
+  - 0
+  - 0
+  move_s: 0.5
+  hold_s: 1.0
+  check_convergence: false
+  mass_kg: 0
+- name: load_added
+  label: Add tip load; wait for prediction convergence
+  target_deg:
+  - 0
+  - -60
+  - 36
+  - 0
+  - 0
+  - 0
+  move_s: 0.0
+  hold_s: 180.0
+  hold_until: prediction_stable
+  min_hold_s: 5.0
+  mass_kg: 0.5
+- name: load_removed
+  label: Remove tip load; observe prediction recovery
+  target_deg:
+  - 0
+  - -60
+  - 36
+  - 0
+  - 0
+  - 0
+  move_s: 0.0
+  hold_s: 90.0
+  hold_until: prediction_stable
+  min_hold_s: 5.0
+  mass_kg: 0

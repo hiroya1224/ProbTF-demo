@@ -18,6 +18,16 @@
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>rosbag</exec_depend>
+  <exec_depend>roslaunch</exec_depend>
+  <exec_depend>deflecomp_core</exec_depend>
+  <!-- The recording CLI uses the optional deflecomp_ros launch stack.
+       deflecomp_ros already depends on this package; avoid a dependency cycle. -->
+  <exec_depend>deflecomp_sim</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
 
   <export />
 </package>

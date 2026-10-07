@@ -1,0 +1,190 @@
+Panels: []
+Preferences:
+  PromptSaveOnExit: false
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ''
+  Displays:
+  - Alpha: 0.550000011920929
+    Cell Size: 1
+    Class: rviz/Grid
+    Color: 164; 168; 172
+    Enabled: true
+    Line Style:
+      Line Width: 0.029999999329447746
+      Value: Lines
+    Name: Grid
+    Normal Cell Count: 0
+    Offset:
+      X: 0
+      Y: 0
+      Z: 0
+    Plane: XY
+    Plane Cell Count: 14
+    Reference Frame: base_link
+    Value: true
+  - Alpha: 1
+    Class: rviz/RobotModel
+    Collision Enabled: false
+    Enabled: true
+    Links:
+      All Links Enabled: true
+      Expand Joint Details: false
+      Expand Link Details: false
+      Expand Tree: false
+      Link Tree Style: Links in Alphabetic Order
+      base_link:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      link_1:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      link_2:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      link_3:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      link_4:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      link_5:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      link_6:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+      tool0:
+        Alpha: 1
+        Show Axes: false
+        Show Trail: false
+        Value: true
+    Name: Robot Model
+    Robot Description: robot_description
+    TF Prefix: ''
+    Update Interval: 0
+    Value: true
+    Visual Enabled: true
+  - Alpha: 1
+    Autocompute Intensity Bounds: true
+    Autocompute Value Bounds:
+      Max Value: 10
+      Min Value: -10
+      Value: true
+    Axis: Z
+    Channel Name: intensity
+    Class: rviz/PointCloud2
+    Color: 255; 255; 255
+    Color Transformer: RGB8
+    Decay Time: 0
+    Enabled: true
+    Invert Rainbow: false
+    Max Color: 255; 255; 255
+    Min Color: 0; 0; 0
+    Name: Object Uncertainty
+    Position Transformer: XYZ
+    Queue Size: 2
+    Selectable: true
+    Size (Pixels): 4
+    Size (m): 0.009999999776482582
+    Style: Flat Squares
+    Topic: /object_axes_cloud
+    Unreliable: false
+    Use Fixed Frame: true
+    Use rainbow: true
+    Value: true
+  - Class: rviz/Marker
+    Enabled: true
+    Marker Topic: /object_mode_axes
+    Name: Object Mode
+    Namespaces:
+      demo_cylinder_component_modes: true
+    Queue Size: 2
+    Value: true
+  - Class: rviz/Marker
+    Enabled: true
+    Marker Topic: /symaware_grasp/object_geometry
+    Name: Cylinder Object
+    Namespaces:
+      demo_cylinder_geometry: true
+    Queue Size: 2
+    Value: true
+  - Class: rviz/MarkerArray
+    Enabled: true
+    Value: true
+    Name: Bottle grasp progress
+    Marker Topic: /symaware_grasp/trial_markers
+    Queue Size: 10
+    Namespaces:
+      trial_progress: false
+      trial: true
+      tcp_axes: true
+  - Class: rviz/Axes
+    Enabled: true
+    Value: true
+    Name: TCP coordinate frame
+    Reference Frame: tool0
+    Length: 0.14
+    Radius: 0.006
+  Enabled: true
+  Global Options:
+    Background Color: 244; 243; 239
+    Default Light: true
+    Fixed Frame: base_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+  - Class: rviz/Interact
+    Hide Inactive Objects: true
+  - Class: rviz/MoveCamera
+  - Class: rviz/Select
+  - Class: rviz/FocusCamera
+  - Class: rviz/Measure
+  - Class: rviz/SetInitialPose
+    Theta std deviation: 0.2617993950843811
+    Topic: initialpose
+    X std deviation: 0.5
+    Y std deviation: 0.5
+  - Class: rviz/SetGoal
+    Topic: goal
+  - Class: rviz/PublishPoint
+    Single click: true
+    Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz/TopDownOrtho
+      Name: Current View
+      Target Frame: base_link
+      Scale: 650
+      Angle: 0
+      X: 0.45
+      Y: 0.1
+      Near Clip Distance: 0.01
+    Saved: null
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 950
+  Hide Left Dock: true
+  Hide Right Dock: true
+  Views:
+    collapsed: false
+  Width: 1200
+  X: 1360
+  Y: 80

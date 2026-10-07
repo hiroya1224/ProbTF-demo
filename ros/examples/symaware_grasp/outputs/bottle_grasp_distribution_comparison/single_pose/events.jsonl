@@ -1,0 +1,8 @@
+{"stage": "observe_bottle", "stamp": 1791398975.6516929, "time_s": 0.0006632804870605469, "details": {}}
+{"stage": "solve_symmetry_aware_ik", "stamp": 1791398977.6576498, "time_s": 2.00661039352417, "details": {}}
+{"stage": "move_to_pregrasp", "stamp": 1791398980.7458289, "time_s": 5.0947959423065186, "details": {}}
+{"stage": "pregrasp_pause", "stamp": 1791398989.3484788, "time_s": 13.697440147399902, "details": {}}
+{"stage": "approach_bottle", "stamp": 1791398990.348623, "time_s": 14.697588443756104, "details": {}}
+{"stage": "close_gripper", "stamp": 1791398992.5524275, "time_s": 16.901389122009277, "details": {}}
+{"stage": "hold_grasp", "stamp": 1791398993.5591974, "time_s": 17.908164501190186, "details": {}}
+{"stage": "finished", "stamp": 1791398998.5595212, "time_s": 22.90850281715393, "details": {}}

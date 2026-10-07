@@ -6,6 +6,7 @@ from probtf.distributions import (
     BinghamOrientation,
     ConditionalGaussianTranslation,
     DistributionStatus,
+    OrientationKind,
     RepresentativeKind,
     TransformComponent,
     TransformDistribution,
@@ -62,8 +63,8 @@ def make_transform_record(
         approximation=approximation,
     )
     representative = DeterministicTransform(
-        component.conditional_translation_mean(orientation.mode_wxyz),
-        orientation.mode_wxyz,
+        component.conditional_translation_mean(component_mode_quaternion(component)),
+        component_mode_quaternion(component),
     )
     return TransformDistributionStamped(
         parent_frame_id=parent_frame_id,
@@ -112,6 +113,18 @@ def distribution_point_moments(record, point=(0.0, 0.0, 0.0), integration_steps=
     )
 
 
+def component_mode_quaternion(component):
+    """Use the supplied reference when it is a mode, including axial ties."""
+    orientation = component.orientation
+    if orientation.kind is OrientationKind.FINITE_BINGHAM:
+        parameter = orientation.backend_parameter_matrix()
+        reference = orientation.reference_quaternion_wxyz
+        maximum = float(np.linalg.eigvalsh(parameter)[-1])
+        if maximum-float(reference @ parameter @ reference) <= 1e-9*max(1, float(np.linalg.norm(parameter))):
+            return reference.copy()
+    return orientation.mode_wxyz
+
+
 def representative_component(record):
     """Return the highest normalized-weight component and its display pose."""
 
@@ -123,6 +136,6 @@ def representative_component(record):
             "Cannot select from a {} transform distribution.".format(normalized.status.value)
         )
     selected = max(normalized.components, key=lambda item: item.weight)
-    quaternion = selected.component.orientation.mode_wxyz
+    quaternion = component_mode_quaternion(selected.component)
     translation = selected.component.conditional_translation_mean(quaternion)
     return selected.component, translation, quaternion

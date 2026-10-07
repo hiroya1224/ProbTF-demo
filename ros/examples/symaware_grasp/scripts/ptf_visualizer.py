@@ -13,7 +13,7 @@ from probtf.geometry import quat_to_rotmat
 from probtf.probability import apply_transform_samples, sample_transform_distribution
 from probtf_ros import RosProbTfListener
 from probtf_ros.bridge import PROBTF_STATIC_TOPIC, PROBTF_TOPIC
-from symaware_grasp.beliefs import representative_component
+from symaware_grasp.beliefs import component_mode_quaternion, representative_component
 from symaware_grasp.msg import ObjectBelief, SelectedGraspTarget
 from symaware_grasp.runtime import lookup_message_record
 from symaware_grasp.visualization import pack_rgb
@@ -183,7 +183,7 @@ class ProbTfV2Visualizer:
             return marker
         for weighted in normalized.components:
             component = weighted.component
-            quaternion = component.orientation.mode_wxyz
+            quaternion = component_mode_quaternion(component)
             origin = component.conditional_translation_mean(quaternion)
             rotation = quat_to_rotmat(quaternion)
             for axis_index, base_color in enumerate(colors):

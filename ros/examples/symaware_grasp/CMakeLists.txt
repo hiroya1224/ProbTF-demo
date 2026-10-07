@@ -56,6 +56,7 @@ catkin_install_python(
     scripts/prob_tf_grasp_target_node.py
     scripts/ptf_visualizer.py
     scripts/symmetry_aware_ik_node.py
+    scripts/run_bottle_grasp_demo.py
     scripts/write_simple_six_dof_prob_tf.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

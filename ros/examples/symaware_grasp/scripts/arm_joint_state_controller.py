@@ -3,8 +3,12 @@
 import numpy as np
 import rospy
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Float64
 
 from symaware_grasp.arm_kinematics import ToyArm6DOF
+from symaware_grasp.grasp_trial import (
+    GRIPPER_JOINT_NAMES, gripper_joint_position,
+)
 
 
 class ArmJointStateController:
@@ -13,6 +17,12 @@ class ArmJointStateController:
         initial_positions = rospy.get_param("~initial_positions", [0.6, -1.0, 1.2, 0.2, -0.5, 0.8])
         self.current_positions = self.robot_model.clip_to_limits(initial_positions)
         self.target_positions = self.current_positions.copy()
+        self.gripper_enabled = bool(rospy.get_param("~gripper_enabled", False))
+        self.gripper_position = gripper_joint_position(float(rospy.get_param("~initial_gripper_opening", 0.185)))
+        self.gripper_target = self.gripper_position
+        self.max_gripper_speed = float(rospy.get_param("~max_gripper_speed", 0.04))
+        if not np.isfinite(self.max_gripper_speed) or self.max_gripper_speed <= 0:
+            raise ValueError("max_gripper_speed must be positive and finite")
         self.publish_rate = float(rospy.get_param("~publish_rate", 30.0))
 
         max_joint_speed = rospy.get_param("~max_joint_speed", 0.8)
@@ -23,6 +33,8 @@ class ArmJointStateController:
 
         self.publisher = rospy.Publisher("joint_states", JointState, queue_size=1)
         self.subscriber = rospy.Subscriber("target_joint_states", JointState, self.handle_target_state, queue_size=1)
+        if self.gripper_enabled:
+            self.gripper_subscriber = rospy.Subscriber("gripper_opening_command", Float64, self.handle_gripper, queue_size=1)
         rospy.Timer(rospy.Duration(1.0 / max(self.publish_rate, 1e-3)), self.publish_state)
 
     def handle_target_state(self, message):
@@ -37,6 +49,12 @@ class ArmJointStateController:
                 self.target_positions = positions
         self.target_positions = self.robot_model.clip_to_limits(self.target_positions)
 
+    def handle_gripper(self, message):
+        try:
+            self.gripper_target = gripper_joint_position(message.data)
+        except ValueError as exc:
+            rospy.logwarn("Ignoring invalid gripper opening: %s", exc)
+
     def publish_state(self, _event):
         dt = 1.0 / max(self.publish_rate, 1e-3)
         delta = self.target_positions - self.current_positions
@@ -48,6 +66,11 @@ class ArmJointStateController:
         message.header.stamp = rospy.Time.now()
         message.name = list(self.robot_model.joint_names)
         message.position = self.current_positions.tolist()
+        if self.gripper_enabled:
+            self.gripper_position += float(np.clip(self.gripper_target - self.gripper_position,
+                                                    -self.max_gripper_speed * dt, self.max_gripper_speed * dt))
+            message.name.extend(GRIPPER_JOINT_NAMES)
+            message.position.extend([self.gripper_position, self.gripper_position])
         self.publisher.publish(message)
 
 

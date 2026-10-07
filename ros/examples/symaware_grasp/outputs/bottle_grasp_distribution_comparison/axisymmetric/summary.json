@@ -1,0 +1,110 @@
+{
+  "completed": true,
+  "kinematic_grasp_reached": true,
+  "ik_results": [
+    {
+      "solver_name": "symmetry_aware_pointwise",
+      "grasp_id": "cylinder_side_grasp",
+      "success": true,
+      "total_cost": 0.26192640663453143,
+      "position_cost": 3.3991040484571565e-06,
+      "orientation_cost": 5.6835354753008304e-06,
+      "motion_cost": 0.6187405184290672,
+      "joint_limit_cost": 0.014397322895041587,
+      "theta_solution": [
+        -0.17728816117342483,
+        -1.1079135964628106,
+        1.4852550422352429,
+        -0.23629478163624346,
+        -0.3870982874941444,
+        0.2193207126426588
+      ]
+    }
+  ],
+  "samples": 682,
+  "final": {
+    "time_s": 22.556562423706055,
+    "stage": "hold_grasp",
+    "tcp_x": 0.7799974293159961,
+    "tcp_y": -0.11999964447368175,
+    "tcp_z": 0.45999974822054873,
+    "tcp_object_distance_mm": 0.002607337358859696,
+    "axis_tilt_deg": 0.0038634643324504535,
+    "gripper_opening_mm": 106.0,
+    "gripper_clearance_mm": 5.999999999999991,
+    "wrist_bend_deg": 22.179098130156135,
+    "elbow_flexion_deg": 85.09884542060456,
+    "orientation_mode_error_deg": 72.58778055180477,
+    "bottle_clearance_lower_bound_mm": 2.9961739021005034,
+    "closest_collision_pair": "gripper_right_link:gripper_right_pad_collision / bottle_body",
+    "joint_speed_rad_s": 0.0,
+    "joint_1": -0.17728816117342083,
+    "target_1": -0.17728816117342083,
+    "joint_2": -1.1079135964628137,
+    "target_2": -1.1079135964628137,
+    "joint_3": 1.4852550422352484,
+    "target_3": 1.4852550422352484,
+    "joint_4": -0.23629478163618534,
+    "target_4": -0.23629478163618534,
+    "joint_5": -0.3870982874941424,
+    "target_5": -0.3870982874941424,
+    "joint_6": 0.21932071264260217,
+    "target_6": 0.21932071264260217
+  },
+  "collision_free": true,
+  "minimum_bottle_clearance_lower_bound_mm": 2.9961739021005034,
+  "closest_collision_pair": "gripper_right_link:gripper_right_pad_collision / bottle_body",
+  "distribution": "axisymmetric",
+  "object_yaw_pi": "3/8",
+  "events": [
+    {
+      "stage": "observe_bottle",
+      "stamp": 1791398939.0844202,
+      "time_s": 0.0006146430969238281,
+      "details": {}
+    },
+    {
+      "stage": "solve_symmetry_aware_ik",
+      "stamp": 1791398941.0894976,
+      "time_s": 2.005683660507202,
+      "details": {}
+    },
+    {
+      "stage": "move_to_pregrasp",
+      "stamp": 1791398943.819433,
+      "time_s": 4.735625982284546,
+      "details": {}
+    },
+    {
+      "stage": "pregrasp_pause",
+      "stamp": 1791398952.4331098,
+      "time_s": 13.34929609298706,
+      "details": {}
+    },
+    {
+      "stage": "approach_bottle",
+      "stamp": 1791398953.4413853,
+      "time_s": 14.357570886611938,
+      "details": {}
+    },
+    {
+      "stage": "close_gripper",
+      "stamp": 1791398955.6437492,
+      "time_s": 16.55993413925171,
+      "details": {}
+    },
+    {
+      "stage": "hold_grasp",
+      "stamp": 1791398956.6492488,
+      "time_s": 17.565436124801636,
+      "details": {}
+    },
+    {
+      "stage": "finished",
+      "stamp": 1791398961.6495686,
+      "time_s": 22.565765380859375,
+      "details": {}
+    }
+  ],
+  "interpretation": "Kinematic approach and jaw closure; contact, friction and holding force are not simulated."
+}

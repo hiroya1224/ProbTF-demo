@@ -93,7 +93,8 @@ class SymmetryAwareIKNode:
         command.header.stamp = rospy.Time.now()
         command.name = list(self.robot_model.joint_names)
         command.position = best_result["theta_solution"].tolist()
-        self.target_publisher.publish(command)
+        if bool(_get_ik_param("publish_command", True)):
+            self.target_publisher.publish(command)
         rospy.loginfo(
             "IK method=%s grasp=%s cost=%.4f motion=%.4f",
             SymmetryAwareIKSolver.METHOD_POINTWISE,

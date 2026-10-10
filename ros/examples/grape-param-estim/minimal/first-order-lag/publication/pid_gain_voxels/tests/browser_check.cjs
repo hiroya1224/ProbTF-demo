@@ -58,6 +58,9 @@ const snapshot=`(typeof DATA==='undefined'||!document.querySelector('h1')?{ready
   const state=await waitFor('interactive',group);assert(state.volumeVisible&&!state.overviewVisible);assert.equal(state.plots.length,2);
   for(const plot of state.plots){assert(plot.canvas>0);assert.equal(plot.traces.filter(t=>t.type==='mesh3d').length,4);
    const points=plot.traces.filter(t=>t.type==='scatter3d');assert.equal(points.length,2);assert.equal(plot.annotations.length,2);
+   for(const mesh of plot.traces.filter(t=>t.type==='mesh3d'))assert(mesh.opacity>0&&mesh.opacity<=.32);
+   for(const annotation of plot.annotations)assert(/rate : \d+\.\d%/.test(annotation.text));
+   assert.equal((plot.pointText.match(/rate : \d+\.\d%/g)||[]).length,2);
    assert.equal(plot.references.success.classification,3);assert.equal(plot.references.failure.classification,group==='roll_pitch'?2:3);
    for(const point of points)assert.deepEqual([point.marker.x[0],point.marker.y[0],point.marker.z[0]],plot.references[point.name].gain);
    const failure=points.find(t=>t.name==='failure');assert.equal(failure.marker.symbol,group==='z'?'circle-open':'x');assert(failure.marker.size>=10);

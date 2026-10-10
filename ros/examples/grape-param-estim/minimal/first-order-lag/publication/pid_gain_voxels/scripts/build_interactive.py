@@ -50,7 +50,7 @@ def main():
     html = html.replace("__THRESHOLD__", format(100 * settings["alpha"], ".5g"))
     all_success_green = all(g['marks']['success']['classification']==3 for g in data['cases'])
     html = html.replace('__CLAIM__','すべてのPID軸でSuccessは緑の領域に入る' if all_success_green else '全PID軸のSuccessとFailureを比較する')
-    html = html.replace('__SUMMARY__','Success：両ケース・全4軸とも緑（8/8、100%）' if all_success_green else '各点の判定は図中の表示を参照してください')
+    html = html.replace('__SUMMARY__','Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）' if all_success_green else '各点の判定は図中の表示を参照してください')
     for token,name in (('__GREEN__','green'),('__RED__','red'),('__SUCCESS__','success_color'),('__FAILURE__','recorded_color')):
         html = html.replace(token,settings[name])
     output = args.output or args.root / "index.html"

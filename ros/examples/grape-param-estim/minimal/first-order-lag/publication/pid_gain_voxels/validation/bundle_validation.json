@@ -385,7 +385,8 @@
         399.9992
       ],
       "pdf_text_extractable": true,
-      "svg_text_editable": true
+      "svg_text_editable": true,
+      "uniform_rate_labels": 16
     },
     {
       "figure": "all_pid_success_failure_PD",
@@ -398,7 +399,8 @@
         399.9992
       ],
       "pdf_text_extractable": true,
-      "svg_text_editable": true
+      "svg_text_editable": true,
+      "uniform_rate_labels": 16
     }
   ]
 }

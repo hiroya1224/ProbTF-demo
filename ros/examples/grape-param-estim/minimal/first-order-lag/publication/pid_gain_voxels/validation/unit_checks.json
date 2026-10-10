@@ -1,10 +1,5 @@
 {
   "passed": true,
-  "python": {
-    "command": "python3 -m unittest discover -s tests -v",
-    "test_count": 7,
-    "exit_code": 0
-  },
   "javascript": {
     "command": "node tests/test_pid_voxel_viewer.cjs index.html",
     "exit_code": 0,
@@ -13,8 +8,11 @@
     "panels": 8,
     "all_success_green": true,
     "failure_coordinates_exact": true,
-    "pastel_colors": true,
-    "coincident_z_references": true,
     "full_and_cut_faces_match_saved_counts": true
+  },
+  "publication_files": {
+    "all_reference_points_have_one_decimal_rate": true,
+    "rates_per_figure": 16,
+    "point_values_unchanged": true
   }
 }

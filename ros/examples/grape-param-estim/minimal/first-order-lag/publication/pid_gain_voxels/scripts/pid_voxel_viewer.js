@@ -31,9 +31,9 @@ function surfaceGeometry(g,cutaway=true){
 function plotTraces(g,cutaway=true){
  const mesh=surfaceGeometry(g,cutaway),traces=[];
  for(const key of [2,3,'cut2','cut3']){const code=String(key).endsWith('3')?3:2,m=mesh[key],name=code===3?'green':'red';
-  traces.push({type:'mesh3d',...m,color:DATA.styles[name],opacity:String(key).startsWith('cut')?DATA.styles.cut_opacity:DATA.styles[name+'_opacity'],flatshading:true,
+  traces.push({type:'mesh3d',...m,color:DATA.styles[name],opacity:DATA.styles[name+'_opacity'],flatshading:true,
    lighting:{ambient:1,diffuse:0,specular:0,fresnel:0,roughness:1},showlegend:false,
-   hovertemplate:'P=%{customdata[0]}<br>I=%{customdata[1]}<br>D=%{customdata[2]}<br>生存率=%{customdata[3]:.2f}%<extra></extra>'});
+   hovertemplate:'P=%{customdata[0]}<br>I=%{customdata[1]}<br>D=%{customdata[2]}<br>rate : %{customdata[3]:.1f}%<extra></extra>'});
  }
  const same=g.marks.success.gain.every((v,k)=>v===g.marks.failure.gain[k]);
  for(const name of ['failure','success']){const q=g.marks[name].gain;
@@ -41,7 +41,7 @@ function plotTraces(g,cutaway=true){
    marker:{color:DATA.styles[name==='success'?'success_color':'recorded_color'],
     symbol:name==='success'?'diamond':same?'circle-open':'x',size:name==='success'?8:same?14:10,opacity:1,
     line:{color:name==='success'?'white':DATA.styles.recorded_color,width:2}},
-   hovertemplate:(name==='success'?'Success':'Failure')+'<br>P='+q[0]+'<br>I='+q[1]+'<br>D='+q[2]+'<br>生存率='+(100*g.marks[name].survival).toFixed(2)+'%<extra></extra>'});
+   hovertemplate:(name==='success'?'Success':'Failure')+'<br>P='+q[0]+'<br>I='+q[1]+'<br>D='+q[2]+'<br>rate : '+(100*g.marks[name].survival).toFixed(1)+'%<extra></extra>'});
  }
  return traces;
 }
@@ -55,12 +55,12 @@ if(typeof document!=='undefined'){
   return {margin:{l:0,r:0,t:0,b:0},paper_bgcolor:'white',font:{family:'Arial,sans-serif',size:13},showlegend:false,
    scene:{camera,aspectmode:'cube',xaxis:{title:'P gain',range:ranges[0]},yaxis:{title:'I gain',range:ranges[1]},zaxis:{title:'D gain',range:ranges[2]},
     annotations:['success','failure'].map(name=>{const m=g.marks[name],q=m.gain,color=DATA.styles[name==='success'?'success_color':'recorded_color'];return{x:q[0],y:q[1],z:q[2],
-     text:(name==='success'?'Success':same?'Failure (= Success)':'Failure')+'<br>('+q.join(', ')+')<br>'+(m.classification===3?'green':'red')+' · '+(100*m.survival).toFixed(1)+'%',
+     text:(name==='success'?'Success':same?'Failure (= Success)':'Failure')+'<br>('+q.join(', ')+')<br>rate : '+(100*m.survival).toFixed(1)+'%',
      showarrow:true,arrowhead:2,arrowcolor:color,arrowwidth:2,ax:name==='success'?-45:45,ay:name==='success'?-55:50,
      bgcolor:'rgba(255,255,255,.97)',bordercolor:color,borderwidth:1,borderpad:4,font:{color,size:14}}})}};
  }
  function pointInfo(g){return['success','failure'].map(name=>{const m=g.marks[name],label=name==='success'?'Success':'Failure',tag=name==='success'?'strong':'b';
-  return'<'+tag+'>'+label+' ('+m.gain.join(', ')+')</'+tag+'>：'+(m.classification===3?'緑':'赤')+' '+(100*m.survival).toFixed(1)+'%';}).join('<br>');}
+  return'<'+tag+'>'+label+' ('+m.gain.join(', ')+')</'+tag+'>　rate : '+(100*m.survival).toFixed(1)+'%';}).join('<br>');}
  async function drawGroup(){
   document.body.dataset.ready='false';document.body.dataset.group=group;$('status').textContent='3Dボクセルを読み込み中…';
   for(const button of document.querySelectorAll('[data-group]'))button.className=button.dataset.group===group?'active':'';

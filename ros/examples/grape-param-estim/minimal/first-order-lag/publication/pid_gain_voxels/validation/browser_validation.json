@@ -1,12 +1,12 @@
 {
   "passed": true,
-  "html_sha256": "0ffd0218b162844c459e333f1364f292bc6e5b2d77711deca4531e2d37343f76",
+  "html_sha256": "77d90c610bd8c427fbf16c3766acd747977e25cb87e1102323848ad708e39136",
   "primary": {
     "ready": "true",
     "view": "3D",
     "title": "全PID軸のSuccessとFailure — ゲインの比較",
     "heading": "すべてのPID軸でSuccessは緑の領域に入る",
-    "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+    "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
     "primaryImages": 1,
     "imageLoaded": true,
     "imageSrc": "figures/all_pid_success_failure_3D.png",
@@ -235,7 +235,7 @@
     "view": "PD",
     "title": "全PID軸のSuccessとFailure — ゲインの比較",
     "heading": "すべてのPID軸でSuccessは緑の領域に入る",
-    "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+    "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
     "primaryImages": 1,
     "imageLoaded": true,
     "imageSrc": "figures/all_pid_success_failure_PD.png",
@@ -466,7 +466,7 @@
       "group": "roll_pitch",
       "title": "全PID軸のSuccessとFailure — ゲインの比較",
       "heading": "すべてのPID軸でSuccessは緑の領域に入る",
-      "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+      "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
       "primaryImages": 1,
       "imageLoaded": true,
       "imageSrc": "figures/all_pid_success_failure_3D.png",
@@ -732,13 +732,13 @@
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.28,
               "faces": 578,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.32,
               "faces": 3844,
               "marker": null
             },
@@ -788,7 +788,7 @@
               "x": 13,
               "y": 1,
               "z": 20,
-              "text": "Success<br>(13, 1, 20)<br>green · 100.0%",
+              "text": "Success<br>(13, 1, 20)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#264C73",
@@ -808,7 +808,7 @@
               "x": 20,
               "y": 1,
               "z": 8,
-              "text": "Failure<br>(20, 1, 8)<br>red · 55.9%",
+              "text": "Failure<br>(20, 1, 8)<br>rate : 55.9%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#754B86",
@@ -825,7 +825,7 @@
               }
             }
           ],
-          "pointText": "Success (13, 1, 20)：緑 100.0%Failure (20, 1, 8)：赤 55.9%"
+          "pointText": "Success (13, 1, 20)　rate : 100.0%Failure (20, 1, 8)　rate : 55.9%"
         },
         {
           "case": "failure2",
@@ -870,13 +870,13 @@
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.28,
               "faces": 1284,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.32,
               "faces": 3138,
               "marker": null
             },
@@ -926,7 +926,7 @@
               "x": 13,
               "y": 1,
               "z": 20,
-              "text": "Success<br>(13, 1, 20)<br>green · 100.0%",
+              "text": "Success<br>(13, 1, 20)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#264C73",
@@ -946,7 +946,7 @@
               "x": 10,
               "y": 1,
               "z": 8,
-              "text": "Failure<br>(10, 1, 8)<br>red · 14.1%",
+              "text": "Failure<br>(10, 1, 8)<br>rate : 14.1%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#754B86",
@@ -963,7 +963,7 @@
               }
             }
           ],
-          "pointText": "Success (13, 1, 20)：緑 100.0%Failure (10, 1, 8)：赤 14.1%"
+          "pointText": "Success (13, 1, 20)　rate : 100.0%Failure (10, 1, 8)　rate : 14.1%"
         }
       ]
     },
@@ -973,7 +973,7 @@
       "group": "yaw",
       "title": "全PID軸のSuccessとFailure — ゲインの比較",
       "heading": "すべてのPID軸でSuccessは緑の領域に入る",
-      "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+      "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
       "primaryImages": 1,
       "imageLoaded": true,
       "imageSrc": "figures/all_pid_success_failure_3D.png",
@@ -1239,13 +1239,13 @@
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.28,
               "faces": 884,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.32,
               "faces": 3406,
               "marker": null
             },
@@ -1295,7 +1295,7 @@
               "x": 6,
               "y": 1,
               "z": 2,
-              "text": "Success<br>(6, 1, 2)<br>green · 100.0%",
+              "text": "Success<br>(6, 1, 2)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#264C73",
@@ -1315,7 +1315,7 @@
               "x": 4,
               "y": 1,
               "z": 2,
-              "text": "Failure<br>(4, 1, 2)<br>green · 96.9%",
+              "text": "Failure<br>(4, 1, 2)<br>rate : 96.9%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#754B86",
@@ -1332,7 +1332,7 @@
               }
             }
           ],
-          "pointText": "Success (6, 1, 2)：緑 100.0%Failure (4, 1, 2)：緑 96.9%"
+          "pointText": "Success (6, 1, 2)　rate : 100.0%Failure (4, 1, 2)　rate : 96.9%"
         },
         {
           "case": "failure2",
@@ -1377,13 +1377,13 @@
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.28,
               "faces": 309,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.32,
               "faces": 3981,
               "marker": null
             },
@@ -1433,7 +1433,7 @@
               "x": 6,
               "y": 1,
               "z": 2,
-              "text": "Success<br>(6, 1, 2)<br>green · 100.0%",
+              "text": "Success<br>(6, 1, 2)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#264C73",
@@ -1453,7 +1453,7 @@
               "x": 4,
               "y": 1,
               "z": 2,
-              "text": "Failure<br>(4, 1, 2)<br>green · 98.4%",
+              "text": "Failure<br>(4, 1, 2)<br>rate : 98.4%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#754B86",
@@ -1470,7 +1470,7 @@
               }
             }
           ],
-          "pointText": "Success (6, 1, 2)：緑 100.0%Failure (4, 1, 2)：緑 98.4%"
+          "pointText": "Success (6, 1, 2)　rate : 100.0%Failure (4, 1, 2)　rate : 98.4%"
         }
       ]
     },
@@ -1480,7 +1480,7 @@
       "group": "xy",
       "title": "全PID軸のSuccessとFailure — ゲインの比較",
       "heading": "すべてのPID軸でSuccessは緑の領域に入る",
-      "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+      "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
       "primaryImages": 1,
       "imageLoaded": true,
       "imageSrc": "figures/all_pid_success_failure_3D.png",
@@ -1746,13 +1746,13 @@
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.28,
               "faces": 0,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.32,
               "faces": 4489,
               "marker": null
             },
@@ -1802,7 +1802,7 @@
               "x": 4,
               "y": 0.1,
               "z": 2,
-              "text": "Success<br>(4, 0.1, 2)<br>green · 100.0%",
+              "text": "Success<br>(4, 0.1, 2)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#264C73",
@@ -1822,7 +1822,7 @@
               "x": 3,
               "y": 0.1,
               "z": 1,
-              "text": "Failure<br>(3, 0.1, 1)<br>green · 100.0%",
+              "text": "Failure<br>(3, 0.1, 1)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#754B86",
@@ -1839,7 +1839,7 @@
               }
             }
           ],
-          "pointText": "Success (4, 0.1, 2)：緑 100.0%Failure (3, 0.1, 1)：緑 100.0%"
+          "pointText": "Success (4, 0.1, 2)　rate : 100.0%Failure (3, 0.1, 1)　rate : 100.0%"
         },
         {
           "case": "failure2",
@@ -1884,13 +1884,13 @@
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.28,
               "faces": 0,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.32,
               "faces": 4489,
               "marker": null
             },
@@ -1940,7 +1940,7 @@
               "x": 4,
               "y": 0.1,
               "z": 2,
-              "text": "Success<br>(4, 0.1, 2)<br>green · 100.0%",
+              "text": "Success<br>(4, 0.1, 2)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#264C73",
@@ -1960,7 +1960,7 @@
               "x": 3,
               "y": 0.1,
               "z": 1,
-              "text": "Failure<br>(3, 0.1, 1)<br>green · 100.0%",
+              "text": "Failure<br>(3, 0.1, 1)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#754B86",
@@ -1977,7 +1977,7 @@
               }
             }
           ],
-          "pointText": "Success (4, 0.1, 2)：緑 100.0%Failure (3, 0.1, 1)：緑 100.0%"
+          "pointText": "Success (4, 0.1, 2)　rate : 100.0%Failure (3, 0.1, 1)　rate : 100.0%"
         }
       ]
     },
@@ -1987,7 +1987,7 @@
       "group": "z",
       "title": "全PID軸のSuccessとFailure — ゲインの比較",
       "heading": "すべてのPID軸でSuccessは緑の領域に入る",
-      "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+      "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
       "primaryImages": 1,
       "imageLoaded": true,
       "imageSrc": "figures/all_pid_success_failure_3D.png",
@@ -2253,13 +2253,13 @@
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.28,
               "faces": 1040,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.32,
               "faces": 3250,
               "marker": null
             },
@@ -2309,7 +2309,7 @@
               "x": 5,
               "y": 1,
               "z": 2.5,
-              "text": "Success<br>(5, 1, 2.5)<br>green · 100.0%",
+              "text": "Success<br>(5, 1, 2.5)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#264C73",
@@ -2329,7 +2329,7 @@
               "x": 5,
               "y": 1,
               "z": 2.5,
-              "text": "Failure (= Success)<br>(5, 1, 2.5)<br>green · 100.0%",
+              "text": "Failure (= Success)<br>(5, 1, 2.5)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#754B86",
@@ -2346,7 +2346,7 @@
               }
             }
           ],
-          "pointText": "Success (5, 1, 2.5)：緑 100.0%Failure (5, 1, 2.5)：緑 100.0%"
+          "pointText": "Success (5, 1, 2.5)　rate : 100.0%Failure (5, 1, 2.5)　rate : 100.0%"
         },
         {
           "case": "failure2",
@@ -2391,13 +2391,13 @@
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.28,
               "faces": 1938,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.94,
+              "opacity": 0.32,
               "faces": 2352,
               "marker": null
             },
@@ -2447,7 +2447,7 @@
               "x": 5,
               "y": 1,
               "z": 2.5,
-              "text": "Success<br>(5, 1, 2.5)<br>green · 100.0%",
+              "text": "Success<br>(5, 1, 2.5)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#264C73",
@@ -2467,7 +2467,7 @@
               "x": 5,
               "y": 1,
               "z": 2.5,
-              "text": "Failure (= Success)<br>(5, 1, 2.5)<br>green · 100.0%",
+              "text": "Failure (= Success)<br>(5, 1, 2.5)<br>rate : 100.0%",
               "showarrow": true,
               "arrowhead": 2,
               "arrowcolor": "#754B86",
@@ -2484,7 +2484,7 @@
               }
             }
           ],
-          "pointText": "Success (5, 1, 2.5)：緑 100.0%Failure (5, 1, 2.5)：緑 100.0%"
+          "pointText": "Success (5, 1, 2.5)　rate : 100.0%Failure (5, 1, 2.5)　rate : 100.0%"
         }
       ]
     }
@@ -2495,7 +2495,7 @@
     "group": "z",
     "title": "全PID軸のSuccessとFailure — ゲインの比較",
     "heading": "すべてのPID軸でSuccessは緑の領域に入る",
-    "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+    "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
     "primaryImages": 1,
     "imageLoaded": true,
     "imageSrc": "figures/all_pid_success_failure_3D.png",
@@ -2761,13 +2761,13 @@
           },
           {
             "type": "mesh3d",
-            "opacity": 0.94,
+            "opacity": 0.28,
             "faces": 0,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.94,
+            "opacity": 0.32,
             "faces": 0,
             "marker": null
           },
@@ -2817,7 +2817,7 @@
             "x": 5,
             "y": 1,
             "z": 2.5,
-            "text": "Success<br>(5, 1, 2.5)<br>green · 100.0%",
+            "text": "Success<br>(5, 1, 2.5)<br>rate : 100.0%",
             "showarrow": true,
             "arrowhead": 2,
             "arrowcolor": "#264C73",
@@ -2837,7 +2837,7 @@
             "x": 5,
             "y": 1,
             "z": 2.5,
-            "text": "Failure (= Success)<br>(5, 1, 2.5)<br>green · 100.0%",
+            "text": "Failure (= Success)<br>(5, 1, 2.5)<br>rate : 100.0%",
             "showarrow": true,
             "arrowhead": 2,
             "arrowcolor": "#754B86",
@@ -2854,7 +2854,7 @@
             }
           }
         ],
-        "pointText": "Success (5, 1, 2.5)：緑 100.0%Failure (5, 1, 2.5)：緑 100.0%"
+        "pointText": "Success (5, 1, 2.5)　rate : 100.0%Failure (5, 1, 2.5)　rate : 100.0%"
       },
       {
         "case": "failure2",
@@ -2899,13 +2899,13 @@
           },
           {
             "type": "mesh3d",
-            "opacity": 0.94,
+            "opacity": 0.28,
             "faces": 0,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.94,
+            "opacity": 0.32,
             "faces": 0,
             "marker": null
           },
@@ -2955,7 +2955,7 @@
             "x": 5,
             "y": 1,
             "z": 2.5,
-            "text": "Success<br>(5, 1, 2.5)<br>green · 100.0%",
+            "text": "Success<br>(5, 1, 2.5)<br>rate : 100.0%",
             "showarrow": true,
             "arrowhead": 2,
             "arrowcolor": "#264C73",
@@ -2975,7 +2975,7 @@
             "x": 5,
             "y": 1,
             "z": 2.5,
-            "text": "Failure (= Success)<br>(5, 1, 2.5)<br>green · 100.0%",
+            "text": "Failure (= Success)<br>(5, 1, 2.5)<br>rate : 100.0%",
             "showarrow": true,
             "arrowhead": 2,
             "arrowcolor": "#754B86",
@@ -2992,7 +2992,7 @@
             }
           }
         ],
-        "pointText": "Success (5, 1, 2.5)：緑 100.0%Failure (5, 1, 2.5)：緑 100.0%"
+        "pointText": "Success (5, 1, 2.5)　rate : 100.0%Failure (5, 1, 2.5)　rate : 100.0%"
       }
     ]
   },

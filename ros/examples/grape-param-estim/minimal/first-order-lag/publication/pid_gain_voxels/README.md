@@ -4,7 +4,7 @@
 
 [比較図を開く](index.html) · [主図PDF](figures/all_pid_success_failure_3D.pdf) · [主図SVG](figures/all_pid_success_failure_3D.svg)
 
-主図は上段がfailure 1、下段がfailure 2、列がRoll/Pitch・Yaw・XY・Zの三次元ボクセルです。P・I・Dをすべて表示し、全8図にSuccessの判定と100%の生存率を明記しています。淡い緑と赤で領域を示し、紺の菱形がSuccess、紫の大きな印と矢印がFailureです。
+主図は上段がfailure 1、下段がfailure 2、列がRoll/Pitch・Yaw・XY・Zの三次元ボクセルです。P・I・Dをすべて表示し、全8図にSuccessの判定を明記し、Success／Failureの全点に`rate : xx.x%`を表示しています。全ての面を同じ判定ごとの透明度で描き、淡い緑と赤で領域を示し、紺の菱形がSuccess、紫の大きな印と矢印がFailureです。
 
 Zのゲインは成功・失敗飛行で同じため、紫の円でSuccessの点を囲み、同一座標であることを表示しています。点をずらしてはいません。
 

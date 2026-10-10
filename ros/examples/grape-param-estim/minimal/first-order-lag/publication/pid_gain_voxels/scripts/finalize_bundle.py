@@ -6,6 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 from pathlib import Path
 import subprocess
 from collections import Counter
@@ -88,15 +89,21 @@ def validate_figures(root, figures):
         text = subprocess.check_output(["pdftotext", str(base.with_suffix(".pdf")), "-"], text=True)
         if "gain" not in text or "Success" not in text or "Failure" not in text:
             raise ValueError("PDF axes/legend text is missing: " + str(base))
+        rate_labels = re.findall(r"rate\s*:\s*\d+\.\d%", text)
+        if len(rate_labels) != 16:
+            raise ValueError("Every reference point must display a one-decimal rate: " + str(base))
         svg = base.with_suffix(".svg").read_text()
         if "<text" not in svg:
             raise ValueError("SVG text is not editable: " + str(base))
+        if svg.count("rate : ") != 16:
+            raise ValueError("SVG reference rates are incomplete: " + str(base))
         with Image.open(base.with_suffix(".png")) as image:
             dpi = image.info.get("dpi")
             if dpi is None or min(dpi) < 399:
                 raise ValueError("PNG resolution is below 400 dpi")
             checks.append({"figure": row["figure"], "png_pixels": list(image.size), "png_dpi": list(dpi),
-                           "pdf_text_extractable": True, "svg_text_editable": True})
+                           "pdf_text_extractable": True, "svg_text_editable": True,
+                           "uniform_rate_labels": len(rate_labels)})
     return checks
 
 

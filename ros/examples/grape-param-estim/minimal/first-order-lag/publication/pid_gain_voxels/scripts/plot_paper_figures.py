@@ -80,11 +80,9 @@ def point_style(grid, name, settings):
 
 def point_text(grid, name, settings):
     mark = reference_mark(grid, name, settings['alpha'])
-    if name == 'success':
-        return 'Success\n' + label_gain(mark['gain'])
     same = np.array_equal(grid.gain('success'), grid.gain('recorded'))
-    status = 'green' if mark['classification'] == 3 else 'red'
-    return ('Failure (= Success)' if same else 'Failure') + '\n' + label_gain(mark['gain']) + '\n' + status + ' · ' + format(100 * mark['survival'], '.1f') + '%'
+    label = 'Success' if name == 'success' else 'Failure (= Success)' if same else 'Failure'
+    return label + '\n' + label_gain(mark['gain']) + '\nrate : ' + format(100 * mark['survival'], '.1f') + '%'
 
 
 def annotation_style(name, settings):
@@ -98,7 +96,7 @@ def annotation_style(name, settings):
 def title_panel(ax, grid, settings):
     mark = reference_mark(grid, 'success', settings['alpha'])
     status = 'green' if mark['classification'] == 3 else 'red'
-    ax.set_title(LABELS[grid.group] + '\nSuccess: ' + status + ' (' + format(100 * mark['survival'], '.0f') + '%)',
+    ax.set_title(LABELS[grid.group] + '\nSuccess: ' + status,
                  fontsize=11, color=settings['success_text_color' if status == 'green' else 'red_text_color'], pad=3)
 
 
@@ -158,7 +156,6 @@ def comparison_volume(grids, settings):
             rgba = np.empty((len(classes),4))
             for code,name in ((2,'red'),(3,'green')):
                 rgba[classes==code] = colors.to_rgba(settings[name],settings[name+'_opacity'])
-            rgba[np.all(faces[:,:,1]==lower_i,axis=1),3] = settings['cut_opacity']
             ax.add_collection3d(Poly3DCollection(faces, facecolors=rgba, edgecolors='none', linewidth=0,
                                  zsort='average', rasterized=True, zorder=1))
             for axis,setter in zip(cut.axes,(ax.set_xlim,ax.set_ylim,ax.set_zlim)):

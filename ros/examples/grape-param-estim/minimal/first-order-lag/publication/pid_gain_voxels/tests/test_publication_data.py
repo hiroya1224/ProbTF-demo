@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from data_io import (CASES, GROUPS, Grid, load_grid, midpoint_edges, unpack_samples,
                      survival_from_bits, exposed_faces, slice_at, marks_in_slice)
-from plot_paper_figures import PaperFigures, merge_uniform_cells
+from plot_paper_figures import boundary_segments, merge_uniform_cells
 
 
 class PublicationDataTests(unittest.TestCase):
@@ -94,7 +94,7 @@ class PublicationDataTests(unittest.TestCase):
                 self.assertEqual(values[index[free[1]], index[free[0]]], 1)
 
     def test_threshold_boundary_is_cell_edges(self):
-        segments = PaperFigures.boundary_segments(np.array([[True, False], [True, True]]),
+        segments = boundary_segments(np.array([[True, False], [True, True]]),
                                                    [0, 1, 3], [0, 2, 5])
         self.assertEqual(segments, [((1, 0), (1, 2)), ((1, 2), (3, 2))])
 

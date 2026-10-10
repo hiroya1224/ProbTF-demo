@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "files": 29,
+  "bytes": 29022121,
+  "comparison": "SHA256 and byte equality against the pre-redesign committed bundle",
+  "changed_data_files": []
+}

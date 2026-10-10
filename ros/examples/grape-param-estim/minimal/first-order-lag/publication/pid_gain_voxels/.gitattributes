@@ -2,6 +2,7 @@
 # their source scripts, numerical validation, and visual previews.
 figures/**/*.svg -diff
 interactive/index.html -diff
+index.html -diff
 
 # Keep exported tables identical on disk and in Git.
 *.csv text eol=lf

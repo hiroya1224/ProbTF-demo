@@ -1,63 +1,43 @@
 {
   "passed": true,
-  "independent_copy": true,
-  "working_directory": "/tmp",
-  "only_relative_bundle_inputs_required": true,
-  "custom_99_percent_viewer_built": true,
+  "relocated_directory": "/tmp/pid-focus-portable-check",
   "commands": [
     {
       "command": [
         "/usr/bin/python3",
-        "CLONE/scripts/plot_paper_figures.py",
-        "--case",
-        "failure2",
-        "--group",
-        "roll_pitch",
-        "--only",
-        "overview",
-        "--output",
-        "CLONE/regenerated_3d"
+        "/tmp/pid-focus-portable-check/scripts/plot_paper_figures.py"
       ],
+      "cwd": "/tmp",
       "exit_code": 0,
-      "output": "figure failure2/roll_pitch/overview_3d_oblique\nfigure failure2/roll_pitch/overview_3d_top\n"
+      "elapsed_seconds": 10.06
     },
     {
       "command": [
         "/usr/bin/python3",
-        "CLONE/scripts/plot_paper_figures.py",
-        "--case",
-        "failure1",
-        "--group",
-        "roll_pitch",
-        "--fixed-axis",
-        "I",
-        "--fixed-value",
-        "1.5",
-        "--output",
-        "CLONE/custom_slice"
+        "/tmp/pid-focus-portable-check/scripts/build_interactive.py"
       ],
+      "cwd": "/tmp",
       "exit_code": 0,
-      "output": "requested I=1.5; evaluated plane I=1.49609375\nfigure failure1/roll_pitch/slice_PD_I_1p4961_custom_nearest_node\n"
-    },
-    {
-      "command": [
-        "/usr/bin/python3",
-        "CLONE/scripts/plot_paper_figures.py",
-        "--case",
-        "failure1",
-        "--group",
-        "roll_pitch",
-        "--fixed-axis",
-        "I",
-        "--fixed-value",
-        "1.5",
-        "--output",
-        "CLONE/final_custom_slice"
-      ],
-      "exit_code": 0,
-      "output": "requested I=1.5; evaluated plane I=1.49609375\nfigure failure1/roll_pitch/slice_PD_I_1p4961_custom_nearest_node\n"
+      "elapsed_seconds": 0.5
     }
   ],
-  "final_vector_renderer_checked": true,
-  "final_renderer_sha256": "5f8105a1fb3d4af1d88995296404d811538b6ac2340a04aecfb5a7dc9aa537a1"
+  "figures": [
+    "roll_pitch_success_failure_3D.pdf",
+    "roll_pitch_success_failure_3D.png",
+    "roll_pitch_success_failure_3D.svg",
+    "roll_pitch_success_failure_PD.pdf",
+    "roll_pitch_success_failure_PD.png",
+    "roll_pitch_success_failure_PD.svg"
+  ],
+  "html_bytes_identical": true,
+  "original_repository_required": false,
+  "scripts_sha256": {
+    "pid_voxel_viewer.js": "1382a18a6cb64261ff1db056bf7606d903bd33acb94dca54f1ca322488989861",
+    "plot_paper_figures.py": "35586d10ac5515ab7585e16469e637c898f17436b37c6ac9c0ee8de24c53b0b9",
+    "build_interactive.py": "aad6c9c9ce2e56462b5fe0952bafd6c6be868100249721831ec95d2fd5e79ca0",
+    "pid_voxel_viewer.html": "5d5760f6f7bec3f9ed22591fa753416597a9814d9d55a63ee62262c52fe08cd6",
+    "data_io.py": "ffb38c635a84a985defd1280bcf43863a2a00cbe5bdef82814afb76bea7fa2c6",
+    "finalize_bundle.py": "ab963f5c9d695adacf2b43972b98dac22e3992b0e06aced9e4178e41e5b3c5c9",
+    "export_data.py": "c100cbf6883fd22a25d652b45312dfc13314a9ddcc8fa685f79048d760058f72"
+  }
 }

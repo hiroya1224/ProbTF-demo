@@ -1,8 +1,11 @@
 {
-  "html": "interactive/index.html",
-  "bytes": 8137784,
-  "sha256": "cd00498fe75b22501d6d3e05be09c94f4af562ea19b20dc99f559c608c5aaa7b",
-  "grids": 16,
-  "input": "portable NPZ archives; no original run paths needed",
-  "alpha": 0.95
+  "view": "two-case Roll/Pitch success/failure comparison",
+  "html": "index.html",
+  "sha256": "70cfa3419870a750ed902d27cdcc7f675d792bbd485aa648369701d2ad271d0d",
+  "bytes": 5353279,
+  "primary": "exact shared I=1 P-D slice",
+  "cases": [
+    "failure1",
+    "failure2"
+  ]
 }

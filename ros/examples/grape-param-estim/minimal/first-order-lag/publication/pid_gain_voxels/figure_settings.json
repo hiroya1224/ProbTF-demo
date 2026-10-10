@@ -1,9 +1,7 @@
 {
-  "alpha": 0.95,
-  "green": "#CDE8D5",
-  "red": "#F2CCD0",
-  "green_opacity": 0.32,
-  "red_opacity": 0.28,
+  "rate_colormap": "RdYlGn",
+  "white_mix": 0.75,
+  "voxel_opacity": 0.3,
   "success_color": "#264C73",
   "recorded_color": "#754B86",
   "camera_oblique": {
@@ -23,7 +21,5 @@
   ],
   "font_family": "DejaVu Sans",
   "font_size": 10,
-  "surface_raster_dpi": 220,
-  "success_text_color": "#316747",
-  "red_text_color": "#984451"
+  "surface_raster_dpi": 220
 }

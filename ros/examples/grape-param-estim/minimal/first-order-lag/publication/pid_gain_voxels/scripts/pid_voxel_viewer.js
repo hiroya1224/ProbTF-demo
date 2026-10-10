@@ -1,37 +1,38 @@
 'use strict';
 function nodeIndex(p,i,d,shape){return (p*shape[1]+i)*shape[2]+d}
 function prepare(g){
- if(g.c)return g;
- const raw=atob(g.breaks);g.b=new Uint8Array(raw.length);g.c=new Uint8Array(raw.length);
+ if(g.b)return g;
+ const raw=atob(g.breaks);g.b=new Uint8Array(raw.length);
  if(raw.length!==g.nodes)throw Error('Gain data length differs');
- for(let k=0;k<raw.length;k++){g.b[k]=raw.charCodeAt(k);g.c[k]=1-g.b[k]/g.baseline_count>=DATA.alpha?3:2}
+ for(let k=0;k<raw.length;k++)g.b[k]=raw.charCodeAt(k);
  return g;
 }
 function surfaceGeometry(g,cutaway=true){
  prepare(g);const start=cutaway?g.cut_index:0;
- const out={2:{x:[],y:[],z:[],i:[],j:[],k:[],customdata:[],faces:0},3:{x:[],y:[],z:[],i:[],j:[],k:[],customdata:[],faces:0},
-            cut2:{x:[],y:[],z:[],i:[],j:[],k:[],customdata:[],faces:0},cut3:{x:[],y:[],z:[],i:[],j:[],k:[],customdata:[],faces:0}};
+ const out={surface:{x:[],y:[],z:[],i:[],j:[],k:[],intensity:[],customdata:[],faces:0},
+            cut:{x:[],y:[],z:[],i:[],j:[],k:[],intensity:[],customdata:[],faces:0}};
  const corners=[[[0,0,0],[0,0,1],[0,1,1],[0,1,0]],[[1,0,0],[1,1,0],[1,1,1],[1,0,1]],
  [[0,0,0],[1,0,0],[1,0,1],[0,0,1]],[[0,1,0],[0,1,1],[1,1,1],[1,1,0]],
  [[0,0,0],[0,1,0],[1,1,0],[1,0,0]],[[0,0,1],[1,0,1],[1,1,1],[0,1,1]]];
  const neighbors=[[-1,0,0],[1,0,0],[0,-1,0],[0,1,0],[0,0,-1],[0,0,1]];
- function cls(p,i,d){return p<0||i<start||d<0||p>=g.shape[0]||i>=g.shape[1]||d>=g.shape[2]?0:g.c[nodeIndex(p,i,d,g.shape)]}
+ function breaks(p,i,d){return p<0||i<start||d<0||p>=g.shape[0]||i>=g.shape[1]||d>=g.shape[2]?-1:g.b[nodeIndex(p,i,d,g.shape)]}
  for(let p=0;p<g.shape[0];p++)for(let i=start;i<g.shape[1];i++)for(let d=0;d<g.shape[2];d++){
-  const k=nodeIndex(p,i,d,g.shape),c=g.c[k];
-  const detail=[g.axes[0][p],g.axes[1][i],g.axes[2][d],100*(1-g.b[k]/g.baseline_count)];
+  const k=nodeIndex(p,i,d,g.shape),b=g.b[k],rate=1-b/g.baseline_count;
+  const detail=[g.axes[0][p],g.axes[1][i],g.axes[2][d],100*rate];
   for(let f=0;f<6;f++){
-   const step=neighbors[f];if(cls(p+step[0],i+step[1],d+step[2])===c)continue;
-   const mesh=out[cutaway&&i===start&&f===2?'cut'+c:c],offset=mesh.x.length;
+   const step=neighbors[f];if(breaks(p+step[0],i+step[1],d+step[2])===b)continue;
+   const mesh=out[cutaway&&i===start&&f===2?'cut':'surface'],offset=mesh.x.length;
    for(const corner of corners[f]){mesh.x.push(g.edges[0][p+corner[0]]);mesh.y.push(cutaway&&i+corner[1]===start?g.cut_i:g.edges[1][i+corner[1]]);mesh.z.push(g.edges[2][d+corner[2]]);mesh.customdata.push(detail)}
-   mesh.i.push(offset,offset);mesh.j.push(offset+1,offset+2);mesh.k.push(offset+2,offset+3);mesh.faces++;
+   mesh.i.push(offset,offset);mesh.j.push(offset+1,offset+2);mesh.k.push(offset+2,offset+3);mesh.intensity.push(rate,rate);mesh.faces++;
   }
  }
  return out;
 }
 function plotTraces(g,cutaway=true){
  const mesh=surfaceGeometry(g,cutaway),traces=[];
- for(const key of [2,3,'cut2','cut3']){const code=String(key).endsWith('3')?3:2,m=mesh[key],name=code===3?'green':'red';
-  traces.push({type:'mesh3d',...m,color:DATA.styles[name],opacity:DATA.styles[name+'_opacity'],flatshading:true,
+ for(const key of ['surface','cut']){const m=mesh[key];
+  traces.push({type:'mesh3d',...m,intensitymode:'cell',colorscale:DATA.colorscale,cmin:0,cmax:1,
+   showscale:false,opacity:DATA.styles.voxel_opacity,flatshading:true,
    lighting:{ambient:1,diffuse:0,specular:0,fresnel:0,roughness:1},showlegend:false,
    hovertemplate:'P=%{customdata[0]}<br>I=%{customdata[1]}<br>D=%{customdata[2]}<br>rate : %{customdata[3]:.1f}%<extra></extra>'});
  }

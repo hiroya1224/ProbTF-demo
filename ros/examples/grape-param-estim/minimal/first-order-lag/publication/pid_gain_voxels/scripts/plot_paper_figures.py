@@ -11,13 +11,14 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import colors
-from matplotlib.collections import LineCollection, PolyCollection
-from matplotlib.patches import Patch
+from matplotlib.collections import PolyCollection
+from matplotlib.cm import ScalarMappable
 from matplotlib.ticker import MaxNLocator
 from mpl_toolkits.mplot3d import proj3d
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 from data_io import ROOT, CASES, GROUPS, Grid, LABELS, load_grid, slice_at, exposed_faces
+from rate_colors import rate_colormap
 
 def merge_uniform_cells(data, x_edges, y_edges):
     """Merge only exactly equal adjacent cells into axis-aligned rectangles.
@@ -46,27 +47,12 @@ def merge_uniform_cells(data, x_edges, y_edges):
 
 
 
-def boundary_segments(classes, x_edges, y_edges):
-    segments = []
-    rows, cols = np.nonzero(classes[:, :-1] != classes[:, 1:])
-    for row, col in zip(rows, cols):
-        x = x_edges[col + 1]
-        segments.append(((x, y_edges[row]), (x, y_edges[row + 1])))
-    rows, cols = np.nonzero(classes[:-1, :] != classes[1:, :])
-    for row, col in zip(rows, cols):
-        y = y_edges[row + 1]
-        segments.append(((x_edges[col], y), (x_edges[col + 1], y)))
-    return segments
-
-
 def label_gain(gain):
     return "(" + ", ".join(format(float(x), ".5g") for x in gain) + ")"
 
 
-def reference_mark(grid, name, alpha):
-    mark = grid.mark(name)
-    mark['classification'] = 3 if mark['survival'] >= alpha else 2
-    return mark
+def reference_mark(grid, name):
+    return grid.mark(name)
 
 
 def point_style(grid, name, settings):
@@ -79,7 +65,7 @@ def point_style(grid, name, settings):
 
 
 def point_text(grid, name, settings):
-    mark = reference_mark(grid, name, settings['alpha'])
+    mark = reference_mark(grid, name)
     label = 'Success' if name == 'success' else 'Failure'
     return label + '\n' + label_gain(mark['gain']) + '\nrate : ' + format(100 * mark['survival'], '.1f') + '%'
 
@@ -97,6 +83,7 @@ def title_panel(ax, grid):
 
 
 def comparison_slice(grids, settings):
+    cmap = rate_colormap(settings)
     fig, axes = plt.subplots(2, 4, figsize=(16, 8.6))
     fig.subplots_adjust(left=.055, right=.982, top=.87, bottom=.15, wspace=.34, hspace=.48)
     for row, case in enumerate(CASES):
@@ -107,12 +94,10 @@ def comparison_slice(grids, settings):
             if grid.gain('recorded')[1] != grid.axes[1][index]:
                 raise ValueError('Both references must lie on the exact I plane')
             _, survival, edges = slice_at(grid, 1, index)
-            green = survival >= settings['alpha']
-            vertices, values, _ = merge_uniform_cells(green.astype(float), *edges)
+            vertices, values, _ = merge_uniform_cells(survival, *edges)
             ax.add_collection(PolyCollection(vertices, array=values,
-                cmap=colors.ListedColormap([settings['red'], settings['green']]), norm=colors.Normalize(0, 1),
+                cmap=cmap, norm=colors.Normalize(0, 1),
                 edgecolors='none', linewidth=0, antialiased=False))
-            ax.add_collection(LineCollection(boundary_segments(green, *edges), colors='#62736B', linewidths=.65))
             for edge, setter in zip(edges, (ax.set_xlim, ax.set_ylim)):
                 span = edge[-1] - edge[0]
                 setter(edge[0] - .10 * span, edge[-1] + .10 * span)
@@ -136,6 +121,7 @@ def comparison_slice(grids, settings):
 
 
 def comparison_volume(grids, settings):
+    cmap = rate_colormap(settings)
     fig = plt.figure(figsize=(16, 8.6))
     for row, case in enumerate(CASES):
         fig.text(.013, .69 - row * .425, case.replace('failure', 'Failure '), rotation=90, ha='center', va='center', fontsize=14)
@@ -150,10 +136,9 @@ def comparison_volume(grids, settings):
             cut = Grid(grid.case, grid.group, grid.size,
                 {'p':grid.axes[0], 'i':grid.axes[1][fixed:], 'd':grid.axes[2],
                  'survival_fraction':grid.survival[:,fixed:,:]}, grid.references, grid.metadata)
-            faces, classes = exposed_faces(cut, settings['alpha'])
-            rgba = np.empty((len(classes),4))
-            for code,name in ((2,'red'),(3,'green')):
-                rgba[classes==code] = colors.to_rgba(settings[name],settings[name+'_opacity'])
+            faces, rates = exposed_faces(cut)
+            rgba = cmap(rates)
+            rgba[:, 3] = settings['voxel_opacity']
             ax.add_collection3d(Poly3DCollection(faces, facecolors=rgba, edgecolors='none', linewidth=0,
                                  zsort='average', rasterized=True, zorder=1))
             for axis,setter in zip(cut.axes,(ax.set_xlim,ax.set_ylim,ax.set_zlim)):
@@ -183,12 +168,16 @@ def comparison_volume(grids, settings):
 
 
 def save_comparison(fig, grids, settings, output, view):
-    all_success_green=all(reference_mark(grid,'success',settings['alpha'])['classification']==3 for grid in grids.values())
-    title='All PID gains: Success is in the green region on every axis' if all_success_green else 'All PID gains: success and failure reference points'
+    all_success_green=all(reference_mark(grid,'success')['survival']==1 for grid in grids.values())
+    title='All PID gains: Success is green at 100% on every axis' if all_success_green else 'All PID gains: success and failure reference points'
     fig.suptitle(title,y=.99,fontsize=17)
-    fig.legend(handles=[Patch(facecolor=settings['green'],label='Green region: survival ≥ %.0f%%'%(100*settings['alpha'])),
-                        Patch(facecolor=settings['red'],label='Red region: survival < %.0f%%'%(100*settings['alpha']))],
-               loc='lower center',bbox_to_anchor=(.5,.055),ncol=2,frameon=False,fontsize=11)
+    bar_axes = fig.add_axes([.375, .071, .25, .012])
+    bar = fig.colorbar(ScalarMappable(norm=colors.Normalize(0, 1), cmap=rate_colormap(settings)),
+                      cax=bar_axes, orientation='horizontal', ticks=[0, .25, .5, .75, 1])
+    bar.ax.set_xticklabels(['0%', '25%', '50%', '75%', '100%'])
+    bar.ax.tick_params(labelsize=10, length=2, pad=2)
+    bar.outline.set_linewidth(.5)
+    fig.text(.36, .077, 'rate (%)', ha='right', va='center', fontsize=11)
     plane_note='3D volumes are cut at each shared reference I to show both points.' if view=='3D' else 'Each exact P–D slice passes through both reference points.'
     fig.text(.5,.03,plane_note+' Purple marks identify the failure-flight gains; Z gains coincide.',ha='center',fontsize=10,color='#52606B')
     fig.text(.5,.007,'Each case uses its own posterior. Other controller gains are fixed at the successful-flight values.',ha='center',fontsize=9,color='#52606B')
@@ -199,8 +188,10 @@ def save_comparison(fig, grids, settings, output, view):
         if path.stat().st_size>=50_000_000:raise ValueError('File exceeds 50 MB')
     plt.close(fig)
     return {'figure':name,'groups':list(GROUPS),'cases':list(CASES),'view':view,'panel_count':8,
-            'caption':'The success reference is green in all eight case/axis volumes. Recorded failure-flight group gains are explicitly located; only Roll/Pitch is red under the single-group substitutions.',
-            'references':{case:{group:{name:reference_mark(grids[case,group],name,settings['alpha']) for name in ('success','recorded')} for group in GROUPS} for case in CASES}}
+            'caption':'The success reference has rate 100% on every axis. All voxel and slice colors use the same continuous 0–100% rate scale; recorded failure-flight gains are explicitly located.',
+            'color_encoding':{'quantity':'survival_fraction','range':[0,1],'colormap':settings['rate_colormap'],
+                              'white_mix':settings['white_mix'],'continuous':True},
+            'references':{case:{group:{name:reference_mark(grids[case,group],name) for name in ('success','recorded')} for group in GROUPS} for case in CASES}}
 
 
 def main():
@@ -226,7 +217,7 @@ def main():
 
 
 def all_success(grids,settings):
-    return all(reference_mark(grid,'success',settings['alpha'])['classification']==3 for grid in grids.values())
+    return all(reference_mark(grid,'success')['survival']==1 for grid in grids.values())
 
 
 if __name__=='__main__':

@@ -1,5 +1,6 @@
 """Scientific decisions, geometry and reference-slice invariants."""
 import sys
+import json
 from pathlib import Path
 import unittest
 import numpy as np
@@ -8,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from data_io import (CASES, GROUPS, Grid, load_grid, midpoint_edges, unpack_samples,
                      survival_from_bits, exposed_faces, slice_at, marks_in_slice)
-from plot_paper_figures import boundary_segments, merge_uniform_cells
+from plot_paper_figures import merge_uniform_cells
+from rate_colors import rate_colormap, rate_colorscale
 
 
 class PublicationDataTests(unittest.TestCase):
@@ -45,7 +47,7 @@ class PublicationDataTests(unittest.TestCase):
                     self.assertTrue(np.array_equal(stable, np.isfinite(radii) & (radii < 1)))
                     self.assertTrue(np.array_equal(finite, np.isfinite(radii)))
                 self.assertEqual(grid.mark("success")["survival"], 1)
-                self.assertEqual(grid.mark("success")["classification"], 3)
+                self.assertNotIn("classification", grid.mark("success"))
         self.assertEqual(load_grid("failure1", "roll_pitch").mark("recorded")["breaks"], 56)
         self.assertEqual(load_grid("failure2", "roll_pitch").mark("recorded")["breaks"], 110)
         self.assertEqual(load_grid("failure1", "yaw").mark("recorded")["breaks"], 4)
@@ -65,15 +67,16 @@ class PublicationDataTests(unittest.TestCase):
         axes = [np.array([0., 2.]), np.array([0., 1.]), np.array([0., 3.])]
         grid = Grid("synthetic", "xy", 2, {"p": axes[0], "i": axes[1], "d": axes[2],
                     "survival_fraction": np.ones((2, 2, 2))}, {}, {})
-        faces, codes = exposed_faces(grid)
+        faces, rates = exposed_faces(grid)
         self.assertEqual(len(faces), 24)
         for k, axis in enumerate(axes):
             self.assertGreaterEqual(faces[..., k].min(), axis[0])
             self.assertLessEqual(faces[..., k].max(), axis[-1])
-        grid.arrays["survival_fraction"][0, 0, 0] = .5
-        faces, codes = exposed_faces(grid)
-        self.assertEqual(np.count_nonzero(codes == 2), 6)
-        self.assertEqual(np.count_nonzero(codes == 3), 24)
+        grid.arrays["survival_fraction"][:] = .99
+        grid.arrays["survival_fraction"][0, 0, 0] = .96
+        faces, rates = exposed_faces(grid)
+        self.assertEqual(np.count_nonzero(rates == .96), 6)
+        self.assertEqual(np.count_nonzero(rates == .99), 24)
         edges = midpoint_edges([0, .2, 1, 3])
         np.testing.assert_array_equal(edges, [0, .1, .6, 2, 3])
         for bad in ([0, 0, 1], [1, 0], [1]):
@@ -93,10 +96,19 @@ class PublicationDataTests(unittest.TestCase):
                 self.assertEqual(values.shape, (len(grid.axes[free[1]]), len(grid.axes[free[0]])))
                 self.assertEqual(values[index[free[1]], index[free[0]]], 1)
 
-    def test_threshold_boundary_is_cell_edges(self):
-        segments = boundary_segments(np.array([[True, False], [True, True]]),
-                                                   [0, 1, 3], [0, 2, 5])
-        self.assertEqual(segments, [((1, 0), (1, 2)), ((1, 2), (3, 2))])
+    def test_rate_palette_is_continuous_across_95_percent(self):
+        settings = json.loads((ROOT / 'figure_settings.json').read_text())
+        cmap = rate_colormap(settings)
+        palette = rate_colorscale(settings)
+        self.assertNotIn('alpha', settings)
+        self.assertEqual(palette[0][0], 0)
+        self.assertEqual(palette[-1][0], 1)
+        rgb = cmap([.94, .95, .96])[:, :3]
+        self.assertTrue(np.all(np.linalg.norm(np.diff(rgb, axis=0), axis=1) > 0))
+        self.assertLess(np.max(np.abs(np.diff(rgb, axis=0))), .02)
+        for q in (.141, .559, .969, .984):
+            self.assertFalse(np.array_equal(cmap(q), cmap(0)))
+            self.assertFalse(np.array_equal(cmap(q), cmap(1)))
 
     def test_vector_cell_merging_preserves_every_node_value(self):
         for case in CASES:
@@ -105,7 +117,7 @@ class PublicationDataTests(unittest.TestCase):
                 for axis in range(3):
                     index = grid.index(grid.gain("success"))[axis]
                     _, data, edges = slice_at(grid, axis, index)
-                    for values in (data, (data >= .95).astype(float)):
+                    for values in (data,):
                         vertices, colors, rectangles = merge_uniform_cells(values, *edges)
                         restored = np.full(values.shape, np.nan)
                         coverage = np.zeros(values.shape, dtype=int)

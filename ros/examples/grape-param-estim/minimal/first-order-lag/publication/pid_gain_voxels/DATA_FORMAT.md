@@ -8,8 +8,8 @@ Read any archive with `numpy.load(path, allow_pickle=False)`. Gain-grid dimensio
 | `survival_fraction` | float64 grid | Q(g) on the fixed success-stable cohort |
 | `caused_break_count` | int32 grid | Unstable or unresolved candidates inside the conditioning set |
 | `conditional_unresolved_count` | int32 grid | Nonfinite candidates inside the conditioning set |
-| `classification` | uint8 grid | 2 = below 0.95, 3 = at least 0.95; original default classification |
-| `alpha` | scalar float64 | Default threshold, 0.95 |
+| `classification` | uint8 grid | Historical 2/3 classification at 0.95; preserved from the original run, unused by plotting |
+| `alpha` | scalar float64 | Historical threshold, 0.95; unused by plotting |
 | `baseline_stable_mask` | bool, 128 | The fixed conditioning-set membership |
 | `baseline_spectral_radius` | float64, 128 | Radii for the full successful-flight controller |
 | `sample_count` | scalar int32 | 128 |
@@ -22,6 +22,8 @@ Read any archive with `numpy.load(path, allow_pickle=False)`. Gain-grid dimensio
 | `near_kink_count` | int32 grid | Original near-kink diagnostic count |
 | `success_spectral_radius` | float64, 128 | Exact per-plant radii at this group's successful reference node |
 | `recorded_case_spectral_radius` | float64, 128 | Exact radii at the hybrid controller using this group's recorded triple |
+
+The figures use `survival_fraction` directly with a common continuous 0–100% color scale. The archived `classification` and `alpha` fields are retained for reproducibility and do not control colors.
 
 Unpack and recompute the original survival fraction:
 
@@ -37,7 +39,7 @@ with np.load('data/failure1/roll_pitch/grid_65.npz') as a:
     breaks = np.count_nonzero(~stable[..., baseline], axis=-1)
     survival = 1.0 - breaks / np.count_nonzero(baseline)
     assert np.array_equal(survival, a['survival_fraction'])
-    green_at_99_percent = survival >= .99
+    rate_percent = 100 * survival
 ```
 
 Sample-weighted or subset analyses can use the unpacked decisions with the same sample indices and a clearly stated conditioning rule. Changes to sample selection change the meaning of the resulting fraction; keep them distinct from the published default cohort.

@@ -7,6 +7,7 @@
   "cases_separate": true,
   "panels_per_figure": 8,
   "all_success_green": true,
+  "color_encoding": "continuous rate on [0,1], no threshold",
   "comparison": {
     "failure1": {
       "roll_pitch": {
@@ -18,8 +19,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "recorded": {
           "gain": [
@@ -29,8 +29,7 @@
           ],
           "survival": 0.5590551181102362,
           "breaks": 56,
-          "unresolved": 0,
-          "classification": 2
+          "unresolved": 0
         }
       },
       "yaw": {
@@ -42,8 +41,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "recorded": {
           "gain": [
@@ -53,8 +51,7 @@
           ],
           "survival": 0.9685039370078741,
           "breaks": 4,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       "xy": {
@@ -66,8 +63,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "recorded": {
           "gain": [
@@ -77,8 +73,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       "z": {
@@ -90,8 +85,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "recorded": {
           "gain": [
@@ -101,8 +95,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       }
     },
@@ -116,8 +109,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "recorded": {
           "gain": [
@@ -127,8 +119,7 @@
           ],
           "survival": 0.140625,
           "breaks": 110,
-          "unresolved": 0,
-          "classification": 2
+          "unresolved": 0
         }
       },
       "yaw": {
@@ -140,8 +131,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "recorded": {
           "gain": [
@@ -151,8 +141,7 @@
           ],
           "survival": 0.984375,
           "breaks": 2,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       "xy": {
@@ -164,8 +153,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "recorded": {
           "gain": [
@@ -175,8 +163,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       "z": {
@@ -188,8 +175,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "recorded": {
           "gain": [
@@ -199,8 +185,7 @@
           ],
           "survival": 1.0,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       }
     }
@@ -259,13 +244,14 @@
       "fine_nodes": 291852,
       "shared_nodes": 40460,
       "shared_survival_values_equal": 40460,
-      "shared_classifications_equal": 40460,
       "max_shared_survival_difference": 0.0,
       "shared_all_sample_stable_bits_equal": true,
-      "coarse_green_nodes": 34847,
-      "fine_green_nodes": 253017,
-      "coarse_red_nodes": 5613,
-      "fine_red_nodes": 38835
+      "coarse_distinct_rates": 127,
+      "fine_distinct_rates": 128,
+      "coarse_min_rate": 0.0,
+      "coarse_max_rate": 1.0,
+      "fine_min_rate": 0.0,
+      "fine_max_rate": 1.0
     },
     {
       "case": "failure1",
@@ -274,13 +260,14 @@
       "fine_nodes": 283140,
       "shared_nodes": 38148,
       "shared_survival_values_equal": 38148,
-      "shared_classifications_equal": 38148,
       "max_shared_survival_difference": 0.0,
       "shared_all_sample_stable_bits_equal": true,
-      "coarse_green_nodes": 24202,
-      "fine_green_nodes": 180368,
-      "coarse_red_nodes": 13946,
-      "fine_red_nodes": 102772
+      "coarse_distinct_rates": 128,
+      "fine_distinct_rates": 128,
+      "coarse_min_rate": 0.0,
+      "coarse_max_rate": 1.0,
+      "fine_min_rate": 0.0,
+      "fine_max_rate": 1.0
     },
     {
       "case": "failure1",
@@ -289,13 +276,14 @@
       "fine_nodes": 296274,
       "shared_nodes": 41650,
       "shared_survival_values_equal": 41650,
-      "shared_classifications_equal": 41650,
       "max_shared_survival_difference": 0.0,
       "shared_all_sample_stable_bits_equal": true,
-      "coarse_green_nodes": 41650,
-      "fine_green_nodes": 296274,
-      "coarse_red_nodes": 0,
-      "fine_red_nodes": 0
+      "coarse_distinct_rates": 1,
+      "fine_distinct_rates": 1,
+      "coarse_min_rate": 1.0,
+      "coarse_max_rate": 1.0,
+      "fine_min_rate": 1.0,
+      "fine_max_rate": 1.0
     },
     {
       "case": "failure1",
@@ -304,13 +292,14 @@
       "fine_nodes": 283140,
       "shared_nodes": 38148,
       "shared_survival_values_equal": 38148,
-      "shared_classifications_equal": 38148,
       "max_shared_survival_difference": 0.0,
       "shared_all_sample_stable_bits_equal": true,
-      "coarse_green_nodes": 27535,
-      "fine_green_nodes": 204835,
-      "coarse_red_nodes": 10613,
-      "fine_red_nodes": 78305
+      "coarse_distinct_rates": 50,
+      "fine_distinct_rates": 110,
+      "coarse_min_rate": 0.0,
+      "coarse_max_rate": 1.0,
+      "fine_min_rate": 0.0,
+      "fine_max_rate": 1.0
     },
     {
       "case": "failure2",
@@ -319,13 +308,14 @@
       "fine_nodes": 291852,
       "shared_nodes": 40460,
       "shared_survival_values_equal": 40460,
-      "shared_classifications_equal": 40460,
       "max_shared_survival_difference": 0.0,
       "shared_all_sample_stable_bits_equal": true,
-      "coarse_green_nodes": 28347,
-      "fine_green_nodes": 206525,
-      "coarse_red_nodes": 12113,
-      "fine_red_nodes": 85327
+      "coarse_distinct_rates": 128,
+      "fine_distinct_rates": 129,
+      "coarse_min_rate": 0.0,
+      "coarse_max_rate": 1.0,
+      "fine_min_rate": 0.0,
+      "fine_max_rate": 1.0
     },
     {
       "case": "failure2",
@@ -334,13 +324,14 @@
       "fine_nodes": 283140,
       "shared_nodes": 38148,
       "shared_survival_values_equal": 38148,
-      "shared_classifications_equal": 38148,
       "max_shared_survival_difference": 0.0,
       "shared_all_sample_stable_bits_equal": true,
-      "coarse_green_nodes": 31297,
-      "fine_green_nodes": 233532,
-      "coarse_red_nodes": 6851,
-      "fine_red_nodes": 49608
+      "coarse_distinct_rates": 129,
+      "fine_distinct_rates": 129,
+      "coarse_min_rate": 0.0,
+      "coarse_max_rate": 1.0,
+      "fine_min_rate": 0.0,
+      "fine_max_rate": 1.0
     },
     {
       "case": "failure2",
@@ -349,13 +340,14 @@
       "fine_nodes": 296274,
       "shared_nodes": 41650,
       "shared_survival_values_equal": 41650,
-      "shared_classifications_equal": 41650,
       "max_shared_survival_difference": 0.0,
       "shared_all_sample_stable_bits_equal": true,
-      "coarse_green_nodes": 41649,
-      "fine_green_nodes": 296273,
-      "coarse_red_nodes": 1,
-      "fine_red_nodes": 1
+      "coarse_distinct_rates": 2,
+      "fine_distinct_rates": 2,
+      "coarse_min_rate": 0.921875,
+      "coarse_max_rate": 1.0,
+      "fine_min_rate": 0.921875,
+      "fine_max_rate": 1.0
     },
     {
       "case": "failure2",
@@ -364,13 +356,14 @@
       "fine_nodes": 283140,
       "shared_nodes": 38148,
       "shared_survival_values_equal": 38148,
-      "shared_classifications_equal": 38148,
       "max_shared_survival_difference": 0.0,
       "shared_all_sample_stable_bits_equal": true,
-      "coarse_green_nodes": 19531,
-      "fine_green_nodes": 145524,
-      "coarse_red_nodes": 18617,
-      "fine_red_nodes": 137616
+      "coarse_distinct_rates": 28,
+      "fine_distinct_rates": 86,
+      "coarse_min_rate": 0.0,
+      "coarse_max_rate": 1.0,
+      "fine_min_rate": 0.0,
+      "fine_max_rate": 1.0
     }
   ],
   "figure_checks": [
@@ -386,7 +379,11 @@
       ],
       "pdf_text_extractable": true,
       "svg_text_editable": true,
-      "uniform_rate_labels": 16
+      "uniform_rate_labels": 16,
+      "continuous_rate_scale": [
+        0,
+        1
+      ]
     },
     {
       "figure": "all_pid_success_failure_PD",
@@ -400,7 +397,11 @@
       ],
       "pdf_text_extractable": true,
       "svg_text_editable": true,
-      "uniform_rate_labels": 16
+      "uniform_rate_labels": 16,
+      "continuous_rate_scale": [
+        0,
+        1
+      ]
     }
   ]
 }

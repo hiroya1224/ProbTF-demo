@@ -47,13 +47,14 @@ def resolution_report(root):
             row = {"case": case, "group": group, "coarse_nodes": coarse.survival.size,
                    "fine_nodes": fine.survival.size, "shared_nodes": diff.size,
                    "shared_survival_values_equal": int(np.count_nonzero(diff == 0)),
-                   "shared_classifications_equal": int(np.count_nonzero(coarse.classes() == fine.classes()[selected])),
                    "max_shared_survival_difference": float(diff.max()),
                    "shared_all_sample_stable_bits_equal": bool(np.array_equal(coarse.arrays["stable_bits"], fine.arrays["stable_bits"][selected])),
-                   "coarse_green_nodes": int(np.count_nonzero(coarse.classes() == 3)),
-                   "fine_green_nodes": int(np.count_nonzero(fine.classes() == 3)),
-                   "coarse_red_nodes": int(np.count_nonzero(coarse.classes() == 2)),
-                   "fine_red_nodes": int(np.count_nonzero(fine.classes() == 2))}
+                   "coarse_distinct_rates": int(np.unique(coarse.survival).size),
+                   "fine_distinct_rates": int(np.unique(fine.survival).size),
+                   "coarse_min_rate": float(coarse.survival.min()),
+                   "coarse_max_rate": float(coarse.survival.max()),
+                   "fine_min_rate": float(fine.survival.min()),
+                   "fine_max_rate": float(fine.survival.max())}
             rows.append(row)
     with (root / "validation" / "resolution_comparison.csv").open("w", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0]), lineterminator="\n")
@@ -74,11 +75,10 @@ def validate_figures(root, figures):
                 for name in ('success', 'recorded'):
                     if row['references'][case][group][name] != grid.mark(name):
                         raise ValueError('Plotted reference differs from its exact source node')
-                if grid.mark('success')['classification'] != 3:
+                if grid.mark('success')['survival'] != 1:
                     raise ValueError('The all-axis success-green claim is not supported')
-                expected = 2 if group == 'roll_pitch' else 3
-                if grid.mark('recorded')['classification'] != expected:
-                    raise ValueError('Recorded reference classification changed')
+        if row['color_encoding']['range'] != [0, 1] or row['color_encoding']['continuous'] is not True:
+            raise ValueError('Every figure must use the continuous 0–100% rate scale')
     checks = []
     from PIL import Image
     for row in figures:
@@ -89,6 +89,8 @@ def validate_figures(root, figures):
         text = subprocess.check_output(["pdftotext", str(base.with_suffix(".pdf")), "-"], text=True)
         if "gain" not in text or "Success" not in text or "Failure" not in text:
             raise ValueError("PDF axes/legend text is missing: " + str(base))
+        if '95%' in text or not all(label in text for label in ('0%', '25%', '50%', '75%', '100%')):
+            raise ValueError('Missing continuous rate colorbar or obsolete threshold legend: '+str(base))
         rate_labels = re.findall(r"rate\s*:\s*\d+\.\d%", text)
         if len(rate_labels) != 16:
             raise ValueError("Every reference point must display a one-decimal rate: " + str(base))
@@ -103,7 +105,7 @@ def validate_figures(root, figures):
                 raise ValueError("PNG resolution is below 400 dpi")
             checks.append({"figure": row["figure"], "png_pixels": list(image.size), "png_dpi": list(dpi),
                            "pdf_text_extractable": True, "svg_text_editable": True,
-                           "uniform_rate_labels": len(rate_labels)})
+                           "uniform_rate_labels": len(rate_labels), "continuous_rate_scale": [0, 1]})
     return checks
 
 
@@ -147,6 +149,7 @@ def main():
         report = {"passed": True, "figure_sets": len(figures), "figure_files": 3 * len(figures),
                   "primary_figure": "figures/all_pid_success_failure_3D.png",
                   "primary_image_count": 1, "cases_separate": True, "panels_per_figure": 8, "all_success_green": True,
+                  "color_encoding": "continuous rate on [0,1], no threshold",
                   "comparison": {case: {group: {name: load_grid(case, group, 65, args.root).mark(name)
                                                  for name in ('success', 'recorded')} for group in GROUPS} for case in CASES},
                   "finest_grid_shapes": {case: {group: list(load_grid(case, group, 65, args.root).survival.shape)

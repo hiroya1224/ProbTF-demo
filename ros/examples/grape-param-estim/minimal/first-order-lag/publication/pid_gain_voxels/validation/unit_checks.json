@@ -1,18 +1,21 @@
 {
   "passed": true,
+  "python": {
+    "command": "python3 -m unittest discover -s tests -p test_publication_data.py",
+    "tests": 7,
+    "exit_code": 0
+  },
   "javascript": {
     "command": "node tests/test_pid_voxel_viewer.cjs index.html",
-    "exit_code": 0,
-    "cases": 2,
-    "groups": 4,
-    "panels": 8,
-    "all_success_green": true,
-    "failure_coordinates_exact": true,
-    "full_and_cut_faces_match_saved_counts": true
+    "exit_code": 0
   },
-  "publication_files": {
-    "all_reference_points_have_one_decimal_rate": true,
-    "rates_per_figure": 16,
-    "point_values_unchanged": true
-  }
+  "checks": [
+    "original continuous rates recovered from stable bits at all 16 grids",
+    "exact nonuniform voxel and slice geometry",
+    "distinct rates retained across the former 95% split",
+    "continuous pastel palette shared by 3D and slices",
+    "per-triangle cell rates equal original node values",
+    "all success rates 100%",
+    "failure marker coordinates preserved"
+  ]
 }

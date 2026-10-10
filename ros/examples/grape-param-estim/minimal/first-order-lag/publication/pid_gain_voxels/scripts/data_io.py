@@ -65,6 +65,7 @@ class Grid:
         return int(self.arrays["baseline_stable_mask"].sum())
 
     def classes(self, alpha=.95):
+        """Historical archive classification; visualization uses survival directly."""
         if not 0 < alpha <= 1:
             raise ValueError("alpha must lie in (0, 1]")
         return np.where(self.survival >= alpha, 3, 2).astype(np.uint8)
@@ -87,8 +88,7 @@ class Grid:
         index = self.index(gain)
         return {"gain": gain.tolist(), "survival": float(self.survival[index]),
                 "breaks": int(self.arrays["caused_break_count"][index]),
-                "unresolved": int(self.arrays["conditional_unresolved_count"][index]),
-                "classification": int(self.classes()[index])}
+                "unresolved": int(self.arrays["conditional_unresolved_count"][index])}
 
 
 def load_grid(case, group, size=65, root=ROOT):
@@ -113,31 +113,29 @@ def marks_in_slice(grid, fixed_axis, fixed_index):
     return [name for name in ("success", "recorded") if grid.gain(name)[fixed_axis] == value]
 
 
-def exposed_faces(grid, alpha=.95):
-    """Exact quads; hide same-class neighbors, retain the two sides of a boundary.
+def exposed_faces(grid):
+    """Exact quads and rates; remove only faces between equal-rate neighbors.
 
     Faces describe a piecewise-constant visualization of evaluated nodes, not a
     stability certificate for every gain in their volume.
     """
-    classes = grid.classes(alpha)
+    values = grid.survival
     edges = grid.edges
-    all_faces, all_classes = [], []
-    for code in (2, 3):
-        mask = classes == code
-        for axis in range(3):
-            free = [k for k in range(3) if k != axis]
-            for side in (0, 1):
-                neighbor = np.zeros(mask.shape, dtype=bool)
-                dst, src = [slice(None)] * 3, [slice(None)] * 3
-                dst[axis] = slice(1, None) if side == 0 else slice(None, -1)
-                src[axis] = slice(None, -1) if side == 0 else slice(1, None)
-                neighbor[tuple(dst)] = mask[tuple(src)]
-                locations = np.argwhere(mask & ~neighbor)
-                faces = np.empty((len(locations), 4, 3), dtype=float)
-                faces[:, :, axis] = edges[axis][locations[:, axis] + side, None]
-                for corner, (a, b) in enumerate(((0, 0), (1, 0), (1, 1), (0, 1))):
-                    faces[:, corner, free[0]] = edges[free[0]][locations[:, free[0]] + a]
-                    faces[:, corner, free[1]] = edges[free[1]][locations[:, free[1]] + b]
-                all_faces.append(faces)
-                all_classes.append(np.full(len(faces), code, dtype=np.uint8))
-    return np.concatenate(all_faces), np.concatenate(all_classes)
+    all_faces, all_rates = [], []
+    for axis in range(3):
+        free = [k for k in range(3) if k != axis]
+        for side in (0, 1):
+            visible = np.ones(values.shape, dtype=bool)
+            dst, src = [slice(None)] * 3, [slice(None)] * 3
+            dst[axis] = slice(1, None) if side == 0 else slice(None, -1)
+            src[axis] = slice(None, -1) if side == 0 else slice(1, None)
+            visible[tuple(dst)] = values[tuple(dst)] != values[tuple(src)]
+            locations = np.argwhere(visible)
+            faces = np.empty((len(locations), 4, 3), dtype=float)
+            faces[:, :, axis] = edges[axis][locations[:, axis] + side, None]
+            for corner, (a, b) in enumerate(((0, 0), (1, 0), (1, 1), (0, 1))):
+                faces[:, corner, free[0]] = edges[free[0]][locations[:, free[0]] + a]
+                faces[:, corner, free[1]] = edges[free[1]][locations[:, free[1]] + b]
+            all_faces.append(faces)
+            all_rates.append(values[tuple(locations.T)])
+    return np.concatenate(all_faces), np.concatenate(all_rates)

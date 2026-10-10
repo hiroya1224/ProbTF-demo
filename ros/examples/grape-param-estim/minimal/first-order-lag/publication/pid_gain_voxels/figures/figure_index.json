@@ -13,7 +13,17 @@
     ],
     "view": "3D",
     "panel_count": 8,
-    "caption": "The success reference is green in all eight case/axis volumes. Recorded failure-flight group gains are explicitly located; only Roll/Pitch is red under the single-group substitutions.",
+    "caption": "The success reference has rate 100% on every axis. All voxel and slice colors use the same continuous 0\u2013100% rate scale; recorded failure-flight gains are explicitly located.",
+    "color_encoding": {
+      "quantity": "survival_fraction",
+      "range": [
+        0,
+        1
+      ],
+      "colormap": "RdYlGn",
+      "white_mix": 0.75,
+      "continuous": true
+    },
     "references": {
       "failure1": {
         "roll_pitch": {
@@ -25,8 +35,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -36,8 +45,7 @@
             ],
             "survival": 0.5590551181102362,
             "breaks": 56,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         "yaw": {
@@ -49,8 +57,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -60,8 +67,7 @@
             ],
             "survival": 0.9685039370078741,
             "breaks": 4,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "xy": {
@@ -73,8 +79,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -84,8 +89,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "z": {
@@ -97,8 +101,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -108,8 +111,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         }
       },
@@ -123,8 +125,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -134,8 +135,7 @@
             ],
             "survival": 0.140625,
             "breaks": 110,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         "yaw": {
@@ -147,8 +147,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -158,8 +157,7 @@
             ],
             "survival": 0.984375,
             "breaks": 2,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "xy": {
@@ -171,8 +169,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -182,8 +179,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "z": {
@@ -195,8 +191,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -206,8 +201,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         }
       }
@@ -227,7 +221,17 @@
     ],
     "view": "PD",
     "panel_count": 8,
-    "caption": "The success reference is green in all eight case/axis volumes. Recorded failure-flight group gains are explicitly located; only Roll/Pitch is red under the single-group substitutions.",
+    "caption": "The success reference has rate 100% on every axis. All voxel and slice colors use the same continuous 0\u2013100% rate scale; recorded failure-flight gains are explicitly located.",
+    "color_encoding": {
+      "quantity": "survival_fraction",
+      "range": [
+        0,
+        1
+      ],
+      "colormap": "RdYlGn",
+      "white_mix": 0.75,
+      "continuous": true
+    },
     "references": {
       "failure1": {
         "roll_pitch": {
@@ -239,8 +243,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -250,8 +253,7 @@
             ],
             "survival": 0.5590551181102362,
             "breaks": 56,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         "yaw": {
@@ -263,8 +265,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -274,8 +275,7 @@
             ],
             "survival": 0.9685039370078741,
             "breaks": 4,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "xy": {
@@ -287,8 +287,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -298,8 +297,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "z": {
@@ -311,8 +309,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -322,8 +319,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         }
       },
@@ -337,8 +333,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -348,8 +343,7 @@
             ],
             "survival": 0.140625,
             "breaks": 110,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         "yaw": {
@@ -361,8 +355,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -372,8 +365,7 @@
             ],
             "survival": 0.984375,
             "breaks": 2,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "xy": {
@@ -385,8 +377,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -396,8 +387,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "z": {
@@ -409,8 +399,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "recorded": {
             "gain": [
@@ -420,8 +409,7 @@
             ],
             "survival": 1.0,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         }
       }

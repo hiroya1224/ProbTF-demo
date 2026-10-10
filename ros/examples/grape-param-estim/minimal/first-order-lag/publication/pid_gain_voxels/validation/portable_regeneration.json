@@ -1,17 +1,18 @@
 {
   "passed": true,
   "scope": "relocated offline viewer rebuild",
-  "relocated_directory": "/tmp/pid-slice-portable-check",
+  "relocated_directory": "/tmp/pid-continuous-portable-check",
   "html_bytes_identical": true,
   "original_repository_required": false,
   "exit_code": 0,
   "scripts_sha256": {
-    "build_interactive.py": "b56f361f203d0a47e61cfa7236c2addbfac4c14d700dd27e911b8dd4ae7ce850",
-    "data_io.py": "ffb38c635a84a985defd1280bcf43863a2a00cbe5bdef82814afb76bea7fa2c6",
+    "build_interactive.py": "5085276bea44a51477b10615e873d0ef1dd9dc81176872f3d99316bddd2a83c5",
+    "data_io.py": "0d2de5bf9871a1e53fb2e001d1888e011c9dd2920275d20920694fe9ebcccda6",
     "export_data.py": "c100cbf6883fd22a25d652b45312dfc13314a9ddcc8fa685f79048d760058f72",
-    "finalize_bundle.py": "fa33e9521d8f91c6a18a2edd0423bc43a9e4e6728fa17538206b62e719f24c50",
-    "pid_voxel_viewer.html": "aea53bb384234f35bb4f2548ee4a27d9debbcf6cc2ca89d67718da6b64df8d8f",
-    "pid_voxel_viewer.js": "3d4b7185c1b36bcd4878c9a3ae2aa9c88bf00fe5a2e8ad1d23fd08c8367ed838",
-    "plot_paper_figures.py": "e0978338f67da54c1f17c3296c984a38eb63889e4ccd6024dd61b6bbc6e46747"
+    "finalize_bundle.py": "9be04a5ad2e03b4fecd60f0c864cb085638264be19f91389a0b04faeb0d6d1c8",
+    "pid_voxel_viewer.html": "229bbd2e4130bb5adf0e63d065dacbc94061ab66e184992d3252e9646f66f1cc",
+    "pid_voxel_viewer.js": "b0153940240a77a138bf91d59a07e46f43df743574f69afcff186514820b1ee4",
+    "plot_paper_figures.py": "725ef4d14a43641e6da9c400abf49d0a15efab574d0c4868259c1c660a145714",
+    "rate_colors.py": "dab48927bd4916f4b30ab72a54828601063609dec461dda465cd57164581d6f2"
   }
 }

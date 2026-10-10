@@ -1,8 +1,8 @@
 {
   "view": "all-axis two-case success/failure comparison",
   "html": "index.html",
-  "sha256": "ec1eb35181a1abf5718216990bc301b951fb0f02e1e1edc0346edce33093bf75",
-  "bytes": 7683436,
+  "sha256": "dbd0b5e6635435b064c4c8d582442693ef520809b71575b5010adc06926beaa3",
+  "bytes": 7695352,
   "primary": "all eight P/I/D volumes with exact success and failure references",
   "cases": [
     "failure1",
@@ -14,5 +14,6 @@
     "xy",
     "z"
   ],
-  "all_success_green": true
+  "all_success_green": true,
+  "color_encoding": "continuous rate; pastel RdYlGn on [0,1]; no threshold"
 }

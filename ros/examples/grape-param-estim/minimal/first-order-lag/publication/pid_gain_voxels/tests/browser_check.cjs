@@ -20,6 +20,7 @@ function rpc(method,params={},sessionId){return new Promise((resolve,reject)=>{
 const snapshot=`(typeof DATA==='undefined'||!document.querySelector('h1')?{ready:'false'}:(()=>({ready:document.body.dataset.ready,error:document.body.dataset.error,
  view:document.body.dataset.view,group:document.body.dataset.group,title:document.title,heading:document.querySelector('h1').textContent,
  summary:document.querySelector('.summary').textContent,primaryImages:document.querySelectorAll('img').length,
+ paletteText:document.querySelector('.rate-key').textContent,rateRange:DATA.rate_range,thresholdPresent:'alpha' in DATA,
  imageLoaded:document.querySelector('img').complete&&document.querySelector('img').naturalWidth>0,
  imageSrc:document.querySelector('img').getAttribute('src'),overviewVisible:!document.getElementById('overview').hidden,
  volumeVisible:!document.getElementById('volume').hidden,cutaway:document.getElementById('cutaway').checked,
@@ -28,6 +29,7 @@ const snapshot=`(typeof DATA==='undefined'||!document.querySelector('h1')?{ready
  plots:DATA.cases.filter(g=>g.group===document.body.dataset.group).map(g=>{const p=document.getElementById('plot_'+g.case);return{case:g.case,group:g.group,
   references:g.marks,canvas:p.querySelectorAll('canvas').length,
   traces:(p.data||[]).map(t=>({type:t.type,name:t.name,mode:t.mode,opacity:t.opacity,faces:t.i?t.i.length/2:0,
+   intensitymode:t.intensitymode,rateRange:t.type==='mesh3d'?[t.cmin,t.cmax]:null,paletteStops:t.colorscale?.length,
    marker:t.marker?{color:t.marker.color,symbol:t.marker.symbol,size:t.marker.size,x:t.x,y:t.y,z:t.z}:null})),
   annotations:p.layout?.scene?.annotations,pointText:document.getElementById('points_'+g.case).textContent}})
 }))())`;
@@ -47,21 +49,27 @@ const snapshot=`(typeof DATA==='undefined'||!document.querySelector('h1')?{ready
  await rpc('Page.navigate',{url:process.argv[2]},sessionId);
  const primary=await waitFor('3D');assert.equal(primary.primaryImages,1);assert(primary.overviewVisible&&!primary.volumeVisible);
  assert(primary.imageSrc.includes('all_pid_success_failure_3D'));assert(primary.summary.includes('8/8'));
- assert.equal(primary.allReferences.length,8);assert(primary.allReferences.every(g=>g.success.classification===3&&g.success.survival===1));
+ assert.equal(primary.allReferences.length,8);assert(primary.allReferences.every(g=>g.success.survival===1));
+ assert(!primary.thresholdPresent);assert.deepEqual(primary.rateRange,[0,1]);
+ assert(primary.paletteText.includes('0%')&&primary.paletteText.includes('100%')&&!primary.paletteText.includes('95%'));
  await capture('primary_browser.png');
  await evaluate("document.getElementById('showPD').click()");const slice=await waitFor('PD');
  assert(slice.imageSrc.includes('_PD.'));assert(slice.downloads.every(p=>p.includes('_PD.')));
+ await capture('slice_browser.png');
  await evaluate("document.getElementById('showInteractive').click()");
  const checks=[];
  for(const group of ['roll_pitch','yaw','xy','z']){
   if(group!=='roll_pitch')await evaluate(`document.querySelector('[data-group="${group}"]').click()`);
   const state=await waitFor('interactive',group);assert(state.volumeVisible&&!state.overviewVisible);assert.equal(state.plots.length,2);
-  for(const plot of state.plots){assert(plot.canvas>0);assert.equal(plot.traces.filter(t=>t.type==='mesh3d').length,4);
+  for(const plot of state.plots){assert(plot.canvas>0);assert.equal(plot.traces.filter(t=>t.type==='mesh3d').length,2);
    const points=plot.traces.filter(t=>t.type==='scatter3d');assert.equal(points.length,2);assert.equal(plot.annotations.length,2);
-   for(const mesh of plot.traces.filter(t=>t.type==='mesh3d'))assert(mesh.opacity>0&&mesh.opacity<=.32);
+   for(const mesh of plot.traces.filter(t=>t.type==='mesh3d')){
+    assert(mesh.opacity>0&&mesh.opacity<=.32);assert.equal(mesh.intensitymode,'cell');
+    assert.deepEqual(mesh.rateRange,[0,1]);assert.equal(mesh.paletteStops,256);
+   }
    for(const annotation of plot.annotations)assert(/rate : \d+\.\d%/.test(annotation.text));
    assert.equal((plot.pointText.match(/rate : \d+\.\d%/g)||[]).length,2);
-   assert.equal(plot.references.success.classification,3);assert.equal(plot.references.failure.classification,group==='roll_pitch'?2:3);
+   assert.equal(plot.references.success.survival,1);assert(!('classification' in plot.references.failure));
    for(const point of points)assert.deepEqual([point.marker.x[0],point.marker.y[0],point.marker.z[0]],plot.references[point.name].gain);
    const failure=points.find(t=>t.name==='failure');assert.equal(failure.marker.symbol,group==='z'?'circle-open':'x');assert(failure.marker.size>=10);
    assert(plot.pointText.includes('Success')&&plot.pointText.includes('Failure'));

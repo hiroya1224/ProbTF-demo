@@ -1,6 +1,6 @@
 {
   "passed": true,
-  "html_sha256": "ec1eb35181a1abf5718216990bc301b951fb0f02e1e1edc0346edce33093bf75",
+  "html_sha256": "dbd0b5e6635435b064c4c8d582442693ef520809b71575b5010adc06926beaa3",
   "primary": {
     "ready": "true",
     "view": "3D",
@@ -8,6 +8,12 @@
     "heading": "すべてのPID軸でSuccessは緑の領域に入る",
     "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
     "primaryImages": 1,
+    "paletteText": "rate : 0%25%50%75%100%",
+    "rateRange": [
+      0,
+      1
+    ],
+    "thresholdPresent": false,
     "imageLoaded": true,
     "imageSrc": "figures/all_pid_success_failure_3D.png",
     "overviewVisible": true,
@@ -25,8 +31,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -36,8 +41,7 @@
           ],
           "survival": 0.5590551181102362,
           "breaks": 56,
-          "unresolved": 0,
-          "classification": 2
+          "unresolved": 0
         }
       },
       {
@@ -51,8 +55,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -62,8 +65,7 @@
           ],
           "survival": 0.9685039370078741,
           "breaks": 4,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -77,8 +79,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -88,8 +89,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -103,8 +103,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -114,8 +113,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -129,8 +127,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -140,8 +137,7 @@
           ],
           "survival": 0.140625,
           "breaks": 110,
-          "unresolved": 0,
-          "classification": 2
+          "unresolved": 0
         }
       },
       {
@@ -155,8 +151,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -166,8 +161,7 @@
           ],
           "survival": 0.984375,
           "breaks": 2,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -181,8 +175,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -192,8 +185,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -207,8 +199,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -218,8 +209,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       }
     ],
@@ -237,6 +227,12 @@
     "heading": "すべてのPID軸でSuccessは緑の領域に入る",
     "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
     "primaryImages": 1,
+    "paletteText": "rate : 0%25%50%75%100%",
+    "rateRange": [
+      0,
+      1
+    ],
+    "thresholdPresent": false,
     "imageLoaded": true,
     "imageSrc": "figures/all_pid_success_failure_PD.png",
     "overviewVisible": true,
@@ -254,8 +250,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -265,8 +260,7 @@
           ],
           "survival": 0.5590551181102362,
           "breaks": 56,
-          "unresolved": 0,
-          "classification": 2
+          "unresolved": 0
         }
       },
       {
@@ -280,8 +274,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -291,8 +284,7 @@
           ],
           "survival": 0.9685039370078741,
           "breaks": 4,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -306,8 +298,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -317,8 +308,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -332,8 +322,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -343,8 +332,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -358,8 +346,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -369,8 +356,7 @@
           ],
           "survival": 0.140625,
           "breaks": 110,
-          "unresolved": 0,
-          "classification": 2
+          "unresolved": 0
         }
       },
       {
@@ -384,8 +370,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -395,8 +380,7 @@
           ],
           "survival": 0.984375,
           "breaks": 2,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -410,8 +394,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -421,8 +404,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -436,8 +418,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -447,8 +428,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       }
     ],
@@ -468,6 +448,12 @@
       "heading": "すべてのPID軸でSuccessは緑の領域に入る",
       "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
       "primaryImages": 1,
+      "paletteText": "rate : 0%25%50%75%100%",
+      "rateRange": [
+        0,
+        1
+      ],
+      "thresholdPresent": false,
       "imageLoaded": true,
       "imageSrc": "figures/all_pid_success_failure_3D.png",
       "overviewVisible": false,
@@ -485,8 +471,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -496,8 +481,7 @@
             ],
             "survival": 0.5590551181102362,
             "breaks": 56,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         {
@@ -511,8 +495,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -522,8 +505,7 @@
             ],
             "survival": 0.9685039370078741,
             "breaks": 4,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -537,8 +519,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -548,8 +529,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -563,8 +543,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -574,8 +553,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -589,8 +567,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -600,8 +577,7 @@
             ],
             "survival": 0.140625,
             "breaks": 110,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         {
@@ -615,8 +591,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -626,8 +601,7 @@
             ],
             "survival": 0.984375,
             "breaks": 2,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -641,8 +615,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -652,8 +625,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -667,8 +639,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -678,8 +649,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         }
       ],
@@ -701,8 +671,7 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             },
             "failure": {
               "gain": [
@@ -712,34 +681,33 @@
               ],
               "survival": 0.5590551181102362,
               "breaks": 56,
-              "unresolved": 0,
-              "classification": 2
+              "unresolved": 0
             }
           },
           "canvas": 1,
           "traces": [
             {
               "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 8574,
+              "opacity": 0.3,
+              "faces": 101830,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 16420,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 578,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 3844,
+              "opacity": 0.3,
+              "faces": 4422,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
@@ -747,6 +715,7 @@
               "name": "failure",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#754B86",
                 "symbol": "x",
@@ -767,6 +736,7 @@
               "name": "success",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#264C73",
                 "symbol": "diamond",
@@ -839,8 +809,7 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             },
             "failure": {
               "gain": [
@@ -850,34 +819,33 @@
               ],
               "survival": 0.140625,
               "breaks": 110,
-              "unresolved": 0,
-              "classification": 2
+              "unresolved": 0
             }
           },
           "canvas": 1,
           "traces": [
             {
               "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 10656,
+              "opacity": 0.3,
+              "faces": 105504,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 15064,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 1284,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 3138,
+              "opacity": 0.3,
+              "faces": 4422,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
@@ -885,6 +853,7 @@
               "name": "failure",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#754B86",
                 "symbol": "x",
@@ -905,6 +874,7 @@
               "name": "success",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#264C73",
                 "symbol": "diamond",
@@ -975,6 +945,12 @@
       "heading": "すべてのPID軸でSuccessは緑の領域に入る",
       "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
       "primaryImages": 1,
+      "paletteText": "rate : 0%25%50%75%100%",
+      "rateRange": [
+        0,
+        1
+      ],
+      "thresholdPresent": false,
       "imageLoaded": true,
       "imageSrc": "figures/all_pid_success_failure_3D.png",
       "overviewVisible": false,
@@ -992,8 +968,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1003,8 +978,7 @@
             ],
             "survival": 0.5590551181102362,
             "breaks": 56,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         {
@@ -1018,8 +992,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1029,8 +1002,7 @@
             ],
             "survival": 0.9685039370078741,
             "breaks": 4,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1044,8 +1016,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1055,8 +1026,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1070,8 +1040,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1081,8 +1050,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1096,8 +1064,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1107,8 +1074,7 @@
             ],
             "survival": 0.140625,
             "breaks": 110,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         {
@@ -1122,8 +1088,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1133,8 +1098,7 @@
             ],
             "survival": 0.984375,
             "breaks": 2,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1148,8 +1112,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1159,8 +1122,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1174,8 +1136,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1185,8 +1146,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         }
       ],
@@ -1208,8 +1168,7 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             },
             "failure": {
               "gain": [
@@ -1219,34 +1178,33 @@
               ],
               "survival": 0.9685039370078741,
               "breaks": 4,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             }
           },
           "canvas": 1,
           "traces": [
             {
               "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 17086,
+              "opacity": 0.3,
+              "faces": 365956,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 14086,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 884,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 3406,
+              "opacity": 0.3,
+              "faces": 4290,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
@@ -1254,6 +1212,7 @@
               "name": "failure",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#754B86",
                 "symbol": "x",
@@ -1274,6 +1233,7 @@
               "name": "success",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#264C73",
                 "symbol": "diamond",
@@ -1346,8 +1306,7 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             },
             "failure": {
               "gain": [
@@ -1357,34 +1316,33 @@
               ],
               "survival": 0.984375,
               "breaks": 2,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             }
           },
           "canvas": 1,
           "traces": [
             {
               "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 13589,
+              "opacity": 0.3,
+              "faces": 271954,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 16067,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 309,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 3981,
+              "opacity": 0.3,
+              "faces": 4290,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
@@ -1392,6 +1350,7 @@
               "name": "failure",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#754B86",
                 "symbol": "x",
@@ -1412,6 +1371,7 @@
               "name": "success",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#264C73",
                 "symbol": "diamond",
@@ -1482,6 +1442,12 @@
       "heading": "すべてのPID軸でSuccessは緑の領域に入る",
       "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
       "primaryImages": 1,
+      "paletteText": "rate : 0%25%50%75%100%",
+      "rateRange": [
+        0,
+        1
+      ],
+      "thresholdPresent": false,
       "imageLoaded": true,
       "imageSrc": "figures/all_pid_success_failure_3D.png",
       "overviewVisible": false,
@@ -1499,8 +1465,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1510,8 +1475,7 @@
             ],
             "survival": 0.5590551181102362,
             "breaks": 56,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         {
@@ -1525,8 +1489,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1536,8 +1499,7 @@
             ],
             "survival": 0.9685039370078741,
             "breaks": 4,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1551,8 +1513,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1562,8 +1523,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1577,8 +1537,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1588,8 +1547,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1603,8 +1561,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1614,8 +1571,7 @@
             ],
             "survival": 0.140625,
             "breaks": 110,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         {
@@ -1629,8 +1585,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1640,8 +1595,7 @@
             ],
             "survival": 0.984375,
             "breaks": 2,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1655,8 +1609,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1666,8 +1619,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -1681,8 +1633,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -1692,8 +1643,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         }
       ],
@@ -1715,8 +1665,7 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             },
             "failure": {
               "gain": [
@@ -1726,34 +1675,33 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             }
           },
           "canvas": 1,
           "traces": [
             {
               "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 0,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.32,
+              "opacity": 0.3,
               "faces": 17353,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 0,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.32,
+              "opacity": 0.3,
               "faces": 4489,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
@@ -1761,6 +1709,7 @@
               "name": "failure",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#754B86",
                 "symbol": "x",
@@ -1781,6 +1730,7 @@
               "name": "success",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#264C73",
                 "symbol": "diamond",
@@ -1853,8 +1803,7 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             },
             "failure": {
               "gain": [
@@ -1864,34 +1813,33 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             }
           },
           "canvas": 1,
           "traces": [
             {
               "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 6,
+              "opacity": 0.3,
+              "faces": 17359,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 17353,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 0,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.32,
+              "opacity": 0.3,
               "faces": 4489,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
@@ -1899,6 +1847,7 @@
               "name": "failure",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#754B86",
                 "symbol": "x",
@@ -1919,6 +1868,7 @@
               "name": "success",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#264C73",
                 "symbol": "diamond",
@@ -1989,6 +1939,12 @@
       "heading": "すべてのPID軸でSuccessは緑の領域に入る",
       "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
       "primaryImages": 1,
+      "paletteText": "rate : 0%25%50%75%100%",
+      "rateRange": [
+        0,
+        1
+      ],
+      "thresholdPresent": false,
       "imageLoaded": true,
       "imageSrc": "figures/all_pid_success_failure_3D.png",
       "overviewVisible": false,
@@ -2006,8 +1962,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2017,8 +1972,7 @@
             ],
             "survival": 0.5590551181102362,
             "breaks": 56,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         {
@@ -2032,8 +1986,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2043,8 +1996,7 @@
             ],
             "survival": 0.9685039370078741,
             "breaks": 4,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -2058,8 +2010,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2069,8 +2020,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -2084,8 +2034,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2095,8 +2044,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -2110,8 +2058,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2121,8 +2068,7 @@
             ],
             "survival": 0.140625,
             "breaks": 110,
-            "unresolved": 0,
-            "classification": 2
+            "unresolved": 0
           }
         },
         {
@@ -2136,8 +2082,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2147,8 +2092,7 @@
             ],
             "survival": 0.984375,
             "breaks": 2,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -2162,8 +2106,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2173,8 +2116,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         {
@@ -2188,8 +2130,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2199,8 +2140,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         }
       ],
@@ -2222,8 +2162,7 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             },
             "failure": {
               "gain": [
@@ -2233,34 +2172,33 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             }
           },
           "canvas": 1,
           "traces": [
             {
               "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 11544,
+              "opacity": 0.3,
+              "faces": 31588,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 14652,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 1040,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 3250,
+              "opacity": 0.3,
+              "faces": 4290,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
@@ -2268,6 +2206,7 @@
               "name": "failure",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#754B86",
                 "symbol": "circle-open",
@@ -2288,6 +2227,7 @@
               "name": "success",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#264C73",
                 "symbol": "diamond",
@@ -2360,8 +2300,7 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             },
             "failure": {
               "gain": [
@@ -2371,34 +2310,33 @@
               ],
               "survival": 1,
               "breaks": 0,
-              "unresolved": 0,
-              "classification": 3
+              "unresolved": 0
             }
           },
           "canvas": 1,
           "traces": [
             {
               "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 14476,
+              "opacity": 0.3,
+              "faces": 29348,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
               "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 13196,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.28,
-              "faces": 1938,
-              "marker": null
-            },
-            {
-              "type": "mesh3d",
-              "opacity": 0.32,
-              "faces": 2352,
+              "opacity": 0.3,
+              "faces": 4290,
+              "intensitymode": "cell",
+              "rateRange": [
+                0,
+                1
+              ],
+              "paletteStops": 256,
               "marker": null
             },
             {
@@ -2406,6 +2344,7 @@
               "name": "failure",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#754B86",
                 "symbol": "circle-open",
@@ -2426,6 +2365,7 @@
               "name": "success",
               "mode": "markers",
               "faces": 0,
+              "rateRange": null,
               "marker": {
                 "color": "#264C73",
                 "symbol": "diamond",
@@ -2497,6 +2437,12 @@
     "heading": "すべてのPID軸でSuccessは緑の領域に入る",
     "summary": "Success：両ケース・全4軸とも緑（8/8、rate : 100.0%）",
     "primaryImages": 1,
+    "paletteText": "rate : 0%25%50%75%100%",
+    "rateRange": [
+      0,
+      1
+    ],
+    "thresholdPresent": false,
     "imageLoaded": true,
     "imageSrc": "figures/all_pid_success_failure_3D.png",
     "overviewVisible": false,
@@ -2514,8 +2460,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -2525,8 +2470,7 @@
           ],
           "survival": 0.5590551181102362,
           "breaks": 56,
-          "unresolved": 0,
-          "classification": 2
+          "unresolved": 0
         }
       },
       {
@@ -2540,8 +2484,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -2551,8 +2494,7 @@
           ],
           "survival": 0.9685039370078741,
           "breaks": 4,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -2566,8 +2508,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -2577,8 +2518,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -2592,8 +2532,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -2603,8 +2542,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -2618,8 +2556,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -2629,8 +2566,7 @@
           ],
           "survival": 0.140625,
           "breaks": 110,
-          "unresolved": 0,
-          "classification": 2
+          "unresolved": 0
         }
       },
       {
@@ -2644,8 +2580,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -2655,8 +2590,7 @@
           ],
           "survival": 0.984375,
           "breaks": 2,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -2670,8 +2604,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -2681,8 +2614,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       },
       {
@@ -2696,8 +2628,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         },
         "failure": {
           "gain": [
@@ -2707,8 +2638,7 @@
           ],
           "survival": 1,
           "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+          "unresolved": 0
         }
       }
     ],
@@ -2730,8 +2660,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2741,34 +2670,33 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "canvas": 1,
         "traces": [
           {
             "type": "mesh3d",
-            "opacity": 0.28,
-            "faces": 15976,
+            "opacity": 0.3,
+            "faces": 46284,
+            "intensitymode": "cell",
+            "rateRange": [
+              0,
+              1
+            ],
+            "paletteStops": 256,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.32,
-            "faces": 22882,
-            "marker": null
-          },
-          {
-            "type": "mesh3d",
-            "opacity": 0.28,
+            "opacity": 0.3,
             "faces": 0,
-            "marker": null
-          },
-          {
-            "type": "mesh3d",
-            "opacity": 0.32,
-            "faces": 0,
+            "intensitymode": "cell",
+            "rateRange": [
+              0,
+              1
+            ],
+            "paletteStops": 256,
             "marker": null
           },
           {
@@ -2776,6 +2704,7 @@
             "name": "failure",
             "mode": "markers",
             "faces": 0,
+            "rateRange": null,
             "marker": {
               "color": "#754B86",
               "symbol": "circle-open",
@@ -2796,6 +2725,7 @@
             "name": "success",
             "mode": "markers",
             "faces": 0,
+            "rateRange": null,
             "marker": {
               "color": "#264C73",
               "symbol": "diamond",
@@ -2868,8 +2798,7 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           },
           "failure": {
             "gain": [
@@ -2879,34 +2808,33 @@
             ],
             "survival": 1,
             "breaks": 0,
-            "unresolved": 0,
-            "classification": 3
+            "unresolved": 0
           }
         },
         "canvas": 1,
         "traces": [
           {
             "type": "mesh3d",
-            "opacity": 0.28,
-            "faces": 20640,
+            "opacity": 0.3,
+            "faces": 43256,
+            "intensitymode": "cell",
+            "rateRange": [
+              0,
+              1
+            ],
+            "paletteStops": 256,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.32,
-            "faces": 20376,
-            "marker": null
-          },
-          {
-            "type": "mesh3d",
-            "opacity": 0.28,
+            "opacity": 0.3,
             "faces": 0,
-            "marker": null
-          },
-          {
-            "type": "mesh3d",
-            "opacity": 0.32,
-            "faces": 0,
+            "intensitymode": "cell",
+            "rateRange": [
+              0,
+              1
+            ],
+            "paletteStops": 256,
             "marker": null
           },
           {
@@ -2914,6 +2842,7 @@
             "name": "failure",
             "mode": "markers",
             "faces": 0,
+            "rateRange": null,
             "marker": {
               "color": "#754B86",
               "symbol": "circle-open",
@@ -2934,6 +2863,7 @@
             "name": "success",
             "mode": "markers",
             "faces": 0,
+            "rateRange": null,
             "marker": {
               "color": "#264C73",
               "symbol": "diamond",

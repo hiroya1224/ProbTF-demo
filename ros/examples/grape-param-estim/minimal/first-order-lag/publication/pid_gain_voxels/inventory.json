@@ -1,30 +1,30 @@
 {
   "schema": "pid-paper-file-inventory/v1",
   "limit_bytes_exclusive": 50000000,
-  "file_count": 75,
-  "total_bytes": 45559481,
+  "file_count": 77,
+  "total_bytes": 45467963,
   "largest_file": {
     "file": "index.html",
-    "bytes": 7683436,
-    "sha256": "ec1eb35181a1abf5718216990bc301b951fb0f02e1e1edc0346edce33093bf75"
+    "bytes": 7695352,
+    "sha256": "dbd0b5e6635435b064c4c8d582442693ef520809b71575b5010adc06926beaa3"
   },
   "directory_bytes": {
     ".gitattributes": 300,
     ".gitignore": 42,
-    "DATA_FORMAT.md": 3574,
-    "METHODS.md": 2573,
-    "README.md": 2987,
+    "DATA_FORMAT.md": 3815,
+    "METHODS.md": 2817,
+    "README.md": 3006,
     "data": 29022121,
-    "figure_settings.json": 537,
-    "figures": 7606165,
-    "index.html": 7683436,
-    "interactive": 572,
+    "figure_settings.json": 438,
+    "figures": 7124210,
+    "index.html": 7695352,
+    "interactive": 649,
     "provenance": 92981,
     "reference_gains.csv": 909,
     "requirements.txt": 123,
-    "scripts": 52196,
-    "tests": 17235,
-    "validation": 1073730
+    "scripts": 52652,
+    "tests": 19560,
+    "validation": 1448988
   },
   "excluded_from_self_hashing": [
     "files.tsv",

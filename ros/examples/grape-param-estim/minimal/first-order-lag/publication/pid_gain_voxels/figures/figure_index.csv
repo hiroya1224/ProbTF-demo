@@ -1,3 +1,3 @@
 figure,groups,view,cases,panel_count,caption
-all_pid_success_failure_3D,"['roll_pitch', 'yaw', 'xy', 'z']",3D,"['failure1', 'failure2']",8,The success reference is green in all eight case/axis volumes. Recorded failure-flight group gains are explicitly located; only Roll/Pitch is red under the single-group substitutions.
-all_pid_success_failure_PD,"['roll_pitch', 'yaw', 'xy', 'z']",PD,"['failure1', 'failure2']",8,The success reference is green in all eight case/axis volumes. Recorded failure-flight group gains are explicitly located; only Roll/Pitch is red under the single-group substitutions.
+all_pid_success_failure_3D,"['roll_pitch', 'yaw', 'xy', 'z']",3D,"['failure1', 'failure2']",8,The success reference has rate 100% on every axis. All voxel and slice colors use the same continuous 0–100% rate scale; recorded failure-flight gains are explicitly located.
+all_pid_success_failure_PD,"['roll_pitch', 'yaw', 'xy', 'z']",PD,"['failure1', 'failure2']",8,The success reference has rate 100% on every axis. All voxel and slice colors use the same continuous 0–100% rate scale; recorded failure-flight gains are explicitly located.

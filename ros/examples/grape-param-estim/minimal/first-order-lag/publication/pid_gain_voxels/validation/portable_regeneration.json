@@ -1,7 +1,7 @@
 {
   "passed": true,
   "scope": "relocated offline viewer rebuild",
-  "relocated_directory": "/tmp/pid-continuous-portable-check",
+  "relocated_directory": "/tmp/pid-no-title-portable-check",
   "html_bytes_identical": true,
   "original_repository_required": false,
   "exit_code": 0,
@@ -12,7 +12,7 @@
     "finalize_bundle.py": "9be04a5ad2e03b4fecd60f0c864cb085638264be19f91389a0b04faeb0d6d1c8",
     "pid_voxel_viewer.html": "229bbd2e4130bb5adf0e63d065dacbc94061ab66e184992d3252e9646f66f1cc",
     "pid_voxel_viewer.js": "b0153940240a77a138bf91d59a07e46f43df743574f69afcff186514820b1ee4",
-    "plot_paper_figures.py": "725ef4d14a43641e6da9c400abf49d0a15efab574d0c4868259c1c660a145714",
+    "plot_paper_figures.py": "795fa8effe564d6219e301dc44eaf5b6448c114291d92270b67ffc96c42adca0",
     "rate_colors.py": "dab48927bd4916f4b30ab72a54828601063609dec461dda465cd57164581d6f2"
   }
 }

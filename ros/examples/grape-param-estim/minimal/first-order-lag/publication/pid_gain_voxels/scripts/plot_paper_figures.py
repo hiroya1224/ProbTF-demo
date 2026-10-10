@@ -168,9 +168,6 @@ def comparison_volume(grids, settings):
 
 
 def save_comparison(fig, grids, settings, output, view):
-    all_success_green=all(reference_mark(grid,'success')['survival']==1 for grid in grids.values())
-    title='All PID gains: Success is green at 100% on every axis' if all_success_green else 'All PID gains: success and failure reference points'
-    fig.suptitle(title,y=.99,fontsize=17)
     bar_axes = fig.add_axes([.375, .071, .25, .012])
     bar = fig.colorbar(ScalarMappable(norm=colors.Normalize(0, 1), cmap=rate_colormap(settings)),
                       cax=bar_axes, orientation='horizontal', ticks=[0, .25, .5, .75, 1])

@@ -127,7 +127,9 @@ def comparison_slice(grids, settings):
                 gain = grid.gain(name)
                 ax.scatter(gain[0], gain[2], **point_style(grid, name, settings))
                 if name == 'success': offset = (.06 * pspan, .18 * dspan)
-                else: offset = ((.10 if group in ('roll_pitch', 'z') else -.12) * pspan, (-.07 if group == 'roll_pitch' else -.18) * dspan)
+                elif group == 'roll_pitch':
+                    offset = ((-.35 if case == 'failure1' else .40) * pspan, -.09 * dspan)
+                else: offset = ((.10 if group == 'z' else -.12) * pspan, -.18 * dspan)
                 ax.annotate(point_text(grid, name, settings), xy=(gain[0],gain[2]),
                             xytext=(gain[0]+offset[0],gain[2]+offset[1]), **annotation_style(name, settings))
     return fig

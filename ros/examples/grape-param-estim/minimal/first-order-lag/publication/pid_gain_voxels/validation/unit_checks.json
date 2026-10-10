@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "python_unittest": {
+    "exit_code": 0,
+    "output": "test_every_node_decision_recomputes_exactly (test_publication_data.PublicationDataTests) ... ok\ntest_fixed_conditioning_set_and_unresolved (test_publication_data.PublicationDataTests) ... ok\ntest_nonuniform_cells_and_internal_face_removal (test_publication_data.PublicationDataTests) ... ok\ntest_reference_nodes_and_clearance (test_publication_data.PublicationDataTests) ... ok\ntest_slices_do_not_project_off_plane_markers (test_publication_data.PublicationDataTests) ... ok\ntest_threshold_boundary_is_cell_edges (test_publication_data.PublicationDataTests) ... ok\ntest_vector_cell_merging_preserves_every_node_value (test_publication_data.PublicationDataTests) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 3.517s\n\nOK\n"
+  },
+  "viewer_node_test": {
+    "exit_code": 0,
+    "output": "{\"passed\":true,\"gridsChecked\":16,\"realNodeCountsPreserved\":true,\"successAlwaysGreen\":true,\"failureRollPitchAlwaysRed\":true,\"voxelFacesExact\":true,\"strictInteriorMarkers\":true}\n"
+  }
+}

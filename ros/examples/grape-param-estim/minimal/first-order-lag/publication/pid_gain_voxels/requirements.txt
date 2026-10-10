@@ -1,0 +1,4 @@
+# Tested on CPython 3.8.10; no ROS or numerical solver is needed to replot.
+numpy==1.24.3
+matplotlib==3.7.1
+plotly==5.24.1

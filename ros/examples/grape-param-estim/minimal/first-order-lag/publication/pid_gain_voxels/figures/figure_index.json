@@ -1,0 +1,812 @@
+[
+  {
+    "figure": "failure1/all_groups_3d_oblique",
+    "caption": "failure1: separate PID volumes for Roll/Pitch, Yaw, XY and Z; same color criterion and camera.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "all",
+    "kind": "overview_all",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure1/all_groups_3d_top",
+    "caption": "failure1: separate PID volumes for Roll/Pitch, Yaw, XY and Z; same color criterion and camera.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "all",
+    "kind": "overview_all",
+    "camera": "top"
+  },
+  {
+    "figure": "failure1/all_groups_PD_at_success_I",
+    "caption": "failure1: P\u2013D slices through successful-flight integral gains. Recorded group nodes appear only when their I gain equals the plane.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "all",
+    "kind": "slices_all"
+  },
+  {
+    "figure": "failure1/roll_pitch/overview_3d_oblique",
+    "caption": "failure1, Roll / Pitch: node-centred transparent PID voxels, oblique view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "overview_3d",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure1/roll_pitch/overview_3d_top",
+    "caption": "failure1, Roll / Pitch: node-centred transparent PID voxels, top view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "overview_3d",
+    "camera": "top"
+  },
+  {
+    "figure": "failure1/roll_pitch/slice_ID_P_13_success",
+    "caption": "failure1 Roll / Pitch: exact P=13 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 13.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure1/roll_pitch/slice_ID_P_20_recorded",
+    "caption": "failure1 Roll / Pitch: exact P=20 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 20.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure1/roll_pitch/slice_PD_I_1_success_and_recorded",
+    "caption": "failure1 Roll / Pitch: exact I=1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "I",
+    "fixed_value": 1.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure1/roll_pitch/slice_PI_D_20_success",
+    "caption": "failure1 Roll / Pitch: exact D=20 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 20.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure1/roll_pitch/slice_PI_D_8_recorded",
+    "caption": "failure1 Roll / Pitch: exact D=8 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 8.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure1/roll_pitch/slices_across_D",
+    "caption": "failure1 Roll / Pitch: discrete conditional-survival slices at several exact evaluated D values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "slice_sheet",
+    "fixed_axis": "D",
+    "fixed_values": "6.25,8,11.125,16,20,20.875,25.75"
+  },
+  {
+    "figure": "failure1/roll_pitch/slices_across_I",
+    "caption": "failure1 Roll / Pitch: discrete conditional-survival slices at several exact evaluated I values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "slice_sheet",
+    "fixed_axis": "I",
+    "fixed_values": "0.50781,1,1.0664,1.625,2.1836,2.7422"
+  },
+  {
+    "figure": "failure1/roll_pitch/slices_across_P",
+    "caption": "failure1 Roll / Pitch: discrete conditional-survival slices at several exact evaluated P values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "roll_pitch",
+    "kind": "slice_sheet",
+    "fixed_axis": "P",
+    "fixed_values": "6.875,10.938,13,15,19.062,20,23.125"
+  },
+  {
+    "figure": "failure1/xy/overview_3d_oblique",
+    "caption": "failure1, XY: node-centred transparent PID voxels, oblique view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "overview_3d",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure1/xy/overview_3d_top",
+    "caption": "failure1, XY: node-centred transparent PID voxels, top view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "overview_3d",
+    "camera": "top"
+  },
+  {
+    "figure": "failure1/xy/slice_ID_P_3_recorded",
+    "caption": "failure1 XY: exact P=3 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 3.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure1/xy/slice_ID_P_4_success",
+    "caption": "failure1 XY: exact P=4 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 4.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure1/xy/slice_PD_I_0p1_success_and_recorded",
+    "caption": "failure1 XY: exact I=0.1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "I",
+    "fixed_value": 0.1,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure1/xy/slice_PI_D_1_recorded",
+    "caption": "failure1 XY: exact D=1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 1.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure1/xy/slice_PI_D_2_success",
+    "caption": "failure1 XY: exact D=2 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 2.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure1/xy/slices_across_D",
+    "caption": "failure1 XY: discrete conditional-survival slices at several exact evaluated D values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "slice_sheet",
+    "fixed_axis": "D",
+    "fixed_values": "0.50781,1,1.0664,1.625,2,2.1836,2.7422"
+  },
+  {
+    "figure": "failure1/xy/slices_across_I",
+    "caption": "failure1 XY: discrete conditional-survival slices at several exact evaluated I values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "slice_sheet",
+    "fixed_axis": "I",
+    "fixed_values": "0.050781,0.1,0.10664,0.1625,0.21836,0.27422"
+  },
+  {
+    "figure": "failure1/xy/slices_across_P",
+    "caption": "failure1 XY: discrete conditional-survival slices at several exact evaluated P values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "xy",
+    "kind": "slice_sheet",
+    "fixed_axis": "P",
+    "fixed_values": "1.9219,2.8359,3,3.75,4,4.6641,5.5781"
+  },
+  {
+    "figure": "failure1/yaw/overview_3d_oblique",
+    "caption": "failure1, Yaw: node-centred transparent PID voxels, oblique view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "yaw",
+    "kind": "overview_3d",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure1/yaw/overview_3d_top",
+    "caption": "failure1, Yaw: node-centred transparent PID voxels, top view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "yaw",
+    "kind": "overview_3d",
+    "camera": "top"
+  },
+  {
+    "figure": "failure1/yaw/slice_ID_P_4_recorded",
+    "caption": "failure1 Yaw: exact P=4 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "yaw",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 4.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure1/yaw/slice_ID_P_6_success",
+    "caption": "failure1 Yaw: exact P=6 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "yaw",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 6.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure1/yaw/slice_PD_I_1_success_and_recorded",
+    "caption": "failure1 Yaw: exact I=1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "yaw",
+    "kind": "reference_slice",
+    "fixed_axis": "I",
+    "fixed_value": 1.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure1/yaw/slice_PI_D_2_success_and_recorded",
+    "caption": "failure1 Yaw: exact D=2 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "yaw",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 2.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure1/yaw/slices_across_D",
+    "caption": "failure1 Yaw: discrete conditional-survival slices at several exact evaluated D values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "yaw",
+    "kind": "slice_sheet",
+    "fixed_axis": "D",
+    "fixed_values": "0.92188,1.8359,2,2.75,3.6641,4.5781"
+  },
+  {
+    "figure": "failure1/yaw/slices_across_I",
+    "caption": "failure1 Yaw: discrete conditional-survival slices at several exact evaluated I values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "yaw",
+    "kind": "slice_sheet",
+    "fixed_axis": "I",
+    "fixed_values": "0.50781,1,1.0664,1.625,2.1836,2.7422"
+  },
+  {
+    "figure": "failure1/yaw/slices_across_P",
+    "caption": "failure1 Yaw: discrete conditional-survival slices at several exact evaluated P values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "yaw",
+    "kind": "slice_sheet",
+    "fixed_axis": "P",
+    "fixed_values": "2.75,4,4.375,6,7.625,9.25"
+  },
+  {
+    "figure": "failure1/z/overview_3d_oblique",
+    "caption": "failure1, Z: node-centred transparent PID voxels, oblique view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "z",
+    "kind": "overview_3d",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure1/z/overview_3d_top",
+    "caption": "failure1, Z: node-centred transparent PID voxels, top view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "z",
+    "kind": "overview_3d",
+    "camera": "top"
+  },
+  {
+    "figure": "failure1/z/slice_ID_P_5_success_and_recorded",
+    "caption": "failure1 Z: exact P=5 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "z",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 5.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure1/z/slice_PD_I_1_success_and_recorded",
+    "caption": "failure1 Z: exact I=1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "z",
+    "kind": "reference_slice",
+    "fixed_axis": "I",
+    "fixed_value": 1.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure1/z/slice_PI_D_2p5_success_and_recorded",
+    "caption": "failure1 Z: exact D=2.5 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "z",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 2.5,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure1/z/slices_across_D",
+    "caption": "failure1 Z: discrete conditional-survival slices at several exact evaluated D values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "z",
+    "kind": "slice_sheet",
+    "fixed_axis": "D",
+    "fixed_values": "1.1484,2.0117,2.5,2.875,3.7383,4.6016"
+  },
+  {
+    "figure": "failure1/z/slices_across_I",
+    "caption": "failure1 Z: discrete conditional-survival slices at several exact evaluated I values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "z",
+    "kind": "slice_sheet",
+    "fixed_axis": "I",
+    "fixed_values": "0.50781,1,1.0664,1.625,2.1836,2.7422"
+  },
+  {
+    "figure": "failure1/z/slices_across_P",
+    "caption": "failure1 Z: discrete conditional-survival slices at several exact evaluated P values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure1",
+    "group": "z",
+    "kind": "slice_sheet",
+    "fixed_axis": "P",
+    "fixed_values": "2.75,4.375,5,6,7.625,9.25"
+  },
+  {
+    "figure": "failure2/all_groups_3d_oblique",
+    "caption": "failure2: separate PID volumes for Roll/Pitch, Yaw, XY and Z; same color criterion and camera.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "all",
+    "kind": "overview_all",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure2/all_groups_3d_top",
+    "caption": "failure2: separate PID volumes for Roll/Pitch, Yaw, XY and Z; same color criterion and camera.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "all",
+    "kind": "overview_all",
+    "camera": "top"
+  },
+  {
+    "figure": "failure2/all_groups_PD_at_success_I",
+    "caption": "failure2: P\u2013D slices through successful-flight integral gains. Recorded group nodes appear only when their I gain equals the plane.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "all",
+    "kind": "slices_all"
+  },
+  {
+    "figure": "failure2/roll_pitch/overview_3d_oblique",
+    "caption": "failure2, Roll / Pitch: node-centred transparent PID voxels, oblique view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "overview_3d",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure2/roll_pitch/overview_3d_top",
+    "caption": "failure2, Roll / Pitch: node-centred transparent PID voxels, top view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "overview_3d",
+    "camera": "top"
+  },
+  {
+    "figure": "failure2/roll_pitch/slice_ID_P_10_recorded",
+    "caption": "failure2 Roll / Pitch: exact P=10 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 10.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure2/roll_pitch/slice_ID_P_13_success",
+    "caption": "failure2 Roll / Pitch: exact P=13 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 13.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure2/roll_pitch/slice_PD_I_1_success_and_recorded",
+    "caption": "failure2 Roll / Pitch: exact I=1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "I",
+    "fixed_value": 1.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure2/roll_pitch/slice_PI_D_20_success",
+    "caption": "failure2 Roll / Pitch: exact D=20 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 20.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure2/roll_pitch/slice_PI_D_8_recorded",
+    "caption": "failure2 Roll / Pitch: exact D=8 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 8.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure2/roll_pitch/slices_across_D",
+    "caption": "failure2 Roll / Pitch: discrete conditional-survival slices at several exact evaluated D values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "slice_sheet",
+    "fixed_axis": "D",
+    "fixed_values": "6.25,8,11.125,16,20,20.875,25.75"
+  },
+  {
+    "figure": "failure2/roll_pitch/slices_across_I",
+    "caption": "failure2 Roll / Pitch: discrete conditional-survival slices at several exact evaluated I values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "slice_sheet",
+    "fixed_axis": "I",
+    "fixed_values": "0.50781,1,1.0664,1.625,2.1836,2.7422"
+  },
+  {
+    "figure": "failure2/roll_pitch/slices_across_P",
+    "caption": "failure2 Roll / Pitch: discrete conditional-survival slices at several exact evaluated P values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "roll_pitch",
+    "kind": "slice_sheet",
+    "fixed_axis": "P",
+    "fixed_values": "6.875,10,10.938,13,15,19.062,23.125"
+  },
+  {
+    "figure": "failure2/xy/overview_3d_oblique",
+    "caption": "failure2, XY: node-centred transparent PID voxels, oblique view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "overview_3d",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure2/xy/overview_3d_top",
+    "caption": "failure2, XY: node-centred transparent PID voxels, top view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "overview_3d",
+    "camera": "top"
+  },
+  {
+    "figure": "failure2/xy/slice_ID_P_3_recorded",
+    "caption": "failure2 XY: exact P=3 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 3.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure2/xy/slice_ID_P_4_success",
+    "caption": "failure2 XY: exact P=4 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 4.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure2/xy/slice_PD_I_0p1_success_and_recorded",
+    "caption": "failure2 XY: exact I=0.1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "I",
+    "fixed_value": 0.1,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure2/xy/slice_PI_D_1_recorded",
+    "caption": "failure2 XY: exact D=1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 1.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure2/xy/slice_PI_D_2_success",
+    "caption": "failure2 XY: exact D=2 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 2.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure2/xy/slices_across_D",
+    "caption": "failure2 XY: discrete conditional-survival slices at several exact evaluated D values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "slice_sheet",
+    "fixed_axis": "D",
+    "fixed_values": "0.50781,1,1.0664,1.625,2,2.1836,2.7422"
+  },
+  {
+    "figure": "failure2/xy/slices_across_I",
+    "caption": "failure2 XY: discrete conditional-survival slices at several exact evaluated I values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "slice_sheet",
+    "fixed_axis": "I",
+    "fixed_values": "0.050781,0.1,0.10664,0.1625,0.21836,0.27422"
+  },
+  {
+    "figure": "failure2/xy/slices_across_P",
+    "caption": "failure2 XY: discrete conditional-survival slices at several exact evaluated P values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "xy",
+    "kind": "slice_sheet",
+    "fixed_axis": "P",
+    "fixed_values": "1.9219,2.8359,3,3.75,4,4.6641,5.5781"
+  },
+  {
+    "figure": "failure2/yaw/overview_3d_oblique",
+    "caption": "failure2, Yaw: node-centred transparent PID voxels, oblique view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "yaw",
+    "kind": "overview_3d",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure2/yaw/overview_3d_top",
+    "caption": "failure2, Yaw: node-centred transparent PID voxels, top view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "yaw",
+    "kind": "overview_3d",
+    "camera": "top"
+  },
+  {
+    "figure": "failure2/yaw/slice_ID_P_4_recorded",
+    "caption": "failure2 Yaw: exact P=4 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "yaw",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 4.0,
+    "references_on_plane": "recorded"
+  },
+  {
+    "figure": "failure2/yaw/slice_ID_P_6_success",
+    "caption": "failure2 Yaw: exact P=6 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "yaw",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 6.0,
+    "references_on_plane": "success"
+  },
+  {
+    "figure": "failure2/yaw/slice_PD_I_1_success_and_recorded",
+    "caption": "failure2 Yaw: exact I=1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "yaw",
+    "kind": "reference_slice",
+    "fixed_axis": "I",
+    "fixed_value": 1.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure2/yaw/slice_PI_D_2_success_and_recorded",
+    "caption": "failure2 Yaw: exact D=2 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "yaw",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 2.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure2/yaw/slices_across_D",
+    "caption": "failure2 Yaw: discrete conditional-survival slices at several exact evaluated D values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "yaw",
+    "kind": "slice_sheet",
+    "fixed_axis": "D",
+    "fixed_values": "0.92188,1.8359,2,2.75,3.6641,4.5781"
+  },
+  {
+    "figure": "failure2/yaw/slices_across_I",
+    "caption": "failure2 Yaw: discrete conditional-survival slices at several exact evaluated I values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "yaw",
+    "kind": "slice_sheet",
+    "fixed_axis": "I",
+    "fixed_values": "0.50781,1,1.0664,1.625,2.1836,2.7422"
+  },
+  {
+    "figure": "failure2/yaw/slices_across_P",
+    "caption": "failure2 Yaw: discrete conditional-survival slices at several exact evaluated P values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "yaw",
+    "kind": "slice_sheet",
+    "fixed_axis": "P",
+    "fixed_values": "2.75,4,4.375,6,7.625,9.25"
+  },
+  {
+    "figure": "failure2/z/overview_3d_oblique",
+    "caption": "failure2, Z: node-centred transparent PID voxels, oblique view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "z",
+    "kind": "overview_3d",
+    "camera": "oblique"
+  },
+  {
+    "figure": "failure2/z/overview_3d_top",
+    "caption": "failure2, Z: node-centred transparent PID voxels, top view. Green: conditional survival >= 95.00%; red: lower. The surface is a discrete cell display without interpolation or a fitted plane. S and R are exact interior grid nodes.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "z",
+    "kind": "overview_3d",
+    "camera": "top"
+  },
+  {
+    "figure": "failure2/z/slice_ID_P_5_success_and_recorded",
+    "caption": "failure2 Z: exact P=5 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "z",
+    "kind": "reference_slice",
+    "fixed_axis": "P",
+    "fixed_value": 5.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure2/z/slice_PD_I_1_success_and_recorded",
+    "caption": "failure2 Z: exact I=1 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "z",
+    "kind": "reference_slice",
+    "fixed_axis": "I",
+    "fixed_value": 1.0,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure2/z/slice_PI_D_2p5_success_and_recorded",
+    "caption": "failure2 Z: exact D=2.5 slice, categorical (left) and continuous (right). Only reference nodes lying on this plane are drawn; no off-plane projections.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "z",
+    "kind": "reference_slice",
+    "fixed_axis": "D",
+    "fixed_value": 2.5,
+    "references_on_plane": "success,recorded"
+  },
+  {
+    "figure": "failure2/z/slices_across_D",
+    "caption": "failure2 Z: discrete conditional-survival slices at several exact evaluated D values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "z",
+    "kind": "slice_sheet",
+    "fixed_axis": "D",
+    "fixed_values": "1.1484,2.0117,2.5,2.875,3.7383,4.6016"
+  },
+  {
+    "figure": "failure2/z/slices_across_I",
+    "caption": "failure2 Z: discrete conditional-survival slices at several exact evaluated I values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "z",
+    "kind": "slice_sheet",
+    "fixed_axis": "I",
+    "fixed_values": "0.50781,1,1.0664,1.625,2.1836,2.7422"
+  },
+  {
+    "figure": "failure2/z/slices_across_P",
+    "caption": "failure2 Z: discrete conditional-survival slices at several exact evaluated P values, including both reference planes. No interpolation.",
+    "grid": 65,
+    "case": "failure2",
+    "group": "z",
+    "kind": "slice_sheet",
+    "fixed_axis": "P",
+    "fixed_values": "2.75,4.375,5,6,7.625,9.25"
+  }
+]

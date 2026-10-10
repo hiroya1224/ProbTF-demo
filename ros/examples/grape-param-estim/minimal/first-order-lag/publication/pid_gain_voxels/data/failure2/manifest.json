@@ -1,0 +1,418 @@
+{
+  "absolute_margin_diagnostic": "delta = 1 - max_i spectral_radius(exact_26_state_sampled_closed_loop_i); raw Volume.classification and *_margin counts are diagnostics, not plot colors",
+  "arguments": {
+    "batch_size": 16,
+    "covariance": "conservative_fusion",
+    "domain_config": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_domains.json",
+    "estimate_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/estimate.json",
+    "grid_sizes": [
+      3,
+      5,
+      9,
+      17,
+      33,
+      65
+    ],
+    "groups": [
+      "roll_pitch",
+      "xy",
+      "z",
+      "yaw"
+    ],
+    "output": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/pid_gain_voxels_fast_interior_success_context",
+    "preview_seconds": 900.0,
+    "samples": 128,
+    "seed": 0,
+    "success_json": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/success/estimate.json",
+    "validate_domain_only": false,
+    "workers": 16
+  },
+  "case": "failure2",
+  "controller_dt_seconds": 0.005007743835449219,
+  "covariance": "conservative_fusion",
+  "criterion": "conditional survival on full-success-stable samples; RdYlGn [0,1]; alpha=0.95",
+  "exploration_bounds": {
+    "roll_pitch": {
+      "lower": [
+        5.0,
+        0.25,
+        4.0
+      ],
+      "minimum_relative_clearance": 0.16666666666666666,
+      "recorded_anchors": [
+        [
+          13.0,
+          1.0,
+          20.0
+        ],
+        [
+          20.0,
+          1.0,
+          8.0
+        ],
+        [
+          10.0,
+          1.0,
+          8.0
+        ]
+      ],
+      "upper": [
+        25.0,
+        3.0,
+        28.0
+      ]
+    },
+    "xy": {
+      "lower": [
+        1.5,
+        0.025,
+        0.25
+      ],
+      "minimum_relative_clearance": 0.2727272727272727,
+      "recorded_anchors": [
+        [
+          4.0,
+          0.1,
+          2.0
+        ],
+        [
+          3.0,
+          0.1,
+          1.0
+        ],
+        [
+          3.0,
+          0.1,
+          1.0
+        ]
+      ],
+      "upper": [
+        6.0,
+        0.3,
+        3.0
+      ]
+    },
+    "yaw": {
+      "lower": [
+        2.0,
+        0.25,
+        0.5
+      ],
+      "minimum_relative_clearance": 0.25,
+      "recorded_anchors": [
+        [
+          6.0,
+          1.0,
+          2.0
+        ],
+        [
+          4.0,
+          1.0,
+          2.0
+        ],
+        [
+          4.0,
+          1.0,
+          2.0
+        ]
+      ],
+      "upper": [
+        10.0,
+        3.0,
+        5.0
+      ]
+    },
+    "z": {
+      "lower": [
+        2.0,
+        0.25,
+        0.75
+      ],
+      "minimum_relative_clearance": 0.2727272727272727,
+      "recorded_anchors": [
+        [
+          5.0,
+          1.0,
+          2.5
+        ],
+        [
+          5.0,
+          1.0,
+          2.5
+        ],
+        [
+          5.0,
+          1.0,
+          2.5
+        ]
+      ],
+      "upper": [
+        10.0,
+        3.0,
+        5.0
+      ]
+    }
+  },
+  "final_node_counts": {
+    "roll_pitch": 291852,
+    "xy": 296274,
+    "yaw": 283140,
+    "z": 283140
+  },
+  "fingerprint": "1368b66c80b321ded4d27e23107ba42850c98818e2de152f5879b58ceff22292",
+  "full_recorded_case_gains": [
+    [
+      3.0,
+      0.1,
+      1.0
+    ],
+    [
+      5.0,
+      1.0,
+      2.5
+    ],
+    [
+      10.0,
+      1.0,
+      8.0
+    ],
+    [
+      4.0,
+      1.0,
+      2.0
+    ]
+  ],
+  "full_success_gains": [
+    [
+      4.0,
+      0.1,
+      2.0
+    ],
+    [
+      5.0,
+      1.0,
+      2.5
+    ],
+    [
+      13.0,
+      1.0,
+      20.0
+    ],
+    [
+      6.0,
+      1.0,
+      2.0
+    ]
+  ],
+  "gain_coordinate_scales": [
+    [
+      12.0,
+      12.0,
+      12.0
+    ],
+    [
+      25.0,
+      25.0,
+      25.0
+    ],
+    [
+      20.0,
+      20.0,
+      20.0
+    ],
+    [
+      20.0,
+      20.0,
+      20.0
+    ]
+  ],
+  "gain_names": [
+    "P",
+    "I",
+    "D"
+  ],
+  "groups": [
+    "xy",
+    "z",
+    "roll_pitch",
+    "yaw"
+  ],
+  "implementation": "gain_scaled_full_exact/v1",
+  "input_sha256": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/__init__.py": "84e7b850ad48b9c4da992add72047c2a97d6ccc6d3ce029bef128337a364e3a2",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_gain_voxels_fast.py": "11ceea435499a6c82b0545ab1800ebcca19cb6bd4a7466041c69bb5c1ca1ba45",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_gain_voxels_interior.py": "89047b23ad977ee957ffddb5e23895c25fecdd73378f30311a63cbbdadf22d84",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_domains.json": "6614b8bf80d96831dc852e57cdbfbed060a4bf1d9e7ddb83de9a99e076188bff",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_domains.py": "960ec1efc0321f604c634787c0376b430d70286a95bf0ae1045cca95ea76fb02",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_fast_evaluator.py": "813992a5a3bb9de1e4da0e202e161140e4fa28322afbcc0b27a08d7d1fc37b56",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/automation/pid_voxel_survival.py": "733dc3a6245a420bc13418351102b4f6662efe404fd77804560136e0f2cc3792",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/core.py": "de27ddb0481a2891c662f01f45c3fe0a8231872b044f2b726fbf08a0e1420873",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/estimate.py": "6cf0c2bde147499dd6a5d171b78fed98b3d383ca4db1820e96c68c6178326be3",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/estimate.json": "e82021db6b91caeda6fa592ac732fd9ceb8ffe4e275e9acbc23548f090759927",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/estimate.json": "37f88f9023ee1b55db090a1e2d38dd79eeecb65ff0fd190cda0e3d80bab4c8a1",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/success/estimate.json": "3c4f4db0312cbe369ee1ce4c7eb12c6208b5bb8bbefdb830f0e1f6d49a8f4203",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_contour.py": "41dadd60a0538efba18c27253251fd5d96c358b1b7563a3bde57c820c3466306",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_contour_affine_legacy.py": "f9a9b48e7691d8b3cae7ce87d3aa521414335f7b05b1de3c8c10c34ff4401b34",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_region.py": "5f7f56edccddaea9688083f25cc78e7d7a97a7715d823cf8e7ec26edacff7875",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/pid_gain_voxels.py": "58a3f1213a782e5c76f94cdb0f3c1818cf0e8d756c9f9030620d3d48f79b760a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/pid_safe_margin_full.py": "9bf9bf75fd56ad02b3872cc97fa195d810effad7bc8a580a06766900c28762b6",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/pid_safe_margin_slices.py": "43de5094762b13e65bd9b340418c79c3c7c686f741e354a54ab0540a7c87ac3f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/pid_softmax_continuation.py": "2cd230724f7fe7c9d0baaf4b884e4929e676285d72feb2fb309f08370e3ca70f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/pid_spectral_gradient_path.py": "04885e04ed74c9faa40ae00b12099349212fbc5d92a830b3863c47b67f76d6b0",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/pid_spectral_gradient_sharpen.py": "409aa0e4f5b04e9bd474be71a0314c4ec8c3b9d86d4f74551e2d6effef094aba",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/render_outputs.py": "50099a5dcff08298ea76b5386694b57f2c9f07f4ee746494c3ab02ef9d8d06a6",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/reports.py": "28a4ae662c2187904e82cf1b163acc0be5dc3133eeeba4372e889009f1a4d8d2",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/run_all_estimates.py": "fc03565181f799c17fbd2f2f9b58b0419ac048b4d968cf3140f3b1c999fc685f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/run_all_pid_gain_contours.py": "796c557c4cbf3fd2aa34433823c999d7b7657d1e9182afd945ed0d1ee0167562",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/run_all_pid_gain_regions.py": "525347501fd4bb52a551fe0a5bc81955226a56d53866c5b40a4cdbfd6a88327d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/gimbal_savgol.py": "ea3c72016f307201ec7d37bbcd2ef7d42b55f0c746821629caf651ff67427281",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/gimbalrotor_pid_gain_region.py": "0835afb9a8bb7c9037071cd193608c3e57bf39371ea30d3c22cad7e944835f35",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/gimbalrotor_pid_local_pole_validation.py": "c732baa79b4bdd51f8b206a6ec341051e67cfbae66a89351f6b1d49a150768e1",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/gimbalrotor_pid_mode_growth_validation.py": "4b3e29dcc3f06777d007ab396e4f2e47b95de6aeb44a2aebcc7e7b537bf84e2c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/gimbalrotor_pid_monte_carlo_postprocess.py": "c89c5aaad71c3d30b85911da36250455dd6a4eac9959450fad021abe60a21aaa",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/gimbalrotor_pid_postprocess.py": "9254b2105a7d991049ad40e3a5674655e472f77ac4af9d517f2f251c2ba4e6d4",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/gimbalrotor_pid_postprocess_sensitivity.py": "f1042d00b095efa6b94e36bd014b04fc4cb8cf9ea1b3e0b5c2a340dd92594231",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/grape_vehicle_model.json": "5bd0b4326a4fcd31df31e9b66e4b1d50859bf8359ff6867d0ad68c10dd8f1f60",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/rotor_lag.py": "86a673c76faf404cfb8f2e42f1af18fe3d2bfd7f151ca69eaf0fa5562f8c85ed",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/savgol_trajectory.py": "f45c61d46cd13a06543cee365436db5eacf26c2d3f3d79db744eb1d81b92d78f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_cog_prior_reseed_refinement.py": "cff1b22cd6f286685e5374a7908b83a0df81d809d90fbf87b538b73d3fc96446",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_cross_bag_consensus.py": "874c50242633e6f701b9e26af62b5387736d01e8966e429e92179e29d0cf5a12",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_input.py": "9cd4c14dd4ec34a5b794be4fe7f25dc555c10b47f6878ce4d9bc35e2651696dc",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_parameter_prior.py": "05a1a20c46e09c6933f7dd4057f25ac11c065cce97a4b5abd2d62fc2673f09ce",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_prior_ablation.py": "11347bc12a6eebd5fe27ff3ba306169e07ff8f10c478de514ea76d269b977de6",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_savgol_ablation.py": "410e6b8da968e2e3f8d34402a8411810e8a20985aef2f10700a17c4baad0ab89",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_savgol_core.py": "38f23d477ebd65740d5855416bae1f402af2b3be27035ba6b475e70e1d3a85a7",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_savgol_covariance.py": "2a5cae5fc48150c0a56366c093eeacaba6d3b62fa7b39dd4deaa790f13ad22f1",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_savgol_estimator.py": "a9bf49d962904c8c2a7bec34900b1fa4a7ce9a2faca3569705d0ac6e9abacf1b",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_savgol_reports.py": "67fdeaeddd52e955fc63842a57a48b51438c924702dea609f89ff3cf47a0148a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/single_bag_wrench_replay.py": "9914fac5aa5c1f88d512746d5034fdac94e0529901c3edd11b4fce3138b2284d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/smooth_command.py": "3b7c4345df73db36cdb24157a1e8853d632fe679332e9b3902277bc58764bffc",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/three_bag_cog_prior_reseed_consensus.py": "2c2e30f2d69462e181abc1cf9d34cd7e09f10dbc82e5d55f284f47c9feb3758f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_coordinate_chart_comparison.py": "230983b3a2a71ef1518476d85114e4085f6ec64ea6aa25b499291fbf32a452c4",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_local_pole_validation.py": "30c1b195e0da1d395c4d1e61b1d17ad264b12273d515f0f183436fbf61dcb1a9",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_monte_carlo_postprocess.py": "285c34b5bb569dc84662c6600a78ba03df28b87de6fee3a52535fdb707ba0b42",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_postprocess_sensitivity_summary.py": "2c1ea5a23f6510fc87427457707f76067260e251e993bda23fb0ef08fa29bd39",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/three_bag_gimbalrotor_pid_postprocess_summary.py": "30a9457c438ee3aa10f526d5fb5b7579fa61b968bed8a2e53c96823586e3573d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/three_bag_prior_ablation_summary.py": "623d34fa2a8e279b59459d18df4d169b8d611877373d634c4a0eb878adbf47ca",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/__init__.py": "0d783ce257915cf1f69fdc9eadd5d579803863d90baffc1870ef83e4886cce0c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/articulated.py": "77a8641658e0fe5d71e0b30721b6821c88c962e713c99bf91b5426e6d052448b",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/artifact_io.py": "f1a4053083dfa66c368a6e77d06658f99fa387442322e2ef30d13aafa5cd2177",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/__init__.py": "c22a108d39fb9cffc4667f0e133734c5c05d52ae2d9439462ed0d68e6d990f7b",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/covariance.py": "8cdaa108301e6586ec8e62043023f98fe569683f1b423ad1bd9d45759457e888",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/dynamics_moments.py": "01ae9954f1e81512ab81b0f194da3bf6672845559f229c6116ed8ba2d19d3871",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/em_loop.py": "bffc9962c26cd19b994c7bb3c7bd4d640c5117521cac3fe5ec95efe35e83eb19",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/evidence.py": "946488f29f333604cb3e327ccb2aaac79bb968c8cebd4ae45beba1fce7b993ba",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factor.py": "3a7d1bf2e6bbcd27d97d821dd395902498d3720c1f463150d2ed6f1b5cc618d1",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/__init__.py": "f31ba5e4a8c3652482577bab492e9914730cf267515593641fd1d9381f9f9631",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/actuator.py": "6ee32921c71d7d1ec3777d4c5095daf39f474ced3b0205c84047ab2a5e871e13",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/controller.py": "aaa28eb1a0292f8e295922d373acd2a52853d0dc3805bae85acc073dd045a442",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/dynamics.py": "52e43b40cfe5f033f983c1751156197e0df9d743fadf4ab580623242b89d5d6c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/dynamics_factor.py": "e559670ee86414cc0a80880b84d52db8ec7b0b86477947157c9034087f3f6515",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/imu.py": "c58ddc0f76c7768354860de600c460c696b930427bb72e0b03ca5d10c69331c5",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/kinematics.py": "2c56b57a81123ad9a357b017491a200564d3c03661e3d1591c0daeccb298a116",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/pose.py": "b73320a98f4f8f9890fcde4ae5cf528e8a8741c1d2ebb0e7c44b3e52328734d2",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/prior.py": "6eefef1227e00fcc958515d5d5d4d50889d0ac8a702ebfebb2f39637b4aa772e",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/factors/velocity.py": "a85589f0efc3aaa7cebc670bbb6298a7402f629c89067994819e4c9322bfe01a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/graph_builder.py": "dff8d4af35c727338a997c0c39249bd1438dd4c115d89c77134f5911004275fe",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/ieks.py": "ab61cff3f9e8df0ab6288f13f67eaddef35083b80157b23fa27d70d80313593c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/lag_profile.py": "dfa3e92be66d73a428644f355113b84c44f4f4beff878a744a71afcd2c0fb37f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/laplace_em.py": "f992f03702517b69135015056456f5e5126c4fbb51234b68bc4079d79c986423",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/layout.py": "cfd11d3d413bb816745835959de4ef7c2a2cf20ec18872e0581e837a0775f122",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/linearize.py": "fca42821e2bc861f48648312d282b291462ae20c48ba3634dacfa2b1313c6faa",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/lm.py": "babc1d81a5132bba72985eedfb42f2b334aa7c47587809362688a8ca714a39f2",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/preparation.py": "c167d21f85f267665232c1ded432578180df63619c5e5cf09940333e77da9cb1",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/problem.py": "8da4c26e80f76c27f4000f181e87a5c296a9c179f130cde59f426d9e6c0fb9ad",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/recorded_control_rollout.py": "aaa42194687fda5d79b0a08a31338a006ce085ebd62e320356dbc0079e65db42",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/ridge.py": "6930757c3a707a552bff639ea0a433243dab9a97da9f6f7944de546b41e32e13",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/sparse_solver.py": "0f89fdb254f5feb1fd4e75223b254cfdefb15232b74f720abebe59bc815cc713",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/state.py": "c2a3dd071e8b9c0ba7bce1c465069d8e137f7f11832dd26b8b06cca4af364cc5",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch/variables.py": "d2d4db829e7b735c16edc3bdafb1c68b25c6a19c247387d92094d527c68e9ecd",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch_artifact.py": "bcc2ba3387ff808251d7602de9e8eca5b038a490e8c6bebffa09efa4e18ee9ce",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch_artifact_export.py": "800f2c87950284e26bbf8fc329cabad1498ab78528c5bfde78e5677ce511f0ee",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch_checkpoint.py": "d3f40c07ece153c93aa2757d8fe7eba73fe5dcfcd85c2406bc2277f5b22c87d1",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch_estimation_cli.py": "a6d6724c043cf5c1d017bd9103ab193cc858febda224c1de84595d41bfed904f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch_performance.py": "ac24e0c54304d16fddec6926a9c2509644922923536659b4b63ad1a2874c3476",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/batch_request.py": "741ce79c04942f51278d2066d611ac4ab9c32fba09823d97d7db2829bc41e3bf",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/closed_loop_stepper.py": "e9ced7f71558408f7fba11df517420fba9f283d92d2850652bc852f89c8b8d7c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/controller.py": "97ceda713e95aa7eb3c08c6eae8e5cf3313565bba48d24b849f4f40cacc4acd9",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/controller_config.py": "135284bc972025b52b07f4c4a2ea3b51cb736751324256392fb1fd3a3f3676e7",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/dynamics.py": "fcaddbd6713eca538bf314adc26aca10bb0e08a23560f9b898dddf52bd092385",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/estimation.py": "6eb9fb4ba4d03ee47ff94d02255cf1e74f6e3aa0be87a5e2f6e69ad3c6e1243c",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/geometry.py": "2f054d076754cf58b7b71b91b37e5f927fca39f4a6ac14c842c4c5fdcb410e43",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/gimbalrotor_pid_postprocess.py": "e24ce723e09a18bd32a0fc44e5635721db3526006b0ae3625d35b9c11dba6d3a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/held_out_validation.py": "9f3ca5a81753db4cefb43363595bfa2261a3ee88ad07d89495958040f6f23ce4",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/initialization.py": "ace6dff4e2e06387fec2bbf524b67741eb685c551b220a83d3dd6a2637795231",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/inspection.py": "5ec1ace319f86b031911a08de33ebfabd54abad70d1516e84c423c408ed19454",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/inspection_cli.py": "8a02148db9ff8172eb6c5b23f2a656833fd11598b01debbd48a642d51ffcbd62",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/parameterization.py": "926ab705b2c5f5d33fe9e02791650064866852fc1104bce8627eddd5b341bf11",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/__init__.py": "498717e0d5619eb1de2442a5052c1b1a2ee2dc4dd1344a9a8905d1352fe5de5b",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/artifact.py": "80a49bb1df1aec2756feff7c5eb4123823d0d0a032617c234bcef53b94a99a50",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/checkpoint.py": "96fca86e33143f02d172d26f04321ccf3597844fa57bd2d70d7e6cd0da2f58f3",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/cli.py": "d23afe8c61bd09c09c9f43f1682e168060f83ded508f4b06d960f03ffc6720c3",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/input.py": "bd96ef895b918b5f6278eafdb596c791cd92826971d88b9777a5bfacfc83ccf7",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/metrics.py": "1217722bcced3936397f88e2132676d385c5c01d69c3a0659f0f9749cb1e8cee",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/particle_search.py": "8299124bfc2208b466954fcb79b0c7ca0a19997d5f4a570c6a687f59fa6cc9f4",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/predictive.py": "a0baf4043e40482c3c1176da2397b3358403041543c1c21b08801b6692607fb2",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/proposal.py": "67bfbe821866b32cd447bcffb896aaae7312bf0b4863e198fbbce71e215f039f",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/pid/request.py": "8216190d5ae9bb28583e59c97981d3d0db926979da529322b12f8481ce4b4aeb",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior/__init__.py": "c4f1f85d66529fdc20ef16d883c26bbfd0ea7aedb2cda6b7f7f8ff5b070048b6",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior/checkpoint.py": "f41fd4819f090fa66c4a1d572e62f199252992d82be7f4f2f8f7aa6cdfcb222e",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior/delayed_acceptance.py": "e12845575ea4e79f721e4e904e22499dbe3bb1f06d27eb9f661d3010052e1650",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior/diagnostics.py": "b0c39e932006b393b0d2a93b7680192ce3eebe584ff9911f0e987482a67c6d21",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior/laplace_target.py": "b59b51c58a34980f24453d73dd5f11dd61759c82731aee9af911ee493f895c63",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior/mcmc.py": "fb21ebe442851a51a285bdd6b26149ad76a0f8230a7086c507cf4d52b4f8bd04",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior/representatives.py": "5eeeb97e86e9edadd3e8924aeb900cad37af43418f40b9119f509465f9049773",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior/run.py": "b7dcc0a2ab7aa29b51f683a40ddda035f01b9e705cd09e619ac865154b1530ef",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior_sampling_cli.py": "aa76c8129fb4c4d6e713432889a37cdd718eb7b4f9a287f1fc78a95f8ad7dc18",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/posterior_sampling_request.py": "c2432eacfebfc6d2f67abb76ca0aa81902661b69fdc2f5caf54baa55b3729555",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/progress.py": "3e867fbc5a4232186bc9c113d08d59aa62301455a1f965527dc07addcf23c89e",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/real_estimation.py": "373dd087c14c57b2610a495432702550c15a2e285520f1ebaa1c1f452aca8913",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/real_rosbag.py": "d4bc531d0c9552c4ef857b42b332b546980cfb17f9002a5dad3b54f137c8ab60",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/sensor_models.py": "a29baf715fde41d3487aaa1f6e856f07e18f38bacd1f81530d616902647833f6",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/synthetic.py": "b871b8d9e00586aaa4681a10a9e35cab171c180c58c7235b36460cee4b2b847b",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/synthetic_batch.py": "88b1f3ae4f0481de4b7bf23da71b5f9cd72aef5e75f0ad3599f8d71349d0acf0",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/synthetic_cli.py": "52cef3a1ab0cdeb6a18aa1427cbbaa7dbdc296d6acbeb759737d7eaae0a313a6",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/system.py": "474892806d9dcda9d192325f27eafa68c77adc0d8da1f2d1e5f4e924e52269cc",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/timing.py": "bb7b6c7740c762e552020cb4e2a380a2c6059d5a6749fcc3d47179a9513ca2ee",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/src/grape_param_estim/trajectory_sampling.py": "0da60e2318e84d7860a4c09e496818c7eefc0a9642286bda29a7793b5f20f53e"
+  },
+  "plant_samples": 128,
+  "runtime_versions": {
+    "numpy": "1.24.3",
+    "python": "3.8.10 (default, Mar 18 2025, 20:04:55) \n[GCC 9.4.0]",
+    "scipy": "1.10.1"
+  },
+  "sampling": {
+    "effective_rank": 12,
+    "eigenvalues": [
+      -2.727659101797897e-15,
+      7.258999362856167e-10,
+      3.0750817274730767e-09,
+      6.256072087713368e-08,
+      5.2853577324953e-07,
+      7.238898655654019e-06,
+      4.4546301812559364e-05,
+      0.00011165391510577892,
+      0.00039263793519420847,
+      0.0009247758888652058,
+      0.0056088081656523354,
+      0.12617417397401842,
+      12.0320164053676
+    ],
+    "method": "scrambled Sobol in positive-eigenvalue whitened coordinates, inverse-normal transformed",
+    "psd_tolerance": 3.473137627935747e-14
+  },
+  "schema": "grape-param-estim/exact-pid-gain-volume/v1",
+  "semantics": [
+    "Only one P/I/D triple varies; the other nine gains equal the success controller.",
+    "The successful flight is an exact evaluated node in each volume, not a projection.",
+    "Recorded failure triples with success's other nine gains are hybrid controllers; no failure-flight markers are projected.",
+    "Conditional survival counts unresolved intervention samples as breaks within the fixed success-stable baseline.",
+    "Primary conditional_survival.npz classification: 0 pending, 2 below 95%, 3 at or above 95%.",
+    "Grid-node data; no interpolation or certification of entire voxel cells.",
+    "Exploration bounds are independent of the GAIN_CAPS normalization scales.",
+    "All recorded success/failure gains are strict interior anchors, with the configured boundary clearance."
+  ],
+  "source_commit": "e5b7e3235c0122980ce95e97f3c1ce12b6e35e5c",
+  "warm_start": "preserve K_I * integral_error; exact equilibrium and pole workers unchanged"
+}

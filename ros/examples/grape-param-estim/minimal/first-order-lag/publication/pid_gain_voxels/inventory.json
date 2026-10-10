@@ -1,0 +1,39 @@
+{
+  "schema": "pid-paper-file-inventory/v1",
+  "limit_bytes_exclusive": 50000000,
+  "file_count": 306,
+  "total_bytes": 92630891,
+  "largest_file": {
+    "file": "interactive/index.html",
+    "bytes": 8137784,
+    "sha256": "cd00498fe75b22501d6d3e05be09c94f4af562ea19b20dc99f559c608c5aaa7b"
+  },
+  "directory_bytes": {
+    ".gitattributes": 283,
+    ".gitignore": 42,
+    "DATA_FORMAT.md": 3574,
+    "METHODS.md": 7909,
+    "README.md": 6988,
+    "data": 29022121,
+    "figure_settings.json": 479,
+    "figures": 54635337,
+    "index.html": 56433,
+    "interactive": 8138021,
+    "provenance": 92981,
+    "reference_gains.csv": 909,
+    "requirements.txt": 123,
+    "scripts": 68042,
+    "tests": 15451,
+    "validation": 582198
+  },
+  "excluded_from_self_hashing": [
+    "files.tsv",
+    "inventory.json"
+  ],
+  "ignored": [
+    "__pycache__",
+    "*.pyc",
+    ".venv",
+    "custom_figures"
+  ]
+}

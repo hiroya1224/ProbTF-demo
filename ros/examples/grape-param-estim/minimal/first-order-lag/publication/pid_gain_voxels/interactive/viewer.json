@@ -1,0 +1,8 @@
+{
+  "html": "interactive/index.html",
+  "bytes": 8137784,
+  "sha256": "cd00498fe75b22501d6d3e05be09c94f4af562ea19b20dc99f559c608c5aaa7b",
+  "grids": 16,
+  "input": "portable NPZ archives; no original run paths needed",
+  "alpha": 0.95
+}

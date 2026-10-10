@@ -1,0 +1,310 @@
+{
+  "tested_grids": 16,
+  "exact_roundtrip": true,
+  "checks": [
+    "every stable/finite flag vs original float64 rho",
+    "every native plotting/diagnostic array",
+    "every node conditional survival and unresolved count",
+    "reference nodes exact sample order"
+  ],
+  "cases": {
+    "failure1": {
+      "schema": "pid-paper-data/v1",
+      "case": "failure1",
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure1/pid_gain_voxels_fast_interior_success_context",
+      "source_fingerprint": "1368b66c80b321ded4d27e23107ba42850c98818e2de152f5879b58ceff22292",
+      "completed_utc": "2026-10-09T23:10:16.159971+00:00",
+      "exported_utc": "2026-10-09T23:50:34.606613+00:00",
+      "samples": 128,
+      "baseline_count": 127,
+      "bit_order": "little",
+      "axis_order": [
+        "P",
+        "I",
+        "D"
+      ],
+      "criterion": "1 - breaks / count(finite rho(success) < 1)",
+      "unresolved_policy": "counts as a break in the fixed conditioning set",
+      "preserved": [
+        "exact float64 node survival and gain axes",
+        "per-sample stable/finite decisions",
+        "exact float64 worst radius and absolute margin",
+        "reference sample radii"
+      ],
+      "omitted": [
+        "per-node per-sample float64 radii; retained in original local runs"
+      ],
+      "grids": {
+        "roll_pitch/33": {
+          "shape": [
+            34,
+            34,
+            35
+          ],
+          "nodes": 40460,
+          "archive": "data/failure1/roll_pitch/grid_33.npz",
+          "bytes": 493919,
+          "sha256": "3a1756102e8a33d17c7f4a1740f833ae2846a2161bf6c93df1d1537b420ae521",
+          "native_radii_sha256": "3334ebc3ca8883bc0dd29bc1104f3f003ffa5465c0953032c6779484a324ead4",
+          "native_conditional_sha256": "13b61a76a7c290daab4045a314eae15db40e9066163d0d2d010e618b3a70de89",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "roll_pitch/65": {
+          "shape": [
+            66,
+            66,
+            67
+          ],
+          "nodes": 291852,
+          "archive": "data/failure1/roll_pitch/grid_65.npz",
+          "bytes": 3436706,
+          "sha256": "2d658f8665eaeded62f8c90ed9e7edbca5002fda946d75346c009eb388ed1fd7",
+          "native_radii_sha256": "201a1441ec107d6914d70e18ac7d0f4e2feb3363f6ab6a60884d5b27e79d3e1b",
+          "native_conditional_sha256": "0c64b89757bf1ab71fc6517b5f989bd0c2519f6617e03514e337352712f1e821",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "yaw/33": {
+          "shape": [
+            33,
+            34,
+            34
+          ],
+          "nodes": 38148,
+          "archive": "data/failure1/yaw/grid_33.npz",
+          "bytes": 482614,
+          "sha256": "e93cbc2b85951772f89cbb87b60ae8b8eed693b36702e8b4091934ca1c1be698",
+          "native_radii_sha256": "bc85df2454eb0e2563e1b0f94823849193990587d5a658f674aa5ab7a56b8f91",
+          "native_conditional_sha256": "7be3d690d6a847917dbc075fab9d6fe7d87c5da25b23e7ce70eea147f51a2dd4",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "yaw/65": {
+          "shape": [
+            65,
+            66,
+            66
+          ],
+          "nodes": 283140,
+          "archive": "data/failure1/yaw/grid_65.npz",
+          "bytes": 3413392,
+          "sha256": "9647daf33055727d2d3dca0a64c293bf386c6a9a70e89ec0c7883457d53704b8",
+          "native_radii_sha256": "f71c1a9c776f4a3f82f03dcdd492ec2af58726f35a2b54552641d3add9eb34e8",
+          "native_conditional_sha256": "6250f762f6a2c17d0a5873e0544c6418abf9f829d7009a8104d622512532a636",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "xy/33": {
+          "shape": [
+            35,
+            34,
+            35
+          ],
+          "nodes": 41650,
+          "archive": "data/failure1/xy/grid_33.npz",
+          "bytes": 420383,
+          "sha256": "d3c6ab25afeac39cc10f1a4fd37c0370b4c2540d2a450acc771912b3cc66593f",
+          "native_radii_sha256": "6f0c61dc0721bb348dcfd63de5f390765277fe883c1fd7bd66b86f6ae4e45b0c",
+          "native_conditional_sha256": "a14a5e621f2280094829882eaa17ad7b37298345c4edf9febc62ed5a89ef331f",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "xy/65": {
+          "shape": [
+            67,
+            66,
+            67
+          ],
+          "nodes": 296274,
+          "archive": "data/failure1/xy/grid_65.npz",
+          "bytes": 2917623,
+          "sha256": "52ba651ac3eb8274c4f91db47b09099d30e947994ac6f8a5ea0f6897ea7cacc0",
+          "native_radii_sha256": "ce0782fab2ce5101ff8b7310c772ecb97162c13aa8433737f1f3d7f928742cc7",
+          "native_conditional_sha256": "5e2e2cc5e7d87c8edea35bacd007b75634855fcf39c76bbf1c635d67a69780cb",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "z/33": {
+          "shape": [
+            33,
+            34,
+            34
+          ],
+          "nodes": 38148,
+          "archive": "data/failure1/z/grid_33.npz",
+          "bytes": 382788,
+          "sha256": "2e67e28c2d94247a943c98030c2af46d810f41738c8e1c57ba960fac45f42b29",
+          "native_radii_sha256": "d66b57a8cf04ef53dcdd1c056a20bf0152b8e3ec8a2393ec364d9eeff0d27296",
+          "native_conditional_sha256": "b96d46730d0e24afce9dbfb72015e8be55e823934662cf60c0e7cd3b2feb2058",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "z/65": {
+          "shape": [
+            65,
+            66,
+            66
+          ],
+          "nodes": 283140,
+          "archive": "data/failure1/z/grid_65.npz",
+          "bytes": 2701391,
+          "sha256": "3358a97d66194ca48bd57d028ae75464dd2b777086a96c7e5e501af5e31377f5",
+          "native_radii_sha256": "6fafd53ba2125dc2aed30c842cbd509709dd49587ce5da8f5ebe28bbb4e06cea",
+          "native_conditional_sha256": "e1c6d6e057d7beacc18437bc17e787ac66691922fceceaf45b5838724327e398",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        }
+      }
+    },
+    "failure2": {
+      "schema": "pid-paper-data/v1",
+      "case": "failure2",
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/grape-param-estim/minimal/first-order-lag/outputs/failure2/pid_gain_voxels_fast_interior_success_context",
+      "source_fingerprint": "1368b66c80b321ded4d27e23107ba42850c98818e2de152f5879b58ceff22292",
+      "completed_utc": "2026-10-09T23:04:24.443267+00:00",
+      "exported_utc": "2026-10-09T23:50:41.302291+00:00",
+      "samples": 128,
+      "baseline_count": 128,
+      "bit_order": "little",
+      "axis_order": [
+        "P",
+        "I",
+        "D"
+      ],
+      "criterion": "1 - breaks / count(finite rho(success) < 1)",
+      "unresolved_policy": "counts as a break in the fixed conditioning set",
+      "preserved": [
+        "exact float64 node survival and gain axes",
+        "per-sample stable/finite decisions",
+        "exact float64 worst radius and absolute margin",
+        "reference sample radii"
+      ],
+      "omitted": [
+        "per-node per-sample float64 radii; retained in original local runs"
+      ],
+      "grids": {
+        "roll_pitch/33": {
+          "shape": [
+            34,
+            34,
+            35
+          ],
+          "nodes": 40460,
+          "archive": "data/failure2/roll_pitch/grid_33.npz",
+          "bytes": 526019,
+          "sha256": "88ba8d012b91cb5e5c6b64940b9a279292345e6f9c94e57f0238d05ab83a08dc",
+          "native_radii_sha256": "d1219b10eaaea3982627e2e9c0807382787b1a77e765f79c881983c206e861a0",
+          "native_conditional_sha256": "fea1fecb2f05e2b7f586a1dc4637fe8528cb3f1a1cce8fa6626e7fd5b498504e",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "roll_pitch/65": {
+          "shape": [
+            66,
+            66,
+            67
+          ],
+          "nodes": 291852,
+          "archive": "data/failure2/roll_pitch/grid_65.npz",
+          "bytes": 3670286,
+          "sha256": "75d12e2ef1c98a9f3e24f0be9200c0c7b30a276fd32628f0473405b1db4bbe86",
+          "native_radii_sha256": "5353a47e4d9f4aafa65e8b05079ea6e2a7bf79b6f562aa67b327cd5f856122f6",
+          "native_conditional_sha256": "72e2b01c6cd24cffc71d1660204ad46458e72fb31e0b3d0f9cd68caaf9ff3e19",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "yaw/33": {
+          "shape": [
+            33,
+            34,
+            34
+          ],
+          "nodes": 38148,
+          "archive": "data/failure2/yaw/grid_33.npz",
+          "bytes": 437483,
+          "sha256": "4cc143c49b583c20c6d5b7217eefa75dcdbf707fc675ec606a865709141338f3",
+          "native_radii_sha256": "e611f09f660fc258b521444ac9cc95228ce09808a676673670d248a627affeb0",
+          "native_conditional_sha256": "59b31bc16e1a9ce5629876dd596e4a608602a4b2f9b8bab4a74ee9c61013179d",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "yaw/65": {
+          "shape": [
+            65,
+            66,
+            66
+          ],
+          "nodes": 283140,
+          "archive": "data/failure2/yaw/grid_65.npz",
+          "bytes": 3111515,
+          "sha256": "a0c0913ba0e5832212355c3b898325fc79a12e56cb4a142befd0c5d85d0d2cbd",
+          "native_radii_sha256": "207bb2692dfa49249492e8eae6e2ae6c8adcc4adab1b29cf98ff3adcf449c54a",
+          "native_conditional_sha256": "f217dd17ffdae56cff8e6cbc19e5cef45cb2a5b12bb2d3382a5dc5171f73e543",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "xy/33": {
+          "shape": [
+            35,
+            34,
+            35
+          ],
+          "nodes": 41650,
+          "archive": "data/failure2/xy/grid_33.npz",
+          "bytes": 417554,
+          "sha256": "2b6563fea1888972be0ac70818d58f862866d053f1f4d70a8a92882a01239c48",
+          "native_radii_sha256": "e83f5f336dcbf37be78a34580b13806dc3a3436cf1f6bbe03664ccde66c11434",
+          "native_conditional_sha256": "c8e98b6783c572aac414ef9e78884d8b150a19ed947c65ef3591b7ec77455b9b",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "xy/65": {
+          "shape": [
+            67,
+            66,
+            67
+          ],
+          "nodes": 296274,
+          "archive": "data/failure2/xy/grid_65.npz",
+          "bytes": 2893865,
+          "sha256": "47c4c554577fcdd0f566a7dab779b0a99ba8819d433b20f39d89076f148bb251",
+          "native_radii_sha256": "80c96f5ba6532a3b8531b100e91ab2f9f5c49ccf84299dfcbfdb0ca492ac2af1",
+          "native_conditional_sha256": "50c19cb88d6dd94147beb1d510d943d6f2e6852d0756724f5483acdac2b232f3",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "z/33": {
+          "shape": [
+            33,
+            34,
+            34
+          ],
+          "nodes": 38148,
+          "archive": "data/failure2/z/grid_33.npz",
+          "bytes": 427371,
+          "sha256": "74ec927bdbe4c69780c7e6c1b7fb10fcf59170c86ba664d6df01456b349a9dcb",
+          "native_radii_sha256": "f4105b7e66bea90f796fd0cb85696f689c57d2f7c02ae15d7b1b417497a961e8",
+          "native_conditional_sha256": "28d1dae772f71cb43ecc6a264e8fd1408e8384cf089122abe9f6a45c2e543d08",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        },
+        "z/65": {
+          "shape": [
+            65,
+            66,
+            66
+          ],
+          "nodes": 283140,
+          "archive": "data/failure2/z/grid_65.npz",
+          "bytes": 3068049,
+          "sha256": "a28e605fe703bee935c714824a97cb7779c32fe37073bac33365c6d9c7fb6c32",
+          "native_radii_sha256": "e66e5fb137e3c88a6817ea0124a4e161098590749b66ba08037d160a91fb838f",
+          "native_conditional_sha256": "70d04da36d055f42da74857cbb5e771f39bdb68a7dfe4e245f4e08fe0da0d084",
+          "stable_and_finite_roundtrip_exact": true,
+          "all_native_plot_arrays_roundtrip_exact": true
+        }
+      }
+    }
+  }
+}

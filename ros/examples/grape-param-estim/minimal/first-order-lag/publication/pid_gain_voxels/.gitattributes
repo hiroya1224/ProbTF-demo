@@ -1,0 +1,8 @@
+# Generated dense graphics and the bundled Plotly viewer are reviewed via
+# their source scripts, numerical validation, and visual previews.
+figures/**/*.svg -diff
+interactive/index.html -diff
+
+# Keep exported tables identical on disk and in Git.
+*.csv text eol=lf
+*.tsv text eol=lf

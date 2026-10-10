@@ -1,0 +1,17 @@
+case,group,reference,P,I,D,baseline_count,survival,breaks,unresolved,classification
+failure1,roll_pitch,success,13.0,1.0,20.0,127,1.0,0,0,3
+failure1,roll_pitch,recorded,20.0,1.0,8.0,127,0.5590551181102362,56,0,2
+failure1,yaw,success,6.0,1.0,2.0,127,1.0,0,0,3
+failure1,yaw,recorded,4.0,1.0,2.0,127,0.9685039370078741,4,0,3
+failure1,xy,success,4.0,0.1,2.0,127,1.0,0,0,3
+failure1,xy,recorded,3.0,0.1,1.0,127,1.0,0,0,3
+failure1,z,success,5.0,1.0,2.5,127,1.0,0,0,3
+failure1,z,recorded,5.0,1.0,2.5,127,1.0,0,0,3
+failure2,roll_pitch,success,13.0,1.0,20.0,128,1.0,0,0,3
+failure2,roll_pitch,recorded,10.0,1.0,8.0,128,0.140625,110,0,2
+failure2,yaw,success,6.0,1.0,2.0,128,1.0,0,0,3
+failure2,yaw,recorded,4.0,1.0,2.0,128,0.984375,2,0,3
+failure2,xy,success,4.0,0.1,2.0,128,1.0,0,0,3
+failure2,xy,recorded,3.0,0.1,1.0,128,1.0,0,0,3
+failure2,z,success,5.0,1.0,2.5,128,1.0,0,0,3
+failure2,z,recorded,5.0,1.0,2.5,128,1.0,0,0,3

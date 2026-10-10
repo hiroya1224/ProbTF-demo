@@ -1,8 +1,8 @@
 {
   "view": "all-axis two-case success/failure comparison",
   "html": "index.html",
-  "sha256": "77d90c610bd8c427fbf16c3766acd747977e25cb87e1102323848ad708e39136",
-  "bytes": 7683540,
+  "sha256": "ec1eb35181a1abf5718216990bc301b951fb0f02e1e1edc0346edce33093bf75",
+  "bytes": 7683436,
   "primary": "all eight P/I/D volumes with exact success and failure references",
   "cases": [
     "failure1",

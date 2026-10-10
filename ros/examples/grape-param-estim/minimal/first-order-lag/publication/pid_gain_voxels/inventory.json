@@ -2,11 +2,11 @@
   "schema": "pid-paper-file-inventory/v1",
   "limit_bytes_exclusive": 50000000,
   "file_count": 75,
-  "total_bytes": 45634984,
+  "total_bytes": 45555696,
   "largest_file": {
     "file": "index.html",
-    "bytes": 7683540,
-    "sha256": "77d90c610bd8c427fbf16c3766acd747977e25cb87e1102323848ad708e39136"
+    "bytes": 7683436,
+    "sha256": "ec1eb35181a1abf5718216990bc301b951fb0f02e1e1edc0346edce33093bf75"
   },
   "directory_bytes": {
     ".gitattributes": 300,
@@ -16,15 +16,15 @@
     "README.md": 2987,
     "data": 29022121,
     "figure_settings.json": 537,
-    "figures": 7658846,
-    "index.html": 7683540,
+    "figures": 7602462,
+    "index.html": 7683436,
     "interactive": 572,
     "provenance": 92981,
     "reference_gains.csv": 909,
     "requirements.txt": 123,
-    "scripts": 52584,
+    "scripts": 52114,
     "tests": 17235,
-    "validation": 1096060
+    "validation": 1073730
   },
   "excluded_from_self_hashing": [
     "files.tsv",

@@ -80,8 +80,7 @@ def point_style(grid, name, settings):
 
 def point_text(grid, name, settings):
     mark = reference_mark(grid, name, settings['alpha'])
-    same = np.array_equal(grid.gain('success'), grid.gain('recorded'))
-    label = 'Success' if name == 'success' else 'Failure (= Success)' if same else 'Failure'
+    label = 'Success' if name == 'success' else 'Failure'
     return label + '\n' + label_gain(mark['gain']) + '\nrate : ' + format(100 * mark['survival'], '.1f') + '%'
 
 
@@ -93,11 +92,8 @@ def annotation_style(name, settings):
                 bbox={'facecolor':'white', 'edgecolor':color, 'linewidth':.6, 'alpha':.97, 'pad':3})
 
 
-def title_panel(ax, grid, settings):
-    mark = reference_mark(grid, 'success', settings['alpha'])
-    status = 'green' if mark['classification'] == 3 else 'red'
-    ax.set_title(LABELS[grid.group] + '\nSuccess: ' + status,
-                 fontsize=11, color=settings['success_text_color' if status == 'green' else 'red_text_color'], pad=3)
+def title_panel(ax, grid):
+    ax.set_title(LABELS[grid.group], fontsize=11, color='#263238', pad=3)
 
 
 def comparison_slice(grids, settings):
@@ -124,7 +120,7 @@ def comparison_slice(grids, settings):
                 axis.set_major_locator(MaxNLocator(4))
             ax.set_xlabel('P gain', fontsize=10); ax.set_ylabel('D gain', fontsize=10)
             ax.tick_params(labelsize=9); ax.spines[['top', 'right']].set_visible(False)
-            title_panel(ax, grid, settings)
+            title_panel(ax, grid)
             ax.text(.98, .98, 'I = ' + format(grid.gain('success')[1], '.5g'), transform=ax.transAxes, ha='right', va='top', fontsize=9)
             pspan, dspan = [edge[-1] - edge[0] for edge in edges]
             for name in ('recorded', 'success'):
@@ -169,7 +165,7 @@ def comparison_volume(grids, settings):
             ax.set_zlabel('D gain',labelpad=0,fontsize=10)
             ax.set_box_aspect((1,1,1)); ax.set_proj_type('ortho')
             camera=settings['camera_oblique']; ax.view_init(elev=camera['elevation'],azim=camera['azimuth'])
-            title_panel(ax,grid,settings)
+            title_panel(ax,grid)
             for name in ('recorded','success'):
                 gain=grid.gain(name)
                 ax.scatter(*gain,depthshade=False,**point_style(grid,name,settings))

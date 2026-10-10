@@ -51,11 +51,10 @@ if(typeof document!=='undefined'){
  const selected=()=>DATA.cases.filter(g=>g.group===group);
  function layout(g){const cutaway=$('cutaway').checked;
   const ranges=g.axes.map((a,k)=>{const lo=cutaway&&k===1?g.cut_i:a[0],s=a.at(-1)-lo;return[lo-.1*s,a.at(-1)+.1*s]});
-  const same=g.marks.success.gain.every((v,k)=>v===g.marks.failure.gain[k]);
   return {margin:{l:0,r:0,t:0,b:0},paper_bgcolor:'white',font:{family:'Arial,sans-serif',size:13},showlegend:false,
    scene:{camera,aspectmode:'cube',xaxis:{title:'P gain',range:ranges[0]},yaxis:{title:'I gain',range:ranges[1]},zaxis:{title:'D gain',range:ranges[2]},
     annotations:['success','failure'].map(name=>{const m=g.marks[name],q=m.gain,color=DATA.styles[name==='success'?'success_color':'recorded_color'];return{x:q[0],y:q[1],z:q[2],
-     text:(name==='success'?'Success':same?'Failure (= Success)':'Failure')+'<br>('+q.join(', ')+')<br>rate : '+(100*m.survival).toFixed(1)+'%',
+     text:(name==='success'?'Success':'Failure')+'<br>('+q.join(', ')+')<br>rate : '+(100*m.survival).toFixed(1)+'%',
      showarrow:true,arrowhead:2,arrowcolor:color,arrowwidth:2,ax:name==='success'?-45:45,ay:name==='success'?-55:50,
      bgcolor:'rgba(255,255,255,.97)',bordercolor:color,borderwidth:1,borderpad:4,font:{color,size:14}}})}};
  }

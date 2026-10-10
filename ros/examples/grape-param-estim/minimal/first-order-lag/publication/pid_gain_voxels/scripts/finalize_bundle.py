@@ -63,17 +63,21 @@ def resolution_report(root):
 
 def validate_figures(root, figures):
     if len(figures) != 2 or {row['view'] for row in figures} != {'PD', '3D'}:
-        raise ValueError('expected one two-case comparison and its 3D view')
+        raise ValueError('expected the all-axis comparison and its shared-plane view')
     for row in figures:
-        if row['group'] != 'roll_pitch' or row['cases'] != list(CASES):
+        if row['groups'] != list(GROUPS) or row['cases'] != list(CASES) or row['panel_count'] != 8:
             raise ValueError('comparison scope differs')
         for case in CASES:
-            grid = load_grid(case, 'roll_pitch', 65, root)
-            for name in ('success', 'recorded'):
-                if row['references'][case][name] != grid.mark(name):
-                    raise ValueError('plotted reference differs from exact source node')
-            if grid.mark('success')['classification'] != 3 or grid.mark('recorded')['classification'] != 2:
-                raise ValueError('the claimed success-green / failure-red comparison is not supported')
+            for group in GROUPS:
+                grid = load_grid(case, group, 65, root)
+                for name in ('success', 'recorded'):
+                    if row['references'][case][group][name] != grid.mark(name):
+                        raise ValueError('Plotted reference differs from its exact source node')
+                if grid.mark('success')['classification'] != 3:
+                    raise ValueError('The all-axis success-green claim is not supported')
+                expected = 2 if group == 'roll_pitch' else 3
+                if grid.mark('recorded')['classification'] != expected:
+                    raise ValueError('Recorded reference classification changed')
     checks = []
     from PIL import Image
     for row in figures:
@@ -134,10 +138,10 @@ def main():
         resolution = resolution_report(args.root)
         checks = validate_figures(args.root, figures)
         report = {"passed": True, "figure_sets": len(figures), "figure_files": 3 * len(figures),
-                  "primary_figure": "figures/roll_pitch_success_failure_PD.png",
-                  "primary_image_count": 1, "cases_separate": True,
-                  "comparison": {case: {name: load_grid(case, 'roll_pitch', 65, args.root).mark(name)
-                                       for name in ('success', 'recorded')} for case in CASES},
+                  "primary_figure": "figures/all_pid_success_failure_3D.png",
+                  "primary_image_count": 1, "cases_separate": True, "panels_per_figure": 8, "all_success_green": True,
+                  "comparison": {case: {group: {name: load_grid(case, group, 65, args.root).mark(name)
+                                                 for name in ('success', 'recorded')} for group in GROUPS} for case in CASES},
                   "finest_grid_shapes": {case: {group: list(load_grid(case, group, 65, args.root).survival.shape)
                                                  for group in GROUPS} for case in CASES},
                   "resolution_comparison": resolution, "figure_checks": checks}

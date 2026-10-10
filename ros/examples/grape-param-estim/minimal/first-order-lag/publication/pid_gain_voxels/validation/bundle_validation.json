@@ -2,56 +2,206 @@
   "passed": true,
   "figure_sets": 2,
   "figure_files": 6,
-  "primary_figure": "figures/roll_pitch_success_failure_PD.png",
+  "primary_figure": "figures/all_pid_success_failure_3D.png",
   "primary_image_count": 1,
   "cases_separate": true,
+  "panels_per_figure": 8,
+  "all_success_green": true,
   "comparison": {
     "failure1": {
-      "success": {
-        "gain": [
-          13.0,
-          1.0,
-          20.0
-        ],
-        "survival": 1.0,
-        "breaks": 0,
-        "unresolved": 0,
-        "classification": 3
+      "roll_pitch": {
+        "success": {
+          "gain": [
+            13.0,
+            1.0,
+            20.0
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "recorded": {
+          "gain": [
+            20.0,
+            1.0,
+            8.0
+          ],
+          "survival": 0.5590551181102362,
+          "breaks": 56,
+          "unresolved": 0,
+          "classification": 2
+        }
       },
-      "recorded": {
-        "gain": [
-          20.0,
-          1.0,
-          8.0
-        ],
-        "survival": 0.5590551181102362,
-        "breaks": 56,
-        "unresolved": 0,
-        "classification": 2
+      "yaw": {
+        "success": {
+          "gain": [
+            6.0,
+            1.0,
+            2.0
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "recorded": {
+          "gain": [
+            4.0,
+            1.0,
+            2.0
+          ],
+          "survival": 0.9685039370078741,
+          "breaks": 4,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      "xy": {
+        "success": {
+          "gain": [
+            4.0,
+            0.1,
+            2.0
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "recorded": {
+          "gain": [
+            3.0,
+            0.1,
+            1.0
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      "z": {
+        "success": {
+          "gain": [
+            5.0,
+            1.0,
+            2.5
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "recorded": {
+          "gain": [
+            5.0,
+            1.0,
+            2.5
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
       }
     },
     "failure2": {
-      "success": {
-        "gain": [
-          13.0,
-          1.0,
-          20.0
-        ],
-        "survival": 1.0,
-        "breaks": 0,
-        "unresolved": 0,
-        "classification": 3
+      "roll_pitch": {
+        "success": {
+          "gain": [
+            13.0,
+            1.0,
+            20.0
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "recorded": {
+          "gain": [
+            10.0,
+            1.0,
+            8.0
+          ],
+          "survival": 0.140625,
+          "breaks": 110,
+          "unresolved": 0,
+          "classification": 2
+        }
       },
-      "recorded": {
-        "gain": [
-          10.0,
-          1.0,
-          8.0
-        ],
-        "survival": 0.140625,
-        "breaks": 110,
-        "unresolved": 0,
-        "classification": 2
+      "yaw": {
+        "success": {
+          "gain": [
+            6.0,
+            1.0,
+            2.0
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "recorded": {
+          "gain": [
+            4.0,
+            1.0,
+            2.0
+          ],
+          "survival": 0.984375,
+          "breaks": 2,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      "xy": {
+        "success": {
+          "gain": [
+            4.0,
+            0.1,
+            2.0
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "recorded": {
+          "gain": [
+            3.0,
+            0.1,
+            1.0
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      "z": {
+        "success": {
+          "gain": [
+            5.0,
+            1.0,
+            2.5
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "recorded": {
+          "gain": [
+            5.0,
+            1.0,
+            2.5
+          ],
+          "survival": 1.0,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
       }
     }
   },
@@ -225,10 +375,10 @@
   ],
   "figure_checks": [
     {
-      "figure": "roll_pitch_success_failure_PD",
+      "figure": "all_pid_success_failure_3D",
       "png_pixels": [
-        3986,
-        2190
+        6214,
+        3487
       ],
       "png_dpi": [
         399.9992,
@@ -238,10 +388,10 @@
       "svg_text_editable": true
     },
     {
-      "figure": "roll_pitch_success_failure_3D",
+      "figure": "all_pid_success_failure_PD",
       "png_pixels": [
-        3639,
-        2229
+        6342,
+        3487
       ],
       "png_dpi": [
         399.9992,

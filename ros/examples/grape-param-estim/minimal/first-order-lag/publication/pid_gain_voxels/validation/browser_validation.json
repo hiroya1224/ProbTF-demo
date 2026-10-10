@@ -1,24 +1,482 @@
 {
   "passed": true,
-  "html_sha256": "70cfa3419870a750ed902d27cdcc7f675d792bbd485aa648369701d2ad271d0d",
+  "html_sha256": "0ffd0218b162844c459e333f1364f292bc6e5b2d77711deca4531e2d37343f76",
+  "primary": {
+    "ready": "true",
+    "view": "3D",
+    "title": "全PID軸のSuccessとFailure — ゲインの比較",
+    "heading": "すべてのPID軸でSuccessは緑の領域に入る",
+    "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+    "primaryImages": 1,
+    "imageLoaded": true,
+    "imageSrc": "figures/all_pid_success_failure_3D.png",
+    "overviewVisible": true,
+    "volumeVisible": false,
+    "cutaway": true,
+    "allReferences": [
+      {
+        "case": "failure1",
+        "group": "roll_pitch",
+        "success": {
+          "gain": [
+            13,
+            1,
+            20
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            20,
+            1,
+            8
+          ],
+          "survival": 0.5590551181102362,
+          "breaks": 56,
+          "unresolved": 0,
+          "classification": 2
+        }
+      },
+      {
+        "case": "failure1",
+        "group": "yaw",
+        "success": {
+          "gain": [
+            6,
+            1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            4,
+            1,
+            2
+          ],
+          "survival": 0.9685039370078741,
+          "breaks": 4,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure1",
+        "group": "xy",
+        "success": {
+          "gain": [
+            4,
+            0.1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            3,
+            0.1,
+            1
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure1",
+        "group": "z",
+        "success": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "roll_pitch",
+        "success": {
+          "gain": [
+            13,
+            1,
+            20
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            10,
+            1,
+            8
+          ],
+          "survival": 0.140625,
+          "breaks": 110,
+          "unresolved": 0,
+          "classification": 2
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "yaw",
+        "success": {
+          "gain": [
+            6,
+            1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            4,
+            1,
+            2
+          ],
+          "survival": 0.984375,
+          "breaks": 2,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "xy",
+        "success": {
+          "gain": [
+            4,
+            0.1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            3,
+            0.1,
+            1
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "z",
+        "success": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      }
+    ],
+    "downloads": [
+      "figures/all_pid_success_failure_3D.pdf",
+      "figures/all_pid_success_failure_3D.svg",
+      "figures/all_pid_success_failure_3D.png"
+    ],
+    "plots": []
+  },
   "slice": {
     "ready": "true",
     "view": "PD",
-    "title": "Successは緑、Failureは赤 — PIDゲインの比較",
-    "heading": "Successは緑の領域、Failureは赤の領域に入る",
+    "title": "全PID軸のSuccessとFailure — ゲインの比較",
+    "heading": "すべてのPID軸でSuccessは緑の領域に入る",
+    "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
     "primaryImages": 1,
     "imageLoaded": true,
-    "sliceVisible": true,
+    "imageSrc": "figures/all_pid_success_failure_PD.png",
+    "overviewVisible": true,
     "volumeVisible": false,
-    "downloads": [
-      "figures/roll_pitch_success_failure_PD.pdf",
-      "figures/roll_pitch_success_failure_PD.svg",
-      "figures/roll_pitch_success_failure_PD.png"
-    ],
-    "plots": [
+    "cutaway": true,
+    "allReferences": [
       {
         "case": "failure1",
-        "references": {
+        "group": "roll_pitch",
+        "success": {
+          "gain": [
+            13,
+            1,
+            20
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            20,
+            1,
+            8
+          ],
+          "survival": 0.5590551181102362,
+          "breaks": 56,
+          "unresolved": 0,
+          "classification": 2
+        }
+      },
+      {
+        "case": "failure1",
+        "group": "yaw",
+        "success": {
+          "gain": [
+            6,
+            1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            4,
+            1,
+            2
+          ],
+          "survival": 0.9685039370078741,
+          "breaks": 4,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure1",
+        "group": "xy",
+        "success": {
+          "gain": [
+            4,
+            0.1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            3,
+            0.1,
+            1
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure1",
+        "group": "z",
+        "success": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "roll_pitch",
+        "success": {
+          "gain": [
+            13,
+            1,
+            20
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            10,
+            1,
+            8
+          ],
+          "survival": 0.140625,
+          "breaks": 110,
+          "unresolved": 0,
+          "classification": 2
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "yaw",
+        "success": {
+          "gain": [
+            6,
+            1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            4,
+            1,
+            2
+          ],
+          "survival": 0.984375,
+          "breaks": 2,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "xy",
+        "success": {
+          "gain": [
+            4,
+            0.1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            3,
+            0.1,
+            1
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "z",
+        "success": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      }
+    ],
+    "downloads": [
+      "figures/all_pid_success_failure_PD.pdf",
+      "figures/all_pid_success_failure_PD.svg",
+      "figures/all_pid_success_failure_PD.png"
+    ],
+    "plots": []
+  },
+  "interactiveChecks": [
+    {
+      "ready": "true",
+      "view": "interactive",
+      "group": "roll_pitch",
+      "title": "全PID軸のSuccessとFailure — ゲインの比較",
+      "heading": "すべてのPID軸でSuccessは緑の領域に入る",
+      "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+      "primaryImages": 1,
+      "imageLoaded": true,
+      "imageSrc": "figures/all_pid_success_failure_3D.png",
+      "overviewVisible": false,
+      "volumeVisible": true,
+      "cutaway": true,
+      "allReferences": [
+        {
+          "case": "failure1",
+          "group": "roll_pitch",
           "success": {
             "gain": [
               13,
@@ -42,12 +500,87 @@
             "classification": 2
           }
         },
-        "canvas": 0,
-        "traces": []
-      },
-      {
-        "case": "failure2",
-        "references": {
+        {
+          "case": "failure1",
+          "group": "yaw",
+          "success": {
+            "gain": [
+              6,
+              1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              4,
+              1,
+              2
+            ],
+            "survival": 0.9685039370078741,
+            "breaks": 4,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "xy",
+          "success": {
+            "gain": [
+              4,
+              0.1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              3,
+              0.1,
+              1
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "z",
+          "success": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "roll_pitch",
           "success": {
             "gain": [
               13,
@@ -71,34 +604,2129 @@
             "classification": 2
           }
         },
-        "canvas": 0,
-        "traces": []
-      }
-    ]
-  },
-  "volume": {
+        {
+          "case": "failure2",
+          "group": "yaw",
+          "success": {
+            "gain": [
+              6,
+              1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              4,
+              1,
+              2
+            ],
+            "survival": 0.984375,
+            "breaks": 2,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "xy",
+          "success": {
+            "gain": [
+              4,
+              0.1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              3,
+              0.1,
+              1
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "z",
+          "success": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        }
+      ],
+      "downloads": [
+        "figures/all_pid_success_failure_3D.pdf",
+        "figures/all_pid_success_failure_3D.svg",
+        "figures/all_pid_success_failure_3D.png"
+      ],
+      "plots": [
+        {
+          "case": "failure1",
+          "group": "roll_pitch",
+          "references": {
+            "success": {
+              "gain": [
+                13,
+                1,
+                20
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            },
+            "failure": {
+              "gain": [
+                20,
+                1,
+                8
+              ],
+              "survival": 0.5590551181102362,
+              "breaks": 56,
+              "unresolved": 0,
+              "classification": 2
+            }
+          },
+          "canvas": 1,
+          "traces": [
+            {
+              "type": "mesh3d",
+              "opacity": 0.28,
+              "faces": 8574,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.32,
+              "faces": 16420,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 578,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 3844,
+              "marker": null
+            },
+            {
+              "type": "scatter3d",
+              "name": "failure",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#754B86",
+                "symbol": "x",
+                "size": 10,
+                "x": [
+                  20
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  8
+                ]
+              }
+            },
+            {
+              "type": "scatter3d",
+              "name": "success",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#264C73",
+                "symbol": "diamond",
+                "size": 8,
+                "x": [
+                  13
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  20
+                ]
+              }
+            }
+          ],
+          "annotations": [
+            {
+              "x": 13,
+              "y": 1,
+              "z": 20,
+              "text": "Success<br>(13, 1, 20)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#264C73",
+              "arrowwidth": 2,
+              "ax": -45,
+              "ay": -55,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#264C73",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#264C73",
+                "size": 14
+              }
+            },
+            {
+              "x": 20,
+              "y": 1,
+              "z": 8,
+              "text": "Failure<br>(20, 1, 8)<br>red · 55.9%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#754B86",
+              "arrowwidth": 2,
+              "ax": 45,
+              "ay": 50,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#754B86",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#754B86",
+                "size": 14
+              }
+            }
+          ],
+          "pointText": "Success (13, 1, 20)：緑 100.0%Failure (20, 1, 8)：赤 55.9%"
+        },
+        {
+          "case": "failure2",
+          "group": "roll_pitch",
+          "references": {
+            "success": {
+              "gain": [
+                13,
+                1,
+                20
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            },
+            "failure": {
+              "gain": [
+                10,
+                1,
+                8
+              ],
+              "survival": 0.140625,
+              "breaks": 110,
+              "unresolved": 0,
+              "classification": 2
+            }
+          },
+          "canvas": 1,
+          "traces": [
+            {
+              "type": "mesh3d",
+              "opacity": 0.28,
+              "faces": 10656,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.32,
+              "faces": 15064,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 1284,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 3138,
+              "marker": null
+            },
+            {
+              "type": "scatter3d",
+              "name": "failure",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#754B86",
+                "symbol": "x",
+                "size": 10,
+                "x": [
+                  10
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  8
+                ]
+              }
+            },
+            {
+              "type": "scatter3d",
+              "name": "success",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#264C73",
+                "symbol": "diamond",
+                "size": 8,
+                "x": [
+                  13
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  20
+                ]
+              }
+            }
+          ],
+          "annotations": [
+            {
+              "x": 13,
+              "y": 1,
+              "z": 20,
+              "text": "Success<br>(13, 1, 20)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#264C73",
+              "arrowwidth": 2,
+              "ax": -45,
+              "ay": -55,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#264C73",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#264C73",
+                "size": 14
+              }
+            },
+            {
+              "x": 10,
+              "y": 1,
+              "z": 8,
+              "text": "Failure<br>(10, 1, 8)<br>red · 14.1%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#754B86",
+              "arrowwidth": 2,
+              "ax": 45,
+              "ay": 50,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#754B86",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#754B86",
+                "size": 14
+              }
+            }
+          ],
+          "pointText": "Success (13, 1, 20)：緑 100.0%Failure (10, 1, 8)：赤 14.1%"
+        }
+      ]
+    },
+    {
+      "ready": "true",
+      "view": "interactive",
+      "group": "yaw",
+      "title": "全PID軸のSuccessとFailure — ゲインの比較",
+      "heading": "すべてのPID軸でSuccessは緑の領域に入る",
+      "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+      "primaryImages": 1,
+      "imageLoaded": true,
+      "imageSrc": "figures/all_pid_success_failure_3D.png",
+      "overviewVisible": false,
+      "volumeVisible": true,
+      "cutaway": true,
+      "allReferences": [
+        {
+          "case": "failure1",
+          "group": "roll_pitch",
+          "success": {
+            "gain": [
+              13,
+              1,
+              20
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              20,
+              1,
+              8
+            ],
+            "survival": 0.5590551181102362,
+            "breaks": 56,
+            "unresolved": 0,
+            "classification": 2
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "yaw",
+          "success": {
+            "gain": [
+              6,
+              1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              4,
+              1,
+              2
+            ],
+            "survival": 0.9685039370078741,
+            "breaks": 4,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "xy",
+          "success": {
+            "gain": [
+              4,
+              0.1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              3,
+              0.1,
+              1
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "z",
+          "success": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "roll_pitch",
+          "success": {
+            "gain": [
+              13,
+              1,
+              20
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              10,
+              1,
+              8
+            ],
+            "survival": 0.140625,
+            "breaks": 110,
+            "unresolved": 0,
+            "classification": 2
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "yaw",
+          "success": {
+            "gain": [
+              6,
+              1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              4,
+              1,
+              2
+            ],
+            "survival": 0.984375,
+            "breaks": 2,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "xy",
+          "success": {
+            "gain": [
+              4,
+              0.1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              3,
+              0.1,
+              1
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "z",
+          "success": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        }
+      ],
+      "downloads": [
+        "figures/all_pid_success_failure_3D.pdf",
+        "figures/all_pid_success_failure_3D.svg",
+        "figures/all_pid_success_failure_3D.png"
+      ],
+      "plots": [
+        {
+          "case": "failure1",
+          "group": "yaw",
+          "references": {
+            "success": {
+              "gain": [
+                6,
+                1,
+                2
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            },
+            "failure": {
+              "gain": [
+                4,
+                1,
+                2
+              ],
+              "survival": 0.9685039370078741,
+              "breaks": 4,
+              "unresolved": 0,
+              "classification": 3
+            }
+          },
+          "canvas": 1,
+          "traces": [
+            {
+              "type": "mesh3d",
+              "opacity": 0.28,
+              "faces": 17086,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.32,
+              "faces": 14086,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 884,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 3406,
+              "marker": null
+            },
+            {
+              "type": "scatter3d",
+              "name": "failure",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#754B86",
+                "symbol": "x",
+                "size": 10,
+                "x": [
+                  4
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  2
+                ]
+              }
+            },
+            {
+              "type": "scatter3d",
+              "name": "success",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#264C73",
+                "symbol": "diamond",
+                "size": 8,
+                "x": [
+                  6
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  2
+                ]
+              }
+            }
+          ],
+          "annotations": [
+            {
+              "x": 6,
+              "y": 1,
+              "z": 2,
+              "text": "Success<br>(6, 1, 2)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#264C73",
+              "arrowwidth": 2,
+              "ax": -45,
+              "ay": -55,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#264C73",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#264C73",
+                "size": 14
+              }
+            },
+            {
+              "x": 4,
+              "y": 1,
+              "z": 2,
+              "text": "Failure<br>(4, 1, 2)<br>green · 96.9%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#754B86",
+              "arrowwidth": 2,
+              "ax": 45,
+              "ay": 50,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#754B86",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#754B86",
+                "size": 14
+              }
+            }
+          ],
+          "pointText": "Success (6, 1, 2)：緑 100.0%Failure (4, 1, 2)：緑 96.9%"
+        },
+        {
+          "case": "failure2",
+          "group": "yaw",
+          "references": {
+            "success": {
+              "gain": [
+                6,
+                1,
+                2
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            },
+            "failure": {
+              "gain": [
+                4,
+                1,
+                2
+              ],
+              "survival": 0.984375,
+              "breaks": 2,
+              "unresolved": 0,
+              "classification": 3
+            }
+          },
+          "canvas": 1,
+          "traces": [
+            {
+              "type": "mesh3d",
+              "opacity": 0.28,
+              "faces": 13589,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.32,
+              "faces": 16067,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 309,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 3981,
+              "marker": null
+            },
+            {
+              "type": "scatter3d",
+              "name": "failure",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#754B86",
+                "symbol": "x",
+                "size": 10,
+                "x": [
+                  4
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  2
+                ]
+              }
+            },
+            {
+              "type": "scatter3d",
+              "name": "success",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#264C73",
+                "symbol": "diamond",
+                "size": 8,
+                "x": [
+                  6
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  2
+                ]
+              }
+            }
+          ],
+          "annotations": [
+            {
+              "x": 6,
+              "y": 1,
+              "z": 2,
+              "text": "Success<br>(6, 1, 2)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#264C73",
+              "arrowwidth": 2,
+              "ax": -45,
+              "ay": -55,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#264C73",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#264C73",
+                "size": 14
+              }
+            },
+            {
+              "x": 4,
+              "y": 1,
+              "z": 2,
+              "text": "Failure<br>(4, 1, 2)<br>green · 98.4%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#754B86",
+              "arrowwidth": 2,
+              "ax": 45,
+              "ay": 50,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#754B86",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#754B86",
+                "size": 14
+              }
+            }
+          ],
+          "pointText": "Success (6, 1, 2)：緑 100.0%Failure (4, 1, 2)：緑 98.4%"
+        }
+      ]
+    },
+    {
+      "ready": "true",
+      "view": "interactive",
+      "group": "xy",
+      "title": "全PID軸のSuccessとFailure — ゲインの比較",
+      "heading": "すべてのPID軸でSuccessは緑の領域に入る",
+      "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+      "primaryImages": 1,
+      "imageLoaded": true,
+      "imageSrc": "figures/all_pid_success_failure_3D.png",
+      "overviewVisible": false,
+      "volumeVisible": true,
+      "cutaway": true,
+      "allReferences": [
+        {
+          "case": "failure1",
+          "group": "roll_pitch",
+          "success": {
+            "gain": [
+              13,
+              1,
+              20
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              20,
+              1,
+              8
+            ],
+            "survival": 0.5590551181102362,
+            "breaks": 56,
+            "unresolved": 0,
+            "classification": 2
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "yaw",
+          "success": {
+            "gain": [
+              6,
+              1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              4,
+              1,
+              2
+            ],
+            "survival": 0.9685039370078741,
+            "breaks": 4,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "xy",
+          "success": {
+            "gain": [
+              4,
+              0.1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              3,
+              0.1,
+              1
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "z",
+          "success": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "roll_pitch",
+          "success": {
+            "gain": [
+              13,
+              1,
+              20
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              10,
+              1,
+              8
+            ],
+            "survival": 0.140625,
+            "breaks": 110,
+            "unresolved": 0,
+            "classification": 2
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "yaw",
+          "success": {
+            "gain": [
+              6,
+              1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              4,
+              1,
+              2
+            ],
+            "survival": 0.984375,
+            "breaks": 2,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "xy",
+          "success": {
+            "gain": [
+              4,
+              0.1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              3,
+              0.1,
+              1
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "z",
+          "success": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        }
+      ],
+      "downloads": [
+        "figures/all_pid_success_failure_3D.pdf",
+        "figures/all_pid_success_failure_3D.svg",
+        "figures/all_pid_success_failure_3D.png"
+      ],
+      "plots": [
+        {
+          "case": "failure1",
+          "group": "xy",
+          "references": {
+            "success": {
+              "gain": [
+                4,
+                0.1,
+                2
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            },
+            "failure": {
+              "gain": [
+                3,
+                0.1,
+                1
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            }
+          },
+          "canvas": 1,
+          "traces": [
+            {
+              "type": "mesh3d",
+              "opacity": 0.28,
+              "faces": 0,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.32,
+              "faces": 17353,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 0,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 4489,
+              "marker": null
+            },
+            {
+              "type": "scatter3d",
+              "name": "failure",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#754B86",
+                "symbol": "x",
+                "size": 10,
+                "x": [
+                  3
+                ],
+                "y": [
+                  0.1
+                ],
+                "z": [
+                  1
+                ]
+              }
+            },
+            {
+              "type": "scatter3d",
+              "name": "success",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#264C73",
+                "symbol": "diamond",
+                "size": 8,
+                "x": [
+                  4
+                ],
+                "y": [
+                  0.1
+                ],
+                "z": [
+                  2
+                ]
+              }
+            }
+          ],
+          "annotations": [
+            {
+              "x": 4,
+              "y": 0.1,
+              "z": 2,
+              "text": "Success<br>(4, 0.1, 2)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#264C73",
+              "arrowwidth": 2,
+              "ax": -45,
+              "ay": -55,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#264C73",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#264C73",
+                "size": 14
+              }
+            },
+            {
+              "x": 3,
+              "y": 0.1,
+              "z": 1,
+              "text": "Failure<br>(3, 0.1, 1)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#754B86",
+              "arrowwidth": 2,
+              "ax": 45,
+              "ay": 50,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#754B86",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#754B86",
+                "size": 14
+              }
+            }
+          ],
+          "pointText": "Success (4, 0.1, 2)：緑 100.0%Failure (3, 0.1, 1)：緑 100.0%"
+        },
+        {
+          "case": "failure2",
+          "group": "xy",
+          "references": {
+            "success": {
+              "gain": [
+                4,
+                0.1,
+                2
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            },
+            "failure": {
+              "gain": [
+                3,
+                0.1,
+                1
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            }
+          },
+          "canvas": 1,
+          "traces": [
+            {
+              "type": "mesh3d",
+              "opacity": 0.28,
+              "faces": 6,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.32,
+              "faces": 17353,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 0,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 4489,
+              "marker": null
+            },
+            {
+              "type": "scatter3d",
+              "name": "failure",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#754B86",
+                "symbol": "x",
+                "size": 10,
+                "x": [
+                  3
+                ],
+                "y": [
+                  0.1
+                ],
+                "z": [
+                  1
+                ]
+              }
+            },
+            {
+              "type": "scatter3d",
+              "name": "success",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#264C73",
+                "symbol": "diamond",
+                "size": 8,
+                "x": [
+                  4
+                ],
+                "y": [
+                  0.1
+                ],
+                "z": [
+                  2
+                ]
+              }
+            }
+          ],
+          "annotations": [
+            {
+              "x": 4,
+              "y": 0.1,
+              "z": 2,
+              "text": "Success<br>(4, 0.1, 2)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#264C73",
+              "arrowwidth": 2,
+              "ax": -45,
+              "ay": -55,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#264C73",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#264C73",
+                "size": 14
+              }
+            },
+            {
+              "x": 3,
+              "y": 0.1,
+              "z": 1,
+              "text": "Failure<br>(3, 0.1, 1)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#754B86",
+              "arrowwidth": 2,
+              "ax": 45,
+              "ay": 50,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#754B86",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#754B86",
+                "size": 14
+              }
+            }
+          ],
+          "pointText": "Success (4, 0.1, 2)：緑 100.0%Failure (3, 0.1, 1)：緑 100.0%"
+        }
+      ]
+    },
+    {
+      "ready": "true",
+      "view": "interactive",
+      "group": "z",
+      "title": "全PID軸のSuccessとFailure — ゲインの比較",
+      "heading": "すべてのPID軸でSuccessは緑の領域に入る",
+      "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
+      "primaryImages": 1,
+      "imageLoaded": true,
+      "imageSrc": "figures/all_pid_success_failure_3D.png",
+      "overviewVisible": false,
+      "volumeVisible": true,
+      "cutaway": true,
+      "allReferences": [
+        {
+          "case": "failure1",
+          "group": "roll_pitch",
+          "success": {
+            "gain": [
+              13,
+              1,
+              20
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              20,
+              1,
+              8
+            ],
+            "survival": 0.5590551181102362,
+            "breaks": 56,
+            "unresolved": 0,
+            "classification": 2
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "yaw",
+          "success": {
+            "gain": [
+              6,
+              1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              4,
+              1,
+              2
+            ],
+            "survival": 0.9685039370078741,
+            "breaks": 4,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "xy",
+          "success": {
+            "gain": [
+              4,
+              0.1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              3,
+              0.1,
+              1
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure1",
+          "group": "z",
+          "success": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "roll_pitch",
+          "success": {
+            "gain": [
+              13,
+              1,
+              20
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              10,
+              1,
+              8
+            ],
+            "survival": 0.140625,
+            "breaks": 110,
+            "unresolved": 0,
+            "classification": 2
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "yaw",
+          "success": {
+            "gain": [
+              6,
+              1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              4,
+              1,
+              2
+            ],
+            "survival": 0.984375,
+            "breaks": 2,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "xy",
+          "success": {
+            "gain": [
+              4,
+              0.1,
+              2
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              3,
+              0.1,
+              1
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        {
+          "case": "failure2",
+          "group": "z",
+          "success": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "failure": {
+            "gain": [
+              5,
+              1,
+              2.5
+            ],
+            "survival": 1,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        }
+      ],
+      "downloads": [
+        "figures/all_pid_success_failure_3D.pdf",
+        "figures/all_pid_success_failure_3D.svg",
+        "figures/all_pid_success_failure_3D.png"
+      ],
+      "plots": [
+        {
+          "case": "failure1",
+          "group": "z",
+          "references": {
+            "success": {
+              "gain": [
+                5,
+                1,
+                2.5
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            },
+            "failure": {
+              "gain": [
+                5,
+                1,
+                2.5
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            }
+          },
+          "canvas": 1,
+          "traces": [
+            {
+              "type": "mesh3d",
+              "opacity": 0.28,
+              "faces": 11544,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.32,
+              "faces": 14652,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 1040,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 3250,
+              "marker": null
+            },
+            {
+              "type": "scatter3d",
+              "name": "failure",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#754B86",
+                "symbol": "circle-open",
+                "size": 14,
+                "x": [
+                  5
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  2.5
+                ]
+              }
+            },
+            {
+              "type": "scatter3d",
+              "name": "success",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#264C73",
+                "symbol": "diamond",
+                "size": 8,
+                "x": [
+                  5
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  2.5
+                ]
+              }
+            }
+          ],
+          "annotations": [
+            {
+              "x": 5,
+              "y": 1,
+              "z": 2.5,
+              "text": "Success<br>(5, 1, 2.5)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#264C73",
+              "arrowwidth": 2,
+              "ax": -45,
+              "ay": -55,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#264C73",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#264C73",
+                "size": 14
+              }
+            },
+            {
+              "x": 5,
+              "y": 1,
+              "z": 2.5,
+              "text": "Failure (= Success)<br>(5, 1, 2.5)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#754B86",
+              "arrowwidth": 2,
+              "ax": 45,
+              "ay": 50,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#754B86",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#754B86",
+                "size": 14
+              }
+            }
+          ],
+          "pointText": "Success (5, 1, 2.5)：緑 100.0%Failure (5, 1, 2.5)：緑 100.0%"
+        },
+        {
+          "case": "failure2",
+          "group": "z",
+          "references": {
+            "success": {
+              "gain": [
+                5,
+                1,
+                2.5
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            },
+            "failure": {
+              "gain": [
+                5,
+                1,
+                2.5
+              ],
+              "survival": 1,
+              "breaks": 0,
+              "unresolved": 0,
+              "classification": 3
+            }
+          },
+          "canvas": 1,
+          "traces": [
+            {
+              "type": "mesh3d",
+              "opacity": 0.28,
+              "faces": 14476,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.32,
+              "faces": 13196,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 1938,
+              "marker": null
+            },
+            {
+              "type": "mesh3d",
+              "opacity": 0.94,
+              "faces": 2352,
+              "marker": null
+            },
+            {
+              "type": "scatter3d",
+              "name": "failure",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#754B86",
+                "symbol": "circle-open",
+                "size": 14,
+                "x": [
+                  5
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  2.5
+                ]
+              }
+            },
+            {
+              "type": "scatter3d",
+              "name": "success",
+              "mode": "markers",
+              "faces": 0,
+              "marker": {
+                "color": "#264C73",
+                "symbol": "diamond",
+                "size": 8,
+                "x": [
+                  5
+                ],
+                "y": [
+                  1
+                ],
+                "z": [
+                  2.5
+                ]
+              }
+            }
+          ],
+          "annotations": [
+            {
+              "x": 5,
+              "y": 1,
+              "z": 2.5,
+              "text": "Success<br>(5, 1, 2.5)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#264C73",
+              "arrowwidth": 2,
+              "ax": -45,
+              "ay": -55,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#264C73",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#264C73",
+                "size": 14
+              }
+            },
+            {
+              "x": 5,
+              "y": 1,
+              "z": 2.5,
+              "text": "Failure (= Success)<br>(5, 1, 2.5)<br>green · 100.0%",
+              "showarrow": true,
+              "arrowhead": 2,
+              "arrowcolor": "#754B86",
+              "arrowwidth": 2,
+              "ax": 45,
+              "ay": 50,
+              "bgcolor": "rgba(255,255,255,.97)",
+              "bordercolor": "#754B86",
+              "borderwidth": 1,
+              "borderpad": 4,
+              "font": {
+                "color": "#754B86",
+                "size": 14
+              }
+            }
+          ],
+          "pointText": "Success (5, 1, 2.5)：緑 100.0%Failure (5, 1, 2.5)：緑 100.0%"
+        }
+      ]
+    }
+  ],
+  "fullVolume": {
     "ready": "true",
-    "view": "3D",
-    "title": "Successは緑、Failureは赤 — PIDゲインの比較",
-    "heading": "Successは緑の領域、Failureは赤の領域に入る",
+    "view": "interactive",
+    "group": "z",
+    "title": "全PID軸のSuccessとFailure — ゲインの比較",
+    "heading": "すべてのPID軸でSuccessは緑の領域に入る",
+    "summary": "Success：両ケース・全4軸とも緑（8/8、100%）",
     "primaryImages": 1,
     "imageLoaded": true,
-    "sliceVisible": false,
+    "imageSrc": "figures/all_pid_success_failure_3D.png",
+    "overviewVisible": false,
     "volumeVisible": true,
+    "cutaway": false,
+    "allReferences": [
+      {
+        "case": "failure1",
+        "group": "roll_pitch",
+        "success": {
+          "gain": [
+            13,
+            1,
+            20
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            20,
+            1,
+            8
+          ],
+          "survival": 0.5590551181102362,
+          "breaks": 56,
+          "unresolved": 0,
+          "classification": 2
+        }
+      },
+      {
+        "case": "failure1",
+        "group": "yaw",
+        "success": {
+          "gain": [
+            6,
+            1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            4,
+            1,
+            2
+          ],
+          "survival": 0.9685039370078741,
+          "breaks": 4,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure1",
+        "group": "xy",
+        "success": {
+          "gain": [
+            4,
+            0.1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            3,
+            0.1,
+            1
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure1",
+        "group": "z",
+        "success": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "roll_pitch",
+        "success": {
+          "gain": [
+            13,
+            1,
+            20
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            10,
+            1,
+            8
+          ],
+          "survival": 0.140625,
+          "breaks": 110,
+          "unresolved": 0,
+          "classification": 2
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "yaw",
+        "success": {
+          "gain": [
+            6,
+            1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            4,
+            1,
+            2
+          ],
+          "survival": 0.984375,
+          "breaks": 2,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "xy",
+        "success": {
+          "gain": [
+            4,
+            0.1,
+            2
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            3,
+            0.1,
+            1
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      },
+      {
+        "case": "failure2",
+        "group": "z",
+        "success": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        },
+        "failure": {
+          "gain": [
+            5,
+            1,
+            2.5
+          ],
+          "survival": 1,
+          "breaks": 0,
+          "unresolved": 0,
+          "classification": 3
+        }
+      }
+    ],
     "downloads": [
-      "figures/roll_pitch_success_failure_3D.pdf",
-      "figures/roll_pitch_success_failure_3D.svg",
-      "figures/roll_pitch_success_failure_3D.png"
+      "figures/all_pid_success_failure_3D.pdf",
+      "figures/all_pid_success_failure_3D.svg",
+      "figures/all_pid_success_failure_3D.png"
     ],
     "plots": [
       {
         "case": "failure1",
+        "group": "z",
         "references": {
           "success": {
             "gain": [
-              13,
+              5,
               1,
-              20
+              2.5
             ],
             "survival": 1,
             "breaks": 0,
@@ -107,120 +2735,136 @@
           },
           "failure": {
             "gain": [
-              20,
+              5,
               1,
-              8
+              2.5
             ],
-            "survival": 0.5590551181102362,
-            "breaks": 56,
+            "survival": 1,
+            "breaks": 0,
             "unresolved": 0,
-            "classification": 2
+            "classification": 3
           }
         },
         "canvas": 1,
         "traces": [
           {
             "type": "mesh3d",
-            "opacity": 0.16,
-            "faces": 8574,
+            "opacity": 0.28,
+            "faces": 15976,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.24,
-            "faces": 16420,
+            "opacity": 0.32,
+            "faces": 22882,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.9,
-            "faces": 578,
+            "opacity": 0.94,
+            "faces": 0,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.9,
-            "faces": 3844,
+            "opacity": 0.94,
+            "faces": 0,
             "marker": null
           },
           {
             "type": "scatter3d",
+            "name": "failure",
             "mode": "markers",
             "faces": 0,
             "marker": {
-              "color": "#161616",
+              "color": "#754B86",
+              "symbol": "circle-open",
+              "size": 14,
               "x": [
-                13
+                5
               ],
               "y": [
                 1
               ],
               "z": [
-                20
+                2.5
               ]
             }
           },
           {
             "type": "scatter3d",
+            "name": "success",
             "mode": "markers",
             "faces": 0,
             "marker": {
-              "color": "#161616",
+              "color": "#264C73",
+              "symbol": "diamond",
+              "size": 8,
               "x": [
-                20
+                5
               ],
               "y": [
                 1
               ],
               "z": [
-                8
+                2.5
               ]
             }
           }
         ],
         "annotations": [
           {
-            "x": 13,
+            "x": 5,
             "y": 1,
-            "z": 20,
-            "text": "Success<br>(13, 1, 20)",
+            "z": 2.5,
+            "text": "Success<br>(5, 1, 2.5)<br>green · 100.0%",
             "showarrow": true,
             "arrowhead": 2,
-            "ax": -35,
-            "ay": -45,
-            "bgcolor": "rgba(255,255,255,.95)",
-            "borderpad": 3,
+            "arrowcolor": "#264C73",
+            "arrowwidth": 2,
+            "ax": -45,
+            "ay": -55,
+            "bgcolor": "rgba(255,255,255,.97)",
+            "bordercolor": "#264C73",
+            "borderwidth": 1,
+            "borderpad": 4,
             "font": {
-              "color": "#111",
-              "size": 12
+              "color": "#264C73",
+              "size": 14
             }
           },
           {
-            "x": 20,
+            "x": 5,
             "y": 1,
-            "z": 8,
-            "text": "Failure<br>(20, 1, 8)",
+            "z": 2.5,
+            "text": "Failure (= Success)<br>(5, 1, 2.5)<br>green · 100.0%",
             "showarrow": true,
             "arrowhead": 2,
-            "ax": 35,
-            "ay": 35,
-            "bgcolor": "rgba(255,255,255,.95)",
-            "borderpad": 3,
+            "arrowcolor": "#754B86",
+            "arrowwidth": 2,
+            "ax": 45,
+            "ay": 50,
+            "bgcolor": "rgba(255,255,255,.97)",
+            "bordercolor": "#754B86",
+            "borderwidth": 1,
+            "borderpad": 4,
             "font": {
-              "color": "#111",
-              "size": 12
+              "color": "#754B86",
+              "size": 14
             }
           }
-        ]
+        ],
+        "pointText": "Success (5, 1, 2.5)：緑 100.0%Failure (5, 1, 2.5)：緑 100.0%"
       },
       {
         "case": "failure2",
+        "group": "z",
         "references": {
           "success": {
             "gain": [
-              13,
+              5,
               1,
-              20
+              2.5
             ],
             "survival": 1,
             "breaks": 0,
@@ -229,115 +2873,130 @@
           },
           "failure": {
             "gain": [
-              10,
+              5,
               1,
-              8
+              2.5
             ],
-            "survival": 0.140625,
-            "breaks": 110,
+            "survival": 1,
+            "breaks": 0,
             "unresolved": 0,
-            "classification": 2
+            "classification": 3
           }
         },
         "canvas": 1,
         "traces": [
           {
             "type": "mesh3d",
-            "opacity": 0.16,
-            "faces": 10656,
+            "opacity": 0.28,
+            "faces": 20640,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.24,
-            "faces": 15064,
+            "opacity": 0.32,
+            "faces": 20376,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.9,
-            "faces": 1284,
+            "opacity": 0.94,
+            "faces": 0,
             "marker": null
           },
           {
             "type": "mesh3d",
-            "opacity": 0.9,
-            "faces": 3138,
+            "opacity": 0.94,
+            "faces": 0,
             "marker": null
           },
           {
             "type": "scatter3d",
+            "name": "failure",
             "mode": "markers",
             "faces": 0,
             "marker": {
-              "color": "#161616",
+              "color": "#754B86",
+              "symbol": "circle-open",
+              "size": 14,
               "x": [
-                13
+                5
               ],
               "y": [
                 1
               ],
               "z": [
-                20
+                2.5
               ]
             }
           },
           {
             "type": "scatter3d",
+            "name": "success",
             "mode": "markers",
             "faces": 0,
             "marker": {
-              "color": "#161616",
+              "color": "#264C73",
+              "symbol": "diamond",
+              "size": 8,
               "x": [
-                10
+                5
               ],
               "y": [
                 1
               ],
               "z": [
-                8
+                2.5
               ]
             }
           }
         ],
         "annotations": [
           {
-            "x": 13,
+            "x": 5,
             "y": 1,
-            "z": 20,
-            "text": "Success<br>(13, 1, 20)",
+            "z": 2.5,
+            "text": "Success<br>(5, 1, 2.5)<br>green · 100.0%",
             "showarrow": true,
             "arrowhead": 2,
-            "ax": -35,
-            "ay": -45,
-            "bgcolor": "rgba(255,255,255,.95)",
-            "borderpad": 3,
+            "arrowcolor": "#264C73",
+            "arrowwidth": 2,
+            "ax": -45,
+            "ay": -55,
+            "bgcolor": "rgba(255,255,255,.97)",
+            "bordercolor": "#264C73",
+            "borderwidth": 1,
+            "borderpad": 4,
             "font": {
-              "color": "#111",
-              "size": 12
+              "color": "#264C73",
+              "size": 14
             }
           },
           {
-            "x": 10,
+            "x": 5,
             "y": 1,
-            "z": 8,
-            "text": "Failure<br>(10, 1, 8)",
+            "z": 2.5,
+            "text": "Failure (= Success)<br>(5, 1, 2.5)<br>green · 100.0%",
             "showarrow": true,
             "arrowhead": 2,
-            "ax": 35,
-            "ay": 35,
-            "bgcolor": "rgba(255,255,255,.95)",
-            "borderpad": 3,
+            "arrowcolor": "#754B86",
+            "arrowwidth": 2,
+            "ax": 45,
+            "ay": 50,
+            "bgcolor": "rgba(255,255,255,.97)",
+            "bordercolor": "#754B86",
+            "borderwidth": 1,
+            "borderpad": 4,
             "font": {
-              "color": "#111",
-              "size": 12
+              "color": "#754B86",
+              "size": 14
             }
           }
-        ]
+        ],
+        "pointText": "Success (5, 1, 2.5)：緑 100.0%Failure (5, 1, 2.5)：緑 100.0%"
       }
     ]
   },
-  "returnToSlice": true,
+  "returnToOverview": true,
   "cameraSynchronized": true,
   "errors": []
 }

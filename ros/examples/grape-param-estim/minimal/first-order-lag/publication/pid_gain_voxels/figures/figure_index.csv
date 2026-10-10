@@ -1,3 +1,3 @@
-figure,group,view,cases,caption
-roll_pitch_success_failure_PD,roll_pitch,PD,"['failure1', 'failure2']",Recorded failure gains lie in the red region and successful-flight gains in the green region in both Roll/Pitch posterior analyses. The P–D slice is exactly at the shared I=1 reference plane.
-roll_pitch_success_failure_3D,roll_pitch,3D,"['failure1', 'failure2']",Recorded failure gains lie in the red region and successful-flight gains in the green region in both Roll/Pitch posterior analyses. The volume is cut at I=1 to expose both reference nodes on the same classified face.
+figure,groups,view,cases,panel_count,caption
+all_pid_success_failure_3D,"['roll_pitch', 'yaw', 'xy', 'z']",3D,"['failure1', 'failure2']",8,The success reference is green in all eight case/axis volumes. Recorded failure-flight group gains are explicitly located; only Roll/Pitch is red under the single-group substitutions.
+all_pid_success_failure_PD,"['roll_pitch', 'yaw', 'xy', 'z']",PD,"['failure1', 'failure2']",8,The success reference is green in all eight case/axis volumes. Recorded failure-flight group gains are explicitly located; only Roll/Pitch is red under the single-group substitutions.

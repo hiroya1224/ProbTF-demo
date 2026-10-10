@@ -8,9 +8,13 @@
   "javascript": {
     "command": "node tests/test_pid_voxel_viewer.cjs index.html",
     "exit_code": 0,
-    "one_primary_figure": true,
-    "references_on_exact_source_nodes": true,
-    "success_green_and_failure_red": true,
-    "exposed_voxel_faces_match_saved_counts": true
+    "cases": 2,
+    "groups": 4,
+    "panels": 8,
+    "all_success_green": true,
+    "failure_coordinates_exact": true,
+    "pastel_colors": true,
+    "coincident_z_references": true,
+    "full_and_cut_faces_match_saved_counts": true
   }
 }

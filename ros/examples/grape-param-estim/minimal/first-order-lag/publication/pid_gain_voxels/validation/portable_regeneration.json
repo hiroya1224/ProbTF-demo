@@ -1,43 +1,45 @@
 {
   "passed": true,
-  "relocated_directory": "/tmp/pid-focus-portable-check",
+  "relocated_directory": "/tmp/pid-all-axes-portable-check",
   "commands": [
     {
       "command": [
         "/usr/bin/python3",
-        "/tmp/pid-focus-portable-check/scripts/plot_paper_figures.py"
+        "/tmp/pid-all-axes-portable-check/scripts/plot_paper_figures.py"
       ],
       "cwd": "/tmp",
       "exit_code": 0,
-      "elapsed_seconds": 10.06
+      "elapsed_seconds": 37.39
     },
     {
       "command": [
         "/usr/bin/python3",
-        "/tmp/pid-focus-portable-check/scripts/build_interactive.py"
+        "/tmp/pid-all-axes-portable-check/scripts/build_interactive.py"
       ],
       "cwd": "/tmp",
       "exit_code": 0,
-      "elapsed_seconds": 0.5
+      "elapsed_seconds": 0.85
     }
   ],
   "figures": [
-    "roll_pitch_success_failure_3D.pdf",
-    "roll_pitch_success_failure_3D.png",
-    "roll_pitch_success_failure_3D.svg",
-    "roll_pitch_success_failure_PD.pdf",
-    "roll_pitch_success_failure_PD.png",
-    "roll_pitch_success_failure_PD.svg"
+    "all_pid_success_failure_3D.pdf",
+    "all_pid_success_failure_3D.png",
+    "all_pid_success_failure_3D.svg",
+    "all_pid_success_failure_PD.pdf",
+    "all_pid_success_failure_PD.png",
+    "all_pid_success_failure_PD.svg"
   ],
+  "panels_per_figure": 8,
+  "all_axes_included": true,
   "html_bytes_identical": true,
   "original_repository_required": false,
   "scripts_sha256": {
-    "pid_voxel_viewer.js": "1382a18a6cb64261ff1db056bf7606d903bd33acb94dca54f1ca322488989861",
-    "plot_paper_figures.py": "35586d10ac5515ab7585e16469e637c898f17436b37c6ac9c0ee8de24c53b0b9",
-    "build_interactive.py": "aad6c9c9ce2e56462b5fe0952bafd6c6be868100249721831ec95d2fd5e79ca0",
-    "pid_voxel_viewer.html": "5d5760f6f7bec3f9ed22591fa753416597a9814d9d55a63ee62262c52fe08cd6",
+    "pid_voxel_viewer.js": "981ff506d5049e72d713d68545a734adc424cf18fd6066e4dabe068584ff06e1",
+    "plot_paper_figures.py": "899ff85912b874b75a2a677df609b52c4a95dbf69c7d4e1f3883dfa492e24004",
+    "build_interactive.py": "3440a9b1d698b4115d0f53c018d5f3f7038160b0f0b8ede48c569ce07888d34a",
+    "pid_voxel_viewer.html": "aea53bb384234f35bb4f2548ee4a27d9debbcf6cc2ca89d67718da6b64df8d8f",
     "data_io.py": "ffb38c635a84a985defd1280bcf43863a2a00cbe5bdef82814afb76bea7fa2c6",
-    "finalize_bundle.py": "ab963f5c9d695adacf2b43972b98dac22e3992b0e06aced9e4178e41e5b3c5c9",
+    "finalize_bundle.py": "810846688c8e5ccd8085a36ea8377893b53981ec2487fe98b2106d529243e4db",
     "export_data.py": "c100cbf6883fd22a25d652b45312dfc13314a9ddcc8fa685f79048d760058f72"
   }
 }

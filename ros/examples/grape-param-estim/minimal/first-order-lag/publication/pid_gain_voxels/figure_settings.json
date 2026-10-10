@@ -1,18 +1,30 @@
 {
   "alpha": 0.95,
-  "green": "#169b46",
-  "red": "#d62728",
-  "green_opacity": 0.24,
-  "red_opacity": 0.16,
-  "success_color": "#1565c0",
-  "recorded_color": "#8e24aa",
-  "camera_oblique": {"elevation": 27, "azimuth": -55},
-  "camera_top": {"elevation": 90, "azimuth": -90},
-  "frame_padding": 0.10,
-  "slice_fractions": [0.1, 0.3, 0.5, 0.7, 0.9],
+  "green": "#CDE8D5",
+  "red": "#F2CCD0",
+  "green_opacity": 0.32,
+  "red_opacity": 0.28,
+  "success_color": "#264C73",
+  "recorded_color": "#754B86",
+  "camera_oblique": {
+    "elevation": 24,
+    "azimuth": -58
+  },
+  "camera_top": {
+    "elevation": 90,
+    "azimuth": -90
+  },
+  "frame_padding": 0.1,
   "dpi": 400,
-  "formats": ["pdf", "svg", "png"],
+  "formats": [
+    "pdf",
+    "svg",
+    "png"
+  ],
   "font_family": "DejaVu Sans",
-  "font_size": 9,
-  "surface_raster_dpi": 220
+  "font_size": 10,
+  "surface_raster_dpi": 220,
+  "cut_opacity": 0.94,
+  "success_text_color": "#316747",
+  "red_text_color": "#984451"
 }

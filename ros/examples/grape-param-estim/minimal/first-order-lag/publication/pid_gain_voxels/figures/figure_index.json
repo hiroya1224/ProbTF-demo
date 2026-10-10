@@ -1,120 +1,428 @@
 [
   {
-    "figure": "roll_pitch_success_failure_PD",
-    "group": "roll_pitch",
-    "cases": [
-      "failure1",
-      "failure2"
+    "figure": "all_pid_success_failure_3D",
+    "groups": [
+      "roll_pitch",
+      "yaw",
+      "xy",
+      "z"
     ],
-    "view": "PD",
-    "caption": "Recorded failure gains lie in the red region and successful-flight gains in the green region in both Roll/Pitch posterior analyses. The P\u2013D slice is exactly at the shared I=1 reference plane.",
-    "references": {
-      "failure1": {
-        "success": {
-          "gain": [
-            13.0,
-            1.0,
-            20.0
-          ],
-          "survival": 1.0,
-          "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
-        },
-        "recorded": {
-          "gain": [
-            20.0,
-            1.0,
-            8.0
-          ],
-          "survival": 0.5590551181102362,
-          "breaks": 56,
-          "unresolved": 0,
-          "classification": 2
-        }
-      },
-      "failure2": {
-        "success": {
-          "gain": [
-            13.0,
-            1.0,
-            20.0
-          ],
-          "survival": 1.0,
-          "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
-        },
-        "recorded": {
-          "gain": [
-            10.0,
-            1.0,
-            8.0
-          ],
-          "survival": 0.140625,
-          "breaks": 110,
-          "unresolved": 0,
-          "classification": 2
-        }
-      }
-    }
-  },
-  {
-    "figure": "roll_pitch_success_failure_3D",
-    "group": "roll_pitch",
     "cases": [
       "failure1",
       "failure2"
     ],
     "view": "3D",
-    "caption": "Recorded failure gains lie in the red region and successful-flight gains in the green region in both Roll/Pitch posterior analyses. The volume is cut at I=1 to expose both reference nodes on the same classified face.",
+    "panel_count": 8,
+    "caption": "The success reference is green in all eight case/axis volumes. Recorded failure-flight group gains are explicitly located; only Roll/Pitch is red under the single-group substitutions.",
     "references": {
       "failure1": {
-        "success": {
-          "gain": [
-            13.0,
-            1.0,
-            20.0
-          ],
-          "survival": 1.0,
-          "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+        "roll_pitch": {
+          "success": {
+            "gain": [
+              13.0,
+              1.0,
+              20.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              20.0,
+              1.0,
+              8.0
+            ],
+            "survival": 0.5590551181102362,
+            "breaks": 56,
+            "unresolved": 0,
+            "classification": 2
+          }
         },
-        "recorded": {
-          "gain": [
-            20.0,
-            1.0,
-            8.0
-          ],
-          "survival": 0.5590551181102362,
-          "breaks": 56,
-          "unresolved": 0,
-          "classification": 2
+        "yaw": {
+          "success": {
+            "gain": [
+              6.0,
+              1.0,
+              2.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              4.0,
+              1.0,
+              2.0
+            ],
+            "survival": 0.9685039370078741,
+            "breaks": 4,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        "xy": {
+          "success": {
+            "gain": [
+              4.0,
+              0.1,
+              2.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              3.0,
+              0.1,
+              1.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        "z": {
+          "success": {
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
         }
       },
       "failure2": {
-        "success": {
-          "gain": [
-            13.0,
-            1.0,
-            20.0
-          ],
-          "survival": 1.0,
-          "breaks": 0,
-          "unresolved": 0,
-          "classification": 3
+        "roll_pitch": {
+          "success": {
+            "gain": [
+              13.0,
+              1.0,
+              20.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              10.0,
+              1.0,
+              8.0
+            ],
+            "survival": 0.140625,
+            "breaks": 110,
+            "unresolved": 0,
+            "classification": 2
+          }
         },
-        "recorded": {
-          "gain": [
-            10.0,
-            1.0,
-            8.0
-          ],
-          "survival": 0.140625,
-          "breaks": 110,
-          "unresolved": 0,
-          "classification": 2
+        "yaw": {
+          "success": {
+            "gain": [
+              6.0,
+              1.0,
+              2.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              4.0,
+              1.0,
+              2.0
+            ],
+            "survival": 0.984375,
+            "breaks": 2,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        "xy": {
+          "success": {
+            "gain": [
+              4.0,
+              0.1,
+              2.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              3.0,
+              0.1,
+              1.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        "z": {
+          "success": {
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        }
+      }
+    }
+  },
+  {
+    "figure": "all_pid_success_failure_PD",
+    "groups": [
+      "roll_pitch",
+      "yaw",
+      "xy",
+      "z"
+    ],
+    "cases": [
+      "failure1",
+      "failure2"
+    ],
+    "view": "PD",
+    "panel_count": 8,
+    "caption": "The success reference is green in all eight case/axis volumes. Recorded failure-flight group gains are explicitly located; only Roll/Pitch is red under the single-group substitutions.",
+    "references": {
+      "failure1": {
+        "roll_pitch": {
+          "success": {
+            "gain": [
+              13.0,
+              1.0,
+              20.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              20.0,
+              1.0,
+              8.0
+            ],
+            "survival": 0.5590551181102362,
+            "breaks": 56,
+            "unresolved": 0,
+            "classification": 2
+          }
+        },
+        "yaw": {
+          "success": {
+            "gain": [
+              6.0,
+              1.0,
+              2.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              4.0,
+              1.0,
+              2.0
+            ],
+            "survival": 0.9685039370078741,
+            "breaks": 4,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        "xy": {
+          "success": {
+            "gain": [
+              4.0,
+              0.1,
+              2.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              3.0,
+              0.1,
+              1.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        "z": {
+          "success": {
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        }
+      },
+      "failure2": {
+        "roll_pitch": {
+          "success": {
+            "gain": [
+              13.0,
+              1.0,
+              20.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              10.0,
+              1.0,
+              8.0
+            ],
+            "survival": 0.140625,
+            "breaks": 110,
+            "unresolved": 0,
+            "classification": 2
+          }
+        },
+        "yaw": {
+          "success": {
+            "gain": [
+              6.0,
+              1.0,
+              2.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              4.0,
+              1.0,
+              2.0
+            ],
+            "survival": 0.984375,
+            "breaks": 2,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        "xy": {
+          "success": {
+            "gain": [
+              4.0,
+              0.1,
+              2.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              3.0,
+              0.1,
+              1.0
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
+        },
+        "z": {
+          "success": {
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          },
+          "recorded": {
+            "gain": [
+              5.0,
+              1.0,
+              2.5
+            ],
+            "survival": 1.0,
+            "breaks": 0,
+            "unresolved": 0,
+            "classification": 3
+          }
         }
       }
     }

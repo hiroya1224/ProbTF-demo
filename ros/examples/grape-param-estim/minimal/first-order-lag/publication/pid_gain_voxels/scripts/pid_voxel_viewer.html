@@ -1,18 +1,22 @@
 <!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Successは緑、Failureは赤 — PIDゲインの比較</title>
+<title>全PID軸のSuccessとFailure — ゲインの比較</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:white;color:#182630;font:16px system-ui,sans-serif}main{max-width:1180px;margin:auto;padding:24px 20px}h1{font-size:26px;margin:0 0 8px}p{line-height:1.65;margin:8px 0}.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:15px 0}button{font:inherit;padding:7px 15px;border:1px solid #b7c2cc;background:white;border-radius:5px;cursor:pointer}button.active{color:white;background:#253b50;border-color:#253b50}a{color:#1f65a0}.downloads{margin-left:auto;display:flex;gap:16px}.legend{display:flex;gap:22px;flex-wrap:wrap;font-size:14px}.swatch{display:inline-block;width:14px;height:14px;margin-right:7px;vertical-align:-2px}.green{background:#169b46}.red{background:#d62728}figure{margin:10px 0}figure img{display:block;width:100%;height:auto}.volumes{display:grid;grid-template-columns:1fr 1fr;gap:15px}.volumes h2{font-size:18px;text-align:center;margin:12px 0 0}.plot{height:510px}.small{font-size:13px;color:#53616b}[hidden]{display:none!important}#status{font-size:14px;color:#53616b}@media(max-width:850px){.volumes{grid-template-columns:1fr}.plot{height:430px}main{padding:18px 12px}h1{font-size:22px}}
+*{box-sizing:border-box}body{margin:0;background:white;color:#182630;font:16px system-ui,sans-serif}main{max-width:1660px;margin:auto;padding:24px 20px}h1{font-size:26px;margin:0 0 8px}p{line-height:1.65;margin:8px 0}.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:15px 0}button{font:inherit;padding:7px 15px;border:1px solid #b7c2cc;background:white;border-radius:5px;cursor:pointer}button.active{color:white;background:#253b50;border-color:#253b50}a{color:#1f65a0}.downloads{margin-left:auto;display:flex;gap:16px}.legend{display:flex;gap:22px;flex-wrap:wrap;font-size:14px}.swatch{display:inline-block;width:14px;height:14px;margin-right:7px;vertical-align:-2px}.green{background:__GREEN__}.red{background:__RED__}.success-key{color:__SUCCESS__;font-weight:600}.failure-key{color:__FAILURE__;font-weight:600}.summary{display:inline-block;background:#EFF7F1;color:#316747;padding:6px 12px;font-weight:600;border-radius:4px}.point-values{font-size:14px;line-height:1.5;text-align:center}.point-values strong{color:__SUCCESS__}.point-values b{color:__FAILURE__}figure{margin:10px 0}figure img{display:block;width:100%;height:auto;max-height:calc(100vh - 280px);object-fit:contain}.volumes{display:grid;grid-template-columns:1fr 1fr;gap:15px}.volumes h2{font-size:18px;text-align:center;margin:12px 0 0}.plot{height:540px}.small{font-size:13px;color:#53616b}[hidden]{display:none!important}#status{font-size:14px;color:#53616b}@media(max-width:850px){figure img{max-height:none}.volumes{grid-template-columns:1fr}.plot{height:430px}main{padding:18px 12px}h1{font-size:22px}}
 </style>
 <main>
 <h1>__CLAIM__</h1>
-<p>failure 1・2の推定結果で比較した、Roll / Pitch のPIDゲインです。</p>
-<div class="controls"><button id="showPD" class="active">P–D断面（I=1）</button><button id="show3D">3D（I=1で切り出し）</button>
-<nav class="downloads"><a id="pdf" href="figures/roll_pitch_success_failure_PD.pdf">PDF</a><a id="svg" href="figures/roll_pitch_success_failure_PD.svg">SVG</a><a id="png" href="figures/roll_pitch_success_failure_PD.png">PNG</a></nav></div>
-<div class="legend"><span><i class="swatch green"></i>緑：条件付き生存率__THRESHOLD__%以上</span><span><i class="swatch red"></i>赤：__THRESHOLD__%未満</span></div>
-<figure id="pd"><img src="figures/roll_pitch_success_failure_PD.png" alt="failure 1と2のRoll/Pitch PID。失敗ゲインは赤、成功ゲインは緑。両点があるI=1の断面。"></figure>
-<section id="volume" hidden><div class="volumes"><div><h2>failure 1</h2><div id="plot_failure1" class="plot"></div></div><div><h2>failure 2</h2><div id="plot_failure2" class="plot"></div></div></div><button id="resetCamera">視点を戻す</button></section>
+<p>failure 1・2 × Roll/Pitch・Yaw・XY・Z。各図にP・I・Dと、Success／Failureの正確なゲイン値を表示しています。</p>
+<p class="summary">__SUMMARY__</p>
+<div class="controls"><button id="show3D" class="active">俯瞰図（P・I・D）</button><button id="showPD">両点を通る断面</button><button id="showInteractive">点の位置を操作</button>
+<nav class="downloads"><a id="pdf" href="figures/all_pid_success_failure_3D.pdf">PDF</a><a id="svg" href="figures/all_pid_success_failure_3D.svg">SVG</a><a id="png" href="figures/all_pid_success_failure_3D.png">PNG</a></nav></div>
+<div class="legend"><span><i class="swatch green"></i>緑：条件付き生存率__THRESHOLD__%以上</span><span><i class="swatch red"></i>赤：__THRESHOLD__%未満</span><span class="success-key">◆ Success</span><span class="failure-key">✕ Failure（Zは同じ点を囲む円）</span></div>
+<figure id="overview"><img id="primaryImage" src="figures/all_pid_success_failure_3D.png" alt="両ケースの全4軸のP・I・D。Successは全8図で緑。Failureは紫の印と矢印。"></figure>
+<section id="volume" hidden>
+<div class="controls" id="groups"><button data-group="roll_pitch" class="active">Roll/Pitch</button><button data-group="yaw">Yaw</button><button data-group="xy">XY</button><button data-group="z">Z</button><label class="small"><input id="cutaway" type="checkbox" checked>両点を通るIで切り出す</label></div>
+<div class="volumes"><div><h2>failure 1</h2><div id="plot_failure1" class="plot"></div><p id="points_failure1" class="point-values"></p></div><div><h2>failure 2</h2><div id="plot_failure2" class="plot"></div><p id="points_failure2" class="point-values"></p></div></div><button id="resetCamera">視点を戻す</button></section>
 <p id="status"></p>
-<p class="small">断面はSuccessとFailureの両点を通るI=1です。3DでもI=1で手前を切り、両点のある赤・緑の面を見せています。Roll/Pitch以外のゲインは成功設定に固定しています。</p>
+<p class="small">Failureは失敗飛行で使った各軸のゲインです。各軸だけを置き換える判定ではRoll/Pitchが赤、Yaw・XY・Zは緑です。ZのゲインはSuccessと同一です。各図では他の制御軸を成功設定に固定しています。</p>
+<p class="small">俯瞰図は両点を通るIで切り、点のある面を見せています（XY：I=0.1、他：I=1）。操作表示ではチェックを外すと探索範囲全体のボクセルを確認できます。</p>
 <p class="small"><a href="README.md">編集・再描画の手順</a></p>
 </main>
 <script>__PLOTLY__</script><script>const DATA=__DATA__;</script><script>__VIEWER__</script></html>

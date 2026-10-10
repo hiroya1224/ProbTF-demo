@@ -1,11 +1,18 @@
 {
-  "view": "two-case Roll/Pitch success/failure comparison",
+  "view": "all-axis two-case success/failure comparison",
   "html": "index.html",
-  "sha256": "70cfa3419870a750ed902d27cdcc7f675d792bbd485aa648369701d2ad271d0d",
-  "bytes": 5353279,
-  "primary": "exact shared I=1 P-D slice",
+  "sha256": "0ffd0218b162844c459e333f1364f292bc6e5b2d77711deca4531e2d37343f76",
+  "bytes": 7683679,
+  "primary": "all eight P/I/D volumes with exact success and failure references",
   "cases": [
     "failure1",
     "failure2"
-  ]
+  ],
+  "groups": [
+    "roll_pitch",
+    "yaw",
+    "xy",
+    "z"
+  ],
+  "all_success_green": true
 }

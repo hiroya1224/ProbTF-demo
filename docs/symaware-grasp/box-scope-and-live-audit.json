@@ -1,0 +1,67 @@
+{
+  "baseline": "41920ae",
+  "unchanged_shared_sources": {
+    "src/symaware_grasp/arm_kinematics.py": {
+      "unchanged": true,
+      "sha256": "92eb15c0821a4058a4ec86518bd7731f44d0af6de80e57db0a824bbaf1018a13"
+    },
+    "src/symaware_grasp/grasp_trial.py": {
+      "unchanged": true,
+      "sha256": "3d11c688d7f4d923e932d3560f4039e8db729debdafd1d7e9c56e9d94aab5236"
+    },
+    "src/symaware_grasp/grasp_targets.py": {
+      "unchanged": true,
+      "sha256": "3a9f4325dca847408437867198075088d06d78db3de34f50e137fc7c3730d3de"
+    },
+    "scripts/arm_joint_state_controller.py": {
+      "unchanged": true,
+      "sha256": "98e1a2951b1c31347372dfd433e973ef54fde8c66b6f6feaf25d28ab119b848d"
+    },
+    "scripts/symmetry_aware_ik_node.py": {
+      "unchanged": true,
+      "sha256": "bbf1990241fa6a068330ec144c776de03e1d68347e82ad2f2d270133dce9f853"
+    },
+    "scripts/run_bottle_grasp_demo.py": {
+      "unchanged": true,
+      "sha256": "8da2ee4a839ee37bd9688507b951f8caeb979ba623aa95d909cd59b7b247e578"
+    },
+    "urdf/simple_six_dof_arm.urdf": {
+      "unchanged": true,
+      "sha256": "7d4c9570e8d5ce223344d0ea7a530c844ced8cf6fb59ea96b63eac587929a74a"
+    }
+  },
+  "same_ik_launch_parameters": true,
+  "same_launch_nodes": {
+    "robot_controller": true,
+    "robot_state_publisher": true,
+    "probtf_static_broadcaster": true
+  },
+  "live_conditions": {
+    "mixture": {
+      "completed": true,
+      "samples": 673,
+      "component_count": 4,
+      "candidate_count": 1,
+      "minimum_clearance_mm": 5.657401053316177
+    },
+    "single_pose": {
+      "completed": true,
+      "samples": 668,
+      "component_count": 1,
+      "candidate_count": 1,
+      "minimum_clearance_mm": 5.667261596236692
+    }
+  },
+  "publisher_validation": {
+    "mixture": {
+      "publisher_parameters_verified": true,
+      "component_count": 4,
+      "target_count": 1
+    },
+    "single_pose": {
+      "publisher_parameters_verified": true,
+      "component_count": 1,
+      "target_count": 1
+    }
+  }
+}

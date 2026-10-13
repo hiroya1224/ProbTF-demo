@@ -1,0 +1,20 @@
+{
+  "baseline_commit": "41920ae63062f24f3671aacb602fd2d22f5121d8",
+  "source_path": "ros/examples/symaware_grasp/src/symaware_grasp/symmetry_aware_ik.py",
+  "source_before_sha256": "b823e47c5a74cb5e2539f4f49297b1cd017af595dc1b046e7cce821d206b2073",
+  "source_after_sha256": "5e3349f0975392eb6e09d82fce1483b1612666c30d3a094c21be7993c8bd63d5",
+  "unchanged_solver_methods": [
+    "__init__",
+    "_finite_difference_gradient",
+    "_gradient_descent",
+    "_optimize",
+    "_result",
+    "solve",
+    "solve_single_target"
+  ],
+  "changed_solver_methods": [
+    "evaluate_cost"
+  ],
+  "new_component_field": "orientation_log_weight_minus_normalizer",
+  "new_normalizer_cache": "canonical eigenvalue tuple and integration steps; maximum 256 entries"
+}

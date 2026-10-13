@@ -1,0 +1,67 @@
+{
+  "d2": {
+    "30.0": {
+      "mode_cost": -1.2788543681634545,
+      "two_mode_midpoint_cost": 13.027998145374603,
+      "equal_four_coordinate_cost": 19.834851270716936,
+      "log_normalizer": -2.6651487292830645
+    },
+    "5000.0": {
+      "mode_cost": -8.979085588420878,
+      "two_mode_midpoint_cost": 2490.3277672310187,
+      "equal_four_coordinate_cost": 3739.6346200504595,
+      "log_normalizer": -10.365379949540769
+    }
+  },
+  "single_component": {
+    "initial_configuration": [
+      0.17,
+      -0.24,
+      0.39,
+      0.13,
+      -0.22,
+      0.33
+    ],
+    "current_configuration": [
+      0.1,
+      -0.1,
+      0.2,
+      -0.1,
+      0.1,
+      -0.2
+    ],
+    "total_cost_constant_offset": 0.712085275203358,
+    "maximum_gradient_difference": 2.220446049250313e-12,
+    "maximum_solution_joint_difference_rad": 2.900519721071859e-07,
+    "new_solution": [
+      0.1538263781968544,
+      -1.1428146009714761,
+      1.6489737318440694,
+      0.14408160303400505,
+      -0.46389632265478237,
+      -0.1279857729788667
+    ],
+    "legacy_solution": [
+      0.15382643040026825,
+      -1.1428145545484982,
+      1.648973701308399,
+      0.1440818502429688,
+      -0.46389641966028544,
+      -0.12798606303083881
+    ],
+    "new_final_total_cost": 1.1238490465479007,
+    "legacy_final_total_cost": 0.4117637713409395,
+    "new_optimizer": {
+      "iterations": 23,
+      "function_evaluations": 189,
+      "success": true,
+      "message": "CONVERGENCE: REL_REDUCTION_OF_F_<=_FACTR*EPSMCH"
+    },
+    "legacy_optimizer": {
+      "iterations": 23,
+      "function_evaluations": 189,
+      "success": true,
+      "message": "CONVERGENCE: REL_REDUCTION_OF_F_<=_FACTR*EPSMCH"
+    }
+  }
+}

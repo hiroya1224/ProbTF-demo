@@ -1,0 +1,234 @@
+{
+  "completed": true,
+  "kinematic_grasp_reached": true,
+  "samples": 673,
+  "ik_results": [
+    {
+      "solver_name": "symmetry_aware_pointwise",
+      "grasp_id": "box_side_grasp",
+      "success": true,
+      "total_cost": -7.541658595308806,
+      "position_cost": 4.132210813864122e-07,
+      "orientation_cost": -8.978039088692212,
+      "motion_cost": 3.5092045030336396,
+      "joint_limit_cost": 0.032695386401298786,
+      "theta_solution": [
+        -0.4349148936856866,
+        -0.43044488183559576,
+        0.4084245234110414,
+        -1.5694628372654114,
+        -1.6121910531771486,
+        1.5927217228636186
+      ]
+    }
+  ],
+  "final": {
+    "time_s": 22.406064748764038,
+    "stage": "hold_grasp",
+    "opening_m": 0.106,
+    "tcp_x": 0.7799992636139831,
+    "tcp_y": -0.1199995022338424,
+    "tcp_z": 0.4599998091947288,
+    "tcp_object_distance_mm": 0.0009090886453545302,
+    "nearest_mode_error_deg": 0.05242485052587181,
+    "reference_mode_error_deg": 0.05242485052587181,
+    "wrist_bend_deg": 92.37174311580156,
+    "elbow_flexion_deg": 23.40100144109642,
+    "gripper_opening_mm": 106.0,
+    "jaw_axis_box_width_mm": 80.10378594322101,
+    "jaw_gap_mm": 25.896214056778984,
+    "box_clearance_lower_bound_mm": 12.953574797307278,
+    "closest_collision_pair": "gripper_left_link:gripper_left_pad_collision / box",
+    "joint_speed_rad_s": 0.0,
+    "joint_1": -0.43491489368568625,
+    "target_1": -0.43491489368568625,
+    "joint_2": -0.43044488183561247,
+    "target_2": -0.43044488183561247,
+    "joint_3": 0.4084245234110704,
+    "target_3": 0.4084245234110704,
+    "joint_4": -1.5694628372654122,
+    "target_4": -1.5694628372654122,
+    "joint_5": -1.612191053177143,
+    "target_5": -1.612191053177143,
+    "joint_6": 1.5927217228636068,
+    "target_6": 1.5927217228636068
+  },
+  "minimum_box_clearance_lower_bound_mm": 5.657401053316177,
+  "closest_collision_pair": "tool0:gripper_palm_collision / box",
+  "collision_free": true,
+  "minimum_required_clearance_mm": 0.5,
+  "distribution": "mixture",
+  "object_yaw_pi": "3/8",
+  "physical_box": {
+    "size": [
+      0.1,
+      0.08,
+      0.18
+    ],
+    "position": [
+      0.78,
+      -0.12,
+      0.46
+    ],
+    "rotation": [
+      [
+        0.38268343236508984,
+        -0.9238795325112866,
+        0.0
+      ],
+      [
+        0.9238795325112866,
+        0.38268343236508984,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "model_sha256": "861449b07abcf7c8ecd90f79f8a7dce4111f42ced677d4c3dad44ca5bbf5d060",
+  "native_belief_checks": {
+    "object": {
+      "component_count": 4,
+      "component_ids": [
+        "demo_box:D2:0",
+        "demo_box:D2:1",
+        "demo_box:D2:2",
+        "demo_box:D2:3"
+      ],
+      "normalized_weights": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "mode_quaternions_wxyz": [
+        [
+          0.8314696123025452,
+          0.0,
+          0.0,
+          0.5555702330196021
+        ],
+        [
+          0.0,
+          0.8314696123025452,
+          0.5555702330196021,
+          0.0
+        ],
+        [
+          0.0,
+          -0.5555702330196021,
+          0.8314696123025452,
+          0.0
+        ],
+        [
+          -0.5555702330196021,
+          0.0,
+          0.0,
+          0.8314696123025452
+        ]
+      ]
+    },
+    "grasp_candidate": {
+      "component_count": 4,
+      "component_ids": [
+        "base_link__to__box_side_grasp:demo_box:D2:0",
+        "base_link__to__box_side_grasp:demo_box:D2:1",
+        "base_link__to__box_side_grasp:demo_box:D2:2",
+        "base_link__to__box_side_grasp:demo_box:D2:3"
+      ],
+      "normalized_weights": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "mode_quaternions_wxyz": [
+        [
+          0.8314696123025452,
+          0.0,
+          0.0,
+          0.5555702330196021
+        ],
+        [
+          0.0,
+          0.8314696123025452,
+          0.5555702330196021,
+          0.0
+        ],
+        [
+          0.0,
+          -0.5555702330196021,
+          0.8314696123025452,
+          0.0
+        ],
+        [
+          -0.5555702330196021,
+          0.0,
+          0.0,
+          0.8314696123025452
+        ]
+      ],
+      "candidate_count": 1,
+      "grasp_id": "box_side_grasp"
+    },
+    "object_messages_checked": 229,
+    "target_messages_checked": 229
+  },
+  "hold_observation_s": 4.966724395751953,
+  "final_window_s": 1.0,
+  "final_window_samples": 31,
+  "events": [
+    {
+      "stage": "observe_box",
+      "stamp": 1791902578.1182203,
+      "time_s": 0.0009856224060058594,
+      "details": {}
+    },
+    {
+      "stage": "solve_symmetry_aware_ik",
+      "stamp": 1791902580.118621,
+      "time_s": 2.001399040222168,
+      "details": {}
+    },
+    {
+      "stage": "move_to_pregrasp",
+      "stamp": 1791902582.724774,
+      "time_s": 4.607542037963867,
+      "details": {}
+    },
+    {
+      "stage": "pregrasp_pause",
+      "stamp": 1791902591.3291402,
+      "time_s": 13.211900472640991,
+      "details": {}
+    },
+    {
+      "stage": "approach_box",
+      "stamp": 1791902592.329411,
+      "time_s": 14.212182998657227,
+      "details": {}
+    },
+    {
+      "stage": "close_gripper",
+      "stamp": 1791902594.5304527,
+      "time_s": 16.413208484649658,
+      "details": {}
+    },
+    {
+      "stage": "hold_grasp",
+      "stamp": 1791902595.5329392,
+      "time_s": 17.41569495201111,
+      "details": {}
+    },
+    {
+      "stage": "finished",
+      "stamp": 1791902600.537228,
+      "time_s": 22.419987440109253,
+      "details": {}
+    }
+  ],
+  "interpretation": "Recorded kinematic approach and jaw closure; contact, friction, holding force and unsampled configurations are not certified."
+}

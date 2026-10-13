@@ -51,12 +51,14 @@ catkin_install_python(
   PROGRAMS
     scripts/arm_joint_state_controller.py
     scripts/object_pose_node.py
+    scripts/box_pose_node.py
     scripts/probtf_static_broadcaster.py
     scripts/prob_tf_link_cloud_node.py
     scripts/prob_tf_grasp_target_node.py
     scripts/ptf_visualizer.py
     scripts/symmetry_aware_ik_node.py
     scripts/run_bottle_grasp_demo.py
+    scripts/run_box_grasp_demo.py
     scripts/write_simple_six_dof_prob_tf.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

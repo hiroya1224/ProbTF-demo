@@ -101,3 +101,69 @@ application message は完全な `probtf_msgs/ProbabilisticTransformStamped` を
 
 詳細は [lectures/symaware_grasp_demo.md](lectures/symaware_grasp_demo.md) と
 [lectures/probTF.md](lectures/probTF.md) を参照してください。
+
+## 箱の四成分混合分布と単一姿勢分布の比較
+
+箱の姿勢を四成分のBingham混合分布で表す条件と、同じ基準モードの単一Bingham分布で表す条件を記録する。
+箱の大きさは100 × 80 × 180 mm、中心は `[0.78, -0.12, 0.46]` m、真の姿勢のヨー角は `3π/8`（67.5°）とする。
+三辺の長さが異なる箱の向きを保つ四つの正回転 `D2` に対応して、基準姿勢と物体座標系のX・Y・Z軸周りの180°回転を四つのモードにする。
+四モードはすべて、真の箱と同じ八つの角を持つ。
+混合条件の重みは各0.25、各成分の集中度は `[5000, 5000, 5000]`、単一姿勢条件は同じ基準モードと集中度を使う。
+
+把持ライブラリには一つの候補を登録し、混合条件ではその一つの目標が四成分すべてを保持する。
+成分ごとに別のIKを解いて候補を選ぶ処理は行わない。
+物体の分布と把持目標は完全なnative ProbTF recordで受け渡し、表示用の真の箱はその代表成分から独立した固定姿勢の `Marker.CUBE` として配信する。
+
+IKの向き項は、正規化したBingham混合密度の負の対数とする。
+手先の単位四元数を `q_h(θ)`、各成分のパラメータ行列を `A_i`、正規化定数を `C(A_i)` とすると、
+
+\[
+L_{\mathrm{orientation}}(\theta) := -\log\!\left(\sum_{i=1}^{K} w_{i} \frac{\exp(q_{h}(\theta)^\top A_{i} q_{h}(\theta))}{C(A_{i})}\right), \qquad \sum_{i=1}^{K} w_{i} = 1.
+\]
+
+ここで `K=4` が混合条件、`K=1` が単一姿勢条件であり、四元数の成分順は `wxyz` とする。
+この設定では `A_i = 5000 (q_i q_i^T - I_4)` となる。
+実装ではlog-sum-expで評価し、Binghamの正規化定数を含める。
+位置・移動・関節限界のコスト、数値最適化の手順、初期関節角、制御器、関節速度制限は既存のボトルデモの設定を維持する。
+IKで得た姿勢を確認した後、同じ `plan_approach` と補間処理で上方を経由し、12 cm手前から直線接近して指を185 mmから106 mmへ閉じ、5秒間静止する。
+URDFの各collision形状と固定した真の箱の間を、15本の分離軸による直方体同士の検査で確認する。
+計画経路では2 mm、記録後の判定では0.5 mmの隙間の下限を要求する。
+この実行は運動学による可視化であり、接触力・摩擦・保持力は計算しない。
+
+```bash
+cd ~/catkin_ws
+catkin build symaware_grasp --cmake-args -DPYTHON_EXECUTABLE=/usr/bin/python3
+source ~/catkin_ws/devel/setup.bash
+rosrun symaware_grasp run_box_grasp_demo.py compare \
+  --object-yaw-pi 3/8 \
+  --output /tmp/box_grasp_distribution_comparison
+```
+
+指定した保存先に `mixture/` と `single_pose/` を作り、条件ごとに独立したROS masterで順に実行する。
+既存の保存先は上書きしない。
+録画にはX11の `DISPLAY` と `ffmpeg`、`ffprobe`、`xwininfo`、`xprop` が必要で、録画を省く場合は `--no-video` を指定する。
+一つのX11フレームを分岐して斜めと真上のRViz viewportを切り出すため、二視点は同期する。
+録画へ見出しや進行字幕を追加せず、軸・物体形状・分布の点群をRVizの表示のまま保存する。
+両条件に同じ物体姿勢と把持手順を使い、得られた解と記録された分布を比較する。
+この例だけから把持性能の優位性は判断しない。
+
+- `rviz_oblique.mp4`、`rviz_top.mp4`、`rviz_side_by_side.mp4`: 同期した斜め・真上・横並び映像
+- `grasp_preview.png`、`grasp_oblique.png`、`grasp_top.png`: 映像から抽出した同時刻の最終場面
+- `experiment.bag`: 物体・目標のnative分布、IKResult、関節状態、指の間隔・指令、TF、段階イベント
+- `samples.csv`、`summary.json`、`events.json`: 手先と中心の距離、許容モードへの角度誤差、手首角度、指の間隔、箱に対する隙間の下限、最終保持区間の判定
+- `manifest.json`、`parameters.yaml`、URDF、`grasp_library.yaml`、RViz設定: モデルと設定、ソースのSHA-256、publisherから照合・取得した実際の成分行列・重み・モード
+- `comparison.json`: 両条件の評価結果
+
+一条件だけの実行と記録後の再評価は次のように指定する。
+
+```bash
+source ~/catkin_ws/devel/setup.bash
+rosrun symaware_grasp run_box_grasp_demo.py run \
+  --distribution mixture --output /tmp/box_grasp_mixture
+rosrun symaware_grasp run_box_grasp_demo.py analyze \
+  /tmp/box_grasp_mixture --output /tmp/box_grasp_mixture_analysis
+```
+
+再評価ではbag内の目標が一件のまま混合成分を保持していることと、モードがmanifestの把持姿勢に対応することを確認する。
+最終静止区間の手先位置・向き・指の間隔と、全記録中の箱との隙間を数値で検査し、`kinematic_grasp_reached` に結果を保存する。
+解析結果と元の記録を共有する際は、映像・bagの容量を確認し、必要な記録を選択する。

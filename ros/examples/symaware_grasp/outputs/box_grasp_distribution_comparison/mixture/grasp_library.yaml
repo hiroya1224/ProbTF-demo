@@ -1,0 +1,8 @@
+objects:
+  demo_box:
+    candidates:
+      - grasp_id: box_side_grasp
+        object_to_grasp_position: [0.0, 0.0, 0.0]
+        approach_axis: [1.0, 0.0, 0.0]
+        finger_axis: [0.0, 0.0, 1.0]
+        weight: 1.0

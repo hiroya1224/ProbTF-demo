@@ -1,8 +1,10 @@
 import math
 from dataclasses import dataclass
+from functools import lru_cache
 
 import numpy as np
 
+from probtf.bingham import bingham_log_normalizer
 from probtf.distributions import (
     DistributionStatus,
     OrientationKind,
@@ -30,6 +32,14 @@ class _ComponentCostModel:
     mean: np.ndarray
     inverse_covariance: np.ndarray
     orientation_parameter: np.ndarray
+    orientation_log_weight_minus_normalizer: float
+
+
+@lru_cache(maxsize=256)
+def _cached_orientation_log_normalizer(eigenvalues, integration_steps):
+    """Reuse the normalizer for components with the same canonical spectrum."""
+
+    return bingham_log_normalizer(np.diag(eigenvalues), integration_steps)
 
 
 def _component_cost_models(record, integration_steps):
@@ -52,12 +62,18 @@ def _component_cost_models(record, integration_steps):
             raise ValueError(
                 "Pointwise symmetry-aware IK requires finite Bingham target components."
             )
+        orientation_parameter = orientation.backend_parameter_matrix()
+        log_normalizer = _cached_orientation_log_normalizer(
+            tuple(np.linalg.eigvalsh(orientation_parameter)), integration_steps
+        )
         models.append(
             _ComponentCostModel(
                 weight=item.weight,
                 mean=moments.mean,
                 inverse_covariance=_regularized_inverse(moments.covariance),
-                orientation_parameter=orientation.backend_parameter_matrix(),
+                orientation_parameter=orientation_parameter,
+                orientation_log_weight_minus_normalizer=math.log(item.weight)
+                - log_normalizer,
             )
         )
     return tuple(models)
@@ -162,15 +178,28 @@ class SymmetryAwareIKSolver:
             theta_vector
         )
         position_cost = 0.0
-        orientation_cost = 0.0
+        orientation_log_densities = []
         for model in target_models:
             position_error = hand_position - model.mean
             position_cost += model.weight * 0.5 * float(
                 position_error.T @ model.inverse_covariance @ position_error
             )
-            orientation_cost += model.weight * -float(
-                hand_quaternion.T @ model.orientation_parameter @ hand_quaternion
+            orientation_log_densities.append(
+                model.orientation_log_weight_minus_normalizer
+                + float(hand_quaternion.T @ model.orientation_parameter @ hand_quaternion)
             )
+
+        # Evaluate -log(sum_i w_i exp(q.T A_i q) / C(A_i)) without underflow.
+        largest_log_density = max(orientation_log_densities)
+        orientation_cost = -(
+            largest_log_density
+            + math.log(
+                math.fsum(
+                    math.exp(value - largest_log_density)
+                    for value in orientation_log_densities
+                )
+            )
+        )
 
         delta_theta = theta_vector - theta_now
         motion_cost = 0.5 * float(delta_theta.T @ delta_theta)

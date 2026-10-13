@@ -1,0 +1,6 @@
+# Rendering environment (Python 3.10+). Extraction uses the existing ROS1 Python.
+numpy==1.26.4
+scipy==1.15.3
+vtk==9.5.2
+Pillow==12.3.0
+av==17.1.0

@@ -1,0 +1,287 @@
+{
+  "case": "failure2",
+  "bag_name": "20260612_grape_hovering_6_2026-06-12-17-40-34.bag",
+  "bag_source": "/home/leus/catkin_ws/bags/grape-drone/20260612_grape_hovering/20260612_grape_hovering_6_2026-06-12-17-40-34.bag",
+  "bag_sha256": "c4515b73edd26f9cb68d93d9165e3e14fff2cbad95af6cef463821b791aeb665",
+  "bag_size_bytes": 27315343,
+  "bag_start_ns": 1781253636173561211,
+  "bag_end_ns": 1781253676126771128,
+  "duration_ns": 39953209917,
+  "start_jst": "2026-06-12 17:40:36.173561211 JST",
+  "end_jst": "2026-06-12 17:41:16.126771128 JST",
+  "estimation_window_seconds": [
+    25.5,
+    31.0
+  ],
+  "topic_message_counts": {
+    "/tf": 8078,
+    "/tf_static": 2,
+    "/gimbalrotor/uav/baselink/odom": 4061,
+    "/gimbalrotor/flight_state": 8085,
+    "/gimbalrotor/mocap/pose": 4768
+  },
+  "topic_record_extents_ns": {
+    "/tf": [
+      29735,
+      39921036220
+    ],
+    "/tf_static": [
+      35848,
+      40776
+    ],
+    "/gimbalrotor/uav/baselink/odom": [
+      301917,
+      39952837825
+    ],
+    "/gimbalrotor/flight_state": [
+      416775,
+      39925198280
+    ],
+    "/gimbalrotor/mocap/pose": [
+      151492158,
+      39925558628
+    ]
+  },
+  "streams": {
+    "world->gimbalrotor/root": {
+      "samples": 4043,
+      "header_start_ns": -503804962,
+      "header_end_ns": 39919760181,
+      "record_start_ns": 29735,
+      "record_end_ns": 39921036220
+    },
+    "gimbalrotor/root->gimbalrotor/cog": {
+      "samples": 2021,
+      "header_start_ns": -488804962,
+      "header_end_ns": 39914760181,
+      "record_start_ns": 53982,
+      "record_end_ns": 39916595925
+    },
+    "gimbalrotor/main_body->gimbalrotor/gimbal1_link": {
+      "samples": 2014,
+      "header_start_ns": -488804962,
+      "header_end_ns": 39914760181,
+      "record_start_ns": 61010,
+      "record_end_ns": 39919900389
+    },
+    "gimbalrotor/main_body->gimbalrotor/gimbal2_link": {
+      "samples": 2014,
+      "header_start_ns": -488804962,
+      "header_end_ns": 39914760181,
+      "record_start_ns": 61010,
+      "record_end_ns": 39919900389
+    },
+    "gimbalrotor/main_body->gimbalrotor/gimbal3_link": {
+      "samples": 2014,
+      "header_start_ns": -488804962,
+      "header_end_ns": 39914760181,
+      "record_start_ns": 61010,
+      "record_end_ns": 39919900389
+    },
+    "gimbalrotor/main_body->gimbalrotor/gimbal4_link": {
+      "samples": 2014,
+      "header_start_ns": -488804962,
+      "header_end_ns": 39914760181,
+      "record_start_ns": 61010,
+      "record_end_ns": 39919900389
+    },
+    "odom": {
+      "samples": 4061,
+      "header_start_ns": -683804962,
+      "header_end_ns": 39919760181,
+      "record_start_ns": 301917,
+      "record_end_ns": 39952837825
+    },
+    "mocap": {
+      "samples": 4768,
+      "header_start_ns": 151213174,
+      "header_end_ns": 39925491313,
+      "record_start_ns": 151492158,
+      "record_end_ns": 39925558628
+    }
+  },
+  "static_transforms": {
+    "gimbalrotor/gimbal1_link->gimbalrotor/thrust1": [
+      0.0,
+      0.0,
+      0.056,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "gimbalrotor/gimbal2_link->gimbalrotor/thrust2": [
+      0.0,
+      0.0,
+      0.056,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "gimbalrotor/gimbal3_link->gimbalrotor/thrust3": [
+      0.0,
+      0.0,
+      0.056,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "gimbalrotor/gimbal4_link->gimbalrotor/thrust4": [
+      0.0,
+      0.0,
+      0.056,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "gimbalrotor/main_body->gimbalrotor/fc": [
+      -0.0172999968682441,
+      -0.00110000084294132,
+      0.05706099896,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "gimbalrotor/main_body->gimbalrotor/motor_arm1": [
+      -0.22309,
+      -0.22309,
+      0.0,
+      0.0,
+      0.0,
+      0.9238805867638333,
+      -0.3826808871643774
+    ],
+    "gimbalrotor/main_body->gimbalrotor/motor_arm2": [
+      0.22309,
+      -0.22309,
+      0.0,
+      0.0,
+      0.0,
+      -0.38268428076468186,
+      0.9238791810922129
+    ],
+    "gimbalrotor/main_body->gimbalrotor/motor_arm3": [
+      0.22309,
+      0.22309,
+      0.0,
+      0.0,
+      0.0,
+      0.38268428076468186,
+      0.9238791810922129
+    ],
+    "gimbalrotor/main_body->gimbalrotor/motor_arm4": [
+      -0.22309,
+      0.22309,
+      0.0,
+      0.0,
+      0.0,
+      0.9238805867638333,
+      0.3826808871643774
+    ],
+    "gimbalrotor/root->gimbalrotor/main_body": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "flight_events": [
+    {
+      "elapsed_ns": 416775,
+      "state": 0,
+      "name": "ARM OFF"
+    },
+    {
+      "elapsed_ns": 7430425771,
+      "state": 1,
+      "name": "START"
+    },
+    {
+      "elapsed_ns": 7439992426,
+      "state": 2,
+      "name": "ARM ON"
+    },
+    {
+      "elapsed_ns": 8140147796,
+      "state": 6,
+      "name": "STOP"
+    },
+    {
+      "elapsed_ns": 8144758268,
+      "state": 0,
+      "name": "ARM OFF"
+    },
+    {
+      "elapsed_ns": 8840162080,
+      "state": 1,
+      "name": "START"
+    },
+    {
+      "elapsed_ns": 8844830406,
+      "state": 2,
+      "name": "ARM ON"
+    },
+    {
+      "elapsed_ns": 11759861261,
+      "state": 3,
+      "name": "TAKEOFF"
+    },
+    {
+      "elapsed_ns": 30280508016,
+      "state": 4,
+      "name": "LAND"
+    },
+    {
+      "elapsed_ns": 31590169895,
+      "state": 6,
+      "name": "STOP"
+    },
+    {
+      "elapsed_ns": 31594931251,
+      "state": 0,
+      "name": "ARM OFF"
+    }
+  ],
+  "video_file": "failure2.mp4",
+  "video_sha256": "3ca0b3695bda565fcc3b493a35614b2e00eab2858fe7c403fea12104b37f6337",
+  "video_size_bytes": 5438211,
+  "frame_count": 4795,
+  "nominal_fps": 120,
+  "width": 960,
+  "height": 540,
+  "codec": "H.264",
+  "pixel_format": "yuv420p",
+  "crf": 18,
+  "time_base": "1/1000000000",
+  "playback_speed": 1,
+  "pose_time_source": "header.stamp relative to bag start; no shift to first pose",
+  "pose_interpolation": "linear position, quaternion SLERP; hold across gaps >100 ms",
+  "initial_pose": "recorded FC odometry until first mocap measurement",
+  "endpoint_snapshot_advance_ns": 3209917,
+  "camera_position": [
+    2.3,
+    -3.8,
+    2.6
+  ],
+  "camera_focal_point": [
+    0,
+    -0.25,
+    0.6
+  ],
+  "camera_parallel_scale": 0.85,
+  "verification": {
+    "packet_count": 4795,
+    "first_pts_ns": 0,
+    "last_pts_ns": 39950000000,
+    "last_frame_duration_ns": 3209917,
+    "end_ns": 39953209917,
+    "decode_errors": 0
+  }
+}

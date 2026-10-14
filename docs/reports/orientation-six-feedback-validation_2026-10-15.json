@@ -1,86 +1,112 @@
 {
   "passed": true,
   "implementation_commits": {
-    "thesis": "3557b79cf537d69dd45dc7b564ee6a3e67f1217d",
-    "ProbTF-demo": "1531e1f0fb0660f6825806cb29319ef53793eb10"
+    "thesis": "781a8f5318f76d25730c78476da03177375dd4a7",
+    "ProbTF-demo": "e5aed4a26d859698900232543db4baae33eccce1"
   },
   "implementation_pushed_to_main": true,
   "evaluated_samples": 17434,
   "duration_seconds": 87.17113542556763,
-  "regression_tests": {
+  "plot_style": [
+    "science",
+    "no-latex"
+  ],
+  "plot_count": 7,
+  "all_73_curves_use_full_saved_series": true,
+  "numerical_archives_unchanged": true,
+  "inference_functions_unchanged": [
+    "canonical_batch",
+    "direction_factors",
+    "output_parameters",
+    "modes_from_parameters",
+    "compare_six",
+    "evaluate",
+    "display_rpy",
+    "read_measurements",
+    "prepare_measurements"
+  ],
+  "regression_tests_this_change": {
+    "feedback": 8
+  },
+  "prior_numerical_regression_counts": {
     "feedback": 8,
     "base_orientation": 9,
     "madgwick_filter": 11
   },
-  "source_check_output": "Chapters: 8; labels: 867; citations: 75; figures: 80\nReviewed information gaps: 28\nAll source checks passed.\n",
-  "numeric_checks_passed": true,
-  "independent_24_sample_replay_matches": true,
-  "shared_input_and_mocap_reference": true,
-  "raw_values_preserved": true,
-  "acceleration_display_upper_m_s2": 12.0,
-  "madgwick_filter_full_name_and_black": true,
-  "coordinate_colors": {
-    "x": "#D84315",
-    "y": "#008C45",
-    "z": "#1565C0"
+  "plot_colors": "blue, cyan, green, yellow, purple, red",
+  "markers": [
+    "o",
+    "s",
+    "^",
+    "D",
+    "v",
+    "P"
+  ],
+  "marker_interval_seconds": 3.0,
+  "marker_phases_consistent_across_comparisons": true,
+  "madgwick_filter_color": "#000000",
+  "madgwick_filter_marker": "*",
+  "linewidth_points": 1.35,
+  "dash_patterns": {
+    "--": [
+      14.0,
+      7.0
+    ],
+    "-.": [
+      14.0,
+      5.0,
+      2.0,
+      5.0
+    ],
+    ":": [
+      1.2,
+      3.3
+    ]
   },
-  "active_graphics_reviewed": 80,
-  "coordinate_color_convention_added_to_agents": true,
-  "comparison_linewidth_points": 1.25,
-  "styles_preserved": true,
+  "all_graph_label_text_black": true,
+  "quaternion_component_plot_removed": true,
+  "unit_format": "square brackets",
+  "native_pdf_label_changes": 14,
+  "native_pdf_curves_and_images_unchanged": true,
+  "native_unit_label_findings": [],
+  "active_graphics_assets": 79,
+  "pdf_pages": 366,
+  "pdf_sha256": "b3253eab66e6ab967fa7095577bfca0a836b3487515dcdb2ebf4860c995a53db",
+  "pdf_portrait_and_zero_rotation": true,
   "visual_review": [
     {
-      "name": "figure_5_1",
+      "name": "raw_first",
       "pdf_page": 163
     },
     {
-      "name": "figure_5_2",
+      "name": "magnetic",
       "pdf_page": 163
     },
     {
-      "name": "figure_5_3",
-      "pdf_page": 163
-    },
-    {
-      "name": "figure_5_4",
-      "pdf_page": 164
-    },
-    {
-      "name": "figure_5_5",
-      "pdf_page": 168
-    },
-    {
-      "name": "figure_5_6",
-      "pdf_page": 169
-    },
-    {
-      "name": "figure_5_7",
-      "pdf_page": 170
-    },
-    {
-      "name": "figure_5_8",
-      "pdf_page": 173
-    },
-    {
-      "name": "algorithm_2",
-      "pdf_page": 166
-    },
-    {
-      "name": "table_5_1",
+      "name": "rpy",
       "pdf_page": 167
     },
     {
-      "name": "table_5_2",
-      "pdf_page": 172
+      "name": "six_errors",
+      "pdf_page": 168
+    },
+    {
+      "name": "filter_comparison",
+      "pdf_page": 171
+    },
+    {
+      "name": "table_six",
+      "pdf_page": 166
+    },
+    {
+      "name": "table_comparison",
+      "pdf_page": 170
+    },
+    {
+      "name": "algorithm",
+      "pdf_page": 165
     }
   ],
-  "pdf_sha256": "6df2df12859352a4b5c94e93530c8d7ef83f925d1abd668450a763d7ef787b0c",
-  "pdf_pages": 368,
-  "pdf_portrait_and_zero_rotation": true,
-  "japanese_captions_and_english_algorithm": true,
-  "repository_layout_checks_passed": true,
-  "prose_lint_score": 93,
-  "prose_findings_reviewed": "Literal device name and distinction between Euler errors and relative rotation angle retained.",
   "video": {
     "frames": 350,
     "fps": 4.0,
@@ -103,75 +129,84 @@
       "z": "#1565C0"
     },
     "mocap_reference": "black dashed axes",
+    "axis_label_color": "black",
+    "plot_style": [
+      "science",
+      "no-latex"
+    ],
+    "unit_format": "square brackets",
     "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
     "input_timeseries_sha256": "672099c7f641d695e91772d07c9ea20f5e21eda205e7e5795637a704dc10c736",
-    "renderer_sha256": "64e04b69dbb73404fe290e670b7670cb5ff8ee09fe5c2b62fb7c3d522df1289f"
-  },
-  "video_stream": {
-    "codec_name": "h264",
-    "width": 1600,
-    "height": 1480,
-    "r_frame_rate": "4/1",
-    "duration": "87.500000",
-    "nb_frames": "350"
+    "renderer_sha256": "d063f8f5b2d07b0a747f26f75084b6ceb8757a6b170bbc5944c4ed1fdc3bfb46"
   },
   "video_decode_passed": true,
-  "video_visual_review_seconds": [
-    0.0,
-    43.5,
-    87.17113542556763
-  ],
+  "source_check_output": "Chapters: 8; labels: 866; citations: 75; figures: 79\nReviewed information gaps: 28\nAll source checks passed.\n",
+  "repository_layout_checks_passed": true,
+  "plan06_checks_passed": true,
+  "prose_lint_score": 93,
+  "prose_findings_reviewed": "Literal device name and Euler/geodesic distinction retained.",
+  "deprecated_unchanged_sha256": "4e236055abe0609cee99698a712665f57c3eac05ca10d11765b4be0519f19c74",
+  "unrelated_grape_diff_unchanged": true,
   "artifact_sha256": {
-    "figs/imu-orientation-filter/rolling_rpy.pdf": "7ef011edadc0be791cf64475347976f4b1259c929f709274eafae15602921627",
-    "figs/imu-orientation-filter/rolling_rpy.svg": "6c257b2035b40efaa786c6e9171710c79f0ca17d67279694f826cb74fdcbbf61",
-    "figs/imu-orientation-filter/rolling_rpy.png": "d12201447b23e6be41a3939951cd19e21eac3540149e68a107cf177133be347e",
-    "figs/imu-orientation-filter/rolling_quaternion.pdf": "6c189d7287d5220ffb7e2f217a76e754eb74c5d6eec03ea61adae534a4e913ac",
-    "figs/imu-orientation-filter/rolling_quaternion.svg": "55bcb79369ae678c31dfeddc8aad2f9a37a02bdecb1b6a2ba81a1ff2eb8beba3",
-    "figs/imu-orientation-filter/rolling_quaternion.png": "c2d5ae44bdaa44f12c3510336db431191a460b2b9bdbbef1fd28aaf51f52242e",
-    "figs/imu-orientation-filter/rolling_axis_errors.pdf": "209960c66e888050ac982149c226a3e9d64759b084b8cbc9f5762df812f9c806",
-    "figs/imu-orientation-filter/rolling_axis_errors.svg": "b69416bf007ae18f9c1d60bb790ae56321d5bc88de44cef46f42c72066c794c9",
-    "figs/imu-orientation-filter/rolling_axis_errors.png": "f75aeaf67a67a7d836c9ebeafd0b2c1b20168df56d13dd2212d53d63cb1641dd",
-    "figs/imu-orientation-filter/rolling_position.pdf": "a30af7bcf833c25e6663bdba941474248ee9ebf9044b8f641b91b2762f90da35",
-    "figs/imu-orientation-filter/rolling_position.svg": "afed9042afb17c202daa13cabc3aa38a7092b2c71b476dd3f85eeaae2c1419c3",
-    "figs/imu-orientation-filter/rolling_position.png": "bf3ccef978fe8c5aff2d7eab0ca581608a06246a48c0e4bb8c5757995c9d4c6a",
-    "figs/imu-orientation-filter/rolling_gyro.pdf": "6b5def8e41c25ae075abc824249276ad8e577ec56393f25640e90f01f742b11f",
-    "figs/imu-orientation-filter/rolling_gyro.svg": "100b71b5c58ea368ddd67a8cad42947bc6738da8dc5b3d2e68881dc224ac1920",
-    "figs/imu-orientation-filter/rolling_gyro.png": "f8e2401232d5ec9812acc740b1c1042296cdb5624299aed2bcddc93850649c57",
-    "figs/imu-orientation-filter/rolling_acc.pdf": "a623a2929255f9463157b8a42358076e5a601bfd917c4e9b5616b40e483b725c",
-    "figs/imu-orientation-filter/rolling_acc.svg": "d156b4750282c1f3d5cade8a2b62eec9b4efa5bb19935b65042515b9ef9acae3",
-    "figs/imu-orientation-filter/rolling_acc.png": "8f196228ee12ac527536ad04d31e4edea4a668de7ecea11d0a94002eab8b66f4",
-    "figs/imu-orientation-filter/rolling_mag.pdf": "67e34dc160e0d40229b331c48360b37f5e66725d1a52a96ad97d4f4118636b46",
-    "figs/imu-orientation-filter/rolling_mag.svg": "7d55d12cc195fcdee5c2ed7eb7c652be713a31f0dbf967e3e5d2b1d0dc72b1d2",
-    "figs/imu-orientation-filter/rolling_mag.png": "d243153f5ac1a589923b9fc6719d90486b6fc305a504d9c9dc8492fbef5b24bb",
-    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.pdf": "050f0aaa77d0b3b6fb84960181eaaecb361554347dcef01cfa235da0bb49e3d9",
-    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.svg": "999783b9816ffa9c6be171cd586a372795f8af1801335fd7dad973b2c018749f",
-    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.png": "db0086178839b740089e3fbaa0aa3558088517463790c3becabb284527db2dc1",
-    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/summary.json": "b6a446968bf1ab87bfa9e1c9daefa3cf11d4119acf2177c16062e731ac0254ec",
+    "figs/imu-orientation-filter/rolling_rpy.pdf": "f8c3f44540ba743b91a754ba1593c797104b6e5131d7daf71e761190d1e44349",
+    "figs/imu-orientation-filter/rolling_rpy.svg": "c777fdd6f89f1698672eb39e85bb980251c515ee26ec8ba5be592b4dd4f2a6b1",
+    "figs/imu-orientation-filter/rolling_rpy.png": "6e38a1c9f4885af730d921761e19c80561e2f55b906d1147a9d2030c39cf7c17",
+    "figs/imu-orientation-filter/rolling_axis_errors.pdf": "5b903153bff36429ee6ea0a46dfcbda163bfd3c4b14f03072d53da9ffcf3ddb2",
+    "figs/imu-orientation-filter/rolling_axis_errors.svg": "e17fb8a53cded9c76e548d8e4ca4805991365838a4b21a3a786bad6e78d34963",
+    "figs/imu-orientation-filter/rolling_axis_errors.png": "d8c7cd4944be1ba3c0701e7c444ba03f69bd397681fae6889655c37e8ed4608b",
+    "figs/imu-orientation-filter/rolling_position.pdf": "9cdfeb4d2b69b83795ed389181315cef7de7851d68b59f9ad14f4e531a3d41da",
+    "figs/imu-orientation-filter/rolling_position.svg": "88e6168bb162d3e3a64dfb05a35431e882854a15e438aec5479d2fb39c5da591",
+    "figs/imu-orientation-filter/rolling_position.png": "6c6c0ec258877da6c9c3aefd0417b8c4323933517d51744459d1a095abf1fddf",
+    "figs/imu-orientation-filter/rolling_gyro.pdf": "0616ea2d229128093187fed073ae07f6e51cd5cdbc8648a341062e20ddd1eb26",
+    "figs/imu-orientation-filter/rolling_gyro.svg": "e507ca22c0fcf4ea3fedc5547821639f65f359302b59c0c46d8e7048df81ea19",
+    "figs/imu-orientation-filter/rolling_gyro.png": "ddb72e4f25d3387c2b44c08d0ccc94b5f8c74b93749687c71e9ce1c08bf0df13",
+    "figs/imu-orientation-filter/rolling_acc.pdf": "a472364e7594395230b288dfedd59519f21e42aa424aaaa816c81516a4c3f762",
+    "figs/imu-orientation-filter/rolling_acc.svg": "4370cb0dfc8ea2336d9056a04411d272d4e451f6344dc26cb9161a428e319d79",
+    "figs/imu-orientation-filter/rolling_acc.png": "28a352a4e02b917f4aab20f5309ba8c5117151900f1eb6f11a521bc121a75995",
+    "figs/imu-orientation-filter/rolling_mag.pdf": "6040482a0363c7798763578b552c0d95bf94a86fc79fb5dfb4bfeeec49c2b500",
+    "figs/imu-orientation-filter/rolling_mag.svg": "c92d9ab0810ff4f27a0b4487424a7836f92bb36f234807a2116ebf8d95179a4d",
+    "figs/imu-orientation-filter/rolling_mag.png": "fce553f2c0c03e699fc5b7f8e0d40a61a4a456591682746b3597f3ec4405f0cb",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.pdf": "43ce1de2708141f36548505b1c87307bbfee456b5efa2835978bb37e09a64c96",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.svg": "d050d625eaa8f13def3b54b46c321777543f1feeb002823e5e06d0d5238b247d",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.png": "c8979b6b87082ac784fba1c24894bd572a174f85b940e39b37cae3261892a1e3",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/summary.json": "f9a2e65b66590c3bfb75bb7a13fec3e571a68170af2d99bb15caef94dd418472",
     "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/timeseries.npz": "672099c7f641d695e91772d07c9ea20f5e21eda205e7e5795637a704dc10c736",
-    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/madgwick_comparison/summary.json": "dad4fd9a5c933c69652a3350125e74163937468d59216bb7364bc9bbc45550c5",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/madgwick_comparison/summary.json": "05608ab7945c14113c57cad5ba1ac732127758d1b27e69f42c9e5bb969981e0a",
     "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/madgwick_comparison/timeseries.npz": "622f79a295e3c6c636b73318f5366aba0ce0b7456846f129c7acdd0e7992e638",
     "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/compare_rolling_bag.py": "0540af9bbad1a666b85be5b9dcd96c9e6d050d6a652dcb9d4cbd6186fdee08f8",
     "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/compare_madgwick_rolling.py": "2a470241ba49037e441cf95d8961ded2e79132906c9d761149744ad1d863b60a",
-    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/render_feedback_video.py": "64e04b69dbb73404fe290e670b7670cb5ff8ee09fe5c2b62fb7c3d522df1289f",
-    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/compare_feedback_orientation.py": "47f1d246eaf8d0d441febe73b47a65ac51f6427ef27449bab40c905ed3c76a7e",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/render_feedback_video.py": "d063f8f5b2d07b0a747f26f75084b6ceb8757a6b170bbc5944c4ed1fdc3bfb46",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/compare_feedback_orientation.py": "ac201078ef90dd71f7a8041fed4400433f74cd8975d01a90da5a1007bb3eb830",
     "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/inference_compare_feedback_orientation.py": "0c20784c4627115c4ad624b7c395e5068842a8e642219e25b99e996819b07371",
     "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/probtf/bingham.py": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38",
     "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/probtf/probability/sampling.py": "7e38344ca2c4443bc262d87dcfd3bc785e5cfd03dd0c1b9ff1e2ac39b3ac8d7b",
     "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/probtf_estimators/orientation_imu.py": "87f21e6a777460579e0b5f0dad2bb2813a967ff0417b0ff82fef68d6da0aa109",
-    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_xyz.pdf": "a30af7bcf833c25e6663bdba941474248ee9ebf9044b8f641b91b2762f90da35",
-    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_gyro.pdf": "6b5def8e41c25ae075abc824249276ad8e577ec56393f25640e90f01f742b11f",
-    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_acc.pdf": "a623a2929255f9463157b8a42358076e5a601bfd917c4e9b5616b40e483b725c",
-    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_mag.pdf": "67e34dc160e0d40229b331c48360b37f5e66725d1a52a96ad97d4f4118636b46",
-    "medias/imu-orientation-filter/rolling_bingham_comparison.mp4": "c8e93649483e36e6ad7b0e7abf6c32b4fb0a33850faf1f2ebbf7741430a9683d",
-    "medias/imu-orientation-filter/video.json": "2e843d7e8dca35ba8c3e182b7db1f155a8f056c8c8161c60377fe1a69087bc3a",
-    "medias/imu-orientation-filter/bingham_snapshot_000.png": "6c15c78aabb3dd1f1ba744b1d8aab0f6144a1e7fa019e158f743e4b95f136f7f",
-    "medias/imu-orientation-filter/bingham_snapshot_001.png": "b92a10c6f44c796e910b4f85f5538c350513f3a29cee6a152e3fca942d21b045",
-    "medias/imu-orientation-filter/bingham_snapshot_002.png": "3561aa41382505787d721a95d7c9930dd0ed1bcb9c25594c92517de7f848c380",
-    "medias/imu-orientation-filter/bingham_snapshot_003.png": "cd1d8cfe780eb955a670a4c82860dfbfe8f0c2c08f0e48ae2986a3e29b202af5",
-    "medias/imu-orientation-filter/bingham_snapshot_004.png": "4b21ff45005f864b4143545c1c29888486e2fbec7fc259f731a412465ede6aa3"
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_xyz.pdf": "9cdfeb4d2b69b83795ed389181315cef7de7851d68b59f9ad14f4e531a3d41da",
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_gyro.pdf": "0616ea2d229128093187fed073ae07f6e51cd5cdbc8648a341062e20ddd1eb26",
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_acc.pdf": "a472364e7594395230b288dfedd59519f21e42aa424aaaa816c81516a4c3f762",
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_mag.pdf": "6040482a0363c7798763578b552c0d95bf94a86fc79fb5dfb4bfeeec49c2b500",
+    "figs/plan06-clean/icra2023/plan02-ch5-all-AUC-unclipped.pdf": "83c8a5ca45fe3a267493802682f4628f6d84fe258e26bbf9e5183f081c9b6ccd",
+    "figs/symaware-bingham/toyexample.pdf": "13695005244b36f34b464681505202b3dc1077f9baae385b3ac2611af753a176",
+    "figs/plan06-clean/iros2024/desktop/200mm_eval_setting.pdf": "7dc874eaa150b7ece2de75d838393c1f81f2015bb8f77e51b1d1f4d73cf8f91a",
+    "figs/drone-snapshot-full/failure1.pdf": "3b242ffaa7530b981fe9895d85b745600ce89afa4e3ab6ce019236eddeb7698e",
+    "figs/drone-snapshot-full/failure2.pdf": "47626272e4d948942ab05a606d33eb59206f19f78ac5741a9ef6c3b6e6fe15e6",
+    "figs/drone-snapshot-full/success.pdf": "e0b0f9e18afb225ef2ab9c0047f43b7d40b082ed2887a393ad69d20f6f95da9e",
+    "figs/plan06-clean/drone-flight-snapshots/failure1-input-history.pdf": "52ba246b4f96304e8cb3c7cdeb6417c98e319e96069674731001543ef129c42d",
+    "figs/plan06-clean/drone-flight-snapshots/failure2-input-history.pdf": "849456938d6b3ca279a67383baf80f819f28188971fb8e5c85b4dc6b88ae82c7",
+    "figs/plan06-clean/drone-flight-snapshots/success-input-history.pdf": "a03ee2e881b4abce239ae0d935b1a47b697a1f5d47741d1531dd509923451896",
+    "figs/experiment-append/load-change/load_robot_snapshots.pdf": "76e780288ae068ced1b999d7007cc49b567f76be0c30a8a8f2481a16f3bc0268",
+    "figs/plan06-clean/icra2023/newlayout_KLdiv_vs_sampledpoints.pdf": "e31a5b1598e2a094e9d13048a27481e5083494e73a44acaaad5c99d0026ae62f",
+    "figs/plan06-clean/icra2023/newlayout_KLdiv_vs_scalarInit.pdf": "188d41703c1ea8be677c4ead0d4d4a18295e703a1bacfc8566c134d154bb52e2",
+    "figs/plan06-clean/sii2023/results_with_z_reflect.pdf": "5fb5592c0b661637b37ebce37e6900a1568b6942a80ce1e5caa70b930b3d3a67",
+    "figs/plan06-clean/icra2023/inference_result2.pdf": "5429aa1f5411e0aae42e87c666b3721e07d6189c6bd020c11358c2573fdc6194",
+    "medias/imu-orientation-filter/rolling_bingham_comparison.mp4": "bb33189b73f2cdb34e4d52e6d9837d13d30a34d1220bc8bb26447c70a1b4bdcb",
+    "medias/imu-orientation-filter/video.json": "9b94fbe8647d956dfb2750d0fa62fa502c7d9ae0d44717c9307c6df4b2d7500d",
+    "medias/imu-orientation-filter/bingham_snapshot_000.png": "5a0122f1abc8168b136a6cfeaa76a9f50c77a576b46d2cbe80db16a55d6ccfd3",
+    "medias/imu-orientation-filter/bingham_snapshot_001.png": "40aa332a7290185769c62bde670171dec084a625ada096f5ac28a396bc8fc83b",
+    "medias/imu-orientation-filter/bingham_snapshot_002.png": "035468d80f33b504812d280aaf03a5c7cfe2ad7fe174aaa610e77ff99e60f252",
+    "medias/imu-orientation-filter/bingham_snapshot_003.png": "765f70134492f344e8556fd5bf963f9fc59b0d03ba1fbf16dd2fdac0452c09c1",
+    "medias/imu-orientation-filter/bingham_snapshot_004.png": "89b2874b6b0dda3540d04ae6175784094856004720189c96bca6ebc9d80a97ef"
   },
   "current_document_links_passed": true,
-  "deprecated_unchanged_sha256": "4e236055abe0609cee99698a712665f57c3eac05ca10d11765b4be0519f19c74",
-  "unrelated_grape_diff_unchanged": true,
-  "scientific_limits": "Distribution coverage and separation of sensor calibration, dynamic acceleration, observation scales, and temporal correlation remain TODOs."
+  "scientific_limits": "Distribution coverage and separation of calibration, dynamic acceleration, observation scales, and temporal correlations remain TODOs."
 }

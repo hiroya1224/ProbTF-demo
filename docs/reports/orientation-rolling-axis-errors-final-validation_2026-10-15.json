@@ -1,0 +1,360 @@
+{
+  "checked_on": "2026-10-15",
+  "probtf_implementation_commit": "58a7e3a617323cda2446251a5002508d29961dfd",
+  "dthesis_implementation_commit": "a23eb246244e02c10331f9b568d1fe320ae9ac25",
+  "case_labels": {
+    "gyro_only": "角速度",
+    "magnetic_postprocess": "地磁気の融合あり（後処理のみ）",
+    "magnetic_feedback": "地磁気の融合あり（次時刻の初期値にも利用）"
+  },
+  "statistics": {
+    "gyro_only": {
+      "rms_deg": 7.346077569587193,
+      "median_deg": 6.4903760703234195,
+      "p95_deg": 11.809580885758017,
+      "max_deg": 15.076302125636929,
+      "final_deg": 11.993503939995046,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 10.060316528079328,
+          "median_deg": 3.289731785816997,
+          "p95_deg": 7.51238062706593,
+          "max_deg": 177.5197175393714,
+          "final_deg": 0.17374055834545743
+        },
+        "pitch": {
+          "rms_deg": 6.254395041210903,
+          "median_deg": 4.542541590784779,
+          "p95_deg": 11.623751229015497,
+          "max_deg": 14.428916642028923,
+          "final_deg": 11.889991469553536
+        },
+        "yaw": {
+          "rms_deg": 9.483719876455496,
+          "median_deg": 0.38122361437346797,
+          "p95_deg": 7.783449421349827,
+          "max_deg": 179.40772756844913,
+          "final_deg": 1.5805628837749452
+        }
+      }
+    },
+    "magnetic_postprocess": {
+      "rms_deg": 6.150479352431931,
+      "median_deg": 5.7158053219491265,
+      "p95_deg": 8.786421786232408,
+      "max_deg": 10.43393581056553,
+      "final_deg": 8.97020736632624,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 7.691550407770468,
+          "median_deg": 2.380056248725822,
+          "p95_deg": 6.064977766329677,
+          "max_deg": 178.5155721709437,
+          "final_deg": 1.784725254353333
+        },
+        "pitch": {
+          "rms_deg": 4.951279064286914,
+          "median_deg": 4.443180999669352,
+          "p95_deg": 8.289102795597712,
+          "max_deg": 9.664702831259092,
+          "final_deg": 8.59054842440716
+        },
+        "yaw": {
+          "rms_deg": 7.533116870060617,
+          "median_deg": 1.95346961236757,
+          "p95_deg": 5.51467266987158,
+          "max_deg": 178.45683165124314,
+          "final_deg": 1.973794664962952
+        }
+      }
+    },
+    "magnetic_feedback": {
+      "rms_deg": 13.607343983305032,
+      "median_deg": 14.058893841226496,
+      "p95_deg": 17.757169894748877,
+      "max_deg": 20.146125315865657,
+      "final_deg": 11.87058452041406,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 16.022116432394547,
+          "median_deg": 13.095043061664498,
+          "p95_deg": 19.212871412743883,
+          "max_deg": 92.29118645849303,
+          "final_deg": 9.888131205895064
+        },
+        "pitch": {
+          "rms_deg": 5.0006820869606745,
+          "median_deg": 4.09558107967446,
+          "p95_deg": 7.725525174455036,
+          "max_deg": 17.982408419559704,
+          "final_deg": 4.141438344850997
+        },
+        "yaw": {
+          "rms_deg": 11.123457784377077,
+          "median_deg": 5.30507476314321,
+          "p95_deg": 12.821057330340661,
+          "max_deg": 94.53779715102085,
+          "final_deg": 4.5990681812961896
+        }
+      }
+    }
+  },
+  "rpy_error_definition": "absolute extrinsic-xyz Euler component difference, wrapped to [-180, 180) degrees; estimate minus mocap; no decomposition of the relative rotation",
+  "combined_error_definition": "SO(3) relative-rotation angle in degrees, 2*acos(abs(q_ref dot q_mode)); not the Euclidean norm of RPY differences",
+  "numeric_validation": {
+    "all_existing_numeric_arrays_unchanged": true,
+    "unchanged_array_keys": [
+      "time_seconds",
+      "measurement_stamps",
+      "gyro_rad_s",
+      "magnetic_raw",
+      "mocap_wxyz",
+      "mode_wxyz",
+      "display_parameter",
+      "rpy_deg",
+      "mocap_rpy_deg",
+      "error_deg",
+      "magnetic_norm",
+      "magnetic_direction_residual_deg",
+      "moment_fit_residual"
+    ],
+    "added_array_keys": [
+      "rpy_error_deg"
+    ],
+    "axis_error_matches_displayed_rpy_max_absolute_difference_deg": 1.9895196601282805e-13,
+    "evaluated_samples": 17088,
+    "axis_error_shape": [
+      17088,
+      3,
+      3
+    ],
+    "combined_error_shape": [
+      17088,
+      3
+    ]
+  },
+  "semilog_validation": {
+    "all_14_numeric_arrays_unchanged_after_semilog_addition": true,
+    "semilog_zero_error_masked_counts_case_by_axis": [
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "semilog_common_y_limits_deg": [
+      1e-05,
+      197.34850032529405
+    ],
+    "plots": {
+      "axis_errors": {
+        "axes": 4,
+        "three_case_curves_each_axis": true,
+        "exact_case_labels": true
+      },
+      "roll_error_semilog": {
+        "axes": 1,
+        "three_case_curves_each_axis": true,
+        "exact_case_labels": true
+      },
+      "pitch_error_semilog": {
+        "axes": 1,
+        "three_case_curves_each_axis": true,
+        "exact_case_labels": true
+      },
+      "yaw_error_semilog": {
+        "axes": 1,
+        "three_case_curves_each_axis": true,
+        "exact_case_labels": true
+      }
+    }
+  },
+  "script_sha256": "96fe08ff1e6293f0db487b38e24d74a1d3d32a9503994276fcc2da03ac199dbe",
+  "evaluation_script_sha256": "2ef5fe43f66e6b7ed6268502d7c165c90a22cf919abb852002171132a7d2afea",
+  "video_script_sha256": "dc3a549d42cee4a84940f7c9dcfe16c425ef329241716f14caf03f76658e5294",
+  "regression_tests": {
+    "count": 6,
+    "passed": 6,
+    "command": "PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_rolling_orientation_comparison.py -v"
+  },
+  "manuscript_checks": {
+    "source_checks": true,
+    "labels": 859,
+    "citations": 75,
+    "figures": 75,
+    "reviewed_information_gaps": 28,
+    "repository_layout": true,
+    "plan06": true,
+    "pdf_pages": 358,
+    "all_pdf_page_rotations_zero": true,
+    "all_pdf_pages_portrait": true
+  },
+  "japanese_lint": {
+    "score": 93,
+    "exceptions": [
+      "慣性計測装置は正式な名称",
+      "相対回転角とRPY差の二乗和の平方根を区別するための否定表現を維持"
+    ]
+  },
+  "visual_review": {
+    "linear_error_figure": true,
+    "semilog_figures": 3,
+    "rms_table": true,
+    "paper_equations": true,
+    "video_case_labels": true,
+    "figure_captions_in_japanese": true,
+    "pdf_pages_reviewed": [
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      169
+    ]
+  },
+  "video": {
+    "frames": 685,
+    "fps": 8.0,
+    "width": 1600,
+    "height": 760,
+    "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
+    "samples_per_distribution_per_frame": 180,
+    "duration_seconds": 85.625,
+    "all_frames_decoded_without_errors": true,
+    "artifact": {
+      "path": "/home/leus/dthesis/medias/imu-orientation-filter/rolling_bingham_comparison.mp4",
+      "size_bytes": 7367600,
+      "sha256": "02accc24890f19292fe3034b895da6fe8334a2215bfb58a75f109d489a286f9e"
+    }
+  },
+  "bag": {
+    "path": "/home/leus/rosbags/20250310_delta_linear_rolling_1_2025-03-10-16-18-36.bag",
+    "size_bytes": 799855677,
+    "sha256": "ff523f5fe0fd65a1cad2498d3cf6076041eef1b1e1507e79253a91d15990ea13"
+  },
+  "deprecated_source_unchanged": true,
+  "deprecated_source_sha256": "4e236055abe0609cee99698a712665f57c3eac05ca10d11765b4be0519f19c74",
+  "synchronized_artifacts": [
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/rpy.pdf",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_rpy.pdf",
+      "sha256": "bf6fc56391c23c0e6585d102f93bd846ebbb1d0a4be48d70bf7031a5c687d5e4"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/rpy.svg",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_rpy.svg",
+      "sha256": "358f1333a4a21f6c3a68d5529c5acd612815fb5ca9e6f3eb950454b0a7e874e6"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/rpy.png",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_rpy.png",
+      "sha256": "51f1439e9763185befbc6305b7c0c44aedf3e915725e89fddf334acb7d0d4073"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/quaternion.pdf",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_quaternion.pdf",
+      "sha256": "7d9ec2b44d54bd22e3f9788c6a15cd4cf64dc587002aeb09b154a3bb7bad2c0c"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/quaternion.svg",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_quaternion.svg",
+      "sha256": "2436b4c72b611dfbbc8a00620374d574c3de4add07cd316646de6a606c890e98"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/quaternion.png",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_quaternion.png",
+      "sha256": "9980dbfc5e90b80246ffedbdb4492f5c0c9a7d7c36d41632c01747b724f0075d"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/axis_errors.pdf",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_axis_errors.pdf",
+      "sha256": "4b9b5cfc5ab6852519de54a70d2285274b8437f83ead54dcacf112ed88b9c343"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/axis_errors.svg",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_axis_errors.svg",
+      "sha256": "7e19e97cd0e88abda7688b0624e6bfd9f5216bc283d0a86c36d89b98bf56e600"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/axis_errors.png",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_axis_errors.png",
+      "sha256": "7ce71756a451bdb53bed4def9ea637c9efeedb5b420c9a5c7cfab30ff5f43807"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/roll_error_semilog.pdf",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_roll_error_semilog.pdf",
+      "sha256": "0c08b5e120f9252faed687f66436eb7862ac06d54c6b29044342e389c2269708"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/roll_error_semilog.svg",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_roll_error_semilog.svg",
+      "sha256": "495747192402be405c3e93d81d17ec65120a86fe7b6bc21857d72807e487da95"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/roll_error_semilog.png",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_roll_error_semilog.png",
+      "sha256": "81c7701beb94a53fd5e7e69b0ce007511707c55a61cadccf0a3e73b21a37b4c7"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/pitch_error_semilog.pdf",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_pitch_error_semilog.pdf",
+      "sha256": "2070be1e32bb21009e9a3624bf3f7f8fbe4ac0f536c7333492ea5abddf14ba5d"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/pitch_error_semilog.svg",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_pitch_error_semilog.svg",
+      "sha256": "5463ccaad815207d3754154e30571c157f81ef1ad7bc407eb9eb2e8063ca9cc2"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/pitch_error_semilog.png",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_pitch_error_semilog.png",
+      "sha256": "b96ea6fe54fffb719a0b38f1391b815cc7e8e4828160a4ab0910df810b012067"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/yaw_error_semilog.pdf",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_yaw_error_semilog.pdf",
+      "sha256": "7f86821a8dc5e975a868e8f714d48c321fc5a9f5dd636a1cbaa9cec5163f9445"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/yaw_error_semilog.svg",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_yaw_error_semilog.svg",
+      "sha256": "f0dd4d3f49fe74b7f2c8ac2bb4dc6ee182e85394673244db0bca1918832cf83b"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/yaw_error_semilog.png",
+      "thesis": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_yaw_error_semilog.png",
+      "sha256": "18c5d575f2c9ecbc0a51422a992ff977e54087506026a0eb9ca1a85091d8add8"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/summary.json",
+      "thesis": "/home/leus/dthesis/references/imu-orientation-filter/20250310-delta-linear-rolling/summary.json",
+      "sha256": "3d4ec41006718fe7986ad383e5db52fbe93fac905da007db877cb90fdfd25b22"
+    },
+    {
+      "source": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling/timeseries.npz",
+      "thesis": "/home/leus/dthesis/references/imu-orientation-filter/20250310-delta-linear-rolling/timeseries.npz",
+      "sha256": "0dbf10733db3f4c7e8bf83c47f897799352c591f83596efeac38c573ece97614"
+    }
+  ],
+  "thesis_pdf": {
+    "path": "/home/leus/dthesis/main.pdf",
+    "size_bytes": 50527720,
+    "sha256": "cb1ea491aa2763ab7a400f2db09f0e959e7e6bc821b61041c4311d1f80e6e853"
+  },
+  "replay_script": {
+    "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/compare_rolling_bag.py",
+    "size_bytes": 29387,
+    "sha256": "2ef5fe43f66e6b7ed6268502d7c165c90a22cf919abb852002171132a7d2afea"
+  }
+}

@@ -132,26 +132,25 @@ class MadgwickComparisonTest(unittest.TestCase):
         np.testing.assert_allclose(yaw, expected_yaw-15, atol=6e-14)
         np.testing.assert_allclose(error, 15, atol=6e-14)
 
-    def test_shared_plot_limits_include_the_right_column_extrema(self):
+    def test_plots_compare_only_the_two_nine_axis_results_in_four_rows(self):
         count = 3
-        error = np.tile(np.array([1, 2, 3, 4, 5, 6, 50.0]), (count, 1))
-        arrays = {'time_seconds': np.arange(count), 'rpy_deg': np.zeros((count, 7, 3)),
-                  'mocap_rpy_deg': np.zeros((count, 3)),
-                  'mode_wxyz': np.tile([1.0, 0, 0, 0], (count, 7, 1)),
-                  'mocap_wxyz': np.tile([1.0, 0, 0, 0], (count, 1)),
+        error = np.tile(np.array([2.0, 50.0]), (count, 1))
+        arrays = {'time_seconds': np.arange(count),
                   'rpy_error_deg': np.repeat(error[:, :, None], 3, axis=2),
-                  'error_deg': error, 'compass_yaw_deg': np.zeros(count),
-                  'compass_yaw_error_deg': np.zeros(count)}
+                  'error_deg': error}
         checked = []
         def inspect(figure, output, name):
-            if name not in ('method_comparison', 'method_comparison_semilog'):
-                return
+            self.assertEqual(len(figure.axes), 4)
             for axis in figure.axes:
+                self.assertEqual([line.get_label() for line in axis.lines],
+                                 ['9軸の全情報の融合', 'Madgwick（9軸）'])
+                self.assertEqual(len(axis.lines), 2)
+                self.assertEqual(axis.get_yscale(), 'log' if name.endswith('semilog') else 'linear')
                 lower, upper = axis.get_ylim()
                 for line in axis.lines:
                     values = np.ma.array(line.get_ydata()).compressed()
-                    self.assertTrue(np.all(values >= lower), name)
-                    self.assertTrue(np.all(values <= upper), name)
+                    self.assertTrue(np.all(values >= lower))
+                    self.assertTrue(np.all(values <= upper))
             checked.append(name)
         with mock.patch.object(analysis.original, 'save_figure', side_effect=inspect):
             analysis.plot_comparison(arrays, Path('/tmp'))

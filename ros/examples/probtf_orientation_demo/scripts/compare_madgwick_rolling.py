@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plain Madgwick IMU/MARG controls for the measured rolling comparison.
+"""Compare the nine-axis Bingham fusion with plain nine-axis Madgwick.
 
 The normalized-gradient update follows Madgwick's 2010 report and the author's
 2011 MATLAB equations.  Beta=0.1 matches the author's distributed example.
@@ -29,10 +29,10 @@ ROOT = repository_root()
 sys.path.insert(0, str(ROOT / 'ros/examples/probtf_orientation_demo/scripts'))
 import compare_rolling_bag as original
 
-CASE_IDS = original.CASE_IDS + ('madgwick_imu', 'madgwick_marg')
-CASE_LABELS = original.CASE_LABELS + ('Madgwick（6軸）', 'Madgwick（9軸）')
-CASE_COLORS = original.CASE_COLORS + ('#222222', '#882255')
-CASE_STYLES = ('-',) * 5 + ('--', '-.')
+CASE_IDS = ('nine_axis', 'madgwick_marg')
+CASE_LABELS = ('9軸の全情報の融合', 'Madgwick（9軸）')
+CASE_COLORS = (original.CASE_COLORS[4], '#882255')
+CASE_STYLES = ('-', '--')
 REPORT_URL = 'https://x-io.co.uk/downloads/madgwick_internal_report.pdf'
 MATLAB_URL = 'https://x-io.co.uk/downloads/madgwick_algorithm_matlab.zip'
 
@@ -170,95 +170,29 @@ def magnetic_heading_control(arrays, reference):
 
 
 def plot_comparison(arrays, output):
+    """Four rows, one column, and exactly the two nine-axis estimates."""
     plt = original.configure_matplotlib()
     times = arrays['time_seconds']
-    for name, values, reference, components, units in (
-        ('rpy', arrays['rpy_deg'], arrays['mocap_rpy_deg'], ('roll', 'pitch', 'yaw'), ' / deg'),
-        ('quaternion', arrays['mode_wxyz'], arrays['mocap_wxyz'], ('w', 'x', 'y', 'z'), ''),
-    ):
-        figure, axes = plt.subplots(len(components), 1, sharex=True, figsize=(8.1, 2.3*len(components)))
-        for component, axis in enumerate(axes):
-            for case in range(len(CASE_IDS)):
-                axis.plot(times, values[:, case, component], color=CASE_COLORS[case],
-                          ls=CASE_STYLES[case], lw=1.0 if case < 5 else 1.25, label=CASE_LABELS[case])
-            axis.plot(times, reference[:, component], color='#222222', ls=':', lw=1.0,
-                      label=original.REFERENCE_LABEL)
-            axis.set_ylabel(components[component]+units)
-            axis.grid(alpha=0.22)
-            axis.set_xlim(times[0], times[-1])
-        axes[0].legend(ncol=1, loc='lower left', bbox_to_anchor=(0, 1.02), frameon=False)
-        axes[-1].set_xlabel('経過時間 / s')
-        figure.tight_layout()
-        original.save_figure(figure, output, name)
-        plt.close(figure)
     for logarithmic in (False, True):
-        figure, axes = plt.subplots(4, 1, sharex=True, figsize=(8.1, 9.2))
+        figure, axes = plt.subplots(4, 1, sharex=True, figsize=(8.1, 8.4))
         for component, axis in enumerate(axes):
             values = arrays['rpy_error_deg'][:, :, component] if component < 3 else arrays['error_deg']
             if logarithmic:
                 axis.set_yscale('log', nonpositive='mask')
-            for case in range(len(CASE_IDS)):
-                plotted = np.ma.masked_less_equal(values[:, case], 0) if logarithmic else values[:, case]
+            for case in range(2):
+                plotted = np.ma.masked_less_equal(values[:, case], 0.0) if logarithmic else values[:, case]
                 axis.plot(times, plotted, color=CASE_COLORS[case], ls=CASE_STYLES[case],
-                          lw=1.0 if case < 5 else 1.25, label=CASE_LABELS[case])
+                          lw=1.0, label=CASE_LABELS[case])
             axis.set_ylabel(('ロール誤差', 'ピッチ誤差', 'ヨー誤差', '3軸の合成誤差')[component]+' / deg')
             if not logarithmic:
-                axis.set_ylim(bottom=0)
-            axis.set_xlim(times[0], times[-1])
+                axis.set_ylim(bottom=0.0)
             axis.grid(alpha=0.22)
-        axes[0].legend(ncol=1, loc='lower left', bbox_to_anchor=(0, 1.02), frameon=False)
+            axis.set_xlim(times[0], times[-1])
+        axes[0].legend(ncol=1, loc='lower left', bbox_to_anchor=(0.0, 1.02), frameon=False)
         axes[-1].set_xlabel('経過時間 / s')
-        figure.tight_layout()
-        original.save_figure(figure, output, 'axis_errors_semilog' if logarithmic else 'axis_errors')
-        plt.close(figure)
-    for logarithmic in (False, True):
-        figure, axes = plt.subplots(4, 2, sharex=True, sharey='row', figsize=(11.5, 8.7))
-        for column, cases in enumerate(((0, 1, 5), (0, 4, 6))):
-            for component in range(4):
-                axis = axes[component, column]
-                values = arrays['rpy_error_deg'][:, :, component] if component < 3 else arrays['error_deg']
-                if logarithmic:
-                    axis.set_yscale('log', nonpositive='mask')
-                for case in cases:
-                    plotted = np.ma.masked_less_equal(values[:, case], 0) if logarithmic else values[:, case]
-                    axis.plot(times, plotted, color=CASE_COLORS[case], ls=CASE_STYLES[case],
-                              lw=1.0 if case < 5 else 1.25, label=CASE_LABELS[case])
-                if column == 0:
-                    axis.set_ylabel(('ロール誤差', 'ピッチ誤差', 'ヨー誤差', '3軸の合成誤差')[component]+' / deg', fontsize=12)
-                axis.tick_params(labelsize=12)
-                axis.set_xlim(times[0], times[-1])
-                axis.grid(alpha=0.22)
-            axes[0, column].legend(ncol=1, loc='lower left', bbox_to_anchor=(0, 1.02), frameon=False, fontsize=12)
-            axes[-1, column].set_xlabel('経過時間 / s', fontsize=12)
-        # Setting the shared lower bound in the first column disables later
-        # autoscaling.  Determine both bounds only after both columns exist.
-        for component in range(4):
-            values = arrays['rpy_error_deg'][:, [0, 1, 5, 4, 6], component] if component < 3 else arrays['error_deg'][:, [0, 1, 5, 4, 6]]
-            if logarithmic:
-                positive = values[values > 0]
-                axes[component, 0].set_ylim(float(positive.min())/1.1, float(positive.max())*1.1)
-            else:
-                axes[component, 0].set_ylim(0, max(1e-12, float(values.max()))*1.05)
         figure.tight_layout()
         original.save_figure(figure, output, 'method_comparison_semilog' if logarithmic else 'method_comparison')
         plt.close(figure)
-    figure, axes = plt.subplots(2, 1, sharex=True, figsize=(8.1, 5.5))
-    axes[0].plot(times, arrays['compass_yaw_deg'], color='#882255', lw=1.0,
-                 label='地磁気からのヨー（mocapの傾きで補償）')
-    axes[0].plot(times, arrays['mocap_rpy_deg'][:, 2], color='#222222', ls='--', lw=1.0,
-                 label=original.REFERENCE_LABEL)
-    axes[0].set_ylabel('ヨー / deg')
-    axes[0].legend(loc='lower left', bbox_to_anchor=(0, 1.02), frameon=False)
-    axes[1].plot(times, arrays['compass_yaw_error_deg'], color='#882255', lw=1.0)
-    axes[1].set_ylabel('ヨー誤差 / deg')
-    axes[1].set_ylim(bottom=0)
-    axes[1].set_xlabel('経過時間 / s')
-    for axis in axes:
-        axis.set_xlim(times[0], times[-1])
-        axis.grid(alpha=0.22)
-    figure.tight_layout()
-    original.save_figure(figure, output, 'magnetic_heading_control')
-    plt.close(figure)
 
 
 def main():
@@ -266,60 +200,64 @@ def main():
     parser.add_argument('--input', type=Path, default=ROOT/'ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling_five_conditions')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--beta', type=float, default=0.1)
-    parser.add_argument('--sensitivity-gains', type=float, nargs='*', default=[0.01, 0.033, 0.041, 0.1])
+    parser.add_argument('--render-only', action='store_true', help='Select the two nine-axis estimates from saved comparison results.')
     args = parser.parse_args()
     if args.input.resolve() == args.output.resolve():
-        raise ValueError('Use a separate output folder; keep the five-condition inference immutable.')
+        raise ValueError('Use a separate output folder.')
     args.output.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
     base = dict(np.load(args.input/'timeseries.npz'))
     metadata = json.loads((args.input/'summary.json').read_text())
-    if list(metadata['case_labels']) != list(original.CASE_IDS):
-        raise ValueError('Input must be the five-condition inference.')
-    reference = np.array(metadata['reference_magnetic_world_unit'])
-    print('Madgwick beta={}; {} samples'.format(args.beta, len(base['time_seconds'])), flush=True)
-    primary = run_madgwick(base, reference, args.beta)
-    modes = np.concatenate((base['mode_wxyz'], primary), axis=1)
-    records, axis_error, combined = statistics(modes, base['mocap_wxyz'], base['time_seconds'])
-    rotations = [original.rotations_from_wxyz(modes[:, case]).as_euler('xyz', degrees=True)
-                 for case in range(len(CASE_IDS))]
-    rpy = np.stack(rotations, axis=1)
-    rpy += 360*np.round((base['mocap_rpy_deg'][:, None]-rpy)/360)
-    arrays = {key: base[key] for key in ('time_seconds', 'measurement_stamps', 'gyro_rad_s',
-              'acceleration_m_s2', 'magnetic_raw', 'mocap_wxyz', 'mocap_rpy_deg')}
-    arrays.update(mode_wxyz=modes, rpy_deg=rpy, rpy_error_deg=axis_error, error_deg=combined)
-    field, compass_yaw, compass_error = magnetic_heading_control(base, reference)
-    arrays.update(magnetic_world_unit=field, compass_yaw_deg=compass_yaw, compass_yaw_error_deg=compass_error)
-    sensitivity = []
-    for gain in sorted(set(args.sensitivity_gains + [args.beta])):
-        print('gain sensitivity beta={}'.format(gain), flush=True)
-        alternative = primary if gain == args.beta else run_madgwick(base, reference, gain)
-        gain_statistics, _, _ = statistics(alternative, base['mocap_wxyz'], base['time_seconds'])
-        sensitivity.append({'beta': gain, 'madgwick_imu': gain_statistics[0], 'madgwick_marg': gain_statistics[1]})
-    first_minute = arrays['time_seconds'] <= 60.0
-    _, heading = heading_frame(reference)
+    input_keys = ('time_seconds', 'measurement_stamps', 'gyro_rad_s', 'acceleration_m_s2',
+                  'magnetic_raw', 'mocap_wxyz', 'mocap_rpy_deg')
+    arrays = {key: base[key] for key in input_keys}
+    if args.render_only:
+        saved_ids = list(metadata['case_labels'])
+        if any(case not in saved_ids for case in CASE_IDS):
+            raise ValueError('--render-only needs saved nine_axis and madgwick_marg estimates.')
+        selected = [saved_ids.index(case) for case in CASE_IDS]
+        for key in ('mode_wxyz', 'rpy_deg', 'rpy_error_deg', 'error_deg'):
+            arrays[key] = base[key][:, selected].copy()
+        beta = metadata['madgwick_beta']
+        inference_sha = metadata.get('inference_script_sha256', metadata.get('script_sha256'))
+    else:
+        if list(metadata['case_labels']) != list(original.CASE_IDS):
+            raise ValueError('Fresh inference needs the five-condition Bingham result.')
+        reference = np.array(metadata['reference_magnetic_world_unit'])
+        # The second returned sequence is the original plain MARG update.
+        madgwick = run_madgwick(base, reference, args.beta)[:, 1]
+        modes = np.stack((base['mode_wxyz'][:, 4], madgwick), axis=1)
+        records, axis_error, combined = statistics(modes, base['mocap_wxyz'], base['time_seconds'])
+        rpy = np.stack([original.rotations_from_wxyz(modes[:, case]).as_euler('xyz', degrees=True)
+                        for case in range(2)], axis=1)
+        rpy += 360*np.round((base['mocap_rpy_deg'][:, None]-rpy)/360)
+        arrays.update(mode_wxyz=modes, rpy_deg=rpy, rpy_error_deg=axis_error, error_deg=combined)
+        beta = args.beta
+        inference_sha = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    records, verified_axes, verified_combined = statistics(
+        arrays['mode_wxyz'], arrays['mocap_wxyz'], arrays['time_seconds'])
+    np.testing.assert_allclose(arrays['rpy_error_deg'], verified_axes, atol=1e-12)
+    np.testing.assert_allclose(arrays['error_deg'], verified_combined, atol=1e-12)
+    heading = metadata.get('world_from_magnetic_north_heading_deg')
+    if heading is None:
+        _, angle = heading_frame(metadata['reference_magnetic_world_unit'])
+        heading = float(np.rad2deg(angle))
     report = {
-        'bag_path': metadata['bag_path'], 'evaluated_imu_samples': len(modes),
+        'bag_path': metadata['bag_path'], 'evaluated_imu_samples': len(arrays['time_seconds']),
         'duration_seconds': metadata['duration_seconds'], 'case_labels': dict(zip(CASE_IDS, CASE_LABELS)),
-        'statistics': dict(zip(CASE_IDS, records)), 'madgwick_beta': args.beta,
+        'statistics': dict(zip(CASE_IDS, records)), 'madgwick_beta': beta,
         'madgwick_reference': REPORT_URL, 'equation_validation_source': MATLAB_URL,
-        'madgwick_algorithm': 'normalized-gradient IMU/MARG equations; forward Euler; normalize output; MARG bx=hypot(hx,hy), bz=hz at each step; no bias adaptation, gating, smoothing or gain schedule',
-        'gyro_sample_convention': metadata['sample_convention'],
-        'initialization': 'same initial mocap orientation; no evaluated reference orientation enters either recursive filter',
-        'world_from_magnetic_north_heading_deg': float(np.rad2deg(heading)),
-        'heading_frame_source': 'only the fixed magnetic reference determined from the initial 1 s / 200 samples',
-        'specific_force_reference': [0.0, 0.0, 1.0],
-        'sensor_preprocessing': 'same recorded axes and uncalibrated gyro/acceleration/magnetic samples as the Bingham comparison; accelerometer and magnetometer normalized only inside Madgwick',
-        'gain_sensitivity': sensitivity,
-        'compass_control': {'definition': 'compass yaw from measured magnetometer with exact mocap tilt; uses evaluated mocap and is an input diagnostic, not an estimator benchmark',
-                            'rms_yaw_deg': float(np.sqrt(np.mean(compass_error**2))),
-                            'first_60_seconds_rms_yaw_deg': float(np.sqrt(np.mean(compass_error[first_minute]**2))),
-                            'max_yaw_deg': float(compass_error.max())},
+        'madgwick_algorithm': 'normalized-gradient MARG equations; forward Euler; normalize output; no bias adaptation, gating, smoothing or gain schedule',
+        'gyro_sample_convention': metadata.get('gyro_sample_convention', metadata.get('sample_convention')),
+        'initialization': 'same initial mocap orientation; no evaluated reference orientation enters the recursive filters',
+        'world_from_magnetic_north_heading_deg': heading,
+        'heading_frame_source': 'fixed magnetic reference from the initial 1 s / 200 samples',
         'input_timeseries_sha256': hashlib.sha256((args.input/'timeseries.npz').read_bytes()).hexdigest(),
         'input_summary_sha256': hashlib.sha256((args.input/'summary.json').read_bytes()).hexdigest(),
-        'script_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        'base_comparison_script_sha256': hashlib.sha256((ROOT/'ros/examples/probtf_orientation_demo/scripts/compare_rolling_bag.py').read_bytes()).hexdigest(),
-        'limitations': ['A filter comparison alone does not identify magnetic hardware errors, calibration, frame alignment, spatial field changes or gain choice separately.', 'The compass input control uses mocap tilt, so it must not be counted as a sensor-only estimate.'],
+        'inference_script_sha256': inference_sha,
+        'evaluation_script_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        'selected_from_saved_estimates': args.render_only,
+        'figure_layout': 'four rows, one column, two nine-axis curves; linear and semilogarithmic y axes',
     }
     np.savez_compressed(args.output/'timeseries.npz', **arrays)
     plot_comparison(arrays, args.output)

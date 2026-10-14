@@ -1,0 +1,48 @@
+{
+  "bag_path": "/home/leus/rosbags/20250310_delta_linear_rolling_1_2025-03-10-16-18-36.bag",
+  "evaluated_imu_samples": 17088,
+  "duration_seconds": 85.44597482681274,
+  "case_labels": {
+    "nine_axis": "9軸の全情報の融合",
+    "madgwick_marg": "Madgwick（9軸）"
+  },
+  "statistics": {
+    "nine_axis": {
+      "rms_deg": 20.390517991276614,
+      "rpy_rms_deg": [
+        6.479104718586415,
+        3.0014300130935463,
+        18.572921569150036
+      ],
+      "first_60_seconds_rms_deg": 20.36384327060195,
+      "first_60_seconds_yaw_rms_deg": 18.065460957999843,
+      "final_deg": 15.806594575785764
+    },
+    "madgwick_marg": {
+      "rms_deg": 28.16756431982949,
+      "rpy_rms_deg": [
+        12.342518744528583,
+        4.818945340773292,
+        29.68624901674315
+      ],
+      "first_60_seconds_rms_deg": 28.323968586274123,
+      "first_60_seconds_yaw_rms_deg": 28.969402123943297,
+      "final_deg": 14.144853436938485
+    }
+  },
+  "madgwick_beta": 0.1,
+  "madgwick_reference": "https://x-io.co.uk/downloads/madgwick_internal_report.pdf",
+  "equation_validation_source": "https://x-io.co.uk/downloads/madgwick_algorithm_matlab.zip",
+  "madgwick_algorithm": "normalized-gradient MARG equations; forward Euler; normalize output; no bias adaptation, gating, smoothing or gain schedule",
+  "gyro_sample_convention": "right-end angular velocity; interval from measurement timestamps",
+  "initialization": "same initial mocap orientation; no evaluated reference orientation enters the recursive filters",
+  "world_from_magnetic_north_heading_deg": 119.71426801065431,
+  "heading_frame_source": "fixed magnetic reference from the initial 1 s / 200 samples",
+  "input_timeseries_sha256": "a544ee9824365753a9f186131fb4004f4707aa20e1c366c86e454993f52d69ce",
+  "input_summary_sha256": "f9ca6f3088b7a587675b160331b87a4a5d35d5addc5a89dfc758bc281ddad105",
+  "inference_script_sha256": "abc7d36cb02acac93020b353fc60a6d77f77672db315a2430184d99ab3bbd2a8",
+  "evaluation_script_sha256": "72fcd79c6b34630fd8fffb7206cf5e78f8fd228b96626d311f16f9f6ce837ec8",
+  "selected_from_saved_estimates": true,
+  "figure_layout": "four rows, one column, two nine-axis curves; linear and semilogarithmic y axes",
+  "wall_seconds": 2.2120575453154743
+}

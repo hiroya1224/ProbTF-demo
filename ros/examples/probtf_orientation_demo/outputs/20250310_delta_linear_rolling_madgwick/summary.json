@@ -1,0 +1,224 @@
+{
+  "bag_path": "/home/leus/rosbags/20250310_delta_linear_rolling_1_2025-03-10-16-18-36.bag",
+  "evaluated_imu_samples": 17088,
+  "duration_seconds": 85.44597482681274,
+  "case_labels": {
+    "gyro_only": "角速度の時間発展のみ",
+    "gyro_acceleration": "角速度と加速度の融合",
+    "gyro_magnetic": "角速度と地磁気の融合",
+    "magnetic_acceleration": "地磁気と加速度の融合",
+    "nine_axis": "9軸の全情報の融合",
+    "madgwick_imu": "Madgwick（6軸）",
+    "madgwick_marg": "Madgwick（9軸）"
+  },
+  "statistics": {
+    "gyro_only": {
+      "rms_deg": 7.346077569587193,
+      "rpy_rms_deg": [
+        10.060316528079323,
+        6.254395041210895,
+        9.483719876455478
+      ],
+      "first_60_seconds_rms_deg": 5.172302498866672,
+      "first_60_seconds_yaw_rms_deg": 0.3724902355758758,
+      "final_deg": 11.993503939995046
+    },
+    "gyro_acceleration": {
+      "rms_deg": 4.908213306555114,
+      "rpy_rms_deg": [
+        6.985905130685599,
+        2.8586584186793913,
+        5.997770681217142
+      ],
+      "first_60_seconds_rms_deg": 4.774363427994456,
+      "first_60_seconds_yaw_rms_deg": 0.5562484743942161,
+      "final_deg": 3.8811827155128418
+    },
+    "gyro_magnetic": {
+      "rms_deg": 13.607343983305032,
+      "rpy_rms_deg": [
+        16.022116432394537,
+        5.00068208696068,
+        11.123457784377079
+      ],
+      "first_60_seconds_rms_deg": 13.11949214964513,
+      "first_60_seconds_yaw_rms_deg": 5.208921523686794,
+      "final_deg": 11.87058452041406
+    },
+    "magnetic_acceleration": {
+      "rms_deg": 32.82403228416912,
+      "rpy_rms_deg": [
+        13.337656546870335,
+        5.83137507408595,
+        31.075752995179563
+      ],
+      "first_60_seconds_rms_deg": 30.44893785748351,
+      "first_60_seconds_yaw_rms_deg": 27.827765700971096,
+      "final_deg": 14.503942190100679
+    },
+    "nine_axis": {
+      "rms_deg": 20.390517991276614,
+      "rpy_rms_deg": [
+        6.479104718586415,
+        3.0014300130935463,
+        18.572921569150036
+      ],
+      "first_60_seconds_rms_deg": 20.36384327060195,
+      "first_60_seconds_yaw_rms_deg": 18.065460957999843,
+      "final_deg": 15.806594575785764
+    },
+    "madgwick_imu": {
+      "rms_deg": 3.6384050587287766,
+      "rpy_rms_deg": [
+        5.900163919919252,
+        1.29549451164763,
+        5.060844108461064
+      ],
+      "first_60_seconds_rms_deg": 3.5065450907361932,
+      "first_60_seconds_yaw_rms_deg": 0.5993633641858728,
+      "final_deg": 1.776078142487497
+    },
+    "madgwick_marg": {
+      "rms_deg": 28.16756431982949,
+      "rpy_rms_deg": [
+        12.342518744528583,
+        4.818945340773292,
+        29.68624901674315
+      ],
+      "first_60_seconds_rms_deg": 28.323968586274123,
+      "first_60_seconds_yaw_rms_deg": 28.969402123943297,
+      "final_deg": 14.144853436938485
+    }
+  },
+  "madgwick_beta": 0.1,
+  "madgwick_reference": "https://x-io.co.uk/downloads/madgwick_internal_report.pdf",
+  "equation_validation_source": "https://x-io.co.uk/downloads/madgwick_algorithm_matlab.zip",
+  "madgwick_algorithm": "normalized-gradient IMU/MARG equations; forward Euler; normalize output; MARG bx=hypot(hx,hy), bz=hz at each step; no bias adaptation, gating, smoothing or gain schedule",
+  "gyro_sample_convention": "right-end angular velocity; interval from measurement timestamps",
+  "initialization": "same initial mocap orientation; no evaluated reference orientation enters either recursive filter",
+  "world_from_magnetic_north_heading_deg": 119.71426801065431,
+  "heading_frame_source": "only the fixed magnetic reference determined from the initial 1 s / 200 samples",
+  "specific_force_reference": [
+    0.0,
+    0.0,
+    1.0
+  ],
+  "sensor_preprocessing": "same recorded axes and uncalibrated gyro/acceleration/magnetic samples as the Bingham comparison; accelerometer and magnetometer normalized only inside Madgwick",
+  "gain_sensitivity": [
+    {
+      "beta": 0.01,
+      "madgwick_imu": {
+        "rms_deg": 3.31347089291324,
+        "rpy_rms_deg": [
+          4.6633503184372955,
+          0.7992444483251453,
+          3.8734758625639207
+        ],
+        "first_60_seconds_rms_deg": 3.317598316664573,
+        "first_60_seconds_yaw_rms_deg": 0.585590950884821,
+        "final_deg": 1.8407999093670928
+      },
+      "madgwick_marg": {
+        "rms_deg": 20.381958150865053,
+        "rpy_rms_deg": [
+          6.361654496171679,
+          3.5964639210838207,
+          21.09391534547092
+        ],
+        "first_60_seconds_rms_deg": 16.760195277519962,
+        "first_60_seconds_yaw_rms_deg": 16.887698478353343,
+        "final_deg": 20.0353798393141
+      }
+    },
+    {
+      "beta": 0.033,
+      "madgwick_imu": {
+        "rms_deg": 3.357627803324612,
+        "rpy_rms_deg": [
+          4.9513800336254015,
+          0.9073895920021373,
+          4.163010052276073
+        ],
+        "first_60_seconds_rms_deg": 3.335521595832712,
+        "first_60_seconds_yaw_rms_deg": 0.5900621830881948,
+        "final_deg": 1.8297212813645787
+      },
+      "madgwick_marg": {
+        "rms_deg": 27.705208184570626,
+        "rpy_rms_deg": [
+          9.527039078103869,
+          3.8504618453565262,
+          28.525928156728874
+        ],
+        "first_60_seconds_rms_deg": 27.12427457041093,
+        "first_60_seconds_yaw_rms_deg": 27.774829433935285,
+        "final_deg": 14.158865399229278
+      }
+    },
+    {
+      "beta": 0.041,
+      "madgwick_imu": {
+        "rms_deg": 3.388756778644292,
+        "rpy_rms_deg": [
+          5.108014982929255,
+          0.960280172004263,
+          4.322170194169072
+        ],
+        "first_60_seconds_rms_deg": 3.356302727953971,
+        "first_60_seconds_yaw_rms_deg": 0.5919931605645282,
+        "final_deg": 1.8171889110715582
+      },
+      "madgwick_marg": {
+        "rms_deg": 27.833410785243462,
+        "rpy_rms_deg": [
+          10.277549320900846,
+          4.316561233257754,
+          28.664226328582924
+        ],
+        "first_60_seconds_rms_deg": 27.512383720462836,
+        "first_60_seconds_yaw_rms_deg": 28.16915027903332,
+        "final_deg": 14.141791234711377
+      }
+    },
+    {
+      "beta": 0.1,
+      "madgwick_imu": {
+        "rms_deg": 3.6384050587287766,
+        "rpy_rms_deg": [
+          5.900163919919252,
+          1.29549451164763,
+          5.060844108461064
+        ],
+        "first_60_seconds_rms_deg": 3.5065450907361932,
+        "first_60_seconds_yaw_rms_deg": 0.5993633641858728,
+        "final_deg": 1.776078142487497
+      },
+      "madgwick_marg": {
+        "rms_deg": 28.16756431982949,
+        "rpy_rms_deg": [
+          12.342518744528583,
+          4.818945340773292,
+          29.68624901674315
+        ],
+        "first_60_seconds_rms_deg": 28.323968586274123,
+        "first_60_seconds_yaw_rms_deg": 28.969402123943297,
+        "final_deg": 14.144853436938485
+      }
+    }
+  ],
+  "compass_control": {
+    "definition": "compass yaw from measured magnetometer with exact mocap tilt; uses evaluated mocap and is an input diagnostic, not an estimator benchmark",
+    "rms_yaw_deg": 32.23670968906648,
+    "first_60_seconds_rms_yaw_deg": 30.190597286398894,
+    "max_yaw_deg": 73.96364982675672
+  },
+  "input_timeseries_sha256": "d432f3f973be28c7a9f34caf8f01e484e2484ec5665b7bcb3993d452fb7d5480",
+  "input_summary_sha256": "8d8318f76f2fe0533013889db96b9ce90c3ac888ac185457ce1f2096dd1783b1",
+  "script_sha256": "abc7d36cb02acac93020b353fc60a6d77f77672db315a2430184d99ab3bbd2a8",
+  "base_comparison_script_sha256": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+  "limitations": [
+    "A filter comparison alone does not identify magnetic hardware errors, calibration, frame alignment, spatial field changes or gain choice separately.",
+    "The compass input control uses mocap tilt, so it must not be counted as a sensor-only estimate."
+  ],
+  "wall_seconds": 16.011245395056903
+}

@@ -74,3 +74,24 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_rolling_orientation
 この固定設定では「角速度と加速度の融合」で方位全体の誤差が小さくなった。地磁気を含む条件で誤差が大きくなり、9軸の利用によって精度が一律に改善する結果ではない。較正・座標系の対応・動的加速度・観測尺度と時間相関の影響は個別に分離していない。
 
 [5条件の実測比較と最終精査](../../../docs/reports/orientation-rolling-five-conditions_2026-10-15.md)に、数値の照合、図・動画の確認と残る検証事項を記録した。
+
+## 基本形のMadgwickとの比較
+
+同じ実測入力で、固定係数beta=0.1のMadgwickの6軸版と9軸版を比較する。磁北とmocapの水平軸の違いは冒頭の磁場基準だけから固定し、両者を同じ世界座標系へ戻して評価する。評価中の参照をフィルタの更新へ入力しない。
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/compare_madgwick_rolling.py \
+  --output ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling_madgwick
+```
+
+catkinでビルドした実行入口は`rosrun probtf_orientation_demo compare_madgwick_rolling.py`である。入力先は`--input`、主比較の係数は`--beta`、補助比較の係数は`--sensitivity-gains`で指定する。既存の5条件の数値と図を保持し、別の出力先へ保存する。
+
+[方式の比較](outputs/20250310_delta_linear_rolling_madgwick/method_comparison.pdf)は4段2列で、左列は地磁気なし、右列は地磁気ありを示す。[片対数図](outputs/20250310_delta_linear_rolling_madgwick/method_comparison_semilog.pdf)は同じ構成で縦軸だけを対数にする。既存の5条件とMadgwickの2系列をすべて重ねた各軸と3軸の合成誤差、RPY、四元数の図もPDF/SVG/PNGで保存する。
+
+[地磁気からのヨー](outputs/20250310_delta_linear_rolling_madgwick/magnetic_heading_control.pdf)は、mocapの傾きで補償して入力の整合性を確認する別図である。評価中の参照を用いるため、センサだけを使うフィルタの性能として扱わない。
+
+この設定では3軸の合成誤差のRMSがMadgwickの6軸版3.64度、9軸版28.17度だった。地磁気からのヨーも参照の傾きを与えた状態でRMS32.24度となり、固定世界磁場の仮定と観測の不整合を示す。[比較条件と精査](../../../docs/reports/orientation-rolling-madgwick_2026-10-15.md)に数値と残る原因の切り分けを記録する。
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_madgwick_rolling.py -v
+```

@@ -1,98 +1,78 @@
-# 角速度・加速度・地磁気による5条件の方位比較
+# 円軌道飛行の6条件とMadgwick比較
 
-`compare_rolling_bag.py`は、実測の角速度・加速度・地磁気を用いる5条件をモーションキャプチャと比較する。ROS masterを起動せず、bagを読み取り専用で開く。
+`compare_feedback_orientation.py`は、全条件を角速度で時間発展させ、現在の加速度・地磁気を出力に融合するか、融合結果を次の予測にも引き継ぐかを比較する。ROS masterを起動せずbagを読み取り専用で開く。
 
-| 条件 | 時間発展 | 観測の融合 |
+| 条件名 | 出力への融合 | 次の予測へ渡す因子 |
 | --- | --- | --- |
-| 角速度の時間発展のみ | 角速度による予測 | なし |
-| 角速度と加速度の融合 | 前時刻の事後分布を角速度で予測 | 現在の加速度方向 |
-| 角速度と地磁気の融合 | 前時刻の事後分布を角速度で予測 | 現在の地磁気方向 |
-| 地磁気と加速度の融合 | なし。各時刻に一様事前分布から構成 | 現在の加速度方向と地磁気方向 |
-| 9軸の全情報の融合 | 前時刻の事後分布を角速度で予測 | 現在の加速度方向と地磁気方向 |
+| 角速度の時間発展のみ | なし | なし |
+| 角速度と加速度（加速度は予測に使わない） | 加速度 | なし |
+| 角速度と加速度（加速度も予測に使う） | 加速度 | 加速度 |
+| すべての情報（加速度と地磁気は予測に使わない） | 加速度・地磁気 | なし |
+| すべての情報（加速度のみ予測に使う） | 加速度・地磁気 | 加速度 |
+| すべての情報（加速度も地磁気も予測に使う） | 加速度・地磁気 | 加速度・地磁気 |
 
-候補の密度を掛ける処理を「融合」と呼び、四元数積による回転の「合成」と区別する。条件名と順序は上記に統一する。角速度を使う観測融合の3条件では、更新した事後分布を次時刻の予測に用いる。加速度・地磁気だけの条件は、現在の2方向だけで構成し、過去の観測や初期方位を蓄積しない。
+「予測に使う」は観測を融合したBingham分布を次時刻の角速度予測の初期値に使う意味である。加速度を積分して回転増分を作る意味ではない。候補密度の積を「融合」、四元数積による回転を「合成」とする。
 
-ProbTF-demoのルートで次を実行する。Python環境にはROS Noeticの`rosbag`、NumPy、SciPy、Matplotlib、numpy-quaternionを、動画生成には`ffmpeg`を用意する。既存のビジュアライザは同梱の`third_party/BinghamNLL`から読む。
+## 再生成
+
+ProbTF-demoのルートから実行する。Python環境はROS Noeticのrosbag、NumPy、SciPy、Matplotlib、numpy-quaternionを使う。
 
 ```bash
-/usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/compare_rolling_bag.py \
+PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/compare_feedback_orientation.py \
   --bag ~/rosbags/20250303_delta_circle_trajectory_flight_5_2025-03-03-13-20-43.bag \
-  --output ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_five_conditions
+  --output ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions
 ```
 
-数値計算とグラフだけを作る場合は`--skip-video`を加える。保存済みの5条件の結果から図や動画を作り直す場合は`--render-only`を指定する。静的な図だけを作り直す場合は`--render-only --skip-video`を指定する。短い確認には`--duration 1.0`を使える。以前の3条件の記録にはこの版を使わず、gitの`c99fd7d`にある計算版を用いる。
+短い実行には`--duration 0.12`を加える。全記録では右端の角速度標本と計測時刻間隔を使い、間引かずに伝播する。mocapは冒頭の磁場基準の固定、共通初期方位とその後の評価にだけ使う。時系列は共通の記録範囲内で四元数の球面線形補間により対応付け、範囲外へ外挿しない。
 
-入力は`/delta/imu`の`gyro_data`、`acc_data`、`mag_data`と、`/delta/mocap/pose`である。各メッセージの計測時刻を使い、モーションキャプチャを四元数の球面線形補間で対応付ける。共通の記録範囲外へ外挿しない。角速度は右端標本を時刻間隔中の値として用い、すべての標本を伝播する。
-
-冒頭の1.0秒で世界の磁場基準方向を決め、その後の最初の参照方位で角速度を使う4条件の共通の事前分布を作る。モーションキャプチャはこの初期設定と評価にだけ使い、その後の時間再帰に入力しない。「地磁気と加速度の融合」は各時刻に一様事前分布から構成し、初期方位の事前分布を加えない。
-
-加速度と地磁気は単位方向へ正規化する。加速度は静止時の比力がmocapのworld座標系の+z方向に対応するモデルを用いる。これは加速度の向きを重力方向の観測として利用する近似であり、運動中の並進加速度は分離していない。ノルムによる除外・重み変更、平滑化、バイアス除去、全方向の磁気較正は加えない。この仮定は飛行中には常に成立するとは限らない。
-
-| 設定 | 既定値 |
-| --- | --- |
-| 時間再帰の初期Bingham集中度 | 100.0 |
-| 角速度標本の等方的な作業分散 | 0.0001 rad²/s² |
-| 加速度方向の集中度 | 20.0 |
-| 地磁気方向の集中度 | 20.0 |
-| Bingham正規化定数の数値計算点数 | 120 |
-| 動画の表示頻度 | 8 frames/s |
-| 各分布の表示標本数 | 180 |
-
-これらの尺度は5条件の比較中に固定する。参照誤差を最小化して選んだ値ではなく、分布の被覆率を較正した値でもない。6点積分、四元数積の2次モーメント、Binghamモーメント整合と2種類の方向因子はProbTFの公開関数を使う。deprecatedのパッケージは変更も読み込みも行なわない。
-
-出力先に`summary.json`、`timeseries.npz`、`timeseries.csv`、以下のPDF/SVG/PNG、`bingham_comparison.mp4`、動画中の5時刻のPNGを保存する。
-
-| 図 | 内容 |
-| --- | --- |
-| `rpy` | 5条件のロール・ピッチ・ヨーとmocap |
-| `quaternion` | 5条件の四元数成分とmocap |
-| `axis_errors` | ロール・ピッチ・ヨー各軸の誤差と3軸の合成誤差の4段 |
-| `axis_errors_semilog` | 同じ4段の図で、縦軸だけを底10の対数に変更 |
-
-誤差図では各段に5条件を重ねる。各軸は推定角と参照角の差を±180度へ折り返した絶対値、3軸の合成誤差は参照と推定の相対回転角とする。ピッチが±90度に近いとロール・ヨーの差が大きくなるため、下段と併せて読む。片対数図では0の標本を表示せず、微小な正数へ置き換えない。4段の構成、条件の色、時刻範囲は線形図と同じである。
-
-四元数はwxyzの順で隣接符号を連続にそろえる。RPYは参照時系列に最も近い角度の枝を選ぶ表示であり、推定の時間再帰に参照を入力しない。各軸の誤差は`rpy_error_deg`、3軸の合成誤差は`error_deg`、入力加速度は`acceleration_m_s2`へ保存する。統計は各条件の`statistics`に保存する。`moment_fit_residual`の4列は`propagation_case_ids`に記録した角速度を使う条件に対応する。
-
-動画は上段・中段の3列に5条件とmocapを順に並べ、下段に3軸の合成誤差を表示する。既存の`bingham.visualize.SO3s.draw_so3s`でBingham標本の軸端点とモードを描き、黒破線をmocapの参照方位とする。時系列とカーソルを同じ時刻にそろえる。
-
-回帰検査は次で行なう。
+保存済みの5条件のうち3つの等価な再帰分布とMadgwickを使う場合は次である。
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_rolling_orientation_comparison.py -v
+PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/compare_feedback_orientation.py \
+  --input-five ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_five_conditions \
+  --madgwick-input ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_nine_axis_madgwick \
+  --output ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions
 ```
 
-2025年3月3日の円軌道飛行の90.362秒、18,072時刻に対する二乗平均平方根を度で示す。
+新スクリプトは元の5条件の識別子とMadgwickの係数、時刻・入力値・参照の一致を検査する。`--duration`は保存結果の再利用と併用しない。読み込み・伝播は従来の`compare_rolling_bag.py`、基本形Madgwickは`compare_madgwick_rolling.py`の関数を使う。deprecatedパッケージは読み込まない。
+
+初期集中度100、角速度の共分散0.0001 I3 rad²/s²、加速度・地磁気の方向集中度20、数値積分点数120、Madgwickの固定係数beta=0.1を用いる。加速度は世界の鉛直上向きと比力方向を対応させる。動的加速度の分離、バイアス除去、全方向の磁気較正、平滑化、観測除外・重み変更は行なわない。
+
+## 出力
+
+| ファイル | 内容 |
+| --- | --- |
+| `rpy`、`quaternion` | 6条件とmocapの成分の図、PDF/SVG/PNG |
+| `axis_errors`、`axis_errors_semilog` | 各軸と3軸の合成誤差の4段、6条件、線形と同じ配置の片対数 |
+| `summary.json`、`timeseries.npz` | 設定、RMS、出力分布6列、引き継ぐ分布3列とモード・誤差・入力 |
+| `madgwick_comparison/method_comparison`、同`_semilog` | 全情報3条件とMadgwick（9軸）の同じ4段の誤差図 |
+| `madgwick_comparison/summary.json`、同`timeseries.npz` | 比較4系列の設定、RMS、モード・誤差・入力 |
+
+各軸はEuler角の差を±180度へ折り返した絶対値、3軸の合成誤差は相対回転角を用いる。片対数軸では0を非表示とし微小数を足さない。表示のRPYと四元数の枝・符号の選択は推定の再帰へ入力しない。
+
+`carried_parameter`と`moment_fit_residual`の3列は、角速度のみ、加速度を引き継ぐ、両観測を引き継ぐ、の順である。`case_carried_groups`で6条件との対応、`output_and_retained_evidence_coefficients`で出力と引き継ぎの各因子を確認できる。出力専用の地磁気は次時刻の分布に加えない。
+
+## 検証と数値
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_orientation_feedback_comparison.py -v
+```
+
+90.361694秒、18,072時刻のRMSを度で示す。
 
 | 条件 | ロール | ピッチ | ヨー | 3軸の合成誤差 |
 | --- | ---: | ---: | ---: | ---: |
 | 角速度の時間発展のみ | 8.30 | 14.50 | 9.35 | 18.42 |
-| 角速度と加速度の融合 | 1.51 | 5.33 | 7.75 | 9.47 |
-| 角速度と地磁気の融合 | 50.22 | 17.59 | 8.56 | 52.58 |
-| 地磁気と加速度の融合 | 23.26 | 3.14 | 30.44 | 38.44 |
-| 9軸の全情報の融合 | 23.72 | 6.56 | 21.70 | 33.35 |
+| 角速度と加速度（加速度は予測に使わない） | 5.57 | 10.47 | 8.58 | 14.24 |
+| 角速度と加速度（加速度も予測に使う） | 1.51 | 5.33 | 7.75 | 9.47 |
+| すべての情報（加速度と地磁気は予測に使わない） | 13.99 | 11.61 | 7.20 | 19.03 |
+| すべての情報（加速度のみ予測に使う） | 1.52 | 5.33 | 4.43 | 7.05 |
+| すべての情報（加速度も地磁気も予測に使う） | 23.72 | 6.56 | 21.70 | 33.35 |
 
-この固定設定では加速度の融合で各軸と3軸の合成誤差が小さくなり、地磁気を含む条件で方位全体の誤差が大きくなった。較正・座標系の対応・動的加速度・観測尺度と時間相関の影響は個別に分離していない。[円軌道飛行の実測比較](../../../docs/reports/orientation-circle-flight_2026-10-15.md)に、数値と保存先を記録した。
+Madgwick（9軸）は1.45、0.53、30.73、30.79度である。加速度を引き継いで地磁気を出力時だけに融合する条件は、加速度だけを使う条件よりヨーと方位全体の誤差が小さい。この記録と固定した設定での比較であり、較正、分布の被覆率、観測の時間相関は別途検証を要する。
 
-## 9軸の全情報の融合とMadgwick（9軸）の比較
+## 保存した以前の比較
 
-角速度・加速度・地磁気をすべて使う「9軸の全情報の融合」と、固定係数beta=0.1のMadgwick（9軸）を比較する。図は図5.3・5.4と同じ4段の構成で、各段にこの2系列だけを重ねる。
+3月3日の`outputs/20250303_delta_circle_trajectory_flight_5_five_conditions/`と`..._nine_axis_madgwick/`、3月10日の全出力を保持した。既存動画は以前の5条件の記録として保持しており、今回の6条件とは条件が異なる。
 
-```bash
-PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/compare_madgwick_rolling.py \
-  --input ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_five_conditions \
-  --output ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_nine_axis_madgwick
-```
-
-[線形図](outputs/20250303_delta_circle_trajectory_flight_5_nine_axis_madgwick/method_comparison.pdf)と[片対数図](outputs/20250303_delta_circle_trajectory_flight_5_nine_axis_madgwick/method_comparison_semilog.pdf)は、上からロール・ピッチ・ヨーの各軸と3軸の合成誤差を示す。片対数版は同じ配置で縦軸だけを対数にする。PDF/SVG/PNG、集計、2系列の時系列を保存する。
-
-`--render-only`は保存済みの9軸の2系列を取り出し、推定値を保持して図を作る。新たにMadgwickを計算する場合はこの指定を省き、`--input`に既存の5条件の結果を指定する。既定の入力先は3月10日の5条件なので、円軌道飛行では上記の`--input`を明示する。磁北とmocapの座標対応は冒頭の磁場基準だけから固定する。
-
-3軸の合成誤差のRMSは「9軸の全情報の融合」が33.35度、Madgwick（9軸）が30.79度である。[比較条件と数値](../../../docs/reports/orientation-circle-flight_2026-10-15.md)を参照。
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_madgwick_rolling.py -v
-```
-
-## 保存した3月10日の転がり動作
-
-以前の`outputs/20250310_delta_linear_rolling_five_conditions/`と`outputs/20250310_delta_linear_rolling_nine_axis_madgwick/`には当時の図・集計・時系列を保持した。[当時のBingham動画](../../../medias/imu-orientation-filter/20250310-delta-linear-rolling-five-conditions/rolling_bingham_comparison.mp4)と再生成案内も保存した。最初の3条件と以前の補助比較の出力フォルダも保持している。
+[今回の作業記録](../../../docs/reports/orientation-six-feedback_2026-10-15.md)と[保存した5条件の再生成案内](../../../docs/reports/orientation-five-conditions-before-feedback_2026-10-15.md)を参照する。

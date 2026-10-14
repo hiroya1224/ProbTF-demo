@@ -1,0 +1,190 @@
+{
+  "bag_path": "/home/leus/rosbags/20250303_delta_circle_trajectory_flight_5_2025-03-03-13-20-43.bag",
+  "duration_seconds": 90.36169385910034,
+  "evaluated_imu_samples": 18072,
+  "calibration_seconds": 1.0,
+  "calibration_samples": 200,
+  "initial_quaternion_wxyz": [
+    -0.9999073403883374,
+    0.0034255260865521282,
+    0.007332534751628314,
+    0.01094579109375425
+  ],
+  "reference_magnetic_world_unit": [
+    -0.20212793323714878,
+    0.419177985227614,
+    -0.8851181363557054
+  ],
+  "initial_bingham_concentration": 100.0,
+  "gyro_sample_covariance_rad2_s2": [
+    [
+      0.0001,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0001,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0001
+    ]
+  ],
+  "acceleration_direction_concentration": 20.0,
+  "magnetic_direction_concentration": 20.0,
+  "integration_steps": 120,
+  "case_labels": {
+    "gyro_only": "角速度の時間発展のみ",
+    "gyro_acceleration_output": "角速度と加速度（加速度は予測に使わない）",
+    "gyro_acceleration_feedback": "角速度と加速度（加速度も予測に使う）",
+    "all_information_output": "すべての情報（加速度と地磁気は予測に使わない）",
+    "all_information_acceleration_feedback": "すべての情報（加速度のみ予測に使う）",
+    "all_information_feedback": "すべての情報（加速度も地磁気も予測に使う）"
+  },
+  "statistics": {
+    "gyro_only": {
+      "rpy_rms_deg": [
+        8.297265849161297,
+        14.49611859978517,
+        9.349396429445347
+      ],
+      "rms_deg": 18.41837350660708,
+      "final_deg": 32.735151745824
+    },
+    "gyro_acceleration_output": {
+      "rpy_rms_deg": [
+        5.567930312175201,
+        10.468168760456214,
+        8.582423071201445
+      ],
+      "rms_deg": 14.239986491121634,
+      "final_deg": 24.599802046334208
+    },
+    "gyro_acceleration_feedback": {
+      "rpy_rms_deg": [
+        1.5138009492020887,
+        5.327415006906222,
+        7.753816545617663
+      ],
+      "rms_deg": 9.473507392878737,
+      "final_deg": 12.882081966703968
+    },
+    "all_information_output": {
+      "rpy_rms_deg": [
+        13.991213811945386,
+        11.608299638802768,
+        7.201309394859703
+      ],
+      "rms_deg": 19.027267580280725,
+      "final_deg": 24.384116623897597
+    },
+    "all_information_acceleration_feedback": {
+      "rpy_rms_deg": [
+        1.5187696438081182,
+        5.328853784351864,
+        4.426971746340894
+      ],
+      "rms_deg": 7.053103413157064,
+      "final_deg": 11.707541702328559
+    },
+    "all_information_feedback": {
+      "rpy_rms_deg": [
+        23.716155417487766,
+        6.564039652135712,
+        21.701302261900246
+      ],
+      "rms_deg": 33.34678189005278,
+      "final_deg": 34.394229619186994
+    }
+  },
+  "output_and_retained_evidence_coefficients": [
+    [
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0
+    ],
+    [
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      1,
+      1,
+      0
+    ],
+    [
+      1,
+      1,
+      1,
+      1
+    ]
+  ],
+  "carried_group_ids": [
+    "gyro",
+    "gyro_acceleration",
+    "gyro_acceleration_magnetic"
+  ],
+  "case_carried_groups": {
+    "gyro_only": 0,
+    "gyro_acceleration_output": 0,
+    "gyro_acceleration_feedback": 1,
+    "all_information_output": 0,
+    "all_information_acceleration_feedback": 1,
+    "all_information_feedback": 2
+  },
+  "next_prediction_evidence": {
+    "gyro_only": {
+      "acceleration": false,
+      "magnetic": false
+    },
+    "gyro_acceleration_output": {
+      "acceleration": false,
+      "magnetic": false
+    },
+    "gyro_acceleration_feedback": {
+      "acceleration": true,
+      "magnetic": false
+    },
+    "all_information_output": {
+      "acceleration": false,
+      "magnetic": false
+    },
+    "all_information_acceleration_feedback": {
+      "acceleration": true,
+      "magnetic": false
+    },
+    "all_information_feedback": {
+      "acceleration": true,
+      "magnetic": true
+    }
+  },
+  "prediction_convention": "right-end angular velocity; retained Bingham distribution; all sensor samples",
+  "script_sha256": "8cee7e9cf51548684383a06c428e3f83925a6fb2b1748c6ccba8c6d567585130",
+  "reused_five_trajectories": true,
+  "source_helpers_sha256": {
+    "compare_rolling_bag.py": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+    "compare_madgwick_rolling.py": "72fcd79c6b34630fd8fffb7206cf5e78f8fd228b96626d311f16f9f6ce837ec8"
+  },
+  "maximum_moment_fit_residual": 4.198784074633685e-09,
+  "five_timeseries_sha256": "bd938d851f74816df5b643f4ac91eb70369145461abd632288e3d9e0cec287f8",
+  "five_summary_sha256": "aac3f235406424b0ab43c69907f019a8e67e7d6f5797e9ff3e5996d9111d1834"
+}

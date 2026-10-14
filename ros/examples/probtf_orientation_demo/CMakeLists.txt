@@ -22,6 +22,7 @@ catkin_install_python(
     nodes/probtf_fusion_node.py
     scripts/compare_rolling_bag.py
     scripts/compare_madgwick_rolling.py
+    scripts/compare_feedback_orientation.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

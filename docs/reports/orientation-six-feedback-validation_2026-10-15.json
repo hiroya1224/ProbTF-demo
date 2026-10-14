@@ -1,0 +1,439 @@
+{
+  "passed": true,
+  "samples": 18072,
+  "duration_seconds": 90.36169385910034,
+  "six_condition_statistics": {
+    "gyro_only": {
+      "rpy_rms_deg": [
+        8.297265849161297,
+        14.49611859978517,
+        9.349396429445347
+      ],
+      "rms_deg": 18.41837350660708,
+      "final_deg": 32.735151745824
+    },
+    "gyro_acceleration_output": {
+      "rpy_rms_deg": [
+        5.567930312175201,
+        10.468168760456214,
+        8.582423071201445
+      ],
+      "rms_deg": 14.239986491121634,
+      "final_deg": 24.599802046334208
+    },
+    "gyro_acceleration_feedback": {
+      "rpy_rms_deg": [
+        1.5138009492020887,
+        5.327415006906222,
+        7.753816545617663
+      ],
+      "rms_deg": 9.473507392878737,
+      "final_deg": 12.882081966703968
+    },
+    "all_information_output": {
+      "rpy_rms_deg": [
+        13.991213811945386,
+        11.608299638802768,
+        7.201309394859703
+      ],
+      "rms_deg": 19.027267580280725,
+      "final_deg": 24.384116623897597
+    },
+    "all_information_acceleration_feedback": {
+      "rpy_rms_deg": [
+        1.5187696438081182,
+        5.328853784351864,
+        4.426971746340894
+      ],
+      "rms_deg": 7.053103413157064,
+      "final_deg": 11.707541702328559
+    },
+    "all_information_feedback": {
+      "rpy_rms_deg": [
+        23.716155417487766,
+        6.564039652135712,
+        21.701302261900246
+      ],
+      "rms_deg": 33.34678189005278,
+      "final_deg": 34.394229619186994
+    }
+  },
+  "madgwick_comparison_statistics": {
+    "all_information_output": {
+      "rpy_rms_deg": [
+        13.991213811945386,
+        11.608299638802768,
+        7.201309394859703
+      ],
+      "rms_deg": 19.027267580280725,
+      "final_deg": 24.384116623897597
+    },
+    "all_information_acceleration_feedback": {
+      "rpy_rms_deg": [
+        1.5187696438081182,
+        5.328853784351864,
+        4.426971746340894
+      ],
+      "rms_deg": 7.053103413157064,
+      "final_deg": 11.707541702328559
+    },
+    "all_information_feedback": {
+      "rpy_rms_deg": [
+        23.716155417487766,
+        6.564039652135712,
+        21.701302261900246
+      ],
+      "rms_deg": 33.34678189005278,
+      "final_deg": 34.394229619186994
+    },
+    "madgwick_marg": {
+      "rpy_rms_deg": [
+        1.4548197309892152,
+        0.5286639161222275,
+        30.730851829032655
+      ],
+      "rms_deg": 30.78626100673744,
+      "final_deg": 13.63292568432346
+    }
+  },
+  "all_inputs_and_reference_equal": true,
+  "original_three_recursive_distributions_exactly_preserved": true,
+  "selected_twelve_preview_modes_match": true,
+  "fresh_native_replay_samples": 24,
+  "fresh_native_replay_max_abs_differences": {
+    "time_seconds": 0.0,
+    "measurement_stamps": 0.0,
+    "gyro_rad_s": 0.0,
+    "acceleration_m_s2": 0.0,
+    "magnetic_raw": 0.0,
+    "mocap_wxyz": 0.0,
+    "mocap_rpy_deg": 0.0,
+    "display_parameter": 0.0,
+    "mode_wxyz": 0.0,
+    "carried_parameter": 0.0,
+    "moment_fit_residual": 0.0,
+    "rpy_deg": 0.0,
+    "rpy_error_deg": 0.0,
+    "error_deg": 0.0
+  },
+  "finite_arrays_unit_quaternions_symmetric_canonical_parameters": true,
+  "recomputed_errors_and_rms_match": true,
+  "maximum_moment_fit_residual": 4.198784074633685e-09,
+  "plots": {
+    "rpy": {
+      "rows": 3,
+      "series_per_panel": 7,
+      "labels": [
+        "角速度の時間発展のみ",
+        "角速度と加速度（加速度は予測に使わない）",
+        "角速度と加速度（加速度も予測に使う）",
+        "すべての情報（加速度と地磁気は予測に使わない）",
+        "すべての情報（加速度のみ予測に使う）",
+        "すべての情報（加速度も地磁気も予測に使う）"
+      ]
+    },
+    "quaternion": {
+      "rows": 4,
+      "series_per_panel": 7,
+      "labels": [
+        "角速度の時間発展のみ",
+        "角速度と加速度（加速度は予測に使わない）",
+        "角速度と加速度（加速度も予測に使う）",
+        "すべての情報（加速度と地磁気は予測に使わない）",
+        "すべての情報（加速度のみ予測に使う）",
+        "すべての情報（加速度も地磁気も予測に使う）"
+      ]
+    },
+    "axis_errors": {
+      "rows": 4,
+      "series_per_panel": 6,
+      "labels": [
+        "角速度の時間発展のみ",
+        "角速度と加速度（加速度は予測に使わない）",
+        "角速度と加速度（加速度も予測に使う）",
+        "すべての情報（加速度と地磁気は予測に使わない）",
+        "すべての情報（加速度のみ予測に使う）",
+        "すべての情報（加速度も地磁気も予測に使う）"
+      ]
+    },
+    "axis_errors_semilog": {
+      "rows": 4,
+      "series_per_panel": 6,
+      "labels": [
+        "角速度の時間発展のみ",
+        "角速度と加速度（加速度は予測に使わない）",
+        "角速度と加速度（加速度も予測に使う）",
+        "すべての情報（加速度と地磁気は予測に使わない）",
+        "すべての情報（加速度のみ予測に使う）",
+        "すべての情報（加速度も地磁気も予測に使う）"
+      ]
+    },
+    "method_comparison": {
+      "rows": 4,
+      "series_per_panel": 4,
+      "labels": [
+        "すべての情報（加速度と地磁気は予測に使わない）",
+        "すべての情報（加速度のみ予測に使う）",
+        "すべての情報（加速度も地磁気も予測に使う）",
+        "Madgwick（9軸）"
+      ]
+    },
+    "method_comparison_semilog": {
+      "rows": 4,
+      "series_per_panel": 4,
+      "labels": [
+        "すべての情報（加速度と地磁気は予測に使わない）",
+        "すべての情報（加速度のみ予測に使う）",
+        "すべての情報（加速度も地磁気も予測に使う）",
+        "Madgwick（9軸）"
+      ]
+    }
+  },
+  "artifact_sha256": {
+    "figs/imu-orientation-filter/rolling_rpy.pdf": "9f7e6da77be261d03f55747ffa894df42a17caeba0e31662abd40c1759497d6c",
+    "figs/imu-orientation-filter/rolling_rpy.svg": "c246088deff991a8123c190d8979736494cf4014d43b8a6db3b7847c145419eb",
+    "figs/imu-orientation-filter/rolling_rpy.png": "c7ee2218a2300547a964be3fa0b6ca9427aaf6f329e694b55d4851105b4d6e29",
+    "figs/imu-orientation-filter/rolling_quaternion.pdf": "019448b817ce025fbed949ebd9f2c7214efb93b22f4fc489f06d7e0f66b57d6c",
+    "figs/imu-orientation-filter/rolling_quaternion.svg": "8ae26329743e3134f8909e4190533d3ae7b30d7fa6dedacb4de3277d6309f631",
+    "figs/imu-orientation-filter/rolling_quaternion.png": "a9dfce7892c1809465a740f2ee55d6eb9fdd91160716fab66d20748674299528",
+    "figs/imu-orientation-filter/rolling_axis_errors.pdf": "f7ac495ac4d7cf09e21bb2e9a4a87481ae75d360508d8def13f498f7f913019e",
+    "figs/imu-orientation-filter/rolling_axis_errors.svg": "0fee4252003797dc291e2f219ed47be6706a93431eddc19e93230876dc4a0da1",
+    "figs/imu-orientation-filter/rolling_axis_errors.png": "e18500ac07f53ff6cf086ae6bcd3cb33a4cdb72874c7d9b7ba1f81897c84bbdb",
+    "figs/imu-orientation-filter/rolling_axis_errors_semilog.pdf": "5ee07bd097a2f2b9bb9749aaf68c550e9bcb0bca3367249e7281127769eda857",
+    "figs/imu-orientation-filter/rolling_axis_errors_semilog.svg": "70cb5c5f6e609e8f599947870e772c49ac74a75b95a225aef6a395b0d24e96ac",
+    "figs/imu-orientation-filter/rolling_axis_errors_semilog.png": "7ec7a6f0ae81a548091658c7676ca4de57ec3a0ad911e5e6a85c28bf6edc08d0",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.pdf": "94b8b45c44675992c54854b313c5602c0d3270f3aae7acd89b6120be660be79b",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.svg": "5d64c774603d680cf990e8795be47f6b7665e1e174ca54a5989fd9c1d755fe72",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.png": "04421c32c755418e230f9c945c3ae7b40e289f46898942864f1cc424119dea0c",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.pdf": "9aa12a5aad53b4f8df6096747692f982c0f1b6328c7aa1994b5d11ad53ebda90",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.svg": "e54dc809a0bd8ed1fc648a1c34073890f01861a34ebd283385b8c910112d1c9c",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.png": "1bd3ae3e63082deac9a4a480b83d6f65ea944ba1ec2408f4e1148e80a4bfed22",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/summary.json": "4850a525de19d2feb5b4eac8b90bb9a31d1b3fe689758f59da54afae927b9a3c",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/timeseries.npz": "349b4fc43086a89878315d78ebb1655b0079124898484a62f8181e3ed5841a9b",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/madgwick_comparison/summary.json": "8cb8f0c41a4ca0bb0c89b682e6029cc6b528ef35b69cf9fde8cba9d3f4d1f582",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/madgwick_comparison/timeseries.npz": "7dbb09da30fe9b4dbcbafb1db649dd2967c3e079750ae023c2a40f394bf0785c",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/compare_rolling_bag.py": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/compare_madgwick_rolling.py": "72fcd79c6b34630fd8fffb7206cf5e78f8fd228b96626d311f16f9f6ce837ec8",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/compare_feedback_orientation.py": "8cee7e9cf51548684383a06c428e3f83925a6fb2b1748c6ccba8c6d567585130",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/probtf/bingham.py": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/probtf/probability/sampling.py": "7e38344ca2c4443bc262d87dcfd3bc785e5cfd03dd0c1b9ff1e2ac39b3ac8d7b",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-six-feedback-conditions/source/probtf_estimators/orientation_imu.py": "87f21e6a777460579e0b5f0dad2bb2813a967ff0417b0ff82fef68d6da0aa109"
+  },
+  "archived_march3_figures": [
+    {
+      "original": "figs/imu-orientation-filter/rolling_rpy.pdf",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_rpy.pdf",
+      "sha256": "b0cf29b3e6803b65dd23cfe08536714e157259bc06718f9376681842b185d3af"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_rpy.png",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_rpy.png",
+      "sha256": "7b33774800842aed651221d5fcff248788e5a5e8ef6bb534e7998204ce25a2af"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_rpy.svg",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_rpy.svg",
+      "sha256": "7ceaa6c8a26a9988186ffd8bbdba124dbc60fc13bb1c63415a3e53ba641fe68c"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_quaternion.pdf",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_quaternion.pdf",
+      "sha256": "d11c7a5da443e3ae651f494431ab349f1dd67e6ba0de679489a0fe8056f8bedd"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_quaternion.png",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_quaternion.png",
+      "sha256": "8a3509df3be2091d8bfa0311d530974dac3d3c80c063563dd534b95c26308575"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_quaternion.svg",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_quaternion.svg",
+      "sha256": "b3bd7b7ea7f09237c842ae1f0b5decf90c76b81872f2d2b4fa24c41f250554fe"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_axis_errors.pdf",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_axis_errors.pdf",
+      "sha256": "16e54006f30eb70736741200742c400a296cc39498b4fbdc675a82101f5a9d4f"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_axis_errors.png",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_axis_errors.png",
+      "sha256": "797021670d8c4d9836ea9c0aab3c1397083a98b0b26cbc9c5cfa03317ce936a6"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_axis_errors.svg",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_axis_errors.svg",
+      "sha256": "7b1ac6f9c49f2d625a89ac0f06775574676403d043d36d959c68de5e381a8f1f"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_axis_errors_semilog.pdf",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_axis_errors_semilog.pdf",
+      "sha256": "870ff2e9814a221c170334a33e69817c1258f6761fcce8eb95638964da87c4fa"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_axis_errors_semilog.png",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_axis_errors_semilog.png",
+      "sha256": "e437c6ce1ecb11935ec973498eed42a36b3e09b34435bb16347a3276cb679862"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_axis_errors_semilog.svg",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/figures/rolling_axis_errors_semilog.svg",
+      "sha256": "a45231bfe53c065abda1e48315ae0774623e13ca90aef31f94fbabf27e6af0a4"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_madgwick_method_comparison.pdf",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/figures/rolling_madgwick_method_comparison.pdf",
+      "sha256": "5c84b098c517d46aef0e56945a5da45fa669eabf1edf40c109f631c972c4674f"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_madgwick_method_comparison.png",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/figures/rolling_madgwick_method_comparison.png",
+      "sha256": "650040bb20787414aa3b4c28831430959b8617de08c76221b385f7bd2578f99d"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_madgwick_method_comparison.svg",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/figures/rolling_madgwick_method_comparison.svg",
+      "sha256": "b36405f9a430519f329d4c1b968b323e5a7d2eb138608f72f95558fd528b5810"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.pdf",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/figures/rolling_madgwick_method_comparison_semilog.pdf",
+      "sha256": "8c28ca4f168e0459f91ce26271c0f73a25612b5b1b60e3edea04a2122f1bd4c0"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.png",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/figures/rolling_madgwick_method_comparison_semilog.png",
+      "sha256": "84884f0dccd77ebfc45cde09fb7a73b8c6e4747a373e5244e63454eecb7b1592"
+    },
+    {
+      "original": "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.svg",
+      "archive": "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/figures/rolling_madgwick_method_comparison_semilog.svg",
+      "sha256": "c5a5e5dc6cefd551cacc11177f73ee23168bfee6bb6dc2b0a5811e60df63eb03"
+    }
+  ],
+  "preserved_march3_manuscript_sha256": "0b5b7051de5e11b44f1ab59623a85bc4550715445682ec6275974037f4ef10d2",
+  "preserved_preview_and_media_sha256": {
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_gyro.pdf": "f197c74e6c05c11ba781454b5e1683fb638e440fed5e6e8373bb22e2a7fb520c",
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_twelve_patterns_without_mag.pdf": "bc2ef4d536636392b13a1e647f0bf7aafa489a8d34e3025659fc7a17a64ab8fc",
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_xyz.pdf": "0f6180362f4cf1bddd5edab68c6c0a77797269c00e50f134e6282e8fbc099b95",
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_mag.pdf": "b990015dc6dd42ffb3f70a43d2d9791cd990a25cfb95d647e6f06433194de7de",
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_twelve_patterns_with_mag.pdf": "73b142ea17328d6fd27102c8b9548c3994098dd72ab372bf2808939f1e6828fe",
+    "docs/imu-orientation-filter/previews/20250303_circle_flight_5_acc.pdf": "c4b134878236147b2103b1fbcf430effd74f7b31a4789f3aba32e25f8fed71e1",
+    "medias/imu-orientation-filter/rolling_bingham_comparison.mp4": "ac78adcc62958a0f3bc124f34dcc653ba757934efb2a1bb17bbc071a5f9fdd14",
+    "medias/imu-orientation-filter/bingham_snapshot_003.png": "ef6ac3bfa69ea4d4ba986f87adb8f48dc95cd559a8760789638f094fc0d97da0",
+    "medias/imu-orientation-filter/bingham_snapshot_002.png": "7064d13f19bb661bb303780aa3603d2fd29409b58b0b59ba3c35c5354b62fa65",
+    "medias/imu-orientation-filter/bingham_snapshot_000.png": "eb76a58a56782db3cf144d35365fe3b18a62372ab3dc67a057d3e2be5fd0a741",
+    "medias/imu-orientation-filter/bingham_snapshot_001.png": "4e5437b87bbd81c330c068c67ce5d2456c45d47812723c27f6f904db81a972bd",
+    "medias/imu-orientation-filter/bingham_snapshot_004.png": "29d5e35232063049f2da230e0b474b729f46536a336114c8e1a97c9f109ff28b"
+  },
+  "preserved_march10": {
+    "book": 36,
+    "demo": 80
+  },
+  "previous_march3_source_outputs_unchanged": true,
+  "deprecated_unchanged_sha256": "4e236055abe0609cee99698a712665f57c3eac05ca10d11765b4be0519f19c74",
+  "unrelated_grape_diff_unchanged": true,
+  "regression_tests_passed": 5,
+  "catkin_orientation_demo_build": "passed",
+  "bag_sha256": "6e3c5eb7a945a04e363acfaa14d3a32e0b36cc90a76a1d52bffd55549fd7bcaf",
+  "checked_on": "2026-10-15",
+  "dthesis_implementation_commit": "eb7ed22a2be383614b3ceb2f4b90ddc65261ce93",
+  "probtf_implementation_commit": "21eef8d9058861dc13a32315189c16a3166de5fb",
+  "implementation_commits_pushed_to_main": true,
+  "artifact_paths_relative_to": "/home/leus/dthesis",
+  "source_checks": {
+    "passed": true,
+    "labels": 865,
+    "citations": 75,
+    "figures": 78,
+    "reviewed_information_gaps": 28
+  },
+  "repository_layout": {
+    "passed": true,
+    "branch": "main",
+    "chapter_files": [
+      "chapter/1-introduction.tex",
+      "chapter/2-uncertainty-tf-background.tex",
+      "chapter/3-mathematical-foundations.tex",
+      "chapter/4-transform-law-propagation.tex",
+      "chapter/5-observation-based-transform-construction.tex",
+      "chapter/6-criterion-based-selection.tex",
+      "chapter/7-transform-law-sharing-infrastructure.tex",
+      "chapter/8-conclusion.tex",
+      "chapter/A-appendix.tex",
+      "chapter/P-publication.tex",
+      "chapter/T-thanks.tex"
+    ],
+    "root_markdown": [
+      "AGENTS.md",
+      "README.md"
+    ],
+    "root_bibliography": [
+      "references.bib"
+    ],
+    "moved_documents": 13,
+    "errors": []
+  },
+  "prose_score": 93,
+  "pdf": {
+    "sha256": "2a9fb5d0ed2e27f2658a116d56b09493bc2bb4559120cbb75ddd97649a898f7a",
+    "pages": 368,
+    "all_pages_portrait_and_rotation_zero": true
+  },
+  "visual_review": {
+    "pages": [
+      {
+        "name": "figure_5_1",
+        "pdf_page": 166
+      },
+      {
+        "name": "figure_5_2",
+        "pdf_page": 167
+      },
+      {
+        "name": "figure_5_3",
+        "pdf_page": 168
+      },
+      {
+        "name": "figure_5_4",
+        "pdf_page": 169
+      },
+      {
+        "name": "figure_5_5",
+        "pdf_page": 172
+      },
+      {
+        "name": "figure_5_6",
+        "pdf_page": 173
+      },
+      {
+        "name": "algorithm_2",
+        "pdf_page": 164
+      },
+      {
+        "name": "table_5_1",
+        "pdf_page": 165
+      },
+      {
+        "name": "table_5_2",
+        "pdf_page": 171
+      }
+    ],
+    "all_six_figures_two_tables_and_algorithm_reviewed": true,
+    "overlap_or_cropping": false,
+    "interpretation_paragraphs_not_split_by_figure_pages": true,
+    "legend_names_match_user_six_cases_and_all_information_three_cases": true
+  },
+  "scope_preserved": {
+    "previous_march3_and_march10_calculation_outputs": true,
+    "previous_bingham_movie_and_snapshots": true,
+    "six_preview_pdfs": true,
+    "deprecated_read_only": true,
+    "unrelated_grape_and_recordings_not_committed": true
+  },
+  "limits": [
+    "Fixed concentrations, gyro covariance and Madgwick beta were not optimized against this dataset.",
+    "Coverage, calibration, dynamic acceleration and observation time correlations remain unseparated.",
+    "Existing font/package warnings and a 6.9369 pt float warning outside section 5.3.3 remain."
+  ]
+}

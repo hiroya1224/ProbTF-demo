@@ -77,4 +77,4 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/
 
 実装はProbTF-demoの`ros/examples/probtf_orientation_demo/scripts/compare_feedback_orientation.py`に置いた。旧スクリプトと旧出力は変更せず、deprecatedパッケージは変更も読み込みも行なっていない。新規の5検査は、過去の加速度・地磁気が各条件へ残るか、出力専用因子が蓄積されないか、保存分布と独立の再計算が一致するか、角速度の右端標本と時刻の検査を扱う。
 
-分布の被覆率、較正、観測誤差の時間相関を含む観測モデルの検証は本文のTODOを維持した。全体の最終精査は別途記録する。
+分布の被覆率、較正、観測誤差の時間相関を含む観測モデルの検証は本文のTODOを維持した。[最終精査](orientation-six-feedback-final_2026-10-15.md)に、数値・保存・図・本文とPDFの照合を記録した。

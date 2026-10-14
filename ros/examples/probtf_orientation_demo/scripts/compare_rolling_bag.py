@@ -367,6 +367,35 @@ def plot_results(arrays, output):
     figure.tight_layout()
     save_figure(figure, output, 'axis_errors')
     plt.close(figure)
+    plot_axis_error_semilog(arrays, output)
+
+
+def plot_axis_error_semilog(arrays, output):
+    """Export a separate log-y figure for each RPY error component."""
+    plt = configure_matplotlib()
+    t = arrays['time_seconds']
+    errors = arrays['rpy_error_deg']
+    positive = errors[errors > 0.0]
+    # Use common limits across the three axes and plot the actual positive
+    # values.  Zero errors are masked, rather than replaced by an epsilon.
+    lower = 10.0**np.floor(np.log10(positive.min())) if positive.size else 1e-6
+    upper = max(lower*10.0, float(positive.max())*1.1) if positive.size else 1.0
+    for component, (name, label) in enumerate(zip(('roll', 'pitch', 'yaw'), ('ロール', 'ピッチ', 'ヨー'))):
+        figure, axis = plt.subplots(figsize=(8.1, 3.8))
+        axis.set_yscale('log', nonpositive='mask')
+        for case in range(3):
+            axis.plot(t, np.ma.masked_less_equal(errors[:, case, component], 0.0),
+                      color=CASE_COLORS[case], lw=1.0, label=CASE_LABELS[case])
+        axis.set_xlim(t[0], t[-1])
+        axis.set_ylim(lower, upper)
+        axis.set_xlabel('経過時間 / s')
+        axis.set_ylabel(label+'誤差 / deg')
+        axis.grid(which='major', alpha=0.22)
+        axis.grid(which='minor', axis='y', alpha=0.10)
+        axis.legend(ncol=1, loc='lower left', bbox_to_anchor=(0.0, 1.02), frameon=False)
+        figure.tight_layout()
+        save_figure(figure, output, name+'_error_semilog')
+        plt.close(figure)
 
 
 def write_csv(arrays, destination):
@@ -515,6 +544,8 @@ def main():
         with np.load(args.output/'timeseries.npz') as archive:
             arrays = {key:archive[key] for key in archive.files}
         metadata = json.loads((args.output/'summary.json').read_text())
+        if 'video' in metadata:
+            metadata.setdefault('video_script_sha256', metadata.get('evaluation_script_sha256', metadata.get('script_sha256')))
         update_error_evaluation(arrays, metadata)
     else:
         imu, mocap = read_bag(args.bag)
@@ -548,6 +579,7 @@ def main():
     plot_results(arrays,args.output)
     if not args.skip_video:
         metadata['video'] = render_video(arrays,args.output,args.video_fps,args.video_samples)
+        metadata['video_script_sha256'] = metadata['evaluation_script_sha256']
     metadata['wall_seconds'] = time.monotonic()-started
     (args.output/'summary.json').write_text(json.dumps(metadata,indent=2,ensure_ascii=False)+'\n')
     print('completed: '+str(args.output),flush=True)

@@ -180,7 +180,7 @@
     "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
     "samples_per_distribution_per_frame": 180
   },
-  "wall_seconds": 117.31596655584872,
+  "wall_seconds": 4.257652163039893,
   "case_labels": {
     "gyro_only": "角速度",
     "magnetic_postprocess": "地磁気の融合あり（後処理のみ）",
@@ -188,6 +188,7 @@
   },
   "rpy_error_definition": "absolute extrinsic-xyz Euler component difference, wrapped to [-180, 180) degrees; estimate minus mocap; no decomposition of the relative rotation",
   "combined_error_definition": "SO(3) relative-rotation angle in degrees, 2*acos(abs(q_ref dot q_mode)); not the Euclidean norm of RPY differences",
-  "evaluation_script_sha256": "dc3a549d42cee4a84940f7c9dcfe16c425ef329241716f14caf03f76658e5294",
-  "evaluation_from_saved_states": true
+  "evaluation_script_sha256": "2ef5fe43f66e6b7ed6268502d7c165c90a22cf919abb852002171132a7d2afea",
+  "evaluation_from_saved_states": true,
+  "video_script_sha256": "dc3a549d42cee4a84940f7c9dcfe16c425ef329241716f14caf03f76658e5294"
 }

@@ -79,3 +79,5 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_orientation_feedbac
 ```
 
 従来の方位計算9件とMadgwick フィルタ11件も通過した。分布の被覆率と、較正・観測誤差の時間相関を含む観測モデルの検証は本文のTODOに残している。
+
+[全体の最終精査](orientation-six-feedback-final_2026-10-15.md)に、本文の配置、座標色、数値と動画の対応を記した。

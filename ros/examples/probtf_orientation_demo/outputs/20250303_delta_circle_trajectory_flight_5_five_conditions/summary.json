@@ -1,0 +1,291 @@
+{
+  "input_imu_count": 18339,
+  "input_mocap_count": 10965,
+  "calibration_samples": 200,
+  "calibration_seconds": 1.0,
+  "calibration_mocap_motion_max_deg": 0.8822962731059555,
+  "calibration_gyro_mean_rad_s": [
+    0.00022954417564648112,
+    -0.00018534705963475063,
+    0.0002829160416808918
+  ],
+  "calibration_gyro_std_rad_s": [
+    0.000585961460680189,
+    0.0004905819274892758,
+    0.0005799174189217681
+  ],
+  "gyro_bias_removed": false,
+  "accelerometer_bias_removed": false,
+  "calibration_acceleration_mean_m_s2": [
+    0.031277419980615374,
+    -0.012140224685426802,
+    9.745133228302002
+  ],
+  "calibration_acceleration_mean_world_m_s2": [
+    -0.11817578794290765,
+    0.08711031968097657,
+    9.743984091235479
+  ],
+  "calibration_acceleration_world_z_angle_deg": 0.8632058426964404,
+  "reference_magnetic_world_unit": [
+    -0.20212793323714878,
+    0.419177985227614,
+    -0.8851181363557054
+  ],
+  "initial_quaternion_wxyz": [
+    -0.9999073403883374,
+    0.0034255260865521282,
+    0.007332534751628314,
+    0.01094579109375425
+  ],
+  "measurement_time_origin": 1740975646.604869,
+  "mocap_reference_usage": "initial orientation and prefix-only fixed magnetic reference",
+  "alignment": "header timestamps; quaternion spherical interpolation; no extrapolation",
+  "imu_latency_quantiles_seconds": [
+    0.009219169616699219,
+    0.011973857879638672,
+    0.5108518600463867
+  ],
+  "mocap_latency_quantiles_seconds": [
+    0.010223865509033203,
+    0.011018991470336914,
+    0.20308232307434082
+  ],
+  "maximum_mocap_gap_seconds": 0.16332745552062988,
+  "evaluated_imu_samples": 18072,
+  "duration_seconds": 90.36169385910034,
+  "initial_bingham_concentration": 100.0,
+  "gyro_sample_covariance_rad2_s2": [
+    [
+      0.0001,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0001,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0001
+    ]
+  ],
+  "magnetic_direction_concentration": 20.0,
+  "acceleration_direction_concentration": 20.0,
+  "integration_steps": 120,
+  "gravity_evidence_case_ids": [
+    "gyro_acceleration",
+    "magnetic_acceleration",
+    "nine_axis"
+  ],
+  "reference_specific_force_world_unit": [
+    0.0,
+    0.0,
+    1.0
+  ],
+  "acceleration_model": "normalized specific force aligned with mocap-world +z; translational acceleration not removed; no norm gating or smoothing",
+  "propagation_case_ids": [
+    "gyro_only",
+    "gyro_acceleration",
+    "gyro_magnetic",
+    "nine_axis"
+  ],
+  "observation_only_case": "magnetic_acceleration: current gravity and magnetic evidence with a uniform prior, independently at each sample",
+  "posterior_reused_as_next_prior": [
+    "gyro_acceleration",
+    "gyro_magnetic",
+    "nine_axis"
+  ],
+  "sample_convention": "right-end angular velocity; interval from measurement timestamps",
+  "moment_fit_residual_frobenius_max": 4.198784074633685e-09,
+  "moment_fit_residual_frobenius_p95": 2.1506497827509575e-09,
+  "magnetic_norm_min_max_raw_units": [
+    24.68521050771178,
+    30.962615400707033
+  ],
+  "magnetic_direction_residual_deg": {
+    "rms": 52.961888828214896,
+    "p95": 63.62439048225423,
+    "max": 66.1942946804816
+  },
+  "rpy_convention": "extrinsic xyz; mocap unwrapped; each estimate uses the nearest mocap component branch for display only",
+  "quaternion_convention": "wxyz, adjacent signs aligned, common initial sign",
+  "case_labels": {
+    "gyro_only": "角速度の時間発展のみ",
+    "gyro_acceleration": "角速度と加速度の融合",
+    "gyro_magnetic": "角速度と地磁気の融合",
+    "magnetic_acceleration": "地磁気と加速度の融合",
+    "nine_axis": "9軸の全情報の融合"
+  },
+  "rpy_error_definition": "absolute extrinsic-xyz Euler component difference, wrapped to [-180, 180) degrees; estimate minus mocap; no decomposition of the relative rotation",
+  "combined_error_definition": "SO(3) relative-rotation angle in degrees, 2*acos(abs(q_ref dot q_mode)); not the Euclidean norm of RPY differences",
+  "statistics": {
+    "gyro_only": {
+      "rms_deg": 18.41837350660708,
+      "median_deg": 14.99614293956295,
+      "p95_deg": 31.292244469441886,
+      "max_deg": 32.9131805977832,
+      "final_deg": 32.735151745824,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 8.297265849161299,
+          "median_deg": 5.681663937742385,
+          "p95_deg": 16.06610865239558,
+          "max_deg": 17.511505089072443,
+          "final_deg": 17.07739447571325
+        },
+        "pitch": {
+          "rms_deg": 14.496118599785186,
+          "median_deg": 12.140246427965451,
+          "p95_deg": 24.54531936667425,
+          "max_deg": 26.28283323490126,
+          "final_deg": 26.18651796169536
+        },
+        "yaw": {
+          "rms_deg": 9.349396429445356,
+          "median_deg": 7.2173774616241815,
+          "p95_deg": 15.598055213055122,
+          "max_deg": 16.529669362483077,
+          "final_deg": 14.680894381872122
+        }
+      }
+    },
+    "gyro_acceleration": {
+      "rms_deg": 9.473507392878737,
+      "median_deg": 8.821085853619579,
+      "p95_deg": 14.402957621442836,
+      "max_deg": 15.159437555584748,
+      "final_deg": 12.882081966703968,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 1.5138009492020894,
+          "median_deg": 0.9542803700492044,
+          "p95_deg": 3.2659755282009457,
+          "max_deg": 4.183531882829811,
+          "final_deg": 3.482530188013584
+        },
+        "pitch": {
+          "rms_deg": 5.3274150069062305,
+          "median_deg": 5.851524909316424,
+          "p95_deg": 6.875265048676726,
+          "max_deg": 7.319779391726229,
+          "final_deg": 6.802144028106113
+        },
+        "yaw": {
+          "rms_deg": 7.753816545617664,
+          "median_deg": 6.557598359016481,
+          "p95_deg": 12.615123331975948,
+          "max_deg": 13.40438172084373,
+          "final_deg": 10.561955156543434
+        }
+      }
+    },
+    "gyro_magnetic": {
+      "rms_deg": 52.578010940660576,
+      "median_deg": 55.96402434438398,
+      "p95_deg": 65.70136148771239,
+      "max_deg": 67.77370334670358,
+      "final_deg": 56.05086085600147,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 50.22028209889485,
+          "median_deg": 53.233301595574495,
+          "p95_deg": 63.468995261577206,
+          "max_deg": 66.03052486887398,
+          "final_deg": 52.59011504509428
+        },
+        "pitch": {
+          "rms_deg": 17.585376524757045,
+          "median_deg": 17.98191903397202,
+          "p95_deg": 25.179971218862445,
+          "max_deg": 27.985906452624192,
+          "final_deg": 21.168233030860932
+        },
+        "yaw": {
+          "rms_deg": 8.56497172831808,
+          "median_deg": 5.613602489646183,
+          "p95_deg": 16.230571705844728,
+          "max_deg": 17.833117007909976,
+          "final_deg": 17.824659559617515
+        }
+      }
+    },
+    "magnetic_acceleration": {
+      "rms_deg": 38.43528109433825,
+      "median_deg": 41.50831120175572,
+      "p95_deg": 44.91348507751905,
+      "max_deg": 46.48133408407734,
+      "final_deg": 14.643457965432162,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 23.25544840449511,
+          "median_deg": 24.916558537345182,
+          "p95_deg": 28.457392516191234,
+          "max_deg": 30.780645079111224,
+          "final_deg": 5.143846092969426
+        },
+        "pitch": {
+          "rms_deg": 3.135398925040579,
+          "median_deg": 2.77774513719298,
+          "p95_deg": 5.152424309005942,
+          "max_deg": 8.95084173870626,
+          "final_deg": 1.5944091881253257
+        },
+        "yaw": {
+          "rms_deg": 30.443368707405217,
+          "median_deg": 32.304827122491446,
+          "p95_deg": 36.041852887725675,
+          "max_deg": 38.721336444830285,
+          "final_deg": 13.732381860803969
+        }
+      }
+    },
+    "nine_axis": {
+      "rms_deg": 33.34678189005278,
+      "median_deg": 36.1961668779109,
+      "p95_deg": 37.95360242276392,
+      "max_deg": 39.44430020345977,
+      "final_deg": 34.394229619186994,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 23.716155417487773,
+          "median_deg": 25.241734598352494,
+          "p95_deg": 29.92405335155389,
+          "max_deg": 31.810365677710223,
+          "final_deg": 26.369577220935867
+        },
+        "pitch": {
+          "rms_deg": 6.564039652135718,
+          "median_deg": 6.494098027567304,
+          "p95_deg": 10.2423687220743,
+          "max_deg": 11.98996894334013,
+          "final_deg": 7.678623751585604
+        },
+        "yaw": {
+          "rms_deg": 21.701302261900235,
+          "median_deg": 22.206471241726305,
+          "p95_deg": 25.50858734587508,
+          "max_deg": 25.99707656210734,
+          "final_deg": 19.388664951546247
+        }
+      }
+    }
+  },
+  "bag_path": "/home/leus/rosbags/20250303_delta_circle_trajectory_flight_5_2025-03-03-13-20-43.bag",
+  "bag_size_bytes": 826595365,
+  "script_sha256": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+  "evaluation_script_sha256": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+  "evaluation_from_saved_states": false,
+  "video": {
+    "frames": 724,
+    "fps": 8.0,
+    "width": 1600,
+    "height": 1320,
+    "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
+    "samples_per_distribution_per_frame": 180
+  },
+  "video_script_sha256": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+  "wall_seconds": 346.34133641188964
+}

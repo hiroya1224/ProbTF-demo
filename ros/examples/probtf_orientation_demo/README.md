@@ -16,8 +16,8 @@ ProbTF-demoのルートで次を実行する。Python環境にはROS Noeticの`r
 
 ```bash
 /usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/compare_rolling_bag.py \
-  --bag ~/rosbags/20250310_delta_linear_rolling_1_2025-03-10-16-18-36.bag \
-  --output ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling_five_conditions
+  --bag ~/rosbags/20250303_delta_circle_trajectory_flight_5_2025-03-03-13-20-43.bag \
+  --output ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_five_conditions
 ```
 
 数値計算とグラフだけを作る場合は`--skip-video`を加える。保存済みの5条件の結果から図や動画を作り直す場合は`--render-only`を指定する。静的な図だけを作り直す場合は`--render-only --skip-video`を指定する。短い確認には`--duration 1.0`を使える。以前の3条件の記録にはこの版を使わず、gitの`c99fd7d`にある計算版を用いる。
@@ -26,7 +26,7 @@ ProbTF-demoのルートで次を実行する。Python環境にはROS Noeticの`r
 
 冒頭の1.0秒で世界の磁場基準方向を決め、その後の最初の参照方位で角速度を使う4条件の共通の事前分布を作る。モーションキャプチャはこの初期設定と評価にだけ使い、その後の時間再帰に入力しない。「地磁気と加速度の融合」は各時刻に一様事前分布から構成し、初期方位の事前分布を加えない。
 
-加速度と地磁気は単位方向へ正規化する。加速度は静止時の比力がmocapのworld座標系の+z方向に対応するモデルを用いる。これは加速度の向きを重力方向の観測として利用する近似であり、運動中の並進加速度は分離していない。ノルムによる除外・重み変更、平滑化、バイアス除去、全方向の磁気較正は加えない。この仮定は動的な転がり動作では常に成立するとは限らない。
+加速度と地磁気は単位方向へ正規化する。加速度は静止時の比力がmocapのworld座標系の+z方向に対応するモデルを用いる。これは加速度の向きを重力方向の観測として利用する近似であり、運動中の並進加速度は分離していない。ノルムによる除外・重み変更、平滑化、バイアス除去、全方向の磁気較正は加えない。この仮定は飛行中には常に成立するとは限らない。
 
 | 設定 | 既定値 |
 | --- | --- |
@@ -61,19 +61,17 @@ ProbTF-demoのルートで次を実行する。Python環境にはROS Noeticの`r
 PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_rolling_orientation_comparison.py -v
 ```
 
-2025年3月10日の記録の85.446秒、17,088時刻に対する二乗平均平方根を度で示す。
+2025年3月3日の円軌道飛行の90.362秒、18,072時刻に対する二乗平均平方根を度で示す。
 
 | 条件 | ロール | ピッチ | ヨー | 3軸の合成誤差 |
 | --- | ---: | ---: | ---: | ---: |
-| 角速度の時間発展のみ | 10.06 | 6.25 | 9.48 | 7.35 |
-| 角速度と加速度の融合 | 6.99 | 2.86 | 6.00 | 4.91 |
-| 角速度と地磁気の融合 | 16.02 | 5.00 | 11.12 | 13.61 |
-| 地磁気と加速度の融合 | 13.34 | 5.83 | 31.08 | 32.82 |
-| 9軸の全情報の融合 | 6.48 | 3.00 | 18.57 | 20.39 |
+| 角速度の時間発展のみ | 8.30 | 14.50 | 9.35 | 18.42 |
+| 角速度と加速度の融合 | 1.51 | 5.33 | 7.75 | 9.47 |
+| 角速度と地磁気の融合 | 50.22 | 17.59 | 8.56 | 52.58 |
+| 地磁気と加速度の融合 | 23.26 | 3.14 | 30.44 | 38.44 |
+| 9軸の全情報の融合 | 23.72 | 6.56 | 21.70 | 33.35 |
 
-この固定設定では「角速度と加速度の融合」で方位全体の誤差が小さくなった。地磁気を含む条件で誤差が大きくなり、9軸の利用によって精度が一律に改善する結果ではない。較正・座標系の対応・動的加速度・観測尺度と時間相関の影響は個別に分離していない。
-
-[5条件の実測比較と最終精査](../../../docs/reports/orientation-rolling-five-conditions_2026-10-15.md)に、数値の照合、図・動画の確認と残る検証事項を記録した。
+この固定設定では加速度の融合で各軸と3軸の合成誤差が小さくなり、地磁気を含む条件で方位全体の誤差が大きくなった。較正・座標系の対応・動的加速度・観測尺度と時間相関の影響は個別に分離していない。[円軌道飛行の実測比較](../../../docs/reports/orientation-circle-flight_2026-10-15.md)に、数値と保存先を記録した。
 
 ## 9軸の全情報の融合とMadgwick（9軸）の比較
 
@@ -81,17 +79,20 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_rolling_orientation
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/compare_madgwick_rolling.py \
-  --render-only \
-  --input ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling_madgwick \
-  --output ros/examples/probtf_orientation_demo/outputs/20250310_delta_linear_rolling_nine_axis_madgwick
+  --input ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_five_conditions \
+  --output ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_nine_axis_madgwick
 ```
 
-[線形図](outputs/20250310_delta_linear_rolling_nine_axis_madgwick/method_comparison.pdf)と[片対数図](outputs/20250310_delta_linear_rolling_nine_axis_madgwick/method_comparison_semilog.pdf)は、上からロール・ピッチ・ヨーの各軸と3軸の合成誤差を示す。片対数版は同じ配置で縦軸だけを対数にする。PDF/SVG/PNG、集計、2系列の時系列を保存する。
+[線形図](outputs/20250303_delta_circle_trajectory_flight_5_nine_axis_madgwick/method_comparison.pdf)と[片対数図](outputs/20250303_delta_circle_trajectory_flight_5_nine_axis_madgwick/method_comparison_semilog.pdf)は、上からロール・ピッチ・ヨーの各軸と3軸の合成誤差を示す。片対数版は同じ配置で縦軸だけを対数にする。PDF/SVG/PNG、集計、2系列の時系列を保存する。
 
-`--render-only`は保存済みの9軸の2系列を取り出し、推定値を保持して図を作る。新たにMadgwickを計算する場合はこの指定を省き、`--input`に既存の5条件の結果を指定する。既定の入力先はその5条件である。磁北とmocapの座標対応は冒頭の磁場基準だけから固定する。
+`--render-only`は保存済みの9軸の2系列を取り出し、推定値を保持して図を作る。新たにMadgwickを計算する場合はこの指定を省き、`--input`に既存の5条件の結果を指定する。既定の入力先は3月10日の5条件なので、円軌道飛行では上記の`--input`を明示する。磁北とmocapの座標対応は冒頭の磁場基準だけから固定する。
 
-3軸の合成誤差のRMSは「9軸の全情報の融合」が20.39度、Madgwick（9軸）が28.17度である。[比較条件と精査](../../../docs/reports/orientation-rolling-nine-axis-madgwick_2026-10-15.md)を参照。
+3軸の合成誤差のRMSは「9軸の全情報の融合」が33.35度、Madgwick（9軸）が30.79度である。[比較条件と数値](../../../docs/reports/orientation-circle-flight_2026-10-15.md)を参照。
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_madgwick_rolling.py -v
 ```
+
+## 保存した3月10日の転がり動作
+
+以前の`outputs/20250310_delta_linear_rolling_five_conditions/`と`outputs/20250310_delta_linear_rolling_nine_axis_madgwick/`には当時の図・集計・時系列を保持した。[当時のBingham動画](../../../medias/imu-orientation-filter/20250310-delta-linear-rolling-five-conditions/rolling_bingham_comparison.mp4)と再生成案内も保存した。最初の3条件と以前の補助比較の出力フォルダも保持している。

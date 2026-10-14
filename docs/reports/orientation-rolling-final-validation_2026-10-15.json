@@ -1,0 +1,144 @@
+{
+  "checked_on": "2026-10-15",
+  "probtf_implementation_commit": "4745c85",
+  "dthesis_implementation_commit": "599e8a0",
+  "bag": {
+    "bag_path": "/home/leus/rosbags/20250310_delta_linear_rolling_1_2025-03-10-16-18-36.bag",
+    "sha256": "ff523f5fe0fd65a1cad2498d3cf6076041eef1b1e1507e79253a91d15990ea13",
+    "bytes": 799855677
+  },
+  "evaluated_samples": 17088,
+  "duration_seconds": 85.44597482681274,
+  "statistics": {
+    "gyro_only": {
+      "rms_deg": 7.346077569587193,
+      "median_deg": 6.4903760703234195,
+      "p95_deg": 11.809580885758017,
+      "max_deg": 15.076302125636929,
+      "final_deg": 11.993503939995046
+    },
+    "magnetic_postprocess": {
+      "rms_deg": 6.150479352431931,
+      "median_deg": 5.7158053219491265,
+      "p95_deg": 8.786421786232408,
+      "max_deg": 10.43393581056553,
+      "final_deg": 8.97020736632624
+    },
+    "magnetic_feedback": {
+      "rms_deg": 13.607343983305032,
+      "median_deg": 14.058893841226496,
+      "p95_deg": 17.757169894748877,
+      "max_deg": 20.146125315865657,
+      "final_deg": 11.87058452041406
+    }
+  },
+  "video": {
+    "frames": 685,
+    "fps": 8.0,
+    "width": 1600,
+    "height": 760,
+    "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
+    "samples_per_distribution_per_frame": 180,
+    "duration_seconds": 85.625,
+    "full_decode_passed": true
+  },
+  "checks": {
+    "existing_orientation_tests_passed": 11,
+    "comparison_regression_tests_passed": 4,
+    "ros_package_build_passed": true,
+    "devel_script_startup_passed": true,
+    "source_check_passed": true,
+    "layout_check_passed": true,
+    "plan06_check_passed": true,
+    "deprecated_implementation_unchanged": true,
+    "formatted_regeneration_numeric_arrays_exactly_equal": true
+  },
+  "pdf": {
+    "pages": 356,
+    "rotated_pages": [],
+    "non_portrait_pages": [],
+    "reviewed_example_pages": [
+      162,
+      163,
+      164,
+      165,
+      166
+    ]
+  },
+  "environment": {
+    "python": "3.8.10",
+    "numpy": "1.24.3",
+    "scipy": "1.10.1",
+    "matplotlib": "3.7.1"
+  },
+  "files": [
+    {
+      "path": "/home/leus/dthesis/main.pdf",
+      "bytes": 49828004,
+      "sha256": "0e69db9b06335a7ffedc50640eb2b1001ca372a7ac2d3ab66a462c209e186d77"
+    },
+    {
+      "path": "/home/leus/dthesis/medias/imu-orientation-filter/rolling_bingham_comparison.mp4",
+      "bytes": 7380429,
+      "sha256": "b1db4fab7a6500bf628a5ed4e329b946f8911d7cf71df213e29e8c86b53d6989"
+    },
+    {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_orientation_demo/scripts/compare_rolling_bag.py",
+      "bytes": 24938,
+      "sha256": "96fe08ff1e6293f0db487b38e24d74a1d3d32a9503994276fcc2da03ac199dbe"
+    },
+    {
+      "path": "/home/leus/dthesis/references/imu-orientation-filter/20250310-delta-linear-rolling/timeseries.npz",
+      "bytes": 8865716,
+      "sha256": "1935d0cd8630db009c5769c12be98921bbe2ca26137b3b780ace36a0a27c8d94"
+    },
+    {
+      "path": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_error_and_magnetic.pdf",
+      "bytes": 244993,
+      "sha256": "f7a34bec1f6187f26b78aadff10ab6943d9955e5e34dfe9170f7ef8d0a6b0fd3"
+    },
+    {
+      "path": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_error_and_magnetic.png",
+      "bytes": 189579,
+      "sha256": "8e95c70c05db6eb508204ce6042a6fd91a0b5cfcd51f002bb8638c5c93a8e57c"
+    },
+    {
+      "path": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_error_and_magnetic.svg",
+      "bytes": 594041,
+      "sha256": "b1cea7a8e8b7c65a49f32cbd65335ecd7d3aff535bcbc816835d7b933a9cb6f7"
+    },
+    {
+      "path": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_quaternion.pdf",
+      "bytes": 135406,
+      "sha256": "56968a111025dba6e68f58219f2b6d90648ae8f2b97fa44f07b10eff7fe8687c"
+    },
+    {
+      "path": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_quaternion.png",
+      "bytes": 229243,
+      "sha256": "67b63a710ec906109f1e21c0f281541c0588041318854bce2dd043a1b0f38f42"
+    },
+    {
+      "path": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_quaternion.svg",
+      "bytes": 320842,
+      "sha256": "d708312024c97a9340337606434114920748ab8609913dabf8630d85c94d814c"
+    },
+    {
+      "path": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_rpy.pdf",
+      "bytes": 71467,
+      "sha256": "80da147099a23799dde410c91ce612f8c27b6c7722a4e9efe971d548ea21e881"
+    },
+    {
+      "path": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_rpy.png",
+      "bytes": 150824,
+      "sha256": "d27ba4c69c34440966103b9ebb1d65d7d07d03a10645f55e354778cc8f9592bc"
+    },
+    {
+      "path": "/home/leus/dthesis/figs/imu-orientation-filter/rolling_rpy.svg",
+      "bytes": 149713,
+      "sha256": "98592f1bf2a0c5fd9f330e21ebd02049b5ee14b3d9546016c8d98639a29f19c7"
+    }
+  ],
+  "dthesis_integration_commit": "592fc37",
+  "incorporated_remote_commit": "ecd7903",
+  "catalogued_terms_after_integration": 505
+}

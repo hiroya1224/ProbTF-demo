@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Compare gyro propagation, magnetic postprocessing, and magnetic feedback.
+"""Compare five gyro, accelerometer, and magnetometer orientation estimators.
 
 All angular-velocity samples are propagated.  The calculation uses the
 ProbTF core's cubature, quaternion-product moments, Bingham moment matching,
-and magnetic vector evidence.  The deprecated ROS package is never imported.
+and gravity/magnetic vector evidence.  The deprecated ROS package is never imported.
 """
 
 import argparse
@@ -41,13 +41,16 @@ from probtf.bingham import (
     match_bingham_to_second_moment, quaternion_product_second_moment,
 )
 from probtf_estimators.orientation_imu import (
-    delta_quaternion_second_moment, magnetic_bingham_evidence,
+    delta_quaternion_second_moment, gravity_bingham_evidence, magnetic_bingham_evidence,
 )
 
-CASE_IDS = ('gyro_only', 'magnetic_postprocess', 'magnetic_feedback')
-CASE_LABELS = ('角速度', '地磁気の融合あり（後処理のみ）',
-               '地磁気の融合あり（次時刻の初期値にも利用）')
-CASE_COLORS = ('#0072B2', '#E69F00', '#CC79A7')
+CASE_IDS = ('gyro_only', 'gyro_acceleration', 'gyro_magnetic',
+            'magnetic_acceleration', 'nine_axis')
+CASE_LABELS = ('角速度の時間発展のみ', '角速度と加速度の融合', '角速度と地磁気の融合',
+               '地磁気と加速度の融合', '9軸の全情報の融合')
+CASE_COLORS = ('#0072B2', '#009E73', '#E69F00', '#CC79A7', '#D55E00')
+PROPAGATED_CASES = (0, 1, 2, 4)
+SPECIFIC_FORCE_REFERENCE_WORLD = np.array([0.0, 0.0, 1.0])
 REFERENCE_LABEL = 'モーションキャプチャ'
 
 
@@ -87,6 +90,8 @@ def rotation_error_series(modes, truth):
 
 
 def update_error_evaluation(arrays, metadata):
+    if arrays['mode_wxyz'].shape[1] != len(CASE_IDS):
+        raise ValueError('This script requires five-condition data; re-run the bag calculation in a new output directory.')
     axis_errors, combined_errors = rotation_error_series(
         arrays['mode_wxyz'], arrays['mocap_wxyz'],
     )
@@ -160,6 +165,7 @@ def prepare_streams(imu, mocap, calibration_seconds=1.0, duration=None):
     fields_world = calibration_rotations.apply(calibration[:, 8:11] / norm[:, None])
     magnetic_reference = fields_world.mean(axis=0)
     magnetic_reference /= np.linalg.norm(magnetic_reference)
+    acceleration_mean_world = calibration_rotations.apply(calibration[:, 5:8]).mean(axis=0)
     selected = imu[(imu[:, 1] >= overlap_start + calibration_seconds)
                    & (imu[:, 1] <= overlap_end)]
     if duration is not None:
@@ -176,6 +182,11 @@ def prepare_streams(imu, mocap, calibration_seconds=1.0, duration=None):
         'calibration_gyro_mean_rad_s': calibration[:, 2:5].mean(axis=0).tolist(),
         'calibration_gyro_std_rad_s': calibration[:, 2:5].std(axis=0).tolist(),
         'gyro_bias_removed': False,
+        'accelerometer_bias_removed': False,
+        'calibration_acceleration_mean_m_s2': calibration[:, 5:8].mean(axis=0).tolist(),
+        'calibration_acceleration_mean_world_m_s2': acceleration_mean_world.tolist(),
+        'calibration_acceleration_world_z_angle_deg': float(np.rad2deg(np.arccos(np.clip(
+            acceleration_mean_world[2]/np.linalg.norm(acceleration_mean_world), -1.0, 1.0)))),
         'reference_magnetic_world_unit': magnetic_reference.tolist(),
         'initial_quaternion_wxyz': wxyz_from_rotations(truth[0]).tolist(),
         'measurement_time_origin': float(selected[0, 1]),
@@ -217,18 +228,18 @@ def propagate(parameter, gyro, dt, covariance, integration_steps=120):
     return canonical_bingham_parameter(predicted), residual
 
 
-def compare_conditions(gyro, magnetic, timestamps, initial_quaternion,
+def compare_conditions(gyro, acceleration, magnetic, timestamps, initial_quaternion,
                        magnetic_reference, initial_concentration=100.0,
-                       gyro_variance=1e-4, magnetic_concentration=20.0,
+                       gyro_variance=1e-4, acceleration_concentration=20.0, magnetic_concentration=20.0,
                        integration_steps=120, progress=None):
     initial = initial_concentration * (
         np.outer(initial_quaternion, initial_quaternion) - np.eye(4)
     )
-    pure, recursive = initial.copy(), initial.copy()
+    states = {case: initial.copy() for case in PROPAGATED_CASES}
     covariance = np.eye(3) * gyro_variance
     count = len(timestamps)
-    display = np.empty((count, 3, 4, 4))
-    residuals = np.zeros((count, 2))
+    display = np.empty((count, len(CASE_IDS), 4, 4))
+    residuals = np.zeros((count, len(PROPAGATED_CASES)))
     started, last_progress = time.monotonic(), time.monotonic()
     for k in range(count):
         if k:
@@ -237,25 +248,36 @@ def compare_conditions(gyro, magnetic, timestamps, initial_quaternion,
                 raise ValueError('The propagation timestamps must strictly increase.')
             # The right-end angular velocity is held over this interval,
             # matching the ROS orientation filter's sample convention.
-            pure, residuals[k, 0] = propagate(pure, gyro[k], dt, covariance, integration_steps)
-            recursive, residuals[k, 1] = propagate(recursive, gyro[k], dt, covariance, integration_steps)
-        evidence = magnetic_bingham_evidence(
+            for column, case in enumerate(PROPAGATED_CASES):
+                states[case], residuals[k, column] = propagate(
+                    states[case], gyro[k], dt, covariance, integration_steps,
+                )
+        gravity_evidence = gravity_bingham_evidence(
+            SPECIFIC_FORCE_REFERENCE_WORLD, acceleration[k], acceleration_concentration,
+        )
+        magnetic_evidence = magnetic_bingham_evidence(
             magnetic_reference, magnetic[k], magnetic_concentration,
         )
-        display[k, 0] = pure
-        display[k, 1] = canonical_bingham_parameter(pure + evidence)
-        recursive = canonical_bingham_parameter(recursive + evidence)
-        display[k, 2] = recursive
+        states[1] = canonical_bingham_parameter(states[1] + gravity_evidence)
+        states[2] = canonical_bingham_parameter(states[2] + magnetic_evidence)
+        # No gyro or historical posterior enters this observation-only case.
+        display[k, 3] = canonical_bingham_parameter(gravity_evidence + magnetic_evidence)
+        states[4] = canonical_bingham_parameter(states[4] + gravity_evidence + magnetic_evidence)
+        for case in PROPAGATED_CASES:
+            display[k, case] = states[case]
         if progress and time.monotonic()-last_progress >= 10.0:
             progress(k+1, count, time.monotonic()-started)
             last_progress = time.monotonic()
     modes = np.stack([
         continuous_quaternions(np.array([bingham_mode(A) for A in display[:, case]]))
-        for case in range(3)
+        for case in range(len(CASE_IDS))
     ], axis=1)
-    for case in range(3):
+    for case in range(len(CASE_IDS)):
         if modes[0, case] @ initial_quaternion < 0.0:
             modes[:, case] *= -1.0
+    # The exact initial gyro-only mode is known analytically.  Keeping it
+    # avoids an artificial nonzero identity error from eigensolver roundoff.
+    modes[0, 0] = initial_quaternion
     return display, modes, residuals
 
 
@@ -266,7 +288,7 @@ def metrics_and_arrays(imu, truth, modes, display, residuals, reference, metadat
     truth_rotation = rotations_from_wxyz(truth)
     principal_rpy = np.stack([
         rotations_from_wxyz(modes[:, case]).as_euler('xyz')
-        for case in range(3)
+        for case in range(len(CASE_IDS))
     ], axis=1)
     reference_radians = np.unwrap(truth_rotation.as_euler('xyz'), axis=0)
     # This is a display-only choice of the Euler-angle branch.  Mocap is
@@ -284,8 +306,14 @@ def metrics_and_arrays(imu, truth, modes, display, residuals, reference, metadat
         'initial_bingham_concentration': args.initial_concentration,
         'gyro_sample_covariance_rad2_s2': (np.eye(3)*args.gyro_variance).tolist(),
         'magnetic_direction_concentration': args.magnetic_concentration,
+        'acceleration_direction_concentration': args.acceleration_concentration,
         'integration_steps': args.integration_steps,
-        'gravity_evidence_used': False,
+        'gravity_evidence_case_ids': [CASE_IDS[i] for i in (1, 3, 4)],
+        'reference_specific_force_world_unit': SPECIFIC_FORCE_REFERENCE_WORLD.tolist(),
+        'acceleration_model': 'normalized specific force aligned with mocap-world +z; translational acceleration not removed; no norm gating or smoothing',
+        'propagation_case_ids': [CASE_IDS[i] for i in PROPAGATED_CASES],
+        'observation_only_case': 'magnetic_acceleration: current gravity and magnetic evidence with a uniform prior, independently at each sample',
+        'posterior_reused_as_next_prior': [CASE_IDS[i] for i in (1, 2, 4)],
         'sample_convention': 'right-end angular velocity; interval from measurement timestamps',
         'moment_fit_residual_frobenius_max': float(residuals.max()),
         'moment_fit_residual_frobenius_p95': float(np.quantile(residuals, .95)),
@@ -299,7 +327,7 @@ def metrics_and_arrays(imu, truth, modes, display, residuals, reference, metadat
     })
     arrays = dict(
         time_seconds=imu[:, 1]-imu[0, 1], measurement_stamps=imu[:, 1],
-        gyro_rad_s=imu[:, 2:5], magnetic_raw=imu[:, 8:11],
+        gyro_rad_s=imu[:, 2:5], acceleration_m_s2=imu[:, 5:8], magnetic_raw=imu[:, 8:11],
         mocap_wxyz=truth, mode_wxyz=modes, display_parameter=display,
         rpy_deg=rpy, mocap_rpy_deg=reference_rpy,
         magnetic_norm=norms, magnetic_direction_residual_deg=field_residual,
@@ -339,7 +367,7 @@ def plot_results(arrays, output):
         figure, axes = plt.subplots(len(components), 1, sharex=True,
                                    figsize=(8.1, 2.0*len(components)))
         for component, axis in enumerate(axes):
-            for case in range(3):
+            for case in range(len(CASE_IDS)):
                 axis.plot(t, values[:, case, component], color=CASE_COLORS[case],
                           lw=1.0, label=CASE_LABELS[case], alpha=.9)
             axis.plot(t, reference[:, component], color='#222222', ls='--', lw=1.0,
@@ -352,49 +380,24 @@ def plot_results(arrays, output):
         figure.tight_layout()
         save_figure(figure, output, name)
         plt.close(figure)
-    figure, axes = plt.subplots(4, 1, sharex=True, figsize=(8.1, 8.4))
-    for component, axis in enumerate(axes):
-        values = arrays['rpy_error_deg'][:, :, component] if component < 3 else arrays['error_deg']
-        for case in range(3):
-            axis.plot(t, values[:, case], color=CASE_COLORS[case],
-                      lw=1.0, label=CASE_LABELS[case])
-        axis.set_ylabel(('ロール誤差', 'ピッチ誤差', 'ヨー誤差', '三軸の合成誤差')[component]+' / deg')
-        axis.set_ylim(bottom=0.0)
-        axis.grid(alpha=0.22)
-        axis.set_xlim(t[0], t[-1])
-    axes[0].legend(ncol=1, loc='lower left', bbox_to_anchor=(0, 1.02), frameon=False)
-    axes[-1].set_xlabel('経過時間 / s')
-    figure.tight_layout()
-    save_figure(figure, output, 'axis_errors')
-    plt.close(figure)
-    plot_axis_error_semilog(arrays, output)
-
-
-def plot_axis_error_semilog(arrays, output):
-    """Export a separate log-y figure for each RPY error component."""
-    plt = configure_matplotlib()
-    t = arrays['time_seconds']
-    errors = arrays['rpy_error_deg']
-    positive = errors[errors > 0.0]
-    # Use common limits across the three axes and plot the actual positive
-    # values.  Zero errors are masked, rather than replaced by an epsilon.
-    lower = 10.0**np.floor(np.log10(positive.min())) if positive.size else 1e-6
-    upper = max(lower*10.0, float(positive.max())*1.1) if positive.size else 1.0
-    for component, (name, label) in enumerate(zip(('roll', 'pitch', 'yaw'), ('ロール', 'ピッチ', 'ヨー'))):
-        figure, axis = plt.subplots(figsize=(8.1, 3.8))
-        axis.set_yscale('log', nonpositive='mask')
-        for case in range(3):
-            axis.plot(t, np.ma.masked_less_equal(errors[:, case, component], 0.0),
-                      color=CASE_COLORS[case], lw=1.0, label=CASE_LABELS[case])
-        axis.set_xlim(t[0], t[-1])
-        axis.set_ylim(lower, upper)
-        axis.set_xlabel('経過時間 / s')
-        axis.set_ylabel(label+'誤差 / deg')
-        axis.grid(which='major', alpha=0.22)
-        axis.grid(which='minor', axis='y', alpha=0.10)
-        axis.legend(ncol=1, loc='lower left', bbox_to_anchor=(0.0, 1.02), frameon=False)
+    for logarithmic in (False, True):
+        figure, axes = plt.subplots(4, 1, sharex=True, figsize=(8.1, 8.4))
+        for component, axis in enumerate(axes):
+            values = arrays['rpy_error_deg'][:, :, component] if component < 3 else arrays['error_deg']
+            if logarithmic:
+                axis.set_yscale('log', nonpositive='mask')
+            for case in range(len(CASE_IDS)):
+                plotted = np.ma.masked_less_equal(values[:, case], 0.0) if logarithmic else values[:, case]
+                axis.plot(t, plotted, color=CASE_COLORS[case], lw=1.0, label=CASE_LABELS[case])
+            axis.set_ylabel(('ロール誤差', 'ピッチ誤差', 'ヨー誤差', '三軸の合成誤差')[component]+' / deg')
+            if not logarithmic:
+                axis.set_ylim(bottom=0.0)
+            axis.grid(alpha=0.22)
+            axis.set_xlim(t[0], t[-1])
+        axes[0].legend(ncol=1, loc='lower left', bbox_to_anchor=(0.0, 1.02), frameon=False)
+        axes[-1].set_xlabel('経過時間 / s')
         figure.tight_layout()
-        save_figure(figure, output, name+'_error_semilog')
+        save_figure(figure, output, 'axis_errors_semilog' if logarithmic else 'axis_errors')
         plt.close(figure)
 
 
@@ -436,13 +439,13 @@ def render_video(arrays, output, fps=8.0, samples=180):
     t = arrays['time_seconds']
     frame_times = np.arange(0.0, t[-1]+.5/fps, 1.0/fps)
     indices = np.clip(np.searchsorted(t, frame_times), 0, len(t)-1)
-    figure = plt.figure(figsize=(16, 7.6), dpi=100)
-    grid = figure.add_gridspec(2, 4, height_ratios=(4.0, 1.6),
-                              left=.035, right=.985, top=.90, bottom=.075, hspace=.20)
-    axes = [figure.add_subplot(grid[0, i], projection='3d') for i in range(4)]
-    # Four equal spheres across the upper area leave a full-width time trace.
-    timeline = figure.add_subplot(grid[1, :])
-    for case in range(3):
+    figure = plt.figure(figsize=(16, 13.2), dpi=100)
+    grid = figure.add_gridspec(3, 3, height_ratios=(3.6, 3.6, 1.6),
+                              left=0.06, right=0.96, top=0.89, bottom=0.06, hspace=0.35)
+    axes = [figure.add_subplot(grid[i//3, i%3], projection='3d') for i in range(6)]
+    # Five distributions and mocap in reading order above a common timeline.
+    timeline = figure.add_subplot(grid[2, :])
+    for case in range(len(CASE_IDS)):
         timeline.plot(t, arrays['error_deg'][:, case], color=CASE_COLORS[case],
                       lw=1.0, label=CASE_LABELS[case])
     cursor = timeline.axvline(0.0, color='#222222', lw=1.0)
@@ -451,9 +454,9 @@ def render_video(arrays, output, fps=8.0, samples=180):
     timeline.set_xlabel('経過時間 / s')
     timeline.set_ylabel('三軸の合成誤差 / deg')
     timeline.grid(alpha=.2)
-    timeline.legend(ncol=3, loc='upper left', fontsize=9, frameon=False)
+    timeline.legend(ncol=len(CASE_IDS), loc='upper left', fontsize=9, frameon=False)
     clock = figure.text(.5, .985, '', ha='center', va='top', fontsize=14)
-    description = figure.text(.5, .945,
+    description = figure.text(.5, .955,
         '点群：Bingham分布の軸端点　実線の軸：分布のモード　黒破線：モーションキャプチャ',
         ha='center', va='top', fontsize=10)
     width, height = figure.canvas.get_width_height()
@@ -472,7 +475,7 @@ def render_video(arrays, output, fps=8.0, samples=180):
             truth_rotation = rotations_from_wxyz(arrays['mocap_wxyz'][k]).as_matrix()
             for case, axis in enumerate(axes):
                 axis.clear()
-                if case < 3:
+                if case < len(CASE_IDS):
                     orientation = BinghamOrientation.from_parameter_matrix(arrays['display_parameter'][k,case])
                     q = sample_bingham_orientation(orientation, samples, rng=generator)
                     rotations = rotations_from_wxyz(q).as_matrix()
@@ -491,7 +494,7 @@ def render_video(arrays, output, fps=8.0, samples=180):
                 legend = axis.get_legend()
                 if legend is not None:
                     legend.remove()
-                if case < 3:
+                if case < len(CASE_IDS):
                     for component in range(3):
                         tip = truth_rotation[:,component]
                         axis.plot([0,tip[0]], [0,tip[1]], [0,tip[2]],
@@ -531,6 +534,7 @@ def main():
     parser.add_argument('--duration', type=float)
     parser.add_argument('--initial-concentration', type=float, default=100.0)
     parser.add_argument('--gyro-variance', type=float, default=1e-4)
+    parser.add_argument('--acceleration-concentration', type=float, default=20.0)
     parser.add_argument('--magnetic-concentration', type=float, default=20.0)
     parser.add_argument('--integration-steps', type=int, default=120)
     parser.add_argument('--video-fps', type=float, default=8.0)
@@ -555,9 +559,10 @@ def main():
         print('calibration: {} samples; evaluation: {} samples, {:.2f} seconds'.format(
             metadata['calibration_samples'],len(imu),imu[-1,1]-imu[0,1]),flush=True)
         display, modes, residuals = compare_conditions(
-            imu[:,2:5], imu[:,8:11], imu[:,1], truth[0], reference,
+            imu[:,2:5], imu[:,5:8], imu[:,8:11], imu[:,1], truth[0], reference,
             initial_concentration=args.initial_concentration,
             gyro_variance=args.gyro_variance,
+            acceleration_concentration=args.acceleration_concentration,
             magnetic_concentration=args.magnetic_concentration,
             integration_steps=args.integration_steps,
             progress=lambda done,total,elapsed: print(

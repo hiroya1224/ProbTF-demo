@@ -1,0 +1,115 @@
+{
+  "input_imu_count": 17313,
+  "input_mocap_count": 10374,
+  "calibration_samples": 200,
+  "calibration_seconds": 1.0,
+  "calibration_mocap_motion_max_deg": 0.4249894531704527,
+  "calibration_gyro_mean_rad_s": [
+    0.0011130996597057674,
+    -0.0007511733370620278,
+    -0.0012187673225162144
+  ],
+  "calibration_gyro_std_rad_s": [
+    0.0005151309770372082,
+    0.0004660569367680262,
+    0.0005431553541397955
+  ],
+  "gyro_bias_removed": false,
+  "reference_magnetic_world_unit": [
+    -0.06191577753624183,
+    0.10848713114577546,
+    -0.9921678178956632
+  ],
+  "initial_quaternion_wxyz": [
+    0.9676780720666109,
+    -0.0060488366366779536,
+    -0.0058782685184363605,
+    -0.25204762719774787
+  ],
+  "measurement_time_origin": 1741591119.3815331,
+  "mocap_reference_usage": "initial orientation and prefix-only fixed magnetic reference",
+  "alignment": "header timestamps; quaternion spherical interpolation; no extrapolation",
+  "imu_latency_quantiles_seconds": [
+    -0.0032501220703125,
+    -0.0006175041198730469,
+    0.49570417404174805
+  ],
+  "mocap_latency_quantiles_seconds": [
+    -0.0021905899047851562,
+    -0.0014595985412597656,
+    0.37738943099975586
+  ],
+  "maximum_mocap_gap_seconds": 0.2224256992340088,
+  "evaluated_imu_samples": 17088,
+  "duration_seconds": 85.44597482681274,
+  "initial_bingham_concentration": 100.0,
+  "gyro_sample_covariance_rad2_s2": [
+    [
+      0.0001,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0001,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0001
+    ]
+  ],
+  "magnetic_direction_concentration": 20.0,
+  "integration_steps": 120,
+  "gravity_evidence_used": false,
+  "sample_convention": "right-end angular velocity; interval from measurement timestamps",
+  "moment_fit_residual_frobenius_max": 8.483489605799407e-09,
+  "moment_fit_residual_frobenius_p95": 2.1505203026956367e-09,
+  "magnetic_norm_min_max_raw_units": [
+    16.209931851969994,
+    39.080462319610476
+  ],
+  "magnetic_direction_residual_deg": {
+    "rms": 20.198847596347143,
+    "p95": 37.039156784863856,
+    "max": 52.45322055010633
+  },
+  "rpy_convention": "extrinsic xyz; mocap unwrapped; each estimate uses the nearest mocap component branch for display only",
+  "quaternion_convention": "wxyz, adjacent signs aligned, common initial sign",
+  "statistics": {
+    "gyro_only": {
+      "rms_deg": 7.346077569587193,
+      "median_deg": 6.4903760703234195,
+      "p95_deg": 11.809580885758017,
+      "max_deg": 15.076302125636929,
+      "final_deg": 11.993503939995046
+    },
+    "magnetic_postprocess": {
+      "rms_deg": 6.150479352431931,
+      "median_deg": 5.7158053219491265,
+      "p95_deg": 8.786421786232408,
+      "max_deg": 10.43393581056553,
+      "final_deg": 8.97020736632624
+    },
+    "magnetic_feedback": {
+      "rms_deg": 13.607343983305032,
+      "median_deg": 14.058893841226496,
+      "p95_deg": 17.757169894748877,
+      "max_deg": 20.146125315865657,
+      "final_deg": 11.87058452041406
+    }
+  },
+  "bag_path": "/home/leus/rosbags/20250310_delta_linear_rolling_1_2025-03-10-16-18-36.bag",
+  "bag_size_bytes": 799855677,
+  "script_sha256": "96fe08ff1e6293f0db487b38e24d74a1d3d32a9503994276fcc2da03ac199dbe",
+  "video": {
+    "frames": 685,
+    "fps": 8.0,
+    "width": 1600,
+    "height": 760,
+    "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
+    "samples_per_distribution_per_frame": 180
+  },
+  "wall_seconds": 193.64449406322092
+}

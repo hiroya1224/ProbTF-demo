@@ -70,7 +70,10 @@ def _readonly(values):
 
 
 def _bingham_proposal_scale(eigenvalues):
-    values = np.asarray(eigenvalues, dtype=float)
+    # Rotating a semidefinite precision can leave a tiny negative
+    # eigenvalue after the minimum-eigenvalue shift.  The proposal root
+    # assumes nonnegative precision, including its zero mode.
+    values = np.maximum(np.asarray(eigenvalues, dtype=float), 0.0)
 
     def equation(scale):
         return float(np.sum(1.0 / (scale + 2.0 * values)) - 1.0)

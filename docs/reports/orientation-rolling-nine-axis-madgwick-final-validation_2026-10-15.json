@@ -1,0 +1,113 @@
+{
+  "checked_on": "2026-10-15",
+  "passed": true,
+  "case_labels": {
+    "nine_axis": "9軸の全情報の融合",
+    "madgwick_marg": "Madgwick（9軸）"
+  },
+  "statistics": {
+    "nine_axis": {
+      "rms_deg": 20.390517991276614,
+      "rpy_rms_deg": [
+        6.479104718586415,
+        3.0014300130935463,
+        18.572921569150036
+      ],
+      "first_60_seconds_rms_deg": 20.36384327060195,
+      "first_60_seconds_yaw_rms_deg": 18.065460957999843,
+      "final_deg": 15.806594575785764
+    },
+    "madgwick_marg": {
+      "rms_deg": 28.16756431982949,
+      "rpy_rms_deg": [
+        12.342518744528583,
+        4.818945340773292,
+        29.68624901674315
+      ],
+      "first_60_seconds_rms_deg": 28.323968586274123,
+      "first_60_seconds_yaw_rms_deg": 28.969402123943297,
+      "final_deg": 14.144853436938485
+    }
+  },
+  "samples": 17088,
+  "madgwick_beta": 0.1,
+  "all_selected_modes_rpy_and_errors_bit_identical": true,
+  "all_inputs_and_references_identical": true,
+  "plots": {
+    "method_comparison": {
+      "rows": 4,
+      "columns": 1,
+      "curves_per_row": 2,
+      "exact_condition_names": true
+    },
+    "method_comparison_semilog": {
+      "rows": 4,
+      "columns": 1,
+      "curves_per_row": 2,
+      "exact_condition_names": true
+    }
+  },
+  "artifact_sha256": {
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.pdf": "266428bd6b3b300b53a42032a6784e614157c3873f42500682c4670c9248471b",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.png": "2a4930f87015c384551f7e1331e823d132388ce3f70929e0be30699c0834ac30",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.svg": "945d14e19dbf50a44ca19ed84de3cbe4e68f56e002e9966fdd3204ce694c8119",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.pdf": "c3391de213f2a51d69b8467c3decb62c4725309cab2bfa06a70219b2db2b6a01",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.png": "e48caad08c7361373093e905a52eb33bb66c2f7d51acc18df01a3b46169e4119",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.svg": "c5ee344cd3c30953732e979cb1d6f9e34c09b5ca816d4d6e22a895c03e158bb1",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-nine-axis-madgwick/summary.json": "a95df13e18a986b9b82d112527bf6f8dbb6f3e48a1fa90d5cebdf74cc5d5b26e",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-nine-axis-madgwick/timeseries.npz": "053b700c0b6188a08848ee7682a6e6965acf365316ecde46e6bc18fc49dc346d",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-nine-axis-madgwick/source/inference_compare_madgwick_rolling.py": "abc7d36cb02acac93020b353fc60a6d77f77672db315a2430184d99ab3bbd2a8",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-nine-axis-madgwick/source/compare_madgwick_rolling.py": "72fcd79c6b34630fd8fffb7206cf5e78f8fd228b96626d311f16f9f6ce837ec8"
+  },
+  "archived_previous_21_figures_sha256": {
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_magnetic_heading_control.png": "24ee199ff0bb1d39ed44908c0615887df2d6d4a95b9ecb75c735ab46a6354a3b",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_magnetic_heading_control.pdf": "48ddf507d3f95c51812a4a41bc7df45d5d63f4042a410a6a373ea346b7d91e9f",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_quaternion.svg": "ed36314edb4f083193b85dbd78ae383e6e8d51761953c19a31cf366911b3e591",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_axis_errors_semilog.pdf": "5eb3879a822dcd3fe2e2f54b5ccecfbd68f6d55d598fb020648316e6fbab34fd",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_quaternion.png": "cb8e0580ef4caadf2bd2b5f645facb0bcfe6930e8961ec2ea980fd32cc222819",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_quaternion.pdf": "c0558f48876ce4132984109e3a5d80c203ef8850e270cb15202df084706bf705",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_rpy.pdf": "a26068d5116c76a734122fff3edf70b48e01e5aa9b99eb3a06d8ae16c170da63",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_axis_errors_semilog.svg": "bc327f987ea2e4440a3786aeda00fb402d38ac5c301b549bedf7aaacf0e2b0a6",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_method_comparison.pdf": "2e4c160c6e5f8781dd5132cea579ccf0049208c5f8f727b8d69977679a9b8089",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_method_comparison.svg": "532caf40bb59c02e2f2779ff5d5a47f680cb89d86245110a219ece9e1b8401c9",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_rpy.svg": "8ed464f9ad1945b85a21011bc8e1285a64fb8b77f8de9c3693dc71c949806152",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_method_comparison_semilog.svg": "a134d595276a12e6520a76cd2b07d7c78bace81ddb56e6ded68ac93f18f74501",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_axis_errors.png": "72909883100b01f77674b59d1924df7bb292a1d3ba202a2666e71597c2ef0701",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_method_comparison.png": "dad928b33c95a01fc05287740b8229aaf024639d3a4d9d503a86fbf394a432f6",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_axis_errors.svg": "ddd639670f268e9d664d11b3395bb3bb8485726df9a868e76190d80e3ec6cfc8",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_rpy.png": "aa63a01b1e666122b83f4adc601fa4b57980ec149985caf3237373b02fb0e707",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_axis_errors.pdf": "29dcb9369e6af6b74b5234748c1b169c862eee32cbb1ae12df1daa0f66fbfde0",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_method_comparison_semilog.png": "cbaaccdfbb3055f8f2e1b5f22b8286de2d55e3e9cbc5c5a4cb8d9b14cd47d6b9",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_axis_errors_semilog.png": "7d7191d093f48b5ccb0c51aab0f4c0a14e4534aa52826cfa62ad0b33e2fbdbcc",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_magnetic_heading_control.svg": "b57605faca308adcd3bd98dc4ed9f4a5a0b97b94b30c27c1686853c687c94fc3",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/figures/rolling_madgwick_method_comparison_semilog.pdf": "e626b71a2656605dbc93e7eeed551ffc367708718644309ab7eff6e5e7ec1d74"
+  },
+  "tests_passed": 11,
+  "fresh_inference_20_sample_smoke": "matches saved nine-axis results within 1e-12",
+  "source_checks": {
+    "labels": 862,
+    "citations": 75,
+    "figures": 75,
+    "reviewed_information_gaps": 28,
+    "passed": true
+  },
+  "pdf_pages": 362,
+  "pdf_sha256": "bab668e0533b8bc93da893b5ed17e62da1d5841036485692f836d6c958cddef4",
+  "all_pdf_pages_portrait_rotation_zero": true,
+  "visual_review": [
+    {
+      "page": 171,
+      "preview": "/tmp/nine-axis-madgwick/page-171.png"
+    },
+    {
+      "page": 172,
+      "preview": "/tmp/nine-axis-madgwick/page-172.png"
+    }
+  ],
+  "prose_score": 100,
+  "limits": [
+    "Fixed beta and observation scales are unchanged; this comparison does not establish superiority across other tuning or datasets."
+  ],
+  "probtf_implementation_commit": "8102ee9102b2e62865f209903969f7148d2f71f4",
+  "dthesis_implementation_commit": "e5c7a40a8a5f1d9f3134718145ac6ed0b30eea56"
+}

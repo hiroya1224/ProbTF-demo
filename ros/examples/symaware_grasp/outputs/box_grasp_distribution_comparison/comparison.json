@@ -2,60 +2,60 @@
   "mixture": {
     "completed": true,
     "kinematic_grasp_reached": true,
-    "samples": 673,
+    "samples": 665,
     "ik_results": [
       {
         "solver_name": "symmetry_aware_pointwise",
         "grasp_id": "box_side_grasp",
         "success": true,
-        "total_cost": -7.541658595308806,
-        "position_cost": 4.132210813864122e-07,
-        "orientation_cost": -8.978039088692212,
-        "motion_cost": 3.5092045030336396,
-        "joint_limit_cost": 0.032695386401298786,
+        "total_cost": -8.349806800100385,
+        "position_cost": 6.40941884853112e-08,
+        "orientation_cost": -8.978009594372665,
+        "motion_cost": 1.5303589493878926,
+        "joint_limit_cost": 0.016058701763615516,
         "theta_solution": [
-          -0.4349148936856866,
-          -0.43044488183559576,
-          0.4084245234110414,
-          -1.5694628372654114,
-          -1.6121910531771486,
-          1.5927217228636186
+          -0.06224588443444819,
+          -1.0869428510793169,
+          1.4562095749348876,
+          0.7580758403273233,
+          -0.4904689322651353,
+          -0.6957962417635932
         ]
       }
     ],
     "final": {
-      "time_s": 22.406064748764038,
+      "time_s": 22.158101558685303,
       "stage": "hold_grasp",
       "opening_m": 0.106,
-      "tcp_x": 0.7799992636139831,
-      "tcp_y": -0.1199995022338424,
-      "tcp_z": 0.4599998091947288,
-      "tcp_object_distance_mm": 0.0009090886453545302,
-      "nearest_mode_error_deg": 0.05242485052587181,
-      "reference_mode_error_deg": 0.05242485052587181,
-      "wrist_bend_deg": 92.37174311580156,
-      "elbow_flexion_deg": 23.40100144109642,
+      "tcp_x": 0.7799999180940809,
+      "tcp_y": -0.12000021405356452,
+      "tcp_z": 0.4599997249347862,
+      "tcp_object_distance_mm": 0.000358034048573528,
+      "nearest_mode_error_deg": 0.05315848265116602,
+      "reference_mode_error_deg": 89.96245318700117,
+      "wrist_bend_deg": 28.10179980107739,
+      "elbow_flexion_deg": 83.43466273030923,
       "gripper_opening_mm": 106.0,
-      "jaw_axis_box_width_mm": 80.10378594322101,
-      "jaw_gap_mm": 25.896214056778984,
-      "box_clearance_lower_bound_mm": 12.953574797307278,
-      "closest_collision_pair": "gripper_left_link:gripper_left_pad_collision / box",
+      "jaw_axis_box_width_mm": 100.10874086639842,
+      "jaw_gap_mm": 5.8912591336015705,
+      "box_clearance_lower_bound_mm": 2.954266061139625,
+      "closest_collision_pair": "gripper_right_link:gripper_right_pad_collision / box",
       "joint_speed_rad_s": 0.0,
-      "joint_1": -0.43491489368568625,
-      "target_1": -0.43491489368568625,
-      "joint_2": -0.43044488183561247,
-      "target_2": -0.43044488183561247,
-      "joint_3": 0.4084245234110704,
-      "target_3": 0.4084245234110704,
-      "joint_4": -1.5694628372654122,
-      "target_4": -1.5694628372654122,
-      "joint_5": -1.612191053177143,
-      "target_5": -1.612191053177143,
-      "joint_6": 1.5927217228636068,
-      "target_6": 1.5927217228636068
+      "joint_1": -0.06224588443445249,
+      "target_1": -0.06224588443445249,
+      "joint_2": -1.0869428510793278,
+      "target_2": -1.0869428510793278,
+      "joint_3": 1.4562095749348978,
+      "target_3": 1.4562095749348978,
+      "joint_4": 0.7580758403273357,
+      "target_4": 0.7580758403273357,
+      "joint_5": -0.490468932265088,
+      "target_5": -0.490468932265088,
+      "joint_6": -0.6957962417636042,
+      "target_6": -0.6957962417636042
     },
-    "minimum_box_clearance_lower_bound_mm": 5.657401053316177,
-    "closest_collision_pair": "tool0:gripper_palm_collision / box",
+    "minimum_box_clearance_lower_bound_mm": 2.954266061139625,
+    "closest_collision_pair": "gripper_right_link:gripper_right_pad_collision / box",
     "collision_free": true,
     "minimum_required_clearance_mm": 0.5,
     "distribution": "mixture",
@@ -63,7 +63,7 @@
     "physical_box": {
       "size": [
         0.1,
-        0.08,
+        0.1,
         0.18
       ],
       "position": [
@@ -90,14 +90,27 @@
       ]
     },
     "model_sha256": "861449b07abcf7c8ecd90f79f8a7dce4111f42ced677d4c3dad44ca5bbf5d060",
+    "square_box_mode_check": {
+      "square_footprint": true,
+      "long_vertical_dimension": true,
+      "common_upward_z": true,
+      "mode_x_face_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "mode_count": 4,
+      "selected_group": "C4"
+    },
     "native_belief_checks": {
       "object": {
         "component_count": 4,
         "component_ids": [
-          "demo_box:D2:0",
-          "demo_box:D2:1",
-          "demo_box:D2:2",
-          "demo_box:D2:3"
+          "demo_box:C4:0",
+          "demo_box:C4:1",
+          "demo_box:C4:2",
+          "demo_box:C4:3"
         ],
         "normalized_weights": [
           0.25,
@@ -113,32 +126,32 @@
             0.5555702330196021
           ],
           [
+            0.19509032201612855,
             0.0,
-            0.8314696123025452,
-            0.5555702330196021,
-            0.0
-          ],
-          [
-            0.0,
-            -0.5555702330196021,
-            0.8314696123025452,
-            0.0
+            1.699418639656813e-19,
+            0.9807852804032309
           ],
           [
             -0.5555702330196021,
             0.0,
             0.0,
             0.8314696123025452
+          ],
+          [
+            0.9807852804032303,
+            -0.0,
+            -0.0,
+            -0.19509032201612833
           ]
         ]
       },
       "grasp_candidate": {
         "component_count": 4,
         "component_ids": [
-          "base_link__to__box_side_grasp:demo_box:D2:0",
-          "base_link__to__box_side_grasp:demo_box:D2:1",
-          "base_link__to__box_side_grasp:demo_box:D2:2",
-          "base_link__to__box_side_grasp:demo_box:D2:3"
+          "base_link__to__box_side_grasp:demo_box:C4:0",
+          "base_link__to__box_side_grasp:demo_box:C4:1",
+          "base_link__to__box_side_grasp:demo_box:C4:2",
+          "base_link__to__box_side_grasp:demo_box:C4:3"
         ],
         "normalized_weights": [
           0.25,
@@ -154,80 +167,80 @@
             0.5555702330196021
           ],
           [
+            0.19509032201612855,
             0.0,
-            0.8314696123025452,
-            0.5555702330196021,
-            0.0
-          ],
-          [
-            0.0,
-            -0.5555702330196021,
-            0.8314696123025452,
-            0.0
+            1.699418639656813e-19,
+            0.9807852804032309
           ],
           [
             -0.5555702330196021,
             0.0,
             0.0,
             0.8314696123025452
+          ],
+          [
+            0.9807852804032303,
+            -0.0,
+            -0.0,
+            -0.19509032201612833
           ]
         ],
         "candidate_count": 1,
         "grasp_id": "box_side_grasp"
       },
-      "object_messages_checked": 229,
-      "target_messages_checked": 229
+      "object_messages_checked": 226,
+      "target_messages_checked": 226
     },
-    "hold_observation_s": 4.966724395751953,
+    "hold_observation_s": 4.966833591461182,
     "final_window_s": 1.0,
-    "final_window_samples": 31,
+    "final_window_samples": 30,
     "events": [
       {
         "stage": "observe_box",
-        "stamp": 1791902578.1182203,
-        "time_s": 0.0009856224060058594,
+        "stamp": 1791942567.0302126,
+        "time_s": 0.0012409687042236328,
         "details": {}
       },
       {
         "stage": "solve_symmetry_aware_ik",
-        "stamp": 1791902580.118621,
-        "time_s": 2.001399040222168,
+        "stamp": 1791942569.032524,
+        "time_s": 2.0035440921783447,
         "details": {}
       },
       {
         "stage": "move_to_pregrasp",
-        "stamp": 1791902582.724774,
-        "time_s": 4.607542037963867,
+        "stamp": 1791942571.3444624,
+        "time_s": 4.315492868423462,
         "details": {}
       },
       {
         "stage": "pregrasp_pause",
-        "stamp": 1791902591.3291402,
-        "time_s": 13.211900472640991,
+        "stamp": 1791942579.947184,
+        "time_s": 12.918204545974731,
         "details": {}
       },
       {
         "stage": "approach_box",
-        "stamp": 1791902592.329411,
-        "time_s": 14.212182998657227,
+        "stamp": 1791942580.947458,
+        "time_s": 13.91848611831665,
         "details": {}
       },
       {
         "stage": "close_gripper",
-        "stamp": 1791902594.5304527,
-        "time_s": 16.413208484649658,
+        "stamp": 1791942583.148443,
+        "time_s": 16.119463443756104,
         "details": {}
       },
       {
         "stage": "hold_grasp",
-        "stamp": 1791902595.5329392,
-        "time_s": 17.41569495201111,
+        "stamp": 1791942584.2012823,
+        "time_s": 17.172301292419434,
         "details": {}
       },
       {
         "stage": "finished",
-        "stamp": 1791902600.537228,
-        "time_s": 22.419987440109253,
+        "stamp": 1791942589.201478,
+        "time_s": 22.172496795654297,
         "details": {}
       }
     ],
@@ -236,7 +249,7 @@
   "single_pose": {
     "completed": true,
     "kinematic_grasp_reached": true,
-    "samples": 668,
+    "samples": 669,
     "ik_results": [
       {
         "solver_name": "symmetry_aware_pointwise",
@@ -258,7 +271,7 @@
       }
     ],
     "final": {
-      "time_s": 22.26063871383667,
+      "time_s": 22.275338649749756,
       "stage": "hold_grasp",
       "opening_m": 0.106,
       "tcp_x": 0.7799992881958306,
@@ -270,9 +283,9 @@
       "wrist_bend_deg": 92.37181412520384,
       "elbow_flexion_deg": 23.40077741303324,
       "gripper_opening_mm": 106.0,
-      "jaw_axis_box_width_mm": 80.10350797681087,
-      "jaw_gap_mm": 25.896492023189126,
-      "box_clearance_lower_bound_mm": 12.953664928984644,
+      "jaw_axis_box_width_mm": 100.1035013978842,
+      "jaw_gap_mm": 5.896498602115802,
+      "box_clearance_lower_bound_mm": 2.953668132934288,
       "closest_collision_pair": "gripper_left_link:gripper_left_pad_collision / box",
       "joint_speed_rad_s": 0.0,
       "joint_1": -0.4349148551343651,
@@ -288,7 +301,7 @@
       "joint_6": 1.592724355530223,
       "target_6": 1.592724355530223
     },
-    "minimum_box_clearance_lower_bound_mm": 5.667261596236692,
+    "minimum_box_clearance_lower_bound_mm": 2.6472779763800567,
     "closest_collision_pair": "tool0:gripper_palm_collision / box",
     "collision_free": true,
     "minimum_required_clearance_mm": 0.5,
@@ -297,7 +310,7 @@
     "physical_box": {
       "size": [
         0.1,
-        0.08,
+        0.1,
         0.18
       ],
       "position": [
@@ -324,11 +337,21 @@
       ]
     },
     "model_sha256": "861449b07abcf7c8ecd90f79f8a7dce4111f42ced677d4c3dad44ca5bbf5d060",
+    "square_box_mode_check": {
+      "square_footprint": true,
+      "long_vertical_dimension": true,
+      "common_upward_z": true,
+      "mode_x_face_indices": [
+        0
+      ],
+      "mode_count": 1,
+      "selected_group": "single_reference"
+    },
     "native_belief_checks": {
       "object": {
         "component_count": 1,
         "component_ids": [
-          "demo_box:D2:0"
+          "demo_box:C4:0"
         ],
         "normalized_weights": [
           1.0
@@ -345,7 +368,7 @@
       "grasp_candidate": {
         "component_count": 1,
         "component_ids": [
-          "base_link__to__box_side_grasp:demo_box:D2:0"
+          "base_link__to__box_side_grasp:demo_box:C4:0"
         ],
         "normalized_weights": [
           1.0
@@ -364,56 +387,56 @@
       "object_messages_checked": 229,
       "target_messages_checked": 229
     },
-    "hold_observation_s": 4.966856241226196,
+    "hold_observation_s": 4.966938018798828,
     "final_window_s": 1.0,
     "final_window_samples": 30,
     "events": [
       {
         "stage": "observe_box",
-        "stamp": 1791902611.1659415,
-        "time_s": 0.0007758140563964844,
+        "stamp": 1791942599.328004,
+        "time_s": 0.0007727146148681641,
         "details": {}
       },
       {
         "stage": "solve_symmetry_aware_ik",
-        "stamp": 1791902613.1663492,
-        "time_s": 2.0011940002441406,
+        "stamp": 1791942601.3283544,
+        "time_s": 2.001127243041992,
         "details": {}
       },
       {
         "stage": "move_to_pregrasp",
-        "stamp": 1791902615.6432774,
-        "time_s": 4.478124380111694,
+        "stamp": 1791942603.8138342,
+        "time_s": 4.4866039752960205,
         "details": {}
       },
       {
         "stage": "pregrasp_pause",
-        "stamp": 1791902624.2465928,
-        "time_s": 13.081424713134766,
+        "stamp": 1791942612.4164488,
+        "time_s": 13.089210271835327,
         "details": {}
       },
       {
         "stage": "approach_box",
-        "stamp": 1791902625.2468572,
-        "time_s": 14.081698656082153,
+        "stamp": 1791942613.416716,
+        "time_s": 14.089487552642822,
         "details": {}
       },
       {
         "stage": "close_gripper",
-        "stamp": 1791902627.448113,
-        "time_s": 16.28294563293457,
+        "stamp": 1791942615.618371,
+        "time_s": 16.291134119033813,
         "details": {}
       },
       {
         "stage": "hold_grasp",
-        "stamp": 1791902628.4518135,
-        "time_s": 17.286643981933594,
+        "stamp": 1791942616.6225727,
+        "time_s": 17.295334815979004,
         "details": {}
       },
       {
         "stage": "finished",
-        "stamp": 1791902633.4520442,
-        "time_s": 22.286884307861328,
+        "stamp": 1791942621.6228647,
+        "time_s": 22.295634508132935,
         "details": {}
       }
     ],

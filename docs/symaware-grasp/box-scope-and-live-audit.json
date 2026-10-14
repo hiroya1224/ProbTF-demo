@@ -1,5 +1,5 @@
 {
-  "baseline": "41920ae",
+  "baseline": "687cf0b",
   "unchanged_shared_sources": {
     "src/symaware_grasp/arm_kinematics.py": {
       "unchanged": true,
@@ -12,6 +12,10 @@
     "src/symaware_grasp/grasp_targets.py": {
       "unchanged": true,
       "sha256": "3a9f4325dca847408437867198075088d06d78db3de34f50e137fc7c3730d3de"
+    },
+    "src/symaware_grasp/symmetry_aware_ik.py": {
+      "unchanged": true,
+      "sha256": "5e3349f0975392eb6e09d82fce1483b1612666c30d3a094c21be7993c8bd63d5"
     },
     "scripts/arm_joint_state_controller.py": {
       "unchanged": true,
@@ -30,38 +34,44 @@
       "sha256": "7d4c9570e8d5ce223344d0ea7a530c844ced8cf6fb59ea96b63eac587929a74a"
     }
   },
-  "same_ik_launch_parameters": true,
-  "same_launch_nodes": {
-    "robot_controller": true,
-    "robot_state_publisher": true,
-    "probtf_static_broadcaster": true
-  },
+  "physical_box_size_m": [
+    0.1,
+    0.1,
+    0.18
+  ],
+  "up_axis": [
+    0,
+    0,
+    1
+  ],
+  "mode_group": "C4",
+  "mode_yaws_degrees_from_reference": [
+    0,
+    90,
+    180,
+    270
+  ],
+  "display_axis_lengths_m": [
+    0.18,
+    0.12,
+    0.18
+  ],
   "live_conditions": {
     "mixture": {
-      "completed": true,
-      "samples": 673,
+      "samples": 665,
       "component_count": 4,
       "candidate_count": 1,
-      "minimum_clearance_mm": 5.657401053316177
+      "minimum_clearance_mm": 2.954266061139625,
+      "object_messages_checked": 226,
+      "target_messages_checked": 226
     },
     "single_pose": {
-      "completed": true,
-      "samples": 668,
+      "samples": 669,
       "component_count": 1,
       "candidate_count": 1,
-      "minimum_clearance_mm": 5.667261596236692
-    }
-  },
-  "publisher_validation": {
-    "mixture": {
-      "publisher_parameters_verified": true,
-      "component_count": 4,
-      "target_count": 1
-    },
-    "single_pose": {
-      "publisher_parameters_verified": true,
-      "component_count": 1,
-      "target_count": 1
+      "minimum_clearance_mm": 2.6472779763800567,
+      "object_messages_checked": 229,
+      "target_messages_checked": 229
     }
   }
 }

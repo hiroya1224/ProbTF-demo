@@ -1,8 +1,8 @@
-run_id: 60af56c0-c714-11f1-a48d-bddb1d541ce7
+run_id: 7bdf4f56-c771-11f1-a48d-bddb1d541ce7
 roslaunch:
   uris:
-    host_127_0_0_1__46485: http://127.0.0.1:46485/
-    host_127_0_0_1__45177: http://127.0.0.1:45177/
+    host_127_0_0_1__36723: http://127.0.0.1:36723/
+    host_127_0_0_1__43089: http://127.0.0.1:43089/
 rosversion: '1.17.0
 
   '
@@ -186,7 +186,7 @@ object_pose_node:
   - 67.5
   dimensions:
   - 0.1
-  - 0.08
+  - 0.1
   - 0.18
   object_id: demo_box
   parent_frame_id: base_link
@@ -198,7 +198,7 @@ object_pose_node:
   distribution: mixture
   concentration: 5000.0
   components:
-  - component_id: demo_box:D2:0
+  - component_id: demo_box:C4:0
     weight: 0.25
     mode_wxyz:
     - 0.8314696123025452
@@ -222,55 +222,31 @@ object_pose_node:
       - 0.0
       - 0.0
       - -3456.7085809127248
-  - component_id: demo_box:D2:1
+  - component_id: demo_box:C4:1
     weight: 0.25
     mode_wxyz:
+    - 0.19509032201612841
     - 0.0
-    - 0.8314696123025452
-    - 0.5555702330196022
     - 0.0
+    - 0.9807852804032304
     parameter_matrix:
-    - - -5000.0
+    - - -4809.698831278218
       - 0.0
+      - 0.0
+      - 956.7085809127256
+    - - 0.0
+      - -5000.0
       - 0.0
       - 0.0
     - - 0.0
-      - -1543.2914190872752
-      - 2309.698831278217
-      - 0.0
-    - - 0.0
-      - 2309.698831278217
-      - -3456.7085809127248
-      - 0.0
-    - - 0.0
-      - 0.0
       - 0.0
       - -5000.0
-  - component_id: demo_box:D2:2
-    weight: 0.25
-    mode_wxyz:
-    - 0.0
-    - -0.5555702330196022
-    - 0.8314696123025452
-    - 0.0
-    parameter_matrix:
-    - - -5000.0
+      - 0.0
+    - - 956.7085809127256
       - 0.0
       - 0.0
-      - 0.0
-    - - 0.0
-      - -3456.708580912725
-      - -2309.698831278217
-      - 0.0
-    - - 0.0
-      - -2309.698831278217
-      - -1543.2914190872752
-      - 0.0
-    - - 0.0
-      - 0.0
-      - 0.0
-      - -5000.0
-  - component_id: demo_box:D2:3
+      - -190.3011687217836
+  - component_id: demo_box:C4:2
     weight: 0.25
     mode_wxyz:
     - -0.5555702330196022
@@ -294,6 +270,30 @@ object_pose_node:
       - 0.0
       - 0.0
       - -1543.2914190872752
+  - component_id: demo_box:C4:3
+    weight: 0.25
+    mode_wxyz:
+    - -0.9807852804032304
+    - 0.0
+    - 0.0
+    - 0.19509032201612841
+    parameter_matrix:
+    - - -190.30116872178314
+      - 0.0
+      - 0.0
+      - -956.7085809127252
+    - - 0.0
+      - -5000.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - -5000.0
+      - 0.0
+    - - -956.7085809127252
+      - 0.0
+      - 0.0
+      - -4809.698831278218
   component_count: 4
   true_position:
   - 0.78
@@ -313,6 +313,10 @@ prob_tf_grasp_target_node:
   probtf_static_topic: /probtf_static
   marker_axis_length: 0.1
 object_prob_tf_visualizer:
+  axis_lengths:
+  - 0.18
+  - 0.12
+  - 0.18
   input_kind: object
   input_topic: /symaware_grasp/object_belief
   cloud_topic: object_axes_cloud

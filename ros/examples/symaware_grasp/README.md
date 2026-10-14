@@ -105,8 +105,9 @@ application message は完全な `probtf_msgs/ProbabilisticTransformStamped` を
 ## 箱の四成分混合分布と単一姿勢分布の比較
 
 箱の姿勢を四成分のBingham混合分布で表す条件と、同じ基準モードの単一Bingham分布で表す条件を記録する。
-箱の大きさは100 × 80 × 180 mm、中心は `[0.78, -0.12, 0.46]` m、真の姿勢のヨー角は `3π/8`（67.5°）とする。
-三辺の長さが異なる箱の向きを保つ四つの正回転 `D2` に対応して、基準姿勢と物体座標系のX・Y・Z軸周りの180°回転を四つのモードにする。
+箱の大きさは100 × 100 × 180 mm、中心は `[0.78, -0.12, 0.46]` m、真の姿勢のヨー角は `3π/8`（67.5°）とする。
+正方形の底面を保つ巡回群 `C4` に対応して、基準姿勢から鉛直Z軸周りの0°・90°・180°・270°回転を四つのモードにする。
+すべてのモードでZ軸を上向きに保ち、X軸を四つの側面の外向き法線へ一つずつ向ける。
 四モードはすべて、真の箱と同じ八つの角を持つ。
 混合条件の重みは各0.25、各成分の集中度は `[5000, 5000, 5000]`、単一姿勢条件は同じ基準モードと集中度を使う。
 
@@ -136,7 +137,7 @@ catkin build symaware_grasp --cmake-args -DPYTHON_EXECUTABLE=/usr/bin/python3
 source ~/catkin_ws/devel/setup.bash
 rosrun symaware_grasp run_box_grasp_demo.py compare \
   --object-yaw-pi 3/8 \
-  --output /tmp/box_grasp_distribution_comparison
+  --output /tmp/square_box_grasp_distribution_comparison
 ```
 
 指定した保存先に `mixture/` と `single_pose/` を作り、条件ごとに独立したROS masterで順に実行する。
@@ -144,6 +145,7 @@ rosrun symaware_grasp run_box_grasp_demo.py compare \
 録画にはX11の `DISPLAY` と `ffmpeg`、`ffprobe`、`xwininfo`、`xprop` が必要で、録画を省く場合は `--no-video` を指定する。
 一つのX11フレームを分岐して斜めと真上のRViz viewportを切り出すため、二視点は同期する。
 録画へ見出しや進行字幕を追加せず、軸・物体形状・分布の点群をRVizの表示のまま保存する。
+赤x・緑y・青zの表示長はそれぞれ180・120・180 mmとし、四側面のx点群がy点群と重ならないようにする。これは可視化の長さであり、箱の寸法や方位の不確かさを変える設定ではない。
 両条件に同じ物体姿勢と把持手順を使い、得られた解と記録された分布を比較する。
 この例だけから把持性能の優位性は判断しない。
 
@@ -159,9 +161,9 @@ rosrun symaware_grasp run_box_grasp_demo.py compare \
 ```bash
 source ~/catkin_ws/devel/setup.bash
 rosrun symaware_grasp run_box_grasp_demo.py run \
-  --distribution mixture --output /tmp/box_grasp_mixture
+  --distribution mixture --output /tmp/square_box_grasp_mixture
 rosrun symaware_grasp run_box_grasp_demo.py analyze \
-  /tmp/box_grasp_mixture --output /tmp/box_grasp_mixture_analysis
+  /tmp/square_box_grasp_mixture --output /tmp/square_box_grasp_mixture_analysis
 ```
 
 再評価ではbag内の目標が一件のまま混合成分を保持していることと、モードがmanifestの把持姿勢に対応することを確認する。

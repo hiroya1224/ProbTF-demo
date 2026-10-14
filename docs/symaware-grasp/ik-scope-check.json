@@ -16,5 +16,22 @@
     "evaluate_cost"
   ],
   "new_component_field": "orientation_log_weight_minus_normalizer",
-  "new_normalizer_cache": "canonical eigenvalue tuple and integration steps; maximum 256 entries"
+  "new_normalizer_cache": "canonical eigenvalue tuple and integration steps; maximum 256 entries",
+  "square_prism_c4_update": {
+    "baseline_commit": "687cf0b4a4f4a779e57fe31cec12b47a69d435be",
+    "source_unchanged_from_baseline": true,
+    "source_sha256": "5e3349f0975392eb6e09d82fce1483b1612666c30d3a094c21be7993c8bd63d5",
+    "changed_solver_methods": [],
+    "unchanged_solver_methods": [
+      "__init__",
+      "_finite_difference_gradient",
+      "_gradient_descent",
+      "_optimize",
+      "_result",
+      "evaluate_cost",
+      "solve",
+      "solve_single_target"
+    ],
+    "changes": "C4 regression cases and independent square-prism mode validation; no solver or optimizer changes"
+  }
 }

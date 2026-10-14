@@ -1,4 +1,4 @@
-"""Finite D2 box hypotheses and collision checks against one fixed true box.
+"""Finite upright C4 box hypotheses and checks against one fixed true box.
 
 The native transform law keeps all orientation components. True geometry is
 specified independently of a component chosen for display or IK evaluation.
@@ -20,7 +20,7 @@ from symaware_grasp.grasp_collision import BottleCollisionModel
 from symaware_grasp.grasp_trial import gripper_joint_position
 
 
-BOX_DIMENSIONS = (0.100, 0.080, 0.180)
+BOX_DIMENSIONS = (0.100, 0.100, 0.180)
 BOX_POSITION = (0.78, -0.12, 0.46)
 BOX_YAW_DEG = 67.5
 BOX_CONCENTRATION = 5000.0
@@ -45,9 +45,17 @@ def _rotation(values, name):
 
 
 def box_symmetry_quaternions(reference_wxyz):
-    """Return identity and the three body-axis half turns, in wxyz order."""
+    """Return the four upright body-z quarter turns of a square box, in wxyz.
+
+    Each mode keeps z upward and points its x axis toward one side normal.
+    The quaternion modes are distinct rotations; they need not be orthogonal.
+    """
     reference = quat_normalize(reference_wxyz)
-    return np.asarray([quat_mul(reference, symmetry) for symmetry in np.eye(4)], dtype=float)
+    rotation = _rotation(quat_to_rotmat(reference), "reference rotation")
+    if not np.allclose(rotation[:, 2], [0.0, 0.0, 1.0], rtol=0.0, atol=1e-9):
+        raise ValueError("box reference z axis must point upward")
+    return np.asarray([quat_mul(reference, rpy_to_quat(0.0, 0.0, index * math.pi / 2.0))
+                       for index in range(4)], dtype=float)
 
 
 def box_mode_quaternions(yaw_degrees=BOX_YAW_DEG):
@@ -74,13 +82,18 @@ def make_box_record(
 ):
     """Construct one native law, with four equal finite components or one mode.
 
-    Dimensions describe the fixed physical box; they are not used to replace
-    the mixture with a representative transform. All modes share its center.
+    The box has a square base, a greater height and an upward z axis. All
+    modes share its center and preserve its physical corners; the complete
+    mixture remains independent of the fixed geometry used for rendering.
     """
     if distribution not in ("mixture", "single_pose"):
         raise ValueError("distribution must be mixture or single_pose")
     position = _vector(position, "position")
     dimensions = _vector(dimensions, "dimensions", positive=True)
+    if not np.isclose(dimensions[0], dimensions[1], rtol=0.0, atol=1e-12):
+        raise ValueError("box orientation law requires a square base")
+    if dimensions[2] <= max(dimensions[:2]):
+        raise ValueError("box orientation law requires a height greater than its base side")
     rpy = _vector(mode_rpy_deg, "mode_rpy_deg")
     concentration = float(concentration)
     if not math.isfinite(concentration) or concentration <= 0.0:
@@ -92,7 +105,7 @@ def make_box_record(
         modes = modes[:1]
     approximation = ApproximationInfo(
         kind=ApproximationKind.PRODUCER_SUPPLIED,
-        detail="Configured finite box orientation candidates; D2 body-axis half turns preserve the fixed box dimensions {} m.".format(tuple(dimensions)),
+        detail="Configured finite upright box orientation candidates; C4 body-z quarter turns preserve the fixed square box dimensions {} m.".format(tuple(dimensions)),
         source="box_pose_node",
     )
     records = []
@@ -103,7 +116,7 @@ def make_box_record(
             position_mean=position, position_covariance=covariance,
             orientation_parameter=axially_symmetric_bingham_parameter(mode, (0.0, 0.0, 1.0), (concentration,) * 3),
             orientation_reference_wxyz=mode,
-            source_id="configured_box_pose", component_id="{}:D2:{}".format(child_frame_id, index),
+            source_id="configured_box_pose", component_id="{}:C4:{}".format(child_frame_id, index),
             approximation=approximation,
         ))
     first = records[0]

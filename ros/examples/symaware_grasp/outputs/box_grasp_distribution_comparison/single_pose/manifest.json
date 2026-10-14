@@ -1,10 +1,10 @@
 {
-  "created_utc": "2026-10-13T14:43:28.772747+00:00",
+  "created_utc": "2026-10-14T01:49:56.975830+00:00",
   "completed": true,
   "closed_opening_m": 0.106,
   "open_opening_m": 0.185,
   "approach_distance_m": 0.12,
-  "ros_master_uri": "http://127.0.0.1:11981",
+  "ros_master_uri": "http://127.0.0.1:11982",
   "model": "animated_gripper.urdf",
   "model_sha256": "861449b07abcf7c8ecd90f79f8a7dce4111f42ced677d4c3dad44ca5bbf5d060",
   "video": {
@@ -31,7 +31,7 @@
     "width": 2456,
     "height": 860,
     "fps": 20,
-    "capture_command_start_stamp": 1791902610.6539676,
+    "capture_command_start_stamp": 1791942598.814397,
     "synchronization": "single X11 frame split into both views before encoding"
   },
   "common_module_sha256": {
@@ -40,6 +40,11 @@
     "symmetry_aware_ik.py": "5e3349f0975392eb6e09d82fce1483b1612666c30d3a094c21be7993c8bd63d5",
     "grasp_targets.py": "3a9f4325dca847408437867198075088d06d78db3de34f50e137fc7c3730d3de"
   },
+  "common_script_sha256": {
+    "arm_joint_state_controller.py": "98e1a2951b1c31347372dfd433e973ef54fde8c66b6f6feaf25d28ab119b848d",
+    "symmetry_aware_ik_node.py": "bbf1990241fa6a068330ec144c776de03e1d68347e82ad2f2d270133dce9f853",
+    "run_bottle_grasp_demo.py": "8da2ee4a839ee37bd9688507b951f8caeb979ba623aa95d909cd59b7b247e578"
+  },
   "mode": "kinematic grasp animation; no contact dynamics",
   "distribution": "single_pose",
   "object_yaw_pi": "3/8",
@@ -47,7 +52,7 @@
   "physical_box": {
     "size": [
       0.1,
-      0.08,
+      0.1,
       0.18
     ],
     "position": [
@@ -83,6 +88,7 @@
   ],
   "bingham_components": [
     {
+      "component_id": "demo_box:C4:0",
       "weight": 1.0,
       "quaternion_wxyz": [
         0.8314696123025452,
@@ -92,10 +98,10 @@
       ],
       "parameter_matrix": [
         [
-          -1543.2914190872755,
+          -1543.2914190872752,
           0.0,
           0.0,
-          2309.6988312782164
+          2309.698831278217
         ],
         [
           0.0,
@@ -110,16 +116,16 @@
           0.0
         ],
         [
-          2309.6988312782164,
+          2309.698831278217,
           0.0,
           0.0,
           -3456.7085809127248
         ]
       ],
       "concentrations": [
-        5000,
-        5000,
-        5000
+        5000.0,
+        5000.0,
+        5000.0
       ]
     }
   ],
@@ -127,15 +133,23 @@
   "orientation_objective": "negative log-sum-exp of normalized mixture density",
   "collision_check": "URDF collision boxes (cylinders conservatively boxed) against a fixed exact cuboid; 15 SAT axes",
   "minimum_required_clearance_mm": 0.5,
-  "start_stamp": 1791902611.1651778,
-  "ik_solve_observed_s": 1.7077353280037642,
+  "publisher_parameters_verified": true,
+  "publisher_components_source": "/object_pose_node/components",
+  "axis_lengths_m": [
+    0.18,
+    0.12,
+    0.18
+  ],
+  "orientation_mode_group": "C4 about the upward object z axis",
+  "start_stamp": 1791942599.3272467,
+  "ik_solve_observed_s": 1.710109578911215,
   "path_clearance": {
     "transfer": {
-      "clearance_lower_bound_mm": 5.588855383267144,
+      "clearance_lower_bound_mm": 2.1816313194639587,
       "closest_pair": "tool0:gripper_palm_collision / box"
     },
     "approach": {
-      "clearance_lower_bound_mm": 19.942577109942057,
+      "clearance_lower_bound_mm": 19.934571626836235,
       "closest_pair": "tool0:gripper_palm_collision / box"
     }
   },
@@ -375,7 +389,7 @@
       1.703037987329414
     ]
   ],
-  "end_stamp": 1791902633.4522002,
+  "end_stamp": 1791942621.6230288,
   "video_probe": {
     "oblique": {
       "programs": [],
@@ -385,11 +399,11 @@
           "width": 1168,
           "height": 860,
           "avg_frame_rate": "20/1",
-          "nb_read_frames": "455"
+          "nb_read_frames": "456"
         }
       ],
       "format": {
-        "duration": "22.750000"
+        "duration": "22.800000"
       }
     },
     "top": {
@@ -400,11 +414,11 @@
           "width": 1168,
           "height": 860,
           "avg_frame_rate": "20/1",
-          "nb_read_frames": "455"
+          "nb_read_frames": "456"
         }
       ],
       "format": {
-        "duration": "22.750000"
+        "duration": "22.800000"
       }
     },
     "side_by_side": {
@@ -415,11 +429,11 @@
           "width": 2336,
           "height": 860,
           "avg_frame_rate": "20/1",
-          "nb_read_frames": "455"
+          "nb_read_frames": "456"
         }
       ],
       "format": {
-        "duration": "22.750000"
+        "duration": "22.800000"
       }
     }
   }

@@ -61,7 +61,7 @@ class PublisherManifestChecks(unittest.TestCase):
         self.assertTrue(manifest['publisher_parameters_verified'])
 
     def test_mismatched_physical_box_or_distribution_is_rejected(self):
-        changes = [dict(dimensions=[.1, .1, .18]), dict(true_position=[.8, -.12, .46]),
+        changes = [dict(dimensions=[.1, .08, .18]), dict(true_position=[.8, -.12, .46]),
                    dict(true_quaternion_wxyz=[1., 0., 0., 0.]), dict(distribution='single_pose'),
                    dict(component_count=1), dict(concentration=100.), dict(position_covariance=[1.] * 9)]
         for change in changes:

@@ -37,9 +37,17 @@ def _record(parameters, weights=None):
     )
 
 
-def _d2_parameters(concentration):
+def _yaw_quaternion(angle):
+    return np.array([math.cos(angle / 2.0), 0.0, 0.0, math.sin(angle / 2.0)])
+
+
+def _c4_modes(reference_yaw=0.0):
+    return np.array([_yaw_quaternion(reference_yaw + index * math.pi / 2.0) for index in range(4)])
+
+
+def _c4_parameters(concentration, reference_yaw=0.0):
     return tuple(
-        concentration * (np.outer(mode, mode) - np.eye(4)) for mode in np.eye(4)
+        concentration * (np.outer(mode, mode) - np.eye(4)) for mode in _c4_modes(reference_yaw)
     )
 
 
@@ -73,30 +81,43 @@ def _axisymmetric_log_normalizer(concentration):
     )
 
 
-def test_d2_mixture_has_four_modes_and_rejects_between_mode_orientation():
+@pytest.mark.parametrize("reference_yaw", [0.0, math.radians(67.5)])
+def test_c4_mixture_has_four_modes_and_rejects_45_degree_intermediate_yaw(reference_yaw):
     concentration = 30.0
-    models = ik._component_cost_models(_record(_d2_parameters(concentration)), 80)
-    mode_costs = np.array([_orientation_cost(models, mode) for mode in np.eye(4)])
-    between = np.array([1.0, 1.0, 0.0, 0.0]) / math.sqrt(2.0)
-    between_cost = _orientation_cost(models, between)
+    models = ik._component_cost_models(_record(_c4_parameters(concentration, reference_yaw)), 80)
+    mode_costs = np.array([_orientation_cost(models, mode) for mode in _c4_modes(reference_yaw)])
+    between_costs = np.array([
+        _orientation_cost(models, _yaw_quaternion(reference_yaw + math.pi / 4.0 + index * math.pi / 2.0))
+        for index in range(4)
+    ])
 
     np.testing.assert_allclose(mode_costs, mode_costs[0], atol=1e-12)
-    expected_gap = math.log1p(3.0 * math.exp(-concentration)) - math.log(
-        2.0 * math.exp(-concentration / 2.0) + 2.0 * math.exp(-concentration)
+    np.testing.assert_allclose(between_costs, between_costs[0], atol=1e-12)
+    expected_gap = 2.0 * math.log1p(math.exp(-concentration / 2.0)) - math.log(
+        2.0 * math.exp(-concentration * math.sin(math.pi / 8.0)**2)
+        + 2.0 * math.exp(-concentration * math.cos(math.pi / 8.0)**2)
     )
-    assert between_cost - mode_costs[0] == pytest.approx(expected_gap, abs=1e-11)
-    assert between_cost - mode_costs[0] > 14.0
+    assert between_costs[0] - mode_costs[0] == pytest.approx(expected_gap, abs=1e-11)
+    assert between_costs[0] - mode_costs[0] > 3.0
 
-    # The former weighted quadratic is constant on this equal D2 mixture.
+    # Averaging leaves yaw unpenalized continuously rather than selecting four modes.
     averaged_parameter = sum(model.weight * model.orientation_parameter for model in models)
-    np.testing.assert_allclose(averaged_parameter, -0.75 * concentration * np.eye(4))
+    np.testing.assert_allclose(
+        averaged_parameter, np.diag([-0.5, -1.0, -1.0, -0.5]) * concentration,
+        rtol=0.0, atol=1e-12,
+    )
+    for yaw in np.linspace(-math.pi, math.pi, 33):
+        quaternion = _yaw_quaternion(yaw)
+        assert -float(quaternion @ averaged_parameter @ quaternion) == pytest.approx(concentration / 2.0, abs=1e-12)
+    # This C4 average is not constant outside the upright-yaw plane.
+    assert -float(np.eye(4)[1] @ averaged_parameter @ np.eye(4)[1]) == pytest.approx(concentration)
 
 
 @pytest.mark.parametrize("quaternion", [np.array([0.6, 0.8, 0.0, 0.0]), np.array([0.0, 1.0, 0.0, 0.0])])
 def test_unequal_weights_and_normalizers_match_independent_sphere_integral(quaternion):
     concentrations = [2.0, 9.0]
     weights = np.array([0.2, 0.8])
-    parameters = [_d2_parameters(concentrations[0])[0], _d2_parameters(concentrations[1])[1]]
+    parameters = [np.diag([0.0, -2.0, -2.0, -2.0]), np.diag([-9.0, 0.0, -9.0, -9.0])]
     models = ik._component_cost_models(_record(parameters, weights), 80)
     quadratics = np.array([quaternion @ parameter @ quaternion for parameter in parameters])
     normalizers = np.array([_axisymmetric_log_normalizer(value) for value in concentrations])
@@ -175,12 +196,12 @@ def test_single_component_preserves_legacy_gradient_and_optimized_solution():
 
 def test_high_concentration_cost_and_gradient_remain_finite():
     concentration = 5000.0
-    models = ik._component_cost_models(_record(_d2_parameters(concentration)), 80)
-    mode_costs = [_orientation_cost(models, mode) for mode in np.eye(4)]
-    between = np.ones(4) / 2.0
+    models = ik._component_cost_models(_record(_c4_parameters(concentration)), 80)
+    mode_costs = [_orientation_cost(models, mode) for mode in _c4_modes()]
+    between = _yaw_quaternion(math.pi / 4.0)
     between_cost = _orientation_cost(models, between)
     assert np.all(np.isfinite(mode_costs + [between_cost]))
-    assert between_cost - mode_costs[0] > 3700.0
+    assert between_cost - mode_costs[0] > 700.0
 
     # Scaled radial sphere integral is independent of the production backend.
     radial_integral, _ = quad(
@@ -200,7 +221,7 @@ def test_high_concentration_cost_and_gradient_remain_finite():
 
 
 def test_zero_weight_components_are_excluded_before_normalizer_evaluation():
-    parameter = _d2_parameters(9.0)[0]
+    parameter = _c4_parameters(9.0)[0]
     baseline = ik._component_cost_models(_record([parameter]), 80)
     # A zero-weight uniform component must not trigger finite-Bingham rejection.
     with_zero = ik._component_cost_models(_record([parameter, np.zeros((4, 4))], [2.0, 0.0]), 80)
@@ -220,13 +241,15 @@ def test_normalizers_are_cached_by_spectrum_and_not_recomputed_by_objective(monk
 
     monkeypatch.setattr(ik, "bingham_log_normalizer", tracked)
     try:
-        models = ik._component_cost_models(_record(_d2_parameters(40.0)), 80)
+        # Permuting diagonal axes gives exactly equal spectra for this cache check.
+        parameters = [40.0 * (np.outer(mode, mode) - np.eye(4)) for mode in np.eye(4)]
+        models = ik._component_cost_models(_record(parameters), 80)
         assert len(calls) == 1
         for quaternion in np.eye(4):
             _orientation_cost(models, quaternion)
-        ik._component_cost_models(_record(_d2_parameters(40.0)), 80)
+        ik._component_cost_models(_record(parameters), 80)
         assert len(calls) == 1
-        ik._component_cost_models(_record(_d2_parameters(40.0)), 60)
+        ik._component_cost_models(_record(parameters), 60)
         assert len(calls) == 2
         assert calls[0][1] == 80 and calls[1][1] == 60
     finally:

@@ -310,6 +310,11 @@ def run(args):
         parameters = rospy.get_param("/")
         (directory / "parameters.yaml").write_text(yaml.safe_dump(parameters, sort_keys=False))
         verify_publisher_parameters(manifest, parameters, grasp.object_to_grasp_orientation_wxyz)
+        display_lengths = np.asarray(parameters["object_prob_tf_visualizer"]["axis_lengths"], dtype=float)
+        if display_lengths.shape != (3,) or not np.allclose(display_lengths, [0.18, 0.12, 0.18], rtol=0, atol=1e-12):
+            raise RuntimeError("box display axes must distinguish the four x directions from overlapping y endpoints")
+        manifest["axis_lengths_m"] = display_lengths.tolist()
+        manifest["orientation_mode_group"] = "C4 about the upward object z axis"
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
         if not args.no_video:
             manifest["video"] = start_dual_capture(directory, env, processes, windows)

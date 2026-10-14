@@ -1,8 +1,8 @@
-run_id: 74426150-c714-11f1-a48d-bddb1d541ce7
+run_id: 8f163288-c771-11f1-a48d-bddb1d541ce7
 roslaunch:
   uris:
-    host_127_0_0_1__38129: http://127.0.0.1:38129/
-    host_127_0_0_1__43869: http://127.0.0.1:43869/
+    host_127_0_0_1__41237: http://127.0.0.1:41237/
+    host_127_0_0_1__45325: http://127.0.0.1:45325/
 rosversion: '1.17.0
 
   '
@@ -186,7 +186,7 @@ object_pose_node:
   - 67.5
   dimensions:
   - 0.1
-  - 0.08
+  - 0.1
   - 0.18
   object_id: demo_box
   parent_frame_id: base_link
@@ -198,7 +198,7 @@ object_pose_node:
   distribution: single_pose
   concentration: 5000.0
   components:
-  - component_id: demo_box:D2:0
+  - component_id: demo_box:C4:0
     weight: 1.0
     mode_wxyz:
     - 0.8314696123025452
@@ -241,6 +241,10 @@ prob_tf_grasp_target_node:
   probtf_static_topic: /probtf_static
   marker_axis_length: 0.1
 object_prob_tf_visualizer:
+  axis_lengths:
+  - 0.18
+  - 0.12
+  - 0.18
   input_kind: object
   input_topic: /symaware_grasp/object_belief
   cloud_topic: object_axes_cloud

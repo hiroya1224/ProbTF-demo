@@ -2,7 +2,7 @@
 
 `box_trial_analysis.py` は、記録した `experiment.bag` と `manifest.json` を読み、運動学的な到達と実際の箱との隙間を計算する。IKの費用や代表成分の表示姿勢から、把持の成功を判断しない。衝突評価にはmanifestの `physical_box` に保存した箱の寸法、位置、回転を用い、`BoxCollisionModel` と `evaluate_box_grasp` を呼び出す。URDFのハッシュがmanifestにあれば照合する。
 
-ObjectBeliefと `/symaware_grasp/grasp_targets` は、すべてのメッセージを既存のnative変換関数で復号する。候補数が1であり、ObjectBeliefと候補の成分数がmixture条件で4、single_pose条件で1であることを確かめる。各成分は正の正規化重みと有限Bingham方位を持つ必要がある。候補のモード列については、四元数の符号を同一視したうえで、manifestの `target_quaternions` と一対一に一致することを確かめる。確認したメッセージ数、成分識別子、正規化重み、モード列を `summary.json` の `native_belief_checks` に保存する。
+ObjectBeliefと `/symaware_grasp/grasp_targets` は、すべてのメッセージを既存のnative変換関数で復号する。候補数が1であり、ObjectBeliefと候補の成分数がmixture条件で4、single_pose条件で1であることを確かめる。各成分は正の正規化重みと有限Bingham方位を持つ必要がある。箱の底面が正方形で高さが底面の一辺より長いこと、全モードのz軸が上向きで共通であること、x軸が四側面の外向き法線を一つずつ覆うことを、物理箱と各native recordから独立に検査する。上下を反転するモード、二方向だけを重複したモード、対角線へ向けたモードと非正方形の旧記録は受け付けない。候補のモード列については、四元数の符号を同一視したうえで、manifestの `target_quaternions` と一対一に一致することを確かめる。確認したメッセージ数、成分識別子、正規化重み、モード列を `summary.json` の `native_belief_checks` に保存する。
 
 CSVの観測範囲は `start_stamp <= stamp <= end_stamp` とし、`finished` 段階の関節状態を除く。位置と隙間は、対象のbeliefが更新されない間も、固定した実際の箱に対して計算する。記録した観測姿勢を飛ばさず確認するため、観測範囲内で必要な関節が欠ける場合や左右の指の位置が異なる場合は解析を中止する。
 
@@ -10,4 +10,4 @@ CSVの観測範囲は `start_stamp <= stamp <= end_stamp` とし、`finished` �
 
 位置、方位、関節角、開口、手首曲げ、隙間下限、最も近い衝突部位などを `samples.csv` に保存する。`summary.json` にはIK結果、完了と到達の判定、最小隙間、native成分の検査結果を保存し、段階イベントを `events.json` に保存する。解析は接触、摩擦、把持力を評価せず、記録のない時刻の連続的な無衝突も保証しない。動作計画側の経路検証は別に保持する。
 
-実際のROSbagを生成して読む回帰テスト8件が通過した。既存の腕モデルからアニメーション用URDFを作り、native ObjectBeliefとGraspTargetArrayをbagへ記録したうえで、両条件の成分数、最後のhold区間の選択、終了後の観測の除外、成分を潰した記録や候補数の変更の拒否、位置に到達しても方位誤差がある場合の不達、隙間不足、URDFハッシュの不一致を確認した。新規テストは `tests/symaware_grasp/test_box_trial_analysis.py` に保存する。
+実際のROSbagを生成して読む検算に加え、正方形と四側面の条件に反する記録を拒否する回帰テストが通過した。既存の腕モデルからアニメーション用URDFを作り、native ObjectBeliefとGraspTargetArrayをbagへ記録したうえで、両条件の成分数、最後のhold区間の選択、終了後の観測の除外、成分を潰した記録や候補数の変更の拒否、位置に到達しても方位誤差がある場合の不達、隙間不足、URDFハッシュの不一致を確認した。新規テストは `tests/symaware_grasp/test_box_trial_analysis.py` に保存する。

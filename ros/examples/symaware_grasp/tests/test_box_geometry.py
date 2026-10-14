@@ -9,7 +9,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from probtf.distributions import DistributionStatus, OrientationKind
-from probtf.geometry import quat_to_rotmat, rpy_to_quat
+from probtf.geometry import quat_mul, quat_to_rotmat, rpy_to_quat
 from probtf.probability import sample_transform_component
 from symaware_grasp_ros import object_belief_to_msg, record_from_app_message
 
@@ -29,18 +29,42 @@ def ordered(points):
 
 
 class BoxGeometryTests(unittest.TestCase):
-    def test_d2_rotations_preserve_all_physical_corners(self):
+    def test_c4_quarter_turns_preserve_square_box_corners_and_upward_z(self):
         modes = geometry.box_mode_quaternions()
         reference = quat_to_rotmat(modes[0])
         expected = ordered(geometry.box_corners(geometry.BOX_POSITION, reference))
-        np.testing.assert_allclose(modes @ modes.T, np.eye(4), atol=1e-12)
-        for mode in modes:
+        similarities = np.abs(modes @ modes.T)
+        self.assertTrue(np.all(similarities[np.triu_indices(4, 1)] < 1 - 1e-12))
+        for index, mode in enumerate(modes):
             rotation = quat_to_rotmat(mode)
             self.assertAlmostEqual(np.linalg.det(rotation), 1.0)
+            np.testing.assert_allclose(rotation[:, 2], [0, 0, 1], atol=1e-12)
+            expected_rotation = reference @ Rotation.from_euler('z', index * 90, degrees=True).as_matrix()
+            np.testing.assert_allclose(rotation, expected_rotation, atol=1e-12)
             np.testing.assert_allclose(ordered(geometry.box_corners(geometry.BOX_POSITION, rotation)), expected, atol=1e-12)
-        # A quarter yaw turn is not a symmetry of this unequal-edge box.
-        quarter = reference @ Rotation.from_euler('z', 90, degrees=True).as_matrix()
-        self.assertFalse(np.allclose(ordered(geometry.box_corners(geometry.BOX_POSITION, quarter)), expected))
+
+    def test_each_x_axis_is_a_distinct_outward_side_normal(self):
+        modes = geometry.box_mode_quaternions()
+        reference = quat_to_rotmat(modes[0])
+        expected_normals = [reference[:, 0], reference[:, 1], -reference[:, 0], -reference[:, 1]]
+        corners = geometry.box_corners(geometry.BOX_POSITION, reference)
+        center = np.asarray(geometry.BOX_POSITION)
+        for mode, normal in zip(modes, expected_normals):
+            rotation = quat_to_rotmat(mode)
+            np.testing.assert_allclose(rotation[:, 0], normal, atol=1e-12)
+            # The outward normal intersects exactly one side face at half width.
+            projections = (corners - center) @ rotation[:, 0]
+            self.assertEqual(np.count_nonzero(np.isclose(projections, 0.05)), 4)
+            self.assertEqual(np.count_nonzero(np.isclose(projections, -0.05)), 4)
+
+    def test_upright_symmetries_form_the_c4_group(self):
+        symmetries = geometry.box_symmetry_quaternions([1, 0, 0, 0])
+        np.testing.assert_allclose(symmetries[0], [1, 0, 0, 0])
+        for left_index, left in enumerate(symmetries):
+            for right_index, right in enumerate(symmetries):
+                product = quat_mul(left, right)
+                expected = symmetries[(left_index + right_index) % 4]
+                self.assertAlmostEqual(abs(float(product @ expected)), 1.0)
 
     def test_mixture_is_four_finite_equal_weight_native_components(self):
         record = geometry.make_box_record(stamp=12.5)
@@ -48,6 +72,8 @@ class BoxGeometryTests(unittest.TestCase):
         self.assertIs(normalized.status, DistributionStatus.OK)
         self.assertEqual(len(normalized.components), 4)
         self.assertEqual(len({item.component.component_id for item in normalized.components}), 4)
+        self.assertEqual([item.component.component_id for item in normalized.components],
+                         ['demo_box:C4:{}'.format(index) for index in range(4)])
         self.assertEqual([item.weight for item in normalized.components], [0.25] * 4)
         for item, mode in zip(normalized.components, geometry.box_mode_quaternions()):
             self.assertIs(item.component.orientation.kind, OrientationKind.FINITE_BINGHAM)
@@ -137,6 +163,15 @@ class BoxGeometryTests(unittest.TestCase):
             geometry.box_box_gap([0, 0, 0], np.diag([1, 1, -1]), [0.1] * 3, [0.3, 0, 0], np.eye(3), [0.1] * 3)
         with self.assertRaises(ValueError):
             geometry.make_box_record(distribution='component_split')
+        for dimensions in ((0.1, 0.08, 0.18), (0.1, 0.1, 0.1), (0.1, 0.1, 0.08)):
+            with self.subTest(dimensions=dimensions), self.assertRaises(ValueError):
+                geometry.make_box_record(dimensions=dimensions)
+        with self.assertRaises(ValueError):
+            geometry.make_box_record(mode_rpy_deg=(180, 0, 67.5))
+        with self.assertRaises(ValueError):
+            geometry.make_box_record(mode_rpy_deg=(0, 20, 67.5))
+        with self.assertRaises(ValueError):
+            geometry.box_symmetry_quaternions(rpy_to_quat(np.pi, 0, 0))
 
     def test_grasp_diagnostics_use_discrete_modes_and_true_box_width(self):
         modes = geometry.box_mode_quaternions()
@@ -149,9 +184,9 @@ class BoxGeometryTests(unittest.TestCase):
         result = geometry.evaluate_box_grasp(np.zeros(6), 0.106, geometry.BOX_POSITION, modes, robot=robot, object_rotation=quat_to_rotmat(modes[0]))
         self.assertEqual(result['tcp_object_distance_mm'], 0.0)
         self.assertAlmostEqual(result['nearest_mode_error_deg'], 0.0)
-        self.assertAlmostEqual(result['reference_mode_error_deg'], 180.0)
-        self.assertAlmostEqual(result['jaw_axis_box_width_mm'], 80.0)
-        self.assertAlmostEqual(result['jaw_gap_mm'], 26.0)
+        self.assertAlmostEqual(result['reference_mode_error_deg'], 90.0)
+        self.assertAlmostEqual(result['jaw_axis_box_width_mm'], 100.0)
+        self.assertAlmostEqual(result['jaw_gap_mm'], 6.0)
         robot.quaternion = rpy_to_quat(0, 0, np.deg2rad(67.5 + 45))
         result = geometry.evaluate_box_grasp(np.zeros(6), 0.106, geometry.BOX_POSITION, modes, robot=robot, object_rotation=quat_to_rotmat(modes[0]))
         self.assertAlmostEqual(result['nearest_mode_error_deg'], 45.0)
@@ -189,6 +224,10 @@ class BoxGeometryTests(unittest.TestCase):
         for marker in markers:
             self.assertEqual(marker.type, node_module.Marker.CUBE)
             self.assertEqual(marker.header.frame_id, 'base_link')
+            self.assertEqual([marker.scale.x, marker.scale.y, marker.scale.z], [0.1, 0.1, 0.18])
+            np.testing.assert_allclose(quat_to_rotmat([marker.pose.orientation.w, marker.pose.orientation.x,
+                                                      marker.pose.orientation.y, marker.pose.orientation.z])[:, 2],
+                                       [0, 0, 1], atol=1e-12)
         self.assertEqual(markers[0].pose, markers[1].pose)
         self.assertEqual(markers[0].scale, markers[1].scale)
         self.assertEqual(markers[0].color, markers[1].color)

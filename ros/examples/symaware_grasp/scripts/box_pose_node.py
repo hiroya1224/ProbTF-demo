@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish a complete D2 box law and an independently fixed true box marker."""
+"""Publish an upright C4 square-box law and a fixed true-box marker."""
 import math
 
 import numpy as np

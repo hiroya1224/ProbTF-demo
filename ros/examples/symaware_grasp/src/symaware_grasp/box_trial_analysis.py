@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from probtf.distributions import DistributionStatus, OrientationKind
+from probtf.geometry import quat_to_rotmat
 from symaware_grasp.arm_kinematics import ToyArm6DOF
 from symaware_grasp.box_geometry import BoxCollisionModel, evaluate_box_grasp
 from symaware_grasp.grasp_trial import EVENT_TOPIC, GRIPPER_JOINT_NAMES, gripper_opening
@@ -42,6 +43,45 @@ def _target_mode_check(check, expected_modes):
     matches = np.argmax(similarities, axis=1)
     if len(set(matches.tolist())) != len(expected_modes) or np.any(np.max(similarities, axis=1) < 1.0 - 1e-8):
         raise ValueError("native target component modes do not match the manifest target quaternions")
+
+
+def _square_box_mode_check(dimensions, object_rotation, modes):
+    """Check upright square-prism side normals without trusting mode metadata."""
+
+    dimensions = np.asarray(dimensions, dtype=float)
+    rotation = np.asarray(object_rotation, dtype=float)
+    modes = np.asarray(modes, dtype=float)
+    if dimensions.shape != (3,) or not np.all(np.isfinite(dimensions)) or np.any(dimensions <= 0.0):
+        raise ValueError("physical_box size must contain three positive finite dimensions")
+    if not np.isclose(dimensions[0], dimensions[1], rtol=0.0, atol=1e-9) or dimensions[2] <= dimensions[0]:
+        raise ValueError("box comparison requires a square footprint and a longer vertical dimension")
+    if rotation.shape != (3, 3) or not np.all(np.isfinite(rotation)):
+        raise ValueError("physical_box rotation must be a finite proper rotation")
+    if not np.allclose(rotation.T @ rotation, np.eye(3), rtol=0.0, atol=1e-8) or not np.isclose(np.linalg.det(rotation), 1.0, rtol=0.0, atol=1e-8):
+        raise ValueError("physical_box rotation must be a finite proper rotation")
+    if not np.allclose(rotation[:, 2], [0.0, 0.0, 1.0], rtol=0.0, atol=1e-8):
+        raise ValueError("the physical box must have an upward z axis")
+    if modes.ndim != 2 or modes.shape[1] != 4 or len(modes) not in (1, 4) or not np.all(np.isfinite(modes)):
+        raise ValueError("box modes must contain one or four finite wxyz quaternions")
+    if not np.allclose(np.linalg.norm(modes, axis=1), 1.0, rtol=0.0, atol=1e-8):
+        raise ValueError("box modes must be unit quaternions")
+    mode_rotations = np.asarray([quat_to_rotmat(mode) for mode in modes])
+    if not np.allclose(mode_rotations[:, :, 2], rotation[:, 2], rtol=0.0, atol=1e-8):
+        raise ValueError("all box target modes must preserve the same upward z axis")
+    outward_normals = np.array([rotation[:, 0], rotation[:, 1], -rotation[:, 0], -rotation[:, 1]])
+    similarities = mode_rotations[:, :, 0] @ outward_normals.T
+    matches = np.argmax(similarities, axis=1)
+    if np.any(np.max(similarities, axis=1) < 1.0 - 1e-8):
+        raise ValueError("target x axes must be outward normals of square-box lateral faces")
+    if len(modes) == 4 and set(matches.tolist()) != {0, 1, 2, 3}:
+        raise ValueError("four C4 modes must cover all four distinct lateral face normals")
+    if len(modes) == 1 and matches[0] != 0:
+        raise ValueError("the single box mode must use the reference face normal")
+    return {
+        "square_footprint": True, "long_vertical_dimension": True,
+        "common_upward_z": True, "mode_x_face_indices": matches.tolist(),
+        "mode_count": len(modes), "selected_group": "C4" if len(modes) == 4 else "single_reference",
+    }
 
 
 def analyze_box_trial(directory, output=None):
@@ -80,6 +120,7 @@ def analyze_box_trial(directory, output=None):
     dimensions = np.asarray(physical["size"], dtype=float)
     position = np.asarray(physical["position"], dtype=float)
     rotation = np.asarray(physical["rotation"], dtype=float)
+    square_geometry = _square_box_mode_check(dimensions, rotation, expected_modes)
     model = directory / manifest["model"]
     model_digest = hashlib.sha256(model.read_bytes()).hexdigest()
     if "model_sha256" in manifest and model_digest != manifest["model_sha256"]:
@@ -106,6 +147,7 @@ def analyze_box_trial(directory, output=None):
                 stage = event["stage"]
             elif topic == OBJECT_TOPIC:
                 object_check = _component_check(record_from_app_message(message), expected_count, "object belief")
+                _square_box_mode_check(dimensions, rotation, object_check["mode_quaternions_wxyz"])
                 object_messages += 1
             elif topic == TARGET_TOPIC:
                 if len(message.targets) != 1:
@@ -181,6 +223,7 @@ def analyze_box_trial(directory, output=None):
         "collision_free": bool(collision_free), "minimum_required_clearance_mm": minimum_required,
         "distribution": distribution, "object_yaw_pi": manifest.get("object_yaw_pi"),
         "physical_box": physical, "model_sha256": model_digest,
+        "square_box_mode_check": square_geometry,
         "native_belief_checks": {
             "object": object_check, "grasp_candidate": target_check,
             "object_messages_checked": object_messages, "target_messages_checked": target_messages,

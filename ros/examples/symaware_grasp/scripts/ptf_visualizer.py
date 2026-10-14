@@ -28,6 +28,11 @@ _INPUT_TYPES = {
 class ProbTfV2Visualizer:
     def __init__(self):
         self.axis_length = float(rospy.get_param("~axis_length", 0.18))
+        self.axis_lengths = np.asarray(
+            rospy.get_param("~axis_lengths", [self.axis_length] * 3), dtype=float
+        )
+        if self.axis_lengths.shape != (3,) or not np.all(np.isfinite(self.axis_lengths)) or np.any(self.axis_lengths <= 0.0):
+            raise ValueError("axis_lengths must contain three finite positive display lengths.")
         self.sample_count = int(rospy.get_param("~sample_count", 300))
         if self.sample_count < 1:
             raise ValueError("sample_count must be positive.")
@@ -125,7 +130,7 @@ class ProbTfV2Visualizer:
         cloud_points = []
         for axis_index, color in enumerate(self.axis_colors):
             local_points = np.zeros((self.sample_count, 3), dtype=float)
-            local_points[:, axis_index] = self.axis_length
+            local_points[:, axis_index] = self.axis_lengths[axis_index]
             endpoints = apply_transform_samples(samples, local_points)
             cloud_points.extend(
                 [float(point[0]), float(point[1]), float(point[2]), color]
@@ -187,7 +192,7 @@ class ProbTfV2Visualizer:
             origin = component.conditional_translation_mean(quaternion)
             rotation = quat_to_rotmat(quaternion)
             for axis_index, base_color in enumerate(colors):
-                endpoint = origin + self.axis_length * rotation[:, axis_index]
+                endpoint = origin + self.axis_lengths[axis_index] * rotation[:, axis_index]
                 color = ColorRGBA(
                     r=base_color.r,
                     g=base_color.g,

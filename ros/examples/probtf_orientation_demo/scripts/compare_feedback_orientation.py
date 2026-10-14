@@ -26,7 +26,7 @@ CASE_LABELS = ('角速度の時間発展のみ',
                'すべての情報（加速度と地磁気は予測に使わない）',
                'すべての情報（加速度のみ予測に使う）',
                'すべての情報（加速度も地磁気も予測に使う）')
-CASE_COLORS = ('#1565C0','#7B1FA2','#008C45','#E5A000','#E00076','#D84315')
+CASE_COLORS = ('#0064B0','#14A6C9','#008C46','#B69D00','#7A3DB8','#C23B22')
 CASE_STYLES = ('-','--','-','--','-.','-')
 # Rows: acceleration/magnetic evidence in the output, then in the next prior.
 COEFFICIENTS = np.array(((0,0,0,0),(1,0,0,0),(1,0,1,0),
@@ -36,7 +36,10 @@ CASE_GROUPS = (0,0,1,0,1,2)
 ALL_CASES = (3,4,5)
 MADGWICK_LABEL = 'Madgwick フィルタ（9軸）'
 MADGWICK_COLOR = '#000000'
-LINE_WIDTH = 1.25
+LINE_WIDTH = 1.35
+CASE_MARKERS = ('o', 's', '^', 'D', 'v', 'P')
+MARKER_INTERVAL_SECONDS = 3.0
+DASH_PATTERNS = {'--': (14., 7.), '-.': (14., 5., 2., 5.), ':': (1.2, 3.3)}
 COORDINATE_COLORS = ('#D84315','#008C45','#1565C0')
 EXPERIMENT_START_STAMP = original.EXPERIMENT_START_STAMP
 
@@ -109,46 +112,70 @@ def display_rpy(modes, reference_rpy):
                     for i in range(modes.shape[1])],axis=1)
     return rpy+360*np.round((reference_rpy[:,None]-rpy)/360)
 
-def plot_errors(arrays, output, labels, colors, styles, prefix):
+def configure_plotting():
     plt = original.configure_matplotlib()
-    plt.rcParams.update({'font.size':12})
+    import scienceplots
+    plt.style.use(['science', 'no-latex'])
+    plt.rcParams.update({'font.family': ['IPAexGothic', 'DejaVu Serif'], 'font.size': 12,
+        'text.color': 'black', 'axes.labelcolor': 'black', 'xtick.color': 'black',
+        'ytick.color': 'black', 'axes.spines.top': True, 'axes.spines.right': True,
+        'axes.unicode_minus': False, 'pdf.fonttype': 42, 'svg.fonttype': 'none'})
+    return plt
+
+
+def plot_condition(axis, times, values, index, color, style, marker, label):
+    # Keep every value in the line. Markers select original samples only.
+    marker_times = np.arange(.5*(index+1), times[-1], MARKER_INTERVAL_SECONDS)
+    marker_indices = np.searchsorted(times, marker_times).tolist()
+    line, = axis.plot(times, values, color=color, ls=style, lw=LINE_WIDTH,
+        marker=marker, markevery=marker_indices, markersize=4.5,
+        markerfacecolor='white', markeredgewidth=.95, label=label)
+    if style in DASH_PATTERNS:
+        line.set_dashes(DASH_PATTERNS[style])
+    return line
+
+
+def plot_errors(arrays, output, labels, colors, styles, prefix):
+    plt = configure_plotting()
+    markers = CASE_MARKERS[3:]+('*',) if prefix == 'method_comparison' else CASE_MARKERS
     figure,axes = plt.subplots(4,1,sharex=True,figsize=(8.1,9.4))
     for component,axis in enumerate(axes):
         values = arrays['rpy_error_deg'][:,:,component] if component < 3 else arrays['error_deg']
         for case,label in enumerate(labels):
-            axis.plot(arrays['time_seconds'],values[:,case],color=colors[case],ls=styles[case],lw=LINE_WIDTH,label=label)
-        axis.set_ylabel(('ロール誤差','ピッチ誤差','ヨー誤差','3軸の合成誤差')[component]+' / deg',
-            color=COORDINATE_COLORS[component] if component < 3 else '#222222')
+            phase = CASE_LABELS.index(label) if label in CASE_LABELS else len(CASE_LABELS)
+            plot_condition(axis,arrays['time_seconds'],values[:,case],phase,
+                colors[case],styles[case],markers[case],label)
+        axis.set_ylabel(('ロール誤差','ピッチ誤差','ヨー誤差','3軸の合成誤差')[component]+' [deg]')
         axis.set_xlim(arrays['time_seconds'][0],arrays['time_seconds'][-1])
         axis.set_ylim(bottom=0)
-        axis.grid(alpha=.22)
-    axes[0].legend(ncol=1,loc='lower left',bbox_to_anchor=(0,1.02),frameon=False,fontsize=11.5)
-    axes[-1].set_xlabel('経過時間 / s')
+        axis.grid(alpha=.18)
+    axes[0].legend(ncol=1,loc='lower left',bbox_to_anchor=(0,1.02),frameon=False,
+        fontsize=11.5,handlelength=4.3,numpoints=1)
+    axes[-1].set_xlabel('経過時間 [s]')
     figure.tight_layout()
     original.save_figure(figure,output,prefix)
     plt.close(figure)
 
+
 def plot_orientation(arrays, output):
-    plt = original.configure_matplotlib()
-    plt.rcParams.update({'font.size':12})
-    for name, values, truth, components in [
-        ('rpy',arrays['rpy_deg'],arrays['mocap_rpy_deg'],('roll','pitch','yaw')),
-        ('quaternion',arrays['mode_wxyz'],arrays['mocap_wxyz'],('w','x','y','z'))]:
-        figure,axes = plt.subplots(len(components),1,sharex=True,figsize=(8.1,7.6 if name=='rpy' else 9.2))
-        for component,axis in enumerate(axes):
-            for case,label in enumerate(CASE_LABELS):
-                axis.plot(arrays['time_seconds'],values[:,case,component],color=CASE_COLORS[case],
-                          ls=CASE_STYLES[case],lw=LINE_WIDTH,label=label)
-            axis.plot(arrays['time_seconds'],truth[:,component],color='#222222',ls=':',lw=1.,label=original.REFERENCE_LABEL)
-            axis.set_ylabel(components[component]+(' / deg' if name=='rpy' else ''),
-                color=COORDINATE_COLORS[component] if name=='rpy' else ('#222222' if component==0 else COORDINATE_COLORS[component-1]))
-            axis.set_xlim(arrays['time_seconds'][0],arrays['time_seconds'][-1])
-            axis.grid(alpha=.22)
-        axes[0].legend(ncol=1,loc='lower left',bbox_to_anchor=(0,1.02),frameon=False,fontsize=11.5)
-        axes[-1].set_xlabel('経過時間 / s')
-        figure.tight_layout()
-        original.save_figure(figure,output,name)
-        plt.close(figure)
+    plt = configure_plotting()
+    figure,axes = plt.subplots(3,1,sharex=True,figsize=(8.1,7.6))
+    for component,axis in enumerate(axes):
+        for case,label in enumerate(CASE_LABELS):
+            plot_condition(axis,arrays['time_seconds'],arrays['rpy_deg'][:,case,component],case,
+                CASE_COLORS[case],CASE_STYLES[case],CASE_MARKERS[case],label)
+        axis.plot(arrays['time_seconds'],arrays['mocap_rpy_deg'][:,component],
+            color='#333333',ls=':',lw=1.,label=original.REFERENCE_LABEL)
+        axis.set_ylabel(('roll','pitch','yaw')[component]+' [deg]')
+        axis.set_xlim(arrays['time_seconds'][0],arrays['time_seconds'][-1])
+        axis.grid(alpha=.18)
+    axes[0].legend(ncol=1,loc='lower left',bbox_to_anchor=(0,1.02),frameon=False,
+        fontsize=11.5,handlelength=4.3,numpoints=1)
+    axes[-1].set_xlabel('経過時間 [s]')
+    figure.tight_layout()
+    original.save_figure(figure,output,'rpy')
+    plt.close(figure)
+
 
 def read_measurements(path):
     import rosbag
@@ -197,8 +224,7 @@ def prepare_measurements(imu,mocap,duration=None):
 
 
 def plot_raw_measurements(arrays,output):
-    plt = original.configure_matplotlib()
-    plt.rcParams.update({'font.size':12})
+    plt = configure_plotting()
     records = [('position',arrays['position_time_seconds'],arrays['position_m'],'m'),
         ('gyro',arrays['time_seconds'],arrays['gyro_rad_s'],'rad/s'),
         ('acc',arrays['time_seconds'],arrays['acceleration_m_s2'],'m/s²'),
@@ -208,14 +234,14 @@ def plot_raw_measurements(arrays,output):
         figure,axes = plt.subplots(1,3,figsize=(11.4,2.45),sharex=True,sharey=name=='acc')
         for component,axis in enumerate(axes):
             axis.plot(times,values[:,component],color=COORDINATE_COLORS[component],lw=LINE_WIDTH)
-            axis.set_ylabel(('x','y','z')[component]+' / '+unit,color=COORDINATE_COLORS[component])
+            axis.set_ylabel(('x','y','z')[component]+' ['+unit+']')
             axis.set_xlim(0,arrays['time_seconds'][-1])
             axis.grid(alpha=.22)
         if name == 'acc':
             lower = min(0.,float(values[values <= 12.].min()))
             for axis in axes:
                 axis.set_ylim(lower,12.)
-        figure.supxlabel('経過時間 / s',fontsize=12)
+        figure.supxlabel('経過時間 [s]',fontsize=12)
         figure.tight_layout()
         original.save_figure(figure,output,name)
         limits[name] = [list(axis.get_ylim()) for axis in axes]
@@ -277,7 +303,10 @@ def main():
         inference_script_sha256=inference_sha,plot_script_sha256=script_sha,
         source_helpers_sha256={name:hashlib.sha256((HERE/name).read_bytes()).hexdigest()
                               for name in ('compare_rolling_bag.py','compare_madgwick_rolling.py')},
-        plot_colors=dict(zip(CASE_IDS,CASE_COLORS)),plot_styles=dict(zip(CASE_IDS,CASE_STYLES)),plot_linewidth=LINE_WIDTH,coordinate_colors=dict(zip(('x','y','z'),COORDINATE_COLORS)))
+        plot_colors=dict(zip(CASE_IDS,CASE_COLORS)),plot_styles=dict(zip(CASE_IDS,CASE_STYLES)),
+        plot_markers=dict(zip(CASE_IDS,CASE_MARKERS)),marker_interval_seconds=MARKER_INTERVAL_SECONDS,
+        plot_dash_patterns=DASH_PATTERNS,plot_style=['science','no-latex'],axis_label_color='black',unit_format='square brackets',
+        plot_linewidth=LINE_WIDTH,coordinate_colors=dict(zip(('x','y','z'),COORDINATE_COLORS)))
     plot_orientation(arrays,args.output)
     plot_errors(arrays,args.output,CASE_LABELS,CASE_COLORS,CASE_STYLES,'axis_errors')
     metadata['raw_plot_limits'] = plot_raw_measurements(arrays,args.output)
@@ -285,7 +314,10 @@ def main():
     comparison_metadata.update(inference_script_sha256=inference_sha,plot_script_sha256=script_sha,
         coordinate_colors=dict(zip(('x','y','z'),COORDINATE_COLORS)),case_labels=dict(zip([CASE_IDS[i] for i in ALL_CASES]+['madgwick_marg'],labels)),
         plot_colors=dict(zip([CASE_IDS[i] for i in ALL_CASES]+['madgwick_marg'],colors)),
-        plot_styles=dict(zip([CASE_IDS[i] for i in ALL_CASES]+['madgwick_marg'],styles)))
+        plot_styles=dict(zip([CASE_IDS[i] for i in ALL_CASES]+['madgwick_marg'],styles)),
+        plot_markers=dict(zip([CASE_IDS[i] for i in ALL_CASES]+['madgwick_marg'],CASE_MARKERS[3:]+('*',))),
+        plot_linewidth=LINE_WIDTH,plot_dash_patterns=DASH_PATTERNS,plot_style=['science','no-latex'],
+        axis_label_color='black',unit_format='square brackets')
     plot_errors(comparison,paired,labels,colors,styles,'method_comparison')
     for dest,values,report in ((args.output,arrays,metadata),(paired,comparison,comparison_metadata)):
         np.savez_compressed(dest/'timeseries.npz',**values)

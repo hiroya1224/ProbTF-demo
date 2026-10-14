@@ -42,16 +42,18 @@
 ## 表示
 
 - [6条件の誤差](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/axis_errors.pdf)、[全情報3条件とMadgwick フィルタ](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/madgwick_comparison/method_comparison.pdf)。
-- [ロール・ピッチ・ヨー](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/rpy.pdf)、[四元数](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/quaternion.pdf)。
+- [ロール・ピッチ・ヨー](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/rpy.pdf)。
 - [位置](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/position.pdf)、[角速度](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/gyro.pdf)、[加速度](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/acc.pdf)、[地磁気](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/mag.pdf)。
 - [Bingham分布の6条件の比較動画](outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/bingham_comparison.mp4)。
 - [設定・時系列・使用コード](../../../docs/reports/orientation-six-feedback_2026-10-15.md)。
 
-Madgwick フィルタは名称を省略せず黒色にした。6条件は青・紫・緑・黄橙・赤紫・朱色を使い、実線・破線・一点鎖線の対応を保つ。線幅は1.25ポイントとした。
+Madgwick フィルタは名称を省略せず黒色にした。6条件は青・水色・緑・黄・紫・赤を使い、実線・破線・一点鎖線の対応を保つ。線幅は1.35ポイント、破線は14:7、一点鎖線は14:5:2:5の長さにした。丸・四角・上向き三角・菱形・下向き三角・十字のマーカーを3 [s]間隔で実際の標本に付け、条件ごとに開始時刻をずらした。Madgwick フィルタは黒点線と星形を使う。全標本を描画し、推定値や誤差には平滑化・間引きを加えない。
 
-論文全体で座標成分の色はx＝赤、y＝緑、z＝青とする。4つの取得値の図は3成分を横に並べて高さを抑え、各線とラベルにこの色を使う。手法比較の図では曲線の色が条件を示し、座標成分の軸ラベルを赤・緑・青にする。四元数のwと合成誤差のラベルは黒色である。加速度の縦軸上限は12 m/s²で、保存値と方位推定への入力は変更しない。位置はworld座標系、他の3図はセンサ座標系の取得値であり、正規化や平滑化を表示値へ加えない。
+論文全体で座標成分の色はx＝赤、y＝緑、z＝青とする。4つの取得値の図は3成分を横に並べて高さを抑え、曲線にこの色を使う。手法比較の曲線の色は条件を示す。グラフのラベル・目盛文字・凡例の文字はすべて黒色とし、単位は角括弧に囲む。加速度の縦軸上限は12 [m/s²]で、保存値と方位推定への入力は変更しない。位置はworld座標系、他の3図はセンサ座標系の取得値であり、正規化や平滑化を表示値へ加えない。
 
 ## 再生成
+
+描画には[SciencePlots](https://github.com/garrettj403/SciencePlots)の`science`と`no-latex`を使用した。日本語の表示にはIPAexGothicを使う。生値の図も同じスタイルで描き、四元数の成分図は出力しない。
 
 ProbTF-demoのルートで次を実行する。
 
@@ -61,7 +63,7 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/
   --output ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions
 ```
 
-`--duration 0.12`は短い実行、`--render-only`は保存済みの推定値から図を再描画する指定である。出力は8図のPDF/SVG/PNG、6条件と比較4系列の集計・時系列である。読み込み、予測、Madgwick フィルタの演算と使用コードはこの出力に対応させた。
+`--duration 0.12`は短い実行、`--render-only`は保存済みの推定値から図を再描画する指定である。出力は7図のPDF/SVG/PNG、6条件と比較4系列の集計・時系列である。読み込み、予測、Madgwick フィルタの演算と使用コードはこの出力に対応させた。
 
 動画は同じ6条件の分布行列とモードを用い、既存のSO(3)ビジュアライザで軸端点の点群を描く。各球面にモーションキャプチャの方位を黒破線で重ね、下段には6条件の合成誤差と現在時刻を表示する。4フレーム/秒、各分布180標本で生成する。
 

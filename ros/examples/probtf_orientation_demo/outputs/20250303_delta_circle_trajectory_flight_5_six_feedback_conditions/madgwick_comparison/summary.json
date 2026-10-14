@@ -202,15 +202,15 @@
   },
   "prediction_convention": "right-end angular velocity; retained Bingham distribution; all measurement samples",
   "inference_script_sha256": "0c20784c4627115c4ad624b7c395e5068842a8e642219e25b99e996819b07371",
-  "plot_script_sha256": "47f1d246eaf8d0d441febe73b47a65ac51f6427ef27449bab40c905ed3c76a7e",
+  "plot_script_sha256": "ac201078ef90dd71f7a8041fed4400433f74cd8975d01a90da5a1007bb3eb830",
   "source_helpers_sha256": {
     "compare_rolling_bag.py": "0540af9bbad1a666b85be5b9dcd96c9e6d050d6a652dcb9d4cbd6186fdee08f8",
     "compare_madgwick_rolling.py": "2a470241ba49037e441cf95d8961ded2e79132906c9d761149744ad1d863b60a"
   },
   "plot_colors": {
-    "all_information_output": "#E5A000",
-    "all_information_acceleration_feedback": "#E00076",
-    "all_information_feedback": "#D84315",
+    "all_information_output": "#B69D00",
+    "all_information_acceleration_feedback": "#7A3DB8",
+    "all_information_feedback": "#C23B22",
     "madgwick_marg": "#000000"
   },
   "plot_styles": {
@@ -219,7 +219,7 @@
     "all_information_feedback": "-",
     "madgwick_marg": ":"
   },
-  "plot_linewidth": 1.25,
+  "plot_linewidth": 1.35,
   "raw_plot_limits": {
     "position": [
       [
@@ -283,6 +283,35 @@
     "y": "#008C45",
     "z": "#1565C0"
   },
+  "plot_markers": {
+    "all_information_output": "D",
+    "all_information_acceleration_feedback": "v",
+    "all_information_feedback": "P",
+    "madgwick_marg": "*"
+  },
+  "marker_interval_seconds": 3.0,
+  "plot_dash_patterns": {
+    "--": [
+      14.0,
+      7.0
+    ],
+    "-.": [
+      14.0,
+      5.0,
+      2.0,
+      5.0
+    ],
+    ":": [
+      1.2,
+      3.3
+    ]
+  },
+  "plot_style": [
+    "science",
+    "no-latex"
+  ],
+  "axis_label_color": "black",
+  "unit_format": "square brackets",
   "madgwick_beta": 0.1,
   "world_from_magnetic_north_heading_deg": 109.33967302577163
 }

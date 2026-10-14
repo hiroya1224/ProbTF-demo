@@ -17,7 +17,7 @@ spec.loader.exec_module(comparison)
 
 
 def render(input_directory, output, fps=4., samples=180, duration=None):
-    plt = comparison.original.configure_matplotlib()
+    plt = comparison.configure_plotting()
     sys.path.insert(0, str(comparison.original.ROOT/'third_party/BinghamNLL/src'))
     from bingham.visualize.SO3s import draw_so3s
     from mpl_toolkits.mplot3d.art3d import Path3DCollection
@@ -50,9 +50,9 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         for component, color in enumerate(comparison.COORDINATE_COLORS):
             mode.append(axis.plot([0, 0], [0, 0], [0, 0], color=color, lw=2.)[0])
             truth.append(axis.plot([0, 0], [0, 0], [0, 0], color='black', ls='--', lw=1.4)[0])
-        axis.set_title(label.replace('（', '\n（'), color=comparison.CASE_COLORS[case], fontsize=10, pad=10)
-        for setter, color in zip((axis.set_xlabel, axis.set_ylabel, axis.set_zlabel), comparison.COORDINATE_COLORS):
-            setter(('x', 'y', 'z')[comparison.COORDINATE_COLORS.index(color)], color=color)
+        axis.set_title(label.replace('（', '\n（'), fontsize=10, pad=10)
+        for setter, label in zip((axis.set_xlabel, axis.set_ylabel, axis.set_zlabel), ('x', 'y', 'z')):
+            setter(label)
         axis.set_xlim(-1.05, 1.05)
         axis.set_ylim(-1.05, 1.05)
         axis.set_zlim(-1.05, 1.05)
@@ -62,15 +62,15 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
         truth_lines.append(truth)
     timeline = figure.add_subplot(grid[2, :])
     for case, label in enumerate(comparison.CASE_LABELS):
-        timeline.plot(t, arrays['error_deg'][:, case], color=comparison.CASE_COLORS[case],
-            ls=comparison.CASE_STYLES[case], lw=comparison.LINE_WIDTH, label=label)
+        comparison.plot_condition(timeline, t, arrays['error_deg'][:, case], case,
+            comparison.CASE_COLORS[case], comparison.CASE_STYLES[case], comparison.CASE_MARKERS[case], label)
     cursor = timeline.axvline(0., color='black', lw=1.)
     timeline.set_xlim(0., t[-1])
     timeline.set_ylim(0., max(10., float(arrays['error_deg'].max())*1.05))
-    timeline.set_xlabel('経過時間 / s')
-    timeline.set_ylabel('3軸の合成誤差 / deg')
+    timeline.set_xlabel('経過時間 [s]')
+    timeline.set_ylabel('3軸の合成誤差 [deg]')
     timeline.grid(alpha=.2)
-    timeline.legend(ncol=2, loc='upper left', bbox_to_anchor=(0., -.28), fontsize=9, frameon=False)
+    timeline.legend(ncol=2, loc='upper left', bbox_to_anchor=(0., -.28), fontsize=9, frameon=False, handlelength=4.3)
     clock = figure.text(.5, .98, '', ha='center', va='top', fontsize=15)
     figure.text(.5, .947, '点群：Bingham分布の軸端点　赤・緑・青の実線：分布のモード　黒破線：モーションキャプチャ',
         ha='center', va='top', fontsize=11)
@@ -101,7 +101,7 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
                     mode_lines[case][component].set_data_3d(*np.column_stack((np.zeros(3), mode[:, component])))
                     truth_lines[case][component].set_data_3d(*np.column_stack((np.zeros(3), truth[:, component])))
             cursor.set_xdata([t[index], t[index]])
-            clock.set_text(f't = {t[index]:.2f} s')
+            clock.set_text(f't = {t[index]:.2f} [s]')
             figure.canvas.draw()
             process.stdin.write(figure.canvas.tostring_rgb())
             if frame in snapshot_frames:
@@ -118,7 +118,8 @@ def render(input_directory, output, fps=4., samples=180, duration=None):
     report = dict(frames=len(indices), fps=fps, width=width, height=height,
         displayed_start_seconds=float(t[indices[0]]), displayed_end_seconds=float(t[indices[-1]]),
         samples_per_distribution_per_frame=samples, condition_labels=comparison.CASE_LABELS,
-        coordinate_colors=summary['coordinate_colors'], mocap_reference='black dashed axes',
+        coordinate_colors=summary['coordinate_colors'], mocap_reference='black dashed axes', axis_label_color='black',
+        plot_style=['science','no-latex'], unit_format='square brackets',
         visualizer='third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s',
         input_timeseries_sha256=hashlib.sha256((input_directory/'timeseries.npz').read_bytes()).hexdigest(),
         renderer_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())

@@ -20,7 +20,13 @@
     "z": "#1565C0"
   },
   "mocap_reference": "black dashed axes",
+  "axis_label_color": "black",
+  "plot_style": [
+    "science",
+    "no-latex"
+  ],
+  "unit_format": "square brackets",
   "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
   "input_timeseries_sha256": "672099c7f641d695e91772d07c9ea20f5e21eda205e7e5795637a704dc10c736",
-  "renderer_sha256": "64e04b69dbb73404fe290e670b7670cb5ff8ee09fe5c2b62fb7c3d522df1289f"
+  "renderer_sha256": "d063f8f5b2d07b0a747f26f75084b6ceb8757a6b170bbc5944c4ed1fdc3bfb46"
 }

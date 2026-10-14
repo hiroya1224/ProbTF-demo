@@ -276,7 +276,7 @@
   "bag_path": "/home/leus/rosbags/20250310_delta_linear_rolling_1_2025-03-10-16-18-36.bag",
   "bag_size_bytes": 799855677,
   "script_sha256": "0e06503f8f25b3f5907f72e84be2f474fc0219a1f2874f2f1df17a8fa23c8bd9",
-  "evaluation_script_sha256": "81e59ed7bb01ff3f7d257c66d596e7c8943f70e3263ea694f00fd41eca7d9535",
+  "evaluation_script_sha256": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
   "evaluation_from_saved_states": true,
   "video": {
     "frames": 685,
@@ -286,6 +286,6 @@
     "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
     "samples_per_distribution_per_frame": 180
   },
-  "video_script_sha256": "81e59ed7bb01ff3f7d257c66d596e7c8943f70e3263ea694f00fd41eca7d9535",
-  "wall_seconds": 176.36888623191044
+  "video_script_sha256": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+  "wall_seconds": 181.85957756638527
 }

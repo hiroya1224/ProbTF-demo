@@ -1,0 +1,397 @@
+{
+  "checked_on": "2026-10-15",
+  "passed": true,
+  "probtf_implementation_commit": "1b9596c",
+  "dthesis_implementation_commit": "4d88a31",
+  "dthesis_integrated_commit": "9f1d24443a563b246230662d843d677ee786e85c",
+  "case_labels": {
+    "gyro_only": "角速度の時間発展のみ",
+    "gyro_acceleration": "角速度と加速度の融合",
+    "gyro_magnetic": "角速度と地磁気の融合",
+    "magnetic_acceleration": "地磁気と加速度の融合",
+    "nine_axis": "9軸の全情報の融合"
+  },
+  "statistics": {
+    "gyro_only": {
+      "rms_deg": 7.346077569587193,
+      "median_deg": 6.4903760703234195,
+      "p95_deg": 11.809580885758017,
+      "max_deg": 15.076302125636929,
+      "final_deg": 11.993503939995046,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 10.060316528079328,
+          "median_deg": 3.289731785816997,
+          "p95_deg": 7.51238062706593,
+          "max_deg": 177.5197175393714,
+          "final_deg": 0.17374055834545743
+        },
+        "pitch": {
+          "rms_deg": 6.254395041210903,
+          "median_deg": 4.542541590784779,
+          "p95_deg": 11.623751229015497,
+          "max_deg": 14.428916642028923,
+          "final_deg": 11.889991469553536
+        },
+        "yaw": {
+          "rms_deg": 9.483719876455496,
+          "median_deg": 0.38122361437346797,
+          "p95_deg": 7.783449421349827,
+          "max_deg": 179.40772756844913,
+          "final_deg": 1.5805628837749452
+        }
+      }
+    },
+    "gyro_acceleration": {
+      "rms_deg": 4.908213306555114,
+      "median_deg": 5.116677860835664,
+      "p95_deg": 6.695829943595887,
+      "max_deg": 8.933645731748895,
+      "final_deg": 3.8811827155128418,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 6.985905130685591,
+          "median_deg": 4.126041299827136,
+          "p95_deg": 6.191984132649028,
+          "max_deg": 175.367399362176,
+          "final_deg": 0.10496028084341447
+        },
+        "pitch": {
+          "rms_deg": 2.8586584186793913,
+          "median_deg": 2.975402734510695,
+          "p95_deg": 4.107240924157144,
+          "max_deg": 7.795662353783911,
+          "final_deg": 3.579783903429842
+        },
+        "yaw": {
+          "rms_deg": 5.997770681217147,
+          "median_deg": 0.5666621320064706,
+          "p95_deg": 6.080195763834376,
+          "max_deg": 176.60438319266592,
+          "final_deg": 1.4975172077371042
+        }
+      }
+    },
+    "gyro_magnetic": {
+      "rms_deg": 13.607343983305032,
+      "median_deg": 14.058893841226496,
+      "p95_deg": 17.757169894748877,
+      "max_deg": 20.146125315865657,
+      "final_deg": 11.87058452041406,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 16.022116432394547,
+          "median_deg": 13.095043061664498,
+          "p95_deg": 19.212871412743883,
+          "max_deg": 92.29118645849303,
+          "final_deg": 9.888131205895064
+        },
+        "pitch": {
+          "rms_deg": 5.0006820869606745,
+          "median_deg": 4.09558107967446,
+          "p95_deg": 7.725525174455036,
+          "max_deg": 17.982408419559704,
+          "final_deg": 4.141438344850997
+        },
+        "yaw": {
+          "rms_deg": 11.123457784377077,
+          "median_deg": 5.30507476314321,
+          "p95_deg": 12.821057330340661,
+          "max_deg": 94.53779715102085,
+          "final_deg": 4.5990681812961896
+        }
+      }
+    },
+    "magnetic_acceleration": {
+      "rms_deg": 32.82403228416912,
+      "median_deg": 31.33762831042643,
+      "p95_deg": 58.05126305398057,
+      "max_deg": 109.0009287738771,
+      "final_deg": 14.503942190100679,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 13.33765654687035,
+          "median_deg": 7.2263951806630615,
+          "p95_deg": 10.931575577632927,
+          "max_deg": 179.88147720296206,
+          "final_deg": 2.36218905624591
+        },
+        "pitch": {
+          "rms_deg": 5.831375074085958,
+          "median_deg": 1.4144520460567236,
+          "p95_deg": 15.431086604046628,
+          "max_deg": 33.555373997152685,
+          "final_deg": 0.17465069634650376
+        },
+        "yaw": {
+          "rms_deg": 31.075752995179524,
+          "median_deg": 27.88384351699517,
+          "p95_deg": 51.80792687335941,
+          "max_deg": 138.42783058404842,
+          "final_deg": 14.356806080374156
+        }
+      }
+    },
+    "nine_axis": {
+      "rms_deg": 20.390517991276614,
+      "median_deg": 20.975318981257082,
+      "p95_deg": 26.828300964118775,
+      "max_deg": 30.537466484540932,
+      "final_deg": 15.806594575785764,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 6.47910471858639,
+          "median_deg": 5.443140057526364,
+          "p95_deg": 7.527115382499065,
+          "max_deg": 57.5771755978307,
+          "final_deg": 2.937885018071796
+        },
+        "pitch": {
+          "rms_deg": 3.0014300130935427,
+          "median_deg": 2.324096913970152,
+          "p95_deg": 6.0938395570132355,
+          "max_deg": 7.495209142315275,
+          "final_deg": 2.7473135236438964
+        },
+        "yaw": {
+          "rms_deg": 18.572921569150008,
+          "median_deg": 18.58098662228913,
+          "p95_deg": 24.760869120111014,
+          "max_deg": 82.09743548468964,
+          "final_deg": 15.413743861060794
+        }
+      }
+    }
+  },
+  "evaluated_samples": 17088,
+  "duration_seconds": 85.44597482681274,
+  "numeric_validation": {
+    "preserved_inputs": {
+      "time_seconds": true,
+      "measurement_stamps": true,
+      "gyro_rad_s": true,
+      "magnetic_raw": true,
+      "mocap_wxyz": true,
+      "mocap_rpy_deg": true
+    },
+    "preserved_baselines": {
+      "gyro_only": {
+        "all_parameters_identical": true,
+        "errors_after_initial_sample_identical": true,
+        "initial_error_difference_deg": 2.1576737079537732e-15
+      },
+      "gyro_magnetic": {
+        "all_parameters_identical": true,
+        "errors_after_initial_sample_identical": true,
+        "initial_error_difference_deg": 0.0
+      }
+    },
+    "all_arrays_finite": true,
+    "samples": 17088,
+    "parameter_shape": [
+      17088,
+      5,
+      4,
+      4
+    ],
+    "residual_shape": [
+      17088,
+      4
+    ],
+    "first_60_seconds_yaw_rms_deg": [
+      0.37249023557587535,
+      0.5562484743942171,
+      5.208921523686807,
+      27.82776570097111,
+      18.065460957999868
+    ],
+    "first_60_seconds_combined_rms_deg": [
+      5.172302498866677,
+      4.774363427994452,
+      13.119492149645133,
+      30.448937857483468,
+      20.36384327060196
+    ],
+    "log_zero_counts_rpy_case_by_axis": [
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "log_zero_counts_combined_by_case": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "source_versions_match_metadata": true,
+    "plots": {
+      "rolling_axis_errors": {
+        "rows": 4,
+        "five_curves_in_requested_order": true,
+        "exact_labels": true
+      },
+      "rolling_axis_errors_semilog": {
+        "rows": 4,
+        "five_curves_in_requested_order": true,
+        "exact_labels": true
+      }
+    },
+    "axis_error_vs_displayed_rpy_max_difference_deg": 1.9895196601282805e-13
+  },
+  "propagation_case_ids": [
+    "gyro_only",
+    "gyro_acceleration",
+    "gyro_magnetic",
+    "nine_axis"
+  ],
+  "posterior_reused_as_next_prior": [
+    "gyro_acceleration",
+    "gyro_magnetic",
+    "nine_axis"
+  ],
+  "observation_only_case": "magnetic_acceleration: current gravity and magnetic evidence with a uniform prior, independently at each sample",
+  "original_inference_script_sha256": "0e06503f8f25b3f5907f72e84be2f474fc0219a1f2874f2f1df17a8fa23c8bd9",
+  "current_evaluation_and_video_script_sha256": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+  "tested_inference_unchanged_after_numeral_update": true,
+  "tests": {
+    "rolling_comparison": {
+      "passed": 9
+    },
+    "existing_orientation_filter": {
+      "passed": 11
+    },
+    "catkin_devel_entry_help": "passed"
+  },
+  "artifact_sha256": {
+    "figs/imu-orientation-filter/rolling_rpy.pdf": "fcb7c7f345862f7ca8c896f44c24d57f29c59ed7fdf36ed24063176800b58255",
+    "figs/imu-orientation-filter/rolling_rpy.svg": "ab7ff612bb1b87fbe9e2210265fdd1057532a64a954b80310578aae3cfdec760",
+    "figs/imu-orientation-filter/rolling_rpy.png": "2e2ee23f1e40c65454ab4feca0ae3beda7055b3a598a8bf70960045178c5f460",
+    "figs/imu-orientation-filter/rolling_quaternion.pdf": "23e3092b327fdab4a70fffd55c758ab007f5cc77adb2a0b065c781d93517ed7c",
+    "figs/imu-orientation-filter/rolling_quaternion.svg": "617f85d4011cd9be55958f6d61011c4f9284e361a089128ab12006becb80d444",
+    "figs/imu-orientation-filter/rolling_quaternion.png": "06042771169c3c7d18305346ec3dfa48eeef20d4d3c8f855871e2ef066f96857",
+    "figs/imu-orientation-filter/rolling_axis_errors.pdf": "e827a279916db8956ec5e165e8d4199257a29937b78dd9192cf26eaf39c5e810",
+    "figs/imu-orientation-filter/rolling_axis_errors.svg": "8a2595ecde232161a063836c45b3cedae12ccb0a95bbe5e4ae61db6cec3d78f3",
+    "figs/imu-orientation-filter/rolling_axis_errors.png": "09975089e4ef1ce74e9c721e1e4c587c71435dad496f5bf27f5631148108b8c7",
+    "figs/imu-orientation-filter/rolling_axis_errors_semilog.pdf": "4050e69164c788a3327190fcb5da6d6bce25b2377072d819ddabcecbf488e295",
+    "figs/imu-orientation-filter/rolling_axis_errors_semilog.svg": "9ec8b99768e5b0cf86cdfb0c59d2b8621d006c50dee7e1541652f3f0245d605c",
+    "figs/imu-orientation-filter/rolling_axis_errors_semilog.png": "715a895086ab0929529ab16683bb1fbfb896efab989a4ce31711e0c5864c1be1",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-five-conditions/summary.json": "8d8318f76f2fe0533013889db96b9ce90c3ac888ac185457ce1f2096dd1783b1",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-five-conditions/timeseries.npz": "d432f3f973be28c7a9f34caf8f01e484e2484ec5665b7bcb3993d452fb7d5480",
+    "medias/imu-orientation-filter/rolling_bingham_comparison.mp4": "203a8d5d30195b6bd04ed331c01398840bf49342d9b994af08ca636183534f82",
+    "medias/imu-orientation-filter/bingham_snapshot_000.png": "f072eb995001585f38640f9c91fb7493e151d4caf2d436ca75055db315700b9f",
+    "medias/imu-orientation-filter/bingham_snapshot_001.png": "45ce9171c14ae02e24b9bc15a54011c81684e823de2cc9d1699d62474642ddfa",
+    "medias/imu-orientation-filter/bingham_snapshot_002.png": "b801ba978c7213aa52b31233d99e8c3a03f728d30077ede06d514c66c5af8609",
+    "medias/imu-orientation-filter/bingham_snapshot_003.png": "24d27878f9c1bf2017fabec8bd0fb2f36337a270f16f1165ef8d2f317684989d",
+    "medias/imu-orientation-filter/bingham_snapshot_004.png": "4081d13d91919291da225544afe925e3bb12bf858923366fd1bc4a255711964b",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-five-conditions/source/compare_rolling_bag.py": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-five-conditions/source/inference_compare_rolling_bag.py": "0e06503f8f25b3f5907f72e84be2f474fc0219a1f2874f2f1df17a8fa23c8bd9",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-five-conditions/source/probtf/bingham.py": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-five-conditions/source/probtf/probability/sampling.py": "7e38344ca2c4443bc262d87dcfd3bc785e5cfd03dd0c1b9ff1e2ac39b3ac8d7b",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-five-conditions/source/probtf_estimators/orientation_imu.py": "87f21e6a777460579e0b5f0dad2bb2813a967ff0417b0ff82fef68d6da0aa109"
+  },
+  "all_synced_artifacts_identical": true,
+  "bag_path": "/home/leus/rosbags/20250310_delta_linear_rolling_1_2025-03-10-16-18-36.bag",
+  "bag_sha256": "ff523f5fe0fd65a1cad2498d3cf6076041eef1b1e1507e79253a91d15990ea13",
+  "deprecated_unchanged_sha256": "4e236055abe0609cee99698a712665f57c3eac05ca10d11765b4be0519f19c74",
+  "video": {
+    "programs": [],
+    "streams": [
+      {
+        "width": 1600,
+        "height": 1320,
+        "r_frame_rate": "8/1",
+        "nb_frames": "685"
+      }
+    ],
+    "format": {
+      "duration": "85.625000"
+    }
+  },
+  "video_full_decode": "passed with exit code 0",
+  "thesis_pdf_sha256": "19a3cba675fc6c6b82a79a47477f15b3cfb52359d768994c8c4ec8cf5d40198d",
+  "thesis_pdf_pages": 360,
+  "all_pdf_pages_portrait_and_rotation_zero": true,
+  "source_checks": {
+    "passed": true,
+    "labels": 858,
+    "citations": 75,
+    "figures": 73,
+    "reviewed_information_gaps": 28
+  },
+  "repository_layout_check": {
+    "passed": true,
+    "branch": "main",
+    "chapter_files": [
+      "chapter/1-introduction.tex",
+      "chapter/2-uncertainty-tf-background.tex",
+      "chapter/3-mathematical-foundations.tex",
+      "chapter/4-transform-law-propagation.tex",
+      "chapter/5-observation-based-transform-construction.tex",
+      "chapter/6-criterion-based-selection.tex",
+      "chapter/7-transform-law-sharing-infrastructure.tex",
+      "chapter/8-conclusion.tex",
+      "chapter/A-appendix.tex",
+      "chapter/P-publication.tex",
+      "chapter/T-thanks.tex"
+    ],
+    "root_markdown": [
+      "AGENTS.md",
+      "README.md"
+    ],
+    "root_bibliography": [
+      "references.bib"
+    ],
+    "moved_documents": 13,
+    "errors": []
+  },
+  "prose_score": 93,
+  "retained_prose_findings": [
+    "慣性計測装置 is the literal sensor name",
+    "The distinction between SO(3) angle and the norm of Euler differences is required"
+  ],
+  "visual_review": {
+    "algorithm_number": 2,
+    "algorithm_pdf_page": 164,
+    "linear_error_figure": "5.3",
+    "semilog_error_figure": "5.4",
+    "semilog_pdf_page": 169,
+    "video_panel_order": [
+      "角速度の時間発展のみ",
+      "角速度と加速度の融合",
+      "角速度と地磁気の融合",
+      "地磁気と加速度の融合",
+      "9軸の全情報の融合",
+      "モーションキャプチャ"
+    ],
+    "overlap_and_cropping": "none in the updated figures, Algorithm, and video"
+  },
+  "limits": [
+    "Fixed sensor concentrations are not calibrated or optimized against mocap.",
+    "Dynamic acceleration, magnetic calibration, axis alignment and observation time correlations have not been separately evaluated.",
+    "Coverage of the Bingham distributions has not been evaluated.",
+    "Compilation retains font/package warnings and a 6.9369pt float-size warning for an unrelated effective-joint figure."
+  ]
+}

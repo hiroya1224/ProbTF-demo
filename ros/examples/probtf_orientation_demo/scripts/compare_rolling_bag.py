@@ -389,7 +389,7 @@ def plot_results(arrays, output):
             for case in range(len(CASE_IDS)):
                 plotted = np.ma.masked_less_equal(values[:, case], 0.0) if logarithmic else values[:, case]
                 axis.plot(t, plotted, color=CASE_COLORS[case], lw=1.0, label=CASE_LABELS[case])
-            axis.set_ylabel(('ロール誤差', 'ピッチ誤差', 'ヨー誤差', '三軸の合成誤差')[component]+' / deg')
+            axis.set_ylabel(('ロール誤差', 'ピッチ誤差', 'ヨー誤差', '3軸の合成誤差')[component]+' / deg')
             if not logarithmic:
                 axis.set_ylim(bottom=0.0)
             axis.grid(alpha=0.22)
@@ -452,7 +452,7 @@ def render_video(arrays, output, fps=8.0, samples=180):
     timeline.set_xlim(0.0, t[-1])
     timeline.set_ylim(0.0, max(10.0, float(arrays['error_deg'].max())*1.05))
     timeline.set_xlabel('経過時間 / s')
-    timeline.set_ylabel('三軸の合成誤差 / deg')
+    timeline.set_ylabel('3軸の合成誤差 / deg')
     timeline.grid(alpha=.2)
     timeline.legend(ncol=len(CASE_IDS), loc='upper left', fontsize=9, frameon=False)
     clock = figure.text(.5, .985, '', ha='center', va='top', fontsize=14)

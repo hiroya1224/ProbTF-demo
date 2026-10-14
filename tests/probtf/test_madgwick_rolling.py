@@ -143,7 +143,7 @@ class MadgwickComparisonTest(unittest.TestCase):
             self.assertEqual(len(figure.axes), 4)
             for axis in figure.axes:
                 self.assertEqual([line.get_label() for line in axis.lines],
-                                 ['9軸の全情報の融合', 'Madgwick（9軸）'])
+                                 ['9軸の全情報の融合', 'Madgwick フィルタ（9軸）'])
                 self.assertEqual(len(axis.lines), 2)
                 self.assertEqual(axis.get_yscale(), 'log' if name.endswith('semilog') else 'linear')
                 lower, upper = axis.get_ylim()

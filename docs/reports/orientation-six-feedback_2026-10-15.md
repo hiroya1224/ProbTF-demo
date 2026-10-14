@@ -1,8 +1,8 @@
-# 円軌道飛行の6条件とMadgwick比較
+# 円軌道飛行の6条件とMadgwick フィルタの比較
 
-2025年3月3日の円軌道飛行について、角速度に加速度と地磁気を融合する方法と、融合結果を次時刻へ渡す方法を変えた6条件に本文5.3.3を更新した。「すべての情報」の3条件と基本形のMadgwick（9軸）の比較も、同じ4段の誤差図にまとめた。
+本文5.3.3に、2025年3月3日の円軌道飛行の6条件、全情報3条件とMadgwick フィルタの比較、位置・角速度・加速度・地磁気の時系列を載せた。表示・評価するBingham分布と次時刻へ渡す分布を分け、Algorithmにも同じ手順を記した。
 
-| 条件名 | 出力へ融合する観測 | 次時刻へ引き継ぐ観測 |
+| 条件 | 出力へ融合する観測 | 次の予測へ渡す観測 |
 | --- | --- | --- |
 | 角速度の時間発展のみ | なし | なし |
 | 角速度と加速度（加速度は予測に使わない） | 加速度 | なし |
@@ -11,54 +11,50 @@
 | すべての情報（加速度のみ予測に使う） | 加速度・地磁気 | 加速度 |
 | すべての情報（加速度も地磁気も予測に使う） | 加速度・地磁気 | 加速度・地磁気 |
 
-「予測に使う」は、観測を融合した分布を次時刻の角速度による予測の初期値に使うという意味である。回転増分は全条件で角速度から求める。加速度と地磁気は方向因子として融合する。候補の密度の積を「融合」と呼び、回転の「合成」と区別する。
+全条件で回転増分は角速度から求める。「予測に使う」は、観測を融合した分布を次時刻の角速度予測の初期値へ渡す意味である。現在の出力にだけ融合する観測は再帰分布へ加えない。候補の密度の積を「融合」と呼ぶ。
 
-表示・評価する行列Aと次時刻へ渡す行列Bを分けた。3種類のB（角速度だけ、加速度まで、両観測まで）を伝播し、現在の方向因子を各条件のAへ加える。出力専用の因子を引き継がず、同じ観測因子を同一時刻で2度加えることもない。本文の式とAlgorithmをこの手順に改めた。
+## 数値と設定
 
-## 入力と固定設定
+初期設定の1.0秒、200標本で世界の磁場基準を固定した。その後の87.171135秒、17,434時刻を評価する。モーションキャプチャは初期設定と評価だけに用い、評価中の方位を予測へ入力しない。初期集中度100、角速度共分散0.0001 I3 rad²/s²、加速度・地磁気の集中度20、数値積分点数120を用いた。Madgwick フィルタは正規化勾配の基本形で、固定係数beta=0.1である。
 
-入力bagは`/home/leus/rosbags/20250303_delta_circle_trajectory_flight_5_2025-03-03-13-20-43.bag`、SHA-256は`6e3c5eb7a945a04e363acfaa14d3a32e0b36cc90a76a1d52bffd55549fd7bcaf`である。冒頭1.0秒、200標本で磁場基準を固定し、その後の90.361694秒、18,072標本を評価した。モーションキャプチャは初期設定と評価にだけ使う。全標本を時刻順に予測し、右端の角速度標本を用いる。
+入力は同じbagの角速度・加速度・地磁気・モーションキャプチャである。予測は全標本を時刻順に伝播し、計測時刻間隔と右端の角速度を用いる。参照は四元数の球面線形補間により対応付ける。図の経過時間0は全系列で共通の評価開始時刻を表す。
 
-6条件の初期集中度100、角速度標本の共分散0.0001 I3 rad²/s²、加速度・地磁気の方向集中度20、数値積分点数120を固定した。Madgwickは正規化勾配の基本形、固定係数beta=0.1である。磁北座標系とmocap世界座標系の対応は冒頭だけで固定した115.743399度の鉛直周り回転を使う。バイアス補正、平滑化、動的加速度の分離、観測の除外・重み変更は追加していない。
-
-## 数値
-
-各軸は推定と参照のEuler角の差を±180度へ折り返した絶対値、3軸の合成誤差は方位間の相対回転角である。二乗平均平方根を度で示す。
+各軸はEuler角の差を±180度へ折り返した絶対値、3軸の合成誤差は相対回転角である。全時系列の二乗平均平方根を度で示す。
 
 | 条件 | ロール | ピッチ | ヨー | 3軸の合成誤差 |
 | --- | ---: | ---: | ---: | ---: |
-| 角速度の時間発展のみ | 8.30 | 14.50 | 9.35 | 18.42 |
-| 角速度と加速度（加速度は予測に使わない） | 5.57 | 10.47 | 8.58 | 14.24 |
-| 角速度と加速度（加速度も予測に使う） | 1.51 | 5.33 | 7.75 | 9.47 |
-| すべての情報（加速度と地磁気は予測に使わない） | 13.99 | 11.61 | 7.20 | 19.03 |
-| すべての情報（加速度のみ予測に使う） | 1.52 | 5.33 | 4.43 | 7.05 |
-| すべての情報（加速度も地磁気も予測に使う） | 23.72 | 6.56 | 21.70 | 33.35 |
+| 角速度の時間発展のみ | 8.25 | 14.88 | 9.52 | 18.77 |
+| 角速度と加速度（加速度は予測に使わない） | 5.53 | 10.75 | 8.75 | 14.52 |
+| 角速度と加速度（加速度も予測に使う） | 1.53 | 5.34 | 7.95 | 9.64 |
+| すべての情報（加速度と地磁気は予測に使わない） | 13.17 | 11.83 | 7.31 | 18.64 |
+| すべての情報（加速度のみ予測に使う） | 1.53 | 5.34 | 4.62 | 7.18 |
+| すべての情報（加速度も地磁気も予測に使う） | 23.31 | 6.71 | 17.35 | 30.29 |
 
-同じ全9軸情報による4系列の比較は次の通りである。
-
-| 条件 | ロール | ピッチ | ヨー | 3軸の合成誤差 |
+| 全情報の比較 | ロール | ピッチ | ヨー | 3軸の合成誤差 |
 | --- | ---: | ---: | ---: | ---: |
-| すべての情報（加速度と地磁気は予測に使わない） | 13.99 | 11.61 | 7.20 | 19.03 |
-| すべての情報（加速度のみ予測に使う） | 1.52 | 5.33 | 4.43 | 7.05 |
-| すべての情報（加速度も地磁気も予測に使う） | 23.72 | 6.56 | 21.70 | 33.35 |
-| Madgwick（9軸） | 1.45 | 0.53 | 30.73 | 30.79 |
+| すべての情報（加速度と地磁気は予測に使わない） | 13.17 | 11.83 | 7.31 | 18.64 |
+| すべての情報（加速度のみ予測に使う） | 1.53 | 5.34 | 4.62 | 7.18 |
+| すべての情報（加速度も地磁気も予測に使う） | 23.31 | 6.71 | 17.35 | 30.29 |
+| Madgwick フィルタ（9軸） | 1.47 | 0.52 | 25.06 | 25.12 |
 
-加速度を引き継いで地磁気を出力時だけに融合する条件は、加速度だけを使う条件と比べてヨーが7.75度から4.43度、方位全体が9.47度から7.05度へ小さくなった。地磁気も引き継ぐ条件は33.35度となった。Madgwickはロール・ピッチの誤差が最も小さく、ヨーは全情報の3条件より大きかった。較正・方向モデル・時間相関などの原因はこの比較では個別に分離していない。
+加速度を引き継ぎ、地磁気を出力時だけに融合する条件では、加速度だけを用いる条件に比べてヨーのRMSが7.95度から4.62度、合成誤差が9.64度から7.18度へ小さくなった。全情報の2条件の合成誤差18.64度と7.18度はMadgwick フィルタの25.12度より小さく、両観測を引き継ぐ条件の30.29度は大きい。センサの較正、動的加速度、観測尺度と時間相関の影響は個別に分離していない。
 
-## 図と保存した資料
+## 表示
 
-- 6条件とmocap：[ロール・ピッチ・ヨー](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/rpy.pdf)、[四元数](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/quaternion.pdf)。
-- 6条件の4段誤差図：[線形](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/axis_errors.pdf)、[片対数](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/axis_errors_semilog.pdf)。
-- 全情報3条件とMadgwickの4段誤差図：[線形](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/madgwick_comparison/method_comparison.pdf)、[片対数](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/madgwick_comparison/method_comparison_semilog.pdf)。
-- [6条件の集計・時系列・コード](../../ros/examples/probtf_orientation_demo/README.md)。
-- 直前の3月3日5条件と2系列比較：[5条件の図と本文](orientation-five-conditions-before-feedback_2026-10-15.md)、[2系列比較の図](orientation-five-conditions-before-feedback_2026-10-15.md)。
-- [既存のBingham動画](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_five_conditions/bingham_comparison.mp4)は以前の5条件を記録した資料として保持した。今回の6条件図とは条件が異なる。
+- [6条件の誤差](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/axis_errors.pdf)、[全情報3条件とMadgwick フィルタ](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/madgwick_comparison/method_comparison.pdf)。
+- [ロール・ピッチ・ヨー](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/rpy.pdf)、[四元数](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/quaternion.pdf)。
+- [位置](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/position.pdf)、[角速度](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/gyro.pdf)、[加速度](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/acc.pdf)、[地磁気](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/mag.pdf)。
+- [設定・時系列・使用コード](../../ros/examples/probtf_orientation_demo/README.md)。
 
-線形図と片対数図は同じ系列・4段・時刻範囲で、片対数は縦軸だけを変えた。誤差0の標本は対数軸で非表示とし、小さな正数へ置き換えていない。図中には系列名と軸ラベルだけを置いた。x,y,zおよびgyro/acc/magの確認用PDFと12パターンのプレビューは変更していない。
+- [Bingham分布の6条件の比較動画](../../ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions/bingham_comparison.mp4)。
+
+Madgwick フィルタは名称を省略せず黒色にした。6条件は青・紫・緑・黄橙・赤紫・朱色を使い、実線・破線・一点鎖線の対応を保つ。線幅は1.25ポイントとした。
+
+論文全体で座標成分の色はx＝赤、y＝緑、z＝青とする。4つの取得値の図は3成分を横に並べて高さを抑え、各線とラベルにこの色を使う。手法比較の図では曲線の色が条件を示し、座標成分の軸ラベルを赤・緑・青にする。四元数のwと合成誤差のラベルは黒色である。加速度の縦軸上限は12 m/s²で、保存値と方位推定への入力は変更しない。位置はworld座標系、他の3図はセンサ座標系の取得値であり、正規化や平滑化を表示値へ加えない。
 
 ## 再生成
 
-ProbTF-demoのルートからbagを使う計算は次で行なう。
+ProbTF-demoのルートで次を実行する。
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/compare_feedback_orientation.py \
@@ -66,15 +62,20 @@ PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/
   --output ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions
 ```
 
-保存済みの3種類の再帰分布とMadgwick時系列を使う場合は次である。元の5条件のうち、角速度のみ、加速度の全引き継ぎ、加速度・地磁気の全引き継ぎの分布と一致するため、これらを再利用し、残る出力分布を現在の観測因子から構成した。
+`--duration 0.12`は短い実行、`--render-only`は保存済みの推定値から図を再描画する指定である。出力は8図のPDF/SVG/PNG、6条件と比較4系列の集計・時系列である。読み込み、予測、Madgwick フィルタの演算と使用コードはこの出力に対応させた。
+
+動画は同じ6条件の分布行列とモードを用い、既存のSO(3)ビジュアライザで軸端点の点群を描く。各球面にモーションキャプチャの方位を黒破線で重ね、下段には6条件の合成誤差と現在時刻を表示する。4フレーム/秒、各分布180標本で生成する。
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/compare_feedback_orientation.py \
-  --input-five ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_five_conditions \
-  --madgwick-input ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_nine_axis_madgwick \
+PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 ros/examples/probtf_orientation_demo/scripts/render_feedback_video.py \
+  --input ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions \
   --output ros/examples/probtf_orientation_demo/outputs/20250303_delta_circle_trajectory_flight_5_six_feedback_conditions
 ```
 
-実装はProbTF-demoの`ros/examples/probtf_orientation_demo/scripts/compare_feedback_orientation.py`に置いた。旧スクリプトと旧出力は変更せず、deprecatedパッケージは変更も読み込みも行なっていない。新規の5検査は、過去の加速度・地磁気が各条件へ残るか、出力専用因子が蓄積されないか、保存分布と独立の再計算が一致するか、角速度の右端標本と時刻の検査を扱う。
+次の8件に、再帰分布の独立性、部分的な観測の引き継ぎ、共通時刻の読み込みと初期設定、加速度の表示上限を確認する検査を用意した。
 
-分布の被覆率、較正、観測誤差の時間相関を含む観測モデルの検証は本文のTODOを維持した。[最終精査](orientation-six-feedback-final_2026-10-15.md)に、数値・保存・図・本文とPDFの照合を記録した。
+```bash
+PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 tests/probtf/test_orientation_feedback_comparison.py -v
+```
+
+従来の方位計算9件とMadgwick フィルタ11件も通過した。分布の被覆率と、較正・観測誤差の時間相関を含む観測モデルの検証は本文のTODOに残している。

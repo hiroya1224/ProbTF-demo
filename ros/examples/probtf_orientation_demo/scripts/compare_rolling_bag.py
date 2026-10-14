@@ -126,13 +126,28 @@ def update_error_evaluation(arrays, metadata):
         }
 
 
+EXPERIMENT_START_STAMP = 1740975648.7897332
+
+
+def measurement_start(path):
+    if Path(path).name == '20250303_delta_circle_trajectory_flight_5_2025-03-03-13-20-43.bag':
+        return EXPERIMENT_START_STAMP
+    return None
+
+
 def read_bag(path):
     import rosbag
+    import rospy
     imu, mocap = [], []
+    boundary = measurement_start(path)
+    read_options = {} if boundary is None else {'start_time':rospy.Time.from_sec(boundary)}
     with rosbag.Bag(str(path), 'r') as bag:
         for topic, msg, stamp in bag.read_messages(
-            topics=['/delta/imu', '/delta/mocap/pose'],
+            topics=['/delta/imu', '/delta/mocap/pose'], **read_options,
         ):
+            measured = msg.stamp.to_sec() if topic == '/delta/imu' else msg.header.stamp.to_sec()
+            if boundary is not None and measured < boundary:
+                continue
             if topic == '/delta/imu':
                 imu.append([stamp.to_sec(), msg.stamp.to_sec(),
                             *msg.gyro_data, *msg.acc_data, *msg.mag_data])

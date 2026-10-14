@@ -1,0 +1,26 @@
+{
+  "frames": 350,
+  "fps": 4.0,
+  "width": 1600,
+  "height": 1480,
+  "displayed_start_seconds": 0.0,
+  "displayed_end_seconds": 87.17113542556763,
+  "samples_per_distribution_per_frame": 180,
+  "condition_labels": [
+    "角速度の時間発展のみ",
+    "角速度と加速度（加速度は予測に使わない）",
+    "角速度と加速度（加速度も予測に使う）",
+    "すべての情報（加速度と地磁気は予測に使わない）",
+    "すべての情報（加速度のみ予測に使う）",
+    "すべての情報（加速度も地磁気も予測に使う）"
+  ],
+  "coordinate_colors": {
+    "x": "#D84315",
+    "y": "#008C45",
+    "z": "#1565C0"
+  },
+  "mocap_reference": "black dashed axes",
+  "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
+  "input_timeseries_sha256": "672099c7f641d695e91772d07c9ea20f5e21eda205e7e5795637a704dc10c736",
+  "renderer_sha256": "64e04b69dbb73404fe290e670b7670cb5ff8ee09fe5c2b62fb7c3d522df1289f"
+}

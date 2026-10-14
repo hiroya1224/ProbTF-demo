@@ -30,8 +30,8 @@ sys.path.insert(0, str(ROOT / 'ros/examples/probtf_orientation_demo/scripts'))
 import compare_rolling_bag as original
 
 CASE_IDS = ('nine_axis', 'madgwick_marg')
-CASE_LABELS = ('9軸の全情報の融合', 'Madgwick（9軸）')
-CASE_COLORS = (original.CASE_COLORS[4], '#882255')
+CASE_LABELS = ('9軸の全情報の融合', 'Madgwick フィルタ（9軸）')
+CASE_COLORS = (original.CASE_COLORS[4], '#000000')
 CASE_STYLES = ('-', '--')
 REPORT_URL = 'https://x-io.co.uk/downloads/madgwick_internal_report.pdf'
 MATLAB_URL = 'https://x-io.co.uk/downloads/madgwick_algorithm_matlab.zip'

@@ -2,6 +2,8 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -58,19 +60,15 @@ class FeedbackComparisonTest(unittest.TestCase):
         for case in (2, 4, 5):
             self.assertGreater(np.linalg.norm(first[-1, case]-second[-1, case]), 1.)
 
-    def test_cache_conversion_matches_independent_fresh_replay(self):
-        old, old_modes, old_residuals = comparison.original.compare_conditions(
-            self.gyro, self.acc, self.mag, self.times, self.q, self.reference, **self.options)
-        metadata = dict(case_labels=comparison.original.CASE_IDS,
-                        reference_magnetic_world_unit=self.reference,
-                        initial_quaternion_wxyz=self.q,
-                        acceleration_direction_concentration=5., magnetic_direction_concentration=5.)
-        base = dict(acceleration_m_s2=self.acc, magnetic_raw=self.mag,
-                    display_parameter=old, mode_wxyz=old_modes, moment_fit_residual=old_residuals)
-        converted = comparison.from_five(base, metadata)
-        fresh = self.run_six()
-        for a, b in zip(converted, fresh):
-            np.testing.assert_allclose(a, b, atol=2e-12)
+    def test_recursion_matches_core_sensor_update_sequence(self):
+        parameters,modes,residuals = comparison.original.compare_conditions(
+            self.gyro,self.acc,self.mag,self.times,self.q,self.reference,**self.options)
+        actual,actual_modes,retained,actual_residuals = self.run_six()
+        for new,core in ((0,0),(2,1),(5,4)):
+            np.testing.assert_allclose(actual[:,new],parameters[:,core],atol=2e-12)
+            np.testing.assert_allclose(actual_modes[:,new],modes[:,core],atol=2e-12)
+        np.testing.assert_allclose(retained,parameters[:,[0,1,4]],atol=2e-12)
+        np.testing.assert_allclose(actual_residuals,residuals[:,[0,1,3]],atol=2e-12)
 
     def test_prediction_uses_right_endpoint_and_rejects_duplicate_time(self):
         self.gyro[0] = [100., 100., 100.]
@@ -84,6 +82,64 @@ class FeedbackComparisonTest(unittest.TestCase):
         self.times[1] = self.times[0]
         with self.assertRaisesRegex(ValueError, 'strictly increase'):
             self.run_six()
+
+    def test_reader_respects_common_measurement_domain(self):
+        boundary = comparison.EXPERIMENT_START_STAMP
+        def stamp(value):
+            return SimpleNamespace(to_sec=lambda:value)
+        def imu(value,data):
+            return SimpleNamespace(stamp=stamp(value),gyro_data=data,acc_data=[0.,0.,9.8],mag_data=[1.,0.,0.])
+        def mocap(value):
+            return SimpleNamespace(header=SimpleNamespace(stamp=stamp(value),frame_id='world'),
+                pose=SimpleNamespace(orientation=SimpleNamespace(w=1.,x=0.,y=0.,z=0.),
+                                     position=SimpleNamespace(x=0.,y=0.,z=0.)))
+        events = [('/delta/imu',imu(boundary-.1,[float('nan')]*3),stamp(boundary+.01)),
+                  ('/delta/imu',imu(boundary+.02,[0.,0.,0.]),stamp(boundary+.03)),
+                  ('/delta/mocap/pose',mocap(boundary+.02),stamp(boundary+.03)),
+                  ('/delta/imu',imu(boundary+.04,[0.,0.,0.]),stamp(boundary+.05)),
+                  ('/delta/mocap/pose',mocap(boundary+.04),stamp(boundary+.05))]
+        class Bag:
+            def __init__(inner,*args):pass
+            def __enter__(inner):return inner
+            def __exit__(inner,*args):pass
+            def read_messages(inner,topics,start_time):
+                self.assertAlmostEqual(start_time.to_sec(),boundary)
+                return iter(events)
+        with patch('rosbag.Bag',Bag):
+            values,poses,frame = comparison.read_measurements(Path('20250303_delta_circle_trajectory_flight_5_2025-03-03-13-20-43.bag'))
+        self.assertEqual(frame,'world')
+        self.assertEqual(len(values),2)
+        self.assertEqual(len(poses),2)
+        self.assertTrue(np.isfinite(values).all())
+        self.assertTrue((values[:,1] >= boundary).all())
+
+    def test_initialization_and_raw_position_share_the_measurement_times(self):
+        times = comparison.EXPERIMENT_START_STAMP+np.arange(250)*.01
+        rotations = comparison.original.Rotation.from_euler('z',np.arange(250)*.001)
+        quaternions = comparison.original.wxyz_from_rotations(rotations)
+        reference = np.array([1.,0.,-1.])/np.sqrt(2.)
+        field = rotations.inv().apply(reference)
+        imu = np.column_stack((times,times,np.zeros((250,3)),np.tile([0.,0.,9.8],(250,1)),field))
+        poses = np.column_stack((times,times,quaternions,np.tile([.1,.2,.3],(250,1))))
+        arrays,actual_reference,metadata = comparison.prepare_measurements(imu,poses)
+        np.testing.assert_allclose(actual_reference,reference,atol=1e-12)
+        np.testing.assert_allclose(metadata['initial_quaternion_wxyz'],arrays['mocap_wxyz'][0],atol=1e-12)
+        np.testing.assert_array_equal(arrays['position_measurement_stamps'],arrays['measurement_stamps'])
+        np.testing.assert_array_equal(arrays['position_time_seconds'],arrays['time_seconds'])
+        self.assertEqual(arrays['time_seconds'][0],0.)
+        self.assertEqual(metadata['calibration_samples'],100)
+        np.testing.assert_array_equal(arrays['acceleration_m_s2'],imu[100:,5:8])
+
+    def test_acceleration_display_limit_preserves_sensor_values(self):
+        acceleration = np.array([[0.,0.,9.8],[1.,2.,50.],[0.,0.,9.8]])
+        original_values = acceleration.copy()
+        arrays = dict(time_seconds=np.arange(3),position_time_seconds=np.arange(3),
+            position_m=np.zeros((3,3)),gyro_rad_s=np.zeros((3,3)),acceleration_m_s2=acceleration,
+            magnetic_raw=np.ones((3,3)))
+        with patch.object(comparison.original,'save_figure'):
+            limits = comparison.plot_raw_measurements(arrays,Path('/tmp'))
+        np.testing.assert_array_equal(acceleration,original_values)
+        np.testing.assert_allclose(np.array(limits['acc'])[:,1],12.)
 
 
 if __name__ == '__main__':

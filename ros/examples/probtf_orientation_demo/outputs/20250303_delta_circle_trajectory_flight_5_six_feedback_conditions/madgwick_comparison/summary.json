@@ -1,20 +1,60 @@
 {
-  "bag_path": "/home/leus/rosbags/20250303_delta_circle_trajectory_flight_5_2025-03-03-13-20-43.bag",
-  "duration_seconds": 90.36169385910034,
-  "evaluated_imu_samples": 18072,
-  "calibration_seconds": 1.0,
+  "input_imu_count": 17637,
+  "input_mocap_count": 10582,
   "calibration_samples": 200,
-  "initial_quaternion_wxyz": [
-    -0.9999073403883374,
-    0.0034255260865521282,
-    0.007332534751628314,
-    0.01094579109375425
+  "calibration_seconds": 1.0,
+  "calibration_mocap_motion_max_deg": 0.8854681749417904,
+  "calibration_gyro_mean_rad_s": [
+    -0.001590765670298424,
+    0.0010712224716007768,
+    0.001931863027136842
   ],
+  "calibration_gyro_std_rad_s": [
+    0.009873394475722292,
+    0.005898674663714735,
+    0.007105782919443266
+  ],
+  "gyro_bias_removed": false,
+  "accelerometer_bias_removed": false,
+  "calibration_acceleration_mean_m_s2": [
+    0.046647413449827584,
+    0.09266346238466212,
+    9.590299158096313
+  ],
+  "calibration_acceleration_mean_world_m_s2": [
+    -0.1010717674755531,
+    0.19822412628622427,
+    9.588273692357784
+  ],
+  "calibration_acceleration_world_z_angle_deg": 1.3293621386664711,
   "reference_magnetic_world_unit": [
-    -0.20212793323714878,
-    0.419177985227614,
-    -0.8851181363557054
+    -0.1752842850367591,
+    0.4994244853451381,
+    -0.8484400997459374
   ],
+  "initial_quaternion_wxyz": [
+    -0.9999293175554408,
+    0.0017931355614039708,
+    0.006073660572375733,
+    0.010062564544908718
+  ],
+  "measurement_time_origin": 1740975649.7954273,
+  "mocap_reference_usage": "initial orientation and prefix-only fixed magnetic reference",
+  "alignment": "header timestamps; quaternion spherical interpolation; no extrapolation",
+  "imu_latency_quantiles_seconds": [
+    0.009219169616699219,
+    0.012002944946289062,
+    0.2305915355682373
+  ],
+  "mocap_latency_quantiles_seconds": [
+    0.010223865509033203,
+    0.011035561561584473,
+    0.20308232307434082
+  ],
+  "maximum_mocap_gap_seconds": 0.16332745552062988,
+  "duration_seconds": 87.17113542556763,
+  "evaluated_imu_samples": 17434,
+  "position_samples": 10460,
   "initial_bingham_concentration": 100.0,
   "gyro_sample_covariance_rad2_s2": [
     [
@@ -36,49 +76,52 @@
   "acceleration_direction_concentration": 20.0,
   "magnetic_direction_concentration": 20.0,
   "integration_steps": 120,
+  "bag_path": "/home/leus/rosbags/20250303_delta_circle_trajectory_flight_5_2025-03-03-13-20-43.bag",
+  "mocap_position_frame": "world",
+  "statistics": {
+    "all_information_output": {
+      "rpy_rms_deg": [
+        13.171070259549326,
+        11.834785592083374,
+        7.314369176212671
+      ],
+      "rms_deg": 18.63730283219986,
+      "final_deg": 24.168155554273536
+    },
+    "all_information_acceleration_feedback": {
+      "rpy_rms_deg": [
+        1.5316443475987538,
+        5.34048709510753,
+        4.616939360837204
+      ],
+      "rms_deg": 7.181618708029517,
+      "final_deg": 12.17065806035292
+    },
+    "all_information_feedback": {
+      "rpy_rms_deg": [
+        23.310649820456756,
+        6.713869174318119,
+        17.353324916344324
+      ],
+      "rms_deg": 30.291174830903515,
+      "final_deg": 29.983299919411742
+    },
+    "madgwick_marg": {
+      "rpy_rms_deg": [
+        1.4727338513810428,
+        0.5156627449679099,
+        25.055386146722967
+      ],
+      "rms_deg": 25.120875348147475,
+      "final_deg": 7.247003507001614
+    }
+  },
+  "maximum_moment_fit_residual": 4.1987839890481625e-09,
   "case_labels": {
     "all_information_output": "すべての情報（加速度と地磁気は予測に使わない）",
     "all_information_acceleration_feedback": "すべての情報（加速度のみ予測に使う）",
     "all_information_feedback": "すべての情報（加速度も地磁気も予測に使う）",
-    "madgwick_marg": "Madgwick（9軸）"
-  },
-  "statistics": {
-    "all_information_output": {
-      "rpy_rms_deg": [
-        13.991213811945386,
-        11.608299638802768,
-        7.201309394859703
-      ],
-      "rms_deg": 19.027267580280725,
-      "final_deg": 24.384116623897597
-    },
-    "all_information_acceleration_feedback": {
-      "rpy_rms_deg": [
-        1.5187696438081182,
-        5.328853784351864,
-        4.426971746340894
-      ],
-      "rms_deg": 7.053103413157064,
-      "final_deg": 11.707541702328559
-    },
-    "all_information_feedback": {
-      "rpy_rms_deg": [
-        23.716155417487766,
-        6.564039652135712,
-        21.701302261900246
-      ],
-      "rms_deg": 33.34678189005278,
-      "final_deg": 34.394229619186994
-    },
-    "madgwick_marg": {
-      "rpy_rms_deg": [
-        1.4548197309892152,
-        0.5286639161222275,
-        30.730851829032655
-      ],
-      "rms_deg": 30.78626100673744,
-      "final_deg": 13.63292568432346
-    }
+    "madgwick_marg": "Madgwick フィルタ（9軸）"
   },
   "output_and_retained_evidence_coefficients": [
     [
@@ -157,17 +200,89 @@
       "magnetic": true
     }
   },
-  "prediction_convention": "right-end angular velocity; retained Bingham distribution; all sensor samples",
-  "script_sha256": "8cee7e9cf51548684383a06c428e3f83925a6fb2b1748c6ccba8c6d567585130",
-  "reused_five_trajectories": true,
+  "prediction_convention": "right-end angular velocity; retained Bingham distribution; all measurement samples",
+  "inference_script_sha256": "0c20784c4627115c4ad624b7c395e5068842a8e642219e25b99e996819b07371",
+  "plot_script_sha256": "47f1d246eaf8d0d441febe73b47a65ac51f6427ef27449bab40c905ed3c76a7e",
   "source_helpers_sha256": {
-    "compare_rolling_bag.py": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
-    "compare_madgwick_rolling.py": "72fcd79c6b34630fd8fffb7206cf5e78f8fd228b96626d311f16f9f6ce837ec8"
+    "compare_rolling_bag.py": "0540af9bbad1a666b85be5b9dcd96c9e6d050d6a652dcb9d4cbd6186fdee08f8",
+    "compare_madgwick_rolling.py": "2a470241ba49037e441cf95d8961ded2e79132906c9d761149744ad1d863b60a"
   },
-  "maximum_moment_fit_residual": 4.198784074633685e-09,
-  "five_timeseries_sha256": "bd938d851f74816df5b643f4ac91eb70369145461abd632288e3d9e0cec287f8",
-  "five_summary_sha256": "aac3f235406424b0ab43c69907f019a8e67e7d6f5797e9ff3e5996d9111d1834",
+  "plot_colors": {
+    "all_information_output": "#E5A000",
+    "all_information_acceleration_feedback": "#E00076",
+    "all_information_feedback": "#D84315",
+    "madgwick_marg": "#000000"
+  },
+  "plot_styles": {
+    "all_information_output": "--",
+    "all_information_acceleration_feedback": "-.",
+    "all_information_feedback": "-",
+    "madgwick_marg": ":"
+  },
+  "plot_linewidth": 1.25,
+  "raw_plot_limits": {
+    "position": [
+      [
+        -1.2068230345845223,
+        0.5612931981682777
+      ],
+      [
+        -1.2482623249292373,
+        0.5682801991701126
+      ],
+      [
+        0.14605584144592285,
+        1.1031695365905763
+      ]
+    ],
+    "gyro": [
+      [
+        -0.43853678554296494,
+        0.3399844691157341
+      ],
+      [
+        -0.3430677756667137,
+        0.7244471713900567
+      ],
+      [
+        -0.21549276262521744,
+        0.20092812925577164
+      ]
+    ],
+    "acc": [
+      [
+        -1.2267731428146362,
+        12.0
+      ],
+      [
+        -1.2267731428146362,
+        12.0
+      ],
+      [
+        -1.2267731428146362,
+        12.0
+      ]
+    ],
+    "mag": [
+      [
+        -5.882190251350403,
+        7.786950135231018
+      ],
+      [
+        14.558211374282838,
+        30.288549375534057
+      ],
+      [
+        -24.210194075107573,
+        0.5386826634407045
+      ]
+    ]
+  },
+  "coordinate_colors": {
+    "x": "#D84315",
+    "y": "#008C45",
+    "z": "#1565C0"
+  },
   "madgwick_beta": 0.1,
-  "reused_madgwick_timeseries_sha256": "c8280135d9d08c7dbec0fd6dd5eaebca6fd8b00c1bac5b14caef7203aa198fa8",
-  "world_from_magnetic_north_heading_deg": 115.7433990464157
+  "world_from_magnetic_north_heading_deg": 109.33967302577163
 }

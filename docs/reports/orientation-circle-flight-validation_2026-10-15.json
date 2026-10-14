@@ -1,0 +1,401 @@
+{
+  "passed": true,
+  "samples": 18072,
+  "duration_seconds": 90.36169385910034,
+  "five_condition_statistics": {
+    "gyro_only": {
+      "rms_deg": 18.41837350660708,
+      "median_deg": 14.99614293956295,
+      "p95_deg": 31.292244469441886,
+      "max_deg": 32.9131805977832,
+      "final_deg": 32.735151745824,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 8.297265849161299,
+          "median_deg": 5.681663937742385,
+          "p95_deg": 16.06610865239558,
+          "max_deg": 17.511505089072443,
+          "final_deg": 17.07739447571325
+        },
+        "pitch": {
+          "rms_deg": 14.496118599785186,
+          "median_deg": 12.140246427965451,
+          "p95_deg": 24.54531936667425,
+          "max_deg": 26.28283323490126,
+          "final_deg": 26.18651796169536
+        },
+        "yaw": {
+          "rms_deg": 9.349396429445356,
+          "median_deg": 7.2173774616241815,
+          "p95_deg": 15.598055213055122,
+          "max_deg": 16.529669362483077,
+          "final_deg": 14.680894381872122
+        }
+      }
+    },
+    "gyro_acceleration": {
+      "rms_deg": 9.473507392878737,
+      "median_deg": 8.821085853619579,
+      "p95_deg": 14.402957621442836,
+      "max_deg": 15.159437555584748,
+      "final_deg": 12.882081966703968,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 1.5138009492020894,
+          "median_deg": 0.9542803700492044,
+          "p95_deg": 3.2659755282009457,
+          "max_deg": 4.183531882829811,
+          "final_deg": 3.482530188013584
+        },
+        "pitch": {
+          "rms_deg": 5.3274150069062305,
+          "median_deg": 5.851524909316424,
+          "p95_deg": 6.875265048676726,
+          "max_deg": 7.319779391726229,
+          "final_deg": 6.802144028106113
+        },
+        "yaw": {
+          "rms_deg": 7.753816545617664,
+          "median_deg": 6.557598359016481,
+          "p95_deg": 12.615123331975948,
+          "max_deg": 13.40438172084373,
+          "final_deg": 10.561955156543434
+        }
+      }
+    },
+    "gyro_magnetic": {
+      "rms_deg": 52.578010940660576,
+      "median_deg": 55.96402434438398,
+      "p95_deg": 65.70136148771239,
+      "max_deg": 67.77370334670358,
+      "final_deg": 56.05086085600147,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 50.22028209889485,
+          "median_deg": 53.233301595574495,
+          "p95_deg": 63.468995261577206,
+          "max_deg": 66.03052486887398,
+          "final_deg": 52.59011504509428
+        },
+        "pitch": {
+          "rms_deg": 17.585376524757045,
+          "median_deg": 17.98191903397202,
+          "p95_deg": 25.179971218862445,
+          "max_deg": 27.985906452624192,
+          "final_deg": 21.168233030860932
+        },
+        "yaw": {
+          "rms_deg": 8.56497172831808,
+          "median_deg": 5.613602489646183,
+          "p95_deg": 16.230571705844728,
+          "max_deg": 17.833117007909976,
+          "final_deg": 17.824659559617515
+        }
+      }
+    },
+    "magnetic_acceleration": {
+      "rms_deg": 38.43528109433825,
+      "median_deg": 41.50831120175572,
+      "p95_deg": 44.91348507751905,
+      "max_deg": 46.48133408407734,
+      "final_deg": 14.643457965432162,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 23.25544840449511,
+          "median_deg": 24.916558537345182,
+          "p95_deg": 28.457392516191234,
+          "max_deg": 30.780645079111224,
+          "final_deg": 5.143846092969426
+        },
+        "pitch": {
+          "rms_deg": 3.135398925040579,
+          "median_deg": 2.77774513719298,
+          "p95_deg": 5.152424309005942,
+          "max_deg": 8.95084173870626,
+          "final_deg": 1.5944091881253257
+        },
+        "yaw": {
+          "rms_deg": 30.443368707405217,
+          "median_deg": 32.304827122491446,
+          "p95_deg": 36.041852887725675,
+          "max_deg": 38.721336444830285,
+          "final_deg": 13.732381860803969
+        }
+      }
+    },
+    "nine_axis": {
+      "rms_deg": 33.34678189005278,
+      "median_deg": 36.1961668779109,
+      "p95_deg": 37.95360242276392,
+      "max_deg": 39.44430020345977,
+      "final_deg": 34.394229619186994,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 23.716155417487773,
+          "median_deg": 25.241734598352494,
+          "p95_deg": 29.92405335155389,
+          "max_deg": 31.810365677710223,
+          "final_deg": 26.369577220935867
+        },
+        "pitch": {
+          "rms_deg": 6.564039652135718,
+          "median_deg": 6.494098027567304,
+          "p95_deg": 10.2423687220743,
+          "max_deg": 11.98996894334013,
+          "final_deg": 7.678623751585604
+        },
+        "yaw": {
+          "rms_deg": 21.701302261900235,
+          "median_deg": 22.206471241726305,
+          "p95_deg": 25.50858734587508,
+          "max_deg": 25.99707656210734,
+          "final_deg": 19.388664951546247
+        }
+      }
+    }
+  },
+  "nine_axis_pair_statistics": {
+    "nine_axis": {
+      "rms_deg": 33.34678189005278,
+      "rpy_rms_deg": [
+        23.716155417487766,
+        6.564039652135712,
+        21.701302261900246
+      ],
+      "first_60_seconds_rms_deg": 31.286523205954182,
+      "first_60_seconds_yaw_rms_deg": 22.201649721197306,
+      "final_deg": 34.394229619186994
+    },
+    "madgwick_marg": {
+      "rms_deg": 30.78626100673744,
+      "rpy_rms_deg": [
+        1.4548197309892152,
+        0.5286639161222275,
+        30.730851829032655
+      ],
+      "first_60_seconds_rms_deg": 31.50676751426733,
+      "first_60_seconds_yaw_rms_deg": 31.450406713667377,
+      "final_deg": 13.63292568432346
+    }
+  },
+  "fixed_settings_unchanged": [
+    "calibration_seconds",
+    "initial_bingham_concentration",
+    "gyro_sample_covariance_rad2_s2",
+    "acceleration_direction_concentration",
+    "magnetic_direction_concentration",
+    "integration_steps",
+    "gravity_evidence_case_ids",
+    "reference_specific_force_world_unit",
+    "acceleration_model",
+    "propagation_case_ids",
+    "observation_only_case",
+    "posterior_reused_as_next_prior",
+    "sample_convention",
+    "case_labels",
+    "rpy_error_definition",
+    "combined_error_definition",
+    "rpy_convention",
+    "quaternion_convention",
+    "gyro_bias_removed",
+    "accelerometer_bias_removed"
+  ],
+  "video_settings_unchanged": true,
+  "madgwick_settings_unchanged": true,
+  "inference_and_rendering_code_unchanged_since": "4ec4312",
+  "code_sha256": {
+    "compare_rolling_bag.py": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+    "compare_madgwick_rolling.py": "72fcd79c6b34630fd8fffb7206cf5e78f8fd228b96626d311f16f9f6ce837ec8"
+  },
+  "algorithm_and_equations_unchanged": true,
+  "all_inputs_and_reference_shared_by_pair": true,
+  "all_numeric_arrays_finite": true,
+  "unit_quaternions": true,
+  "error_and_rms_recalculation_matches": true,
+  "maximum_moment_fit_residual": 4.198784074633685e-09,
+  "plots": {
+    "axis_errors": {
+      "rows": 4,
+      "curves_per_row": 5,
+      "condition_names_order_and_colors": true
+    },
+    "axis_errors_semilog": {
+      "rows": 4,
+      "curves_per_row": 5,
+      "condition_names_order_and_colors": true
+    },
+    "method_comparison": {
+      "rows": 4,
+      "curves_per_row": 2,
+      "condition_names_order_and_colors": true
+    },
+    "method_comparison_semilog": {
+      "rows": 4,
+      "curves_per_row": 2,
+      "condition_names_order_and_colors": true
+    }
+  },
+  "previous_results_preserved": {
+    "book": {
+      "archived_files_identical": 25,
+      "previous_files_unchanged": 11
+    },
+    "demo": {
+      "archived_files_identical": 1,
+      "previous_files_unchanged": 79
+    }
+  },
+  "artifact_sha256": {
+    "figs/imu-orientation-filter/rolling_rpy.pdf": "b0cf29b3e6803b65dd23cfe08536714e157259bc06718f9376681842b185d3af",
+    "figs/imu-orientation-filter/rolling_rpy.svg": "7ceaa6c8a26a9988186ffd8bbdba124dbc60fc13bb1c63415a3e53ba641fe68c",
+    "figs/imu-orientation-filter/rolling_rpy.png": "7b33774800842aed651221d5fcff248788e5a5e8ef6bb534e7998204ce25a2af",
+    "figs/imu-orientation-filter/rolling_quaternion.pdf": "d11c7a5da443e3ae651f494431ab349f1dd67e6ba0de679489a0fe8056f8bedd",
+    "figs/imu-orientation-filter/rolling_quaternion.svg": "b3bd7b7ea7f09237c842ae1f0b5decf90c76b81872f2d2b4fa24c41f250554fe",
+    "figs/imu-orientation-filter/rolling_quaternion.png": "8a3509df3be2091d8bfa0311d530974dac3d3c80c063563dd534b95c26308575",
+    "figs/imu-orientation-filter/rolling_axis_errors.pdf": "16e54006f30eb70736741200742c400a296cc39498b4fbdc675a82101f5a9d4f",
+    "figs/imu-orientation-filter/rolling_axis_errors.svg": "7b1ac6f9c49f2d625a89ac0f06775574676403d043d36d959c68de5e381a8f1f",
+    "figs/imu-orientation-filter/rolling_axis_errors.png": "797021670d8c4d9836ea9c0aab3c1397083a98b0b26cbc9c5cfa03317ce936a6",
+    "figs/imu-orientation-filter/rolling_axis_errors_semilog.pdf": "870ff2e9814a221c170334a33e69817c1258f6761fcce8eb95638964da87c4fa",
+    "figs/imu-orientation-filter/rolling_axis_errors_semilog.svg": "a45231bfe53c065abda1e48315ae0774623e13ca90aef31f94fbabf27e6af0a4",
+    "figs/imu-orientation-filter/rolling_axis_errors_semilog.png": "e437c6ce1ecb11935ec973498eed42a36b3e09b34435bb16347a3276cb679862",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/summary.json": "aac3f235406424b0ab43c69907f019a8e67e7d6f5797e9ff3e5996d9111d1834",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/timeseries.npz": "bd938d851f74816df5b643f4ac91eb70369145461abd632288e3d9e0cec287f8",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/source/compare_rolling_bag.py": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/source/inference_compare_rolling_bag.py": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.pdf": "5c84b098c517d46aef0e56945a5da45fa669eabf1edf40c109f631c972c4674f",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.svg": "b36405f9a430519f329d4c1b968b323e5a7d2eb138608f72f95558fd528b5810",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.png": "650040bb20787414aa3b4c28831430959b8617de08c76221b385f7bd2578f99d",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.pdf": "8c28ca4f168e0459f91ce26271c0f73a25612b5b1b60e3edea04a2122f1bd4c0",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.svg": "c5a5e5dc6cefd551cacc11177f73ee23168bfee6bb6dc2b0a5811e60df63eb03",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.png": "84884f0dccd77ebfc45cde09fb7a73b8c6e4747a373e5244e63454eecb7b1592",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/summary.json": "139014e2c4ac37f03859da7baf321f932051fc377ab0e5a1bebedf756d06b3f5",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/timeseries.npz": "c8280135d9d08c7dbec0fd6dd5eaebca6fd8b00c1bac5b14caef7203aa198fa8",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/source/compare_madgwick_rolling.py": "72fcd79c6b34630fd8fffb7206cf5e78f8fd228b96626d311f16f9f6ce837ec8",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-nine-axis-madgwick/source/inference_compare_madgwick_rolling.py": "72fcd79c6b34630fd8fffb7206cf5e78f8fd228b96626d311f16f9f6ce837ec8",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/source/probtf/bingham.py": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/source/probtf/probability/sampling.py": "7e38344ca2c4443bc262d87dcfd3bc785e5cfd03dd0c1b9ff1e2ac39b3ac8d7b",
+    "references/imu-orientation-filter/20250303-delta-circle-trajectory-flight-5-five-conditions/source/probtf_estimators/orientation_imu.py": "87f21e6a777460579e0b5f0dad2bb2813a967ff0417b0ff82fef68d6da0aa109",
+    "medias/imu-orientation-filter/rolling_bingham_comparison.mp4": "ac78adcc62958a0f3bc124f34dcc653ba757934efb2a1bb17bbc071a5f9fdd14",
+    "medias/imu-orientation-filter/bingham_snapshot_000.png": "eb76a58a56782db3cf144d35365fe3b18a62372ab3dc67a057d3e2be5fd0a741",
+    "medias/imu-orientation-filter/bingham_snapshot_001.png": "4e5437b87bbd81c330c068c67ce5d2456c45d47812723c27f6f904db81a972bd",
+    "medias/imu-orientation-filter/bingham_snapshot_002.png": "7064d13f19bb661bb303780aa3603d2fd29409b58b0b59ba3c35c5354b62fa65",
+    "medias/imu-orientation-filter/bingham_snapshot_003.png": "ef6ac3bfa69ea4d4ba986f87adb8f48dc95cd559a8760789638f094fc0d97da0",
+    "medias/imu-orientation-filter/bingham_snapshot_004.png": "29d5e35232063049f2da230e0b474b729f46536a336114c8e1a97c9f109ff28b"
+  },
+  "deprecated_unchanged_sha256": "4e236055abe0609cee99698a712665f57c3eac05ca10d11765b4be0519f19c74",
+  "bag_sha256": "6e3c5eb7a945a04e363acfaa14d3a32e0b36cc90a76a1d52bffd55549fd7bcaf",
+  "tests": {
+    "rolling_comparison_passed": 9,
+    "madgwick_comparison_passed": 11
+  },
+  "video_full_decode": "passed with exit code 0",
+  "checked_on": "2026-10-15",
+  "dthesis_implementation_commit": "fb1d96630b104d787cda39d65172eb074f30c970",
+  "probtf_implementation_commit": "09ea586a5a5e443f5f42f9e7e1dd0efb4730455b",
+  "artifact_paths_relative_to": "/home/leus/dthesis",
+  "old_manuscript_preserved_except_trailing_blank_lines": true,
+  "old_manuscript_sha256": "d3b40b56e118e1b3baca6386133f93f8d48646b3fca25ba05d8123ae40bbb616",
+  "pdf": {
+    "sha256": "df4598abc085f8241394614fe4bbf6a63071dff749c49e19c3bf66de9f897d0b",
+    "pages": 362,
+    "all_pages_portrait_and_rotation_zero": true
+  },
+  "source_checks": {
+    "passed": true,
+    "labels": 862,
+    "citations": 75,
+    "figures": 75,
+    "reviewed_information_gaps": 28
+  },
+  "repository_layout": {
+    "passed": true,
+    "branch": "main",
+    "chapter_files": [
+      "chapter/1-introduction.tex",
+      "chapter/2-uncertainty-tf-background.tex",
+      "chapter/3-mathematical-foundations.tex",
+      "chapter/4-transform-law-propagation.tex",
+      "chapter/5-observation-based-transform-construction.tex",
+      "chapter/6-criterion-based-selection.tex",
+      "chapter/7-transform-law-sharing-infrastructure.tex",
+      "chapter/8-conclusion.tex",
+      "chapter/A-appendix.tex",
+      "chapter/P-publication.tex",
+      "chapter/T-thanks.tex"
+    ],
+    "root_markdown": [
+      "AGENTS.md",
+      "README.md"
+    ],
+    "root_bibliography": [
+      "references.bib"
+    ],
+    "moved_documents": 13,
+    "errors": []
+  },
+  "prose_score": 93,
+  "video": {
+    "programs": [],
+    "streams": [
+      {
+        "width": 1600,
+        "height": 1320,
+        "r_frame_rate": "8/1",
+        "nb_frames": "724"
+      }
+    ],
+    "format": {
+      "duration": "90.500000"
+    }
+  },
+  "visual_review": {
+    "pages": [
+      {
+        "name": "figure_5_1",
+        "pdf_page": 166
+      },
+      {
+        "name": "figure_5_2",
+        "pdf_page": 167
+      },
+      {
+        "name": "figure_5_3",
+        "pdf_page": 168
+      },
+      {
+        "name": "figure_5_4",
+        "pdf_page": 169
+      },
+      {
+        "name": "figure_5_5",
+        "pdf_page": 171
+      },
+      {
+        "name": "figure_5_6",
+        "pdf_page": 172
+      },
+      {
+        "name": "algorithm_2",
+        "pdf_page": 164
+      },
+      {
+        "name": "table_5_1",
+        "pdf_page": 165
+      },
+      {
+        "name": "table_5_2",
+        "pdf_page": 173
+      }
+    ],
+    "all_six_figures_and_two_tables_reviewed": true,
+    "algorithm_reviewed": true,
+    "video_first_middle_last_snapshots_reviewed": true,
+    "overlap_and_cropping": "none in the updated figures, Algorithm, and video",
+    "paragraph_page_break": "removed the duplicate concluding sentence to avoid splitting it across two figure pages"
+  },
+  "limits": [
+    "Fixed sensor concentrations and beta are unchanged and not optimized against this dataset.",
+    "Coverage, calibration, dynamic acceleration, axes/timing correspondence and observation time correlations remain unseparated.",
+    "Existing font/package warnings and a 6.9369 pt float warning for an unrelated effective-joint figure remain."
+  ]
+}

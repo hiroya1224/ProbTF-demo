@@ -45,7 +45,8 @@ from probtf_estimators.orientation_imu import (
 )
 
 CASE_IDS = ('gyro_only', 'magnetic_postprocess', 'magnetic_feedback')
-CASE_LABELS = ('角速度のみ', '地磁気を後処理で合成', '地磁気を次時刻へ帰還')
+CASE_LABELS = ('角速度', '地磁気の融合あり（後処理のみ）',
+               '地磁気の融合あり（次時刻の初期値にも利用）')
 CASE_COLORS = ('#0072B2', '#E69F00', '#CC79A7')
 REFERENCE_LABEL = 'モーションキャプチャ'
 
@@ -64,6 +65,60 @@ def continuous_quaternions(quaternions):
         if output[k-1] @ output[k] < 0.0:
             output[k] *= -1.0
     return output
+
+
+def rotation_error_series(modes, truth):
+    """Absolute wrapped Euler-component differences and SO(3) angle, in degrees.
+
+    Euler-component differences compare the actual RPY traces, rather than
+    decomposing the relative rotation.  The combined error is the magnitude
+    of that relative rotation, not the Euclidean norm of the three differences.
+    """
+    truth_rotation = rotations_from_wxyz(truth)
+    reference_rpy = truth_rotation.as_euler('xyz', degrees=True)
+    axis_errors = []
+    combined_errors = []
+    for case in range(modes.shape[1]):
+        estimate = rotations_from_wxyz(modes[:, case])
+        difference = estimate.as_euler('xyz', degrees=True) - reference_rpy
+        axis_errors.append(np.abs((difference + 180.0) % 360.0 - 180.0))
+        combined_errors.append(np.rad2deg((estimate.inv() * truth_rotation).magnitude()))
+    return np.stack(axis_errors, axis=1), np.stack(combined_errors, axis=1)
+
+
+def update_error_evaluation(arrays, metadata):
+    axis_errors, combined_errors = rotation_error_series(
+        arrays['mode_wxyz'], arrays['mocap_wxyz'],
+    )
+    arrays['rpy_error_deg'] = axis_errors
+    arrays['error_deg'] = combined_errors
+    metadata['case_labels'] = dict(zip(CASE_IDS, CASE_LABELS))
+    metadata['rpy_error_definition'] = (
+        'absolute extrinsic-xyz Euler component difference, wrapped to [-180, 180) degrees; '
+        'estimate minus mocap; no decomposition of the relative rotation'
+    )
+    metadata['combined_error_definition'] = (
+        'SO(3) relative-rotation angle in degrees, 2*acos(abs(q_ref dot q_mode)); '
+        'not the Euclidean norm of RPY differences'
+    )
+    metadata['statistics'] = {}
+    for case, name in enumerate(CASE_IDS):
+        error = combined_errors[:, case]
+        metadata['statistics'][name] = {
+            'rms_deg': float(np.sqrt(np.mean(error**2))),
+            'median_deg': float(np.median(error)), 'p95_deg': float(np.quantile(error, 0.95)),
+            'max_deg': float(error.max()), 'final_deg': float(error[-1]),
+            'rpy_errors': {
+                component: {
+                    'rms_deg': float(np.sqrt(np.mean(axis_errors[:, case, i]**2))),
+                    'median_deg': float(np.median(axis_errors[:, case, i])),
+                    'p95_deg': float(np.quantile(axis_errors[:, case, i], 0.95)),
+                    'max_deg': float(axis_errors[:, case, i].max()),
+                    'final_deg': float(axis_errors[-1, case, i]),
+                }
+                for i, component in enumerate(('roll', 'pitch', 'yaw'))
+            },
+        }
 
 
 def read_bag(path):
@@ -209,10 +264,6 @@ def metrics_and_arrays(imu, truth, modes, display, residuals, reference, metadat
     if truth[0] @ modes[0, 0] < 0.0:
         truth *= -1.0
     truth_rotation = rotations_from_wxyz(truth)
-    errors = np.stack([
-        np.rad2deg((rotations_from_wxyz(modes[:, case]).inv() * truth_rotation).magnitude())
-        for case in range(3)
-    ], axis=1)
     principal_rpy = np.stack([
         rotations_from_wxyz(modes[:, case]).as_euler('xyz')
         for case in range(3)
@@ -245,23 +296,16 @@ def metrics_and_arrays(imu, truth, modes, display, residuals, reference, metadat
         },
         'rpy_convention': 'extrinsic xyz; mocap unwrapped; each estimate uses the nearest mocap component branch for display only',
         'quaternion_convention': 'wxyz, adjacent signs aligned, common initial sign',
-        'statistics': {},
     })
-    for case, name in enumerate(CASE_IDS):
-        error = errors[:, case]
-        metadata['statistics'][name] = {
-            'rms_deg': float(np.sqrt(np.mean(error**2))),
-            'median_deg': float(np.median(error)), 'p95_deg': float(np.quantile(error, .95)),
-            'max_deg': float(error.max()), 'final_deg': float(error[-1]),
-        }
     arrays = dict(
         time_seconds=imu[:, 1]-imu[0, 1], measurement_stamps=imu[:, 1],
         gyro_rad_s=imu[:, 2:5], magnetic_raw=imu[:, 8:11],
         mocap_wxyz=truth, mode_wxyz=modes, display_parameter=display,
-        rpy_deg=rpy, mocap_rpy_deg=reference_rpy, error_deg=errors,
+        rpy_deg=rpy, mocap_rpy_deg=reference_rpy,
         magnetic_norm=norms, magnetic_direction_residual_deg=field_residual,
         moment_fit_residual=residuals,
     )
+    update_error_evaluation(arrays, metadata)
     return metadata, arrays
 
 
@@ -303,27 +347,25 @@ def plot_results(arrays, output):
             axis.set_ylabel(components[component]+(' / '+units if units else ''))
             axis.grid(alpha=.22)
             axis.set_xlim(t[0], t[-1])
-        axes[0].legend(ncol=2, loc='lower left', bbox_to_anchor=(0, 1.02), frameon=False)
+        axes[0].legend(ncol=1, loc='lower left', bbox_to_anchor=(0, 1.02), frameon=False)
         axes[-1].set_xlabel('経過時間 / s')
         figure.tight_layout()
         save_figure(figure, output, name)
         plt.close(figure)
-    figure, axes = plt.subplots(3, 1, sharex=True, figsize=(8.1, 6.8))
-    for case in range(3):
-        axes[0].plot(t, arrays['error_deg'][:, case], color=CASE_COLORS[case],
-                     lw=1.0, label=CASE_LABELS[case])
-    axes[0].set_ylabel('回転誤差 / deg')
-    axes[0].legend(ncol=2, loc='lower left', bbox_to_anchor=(0, 1.02), frameon=False)
-    axes[1].plot(t, arrays['magnetic_direction_residual_deg'], color='#009E73', lw=.9)
-    axes[1].set_ylabel('磁場方向の残差 / deg')
-    axes[2].plot(t, arrays['magnetic_norm'], color='#666666', lw=.9)
-    axes[2].set_ylabel('磁場ベクトルのノルム')
-    axes[2].set_xlabel('経過時間 / s')
-    for axis in axes:
-        axis.grid(alpha=.22)
+    figure, axes = plt.subplots(4, 1, sharex=True, figsize=(8.1, 8.4))
+    for component, axis in enumerate(axes):
+        values = arrays['rpy_error_deg'][:, :, component] if component < 3 else arrays['error_deg']
+        for case in range(3):
+            axis.plot(t, values[:, case], color=CASE_COLORS[case],
+                      lw=1.0, label=CASE_LABELS[case])
+        axis.set_ylabel(('ロール誤差', 'ピッチ誤差', 'ヨー誤差', '三軸の合成誤差')[component]+' / deg')
+        axis.set_ylim(bottom=0.0)
+        axis.grid(alpha=0.22)
         axis.set_xlim(t[0], t[-1])
+    axes[0].legend(ncol=1, loc='lower left', bbox_to_anchor=(0, 1.02), frameon=False)
+    axes[-1].set_xlabel('経過時間 / s')
     figure.tight_layout()
-    save_figure(figure, output, 'error_and_magnetic')
+    save_figure(figure, output, 'axis_errors')
     plt.close(figure)
 
 
@@ -343,6 +385,9 @@ def write_csv(arrays, destination):
             headers.append(name+'_'+component+'_deg')
             columns.append(rpy[:, i])
     for i, name in enumerate(CASE_IDS):
+        for component, label in enumerate(('roll', 'pitch', 'yaw')):
+            headers.append(name+'_'+label+'_error_deg')
+            columns.append(arrays['rpy_error_deg'][:, i, component])
         headers.append(name+'_rotation_error_deg')
         columns.append(arrays['error_deg'][:, i])
     headers += ['magnetic_direction_residual_deg', 'magnetic_norm_raw_units']
@@ -375,9 +420,9 @@ def render_video(arrays, output, fps=8.0, samples=180):
     timeline.set_xlim(0.0, t[-1])
     timeline.set_ylim(0.0, max(10.0, float(arrays['error_deg'].max())*1.05))
     timeline.set_xlabel('経過時間 / s')
-    timeline.set_ylabel('回転誤差 / deg')
+    timeline.set_ylabel('三軸の合成誤差 / deg')
     timeline.grid(alpha=.2)
-    timeline.legend(ncol=3, loc='upper left', frameon=False)
+    timeline.legend(ncol=3, loc='upper left', fontsize=9, frameon=False)
     clock = figure.text(.5, .985, '', ha='center', va='top', fontsize=14)
     description = figure.text(.5, .945,
         '点群：Bingham分布の軸端点　実線の軸：分布のモード　黒破線：モーションキャプチャ',
@@ -405,8 +450,10 @@ def render_video(arrays, output, fps=8.0, samples=180):
                     mode = rotations_from_wxyz(arrays['mode_wxyz'][k,case]).as_matrix()
                     draw_so3s(axis, rotations, axes=mode, axes_gt=None,
                               point_of_view=np.array([1.4,-1.5,1.0]), distance=9)
-                    axis.set_title(CASE_LABELS[case]+'\n誤差 {:.2f} deg'.format(arrays['error_deg'][k,case]),
-                                   color=CASE_COLORS[case], fontsize=12, pad=18)
+                    # A line break preserves the wording while fitting each sphere.
+                    title = CASE_LABELS[case].replace('（', '\n（')
+                    axis.set_title(title+'\n誤差 {:.2f} deg'.format(arrays['error_deg'][k,case]),
+                                   color=CASE_COLORS[case], fontsize=10, pad=12)
                 else:
                     axis.plot([], [], [], label=REFERENCE_LABEL)
                     draw_so3s(axis, None, axes=truth_rotation, axes_gt=None,
@@ -468,6 +515,7 @@ def main():
         with np.load(args.output/'timeseries.npz') as archive:
             arrays = {key:archive[key] for key in archive.files}
         metadata = json.loads((args.output/'summary.json').read_text())
+        update_error_evaluation(arrays, metadata)
     else:
         imu, mocap = read_bag(args.bag)
         imu, truth, reference, metadata = prepare_streams(
@@ -490,10 +538,13 @@ def main():
         metadata['bag_path'] = str(args.bag.resolve())
         metadata['bag_size_bytes'] = args.bag.stat().st_size
         metadata['script_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
-        np.savez_compressed(args.output/'timeseries.npz', **arrays)
-        write_csv(arrays,args.output/'timeseries.csv')
-        (args.output/'summary.json').write_text(json.dumps(metadata,indent=2,ensure_ascii=False)+'\n')
-        print(json.dumps(metadata['statistics'],indent=2),flush=True)
+    # Keep the original propagation-script hash when re-evaluating cached states.
+    metadata['evaluation_script_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    metadata['evaluation_from_saved_states'] = args.render_only
+    np.savez_compressed(args.output/'timeseries.npz', **arrays)
+    write_csv(arrays,args.output/'timeseries.csv')
+    (args.output/'summary.json').write_text(json.dumps(metadata,indent=2,ensure_ascii=False)+'\n')
+    print(json.dumps(metadata['statistics'],indent=2),flush=True)
     plot_results(arrays,args.output)
     if not args.skip_video:
         metadata['video'] = render_video(arrays,args.output,args.video_fps,args.video_samples)

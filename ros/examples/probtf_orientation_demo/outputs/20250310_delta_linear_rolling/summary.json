@@ -83,21 +83,90 @@
       "median_deg": 6.4903760703234195,
       "p95_deg": 11.809580885758017,
       "max_deg": 15.076302125636929,
-      "final_deg": 11.993503939995046
+      "final_deg": 11.993503939995046,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 10.060316528079328,
+          "median_deg": 3.289731785816997,
+          "p95_deg": 7.51238062706593,
+          "max_deg": 177.5197175393714,
+          "final_deg": 0.17374055834545743
+        },
+        "pitch": {
+          "rms_deg": 6.254395041210903,
+          "median_deg": 4.542541590784779,
+          "p95_deg": 11.623751229015497,
+          "max_deg": 14.428916642028923,
+          "final_deg": 11.889991469553536
+        },
+        "yaw": {
+          "rms_deg": 9.483719876455496,
+          "median_deg": 0.38122361437346797,
+          "p95_deg": 7.783449421349827,
+          "max_deg": 179.40772756844913,
+          "final_deg": 1.5805628837749452
+        }
+      }
     },
     "magnetic_postprocess": {
       "rms_deg": 6.150479352431931,
       "median_deg": 5.7158053219491265,
       "p95_deg": 8.786421786232408,
       "max_deg": 10.43393581056553,
-      "final_deg": 8.97020736632624
+      "final_deg": 8.97020736632624,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 7.691550407770468,
+          "median_deg": 2.380056248725822,
+          "p95_deg": 6.064977766329677,
+          "max_deg": 178.5155721709437,
+          "final_deg": 1.784725254353333
+        },
+        "pitch": {
+          "rms_deg": 4.951279064286914,
+          "median_deg": 4.443180999669352,
+          "p95_deg": 8.289102795597712,
+          "max_deg": 9.664702831259092,
+          "final_deg": 8.59054842440716
+        },
+        "yaw": {
+          "rms_deg": 7.533116870060617,
+          "median_deg": 1.95346961236757,
+          "p95_deg": 5.51467266987158,
+          "max_deg": 178.45683165124314,
+          "final_deg": 1.973794664962952
+        }
+      }
     },
     "magnetic_feedback": {
       "rms_deg": 13.607343983305032,
       "median_deg": 14.058893841226496,
       "p95_deg": 17.757169894748877,
       "max_deg": 20.146125315865657,
-      "final_deg": 11.87058452041406
+      "final_deg": 11.87058452041406,
+      "rpy_errors": {
+        "roll": {
+          "rms_deg": 16.022116432394547,
+          "median_deg": 13.095043061664498,
+          "p95_deg": 19.212871412743883,
+          "max_deg": 92.29118645849303,
+          "final_deg": 9.888131205895064
+        },
+        "pitch": {
+          "rms_deg": 5.0006820869606745,
+          "median_deg": 4.09558107967446,
+          "p95_deg": 7.725525174455036,
+          "max_deg": 17.982408419559704,
+          "final_deg": 4.141438344850997
+        },
+        "yaw": {
+          "rms_deg": 11.123457784377077,
+          "median_deg": 5.30507476314321,
+          "p95_deg": 12.821057330340661,
+          "max_deg": 94.53779715102085,
+          "final_deg": 4.5990681812961896
+        }
+      }
     }
   },
   "bag_path": "/home/leus/rosbags/20250310_delta_linear_rolling_1_2025-03-10-16-18-36.bag",
@@ -111,5 +180,14 @@
     "visualizer": "third_party/BinghamNLL/src/bingham/visualize/SO3s.py:draw_so3s",
     "samples_per_distribution_per_frame": 180
   },
-  "wall_seconds": 193.64449406322092
+  "wall_seconds": 117.31596655584872,
+  "case_labels": {
+    "gyro_only": "角速度",
+    "magnetic_postprocess": "地磁気の融合あり（後処理のみ）",
+    "magnetic_feedback": "地磁気の融合あり（次時刻の初期値にも利用）"
+  },
+  "rpy_error_definition": "absolute extrinsic-xyz Euler component difference, wrapped to [-180, 180) degrees; estimate minus mocap; no decomposition of the relative rotation",
+  "combined_error_definition": "SO(3) relative-rotation angle in degrees, 2*acos(abs(q_ref dot q_mode)); not the Euclidean norm of RPY differences",
+  "evaluation_script_sha256": "dc3a549d42cee4a84940f7c9dcfe16c425ef329241716f14caf03f76658e5294",
+  "evaluation_from_saved_states": true
 }

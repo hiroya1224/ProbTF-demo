@@ -16,6 +16,27 @@ spec.loader.exec_module(comparison)
 
 
 class RollingComparisonTest(unittest.TestCase):
+    def test_rpy_errors_wrap_at_the_180_degree_boundary(self):
+        rotation = comparison.Rotation
+        truth = comparison.wxyz_from_rotations(rotation.from_euler('xyz',
+            [[179.0, 0.0, 0.0], [0.0, 0.0, -179.0]], degrees=True))
+        estimate = comparison.wxyz_from_rotations(rotation.from_euler('xyz',
+            [[-179.0, 0.0, 0.0], [0.0, 0.0, 179.0]], degrees=True))
+        # Opposite quaternion signs encode exactly the same reference attitude.
+        axis_errors, combined = comparison.rotation_error_series(estimate[:, None], -truth)
+        np.testing.assert_allclose(axis_errors[:, 0], [[2.0, 0.0, 0.0], [0.0, 0.0, 2.0]], atol=1e-12)
+        np.testing.assert_allclose(combined[:, 0], [2.0, 2.0], atol=1e-12)
+
+    def test_combined_error_uses_the_relative_rotation_angle(self):
+        rotation = comparison.Rotation
+        truth = comparison.wxyz_from_rotations(rotation.identity(1))
+        estimate = comparison.wxyz_from_rotations(rotation.from_euler('xyz',
+            [[60.0, 60.0, 60.0]], degrees=True))
+        axis_errors, combined = comparison.rotation_error_series(estimate[:, None], truth)
+        np.testing.assert_allclose(axis_errors[0, 0], [60.0, 60.0, 60.0], atol=1e-12)
+        np.testing.assert_allclose(combined[0, 0], 2.0*np.rad2deg(np.arccos(abs(estimate[0, 0]))), atol=1e-12)
+        self.assertGreater(abs(combined[0, 0] - np.linalg.norm(axis_errors[0, 0])), 10.0)
+
     def test_sampling_a_concentrated_rotated_posterior(self):
         from probtf.bingham import bingham_second_moment
         from probtf.distributions import BinghamOrientation

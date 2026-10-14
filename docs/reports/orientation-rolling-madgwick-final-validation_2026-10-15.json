@@ -1,0 +1,343 @@
+{
+  "checked_on": "2026-10-15",
+  "passed": true,
+  "case_labels": {
+    "gyro_only": "角速度の時間発展のみ",
+    "gyro_acceleration": "角速度と加速度の融合",
+    "gyro_magnetic": "角速度と地磁気の融合",
+    "magnetic_acceleration": "地磁気と加速度の融合",
+    "nine_axis": "9軸の全情報の融合",
+    "madgwick_imu": "Madgwick（6軸）",
+    "madgwick_marg": "Madgwick（9軸）"
+  },
+  "samples": 17088,
+  "duration_seconds": 85.44597482681274,
+  "madgwick_beta": 0.1,
+  "statistics": {
+    "gyro_only": {
+      "rms_deg": 7.346077569587193,
+      "rpy_rms_deg": [
+        10.060316528079323,
+        6.254395041210895,
+        9.483719876455478
+      ],
+      "first_60_seconds_rms_deg": 5.172302498866672,
+      "first_60_seconds_yaw_rms_deg": 0.3724902355758758,
+      "final_deg": 11.993503939995046
+    },
+    "gyro_acceleration": {
+      "rms_deg": 4.908213306555114,
+      "rpy_rms_deg": [
+        6.985905130685599,
+        2.8586584186793913,
+        5.997770681217142
+      ],
+      "first_60_seconds_rms_deg": 4.774363427994456,
+      "first_60_seconds_yaw_rms_deg": 0.5562484743942161,
+      "final_deg": 3.8811827155128418
+    },
+    "gyro_magnetic": {
+      "rms_deg": 13.607343983305032,
+      "rpy_rms_deg": [
+        16.022116432394537,
+        5.00068208696068,
+        11.123457784377079
+      ],
+      "first_60_seconds_rms_deg": 13.11949214964513,
+      "first_60_seconds_yaw_rms_deg": 5.208921523686794,
+      "final_deg": 11.87058452041406
+    },
+    "magnetic_acceleration": {
+      "rms_deg": 32.82403228416912,
+      "rpy_rms_deg": [
+        13.337656546870335,
+        5.83137507408595,
+        31.075752995179563
+      ],
+      "first_60_seconds_rms_deg": 30.44893785748351,
+      "first_60_seconds_yaw_rms_deg": 27.827765700971096,
+      "final_deg": 14.503942190100679
+    },
+    "nine_axis": {
+      "rms_deg": 20.390517991276614,
+      "rpy_rms_deg": [
+        6.479104718586415,
+        3.0014300130935463,
+        18.572921569150036
+      ],
+      "first_60_seconds_rms_deg": 20.36384327060195,
+      "first_60_seconds_yaw_rms_deg": 18.065460957999843,
+      "final_deg": 15.806594575785764
+    },
+    "madgwick_imu": {
+      "rms_deg": 3.6384050587287766,
+      "rpy_rms_deg": [
+        5.900163919919252,
+        1.29549451164763,
+        5.060844108461064
+      ],
+      "first_60_seconds_rms_deg": 3.5065450907361932,
+      "first_60_seconds_yaw_rms_deg": 0.5993633641858728,
+      "final_deg": 1.776078142487497
+    },
+    "madgwick_marg": {
+      "rms_deg": 28.16756431982949,
+      "rpy_rms_deg": [
+        12.342518744528583,
+        4.818945340773292,
+        29.68624901674315
+      ],
+      "first_60_seconds_rms_deg": 28.323968586274123,
+      "first_60_seconds_yaw_rms_deg": 28.969402123943297,
+      "final_deg": 14.144853436938485
+    }
+  },
+  "gain_sensitivity": [
+    {
+      "beta": 0.01,
+      "madgwick_imu": {
+        "rms_deg": 3.31347089291324,
+        "rpy_rms_deg": [
+          4.6633503184372955,
+          0.7992444483251453,
+          3.8734758625639207
+        ],
+        "first_60_seconds_rms_deg": 3.317598316664573,
+        "first_60_seconds_yaw_rms_deg": 0.585590950884821,
+        "final_deg": 1.8407999093670928
+      },
+      "madgwick_marg": {
+        "rms_deg": 20.381958150865053,
+        "rpy_rms_deg": [
+          6.361654496171679,
+          3.5964639210838207,
+          21.09391534547092
+        ],
+        "first_60_seconds_rms_deg": 16.760195277519962,
+        "first_60_seconds_yaw_rms_deg": 16.887698478353343,
+        "final_deg": 20.0353798393141
+      }
+    },
+    {
+      "beta": 0.033,
+      "madgwick_imu": {
+        "rms_deg": 3.357627803324612,
+        "rpy_rms_deg": [
+          4.9513800336254015,
+          0.9073895920021373,
+          4.163010052276073
+        ],
+        "first_60_seconds_rms_deg": 3.335521595832712,
+        "first_60_seconds_yaw_rms_deg": 0.5900621830881948,
+        "final_deg": 1.8297212813645787
+      },
+      "madgwick_marg": {
+        "rms_deg": 27.705208184570626,
+        "rpy_rms_deg": [
+          9.527039078103869,
+          3.8504618453565262,
+          28.525928156728874
+        ],
+        "first_60_seconds_rms_deg": 27.12427457041093,
+        "first_60_seconds_yaw_rms_deg": 27.774829433935285,
+        "final_deg": 14.158865399229278
+      }
+    },
+    {
+      "beta": 0.041,
+      "madgwick_imu": {
+        "rms_deg": 3.388756778644292,
+        "rpy_rms_deg": [
+          5.108014982929255,
+          0.960280172004263,
+          4.322170194169072
+        ],
+        "first_60_seconds_rms_deg": 3.356302727953971,
+        "first_60_seconds_yaw_rms_deg": 0.5919931605645282,
+        "final_deg": 1.8171889110715582
+      },
+      "madgwick_marg": {
+        "rms_deg": 27.833410785243462,
+        "rpy_rms_deg": [
+          10.277549320900846,
+          4.316561233257754,
+          28.664226328582924
+        ],
+        "first_60_seconds_rms_deg": 27.512383720462836,
+        "first_60_seconds_yaw_rms_deg": 28.16915027903332,
+        "final_deg": 14.141791234711377
+      }
+    },
+    {
+      "beta": 0.1,
+      "madgwick_imu": {
+        "rms_deg": 3.6384050587287766,
+        "rpy_rms_deg": [
+          5.900163919919252,
+          1.29549451164763,
+          5.060844108461064
+        ],
+        "first_60_seconds_rms_deg": 3.5065450907361932,
+        "first_60_seconds_yaw_rms_deg": 0.5993633641858728,
+        "final_deg": 1.776078142487497
+      },
+      "madgwick_marg": {
+        "rms_deg": 28.16756431982949,
+        "rpy_rms_deg": [
+          12.342518744528583,
+          4.818945340773292,
+          29.68624901674315
+        ],
+        "first_60_seconds_rms_deg": 28.323968586274123,
+        "first_60_seconds_yaw_rms_deg": 28.969402123943297,
+        "final_deg": 14.144853436938485
+      }
+    }
+  ],
+  "compass_control": {
+    "definition": "compass yaw from measured magnetometer with exact mocap tilt; uses evaluated mocap and is an input diagnostic, not an estimator benchmark",
+    "rms_yaw_deg": 32.23670968906648,
+    "first_60_seconds_rms_yaw_deg": 30.190597286398894,
+    "max_yaw_deg": 73.96364982675672
+  },
+  "numeric_checks": {
+    "all_arrays_finite": true,
+    "all_seven_quaternions_unit_length": true,
+    "preserved_inputs": [
+      "time_seconds",
+      "measurement_stamps",
+      "gyro_rad_s",
+      "acceleration_m_s2",
+      "magnetic_raw",
+      "mocap_wxyz",
+      "mocap_rpy_deg"
+    ],
+    "five_existing_modes_and_errors_bit_identical": true,
+    "rotation_errors_and_rms_recomputed": true,
+    "rpy_errors_match_plotted_traces": true,
+    "compass_control_matches_wrapped_yaw_error": true
+  },
+  "primary_sources": {
+    "report": "https://x-io.co.uk/downloads/madgwick_internal_report.pdf",
+    "matlab_archive": "https://x-io.co.uk/downloads/madgwick_algorithm_matlab.zip",
+    "matlab_archive_sha256": "937de6f36243eec0888a650882a8568acc0ff95054b97e1f3ff89d8f6d808635",
+    "c_archive_sha256": "ce498946020e1d7b84eac0449a2a5401170e3faada6ff1855219ba5d211044f4",
+    "beta_source": "author-distributed MATLAB example Beta=0.1 and C betaDef=0.1"
+  },
+  "world_from_magnetic_north_heading_deg": 119.71426801065431,
+  "tests": {
+    "new_madgwick_checks_passed": 11,
+    "catkin_package_build": "passed without warnings",
+    "devel_entry_help": "passed"
+  },
+  "plot_checks": {
+    "axis_errors": {
+      "axes": 4,
+      "requested_labels_and_order": true,
+      "curves_per_axis": 7
+    },
+    "axis_errors_semilog": {
+      "axes": 4,
+      "requested_labels_and_order": true,
+      "curves_per_axis": 7
+    },
+    "method_comparison": {
+      "axes": 8,
+      "requested_labels_and_order": true,
+      "curves_per_axis": 3
+    },
+    "method_comparison_semilog": {
+      "axes": 8,
+      "requested_labels_and_order": true,
+      "curves_per_axis": 3
+    }
+  },
+  "artifact_sha256": {
+    "figs/imu-orientation-filter/rolling_madgwick_magnetic_heading_control.png": "24ee199ff0bb1d39ed44908c0615887df2d6d4a95b9ecb75c735ab46a6354a3b",
+    "figs/imu-orientation-filter/rolling_madgwick_magnetic_heading_control.pdf": "48ddf507d3f95c51812a4a41bc7df45d5d63f4042a410a6a373ea346b7d91e9f",
+    "figs/imu-orientation-filter/rolling_madgwick_quaternion.svg": "ed36314edb4f083193b85dbd78ae383e6e8d51761953c19a31cf366911b3e591",
+    "figs/imu-orientation-filter/rolling_madgwick_axis_errors_semilog.pdf": "5eb3879a822dcd3fe2e2f54b5ccecfbd68f6d55d598fb020648316e6fbab34fd",
+    "figs/imu-orientation-filter/rolling_madgwick_quaternion.png": "cb8e0580ef4caadf2bd2b5f645facb0bcfe6930e8961ec2ea980fd32cc222819",
+    "figs/imu-orientation-filter/rolling_madgwick_quaternion.pdf": "c0558f48876ce4132984109e3a5d80c203ef8850e270cb15202df084706bf705",
+    "figs/imu-orientation-filter/rolling_madgwick_rpy.pdf": "a26068d5116c76a734122fff3edf70b48e01e5aa9b99eb3a06d8ae16c170da63",
+    "figs/imu-orientation-filter/rolling_madgwick_axis_errors_semilog.svg": "bc327f987ea2e4440a3786aeda00fb402d38ac5c301b549bedf7aaacf0e2b0a6",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/summary.json": "f9ca6f3088b7a587675b160331b87a4a5d35d5addc5a89dfc758bc281ddad105",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.pdf": "2e4c160c6e5f8781dd5132cea579ccf0049208c5f8f727b8d69977679a9b8089",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.svg": "532caf40bb59c02e2f2779ff5d5a47f680cb89d86245110a219ece9e1b8401c9",
+    "figs/imu-orientation-filter/rolling_madgwick_rpy.svg": "8ed464f9ad1945b85a21011bc8e1285a64fb8b77f8de9c3693dc71c949806152",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.svg": "a134d595276a12e6520a76cd2b07d7c78bace81ddb56e6ded68ac93f18f74501",
+    "figs/imu-orientation-filter/rolling_madgwick_axis_errors.png": "72909883100b01f77674b59d1924df7bb292a1d3ba202a2666e71597c2ef0701",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison.png": "dad928b33c95a01fc05287740b8229aaf024639d3a4d9d503a86fbf394a432f6",
+    "figs/imu-orientation-filter/rolling_madgwick_axis_errors.svg": "ddd639670f268e9d664d11b3395bb3bb8485726df9a868e76190d80e3ec6cfc8",
+    "figs/imu-orientation-filter/rolling_madgwick_rpy.png": "aa63a01b1e666122b83f4adc601fa4b57980ec149985caf3237373b02fb0e707",
+    "figs/imu-orientation-filter/rolling_madgwick_axis_errors.pdf": "29dcb9369e6af6b74b5234748c1b169c862eee32cbb1ae12df1daa0f66fbfde0",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.png": "cbaaccdfbb3055f8f2e1b5f22b8286de2d55e3e9cbc5c5a4cb8d9b14cd47d6b9",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/timeseries.npz": "a544ee9824365753a9f186131fb4004f4707aa20e1c366c86e454993f52d69ce",
+    "figs/imu-orientation-filter/rolling_madgwick_axis_errors_semilog.png": "7d7191d093f48b5ccb0c51aab0f4c0a14e4534aa52826cfa62ad0b33e2fbdbcc",
+    "figs/imu-orientation-filter/rolling_madgwick_magnetic_heading_control.svg": "b57605faca308adcd3bd98dc4ed9f4a5a0b97b94b30c27c1686853c687c94fc3",
+    "figs/imu-orientation-filter/rolling_madgwick_method_comparison_semilog.pdf": "e626b71a2656605dbc93e7eeed551ffc367708718644309ab7eff6e5e7ec1d74",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/source/compare_madgwick_rolling.py": "abc7d36cb02acac93020b353fc60a6d77f77672db315a2430184d99ab3bbd2a8",
+    "references/imu-orientation-filter/20250310-delta-linear-rolling-madgwick/source/compare_rolling_bag.py": "c5979a446e6c4b82b44351a04713dc61c6d0c034205f3a2764cb28b4930c88f0"
+  },
+  "all_artifacts_synced": true,
+  "previous_five_condition_25_artifacts_unchanged": true,
+  "deprecated_unchanged_sha256": "4e236055abe0609cee99698a712665f57c3eac05ca10d11765b4be0519f19c74",
+  "script_sha256": "abc7d36cb02acac93020b353fc60a6d77f77672db315a2430184d99ab3bbd2a8",
+  "input_timeseries_sha256": "d432f3f973be28c7a9f34caf8f01e484e2484ec5665b7bcb3993d452fb7d5480",
+  "pdf_pages": 364,
+  "pdf_sha256": "02c0f0d4fa0096153300aefd08eb8eaa1f18b7630a5b68023d83b48afbd826a0",
+  "all_pdf_pages_portrait_and_rotation_zero": true,
+  "new_landscape_figures": [
+    {
+      "label": "construction:fig:rolling-madgwick-method-comparison",
+      "number": "5.5",
+      "page": 172,
+      "rotation": 0,
+      "figure_and_caption_rotation": 90
+    },
+    {
+      "label": "construction:fig:rolling-madgwick-method-comparison-semilog",
+      "number": "5.6",
+      "page": 173,
+      "rotation": 0,
+      "figure_and_caption_rotation": 90
+    }
+  ],
+  "visual_review": [
+    {
+      "page": 171,
+      "name": "MadgwickフィルタとBingham候補による方位推定の比較",
+      "preview": "/tmp/rolling-madgwick/page-171.png"
+    },
+    {
+      "page": 172,
+      "name": "地磁気の有無をそろえたBingham候補とMadgwickフィルタの比較",
+      "preview": "/tmp/rolling-madgwick/page-172.png"
+    },
+    {
+      "page": 173,
+      "name": "Bingham候補とMadgwickフィルタの回転誤差の片対数表示",
+      "preview": "/tmp/rolling-madgwick/page-173.png"
+    },
+    {
+      "page": 175,
+      "name": "参照方位の傾きで補償した地磁気由来のヨーと",
+      "preview": "/tmp/rolling-madgwick/page-175.png"
+    }
+  ],
+  "prose_score": 100,
+  "source_checks": {
+    "labels": 863,
+    "citations": 75,
+    "figures": 76,
+    "reviewed_information_gaps": 28,
+    "passed": true
+  },
+  "limits": [
+    "A filter comparison alone does not identify magnetic hardware errors, calibration, frame alignment, spatial field changes or gain choice separately.",
+    "The compass input control uses mocap tilt, so it must not be counted as a sensor-only estimate.",
+    "The full document retains pre-existing font/package warnings and a 6.9369pt float-height warning in an unrelated effective-joint figure."
+  ],
+  "probtf_implementation_commit": "fec90e197cfc83d9c47517f4fd856f9b97aabd4e",
+  "dthesis_implementation_commit": "aab16dfe38516eb04565b084c890dd93dc82d161"
+}

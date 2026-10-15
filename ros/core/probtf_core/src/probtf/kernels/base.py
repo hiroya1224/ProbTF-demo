@@ -16,6 +16,7 @@ class KernelRepresentation(Enum):
     EXPRESSION = "expression"
     NUMERICAL_LAW = "numerical_law"
     SAMPLES = "samples"
+    QUADRATURE = "quadrature"
     MOMENTS = "moments"
     CLOSED_MIXTURE = "closed_mixture"
 

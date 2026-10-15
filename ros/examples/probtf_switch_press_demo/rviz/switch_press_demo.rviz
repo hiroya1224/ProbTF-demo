@@ -34,7 +34,7 @@ Visualization Manager:
       Alpha: 0.25
       Update Interval: 0
     - Class: probtf_rviz/ProbabilisticTF
-      Name: ProbTF robot joints
+      Name: ProbTF root next links (mean axes, nu_j)
       Enabled: true
       Dynamic Topic: ""
       Dynamic Snapshot Topic: /switch_press/probtf_batch
@@ -43,13 +43,41 @@ Visualization Manager:
       Frame Timeout: 2
       Sample Count: 180
       Axis Length: 0.075
-      Point Size: 0.003
+      Point Size: 0.006
       Point Style: Spheres
       Alpha: 0.85
       Show Representatives: true
       Representative Radius: 0.0015
       Random Seed: 29
       Queue Size: 1
+    - Class: probtf_rviz/ProbabilisticPose
+      Name: ProbTF relative next tip (mean axes, IK input)
+      Enabled: true
+      Topic: /switch_press/predicted_tip
+      Queue Size: 1
+      Frame Timeout: 1
+      Sample Count: 180
+      Axis Length: 0.04
+      Point Size: 0.008
+      Point Style: Spheres
+      Alpha: 1
+      Show Representative: true
+      Representative Radius: 0.001
+      Random Seed: 29
+    - Class: probtf_rviz/ProbabilisticPose
+      Name: ProbTF relative observed goal (IK input)
+      Enabled: true
+      Topic: /switch_press/predicted_goal
+      Queue Size: 1
+      Frame Timeout: 1
+      Sample Count: 200
+      Axis Length: 0.04
+      Point Size: 0.004
+      Point Style: Spheres
+      Alpha: 0.65
+      Show Representative: true
+      Representative Radius: 0.001
+      Random Seed: 29
     - Class: probtf_rviz/ProbabilisticPose
       Name: ProbTF observed AR marker
       Enabled: true
@@ -58,7 +86,7 @@ Visualization Manager:
       Frame Timeout: 1
       Sample Count: 200
       Axis Length: 0.09
-      Point Size: 0.003
+      Point Size: 0.006
       Point Style: Spheres
       Alpha: 0.85
       Show Representative: true
@@ -70,8 +98,8 @@ Visualization Manager:
       Marker Topic: /switch_press/markers
       Queue Size: 1
     - Class: rviz/MarkerArray
-      Name: IK prediction rods (diagnostic)
-      Enabled: false
+      Name: Next rods from the same IK candidate
+      Enabled: true
       Marker Topic: /switch_press/predictions
       Queue Size: 1
     - Class: rviz/Image

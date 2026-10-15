@@ -1,0 +1,8 @@
+{
+  "python_core_tests": 320,
+  "python_demo_tests": 65,
+  "cpp_rviz_tests": 16,
+  "catkin_packages_built": 7,
+  "source_hashes_matched": true,
+  "scope": "configured native finite link transform prior; image-derived native goal; continuous async IK and RViz publication"
+}

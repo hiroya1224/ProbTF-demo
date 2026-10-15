@@ -37,6 +37,7 @@ from probtf.spherical_law import (
     IslBackendUnavailableError,
     IslEvaluationOptions,
     UnavailableExactIslBackend,
+    ExactIslBackend,
 )
 
 
@@ -199,12 +200,15 @@ class KernelEvaluator:
         *,
         latent_store=None,
         dependency_moment_evaluator=None,
+        point_density_order=9,
     ):
-        self.isl_backend = UnavailableExactIslBackend() if isl_backend is None else isl_backend
+        self.isl_backend = ExactIslBackend() if isl_backend is None else isl_backend
         steps = int(bingham_integration_steps)
         if steps < 1 or steps != bingham_integration_steps:
             raise ValueError("bingham_integration_steps must be a positive integer.")
         self.bingham_integration_steps = steps
+        from probtf.probability.quadrature import _order
+        self.point_density_order = _order(point_density_order)
         if latent_store is not None:
             from probtf.dependency import GaussianLatentStore
 
@@ -401,6 +405,12 @@ class KernelEvaluator:
                 "Numerical stochastic inverse action is not implemented.",
             )
         normalized = base.edge_record.distribution.normalize_weights()
+        if all(np.linalg.eigvalsh(item.component.translation.residual_covariance)[0] > 0
+               for item in normalized.components):
+            from probtf.probability.point_density import ConditionalPointDensity
+            value = ConditionalPointDensity(base.edge_record, input_law.point, self.point_density_order)
+            return KernelResult(DistributionStatus.OK, KernelRepresentation.NUMERICAL_LAW,
+                                value, value.approximation, diagnostics)
         laws = []
         isl_options = options.isl_options or IslEvaluationOptions()
         try:
@@ -538,6 +548,28 @@ class KernelEvaluator:
         if not isinstance(options, KernelEvaluationOptions):
             raise TypeError("options must be KernelEvaluationOptions.")
 
+        from probtf.joint import JointTransformExpression
+        if isinstance(kernel, JointTransformExpression):
+            if options.representation is KernelRepresentation.EXPRESSION:
+                return KernelResult(DistributionStatus.OK, options.representation,
+                                    AppliedKernelExpression(kernel, input_law))
+            if (options.representation in (KernelRepresentation.QUADRATURE, KernelRepresentation.SAMPLES)
+                    and isinstance(input_law, DiracPointLaw)):
+                try:
+                    transforms = (kernel.quadrature() if options.representation is KernelRepresentation.QUADRATURE
+                                  else kernel.samples())
+                except ValueError as error:
+                    return self._unavailable(options.representation, "UNSUPPORTED_JOINT_QUERY", str(error))
+                result = transforms.apply(input_law.point)
+                sampled = options.representation is KernelRepresentation.SAMPLES
+                return KernelResult(DistributionStatus.OK, options.representation, result,
+                                    result.approximation,
+                                    KernelDiagnostics((KernelDiagnosticCode.APPROXIMATION_USED,) if sampled else (),
+                                        (("Derived shared-source Monte Carlo query; no certified error bound.",)
+                                         if sampled else ("Exact finite-source point pushforward.",))))
+            return self._unavailable(options.representation, "UNSUPPORTED_JOINT_QUERY",
+                                     "The shared source supports expressions, exact finite sums or declared joint samples.")
+
         status, diagnostics = self._distribution_status(kernel)
         if status is not DistributionStatus.OK:
             return KernelResult(
@@ -603,6 +635,9 @@ class KernelEvaluator:
             return self._numerical_law_result(kernel, input_law, options, diagnostics)
         if options.representation is KernelRepresentation.SAMPLES:
             return self._sample_result(kernel, input_law, options, diagnostics)
+        if options.representation is KernelRepresentation.QUADRATURE:
+            return self._unavailable(options.representation, "UNSUPPORTED_QUADRATURE_BACKEND",
+                                     "This quadrature backend requires a resolved shared source law and generating map.")
         return self._unavailable(
             options.representation,
             "UNAVAILABLE_CLOSED_MIXTURE_BACKEND",

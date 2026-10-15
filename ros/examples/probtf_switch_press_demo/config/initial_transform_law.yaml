@@ -1,0 +1,91 @@
+# Freely editable example FINITE prior over local transforms, not calibrated.
+# These are literal transform atoms, not Gaussian joint-angle noise.
+# Reference poses use only rigid URDF FK at reference_command. The two example
+# rotations are T_ref * R(local known axis, +/-0.08 rad); no plant pose or
+# stiffness enters this file. Independence is an explicit prior assumption.
+law_id: switch_press_initial_link_transforms
+revision: 1
+kind: independent
+independence: true
+reference_command: [-0.15, -1.85, 2.35, 0.0, -1.25, 0.0]
+edges:
+  - parent: base_link
+    child: link_1
+    components:
+      - id: candidate_a
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.9933947843142158, 0.0, 0.0, -0.11474668839366381]}
+        translation: {mean: [0.0, 0.0, 0.12]}
+      - id: candidate_b
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.9993875625234886, 0.0, 0.0, -0.03499285460433619]}
+        translation: {mean: [0.0, 0.0, 0.12]}
+  - parent: link_1
+    child: link_2
+    components:
+      - id: candidate_a
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.5694168763125308, 0.0, -0.8220489164097718, 0.0]}
+        translation: {mean: [0.0, 0.0, 0.18]}
+      - id: candidate_b
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.6332895014884152, 0.0, -0.7739149871300817, 0.0]}
+        translation: {mean: [0.0, 0.0, 0.18]}
+  - parent: link_2
+    child: link_3
+    components:
+      - id: candidate_a
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.422132432588672, 0.0, 0.906534174400927, 0.0]}
+        translation: {mean: [0.36, 0.0, 0.0]}
+      - id: candidate_b
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.348336927970217, 0.0, 0.9373693960292665, 0.0]}
+        translation: {mean: [0.36, 0.0, 0.0]}
+  - parent: link_3
+    child: link_4
+    components:
+      - id: candidate_a
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.9992001066609779, -0.03998933418663416, 0.0, 0.0]}
+        translation: {mean: [0.30, 0.0, 0.0]}
+      - id: candidate_b
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.9992001066609779, 0.03998933418663416, 0.0, 0.0]}
+        translation: {mean: [0.30, 0.0, 0.0]}
+  - parent: link_4
+    child: link_5
+    components:
+      - id: candidate_a
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.7869167851284287, 0.0, -0.6170591327280867, 0.0]}
+        translation: {mean: [0.14, 0.0, 0.0]}
+      - id: candidate_b
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.8337120858870376, 0.0, -0.5521993823302276, 0.0]}
+        translation: {mean: [0.14, 0.0, 0.0]}
+  - parent: link_5
+    child: link_6
+    components:
+      - id: candidate_a
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.9992001066609779, -0.03998933418663416, 0.0, 0.0]}
+        translation: {mean: [0.12, 0.0, 0.0]}
+      - id: candidate_b
+        weight: 0.5
+        orientation: {kind: dirac, quaternion_wxyz: [0.9992001066609779, 0.03998933418663416, 0.0, 0.0]}
+        translation: {mean: [0.12, 0.0, 0.0]}
+  - parent: link_6
+    child: tool0
+    components:
+      - id: known_flange
+        weight: 1.0
+        orientation: {kind: dirac, quaternion_wxyz: [1.0, 0.0, 0.0, 0.0]}
+        translation: {mean: [0.10, 0.0, 0.0]}
+  - parent: tool0
+    child: rod_tip
+    components:
+      - id: known_rod
+        weight: 1.0
+        orientation: {kind: dirac, quaternion_wxyz: [1.0, 0.0, 0.0, 0.0]}
+        translation: {mean: [0.325, 0.0, 0.0]}

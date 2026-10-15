@@ -1,9 +1,7 @@
-"""ROS publication only. True poses enter here solely to place the visualization."""
+"""Publish physical scene geometry and the unchanged IK comparison laws."""
 import cv2
-from pathlib import Path
 import numpy as np
 import rospy
-import rospkg
 from geometry_msgs.msg import Point, TransformStamped
 from sensor_msgs.msg import CameraInfo, Image, JointState
 from std_msgs.msg import String
@@ -15,8 +13,25 @@ from scipy.spatial.transform import Rotation
 from tf2_ros import StaticTransformBroadcaster
 
 from probtf_switch_press_demo.scene import apply
-from probtf_switch_press_demo.beliefs import body_frame_records, observation_pose_record
-from symaware_grasp.probtf_config import load_prob_tf_mapping
+
+
+def build_belief_messages(trial):
+    """Serialize the SAME native records prepared from the objective inputs.
+
+    No physical joints, camera truth, visual TF, RNG or display model is used.
+    Source times stay untouched; a publication heartbeat cannot be a new image.
+    """
+    records = tuple(trial.belief_records)
+    snapshot = transform_array_to_msg(records)
+    snapshot.header.frame_id = "base_link"
+    if records:
+        snapshot.header.stamp = rospy.Time.from_sec(max(record.stamp for record in records))
+    preview = trial.observation_preview
+    if preview is None:
+        return snapshot, None, None
+    marker = transform_distribution_to_msg(preview["marker_record"])
+    goal = transform_distribution_to_msg(preview["goal_record"])
+    return snapshot, marker, goal
 
 
 class Display:
@@ -42,8 +57,6 @@ class Display:
         self.goal_belief = rospy.Publisher("goal_belief", ProbabilisticTransformStamped, queue_size=1, latch=True)
         self.probtf = rospy.Publisher("probtf_batch", ProbabilisticTransformArray, queue_size=1, latch=True)
         self.marker_display = rospy.Publisher("marker_display", ProbabilisticTransformStamped, queue_size=1)
-        self.joint_mapping = load_prob_tf_mapping(Path(rospkg.RosPack().get_path("symaware_grasp")) /
-                                                  "configs/simple_six_dof_prob_tf.yaml")
         self.tag_texture = cv2.imread(str(texture_path), cv2.IMREAD_GRAYSCALE)
         self.trial = trial
         self.marker_id = 0
@@ -125,7 +138,7 @@ class Display:
             for index, (rod, color) in enumerate(zip(preview["prediction"].rods,
                         ((.18, .48, 1, .8), (1, .64, .02, .8), (.65, .15, 1, .8)))):
                 line = self.marker("next_motion_rod_" + str(index), Marker.LINE_LIST, color, (.002, 0, 0), stamp=preview["stamp"])
-                output.append(self.points(line, apply(preview["hand"], rod)))
+                output.append(self.points(line, rod))
         return MarkerArray(markers=output)
 
     @staticmethod
@@ -175,14 +188,9 @@ class Display:
             info.R = np.eye(3).reshape(-1).tolist()
             info.P = np.column_stack((camera.camera_matrix, np.zeros(3))).reshape(-1).tolist()
             self.info.publish(info)
-        if trial.observation_preview is not None:
-            self.marker_belief.publish(transform_distribution_to_msg(trial.observation_preview["marker_record"]))
-            self.goal_belief.publish(transform_distribution_to_msg(trial.observation_preview["goal_record"]))
-        now = state.header.stamp.to_sec()
-        records = body_frame_records(self.joint_mapping, trial.pose, trial.config["rod"]["length"], now)
-        snapshot = transform_array_to_msg(records)
-        snapshot.header.stamp, snapshot.header.frame_id = state.header.stamp, "base_link"
+        snapshot, marker, goal = build_belief_messages(trial)
         self.probtf.publish(snapshot)
-        if trial.observation_preview is not None:
-            self.marker_display.publish(transform_distribution_to_msg(
-                observation_pose_record(trial.observation_preview, trial.hand_camera, now)))
+        if marker is not None:
+            self.marker_belief.publish(transform_distribution_to_msg(trial.observation_preview["sensor_record"]))
+            self.marker_display.publish(marker)
+            self.goal_belief.publish(goal)

@@ -13,10 +13,9 @@ import numpy as np
 import yaml
 
 from prob_artag_detector.estimator import PoseEstimationError
-from probtf.distributions import compose_with_deterministic_right
-from probtf.geometry import DeterministicTransform
+from probtf.distributions import OrientationKind
 from probtf_switch_press_demo.body import EquilibriumBody, ReachMonitor, clearance, motion_samples
-from probtf_switch_press_demo.control import BodyCandidates, CommandServo, Controller
+from probtf_switch_press_demo.control import CommandServo, Controller, GeometryGuard
 from probtf_switch_press_demo.scene import apply, inverse, transform, write_robot
 from probtf_switch_press_demo.vision import PlanarCamera
 
@@ -35,8 +34,12 @@ def write_json(path, value):
 
 def record_parameters(record):
     return dict(parent=record.parent_frame_id, child=record.child_frame_id, stamp=record.stamp,
+        provenance=dict(method=record.provenance.method, detail=record.provenance.detail,
+                        source_ids=record.provenance.source_ids),
         components=[dict(weight=item.weight, id=item.component.component_id,
-                         orientation_parameter=item.component.orientation.backend_parameter_matrix(),
+                         orientation_kind=item.component.orientation.kind.value,
+                         orientation_parameter=(None if item.component.orientation.kind is OrientationKind.DIRAC
+                                                else item.component.orientation.backend_parameter_matrix()),
                          reference_wxyz=item.component.orientation.reference_quaternion_wxyz,
                          mean_at_reference=item.component.translation.mean_at_reference,
                          residual_covariance=item.component.translation.residual_covariance,
@@ -60,7 +63,7 @@ def solve_observation(controller, image, command, stamp, updates):
                 solve_wall_s=time.monotonic() - started,
                 pixel_covariance=(None if controller.observation.last_observation is None else
                                   controller.observation.last_observation.image_covariance),
-                current_body_poses=controller.candidates.current_poses)
+                source_command=np.asarray(command).copy())
 
 
 def source_version(package_path):
@@ -82,7 +85,18 @@ def source_version(package_path):
             "ros/examples/prob_artag_detector/src/prob_artag_detector/estimator.py",
             "ros/examples/prob_artag_detector/src/prob_artag_detector/detector.py",
             "ros/core/probtf_core/src/probtf/distributions/composition.py",
-            "ros/core/probtf_core/src/probtf/probability/sampling.py")]
+            "ros/core/probtf_core/src/probtf/probability/sampling.py",
+            "ros/core/probtf_core/src/sampling.cpp",
+            "ros/core/probtf_rviz/src/probabilistic_tf_display.cpp",
+            "ros/core/probtf_rviz/src/probabilistic_pose_display.cpp",
+            "AGENTS.md")]
+        files += [path for folder in (root / "ros/core/probtf_rviz/src", root / "ros/core/probtf_rviz/include")
+                  for path in folder.rglob("*") if path.is_file() and path.suffix in (".cpp", ".hpp")]
+        files += [root / path for path in (
+            "ros/core/probtf_core/src/latest_snapshot.cpp",
+            "ros/core/probtf_core/include/probtf_core/latest_snapshot.hpp",
+            "ros/core/probtf_core/src/probtf/probability/moments.py",
+            "ros/core/probtf_core/src/probtf/bingham.py")]
         version["source_sha256"] = {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
                                     for path in sorted(set(files))}
     return version
@@ -106,11 +120,12 @@ class Trial:
         self.hand_camera = transform(config["camera"]["translation"], config["camera"]["rpy"])
         self.camera = PlanarCamera(texture_path, config["marker"]["size"], config["camera"], config["seed"])
         marker_model = {key: config["marker"][key] for key in
-                        ("id", "size", "goal_offset", "corner_sigma_px", "translation_prior_variance", "adaptive_covariance")}
+                        ("id", "size", "goal_offset", "goal_orientation_wxyz", "corner_sigma_px", "translation_prior_variance", "adaptive_covariance")}
         self.controller = Controller(self.urdf, config["control"], config["motion"], marker_model,
                                      config["camera"], config["rod"]["length"], config["obstacles"], config["seed"])
-        # Pinocchio's mutable data are never shared between worker and motion loop.
-        self.guard = BodyCandidates(self.urdf, config["control"]["bodies"], config["rod"]["length"])
+        # The guard only queries immutable native-law representatives; no plant K.
+        self.guard = GeometryGuard(self.controller.model)
+        self.belief_records = self.controller.model.display_records(self.command, time.time())
         self.servo = CommandServo(config["motion"])
         self.monitor = ReachMonitor(self.goal, config["reach_tolerance"])
         self.trajectory, self.cycles = [], []
@@ -138,7 +153,7 @@ class Trial:
         flange = self.plant.flange(self.pose)
         tip = apply(flange, self.tip_offset)
         gap, pair = clearance(self.plant.boxes(self.pose), self.marker, self.config["obstacles"])
-        self.monitor.update(tip, gap, self.config["motion"]["clearance"])
+        self.monitor.update(tip, gap, 0.)
         self.trajectory.append(dict(time=self.time, cycle=self.cycle, command=self.command.copy(),
             equilibrium=self.pose.copy(), tip=tip, gap=gap, pair=pair,
             error=float(np.linalg.norm(tip - self.goal)), reached=self.monitor.reached,
@@ -160,14 +175,15 @@ class Trial:
         self.observation_count += 1
 
     def show_prediction(self, request, prediction, goal, result, debug, iteration):
-        if "display_goals" not in request:
-            request["display_goals"] = goal.display_samples(self.controller.display_rng)
         self.debug_image, self.debug_stamp = debug, request["source_stamp"]
         self.ik_iteration = iteration
-        self.preview = dict(hand=request["hand"], prediction=prediction, goals=request["display_goals"],
-                            marker_record=result.record, goal_record=goal.record,
-                            stamp=request["source_stamp"], cycle=request["cycle"])
+        self.preview = dict(prediction=prediction, goal=goal,
+                            marker_record=goal.marker_record, goal_record=goal.record,
+                            sensor_record=result.record, stamp=request["source_stamp"],
+                            source_command=request["command"], cycle=request["cycle"])
         self.observation_preview = self.preview
+        # These records are made from the very Hand/Goal objects evaluated by J.
+        self.belief_records = prediction.records + (goal.record,)
 
     def record_plan(self, request, outcome, applied=True):
         selected, goal, result = (outcome[key] for key in ("selected", "goal", "result"))
@@ -186,17 +202,22 @@ class Trial:
             self.show_prediction(request, selected, goal, result, self.debug_image, selected.ik["iterations"])
             entry.update(action="retarget" if applied else "discarded_after_stop", increment=selected.increment,
                 absolute_target=request["command"] + selected.increment, log_expected_density=selected.score,
-                predicted_clearance=selected.minimum_clearance, body_ids=self.guard.ids, body_weights=self.guard.weights,
+                predicted_clearance=selected.minimum_clearance,
                 predicted_tips=selected.tips, predicted_rods=selected.rods,
-                goal_samples=request["display_goals"], reference_hand_base=request["hand"],
-                reference_hand_world=self.world_base @ request["hand"],
-                current_body_poses=outcome["current_body_poses"], next_body_poses=selected.poses,
-                goal_record=record_parameters(goal.record), ik=selected.ik)
+                hand_record=record_parameters(next(record for record in selected.records
+                                                  if record.child_frame_id == "rod_tip")),
+                root_records=[record_parameters(record) for record in selected.records],
+                local_laws=self.controller.model.descriptor,
+                goal_record=record_parameters(goal.record),
+                propagated_marker_record=record_parameters(goal.marker_record),
+                overlap=selected.diagnostics, ik=selected.ik)
             print("IK update {}: {} iterations while {} moving ticks; actual error {:.2f} mm".format(
                 request["cycle"] + 1, selected.ik["iterations"], entry["moving_ticks_during_ik"],
                 1000 * self.trajectory[-1]["error"]), flush=True)
         else:
             entry["action"] = "hold" if applied else "discarded_after_stop"
+            if goal is not None:
+                entry["selection_failure"] = getattr(goal, "failure", {})
         self.cycles.append(entry)
 
     def run(self, on_frame=lambda trial: None, stopped=lambda: False):
@@ -233,7 +254,18 @@ class Trial:
                     except Empty:
                         break
                 if latest is not None:
-                    self.show_prediction(request, *latest)
+                    prediction, goal, result, debug, iteration = latest
+                    # An accepted optimizer iterate can already drive the servo.
+                    # Its source command and goal remain frozen for this solve.
+                    safe, _gap = self.guard.safe_motion(self.command, prediction.command,
+                        goal.marker_modes, self.config["obstacles"], self.config["motion"])
+                    if safe:
+                        self.show_prediction(request, *latest)
+                        target = prediction.command.copy()
+                        active = dict(command=request["command"], source_time=request["source_time"],
+                                      marker_modes=goal.marker_modes, cycle=request["cycle"])
+                        if self.phase != "tracking":
+                            self.set_phase("tracking")
                 if pending is not None and pending.done():
                     outcome = pending.result()
                     self.record_plan(request, outcome)
@@ -263,7 +295,7 @@ class Trial:
                     self.cycle, self.ik_iteration = submitted, 0
                     self.observe()
                     request = dict(cycle=submitted, source_stamp=self.observation_stamp, source_time=self.time,
-                                   command=self.command.copy(), hand=self.plant.flange(self.pose),
+                                   command=self.command.copy(),
                                    first_tick=len(self.servo_ticks), image_degradation=self.camera.diagnostics.copy())
                     cv2.imwrite(str(self.output / "camera_clean_{:02d}.png".format(submitted)), self.camera.clean_image)
                     cv2.imwrite(str(self.output / "camera_input_{:02d}.png".format(submitted)), self.raw_image)
@@ -277,8 +309,7 @@ class Trial:
                 end = self.servo.step(start, live_target, dt)
                 predicted_gap = None
                 if np.max(np.abs(end - start)) > 1e-12:
-                    safe, predicted_gap = self.guard.safe_motion(start, end, active["command"],
-                        active["marker_modes"], self.config["obstacles"], self.config["motion"])
+                    safe, predicted_gap = self.guard.safe_motion(start, end, active["marker_modes"], self.config["obstacles"], self.config["motion"])
                     if not safe:
                         self.status = "no_safe_motion"
                         break
@@ -306,7 +337,7 @@ class Trial:
             on_frame(self)
             if pending is not None:
                 self.record_plan(request, pending.result(), applied=False)
-            # Fresh final pixels and detection for display; no further command is selected.
+            # Final sensor pixels are recorded; comparison laws retain their source.
             self.time = time.monotonic() - origin
             self.observe()
             self.debug_stamp = self.observation_stamp
@@ -314,13 +345,6 @@ class Trial:
                 _final_result, self.debug_image = self.controller.observation.estimate(self.raw_image, self.observation_stamp)
             except (PoseEstimationError, np.linalg.LinAlgError):
                 self.debug_image = cv2.cvtColor(self.raw_image, cv2.COLOR_GRAY2BGR)
-                _final_result = None
-            if _final_result is not None:
-                goal_record = compose_with_deterministic_right(_final_result.record,
-                    DeterministicTransform(np.asarray(self.config["marker"]["goal_offset"]), [1, 0, 0, 0]),
-                    child_frame_id="switch_goal", edge_id="observed_switch_goal")
-                self.observation_preview = dict(hand=self.plant.flange(self.pose), marker_record=_final_result.record,
-                    goal_record=goal_record, stamp=self.observation_stamp)
             on_frame(self)
         except BaseException:
             self.status = "execution_error"
@@ -341,7 +365,10 @@ class Trial:
             maximum_deflection_rad=max(float(np.max(np.abs(row["equilibrium"] - row["command"]))) for row in self.trajectory),
             nonlinear_ik_solves=sum("ik" in row for row in self.cycles),
             nonlinear_ik_iterations=sum(row.get("ik", {}).get("iterations", 0) for row in self.cycles),
-            control_mode="continuous_async_expected_likelihood",
+            control_mode="continuous_async_Gaussian_Bingham_expected_likelihood",
+            comparison_laws="same immutable Hand/Goal objects for objective and native ROS records",
+            actual_collision_check="conservative URDF boxes; adaptively sampled physical path",
+            feasibility_check="nominal native-law representatives; no Gaussian-support guarantee",
             trajectory_frame="base_link",
             moving_replans=sum(row["moving_ticks_during_ik"] > 0 for row in self.cycles),
             servo_ticks=len(self.servo_ticks), nominal_servo_hz=1 / self.config["motion"]["frame_period"],

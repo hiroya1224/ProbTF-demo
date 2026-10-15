@@ -46,6 +46,7 @@ add_library(
   include/probtf_rviz/probabilistic_tf_display.hpp
   src/probabilistic_pose_display.cpp
   src/probabilistic_tf_display.cpp
+  src/point_moment_query.cpp
   src/transform_visual.cpp
   src/plugin_exports.cpp
 )
@@ -97,5 +98,13 @@ if(CATKIN_ENABLE_TESTING)
       probtf_rviz
       ${catkin_LIBRARIES}
     )
+  endif()
+
+  catkin_add_gtest(test_point_moment_query
+    test/test_point_moment_query.cpp
+  )
+  if(TARGET test_point_moment_query)
+    add_dependencies(test_point_moment_query probtf_rviz ${catkin_EXPORTED_TARGETS})
+    target_link_libraries(test_point_moment_query probtf_rviz ${catkin_LIBRARIES})
   endif()
 endif()

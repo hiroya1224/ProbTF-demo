@@ -1,0 +1,295 @@
+{
+  "selected_cycles_checked": 41,
+  "independent_Hand_queries": 90,
+  "native_local_primitive_queries": 630,
+  "native_sensor_packets_checked": 41,
+  "selected_objectives_recomputed_from_published_packets": 41,
+  "maximum_errors": {
+    "position": 3.774758283725532e-15,
+    "covariance": 1.942890293094024e-16,
+    "orientation_parameter": 7.663629730814137e-10,
+    "reference_wxyz": 6.161737786669619e-15,
+    "coupling": 0.0,
+    "weight": 0.0,
+    "stamp": 0.0,
+    "selected_log_overlap": 0.0,
+    "overlap_terms": 0.0
+  },
+  "source_hash_mismatches": [],
+  "final_hashes": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/include/probtf_core/sampling.hpp": "5769151e6c394497a3b2e5a8cf80e1131627fa52ccfc6d926264bba6c571496d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/sampling.cpp": "2cbc96cbf6957b4f62d335eb7907f0fa24cf782d899c81de6cdb044208aa8c9a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_rviz/src/probabilistic_tf_display.cpp": "c6721115872f03f02f811bac0187484b3b8e811b859004029b23b91ecfddd911",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_rviz/src/probabilistic_pose_display.cpp": "77461d8a71941e7086f9959d2f9501489fae95b4923163348d1247241bb7e328",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58"
+  },
+  "motion": {
+    "moving_ticks": 686,
+    "total_ticks": 692,
+    "first_solve_moving_ticks": 8,
+    "moving_replans": 41,
+    "median_tick_s": 0.05004724580794573
+  },
+  "passed": true,
+  "failures": [],
+  "audit_script_sha256": "f7e4c5059446c29f471c49a0d35068711449d6ecf05c98b0a177ac8f9d5a10fe",
+  "initial_hashes": {
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/include/probtf_core/sampling.hpp": "5769151e6c394497a3b2e5a8cf80e1131627fa52ccfc6d926264bba6c571496d",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/sampling.cpp": "2cbc96cbf6957b4f62d335eb7907f0fa24cf782d899c81de6cdb044208aa8c9a",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_rviz/src/probabilistic_tf_display.cpp": "c6721115872f03f02f811bac0187484b3b8e811b859004029b23b91ecfddd911",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_rviz/src/probabilistic_pose_display.cpp": "77461d8a71941e7086f9959d2f9501489fae95b4923163348d1247241bb7e328",
+    "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58"
+  },
+  "ros_master_uri": "http://localhost:11764/",
+  "run_dir": "/tmp/probtf_indet_reimplementation/gui/run2",
+  "original_audit_passed": false,
+  "original_audit_failures": [
+    "recomputed goal cycle 0: orientation_parameter",
+    "recomputed goal cycle 6: orientation_parameter",
+    "recomputed goal cycle 14: orientation_parameter",
+    "recomputed goal cycle 28: orientation_parameter",
+    "recomputed goal cycle 30: orientation_parameter",
+    "recomputed goal cycle 32: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter"
+  ],
+  "original_audit_sha256": "b72c96e5c3604f8409d7e5db6ddf039d107c8edad3153ae00075d2265994b028",
+  "original_frozen_script_sha256": "f7e4c5059446c29f471c49a0d35068711449d6ecf05c98b0a177ac8f9d5a10fe",
+  "reaudit_script_sha256": "166248b50b51dfd4030e062b72ed970473d16b926596e90ef1455cf8076da228",
+  "reexamined_independent_reconstruction_failures": [
+    "recomputed goal cycle 0: orientation_parameter",
+    "recomputed goal cycle 6: orientation_parameter",
+    "recomputed goal cycle 14: orientation_parameter",
+    "recomputed goal cycle 28: orientation_parameter",
+    "recomputed goal cycle 30: orientation_parameter",
+    "recomputed goal cycle 32: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter",
+    "all frozen observations switch_goal: orientation_parameter"
+  ],
+  "authoritative_publication_identity": {
+    "records_checked": 410,
+    "bitwise_equal_fields": [
+      "orientation_kind",
+      "orientation_parameter",
+      "mean_at_reference",
+      "residual_covariance",
+      "rotation_coupling",
+      "weight"
+    ],
+    "maximum_parameter_differences": {
+      "orientation_parameter": 0.0,
+      "mean_at_reference": 0.0,
+      "residual_covariance": 0.0,
+      "rotation_coupling": 0.0,
+      "weight": 0.0
+    },
+    "maximum_reference_quaternion_renormalization_difference": 1.1102230246251565e-16,
+    "raw_wire_records_checked": 66,
+    "raw_wire_reference_components_checked": 73,
+    "raw_wire_reference_quaternion_maximum_difference": 0.0
+  },
+  "independent_goal_reconstruction": {
+    "maximum_quaternion_moment_difference": 2.0095036745715333e-14,
+    "maximum_parameter_relative_frobenius_difference": 3.1739436012730642e-12,
+    "maximum_uniform_absolute_log_density_ratio_upper_bound": 7.831239569435753e-10,
+    "note": "Independent inverse moment re-fitting is diagnosed separately from bitwise publication identity. Original failed audit and frozen capture were preserved."
+  },
+  "wire_point_moments": {
+    "passed": true,
+    "failures": [],
+    "query_kinds": [
+      "goal_comparison_marker_coordinate_query",
+      "indet_ik_common_gaussian_bingham_mixture",
+      "indet_ik_product_gaussian_bingham",
+      "native_local_path"
+    ],
+    "wire_files": 20,
+    "checked_frames": 106,
+    "checked_axes": 318,
+    "maximum_mean_error_m": 6.661338147750939e-16,
+    "maximum_covariance_error_m2": 8.521829075736065e-16,
+    "axis_lengths": {
+      "batch": 0.10000000149011612,
+      "marker": 0.10000000149011612
+    },
+    "comparison_script_sha256": "7946fb3f7fda93c3f3ed5b9134a42c08ea07936181337693609282806efc843f",
+    "cpp_tool_sha256": "4007e454a28d377321ab90fd0d7639b5a56c61712a195531298bced6a0023699",
+    "audit_sha256": "6f80b358ec1b78091823b2ad6e33e838b735c33c87061b57c98a031fb5b07035",
+    "rviz_config_sha256": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58"
+  },
+  "tests": {
+    "python_passed": 44,
+    "cpp": {
+      "native_sampling": 13,
+      "native_point_moments": 7,
+      "rviz_point_moment_query": 4,
+      "frame_freshness": 6,
+      "plugin_loading": 1
+    },
+    "build": "core and RViz successful; full demo/dependency build 7/7 successful"
+  },
+  "core_source_diff": "none",
+  "protected_rviz_config": {
+    "sha256": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58",
+    "byte_identical_to_user_backup": true,
+    "sensor_width": 960,
+    "sensor_height": 720
+  },
+  "capture_counts": {
+    "batch_count": 765,
+    "marker_count": 699,
+    "goal_count": 699,
+    "sensor_count": 699
+  },
+  "capture_unique_records": 802,
+  "raw_wire_manifest": [
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_00.bin",
+      "sha256": "60c721d90782948eaf465c7c6d70bad8efca824eee0e1813cfc94f296a106e5d",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 10564,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_01.bin",
+      "sha256": "427ec5d49a50db44b8fe5325e7d70446dbd6589875f82a9edb0eb4c9a6cf181c",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 10564,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/marker_00.bin",
+      "sha256": "4138d6673ebe2f7b1ae172ba087869be2eb2d213b9dfc6e4c5f4cd247b833cfb",
+      "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+      "byte_count": 4681,
+      "topic": "marker"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_02.bin",
+      "sha256": "5e9c82c1b39e4dbac1bbe6d8caab52c4a1c771171f40af95f7529c003aa99d24",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 16085,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/marker_01.bin",
+      "sha256": "8d9ce3948355f968acf444ab6a83d9a89205eb66192f001d951aecaced974e5e",
+      "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+      "byte_count": 5131,
+      "topic": "marker"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_03.bin",
+      "sha256": "66de231d0009ba8d46d76ac52dbcc57ce61171ca8835f75023cb6ffa8ce74c8e",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 16064,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/marker_02.bin",
+      "sha256": "f7d1c25bf63a7dc815c00b53b2ede7f1be68fc3526330352986c3f53fe74c94e",
+      "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+      "byte_count": 5239,
+      "topic": "marker"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_04.bin",
+      "sha256": "e56e4830e78cc19bffba1335a6a6a1413ada8e08b7bf31a25522a36eaabe3f8b",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 16315,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/marker_03.bin",
+      "sha256": "71eb152cdbe4b5a698fc75355fb3ff66d8e72aa356d4542e6385b5c5855a375d",
+      "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+      "byte_count": 3320,
+      "topic": "marker"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_05.bin",
+      "sha256": "1ee9f1ac2cdba961ccdf9b509732e0acb6041019eaaddd62e9695a1e9d163e1d",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 16318,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/marker_04.bin",
+      "sha256": "a4983ac80639f88eaddd34b266fd32adc6f8b5c5a1b29456f358e09405928a52",
+      "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+      "byte_count": 3316,
+      "topic": "marker"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_06.bin",
+      "sha256": "0cc9cce2b4982007dd48663a6f5432c6aeff72dccd43d4fd5fe106fc67156307",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 14473,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/marker_05.bin",
+      "sha256": "eda9ab1a74d7c17f2105f71d16910efa77e6b9e6efbf04e60775f25490f2ae17",
+      "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+      "byte_count": 3316,
+      "topic": "marker"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_07.bin",
+      "sha256": "15d214e170ea31c2c0eb8ba5d9b9ec02241aaf7e4de27948b388108f00fdae30",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 14469,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/marker_06.bin",
+      "sha256": "2b6444e33e50e9735ba144d9247d89b19da2bec9050ffe8151941dee04fb5575",
+      "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+      "byte_count": 3312,
+      "topic": "marker"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_08.bin",
+      "sha256": "a366f2a111a808ca7f1fd404d93b2f4303ced520d98235964fabc85d60b8e2e6",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 14440,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/marker_07.bin",
+      "sha256": "6a52f7de052bd85f442d64dcc208f2510091c3268158c2ea2556371f40aba14c",
+      "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+      "byte_count": 3320,
+      "topic": "marker"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_09.bin",
+      "sha256": "5239c5afcffb4161b9295f37a0b927e0784ab27faa56f720928179d1535aef44",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 14458,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/batch_final.bin",
+      "sha256": "572508d3a8517525288d0184c7e38bcaf8167e958ca43c8ef48baa00464eb43a",
+      "message_type": "probtf_msgs/ProbabilisticTransformArray",
+      "byte_count": 14458,
+      "topic": "batch"
+    },
+    {
+      "path": "/tmp/probtf_indet_reimplementation/live_audit_wire/marker_final.bin",
+      "sha256": "557f9b11283184c6c9a804db3f22377c852a72fa06012ea799112291c914b5ba",
+      "message_type": "probtf_msgs/ProbabilisticTransformStamped",
+      "byte_count": 3308,
+      "topic": "marker"
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+# Direct example kernel family, not calibrated physical compliance.
+# Each native translation Gaussian and Bingham orientation is independent of
+# the other local edges. Parameters remain fixed until a local observation
+# updates this family. The declared right action defines command dependence.
+# The 0.5 mm position standard deviations are explicit example prior inputs;
+# Bingham eigenvalues retain the existing symaware arm configuration.
+law_id: switch_press_direct_local_transform_laws
+revision: 1
+root_frame: base_link
+independent: true
+reference_command: [0, 0, 0, 0, 0, 0]
+edges:
+  - parent: base_link
+    child: link_1
+    translation:
+      mean: [0, 0, 0.12]
+      covariance: [[0.00000025, 0, 0], [0, 0.00000025, 0], [0, 0, 0.00000025]]
+    orientation: {kind: bingham, mode_wxyz: [1, 0, 0, 0], eigenvalues: [1500, -500, -500, -500]}
+    right_joint_action: {joint_index: 0, axis: [0, 0, 1]}
+  - parent: link_1
+    child: link_2
+    translation:
+      mean: [0, 0, 0.18]
+      covariance: [[0.00000025, 0, 0], [0, 0.00000025, 0], [0, 0, 0.00000025]]
+    orientation: {kind: bingham, mode_wxyz: [1, 0, 0, 0], eigenvalues: [1350, -450, -450, -450]}
+    right_joint_action: {joint_index: 1, axis: [0, 1, 0]}
+  - parent: link_2
+    child: link_3
+    translation:
+      mean: [0.36, 0, 0]
+      covariance: [[0.00000025, 0, 0], [0, 0.00000025, 0], [0, 0, 0.00000025]]
+    orientation: {kind: bingham, mode_wxyz: [1, 0, 0, 0], eigenvalues: [1200, -400, -400, -400]}
+    right_joint_action: {joint_index: 2, axis: [0, 1, 0]}
+  - parent: link_3
+    child: link_4
+    translation:
+      mean: [0.30, 0, 0]
+      covariance: [[0.00000025, 0, 0], [0, 0.00000025, 0], [0, 0, 0.00000025]]
+    orientation: {kind: bingham, mode_wxyz: [1, 0, 0, 0], eigenvalues: [1050, -350, -350, -350]}
+    right_joint_action: {joint_index: 3, axis: [1, 0, 0]}
+  - parent: link_4
+    child: link_5
+    translation:
+      mean: [0.14, 0, 0]
+      covariance: [[0.00000025, 0, 0], [0, 0.00000025, 0], [0, 0, 0.00000025]]
+    orientation: {kind: bingham, mode_wxyz: [1, 0, 0, 0], eigenvalues: [900, -300, -300, -300]}
+    right_joint_action: {joint_index: 4, axis: [0, 1, 0]}
+  - parent: link_5
+    child: link_6
+    translation:
+      mean: [0.12, 0, 0]
+      covariance: [[0.00000025, 0, 0], [0, 0.00000025, 0], [0, 0, 0.00000025]]
+    orientation: {kind: bingham, mode_wxyz: [1, 0, 0, 0], eigenvalues: [750, -250, -250, -250]}
+    right_joint_action: {joint_index: 5, axis: [1, 0, 0]}
+  - parent: link_6
+    child: tool0
+    translation:
+      mean: [0.10, 0, 0]
+      covariance: [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    orientation: {kind: dirac, mode_wxyz: [1, 0, 0, 0]}

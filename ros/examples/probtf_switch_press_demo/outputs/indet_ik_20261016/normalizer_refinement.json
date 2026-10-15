@@ -1,0 +1,173 @@
+{
+  "detected": true,
+  "native_branch_weights": [
+    1.0,
+    5.01154662274092e-67
+  ],
+  "goal_comparison_weights": [
+    1.0,
+    5.01154662274092e-67
+  ],
+  "same_goal_object": true,
+  "native_goal_orientation_eigenvalues": [
+    [
+      -358851.0668782318,
+      -14005.54893957184,
+      -13608.622407069222,
+      -7.569829514942109e-11
+    ],
+    [
+      -345746.53760027507,
+      -2606.197299004232,
+      -2393.40744332539,
+      6.330449044636974e-11
+    ]
+  ],
+  "final_goal_orientation_eigenvalues": [
+    [
+      -237.59523746890437,
+      -233.8314022846863,
+      -233.71902771869216,
+      4.395444674394869e-14
+    ],
+    [
+      -237.5904525824186,
+      -218.1054184497029,
+      -216.51481793646695,
+      -2.775569075917018e-15
+    ]
+  ],
+  "goal_moment_match_residuals": [
+    3.3637237960293387e-10,
+    7.1974118921736e-09
+  ],
+  "goal_480_to960": {
+    "mean": 7.993605777301127e-15,
+    "covariance": 1.0858284757442327e-14
+  },
+  "samples": [
+    {
+      "increment": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "log_overlap": -110.75270806231265,
+      "normalizer_refinement": {
+        "base_steps": 480,
+        "refined_steps": 960,
+        "base_log_overlap": -110.75270806231265,
+        "refined_log_overlap": -110.752708062311,
+        "log_overlap_change": 1.6484591469634324e-12,
+        "absolute_log_overlap_change": 1.6484591469634324e-12,
+        "error_bound": null,
+        "method": "existing Bingham normalizer refinement"
+      },
+      "full_moment_and_normalizer_log_overlap_change": -4.201069714326877e-09,
+      "hand_moment_match_residual": 1.2775314139901184e-10,
+      "hand_480_to960": {
+        "mean": 5.440092820663267e-15,
+        "covariance": 4.994919408640719e-15,
+        "orientation_moment": 6.217248937900877e-15
+      },
+      "hand_covariance_eigenvalues": [
+        0.0002023538202680939,
+        0.003918778193345427,
+        0.0040954615067620905
+      ],
+      "hand_orientation_eigenvalues": [
+        -237.75057026502068,
+        -237.75057026502057,
+        -237.75057026502057,
+        -5.329070518200751e-15
+      ],
+      "position_log_determinant": -16.2609805616731,
+      "two_hand_queries_wall_s": 0.03744310233741999
+    },
+    {
+      "increment": [
+        0.03,
+        -0.04,
+        0.02,
+        0.01,
+        -0.03,
+        0.02
+      ],
+      "log_overlap": -123.14562793451651,
+      "normalizer_refinement": {
+        "base_steps": 480,
+        "refined_steps": 960,
+        "base_log_overlap": -123.14562793451651,
+        "refined_log_overlap": -123.14562793451479,
+        "log_overlap_change": 1.7195134205394424e-12,
+        "absolute_log_overlap_change": 1.7195134205394424e-12,
+        "error_bound": null,
+        "method": "existing Bingham normalizer refinement"
+      },
+      "full_moment_and_normalizer_log_overlap_change": -4.880575943388976e-09,
+      "hand_moment_match_residual": 1.2595857690200774e-10,
+      "hand_480_to960": {
+        "mean": 5.218048215738236e-15,
+        "covariance": 4.8476847536171874e-15,
+        "orientation_moment": 6.106226635438361e-15
+      },
+      "hand_covariance_eigenvalues": [
+        0.00020176785408337306,
+        0.0038830730125964325,
+        0.004059325492401619
+      ],
+      "hand_orientation_eigenvalues": [
+        -237.75057026502054,
+        -237.75057026502054,
+        -237.7505702650204,
+        0.0
+      ],
+      "position_log_determinant": -16.318175133792575,
+      "two_hand_queries_wall_s": 0.010906268376857042
+    },
+    {
+      "increment": [
+        -0.05,
+        0.03,
+        -0.04,
+        -0.02,
+        0.01,
+        -0.01
+      ],
+      "log_overlap": -98.52650004121082,
+      "normalizer_refinement": {
+        "base_steps": 480,
+        "refined_steps": 960,
+        "base_log_overlap": -98.52650004121082,
+        "refined_log_overlap": -98.52650004120918,
+        "log_overlap_change": 1.6484591469634324e-12,
+        "absolute_log_overlap_change": 1.6484591469634324e-12,
+        "error_bound": null,
+        "method": "existing Bingham normalizer refinement"
+      },
+      "full_moment_and_normalizer_log_overlap_change": -3.622503186306858e-09,
+      "hand_moment_match_residual": 1.2715162256426993e-10,
+      "hand_480_to960": {
+        "mean": 5.440092820663267e-15,
+        "covariance": 5.078186135487606e-15,
+        "orientation_moment": 5.662137425588298e-15
+      },
+      "hand_covariance_eigenvalues": [
+        0.0002014016030174219,
+        0.003980430808743061,
+        0.004155955004123233
+      ],
+      "hand_orientation_eigenvalues": [
+        -237.75057026502054,
+        -237.75057026502054,
+        -237.75057026502043,
+        -7.105427357601002e-15
+      ],
+      "position_log_determinant": -16.21200013135196,
+      "two_hand_queries_wall_s": 0.010932799894362688
+    }
+  ]
+}

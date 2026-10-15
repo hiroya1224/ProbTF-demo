@@ -1,0 +1,1771 @@
+{
+  "cycle": 0,
+  "action": "retarget",
+  "command_before": [
+    -0.15,
+    -1.85,
+    2.35,
+    0.0,
+    -0.95,
+    0.0
+  ],
+  "absolute_target": [
+    -0.14172558016742814,
+    -1.805447162277107,
+    2.2765900835734163,
+    -0.0047346445921224185,
+    -0.921366121030823,
+    0.0
+  ],
+  "log_expected_density": -95.62210672088264,
+  "actual_published_records": [
+    {
+      "parent": "base_link",
+      "child": "link_1",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "configured_native_local_transform_family",
+        "detail": "{\"command\":[-0.14172558016742814,-1.805447162277107,2.2765900835734163,-0.0047346445921224185,-0.921366121030823,0.0],\"endpoint\":\"tip\",\"frame_id\":\"base_link\",\"integration_method\":\"deterministic_moments\",\"moment_integration_steps\":480,\"primitive_dependence\":\"independent\",\"revision\":\"1\",\"source_fingerprint\":\"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\",\"source_id\":\"switch_press_direct_local_transform_laws\",\"stamp\":1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "link_1:source",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -10.026270745530383,
+              0.0,
+              0.0,
+              -141.2516031271788
+            ],
+            [
+              0.0,
+              -2000.0000000000005,
+              -2.5670484231062227e-15,
+              0.0
+            ],
+            [
+              0.0,
+              -2.5670484231062227e-15,
+              -2000.0000000000005,
+              0.0
+            ],
+            [
+              -141.2516031271788,
+              0.0,
+              0.0,
+              -1989.97372925447
+            ]
+          ],
+          "reference_wxyz": [
+            0.9974902829738418,
+            0.0,
+            0.0,
+            -0.07080349830880658
+          ],
+          "mean_at_reference": [
+            0.0,
+            0.0,
+            0.12
+          ],
+          "residual_covariance": [
+            [
+              2.5e-07,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.5e-07,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              2.5e-07
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "edge_id": "local_link_1",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 0,
+          "weight": 1.0,
+          "inverse_concentration": 0.001,
+          "shape_upper_wxyz": [
+            1.48997372925447,
+            0.0,
+            0.0,
+            -0.14125160312717883,
+            -0.5000000000000001,
+            -2.567048423106223e-18,
+            0.0,
+            -0.5000000000000001,
+            0.0,
+            -0.48997372925446975
+          ]
+        }
+      ]
+    },
+    {
+      "parent": "link_1",
+      "child": "link_2",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "configured_native_local_transform_family",
+        "detail": "{\"command\":[-0.14172558016742814,-1.805447162277107,2.2765900835734163,-0.0047346445921224185,-0.921366121030823,0.0],\"endpoint\":\"tip\",\"frame_id\":\"base_link\",\"integration_method\":\"deterministic_moments\",\"moment_integration_steps\":480,\"primitive_dependence\":\"independent\",\"revision\":\"1\",\"source_fingerprint\":\"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\",\"source_id\":\"switch_press_direct_local_transform_laws\",\"stamp\":1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "link_2:source",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -1109.2530634421898,
+              0.0,
+              -875.3360243015586,
+              0.0
+            ],
+            [
+              0.0,
+              -1800.0,
+              0.0,
+              4.4997002644919815e-15
+            ],
+            [
+              -875.3360243015586,
+              0.0,
+              -690.74693655781,
+              0.0
+            ],
+            [
+              0.0,
+              4.4997002644919815e-15,
+              0.0,
+              -1800.0
+            ]
+          ],
+          "reference_wxyz": [
+            0.6194742109948341,
+            0.0,
+            -0.7850170074032331,
+            0.0
+          ],
+          "mean_at_reference": [
+            0.0,
+            0.0,
+            0.18
+          ],
+          "residual_covariance": [
+            [
+              2.5e-07,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.5e-07,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              2.5e-07
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "edge_id": "local_link_2",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 0,
+          "weight": 1.0,
+          "inverse_concentration": 0.0011111111111111111,
+          "shape_upper_wxyz": [
+            0.2674965961753446,
+            0.0,
+            -0.9725955825572874,
+            0.0,
+            -0.5,
+            0.0,
+            4.999666960546646e-18,
+            0.7325034038246555,
+            0.0,
+            -0.5
+          ]
+        }
+      ]
+    },
+    {
+      "parent": "link_2",
+      "child": "link_3",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "configured_native_local_transform_family",
+        "detail": "{\"command\":[-0.14172558016742814,-1.805447162277107,2.2765900835734163,-0.0047346445921224185,-0.921366121030823,0.0],\"endpoint\":\"tip\",\"frame_id\":\"base_link\",\"integration_method\":\"deterministic_moments\",\"moment_integration_steps\":480,\"primitive_dependence\":\"independent\",\"revision\":\"1\",\"source_fingerprint\":\"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\",\"source_id\":\"switch_press_direct_local_transform_laws\",\"stamp\":1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "link_3:source",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -1318.9105277257174,
+              0.0,
+              608.8775445156583,
+              0.0
+            ],
+            [
+              0.0,
+              -1600.0,
+              0.0,
+              -9.074312236926326e-15
+            ],
+            [
+              608.8775445156583,
+              0.0,
+              -281.08947227428234,
+              0.0
+            ],
+            [
+              0.0,
+              -9.074312236926326e-15,
+              0.0,
+              -1600.0
+            ]
+          ],
+          "reference_wxyz": [
+            0.419143078400952,
+            0.0,
+            0.9079201946363863,
+            0.0
+          ],
+          "mean_at_reference": [
+            0.36,
+            0.0,
+            0.0
+          ],
+          "residual_covariance": [
+            [
+              2.5e-07,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.5e-07,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              2.5e-07
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "edge_id": "local_link_3",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 0,
+          "weight": 1.0,
+          "inverse_concentration": 0.00125,
+          "shape_upper_wxyz": [
+            -0.14863815965714688,
+            0.0,
+            0.7610969306445728,
+            0.0,
+            -0.5000000000000001,
+            0.0,
+            -1.1342890296157908e-17,
+            1.148638159657147,
+            0.0,
+            -0.5000000000000001
+          ]
+        }
+      ]
+    },
+    {
+      "parent": "link_3",
+      "child": "link_4",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "configured_native_local_transform_family",
+        "detail": "{\"command\":[-0.14172558016742814,-1.805447162277107,2.2765900835734163,-0.0047346445921224185,-0.921366121030823,0.0],\"endpoint\":\"tip\",\"frame_id\":\"base_link\",\"integration_method\":\"deterministic_moments\",\"moment_integration_steps\":480,\"primitive_dependence\":\"independent\",\"revision\":\"1\",\"source_fingerprint\":\"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\",\"source_id\":\"switch_press_direct_local_transform_laws\",\"stamp\":1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "link_4:source",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -0.007845886138056812,
+              -3.3142388319823155,
+              0.0,
+              0.0
+            ],
+            [
+              -3.3142388319823155,
+              -1399.992154113862,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1400.0,
+              -6.056941576223229e-17
+            ],
+            [
+              0.0,
+              0.0,
+              -6.056941576223229e-17,
+              -1400.0
+            ]
+          ],
+          "reference_wxyz": [
+            0.999997197893882,
+            -0.002367320084898033,
+            0.0,
+            0.0
+          ],
+          "mean_at_reference": [
+            0.3,
+            0.0,
+            0.0
+          ],
+          "residual_covariance": [
+            [
+              2.5e-07,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.5e-07,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              2.5e-07
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "edge_id": "local_link_4",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 0,
+          "weight": 1.0,
+          "inverse_concentration": 0.0014285714285714286,
+          "shape_upper_wxyz": [
+            1.4999887915912313,
+            -0.004734626902831879,
+            0.0,
+            0.0,
+            -0.49998879159123133,
+            0.0,
+            0.0,
+            -0.5000000000000001,
+            -8.652773680318897e-20,
+            -0.5
+          ]
+        }
+      ]
+    },
+    {
+      "parent": "link_4",
+      "child": "link_5",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "configured_native_local_transform_family",
+        "detail": "{\"command\":[-0.14172558016742814,-1.805447162277107,2.2765900835734163,-0.0047346445921224185,-0.921366121030823,0.0],\"endpoint\":\"tip\",\"frame_id\":\"base_link\",\"integration_method\":\"deterministic_moments\",\"moment_integration_steps\":480,\"primitive_dependence\":\"independent\",\"revision\":\"1\",\"source_fingerprint\":\"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\",\"source_id\":\"switch_press_direct_local_transform_laws\",\"stamp\":1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "link_5:source",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -237.16037786442314,
+              0.0,
+              -477.8571006153532,
+              0.0
+            ],
+            [
+              0.0,
+              -1200.0,
+              0.0,
+              -2.6433943902666805e-15
+            ],
+            [
+              -477.8571006153532,
+              0.0,
+              -962.8396221355767,
+              0.0
+            ],
+            [
+              0.0,
+              -2.6433943902666805e-15,
+              0.0,
+              -1200.0
+            ]
+          ],
+          "reference_wxyz": [
+            0.8957490450900003,
+            0.0,
+            -0.44456006143192023,
+            0.0
+          ],
+          "mean_at_reference": [
+            0.14,
+            0.0,
+            0.0
+          ],
+          "residual_covariance": [
+            [
+              2.5e-07,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.5e-07,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              2.5e-07
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "edge_id": "local_link_5",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 0,
+          "weight": 1.0,
+          "inverse_concentration": 0.0016666666666666668,
+          "shape_upper_wxyz": [
+            1.1047327035592946,
+            0.0,
+            -0.7964285010255887,
+            0.0,
+            -0.5000000000000001,
+            0.0,
+            -4.4056573171111344e-18,
+            -0.10473270355929469,
+            0.0,
+            -0.5
+          ]
+        }
+      ]
+    },
+    {
+      "parent": "link_5",
+      "child": "link_6",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "configured_native_local_transform_family",
+        "detail": "{\"command\":[-0.14172558016742814,-1.805447162277107,2.2765900835734163,-0.0047346445921224185,-0.921366121030823,0.0],\"endpoint\":\"tip\",\"frame_id\":\"base_link\",\"integration_method\":\"deterministic_moments\",\"moment_integration_steps\":480,\"primitive_dependence\":\"independent\",\"revision\":\"1\",\"source_fingerprint\":\"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\",\"source_id\":\"switch_press_direct_local_transform_laws\",\"stamp\":1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "link_6:source",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -1000.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1000.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              -1000.0
+            ]
+          ],
+          "reference_wxyz": [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mean_at_reference": [
+            0.12,
+            0.0,
+            0.0
+          ],
+          "residual_covariance": [
+            [
+              2.5e-07,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.5e-07,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              2.5e-07
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "edge_id": "local_link_6",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 0,
+          "weight": 1.0,
+          "inverse_concentration": 0.002,
+          "shape_upper_wxyz": [
+            1.5,
+            0.0,
+            0.0,
+            0.0,
+            -0.5,
+            0.0,
+            0.0,
+            -0.5,
+            0.0,
+            -0.5
+          ]
+        }
+      ]
+    },
+    {
+      "parent": "link_6",
+      "child": "tool0",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "configured_native_local_transform_family",
+        "detail": "{\"command\":[-0.14172558016742814,-1.805447162277107,2.2765900835734163,-0.0047346445921224185,-0.921366121030823,0.0],\"endpoint\":\"tip\",\"frame_id\":\"base_link\",\"integration_method\":\"deterministic_moments\",\"moment_integration_steps\":480,\"primitive_dependence\":\"independent\",\"revision\":\"1\",\"source_fingerprint\":\"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\",\"source_id\":\"switch_press_direct_local_transform_laws\",\"stamp\":1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "tool0:source",
+          "orientation_kind": "dirac",
+          "orientation_parameter": null,
+          "reference_wxyz": [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "mean_at_reference": [
+            0.1,
+            0.0,
+            0.0
+          ],
+          "residual_covariance": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "edge_id": "local_tool0",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 1,
+          "weight": 1.0,
+          "inverse_concentration": 0.0,
+          "shape_upper_wxyz": [
+            1.5,
+            0.0,
+            0.0,
+            0.0,
+            -0.5,
+            0.0,
+            0.0,
+            -0.5,
+            0.0,
+            -0.5
+          ]
+        }
+      ]
+    },
+    {
+      "parent": "base_link",
+      "child": "rod_tip",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "indet_ik_product_gaussian_bingham",
+        "detail": "{\"command\":[-0.14172558016742814,-1.805447162277107,2.2765900835734163,-0.0047346445921224185,-0.921366121030823,0.0],\"comparison_method\":\"indet_ik_product_gaussian_bingham\",\"endpoint\":\"tip\",\"final_projection\":\"Gaussian_position_times_single_Bingham_orientation\",\"finalpoint\":[0.0,0.0,0.0],\"frame_id\":\"base_link\",\"integration_method\":\"deterministic_moments\",\"moment_integration_steps\":480,\"moment_match_max_residual\":1.2788692327347917e-10,\"point_moments\":\"full_independent_primitive_path\",\"primitive_dependence\":\"independent\",\"publication_stamp\":1792102016.872298,\"revision\":\"1\",\"source_fingerprint\":\"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\",\"source_id\":\"switch_press_direct_local_transform_laws\",\"stamp\":1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "rod_tip:comparison:0",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -12.929969005341832,
+              -4.072766359522575,
+              -51.446879827788834,
+              -15.606233889563324
+            ],
+            [
+              -4.072766359522575,
+              -237.67678954507616,
+              0.9319925322279536,
+              0.28271672626139205
+            ],
+            [
+              -51.446879827788834,
+              0.9319925322279536,
+              -225.97771035278416,
+              3.571256526235114
+            ],
+            [
+              -15.606233889563324,
+              0.28271672626139205,
+              3.571256526235114,
+              -236.6672418918594
+            ]
+          ],
+          "reference_wxyz": [
+            0.9724275822748137,
+            -0.01761613625250558,
+            -0.22252571466408633,
+            -0.0675024094972257
+          ],
+          "mean_at_reference": [
+            0.7861389273227257,
+            -0.11010870685976723,
+            0.6855243506771495
+          ],
+          "residual_covariance": [
+            [
+              0.0007805844199174408,
+              0.0004797447498150627,
+              -0.0012942331948746014
+            ],
+            [
+              0.0004797447498150627,
+              0.004147883115851038,
+              0.00018063021994905678
+            ],
+            [
+              -0.0012942331948746014,
+              0.00018063021994905678,
+              0.003527327442940841
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "edge_id": "comparison_rod_tip",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 0,
+          "weight": 1.0,
+          "inverse_concentration": 0.008412177509272005,
+          "shape_upper_wxyz": [
+            1.3912308055376785,
+            -0.03426083357009543,
+            -0.43278028540954483,
+            -0.13128240973022315,
+            -0.49937934348706603,
+            0.007840086618417456,
+            0.0023782632861510922,
+            -0.40096461262647515,
+            0.030042043829835895,
+            -0.4908868494241376
+          ]
+        }
+      ]
+    },
+    {
+      "parent": "base_link",
+      "child": "switch_goal",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "indet_ik_common_gaussian_bingham_mixture",
+        "detail": "{\"command\":[-0.15,-1.85,2.35,0.0,-0.95,0.0],\"comparison_method\":\"indet_ik_product_gaussian_bingham\",\"endpoint\":\"switch_goal\",\"final_projection\":\"common_Gaussian_position_times_Bingham_mixture_orientation\",\"frame_id\":\"base_link\",\"integration_method\":\"deterministic_moments\",\"moment_integration_steps\":480,\"observation_command\":[-0.15,-1.85,2.35,0.0,-0.95,0.0],\"observation_edge_id\":\"camera_optical_frame__to__switch_marker\",\"observation_source_ids\":[\"DICT_APRILTAG_36h11:21\",\"configured_pinhole\"],\"observation_stamp\":1792102016.872298,\"orientation_component_ids\":[\"camera_optical_frame__to__switch_marker:mode:0\",\"camera_optical_frame__to__switch_marker:mode:1\"],\"primitive_dependence\":\"independent\",\"revision\":\"1\",\"source_fingerprint\":\"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\",\"source_id\":\"switch_press_direct_local_transform_laws\",\"stamp\":1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws",
+          "DICT_APRILTAG_36h11:21",
+          "configured_pinhole"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "switch_goal:comparison:0",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -8.301623165209378,
+              -7.280321450261652,
+              -42.671791497020536,
+              -0.19382580969592073
+            ],
+            [
+              -7.280321450261652,
+              -236.89578402235418,
+              0.9900679695218163,
+              -1.199788607072642
+            ],
+            [
+              -42.671791497020536,
+              0.9900679695218163,
+              -225.74404872218136,
+              -0.04163420166596764
+            ],
+            [
+              -0.19382580969592073,
+              -1.199788607072642,
+              -0.04163420166596764,
+              -234.204211562538
+            ]
+          ],
+          "reference_wxyz": [
+            0.9821034343107312,
+            -0.030955461286214396,
+            -0.18578002549044853,
+            -0.0006211766200323797
+          ],
+          "mean_at_reference": [
+            1.0620289247222992,
+            -0.0474296422437014,
+            0.8768429228184222
+          ],
+          "residual_covariance": [
+            [
+              0.0019270852958408078,
+              0.0002188228892651747,
+              -0.003387858914664524
+            ],
+            [
+              0.0002188228892651747,
+              0.009024700035362043,
+              9.178949328504101e-05
+            ],
+            [
+              -0.003387858914664524,
+              9.178949328504101e-05,
+              0.007200269556406338
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        },
+        {
+          "weight": 5.01154662274092e-67,
+          "id": "switch_goal:comparison:1",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -26.091977189351752,
+              -9.811363989295991,
+              -68.2405086436487,
+              16.178877390497927
+            ],
+            [
+              -9.811363989295991,
+              -234.72385291535232,
+              1.5156760068798656,
+              -7.218658620533528
+            ],
+            [
+              -68.2405086436487,
+              1.5156760068798656,
+              -193.51595748872052,
+              -5.646180449656752
+            ],
+            [
+              16.178877390497927,
+              -7.218658620533528,
+              -5.646180449656752,
+              -217.87890137516385
+            ]
+          ],
+          "reference_wxyz": [
+            0.9383255884569877,
+            -0.04382882109541391,
+            -0.3335572787108817,
+            0.07977259120290382
+          ],
+          "mean_at_reference": [
+            1.0620289247222992,
+            -0.0474296422437014,
+            0.8768429228184222
+          ],
+          "residual_covariance": [
+            [
+              0.0019270852958408078,
+              0.0002188228892651747,
+              -0.003387858914664524
+            ],
+            [
+              0.0002188228892651747,
+              0.009024700035362043,
+              9.178949328504101e-05
+            ],
+            [
+              -0.003387858914664524,
+              9.178949328504101e-05,
+              0.007200269556406338
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ]
+        }
+      ],
+      "edge_id": "comparison_switch_goal",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws",
+          "DICT_APRILTAG_36h11:21",
+          "configured_pinhole"
+        ],
+        [
+          "switch_press_direct_local_transform_laws",
+          "DICT_APRILTAG_36h11:21",
+          "configured_pinhole"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 0,
+          "weight": 1.0,
+          "inverse_concentration": 0.008413697747745552,
+          "shape_upper_wxyz": [
+            1.4133732804332657,
+            -0.061254424188930096,
+            -0.3590275560107495,
+            -0.0016307917784935263,
+            -0.5099488959182781,
+            0.008330132645280718,
+            -0.010094658701097861,
+            -0.41612156573975945,
+            -0.00035029758878613607,
+            -0.48730281877522874
+          ]
+        },
+        {
+          "kind": 0,
+          "weight": 5.01154662274092e-67,
+          "inverse_concentration": 0.0083618663523492,
+          "shape_upper_wxyz": [
+            1.187056359318075,
+            -0.08204131441274476,
+            -0.5706180130945208,
+            0.13528561047038784,
+            -0.5574955023426689,
+            0.012673880202991742,
+            -0.060361458628134794,
+            -0.21292058812359196,
+            -0.04721260632127667,
+            -0.4166402688518141
+          ]
+        }
+      ]
+    },
+    {
+      "parent": "base_link",
+      "child": "observed_ar_marker",
+      "stamp": 1792102016.872298,
+      "provenance": {
+        "method": "goal_comparison_marker_coordinate_query",
+        "detail": "{\"command\": [-0.15, -1.85, 2.35, 0.0, -0.95, 0.0], \"comparison_method\": \"indet_ik_product_gaussian_bingham\", \"coordinate_query\": \"goal_comparison_marker_coordinate_query\", \"endpoint\": \"switch_goal\", \"final_projection\": \"common_Gaussian_position_times_Bingham_mixture_orientation\", \"frame_id\": \"base_link\", \"integration_method\": \"deterministic_moments\", \"moment_integration_steps\": 480, \"observation_command\": [-0.15, -1.85, 2.35, 0.0, -0.95, 0.0], \"observation_edge_id\": \"camera_optical_frame__to__switch_marker\", \"observation_source_ids\": [\"DICT_APRILTAG_36h11:21\", \"configured_pinhole\"], \"observation_stamp\": 1792102016.872298, \"orientation_component_ids\": [\"camera_optical_frame__to__switch_marker:mode:0\", \"camera_optical_frame__to__switch_marker:mode:1\"], \"primitive_dependence\": \"independent\", \"revision\": \"1\", \"source_fingerprint\": \"b560850566a745cd65ea7a50c274c6f1d320c71a1f5582ed9a3031d8efc6d3f9\", \"source_id\": \"switch_press_direct_local_transform_laws\", \"stamp\": 1792102016.872298}",
+        "source_ids": [
+          "switch_press_direct_local_transform_laws",
+          "DICT_APRILTAG_36h11:21",
+          "configured_pinhole"
+        ]
+      },
+      "components": [
+        {
+          "weight": 1.0,
+          "id": "goal_comparison_marker_coordinate_query:switch_goal:comparison:0",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -193.99502157835568,
+              55.431620584109986,
+              -57.34869110025276,
+              -37.327790872328784
+            ],
+            [
+              55.431620584109986,
+              -159.76170593700346,
+              -81.19937097642195,
+              -50.02673544832514
+            ],
+            [
+              -57.34869110025276,
+              -81.19937097642195,
+              -151.33912490919005,
+              54.63537842428409
+            ],
+            [
+              -37.327790872328784,
+              -50.02673544832514,
+              54.63537842428409,
+              -200.04981504773363
+            ]
+          ],
+          "reference_wxyz": [
+            0.41332884674323234,
+            0.5681534109474666,
+            -0.5997300488537133,
+            -0.3829945620770503
+          ],
+          "mean_at_reference": [
+            1.0163533437056411,
+            -0.032318869858033214,
+            1.1162388414484175
+          ],
+          "residual_covariance": [
+            [
+              0.0019270852958408078,
+              0.0002188228892651747,
+              -0.003387858914664524
+            ],
+            [
+              0.0002188228892651747,
+              0.009024700035362043,
+              9.178949328504101e-05
+            ],
+            [
+              -0.003387858914664524,
+              9.178949328504101e-05,
+              0.007200269556406338
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.24,
+              0.0,
+              0.0,
+              -0.045,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.24,
+              0.0,
+              0.0,
+              -0.045,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.24,
+              0.0,
+              0.0,
+              -0.045
+            ]
+          ]
+        },
+        {
+          "weight": 5.01154662274092e-67,
+          "id": "goal_comparison_marker_coordinate_query:switch_goal:comparison:1",
+          "orientation_kind": "finite_bingham",
+          "orientation_parameter": [
+            [
+              -189.14940479207604,
+              54.91450965857821,
+              -45.37352940927145,
+              -20.519121271019863
+            ],
+            [
+              54.91450965857821,
+              -132.29273830860012,
+              -95.97828853520208,
+              -29.91598497031871
+            ],
+            [
+              -45.37352940927145,
+              -95.97828853520208,
+              -142.79075615257892,
+              37.21995626120041
+            ],
+            [
+              -20.519121271019863,
+              -29.91598497031871,
+              37.21995626120041,
+              -207.97778971533336
+            ]
+          ],
+          "reference_wxyz": [
+            0.36418486102221176,
+            0.6539133186376795,
+            -0.6179695485301895,
+            -0.24058344872389406
+          ],
+          "mean_at_reference": [
+            0.9445315526582064,
+            -0.032409006078761224,
+            1.090369848631615
+          ],
+          "residual_covariance": [
+            [
+              0.0019270852958408078,
+              0.0002188228892651747,
+              -0.003387858914664524
+            ],
+            [
+              0.0002188228892651747,
+              0.009024700035362043,
+              9.178949328504101e-05
+            ],
+            [
+              -0.003387858914664524,
+              9.178949328504101e-05,
+              0.007200269556406338
+            ]
+          ],
+          "rotation_coupling": [
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.24,
+              0.0,
+              0.0,
+              -0.045,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.24,
+              0.0,
+              0.0,
+              -0.045,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.24,
+              0.0,
+              0.0,
+              -0.045
+            ]
+          ]
+        }
+      ],
+      "edge_id": "goal_comparison_marker_coordinate_query",
+      "component_source_ids": [
+        [
+          "switch_press_direct_local_transform_laws",
+          "DICT_APRILTAG_36h11:21",
+          "configured_pinhole"
+        ],
+        [
+          "switch_press_direct_local_transform_laws",
+          "DICT_APRILTAG_36h11:21",
+          "configured_pinhole"
+        ]
+      ],
+      "wire": [
+        {
+          "kind": 0,
+          "weight": 1.0,
+          "inverse_concentration": 0.008413697747745552,
+          "shape_upper_wxyz": [
+            -0.148994847566641,
+            0.46638490126241217,
+            -0.48251455314635205,
+            -0.3140647499908297,
+            0.13903392314286658,
+            -0.6831869647026769,
+            -0.42090983136863586,
+            0.2098989741667847,
+            0.459685560395625,
+            -0.1999380497430108
+          ]
+        },
+        {
+          "kind": 0,
+          "weight": 5.01154662274092e-67,
+          "inverse_concentration": 0.0083618663523492,
+          "shape_upper_wxyz": [
+            -0.1764080580537609,
+            0.4591877905698203,
+            -0.37940738885471376,
+            -0.17157814973591373,
+            0.29901978832115705,
+            -0.8025576214585692,
+            -0.2501534681206924,
+            0.21123676614522907,
+            0.3112282998964406,
+            -0.33384849641262504
+          ]
+        }
+      ]
+    }
+  ],
+  "native_sensor_record": {
+    "parent": "camera_optical_frame",
+    "child": "switch_marker",
+    "stamp": 1792102016.872298,
+    "provenance": {
+      "method": "opencv_aruco_ippe_square",
+      "detail": "Ordered corners and their full 8x8 covariance produced this edge.",
+      "source_ids": [
+        "DICT_APRILTAG_36h11:21",
+        "configured_pinhole"
+      ]
+    },
+    "components": [
+      {
+        "weight": 1.0,
+        "id": "camera_optical_frame__to__switch_marker:mode:0",
+        "orientation_kind": "finite_bingham",
+        "orientation_parameter": [
+          [
+            -13571.088102846872,
+            2645.6839310251,
+            -9462.751045622863,
+            357.98116906817575
+          ],
+          [
+            2645.6839310251,
+            -578.5026822074724,
+            650.2358309804947,
+            -927.0189078761202
+          ],
+          [
+            -9462.751045622863,
+            650.2358309804947,
+            -358156.15590778115,
+            12220.856103041355
+          ],
+          [
+            357.98116906817575,
+            -927.0189078761202,
+            12220.856103041355,
+            -14159.49153203737
+          ]
+        ],
+        "reference_wxyz": [
+          0.1930248739394279,
+          0.9790907251549552,
+          -0.005505145078458738,
+          -0.06397220751136609
+        ],
+        "mean_at_reference": [
+          -0.015779310335454395,
+          0.06446710367134692,
+          0.7671549664974188
+        ],
+        "residual_covariance": [
+          [
+            8.008047947110772e-08,
+            -6.0272169849169816e-09,
+            -4.22814348188667e-08
+          ],
+          [
+            -6.0272169849169816e-09,
+            1.0534539318732977e-07,
+            2.847262285191966e-07
+          ],
+          [
+            -4.22814348188667e-08,
+            2.847262285191966e-07,
+            2.892581544285421e-06
+          ]
+        ],
+        "rotation_coupling": [
+          [
+            0.0005213531458199768,
+            -0.0008004200744198853,
+            0.004429373436247218,
+            -0.002215851937707217,
+            0.0006471086722941146,
+            0.0016628337969556242,
+            0.0038166316313501545,
+            -0.0015120404273851864,
+            9.182939043582854e-05
+          ],
+          [
+            0.00025121217811047646,
+            0.0015741900620136371,
+            0.001569659265132895,
+            -0.00034851438884912463,
+            -0.0035851831653943146,
+            -0.008748652616805217,
+            0.0019175933408075445,
+            0.008646147461156235,
+            -0.003822369970084581
+          ],
+          [
+            0.003109530072723399,
+            0.019258077785109018,
+            0.019494917138019607,
+            0.003123072911146895,
+            -0.021654032783761327,
+            -0.0530328346979729,
+            0.024548575847188156,
+            0.0513047403815125,
+            -0.024510319543123868
+          ]
+        ]
+      },
+      {
+        "weight": 5.01154662274092e-67,
+        "id": "camera_optical_frame__to__switch_marker:mode:1",
+        "orientation_kind": "finite_bingham",
+        "orientation_parameter": [
+          [
+            -2577.3388156016445,
+            96.34801374469572,
+            -3305.736488242215,
+            231.47909768840086
+          ],
+          [
+            96.34801374469572,
+            -4.006160335513414,
+            95.46006589497057,
+            23.875365180817102
+          ],
+          [
+            -3305.736488242215,
+            95.46006589497057,
+            -345135.27413824695,
+            14089.178213024521
+          ],
+          [
+            231.47909768840086,
+            23.875365180817102,
+            14089.178213024521,
+            -3029.5232284206577
+          ]
+        ],
+        "reference_wxyz": [
+          0.037943794077766886,
+          0.9991978144372136,
+          0.0004354071536334961,
+          0.01279869272583191
+        ],
+        "mean_at_reference": [
+          -0.014791415432100543,
+          0.06983877903652987,
+          0.7916514277539548
+        ],
+        "residual_covariance": [
+          [
+            8.595751038125812e-08,
+            -7.05310949592628e-09,
+            -5.674756178291109e-08
+          ],
+          [
+            -7.05310949592628e-09,
+            1.0808193937624599e-07,
+            2.8108290960436065e-07
+          ],
+          [
+            -5.674756178291109e-08,
+            2.8108290960436065e-07,
+            3.117085167288017e-06
+          ]
+        ],
+        "rotation_coupling": [
+          [
+            -0.00014075626581746818,
+            -0.003265690661048669,
+            0.005743993203499794,
+            -0.0036921974257507987,
+            -2.3694979870152626e-06,
+            -3.607862780757743e-05,
+            0.005479782518201639,
+            -4.8152323031872053e-05,
+            0.00014445060698584132
+          ],
+          [
+            1.1060756243301922e-05,
+            0.001045691877249682,
+            -0.0005082500332715908,
+            0.0012107417168185995,
+            -0.00038247695289186397,
+            -0.0050272124008806434,
+            -0.0004269704000224121,
+            0.0050557030536530784,
+            -0.0003955040714736064
+          ],
+          [
+            2.9439469021033255e-05,
+            0.009252711597626771,
+            -0.0018191315391852426,
+            0.009296536692527606,
+            0.00020794953601191362,
+            0.002746530427926696,
+            -0.0011124413272472428,
+            -0.0025102092521446747,
+            0.00016234408340132266
+          ]
+        ]
+      }
+    ]
+  }
+}

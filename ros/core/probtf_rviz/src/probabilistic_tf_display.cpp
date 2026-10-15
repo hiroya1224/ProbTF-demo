@@ -1,12 +1,14 @@
 #include <probtf_rviz/probabilistic_tf_display.hpp>
 
 #include <probtf_rviz/frame_freshness.hpp>
+#include <probtf_rviz/point_moment_query.hpp>
 #include <probtf_rviz/transform_visual.hpp>
 
 #include <probtf_core/latest_snapshot.hpp>
 #include <probtf_core/sampling.hpp>
 #include <probtf_msgs/ProbabilisticTransformArray.h>
 #include <probtf_msgs/ProbabilisticTransformStamped.h>
+
 
 #include <OgreQuaternion.h>
 #include <OgreVector3.h>
@@ -494,6 +496,7 @@ class ProbabilisticTfDisplay::Impl {
     std::set<std::string> successful_children;
     std::map<const Record*, probtf_core::TransformSampleVector>
         sampled_edges;
+    std::size_t gaussian_endpoint_frames = 0U;
 
     for (const Record* record : records) {
       const std::string child = cleanFrame(record->child_frame_id);
@@ -516,52 +519,87 @@ class ProbabilisticTfDisplay::Impl {
         continue;
       }
 
-      std::vector<const probtf_core::TransformSampleVector*> sampled_path;
-      sampled_path.reserve(path.size());
-      bool sampling_failed = false;
-      for (const Record* edge : path) {
-        auto cached = sampled_edges.find(edge);
-        if (cached == sampled_edges.end()) {
-          const uint64_t hash = stableHash(recordKey(*edge));
-          std::seed_seq seeds{base_seed, static_cast<uint32_t>(hash),
-                              static_cast<uint32_t>(hash >> 32U)};
-          std::mt19937 generator(seeds);
-          probtf_core::TransformSampleVector samples;
-          if (!probtf_core::sampleTransformDistribution(
-                  *edge, sample_count, &generator, &samples, &error)) {
-            sampling_failed = true;
-            break;
-          }
-          cached =
-              sampled_edges.emplace(edge, std::move(samples)).first;
-        }
-        sampled_path.push_back(&cached->second);
-      }
-      if (sampling_failed) {
-        geometry_errors_[child] = error;
-        continue;
-      }
-
-      probtf_core::TransformSampleVector frame_samples;
-      if (sampled_path.empty()) {
-        frame_samples.resize(sample_count);
-      } else if (!probtf_core::composeTransformSamplePath(
-                     sampled_path, &frame_samples, &error)) {
-        geometry_errors_[child] = error;
-        continue;
-      }
-
       std::vector<ColoredPoint> points;
-      points.reserve(3U * frame_samples.size());
-      for (const probtf_core::TransformSample& sample : frame_samples) {
-        for (int axis = 0; axis < 3; ++axis) {
-          ColoredPoint point;
-          point.position =
-              sample.translation +
-              sample.rotation *
-                  (axis_length * Eigen::Vector3d::Unit(axis));
-          point.color = axisColor(axis);
-          points.push_back(point);
+      points.reserve(3U * sample_count);
+      const bool gaussian_endpoints = path.size() == 1U &&
+          (path.front()->provenance.method == "indet_ik_product_gaussian_bingham" ||
+           path.front()->provenance.method == "indet_ik_common_gaussian_bingham_mixture");
+      const bool has_native_local_law = std::any_of(path.begin(), path.end(), [](const Record* edge) {
+        return edge->provenance.method == "configured_native_local_transform_family";
+      });
+      const bool native_local_path = !path.empty() &&
+          std::all_of(path.begin(), path.end(), [](const Record* edge) {
+            return edge->provenance.method == "configured_native_local_transform_family";
+          });
+      if (has_native_local_law && !native_local_path) {
+        geometry_errors_[child] =
+            "Native local-law endpoint query requires the same declared family on every path edge.";
+        continue;
+      }
+      if (native_local_path) {
+        if (!sameNativeLocalLawContext(path, &error)) {
+          geometry_errors_[child] = error;
+          continue;
+        }
+      }
+      if (gaussian_endpoints || native_local_path) {
+        const uint64_t hash = stableHash(recordKey(*path.front()));
+        std::seed_seq seeds{base_seed, static_cast<uint32_t>(hash),
+                            static_cast<uint32_t>(hash >> 32U)};
+        std::mt19937 generator(seeds);
+        int integration_steps;
+        AxisPointMoments moments;
+        const bool sampled = pointMomentIntegrationSteps(path.front()->provenance.detail,
+                &integration_steps, &error) &&
+            queryAxisPointMoments(snapshot, root, child, axis_length, integration_steps, &moments, &error) &&
+            sampleAxisPointGaussians(moments, sample_count, &generator, &points, &error);
+        if (!sampled) {
+          geometry_errors_[child] = error;
+          continue;
+        }
+      } else {
+        std::vector<const probtf_core::TransformSampleVector*> sampled_path;
+        sampled_path.reserve(path.size());
+        bool sampling_failed = false;
+        for (const Record* edge : path) {
+          auto cached = sampled_edges.find(edge);
+          if (cached == sampled_edges.end()) {
+            const uint64_t hash = stableHash(recordKey(*edge));
+            std::seed_seq seeds{base_seed, static_cast<uint32_t>(hash),
+                                static_cast<uint32_t>(hash >> 32U)};
+            std::mt19937 generator(seeds);
+            probtf_core::TransformSampleVector samples;
+            if (!probtf_core::sampleTransformDistribution(
+                    *edge, sample_count, &generator, &samples, &error)) {
+              sampling_failed = true;
+              break;
+            }
+            cached = sampled_edges.emplace(edge, std::move(samples)).first;
+          }
+          sampled_path.push_back(&cached->second);
+        }
+        if (sampling_failed) {
+          geometry_errors_[child] = error;
+          continue;
+        }
+
+        probtf_core::TransformSampleVector frame_samples;
+        if (sampled_path.empty()) {
+          frame_samples.resize(sample_count);
+        } else if (!probtf_core::composeTransformSamplePath(
+                       sampled_path, &frame_samples, &error)) {
+          geometry_errors_[child] = error;
+          continue;
+        }
+
+        for (const probtf_core::TransformSample& sample : frame_samples) {
+          for (int axis = 0; axis < 3; ++axis) {
+            ColoredPoint point;
+            point.position = sample.translation + sample.rotation *
+                (axis_length * Eigen::Vector3d::Unit(axis));
+            point.color = axisColor(axis);
+            points.push_back(point);
+          }
         }
       }
 
@@ -606,6 +644,7 @@ class ProbabilisticTfDisplay::Impl {
       }
       frame_bindings_[child] = binding;
       successful_children.insert(child);
+      gaussian_endpoint_frames += (gaussian_endpoints || native_local_path) ? 1U : 0U;
     }
 
     for (auto iterator = visuals_.begin(); iterator != visuals_.end();) {
@@ -622,6 +661,13 @@ class ProbabilisticTfDisplay::Impl {
       } else {
         ++iterator;
       }
+    }
+    if (gaussian_endpoint_frames > 0U) {
+      display_->setStatus(rviz::StatusProperty::Ok, "Point Moment Query",
+          QString("%1 native laws / paths; endpoint Gaussians from the same laws' Bingham M2/M4 point-action moments")
+              .arg(gaussian_endpoint_frames));
+    } else {
+      display_->deleteStatus("Point Moment Query");
     }
   }
 

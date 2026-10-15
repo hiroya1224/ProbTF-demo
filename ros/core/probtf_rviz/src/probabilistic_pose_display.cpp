@@ -1,5 +1,6 @@
 #include <probtf_rviz/probabilistic_pose_display.hpp>
 
+#include <probtf_rviz/point_moment_query.hpp>
 #include <probtf_rviz/transform_visual.hpp>
 
 #include <probtf_core/sampling.hpp>
@@ -176,30 +177,45 @@ void ProbabilisticPoseDisplay::renderMessage(
 
   std::mt19937 generator(
       static_cast<std::mt19937::result_type>(seed_property_->getInt()));
-  probtf_core::TransformSampleVector samples;
   std::string error;
-  if (!probtf_core::sampleTransformDistribution(
-          *message, static_cast<std::size_t>(sample_count_property_->getInt()),
-          &generator, &samples, &error)) {
+  const double axis_length = axis_length_property_->getFloat();
+  const std::size_t count = static_cast<std::size_t>(sample_count_property_->getInt());
+  const bool gaussian_endpoints =
+      message->provenance.method == "indet_ik_product_gaussian_bingham" ||
+      message->provenance.method == "indet_ik_common_gaussian_bingham_mixture" ||
+      message->provenance.method == "goal_comparison_marker_coordinate_query";
+  std::vector<ColoredPoint> points;
+  points.reserve(3U * count);
+  bool sampled = false;
+  if (gaussian_endpoints) {
+    probtf_msgs::ProbabilisticTransformArray dynamic_records, static_records;
+    (message->is_static ? static_records : dynamic_records).transforms.push_back(*message);
+    probtf_core::LatestSnapshot snapshot(dynamic_records, static_records);
+    AxisPointMoments moments;
+    int integration_steps;
+    sampled = pointMomentIntegrationSteps(message->provenance.detail, &integration_steps, &error) &&
+        queryAxisPointMoments(snapshot, message->header.frame_id, message->child_frame_id,
+                              axis_length, integration_steps, &moments, &error) &&
+        sampleAxisPointGaussians(moments, count, &generator, &points, &error);
+  } else {
+    probtf_core::TransformSampleVector samples;
+    sampled = probtf_core::sampleTransformDistribution(
+        *message, count, &generator, &samples, &error);
+    for (const auto& sample : samples) {
+      for (int axis = 0; axis < 3; ++axis) {
+        ColoredPoint point;
+        point.position = sample.translation +
+            sample.rotation * (axis_length * Eigen::Vector3d::Unit(axis));
+        point.color = axisColor(axis);
+        points.push_back(point);
+      }
+    }
+  }
+  if (!sampled) {
     message_renderable_ = false;
     visual_->setVisible(false);
-    setStatus(rviz::StatusProperty::Error, "Distribution",
-              QString::fromStdString(error));
+    setStatus(rviz::StatusProperty::Error, "Distribution", QString::fromStdString(error));
     return;
-  }
-
-  const double axis_length = axis_length_property_->getFloat();
-  std::vector<ColoredPoint> points;
-  points.reserve(3U * samples.size());
-  for (const auto& sample : samples) {
-    for (int axis = 0; axis < 3; ++axis) {
-      ColoredPoint point;
-      point.position =
-          sample.translation +
-          sample.rotation * (axis_length * Eigen::Vector3d::Unit(axis));
-      point.color = axisColor(axis);
-      points.push_back(point);
-    }
   }
 
   Eigen::Isometry3d representative = Eigen::Isometry3d::Identity();
@@ -218,7 +234,9 @@ void ProbabilisticPoseDisplay::renderMessage(
   message_renderable_ = true;
   refreshFreshness();
   setStatus(rviz::StatusProperty::Ok, "Distribution",
-            QString("%1 correlated samples").arg(samples.size()));
+            gaussian_endpoints
+                ? QString("%1 endpoint Gaussian display samples from the same law's Bingham M2/M4 point-action moments").arg(count)
+                : QString("%1 correlated samples").arg(count));
   deleteStatus("Message");
   deleteStatus("Transform");
   deleteStatus("Representative");

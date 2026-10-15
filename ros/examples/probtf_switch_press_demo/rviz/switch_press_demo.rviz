@@ -1,130 +1,342 @@
 Panels:
   - Class: rviz/Displays
+    Help Height: 70
     Name: Displays
     Property Tree Widget:
-      Expanded: [/Global Options1, /Switch scene and predictions1]
+      Expanded:
+        - /Global Options1
+        - /Actual flexible arm and rod1
+        - /Rigid command model (translucent)1
+        - /ProbTF robot joints1
+        - /ProbTF observed AR marker1
+        - /Switch scene and predictions1
+      Splitter Ratio: 0.5
+    Tree Height: 241
   - Class: rviz/Views
+    Expanded:
+      - /Current View1
     Name: Views
+    Splitter Ratio: 0.5
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
 Visualization Manager:
   Class: ""
   Displays:
-    - Class: rviz/Grid
-      Name: Grid
-      Enabled: true
-      Cell Size: 0.2
-      Plane Cell Count: 16
+    - Alpha: 0.4000000059604645
+      Cell Size: 0.20000000298023224
+      Class: rviz/Grid
       Color: 188; 194; 202
-      Alpha: 0.4
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 16
       Reference Frame: base_link
-    - Class: rviz/RobotModel
-      Name: Actual flexible arm and rod
-      Enabled: true
-      Robot Description: /switch_press/robot_description
-      Visual Enabled: true
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
       Collision Enabled: false
-      Alpha: 1
-      Update Interval: 0
-    - Class: rviz/RobotModel
-      Name: Rigid command model (translucent)
       Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        press_rod:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rod_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tool0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: Actual flexible arm and rod
+      Robot Description: /switch_press/robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 0.25
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        link_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        press_rod:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rod_tip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tool0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: Rigid command model (translucent)
       Robot Description: /switch_press/robot_description
       TF Prefix: rigid
-      Visual Enabled: true
-      Collision Enabled: false
-      Alpha: 0.25
       Update Interval: 0
-    - Class: probtf_rviz/ProbabilisticTF
-      Name: ProbTF robot joints
-      Enabled: true
-      Dynamic Topic: ""
+      Value: true
+      Visual Enabled: true
+    - Alpha: 0.8500000238418579
+      Axis Length: 0.10000000149011612
+      Class: probtf_rviz/ProbabilisticTF
       Dynamic Snapshot Topic: /switch_press/probtf_batch
-      Static Topic: ""
-      Root Frame: base_link
-      Frame Timeout: 2
-      Sample Count: 180
-      Axis Length: 0.075
-      Point Size: 0.003
-      Point Style: Spheres
-      Alpha: 0.85
-      Show Representatives: true
-      Representative Radius: 0.0015
-      Random Seed: 29
-      Queue Size: 1
-    - Class: probtf_rviz/ProbabilisticPose
-      Name: ProbTF observed AR marker
+      Dynamic Topic: ""
       Enabled: true
-      Topic: /switch_press/marker_display
-      Queue Size: 1
-      Frame Timeout: 1
-      Sample Count: 200
-      Axis Length: 0.09
-      Point Size: 0.003
+      Frame Timeout: 2
+      Name: ProbTF robot joints
+      Point Size: 0.009999999776482582
       Point Style: Spheres
-      Alpha: 0.85
-      Show Representative: true
-      Representative Radius: 0.0015
+      Queue Size: 1
       Random Seed: 29
+      Representative Radius: 0.001500000013038516
+      Root Frame: base_link
+      Sample Count: 180
+      Show Representatives: true
+      Static Topic: ""
+      Value: true
+    - Alpha: 0.8500000238418579
+      Axis Length: 0.10000000149011612
+      Class: probtf_rviz/ProbabilisticPose
+      Enabled: true
+      Frame Timeout: 1
+      Name: ProbTF observed AR marker
+      Point Size: 0.009999999776482582
+      Point Style: Spheres
+      Queue Size: 1
+      Random Seed: 29
+      Representative Radius: 0.001500000013038516
+      Sample Count: 200
+      Show Representative: true
+      Topic: /switch_press/marker_display
+      Unreliable: false
+      Value: true
     - Class: rviz/MarkerArray
-      Name: Switch scene and predictions
       Enabled: true
       Marker Topic: /switch_press/markers
+      Name: Switch scene and predictions
+      Namespaces:
+        actual_path: true
+        actual_tip: true
+        scene: true
+        status: true
+        tag: true
+        true_goal: true
       Queue Size: 1
+      Value: true
     - Class: rviz/MarkerArray
-      Name: IK prediction rods (diagnostic)
       Enabled: false
       Marker Topic: /switch_press/predictions
+      Name: IK prediction rods (diagnostic)
+      Namespaces:
+        {}
       Queue Size: 1
+      Value: false
     - Class: rviz/Image
-      Name: Camera and marker detection
       Enabled: true
       Image Topic: /switch_press/detection_image
-      Transport Hint: raw
-      Queue Size: 1
-      Normalize Range: true
-      Min Value: 0
       Max Value: 1
       Median window: 5
+      Min Value: 0
+      Name: Camera and marker detection
+      Normalize Range: true
+      Queue Size: 1
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+  Enabled: true
   Global Options:
+    Background Color: 240; 243; 248
+    Default Light: true
     Fixed Frame: world
     Frame Rate: 30
-    Background Color: 240; 243; 248
-  Enabled: true
+  Name: root
   Tools:
     - Class: rviz/Interact
+      Hide Inactive Objects: true
     - Class: rviz/MoveCamera
     - Class: rviz/Select
     - Class: rviz/FocusCamera
+  Value: true
   Views:
     Current:
       Class: rviz/Orbit
-      Name: Overview
-      Target Frame: world
       Distance: 2.25
-      Pitch: 0.35
-      Yaw: 3.9
-      Near Clip Distance: 0.01
-      Focal Point: {X: 0.90, Y: -0.03, Z: 0.44}
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0.8999999761581421
+        Y: -0.029999999329447746
+        Z: 0.4399999976158142
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.29999998211860657
+      Target Frame: world
+      Yaw: 4.4000043869018555
     Saved:
       - Class: rviz/Orbit
+        Distance: 0.6499999761581421
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: 1.350000023841858
+          Y: -0.05999999865889549
+          Z: 0.5199999809265137
+        Focal Shape Fixed Size: true
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
         Name: Switch close-up
+        Near Clip Distance: 0.004999999888241291
+        Pitch: 0.30000001192092896
         Target Frame: world
-        Distance: 0.65
-        Pitch: 0.30
-        Yaw: 3.6
-        Near Clip Distance: 0.005
-        Focal Point: {X: 1.35, Y: -0.06, Z: 0.52}
+        Yaw: 3.5999999046325684
       - Class: rviz/Orbit
-        Name: Overview
-        Target Frame: world
         Distance: 2.25
-        Pitch: 0.35
-        Yaw: 3.9
-        Near Clip Distance: 0.01
-        Focal Point: {X: 0.90, Y: -0.03, Z: 0.44}
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: 0.8999999761581421
+          Y: -0.029999999329447746
+          Z: 0.4399999976158142
+        Focal Shape Fixed Size: true
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: Overview
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.3499999940395355
+        Target Frame: world
+        Yaw: 3.9000000953674316
 Window Geometry:
-  Width: 1840
+  Camera and marker detection:
+    collapsed: false
+  Displays:
+    collapsed: false
   Height: 1200
-  X: 100
-  Y: 60
   Hide Left Dock: false
   Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd00000001000000000000023100000456fc0200000003fb0000003600430061006d00650072006100200061006e00640020006d00610072006b0065007200200064006500740065006300740069006f006e010000003d000002320000001600fffffffb000000100044006900730070006c006100790073010000027500000174000000c900fffffffb0000000a0056006900650077007301000003ef000000a4000000a400ffffff000004f90000045600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 1840
+  X: 100
+  Y: 27

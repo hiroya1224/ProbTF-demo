@@ -6,8 +6,9 @@ rod:
   mass: 0.275
 camera:
   translation: [0.02, -0.10, 0.12]
-  # Optical x: hand -y, optical y: hand -z, optical z: hand +x.
-  rpy: [-1.5707963267948966, 0.0, -1.5707963267948966]
+  # Aim the known optical axis along hand [0.35, 0.10, 0.12].
+  # The unchanged 960x720 sensor retains the marker at the desired tool pose.
+  rpy: [-1.2523505788398919, 0.0, -1.2924966677897853]
   width: 960
   height: 720
   focal_length: 720.0
@@ -23,6 +24,8 @@ marker:
   world_translation: [1.40, -0.06, 0.70]
   world_rpy: [1.5707963267948966, 0.0, -1.5707963267948966]
   goal_offset: [0.0, -0.24, 0.045]
+  # Tool +x approaches along marker -z; tool +z is marker +y.
+  goal_orientation_wxyz: [0.5, -0.5, 0.5, 0.5]
   # Proper broad single-image prior, shared by all IPPE branches (m^2).
   translation_prior_variance: 1000000.0
   corner_sigma_px: 0.5
@@ -39,19 +42,11 @@ obstacles:
     size: [0.045, 0.045, 0.036]
 plant:
   stiffness: [350.0, 125.0, 95.0, 60.0, 40.0, 30.0]
-initial_command: [-0.15, -1.85, 2.35, 0.0, -1.25, 0.0]
+initial_command: [-0.15, -1.85, 2.35, 0.0, -0.95, 0.0]
 control:
-  bodies:
-    - id: soft
-      weight: 0.25
-      stiffness: [200.0, 65.0, 50.0, 35.0, 20.0, 20.0]
-    - id: nominal
-      weight: 0.5
-      stiffness: [500.0, 180.0, 140.0, 90.0, 65.0, 45.0]
-    - id: stiff
-      weight: 0.25
-      stiffness: [700.0, 260.0, 210.0, 130.0, 90.0, 65.0]
-  orientation_samples: 48
+  # Direct local transform distributions; stiffness belongs only to plant.
+  transform_law_config: independent_transform_laws.yaml
+  integration_steps: 480
   max_joint_step: 0.12
   proposal_distance: 0.028
   jacobian_step: 0.0002

@@ -38,17 +38,15 @@ def load_config(path):
             raise ValueError(key + " must be nonnegative and finite")
     if not isinstance(config["camera"]["motion_blur_samples"], int) or config["camera"]["motion_blur_samples"] < 1:
         raise ValueError("motion_blur_samples must be a positive integer")
-    weights = np.array([body["weight"] for body in config["control"]["bodies"]])
-    if len(weights) < 2 or np.any(weights <= 0) or not np.all(np.isfinite(weights)):
-        raise ValueError("at least two positively weighted body candidates are required")
-    names = [body["id"] for body in config["control"]["bodies"]]
-    if len(set(names)) != len(names):
-        raise ValueError("body candidate IDs must be unique")
-    for body, weight in zip(config["control"]["bodies"], weights / weights.sum()):
-        body["weight"] = float(weight)
-        stiffness = np.asarray(body["stiffness"], dtype=float)
-        if stiffness.shape != (6,) or not np.all(np.isfinite(stiffness)) or np.any(stiffness <= 0):
-            raise ValueError("body stiffness must contain six positive finite values")
+    law_path = Path(config["control"]["transform_law_config"])
+    if not law_path.is_absolute():
+        law_path = Path(path).resolve().parent / law_path
+    config["control"]["transform_law_config"] = str(law_path)
+    if not law_path.is_file():
+        raise ValueError("transform law configuration does not exist: " + str(law_path))
+    quaternion = np.asarray(config["marker"]["goal_orientation_wxyz"], dtype=float)
+    if quaternion.shape != (4,) or not np.all(np.isfinite(quaternion)) or not np.isclose(np.linalg.norm(quaternion), 1.):
+        raise ValueError("goal_orientation_wxyz must be a unit quaternion")
     motion = config["motion"]
     if not 0 < motion["spatial_resolution"] < motion["clearance"]:
         raise ValueError("spatial resolution must be positive and below clearance")

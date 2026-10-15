@@ -1,4 +1,4 @@
-"""Equilibrium bodies with separate per-candidate warm starts and URDF geometry."""
+"""The physical gravity/spring simulator and actual-path collision monitor."""
 from dataclasses import dataclass
 
 import numpy as np

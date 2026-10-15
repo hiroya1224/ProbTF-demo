@@ -3,7 +3,6 @@ import itertools
 import numpy as np
 import pytest
 
-import probtf.bingham as bingham
 from probtf.bingham import (
     bingham_fourth_moment,
     bingham_log_normalizer,
@@ -108,42 +107,6 @@ def test_log_normalizer_tracks_parameter_gauge_shift():
     shifted = bingham_log_normalizer(parameter + 7.5 * np.eye(4), integration_steps=60)
 
     assert np.isclose(shifted - baseline, 7.5, atol=1e-12)
-
-
-@pytest.mark.parametrize("eigenvalues, gauge", [
-    ([0., 0., 0., 0.], 0.),
-    ([-8., -4., -1.5, 0.], 7.5),
-    ([-40., -30., 0., 0.], -3.),
-    ([-2e8, -8e5, -7e4, 0.], 19.),
-])
-@pytest.mark.parametrize("steps", [60, 480])
-def test_log_normalizer_matches_previous_derivative_path(eigenvalues, gauge, steps):
-    frame, _triangular = np.linalg.qr(np.array([[1., 2., -1., .5], [.2, 1., 3., -.3],
-                                               [2., -.5, 1., 2.], [-.7, 1., .4, 1.]]))
-    parameter = frame @ np.diag(eigenvalues) @ frame.T + gauge * np.eye(4)
-    parameter = .5 * (parameter + parameter.T)
-    symmetric = validate_bingham_parameter(parameter)
-    largest = float(np.linalg.eigvalsh(symmetric)[-1])
-    canonical_values = np.linalg.eigvalsh(symmetric-largest*np.eye(4))
-    constant, _derivative, _hessian = bingham._normalizer_derivatives(canonical_values, steps)
-    assert bingham_log_normalizer(parameter, steps) == float(np.log(constant)+largest)
-
-
-def test_log_normalizer_does_not_require_moment_derivatives(monkeypatch):
-    parameter = np.diag([-8., -4., -1.5, 0.])
-    expected = bingham_log_normalizer(parameter, 480)
-    def unavailable_derivative(*_args, **_kwargs):
-        raise AssertionError("logZ must not evaluate unused moment derivatives")
-    monkeypatch.setattr(bingham.bingham_normconst, "calc_Dconstant", unavailable_derivative)
-    monkeypatch.setattr(bingham.bingham_normconst, "calc_DDconstant", unavailable_derivative)
-    assert bingham_log_normalizer(parameter, 480) == expected
-
-
-@pytest.mark.parametrize("constant", [0., -1., np.nan, np.inf])
-def test_log_normalizer_rejects_invalid_real_normalizer(monkeypatch, constant):
-    monkeypatch.setattr(bingham.bingham_normconst, "calc_constant", lambda *_args, **_kwargs: constant)
-    with pytest.raises(FloatingPointError, match="normalizer evaluation failed"):
-        bingham_log_normalizer(np.zeros((4, 4)))
 
 
 def test_matching_round_trip_preserves_second_moment_and_mode():

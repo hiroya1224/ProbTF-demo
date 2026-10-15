@@ -9,8 +9,7 @@ camera:
   # Optical x: hand -y, optical y: hand -z, optical z: hand +x.
   rpy: [-1.5707963267948966, 0.0, -1.5707963267948966]
   width: 960
-  # Preserve the full marker and its quiet zone at both approach endpoints.
-  height: 960
+  height: 720
   focal_length: 720.0
   noise_std: 8.0
   blur_sigma: 2.0
@@ -42,20 +41,26 @@ plant:
   stiffness: [350.0, 125.0, 95.0, 60.0, 40.0, 30.0]
 initial_command: [-0.15, -1.85, 2.35, 0.0, -1.25, 0.0]
 control:
-  # Authoritative local transform candidate laws. No stiffness or additive
-  # angle-noise model is imposed by IK; edit this native law configuration.
-  initial_transform_law: config/initial_transform_law.yaml
-  orientation_quadrature_order: 9
-  max_monte_carlo_relative_error: 0.1
-  max_joint_step: 0.06
+  bodies:
+    - id: soft
+      weight: 0.25
+      stiffness: [200.0, 65.0, 50.0, 35.0, 20.0, 20.0]
+    - id: nominal
+      weight: 0.5
+      stiffness: [500.0, 180.0, 140.0, 90.0, 65.0, 45.0]
+    - id: stiff
+      weight: 0.25
+      stiffness: [700.0, 260.0, 210.0, 130.0, 90.0, 65.0]
+  orientation_samples: 48
+  max_joint_step: 0.12
   proposal_distance: 0.028
+  jacobian_step: 0.0002
   damping: 0.025
-  ik_max_iterations: 2
+  ik_max_iterations: 6
   max_cycles: 120
-  max_duration: 120.0
+  max_duration: 60.0
   max_plan_age: 5.0
-  # Retry through a transient blurred frame; max_plan_age still expires motion.
-  max_observation_misses: 40
+  max_observation_misses: 4
 motion:
   joint_resolution: 0.008
   spatial_resolution: 0.002

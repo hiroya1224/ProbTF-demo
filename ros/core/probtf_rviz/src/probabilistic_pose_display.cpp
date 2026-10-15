@@ -1,7 +1,6 @@
 #include <probtf_rviz/probabilistic_pose_display.hpp>
 
 #include <probtf_rviz/transform_visual.hpp>
-#include "quadrature_display.hpp"
 
 #include <probtf_core/sampling.hpp>
 
@@ -40,13 +39,12 @@ rviz::PointCloud::RenderMode renderMode(rviz::EnumProperty* property) {
 ProbabilisticPoseDisplay::ProbabilisticPoseDisplay()
     : frame_timeout_property_(new rviz::FloatProperty(
           "Frame Timeout", 15.0,
-          "Seconds without source-time progress before expiry. Explicit frozen "
-          "display queries use receipt only as display liveness, not prediction.",
+          "Seconds without receiving a dynamic message before the cloud and "
+          "representative disappear. Static records do not expire.",
           this, SLOT(updateAppearance()))),
       sample_count_property_(new rviz::IntProperty(
           "Sample Count", 300,
-          "Number of native-law Monte Carlo transforms. Deterministic quadrature "
-          "queries render every positive-weight node once.", this,
+          "Number of correlated transforms sampled from each message.", this,
           SLOT(updateGeometry()))),
       axis_length_property_(new rviz::FloatProperty(
           "Axis Length", 0.18,
@@ -146,12 +144,7 @@ void ProbabilisticPoseDisplay::processMessage(
   if (message->is_static) {
     freshness_.reset();
   } else {
-    RecordDisplayMetadata metadata;
-    if (recordDisplayMetadata(*message, &metadata) && metadata.frozen_query) {
-      freshness_.markProgress(ros::Time::now());
-    } else {
-      freshness_.observe(message->header.stamp, ros::Time::now());
-    }
+    freshness_.markProgress(ros::Time::now());
   }
   renderMessage(message);
 }
@@ -168,15 +161,6 @@ void ProbabilisticPoseDisplay::renderMessage(
               "header.frame_id must not be empty.");
     return;
   }
-  RecordDisplayMetadata metadata;
-  std::string error;
-  if (!recordDisplayMetadata(*message, &metadata, &error)) {
-    message_renderable_ = false;
-    visual_->setVisible(false);
-    setStatus(rviz::StatusProperty::Error, "Query Metadata",
-              QString::fromStdString(error));
-    return;
-  }
 
   Ogre::Vector3 frame_position;
   Ogre::Quaternion frame_orientation;
@@ -190,44 +174,31 @@ void ProbabilisticPoseDisplay::renderMessage(
     return;
   }
 
+  std::mt19937 generator(
+      static_cast<std::mt19937::result_type>(seed_property_->getInt()));
+  probtf_core::TransformSampleVector samples;
+  std::string error;
+  if (!probtf_core::sampleTransformDistribution(
+          *message, static_cast<std::size_t>(sample_count_property_->getInt()),
+          &generator, &samples, &error)) {
+    message_renderable_ = false;
+    visual_->setVisible(false);
+    setStatus(rviz::StatusProperty::Error, "Distribution",
+              QString::fromStdString(error));
+    return;
+  }
+
   const double axis_length = axis_length_property_->getFloat();
   std::vector<ColoredPoint> points;
-  if (metadata.direct_support) {
-    QuadratureEndpoints nodes;
-    if (!quadratureEndpoints(*message, axis_length, 1500000U, &nodes, &error)) {
-      message_renderable_ = false;
-      visual_->setVisible(false);
-      setStatus(rviz::StatusProperty::Error, "Distribution", QString::fromStdString(error));
-      return;
-    }
-    points.reserve(nodes.size());
-    for (const auto& node : nodes) {
+  points.reserve(3U * samples.size());
+  for (const auto& sample : samples) {
+    for (int axis = 0; axis < 3; ++axis) {
       ColoredPoint point;
-      point.position = node.position;
-      point.color = axisColor(node.axis);
-      point.color.a = node.relative_alpha;
+      point.position =
+          sample.translation +
+          sample.rotation * (axis_length * Eigen::Vector3d::Unit(axis));
+      point.color = axisColor(axis);
       points.push_back(point);
-    }
-  } else {
-    std::mt19937 generator(
-        static_cast<std::mt19937::result_type>(seed_property_->getInt()));
-    probtf_core::TransformSampleVector samples;
-    if (!probtf_core::sampleTransformDistribution(
-            *message, static_cast<std::size_t>(sample_count_property_->getInt()),
-            &generator, &samples, &error)) {
-      message_renderable_ = false;
-      visual_->setVisible(false);
-      setStatus(rviz::StatusProperty::Error, "Distribution", QString::fromStdString(error));
-      return;
-    }
-    points.reserve(3U * samples.size());
-    for (const auto& sample : samples) {
-      for (int axis = 0; axis < 3; ++axis) {
-        ColoredPoint point;
-        point.position = sample.translation + sample.rotation * (axis_length * Eigen::Vector3d::Unit(axis));
-        point.color = axisColor(axis);
-        points.push_back(point);
-      }
     }
   }
 
@@ -247,19 +218,7 @@ void ProbabilisticPoseDisplay::renderMessage(
   message_renderable_ = true;
   refreshFreshness();
   setStatus(rviz::StatusProperty::Ok, "Distribution",
-            metadata.direct_support
-                ? supportDisplayDescription(metadata, points.size() / 3U)
-                : QString("%1 correlated Monte Carlo display samples; source/header stamp %2.")
-                      .arg(points.size() / 3U)
-                      .arg(message->header.stamp.toSec(), 0, 'f', 6));
-  if (metadata.frozen_query) {
-    setStatus(rviz::StatusProperty::Ok, "Query",
-        QString("Frozen law query at source time %1; receipt is display liveness, no temporal prediction.")
-            .arg(metadata.source_observation_stamp, 0, 'f', 6));
-  } else {
-    deleteStatus("Query");
-  }
-  deleteStatus("Query Metadata");
+            QString("%1 correlated samples").arg(samples.size()));
   deleteStatus("Message");
   deleteStatus("Transform");
   deleteStatus("Representative");

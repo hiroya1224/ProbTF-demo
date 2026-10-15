@@ -69,12 +69,7 @@ def bingham_log_normalizer(parameter_matrix, integration_steps=120):
     largest_eigenvalue = float(np.linalg.eigvalsh(parameter)[-1])
     canonical = parameter - largest_eigenvalue * np.eye(4, dtype=float)
     eigenvalues = np.linalg.eigvalsh(canonical)
-    values = eigenvalues - float(np.max(eigenvalues))
-    constant = float(np.asarray(
-        bingham_normconst.calc_constant(values, N=_integration_steps(integration_steps)),
-        dtype=float).reshape(-1)[0])
-    if not np.isfinite(constant) or constant <= 0.0:
-        raise FloatingPointError("Bingham normalizer evaluation failed.")
+    constant, _, _ = _normalizer_derivatives(eigenvalues, integration_steps)
     return float(np.log(constant) + largest_eigenvalue)
 
 

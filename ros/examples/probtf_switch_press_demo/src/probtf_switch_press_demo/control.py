@@ -1,47 +1,44 @@
-"""Expected goal density under native shared body laws, with image feedback."""
+"""Expected goal density at finite body predictions, with image-only feedback."""
 from dataclasses import dataclass, field
-from functools import cached_property
-from pathlib import Path
 
 import numpy as np
 from scipy.special import logsumexp
+from scipy.linalg import solve_triangular
 from scipy.optimize import minimize
 
-from probtf.distributions import (
-    DistributionStatus, compose_with_deterministic_right,
-)
+from probtf.distributions import DistributionStatus, compose_with_deterministic_right
 from probtf.geometry import DeterministicTransform, quat_to_rotmat
-from probtf.kernels import ForwardEdgeKernel, KernelEvaluator, KernelRepresentation
-from probtf.joint import PointQuadrature
-from probtf.candidates import load_initial_transform_law
-from probtf.probability.point_density import DensityIntegrationError
+from probtf.probability.sampling import sample_bingham_orientation
 
-from probtf_switch_press_demo.kinematics import CandidateKinematics
-from probtf_switch_press_demo.beliefs import BODY_FRAMES, JointMeasure, finite_pose_record, left_compose_record
-from probtf_switch_press_demo.scene import transform
+from probtf_switch_press_demo.body import EquilibriumBody, clearance, motion_samples
+from probtf_switch_press_demo.scene import apply, inverse, transform
 from probtf_switch_press_demo.vision import ImageObservation
 
 
 class GoalLikelihood:
-    """Expected-density kernel; preserve Bingham and conditional translation."""
-    def __init__(self, marker_record, hand_camera, goal_offset, order=9):
-        camera_goal = compose_with_deterministic_right(
+    """Rao-Blackwellized orientation integration, keeping residual Gaussians exact."""
+    def __init__(self, marker_record, hand_camera, goal_offset, sample_count, rng):
+        self.record = compose_with_deterministic_right(
             marker_record, DeterministicTransform(np.asarray(goal_offset), [1, 0, 0, 0]),
             child_frame_id="switch_goal", edge_id="observed_switch_goal")
-        self.record = left_compose_record(camera_goal, hand_camera, "observation_hand")
-        self.kernel = ForwardEdgeKernel(self.record)
-        self.evaluator = KernelEvaluator(point_density_order=order)
-        result = self.evaluator.apply_to_point(self.kernel, np.zeros(3), KernelRepresentation.NUMERICAL_LAW)
-        if result.status is not DistributionStatus.OK or not hasattr(result.value, "log_density_and_gradient"):
-            raise DensityIntegrationError("goal density query unavailable: {}".format(result.diagnostics))
-        self.density = result.value
-        self.metadata = self.density.metadata
-        # The proposal uses exact component point moments, not a sampled mode.
-        moments = self.evaluator.apply_to_point(self.kernel, np.zeros(3), KernelRepresentation.MOMENTS)
-        if moments.status is not DistributionStatus.OK:
-            raise DensityIntegrationError("goal point moments unavailable")
-        self.mean = moments.value.mean
+        normalized = self.record.distribution.normalize_weights()
+        if normalized.status is not DistributionStatus.OK or sample_count < 1:
+            raise ValueError("invalid goal mixture or sample count")
+        self.terms = []
+        self.mean = np.zeros(3)
         self.marker_modes = []
+        rotation = hand_camera[:3, :3]
+        for item in normalized.components:
+            component = item.component
+            quaternions = sample_bingham_orientation(component.orientation, sample_count, rng)
+            means = apply(hand_camera, np.array([component.conditional_translation_mean(q) for q in quaternions]))
+            covariance = rotation @ component.translation.residual_covariance @ rotation.T
+            cholesky = np.linalg.cholesky(covariance)
+            if not np.all(np.isfinite(cholesky)) or np.any(np.diag(cholesky) <= 0):
+                raise ValueError("invalid conditional goal covariance; hold and reobserve")
+            log_normalizer = 1.5 * np.log(2 * np.pi) + np.log(np.diag(cholesky)).sum()
+            self.terms.append((float(item.weight), means, cholesky, log_normalizer))
+            self.mean += item.weight * means.mean(axis=0)
         for item in marker_record.distribution.normalized_components():
             component = item.component
             quaternion = component.orientation.reference_quaternion_wxyz
@@ -50,100 +47,111 @@ class GoalLikelihood:
             pose[:3, 3] = component.conditional_translation_mean(quaternion)
             self.marker_modes.append(hand_camera @ pose)
 
-    def value_and_tip_gradient(self, hand_record):
-        if hand_record.parent_frame_id != self.record.parent_frame_id:
-            raise ValueError("hand and goal must use the same observation frame")
-        components = hand_record.distribution.normalized_components()
-        if any(not item.component.is_deterministic for item in components):
-            raise ValueError("expected density requires the original shared-law query, not a marginal pose fit")
-        tips = np.array([item.component.translation.mean_at_reference for item in components])
-        weights = np.array([item.weight for item in components])
-        return self._value_and_tip_gradient(tips, weights)
+    def value_and_tip_gradient(self, tips, body_weights):
+        tips = np.asarray(tips, dtype=float)
+        weights = np.asarray(body_weights, dtype=float)
+        values, precision_differences = [], []
+        for weight, means, cholesky, normalizer in self.terms:
+            differences = tips[:, None, :] - means[None, :, :]
+            whitened = solve_triangular(cholesky, differences.reshape(-1, 3).T, lower=True).T
+            logpdf = (-0.5 * np.sum(whitened ** 2, axis=1) - normalizer).reshape(len(tips), len(means))
+            values.append((logpdf + np.log(weights)[:, None] + np.log(weight) - np.log(len(means))).reshape(-1))
+            precision_differences.append(solve_triangular(cholesky.T, whitened.T, lower=False).T.reshape(len(tips), len(means), 3))
+        score = float(logsumexp(np.concatenate(values)))
+        gradient = np.zeros_like(tips)
+        for log_terms, differences in zip(values, precision_differences):
+            responsibilities = np.exp(log_terms.reshape(differences.shape[:2]) - score)
+            gradient -= np.sum(responsibilities[:, :, None] * differences, axis=1)
+        return score, gradient
 
-    def value_and_prediction_gradient(self, prediction):
-        cached = getattr(prediction, "_expected_density_query", None)
-        if cached is not None and cached[0] is self:
-            return cached[1]
-        expression = prediction.joint_after.expression
-        if expression is None:
-            value = self._value_and_tip_gradient(prediction.tips, prediction.joint_after.weights)
-        else:
-            kernel = expression.relative(prediction.joint_before.expression, -1)
-            representation = (KernelRepresentation.SAMPLES if prediction.joint_after.metadata.get("integration_method") == "monte_carlo"
-                              else KernelRepresentation.QUADRATURE)
-            query = self.evaluator.apply_to_point(kernel, np.zeros(3), representation)
-            if query.status is not DistributionStatus.OK:
-                raise DensityIntegrationError("shared hand law query unavailable: {}".format(query.diagnostics))
-            value = query.value.expected_log_density(self.density)
-        prediction._expected_density_query = (self, value, self.density.last_diagnostics)
-        return value
+    def log_expected_density(self, tips, body_weights):
+        return self.value_and_tip_gradient(tips, body_weights)[0]
 
-    def expected_density_diagnostics(self, prediction):
-        metadata = dict(prediction.joint_after.metadata)
-        if metadata.get("integration_method") != "monte_carlo":
-            return dict(method="exact_finite_input_law", node_count=len(prediction.tips),
-                        relative_standard_error=0., source_law_id=metadata.get("source_law_id"))
-        values = self.density.log_density(prediction.tips)
-        scaled = np.exp(values - np.max(values))
-        mean = np.mean(scaled)
-        relative = (float(np.std(scaled, ddof=1) / np.sqrt(len(scaled)) / mean)
-                    if len(scaled) > 1 and mean > 0 else float("inf"))
-        return dict(method="monte_carlo", sample_count=len(values),
-                    relative_standard_error=relative, error_bound=None,
-                    source_law_id=metadata.get("source_law_id"),
-                    source_revision=metadata.get("source_revision"),
-                    sampling_method=metadata.get("integration_method"), sampling_seed=metadata.get("seed"))
-
-    def _value_and_tip_gradient(self, tips, weights):
-        return PointQuadrature(np.asarray(tips), np.asarray(weights), {}).expected_log_density(self.density)
-
-    def log_expected_density(self, hand_record):
-        return self.value_and_tip_gradient(hand_record)[0]
+    def display_samples(self, rng):
+        """Actual mixture samples for display; no scaling of uncertainty."""
+        values, weights = [], []
+        for weight, means, cholesky, _normalizer in self.terms:
+            values.append(means + rng.normal(size=means.shape) @ cholesky.T)
+            weights.extend([weight / len(means)] * len(means))
+        points = np.vstack(values)
+        # Fixed size, weighted display; even negligible IPPE branches keep their true weights.
+        chosen = rng.choice(len(points), size=96, p=np.asarray(weights) / np.sum(weights))
+        return points[chosen]
 
 
 @dataclass
 class Prediction:
     increment: np.ndarray
-    joint_before: JointMeasure
-    joint_after: JointMeasure
+    tips: np.ndarray
+    rods: np.ndarray
     poses: tuple
     score: float
-    stamp: float = 0.
     minimum_clearance: float = float("inf")
     ik: dict = field(default_factory=dict)
-    _records: dict = field(default_factory=dict, repr=False)
 
-    @cached_property
-    def relative_transforms(self):
-        return self.joint_after.relative_transforms(self.joint_before)
 
-    def link_record(self, index):
-        index %= len(BODY_FRAMES)
-        if index not in self._records:
-            self._records[index] = finite_pose_record("observation_hand", "predicted/" + BODY_FRAMES[index],
-                self.stamp, self.relative_transforms[:, index], self.joint_after.body_ids, self.joint_after.weights,
-                metadata=dict(self.joint_after.metadata, reference_query_id=self.joint_before.metadata.get("query_id")))
-        return self._records[index]
+class BodyCandidates:
+    def __init__(self, urdf, candidates, rod_length):
+        self.ids = tuple(candidate["id"] for candidate in candidates)
+        self.weights = np.array([candidate["weight"] for candidate in candidates])
+        self.bodies = [EquilibriumBody(urdf, candidate["stiffness"]) for candidate in candidates]
+        self.tip = np.array([rod_length, 0.0, 0.0])
+        self.warm = [None] * len(self.bodies)
+        self.command = None
+        self.current_poses = None
+        self.current_flanges = None
 
-    @property
-    def link_records(self):
-        return tuple(self.link_record(index) for index in range(len(BODY_FRAMES)))
+    def current(self, command):
+        command = np.asarray(command, dtype=float)
+        if self.command is None or not np.array_equal(command, self.command):
+            self.current_poses = tuple(body.equilibrium(command, warm) for body, warm in zip(self.bodies, self.warm))
+            self.current_flanges = tuple(body.flange(q) for body, q in zip(self.bodies, self.current_poses))
+            self.warm = [q.copy() for q in self.current_poses]
+            self.command = command.copy()
+        return self.current_poses, self.current_flanges
 
-    @cached_property
-    def root_records(self):
-        return self.joint_after.root_records(self.stamp)
+    def predict(self, command, increment):
+        poses, flanges = self.current(command)
+        tips, rods, after = [], [], []
+        for body, q0, h0 in zip(self.bodies, poses, flanges):
+            # The identical latent body appears on both sides of this inverse/composition.
+            if np.all(increment == 0):
+                q1, relative = q0.copy(), np.eye(4)
+            else:
+                q1 = body.equilibrium(np.asarray(command) + increment, q0)
+                relative = inverse(h0) @ body.flange(q1)
+            tips.append(apply(relative, self.tip))
+            rods.append(apply(relative, np.array([[0, 0, 0], self.tip])))
+            after.append(q1)
+        return Prediction(np.array(increment, copy=True), np.array(tips), np.array(rods), tuple(after), float("-inf"))
 
-    @property
-    def hand_record(self):
-        return self.link_record(-1)
+    def safe_path(self, command, prediction, marker_modes, obstacles, settings):
+        safe, smallest = self.safe_motion(command, command + prediction.increment, command,
+                                         marker_modes, obstacles, settings)
+        prediction.minimum_clearance = smallest
+        return safe
 
-    @property
-    def tips(self):
-        return self.relative_transforms[:, -1, :3, 3]
+    def safe_motion(self, start, end, observed_command, marker_modes, obstacles, settings):
+        """Check a splice in the observation's frame, pairing the same body throughout."""
+        observed_poses, flanges = self.current(observed_command)
+        smallest = float("inf")
+        for body, observed_pose, h0 in zip(self.bodies, observed_poses, flanges):
+            q0 = (observed_pose if np.array_equal(start, observed_command) else
+                  body.equilibrium(start, observed_pose))
+            reference = inverse(h0)
+            for _command, pose in motion_samples(body, start, end, q0, settings):
+                boxes = body.boxes(pose, reference)
+                for marker in marker_modes:
+                    gap, _pair = clearance(boxes, marker, obstacles)
+                    smallest = min(smallest, gap)
+                    if gap < settings["clearance"]:
+                        return False, smallest
+        return True, smallest
 
-    @property
-    def rods(self):
-        return self.relative_transforms[:, -2:, :3, 3]
+    def tip_jacobians(self, command, prediction):
+        _poses, flanges = self.current(command)
+        return np.array([body.tip_command_jacobian(q1, h0[:3, :3].T)
+                         for body, q1, h0 in zip(self.bodies, prediction.poses, flanges)])
 
 
 class Controller:
@@ -155,41 +163,37 @@ class Controller:
                                 ("id", "size", "corner_sigma_px", "translation_prior_variance", "adaptive_covariance")}
         self.observation = ImageObservation(observation_settings, camera)
         self.hand_camera = transform(camera["translation"], camera["rpy"])
-        path = Path(control["initial_transform_law"])
-        if not path.is_absolute():
-            path = Path(__file__).resolve().parents[2] / path
-        law = load_initial_transform_law(path)
-        if law.reference_command is None:
-            raise ValueError("initial transform law must declare its reference command")
-        self.candidates = CandidateKinematics(urdf, law, rod_length, law.reference_command)
+        self.candidates = BodyCandidates(urdf, control["bodies"], rod_length)
         self.settings, self.motion, self.obstacles = control, motion, obstacles
+        self.rng = np.random.default_rng(seed)
+        self.display_rng = np.random.default_rng(seed + 1)
 
     def propose(self, command, goal):
         settings = self.settings
-        limit = settings["max_joint_step"]
-        current = self.candidates.predict(command, np.zeros(6))
-        jacobians = self.candidates.tip_jacobians(command, current)
-        weights = current.joint_after.weights
-        jacobian = np.einsum("s,sij->ij", weights, jacobians)
-        error = goal - weights @ current.tips
+        eps, limit = settings["jacobian_step"], settings["max_joint_step"]
+        nominal = int(np.argmax(self.candidates.weights))
+        jacobian = np.column_stack([(self.candidates.predict(command, np.eye(6)[j] * eps).tips[nominal]
+                                     - self.candidates.tip) / eps for j in range(6)])
+        error = goal - self.candidates.tip
         error *= min(1.0, settings["proposal_distance"] / max(np.linalg.norm(error), 1e-12))
         step = jacobian.T @ np.linalg.solve(jacobian @ jacobian.T + settings["damping"] ** 2 * np.eye(3), error)
         step *= min(1.0, limit / max(np.max(np.abs(step)), 1e-12))
-        return [value for value in (np.zeros(6), step)
-                if np.all(command + value >= self.candidates.lower)
-                and np.all(command + value <= self.candidates.upper)]
+        increments = [np.zeros(6)] + [step * fraction for fraction in (1.0, 0.5, 0.25)]
+        increments += [axis * sign * limit / 2 for axis in np.eye(6) for sign in (-1, 1)]
+        body = self.candidates.bodies[nominal]
+        return [value for value in increments if np.all(command + value >= body.lower) and np.all(command + value <= body.upper)]
 
     def choose(self, image, command, stamp, on_iteration=None):
         result, debug = self.observation.estimate(image, stamp)
         if result is None:
             return None, None, None, debug
         goal = GoalLikelihood(result.record, self.hand_camera, self.goal_offset,
-                              self.settings["orientation_quadrature_order"])
+                              self.settings["orientation_samples"], self.rng)
         proposals = []
         for increment in self.propose(np.asarray(command), goal.mean):
             try:
-                prediction = self.candidates.predict(command, increment, stamp)
-                prediction.score = goal.value_and_prediction_gradient(prediction)[0]
+                prediction = self.candidates.predict(command, increment)
+                prediction.score = goal.log_expected_density(prediction.tips, self.candidates.weights)
                 if np.isfinite(prediction.score):
                     proposals.append(prediction)
             except RuntimeError:
@@ -201,31 +205,16 @@ class Controller:
         # used for the final decision. Differential IK only supplies its seed.
         command = np.asarray(command, dtype=float)
         seed = max(proposals, key=lambda item: item.score)
-        candidates = self.candidates
         objective_scale = max(1.0, abs(seed.score))
         cache = {tuple(item.increment): item for item in proposals}
-        feasibility = {}
-        precision = {}
         trace = []
-
-        def safe(item):
-            key = tuple(item.increment)
-            if key not in precision:
-                precision[key] = goal.expected_density_diagnostics(item)
-            estimate = precision[key]
-            if estimate.get("relative_standard_error", 0.) > self.settings["max_monte_carlo_relative_error"]:
-                raise DensityIntegrationError("joint-sample expected likelihood does not meet the requested precision", estimate)
-            if key not in feasibility:
-                feasibility[key] = candidates.safe_path(command, item, goal.marker_modes,
-                                                        self.obstacles, self.motion)
-            return feasibility[key]
 
         def evaluate(increment):
             key = tuple(np.asarray(increment, dtype=float))
             if key not in cache:
                 try:
-                    item = candidates.predict(command, np.asarray(increment), stamp)
-                    item.score = goal.value_and_prediction_gradient(item)[0]
+                    item = self.candidates.predict(command, np.asarray(increment))
+                    item.score = goal.log_expected_density(item.tips, self.candidates.weights)
                     cache[key] = item if np.isfinite(item.score) else None
                 except RuntimeError:
                     cache[key] = None
@@ -239,8 +228,8 @@ class Controller:
             item = evaluate(increment)
             if item is None:
                 return np.zeros(6)
-            _score, tip_gradient = goal.value_and_prediction_gradient(item)
-            jacobians = candidates.tip_jacobians(command, item)
+            _score, tip_gradient = goal.value_and_tip_gradient(item.tips, self.candidates.weights)
+            jacobians = self.candidates.tip_jacobians(command, item)
             return -np.einsum("ij,ijk->k", tip_gradient, jacobians) / objective_scale
 
         def iteration(increment):
@@ -249,16 +238,14 @@ class Controller:
                 return
             trace.append(dict(iteration=len(trace), increment=item.increment.copy(),
                               log_expected_density=item.score, predicted_tips=item.tips.copy()))
-            if on_iteration is not None and safe(item):
-                item.ik = dict(expected_density_diagnostics=precision[tuple(item.increment)],
-                               expected_density_query=dict(item.joint_after.metadata),
-                               goal_density_diagnostics=item._expected_density_query[2])
+            if on_iteration is not None:
                 on_iteration(item, goal, result, debug, len(trace) - 1)
 
         iteration(seed.increment)
+        body = self.candidates.bodies[0]
         limit = self.settings["max_joint_step"]
-        bounds = list(zip(np.maximum(candidates.lower - command, -limit),
-                          np.minimum(candidates.upper - command, limit)))
+        bounds = list(zip(np.maximum(body.lower - command, -limit),
+                          np.minimum(body.upper - command, limit)))
         solution = minimize(objective, seed.increment, jac=gradient, method="L-BFGS-B", bounds=bounds,
             callback=iteration, options=dict(maxiter=self.settings["ik_max_iterations"],
                 ftol=1e-10, gtol=1e-6, maxls=20))
@@ -270,18 +257,11 @@ class Controller:
                     termination=str(solution.message), iterations=int(solution.nit),
                     evaluations=int(solution.nfev), initial_log_expected_density=seed.score,
                     optimized_log_expected_density=-float(solution.fun) * objective_scale,
-                    optimized_increment=solution.x.copy(), trace=trace,
-                    integration=dict(body=candidates.law.descriptor(), goal=goal.metadata,
-                        collision_condition="all evaluated joint candidates; sampled continuous laws have no full-support certificate"))
+                    optimized_increment=solution.x.copy(), trace=trace)
         for prediction in sorted(proposals, key=lambda item: item.score, reverse=True):
-            if not safe(prediction):
-                continue
-            estimate = precision[tuple(prediction.increment)]
-            prediction.ik = dict(info, expected_density_diagnostics=estimate,
-                expected_density_query=dict(prediction.joint_after.metadata),
-                integration_points=prediction.tips, integration_weights=prediction.joint_after.weights,
-                goal_density_diagnostics=prediction._expected_density_query[2])
-            return prediction, goal, result, debug
+            if self.candidates.safe_path(np.asarray(command), prediction, goal.marker_modes, self.obstacles, self.motion):
+                prediction.ik = info
+                return prediction, goal, result, debug
         return None, goal, result, debug
 
 

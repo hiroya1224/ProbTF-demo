@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
-from scipy.special import logsumexp
-from scipy.stats import multivariate_normal
 
 import probtf.isl as isl
-from probtf.candidates import IndependentTransformLaw, JointFiniteTransformLaw
 from probtf.distributions import (
     BinghamOrientation,
     ConditionalGaussianTranslation,
@@ -13,7 +10,7 @@ from probtf.distributions import (
     TransformDistribution,
     TransformDistributionStamped,
 )
-from probtf.geometry import axis_angle_to_quat, quat_to_rotmat, rotation_vector_from_quaternion
+from probtf.geometry import axis_angle_to_quat, rotation_vector_from_quaternion
 from probtf.graph import EdgeDirection, EdgeView, PathExpression, ProbTfGraph
 from probtf.kernels import (
     DiracPointLaw,
@@ -27,13 +24,10 @@ from probtf.kernels import (
     kernel_from_path,
 )
 from probtf.probability import PointMomentSummary, forward_component_point_moments
-from probtf.probability.point_density import ConditionalPointDensity
-from probtf.joint import JointTransformLaw, PointQuadrature, PointSamples
 from probtf.provenance import ApproximationKind
 from probtf.provenance import ComponentProvenance
 from probtf.spherical_law import (
     DiracVectorLaw,
-    FiniteBinghamInducedDirectionLaw,
     IslBackendUnavailableError,
     IslEvaluationOptions,
     TangentSurrogateIslBackend,
@@ -79,90 +73,6 @@ class FailingIslBackend:
 
     def rotate_vector(self, *args, **kwargs):
         raise AssertionError("deterministic fast path called the ISL backend")
-
-
-def test_joint_finite_dispatcher_preserves_exact_source_weights_and_expected_density():
-    local = np.broadcast_to(np.eye(4), (2, 1, 4, 4)).copy()
-    local[:, 0, :3, 3] = [[1., 0., 0.], [-1., 2., .3]]
-    local[1, 0, :3, :3] = quat_to_rotmat(axis_angle_to_quat([0., 0., 1.], np.pi/2))
-    source = JointFiniteTransformLaw(local, [1., 3.], ("first", "second"), ("tool",),
-                                     "finite_joint_source", 4, (0.,))
-    def actuate(initial, command):
-        output = initial.copy()
-        output[:, 0, 0, 3] += command[0]
-        return output
-    law = JointTransformLaw(source, actuate, source.frame_names, "known_translation_action")
-    kernel = law.at([.2]).root(0)
-    evaluator = KernelEvaluator()
-    result = evaluator.apply_to_point(kernel, [1., 0., 0.], KernelRepresentation.QUADRATURE)
-    assert result.status is DistributionStatus.OK
-    assert isinstance(result.value, PointQuadrature)
-    assert result.value.source_law is source
-    assert result.value.expression is kernel
-    assert result.approximation.kind is ApproximationKind.EXACT
-    assert result.approximation.lossy is False
-    assert result.value.metadata["source_law_id"] == source.law_id
-    assert result.value.metadata["source_revision"] == source.revision
-    np.testing.assert_array_equal(result.value.weights, [.25, .75])
-    expected_points = np.array([[2.2, 0., 0.], [-.8, 3., .3]])
-    np.testing.assert_allclose(result.value.points, expected_points, rtol=0., atol=1e-14)
-    covariance = np.diag([.4, .5, .6])**2
-    goal_record = _record("goal", "world", "goal", [_component(
-        translation=[.3, 1., .2], covariance=covariance)])
-    score, _gradient = result.value.expected_log_density(ConditionalPointDensity(goal_record))
-    expected_score = logsumexp(np.log([.25, .75]) + multivariate_normal.logpdf(
-        expected_points, [.3, 1., .2], covariance))
-    assert score == pytest.approx(expected_score, abs=1e-12)
-    unavailable = evaluator.apply_to_point(kernel, [1., 0., 0.], KernelRepresentation.SAMPLES)
-    assert unavailable.status is DistributionStatus.INVALID
-    assert isinstance(unavailable.value, UnavailableKernelValue)
-    assert unavailable.value.code == "UNSUPPORTED_JOINT_QUERY"
-    assert unavailable.approximation.kind is ApproximationKind.UNAVAILABLE
-    assert kernel.state.law.source_law is source
-
-
-def test_joint_continuous_dispatcher_keeps_native_source_and_declared_sampling_policy():
-    orientation = BinghamOrientation.from_parameter_matrix(np.diag([-4., -3., -2., 0.]))
-    coupling = np.arange(27).reshape(3, 9)*.001
-    edge = _record("initial_tool", "world", "tool", [_component(
-        orientation=orientation, translation=[.2, -.1, .4],
-        covariance=np.diag([.01, .02, .03])**2, coupling=coupling)])
-    source = IndependentTransformLaw((edge,), True, "continuous_native_source", 7,
-                                     sample_count=16, seed=23, reference_command=(0.,))
-    law = JointTransformLaw(source, lambda initial, _command: initial,
-                             source.frame_names, "identity_control_map")
-    kernel = law.at([0.]).root(0)
-    evaluator = KernelEvaluator()
-    point = np.array([.1, -.2, .3])
-    result = evaluator.apply_to_point(kernel, point, KernelRepresentation.SAMPLES)
-    assert result.status is DistributionStatus.OK
-    assert isinstance(result.value, PointSamples)
-    assert not isinstance(result.value, PointQuadrature)
-    assert result.value.source_law is source
-    assert result.value.expression is kernel
-    assert result.approximation.kind is ApproximationKind.MONTE_CARLO
-    assert result.approximation.lossy is True
-    assert KernelDiagnosticCode.APPROXIMATION_USED in result.diagnostics.codes
-    assert result.value.metadata["source_law_id"] == source.law_id
-    assert result.value.metadata["source_revision"] == 7
-    assert result.value.metadata["sample_count"] == 16
-    assert result.value.metadata["seed"] == 23
-    assert result.value.metadata["integration_method"] == "monte_carlo"
-    rows, weights = source.quadrature()
-    expected_points = np.einsum("nij,j->ni", rows[:, 0, :3, :3], point) + rows[:, 0, :3, 3]
-    np.testing.assert_allclose(result.value.points, expected_points, rtol=0., atol=1e-14)
-    np.testing.assert_array_equal(result.value.weights, weights)
-    assert source.edge_records[0] is edge
-    assert edge.distribution.components[0].orientation is orientation
-    np.testing.assert_array_equal(edge.distribution.components[0].translation.rotation_coupling, coupling)
-    unavailable = evaluator.apply_to_point(kernel, point, KernelRepresentation.QUADRATURE)
-    assert unavailable.status is DistributionStatus.INVALID
-    assert isinstance(unavailable.value, UnavailableKernelValue)
-    assert unavailable.value.code == "UNSUPPORTED_JOINT_QUERY"
-    assert unavailable.approximation.kind is ApproximationKind.UNAVAILABLE
-    repeated = evaluator.apply_to_point(kernel, point, KernelRepresentation.SAMPLES)
-    np.testing.assert_array_equal(repeated.value.points, result.value.points)
-    assert repeated.value.source_law is source
 
 
 def test_deterministic_forward_inverse_composition_bypasses_isl_backend():
@@ -303,38 +213,6 @@ def test_uniform_coupling_moments_match_monte_carlo_cross_covariance():
     )
     np.testing.assert_allclose(exact.mean, outputs.mean(axis=0), atol=1.2e-2)
     np.testing.assert_allclose(exact.covariance, np.cov(outputs, rowvar=False), atol=1.5e-2)
-
-
-def test_default_evaluator_returns_normalized_native_finite_bingham_image_law():
-    finite = BinghamOrientation.from_parameter_matrix(np.diag([0.0, -2.0, -3.0, -4.0]))
-    graph = ProbTfGraph()
-    graph.insert(_record("edge", "world", "tool", [_component(orientation=finite)]))
-    result = KernelEvaluator().apply_to_point(
-        graph.lookup_kernel("world", "tool", 1.0),
-        [2.0, 0.0, 0.0],
-        KernelRepresentation.NUMERICAL_LAW,
-    )
-    assert result.status is DistributionStatus.OK
-    assert isinstance(result.value, UncoupledPointActionLaw)
-    vector_law = result.value.induced_vector_law
-    law = vector_law.direction_law
-    assert isinstance(law, FiniteBinghamInducedDirectionLaw)
-    assert law.orientation is finite
-    assert not law.approximation.lossy
-
-    z, weights = np.polynomial.legendre.leggauss(24)
-    phi = 2.0 * np.pi * np.arange(64) / 64
-    directions = np.stack(np.broadcast_arrays(
-        np.sqrt(1.0 - z[:, None] ** 2) * np.cos(phi),
-        np.sqrt(1.0 - z[:, None] ** 2) * np.sin(phi),
-        z[:, None],
-    ), axis=-1)
-    integral = np.sum(weights[:, None] * law.density(directions)) * (2.0 * np.pi / 64)
-    assert integral == pytest.approx(1.0, abs=1e-9)
-    assert law.density([1.0, 0.0, 0.0]) > law.density([-1.0, 0.0, 0.0])
-    assert vector_law.surface_density([2.0, 0.0, 0.0]) == pytest.approx(
-        law.density([1.0, 0.0, 0.0]) / 4.0
-    )
 
 
 def test_finite_exact_isl_is_explicitly_unavailable_but_zero_vector_is_safe():

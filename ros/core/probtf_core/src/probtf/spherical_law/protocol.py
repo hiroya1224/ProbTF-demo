@@ -56,9 +56,6 @@ class UniformDirectionLaw(InducedDirectionLaw):
             raise ValueError("direction must be a unit 3-vector.")
         return 1.0 / (4.0 * np.pi)
 
-    def log_density(self, direction):
-        return float(np.log(self.density(direction)))
-
 
 @dataclass(frozen=True)
 class InducedVectorLaw:
@@ -85,17 +82,6 @@ class ScaledDirectionVectorLaw(InducedVectorLaw):
         if not np.isfinite(radius) or radius <= 0.0:
             raise ValueError("radius must be positive and finite.")
         object.__setattr__(self, "radius", radius)
-
-    def surface_log_density(self, vector):
-        """Density on the radius-r sphere's AREA, not 3D Lebesgue density."""
-        value = np.asarray(vector, dtype=float)
-        if (value.shape != (3,) or not np.all(np.isfinite(value)) or
-                not np.isclose(np.linalg.norm(value), self.radius, rtol=1e-8, atol=0.)):
-            raise ValueError("vector must lie on the law's fixed-radius sphere.")
-        return self.direction_law.log_density(value / self.radius) - 2. * np.log(self.radius)
-
-    def surface_density(self, vector):
-        return float(np.exp(self.surface_log_density(vector)))
 
 
 @dataclass(frozen=True)

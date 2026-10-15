@@ -13,13 +13,10 @@ import numpy as np
 import yaml
 
 from prob_artag_detector.estimator import PoseEstimationError
-from probtf.distributions import OrientationKind, compose_with_deterministic_right
+from probtf.distributions import compose_with_deterministic_right
 from probtf.geometry import DeterministicTransform
 from probtf_switch_press_demo.body import EquilibriumBody, ReachMonitor, clearance, motion_samples
-from probtf_switch_press_demo.beliefs import left_compose_record
-from probtf_switch_press_demo.control import CommandServo, Controller
-from probtf_switch_press_demo.kinematics import CandidateKinematics
-from probtf.probability.point_density import DensityIntegrationError
+from probtf_switch_press_demo.control import BodyCandidates, CommandServo, Controller
 from probtf_switch_press_demo.scene import apply, inverse, transform, write_robot
 from probtf_switch_press_demo.vision import PlanarCamera
 
@@ -39,11 +36,7 @@ def write_json(path, value):
 def record_parameters(record):
     return dict(parent=record.parent_frame_id, child=record.child_frame_id, stamp=record.stamp,
         components=[dict(weight=item.weight, id=item.component.component_id,
-                         orientation_kind=item.component.orientation.kind.value,
-                         orientation_parameter=(item.component.orientation.backend_parameter_matrix()
-                             if item.component.orientation.kind is OrientationKind.FINITE_BINGHAM else None),
-                         inverse_concentration=item.component.orientation.inverse_concentration,
-                         orientation_shape=item.component.orientation.shape_matrix,
+                         orientation_parameter=item.component.orientation.backend_parameter_matrix(),
                          reference_wxyz=item.component.orientation.reference_quaternion_wxyz,
                          mean_at_reference=item.component.translation.mean_at_reference,
                          residual_covariance=item.component.translation.residual_covariance,
@@ -51,51 +44,23 @@ def record_parameters(record):
                     for item in record.distribution.normalized_components()])
 
 
-def density_diagnostics_summary(diagnostics, metadata):
-    """Keep integration diagnostics without copying per-point proposal tables."""
-    components = []
-    count = max((len(point.get("components", ())) for point in diagnostics), default=0)
-    for index in range(count):
-        entries = [point["components"][index] for point in diagnostics
-                   if index < len(point.get("components", ()))]
-        stationary = [item["maximum_stationary_gradient"] for item in entries
-                      if "maximum_stationary_gradient" in item]
-        components.append(dict(component_index=index,
-            maximum_modes=max(item.get("modes", 0) for item in entries),
-            maximum_stationary_gradient=max(stationary) if stationary else None))
-    return dict(integration_method=metadata.get("method"), order=metadata.get("order"),
-                error_bound=None, evaluated_point_count=len(diagnostics), components=components)
-
-
 def solve_observation(controller, image, command, stamp, updates):
     """Worker owns its controller; no simulated pose or world transform enters it."""
     started = time.monotonic()
-    error_diagnostics = None
     def progress(prediction, goal, result, debug, iteration):
-        prediction.root_records
-        prediction.hand_record
         updates.put((stamp, prediction, goal, result, debug, iteration))
     try:
         selected, goal, result, debug = controller.choose(image, command, stamp, progress)
         error = "" if result is not None else "marker_not_detected"
-    except (PoseEstimationError, np.linalg.LinAlgError, DensityIntegrationError) as failure:
+    except (PoseEstimationError, np.linalg.LinAlgError) as failure:
         selected, goal, result = None, None, None
         debug = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         error = str(failure)
-        error_diagnostics = getattr(failure, "diagnostics", None)
-    # Complete the selected law's native views in the worker as well. Their
-    # validation/serialization must not pause the motion loop at each retarget.
-    native_links = None
-    if selected is not None:
-        native_links = [record_parameters(record) for record in selected.link_records]
-        selected.root_records
     return dict(selected=selected, goal=goal, result=result, debug=debug, error=error,
-                error_diagnostics=error_diagnostics,
                 solve_wall_s=time.monotonic() - started,
-                native_link_records=native_links,
                 pixel_covariance=(None if controller.observation.last_observation is None else
                                   controller.observation.last_observation.image_covariance),
-                current_transform_candidates=controller.candidates.current_measure.local_transforms)
+                current_body_poses=controller.candidates.current_poses)
 
 
 def source_version(package_path):
@@ -109,6 +74,8 @@ def source_version(package_path):
                  and "outputs" not in path.parts]
         files += [root / path for path in (
             "ros/examples/symaware_grasp/urdf/simple_six_dof_arm.urdf",
+            "ros/examples/symaware_grasp/configs/simple_six_dof_prob_tf.yaml",
+            "ros/examples/symaware_grasp/src/symaware_grasp/probtf_config.py",
             "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/equilibrium.py",
             "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/spring.py",
             "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/robot/pinocchio_robot.py",
@@ -116,9 +83,6 @@ def source_version(package_path):
             "ros/examples/prob_artag_detector/src/prob_artag_detector/detector.py",
             "ros/core/probtf_core/src/probtf/distributions/composition.py",
             "ros/core/probtf_core/src/probtf/probability/sampling.py")]
-        files += list((root / "ros/core/probtf_core/src/probtf").rglob("*.py"))
-        files += [path for path in (root / "ros/core/probtf_rviz/src").rglob("*")
-                  if path.is_file() and path.suffix in (".cpp", ".hpp", ".h")]
         version["source_sha256"] = {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
                                     for path in sorted(set(files))}
     return version
@@ -145,12 +109,8 @@ class Trial:
                         ("id", "size", "goal_offset", "corner_sigma_px", "translation_prior_variance", "adaptive_covariance")}
         self.controller = Controller(self.urdf, config["control"], config["motion"], marker_model,
                                      config["camera"], config["rod"]["length"], config["obstacles"], config["seed"])
-        # Worker and motion guard share the source law, with separate query caches.
-        self.guard = CandidateKinematics(self.urdf, self.controller.candidates.source_law,
-            config["rod"]["length"], self.controller.candidates.source_law.reference_command)
-        write_json(self.output / "initial_transform_law.json", dict(
-            law=self.controller.candidates.law.descriptor(),
-            meaning="configured native joint transform law; no stiffness or additive joint-noise assumption in IK"))
+        # Pinocchio's mutable data are never shared between worker and motion loop.
+        self.guard = BodyCandidates(self.urdf, config["control"]["bodies"], config["rod"]["length"])
         self.servo = CommandServo(config["motion"])
         self.monitor = ReachMonitor(self.goal, config["reach_tolerance"])
         self.trajectory, self.cycles = [], []
@@ -167,7 +127,6 @@ class Trial:
         self.ik_iteration = 0
         self.phases = []
         self.servo_ticks = []
-        self.applied_ik_updates = []
         self.ik_pending = False
         self.camera_history = [(0., self.plant.flange(self.pose) @ self.hand_camera)]
 
@@ -200,62 +159,44 @@ class Trial:
         self.raw_image = self.camera.render(camera, self.marker, self.camera_history)
         self.observation_count += 1
 
-    def show_prediction(self, request, prediction, goal, result, debug, iteration, selected=False):
+    def show_prediction(self, request, prediction, goal, result, debug, iteration):
+        if "display_goals" not in request:
+            request["display_goals"] = goal.display_samples(self.controller.display_rng)
         self.debug_image, self.debug_stamp = debug, request["source_stamp"]
         self.ik_iteration = iteration
-        preview = dict(hand=request["hand"], prediction=prediction,
+        self.preview = dict(hand=request["hand"], prediction=prediction, goals=request["display_goals"],
                             marker_record=result.record, goal_record=goal.record,
                             stamp=request["source_stamp"], cycle=request["cycle"])
-        self.observation_preview = preview
-        # Accepted safe progress is already an active command. Its native
-        # views were prepared by the worker, so display the same query.
-        self.preview = preview
+        self.observation_preview = self.preview
 
-    def record_plan(self, request, outcome, applied=True, discard_reason=None):
+    def record_plan(self, request, outcome, applied=True):
         selected, goal, result = (outcome[key] for key in ("selected", "goal", "result"))
         self.debug_image, self.debug_stamp = outcome["debug"], request["source_stamp"]
         cv2.imwrite(str(self.output / "camera_{:02d}.png".format(request["cycle"])), self.debug_image)
         entry = dict(cycle=request["cycle"], time=request["source_time"], source_stamp=request["source_stamp"],
             command_before=request["command"], observation_error=outcome["error"],
-            observation_diagnostics=outcome.get("error_diagnostics"),
             image_degradation=request["image_degradation"], pixel_covariance=outcome["pixel_covariance"],
             solve_wall_s=outcome["solve_wall_s"], received_time=self.time,
             command_at_receipt=self.command.copy(),
-            applied_updates=list(request.get("applied_updates", ())),
             moving_ticks_during_ik=sum(np.max(np.abs(tick["velocity"])) > 1e-6
                                       for tick in self.servo_ticks[request["first_tick"]:]))
-        discard_action = "discarded_stale" if discard_reason == "stale" else "discarded_after_stop"
-        if discard_reason is not None:
-            entry["discard_reason"] = discard_reason
         if result is not None:
             entry["marker_record"] = record_parameters(result.record)
         if selected is not None:
-            if applied:
-                self.show_prediction(request, selected, goal, result, self.debug_image, selected.ik["iterations"], selected=True)
-            entry.update(action="retarget" if applied else discard_action, increment=selected.increment,
+            self.show_prediction(request, selected, goal, result, self.debug_image, selected.ik["iterations"])
+            entry.update(action="retarget" if applied else "discarded_after_stop", increment=selected.increment,
                 absolute_target=request["command"] + selected.increment, log_expected_density=selected.score,
                 predicted_clearance=selected.minimum_clearance, body_ids=self.guard.ids, body_weights=self.guard.weights,
                 predicted_tips=selected.tips, predicted_rods=selected.rods,
-                hand_record=outcome["native_link_records"][-1],
-                joint_measure_before=dict(body_ids=selected.joint_before.body_ids,
-                    query=dict(selected.joint_before.metadata),
-                    weights=selected.joint_before.weights, local_transforms=selected.joint_before.local_transforms),
-                joint_measure_after=dict(body_ids=selected.joint_after.body_ids,
-                    query=dict(selected.joint_after.metadata),
-                    weights=selected.joint_after.weights, local_transforms=selected.joint_after.local_transforms,
-                    root_transforms=selected.joint_after.root_transforms),
-                link_records=outcome["native_link_records"],
-                reference_hand_base=request["hand"],
+                goal_samples=request["display_goals"], reference_hand_base=request["hand"],
                 reference_hand_world=self.world_base @ request["hand"],
-                current_transform_candidates=outcome["current_transform_candidates"], next_transform_candidates=selected.poses,
-                goal_record=record_parameters(goal.record),
-                goal_integration_metadata=goal.metadata, ik=selected.ik)
+                current_body_poses=outcome["current_body_poses"], next_body_poses=selected.poses,
+                goal_record=record_parameters(goal.record), ik=selected.ik)
             print("IK update {}: {} iterations while {} moving ticks; actual error {:.2f} mm".format(
                 request["cycle"] + 1, selected.ik["iterations"], entry["moving_ticks_during_ik"],
                 1000 * self.trajectory[-1]["error"]), flush=True)
         else:
-            entry["action"] = (("continue_last_target" if entry["applied_updates"] else "hold")
-                               if applied else discard_action)
+            entry["action"] = "hold" if applied else "discarded_after_stop"
         self.cycles.append(entry)
 
     def run(self, on_frame=lambda trial: None, stopped=lambda: False):
@@ -292,42 +233,16 @@ class Trial:
                     except Empty:
                         break
                 if latest is not None:
-                    prediction, goal = latest[:2]
-                    if self.time - request["source_time"] <= self.config["control"]["max_plan_age"]:
-                        self.show_prediction(request, *latest)
-                        # Each callback passed the same full candidate-path
-                        # feasibility check as the final selection. The target
-                        # stays absolute in its original observation frame.
-                        target = request["command"] + prediction.increment
-                        active = dict(command=request["command"], source_time=request["source_time"],
-                                      marker_modes=goal.marker_modes, cycle=request["cycle"])
-                        request["applied_updates"].append(len(self.applied_ik_updates))
-                        self.applied_ik_updates.append(dict(
-                            source_stamp=request["source_stamp"], source_time=request["source_time"],
-                            applied_time=self.time, cycle=request["cycle"], iteration=latest[-1],
-                            reference_command=request["command"].copy(), increment=prediction.increment.copy(),
-                            display_reference_hand_base=request["hand"].copy(),
-                            absolute_target=target.copy(), log_expected_density=prediction.score,
-                            predicted_clearance=prediction.minimum_clearance,
-                            joint_measure_before_query=dict(prediction.joint_before.metadata),
-                            joint_measure_after_query=dict(prediction.joint_after.metadata),
-                            goal_record=record_parameters(goal.record), goal_integration_metadata=goal.metadata,
-                            expected_density_diagnostics=prediction.ik["expected_density_diagnostics"],
-                            goal_density_diagnostics=density_diagnostics_summary(
-                                prediction.ik["goal_density_diagnostics"], goal.metadata)))
-                        if self.phase != "tracking":
-                            self.set_phase("tracking")
+                    self.show_prediction(request, *latest)
                 if pending is not None and pending.done():
                     outcome = pending.result()
-                    fresh = self.time - request["source_time"] <= self.config["control"]["max_plan_age"]
-                    self.record_plan(request, outcome, applied=fresh,
-                                     discard_reason=None if fresh else "stale")
+                    self.record_plan(request, outcome)
                     selected, goal = outcome["selected"], outcome["goal"]
-                    if fresh and selected is None:
+                    if selected is None:
                         misses += 1
                         if misses >= self.config["control"]["max_observation_misses"]:
                             self.status = "observation_unavailable" if goal is None else "no_safe_command"
-                    elif fresh:
+                    else:
                         misses = 0
                         # The old observation's increment is NEVER added to the latest command.
                         target = request["command"] + selected.increment
@@ -349,8 +264,7 @@ class Trial:
                     self.observe()
                     request = dict(cycle=submitted, source_stamp=self.observation_stamp, source_time=self.time,
                                    command=self.command.copy(), hand=self.plant.flange(self.pose),
-                                   first_tick=len(self.servo_ticks), image_degradation=self.camera.diagnostics.copy(),
-                                   applied_updates=[])
+                                   first_tick=len(self.servo_ticks), image_degradation=self.camera.diagnostics.copy())
                     cv2.imwrite(str(self.output / "camera_clean_{:02d}.png".format(submitted)), self.camera.clean_image)
                     cv2.imwrite(str(self.output / "camera_input_{:02d}.png".format(submitted)), self.raw_image)
                     pending = worker.submit(solve_observation, self.controller, self.raw_image.copy(),
@@ -405,7 +319,6 @@ class Trial:
                 goal_record = compose_with_deterministic_right(_final_result.record,
                     DeterministicTransform(np.asarray(self.config["marker"]["goal_offset"]), [1, 0, 0, 0]),
                     child_frame_id="switch_goal", edge_id="observed_switch_goal")
-                goal_record = left_compose_record(goal_record, self.hand_camera, "observation_hand")
                 self.observation_preview = dict(hand=self.plant.flange(self.pose), marker_record=_final_result.record,
                     goal_record=goal_record, stamp=self.observation_stamp)
             on_frame(self)
@@ -439,7 +352,6 @@ class Trial:
         write_json(self.output / "cycles.json", self.cycles)
         write_json(self.output / "phases.json", self.phases)
         write_json(self.output / "servo.json", self.servo_ticks)
-        write_json(self.output / "applied_ik_updates.json", self.applied_ik_updates)
         with (self.output / "trajectory.csv").open("w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
             writer.writerow(["time", "cycle"] + ["command_{}".format(i + 1) for i in range(6)] +
@@ -450,5 +362,4 @@ class Trial:
                     *row["tip"], row["gap"], row["pair"], row["error"], row["reached"], row["collided"]])
         if self.raw_image is not None:
             cv2.imwrite(str(self.output / "camera_final_raw.png"), self.raw_image)
-        if self.debug_image is not None:
             cv2.imwrite(str(self.output / "camera_final_detection.png"), self.debug_image)

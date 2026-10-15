@@ -77,14 +77,6 @@ install(
 )
 
 if(CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(test_quadrature_display
-    test/test_quadrature_display.cpp
-  )
-  if(TARGET test_quadrature_display)
-    add_dependencies(test_quadrature_display ${catkin_EXPORTED_TARGETS})
-    target_link_libraries(test_quadrature_display Eigen3::Eigen Qt5::Core ${catkin_LIBRARIES})
-  endif()
-
   catkin_add_gtest(test_frame_freshness
     test/test_frame_freshness.cpp
   )

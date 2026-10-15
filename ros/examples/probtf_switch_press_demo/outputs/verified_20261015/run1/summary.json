@@ -1,0 +1,62 @@
+{
+  "result": "reached",
+  "reached": true,
+  "collided": false,
+  "seed": 21,
+  "cycles": 7,
+  "image_observations": 8,
+  "actual_samples": 114,
+  "initial_error_m": 0.19017108064542873,
+  "final_error_m": 0.008360546428740111,
+  "minimum_clearance_m": 0.04832526110563408,
+  "reached_time_s": 3.9550000000000063,
+  "rod_mass_kg": 0.55,
+  "total_robot_mass_kg": 22.27,
+  "maximum_deflection_rad": 0.2753787834282133,
+  "final_command": [
+    -0.07414213950171913,
+    -1.438651482504815,
+    1.6933024511886772,
+    -0.0460397391246741,
+    -1.054522093757477,
+    -1.7038378729055965e-05
+  ],
+  "final_equilibrium": [
+    -0.07414213946085675,
+    -1.1632726990766016,
+    1.919061345834493,
+    -0.04722801993018386,
+    -0.9153156327110498,
+    0.00371113753076404
+  ],
+  "true_goal_world": [
+    1.3199999999999998,
+    -0.06000000000000002,
+    0.45999999999999996
+  ],
+  "git_head": "e426741384355d03770491a44d2f49505f55fe5f",
+  "source_sha256": {
+    "ros/core/probtf_core/src/probtf/distributions/composition.py": "33931ad51d53838aec7f5e235566b8de8e1505d901af3dc30252c41b96a25ef1",
+    "ros/core/probtf_core/src/probtf/probability/sampling.py": "7e38344ca2c4443bc262d87dcfd3bc785e5cfd03dd0c1b9ff1e2ac39b3ac8d7b",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/equilibrium.py": "715fe1a790028a234bd37f1993b548fee1346a1100e18a5759a292ff5a0a056f",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/spring.py": "1b98ac6840be276f5ea02c3a164bb8947cd252a894645651f1348cefb9b97f82",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/robot/pinocchio_robot.py": "69a316b31e633f0f3c03792728048aced2fecbed95efad855924d184020c58d2",
+    "ros/examples/prob_artag_detector/src/prob_artag_detector/detector.py": "c6fb58821a0687b3ae3db651535ab34823f6796045b40b12b75d68bee76a2f86",
+    "ros/examples/prob_artag_detector/src/prob_artag_detector/estimator.py": "c0ac6956b5d82c2a513b3eebbc82619f575882d9e63b92aea18d01420118b675",
+    "ros/examples/probtf_switch_press_demo/CMakeLists.txt": "1c3686fe792aed3446d8f167c8c7842bbd0d7bc26032a3aed0e557ac357ba5a3",
+    "ros/examples/probtf_switch_press_demo/config/default.yaml": "5ffd459ba6e8c93858b09c3f5e5dbdb04cf7a6644f7e0b8b4c3bb4b42d164fbf",
+    "ros/examples/probtf_switch_press_demo/launch/switch_press_demo.launch": "13a5b462cf3ca71b796a71e4ac8b7e267892336b1e5f2eeacabee34f514b75c1",
+    "ros/examples/probtf_switch_press_demo/package.xml": "e83f95497d09dab9854df73dd1177026e4eccdf45db1b99520a251e63ec5ccf2",
+    "ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz": "aed0bb657d9f4d42796e331c4cfb0cd8b9afce71c090c77379138569be346100",
+    "ros/examples/probtf_switch_press_demo/scripts/switch_press_demo.py": "50a0fea18c7d661521a3b3fa427a1f813ae72cd338e3731ef7af14779b31e6af",
+    "ros/examples/probtf_switch_press_demo/setup.py": "9c49e577b9f1ceb440b5abc31acae662ecdf13134a506de17e0e76ea67f31136",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/__init__.py": "6acdc116683fb4c4038128eab6de3b64ceb9fe560a319f162c11e4d8deebee55",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/body.py": "353e11469f1aaa7a9f8c4a13ef1624f285547647bad7bcd483068f3c23ac5685",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/control.py": "8583cb52df09748b8a118b0c16cbe86740a0d9cd1339a525b3c8b4f970a0d5fc",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/ros_display.py": "28886660f710ddf019c2a5ea59ca7353e4d207f28f9610ecb1f8d38495c303b5",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/scene.py": "ef1a57ea621e259d4ba1eba221eb74564e153c82e64f04f00af81716c2d84743",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/trial.py": "7b2d0aed101e4fc13e24be769578c96d7af792bd31856ba2dd99834c03020538",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/vision.py": "44e12d3c92a20197c36692259d279fda648da59d1bcda66cb374a7acdb79a56c",
+    "ros/examples/symaware_grasp/urdf/simple_six_dof_arm.urdf": "7d4c9570e8d5ce223344d0ea7a530c844ced8cf6fb59ea96b63eac587929a74a"
+  }
+}

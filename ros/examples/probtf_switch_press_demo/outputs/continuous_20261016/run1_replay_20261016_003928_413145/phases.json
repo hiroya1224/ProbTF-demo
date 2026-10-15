@@ -1,0 +1,26 @@
+[
+  {
+    "phase": "initial",
+    "cycle": 0,
+    "time": 0.0,
+    "wall_time": 1792078771.4937987
+  },
+  {
+    "phase": "planning",
+    "cycle": 0,
+    "time": 0.0,
+    "wall_time": 1792078771.4947848
+  },
+  {
+    "phase": "tracking",
+    "cycle": 0,
+    "time": 0.8001016210764647,
+    "wall_time": 1792078772.3101006
+  },
+  {
+    "phase": "reached",
+    "cycle": 64,
+    "time": 31.72625280311331,
+    "wall_time": 1792078803.2742443
+  }
+]

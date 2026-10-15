@@ -1,0 +1,14 @@
+{
+  "first_run": "run1",
+  "replay_run": "run1_replay_20261016_000655_778295",
+  "same_node_replay": true,
+  "exact_trajectory": true,
+  "maximum_live_joint_change_rad": 0.7284454275698422,
+  "initial_error_m": 0.40640936933108734,
+  "final_error_m": 0.008791126953954002,
+  "minimum_clearance_m": 0.054033184449584507,
+  "cycles": 18,
+  "actual_samples": 416,
+  "nonlinear_ik_solves": 18,
+  "nonlinear_ik_iterations": 315
+}

@@ -1,0 +1,6 @@
+# Keep per-cycle camera recordings locally; version the documented comparison.
+outputs/**/camera_[0-9]*.png
+outputs/**/camera_clean_[0-9]*.png
+outputs/**/camera_input_[0-9]*.png
+!outputs/probtf_blur_20261016/final/run1/camera_clean_02.png
+!outputs/probtf_blur_20261016/final/run1/camera_input_02.png

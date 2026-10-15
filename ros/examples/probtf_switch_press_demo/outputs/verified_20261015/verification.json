@@ -1,0 +1,24 @@
+{
+  "runs": [
+    "run1",
+    "run2"
+  ],
+  "seed": 21,
+  "both_reached": true,
+  "both_noninterfering": true,
+  "exact_summary_fields": {
+    "result": true,
+    "cycles": true,
+    "image_observations": true,
+    "actual_samples": true,
+    "initial_error_m": true,
+    "final_error_m": true,
+    "minimum_clearance_m": true,
+    "reached_time_s": true,
+    "maximum_deflection_rad": true,
+    "final_command": true,
+    "final_equilibrium": true
+  },
+  "exact_trajectory": true,
+  "notes": "Both runs use the same default scene; only the RViz viewpoint differs."
+}

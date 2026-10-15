@@ -1,0 +1,25 @@
+<launch>
+  <arg name="rviz" default="true"/>
+  <arg name="config" default="$(find probtf_switch_press_demo)/config/default.yaml"/>
+  <arg name="output_dir" default=""/>
+  <arg name="startup_delay" default="5.0"/>
+  <arg name="autostart" default="true"/>
+  <arg name="rviz_config" default="$(find probtf_switch_press_demo)/rviz/switch_press_demo.rviz"/>
+  <group ns="switch_press">
+    <param name="robot_description" command="/usr/bin/python3 $(find probtf_switch_press_demo)/scripts/switch_press_demo.py --robot-description --config $(arg config)"/>
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="rigid_robot_state_publisher">
+      <param name="tf_prefix" value="rigid"/>
+      <remap from="joint_states" to="rigid_joint_states"/>
+    </node>
+    <node pkg="probtf_switch_press_demo" type="switch_press_demo.py" name="demo" output="screen">
+      <param name="config" value="$(arg config)"/>
+      <param name="output_dir" value="$(arg output_dir)"/>
+      <param name="startup_delay" value="$(arg startup_delay)"/>
+      <param name="autostart" value="$(arg autostart)"/>
+      <env name="OPENBLAS_NUM_THREADS" value="1"/>
+      <env name="OMP_NUM_THREADS" value="1"/>
+    </node>
+    <node if="$(arg rviz)" pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)"/>
+  </group>
+</launch>

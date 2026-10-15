@@ -1,0 +1,7 @@
+{
+  "focused_tests": "14 passed: 8 switch demo tests + 6 existing geometry/composition tests",
+  "build": "All 7 catkin packages succeeded",
+  "existing_boundary_tests": "2 failed, 6 passed; listed failing source files and the boundary test are unchanged from HEAD",
+  "whitespace": "git diff --check passed",
+  "syntax": "Python/XML/YAML and ASCII identifiers checked"
+}

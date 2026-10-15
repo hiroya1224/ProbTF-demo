@@ -1,0 +1,17 @@
+{
+  "source_hashes_match": true,
+  "source_files": 22,
+  "ik_before_approach_every_cycle": true,
+  "nonlinear_ik_solves": 18,
+  "nonlinear_ik_iterations": 315,
+  "ik_converged_cycles": 6,
+  "ik_iteration_limited_cycles": 12,
+  "actual_samples": 416,
+  "initial_error_m": 0.40640936933108734,
+  "final_error_m": 0.008791126953954002,
+  "minimum_clearance_m": 0.054033184449584507,
+  "video_decoded": true,
+  "video_duration_s": 80.6,
+  "focused_tests": "16 passed",
+  "catkin_build": "all 7 packages succeeded"
+}

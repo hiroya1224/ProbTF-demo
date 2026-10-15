@@ -1,0 +1,139 @@
+seed: 21
+base_translation:
+- 0.22
+- 0.0
+- 0.0
+rod:
+  length: 0.325
+  radius: 0.008
+  mass: 0.275
+camera:
+  translation:
+  - 0.02
+  - -0.1
+  - 0.12
+  rpy:
+  - -1.5707963267948966
+  - 0.0
+  - -1.5707963267948966
+  width: 960
+  height: 720
+  focal_length: 720.0
+  noise_std: 8.0
+  blur_sigma: 2.0
+  exposure_time: 0.24
+  motion_blur_samples: 7
+  body_size:
+  - 0.07
+  - 0.04
+  - 0.03
+  mass: 0.12
+marker:
+  id: 21
+  size: 0.18
+  world_translation:
+  - 1.4
+  - -0.06
+  - 0.7
+  world_rpy:
+  - 1.5707963267948966
+  - 0.0
+  - -1.5707963267948966
+  goal_offset:
+  - 0.0
+  - -0.24
+  - 0.045
+  translation_prior_variance: 1000000.0
+  corner_sigma_px: 0.5
+  adaptive_covariance: true
+obstacles:
+- name: panel
+  center:
+  - 0.0
+  - -0.1
+  - -0.025
+  size:
+  - 0.64
+  - 0.72
+  - 0.05
+- name: button
+  center:
+  - 0.0
+  - -0.24
+  - 0.015
+  size:
+  - 0.05
+  - 0.05
+  - 0.03
+- name: lamp
+  center:
+  - 0.11
+  - -0.24
+  - 0.018
+  size:
+  - 0.045
+  - 0.045
+  - 0.036
+plant:
+  stiffness:
+  - 350.0
+  - 125.0
+  - 95.0
+  - 60.0
+  - 40.0
+  - 30.0
+initial_command:
+- -0.15
+- -1.85
+- 2.35
+- 0.0
+- -1.25
+- 0.0
+control:
+  bodies:
+  - id: soft
+    weight: 0.25
+    stiffness:
+    - 200.0
+    - 65.0
+    - 50.0
+    - 35.0
+    - 20.0
+    - 20.0
+  - id: nominal
+    weight: 0.5
+    stiffness:
+    - 500.0
+    - 180.0
+    - 140.0
+    - 90.0
+    - 65.0
+    - 45.0
+  - id: stiff
+    weight: 0.25
+    stiffness:
+    - 700.0
+    - 260.0
+    - 210.0
+    - 130.0
+    - 90.0
+    - 65.0
+  orientation_samples: 48
+  max_joint_step: 0.12
+  proposal_distance: 0.028
+  jacobian_step: 0.0002
+  damping: 0.025
+  ik_max_iterations: 6
+  max_cycles: 120
+  max_duration: 60.0
+  max_plan_age: 5.0
+  max_observation_misses: 4
+motion:
+  joint_resolution: 0.008
+  spatial_resolution: 0.002
+  clearance: 0.004
+  frame_period: 0.05
+  max_joint_velocity: 0.08
+  max_joint_acceleration: 0.3
+  tracking_time: 0.55
+reach_tolerance: 0.006

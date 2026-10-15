@@ -1,0 +1,196 @@
+WARNING: Package name "parallel_gripper_module_with_D405" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_100mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_150mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_servo_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_yaw_sturdymodule_KRS6104" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+[ WARN] [1792078661.919273010]: The root link base_link has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.
+[ WARN] [1792078661.925258246]: The root link base_link has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.
+Recording switch demo to /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/outputs/continuous_20261016/run1
+IK update 1: 6 iterations while 0 moving ticks; actual error 584.38 mm
+IK update 2: 6 iterations while 31 moving ticks; actual error 546.64 mm
+IK update 3: 6 iterations while 12 moving ticks; actual error 543.27 mm
+IK update 4: 6 iterations while 12 moving ticks; actual error 529.02 mm
+IK update 5: 6 iterations while 13 moving ticks; actual error 512.19 mm
+IK update 6: 6 iterations while 11 moving ticks; actual error 498.47 mm
+IK update 7: 6 iterations while 9 moving ticks; actual error 486.19 mm
+IK update 8: 6 iterations while 9 moving ticks; actual error 474.43 mm
+IK update 9: 6 iterations while 9 moving ticks; actual error 462.70 mm
+IK update 10: 6 iterations while 8 moving ticks; actual error 452.35 mm
+IK update 11: 6 iterations while 10 moving ticks; actual error 439.45 mm
+IK update 12: 6 iterations while 9 moving ticks; actual error 426.96 mm
+IK update 13: 6 iterations while 8 moving ticks; actual error 417.12 mm
+IK update 14: 6 iterations while 9 moving ticks; actual error 405.29 mm
+IK update 15: 6 iterations while 8 moving ticks; actual error 395.20 mm
+IK update 16: 6 iterations while 10 moving ticks; actual error 382.33 mm
+IK update 17: 6 iterations while 11 moving ticks; actual error 368.34 mm
+IK update 18: 6 iterations while 12 moving ticks; actual error 355.19 mm
+IK update 19: 6 iterations while 11 moving ticks; actual error 343.93 mm
+IK update 20: 6 iterations while 11 moving ticks; actual error 330.08 mm
+IK update 21: 6 iterations while 10 moving ticks; actual error 317.92 mm
+IK update 22: 6 iterations while 11 moving ticks; actual error 305.36 mm
+IK update 23: 6 iterations while 11 moving ticks; actual error 292.55 mm
+IK update 24: 6 iterations while 11 moving ticks; actual error 282.15 mm
+IK update 25: 6 iterations while 11 moving ticks; actual error 268.25 mm
+IK update 26: 6 iterations while 13 moving ticks; actual error 256.60 mm
+IK update 27: 6 iterations while 13 moving ticks; actual error 240.98 mm
+IK update 28: 6 iterations while 12 moving ticks; actual error 232.64 mm
+IK update 29: 6 iterations while 12 moving ticks; actual error 217.64 mm
+IK update 30: 6 iterations while 10 moving ticks; actual error 209.11 mm
+IK update 31: 6 iterations while 10 moving ticks; actual error 198.83 mm
+IK update 32: 6 iterations while 8 moving ticks; actual error 191.09 mm
+IK update 33: 6 iterations while 8 moving ticks; actual error 183.86 mm
+IK update 34: 6 iterations while 8 moving ticks; actual error 176.60 mm
+IK update 35: 6 iterations while 7 moving ticks; actual error 170.08 mm
+IK update 36: 6 iterations while 9 moving ticks; actual error 160.93 mm
+IK update 37: 6 iterations while 7 moving ticks; actual error 154.92 mm
+IK update 38: 6 iterations while 9 moving ticks; actual error 146.39 mm
+IK update 39: 6 iterations while 8 moving ticks; actual error 138.94 mm
+IK update 40: 6 iterations while 8 moving ticks; actual error 131.53 mm
+IK update 41: 6 iterations while 9 moving ticks; actual error 123.57 mm
+IK update 42: 6 iterations while 8 moving ticks; actual error 115.86 mm
+IK update 43: 6 iterations while 8 moving ticks; actual error 109.01 mm
+IK update 44: 6 iterations while 9 moving ticks; actual error 101.49 mm
+IK update 45: 6 iterations while 8 moving ticks; actual error 95.41 mm
+IK update 46: 6 iterations while 9 moving ticks; actual error 87.60 mm
+IK update 47: 6 iterations while 7 moving ticks; actual error 81.95 mm
+IK update 48: 6 iterations while 7 moving ticks; actual error 76.83 mm
+IK update 49: 6 iterations while 7 moving ticks; actual error 71.30 mm
+IK update 50: 6 iterations while 7 moving ticks; actual error 66.22 mm
+IK update 51: 6 iterations while 8 moving ticks; actual error 60.62 mm
+IK update 52: 6 iterations while 8 moving ticks; actual error 55.49 mm
+IK update 53: 6 iterations while 7 moving ticks; actual error 51.05 mm
+IK update 54: 6 iterations while 8 moving ticks; actual error 45.69 mm
+IK update 55: 6 iterations while 8 moving ticks; actual error 40.86 mm
+IK update 56: 6 iterations while 8 moving ticks; actual error 36.25 mm
+IK update 57: 6 iterations while 8 moving ticks; actual error 31.84 mm
+IK update 58: 6 iterations while 8 moving ticks; actual error 27.97 mm
+IK update 59: 6 iterations while 8 moving ticks; actual error 23.83 mm
+IK update 60: 6 iterations while 8 moving ticks; actual error 20.15 mm
+IK update 61: 6 iterations while 9 moving ticks; actual error 16.37 mm
+IK update 62: 6 iterations while 8 moving ticks; actual error 12.23 mm
+IK update 63: 6 iterations while 8 moving ticks; actual error 9.12 mm
+IK update 64: 6 iterations while 1 moving ticks; actual error 8.70 mm
+[INFO] [1792078698.737444]: Switch demo: reached; records: /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/outputs/continuous_20261016/run1; replay: rosservice call /switch_press/replay
+IK update 1: 6 iterations while 0 moving ticks; actual error 584.38 mm
+IK update 2: 6 iterations while 10 moving ticks; actual error 556.18 mm
+IK update 3: 6 iterations while 5 moving ticks; actual error 545.87 mm
+IK update 4: 6 iterations while 6 moving ticks; actual error 536.47 mm
+IK update 5: 6 iterations while 9 moving ticks; actual error 531.21 mm
+IK update 6: 6 iterations while 10 moving ticks; actual error 518.42 mm
+IK update 7: 6 iterations while 10 moving ticks; actual error 500.96 mm
+IK update 8: 6 iterations while 9 moving ticks; actual error 489.61 mm
+IK update 9: 6 iterations while 10 moving ticks; actual error 475.58 mm
+IK update 10: 6 iterations while 9 moving ticks; actual error 463.54 mm
+IK update 11: 6 iterations while 7 moving ticks; actual error 450.61 mm
+IK update 12: 6 iterations while 9 moving ticks; actual error 437.57 mm
+IK update 13: 6 iterations while 9 moving ticks; actual error 424.81 mm
+IK update 14: 6 iterations while 9 moving ticks; actual error 412.85 mm
+IK update 15: 6 iterations while 8 moving ticks; actual error 401.68 mm
+IK update 16: 6 iterations while 9 moving ticks; actual error 388.83 mm
+IK update 17: 6 iterations while 10 moving ticks; actual error 375.43 mm
+IK update 18: 6 iterations while 10 moving ticks; actual error 361.94 mm
+IK update 19: 6 iterations while 10 moving ticks; actual error 346.54 mm
+IK update 20: 6 iterations while 11 moving ticks; actual error 333.43 mm
+IK update 21: 6 iterations while 9 moving ticks; actual error 322.29 mm
+IK update 22: 6 iterations while 11 moving ticks; actual error 306.82 mm
+IK update 23: 6 iterations while 8 moving ticks; actual error 296.47 mm
+IK update 24: 6 iterations while 9 moving ticks; actual error 280.81 mm
+IK update 25: 6 iterations while 9 moving ticks; actual error 269.83 mm
+IK update 26: 6 iterations while 8 moving ticks; actual error 255.88 mm
+IK update 27: 6 iterations while 8 moving ticks; actual error 247.27 mm
+IK update 28: 6 iterations while 6 moving ticks; actual error 236.25 mm
+IK update 29: 6 iterations while 11 moving ticks; actual error 224.64 mm
+IK update 30: 6 iterations while 10 moving ticks; actual error 214.09 mm
+IK update 31: 6 iterations while 10 moving ticks; actual error 204.11 mm
+IK update 32: 6 iterations while 10 moving ticks; actual error 194.05 mm
+IK update 33: 6 iterations while 8 moving ticks; actual error 185.97 mm
+IK update 34: 6 iterations while 7 moving ticks; actual error 178.76 mm
+IK update 35: 6 iterations while 8 moving ticks; actual error 170.25 mm
+IK update 36: 6 iterations while 7 moving ticks; actual error 163.82 mm
+IK update 37: 6 iterations while 8 moving ticks; actual error 156.01 mm
+IK update 38: 6 iterations while 8 moving ticks; actual error 148.75 mm
+IK update 39: 6 iterations while 8 moving ticks; actual error 141.71 mm
+IK update 40: 6 iterations while 8 moving ticks; actual error 133.92 mm
+IK update 41: 6 iterations while 9 moving ticks; actual error 125.91 mm
+IK update 42: 6 iterations while 8 moving ticks; actual error 118.34 mm
+IK update 43: 6 iterations while 9 moving ticks; actual error 110.44 mm
+IK update 44: 6 iterations while 9 moving ticks; actual error 102.29 mm
+IK update 45: 6 iterations while 9 moving ticks; actual error 94.70 mm
+IK update 46: 6 iterations while 9 moving ticks; actual error 87.52 mm
+IK update 47: 6 iterations while 10 moving ticks; actual error 80.94 mm
+IK update 48: 6 iterations while 7 moving ticks; actual error 75.88 mm
+IK update 49: 6 iterations while 7 moving ticks; actual error 70.69 mm
+IK update 50: 6 iterations while 7 moving ticks; actual error 65.11 mm
+IK update 51: 6 iterations while 7 moving ticks; actual error 59.93 mm
+IK update 52: 6 iterations while 6 moving ticks; actual error 56.13 mm
+IK update 53: 6 iterations while 8 moving ticks; actual error 51.36 mm
+IK update 54: 6 iterations while 7 moving ticks; actual error 46.26 mm
+IK update 55: 6 iterations while 7 moving ticks; actual error 41.79 mm
+IK update 56: 6 iterations while 7 moving ticks; actual error 38.05 mm
+IK update 57: 6 iterations while 8 moving ticks; actual error 33.35 mm
+IK update 58: 6 iterations while 7 moving ticks; actual error 29.56 mm
+IK update 59: 6 iterations while 7 moving ticks; actual error 25.77 mm
+IK update 60: 6 iterations while 8 moving ticks; actual error 22.12 mm
+IK update 61: 6 iterations while 8 moving ticks; actual error 18.40 mm
+IK update 62: 6 iterations while 8 moving ticks; actual error 14.18 mm
+IK update 63: 6 iterations while 7 moving ticks; actual error 11.50 mm
+IK update 64: 6 iterations while 6 moving ticks; actual error 9.31 mm
+IK update 65: 6 iterations while 1 moving ticks; actual error 8.75 mm
+[INFO] [1792078803.519294]: Switch demo: reached; records: /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/outputs/continuous_20261016/run1_replay_20261016_003928_413145; replay: rosservice call /switch_press/replay
+WARNING: Package name "parallel_gripper_module_with_D405" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_100mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_150mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_servo_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_yaw_sturdymodule_KRS6104" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "parallel_gripper_module_with_D405" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_100mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_150mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_servo_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_yaw_sturdymodule_KRS6104" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+... logging to /tmp/switch-press-continuous-ros/log/5b9495c4-c8ae-11f1-a48d-bddb1d541ce7/roslaunch-leus-TRX50-AERO-D-2153843.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/launch/switch_press_demo.launch
+[1mstarted roslaunch server http://127.0.0.1:33955/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosdistro: noetic
+ * /rosversion: 1.17.0
+ * /switch_press/demo/autostart: False
+ * /switch_press/demo/config: /home/leus/catkin...
+ * /switch_press/demo/output_dir: /home/leus/catkin...
+ * /switch_press/demo/startup_delay: 3
+ * /switch_press/rigid_robot_state_publisher/tf_prefix: rigid
+ * /switch_press/robot_description: <?xml version='1....
+
+NODES
+  /switch_press/
+    demo (probtf_switch_press_demo/switch_press_demo.py)
+    rigid_robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    rviz (rviz/rviz)
+
+auto-starting new master
+[1mprocess[master]: started with pid [2153859][0m
+[1mROS_MASTER_URI=http://127.0.0.1:11758/[0m
+]2;/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/launch/switch_press_demo.launch http://127.0.0.1:11758/
+[1msetting /run_id to 5b9495c4-c8ae-11f1-a48d-bddb1d541ce7[0m
+[1mprocess[rosout-1]: started with pid [2153874][0m
+started core service [/rosout]
+[1mprocess[switch_press/robot_state_publisher-2]: started with pid [2153881][0m
+[1mprocess[switch_press/rigid_robot_state_publisher-3]: started with pid [2153882][0m
+[1mprocess[switch_press/demo-4]: started with pid [2153883][0m
+[1mprocess[switch_press/rviz-5]: started with pid [2153889][0m
+[switch_press/rviz-5] killing on exit
+[switch_press/rigid_robot_state_publisher-3] killing on exit
+[switch_press/robot_state_publisher-2] killing on exit
+[switch_press/demo-4] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

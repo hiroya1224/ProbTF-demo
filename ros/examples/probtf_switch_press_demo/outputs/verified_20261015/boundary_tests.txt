@@ -1,0 +1,92 @@
+....F..F                                                                 [100%]
+=================================== FAILURES ===================================
+_________ RosBoundaryTest.test_root_python_packages_do_not_import_ros __________
+
+self = <test_ros_boundary.RosBoundaryTest testMethod=test_root_python_packages_do_not_import_ros>
+
+    def test_root_python_packages_do_not_import_ros(self):
+        root = Path(__file__).resolve().parents[1]
+        violations = []
+        for source_root in _ros_free_package_roots(root):
+            for path in sorted(source_root.rglob("*.py")):
+                tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        modules = [alias.name.split(".", 1)[0] for alias in node.names]
+                    elif isinstance(node, ast.ImportFrom) and node.module:
+                        modules = [node.module.split(".", 1)[0]]
+                    else:
+                        continue
+                    for module in modules:
+                        if module in ROS_MODULES:
+                            violations.append(f"{path.relative_to(root)} imports {module}")
+    
+>       self.assertEqual(violations, [])
+E       AssertionError: Lists differ: ['ros/examples/grape-param-estim/src/grape[292 chars]bag'] != []
+E       
+E       First list contains 4 additional elements.
+E       First extra element 0:
+E       'ros/examples/grape-param-estim/src/grape_param_estim/real_rosbag.py imports rosbag'
+E       
+E       + []
+E       - ['ros/examples/grape-param-estim/src/grape_param_estim/real_rosbag.py imports '
+E       -  'rosbag',
+E       -  'ros/examples/grape-param-estim/src/grape_param_estim/real_rosbag.py imports '
+E       -  'rosbag',
+E       -  'ros/examples/symaware_grasp/src/symaware_grasp/box_trial_analysis.py imports '
+E       -  'rosbag',
+E       -  'ros/examples/symaware_grasp/src/symaware_grasp/grasp_trial.py imports rosbag']
+
+tests/test_ros_boundary.py:135: AssertionError
+__ RosBoundaryTest.test_tests_do_not_modify_sys_path_for_first_party_imports ___
+
+self = <test_ros_boundary.RosBoundaryTest testMethod=test_tests_do_not_modify_sys_path_for_first_party_imports>
+
+    def test_tests_do_not_modify_sys_path_for_first_party_imports(self):
+        root = Path(__file__).resolve().parents[1]
+        violations = []
+        for path in sorted((root / "tests").rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+                    continue
+                owner = node.func.value
+                if (
+                    isinstance(owner, ast.Attribute)
+                    and isinstance(owner.value, ast.Name)
+                    and owner.value.id == "sys"
+                    and owner.attr == "path"
+                    and node.func.attr in ("append", "insert")
+                ):
+                    violations.append(str(path.relative_to(root)))
+>       self.assertEqual(violations, [])
+E       AssertionError: Lists differ: ['tests/deflecomp_debug/test_convergence_d[103 chars].py'] != []
+E       
+E       First list contains 3 additional elements.
+E       First extra element 0:
+E       'tests/deflecomp_debug/test_convergence_demo.py'
+E       
+E       + []
+E       - ['tests/deflecomp_debug/test_convergence_demo.py',
+E       -  'tests/grape_param_estim/test_minimal_deterministic_q.py',
+E       -  'tests/prob_artag_detector/conftest.py']
+
+tests/test_ros_boundary.py:230: AssertionError
+=============================== warnings summary ===============================
+tests/test_ros_boundary.py::RosBoundaryTest::test_tests_do_not_modify_sys_path_for_first_party_imports
+  /home/leus/catkin_ws/src/ProbTF-demo/tests/grape_param_estim/test_batch_artifact.py:643: DeprecationWarning: invalid escape sequence \(
+    with self.assertRaisesRegex(ArtifactValidationError, "expected \(18,\)"):
+
+tests/test_ros_boundary.py::RosBoundaryTest::test_tests_do_not_modify_sys_path_for_first_party_imports
+  /home/leus/catkin_ws/src/ProbTF-demo/tests/grape_param_estim/test_batch_artifact.py:871: DeprecationWarning: invalid escape sequence \(
+    ArtifactValidationError, "expected \(0, 0\)"
+
+tests/test_ros_boundary.py::RosBoundaryTest::test_tests_do_not_modify_sys_path_for_first_party_imports
+  /home/leus/catkin_ws/src/ProbTF-demo/tests/grape_param_estim/test_batch_prior_factors.py:100: DeprecationWarning: invalid escape sequence \(
+    with self.assertRaisesRegex(ValueError, "SO\(3\)"):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_ros_boundary.py::RosBoundaryTest::test_root_python_packages_do_not_import_ros
+FAILED tests/test_ros_boundary.py::RosBoundaryTest::test_tests_do_not_modify_sys_path_for_first_party_imports
+2 failed, 6 passed, 3 warnings in 1.11s

@@ -1,0 +1,73 @@
+{
+  "same_node_replay": true,
+  "rod_length_m": 0.325,
+  "rod_mass_kg": 0.275,
+  "physical_opaque": true,
+  "rigid_alpha": 0.25,
+  "rigid_topics_and_tf_verified": true,
+  "cycles": 27,
+  "moving_replans": 26,
+  "nominal_servo_hz": 20.0,
+  "measured_median_servo_hz": 19.817341210879498,
+  "max_joint_velocity_rad_s": 0.08000000000000002,
+  "max_joint_acceleration_rad_s2": 0.30000000000000004,
+  "moving_tick_fraction_after_start": 1.0,
+  "initial_error_m": 0.4032077278671183,
+  "final_error_m": 0.005654090494818457,
+  "minimum_clearance_m": 0.014672401333471433,
+  "reached_time_s": 24.487226841039956,
+  "replay_final_error_m": 0.0055569987110101445,
+  "replay_minimum_clearance_m": 0.01464334855855852,
+  "tests_passed": 22,
+  "catkin_build_passed": true,
+  "video": {
+    "programs": [],
+    "streams": [
+      {
+        "width": 1840,
+        "height": 1200,
+        "avg_frame_rate": "20/1"
+      }
+    ],
+    "format": {
+      "duration": "29.400000"
+    }
+  },
+  "base_translation_m": [
+    0.22,
+    0,
+    0
+  ],
+  "button_standoff_m": 0.015,
+  "reach_tolerance_m": 0.006,
+  "probtf_frames": [
+    "belief/ar_marker",
+    "belief/camera_optical_frame",
+    "belief/link_1",
+    "belief/link_2",
+    "belief/link_3",
+    "belief/link_4",
+    "belief/link_5",
+    "belief/link_6",
+    "belief/observed_camera",
+    "belief/rod_tip",
+    "belief/switch_goal",
+    "belief/tool0"
+  ],
+  "probtf_native_transport_verified": true,
+  "max_motion_blur_px": 12.814274015015986,
+  "corner_sigma_px_range": [
+    0.5214736487379169,
+    2.781209029318425
+  ],
+  "marker_position_error_m_range": [
+    0.001513974101618737,
+    0.009798520474891667
+  ],
+  "marker_rotation_error_degrees_range": [
+    0.07622320882227045,
+    9.167630338699295
+  ],
+  "source_hashes_verified": true,
+  "image_example_cycle": 2
+}

@@ -1,0 +1,338 @@
+[
+  {
+    "phase": "initial",
+    "cycle": 0,
+    "time": 0.0,
+    "wall_time": 1792076738.34907
+  },
+  {
+    "phase": "observe",
+    "cycle": 0,
+    "time": 0.0,
+    "wall_time": 1792076738.4314542
+  },
+  {
+    "phase": "ik",
+    "cycle": 0,
+    "time": 0.0,
+    "wall_time": 1792076738.5336678
+  },
+  {
+    "phase": "approach",
+    "cycle": 0,
+    "time": 0.0,
+    "wall_time": 1792076739.5353456
+  },
+  {
+    "phase": "observe",
+    "cycle": 1,
+    "time": 7.760000000000005,
+    "wall_time": 1792076748.3028953
+  },
+  {
+    "phase": "ik",
+    "cycle": 1,
+    "time": 7.760000000000005,
+    "wall_time": 1792076748.4054496
+  },
+  {
+    "phase": "approach",
+    "cycle": 1,
+    "time": 7.760000000000005,
+    "wall_time": 1792076750.8843322
+  },
+  {
+    "phase": "observe",
+    "cycle": 2,
+    "time": 15.520000000000012,
+    "wall_time": 1792076759.648691
+  },
+  {
+    "phase": "ik",
+    "cycle": 2,
+    "time": 15.520000000000012,
+    "wall_time": 1792076759.7495427
+  },
+  {
+    "phase": "approach",
+    "cycle": 2,
+    "time": 15.520000000000012,
+    "wall_time": 1792076761.9623497
+  },
+  {
+    "phase": "observe",
+    "cycle": 3,
+    "time": 17.51999999999998,
+    "wall_time": 1792076764.2707994
+  },
+  {
+    "phase": "ik",
+    "cycle": 3,
+    "time": 17.51999999999998,
+    "wall_time": 1792076764.374746
+  },
+  {
+    "phase": "approach",
+    "cycle": 3,
+    "time": 17.51999999999998,
+    "wall_time": 1792076766.516751
+  },
+  {
+    "phase": "observe",
+    "cycle": 4,
+    "time": 18.559999999999956,
+    "wall_time": 1792076767.7493913
+  },
+  {
+    "phase": "ik",
+    "cycle": 4,
+    "time": 18.559999999999956,
+    "wall_time": 1792076767.8496556
+  },
+  {
+    "phase": "approach",
+    "cycle": 4,
+    "time": 18.559999999999956,
+    "wall_time": 1792076769.0964105
+  },
+  {
+    "phase": "observe",
+    "cycle": 5,
+    "time": 19.599999999999934,
+    "wall_time": 1792076770.3479512
+  },
+  {
+    "phase": "ik",
+    "cycle": 5,
+    "time": 19.599999999999934,
+    "wall_time": 1792076770.4473248
+  },
+  {
+    "phase": "approach",
+    "cycle": 5,
+    "time": 19.599999999999934,
+    "wall_time": 1792076772.5731726
+  },
+  {
+    "phase": "observe",
+    "cycle": 6,
+    "time": 21.59999999999989,
+    "wall_time": 1792076774.8894088
+  },
+  {
+    "phase": "ik",
+    "cycle": 6,
+    "time": 21.59999999999989,
+    "wall_time": 1792076774.9970665
+  },
+  {
+    "phase": "approach",
+    "cycle": 6,
+    "time": 21.59999999999989,
+    "wall_time": 1792076777.1589973
+  },
+  {
+    "phase": "observe",
+    "cycle": 7,
+    "time": 22.63999999999987,
+    "wall_time": 1792076778.390895
+  },
+  {
+    "phase": "ik",
+    "cycle": 7,
+    "time": 22.63999999999987,
+    "wall_time": 1792076778.4955819
+  },
+  {
+    "phase": "approach",
+    "cycle": 7,
+    "time": 22.63999999999987,
+    "wall_time": 1792076780.6335862
+  },
+  {
+    "phase": "observe",
+    "cycle": 8,
+    "time": 23.679999999999847,
+    "wall_time": 1792076781.8830848
+  },
+  {
+    "phase": "ik",
+    "cycle": 8,
+    "time": 23.679999999999847,
+    "wall_time": 1792076781.9824173
+  },
+  {
+    "phase": "approach",
+    "cycle": 8,
+    "time": 23.679999999999847,
+    "wall_time": 1792076784.097557
+  },
+  {
+    "phase": "observe",
+    "cycle": 9,
+    "time": 24.719999999999825,
+    "wall_time": 1792076785.3450618
+  },
+  {
+    "phase": "ik",
+    "cycle": 9,
+    "time": 24.719999999999825,
+    "wall_time": 1792076785.4464996
+  },
+  {
+    "phase": "approach",
+    "cycle": 9,
+    "time": 24.719999999999825,
+    "wall_time": 1792076786.740155
+  },
+  {
+    "phase": "observe",
+    "cycle": 10,
+    "time": 25.759999999999803,
+    "wall_time": 1792076787.9619632
+  },
+  {
+    "phase": "ik",
+    "cycle": 10,
+    "time": 25.759999999999803,
+    "wall_time": 1792076788.0639722
+  },
+  {
+    "phase": "approach",
+    "cycle": 10,
+    "time": 25.759999999999803,
+    "wall_time": 1792076790.2292576
+  },
+  {
+    "phase": "observe",
+    "cycle": 11,
+    "time": 26.79999999999978,
+    "wall_time": 1792076791.4751246
+  },
+  {
+    "phase": "ik",
+    "cycle": 11,
+    "time": 26.79999999999978,
+    "wall_time": 1792076791.5755398
+  },
+  {
+    "phase": "approach",
+    "cycle": 11,
+    "time": 26.79999999999978,
+    "wall_time": 1792076793.6930242
+  },
+  {
+    "phase": "observe",
+    "cycle": 12,
+    "time": 27.83999999999976,
+    "wall_time": 1792076794.928594
+  },
+  {
+    "phase": "ik",
+    "cycle": 12,
+    "time": 27.83999999999976,
+    "wall_time": 1792076795.0307753
+  },
+  {
+    "phase": "approach",
+    "cycle": 12,
+    "time": 27.83999999999976,
+    "wall_time": 1792076797.1553333
+  },
+  {
+    "phase": "observe",
+    "cycle": 13,
+    "time": 28.879999999999736,
+    "wall_time": 1792076798.4114332
+  },
+  {
+    "phase": "ik",
+    "cycle": 13,
+    "time": 28.879999999999736,
+    "wall_time": 1792076798.518574
+  },
+  {
+    "phase": "approach",
+    "cycle": 13,
+    "time": 28.879999999999736,
+    "wall_time": 1792076800.3701956
+  },
+  {
+    "phase": "observe",
+    "cycle": 14,
+    "time": 29.919999999999714,
+    "wall_time": 1792076801.625558
+  },
+  {
+    "phase": "ik",
+    "cycle": 14,
+    "time": 29.919999999999714,
+    "wall_time": 1792076801.7263434
+  },
+  {
+    "phase": "approach",
+    "cycle": 14,
+    "time": 29.919999999999714,
+    "wall_time": 1792076803.8545897
+  },
+  {
+    "phase": "observe",
+    "cycle": 15,
+    "time": 30.95999999999969,
+    "wall_time": 1792076805.0825312
+  },
+  {
+    "phase": "ik",
+    "cycle": 15,
+    "time": 30.95999999999969,
+    "wall_time": 1792076805.1827354
+  },
+  {
+    "phase": "approach",
+    "cycle": 15,
+    "time": 30.95999999999969,
+    "wall_time": 1792076806.9424632
+  },
+  {
+    "phase": "observe",
+    "cycle": 16,
+    "time": 31.99999999999967,
+    "wall_time": 1792076808.1762474
+  },
+  {
+    "phase": "ik",
+    "cycle": 16,
+    "time": 31.99999999999967,
+    "wall_time": 1792076808.277575
+  },
+  {
+    "phase": "approach",
+    "cycle": 16,
+    "time": 31.99999999999967,
+    "wall_time": 1792076810.481654
+  },
+  {
+    "phase": "observe",
+    "cycle": 17,
+    "time": 33.03999999999965,
+    "wall_time": 1792076811.7239556
+  },
+  {
+    "phase": "ik",
+    "cycle": 17,
+    "time": 33.03999999999965,
+    "wall_time": 1792076811.8268878
+  },
+  {
+    "phase": "approach",
+    "cycle": 17,
+    "time": 33.03999999999965,
+    "wall_time": 1792076813.904785
+  },
+  {
+    "phase": "reached",
+    "cycle": 17,
+    "time": 33.19999999999965,
+    "wall_time": 1792076814.174394
+  }
+]

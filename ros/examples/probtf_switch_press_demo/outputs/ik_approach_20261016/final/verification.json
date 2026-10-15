@@ -1,0 +1,11 @@
+{
+  "source_rendering_fixed": true,
+  "exact_trajectory_matches_replayed_runs": true,
+  "cycles": 18,
+  "nonlinear_ik_solves": 18,
+  "nonlinear_ik_iterations": 315,
+  "initial_error_m": 0.40640936933108734,
+  "final_error_m": 0.008791126953954002,
+  "minimum_clearance_m": 0.054033184449584507,
+  "actual_samples": 416
+}

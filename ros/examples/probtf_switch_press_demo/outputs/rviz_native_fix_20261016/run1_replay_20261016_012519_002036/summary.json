@@ -1,0 +1,82 @@
+{
+  "result": "reached",
+  "reached": true,
+  "collided": false,
+  "seed": 21,
+  "cycles": 27,
+  "image_observations": 28,
+  "actual_samples": 538,
+  "initial_error_m": 0.4032077278671183,
+  "final_error_m": 0.005604183722591153,
+  "minimum_clearance_m": 0.013310861323635723,
+  "reached_time_s": 23.588246369734406,
+  "rod_mass_kg": 0.275,
+  "total_robot_mass_kg": 21.995,
+  "maximum_deflection_rad": 0.33043073968656556,
+  "nonlinear_ik_solves": 27,
+  "nonlinear_ik_iterations": 162,
+  "control_mode": "continuous_async_expected_likelihood",
+  "trajectory_frame": "base_link",
+  "moving_replans": 26,
+  "servo_ticks": 414,
+  "nominal_servo_hz": 20.0,
+  "final_command": [
+    -0.0675020730127467,
+    -1.216286647551252,
+    1.2159534856853036,
+    -0.0448858183548524,
+    -0.8425550246417911,
+    0.004175624937133607
+  ],
+  "final_equilibrium": [
+    -0.06750207440850121,
+    -0.8858559078646864,
+    1.4391887236916674,
+    -0.04489970740642186,
+    -0.751218948170135,
+    0.007878188317908976
+  ],
+  "true_goal_base": [
+    1.1349999999999998,
+    -0.060000000000000005,
+    0.45999999999999996
+  ],
+  "true_goal_world": [
+    1.3549999999999998,
+    -0.060000000000000005,
+    0.45999999999999996
+  ],
+  "base_translation": [
+    0.22,
+    0.0,
+    0.0
+  ],
+  "git_head": "e426741384355d03770491a44d2f49505f55fe5f",
+  "source_sha256": {
+    "ros/core/probtf_core/src/probtf/distributions/composition.py": "33931ad51d53838aec7f5e235566b8de8e1505d901af3dc30252c41b96a25ef1",
+    "ros/core/probtf_core/src/probtf/probability/sampling.py": "7e38344ca2c4443bc262d87dcfd3bc785e5cfd03dd0c1b9ff1e2ac39b3ac8d7b",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/equilibrium.py": "715fe1a790028a234bd37f1993b548fee1346a1100e18a5759a292ff5a0a056f",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/spring.py": "1b98ac6840be276f5ea02c3a164bb8947cd252a894645651f1348cefb9b97f82",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/robot/pinocchio_robot.py": "69a316b31e633f0f3c03792728048aced2fecbed95efad855924d184020c58d2",
+    "ros/examples/prob_artag_detector/src/prob_artag_detector/detector.py": "c6fb58821a0687b3ae3db651535ab34823f6796045b40b12b75d68bee76a2f86",
+    "ros/examples/prob_artag_detector/src/prob_artag_detector/estimator.py": "c0ac6956b5d82c2a513b3eebbc82619f575882d9e63b92aea18d01420118b675",
+    "ros/examples/probtf_switch_press_demo/CMakeLists.txt": "f7bd232ce5065663edd560e2a8ed25a4dbffc2c7d796d3895f156cefd57e47b0",
+    "ros/examples/probtf_switch_press_demo/config/default.yaml": "a7e0a232bbcb8ef4520bbc6765c3ee4756a65ee5d5fea49b5ba11a01cd9f01c7",
+    "ros/examples/probtf_switch_press_demo/launch/switch_press_demo.launch": "d0529984f29e0f4cf45b1374e8b798a6636a37c31e3ba4689440171f286e88a1",
+    "ros/examples/probtf_switch_press_demo/package.xml": "38113cc4314458a85536628e43e034277e1db64c21a38135454598f7a97a738f",
+    "ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz": "bb4ab64f28ddbb4ae360275fe07ccea5ae198a08d34f206fbd0a375a694e7abb",
+    "ros/examples/probtf_switch_press_demo/scripts/switch_press_demo.py": "dbbf1557114f155125eebde81ab06baebd92a6f58de483b0488a8b2152deb020",
+    "ros/examples/probtf_switch_press_demo/setup.py": "9c49e577b9f1ceb440b5abc31acae662ecdf13134a506de17e0e76ea67f31136",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/__init__.py": "6acdc116683fb4c4038128eab6de3b64ceb9fe560a319f162c11e4d8deebee55",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/beliefs.py": "4910bb3826d3884579b4121efed569d4dffe4f92534c603ac88bc534018fbd64",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/body.py": "1c0b1b23412594c8216e586e2ecccb689b6510412f4909b30cf3c0e914ef4f18",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/control.py": "7d97e45dc6ffec7edc86479537920d5eb73f34860f3023e9416099223052a678",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/ros_display.py": "21dbdd7681831a94a27a555e95e8ced5e11374b31bf4876a337c255d43f2f3fa",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/scene.py": "cd64936407c453a4918707babc0fc57f3ad19f93cf7386497b273999f95352cc",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/trial.py": "3b2402e9f3d14687d61f179b8e508ea299c1e48505c752f32cf2c1d6fa8c520e",
+    "ros/examples/probtf_switch_press_demo/src/probtf_switch_press_demo/vision.py": "f3a1980ed04f53f6ca809feb33edf75b29abcc89a86eb904e8561ac54560b7e2",
+    "ros/examples/symaware_grasp/configs/simple_six_dof_prob_tf.yaml": "84e5b6e8c27cbf7c6ca540940848aaa8c74ebaae9269c1d73c21f629834c621c",
+    "ros/examples/symaware_grasp/src/symaware_grasp/probtf_config.py": "f4761cb0abc960c32c464740e22edc0d607cefa7682e2bc31fac13944aff76f1",
+    "ros/examples/symaware_grasp/urdf/simple_six_dof_arm.urdf": "7d4c9570e8d5ce223344d0ea7a530c844ced8cf6fb59ea96b63eac587929a74a"
+  }
+}

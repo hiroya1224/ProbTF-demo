@@ -9,6 +9,7 @@ PACKAGE_ROOTS = (
     "ros/examples/grape-param-estim/src",
     "ros/examples/prob_artag_detector/src",
     "ros/examples/symaware_grasp/src",
+    "ros/examples/probtf_switch_press_demo/src",
 )
 
 packages = []

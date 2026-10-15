@@ -1,0 +1,79 @@
+WARNING: Package name "parallel_gripper_module_with_D405" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_100mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_150mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_servo_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_yaw_sturdymodule_KRS6104" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+[ WARN] [1792077010.378846401]: The root link base_link has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.
+Recording switch demo to /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/outputs/ik_approach_20261016/final/run1
+IK cycle 1: 2 iterations, log K -403994.654 -> -116857.088; approach from 406.41 mm
+IK cycle 2: 19 iterations, log K -88837.950 -> -6463.639; approach from 282.49 mm
+IK cycle 3: 20 iterations, log K -4749.307 -> -2863.480; approach from 235.37 mm
+IK cycle 4: 20 iterations, log K -2956.896 -> -2694.502; approach from 217.40 mm
+IK cycle 5: 10 iterations, log K -2445.211 -> -2312.448; approach from 199.68 mm
+IK cycle 6: 20 iterations, log K -2192.800 -> -2081.908; approach from 183.54 mm
+IK cycle 7: 20 iterations, log K -2125.336 -> -1858.596; approach from 167.02 mm
+IK cycle 8: 20 iterations, log K -1667.856 -> -1507.895; approach from 151.85 mm
+IK cycle 9: 20 iterations, log K -1387.671 -> -1293.332; approach from 135.97 mm
+IK cycle 10: 11 iterations, log K -1236.316 -> -1060.243; approach from 121.14 mm
+IK cycle 11: 20 iterations, log K -965.495 -> -763.105; approach from 107.44 mm
+IK cycle 12: 20 iterations, log K -653.354 -> -548.231; approach from 92.96 mm
+IK cycle 13: 20 iterations, log K -500.816 -> -378.988; approach from 80.45 mm
+IK cycle 14: 17 iterations, log K -264.854 -> -189.047; approach from 68.69 mm
+IK cycle 15: 20 iterations, log K -123.968 -> -95.196; approach from 54.22 mm
+IK cycle 16: 16 iterations, log K -54.399 -> -25.257; approach from 39.43 mm
+IK cycle 17: 20 iterations, log K 12.506 -> 15.175; approach from 24.27 mm
+IK cycle 18: 20 iterations, log K 15.439 -> 16.559; approach from 9.99 mm
+[INFO] [1792077091.673260]: Switch demo: reached; records: /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/outputs/ik_approach_20261016/final/run1; replay: rosservice call /switch_press/replay
+WARNING: Package name "parallel_gripper_module_with_D405" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_100mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_150mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_servo_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_yaw_sturdymodule_KRS6104" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "parallel_gripper_module_with_D405" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_100mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_150mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_servo_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_yaw_sturdymodule_KRS6104" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+... logging to /tmp/switch-press-ik-final-ros/log/8331ef0e-c8aa-11f1-a48d-bddb1d541ce7/roslaunch-leus-TRX50-AERO-D-2140284.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/launch/switch_press_demo.launch
+[1mstarted roslaunch server http://127.0.0.1:43995/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosdistro: noetic
+ * /rosversion: 1.17.0
+ * /switch_press/demo/autostart: False
+ * /switch_press/demo/config: /home/leus/catkin...
+ * /switch_press/demo/output_dir: /home/leus/catkin...
+ * /switch_press/demo/startup_delay: 3
+ * /switch_press/robot_description: <?xml version='1....
+
+NODES
+  /switch_press/
+    demo (probtf_switch_press_demo/switch_press_demo.py)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    rviz (rviz/rviz)
+
+auto-starting new master
+[1mprocess[master]: started with pid [2140297][0m
+[1mROS_MASTER_URI=http://127.0.0.1:11757/[0m
+]2;/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/launch/switch_press_demo.launch http://127.0.0.1:11757/
+[1msetting /run_id to 8331ef0e-c8aa-11f1-a48d-bddb1d541ce7[0m
+[1mprocess[rosout-1]: started with pid [2140311][0m
+started core service [/rosout]
+[1mprocess[switch_press/robot_state_publisher-2]: started with pid [2140319][0m
+[1mprocess[switch_press/demo-3]: started with pid [2140320][0m
+[1mprocess[switch_press/rviz-4]: started with pid [2140321][0m
+[switch_press/rviz-4] killing on exit
+[switch_press/demo-3] killing on exit
+[switch_press/robot_state_publisher-2] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

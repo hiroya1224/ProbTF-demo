@@ -1,0 +1,37 @@
+{
+  "same_node_replay": true,
+  "rod_length_m": 0.325,
+  "rod_mass_kg": 0.275,
+  "physical_opaque": true,
+  "rigid_alpha": 0.25,
+  "rigid_topics_and_tf_verified": true,
+  "cycles": 64,
+  "moving_replans": 63,
+  "nominal_servo_hz": 20.0,
+  "measured_median_servo_hz": 19.9523214210316,
+  "max_joint_velocity_rad_s": 0.08000000000000002,
+  "max_joint_acceleration_rad_s2": 0.3000000000000001,
+  "moving_tick_fraction_after_start": 1.0,
+  "initial_error_m": 0.5843760173770964,
+  "final_error_m": 0.008701133917221143,
+  "minimum_clearance_m": 0.0529586942081557,
+  "reached_time_s": 31.41341541102156,
+  "replay_final_error_m": 0.008746356888733637,
+  "replay_minimum_clearance_m": 0.05353309897120413,
+  "tests_passed": 19,
+  "catkin_build_passed": true,
+  "source_hashes_verified": true,
+  "video": {
+    "programs": [],
+    "streams": [
+      {
+        "width": 1840,
+        "height": 1200,
+        "avg_frame_rate": "20/1"
+      }
+    ],
+    "format": {
+      "duration": "36.250000"
+    }
+  }
+}

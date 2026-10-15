@@ -1,0 +1,67 @@
+WARNING: Package name "parallel_gripper_module_with_D405" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_100mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_150mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_servo_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_yaw_sturdymodule_KRS6104" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+[ WARN] [1792075769.736154305]: The root link base_link has an inertia specified in the URDF, but KDL does not support a root link with an inertia.  As a workaround, you can add an extra dummy link to your URDF.
+Recording switch demo to /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/outputs/verified_20261015/run2
+cycle 0: true error 190.17 mm, log K -187282.999, 3 body candidates
+cycle 1: true error 162.58 mm, log K -129831.087, 3 body candidates
+cycle 2: true error 134.65 mm, log K -75538.743, 3 body candidates
+cycle 3: true error 106.73 mm, log K -45018.978, 3 body candidates
+cycle 4: true error 78.72 mm, log K -16183.973, 3 body candidates
+cycle 5: true error 50.88 mm, log K -3076.913, 3 body candidates
+cycle 6: true error 22.80 mm, log K 16.362, 3 body candidates
+[INFO] [1792075783.660088]: Switch demo: reached; records: /home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/outputs/verified_20261015/run2
+WARNING: Package name "parallel_gripper_module_with_D405" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_100mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_150mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_servo_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_yaw_sturdymodule_KRS6104" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "parallel_gripper_module_with_D405" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_100mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_150mmhinge_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_servo_KRS6104_module" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+WARNING: Package name "screw_yaw_sturdymodule_KRS6104" does not follow the naming conventions. It should start with a lower case letter and only contain lower case letters, digits, underscores, and dashes.
+... logging to /tmp/switch-press-visual-run2/log/9fb3b872-c8a7-11f1-a48d-bddb1d541ce7/roslaunch-leus-TRX50-AERO-D-2128923.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/launch/switch_press_demo.launch
+[1mstarted roslaunch server http://127.0.0.1:37495/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosdistro: noetic
+ * /rosversion: 1.17.0
+ * /switch_press/demo/config: /home/leus/catkin...
+ * /switch_press/demo/output_dir: /home/leus/catkin...
+ * /switch_press/demo/startup_delay: 7
+ * /switch_press/robot_description: <?xml version='1....
+
+NODES
+  /switch_press/
+    demo (probtf_switch_press_demo/switch_press_demo.py)
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    rviz (rviz/rviz)
+
+auto-starting new master
+[1mprocess[master]: started with pid [2128942][0m
+[1mROS_MASTER_URI=http://127.0.0.1:11755/[0m
+]2;/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/launch/switch_press_demo.launch http://127.0.0.1:11755/
+[1msetting /run_id to 9fb3b872-c8a7-11f1-a48d-bddb1d541ce7[0m
+[1mprocess[rosout-1]: started with pid [2128953][0m
+started core service [/rosout]
+[1mprocess[switch_press/robot_state_publisher-2]: started with pid [2128961][0m
+[1mprocess[switch_press/demo-3]: started with pid [2128962][0m
+[1mprocess[switch_press/rviz-4]: started with pid [2128963][0m
+[switch_press/rviz-4] killing on exit
+[switch_press/demo-3] killing on exit
+[switch_press/robot_state_publisher-2] killing on exit
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

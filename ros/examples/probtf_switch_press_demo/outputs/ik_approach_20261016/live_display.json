@@ -1,0 +1,5 @@
+{
+  "roslaunch_pid": 2138021,
+  "ros_master_uri": "http://localhost:11756/",
+  "replay_service": "/switch_press/replay"
+}

@@ -1,0 +1,130 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded: [/Global Options1, /Switch scene and predictions1]
+  - Class: rviz/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.2
+      Plane Cell Count: 16
+      Color: 188; 194; 202
+      Alpha: 0.4
+      Reference Frame: base_link
+    - Class: rviz/RobotModel
+      Name: Actual flexible arm and rod
+      Enabled: true
+      Robot Description: /switch_press/robot_description
+      Visual Enabled: true
+      Collision Enabled: false
+      Alpha: 1
+      Update Interval: 0
+    - Class: rviz/RobotModel
+      Name: Rigid command model (translucent)
+      Enabled: true
+      Robot Description: /switch_press/robot_description
+      TF Prefix: rigid
+      Visual Enabled: true
+      Collision Enabled: false
+      Alpha: 0.25
+      Update Interval: 0
+    - Class: probtf_rviz/ProbabilisticTF
+      Name: ProbTF robot joints
+      Enabled: true
+      Dynamic Topic: ""
+      Dynamic Snapshot Topic: /switch_press/probtf_batch
+      Static Topic: ""
+      Root Frame: base_link
+      Frame Timeout: 2
+      Sample Count: 180
+      Axis Length: 0.075
+      Point Size: 0.003
+      Point Style: Spheres
+      Alpha: 0.85
+      Show Representatives: true
+      Representative Radius: 0.0015
+      Random Seed: 29
+      Queue Size: 1
+    - Class: probtf_rviz/ProbabilisticPose
+      Name: ProbTF observed AR marker
+      Enabled: true
+      Topic: /switch_press/marker_display
+      Queue Size: 1
+      Frame Timeout: 1
+      Sample Count: 200
+      Axis Length: 0.09
+      Point Size: 0.003
+      Point Style: Spheres
+      Alpha: 0.85
+      Show Representative: true
+      Representative Radius: 0.0015
+      Random Seed: 29
+    - Class: rviz/MarkerArray
+      Name: Switch scene and predictions
+      Enabled: true
+      Marker Topic: /switch_press/markers
+      Queue Size: 1
+    - Class: rviz/MarkerArray
+      Name: IK prediction rods (diagnostic)
+      Enabled: false
+      Marker Topic: /switch_press/predictions
+      Queue Size: 1
+    - Class: rviz/Image
+      Name: Camera and marker detection
+      Enabled: true
+      Image Topic: /switch_press/detection_image
+      Transport Hint: raw
+      Queue Size: 1
+      Normalize Range: true
+      Min Value: 0
+      Max Value: 1
+      Median window: 5
+  Global Options:
+    Fixed Frame: world
+    Frame Rate: 30
+    Background Color: 240; 243; 248
+  Enabled: true
+  Tools:
+    - Class: rviz/Interact
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Name: Overview
+      Target Frame: world
+      Distance: 2.25
+      Pitch: 0.35
+      Yaw: 3.9
+      Near Clip Distance: 0.01
+      Focal Point: {X: 0.90, Y: -0.03, Z: 0.44}
+    Saved:
+      - Class: rviz/Orbit
+        Name: Switch close-up
+        Target Frame: world
+        Distance: 0.65
+        Pitch: 0.30
+        Yaw: 3.6
+        Near Clip Distance: 0.005
+        Focal Point: {X: 1.35, Y: -0.06, Z: 0.52}
+      - Class: rviz/Orbit
+        Name: Overview
+        Target Frame: world
+        Distance: 2.25
+        Pitch: 0.35
+        Yaw: 3.9
+        Near Clip Distance: 0.01
+        Focal Point: {X: 0.90, Y: -0.03, Z: 0.44}
+Window Geometry:
+  Width: 1840
+  Height: 1200
+  X: 100
+  Y: 60
+  Hide Left Dock: false
+  Hide Right Dock: false

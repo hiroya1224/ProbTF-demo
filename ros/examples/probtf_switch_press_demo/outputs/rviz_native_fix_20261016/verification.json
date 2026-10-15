@@ -1,0 +1,57 @@
+{
+  "plugins": [
+    "probtf_rviz/ProbabilisticTF",
+    "probtf_rviz/ProbabilisticPose"
+  ],
+  "robot_frames": [
+    "link_1",
+    "link_2",
+    "link_3",
+    "link_4",
+    "link_5",
+    "link_6",
+    "rod_tip",
+    "tool0"
+  ],
+  "marker_frame": "observed_ar_marker",
+  "snapshots": 980,
+  "maximum_representative_error": 1.3322676295501878e-15,
+  "distinct_frame_sets": [
+    [
+      "link_1",
+      "link_2",
+      "link_3",
+      "link_4",
+      "link_5",
+      "link_6",
+      "rod_tip",
+      "tool0"
+    ]
+  ],
+  "held_marker_stable_after_12s": true,
+  "marker_cleared_during_replay_start": true,
+  "body_cloud_model": "existing symaware_grasp configured Bingham joint laws",
+  "ik_body_model": "unchanged three stiffness hypotheses",
+  "duplicate_goal_cloud_removed": true,
+  "prediction_rods_disabled_by_default": true,
+  "source_hashes_verified": true,
+  "same_node_replay": true,
+  "tests_passed": 23,
+  "catkin_build_passed": true,
+  "final_error_m": 0.0058762318671673796,
+  "replay_final_error_m": 0.005604183722591153,
+  "minimum_clearance_m": 0.014699539684682197,
+  "video": {
+    "programs": [],
+    "streams": [
+      {
+        "width": 1840,
+        "height": 1200,
+        "avg_frame_rate": "20/1"
+      }
+    ],
+    "format": {
+      "duration": "28.950000"
+    }
+  }
+}

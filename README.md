@@ -16,6 +16,8 @@ Python source is owned by the catkin package that installs it; there is no share
   orientation estimation
 - `ros/examples/symaware_grasp`: grasp beliefs, v2 ProbTF publication, lookup,
   visualization, and symmetry-aware IK
+- `ros/examples/probtf_switch_press_demo`: continuous image-feedback approach with
+  a flexible arm, a translucent rigid reference, finite body predictions, and an actual-reach lamp
 - `ros/examples/deflecomp`: ROS-free compensation/simulation libraries and ROS
   runtime packages
 - `ros/examples/grape-param-estim`: rosbag inspection, six-component diagonal-Q EM, fixed-Q augmented EnKF / EnRTS parameter estimation, and posterior-predictive PID evaluation
@@ -31,7 +33,7 @@ A separate root `pip install` is not required.
 ```bash
 cd /path/to/catkin_ws
 catkin build probtf_msgs probtf_core probtf_rviz probtf_imu_demo probtf_orientation_demo \
-  symaware_grasp deflecomp_core deflecomp_sim deflecomp_ros grape_param_estim
+  symaware_grasp probtf_switch_press_demo deflecomp_core deflecomp_sim deflecomp_ros grape_param_estim
 source devel/setup.bash
 ```
 
@@ -104,6 +106,9 @@ roslaunch probtf_orientation_demo orientation_filter.launch
 roslaunch symaware_grasp probabilistic_tf_demo.launch
 roslaunch symaware_grasp prob_tf_link_cloud.launch
 
+# Integrated demo: continuous probabilistic IK, flexible/rigid arms, and switch approach
+roslaunch probtf_switch_press_demo switch_press_demo.launch
+
 # Deflection-compensation simulation and multi-frame viewer/runtime
 roslaunch deflecomp_sim sim_with_deflecomp.launch
 roslaunch deflecomp_ros deflecomp_frames.launch viewer:=true
@@ -113,4 +118,5 @@ rosrun grape_param_estim run_gui.py
 ```
 
 See `docs/lectures/probtf_jmaa_kernel_architecture.md` for the distribution, graph, kernel, temporal, and approximation contracts.
+See [the integrated switch demo](ros/examples/probtf_switch_press_demo/README.md) for build/run steps, information boundaries, collision checking, and records.
 See `ros/examples/grape-param-estim/README.md` for the packaged rosbag demos, staged workflow, dimension breakdown, and forecast-performance notes.

@@ -1,0 +1,32 @@
+{
+  "source_hashes_match": true,
+  "runs": {
+    "run1": {
+      "reached": true,
+      "source_files_verified": 22,
+      "final_error_m": 0.008360546428740111,
+      "minimum_clearance_m": 0.04832526110563408,
+      "cycles": 7,
+      "actual_samples": 114,
+      "maximum_predicted_tip_separation_m": 0.006342866882985088,
+      "video_decoded": true
+    },
+    "run2": {
+      "reached": true,
+      "source_files_verified": 22,
+      "final_error_m": 0.008360546428740111,
+      "minimum_clearance_m": 0.04832526110563408,
+      "cycles": 7,
+      "actual_samples": 114,
+      "maximum_predicted_tip_separation_m": 0.006342866882985088,
+      "video_decoded": true
+    }
+  },
+  "runtime": {
+    "python": "3.8.10 (default, Mar 18 2025, 20:04:55) \n[GCC 9.4.0]",
+    "numpy": "1.24.3",
+    "opencv": "4.7.0",
+    "pinocchio": "3.3.1",
+    "scipy": "1.10.1"
+  }
+}

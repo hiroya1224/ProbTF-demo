@@ -171,7 +171,8 @@ def verify_received(run_dir, snapshots, motion, wire, images, replay_wall, stiff
     expected_hud = {}
     for row in snapshots:
         data = row['data']
-        points = [SimpleNamespace(component_id=q['component_id'], weight=q['weight'], log_weight=q.get('log_weight'),
+        points = [SimpleNamespace(component_id=q['component_id'], frame_label=q['frame_label'],
+            weight=q['weight'], log_weight=q.get('log_weight'),
             query=SimpleNamespace(frame=q['source_frame'], stamp=q['source_stamp'],
                 command=tuple(q['source_command']), state_id=q['source_state_id'],
                 version=q['source_version'])) for q in data['queries']]

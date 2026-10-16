@@ -202,9 +202,11 @@ def test_stiffness_hud_rejects_mismatched_source_before_publishing(stiffness_dis
         MotionDisplay.stiffness_marker(snapshot, changed)
 
 
-def test_stiffness_hud_retains_all_body_mixture_components(stiffness_display_input):
+def test_stiffness_hud_uses_single_internal_body_and_excludes_distinct_goal_modes(stiffness_display_input):
     _, _, _, snapshot, record = stiffness_display_input
-    assert len(record['body_posterior_state_ids']) >= 2
+    assert len(record['body_posterior_state_ids']) == 1
+    assert len({point.component_id for point in snapshot.points
+                if point.frame_label == 'marker'}) >= 2
     changed = deepcopy(record)
     for key in ('body_posterior_labels', 'body_posterior_state_ids',
                 'body_posterior_versions', 'body_posterior_weights'):
@@ -309,6 +311,8 @@ def test_density_factor_hud_keeps_continuous_memory_separate_from_numerical_prop
         information_rank=None, information_eigenvalues=None)
     source_logs = {}
     for point in snapshot.points:
+        if point.frame_label == 'marker':
+            continue
         source_logs[point.component_id] = point.log_weight
     record['body_posterior_log_weights'] = list(source_logs.values())
     marker = MotionDisplay.stiffness_marker(snapshot, record)

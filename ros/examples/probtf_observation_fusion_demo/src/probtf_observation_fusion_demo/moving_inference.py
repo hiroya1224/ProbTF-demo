@@ -1,8 +1,9 @@
 """Retained transform-candidate inference on the moving switch scene.
 
 The direct independent family initializes the body once. Every later prior
-is the full preceding posterior, pushed by its declared command action. No
-physical pose, stiffness or invented process covariance enters this update.
+retains the preceding joint moments in one internal proxy, pushed by its
+declared command action. Current observation modes remain explicit goal
+components. No physical truth or invented process covariance enters inference.
 """
 
 from copy import deepcopy
@@ -19,9 +20,13 @@ import yaml
 
 from probtf.geometry import axis_angle_to_quat, quat_right_matrix, rotmat_to_quat
 from probtf.spherical_law.first_order import BinghamTransform, JointTransformState
+from probtf.spherical_law.fusion import PosteriorComponent
 from symaware_grasp.probtf_config import bingham_parameter_from_mode
 
-from .model import WeightedState, component_log_weight, run
+from .model import (
+    FrozenBodyBranch, Stage, WeightedState, _joint_record, component_log_weight, run,
+)
+from .body_projection import project_update, retain_goal_components
 from .moving_control import command_state
 
 
@@ -69,6 +74,7 @@ class MovingInference:
         self.last_result = None
         self.last_observation_signature = None
         self.components = ()
+        self.goal_components = ()
         self.last_observations = ()
 
         # URDF is used only for declared geometry.  The direct uncertain laws
@@ -138,7 +144,7 @@ class MovingInference:
         self.common = {
             "root_frame": settings["root_frame"],
             "update": {},
-            "prior": {"independence": "initial product over supplied local transform candidates; all posterior components and cross blocks retained between updates",
+            "prior": {"independence": "initial product over supplied local transform candidates; full posterior joint moments retained as one internal approximation between updates",
                       "body": [{"edge_id": name} for name in self.body_ids],
                       "marker": {"status": marker_data["status"]}},
             "known_geometry": {"source": "fixed attachment geometry parsed from shared URDF; masses and physical poses excluded"},
@@ -186,6 +192,8 @@ class MovingInference:
         if self.last_key is not None and float(sensor_inputs.stamp) <= self.last_key[1]:
             raise ValueError("A new observation tick must have an increasing timestamp.")
         prediction = []
+        goal_prediction = []
+        predicted_goals = ()
         if not self.components:
             prior = self.prior_at(sensor_inputs.command, sensor_inputs.stamp, frame_index)
             priors = (WeightedState(prior.component_id, 1., prior, 0.),)
@@ -209,6 +217,25 @@ class MovingInference:
                     transported_command=list(predicted.command), weight=source.weight,
                     log_weight=component_log_weight(source)))
             priors = tuple(priors)
+            goals = []
+            for index, source in enumerate(self.goal_components):
+                predicted = (command_state(source.state, sensor_inputs.command,
+                                           self.body_ids, self.actions) if command_map is None
+                             else command_map.push(source.state, sensor_inputs.command,
+                                                   self.body_ids, self.actions))
+                label = "predicted_goal:{}:{}".format(int(frame_index), index)
+                predicted = replace(predicted, version=priors[0].state.version,
+                    stamp=float(sensor_inputs.stamp), component_id=label)
+                goals.append(WeightedState(label, source.weight, predicted,
+                                            component_log_weight(source)))
+                goal_prediction.append(dict(source_label=source.label,
+                    source_state_id=source.state.state_id, source_version=source.state.version,
+                    source_stamp=source.state.stamp, source_command=list(source.state.command),
+                    transported_label=label, transported_state_id=predicted.state_id,
+                    transported_version=predicted.version, transported_stamp=predicted.stamp,
+                    transported_command=list(predicted.command), weight=source.weight,
+                    log_weight=component_log_weight(source)))
+            predicted_goals = tuple(goals)
         observations = []
         for template in self.templates:
             observation = deepcopy(template)
@@ -224,7 +251,9 @@ class MovingInference:
             observations.append(observation)
         result = run(self.common, tuple(observations), sensor_inputs.image,
                      prior_components=priors, paths=self.paths)
+        result = self._project_internal_update(result, predicted_goals)
         result.records["prediction"] = prediction
+        result.records["goal_prediction"] = goal_prediction
         result.records["prediction_command_correction"] = (
             None if command_map is None else command_map.record())
         result.records["prediction_command_action"] = (
@@ -233,7 +262,7 @@ class MovingInference:
             "law_id": self.law["law_id"], "revision": self.law["revision"],
             "command_family": ("configured Bingham right action; translation law unchanged"
                 if command_map is None else "same posterior right action by the previous cycle's frozen estimated-K equilibrium increment; translation law unchanged"),
-            "temporal_policy": "initial independent family once; retain every posterior component and push full joint law through the declared right action at the next command",
+            "temporal_policy": "initial family once; retain one full joint moment approximation, including unknown-marker memory and all cross blocks; preserve the current observation mixture in the goal criterion and display",
             "initialization": not bool(self.components),
             "frame_index": int(frame_index), "time": float(sensor_inputs.time),
             "physical_truth_received": False,
@@ -241,5 +270,57 @@ class MovingInference:
         self.last_key, self.last_result = key, result
         self.last_observation_signature = signature
         self.components = tuple(result.stages[-1].components)
+        self.goal_components = tuple(result.stages[-1].goal_components)
         self.last_observations = tuple(observations)
         return result
+
+    def _project_internal_update(self, result, predicted_goals):
+        """Keep one recursive internal law and the explicit current goal mixture.
+
+        Moment matching occurs only after sensor-specific updates and common-
+        prior-corrected fusion in their single frozen input chart. The same
+        projected body is used by stiffness, control, display and prediction.
+        Current goal components retain each observation branch's conditional
+        marker law, evaluated against that common projected body marginal.
+        """
+        projection = project_update(result)
+        raw_stage = result.stages[-1]
+        marker_observed = any(estimate.posterior is not None
+                              and estimate.detector_result is not None
+                              for estimate in result.local_estimates)
+        goals = (projection.goal_components if marker_observed or not predicted_goals else
+                 retain_goal_components(predicted_goals, result.prior,
+                                        projection.posterior, projection.state))
+        internal = WeightedState(projection.state.component_id, 1., projection.state, 0.)
+        stage = Stage('fused', (internal,), raw_stage.sensor_ids, tuple(goals))
+        effective_raw = PosteriorComponent(internal.label, projection.posterior, 1.,
+            lineage=tuple(item.label for item in result.frozen_body_posterior.components),
+            log_weight=0.)
+        frozen = replace(result.frozen_body_posterior, components=(effective_raw,))
+        original_branch = result.frozen_body_branches[0]
+        branch = FrozenBodyBranch(original_branch.label, 1., original_branch.reference_state,
+                                  original_branch.prior, (effective_raw,), 0.)
+        stages = result.stages[:-1] + (
+            replace(raw_stage, label='fused_observation_candidates'), stage)
+        records = result.records
+        records['internal_projection'] = dict(projection.record,
+            goal_policy=('current observation conditional modes with a shared projected body'
+                         if marker_observed else 'retain previous goal conditional modes through the current body update'),
+            goal_source_state_ids=[item.state.state_id for item in goals],
+            goal_source_labels=[item.label for item in goals],
+            goal_source_weights=[item.weight for item in goals],
+            goal_source_log_weights=[component_log_weight(item) for item in goals],
+            goal_parent_internal_state_id=projection.state.state_id,
+            predicted_goal_source_state_ids=[item.state.state_id for item in predicted_goals])
+        records['mixture_policy'] = (
+            'one recursive joint internal moment approximation; all current observation/goal modes and log masses retained; no temporal Cartesian-product enumeration')
+        records['stages'][-1]['label'] = 'fused_observation_candidates'
+        records['stages'].append(dict(label=stage.label, sensor_ids=list(stage.sensor_ids),
+            components=[_joint_record(internal, self.paths, result.root_frame)],
+            goal_components=[_joint_record(item, self.paths, result.root_frame) for item in goals]))
+        records['frozen_internal_charts'] = [dict(prior_label=branch.label,
+            reference_state_id=branch.reference_state.state_id,
+            posterior_labels=[effective_raw.label],
+            approximation='full joint moment projection after fusion; density ratio includes this declared approximation')]
+        return replace(result, stages=stages, frozen_body_posterior=frozen,
+                       frozen_body_branches=(branch,))

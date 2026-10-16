@@ -51,6 +51,9 @@ class Stage:
     label: str
     components: tuple
     sensor_ids: tuple = ()
+    # Explicit current observation/goal mixture sharing the canonical body's
+    # marginal. It is not the next cycle's retained internal state.
+    goal_components: tuple = ()
 
 
 @dataclass(frozen=True)

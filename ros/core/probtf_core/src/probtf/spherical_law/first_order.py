@@ -71,7 +71,10 @@ def bingham_from_rotation_coordinates(quaternion, covariance):
     if basis.shape[1] != 3:
         raise ValueError("A continuous Bingham reexpression needs full rotation support.")
     tangent = quat_left_matrix(quaternion)[:, 1:]
-    return _array(-2.0 * tangent @ inverse @ tangent.T)
+    parameter = -2.0 * tangent @ inverse @ tangent.T
+    # This quadratic form is symmetric analytically. Remove only the skew
+    # introduced by matrix-product roundoff; r^T A r is unchanged by it.
+    return _array(0.5 * (parameter + parameter.T))
 
 
 @dataclass(frozen=True)

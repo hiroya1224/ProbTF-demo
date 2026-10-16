@@ -68,13 +68,66 @@ def command_state(state, command, body_ids, actions, *, joint_increment=None):
         right = quat_right_matrix(delta)
         rotation = quat_to_rotmat(delta)
         chart[6*index+3:6*index+6, 6*index+3:6*index+6] = rotation.T
+        parameter = right @ edge.bingham @ right.T
+        parameter = .5*(parameter+parameter.T)
         transforms.append(BinghamTransform(
-            edge.edge_id, edge.translation, right @ edge.bingham @ right.T,
+            edge.edge_id, edge.translation, parameter,
             edge.translation_covariance))
     covariance = chart @ state.covariance @ chart.T
     return JointTransformState(tuple(transforms), covariance, version=state.version,
                                stamp=state.stamp, command=tuple(command),
                                component_id=state.component_id)
+
+
+def _component_log_weight(component):
+    value = getattr(component, 'log_weight', None)
+    return float(value if value is not None else (
+        np.log(component.weight) if component.weight > 0. else -np.inf))
+
+
+def control_components(result):
+    """Return the internal law and the explicitly retained goal query laws.
+
+    A goal branch may change the environment conditional and its cross blocks,
+    but its entire body marginal must be the very same internal approximation.
+    This check also prevents a display-only goal law from entering control.
+    Legacy stages without a separate goal family keep their original path.
+    """
+    stage = result.stages[-1]
+    internal = tuple(stage.components)
+    goals = tuple(getattr(stage, 'goal_components', ()))
+    if not goals:
+        return internal, internal
+    if (len(internal) != 1 or internal[0].weight != 1.
+            or _component_log_weight(internal[0]) != 0.):
+        raise ValueError('Retained goal candidates require one normalized internal body law.')
+    if (any(not np.isfinite(item.weight) or item.weight < 0. for item in goals)
+            or not np.isclose(sum(item.weight for item in goals), 1.)
+            or not np.isclose(logsumexp([_component_log_weight(item) for item in goals]), 0., atol=1e-12)):
+        raise ValueError('Retained goal candidate weights and log weights must be normalized.')
+    source = internal[0].state
+    marker_ids = {item if isinstance(item, str) else item[0] for item in result.marker_path}
+    if not marker_ids or not marker_ids.issubset(source.edge_ids):
+        raise ValueError('Retained goals require the declared environment marker path.')
+    body_indices = [index for index, name in enumerate(source.edge_ids) if name not in marker_ids]
+    coordinates = np.array([6*index+offset for index in body_indices for offset in range(6)], dtype=int)
+    body_covariance = source.covariance[np.ix_(coordinates, coordinates)]
+    for candidate in goals:
+        state = candidate.state
+        if (state.edge_ids != source.edge_ids or state.command != source.command
+                or state.stamp != source.stamp or state.version != source.version
+                or not np.array_equal(state.covariance[np.ix_(coordinates, coordinates)], body_covariance)):
+            raise ValueError('Every retained goal must share the same internal body marginal and metadata.')
+        for index in body_indices:
+            actual, expected = state.transforms[index], source.transforms[index]
+            if (not np.array_equal(actual.translation, expected.translation)
+                    or not np.array_equal(actual.translation_covariance, expected.translation_covariance)
+                    or not np.array_equal(actual.rotation_wxyz, expected.rotation_wxyz)
+                    or (actual.bingham is None) != (expected.bingham is None)
+                    or (actual.bingham is not None
+                        and not np.array_equal(actual.bingham, expected.bingham))):
+                raise ValueError('Every retained goal must share the same internal body marginal and metadata.')
+    return internal, goals
 
 
 def _relative_density(query, goal_offset, goal_orientation, integration_steps):
@@ -189,7 +242,7 @@ class MovingController:
         command = np.asarray(result.prior.command, dtype=float)
         if command.shape != self.velocity.shape:
             raise ValueError("Command dimension differs from the configured joint limits.")
-        components = tuple(result.stages[-1].components)
+        body_components, components = control_components(result)
         if command_map is not None:
             command_map.validate_result(result)
         if not components or not np.isclose(sum(item.weight for item in components), 1.0):
@@ -198,10 +251,22 @@ class MovingController:
             state = component.state
             if state.stamp != result.prior.stamp or state.command != result.prior.command:
                 raise ValueError("Control candidates must share the current command and observation time.")
+        # Leave room to brake after this short position command.  For an
+        # outward next velocity w and remaining joint distance D, require
+        # dt*w+w*w/(2*a) <= D.  The next state then retains its continuous
+        # stopping distance; maximum discrete braking consumes no more room.
+        # The rationalized positive root avoids cancellation close to a limit.
+        braking_change = self.acceleration*dt
+        lower_distance = np.maximum(command-self.lower, 0.)
+        upper_distance = np.maximum(self.upper-command, 0.)
+        lower_stopping_speed = (2.*self.acceleration*lower_distance
+            /(np.sqrt(braking_change**2+2.*self.acceleration*lower_distance)+braking_change))
+        upper_stopping_speed = (2.*self.acceleration*upper_distance
+            /(np.sqrt(braking_change**2+2.*self.acceleration*upper_distance)+braking_change))
         lower = np.maximum(self.lower-command,
-                           dt*np.maximum(-self.speed, self.velocity-self.acceleration*dt))
+            dt*np.maximum(np.maximum(-self.speed, self.velocity-braking_change), -lower_stopping_speed))
         upper = np.minimum(self.upper-command,
-                           dt*np.minimum(self.speed, self.velocity+self.acceleration*dt))
+            dt*np.minimum(np.minimum(self.speed, self.velocity+braking_change), upper_stopping_speed))
         if np.any(lower > upper+1e-14):
             raise ValueError("The joint, speed and acceleration limits have no common short command.")
         cache = {}
@@ -230,6 +295,7 @@ class MovingController:
                     log_weight = np.log(component.weight) if component.weight > 0.0 else -np.inf
                 branch.update(label=component.label, weight=float(component.weight),
                               log_weight=float(log_weight),
+                              state_id=trial_state.state_id,
                               parent_state_id=component.state.state_id,
                               parent_command=list(component.state.command),
                               parent_stamp=float(component.state.stamp))
@@ -255,7 +321,7 @@ class MovingController:
             if (tuple(stiffness_proposal['source_command']) != tuple(command)
                     or float(stiffness_proposal['source_stamp']) != result.prior.stamp
                     or stiffness_proposal.get('source_prior_state_id') != result.prior.state_id
-                    or stiffness_proposal.get('body_posterior_state_ids') != [item.state.state_id for item in components]
+                    or stiffness_proposal.get('body_posterior_state_ids') != [item.state.state_id for item in body_components]
                     or stiffness_density is None
                     or stiffness_proposal.get('density_id') != stiffness_density['density_id']):
                 raise ValueError('A stiffness command proposal belongs to a different body update.')
@@ -327,6 +393,13 @@ class MovingController:
                            | (at_upper & (raw_gradient < 0.0))] = 0.0
         self.velocity = increment/dt
         next_command = command + increment
+        if getattr(result.stages[-1], 'goal_components', ()):
+            selected_body_ids = [(command_state(item.state, next_command,
+                self.body_ids, self.actions) if command_map is None else command_map.push(
+                    item.state, next_command, self.body_ids, self.actions)).state_id
+                for item in body_components]
+        else:
+            selected_body_ids = [branch['state_id'] for branch in selected[2]]
         diagnostics = {
             "command_propagation": ("declared rigid joint action" if command_map is None
                                     else "estimated-K anchored equilibrium joint action"),
@@ -347,6 +420,17 @@ class MovingController:
                 if getattr(component, 'log_weight', None) is not None else (
                     np.log(component.weight) if component.weight > 0.0 else -np.inf))
                 for component in components],
+            "body_source_state_ids": [component.state.state_id for component in body_components],
+            "body_source_versions": [int(component.state.version) for component in body_components],
+            "body_source_weights": [float(component.weight) for component in body_components],
+            "body_source_log_weights": [_component_log_weight(component) for component in body_components],
+            "selected_body_state_ids": selected_body_ids,
+            "goal_source_state_ids": [component.state.state_id for component in components],
+            "goal_source_versions": [int(component.state.version) for component in components],
+            "goal_source_weights": [float(component.weight) for component in components],
+            "goal_source_log_weights": [_component_log_weight(component) for component in components],
+            "goal_parent_internal_state_id": (body_components[0].state.state_id
+                if getattr(result.stages[-1], 'goal_components', ()) else None),
             "relative_path": [list(item) for item in self.relative_path],
             "goal_offset": self.goal_offset.tolist(),
             "goal_orientation_wxyz": self.goal_orientation.tolist(),
@@ -381,6 +465,9 @@ class MovingController:
                 else "feasible braking baseline retained; no gradient trial accepted"),
             "convergence_claimed": False,
             "increment_bounds": np.column_stack((lower, upper)).tolist(),
+            "joint_limit_stopping_speed_bounds": np.column_stack(
+                (-lower_stopping_speed, upper_stopping_speed)).tolist(),
+            "joint_limit_braking_condition": "dt*abs(outward next velocity) + velocity**2/(2*max_acceleration) <= distance to joint limit",
             "selected_branches": selected[2],
             "physical_truth_received": False,
             "orientation_reexpression": "modal quaternion times first-order mean correction; covariance unchanged to first order",

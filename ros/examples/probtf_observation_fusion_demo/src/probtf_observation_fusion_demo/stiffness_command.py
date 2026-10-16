@@ -9,7 +9,7 @@ from copy import deepcopy
 
 import numpy as np
 
-from .moving_control import command_state
+from .moving_control import command_state, control_components
 from .model import component_log_weight
 
 
@@ -23,7 +23,7 @@ class StiffnessCommandMap:
     """One observation's fixed K and equilibrium branch for all trial commands."""
 
     def __init__(self, identifier, result, proposal):
-        components = tuple(result.stages[-1].components)
+        components, goal_components = control_components(result)
         record = result.records.get('stiffness')
         density = None if record is None else (
             record.get('posterior') or record.get('retained_prior'))
@@ -57,10 +57,16 @@ class StiffnessCommandMap:
         self._source_versions = tuple(item.state.version for item in components)
         self._source_weights = tuple(item.weight for item in components)
         self._source_log_weights = tuple(component_log_weight(item) for item in components)
+        self._goal_ordered_ids = tuple(item.state.state_id for item in goal_components)
+        self._goal_versions = tuple(item.state.version for item in goal_components)
+        self._goal_weights = tuple(item.weight for item in goal_components)
+        self._goal_log_weights = tuple(component_log_weight(item) for item in goal_components)
+        self._goal_parent_internal_id = (components[0].state.state_id
+            if getattr(result.stages[-1], 'goal_components', ()) else None)
         self._density_id = density['density_id']
         self.source_command = _readonly(command)
         self.source_stamp = result.prior.stamp
-        self.source_state_ids = frozenset(state_ids)
+        self.source_state_ids = frozenset(state_ids + list(self._goal_ordered_ids))
         self.stiffness = _readonly(proposal['selected_K'])
         self.anchor = _readonly(proposal['auxiliary_equilibrium'])
         if (self.stiffness.shape != self.source_command.shape
@@ -88,6 +94,11 @@ class StiffnessCommandMap:
             body_posterior_versions=[item.state.version for item in components],
             body_posterior_weights=[float(item.weight) for item in components],
             body_posterior_log_weights=list(self._source_log_weights),
+            goal_source_state_ids=list(self._goal_ordered_ids),
+            goal_source_versions=list(self._goal_versions),
+            goal_source_weights=list(self._goal_weights),
+            goal_source_log_weights=list(self._goal_log_weights),
+            goal_parent_internal_state_id=self._goal_parent_internal_id,
             density_id=proposal['density_id'], selected_K=self.stiffness.tolist(),
             K_units='N m/rad', anchor_equilibrium=self.anchor.tolist(),
             anchor_command_jacobian=anchor_jacobian.tolist(),
@@ -102,7 +113,11 @@ class StiffnessCommandMap:
 
     def validate_result(self, result):
         """Reject using this fixed prediction family for a different update."""
-        components = tuple(result.stages[-1].components)
+        try:
+            components, goal_components = control_components(result)
+        except ValueError as error:
+            raise ValueError('A stiffness command map belongs to a different or modified body update: '
+                             + str(error)) from error
         record = result.records.get('stiffness')
         density = None if record is None else (
             record.get('posterior') or record.get('retained_prior'))
@@ -113,9 +128,19 @@ class StiffnessCommandMap:
                 or tuple(item.state.version for item in components) != self._source_versions
                 or tuple(item.weight for item in components) != self._source_weights
                 or tuple(component_log_weight(item) for item in components) != self._source_log_weights
+                or tuple(item.state.state_id for item in goal_components) != self._goal_ordered_ids
+                or tuple(item.state.version for item in goal_components) != self._goal_versions
+                or tuple(item.weight for item in goal_components) != self._goal_weights
+                or tuple(component_log_weight(item) for item in goal_components) != self._goal_log_weights
+                or (components[0].state.state_id if getattr(result.stages[-1], 'goal_components', ())
+                    else None) != self._goal_parent_internal_id
                 or record is not self._source_record
                 or record.get('command_proposal') is not self._source_proposal
                 or density is None or density['density_id'] != self._density_id
+                or record['source_prior_state_id'] != self._source_prior_id
+                or record['source_stamp'] != self.source_stamp
+                or tuple(record['source_command']) != tuple(self.source_command)
+                or tuple(record['body_posterior_state_ids']) != self._source_ordered_ids
                 or tuple(record['body_posterior_versions']) != self._source_versions
                 or tuple(record['body_posterior_weights']) != self._source_weights
                 or tuple(record['body_posterior_log_weights']) != self._source_log_weights
@@ -182,7 +207,12 @@ class StiffnessCommandMap:
             command_jacobian=derivative.tolist(), active_joint_limits=active.tolist(),
             source_command=self.source_command.tolist(), source_stamp=self.source_stamp,
             source_prior_state_id=self._source_prior_id,
-            body_posterior_state_ids=list(self._source_ordered_ids), density_id=self._density_id)
+            body_posterior_state_ids=list(self._source_ordered_ids),
+            goal_source_state_ids=list(self._goal_ordered_ids),
+            goal_source_weights=list(self._goal_weights),
+            goal_source_log_weights=list(self._goal_log_weights),
+            goal_parent_internal_state_id=self._goal_parent_internal_id,
+            density_id=self._density_id)
 
     def record(self):
         """Independent serializable provenance; later cache writes cannot mutate it."""

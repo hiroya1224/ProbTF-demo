@@ -355,8 +355,12 @@ def test_every_case_can_publish_its_actual_second_sequential_posterior(case, tmp
         verify_wire_identity(tick.snapshot, tick.markers, seed=published['render_seed'],
                              point_size=published['point_size'])
         assert len(tick.snapshot.observation_ids) == len(set(tick.snapshot.observation_ids))
-        assert {point.query.state_id for point in tick.snapshot.points} == set(
+        assert {point.query.state_id for point in tick.snapshot.points
+                if point.frame_label != 'marker'} == set(
             tick.snapshot.stiffness_record['body_posterior_state_ids'])
+        assert {point.query.state_id for point in tick.snapshot.points
+                if point.frame_label == 'marker'} == {
+            item.state.state_id for item in tick.result.stages[-1].goal_components}
         ticks.append(tick)
         session.finish(tick)
     assert len(ticks) == 2

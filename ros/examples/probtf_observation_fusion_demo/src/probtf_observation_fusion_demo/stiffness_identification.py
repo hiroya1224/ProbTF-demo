@@ -514,6 +514,13 @@ class StiffnessIdentifier:
             proposal_approximation=None, proposal_status='not_computed', command_proposal=None,
             approximation='specified Bingham-derived local Gaussian body proxies; no Gaussian projection of cumulative stiffness density',
             support_regularization_added=False)
+        projection = result.records.get('internal_projection')
+        if projection is not None:
+            record['body_internal_approximation'] = dict(
+                internal_state_id=projection['internal_state_id'],
+                source_prior_state_id=projection['source_prior_state_id'],
+                approximation=projection['approximation'],
+                ratio_semantics='prior versus the declared full joint moment approximation after sensor fusion; not the unprojected exact observation likelihood')
         if len(set(observation_ids)) != len(observation_ids):
             raise ValueError('New stiffness evidence contains a duplicate observation ID.')
         repeated = self.observation_ids.intersection(observation_ids)

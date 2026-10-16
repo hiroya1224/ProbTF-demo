@@ -1,6 +1,7 @@
 # Codex実装指示：ProbTFの解析的伝播とセンサ別分布融合によるリンク姿勢推定
 
 2026年10月17日の追加指示により、身体側の解析的な単一Bingham近似は許可される。
+内部状態は共有未知量との全モーメントを単一で保持し、過去の観測候補の直積を列挙しない。
 ARマーカーの観測側と到達規準の目標 `p_goal` はmixtureを保持する。
 この区別と規準への反映は [REQUIREMENTS_SEQUENTIAL_UPDATE.md](REQUIREMENTS_SEQUENTIAL_UPDATE.md) に記録する。
 

@@ -27,10 +27,30 @@ def build_snapshot(result, stage, common):
     settings = common["display"]
     paths = dict(result.link_paths)
     paths.update(hand=result.hand_path, camera=result.camera_path, marker=result.marker_path)
+    goal_components = tuple(getattr(stage, 'goal_components', ()))
+    if goal_components:
+        # The internal body is displayed once. Current observation goal modes
+        # have their own joint sources; they supply only the marker queries.
+        del paths['marker']
     points = []
     axis_length = float(settings["axis_length"])
     endpoints = (("origin", np.zeros(3)), ("x", [axis_length, 0, 0]),
                  ("y", [0, axis_length, 0]), ("z", [0, 0, axis_length]))
+
+    def append_endpoint(component, label, path, axis, endpoint):
+        state = component.state
+        query = point_query(
+            state, path, endpoint,
+            query_id="{}/{}/{}/{}".format(stage.label, component.label, label, axis),
+            frame=result.root_frame,
+        )
+        if (query.version != state.version or query.stamp != state.stamp
+                or tuple(query.command) != tuple(state.command)):
+            raise AssertionError("Core query provenance differs from its joint snapshot.")
+        count = settings["marker_samples"] if label == "marker" else settings["body_samples"]
+        points.append(DisplayPoint(query, label, axis, component.label,
+                                   component.weight, int(count), component_log_weight(component)))
+
     observed = {}
     for estimate in result.local_estimates:
         if estimate.observed_direction is not None:
@@ -43,17 +63,7 @@ def build_snapshot(result, stage, common):
         state = component.state
         for label, path in paths.items():
             for axis, endpoint in endpoints:
-                query = point_query(
-                    state, path, endpoint,
-                    query_id="{}/{}/{}/{}".format(stage.label, component.label, label, axis),
-                    frame=result.root_frame,
-                )
-                if (query.version != state.version or query.stamp != state.stamp
-                        or tuple(query.command) != tuple(state.command)):
-                    raise AssertionError("Core query provenance differs from its joint snapshot.")
-                count = settings["marker_samples"] if label == "marker" else settings["body_samples"]
-                points.append(DisplayPoint(query, label, axis, component.label,
-                                           component.weight, int(count), component_log_weight(component)))
+                append_endpoint(component, label, path, axis, endpoint)
         for estimate in observed.values():
             target = estimate.diagnostics["target_link"]
             path = result.link_paths[target]
@@ -66,6 +76,9 @@ def build_snapshot(result, stage, common):
                 points.append(DisplayPoint(query, "IMU gravity at " + target, axis,
                                            component.label, component.weight,
                                            int(settings["body_samples"]), component_log_weight(component)))
+    for component in goal_components:
+        for axis, endpoint in endpoints:
+            append_endpoint(component, 'marker', result.marker_path, axis, endpoint)
     state = stage.components[0].state
     hand = next(p.query for p in points if p.frame_label == "hand" and p.axis == "origin")
     summary = (
@@ -88,21 +101,31 @@ def build_snapshot(result, stage, common):
 def verify_adapter_identity(snapshot, stage):
     """The adapter owns no second covariance/mean model or mutable parameter copy."""
     components = {component.label: component for component in stage.components}
+    goal_components = {component.label: component
+                       for component in getattr(stage, 'goal_components', ())}
     for point in snapshot.points:
-        source = components[point.component_id]
+        sources = goal_components if point.frame_label == 'marker' and goal_components else components
+        if point.component_id not in sources:
+            raise AssertionError("A displayed point belongs to a different body or goal source.")
+        source = sources[point.component_id]
         query = point.query
         if (point.weight != source.weight or point.log_weight != component_log_weight(source)
                 or query.version != source.state.version
                 or query.stamp != source.state.stamp
                 or tuple(query.command) != tuple(source.state.command)
                 or query.state_id != source.state.state_id
-                or query.frame != snapshot.frame_id):
+                or query.frame != snapshot.frame_id
+                or query.version != snapshot.version or query.stamp != snapshot.stamp
+                or tuple(query.command) != tuple(snapshot.command)):
             raise AssertionError("Adapter input is not the estimator's joint-state query.")
         if query.mean.flags.writeable or query.covariance.flags.writeable:
             raise AssertionError("Display query must be immutable.")
         if not np.allclose(query.within + query.between, query.covariance,
                            rtol=1e-9, atol=1e-12):
             raise AssertionError("Display query lost its total-covariance decomposition.")
+    if goal_components and {point.component_id for point in snapshot.points
+                            if point.frame_label == 'marker'} != set(goal_components):
+        raise AssertionError("The marker display lost an observation goal mixture component.")
 
 
 def image_message(image, stamp, frame):

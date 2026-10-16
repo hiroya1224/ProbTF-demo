@@ -83,9 +83,11 @@ def test_same_controller_uses_all_fused_candidates_and_respects_command_bounds(i
     for case, result in results.items():
         selected, diagnostics = controller(scene, inferences[case]).step(result, .05)
         commands[case] = selected
-        components = result.stages[-1].components
+        stage = result.stages[-1]
+        components = stage.goal_components or stage.components
         assert diagnostics["source_state_ids"] == [item.state.state_id for item in components]
         assert diagnostics["source_weights"] == [item.weight for item in components]
+        assert diagnostics["body_source_state_ids"] == [item.state.state_id for item in stage.components]
         assert len(diagnostics["selected_branches"]) == len(components)
         assert diagnostics["source_stamp"] == frame.stamp
         assert diagnostics["source_command"] == list(result.prior.command)
@@ -234,7 +236,8 @@ def test_single_gradient_step_uses_every_objective_term_and_improves_full_densit
     selected, diagnostics = selector.step(result, .05)
     def cost(command):
         terms = []
-        for component in result.stages[-1].components:
+        stage = result.stages[-1]
+        for component in stage.goal_components or stage.components:
             future = command_state(component.state, command, inference.body_ids, inference.actions)
             query = pose_query(future, selector.relative_path)
             quaternion = quat_mul(query.rotation_wxyz,

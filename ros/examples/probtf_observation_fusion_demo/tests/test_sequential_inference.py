@@ -51,11 +51,12 @@ def test_new_imu_information_accumulates_in_upstream_laws_without_mc(moving, mon
         inference.update(changed, 1)
 
 
-def test_marker_loss_retains_every_branch_unknown_marker_and_cross_covariance(moving):
+def test_marker_loss_retains_single_internal_memory_and_all_goal_modes(moving):
     scene, inputs, cases = moving
     inference = MovingInference(scene.robot_description, cases['marker'])
     first = inference.update(inputs, 0)
-    assert len(first.stages[-1].components) >= 2
+    assert len(first.stages[-1].components) == 1
+    assert len(first.stages[-1].goal_components) >= 2
     command = inputs.command.copy(); command[1] += .025
     missing = replace(inputs, command=command, stamp=1000.05, time=.05,
                       image=np.full_like(inputs.image, 255))
@@ -63,6 +64,7 @@ def test_marker_loss_retains_every_branch_unknown_marker_and_cross_covariance(mo
     assert second.records['observation_ids'] == []
     assert second.records['valid_observation_count'] == 0
     assert len(second.stages[-1].components) == len(first.stages[-1].components)
+    assert len(second.stages[-1].goal_components) == len(first.stages[-1].goal_components)
     for old, prior, posterior, provenance in zip(first.stages[-1].components,
             second.stages[0].components, second.stages[-1].components, second.records['prediction']):
         expected = command_state(old.state, command, inference.body_ids, inference.actions)
@@ -79,21 +81,33 @@ def test_marker_loss_retains_every_branch_unknown_marker_and_cross_covariance(mo
         assert provenance['source_state_id'] == old.state.state_id
         assert provenance['transported_state_id'] == prior.state.state_id
         assert prior.state.stamp == 1000.05 and prior.state.command == tuple(command)
+    for old, retained in zip(first.stages[-1].goal_components, second.stages[-1].goal_components):
+        expected = command_state(old.state, command, inference.body_ids, inference.actions)
+        assert retained.weight == old.weight and retained.log_weight == old.log_weight
+        np.testing.assert_array_equal(retained.state.covariance, expected.covariance)
+        marker = expected.edge_ids.index('marker')
+        np.testing.assert_array_equal(retained.state.transforms[marker].translation,
+                                      expected.transforms[marker].translation)
+        np.testing.assert_array_equal(retained.state.transforms[marker].bingham,
+                                      expected.transforms[marker].bingham)
 
 
-def test_every_prior_and_image_branch_survives_sequential_fusion_with_chart_correspondence(moving):
+def test_internal_state_stays_single_and_current_goal_mixture_does_not_form_history_products(moving):
     scene, inputs, cases = moving
     inference = MovingInference(scene.robot_description, cases['marker'])
     first = inference.update(inputs, 0)
     second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
-    initial_count = len(first.stages[-1].components)
-    assert len(second.frozen_body_branches) == initial_count
-    assert len(second.stages[-1].components) == initial_count**2
+    initial_count = len(first.stages[-1].goal_components)
+    assert initial_count >= 2
+    assert len(first.stages[-1].components) == len(second.stages[-1].components) == 1
+    assert len(second.frozen_body_branches) == 1
+    assert len(second.stages[-1].goal_components) == initial_count
+    assert len(second.stages[-2].components) == initial_count
     displayed = {item.label: item for item in second.stages[-1].components}
     logs = []
     for branch in second.frozen_body_branches:
         assert branch.reference_state.component_id == branch.label
-        assert len(branch.posterior_components) == initial_count
+        assert len(branch.posterior_components) == 1
         for raw in branch.posterior_components:
             actual = displayed[raw.label]
             expected = reexpress_state(branch.reference_state, raw.distribution.mean,
@@ -103,7 +117,12 @@ def test_every_prior_and_image_branch_survives_sequential_fusion_with_chart_corr
             logs.append(raw.log_weight)
     assert logsumexp(logs) == pytest.approx(0., abs=1e-12)
     assert second.records['valid_observation_count'] == 1
-    assert len(second.sensor_posteriors) == initial_count
+    assert len(second.sensor_posteriors) == 1
+    for goal, raw in zip(second.stages[-1].goal_components, second.stages[-2].components):
+        assert goal.weight == raw.weight and goal.log_weight == raw.log_weight
+        internal = second.stages[-1].components[0].state
+        np.testing.assert_array_equal(goal.state.covariance[:60, :60], internal.covariance[:60, :60])
+    assert second.records['internal_projection']['source_component_count'] == initial_count
 
 
 def _scalar_inputs():
@@ -219,14 +238,16 @@ def test_native_image_log_masses_survive_float_underflow_and_the_next_tick(movin
     monkeypatch.setattr(sensors.PoseMixtureEstimator, 'estimate', tiny_image_mode)
     inference = MovingInference(scene.robot_description, cases['marker'])
     first = inference.update(inputs, 0)
-    assert len(first.stages[-1].components) >= 2
-    tiny = first.stages[-1].components[1]
+    assert len(first.stages[-1].components) == 1
+    assert len(first.stages[-1].goal_components) >= 2
+    tiny = first.stages[-1].goal_components[1]
     assert tiny.weight == 0. and math.isfinite(tiny.log_weight)
     assert first.local_estimates[0].posterior.components[1].log_weight == tiny.log_weight
     inference.templates = ()
     second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
-    assert len(second.stages[-1].components) == len(first.stages[-1].components)
-    for old, retained in zip(first.stages[-1].components, second.stages[-1].components):
+    assert len(second.stages[-1].components) == len(first.stages[-1].components) == 1
+    assert len(second.stages[-1].goal_components) == len(first.stages[-1].goal_components)
+    for old, retained in zip(first.stages[-1].goal_components, second.stages[-1].goal_components):
         assert old.log_weight == retained.log_weight
         np.testing.assert_array_equal(old.state.covariance, retained.state.covariance)
 
@@ -248,8 +269,9 @@ def test_image_detection_and_hessian_refinement_run_once_per_observation(moving,
     inference = MovingInference(scene.robot_description, cases['marker'])
     inference.update(inputs, 0)
     second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
-    assert len(second.stages[0].components) >= 2
-    assert len(second.stages[-1].components) >= 4
+    assert len(second.stages[0].components) == 1
+    assert len(second.stages[-1].components) == 1
+    assert len(second.stages[-1].goal_components) >= 2
     assert calls == dict(detect=2, refine=2)
     image_only = [estimate.detector_result for estimate in second.local_estimates]
     assert all(value is image_only[0] for value in image_only)
@@ -266,7 +288,8 @@ def test_two_sensor_fusion_after_a_real_command_keeps_declared_dirac_coordinates
     physical_frame = scene.step(.05, inputs.stamp+.05, command=command)
     second = inference.update(scene.sensor_inputs(physical_frame), 1)
     assert second.records['valid_observation_count'] == 2
-    assert len(second.stages[-1].components) >= 4
+    assert len(second.stages[-1].components) == 1
+    assert len(second.stages[-1].goal_components) >= 2
     for branch in second.frozen_body_branches:
         fixed = np.flatnonzero(np.all(branch.prior.covariance == 0., axis=1))
         assert fixed.size > 0

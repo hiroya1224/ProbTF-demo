@@ -171,10 +171,13 @@ def test_one_complete_objective_step_uses_the_same_corrected_candidates(correcte
     assert np.max(np.abs(increment)) <= settings['max_joint_velocity']*.05+1e-12
     assert np.max(np.abs(increment/.05)) <= settings['max_joint_acceleration']*.05+1e-12
     assert diagnostics['gradient_evaluation_count'] == 1
-    assert diagnostics['source_state_ids'] == [c.state.state_id for c in result.stages[-1].components]
+    stage = result.stages[-1]
+    goals = stage.goal_components or stage.components
+    assert diagnostics['source_state_ids'] == [c.state.state_id for c in goals]
+    assert diagnostics['body_source_state_ids'] == [c.state.state_id for c in stage.components]
     assert diagnostics['stiffness_command_correction'] == mapping.record()
     assert -diagnostics['log_expected_density'] <= diagnostics['feasible_baseline_objective']+1e-12
-    for component, branch in zip(result.stages[-1].components, diagnostics['selected_branches']):
+    for component, branch in zip(goals, diagnostics['selected_branches']):
         future = mapping.push(component.state, selected, inference.body_ids, inference.actions)
         query = selector._query(future)
         np.testing.assert_array_equal(query.mean, branch['query_mean'])
@@ -204,10 +207,10 @@ def test_selected_corrected_law_is_the_next_prior_and_published_snapshot_source(
     later = replace(inputs, stamp=inputs.stamp+.05, time=.05, command=selected,
                     image=np.full_like(inputs.image, 255))
     updated = inference.update(later, 1, command_map=mapping)
-    for source, prior, branch in zip(result.stages[-1].components,
-            updated.stages[0].components, diagnostics['selected_branches']):
+    for source, prior, selected_body_id in zip(result.stages[-1].components,
+            updated.stages[0].components, diagnostics['selected_body_state_ids']):
         expected = mapping.push(source.state, selected, inference.body_ids, inference.actions)
-        assert branch['state_id'] == expected.state_id
+        assert selected_body_id == expected.state_id
         np.testing.assert_array_equal(prior.state.covariance, expected.covariance)
         for actual, predicted in zip(prior.state.transforms, expected.transforms):
             np.testing.assert_array_equal(actual.translation, predicted.translation)
@@ -216,6 +219,10 @@ def test_selected_corrected_law_is_the_next_prior_and_published_snapshot_source(
         assert prior.state.command == tuple(selected)
         assert prior.state.stamp == later.stamp and prior.state.version > expected.version
         assert prior.weight == source.weight and prior.log_weight == source.log_weight
+    for source, branch in zip(result.stages[-1].goal_components,
+                             diagnostics['selected_branches']):
+        expected = mapping.push(source.state, selected, inference.body_ids, inference.actions)
+        assert branch['state_id'] == expected.state_id
     snapshot = build_snapshot(updated, updated.stages[-1], inference.common)
     verify_adapter_identity(snapshot, updated.stages[-1])
     display = inference.common['display']

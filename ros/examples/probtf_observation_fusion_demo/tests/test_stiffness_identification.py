@@ -282,6 +282,7 @@ def test_valid_sensor_cases_use_same_frozen_ratio_and_are_sensor_order_invariant
     original = inference.update(scene.sensor_inputs(frame), 0)
     swapped = run(inference.common, tuple(reversed(inference.last_observations)), frame.image,
                   prior=original.prior, paths=inference.paths)
+    swapped = inference._project_internal_update(swapped, ())
     alternative = StiffnessIdentifier(scene.urdf, inference.body_ids, settings).update(swapped)
     assert alternative == records['imu_marker']
     # Source mismatches cannot be disguised by a new numerical fit.
@@ -403,11 +404,12 @@ def test_cumulative_memory_preserves_old_factors_on_marker_loss_and_adds_only_ne
     current = inference.update(scene.sensor_inputs(current_frame), 2)
     current_record = identifier.update(current)
     assert current_record['status'] == 'updated_density_factor', current_record.get('failure_reason')
-    assert len(current.frozen_body_branches) == 2
-    assert sum(len(branch.posterior_components) for branch in current.frozen_body_branches) == 4
+    assert len(current.frozen_body_branches) == 1
+    assert sum(len(branch.posterior_components) for branch in current.frozen_body_branches) == 1
+    assert len(current.stages[-1].goal_components) == 2
     assert len(identifier.factors) == 2
     assert current_record['prior'] == first_record['posterior']
-    assert len(current_record['body_marginal']['branches']) == 2
+    assert len(current_record['body_marginal']['branches']) == 1
     new_contribution, new_derivative = identifier._factor_evaluation(identifier.factors[-1], x)
     np.testing.assert_allclose(identifier.log_density(x)[0], old_density+new_contribution, atol=1e-12)
     np.testing.assert_allclose(identifier.log_density(x)[1], old_gradient+new_derivative, atol=1e-12)

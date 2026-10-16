@@ -4,7 +4,8 @@ import numpy as np
 import pytest
 
 from probtf.geometry import (
-    axis_angle_to_quat, quat_mul, quat_to_rotmat, skew, rotation_vector_to_quaternion,
+    axis_angle_to_quat, quat_left_matrix, quat_mul, quat_normalize, quat_to_rotmat,
+    skew, rotation_vector_to_quaternion,
 )
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState,
@@ -13,11 +14,35 @@ from probtf.spherical_law.first_order import (
     point_query, pose_query, query_cross_covariance, reexpress_state,
 )
 from probtf.spherical_law.tangent import induced_vector_moments_tangent
+from probtf.spherical_law.support import support_inverse
 
 
 def law(edge_id, translation=(0., 0., 0.), quaternion=(1., 0., 0., 0.), covariance=None):
     covariance = np.diag([0.007, 0.009, 0.012]) if covariance is None else covariance
     return BinghamTransform(edge_id, translation, bingham_from_rotation_coordinates(quaternion, covariance))
+
+
+def test_concentrated_bingham_reexpression_preserves_symmetry_and_the_same_quadratic_form():
+    # Actual retained-goal covariance from the IMU+marker frame115 failure.
+    quaternion = np.array([.45907712479184165, .5673166194890931,
+                           -.5543494323137805, -.4001209237689437])
+    covariance = np.array([
+        [5.1516739020030114e-5, -9.086835298191618e-6, -9.254373444417672e-6],
+        [-9.086835298191593e-6, .00010399638408577108, 8.593404967093329e-6],
+        [-9.254373444417737e-6, 8.593404967093394e-6, 3.425826426380021e-5]])
+    parameter = bingham_from_rotation_coordinates(quaternion, covariance)
+    np.testing.assert_array_equal(parameter, parameter.T)
+    tangent = quat_left_matrix(quat_normalize(quaternion))[:, 1:]
+    raw = -2.*tangent @ support_inverse(covariance)[0] @ tangent.T
+    np.testing.assert_array_equal(parameter, .5*(raw+raw.T))
+    for direction in ([1., 0., 0., 0.], [0., 1., 0., 0.],
+                      [1., 2., 3., 4.], [-1., 3., -2., 4.]):
+        q = quat_normalize(direction)
+        np.testing.assert_allclose(q @ parameter @ q, q @ raw @ q, rtol=0., atol=1e-11)
+    recovered_mode, recovered_covariance = bingham_rotation_coordinates(parameter)
+    np.testing.assert_allclose(np.outer(recovered_mode, recovered_mode),
+                               np.outer(quaternion, quaternion), atol=1e-12)
+    np.testing.assert_allclose(recovered_covariance, covariance, rtol=1e-11, atol=1e-15)
 
 
 def test_direction_proxy_keeps_contraction_and_only_leading_covariance():

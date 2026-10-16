@@ -62,6 +62,10 @@ class MotionDisplay:
             if (query.stamp != snapshot.stamp or tuple(query.command) != tuple(snapshot.command)
                     or query.frame != snapshot.frame_id):
                 raise AssertionError('A body query belongs to another stiffness source snapshot.')
+            # Goal-mixture queries share the internal body's marginal, but
+            # carry their own observed marker conditionals and source IDs.
+            if point.frame_label == 'marker':
+                continue
             source = (query.state_id, query.version, point.weight)
             if point.component_id in components and components[point.component_id] != source:
                 raise AssertionError('A displayed component has inconsistent stiffness provenance.')
@@ -80,6 +84,8 @@ class MotionDisplay:
         if 'body_posterior_log_weights' in record:
             logs = {}
             for point in snapshot.points:
+                if point.frame_label == 'marker':
+                    continue
                 if point.component_id in logs and logs[point.component_id] != point.log_weight:
                     raise AssertionError('A displayed component has inconsistent log mass.')
                 logs[point.component_id] = point.log_weight

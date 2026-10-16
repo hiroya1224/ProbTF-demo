@@ -1,5 +1,7 @@
 # 【緊急・優先】ProbTF observation fusion demo: 剛性推定の欠落を訂正する
 
+2026年10月17日の追加訂正により、逐次内部状態は、全観測成分から平均と全交差共分散を求める単一の代理として保持する。以下の密度比にも、その同じ内部代理を使う。観測・比較目標のmixtureは別途保持する。近似位置と密度比の意味の詳細は [REQUIREMENTS_SEQUENTIAL_UPDATE.md](REQUIREMENTS_SEQUENTIAL_UPDATE.md) を参照する。
+
 この文書は、すでに渡した `probtf_imu_marker_demo_codex_instructions.md` への**訂正・追加指示**である。現時点で作業途中・実装途中なら、以下を優先して反映すること。既存の作業結果やユーザーの未コミット変更を破棄しないこと。
 
 ## 0. 明示的な誤指示の撤回

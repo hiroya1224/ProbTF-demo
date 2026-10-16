@@ -253,14 +253,51 @@ def test_near_target_gradient_step_shrinks_without_normalizing_to_speed_limit():
     assert diagnostics["convergence_claimed"] is False
 
 
-def test_gradient_metadata_names_feasible_coasting_point_when_zero_is_infeasible(inputs):
+def test_gradient_metadata_names_feasible_braking_point_when_zero_is_infeasible(inputs):
     scene, _, inferences, results = inputs
     selector = controller(scene, inferences["no_sensors"])
     selector.velocity[:] = .1
     result = results["no_sensors"]
     _, diagnostics = selector.step(result, .05)
     assert diagnostics["zero_increment_feasible"] is False
+    np.testing.assert_allclose(diagnostics["feasible_baseline_increment"], np.full(6, .0035))
     np.testing.assert_allclose(diagnostics["gradient_at_command"],
         np.asarray(result.prior.command)+np.asarray(diagnostics["feasible_baseline_increment"]))
     assert diagnostics["gradient_at_command"] != diagnostics["source_command"]
     assert all(value != 0.0 for value in diagnostics["gradient_difference_steps"])
+
+
+def test_flat_objective_brakes_to_stop_within_acceleration_limits(inputs, monkeypatch):
+    scene, _, inferences, results = inputs
+    inference = inferences["no_sensors"]
+    selector = controller(scene, inference)
+    result = results["no_sensors"]
+    selector.velocity[:] = [.10, -.10, .02, -.02, 0., .20]
+    # A constant criterion supplies no direction. The short command must not
+    # perpetuate an old velocity just because no Armijo step can be accepted.
+    monkeypatch.setattr(
+        "probtf_observation_fusion_demo.moving_control._relative_density",
+        lambda *args: (0., {}))
+    previous_velocity = selector.velocity.copy()
+    for step in range(7):
+        command = np.asarray(result.prior.command)
+        selected, diagnostics = selector.step(result, .05)
+        velocity = (selected-command)/.05
+        if step == 0:
+            np.testing.assert_allclose(velocity, [.07, -.07, 0., 0., 0., .17], atol=1e-12)
+        assert np.all(np.abs(velocity) <= np.abs(previous_velocity)+1e-12)
+        assert np.max(np.abs(velocity-previous_velocity)) <= .60*.05+1e-12
+        assert np.max(np.abs(velocity)) <= .20+1e-12
+        assert np.all(selected >= selector.lower) and np.all(selected <= selector.upper)
+        assert not diagnostics["line_search_accepted"]
+        np.testing.assert_array_equal(diagnostics["objective_gradient"], np.zeros(6))
+        np.testing.assert_allclose(diagnostics["gradient_at_command"], selected)
+        np.testing.assert_allclose(diagnostics["feasible_baseline_increment"], selected-command)
+        assert diagnostics["source_state_ids"] == [result.prior.state_id]
+        assert diagnostics["selected_branches"][0]["parent_state_id"] == result.prior.state_id
+        assert diagnostics["selection_reason"].startswith("feasible braking baseline")
+        state = command_state(result.prior, selected, inference.body_ids, inference.actions)
+        result = replace(result, prior=state, stages=(
+            Stage("fused", (WeightedState("body", 1., state),)),))
+        previous_velocity = velocity
+    np.testing.assert_allclose(selector.velocity, np.zeros(6), atol=1e-12)

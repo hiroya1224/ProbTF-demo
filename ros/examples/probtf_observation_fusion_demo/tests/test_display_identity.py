@@ -112,7 +112,9 @@ def test_original_rviz_bytes_and_copied_layout_are_preserved():
                 if d.get("Name") == "ProbTF robot joints")
     marker = next(d for d in original["Visualization Manager"]["Displays"]
                   if d.get("Name") == "ProbTF observed AR marker")
-    assert settings["point_size"] == body["Point Size"] == marker["Point Size"]
-    assert settings["axis_length"] == body["Axis Length"] == marker["Axis Length"]
+    # The user explicitly requested a 0.75 rendering scale on 2026-10-16.
+    # The protected RViz files themselves still remain byte-identical.
+    assert settings["point_size"] == .75*body["Point Size"] == .75*marker["Point Size"]
+    assert settings["axis_length"] == .75*body["Axis Length"] == .75*marker["Axis Length"]
     assert settings["body_samples"] == body["Sample Count"]
     assert settings["marker_samples"] == marker["Sample Count"]

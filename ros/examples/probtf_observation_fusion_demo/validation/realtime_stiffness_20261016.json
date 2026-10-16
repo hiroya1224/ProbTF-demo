@@ -1,0 +1,2913 @@
+{
+  "schema": "probtf.realtime_stiffness_benchmark.v3",
+  "recorded_at_utc": "2026-10-16T11:01:58.604178+00:00",
+  "scope": "Four independent 40-frame live ROS throughput measurements of one frozen implementation, with stiffness identification enabled. No offline replay. This is not a full-trajectory applicability certificate or a measurement of RViz GPU frame rate.",
+  "assessment": {
+    "short_window_only": true,
+    "full_trajectory_laplace_applicability_established": false,
+    "limitation": "The auxiliary stable branch can end at a fold during longer runs. Such updates publish posterior=null, exact retained_prior and unavailable information. A successful short measurement does not remove those reported limitations."
+  },
+  "command_interval_s": 0.05,
+  "scene_clock": "wall time; hold the last command until the next completed fresh update",
+  "ros_master_uri": "http://localhost:11769",
+  "replication": {
+    "program": "ros/examples/probtf_observation_fusion_demo/scripts/benchmark_realtime.py",
+    "arguments": [
+      "--publish",
+      "--frames",
+      "40"
+    ],
+    "cpu_affinity": [
+      63
+    ],
+    "environment": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    },
+    "load_note": "Other demo preparations ran concurrently. The logical CPU was selected after a short utilization sample; affinity does not establish an isolated or idle CPU."
+  },
+  "benchmark_base_commit": "7b3f347fee912c33bf6635a41091e920f37abaea",
+  "implementation_sha256": {
+    "ros/core/probtf_core/src/probtf/bingham.py": "3433043881915d5dd1f450994536f5b47e289955cea1f6fe7b20c4bdc2e43e38",
+    "ros/core/probtf_core/src/probtf/spherical_law/__init__.py": "490be413534affcf03da46f46e354c032c4861c7a567e0e191bab99b8c9db5ee",
+    "ros/core/probtf_core/src/probtf/spherical_law/adapters.py": "286b2481ea8820818735cbe911dfb3464260d2ed8211b9557719ce0e83b6253e",
+    "ros/core/probtf_core/src/probtf/spherical_law/first_order.py": "517a358a1ec4a9ba1d11da22cfbe6f1bd571e088f1c1046fe7ac5469ca989a32",
+    "ros/core/probtf_core/src/probtf/spherical_law/fusion.py": "cf12b6725647b6ef5064fd2715dc3e21ad5ebae9908de2e78bcd3878bc69a836",
+    "ros/core/probtf_core/src/probtf/spherical_law/induced_direction.py": "1fc1e7c74ed95c003e9e111fa0222ec64a5d15a1284edc5e555ed6ba35bb067c",
+    "ros/core/probtf_core/src/probtf/spherical_law/induced_vector.py": "a48c94778a06146f0aff0c7eb4c7bb919b905ade314f1d66e81d0203fd67c1ad",
+    "ros/core/probtf_core/src/probtf/spherical_law/numerical.py": "b10d70229431258ff8efcd65fdfb3284597cae1f1c2db2afe1a4461b257f669e",
+    "ros/core/probtf_core/src/probtf/spherical_law/protocol.py": "057c8fd50bae6f7aa379d75f70957b25e04ce819817302476d0f7a5a6d797648",
+    "ros/core/probtf_core/src/probtf/spherical_law/support.py": "ca15cf67a0d21429385f3443b98123705f6ae160beed72faedd4c5b2062e50f4",
+    "ros/core/probtf_core/src/probtf/spherical_law/tangent.py": "82f405ffe27e252db595e6de44a77791f058aa4ff140fd0b38a97e7e1ab5a6a2",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/estimator/initialization.py": "d003c7e1b9a94365d4f1ad40afc21e6dd2714d8004a6409523f17aa48c13e406",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/equilibrium.py": "715fe1a790028a234bd37f1993b548fee1346a1100e18a5759a292ff5a0a056f",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/sensitivity.py": "16a042df5ffef41ae2684352b6e0ea814d5b42572991b01052128b0e6842ab56",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/spring.py": "1b98ac6840be276f5ea02c3a164bb8947cd252a894645651f1348cefb9b97f82",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/robot/pinocchio_robot.py": "69a316b31e633f0f3c03792728048aced2fecbed95efad855924d184020c58d2",
+    "ros/examples/deflecomp/deflecomp_ros/config/estimator.yaml": "1e8b1296817ef040c86e79a10d620b8713ea58593777354f2f368fdedfef68c4",
+    "ros/examples/prob_artag_detector/src/prob_artag_detector/detector.py": "f81c137eca93612cef0444f434b38ed050aa2dfa3ccfd5d895c6b40ab0959aea",
+    "ros/examples/prob_artag_detector/src/prob_artag_detector/estimator.py": "c0ac6956b5d82c2a513b3eebbc82619f575882d9e63b92aea18d01420118b675",
+    "ros/examples/probtf_observation_fusion_demo/config/common.yaml": "994306ed66f5091c29cfd1608c8632f5d635e5e0976f7ad038327086c8be0fa8",
+    "ros/examples/probtf_observation_fusion_demo/config/imu.yaml": "ae63815ea690cd9f1ed89f71c2400f8a14556082250dc00d650b17afcd1e944d",
+    "ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml": "06ae21320718ce839e2297abe3a880400aa12681a76de0b6e1ae8ed0ea568a68",
+    "ros/examples/probtf_observation_fusion_demo/config/marker.yaml": "bdc5684e172da1b51ec9b5d03c601e51cbf1022b12c5596e66e0af7cf01aaf3d",
+    "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml": "317a7f5ca8e048ed7c84f880e6bead12aa1205f9976622c413359e98d416518e",
+    "ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml": "42a77d50f697602baf608efcd0322edae49d769b16b0a1ec7404d9ca8d8aa4cb",
+    "ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml": "68a5a4e985ca7a7e5c49e24599720ae05864ca37b0ad937e4634be08d8f288c6",
+    "ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml": "e9b7f930648665715cbdfc4bb4fb67c1db97204759b3eb595393cc099ec7efad",
+    "ros/examples/probtf_observation_fusion_demo/scripts/benchmark_realtime.py": "ff729fce655c46f0ec7aeeaa284f03eca9c6d7e983894e1d42f933845ea2f8e6",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py": "45bbc847b9e4500449d5759c16369108209d4b0fc0d6b2d5901ae23b1fd3aec9",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py": "49e3a924d5a1f7955f01aa281fe8b7675ee6f0ecb585525049c47c4a1aa805f4",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py": "ed71bc1c982c29899c3701da750b2486624019fd7592767ce25921c37cb2e4a5",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py": "8bdad72b30f847edc827f7083d9e1edc27ca928985b8d049a9f8df764700ea4b",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py": "f92e1b82ae99f4d42b5e0acdbc8e0750c466b34500590b7a3489e43f0a4fe847",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "46098542bf75ba0d2ee3e00243b1c578d530c969178893844f15d16ae036f1fc",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py": "e9cbcfdb60b9c00cf4d91af7e55345882e768d18455ca3c0fdb25d6ecb2d51ca",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py": "e185cdf57ea8e14ec179e7e7ddaa6a25a5e9914168a35ba18270e1a1af65fe3e",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py": "a41f38c535ce1cfcf96d5f34d2f6998d83e2df1a99f7e1e1484b8d8b0b653edc",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": "70c39de23b676f0ec9521455c52cebc07dd544961d27609a34277dfa22a9b639",
+    "ros/examples/probtf_switch_press_demo/config/independent_transform_laws.yaml": "01ad64e184c65f21365f0a687bdb18e23c8ec9835359c1d10a4cda2620687480"
+  },
+  "source_fingerprint_policy": "A single baseline was taken at process start and compared at the start/end of every case. All four cases and the archival-time files matched that same baseline.",
+  "control_settings": {
+    "goal_offset": [
+      0.0,
+      -0.24,
+      0.045
+    ],
+    "goal_orientation_wxyz": [
+      0.5,
+      -0.5,
+      0.5,
+      0.5
+    ],
+    "max_joint_velocity": 0.12,
+    "max_joint_acceleration": 0.3,
+    "damping": 0.025,
+    "integration_steps": 480,
+    "gradient_step": 1e-05,
+    "gradient_max_backtracks": 3
+  },
+  "display_settings": {
+    "axis_length": 0.07500000111758709,
+    "point_size": 0.007499999832361937,
+    "body_samples": 180,
+    "marker_samples": 200,
+    "seed": 29,
+    "stage_seconds": 3.0,
+    "publish_hz": 10.0
+  },
+  "stiffness_settings": {
+    "prior_config_package": "deflecomp_ros",
+    "prior_config_file": "config/estimator.yaml",
+    "known_model_source": "Generated shared robot URDF, including its supplied masses/inertias and known tool/camera attachments, with deflecomp gravity and linear joint spring law. These are inputs of the auxiliary model, not quantities learned from observations. The simulator's true stiffness and realized pose are excluded.",
+    "optimizer_max_iterations": 80,
+    "optimizer_gradient_tolerance": 1e-06,
+    "laplace_fd_step": 0.0001
+  },
+  "parameter_prior_source": {
+    "file": "ros/examples/deflecomp/deflecomp_ros/config/estimator.yaml",
+    "sha256": "1e8b1296817ef040c86e79a10d620b8713ea58593777354f2f368fdedfef68c4",
+    "kp_min": 1.0,
+    "kp_max": 500.0,
+    "initializer": "deflecomp_core.estimator.initialization.initial_log_kp_state/initial_log_kp_std",
+    "bounds_role": "existing Gaussian initialization only; not truncation of log-K support"
+  },
+  "interpretation": "The stiffness posterior describes effective parameters of the supplied auxiliary gravity/spring model. It is not a guarantee of material stiffness. Every saved Gaussian-mixture component and its full covariance is retained below.",
+  "parameter_delivery": "Full log-K means/covariances and all Gaussian-mixture components, with K medians. Optional linear-K means/covariances are not required delivery fields.",
+  "cases": [
+    {
+      "case": "no_sensors",
+      "frames": 40,
+      "wall_seconds": 6.087849938776344,
+      "fresh_updates_per_second": 6.570464187236518,
+      "nominal_command_interval_s": 0.05,
+      "offline_precomputation": false,
+      "published": true,
+      "stiffness_enabled": true,
+      "rviz_gpu_rendering_measured": false,
+      "cpu_affinity": [
+        63
+      ],
+      "load_average_at_start": [
+        2.14,
+        3.52,
+        4.05
+      ],
+      "scene_config_sha256": "e9b7f930648665715cbdfc4bb4fb67c1db97204759b3eb595393cc099ec7efad",
+      "estimation_config_sha256": "317a7f5ca8e048ed7c84f880e6bead12aa1205f9976622c413359e98d416518e",
+      "stiffness_config_sha256": "68a5a4e985ca7a7e5c49e24599720ae05864ca37b0ad937e4634be08d8f288c6",
+      "source_files_unchanged_during_measurement": true,
+      "missed_nominal_deadlines": 40,
+      "valid_observations_histogram": {
+        "0": 40
+      },
+      "stiffness_status_histogram": {
+        "identity_density_ratio": 40
+      },
+      "stiffness_update_applied_count": 0,
+      "stiffness_failed_update_count": 0,
+      "stiffness_failure_reasons": [],
+      "source_identity_verified": true,
+      "received_wire": {
+        "markers": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 6.536856314918881,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.15297873348045427,
+            "median": 0.15105305798351765,
+            "p95": 0.16275619589723647,
+            "maximum": 0.17061913991346955,
+            "minimum": 0.14452384691685438
+          }
+        },
+        "image": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 6.537340222094344,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.15296740968448994,
+            "median": 0.15106273302808404,
+            "p95": 0.16274870927445592,
+            "maximum": 0.17066651303321123,
+            "minimum": 0.14428380271419883
+          }
+        },
+        "snapshot": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 6.53734385324178,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.15296732471921506,
+            "median": 0.15106745110824704,
+            "p95": 0.16274603814817964,
+            "maximum": 0.1706767687574029,
+            "minimum": 0.14431158686056733
+          }
+        },
+        "stiffness": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 6.537342701540984,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.15296735166786954,
+            "median": 0.15106894308701158,
+            "p95": 0.1627432586159557,
+            "maximum": 0.1706776199862361,
+            "minimum": 0.1443177149631083
+          }
+        }
+      },
+      "received_physical_display": {
+        "scene": {
+          "count": 40,
+          "average_hz": 6.537171986414508
+        },
+        "tf": {
+          "count": 40,
+          "average_hz": 6.537318819531992
+        }
+      },
+      "stiffness_hud_wire_identical_in_order": true,
+      "stage_mean_ms": {
+        "physics_and_camera": 50.76814155327156,
+        "inference": 6.719954218715429,
+        "stiffness_update": 0.8232403197325766,
+        "snapshot_core_queries": 25.946935161482543,
+        "markers": 16.417238162830472,
+        "command_selection": 44.445444468874484,
+        "serialization": 3.85951321804896,
+        "publication": 1.4193287352100015,
+        "physical_display_and_tf": 1.7768610618077219,
+        "cycle_work": 152.1803545532748
+      },
+      "stiffness_update_p95_ms": 0.849612639285624,
+      "source_time_range_utc": [
+        "2026-10-16T11:01:09.365935+00:00",
+        "2026-10-16T11:01:15.295046+00:00"
+      ],
+      "first_source": {
+        "index": 0,
+        "source_stamp": 1792148469.365935,
+        "command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "source_version": 1
+      },
+      "last_source": {
+        "index": 39,
+        "source_stamp": 1792148475.2950463,
+        "command": [
+          -0.17700000000000002,
+          -1.637,
+          2.1370000000000062,
+          -0.2130000000000001,
+          -0.7369999999999999,
+          0.2130000000000001
+        ],
+        "source_version": 118
+      },
+      "initial_parameter_prior": {
+        "x_est": [
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957
+        ],
+        "P_est": [
+          [
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789
+        ],
+        "components": [
+          {
+            "label": "existing_deflecomp_logK_prior",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957
+            ],
+            "P_est": [
+              [
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "first_parameter_posterior": {
+        "x_est": [
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957
+        ],
+        "P_est": [
+          [
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789
+        ],
+        "components": [
+          {
+            "label": "existing_deflecomp_logK_prior",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957
+            ],
+            "P_est": [
+              [
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_update_parameter_prior": {
+        "x_est": [
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957
+        ],
+        "P_est": [
+          [
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789
+        ],
+        "components": [
+          {
+            "label": "existing_deflecomp_logK_prior",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957
+            ],
+            "P_est": [
+              [
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_parameter_posterior": {
+        "x_est": [
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957
+        ],
+        "P_est": [
+          [
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789
+        ],
+        "components": [
+          {
+            "label": "existing_deflecomp_logK_prior",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957
+            ],
+            "P_est": [
+              [
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_retained_prior": null,
+      "final_prior_retained": false,
+      "parameter_component_count_histogram": {
+        "1": 40
+      },
+      "every_prior_equals_posterior": true,
+      "raw_frame_records": {
+        "path_at_measurement": "/tmp/probtf_live_benchmark_logK_delivery_20261016/no_sensors.frames.jsonl",
+        "sha256": "3eaf1297564987afebe5f20a62bb385c6e80622d0c757b4cf1284b86661d4176",
+        "rows": 40,
+        "note": "Supplemental raw logs remain at this path. This committed artifact retains source/config fingerprints, every initial/terminal distribution component and covariance, counters and actual ROS acceptance results."
+      },
+      "measured_case_summary_sha256": "3c669dc5f07125e946a2ab1f0826225e30e93c9716465fe7c78a5ced4e189ffd"
+    },
+    {
+      "case": "imu",
+      "frames": 40,
+      "wall_seconds": 8.397317046299577,
+      "fresh_updates_per_second": 4.763426196659645,
+      "nominal_command_interval_s": 0.05,
+      "offline_precomputation": false,
+      "published": true,
+      "stiffness_enabled": true,
+      "rviz_gpu_rendering_measured": false,
+      "cpu_affinity": [
+        63
+      ],
+      "load_average_at_start": [
+        2.37,
+        3.55,
+        4.05
+      ],
+      "scene_config_sha256": "e9b7f930648665715cbdfc4bb4fb67c1db97204759b3eb595393cc099ec7efad",
+      "estimation_config_sha256": "317a7f5ca8e048ed7c84f880e6bead12aa1205f9976622c413359e98d416518e",
+      "stiffness_config_sha256": "68a5a4e985ca7a7e5c49e24599720ae05864ca37b0ad937e4634be08d8f288c6",
+      "source_files_unchanged_during_measurement": true,
+      "missed_nominal_deadlines": 40,
+      "valid_observations_histogram": {
+        "1": 40
+      },
+      "stiffness_status_histogram": {
+        "updated_local_laplace": 40
+      },
+      "stiffness_update_applied_count": 40,
+      "stiffness_failed_update_count": 0,
+      "stiffness_failure_reasons": [],
+      "source_identity_verified": true,
+      "received_wire": {
+        "markers": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 5.066154776961881,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.19738836336928683,
+            "median": 0.19406076008453965,
+            "p95": 0.20849739303812384,
+            "maximum": 0.3089555646292865,
+            "minimum": 0.1817341181449592
+          }
+        },
+        "image": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 5.066458771358805,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.1973765197998056,
+            "median": 0.1940800789743662,
+            "p95": 0.2085054384544492,
+            "maximum": 0.3089430849067867,
+            "minimum": 0.1814580881036818
+          }
+        },
+        "snapshot": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 5.066453959796319,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.1973767072463838,
+            "median": 0.19408335536718369,
+            "p95": 0.20850178902037442,
+            "maximum": 0.3089416637085378,
+            "minimum": 0.18147110799327493
+          }
+        },
+        "stiffness": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 5.066450293893866,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.1973768500611186,
+            "median": 0.1940838247537613,
+            "p95": 0.2084975501988083,
+            "maximum": 0.30894456803798676,
+            "minimum": 0.1814756952226162
+          }
+        }
+      },
+      "received_physical_display": {
+        "scene": {
+          "count": 40,
+          "average_hz": 5.066410175886474
+        },
+        "tf": {
+          "count": 40,
+          "average_hz": 5.066454282221904
+        }
+      },
+      "stiffness_hud_wire_identical_in_order": true,
+      "stage_mean_ms": {
+        "physics_and_camera": 49.75189733086154,
+        "inference": 20.035642210859805,
+        "stiffness_update": 41.49722580332309,
+        "snapshot_core_queries": 28.002801025286317,
+        "markers": 17.284028069116175,
+        "command_selection": 45.726217271294445,
+        "serialization": 4.350267257541418,
+        "publication": 1.4701844309456646,
+        "physical_display_and_tf": 1.7944810446351767,
+        "cycle_work": 209.9163861013949
+      },
+      "stiffness_update_p95_ms": 52.66901878640029,
+      "source_time_range_utc": [
+        "2026-10-16T11:01:15.681052+00:00",
+        "2026-10-16T11:01:23.879321+00:00"
+      ],
+      "first_source": {
+        "index": 0,
+        "source_stamp": 1792148475.6810517,
+        "command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "source_version": 3
+      },
+      "last_source": {
+        "index": 39,
+        "source_stamp": 1792148483.8793213,
+        "command": [
+          -0.17700000000000002,
+          -1.637,
+          2.1370000000000062,
+          -0.2130000000000001,
+          -0.7369999999999999,
+          0.2130000000000001
+        ],
+        "source_version": 120
+      },
+      "initial_parameter_prior": {
+        "x_est": [
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957
+        ],
+        "P_est": [
+          [
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789
+        ],
+        "components": [
+          {
+            "label": "existing_deflecomp_logK_prior",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957
+            ],
+            "P_est": [
+              [
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "first_parameter_posterior": {
+        "x_est": [
+          3.1073040492110957,
+          4.693117972388099,
+          4.680911079334884,
+          3.1072127127574807,
+          3.1108804830510732,
+          3.1073018860919293
+        ],
+        "P_est": [
+          [
+            2.413834613555824,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.37318379115378914,
+            -0.3723739991905381,
+            6.941244289616736e-05,
+            -0.002705280280088842,
+            1.6470410309633768e-06
+          ],
+          [
+            0.0,
+            -0.3723739991905381,
+            0.38028853052336176,
+            6.996528944237897e-05,
+            -0.0027049316118780793,
+            1.6841752700990484e-06
+          ],
+          [
+            0.0,
+            6.941244289616658e-05,
+            6.996528944237976e-05,
+            2.4141177150443744,
+            -1.035432269564295e-05,
+            2.6952332924079528e-06
+          ],
+          [
+            0.0,
+            -0.0027052802800888163,
+            -0.0027049316118781044,
+            -1.035432269564295e-05,
+            2.459034378321379,
+            5.830159500044573e-05
+          ],
+          [
+            0.0,
+            1.6470410309633772e-06,
+            1.6841752700990476e-06,
+            2.6952332924079528e-06,
+            5.830159500044573e-05,
+            2.41383992050762
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          109.19311068856932,
+          107.86830439913842,
+          22.358637523074265,
+          22.440794443841728,
+          22.36063140623521
+        ],
+        "components": [
+          {
+            "label": "logK_laplace_mode_0",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              4.693117972388099,
+              4.680911079334884,
+              3.1072127127574807,
+              3.1108804830510732,
+              3.1073018860919293
+            ],
+            "P_est": [
+              [
+                2.413834613555824,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.37318379115378914,
+                -0.3723739991905381,
+                6.941244289616736e-05,
+                -0.002705280280088842,
+                1.6470410309633768e-06
+              ],
+              [
+                0.0,
+                -0.3723739991905381,
+                0.38028853052336176,
+                6.996528944237897e-05,
+                -0.0027049316118780793,
+                1.6841752700990484e-06
+              ],
+              [
+                0.0,
+                6.941244289616658e-05,
+                6.996528944237976e-05,
+                2.4141177150443744,
+                -1.035432269564295e-05,
+                2.6952332924079528e-06
+              ],
+              [
+                0.0,
+                -0.0027052802800888163,
+                -0.0027049316118781044,
+                -1.035432269564295e-05,
+                2.459034378321379,
+                5.830159500044573e-05
+              ],
+              [
+                0.0,
+                1.6470410309633772e-06,
+                1.6841752700990476e-06,
+                2.6952332924079528e-06,
+                5.830159500044573e-05,
+                2.41383992050762
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_update_parameter_prior": {
+        "x_est": [
+          3.1073040492110957,
+          4.538788163384184,
+          4.870699496137795,
+          3.0706542878546004,
+          1.0602266055761158,
+          3.107166235792778
+        ],
+        "P_est": [
+          [
+            2.413834613362258,
+            4.6600049074658285e-31,
+            -1.0001774400822132e-30,
+            2.7820129218293696e-31,
+            4.827669632952011e-31,
+            7.623630560264802e-28
+          ],
+          [
+            4.6600049074658285e-31,
+            0.0013690569801130489,
+            -0.0015370017373694993,
+            0.001288359590497121,
+            0.009547459235555649,
+            -5.734083623514017e-05
+          ],
+          [
+            -1.0001774400822132e-30,
+            -0.0015370017373694993,
+            0.00320069305347014,
+            -0.0003526952124859363,
+            -0.0026757570422822384,
+            2.4596739985423323e-05
+          ],
+          [
+            2.7820129218293688e-31,
+            0.0012883595904971206,
+            -0.00035269521248593606,
+            2.5266021512880377,
+            0.015500314516926263,
+            0.0005323753102922046
+          ],
+          [
+            4.82766963295201e-31,
+            0.009547459235555649,
+            -0.0026757570422822384,
+            0.015500314516926265,
+            0.12696031356598741,
+            -0.0011461501961857095
+          ],
+          [
+            7.623630560264801e-28,
+            -5.73408362351402e-05,
+            2.459673998542338e-05,
+            0.0005323753102922046,
+            -0.0011461501961857095,
+            2.4283452847624387
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          93.57733094426096,
+          130.41210776461358,
+          21.556001892257978,
+          2.8870251311421646,
+          22.35759838561547
+        ],
+        "components": [
+          {
+            "label": "logK_laplace_mode_0",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              4.538788163384184,
+              4.870699496137795,
+              3.0706542878546004,
+              1.0602266055761158,
+              3.107166235792778
+            ],
+            "P_est": [
+              [
+                2.413834613362258,
+                4.6600049074658285e-31,
+                -1.0001774400822132e-30,
+                2.7820129218293696e-31,
+                4.827669632952011e-31,
+                7.623630560264802e-28
+              ],
+              [
+                4.6600049074658285e-31,
+                0.0013690569801130489,
+                -0.0015370017373694993,
+                0.001288359590497121,
+                0.009547459235555649,
+                -5.734083623514017e-05
+              ],
+              [
+                -1.0001774400822132e-30,
+                -0.0015370017373694993,
+                0.00320069305347014,
+                -0.0003526952124859363,
+                -0.0026757570422822384,
+                2.4596739985423323e-05
+              ],
+              [
+                2.7820129218293688e-31,
+                0.0012883595904971206,
+                -0.00035269521248593606,
+                2.5266021512880377,
+                0.015500314516926263,
+                0.0005323753102922046
+              ],
+              [
+                4.82766963295201e-31,
+                0.009547459235555649,
+                -0.0026757570422822384,
+                0.015500314516926265,
+                0.12696031356598741,
+                -0.0011461501961857095
+              ],
+              [
+                7.623630560264801e-28,
+                -5.73408362351402e-05,
+                2.459673998542338e-05,
+                0.0005323753102922046,
+                -0.0011461501961857095,
+                2.4283452847624387
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_parameter_posterior": {
+        "x_est": [
+          3.1073040492110957,
+          4.539827274813632,
+          4.863327790209113,
+          3.0395276134741223,
+          0.963471666028772,
+          3.108405420434052
+        ],
+        "P_est": [
+          [
+            2.413834613357164,
+            -5.380838180852031e-31,
+            -1.7376200559706957e-31,
+            -1.6223263441441716e-30,
+            -9.12766239596045e-30,
+            1.5947804743747076e-28
+          ],
+          [
+            -5.380838180852034e-31,
+            0.0012580046872830083,
+            -0.001300334221594534,
+            0.0018809834354452015,
+            0.009490536909708091,
+            -7.075130474377098e-05
+          ],
+          [
+            -1.7376200559706954e-31,
+            -0.001300334221594534,
+            0.0028287431587769203,
+            -0.00034641941574575606,
+            -0.0017002185740093122,
+            2.1483083624001916e-05
+          ],
+          [
+            -1.622326344144172e-30,
+            0.0018809834354452015,
+            -0.00034641941574575617,
+            2.592075228164934,
+            0.024183316091435175,
+            0.0006134214153903175
+          ],
+          [
+            -9.127662395960452e-30,
+            0.00949053690970809,
+            -0.0017002185740093122,
+            0.024183316091435175,
+            0.13183534071820532,
+            -0.0013588112963886423
+          ],
+          [
+            1.5947804743747074e-28,
+            -7.075130474377092e-05,
+            2.1483083624001906e-05,
+            0.0006134214153903176,
+            -0.0013588112963886416,
+            2.4311194757738064
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          93.67461875606712,
+          129.45428279614293,
+          20.895370211993438,
+          2.62077916826653,
+          22.385320751168013
+        ],
+        "components": [
+          {
+            "label": "logK_laplace_mode_0",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              4.539827274813632,
+              4.863327790209113,
+              3.0395276134741223,
+              0.963471666028772,
+              3.108405420434052
+            ],
+            "P_est": [
+              [
+                2.413834613357164,
+                -5.380838180852031e-31,
+                -1.7376200559706957e-31,
+                -1.6223263441441716e-30,
+                -9.12766239596045e-30,
+                1.5947804743747076e-28
+              ],
+              [
+                -5.380838180852034e-31,
+                0.0012580046872830083,
+                -0.001300334221594534,
+                0.0018809834354452015,
+                0.009490536909708091,
+                -7.075130474377098e-05
+              ],
+              [
+                -1.7376200559706954e-31,
+                -0.001300334221594534,
+                0.0028287431587769203,
+                -0.00034641941574575606,
+                -0.0017002185740093122,
+                2.1483083624001916e-05
+              ],
+              [
+                -1.622326344144172e-30,
+                0.0018809834354452015,
+                -0.00034641941574575617,
+                2.592075228164934,
+                0.024183316091435175,
+                0.0006134214153903175
+              ],
+              [
+                -9.127662395960452e-30,
+                0.00949053690970809,
+                -0.0017002185740093122,
+                0.024183316091435175,
+                0.13183534071820532,
+                -0.0013588112963886423
+              ],
+              [
+                1.5947804743747074e-28,
+                -7.075130474377092e-05,
+                2.1483083624001906e-05,
+                0.0006134214153903176,
+                -0.0013588112963886416,
+                2.4311194757738064
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_retained_prior": null,
+      "final_prior_retained": false,
+      "parameter_component_count_histogram": {
+        "1": 40
+      },
+      "every_prior_equals_posterior": false,
+      "raw_frame_records": {
+        "path_at_measurement": "/tmp/probtf_live_benchmark_logK_delivery_20261016/imu.frames.jsonl",
+        "sha256": "f7a524ffad74ebf12093d80163ec343401aa28ce1aeefa0fd06e5a9f209a3914",
+        "rows": 40,
+        "note": "Supplemental raw logs remain at this path. This committed artifact retains source/config fingerprints, every initial/terminal distribution component and covariance, counters and actual ROS acceptance results."
+      },
+      "measured_case_summary_sha256": "1a5d5e043e2c088125aa7244aa72287421f2c0f3ea5496349affc8b68cc5d433"
+    },
+    {
+      "case": "marker",
+      "frames": 40,
+      "wall_seconds": 16.454474767670035,
+      "fresh_updates_per_second": 2.4309496696055297,
+      "nominal_command_interval_s": 0.05,
+      "offline_precomputation": false,
+      "published": true,
+      "stiffness_enabled": true,
+      "rviz_gpu_rendering_measured": false,
+      "cpu_affinity": [
+        63
+      ],
+      "load_average_at_start": [
+        2.24,
+        3.48,
+        4.02
+      ],
+      "scene_config_sha256": "e9b7f930648665715cbdfc4bb4fb67c1db97204759b3eb595393cc099ec7efad",
+      "estimation_config_sha256": "317a7f5ca8e048ed7c84f880e6bead12aa1205f9976622c413359e98d416518e",
+      "stiffness_config_sha256": "68a5a4e985ca7a7e5c49e24599720ae05864ca37b0ad937e4634be08d8f288c6",
+      "source_files_unchanged_during_measurement": true,
+      "missed_nominal_deadlines": 40,
+      "valid_observations_histogram": {
+        "1": 40
+      },
+      "stiffness_status_histogram": {
+        "updated_local_laplace": 40
+      },
+      "stiffness_update_applied_count": 40,
+      "stiffness_failed_update_count": 0,
+      "stiffness_failure_reasons": [],
+      "source_identity_verified": true,
+      "received_wire": {
+        "markers": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 2.657606494338404,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.37627843028316516,
+            "median": 0.367280179169029,
+            "p95": 0.4345177995041013,
+            "maximum": 0.48761223489418626,
+            "minimum": 0.35328652802854776
+          }
+        },
+        "image": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 2.6501004386727756,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.37734418869830477,
+            "median": 0.3672185633331537,
+            "p95": 0.44399434174411007,
+            "maximum": 0.4867740501649678,
+            "minimum": 0.35322629380971193
+          }
+        },
+        "snapshot": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 2.650108208554189,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.3773430823587263,
+            "median": 0.3671716209501028,
+            "p95": 0.4440027429256589,
+            "maximum": 0.48663724679499865,
+            "minimum": 0.35318195493891835
+          }
+        },
+        "stiffness": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 2.6501217121627025,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.37734115961939096,
+            "median": 0.3671781001612544,
+            "p95": 0.4440023187547923,
+            "maximum": 0.48659662529826164,
+            "minimum": 0.35314762219786644
+          }
+        }
+      },
+      "received_physical_display": {
+        "scene": {
+          "count": 40,
+          "average_hz": 2.650085602584013
+        },
+        "tf": {
+          "count": 40,
+          "average_hz": 2.6501193007849615
+        }
+      },
+      "stiffness_hud_wire_identical_in_order": true,
+      "stage_mean_ms": {
+        "physics_and_camera": 44.95343719609082,
+        "inference": 71.00234592799097,
+        "stiffness_update": 89.92789259646088,
+        "snapshot_core_queries": 60.90649227844551,
+        "markers": 33.71349924709648,
+        "command_selection": 94.44143353030086,
+        "serialization": 10.855672298930585,
+        "publication": 3.5890030092559755,
+        "physical_display_and_tf": 1.9401634112000465,
+        "cycle_work": 411.33393311174586
+      },
+      "stiffness_update_p95_ms": 157.14510248508304,
+      "source_time_range_utc": [
+        "2026-10-16T11:01:24.297065+00:00",
+        "2026-10-16T11:01:40.394033+00:00"
+      ],
+      "first_source": {
+        "index": 0,
+        "source_stamp": 1792148484.2970648,
+        "command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "source_version": 3
+      },
+      "last_source": {
+        "index": 39,
+        "source_stamp": 1792148500.394033,
+        "command": [
+          0.05775000000000006,
+          -1.637,
+          2.169250000000003,
+          0.2077500000000001,
+          -1.13075,
+          -0.14475000000000005
+        ],
+        "source_version": 120
+      },
+      "initial_parameter_prior": {
+        "x_est": [
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957
+        ],
+        "P_est": [
+          [
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789
+        ],
+        "components": [
+          {
+            "label": "existing_deflecomp_logK_prior",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957
+            ],
+            "P_est": [
+              [
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "first_parameter_posterior": {
+        "x_est": [
+          3.1073040492110957,
+          6.658047950360652,
+          3.1073040481626193,
+          3.0172641628470553,
+          6.020817971369967,
+          2.690710307605644
+        ],
+        "P_est": [
+          [
+            2.413834613555824,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.48351601832275165,
+            0.0,
+            0.002408431968032399,
+            -0.03133866694630139,
+            0.012175677184597385
+          ],
+          [
+            0.0,
+            0.0,
+            2.413834613555824,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.002408431968032399,
+            0.0,
+            2.5967899152800387,
+            0.002377357495173348,
+            -0.09978051688018466
+          ],
+          [
+            0.0,
+            -0.03133866694630139,
+            0.0,
+            0.0023773574951733477,
+            0.5856871170970976,
+            0.009545767441452243
+          ],
+          [
+            0.0,
+            0.012175677184597385,
+            0.0,
+            -0.09978051688018467,
+            0.009545767441452243,
+            3.5168125794126284
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          779.0287491281179,
+          22.360679751553246,
+          20.435307463865716,
+          411.9153929609302,
+          14.742143659109821
+        ],
+        "components": [
+          {
+            "label": "logK_laplace_mode_0",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              6.658047950360652,
+              3.1073040481626193,
+              3.0172641628470553,
+              6.020817971369967,
+              2.690710307605644
+            ],
+            "P_est": [
+              [
+                2.413834613555824,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.48351601832275165,
+                0.0,
+                0.002408431968032399,
+                -0.03133866694630139,
+                0.012175677184597385
+              ],
+              [
+                0.0,
+                0.0,
+                2.413834613555824,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.002408431968032399,
+                0.0,
+                2.5967899152800387,
+                0.002377357495173348,
+                -0.09978051688018466
+              ],
+              [
+                0.0,
+                -0.03133866694630139,
+                0.0,
+                0.0023773574951733477,
+                0.5856871170970976,
+                0.009545767441452243
+              ],
+              [
+                0.0,
+                0.012175677184597385,
+                0.0,
+                -0.09978051688018467,
+                0.009545767441452243,
+                3.5168125794126284
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_update_parameter_prior": {
+        "x_est": [
+          3.1073040492106467,
+          8.6121772916186,
+          3.7733225254779845,
+          4.723170847938783,
+          7.929619667324286,
+          0.7968129006982294
+        ],
+        "P_est": [
+          [
+            2.4138346133622584,
+            -1.3294140795778833e-13,
+            2.715415603664837e-16,
+            -1.9513214131514974e-12,
+            4.507709738851832e-14,
+            5.872336937545994e-14
+          ],
+          [
+            -1.3294140795778825e-13,
+            0.06568108468868614,
+            -0.0004209599772436903,
+            0.00026335736063130496,
+            -0.0021441238380470167,
+            0.0003423781418965876
+          ],
+          [
+            2.7154156036648445e-16,
+            -0.0004209599772436903,
+            0.0008842717687392974,
+            -0.0002455036285560707,
+            -0.0003025871290314451,
+            0.00033199251533176167
+          ],
+          [
+            -1.9513214131514974e-12,
+            0.00026335736063130496,
+            -0.00024550362855607063,
+            0.3334126913701517,
+            0.00046883889220374254,
+            -0.012654620198196402
+          ],
+          [
+            4.507709738851832e-14,
+            -0.0021441238380470167,
+            -0.0003025871290314451,
+            0.0004688388922037425,
+            0.08443460772333836,
+            4.318667544666462e-05
+          ],
+          [
+            5.872336937545996e-14,
+            0.00034237814189658764,
+            0.0003319925153317616,
+            -0.012654620198196404,
+            4.318667544666462e-05,
+            0.01562129278088379
+          ]
+        ],
+        "K_median": [
+          22.360679774987855,
+          5498.206854559174,
+          43.524435911983275,
+          112.52448562237065,
+          2778.3698986841227,
+          2.218459199634205
+        ],
+        "components": [
+          {
+            "label": "logK_laplace_mode_0",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492106467,
+              8.6121772916186,
+              3.7733225254779845,
+              4.723170847938783,
+              7.929619667324286,
+              0.7968129006982294
+            ],
+            "P_est": [
+              [
+                2.4138346133622584,
+                -1.3294140795778833e-13,
+                2.715415603664837e-16,
+                -1.9513214131514974e-12,
+                4.507709738851832e-14,
+                5.872336937545994e-14
+              ],
+              [
+                -1.3294140795778825e-13,
+                0.06568108468868614,
+                -0.0004209599772436903,
+                0.00026335736063130496,
+                -0.0021441238380470167,
+                0.0003423781418965876
+              ],
+              [
+                2.7154156036648445e-16,
+                -0.0004209599772436903,
+                0.0008842717687392974,
+                -0.0002455036285560707,
+                -0.0003025871290314451,
+                0.00033199251533176167
+              ],
+              [
+                -1.9513214131514974e-12,
+                0.00026335736063130496,
+                -0.00024550362855607063,
+                0.3334126913701517,
+                0.00046883889220374254,
+                -0.012654620198196402
+              ],
+              [
+                4.507709738851832e-14,
+                -0.0021441238380470167,
+                -0.0003025871290314451,
+                0.0004688388922037425,
+                0.08443460772333836,
+                4.318667544666462e-05
+              ],
+              [
+                5.872336937545996e-14,
+                0.00034237814189658764,
+                0.0003319925153317616,
+                -0.012654620198196404,
+                4.318667544666462e-05,
+                0.01562129278088379
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_parameter_posterior": {
+        "x_est": [
+          3.10730404921052,
+          8.606861342146477,
+          3.7702612781419718,
+          4.745958320453468,
+          7.926769496086984,
+          0.8045849984840985
+        ],
+        "P_est": [
+          [
+            2.413834613357165,
+            -1.3620017934702652e-13,
+            4.588731614520372e-16,
+            -1.2549483524288837e-12,
+            1.6058138618924733e-13,
+            6.831660501499861e-14
+          ],
+          [
+            -1.362001793470265e-13,
+            0.06616455179538498,
+            -0.0004289293085938409,
+            0.0002648718228976671,
+            -0.0021695173698071985,
+            0.00032887176454242736
+          ],
+          [
+            4.58873161452037e-16,
+            -0.0004289293085938408,
+            0.0008081700126566619,
+            -0.0002389398850640452,
+            -0.0003049454640862102,
+            0.00032010947305484183
+          ],
+          [
+            -1.2549483524288835e-12,
+            0.0002648718228976671,
+            -0.00023893988506404513,
+            0.32143553985464296,
+            0.0004699004499244712,
+            -0.01195752325262645
+          ],
+          [
+            1.6058138618924725e-13,
+            -0.0021695173698071985,
+            -0.00030494546408621015,
+            0.0004699004499244712,
+            0.08479794212817292,
+            2.9267128141193267e-05
+          ],
+          [
+            6.831660501499859e-14,
+            0.0003288717645424273,
+            0.0003201094730548418,
+            -0.01195752325262645,
+            2.92671281411933e-05,
+            0.014934227365900884
+          ]
+        ],
+        "K_median": [
+          22.360679774985023,
+          5469.056215044493,
+          43.39140057941706,
+          115.11807266262974,
+          2770.4623430092474,
+          2.235768458964658
+        ],
+        "components": [
+          {
+            "label": "logK_laplace_mode_0",
+            "weight": 1.0,
+            "x_est": [
+              3.10730404921052,
+              8.606861342146477,
+              3.7702612781419718,
+              4.745958320453468,
+              7.926769496086984,
+              0.8045849984840985
+            ],
+            "P_est": [
+              [
+                2.413834613357165,
+                -1.3620017934702652e-13,
+                4.588731614520372e-16,
+                -1.2549483524288837e-12,
+                1.6058138618924733e-13,
+                6.831660501499861e-14
+              ],
+              [
+                -1.362001793470265e-13,
+                0.06616455179538498,
+                -0.0004289293085938409,
+                0.0002648718228976671,
+                -0.0021695173698071985,
+                0.00032887176454242736
+              ],
+              [
+                4.58873161452037e-16,
+                -0.0004289293085938408,
+                0.0008081700126566619,
+                -0.0002389398850640452,
+                -0.0003049454640862102,
+                0.00032010947305484183
+              ],
+              [
+                -1.2549483524288835e-12,
+                0.0002648718228976671,
+                -0.00023893988506404513,
+                0.32143553985464296,
+                0.0004699004499244712,
+                -0.01195752325262645
+              ],
+              [
+                1.6058138618924725e-13,
+                -0.0021695173698071985,
+                -0.00030494546408621015,
+                0.0004699004499244712,
+                0.08479794212817292,
+                2.9267128141193267e-05
+              ],
+              [
+                6.831660501499859e-14,
+                0.0003288717645424273,
+                0.0003201094730548418,
+                -0.01195752325262645,
+                2.92671281411933e-05,
+                0.014934227365900884
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_retained_prior": null,
+      "final_prior_retained": false,
+      "parameter_component_count_histogram": {
+        "1": 40
+      },
+      "every_prior_equals_posterior": false,
+      "raw_frame_records": {
+        "path_at_measurement": "/tmp/probtf_live_benchmark_logK_delivery_20261016/marker.frames.jsonl",
+        "sha256": "b46e441e67dd399ed5ef032382724ab49d79b667d8627ff83c298b7aa8b7e353",
+        "rows": 40,
+        "note": "Supplemental raw logs remain at this path. This committed artifact retains source/config fingerprints, every initial/terminal distribution component and covariance, counters and actual ROS acceptance results."
+      },
+      "measured_case_summary_sha256": "adcbda7520f28a2be95fc1ea59ef32b83d3cd29b748736628e8ad4e6b6ccca14"
+    },
+    {
+      "case": "imu_marker",
+      "frames": 40,
+      "wall_seconds": 17.651140922680497,
+      "fresh_updates_per_second": 2.2661424649668263,
+      "nominal_command_interval_s": 0.05,
+      "offline_precomputation": false,
+      "published": true,
+      "stiffness_enabled": true,
+      "rviz_gpu_rendering_measured": false,
+      "cpu_affinity": [
+        63
+      ],
+      "load_average_at_start": [
+        3.5,
+        3.7,
+        4.09
+      ],
+      "scene_config_sha256": "e9b7f930648665715cbdfc4bb4fb67c1db97204759b3eb595393cc099ec7efad",
+      "estimation_config_sha256": "317a7f5ca8e048ed7c84f880e6bead12aa1205f9976622c413359e98d416518e",
+      "stiffness_config_sha256": "68a5a4e985ca7a7e5c49e24599720ae05864ca37b0ad937e4634be08d8f288c6",
+      "source_files_unchanged_during_measurement": true,
+      "missed_nominal_deadlines": 40,
+      "valid_observations_histogram": {
+        "2": 40
+      },
+      "stiffness_status_histogram": {
+        "updated_local_laplace": 40
+      },
+      "stiffness_update_applied_count": 40,
+      "stiffness_failed_update_count": 0,
+      "stiffness_failure_reasons": [],
+      "source_identity_verified": true,
+      "received_wire": {
+        "markers": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 2.565819392299964,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.38973904515688235,
+            "median": 0.3797754473052919,
+            "p95": 0.4622063976712525,
+            "maximum": 0.4786088829860091,
+            "minimum": 0.3674629940651357
+          }
+        },
+        "image": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 2.5588229198503467,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.39080469079841024,
+            "median": 0.3797787921503186,
+            "p95": 0.47422165065072475,
+            "maximum": 0.5036806920543313,
+            "minimum": 0.3674520771019161
+          }
+        },
+        "snapshot": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 2.5588513608696415,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.3908003470979822,
+            "median": 0.37973914109170437,
+            "p95": 0.474260322842747,
+            "maximum": 0.503597451839596,
+            "minimum": 0.36747395107522607
+          }
+        },
+        "stiffness": {
+          "count": 40,
+          "bytes_identical_in_order": true,
+          "average_hz": 2.5588698609704705,
+          "interval_seconds": {
+            "count": 39,
+            "mean": 0.39079752169215143,
+            "median": 0.3797434470616281,
+            "p95": 0.4742475860286504,
+            "maximum": 0.503575477283448,
+            "minimum": 0.3674913691356778
+          }
+        }
+      },
+      "received_physical_display": {
+        "scene": {
+          "count": 40,
+          "average_hz": 2.5588200058372594
+        },
+        "tf": {
+          "count": 40,
+          "average_hz": 2.5588567988472044
+        }
+      },
+      "stiffness_hud_wire_identical_in_order": true,
+      "stage_mean_ms": {
+        "physics_and_camera": 43.70142549742013,
+        "inference": 81.08998539391905,
+        "stiffness_update": 106.24600662849844,
+        "snapshot_core_queries": 63.46954593900592,
+        "markers": 35.001808241941035,
+        "command_selection": 94.20124285388738,
+        "serialization": 11.929216724820435,
+        "publication": 3.6526034818962216,
+        "physical_display_and_tf": 1.9537865300662816,
+        "cycle_work": 441.2497434997931
+      },
+      "stiffness_update_p95_ms": 146.85053073335436,
+      "source_time_range_utc": [
+        "2026-10-16T11:01:40.921386+00:00",
+        "2026-10-16T11:01:58.184891+00:00"
+      ],
+      "first_source": {
+        "index": 0,
+        "source_stamp": 1792148500.9213855,
+        "command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "source_version": 3
+      },
+      "last_source": {
+        "index": 39,
+        "source_stamp": 1792148518.184891,
+        "command": [
+          0.05073853708642456,
+          -1.637,
+          2.1640000000000037,
+          0.2122500000000001,
+          -1.136,
+          -0.17175000000000007
+        ],
+        "source_version": 120
+      },
+      "initial_parameter_prior": {
+        "x_est": [
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957,
+          3.1073040492110957
+        ],
+        "P_est": [
+          [
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            2.4138346135609177
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789,
+          22.36067977499789
+        ],
+        "components": [
+          {
+            "label": "existing_deflecomp_logK_prior",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957,
+              3.1073040492110957
+            ],
+            "P_est": [
+              [
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                2.4138346135609177
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "first_parameter_posterior": {
+        "x_est": [
+          3.1073040492110957,
+          8.305656395270521,
+          3.1073040503995144,
+          3.0209401726553207,
+          5.967820037492002,
+          2.7102832090334257
+        ],
+        "P_est": [
+          [
+            2.413834613555824,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.3832755531195669,
+            0.0,
+            0.0004864418676299415,
+            -0.005003218213112427,
+            0.0017195078731460443
+          ],
+          [
+            0.0,
+            0.0,
+            2.413834613555824,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0004864418676299415,
+            0.0,
+            2.5831425528005822,
+            0.002699756801347664,
+            -0.09614314059561077
+          ],
+          [
+            0.0,
+            -0.0050032182131124255,
+            0.0,
+            0.0026997568013476646,
+            0.5877060086693804,
+            0.010502712884897096
+          ],
+          [
+            0.0,
+            0.0017195078731460443,
+            0.0,
+            -0.09614314059561077,
+            0.010502712884897096,
+            3.437602185040659
+          ]
+        ],
+        "K_median": [
+          22.36067977499789,
+          4046.697499653203,
+          22.36067980157174,
+          20.510566095524098,
+          390.6531326541495,
+          15.033532544253193
+        ],
+        "components": [
+          {
+            "label": "logK_laplace_mode_0",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492110957,
+              8.305656395270521,
+              3.1073040503995144,
+              3.0209401726553207,
+              5.967820037492002,
+              2.7102832090334257
+            ],
+            "P_est": [
+              [
+                2.413834613555824,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.3832755531195669,
+                0.0,
+                0.0004864418676299415,
+                -0.005003218213112427,
+                0.0017195078731460443
+              ],
+              [
+                0.0,
+                0.0,
+                2.413834613555824,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                0.0,
+                0.0004864418676299415,
+                0.0,
+                2.5831425528005822,
+                0.002699756801347664,
+                -0.09614314059561077
+              ],
+              [
+                0.0,
+                -0.0050032182131124255,
+                0.0,
+                0.0026997568013476646,
+                0.5877060086693804,
+                0.010502712884897096
+              ],
+              [
+                0.0,
+                0.0017195078731460443,
+                0.0,
+                -0.09614314059561077,
+                0.010502712884897096,
+                3.437602185040659
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_update_parameter_prior": {
+        "x_est": [
+          3.107304049211721,
+          10.496112103433722,
+          3.931531848104319,
+          4.649201121978624,
+          7.886458772250611,
+          0.840462483640319
+        ],
+        "P_est": [
+          [
+            2.413834613362258,
+            1.1666761136626244e-13,
+            -2.92952245206899e-16,
+            1.6083140452043236e-12,
+            -7.430516303672268e-13,
+            -1.5599488501093755e-13
+          ],
+          [
+            1.1666761136626242e-13,
+            0.04967373612998736,
+            -5.7391051780081857e-05,
+            7.725343319649441e-05,
+            -0.0003075330662355398,
+            3.953904271825426e-05
+          ],
+          [
+            -2.9295224520689903e-16,
+            -5.739105178008186e-05,
+            0.00017216557265809418,
+            -8.987199727970149e-07,
+            -6.783960098266209e-05,
+            5.65554019074918e-05
+          ],
+          [
+            1.6083140452043236e-12,
+            7.725343319649444e-05,
+            -8.987199727970054e-07,
+            0.3309071741143721,
+            0.00042197630924710726,
+            -0.01270514283876052
+          ],
+          [
+            -7.430516303672268e-13,
+            -0.00030753306623553976,
+            -6.783960098266209e-05,
+            0.00042197630924710726,
+            0.09065339324807822,
+            0.00016210146757331454
+          ],
+          [
+            -1.5599488501093752e-13,
+            3.953904271825425e-05,
+            5.655540190749181e-05,
+            -0.012705142838760522,
+            0.00016210146757331454,
+            0.015587821880878185
+          ]
+        ],
+        "K_median": [
+          22.360679775011874,
+          36174.58586858431,
+          50.98501918505391,
+          104.50146829527294,
+          2661.003994890244,
+          2.3174385063761824
+        ],
+        "components": [
+          {
+            "label": "logK_laplace_mode_0",
+            "weight": 1.0,
+            "x_est": [
+              3.107304049211721,
+              10.496112103433722,
+              3.931531848104319,
+              4.649201121978624,
+              7.886458772250611,
+              0.840462483640319
+            ],
+            "P_est": [
+              [
+                2.413834613362258,
+                1.1666761136626244e-13,
+                -2.92952245206899e-16,
+                1.6083140452043236e-12,
+                -7.430516303672268e-13,
+                -1.5599488501093755e-13
+              ],
+              [
+                1.1666761136626242e-13,
+                0.04967373612998736,
+                -5.7391051780081857e-05,
+                7.725343319649441e-05,
+                -0.0003075330662355398,
+                3.953904271825426e-05
+              ],
+              [
+                -2.9295224520689903e-16,
+                -5.739105178008186e-05,
+                0.00017216557265809418,
+                -8.987199727970149e-07,
+                -6.783960098266209e-05,
+                5.65554019074918e-05
+              ],
+              [
+                1.6083140452043236e-12,
+                7.725343319649444e-05,
+                -8.987199727970054e-07,
+                0.3309071741143721,
+                0.00042197630924710726,
+                -0.01270514283876052
+              ],
+              [
+                -7.430516303672268e-13,
+                -0.00030753306623553976,
+                -6.783960098266209e-05,
+                0.00042197630924710726,
+                0.09065339324807822,
+                0.00016210146757331454
+              ],
+              [
+                -1.5599488501093752e-13,
+                3.953904271825425e-05,
+                5.655540190749181e-05,
+                -0.012705142838760522,
+                0.00016210146757331454,
+                0.015587821880878185
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_parameter_posterior": {
+        "x_est": [
+          3.1073040492118142,
+          10.495364372732816,
+          3.923418256752666,
+          4.666110139312917,
+          7.879156670509226,
+          0.8504075127735944
+        ],
+        "P_est": [
+          [
+            2.413834613357164,
+            1.805016994139033e-13,
+            1.1663462410601854e-16,
+            1.5606129640128776e-12,
+            -8.655269790385507e-13,
+            -1.531299626062945e-13
+          ],
+          [
+            1.805016994139033e-13,
+            0.049851183380226295,
+            -5.836633632503143e-05,
+            7.568788020117274e-05,
+            -0.00031188445301078677,
+            3.78122022884473e-05
+          ],
+          [
+            1.1663462410601844e-16,
+            -5.836633632503141e-05,
+            0.00015748229544831988,
+            -9.898758311607003e-07,
+            -6.914356726925956e-05,
+            5.481280131286615e-05
+          ],
+          [
+            1.5606129640128778e-12,
+            7.568788020117274e-05,
+            -9.898758311607e-07,
+            0.31898316775149715,
+            0.00041899118260297534,
+            -0.012025812998298989
+          ],
+          [
+            -8.655269790385506e-13,
+            -0.00031188445301078677,
+            -6.914356726925957e-05,
+            0.0004189911826029754,
+            0.09162323281695202,
+            0.0001548381985342906
+          ],
+          [
+            -1.5312996260629448e-13,
+            3.781220228844731e-05,
+            5.481280131286614e-05,
+            -0.012025812998298987,
+            0.0001548381985342906,
+            0.014910934781519784
+          ]
+        ],
+        "K_median": [
+          22.36067977501396,
+          36147.547130244966,
+          50.573021226030995,
+          106.28350925575099,
+          2641.643843906071,
+          2.340600482198912
+        ],
+        "components": [
+          {
+            "label": "logK_laplace_mode_0",
+            "weight": 1.0,
+            "x_est": [
+              3.1073040492118142,
+              10.495364372732816,
+              3.923418256752666,
+              4.666110139312917,
+              7.879156670509226,
+              0.8504075127735944
+            ],
+            "P_est": [
+              [
+                2.413834613357164,
+                1.805016994139033e-13,
+                1.1663462410601854e-16,
+                1.5606129640128776e-12,
+                -8.655269790385507e-13,
+                -1.531299626062945e-13
+              ],
+              [
+                1.805016994139033e-13,
+                0.049851183380226295,
+                -5.836633632503143e-05,
+                7.568788020117274e-05,
+                -0.00031188445301078677,
+                3.78122022884473e-05
+              ],
+              [
+                1.1663462410601844e-16,
+                -5.836633632503141e-05,
+                0.00015748229544831988,
+                -9.898758311607003e-07,
+                -6.914356726925956e-05,
+                5.481280131286615e-05
+              ],
+              [
+                1.5606129640128778e-12,
+                7.568788020117274e-05,
+                -9.898758311607e-07,
+                0.31898316775149715,
+                0.00041899118260297534,
+                -0.012025812998298989
+              ],
+              [
+                -8.655269790385506e-13,
+                -0.00031188445301078677,
+                -6.914356726925957e-05,
+                0.0004189911826029754,
+                0.09162323281695202,
+                0.0001548381985342906
+              ],
+              [
+                -1.5312996260629448e-13,
+                3.781220228844731e-05,
+                5.481280131286614e-05,
+                -0.012025812998298987,
+                0.0001548381985342906,
+                0.014910934781519784
+              ]
+            ]
+          }
+        ],
+        "representation": "Gaussian mixture in log K; x_est/P_est are mixture moments",
+        "parameterization": "x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance",
+        "K_units": "N m/rad"
+      },
+      "final_retained_prior": null,
+      "final_prior_retained": false,
+      "parameter_component_count_histogram": {
+        "1": 40
+      },
+      "every_prior_equals_posterior": false,
+      "raw_frame_records": {
+        "path_at_measurement": "/tmp/probtf_live_benchmark_logK_delivery_20261016/imu_marker.frames.jsonl",
+        "sha256": "399d208576782641f39f0d3562802a7d163ff8d353d22dc9715ddd9157729ffc",
+        "rows": 40,
+        "note": "Supplemental raw logs remain at this path. This committed artifact retains source/config fingerprints, every initial/terminal distribution component and covariance, counters and actual ROS acceptance results."
+      },
+      "measured_case_summary_sha256": "3be214cb6bdf3f006191868c68848be153f9cc77c7b03d547fa1bde27723f5e3"
+    }
+  ],
+  "execution_checks": {
+    "frames": 160,
+    "actual_typed_topic_messages": 640,
+    "actual_stiffness_hud_messages": 160,
+    "every_source_identity_verified": true,
+    "every_actual_topic_payload_identical_in_order": true,
+    "every_actual_stiffness_hud_identical_in_order": true,
+    "stiffness_failed_updates_in_short_window": 0,
+    "no_observation_identity_preserved": true,
+    "common_initial_parameter_prior": true
+  }
+}

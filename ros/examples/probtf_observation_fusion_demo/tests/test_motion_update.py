@@ -63,6 +63,10 @@ def test_every_physical_tick_queries_its_own_command_and_core_snapshot(motion_up
         assert published['wire_identity_verified'] is True
         assert published['command'] == frame.command.tolist()
         assert published['stamp'] == frame.stamp
+        assert published['stiffness'] == record['stiffness'] == snapshot.stiffness_record
+        assert record['stiffness']['update_applied'] is True
+        assert record['stiffness']['source_stamp'] == snapshot.stamp
+        assert record['stiffness']['source_command'] == frame.command.tolist()
         assert snapshot.observation_ids == ('imu_link_3:frame:{:05d}'.format(index),)
         for point in snapshot.points:
             assert point.query.command == tuple(frame.command)
@@ -88,6 +92,9 @@ def test_playback_rejects_stale_command_or_observation_before_publishing(motion_
     with pytest.raises(AssertionError, match='observation'):
         motion_node.require_current_update(
             first, replace(snapshot, observation_ids=('imu:frame:00001',)), image, 0, 0)
+    with pytest.raises(AssertionError, match='[Ss]tiffness'):
+        motion_node.require_current_update(first,
+            replace(snapshot, stiffness_record=updates[1][0].stiffness_record), image, 0, 0)
     # Constructor validation precedes ROS publishers/timers and must reject an
     # old two-rate replay map even before any frames are sent.
     with pytest.raises(AssertionError, match='one same-time'):
@@ -127,12 +134,15 @@ def test_playback_forwards_exact_wire_and_catches_up_without_dropping_ticks(
             self.payloads.append(stream.getvalue())
 
     class Display:
+        stiffness_marker = staticmethod(motion_node.MotionDisplay.stiffness_marker)
+
         def __init__(self, *_args):
             pass
 
-        def publish(self, frame, index, snapshot, update_index):
+        def publish(self, frame, index, snapshot, update_index, *, stiffness_record):
             assert frame.stamp == snapshot.stamp
             assert tuple(frame.command) == snapshot.command
+            assert stiffness_record is snapshot.stiffness_record
             displayed.append((index, update_index))
 
     monkeypatch.setattr(motion_node.rospy, 'Publisher', Publisher)
@@ -157,6 +167,7 @@ def test_playback_forwards_exact_wire_and_catches_up_without_dropping_ticks(
         assert wire.payloads == [update[1].read_bytes() for update in updates]
         snapshots = publishers['/observation_fusion/snapshot'].payloads
         images = publishers['/observation_fusion/detection_image'].payloads
+        stiffness = publishers['/observation_fusion/stiffness'].payloads
         motion = publishers['/observation_fusion/motion_metadata'].payloads
         for index, (snapshot_bytes, image_bytes, motion_bytes) in enumerate(
                 zip(snapshots, images, motion)):
@@ -168,6 +179,7 @@ def test_playback_forwards_exact_wire_and_catches_up_without_dropping_ticks(
                           'wire_identity_verified'):
                 saved.pop(extra)
             assert snapshot == saved
+            assert json.loads(String().deserialize(stiffness[index]).data) == saved['stiffness']
             assert actual_motion['sample_index'] == actual_motion['estimate_index'] == index
             assert actual_motion['estimate_stamp'] == actual_motion['physical_stamp'] == snapshot['stamp']
             assert actual_motion['command'] == snapshot['command']

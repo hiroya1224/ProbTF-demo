@@ -1,0 +1,12 @@
+# Auxiliary identification only. These existing model inputs do not generate
+# or constrain the primary transform-candidate distribution.
+prior_config_package: deflecomp_ros
+prior_config_file: config/estimator.yaml
+known_model_source: >-
+  Generated shared robot URDF, including its supplied masses/inertias and
+  known tool/camera attachments, with deflecomp gravity and linear joint spring
+  law. These are inputs of the auxiliary model, not quantities learned from
+  observations. The simulator's true stiffness and realized pose are excluded.
+optimizer_max_iterations: 80
+optimizer_gradient_tolerance: 0.000001
+laplace_fd_step: 0.0001

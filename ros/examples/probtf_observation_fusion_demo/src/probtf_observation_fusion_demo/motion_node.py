@@ -12,6 +12,7 @@ import cv2
 import numpy as np
 import rospy
 import rospkg
+import yaml
 from std_msgs.msg import String
 from std_srvs.srv import Trigger, TriggerResponse
 from visualization_msgs.msg import MarkerArray
@@ -23,6 +24,7 @@ from .moving_scene import MovingSwitchScene
 from .moving_inference import MovingInference
 from .moving_control import MovingController
 from .motion_display import MotionDisplay
+from .stiffness_identification import StiffnessIdentifier
 from .node import build_snapshot, image_message
 
 
@@ -46,6 +48,8 @@ def require_current_update(frame, snapshot, image, frame_index, update_index):
         if (query.stamp != frame.stamp or tuple(query.command) != tuple(frame.command)
                 or query.version != snapshot.version or query.frame != snapshot.frame_id):
             raise AssertionError('A displayed query belongs to a different command/time snapshot.')
+    if snapshot.stiffness_record is not None:
+        MotionDisplay.stiffness_marker(snapshot, snapshot.stiffness_record)
 
 
 def read_image(snapshot, image_path):
@@ -65,11 +69,16 @@ def read_update(update):
 
 def prepare_motion(observations_path, output):
     started = time.monotonic()
+    sources = tuple(sorted(Path(__file__).parent.glob('*.py')))
+    source_hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                     for path in sources}
     package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
     _, templates = load_inputs(package/'config/common.yaml', observations_path)
     output.mkdir(parents=True, exist_ok=False)
     scene = MovingSwitchScene(output)
     inference = MovingInference(scene.robot_description, templates)
+    stiffness = StiffnessIdentifier(scene.urdf, tuple(inference.body_ids),
+        yaml.safe_load((package/'config/stiffness_identification.yaml').read_text()))
     control = inference.settings['control']
     controller = MovingController(
         inference, scene.robot_description, control['goal_offset'],
@@ -86,18 +95,18 @@ def prepare_motion(observations_path, output):
             # Preparation happens before playback, so holding an older estimate
             # here would introduce an artificial command/time mismatch.
             result = inference.update(scene.sensor_inputs(frame), index)
+            stiffness_record = stiffness.update(result)
+            result.records['stiffness'] = stiffness_record
             stage = result.stages[-1]
             snapshot = replace(build_snapshot(result, stage, inference.common),
-                               summary='', show_labels=False)
+                               summary='', show_labels=False,
+                               stiffness_record=stiffness_record)
             settings = inference.common['display']
             message = make_markers(snapshot, settings['seed'], settings['point_size'])
             path = output/'estimate_{:03d}'.format(index)
             save_snapshot(path, snapshot, message,
                           seed=settings['seed'], point_size=settings['point_size'])
             debug = result.detection_image.copy()
-            label = 'Camera used for estimation' if any(t['sensor']=='marker' for t in templates) else 'Camera reference only; NOT used for estimation'
-            cv2.putText(debug, label, (12,debug.shape[0]-10), cv2.FONT_HERSHEY_SIMPLEX,
-                        .55, (255,0,255) if debug.ndim == 3 else 50, 1, cv2.LINE_AA)
             image = image_message(debug, frame.stamp, 'camera_optical_frame')
             require_current_update(frame, snapshot, image, index, index)
             image_path = path.with_suffix('.png')
@@ -130,8 +139,13 @@ def prepare_motion(observations_path, output):
     ], separators=(',', ':'))+'\n').encode()
     (output/'sent_commands.json').write_bytes(command_bytes)
     preparation_seconds = time.monotonic()-started
+    if source_hashes != {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                         for path in sources}:
+        raise RuntimeError('Implementation changed while preparing this recording; repeat with frozen sources.')
     manifest = {
         'duration': scene.duration, 'frames': len(frames), 'updates': len(updates),
+        'implementation_sha256': source_hashes,
+        'implementation_unchanged_during_preparation': True,
         'frame_period_s': period, 'inference_period_s': period,
         'playback_hz': 1./period,
         'preparation_wall_seconds': preparation_seconds,
@@ -141,6 +155,8 @@ def prepare_motion(observations_path, output):
         'scene_config_sha256': scene.config_sha256,
         'estimation_config_sha256': hashlib.sha256(
             (package/'config/moving_estimation.yaml').read_bytes()).hexdigest(),
+        'stiffness_config_sha256': hashlib.sha256(
+            (package/'config/stiffness_identification.yaml').read_bytes()).hexdigest(),
         'command_sha256': hashlib.sha256(command_bytes).hexdigest(),
         'physics_sha256': hashlib.sha256(physical_bytes).hexdigest(),
         'sensors': [t['sensor'] for t in templates],
@@ -152,6 +168,15 @@ def prepare_motion(observations_path, output):
         'final_rigid_error_m': scene.trajectory[-1]['rigid_command_error_m'],
         'reached': frames[-1].reached, 'collided': frames[-1].collided,
         'minimum_clearance_m': scene.monitor.minimum_clearance,
+        'stiffness_prior': updates[0][0].stiffness_record['prior'],
+        'stiffness_posterior': updates[-1][0].stiffness_record['posterior'],
+        'stiffness_retained_memory': (updates[-1][0].stiffness_record['posterior']
+            if updates[-1][0].stiffness_record['posterior'] is not None
+            else updates[-1][0].stiffness_record['retained_prior']),
+        'stiffness_status_counts': {
+            status: sum(update[0].stiffness_record['status'] == status for update in updates)
+            for status in sorted({update[0].stiffness_record['status'] for update in updates})},
+        'stiffness_feeds_body_or_control': False,
     }
     (output/'motion_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     return scene, frames, updates, update_for_frame, manifest
@@ -175,6 +200,8 @@ class MotionPlayback:
                                      for update in updates)
         self.snapshot_messages = tuple(String(json.dumps(snapshot_record(update[0])))
                                        for update in updates)
+        self.stiffness_messages = tuple(String(json.dumps(update[0].stiffness_record))
+                                        for update in updates)
         # Keep only two decoded future images, rather than the entire movie.
         # PNG decoding happens outside the timer callback while the previous
         # exact frame is displayed.
@@ -183,6 +210,7 @@ class MotionPlayback:
         self.image_futures = {}
         self.distributions = rospy.Publisher('/observation_fusion/distributions', MarkerArray, queue_size=4,latch=True)
         self.snapshots = rospy.Publisher('/observation_fusion/snapshot', String, queue_size=4,latch=True)
+        self.stiffness = rospy.Publisher('/observation_fusion/stiffness', String, queue_size=4,latch=True)
         self.motion = rospy.Publisher('/observation_fusion/motion_metadata', String, queue_size=4,latch=True)
         self.images = rospy.Publisher('/observation_fusion/detection_image', Image, queue_size=4,latch=True)
         self.display = MotionDisplay(scene, case, manifest['sensors'])
@@ -223,7 +251,8 @@ class MotionPlayback:
                 self._publish_frame(index)
         else:
             snapshot = self.current_update[0]
-            self.display.publish(self.frames[target], target, snapshot, self.update_index)
+            self.display.publish(self.frames[target], target, snapshot, self.update_index,
+                                 stiffness_record=snapshot.stiffness_record)
 
     def _prefetch_images(self, index):
         for old in tuple(self.image_futures):
@@ -250,10 +279,12 @@ class MotionPlayback:
         if update_index != self.update_index:
             self.distributions.publish(message)
             self.snapshots.publish(self.snapshot_messages[update_index])
+            self.stiffness.publish(self.stiffness_messages[update_index])
             self.images.publish(image)
             self.update_index = update_index
         # Publish TF heartbeats even while holding the first/final pose.
-        self.display.publish(frame, index, snapshot, update_index)
+        self.display.publish(frame, index, snapshot, update_index,
+                             stiffness_record=snapshot.stiffness_record)
         if index != self.index:
             metadata = dict(self.manifest, sample_index=index, scene_elapsed=frame.time,
                             finished=index==len(self.frames)-1, estimate_index=update_index,

@@ -48,6 +48,10 @@ class DemoResult:
     sensor_posteriors: tuple
     local_estimates: tuple
     records: dict
+    # Keep the actual common frozen chart for downstream likelihood-ratio
+    # queries. Reexpressed per-link states do not share this original chart.
+    frozen_body_prior: object = None
+    frozen_body_posterior: object = None
 
 
 def load_inputs(common_path, observations_path):
@@ -219,4 +223,5 @@ def run(common, observations, image=None, *, prior=None, paths=None):
     }
     return DemoResult(prior, tuple(stages), image, detection_image, paths["links"],
                       paths["hand"], paths["camera"], paths["marker"], paths["camera_marker"],
-                      common["root_frame"], tuple(posteriors), tuple(local_estimates), records)
+                      common["root_frame"], tuple(posteriors), tuple(local_estimates), records,
+                      body_prior, fused)

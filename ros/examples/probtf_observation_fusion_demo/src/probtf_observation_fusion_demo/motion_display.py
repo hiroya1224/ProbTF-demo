@@ -44,7 +44,106 @@ class MotionDisplay:
         self.publisher = rospy.Publisher('/observation_fusion/scene', MarkerArray,
                                          queue_size=1, latch=True)
 
-    def publish(self, frame, frame_index, snapshot, inference_index):
+    @staticmethod
+    def stiffness_marker(snapshot, record):
+        """Display the updater's numbers only for this exact body snapshot.
+
+        The auxiliary stiffness model never supplies a new body distribution
+        to this adapter. All posterior component IDs, weights and versions are
+        checked against the actual core queries used for the candidate clouds.
+        """
+        if (float(record['source_stamp']) != snapshot.stamp
+                or tuple(record['source_command']) != tuple(snapshot.command)
+                or sorted(record['observation_ids']) != sorted(snapshot.observation_ids)):
+            raise AssertionError('Stiffness update and displayed body have different observation/command times.')
+        components = {}
+        for point in snapshot.points:
+            query = point.query
+            if (query.stamp != snapshot.stamp or tuple(query.command) != tuple(snapshot.command)
+                    or query.frame != snapshot.frame_id):
+                raise AssertionError('A body query belongs to another stiffness source snapshot.')
+            source = (query.state_id, query.version, point.weight)
+            if point.component_id in components and components[point.component_id] != source:
+                raise AssertionError('A displayed component has inconsistent stiffness provenance.')
+            components[point.component_id] = source
+        expected = tuple((label, values[0], values[1], values[2])
+                         for label, values in components.items())
+        labels = record['body_posterior_labels']
+        ids = record['body_posterior_state_ids']
+        versions = record['body_posterior_versions']
+        weights = record['body_posterior_weights']
+        if not len(labels) == len(ids) == len(versions) == len(weights) == len(expected):
+            raise AssertionError('Stiffness source lost a displayed body mixture component.')
+        actual = tuple(zip(labels, ids, versions, weights))
+        if actual != expected or versions[0] != snapshot.version:
+            raise AssertionError('Stiffness source IDs, versions or weights differ from the displayed body.')
+        failed = record['status'].startswith('failed')
+        if failed:
+            if (record['posterior'] is not None or record.get('prior_retained') is not True
+                    or record.get('retained_prior') != record['prior']
+                    or record.get('information_rank') is not None
+                    or record.get('information_eigenvalues') is not None
+                    or record.get('update_applied') is True):
+                raise ValueError('A failed stiffness update must retain its exact prior without a posterior or information rank.')
+            displayed = record['retained_prior']
+        else:
+            if record['posterior'] is None:
+                raise ValueError('A successful stiffness display requires its actual posterior.')
+            displayed = record['posterior']
+        prior = np.asarray(record['prior']['K_median'], dtype=float)
+        posterior = np.asarray(displayed['K_median'], dtype=float)
+        covariance = np.asarray(displayed['P_est'], dtype=float)
+        if (posterior.ndim != 1 or prior.shape != posterior.shape
+                or covariance.shape != (posterior.size, posterior.size)
+                or not np.all(np.isfinite(prior)) or not np.all(np.isfinite(posterior))
+                or not np.all(np.isfinite(covariance)) or np.any(np.diag(covariance) < 0.0)):
+            raise ValueError('Stiffness display requires finite updater values and nonnegative variances.')
+        standard_deviation = np.sqrt(np.diag(covariance))
+        values = lambda array: ', '.join('{:.4g}'.format(value) for value in array)
+        marker = Marker()
+        marker.header.frame_id = snapshot.frame_id
+        marker.header.stamp = rospy.Time.from_sec(snapshot.stamp)
+        marker.ns, marker.id = 'estimated_stiffness', 0
+        marker.type, marker.action = Marker.TEXT_VIEW_FACING, Marker.ADD
+        marker.pose.orientation.w = 1.0
+        marker.pose.position.x, marker.pose.position.z = .72, .70
+        marker.scale.z = .023
+        marker.color.r, marker.color.g, marker.color.b, marker.color.a = .10, .12, .19, 1.0
+        if failed:
+            reason = ' '.join(str(record.get('failure_reason', 'not supplied')).split())
+            if len(reason) > 100:
+                reason = reason[:97]+'...'
+            marker.text = (
+                'K UPDATE UNAVAILABLE; prior retained\n'
+                'Retained prior K median [Nm/rad]: {}\n'
+                'Retained sigma(log K): {}\n'
+                'Information rank: unavailable\n'
+                'Reason: {}\n'
+                't={:.3f} | body version {}'
+            ).format(values(prior), values(standard_deviation), reason,
+                     snapshot.stamp, ','.join(str(version) for version in versions))
+        else:
+            marker.text = (
+                'Effective stiffness | auxiliary model\n'
+                'Prior K median [Nm/rad]: {}\n'
+                'Posterior K median: {}\n'
+                'sigma(log K): {}\n'
+                'Information rank {}/{} | {}\n'
+                't={:.3f} | body version {}'
+            ).format(values(prior), values(posterior), values(standard_deviation),
+                     record['information_rank'], posterior.size, record['status'],
+                     snapshot.stamp, ','.join(str(version) for version in versions))
+        return marker
+
+    def publish(self, frame, frame_index, snapshot, inference_index, *, stiffness_record=None):
+        # Reject a stale or unrelated auxiliary update before publishing any
+        # frame. The supplied record is the updater's own object, not a second
+        # estimate reconstructed from the physical robot or its stiffness.
+        if stiffness_record is not None and (frame.stamp != snapshot.stamp
+                or tuple(frame.command) != tuple(snapshot.command)):
+            raise AssertionError('Physical frame and stiffness/body snapshot have different command times.')
+        stiffness = (None if stiffness_record is None else
+                     self.stiffness_marker(snapshot, stiffness_record))
         stamp = rospy.Time.now()
         messages = []
         for prefix, poses in (('', frame.link_poses), ('rigid/', frame.rigid_link_poses)):
@@ -78,4 +177,6 @@ class MotionDisplay:
                           (.55,.12,.75,1.) if 'imu' in self.sensor_names else (.4,.4,.4,.5),
                           (.025,.025,.025), pose=frame.link_poses['link_3'].copy())
         output.markers.append(imu)
+        if stiffness is not None:
+            output.markers.append(stiffness)
         self.publisher.publish(output)

@@ -111,7 +111,7 @@ def ffprobe(path):
         "-of", "json", str(path)], text=True))
 
 
-def verify_received(run_dir, snapshots, motion, wire, images, replay_wall):
+def verify_received(run_dir, snapshots, motion, wire, images, replay_wall, stiffness, hud):
     """Compare live ROS subscriptions to the immutable estimator export."""
     final = motion[-1]["data"]
     if not (final["finished"] and final["sample_index"] == final["frames"] - 1
@@ -136,6 +136,47 @@ def verify_received(run_dir, snapshots, motion, wire, images, replay_wall):
     actual_snapshots = {json.dumps(row["data"], sort_keys=True) for row in snapshots}
     if expected_snapshots != actual_snapshots:
         raise AssertionError("Actual ROS snapshot parameters/provenance differ from core exports.")
+    expected_stiffness = {json.dumps(row['data']['stiffness'], sort_keys=True) for row in snapshots}
+    actual_stiffness = {json.dumps(row['data'], sort_keys=True) for row in stiffness}
+    if expected_stiffness != actual_stiffness:
+        raise AssertionError('Published stiffness differs from the same saved body snapshot.')
+    ordered = sorted({row['data']['stamp']: row['data']['stiffness']
+                      for row in snapshots}.items())
+    previous = None
+    unavailable = []
+    for _stamp, record in ordered:
+        if previous is not None and record['prior'] != previous:
+            raise AssertionError('The stiffness memory was not carried to the next prior.')
+        if record['status'].startswith('failed'):
+            if (record['posterior'] is not None or record['update_applied']
+                    or not record.get('prior_retained')
+                    or record.get('retained_prior') != record['prior']
+                    or not record.get('failure_reason')
+                    or record['information_rank'] is not None):
+                raise AssertionError('An unavailable stiffness update was presented as a posterior.')
+            unavailable.append(dict(stamp=_stamp, reason=record['failure_reason']))
+            previous = record['retained_prior']
+        else:
+            previous = record['posterior']
+        if (record['status'] == 'identity_density_ratio'
+                and record['prior'] != record['posterior']):
+            raise AssertionError('An identity body update changed the stiffness distribution.')
+    from types import SimpleNamespace
+    from probtf_observation_fusion_demo.motion_display import MotionDisplay
+    expected_hud = {}
+    for row in snapshots:
+        data = row['data']
+        points = [SimpleNamespace(component_id=q['component_id'], weight=q['weight'],
+            query=SimpleNamespace(frame=q['source_frame'], stamp=q['source_stamp'],
+                command=tuple(q['source_command']), state_id=q['source_state_id'],
+                version=q['source_version'])) for q in data['queries']]
+        snapshot = SimpleNamespace(stamp=data['stamp'], command=tuple(data['command']),
+            observation_ids=tuple(data['observation_ids']), version=data['version'],
+            frame_id=data['frame_id'], points=points)
+        marker = MotionDisplay.stiffness_marker(snapshot, data['stiffness'])
+        expected_hud[data['stamp']] = marker.text
+    if {row['stamp']: row['text'] for row in hud} != expected_hud:
+        raise AssertionError('Actual RViz stiffness text differs from its source record.')
     import cv2
     expected_images = {}
     for path in (run_dir / "node").glob("estimate_*.json"):
@@ -152,6 +193,12 @@ def verify_received(run_dir, snapshots, motion, wire, images, replay_wall):
         raise AssertionError('Actual image delivery was slower than 15 fps: ' + str(image_fps))
     return {"final_motion_observed": True, "snapshot_identity_verified": True,
             "published_wire_identity_verified": True,
+            "published_stiffness_identity_verified": True,
+            "rviz_stiffness_hud_identity_verified": True,
+            "stiffness_updates_without_failure": not unavailable,
+            "unavailable_stiffness_updates": unavailable,
+            "unavailable_stiffness_updates_reported_without_substitution": True,
+            "stiffness_memory_and_identity_verified": True,
             "unique_snapshots": len(actual_snapshots), "unique_wire_messages": len(received_wire),
             "published_image_identity_verified": True,
             "unique_images": len(actual_images), "actual_moving_image_fps": image_fps}
@@ -164,7 +211,7 @@ def main():
     parser.add_argument("--runtime-output", type=Path, required=True,
                         help="New directory for launch logs and full ROS metadata.")
     parser.add_argument("--port", type=int, default=11766)
-    parser.add_argument("--duration", type=float, default=24.5)
+    parser.add_argument("--duration", type=float, default=36.5)
     parser.add_argument("--fps", type=int, default=20)
     parser.add_argument("--config-name", default="observation_fusion_motion.rviz")
     parser.add_argument("--cases", nargs="+", choices=CASES, default=list(CASES))
@@ -186,6 +233,10 @@ def main():
     protected = (config, package / "rviz/observation_fusion_demo.rviz",
                  package.parent / "probtf_switch_press_demo/rviz/switch_press_demo.rviz")
     original_bytes = {path: path.read_bytes() for path in protected}
+    backup = args.runtime_output/'rviz_before'
+    backup.mkdir()
+    for path, payload in original_bytes.items():
+        (backup/path.name).write_bytes(payload)
     settings_hashes = {str(path.relative_to(package.parent.parent.parent)): sha256(path)
                        for path in protected}
     env = dict(os.environ, ROS_MASTER_URI="http://localhost:{}/".format(args.port),
@@ -228,6 +279,8 @@ def main():
             motion_messages = []
             wire_messages = []
             image_messages = []
+            stiffness_messages = []
+            hud_messages = []
             wire_dir = run_dir / "received_markers"
             wire_dir.mkdir()
             started = time.monotonic()
@@ -244,6 +297,15 @@ def main():
                 "/observation_fusion/motion_metadata", String,
                 lambda message, target=motion_messages, handler=receive: handler(target, message),
                 queue_size=100)
+            stiffness_sub = rospy.Subscriber('/observation_fusion/stiffness', String,
+                lambda message, target=stiffness_messages, handler=receive: handler(target, message),
+                queue_size=100)
+            def receive_hud(message, target=hud_messages):
+                for marker in message.markers:
+                    if marker.ns == 'estimated_stiffness':
+                        target.append(dict(stamp=marker.header.stamp.to_sec(), text=marker.text))
+            hud_sub = rospy.Subscriber('/observation_fusion/scene', MarkerArray,
+                                      receive_hud, queue_size=100)
 
             def receive_markers(message, target=wire_messages, directory=wire_dir, origin=started):
                 buffer = io.BytesIO()
@@ -307,17 +369,21 @@ def main():
                 ffmpeg_log.close()
                 probe_result = ffprobe(video)
                 for label, data in (("snapshots", snapshot_messages), ("motion", motion_messages),
-                                    ("received_markers", wire_messages), ('images', image_messages)):
+                                    ("received_markers", wire_messages), ('images', image_messages),
+                                    ('stiffness', stiffness_messages), ('stiffness_hud', hud_messages)):
                     with (run_dir / (label + ".jsonl")).open("w") as output:
                         for row in data:
                             output.write(json.dumps(row) + "\n")
                 verification = verify_received(run_dir, snapshot_messages, motion_messages,
-                                               wire_messages, image_messages, replay_time)
+                                               wire_messages, image_messages, replay_time,
+                                               stiffness_messages, hud_messages)
                 final = motion_messages[-1]["data"]
                 if records:
                     reference = records[0]["last_motion"]
                     for key in ("duration", "frames", "updates", "initial_command",
                                 "scene_config_sha256", "estimation_config_sha256",
+                                "stiffness_config_sha256", "stiffness_prior",
+                                "implementation_sha256",
                                 "frame_period_s", "inference_period_s"):
                         if final[key] != reference[key]:
                             raise AssertionError("A common comparison condition differs: " + key)
@@ -349,6 +415,8 @@ def main():
                 motion_sub.unregister()
                 marker_sub.unregister()
                 image_sub.unregister()
+                stiffness_sub.unregister()
+                hud_sub.unregister()
                 launch_log.close()
                 for path, before in original_bytes.items():
                     if path.read_bytes() != before:

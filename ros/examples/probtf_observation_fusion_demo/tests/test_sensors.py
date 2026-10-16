@@ -5,6 +5,7 @@ import io
 from pathlib import Path
 import sys
 
+import cv2
 import numpy as np
 import pytest
 
@@ -176,21 +177,19 @@ def test_sensor_adapters_do_not_receive_physical_truth_or_render_settings(inputs
     assert run(common, observations, image=inputs[1]).records == results["imu_marker"].records
 
 
-def test_camera_plot_queries_same_core_posterior_and_ros_image_bytes(inputs, results, monkeypatch):
+def test_camera_query_records_keep_same_posterior_without_image_panels(inputs, results, monkeypatch):
     from sensor_msgs.msg import Image
     from probtf_observation_fusion_demo import sensors
     from probtf_observation_fusion_demo.node import image_message
-    captured = []
-    original_plot = sensors._camera_xy_inset
-    def capture_plot(image, queries):
-        captured.extend(queries)
-        return original_plot(image, queries)
-    monkeypatch.setattr(sensors, "_camera_xy_inset", capture_plot)
+    # Removing all image overlays must have no effect on any inference record,
+    # branch, covariance or retained posterior query.
+    monkeypatch.setattr(sensors, "_marker_overlay", lambda image, *_: image.copy())
     common, observations = inputs[0]["marker"]
     actual = run(common, observations, image=inputs[1])
     estimate = actual.local_estimates[0]
-    assert len(captured) == len(estimate.posterior.components)
-    for query, component in zip(captured, estimate.posterior.components):
+    queries = estimate.image_queries
+    assert len(queries) == len(estimate.posterior.components)
+    for query, component in zip(queries, estimate.posterior.components):
         assert query.source is component
         assert np.shares_memory(query.mean, component.distribution.mean)
         assert np.shares_memory(query.covariance, component.distribution.covariance)
@@ -199,16 +198,69 @@ def test_camera_plot_queries_same_core_posterior_and_ros_image_bytes(inputs, res
         assert not query.mean.flags.writeable and not query.covariance.flags.writeable
     bounds = estimate.diagnostics["image_xy_query"]
     np.testing.assert_array_equal(bounds["plot_bounds_low"], np.min([
-        query.mean - 2*np.sqrt(np.diag(query.covariance)) for query in captured], axis=0))
+        query.mean - 2*np.sqrt(np.diag(query.covariance)) for query in queries], axis=0))
     np.testing.assert_array_equal(bounds["plot_bounds_high"], np.max([
-        query.mean + 2*np.sqrt(np.diag(query.covariance)) for query in captured], axis=0))
+        query.mean + 2*np.sqrt(np.diag(query.covariance)) for query in queries], axis=0))
     # Rendering reaches the actual fixed-size ROS image without changing inference.
     assert actual.records == results["marker"].records
-    assert actual.detection_image.shape == (480, 640, 3)
-    message = image_message(actual.detection_image, actual.prior.stamp, "camera_image")
+    # The normal clean overlay reaches ROS without resizing either dimension.
+    displayed = results["marker"].detection_image
+    assert displayed.shape == (480, 640, 3)
+    message = image_message(displayed, actual.prior.stamp, "camera_image")
     stream = io.BytesIO()
     message.serialize(stream)
     wire = Image().deserialize(stream.getvalue())
     np.testing.assert_array_equal(np.frombuffer(wire.data, dtype=np.uint8).reshape(480, 640, 3),
-                                  actual.detection_image)
+                                  displayed)
     assert wire.width == 640 and wire.height == 480 and wire.encoding == "bgr8"
+
+
+def test_marker_image_has_only_detected_green_outline_and_all_detector_pose_axes(inputs, results, monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("The marker image must contain no text, plots or panels.")
+    for name in ("putText", "rectangle", "drawMarker", "ellipse"):
+        monkeypatch.setattr(cv2, name, forbidden)
+    axes, outlines = [], []
+    original_axes, original_outline = cv2.drawFrameAxes, cv2.polylines
+
+    def capture_axes(image, matrix, distortion, rotation, translation, length, thickness):
+        axes.append((rotation.copy(), translation.copy()))
+        return original_axes(image, matrix, distortion, rotation, translation, length, thickness)
+
+    def capture_outline(image, points, closed, color, thickness, line_type):
+        outlines.append((points, closed, color))
+        return original_outline(image, points, closed, color, thickness, line_type)
+
+    monkeypatch.setattr(cv2, "drawFrameAxes", capture_axes)
+    monkeypatch.setattr(cv2, "polylines", capture_outline)
+    common, observations = inputs[0]["marker"]
+    actual = run(common, observations, image=inputs[1])
+    assert actual.records == results["marker"].records
+    estimate = actual.local_estimates[0]
+    detected = estimate.detector_result
+    assert len(axes) == len(detected.weights) >= 2
+    for (rotation, translation), expected_rotation, expected_translation in zip(
+            axes, detected.rotations, detected.translations):
+        np.testing.assert_allclose(cv2.Rodrigues(rotation)[0], expected_rotation, atol=1e-12)
+        np.testing.assert_array_equal(translation.ravel(), expected_translation.ravel())
+    assert len(outlines) == 1
+    assert outlines[0][1:] == (True, (0, 220, 0))
+    assert outlines[0][0][0].shape == (4, 1, 2)
+    assert estimate.diagnostics["image_overlay"]["pose_axes"] == (
+        "all native image-only detector pose modes, not the body posterior")
+    assert estimate.diagnostics["image_overlay"]["text_or_distribution_panels"] is False
+    np.testing.assert_array_equal(actual.detection_image, results["marker"].detection_image)
+
+
+def test_undetected_marker_image_is_unannotated_raw_pixels(inputs, monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("An undetected marker image must remain unannotated.")
+    for name in ("putText", "rectangle", "polylines", "drawFrameAxes"):
+        monkeypatch.setattr(cv2, name, forbidden)
+    common, observations = inputs[0]["marker"]
+    image = np.full_like(inputs[1], 255)
+    actual = run(common, observations, image=image)
+    assert actual.records["valid_observation_count"] == 0
+    assert actual.stages[-1].components[0].state is actual.prior
+    np.testing.assert_array_equal(actual.detection_image, image)
+    assert actual.detection_image.shape == image.shape

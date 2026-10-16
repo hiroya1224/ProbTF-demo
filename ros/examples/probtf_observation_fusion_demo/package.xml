@@ -9,6 +9,8 @@
   <depend>probtf_core</depend>
   <depend>prob_artag_detector</depend>
   <depend>probtf_switch_press_demo</depend>
+  <exec_depend>deflecomp_core</exec_depend>
+  <exec_depend>deflecomp_ros</exec_depend>
   <depend>tf2_ros</depend>
   <depend>rospy</depend>
   <depend>sensor_msgs</depend>

@@ -218,7 +218,11 @@ class MovingController:
             cache[key] = (float(logsumexp(terms)), increment.copy(), branches, tuple(queries))
             return cache[key]
 
-        baseline = np.clip(self.velocity*dt, lower, upper)
+        # Start at the feasible increment closest to stopping. Retaining the
+        # previous velocity would keep moving when a flat objective or a
+        # rejected line search supplies no corrective step. If acceleration
+        # limits prevent stopping now, this baseline brakes as far as allowed.
+        baseline = np.clip(np.zeros_like(self.velocity), lower, upper)
         initial_item = evaluate(baseline)
         initial_cost = -initial_item[0]
         raw_gradient = np.zeros_like(baseline)
@@ -308,7 +312,7 @@ class MovingController:
             "baseline_motion_required_by_acceleration_limits": bool(
                 np.any(lower > 0.0) or np.any(upper < 0.0)),
             "selection_reason": ("full-objective Armijo gradient step" if accepted_step
-                else "feasible coasting baseline retained; no gradient trial accepted"),
+                else "feasible braking baseline retained; no gradient trial accepted"),
             "convergence_claimed": False,
             "increment_bounds": np.column_stack((lower, upper)).tolist(),
             "selected_branches": selected[2],

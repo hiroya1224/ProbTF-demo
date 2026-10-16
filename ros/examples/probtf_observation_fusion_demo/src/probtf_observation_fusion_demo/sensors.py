@@ -23,7 +23,6 @@ from probtf.spherical_law.first_order import (
 from probtf.spherical_law.fusion import (
     Gaussian, PosteriorComponent, SensorPosterior, condition_gaussian, freeze_query,
 )
-from probtf.spherical_law.support import covariance_support
 
 from probtf_observation_fusion_demo.scene import camera_model
 
@@ -44,7 +43,7 @@ class CameraXYQuery:
     """The explicit L=[I_2,0] marginal query of one completed Q_CM+ component.
 
     The arrays are read-only views of that very core distribution. They are
-    drawing inputs, never a replacement prior or an independently fitted law.
+    recorded query inputs, never a replacement prior or an independently fitted law.
     """
 
     source: PosteriorComponent
@@ -58,52 +57,28 @@ def camera_xy_queries(posterior):
                  for component in posterior.components)
 
 
-def _camera_xy_inset(image, queries):
-    """Plot exact 2-sigma XY covariance ellipses; axes are camera metres."""
+def _camera_xy_bounds(queries):
+    """Record the same Gaussian query bounds without drawing an image panel."""
     low = np.min([query.mean - 2.0 * np.sqrt(np.diag(query.covariance))
                   for query in queries], axis=0)
     high = np.max([query.mean + 2.0 * np.sqrt(np.diag(query.covariance))
                    for query in queries], axis=0)
-    # The physical bounds come solely from the queried Gaussians. A collapsed
-    # coordinate is drawn at the centre without manufacturing a spatial range.
-    span = high - low
-    box = (477, 70, 557, 150)
-    def pixels(values):
-        values = np.asarray(values, dtype=float)
-        normalized = np.divide(values - low, span, out=np.full_like(values, .5), where=span > 0)
-        return np.column_stack((box[0] + normalized[:, 0] * (box[2] - box[0]),
-                                box[3] - normalized[:, 1] * (box[3] - box[1])))
-    cv2.rectangle(image, (394, 40), (638, 196), (248, 248, 248), -1)
-    cv2.putText(image, "Q_CM+ XY marginal: 2 sigma", (400, 55),
-                cv2.FONT_HERSHEY_SIMPLEX, .36, (25, 25, 25), 1, cv2.LINE_AA)
-    cv2.rectangle(image, box[:2], box[2:], (110, 110, 110), 1)
-    cv2.putText(image, "y_C [m]", (397, 73), cv2.FONT_HERSHEY_SIMPLEX,
-                .30, (25, 25, 25), 1, cv2.LINE_AA)
-    cv2.putText(image, "{:.5f}".format(high[1]), (427, 85), cv2.FONT_HERSHEY_SIMPLEX,
-                .29, (25, 25, 25), 1, cv2.LINE_AA)
-    cv2.putText(image, "{:.5f}".format(low[1]), (427, 150), cv2.FONT_HERSHEY_SIMPLEX,
-                .29, (25, 25, 25), 1, cv2.LINE_AA)
-    cv2.putText(image, "{:.5f}".format(low[0]), (448, 164), cv2.FONT_HERSHEY_SIMPLEX,
-                .29, (25, 25, 25), 1, cv2.LINE_AA)
-    cv2.putText(image, "{:.5f}".format(high[0]), (556, 164), cv2.FONT_HERSHEY_SIMPLEX,
-                .29, (25, 25, 25), 1, cv2.LINE_AA)
-    cv2.putText(image, "x_C [m]", (499, 176), cv2.FONT_HERSHEY_SIMPLEX,
-                .30, (25, 25, 25), 1, cv2.LINE_AA)
-    angle = np.linspace(0.0, 2.0 * math.pi, 129)
-    circle = np.column_stack((np.cos(angle), np.sin(angle)))
-    colors = ((190, 75, 15), (150, 30, 170), (20, 125, 20), (20, 80, 180))
-    for index, query in enumerate(queries):
-        support = covariance_support(query.covariance)
-        boundary = query.mean + 2.0 * circle[:, :support.rank] @ (
-            support.basis * np.sqrt(support.eigenvalues)).T
-        color = colors[index % len(colors)]
-        cv2.polylines(image, [np.rint(pixels(boundary)).astype(np.int32)], True, color, 1, cv2.LINE_AA)
-        centre = tuple(np.rint(pixels(query.mean[None, :])[0]).astype(int))
-        cv2.drawMarker(image, centre, color, cv2.MARKER_CROSS, 6, 1, cv2.LINE_AA)
-        cv2.putText(image, "k{} w={:.6f}".format(index, query.source.weight),
-                    (400 + (index % 2) * 117, 189 + (index // 2) * 13),
-                    cv2.FONT_HERSHEY_SIMPLEX, .30, color, 1, cv2.LINE_AA)
     return low, high
+
+
+def _marker_overlay(image, observations, detected, camera):
+    """Draw only green detected corners and every image-only detector pose.
+
+    The RGB axes are the detector's native image-likelihood pose modes. They
+    do not represent the body posterior or replace its displayed core queries.
+    Passing no observations to the existing helper suppresses its ID/weight
+    text while preserving its axis projection and axis length.
+    """
+    output = draw_debug_image(image, (), (detected,), camera)
+    for observation in observations:
+        corners = np.rint(observation.corners_px).astype(np.int32).reshape(-1, 1, 2)
+        cv2.polylines(output, [corners], True, (0, 220, 0), 2, cv2.LINE_AA)
+    return output
 
 
 def _posterior_weights(log_weights):
@@ -197,7 +172,7 @@ def marker_estimate(state, observation, paths, common, image):
                          if item.marker_id == int(settings["id"]))
     if not observations:
         return LocalEstimate(None, {"sensor": "marker", "detected": False},
-                             draw_debug_image(image, (), status_text="No detection: identity observation update"))
+                             np.asarray(image).copy())
     if len(observations) != 1:
         raise ValueError("The configured marker ID occurs more than once in the image.")
     estimator = PoseMixtureEstimator(settings["size"], translation_prior_variance=None)
@@ -230,32 +205,9 @@ def marker_estimate(state, observation, paths, common, image):
     components = tuple(PosteriorComponent(label, posterior, float(weight))
                        for (label, posterior), weight in zip(modes, weights))
     result = SensorPosterior(frozen, observation["sensor_id"], observation["observation_id"], components)
-    debug = draw_debug_image(image, observations, (detected,), camera,
-                            status_text="Image-only detector axes; all hypotheses retained")
-    # The image panel also identifies the *estimated* camera-relative laws.
-    # These values come directly from Q_s^+, not the detector likelihood or truth.
-    start_y = max(90, debug.shape[0] - 28 - 52 * len(components))
-    cv2.rectangle(debug, (0, start_y - 17), (debug.shape[1], debug.shape[0] - 25),
-                  (248, 248, 248), thickness=-1)
-    cv2.putText(debug, "Q_CM+ in frozen common-prior chart (m, rad)", (6, start_y),
-                cv2.FONT_HERSHEY_SIMPLEX, .40, (25, 25, 25), 1, cv2.LINE_AA)
-    for index, component in enumerate(components):
-        local = component.distribution
-        translation_text = "k{} w={:.6f} m_x=[{}]".format(
-            index, component.weight, ",".join("{:.4f}".format(x) for x in local.mean[:3]))
-        covariance_text = "diag(S)=[{}]".format(
-            ",".join("{:.2g}".format(x) for x in np.diag(local.covariance)))
-        orientation_text = "m_phi=[{}] rad".format(
-            ",".join("{:.4f}".format(x) for x in local.mean[3:]))
-        y_value = start_y + 17 + index * 52
-        cv2.putText(debug, translation_text, (6, y_value), cv2.FONT_HERSHEY_SIMPLEX,
-                    .40, (25, 25, 25), 1, cv2.LINE_AA)
-        cv2.putText(debug, covariance_text, (6, y_value + 15), cv2.FONT_HERSHEY_SIMPLEX,
-                    .37, (25, 25, 25), 1, cv2.LINE_AA)
-        cv2.putText(debug, orientation_text, (6, y_value + 30), cv2.FONT_HERSHEY_SIMPLEX,
-                    .37, (25, 25, 25), 1, cv2.LINE_AA)
+    debug = _marker_overlay(image, observations, detected, camera)
     image_queries = camera_xy_queries(result)
-    low, high = _camera_xy_inset(debug, image_queries)
+    low, high = _camera_xy_bounds(image_queries)
     return LocalEstimate(result, {
         "sensor": "marker", "detected": True,
         "detector_prior": "translation prior explicitly disabled; image-only local likelihood mixture",
@@ -264,6 +216,11 @@ def marker_estimate(state, observation, paths, common, image):
         "corner_covariance": observations[0].image_covariance.tolist(),
         "detector_weights": list(detected.weights), "components": details,
         "local_posterior_weights": weights.tolist(),
+        "image_overlay": {
+            "corners": "green outline of detected image corners",
+            "pose_axes": "all native image-only detector pose modes, not the body posterior",
+            "text_or_distribution_panels": False,
+        },
         "image_xy_query": {
             "operation": "L=[I_2,0] applied to the same core Q_CM+ Gaussian components",
             "state_id": result.query.state_id, "query_id": result.query.query_id,

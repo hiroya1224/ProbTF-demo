@@ -44,6 +44,7 @@ class DisplaySnapshot:
     observation_ids: tuple
     summary: str
     show_labels: bool = True
+    stiffness_record: object = None
 
 
 def query_record(point):
@@ -71,7 +72,7 @@ def query_record(point):
 
 
 def snapshot_record(snapshot):
-    return {
+    record = {
         "frame_id": snapshot.frame_id,
         "stamp": snapshot.stamp,
         "command": list(snapshot.command),
@@ -82,6 +83,9 @@ def snapshot_record(snapshot):
         "observation_ids": list(snapshot.observation_ids),
         "queries": [query_record(point) for point in snapshot.points],
     }
+    if snapshot.stiffness_record is not None:
+        record["stiffness"] = snapshot.stiffness_record
+    return record
 
 
 def _normal_points(query, count, rng):
@@ -105,7 +109,7 @@ def _marker(snapshot, marker_id, namespace, marker_type):
     return marker
 
 
-def make_markers(snapshot, seed=29, point_size=0.009999999776482582):
+def make_markers(snapshot, seed=29, point_size=0.0074999998323619365):
     """Sample only final Gaussian query outputs. Seed cannot reach estimation."""
     rng = np.random.RandomState(int(seed))
     clear = _marker(snapshot, 0, "clear", Marker.SPHERE_LIST)
@@ -131,7 +135,7 @@ def make_markers(snapshot, seed=29, point_size=0.009999999776482582):
     for index, ((label, component), group) in enumerate(groups.items()):
         origin = group["origin"].query.mean
         marker = _marker(snapshot, offset + index, "axes/" + label, Marker.LINE_LIST)
-        marker.scale.x = 0.003
+        marker.scale.x = 0.00225
         for axis in (axis for axis in ("x", "y", "z", "observed") if axis in group):
             marker.points.extend((Point(*origin), Point(*group[axis].query.mean)))
             color = ColorRGBA(*AXIS_COLORS[axis], 0.95 * group[axis].weight)

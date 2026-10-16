@@ -29,15 +29,15 @@ control:
   # Known task relation in marker coordinates, not the world's marker pose.
   goal_offset: [0.0, -0.24, 0.045]
   goal_orientation_wxyz: [0.5, -0.5, 0.5, 0.5]
-  max_joint_velocity: 0.20
-  max_joint_acceleration: 0.6
+  max_joint_velocity: 0.12
+  max_joint_acceleration: 0.3
   damping: 0.025
   integration_steps: 480
   gradient_step: 0.00001
   gradient_max_backtracks: 3
 display:
-  axis_length: 0.10000000149011612
-  point_size: 0.009999999776482582
+  axis_length: 0.07500000111758709
+  point_size: 0.0074999998323619365
   body_samples: 180
   marker_samples: 200
   seed: 29

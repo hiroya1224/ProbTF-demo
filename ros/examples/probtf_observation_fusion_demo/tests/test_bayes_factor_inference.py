@@ -86,7 +86,13 @@ def test_actual_sensor_update_publishes_the_same_change_record_and_complete_cand
         assert result.projected_body_numerator is not None
         assert record['posterior_change_probability'] == pytest.approx(.25, abs=1e-10)
         assert record['log_bayes_factor'] == pytest.approx(0., abs=1e-10)
-        assert len(result.stages[-1].goal_components) == (4 if 'marker' in case else 2)
+        if 'marker' in case:
+            native_count = len(next(item.detector_result for item in result.local_estimates
+                if item.detector_result is not None).record.distribution.components)
+            assert len(result.stages[-1].goal_components) == native_count
+            assert result.records['fresh_goal_construction']['native_component_count'] == native_count
+        else:
+            assert len(result.stages[-1].goal_components) == 2
         planes = [item.diagnostics['tangent_basis'] for item in result.local_estimates
                   if item.posterior is not None and item.diagnostics['sensor'] == 'imu']
         if planes:

@@ -103,13 +103,14 @@ def test_internal_state_stays_single_and_current_goal_mixture_does_not_form_hist
     assert len(second.frozen_body_branches) == 2
     assert [branch.weight for branch in second.frozen_body_branches] == [.75, .25]
     assert len(second.stages[-1].goal_components) == initial_count
-    assert len(second.stages[-2].components) == initial_count
+    raw_count = len(second.stages[-2].components)
+    assert raw_count == len(second.frozen_body_branches)*initial_count
     native = next(stage for stage in second.stages if stage.label == 'fused_change_candidates')
     displayed = {item.label: item for item in native.components}
     logs = []
     for branch in second.frozen_body_branches:
         assert branch.reference_state.component_id == branch.label
-        assert len(branch.posterior_components) == initial_count//2
+        assert len(branch.posterior_components) == initial_count
         for raw in branch.posterior_components:
             actual = displayed[raw.label]
             expected = reexpress_state(branch.reference_state, raw.distribution.mean,
@@ -131,11 +132,12 @@ def test_internal_state_stays_single_and_current_goal_mixture_does_not_form_hist
     assert expected.state_id == internal.state.state_id
     assert second.records['valid_observation_count'] == 1
     assert len(second.sensor_posteriors) == 2
-    for goal, raw in zip(second.stages[-1].goal_components, second.stages[-2].components):
-        assert goal.weight == raw.weight and goal.log_weight == raw.log_weight
+    for goal, image_mode in zip(second.stages[-1].goal_components,
+                               second.records['fresh_goal_construction']['components']):
+        assert goal.weight == image_mode['weight'] and goal.log_weight == image_mode['image_log_weight']
         internal = second.stages[-1].components[0].state
         np.testing.assert_array_equal(goal.state.covariance[:60, :60], internal.covariance[:60, :60])
-    assert second.records['internal_projection']['source_component_count'] == initial_count
+    assert second.records['internal_projection']['source_component_count'] == raw_count
 
 
 def test_disabled_change_model_retains_the_legacy_single_prior_update(moving, tmp_path):
@@ -274,7 +276,11 @@ def test_native_image_log_masses_survive_float_underflow_and_the_next_tick(movin
     assert len(first.stages[-1].goal_components) >= 2
     tiny = first.stages[-1].goal_components[1]
     assert tiny.weight == 0. and math.isfinite(tiny.log_weight)
-    assert first.local_estimates[0].posterior.components[1].log_weight == tiny.log_weight
+    assert tiny.log_weight == -1000.
+    assert math.isfinite(first.local_estimates[0].posterior.components[1].log_weight)
+    # The task keeps the new image's mass. The local Bayesian posterior also
+    # includes overlap with the retained map and has a different log mass.
+    assert first.records['fresh_goal_construction']['components'][1]['log_weight'] == tiny.log_weight
     inference.templates = ()
     second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
     assert len(second.stages[-1].components) == len(first.stages[-1].components) == 1

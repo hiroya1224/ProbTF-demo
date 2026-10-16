@@ -122,6 +122,8 @@ def test_detected_goal_capture_is_unchanged_by_missing_images_commands_and_imu(m
         monkeypatch.setattr(np.random, name, forbidden)
     first = inference.update(inputs, 0)
     assert first.records['fixed_goal_memory_event'] == 'marker_observation_update'
+    assert first.records['internal_projection']['conditional_goal_diagnostics_used_for_task'] is False
+    assert first.records['internal_projection']['goal_construction'].startswith('fresh image-relative')
     memory = deepcopy(first.records['fixed_goal_memory'])
     assert memory['available'] and len(memory['goal_components']) >= 2
     initial_goals = first.stages[-1].goal_components
@@ -137,6 +139,8 @@ def test_detected_goal_capture_is_unchanged_by_missing_images_commands_and_imu(m
             command=command, stamp=1000.+.05*index, time=.05*index)
         current = inference.update(missing, index)
         assert current.records['fixed_goal_memory_event'] == 'image_missing_hold'
+        assert current.records['internal_projection']['conditional_goal_diagnostics_used_for_task'] is False
+        assert current.records['internal_projection']['goal_construction'].startswith('retained root-fixed task goal')
         assert current.records['fixed_goal_memory'] == memory
         assert len(current.stages[-1].components) == 1
         for previous, actual in zip(initial_goals, current.stages[-1].goal_components):

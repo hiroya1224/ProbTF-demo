@@ -199,7 +199,14 @@ def test_change_weighted_projected_body_and_all_goal_modes_match_controller_and_
     stage = result.stages[-1]
     body = stage.components[0]
     assert len(stage.components) == 1
-    assert len(stage.goal_components) == 4
+    detected = next(estimate.detector_result for estimate in result.local_estimates
+                    if estimate.detector_result is not None)
+    assert len(stage.goal_components) == len(detected.record.distribution.components)
+    assert [goal.weight for goal in stage.goal_components] == list(detected.weights)
+    expected_logs = np.asarray(detected.log_masses)-np.logaddexp.reduce(detected.log_masses)
+    np.testing.assert_array_equal([goal.log_weight for goal in stage.goal_components],expected_logs)
+    assert all(goal.label.endswith(native.component_id) for goal,native in
+               zip(stage.goal_components,detected.record.distribution.components))
     numerator = result.projected_body_numerator
     assert len(numerator.posterior_components) == 1
     raw = numerator.posterior_components[0]

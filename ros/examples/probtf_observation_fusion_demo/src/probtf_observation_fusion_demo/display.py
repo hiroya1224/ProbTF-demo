@@ -10,6 +10,7 @@ from scipy.special import ndtri
 from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
+from probtf.geometry import rotmat_to_quat
 from probtf.spherical_law.support import covariance_support
 
 
@@ -20,6 +21,10 @@ AXIS_COLORS = {
     "z": (0.12, 0.30, 0.95),
     "observed": (0.60, 0.15, 0.75),
 }
+
+GOAL_AXIS_SHAFT_DIAMETER = 0.012
+GOAL_AXIS_HEAD_DIAMETER = 0.024
+GOAL_AXIS_HEAD_LENGTH = 0.024
 
 
 @dataclass(frozen=True)
@@ -70,11 +75,104 @@ def query_record(point):
         "weight": point.weight,
         "log_weight": point.log_weight,
         "sample_count": point.sample_count,
+        "mode": query.mode.tolist(),
         "mean": query.mean.tolist(),
         "covariance": query.covariance.tolist(),
         "within": query.within.tolist(),
         "between": query.between.tolist(),
     }
+
+
+def goal_axis_records(snapshot):
+    """Describe bold axes from the same goal origin/endpoint queries.
+
+    Each goal component has its own three modal arrows. They are queries of
+    that component, not a selected mixture representative or a new law. The
+    preexisting mean axes, Gaussian particles and all masses stay intact.
+    """
+    groups = {}
+    for point in snapshot.points:
+        if point.frame_label == 'switch_goal':
+            group = groups.setdefault(point.component_id, {})
+            if point.axis in group:
+                raise ValueError('A bold goal axis has a duplicate source endpoint.')
+            group[point.axis] = point
+    records = []
+    memory = snapshot.goal_memory or {}
+    for component_index, (component, group) in enumerate(groups.items()):
+        if set(group) != {'origin', 'x', 'y', 'z'}:
+            raise ValueError('Bold goal axes require the existing origin and XYZ queries for every mode.')
+        origin = group['origin']
+        source = origin.query
+        for index, axis in enumerate(('x', 'y', 'z')):
+            endpoint = group[axis]
+            query = endpoint.query
+            if (query.state_id != source.state_id or query.component_id != source.component_id
+                    or query.version != snapshot.version or source.version != snapshot.version
+                    or query.stamp != snapshot.stamp or source.stamp != snapshot.stamp
+                    or tuple(query.command) != tuple(snapshot.command)
+                    or tuple(source.command) != tuple(snapshot.command)
+                    or query.frame != snapshot.frame_id or source.frame != snapshot.frame_id
+                    or endpoint.weight != origin.weight or endpoint.log_weight != origin.log_weight):
+                raise ValueError('Bold goal axes must reference the same goal mode, mass and source snapshot.')
+            records.append(dict(namespace='goal_axes/'+component, marker_id=index,
+                component_id=component, component_index=component_index,
+                child_frame_id='estimated_switch_goal_'+str(component_index), axis=axis,
+                weight=endpoint.weight, log_weight=endpoint.log_weight,
+                source_component_id=query.component_id, source_state_id=query.state_id,
+                source_frame=query.frame, source_stamp=query.stamp,
+                source_version=query.version, source_command=list(query.command),
+                origin_query_id=source.query_id, endpoint_query_id=query.query_id,
+                start=source.mode.tolist(), end=query.mode.tolist(),
+                shaft_diameter_m=GOAL_AXIS_SHAFT_DIAMETER,
+                head_diameter_m=GOAL_AXIS_HEAD_DIAMETER,
+                head_length_m=GOAL_AXIS_HEAD_LENGTH,
+                color_rgb=list(AXIS_COLORS[axis]), alpha=.95*endpoint.weight,
+                goal_memory_available=bool(memory.get('available', False)),
+                goal_observation_stamp=memory.get('observation_stamp'),
+                goal_observation_version=memory.get('observation_version'),
+                goal_observation_command=memory.get('observation_command'),
+                goal_observation_ids=list(memory.get('observation_ids', ())),
+                operation='modal frame query of same goal law',
+                render_rule='same core goal-origin and axis-endpoint modes; all goal mixture components retained'))
+    return records
+
+
+def goal_pose_records(snapshot):
+    """Query each component's modal TF from its same four core endpoints.
+
+    A common positive axis length and an orthonormal right-handed modal basis
+    are required. No mean-frame approximation, mixture selection, covariance
+    change or projection of a nonorthogonal mean basis is performed here.
+    """
+    groups = {}
+    for axis in goal_axis_records(snapshot):
+        groups.setdefault(axis['component_id'], {})[axis['axis']] = axis
+    records = []
+    for group in groups.values():
+        source = group['x']
+        origin = np.asarray(source['start'])
+        columns = np.column_stack([np.asarray(group[axis]['end'])-origin for axis in ('x', 'y', 'z')])
+        lengths = np.linalg.norm(columns, axis=0)
+        if (not np.all(np.isfinite(columns)) or lengths[0] <= 0.
+                or not np.allclose(lengths, lengths[0], rtol=1e-10, atol=1e-12)):
+            raise ValueError('Modal goal TF queries require a common positive axis length.')
+        rotation = columns/lengths[0]
+        if (not np.allclose(rotation.T @ rotation, np.eye(3), rtol=0., atol=1e-10)
+                or not np.isclose(np.linalg.det(rotation), 1., rtol=0., atol=1e-10)):
+            raise ValueError('Modal goal TF queries must form a right-handed orthonormal frame.')
+        common_keys = ('component_id', 'component_index', 'child_frame_id', 'weight', 'log_weight',
+            'source_component_id', 'source_state_id', 'source_frame', 'source_stamp',
+            'source_version', 'source_command', 'goal_memory_available',
+            'goal_observation_stamp', 'goal_observation_version', 'goal_observation_command',
+            'goal_observation_ids', 'operation')
+        records.append(dict({key: source[key] for key in common_keys},
+            translation=origin.tolist(), rotation_wxyz=rotmat_to_quat(rotation).tolist(),
+            rotation_matrix=rotation.tolist(), axis_length_m=float(lengths[0]),
+            origin_query_id=source['origin_query_id'],
+            endpoint_query_ids={axis: group[axis]['endpoint_query_id'] for axis in ('x', 'y', 'z')},
+            modal_endpoints={axis: group[axis]['end'] for axis in ('x', 'y', 'z')}))
+    return records
 
 
 def snapshot_record(snapshot):
@@ -98,6 +196,10 @@ def snapshot_record(snapshot):
         record['behavior'] = snapshot.behavior
     if snapshot.surprise_record is not None:
         record['bayes_factor_surprise'] = snapshot.surprise_record
+    axes = goal_axis_records(snapshot)
+    if axes:
+        record['goal_axes'] = axes
+        record['goal_poses'] = goal_pose_records(snapshot)
     return record
 
 
@@ -187,6 +289,19 @@ def make_markers(snapshot, seed=29, point_size=0.0074999998323619365):
     status.color = ColorRGBA(0.08, 0.10, 0.16, 1.0)
     status.text = snapshot.summary
     output.append(status)
+    # Append the requested bold target axes, preserving every preexisting
+    # particle, thin axis, label, ID, size and ordering byte for byte.
+    for record in goal_axis_records(snapshot):
+        marker = _marker(snapshot, record['marker_id'], record['namespace'], Marker.ARROW)
+        marker.points = [Point(*record['start']), Point(*record['end'])]
+        marker.scale.x = record['shaft_diameter_m']
+        marker.scale.y = record['head_diameter_m']
+        marker.scale.z = record['head_length_m']
+        marker.color = ColorRGBA(*record['color_rgb'], record['alpha'])
+        # ARROW ignores text for drawing. Keep the complete branch provenance
+        # on the actual wire as well as in the snapshot's sidecar record.
+        marker.text = json.dumps(record, sort_keys=True, separators=(',', ':'))
+        output.append(marker)
     return MarkerArray(output)
 
 
@@ -197,7 +312,7 @@ def serialized_marker_array(message):
 
 
 def verify_wire_identity(snapshot, actual, *, seed, point_size):
-    """Regenerate from the same source and compare the real ROS wire message."""
+    """Compare the real wire, including goal arrows and their provenance."""
     payload = serialized_marker_array(actual)
     received = MarkerArray().deserialize(payload)
     expected = make_markers(snapshot, seed, point_size)

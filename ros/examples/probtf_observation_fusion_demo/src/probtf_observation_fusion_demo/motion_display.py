@@ -1,4 +1,5 @@
 """Physical robots/scene are references; candidate clouds use only core queries."""
+import json
 from types import SimpleNamespace
 
 import cv2
@@ -6,9 +7,10 @@ import numpy as np
 import rospy
 from geometry_msgs.msg import TransformStamped
 from scipy.spatial.transform import Rotation
-from std_msgs.msg import ColorRGBA
+from std_msgs.msg import ColorRGBA, String
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
+from .display import goal_pose_records
 
 from probtf_switch_press_demo.ros_display import Display as SwitchDisplay
 
@@ -67,6 +69,8 @@ class MotionDisplay:
         ])
         self.publisher = rospy.Publisher('/observation_fusion/scene', MarkerArray,
                                          queue_size=1, latch=True)
+        self.goal_tf_sources = rospy.Publisher('/observation_fusion/goal_tf_sources',
+                                               String, queue_size=1, latch=True)
 
     @staticmethod
     def stiffness_marker(snapshot, record):
@@ -272,6 +276,39 @@ class MotionDisplay:
             for name, pose in poses.items():
                 if name != 'base_link':
                     messages.append(transform_message('base_link', prefix + name, pose, stamp))
+        # A TF is one component's explicitly queried modal pose, not the
+        # complete mixture or an extra goal estimate. Convert the simulation
+        # source clock to the physical reference's ROS display clock, keeping
+        # the prediction age. Raw simulation stamps restart on replay; using
+        # them directly in /tf would leave old data in the RViz TF buffer.
+        # Publish both clocks and their mapping, once per immutable snapshot.
+        goal_poses = goal_pose_records(snapshot) if hasattr(snapshot, 'points') else ()
+        goal_sources = tuple((item['source_state_id'], item['source_stamp'],
+                              item['child_frame_id']) for item in goal_poses)
+        if goal_poses and goal_sources != getattr(self, '_last_goal_tf_sources', None):
+            source_age = frame.stamp-snapshot.stamp
+            tf_stamp = stamp-rospy.Duration.from_sec(source_age)
+            for item in goal_poses:
+                transform = TransformStamped()
+                transform.header.frame_id = item['source_frame']
+                transform.header.stamp = tf_stamp
+                transform.child_frame_id = item['child_frame_id']
+                (transform.transform.translation.x, transform.transform.translation.y,
+                 transform.transform.translation.z) = item['translation']
+                w, x, y, z = item['rotation_wxyz']
+                (transform.transform.rotation.w, transform.transform.rotation.x,
+                 transform.transform.rotation.y, transform.transform.rotation.z) = (w, x, y, z)
+                messages.append(transform)
+            self.goal_tf_sources.publish(String(data=json.dumps(dict(
+                source_stamp=snapshot.stamp,
+                physical_source_stamp=frame.stamp,
+                render_stamp_ros=stamp.to_sec(),
+                tf_stamp_ros=tf_stamp.to_sec(),
+                tf_stamp_ros_parts=dict(secs=tf_stamp.secs, nsecs=tf_stamp.nsecs),
+                source_age_s=source_age,
+                clock_mapping='render_ros_stamp - (physical_sim_stamp - candidate_sim_stamp)',
+                goal_poses=goal_poses), allow_nan=False)))
+            self._last_goal_tf_sources = goal_sources
         self.transforms.sendTransform(messages)
         if not publish_scene:
             return

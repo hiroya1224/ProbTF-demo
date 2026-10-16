@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 from copy import deepcopy
 import io
+import json
 from pathlib import Path
 
 import cv2
@@ -10,6 +11,7 @@ import numpy as np
 import pytest
 import rospy
 from scipy.spatial.transform import Rotation
+from std_msgs.msg import String
 from visualization_msgs.msg import Marker, MarkerArray
 
 from probtf_observation_fusion_demo.motion_display import MotionDisplay
@@ -28,6 +30,16 @@ class Capture:
 
     def publish(self, message):
         self.messages = message
+
+
+class CaptureString:
+    def __init__(self):
+        self.messages = None
+
+    def publish(self,message):
+        stream = io.BytesIO()
+        message.serialize(stream)
+        self.messages = String().deserialize(stream.getvalue())
 
 
 def _pose(message):
@@ -153,6 +165,7 @@ def test_stiffness_hud_uses_same_raw_snapshot_and_updater_values_on_actual_ros_w
     display.scene, display.case, display.sensor_names = scene, 'imu_marker', ('imu', 'marker')
     display.tag_texture = cv2.imread(str(scene.texture_path), cv2.IMREAD_GRAYSCALE)
     display.transforms, display.publisher = Capture(), Capture()
+    display.goal_tf_sources = CaptureString()
     display.marker_id = 0
     monkeypatch.setattr(rospy.Time, 'now', staticmethod(lambda: rospy.Time.from_sec(8000.)))
     display.publish(frame, 0, snapshot, 0, stiffness_record=record)
@@ -170,6 +183,11 @@ def test_stiffness_hud_uses_same_raw_snapshot_and_updater_values_on_actual_ros_w
     assert record == original
     assert record['source_prior_state_id'] == result.prior.state_id
     assert record['body_posterior_state_ids'] == [item.state.state_id for item in result.stages[-1].components]
+    goal_sources = json.loads(display.goal_tf_sources.messages.data)
+    assert goal_sources['source_stamp'] == snapshot.stamp
+    assert goal_sources['physical_source_stamp'] == frame.stamp
+    assert [goal['source_state_id'] for goal in goal_sources['goal_poses']] == [
+        item.state.state_id for item in result.stages[-1].goal_components]
     # Physical stiffness is never consulted when rendering these numbers.
     saved = scene.plant.stiffness.copy()
     try:

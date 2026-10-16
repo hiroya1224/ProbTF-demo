@@ -31,6 +31,7 @@ from .model import (
 from .body_projection import project_update, retain_goal_components
 from .moving_control import command_state
 from .bayes_factor import transition_priors, projection_input, retain_transition_goals
+from .fresh_goal import fresh_marker_goals
 
 
 def _origin(joint):
@@ -349,8 +350,9 @@ class MovingInference:
         Moment matching occurs only after sensor-specific updates and common-
         prior-corrected fusion in their single frozen input chart. The same
         projected body is used by stiffness, control, display and prediction.
-        Current goal components retain each observation branch's conditional
-        marker law, evaluated against that common projected body marginal.
+        A fresh image constructs task goals by composing its native relative
+        marker modes through this captured common camera/body law. The
+        retained unknown-marker posterior remains a separate internal state.
         Without a new marker observation their root marker laws remain fixed;
         only the body and its side of shared cross blocks update.
         """
@@ -362,10 +364,15 @@ class MovingInference:
         marker_observed = any(estimate.posterior is not None
                               and estimate.detector_result is not None
                               for estimate in result.local_estimates)
-        goals = (projection.goal_components if marker_observed or not predicted_goals else
-                 retain_transition_goals(predicted_goals, result, projection) if transition else
-                 retain_goal_components(predicted_goals, result.prior,
-                                        projection.posterior, projection.state))
+        if marker_observed:
+            goals, construction = fresh_marker_goals(result, projection.state,
+                                                     marker_id=self.marker.edge_id)
+            result.records['fresh_goal_construction'] = construction
+        else:
+            goals = (projection.goal_components if not predicted_goals else
+                     retain_transition_goals(predicted_goals, result, projection) if transition else
+                     retain_goal_components(predicted_goals, result.prior,
+                                            projection.posterior, projection.state))
         internal = WeightedState(projection.state.component_id, 1., projection.state, 0.)
         stage = Stage('fused', (internal,), raw_stage.sensor_ids, tuple(goals))
         effective_raw = PosteriorComponent(internal.label, projection.posterior, 1.,
@@ -386,7 +393,16 @@ class MovingInference:
         if transition:
             records['bayes_factor_transport'] = projected_input.records['bayes_factor_transport']
         records['internal_projection'] = dict(projection.record,
-            goal_policy=('current observation conditional modes with a shared projected body; capture the root-fixed switch mixture'
+            diagnostic_conditional_goal_state_ids=projection.record['goal_state_ids'],
+            conditional_goal_diagnostics_used_for_task=not marker_observed and not predicted_goals,
+            goal_state_ids=[item.state.state_id for item in goals],
+            goal_labels=[item.label for item in goals],
+            goal_log_weights=[component_log_weight(item) for item in goals],
+            goal_construction=('fresh image-relative task composition; old-map posterior conditionals are projection diagnostics only'
+                               if marker_observed else
+                               'retained root-fixed task goal; update body-side cross only; raw conditional goals are projection diagnostics only'
+                               if predicted_goals else projection.record['goal_construction']),
+            goal_policy=('all native fresh image modes composed through the shared captured camera/body; capture the root-fixed switch mixture'
                          if marker_observed else
                          'root-fixed marker marginals and mixture masses; posterior-weighted keep-branch Schmidt cross and independent reset cross' if transition else
                          'root-fixed marker marginals and mixture masses; Schmidt body-side cross update only'),
@@ -464,7 +480,9 @@ class MovingInference:
                 observation_ids=list(dict.fromkeys(item.posterior.observation_id for item in estimates)),
                 observation_sensor_ids=list(dict.fromkeys(item.posterior.sensor_id for item in estimates)),
                 observation_source_state_ids=result.records['internal_projection']['raw_source_state_ids'],
-                construction='observed marker|body conditionals under the common internal body marginal, then fixed known marker-to-switch action',
+                construction='fresh native camera-relative image modes composed through the captured common camera/body law, then fixed known marker-to-switch action',
+                construction_approximation='task-only independent fresh measurement cut; not an exact joint Bayesian posterior',
+                image_relative_source=deepcopy(result.records['fresh_goal_construction']),
                 marker_to_switch=dict(translation=offset.tolist(), rotation_wxyz=orientation.tolist()),
                 goal_components=components, sampling_used=False,
                 holding_policy=('fixed root marker marginal and all mixture masses; posterior-weighted continuation Schmidt cross and independent body-redraw cross' if self.surprise_enabled else

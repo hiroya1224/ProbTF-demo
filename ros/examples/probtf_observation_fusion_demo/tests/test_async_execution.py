@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 import yaml
+from scipy.special import logsumexp
 from visualization_msgs.msg import MarkerArray
 
 from probtf_observation_fusion_demo.async_motion import AsyncMotionSession, _freeze_arrays
@@ -407,7 +408,15 @@ def test_reacquisition_waits_for_the_new_goal_mixture_to_be_committed_with_IK(tm
         assert fresh_index > current.last_marker_missing_capture
         assert current.latest_marker_observed
         assert fresh.records['fixed_goal_memory']['observation_stamp'] > initial.prior.stamp
-        assert len(fresh.stages[-1].goal_components) == 4
+        detected = next(item.detector_result for item in fresh.local_estimates
+                        if item.detector_result is not None)
+        native = detected.record.distribution.components
+        assert len(fresh.stages[-1].goal_components) == len(native)
+        assert [goal.weight for goal in fresh.stages[-1].goal_components] == list(detected.weights)
+        np.testing.assert_array_equal([goal.log_weight for goal in fresh.stages[-1].goal_components],
+            np.asarray(detected.log_masses)-logsumexp(detected.log_masses))
+        assert all(goal.label.endswith(mode.component_id)
+                   for goal,mode in zip(fresh.stages[-1].goal_components,native))
         for job in current.archive_jobs:
             job.result()
         current.collect_archives()
@@ -425,7 +434,11 @@ def test_reacquisition_waits_for_the_new_goal_mixture_to_be_committed_with_IK(tm
         current.submit_control()
         fresh_plan = _complete_control(current)
         assert fresh_plan['capture_index'] == fresh_index
-        assert len(fresh_plan['snapshot'].goal_memory['goal_components']) == 4
+        remembered = fresh_plan['snapshot'].goal_memory['goal_components']
+        assert len(remembered) == len(native)
+        assert [goal['weight'] for goal in remembered] == list(detected.weights)
+        np.testing.assert_array_equal([goal['log_weight'] for goal in remembered],
+            np.asarray(detected.log_masses)-logsumexp(detected.log_masses))
         current.control_replies.put(fresh_plan)
         current.poll()
         for job in current.archive_jobs:

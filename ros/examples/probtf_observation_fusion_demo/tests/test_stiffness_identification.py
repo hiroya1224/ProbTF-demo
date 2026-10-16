@@ -425,7 +425,10 @@ def test_cumulative_memory_preserves_old_factors_on_marker_loss_and_adds_only_ne
     assert sum(len(branch.posterior_components) for branch in current.frozen_body_branches) == 4
     assert len(current.projected_body_numerator.posterior_components) == 1
     assert len(current.frozen_body_posterior.components) == 1
-    assert len(current.stages[-1].goal_components) == 4
+    fresh_modes = current.records['fresh_goal_construction']['components']
+    assert len(current.stages[-1].goal_components) == len(fresh_modes) == 2
+    assert [item.log_weight for item in current.stages[-1].goal_components] == [
+        item['image_log_weight'] for item in fresh_modes]
     assert len(identifier.factors) == 2
     assert current_record['prior'] == first_record['posterior']
     assert len(current_record['body_marginal']['branches']) == 2

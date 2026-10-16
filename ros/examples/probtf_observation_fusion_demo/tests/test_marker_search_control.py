@@ -300,7 +300,9 @@ def test_local_actions_use_the_exact_same_K_corrected_laws_next_prior_and_publis
     body_before = stage.components[0].state
     goals_before = stage.goal_components
     memory_before = result.records['fixed_goal_memory']
-    assert len(goals_before) == 4  # two change hypotheses times both image modes
+    fresh_modes = result.records['fresh_goal_construction']['components']
+    assert len(goals_before) == len(fresh_modes) == 2
+    assert [item.log_weight for item in goals_before] == [item['image_log_weight'] for item in fresh_modes]
     selector.velocity[3] = .02 if mode in ('braking', 'search_exhausted') else 0.
     before_velocity = selector.velocity.copy()
     target = source_command.copy() if mode == 'settling' else None
@@ -493,7 +495,9 @@ def test_fresh_rendered_reacquisition_after_search_updates_every_goal_mode_and_r
     native_modes = next(e for e in reacquired.records['sensor_estimates'] if e['sensor'] == 'marker')['components']
     goals = reacquired.stages[-1].goal_components
     assert len(native_modes) == 2
-    assert len(goals) == len(memory['goal_components']) == 2*len(native_modes)
+    assert len(goals) == len(memory['goal_components']) == len(native_modes)
+    assert [item.log_weight for item in goals] == [item['image_log_weight']
+        for item in reacquired.records['fresh_goal_construction']['components']]
     assert [item.log_weight for item in goals] == [item['log_weight'] for item in memory['goal_components']]
     next_command, normal = selector.step(reacquired, .05)
     assert normal['gradient_evaluation_count'] == 1

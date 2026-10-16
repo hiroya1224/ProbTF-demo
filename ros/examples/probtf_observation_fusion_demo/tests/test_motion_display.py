@@ -34,7 +34,7 @@ def _pose(message):
 def test_replay_robot_tf_and_physical_path_do_not_use_future_frame(tmp_path, monkeypatch):
     scene = MovingSwitchScene(tmp_path)
     first = scene.step(0.0, 1792080000.0)
-    second = scene.step(1.0, 1792080001.0)
+    second = scene.step(1.0, 1792080001.0, command=scene.initial_command + .02)
     # Preparing the whole movie leaves FK at a later physical state.  Replaying
     # the first frame must still draw its original physical tip and no future path.
     scene.monitor.reached = True

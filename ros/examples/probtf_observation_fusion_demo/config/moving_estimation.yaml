@@ -25,6 +25,16 @@ marker:
   corner_sigma_px: 0.5
   translation_prior_variance: null
   source: decoded marker ID and printed size; detector receives pixels only, no physical pose or projected corners
+control:
+  # Known task relation in marker coordinates, not the world's marker pose.
+  goal_offset: [0.0, -0.24, 0.045]
+  goal_orientation_wxyz: [0.5, -0.5, 0.5, 0.5]
+  max_joint_velocity: 0.20
+  max_joint_acceleration: 0.6
+  damping: 0.025
+  integration_steps: 480
+  gradient_step: 0.00001
+  gradient_max_backtracks: 3
 display:
   axis_length: 0.10000000149011612
   point_size: 0.009999999776482582

@@ -57,7 +57,7 @@ class MotionDisplay:
             status='reached' if frame.reached else 'running',
             monitor=SimpleNamespace(reached=frame.reached, collided=frame.collided),
             plant=self.scene.plant, pose=frame.joints, tip_offset=self.scene.tip_offset,
-            trajectory=self.scene.trajectory[:frame_index+1], phase='replay', cycle=0,
+            trajectory=self.scene.trajectory[:frame_index+1], phase='closed_loop', cycle=0,
             ik_iteration=0,
         )
         output = SwitchDisplay.scene_markers(self)
@@ -65,8 +65,9 @@ class MotionDisplay:
             if marker.ns == 'status':
                 marker.text = (
                     '{} | {:.1f} / {:.1f} s\n'
-                    'Same commands; sensor pose comparison\n'
+                    'Observations -> estimate -> command | 20 fps\n'
                     'Opaque: gravity-flexed | Translucent: rigid FK\n'
+                    'RGB: estimated XYZ endpoint distributions\n'
                     'Actual tip {:.1f} mm | Rigid tip {:.1f} mm\n'
                     'Observations {} | estimate t={:.1f} s | frame {}'
                 ).format(self.case, frame.time, self.scene.duration,

@@ -1,20 +1,19 @@
-# 同じスイッチ到達動作で比較するセンサ別の姿勢推定
+# 観測で更新した座標変換候補から動くスイッチ到達デモ
 
-旧スイッチ例と同じ6軸ロボット、325 mmの棒、カメラ、パネル配置と重力ばねモデルを使う。
-35.609秒の共通指令軌道を再生し、無観測・IMU・カメラ・併用の4条件だけを変えて姿勢候補を推定する。
-実ロボットは不透明、同じ指令の剛体FKは半透明、推定した候補はcoreと同じ分布の原点・軸端点群として表示する。
-物理動作と指令は4条件で同一で、センサは姿勢推定に使う。この比較ではセンサごとに制御器を変更しない。
-要件は [REQUIREMENTS.md](REQUIREMENTS.md)、今回の動作・4動画への変更は [MOTION_REQUIREMENTS.md](MOTION_REQUIREMENTS.md)。
+旧スイッチ例と同じ6軸ロボット、325 mmの棒、カメラ、パネル配置と重力ばねモデルを使う。観測なし・IMU・カメラ・併用の4条件を、同じ初期指令・候補分布・指令選定処理で実行する。観測から更新した共同候補が、次の実送信指令へ反映される。
 
-同じ画角・速度・42.5秒で録画した実RVizの動画：
+全条件で物理側のたわみを計算する。観測なしは同じ推定処理へ空の観測集合を渡すだけであり、物理モデルや事前分布を変更しない。不透明モデルは物理身体、半透明モデルは同じ現在指令の剛体FK、RGB点群は推定共同状態への原点・XYZ軸端点照会である。
 
-- [観測なし](../../../recordings/probtf_observation_fusion_demo/switch_scene_20261016/no_sensors.mp4)
-- [IMUのみ](../../../recordings/probtf_observation_fusion_demo/switch_scene_20261016/imu.mp4)
-- [カメラのみ](../../../recordings/probtf_observation_fusion_demo/switch_scene_20261016/marker.mp4)
-- [IMU＋カメラ](../../../recordings/probtf_observation_fusion_demo/switch_scene_20261016/imu_marker.mp4)
+**旧 `switch_scene_20261016/` の4動画は到達性能の比較として無効。** 過去の成功指令CSVを全条件で再生し、推定結果を指令へ反映していなかった。観測なしでも成功した原因はこの指令流用である。現行の実行経路はCSVを読み込まない。旧16秒静止動画も動作比較の成果物ではない。
 
-不透明の棒先端がボタンへ接近し、剛体前提での棒先端と離れる様子、途中リンク・手先の候補が観測によって変わる様子を比較できる。
-以前の[16秒の静止分布切替動画](../../../recordings/probtf_observation_fusion_demo/imu_marker_rviz_20261016.mp4)は動作比較の動画ではない。
+元の推定仕様は [REQUIREMENTS.md](REQUIREMENTS.md)、ユーザーの訂正と動作要件は [MOTION_REQUIREMENTS.md](MOTION_REQUIREMENTS.md) に記録している。
+
+同じ画角で録画した修正版の実RViz動画：
+
+- [観測なし](../../../recordings/probtf_observation_fusion_demo/closed_loop_gradient_20261016/no_sensors.mp4)
+- [IMUのみ](../../../recordings/probtf_observation_fusion_demo/closed_loop_gradient_20261016/imu.mp4)
+- [カメラのみ](../../../recordings/probtf_observation_fusion_demo/closed_loop_gradient_20261016/marker.mp4)
+- [IMU＋カメラ](../../../recordings/probtf_observation_fusion_demo/closed_loop_gradient_20261016/imu_marker.mp4)
 
 ## 起動
 
@@ -26,177 +25,114 @@
     roslaunch probtf_observation_fusion_demo marker.launch
     roslaunch probtf_observation_fusion_demo imu_marker.launch
 
-4つのコマンドはそれぞれ独立した起動例。同じROS masterでは1つずつ起動する。
-既定でRVizも起動する。共通の物理フレームと推定を準備してから35.609秒の動作を再生し、最終状態を保持する。
-検証機の準備時間は併用例で約37秒。準備中の処理時間によって物理時刻・画像の乱数列を変えない。
-`rviz:=false` でノードだけ起動できる。`autostart:=false` は事前表示で待機する。
+4つは独立した起動例。同じROS masterでは1つずつ起動する。既定でRVizも開く。18秒の観測駆動動作を準備計算してから20 fpsで同期再生し、終端を保持する。推定計算自体が実時間20 fpsという意味ではない。準備時間・計算fps・再生Hzを `motion_manifest.json` へ記録する。
+
+`rviz:=false` でノードだけ起動する。`autostart:=false` は初期表示で待機する。
 
     rosservice call /observation_fusion/replay '{}'
 
-再実行は同じ物理軌道と同じ観測入力を初期時刻から再生する。既に使った画像を事後へ重複して融合しない。
-記録は `/tmp/probtf_observation_fusion_demo/` 以下に作り、`output_dir:=/absolute/new/path` でも指定できる。既存の記録先は上書きしない。
+replayは準備済みの同じ推定・指令・物理記録を再生し、画像を重複して融合しない。記録先は `/tmp/probtf_observation_fusion_demo/` 以下で、`output_dir:=/absolute/new/path` でも指定できる。既存先は上書きしない。旧静止版は `moving:=false` で起動できる。
 
-旧静止版は各launchに `moving:=false` を指定して実行できる。静止版のheadless検証：
+## 共通入力と情報境界
 
-    rosrun probtf_observation_fusion_demo observation_fusion_demo.py --headless \
-      --observations /absolute/path/config/imu_marker.yaml --output /tmp/new-output
-
-## 入力と情報境界
-
-| 共有するもの | 内容 |
+| 対象 | 入力・責務 |
 | --- | --- |
-| `config/switch_press_scene.yaml` / `switch_press_commands.csv` | 旧例と同じ物理場面・剛性・質量・障害物・カメラ条件と、記録から取り出した指令列。実姿勢は毎回重力平衡を解いて再計算 |
-| `config/moving_estimation.yaml` | 指令依存の局所候補族への参照、未知マーカー事前、既知撮像条件、同じ描画値 |
-| 旧例の `independent_transform_laws.yaml` | そのまま使用する6リンクの並進Gaussian・Binghamと、明示した指令の右作用 |
-| `model.run` | 事前生成、coreへの照会、アダプター呼出し、分布の持ち上げ、共通融合、事後全体の再表現 |
-| `moving_scene` / `moving_inference` | 物理からは画素・IMU方向・指令・時刻だけを推定へ渡し、各時刻に同じcoreパイプラインを実行 |
-| `motion_node` / `motion_display` / `display` | 同じ物理再生、参照ロボットの描画と、不変snapshotのMarkerArrayへの変換 |
-| 各入口の差 | `observations` のみ。無情報は空、IMUは重力方向、markerは画像、併用は同じ2観測のリスト |
+| `config/switch_press_scene.yaml` | 全条件共通の物理場面・関節ばね・質量・初期指令・障害物・カメラ条件。実姿勢は毎回重力平衡を解く |
+| `config/moving_estimation.yaml` | 直接指定の局所候補族、未知マーカー事前、既知校正、マーカー→目標関係、速度・加速度上限 |
+| 旧例の `independent_transform_laws.yaml` | 変更せず使う6リンクの並進Gaussian・Binghamと明示した指令右作用 |
+| `moving_scene.SensorInputs` | 送信指令・時刻・実画像・IMU方向のみ。物理姿勢・剛性・実目標位置を含まない |
+| `model.run` | 同じ事前からのcore照会、センサ局所推定、持ち上げ、分布比融合、同時再表現 |
+| `moving_control.MovingController` | 現在の融合共同状態を受け、既知の指令右作用で試行候補を伝播し、同じ密度規準で選定 |
+| 各入口の差 | 空の観測リスト、IMU重力方向、画像マーカー、両者のリスト |
 
-数値は例示用の明示入力であり、較正済みの身体分布を主張しない。
-指令は実現角度ではない。各リンクは3軸のBingham候補を持つ。
-初期事前だけが積分布。マーカー配置も有限の候補分布を持つ共有変量で、既知の根元姿勢へ置換しない。
-工具・カメラ取付けとカメラ内部パラメータ・印刷寸法は明示した既知入力。
+数値は直接指定した例示入力で、較正済みの身体分布ではない。指令は実現角度ではない。初期事前だけが積分布で、観測後のリンク間・回転並進間・マーカーとの交差共分散を保持する。未知マーカー配置を真の根元姿勢へ置換しない。URDFから推定へ渡すのは取付形状と関節限界で、質量・慣性・物理剛性は渡さない。
 
-各0.5秒の観測時刻では、直接与えた指令依存候補族から共通事前を照会し、その時刻の観測で更新する。
-更新した同時分布と交差共分散をそのまま全リンク・手先の照会へ渡す。未指定の時系列遷移モデルや剛性推定による予測は追加しない。
-この動画は各固定時刻の推定比較であり、過去の全観測を蓄積する時系列フィルタや、センサによる閉ループ制御の比較ではない。
+各0.05秒時刻で、指令依存候補族から事前を照会し、その時刻の観測だけで固定時刻更新を行う。未指定の時系列予測、過去事後の累積、剛性推定は追加しない。未検出時はその画像観測の恒等更新とし、真の角点で補完しない。この設定では検出を失うと当該時刻の更新結果が事前へ戻る。
 
-`MovingSwitchScene.sensor_inputs` は独立した物理場面から生成した画素・重力方向と、送信指令・時刻だけを返す。
-撮像後は明示した推定用入力だけを取り出し、物理場面や描画設定をセンサアダプターの引数からも除外する。
-正解角点・物理姿勢・剛性を推定器へ渡さない。IMUは設定に明示した重力方向観測で、磁気方位を持たない。
-画像は既存AprilTag検出器と `PoseMixtureEstimator` に渡す。
-後者の既定の広い並進事前を `translation_prior_variance=None` で無効にして、画像だけの局所尤度混合として扱う。
-画像推定器がGauss–Newton Hessianから作る局所Laplace Gaussianを、公開されるSchurブロックから回収し、凍結した事前の姿勢座標へ移す。
-これはセンサ側の画像尤度の局所近似であり、nativeな条件付きBingham変換法則の厳密モーメント計算ではない。
-検出器の全成分と重みを保持し、同じカメラ相対マーカー事前との積からセンサ局所事後を作る。
-未検出ならその観測の情報更新は恒等操作であり、検出したことにしない。
+IMUはlink_3の重力方向だけでyawを観測しない。画像はAprilTag検出器と `PoseMixtureEstimator` へ渡す。`translation_prior_variance=None` とし、センサ既定の別の並進事前は加えない。画像のGauss–Newton Hessianから局所Laplace Gaussianを回収し、凍結した同じ事前の姿勢座標へ移す。これはセンサ尤度の局所近似である。画像検出器の全成分・重みを保持して同じ局所事前と積を取り、センサ事後を作る。
 
-## 数式とcoreの実装
+## 解析的伝播と融合
 
-| 計算 | 実装 |
+| 計算 | core実装 |
 | --- | --- |
-| 第4章のS²代理の一次平均・共分散 | `spherical_law.tangent.induced_vector_moments_tangent(..., order=1)`。既定 `order=2` は従来どおり |
-| Binghamから共通右回転座標の共分散 | `first_order.bingham_rotation_coordinates`: `C_A=2(λI−NᵀAN)⁻¹` |
-| 共同状態と経路・逆向き・方向・姿勢照会 | `JointTransformState`, `point_query`, `direction_query`, `pose_query`, `linear_query` |
-| 全共分散の主計算 | `conditional_total_covariance`: 条件付き共分散からwithinとbetweenを計算し、その和を返す |
-| センサ局所分布 | `fusion.freeze_query`, `condition_gaussian`。IMUは事前モードに固定した2次元接座標 |
-| 身体への持ち上げ | `lift_sensor_posterior`: 残る条件付き共分散＋事後対象分布が作る共分散 |
-| 共通事前を補正する融合 | `fuse_sensor_posteriors`, `gaussian_reference_product`: 分布比、混合ラベル、logCを含む重みの正規化 |
-| 支持上の行列演算 | `support.covariance_support`。零分散へのjitterや分散floorなし |
-| 同時事後の再表現 | `reexpress_state`: 全共分散の座標移送後、各Binghamを `A=−2NΩ⁻¹Nᵀ` として一括公開 |
+| 第4章のS²代理の一次平均・共分散 | `tangent.induced_vector_moments_tangent(..., order=1)`。既定のorder=2は変更しない |
+| Bingham由来の共通回転共分散 | `first_order.bingham_rotation_coordinates`: `C_A=2(λI−NᵀAN)⁻¹` |
+| 共同状態と経路照会 | `JointTransformState`, `point_query`, `direction_query`, `pose_query`, `linear_query` |
+| 全共分散の二項 | `conditional_total_covariance`: 条件付きwithinとbetweenを実際に計算し、その和を返す |
+| センサ局所分布 | `fusion.freeze_query`, `condition_gaussian` |
+| 身体への持ち上げ | `lift_sensor_posterior`。残る条件付き共分散と、対象事後が作る共分散を保持 |
+| 共通事前を補正した融合 | `fuse_sensor_posteriors`, `gaussian_reference_product`。混合ラベル・積分定数logC・全重みを保持 |
+| 支持上の計算 | `support.covariance_support`。法線jitter・分散floorなし |
+| 同時事後再表現 | `reexpress_state`。全交差ブロックを輸送し、各Binghamを一次共分散から再表現 |
 
-`point_query` の平均は方向作用の収縮を残し、独立部分と相関による混合微分の寄与を分けて加える。
-全体で共分散の一次に揃え、Σ²・再帰によるP₁P₂を含めない。
-軸ごとの代理平均から回転行列を作らない。方位・並進・リンク間の交差共分散は同じ共同状態に残す。
-出力は指定された高集中Gaussian代理で、元の一般共同変換法則の厳密解ではない。
+点の平均はS²作用の収縮と混合微分による平均補正を残す。全体で共分散Pの一次とし、P²や再帰によるP₁P₂を含めない。方向ごとの平均から回転行列を作らない。局所変動座標は入力Binghamから導いたもので、独立に仮定したSO(3)/SE(3) Gaussianへ差し替えない。
 
-単一回転の作用では、`L_v=−R⋆[v]×`, `Σ=L_v C_A L_vᵀ/||v||²` として、
-`m=(1−tr(Σ)/2)R⋆v`, `S=L_v C_A L_vᵀ` を使う。
-複数リンクでは、この独立部分の一次補正に、実際の合成・逆作用の混合微分と共同Pの縮約を加える。
-共分散の主計算は、`B=P₂₁P₁₁⁺`, `P₂|₁=P₂₂−BP₁₁Bᵀ` から
-`within=J₂P₂|₁J₂ᵀ`, `between=(J₁+J₂B)P₁₁(J₁+J₂B)ᵀ` の二項を求める。
+一次APIの適用域は `λ_max(C_A) ≤ 0.1 rad²`。超過は例外にし、自動で分布を狭めない。これは近似の適用範囲であり誤差保証ではない。
 
-各センサは同じ凍結代理 `z_s=c_s+H_s z` の `Q_s−` と、自身の観測だけから得た `Q_s+` を返す。
-持ち上げは `K_s=PH_sᵀ(S_s−)⁺` を用い、
-`μ_s=μ+K_s(m_s+−m_s−)`, `P_s=(P−K_sS_s−K_sᵀ)+K_sS_s+K_sᵀ`。
-後段は `p+ ∝ ∏p_s/(p−)^(m−1)` を同じ支持で計算する。
-混合成分ごとに共通事前ラベルを保持し、Gaussian積の積分定数Cを含む重みをlog-sum-expで正規化する。
-無観測は同じ演算の単位元で、初期分布をそのまま返す。
+`pose_query` は合成回転の平均補正に必要な `Σ_ab P_ab ∂²R/∂z_a∂z_b` を、共分散との縮約後の3×3行列として伝播する。旧実装の66×66×3×3テンソルを最後に縮約する計算と代数的に同一で、混合二階微分や交差共分散を省略していない。これは平均のP一次補正で、共分散のP²項を加えるものではない。
 
-局所座標は入力Binghamのモードと集中度から導く。別にSO(3)/SE(3) Gaussianを仮定して候補を差し替えない。
-単純最大固有値と、一次APIが明示する集中適用域 `λ_max(C_A) ≤ 0.1 rad²` を検査する。
-この上限は今回の近似を使用する明示的な適用範囲で、誤差保証ではない。超過は診断付き例外とし、分布を自動で狭めない。
-同じ支持・版・時刻・指令の事前で全センサの代理を凍結する。
-IMUは観測感度の階数が2で、yawを観測したと扱わない。下流の局所相対候補は独立初期事前ならIMU単独で変わらない。
-カメラだけでは全身体自由度は特定できず、未知マーカー配置・身体間の相関と不定性が残る。
+## 観測から次の指令まで
 
-## 表示と記録
+現在指令cで得た融合後の全成分を選定元とする。試行指令qには既知の局所右作用を適用する。各辺の回転座標は `R_delta^T` で変わるため、全共同共分散を `P(q)=G P(c) G^T` で輸送する。マーカー変量自体は固定し、辺ごとの独立周辺を再構成しない。
 
-既存スイッチ押下デモのRVizから新しい `observation_fusion_motion.rviz` を作り、実／剛体RobotModelとパネル表示を保持した。
-候補の根元は入力の `base_link`。RVizでは元の場面で明示されたworld→base配置 `[0.22,0,0]` を使い、元のworld視点をそのまま保つ。
-元設定の視点、画像ドックとウィンドウ寸法を保持し、軸長0.10000000149、点サイズ0.009999999776、リンク180点・マーカー200点、seed29を引き継ぐ。
+身体とマーカーは観測後に相関する。そのため、このデモは同じ共同候補から `marker^-1 * hand` をcoreで相対照会し、既知のマーカー→目標関係 `(d,r)` における密度を規準とする。最終の比較近似は、相対位置のGaussianと、Bingham由来の一次回転共分散から再表現した方位Binghamの積。姿勢照会の一次平均補正も含める。
 
-全リンク・手先・カメラ・マーカーの原点とXYZ軸端点は、推定で保持する同じ状態・同じ経路へのcore照会。
-候補の主伝播・融合に乱数はなく、最終の解析Gaussianから描画点を生成する。物理側の画像・IMU雑音は共通の観測生成として別に管理する。
-混合成分は個別に描き、広がりは変更しない。点数180/200はGaussian成分ごとの値で、各成分のalphaは0.85×その成分の重み。
-紫のIMU方向は、観測したセンサ座標のベクトルに同じリンク候補を作用させたroot座標での点照会。
-画像パネルには実際のカメラ相対局所事後 `Q_CM+` の成分重み・並進と方位の平均・共分散対角を注記する。
-同じ各成分への線形周辺照会 `L=[I₂ 0]` で並進XYの2σ楕円も表示する。
-図の軸はカメラ座標のm単位で、全成分の平均±2σから決めた範囲を明記する。身体の座標系や分布の広がりを変更する図ではない。
-画像上の3D軸は画像検出器の尤度モードと明示している。
-1本の動画には、その条件の事後分布だけを描く。事前・センサ別事後・融合後の全分布は記録へ保存する。
-物理描画は20 Hz、推定は2 Hzで、画面に物理時刻と推定の観測時刻を両方表示する。
-候補を最新の真値へ移し替えず、観測時点の候補のまま表示する。
+相対照会までは位置・方位・リンク・マーカー間の全交差共分散を保持する。規準段階だけ位置と方位の積へ近似し、相対6×6共分散の位置・方位間ブロックを使わない。厳密な共同相対姿勢密度や物理的な成功確率ではない。表示用の直接端点照会は、この積へ置き換えず同じ元共同状態を参照する。
 
-動作版の `estimation.jsonl` に各観測時点のセンサ局所事前・事後、混合重み、全共同共分散、リンク間ブロック、持ち上げの二項、Bingham再表現、手先の二項を記録する。
-`estimate_NNN.json` に実際に表示アダプターが読んだcore照会の平均・共分散・出自を保存し、
-同じsnapshotとseedから再生成した点列と実際にserialize/deserializeしたMarkerArray全体をバイト比較する。
-送信したメッセージそのものを `estimate_NNN.markers.bin` に残す。
-`/observation_fusion/snapshot` は公開した段階の照会パラメータ・時刻・指令・版を送る。
+    log K(q) = LSE_k [ log w_k + log N(d; m_k(q), S_k(q))
+                        + r^T A_k(q) r - log Z(A_k(q)) ]
 
-`physical_trajectory.json` は参照物理モデルの姿勢・実先端・剛体先端・画像hash・IMU入力・離隔を記録する。
-`motion_manifest.json` と4動画の `manifest.json` で、指令と物理軌道（画像・IMU入力を含む）のhashを照合する。
+位置のlog determinant、方位のlog normalizer、全混合重みを含める。独立でない身体・目標の共分散を単純加算しない。既知MGはDiracのままで、演出用の目標幅は加えない。旧スイッチ例の独立H/G積分布の重なりとは異なる、共有依存を保持した相対候補密度の規準である。
 
-## 動作版の検証（2026-10-16）
+各周期で、この負の対数規準全体の勾配から1回の短い更新を行う。勾配は基準指令と6方向の微小変化で目的関数全体を評価する有限差分。各評価で共分散・Binghamパラメータ・正規化項も再計算する。位置・方位のモード感度と比較共分散から作る6×6行列は、勾配方向の前処理だけに使う。モードや平均だけの感度を目的関数の勾配とは呼ばない。必要な短いline searchで刻み幅を調整する。これは指令空間から乱数で候補を抽出する方法ではない。
 
-依存を含む8パッケージのcatkin buildが成功。静止版・動作版・coreと検出器の回帰を含む90テストが成功した。
-同じ35.609秒を20 Hzで714フレーム計算し、推定は73時刻。
-4条件の各時刻で共通事前が一致し、実画像／IMUを使った292更新を確認した。
-候補モードの幾何と、同じ指令による剛体FKを5時刻・9経路・原点とXYZ端点で照合し、最大差は `7.77e-16 m`。
-区間の干渉検査は旧例の `motion_samples` の適応分割を再利用する。
+速度・加速度・関節範囲を制約とし、上限は全条件共通で0.20 rad/s、0.60 rad/s²。勾配・評価数・刻み幅・実行点の出自を記録する。ユーザーの軽量化指示により毎周期に反復最適化を収束させ切る構成ではなく、次の観測で再び更新する。センサ名で制御則を切り替えない。
 
-共通の実先端は最終で目標まで5.683 mm、同じ指令の剛体FK先端は634.925 mm。
-緑ランプは旧例と同じ「実先端が6 mm以内で、それまで禁止干渉なし」の到達判定で点灯する。
-ボタンの押込み変形・接触力はモデル化していない。
-各条件の手先位置共分散traceは終端で、無観測0.012115、IMU0.006899、カメラ0.001738、併用0.001377 m²。
-これらは推定分布の広がりで、物理的な到達成功確率ではない。
-直接指定した元の事前分布は物理たわみから較正したものではなく、センサを加えても全リンクの推定が真値へ一致するとは主張しない。
+勾配の基準点は、前周期の速度を保つ増分を許容範囲へ射影した点である。加速度制約により増分0が許されない場合もあるため、現在の指令cから常に規準が改善するとは主張しない。line searchは記録された許容基準点からの改善を検査する。
 
-4本とも42.5秒、1840×1200、20 fps、850フレームで録画し、通しデコードと初期・途中・最終の画面を確認した。
-各73更新、合計292更新の実受信MarkerArrayとsnapshotを、推定から保存したデータへ完全一致で照合した。
-指令・全物理フレーム・画像hash・IMU入力は4条件で一致し、元と新しいRViz設定は録画終了後もバイト一致した。
-4本の撮影とROS受信値の照合結果は、動画と同じディレクトリの `manifest.json` に保存している。
-詳細な実受信メッセージと検証画面は `/tmp/probtf_motion_four_case_recording_20261016_run2/`。
-録画を再現するにはROS環境をsourceして、未使用のmasterポートと新しい出力先を指定する：
+現在表示のstate_idは現在指令cのもの。未来候補qは別のstate_idを持ち、親のstate_id・観測時刻・元指令・試行指令・照会パラメータを記録する。未来の予測分布を現在の物理姿勢へ重ねない。
+
+## 表示・判定・記録
+
+元のRViz設定の視点・画像ドック・点のサイズ・標本数を保持する。軸長0.10000000149、点サイズ0.009999999776、リンク180点・マーカー200点、seed29。rootはbase_linkで、既知world→base `[0.22,0,0]` を一度だけ適用する。
+
+全リンク・手先・カメラ・マーカーの原点とXYZ端点は、推定と指令選定元の同じ共同状態へのcore照会。物理真値への再中心化はしない。主伝播・融合・選定にはモンテカルロを使わず、点は照会後のGaussianから描画だけのために生成する。混合成分ごとのalphaは0.85×元の重み。各フレームの物理・観測・候補・版・指令を一致させる。
+
+緑ランプは実際の棒先端が物理目標から6 mm以内に入り、それまで禁止干渉がない場合に点灯する。接触力やボタンの押込み変形はモデル化していない。真の到達距離・成功判定は指令選定や停止に戻さない。全ケースを同じ時間まで実行する。
+
+- `estimation.jsonl`: 共同事前・センサ別局所事後・持ち上げ二項・融合重み・全共同共分散と、指令選定の出自・規準・次指令。
+- `estimate_NNN.json` / `.markers.bin` / `.png`: 同じsnapshotのcore照会パラメータ、実際のROS wireメッセージ、対応する観測画像。点を再生成してwire全体を完全一致で検査。
+- `sent_commands.json`: 実際に生成した指令列。次フレームの送信指令と選定結果を照合。
+- `physical_trajectory.json`: 物理実姿勢、実先端・剛体先端、画像hash、IMU入力、離隔、実到達判定。
+- `motion_manifest.json`: 共通設定hash、指令・物理記録hash、実結果、準備時間、計算fps、再生Hz。
+
+4動画の録画・実ROS受信照合は、新しい保存先を指定して実行する。
 
     rosrun probtf_observation_fusion_demo record_four_cases.py \
       --output /absolute/new/video-directory \
       --runtime-output /tmp/new-motion-validation --port 11766
 
-## 静止版の検証記録（動作版の結果とは別）
+元・静止版・動作版のRVizファイルを事前保存し、終了後もバイト一致を検査する。
 
-`catkin build probtf_observation_fusion_demo` は依存を含む5パッケージで成功。
-指定次数の解析例、融合、センサ情報境界、表示同一性と既存kernel・検出器の回帰を合わせて **81テスト成功**。
-対象は `ros/core/probtf_core/test/test_first_order_bingham_queries.py`、
-`tests/probtf/{test_first_order_fusion,test_kernel_evaluation}.py`、
-`tests/prob_artag_detector/{test_estimator,test_camera_and_detector,test_corner_uncertainty}.py`、本パッケージの `tests/`。
-ROS環境をsourceした上で `/usr/bin/python3 -m pytest -q` にこれらのパスを渡す。
-検証機ではpytestのみ `/tmp/probtf_switch_press_pytest` をPYTHONPATHへ追加して実行した。
+## 検証
 
-| 入口 | 有効観測 | 事後成分数 | 事後重み | 共同Pの非対角リンクブロックのFrobenius norm |
-| --- | ---: | ---: | --- | ---: |
-| 無情報 | 0 | 1 | 1 | 0 |
-| IMU | 1 | 1 | 1 | 0.0020509144 |
-| marker | 1 | 2 | 0.4998305760 / 0.5001694240 | 0.0032532581 |
-| IMU＋marker | 2 | 2 | 0.4992254734 / 0.5007745266 | 0.0033693934 |
+core解析例、融合、情報境界、依存保持、指令への反映、推定と実表示の同一性、既存kernel・画像検出器の回帰を検査する。現在の実行結果と録画の検証値は、検証後に動画manifestとともに記録する。
 
-normは先頭成分の並進・回転を含む混合単位の共同ブロックで、姿勢誤差や成功確率ではない。
-初期の同normは0。観測後の相関を除くと、次回の手先照会の平均・共分散も変わることをテストした。
+15テストで旧dense微分計算を独立に保持し、相関した66次元共同状態・逆向き経路・同じ変量の反復を含む全照会結果を比較した。計算式・近似次数・分布を変更せず、姿勢照会1回は約29 msから約1.8 msへ短縮した。最終の勾配更新・動画を含む検証値は、実行後のmanifestへ記録する。
 
-4入口を既定のRViz起動で実行し、全12段階について別subscriberで受けた実際のMarkerArrayと保存したwireデータをバイト照合した。
-公開メタデータの平均・共分散・重み・state_id・版・指令・時刻も一致。
-実際のImageの画素・encoding・frame・時刻を、推定に対応する保存画像と照合した。
-各段階の画面で原点・軸端点群、センサ別→融合の進行、IMU方向とカメラ相対事後の図を確認した。
-最後に入力境界を明示した版でも、4入口すべての記録・MarkerArray・画像が実ROS検証時とバイト一致することを再確認した。
+最終の勾配更新を含む119テストが成功。独立に組み立てたGaussian密度・Bingham正規化定数・全混合の式でも、記録した目的関数とその勾配を検算した。初回は全ケース8評価・勾配1回で、観測なし／IMUが約42 ms、カメラ／併用が約86–87 ms。画像推定・描画・保存を含む周期全体の時間ではない。
 
-証拠は `/tmp/probtf_observation_fusion_validation/final/` 以下の `live_validation.json`、
-`boundary_validation.json` と `live_{no_sensors,imu,marker,imu_marker}/`。
-各ディレクトリに共同事前・事後、センサ別局所推定、全covariance、実wireデータ、全段階の画面と画像を保存している。
-既存スイッチ押下RVizと新しいRVizの両方が作業前の保存ファイルとバイト一致した。
-元ファイルのSHA256は `3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58`。
+最終の4動画は24.5秒、1840×1200、20 fps。全1,444フレームの推定元・実受信MarkerArray・snapshot・画像が一致し、欠落なし。画像の実受信は19.978〜20.020 fps。全1,440指令更新で完全規準の勾配を1回計算し、規準評価は平均7.98〜9.76回だった。元・静止版・動作版のRViz設定は終了後もバイト一致した。4本の通しデコードと、各初期・途中・終端の計12画面も確認した。
 
-確定TFツリーを配信しない構成なので、RVizのGlobal StatusにはTFデータなしの警告が出る。
-各MarkerArrayは実際のroot `base_link` に直接表示し、表示のStatusはOK。
+| 条件 | 実物の終端誤差 | 有効マーカー観測 | 結果 |
+| --- | ---: | ---: | --- |
+| 観測なし | 539.462 mm | 使用しない | 未到達・干渉なし |
+| IMU | 79.152 mm | 使用しない | 未到達・干渉なし |
+| カメラ | 539.464 mm | 16 / 361 | 未到達・干渉なし |
+| 併用 | 92.236 mm | 84 / 361 | 未到達・干渉なし |
 
-この節の81テストと全12段階の記録は、旧静止版についての検証である。
+観測なしでは実先端が目標より525 mm下へ外れた。カメラ単独では、旧設定の0.24秒露光によるモーションブラーで検出を失い、その後は事前からの恒等更新になる。観測を蓄積しない現設定の制約であり、成功や融合の優越を示す結果ではない。全ケースを通した準備時間は各51〜71秒、計算スループットは5.1〜7.1 fpsで、20 fpsの再生とは区別する。
+
+動画の属性と実ROS照合は [manifest.json](../../../recordings/probtf_observation_fusion_demo/closed_loop_gradient_20261016/manifest.json)、独立監査・完全規準の勾配検算・実行統計は [validation.json](../../../recordings/probtf_observation_fusion_demo/closed_loop_gradient_20261016/validation.json)。全実受信メッセージと画像は `/tmp/probtf_closed_loop_gradient_recording_20261016/` に保存している。
+
+旧静止版の81テスト・実ROSの全12段階の照合記録は `/tmp/probtf_observation_fusion_validation/final/`。旧固定成功軌道版の90テストと4動画は、今回の閉ループ実行の検証結果として扱わない。

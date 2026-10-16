@@ -111,7 +111,7 @@ def ffprobe(path):
         "-of", "json", str(path)], text=True))
 
 
-def verify_received(run_dir, snapshots, motion, wire):
+def verify_received(run_dir, snapshots, motion, wire, images, replay_wall):
     """Compare live ROS subscriptions to the immutable estimator export."""
     final = motion[-1]["data"]
     if not (final["finished"] and final["sample_index"] == final["frames"] - 1
@@ -136,9 +136,25 @@ def verify_received(run_dir, snapshots, motion, wire):
     actual_snapshots = {json.dumps(row["data"], sort_keys=True) for row in snapshots}
     if expected_snapshots != actual_snapshots:
         raise AssertionError("Actual ROS snapshot parameters/provenance differ from core exports.")
+    import cv2
+    expected_images = {}
+    for path in (run_dir / "node").glob("estimate_*.json"):
+        record = json.loads(path.read_text())
+        pixels = cv2.imread(str(path.with_suffix('.png')), cv2.IMREAD_UNCHANGED)
+        expected_images[record['stamp']] = hashlib.sha256(pixels.tobytes()).hexdigest()
+    actual_images = {row['stamp']: row['sha256'] for row in images}
+    if actual_images != expected_images:
+        raise AssertionError('Published images differ from the saved same-time observation displays.')
+    moving = [row for row in images if row['wall_elapsed_s'] >= replay_wall
+              and row['stamp'] > min(expected_images)]
+    image_fps = (len(moving)-1)/(moving[-1]['wall_elapsed_s']-moving[0]['wall_elapsed_s'])
+    if image_fps < 15.0:
+        raise AssertionError('Actual image delivery was slower than 15 fps: ' + str(image_fps))
     return {"final_motion_observed": True, "snapshot_identity_verified": True,
             "published_wire_identity_verified": True,
-            "unique_snapshots": len(actual_snapshots), "unique_wire_messages": len(received_wire)}
+            "unique_snapshots": len(actual_snapshots), "unique_wire_messages": len(received_wire),
+            "published_image_identity_verified": True,
+            "unique_images": len(actual_images), "actual_moving_image_fps": image_fps}
 
 
 def main():
@@ -148,7 +164,7 @@ def main():
     parser.add_argument("--runtime-output", type=Path, required=True,
                         help="New directory for launch logs and full ROS metadata.")
     parser.add_argument("--port", type=int, default=11766)
-    parser.add_argument("--duration", type=float, default=42.5)
+    parser.add_argument("--duration", type=float, default=24.5)
     parser.add_argument("--fps", type=int, default=20)
     parser.add_argument("--config-name", default="observation_fusion_motion.rviz")
     parser.add_argument("--cases", nargs="+", choices=CASES, default=list(CASES))
@@ -203,6 +219,7 @@ def main():
         from std_msgs.msg import String
         from std_srvs.srv import Trigger
         from visualization_msgs.msg import MarkerArray
+        from sensor_msgs.msg import Image
         rospy.init_node("four_case_recorder", anonymous=True, disable_signals=True)
         for case in args.cases:
             run_dir = args.runtime_output / case
@@ -210,6 +227,7 @@ def main():
             snapshot_messages = []
             motion_messages = []
             wire_messages = []
+            image_messages = []
             wire_dir = run_dir / "received_markers"
             wire_dir.mkdir()
             started = time.monotonic()
@@ -242,13 +260,23 @@ def main():
 
             marker_sub = rospy.Subscriber("/observation_fusion/distributions", MarkerArray,
                                           receive_markers, queue_size=100)
+            def receive_image(message, target=image_messages, origin=started):
+                target.append({'wall_elapsed_s': time.monotonic()-origin,
+                               'stamp': message.header.stamp.to_sec(),
+                               'frame': message.header.frame_id,
+                               'width': message.width, 'height': message.height,
+                               'encoding': message.encoding,
+                               'sha256': hashlib.sha256(message.data).hexdigest()})
+
+            image_sub = rospy.Subscriber('/observation_fusion/detection_image', Image,
+                                         receive_image, queue_size=100)
             launch_log = (run_dir / "launch.log").open("w")
             try:
                 launch = subprocess.Popen([
                     "roslaunch", "probtf_observation_fusion_demo", case + ".launch",
                     "rviz:=true", "autostart:=false", "output_dir:=" + str(run_dir / "node")],
                     env=env, stdout=launch_log, stderr=subprocess.STDOUT, start_new_session=True)
-                rospy.wait_for_service("/observation_fusion/replay", timeout=180)
+                rospy.wait_for_service("/observation_fusion/replay", timeout=900)
                 rectangle = wait_until(lambda: rviz_rectangle(args.config_name), 45,
                                        "The new motion RViz window was not found.", (master, launch))
                 wait_until(lambda: snapshot_messages and motion_messages, 180,
@@ -279,18 +307,22 @@ def main():
                 ffmpeg_log.close()
                 probe_result = ffprobe(video)
                 for label, data in (("snapshots", snapshot_messages), ("motion", motion_messages),
-                                    ("received_markers", wire_messages)):
+                                    ("received_markers", wire_messages), ('images', image_messages)):
                     with (run_dir / (label + ".jsonl")).open("w") as output:
                         for row in data:
                             output.write(json.dumps(row) + "\n")
-                verification = verify_received(run_dir, snapshot_messages, motion_messages, wire_messages)
+                verification = verify_received(run_dir, snapshot_messages, motion_messages,
+                                               wire_messages, image_messages, replay_time)
                 final = motion_messages[-1]["data"]
                 if records:
                     reference = records[0]["last_motion"]
-                    for key in ("command_sha256", "physics_sha256", "duration", "frames", "updates",
-                                "reached", "collided", "final_physical_error_m", "final_rigid_error_m"):
+                    for key in ("duration", "frames", "updates", "initial_command",
+                                "scene_config_sha256", "estimation_config_sha256",
+                                "frame_period_s", "inference_period_s"):
                         if final[key] != reference[key]:
-                            raise AssertionError("The physical comparison differs between cases: " + key)
+                            raise AssertionError("A common comparison condition differs: " + key)
+                if not final["sensors_drive_commands"]:
+                    raise AssertionError("The recorded estimator does not drive the commands.")
                 records.append({"case": case, "video": video.name, "sha256": sha256(video),
                                 "rectangle": roi, "ffprobe": probe_result,
                                 "replay_wall_elapsed_s": replay_time,
@@ -316,13 +348,15 @@ def main():
                 snapshot_sub.unregister()
                 motion_sub.unregister()
                 marker_sub.unregister()
+                image_sub.unregister()
                 launch_log.close()
                 for path, before in original_bytes.items():
                     if path.read_bytes() != before:
                         raise RuntimeError("RViz settings were changed during playback: " + str(path))
                 time.sleep(1)
         manifest["settings_byte_comparison_passed"] = True
-        manifest["same_commands_and_physics_verified"] = True
+        manifest["common_initial_conditions_and_controller_verified"] = True
+        manifest["commands_and_physics_are_case_results"] = True
         (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
     finally:
         stop_owned(capture)

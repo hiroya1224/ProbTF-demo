@@ -1,12 +1,11 @@
 """The switch-press physical world, shared verbatim by all sensor cases.
 
-The command recording contains commands alone.  Every replay solves the same
-gravity/spring equilibrium afresh; recorded actual poses are never used.
+Sent commands are supplied by the observation-driven controller.  Every step
+solves the same gravity/spring equilibrium; no successful recording is loaded.
 ``SensorInputs`` is the only input type intended for the estimation pipeline.
 ``PhysicalFrame`` is reserved for robot/scene drawing and physical validation.
 """
 
-import csv
 from dataclasses import dataclass
 import hashlib
 from pathlib import Path
@@ -65,15 +64,17 @@ class PhysicalFrame:
 class MovingSwitchScene:
     """Reuse the original arm, camera, obstacles and physical success condition.
 
-    The replay is an observation comparison under one common sent command
-    trajectory, not four new controllers.  The opaque arm is the gravity/spring
-    physical arm; the transparent robot is FK of the same sent command.
+    All cases share this physical model, geometry and initial command.  Their
+    commands may differ because the common controller uses their respective
+    estimated states.  The opaque arm is the gravity/spring physical arm; the
+    transparent robot is FK of the command sent at the same instant.
     """
 
     def __init__(self, output_dir, config_path=None):
         packages = rospkg.RosPack()
         package = Path(packages.get_path("probtf_observation_fusion_demo"))
         config_path = Path(config_path or package / "config/switch_press_scene.yaml")
+        self.config_sha256 = hashlib.sha256(config_path.read_bytes()).hexdigest()
         self.config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -81,19 +82,10 @@ class MovingSwitchScene:
         self.urdf = write_robot(source, self.output_dir / "robot.urdf", self.config)
         self.robot_description = self.urdf.read_text(encoding="utf-8")
         self.plant = EquilibriumBody(self.urdf, self.config["plant"]["stiffness"])
-        commands_path = config_path.parent / self.config["command_trajectory"]["file"]
-        self.command_file_sha256 = hashlib.sha256(commands_path.read_bytes()).hexdigest()
-        with commands_path.open(newline="", encoding="utf-8") as stream:
-            samples = list(csv.DictReader(stream))
-        # Several adaptive collision samples share a wall time.  The last
-        # command at that time is the command actually reached by that tick.
-        by_time = {float(row["time"]): [float(row["command_{}".format(j + 1)])
-                                       for j in range(6)] for row in samples}
-        self.command_times = np.array(sorted(by_time), dtype=float)
-        self.commands = np.array([by_time[time] for time in self.command_times])
-        if self.command_times[0] != 0.0 or np.any(np.diff(self.command_times) <= 0.0):
-            raise ValueError("Command trajectory requires strictly increasing nonnegative times.")
-        self.duration = float(self.command_times[-1])
+        self.initial_command = _readonly(self.config["initial_command"])
+        self.duration = float(self.config["motion"].get("duration_s", 36.0))
+        if not np.isfinite(self.duration) or self.duration <= 0.:
+            raise ValueError("The common experiment duration must be finite and positive.")
         self.world_base = transform(self.config["base_translation"])
         marker = self.config["marker"]
         self.marker = inverse(self.world_base) @ transform(marker["world_translation"], marker["world_rpy"])
@@ -111,14 +103,10 @@ class MovingSwitchScene:
         self.camera_history = []
         self.trajectory = []
         self.last_time = None
+        self.command = self.initial_command
         self.monitor = ReachMonitor(self.goal, self.config["reach_tolerance"])
         self.camera = PlanarCamera(self.texture_path, self.config["marker"]["size"],
                                    self.config["camera"], self.config["seed"])
-
-    def command_at(self, time):
-        time = np.clip(float(time), 0.0, self.duration)
-        return np.array([np.interp(time, self.command_times, self.commands[:, index])
-                         for index in range(6)])
 
     def _link_poses(self, joints):
         robot = self.plant.robot
@@ -129,12 +117,14 @@ class MovingSwitchScene:
             ["base_link"] + ["link_{}".format(index + 1) for index in range(6)]
             + ["tool0", "press_rod", "rod_tip", "camera_optical_frame"]}
 
-    def step(self, time, stamp=None):
+    def step(self, time, stamp=None, command=None):
         time = float(np.clip(time, 0.0, self.duration))
         if self.last_time is not None and time < self.last_time:
             raise ValueError("Replay time moved backwards; reset the scene first.")
         stamp = float(time if stamp is None else stamp)
-        command = self.command_at(time)
+        command = np.array(self.command if command is None else command, dtype=float, copy=True)
+        if command.shape != self.initial_command.shape or not np.all(np.isfinite(command)):
+            raise ValueError("The sent command must contain one finite position per joint.")
         if self.pose is None:
             self.pose = self.plant.equilibrium(command)
         else:
@@ -142,7 +132,7 @@ class MovingSwitchScene:
             # interpolated command interval with the original joint/spatial
             # subdivision instead of checking only its two drawn endpoints.
             for _sample_command, sample_pose in motion_samples(
-                    self.plant, self.command_at(self.last_time), command,
+                    self.plant, self.command, command,
                     self.pose, self.config["motion"]):
                 sample_tip = apply(self.plant.flange(sample_pose), self.tip_offset)
                 sample_gap, _pair = clearance(self.plant.boxes(sample_pose), self.marker,
@@ -177,6 +167,7 @@ class MovingSwitchScene:
             float(gap), pair, reached, self.monitor.collided,
             float(np.max(np.abs(self.pose - command))), dict(self.camera.diagnostics))
         self.last_time = time
+        self.command = frame.command
         self.trajectory.append(self.physical_record(frame))
         return frame
 

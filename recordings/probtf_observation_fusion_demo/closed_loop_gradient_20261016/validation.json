@@ -1,0 +1,1314 @@
+{
+  "test_result": {
+    "passed": 119,
+    "build_packages_succeeded": 8,
+    "core_pose_dense_oracle_tests": 15,
+    "full_video_decode_verified": true
+  },
+  "recording": {
+    "frames_per_case": 361,
+    "inference_frames_verified": 1444,
+    "command_updates": 1440,
+    "same_time_source_and_wire_identity_verified": true,
+    "rviz_files_byte_identical": true,
+    "image_fps": {
+      "no_sensors": 20.020422847762507,
+      "imu": 19.978337267659867,
+      "marker": 20.01179295070612,
+      "imu_marker": 19.996744732358977
+    }
+  },
+  "independent_audit": {
+    "status": "all four cases independently audited",
+    "implementation": "one full-objective FD gradient per cycle, Fisher preconditioning, Armijo line search",
+    "cases": [
+      {
+        "case": "no_sensors",
+        "frames": 361,
+        "core_endpoint_queries_recomputed_at_initial_middle_final": 120,
+        "all_saved_wire_frames_regenerated": true,
+        "actual_received_wire_count": 362,
+        "actual_unique_received_frames": 361,
+        "all_actual_received_bytes_equal_saved_snapshot": true,
+        "all_actual_snapshot_parameters_equal_core_export": true,
+        "all_actual_images_equal_same_time_display_pixels": true,
+        "actual_unique_images": 361,
+        "actual_moving_image_fps": 20.020422847762507,
+        "source_ids_weights_versions_time_command_verified": true,
+        "controller_to_next_actual_command_verified": true,
+        "full_objective_gradient_evaluations_per_cycle": 1,
+        "objective_evaluations_median": 11.0,
+        "no_sensors_identity_verified": true,
+        "observation_id_order_only_differences": 0,
+        "physical_stiffness": [
+          350.0,
+          125.0,
+          95.0,
+          60.0,
+          40.0,
+          30.0
+        ],
+        "actual_final_error_m": 0.5394620280055598,
+        "actual_final_error_xyz": [
+          -0.1213232427776667,
+          0.020958381857722433,
+          -0.5252244250334219
+        ],
+        "current_fused_relative_hand_errors": [
+          {
+            "label": "prior",
+            "weight": 1.0,
+            "current_relative_mean": [
+              -3.7294723616166335e-05,
+              -0.2397746045474754,
+              0.04621316709039604
+            ],
+            "current_error_xyz": [
+              -3.7294723616166335e-05,
+              0.00022539545252459048,
+              0.001213167090396039
+            ],
+            "current_error_m": 0.0012344911484690208,
+            "source_state_id": "36eae085001547f2275bb086409f43e3e6a3f51f712cb9a9ac243980e4d50a3f"
+          }
+        ],
+        "camera_valid_frames": 0,
+        "imu_valid_frames": 0,
+        "observation_count_distribution": {
+          "0": 361
+        },
+        "reached": false,
+        "collided": false,
+        "minimum_clearance_m": 0.06012731650005804,
+        "maximum_velocity_rad_s": 0.2000000000000018,
+        "maximum_acceleration_rad_s2": 0.6000000000000646,
+        "maximum_cross_covariance_norm": 0.0,
+        "command_sha256": "c302bef8576da8fffd435556c500dcbe37d36df7cd7fc93b31f6c1cf26d4e9f2",
+        "physics_sha256": "f2abd5a9ba4d629ebcd538f09af8927e44b375b6d9f7bc1757301b0e28a473a5",
+        "preparation_wall_seconds": 50.96311665279791,
+        "preparation_fps": 7.083554219405866
+      },
+      {
+        "case": "imu",
+        "frames": 361,
+        "core_endpoint_queries_recomputed_at_initial_middle_final": 120,
+        "all_saved_wire_frames_regenerated": true,
+        "actual_received_wire_count": 362,
+        "actual_unique_received_frames": 361,
+        "all_actual_received_bytes_equal_saved_snapshot": true,
+        "all_actual_snapshot_parameters_equal_core_export": true,
+        "all_actual_images_equal_same_time_display_pixels": true,
+        "actual_unique_images": 361,
+        "actual_moving_image_fps": 19.978337267659867,
+        "source_ids_weights_versions_time_command_verified": true,
+        "controller_to_next_actual_command_verified": true,
+        "full_objective_gradient_evaluations_per_cycle": 1,
+        "objective_evaluations_median": 8.0,
+        "no_sensors_identity_verified": false,
+        "observation_id_order_only_differences": 0,
+        "physical_stiffness": [
+          350.0,
+          125.0,
+          95.0,
+          60.0,
+          40.0,
+          30.0
+        ],
+        "actual_final_error_m": 0.07915157607786837,
+        "actual_final_error_xyz": [
+          -0.05459702409618372,
+          0.00574766550943203,
+          -0.057018429447355023
+        ],
+        "current_fused_relative_hand_errors": [
+          {
+            "label": "common_body_prior|imu_link_3:frame:00360:gravity",
+            "weight": 1.0,
+            "current_relative_mean": [
+              0.010976822238053564,
+              -0.23965861803318783,
+              0.04653469499197714
+            ],
+            "current_error_xyz": [
+              0.010976822238053564,
+              0.0003413819668121598,
+              0.0015346949919771424
+            ],
+            "current_error_m": 0.011088843799580347,
+            "source_state_id": "9c624da30404ce343388b1999c1b59b6d6e75a6236f807d2f97c627f3064dfaa"
+          }
+        ],
+        "camera_valid_frames": 0,
+        "imu_valid_frames": 361,
+        "observation_count_distribution": {
+          "1": 361
+        },
+        "reached": false,
+        "collided": false,
+        "minimum_clearance_m": 0.060016994909025956,
+        "maximum_velocity_rad_s": 0.2000000000000018,
+        "maximum_acceleration_rad_s2": 0.6000000000000867,
+        "maximum_cross_covariance_norm": 0.0012400249258840996,
+        "command_sha256": "cbaf0340c4f2e4a4e56445e86929193d632ab78c2ceb21a8dd05312a5cc7d8cf",
+        "physics_sha256": "bb562546d4c9f4edc82a2513fd7e55d41e5cf35cf86dcee4f7e1559501ab6899",
+        "preparation_wall_seconds": 57.086273812223226,
+        "preparation_fps": 6.323761841374611
+      },
+      {
+        "case": "marker",
+        "frames": 361,
+        "core_endpoint_queries_recomputed_at_initial_middle_final": 160,
+        "all_saved_wire_frames_regenerated": true,
+        "actual_received_wire_count": 362,
+        "actual_unique_received_frames": 361,
+        "all_actual_received_bytes_equal_saved_snapshot": true,
+        "all_actual_snapshot_parameters_equal_core_export": true,
+        "all_actual_images_equal_same_time_display_pixels": true,
+        "actual_unique_images": 361,
+        "actual_moving_image_fps": 20.01179295070612,
+        "source_ids_weights_versions_time_command_verified": true,
+        "controller_to_next_actual_command_verified": true,
+        "full_objective_gradient_evaluations_per_cycle": 1,
+        "objective_evaluations_median": 11.0,
+        "no_sensors_identity_verified": false,
+        "observation_id_order_only_differences": 0,
+        "physical_stiffness": [
+          350.0,
+          125.0,
+          95.0,
+          60.0,
+          40.0,
+          30.0
+        ],
+        "actual_final_error_m": 0.5394636979566307,
+        "actual_final_error_xyz": [
+          -0.12132482724687765,
+          0.020958175661926287,
+          -0.5252257824778617
+        ],
+        "current_fused_relative_hand_errors": [
+          {
+            "label": "prior",
+            "weight": 1.0,
+            "current_relative_mean": [
+              -3.683423018742101e-05,
+              -0.2397776245804292,
+              0.04621391203871952
+            ],
+            "current_error_xyz": [
+              -3.683423018742101e-05,
+              0.00022237541957079165,
+              0.0012139120387195251
+            ],
+            "current_error_m": 0.001234661907362084,
+            "source_state_id": "1c1155bc2cf7630db2dcb7f2082b56444cc718f937164c0072595042e4544bd2"
+          }
+        ],
+        "camera_valid_frames": 16,
+        "imu_valid_frames": 0,
+        "observation_count_distribution": {
+          "1": 16,
+          "0": 345
+        },
+        "reached": false,
+        "collided": false,
+        "minimum_clearance_m": 0.06038869728187096,
+        "maximum_velocity_rad_s": 0.20000000000000445,
+        "maximum_acceleration_rad_s2": 0.6000000000000523,
+        "maximum_cross_covariance_norm": 0.0025446782068543282,
+        "command_sha256": "cce88390e3609d2a878cbc2b4b5f6e65c4a7270f7f1ebdf1d857a557e4a61c25",
+        "physics_sha256": "c75cb64686b43727f916e3cada326b921296d4283d231b58c4082ad22415de21",
+        "preparation_wall_seconds": 63.07619088795036,
+        "preparation_fps": 5.723237166322974
+      },
+      {
+        "case": "imu_marker",
+        "frames": 361,
+        "core_endpoint_queries_recomputed_at_initial_middle_final": 160,
+        "all_saved_wire_frames_regenerated": true,
+        "actual_received_wire_count": 362,
+        "actual_unique_received_frames": 361,
+        "all_actual_received_bytes_equal_saved_snapshot": true,
+        "all_actual_snapshot_parameters_equal_core_export": true,
+        "all_actual_images_equal_same_time_display_pixels": true,
+        "actual_unique_images": 361,
+        "actual_moving_image_fps": 19.996744732358977,
+        "source_ids_weights_versions_time_command_verified": true,
+        "controller_to_next_actual_command_verified": true,
+        "full_objective_gradient_evaluations_per_cycle": 1,
+        "objective_evaluations_median": 8.0,
+        "no_sensors_identity_verified": false,
+        "observation_id_order_only_differences": 84,
+        "physical_stiffness": [
+          350.0,
+          125.0,
+          95.0,
+          60.0,
+          40.0,
+          30.0
+        ],
+        "actual_final_error_m": 0.09223591542055523,
+        "actual_final_error_xyz": [
+          -0.05330531280433881,
+          -0.000992344817190148,
+          -0.07526634687603223
+        ],
+        "current_fused_relative_hand_errors": [
+          {
+            "label": "common_body_prior|imu_link_3:frame:00360:gravity",
+            "weight": 1.0,
+            "current_relative_mean": [
+              0.018500130419467378,
+              -0.2573256894169567,
+              0.04492018964986478
+            ],
+            "current_error_xyz": [
+              0.018500130419467378,
+              -0.017325689416956724,
+              -7.981035013521903e-05
+            ],
+            "current_error_m": 0.025346414125121074,
+            "source_state_id": "945edc1570ed9c30330d1f0f778f0c62f2db8436e98aea7f24398f43d0b4d375"
+          }
+        ],
+        "camera_valid_frames": 84,
+        "imu_valid_frames": 361,
+        "observation_count_distribution": {
+          "2": 84,
+          "1": 277
+        },
+        "reached": false,
+        "collided": false,
+        "minimum_clearance_m": 0.05806979997087154,
+        "maximum_velocity_rad_s": 0.20000000000000445,
+        "maximum_acceleration_rad_s2": 0.6000000000000839,
+        "maximum_cross_covariance_norm": 0.002870952144778418,
+        "command_sha256": "f877772135525543d74969da48ea2261896bc68564e10e144bc8159c5f70c871",
+        "physics_sha256": "3ac72f0cfa4369018f7e5c22b86f1a01c81a776448784b32f4260e41f22ea9d7",
+        "preparation_wall_seconds": 71.20243733609095,
+        "preparation_fps": 5.070051159850072
+      }
+    ],
+    "common_inputs": {
+      "duration": 18.0,
+      "frames": 361,
+      "updates": 361,
+      "initial_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "scene_config_sha256": "d69a785e1f707cd82f4d2587100a3c8c1403c220235c47295bf661cf9da62070",
+      "estimation_config_sha256": "dcdbb1b984b67c4d80b0c4fed72b17ae25ac0309225cd240a6114857fe7db33b",
+      "frame_period_s": 0.05,
+      "inference_period_s": 0.05,
+      "robot_sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2"
+    },
+    "initial_prior_state_id_shared": "b6c7f51b076a53e9595b9a5144afb69c2eab16d6a10eb05db4cd2247cca475df",
+    "initial_physical_frame_shared": true,
+    "actual_goal_base": [
+      1.1349999999999998,
+      -0.060000000000000005,
+      0.45999999999999996
+    ],
+    "all_identity_and_delivery_checks_passed": true,
+    "all_four_cases_audited": true,
+    "closed_loop_commands_differ": true,
+    "notes": [
+      "Observation IDs are compared as sets; estimator/controller sort IDs while display retains adapter order. Component identities and weights match exactly.",
+      "A successful source/display audit does not imply physical reaching success. Reaching flags and actual residuals are reported without replacement by estimator residuals."
+    ]
+  },
+  "complete_objective_gradient_audit": [
+    {
+      "case": "no_sensors",
+      "objective_evaluations": 8,
+      "full_J_gradient_error_max": 6.750155989720952e-09,
+      "line_search_accepted": true,
+      "improved_from_feasible_baseline": true,
+      "controller_wall_s": 0.04081745771691203,
+      "gradient_at_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "source_state_ids": [
+        "b6c7f51b076a53e9595b9a5144afb69c2eab16d6a10eb05db4cd2247cca475df"
+      ],
+      "unused_pixels_and_URDFmass_do_not_change_command": true
+    },
+    {
+      "case": "imu",
+      "objective_evaluations": 8,
+      "full_J_gradient_error_max": 1.794120407794253e-08,
+      "line_search_accepted": true,
+      "improved_from_feasible_baseline": true,
+      "controller_wall_s": 0.04116620775312185,
+      "gradient_at_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "source_state_ids": [
+        "cc66483eaed0da87ef959f6a5a6f746bfc142b6a928b177786c274f7fd225677"
+      ],
+      "unused_pixels_and_URDFmass_do_not_change_command": true
+    },
+    {
+      "case": "marker",
+      "objective_evaluations": 8,
+      "full_J_gradient_error_max": 7.048583938740194e-07,
+      "line_search_accepted": true,
+      "improved_from_feasible_baseline": true,
+      "controller_wall_s": 0.08425800502300262,
+      "gradient_at_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "source_state_ids": [
+        "614e223b1bfa76b317b9b9adec93f54c58f8098f9fa68a4193f03bb60375882b",
+        "cbce51a9d2dea86fdf296004fb79eb7e89e32f4e371af065714792999e221482"
+      ],
+      "unused_pixels_and_URDFmass_do_not_change_command": true
+    },
+    {
+      "case": "imu_marker",
+      "objective_evaluations": 8,
+      "full_J_gradient_error_max": 5.456968210637569e-07,
+      "line_search_accepted": true,
+      "improved_from_feasible_baseline": true,
+      "controller_wall_s": 0.0833463273011148,
+      "gradient_at_command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "source_state_ids": [
+        "f6efe9f378dca6c51ccb7b8257db6b365dee784f24b67e555aea725dea9fe665",
+        "df7bc9fe85a2c224dcc5254773e0e6bc9d632dc55bf20caefaa389dbffb83395"
+      ],
+      "unused_pixels_and_URDFmass_do_not_change_command": true
+    }
+  ],
+  "controller_statistics": {
+    "runtime": "/tmp/probtf_closed_loop_gradient_recording_20261016",
+    "cases": {
+      "no_sensors": {
+        "frames": 361,
+        "controller_updates": 360,
+        "method": "one projected complete-objective gradient update with Armijo backtracking",
+        "objective_evaluations": {
+          "count": 360,
+          "minimum": 7.0,
+          "maximum": 11.0,
+          "mean": 9.755555555555556,
+          "median": 11.0
+        },
+        "gradient_evaluations": {
+          "count": 360,
+          "minimum": 1.0,
+          "maximum": 1.0,
+          "mean": 1.0,
+          "median": 1.0
+        },
+        "backtracks": {
+          "count": 360,
+          "minimum": 0.0,
+          "maximum": 3.0,
+          "mean": 1.7694444444444444,
+          "median": 3.0
+        },
+        "line_evaluations": {
+          "count": 360,
+          "minimum": 0.0,
+          "maximum": 4.0,
+          "mean": 2.7555555555555555,
+          "median": 4.0
+        },
+        "accepted_count": 148,
+        "accepted_ratio": 0.4111111111111111,
+        "strictly_improved_count": 148,
+        "strictly_improved_ratio": 0.4111111111111111,
+        "forced_coasting_no_accepted_gradient_updates": 5,
+        "maximum_absolute_velocity_rad_s": 0.20000000000000004,
+        "maximum_velocity_per_joint_rad_s": [
+          0.2,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.20000000000000004
+        ],
+        "maximum_absolute_acceleration_rad_s2": 0.6000000000000004,
+        "valid_observation_count_histogram": {
+          "0": 361
+        },
+        "initial_physical_error_m": 0.36959607396520444,
+        "final_physical_error_m": 0.5394620280055598,
+        "final_rigid_command_error_m": 0.03163603738851852,
+        "reached": false,
+        "collided": false,
+        "initial_current_relative_estimate": {
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "mixture_mean": [
+            0.06781107737109668,
+            -0.04111616480990493,
+            0.39792201539224276
+          ],
+          "mixture_covariance": [
+            [
+              0.00589058764981182,
+              -0.0001911348751709857,
+              0.0005230318857679613
+            ],
+            [
+              -0.0001911348751709857,
+              0.0053675587020972585,
+              0.0012260678011490622
+            ],
+            [
+              0.0005230318857679612,
+              0.0012260678011490622,
+              0.0023275206628291254
+            ]
+          ],
+          "goal_offset": [
+            0.0,
+            -0.24,
+            0.045
+          ],
+          "mean_error_vector": [
+            0.06781107737109668,
+            0.19888383519009506,
+            0.35292201539224277
+          ],
+          "mean_error_m": 0.4107396633668,
+          "candidate_rms_error_m": 0.4269575366209272,
+          "covariance_trace_m2": 0.013585667014738203,
+          "components": [
+            {
+              "weight": 1.0,
+              "state_id": "b6c7f51b076a53e9595b9a5144afb69c2eab16d6a10eb05db4cd2247cca475df",
+              "mean": [
+                0.06781107737109668,
+                -0.04111616480990493,
+                0.39792201539224276
+              ],
+              "covariance": [
+                [
+                  0.00589058764981182,
+                  -0.0001911348751709857,
+                  0.0005230318857679613
+                ],
+                [
+                  -0.0001911348751709857,
+                  0.0053675587020972585,
+                  0.0012260678011490622
+                ],
+                [
+                  0.0005230318857679612,
+                  0.0012260678011490622,
+                  0.0023275206628291254
+                ]
+              ],
+              "mean_error_m": 0.4107396633668
+            }
+          ],
+          "definition": "current fused joint-law point query marker_inverse*hand, compared to known marker-to-goal offset; no future selected-command query"
+        },
+        "final_current_relative_estimate": {
+          "stamp": 1792080018.0,
+          "command": [
+            -0.08347040120972814,
+            -1.0845430390639161,
+            1.4327552786226965,
+            -0.2818221113355174,
+            -0.3827235300746761,
+            0.2795422723326994
+          ],
+          "mixture_mean": [
+            -3.7294723616166335e-05,
+            -0.2397746045474754,
+            0.04621316709039604
+          ],
+          "mixture_covariance": [
+            [
+              0.007204443605644039,
+              -1.901105903075701e-05,
+              0.0002026756173129598
+            ],
+            [
+              -1.9011059030757057e-05,
+              0.006945248340047991,
+              0.0003639082741881575
+            ],
+            [
+              0.00020267561731295976,
+              0.00036390827418815756,
+              0.0018799740802426432
+            ]
+          ],
+          "goal_offset": [
+            0.0,
+            -0.24,
+            0.045
+          ],
+          "mean_error_vector": [
+            -3.7294723616166335e-05,
+            0.00022539545252459048,
+            0.001213167090396039
+          ],
+          "mean_error_m": 0.0012344911484690208,
+          "candidate_rms_error_m": 0.1266143356588436,
+          "covariance_trace_m2": 0.016029666025934673,
+          "components": [
+            {
+              "weight": 1.0,
+              "state_id": "36eae085001547f2275bb086409f43e3e6a3f51f712cb9a9ac243980e4d50a3f",
+              "mean": [
+                -3.7294723616166335e-05,
+                -0.2397746045474754,
+                0.04621316709039604
+              ],
+              "covariance": [
+                [
+                  0.007204443605644039,
+                  -1.901105903075701e-05,
+                  0.0002026756173129598
+                ],
+                [
+                  -1.9011059030757057e-05,
+                  0.006945248340047991,
+                  0.0003639082741881575
+                ],
+                [
+                  0.00020267561731295976,
+                  0.00036390827418815756,
+                  0.0018799740802426432
+                ]
+              ],
+              "mean_error_m": 0.0012344911484690208
+            }
+          ],
+          "definition": "current fused joint-law point query marker_inverse*hand, compared to known marker-to-goal offset; no future selected-command query"
+        },
+        "preparation_wall_seconds": 50.96311665279791
+      },
+      "imu": {
+        "frames": 361,
+        "controller_updates": 360,
+        "method": "one projected complete-objective gradient update with Armijo backtracking",
+        "objective_evaluations": {
+          "count": 360,
+          "minimum": 7.0,
+          "maximum": 9.0,
+          "mean": 7.983333333333333,
+          "median": 8.0
+        },
+        "gradient_evaluations": {
+          "count": 360,
+          "minimum": 1.0,
+          "maximum": 1.0,
+          "mean": 1.0,
+          "median": 1.0
+        },
+        "backtracks": {
+          "count": 360,
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "mean": 0.002777777777777778,
+          "median": 0.0
+        },
+        "line_evaluations": {
+          "count": 360,
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "mean": 0.9833333333333333,
+          "median": 1.0
+        },
+        "accepted_count": 353,
+        "accepted_ratio": 0.9805555555555555,
+        "strictly_improved_count": 353,
+        "strictly_improved_ratio": 0.9805555555555555,
+        "forced_coasting_no_accepted_gradient_updates": 7,
+        "maximum_absolute_velocity_rad_s": 0.20000000000000004,
+        "maximum_velocity_per_joint_rad_s": [
+          0.2,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.20000000000000004
+        ],
+        "maximum_absolute_acceleration_rad_s2": 0.6000000000000004,
+        "valid_observation_count_histogram": {
+          "1": 361
+        },
+        "initial_physical_error_m": 0.36959607396520444,
+        "final_physical_error_m": 0.07915157607786837,
+        "final_rigid_command_error_m": 0.5392231234213143,
+        "reached": false,
+        "collided": false,
+        "initial_current_relative_estimate": {
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "mixture_mean": [
+            0.08069294310968038,
+            -0.2625010421501093,
+            0.3526328472827368
+          ],
+          "mixture_covariance": [
+            [
+              0.005639749731874844,
+              4.700548497610978e-05,
+              0.0005637021560148611
+            ],
+            [
+              4.700548497610978e-05,
+              0.003316373690311506,
+              0.0002802382746554528
+            ],
+            [
+              0.0005637021560148609,
+              0.0002802382746554529,
+              0.0020220852860263466
+            ]
+          ],
+          "goal_offset": [
+            0.0,
+            -0.24,
+            0.045
+          ],
+          "mean_error_vector": [
+            0.08069294310968038,
+            -0.022501042150109285,
+            0.3076328472827368
+          ],
+          "mean_error_m": 0.3188347796160682,
+          "candidate_rms_error_m": 0.3356096324616436,
+          "covariance_trace_m2": 0.010978208708212697,
+          "components": [
+            {
+              "weight": 1.0,
+              "state_id": "cc66483eaed0da87ef959f6a5a6f746bfc142b6a928b177786c274f7fd225677",
+              "mean": [
+                0.08069294310968038,
+                -0.2625010421501093,
+                0.3526328472827368
+              ],
+              "covariance": [
+                [
+                  0.005639749731874844,
+                  4.700548497610978e-05,
+                  0.0005637021560148611
+                ],
+                [
+                  4.700548497610978e-05,
+                  0.003316373690311506,
+                  0.0002802382746554528
+                ],
+                [
+                  0.0005637021560148609,
+                  0.0002802382746554529,
+                  0.0020220852860263466
+                ]
+              ],
+              "mean_error_m": 0.3188347796160682
+            }
+          ],
+          "definition": "current fused joint-law point query marker_inverse*hand, compared to known marker-to-goal offset; no future selected-command query"
+        },
+        "final_current_relative_estimate": {
+          "stamp": 1792080018.0,
+          "command": [
+            -0.09196918965468075,
+            -1.460158274939233,
+            1.3491014701379274,
+            -0.2702518800823168,
+            -0.40324404443687534,
+            0.25315166937916145
+          ],
+          "mixture_mean": [
+            0.010976822238053564,
+            -0.23965861803318783,
+            0.04653469499197714
+          ],
+          "mixture_covariance": [
+            [
+              0.006716640929087943,
+              1.6759686078526148e-06,
+              0.00022253373347912587
+            ],
+            [
+              1.675968607852613e-06,
+              0.0032849355566897088,
+              3.490128763003556e-05
+            ],
+            [
+              0.00022253373347912587,
+              3.4901287630035556e-05,
+              0.0018605575656630196
+            ]
+          ],
+          "goal_offset": [
+            0.0,
+            -0.24,
+            0.045
+          ],
+          "mean_error_vector": [
+            0.010976822238053564,
+            0.0003413819668121598,
+            0.0015346949919771424
+          ],
+          "mean_error_m": 0.011088843799580347,
+          "candidate_rms_error_m": 0.10947646554512144,
+          "covariance_trace_m2": 0.011862134051440671,
+          "components": [
+            {
+              "weight": 1.0,
+              "state_id": "9c624da30404ce343388b1999c1b59b6d6e75a6236f807d2f97c627f3064dfaa",
+              "mean": [
+                0.010976822238053564,
+                -0.23965861803318783,
+                0.04653469499197714
+              ],
+              "covariance": [
+                [
+                  0.006716640929087943,
+                  1.6759686078526148e-06,
+                  0.00022253373347912587
+                ],
+                [
+                  1.675968607852613e-06,
+                  0.0032849355566897088,
+                  3.490128763003556e-05
+                ],
+                [
+                  0.00022253373347912587,
+                  3.4901287630035556e-05,
+                  0.0018605575656630196
+                ]
+              ],
+              "mean_error_m": 0.011088843799580347
+            }
+          ],
+          "definition": "current fused joint-law point query marker_inverse*hand, compared to known marker-to-goal offset; no future selected-command query"
+        },
+        "preparation_wall_seconds": 57.086273812223226
+      },
+      "marker": {
+        "frames": 361,
+        "controller_updates": 360,
+        "method": "one projected complete-objective gradient update with Armijo backtracking",
+        "objective_evaluations": {
+          "count": 360,
+          "minimum": 7.0,
+          "maximum": 11.0,
+          "mean": 9.716666666666667,
+          "median": 11.0
+        },
+        "gradient_evaluations": {
+          "count": 360,
+          "minimum": 1.0,
+          "maximum": 1.0,
+          "mean": 1.0,
+          "median": 1.0
+        },
+        "backtracks": {
+          "count": 360,
+          "minimum": 0.0,
+          "maximum": 3.0,
+          "mean": 1.7416666666666667,
+          "median": 3.0
+        },
+        "line_evaluations": {
+          "count": 360,
+          "minimum": 0.0,
+          "maximum": 4.0,
+          "mean": 2.716666666666667,
+          "median": 4.0
+        },
+        "accepted_count": 142,
+        "accepted_ratio": 0.39444444444444443,
+        "strictly_improved_count": 142,
+        "strictly_improved_ratio": 0.39444444444444443,
+        "forced_coasting_no_accepted_gradient_updates": 10,
+        "maximum_absolute_velocity_rad_s": 0.20000000000000004,
+        "maximum_velocity_per_joint_rad_s": [
+          0.20000000000000004,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.2,
+          0.2
+        ],
+        "maximum_absolute_acceleration_rad_s2": 0.6000000000000006,
+        "valid_observation_count_histogram": {
+          "1": 16,
+          "0": 345
+        },
+        "initial_physical_error_m": 0.36959607396520444,
+        "final_physical_error_m": 0.5394636979566307,
+        "final_rigid_command_error_m": 0.03163407473752367,
+        "reached": false,
+        "collided": false,
+        "initial_current_relative_estimate": {
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "mixture_mean": [
+            0.07794446653532369,
+            -0.318883588589276,
+            0.32456494105996464
+          ],
+          "mixture_covariance": [
+            [
+              0.00010977039351041243,
+              1.580437284008272e-06,
+              4.801064618102274e-06
+            ],
+            [
+              1.580437284008261e-06,
+              1.3531242625931537e-05,
+              8.040975491958367e-06
+            ],
+            [
+              4.801064618102227e-06,
+              8.040975491958428e-06,
+              4.035233247470273e-05
+            ]
+          ],
+          "goal_offset": [
+            0.0,
+            -0.24,
+            0.045
+          ],
+          "mean_error_vector": [
+            0.07794446653532369,
+            -0.07888358858927602,
+            0.27956494105996466
+          ],
+          "mean_error_m": 0.3007565737969161,
+          "candidate_rms_error_m": 0.3010285213242608,
+          "covariance_trace_m2": 0.0001636539686110467,
+          "components": [
+            {
+              "weight": 1.0,
+              "state_id": "614e223b1bfa76b317b9b9adec93f54c58f8098f9fa68a4193f03bb60375882b",
+              "mean": [
+                0.07794446653532369,
+                -0.318883588589276,
+                0.32456494105996464
+              ],
+              "covariance": [
+                [
+                  0.00010977039351041243,
+                  1.580437284008272e-06,
+                  4.801064618102274e-06
+                ],
+                [
+                  1.580437284008261e-06,
+                  1.3531242625931537e-05,
+                  8.040975491958367e-06
+                ],
+                [
+                  4.801064618102227e-06,
+                  8.040975491958428e-06,
+                  4.035233247470273e-05
+                ]
+              ],
+              "mean_error_m": 0.3007565737969161
+            },
+            {
+              "weight": 4.3890322338836977e-82,
+              "state_id": "cbce51a9d2dea86fdf296004fb79eb7e89e32f4e371af065714792999e221482",
+              "mean": [
+                0.022157047524341653,
+                -0.23902672741705674,
+                0.4149439828159624
+              ],
+              "covariance": [
+                [
+                  0.0001854725007219559,
+                  1.9721294794260288e-07,
+                  5.189125581866212e-06
+                ],
+                [
+                  1.9721294794261559e-07,
+                  0.00011070108515850301,
+                  5.7871896499836134e-05
+                ],
+                [
+                  5.189125581866156e-06,
+                  5.787189649983619e-05,
+                  5.145979294484862e-05
+                ]
+              ],
+              "mean_error_m": 0.3706081926189082
+            }
+          ],
+          "definition": "current fused joint-law point query marker_inverse*hand, compared to known marker-to-goal offset; no future selected-command query"
+        },
+        "final_current_relative_estimate": {
+          "stamp": 1792080018.0,
+          "command": [
+            -0.0834706882623775,
+            -1.0845429841153074,
+            1.432759996639271,
+            -0.2818193993025575,
+            -0.3827261239916325,
+            0.2795392026673079
+          ],
+          "mixture_mean": [
+            -3.683423018742101e-05,
+            -0.2397776245804292,
+            0.04621391203871952
+          ],
+          "mixture_covariance": [
+            [
+              0.007204438481975078,
+              -1.901044318157922e-05,
+              0.00020267793753046563
+            ],
+            [
+              -1.9010443181579227e-05,
+              0.006945242765894083,
+              0.00036389435595870454
+            ],
+            [
+              0.00020267793753046565,
+              0.00036389435595870454,
+              0.0018799748768567046
+            ]
+          ],
+          "goal_offset": [
+            0.0,
+            -0.24,
+            0.045
+          ],
+          "mean_error_vector": [
+            -3.683423018742101e-05,
+            0.00022237541957079165,
+            0.0012139120387195251
+          ],
+          "mean_error_m": 0.001234661907362084,
+          "candidate_rms_error_m": 0.12661429822398163,
+          "covariance_trace_m2": 0.016029656124725865,
+          "components": [
+            {
+              "weight": 1.0,
+              "state_id": "1c1155bc2cf7630db2dcb7f2082b56444cc718f937164c0072595042e4544bd2",
+              "mean": [
+                -3.683423018742101e-05,
+                -0.2397776245804292,
+                0.04621391203871952
+              ],
+              "covariance": [
+                [
+                  0.007204438481975078,
+                  -1.901044318157922e-05,
+                  0.00020267793753046563
+                ],
+                [
+                  -1.9010443181579227e-05,
+                  0.006945242765894083,
+                  0.00036389435595870454
+                ],
+                [
+                  0.00020267793753046565,
+                  0.00036389435595870454,
+                  0.0018799748768567046
+                ]
+              ],
+              "mean_error_m": 0.001234661907362084
+            }
+          ],
+          "definition": "current fused joint-law point query marker_inverse*hand, compared to known marker-to-goal offset; no future selected-command query"
+        },
+        "preparation_wall_seconds": 63.07619088795036
+      },
+      "imu_marker": {
+        "frames": 361,
+        "controller_updates": 360,
+        "method": "one projected complete-objective gradient update with Armijo backtracking",
+        "objective_evaluations": {
+          "count": 360,
+          "minimum": 8.0,
+          "maximum": 11.0,
+          "mean": 8.019444444444444,
+          "median": 8.0
+        },
+        "gradient_evaluations": {
+          "count": 360,
+          "minimum": 1.0,
+          "maximum": 1.0,
+          "mean": 1.0,
+          "median": 1.0
+        },
+        "backtracks": {
+          "count": 360,
+          "minimum": 0.0,
+          "maximum": 3.0,
+          "mean": 0.019444444444444445,
+          "median": 0.0
+        },
+        "line_evaluations": {
+          "count": 360,
+          "minimum": 1.0,
+          "maximum": 4.0,
+          "mean": 1.0194444444444444,
+          "median": 1.0
+        },
+        "accepted_count": 360,
+        "accepted_ratio": 1.0,
+        "strictly_improved_count": 360,
+        "strictly_improved_ratio": 1.0,
+        "forced_coasting_no_accepted_gradient_updates": 0,
+        "maximum_absolute_velocity_rad_s": 0.20000000000000004,
+        "maximum_velocity_per_joint_rad_s": [
+          0.2,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.20000000000000004,
+          0.2,
+          0.20000000000000004
+        ],
+        "maximum_absolute_acceleration_rad_s2": 0.6000000000000005,
+        "valid_observation_count_histogram": {
+          "2": 84,
+          "1": 277
+        },
+        "initial_physical_error_m": 0.36959607396520444,
+        "final_physical_error_m": 0.09223591542055523,
+        "final_rigid_command_error_m": 0.5220150812178761,
+        "reached": false,
+        "collided": false,
+        "initial_current_relative_estimate": {
+          "stamp": 1792080000.0,
+          "command": [
+            -0.15,
+            -1.85,
+            2.35,
+            0.0,
+            -0.95,
+            0.0
+          ],
+          "mixture_mean": [
+            0.07779806992318831,
+            -0.31730217805167227,
+            0.33288188867536556
+          ],
+          "mixture_covariance": [
+            [
+              0.00011839352230052725,
+              1.9707793586926584e-06,
+              6.130661347499111e-06
+            ],
+            [
+              1.970779358692672e-06,
+              1.578872418348448e-05,
+              8.763022733731061e-06
+            ],
+            [
+              6.130661347499114e-06,
+              8.763022733731024e-06,
+              3.48236697648089e-05
+            ]
+          ],
+          "goal_offset": [
+            0.0,
+            -0.24,
+            0.045
+          ],
+          "mean_error_vector": [
+            0.07779806992318831,
+            -0.07730217805167228,
+            0.28788188867536557
+          ],
+          "mean_error_m": 0.3080651688240677,
+          "candidate_rms_error_m": 0.30833934902773946,
+          "covariance_trace_m2": 0.00016900591624882064,
+          "components": [
+            {
+              "weight": 1.0,
+              "state_id": "f6efe9f378dca6c51ccb7b8257db6b365dee784f24b67e555aea725dea9fe665",
+              "mean": [
+                0.07779806992318831,
+                -0.31730217805167227,
+                0.33288188867536556
+              ],
+              "covariance": [
+                [
+                  0.00011839352230052725,
+                  1.9707793586926584e-06,
+                  6.130661347499111e-06
+                ],
+                [
+                  1.970779358692672e-06,
+                  1.578872418348448e-05,
+                  8.763022733731061e-06
+                ],
+                [
+                  6.130661347499114e-06,
+                  8.763022733731024e-06,
+                  3.48236697648089e-05
+                ]
+              ],
+              "mean_error_m": 0.3080651688240677
+            },
+            {
+              "weight": 5.08347546198289e-82,
+              "state_id": "df7bc9fe85a2c224dcc5254773e0e6bc9d632dc55bf20caefaa389dbffb83395",
+              "mean": [
+                0.019621255100611745,
+                -0.23664179328840976,
+                0.4227635431140817
+              ],
+              "covariance": [
+                [
+                  0.00016466156209782215,
+                  -1.0765131569288844e-05,
+                  -2.0120125330628338e-07
+                ],
+                [
+                  -1.0765131569288885e-05,
+                  0.00011296970309352349,
+                  5.384164579448772e-05
+                ],
+                [
+                  -2.0120125330648497e-07,
+                  5.3841645794487664e-05,
+                  4.415817378249594e-05
+                ]
+              ],
+              "mean_error_m": 0.3782876758634171
+            }
+          ],
+          "definition": "current fused joint-law point query marker_inverse*hand, compared to known marker-to-goal offset; no future selected-command query"
+        },
+        "final_current_relative_estimate": {
+          "stamp": 1792080018.0,
+          "command": [
+            -0.09638644144360692,
+            -1.4464120103870588,
+            1.3500301144203586,
+            -0.2611943463055796,
+            -0.40098636666839077,
+            0.22865658989208965
+          ],
+          "mixture_mean": [
+            0.018500130419467378,
+            -0.2573256894169567,
+            0.04492018964986478
+          ],
+          "mixture_covariance": [
+            [
+              0.006755367017042422,
+              7.891523558959753e-06,
+              0.00025873667181068816
+            ],
+            [
+              7.891523558959751e-06,
+              0.0032844835403285674,
+              9.149350673011181e-06
+            ],
+            [
+              0.00025873667181068816,
+              9.149350673011195e-06,
+              0.0018787938035638061
+            ]
+          ],
+          "goal_offset": [
+            0.0,
+            -0.24,
+            0.045
+          ],
+          "mean_error_vector": [
+            0.018500130419467378,
+            -0.017325689416956724,
+            -7.981035013521903e-05
+          ],
+          "mean_error_m": 0.025346414125121074,
+          "candidate_rms_error_m": 0.1120762466802709,
+          "covariance_trace_m2": 0.011918644360934795,
+          "components": [
+            {
+              "weight": 1.0,
+              "state_id": "945edc1570ed9c30330d1f0f778f0c62f2db8436e98aea7f24398f43d0b4d375",
+              "mean": [
+                0.018500130419467378,
+                -0.2573256894169567,
+                0.04492018964986478
+              ],
+              "covariance": [
+                [
+                  0.006755367017042422,
+                  7.891523558959753e-06,
+                  0.00025873667181068816
+                ],
+                [
+                  7.891523558959751e-06,
+                  0.0032844835403285674,
+                  9.149350673011181e-06
+                ],
+                [
+                  0.00025873667181068816,
+                  9.149350673011195e-06,
+                  0.0018787938035638061
+                ]
+              ],
+              "mean_error_m": 0.025346414125121074
+            }
+          ],
+          "definition": "current fused joint-law point query marker_inverse*hand, compared to known marker-to-goal offset; no future selected-command query"
+        },
+        "preparation_wall_seconds": 71.20243733609095
+      }
+    },
+    "complete": true
+  },
+  "limitations": [
+    "All four executions did not reach the physical 6 mm target; collision was absent.",
+    "Every cycle uses a fresh fixed-time prior; old observation information is not accumulated.",
+    "The unchanged 0.24 s exposure and motion blur caused marker detection losses.",
+    "The 20 fps playback follows offline computation; actual preparation throughput is recorded separately.",
+    "The relative pose proxy retains joint dependence until the final Gaussian-position times Bingham-orientation product approximation."
+  ]
+}

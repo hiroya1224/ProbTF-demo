@@ -1,0 +1,387 @@
+{
+  "master_uri": "http://localhost:11766/",
+  "settings_sha256": {
+    "ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_motion.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+    "ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_demo.rviz": "247e38b29b8c59f70c3a5ddb833acd4c849aba6d6cf331f82446ccecc37c2404",
+    "ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58"
+  },
+  "capture": {
+    "fps": 20,
+    "duration_s": 24.5,
+    "encoder": "libx264",
+    "crf": 18,
+    "pixel_format": "yuv420p"
+  },
+  "cases": [
+    {
+      "case": "no_sensors",
+      "video": "no_sensors.mp4",
+      "sha256": "a224c5d9afce05cd1f69ae5f92e68ffd1c45fe2591370b8ee0c9897a2bacde8d",
+      "rectangle": {
+        "x": 100,
+        "y": 64,
+        "width": 1840,
+        "height": 1200
+      },
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1840,
+            "height": 1200,
+            "r_frame_rate": "20/1",
+            "nb_frames": "490"
+          }
+        ],
+        "format": {
+          "duration": "24.500000",
+          "size": "13619909"
+        }
+      },
+      "replay_wall_elapsed_s": 54.95663174195215,
+      "snapshot_count": 362,
+      "motion_count": 362,
+      "received_marker_arrays": 362,
+      "last_motion": {
+        "duration": 18.0,
+        "frames": 361,
+        "updates": 361,
+        "frame_period_s": 0.05,
+        "inference_period_s": 0.05,
+        "playback_hz": 20.0,
+        "preparation_wall_seconds": 50.96311665279791,
+        "preparation_frames_per_second": 7.083554219405866,
+        "physical_estimate_time_offset_s": 0.0,
+        "initial_command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "scene_config_sha256": "d69a785e1f707cd82f4d2587100a3c8c1403c220235c47295bf661cf9da62070",
+        "estimation_config_sha256": "dcdbb1b984b67c4d80b0c4fed72b17ae25ac0309225cd240a6114857fe7db33b",
+        "command_sha256": "c302bef8576da8fffd435556c500dcbe37d36df7cd7fc93b31f6c1cf26d4e9f2",
+        "physics_sha256": "f2abd5a9ba4d629ebcd538f09af8927e44b375b6d9f7bc1757301b0e28a473a5",
+        "sensors": [],
+        "same_motion_sensor_estimation_comparison": false,
+        "same_physical_model_and_initial_prior": true,
+        "sensors_drive_commands": true,
+        "command_source": "common controller applied to the current fused estimate; no command recording",
+        "final_physical_error_m": 0.5394620280055598,
+        "final_rigid_error_m": 0.03163603738851852,
+        "reached": false,
+        "collided": false,
+        "minimum_clearance_m": 0.06012731650005804,
+        "sample_index": 360,
+        "scene_elapsed": 18.0,
+        "finished": true,
+        "estimate_index": 360,
+        "estimate_stamp": 1792080018.0,
+        "physical_stamp": 1792080018.0,
+        "command": [
+          -0.08347040120972814,
+          -1.0845430390639161,
+          1.4327552786226965,
+          -0.2818221113355174,
+          -0.3827235300746761,
+          0.2795422723326994
+        ],
+        "valid_observations": 0
+      },
+      "verification": {
+        "final_motion_observed": true,
+        "snapshot_identity_verified": true,
+        "published_wire_identity_verified": true,
+        "unique_snapshots": 361,
+        "unique_wire_messages": 361,
+        "published_image_identity_verified": true,
+        "unique_images": 361,
+        "actual_moving_image_fps": 20.020422847762507
+      },
+      "runtime_record": "/tmp/probtf_closed_loop_gradient_recording_20261016/no_sensors"
+    },
+    {
+      "case": "imu",
+      "video": "imu.mp4",
+      "sha256": "1031d81b772f9788bead1ea6f955fa43392536c616cb3aaffd691c555b8b8dfc",
+      "rectangle": {
+        "x": 100,
+        "y": 64,
+        "width": 1840,
+        "height": 1200
+      },
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1840,
+            "height": 1200,
+            "r_frame_rate": "20/1",
+            "nb_frames": "490"
+          }
+        ],
+        "format": {
+          "duration": "24.500000",
+          "size": "18355115"
+        }
+      },
+      "replay_wall_elapsed_s": 61.003339847084135,
+      "snapshot_count": 362,
+      "motion_count": 362,
+      "received_marker_arrays": 362,
+      "last_motion": {
+        "duration": 18.0,
+        "frames": 361,
+        "updates": 361,
+        "frame_period_s": 0.05,
+        "inference_period_s": 0.05,
+        "playback_hz": 20.0,
+        "preparation_wall_seconds": 57.086273812223226,
+        "preparation_frames_per_second": 6.323761841374611,
+        "physical_estimate_time_offset_s": 0.0,
+        "initial_command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "scene_config_sha256": "d69a785e1f707cd82f4d2587100a3c8c1403c220235c47295bf661cf9da62070",
+        "estimation_config_sha256": "dcdbb1b984b67c4d80b0c4fed72b17ae25ac0309225cd240a6114857fe7db33b",
+        "command_sha256": "cbaf0340c4f2e4a4e56445e86929193d632ab78c2ceb21a8dd05312a5cc7d8cf",
+        "physics_sha256": "bb562546d4c9f4edc82a2513fd7e55d41e5cf35cf86dcee4f7e1559501ab6899",
+        "sensors": [
+          "imu"
+        ],
+        "same_motion_sensor_estimation_comparison": false,
+        "same_physical_model_and_initial_prior": true,
+        "sensors_drive_commands": true,
+        "command_source": "common controller applied to the current fused estimate; no command recording",
+        "final_physical_error_m": 0.07915157607786837,
+        "final_rigid_error_m": 0.5392231234213143,
+        "reached": false,
+        "collided": false,
+        "minimum_clearance_m": 0.060016994909025956,
+        "sample_index": 360,
+        "scene_elapsed": 18.0,
+        "finished": true,
+        "estimate_index": 360,
+        "estimate_stamp": 1792080018.0,
+        "physical_stamp": 1792080018.0,
+        "command": [
+          -0.09196918965468075,
+          -1.460158274939233,
+          1.3491014701379274,
+          -0.2702518800823168,
+          -0.40324404443687534,
+          0.25315166937916145
+        ],
+        "valid_observations": 1
+      },
+      "verification": {
+        "final_motion_observed": true,
+        "snapshot_identity_verified": true,
+        "published_wire_identity_verified": true,
+        "unique_snapshots": 361,
+        "unique_wire_messages": 361,
+        "published_image_identity_verified": true,
+        "unique_images": 361,
+        "actual_moving_image_fps": 19.978337267659867
+      },
+      "runtime_record": "/tmp/probtf_closed_loop_gradient_recording_20261016/imu"
+    },
+    {
+      "case": "marker",
+      "video": "marker.mp4",
+      "sha256": "3bbf08d12dceddf0a205d8b61a726d4bcd8aa0a20036c852e9ff967d8e59c110",
+      "rectangle": {
+        "x": 100,
+        "y": 64,
+        "width": 1840,
+        "height": 1200
+      },
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1840,
+            "height": 1200,
+            "r_frame_rate": "20/1",
+            "nb_frames": "490"
+          }
+        ],
+        "format": {
+          "duration": "24.500000",
+          "size": "15847490"
+        }
+      },
+      "replay_wall_elapsed_s": 67.04249644977972,
+      "snapshot_count": 362,
+      "motion_count": 362,
+      "received_marker_arrays": 362,
+      "last_motion": {
+        "duration": 18.0,
+        "frames": 361,
+        "updates": 361,
+        "frame_period_s": 0.05,
+        "inference_period_s": 0.05,
+        "playback_hz": 20.0,
+        "preparation_wall_seconds": 63.07619088795036,
+        "preparation_frames_per_second": 5.723237166322974,
+        "physical_estimate_time_offset_s": 0.0,
+        "initial_command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "scene_config_sha256": "d69a785e1f707cd82f4d2587100a3c8c1403c220235c47295bf661cf9da62070",
+        "estimation_config_sha256": "dcdbb1b984b67c4d80b0c4fed72b17ae25ac0309225cd240a6114857fe7db33b",
+        "command_sha256": "cce88390e3609d2a878cbc2b4b5f6e65c4a7270f7f1ebdf1d857a557e4a61c25",
+        "physics_sha256": "c75cb64686b43727f916e3cada326b921296d4283d231b58c4082ad22415de21",
+        "sensors": [
+          "marker"
+        ],
+        "same_motion_sensor_estimation_comparison": false,
+        "same_physical_model_and_initial_prior": true,
+        "sensors_drive_commands": true,
+        "command_source": "common controller applied to the current fused estimate; no command recording",
+        "final_physical_error_m": 0.5394636979566307,
+        "final_rigid_error_m": 0.03163407473752367,
+        "reached": false,
+        "collided": false,
+        "minimum_clearance_m": 0.06038869728187096,
+        "sample_index": 360,
+        "scene_elapsed": 18.0,
+        "finished": true,
+        "estimate_index": 360,
+        "estimate_stamp": 1792080018.0,
+        "physical_stamp": 1792080018.0,
+        "command": [
+          -0.0834706882623775,
+          -1.0845429841153074,
+          1.432759996639271,
+          -0.2818193993025575,
+          -0.3827261239916325,
+          0.2795392026673079
+        ],
+        "valid_observations": 0
+      },
+      "verification": {
+        "final_motion_observed": true,
+        "snapshot_identity_verified": true,
+        "published_wire_identity_verified": true,
+        "unique_snapshots": 361,
+        "unique_wire_messages": 361,
+        "published_image_identity_verified": true,
+        "unique_images": 361,
+        "actual_moving_image_fps": 20.01179295070612
+      },
+      "runtime_record": "/tmp/probtf_closed_loop_gradient_recording_20261016/marker"
+    },
+    {
+      "case": "imu_marker",
+      "video": "imu_marker.mp4",
+      "sha256": "480e4aa55a1f4ef1b1d18b42348986b41bfab618cca06c47edee26d871cad5de",
+      "rectangle": {
+        "x": 100,
+        "y": 64,
+        "width": 1840,
+        "height": 1200
+      },
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1840,
+            "height": 1200,
+            "r_frame_rate": "20/1",
+            "nb_frames": "490"
+          }
+        ],
+        "format": {
+          "duration": "24.500000",
+          "size": "15206644"
+        }
+      },
+      "replay_wall_elapsed_s": 75.19813843211159,
+      "snapshot_count": 362,
+      "motion_count": 362,
+      "received_marker_arrays": 362,
+      "last_motion": {
+        "duration": 18.0,
+        "frames": 361,
+        "updates": 361,
+        "frame_period_s": 0.05,
+        "inference_period_s": 0.05,
+        "playback_hz": 20.0,
+        "preparation_wall_seconds": 71.20243733609095,
+        "preparation_frames_per_second": 5.070051159850072,
+        "physical_estimate_time_offset_s": 0.0,
+        "initial_command": [
+          -0.15,
+          -1.85,
+          2.35,
+          0.0,
+          -0.95,
+          0.0
+        ],
+        "scene_config_sha256": "d69a785e1f707cd82f4d2587100a3c8c1403c220235c47295bf661cf9da62070",
+        "estimation_config_sha256": "dcdbb1b984b67c4d80b0c4fed72b17ae25ac0309225cd240a6114857fe7db33b",
+        "command_sha256": "f877772135525543d74969da48ea2261896bc68564e10e144bc8159c5f70c871",
+        "physics_sha256": "3ac72f0cfa4369018f7e5c22b86f1a01c81a776448784b32f4260e41f22ea9d7",
+        "sensors": [
+          "imu",
+          "marker"
+        ],
+        "same_motion_sensor_estimation_comparison": false,
+        "same_physical_model_and_initial_prior": true,
+        "sensors_drive_commands": true,
+        "command_source": "common controller applied to the current fused estimate; no command recording",
+        "final_physical_error_m": 0.09223591542055523,
+        "final_rigid_error_m": 0.5220150812178761,
+        "reached": false,
+        "collided": false,
+        "minimum_clearance_m": 0.05806979997087154,
+        "sample_index": 360,
+        "scene_elapsed": 18.0,
+        "finished": true,
+        "estimate_index": 360,
+        "estimate_stamp": 1792080018.0,
+        "physical_stamp": 1792080018.0,
+        "command": [
+          -0.09638644144360692,
+          -1.4464120103870588,
+          1.3500301144203586,
+          -0.2611943463055796,
+          -0.40098636666839077,
+          0.22865658989208965
+        ],
+        "valid_observations": 1
+      },
+      "verification": {
+        "final_motion_observed": true,
+        "snapshot_identity_verified": true,
+        "published_wire_identity_verified": true,
+        "unique_snapshots": 361,
+        "unique_wire_messages": 361,
+        "published_image_identity_verified": true,
+        "unique_images": 361,
+        "actual_moving_image_fps": 19.996744732358977
+      },
+      "runtime_record": "/tmp/probtf_closed_loop_gradient_recording_20261016/imu_marker"
+    }
+  ],
+  "settings_byte_comparison_passed": true,
+  "common_initial_conditions_and_controller_verified": true,
+  "commands_and_physics_are_case_results": true
+}

@@ -248,23 +248,29 @@ def _path(state, path):
 
 
 _GENERATORS = tuple(skew(v) for v in np.eye(3))
+_SECOND_GENERATORS = np.array([
+    [0.5 * (a @ b + b @ a) for b in _GENERATORS]
+    for a in _GENERATORS
+])
 
 
-def _rotation_derivatives(state, index, inverse):
+def _rotation_derivatives(state, index, inverse, with_second=True):
     edge = state.transforms[index]
     rotation = quat_to_rotmat(edge.rotation_wxyz)
     n = state.mean.size
     first = np.zeros((n, 3, 3))
-    second = np.zeros((n, n, 3, 3))
+    second = np.zeros((n, n, 3, 3)) if with_second else None
     if edge.bingham is not None:
         for a, generator_a in enumerate(_GENERATORS):
             ia = 6*index+3+a
             first[ia] = rotation @ generator_a
-            for b, generator_b in enumerate(_GENERATORS):
-                ib = 6*index+3+b
-                second[ia, ib] = 0.5 * rotation @ (generator_a @ generator_b + generator_b @ generator_a)
+            if with_second:
+                for b, generator_b in enumerate(_GENERATORS):
+                    ib = 6*index+3+b
+                    second[ia, ib] = 0.5 * rotation @ (generator_a @ generator_b + generator_b @ generator_a)
     if inverse:
-        return rotation.T, first.transpose(0, 2, 1), second.transpose(0, 1, 3, 2)
+        return (rotation.T, first.transpose(0, 2, 1),
+                second.transpose(0, 1, 3, 2) if with_second else None)
     return rotation, first, second
 
 
@@ -282,7 +288,8 @@ def _point_jet(state, path, point, direction=False):
     correction = np.zeros(3)
     for index, inverse in reversed(path):
         edge = state.transforms[index]
-        rotation, derivatives, _ = _rotation_derivatives(state, index, inverse)
+        rotation, derivatives, _ = _rotation_derivatives(state, index, inverse,
+                                                         with_second=False)
         input_value = value.copy()
         input_jacobian = jacobian.copy()
         if inverse and not direction:
@@ -347,22 +354,40 @@ def pose_query(state, path, query_id="pose", frame="base_link"):
     n = state.mean.size
     rotation = np.eye(3)
     first = np.zeros((n, 3, 3))
-    second = np.zeros((n, n, 3, 3))
+    # Only Q=sum_ab P_ab d2R/dz_a dz_b enters the orientation mean.
+    # Contract the product rule as each edge is composed instead of carrying
+    # the full n-by-n matrix Hessian and contracting it at the end.  The
+    # first derivatives remain explicit, including shared/repeated variables.
+    contracted_second = np.zeros((3, 3))
     for index, inverse in path:
-        r, d, dd = _rotation_derivatives(state, index, inverse)
-        new_second = (np.einsum("abij,jk->abik", second, r)
-                      + np.einsum("aij,bjk->abik", first, d)
-                      + np.einsum("bij,ajk->abik", first, d)
-                      + np.einsum("ij,abjk->abik", rotation, dd))
-        first = np.einsum("aij,jk->aik", first, r) + np.einsum("ij,ajk->aik", rotation, d)
-        second = new_second
+        r, d, _ = _rotation_derivatives(state, index, inverse,
+                                         with_second=False)
+        contracted_second = contracted_second @ r
+        if state.transforms[index].bingham is not None:
+            coordinates = slice(6*index+3, 6*index+6)
+            # dR for this edge is nonzero only on its three rotation
+            # coordinates.  Both mixed product-rule terms retain every
+            # covariance row, including body/marker and repeated-path blocks.
+            cross = (state.covariance[:, coordinates]
+                     + state.covariance[coordinates, :].T)
+            weighted_first = np.tensordot(cross.T, first, axes=(1, 0))
+            contracted_second += np.einsum("bij,bjk->ik", weighted_first,
+                                           d[coordinates])
+            local_second = np.einsum("ab,abij->ij",
+                                    state.covariance[coordinates, coordinates],
+                                    _SECOND_GENERATORS)
+            # The derivative of an inverse rotation is the transpose of
+            # the forward derivative, including its second derivative.
+            local_second = local_second.T @ r if inverse else r @ local_second
+            contracted_second += rotation @ local_second
+        first = first @ r + rotation @ d
         rotation = rotation @ r
     def vee(matrix):
         return np.array([matrix[2, 1]-matrix[1, 2], matrix[0, 2]-matrix[2, 0], matrix[1, 0]-matrix[0, 1]]) * 0.5
     orientation_jacobian = np.column_stack([vee(rotation.T @ derivative) for derivative in first])
     # In log coordinates the symmetric quadratic matrix term has zero vee;
     # the remaining contraction includes actual shared-variable mixed terms.
-    orientation_correction = 0.5 * vee(rotation.T @ np.einsum("ab,abij->ij", state.covariance, second))
+    orientation_correction = 0.5 * vee(rotation.T @ contracted_second)
     return _query(state, np.concatenate((value, np.zeros(3))),
                   np.concatenate((correction, orientation_correction)),
                   np.vstack((jacobian, orientation_jacobian)), query_id, frame,

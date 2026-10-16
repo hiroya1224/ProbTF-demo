@@ -13,7 +13,7 @@ from probtf.spherical_law.fusion import PosteriorComponent, SensorPosterior, con
 from probtf_observation_fusion_demo.model import WeightedState, component_log_weight, run
 from probtf_observation_fusion_demo.moving_control import MovingController, command_state
 from probtf_observation_fusion_demo.moving_inference import MovingInference
-from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
+from legacy_marker import legacy_marker_scene
 from probtf_observation_fusion_demo.sensors import ADAPTERS, LocalEstimate
 
 PACKAGE = Path(__file__).resolve().parents[1]
@@ -21,7 +21,7 @@ PACKAGE = Path(__file__).resolve().parents[1]
 
 @pytest.fixture(scope='module')
 def moving(tmp_path_factory):
-    scene = MovingSwitchScene(tmp_path_factory.mktemp('retained_body_laws'))
+    scene = legacy_marker_scene(tmp_path_factory.mktemp('retained_body_laws'))
     frame = scene.step(0., 1000.)
     cases = {name: yaml.safe_load((PACKAGE/'config'/f'{name}.yaml').read_text())['observations']
              for name in ('no_sensors', 'imu', 'marker', 'imu_marker')}
@@ -34,7 +34,7 @@ def test_new_imu_information_accumulates_in_upstream_laws_without_mc(moving, mon
         raise AssertionError('No Monte Carlo is allowed in any inference step.')
     for name in ('default_rng', 'normal', 'random', 'randn', 'multivariate_normal', 'RandomState'):
         monkeypatch.setattr(np.random, name, prohibited)
-    inference = MovingInference(scene.robot_description, cases['imu'])
+    inference = MovingInference(scene.robot_description, cases['imu'], config_path=scene.legacy_inference_config)
     first = inference.update(inputs, 0)
     second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
     previous = first.stages[-1].components[0].state
@@ -53,7 +53,7 @@ def test_new_imu_information_accumulates_in_upstream_laws_without_mc(moving, mon
 
 def test_marker_loss_retains_single_internal_memory_and_all_goal_modes(moving):
     scene, inputs, cases = moving
-    inference = MovingInference(scene.robot_description, cases['marker'])
+    inference = MovingInference(scene.robot_description, cases['marker'], config_path=scene.legacy_inference_config)
     first = inference.update(inputs, 0)
     assert len(first.stages[-1].components) == 1
     assert len(first.stages[-1].goal_components) >= 2
@@ -94,7 +94,7 @@ def test_marker_loss_retains_single_internal_memory_and_all_goal_modes(moving):
 
 def test_internal_state_stays_single_and_current_goal_mixture_does_not_form_history_products(moving):
     scene, inputs, cases = moving
-    inference = MovingInference(scene.robot_description, cases['marker'])
+    inference = MovingInference(scene.robot_description, cases['marker'], config_path=scene.legacy_inference_config)
     first = inference.update(inputs, 0)
     second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
     initial_count = len(first.stages[-1].goal_components)
@@ -142,7 +142,7 @@ def test_internal_state_stays_single_and_current_goal_mixture_does_not_form_hist
 
 def test_disabled_change_model_retains_the_legacy_single_prior_update(moving, tmp_path):
     scene, inputs, cases = moving
-    settings = yaml.safe_load((PACKAGE/'config'/'moving_estimation.yaml').read_text())
+    settings = yaml.safe_load(scene.legacy_inference_config.read_text())
     settings['bayes_factor_surprise']['enabled'] = False
     path = tmp_path/'disabled.yaml'
     path.write_text(yaml.safe_dump(settings))
@@ -270,7 +270,7 @@ def test_native_image_log_masses_survive_float_underflow_and_the_next_tick(movin
         weights = tuple(math.exp(value) for value in logs)
         return replace(detected, weights=weights, log_masses=logs)
     monkeypatch.setattr(sensors.PoseMixtureEstimator, 'estimate', tiny_image_mode)
-    inference = MovingInference(scene.robot_description, cases['marker'])
+    inference = MovingInference(scene.robot_description, cases['marker'], config_path=scene.legacy_inference_config)
     first = inference.update(inputs, 0)
     assert len(first.stages[-1].components) == 1
     assert len(first.stages[-1].goal_components) >= 2
@@ -304,7 +304,7 @@ def test_image_detection_and_hessian_refinement_run_once_per_observation(moving,
         return original_estimate(*args, **kwargs)
     monkeypatch.setattr(sensors.ArucoCornerDetector, 'detect', detect)
     monkeypatch.setattr(sensors.PoseMixtureEstimator, 'estimate', estimate)
-    inference = MovingInference(scene.robot_description, cases['marker'])
+    inference = MovingInference(scene.robot_description, cases['marker'], config_path=scene.legacy_inference_config)
     inference.update(inputs, 0)
     second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
     assert len(second.stages[0].components) == 2
@@ -317,7 +317,7 @@ def test_image_detection_and_hessian_refinement_run_once_per_observation(moving,
 
 def test_two_sensor_fusion_after_a_real_command_keeps_declared_dirac_coordinates(moving):
     scene, inputs, cases = moving
-    inference = MovingInference(scene.robot_description, cases['imu_marker'])
+    inference = MovingInference(scene.robot_description, cases['imu_marker'], config_path=scene.legacy_inference_config)
     first = inference.update(inputs, 0)
     control = inference.settings['control']
     controller = MovingController(inference, scene.robot_description, control['goal_offset'],

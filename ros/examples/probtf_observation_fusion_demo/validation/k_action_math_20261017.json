@@ -1,0 +1,686 @@
+{
+  "purpose": "Read-only deterministic stiffness-action and evaluation-point audit; no runtime correction",
+  "monte_carlo_used": false,
+  "random_calls_forbidden": true,
+  "sources": {
+    "old_visual": {
+      "freeze_sha256": "ccb633159ae05dff91f5b9c7672ce863c131c3eb33d8940411033f5237848d01",
+      "frozen_file_count": 39,
+      "physical_reach_success": false,
+      "audited_K_action_files": {
+        "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py": "76fb45dac644b86cf8cbdeccc969e15c5642691023913ab88421ab8cb875e841",
+        "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py": "6a1b00d118895c22096abab7aafdf55259ee57b336defb0deed4341b7ddd4eb5",
+        "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": "0b7259df5fb2069df3672857572db0eaff3c45bcc529ea57c982868fafaea440"
+      }
+    },
+    "full_K_J_progress": {
+      "freeze_sha256": "0f7fd0089b1400dac8a6649eba47ec00c584e81535ebceece4b461ed4bc96836",
+      "frozen_file_count": 39,
+      "physical_reach_success": false,
+      "audited_K_action_files": {
+        "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py": "76fb45dac644b86cf8cbdeccc969e15c5642691023913ab88421ab8cb875e841",
+        "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py": "6a1b00d118895c22096abab7aafdf55259ee57b336defb0deed4341b7ddd4eb5",
+        "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": "0b7259df5fb2069df3672857572db0eaff3c45bcc529ea57c982868fafaea440"
+      }
+    }
+  },
+  "audited_file_hashes": {
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py": "6a1b00d118895c22096abab7aafdf55259ee57b336defb0deed4341b7ddd4eb5",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py": "76fb45dac644b86cf8cbdeccc969e15c5642691023913ab88421ab8cb875e841",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": "0b7259df5fb2069df3672857572db0eaff3c45bcc529ea57c982868fafaea440",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/spring.py": "1b98ac6840be276f5ea02c3a164bb8947cd252a894645651f1348cefb9b97f82",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/sensitivity.py": "16a042df5ffef41ae2684352b6e0ea814d5b42572991b01052128b0e6842ab56",
+    "ros/examples/deflecomp/deflecomp_core/src/deflecomp_core/model/equilibrium.py": "715fe1a790028a234bd37f1993b548fee1346a1100e18a5759a292ff5a0a056f"
+  },
+  "audited_source_files_unchanged": true,
+  "scalar_cases": [
+    {
+      "command": [
+        0.2
+      ],
+      "selected_K_Nm_per_rad": [
+        50.0
+      ],
+      "equilibrium": [
+        0.2938937837591781
+      ],
+      "active_joint_limits": [
+        false
+      ],
+      "masked_residual_max": 1.7763568394002505e-15,
+      "command_jacobian": [
+        [
+          0.9723675224066928
+        ]
+      ],
+      "logK_jacobian": [
+        [
+          -0.09129926588330174
+        ]
+      ],
+      "gravity_potential_gradient_error_max": 1.1369127861371453e-10,
+      "gravity_hessian_error_max": 5.169293881834847e-10,
+      "known_pendulum_gravity_error_max": 0.0,
+      "differences": [
+        {
+          "step": 0.0001,
+          "command_error_max": 8.066791679084417e-11,
+          "logK_error_max": 1.2046195985160324e-10,
+          "same_active_set": true
+        },
+        {
+          "step": 1e-05,
+          "command_error_max": 2.1195267763118864e-12,
+          "logK_error_max": 3.0558611197051277e-12,
+          "same_active_set": true
+        }
+      ],
+      "closed_form_dtheta_dc": 0.9723675224066928
+    },
+    {
+      "command": [
+        1.4
+      ],
+      "selected_K_Nm_per_rad": [
+        0.3
+      ],
+      "equilibrium": [
+        1.5
+      ],
+      "active_joint_limits": [
+        true
+      ],
+      "masked_residual_max": 0.0,
+      "command_jacobian": [
+        [
+          0.0
+        ]
+      ],
+      "logK_jacobian": [
+        [
+          -0.0
+        ]
+      ],
+      "gravity_potential_gradient_error_max": 6.142197861436216e-12,
+      "gravity_hessian_error_max": 4.157261201953588e-10,
+      "known_pendulum_gravity_error_max": 0.0,
+      "differences": [
+        {
+          "step": 0.0001,
+          "command_error_max": 0.0,
+          "logK_error_max": 0.0,
+          "same_active_set": true
+        },
+        {
+          "step": 1e-05,
+          "command_error_max": 0.0,
+          "logK_error_max": 0.0,
+          "same_active_set": true
+        }
+      ]
+    }
+  ],
+  "six_joint_cases": [
+    {
+      "source": "old_visual",
+      "control_index": 538,
+      "time_s": 26.955095291137695,
+      "source_state_id": "8d3c50c9e0fd74aded078d99a370df4388be2abaf7c8dbe76baeab84dab91cc2",
+      "density_id": "e9edd17d5af1eeaf716b1e099a876659008649ac2ac66185e8d3f5cf4e7fdf39",
+      "selected_K_Nm_per_rad": [
+        95.96440837294568,
+        90.5606254128884,
+        121.62978828495851,
+        96.00277990816653,
+        79.88638664563075,
+        95.71169223245919
+      ],
+      "command": [
+        -0.03618214169827929,
+        -1.5301600055920284,
+        1.0589421657571632,
+        -0.008355124349621592,
+        0.11306464924327363,
+        -0.047491880728368734
+      ],
+      "auxiliary_equilibrium": [
+        -0.03618214169827929,
+        -1.1083322180797257,
+        1.2564933287179725,
+        -0.007127752101180868,
+        0.1584468735113462,
+        -0.046347791368238675
+      ],
+      "active_joint_limits": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "masked_residual_max": 4.618527782440651e-14,
+      "gravity_potential_gradient_error_max": 3.623483735282207e-09,
+      "gravity_hessian_error_max": 6.142055752889064e-09,
+      "differences": [
+        {
+          "step": 0.0001,
+          "command_error_max": 2.981577207350483e-09,
+          "logK_error_max": 1.307460251176451e-09,
+          "same_active_set": true,
+          "body_chart_logK_derivative_error_max": 1.3075494020853284e-09
+        },
+        {
+          "step": 1e-05,
+          "command_error_max": 4.94779772708398e-11,
+          "logK_error_max": 7.043809979734306e-12,
+          "same_active_set": true,
+          "body_chart_logK_derivative_error_max": 1.1102230246251564e-11
+        }
+      ],
+      "retained_engine_FD_error_max": 4.94779772708398e-11,
+      "retained_engine_equilibrium_error_max": 0.0,
+      "retained_engine_derivative_error_max": 0.0,
+      "posterior_modal_position_command_J_error_max": 8.903394688175581e-11,
+      "body_auxiliary_evaluation_point": {
+        "difference_rad": [
+          0.004212783335308744,
+          -0.2155156155951552,
+          -0.10519269907644957,
+          -0.00694079205292088,
+          -0.04712262595115277,
+          -0.009222027295633775
+        ],
+        "maximum_angle_difference_rad": 0.2155156155951552,
+        "torque_residual_at_projected_body_mode": [
+          0.40427726037630846,
+          -13.145766834713719,
+          -12.830727360206742,
+          -0.6652167864486034,
+          -3.88106979771318,
+          -0.8855542542504647
+        ],
+        "jacobian_point_difference_max": 0.25412419363496785,
+        "jacobian_point_difference_relative_frobenius": 0.11984312596764146,
+        "approximation": "Projected hinge angles only: local posterior may have off-hinge rotation/translation. This unbalanced point is not an auxiliary equilibrium."
+      },
+      "posterior_off_hinge_rotation_rad": [
+        0.2201916465038426,
+        0.004711499489022812,
+        0.00995096116831424,
+        0.060765335408883424,
+        0.006952225649594508,
+        0.07772854456709874
+      ],
+      "yaw_joint1": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "dtheta1_dc": [
+          1.0,
+          -6.013298641196306e-18,
+          -6.43935736343973e-18,
+          -2.532537226262553e-20,
+          -1.018106358128496e-18,
+          -1.8532246736752427e-17
+        ],
+        "maximum_abs_dtheta_dlogK1": 0.0
+      }
+    },
+    {
+      "source": "full_K_J_progress",
+      "control_index": 0,
+      "time_s": 0.0,
+      "source_state_id": "ea35765a7c60517d81cca25a1550eb14deb673986979cb8242d816894bb4be23",
+      "density_id": "c716b358097bd5b420f2f51151b41c16137703b55a30d4851b391ada67e1f16d",
+      "selected_K_Nm_per_rad": [
+        95.96440837294568,
+        90.5606254128884,
+        121.62978828495851,
+        96.00277990816653,
+        79.88638664563075,
+        95.71169223245919
+      ],
+      "command": [
+        -0.15,
+        -1.85,
+        2.35,
+        0.0,
+        -0.95,
+        0.0
+      ],
+      "auxiliary_equilibrium": [
+        -0.15,
+        -1.693951785422854,
+        2.4982711567139253,
+        0.0009048844601819734,
+        -0.9033546408343786,
+        0.0012745031281769863
+      ],
+      "active_joint_limits": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "masked_residual_max": 1.4210854715202004e-14,
+      "gravity_potential_gradient_error_max": 3.5857397051586304e-09,
+      "gravity_hessian_error_max": 2.854141811781119e-09,
+      "differences": [
+        {
+          "step": 0.0001,
+          "command_error_max": 6.475247005255369e-10,
+          "logK_error_max": 9.010855395175099e-10,
+          "same_active_set": true,
+          "body_chart_logK_derivative_error_max": 9.010710788626142e-10
+        },
+        {
+          "step": 1e-05,
+          "command_error_max": 1.1277145883781259e-11,
+          "logK_error_max": 9.156300040001272e-12,
+          "same_active_set": true,
+          "body_chart_logK_derivative_error_max": 1.4326574784362736e-11
+        }
+      ],
+      "retained_engine_FD_error_max": 1.1277145883781259e-11,
+      "retained_engine_equilibrium_error_max": 0.0,
+      "retained_engine_derivative_error_max": 0.0,
+      "posterior_modal_position_command_J_error_max": 2.8137987328601816e-11,
+      "body_auxiliary_evaluation_point": {
+        "difference_rad": [
+          0.0021856051733953608,
+          -0.06265293506102765,
+          -0.04737073261821134,
+          -0.00033313169268265057,
+          -0.022626822789312162,
+          0.004163762458623398
+        ],
+        "maximum_angle_difference_rad": 0.06265293506102765,
+        "torque_residual_at_projected_body_mode": [
+          0.20974030740173516,
+          -5.153189492855205,
+          -7.20724919221921,
+          -0.041040392016035425,
+          -1.7079662474954056,
+          0.40067094937657166
+        ],
+        "jacobian_point_difference_max": 0.02591435675992715,
+        "jacobian_point_difference_relative_frobenius": 0.01592734477672573,
+        "approximation": "Projected hinge angles only: local posterior may have off-hinge rotation/translation. This unbalanced point is not an auxiliary equilibrium."
+      },
+      "posterior_off_hinge_rotation_rad": [
+        0.08605279896524094,
+        0.0031931840513673183,
+        0.003202563594686447,
+        0.020764077379860378,
+        0.0051374614725162365,
+        0.026869952739709407
+      ],
+      "yaw_joint1": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "dtheta1_dc": [
+          1.0,
+          5.252418963074626e-18,
+          3.423936776566568e-18,
+          -1.893364104331327e-17,
+          2.3727733330414097e-18,
+          -1.7165382336360148e-20
+        ],
+        "maximum_abs_dtheta_dlogK1": 0.0
+      }
+    },
+    {
+      "source": "full_K_J_progress",
+      "control_index": 602,
+      "time_s": 30.070765256881714,
+      "source_state_id": "a496c2fdfa26c0ed9818a328f112bdf0543712a52169d610b8b22b50e12ac39c",
+      "density_id": "ba4733a3f630acaf2b137d68394e3857d8941200d4b1f53f6873418710dcebcf",
+      "selected_K_Nm_per_rad": [
+        105.73356849990525,
+        121.48138012329873,
+        151.93945147364906,
+        106.19991853283807,
+        104.43451721749558,
+        105.74664888738502
+      ],
+      "command": [
+        0.1698462674455769,
+        -1.3813245028461165,
+        1.8538529150210887,
+        0.5041734153447083,
+        -1.4080327688350067,
+        -0.22075873263251816
+      ],
+      "auxiliary_equilibrium": [
+        0.1698462674455769,
+        -1.133480015830706,
+        1.963468697202495,
+        0.5163388571218486,
+        -1.3785956745869037,
+        -0.2195468353914344
+      ],
+      "active_joint_limits": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "masked_residual_max": 1.0658141036401503e-14,
+      "gravity_potential_gradient_error_max": 6.02922156645036e-09,
+      "gravity_hessian_error_max": 4.135230824431346e-09,
+      "differences": [
+        {
+          "step": 0.0001,
+          "command_error_max": 3.839964457519329e-10,
+          "logK_error_max": 7.413485381135843e-10,
+          "same_active_set": true,
+          "body_chart_logK_derivative_error_max": 7.417599312553591e-10
+        },
+        {
+          "step": 1e-05,
+          "command_error_max": 8.6861629000623e-12,
+          "logK_error_max": 1.2492895606897036e-11,
+          "same_active_set": true,
+          "body_chart_logK_derivative_error_max": 1.1102230246251564e-11
+        }
+      ],
+      "retained_engine_FD_error_max": 1.4332757203305846e-11,
+      "retained_engine_equilibrium_error_max": 0.0,
+      "retained_engine_derivative_error_max": 0.0,
+      "posterior_modal_position_command_J_error_max": 4.451244928205256e-11,
+      "body_auxiliary_evaluation_point": {
+        "difference_rad": [
+          -0.0001755516182128658,
+          -0.10340941517135693,
+          0.03947626811541083,
+          -0.010505766172633324,
+          -0.028854873764336375,
+          0.009687663770375915
+        ],
+        "maximum_angle_difference_rad": 0.10340941517135693,
+        "torque_residual_at_projected_body_mode": [
+          -0.018561699049579702,
+          -10.29259344436468,
+          5.225324151914819,
+          -1.185134790240308,
+          -2.814717024454679,
+          1.0254695501157671
+        ],
+        "jacobian_point_difference_max": 0.02536059615624664,
+        "jacobian_point_difference_relative_frobenius": 0.011287593693719063,
+        "approximation": "Projected hinge angles only: local posterior may have off-hinge rotation/translation. This unbalanced point is not an auxiliary equilibrium."
+      },
+      "posterior_off_hinge_rotation_rad": [
+        0.13083760399503777,
+        0.0031555072361513885,
+        0.007360226894946486,
+        0.020840227017309546,
+        0.009094656728102122,
+        0.02373801057181628
+      ],
+      "yaw_joint1": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "dtheta1_dc": [
+          1.0,
+          8.870302253960389e-18,
+          1.0969130829629837e-17,
+          -1.7372897700944124e-17,
+          4.617934228530321e-18,
+          -8.422360825828368e-18
+        ],
+        "maximum_abs_dtheta_dlogK1": 0.0
+      }
+    },
+    {
+      "source": "full_K_J_progress",
+      "control_index": 1199,
+      "time_s": 60.0,
+      "source_state_id": "cd52f258fe3e2534445c2d9babc7e83d7f0c25baba7e102550b4ace9e24e83aa",
+      "density_id": "c517441637fbc3fe31a5cab6c1fa2990357c22783ecf903322b76acc311180f3",
+      "selected_K_Nm_per_rad": [
+        105.73615304080442,
+        115.2374247099128,
+        154.41755897090923,
+        106.35877990041404,
+        105.39141652474117,
+        105.72182180720905
+      ],
+      "command": [
+        0.1698462674455769,
+        -1.3813245028461165,
+        1.8538529150210887,
+        0.5475124840872109,
+        -1.2880327688350066,
+        -0.22075873263251816
+      ],
+      "auxiliary_equilibrium": [
+        0.1698462674455769,
+        -1.1160515400554132,
+        1.9614596546117358,
+        0.5599936124389493,
+        -1.256924774480901,
+        -0.2194761160388187
+      ],
+      "active_joint_limits": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "masked_residual_max": 1.4210854715202004e-14,
+      "gravity_potential_gradient_error_max": 4.138112519314063e-09,
+      "gravity_hessian_error_max": 3.283098237716331e-09,
+      "differences": [
+        {
+          "step": 0.0001,
+          "command_error_max": 3.8549803627052626e-10,
+          "logK_error_max": 7.568808912949976e-10,
+          "same_active_set": true,
+          "body_chart_logK_derivative_error_max": 7.567523829798972e-10
+        },
+        {
+          "step": 1e-05,
+          "command_error_max": 8.27344096010485e-12,
+          "logK_error_max": 1.1663850441046009e-11,
+          "same_active_set": true,
+          "body_chart_logK_derivative_error_max": 1.1102230246251564e-11
+        }
+      ],
+      "retained_engine_FD_error_max": 7.437606086568849e-12,
+      "retained_engine_equilibrium_error_max": 0.0,
+      "retained_engine_derivative_error_max": 0.0,
+      "posterior_modal_position_command_J_error_max": 6.017977782768469e-11,
+      "body_auxiliary_evaluation_point": {
+        "difference_rad": [
+          -5.9560509535872e-05,
+          -0.12796104916274675,
+          0.054068967339987895,
+          -0.011379184604901837,
+          -0.031352746767367545,
+          0.005995421351661895
+        ],
+        "maximum_angle_difference_rad": 0.12796104916274675,
+        "torque_residual_at_projected_body_mode": [
+          -0.006297699151473697,
+          -11.943478167422672,
+          7.395699423369173,
+          -1.3041208089862397,
+          -3.120679598255365,
+          0.6338919431561596
+        ],
+        "jacobian_point_difference_max": 0.03247075153090995,
+        "jacobian_point_difference_relative_frobenius": 0.014155502203996638,
+        "approximation": "Projected hinge angles only: local posterior may have off-hinge rotation/translation. This unbalanced point is not an auxiliary equilibrium."
+      },
+      "posterior_off_hinge_rotation_rad": [
+        0.12065351883871199,
+        0.00201888369073487,
+        0.0048016969918572615,
+        0.0033770317013976227,
+        0.00612614771563955,
+        0.0046857724207550674
+      ],
+      "yaw_joint1": {
+        "axis": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "dtheta1_dc": [
+          1.0,
+          -5.2685348391614064e-18,
+          4.436160698013541e-18,
+          3.893227042574724e-20,
+          -2.6086566562798226e-20,
+          1.6817702415448134e-17
+        ],
+        "maximum_abs_dtheta_dlogK1": 0.0
+      }
+    }
+  ],
+  "counterfactual_true_K_validation_only": [
+    {
+      "source": "old_visual",
+      "time_s": 26.955095291137695,
+      "case": "imu_marker",
+      "logged_vs_recomputed_action_max_error": 0.0,
+      "physical_current_goal_distance_m": 0.06472974726482307,
+      "same_command_true_K_future_goal_distance_m": 0.06815322876512019,
+      "mean_tip_displacement_cosine": 0.9958536575156075,
+      "mean_tip_displacement_relative_difference": 0.14923466037745495
+    },
+    {
+      "source": "old_visual",
+      "time_s": 27.800357818603516,
+      "case": "imu_marker",
+      "logged_vs_recomputed_action_max_error": 0.0,
+      "physical_current_goal_distance_m": 0.0789405787459518,
+      "same_command_true_K_future_goal_distance_m": 0.09509821489327894,
+      "mean_tip_displacement_cosine": 0.9967124523236044,
+      "mean_tip_displacement_relative_difference": 0.15351832285337216
+    }
+  ],
+  "actual_reaching_intervals_validation_only": {
+    "marker": {
+      "count": 226,
+      "cosine_quantiles": [
+        0.9348201159657527,
+        0.9813788376316362,
+        0.9915890459588623,
+        0.9990819967642568,
+        0.9998558800279962
+      ],
+      "relative_tip_error_quantiles": [
+        0.058972256374473495,
+        0.10449188008986653,
+        0.15370718696529018,
+        0.2024113432009323,
+        0.36837946684876927
+      ],
+      "relative_joint_error_quantiles": [
+        0.021815102289559917,
+        0.02283066555094549,
+        0.02580496204207638,
+        0.049506430848870145,
+        0.06192564529809417
+      ],
+      "maximum_tip_error_m": 0.0009523464539286902,
+      "opposite_tip_direction_count": 0,
+      "physical_error_increase_count": 10
+    },
+    "imu_marker": {
+      "count": 219,
+      "cosine_quantiles": [
+        0.7531938901583829,
+        0.9336149903077308,
+        0.9671766220627034,
+        0.9982700100305959,
+        0.9997513654223733
+      ],
+      "relative_tip_error_quantiles": [
+        0.023355272099916505,
+        0.06450754706244774,
+        0.27667652423841277,
+        0.3593658472550706,
+        0.6652827844882161
+      ],
+      "relative_joint_error_quantiles": [
+        0.03200067968233129,
+        0.036355048184821374,
+        0.04700178265695867,
+        0.057932831242261944,
+        0.06078248533156074
+      ],
+      "maximum_tip_error_m": 0.0006262642862929664,
+      "opposite_tip_direction_count": 0,
+      "physical_error_increase_count": 7
+    }
+  },
+  "actual_intervals_source": "full_K_J_progress",
+  "limitations": [
+    "Finite-difference consistency does not prove selected K accuracy or physical success.",
+    "Projected body hinge angles are not a complete reconstruction when off-hinge modes exist.",
+    "The body-mode torque residual is nonzero; changing the gravity evaluation point alone changes the declared equilibrium model.",
+    "Physical truth was used for validation only and never added to runtime estimation/control."
+  ],
+  "guarded_random_API_names": [
+    "default_rng",
+    "normal",
+    "random",
+    "randn",
+    "multivariate_normal",
+    "RandomState"
+  ],
+  "representative_tracking_before_fix": {
+    "source": "full_K_J_progress",
+    "case": "imu_marker",
+    "changed_density_selection_count": 110,
+    "new_factor_refinement_skipped_count": 105,
+    "maximum_score_infinity_norm_at_skipped_point": 69802.59635127104,
+    "gradient_tolerance": 1e-06,
+    "fixed_start_count": 15,
+    "candidate_count_with_previous": 16,
+    "first_ten_seconds": {
+      "proposal_count": 21,
+      "first_factor_count": 1,
+      "last_factor_count": 21,
+      "last_source_time_s": 9.828500509262085,
+      "all_six_K_bitwise_equal": true,
+      "selected_K": [
+        95.96440837294568,
+        90.5606254128884,
+        121.62978828495851,
+        96.00277990816653,
+        79.88638664563075,
+        95.71169223245919
+      ]
+    },
+    "interpretation": "Continuous stiffness density received new factors, while the IK numerical representative was retained without a score step despite nonzero score."
+  },
+  "representative_tracking_fix": {
+    "runtime_scope": "changed-density representative refinement condition only",
+    "identifier_sha256": "577c6eeb10ed1f3f44c4e0b55bababcb245e5af9a0b47d6844a938637b9d02bc",
+    "new_factor_policy": "one configured complete-density score/Armijo update from the best stable start, including the previous point; stop if score tolerance holds",
+    "unchanged_factor_policy": "bitwise retain representative, density, and score; resolve current command equilibrium only",
+    "explicit_zero_iteration_policy": "record configured zero budget and skip",
+    "dedicated_tests_passed": 16,
+    "physical_reaching_after_fix_verified": false,
+    "core_body_density_K_action_unchanged": true
+  }
+}

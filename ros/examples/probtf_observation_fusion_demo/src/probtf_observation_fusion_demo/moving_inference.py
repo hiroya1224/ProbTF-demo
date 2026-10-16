@@ -159,6 +159,7 @@ class MovingInference:
                       "marker": {"status": marker_data["status"]}},
             "known_geometry": {"source": "fixed attachment geometry parsed from shared URDF; masses and physical poses excluded"},
             "camera": settings["camera"], "marker": settings["marker"],
+            "marker_board": settings.get("marker_board", {}),
             "display": settings["display"], "control": settings["control"],
         }
 
@@ -480,7 +481,7 @@ class MovingInference:
                 observation_ids=list(dict.fromkeys(item.posterior.observation_id for item in estimates)),
                 observation_sensor_ids=list(dict.fromkeys(item.posterior.sensor_id for item in estimates)),
                 observation_source_state_ids=result.records['internal_projection']['raw_source_state_ids'],
-                construction='fresh native camera-relative image modes composed through the captured common camera/body law, then fixed known marker-to-switch action',
+                construction=result.records['fresh_goal_construction']['construction']+', then fixed known marker-to-switch action',
                 construction_approximation='task-only independent fresh measurement cut; not an exact joint Bayesian posterior',
                 image_relative_source=deepcopy(result.records['fresh_goal_construction']),
                 marker_to_switch=dict(translation=offset.tolist(), rotation_wxyz=orientation.tolist()),

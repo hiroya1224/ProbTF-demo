@@ -19,6 +19,7 @@ from probtf_observation_fusion_demo.model import load_inputs
 from probtf_observation_fusion_demo.moving_inference import MovingInference
 from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
 from probtf_observation_fusion_demo.node import build_snapshot
+from legacy_marker import legacy_marker_scene
 
 
 class Capture:
@@ -49,6 +50,136 @@ def _pose(message):
     result[:3, :3] = Rotation.from_quat([
         value.rotation.x, value.rotation.y, value.rotation.z, value.rotation.w]).as_matrix()
     return result
+
+
+@pytest.fixture
+def reaching_phase_display(tmp_path, monkeypatch):
+    """Physical rows retain the diagnostics of the actually adopted plan."""
+    scene = MovingSwitchScene(tmp_path)
+    source = dict(source_stamp=1792080000., source_command=scene.initial_command.tolist(),
+        source_version=3, body_source_state_ids=['canonical:3'],
+        goal_source_state_ids=['fresh:image:1:0', 'fresh:image:1:1'])
+    diagnostics = (
+        None,
+        dict(reaching_phase='visual_approach', **deepcopy(source)),
+        dict(reaching_phase='visual_approach', **deepcopy(source)),
+        dict(reaching_phase='indet_ik', **dict(deepcopy(source), source_version=6,
+            source_stamp=1792080000.1, body_source_state_ids=['canonical:6'])),
+    )
+    actions = ('reaching', 'reaching', 'searching', 'reaching')
+    frames = []
+    for index, (diagnostic, action) in enumerate(zip(diagnostics, actions)):
+        frame = scene.step(index*.05, 1792080000.+index*.05,
+            command=scene.initial_command+.001*index)
+        phase = 'waiting_for_control' if diagnostic is None else diagnostic['reaching_phase']
+        phase_source = (None if diagnostic is None else
+            {key: deepcopy(diagnostic[key]) for key in source})
+        scene.trajectory[-1].update(action_mode=action, command_interval_mode=action,
+            reaching_phase=phase, reaching_phase_source=phase_source)
+        frames.append(frame)
+    display = MotionDisplay.__new__(MotionDisplay)
+    display.scene, display.case, display.sensor_names = scene, 'marker', ('marker',)
+    display.tag_texture = cv2.imread(str(scene.texture_path), cv2.IMREAD_GRAYSCALE)
+    display.transforms, display.publisher = Capture(), Capture()
+    display.marker_id = 0
+    monkeypatch.setattr(rospy.Time, 'now', staticmethod(lambda: rospy.Time.from_sec(8000.)))
+    return display, frames, diagnostics
+
+
+def _phase_execution(frame, row):
+    return dict(execution_mode='async', physical_stamp=frame.stamp,
+        command=list(frame.command), displayed_prediction_stamp=frame.stamp,
+        displayed_prediction_command=list(frame.command), displayed_prediction_age_s=0.,
+        actual_motion_hz=None, actual_camera_hz=None, actual_control_hz=None,
+        actual_estimate_hz=None, observation_age_s=0., finished=False,
+        estimation_drained=False, reaching_phase=row['reaching_phase'],
+        reaching_phase_source=deepcopy(row['reaching_phase_source']))
+
+
+def _phase_wire(display, frame, index, execution):
+    snapshot = SimpleNamespace(observation_ids=(), stamp=frame.stamp, command=frame.command)
+    display.publish(frame, index, snapshot, index, execution=execution)
+    stream = io.BytesIO()
+    display.publisher.messages.serialize(stream)
+    return MarkerArray().deserialize(stream.getvalue())
+
+
+def test_reaching_phase_on_actual_ros_wire_matches_adopted_diagnostics_and_search_is_separate(reaching_phase_display):
+    display, frames, diagnostics = reaching_phase_display
+    original = deepcopy(display.scene.trajectory)
+    labels = ('WAITING FOR CONTROL', 'APPROACH | CENTER MARKER',
+              'APPROACH | CENTER MARKER', 'IK')
+    # Publish out of order to reject accidentally displaying a future/current
+    # controller phase when replaying an earlier physical interval.
+    for index in (3, 0, 2, 1):
+        row, frame = display.scene.trajectory[index], frames[index]
+        metadata = _phase_execution(frame, row)
+        # A newly completed asynchronous plan can belong to the next interval.
+        # Its separate planned fields cannot relabel this executed frame.
+        metadata.update(planned_reaching_phase='indet_ik',
+            planned_reaching_phase_source=dict(source_stamp=frame.stamp+.01))
+        output = _phase_wire(display, frame, index, metadata)
+        status = next(marker for marker in output.markers if marker.ns == 'status')
+        expected_action = 'MARKER SEARCH' if index == 2 else 'REACHING'
+        assert status.text.endswith('Phase: '+labels[index]+'\nAction: '+expected_action)
+        assert status.text.count('Phase: ') == 1
+        if diagnostics[index] is not None:
+            assert row['reaching_phase'] == diagnostics[index]['reaching_phase']
+            assert metadata['reaching_phase_source'] == {
+                key: diagnostics[index][key] for key in row['reaching_phase_source']}
+        assert status.header.frame_id == 'base_link'
+        assert status.scale.z == pytest.approx(.033)
+    assert display.scene.trajectory == original
+
+
+@pytest.mark.parametrize('changed', ['phase', 'source_stamp', 'source_command', 'source_version',
+                                    'body_source_state_ids', 'goal_source_state_ids', 'missing'])
+def test_reaching_phase_rejects_execution_from_another_adopted_plan_before_publishing(reaching_phase_display, changed):
+    display, frames, _ = reaching_phase_display
+    index = 1
+    frame, row = frames[index], display.scene.trajectory[index]
+    execution = _phase_execution(frame, row)
+    if changed == 'phase':
+        execution['reaching_phase'] = 'indet_ik'
+    elif changed == 'missing':
+        execution.pop('reaching_phase_source')
+    else:
+        other = {'source_stamp': frame.stamp+.1, 'source_command': [0.]*6,
+                 'source_version': 4, 'body_source_state_ids': ['different:body'],
+                 'goal_source_state_ids': ['one:goal:only']}
+        execution['reaching_phase_source'][changed] = other[changed]
+    with pytest.raises(AssertionError, match='reaching phase/control source differ'):
+        _phase_wire(display, frame, index, execution)
+    assert display.transforms.messages is None
+    assert display.publisher.messages is None
+
+
+@pytest.mark.parametrize('phase, source', [('unknown', None), ('visual_approach', None),
+    ('indet_ik', {'source_stamp': 1.}), ('waiting_for_control', {'source_stamp': 1.})])
+def test_reaching_phase_rejects_unknown_or_unattributed_status(phase, source):
+    with pytest.raises(ValueError):
+        MotionDisplay._reaching_phase_label(dict(reaching_phase=phase, reaching_phase_source=source))
+
+
+def test_reaching_phase_does_not_change_existing_scene_geometry_or_display_settings(reaching_phase_display):
+    display, frames, _ = reaching_phase_display
+    index = 1
+    row = display.scene.trajectory[index]
+    before = _phase_wire(display, frames[index], index, _phase_execution(frames[index], row))
+    # Removing only new provenance recreates a legacy publication from exactly
+    # the same physical frame. All published geometry/configuration must agree.
+    row.pop('reaching_phase')
+    row.pop('reaching_phase_source')
+    frame = frames[index]
+    display.publish(frame, index, SimpleNamespace(observation_ids=(), stamp=frame.stamp), index)
+    stream = io.BytesIO()
+    display.publisher.messages.serialize(stream)
+    legacy = MarkerArray().deserialize(stream.getvalue())
+    assert len(before.markers) == len(legacy.markers)
+    for actual, expected in zip(before.markers, legacy.markers):
+        if actual.ns == 'status':
+            actual.text = expected.text
+        assert actual == expected
 
 
 def test_replay_robot_tf_and_physical_path_do_not_use_future_frame(tmp_path, monkeypatch):
@@ -126,11 +257,14 @@ def test_published_imu_mount_uses_configured_link_in_the_displayed_frame(tmp_pat
 
 @pytest.fixture(scope='module')
 def stiffness_display_input(tmp_path_factory):
-    scene = MovingSwitchScene(tmp_path_factory.mktemp('stiffness_display'))
+    # This legacy contract specifically separates two native image goal modes
+    # from the single internal body used by the stiffness HUD.
+    scene = legacy_marker_scene(tmp_path_factory.mktemp('stiffness_display'))
     frame = scene.step(0.0, 1792080000.0)
     config = Path(__file__).resolve().parents[1]/'config'
     _, observations = load_inputs(config/'common.yaml', config/'imu_marker.yaml')
-    inference = MovingInference(scene.robot_description, observations)
+    inference = MovingInference(scene.robot_description, observations,
+                                config_path=scene.legacy_inference_config)
     result = inference.update(scene.sensor_inputs(frame), 0)
     stage = result.stages[-1]
     snapshot = build_snapshot(result, stage, inference.common)

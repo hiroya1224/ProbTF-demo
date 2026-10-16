@@ -16,7 +16,7 @@ from probtf_observation_fusion_demo.display import make_markers, snapshot_record
 from probtf_observation_fusion_demo.model import WeightedState, run
 from probtf_observation_fusion_demo.moving_control import control_components
 from probtf_observation_fusion_demo.moving_inference import MovingInference
-from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
+from legacy_marker import legacy_marker_scene
 from probtf_observation_fusion_demo.node import build_snapshot
 from probtf_observation_fusion_demo.sensors import ADAPTERS
 from test_sequential_inference import _analytic_sensor, _scalar_inputs
@@ -60,7 +60,7 @@ def test_joint_bayes_factor_uses_normalized_correlated_sensor_evidence(values, m
 
 @pytest.fixture(scope='module')
 def sensor_problem(tmp_path_factory):
-    scene = MovingSwitchScene(tmp_path_factory.mktemp('bayes_factor_inputs'))
+    scene = legacy_marker_scene(tmp_path_factory.mktemp('bayes_factor_inputs'))
     inputs = scene.sensor_inputs(scene.step(0., 1000.))
     cases = {case: yaml.safe_load((PACKAGE/'config'/(case+'.yaml')).read_text())['observations']
              for case in ('no_sensors', 'imu', 'marker', 'imu_marker')}
@@ -75,7 +75,7 @@ def test_actual_sensor_update_publishes_the_same_change_record_and_complete_cand
         raise AssertionError('Bayes-factor inference must not sample.')
     for name in ('default_rng', 'normal', 'random', 'randn', 'multivariate_normal', 'RandomState'):
         monkeypatch.setattr(np.random, name, prohibited)
-    inference = MovingInference(scene.robot_description, cases[case])
+    inference = MovingInference(scene.robot_description, cases[case], config_path=scene.legacy_inference_config)
     result = inference.update(inputs, 0)
     record = result.records['bayes_factor_surprise']
     assert record['change_probability'] == .25
@@ -117,7 +117,7 @@ def test_actual_sensor_update_publishes_the_same_change_record_and_complete_cand
 
 def test_missing_image_holds_goal_and_has_no_bayes_factor_trial(sensor_problem):
     scene, inputs, cases = sensor_problem
-    inference = MovingInference(scene.robot_description, cases['marker'])
+    inference = MovingInference(scene.robot_description, cases['marker'], config_path=scene.legacy_inference_config)
     first = inference.update(inputs, 0)
     missing = replace(inputs, image=np.full_like(inputs.image, 255), stamp=1000.05, time=.05)
     second = inference.update(missing, 1)
@@ -132,7 +132,7 @@ def test_missing_image_holds_goal_and_has_no_bayes_factor_trial(sensor_problem):
 
 def test_imu_conflict_allows_expansion_without_moving_the_fixed_goal(sensor_problem):
     scene, inputs, cases = sensor_problem
-    inference = MovingInference(scene.robot_description, cases['imu_marker'])
+    inference = MovingInference(scene.robot_description, cases['imu_marker'], config_path=scene.legacy_inference_config)
     first = inference.update(inputs, 0)
     memory = first.records['fixed_goal_memory']
     previous = first

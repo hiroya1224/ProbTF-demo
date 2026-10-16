@@ -189,7 +189,8 @@ def test_repeated_limit_seeking_commands_keep_room_to_brake_for_601_cycles(direc
     # Isolate the velocity/position interface with an always outward objective.
     # Its full gradient is exact and nonzero; no geometric solver can supply a
     # lucky inward turn that conceals an infeasible limit approach.
-    selector._query = lambda state: SimpleNamespace(command=state.command, state_id=state.state_id)
+    selector._query = lambda state: SimpleNamespace(command=state.command, state_id=state.state_id,
+        mean=np.r_[selector.goal_offset, np.zeros(3)], covariance=np.zeros((6, 6)))
     selector._step_metric = lambda *_args: np.eye(1)
     monkeypatch.setattr('probtf_observation_fusion_demo.moving_control._relative_density',
         lambda query, *_args: (direction*query.command[0], {}))

@@ -13,6 +13,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 from .display import goal_pose_records
 
 from probtf_switch_press_demo.ros_display import Display as SwitchDisplay
+from probtf_switch_press_demo.scene import apply
 
 
 def transform_message(parent, child, pose, stamp):
@@ -30,6 +31,69 @@ class MotionDisplay:
     # Reuse the original switch's geometry drawing and AprilTag bitmap.
     marker = SwitchDisplay.marker
     points = staticmethod(SwitchDisplay.points)
+
+    def _board_markers(self):
+        """Draw the same native bitmaps and known tile offsets as the camera."""
+        camera = self.scene.camera
+        board = self.scene.marker.copy()
+        board[:3, 3] = apply(self.scene.marker, [0., 0., .0005])
+        output = [self.marker('marker_board', Marker.CUBE, (1., 1., 1., 1.),
+            (*camera.board_size, .001), pose=board)]
+        for tile in camera.layout:
+            texture = camera.marker_textures[tile.marker_id]
+            triangles = []
+            module = texture.shape[0]/10
+            for row in range(8):
+                for column in range(8):
+                    if texture[int((row+1.5)*module), int((column+1.5)*module)] > 128:
+                        continue
+                    x0, x1 = (column/8-.5)*tile.size_m, ((column+1)/8-.5)*tile.size_m
+                    y0, y1 = (.5-(row+1)/8)*tile.size_m, (.5-row/8)*tile.size_m
+                    triangles.extend(((x0,y0,.0015),(x1,y0,.0015),(x1,y1,.0015),
+                                      (x0,y0,.0015),(x1,y1,.0015),(x0,y1,.0015)))
+            local = np.asarray(triangles)+np.asarray(tile.center_to_marker_translation)
+            marker = self.marker('marker_board/tag_'+str(tile.marker_id),
+                Marker.TRIANGLE_LIST, (.01,.01,.01,1.), (1.,1.,1.))
+            output.append(self.points(marker, apply(self.scene.marker, local)))
+        return output
+
+    @staticmethod
+    def _reaching_phase_label(trajectory_row, execution=None):
+        """Label the active control plan, separately from search overrides.
+
+        The asynchronous physical row and published execution record carry
+        the same adopted plan provenance. Do not infer its phase from the
+        current image, a future control result, or the physical tip distance.
+        Legacy recordings without phase metadata retain their old display.
+        """
+        keys = ('reaching_phase', 'reaching_phase_source')
+        recorded = any(key in trajectory_row for key in keys)
+        reported = execution is not None and any(key in execution for key in keys)
+        if not recorded and not reported:
+            return None
+        if not all(key in trajectory_row for key in keys):
+            raise ValueError('Physical reaching phase requires its adopted control source.')
+        phase = trajectory_row['reaching_phase']
+        labels = {
+            'visual_approach': 'APPROACH | CENTER MARKER',
+            'indet_ik': 'IK',
+            'waiting_for_control': 'WAITING FOR CONTROL',
+        }
+        if phase not in labels:
+            raise ValueError('Unknown physical reaching phase: '+str(phase))
+        source = trajectory_row['reaching_phase_source']
+        if phase == 'waiting_for_control':
+            if source is not None:
+                raise ValueError('Waiting for control cannot claim an adopted control source.')
+        elif (not isinstance(source, dict)
+              or not all(key in source for key in ('source_stamp', 'source_command',
+                  'source_version', 'body_source_state_ids', 'goal_source_state_ids'))):
+            raise ValueError('A reaching phase requires the full adopted control source.')
+        if execution is not None and (reported or execution.get('execution_mode') == 'async'):
+            if (not all(key in execution for key in keys)
+                    or any(execution[key] != trajectory_row[key] for key in keys)):
+                raise AssertionError('Physical and execution reaching phase/control source differ.')
+        return labels[phase]
 
     @staticmethod
     def _color_action_path(marker, trajectory):
@@ -268,6 +332,8 @@ class MotionDisplay:
         elif stiffness_record is not None and (frame.stamp != snapshot.stamp
                 or tuple(frame.command) != tuple(snapshot.command)):
             raise AssertionError('Physical frame and stiffness/body snapshot have different command times.')
+        phase_label = (self._reaching_phase_label(self.scene.trajectory[frame_index], execution)
+                       if publish_scene else None)
         stiffness = (None if stiffness_record is None else
                      self.stiffness_marker(snapshot, stiffness_record))
         stamp = rospy.Time.now()
@@ -321,6 +387,12 @@ class MotionDisplay:
             ik_iteration=0,
         )
         output = SwitchDisplay.scene_markers(self)
+        if self.scene.config.get('marker_board', {}).get('enabled', False):
+            # Only the physical tag artwork changes. Candidate distributions,
+            # robot/obstacle geometry, trajectories and all display sizes keep
+            # their existing sources and configured values.
+            output.markers = [marker for marker in output.markers if marker.ns != 'tag']
+            output.markers.extend(self._board_markers())
         for marker in output.markers:
             if marker.ns == 'actual_path':
                 self._color_action_path(marker, self.trial.trajectory)
@@ -360,6 +432,8 @@ class MotionDisplay:
                          1000*np.linalg.norm(frame.tip-self.scene.goal),
                          1000*np.linalg.norm(frame.rigid_tip-self.scene.goal),
                          len(snapshot.observation_ids), snapshot.stamp-1792080000., inference_index)
+                if phase_label is not None:
+                    marker.text += '\nPhase: '+phase_label
                 action = self.trial.trajectory[-1].get('action_mode')
                 if action is not None:
                     label = {

@@ -113,13 +113,15 @@ def test_actual_ros_wire_has_exact_executed_search_segments_and_no_boundary_blee
     np.testing.assert_array_equal(colors[:, 0], colors[:, 1])
     assert scene.trajectory == original
 
-    # This adapter must leave the shared switch geometry and all sizes alone.
+    # The physical board replaces the old tag artwork. All other shared
+    # switch geometry and sizes remain identical.
     baseline = _wire(SwitchDisplay.scene_markers(display))
     base = _path(baseline)
     assert (path.ns, path.id, path.pose, path.scale) == (base.ns, base.id, base.pose, base.scale)
-    for expected, actual in zip(baseline.markers, output.markers):
-        if expected.ns not in ('actual_path', 'status'):
-            assert expected == actual
+    actual_by_key = {(marker.ns, marker.id): marker for marker in output.markers}
+    for expected in baseline.markers:
+        if expected.ns not in ('actual_path', 'status', 'tag'):
+            assert expected == actual_by_key[(expected.ns, expected.id)]
 
 
 def test_history_colors_do_not_follow_current_or_future_actions_and_replay_has_no_future_points(recorded_search):

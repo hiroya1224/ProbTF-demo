@@ -12,17 +12,17 @@ from probtf_observation_fusion_demo.display import make_markers, verify_wire_ide
 from probtf_observation_fusion_demo.model import load_inputs
 from probtf_observation_fusion_demo.moving_control import command_state, control_components
 from probtf_observation_fusion_demo.moving_inference import MovingInference
-from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
+from legacy_marker import legacy_marker_scene
 from probtf_observation_fusion_demo.node import build_snapshot, verify_adapter_identity
 from probtf_observation_fusion_demo.async_state import ActionStep, RecordedCommandPath, predict_result
 
 
 @pytest.fixture(scope='module')
 def source(tmp_path_factory):
-    scene = MovingSwitchScene(tmp_path_factory.mktemp('async_laws'))
+    scene = legacy_marker_scene(tmp_path_factory.mktemp('async_laws'))
     package = Path(__file__).resolve().parents[1]
     _, observations = load_inputs(package/'config/common.yaml', package/'config/imu_marker.yaml')
-    inference = MovingInference(scene.robot_description, observations)
+    inference = MovingInference(scene.robot_description, observations, config_path=scene.legacy_inference_config)
     result = inference.update(scene.sensor_inputs(scene.step(0., 1000.)), 0)
     assert len(result.stages[-1].components) == 1
     assert len(result.stages[-1].goal_components) > 1

@@ -122,14 +122,78 @@ def test_new_factor_reoptimizes_from_previous_evaluated_representative():
     assert not selection['retained_unchanged_density']
     assert selection['factor_ids'] == ['factor:1', 'factor:2']
     assert selection['candidate_count'] == len(identifier._proposal_candidates)+1
-    # New evidence updates the complete density/score at x, even when x is
-    # already the best start and no costly new nonlinear trial is needed.
-    assert selection['local_refinement_skipped']
-    assert selection['line_search'] == []
-    np.testing.assert_array_equal(second['selected_logK'], first['selected_logK'])
-    np.testing.assert_array_equal(selection['selected_density_score'],
+    # Winning against fixed starts is not stationarity of the new density.
+    # The previous point remains the best start but must still follow its score.
+    np.testing.assert_array_equal(selection['base_logK'], first['selected_logK'])
+    np.testing.assert_array_equal(selection['base_density_score'],
                                   density(np.array(first['selected_logK']))[1])
-    assert len(calls) == len(identifier._proposal_candidates)+1
+    assert np.max(np.abs(selection['base_density_score'])) > selection['gradient_tolerance']
+    assert not selection['local_refinement_skipped']
+    assert selection['iterations'] == 1 and selection['line_search']
+    assert not np.array_equal(second['selected_logK'], first['selected_logK'])
+    assert not np.array_equal(second['selected_K'], first['selected_K'])
+    assert second['selected_log_unnormalized_density'] > density(np.array(first['selected_logK']))[0]
+    np.testing.assert_array_equal(selection['selected_density_score'],
+                                  density(np.array(second['selected_logK']))[1])
+    assert selection['density_evaluation_count'] == len(calls)
+    assert len(calls) > len(identifier._proposal_candidates)+1
+
+
+def test_new_measurement_moves_previous_best_K_and_improves_full_prior_plus_likelihood():
+    measurements = [.3]
+    variance = .25
+
+    def full_density(x):
+        # A normalized unit Gaussian prior and all normalized observation
+        # likelihoods: the new measurement changes the continuous posterior.
+        residuals = x[0]-np.array(measurements)
+        value = -.5*(np.log(2*np.pi)+x[0]**2)
+        value -= .5*np.sum(np.log(2*np.pi*variance)+residuals**2/variance)
+        score = -x[0]-np.sum(residuals)/variance
+        return float(value), np.array([score])
+
+    identifier, result, _, _ = context(full_density, dimension=1)
+    prior, factors = identifier.initial_components, identifier.factors
+    first = identifier.command_proposal(result)
+    measurements.append(.5)
+    identifier.factors += (SimpleNamespace(factor_id='factor:2'),)
+    complete_factors = identifier.factors
+    next_observation = next_result(identifier, 2., command=(0.,))
+    second = identifier.command_proposal(next_observation)
+    selection = identifier.last_record['proposal_selection']
+    np.testing.assert_array_equal(selection['base_logK'], first['selected_logK'])
+    assert selection['base_candidate_index'] == selection['candidate_count']-1
+    assert not selection['local_refinement_skipped']
+    assert selection['iterations'] == 1 and selection['line_search'][-1]['accepted']
+    assert second['selected_K'][0] > first['selected_K'][0]
+    assert second['selected_log_unnormalized_density'] > full_density(np.array(first['selected_logK']))[0]
+    assert second['selected_log_unnormalized_density'] == full_density(np.array(second['selected_logK']))[0]
+    analytic_mode = sum(measurements)/(variance+len(measurements))
+    assert abs(second['selected_logK'][0]-analytic_mode) < abs(first['selected_logK'][0]-analytic_mode)
+    assert identifier.initial_components is prior
+    assert identifier.factors is complete_factors and identifier.factors[:1] == factors
+    assert second['density_id'] == identifier.last_record['posterior']['density_id']
+    assert second['source_command'] == list(next_observation.prior.command)
+    assert selection['factor_ids'] == ['factor:1', 'factor:2']
+
+
+def test_new_factor_at_stationary_previous_point_stops_by_score_not_fixed_start_rank():
+    precision = [1.]
+    identifier, result, _, predictions = context(
+        lambda x: (-.5*precision[0]*float(x@x), -precision[0]*x))
+    first = identifier.command_proposal(result)
+    identifier.factors += (SimpleNamespace(factor_id='factor:2'),)
+    precision[0] = 2.
+    predictions.clear()
+    second = identifier.command_proposal(next_result(identifier, 2.))
+    selection = identifier.last_record['proposal_selection']
+    assert not selection['retained_unchanged_density']
+    assert not selection['local_refinement_skipped']
+    assert selection['convergence_claimed'] and selection['iterations'] == 0
+    assert selection['termination_reason'] == 'full-density score satisfies configured tolerance'
+    assert selection['line_search'] == []
+    assert len(predictions) == 1
+    np.testing.assert_array_equal(second['selected_K'], first['selected_K'])
 
 
 def test_a_better_fixed_start_after_new_evidence_triggers_local_refinement():
@@ -147,7 +211,7 @@ def test_a_better_fixed_start_after_new_evidence_triggers_local_refinement():
     second = identifier.command_proposal(moved)
     selection = identifier.last_record['proposal_selection']
     assert not selection['local_refinement_skipped']
-    assert selection['local_refinement_trigger'].startswith('a prior-derived start improves')
+    assert selection['local_refinement_trigger'] == 'new density factor; refine the best evaluated stable start'
     assert selection['iterations'] == 1 and selection['line_search']
     np.testing.assert_array_equal(selection['base_logK'], [1., 1.])
     assert second['selected_log_unnormalized_density'] >= density(np.ones(2))[0]
@@ -302,6 +366,7 @@ def test_density_ranked_equilibria_match_dense_selection_bitwise(case):
         assert len(dense_predictions) == 15 and len(predictions) == 1
     if case == 'previous_tied':
         assert selection['local_refinement_skipped']
+        assert selection['refinement_skip_reason'] == 'configured zero representative-refinement iteration budget'
         assert len(dense_predictions) == 16 and len(predictions) == 1
 
 
@@ -317,5 +382,6 @@ def test_duplicate_previous_start_keeps_old_tie_precedence_without_an_extra_solv
     assert len(calls) == 2 and len(predictions) == 1
     selection = identifier.last_record['proposal_selection']
     assert selection['local_refinement_skipped']
+    assert selection['refinement_skip_reason'] == 'configured zero representative-refinement iteration budget'
     assert selection['density_ranked_count'] == 3
     assert selection['current_equilibrium_candidate_checks'] == 1

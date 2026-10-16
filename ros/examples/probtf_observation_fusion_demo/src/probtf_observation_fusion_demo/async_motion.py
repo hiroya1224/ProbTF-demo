@@ -76,14 +76,17 @@ def _archive_image(path, image, index, stamp, dictionary, parameters, detector, 
     gray = image if image.ndim == 2 else cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     corners, ids, _ = (detector.detectMarkers(gray) if detector is not None else
         cv2.aruco.detectMarkers(gray, dictionary, parameters=parameters))
-    visible = ids is not None and marker_id in ids.ravel()
+    allowed = {int(marker_id)} if np.isscalar(marker_id) else set(map(int, marker_id))
+    visible_ids = [] if ids is None else [int(value) for value in ids.ravel() if int(value) in allowed]
+    visible = bool(visible_ids)
     preview = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR) if image.ndim == 2 else np.array(image, copy=True)
     if visible:
         for points, identity in zip(corners, ids.ravel()):
-            if int(identity) == marker_id:
+            if int(identity) in allowed:
                 cv2.polylines(preview, [np.round(points.reshape(-1, 2)).astype(np.int32)],
                               True, (0, 255, 0), 2, cv2.LINE_AA)
-    return dict(index=index, stamp=stamp, visible=bool(visible), image=preview)
+    return dict(index=index, stamp=stamp, visible=bool(visible), image=preview,
+                visible_marker_ids=visible_ids)
 
 
 def _handoff_result(result):
@@ -161,7 +164,7 @@ def inference_worker(requests, replies, description, urdf, templates, output):
 
 
 def control_worker(requests, replies, description, urdf, templates, output, horizon):
-    """Repeat the existing complete-criterion gradient using the newest law/K."""
+    """Center on approach, then repeat complete-criterion IK with that law/K."""
     cv2.setNumThreads(1)
     try:
         inference = MovingInference(description, templates)
@@ -187,7 +190,7 @@ def control_worker(requests, replies, description, urdf, templates, output, hori
             else:
                 predicted, command_map = reanchor_retained_stiffness(engine, predicted, request['packet'])
             controller.velocity = np.array(request['velocity'], copy=True)
-            command, diagnostics = controller.step(predicted, horizon, command_map=command_map)
+            command, diagnostics = controller.reaching_step(predicted, horizon, command_map=command_map)
             predicted.records['controller'] = diagnostics
             predicted.records['async_control'] = dict(
                 source_capture_index=request['capture_index'], prediction_index=request['index'],
@@ -236,6 +239,9 @@ class AsyncMotionSession:
             self.scene.duration = float(duration)
         self.inference_description = MovingInference(self.scene.robot_description, self.templates)
         self.settings = self.inference_description.settings
+        board = self.settings.get('marker_board', {})
+        self.preview_marker_ids = (tuple(int(value) for row in board['ids'] for value in row)
+                                   if board.get('enabled', False) else (int(self.settings['marker']['id']),))
         self.options = dict(self.settings.get('async_execution', {}))
         self.period = float(self.options.get('motion_period_s', .05))
         self.camera_period = 1./float(self.options.get('camera_hz', 15.))
@@ -295,7 +301,8 @@ class AsyncMotionSession:
                                   if hasattr(cv2.aruco, 'ArucoDetector') else None)
         self.frame = self.scene.step(0., stamp=1792080000., command=self.command)
         self.frames.append(self.frame)
-        self.scene.trajectory[-1].update(action_mode='reaching', command_interval_mode='initial_hold')
+        self.scene.trajectory[-1].update(action_mode='reaching', command_interval_mode='initial_hold',
+            reaching_phase='waiting_for_control', reaching_phase_source=None)
         _append(self.output/'physical_trajectory.jsonl', self.scene.trajectory[-1])
         self.preview_image = self.frame.image
         self.capture()
@@ -326,7 +333,7 @@ class AsyncMotionSession:
         path = self.output/'capture_{:05d}.png'.format(index)
         self.archive_jobs.append(self.archive_executor.submit(_archive_image, path, inputs.image,
             index, inputs.stamp, self._dictionary, self._detector_parameters,
-            self._preview_detector, int(self.settings['marker']['id'])))
+            self._preview_detector, self.preview_marker_ids))
         self.latest_capture = (index, inputs)
         self.capture_indices.append(index)
         self.last_capture_time = self.frame.time
@@ -353,7 +360,8 @@ class AsyncMotionSession:
             self.marker_preview_visible = result['visible']
             if not result['visible']:
                 self.last_marker_missing_capture = result['index']
-            _append(self.output/'camera_previews.jsonl', {k: result[k] for k in ('index', 'stamp', 'visible')})
+            _append(self.output/'camera_previews.jsonl', {k: result[k] for k in
+                ('index', 'stamp', 'visible', 'visible_marker_ids') if k in result})
 
     def _steps_since(self, frame_index, target_index=None):
         target_index = len(self.frames)-1 if target_index is None else target_index
@@ -441,9 +449,9 @@ class AsyncMotionSession:
             if dt > 1e-6:
                 previous = self.clock()
                 self.servo.velocity = self.velocity.copy()
-                # Fast pixel loss can stop motion immediately. Reaching may
-                # resume only after an actual fused marker update, never from
-                # the preview alone or a stale positive observation.
+                # Pixel detection stops an unnecessary search while the
+                # numerical workers catch up. Reaching additionally needs
+                # the matching fused goal and committed IK snapshot.
                 active_goal = ({} if self.current_control is None else
                     self.current_control['snapshot'].goal_memory or {})
                 loss_stamp = (-np.inf if self.last_marker_missing_capture < 0 else
@@ -458,9 +466,14 @@ class AsyncMotionSession:
                 observation = SimpleNamespace(posterior=True, detector_result=True)
                 policy_input = SimpleNamespace(prior=SimpleNamespace(command=tuple(self.command),
                     stamp=self.frame.stamp, version=3*(len(self.frames)-1)+3),
-                    local_estimates=(observation,) if visible else ())
+                    local_estimates=(observation,) if visible else (),
+                    records={'fixed_goal_memory': active_goal})
                 plan = self.behavior.plan(policy_input, self.velocity, elapsed,
-                    joint_lower=self.servo.lower, joint_upper=self.servo.upper)
+                    joint_lower=self.servo.lower, joint_upper=self.servo.upper,
+                    marker_detected=bool(self.marker_preview_visible))
+                plan.record.update(marker_detection_capture_index=self.preview_capture_index,
+                    marker_detection_stamp=(None if self.preview_capture_index is None else
+                        float(self.frames[self.preview_capture_index].stamp)))
                 if plan.mode == 'reaching':
                     lower, upper, _, _ = self.servo._command_bounds(self.command, dt)
                     requested_velocity = self.desired_velocity
@@ -516,15 +529,18 @@ class AsyncMotionSession:
                                              render_camera=capture_due)
                 timings['physics_and_camera_s'] = self.clock()-previous
                 self.frames.append(self.frame)
+                phase, phase_source = self.reaching_phase()
                 self.scene.trajectory[-1].update(action_mode=plan.mode,
                     command_interval_mode=plan.mode, search_amplitude_rad=plan.record['amplitude_rad'],
-                    search_completed_roundtrips=plan.record['completed_roundtrips'])
+                    search_completed_roundtrips=plan.record['completed_roundtrips'],
+                    reaching_phase=phase, reaching_phase_source=phase_source)
                 _append(self.output/'physical_trajectory.jsonl', self.scene.trajectory[-1])
                 self.last_action_mode = plan.mode
                 self.publish_times.append(self.clock())
                 _append(self.output/'commands.jsonl', dict(step=step.record(),
                     velocity=self.velocity.tolist(), desired_velocity=self.desired_velocity.tolist(),
-                    behavior=plan.record, wall_elapsed_s=self.clock()-self.started))
+                    behavior=plan.record, reaching_phase=phase, reaching_phase_source=phase_source,
+                    wall_elapsed_s=self.clock()-self.started))
                 previous = self.clock()
                 if capture_due:
                     self.capture()
@@ -537,6 +553,14 @@ class AsyncMotionSession:
             physical_time=self.frame.time, timings_s=timings))
         return self.frame
 
+    def reaching_phase(self):
+        if self.current_control is None:
+            return 'waiting_for_control', None
+        diagnostics = self.current_control['diagnostics']
+        return diagnostics.get('reaching_phase', 'indet_ik'), {
+            key: diagnostics[key] for key in ('source_stamp', 'source_command', 'source_version',
+                                              'body_source_state_ids', 'goal_source_state_ids')}
+
     def manifest(self):
         def hz(values):
             # Initial inference/IK can precede a long user-requested wait.
@@ -544,7 +568,13 @@ class AsyncMotionSession:
             values = values if self.started is None else [v for v in values if v >= self.started]
             return (len(values)-1)/(values[-1]-values[0]) if len(values)>1 else None
         snapshot = None if self.current_control is None else self.current_control['snapshot']
+        planned_phase, planned_phase_source = self.reaching_phase()
+        row = self.scene.trajectory[-1]
+        phase = row['reaching_phase']
+        phase_source = row['reaching_phase_source']
         return dict(execution_mode='async', offline_precomputation=False,
+            reaching_phase=phase, reaching_phase_source=phase_source,
+            planned_reaching_phase=planned_phase, planned_reaching_phase_source=planned_phase_source,
             sample_index=len(self.frames)-1, estimate_index=self.last_assimilated_capture,
             simulated_elapsed_s=self.frame.time, duration=self.scene.duration,
             finished=self.motion_finished, estimation_drained=self.estimation_finished,

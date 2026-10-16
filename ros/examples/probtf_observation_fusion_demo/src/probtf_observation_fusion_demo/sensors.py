@@ -12,7 +12,7 @@ import numpy as np
 from scipy.special import logsumexp
 
 from prob_artag_detector.detector import ArucoCornerDetector
-from prob_artag_detector.estimator import PoseMixtureEstimator
+from prob_artag_detector.estimator import PoseEstimationError, PoseMixtureEstimator
 from prob_artag_detector.visualization import draw_debug_image
 from probtf.geometry import (
     quat_to_rotmat, rotmat_to_quat, quaternion_to_rotation_vector,
@@ -39,6 +39,7 @@ class LocalEstimate:
     image_queries: tuple = ()
     log_evidence: object = None
     component_log_weights: tuple = ()
+    board_fusion: object = None
 
 
 @dataclass(frozen=True)
@@ -56,7 +57,7 @@ class CameraXYQuery:
 
 @dataclass(frozen=True)
 class PreparedMarkerObservation:
-    """The image-only detector/Hessian result, shared by every body hypothesis."""
+    """One image-only native/central observation shared by all body hypotheses."""
 
     image: np.ndarray
     stamp: float
@@ -64,6 +65,8 @@ class PreparedMarkerObservation:
     detected: object
     camera: object
     debug_image: np.ndarray
+    individual_results: tuple = ()
+    board_fusion: object = None
 
 
 def camera_xy_queries(posterior):
@@ -190,9 +193,44 @@ def prepare_marker_observation(common, image, stamp):
         raise ValueError("This image-only adapter requires the detector translation prior to be explicitly disabled.")
     detector = ArucoCornerDetector(family=settings["family"],
         corner_sigma_px=settings["corner_sigma_px"], adaptive_covariance=False)
+    camera = camera_model(common["camera"])
+    board = common.get('marker_board', {})
+    if board.get('enabled', False):
+        from .marker_board import board_layout, fuse_marker_board
+        layout = {item.marker_id: item for item in board_layout(board)}
+        observations = tuple(sorted((item for item in detector.detect(image)
+            if item.marker_id in layout), key=lambda item: item.marker_id))
+        if len({item.marker_id for item in observations}) != len(observations):
+            raise ValueError('A configured board marker ID occurs more than once in the image.')
+        native, rejected = {}, []
+        for observation in observations:
+            estimator = PoseMixtureEstimator(layout[observation.marker_id].size_m,
+                                             translation_prior_variance=None)
+            try:
+                native[observation.marker_id] = estimator.estimate(observation, camera,
+                    'camera', 'marker_'+str(observation.marker_id), float(stamp),
+                    camera_model_source_id='configured_calibrated_pinhole')
+            except PoseEstimationError as error:
+                rejected.append(dict(marker_id=observation.marker_id, reason=str(error)))
+        if native:
+            fusion = fuse_marker_board(native, board, stamp=float(stamp))
+            detected, record = fusion.detected, dict(fusion.record)
+        else:
+            detected = None
+            record = dict(available=False, source_stamp=float(stamp),
+                          reason='no usable individual marker pose observation')
+        record.update(detected_marker_ids=[item.marker_id for item in observations],
+            usable_marker_ids=list(native), rejected_marker_observations=rejected,
+            common_body_prior_applied_during_board_fusion=False,
+            body_camera_uncertainty_applied_after_central_fusion=True)
+        debug = draw_debug_image(image, (), tuple(native.values()), camera)
+        for observation in observations:
+            corners = np.rint(observation.corners_px).astype(np.int32).reshape(-1, 1, 2)
+            cv2.polylines(debug, [corners], True, (0, 220, 0), 2, cv2.LINE_AA)
+        return PreparedMarkerObservation(image, float(stamp), observations, detected,
+            camera, debug, tuple(native.items()), record)
     observations = tuple(item for item in detector.detect(image)
                          if item.marker_id == int(settings["id"]))
-    camera = camera_model(common["camera"])
     if not observations:
         return PreparedMarkerObservation(image, float(stamp), (), None, camera,
                                          np.asarray(image).copy())
@@ -217,8 +255,9 @@ def marker_estimate(state, observation, paths, common, image, *, prepared=None):
     if prepared.image is not image or prepared.stamp != state.stamp:
         raise ValueError("Prepared image likelihood belongs to a different observation.")
     if prepared.detected is None:
-        return LocalEstimate(None, {"sensor": "marker", "detected": False},
-                             prepared.debug_image)
+        return LocalEstimate(None, {"sensor": "marker", "detected": False,
+                             "marker_board_fusion": prepared.board_fusion},
+                             prepared.debug_image, board_fusion=prepared.board_fusion)
     detected, observations = prepared.detected, prepared.observations
     query = pose_query(state, paths["camera_marker"],
                        query_id=observation["sensor_id"] + ":camera_marker", frame="camera")
@@ -259,9 +298,14 @@ def marker_estimate(state, observation, paths, common, image, *, prepared=None):
     return LocalEstimate(result, {
         "sensor": "marker", "detected": True,
         "detector_prior": "translation prior explicitly disabled; image-only local likelihood mixture",
-        "image_approximation": "recover original joint translation/right-rotation Laplace Gaussian from the detector Hessian Schur factors; not native conditional-law moments",
+        "image_approximation": ("derived central observation after known-layout propagation, image-only mixture fusion and central moment projection; individual native mixtures retained in marker_board_fusion"
+            if prepared.board_fusion is not None else
+            "recover original joint translation/right-rotation Laplace Gaussian from the detector Hessian Schur factors; not native conditional-law moments"),
+        "marker_board_fusion": prepared.board_fusion,
         "reference_prior": "same frozen common body push-forward as every other sensor",
         "corner_covariance": observations[0].image_covariance.tolist(),
+        "individual_corner_covariances": [dict(marker_id=item.marker_id,
+            covariance=item.image_covariance.tolist()) for item in observations],
         "detector_weights": list(detected.weights), "components": details,
         "local_posterior_weights": weights.tolist(),
         "image_overlay": {
@@ -279,7 +323,7 @@ def marker_estimate(state, observation, paths, common, image, *, prepared=None):
                            for item in image_queries],
         },
     }, debug, detected, query, image_queries=image_queries, log_evidence=log_evidence,
-        component_log_weights=conditional_logs)
+        component_log_weights=conditional_logs, board_fusion=prepared.board_fusion)
 
 
 ADAPTERS = {"imu": imu_estimate, "marker": marker_estimate}

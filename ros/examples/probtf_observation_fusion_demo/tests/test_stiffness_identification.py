@@ -13,7 +13,7 @@ from scipy.stats import multivariate_normal
 from probtf.spherical_law.fusion import Gaussian, PosteriorComponent
 from probtf_observation_fusion_demo.model import run, FrozenBodyBranch, WeightedState
 from probtf_observation_fusion_demo.moving_inference import MovingInference
-from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
+from legacy_marker import legacy_marker_scene
 from probtf_observation_fusion_demo.stiffness_identification import (
     BodyDensityRatio, ChartedBodyDensityRatio, StiffnessIdentifier, _rotation_chart_volume,
 )
@@ -130,7 +130,7 @@ def test_multimodal_parameter_density_is_not_replaced_by_one_smooth_local_mode()
 
 @pytest.fixture(scope='module')
 def physical_inputs(tmp_path_factory):
-    scene = MovingSwitchScene(tmp_path_factory.mktemp('stiffness_known_model'))
+    scene = legacy_marker_scene(tmp_path_factory.mktemp('stiffness_known_model'))
     frame = scene.step(0., 1000.)
     templates = {name: tuple(yaml.safe_load((PACKAGE/'config'/f'{name}.yaml').read_text())['observations'])
                  for name in ('no_sensors', 'imu', 'marker', 'imu_marker')}
@@ -141,7 +141,7 @@ def physical_inputs(tmp_path_factory):
 
 def test_no_information_is_bitwise_identity_and_duplicate_does_not_add_evidence(physical_inputs, monkeypatch):
     scene, frame, templates, settings = physical_inputs
-    inference = MovingInference(scene.robot_description, templates['no_sensors'])
+    inference = MovingInference(scene.robot_description, templates['no_sensors'], config_path=scene.legacy_inference_config)
     result = inference.update(scene.sensor_inputs(frame), 0)
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
     before = identifier.components
@@ -178,7 +178,7 @@ def test_no_information_is_bitwise_identity_and_duplicate_does_not_add_evidence(
 
 def test_auxiliary_equilibrium_chart_jacobian_reuses_existing_physics_without_truth(physical_inputs):
     scene, frame, templates, settings = physical_inputs
-    inference = MovingInference(scene.robot_description, templates['imu'])
+    inference = MovingInference(scene.robot_description, templates['imu'], config_path=scene.legacy_inference_config)
     state = inference.prior_at(frame.command, frame.stamp, 0)
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
     x = identifier.components[0].distribution.mean
@@ -194,7 +194,7 @@ def test_auxiliary_equilibrium_chart_jacobian_reuses_existing_physics_without_tr
 
 def test_frozen_auxiliary_branch_is_independent_of_query_evaluation_order(physical_inputs):
     scene, frame, templates, settings = physical_inputs
-    inference = MovingInference(scene.robot_description, templates['imu'])
+    inference = MovingInference(scene.robot_description, templates['imu'], config_path=scene.legacy_inference_config)
     state = inference.prior_at(frame.command, frame.stamp, 0)
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
     record = {}
@@ -216,7 +216,7 @@ def test_frozen_auxiliary_branch_is_independent_of_query_evaluation_order(physic
 
 def test_unavailable_equilibrium_query_never_discards_an_observation_factor(physical_inputs, monkeypatch):
     scene, frame, templates, settings = physical_inputs
-    inference = MovingInference(scene.robot_description, templates['imu'])
+    inference = MovingInference(scene.robot_description, templates['imu'], config_path=scene.legacy_inference_config)
     result = inference.update(scene.sensor_inputs(frame), 0)
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
     before = identifier.components
@@ -262,7 +262,7 @@ def test_valid_sensor_cases_use_same_frozen_ratio_and_are_sensor_order_invariant
                 tuple(item.state.state_id for item in result.stages[-1].components))
     records = {}
     for name in ('imu', 'marker', 'imu_marker'):
-        inference = MovingInference(scene.robot_description, templates[name])
+        inference = MovingInference(scene.robot_description, templates[name], config_path=scene.legacy_inference_config)
         result = inference.update(scene.sensor_inputs(frame), 0)
         before = fingerprint(result)
         identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
@@ -290,7 +290,7 @@ def test_valid_sensor_cases_use_same_frozen_ratio_and_are_sensor_order_invariant
         # Unobservable yaw stiffness is not invented by a local approximation.
         assert abs(gradient[0]) < 1e-8
         records[name] = record
-    inference = MovingInference(scene.robot_description, templates['imu_marker'])
+    inference = MovingInference(scene.robot_description, templates['imu_marker'], config_path=scene.legacy_inference_config)
     original = inference.update(scene.sensor_inputs(frame), 0)
     native_priors = tuple(WeightedState(branch.label, branch.weight,
         branch.reference_state, branch.log_weight) for branch in original.frozen_body_branches)
@@ -399,7 +399,7 @@ def test_different_body_charts_use_one_volume_measure_and_the_full_gradient():
 
 def test_cumulative_memory_preserves_old_factors_on_marker_loss_and_adds_only_new_ids(physical_inputs):
     scene, frame, templates, settings = physical_inputs
-    inference = MovingInference(scene.robot_description, templates['marker'])
+    inference = MovingInference(scene.robot_description, templates['marker'], config_path=scene.legacy_inference_config)
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
     first = inference.update(scene.sensor_inputs(frame), 0)
     first_record = identifier.update(first)
@@ -454,7 +454,7 @@ def test_cumulative_memory_preserves_old_factors_on_marker_loss_and_adds_only_ne
 
 def test_command_proposal_ranks_the_continuous_density_and_does_not_replace_it(physical_inputs, monkeypatch):
     scene, frame, templates, settings = physical_inputs
-    inference = MovingInference(scene.robot_description, templates['imu'])
+    inference = MovingInference(scene.robot_description, templates['imu'], config_path=scene.legacy_inference_config)
     result = inference.update(scene.sensor_inputs(frame), 0)
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
     def forbidden(*args, **kwargs):

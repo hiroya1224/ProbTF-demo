@@ -18,7 +18,7 @@ from probtf_observation_fusion_demo.body_projection import (
 )
 from probtf_observation_fusion_demo.model import WeightedState
 from probtf_observation_fusion_demo.moving_inference import MovingInference
-from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
+from legacy_marker import legacy_marker_scene
 
 from test_body_projection import _result, common_state
 
@@ -107,7 +107,7 @@ def test_image_loss_retains_underflowed_modes_and_empty_updates_are_identity(com
 
 @pytest.fixture(scope='module')
 def marker_and_imu(tmp_path_factory):
-    scene = MovingSwitchScene(tmp_path_factory.mktemp('fixed_switch_goal'), imu_target_link='tool0')
+    scene = legacy_marker_scene(tmp_path_factory.mktemp('fixed_switch_goal'), imu_target_link='tool0')
     inputs = scene.sensor_inputs(scene.step(0., 1000.))
     observations = yaml.safe_load((PACKAGE/'config/imu_marker.yaml').read_text())['observations']
     return scene, inputs, observations
@@ -115,7 +115,7 @@ def marker_and_imu(tmp_path_factory):
 
 def test_detected_goal_capture_is_unchanged_by_missing_images_commands_and_imu(marker_and_imu, monkeypatch):
     scene, inputs, observations = marker_and_imu
-    inference = MovingInference(scene.robot_description, observations)
+    inference = MovingInference(scene.robot_description, observations, config_path=scene.legacy_inference_config)
     def forbidden(*_args, **_kwargs):
         raise AssertionError('Fixed-goal inference must not use Monte Carlo.')
     for name in ('default_rng', 'normal', 'random', 'randn', 'multivariate_normal', 'RandomState'):
@@ -164,7 +164,7 @@ def test_detected_goal_capture_is_unchanged_by_missing_images_commands_and_imu(m
 
 def test_missing_image_before_detection_is_labelled_as_unobserved_prior(marker_and_imu):
     scene, inputs, observations = marker_and_imu
-    inference = MovingInference(scene.robot_description, observations)
+    inference = MovingInference(scene.robot_description, observations, config_path=scene.legacy_inference_config)
     result = inference.update(replace(inputs, image=np.full_like(inputs.image, 255)), 0)
     assert result.records['fixed_goal_memory_event'] == 'unobserved_prior'
     assert result.records['fixed_goal_memory']['available'] is False

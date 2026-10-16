@@ -13,7 +13,7 @@ from probtf_observation_fusion_demo.model import load_inputs
 from probtf_observation_fusion_demo.marker_search import MarkerSearchPolicy, marker_observed
 from probtf_observation_fusion_demo.moving_control import MovingController, command_state
 from probtf_observation_fusion_demo.moving_inference import MovingInference
-from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
+from legacy_marker import legacy_marker_scene
 from probtf_observation_fusion_demo.node import build_snapshot, verify_adapter_identity
 from probtf_observation_fusion_demo.stiffness_command import StiffnessCommandMap
 from probtf_observation_fusion_demo.stiffness_identification import StiffnessIdentifier
@@ -24,12 +24,12 @@ PACKAGE = Path(__file__).resolve().parents[1]
 
 @pytest.fixture(scope='module')
 def search_inputs(tmp_path_factory):
-    scene = MovingSwitchScene(tmp_path_factory.mktemp('marker_search_control'))
+    scene = legacy_marker_scene(tmp_path_factory.mktemp('marker_search_control'))
     inputs = scene.sensor_inputs(scene.step(0., 1000.))
     contexts = {}
     for case in ('no_sensors', 'imu', 'marker', 'imu_marker'):
         _, observations = load_inputs(PACKAGE/'config/common.yaml', PACKAGE/'config'/(case+'.yaml'))
-        inference = MovingInference(scene.robot_description, observations)
+        inference = MovingInference(scene.robot_description, observations, config_path=scene.legacy_inference_config)
         result = inference.update(inputs, 0)
         contexts[case] = inference, result
     return scene, inputs, contexts
@@ -61,11 +61,16 @@ def policy_result(command=None, *, posterior=True, detector=True, stamp=1000., v
             detector_result=object() if detector else None),))
 
 
-def plan(policy, time, *, command=None, velocity=None, visible=False, lower=None, upper=None):
+def plan(policy, time, *, command=None, velocity=None, visible=False, lower=None, upper=None,
+         observation_stamp=None, detected=None):
     result = policy_result(command, posterior=visible, detector=visible, stamp=1000.+time)
+    if observation_stamp is not None:
+        result.records = dict(fixed_goal_memory=dict(available=True,
+            observation_stamp=1000.+observation_stamp))
     return policy.plan(result, np.zeros(6) if velocity is None else velocity, time,
         joint_lower=np.full(6, -3.) if lower is None else lower,
-        joint_upper=np.full(6, 3.) if upper is None else upper)
+        joint_upper=np.full(6, 3.) if upper is None else upper,
+        marker_detected=detected)
 
 
 @pytest.mark.parametrize('posterior,detector,expected', [
@@ -118,6 +123,36 @@ def test_settling_holds_long_enough_to_clear_the_actual_exposure_history():
     assert searching.record['stopped_before_search']
 
 
+def test_default_large_steps_stop_at_outward_and_return_viewpoints_and_inspect_joint_five_first():
+    policy = MarkerSearchPolicy({}, marker_enabled=True)
+    anchor = np.zeros(6)
+    assert plan(policy, 0., command=anchor).mode == 'settling'
+    outward = plan(policy, .35, command=anchor)
+    assert outward.mode == 'searching'
+    assert outward.max_speed == .048
+    assert outward.record['joint_indices'] == [4, 3]
+    assert outward.record['amplitude_rad'] == .06
+    np.testing.assert_array_equal(outward.target_command, [0., 0., 0., 0., .06, 0.])
+    point = outward.target_command
+    moving = plan(policy, .40, command=point, velocity=[0., 0., 0., 0., 1e-5, 0.])
+    assert moving.mode == 'searching'
+    stopped = plan(policy, .45, command=point)
+    assert stopped.mode == 'settling' and stopped.record['settle_reason'] == 'outward_observation'
+    np.testing.assert_array_equal(stopped.target_command, point)
+    assert plan(policy, .799, command=point).mode == 'settling'
+    returning = plan(policy, .80, command=point)
+    assert returning.mode == 'searching'
+    np.testing.assert_array_equal(returning.target_command, anchor)
+    center = plan(policy, .85, command=anchor)
+    assert center.mode == 'settling' and center.record['completed_roundtrips'] == 1
+    assert plan(policy, 1.199, command=anchor).mode == 'settling'
+    expanded = plan(policy, 1.20, command=anchor)
+    assert expanded.mode == 'searching'
+    assert expanded.record['amplitude_rad'] == .09
+    np.testing.assert_array_equal(expanded.target_command, [0., 0., 0., .09, 0., 0.])
+    assert expanded.record['max_amplitude_rad'] == .18
+
+
 def test_search_keeps_the_clipped_stop_anchor_and_has_no_elapsed_time_expiry():
     policy = MarkerSearchPolicy(SEARCH, marker_enabled=True)
     anchor = np.array([.1, -.2, .3, 2.995, -2.995, -.6])
@@ -168,7 +203,15 @@ def test_each_roundtrip_stops_and_settles_before_expansion_then_repeats_at_the_r
         np.testing.assert_array_equal(chosen.record['stop_anchor_command'], anchor)
         np.testing.assert_array_equal(chosen.target_command[[0, 1, 2, 5]], anchor[[0, 1, 2, 5]])
         time += .05
-        returning = plan(policy, time, command=chosen.target_command)
+        outward = chosen.target_command.copy()
+        outward_hold = plan(policy, time, command=outward)
+        assert outward_hold.mode == 'settling'
+        assert outward_hold.record['settle_reason'] == 'outward_observation'
+        assert outward_hold.record['event'] == 'stopped_at_outward_viewpoint'
+        np.testing.assert_array_equal(outward_hold.target_command, outward)
+        assert plan(policy, time+.249, command=outward).mode == 'settling'
+        time += .25
+        returning = plan(policy, time, command=outward)
         assert returning.mode == 'searching'
         np.testing.assert_array_equal(returning.target_command, anchor)
         assert returning.record['event'] == 'returning_to_search_center'
@@ -206,47 +249,139 @@ def test_reacquisition_at_an_inter_sweep_stop_resumes_without_another_outward_co
     plan(policy, 0., command=anchor)
     outward = plan(policy, .25, command=anchor)
     plan(policy, .30, command=outward.target_command)
-    stopped = plan(policy, .35, command=anchor)
+    returning = plan(policy, .55, command=outward.target_command)
+    assert returning.mode == 'searching'
+    stopped = plan(policy, .60, command=anchor)
     assert stopped.mode == 'settling' and stopped.record['settle_reason'] == 'between_sweeps'
-    reacquired = plan(policy, .40, command=anchor, visible=True)
+    held = plan(policy, .65, command=anchor, visible=True)
+    assert held.mode == 'settling'
+    reacquired = plan(policy, .85, command=anchor, visible=True)
     assert reacquired.mode == 'reaching'
-    assert reacquired.record['event'] == 'marker_reacquired_at_search_center'
+    assert reacquired.record['event'] == 'marker_reacquired_after_stopping'
     assert reacquired.target_command is None
     assert reacquired.record['completed_roundtrips'] == 1
     assert reacquired.record['amplitude_rad'] == .02
 
 
-def test_reacquisition_resumes_from_current_velocity_then_a_new_loss_gets_a_new_anchor():
+def test_reacquisition_brakes_holds_and_requires_a_post_stop_fused_image_then_new_loss_gets_new_anchor():
     policy = MarkerSearchPolicy(SEARCH, marker_enabled=True)
     anchor = np.zeros(6)
     plan(policy, 0., command=anchor)
     first = plan(policy, .25, command=anchor)
     plan(policy, .30, command=first.target_command)
-    plan(policy, .35, command=anchor)
-    expanded = plan(policy, .60, command=anchor)
+    plan(policy, .55, command=first.target_command)
+    plan(policy, .60, command=anchor)
+    expanded = plan(policy, .85, command=anchor)
     assert expanded.record['amplitude_rad'] == .03
     assert expanded.record['completed_roundtrips'] == 1
     moving_command = expanded.target_command/2.
     velocity = np.array([0., 0., 0., 0., .01, 0.])
     original_velocity = velocity.copy()
-    visible = plan(policy, .65, command=moving_command, velocity=velocity, visible=True)
-    assert visible.mode == 'reaching' and visible.record['event'] == 'marker_reacquired'
-    assert visible.target_command is visible.position_lower is visible.position_upper is None
+    visible = plan(policy, .90, command=moving_command, velocity=velocity, visible=True,
+                   observation_stamp=.89)
+    assert visible.mode == 'braking' and visible.record['event'] == 'braking_after_marker_reacquisition'
+    assert visible.target_command is None
+    np.testing.assert_array_equal(visible.record['stop_anchor_command'], anchor)
     np.testing.assert_array_equal(velocity, original_velocity)
-    lost_again = plan(policy, .70, command=moving_command, velocity=velocity)
+    stopped = plan(policy, .95, command=moving_command, visible=True, observation_stamp=.89)
+    assert stopped.mode == 'settling'
+    np.testing.assert_array_equal(stopped.target_command, moving_command)
+    stale = plan(policy, 1.20, command=moving_command, visible=True, observation_stamp=.89)
+    assert stale.mode == 'settling'
+    assert not stale.record['marker_observation_since_stop']
+    assert stale.record['marker_detected'] and stale.record['waiting_for_fused_marker_goal']
+    assert stale.record['episode'] == 1
+    # The stopped viewpoint and completed hold are retained while inference
+    # catches up; a new fused goal can then resume without another hold.
+    fresh = plan(policy, 1.21, command=moving_command, visible=True, observation_stamp=1.21)
+    assert fresh.mode == 'reaching'
+    resumed = plan(policy, 1.46, command=moving_command, visible=True, observation_stamp=1.40)
+    assert resumed.mode == 'reaching'
+    lost_again = plan(policy, 1.50, command=moving_command, velocity=velocity)
     assert lost_again.mode == 'braking'
     assert lost_again.record['episode'] == 2
     assert lost_again.record['stop_anchor_command'] is None
     assert lost_again.record['amplitude_rad'] == .02
     assert lost_again.record['completed_roundtrips'] == 0
     assert lost_again.record['completed_pattern_cycles'] == 0
-    stopped_again = plan(policy, .75, command=moving_command)
+    stopped_again = plan(policy, 1.55, command=moving_command)
     assert stopped_again.mode == 'settling'
     np.testing.assert_array_equal(stopped_again.record['stop_anchor_command'], moving_command)
-    restarted = plan(policy, 1., command=moving_command)
+    restarted = plan(policy, 1.80, command=moving_command)
     assert restarted.mode == 'searching'
     assert restarted.record['amplitude_rad'] == .02
     assert restarted.record['search_elapsed_s'] == 0.
+
+
+def test_raw_detection_holds_the_stopped_viewpoint_until_a_post_stop_fused_goal():
+    policy = MarkerSearchPolicy(SEARCH, marker_enabled=True)
+    anchor = np.array([.1, -.2, .3, -.4, .5, -.6])
+    stopped = plan(policy, 0., command=anchor, detected=True)
+    assert stopped.mode == 'settling'
+    assert stopped.record['marker_detected'] and not stopped.record['marker_observed']
+    assert stopped.record['marker_detection_source'] == 'raw_image_preview'
+    for time in (.25, .50, 1., 2.):
+        waiting = plan(policy, time, command=anchor, detected=True)
+        assert waiting.mode == 'settling'
+        assert waiting.record['event'] == 'marker_detected_waiting_for_fused_goal'
+        assert waiting.record['waiting_for_fused_marker_goal']
+        np.testing.assert_array_equal(waiting.target_command, anchor)
+        np.testing.assert_array_equal(waiting.record['stop_anchor_command'], anchor)
+        assert waiting.record['observation_hold_started'] == 0.
+        assert waiting.record['observation_hold_source_stamp'] == 1000.
+        assert waiting.record['waypoint_index'] == 0
+        assert waiting.record['search_elapsed_s'] is None
+    stale = plan(policy, 2.1, command=anchor, detected=True, visible=True, observation_stamp=-.1)
+    assert stale.mode == 'settling' and stale.record['waiting_for_fused_marker_goal']
+    fresh = plan(policy, 2.2, command=anchor, detected=True, visible=True, observation_stamp=2.1)
+    assert fresh.mode == 'reaching'
+    assert not fresh.record['waiting_for_fused_marker_goal']
+    assert fresh.record['marker_observation_since_stop']
+
+
+def test_raw_reacquisition_brakes_search_before_inference_then_waits_without_moving_again():
+    policy = MarkerSearchPolicy(SEARCH, marker_enabled=True)
+    anchor = np.zeros(6)
+    plan(policy, 0., command=anchor, detected=False)
+    searching = plan(policy, .25, command=anchor, detected=False)
+    assert searching.mode == 'searching'
+    moved = .4*searching.target_command
+    velocity = np.zeros(6); velocity[3] = .01
+    raw = plan(policy, .30, command=moved, velocity=velocity, detected=True)
+    assert raw.mode == 'braking'
+    assert raw.record['event'] == 'braking_after_marker_reacquisition'
+    assert raw.record['marker_detected'] and not raw.record['marker_observed']
+    stopped = plan(policy, .35, command=moved, detected=True)
+    assert stopped.mode == 'settling'
+    waited = plan(policy, .60, command=moved, detected=True)
+    assert waited.mode == 'settling'
+    assert waited.record['waiting_for_fused_marker_goal']
+    assert waited.record['observation_hold_source_stamp'] == 1000.35
+    np.testing.assert_array_equal(waited.target_command, moved)
+    np.testing.assert_array_equal(waited.record['stop_anchor_command'], anchor)
+    resumed = plan(policy, .65, command=moved, detected=True, visible=True, observation_stamp=.60)
+    assert resumed.mode == 'reaching'
+
+
+def test_raw_loss_after_waiting_resumes_search_and_old_fused_success_cannot_override_pixels():
+    policy = MarkerSearchPolicy(SEARCH, marker_enabled=True)
+    anchor = np.zeros(6)
+    plan(policy, 0., command=anchor, detected=True)
+    assert plan(policy, .25, command=anchor, detected=True).mode == 'settling'
+    vanished = plan(policy, .30, command=anchor, detected=False, visible=True, observation_stamp=.29)
+    assert vanished.mode == 'searching'
+    assert not vanished.record['marker_detected'] and vanished.record['marker_observed']
+    assert vanished.record['marker_observation_since_stop']
+    assert not vanished.record['waiting_for_fused_marker_goal']
+
+
+def test_raw_loss_brakes_reaching_even_if_a_completed_fused_observation_is_still_positive():
+    policy = MarkerSearchPolicy(SEARCH, marker_enabled=True)
+    assert plan(policy, 0., visible=True, detected=True).mode == 'reaching'
+    lost = plan(policy, .05, visible=True, detected=False, velocity=np.full(6, .01))
+    assert lost.mode == 'braking'
+    assert lost.record['event'] == 'braking_after_marker_loss'
+    assert lost.record['marker_observed'] and not lost.record['marker_detected']
 
 
 def test_repeated_repaint_does_not_advance_a_search_episode_or_count_as_new_evidence():
@@ -286,7 +421,7 @@ def test_local_actions_use_the_exact_same_K_corrected_laws_next_prior_and_publis
     from probtf.spherical_law.first_order import bingham_from_rotation_coordinates, pose_query
 
     scene, inputs, contexts = search_inputs
-    inference = MovingInference(scene.robot_description, contexts['imu_marker'][0].templates)
+    inference = MovingInference(scene.robot_description, contexts['imu_marker'][0].templates, config_path=scene.legacy_inference_config)
     result = inference.update(inputs, 0)
     settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
     identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
@@ -452,10 +587,10 @@ def test_progressive_controller_sweeps_repeat_at_the_cap_without_anchor_drift_or
 
 
 def test_fresh_rendered_reacquisition_after_search_updates_every_goal_mode_and_resumes_reaching(tmp_path):
-    scene = MovingSwitchScene(tmp_path/'search_reacquire')
+    scene = legacy_marker_scene(tmp_path/'search_reacquire')
     inputs = scene.sensor_inputs(scene.step(0., 1000.))
     _, observations = load_inputs(PACKAGE/'config/common.yaml', PACKAGE/'config/marker.yaml')
-    inference = MovingInference(scene.robot_description, observations)
+    inference = MovingInference(scene.robot_description, observations, config_path=scene.legacy_inference_config)
     initial = inference.update(inputs, 0)
     assert marker_observed(initial)
     selector = make_controller(scene, inference)
@@ -486,7 +621,7 @@ def test_fresh_rendered_reacquisition_after_search_updates_every_goal_mode_and_r
     previous_velocity = selector.velocity.copy()
     resume = policy.plan(reacquired, selector.velocity, .35,
         joint_lower=selector.lower, joint_upper=selector.upper)
-    assert resume.mode == 'reaching' and resume.record['event'] == 'marker_reacquired'
+    assert resume.mode == 'braking' and resume.record['event'] == 'braking_after_marker_reacquisition'
     np.testing.assert_array_equal(selector.velocity, previous_velocity)
     assert reacquired.records['fixed_goal_memory_event'] == 'marker_observation_update'
     memory = reacquired.records['fixed_goal_memory']
@@ -499,9 +634,26 @@ def test_fresh_rendered_reacquisition_after_search_updates_every_goal_mode_and_r
     assert [item.log_weight for item in goals] == [item['image_log_weight']
         for item in reacquired.records['fresh_goal_construction']['components']]
     assert [item.log_weight for item in goals] == [item['log_weight'] for item in memory['goal_components']]
-    next_command, normal = selector.step(reacquired, .05)
+    stopped_command, brake = selector.local_step(reacquired, .05, mode=resume.mode,
+        target_command=resume.target_command, max_speed=resume.max_speed,
+        position_lower=resume.position_lower, position_upper=resume.position_upper)
+    assert np.max(np.abs(selector.velocity)) <= 1e-6
+    stopped_inputs = scene.sensor_inputs(scene.step(.40, 1000.40, command=stopped_command))
+    at_stop = inference.update(stopped_inputs, 4)
+    stop = policy.plan(at_stop, selector.velocity, .40,
+        joint_lower=selector.lower, joint_upper=selector.upper)
+    assert stop.mode == 'settling'
+    observed_inputs = scene.sensor_inputs(scene.step(.65, 1000.65, command=stopped_command))
+    observed = inference.update(observed_inputs, 5)
+    assert marker_observed(observed)
+    resume = policy.plan(observed, selector.velocity, .65,
+        joint_lower=selector.lower, joint_upper=selector.upper)
+    assert resume.mode == 'reaching' and resume.record['event'] == 'marker_reacquired_after_stopping'
+    goals = observed.stages[-1].goal_components
+    previous_velocity = selector.velocity.copy()
+    next_command, normal = selector.step(observed, .05)
     assert normal['gradient_evaluation_count'] == 1
     assert normal['source_state_ids'] == [item.state.state_id for item in goals]
     assert normal['fixed_goal_memory_available'] is True
-    velocity = (next_command-selected)/.05
+    velocity = (next_command-stopped_command)/.05
     assert np.max(np.abs(velocity-previous_velocity)) <= selector.acceleration*.05+1e-12

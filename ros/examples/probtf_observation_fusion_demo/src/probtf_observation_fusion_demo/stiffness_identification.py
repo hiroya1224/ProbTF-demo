@@ -715,9 +715,10 @@ class StiffnessIdentifier:
         integral. Every accepted ascent step evaluates the complete retained
         density and its score. The IK still judges the resulting command by
         the current transform distribution's complete reaching criterion.
-        Local refinement runs on initialization or when a fixed prior-derived
-        start improves on the previous representative. Otherwise that same
-        representative is reevaluated under the new density and retained.
+        Every changed density receives a bounded score update from its best
+        stable start, including a previous representative that still beats
+        the fixed starts. Only an unchanged density retains that point
+        without another refinement.
         All candidate densities are evaluated before current-command stable
         equilibria are resolved in density order. Lower ranked candidates
         cannot change the selected best stable start and need no such solve.
@@ -868,20 +869,16 @@ class StiffnessIdentifier:
                     command_proposal=None)
                 return None
             base, index = best
-            if previous is not None and index == previous_index:
-                # A new factor still changes the exact density and score at
-                # this point. Retaining x avoids new full-history nonlinear
-                # equilibrium evaluations when no fixed start improves it.
-                local_refinement = False
-                trigger = 'previous representative remains the best evaluated start'
-            else:
-                local_refinement = True
-                trigger = ('initial representative' if previous is None else
-                    'a prior-derived start improves on the previous representative or restores a stable current equilibrium')
+            # Winning against finitely many starts does not imply stationarity
+            # of the updated continuous density. New evidence must reach the
+            # K representative used by IK even when the old point still wins.
+            local_refinement = maximum_iterations > 0
+            trigger = ('initial representative' if previous is None else
+                       'new density factor; refine the best evaluated stable start')
             selection.update(local_refinement_trigger=trigger,
                 local_refinement_skipped=not local_refinement,
                 refinement_skip_reason=(None if local_refinement else
-                    'retain the best previous x after exactly reevaluating the complete new density and score'))
+                    'configured zero representative-refinement iteration budget'))
             selected = base
             centre = sum(item.weight*item.distribution.mean for item in self.initial_components)
             metric = sum(item.weight*(item.distribution.covariance+np.outer(
@@ -890,7 +887,7 @@ class StiffnessIdentifier:
                 if previous is not None and np.array_equal(base['logK'], previous['logK'])
                     and previous['step_scale'] > 0. else 1.)
             selection['termination_reason'] = ('bounded local iteration budget' if local_refinement else
-                'previous representative retained after exact new-factor density evaluation')
+                'configured zero representative-refinement iteration budget')
             for iteration in range(maximum_iterations if local_refinement else 0):
                 score = selected['score']
                 if np.max(np.abs(score)) <= gradient_tolerance:

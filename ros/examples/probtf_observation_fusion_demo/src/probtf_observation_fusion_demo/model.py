@@ -277,7 +277,8 @@ def run(common, observations, image=None, *, prior=None, paths=None, prior_compo
     image = render_image(common) if image is None else np.asarray(image).copy()
     image.setflags(write=False)
     common = {key: common[key] for key in (
-        "root_frame", "update", "prior", "known_geometry", "camera", "marker")}
+        "root_frame", "update", "prior", "known_geometry", "camera", "marker", "marker_board")
+        if key in common}
     if prior_components is None:
         prior = initial_state(common) if prior is None else prior
         prior_components = (WeightedState(prior.component_id, 1., prior, 0.),)

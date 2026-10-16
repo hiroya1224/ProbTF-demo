@@ -19,6 +19,7 @@ from probtf_observation_fusion_demo.async_stiffness import (
 )
 from probtf_observation_fusion_demo.display import make_markers, verify_wire_identity
 from probtf_observation_fusion_demo.motion_display import MotionDisplay
+from probtf_observation_fusion_demo.marker_search import MarkerSearchPolicy
 from probtf_observation_fusion_demo.moving_control import MovingController
 from probtf_observation_fusion_demo.node import build_snapshot
 from probtf_observation_fusion_demo.stiffness_identification import StiffnessIdentifier
@@ -227,7 +228,7 @@ def _complete_control(current):
         control['goal_offset'], control['goal_orientation_wxyz'], control,
         integration_steps=control['integration_steps'])
     controller.velocity = np.array(request['velocity'], copy=True)
-    _, diagnostics = controller.step(view, current.horizon, command_map=mapping)
+    _, diagnostics = controller.reaching_step(view, current.horizon, command_map=mapping)
     snapshot = replace(build_snapshot(view, view.stages[-1], inference.common),
         stiffness_record=view.records['stiffness'])
     display = inference.common['display']
@@ -368,7 +369,7 @@ def test_expired_completed_plan_brakes_to_rest_when_neither_worker_replies(sessi
 def test_reacquisition_waits_for_the_new_goal_mixture_to_be_committed_with_IK(tmp_path):
     clock = [100.]
     current = AsyncMotionSession(PACKAGE/'config/marker.yaml',tmp_path/'marker_resume',
-        clock=lambda:clock[0],context=Context(),duration=1.)
+        clock=lambda:clock[0],context=Context(),duration=1.5)
     try:
         inputs,index,_ = current.estimate_requests.get_nowait()
         initial = current.inference_description.update(inputs,index)
@@ -423,11 +424,14 @@ def test_reacquisition_waits_for_the_new_goal_mixture_to_be_committed_with_IK(tm
         current.marker_preview_visible = True
         clock[0] = 100.40
         current.advance()
-        assert current.last_action_mode != 'reaching'
+        assert current.last_action_mode == 'settling'
         assert current.current_control is old_plan
+        stop_stamp = current.behavior.stop_source_stamp
+        stop_time = current.behavior.settle_started
+        assert fresh.prior.stamp >= stop_stamp-1e-9
 
-        # Discard the simulated unfinished old request, then finish a real
-        # full-objective IK on the newly fused mixture and commit it.
+        # Discard the simulated unfinished old request, then finish the real
+        # configured reaching controller on the new mixture and commit it.
         while not current.control_requests.empty():
             current.control_requests.get_nowait()
         current.control_busy = False
@@ -447,12 +451,50 @@ def test_reacquisition_waits_for_the_new_goal_mixture_to_be_committed_with_IK(tm
         current.marker_preview_visible = True
         clock[0] = 100.45
         current.advance()
+        # Detection held the existing stopped viewpoint while IK was busy;
+        # it did not create another outward sweep and another stop. Only the
+        # matching post-stop fused goal plus committed plan can resume.
         assert current.last_action_mode == 'reaching'
         assert current.current_control is fresh_plan
         assert fresh_plan['snapshot'].goal_memory['observation_stamp'] == fresh.prior.stamp
         assert current.engine.packet.packet_id == fresh_plan['packet'].packet_id
+        policy = json.loads((current.output/'commands.jsonl').read_text().splitlines()[-1])['behavior']
+        assert policy['time']-stop_time >= current.behavior.settle_time-1e-9
+        assert policy['marker_observation_stamp'] >= stop_stamp-1e-9
     finally:
         current.close()
+
+
+def test_visible_marker_holds_stationary_while_workers_are_busy_and_searches_only_after_pixel_loss(session):
+    current, clock, _, _ = session
+    current.behavior = MarkerSearchPolicy({}, marker_enabled=True)
+    current.latest_marker_observed = False
+    current.velocity[:] = 0.
+    stopped_command = current.command.copy()
+    # No new inference or IK reply arrives. Pixel detection alone prevents
+    # an outward search but cannot activate an unavailable fused goal.
+    for index in range(1, 17):
+        for job in current.archive_jobs:
+            job.result()
+        current.collect_archives()
+        current.marker_preview_visible = True
+        clock[0] = 100.+.05*index
+        current.advance()
+        assert current.last_action_mode == 'settling'
+        np.testing.assert_array_equal(current.command, stopped_command)
+        np.testing.assert_array_equal(current.velocity, np.zeros(6))
+    assert current.inference_busy and current.control_busy
+    # An actual subsequent negative preview allows the existing bounded
+    # search after the already completed exposure hold.
+    for job in current.archive_jobs:
+        job.result()
+    current.collect_archives()
+    current.marker_preview_visible = False
+    clock[0] = 100.85
+    current.advance()
+    assert current.last_action_mode == 'searching'
+    assert np.linalg.norm(current.command-stopped_command) > 0.
+    assert np.max(np.abs(current.velocity)) <= current.servo.acceleration*.05+1e-7
 
 
 def test_close_flushes_archives_and_is_idempotent_for_workers_and_queues(session,monkeypatch):

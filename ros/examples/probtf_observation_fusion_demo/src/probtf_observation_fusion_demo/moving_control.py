@@ -3,8 +3,9 @@
 The only extrapolation is the input family's declared right joint action.
 Every trial retains the complete joint covariance, including body/marker
 blocks.  The marker variable is unchanged while a future body command is
-queried. Each cycle makes one projected update from the complete relative
+queried. Reaching makes one projected update from the complete relative
 Gaussian/Bingham objective gradient, with a short backtracking line search.
+Image centering can propose an initial point, accepted only by that criterion.
 One such update does not imply an IK optimum or convergence.
 """
 
@@ -12,6 +13,7 @@ from functools import lru_cache
 import xml.etree.ElementTree as ET
 
 import numpy as np
+from scipy.optimize import minimize
 from scipy.special import logsumexp
 
 from probtf.bingham import bingham_log_normalizer
@@ -83,6 +85,56 @@ def _component_log_weight(component):
     value = getattr(component, 'log_weight', None)
     return float(value if value is not None else (
         np.log(component.weight) if component.weight > 0. else -np.inf))
+
+
+def _bounded_gradient_direction(metric, gradient, baseline, lower, upper,
+                                position_gradient):
+    """Solve the coupled local quadratic within joint and progress bounds.
+
+    The quadratic only preconditions the complete-criterion gradient. The
+    caller still checks the actual full criterion and actual propagated
+    position-error expectation on every line-search trial.
+    """
+    metric, gradient, baseline, lower, upper, position_gradient = map(np.asarray,
+        (metric, gradient, baseline, lower, upper, position_gradient))
+    scale = np.maximum(np.maximum(upper-baseline, baseline-lower), 1e-12)
+    quadratic = scale[:, None]*metric*scale[None, :]
+    linear = scale*gradient
+    normalization = max(1., float(np.linalg.norm(quadratic, ord=np.inf)),
+                        float(np.linalg.norm(linear, ord=np.inf)))
+    quadratic, linear = quadratic/normalization, linear/normalization
+    progress = scale*position_gradient
+    progress_scale = float(np.linalg.norm(progress))
+    constraints = () if progress_scale == 0. else ({
+        'type': 'ineq', 'fun': lambda value: -float(progress @ value)/progress_scale,
+        'jac': lambda value: -progress/progress_scale},)
+    solved = minimize(lambda value: .5*value @ quadratic @ value+linear @ value,
+        np.zeros_like(baseline), jac=lambda value: quadratic @ value+linear,
+        bounds=list(zip((lower-baseline)/scale, (upper-baseline)/scale)),
+        constraints=constraints, method='SLSQP',
+        options=dict(maxiter=80, ftol=1e-12))
+    direction = scale*solved.x
+    feasible = (np.all(np.isfinite(direction))
+        and np.all(baseline+direction >= lower-1e-12)
+        and np.all(baseline+direction <= upper+1e-12)
+        and float(position_gradient @ direction) <= 1e-12*max(1., progress_scale))
+    accepted = bool(solved.success and feasible and gradient @ direction < 0.)
+    if not accepted:
+        direction = np.zeros_like(baseline)
+    return direction, dict(method='coupled box-constrained Fisher quadratic with linearized position-expectation nonincrease',
+        solver='deterministic SLSQP with analytic quadratic gradient',
+        solver_success=bool(solved.success), solver_status=int(solved.status),
+        solver_message=str(solved.message), iterations=int(solved.nit),
+        constraints_satisfied=bool(feasible),
+        accepted=accepted, linearized_position_change=float(position_gradient @ direction),
+        objective_slope=float(gradient @ direction),
+        fallback='zero direction at the feasible initial point' if not accepted else None)
+
+
+def _position_error_expectation(item, goal_offset):
+    return float(sum(branch['weight']*(
+        np.sum((query.mean[:3]-goal_offset)**2)
+        +np.trace(query.covariance[:3, :3])) for branch, query in zip(item[2], item[3])))
 
 
 def switch_goal_queries(state, marker_path, goal_offset, goal_orientation,
@@ -227,6 +279,31 @@ class MovingController:
                 or self.integration_steps <= 0 or self.max_backtracks < 0):
             raise ValueError("Positive command limits and numerical solver settings are required.")
         self.velocity = np.zeros(len(joints))
+        self.visual_approach_settings = dict(motion.get('visual_approach', {}))
+        self.visual_approach_policy = None
+
+    def reaching_step(self, result, dt, *, command_map=None):
+        """Use the complete IK throughout; centering only proposes a start."""
+        if not result.records.get('fixed_goal_memory', {}).get('available', False):
+            command, diagnostics = self.step(result, dt, command_map=command_map)
+            diagnostics.update(reaching_phase='indet_ik', visual_approach=dict(
+                phase='unavailable', selection_reason='no observed marker goal is available',
+                physical_truth_received=False, monte_carlo_used=False))
+            return command, diagnostics
+        if self.visual_approach_policy is None:
+            from .visual_approach import VisualApproach
+            self.visual_approach_policy = VisualApproach(self, self.visual_approach_settings)
+        target, record = self.visual_approach_policy.propose(result, dt, command_map=command_map)
+        command, diagnostics = self.step(result, dt, command_map=command_map,
+                                         initial_command=target)
+        record.update(proposal_criterion=record['selection_criterion'],
+            selection_criterion='complete normalized Gaussian/Bingham criterion at every reaching update',
+            full_gaussian_bingham_criterion_used_for_selection=True,
+            full_gaussian_bingham_criterion_role='selection in every reaching update; visual loss proposes an initial point only',
+            visual_velocity_executed_directly=False,
+            initial_proposal=diagnostics['approach_initial_proposal'])
+        diagnostics.update(reaching_phase='indet_ik', visual_approach=record)
+        return command, diagnostics
 
     def _query(self, state):
         return pose_query(state, self.relative_path,
@@ -362,7 +439,8 @@ class MovingController:
             "orientation_reexpression": "modal quaternion times first-order mean correction; covariance unchanged to first order",
         }
 
-    def step(self, result, dt, *, stiffness_proposal=None, command_map=None):
+    def step(self, result, dt, *, stiffness_proposal=None, command_map=None,
+             initial_command=None):
         dt = float(dt)
         if not np.isfinite(dt) or dt <= 0.0:
             raise ValueError("The next command interval must be positive and finite.")
@@ -421,6 +499,8 @@ class MovingController:
         baseline = np.clip(np.zeros_like(self.velocity), lower, upper)
         initial_item = evaluate(baseline)
         braking_item = initial_item
+        position_limit = _position_error_expectation(braking_item, self.goal_offset)
+        position_tolerance = 1e-12
         proposal_diagnostics = {'available': stiffness_proposal is not None,
                                 'accepted_as_initial_point': False}
         if stiffness_proposal is not None:
@@ -448,12 +528,34 @@ class MovingController:
                 log_braking_criterion=braking_item[0],
                 role='initial command proposal only; accepted by the same complete body criterion',
                 physical_truth_received=False)
-            if candidate[0] > initial_item[0]:
+            proposal_diagnostics['position_error_expectation'] = _position_error_expectation(candidate, self.goal_offset)
+            if (candidate[0] > initial_item[0]
+                    and proposal_diagnostics['position_error_expectation'] <= position_limit+position_tolerance):
                 initial_item = candidate
                 baseline = candidate[1].copy()
                 proposal_diagnostics['accepted_as_initial_point'] = True
+        approach_proposal = dict(available=initial_command is not None,
+            accepted_as_initial_point=False,
+            role='initial point only; acceptance and subsequent gradient use the same complete criterion')
+        if initial_command is not None:
+            proposed = np.asarray(initial_command, dtype=float)
+            if proposed.shape != command.shape or not np.all(np.isfinite(proposed)):
+                raise ValueError('An approach proposal requires one finite target per joint.')
+            candidate = evaluate(np.clip(proposed-command, lower, upper))
+            approach_proposal.update(requested_command=proposed.tolist(),
+                projected_command=(command+candidate[1]).tolist(),
+                proposed_objective=-candidate[0], comparison_objective=-initial_item[0],
+                position_error_expectation=_position_error_expectation(candidate, self.goal_offset),
+                position_error_limit=position_limit)
+            if (candidate[0] > initial_item[0]
+                    and approach_proposal['position_error_expectation'] <= position_limit+position_tolerance):
+                initial_item = candidate
+                baseline = candidate[1].copy()
+                approach_proposal['accepted_as_initial_point'] = True
         initial_cost = -initial_item[0]
+        initial_position = _position_error_expectation(initial_item, self.goal_offset)
         raw_gradient = np.zeros_like(baseline)
+        position_gradient = np.zeros_like(baseline)
         difference_steps = np.zeros_like(baseline)
         for index in range(baseline.size):
             forward = min(self.gradient_step, upper[index]-baseline[index])
@@ -465,22 +567,25 @@ class MovingController:
             probe[index] += difference
             # Differentiate J with respect to q only: every moment, covariance,
             # logdet, Bingham parameter/normalizer and weight enters each value.
-            raw_gradient[index] = (-evaluate(probe)[0]-initial_cost)/difference
+            probed = evaluate(probe)
+            raw_gradient[index] = (-probed[0]-initial_cost)/difference
+            position_gradient[index] = (
+                _position_error_expectation(probed, self.goal_offset)-initial_position)/difference
             difference_steps[index] = difference
         command_jacobian = (None if command_map is None
                             else command_map.jacobian(command+baseline))
         metric = self._step_metric(components, initial_item[3], command_jacobian)
-        unbounded_direction = -np.linalg.solve(metric, raw_gradient)
-        direction = np.clip(baseline+unbounded_direction, lower, upper)-baseline
-        metric_kind = "full Fisher-like modal sensitivity preconditioner; full-J finite-difference gradient"
-        if raw_gradient @ direction >= 0.0 and np.linalg.norm(direction) > 0.0:
-            # Box projection can turn a cross-coupled preconditioned direction
-            # uphill. Diagonal scaling then guarantees a projected descent
-            # direction from the same feasible baseline.
-            direction = np.clip(baseline-raw_gradient/np.diag(metric), lower, upper)-baseline
-            metric_kind = "diagonal Fisher-like preconditioner after non-descent box projection"
+        direction, quadratic_record = _bounded_gradient_direction(
+            metric, raw_gradient, baseline, lower, upper, position_gradient)
+        solver_failed = not (quadratic_record['solver_success']
+                             and quadratic_record['constraints_satisfied'])
+        if solver_failed:
+            quadratic_record['fallback'] = 'maximal braking baseline'
+        elif not quadratic_record['accepted']:
+            quadratic_record['fallback'] = 'validated feasible initial candidate retained'
+        metric_kind = "coupled box-constrained Fisher quadratic; full-J finite-difference gradient"
         slope = float(raw_gradient @ direction)
-        selected = initial_item
+        selected = braking_item if solver_failed else initial_item
         line_search = []
         accepted_step = False
         step_scale = 0.0
@@ -490,9 +595,14 @@ class MovingController:
                 trial = evaluate(baseline+scale*direction)
                 trial_cost = -trial[0]
                 sufficient_decrease = initial_cost+1e-4*scale*slope
+                trial_position = _position_error_expectation(trial, self.goal_offset)
+                position_feasible = trial_position <= position_limit+position_tolerance
                 line_search.append({"scale": scale, "objective": trial_cost,
-                                    "armijo_bound": sufficient_decrease})
-                if trial_cost <= sufficient_decrease:
+                    "armijo_bound": sufficient_decrease,
+                    "position_error_expectation": trial_position,
+                    "position_error_limit": position_limit,
+                    "position_progress_feasible": bool(position_feasible)})
+                if trial_cost <= sufficient_decrease and position_feasible:
                     selected, accepted_step, step_scale = trial, True, scale
                     break
         increment = selected[1]
@@ -511,6 +621,7 @@ class MovingController:
             "log_expected_density": selected[0],
             "objective_evaluation_count": len(cache),
             "gradient_evaluation_count": 1,
+            "objective_used_for_command_selection": True,
             "gradient_method": "bound-aware forward/backward finite differences of the complete objective with respect to command",
             "gradient_step": self.gradient_step,
             "gradient_difference_steps": difference_steps.tolist(),
@@ -522,11 +633,26 @@ class MovingController:
             "preconditioner": metric_kind,
             "preconditioner_damping": self.damping,
             "preconditioner_matrix": metric.tolist(),
+            "quadratic_step": quadratic_record,
+            "position_progress": dict(
+                quantity='sum_k w_k * (squared relative position mean error + trace of relative position covariance)',
+                frame='marker', units='m^2',
+                reference='maximally braking feasible increment evaluated on the same frozen law and K action',
+                reference_increment=braking_item[1].tolist(),
+                reference_error_expectation=position_limit,
+                initial_error_expectation=initial_position,
+                selected_error_expectation=_position_error_expectation(selected, self.goal_offset),
+                gradient=position_gradient.tolist(),
+                tolerance=position_tolerance,
+                constraint_satisfied=bool(_position_error_expectation(selected, self.goal_offset)
+                    <= position_limit+position_tolerance),
+                new_observations_or_physical_truth_used=False),
             "feasible_baseline_increment": baseline.tolist(),
             "feasible_baseline_objective": initial_cost,
             "braking_baseline_increment": braking_item[1].tolist(),
             "braking_baseline_objective": -braking_item[0],
             "stiffness_initial_proposal": proposal_diagnostics,
+            "approach_initial_proposal": approach_proposal,
             "line_search_accepted": accepted_step,
             "step_scale": step_scale,
             "step_backtracks": max(0, len(line_search)-1),
@@ -536,7 +662,9 @@ class MovingController:
             "baseline_motion_required_by_acceleration_limits": bool(
                 np.any(lower > 0.0) or np.any(upper < 0.0)),
             "selection_reason": ("full-objective Armijo gradient step" if accepted_step
-                else "feasible braking baseline retained; no gradient trial accepted"),
+                else ("validated complete-criterion and position-feasible initial proposal retained; no gradient trial accepted"
+                    if selected is initial_item and initial_item is not braking_item
+                    else "feasible braking baseline retained; no gradient trial accepted")),
             "convergence_claimed": False,
             "increment_bounds": np.column_stack((lower, upper)).tolist(),
             "joint_limit_stopping_speed_bounds": np.column_stack(
@@ -548,8 +676,8 @@ class MovingController:
 
     def local_step(self, result, dt, *, mode, target_command=None,
                    max_speed=None, position_lower=None, position_upper=None,
-                   command_map=None):
-        """Brake or execute a bounded local search, retaining the same laws.
+                   command_map=None, requested_velocity=None):
+        """Execute a local search or visual velocity, retaining the same laws.
 
         The search policy supplies command-space waypoints, not physical poses
         or replacement candidate distributions. A target uses the same
@@ -557,8 +685,10 @@ class MovingController:
         mixture is queried once at the selected command for diagnostics; that
         criterion is not used to select or accept a search move.
         """
-        if mode not in {'braking', 'settling', 'searching', 'search_exhausted'}:
+        if mode not in {'braking', 'settling', 'searching', 'search_exhausted', 'visual_approach'}:
             raise ValueError('A local marker action requires an explicit braking or search mode.')
+        if requested_velocity is not None and (mode != 'visual_approach' or target_command is not None):
+            raise ValueError('A visual velocity must be separate from search waypoints.')
         dt = float(dt)
         if not np.isfinite(dt) or dt <= 0.:
             raise ValueError('The next command interval must be positive and finite.')
@@ -581,7 +711,12 @@ class MovingController:
         baseline = np.clip(np.zeros_like(self.velocity), lower, upper)
         target = None
         target_stopping_speed = None
-        if target_command is None:
+        if requested_velocity is not None:
+            desired_velocity = np.asarray(requested_velocity, dtype=float)
+            if desired_velocity.shape != command.shape or not np.all(np.isfinite(desired_velocity)):
+                raise ValueError('A visual velocity requires one finite value per joint.')
+            increment = np.clip(dt*desired_velocity, lower, upper)
+        elif target_command is None:
             increment = baseline.copy()
         else:
             target = np.asarray(target_command, dtype=float)
@@ -626,6 +761,8 @@ class MovingController:
             "duration": dt, "increment": increment.tolist(), "velocity": self.velocity.tolist(),
             "previous_velocity": previous_velocity.tolist(),
             "target_command": None if target is None else target.tolist(),
+            "requested_visual_velocity": (None if requested_velocity is None
+                                          else np.asarray(requested_velocity).tolist()),
             "target_stopping_speed": (None if target_stopping_speed is None
                                       else target_stopping_speed.tolist()),
             "local_max_speed": None if max_speed is None else np.asarray(max_speed).tolist(),
@@ -661,7 +798,8 @@ class MovingController:
             "improved_from_feasible_baseline": None,
             "zero_increment_feasible": bool(np.all(lower <= 0.) and np.all(upper >= 0.)),
             "baseline_motion_required_by_acceleration_limits": bool(np.any(lower > 0.) or np.any(upper < 0.)),
-            "selection_reason": ('maximum feasible braking toward zero velocity' if target is None
+            "selection_reason": ('same-law visual servo velocity through shared command limits' if requested_velocity is not None else
+                                 'maximum feasible braking toward zero velocity' if target is None
                                  else 'bounded local search waypoint with stopping-distance speed'),
             "convergence_claimed": False,
             "increment_bounds": np.column_stack((lower, upper)).tolist(),

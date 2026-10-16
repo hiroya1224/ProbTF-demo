@@ -18,6 +18,8 @@ from probtf_switch_press_demo.body import EquilibriumBody, ReachMonitor, clearan
 from probtf_switch_press_demo.scene import apply, inverse, transform, write_robot
 from probtf_switch_press_demo.vision import PlanarCamera
 
+from .board_camera import BoardCamera
+
 
 def _readonly(value):
     result = np.array(value, dtype=float, copy=True)
@@ -109,8 +111,10 @@ class MovingSwitchScene:
         self.last_time = None
         self.command = self.initial_command
         self.monitor = ReachMonitor(self.goal, self.config["reach_tolerance"])
-        self.camera = PlanarCamera(self.texture_path, self.config["marker"]["size"],
-                                   self.config["camera"], self.config["seed"])
+        board = self.config.get('marker_board', {})
+        self.camera = (BoardCamera(self.texture_path, board, self.config['camera'], self.config['seed'])
+            if board.get('enabled', False) else PlanarCamera(self.texture_path,
+                self.config['marker']['size'], self.config['camera'], self.config['seed']))
 
     def _link_poses(self, joints):
         robot = self.plant.robot

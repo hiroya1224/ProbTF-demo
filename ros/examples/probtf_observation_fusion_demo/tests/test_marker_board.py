@@ -1,0 +1,288 @@
+"""Known-board push-forwards, full native mixtures and central-only ADF."""
+
+from dataclasses import replace
+import json
+
+import numpy as np
+import pytest
+from scipy.special import logsumexp
+from scipy.stats import multivariate_normal
+
+from prob_artag_detector.models import EstimationDiagnostics, PoseMixtureResult
+from probtf.bingham import bingham_second_moment
+from probtf.distributions.bingham_orientation import BinghamOrientation
+from probtf.distributions.conditional_translation import ConditionalGaussianTranslation
+from probtf.distributions.stamped import TransformDistributionStamped
+from probtf.distributions.transform_component import TransformComponent
+from probtf.distributions.transform_distribution import TransformDistribution
+from probtf.geometry import (axis_angle_to_quat, quat_to_rotmat, skew,
+    right_perturbation_vec_rotation_jacobian)
+from probtf.spherical_law.first_order import bingham_from_rotation_coordinates
+from probtf_observation_fusion_demo.marker_board import board_layout, fuse_marker_board
+from probtf_observation_fusion_demo.sensors import _marker_mode_chart
+
+
+SETTINGS = dict(rows=3, columns=3, marker_size=.048, pitch=.06,
+                ids=[[17, 18, 19], [20, 21, 22], [23, 24, 25]])
+
+
+def detection(marker_id, *, center=(.1, -.02, .8), angles=(.04,), offsets=None,
+              log_masses=None, position_variance=2e-5, rotation_variance=2e-4,
+              coupling=None, stamp=1234.5):
+    marker = next(item for item in board_layout(SETTINGS) if item.marker_id == marker_id)
+    logs = np.zeros(len(angles)) if log_masses is None else np.asarray(log_masses, dtype=float)
+    weights = np.exp(logs-logsumexp(logs))
+    offsets = [np.zeros(3)]*len(angles) if offsets is None else offsets
+    components, rotations, translations = [], [], []
+    for index, (angle, offset, weight) in enumerate(zip(angles, offsets, weights)):
+        quaternion = axis_angle_to_quat([0., 1., 0.], angle)
+        rotation = quat_to_rotmat(quaternion)
+        translation = np.asarray(center)+rotation @ marker.center_to_marker_translation+offset
+        c = np.zeros((3, 3)) if coupling is None else np.asarray(coupling)
+        vec_coupling = c @ np.linalg.pinv(right_perturbation_vec_rotation_jacobian(quaternion))
+        parameter = bingham_from_rotation_coordinates(quaternion, rotation_variance*np.eye(3))
+        components.append(TransformComponent('tag{}:native{}'.format(marker_id, index), weight,
+            BinghamOrientation.from_parameter_matrix(parameter),
+            ConditionalGaussianTranslation(translation, position_variance*np.eye(3), vec_coupling)))
+        rotations.append(rotation); translations.append(translation)
+    frame = 'tag_'+str(marker_id)
+    record = TransformDistributionStamped('camera', frame, stamp, 'camera__to__'+frame,
+        'test_native_image_hessian', TransformDistribution(tuple(components)))
+    diagnostics = EstimationDiagnostics(len(angles), len(angles), 0, 0, 0, 0, ())
+    return PoseMixtureResult(record, diagnostics, tuple(rotations), tuple(translations),
+        tuple(logs), tuple(weights), tuple(range(len(angles))))
+
+
+def test_layout_keeps_old_center_frame_and_known_rigid_inverse_for_every_tag():
+    layout = board_layout(SETTINGS)
+    assert [item.marker_id for item in layout] == list(range(17, 26))
+    assert layout[4].marker_id == 21
+    assert layout[4].center_to_marker_translation == (0., 0., 0.)
+    assert layout[0].center_to_marker_translation == (-.06, .06, 0.)
+    assert layout[-1].center_to_marker_translation == (.06, -.06, 0.)
+    for marker in layout:
+        assert marker.size_m == .048
+        np.testing.assert_array_equal(np.array(marker.center_to_marker_translation)+marker.marker_to_center_translation, 0.)
+        assert marker.rotation_wxyz == (1., 0., 0., 0.)
+
+
+def test_default_marker_and_pitch_are_enlarged_together_without_overlap():
+    layout = board_layout({})
+    assert all(item.size_m == .072 for item in layout)
+    assert layout[0].center_to_marker_translation == (-.09, .09, 0.)
+    assert layout[-1].center_to_marker_translation == (.09, -.09, 0.)
+    assert layout[4].center_to_marker_translation == (0., 0., 0.)
+
+
+@pytest.mark.parametrize('changed', [dict(rows=2), dict(pitch=.04), dict(marker_size=0.),
+    dict(ids=[[17, 18, 19], [20, 21, 22], [23, 24, 24]])])
+def test_invalid_board_geometry_is_not_silently_changed(changed):
+    with pytest.raises(ValueError):
+        board_layout(dict(SETTINGS, **changed))
+
+
+def test_known_attachment_push_keeps_translation_rotation_cross_until_central_projection():
+    native = detection(17, coupling=np.diag([.03, -.02, .01]))
+    before = native.record.distribution.components[0]
+    result = fuse_marker_board({17: native}, SETTINGS)
+    source = result.record['raw_observations'][0]['components'][0]
+    original = np.array(source['native_joint_covariance'])
+    quaternion = before.orientation.mode_wxyz
+    rotation = quat_to_rotmat(quaternion)
+    offset = np.array(source['known_marker_to_center_translation'])
+    jacobian = np.block([[np.eye(3), -rotation @ skew(offset)],
+                         [np.zeros((3, 3)), np.eye(3)]])
+    expected = jacobian @ original @ jacobian.T
+    np.testing.assert_allclose(source['center_full_covariance'], expected, atol=2e-15, rtol=1e-10)
+    omega = original[3:, 3:]
+    expected_mean = (before.translation.mean_at_reference+rotation @ offset
+        +.5*rotation @ (omega-np.trace(omega)*np.eye(3)) @ offset)
+    np.testing.assert_allclose(source['center_mean_translation'], expected_mean, atol=2e-14)
+    assert np.linalg.norm(np.array(source['center_full_covariance'])[:3, 3:]) > 1e-6
+    projection = result.record['steps'][0]['projection']
+    np.testing.assert_allclose(projection['discarded_position_rotation_cross_covariance'], expected[:3, 3:], atol=2e-15)
+    final = result.detected.record.distribution.components[0]
+    np.testing.assert_array_equal(final.translation.rotation_coupling, np.zeros((3, 9)))
+    assert native.record.distribution.components[0] is before
+
+
+def test_two_marker_density_product_matches_independent_full_six_dimensional_gaussian_formula():
+    observations = {21: detection(21), 22: detection(22, center=(.102, -.019, .799),
+                                                 coupling=.01*np.eye(3))}
+    result = fuse_marker_board(observations, SETTINGS)
+    step = result.record['steps'][1]
+    product = step['branch_products'][0]
+    m0, p0 = np.array(step['central_prior_mean']), np.array(step['central_prior_full_covariance'])
+    m1, p1 = np.array(product['common_chart_mean']), np.array(product['common_chart_full_covariance'])
+    covariance = np.linalg.inv(np.linalg.inv(p0)+np.linalg.inv(p1))
+    mean = covariance @ (np.linalg.solve(p0, m0)+np.linalg.solve(p1, m1))
+    np.testing.assert_allclose(product['product_mean'], mean, atol=2e-13)
+    np.testing.assert_allclose(product['product_full_covariance'], covariance, atol=2e-14)
+    np.testing.assert_allclose(product['prior_overlap_log_evidence'],
+        multivariate_normal.logpdf(m1, m0, p0+p1), atol=2e-10)
+    np.testing.assert_allclose(result.detected.translations[0], mean[:3], atol=2e-13)
+    assert result.record['steps'][0]['central_prior_used'] is False
+    assert step['central_prior_used'] is True
+    assert result.record['shared_body_prior_used'] is False
+    assert result.record['body_camera_uncertainty_lift_count_in_this_helper'] == 0
+
+
+def test_native_mixture_moments_include_between_covariance_and_match_quaternion_second_moment(monkeypatch):
+    native = detection(21, angles=(-.08, .08),
+        offsets=([-.01, 0., 0.], [.01, 0., 0.]), log_masses=np.log([.3, .7]))
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError('Central marker fusion must use deterministic moments, not Monte Carlo.')
+    for name in ('default_rng', 'normal', 'random', 'randn', 'multivariate_normal', 'RandomState'):
+        monkeypatch.setattr(np.random, name, forbidden)
+    result = fuse_marker_board({21: native}, SETTINGS)
+    step = result.record['steps'][0]
+    projection = step['projection']
+    weights = np.array(projection['branch_weights'])
+    means = np.array([item['product_mean'] for item in step['branch_products']])
+    covariances = np.array([item['product_full_covariance'] for item in step['branch_products']])
+    mean = weights @ means
+    within = sum(weight*p for weight, p in zip(weights, covariances))
+    between = sum(weight*np.outer(m-mean, m-mean) for weight, m in zip(weights, means))
+    np.testing.assert_allclose(projection['within_covariance'], within, atol=1e-15)
+    np.testing.assert_allclose(projection['between_covariance'], between, atol=1e-15)
+    np.testing.assert_allclose(result.detected.record.distribution.components[0].translation.residual_covariance,
+                               (within+between)[:3, :3], atol=1e-15)
+    assert between[0, 0] > 5e-5 and between[4, 4] > .001
+    parameter = result.detected.record.distribution.components[0].orientation.parameter_matrix()
+    np.testing.assert_allclose(bingham_second_moment(parameter),
+        projection['quaternion_second_moment_target'], atol=2e-6, rtol=0.)
+    assert projection['quaternion_second_moment_fit_max_error'] < 2e-6
+    assert projection['bingham_fit_refinement_used']
+    assert projection['bingham_fit_refinement_function_evaluations'] > 0
+    assert len(result.record['raw_observations'][0]['components']) == 2
+    assert result.record['central_component_count'] == 1
+    assert result.record['raw_native_mixtures_retained']
+    assert result.record['central_position_orientation_product_approximation']
+    json.dumps(result.record, allow_nan=False)
+
+
+def test_underflowed_native_mode_can_become_the_dominant_product_without_pruning():
+    first = detection(17, center=(0., 0., .8), angles=(0.,))
+    second = detection(18, center=(0., 0., .8), angles=(0., 0.),
+        offsets=([1., 0., 0.], [0., 0., 0.]), log_masses=(0., -1000.))
+    assert second.weights[1] == 0.
+    result = fuse_marker_board({17: first, 18: second}, SETTINGS)
+    raw = result.record['raw_observations'][1]['components']
+    assert raw[1]['weight'] == 0. and raw[1]['log_weight'] == -1000.
+    projection = result.record['steps'][1]['projection']
+    assert len(projection['branch_log_weights']) == 2
+    assert projection['branch_log_weights'][1] > projection['branch_log_weights'][0]+1000.
+    assert abs(result.detected.translations[0][0]) < 1e-4
+
+
+def test_partial_board_uses_all_visible_tags_in_fixed_ID_order_and_returns_adapter_compatible_law():
+    observations = {25: detection(25), 17: detection(17), 22: detection(22)}
+    forward = fuse_marker_board(observations, SETTINGS)
+    reverse = fuse_marker_board(dict(reversed(list(observations.items()))), SETTINGS)
+    assert forward.record == reverse.record
+    assert forward.record['fusion_order'] == [17, 22, 25]
+    assert len(forward.record['steps']) == 3
+    detected = forward.detected
+    assert detected.record.parent_frame_id == 'camera'
+    assert detected.record.child_frame_id == 'marker'
+    assert detected.record.stamp == 1234.5
+    assert detected.weights == (1.,) and detected.log_masses == (0.,)
+    assert len(detected.record.distribution.components) == 1
+    central = detected.record.distribution.components[0]
+    law, volume = _marker_mode_chart(central, quat_to_rotmat(central.orientation.mode_wxyz))
+    np.testing.assert_allclose(law.covariance[:3, 3:], 0., atol=0.)
+    assert np.isfinite(volume)
+    assert forward.record['central_distribution']['component_id'] == central.component_id
+    assert forward.record['central_distribution']['bingham'] == central.orientation.parameter_matrix().tolist()
+    assert forward.record['central_distribution']['rotation_wxyz'] == central.orientation.mode_wxyz.tolist()
+    np.testing.assert_array_equal(forward.record['central_distribution']['full_product_covariance'], law.covariance)
+    assert forward.record['body_camera_uncertainty_used'] is False
+    assert forward.record['exact_full_native_cartesian_product_claimed'] is False
+    assert forward.record['order_independent_claimed'] is False
+
+
+def test_all_nine_native_two_mode_observations_stay_recorded_without_exponential_branch_enumeration():
+    observations = {marker.marker_id: detection(marker.marker_id,
+        angles=(.03, .05), log_masses=np.log([.8, .2])) for marker in board_layout(SETTINGS)}
+    result = fuse_marker_board(observations, SETTINGS)
+    assert len(result.record['raw_observations']) == len(result.record['steps']) == 9
+    assert sum(item['native_component_count'] for item in result.record['raw_observations']) == 18
+    assert [len(step['branch_products']) for step in result.record['steps']] == [2]*9
+    assert all(step['projection']['branch_count'] == 2 for step in result.record['steps'])
+    assert len(result.detected.record.distribution.components) == 1
+    expected = {component.component_id for detected in observations.values()
+                for component in detected.record.distribution.components}
+    actual = {component['native_component_id'] for raw in result.record['raw_observations']
+              for component in raw['components']}
+    assert actual == expected
+    assert all(step['projection']['quaternion_second_moment_fit_max_error'] < 1e-6
+               for step in result.record['steps'])
+
+
+def test_broad_intermediate_projection_is_deferred_and_all_correlated_branches_enter_next_product():
+    first = detection(17, angles=(-.4, .4), log_masses=np.log([.7, .3]),
+                      coupling=.02*np.eye(3))
+    second = detection(18, angles=(.4, .42), log_masses=np.log([.6, .4]))
+    result = fuse_marker_board({17: first, 18: second}, SETTINGS)
+    assert result.record['deferred_projection_marker_ids'] == [17]
+    before, after = result.record['steps']
+    projection = before['projection']
+    assert projection['deferred'] and not projection['applied']
+    assert 'concentration domain' in projection['single_proxy_domain_reason']
+    assert projection['quaternion_second_moment_fit_max_error'] < 1e-6
+    assert projection['discarded_position_rotation_cross_covariance'] is None
+    assert projection['retained_position_rotation_cross_covariance'] is not None
+    assert after['prior_branch_count'] == 2
+    assert len(after['branch_products']) == 4
+    assert result.record['maximum_live_branch_count'] == 4
+    before_laws = {item['product_branch_label']: item for item in before['branch_products']}
+    for product in after['branch_products']:
+        parent = before_laws[product['prior_branch_label']]
+        np.testing.assert_array_equal(product['prior_branch_mean'], parent['product_mean'])
+        np.testing.assert_array_equal(product['prior_branch_full_covariance'], parent['product_full_covariance'])
+        expected_log = (product['prior_branch_log_weight']+product['native_log_weight']
+            +product['push_chart_log_volume']+product['common_chart_log_volume']
+            +product['prior_overlap_log_evidence'])
+        assert product['product_log_mass'] == expected_log
+    assert after['projection']['applied'] and not after['projection']['deferred']
+    assert len(result.detected.weights) == 1
+    assert not result.record['final_mixture_fallback_used']
+
+
+def test_final_broad_single_Bingham_keeps_every_narrow_branch_and_log_mass_as_central_mixture():
+    native = detection(21, angles=(-.4, .4), log_masses=np.log([.7, .3]),
+                       coupling=.02*np.eye(3))
+    result = fuse_marker_board({21: native}, SETTINGS)
+    final = result.record['central_distribution']
+    assert result.record['final_mixture_fallback_used']
+    assert result.record['central_component_count'] == final['component_count'] == 2
+    assert final['stamp'] == native.record.stamp
+    assert final['parent_frame_id'] == 'camera' and final['child_frame_id'] == 'marker'
+    assert 'component_id' not in final
+    assert len(result.detected.record.distribution.components) == 2
+    assert result.detected.seed_indices == (0, 1)
+    projection = result.record['steps'][-1]['projection']
+    np.testing.assert_array_equal(result.detected.log_masses, projection['branch_log_weights'])
+    mixture_moment = np.zeros((4, 4))
+    for component, descriptor, weight, log_weight in zip(result.detected.record.distribution.components,
+            final['components'], result.detected.weights, result.detected.log_masses):
+        law, _volume = _marker_mode_chart(component, quat_to_rotmat(component.orientation.mode_wxyz))
+        assert descriptor['component_id'] == component.component_id
+        assert descriptor['weight'] == weight and descriptor['log_weight'] == log_weight
+        np.testing.assert_array_equal(descriptor['full_product_covariance'], law.covariance)
+        assert descriptor['position_orientation_product_approximation']
+        assert np.linalg.norm(descriptor['discarded_position_rotation_cross_covariance']) > 0.
+        mixture_moment += weight*bingham_second_moment(component.orientation.parameter_matrix())
+    np.testing.assert_allclose(mixture_moment, projection['quaternion_second_moment_target'], atol=2e-12)
+
+
+def test_empty_unknown_mismatched_image_and_native_weight_errors_are_explicit():
+    empty = fuse_marker_board({}, SETTINGS)
+    assert empty.detected is None and not empty.record['applied']
+    with pytest.raises(ValueError, match='outside'):
+        fuse_marker_board({9: detection(21)}, SETTINGS)
+    with pytest.raises(ValueError, match='same camera image'):
+        fuse_marker_board({17: detection(17), 18: detection(18, stamp=1234.6)}, SETTINGS)
+    bad = replace(detection(21), weights=(.5,))
+    with pytest.raises(ValueError, match='log masses'):
+        fuse_marker_board({21: bad}, SETTINGS)

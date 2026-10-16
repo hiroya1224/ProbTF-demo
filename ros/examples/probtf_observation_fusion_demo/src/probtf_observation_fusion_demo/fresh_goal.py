@@ -1,8 +1,10 @@
 """Capture task goals from the new image-relative law and the current body.
 
 The recursive body/map posterior is an input, never replaced here.  For the
-task query only, the new image-Hessian mixture is coupled independently to
-that posterior and composed through its camera path.  This is an explicit
+task query only, the new image-relative law is coupled independently to
+that posterior and composed through its camera path. It is either the native
+single-marker mixture or the explicitly projected board-center observation.
+This is an explicit
 cut approximation: the same image can already have informed the body, so
 the constructed task law is not an exact joint Bayesian posterior.
 """
@@ -97,6 +99,8 @@ def fresh_marker_goals(result, canonical_state, *, marker_id='marker'):
         raise ValueError('Fresh goals require one shared new marker observation.')
     observation_id, sensor_id = next(iter(identities))
     detected = estimates[0].detector_result
+    board_fusion = estimates[0].board_fusion
+    is_board = board_fusion is not None
     native = _native_modes(detected)
     for item in estimates:
         query = item.posterior.query
@@ -107,6 +111,16 @@ def fresh_marker_goals(result, canonical_state, *, marker_id='marker'):
         if (item.detector_result is not detected
                 and _native_modes(item.detector_result) != native):
             raise ValueError('Keep/reset evaluations do not share the same image-only modes.')
+        if item.board_fusion is not board_fusion and item.board_fusion != board_fusion:
+            raise ValueError('Keep/reset evaluations do not share the board-center observation.')
+    if is_board:
+        central = board_fusion['central_distribution']
+        central_components = central.get('components', (central,))
+        if ([item['component_id'] for item in central_components]
+                != [item['native_component_id'] for item in native]
+                or central['stamp'] != detected.record.stamp):
+            raise ValueError('Fresh board goals do not reference the fused central law.')
+    raw_observations = [] if not is_board else board_fusion['raw_observations']
 
     marker_index = canonical_state.edge_ids.index(marker_id)
     environment = np.arange(6*marker_index, 6*marker_index+6)
@@ -202,7 +216,10 @@ def fresh_marker_goals(result, canonical_state, *, marker_id='marker'):
                 root_forward_pose_mean_preserved=True,
                 mean_recentered_to_force_inverse_closure=False)))
     return tuple(goals), dict(applied=True,
-        construction='fresh image-only camera-relative mixture composed through the captured canonical camera/body law',
+        construction=('fresh derived board-center camera-relative law composed through the captured canonical camera/body law'
+            if is_board else 'fresh image-only camera-relative mixture composed through the captured canonical camera/body law'),
+        observation_kind='fused_board_center' if is_board else 'individual_marker',
+        marker_board_fusion=board_fusion,
         approximation='task-only independent fresh measurement cut, followed by existing first-order Bingham-derived pose push-forward and marker-only reexpression',
         exact_joint_bayesian_posterior_claimed=False,
         camera_relative_closure_assumed_exact=False,
@@ -219,9 +236,18 @@ def fresh_marker_goals(result, canonical_state, *, marker_id='marker'):
         image_child_frame=detected.record.child_frame_id,
         image_edge_id=detected.record.edge_id,
         sensor_parent_evaluation_count=len(estimates), native_component_count=len(native),
+        input_component_count=len(native),
+        central_component_count=len(native) if is_board else None,
+        raw_marker_count=len(raw_observations) if is_board else 1,
+        raw_native_component_count=(sum(item['native_component_count'] for item in raw_observations)
+                                    if is_board else len(native)),
+        component_record_semantics=('the legacy native_* keys below describe the derived central input, not a raw detector Hessian; raw native modes are retained in marker_board_fusion.raw_observations'
+            if is_board else 'native_* keys describe the raw individual marker image modes'),
         goal_component_count=len(goals),
-        mixture_semantics='one component per native image mode; keep/reset parent hypotheses have already been projected into the shared internal body, not multiplied into this fresh task mixture',
-        goal_weights_source='native detector float weights and normalized image log masses; no retained-map prior overlap reweighting',
+        mixture_semantics=('derived board-center components after image-only fusion; concentrated central law is moment-projected once, unresolved broad central laws retain every narrow branch; raw per-marker mixtures remain in the board record; keep/reset already projected into the common body'
+            if is_board else 'one component per native image mode; keep/reset parent hypotheses have already been projected into the shared internal body, not multiplied into this fresh task mixture'),
+        goal_weights_source=('derived board-center normalized weights and log masses after image-only fusion, with central projection only within the existing concentration domain; no retained-map prior overlap reweighting'
+            if is_board else 'native detector float weights and normalized image log masses; no retained-map prior overlap reweighting'),
         old_internal_marker_used_for_goal_construction=False,
         internal_unknown_marker_and_all_cross_covariances_retained=True,
         internal_state_replaced=False, stiffness_memory_changed=False,

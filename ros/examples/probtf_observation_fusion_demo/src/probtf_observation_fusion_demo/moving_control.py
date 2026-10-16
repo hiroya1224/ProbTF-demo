@@ -32,18 +32,25 @@ def _log_normalizer(eigenvalues, integration_steps):
                                        integration_steps=integration_steps))
 
 
-def command_state(state, command, body_ids, actions):
+def command_state(state, command, body_ids, actions, *, joint_increment=None):
     """Push the same posterior through its declared deterministic right action.
 
     R exp(zeta) D = R D exp(D.T zeta); translations use parent coordinates.
     Thus all covariance blocks are transported by diag(I, D.T), including
-    cross blocks.  Reconstructing independent marginals here would be wrong.
+    cross blocks. ``joint_increment`` can supply the explicitly frozen
+    estimated-K equilibrium increment while metadata keeps the sent command.
+    Reconstructing independent marginals here would be wrong.
     """
     command = np.asarray(command, dtype=float)
     current = np.asarray(state.command, dtype=float)
     if command.shape != current.shape or not np.all(np.isfinite(command)):
         raise ValueError("A trial command must match the finite source command.")
+    increment = command-current if joint_increment is None else np.asarray(joint_increment, dtype=float)
+    if increment.shape != command.shape or not np.all(np.isfinite(increment)):
+        raise ValueError("A declared joint action must contain one finite rotation per command.")
     if np.array_equal(command, current):
+        if np.any(increment != 0.):
+            raise ValueError("An unchanged command must preserve its anchored candidate distribution.")
         return state
     action_by_id = dict(zip(body_ids, actions))
     chart = np.eye(state.mean.size)
@@ -54,7 +61,10 @@ def command_state(state, command, body_ids, actions):
             transforms.append(edge)
             continue
         joint = int(action["joint_index"])
-        delta = axis_angle_to_quat(action["axis"], command[joint]-current[joint])
+        if increment[joint] == 0.:
+            transforms.append(edge)
+            continue
+        delta = axis_angle_to_quat(action["axis"], increment[joint])
         right = quat_right_matrix(delta)
         rotation = quat_to_rotmat(delta)
         chart[6*index+3:6*index+6, 6*index+3:6*index+6] = rotation.T
@@ -147,7 +157,7 @@ class MovingController:
         return pose_query(state, self.relative_path,
                           query_id="control:marker_relative_hand", frame="marker")
 
-    def _step_metric(self, components, queries):
+    def _step_metric(self, components, queries, command_jacobian=None):
         """A Fisher-like scaling metric, never a replacement objective gradient.
 
         Modal action sensitivities are sufficient for this preconditioner.
@@ -156,12 +166,15 @@ class MovingController:
         step metric; it never changes any candidate covariance.
         """
         metric = self.damping**2*np.eye(len(self.velocity))
+        command_jacobian = (np.eye(len(self.velocity)) if command_jacobian is None
+                            else np.asarray(command_jacobian))
         for component, query in zip(components, queries):
             sensitivity = np.zeros((component.state.mean.size, len(self.velocity)))
             for edge_id, action in zip(self.body_ids, self.actions):
                 index = component.state.edge_ids.index(edge_id)
                 axis = np.asarray(action["axis"], dtype=float)
-                sensitivity[6*index+3:6*index+6, int(action["joint_index"])] = axis/np.linalg.norm(axis)
+                sensitivity[6*index+3:6*index+6] = np.outer(
+                    axis/np.linalg.norm(axis), command_jacobian[int(action["joint_index"])])
             jacobian = query.jacobian @ sensitivity
             precision = np.zeros((6, 6))
             precision[:3, :3] = covariance_support(query.covariance[:3, :3]).inverse
@@ -169,7 +182,7 @@ class MovingController:
             metric += component.weight*(jacobian.T @ precision @ jacobian)
         return metric
 
-    def step(self, result, dt, *, stiffness_proposal=None):
+    def step(self, result, dt, *, stiffness_proposal=None, command_map=None):
         dt = float(dt)
         if not np.isfinite(dt) or dt <= 0.0:
             raise ValueError("The next command interval must be positive and finite.")
@@ -177,6 +190,8 @@ class MovingController:
         if command.shape != self.velocity.shape:
             raise ValueError("Command dimension differs from the configured joint limits.")
         components = tuple(result.stages[-1].components)
+        if command_map is not None:
+            command_map.validate_result(result)
         if not components or not np.isclose(sum(item.weight for item in components), 1.0):
             raise ValueError("The fused candidate weights must already be normalized.")
         for component in components:
@@ -202,8 +217,10 @@ class MovingController:
                 return cache[key]
             terms, branches, queries = [], [], []
             for component in components:
-                trial_state = command_state(component.state, trial_command,
-                                            self.body_ids, self.actions)
+                trial_state = (command_state(component.state, trial_command,
+                                             self.body_ids, self.actions) if command_map is None
+                               else command_map.push(component.state, trial_command,
+                                                     self.body_ids, self.actions))
                 query = self._query(trial_state)
                 queries.append(query)
                 log_density, branch = _relative_density(
@@ -274,7 +291,9 @@ class MovingController:
             # logdet, Bingham parameter/normalizer and weight enters each value.
             raw_gradient[index] = (-evaluate(probe)[0]-initial_cost)/difference
             difference_steps[index] = difference
-        metric = self._step_metric(components, initial_item[3])
+        command_jacobian = (None if command_map is None
+                            else command_map.jacobian(command+baseline))
+        metric = self._step_metric(components, initial_item[3], command_jacobian)
         unbounded_direction = -np.linalg.solve(metric, raw_gradient)
         direction = np.clip(baseline+unbounded_direction, lower, upper)-baseline
         metric_kind = "full Fisher-like modal sensitivity preconditioner; full-J finite-difference gradient"
@@ -309,6 +328,11 @@ class MovingController:
         self.velocity = increment/dt
         next_command = command + increment
         diagnostics = {
+            "command_propagation": ("declared rigid joint action" if command_map is None
+                                    else "estimated-K anchored equilibrium joint action"),
+            "stiffness_command_correction": (None if command_map is None else command_map.record()),
+            "selected_command_action": (None if command_map is None
+                                        else command_map.selection_record(next_command)),
             "method": "one projected complete-objective gradient update with Armijo backtracking",
             "global_optimum_claimed": False, "observation_stamp": float(result.prior.stamp),
             "source_stamp": float(result.prior.stamp),

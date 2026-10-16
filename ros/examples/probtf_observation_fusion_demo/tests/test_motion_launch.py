@@ -27,3 +27,12 @@ def test_each_motion_entry_defaults_to_live_and_playback_requires_explicit_selec
             roslaunch.xmlloader.XmlLoader().load(str(package/'launch'/(case+'.launch')),
                                                 config, argv=args, verbose=False)
             assert config.params['/observation_fusion_demo/execution_mode'].value == expected
+
+
+def test_bounded_marker_experiment_uses_the_explicit_live_update_limit():
+    package = Path(__file__).resolve().parents[1]
+    config = roslaunch.config.ROSLaunchConfig()
+    roslaunch.xmlloader.XmlLoader().load(str(package/'launch/marker.launch'),
+        config, argv=['max_updates:=6'], verbose=False)
+    assert config.params['/observation_fusion_demo/execution_mode'].value == 'live'
+    assert config.params['/observation_fusion_demo/max_updates'].value == 6

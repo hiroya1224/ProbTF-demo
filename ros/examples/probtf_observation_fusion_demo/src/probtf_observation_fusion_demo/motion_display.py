@@ -175,6 +175,16 @@ class MotionDisplay:
                     raise ValueError('The auxiliary command proposal requires its actual finite K values.')
                 proposal_line = 'Numerical proposal K [Nm/rad]: '+', '.join('{:.4g}'.format(value) for value in values)
                 detail = 'Proposal only; global moments not evaluated'
+                correction = record.get('command_correction')
+                if correction is not None:
+                    if (correction['density_id'] != density['density_id']
+                            or correction['source_stamp'] != snapshot.stamp
+                            or tuple(correction['source_command']) != tuple(snapshot.command)
+                            or correction['body_posterior_state_ids'] != record['body_posterior_state_ids']
+                            or not np.array_equal(correction['selected_K'], values)):
+                        raise ValueError('The displayed IK correction belongs to a different stiffness/body update.')
+                    proposal_line = 'IK correction K [Nm/rad]: '+', '.join('{:.4g}'.format(value) for value in values)
+                    detail = 'Equilibrium command action; global moments not evaluated'
             else:
                 proposal_line = 'No numerical proposal; global moments not evaluated'
                 reason = record.get('proposal_failure_reason', record.get('failure_reason', record.get('proposal_status', 'not computed')))
@@ -237,6 +247,9 @@ class MotionDisplay:
                     hz = execution['actual_update_hz']
                     rate = 'measuring' if hz is None else '{:.2f} Hz'.format(hz)
                     clock = 'Live updates {} | simulation dt {:.3f} s'.format(rate, execution['simulated_step_s'])
+                    if execution.get('paused_at_update_limit'):
+                        clock = 'PAUSED: requested {} updates; experiment incomplete'.format(
+                            execution['requested_update_limit'])
                     if execution.get('failure_reason'):
                         clock = 'LIVE STOPPED: '+execution['failure_reason'][:100]
                 else:
@@ -254,7 +267,7 @@ class MotionDisplay:
                          len(snapshot.observation_ids), snapshot.stamp-1792080000., inference_index)
         imu = self.marker('imu_mount', Marker.CUBE,
                           (.55,.12,.75,1.) if 'imu' in self.sensor_names else (.4,.4,.4,.5),
-                          (.025,.025,.025), pose=frame.link_poses['link_3'].copy())
+                          (.025,.025,.025), pose=frame.link_poses[self.scene.imu_target_link].copy())
         output.markers.append(imu)
         if stiffness is not None:
             output.markers.append(stiffness)

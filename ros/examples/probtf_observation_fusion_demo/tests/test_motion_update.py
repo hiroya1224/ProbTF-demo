@@ -238,14 +238,15 @@ def test_live_computes_publishes_then_selects_each_command_and_restarts_from_ini
             events.append(('display', index))
 
     class AuditedController(original_controller):
-        def step(self, result, dt, *, stiffness_proposal=None):
+        def step(self, result, dt, *, stiffness_proposal=None, command_map=None):
             wire = publishers['/observation_fusion/snapshot'].payloads[-1]
             actual = json.loads(String().deserialize(wire).data)
             assert actual['stamp'] == result.prior.stamp
             assert actual['command'] == list(result.prior.command)
             assert events[-1][0] == 'display'
             events.append(('select_command', actual['stamp']))
-            return super().step(result, dt, stiffness_proposal=stiffness_proposal)
+            return super().step(result, dt, stiffness_proposal=stiffness_proposal,
+                                command_map=command_map)
 
     monkeypatch.setattr(motion_node, 'MovingSwitchScene', ShortScene)
     monkeypatch.setattr(motion_node, 'MovingController', AuditedController)
@@ -312,6 +313,29 @@ def test_live_computes_publishes_then_selects_each_command_and_restarts_from_ini
     live.advance(None)  # Retain the last complete pair and disclose the stop.
     live.replay(None)
     assert live.failure is None and live.session.index == 1
+    # A bounded marker experiment must stop visibly without claiming the
+    # original duration was completed or repeatedly fusing its final image.
+    live.max_updates = 2
+    live.advance(None)
+    assert live.session.index == 2 and not live.session.finished
+    assert live.timing()['paused_at_update_limit'] is True
+    count = len(publishers['/observation_fusion/snapshot'].payloads)
+    lines = (live.session.output/'estimation.jsonl').read_bytes()
+    for _ in range(3):
+        live.advance(None)
+    assert live.session.index == 2
+    assert len(publishers['/observation_fusion/snapshot'].payloads) == count
+    assert (live.session.output/'estimation.jsonl').read_bytes() == lines
+    metadata = json.loads(String().deserialize(
+        publishers['/observation_fusion/motion_metadata'].payloads[-1]).data)
+    assert metadata['paused_at_update_limit'] and not metadata['finished']
+    manifest = json.loads((live.session.output/'motion_manifest.json').read_text())
+    trajectory = json.loads((live.session.output/'physical_trajectory.json').read_text())
+    commands = json.loads((live.session.output/'sent_commands.json').read_text())
+    assert manifest['updates'] == len(trajectory) == len(commands) == 2
+    assert manifest['completed'] is False
+    assert trajectory[-1]['stamp'] == live.current_tick.frame.stamp
+    assert commands[-1]['command'] == list(live.current_tick.snapshot.command)
 
 
 @pytest.mark.parametrize('case', ['no_sensors', 'imu', 'marker', 'imu_marker'])

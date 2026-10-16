@@ -25,6 +25,7 @@ from .moving_inference import MovingInference
 from .moving_control import MovingController
 from .motion_display import MotionDisplay
 from .stiffness_identification import StiffnessIdentifier
+from .stiffness_command import StiffnessCommandMap
 from .node import build_snapshot, image_message
 
 
@@ -77,6 +78,7 @@ class MotionTick:
     image: object
     path: Path
     timings: dict
+    command_map: object = None
 
 
 class MotionSession:
@@ -108,6 +110,8 @@ class MotionSession:
         self.sent_commands, self.stiffness_counts = [], {}
         self.initial_stiffness = None
         self.command_proposal_used = False
+        self.command_correction_used = False
+        self.command_map_for_prediction = None
         self.work_seconds = 0.
         self.sources = tuple(sorted(Path(__file__).parent.glob('*.py')))
         self.source_hashes = self._source_hashes()
@@ -127,14 +131,27 @@ class MotionSession:
         frame = self.scene.step(elapsed, stamp=1792080000.+elapsed, command=self.command)
         timings = {'physics_and_camera': time.monotonic()-previous}
         previous = time.monotonic()
-        result = self.inference.update(self.scene.sensor_inputs(frame), self.index)
+        result = self.inference.update(self.scene.sensor_inputs(frame), self.index,
+                                       command_map=self.command_map_for_prediction)
         timings['inference'] = time.monotonic()-previous
         previous = time.monotonic()
         stiffness_record = self.stiffness.update(result)
         timings['stiffness_update'] = time.monotonic()-previous
         previous = time.monotonic()
-        self.stiffness.command_proposal(result)
+        proposal = self.stiffness.command_proposal(result)
         result.records['stiffness'] = stiffness_record
+        if self.stiffness.factors and proposal is None:
+            raise ValueError('The estimated stiffness cannot define the requested corrected IK action: '
+                             + str(stiffness_record.get('proposal_failure_reason')))
+        command_map = (None if proposal is None
+                       else StiffnessCommandMap(self.stiffness, result, proposal))
+        stiffness_record['command_correction'] = None if command_map is None else command_map.record()
+        stiffness_record['body_reconstructed_from_stiffness'] = False
+        stiffness_record['feedback_to_observation_update'] = False
+        stiffness_record['feedback_to_body_prediction'] = command_map is not None
+        if command_map is not None:
+            stiffness_record['feedback_to_body'] = True
+            stiffness_record['feedback_to_control'] = 'one-step IK and the same next-prior equilibrium increment'
         timings['stiffness_command_proposal'] = time.monotonic()-previous
         previous = time.monotonic()
         snapshot = replace(build_snapshot(result, result.stages[-1], self.inference.common),
@@ -151,7 +168,8 @@ class MotionSession:
             raise IOError('Could not save the observation image: ' + str(path))
         timings['render_verify_and_save'] = time.monotonic()-previous
         timings['observation_work'] = time.monotonic()-started
-        self.pending = MotionTick(self.index, frame, result, snapshot, markers, image, path, timings)
+        self.pending = MotionTick(self.index, frame, result, snapshot, markers, image, path,
+                                  timings, command_map)
         return self.pending
 
     def finish(self, tick):
@@ -162,7 +180,9 @@ class MotionSession:
             proposal = tick.snapshot.stiffness_record.get('command_proposal')
             self.command, diagnostics = self.controller.step(
                 tick.result, self.times[tick.index+1]-self.times[tick.index],
-                stiffness_proposal=proposal)
+                stiffness_proposal=proposal, command_map=tick.command_map)
+            self.command_map_for_prediction = tick.command_map
+            self.command_correction_used = self.command_correction_used or tick.command_map is not None
             self.command_proposal_used = self.command_proposal_used or proposal is not None
         else:
             diagnostics = dict(status='common_duration_complete',
@@ -232,7 +252,10 @@ class MotionSession:
             minimum_clearance_m=self.scene.monitor.minimum_clearance,
             stiffness_prior=self.initial_stiffness, stiffness_posterior=stiffness['posterior'],
             stiffness_retained_memory=(stiffness['posterior'] if stiffness['posterior'] is not None else stiffness['retained_prior']),
-            stiffness_status_counts=dict(self.stiffness_counts), stiffness_feeds_body=False,
+            stiffness_status_counts=dict(self.stiffness_counts),
+            stiffness_feeds_body=self.command_correction_used,
+            stiffness_feeds_body_prediction=self.command_correction_used,
+            body_reconstructed_from_stiffness=False,
             stiffness_command_proposal_enabled=True, stiffness_feeds_body_or_control=self.command_proposal_used)
         (self.output/'motion_manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
         return manifest
@@ -370,9 +393,13 @@ class MotionLive:
     the experiment's wall rate; it never advances physics under an old cloud.
     No prepared trajectory, image, or distribution is read by this executor.
     """
-    def __init__(self, observations_path, output, case, autostart, *, imu_target_link=None):
+    def __init__(self, observations_path, output, case, autostart, *, imu_target_link=None,
+                 max_updates=0):
         self.observations_path, self.output, self.case = observations_path, Path(output), case
         self.imu_target_link = imu_target_link
+        self.max_updates = int(max_updates)
+        if self.max_updates < 0:
+            raise ValueError('max_updates must be zero (unlimited) or a positive observation count.')
         self.lock = RLock()
         self.replays = 0
         self.failure = None
@@ -400,7 +427,10 @@ class MotionLive:
         return dict(execution_mode='live', simulated_step_s=self.session.period,
                     wall_elapsed_s=elapsed, actual_update_hz=hz,
                     failure_reason=None if self.failure is None else self.failure['failure_reason'],
-                    realtime_factor=simulated/elapsed if elapsed > 0 else None)
+                    realtime_factor=simulated/elapsed if elapsed > 0 else None,
+                    requested_update_limit=self.max_updates,
+                    paused_at_update_limit=(self.max_updates > 0
+                        and self.session.index >= self.max_updates and not self.session.finished))
 
     def _run_tick(self):
         tick = self.session.observe()
@@ -415,7 +445,8 @@ class MotionLive:
                              stiffness_record=tick.snapshot.stiffness_record, execution=self.timing())
         # Every same-time publication above precedes next-command selection.
         self.session.finish(tick)
-        if self.common_manifest is None or self.session.finished:
+        if (self.common_manifest is None or self.session.finished
+                or self.timing()['paused_at_update_limit']):
             self.common_manifest = self.session.write_manifest(mode='live')
         metadata = dict(self.common_manifest, **self.timing(),
             sample_index=tick.index, scene_elapsed=tick.frame.time,
@@ -436,6 +467,8 @@ class MotionLive:
             computation_wall_seconds=self.session.work_seconds,
             computation_frames_per_second=self.session.index/self.session.work_seconds,
             stiffness_feeds_body_or_control=self.session.command_proposal_used,
+            stiffness_feeds_body=self.session.command_correction_used,
+            stiffness_feeds_body_prediction=self.session.command_correction_used,
             stiffness_status_counts=dict(self.session.stiffness_counts))
         if not self.session.finished:
             metadata.update(command_sha256=None, physics_sha256=None)
@@ -443,7 +476,8 @@ class MotionLive:
 
     def advance(self, _event):
         with self.lock:
-            if self.failure is None and self.started is not None and not self.session.finished:
+            if (self.failure is None and self.started is not None and not self.session.finished
+                    and not self.timing()['paused_at_update_limit']):
                 try:
                     self._run_tick()
                 except Exception as error:
@@ -495,9 +529,10 @@ def main():
     mode = rospy.get_param('~execution_mode', 'live')
     autostart = bool(rospy.get_param('~autostart', True))
     imu_target_link = rospy.get_param('~imu_target_link', '') or None
+    max_updates = int(rospy.get_param('~max_updates', 0))
     if mode == 'live':
         playback = MotionLive(observations, output, observations.stem, autostart,
-                              imu_target_link=imu_target_link)
+                              imu_target_link=imu_target_link, max_updates=max_updates)
         rospy.loginfo('Live sequential execution: simulation dt %.3f s; actual wall rate is measured.',
                       playback.session.period)
     elif mode == 'prepared_playback':

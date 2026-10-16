@@ -81,6 +81,37 @@ def test_replay_robot_tf_and_physical_path_do_not_use_future_frame(tmp_path, mon
                                [first.tip, second.tip], atol=1e-14)
 
 
+@pytest.mark.parametrize('target_link', ['link_3', 'tool0'])
+def test_published_imu_mount_uses_configured_link_in_the_displayed_frame(tmp_path, monkeypatch, target_link):
+    scene = MovingSwitchScene(tmp_path, imu_target_link=target_link)
+    frame = scene.step(0., 1792080000.)
+    # Publish a retained frame after the physical model has advanced: the glyph
+    # must use that frame's configured attachment, not a later FK or link_3.
+    later = scene.step(1., 1792080001., command=scene.initial_command + .02)
+    display = MotionDisplay.__new__(MotionDisplay)
+    display.scene, display.case, display.sensor_names = scene, 'imu', ('imu',)
+    display.tag_texture = cv2.imread(str(scene.texture_path), cv2.IMREAD_GRAYSCALE)
+    display.transforms, display.publisher = Capture(), Capture()
+    display.marker_id = 0
+    monkeypatch.setattr(rospy.Time, 'now', staticmethod(lambda: rospy.Time.from_sec(8000.)))
+    display.publish(frame, 0, SimpleNamespace(observation_ids=(), stamp=frame.stamp), 0)
+    stream = io.BytesIO()
+    display.publisher.messages.serialize(stream)
+    wire = MarkerArray().deserialize(stream.getvalue())
+    imu = next(marker for marker in wire.markers if marker.ns == 'imu_mount')
+    actual = np.eye(4)
+    actual[:3, 3] = [imu.pose.position.x, imu.pose.position.y, imu.pose.position.z]
+    actual[:3, :3] = Rotation.from_quat([
+        imu.pose.orientation.x, imu.pose.orientation.y,
+        imu.pose.orientation.z, imu.pose.orientation.w]).as_matrix()
+    assert imu.header.frame_id == 'base_link'
+    np.testing.assert_allclose(actual, frame.link_poses[target_link], atol=1e-14)
+    assert not np.allclose(actual, later.link_poses[target_link])
+    if target_link == 'tool0':
+        assert not np.allclose(actual, frame.link_poses['link_3'])
+    np.testing.assert_allclose([imu.scale.x, imu.scale.y, imu.scale.z], [.025]*3)
+
+
 @pytest.fixture(scope='module')
 def stiffness_display_input(tmp_path_factory):
     scene = MovingSwitchScene(tmp_path_factory.mktemp('stiffness_display'))

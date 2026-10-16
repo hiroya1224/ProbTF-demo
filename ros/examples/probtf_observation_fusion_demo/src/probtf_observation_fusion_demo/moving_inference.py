@@ -8,6 +8,7 @@ physical pose, stiffness or invented process covariance enters this update.
 from copy import deepcopy
 from dataclasses import replace
 import hashlib
+import json
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -168,12 +169,14 @@ class MovingInference:
             transforms, version=3*int(frame_index)+1, stamp=float(stamp),
             command=tuple(command), component_id="common_body_prior")
 
-    def update(self, sensor_inputs, frame_index):
+    def update(self, sensor_inputs, frame_index, *, command_map=None):
         """Run one same-time common update; duplicate ticks return that snapshot."""
         key = (int(frame_index), float(sensor_inputs.stamp), tuple(sensor_inputs.command))
         signature = hashlib.sha256(np.asarray(sensor_inputs.image).tobytes()
             + np.asarray(sensor_inputs.gravity_in_sensor).tobytes()
-            + repr((sensor_inputs.imu_target_link, sensor_inputs.imu_sigma_rad)).encode()).hexdigest()
+            + repr((sensor_inputs.imu_target_link, sensor_inputs.imu_sigma_rad)).encode()
+            + (b'' if command_map is None else json.dumps(command_map.record(),
+                sort_keys=True, separators=(',', ':')).encode())).hexdigest()
         if key == self.last_key:
             if signature != self.last_observation_signature:
                 raise ValueError("A repeated physical tick contains different observation data.")
@@ -189,8 +192,10 @@ class MovingInference:
         else:
             priors = []
             for index, source in enumerate(self.components):
-                predicted = command_state(source.state, sensor_inputs.command,
-                                          self.body_ids, self.actions)
+                predicted = (command_state(source.state, sensor_inputs.command,
+                                           self.body_ids, self.actions) if command_map is None
+                             else command_map.push(source.state, sensor_inputs.command,
+                                                   self.body_ids, self.actions))
                 label = "predicted:{}:{}".format(int(frame_index), index)
                 predicted = replace(predicted, version=3*int(frame_index)+1,
                     stamp=float(sensor_inputs.stamp), component_id=label)
@@ -220,9 +225,14 @@ class MovingInference:
         result = run(self.common, tuple(observations), sensor_inputs.image,
                      prior_components=priors, paths=self.paths)
         result.records["prediction"] = prediction
+        result.records["prediction_command_correction"] = (
+            None if command_map is None else command_map.record())
+        result.records["prediction_command_action"] = (
+            None if command_map is None else command_map.selection_record(sensor_inputs.command))
         result.records["moving_input_family"] = {
             "law_id": self.law["law_id"], "revision": self.law["revision"],
-            "command_family": "configured Bingham right action; translation law unchanged",
+            "command_family": ("configured Bingham right action; translation law unchanged"
+                if command_map is None else "same posterior right action by the previous cycle's frozen estimated-K equilibrium increment; translation law unchanged"),
             "temporal_policy": "initial independent family once; retain every posterior component and push full joint law through the declared right action at the next command",
             "initialization": not bool(self.components),
             "frame_index": int(frame_index), "time": float(sensor_inputs.time),

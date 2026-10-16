@@ -5,6 +5,7 @@
   <arg name="moving" default="true" />
   <arg name="execution_mode" default="live" />
   <arg name="imu_target_link" default="" />
+  <arg name="max_updates" default="0" />
   <arg name="entry" default="$(eval 'observation_fusion_motion.py' if arg('moving') else 'observation_fusion_demo.py')" />
   <arg name="rviz_config" default="$(eval find('probtf_observation_fusion_demo') + '/rviz/' + ('observation_fusion_motion.rviz' if arg('moving') else 'observation_fusion_demo.rviz'))" />
   <arg name="autostart" default="true" />
@@ -22,6 +23,7 @@
     <param name="autostart" value="$(arg autostart)" />
     <param name="execution_mode" value="$(arg execution_mode)" />
     <param name="imu_target_link" value="$(arg imu_target_link)" />
+    <param name="max_updates" value="$(arg max_updates)" />
     <param name="stage_seconds" value="$(arg stage_seconds)" />
   </node>
   <node if="$(arg rviz)" pkg="rviz" type="rviz" name="observation_fusion_rviz"

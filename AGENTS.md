@@ -1,5 +1,16 @@
 # 必須条件
 
+## 身体側と目標側のmixtureの区別（2026年10月17日）
+
+ユーザーの追加指示により、身体側を解析的に単一Binghamへ近似することは許可されている。
+これは推定問題に置く近似の許可であり、ProbTF coreの既定法則を変更する許可ではない。
+ARマーカーの観測側と、手先リーチングの規準に渡す目標分布 `p_goal` はmixtureを保持する。
+観測成分を記録に残すだけで、規準に渡す目標を単一化してはならない。
+各目標成分との重なりを混合重み付きで足してから対数を取り、全成分を指令選定へ反映する。
+最大重み・最近傍の一成分だけの選択、目標の平均への置換、成分ごとの対数の平均は禁止する。
+身体側への近似許可を、目標の過去候補の破棄や身体・目標間の依存の任意変更へ拡張解釈してはならない。
+詳細と現実装の規準の区別は `ros/examples/probtf_observation_fusion_demo/REQUIREMENTS_SEQUENTIAL_UPDATE.md` を参照する。
+
 ## 逐次更新の優先訂正（2026年10月16日）
 
 `ros/examples/probtf_observation_fusion_demo/REQUIREMENTS_SEQUENTIAL_UPDATE.md`

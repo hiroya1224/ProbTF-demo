@@ -4,6 +4,9 @@
 全リンクの事後分布とリンク間の依存を保持し、同じcore snapshotへの原点・軸端点照会をRVizで表示する。
 実装の契約は [REQUIREMENTS.md](REQUIREMENTS.md) に保存した指示書全文。
 
+[実行動画（MP4・16秒）](../../../recordings/probtf_observation_fusion_demo/imu_marker_rviz_20261016.mp4)では、
+実際のRVizで事前→IMU単独推定→カメラ単独推定→融合後の分布更新を確認できる。
+
 ## 起動
 
     cd ~/catkin_ws

@@ -257,6 +257,111 @@ class MovingController:
             metric += component.weight*(jacobian.T @ precision @ jacobian)
         return metric
 
+    def _command_bounds(self, command, dt, *, position_lower=None,
+                        position_upper=None, max_speed=None):
+        """Shared feasible increments, including room to brake at each limit."""
+        command = np.asarray(command, dtype=float)
+        dt = float(dt)
+        if (command.shape != self.velocity.shape or not np.all(np.isfinite(command))
+                or not np.isfinite(dt) or dt <= 0.):
+            raise ValueError('Command bounds require one finite command per joint and a positive interval.')
+        lower_position = self.lower
+        upper_position = self.upper
+        if position_lower is not None:
+            value = np.asarray(position_lower, dtype=float)
+            if value.shape != command.shape or not np.all(np.isfinite(value)):
+                raise ValueError('Local position bounds require one finite position per joint.')
+            lower_position = np.maximum(lower_position, value)
+        if position_upper is not None:
+            value = np.asarray(position_upper, dtype=float)
+            if value.shape != command.shape or not np.all(np.isfinite(value)):
+                raise ValueError('Local position bounds require one finite position per joint.')
+            upper_position = np.minimum(upper_position, value)
+        if np.any(lower_position > upper_position):
+            raise ValueError('Local position bounds have no overlap with the joint limits.')
+        speed = self.speed
+        if max_speed is not None:
+            value = np.asarray(max_speed, dtype=float)
+            if (value.shape not in ((), command.shape) or not np.all(np.isfinite(value))
+                    or np.any(value < 0.)):
+                raise ValueError('A local speed cap must be finite and nonnegative.')
+            speed = np.minimum(speed, value)
+        # For an outward next velocity w and remaining distance D, require
+        # dt*w+w*w/(2*a) <= D. Maximum discrete braking then consumes no more
+        # room. This rationalized positive root avoids cancellation at a limit.
+        braking_change = self.acceleration*dt
+        lower_distance = np.maximum(command-lower_position, 0.)
+        upper_distance = np.maximum(upper_position-command, 0.)
+        lower_stopping_speed = (2.*self.acceleration*lower_distance
+            /(np.sqrt(braking_change**2+2.*self.acceleration*lower_distance)+braking_change))
+        upper_stopping_speed = (2.*self.acceleration*upper_distance
+            /(np.sqrt(braking_change**2+2.*self.acceleration*upper_distance)+braking_change))
+        lower = np.maximum(lower_position-command,
+            dt*np.maximum(np.maximum(-speed, self.velocity-braking_change), -lower_stopping_speed))
+        upper = np.minimum(upper_position-command,
+            dt*np.minimum(np.minimum(speed, self.velocity+braking_change), upper_stopping_speed))
+        if np.any(lower > upper+1e-14):
+            raise ValueError('The joint, speed and acceleration limits have no common short command.')
+        return lower, upper, lower_stopping_speed, upper_stopping_speed
+
+    def _selection_sources(self, result, body_components, components,
+                           next_command, command_map, selected_branches):
+        """Use the same full candidate provenance for reaching and searching."""
+        if getattr(result.stages[-1], 'goal_components', ()):
+            selected_body_ids = [(command_state(item.state, next_command,
+                self.body_ids, self.actions) if command_map is None else command_map.push(
+                    item.state, next_command, self.body_ids, self.actions)).state_id
+                for item in body_components]
+        else:
+            selected_body_ids = [branch['state_id'] for branch in selected_branches]
+        return {
+            "command_propagation": ("declared rigid joint action" if command_map is None
+                                    else "estimated-K anchored equilibrium joint action"),
+            "stiffness_command_correction": (None if command_map is None else command_map.record()),
+            "selected_command_action": (None if command_map is None
+                                        else command_map.selection_record(next_command)),
+            "global_optimum_claimed": False, "observation_stamp": float(result.prior.stamp),
+            "source_stamp": float(result.prior.stamp),
+            "source_version": int(components[0].state.version),
+            "source_versions": [int(component.state.version) for component in components],
+            "source_observation_ids": list(result.records["observation_ids"]),
+            "source_command": list(result.prior.command), "next_command": next_command.tolist(),
+            "source_state_ids": [component.state.state_id for component in components],
+            "source_weights": [float(component.weight) for component in components],
+            "source_log_weights": [_component_log_weight(component) for component in components],
+            "body_source_state_ids": [component.state.state_id for component in body_components],
+            "body_source_versions": [int(component.state.version) for component in body_components],
+            "body_source_weights": [float(component.weight) for component in body_components],
+            "body_source_log_weights": [_component_log_weight(component) for component in body_components],
+            "selected_body_state_ids": selected_body_ids,
+            "goal_source_state_ids": [component.state.state_id for component in components],
+            "goal_source_versions": [int(component.state.version) for component in components],
+            "goal_source_weights": [float(component.weight) for component in components],
+            "goal_source_log_weights": [_component_log_weight(component) for component in components],
+            "goal_parent_internal_state_id": (body_components[0].state.state_id
+                if getattr(result.stages[-1], 'goal_components', ()) else None),
+            "fixed_goal_memory_available": result.records.get('fixed_goal_memory', {}).get('available', False),
+            "goal_memory_observation_stamp": result.records.get('fixed_goal_memory', {}).get('observation_stamp'),
+            "root_goal_candidates": [dict(
+                label=component.label, weight=float(component.weight),
+                log_weight=_component_log_weight(component),
+                source_state_id=component.state.state_id,
+                source_stamp=component.state.stamp, source_version=component.state.version,
+                source_command=list(component.state.command),
+                points=[dict(axis=axis, mean=query.mean.tolist(),
+                    covariance=query.covariance.tolist(),
+                    within=query.within.tolist(), between=query.between.tolist(),
+                    query_id=query.query_id)
+                    for axis, query in switch_goal_queries(component.state,
+                        self.marker_path, self.goal_offset, self.goal_orientation, self.goal_axis_length,
+                        frame=self.root_frame)]) for component in components],
+            "relative_path": [list(item) for item in self.relative_path],
+            "goal_offset": self.goal_offset.tolist(),
+            "goal_orientation_wxyz": self.goal_orientation.tolist(),
+            "physical_truth_received": False,
+            "orientation_reexpression": "modal quaternion times first-order mean correction; covariance unchanged to first order",
+        }
+
     def step(self, result, dt, *, stiffness_proposal=None, command_map=None):
         dt = float(dt)
         if not np.isfinite(dt) or dt <= 0.0:
@@ -273,24 +378,7 @@ class MovingController:
             state = component.state
             if state.stamp != result.prior.stamp or state.command != result.prior.command:
                 raise ValueError("Control candidates must share the current command and observation time.")
-        # Leave room to brake after this short position command.  For an
-        # outward next velocity w and remaining joint distance D, require
-        # dt*w+w*w/(2*a) <= D.  The next state then retains its continuous
-        # stopping distance; maximum discrete braking consumes no more room.
-        # The rationalized positive root avoids cancellation close to a limit.
-        braking_change = self.acceleration*dt
-        lower_distance = np.maximum(command-self.lower, 0.)
-        upper_distance = np.maximum(self.upper-command, 0.)
-        lower_stopping_speed = (2.*self.acceleration*lower_distance
-            /(np.sqrt(braking_change**2+2.*self.acceleration*lower_distance)+braking_change))
-        upper_stopping_speed = (2.*self.acceleration*upper_distance
-            /(np.sqrt(braking_change**2+2.*self.acceleration*upper_distance)+braking_change))
-        lower = np.maximum(self.lower-command,
-            dt*np.maximum(np.maximum(-self.speed, self.velocity-braking_change), -lower_stopping_speed))
-        upper = np.minimum(self.upper-command,
-            dt*np.minimum(np.minimum(self.speed, self.velocity+braking_change), upper_stopping_speed))
-        if np.any(lower > upper+1e-14):
-            raise ValueError("The joint, speed and acceleration limits have no common short command.")
+        lower, upper, lower_stopping_speed, upper_stopping_speed = self._command_bounds(command, dt)
         cache = {}
 
         def evaluate(increment):
@@ -415,62 +503,11 @@ class MovingController:
                            | (at_upper & (raw_gradient < 0.0))] = 0.0
         self.velocity = increment/dt
         next_command = command + increment
-        if getattr(result.stages[-1], 'goal_components', ()):
-            selected_body_ids = [(command_state(item.state, next_command,
-                self.body_ids, self.actions) if command_map is None else command_map.push(
-                    item.state, next_command, self.body_ids, self.actions)).state_id
-                for item in body_components]
-        else:
-            selected_body_ids = [branch['state_id'] for branch in selected[2]]
         diagnostics = {
-            "command_propagation": ("declared rigid joint action" if command_map is None
-                                    else "estimated-K anchored equilibrium joint action"),
-            "stiffness_command_correction": (None if command_map is None else command_map.record()),
-            "selected_command_action": (None if command_map is None
-                                        else command_map.selection_record(next_command)),
+            **self._selection_sources(result, body_components, components,
+                                      next_command, command_map, selected[2]),
             "method": "one projected complete-objective gradient update with Armijo backtracking",
-            "global_optimum_claimed": False, "observation_stamp": float(result.prior.stamp),
-            "source_stamp": float(result.prior.stamp),
-            "source_version": int(components[0].state.version),
-            "source_versions": [int(component.state.version) for component in components],
-            "source_observation_ids": list(result.records["observation_ids"]),
-            "source_command": command.tolist(), "next_command": next_command.tolist(),
             "duration": dt, "increment": increment.tolist(), "velocity": self.velocity.tolist(),
-            "source_state_ids": [component.state.state_id for component in components],
-            "source_weights": [float(component.weight) for component in components],
-            "source_log_weights": [float(getattr(component, 'log_weight', None)
-                if getattr(component, 'log_weight', None) is not None else (
-                    np.log(component.weight) if component.weight > 0.0 else -np.inf))
-                for component in components],
-            "body_source_state_ids": [component.state.state_id for component in body_components],
-            "body_source_versions": [int(component.state.version) for component in body_components],
-            "body_source_weights": [float(component.weight) for component in body_components],
-            "body_source_log_weights": [_component_log_weight(component) for component in body_components],
-            "selected_body_state_ids": selected_body_ids,
-            "goal_source_state_ids": [component.state.state_id for component in components],
-            "goal_source_versions": [int(component.state.version) for component in components],
-            "goal_source_weights": [float(component.weight) for component in components],
-            "goal_source_log_weights": [_component_log_weight(component) for component in components],
-            "goal_parent_internal_state_id": (body_components[0].state.state_id
-                if getattr(result.stages[-1], 'goal_components', ()) else None),
-            "fixed_goal_memory_available": result.records.get('fixed_goal_memory', {}).get('available', False),
-            "goal_memory_observation_stamp": result.records.get('fixed_goal_memory', {}).get('observation_stamp'),
-            "root_goal_candidates": [dict(
-                label=component.label, weight=float(component.weight),
-                log_weight=_component_log_weight(component),
-                source_state_id=component.state.state_id,
-                source_stamp=component.state.stamp, source_version=component.state.version,
-                source_command=list(component.state.command),
-                points=[dict(axis=axis, mean=query.mean.tolist(),
-                    covariance=query.covariance.tolist(),
-                    within=query.within.tolist(), between=query.between.tolist(),
-                    query_id=query.query_id)
-                    for axis, query in switch_goal_queries(component.state,
-                        self.marker_path, self.goal_offset, self.goal_orientation, self.goal_axis_length,
-                        frame=self.root_frame)]) for component in components],
-            "relative_path": [list(item) for item in self.relative_path],
-            "goal_offset": self.goal_offset.tolist(),
-            "goal_orientation_wxyz": self.goal_orientation.tolist(),
             "log_expected_density": selected[0],
             "objective_evaluation_count": len(cache),
             "gradient_evaluation_count": 1,
@@ -506,7 +543,131 @@ class MovingController:
                 (-lower_stopping_speed, upper_stopping_speed)).tolist(),
             "joint_limit_braking_condition": "dt*abs(outward next velocity) + velocity**2/(2*max_acceleration) <= distance to joint limit",
             "selected_branches": selected[2],
-            "physical_truth_received": False,
-            "orientation_reexpression": "modal quaternion times first-order mean correction; covariance unchanged to first order",
+        }
+        return next_command, diagnostics
+
+    def local_step(self, result, dt, *, mode, target_command=None,
+                   max_speed=None, position_lower=None, position_upper=None,
+                   command_map=None):
+        """Brake or execute a bounded local search, retaining the same laws.
+
+        The search policy supplies command-space waypoints, not physical poses
+        or replacement candidate distributions. A target uses the same
+        stopping-distance bound as the joint limits. The full current goal
+        mixture is queried once at the selected command for diagnostics; that
+        criterion is not used to select or accept a search move.
+        """
+        if mode not in {'braking', 'settling', 'searching', 'search_exhausted'}:
+            raise ValueError('A local marker action requires an explicit braking or search mode.')
+        dt = float(dt)
+        if not np.isfinite(dt) or dt <= 0.:
+            raise ValueError('The next command interval must be positive and finite.')
+        command = np.asarray(result.prior.command, dtype=float)
+        if command.shape != self.velocity.shape:
+            raise ValueError('Command dimension differs from the configured joint limits.')
+        body_components, components = control_components(result)
+        if command_map is not None:
+            command_map.validate_result(result)
+        if not components or not np.isclose(sum(item.weight for item in components), 1.):
+            raise ValueError('The fused candidate weights must already be normalized.')
+        for component in components:
+            state = component.state
+            if state.stamp != result.prior.stamp or state.command != result.prior.command:
+                raise ValueError('Control candidates must share the current command and observation time.')
+        lower, upper, lower_stopping_speed, upper_stopping_speed = self._command_bounds(
+            command, dt, position_lower=position_lower,
+            position_upper=position_upper, max_speed=max_speed)
+        previous_velocity = self.velocity.copy()
+        baseline = np.clip(np.zeros_like(self.velocity), lower, upper)
+        target = None
+        target_stopping_speed = None
+        if target_command is None:
+            increment = baseline.copy()
+        else:
+            target = np.asarray(target_command, dtype=float)
+            if target.shape != command.shape or not np.all(np.isfinite(target)):
+                raise ValueError('A local search target must contain one finite position per joint.')
+            difference = target-command
+            distance = np.abs(difference)
+            braking_change = self.acceleration*dt
+            target_stopping_speed = (2.*self.acceleration*distance
+                /(np.sqrt(braking_change**2+2.*self.acceleration*distance)+braking_change))
+            speed = (self.speed if max_speed is None else
+                     np.minimum(self.speed, np.asarray(max_speed, dtype=float)))
+            desired_velocity = np.sign(difference)*np.minimum(target_stopping_speed, speed)
+            increment = np.clip(dt*desired_velocity, lower, upper)
+        next_command = command+increment
+        branches, terms = [], []
+        for component in components:
+            trial_state = (command_state(component.state, next_command,
+                                         self.body_ids, self.actions) if command_map is None
+                           else command_map.push(component.state, next_command,
+                                                 self.body_ids, self.actions))
+            query = self._query(trial_state)
+            log_density, branch = _relative_density(
+                query, self.goal_offset, self.goal_orientation, self.integration_steps)
+            log_weight = _component_log_weight(component)
+            branch.update(label=component.label, weight=float(component.weight),
+                          log_weight=log_weight, state_id=trial_state.state_id,
+                          parent_state_id=component.state.state_id,
+                          parent_command=list(component.state.command),
+                          parent_stamp=float(component.state.stamp))
+            branches.append(branch)
+            terms.append(log_weight+log_density)
+        log_density = float(logsumexp(terms))
+        sources = self._selection_sources(result, body_components, components,
+                                          next_command, command_map, branches)
+        self.velocity = increment/dt
+        selected_is_baseline = bool(np.array_equal(increment, baseline))
+        diagnostics = {
+            **sources,
+            "method": 'deterministic local marker '+mode+' command; complete objective is diagnostic only',
+            "action_mode": mode,
+            "duration": dt, "increment": increment.tolist(), "velocity": self.velocity.tolist(),
+            "previous_velocity": previous_velocity.tolist(),
+            "target_command": None if target is None else target.tolist(),
+            "target_stopping_speed": (None if target_stopping_speed is None
+                                      else target_stopping_speed.tolist()),
+            "local_max_speed": None if max_speed is None else np.asarray(max_speed).tolist(),
+            "local_position_lower": None if position_lower is None else np.asarray(position_lower).tolist(),
+            "local_position_upper": None if position_upper is None else np.asarray(position_upper).tolist(),
+            "log_expected_density": log_density,
+            "objective_used_for_command_selection": False,
+            "objective_evaluation_count": 1,
+            "gradient_evaluation_count": 0,
+            "gradient_method": 'not evaluated during a deterministic local marker action',
+            "gradient_step": self.gradient_step,
+            "gradient_difference_steps": None,
+            "gradient_at_command": None,
+            "gradient_at_state_ids": [],
+            "objective_gradient": None,
+            "projected_gradient_at_baseline": None,
+            "projected_gradient_norm_at_baseline": None,
+            "preconditioner": None,
+            "preconditioner_damping": None,
+            "preconditioner_matrix": None,
+            "feasible_baseline_increment": baseline.tolist(),
+            "feasible_baseline_objective": -log_density if selected_is_baseline else None,
+            "braking_baseline_increment": baseline.tolist(),
+            "braking_baseline_objective": -log_density if selected_is_baseline else None,
+            "stiffness_initial_proposal": {
+                'available': result.records.get('stiffness', {}).get('command_proposal') is not None,
+                'accepted_as_initial_point': False,
+                'role': 'not used for local waypoints; the recorded estimated-K command action still propagates the same body law'},
+            "line_search_accepted": False,
+            "step_scale": None,
+            "step_backtracks": 0,
+            "line_search": [],
+            "improved_from_feasible_baseline": None,
+            "zero_increment_feasible": bool(np.all(lower <= 0.) and np.all(upper >= 0.)),
+            "baseline_motion_required_by_acceleration_limits": bool(np.any(lower > 0.) or np.any(upper < 0.)),
+            "selection_reason": ('maximum feasible braking toward zero velocity' if target is None
+                                 else 'bounded local search waypoint with stopping-distance speed'),
+            "convergence_claimed": False,
+            "increment_bounds": np.column_stack((lower, upper)).tolist(),
+            "joint_limit_stopping_speed_bounds": np.column_stack(
+                (-lower_stopping_speed, upper_stopping_speed)).tolist(),
+            "joint_limit_braking_condition": 'dt*abs(outward next velocity) + velocity**2/(2*max_acceleration) <= distance to active position limit',
+            "selected_branches": branches,
         }
         return next_command, diagnostics

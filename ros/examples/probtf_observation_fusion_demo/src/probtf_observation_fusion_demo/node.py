@@ -105,7 +105,8 @@ def build_snapshot(result, stage, common):
     snapshot = DisplaySnapshot(tuple(points), result.root_frame, state.stamp,
                                tuple(state.command), state.version, stage.label,
                                observation_ids, summary,
-                               goal_memory=result.records.get('fixed_goal_memory'))
+                               goal_memory=result.records.get('fixed_goal_memory'),
+                               behavior=result.records.get('behavior'))
     verify_adapter_identity(snapshot, stage)
     return snapshot
 

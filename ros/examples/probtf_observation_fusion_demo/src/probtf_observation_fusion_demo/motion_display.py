@@ -6,6 +6,7 @@ import numpy as np
 import rospy
 from geometry_msgs.msg import TransformStamped
 from scipy.spatial.transform import Rotation
+from std_msgs.msg import ColorRGBA
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
 
@@ -27,6 +28,29 @@ class MotionDisplay:
     # Reuse the original switch's geometry drawing and AprilTag bitmap.
     marker = SwitchDisplay.marker
     points = staticmethod(SwitchDisplay.points)
+
+    @staticmethod
+    def _color_action_path(marker, trajectory):
+        """Color each executed interval, without recoloring its history.
+
+        The arriving trajectory row records the command interval that produced
+        it.  This differs from its next action after a new image is processed:
+        a final search move may already have reacquired the marker.  Separate
+        line segments keep a search/reaching boundary from blending colors.
+        These points remain the physical reference path, not a candidate law.
+        """
+        if len(marker.points) != len(trajectory):
+            raise AssertionError('Physical path points and recorded command intervals differ.')
+        points, colors = [], []
+        modes = {'reaching', 'braking', 'settling', 'searching', 'search_exhausted'}
+        for start, end, row in zip(marker.points, marker.points[1:], trajectory[1:]):
+            mode = row.get('command_interval_mode', 'reaching')
+            if mode not in modes:
+                raise ValueError('Unknown physical path command interval mode: '+str(mode))
+            rgba = (1., .45, 0., 1.) if mode == 'searching' else (.02, .65, .75, 1.)
+            points.extend((start, end))
+            colors.extend((ColorRGBA(*rgba), ColorRGBA(*rgba)))
+        marker.type, marker.points, marker.colors = Marker.LINE_LIST, points, colors
 
     def __init__(self, scene, case, sensor_names):
         self.scene, self.case, self.sensor_names = scene, case, tuple(sensor_names)
@@ -248,6 +272,8 @@ class MotionDisplay:
         )
         output = SwitchDisplay.scene_markers(self)
         for marker in output.markers:
+            if marker.ns == 'actual_path':
+                self._color_action_path(marker, self.trial.trajectory)
             if marker.ns == 'status':
                 if execution is not None and execution['execution_mode'] == 'live':
                     hz = execution['actual_update_hz']
@@ -271,6 +297,18 @@ class MotionDisplay:
                          1000*np.linalg.norm(frame.tip-self.scene.goal),
                          1000*np.linalg.norm(frame.rigid_tip-self.scene.goal),
                          len(snapshot.observation_ids), snapshot.stamp-1792080000., inference_index)
+                action = self.trial.trajectory[-1].get('action_mode')
+                if action is not None:
+                    label = {
+                        'reaching': 'REACHING',
+                        'braking': 'MARKER LOST | BRAKING',
+                        'settling': 'MARKER SEARCH | SETTLING',
+                        'searching': 'MARKER SEARCH',
+                        'search_exhausted': 'MARKER SEARCH EXHAUSTED | HOLD',
+                    }.get(action)
+                    if label is None:
+                        raise ValueError('Unknown physical frame action mode: '+str(action))
+                    marker.text += '\nAction: '+label
         imu = self.marker('imu_mount', Marker.CUBE,
                           (.55,.12,.75,1.) if 'imu' in self.sensor_names else (.4,.4,.4,.5),
                           (.025,.025,.025), pose=frame.link_poses[self.scene.imu_target_link].copy())

@@ -48,6 +48,7 @@ class DisplaySnapshot:
     show_labels: bool = True
     stiffness_record: object = None
     goal_memory: object = None
+    behavior: object = None
 
 
 def query_record(point):
@@ -92,6 +93,8 @@ def snapshot_record(snapshot):
         record["stiffness"] = snapshot.stiffness_record
     if snapshot.goal_memory is not None:
         record['fixed_goal_memory'] = snapshot.goal_memory
+    if snapshot.behavior is not None:
+        record['behavior'] = snapshot.behavior
     return record
 
 

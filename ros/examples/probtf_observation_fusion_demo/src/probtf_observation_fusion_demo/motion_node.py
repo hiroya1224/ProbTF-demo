@@ -27,6 +27,7 @@ from .motion_display import MotionDisplay
 from .stiffness_identification import StiffnessIdentifier
 from .stiffness_command import StiffnessCommandMap
 from .node import build_snapshot, image_message
+from .marker_search import MarkerSearchPolicy
 
 
 def require_current_update(frame, snapshot, image, frame_index, update_index):
@@ -79,6 +80,7 @@ class MotionTick:
     path: Path
     timings: dict
     command_map: object = None
+    behavior: object = None
 
 
 class MotionSession:
@@ -102,6 +104,11 @@ class MotionSession:
         self.controller = MovingController(self.inference, self.scene.robot_description,
             control['goal_offset'], control['goal_orientation_wxyz'], control,
             integration_steps=int(control['integration_steps']))
+        self.behavior = MarkerSearchPolicy(control.get('marker_search', {}),
+            marker_enabled=any(item['sensor'] == 'marker' for item in self.templates),
+            exposure_time=self.scene.config['camera']['exposure_time'])
+        self.last_command_mode = 'initial_hold'
+        self.behavior_counts = {}
         self.period = float(self.scene.config['motion']['frame_period'])
         self.times = list(np.arange(0., self.scene.duration, self.period)) + [self.scene.duration]
         self.command = self.scene.initial_command.copy()
@@ -154,6 +161,16 @@ class MotionSession:
             stiffness_record['feedback_to_control'] = 'one-step IK and the same next-prior equilibrium increment'
         timings['stiffness_command_proposal'] = time.monotonic()-previous
         previous = time.monotonic()
+        behavior = self.behavior.plan(result, self.controller.velocity, elapsed,
+            joint_lower=self.controller.lower, joint_upper=self.controller.upper)
+        self.behavior_counts[behavior.mode] = self.behavior_counts.get(behavior.mode, 0)+1
+        result.records['behavior'] = dict(behavior.record,
+            command_interval_mode=self.last_command_mode,
+            body_source_state_ids=[item.state.state_id for item in result.stages[-1].components],
+            body_source_versions=[item.state.version for item in result.stages[-1].components],
+            goal_source_state_ids=[item.state.state_id for item in result.stages[-1].goal_components])
+        self.scene.trajectory[-1].update(action_mode=behavior.mode,
+            command_interval_mode=self.last_command_mode)
         snapshot = replace(build_snapshot(result, result.stages[-1], self.inference.common),
                            summary='', show_labels=False, stiffness_record=stiffness_record)
         timings['snapshot_core_queries'] = time.monotonic()-previous
@@ -169,7 +186,7 @@ class MotionSession:
         timings['render_verify_and_save'] = time.monotonic()-previous
         timings['observation_work'] = time.monotonic()-started
         self.pending = MotionTick(self.index, frame, result, snapshot, markers, image, path,
-                                  timings, command_map)
+                                  timings, command_map, behavior)
         return self.pending
 
     def finish(self, tick):
@@ -178,9 +195,19 @@ class MotionSession:
         started = time.monotonic()
         if tick.index+1 < len(self.times):
             proposal = tick.snapshot.stiffness_record.get('command_proposal')
-            self.command, diagnostics = self.controller.step(
-                tick.result, self.times[tick.index+1]-self.times[tick.index],
-                stiffness_proposal=proposal, command_map=tick.command_map)
+            duration = self.times[tick.index+1]-self.times[tick.index]
+            if tick.behavior.mode == 'reaching':
+                self.command, diagnostics = self.controller.step(tick.result, duration,
+                    stiffness_proposal=proposal, command_map=tick.command_map)
+            else:
+                self.command, diagnostics = self.controller.local_step(tick.result, duration,
+                    mode=tick.behavior.mode, target_command=tick.behavior.target_command,
+                    max_speed=tick.behavior.max_speed,
+                    position_lower=tick.behavior.position_lower,
+                    position_upper=tick.behavior.position_upper,
+                    command_map=tick.command_map)
+            diagnostics['behavior'] = tick.result.records['behavior']
+            self.last_command_mode = tick.behavior.mode
             self.command_map_for_prediction = tick.command_map
             self.command_correction_used = self.command_correction_used or tick.command_map is not None
             self.command_proposal_used = self.command_proposal_used or proposal is not None
@@ -195,7 +222,9 @@ class MotionSession:
         tick.result.records['execution'] = dict(
             sample_index=tick.index, simulated_elapsed_s=tick.frame.time,
             simulated_step_s=self.period, timings_s=tick.timings,
-            skipped_simulation_ticks=0, asynchronous_estimate_reuse=False)
+            skipped_simulation_ticks=0, asynchronous_estimate_reuse=False,
+            action_mode=tick.behavior.mode,
+            command_interval_mode=tick.result.records['behavior']['command_interval_mode'])
         with (self.output/'estimation.jsonl').open('a') as records:
             records.write(json.dumps(tick.result.records)+'\n')
         self.sent_commands.append(dict(time=tick.frame.time, command=tick.frame.command.tolist()))
@@ -257,6 +286,12 @@ class MotionSession:
             stiffness_feeds_body_prediction=self.command_correction_used,
             body_reconstructed_from_stiffness=False,
             stiffness_command_proposal_enabled=True, stiffness_feeds_body_or_control=self.command_proposal_used)
+        manifest['marker_search'] = dict(
+            enabled=self.behavior.enabled,
+            action_mode=self.last_tick.behavior.mode,
+            episodes=self.behavior.episode,
+            trail_color_rule='arriving command_interval_mode searching is orange; other intervals retain teal',
+            action_mode_counts=dict(self.behavior_counts))
         (self.output/'motion_manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
         return manifest
 
@@ -382,6 +417,10 @@ class MotionPlayback:
                             finished=index==len(self.frames)-1, estimate_index=update_index,
                             estimate_stamp=snapshot.stamp, physical_stamp=frame.stamp,
                             command=frame.command.tolist(), valid_observations=len(snapshot.observation_ids))
+            if snapshot.behavior is not None:
+                metadata.update(behavior=snapshot.behavior,
+                    action_mode=snapshot.behavior['mode'],
+                    command_interval_mode=snapshot.behavior['command_interval_mode'])
             self.motion.publish(String(json.dumps(metadata)))
             self.index = index
 
@@ -455,6 +494,9 @@ class MotionLive:
             estimate_index=tick.index, estimate_stamp=tick.snapshot.stamp,
             physical_stamp=tick.frame.stamp, command=tick.frame.command.tolist(),
             valid_observations=len(tick.snapshot.observation_ids),
+            behavior=tick.result.records['behavior'],
+            action_mode=tick.behavior.mode,
+            command_interval_mode=tick.result.records['behavior']['command_interval_mode'],
             tick_timings_s=tick.timings,
             stiffness_posterior=tick.snapshot.stiffness_record['posterior'],
             stiffness_retained_memory=(tick.snapshot.stiffness_record['posterior']
@@ -472,6 +514,9 @@ class MotionLive:
             stiffness_status_counts=dict(self.session.stiffness_counts))
         if not self.session.finished:
             metadata.update(command_sha256=None, physics_sha256=None)
+        metadata['marker_search'] = dict(self.common_manifest['marker_search'],
+            action_mode=tick.behavior.mode, episodes=self.session.behavior.episode,
+            action_mode_counts=dict(self.session.behavior_counts))
         self.motion.publish(String(json.dumps(metadata)))
 
     def advance(self, _event):

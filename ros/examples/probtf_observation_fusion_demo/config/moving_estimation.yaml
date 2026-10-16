@@ -35,6 +35,13 @@ control:
   integration_steps: 480
   gradient_step: 0.00001
   gradient_max_backtracks: 3
+  marker_search:
+    enabled: true
+    joint_indices: [3, 4]
+    amplitude_rad: 0.02
+    max_joint_velocity: 0.025
+    settle_time_s: 0.25
+    max_duration_s: 8.0
 display:
   axis_length: 0.07500000111758709
   point_size: 0.0074999998323619365

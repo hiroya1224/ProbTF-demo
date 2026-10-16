@@ -3,16 +3,17 @@
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from probtf.spherical_law.fusion import Gaussian, PosteriorComponent
 from probtf_observation_fusion_demo.stiffness_identification import StiffnessIdentifier
 
 
-def context(log_density, *, settings=None):
+def context(log_density, *, settings=None, dimension=2):
     identifier = object.__new__(StiffnessIdentifier)
     identifier.settings = dict(settings or {})
     identifier.initial_components = (PosteriorComponent('initial', Gaussian(
-        np.zeros(2), np.eye(2))),)
+        np.zeros(dimension), np.eye(dimension))),)
     identifier.components = identifier.initial_components
     identifier.factors = (SimpleNamespace(factor_id='factor:1'),)
     identifier._branch_anchor = None
@@ -25,11 +26,11 @@ def context(log_density, *, settings=None):
     def prediction(x, state):
         predictions.append((np.array(x, copy=True), state.command))
         equilibrium = np.array(state.command)+.1*np.exp(-np.asarray(x))
-        return None, None, equilibrium, np.zeros(2, dtype=bool)
+        return None, None, equilibrium, np.zeros(dimension, dtype=bool)
 
     identifier.log_density = density
     identifier._prediction = prediction
-    result = next_result(identifier, 1.)
+    result = next_result(identifier, 1., command=(0.,)*dimension)
     return identifier, result, calls, predictions
 
 
@@ -183,3 +184,138 @@ def test_configured_iteration_limit_and_exact_score_tolerance_are_respected():
     selection = identifier.last_record['proposal_selection']
     assert selection['maximum_iterations'] == 2
     assert selection['iterations'] == 0 and selection['convergence_claimed']
+
+
+def _dense_seed_reference(identifier, result):
+    """Independent old eager ordering; no line search for these seed tests.
+
+    Resolve every start's current equilibrium before ranking. An exactly
+    tied stable previous representative overrides the first stable maximum.
+    """
+    previous = getattr(identifier, '_proposal_representative', None)
+    candidates = list(identifier._proposal_candidates)
+    if previous is not None:
+        candidates.append(previous['logK'])
+    evaluated, cache = [], {}
+    for index, x in enumerate(candidates):
+        key = x.tobytes()
+        try:
+            if key not in cache:
+                density, score = identifier.log_density(x)
+                if not np.isfinite(density) or not np.all(np.isfinite(score)):
+                    raise ValueError('Invalid density')
+                saved = identifier._branch_anchor
+                try:
+                    identifier._branch_anchor = None
+                    _, _, equilibrium, active = identifier._prediction(x, result.prior)
+                finally:
+                    identifier._branch_anchor = saved
+                cache[key] = dict(logK=x.copy(), density=float(density),
+                    score=np.array(score, copy=True), equilibrium=np.array(equilibrium, copy=True),
+                    active=np.array(active, copy=True))
+            evaluated.append((cache[key], index))
+        except (ValueError, np.linalg.LinAlgError, FloatingPointError):
+            pass
+    if not evaluated:
+        return None
+    best = max(evaluated, key=lambda item:item[0]['density'])
+    old = next((item for item in evaluated if previous is not None
+                and item[1] == len(candidates)-1), None)
+    if old is not None and best[0]['density'] <= old[0]['density']:
+        return old
+    return best
+
+
+@pytest.mark.parametrize('case', ['unique', 'ties', 'invalid_density',
+    'unstable_highest', 'all_unstable', 'previous_tied', 'previous_unstable'])
+def test_density_ranked_equilibria_match_dense_selection_bitwise(case):
+    dimension = 6
+    centre = np.zeros(dimension)
+    previous_x = np.full(dimension, .2)
+    candidates = [centre]
+    for axis in np.eye(dimension):
+        candidates.extend((axis, -axis))
+    candidates.extend((np.ones(dimension), -np.ones(dimension)))
+
+    def density(x):
+        if case == 'invalid_density' and (np.array_equal(x, centre) or x[0] == 1.):
+            return np.nan, np.zeros(dimension)
+        if case in ('ties', 'previous_tied', 'previous_unstable'):
+            return 7.25, np.zeros(dimension)
+        return -float(x@x), -2.*x
+
+    def make():
+        identifier, result, calls, predictions = context(density,
+            settings=dict(representative_max_iterations=0), dimension=dimension)
+        identifier._proposal_candidates = tuple(item.copy() for item in candidates)
+        identifier._branch_anchor = object()
+        original_prediction = identifier._prediction
+        def prediction(x, state):
+            # Production isolates every current-command stability query from
+            # the retained factor's frozen continuation anchor.
+            assert identifier._branch_anchor is None
+            value = original_prediction(x, state)
+            if (case == 'all_unstable'
+                    or case == 'unstable_highest' and np.array_equal(x, centre)
+                    or case == 'previous_unstable' and np.array_equal(x, previous_x)):
+                raise ValueError('No current stable equilibrium at this candidate')
+            return value
+        identifier._prediction = prediction
+        if case in ('previous_tied', 'previous_unstable'):
+            identifier._proposal_representative = dict(factor_ids=('old-factor',),
+                logK=previous_x.copy(), density=0., score=np.zeros(dimension),
+                candidate_index=2, step_scale=.5)
+        return identifier, result, calls, predictions
+
+    dense, dense_result, dense_calls, dense_predictions = make()
+    expected = _dense_seed_reference(dense, dense_result)
+    lazy, result, calls, predictions = make()
+    original_factors = lazy.factors
+    original_prior = lazy.initial_components
+    original_anchor = lazy._branch_anchor
+    proposal = lazy.command_proposal(result)
+    selection = lazy.last_record['proposal_selection']
+    assert lazy.factors is original_factors and lazy.initial_components is original_prior
+    assert lazy._branch_anchor is original_anchor
+    assert selection['density_evaluation_count'] == len(calls) == len(dense_calls)
+    assert selection['current_equilibrium_evaluation_count'] == len(predictions)
+    assert selection['density_ranked_count'] == len(candidates)+(case in ('previous_tied', 'previous_unstable'))-sum(
+        not np.isfinite(density(x)[0]) for x in candidates)
+    if expected is None:
+        assert proposal is None and lazy.last_record['proposal_status'] == 'unavailable'
+        assert len(predictions) == len(dense_predictions) == 15
+        assert len(selection['unavailable_candidates']) == 15
+        return
+    item, index = expected
+    assert proposal['selected_candidate_index'] == selection['base_candidate_index'] == index
+    np.testing.assert_array_equal(proposal['selected_logK'], item['logK'])
+    np.testing.assert_array_equal(proposal['selected_K'], np.exp(item['logK']))
+    np.testing.assert_array_equal(selection['selected_density_score'], item['score'])
+    np.testing.assert_array_equal(proposal['auxiliary_equilibrium'], item['equilibrium'])
+    np.testing.assert_array_equal(proposal['auxiliary_active_joint_limits'], item['active'])
+    np.testing.assert_array_equal(proposal['command'],
+        2.*np.array(result.prior.command)-item['equilibrium'])
+    assert proposal['selected_log_unnormalized_density'] == item['density']
+    assert selection['lower_ranked_equilibrium_checks_skipped'] > 0
+    assert len(predictions) == (2 if case in ('unstable_highest', 'previous_unstable') else 1)
+    if case == 'unique':
+        assert len(dense_predictions) == 15 and len(predictions) == 1
+    if case == 'previous_tied':
+        assert selection['local_refinement_skipped']
+        assert len(dense_predictions) == 16 and len(predictions) == 1
+
+
+def test_duplicate_previous_start_keeps_old_tie_precedence_without_an_extra_solve():
+    identifier, result, calls, predictions = context(lambda x:(0., np.zeros(2)),
+        settings=dict(representative_max_iterations=0))
+    identifier._proposal_candidates = (np.zeros(2), np.ones(2))
+    identifier._proposal_representative = dict(factor_ids=('old-factor',),
+        logK=np.ones(2), density=0., score=np.zeros(2), candidate_index=0, step_scale=.5)
+    proposal = identifier.command_proposal(result)
+    assert proposal['selected_candidate_index'] == 2
+    np.testing.assert_array_equal(proposal['selected_logK'], np.ones(2))
+    assert len(calls) == 2 and len(predictions) == 1
+    selection = identifier.last_record['proposal_selection']
+    assert selection['local_refinement_skipped']
+    assert selection['density_ranked_count'] == 3
+    assert selection['current_equilibrium_candidate_checks'] == 1

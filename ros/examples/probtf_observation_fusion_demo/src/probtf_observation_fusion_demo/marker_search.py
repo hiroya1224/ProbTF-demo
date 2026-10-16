@@ -29,7 +29,7 @@ class SearchPlan:
 
 
 class MarkerSearchPolicy:
-    """Stop, clear the exposure history, then scan a small wrist neighborhood.
+    """Stop, clear the exposure history, then expand a bounded wrist scan.
 
     This action policy receives observation validity and sent commands only.
     It does not replace a body/goal distribution or use physical pose truth.
@@ -39,21 +39,28 @@ class MarkerSearchPolicy:
     def __init__(self, settings, *, marker_enabled, exposure_time=0.):
         self.enabled = bool(settings.get('enabled', True)) and bool(marker_enabled)
         self.joints = tuple(int(index) for index in settings.get('joint_indices', (3, 4)))
-        self.amplitude = float(settings.get('amplitude_rad', .02))
+        self.initial_amplitude = float(settings.get('amplitude_rad', .02))
+        self.amplitude_increment = float(settings.get('amplitude_increment_rad', .01))
+        self.max_amplitude = float(settings.get('max_amplitude_rad', .12))
+        self.amplitude = self.initial_amplitude
         self.speed = float(settings.get('max_joint_velocity', .025))
         self.settle_time = max(float(settings.get('settle_time_s', .25)), float(exposure_time))
-        self.max_duration = float(settings.get('max_duration_s', 8.))
-        values = (self.amplitude, self.speed, self.settle_time, self.max_duration)
+        values = (self.initial_amplitude, self.amplitude_increment,
+                  self.max_amplitude, self.speed, self.settle_time)
         if (len(self.joints) != 2 or len(set(self.joints)) != 2 or min(self.joints) < 0
+                or self.initial_amplitude > self.max_amplitude
                 or not all(np.isfinite(value) and value > 0. for value in values)):
             raise ValueError('Marker search requires two distinct joints and finite positive limits.')
         self.mode = 'reaching'
         self.anchor = None
         self.settle_started = self.search_started = None
+        self.settle_reason = None
         self.episode = self.waypoint = 0
-        # Return to the stopped command between the positive/negative sweeps.
-        self.pattern = ((1., 0.), (0., 0.), (-1., 0.), (0., 0.),
-                        (0., 1.), (0., 0.), (0., -1.), (0., 0.))
+        self.completed_roundtrips = self.completed_pattern_cycles = 0
+        # Stop at the original centre between sweeps. Each completed return
+        # grows the next sweep, up to the fixed command-space amplitude cap.
+        self.pattern = ((1., 0.), (0., 0.), (0., 1.), (0., 0.),
+                        (-1., 0.), (0., 0.), (0., -1.), (0., 0.))
         self.last_time = None
 
     def plan(self, result, velocity, time, *, joint_lower, joint_upper):
@@ -78,24 +85,46 @@ class MarkerSearchPolicy:
                 self.mode, self.anchor = 'braking', None
                 self.episode += 1
                 self.waypoint = 0
+                self.amplitude = self.initial_amplitude
+                self.completed_roundtrips = self.completed_pattern_cycles = 0
                 self.settle_started = self.search_started = None
+                self.settle_reason = None
                 event = 'braking_after_marker_loss'
             if self.mode == 'braking' and stopped:
                 self.anchor = command.copy()
                 self.mode, self.settle_started = 'settling', time
+                self.settle_reason = 'after_marker_loss'
                 event = 'stopped_for_exposure_settling'
-            if self.mode == 'settling' and time-self.settle_started >= self.settle_time-1e-12:
-                if visible:
+            if self.mode == 'settling':
+                if self.settle_reason == 'between_sweeps' and visible:
+                    # This scan has already stopped at its centre. A fresh
+                    # marker observation can resume reaching immediately.
                     self.mode = 'reaching'
-                    event = 'marker_reacquired_after_stopping'
-                else:
-                    self.mode, self.search_started = 'searching', time
-                    event = 'bounded_wrist_search_started'
-            if self.mode in ('searching', 'search_exhausted') and visible:
+                    self.settle_reason = None
+                    event = 'marker_reacquired_at_search_center'
+                elif time-self.settle_started >= self.settle_time-1e-12:
+                    if visible:
+                        self.mode = 'reaching'
+                        event = 'marker_reacquired_after_stopping'
+                    else:
+                        self.mode = 'searching'
+                        if self.search_started is None:
+                            self.search_started = time
+                            event = 'bounded_wrist_search_started'
+                        else:
+                            previous_amplitude = self.amplitude
+                            self.amplitude = min(self.max_amplitude,
+                                self.initial_amplitude
+                                +self.amplitude_increment*self.completed_roundtrips)
+                            event = ('search_amplitude_expanded'
+                                if self.amplitude > previous_amplitude else 'bounded_wrist_search_repeated')
+                    self.settle_reason = None
+            if self.mode == 'searching' and visible:
                 self.mode = 'reaching'
                 event = 'marker_reacquired'
 
-            if self.mode in ('searching', 'search_exhausted'):
+            if (self.mode == 'searching' or
+                    (self.mode == 'settling' and self.settle_reason == 'between_sweeps')):
                 position_lower, position_upper = self.anchor.copy(), self.anchor.copy()
                 position_lower[list(self.joints)] -= self.amplitude
                 position_upper[list(self.joints)] += self.amplitude
@@ -104,13 +133,20 @@ class MarkerSearchPolicy:
                 max_speed = self.speed
             if self.mode == 'searching':
                 target = self._target(position_lower, position_upper)
-                if np.max(np.abs(command-target)) <= 1e-4 and np.max(np.abs(velocity)) <= 1e-3:
-                    self.waypoint += 1
-                    target = (None if self.waypoint == len(self.pattern)
-                              else self._target(position_lower, position_upper))
-                if time-self.search_started >= self.max_duration or target is None:
-                    self.mode, target = 'search_exhausted', None
-                    event = 'search_limit_brake_and_hold'
+                if np.max(np.abs(command-target)) <= 1e-4:
+                    if self.waypoint % 2 and stopped:
+                        self.completed_roundtrips += 1
+                        self.waypoint = (self.waypoint+1) % len(self.pattern)
+                        if self.waypoint == 0:
+                            self.completed_pattern_cycles += 1
+                        self.mode, self.settle_started = 'settling', time
+                        self.settle_reason = 'between_sweeps'
+                        target = self.anchor
+                        event = 'stopped_between_search_sweeps'
+                    elif not self.waypoint % 2 and np.max(np.abs(velocity)) <= 1e-3:
+                        self.waypoint += 1
+                        target = self._target(position_lower, position_upper)
+                        event = 'returning_to_search_center'
             elif self.mode == 'settling':
                 target = self.anchor
 
@@ -123,8 +159,14 @@ class MarkerSearchPolicy:
             target_command=None if target is None else np.asarray(target).tolist(),
             waypoint_index=self.waypoint, waypoint_count=len(self.pattern),
             joint_indices=list(self.joints), amplitude_rad=self.amplitude,
+            initial_amplitude_rad=self.initial_amplitude,
+            amplitude_increment_rad=self.amplitude_increment,
+            max_amplitude_rad=self.max_amplitude,
+            completed_roundtrips=self.completed_roundtrips,
+            completed_pattern_cycles=self.completed_pattern_cycles,
+            settle_reason=self.settle_reason,
             max_joint_velocity=self.speed, settle_time_s=self.settle_time,
-            max_duration_s=self.max_duration,
+            max_duration_s=None,
             search_elapsed_s=None if self.search_started is None else time-self.search_started,
             physical_truth_received=False, monte_carlo_used=False,
             reaching_criterion_used_for_selection=(self.mode == 'reaching'))

@@ -100,7 +100,7 @@ motion:
   spatial_resolution: 0.002
   clearance: 0.004
   frame_period: 0.05
-  max_joint_velocity: 0.096
+  max_joint_velocity: 0.048
   max_joint_acceleration: 0.3
   tracking_time: 0.55
 reach_tolerance: 0.006

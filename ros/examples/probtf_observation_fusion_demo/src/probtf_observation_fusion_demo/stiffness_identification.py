@@ -718,6 +718,9 @@ class StiffnessIdentifier:
         Local refinement runs on initialization or when a fixed prior-derived
         start improves on the previous representative. Otherwise that same
         representative is reevaluated under the new density and retained.
+        All candidate densities are evaluated before current-command stable
+        equilibria are resolved in density order. Lower ranked candidates
+        cannot change the selected best stable start and need no such solve.
         """
         state = result.prior
         if self.last_record is None or (state.stamp != self.last_record['source_stamp']
@@ -758,15 +761,15 @@ class StiffnessIdentifier:
         factor_ids = tuple(factor.factor_id for factor in self.factors)
         previous = getattr(self, '_proposal_representative', None)
         unchanged_density = previous is not None and previous['factor_ids'] == factor_ids
-        evaluations, failures, cache = [], [], {}
+        evaluations, failures, cache, density_cache = [], [], {}, {}
         density_evaluations, equilibrium_evaluations = 0, 0
 
-        def evaluate(x, *, retained=None):
-            nonlocal density_evaluations, equilibrium_evaluations
+        def evaluate_density(x, *, retained=None):
+            nonlocal density_evaluations
             x = np.asarray(x, dtype=float)
             key = x.tobytes()
-            if key in cache:
-                return cache[key]
+            if key in density_cache:
+                return density_cache[key]
             if retained is None:
                 density_evaluations += 1
                 with np.errstate(over='raise', invalid='raise'):
@@ -779,6 +782,17 @@ class StiffnessIdentifier:
                 # The factor IDs and initial law are unchanged, so this is
                 # exactly the already evaluated density, not a new update.
                 density, score = retained['density'], retained['score']
+            item = dict(logK=x.copy(), density=float(density), score=np.array(score, copy=True))
+            density_cache[key] = item
+            return item
+
+        def evaluate(x, *, retained=None):
+            nonlocal equilibrium_evaluations
+            x = np.asarray(x, dtype=float)
+            key = x.tobytes()
+            if key in cache:
+                return cache[key]
+            item = evaluate_density(x, retained=retained)
             saved = self._branch_anchor
             try:
                 self._branch_anchor = None
@@ -786,8 +800,8 @@ class StiffnessIdentifier:
                 _, _, equilibrium, active = self._prediction(x, state)
             finally:
                 self._branch_anchor = saved
-            item = dict(logK=x.copy(), density=float(density), score=np.array(score, copy=True),
-                equilibrium=np.array(equilibrium, copy=True), active=np.array(active, copy=True))
+            item = dict(item, equilibrium=np.array(equilibrium, copy=True),
+                        active=np.array(active, copy=True))
             cache[key] = item
             return item
 
@@ -818,29 +832,46 @@ class StiffnessIdentifier:
             candidates = list(self._proposal_candidates)
             if previous is not None:
                 candidates.append(previous['logK'])
-            evaluated = []
+            ranked = []
             for candidate_index, x in enumerate(candidates):
                 try:
-                    evaluated.append((evaluate(x), candidate_index))
+                    ranked.append((evaluate_density(x), candidate_index))
                 except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-                    failures.append(dict(candidate_index=candidate_index, reason=str(error)))
-            selection.update(candidate_count=len(candidates), evaluated_count=len(evaluated))
-            if not evaluated:
+                    failures.append(dict(candidate_index=candidate_index, stage='density', reason=str(error)))
+            # The original dense procedure picks the first stable maximum in
+            # declared order, then gives a stable previous representative
+            # precedence on an exact density tie. Resolve that same ordering
+            # without computing equilibria of candidates that cannot win.
+            previous_index = len(candidates)-1 if previous is not None else None
+            ranked.sort(key=lambda item:(item[0]['density'], item[1] == previous_index), reverse=True)
+            best = None
+            checked = 0
+            for item, candidate_index in ranked:
+                checked += 1
+                try:
+                    best = (evaluate(item['logK']), candidate_index)
+                    break
+                except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                    failures.append(dict(candidate_index=candidate_index,
+                                         stage='current_equilibrium', reason=str(error)))
+            selection.update(candidate_count=len(candidates), evaluated_count=int(best is not None),
+                density_ranked_count=len(ranked),
+                current_equilibrium_candidate_checks=checked,
+                lower_ranked_equilibrium_checks_skipped=len(ranked)-checked,
+                candidate_evaluation_policy='all exact densities and scores; current stable equilibria only in density rank order until the identical best stable start is known',
+                evaluated_count_semantics='stable initial candidates actually resolved; lower ranked candidate stability remains unevaluated')
+            if best is None:
                 selection['density_evaluation_count'] = density_evaluations
                 selection['current_equilibrium_evaluation_count'] = equilibrium_evaluations
                 self.last_record.update(proposal_status='unavailable', proposal_selection=selection,
                     proposal_failure_reason='No deterministic stiffness representative start has an evaluable density and stable current equilibrium.',
                     command_proposal=None)
                 return None
-            # Ties preserve the existing declared ordering; no sensor rule.
-            base, index = max(evaluated, key=lambda item: item[0]['density'])
-            previous_candidate = next((item for item in evaluated
-                if previous is not None and item[1] == len(candidates)-1), None)
-            if previous_candidate is not None and base['density'] <= previous_candidate[0]['density']:
+            base, index = best
+            if previous is not None and index == previous_index:
                 # A new factor still changes the exact density and score at
                 # this point. Retaining x avoids new full-history nonlinear
                 # equilibrium evaluations when no fixed start improves it.
-                base, index = previous_candidate
                 local_refinement = False
                 trigger = 'previous representative remains the best evaluated start'
             else:

@@ -121,7 +121,7 @@ class MovingSwitchScene:
             ["base_link"] + ["link_{}".format(index + 1) for index in range(6)]
             + ["tool0", "press_rod", "rod_tip", "camera_optical_frame"]}
 
-    def step(self, time, stamp=None, command=None):
+    def step(self, time, stamp=None, command=None, *, render_camera=True):
         time = float(np.clip(time, 0.0, self.duration))
         if self.last_time is not None and time < self.last_time:
             raise ValueError("Replay time moved backwards; reset the scene first.")
@@ -151,7 +151,8 @@ class MovingSwitchScene:
         else:
             self.camera_history[-1] = (time, camera_pose)
         self.camera_history = self.camera_history[-32:]
-        image = self.camera.render(camera_pose, self.marker, self.camera_history)
+        image = (self.camera.render(camera_pose, self.marker, self.camera_history)
+                 if render_camera else np.empty((0, 0), dtype=np.uint8))
         image.setflags(write=False)
         # This is a simulated accelerometer reading.  Its physical link
         # rotation remains entirely on this side of the sensor boundary.
@@ -169,7 +170,8 @@ class MovingSwitchScene:
         frame = PhysicalFrame(time, stamp, _readonly(command), _readonly(self.pose), physical,
             rigid, camera_pose, _readonly(tip), _readonly(rigid_tip), image, _readonly(gravity),
             float(gap), pair, reached, self.monitor.collided,
-            float(np.max(np.abs(self.pose - command))), dict(self.camera.diagnostics))
+            float(np.max(np.abs(self.pose - command))), dict(self.camera.diagnostics,
+                rendered=bool(render_camera), image_stamp=stamp if render_camera else None))
         self.last_time = time
         self.command = frame.command
         self.trajectory.append(self.physical_record(frame))

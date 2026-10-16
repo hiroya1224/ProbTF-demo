@@ -50,7 +50,8 @@ def advance_without_new_sensor_truth(inference, inputs, command, index, command_
 
 
 SEARCH = {'enabled': True, 'joint_indices': [3, 4], 'amplitude_rad': .02,
-          'max_joint_velocity': .025, 'settle_time_s': .25, 'max_duration_s': 8.}
+          'max_joint_velocity': .025, 'settle_time_s': .25,
+          'amplitude_increment_rad': .01, 'max_amplitude_rad': .12}
 
 
 def policy_result(command=None, *, posterior=True, detector=True, stamp=1000., version=1):
@@ -117,7 +118,7 @@ def test_settling_holds_long_enough_to_clear_the_actual_exposure_history():
     assert searching.record['stopped_before_search']
 
 
-def test_search_has_a_fixed_clipped_anchor_and_expires_to_brake_and_hold():
+def test_search_keeps_the_clipped_stop_anchor_and_has_no_elapsed_time_expiry():
     policy = MarkerSearchPolicy(SEARCH, marker_enabled=True)
     anchor = np.array([.1, -.2, .3, 2.995, -2.995, -.6])
     assert plan(policy, 0., command=anchor).mode == 'settling'
@@ -129,45 +130,90 @@ def test_search_has_a_fixed_clipped_anchor_and_expires_to_brake_and_hold():
     np.testing.assert_allclose(searching.position_lower, expected_lower, atol=1e-15)
     np.testing.assert_allclose(searching.position_upper, expected_upper, atol=1e-15)
     assert not searching.position_lower.flags.writeable and not searching.position_upper.flags.writeable
-    # A moving wrist does not move the centre or restart its search clock.
+    # Elapsed time cannot pretend a roundtrip has completed or stop the new
+    # expanding search after the old eight-second lifetime.
     moved = anchor.copy(); moved[3] -= .01
-    for time in (1., 3., 8.24):
+    for time in (1., 3., 8.25, 100., 1000.):
         chosen = plan(policy, time, command=moved, velocity=np.array([0., 0., 0., .01, 0., 0.]))
-        assert chosen.mode == 'searching'
+        assert chosen.mode == 'searching' and chosen.target_command is not None
+        assert chosen.record['max_duration_s'] is None
+        assert chosen.record['completed_roundtrips'] == 0
+        assert chosen.record['amplitude_rad'] == SEARCH['amplitude_rad']
         np.testing.assert_array_equal(chosen.record['stop_anchor_command'], anchor)
         np.testing.assert_array_equal(chosen.position_lower, searching.position_lower)
         np.testing.assert_array_equal(chosen.position_upper, searching.position_upper)
-    expired = plan(policy, 8.25, command=moved, velocity=np.array([0., 0., 0., .01, 0., 0.]))
-    assert expired.mode == 'search_exhausted'
-    assert expired.target_command is None
-    assert expired.record['event'] == 'search_limit_brake_and_hold'
-    for index in range(1, 1001):
-        held = plan(policy, 8.25+.05*index, command=moved)
-        assert held.mode == 'search_exhausted' and held.target_command is None
-        assert held.record['episode'] == 1
-        np.testing.assert_array_equal(held.record['stop_anchor_command'], anchor)
-        np.testing.assert_array_equal(held.position_lower, expired.position_lower)
-        np.testing.assert_array_equal(held.position_upper, expired.position_upper)
 
 
-def test_each_small_sweep_returns_through_anchor_and_the_pattern_runs_once():
+def test_each_roundtrip_stops_and_settles_before_expansion_then_repeats_at_the_radius_cap():
     policy = MarkerSearchPolicy(SEARCH, marker_enabled=True)
     anchor = np.array([.1, -.2, .3, -.4, .5, -.6])
-    plan(policy, 0., command=anchor)
+    initial = plan(policy, 0., command=anchor)
+    assert initial.record['settle_reason'] == 'after_marker_loss'
     chosen = plan(policy, .25, command=anchor)
-    targets = []
-    for index in range(8):
+    time = .25
+    directions = ((1., 0.), (0., 1.), (-1., 0.), (0., -1.))
+    for roundtrip in range(80):
+        radius = min(.12, .02+.01*roundtrip)
         assert chosen.mode == 'searching'
-        target = chosen.target_command.copy(); targets.append(target)
-        assert np.max(np.abs(target-anchor)) <= SEARCH['amplitude_rad']+1e-15
-        np.testing.assert_array_equal(target[[0, 1, 2, 5]], anchor[[0, 1, 2, 5]])
-        chosen = plan(policy, .30+.05*index, command=target)
-    assert chosen.mode == 'search_exhausted' and chosen.target_command is None
-    for index in (1, 3, 5, 7):
-        np.testing.assert_array_equal(targets[index], anchor)
-    assert targets[0][3] > anchor[3] and targets[2][3] < anchor[3]
-    assert targets[4][4] > anchor[4] and targets[6][4] < anchor[4]
-    assert chosen.record['waypoint_index'] == chosen.record['waypoint_count'] == 8
+        assert chosen.record['settle_reason'] is None
+        assert chosen.record['amplitude_rad'] == pytest.approx(radius)
+        assert chosen.record['initial_amplitude_rad'] == .02
+        assert chosen.record['amplitude_increment_rad'] == .01
+        assert chosen.record['max_amplitude_rad'] == .12
+        assert chosen.record['completed_roundtrips'] == roundtrip
+        assert chosen.record['completed_pattern_cycles'] == roundtrip//4
+        assert chosen.record['max_duration_s'] is None
+        wanted = anchor.copy(); wanted[[3, 4]] += radius*np.array(directions[roundtrip%4])
+        np.testing.assert_allclose(chosen.target_command, wanted, atol=1e-15)
+        np.testing.assert_array_equal(chosen.record['stop_anchor_command'], anchor)
+        np.testing.assert_array_equal(chosen.target_command[[0, 1, 2, 5]], anchor[[0, 1, 2, 5]])
+        time += .05
+        returning = plan(policy, time, command=chosen.target_command)
+        assert returning.mode == 'searching'
+        np.testing.assert_array_equal(returning.target_command, anchor)
+        assert returning.record['event'] == 'returning_to_search_center'
+        # Proximity alone cannot begin a settle interval while the wrist is
+        # still moving. This prevents a radius change during a reversal.
+        time += .05
+        moving = plan(policy, time, command=anchor,
+            velocity=np.array([0., 0., 0., 1e-5, 0., 0.]))
+        assert moving.mode == 'searching'
+        assert moving.record['completed_roundtrips'] == roundtrip
+        time += .05
+        stopped = plan(policy, time, command=anchor)
+        assert stopped.mode == 'settling'
+        assert stopped.record['settle_reason'] == 'between_sweeps'
+        assert stopped.record['event'] == 'stopped_between_search_sweeps'
+        assert stopped.record['completed_roundtrips'] == roundtrip+1
+        assert stopped.record['amplitude_rad'] == pytest.approx(radius)
+        np.testing.assert_array_equal(stopped.target_command, anchor)
+        before = plan(policy, time+.249, command=anchor)
+        assert before.mode == 'settling'
+        assert before.record['amplitude_rad'] == pytest.approx(radius)
+        time += .25
+        chosen = plan(policy, time, command=anchor)
+        expected_radius = min(.12, .02+.01*(roundtrip+1))
+        assert chosen.record['amplitude_rad'] == pytest.approx(expected_radius)
+        assert chosen.record['event'] == ('search_amplitude_expanded' if radius < .12
+                                          else 'bounded_wrist_search_repeated')
+    assert chosen.record['completed_pattern_cycles'] == 20
+    assert chosen.mode == 'searching' and chosen.record['amplitude_rad'] == .12
+
+
+def test_reacquisition_at_an_inter_sweep_stop_resumes_without_another_outward_command():
+    policy = MarkerSearchPolicy(SEARCH, marker_enabled=True)
+    anchor = np.zeros(6)
+    plan(policy, 0., command=anchor)
+    outward = plan(policy, .25, command=anchor)
+    plan(policy, .30, command=outward.target_command)
+    stopped = plan(policy, .35, command=anchor)
+    assert stopped.mode == 'settling' and stopped.record['settle_reason'] == 'between_sweeps'
+    reacquired = plan(policy, .40, command=anchor, visible=True)
+    assert reacquired.mode == 'reaching'
+    assert reacquired.record['event'] == 'marker_reacquired_at_search_center'
+    assert reacquired.target_command is None
+    assert reacquired.record['completed_roundtrips'] == 1
+    assert reacquired.record['amplitude_rad'] == .02
 
 
 def test_reacquisition_resumes_from_current_velocity_then_a_new_loss_gets_a_new_anchor():
@@ -175,20 +221,32 @@ def test_reacquisition_resumes_from_current_velocity_then_a_new_loss_gets_a_new_
     anchor = np.zeros(6)
     plan(policy, 0., command=anchor)
     first = plan(policy, .25, command=anchor)
-    moving_command = first.target_command/2.
-    velocity = np.array([0., 0., 0., .01, 0., 0.])
+    plan(policy, .30, command=first.target_command)
+    plan(policy, .35, command=anchor)
+    expanded = plan(policy, .60, command=anchor)
+    assert expanded.record['amplitude_rad'] == .03
+    assert expanded.record['completed_roundtrips'] == 1
+    moving_command = expanded.target_command/2.
+    velocity = np.array([0., 0., 0., 0., .01, 0.])
     original_velocity = velocity.copy()
-    visible = plan(policy, .30, command=moving_command, velocity=velocity, visible=True)
+    visible = plan(policy, .65, command=moving_command, velocity=velocity, visible=True)
     assert visible.mode == 'reaching' and visible.record['event'] == 'marker_reacquired'
     assert visible.target_command is visible.position_lower is visible.position_upper is None
     np.testing.assert_array_equal(velocity, original_velocity)
-    lost_again = plan(policy, .35, command=moving_command, velocity=velocity)
+    lost_again = plan(policy, .70, command=moving_command, velocity=velocity)
     assert lost_again.mode == 'braking'
     assert lost_again.record['episode'] == 2
     assert lost_again.record['stop_anchor_command'] is None
-    stopped_again = plan(policy, .40, command=moving_command)
+    assert lost_again.record['amplitude_rad'] == .02
+    assert lost_again.record['completed_roundtrips'] == 0
+    assert lost_again.record['completed_pattern_cycles'] == 0
+    stopped_again = plan(policy, .75, command=moving_command)
     assert stopped_again.mode == 'settling'
     np.testing.assert_array_equal(stopped_again.record['stop_anchor_command'], moving_command)
+    restarted = plan(policy, 1., command=moving_command)
+    assert restarted.mode == 'searching'
+    assert restarted.record['amplitude_rad'] == .02
+    assert restarted.record['search_elapsed_s'] == 0.
 
 
 def test_repeated_repaint_does_not_advance_a_search_episode_or_count_as_new_evidence():
@@ -311,60 +369,84 @@ def test_local_actions_use_the_exact_same_K_corrected_laws_next_prior_and_publis
                          point_size=inference.common['display']['point_size'])
 
 
-def test_long_local_sweeps_and_expiry_braking_stay_in_the_neighborhood_and_within_acceleration(monkeypatch):
-    from test_goal_mixture_criterion import _problem
-    inference, result, selector = _problem()
-    # Isolate the real command interface with a flat diagnostic density. The
-    # action cannot benefit from a geometric objective that happens to brake.
+def test_progressive_controller_sweeps_repeat_at_the_cap_without_anchor_drift_or_velocity_jumps(search_inputs, monkeypatch):
+    scene, _, contexts = search_inputs
+    inference, result = contexts['no_sensors']
+    selector = make_controller(scene, inference)
+    # Isolate the real constrained command interface with a flat diagnostic
+    # density. No geometric objective can supply a lucky stopping direction.
     selector._query = lambda state: SimpleNamespace(command=state.command)
     selector._selection_sources = lambda *_args, **_kwargs: {}
     monkeypatch.setattr('probtf_observation_fusion_demo.moving_control._relative_density',
         lambda *_args: (0., {}))
+    policy = MarkerSearchPolicy(SEARCH, marker_enabled=True, exposure_time=.18)
     anchor = np.array(result.prior.command)
-    lower, upper = anchor-.02, anchor+.02
     previous_velocity = selector.velocity.copy()
-    reversals, previous_sign = 0, 0.
-    extrema = [anchor[0], anchor[0]]
-    target = upper.copy()
+    cap_roundtrips = set(); modes = set(); last_roundtrips = 0
+    maximum_deviation = 0.
     dt = .05
-    for index in range(1200):
+    for index in range(6000):
         command = np.array(result.prior.command)
-        mode = 'searching' if index < 900 else 'search_exhausted'
-        if mode == 'searching' and abs(command[0]-target[0]) < 1e-4 and abs(previous_velocity[0]) < 1e-3:
-            target = lower.copy() if target[0] > anchor[0] else upper.copy()
-        selected, diagnostic = selector.local_step(result, dt, mode=mode,
-            target_command=target if mode == 'searching' else None,
-            max_speed=.025, position_lower=lower, position_upper=upper)
+        missing = SimpleNamespace(prior=result.prior, local_estimates=())
+        chosen = policy.plan(missing, selector.velocity, index*dt,
+            joint_lower=selector.lower, joint_upper=selector.upper)
+        modes.add(chosen.mode)
+        assert chosen.mode in ('settling', 'searching')
+        radius = chosen.record['amplitude_rad']
+        assert .02 <= radius <= .12
+        assert radius == pytest.approx(min(.12, .02+.01*(
+            chosen.record['completed_roundtrips']-(chosen.mode == 'settling'
+                and chosen.record['settle_reason'] == 'between_sweeps'))))
+        np.testing.assert_array_equal(chosen.record['stop_anchor_command'], anchor)
+        if chosen.record['completed_roundtrips'] != last_roundtrips:
+            assert chosen.mode == 'settling'
+            assert np.max(np.abs(previous_velocity)) <= 1e-6
+            assert np.max(np.abs(command-anchor)) <= 1e-4
+            last_roundtrips = chosen.record['completed_roundtrips']
+        selected, diagnostic = selector.local_step(result, dt, mode=chosen.mode,
+            target_command=chosen.target_command, max_speed=chosen.max_speed,
+            position_lower=chosen.position_lower, position_upper=chosen.position_upper)
         velocity = (selected-command)/dt
-        assert lower[0]-1e-12 <= selected[0] <= upper[0]+1e-12
-        assert abs(velocity[0]) <= .025+1e-12
-        assert abs(velocity[0]-previous_velocity[0]) <= selector.acceleration*dt+1e-12
-        # Every selected command admits an independent maximal-braking
-        # continuation without crossing either local boundary.
+        assert np.max(np.abs(velocity)) <= .025+1e-12
+        assert np.max(np.abs(velocity-previous_velocity)) <= selector.acceleration*dt+1e-12
+        assert np.all(selected >= selector.lower-1e-12) and np.all(selected <= selector.upper+1e-12)
+        np.testing.assert_array_equal(selected[[0, 1, 2, 5]], anchor[[0, 1, 2, 5]])
+        assert np.max(np.abs(selected-anchor)) <= radius+1e-12
+        maximum_deviation = max(maximum_deviation, float(np.max(np.abs(selected-anchor))))
+        # Independently continue maximal braking from every selected command;
+        # the active neighborhood must still admit a feasible stop.
+        lower = selector.lower if chosen.position_lower is None else chosen.position_lower
+        upper = selector.upper if chosen.position_upper is None else chosen.position_upper
         stopped_position, stopped_velocity = selected.copy(), velocity.copy()
         for _ in range(10):
             stopped_velocity = np.sign(stopped_velocity)*np.maximum(
                 np.abs(stopped_velocity)-selector.acceleration*dt, 0.)
             stopped_position += dt*stopped_velocity
-            assert lower[0]-1e-12 <= stopped_position[0] <= upper[0]+1e-12
-        assert abs(stopped_velocity[0]) < 1e-12
-        sign = np.sign(velocity[0])
-        if sign and previous_sign and sign != previous_sign:
-            reversals += 1
-        if sign:
-            previous_sign = sign
-        extrema = [min(extrema[0], selected[0]), max(extrema[1], selected[0])]
+            assert np.all(stopped_position >= lower-1e-12)
+            assert np.all(stopped_position <= upper+1e-12)
+        assert np.max(np.abs(stopped_velocity)) < 1e-12
+        if radius == .12:
+            cap_roundtrips.add(chosen.record['completed_roundtrips'])
         stage = result.stages[-1]
-        components = tuple(replace(candidate, state=command_state(candidate.state,
-            selected, inference.body_ids, inference.actions)) for candidate in stage.components)
-        result = SimpleNamespace(**dict(vars(result), prior=components[0].state,
-            stages=(replace(stage, components=components),)))
+        def predicted(candidate):
+            future = command_state(candidate.state, selected, inference.body_ids, inference.actions)
+            return replace(candidate, state=replace(future, stamp=1000.+(index+1)*dt, version=index+2))
+        internal = tuple(predicted(candidate) for candidate in stage.components)
+        goals = tuple(predicted(candidate) for candidate in stage.goal_components)
+        result = SimpleNamespace(**dict(vars(result), prior=internal[0].state,
+            stages=(replace(stage, components=internal, goal_components=goals),)))
         previous_velocity = velocity
-        if index > 902:
-            np.testing.assert_array_equal(velocity, np.zeros(1))
         assert diagnostic['gradient_evaluation_count'] == 0
-    assert reversals >= 10
-    assert extrema[0] < anchor[0]-.019 and extrema[1] > anchor[0]+.019
+        if chosen.record['completed_roundtrips'] >= 24 and chosen.mode == 'searching':
+            break
+    else:
+        pytest.fail('The bounded policy stopped making roundtrips before reaching the cap and repeating.')
+    assert modes == {'settling', 'searching'}
+    assert chosen.record['completed_pattern_cycles'] >= 6
+    assert len(cap_roundtrips) >= 10
+    assert maximum_deviation > .119
+    assert chosen.record['search_elapsed_s'] > 8.
+    assert chosen.record['max_duration_s'] is None
 
 
 def test_fresh_rendered_reacquisition_after_search_updates_every_goal_mode_and_resumes_reaching(tmp_path):

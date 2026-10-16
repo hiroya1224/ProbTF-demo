@@ -466,6 +466,7 @@ class MotionLive:
               if len(self.publish_times) > 1 else None)
         simulated = 0. if self.current_tick is None else self.current_tick.frame.time
         return dict(execution_mode='live', simulated_step_s=self.session.period,
+                    experiment_finished=bool(self.session.finished),
                     wall_elapsed_s=elapsed, actual_update_hz=hz,
                     failure_reason=None if self.failure is None else self.failure['failure_reason'],
                     realtime_factor=simulated/elapsed if elapsed > 0 else None,
@@ -574,11 +575,17 @@ def main():
     package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
     observations = Path(rospy.get_param('~observations_config', str(package/'config/imu_marker.yaml')))
     output = Path(rospy.get_param('~output_dir', '/tmp/probtf_observation_fusion_motion/'+datetime.now().strftime('%Y%m%d_%H%M%S_%f')))
-    mode = rospy.get_param('~execution_mode', 'live')
+    mode = rospy.get_param('~execution_mode', 'async')
     autostart = bool(rospy.get_param('~autostart', True))
     imu_target_link = rospy.get_param('~imu_target_link', '') or None
     max_updates = int(rospy.get_param('~max_updates', 0))
-    if mode == 'live':
+    if mode == 'async':
+        from .async_motion import AsyncMotionLive
+        duration = rospy.get_param('~async_duration_s', None)
+        playback = AsyncMotionLive(observations, output, observations.stem, autostart,
+            imu_target_link=imu_target_link, max_updates=max_updates, duration=duration)
+        rospy.loginfo('Asynchronous wall-clock motion; inference and IK run in separate processes.')
+    elif mode == 'live':
         playback = MotionLive(observations, output, observations.stem, autostart,
                               imu_target_link=imu_target_link, max_updates=max_updates)
         rospy.loginfo('Live sequential execution: simulation dt %.3f s; actual wall rate is measured.',
@@ -590,5 +597,5 @@ def main():
         playback = MotionPlayback(scene,frames,updates,mapping,manifest,observations.stem, autostart)
         rospy.loginfo('Playback ready: %.3f s, %d same-time inference updates', scene.duration, len(updates))
     else:
-        raise ValueError('execution_mode must be live or prepared_playback.')
+        raise ValueError('execution_mode must be async, live or prepared_playback.')
     rospy.spin()

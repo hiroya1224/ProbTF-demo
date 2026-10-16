@@ -323,9 +323,12 @@ class MovingInference:
             None if command_map is None else command_map.record())
         result.records["prediction_command_action"] = (
             None if command_map is None else command_map.selection_record(sensor_inputs.command))
+        recorded_history = (command_map is not None and
+            result.records['prediction_command_correction'].get('kind') == 'recorded_executed_command_history')
         result.records["moving_input_family"] = {
             "law_id": self.law["law_id"], "revision": self.law["revision"],
-            "command_family": ("configured Bingham right action; translation law unchanged"
+            "command_family": ("actual executed command history with each interval's frozen K action; all intervals retained across observation scheduling" if recorded_history else
+                "configured Bingham right action; translation law unchanged"
                 if command_map is None else "same posterior right action by the previous cycle's frozen estimated-K equilibrium increment; translation law unchanged"),
             "temporal_policy": ("Bayes-factor weighted continuation and direct-family body redraw on fresh valid observation packets; retained marker marginal; single analytic joint moment proxy and all current goal modes" if transition else
                 "retain one full joint moment approximation, including unknown-marker memory and all cross blocks; preserve the current observation mixture in the goal criterion and display"),

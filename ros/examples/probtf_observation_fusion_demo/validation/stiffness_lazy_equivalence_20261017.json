@@ -1,0 +1,192 @@
+{
+  "reference_commit": "84cbcf2",
+  "source_policy": "independent old/new identifiers with separate URDF robots; same actual observation result, no live backend replacement",
+  "cases": {
+    "imu": [
+      {
+        "index": 0,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 1,
+        "dense_time_s": 0.174062245991081,
+        "lazy_time_s": 0.12313599605113268,
+        "dense_current_equilibria": 20,
+        "lazy_current_equilibria": 7,
+        "dense_density_evaluations": 21,
+        "lazy_density_evaluations": 21
+      },
+      {
+        "index": 1,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 2,
+        "dense_time_s": 0.1245510820299387,
+        "lazy_time_s": 0.0712606031447649,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      },
+      {
+        "index": 2,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 3,
+        "dense_time_s": 0.2704593245871365,
+        "lazy_time_s": 0.21605620719492435,
+        "dense_current_equilibria": 22,
+        "lazy_current_equilibria": 8,
+        "dense_density_evaluations": 23,
+        "lazy_density_evaluations": 23
+      },
+      {
+        "index": 3,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 4,
+        "dense_time_s": 0.12519741524010897,
+        "lazy_time_s": 0.07175950706005096,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      },
+      {
+        "index": 4,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 5,
+        "dense_time_s": 0.12624390190467238,
+        "lazy_time_s": 0.07177474070340395,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      }
+    ],
+    "marker": [
+      {
+        "index": 0,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 1,
+        "dense_time_s": 0.15116056893020868,
+        "lazy_time_s": 0.10122169181704521,
+        "dense_current_equilibria": 18,
+        "lazy_current_equilibria": 5,
+        "dense_density_evaluations": 19,
+        "lazy_density_evaluations": 19
+      },
+      {
+        "index": 1,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 2,
+        "dense_time_s": 0.19038659194484353,
+        "lazy_time_s": 0.1265205331146717,
+        "dense_current_equilibria": 18,
+        "lazy_current_equilibria": 4,
+        "dense_density_evaluations": 19,
+        "lazy_density_evaluations": 19
+      },
+      {
+        "index": 2,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 3,
+        "dense_time_s": 0.1254355488345027,
+        "lazy_time_s": 0.07193347625434399,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      },
+      {
+        "index": 3,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 4,
+        "dense_time_s": 0.12649606494233012,
+        "lazy_time_s": 0.0732213081791997,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      },
+      {
+        "index": 4,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 5,
+        "dense_time_s": 0.12631159787997603,
+        "lazy_time_s": 0.07255016500130296,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      }
+    ],
+    "imu_marker": [
+      {
+        "index": 0,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 1,
+        "dense_time_s": 0.1468691066838801,
+        "lazy_time_s": 0.09523601969704032,
+        "dense_current_equilibria": 17,
+        "lazy_current_equilibria": 4,
+        "dense_density_evaluations": 18,
+        "lazy_density_evaluations": 18
+      },
+      {
+        "index": 1,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 2,
+        "dense_time_s": 0.1242952081374824,
+        "lazy_time_s": 0.07105599576607347,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      },
+      {
+        "index": 2,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 3,
+        "dense_time_s": 0.13092255918309093,
+        "lazy_time_s": 0.07461285777390003,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      },
+      {
+        "index": 3,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 4,
+        "dense_time_s": 0.13464218331500888,
+        "lazy_time_s": 0.0752957402728498,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      },
+      {
+        "index": 4,
+        "proposal_all_fields_bitwise_equal": true,
+        "optimization_path_bitwise_equal": true,
+        "factor_count": 5,
+        "dense_time_s": 0.13188054598867893,
+        "lazy_time_s": 0.07393684890121222,
+        "dense_current_equilibria": 15,
+        "lazy_current_equilibria": 1,
+        "dense_density_evaluations": 16,
+        "lazy_density_evaluations": 16
+      }
+    ]
+  }
+}

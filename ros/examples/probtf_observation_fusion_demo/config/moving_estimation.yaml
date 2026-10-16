@@ -8,6 +8,11 @@ temporal_policy: retain a single full joint moment proxy; on each fresh valid ob
 bayes_factor_surprise:
   enabled: true
   change_probability: 0.25
+async_execution:
+  motion_period_s: 0.05
+  camera_hz: 15.0
+  ik_horizon_s: 0.5
+  observation_scheduling: latest_archived_capture_when_idle
 marker_prior:
   edge_id: marker
   translation: [1.16, -0.04, 0.72]
@@ -32,7 +37,7 @@ control:
   # Known task relation in marker coordinates, not the world's marker pose.
   goal_offset: [0.0, -0.24, 0.045]
   goal_orientation_wxyz: [0.5, -0.5, 0.5, 0.5]
-  max_joint_velocity: 0.096
+  max_joint_velocity: 0.048
   max_joint_acceleration: 0.3
   damping: 0.025
   integration_steps: 480
@@ -42,9 +47,10 @@ control:
     enabled: true
     joint_indices: [3, 4]
     amplitude_rad: 0.02
-    max_joint_velocity: 0.025
+    amplitude_increment_rad: 0.01
+    max_amplitude_rad: 0.12
+    max_joint_velocity: 0.0125
     settle_time_s: 0.25
-    max_duration_s: 8.0
 display:
   axis_length: 0.07500000111758709
   point_size: 0.0074999998323619365

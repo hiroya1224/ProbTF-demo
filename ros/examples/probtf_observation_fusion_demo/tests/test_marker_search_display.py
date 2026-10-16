@@ -66,16 +66,20 @@ def recorded_search(tmp_path, monkeypatch):
         ('settling', 'braking'),
         ('searching', 'settling'),
         ('searching', 'searching'),
+        ('settling', 'searching'),
+        ('settling', 'settling'),
+        ('searching', 'settling'),
+        ('searching', 'searching'),
         ('reaching', 'searching'),
         ('reaching', 'reaching'),
-        ('search_exhausted', 'reaching'),
-        ('search_exhausted', 'search_exhausted'),
     )
     frames = []
     for index, (action, interval) in enumerate(history):
         command = scene.initial_command + .001*index*np.array([1., -.5, .2, 0., 0., 0.])
         frame = scene.step(index*.05, 1792080000.+index*.05, command=command)
-        scene.trajectory[-1].update(action_mode=action, command_interval_mode=interval)
+        scene.trajectory[-1].update(action_mode=action, command_interval_mode=interval,
+            search_amplitude_rad=.02 if index < 7 else .03,
+            search_completed_roundtrips=0 if index < 5 else 1)
         frames.append(frame)
     display = MotionDisplay.__new__(MotionDisplay)
     display.scene, display.case, display.sensor_names = scene, 'marker', ('marker',)
@@ -121,12 +125,16 @@ def test_actual_ros_wire_has_exact_executed_search_segments_and_no_boundary_blee
 def test_history_colors_do_not_follow_current_or_future_actions_and_replay_has_no_future_points(recorded_search):
     scene, display, frames = recorded_search
     searching = _path(_publish(display, frames, 4))
-    reacquired = _path(_publish(display, frames, 5))
-    exhausted = _path(_publish(display, frames, 8))
+    settled = _path(_publish(display, frames, 6))
+    expanded = _path(_publish(display, frames, 8))
+    reacquired = _path(_publish(display, frames, 9))
     np.testing.assert_array_equal(_coordinates(reacquired.points[:len(searching.points)]),
                                   _coordinates(searching.points))
     np.testing.assert_array_equal(_rgba(reacquired.colors[:len(searching.colors)]), _rgba(searching.colors))
-    np.testing.assert_array_equal(_rgba(exhausted.colors[:len(reacquired.colors)]), _rgba(reacquired.colors))
+    np.testing.assert_array_equal(_rgba(expanded.colors[:len(settled.colors)]), _rgba(settled.colors))
+    np.testing.assert_array_equal(_rgba(reacquired.colors[:len(expanded.colors)]), _rgba(expanded.colors))
+    np.testing.assert_array_equal(_rgba(settled.colors[-2:]), np.array([TEAL]*2, dtype=np.float32))
+    np.testing.assert_array_equal(_rgba(expanded.colors[-2:]), np.array([ORANGE]*2, dtype=np.float32))
     np.testing.assert_array_equal(_rgba(reacquired.colors[-2:]), np.array([ORANGE]*2, dtype=np.float32))
     # Replaying an earlier frame after the complete history was prepared must
     # show only the intervals that had actually executed by that frame.
@@ -142,7 +150,11 @@ def test_action_hud_and_replay_reset_use_same_frame_without_retained_orange_stro
     scene, display, frames = recorded_search
     output = _publish(display, frames, 4)
     assert next(marker for marker in output.markers if marker.ns == 'status').text.endswith('Action: MARKER SEARCH')
-    output = _publish(display, frames, 5)
+    output = _publish(display, frames, 6)
+    assert next(marker for marker in output.markers if marker.ns == 'status').text.endswith('Action: MARKER SEARCH | SETTLING')
+    output = _publish(display, frames, 8)
+    assert next(marker for marker in output.markers if marker.ns == 'status').text.endswith('Action: MARKER SEARCH')
+    output = _publish(display, frames, 9)
     assert next(marker for marker in output.markers if marker.ns == 'status').text.endswith('Action: REACHING')
     assert any(color.r == 1. for color in _path(output).colors)
     # DELETEALL remains first on every publication, including reset/first
@@ -172,3 +184,20 @@ def test_path_color_adapter_rejects_points_from_another_trajectory(recorded_sear
     path = _path(_publish(display, frames, 2))
     with pytest.raises(AssertionError, match='points and recorded command intervals differ'):
         MotionDisplay._color_action_path(path, scene.trajectory[:2])
+
+
+def test_finished_experiment_labels_the_last_search_action_and_preserves_its_executed_orange_history(recorded_search):
+    _, display, frames = recorded_search
+    active = _path(_publish(display, frames, 8))
+    frame = frames[8]
+    display.publish(frame, 8, SimpleNamespace(observation_ids=(), stamp=frame.stamp), 8,
+        execution={'execution_mode': 'live', 'actual_update_hz': 1.3,
+                   'simulated_step_s': .05, 'experiment_finished': True})
+    finished = _wire(display.publisher.message)
+    status = next(marker for marker in finished.markers if marker.ns == 'status').text
+    assert 'FINISHED' in status
+    assert status.endswith('Last action: MARKER SEARCH')
+    path = _path(finished)
+    np.testing.assert_array_equal(_coordinates(path.points), _coordinates(active.points))
+    np.testing.assert_array_equal(_rgba(path.colors), _rgba(active.colors))
+    assert any(color.r == 1. for color in path.colors)

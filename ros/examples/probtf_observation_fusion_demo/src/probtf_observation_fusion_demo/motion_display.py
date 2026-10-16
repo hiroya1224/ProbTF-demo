@@ -185,7 +185,9 @@ class MotionDisplay:
                     or record.get('update_applied') is True):
                 raise ValueError('An undefined stiffness density must retain its exact prior.')
             density = record['retained_prior']
-            title = 'K density update unavailable; prior retained'
+            title = ('K density retained; command prediction'
+                     if record['status'] == 'prediction_with_retained_parameters'
+                     else 'K density update unavailable; prior retained')
         else:
             density = posterior
             title = 'K density factors | normalization unevaluated'
@@ -246,11 +248,20 @@ class MotionDisplay:
             density['density_id'][:16], snapshot.stamp, ','.join(str(version) for version in versions))
         return marker
 
-    def publish(self, frame, frame_index, snapshot, inference_index, *, stiffness_record=None, execution=None):
+    def publish(self, frame, frame_index, snapshot, inference_index, *, stiffness_record=None,
+                execution=None, publish_scene=True):
         # Reject a stale or unrelated auxiliary update before publishing any
         # frame. The supplied record is the updater's own object, not a second
         # estimate reconstructed from the physical robot or its stiffness.
-        if stiffness_record is not None and (frame.stamp != snapshot.stamp
+        if execution is not None and execution.get('execution_mode') == 'async':
+            if (execution['physical_stamp'] != frame.stamp
+                    or tuple(execution['command']) != tuple(frame.command)
+                    or execution['displayed_prediction_stamp'] != snapshot.stamp
+                    or tuple(execution['displayed_prediction_command']) != tuple(snapshot.command)
+                    or execution['displayed_prediction_age_s'] != frame.stamp-snapshot.stamp
+                    or snapshot.stamp > frame.stamp):
+                raise AssertionError('Async physical and predicted source clocks are inconsistent.')
+        elif stiffness_record is not None and (frame.stamp != snapshot.stamp
                 or tuple(frame.command) != tuple(snapshot.command)):
             raise AssertionError('Physical frame and stiffness/body snapshot have different command times.')
         stiffness = (None if stiffness_record is None else
@@ -262,6 +273,8 @@ class MotionDisplay:
                 if name != 'base_link':
                     messages.append(transform_message('base_link', prefix + name, pose, stamp))
         self.transforms.sendTransform(messages)
+        if not publish_scene:
+            return
         self.trial = SimpleNamespace(
             config=self.scene.config, marker=self.scene.marker, goal=self.scene.goal,
             status='reached' if frame.reached else 'running',
@@ -275,10 +288,23 @@ class MotionDisplay:
             if marker.ns == 'actual_path':
                 self._color_action_path(marker, self.trial.trajectory)
             if marker.ns == 'status':
-                if execution is not None and execution['execution_mode'] == 'live':
+                if execution is not None and execution['execution_mode'] == 'async':
+                    rate = lambda key: ('measuring' if execution[key] is None else
+                                        '{:.1f} Hz'.format(execution[key]))
+                    clock = ('Async motion {} | camera {}\nIK {} | inference {}\n'
+                             'Observation age {:.2f}s | displayed prediction age {:.2f}s').format(
+                        rate('actual_motion_hz'), rate('actual_camera_hz'),
+                        rate('actual_control_hz'), rate('actual_estimate_hz'),
+                        execution['observation_age_s'], execution['displayed_prediction_age_s'])
+                    if execution['finished']:
+                        clock = ('FINISHED: wall-clock motion | ' if execution['estimation_drained']
+                                 else 'FINISHED: motion | processing final capture\n')+clock
+                elif execution is not None and execution['execution_mode'] == 'live':
                     hz = execution['actual_update_hz']
                     rate = 'measuring' if hz is None else '{:.2f} Hz'.format(hz)
                     clock = 'Live updates {} | simulation dt {:.3f} s'.format(rate, execution['simulated_step_s'])
+                    if execution.get('experiment_finished'):
+                        clock = 'FINISHED: final experiment frame | last update rate '+rate
                     if execution.get('paused_at_update_limit'):
                         clock = 'PAUSED: requested {} updates; experiment incomplete'.format(
                             execution['requested_update_limit'])
@@ -308,7 +334,9 @@ class MotionDisplay:
                     }.get(action)
                     if label is None:
                         raise ValueError('Unknown physical frame action mode: '+str(action))
-                    marker.text += '\nAction: '+label
+                    prefix = ('Last action: ' if execution is not None
+                              and (execution.get('experiment_finished') or execution.get('finished')) else 'Action: ')
+                    marker.text += '\n'+prefix+label
         imu = self.marker('imu_mount', Marker.CUBE,
                           (.55,.12,.75,1.) if 'imu' in self.sensor_names else (.4,.4,.4,.5),
                           (.025,.025,.025), pose=frame.link_poses[self.scene.imu_target_link].copy())

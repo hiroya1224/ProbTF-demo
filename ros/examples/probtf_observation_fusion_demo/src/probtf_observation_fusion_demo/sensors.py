@@ -102,7 +102,7 @@ def _posterior_weights(log_weights):
     return values / np.sum(values)
 
 
-def imu_estimate(state, observation, paths, common, image):
+def imu_estimate(state, observation, paths, common, image, *, shared_observation_frame=False):
     """Gravity constrains a direction, with exactly two observation coordinates."""
     root_gravity = np.asarray(observation["gravity_in_root"], dtype=float)
     root_gravity /= np.linalg.norm(root_gravity)
@@ -114,7 +114,11 @@ def imu_estimate(state, observation, paths, common, image):
     direction = direction_query(state, inverse_path, root_gravity,
                                 query_id=target_id, frame=observation["target_link"])
     mode_direction = direction.mode
-    basis = tangent_basis(mode_direction / np.linalg.norm(mode_direction))
+    # Change hypotheses must use the very same observation coordinates and
+    # base measure. A hypothesis-specific prior-mode plane is unsuitable for
+    # comparing their evidences. This observed-direction plane is shared.
+    basis = tangent_basis(observed if shared_observation_frame else
+                          mode_direction / np.linalg.norm(mode_direction))
     intrinsic = linear_query(direction, basis.T, query_id=target_id + ":frozen_tangent2")
     frozen = freeze_query(state, intrinsic)
     variance = float(observation["direction_sigma_rad"]) ** 2
@@ -125,7 +129,9 @@ def imu_estimate(state, observation, paths, common, image):
                                (PosteriorComponent("gravity", local, 1.0),))
     return LocalEstimate(posterior, {
         "sensor": "imu", "target_link": observation["target_link"],
-        "coordinates": "prior-mode fixed S2 tangent plane (2D)",
+        "coordinates": ("observation-fixed shared S2 tangent plane (2D)" if shared_observation_frame
+                        else "prior-mode fixed S2 tangent plane (2D)"),
+        "shared_observation_frame": bool(shared_observation_frame),
         "tangent_basis": basis.tolist(), "observed_direction": observed.tolist(),
         "information_rank": 2, "heading_observation": False,
         "measurement_variance": variance, "log_evidence": float(evidence),

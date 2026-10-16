@@ -1,9 +1,10 @@
 """Retained transform-candidate inference on the moving switch scene.
 
-The direct independent family initializes the body once. Every later prior
-retains the preceding joint moments in one internal proxy, pushed by its
-declared command action. Current observation modes remain explicit goal
-components. No physical truth or invented process covariance enters inference.
+The directly supplied family initializes the body and defines the explicit
+body-redraw change kernel. Each new observation compares that kernel with
+the retained joint proxy pushed by its declared command action. Current
+observation/change modes remain explicit goal components. No physical truth
+or invented process covariance enters inference.
 """
 
 from copy import deepcopy
@@ -17,6 +18,7 @@ import numpy as np
 import rospkg
 from scipy.spatial.transform import Rotation
 import yaml
+from scipy.special import logsumexp
 
 from probtf.geometry import axis_angle_to_quat, quat_right_matrix, quat_to_rotmat, rotmat_to_quat
 from probtf.spherical_law.first_order import BinghamTransform, JointTransformState, point_query
@@ -28,6 +30,7 @@ from .model import (
 )
 from .body_projection import project_update, retain_goal_components
 from .moving_control import command_state
+from .bayes_factor import transition_priors, projection_input, retain_transition_goals
 
 
 def _origin(joint):
@@ -70,6 +73,11 @@ class MovingInference:
         self.reference_command = np.asarray(self.law["reference_command"], dtype=float)
         self.templates = tuple(deepcopy(item) for item in observation_templates)
         self.settings = settings
+        self.surprise_settings = dict(settings.get('bayes_factor_surprise', {}))
+        self.surprise_enabled = bool(self.surprise_settings.get('enabled', False))
+        self.change_probability = float(self.surprise_settings.get('change_probability', .25))
+        if not np.isfinite(self.change_probability) or not 0. < self.change_probability < 1.:
+            raise ValueError('Bayes-factor change probability must be strictly between zero and one.')
         self.last_key = None
         self.last_result = None
         self.last_observation_signature = None
@@ -145,7 +153,7 @@ class MovingInference:
         self.common = {
             "root_frame": settings["root_frame"],
             "update": {},
-            "prior": {"independence": "initial product over supplied local transform candidates; full posterior joint moments retained as one internal approximation between updates",
+            "prior": {"independence": "initial supplied product; explicit body-redraw branch independent of the retained environment; full joint moments retained in the internal approximation",
                       "body": [{"edge_id": name} for name in self.body_ids],
                       "marker": {"status": marker_data["status"]}},
             "known_geometry": {"source": "fixed attachment geometry parsed from shared URDF; masses and physical poses excluded"},
@@ -156,8 +164,9 @@ class MovingInference:
     def prior_at(self, command, stamp, frame_index):
         """Query the directly supplied initial family, with no pose truth.
 
-        Sequential inference uses this only at initialization. It never uses
-        this method to replace a body posterior on later ticks.
+        Besides initialization, this is the specified reset branch of the
+        change model. The retained posterior remains the competing branch;
+        this method never unconditionally replaces an accumulated posterior.
         """
         command = np.asarray(command, dtype=float)
         if command.shape != self.reference_command.shape:
@@ -250,9 +259,63 @@ class MovingInference:
                     gravity_in_sensor=np.asarray(sensor_inputs.gravity_in_sensor).tolist(),
                     direction_sigma_rad=float(sensor_inputs.imu_sigma_rad))
             observations.append(observation)
-        result = run(self.common, tuple(observations), sensor_inputs.image,
-                     prior_components=priors, paths=self.paths)
+        transition = False
+        surprise = dict(enabled=self.surprise_enabled, applied=False,
+            change_probability=self.change_probability,
+            prior_change_odds=self.change_probability/(1.-self.change_probability),
+            probability_unit='one fresh nonempty valid observation packet; common across sensors',
+            reason='disabled' if not self.surprise_enabled else 'no valid new observations',
+            log_bayes_factor=None, posterior_change_probability=None,
+            log_keep_evidence=None, log_reset_evidence=None,
+            monte_carlo_used=False, physical_truth_received=False)
+        if self.surprise_enabled and observations:
+            native_priors, transition_record = transition_priors(priors[0],
+                self.prior_at(sensor_inputs.command, sensor_inputs.stamp, frame_index),
+                self.change_probability, marker_id=self.marker.edge_id)
+            result = run(self.common, tuple(observations), sensor_inputs.image,
+                prior_components=native_priors, paths=self.paths,
+                joint_evidence=True, shared_observation_frame=True)
+            if result.sensor_posteriors:
+                transition = True
+                evidences = result.records['joint_observation_evidence']
+                keep_log, reset_log = (item['log_evidence'] for item in evidences['parents'])
+                log_bf = reset_log-keep_log
+                reset_mass = float(logsumexp([component_log_weight(item)
+                    for item in result.frozen_body_branches[1].posterior_components]))
+                keep_mass = float(logsumexp([component_log_weight(item)
+                    for item in result.frozen_body_branches[0].posterior_components]))
+                if not np.isclose(reset_mass-keep_mass,
+                    np.log(self.change_probability)-np.log1p(-self.change_probability)+log_bf,
+                    atol=1e-9, rtol=1e-9):
+                    raise ValueError('Fused change odds and normalized joint evidence disagree.')
+                surprise.update(applied=True, reason='fresh valid observation packet',
+                    log_bayes_factor=float(log_bf),
+                    posterior_change_probability=float(np.exp(reset_mass)),
+                    posterior_keep_log_probability=keep_mass,
+                    posterior_change_log_probability=reset_mass,
+                    log_keep_evidence=keep_log, log_reset_evidence=reset_log,
+                    log_observation_evidence=evidences['log_evidence'],
+                    observation_ids=list(result.records['observation_ids']),
+                    transition=transition_record,
+                    prior_source_state_ids=[item.state.state_id for item in native_priors],
+                    initial_packet=not bool(self.components))
+            else:
+                # Missing images are not evidence for a change. Preserve the
+                # ordinary prior bit for bit and retain the detector result.
+                missing = result
+                result = run(self.common, (), sensor_inputs.image,
+                    prior_components=priors, paths=self.paths)
+                result = replace(result, local_estimates=missing.local_estimates,
+                                 detection_image=missing.detection_image)
+                result.records['sensor_estimates'] = missing.records['sensor_estimates']
+        else:
+            result = run(self.common, tuple(observations), sensor_inputs.image,
+                         prior_components=priors, paths=self.paths)
+        result.records['bayes_factor_surprise'] = surprise
         result = self._project_internal_update(result, predicted_goals)
+        surprise['internal_state_id'] = result.stages[-1].components[0].state.state_id
+        surprise['goal_source_state_ids'] = [item.state.state_id
+                                            for item in result.stages[-1].goal_components]
         self._record_fixed_goal_memory(result)
         result.records["prediction"] = prediction
         result.records["goal_prediction"] = goal_prediction
@@ -264,7 +327,8 @@ class MovingInference:
             "law_id": self.law["law_id"], "revision": self.law["revision"],
             "command_family": ("configured Bingham right action; translation law unchanged"
                 if command_map is None else "same posterior right action by the previous cycle's frozen estimated-K equilibrium increment; translation law unchanged"),
-            "temporal_policy": "initial family once; retain one full joint moment approximation, including unknown-marker memory and all cross blocks; preserve the current observation mixture in the goal criterion and display",
+            "temporal_policy": ("Bayes-factor weighted continuation and direct-family body redraw on fresh valid observation packets; retained marker marginal; single analytic joint moment proxy and all current goal modes" if transition else
+                "retain one full joint moment approximation, including unknown-marker memory and all cross blocks; preserve the current observation mixture in the goal criterion and display"),
             "initialization": not bool(self.components),
             "frame_index": int(frame_index), "time": float(sensor_inputs.time),
             "physical_truth_received": False,
@@ -287,12 +351,16 @@ class MovingInference:
         Without a new marker observation their root marker laws remain fixed;
         only the body and its side of shared cross blocks update.
         """
-        projection = project_update(result)
+        transition = bool(result.records.get('bayes_factor_surprise', {}).get('applied'))
+        native_branches = result.frozen_body_branches
+        projected_input = projection_input(result) if transition else result
+        projection = project_update(projected_input)
         raw_stage = result.stages[-1]
         marker_observed = any(estimate.posterior is not None
                               and estimate.detector_result is not None
                               for estimate in result.local_estimates)
         goals = (projection.goal_components if marker_observed or not predicted_goals else
+                 retain_transition_goals(predicted_goals, result, projection) if transition else
                  retain_goal_components(predicted_goals, result.prior,
                                         projection.posterior, projection.state))
         internal = WeightedState(projection.state.component_id, 1., projection.state, 0.)
@@ -301,15 +369,24 @@ class MovingInference:
             lineage=tuple(item.label for item in result.frozen_body_posterior.components),
             log_weight=0.)
         frozen = replace(result.frozen_body_posterior, components=(effective_raw,))
-        original_branch = result.frozen_body_branches[0]
+        original_branch = native_branches[0]
         branch = FrozenBodyBranch(original_branch.label, 1., original_branch.reference_state,
                                   original_branch.prior, (effective_raw,), 0.)
-        stages = result.stages[:-1] + (
-            replace(raw_stage, label='fused_observation_candidates'), stage)
+        if transition:
+            stages = result.stages[:-1] + (
+                replace(raw_stage, label='fused_change_candidates'),
+                replace(projected_input.stages[-1], label='fused_observation_candidates'), stage)
+        else:
+            stages = result.stages[:-1] + (
+                replace(raw_stage, label='fused_observation_candidates'), stage)
         records = result.records
+        if transition:
+            records['bayes_factor_transport'] = projected_input.records['bayes_factor_transport']
         records['internal_projection'] = dict(projection.record,
             goal_policy=('current observation conditional modes with a shared projected body; capture the root-fixed switch mixture'
-                         if marker_observed else 'root-fixed marker marginals and mixture masses; Schmidt body-side cross update only'),
+                         if marker_observed else
+                         'root-fixed marker marginals and mixture masses; posterior-weighted keep-branch Schmidt cross and independent reset cross' if transition else
+                         'root-fixed marker marginals and mixture masses; Schmidt body-side cross update only'),
             goal_retention_is_full_posterior_conditioning=False,
             goal_source_state_ids=[item.state.state_id for item in goals],
             goal_source_labels=[item.label for item in goals],
@@ -319,7 +396,11 @@ class MovingInference:
             predicted_goal_source_state_ids=[item.state.state_id for item in predicted_goals])
         records['mixture_policy'] = (
             'one recursive joint internal moment approximation; all current observation/goal modes and log masses retained; no temporal Cartesian-product enumeration')
-        records['stages'][-1]['label'] = 'fused_observation_candidates'
+        records['stages'][-1]['label'] = 'fused_change_candidates' if transition else 'fused_observation_candidates'
+        if transition:
+            records['stages'].append(dict(label='fused_observation_candidates',
+                sensor_ids=list(raw_stage.sensor_ids), components=[_joint_record(item,
+                    self.paths, result.root_frame) for item in projected_input.stages[-1].components]))
         records['stages'].append(dict(label=stage.label, sensor_ids=list(stage.sensor_ids),
             components=[_joint_record(internal, self.paths, result.root_frame)],
             goal_components=[_joint_record(item, self.paths, result.root_frame) for item in goals]))
@@ -328,7 +409,8 @@ class MovingInference:
             posterior_labels=[effective_raw.label],
             approximation='full joint moment projection after fusion; density ratio includes this declared approximation')]
         return replace(result, stages=stages, frozen_body_posterior=frozen,
-                       frozen_body_branches=(branch,))
+                       frozen_body_branches=native_branches if transition else (branch,),
+                       projected_body_numerator=branch if transition else None)
 
     def _record_fixed_goal_memory(self, result):
         """Capture a root-frame task law only on a valid marker observation.
@@ -376,13 +458,14 @@ class MovingInference:
             self.fixed_goal_memory = dict(available=True, root_frame=result.root_frame,
                 observation_stamp=source.stamp, observation_command=list(source.command),
                 observation_version=source.version,
-                observation_ids=[item.posterior.observation_id for item in estimates],
-                observation_sensor_ids=[item.posterior.sensor_id for item in estimates],
+                observation_ids=list(dict.fromkeys(item.posterior.observation_id for item in estimates)),
+                observation_sensor_ids=list(dict.fromkeys(item.posterior.sensor_id for item in estimates)),
                 observation_source_state_ids=result.records['internal_projection']['raw_source_state_ids'],
                 construction='observed marker|body conditionals under the common internal body marginal, then fixed known marker-to-switch action',
                 marker_to_switch=dict(translation=offset.tolist(), rotation_wxyz=orientation.tolist()),
                 goal_components=components, sampling_used=False,
-                holding_policy='fixed root marker marginal and all mixture masses; body-side Schmidt cross update without conditioning the recorded goal')
+                holding_policy=('fixed root marker marginal and all mixture masses; posterior-weighted continuation Schmidt cross and independent body-redraw cross' if self.surprise_enabled else
+                    'fixed root marker marginal and all mixture masses; body-side Schmidt cross update without conditioning the recorded goal'))
             event = 'marker_observation_update'
         elif self.fixed_goal_memory is None:
             event = 'unobserved_prior'

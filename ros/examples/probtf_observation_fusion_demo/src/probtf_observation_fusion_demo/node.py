@@ -106,7 +106,8 @@ def build_snapshot(result, stage, common):
                                tuple(state.command), state.version, stage.label,
                                observation_ids, summary,
                                goal_memory=result.records.get('fixed_goal_memory'),
-                               behavior=result.records.get('behavior'))
+                               behavior=result.records.get('behavior'),
+                               surprise_record=result.records.get('bayes_factor_surprise'))
     verify_adapter_identity(snapshot, stage)
     return snapshot
 

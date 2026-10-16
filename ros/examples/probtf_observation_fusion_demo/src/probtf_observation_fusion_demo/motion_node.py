@@ -421,6 +421,8 @@ class MotionPlayback:
                 metadata.update(behavior=snapshot.behavior,
                     action_mode=snapshot.behavior['mode'],
                     command_interval_mode=snapshot.behavior['command_interval_mode'])
+            if snapshot.surprise_record is not None:
+                metadata['bayes_factor_surprise'] = snapshot.surprise_record
             self.motion.publish(String(json.dumps(metadata)))
             self.index = index
 
@@ -495,6 +497,7 @@ class MotionLive:
             physical_stamp=tick.frame.stamp, command=tick.frame.command.tolist(),
             valid_observations=len(tick.snapshot.observation_ids),
             behavior=tick.result.records['behavior'],
+            bayes_factor_surprise=tick.result.records['bayes_factor_surprise'],
             action_mode=tick.behavior.mode,
             command_interval_mode=tick.result.records['behavior']['command_interval_mode'],
             tick_timings_s=tick.timings,

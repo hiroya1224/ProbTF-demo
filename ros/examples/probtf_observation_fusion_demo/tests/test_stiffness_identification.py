@@ -11,7 +11,7 @@ from scipy.spatial.transform import Rotation
 from scipy.stats import multivariate_normal
 
 from probtf.spherical_law.fusion import Gaussian, PosteriorComponent
-from probtf_observation_fusion_demo.model import run, FrozenBodyBranch
+from probtf_observation_fusion_demo.model import run, FrozenBodyBranch, WeightedState
 from probtf_observation_fusion_demo.moving_inference import MovingInference
 from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
 from probtf_observation_fusion_demo.stiffness_identification import (
@@ -247,19 +247,27 @@ def test_valid_sensor_cases_use_same_frozen_ratio_and_are_sensor_order_invariant
         raise AssertionError('Neither body propagation nor stiffness inference may use MC.')
     for name in ('default_rng', 'normal', 'random', 'randn', 'multivariate_normal', 'RandomState'):
         monkeypatch.setattr(np.random, name, forbidden)
+    def fingerprint(result):
+        # Native keep/reset priors remain the denominator. The effective
+        # numerator is a separate canonical projected body, shared by display.
+        return (tuple((branch.label, branch.weight, branch.reference_state.state_id,
+                       branch.prior.mean.tobytes(), branch.prior.covariance.tobytes(),
+                       tuple((item.label, item.weight, item.log_weight,
+                              item.distribution.mean.tobytes(), item.distribution.covariance.tobytes())
+                             for item in branch.posterior_components))
+                      for branch in result.frozen_body_branches),
+                tuple((item.label, item.weight, item.log_weight,
+                       item.distribution.mean.tobytes(), item.distribution.covariance.tobytes())
+                      for item in result.frozen_body_posterior.components),
+                tuple(item.state.state_id for item in result.stages[-1].components))
     records = {}
     for name in ('imu', 'marker', 'imu_marker'):
         inference = MovingInference(scene.robot_description, templates[name])
         result = inference.update(scene.sensor_inputs(frame), 0)
-        raw = result.frozen_body_prior, result.frozen_body_posterior
-        before = (raw[0].mean.tobytes(), raw[0].covariance.tobytes(), tuple(
-            (item.weight, item.distribution.mean.tobytes(), item.distribution.covariance.tobytes())
-            for item in raw[1].components), tuple(item.state.state_id for item in result.stages[-1].components))
+        before = fingerprint(result)
         identifier = StiffnessIdentifier(scene.urdf, inference.body_ids, settings)
         record = identifier.update(result)
-        after = (raw[0].mean.tobytes(), raw[0].covariance.tobytes(), tuple(
-            (item.weight, item.distribution.mean.tobytes(), item.distribution.covariance.tobytes())
-            for item in raw[1].components), tuple(item.state.state_id for item in result.stages[-1].components))
+        after = fingerprint(result)
         assert before == after
         assert record['update_applied'], record.get('failure_reason')
         assert not record['status'].startswith('failed')
@@ -268,6 +276,10 @@ def test_valid_sensor_cases_use_same_frozen_ratio_and_are_sensor_order_invariant
         marginal = record['body_marginal']['branches'][0]
         assert len(marginal['prior_mean']) == 36
         assert len(marginal['components']) == len(result.frozen_body_posterior.components)
+        assert record['source_prior_weights'] == [.75, .25]
+        assert result.projected_body_numerator is not None
+        assert len(record['body_marginal']['branches']) == 2
+        assert record['body_marginal']['branches'][1]['components'] == []
         assert record['support_regularization_added'] is False
         assert record['feedback_to_body_or_control'] is False
         assert record['prior']['factor_ids'] == []
@@ -280,14 +292,18 @@ def test_valid_sensor_cases_use_same_frozen_ratio_and_are_sensor_order_invariant
         records[name] = record
     inference = MovingInference(scene.robot_description, templates['imu_marker'])
     original = inference.update(scene.sensor_inputs(frame), 0)
+    native_priors = tuple(WeightedState(branch.label, branch.weight,
+        branch.reference_state, branch.log_weight) for branch in original.frozen_body_branches)
     swapped = run(inference.common, tuple(reversed(inference.last_observations)), frame.image,
-                  prior=original.prior, paths=inference.paths)
+                  prior_components=native_priors, paths=inference.paths,
+                  joint_evidence=True, shared_observation_frame=True)
+    swapped.records['bayes_factor_surprise'] = dict(original.records['bayes_factor_surprise'])
     swapped = inference._project_internal_update(swapped, ())
     alternative = StiffnessIdentifier(scene.urdf, inference.body_ids, settings).update(swapped)
     assert alternative == records['imu_marker']
     # Source mismatches cannot be disguised by a new numerical fit.
     bad = replace(original, frozen_body_prior=Gaussian(
-        original.frozen_body_prior.mean+1., original.frozen_body_prior.covariance))
+        original.prior.mean+1., original.prior.covariance))
     with pytest.raises(ValueError, match='does not match'):
         StiffnessIdentifier(scene.urdf, inference.body_ids, settings).update(bad)
     raw = original.frozen_body_posterior
@@ -404,12 +420,16 @@ def test_cumulative_memory_preserves_old_factors_on_marker_loss_and_adds_only_ne
     current = inference.update(scene.sensor_inputs(current_frame), 2)
     current_record = identifier.update(current)
     assert current_record['status'] == 'updated_density_factor', current_record.get('failure_reason')
-    assert len(current.frozen_body_branches) == 1
-    assert sum(len(branch.posterior_components) for branch in current.frozen_body_branches) == 1
-    assert len(current.stages[-1].goal_components) == 2
+    assert len(current.frozen_body_branches) == 2
+    assert [branch.weight for branch in current.frozen_body_branches] == [.75, .25]
+    assert sum(len(branch.posterior_components) for branch in current.frozen_body_branches) == 4
+    assert len(current.projected_body_numerator.posterior_components) == 1
+    assert len(current.frozen_body_posterior.components) == 1
+    assert len(current.stages[-1].goal_components) == 4
     assert len(identifier.factors) == 2
     assert current_record['prior'] == first_record['posterior']
-    assert len(current_record['body_marginal']['branches']) == 1
+    assert len(current_record['body_marginal']['branches']) == 2
+    assert [len(item['components']) for item in current_record['body_marginal']['branches']] == [1, 0]
     new_contribution, new_derivative = identifier._factor_evaluation(identifier.factors[-1], x)
     np.testing.assert_allclose(identifier.log_density(x)[0], old_density+new_contribution, atol=1e-12)
     np.testing.assert_allclose(identifier.log_density(x)[1], old_gradient+new_derivative, atol=1e-12)

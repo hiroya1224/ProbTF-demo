@@ -207,6 +207,14 @@ def test_selected_corrected_law_is_the_next_prior_and_published_snapshot_source(
     later = replace(inputs, stamp=inputs.stamp+.05, time=.05, command=selected,
                     image=np.full_like(inputs.image, 255))
     updated = inference.update(later, 1, command_map=mapping)
+    # A fresh IMU packet invokes the declared change prior. Its continuation
+    # law is still precisely the selected K-corrected law, with prior mass
+    # .75; the additional direct-family reset has prior mass .25.
+    assert updated.records['bayes_factor_surprise']['applied']
+    assert len(updated.stages[0].components) == 2
+    assert [item.weight for item in updated.stages[0].components] == [.75, .25]
+    np.testing.assert_array_equal([item.log_weight for item in updated.stages[0].components],
+                                  np.log([.75, .25]))
     for source, prior, selected_body_id in zip(result.stages[-1].components,
             updated.stages[0].components, diagnostics['selected_body_state_ids']):
         expected = mapping.push(source.state, selected, inference.body_ids, inference.actions)
@@ -218,7 +226,8 @@ def test_selected_corrected_law_is_the_next_prior_and_published_snapshot_source(
                 np.testing.assert_array_equal(actual.bingham, predicted.bingham)
         assert prior.state.command == tuple(selected)
         assert prior.state.stamp == later.stamp and prior.state.version > expected.version
-        assert prior.weight == source.weight and prior.log_weight == source.log_weight
+        assert prior.weight == .75*source.weight
+        assert prior.log_weight == np.log(.75)+source.log_weight
     for source, branch in zip(result.stages[-1].goal_components,
                              diagnostics['selected_branches']):
         expected = mapping.push(source.state, selected, inference.body_ids, inference.actions)

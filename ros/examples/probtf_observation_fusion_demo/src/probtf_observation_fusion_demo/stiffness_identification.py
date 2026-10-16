@@ -140,21 +140,37 @@ def _rotation_chart_volume(value):
 
 
 class ChartedBodyDensityRatio:
-    """Full mixture densities, retaining each parent's actual frozen chart.
+    """Body densities, retaining each denominator's actual frozen chart.
 
     Every numerator and denominator is converted to the same physical volume
-    measure before log-sum-exp. No component is selected or moment collapsed.
+    measure before log-sum-exp. An explicitly supplied posterior branch is the
+    already declared single-law internal approximation used by IK/display;
+    it does not replace the native transition-prior mixture in the denominator.
     General singular mixtures require an explicit common manifold measure;
     this implementation refuses to invent one or add jitter.
     """
 
-    def __init__(self, branches, body_edge_ids):
+    def __init__(self, branches, body_edge_ids, posterior_branch=None):
         self.branches = tuple(branches)
         self.body_edge_ids = tuple(body_edge_ids)
+        self.posterior_branch = posterior_branch
+        posterior_index = None
+        if posterior_branch is not None:
+            matches = [index for index, branch in enumerate(self.branches)
+                       if branch.reference_state.state_id == posterior_branch.reference_state.state_id]
+            if len(matches) != 1:
+                raise ValueError('The projected body numerator must use one actual transition-prior chart.')
+            posterior_index = matches[0]
+            reference = self.branches[posterior_index].reference_state
+            if (not np.array_equal(posterior_branch.prior.mean, reference.mean)
+                    or not np.array_equal(posterior_branch.prior.covariance, reference.covariance)):
+                raise ValueError('The projected numerator reference does not match its native prior chart.')
+            if len(posterior_branch.posterior_components) != 1:
+                raise ValueError('The projected body numerator must be the declared single internal law.')
         self.marginals = []
         self.child_supports = []
         self.identity = True
-        for branch in self.branches:
+        for index, branch in enumerate(self.branches):
             state = branch.reference_state
             indices = [6*state.edge_ids.index(name)+coordinate
                        for name in body_edge_ids for coordinate in range(6)]
@@ -162,8 +178,9 @@ class ChartedBodyDensityRatio:
                 return Gaussian(distribution.mean[indices],
                     distribution.covariance[np.ix_(indices, indices)])
             prior = marginal(branch.prior)
-            children = tuple((child, marginal(child.distribution))
-                             for child in branch.posterior_components)
+            sources = (branch.posterior_components if posterior_branch is None else
+                       posterior_branch.posterior_components if index == posterior_index else ())
+            children = tuple((child, marginal(child.distribution)) for child in sources)
             support = prior.support
             for _, child in children:
                 require_same_support(support, child.support, 'same-branch body mixture')
@@ -173,19 +190,22 @@ class ChartedBodyDensityRatio:
             equal = all(np.array_equal(child.mean, prior.mean)
                         and np.array_equal(child.covariance, prior.covariance)
                         for _, child in children)
-            mass = float(logsumexp([_log_weight(child) for child, _ in children]))
+            mass = (float(logsumexp([_log_weight(child) for child, _ in children]))
+                    if children else -np.inf)
             self.identity &= equal and np.isclose(mass, _log_weight(branch), atol=1e-12, rtol=0.)
             self.marginals.append((prior, children, support))
             self.child_supports.append(tuple(child.support for _, child in children))
         if not self.branches:
             raise ValueError('The actual frozen body branch correspondence is required.')
-        for weights in ([ _log_weight(branch) for branch in self.branches],
-                        [_log_weight(child) for branch in self.branches
-                         for child in branch.posterior_components]):
+        for weights in ([_log_weight(branch) for branch in self.branches],
+                        [_log_weight(child) for _, children, _ in self.marginals
+                         for child, _ in children]):
             if not np.isclose(logsumexp(weights), 0., atol=1e-10, rtol=0.):
                 raise ValueError('Body prior/posterior global mixture weights must be normalized.')
 
     def evaluate(self, predictions):
+        if len(predictions) != len(self.branches):
+            raise ValueError('Every transition-prior chart needs the same physical prediction.')
         minus_terms, plus_terms, minus_gradients, plus_gradients = [], [], [], []
         for branch, marginal, prediction, child_supports in zip(
                 self.branches, self.marginals, predictions, self.child_supports):
@@ -213,6 +233,12 @@ class ChartedBodyDensityRatio:
     def record(self):
         return dict(chart_measure='common Haar rotation volume and parent-translation Lebesgue volume; single-chart Jacobian cancels',
             nuisance_policy='unknown marker and other variables integrated out by Gaussian marginal extraction',
+            denominator_semantics=('native weighted transition-prior mixture in its actual charts'
+                if self.posterior_branch is not None else 'actual frozen body prior mixture'),
+            numerator_semantics=('declared projected single internal body law shared by estimation, IK and display; not conditional keep-branch children'
+                if self.posterior_branch is not None else 'actual frozen globally weighted posterior children'),
+            projected_numerator_source_state_id=(None if self.posterior_branch is None else
+                self.posterior_branch.reference_state.state_id),
             branches=[dict(label=branch.label, weight=branch.weight, log_weight=_log_weight(branch),
                 source_state_id=branch.reference_state.state_id,
                 source_version=branch.reference_state.version,
@@ -223,6 +249,8 @@ class ChartedBodyDensityRatio:
                     bingham=None if edge.bingham is None else edge.bingham.tolist())
                     for edge in branch.reference_state.transforms if edge.edge_id in self.body_edge_ids],
                 prior_mean=prior.mean.tolist(), prior_covariance=prior.covariance.tolist(),
+                components_role=('projected numerator in this reference chart'
+                    if self.posterior_branch is not None else 'native globally weighted posterior children'),
                 components=[dict(label=child.label, weight=child.weight, log_weight=_log_weight(child),
                     mean=distribution.mean.tolist(), covariance=distribution.covariance.tolist())
                     for child, distribution in children])
@@ -436,6 +464,8 @@ class StiffnessIdentifier:
                 raise ValueError('Every body mixture parent needs its frozen chart correspondence.')
             branches = (SimpleNamespace(label=state.component_id, weight=1., reference_state=state,
                 prior=raw_prior, posterior_components=tuple(raw_posterior.components)),)
+        projected_numerator = getattr(result, 'projected_body_numerator', None)
+        numerator_branches = branches if projected_numerator is None else (projected_numerator,)
         observation_ids = tuple(result.records.get('observation_ids', raw_posterior.observation_ids))
         digest = hashlib.sha256()
         for branch in branches:
@@ -450,6 +480,14 @@ class StiffnessIdentifier:
         for item in raw_posterior.components:
             digest.update(item.distribution.mean.tobytes()+item.distribution.covariance.tobytes())
             digest.update(repr((item.label, _log_weight(item))).encode())
+        if projected_numerator is not None:
+            digest.update(b'declared-projected-single-body-numerator')
+            digest.update(projected_numerator.reference_state.state_id.encode())
+            digest.update(projected_numerator.prior.mean.tobytes()
+                          +projected_numerator.prior.covariance.tobytes())
+            for item in projected_numerator.posterior_components:
+                digest.update(repr((item.label, _log_weight(item))).encode())
+                digest.update(item.distribution.mean.tobytes()+item.distribution.covariance.tobytes())
         key = (digest.hexdigest(), observation_ids,
                tuple((item.label, item.weight, _log_weight(item), item.state.state_id)
                      for item in result.stages[-1].components))
@@ -457,22 +495,30 @@ class StiffnessIdentifier:
             return self.last_record
         if self.last_stamp is not None and state.stamp <= self.last_stamp:
             raise ValueError('An observation time may update stiffness only once and must increase.')
-        if isinstance(raw_prior, Gaussian) and len(branches) == 1 and (
-                not np.array_equal(raw_prior.mean, branches[0].prior.mean)
-                or not np.array_equal(raw_prior.covariance, branches[0].prior.covariance)):
+        if isinstance(raw_prior, Gaussian) and (
+                not np.array_equal(raw_prior.mean, state.mean)
+                or not np.array_equal(raw_prior.covariance, state.covariance)):
             raise ValueError('Frozen body prior does not match its source state.')
         if raw_posterior.prior_version is not None and (
                 raw_posterior.prior_version != state.version or raw_posterior.stamp != state.stamp
                 or tuple(raw_posterior.command) != state.command):
             raise ValueError('Raw posterior and prior source metadata differ.')
+        for branch in branches+(() if projected_numerator is None else (projected_numerator,)):
+            reference = branch.reference_state
+            if (not np.array_equal(branch.prior.mean, reference.mean)
+                    or not np.array_equal(branch.prior.covariance, reference.covariance)
+                    or reference.stamp != state.stamp or reference.command != state.command):
+                raise ValueError('Frozen body prior does not match its source state.')
         displayed = tuple(result.stages[-1].components)
         if len(displayed) != len(raw_posterior.components):
             raise ValueError('Frozen and displayed body mixture branches differ.')
-        source_by_label = {child.label: (branch, child) for branch in branches
+        source_by_label = {child.label: (branch, child) for branch in numerator_branches
                            for child in branch.posterior_components}
         if len(source_by_label) != len(displayed):
             raise ValueError('Frozen body branch correspondence lost or duplicated a displayed component.')
         for source, item in zip(raw_posterior.components, displayed):
+            if item.label not in source_by_label:
+                raise ValueError('Frozen body posterior and displayed provenance differ.')
             branch, child = source_by_label[item.label]
             reference = branch.reference_state
             if (not np.array_equal(branch.prior.mean, reference.mean)
@@ -520,14 +566,17 @@ class StiffnessIdentifier:
                 internal_state_id=projection['internal_state_id'],
                 source_prior_state_id=projection['source_prior_state_id'],
                 approximation=projection['approximation'],
-                ratio_semantics='prior versus the declared full joint moment approximation after sensor fusion; not the unprojected exact observation likelihood')
+                ratio_semantics=('native transition-prior mixture versus the declared full joint moment approximation after sensor fusion; not a conditional keep-branch likelihood'
+                    if projected_numerator is not None else
+                    'prior versus the declared full joint moment approximation after sensor fusion; not the unprojected exact observation likelihood'))
         if len(set(observation_ids)) != len(observation_ids):
             raise ValueError('New stiffness evidence contains a duplicate observation ID.')
         repeated = self.observation_ids.intersection(observation_ids)
         if repeated:
             raise ValueError('A stiffness density factor cannot count an old observation again: '+repr(sorted(repeated)))
         try:
-            ratio = ChartedBodyDensityRatio(branches, self.body_edge_ids)
+            ratio = ChartedBodyDensityRatio(branches, self.body_edge_ids,
+                                           posterior_branch=projected_numerator)
             record['body_marginal'] = dict(edge_ids=list(self.body_edge_ids), **ratio.record())
             if ratio.identity:
                 self.observation_ids = self.observation_ids.union(observation_ids)

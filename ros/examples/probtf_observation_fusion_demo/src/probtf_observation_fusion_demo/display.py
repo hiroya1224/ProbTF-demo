@@ -49,6 +49,7 @@ class DisplaySnapshot:
     stiffness_record: object = None
     goal_memory: object = None
     behavior: object = None
+    surprise_record: object = None
 
 
 def query_record(point):
@@ -95,6 +96,8 @@ def snapshot_record(snapshot):
         record['fixed_goal_memory'] = snapshot.goal_memory
     if snapshot.behavior is not None:
         record['behavior'] = snapshot.behavior
+    if snapshot.surprise_record is not None:
+        record['bayes_factor_surprise'] = snapshot.surprise_record
     return record
 
 

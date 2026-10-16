@@ -103,14 +103,24 @@ def test_hand_gravity_updates_all_six_local_laws_and_the_same_display_distributi
 
     stage = second.stages[-1]
     actual = {component.label: component for component in stage.components}
-    for branch in second.frozen_body_branches:
-        for raw in branch.posterior_components:
-            displayed = actual[raw.label]
-            rebuilt = reexpress_state(branch.reference_state, raw.distribution.mean,
-                raw.distribution.covariance, version=displayed.state.version,
-                component_id=displayed.state.component_id)
-            assert rebuilt.state_id == displayed.state.state_id
-            assert displayed.weight == raw.weight and displayed.log_weight == raw.log_weight
+    # Native keep/reset children remain the change-model evidence; the
+    # declared projected numerator is the body actually used and displayed.
+    assert [branch.weight for branch in second.frozen_body_branches] == [.75, .25]
+    numerator = second.projected_body_numerator
+    assert numerator is not None
+    assert numerator.reference_state.state_id == second.prior.state_id
+    assert len(numerator.posterior_components) == len(stage.components) == 1
+    for raw, canonical in zip(numerator.posterior_components,
+                              second.frozen_body_posterior.components):
+        np.testing.assert_array_equal(raw.distribution.mean, canonical.distribution.mean)
+        np.testing.assert_array_equal(raw.distribution.covariance, canonical.distribution.covariance)
+        displayed = actual[raw.label]
+        rebuilt = reexpress_state(numerator.reference_state, raw.distribution.mean,
+            raw.distribution.covariance, version=displayed.state.version,
+            component_id=displayed.state.component_id)
+        assert rebuilt.state_id == displayed.state.state_id
+        np.testing.assert_array_equal(rebuilt.covariance, displayed.state.covariance)
+        assert displayed.weight == raw.weight and displayed.log_weight == raw.log_weight
     snapshot = build_snapshot(second, stage, inference.common)
     verify_adapter_identity(snapshot, stage)
     observed = [point for point in snapshot.points if point.axis == 'observed']

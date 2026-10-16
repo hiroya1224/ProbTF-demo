@@ -8,10 +8,11 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+import yaml
 from std_msgs.msg import String
 from visualization_msgs.msg import Marker, MarkerArray
 
-from probtf.geometry import axis_angle_to_quat
+from probtf.geometry import axis_angle_to_quat, quat_to_rotmat
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState, bingham_from_rotation_coordinates, point_query,
 )
@@ -181,3 +182,79 @@ def test_stage_without_separate_goals_keeps_the_existing_snapshot_and_wire_path(
     settings = common['display']
     assert serialized_marker_array(make_markers(first, settings['seed'], settings['point_size'])) == serialized_marker_array(
         make_markers(second, settings['seed'], settings['point_size']))
+
+
+@pytest.mark.parametrize('case', ['marker', 'imu_marker'])
+def test_change_weighted_projected_body_and_all_goal_modes_match_controller_and_ros_wire(case, tmp_path):
+    from probtf.spherical_law.first_order import reexpress_state
+    from probtf_observation_fusion_demo.moving_inference import MovingInference
+    from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
+    scene = MovingSwitchScene(tmp_path/case)
+    templates = yaml.safe_load((CONFIG/(case+'.yaml')).read_text())['observations']
+    inference = MovingInference(scene.robot_description, templates)
+    inference.update(scene.sensor_inputs(scene.step(0., 1000.)), 0)
+    result = inference.update(scene.sensor_inputs(scene.step(.05, 1000.05)), 1)
+    assert result.records['bayes_factor_surprise']['applied']
+    assert len(result.frozen_body_branches) == 2
+    stage = result.stages[-1]
+    body = stage.components[0]
+    assert len(stage.components) == 1
+    assert len(stage.goal_components) == 4
+    numerator = result.projected_body_numerator
+    assert len(numerator.posterior_components) == 1
+    raw = numerator.posterior_components[0]
+    expected_body = reexpress_state(numerator.reference_state,
+        raw.distribution.mean, raw.distribution.covariance,
+        version=body.state.version, component_id=body.label)
+    assert expected_body.state_id == body.state.state_id
+
+    control = inference.settings['control']
+    controller = MovingController(inference, scene.robot_description, control['goal_offset'],
+        control['goal_orientation_wxyz'], control, integration_steps=control['integration_steps'])
+    _, diagnostics = controller.step(result, .05)
+    snapshot = build_snapshot(result, stage, inference.common)
+    assert snapshot.surprise_record is result.records['bayes_factor_surprise']
+    settings = inference.settings['display']
+    message = make_markers(snapshot, settings['seed'], settings['point_size'])
+    payload = verify_wire_identity(snapshot, message,
+        seed=settings['seed'], point_size=settings['point_size'])
+    assert serialized_marker_array(MarkerArray().deserialize(payload)) == payload
+    wire = String(json.dumps(snapshot_record(snapshot)))
+    stream = io.BytesIO(); wire.serialize(stream)
+    received = json.loads(String().deserialize(stream.getvalue()).data)
+    assert received['bayes_factor_surprise'] == result.records['bayes_factor_surprise']
+    assert diagnostics['body_source_state_ids'] == [body.state.state_id]
+    assert diagnostics['goal_source_state_ids'] == [item.state.state_id for item in stage.goal_components]
+    assert diagnostics['source_log_weights'] == [item.log_weight for item in stage.goal_components]
+    goals = {item.label: item for item in stage.goal_components}
+    endpoints = {'origin': np.zeros(3), 'x': [settings['axis_length'], 0., 0.],
+                 'y': [0., settings['axis_length'], 0.], 'z': [0., 0., settings['axis_length']]}
+    paths = dict(result.link_paths, hand=result.hand_path,
+                 camera=result.camera_path, marker=result.marker_path)
+    for point, record in zip(snapshot.points, received['queries']):
+        actual = goals[point.component_id] if point.frame_label in ('marker', 'switch_goal') else body
+        if point.frame_label == 'switch_goal':
+            path = result.marker_path
+            endpoint = (np.asarray(control['goal_offset'])
+                +quat_to_rotmat(control['goal_orientation_wxyz']) @ endpoints[point.axis])
+        elif point.frame_label.startswith('IMU gravity at '):
+            target = point.frame_label[len('IMU gravity at '):]
+            path = result.link_paths[target]
+            estimate = next(item for item in result.local_estimates
+                if item.observed_direction is not None and item.diagnostics['target_link'] == target)
+            endpoint = (np.zeros(3) if point.axis == 'origin' else
+                        settings['axis_length']*estimate.observed_direction)
+        else:
+            path, endpoint = paths[point.frame_label], endpoints[point.axis]
+        query = point_query(actual.state, path, endpoint, frame=result.root_frame)
+        assert record['source_state_id'] == query.state_id == actual.state.state_id
+        assert record['weight'] == actual.weight
+        assert record['log_weight'] == actual.log_weight
+        assert record['source_command'] == list(actual.state.command)
+        assert record['source_stamp'] == actual.state.stamp
+        np.testing.assert_array_equal(record['mean'], query.mean)
+        np.testing.assert_array_equal(record['covariance'], query.covariance)
+    assert {point.query.state_id for point in snapshot.points
+            if point.frame_label not in ('marker', 'switch_goal')} == {body.state.state_id}
+    assert {point.query.state_id for point in snapshot.points
+            if point.frame_label in ('marker', 'switch_goal')} == {item.state.state_id for item in stage.goal_components}

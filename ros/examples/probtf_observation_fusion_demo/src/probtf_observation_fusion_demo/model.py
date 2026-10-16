@@ -1,6 +1,7 @@
 """One frozen-prior update shared by every observation list."""
 
 from dataclasses import dataclass, replace
+from itertools import product
 from pathlib import Path
 import math
 
@@ -14,7 +15,7 @@ from probtf.spherical_law.first_order import (
 )
 from probtf.spherical_law.fusion import (
     Gaussian, LabelledPrior, PosteriorComponent, fuse_labelled_sensor_posteriors,
-    lift_sensor_posterior,
+    gaussian_reference_product, lift_sensor_posterior,
 )
 from probtf.spherical_law.support import SUPPORT_ATOL, SUPPORT_RTOL, covariance_support
 
@@ -76,6 +77,10 @@ class DemoResult:
     frozen_body_prior: object = None
     frozen_body_posterior: object = None
     frozen_body_branches: tuple = ()
+    # Optional independent numerator chart after a change-prior mixture has
+    # been projected into the actual single internal law. Native branches
+    # still specify the transition prior, not a tight continuation-only prior.
+    projected_body_numerator: object = None
 
 
 def load_inputs(common_path, observations_path):
@@ -205,6 +210,7 @@ def _global_sensor_estimates(estimates, priors):
             prior_component_id=parent.label, prior_component_weight=parent.weight,
             prior_component_log_weight=component_log_weight(parent),
             log_evidence=float(estimate.log_evidence),
+            global_log_evidence=normalizer,
             global_posterior_weights=[item.weight for item in components],
             global_posterior_log_weights=[component_log_weight(item) for item in components])
         image_queries = tuple(replace(query, source=item)
@@ -220,7 +226,47 @@ def _global_sensor_estimates(estimates, priors):
     return tuple(results)
 
 
-def run(common, observations, image=None, *, prior=None, paths=None, prior_components=None):
+def _joint_observation_evidence(priors, posteriors, estimates):
+    """Normalized joint evidence with the same reference-prior fusion product.
+
+    Sensor marginal evidences alone do not account for shared-body dependence.
+    The product normalizer is evaluated in each parent's actual frozen chart.
+    No state samples or independent-marginal approximation enter this query.
+    """
+    available = {(item.posterior.observation_id, item.posterior.query.component_id): item
+                 for item in estimates if item.posterior is not None}
+    observation_ids = tuple(sorted({item.observation_id for item in posteriors}))
+    if not observation_ids:
+        return None
+    global_offset = sum(available[(identifier, priors[0].label)].diagnostics['global_log_evidence']
+                        for identifier in observation_ids)
+    evidence = []
+    terms_all = []
+    for parent in priors:
+        groups = [lift_sensor_posterior(available[(identifier, parent.label)].posterior)
+                  for identifier in observation_ids]
+        terms = []
+        for selected in product(*groups):
+            _, correction = gaussian_reference_product(
+                Gaussian(parent.state.mean, parent.state.covariance),
+                (item.distribution for item in selected))
+            terms.append((1-len(selected))*component_log_weight(parent)
+                         + sum(component_log_weight(item) for item in selected) + correction)
+        log_mass = float(logsumexp(terms))
+        terms_all.extend(terms)
+        evidence.append(dict(label=parent.label,
+            log_evidence=float(global_offset+log_mass-component_log_weight(parent)),
+            source_state_id=parent.state.state_id, prior_log_weight=component_log_weight(parent),
+            combination_count=len(terms)))
+    return dict(observation_ids=list(observation_ids), parents=evidence,
+        log_evidence=float(global_offset+logsumexp(terms_all)),
+        shared_body_reference_product_correction=True,
+        measure='same observation-fixed IMU tangent plane and native image-Laplace likelihood with its chart-volume correction',
+        approximation='normalized linearized Bingham-derived sensor Gaussian proxies; not the exact raw-pixel likelihood')
+
+
+def run(common, observations, image=None, *, prior=None, paths=None, prior_components=None,
+        joint_evidence=False, shared_observation_frame=False):
     """Update every retained prior hypothesis from the same new observations.
 
     Each labelled prior has its own frozen Bingham-derived chart. Sensor
@@ -265,6 +311,8 @@ def run(common, observations, image=None, *, prior=None, paths=None, prior_compo
         prepare = PREPARERS.get(observation["sensor"])
         extra = ({} if prepare is None else
                  {"prepared": prepare(common, image, prior.stamp)})
+        if shared_observation_frame and observation['sensor'] == 'imu':
+            extra['shared_observation_frame'] = True
         estimates = tuple(ADAPTERS[observation["sensor"]](
             parent.state, observation, paths, common, image, **extra) for parent in prior_components)
         available = [estimate.posterior is not None for estimate in estimates]
@@ -355,6 +403,9 @@ def run(common, observations, image=None, *, prior=None, paths=None, prior_compo
             for item in fused.individuals],
         "mixture_policy": "all labelled hypotheses retained; no pruning or approximate merging",
     }
+    if joint_evidence:
+        records['joint_observation_evidence'] = _joint_observation_evidence(
+            prior_components, posteriors, local_estimates)
     return DemoResult(prior, tuple(stages), image, detection_image, paths["links"],
         paths["hand"], paths["camera"], paths["marker"], paths["camera_marker"],
         common["root_frame"], tuple(posteriors), tuple(local_estimates), records,

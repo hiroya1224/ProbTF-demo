@@ -100,14 +100,16 @@ def test_internal_state_stays_single_and_current_goal_mixture_does_not_form_hist
     initial_count = len(first.stages[-1].goal_components)
     assert initial_count >= 2
     assert len(first.stages[-1].components) == len(second.stages[-1].components) == 1
-    assert len(second.frozen_body_branches) == 1
+    assert len(second.frozen_body_branches) == 2
+    assert [branch.weight for branch in second.frozen_body_branches] == [.75, .25]
     assert len(second.stages[-1].goal_components) == initial_count
     assert len(second.stages[-2].components) == initial_count
-    displayed = {item.label: item for item in second.stages[-1].components}
+    native = next(stage for stage in second.stages if stage.label == 'fused_change_candidates')
+    displayed = {item.label: item for item in native.components}
     logs = []
     for branch in second.frozen_body_branches:
         assert branch.reference_state.component_id == branch.label
-        assert len(branch.posterior_components) == 1
+        assert len(branch.posterior_components) == initial_count//2
         for raw in branch.posterior_components:
             actual = displayed[raw.label]
             expected = reexpress_state(branch.reference_state, raw.distribution.mean,
@@ -116,13 +118,43 @@ def test_internal_state_stays_single_and_current_goal_mixture_does_not_form_hist
             assert actual.log_weight == raw.log_weight
             logs.append(raw.log_weight)
     assert logsumexp(logs) == pytest.approx(0., abs=1e-12)
+    numerator = second.projected_body_numerator
+    assert numerator.reference_state is second.frozen_body_branches[0].reference_state
+    assert numerator.weight == 1. and numerator.log_weight == 0.
+    assert len(numerator.posterior_components) == 1
+    projected = numerator.posterior_components[0]
+    internal = second.stages[-1].components[0]
+    expected = reexpress_state(numerator.reference_state, projected.distribution.mean,
+        projected.distribution.covariance, version=internal.state.version,
+        component_id=internal.state.component_id)
+    assert projected.label == internal.label and projected.weight == internal.weight == 1.
+    assert expected.state_id == internal.state.state_id
     assert second.records['valid_observation_count'] == 1
-    assert len(second.sensor_posteriors) == 1
+    assert len(second.sensor_posteriors) == 2
     for goal, raw in zip(second.stages[-1].goal_components, second.stages[-2].components):
         assert goal.weight == raw.weight and goal.log_weight == raw.log_weight
         internal = second.stages[-1].components[0].state
         np.testing.assert_array_equal(goal.state.covariance[:60, :60], internal.covariance[:60, :60])
     assert second.records['internal_projection']['source_component_count'] == initial_count
+
+
+def test_disabled_change_model_retains_the_legacy_single_prior_update(moving, tmp_path):
+    scene, inputs, cases = moving
+    settings = yaml.safe_load((PACKAGE/'config'/'moving_estimation.yaml').read_text())
+    settings['bayes_factor_surprise']['enabled'] = False
+    path = tmp_path/'disabled.yaml'
+    path.write_text(yaml.safe_dump(settings))
+    inference = MovingInference(scene.robot_description, cases['marker'], config_path=path)
+    first = inference.update(inputs, 0)
+    second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
+    assert not second.records['bayes_factor_surprise']['enabled']
+    assert not second.records['bayes_factor_surprise']['applied']
+    assert len(second.stages[0].components) == len(second.frozen_body_branches) == 1
+    assert second.projected_body_numerator is None
+    assert len(second.sensor_posteriors) == 1
+    assert len(second.stages[-1].goal_components) == len(first.stages[-1].goal_components) == 2
+    np.testing.assert_array_equal(second.prior.covariance,
+                                  first.stages[-1].components[0].state.covariance)
 
 
 def _scalar_inputs():
@@ -269,7 +301,7 @@ def test_image_detection_and_hessian_refinement_run_once_per_observation(moving,
     inference = MovingInference(scene.robot_description, cases['marker'])
     inference.update(inputs, 0)
     second = inference.update(replace(inputs, stamp=1000.05, time=.05), 1)
-    assert len(second.stages[0].components) == 1
+    assert len(second.stages[0].components) == 2
     assert len(second.stages[-1].components) == 1
     assert len(second.stages[-1].goal_components) >= 2
     assert calls == dict(detect=2, refine=2)

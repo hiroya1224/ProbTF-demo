@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>probtf_observation_fusion_demo</name>
+  <version>0.1.0</version>
+  <description>First order Bingham transform propagation and sensor posterior fusion.</description>
+  <maintainer email="leus@todo.todo">leus</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>probtf_core</depend>
+  <depend>prob_artag_detector</depend>
+  <depend>rospy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>python3-rospkg</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+</package>

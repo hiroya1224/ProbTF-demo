@@ -1,0 +1,21 @@
+<launch>
+  <arg name="observations" />
+  <arg name="common" default="$(find probtf_observation_fusion_demo)/config/common.yaml" />
+  <arg name="rviz" default="true" />
+  <arg name="autostart" default="true" />
+  <arg name="stage_seconds" default="3.0" />
+  <arg name="output_dir" default="/tmp/probtf_observation_fusion_demo/$(anon run)" />
+  <node pkg="probtf_observation_fusion_demo" type="observation_fusion_demo.py"
+        name="observation_fusion_demo" output="screen" required="true">
+    <env name="OPENBLAS_NUM_THREADS" value="1" />
+    <env name="OMP_NUM_THREADS" value="1" />
+    <param name="common_config" value="$(arg common)" />
+    <param name="observations_config" value="$(arg observations)" />
+    <param name="output_dir" value="$(arg output_dir)" />
+    <param name="autostart" value="$(arg autostart)" />
+    <param name="stage_seconds" value="$(arg stage_seconds)" />
+  </node>
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="observation_fusion_rviz"
+        args="-d $(find probtf_observation_fusion_demo)/rviz/observation_fusion_demo.rviz"
+        output="screen" />
+</launch>

@@ -1,0 +1,150 @@
+Panels:
+- Class: rviz/Displays
+  Help Height: 70
+  Name: Displays
+  Property Tree Widget:
+    Expanded:
+    - /Global Options1
+    - /Core Gaussian queries (prior / sensor / fused)1
+    Splitter Ratio: 0.5
+  Tree Height: 241
+- Class: rviz/Views
+  Expanded:
+  - /Current View1
+  Name: Views
+  Splitter Ratio: 0.5
+Preferences:
+  PromptSaveOnExit: false
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ''
+  Displays:
+  - Alpha: 0.4000000059604645
+    Cell Size: 0.20000000298023224
+    Class: rviz/Grid
+    Color: 188; 194; 202
+    Enabled: true
+    Line Style:
+      Line Width: 0.029999999329447746
+      Value: Lines
+    Name: Grid
+    Normal Cell Count: 0
+    Offset:
+      X: 0
+      Y: 0
+      Z: 0
+    Plane: XY
+    Plane Cell Count: 16
+    Reference Frame: base_link
+    Value: true
+  - Class: rviz/MarkerArray
+    Enabled: true
+    Marker Topic: /observation_fusion/distributions
+    Name: Core Gaussian queries (prior / sensor / fused)
+    Namespaces: {}
+    Queue Size: 1
+    Value: true
+  - Class: rviz/Image
+    Enabled: true
+    Image Topic: /observation_fusion/detection_image
+    Max Value: 1
+    Median window: 5
+    Min Value: 0
+    Name: Camera and marker detection
+    Normalize Range: true
+    Queue Size: 1
+    Transport Hint: raw
+    Unreliable: false
+    Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 240; 243; 248
+    Default Light: true
+    Fixed Frame: base_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+  - Class: rviz/Interact
+    Hide Inactive Objects: true
+  - Class: rviz/MoveCamera
+  - Class: rviz/Select
+  - Class: rviz/FocusCamera
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 2.25
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0.8999999761581421
+        Y: -0.029999999329447746
+        Z: 0.4399999976158142
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.29999998211860657
+      Target Frame: base_link
+      Yaw: 4.4000043869018555
+    Saved:
+    - Class: rviz/Orbit
+      Distance: 0.6499999761581421
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 1.350000023841858
+        Y: -0.05999999865889549
+        Z: 0.5199999809265137
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Switch close-up
+      Near Clip Distance: 0.004999999888241291
+      Pitch: 0.30000001192092896
+      Target Frame: base_link
+      Yaw: 3.5999999046325684
+    - Class: rviz/Orbit
+      Distance: 2.25
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0.8999999761581421
+        Y: -0.029999999329447746
+        Z: 0.4399999976158142
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Overview
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.3499999940395355
+      Target Frame: base_link
+      Yaw: 3.9000000953674316
+Window Geometry:
+  Camera and marker detection:
+    collapsed: false
+  Displays:
+    collapsed: false
+  Height: 1200
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd00000001000000000000023100000456fc0200000003fb0000003600430061006d00650072006100200061006e00640020006d00610072006b0065007200200064006500740065006300740069006f006e010000003d000002320000001600fffffffb000000100044006900730070006c006100790073010000027500000174000000c900fffffffb0000000a0056006900650077007301000003ef000000a4000000a400ffffff000004f90000045600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 1840
+  X: 100
+  Y: 27

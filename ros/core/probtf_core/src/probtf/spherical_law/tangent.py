@@ -90,7 +90,15 @@ def _mode_rotation_and_diagonal_frame(matrix):
     return quat_to_rotmat(mode_quaternion), diagonal_frame, mu
 
 
-def induced_vector_moments_tangent(r, param_mat, use_jacobian_correction=True):
+def induced_vector_moments_tangent(r, param_mat, use_jacobian_correction=True, *, order=2):
+    """Chapter 4 directional proxy, with an explicit covariance order.
+
+    ``order=1`` uses the leading tangent precision (no finite ``P/3``
+    correction), keeps the radial mean contraction, and omits every
+    covariance-squared term.  The historical default is unchanged.
+    """
+    if order not in (1, 2):
+        raise ValueError("The tangent proxy supports order=1 or order=2.")
     vector = np.asarray(r, dtype=float)
     radius = float(np.linalg.norm(vector))
     if radius <= 1e-12:
@@ -126,14 +134,14 @@ def induced_vector_moments_tangent(r, param_mat, use_jacobian_correction=True):
         )
         lambda_tan = (projector @ b_matrix @ projector) / (2.0 * d_mu)
 
-    lambda_loc = lambda_tan + (1.0 / 3.0) * projector if use_jacobian_correction else lambda_tan
+    lambda_loc = lambda_tan + (1.0 / 3.0) * projector if use_jacobian_correction and order == 2 else lambda_tan
     lambda_loc = 0.5 * (lambda_loc + lambda_loc.T)
     sigma_ambient = np.linalg.pinv(lambda_loc, rcond=1e-10)
 
     sigma_trace = float(np.trace(sigma_ambient))
     sigma_square = sigma_ambient @ sigma_ambient
     mean0 = (1.0 - 0.5 * sigma_trace) * v0
-    cov0 = (
+    cov0 = sigma_ambient if order == 1 else (
         0.5 * float(np.trace(sigma_square)) * np.outer(v0, v0)
         + sigma_ambient
         - (1.0 / 3.0) * (sigma_trace * sigma_ambient + 2.0 * sigma_square)

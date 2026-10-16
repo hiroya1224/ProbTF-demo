@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.0.2)
+project(probtf_observation_fusion_demo)
+find_package(catkin REQUIRED COMPONENTS rospy sensor_msgs std_msgs std_srvs visualization_msgs geometry_msgs probtf_core prob_artag_detector)
+catkin_python_setup()
+catkin_package()
+catkin_install_python(PROGRAMS scripts/observation_fusion_demo.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(DIRECTORY config launch rviz DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(FILES README.md REQUIREMENTS.md DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

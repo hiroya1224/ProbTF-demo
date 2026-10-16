@@ -149,7 +149,7 @@ class ArucoCornerDetector:
             self.bootstrap_dither_px,
             self.bootstrap_blur_sigma_px,
             self.bootstrap_seed,
-        )
+        ) if self.adaptive_covariance else ()
 
     def _detect_markers(self, gray):
         if self.detector is None:

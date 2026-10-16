@@ -1,0 +1,246 @@
+schema_version: 1
+root_frame: base_link
+update:
+  stamp: 1792080000.0
+  command:
+  - 0.1
+  - -0.15
+  - 0.2
+  prior_version: 1
+  source: explicit fixed-time demonstration input; command is metadata, not measured
+    angles
+prior:
+  independence: initial product over all listed transform candidates; posterior cross
+    blocks retained
+  source: illustrative directly specified candidate distributions; not physical truth
+    or stiffness inference
+  body:
+  - edge_id: link_1
+    translation:
+    - 0.0
+    - 0.0
+    - 0.45
+    translation_covariance:
+    - - 1.6e-05
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.6e-05
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 1.6e-05
+    bingham:
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - -800.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - -1100.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - -700.0
+  - edge_id: link_2
+    translation:
+    - 0.32
+    - 0.0
+    - 0.0
+    translation_covariance:
+    - - 1.6e-05
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.6e-05
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 1.6e-05
+    bingham:
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - -850.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - -950.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - -750.0
+  - edge_id: link_3
+    translation:
+    - 0.3
+    - 0.0
+    - 0.0
+    translation_covariance:
+    - - 1.6e-05
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 1.6e-05
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 1.6e-05
+    bingham:
+    - - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - -900.0
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - -1000.0
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0
+      - -800.0
+  marker:
+    edge_id: marker
+    translation:
+    - 1.62
+    - 0.0
+    - 0.55
+    translation_covariance:
+    - - 0.0012250000000000002
+      - 0.0
+      - 0.0
+    - - 0.0
+      - 0.0012250000000000002
+      - 0.0
+    - - 0.0
+      - 0.0
+      - 0.0012250000000000002
+    bingham:
+    - - -975.0
+      - 175.0
+      - -525.0
+      - -275.0
+    - - 175.0
+      - -975.0
+      - -275.0
+      - -525.0
+    - - -525.0
+      - -275.0
+      - -975.0
+      - 175.0
+    - - -275.0
+      - -525.0
+      - 175.0
+      - -975.0
+    status: unknown placement represented by this shared transform candidate distribution;
+      not a known root pose
+known_geometry:
+  source: explicitly supplied attachment geometry
+  tool_mount:
+    edge_id: tool
+    translation:
+    - 0.18
+    - 0.0
+    - 0.0
+    rotation_wxyz:
+    - 1.0
+    - 0.0
+    - 0.0
+    - 0.0
+  camera_mount:
+    edge_id: camera
+    translation:
+    - 0.02
+    - 0.0
+    - 0.06
+    rotation_wxyz:
+    - 0.5
+    - -0.5
+    - 0.5
+    - -0.5
+camera:
+  width: 640
+  height: 480
+  matrix:
+  - - 600.0
+    - 0.0
+    - 320.0
+  - - 0.0
+    - 600.0
+    - 240.0
+  - - 0.0
+    - 0.0
+    - 1.0
+  distortion:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  source: explicitly supplied calibrated pinhole intrinsics
+marker:
+  id: 0
+  size: 0.15
+  family: DICT_APRILTAG_36h11
+  corner_sigma_px: 0.65
+  translation_prior_variance: null
+  source: decoded marker ID, known printed size; image-only pose likelihood with detector
+    broad translation prior disabled
+physical_scene:
+  source: static illustrative physical transforms used only to render pixels; no dynamics
+    or stiffness model
+  body_transforms:
+  - translation:
+    - 0.0
+    - 0.0
+    - 0.45
+    rotation_vector:
+    - 0.04
+    - -0.035
+    - 0.015
+  - translation:
+    - 0.32
+    - 0.0
+    - 0.0
+    rotation_vector:
+    - 0.015
+    - 0.045
+    - -0.025
+  - translation:
+    - 0.3
+    - 0.0
+    - 0.0
+    rotation_vector:
+    - -0.025
+    - -0.055
+    - 0.03
+  marker_transform:
+    translation:
+    - 1.58
+    - 0.015
+    - 0.53
+    rotation_vector:
+    - 1.2091995761561452
+    - -1.2091995761561452
+    - -1.2091995761561452
+  image_blur_sigma_px: 0.45
+display:
+  axis_length: 0.10000000149011612
+  point_size: 0.009999999776482582
+  body_samples: 180
+  marker_samples: 200
+  seed: 29
+  stage_seconds: 3.0
+  publish_hz: 10.0

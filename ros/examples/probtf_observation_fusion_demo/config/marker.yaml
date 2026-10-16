@@ -1,0 +1,7 @@
+observations:
+- sensor: marker
+  sensor_id: hand_camera
+  observation_id: marker_image_001
+  input: rendered_image
+  source: pixels rendered once from the common physical scene; estimator receives
+    image and calibrated input only

@@ -1,0 +1,15 @@
+observations:
+- sensor: imu
+  sensor_id: imu_link_2
+  observation_id: gravity_recording_001
+  target_link: link_2
+  gravity_in_root:
+  - 0.0
+  - 0.0
+  - -1.0
+  gravity_in_sensor:
+  - 0.013
+  - -0.057
+  - -0.998289
+  direction_sigma_rad: 0.018
+  source: explicitly supplied direction observation; no magnetometer, no heading measurement

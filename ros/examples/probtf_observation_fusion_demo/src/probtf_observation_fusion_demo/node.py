@@ -20,6 +20,7 @@ from .display import (
     DisplayPoint, DisplaySnapshot, make_markers, save_snapshot, snapshot_record,
 )
 from .model import component_log_weight, load_inputs, run
+from .moving_control import switch_goal_queries
 
 
 def build_snapshot(result, stage, common):
@@ -47,7 +48,7 @@ def build_snapshot(result, stage, common):
         if (query.version != state.version or query.stamp != state.stamp
                 or tuple(query.command) != tuple(state.command)):
             raise AssertionError("Core query provenance differs from its joint snapshot.")
-        count = settings["marker_samples"] if label == "marker" else settings["body_samples"]
+        count = settings["marker_samples"] if label in ('marker', 'switch_goal') else settings["body_samples"]
         points.append(DisplayPoint(query, label, axis, component.label,
                                    component.weight, int(count), component_log_weight(component)))
 
@@ -79,6 +80,16 @@ def build_snapshot(result, stage, common):
     for component in goal_components:
         for axis, endpoint in endpoints:
             append_endpoint(component, 'marker', result.marker_path, axis, endpoint)
+    if 'control' in common:
+        control = common['control']
+        for component in goal_components or stage.components:
+            for axis, query in switch_goal_queries(component.state,
+                    result.marker_path, control['goal_offset'],
+                    control['goal_orientation_wxyz'], axis_length,
+                    frame=result.root_frame,
+                    query_prefix='{}/{}/switch_goal'.format(stage.label, component.label)):
+                points.append(DisplayPoint(query, 'switch_goal', axis, component.label,
+                    component.weight, int(settings['marker_samples']), component_log_weight(component)))
     state = stage.components[0].state
     hand = next(p.query for p in points if p.frame_label == "hand" and p.axis == "origin")
     summary = (
@@ -93,7 +104,8 @@ def build_snapshot(result, stage, common):
                                          if p.sensor_id in stage.sensor_ids))
     snapshot = DisplaySnapshot(tuple(points), result.root_frame, state.stamp,
                                tuple(state.command), state.version, stage.label,
-                               observation_ids, summary)
+                               observation_ids, summary,
+                               goal_memory=result.records.get('fixed_goal_memory'))
     verify_adapter_identity(snapshot, stage)
     return snapshot
 
@@ -104,7 +116,8 @@ def verify_adapter_identity(snapshot, stage):
     goal_components = {component.label: component
                        for component in getattr(stage, 'goal_components', ())}
     for point in snapshot.points:
-        sources = goal_components if point.frame_label == 'marker' and goal_components else components
+        sources = (goal_components if point.frame_label in ('marker', 'switch_goal')
+                   and goal_components else components)
         if point.component_id not in sources:
             raise AssertionError("A displayed point belongs to a different body or goal source.")
         source = sources[point.component_id]
@@ -126,6 +139,14 @@ def verify_adapter_identity(snapshot, stage):
     if goal_components and {point.component_id for point in snapshot.points
                             if point.frame_label == 'marker'} != set(goal_components):
         raise AssertionError("The marker display lost an observation goal mixture component.")
+    switch_points = [point for point in snapshot.points if point.frame_label == 'switch_goal']
+    if switch_points or snapshot.goal_memory is not None:
+        sources = goal_components or components
+        if ({point.component_id for point in switch_points} != set(sources)
+                or len(switch_points) != 4*len(sources)
+                or any({point.axis for point in switch_points if point.component_id == label}
+                       != {'origin', 'x', 'y', 'z'} for label in sources)):
+            raise AssertionError('The switch-goal display lost a retained target component or axis.')
 
 
 def image_message(image, stamp, frame):

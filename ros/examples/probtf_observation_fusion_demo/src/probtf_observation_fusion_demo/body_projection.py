@@ -1,9 +1,10 @@
-"""Single retained joint state and explicitly conditional goal hypotheses.
+"""Single retained joint state and root-fixed goal hypotheses.
 
 Raw observation hypotheses remain separate.  Only the retained internal state
 is approximated by common-chart Gaussian moments and the existing Bingham
-reexpression.  Goal construction shares that state's body marginal while
-retaining each hypothesis's conditional marker law.
+reexpression.  A new marker observation constructs goals from each conditional
+marker law under the common body marginal.  After capture, missing images keep
+the marker marginals fixed while a Schmidt cut updates the body's cross side.
 """
 
 from dataclasses import dataclass, replace
@@ -11,9 +12,11 @@ from dataclasses import dataclass, replace
 import numpy as np
 from scipy.special import logsumexp
 
-from probtf.spherical_law.first_order import JointTransformState, reexpress_state
+from probtf.spherical_law.first_order import (
+    JointTransformState, _right_jacobian, reexpress_state,
+)
 from probtf.spherical_law.fusion import Gaussian
-from probtf.spherical_law.support import covariance_support
+from probtf.spherical_law.support import covariance_support, require_in_support
 
 from .model import component_log_weight
 
@@ -194,7 +197,16 @@ def project_update(result):
 def retain_goal_components(prior_goal_components, predicted_internal_prior,
                            posterior_rawGaussian, effective_internal_state,
                            *, marker_edge_id='marker'):
-    """With no new image, retain all old modes under the newly updated body."""
+    """Hold the root marker law fixed while the body is updated without an image.
+
+    This is a Schmidt-style cut update, not full posterior conditioning of the
+    environment on a body observation.  In the frozen prior chart, with body
+    covariance ``P`` and its contracted posterior ``P+``, only the cross block
+    changes to ``P+ P^+ P_BE``.  The marker mean, its full six-coordinate
+    covariance, Bingham parameter, weights and log weights remain unchanged.
+    The existing core reexpression Jacobian transports the body's side of the
+    cross block; the body marginal is taken directly from the internal state.
+    """
     components = tuple(prior_goal_components)
     if not components:
         raise ValueError('Retaining a goal mixture requires its existing hypotheses.')
@@ -203,6 +215,24 @@ def retain_goal_components(prior_goal_components, predicted_internal_prior,
     if (posterior_rawGaussian.mean.shape != predicted_internal_prior.mean.shape
             or posterior_rawGaussian.covariance.shape != predicted_internal_prior.covariance.shape):
         raise ValueError('The updated body Gaussian must use the frozen internal prior chart.')
+    prior_body = predicted_internal_prior.covariance[np.ix_(body, body)]
+    posterior_body = posterior_rawGaussian.covariance[np.ix_(body, body)]
+    support = covariance_support(prior_body, 'fixed-goal prior body')
+    # An ordinary non-marker Gaussian observation contracts this covariance.
+    # No variance floor, discarded correlation, or covariance recovery is used.
+    covariance_support(prior_body-posterior_body, 'fixed-goal body covariance contraction')
+    for column in posterior_body.T:
+        require_in_support(column, support, 'fixed-goal posterior body covariance')
+    require_in_support(posterior_rawGaussian.mean[body], support,
+                       'fixed-goal posterior body mean')
+    chart = np.eye(predicted_internal_prior.mean.size)
+    for index, edge in enumerate(predicted_internal_prior.transforms):
+        if edge.edge_id != marker_edge_id and edge.bingham is not None:
+            block = slice(6*index+3, 6*index+6)
+            chart[block, block] = _right_jacobian(posterior_rawGaussian.mean[block])
+    body_chart = chart[np.ix_(body, body)]
+    unchanged = (np.all(posterior_rawGaussian.mean[body] == 0.)
+        and np.array_equal(posterior_body, prior_body))
     result = []
     for component in components:
         source = component.state
@@ -212,9 +242,6 @@ def retain_goal_components(prior_goal_components, predicted_internal_prior,
         if (source.stamp != predicted_internal_prior.stamp
                 or source.command != predicted_internal_prior.command):
             raise ValueError('Retained goal candidates must share the predicted command and stamp.')
-        unchanged = (np.all(posterior_rawGaussian.mean[body] == 0.)
-            and np.array_equal(posterior_rawGaussian.covariance[np.ix_(body, body)],
-                               predicted_internal_prior.covariance[np.ix_(body, body)]))
         if unchanged:
             goal = (source if (source.version == effective_internal_state.version
                 and source.stamp == effective_internal_state.stamp
@@ -222,12 +249,25 @@ def retain_goal_components(prior_goal_components, predicted_internal_prior,
                 else replace(source, version=effective_internal_state.version,
                     stamp=effective_internal_state.stamp, command=effective_internal_state.command))
         else:
-            targeted, _, _ = _conditional_retarget(
-                Gaussian(source.mean, source.covariance), posterior_rawGaussian, body, environment)
-            goal = reexpress_state(source, targeted.mean, targeted.covariance,
-                version=effective_internal_state.version, component_id=source.component_id)
-            if goal.stamp != effective_internal_state.stamp or goal.command != effective_internal_state.command:
-                raise ValueError('Retained goal and internal posterior source metadata differs.')
+            prior_cross = source.covariance[np.ix_(body, environment)]
+            for column in prior_cross.T:
+                require_in_support(column, support, 'fixed-goal prior cross covariance')
+            cross = body_chart @ posterior_body @ support.inverse @ prior_cross
+            covariance = effective_internal_state.covariance.copy()
+            covariance[np.ix_(body, environment)] = cross
+            covariance[np.ix_(environment, body)] = cross.T
+            covariance[np.ix_(environment, environment)] = source.covariance[
+                np.ix_(environment, environment)]
+            # Reuse the actual distributions themselves.  Reexpressing the
+            # marker at zero would unnecessarily refit its Bingham parameter;
+            # retargeting its conditional would move the stationary switch.
+            transforms = tuple(old if old.edge_id == marker_edge_id else current
+                for old, current in zip(source.transforms, effective_internal_state.transforms))
+            goal = JointTransformState(transforms, covariance,
+                version=effective_internal_state.version,
+                stamp=effective_internal_state.stamp,
+                command=effective_internal_state.command,
+                component_id=source.component_id)
         _require_common_body(effective_internal_state, goal, marker_edge_id)
         result.append(component if goal is source else replace(component, state=goal))
     return tuple(result)

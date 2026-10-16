@@ -311,7 +311,7 @@ def test_density_factor_hud_keeps_continuous_memory_separate_from_numerical_prop
         information_rank=None, information_eigenvalues=None)
     source_logs = {}
     for point in snapshot.points:
-        if point.frame_label == 'marker':
+        if point.frame_label in ('marker', 'switch_goal'):
             continue
         source_logs[point.component_id] = point.log_weight
     record['body_posterior_log_weights'] = list(source_logs.values())

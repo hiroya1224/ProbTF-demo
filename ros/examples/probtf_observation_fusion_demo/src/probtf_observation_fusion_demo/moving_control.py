@@ -21,7 +21,7 @@ from probtf.geometry import (
 )
 from probtf.spherical_law.first_order import (
     BinghamTransform, JointTransformState, bingham_from_rotation_coordinates,
-    pose_query,
+    point_query, pose_query,
 )
 from probtf.spherical_law.support import covariance_support, require_in_support
 
@@ -83,6 +83,25 @@ def _component_log_weight(component):
     value = getattr(component, 'log_weight', None)
     return float(value if value is not None else (
         np.log(component.weight) if component.weight > 0. else -np.inf))
+
+
+def switch_goal_queries(state, marker_path, goal_offset, goal_orientation,
+                        axis_length, *, frame, query_prefix='switch_goal'):
+    """Query the known marker-to-switch action on this exact goal source.
+
+    These root-frame points describe the target origin and its three axes.
+    They are drawing/recording queries, never a second goal distribution.
+    The controller evaluates the same attachment in marker-relative space.
+    """
+    rotation = quat_to_rotmat(goal_orientation)
+    endpoints = (('origin', np.zeros(3)),
+                 ('x', np.array([axis_length, 0., 0.])),
+                 ('y', np.array([0., axis_length, 0.])),
+                 ('z', np.array([0., 0., axis_length])))
+    return tuple((axis, point_query(state, marker_path,
+        np.asarray(goal_offset)+rotation @ endpoint,
+        query_id=query_prefix+'/'+axis, frame=frame))
+        for axis, endpoint in endpoints)
 
 
 def control_components(result):
@@ -181,9 +200,12 @@ class MovingController:
         self.actions = tuple(dict(action) for action in inference.actions)
         self.hand_path = tuple(inference.paths["hand"])
         marker_path = tuple(inference.paths["marker"])
+        self.marker_path = marker_path
         self.relative_path = tuple((name, not inverse)
                                    for name, inverse in reversed(marker_path)) + self.hand_path
         self.root_frame = str(inference.settings["root_frame"])
+        self.goal_axis_length = float(inference.settings.get('display', {}).get(
+            'axis_length', 0.07500000111758709))
         self.goal_offset = np.asarray(goal_offset, dtype=float).copy()
         self.goal_orientation = np.asarray(goal_orientation_wxyz, dtype=float).copy()
         if (self.goal_offset.shape != (3,) or self.goal_orientation.shape != (4,)
@@ -431,6 +453,21 @@ class MovingController:
             "goal_source_log_weights": [_component_log_weight(component) for component in components],
             "goal_parent_internal_state_id": (body_components[0].state.state_id
                 if getattr(result.stages[-1], 'goal_components', ()) else None),
+            "fixed_goal_memory_available": result.records.get('fixed_goal_memory', {}).get('available', False),
+            "goal_memory_observation_stamp": result.records.get('fixed_goal_memory', {}).get('observation_stamp'),
+            "root_goal_candidates": [dict(
+                label=component.label, weight=float(component.weight),
+                log_weight=_component_log_weight(component),
+                source_state_id=component.state.state_id,
+                source_stamp=component.state.stamp, source_version=component.state.version,
+                source_command=list(component.state.command),
+                points=[dict(axis=axis, mean=query.mean.tolist(),
+                    covariance=query.covariance.tolist(),
+                    within=query.within.tolist(), between=query.between.tolist(),
+                    query_id=query.query_id)
+                    for axis, query in switch_goal_queries(component.state,
+                        self.marker_path, self.goal_offset, self.goal_orientation, self.goal_axis_length,
+                        frame=self.root_frame)]) for component in components],
             "relative_path": [list(item) for item in self.relative_path],
             "goal_offset": self.goal_offset.tolist(),
             "goal_orientation_wxyz": self.goal_orientation.tolist(),

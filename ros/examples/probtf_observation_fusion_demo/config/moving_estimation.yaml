@@ -29,7 +29,7 @@ control:
   # Known task relation in marker coordinates, not the world's marker pose.
   goal_offset: [0.0, -0.24, 0.045]
   goal_orientation_wxyz: [0.5, -0.5, 0.5, 0.5]
-  max_joint_velocity: 0.12
+  max_joint_velocity: 0.096
   max_joint_acceleration: 0.3
   damping: 0.025
   integration_steps: 480

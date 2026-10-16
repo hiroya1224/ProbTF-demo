@@ -130,7 +130,7 @@ def test_underflowed_positive_mode_and_fixed_attachments_survive_without_mc(comm
             np.testing.assert_array_equal(goal.state.covariance[6*i:6*i+6], 0.)
 
 
-def test_image_dropout_preserves_all_previous_modes_and_applies_only_updated_body(common_state):
+def test_image_dropout_preserves_fixed_marker_marginals_and_updates_only_body_side(common_state):
     projection = project_update(_result(common_state))
     prior = replace(projection.state, version=4, stamp=1000.05)
     goals = tuple(replace(component, state=replace(component.state, version=4, stamp=1000.05))
@@ -150,8 +150,11 @@ def test_image_dropout_preserves_all_previous_modes_and_applies_only_updated_bod
         np.testing.assert_array_equal(current.state.covariance[:60, :60], effective.covariance[:60, :60])
         assert current.state.version == effective.version
         assert current.state.stamp == effective.stamp and current.state.command == effective.command
+        assert current.state.transforms[-1] is old.state.transforms[-1]
+        np.testing.assert_array_equal(current.state.covariance[60:, 60:], old.state.covariance[60:, 60:])
     # A missing image does not invent a new marker observation from the
-    # internal marker mean; only the updated body enters each retained E|B.
+    # internal marker mean.  The previous marker marginal is frozen while
+    # only the body and the body's side of the shared cross block update.
     altered_mean = updated.mean.copy()
     altered_mean[60:] = 100.
     altered = retain_goal_components(goals, prior, Gaussian(altered_mean, updated.covariance), effective)

@@ -234,7 +234,7 @@ def test_unavailable_equilibrium_query_never_discards_an_observation_factor(phys
     assert identifier.components is before
     assert identifier.command_proposal(result) is None
     assert record['proposal_status'] == 'unavailable'
-    assert len(record['proposal_selection']['unavailable_candidates']) == 13
+    assert len(record['proposal_selection']['unavailable_candidates']) == len(identifier._proposal_candidates)
     assert len(identifier.factors) == 1
     with pytest.raises(ValueError, match='No stable auxiliary branch'):
         identifier.log_density(identifier.initial_components[0].distribution.mean)
@@ -460,14 +460,15 @@ def test_command_proposal_ranks_the_continuous_density_and_does_not_replace_it(p
     base = np.array(selection['base_logK'])
     exact_score = identifier.log_density(base)[1]
     np.testing.assert_allclose(selection['base_density_score'], exact_score, atol=1e-12)
-    covariance = identifier.initial_components[0].distribution.covariance
-    step = np.asarray(selection['score_step'])
-    assert step @ np.linalg.solve(covariance, step) <= 1.+1e-12
-    if 'score_trial_unavailable' not in selection:
-        np.testing.assert_allclose(proposal['selected_logK'], base+step, atol=1e-12)
-    assert not proposal['density_improvement_claimed']
+    np.testing.assert_allclose(proposal['selected_logK'],
+        base+np.asarray(selection['score_step']), atol=1e-12)
+    selected_density, selected_score = identifier.log_density(np.asarray(proposal['selected_logK']))
+    assert selected_density >= max(scores)
+    assert proposal['selected_log_unnormalized_density'] == selected_density
+    np.testing.assert_allclose(selection['selected_density_score'], selected_score, atol=1e-12)
+    assert proposal['density_improvement_claimed'] == bool(selected_density > max(scores))
     assert not selection['global_mode_claimed']
-    assert proposal['selected_log_unnormalized_density'] is None or selection['selected_density_evaluated']
+    assert selection['selected_density_evaluated']
     np.testing.assert_allclose(proposal['command'],
         2*np.asarray(frame.command)-np.asarray(proposal['auxiliary_equilibrium']), atol=1e-12)
     assert record['posterior'] is density_record

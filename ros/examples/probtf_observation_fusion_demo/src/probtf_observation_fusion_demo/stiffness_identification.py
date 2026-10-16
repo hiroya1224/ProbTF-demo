@@ -659,11 +659,16 @@ class StiffnessIdentifier:
         return float(total), gradient
 
     def command_proposal(self, result):
-        """One auxiliary numerical starting command, judged by the body rule.
+        """Select and evaluate a local representative of the continuous K law.
 
-        The finite deterministic search below does *not* represent the K law
-        or approximate a probability integral. It only chooses a starting
-        value from the explicitly retained continuous parameter density.
+        Deterministic prior-derived starts only initialize numerical density
+        maximization. They never represent the parameter law or a density
+        integral. Every accepted ascent step evaluates the complete retained
+        density and its score. The IK still judges the resulting command by
+        the current transform distribution's complete reaching criterion.
+        Local refinement runs on initialization or when a fixed prior-derived
+        start improves on the previous representative. Otherwise that same
+        representative is reevaluated under the new density and retained.
         """
         state = result.prior
         if self.last_record is None or (state.stamp != self.last_record['source_stamp']
@@ -677,6 +682,8 @@ class StiffnessIdentifier:
         if not self.factors:
             self.last_record.update(proposal_status='no_informative_density_factor', command_proposal=None)
             return None
+        if self.last_record.get('command_proposal') is not None:
+            return self.last_record['command_proposal']
         if not hasattr(self, '_proposal_candidates'):
             candidates = []
             for item in self.initial_components:
@@ -685,60 +692,174 @@ class StiffnessIdentifier:
                 candidates.append(centre.copy())
                 for direction in scale.T:
                     candidates.extend((centre+direction, centre-direction))
+                # A single-coordinate start can leave every other weak
+                # spring at a joint stop, where its K derivative is zero.
+                # These coupled starts use the same prior, without adding
+                # a stiffness assumption or changing its continuous law.
+                coupled = np.sum(scale, axis=1)
+                candidates.extend((centre+coupled, centre-coupled))
             self._proposal_candidates = tuple(candidates)
-        evaluated, unavailable = [], []
-        for index, x in enumerate(self._proposal_candidates):
-            try:
+
+        maximum_iterations = min(int(self.settings.get('optimizer_max_iterations', 80)),
+            int(self.settings.get('representative_max_iterations', 1)))
+        gradient_tolerance = float(self.settings.get('optimizer_gradient_tolerance', 1e-6))
+        maximum_backtracks = int(self.settings.get('representative_max_backtracks', 8))
+        if maximum_iterations < 0 or gradient_tolerance <= 0. or maximum_backtracks < 0:
+            raise ValueError('Stiffness representative optimization requires valid iteration limits and tolerance.')
+        factor_ids = tuple(factor.factor_id for factor in self.factors)
+        previous = getattr(self, '_proposal_representative', None)
+        unchanged_density = previous is not None and previous['factor_ids'] == factor_ids
+        evaluations, failures, cache = [], [], {}
+        density_evaluations, equilibrium_evaluations = 0, 0
+
+        def evaluate(x, *, retained=None):
+            nonlocal density_evaluations, equilibrium_evaluations
+            x = np.asarray(x, dtype=float)
+            key = x.tobytes()
+            if key in cache:
+                return cache[key]
+            if retained is None:
+                density_evaluations += 1
                 with np.errstate(over='raise', invalid='raise'):
                     density, score = self.log_density(x)
+                score = np.asarray(score, dtype=float)
                 if not np.isfinite(density) or not np.all(np.isfinite(score)):
-                    raise ValueError('Nonfinite cumulative stiffness density at a proposal trial.')
-                evaluated.append((density, index, x, score))
-            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-                unavailable.append(dict(candidate_index=index, reason=str(error)))
-        selection = dict(role='numerical initial command proposal only; neither a discrete K law nor a density integral',
-            candidate_construction='modes and plus/minus Cholesky columns of the existing initial log-K prior',
-            candidate_count=len(self._proposal_candidates), evaluated_count=len(evaluated),
-            unavailable_candidates=unavailable, global_mode_claimed=False)
-        if not evaluated:
-            self.last_record.update(proposal_status='unavailable', proposal_selection=selection,
-                proposal_failure_reason='No deterministic stiffness proposal candidate could be evaluated.',
-                command_proposal=None)
-            return None
-        # Ties keep the earliest declared candidate. No sensor-specific rule.
-        density, index, base, score = max(evaluated, key=lambda item: item[0])
-        centre = sum(item.weight*item.distribution.mean for item in self.initial_components)
-        metric = sum(item.weight*(item.distribution.covariance+np.outer(
-            item.distribution.mean-centre, item.distribution.mean-centre)) for item in self.initial_components)
-        magnitude = max(1., float(np.max(np.abs(score))))
-        scaled_score = score/magnitude
-        scaled_step = metric @ scaled_score
-        length = math.sqrt(max(0., float(scaled_score @ scaled_step)))
-        step = scaled_step/max(1./magnitude, length)
-        x = base+step
-        selection.update(base_candidate_index=index, base_logK=base.tolist(),
-            base_log_unnormalized_density=density, base_density_score=score.tolist(),
-            score_step=step.tolist(), score_step_metric='existing initial-prior full covariance; maximum Mahalanobis length one',
-            selected_density_evaluated=bool(np.array_equal(x, base)),
-            density_improvement_claimed=False,
-            score_step_role='one numerical starting-value heuristic; no posterior projection or density-integral approximation')
-        saved = self._branch_anchor
-        try:
-            self._branch_anchor = None
+                    raise ValueError('Nonfinite cumulative stiffness density at a representative trial.')
+                evaluations.append(dict(logK=x.tolist(), log_unnormalized_density=float(density)))
+            else:
+                # The factor IDs and initial law are unchanged, so this is
+                # exactly the already evaluated density, not a new update.
+                density, score = retained['density'], retained['score']
+            saved = self._branch_anchor
             try:
+                self._branch_anchor = None
+                equilibrium_evaluations += 1
                 _, _, equilibrium, active = self._prediction(x, state)
+            finally:
+                self._branch_anchor = saved
+            item = dict(logK=x.copy(), density=float(density), score=np.array(score, copy=True),
+                equilibrium=np.array(equilibrium, copy=True), active=np.array(active, copy=True))
+            cache[key] = item
+            return item
+
+        selection = dict(
+            role='numerical representative for the frozen K command action and initial command proposal; not a discrete K law or density integral',
+            candidate_construction='initial-prior modes, plus/minus Cholesky columns and coupled column sums; previous evaluated representative when available',
+            method='rank deterministic starts, then bounded full-density score ascent with Armijo backtracking',
+            global_mode_claimed=False, maximum_iterations=maximum_iterations,
+            gradient_tolerance=gradient_tolerance, maximum_backtracks=maximum_backtracks,
+            retained_unchanged_density=unchanged_density,
+            factor_ids=list(factor_ids), line_search=[], iterations=0,
+            convergence_claimed=False, selected_density_evaluated=True,
+            density_evaluation_count=0, unavailable_candidates=failures)
+        if unchanged_density:
+            try:
+                selected = evaluate(previous['logK'], retained=previous)
             except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-                if np.array_equal(x, base):
-                    raise
-                selection.update(score_trial_unavailable=str(error), selected_density_evaluated=True)
-                x = base
-                _, _, equilibrium, active = self._prediction(x, state)
-        except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-            self.last_record.update(proposal_status='unavailable', proposal_selection=selection,
-                proposal_failure_reason=str(error), command_proposal=None)
-            return None
-        finally:
-            self._branch_anchor = saved
+                self.last_record.update(proposal_status='unavailable', proposal_selection=selection,
+                    proposal_failure_reason=str(error), command_proposal=None)
+                return None
+            base, index = selected, previous['candidate_index']
+            selection.update(candidate_count=0, evaluated_count=0,
+                retained_representative_bitwise=True, termination_reason='unchanged continuous density',
+                local_refinement_trigger='unchanged continuous density',
+                local_refinement_skipped=True,
+                refinement_skip_reason='no new density factor; retain the evaluated representative bitwise')
+        else:
+            candidates = list(self._proposal_candidates)
+            if previous is not None:
+                candidates.append(previous['logK'])
+            evaluated = []
+            for candidate_index, x in enumerate(candidates):
+                try:
+                    evaluated.append((evaluate(x), candidate_index))
+                except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                    failures.append(dict(candidate_index=candidate_index, reason=str(error)))
+            selection.update(candidate_count=len(candidates), evaluated_count=len(evaluated))
+            if not evaluated:
+                selection['density_evaluation_count'] = density_evaluations
+                selection['current_equilibrium_evaluation_count'] = equilibrium_evaluations
+                self.last_record.update(proposal_status='unavailable', proposal_selection=selection,
+                    proposal_failure_reason='No deterministic stiffness representative start has an evaluable density and stable current equilibrium.',
+                    command_proposal=None)
+                return None
+            # Ties preserve the existing declared ordering; no sensor rule.
+            base, index = max(evaluated, key=lambda item: item[0]['density'])
+            previous_candidate = next((item for item in evaluated
+                if previous is not None and item[1] == len(candidates)-1), None)
+            if previous_candidate is not None and base['density'] <= previous_candidate[0]['density']:
+                # A new factor still changes the exact density and score at
+                # this point. Retaining x avoids new full-history nonlinear
+                # equilibrium evaluations when no fixed start improves it.
+                base, index = previous_candidate
+                local_refinement = False
+                trigger = 'previous representative remains the best evaluated start'
+            else:
+                local_refinement = True
+                trigger = ('initial representative' if previous is None else
+                    'a prior-derived start improves on the previous representative or restores a stable current equilibrium')
+            selection.update(local_refinement_trigger=trigger,
+                local_refinement_skipped=not local_refinement,
+                refinement_skip_reason=(None if local_refinement else
+                    'retain the best previous x after exactly reevaluating the complete new density and score'))
+            selected = base
+            centre = sum(item.weight*item.distribution.mean for item in self.initial_components)
+            metric = sum(item.weight*(item.distribution.covariance+np.outer(
+                item.distribution.mean-centre, item.distribution.mean-centre)) for item in self.initial_components)
+            initial_scale = (min(1., 2.*previous['step_scale'])
+                if previous is not None and np.array_equal(base['logK'], previous['logK'])
+                    and previous['step_scale'] > 0. else 1.)
+            selection['termination_reason'] = ('bounded local iteration budget' if local_refinement else
+                'previous representative retained after exact new-factor density evaluation')
+            for iteration in range(maximum_iterations if local_refinement else 0):
+                score = selected['score']
+                if np.max(np.abs(score)) <= gradient_tolerance:
+                    selection.update(convergence_claimed=True,
+                        termination_reason='full-density score satisfies configured tolerance')
+                    break
+                magnitude = max(1., float(np.max(np.abs(score))))
+                scaled_score = score/magnitude
+                scaled_step = metric @ scaled_score
+                length = math.sqrt(max(0., float(scaled_score @ scaled_step)))
+                direction = scaled_step/max(1./magnitude, length)
+                slope = float(score @ direction)
+                accepted = False
+                for backtrack in range(maximum_backtracks+1):
+                    scale = initial_scale*(.5**backtrack)
+                    entry = dict(iteration=iteration, scale=scale,
+                        armijo_bound=selected['density']+1e-4*scale*slope)
+                    try:
+                        trial = evaluate(selected['logK']+scale*direction)
+                        entry['log_unnormalized_density'] = trial['density']
+                        accepted = trial['density'] >= entry['armijo_bound']
+                    except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                        entry['unavailable_reason'] = str(error)
+                    entry['accepted'] = accepted
+                    selection['line_search'].append(entry)
+                    if accepted:
+                        selected, initial_scale = trial, min(1., 2.*scale)
+                        break
+                selection['iterations'] = iteration+1
+                if not accepted:
+                    selection['termination_reason'] = 'Armijo line search exhausted; evaluated best start retained'
+                    break
+            self._proposal_representative = dict(factor_ids=factor_ids,
+                logK=selected['logK'].copy(), density=selected['density'],
+                score=selected['score'].copy(), candidate_index=index,
+                step_scale=(selection['line_search'][-1]['scale']
+                    if selection['line_search'] and selection['line_search'][-1]['accepted'] else 0.))
+
+        x, equilibrium, active = selected['logK'], selected['equilibrium'], selected['active']
+        selection.update(base_candidate_index=index, base_logK=base['logK'].tolist(),
+            base_log_unnormalized_density=base['density'], base_density_score=base['score'].tolist(),
+            selected_log_unnormalized_density=selected['density'],
+            selected_density_score=selected['score'].tolist(),
+            score_step=(x-base['logK']).tolist(),
+            score_step_metric='existing initial-prior full covariance; bounded metric ascent with evaluated Armijo acceptance',
+            density_improvement_claimed=bool(selected['density'] > base['density']),
+            density_evaluation_count=density_evaluations,
+            successful_density_evaluation_count=len(evaluations),
+            current_equilibrium_evaluation_count=equilibrium_evaluations)
         command = np.asarray(state.command)
         proposed = command+(command-equilibrium)
         proposal = dict(command=proposed.tolist(), source_command=list(state.command),
@@ -747,14 +868,14 @@ class StiffnessIdentifier:
             density_id=(self.last_record['posterior'] or self.last_record['retained_prior'])['density_id'],
             selected_candidate_index=index, selected_logK=x.tolist(),
             selected_K=np.exp(x).tolist(),
-            selected_log_unnormalized_density=(density if selection['selected_density_evaluated'] else None),
-            base_candidate_log_unnormalized_density=density,
-            density_improvement_claimed=False,
+            selected_log_unnormalized_density=selected['density'],
+            base_candidate_log_unnormalized_density=base['density'],
+            density_improvement_claimed=selection['density_improvement_claimed'],
             auxiliary_equilibrium=equilibrium.tolist(), auxiliary_active_joint_limits=active.tolist(),
-            method='current command plus its equilibrium deflection under the density-ranked auxiliary K candidate',
+            method='current command plus its equilibrium deflection under an evaluated continuous-density local K representative',
             acceptance='caller must project command limits and compare the complete current body-distribution objective',
             global_mode_claimed=False)
-        self.last_record.update(proposal_status='deterministic_density_candidate',
+        self.last_record.update(proposal_status='deterministic_density_representative',
             proposal_selection=selection, command_proposal=proposal,
             feedback_to_body=False, feedback_to_body_or_control=True,
             feedback_to_control='initial command proposal only')

@@ -18,8 +18,8 @@ import rospkg
 from scipy.spatial.transform import Rotation
 import yaml
 
-from probtf.geometry import axis_angle_to_quat, quat_right_matrix, rotmat_to_quat
-from probtf.spherical_law.first_order import BinghamTransform, JointTransformState
+from probtf.geometry import axis_angle_to_quat, quat_right_matrix, quat_to_rotmat, rotmat_to_quat
+from probtf.spherical_law.first_order import BinghamTransform, JointTransformState, point_query
 from probtf.spherical_law.fusion import PosteriorComponent
 from symaware_grasp.probtf_config import bingham_parameter_from_mode
 
@@ -75,6 +75,7 @@ class MovingInference:
         self.last_observation_signature = None
         self.components = ()
         self.goal_components = ()
+        self.fixed_goal_memory = None
         self.last_observations = ()
 
         # URDF is used only for declared geometry.  The direct uncertain laws
@@ -149,7 +150,7 @@ class MovingInference:
                       "marker": {"status": marker_data["status"]}},
             "known_geometry": {"source": "fixed attachment geometry parsed from shared URDF; masses and physical poses excluded"},
             "camera": settings["camera"], "marker": settings["marker"],
-            "display": settings["display"],
+            "display": settings["display"], "control": settings["control"],
         }
 
     def prior_at(self, command, stamp, frame_index):
@@ -252,6 +253,7 @@ class MovingInference:
         result = run(self.common, tuple(observations), sensor_inputs.image,
                      prior_components=priors, paths=self.paths)
         result = self._project_internal_update(result, predicted_goals)
+        self._record_fixed_goal_memory(result)
         result.records["prediction"] = prediction
         result.records["goal_prediction"] = goal_prediction
         result.records["prediction_command_correction"] = (
@@ -282,6 +284,8 @@ class MovingInference:
         projected body is used by stiffness, control, display and prediction.
         Current goal components retain each observation branch's conditional
         marker law, evaluated against that common projected body marginal.
+        Without a new marker observation their root marker laws remain fixed;
+        only the body and its side of shared cross blocks update.
         """
         projection = project_update(result)
         raw_stage = result.stages[-1]
@@ -304,8 +308,9 @@ class MovingInference:
             replace(raw_stage, label='fused_observation_candidates'), stage)
         records = result.records
         records['internal_projection'] = dict(projection.record,
-            goal_policy=('current observation conditional modes with a shared projected body'
-                         if marker_observed else 'retain previous goal conditional modes through the current body update'),
+            goal_policy=('current observation conditional modes with a shared projected body; capture the root-fixed switch mixture'
+                         if marker_observed else 'root-fixed marker marginals and mixture masses; Schmidt body-side cross update only'),
+            goal_retention_is_full_posterior_conditioning=False,
             goal_source_state_ids=[item.state.state_id for item in goals],
             goal_source_labels=[item.label for item in goals],
             goal_source_weights=[item.weight for item in goals],
@@ -324,3 +329,66 @@ class MovingInference:
             approximation='full joint moment projection after fusion; density ratio includes this declared approximation')]
         return replace(result, stages=stages, frozen_body_posterior=frozen,
                        frozen_body_branches=(branch,))
+
+    def _record_fixed_goal_memory(self, result):
+        """Capture a root-frame task law only on a valid marker observation.
+
+        This record describes the exact marker variables used by both IK and
+        display, followed by the known marker-to-switch action.  It is not a
+        display-only replacement distribution.  During image loss, its source
+        time, command, version, all mode parameters and all masses are retained
+        independently of the current body's metadata.
+        """
+        estimates = tuple(estimate for estimate in result.local_estimates
+            if estimate.posterior is not None and estimate.detector_result is not None)
+        if estimates:
+            goals = tuple(result.stages[-1].goal_components)
+            offset = np.asarray(self.settings['control']['goal_offset'], dtype=float)
+            orientation = np.asarray(self.settings['control']['goal_orientation_wxyz'], dtype=float)
+            rotation = quat_to_rotmat(orientation)
+            length = float(self.settings['display']['axis_length'])
+            endpoints = np.vstack((np.zeros(3), length*np.eye(3)))
+            components = []
+            for component in goals:
+                state = component.state
+                marker_index = state.edge_ids.index(self.marker.edge_id)
+                marker = state.transforms[marker_index]
+                block = np.arange(6*marker_index, 6*marker_index+6)
+                queries = []
+                for index, endpoint in enumerate(endpoints):
+                    local_point = offset+rotation @ endpoint
+                    query = point_query(state, result.marker_path, local_point,
+                        query_id='fixed-goal-capture:{}'.format(index), frame=result.root_frame)
+                    queries.append(dict(local_point=local_point.tolist(),
+                        mean=query.mean.tolist(), covariance=query.covariance.tolist(),
+                        source_state_id=query.state_id))
+                components.append(dict(label=component.label, weight=component.weight,
+                    log_weight=component_log_weight(component), source_state_id=state.state_id,
+                    source_stamp=state.stamp, source_command=list(state.command),
+                    source_version=state.version,
+                    root_marker_parameters=dict(edge_id=marker.edge_id,
+                        translation=marker.translation.tolist(),
+                        rotation_wxyz=marker.rotation_wxyz.tolist(),
+                        bingham=None if marker.bingham is None else marker.bingham.tolist(),
+                        joint_six_coordinate_covariance=state.covariance[np.ix_(block, block)].tolist()),
+                    root_goal_point_queries=queries))
+            source = goals[0].state
+            self.fixed_goal_memory = dict(available=True, root_frame=result.root_frame,
+                observation_stamp=source.stamp, observation_command=list(source.command),
+                observation_version=source.version,
+                observation_ids=[item.posterior.observation_id for item in estimates],
+                observation_sensor_ids=[item.posterior.sensor_id for item in estimates],
+                observation_source_state_ids=result.records['internal_projection']['raw_source_state_ids'],
+                construction='observed marker|body conditionals under the common internal body marginal, then fixed known marker-to-switch action',
+                marker_to_switch=dict(translation=offset.tolist(), rotation_wxyz=orientation.tolist()),
+                goal_components=components, sampling_used=False,
+                holding_policy='fixed root marker marginal and all mixture masses; body-side Schmidt cross update without conditioning the recorded goal')
+            event = 'marker_observation_update'
+        elif self.fixed_goal_memory is None:
+            event = 'unobserved_prior'
+        else:
+            event = 'image_missing_hold'
+        result.records['fixed_goal_memory'] = (dict(available=False,
+            root_frame=result.root_frame, reason='no valid marker observation has been captured')
+            if self.fixed_goal_memory is None else deepcopy(self.fixed_goal_memory))
+        result.records['fixed_goal_memory_event'] = event

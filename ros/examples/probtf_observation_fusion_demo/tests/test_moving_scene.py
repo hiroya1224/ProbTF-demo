@@ -22,9 +22,13 @@ def test_switch_scene_never_loads_or_replays_successful_commands(tmp_path, monke
     second = MovingSwitchScene(tmp_path / "second")
     original = Path(__file__).resolve().parents[2] / "probtf_switch_press_demo/config/default.yaml"
     original = yaml.safe_load(original.read_text(encoding="utf-8"))
-    for key in ("seed", "base_translation", "rod", "camera", "marker", "obstacles",
+    for key in ("seed", "base_translation", "rod", "marker", "obstacles",
                 "plant", "initial_command", "reach_tolerance"):
         assert first.config[key] == original[key]
+    # The user requested a shorter exposure in this observation comparison.
+    for key, value in original['camera'].items():
+        expected = .75*value if key == 'exposure_time' else value
+        assert first.config['camera'][key] == expected
     for key in ('joint_resolution', 'spatial_resolution', 'clearance', 'frame_period'):
         assert first.config['motion'][key] == original['motion'][key]
     times = (0.0, 9.0, 18.0, 27.0, first.duration)

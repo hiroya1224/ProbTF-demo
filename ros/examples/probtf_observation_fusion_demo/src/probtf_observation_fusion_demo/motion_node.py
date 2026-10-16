@@ -1,5 +1,5 @@
 """Observation-driven physical motion with same-tick inference and display."""
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import hashlib
@@ -67,119 +67,188 @@ def read_update(update):
     return snapshot, message, read_image(snapshot, image_path)
 
 
-def prepare_motion(observations_path, output):
-    started = time.monotonic()
-    sources = tuple(sorted(Path(__file__).parent.glob('*.py')))
-    source_hashes = {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
-                     for path in sources}
-    package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
-    _, templates = load_inputs(package/'config/common.yaml', observations_path)
-    output.mkdir(parents=True, exist_ok=False)
-    scene = MovingSwitchScene(output)
-    inference = MovingInference(scene.robot_description, templates)
-    stiffness = StiffnessIdentifier(scene.urdf, tuple(inference.body_ids),
-        yaml.safe_load((package/'config/stiffness_identification.yaml').read_text()))
-    control = inference.settings['control']
-    controller = MovingController(
-        inference, scene.robot_description, control['goal_offset'],
-        control['goal_orientation_wxyz'], control,
-        integration_steps=int(control['integration_steps']))
-    period = float(scene.config['motion']['frame_period'])
-    times = list(np.arange(0., scene.duration, period)) + [scene.duration]
-    frames, updates, update_for_frame = [], [], []
-    command = scene.initial_command.copy()
-    with (output/'estimation.jsonl').open('w') as records:
-        for index, elapsed in enumerate(times):
-            frame = scene.step(elapsed, stamp=1792080000.+elapsed, command=command)
-            # Every drawn physical tick has a fresh fixed-command estimate.
-            # Preparation happens before playback, so holding an older estimate
-            # here would introduce an artificial command/time mismatch.
-            result = inference.update(scene.sensor_inputs(frame), index)
-            stiffness_record = stiffness.update(result)
-            result.records['stiffness'] = stiffness_record
-            stage = result.stages[-1]
-            snapshot = replace(build_snapshot(result, stage, inference.common),
-                               summary='', show_labels=False,
-                               stiffness_record=stiffness_record)
-            settings = inference.common['display']
-            message = make_markers(snapshot, settings['seed'], settings['point_size'])
-            path = output/'estimate_{:03d}'.format(index)
-            save_snapshot(path, snapshot, message,
-                          seed=settings['seed'], point_size=settings['point_size'])
-            debug = result.detection_image.copy()
-            image = image_message(debug, frame.stamp, 'camera_optical_frame')
-            require_current_update(frame, snapshot, image, index, index)
-            image_path = path.with_suffix('.png')
-            if not cv2.imwrite(str(image_path), debug):
-                raise IOError('Could not save the observation image: ' + str(image_path))
-            # Thousands of Python Point objects and full-resolution images per
-            # frame must not remain resident throughout the trajectory.  Read
-            # the exact verified wire data and lossless image on the next tick.
-            updates.append((snapshot, path.with_suffix('.markers.bin'), image_path))
-            if index + 1 < len(times):
-                command, diagnostics = controller.step(result, times[index+1]-elapsed)
-                result.records['controller'] = diagnostics
-            else:
-                # The common time limit ends the experiment.  Physical success
-                # or collision never changes the controller or its run length.
-                result.records['controller'] = {
-                    'status': 'common_duration_complete',
-                    'source_stamp': snapshot.stamp,
-                    'source_command': list(snapshot.command),
-                    'source_version': snapshot.version,
-                }
-            records.write(json.dumps(result.records)+'\n')
-            update_for_frame.append(index)
-            # The exact observed/detected pixels are retained in updates.
-            frames.append(replace(frame, image=np.empty((0,0), dtype=np.uint8)))
-    physical_bytes = (json.dumps(scene.trajectory, separators=(',',':'))+'\n').encode()
-    (output/'physical_trajectory.json').write_bytes(physical_bytes)
-    command_bytes = (json.dumps([
-        dict(time=frame.time, command=frame.command.tolist()) for frame in frames
-    ], separators=(',', ':'))+'\n').encode()
-    (output/'sent_commands.json').write_bytes(command_bytes)
-    preparation_seconds = time.monotonic()-started
-    if source_hashes != {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
-                         for path in sources}:
-        raise RuntimeError('Implementation changed while preparing this recording; repeat with frozen sources.')
-    manifest = {
-        'duration': scene.duration, 'frames': len(frames), 'updates': len(updates),
-        'implementation_sha256': source_hashes,
-        'implementation_unchanged_during_preparation': True,
-        'frame_period_s': period, 'inference_period_s': period,
-        'playback_hz': 1./period,
-        'preparation_wall_seconds': preparation_seconds,
-        'preparation_frames_per_second': len(frames)/preparation_seconds,
-        'physical_estimate_time_offset_s': 0.,
-        'initial_command': scene.initial_command.tolist(),
-        'scene_config_sha256': scene.config_sha256,
-        'estimation_config_sha256': hashlib.sha256(
-            (package/'config/moving_estimation.yaml').read_bytes()).hexdigest(),
-        'stiffness_config_sha256': hashlib.sha256(
-            (package/'config/stiffness_identification.yaml').read_bytes()).hexdigest(),
-        'command_sha256': hashlib.sha256(command_bytes).hexdigest(),
-        'physics_sha256': hashlib.sha256(physical_bytes).hexdigest(),
-        'sensors': [t['sensor'] for t in templates],
-        'same_motion_sensor_estimation_comparison': False,
-        'same_physical_model_and_initial_prior': True,
-        'sensors_drive_commands': True,
-        'command_source': 'common controller applied to the current fused estimate; no command recording',
-        'final_physical_error_m': scene.trajectory[-1]['physical_error_m'],
-        'final_rigid_error_m': scene.trajectory[-1]['rigid_command_error_m'],
-        'reached': frames[-1].reached, 'collided': frames[-1].collided,
-        'minimum_clearance_m': scene.monitor.minimum_clearance,
-        'stiffness_prior': updates[0][0].stiffness_record['prior'],
-        'stiffness_posterior': updates[-1][0].stiffness_record['posterior'],
-        'stiffness_retained_memory': (updates[-1][0].stiffness_record['posterior']
-            if updates[-1][0].stiffness_record['posterior'] is not None
-            else updates[-1][0].stiffness_record['retained_prior']),
-        'stiffness_status_counts': {
-            status: sum(update[0].stiffness_record['status'] == status for update in updates)
-            for status in sorted({update[0].stiffness_record['status'] for update in updates})},
-        'stiffness_feeds_body_or_control': False,
-    }
-    (output/'motion_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
-    return scene, frames, updates, update_for_frame, manifest
+@dataclass
+class MotionTick:
+    index: int
+    frame: object
+    result: object
+    snapshot: object
+    markers: object
+    image: object
+    path: Path
+    timings: dict
+
+
+class MotionSession:
+    """One sequential experiment, shared by live execution and explicit replay.
+
+    ``observe`` produces the current immutable estimate. The caller publishes
+    that exact tick before ``finish`` selects the next short command. Physics
+    advances only on the next observe call, never on a separate wall timer.
+    """
+    def __init__(self, observations_path, output, *, imu_target_link=None):
+        self.output = Path(output)
+        self.output.mkdir(parents=True, exist_ok=False)
+        self.package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
+        _, self.templates = load_inputs(self.package/'config/common.yaml', observations_path)
+        self.scene = (MovingSwitchScene(self.output) if imu_target_link is None
+                      else MovingSwitchScene(self.output, imu_target_link=imu_target_link))
+        self.inference = MovingInference(self.scene.robot_description, self.templates)
+        self.stiffness = StiffnessIdentifier(self.scene.urdf, tuple(self.inference.body_ids),
+            yaml.safe_load((self.package/'config/stiffness_identification.yaml').read_text()))
+        control = self.inference.settings['control']
+        self.controller = MovingController(self.inference, self.scene.robot_description,
+            control['goal_offset'], control['goal_orientation_wxyz'], control,
+            integration_steps=int(control['integration_steps']))
+        self.period = float(self.scene.config['motion']['frame_period'])
+        self.times = list(np.arange(0., self.scene.duration, self.period)) + [self.scene.duration]
+        self.command = self.scene.initial_command.copy()
+        self.index, self.pending = 0, None
+        self.last_tick = None
+        self.sent_commands, self.stiffness_counts = [], {}
+        self.initial_stiffness = None
+        self.command_proposal_used = False
+        self.work_seconds = 0.
+        self.sources = tuple(sorted(Path(__file__).parent.glob('*.py')))
+        self.source_hashes = self._source_hashes()
+
+    def _source_hashes(self):
+        return {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in self.sources}
+
+    @property
+    def finished(self):
+        return self.index == len(self.times)
+
+    def observe(self):
+        if self.pending is not None or self.finished:
+            raise RuntimeError('A motion tick must finish before the next observation.')
+        started = previous = time.monotonic()
+        elapsed = self.times[self.index]
+        frame = self.scene.step(elapsed, stamp=1792080000.+elapsed, command=self.command)
+        timings = {'physics_and_camera': time.monotonic()-previous}
+        previous = time.monotonic()
+        result = self.inference.update(self.scene.sensor_inputs(frame), self.index)
+        timings['inference'] = time.monotonic()-previous
+        previous = time.monotonic()
+        stiffness_record = self.stiffness.update(result)
+        timings['stiffness_update'] = time.monotonic()-previous
+        previous = time.monotonic()
+        self.stiffness.command_proposal(result)
+        result.records['stiffness'] = stiffness_record
+        timings['stiffness_command_proposal'] = time.monotonic()-previous
+        previous = time.monotonic()
+        snapshot = replace(build_snapshot(result, result.stages[-1], self.inference.common),
+                           summary='', show_labels=False, stiffness_record=stiffness_record)
+        timings['snapshot_core_queries'] = time.monotonic()-previous
+        previous = time.monotonic()
+        settings = self.inference.common['display']
+        markers = make_markers(snapshot, settings['seed'], settings['point_size'])
+        image = image_message(result.detection_image, frame.stamp, 'camera_optical_frame')
+        require_current_update(frame, snapshot, image, self.index, self.index)
+        path = self.output/'estimate_{:03d}'.format(self.index)
+        save_snapshot(path, snapshot, markers, seed=settings['seed'], point_size=settings['point_size'])
+        if not cv2.imwrite(str(path.with_suffix('.png')), result.detection_image):
+            raise IOError('Could not save the observation image: ' + str(path))
+        timings['render_verify_and_save'] = time.monotonic()-previous
+        timings['observation_work'] = time.monotonic()-started
+        self.pending = MotionTick(self.index, frame, result, snapshot, markers, image, path, timings)
+        return self.pending
+
+    def finish(self, tick):
+        if tick is not self.pending:
+            raise AssertionError('Command selection requires the same observed/displayed tick.')
+        started = time.monotonic()
+        if tick.index+1 < len(self.times):
+            proposal = tick.snapshot.stiffness_record.get('command_proposal')
+            self.command, diagnostics = self.controller.step(
+                tick.result, self.times[tick.index+1]-self.times[tick.index],
+                stiffness_proposal=proposal)
+            self.command_proposal_used = self.command_proposal_used or proposal is not None
+        else:
+            diagnostics = dict(status='common_duration_complete',
+                source_stamp=tick.snapshot.stamp, source_command=list(tick.snapshot.command),
+                source_version=tick.snapshot.version)
+        tick.timings['command_selection'] = time.monotonic()-started
+        tick.timings['cycle_work'] = tick.timings['observation_work']+tick.timings['command_selection']
+        self.work_seconds += tick.timings['cycle_work']
+        tick.result.records['controller'] = diagnostics
+        tick.result.records['execution'] = dict(
+            sample_index=tick.index, simulated_elapsed_s=tick.frame.time,
+            simulated_step_s=self.period, timings_s=tick.timings,
+            skipped_simulation_ticks=0, asynchronous_estimate_reuse=False)
+        with (self.output/'estimation.jsonl').open('a') as records:
+            records.write(json.dumps(tick.result.records)+'\n')
+        self.sent_commands.append(dict(time=tick.frame.time, command=tick.frame.command.tolist()))
+        stiffness = tick.snapshot.stiffness_record
+        if self.initial_stiffness is None:
+            self.initial_stiffness = stiffness['prior']
+        status = stiffness['status']
+        self.stiffness_counts[status] = self.stiffness_counts.get(status, 0)+1
+        self.last_tick, self.pending = tick, None
+        self.index += 1
+        if self.finished:
+            self.write_manifest()
+
+    def write_manifest(self, mode='live'):
+        if self.last_tick is None:
+            raise RuntimeError('A manifest requires at least one completed observation.')
+        if self._source_hashes() != self.source_hashes:
+            raise RuntimeError('Implementation changed during the experiment; repeat with frozen sources.')
+        physical_bytes = (json.dumps(self.scene.trajectory, separators=(',', ':'))+'\n').encode()
+        command_bytes = (json.dumps(self.sent_commands, separators=(',', ':'))+'\n').encode()
+        (self.output/'physical_trajectory.json').write_bytes(physical_bytes)
+        (self.output/'sent_commands.json').write_bytes(command_bytes)
+        stiffness = self.last_tick.snapshot.stiffness_record
+        manifest = dict(
+            execution_mode=mode, offline_precomputation=mode == 'prepared_playback',
+            output_dir=str(self.output), duration=self.scene.duration, frames=len(self.times),
+            updates=self.index, completed=self.finished,
+            implementation_sha256=self.source_hashes, implementation_unchanged_during_execution=True,
+            implementation_unchanged_during_preparation=(True if mode == 'prepared_playback' else None),
+            frame_period_s=self.period, inference_period_s=self.period,
+            playback_hz=1./self.period if mode == 'prepared_playback' else None,
+            preparation_wall_seconds=self.work_seconds if mode == 'prepared_playback' else 0.,
+            preparation_frames_per_second=self.index/self.work_seconds if mode == 'prepared_playback' else None,
+            computation_wall_seconds=self.work_seconds,
+            computation_frames_per_second=self.index/self.work_seconds,
+            simulated_elapsed_s=self.last_tick.frame.time,
+            physical_estimate_time_offset_s=0.,
+            initial_command=self.scene.initial_command.tolist(),
+            scene_config_sha256=self.scene.config_sha256,
+            estimation_config_sha256=hashlib.sha256((self.package/'config/moving_estimation.yaml').read_bytes()).hexdigest(),
+            stiffness_config_sha256=hashlib.sha256((self.package/'config/stiffness_identification.yaml').read_bytes()).hexdigest(),
+            command_sha256=hashlib.sha256(command_bytes).hexdigest(),
+            physics_sha256=hashlib.sha256(physical_bytes).hexdigest(),
+            sensors=[item['sensor'] for item in self.templates],
+            imu_target_link=self.scene.imu_target_link,
+            imu_direction_sigma_rad=self.scene.imu_sigma_rad,
+            imu_mount='known identity attachment to '+self.scene.imu_target_link,
+            same_motion_sensor_estimation_comparison=False, same_physical_model_and_initial_prior=True,
+            sensors_drive_commands=True,
+            command_source='common controller applied to the current fused estimate; no command recording',
+            final_physical_error_m=self.scene.trajectory[-1]['physical_error_m'],
+            final_rigid_error_m=self.scene.trajectory[-1]['rigid_command_error_m'],
+            reached=self.last_tick.frame.reached, collided=self.last_tick.frame.collided,
+            minimum_clearance_m=self.scene.monitor.minimum_clearance,
+            stiffness_prior=self.initial_stiffness, stiffness_posterior=stiffness['posterior'],
+            stiffness_retained_memory=(stiffness['posterior'] if stiffness['posterior'] is not None else stiffness['retained_prior']),
+            stiffness_status_counts=dict(self.stiffness_counts), stiffness_feeds_body=False,
+            stiffness_command_proposal_enabled=True, stiffness_feeds_body_or_control=self.command_proposal_used)
+        (self.output/'motion_manifest.json').write_text(json.dumps(manifest, indent=2)+'\n')
+        return manifest
+
+
+def prepare_motion(observations_path, output, *, imu_target_link=None):
+    """Explicit offline mode; live uses exactly the same observe/finish path."""
+    session = MotionSession(observations_path, output, imu_target_link=imu_target_link)
+    frames, updates = [], []
+    while not session.finished:
+        tick = session.observe()
+        session.finish(tick)
+        updates.append((tick.snapshot, tick.path.with_suffix('.markers.bin'), tick.path.with_suffix('.png')))
+        frames.append(replace(tick.frame, image=np.empty((0, 0), dtype=np.uint8)))
+    manifest = session.write_manifest(mode='prepared_playback')
+    return session.scene, frames, updates, list(range(len(frames))), manifest
 
 
 class MotionPlayback:
@@ -294,14 +363,149 @@ class MotionPlayback:
             self.index = index
 
 
+class MotionLive:
+    """Compute and publish every logical tick before choosing its next command.
+
+    Simulation time has an explicit fixed step. Expensive computation slows
+    the experiment's wall rate; it never advances physics under an old cloud.
+    No prepared trajectory, image, or distribution is read by this executor.
+    """
+    def __init__(self, observations_path, output, case, autostart, *, imu_target_link=None):
+        self.observations_path, self.output, self.case = observations_path, Path(output), case
+        self.imu_target_link = imu_target_link
+        self.lock = RLock()
+        self.replays = 0
+        self.failure = None
+        self.started = time.monotonic() if autostart else None
+        self.publish_times = []
+        self.session = MotionSession(observations_path, self.output, imu_target_link=imu_target_link)
+        self.distributions = rospy.Publisher('/observation_fusion/distributions', MarkerArray, queue_size=4, latch=True)
+        self.snapshots = rospy.Publisher('/observation_fusion/snapshot', String, queue_size=4, latch=True)
+        self.stiffness = rospy.Publisher('/observation_fusion/stiffness', String, queue_size=4, latch=True)
+        self.images = rospy.Publisher('/observation_fusion/detection_image', Image, queue_size=4, latch=True)
+        self.motion = rospy.Publisher('/observation_fusion/motion_metadata', String, queue_size=4, latch=True)
+        self.display = MotionDisplay(self.session.scene, case, [item['sensor'] for item in self.session.templates])
+        self.current_tick = None
+        self.common_manifest = None
+        self._run_tick()
+        self.service = rospy.Service('/observation_fusion/replay', Trigger, self.replay)
+        self.timer = rospy.Timer(rospy.Duration(self.session.period), self.advance)
+
+    def timing(self):
+        now = time.monotonic()
+        elapsed = 0. if self.started is None else now-self.started
+        hz = ((len(self.publish_times)-1)/(self.publish_times[-1]-self.publish_times[0])
+              if len(self.publish_times) > 1 else None)
+        simulated = 0. if self.current_tick is None else self.current_tick.frame.time
+        return dict(execution_mode='live', simulated_step_s=self.session.period,
+                    wall_elapsed_s=elapsed, actual_update_hz=hz,
+                    failure_reason=None if self.failure is None else self.failure['failure_reason'],
+                    realtime_factor=simulated/elapsed if elapsed > 0 else None)
+
+    def _run_tick(self):
+        tick = self.session.observe()
+        self.current_tick = tick
+        # Use precisely the wire object verified and archived in observe.
+        self.distributions.publish(tick.markers)
+        self.snapshots.publish(String(json.dumps(snapshot_record(tick.snapshot))))
+        self.stiffness.publish(String(json.dumps(tick.snapshot.stiffness_record)))
+        self.images.publish(tick.image)
+        self.publish_times.append(time.monotonic())
+        self.display.publish(tick.frame, tick.index, tick.snapshot, tick.index,
+                             stiffness_record=tick.snapshot.stiffness_record, execution=self.timing())
+        # Every same-time publication above precedes next-command selection.
+        self.session.finish(tick)
+        if self.common_manifest is None or self.session.finished:
+            self.common_manifest = self.session.write_manifest(mode='live')
+        metadata = dict(self.common_manifest, **self.timing(),
+            sample_index=tick.index, scene_elapsed=tick.frame.time,
+            simulated_elapsed_s=tick.frame.time, updates=self.session.index,
+            completed=self.session.finished, finished=self.session.finished,
+            estimate_index=tick.index, estimate_stamp=tick.snapshot.stamp,
+            physical_stamp=tick.frame.stamp, command=tick.frame.command.tolist(),
+            valid_observations=len(tick.snapshot.observation_ids),
+            tick_timings_s=tick.timings,
+            stiffness_posterior=tick.snapshot.stiffness_record['posterior'],
+            stiffness_retained_memory=(tick.snapshot.stiffness_record['posterior']
+                if tick.snapshot.stiffness_record['posterior'] is not None
+                else tick.snapshot.stiffness_record['retained_prior']),
+            final_physical_error_m=self.session.scene.trajectory[-1]['physical_error_m'],
+            final_rigid_error_m=self.session.scene.trajectory[-1]['rigid_command_error_m'],
+            minimum_clearance_m=self.session.scene.monitor.minimum_clearance,
+            reached=tick.frame.reached, collided=tick.frame.collided,
+            computation_wall_seconds=self.session.work_seconds,
+            computation_frames_per_second=self.session.index/self.session.work_seconds,
+            stiffness_feeds_body_or_control=self.session.command_proposal_used,
+            stiffness_status_counts=dict(self.session.stiffness_counts))
+        if not self.session.finished:
+            metadata.update(command_sha256=None, physics_sha256=None)
+        self.motion.publish(String(json.dumps(metadata)))
+
+    def advance(self, _event):
+        with self.lock:
+            if self.failure is None and self.started is not None and not self.session.finished:
+                try:
+                    self._run_tick()
+                except Exception as error:
+                    failed_index = min(self.session.index, len(self.session.times)-1)
+                    failed_elapsed = self.session.times[failed_index]
+                    self.failure = dict(execution_mode='live', failed=True, finished=False,
+                        failure_reason='{}: {}'.format(type(error).__name__, error),
+                        failed_sample_index=failed_index,
+                        failed_simulated_elapsed_s=failed_elapsed,
+                        failed_source_stamp=1792080000.+failed_elapsed,
+                        failed_command=self.session.command.tolist(),
+                        last_published_sample_index=self.current_tick.index,
+                        last_published_stamp=self.current_tick.snapshot.stamp,
+                        last_published_command=list(self.current_tick.snapshot.command))
+                    (self.session.output/'execution_failure.json').write_text(json.dumps(self.failure, indent=2)+'\n')
+                    self.motion.publish(String(json.dumps(self.failure)))
+                    rospy.logerr('Live experiment stopped without a replacement estimate: %s', self.failure['failure_reason'])
+            else:
+                # Heartbeats retain the same physical and estimate source.
+                tick = self.current_tick
+                self.display.publish(tick.frame, tick.index, tick.snapshot, tick.index,
+                    stiffness_record=tick.snapshot.stiffness_record, execution=self.timing())
+
+    def replay(self, _request):
+        with self.lock:
+            if self.failure is None and self.started is None and self.session.index == 1:
+                # Start the waiting experiment without assimilating t=0 twice.
+                self.started = time.monotonic()
+                self.publish_times.clear()
+            else:
+                self.replays += 1
+                output = self.output.with_name(self.output.name+'_replay_{:03d}'.format(self.replays))
+                self.session = MotionSession(self.observations_path, output,
+                                             imu_target_link=self.imu_target_link)
+                self.display.scene = self.session.scene
+                self.failure = None
+                self.started = time.monotonic()
+                self.publish_times.clear()
+                self.common_manifest = None
+                self._run_tick()
+        return TriggerResponse(True, 'Starting a fresh sequential experiment from the common initial prior.')
+
+
 def main():
     rospy.init_node('observation_fusion_demo')
     package = Path(rospkg.RosPack().get_path('probtf_observation_fusion_demo'))
     observations = Path(rospy.get_param('~observations_config', str(package/'config/imu_marker.yaml')))
     output = Path(rospy.get_param('~output_dir', '/tmp/probtf_observation_fusion_motion/'+datetime.now().strftime('%Y%m%d_%H%M%S_%f')))
-    rospy.loginfo('Preparing observation-driven switch motion and same-time estimates: %s', output)
-    scene, frames, updates, mapping, manifest = prepare_motion(observations, output)
-    playback = MotionPlayback(scene,frames,updates,mapping,manifest,observations.stem,
-                               bool(rospy.get_param('~autostart',True)))
-    rospy.loginfo('Ready: %.3f s, %d physical frames, %d inference updates',scene.duration,len(frames),len(updates))
+    mode = rospy.get_param('~execution_mode', 'live')
+    autostart = bool(rospy.get_param('~autostart', True))
+    imu_target_link = rospy.get_param('~imu_target_link', '') or None
+    if mode == 'live':
+        playback = MotionLive(observations, output, observations.stem, autostart,
+                              imu_target_link=imu_target_link)
+        rospy.loginfo('Live sequential execution: simulation dt %.3f s; actual wall rate is measured.',
+                      playback.session.period)
+    elif mode == 'prepared_playback':
+        rospy.loginfo('Preparing explicitly requested offline playback: %s', output)
+        scene, frames, updates, mapping, manifest = prepare_motion(
+            observations, output, imu_target_link=imu_target_link)
+        playback = MotionPlayback(scene,frames,updates,mapping,manifest,observations.stem, autostart)
+        rospy.loginfo('Playback ready: %.3f s, %d same-time inference updates', scene.duration, len(updates))
+    else:
+        raise ValueError('execution_mode must be live or prepared_playback.')
     rospy.spin()

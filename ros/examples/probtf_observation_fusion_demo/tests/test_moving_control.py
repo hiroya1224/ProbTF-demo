@@ -111,6 +111,44 @@ def test_same_controller_uses_all_fused_candidates_and_respects_command_bounds(i
     assert np.linalg.norm(commands["no_sensors"]-commands["imu_marker"]) > 1e-5
 
 
+def test_stiffness_memory_proposes_only_an_initial_command_accepted_by_body_density(inputs):
+    scene, _, inferences, results = inputs
+    result, inference = results['imu'], inferences['imu']
+    useful_command, ordinary = controller(scene, inference).step(result, .05)
+    proposal = dict(command=useful_command.tolist(),
+                    source_command=list(result.prior.command),
+                    source_stamp=result.prior.stamp, density_id='learned-K-density',
+                    source_prior_state_id=result.prior.state_id,
+                    body_posterior_state_ids=[item.state.state_id for item in result.stages[-1].components])
+    result = replace(result, records=dict(result.records, stiffness={
+        'posterior': {'density_id': 'learned-K-density'}, 'command_proposal': proposal}))
+    selected, diagnostics = controller(scene, inference).step(
+        result, .05, stiffness_proposal=proposal)
+    checked = diagnostics['stiffness_initial_proposal']
+    assert checked['accepted_as_initial_point']
+    assert checked['source'] is proposal
+    np.testing.assert_array_equal(diagnostics['gradient_at_command'], useful_command)
+    assert diagnostics['log_expected_density'] >= ordinary['log_expected_density']-1e-12
+    assert np.max(np.abs(selected-np.asarray(result.prior.command))) <= .05**2*LIMITS['max_joint_acceleration']+1e-12
+    # A K prediction cannot replace the body's law, command criterion, or truth boundary.
+    unchanged = dict(proposal, command=list(result.prior.command))
+    no_move = replace(result, records=dict(result.records, stiffness={
+        'posterior': {'density_id': 'learned-K-density'}, 'command_proposal': unchanged}))
+    _, rejected = controller(scene, inference).step(no_move, .05, stiffness_proposal=unchanged)
+    assert not rejected['stiffness_initial_proposal']['accepted_as_initial_point']
+    with pytest.raises(ValueError, match='different body update'):
+        controller(scene, inference).step(result, .05,
+            stiffness_proposal=dict(proposal, source_stamp=result.prior.stamp+1.))
+    for mismatch in ({'source_prior_state_id': 'foreign-body'},
+                     {'body_posterior_state_ids': ['foreign-posterior']},
+                     {'density_id': 'foreign-stiffness-density'}):
+        with pytest.raises(ValueError, match='different body update'):
+            controller(scene, inference).step(result, .05,
+                stiffness_proposal=dict(proposal, **mismatch))
+    with pytest.raises(ValueError, match='same recorded'):
+        controller(scene, inference).step(result, .05, stiffness_proposal=dict(proposal))
+
+
 def test_empty_observations_are_identity_without_a_sensor_specific_control_rule(inputs):
     scene, frame, inferences, results = inputs
     result = results["no_sensors"]

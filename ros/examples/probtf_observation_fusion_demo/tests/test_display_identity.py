@@ -3,14 +3,16 @@
 from dataclasses import replace
 import hashlib
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 import yaml
+from scipy.special import ndtr
 
 from probtf.spherical_law.first_order import point_query
 from probtf_observation_fusion_demo.display import (
-    make_markers, query_record, serialized_marker_array, verify_wire_identity,
+    _normal_points, make_markers, query_record, serialized_marker_array, verify_wire_identity,
 )
 from probtf_observation_fusion_demo.model import load_inputs, run
 from probtf_observation_fusion_demo.node import build_snapshot, verify_adapter_identity
@@ -91,6 +93,32 @@ def test_render_seed_does_not_modify_any_source_distribution(combined):
     for point, (mean, covariance) in zip(snapshot.points, before):
         np.testing.assert_array_equal(point.query.mean, mean)
         np.testing.assert_array_equal(point.query.covariance, covariance)
+
+
+def test_display_is_a_deterministic_gaussian_quantile_query_without_randomness(combined, monkeypatch):
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError('Display must not use Monte Carlo or a random generator.')
+    monkeypatch.setattr(np.random, 'RandomState', forbidden)
+    monkeypatch.setattr(np.random, 'default_rng', forbidden)
+    query = SimpleNamespace(query_id='rank_one', mean=np.array([1., 2., 3.]),
+                            covariance=np.diag([0., 0., 4.]))
+    points = _normal_points(query, 3, 0)
+    np.testing.assert_array_equal(points[:, :2], [[1., 2.]]*3)
+    # The first base-two radical inverses are 1/2, 1/4 and 3/4. Their
+    # Gaussian CDFs verify actual quantiles rather than empirical covariance.
+    np.testing.assert_allclose(ndtr((points[:, 2]-3.)/2.), [.5, .25, .75])
+    snapshot = combined[-1]
+    assert serialized_marker_array(make_markers(snapshot)) == serialized_marker_array(make_markers(snapshot))
+
+
+def test_repeated_prior_branches_do_not_duplicate_one_imu_display_observation(combined):
+    common, result, stage, snapshot = combined
+    repeated = replace(result, local_estimates=result.local_estimates+result.local_estimates,
+                       sensor_posteriors=result.sensor_posteriors+result.sensor_posteriors)
+    updated = build_snapshot(repeated, stage, common)
+    assert updated.observation_ids == snapshot.observation_ids
+    assert len(updated.points) == len(snapshot.points)
+    assert serialized_marker_array(make_markers(updated)) == serialized_marker_array(make_markers(snapshot))
 
 
 def test_original_rviz_bytes_and_copied_layout_are_preserved():

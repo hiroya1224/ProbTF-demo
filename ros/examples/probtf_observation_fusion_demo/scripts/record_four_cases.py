@@ -1,8 +1,9 @@
 #!/usr/bin/python3
-"""Record four live RViz motion replays on an otherwise unused ROS master.
+"""Record four live RViz experiments on an otherwise unused ROS master.
 
 Run after sourcing catkin's setup.bash. Nothing in RViz's settings is edited;
-the same window rectangle, capture duration and encoder are used in every case.
+The same window rectangle, simulation duration and encoder are used in every
+case. Live wall duration and display update rates are measured, not assumed.
 The generated manifest records the actual ROS metadata and ffprobe results.
 """
 
@@ -158,6 +159,10 @@ def verify_received(run_dir, snapshots, motion, wire, images, replay_wall, stiff
             previous = record['retained_prior']
         else:
             previous = record['posterior']
+        if 'factor_ids' in record['prior'] and previous is not None:
+            prior_ids = record['prior']['factor_ids']
+            if previous['factor_ids'][:len(prior_ids)] != prior_ids:
+                raise AssertionError('The stiffness density memory lost a previous likelihood factor.')
         if (record['status'] == 'identity_density_ratio'
                 and record['prior'] != record['posterior']):
             raise AssertionError('An identity body update changed the stiffness distribution.')
@@ -166,7 +171,7 @@ def verify_received(run_dir, snapshots, motion, wire, images, replay_wall, stiff
     expected_hud = {}
     for row in snapshots:
         data = row['data']
-        points = [SimpleNamespace(component_id=q['component_id'], weight=q['weight'],
+        points = [SimpleNamespace(component_id=q['component_id'], weight=q['weight'], log_weight=q.get('log_weight'),
             query=SimpleNamespace(frame=q['source_frame'], stamp=q['source_stamp'],
                 command=tuple(q['source_command']), state_id=q['source_state_id'],
                 version=q['source_version'])) for q in data['queries']]
@@ -189,7 +194,7 @@ def verify_received(run_dir, snapshots, motion, wire, images, replay_wall, stiff
     moving = [row for row in images if row['wall_elapsed_s'] >= replay_wall
               and row['stamp'] > min(expected_images)]
     image_fps = (len(moving)-1)/(moving[-1]['wall_elapsed_s']-moving[0]['wall_elapsed_s'])
-    if image_fps < 15.0:
+    if image_fps < 15.0 and final.get('execution_mode') != 'live':
         raise AssertionError('Actual image delivery was slower than 15 fps: ' + str(image_fps))
     return {"final_motion_observed": True, "snapshot_identity_verified": True,
             "published_wire_identity_verified": True,
@@ -198,10 +203,14 @@ def verify_received(run_dir, snapshots, motion, wire, images, replay_wall, stiff
             "stiffness_updates_without_failure": not unavailable,
             "unavailable_stiffness_updates": unavailable,
             "unavailable_stiffness_updates_reported_without_substitution": True,
+            "unavailable_local_stiffness_proposals": sum(
+                record.get('proposal_status') == 'unavailable' for _, record in ordered),
             "stiffness_memory_and_identity_verified": True,
             "unique_snapshots": len(actual_snapshots), "unique_wire_messages": len(received_wire),
             "published_image_identity_verified": True,
-            "unique_images": len(actual_images), "actual_moving_image_fps": image_fps}
+            "unique_images": len(actual_images), "actual_moving_image_fps": image_fps,
+            "image_delivery_at_least_15fps": image_fps >= 15.,
+            "execution_mode": final.get('execution_mode', 'prepared_playback')}
 
 
 def main():
@@ -212,6 +221,9 @@ def main():
                         help="New directory for launch logs and full ROS metadata.")
     parser.add_argument("--port", type=int, default=11766)
     parser.add_argument("--duration", type=float, default=36.5)
+    parser.add_argument("--execution-mode", choices=['live', 'prepared_playback'], default='live')
+    parser.add_argument("--max-wall-seconds", type=float, default=3600.,
+                        help="Live recording timeout; logical simulation ticks are never skipped.")
     parser.add_argument("--fps", type=int, default=20)
     parser.add_argument("--config-name", default="observation_fusion_motion.rviz")
     parser.add_argument("--cases", nargs="+", choices=CASES, default=list(CASES))
@@ -246,7 +258,9 @@ def main():
                        ("ROS_MASTER_URI", "ROS_HOME", "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS")})
     records = []
     manifest = {"master_uri": env["ROS_MASTER_URI"], "settings_sha256": settings_hashes,
-                "capture": {"fps": args.fps, "duration_s": args.duration,
+                "capture": {"fps": args.fps, "prepared_capture_duration_s": args.duration,
+                            "execution_mode": args.execution_mode,
+                            "stop_rule": "complete live simulation" if args.execution_mode == 'live' else "fixed playback duration",
                             "encoder": "libx264", "crf": 18, "pixel_format": "yuv420p"},
                 "cases": records}
     master = None
@@ -336,7 +350,8 @@ def main():
             try:
                 launch = subprocess.Popen([
                     "roslaunch", "probtf_observation_fusion_demo", case + ".launch",
-                    "rviz:=true", "autostart:=false", "output_dir:=" + str(run_dir / "node")],
+                    "rviz:=true", "autostart:=false", "execution_mode:="+args.execution_mode,
+                    "output_dir:=" + str(run_dir / "node")],
                     env=env, stdout=launch_log, stderr=subprocess.STDOUT, start_new_session=True)
                 rospy.wait_for_service("/observation_fusion/replay", timeout=900)
                 rectangle = wait_until(lambda: rviz_rectangle(args.config_name), 45,
@@ -350,20 +365,40 @@ def main():
                 time.sleep(1)
                 video = args.output / (case + ".mp4")
                 ffmpeg_log = (run_dir / "ffmpeg.log").open("w")
-                capture = subprocess.Popen([
+                capture_command = [
                     "ffmpeg", "-hide_banner", "-loglevel", "warning", "-n", "-f", "x11grab",
                     "-draw_mouse", "0", "-framerate", str(args.fps), "-video_size",
                     "{width}x{height}".format(**roi), "-i",
                     "{}+{},{}".format(env.get("DISPLAY", ":1"), roi["x"], roi["y"]),
-                    "-t", str(args.duration), "-an", "-c:v", "libx264", "-preset", "veryfast",
-                    "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(video)],
-                    env=env, stdout=ffmpeg_log, stderr=subprocess.STDOUT, start_new_session=True)
+                ]
+                if args.execution_mode == 'prepared_playback':
+                    capture_command.extend(['-t', str(args.duration)])
+                capture_command.extend(["-an", "-c:v", "libx264", "-preset", "veryfast",
+                    "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(video)])
+                capture = subprocess.Popen(capture_command,
+                    env=env, stdin=subprocess.PIPE, stdout=ffmpeg_log, stderr=subprocess.STDOUT, start_new_session=True)
                 time.sleep(1.5)
                 replay_time = time.monotonic() - started
                 response = rospy.ServiceProxy("/observation_fusion/replay", Trigger)()
                 if not response.success:
                     raise RuntimeError("Replay was rejected: " + response.message)
-                capture.wait(timeout=args.duration + 60)
+                if args.execution_mode == 'live':
+                    def finished_live_experiment():
+                        if not motion_messages:
+                            return False
+                        latest = motion_messages[-1]['data']
+                        if latest.get('failed'):
+                            raise RuntimeError('Live experiment failed: '+latest['failure_reason'])
+                        return latest.get('finished')
+                    wait_until(finished_live_experiment,
+                               args.max_wall_seconds, 'Live computation did not finish; the partial experiment is not complete.',
+                               (master, launch, capture))
+                    time.sleep(1.)
+                    capture.stdin.write(b'q\n')
+                    capture.stdin.flush()
+                    capture.wait(timeout=60)
+                else:
+                    capture.wait(timeout=args.duration + 60)
                 if capture.returncode:
                     raise RuntimeError("ffmpeg failed; see " + str(run_dir / "ffmpeg.log"))
                 ffmpeg_log.close()
@@ -399,8 +434,9 @@ def main():
                                 "runtime_record": str(run_dir)})
                 (args.output / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
                 # These frames are extracted from the actual capture for visual review.
-                for label, at in (("initial", 2.0), ("middle", args.duration / 2),
-                                  ("final", args.duration - 1)):
+                duration = float(probe_result['format']['duration'])
+                for label, at in (("initial", min(2.0, duration/4)), ("middle", duration/2),
+                                  ("final", max(0., duration-1))):
                     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-n", "-ss",
                                     str(at), "-i", str(video), "-frames:v", "1",
                                     str(run_dir / (label + ".png"))], check=True)

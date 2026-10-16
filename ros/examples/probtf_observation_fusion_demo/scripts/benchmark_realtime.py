@@ -4,15 +4,14 @@
 Example (use a dedicated ROS master when publishing):
   rosrun probtf_observation_fusion_demo benchmark_realtime.py --publish --frames 40
 
-Scene and observation timestamps follow the wall clock. The next short command
-uses the configured nominal control interval; slower computation therefore holds
-the previous command longer, rather than pretending to execute at 20 Hz.
+The default live executor supplies every fixed simulation-time tick. Slower
+computation slows the measured wall rate rather than pretending to execute at
+20 Hz or skipping an observation. No physical frame advances under an old law.
 No file cache, saved image, or previously prepared distribution is used.
 """
 
 import argparse
 from collections import Counter
-from dataclasses import replace
 from datetime import datetime
 import hashlib
 import io
@@ -25,19 +24,13 @@ import time
 import numpy as np
 import rospy
 import rospkg
-import yaml
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from visualization_msgs.msg import MarkerArray
 
-from probtf_observation_fusion_demo.display import make_markers, snapshot_record
-from probtf_observation_fusion_demo.model import load_inputs
+from probtf_observation_fusion_demo.display import snapshot_record
 from probtf_observation_fusion_demo.motion_display import MotionDisplay
-from probtf_observation_fusion_demo.moving_control import MovingController
-from probtf_observation_fusion_demo.moving_inference import MovingInference
-from probtf_observation_fusion_demo.moving_scene import MovingSwitchScene
-from probtf_observation_fusion_demo.node import build_snapshot, image_message
-from probtf_observation_fusion_demo.stiffness_identification import StiffnessIdentifier
+from probtf_observation_fusion_demo.motion_node import MotionSession
 
 
 def serialize(message):
@@ -97,17 +90,9 @@ class WireReceiver:
 def benchmark(case, frames, package, output, publish, source_hashes):
     source_matches_at_start = source_hashes == implementation_hashes(package)
     load_average = os.getloadavg()
-    scene = MovingSwitchScene(output/case)
-    _, observations = load_inputs(package/"config/common.yaml", package/("config/"+case+".yaml"))
-    inference = MovingInference(scene.robot_description, observations)
-    stiffness_settings = yaml.safe_load((package/"config/stiffness_identification.yaml").read_text())
-    stiffness_identifier = StiffnessIdentifier(scene.urdf, tuple(inference.body_ids), stiffness_settings)
-    control = inference.settings["control"]
-    controller = MovingController(inference, scene.robot_description,
-        control["goal_offset"], control["goal_orientation_wxyz"], control,
-        integration_steps=control["integration_steps"])
-    period = float(scene.config["motion"]["frame_period"])
-    settings = inference.common["display"]
+    session = MotionSession(package/("config/"+case+".yaml"), output/case)
+    scene, inference, observations = session.scene, session.inference, session.templates
+    period = session.period
     receiver, publishers, physical_display = None, {}, None
     physical_subscribers = []
     physical_received = {"scene": [], "tf": []}
@@ -135,44 +120,25 @@ def benchmark(case, frames, package, output, publish, source_hashes):
                 raise RuntimeError("Benchmark subscribers did not connect.")
             time.sleep(.01)
     records = []
-    command = scene.initial_command.copy()
-    started, epoch = time.perf_counter(), time.time()
+    started = time.perf_counter()
     for index in range(frames):
         cycle_start = time.perf_counter()
-        elapsed = cycle_start-started
-        if elapsed >= scene.duration:
-            raise RuntimeError("The live benchmark exceeded the configured scene duration; use fewer frames.")
-        timings = {}
-        previous = cycle_start
-        frame = scene.step(elapsed, stamp=epoch+elapsed, command=command)
-        timings["physics_and_camera"] = time.perf_counter()-previous
-        previous = time.perf_counter()
-        result = inference.update(scene.sensor_inputs(frame), index)
-        timings["inference"] = time.perf_counter()-previous
-        previous = time.perf_counter()
-        stiffness_record = stiffness_identifier.update(result)
-        result.records['stiffness'] = stiffness_record
+        if session.finished:
+            raise RuntimeError("The benchmark requested more ticks than the common experiment duration.")
+        tick = session.observe()
+        frame, result, snapshot, markers = tick.frame, tick.result, tick.snapshot, tick.markers
+        elapsed = frame.time
+        timings = dict(tick.timings)
+        stiffness_record = snapshot.stiffness_record
         if stiffness_record['status'].startswith('failed'):
             (output/(case+'.stiffness_failure_{:03d}.json'.format(index))).write_text(
                 json.dumps({'body': result.records, 'stiffness': stiffness_record}, indent=2)+'\n')
-        timings["stiffness_update"] = time.perf_counter()-previous
-        previous = time.perf_counter()
-        snapshot = replace(build_snapshot(result, result.stages[-1], inference.common),
-                           summary="", show_labels=False, stiffness_record=stiffness_record)
-        timings["snapshot_core_queries"] = time.perf_counter()-previous
-        previous = time.perf_counter()
-        markers = make_markers(snapshot, settings["seed"], settings["point_size"])
-        timings["markers"] = time.perf_counter()-previous
-        previous = time.perf_counter()
-        command, diagnostics = controller.step(result, period)
-        timings["command_selection"] = time.perf_counter()-previous
         previous = time.perf_counter()
         # Serialize exactly once. Forwarding AnyMsg preserves these typed
         # payloads, including their common source time/command/version.
         payloads = {
             "markers": serialize(markers),
-            "image": serialize(image_message(result.detection_image, frame.stamp,
-                                               "camera_optical_frame")),
+            "image": serialize(tick.image),
             "snapshot": serialize(String(json.dumps(snapshot_record(snapshot)))),
             "stiffness": serialize(String(json.dumps(stiffness_record))),
         }
@@ -186,16 +152,20 @@ def benchmark(case, frames, package, output, publish, source_hashes):
         previous = time.perf_counter()
         if physical_display is not None:
             physical_display.publish(frame, index, snapshot, index,
-                                     stiffness_record=stiffness_record)
+                stiffness_record=stiffness_record, execution=dict(execution_mode='live',
+                    simulated_step_s=period, actual_update_hz=(index/(time.perf_counter()-started) if index else None)))
             expected_hud.append(serialize(MotionDisplay.stiffness_marker(snapshot, stiffness_record)))
         timings["physical_display_and_tf"] = time.perf_counter()-previous
+        session.finish(tick)
+        diagnostics = result.records['controller']
+        timings['command_selection'] = tick.timings['command_selection']
         timings["cycle_work"] = time.perf_counter()-cycle_start
         records.append({"index": index, "scene_elapsed": elapsed,
             "source_stamp": snapshot.stamp, "command": list(snapshot.command),
             "source_version": snapshot.version, "timings_s": timings,
-            "valid_observations": len(result.sensor_posteriors),
+            "valid_observations": len(snapshot.observation_ids),
             "components": len(result.stages[-1].components),
-            "objective_evaluations": diagnostics["objective_evaluation_count"],
+            "objective_evaluations": diagnostics.get("objective_evaluation_count", 0),
             "stiffness_status": stiffness_record['status'],
             "stiffness_update_applied": stiffness_record['update_applied'],
             "stiffness_failure_reason": stiffness_record.get('failure_reason'),
@@ -215,10 +185,14 @@ def benchmark(case, frames, package, output, publish, source_hashes):
         if remaining > 0:
             time.sleep(remaining)
     elapsed_wall = time.perf_counter()-started
+    session.write_manifest(mode='live_benchmark')
     summary = {"case": case, "frames": len(records), "wall_seconds": elapsed_wall,
         "fresh_updates_per_second": len(records)/elapsed_wall,
         "nominal_command_interval_s": period,
-        "clock": "scene timestamps follow wall clock; command held until the next completed update",
+        "clock": "fixed logical simulation ticks; wall rate measured independently; no prepared replay or skipped tick",
+        "simulated_elapsed_s": session.last_tick.frame.time,
+        "execution_mode": "live_benchmark",
+        "realtime_factor": session.last_tick.frame.time/elapsed_wall,
         "offline_precomputation": False, "published": publish,
         "stiffness_enabled": True,
         "rviz_gpu_rendering_measured": False,

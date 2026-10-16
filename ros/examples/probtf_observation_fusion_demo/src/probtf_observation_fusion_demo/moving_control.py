@@ -169,7 +169,7 @@ class MovingController:
             metric += component.weight*(jacobian.T @ precision @ jacobian)
         return metric
 
-    def step(self, result, dt):
+    def step(self, result, dt, *, stiffness_proposal=None):
         dt = float(dt)
         if not np.isfinite(dt) or dt <= 0.0:
             raise ValueError("The next command interval must be positive and finite.")
@@ -208,13 +208,16 @@ class MovingController:
                 queries.append(query)
                 log_density, branch = _relative_density(
                     query, self.goal_offset, self.goal_orientation, self.integration_steps)
+                log_weight = getattr(component, 'log_weight', None)
+                if log_weight is None:
+                    log_weight = np.log(component.weight) if component.weight > 0.0 else -np.inf
                 branch.update(label=component.label, weight=float(component.weight),
+                              log_weight=float(log_weight),
                               parent_state_id=component.state.state_id,
                               parent_command=list(component.state.command),
                               parent_stamp=float(component.state.stamp))
                 branches.append(branch)
-                terms.append(np.log(component.weight)+log_density
-                             if component.weight > 0.0 else -np.inf)
+                terms.append(log_weight+log_density)
             cache[key] = (float(logsumexp(terms)), increment.copy(), branches, tuple(queries))
             return cache[key]
 
@@ -224,6 +227,38 @@ class MovingController:
         # limits prevent stopping now, this baseline brakes as far as allowed.
         baseline = np.clip(np.zeros_like(self.velocity), lower, upper)
         initial_item = evaluate(baseline)
+        braking_item = initial_item
+        proposal_diagnostics = {'available': stiffness_proposal is not None,
+                                'accepted_as_initial_point': False}
+        if stiffness_proposal is not None:
+            stiffness_record = result.records.get('stiffness')
+            stiffness_density = None if stiffness_record is None else (
+                stiffness_record['posterior'] if stiffness_record['posterior'] is not None
+                else stiffness_record.get('retained_prior'))
+            if (tuple(stiffness_proposal['source_command']) != tuple(command)
+                    or float(stiffness_proposal['source_stamp']) != result.prior.stamp
+                    or stiffness_proposal.get('source_prior_state_id') != result.prior.state_id
+                    or stiffness_proposal.get('body_posterior_state_ids') != [item.state.state_id for item in components]
+                    or stiffness_density is None
+                    or stiffness_proposal.get('density_id') != stiffness_density['density_id']):
+                raise ValueError('A stiffness command proposal belongs to a different body update.')
+            if stiffness_record.get('command_proposal') is not stiffness_proposal:
+                raise ValueError('Control requires the same recorded stiffness command proposal.')
+            proposed_command = np.asarray(stiffness_proposal['command'], dtype=float)
+            if proposed_command.shape != command.shape or not np.all(np.isfinite(proposed_command)):
+                raise ValueError('A stiffness command proposal must be a finite joint command.')
+            candidate = evaluate(np.clip(proposed_command-command, lower, upper))
+            proposal_diagnostics.update(
+                source=stiffness_proposal,
+                projected_command=(command+candidate[1]).tolist(),
+                log_body_criterion=candidate[0],
+                log_braking_criterion=braking_item[0],
+                role='initial command proposal only; accepted by the same complete body criterion',
+                physical_truth_received=False)
+            if candidate[0] > initial_item[0]:
+                initial_item = candidate
+                baseline = candidate[1].copy()
+                proposal_diagnostics['accepted_as_initial_point'] = True
         initial_cost = -initial_item[0]
         raw_gradient = np.zeros_like(baseline)
         difference_steps = np.zeros_like(baseline)
@@ -284,6 +319,10 @@ class MovingController:
             "duration": dt, "increment": increment.tolist(), "velocity": self.velocity.tolist(),
             "source_state_ids": [component.state.state_id for component in components],
             "source_weights": [float(component.weight) for component in components],
+            "source_log_weights": [float(getattr(component, 'log_weight', None)
+                if getattr(component, 'log_weight', None) is not None else (
+                    np.log(component.weight) if component.weight > 0.0 else -np.inf))
+                for component in components],
             "relative_path": [list(item) for item in self.relative_path],
             "goal_offset": self.goal_offset.tolist(),
             "goal_orientation_wxyz": self.goal_orientation.tolist(),
@@ -303,6 +342,9 @@ class MovingController:
             "preconditioner_matrix": metric.tolist(),
             "feasible_baseline_increment": baseline.tolist(),
             "feasible_baseline_objective": initial_cost,
+            "braking_baseline_increment": braking_item[1].tolist(),
+            "braking_baseline_objective": -braking_item[0],
+            "stiffness_initial_proposal": proposal_diagnostics,
             "line_search_accepted": accepted_step,
             "step_scale": step_scale,
             "step_backtracks": max(0, len(line_search)-1),

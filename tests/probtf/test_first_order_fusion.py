@@ -192,3 +192,60 @@ def test_propagation_lifting_and_fusion_do_not_use_randomness(monkeypatch):
     sensors = (posterior(q, [0.1], [[0.03]], "a", "a-obs"),
                posterior(q, [0.2], [[0.04]], "b", "b-obs"))
     assert len(fuse_sensor_posteriors(prior, sensors).components) == 1
+
+
+def test_log_masses_preserve_positive_hypotheses_below_float_weight_range():
+    """A long observation history must not prune a positive-mass hypothesis."""
+    distribution = Gaussian([0.0], [[0.2]])
+    priors = (LabelledPrior("dominant", distribution, 1.0, log_weight=0.0),
+              LabelledPrior("small", distribution, 0.0, log_weight=-1000.0))
+    empty = fuse_labelled_sensor_posteriors(priors, ())
+    assert len(empty.components) == 2
+    assert empty.components[1].log_weight == -1000.0
+    sensors = []
+    for sensor_id in ("a", "b"):
+        for prior in priors:
+            q = query(distribution, [[1.0]], component_id=prior.label)
+            sensors.append(SensorPosterior(q, sensor_id, sensor_id+"-observation", (
+                PosteriorComponent("identity", distribution, prior.weight,
+                                   log_weight=prior.log_weight),)))
+    result = fuse_labelled_sensor_posteriors(priors, sensors)
+    assert len(result.components) == 2
+    assert result.components[1].weight == 0.0
+    assert result.components[1].log_weight == -1000.0
+    for component in result.components:
+        np.testing.assert_array_equal(component.distribution.mean, distribution.mean)
+        np.testing.assert_allclose(component.distribution.covariance,
+                                   distribution.covariance, atol=1e-15)
+    reverse = fuse_labelled_sensor_posteriors(priors, tuple(reversed(sensors)))
+    assert [item.log_weight for item in reverse.components] == [item.log_weight for item in result.components]
+
+
+def test_log_mass_cannot_disagree_with_its_public_float_weight():
+    distribution = Gaussian([0.0], [[1.0]])
+    with pytest.raises(ValueError, match="different masses"):
+        PosteriorComponent("incorrect", distribution, 0.5, log_weight=math.log(0.25))
+    with pytest.raises(ValueError, match="positive weight"):
+        LabelledPrior("zero", distribution, 0.0)
+
+
+def test_repeated_fusion_preserves_structural_dirac_coordinates_exactly():
+    """Known fixed mounts cannot acquire ghost mean/covariance from eigensolvers."""
+    active = np.array([0, 2, 4, 7, 9, 11])
+    fixed = np.array([1, 3, 5, 6, 8, 10])
+    covariance = np.zeros((12, 12))
+    dense = np.diag(np.arange(1., 7.)*.01)+.003*np.ones((6, 6))
+    covariance[np.ix_(active, active)] = dense
+    state = Gaussian(np.arange(12.)*.1, covariance)
+    for iteration in range(8):
+        h1 = np.array([[1., .2, -.3, .4, .5, -.6, .7, .8, -.9, 1., -.2, .3]])
+        h2 = np.roll(h1, 2, axis=1)
+        qa, qb = query(state, h1), query(state, h2, query_id='second')
+        sensors = (posterior(qa, qa.distribution.mean+.02, [[.005]], 'a', 'a-'+str(iteration)),
+                   posterior(qb, qb.distribution.mean-.01, [[.007]], 'b', 'b-'+str(iteration)))
+        updated = fuse_sensor_posteriors(state, sensors).components[0].distribution
+        np.testing.assert_array_equal(updated.mean[fixed], state.mean[fixed])
+        np.testing.assert_array_equal(updated.covariance[fixed], np.zeros((6, 12)))
+        np.testing.assert_array_equal(updated.covariance[:, fixed], np.zeros((12, 6)))
+        assert np.linalg.norm(updated.covariance[np.ix_(active, active)]-dense) > 0.
+        state = updated

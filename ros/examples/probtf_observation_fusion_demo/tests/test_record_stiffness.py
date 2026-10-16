@@ -74,7 +74,7 @@ def test_recorder_accepts_actual_saved_same_snapshot_stiffness_and_hud(subscribe
 def test_recorder_rejects_changed_stiffness_parameter_on_actual_topic(subscribed_stiffness_run):
     arguments = list(subscribed_stiffness_run)
     arguments[6] = deepcopy(arguments[6])
-    arguments[6][1]['data']['posterior']['K_median'][0] += 1.
+    arguments[6][1]['data']['posterior']['density_id'] += '_unrelated'
     with pytest.raises(AssertionError, match='Published stiffness differs'):
         RECORDER.verify_received(*arguments)
 
@@ -98,3 +98,16 @@ def test_recorder_rejects_wrong_or_missing_actual_rviz_stiffness_hud(subscribed_
         arguments[7].pop()
     with pytest.raises(AssertionError, match='Actual RViz stiffness text differs'):
         RECORDER.verify_received(*arguments)
+
+
+def test_live_recording_reports_slow_image_delivery_without_claiming_15fps(subscribed_stiffness_run):
+    arguments = list(subscribed_stiffness_run)
+    arguments[2] = deepcopy(arguments[2])
+    arguments[2][-1]['data']['execution_mode'] = 'live'
+    arguments[4] = deepcopy(arguments[4])
+    for index, row in enumerate(arguments[4]):
+        row['wall_elapsed_s'] = arguments[5]+.25*index
+    result = RECORDER.verify_received(*arguments)
+    assert result['execution_mode'] == 'live'
+    assert result['actual_moving_image_fps'] == pytest.approx(4.)
+    assert result['image_delivery_at_least_15fps'] is False

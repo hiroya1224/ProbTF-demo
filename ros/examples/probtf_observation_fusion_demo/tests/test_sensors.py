@@ -129,6 +129,21 @@ def test_camera_adapter_recovers_the_existing_image_hessian_gaussian(inputs, res
                                    rtol=2e-9, atol=1e-6)
 
 
+def test_image_likelihood_chart_volume_preserves_the_native_peak_amplitude(results):
+    from scipy.spatial.transform import Rotation
+    from probtf_observation_fusion_demo.sensors import _marker_mode_chart
+    detected = results['marker'].local_estimates[0].detector_result
+    for component in detected.record.distribution.components:
+        native_rotation = quat_to_rotmat(component.orientation.mode_wxyz)
+        native = _marker_mode_law(component, native_rotation)
+        reference = native_rotation @ Rotation.from_rotvec([.4, -.2, .3]).as_matrix()
+        changed, log_volume = _marker_mode_chart(component, reference)
+        assert log_volume > 0.
+        native_peak = -.5*(6*np.log(2*np.pi)+np.linalg.slogdet(native.covariance)[1])
+        changed_peak = -.5*(6*np.log(2*np.pi)+np.linalg.slogdet(changed.covariance)[1])
+        assert changed_peak+log_volume == pytest.approx(native_peak, abs=1e-11)
+
+
 def test_retained_cross_blocks_affect_the_next_hand_query(results):
     result = results["imu_marker"]
     state = result.stages[-1].components[0].state
@@ -166,10 +181,10 @@ def test_duplicate_observation_is_not_new_information(inputs, results):
 
 def test_sensor_adapters_do_not_receive_physical_truth_or_render_settings(inputs, results, monkeypatch):
     def checked(adapter):
-        def estimate(state, observation, paths, known, image):
+        def estimate(state, observation, paths, known, image, **kwargs):
             assert "physical_scene" not in known
             assert "display" not in known
-            return adapter(state, observation, paths, known, image)
+            return adapter(state, observation, paths, known, image, **kwargs)
         return estimate
     for name, adapter in tuple(ADAPTERS.items()):
         monkeypatch.setitem(ADAPTERS, name, checked(adapter))

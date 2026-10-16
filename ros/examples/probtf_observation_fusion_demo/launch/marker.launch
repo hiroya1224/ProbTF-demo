@@ -1,6 +1,7 @@
 <launch>
   <arg name="rviz" default="true" />
   <arg name="moving" default="true" />
+  <arg name="execution_mode" default="live" />
   <arg name="autostart" default="true" />
   <arg name="stage_seconds" default="3.0" />
   <arg name="output_dir" default="/tmp/probtf_observation_fusion_demo/$(anon run)" />
@@ -8,6 +9,7 @@
     <arg name="observations" value="$(find probtf_observation_fusion_demo)/config/marker.yaml" />
     <arg name="rviz" value="$(arg rviz)" />
     <arg name="moving" value="$(arg moving)" />
+    <arg name="execution_mode" value="$(arg execution_mode)" />
     <arg name="autostart" value="$(arg autostart)" />
     <arg name="stage_seconds" value="$(arg stage_seconds)" />
     <arg name="output_dir" value="$(arg output_dir)" />

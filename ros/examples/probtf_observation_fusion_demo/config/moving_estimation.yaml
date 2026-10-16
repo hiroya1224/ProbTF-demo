@@ -4,7 +4,7 @@ root_frame: base_link
 body_law_package: probtf_switch_press_demo
 body_law_file: config/independent_transform_laws.yaml
 body_law_source: unchanged directly specified six-link family from the switch-press example; translation Gaussians and full Bingham rotations, transported by its explicit right_joint_action
-temporal_policy: independent fixed-command/time updates of the same input family; no unprovided temporal dynamics or repeated-image information accumulation
+temporal_policy: initial direct product law once; retain the full posterior mixture and unknown marker across time; push all cross covariances through the declared command action; no invented process noise
 marker_prior:
   edge_id: marker
   translation: [1.16, -0.04, 0.72]

@@ -197,3 +197,145 @@ def test_playback_forwards_exact_wire_and_catches_up_without_dropping_ticks(
         assert len(playback.image_futures) <= 2
     finally:
         playback.stop_prefetch()
+
+
+def test_live_computes_publishes_then_selects_each_command_and_restarts_from_initial_prior(
+        tmp_path, monkeypatch):
+    """Use actual physics, inference, K memory and controller, without replay."""
+    publishers, events = {}, []
+    original_display = motion_node.MotionDisplay
+    original_controller = motion_node.MovingController
+
+    class ShortScene(MovingSwitchScene):
+        def __init__(self, output):
+            super().__init__(output)
+            self.duration = .1
+
+    class Publisher:
+        def __init__(self, topic, data_class, **_settings):
+            self.topic, self.data_class, self.payloads = topic, data_class, []
+            publishers[topic] = self
+
+        def publish(self, message):
+            stream = io.BytesIO()
+            message.serialize(stream)
+            self.payloads.append(stream.getvalue())
+            events.append(('publish', self.topic))
+
+    class Display:
+        stiffness_marker = staticmethod(original_display.stiffness_marker)
+
+        def __init__(self, *_args):
+            pass
+
+        def publish(self, frame, index, snapshot, update_index, *, stiffness_record, execution):
+            assert execution['execution_mode'] == 'live'
+            assert index == update_index
+            assert frame.stamp == snapshot.stamp
+            assert tuple(frame.command) == snapshot.command
+            assert stiffness_record is snapshot.stiffness_record
+            self.stiffness_marker(snapshot, stiffness_record)
+            events.append(('display', index))
+
+    class AuditedController(original_controller):
+        def step(self, result, dt, *, stiffness_proposal=None):
+            wire = publishers['/observation_fusion/snapshot'].payloads[-1]
+            actual = json.loads(String().deserialize(wire).data)
+            assert actual['stamp'] == result.prior.stamp
+            assert actual['command'] == list(result.prior.command)
+            assert events[-1][0] == 'display'
+            events.append(('select_command', actual['stamp']))
+            return super().step(result, dt, stiffness_proposal=stiffness_proposal)
+
+    monkeypatch.setattr(motion_node, 'MovingSwitchScene', ShortScene)
+    monkeypatch.setattr(motion_node, 'MovingController', AuditedController)
+    monkeypatch.setattr(motion_node, 'MotionDisplay', Display)
+    monkeypatch.setattr(motion_node.rospy, 'Publisher', Publisher)
+    monkeypatch.setattr(motion_node.rospy, 'Service', lambda *_args: None)
+    monkeypatch.setattr(motion_node.rospy, 'Timer', lambda *_args: None)
+    output = tmp_path/'live'
+    live = motion_node.MotionLive(CONFIG/'imu.yaml', output, 'imu', False)
+    assert live.session.index == 1
+    live.advance(None)  # Waiting never assimilates the initial image again.
+    assert live.session.index == 1
+    live.replay(None)
+    live.advance(None)
+    live.advance(None)
+    assert live.session.finished
+    snapshots = publishers['/observation_fusion/snapshot'].payloads
+    assert len(snapshots) == 3
+    for index, wire in enumerate(snapshots):
+        actual = json.loads(String().deserialize(wire).data)
+        saved = json.loads((output/('estimate_%03d.json'%index)).read_text())
+        for name in ('render_seed', 'point_size', 'display_roundoff_tolerance', 'wire_identity_verified'):
+            saved.pop(name)
+        assert actual == saved
+        assert publishers['/observation_fusion/distributions'].payloads[index] == (
+            output/('estimate_%03d.markers.bin'%index)).read_bytes()
+        stiffness = json.loads(String().deserialize(
+            publishers['/observation_fusion/stiffness'].payloads[index]).data)
+        assert stiffness == actual['stiffness']
+        current_metadata = json.loads(String().deserialize(
+            publishers['/observation_fusion/motion_metadata'].payloads[index]).data)
+        assert current_metadata['stiffness_posterior'] == stiffness['posterior']
+        assert current_metadata['stiffness_retained_memory'] == stiffness['posterior']
+        assert current_metadata['estimate_stamp'] == actual['stamp']
+    metadata = json.loads(String().deserialize(
+        publishers['/observation_fusion/motion_metadata'].payloads[-1]).data)
+    assert metadata['execution_mode'] == 'live'
+    assert metadata['offline_precomputation'] is False
+    assert metadata['finished'] and metadata['updates'] == 3
+    assert metadata['playback_hz'] is None
+    assert metadata['simulated_elapsed_s'] == .1
+    assert metadata['actual_update_hz'] > 0
+    records = [json.loads(line) for line in (output/'estimation.jsonl').read_text().splitlines()]
+    sent = json.loads((output/'sent_commands.json').read_text())
+    assert records[0]['controller']['next_command'] == sent[1]['command']
+    previous = live.session
+    live.replay(None)
+    assert live.session is not previous and live.session.index == 1
+    assert live.session.output != output and output.exists()
+    assert live.current_tick.snapshot.stiffness_record['prior'] == records[0]['stiffness']['prior']
+    count = len(publishers['/observation_fusion/snapshot'].payloads)
+    last_stamp = live.current_tick.snapshot.stamp
+    def unavailable_observation():
+        raise ValueError('The next candidate law cannot be constructed.')
+    live.session.observe = unavailable_observation
+    live.advance(None)
+    failed = json.loads(String().deserialize(
+        publishers['/observation_fusion/motion_metadata'].payloads[-1]).data)
+    assert failed['failed'] is True and failed['finished'] is False
+    assert failed['failed_sample_index'] == 1
+    assert failed['last_published_stamp'] == last_stamp
+    assert len(publishers['/observation_fusion/snapshot'].payloads) == count
+    assert (live.session.output/'execution_failure.json').exists()
+    live.advance(None)  # Retain the last complete pair and disclose the stop.
+    live.replay(None)
+    assert live.failure is None and live.session.index == 1
+
+
+@pytest.mark.parametrize('case', ['no_sensors', 'imu', 'marker', 'imu_marker'])
+def test_every_case_can_publish_its_actual_second_sequential_posterior(case, tmp_path, monkeypatch):
+    class TwoTickScene(MovingSwitchScene):
+        def __init__(self, output):
+            super().__init__(output)
+            self.duration = .05
+    monkeypatch.setattr(motion_node, 'MovingSwitchScene', TwoTickScene)
+    session = motion_node.MotionSession(CONFIG/(case+'.yaml'), tmp_path/case)
+    ticks = []
+    while not session.finished:
+        tick = session.observe()
+        published = json.loads((tick.path.with_suffix('.json')).read_text())
+        assert published['stamp'] == tick.frame.stamp
+        assert published['command'] == tick.frame.command.tolist()
+        verify_wire_identity(tick.snapshot, tick.markers, seed=published['render_seed'],
+                             point_size=published['point_size'])
+        assert len(tick.snapshot.observation_ids) == len(set(tick.snapshot.observation_ids))
+        assert {point.query.state_id for point in tick.snapshot.points} == set(
+            tick.snapshot.stiffness_record['body_posterior_state_ids'])
+        ticks.append(tick)
+        session.finish(tick)
+    assert len(ticks) == 2
+    assert ticks[0].snapshot.stamp < ticks[1].snapshot.stamp
+    assert {point.query.state_id for point in ticks[0].snapshot.points}.isdisjoint(
+        point.query.state_id for point in ticks[1].snapshot.points)

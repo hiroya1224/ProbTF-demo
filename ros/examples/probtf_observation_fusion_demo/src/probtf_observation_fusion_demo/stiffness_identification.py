@@ -1,11 +1,14 @@
 """Auxiliary log-stiffness inference from the frozen body density ratio.
 
 The primary body law is never replaced by an equilibrium prediction.  All
-body mixture components and cross covariances enter the density ratio; only
-the auxiliary log-K posterior receives a deterministic local Laplace fit.
+body mixture components and cross covariances enter the density ratio. The
+continuous auxiliary log-K density retains every new factor without sampling
+or a Gaussian projection. Finite numerical trials serve initial proposals only.
 """
 
 from pathlib import Path
+from dataclasses import dataclass
+from types import SimpleNamespace
 import hashlib
 import math
 import xml.etree.ElementTree as ET
@@ -13,8 +16,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 import rospkg
 import yaml
-from scipy.optimize import minimize, brentq
-from scipy.special import logsumexp, ndtr
+from scipy.special import logsumexp
 
 from deflecomp_core.estimator.initialization import initial_log_kp_state, initial_log_kp_std
 from deflecomp_core.model.equilibrium import EquilibriumConfig, EquilibriumSolver
@@ -42,7 +44,7 @@ def _density(distribution, value, support=None):
 def _mixture_density(components, value, supports=None):
     evaluations = [_density(component.distribution, value,
         None if supports is None else supports[index]) for index, component in enumerate(components)]
-    terms = [(-np.inf if component.weight == 0 else math.log(component.weight))+item[0]
+    terms = [_log_weight(component)+item[0]
              for component, item in zip(components, evaluations)]
     total = float(logsumexp(terms))
     responsibility = np.exp(np.asarray(terms)-total)
@@ -50,41 +52,191 @@ def _mixture_density(components, value, supports=None):
     return total, score, [item[0] for item in evaluations], responsibility
 
 
+def _log_weight(component):
+    """Do not drop an existing branch whose ordinary weight underflows."""
+    supplied = getattr(component, 'log_weight', None)
+    return (float(supplied) if supplied is not None else
+            -np.inf if component.weight == 0 else math.log(component.weight))
+
+
+def _same_mixture(left, right):
+    # Labels are provenance, not additional random physical variables.
+    def masses(items):
+        groups = {}
+        for item in items:
+            key = (item.distribution.mean.tobytes(), item.distribution.covariance.tobytes())
+            groups.setdefault(key, []).append(_log_weight(item))
+        return {key: float(logsumexp(values)) for key, values in groups.items()}
+    return masses(left) == masses(right)
+
+
 class BodyDensityRatio:
     """A marginal of the actual raw Gaussians, in their common frozen chart."""
 
     def __init__(self, prior, posterior_components, indices):
         indices = np.asarray(indices, dtype=int)
-        self.prior = Gaussian(prior.mean[indices], prior.covariance[np.ix_(indices, indices)])
-        self.components = tuple(PosteriorComponent(
-            item.label, Gaussian(item.distribution.mean[indices],
-                                 item.distribution.covariance[np.ix_(indices, indices)]),
-            item.weight, item.lineage) for item in posterior_components)
+        if isinstance(prior, Gaussian):
+            prior = (PosteriorComponent('frozen_body_prior', prior),)
+        def marginal(item):
+            kwargs = ({} if getattr(item, 'log_weight', None) is None else
+                      {'log_weight': item.log_weight})
+            return PosteriorComponent(item.label, Gaussian(item.distribution.mean[indices],
+                item.distribution.covariance[np.ix_(indices, indices)]),
+                item.weight, item.lineage, **kwargs)
+        self.prior_components = tuple(marginal(item) for item in prior)
+        self.prior = self.prior_components[0].distribution
+        self.components = tuple(marginal(item) for item in posterior_components)
+        if not self.prior_components or not np.isclose(
+                logsumexp([_log_weight(item) for item in self.prior_components]), 0.):
+            raise ValueError('The supplied prior body weights must be normalized.')
         if not self.components or not np.isclose(sum(item.weight for item in self.components), 1.):
             raise ValueError('The supplied fused body weights must be normalized.')
-        for item in self.components:
+        for item in self.prior_components+self.components:
             require_same_support(self.prior.support, item.distribution.support,
                                  'frozen body prior/posterior')
             require_in_support(item.distribution.mean-self.prior.mean, self.prior.support,
                                'frozen body posterior affine support')
         self.prior_support = self.prior.support
+        self.prior_supports = tuple(item.distribution.support for item in self.prior_components)
         self.component_supports = tuple(item.distribution.support for item in self.components)
-        self.identity = all(np.array_equal(item.distribution.mean, self.prior.mean)
-                            and np.array_equal(item.distribution.covariance, self.prior.covariance)
-                            for item in self.components)
+        self.identity = _same_mixture(self.prior_components, self.components)
 
     def evaluate(self, value, branch=None):
         if self.identity:
             require_in_support(np.asarray(value)-self.prior.mean, self.prior_support,
                                'identity body density ratio support')
             return 0., np.zeros_like(self.prior.mean), [0.]*len(self.components)
-        minus, minus_score = _density(self.prior, value, self.prior_support)
+        minus, minus_score, _, _ = _mixture_density(self.prior_components, value, self.prior_supports)
         if branch is None:
             plus, plus_score, component_logs, _ = _mixture_density(self.components, value, self.component_supports)
         else:
             plus, plus_score = _density(self.components[branch].distribution, value, self.component_supports[branch])
             component_logs = [plus]
         return plus-minus, plus_score-minus_score, [item-minus for item in component_logs]
+
+
+def _rotation_chart_volume(value):
+    """Log volume of the rotation-vector chart relative to one Haar measure.
+
+    The constant quaternion half-angle volume cancels between all components.
+    This is a density coordinate change, not an assumed Lie Gaussian law.
+    The underlying Gaussian proxies are still the given Bingham-derived laws.
+    """
+    value = np.asarray(value, dtype=float)
+    gradient = np.zeros_like(value)
+    log_volume = 0.
+    for offset in range(3, value.size, 6):
+        vector = value[offset:offset+3]
+        angle = float(np.linalg.norm(vector))
+        if angle > math.pi+1e-10:
+            raise ValueError('A body density query left the principal rotation chart.')
+        if angle < 1e-5:
+            log_volume -= angle**2/12.+angle**4/1440.
+            gradient[offset:offset+3] = -(1./6.+angle**2/360.)*vector
+        else:
+            log_volume += 2.*math.log(math.sin(.5*angle)/(.5*angle))
+            gradient[offset:offset+3] = (1./math.tan(.5*angle)-2./angle)*vector/angle
+    return float(log_volume), gradient
+
+
+class ChartedBodyDensityRatio:
+    """Full mixture densities, retaining each parent's actual frozen chart.
+
+    Every numerator and denominator is converted to the same physical volume
+    measure before log-sum-exp. No component is selected or moment collapsed.
+    General singular mixtures require an explicit common manifold measure;
+    this implementation refuses to invent one or add jitter.
+    """
+
+    def __init__(self, branches, body_edge_ids):
+        self.branches = tuple(branches)
+        self.body_edge_ids = tuple(body_edge_ids)
+        self.marginals = []
+        self.child_supports = []
+        self.identity = True
+        for branch in self.branches:
+            state = branch.reference_state
+            indices = [6*state.edge_ids.index(name)+coordinate
+                       for name in body_edge_ids for coordinate in range(6)]
+            def marginal(distribution):
+                return Gaussian(distribution.mean[indices],
+                    distribution.covariance[np.ix_(indices, indices)])
+            prior = marginal(branch.prior)
+            children = tuple((child, marginal(child.distribution))
+                             for child in branch.posterior_components)
+            support = prior.support
+            for _, child in children:
+                require_same_support(support, child.support, 'same-branch body mixture')
+                require_in_support(child.mean-prior.mean, support, 'same-branch affine support')
+            if len(self.branches) > 1 and support.rank != prior.mean.size:
+                raise ValueError('Different singular body charts need a supplied common physical support measure.')
+            equal = all(np.array_equal(child.mean, prior.mean)
+                        and np.array_equal(child.covariance, prior.covariance)
+                        for _, child in children)
+            mass = float(logsumexp([_log_weight(child) for child, _ in children]))
+            self.identity &= equal and np.isclose(mass, _log_weight(branch), atol=1e-12, rtol=0.)
+            self.marginals.append((prior, children, support))
+            self.child_supports.append(tuple(child.support for _, child in children))
+        if not self.branches:
+            raise ValueError('The actual frozen body branch correspondence is required.')
+        for weights in ([ _log_weight(branch) for branch in self.branches],
+                        [_log_weight(child) for branch in self.branches
+                         for child in branch.posterior_components]):
+            if not np.isclose(logsumexp(weights), 0., atol=1e-10, rtol=0.):
+                raise ValueError('Body prior/posterior global mixture weights must be normalized.')
+
+    def evaluate(self, predictions):
+        minus_terms, plus_terms, minus_gradients, plus_gradients = [], [], [], []
+        for branch, marginal, prediction, child_supports in zip(
+                self.branches, self.marginals, predictions, self.child_supports):
+            prior, children, support = marginal
+            value, jacobian = prediction[:2]
+            if self.identity:
+                require_in_support(value-prior.mean, support, 'identity body mixture support')
+                continue
+            volume, volume_gradient = ((0., np.zeros_like(value)) if len(self.branches) == 1
+                                        else _rotation_chart_volume(value))
+            log_minus, score_minus = _density(prior, value, support)
+            minus_terms.append(_log_weight(branch)+log_minus-volume)
+            minus_gradients.append(jacobian.T @ (score_minus-volume_gradient))
+            for (child, distribution), child_support in zip(children, child_supports):
+                log_plus, score_plus = _density(distribution, value, child_support)
+                plus_terms.append(_log_weight(child)+log_plus-volume)
+                plus_gradients.append(jacobian.T @ (score_plus-volume_gradient))
+        if self.identity:
+            return 0., np.zeros(predictions[0][1].shape[1])
+        minus, plus = float(logsumexp(minus_terms)), float(logsumexp(plus_terms))
+        minus_gradient = np.exp(np.asarray(minus_terms)-minus) @ np.asarray(minus_gradients)
+        plus_gradient = np.exp(np.asarray(plus_terms)-plus) @ np.asarray(plus_gradients)
+        return plus-minus, plus_gradient-minus_gradient
+
+    def record(self):
+        return dict(chart_measure='common Haar rotation volume and parent-translation Lebesgue volume; single-chart Jacobian cancels',
+            nuisance_policy='unknown marker and other variables integrated out by Gaussian marginal extraction',
+            branches=[dict(label=branch.label, weight=branch.weight, log_weight=_log_weight(branch),
+                source_state_id=branch.reference_state.state_id,
+                source_version=branch.reference_state.version,
+                source_stamp=branch.reference_state.stamp,
+                source_command=list(branch.reference_state.command),
+                reference_transforms=[dict(edge_id=edge.edge_id, translation=edge.translation.tolist(),
+                    rotation_wxyz=edge.rotation_wxyz.tolist(),
+                    bingham=None if edge.bingham is None else edge.bingham.tolist())
+                    for edge in branch.reference_state.transforms if edge.edge_id in self.body_edge_ids],
+                prior_mean=prior.mean.tolist(), prior_covariance=prior.covariance.tolist(),
+                components=[dict(label=child.label, weight=child.weight, log_weight=_log_weight(child),
+                    mean=distribution.mean.tolist(), covariance=distribution.covariance.tolist())
+                    for child, distribution in children])
+                for branch, (prior, children, _) in zip(self.branches, self.marginals)])
+
+
+@dataclass(frozen=True)
+class FrozenStiffnessFactor:
+    factor_id: str
+    observation_ids: tuple
+    ratio: object
+    states: tuple
+    branch_anchor: object
+    properness: dict
 
 
 def _right_log_derivative(vector):
@@ -94,34 +246,6 @@ def _right_log_derivative(vector):
                    (1.-.5*angle/math.tan(.5*angle))/angle**2)
     return np.eye(3)+.5*cross+coefficient*(cross @ cross)
 
-
-def _parameter_record(components):
-    if len(components) == 1:
-        mean, covariance = components[0].distribution.mean, components[0].distribution.covariance
-    else:
-        mean = sum(item.weight*item.distribution.mean for item in components)
-        covariance = sum(item.weight*(item.distribution.covariance+np.outer(
-            item.distribution.mean-mean, item.distribution.mean-mean)) for item in components)
-    if len(components) == 1:
-        median = np.exp(mean)
-    else:
-        median = []
-        for index in range(mean.size):
-            centres = [item.distribution.mean[index] for item in components]
-            spreads = [math.sqrt(item.distribution.covariance[index, index]) for item in components]
-            def cdf(value):
-                return sum(item.weight*ndtr((value-centre)/spread)
-                           for item, centre, spread in zip(components, centres, spreads))-.5
-            width = max(spreads)
-            median.append(math.exp(brentq(cdf, min(centres)-12*width, max(centres)+12*width)))
-        median = np.asarray(median)
-    return dict(x_est=mean.tolist(), P_est=covariance.tolist(), K_median=median.tolist(),
-        components=[dict(label=item.label, weight=item.weight,
-            x_est=item.distribution.mean.tolist(), P_est=item.distribution.covariance.tolist())
-            for item in components],
-        representation='Gaussian mixture in log K; x_est/P_est are mixture moments',
-        parameterization='x = log(K / (1 N m/rad)); P_est is the full dimensionless log-K covariance',
-        K_units='N m/rad')
 
 
 class StiffnessIdentifier:
@@ -151,6 +275,10 @@ class StiffnessIdentifier:
         mean = initial_log_kp_state(self.robot.nv, limits)
         covariance = np.eye(self.robot.nv)*initial_log_kp_std(limits)**2
         self.components = (PosteriorComponent('existing_deflecomp_logK_prior', Gaussian(mean, covariance)),)
+        self.initial_components = self.components
+        self.factors = ()
+        self.factor_cache = {}
+        self.observation_ids = frozenset()
         self.prior_source = dict(file=str(config_path), sha256=hashlib.sha256(
             config_path.read_bytes()).hexdigest(), kp_min=limits[0], kp_max=limits[1],
             initialization='deflecomp_core.estimator.initialization initial_log_kp_state/std',
@@ -222,8 +350,8 @@ class StiffnessIdentifier:
 
     def _freeze_branch(self, state, record):
         # The branch anchor is a numerical convention of the auxiliary model.
-        # It is frozen for the whole density-ratio update. All prior mixture
-        # components still enter the parameter density without selection.
+        # It is frozen for this retained factor. The initial Gaussian mode is
+        # not a projection or replacement of the cumulative parameter law.
         anchor = max(self.components, key=lambda item: item.weight).distribution.mean.copy()
         command = np.asarray(state.command)
         stiffness = np.exp(anchor)
@@ -231,7 +359,7 @@ class StiffnessIdentifier:
         theta, _, _, active = self._refine_equilibrium(theta, command, stiffness)
         self._branch_anchor = (state.state_id, anchor, theta)
         record['auxiliary_branch_selection'] = dict(
-            policy='fixed prior-mode anchor; canonical straight log-K continuation; no evaluation-order warm starts',
+            policy='fixed initial-Gaussian-mode numerical anchor; canonical straight log-K continuation; no evaluation-order warm starts',
             anchor_logK=anchor.tolist(), anchor_equilibrium=theta.tolist(),
             anchor_active_joint_limits=active.tolist(), source_state_id=state.state_id,
             maximum_logK_step=.1, maximum_segment_bisections=10,
@@ -273,9 +401,13 @@ class StiffnessIdentifier:
             raise ValueError('Nonfinite auxiliary stiffness candidate.')
         theta, hessian, parameter_jacobian, active = self._branch_equilibrium(x, state)
         derivative = -np.linalg.solve(hessian, parameter_jacobian)
+        value, jacobian = self._body_chart(theta, derivative, state)
+        return value, jacobian, theta, active
+
+    def _body_chart(self, theta, derivative, state):
         self.robot._fk_update(theta)
         by_id = {item.edge_id: item for item in state.transforms}
-        value = np.zeros(6*len(self.edges)); jacobian = np.zeros((value.size, x.size))
+        value = np.zeros(6*len(self.edges)); jacobian = np.zeros((value.size, derivative.shape[1]))
         for index, (name, parent, child, joint_index, axis) in enumerate(self.edges):
             local = self.robot.data.oMf[parent].inverse()*self.robot.data.oMf[child]
             edge = by_id[name]
@@ -285,26 +417,49 @@ class StiffnessIdentifier:
             value[6*index+3:6*index+6] = rotation_vector
             jacobian[6*index+3:6*index+6] = np.outer(
                 _right_log_derivative(rotation_vector) @ axis, derivative[joint_index])
-        return value, jacobian, theta, active
+        return value, jacobian
 
     def update(self, result):
+        """Retain new likelihood factors, without projecting away information.
+
+        Numerical proposal fits are deliberately separate from this density.
+        In particular, inability to find a smooth Laplace mode cannot erase
+        an observation or replace its posterior by the preceding prior.
+        """
         state = result.prior
         if result.frozen_body_prior is None or result.frozen_body_posterior is None:
             raise ValueError('Stiffness requires actual frozen pre-reexpression body Gaussians.')
         raw_prior, raw_posterior = result.frozen_body_prior, result.frozen_body_posterior
-        key = (state.state_id, hashlib.sha256(raw_prior.mean.tobytes()
-            + raw_prior.covariance.tobytes()).hexdigest(),
-            tuple((item.label, item.weight, item.state.state_id) for item in result.stages[-1].components),
-            raw_posterior.prior_version, raw_posterior.stamp, tuple(raw_posterior.command),
-            tuple(raw_posterior.observation_ids), tuple(
-            (item.label, item.weight, hashlib.sha256(item.distribution.mean.tobytes()
-             + item.distribution.covariance.tobytes()).hexdigest()) for item in raw_posterior.components))
+        branches = tuple(getattr(result, 'frozen_body_branches', ()))
+        if not branches:
+            if not isinstance(raw_prior, Gaussian):
+                raise ValueError('Every body mixture parent needs its frozen chart correspondence.')
+            branches = (SimpleNamespace(label=state.component_id, weight=1., reference_state=state,
+                prior=raw_prior, posterior_components=tuple(raw_posterior.components)),)
+        observation_ids = tuple(result.records.get('observation_ids', raw_posterior.observation_ids))
+        digest = hashlib.sha256()
+        for branch in branches:
+            digest.update(branch.reference_state.state_id.encode())
+            digest.update(repr((branch.label, _log_weight(branch))).encode())
+            digest.update(branch.prior.mean.tobytes()+branch.prior.covariance.tobytes())
+            for item in branch.posterior_components:
+                digest.update(repr((item.label, _log_weight(item))).encode())
+                digest.update(item.distribution.mean.tobytes()+item.distribution.covariance.tobytes())
+        if isinstance(raw_prior, Gaussian):
+            digest.update(raw_prior.mean.tobytes()+raw_prior.covariance.tobytes())
+        for item in raw_posterior.components:
+            digest.update(item.distribution.mean.tobytes()+item.distribution.covariance.tobytes())
+            digest.update(repr((item.label, _log_weight(item))).encode())
+        key = (digest.hexdigest(), observation_ids,
+               tuple((item.label, item.weight, _log_weight(item), item.state.state_id)
+                     for item in result.stages[-1].components))
         if key == self.last_key:
             return self.last_record
         if self.last_stamp is not None and state.stamp <= self.last_stamp:
             raise ValueError('An observation time may update stiffness only once and must increase.')
-        if (not np.array_equal(raw_prior.mean, state.mean)
-                or not np.array_equal(raw_prior.covariance, state.covariance)):
+        if isinstance(raw_prior, Gaussian) and len(branches) == 1 and (
+                not np.array_equal(raw_prior.mean, branches[0].prior.mean)
+                or not np.array_equal(raw_prior.covariance, branches[0].prior.covariance)):
             raise ValueError('Frozen body prior does not match its source state.')
         if raw_posterior.prior_version is not None and (
                 raw_posterior.prior_version != state.version or raw_posterior.stamp != state.stamp
@@ -313,52 +468,87 @@ class StiffnessIdentifier:
         displayed = tuple(result.stages[-1].components)
         if len(displayed) != len(raw_posterior.components):
             raise ValueError('Frozen and displayed body mixture branches differ.')
+        source_by_label = {child.label: (branch, child) for branch in branches
+                           for child in branch.posterior_components}
+        if len(source_by_label) != len(displayed):
+            raise ValueError('Frozen body branch correspondence lost or duplicated a displayed component.')
         for source, item in zip(raw_posterior.components, displayed):
+            branch, child = source_by_label[item.label]
+            reference = branch.reference_state
+            if (not np.array_equal(branch.prior.mean, reference.mean)
+                    or not np.array_equal(branch.prior.covariance, reference.covariance)):
+                raise ValueError('Frozen body prior does not match its source state.')
             if (source.label != item.label or source.weight != item.weight
+                    or _log_weight(source) != _log_weight(item)
+                    or _log_weight(source) != _log_weight(child)
+                    or not np.array_equal(source.distribution.mean, child.distribution.mean)
+                    or not np.array_equal(source.distribution.covariance, child.distribution.covariance)
                     or item.state.stamp != state.stamp or item.state.command != state.command):
                 raise ValueError('Frozen body posterior and displayed provenance differ.')
-            if (np.array_equal(source.distribution.mean, state.mean)
-                    and np.array_equal(source.distribution.covariance, state.covariance)
-                    and item.state.state_id == state.state_id):
-                expected_id = state.state_id
+            if (np.array_equal(child.distribution.mean, reference.mean)
+                    and np.array_equal(child.distribution.covariance, reference.covariance)
+                    and item.state.state_id == reference.state_id):
+                expected_id = reference.state_id
             else:
-                expected_id = reexpress_state(state, source.distribution.mean,
-                    source.distribution.covariance, version=item.state.version,
+                expected_id = reexpress_state(reference, child.distribution.mean,
+                    child.distribution.covariance, version=item.state.version,
                     component_id=item.state.component_id).state_id
             if expected_id != item.state.state_id:
                 raise ValueError('Frozen posterior parameters do not reexpress to the displayed state.')
         metadata = dict(source_stamp=state.stamp, source_command=list(state.command),
             source_prior_state_id=state.state_id, source_prior_version=state.version,
+            source_prior_state_ids=[branch.reference_state.state_id for branch in branches],
+            source_prior_weights=[branch.weight for branch in branches],
             body_posterior_state_ids=[item.state.state_id for item in displayed],
             body_posterior_versions=[item.state.version for item in displayed],
             body_posterior_weights=[item.weight for item in displayed],
+            body_posterior_log_weights=[_log_weight(item) for item in displayed],
             body_posterior_labels=[item.label for item in displayed],
-            observation_ids=list(raw_posterior.observation_ids))
-        prior_record = _parameter_record(self.components)
+            observation_ids=list(observation_ids))
+        prior_record = self._density_record()
         record = dict(metadata, prior=prior_record, posterior=prior_record,
-            status='not_updated', update_applied=False, information_rank=0,
-            information_eigenvalues=[0.]*self.robot.nv, prior_source=self.prior_source,
-            auxiliary_model=self.model_source, feedback_to_body_or_control=False,
-            approximation='local deterministic Laplace in log K; no global unimodality guarantee',
+            status='not_updated', update_applied=False, information_rank=None,
+            information_eigenvalues=None, prior_source=self.prior_source,
+            auxiliary_model=self.model_source, feedback_to_body=False,
+            feedback_to_body_or_control=False, feedback_to_control=None,
+            proposal_approximation=None, proposal_status='not_computed', command_proposal=None,
+            approximation='specified Bingham-derived local Gaussian body proxies; no Gaussian projection of cumulative stiffness density',
             support_regularization_added=False)
-        indices = [6*state.edge_ids.index(name)+coordinate for name in self.body_edge_ids
-                   for coordinate in range(6)]
+        if len(set(observation_ids)) != len(observation_ids):
+            raise ValueError('New stiffness evidence contains a duplicate observation ID.')
+        repeated = self.observation_ids.intersection(observation_ids)
+        if repeated:
+            raise ValueError('A stiffness density factor cannot count an old observation again: '+repr(sorted(repeated)))
         try:
-            ratio = BodyDensityRatio(raw_prior, raw_posterior.components, indices)
-            record['body_marginal'] = dict(edge_ids=list(self.body_edge_ids), indices=indices,
-                prior_mean=ratio.prior.mean.tolist(), prior_covariance=ratio.prior.covariance.tolist(),
-                components=[dict(label=item.label, weight=item.weight,
-                    mean=item.distribution.mean.tolist(), covariance=item.distribution.covariance.tolist())
-                    for item in ratio.components],
-                nuisance_policy='unknown marker and other variables integrated out by Gaussian marginal extraction')
+            ratio = ChartedBodyDensityRatio(branches, self.body_edge_ids)
+            record['body_marginal'] = dict(edge_ids=list(self.body_edge_ids), **ratio.record())
             if ratio.identity:
+                self.observation_ids = self.observation_ids.union(observation_ids)
                 record.update(status='identity_density_ratio', log_density_ratio=0.,
                               information_rank=0, identity_preserved_bitwise=True)
             else:
-                with np.errstate(over='raise', invalid='raise'):
-                    self._fit(ratio, state, record)
+                if not observation_ids:
+                    raise ValueError('A changed posterior without new observation IDs is not new stiffness evidence.')
+                properness = self._properness_bounds(ratio)
+                # An equilibrium query failure does not become a zero
+                # likelihood. The frozen density factor remains in memory.
+                try:
+                    with np.errstate(over='raise', invalid='raise'):
+                        self._freeze_branch(branches[0].reference_state, record)
+                    anchor = self._branch_anchor
+                except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                    anchor = None
+                    record.update(proposal_status='unavailable', proposal_failure_reason=str(error))
+                factor = FrozenStiffnessFactor(digest.hexdigest(), observation_ids, ratio,
+                    tuple(branch.reference_state for branch in branches), anchor, properness)
+                self.factors += (factor,)
+                self.observation_ids = self.observation_ids.union(observation_ids)
+                record.update(status='updated_density_factor', update_applied=True,
+                    posterior=self._density_record(), new_factor_id=factor.factor_id,
+                    new_factor_properness=properness,
+                    new_factor_observation_ids=list(observation_ids))
         except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-            record.update(status='failed_support_or_laplace', failure_reason=str(error),
+            record.update(status='failed_density_factor', failure_reason=str(error),
                           update_applied=False, posterior=None,
                           retained_prior=prior_record, prior_retained=True,
                           information_rank=None, information_eigenvalues=None)
@@ -366,133 +556,199 @@ class StiffnessIdentifier:
         self.last_key, self.last_record = key, record
         return record
 
-    def _fit(self, ratio, state, record):
-        prior_components = self.components
-        cache = {}
-        rejected = []
-        rejection_record = dict(count=0, reasons=[])
-        record['rejected_auxiliary_trials'] = rejection_record
-        def reject(error):
-            rejected.append(str(error))
-            rejection_record.update(count=len(rejected), reasons=sorted(set(rejected)))
-        if state is not None:
+    def _properness_bounds(self, ratio):
+        """Finite ratio bounds on the known compact joint-configuration set.
+
+        The principal relative rotation vector has length at most pi. Local
+        translations of these URDF revolute joints are fixed. This proves
+        integrability without pretending that global K moments were computed.
+        """
+        lower_minus, upper_minus, lower_plus, upper_plus = [], [], [], []
+        self.robot._fk_update(np.asarray(ratio.branches[0].reference_state.command))
+        translations = [(self.robot.data.oMf[parent].inverse()*self.robot.data.oMf[child]).translation.copy()
+                        for _, parent, child, _, _ in self.edges]
+        volume_bound = len(self.edges)*2.*math.log(math.pi/2.) if len(ratio.branches) > 1 else 0.
+        def bounds(distribution, reference):
+            support = distribution.support
+            if support.rank != distribution.mean.size:
+                raise ValueError('Global stiffness properness needs an explicit all-prediction affine-support proof for singular body priors.')
+            radius_squared = 0.
+            by_id = dict(zip(reference.edge_ids, reference.transforms))
+            for index, (name, *_) in enumerate(self.edges):
+                radius_squared += np.linalg.norm(translations[index]-by_id[name].translation
+                    -distribution.mean[6*index:6*index+3])**2
+                radius_squared += (math.pi+np.linalg.norm(distribution.mean[6*index+3:6*index+6]))**2
+            maximum = -.5*(support.rank*math.log(2.*math.pi)+support.log_pdet)
+            minimum = maximum-.5*np.linalg.eigvalsh(support.inverse)[-1]*radius_squared
+            return float(minimum), float(maximum+volume_bound)
+        for branch, (prior, children, _) in zip(ratio.branches, ratio.marginals):
+            low, high = bounds(prior, branch.reference_state)
+            lower_minus.append(_log_weight(branch)+low); upper_minus.append(_log_weight(branch)+high)
+            for child, distribution in children:
+                low, high = bounds(distribution, branch.reference_state)
+                lower_plus.append(_log_weight(child)+low); upper_plus.append(_log_weight(child)+high)
+        lower = float(logsumexp(lower_plus)-logsumexp(upper_minus))
+        upper = float(logsumexp(upper_plus)-logsumexp(lower_minus))
+        if not np.isfinite(lower+upper):
+            raise ValueError('No finite global bounds for the retained stiffness factor were established.')
+        return dict(verified=True, log_factor_lower_bound=lower, log_factor_upper_bound=upper,
+            argument='positive full-support Gaussian mixtures on compact URDF joint transforms; principal rotation chart volume bounded away from zero',
+            auxiliary_selector='fixed measurable stable-equilibrium selector; numerical failures mean unavailable evaluation, never zero likelihood',
+            body_density_domain='the specified high-concentration local Gaussian proxy; no global wrapped-rotation accuracy claim')
+
+    def _density_record(self):
+        initial = getattr(self, 'initial_components', self.components)
+        factors = getattr(self, 'factors', ())
+        identity = hashlib.sha256()
+        initial_records = []
+        for item in initial:
+            identity.update(item.distribution.mean.tobytes()+item.distribution.covariance.tobytes())
+            identity.update(repr(_log_weight(item)).encode())
+            initial_records.append(dict(label=item.label, weight=item.weight, log_weight=_log_weight(item),
+                x_est=item.distribution.mean.tolist(), P_est=item.distribution.covariance.tolist()))
+        for factor in factors:
+            identity.update(factor.factor_id.encode())
+        return dict(density_id=identity.hexdigest(), factor_ids=[item.factor_id for item in factors],
+            initial_components=initial_records,
+            representation='initial log-K Gaussian mixture times frozen body density-ratio factors',
+            normalization_constant=None,
+            normalization_definition='Z = integral initial_logK_density(x) * exp(sum_t ell_t(exp(x))) dx',
+            global_moments=None,
+            properness=dict(verified=all(item.properness['verified'] for item in factors),
+                log_normalization_lower_bound=sum(item.properness['log_factor_lower_bound'] for item in factors),
+                log_normalization_upper_bound=sum(item.properness['log_factor_upper_bound'] for item in factors)),
+            parameterization='x = log(K / (1 N m/rad))', K_units='N m/rad')
+
+    def _factor_evaluation(self, factor, x):
+        key = (factor.factor_id, np.asarray(x, dtype=float).tobytes())
+        if key not in self.factor_cache:
+            saved = self._branch_anchor
             try:
-                self._freeze_branch(state, record)
-            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-                reject(error)
-                raise
-        def prediction(x):
-            key = tuple(float(value) for value in x)
-            if key not in cache:
-                cache[key] = self._prediction(np.asarray(x), state)
-            return cache[key]
-        def objective(x, branch=None):
+                self._branch_anchor = factor.branch_anchor
+                first = self._prediction(np.asarray(x), factor.states[0])
+                predictions = [first]
+                if len(factor.states) > 1:
+                    hessian, parameter_jacobian = self.sensitivity.equilibrium_jacobians(
+                        first[2], np.asarray(factor.states[0].command), np.exp(x))
+                    derivative = -np.linalg.solve(hessian, parameter_jacobian)
+                    predictions += [self._body_chart(first[2], derivative, state)
+                                    for state in factor.states[1:]]
+                self.factor_cache[key] = factor.ratio.evaluate(predictions)
+            finally:
+                self._branch_anchor = saved
+        return self.factor_cache[key]
+
+    def log_density(self, x):
+        """Unnormalized continuous log-K density and its exact query gradient.
+
+        All historical factors remain explicit. Unknown normalization and
+        global moments are not replaced by point candidates or a Gaussian.
+        """
+        x = np.asarray(x, dtype=float)
+        total, gradient, _, _ = _mixture_density(self.initial_components, x)
+        for factor in self.factors:
+            contribution, derivative = self._factor_evaluation(factor, x)
+            total += contribution; gradient = gradient+derivative
+        return float(total), gradient
+
+    def command_proposal(self, result):
+        """One auxiliary numerical starting command, judged by the body rule.
+
+        The finite deterministic search below does *not* represent the K law
+        or approximate a probability integral. It only chooses a starting
+        value from the explicitly retained continuous parameter density.
+        """
+        state = result.prior
+        if self.last_record is None or (state.stamp != self.last_record['source_stamp']
+                or list(state.command) != self.last_record['source_command']
+                or state.state_id != self.last_record['source_prior_state_id']
+                or [item.state.state_id for item in result.stages[-1].components]
+                    != self.last_record['body_posterior_state_ids']
+                or [_log_weight(item) for item in result.stages[-1].components]
+                    != self.last_record['body_posterior_log_weights']):
+            raise ValueError('A stiffness command proposal must use the current recorded body update.')
+        if not self.factors:
+            self.last_record.update(proposal_status='no_informative_density_factor', command_proposal=None)
+            return None
+        if not hasattr(self, '_proposal_candidates'):
+            candidates = []
+            for item in self.initial_components:
+                centre = item.distribution.mean
+                scale = np.linalg.cholesky(item.distribution.covariance)
+                candidates.append(centre.copy())
+                for direction in scale.T:
+                    candidates.extend((centre+direction, centre-direction))
+            self._proposal_candidates = tuple(candidates)
+        evaluated, unavailable = [], []
+        for index, x in enumerate(self._proposal_candidates):
             try:
-                value, jacobian, _, _ = prediction(x)
-                log_prior, score_prior, _, _ = _mixture_density(prior_components, x)
-                log_ratio, score_ratio, _ = ratio.evaluate(value, branch)
-                return -log_prior-log_ratio, -score_prior-jacobian.T @ score_ratio
+                with np.errstate(over='raise', invalid='raise'):
+                    density, score = self.log_density(x)
+                if not np.isfinite(density) or not np.all(np.isfinite(score)):
+                    raise ValueError('Nonfinite cumulative stiffness density at a proposal trial.')
+                evaluated.append((density, index, x, score))
             except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-                reject(error)
-                # Reject this trial in the ordinary deterministic line search.
-                # An invalid prediction never receives a replacement density.
-                return np.inf, np.zeros_like(x)
-        options = dict(maxiter=int(self.settings.get('optimizer_max_iterations', 80)),
-                       gtol=float(self.settings.get('optimizer_gradient_tolerance', 1e-6)))
-        centre = sum(item.weight*item.distribution.mean for item in prior_components)
-        prior_covariance = sum(item.weight*(item.distribution.covariance+np.outer(
-            item.distribution.mean-centre, item.distribution.mean-centre)) for item in prior_components)
-        scale = np.linalg.cholesky(prior_covariance)
-        def optimize(seed, branch=None):
-            def whitened(y):
-                cost, gradient = objective(centre+scale @ y, branch)
-                return cost, scale.T @ gradient
-            result = minimize(whitened, np.linalg.solve(scale, seed-centre), jac=True,
-                              method='BFGS', options=options)
-            result.x = centre+scale @ result.x
-            return result
-        attempts = []
-        record['optimizer_mode_attempts'] = attempts
-        record['optimizer_coordinates'] = 'affine whitening by the previous log-K mixture covariance; density objective unchanged'
-        seeds = [item.distribution.mean for item in prior_components]
-        if not np.isfinite(objective(seeds[0])[0]):
-            raise ValueError('The auxiliary prediction at the parameter prior is invalid: '+rejected[-1])
-        if len(ratio.components) > 1:
-            for branch in range(len(ratio.components)):
-                fit = optimize(seeds[0], branch)
-                if np.all(np.isfinite(fit.x)):
-                    seeds.append(fit.x)
-        modes, rejected_modes = [], []
-        expanded_search = False
-        def extend_search():
-            nonlocal expanded_search
-            if not expanded_search:
-                # Additional deterministic starts come from the existing prior
-                # covariance. They do not change its density or add a prior.
-                for column in scale.T:
-                    seeds.extend((centre+column, centre-column))
-                expanded_search = True
-        step = float(self.settings.get('laplace_fd_step', 1e-4))
-        for seed in seeds:
-            fit = optimize(seed)
-            value, gradient = objective(fit.x)
-            scaled_gradient = scale.T @ gradient
-            attempts.append(dict(x=fit.x.tolist(), objective=float(value),
-                gradient=gradient.tolist(), whitened_gradient=scaled_gradient.tolist(),
-                iterations=int(fit.nit), optimizer_message=str(fit.message)))
-            if not np.isfinite(value) or np.linalg.norm(scaled_gradient, ord=np.inf) > max(1e-4, 10*options['gtol']):
-                rejected_modes.append('MAP did not reach a stationary point: '+str(fit.message))
-                extend_search()
-                continue
-            if any(np.linalg.norm(fit.x-item[0]) < 1e-3 for item in modes):
-                continue
-            differences = [(objective(fit.x+step*np.eye(fit.x.size)[j]),
-                            objective(fit.x-step*np.eye(fit.x.size)[j]))
-                           for j in range(fit.x.size)]
-            if any(not np.isfinite(item[0]) for pair in differences for item in pair):
-                rejected_modes.append('Laplace neighbourhood leaves the valid prediction support.')
-                extend_search()
-                continue
-            active = prediction(fit.x)[3]
-            if any(not np.array_equal(prediction(fit.x+sign*step*np.eye(fit.x.size)[j])[3], active)
-                   for j in range(fit.x.size) for sign in (-1., 1.)):
-                rejected_modes.append('Laplace neighbourhood crosses an auxiliary joint-limit active-set boundary.')
-                extend_search()
-                continue
-            hessian = np.column_stack([(plus[1]-minus[1])/(2*step) for plus, minus in differences])
-            hessian = .5*(hessian+hessian.T)
-            if np.linalg.eigvalsh(hessian)[0] <= 0.:
-                rejected_modes.append('Laplace Hessian is not positive definite; no jitter is allowed.')
-                extend_search()
-                continue
-            covariance = np.linalg.inv(hessian)
-            evidence = -value+.5*fit.x.size*math.log(2*math.pi)-.5*np.linalg.slogdet(hessian)[1]
-            modes.append((fit.x.copy(), covariance, evidence, hessian))
-        if not modes:
-            raise ValueError('No justified local Laplace mode was found: '+'; '.join(rejected_modes))
-        weights = np.exp(np.array([item[2] for item in modes])-logsumexp([item[2] for item in modes]))
-        components = tuple(PosteriorComponent('logK_laplace_mode_{}'.format(index),
-            Gaussian(item[0], item[1]), float(weight)) for index, (item, weight) in enumerate(zip(modes, weights)))
-        chosen = int(np.argmax(weights))
-        x, covariance, _, hessian = modes[chosen]
-        # This is the likelihood's local observed information, without clipping
-        # negative curvature or claiming every parameter is identifiable.
-        prior_hessian = np.column_stack([(-_mixture_density(prior_components, x+step*np.eye(x.size)[j])[1]
-            + _mixture_density(prior_components, x-step*np.eye(x.size)[j])[1])/(2*step)
-            for j in range(x.size)])
-        information = .5*((hessian-prior_hessian)+(hessian-prior_hessian).T)
-        values, vectors = np.linalg.eigh(information)
-        tolerance = 1e-7*max(1., float(np.max(np.abs(values))))
-        value, _, theta, active = prediction(x)
-        log_ratio, _, branch_ratios = ratio.evaluate(value)
-        record.update(status='updated_local_laplace' if len(modes)==1 else 'updated_multimodal_laplace',
-            update_applied=True, posterior=_parameter_record(components),
-            information_rank=int(np.sum(np.abs(values)>tolerance)),
-            information_eigenvalues=values.tolist(), information_matrix=information.tolist(),
-            unidentifiable_directions=vectors[:, np.abs(values)<=tolerance].tolist(),
-            log_density_ratio=float(log_ratio), body_component_log_density_ratios=branch_ratios,
-            auxiliary_equilibrium=theta.tolist(), auxiliary_active_joint_limits=active.tolist(),
-            auxiliary_prediction_chart=value.tolist(), model_evaluation_count=len(cache),
-            retained_logK_modes=len(modes), mode_search='previous parameter modes, every body branch seed, and prior-covariance deterministic starts when needed; no global completeness claim')
-        record['rejected_mode_candidates'] = rejected_modes
-        self.components = components
+                unavailable.append(dict(candidate_index=index, reason=str(error)))
+        selection = dict(role='numerical initial command proposal only; neither a discrete K law nor a density integral',
+            candidate_construction='modes and plus/minus Cholesky columns of the existing initial log-K prior',
+            candidate_count=len(self._proposal_candidates), evaluated_count=len(evaluated),
+            unavailable_candidates=unavailable, global_mode_claimed=False)
+        if not evaluated:
+            self.last_record.update(proposal_status='unavailable', proposal_selection=selection,
+                proposal_failure_reason='No deterministic stiffness proposal candidate could be evaluated.',
+                command_proposal=None)
+            return None
+        # Ties keep the earliest declared candidate. No sensor-specific rule.
+        density, index, base, score = max(evaluated, key=lambda item: item[0])
+        centre = sum(item.weight*item.distribution.mean for item in self.initial_components)
+        metric = sum(item.weight*(item.distribution.covariance+np.outer(
+            item.distribution.mean-centre, item.distribution.mean-centre)) for item in self.initial_components)
+        magnitude = max(1., float(np.max(np.abs(score))))
+        scaled_score = score/magnitude
+        scaled_step = metric @ scaled_score
+        length = math.sqrt(max(0., float(scaled_score @ scaled_step)))
+        step = scaled_step/max(1./magnitude, length)
+        x = base+step
+        selection.update(base_candidate_index=index, base_logK=base.tolist(),
+            base_log_unnormalized_density=density, base_density_score=score.tolist(),
+            score_step=step.tolist(), score_step_metric='existing initial-prior full covariance; maximum Mahalanobis length one',
+            selected_density_evaluated=bool(np.array_equal(x, base)),
+            density_improvement_claimed=False,
+            score_step_role='one numerical starting-value heuristic; no posterior projection or density-integral approximation')
+        saved = self._branch_anchor
+        try:
+            self._branch_anchor = None
+            try:
+                _, _, equilibrium, active = self._prediction(x, state)
+            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                if np.array_equal(x, base):
+                    raise
+                selection.update(score_trial_unavailable=str(error), selected_density_evaluated=True)
+                x = base
+                _, _, equilibrium, active = self._prediction(x, state)
+        except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+            self.last_record.update(proposal_status='unavailable', proposal_selection=selection,
+                proposal_failure_reason=str(error), command_proposal=None)
+            return None
+        finally:
+            self._branch_anchor = saved
+        command = np.asarray(state.command)
+        proposed = command+(command-equilibrium)
+        proposal = dict(command=proposed.tolist(), source_command=list(state.command),
+            source_stamp=state.stamp, source_prior_state_id=state.state_id,
+            body_posterior_state_ids=self.last_record['body_posterior_state_ids'],
+            density_id=(self.last_record['posterior'] or self.last_record['retained_prior'])['density_id'],
+            selected_candidate_index=index, selected_logK=x.tolist(),
+            selected_K=np.exp(x).tolist(),
+            selected_log_unnormalized_density=(density if selection['selected_density_evaluated'] else None),
+            base_candidate_log_unnormalized_density=density,
+            density_improvement_claimed=False,
+            auxiliary_equilibrium=equilibrium.tolist(), auxiliary_active_joint_limits=active.tolist(),
+            method='current command plus its equilibrium deflection under the density-ranked auxiliary K candidate',
+            acceptance='caller must project command limits and compare the complete current body-distribution objective',
+            global_mode_claimed=False)
+        self.last_record.update(proposal_status='deterministic_density_candidate',
+            proposal_selection=selection, command_proposal=proposal,
+            feedback_to_body=False, feedback_to_body_or_control=True,
+            feedback_to_control='initial command proposal only')
+        return proposal

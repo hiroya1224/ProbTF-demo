@@ -55,7 +55,17 @@ def covariance_support(matrix, name="covariance"):
     symmetry_tolerance = SUPPORT_ATOL + SUPPORT_RTOL * radius
     if np.max(np.abs(matrix - matrix.T), initial=0.0) > symmetry_tolerance:
         raise ValueError("{} must be symmetric.".format(name))
-    eigenvalues, eigenvectors = np.linalg.eigh(0.5 * (matrix + matrix.T))
+    # Coordinates whose *entire* row/column is explicitly zero are Dirac
+    # coordinates, not small random coordinates. Diagonalizing a larger
+    # matrix containing these rows can return 1e-20 eigenvector entries there
+    # and create spurious covariance during support-space reconstruction.
+    # Remove only exact structural zeros, then embed the support with exact
+    # zeros. No numerical threshold, covariance floor or uncertainty is added.
+    active = np.any(matrix != 0.0, axis=0) | np.any(matrix != 0.0, axis=1)
+    reduced = matrix[np.ix_(active, active)]
+    eigenvalues, reduced_vectors = np.linalg.eigh(0.5 * (reduced + reduced.T))
+    eigenvectors = np.zeros((matrix.shape[0], eigenvalues.size))
+    eigenvectors[active] = reduced_vectors
     scale = float(np.max(np.abs(eigenvalues))) if eigenvalues.size else 0.0
     tolerance = SUPPORT_ATOL + SUPPORT_RTOL * scale
     if np.any(eigenvalues < -tolerance):

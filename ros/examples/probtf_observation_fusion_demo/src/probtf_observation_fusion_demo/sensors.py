@@ -9,6 +9,7 @@ import math
 
 import cv2
 import numpy as np
+from scipy.special import logsumexp
 
 from prob_artag_detector.detector import ArucoCornerDetector
 from prob_artag_detector.estimator import PoseMixtureEstimator
@@ -36,6 +37,8 @@ class LocalEstimate:
     display_query: object = None
     observed_direction: object = None
     image_queries: tuple = ()
+    log_evidence: object = None
+    component_log_weights: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -49,6 +52,18 @@ class CameraXYQuery:
     source: PosteriorComponent
     mean: np.ndarray
     covariance: np.ndarray
+
+
+@dataclass(frozen=True)
+class PreparedMarkerObservation:
+    """The image-only detector/Hessian result, shared by every body hypothesis."""
+
+    image: np.ndarray
+    stamp: float
+    observations: tuple
+    detected: object
+    camera: object
+    debug_image: np.ndarray
 
 
 def camera_xy_queries(posterior):
@@ -114,7 +129,8 @@ def imu_estimate(state, observation, paths, common, image):
         "tangent_basis": basis.tolist(), "observed_direction": observed.tolist(),
         "information_rank": 2, "heading_observation": False,
         "measurement_variance": variance, "log_evidence": float(evidence),
-    }, display_query=direction, observed_direction=observed.copy())
+    }, display_query=direction, observed_direction=observed.copy(),
+        log_evidence=float(evidence), component_log_weights=(0.,))
 
 
 def _rotation_log_right_jacobian_inverse(vector):
@@ -128,7 +144,7 @@ def _rotation_log_right_jacobian_inverse(vector):
     return np.eye(3) + 0.5 * cross + coefficient * (cross @ cross)
 
 
-def _marker_mode_law(component, reference_rotation):
+def _marker_mode_chart(component, reference_rotation):
     """Recover the image estimator's original joint Laplace Gaussian.
 
     The native component stores that image-Hessian Gaussian through its
@@ -151,10 +167,39 @@ def _marker_mode_law(component, reference_rotation):
     coordinate_map[3:, 3:] = _rotation_log_right_jacobian_inverse(coordinate)
     covariance = coordinate_map @ local_covariance @ coordinate_map.T
     mean = np.concatenate((component.translation.mean_at_reference, coordinate))
-    return Gaussian(mean, covariance)
+    sign, log_volume = np.linalg.slogdet(coordinate_map)
+    if sign <= 0. or not np.isfinite(log_volume):
+        raise ValueError("The image likelihood chart map has invalid volume.")
+    return Gaussian(mean, covariance), float(log_volume)
 
 
-def marker_estimate(state, observation, paths, common, image):
+def _marker_mode_law(component, reference_rotation):
+    return _marker_mode_chart(component, reference_rotation)[0]
+
+
+def prepare_marker_observation(common, image, stamp):
+    """Decode and refine an image once, before conditioning any prior branch."""
+    settings = common["marker"]
+    if settings["translation_prior_variance"] is not None:
+        raise ValueError("This image-only adapter requires the detector translation prior to be explicitly disabled.")
+    detector = ArucoCornerDetector(family=settings["family"],
+        corner_sigma_px=settings["corner_sigma_px"], adaptive_covariance=False)
+    observations = tuple(item for item in detector.detect(image)
+                         if item.marker_id == int(settings["id"]))
+    camera = camera_model(common["camera"])
+    if not observations:
+        return PreparedMarkerObservation(image, float(stamp), (), None, camera,
+                                         np.asarray(image).copy())
+    if len(observations) != 1:
+        raise ValueError("The configured marker ID occurs more than once in the image.")
+    estimator = PoseMixtureEstimator(settings["size"], translation_prior_variance=None)
+    detected = estimator.estimate(observations[0], camera, "camera", "marker", float(stamp),
+                                 camera_model_source_id="configured_calibrated_pinhole")
+    return PreparedMarkerObservation(image, float(stamp), observations, detected, camera,
+                                     _marker_overlay(image, observations, detected, camera))
+
+
+def marker_estimate(state, observation, paths, common, image, *, prepared=None):
     """Estimate every image branch, then combine it with the common target prior.
 
     PoseMixtureEstimator normally includes a proper broad translation prior.
@@ -162,50 +207,47 @@ def marker_estimate(state, observation, paths, common, image):
     image-only likelihood modes. Their normalized image masses are retained,
     and multiplying the common target prior adds overlap evidence per branch.
     """
-    settings = common["marker"]
-    if settings["translation_prior_variance"] is not None:
-        raise ValueError("This image-only adapter requires the detector translation prior to be explicitly disabled.")
-    detector = ArucoCornerDetector(family=settings["family"],
-                                   corner_sigma_px=settings["corner_sigma_px"],
-                                   adaptive_covariance=False)
-    observations = tuple(item for item in detector.detect(image)
-                         if item.marker_id == int(settings["id"]))
-    if not observations:
+    prepared = prepare_marker_observation(common, image, state.stamp) if prepared is None else prepared
+    if prepared.image is not image or prepared.stamp != state.stamp:
+        raise ValueError("Prepared image likelihood belongs to a different observation.")
+    if prepared.detected is None:
         return LocalEstimate(None, {"sensor": "marker", "detected": False},
-                             np.asarray(image).copy())
-    if len(observations) != 1:
-        raise ValueError("The configured marker ID occurs more than once in the image.")
-    estimator = PoseMixtureEstimator(settings["size"], translation_prior_variance=None)
-    camera = camera_model(common["camera"])
-    detected = estimator.estimate(observations[0], camera, "camera", "marker",
-                                 state.stamp, camera_model_source_id="configured_calibrated_pinhole")
+                             prepared.debug_image)
+    detected, observations = prepared.detected, prepared.observations
     query = pose_query(state, paths["camera_marker"],
                        query_id=observation["sensor_id"] + ":camera_marker", frame="camera")
     frozen = freeze_query(state, query)
     reference_rotation = quat_to_rotmat(query.rotation_wxyz)
     modes, log_weights, details = [], [], []
-    for component, image_weight, seed_index in zip(detected.record.distribution.components,
-                                                  detected.weights, detected.seed_indices):
-        likelihood = _marker_mode_law(component, reference_rotation)
+    image_log_weights = np.asarray(detected.log_masses)-logsumexp(detected.log_masses)
+    for component, image_weight, image_log_weight, seed_index in zip(
+            detected.record.distribution.components, detected.weights,
+            image_log_weights, detected.seed_indices):
+        likelihood, chart_log_volume = _marker_mode_chart(component, reference_rotation)
         posterior, overlap = condition_gaussian(frozen.distribution,
                                                 likelihood.mean, likelihood.covariance)
         label = component.component_id
         modes.append((label, posterior))
-        # A numerically zero detector mass is still an observed component.
-        # Retain its label and zero mass instead of selecting a different mode
-        # or failing on log(0) during a moving image sequence.
+        # The native detector exposes finite log masses even if its float
+        # weight underflows. Retain this likelihood branch in log coordinates.
         if image_weight < 0.0:
             raise ValueError("The detector returned a negative component weight.")
-        log_weights.append((-math.inf if image_weight == 0.0 else math.log(image_weight)) + overlap)
+        # A scalar likelihood does not transform as a probability density.
+        # N(delta)=|det J_log| N(z) preserves its native image-Hessian peak.
+        log_weights.append(float(image_log_weight) + chart_log_volume + overlap)
         details.append({"label": label, "detector_seed_index": int(seed_index),
-                        "image_weight": float(image_weight), "prior_overlap_log_evidence": float(overlap),
+                        "image_weight": float(image_weight), "image_log_weight": float(image_log_weight),
+                        "chart_log_volume": chart_log_volume,
+                        "prior_overlap_log_evidence": float(overlap),
                         "image_only_mean": likelihood.mean.tolist(),
                         "image_only_covariance": likelihood.covariance.tolist()})
     weights = _posterior_weights(log_weights)
-    components = tuple(PosteriorComponent(label, posterior, float(weight))
-                       for (label, posterior), weight in zip(modes, weights))
+    log_evidence = float(logsumexp(log_weights))
+    conditional_logs = tuple(float(value-log_evidence) for value in log_weights)
+    components = tuple(PosteriorComponent(label, posterior, float(weight), log_weight=log_weight)
+                       for (label, posterior), weight, log_weight in zip(modes, weights, conditional_logs))
     result = SensorPosterior(frozen, observation["sensor_id"], observation["observation_id"], components)
-    debug = _marker_overlay(image, observations, detected, camera)
+    debug = prepared.debug_image
     image_queries = camera_xy_queries(result)
     low, high = _camera_xy_bounds(image_queries)
     return LocalEstimate(result, {
@@ -230,7 +272,9 @@ def marker_estimate(state, observation, paths, common, image):
                             "mean": item.mean.tolist(), "covariance": item.covariance.tolist()}
                            for item in image_queries],
         },
-    }, debug, detected, query, image_queries=image_queries)
+    }, debug, detected, query, image_queries=image_queries, log_evidence=log_evidence,
+        component_log_weights=conditional_logs)
 
 
 ADAPTERS = {"imu": imu_estimate, "marker": marker_estimate}
+PREPARERS = {"marker": prepare_marker_observation}

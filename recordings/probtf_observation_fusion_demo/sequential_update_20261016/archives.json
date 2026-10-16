@@ -1,0 +1,146 @@
+[
+  {
+    "case": "no_sensors",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/no_sensors_estimation.jsonl.gz",
+    "bytes": 5100264,
+    "sha256": "557f75044334b08151b67e7fd601534f7e49f4db50703e678520f9e98d1b6495",
+    "uncompressed_sha256": "6c8948af75a4a679a097b9ea7e5aa00513aba295b70897125da08f66dff94c45",
+    "original_bytes": 54458778,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/no_sensors/node/estimation.jsonl"
+  },
+  {
+    "case": "no_sensors",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/no_sensors_snapshots.jsonl.gz",
+    "bytes": 7767247,
+    "sha256": "4bd9d7c4b96235d2d88f641daaf86046c0468ce848b1fbf5eed49230d7caf1f3",
+    "uncompressed_sha256": "ef0a91ccb39514f8d16038142f15cf34a87b0dc060b4ed01f09f47f11c6611c0",
+    "original_bytes": 43680946,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/no_sensors/snapshots.jsonl"
+  },
+  {
+    "case": "no_sensors",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/no_sensors_stiffness.jsonl.gz",
+    "bytes": 382967,
+    "sha256": "4f220566598f91d88b5f98c9ab3a7b8b2203e901a2d65ddd2f9a086d82169282",
+    "uncompressed_sha256": "5117fbc9987082a2b6aed2877720ab633bc9ba8c60e459e70fda3c8edd126114",
+    "original_bytes": 13359427,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/no_sensors/stiffness.jsonl"
+  },
+  {
+    "case": "no_sensors",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/no_sensors_stiffness_hud.jsonl.gz",
+    "bytes": 5867,
+    "sha256": "43b5b12dadc872d7aacd5116da1dfdf983c86eea257f37d7ede9d356b90d4cf7",
+    "uncompressed_sha256": "a62ebd6d22e89ae95a99020fa88dff35e40edb37dc4f30af9a1ef60c4c96d1a1",
+    "original_bytes": 190005,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/no_sensors/stiffness_hud.jsonl"
+  },
+  {
+    "case": "no_sensors",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/no_sensors_received_markers.jsonl.gz",
+    "bytes": 35083,
+    "sha256": "4418ff7adb0549578ed4378de3d5bba39754660f5ec2caa67934f33bd4fb8d20",
+    "uncompressed_sha256": "ff990720dcf28335e30d34046c594e476edda1c3910ef1db100fa0f9f4b8a538",
+    "original_bytes": 112781,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/no_sensors/received_markers.jsonl"
+  },
+  {
+    "case": "no_sensors",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/no_sensors_images.jsonl.gz",
+    "bytes": 33498,
+    "sha256": "8ebe956feb3a041005668161c69b7c5e74b6d1d79f93dcee97dfbda1591f41c5",
+    "uncompressed_sha256": "17b4434e464c67c6d7bf865ceff901c2af940502d2b10ff690d16bb1c3058703",
+    "original_bytes": 133829,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/no_sensors/images.jsonl"
+  },
+  {
+    "case": "no_sensors",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/no_sensors_physical_trajectory.json.gz",
+    "bytes": 93837,
+    "sha256": "d3ddfd45c5788d13d17e26c6fea97eee5e0b0ad9170a87b2d8c5cdd2c6af6f20",
+    "uncompressed_sha256": "ac0812bbc6cb393d732c98d2d624f4e2e474952bfe803e92409fa2fc6635655f",
+    "original_bytes": 500505,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/no_sensors/node/physical_trajectory.json"
+  },
+  {
+    "case": "no_sensors",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/no_sensors_sent_commands.json.gz",
+    "bytes": 10654,
+    "sha256": "06a9d6ba070b9a5c9f9f31d2b78ad5cf7a59a704d9c4978485ac0c8e04ab6c02",
+    "uncompressed_sha256": "1c53d75b5ebcb3287d6f2e9ac7888ac5cee6efff2d7a75ce321398a950bd903f",
+    "original_bytes": 87779,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/no_sensors/node/sent_commands.json"
+  },
+  {
+    "case": "imu",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/imu_estimation.jsonl.gz",
+    "bytes": 22282946,
+    "sha256": "d714b79181b00da062c7208cd69cac37849698efffe602539f1a7483dc87aba2",
+    "uncompressed_sha256": "0d0404672593d589d19b6b3ba9bc8c4e8a9bb26a5fb321f8cc9d2c3b4a1a5eb7",
+    "original_bytes": 135616716,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/imu/node/estimation.jsonl"
+  },
+  {
+    "case": "imu",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/imu_snapshots.jsonl.gz",
+    "bytes": 20939996,
+    "sha256": "1daff71a71b464901ad737b1f9ccfb701de85d81e5358d1900c55fac7212418b",
+    "uncompressed_sha256": "d6503a24ff668bb1cf122f7697d42731cd0a7507c145de9f5963549271ed104c",
+    "original_bytes": 77332057,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/imu/snapshots.jsonl"
+  },
+  {
+    "case": "imu",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/imu_stiffness.jsonl.gz",
+    "bytes": 13928507,
+    "sha256": "334f96558b75ffaa90af53dd7820fbf41ef040e28b90eabae8312adcccce691f",
+    "uncompressed_sha256": "f1967d88a801f752ae4af91534cb85b6eb91038bdbdc61df17aca19d881d183a",
+    "original_bytes": 42478702,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/imu/stiffness.jsonl"
+  },
+  {
+    "case": "imu",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/imu_stiffness_hud.jsonl.gz",
+    "bytes": 20092,
+    "sha256": "66726ca663b08ff5e9f4534a55ee38366249a779c1532d0a6e970947b3b4946f",
+    "uncompressed_sha256": "af1aef94431ab8a73f935324933da16f722cf4fc06e4120de7d5cc0cf9b14743",
+    "original_bytes": 218094,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/imu/stiffness_hud.jsonl"
+  },
+  {
+    "case": "imu",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/imu_received_markers.jsonl.gz",
+    "bytes": 35059,
+    "sha256": "d61b560c7fe602adc2ece3d3d59443973804daeb6fdb4f35a965258fd02c0f53",
+    "uncompressed_sha256": "cef6a52e725007949eeb1ffed75536aaa999067f97a1dbc1f38a6f75fd46b241",
+    "original_bytes": 112913,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/imu/received_markers.jsonl"
+  },
+  {
+    "case": "imu",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/imu_images.jsonl.gz",
+    "bytes": 33555,
+    "sha256": "bb9c8027a8d2a7416ca7a16b42837f5cbd4db8d3d0f07fba1cebcd94d0451b6e",
+    "uncompressed_sha256": "a3e6e73c6a9f6ee90f0eae1dc9e4ef11e91b0062ab307fa37f78b94922489366",
+    "original_bytes": 133965,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/imu/images.jsonl"
+  },
+  {
+    "case": "imu",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/imu_physical_trajectory.json.gz",
+    "bytes": 167570,
+    "sha256": "535d1729bfdbb80e1debc73fbd276f50a46970788ee4fb00d1145f25700be895",
+    "uncompressed_sha256": "4b5541a303f6add3bd72f70d9d2c8b72d3428ae1ff967c017339cd8b8949a584",
+    "original_bytes": 498749,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/imu/node/physical_trajectory.json"
+  },
+  {
+    "case": "imu",
+    "path": "recordings/probtf_observation_fusion_demo/sequential_update_20261016/imu_sent_commands.json.gz",
+    "bytes": 26833,
+    "sha256": "230aa73c2ea038e0f5a23b7bfea79a47a8e830393ebecd86505cb7efbefd9097",
+    "uncompressed_sha256": "84acaa5c8ccde75d5df41da2ca5965f4237eeef47e5ba8d4c8f566797ed6dc2c",
+    "original_bytes": 87217,
+    "source": "/tmp/probtf_sequential_live_recording_20261016/imu/node/sent_commands.json"
+  }
+]

@@ -6,6 +6,7 @@ import json
 
 import numpy as np
 import rospy
+from scipy.special import ndtri
 from geometry_msgs.msg import Point
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
@@ -31,6 +32,7 @@ class DisplayPoint:
     component_id: str
     weight: float
     sample_count: int
+    log_weight: object = None
 
 
 @dataclass(frozen=True)
@@ -63,6 +65,7 @@ def query_record(point):
         "axis": point.axis,
         "component_id": point.component_id,
         "weight": point.weight,
+        "log_weight": point.log_weight,
         "sample_count": point.sample_count,
         "mean": query.mean.tolist(),
         "covariance": query.covariance.tolist(),
@@ -81,6 +84,7 @@ def snapshot_record(snapshot):
         "summary": snapshot.summary,
         "show_labels": snapshot.show_labels,
         "observation_ids": list(snapshot.observation_ids),
+        "render_rule": "deterministic Halton Gaussian quantiles; display queries only",
         "queries": [query_record(point) for point in snapshot.points],
     }
     if snapshot.stiffness_record is not None:
@@ -88,11 +92,24 @@ def snapshot_record(snapshot):
     return record
 
 
-def _normal_points(query, count, rng):
+def _normal_points(query, count, offset):
     # Zero normal variance stays zero. Only round-off negative eigenvalues are
     # treated as zero; significant negative variance is an error, not a fallback.
     support = covariance_support(query.covariance, "display query " + query.query_id)
-    return query.mean + rng.standard_normal((count, support.rank)) @ (
+    # A deterministic equal-mass quantile sequence is a rendering query, not
+    # a Monte Carlo approximation of the source law. Its empirical moments
+    # never enter inference, control, stiffness, or another propagation step.
+    indices = np.arange(int(count), dtype=np.int64) + int(offset) + 1
+    coordinates = np.empty((int(count), support.rank))
+    for axis, base in enumerate((2, 3, 5)[:support.rank]):
+        digits, factor = indices.copy(), 1. / base
+        uniform = np.zeros(int(count))
+        while np.any(digits):
+            uniform += factor * (digits % base)
+            digits //= base
+            factor /= base
+        coordinates[:, axis] = ndtri(uniform)
+    return query.mean + coordinates @ (
         support.basis * np.sqrt(support.eigenvalues)
     ).T
 
@@ -110,8 +127,13 @@ def _marker(snapshot, marker_id, namespace, marker_type):
 
 
 def make_markers(snapshot, seed=29, point_size=0.0074999998323619365):
-    """Sample only final Gaussian query outputs. Seed cannot reach estimation."""
-    rng = np.random.RandomState(int(seed))
+    """Render deterministic Gaussian quantiles of the actual core queries.
+
+    The historical ``seed`` setting is retained as the sequence's integer
+    offset. No random generator is used, and no source parameter is altered.
+    """
+    if int(seed) < 0:
+        raise ValueError("The Gaussian quantile sequence offset must be nonnegative.")
     clear = _marker(snapshot, 0, "clear", Marker.SPHERE_LIST)
     clear.action = Marker.DELETEALL
     output = [clear]
@@ -126,7 +148,7 @@ def make_markers(snapshot, seed=29, point_size=0.0074999998323619365):
         # encodes that weight; its covariance and Gaussian coordinates are intact.
         marker.color = ColorRGBA(*AXIS_COLORS[point.axis], 0.85 * point.weight)
         marker.points = [Point(*value) for value in _normal_points(
-            point.query, point.sample_count, rng
+            point.query, point.sample_count, int(seed)
         )]
         output.append(marker)
         groups.setdefault((point.frame_label, point.component_id), {})[point.axis] = point

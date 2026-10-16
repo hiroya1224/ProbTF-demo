@@ -1,0 +1,5 @@
+observations:
+- sensor: imu
+  sensor_id: imu_tool0
+  target_link: tool0
+  source: fresh simulated gravity direction from the hand flange; same observation model as the intermediate-link IMU

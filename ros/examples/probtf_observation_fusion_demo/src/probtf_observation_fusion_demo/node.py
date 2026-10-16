@@ -19,7 +19,7 @@ from probtf.spherical_law.first_order import point_query
 from .display import (
     DisplayPoint, DisplaySnapshot, make_markers, save_snapshot, snapshot_record,
 )
-from .model import load_inputs, run
+from .model import component_log_weight, load_inputs, run
 
 
 def build_snapshot(result, stage, common):
@@ -31,6 +31,14 @@ def build_snapshot(result, stage, common):
     axis_length = float(settings["axis_length"])
     endpoints = (("origin", np.zeros(3)), ("x", [axis_length, 0, 0]),
                  ("y", [0, axis_length, 0]), ("z", [0, 0, axis_length]))
+    observed = {}
+    for estimate in result.local_estimates:
+        if estimate.observed_direction is not None:
+            key = (estimate.posterior.observation_id, estimate.diagnostics['target_link'])
+            if key in observed and not np.array_equal(
+                    observed[key].observed_direction, estimate.observed_direction):
+                raise AssertionError('One physical IMU observation has inconsistent displayed directions.')
+            observed[key] = estimate
     for component in stage.components:
         state = component.state
         for label, path in paths.items():
@@ -45,10 +53,8 @@ def build_snapshot(result, stage, common):
                     raise AssertionError("Core query provenance differs from its joint snapshot.")
                 count = settings["marker_samples"] if label == "marker" else settings["body_samples"]
                 points.append(DisplayPoint(query, label, axis, component.label,
-                                           component.weight, int(count)))
-        for estimate in result.local_estimates:
-            if estimate.observed_direction is None:
-                continue
+                                           component.weight, int(count), component_log_weight(component)))
+        for estimate in observed.values():
             target = estimate.diagnostics["target_link"]
             path = result.link_paths[target]
             for axis, endpoint in (("origin", np.zeros(3)),
@@ -59,7 +65,7 @@ def build_snapshot(result, stage, common):
                                     frame=result.root_frame)
                 points.append(DisplayPoint(query, "IMU gravity at " + target, axis,
                                            component.label, component.weight,
-                                           int(settings["body_samples"])))
+                                           int(settings["body_samples"]), component_log_weight(component)))
     state = stage.components[0].state
     hand = next(p.query for p in points if p.frame_label == "hand" and p.axis == "origin")
     summary = (
@@ -70,8 +76,8 @@ def build_snapshot(result, stage, common):
     ).format(stage.label, len(stage.sensor_ids), state.version, state.stamp,
              list(state.command), float(np.trace(hand.within)),
              float(np.trace(hand.between)), len(stage.components))
-    observation_ids = tuple(p.observation_id for p in result.sensor_posteriors
-                            if p.sensor_id in stage.sensor_ids)
+    observation_ids = tuple(dict.fromkeys(p.observation_id for p in result.sensor_posteriors
+                                         if p.sensor_id in stage.sensor_ids))
     snapshot = DisplaySnapshot(tuple(points), result.root_frame, state.stamp,
                                tuple(state.command), state.version, stage.label,
                                observation_ids, summary)
@@ -85,7 +91,8 @@ def verify_adapter_identity(snapshot, stage):
     for point in snapshot.points:
         source = components[point.component_id]
         query = point.query
-        if (point.weight != source.weight or query.version != source.state.version
+        if (point.weight != source.weight or point.log_weight != component_log_weight(source)
+                or query.version != source.state.version
                 or query.stamp != source.state.stamp
                 or tuple(query.command) != tuple(source.state.command)
                 or query.state_id != source.state.state_id

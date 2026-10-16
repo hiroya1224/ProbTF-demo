@@ -1,14 +1,13 @@
-"""The existing fixed-time inference pipeline on the moving switch scene.
+"""Retained transform-candidate inference on the moving switch scene.
 
-Only ``SensorInputs`` crosses the physical-world boundary.  Command-dependent
-candidate laws come directly from the switch example's explicit input family;
-they are not equilibria or perturbations of realized physical poses.  Each
-time is an independent fixed-command observation comparison.  No temporal
-transition model, accumulated old-image information, or stiffness inference
-is implied by the replay.
+The direct independent family initializes the body once. Every later prior
+is the full preceding posterior, pushed by its declared command action. No
+physical pose, stiffness or invented process covariance enters this update.
 """
 
 from copy import deepcopy
+from dataclasses import replace
+import hashlib
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -21,7 +20,8 @@ from probtf.geometry import axis_angle_to_quat, quat_right_matrix, rotmat_to_qua
 from probtf.spherical_law.first_order import BinghamTransform, JointTransformState
 from symaware_grasp.probtf_config import bingham_parameter_from_mode
 
-from .model import run
+from .model import WeightedState, component_log_weight, run
+from .moving_control import command_state
 
 
 def _origin(joint):
@@ -66,6 +66,8 @@ class MovingInference:
         self.settings = settings
         self.last_key = None
         self.last_result = None
+        self.last_observation_signature = None
+        self.components = ()
         self.last_observations = ()
 
         # URDF is used only for declared geometry.  The direct uncertain laws
@@ -135,7 +137,7 @@ class MovingInference:
         self.common = {
             "root_frame": settings["root_frame"],
             "update": {},
-            "prior": {"independence": "initial product over supplied local transform candidates; posterior cross blocks retained within every update",
+            "prior": {"independence": "initial product over supplied local transform candidates; all posterior components and cross blocks retained between updates",
                       "body": [{"edge_id": name} for name in self.body_ids],
                       "marker": {"status": marker_data["status"]}},
             "known_geometry": {"source": "fixed attachment geometry parsed from shared URDF; masses and physical poses excluded"},
@@ -144,7 +146,11 @@ class MovingInference:
         }
 
     def prior_at(self, command, stamp, frame_index):
-        """Query the explicitly given q-dependent family, with no pose truth."""
+        """Query the directly supplied initial family, with no pose truth.
+
+        Sequential inference uses this only at initialization. It never uses
+        this method to replace a body posterior on later ticks.
+        """
         command = np.asarray(command, dtype=float)
         if command.shape != self.reference_command.shape:
             raise ValueError("Command dimension differs from the direct input family.")
@@ -165,11 +171,39 @@ class MovingInference:
     def update(self, sensor_inputs, frame_index):
         """Run one same-time common update; duplicate ticks return that snapshot."""
         key = (int(frame_index), float(sensor_inputs.stamp), tuple(sensor_inputs.command))
+        signature = hashlib.sha256(np.asarray(sensor_inputs.image).tobytes()
+            + np.asarray(sensor_inputs.gravity_in_sensor).tobytes()
+            + repr((sensor_inputs.imu_target_link, sensor_inputs.imu_sigma_rad)).encode()).hexdigest()
         if key == self.last_key:
+            if signature != self.last_observation_signature:
+                raise ValueError("A repeated physical tick contains different observation data.")
             return self.last_result
         if self.last_key is not None and int(frame_index) <= self.last_key[0]:
             raise ValueError("Frame indices must increase; construct a fresh inference on replay.")
-        prior = self.prior_at(sensor_inputs.command, sensor_inputs.stamp, frame_index)
+        if self.last_key is not None and float(sensor_inputs.stamp) <= self.last_key[1]:
+            raise ValueError("A new observation tick must have an increasing timestamp.")
+        prediction = []
+        if not self.components:
+            prior = self.prior_at(sensor_inputs.command, sensor_inputs.stamp, frame_index)
+            priors = (WeightedState(prior.component_id, 1., prior, 0.),)
+        else:
+            priors = []
+            for index, source in enumerate(self.components):
+                predicted = command_state(source.state, sensor_inputs.command,
+                                          self.body_ids, self.actions)
+                label = "predicted:{}:{}".format(int(frame_index), index)
+                predicted = replace(predicted, version=3*int(frame_index)+1,
+                    stamp=float(sensor_inputs.stamp), component_id=label)
+                priors.append(WeightedState(label, source.weight, predicted,
+                                            component_log_weight(source)))
+                prediction.append(dict(source_label=source.label,
+                    source_state_id=source.state.state_id, source_version=source.state.version,
+                    source_stamp=source.state.stamp, source_command=list(source.state.command),
+                    transported_label=label, transported_state_id=predicted.state_id,
+                    transported_version=predicted.version, transported_stamp=predicted.stamp,
+                    transported_command=list(predicted.command), weight=source.weight,
+                    log_weight=component_log_weight(source)))
+            priors = tuple(priors)
         observations = []
         for template in self.templates:
             observation = deepcopy(template)
@@ -184,14 +218,18 @@ class MovingInference:
                     direction_sigma_rad=float(sensor_inputs.imu_sigma_rad))
             observations.append(observation)
         result = run(self.common, tuple(observations), sensor_inputs.image,
-                     prior=prior, paths=self.paths)
+                     prior_components=priors, paths=self.paths)
+        result.records["prediction"] = prediction
         result.records["moving_input_family"] = {
             "law_id": self.law["law_id"], "revision": self.law["revision"],
             "command_family": "configured Bingham right action; translation law unchanged",
-            "temporal_policy": self.settings["temporal_policy"],
+            "temporal_policy": "initial independent family once; retain every posterior component and push full joint law through the declared right action at the next command",
+            "initialization": not bool(self.components),
             "frame_index": int(frame_index), "time": float(sensor_inputs.time),
             "physical_truth_received": False,
         }
         self.last_key, self.last_result = key, result
+        self.last_observation_signature = signature
+        self.components = tuple(result.stages[-1].components)
         self.last_observations = tuple(observations)
         return result

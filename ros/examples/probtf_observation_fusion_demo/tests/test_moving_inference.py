@@ -80,7 +80,7 @@ def test_same_sensor_inputs_have_no_hidden_physics_or_random_inference(moving_in
     assert actual.records == expected.records
 
 
-def test_frame_updates_are_explicit_fixed_time_units_not_repeated_image_information(moving_inputs):
+def test_frame_updates_retain_and_transport_the_previous_joint_posterior(moving_inputs):
     scene, frame, cases = moving_inputs
     inference = MovingInference(scene.robot_description, cases["imu"])
     inputs = scene.sensor_inputs(frame)
@@ -94,7 +94,15 @@ def test_frame_updates_are_explicit_fixed_time_units_not_repeated_image_informat
     assert second.prior.stamp == later.stamp
     assert second.prior.version > first.stages[-1].components[0].state.version
     assert first.records["observation_ids"] != second.records["observation_ids"]
-    assert "independent fixed-command/time" in second.records["moving_input_family"]["temporal_policy"]
+    from probtf_observation_fusion_demo.moving_control import command_state
+    previous = first.stages[-1].components[0]
+    expected = command_state(previous.state, next_command, inference.body_ids, inference.actions)
+    np.testing.assert_array_equal(second.prior.covariance, expected.covariance)
+    for actual_edge, expected_edge in zip(second.prior.transforms, expected.transforms):
+        np.testing.assert_array_equal(actual_edge.translation, expected_edge.translation)
+        np.testing.assert_array_equal(actual_edge.rotation_wxyz, expected_edge.rotation_wxyz)
+    assert second.records['prediction'][0]['source_state_id'] == previous.state.state_id
+    assert not second.records['moving_input_family']['initialization']
     with pytest.raises(ValueError, match="indices must increase"):
         inference.update(inputs, 0)
 

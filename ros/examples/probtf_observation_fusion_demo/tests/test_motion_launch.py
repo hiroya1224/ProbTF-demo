@@ -16,3 +16,14 @@ def test_motion_and_static_entry_selection_uses_roslaunch_boolean_arguments():
         view = next(node for node in config.nodes if node.name == 'observation_fusion_rviz')
         assert ('observation_fusion_motion.rviz' in view.args) == enabled
         assert ('/observation_fusion/robot_description' in config.params) == enabled
+        assert config.params['/observation_fusion_demo/execution_mode'].value == 'live'
+
+
+def test_each_motion_entry_defaults_to_live_and_playback_requires_explicit_selection():
+    package = Path(__file__).resolve().parents[1]
+    for case in ('no_sensors', 'imu', 'marker', 'imu_marker'):
+        for args, expected in (([], 'live'), (['execution_mode:=prepared_playback'], 'prepared_playback')):
+            config = roslaunch.config.ROSLaunchConfig()
+            roslaunch.xmlloader.XmlLoader().load(str(package/'launch'/(case+'.launch')),
+                                                config, argv=args, verbose=False)
+            assert config.params['/observation_fusion_demo/execution_mode'].value == expected

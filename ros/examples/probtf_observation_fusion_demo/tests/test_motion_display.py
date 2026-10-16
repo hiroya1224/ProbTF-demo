@@ -260,3 +260,52 @@ def test_failed_stiffness_hud_rejects_fabricated_posterior_or_information(stiffn
         failed['update_applied'] = True
     with pytest.raises(ValueError, match='failed stiffness update'):
         MotionDisplay.stiffness_marker(snapshot, failed)
+
+
+def test_density_factor_hud_keeps_continuous_memory_separate_from_numerical_proposal(stiffness_display_input):
+    from copy import deepcopy
+    _, _, _, snapshot, source = stiffness_display_input
+    record = deepcopy(source)
+    initial = dict(record['prior'])
+    prior = dict(density_id='prior_density_000000000000', factor_ids=[],
+        initial_components=[dict(label='explicit_prior', weight=1., log_weight=0.,
+                                 x_est=initial['x_est'], P_est=initial['P_est'])],
+        normalization_constant=None, global_moments=None)
+    posterior = dict(prior, density_id='posterior_density_000000000', factor_ids=['actual_frozen_ratio'])
+    record.update(prior=prior, posterior=posterior, status='updated_density_factor',
+        proposal_approximation=None, proposal_status='deterministic_density_candidate',
+        command_proposal=dict(selected_K=[1., 2., 3., 4., 5., 6.]),
+        information_rank=None, information_eigenvalues=None)
+    source_logs = {}
+    for point in snapshot.points:
+        source_logs[point.component_id] = point.log_weight
+    record['body_posterior_log_weights'] = list(source_logs.values())
+    marker = MotionDisplay.stiffness_marker(snapshot, record)
+    stream = io.BytesIO()
+    MarkerArray([marker]).serialize(stream)
+    actual = MarkerArray().deserialize(stream.getvalue()).markers[0]
+    assert 'Factors: 0 -> 1' in actual.text
+    assert 'normalization unevaluated' in actual.text
+    assert 'Numerical proposal K [Nm/rad]: 1, 2, 3, 4, 5, 6' in actual.text
+    assert 'Proposal only; global moments not evaluated' in actual.text
+    assert actual.header.stamp.to_sec() == snapshot.stamp
+    assert record['posterior']['global_moments'] is None
+    record['body_posterior_log_weights'][0] -= 1.
+    with pytest.raises(AssertionError, match='log masses'):
+        MotionDisplay.stiffness_marker(snapshot, record)
+
+
+def test_density_factor_hud_does_not_invent_parameters_when_proposal_is_unavailable(stiffness_display_input):
+    from copy import deepcopy
+    _, _, _, snapshot, source = stiffness_display_input
+    record = deepcopy(source)
+    density = dict(density_id='actual_density', factor_ids=['retained_ratio'],
+                   normalization_constant=None, global_moments=None)
+    record.update(prior=density, posterior=density, status='identity_density_ratio',
+                  proposal_approximation=None, proposal_status='unavailable',
+                  proposal_failure_reason='No supported auxiliary proposal at this time.')
+    marker = MotionDisplay.stiffness_marker(snapshot, record)
+    assert 'Factors: 1 -> 1' in marker.text
+    assert 'No numerical proposal; global moments not evaluated' in marker.text
+    assert record['proposal_failure_reason'] in marker.text
+    assert 'median' not in marker.text

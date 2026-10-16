@@ -1,0 +1,16 @@
+<launch>
+  <arg name="rviz" default="true" />
+  <arg name="rviz_config" default="$(find probtf_observation_fusion_demo)/rviz/observation_fusion_motion.rviz" />
+  <arg name="autostart" default="true" />
+  <arg name="output_dir" default="/tmp/probtf_observation_fusion_demo/$(anon imu_hand)" />
+  <include file="$(find probtf_observation_fusion_demo)/launch/common.launch">
+    <arg name="observations" value="$(find probtf_observation_fusion_demo)/config/imu_hand.yaml" />
+    <arg name="moving" value="true" />
+    <arg name="execution_mode" value="live" />
+    <arg name="imu_target_link" value="tool0" />
+    <arg name="rviz" value="$(arg rviz)" />
+    <arg name="rviz_config" value="$(arg rviz_config)" />
+    <arg name="autostart" value="$(arg autostart)" />
+    <arg name="output_dir" value="$(arg output_dir)" />
+  </include>
+</launch>

@@ -17,6 +17,38 @@ from probtf.spherical_law.support import (
 )
 
 
+def _checked_log_weight(weight, log_weight, *, positive=False):
+    """Keep small positive mixture masses without turning underflow into pruning.
+
+    ``weight`` remains the float used by old callers and ROS colors. The log
+    mass is authoritative when that float is below the representable range.
+    An explicitly zero mass still has log mass -inf and carries no evidence.
+    """
+    weight = float(weight)
+    if not math.isfinite(weight) or weight < 0.0:
+        raise ValueError("Component weight must be finite and non-negative.")
+    if log_weight is None:
+        value = math.log(weight) if weight > 0.0 else -math.inf
+    else:
+        value = float(log_weight)
+        if math.isnan(value) or value == math.inf:
+            raise ValueError("Component log weight must be finite or -inf.")
+        represented = math.exp(value)
+        if not math.isclose(represented, weight, rel_tol=1.0e-12, abs_tol=0.0):
+            raise ValueError("Component weight and log weight describe different masses.")
+    if positive and value == -math.inf:
+        raise ValueError("A labelled prior needs a positive weight and label.")
+    return weight, value
+
+
+def _logsumexp(values):
+    values = tuple(values)
+    if not values or max(values) == -math.inf:
+        return -math.inf
+    maximum = max(values)
+    return maximum + math.log(sum(math.exp(value-maximum) for value in values))
+
+
 @dataclass(frozen=True)
 class Gaussian:
     mean: np.ndarray
@@ -118,14 +150,14 @@ class PosteriorComponent:
     distribution: Gaussian
     weight: float = 1.0
     lineage: tuple = ()
+    log_weight: object = None
 
     def __post_init__(self):
         if not self.label or not isinstance(self.distribution, Gaussian):
             raise ValueError("A posterior component needs a label and Gaussian.")
-        weight = float(self.weight)
-        if not math.isfinite(weight) or weight < 0.0:
-            raise ValueError("Component weight must be finite and non-negative.")
+        weight, log_weight = _checked_log_weight(self.weight, self.log_weight)
         object.__setattr__(self, "weight", weight)
+        object.__setattr__(self, "log_weight", log_weight)
         object.__setattr__(self, "lineage", tuple(self.lineage))
 
 
@@ -162,6 +194,7 @@ class LiftedComponent:
     observation_id: str
     query_id: str
     prior_component_id: str
+    log_weight: object = None
 
 
 @dataclass(frozen=True)
@@ -169,10 +202,14 @@ class LabelledPrior:
     label: str
     distribution: Gaussian
     weight: float = 1.0
+    log_weight: object = None
 
     def __post_init__(self):
-        if not self.label or not math.isfinite(self.weight) or self.weight <= 0.0:
+        if not self.label:
             raise ValueError("A labelled prior needs a positive weight and label.")
+        weight, log_weight = _checked_log_weight(self.weight, self.log_weight, positive=True)
+        object.__setattr__(self, "weight", weight)
+        object.__setattr__(self, "log_weight", log_weight)
 
 
 @dataclass(frozen=True)
@@ -248,7 +285,8 @@ def lift_sensor_posterior(posterior):
         results.append(LiftedComponent(
             component.label, component.weight, distribution, readonly(within),
             readonly(0.5 * (between + between.T)), posterior.sensor_id,
-            posterior.observation_id, query.query_id, query.component_id))
+            posterior.observation_id, query.query_id, query.component_id,
+            component.log_weight))
     return tuple(results)
 
 
@@ -313,7 +351,7 @@ def _same_sensor_posterior(left, right):
             and np.array_equal(left.query.jacobian, right.query.jacobian)
             and _same_gaussian(left.query.distribution, right.query.distribution)
             and len(left.components) == len(right.components)
-            and all(a.label == b.label and a.weight == b.weight
+            and all(a.label == b.label and a.weight == b.weight and a.log_weight == b.log_weight
                     and _same_gaussian(a.distribution, b.distribution)
                     for a, b in zip(left.components, right.components)))
 
@@ -332,6 +370,9 @@ def fuse_labelled_sensor_posteriors(priors, posteriors):
     if not math.isclose(sum(prior.weight for prior in priors), 1.0,
                         rel_tol=1.0e-10, abs_tol=1.0e-12):
         raise ValueError("Common-prior component weights must sum to one.")
+    if not math.isclose(_logsumexp(prior.log_weight for prior in priors), 0.0,
+                        rel_tol=0.0, abs_tol=1.0e-10):
+        raise ValueError("Common-prior component log weights must normalize.")
     prior_map = {prior.label: prior for prior in priors}
     metadata = None
     state_ids = {}
@@ -366,9 +407,14 @@ def fuse_labelled_sensor_posteriors(priors, posteriors):
                            for component in posterior.components)
         if not math.isclose(total_weight, 1.0, rel_tol=1.0e-9, abs_tol=1.0e-12):
             raise ValueError("Sensor posterior weights must normalize across common hypotheses.")
+        if not math.isclose(_logsumexp(component.log_weight for posterior in group.values()
+                                      for component in posterior.components), 0.0,
+                            rel_tol=0.0, abs_tol=1.0e-9):
+            raise ValueError("Sensor posterior log weights must normalize across common hypotheses.")
     if not observations:
         return FusedMixture(tuple(PosteriorComponent(
-            prior.label, prior.distribution, prior.weight) for prior in priors),
+            prior.label, prior.distribution, prior.weight,
+            log_weight=prior.log_weight) for prior in priors),
             (), (), None, None, ())
     ordered_observations = tuple(sorted(observations))
     individuals = []
@@ -381,12 +427,12 @@ def fuse_labelled_sensor_posteriors(priors, posteriors):
             individuals.extend(lifted)
             lifted_groups.append(lifted)
         for selected in product(*lifted_groups):
-            if any(component.weight == 0.0 for component in selected):
+            if any(component.log_weight == -math.inf for component in selected):
                 continue
             distribution, log_c = gaussian_reference_product(
                 prior.distribution, (component.distribution for component in selected))
-            log_weight = ((1 - len(selected)) * math.log(prior.weight)
-                          + sum(math.log(component.weight) for component in selected)
+            log_weight = ((1 - len(selected)) * prior.log_weight
+                          + sum(component.log_weight for component in selected)
                           + log_c)
             lineage = tuple((component.sensor_id, component.observation_id, component.label)
                             for component in selected)
@@ -397,10 +443,10 @@ def fuse_labelled_sensor_posteriors(priors, posteriors):
             log_weights.append(log_weight)
     if not components:
         raise ValueError("No positive-mass corresponding posterior combinations remain.")
-    maximum = max(log_weights)
-    log_normalizer = maximum + math.log(sum(math.exp(x - maximum) for x in log_weights))
+    log_normalizer = _logsumexp(log_weights)
     result_components = tuple(PosteriorComponent(
-        label, distribution, math.exp(log_weight - log_normalizer), lineage)
+        label, distribution, math.exp(log_weight - log_normalizer), lineage,
+        log_weight=log_weight-log_normalizer)
         for (label, distribution, lineage), log_weight in zip(components, log_weights))
     return FusedMixture(result_components, tuple(individuals), ordered_observations,
                         metadata[0], metadata[1], metadata[2])

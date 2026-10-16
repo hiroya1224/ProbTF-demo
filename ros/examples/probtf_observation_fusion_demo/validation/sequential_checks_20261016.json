@@ -1,0 +1,196 @@
+{
+  "scope": "sequential body retention, frozen public records, auxiliary density-factor memory and live execution",
+  "original_commit": "a4e50e9",
+  "tests": {
+    "passed": 186,
+    "failed": 0,
+    "wall_seconds": 19.8,
+    "groups": [
+      "observation_fusion_demo/tests",
+      "first_order_bingham_queries",
+      "first_order_pose_equivalence",
+      "first_order_fusion",
+      "kernel_evaluation",
+      "prob_artag_detector estimator/camera/corner"
+    ]
+  },
+  "build": {
+    "successful_packages": 12,
+    "failed": 0,
+    "wall_seconds": 3.7
+  },
+  "short_four_case_record_immutability": {
+    "no_sensors": {
+      "frames": 3,
+      "retained_prior_components": [
+        1,
+        1,
+        1
+      ],
+      "posterior_components": [
+        1,
+        1,
+        1
+      ],
+      "factor_counts": [
+        0,
+        0,
+        0
+      ],
+      "all_past_records_snapshots_and_markers_bytewise_unchanged": true,
+      "proposal_available": [
+        false,
+        false,
+        false
+      ],
+      "proposal_used_as_controller_initial_point": [
+        false,
+        false,
+        false
+      ],
+      "original_snapshot_wire_sha256": [
+        "592ca6ffb2b49937553a7fb9ca422857dfaa2ef52eb69e4cfd2913cf9cf8264b",
+        "c75a89ce6aba15608e69f5e389a71cc1216c1f65293578a46d72ebedcaaa8259",
+        "bae636740b67c5698a7ef890ab308e240cddfa08920e289c41138e08a8a1fa39"
+      ]
+    },
+    "imu": {
+      "frames": 3,
+      "retained_prior_components": [
+        1,
+        1,
+        1
+      ],
+      "posterior_components": [
+        1,
+        1,
+        1
+      ],
+      "factor_counts": [
+        1,
+        2,
+        3
+      ],
+      "all_past_records_snapshots_and_markers_bytewise_unchanged": true,
+      "proposal_available": [
+        true,
+        true,
+        true
+      ],
+      "proposal_used_as_controller_initial_point": [
+        false,
+        true,
+        true
+      ],
+      "original_snapshot_wire_sha256": [
+        "90a36fa55466a2d5284b2ec577b3ee04d44ea28fcb6c8ea15af4c54ca11fea46",
+        "a55fdec2646a292d25757d1ba03440bb73606476b2e43f0d54393be407c5587b",
+        "9923ba3691be36e1e15af9fb0c2c01bf3034af7ac26e5bc178227db009e46d82"
+      ]
+    },
+    "marker": {
+      "frames": 3,
+      "retained_prior_components": [
+        1,
+        2,
+        4
+      ],
+      "posterior_components": [
+        2,
+        4,
+        8
+      ],
+      "factor_counts": [
+        1,
+        2,
+        3
+      ],
+      "all_past_records_snapshots_and_markers_bytewise_unchanged": true,
+      "proposal_available": [
+        true,
+        true,
+        true
+      ],
+      "proposal_used_as_controller_initial_point": [
+        true,
+        true,
+        true
+      ],
+      "original_snapshot_wire_sha256": [
+        "6e7083b8e76ce107fe2fb1315cc8f35490b3d1cb1462193337f135387b8f1edc",
+        "872ecd079d3de79064830ed27a1730065e3b099458f13668bdc750952e02889c",
+        "9eadc618befe1d13243aa23453532b9ad6aaaa68e868b4b0795b746b68030729"
+      ]
+    },
+    "imu_marker": {
+      "frames": 3,
+      "retained_prior_components": [
+        1,
+        2,
+        4
+      ],
+      "posterior_components": [
+        2,
+        4,
+        8
+      ],
+      "factor_counts": [
+        1,
+        2,
+        3
+      ],
+      "all_past_records_snapshots_and_markers_bytewise_unchanged": true,
+      "proposal_available": [
+        true,
+        true,
+        true
+      ],
+      "proposal_used_as_controller_initial_point": [
+        true,
+        true,
+        true
+      ],
+      "original_snapshot_wire_sha256": [
+        "c72928bccd655a5d57f05bad71c3fba44bff9e8bd4697d8a8dd5b716ffecf1b6",
+        "88b046435c6c07b676aac12fc92ecb26975cae1151a7d5214cbe9521d0420334",
+        "5a5b98448e70de362eea26ed26c0e0d6a2bbd708af13f2584fbc8e0b79885762"
+      ]
+    }
+  },
+  "implementation_sha256": {
+    "ros/core/probtf_core/src/probtf/spherical_law/__init__.py": "490be413534affcf03da46f46e354c032c4861c7a567e0e191bab99b8c9db5ee",
+    "ros/core/probtf_core/src/probtf/spherical_law/adapters.py": "286b2481ea8820818735cbe911dfb3464260d2ed8211b9557719ce0e83b6253e",
+    "ros/core/probtf_core/src/probtf/spherical_law/first_order.py": "517a358a1ec4a9ba1d11da22cfbe6f1bd571e088f1c1046fe7ac5469ca989a32",
+    "ros/core/probtf_core/src/probtf/spherical_law/fusion.py": "debefce01eec2480b0d3c30154feb5e681df9a1156638633318a7d1c6e6d6d89",
+    "ros/core/probtf_core/src/probtf/spherical_law/induced_direction.py": "1fc1e7c74ed95c003e9e111fa0222ec64a5d15a1284edc5e555ed6ba35bb067c",
+    "ros/core/probtf_core/src/probtf/spherical_law/induced_vector.py": "a48c94778a06146f0aff0c7eb4c7bb919b905ade314f1d66e81d0203fd67c1ad",
+    "ros/core/probtf_core/src/probtf/spherical_law/numerical.py": "b10d70229431258ff8efcd65fdfb3284597cae1f1c2db2afe1a4461b257f669e",
+    "ros/core/probtf_core/src/probtf/spherical_law/protocol.py": "057c8fd50bae6f7aa379d75f70957b25e04ce819817302476d0f7a5a6d797648",
+    "ros/core/probtf_core/src/probtf/spherical_law/support.py": "a59ea4122a8034f1ae92fdcdf1466370e04f5c6461b92e6b23bba0b8f5a7c48e",
+    "ros/core/probtf_core/src/probtf/spherical_law/tangent.py": "82f405ffe27e252db595e6de44a77791f058aa4ff140fd0b38a97e7e1ab5a6a2",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py": "da2d5e9deef8bca28d284e27abdb3a2a9ef72c161562ba30c366b80a7d08b1eb",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py": "465117c25fb20cbbf55e6045d677e45e1ca81a702b68e6f9aa2958cf8c8a430a",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py": "3a5234915b09815bc17ec0ffac5b4fcab29e255057f8a7d213fa9738d83bddda",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py": "5ef08e95b099c03d2cceeeee6fe8d5ab36de32b1a3fabb4625bf4e61481400e6",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py": "8560133e056c6176a579bdec8e8ebe4dc42c9287f7ccc9140b39fe818d274dd0",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "c8f9c6f689cb3801ae5bd07fff153c92f767b469f22d621a834a555c5538bd57",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py": "e9cbcfdb60b9c00cf4d91af7e55345882e768d18455ca3c0fdb25d6ecb2d51ca",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py": "15cd2657071e947c0ed7651055001d8c060f71a95bd9a183af90fbec954245c8",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py": "769508bc7808ce82f64b337ed4c3b84f0fdf44018d60c3f3f584300235dd6827",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": "44e3ddce128e4962e3c714647fb4c34cf4391114cf736c8f7b5c9f6a61093c92"
+  },
+  "monte_carlo_in_estimation_propagation_fusion_stiffness_or_drawing": false,
+  "body_initialization_only_at_experiment_start": true,
+  "body_unknown_marker_and_all_cross_covariances_retained": true,
+  "stiffness_global_normalizer_numerically_evaluated": false,
+  "stiffness_global_moments_evaluated": false,
+  "full_duration_cases": [
+    "no_sensors",
+    "imu"
+  ],
+  "camera_full_duration_verified": false,
+  "mixture_reduction_implemented": false,
+  "all_original_requirements_complete_claimed": false
+}

@@ -70,7 +70,7 @@ class MovingSwitchScene:
     transparent robot is FK of the command sent at the same instant.
     """
 
-    def __init__(self, output_dir, config_path=None):
+    def __init__(self, output_dir, config_path=None, *, imu_target_link=None):
         packages = rospkg.RosPack()
         package = Path(packages.get_path("probtf_observation_fusion_demo"))
         config_path = Path(config_path or package / "config/switch_press_scene.yaml")
@@ -94,7 +94,11 @@ class MovingSwitchScene:
         self.hand_camera = transform(self.config["camera"]["translation"], self.config["camera"]["rpy"])
         self.texture_path = (Path(packages.get_path("prob_artag_detector")) / "samples"
                              / "apriltag_36h11_id_{:03d}.png".format(marker["id"]))
-        self.imu_target_link = self.config["imu"]["target_link"]
+        self.imu_target_link = (self.config["imu"]["target_link"]
+                                if imu_target_link is None else str(imu_target_link))
+        imu_links = {"link_{}".format(index+1) for index in range(6)} | {"tool0"}
+        if self.imu_target_link not in imu_links:
+            raise ValueError("IMU attachment must be an active link or the known tool0 flange.")
         self.imu_sigma_rad = float(self.config["imu"]["direction_sigma_rad"])
         self.reset()
 

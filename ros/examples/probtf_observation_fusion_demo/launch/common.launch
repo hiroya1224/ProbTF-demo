@@ -2,10 +2,15 @@
   <arg name="observations" />
   <arg name="common" default="$(find probtf_observation_fusion_demo)/config/common.yaml" />
   <arg name="rviz" default="true" />
+  <arg name="moving" default="true" />
+  <arg name="entry" default="$(eval 'observation_fusion_motion.py' if arg('moving') else 'observation_fusion_demo.py')" />
+  <arg name="rviz_config" default="$(eval find('probtf_observation_fusion_demo') + '/rviz/' + ('observation_fusion_motion.rviz' if arg('moving') else 'observation_fusion_demo.rviz'))" />
   <arg name="autostart" default="true" />
   <arg name="stage_seconds" default="3.0" />
   <arg name="output_dir" default="/tmp/probtf_observation_fusion_demo/$(anon run)" />
-  <node pkg="probtf_observation_fusion_demo" type="observation_fusion_demo.py"
+  <param if="$(arg moving)" name="/observation_fusion/robot_description"
+         command="/usr/bin/python3 $(find probtf_observation_fusion_demo)/scripts/print_motion_robot.py" />
+  <node pkg="probtf_observation_fusion_demo" type="$(arg entry)"
         name="observation_fusion_demo" output="screen" required="true">
     <env name="OPENBLAS_NUM_THREADS" value="1" />
     <env name="OMP_NUM_THREADS" value="1" />
@@ -16,6 +21,6 @@
     <param name="stage_seconds" value="$(arg stage_seconds)" />
   </node>
   <node if="$(arg rviz)" pkg="rviz" type="rviz" name="observation_fusion_rviz"
-        args="-d $(find probtf_observation_fusion_demo)/rviz/observation_fusion_demo.rviz"
+        args="-d $(arg rviz_config)"
         output="screen" />
 </launch>

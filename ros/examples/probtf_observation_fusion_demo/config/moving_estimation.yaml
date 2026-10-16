@@ -1,0 +1,35 @@
+# Explicit estimation inputs for all four moving sensor cases.  Physical
+# stiffness, realized joint angles and marker truth are not estimation inputs.
+root_frame: base_link
+body_law_package: probtf_switch_press_demo
+body_law_file: config/independent_transform_laws.yaml
+body_law_source: unchanged directly specified six-link family from the switch-press example; translation Gaussians and full Bingham rotations, transported by its explicit right_joint_action
+temporal_policy: independent fixed-command/time updates of the same input family; no unprovided temporal dynamics or repeated-image information accumulation
+marker_prior:
+  edge_id: marker
+  translation: [1.16, -0.04, 0.72]
+  translation_standard_deviation: 0.04
+  orientation_rpy: [1.59, 0.015, -1.55]
+  bingham_eigenvalues: [0.0, -1250.0, -1250.0, -1250.0]
+  status: unknown placement represented by this directly supplied transform candidate distribution; manually specified illustrative prior, not the simulator marker pose
+camera:
+  width: 960
+  height: 720
+  matrix: [[720.0, 0.0, 480.0], [0.0, 720.0, 360.0], [0.0, 0.0, 1.0]]
+  distortion: [0.0, 0.0, 0.0, 0.0, 0.0]
+  source: explicitly supplied calibrated pinhole intrinsics; shared by the four cases
+marker:
+  id: 21
+  size: 0.18
+  family: DICT_APRILTAG_36h11
+  corner_sigma_px: 0.5
+  translation_prior_variance: null
+  source: decoded marker ID and printed size; detector receives pixels only, no physical pose or projected corners
+display:
+  axis_length: 0.10000000149011612
+  point_size: 0.009999999776482582
+  body_samples: 180
+  marker_samples: 200
+  seed: 29
+  stage_seconds: 3.0
+  publish_hz: 10.0

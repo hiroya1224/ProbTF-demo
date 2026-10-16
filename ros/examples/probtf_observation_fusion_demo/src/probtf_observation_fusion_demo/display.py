@@ -43,6 +43,7 @@ class DisplaySnapshot:
     stage: str
     observation_ids: tuple
     summary: str
+    show_labels: bool = True
 
 
 def query_record(point):
@@ -76,6 +77,8 @@ def snapshot_record(snapshot):
         "command": list(snapshot.command),
         "version": snapshot.version,
         "stage": snapshot.stage,
+        "summary": snapshot.summary,
+        "show_labels": snapshot.show_labels,
         "observation_ids": list(snapshot.observation_ids),
         "queries": [query_record(point) for point in snapshot.points],
     }
@@ -141,7 +144,8 @@ def make_markers(snapshot, seed=29, point_size=0.009999999776482582):
         text.text = label + (" [k{}, w={:.3f}]".format(
             component_ids.index(component), group["origin"].weight)
             if len(component_ids) > 1 else "")
-        output.append(text)
+        if snapshot.show_labels:
+            output.append(text)
     status = _marker(snapshot, 0, "status", Marker.TEXT_VIEW_FACING)
     status.pose.position = Point(0.75, -0.32, 1.05)
     status.scale.z = 0.028

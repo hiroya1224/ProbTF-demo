@@ -216,7 +216,12 @@ def marker_estimate(state, observation, paths, common, image):
                                                 likelihood.mean, likelihood.covariance)
         label = component.component_id
         modes.append((label, posterior))
-        log_weights.append(math.log(image_weight) + overlap)
+        # A numerically zero detector mass is still an observed component.
+        # Retain its label and zero mass instead of selecting a different mode
+        # or failing on log(0) during a moving image sequence.
+        if image_weight < 0.0:
+            raise ValueError("The detector returned a negative component weight.")
+        log_weights.append((-math.inf if image_weight == 0.0 else math.log(image_weight)) + overlap)
         details.append({"label": label, "detector_seed_index": int(seed_index),
                         "image_weight": float(image_weight), "prior_overlap_log_evidence": float(overlap),
                         "image_only_mean": likelihood.mean.tolist(),

@@ -20,6 +20,9 @@
 `ros/examples/probtf_observation_fusion_demo/REQUIREMENTS.md` が適用される。
 そこに指定された一次Bingham代理、相関を保つ解析的伝播、支持上の全共分散・持ち上げ・分布比融合・一括再表現はcoreに実装する。
 旧スイッチ押下デモのIK固有要件をこのデモへ持ち込まない。既存APIの既定挙動は変更しない。
+動作を伴う4ケース比較と動画の追加要件は
+`ros/examples/probtf_observation_fusion_demo/MOTION_REQUIREMENTS.md` に記録している。
+同じスイッチ場面・指令・物理モデル・事前分布を使い、観測リストだけを変更する。
 
 coreの変更は、ユーザーが認めた「Lie群的な近似を排し、BinghamのS²へのpush-forwardの高集中近似を使うための変更」に限る。
 デモの都合で新しい候補フレームワーク、有限Dirac事前分布、汎用密度積分エンジン、別の既定バックエンド等をcoreへ追加してはならない。

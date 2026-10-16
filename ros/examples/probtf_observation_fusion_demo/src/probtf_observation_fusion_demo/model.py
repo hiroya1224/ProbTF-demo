@@ -133,7 +133,7 @@ def _joint_record(component, paths, frame):
             "hand_within": hand.within.tolist(), "hand_between": hand.between.tolist()}
 
 
-def run(common, observations, image=None):
+def run(common, observations, image=None, *, prior=None, paths=None):
     """Estimate using only explicit laws/geometry and the selected observations.
 
     Supplying ``image`` avoids all reads of ``physical_scene``. This boundary
@@ -147,8 +147,11 @@ def run(common, observations, image=None):
     # adapter receives physical truth or rendering settings, even as unused data.
     common = {key: common[key] for key in (
         "root_frame", "update", "prior", "known_geometry", "camera", "marker")}
-    prior = initial_state(common)
-    paths = geometry_paths(common)
+    # The moving replay supplies the directly configured command-family state
+    # and its actual URDF attachment paths.  All sensor estimation, lifting,
+    # fusion and reexpression below remain the same fixed-time calculation.
+    prior = initial_state(common) if prior is None else prior
+    paths = geometry_paths(common) if paths is None else paths
     prior_component = WeightedState("common_body_prior", 1.0, prior)
     stages = [Stage("prior", (prior_component,))]
     posteriors, local_estimates = [], []

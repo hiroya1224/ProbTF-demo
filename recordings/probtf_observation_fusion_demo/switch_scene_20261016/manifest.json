@@ -1,0 +1,302 @@
+{
+  "master_uri": "http://localhost:11766/",
+  "settings_sha256": {
+    "ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_motion.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+    "ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_demo.rviz": "247e38b29b8c59f70c3a5ddb833acd4c849aba6d6cf331f82446ccecc37c2404",
+    "ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58"
+  },
+  "capture": {
+    "fps": 20,
+    "duration_s": 42.5,
+    "encoder": "libx264",
+    "crf": 18,
+    "pixel_format": "yuv420p"
+  },
+  "cases": [
+    {
+      "case": "no_sensors",
+      "video": "no_sensors.mp4",
+      "sha256": "19e29f9f76804e4a375a614aa31bc6d00d39746070f76adf50a5d79c512a7433",
+      "rectangle": {
+        "x": 100,
+        "y": 64,
+        "width": 1840,
+        "height": 1200
+      },
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1840,
+            "height": 1200,
+            "r_frame_rate": "20/1",
+            "nb_frames": "850"
+          }
+        ],
+        "format": {
+          "duration": "42.500000",
+          "size": "9303547"
+        }
+      },
+      "replay_wall_elapsed_s": 27.831335043068975,
+      "snapshot_count": 74,
+      "motion_count": 715,
+      "received_marker_arrays": 74,
+      "last_motion": {
+        "duration": 35.609207815025,
+        "frames": 714,
+        "updates": 73,
+        "command_sha256": "530cd356f3fe876eaabba9a444673a4f9a664d7b441eca50f46c8058b3928335",
+        "physics_sha256": "f0a08a1a680f4b0a28d717f0d635f8b0f95fc6c9afccc059cca30c70f0cef799",
+        "sensors": [],
+        "same_motion_sensor_estimation_comparison": true,
+        "sensors_drive_commands": false,
+        "final_physical_error_m": 0.005683387595630605,
+        "final_rigid_error_m": 0.6349247858324191,
+        "reached": true,
+        "collided": false,
+        "minimum_clearance_m": 0.014259112102682062,
+        "sample_index": 713,
+        "scene_elapsed": 35.609207815025,
+        "finished": true,
+        "estimate_index": 72,
+        "estimate_stamp": 1792080035.6092079,
+        "physical_stamp": 1792080035.6092079,
+        "command": [
+          -0.07465848210556483,
+          -1.3510418188093198,
+          1.170998137109166,
+          -0.1414619819895731,
+          -0.48495978176189475,
+          0.12871035893886248
+        ],
+        "valid_observations": 0
+      },
+      "verification": {
+        "final_motion_observed": true,
+        "snapshot_identity_verified": true,
+        "published_wire_identity_verified": true,
+        "unique_snapshots": 73,
+        "unique_wire_messages": 73
+      },
+      "runtime_record": "/tmp/probtf_motion_four_case_recording_20261016_run2/no_sensors"
+    },
+    {
+      "case": "imu",
+      "video": "imu.mp4",
+      "sha256": "8c31d46f4f0825406faca2db4435e3c6e094e8b55b8959af8f7797b31fbc895e",
+      "rectangle": {
+        "x": 100,
+        "y": 64,
+        "width": 1840,
+        "height": 1200
+      },
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1840,
+            "height": 1200,
+            "r_frame_rate": "20/1",
+            "nb_frames": "850"
+          }
+        ],
+        "format": {
+          "duration": "42.500000",
+          "size": "8452759"
+        }
+      },
+      "replay_wall_elapsed_s": 29.045065995771438,
+      "snapshot_count": 74,
+      "motion_count": 715,
+      "received_marker_arrays": 74,
+      "last_motion": {
+        "duration": 35.609207815025,
+        "frames": 714,
+        "updates": 73,
+        "command_sha256": "530cd356f3fe876eaabba9a444673a4f9a664d7b441eca50f46c8058b3928335",
+        "physics_sha256": "f0a08a1a680f4b0a28d717f0d635f8b0f95fc6c9afccc059cca30c70f0cef799",
+        "sensors": [
+          "imu"
+        ],
+        "same_motion_sensor_estimation_comparison": true,
+        "sensors_drive_commands": false,
+        "final_physical_error_m": 0.005683387595630605,
+        "final_rigid_error_m": 0.6349247858324191,
+        "reached": true,
+        "collided": false,
+        "minimum_clearance_m": 0.014259112102682062,
+        "sample_index": 713,
+        "scene_elapsed": 35.609207815025,
+        "finished": true,
+        "estimate_index": 72,
+        "estimate_stamp": 1792080035.6092079,
+        "physical_stamp": 1792080035.6092079,
+        "command": [
+          -0.07465848210556483,
+          -1.3510418188093198,
+          1.170998137109166,
+          -0.1414619819895731,
+          -0.48495978176189475,
+          0.12871035893886248
+        ],
+        "valid_observations": 1
+      },
+      "verification": {
+        "final_motion_observed": true,
+        "snapshot_identity_verified": true,
+        "published_wire_identity_verified": true,
+        "unique_snapshots": 73,
+        "unique_wire_messages": 73
+      },
+      "runtime_record": "/tmp/probtf_motion_four_case_recording_20261016_run2/imu"
+    },
+    {
+      "case": "marker",
+      "video": "marker.mp4",
+      "sha256": "4e81bdd1d30b823905755a8ad56090050cb40f567cc05a8193dc4f21c9dc33e9",
+      "rectangle": {
+        "x": 100,
+        "y": 64,
+        "width": 1840,
+        "height": 1200
+      },
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1840,
+            "height": 1200,
+            "r_frame_rate": "20/1",
+            "nb_frames": "850"
+          }
+        ],
+        "format": {
+          "duration": "42.500000",
+          "size": "7614044"
+        }
+      },
+      "replay_wall_elapsed_s": 34.47946693561971,
+      "snapshot_count": 74,
+      "motion_count": 714,
+      "received_marker_arrays": 74,
+      "last_motion": {
+        "duration": 35.609207815025,
+        "frames": 714,
+        "updates": 73,
+        "command_sha256": "530cd356f3fe876eaabba9a444673a4f9a664d7b441eca50f46c8058b3928335",
+        "physics_sha256": "f0a08a1a680f4b0a28d717f0d635f8b0f95fc6c9afccc059cca30c70f0cef799",
+        "sensors": [
+          "marker"
+        ],
+        "same_motion_sensor_estimation_comparison": true,
+        "sensors_drive_commands": false,
+        "final_physical_error_m": 0.005683387595630605,
+        "final_rigid_error_m": 0.6349247858324191,
+        "reached": true,
+        "collided": false,
+        "minimum_clearance_m": 0.014259112102682062,
+        "sample_index": 713,
+        "scene_elapsed": 35.609207815025,
+        "finished": true,
+        "estimate_index": 72,
+        "estimate_stamp": 1792080035.6092079,
+        "physical_stamp": 1792080035.6092079,
+        "command": [
+          -0.07465848210556483,
+          -1.3510418188093198,
+          1.170998137109166,
+          -0.1414619819895731,
+          -0.48495978176189475,
+          0.12871035893886248
+        ],
+        "valid_observations": 1
+      },
+      "verification": {
+        "final_motion_observed": true,
+        "snapshot_identity_verified": true,
+        "published_wire_identity_verified": true,
+        "unique_snapshots": 73,
+        "unique_wire_messages": 73
+      },
+      "runtime_record": "/tmp/probtf_motion_four_case_recording_20261016_run2/marker"
+    },
+    {
+      "case": "imu_marker",
+      "video": "imu_marker.mp4",
+      "sha256": "2e3cfb22614ab7ad197a9eca818d23be29bdc5f0bf6bae60afdb4ced65c36065",
+      "rectangle": {
+        "x": 100,
+        "y": 64,
+        "width": 1840,
+        "height": 1200
+      },
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1840,
+            "height": 1200,
+            "r_frame_rate": "20/1",
+            "nb_frames": "850"
+          }
+        ],
+        "format": {
+          "duration": "42.500000",
+          "size": "7224906"
+        }
+      },
+      "replay_wall_elapsed_s": 35.377172311302274,
+      "snapshot_count": 74,
+      "motion_count": 715,
+      "received_marker_arrays": 74,
+      "last_motion": {
+        "duration": 35.609207815025,
+        "frames": 714,
+        "updates": 73,
+        "command_sha256": "530cd356f3fe876eaabba9a444673a4f9a664d7b441eca50f46c8058b3928335",
+        "physics_sha256": "f0a08a1a680f4b0a28d717f0d635f8b0f95fc6c9afccc059cca30c70f0cef799",
+        "sensors": [
+          "imu",
+          "marker"
+        ],
+        "same_motion_sensor_estimation_comparison": true,
+        "sensors_drive_commands": false,
+        "final_physical_error_m": 0.005683387595630605,
+        "final_rigid_error_m": 0.6349247858324191,
+        "reached": true,
+        "collided": false,
+        "minimum_clearance_m": 0.014259112102682062,
+        "sample_index": 713,
+        "scene_elapsed": 35.609207815025,
+        "finished": true,
+        "estimate_index": 72,
+        "estimate_stamp": 1792080035.6092079,
+        "physical_stamp": 1792080035.6092079,
+        "command": [
+          -0.07465848210556483,
+          -1.3510418188093198,
+          1.170998137109166,
+          -0.1414619819895731,
+          -0.48495978176189475,
+          0.12871035893886248
+        ],
+        "valid_observations": 2
+      },
+      "verification": {
+        "final_motion_observed": true,
+        "snapshot_identity_verified": true,
+        "published_wire_identity_verified": true,
+        "unique_snapshots": 73,
+        "unique_wire_messages": 73
+      },
+      "runtime_record": "/tmp/probtf_motion_four_case_recording_20261016_run2/imu_marker"
+    }
+  ],
+  "settings_byte_comparison_passed": true,
+  "same_commands_and_physics_verified": true
+}

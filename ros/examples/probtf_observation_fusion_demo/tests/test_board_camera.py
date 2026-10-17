@@ -104,8 +104,12 @@ def test_whole_board_projects_once_per_pose_then_blurs_and_adds_noise_once(tmp_p
 def test_physical_scene_preserves_goal_panel_and_legacy_camera_when_board_disabled(tmp_path):
     scene = MovingSwitchScene(tmp_path/'board')
     original = yaml.safe_load((PACKAGE.parent/'probtf_switch_press_demo/config/default.yaml').read_text())
-    for key in ('marker', 'base_translation', 'rod', 'plant', 'initial_command', 'obstacles', 'reach_tolerance'):
+    for key in ('marker', 'base_translation', 'rod', 'initial_command', 'obstacles', 'reach_tolerance'):
         assert scene.config[key] == original[key]
+    # Physical stiffness and geometry are shared with the historical switch
+    # scene; inertia/damping integration is the explicit new physical model.
+    assert scene.config['plant']['stiffness'] == original['plant']['stiffness']
+    assert scene.config['plant']['dynamics']['damping_ratio'] == 2.
     np.testing.assert_array_equal(scene.goal, apply(scene.marker, original['marker']['goal_offset']))
     config = dict(scene.config, marker_board=dict(scene.config['marker_board'], enabled=False))
     config_path = tmp_path/'single.yaml';config_path.write_text(yaml.safe_dump(config))

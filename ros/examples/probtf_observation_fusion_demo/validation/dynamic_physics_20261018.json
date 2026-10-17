@@ -1,0 +1,409 @@
+{
+  "date": "2026-10-18",
+  "source_parent_commit": "2e869e20dfc1f2f476232f1cfc78a88847f41d92",
+  "requirements": {
+    "physical_model": "full rigid-body inertia, Coriolis, gravity, spring and viscous damping",
+    "integrator": "native C++ implicit midpoint; analytic RNEA Newton; <=1 ms nominal substeps",
+    "damping_ratio_parameter": 2.0,
+    "damping_coefficient_multiplier_from_initial_point_one": 20.0,
+    "collision_checking": false,
+    "collided_when_unchecked": null,
+    "reach_condition": "distance_only_collision_unchecked",
+    "inference_and_IK_command_model": "unchanged auxiliary quasistatic equilibrium increment"
+  },
+  "regression": {
+    "passed": 621,
+    "elapsed_s": 223.25,
+    "failed": 0,
+    "log": "/tmp/probtf_dynamic_collision_off_full_suite_20261018.log",
+    "log_sha256": "bbaa60a8943ffce0ed69e7ceff54f33586e1fbc20a558d2dc2b8714877996772"
+  },
+  "benchmark": {
+    "test": "prescribed-command physics throughput and nonlinear held-command ringdown",
+    "reaching_or_estimation_validation": false,
+    "wall_clock_paced": false,
+    "nominal_physics_hz": 120.0,
+    "simulated_duration_s": 2.0,
+    "native_advance": {
+      "count": 240,
+      "mean_ms": 0.15415417146869004,
+      "median_ms": 0.14693336561322212,
+      "p95_ms": 0.17414705362170935,
+      "max_ms": 0.23984303697943687
+    },
+    "physical_frame_without_image_rendering": {
+      "count": 240,
+      "mean_ms": 1.0807101129709433,
+      "median_ms": 0.9523504413664341,
+      "p95_ms": 1.2220061384141427,
+      "max_ms": 3.5640080459415913
+    },
+    "collision_checking_enabled": false,
+    "image_rendering_or_ros_publication_included": false,
+    "default_heavy_damping_ringdown": {
+      "duration_s": 5.0,
+      "held_command": true,
+      "finite": true,
+      "damping_ratio": 2.0,
+      "displaced_joint_index": 3,
+      "initial_displacement_rad": 0.03,
+      "displacement_min_rad": 4.2930995997753074e-11,
+      "displacement_max_rad": 0.029999999999999995,
+      "equilibrium_crossings": 0,
+      "initial_excess_energy_j": 0.026075492797055233,
+      "final_excess_energy_j": 0.0,
+      "final_position_error_norm_rad": 5.544991396696371e-10,
+      "peak_actual_speed_rad_s": 0.17203960723132752,
+      "diagnostics": {
+        "time_s": 5.0,
+        "energy_j": 58.04233722306016,
+        "kinetic_energy_j": 3.777462341537548e-21,
+        "gravity_energy_j": 55.48567759772714,
+        "spring_energy_j": 2.5566596253330207,
+        "damping_loss_j": 0.026075492827030422,
+        "command_work_j": 0.0,
+        "impact_loss_j": 0.0,
+        "energy_balance_residual_j": 2.997518899761076e-11,
+        "max_torque_residual_nm": 1.8323820683008307e-08,
+        "min_accepted_step_s": 0.0009999999999999996,
+        "max_accepted_step_s": 0.001,
+        "last_advance_dt_s": 5.0,
+        "accepted_substeps": 5000,
+        "newton_iterations": 3910,
+        "line_search_evaluations": 3910,
+        "step_halvings": 0,
+        "joint_impacts": 0,
+        "active_stop_substeps": 0,
+        "stiffness": [
+          350.0,
+          125.0,
+          95.0,
+          60.0,
+          40.0,
+          30.0
+        ],
+        "damping": [
+          56.98944259561644,
+          45.59764280446439,
+          41.897751010862514,
+          8.220586861095924,
+          7.892049981967445,
+          1.84122178115633
+        ],
+        "reference_mass": [
+          [
+            0.5799636727426896,
+            0.002183291263553941,
+            -0.0024118697551409763,
+            -0.14986505338378192,
+            0.001817991150403736,
+            -0.006030928663279844
+          ],
+          [
+            0.002183291263553941,
+            1.0395725146617618,
+            0.5191515533072727,
+            0.0026776609308169987,
+            0.1923219457342789,
+            0.005938221222313459
+          ],
+          [
+            -0.0024118697551409763,
+            0.5191515533072727,
+            1.1548825919527834,
+            0.006532111009114971,
+            0.20315986732834018,
+            0.006459895064944541
+          ],
+          [
+            -0.14986505338378192,
+            0.0026776609308169987,
+            0.006532111009114971,
+            0.07039380035502389,
+            0.0007686200860472934,
+            0.0069823498109748625
+          ],
+          [
+            0.001817991150403736,
+            0.1923219457342789,
+            0.20315986732834018,
+            0.0007686200860472934,
+            0.09731945768417555,
+            0.0028450740985556215
+          ],
+          [
+            -0.006030928663279844,
+            0.005938221222313459,
+            0.006459895064944541,
+            0.0069823498109748625,
+            0.0028450740985556215,
+            0.007062703432092685
+          ]
+        ],
+        "damping_ratio": 2.0,
+        "damping_fixed_after_initial_reset": true,
+        "backend_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_flexible_dynamics.so",
+        "backend_sha256": "770adaa9b7c296f60a9a851218fa3d2c4dbe9234a785dce51fbc2b98816b2339",
+        "pinocchio_python_version": "3.3.1",
+        "loaded_native_libraries": [
+          "/home/leus/.local/lib/python3.8/site-packages/cmeel.prefix/lib/libboost_python38.so.1.87.0",
+          "/opt/openrobots/lib/libpinocchio_collision.so.3.3.1",
+          "/opt/openrobots/lib/libpinocchio_default.so.3.3.1",
+          "/opt/openrobots/lib/libpinocchio_parsers.so.3.3.1",
+          "/opt/ros/noetic/lib/x86_64-linux-gnu/libeigenpy.so",
+          "/usr/lib/x86_64-linux-gnu/libboost_python38.so.1.71.0"
+        ],
+        "last_advance_failed": false,
+        "last_advance_error": null,
+        "advance_diagnostics_scope": "accepted_state_and_last_successful_advance",
+        "integration_method": "implicit midpoint with full rigid-body dynamics, joint springs and fixed damping",
+        "equilibrium_samples_used": false,
+        "synthetic_oscillations_added": false
+      }
+    },
+    "low_damping_oscillation_check": {
+      "duration_s": 5.0,
+      "held_command": true,
+      "finite": true,
+      "damping_ratio": 0.1,
+      "displaced_joint_index": 3,
+      "initial_displacement_rad": 0.03,
+      "displacement_min_rad": -0.010275453856266232,
+      "displacement_max_rad": 0.029999999999999995,
+      "equilibrium_crossings": 32,
+      "initial_excess_energy_j": 0.026075492797055233,
+      "final_excess_energy_j": 1.105947688984088e-08,
+      "final_position_error_norm_rad": 1.0304763016930753e-05,
+      "peak_actual_speed_rad_s": 0.8313652567259151,
+      "diagnostics": {
+        "time_s": 5.0,
+        "energy_j": 58.042337234119636,
+        "kinetic_energy_j": 5.634987337461772e-09,
+        "gravity_energy_j": 55.485890359624236,
+        "spring_energy_j": 2.5564468688604114,
+        "damping_loss_j": 0.02607548184174846,
+        "command_work_j": 0.0,
+        "impact_loss_j": 0.0,
+        "energy_balance_residual_j": 1.0417011697683165e-10,
+        "max_torque_residual_nm": 1.8292823256160773e-08,
+        "min_accepted_step_s": 0.0009999999999999996,
+        "max_accepted_step_s": 0.001,
+        "last_advance_dt_s": 5.0,
+        "accepted_substeps": 5000,
+        "newton_iterations": 6291,
+        "line_search_evaluations": 6291,
+        "step_halvings": 0,
+        "joint_impacts": 0,
+        "active_stop_substeps": 0,
+        "stiffness": [
+          350.0,
+          125.0,
+          95.0,
+          60.0,
+          40.0,
+          30.0
+        ],
+        "damping": [
+          2.849472129780822,
+          2.27988214022322,
+          2.0948875505431257,
+          0.4110293430547962,
+          0.3946024990983723,
+          0.09206108905781651
+        ],
+        "reference_mass": [
+          [
+            0.5799636727426896,
+            0.002183291263553941,
+            -0.0024118697551409763,
+            -0.14986505338378192,
+            0.001817991150403736,
+            -0.006030928663279844
+          ],
+          [
+            0.002183291263553941,
+            1.0395725146617618,
+            0.5191515533072727,
+            0.0026776609308169987,
+            0.1923219457342789,
+            0.005938221222313459
+          ],
+          [
+            -0.0024118697551409763,
+            0.5191515533072727,
+            1.1548825919527834,
+            0.006532111009114971,
+            0.20315986732834018,
+            0.006459895064944541
+          ],
+          [
+            -0.14986505338378192,
+            0.0026776609308169987,
+            0.006532111009114971,
+            0.07039380035502389,
+            0.0007686200860472934,
+            0.0069823498109748625
+          ],
+          [
+            0.001817991150403736,
+            0.1923219457342789,
+            0.20315986732834018,
+            0.0007686200860472934,
+            0.09731945768417555,
+            0.0028450740985556215
+          ],
+          [
+            -0.006030928663279844,
+            0.005938221222313459,
+            0.006459895064944541,
+            0.0069823498109748625,
+            0.0028450740985556215,
+            0.007062703432092685
+          ]
+        ],
+        "damping_ratio": 0.1,
+        "damping_fixed_after_initial_reset": true,
+        "backend_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_flexible_dynamics.so",
+        "backend_sha256": "770adaa9b7c296f60a9a851218fa3d2c4dbe9234a785dce51fbc2b98816b2339",
+        "pinocchio_python_version": "3.3.1",
+        "loaded_native_libraries": [
+          "/home/leus/.local/lib/python3.8/site-packages/cmeel.prefix/lib/libboost_python38.so.1.87.0",
+          "/opt/openrobots/lib/libpinocchio_collision.so.3.3.1",
+          "/opt/openrobots/lib/libpinocchio_default.so.3.3.1",
+          "/opt/openrobots/lib/libpinocchio_parsers.so.3.3.1",
+          "/opt/ros/noetic/lib/x86_64-linux-gnu/libeigenpy.so",
+          "/usr/lib/x86_64-linux-gnu/libboost_python38.so.1.71.0"
+        ],
+        "last_advance_failed": false,
+        "last_advance_error": null,
+        "advance_diagnostics_scope": "accepted_state_and_last_successful_advance",
+        "integration_method": "implicit midpoint with full rigid-body dynamics, joint springs and fixed damping",
+        "equilibrium_samples_used": false,
+        "synthetic_oscillations_added": false
+      }
+    },
+    "physical_source": {
+      "backend_path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_flexible_dynamics.so",
+      "backend_sha256": "770adaa9b7c296f60a9a851218fa3d2c4dbe9234a785dce51fbc2b98816b2339",
+      "urdf_sha256": "a1262932f4dcb70632a6c44beb761e53023722a34380ec51ef13aaa63427d5a2",
+      "scene_config_sha256": "27f854873a833db6c827c3d10eeba7f22484238671a1bfa7496399067a30c78a"
+    },
+    "source_sha256": {
+      "config/switch_press_scene.yaml": "27f854873a833db6c827c3d10eeba7f22484238671a1bfa7496399067a30c78a",
+      "native/flexible_dynamics.cpp": "95989db25ddf96b250b1f32edd9762fd695f4be166d47fe96b4da6fc05402829",
+      "native/flexible_dynamics.h": "66082d0d845c769d12c493e9601be74c6067e4a0008b44bbec5df853159e98b0",
+      "scripts/benchmark_physics.py": "0d0a0370c7ebcfe9ba1906019d94a79239ba84c8d84f2071bbce1a01c5fb3b4c",
+      "src/probtf_observation_fusion_demo/dynamic_physics.py": "99fe6a394b86b22247f18220987409ec66ef381b480d9387a623a1ff2750e453",
+      "src/probtf_observation_fusion_demo/moving_scene.py": "e9f1f34998679f2a97620145c9d349fc7b44c14917faa94b8de58757f6270299"
+    }
+  },
+  "ros_motion": {
+    "case": "no_sensors",
+    "duration_s": 10.0,
+    "physical_frames": 1101,
+    "rates": {
+      "actual_motion_hz": 109.96318280664589,
+      "actual_camera_hz": 12.00174756844336,
+      "actual_control_hz": 2.9549162424312754,
+      "actual_estimate_hz": null,
+      "actual_update_hz": null,
+      "actual_joint_hz": 39.23400389520349,
+      "actual_imu_hz": 29.87854974319926
+    },
+    "topic_receive_counts": {
+      "joint": 391,
+      "imu": 298,
+      "image": 120,
+      "snapshot": 32,
+      "wire": 32,
+      "metadata": 750
+    },
+    "raw_acquisitions": 812,
+    "raw_archived": 812,
+    "all_enabled_events_processed": true,
+    "publisher_raw_calls": {
+      "joint": 392,
+      "imu": 299,
+      "image": 121
+    },
+    "independent_raw_delivery": "all except the first message on each topic; timestamps verified",
+    "all_published_distribution_hashes_match_saved_controls": true,
+    "distribution_publications": 32,
+    "all_frame_collision_results_null": true,
+    "source_unchanged": true,
+    "graceful_publication_shutdown": true,
+    "reached": false,
+    "evidence_directory": "/tmp/probtf_dynamic_collision_off_ros_20261018",
+    "no_claim_of_other_sensor_case_throughput": true
+  },
+  "preservation": {
+    "rviz_files": 37,
+    "rviz_changed": 0,
+    "preexisting_user_files": 28,
+    "user_changed": 0,
+    "core_changed": false,
+    "rviz_hashes": {
+      "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083122_631446/demo.rviz": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+      "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083323_181005/demo.rviz": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+      "/home/leus/catkin_ws/src/ProbTF-demo/recordings/probtf_observation_fusion_demo/position_hold_90s_20261017/rviz/imu_marker.rviz": "7112812cd61c9f95afc045580d7be5994ad76efcdcac846bb498b89ab194d300",
+      "/home/leus/catkin_ws/src/ProbTF-demo/recordings/probtf_observation_fusion_demo/position_hold_90s_20261017/rviz/marker.rviz": "b76838c3adefecfa2eaec00118af0a6c7c8ae2a713d3cbad386d5b39ca66bde1",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_rviz/rviz/probtf_tree.rviz": "3f4f5f9379b194deb8ab9e5f9615caa8cc71881aa4f9ea9ca62d69b8df2693b2",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/deflecomp_description/rviz/deflecomp.rviz": "750cade8b49597b507a80f1b3b754d92b4f073b1e0c70c26631d4a49ab307d11",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_01/convergence_demo.rviz": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_02/convergence_demo.rviz": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_03/convergence_demo.rviz": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_04/convergence_demo.rviz": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_tip_load_step_01/convergence_demo.rviz": "f3edffce537da23a268761e92e211512a39457c4ed624fe2d6479917f47f3bd1",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/tip_load_prediction_recovery/convergence_demo.rviz": "f3edffce537da23a268761e92e211512a39457c4ed624fe2d6479917f47f3bd1",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/prob_artag_detector/rviz/prob_artag_real_camera_demo.rviz": "4fdda28a8259d74d175c71d5d43914860e694c9a34a806be8ad9eaa7cbd7c1dc",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_global_fusion_demo/rviz/global_fusion_demo.rviz": "29565e9fec7e8a21775d196ea5b6c273c43bac5b691289c48dd152bac5827d0f",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_demo.rviz": "247e38b29b8c59f70c3a5ddb833acd4c849aba6d6cf331f82446ccecc37c2404",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_motion.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/axisymmetric/bottle_grasp_oblique.rviz": "a0f25cff5bfa8cc95b2052f8f68e0bb50c8bd83232415ffb897a00fdee585111",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/axisymmetric/bottle_grasp_top.rviz": "699716ac70cc55dba77c231ec80018a255158272289d55f8e74ff7da5c7311c5",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/single_pose/bottle_grasp_oblique.rviz": "a0f25cff5bfa8cc95b2052f8f68e0bb50c8bd83232415ffb897a00fdee585111",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/single_pose/bottle_grasp_top.rviz": "699716ac70cc55dba77c231ec80018a255158272289d55f8e74ff7da5c7311c5",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_trial/bottle_grasp.rviz": "4ecd65d93afac1ba9013e5c9d823eae0565ef883a245be2bc7cfe02d73d4bf10",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/mixture/box_grasp_oblique.rviz": "f3f7e6653752b7114e69d084699128dab329be73a1a986f37e00e83a0aaa64ee",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/mixture/box_grasp_top.rviz": "7ae424d23e482d06e27d96103c0fb1b82f6f7b544354485ce075d633c2676375",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/single_pose/box_grasp_oblique.rviz": "f3f7e6653752b7114e69d084699128dab329be73a1a986f37e00e83a0aaa64ee",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/single_pose/box_grasp_top.rviz": "7ae424d23e482d06e27d96103c0fb1b82f6f7b544354485ce075d633c2676375",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/rviz/prob_tf_link_cloud.rviz": "f3f607312d09ca5ccd354aed91a074a1ab5bf03f6249c350b9c6f187c527070f",
+      "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/rviz/probabilistic_tf_demo.rviz": "38740ec7067cb64bde974455b2dc6086a0213b6bb79c92f7405b11b814778863",
+      "/tmp/probtf_K_corrected_live_20261017/marker.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+      "/tmp/probtf_K_corrected_live_20261017/imu_marker.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+      "/tmp/probtf_K_corrected_live_20261017/view.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+      "/tmp/probtf_internal_full_20261017/marker.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+      "/tmp/probtf_internal_full_20261017/imu_marker.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+      "/tmp/probtf_full_run_20261017/marker.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+      "/tmp/probtf_full_run_20261017/imu_marker.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+      "/tmp/probtf_internal_full_v2_20261017/marker.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+      "/tmp/probtf_internal_full_v2_20261017/imu_marker.rviz": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87"
+    },
+    "evidence_path": "/tmp/probtf_dynamic_physics_native_20261018/final_preservation.json"
+  },
+  "source_sha256": {
+    "AGENTS.md": "e9466521a4d7687d982dc8711b4aca2dcf5edcecb66c9ea1721a7c28fa27177d",
+    "ros/examples/probtf_observation_fusion_demo/CMakeLists.txt": "4b2bfd828b21cf6d77e51ae77d9c4b4ae362f83cecb16fd446cc8fee1155c2ea",
+    "ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml": "27f854873a833db6c827c3d10eeba7f22484238671a1bfa7496399067a30c78a",
+    "ros/examples/probtf_observation_fusion_demo/native/flexible_dynamics.cpp": "95989db25ddf96b250b1f32edd9762fd695f4be166d47fe96b4da6fc05402829",
+    "ros/examples/probtf_observation_fusion_demo/native/flexible_dynamics.h": "66082d0d845c769d12c493e9601be74c6067e4a0008b44bbec5df853159e98b0",
+    "ros/examples/probtf_observation_fusion_demo/package.xml": "9cd9b542cf8490eca3458353251d6a59dff66163a0389bca72e7d4e559dd6f09",
+    "ros/examples/probtf_observation_fusion_demo/scripts/benchmark_physics.py": "0d0a0370c7ebcfe9ba1906019d94a79239ba84c8d84f2071bbce1a01c5fb3b4c",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/dynamic_physics.py": "99fe6a394b86b22247f18220987409ec66ef381b480d9387a623a1ff2750e453",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/event_motion.py": "51688f701d866d60792aa059578f8eb27eb07b6b485ae71a1e431bfba18a92b8",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py": "3e010450a1bee411b97cf1847d658ff4a9cb75062c69f9f906de40e8b6f406d0",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py": "f37d9f12b4fd3eae0d30eb0526c3eff2f17350bac6bebab01872ed42a7cfe312",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py": "e9f1f34998679f2a97620145c9d349fc7b44c14917faa94b8de58757f6270299",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_board_camera.py": "2168c90923eadc1e697e6e5f24ca6f2c233c679925fd8f9fc46c7d8f83ca18cc",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_dynamic_physics.py": "e0eba678a5ff159c9973d1c195d0ba0f9396bcd3d9445295fd4073be9b9522b0",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_moving_scene.py": "2f5de688600258d53b42135ef9742c38d799a8abcd9f6a75307024cae6d6da90"
+  },
+  "limitations": [
+    "The physical plant is dynamic; inference/IK retain their auxiliary equilibrium model.",
+    "The IMU adapter measures unit gravity direction, not raw accelerometer specific force.",
+    "External collisions are temporarily unchecked by explicit user instruction.",
+    "No reaching-success, sensor-fusion throughput or RViz GPU performance claim from this short no-sensor run."
+  ]
+}

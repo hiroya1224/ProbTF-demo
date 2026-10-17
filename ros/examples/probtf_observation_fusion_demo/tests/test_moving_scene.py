@@ -23,8 +23,14 @@ def test_switch_scene_never_loads_or_replays_successful_commands(tmp_path, monke
     original = Path(__file__).resolve().parents[2] / "probtf_switch_press_demo/config/default.yaml"
     original = yaml.safe_load(original.read_text(encoding="utf-8"))
     for key in ("seed", "base_translation", "rod", "marker", "obstacles",
-                "plant", "initial_command", "reach_tolerance"):
+                "initial_command", "reach_tolerance"):
         assert first.config[key] == original[key]
+    # The true spring constants stay shared. Dynamic integration/damping are
+    # new physical settings, so the complete plant dictionary is no longer
+    # the old switch example's quasi-static plant specification.
+    assert first.config['plant']['stiffness'] == original['plant']['stiffness']
+    assert first.config['plant']['dynamics']['damping_ratio'] == 2.
+    assert first.config['plant']['collision_checking'] is False
     # The observation comparison first shortened .24 -> .18 s, then the
     # user requested halving only motion-blur exposure to .09 s. Gaussian
     # blur, temporal sample count, noise and image geometry remain shared.
@@ -41,7 +47,7 @@ def test_switch_scene_never_loads_or_replays_successful_commands(tmp_path, monke
         np.testing.assert_array_equal(a.gravity_in_sensor, b.gravity_in_sensor)
         np.testing.assert_array_equal(a.image, b.image)
         np.testing.assert_array_equal(a.command, first.initial_command)
-        assert not a.collided
+        assert a.collided is None
     assert not a.reached
     assert np.linalg.norm(a.tip - first.goal) > first.config['reach_tolerance']
     assert np.linalg.norm(a.tip - a.rigid_tip) > .2
@@ -50,31 +56,37 @@ def test_switch_scene_never_loads_or_replays_successful_commands(tmp_path, monke
 
 
 def test_physics_integrates_from_the_last_actual_sent_command(tmp_path, monkeypatch):
-    from probtf_observation_fusion_demo import moving_scene
     scene = MovingSwitchScene(tmp_path)
-    original_samples = moving_scene.motion_samples
+    original_advance = scene.dynamics.advance
     segments = []
 
-    def record_samples(body, start, end, warm, settings):
-        segments.append((np.array(start), np.array(end)))
-        yield from original_samples(body, start, end, warm, settings)
+    def record_advance(dt, start, end):
+        if dt > 0.:
+            segments.append((dt, np.array(start), np.array(end)))
+        return original_advance(dt, start, end)
 
-    monkeypatch.setattr(moving_scene, 'motion_samples', record_samples)
+    monkeypatch.setattr(scene.dynamics, 'advance', record_advance)
     scene.step(0., 1000.)
     first_command = scene.initial_command + .001
     scene.step(.05, 1000.05, command=first_command)
     second_command = scene.initial_command - .002
     second = scene.step(.1, 1000.1, command=second_command)
-    np.testing.assert_array_equal(segments[0][0], scene.initial_command)
-    np.testing.assert_array_equal(segments[0][1], first_command)
-    np.testing.assert_array_equal(segments[1][0], first_command)
-    np.testing.assert_array_equal(segments[1][1], second_command)
+    np.testing.assert_allclose([segment[0] for segment in segments], [.05, .05])
+    np.testing.assert_array_equal(segments[0][1], scene.initial_command)
+    np.testing.assert_array_equal(segments[0][2], first_command)
+    np.testing.assert_array_equal(segments[1][1], first_command)
+    np.testing.assert_array_equal(segments[1][2], second_command)
     np.testing.assert_array_equal(second.command, second_command)
     held = scene.step(.15, 1000.15)
     np.testing.assert_array_equal(held.command, second_command)
+    np.testing.assert_array_equal(segments[2][1], second_command)
+    np.testing.assert_array_equal(segments[2][2], second_command)
+    assert np.linalg.norm(held.joints-second.joints) > 1e-8
+    assert np.linalg.norm(held.joint_velocities) > 1e-8
     scene.reset()
     reset = scene.step(0., 1000.)
     np.testing.assert_array_equal(reset.command, scene.initial_command)
+    np.testing.assert_array_equal(reset.joint_velocities, np.zeros(6))
 
 
 def test_estimator_sensor_input_excludes_simulator_state(tmp_path):

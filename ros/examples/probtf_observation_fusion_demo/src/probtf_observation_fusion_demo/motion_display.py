@@ -465,6 +465,8 @@ class MotionDisplay:
                          1000*np.linalg.norm(frame.tip-self.scene.goal),
                          1000*np.linalg.norm(frame.rigid_tip-self.scene.goal),
                          len(snapshot.observation_ids), snapshot.stamp-1792080000., inference_index)
+                if not frame.physics_diagnostics.get('collision_checking_enabled', True):
+                    marker.text += '\nCollision checks: OFF | lamp: distance only'
                 if phase_label is not None:
                     marker.text += '\nPhase: '+phase_label
                 action = self.trial.trajectory[-1].get('action_mode')

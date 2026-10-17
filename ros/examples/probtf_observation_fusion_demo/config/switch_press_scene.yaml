@@ -90,6 +90,8 @@ obstacles:
   - 0.045
   - 0.036
 plant:
+  # Temporarily disabled at the user's request. Unchecked is recorded as null.
+  collision_checking: false
   stiffness:
   - 350.0
   - 125.0
@@ -97,6 +99,14 @@ plant:
   - 60.0
   - 40.0
   - 30.0
+  # Physical world only; inference/IK retain their auxiliary equilibrium model.
+  # D_i = 2*zeta_i*sqrt(K_i*M(q_initial)_ii), fixed after reset.
+  dynamics:
+    damping_ratio: 2.0
+    max_step_s: 0.001
+    newton_tolerance: 1.0e-10
+    max_newton_iterations: 12
+    max_step_halvings: 12
 initial_command:
 - -0.15
 - -1.85

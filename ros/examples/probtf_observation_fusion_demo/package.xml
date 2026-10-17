@@ -9,6 +9,10 @@
   <depend>probtf_core</depend>
   <depend>prob_artag_detector</depend>
   <depend>probtf_switch_press_demo</depend>
+  <depend>pinocchio</depend>
+  <build_depend>eigen</build_depend>
+  <build_depend>urdfdom_headers</build_depend>
+  <exec_depend>python3-numpy</exec_depend>
   <exec_depend>deflecomp_core</exec_depend>
   <exec_depend>deflecomp_ros</exec_depend>
   <depend>tf2_ros</depend>

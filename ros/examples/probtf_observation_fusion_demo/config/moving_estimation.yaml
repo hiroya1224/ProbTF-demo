@@ -12,7 +12,7 @@ bayes_factor_surprise:
   # agreement claimed from THEORETICAL_FRAMEWORK_20261018.md.
   event_probability_unit: per_effective_sensor_event
 async_execution:
-  physics_hz: 240.0
+  physics_hz: 120.0
   joint_hz: 40.0
   imu_hz: 30.0
   image_hz: 12.0
@@ -46,6 +46,14 @@ marker_board:
   pitch: 0.09
   ids: [[17, 18, 19], [20, 21, 22], [23, 24, 25]]
 control:
+  mode: running_gradient
+  running_gradient:
+    # Experimental fixed gains; no gradient normalization or hidden clipping.
+    eta: 0.000001
+    gamma: 8.0
+    max_source_age_s: null
+    max_command_distance_rad: null
+    max_snapshot_update_lag: null
   # Known task relation in marker coordinates, not the world's marker pose.
   goal_offset: [0.0, -0.24, 0.045]
   goal_orientation_wxyz: [0.5, -0.5, 0.5, 0.5]
@@ -53,8 +61,8 @@ control:
   max_joint_acceleration: 0.3
   damping: 0.025
   integration_steps: 480
-  # One full-criterion gradient update; directly capture K_est for all trials.
-  # The existing 0.5 s position reference is retained pending trajectory design.
+  # FD step shared by gradient-only evaluation and the isolated old endpoint IK.
+  # Old endpoint-only settings below are inactive in running_gradient mode.
   gradient_step: 0.00001
   gradient_max_backtracks: 3
   visual_approach:

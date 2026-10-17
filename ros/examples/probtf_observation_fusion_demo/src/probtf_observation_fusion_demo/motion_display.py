@@ -78,11 +78,13 @@ class MotionDisplay:
             'visual_approach': 'APPROACH | CENTER MARKER',
             'indet_ik': 'IK',
             'waiting_for_control': 'WAITING FOR CONTROL',
+            'waiting_for_goal': 'WAITING FOR OBSERVED GOAL',
+            'running_gradient': 'RUNNING GRADIENT',
         }
         if phase not in labels:
             raise ValueError('Unknown physical reaching phase: '+str(phase))
         source = trajectory_row['reaching_phase_source']
-        if phase == 'waiting_for_control':
+        if phase in ('waiting_for_control', 'waiting_for_goal'):
             if source is not None:
                 raise ValueError('Waiting for control cannot claim an adopted control source.')
         elif (not isinstance(source, dict)
@@ -433,7 +435,8 @@ class MotionDisplay:
                 if execution is not None and execution['execution_mode'] == 'async':
                     rate = lambda key: ('measuring' if execution[key] is None else
                                         '{:.1f} Hz'.format(execution[key]))
-                    clock = ('Async motion {} | camera {}\nIK {} | inference {}\n'
+                    worker_label=('Gradient' if execution.get('control_mode')=='running_gradient' else 'IK')
+                    clock = ('Async motion {} | camera {}\n'+worker_label+' {} | inference {}\n'
                              'Observation age {:.2f}s | displayed prediction age {:.2f}s').format(
                         rate('actual_motion_hz'), rate('actual_camera_hz'),
                         rate('actual_control_hz'), rate('actual_estimate_hz'),
@@ -477,6 +480,7 @@ class MotionDisplay:
                         'settling': 'MARKER SEARCH | SETTLING',
                         'searching': 'MARKER SEARCH',
                         'search_exhausted': 'MARKER SEARCH EXHAUSTED | HOLD',
+                        'waiting_for_goal': 'WAITING FOR OBSERVED GOAL',
                     }.get(action)
                     if label is None:
                         raise ValueError('Unknown physical frame action mode: '+str(action))

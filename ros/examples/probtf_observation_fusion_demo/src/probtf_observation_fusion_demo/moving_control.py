@@ -1,15 +1,18 @@
-"""Short commands selected from the fused transform candidates.
+"""Complete relative objective and legacy short-command selection.
 
 The only extrapolation is the input family's declared right joint action.
 Every trial retains the complete joint covariance, including body/marker
 blocks.  The marker variable is unchanged while a future body command is
-queried. Reaching makes one projected update from the complete relative
-Gaussian/Bingham objective gradient, with a short backtracking line search.
-Image centering can propose an initial point, accepted only by that criterion.
-One such update does not imply an IK optimum or convergence.
+queried. The running-gradient API evaluates the objective independently of
+endpoint selection. The legacy comparison path retains one projected update
+and backtracking line search; it does not imply convergence.
 """
 
+from dataclasses import dataclass
 from functools import lru_cache
+import hashlib
+import json
+from time import perf_counter
 import xml.etree.ElementTree as ET
 
 import numpy as np
@@ -230,6 +233,31 @@ def _relative_density(query, goal_offset, goal_orientation, integration_steps):
     }
 
 
+@dataclass(frozen=True)
+class GradientEvaluation:
+    """Immutable complete-objective result, including explicit failed results.
+
+    The serialised record owns its data. ``record`` returns a fresh copy, so a
+    consumer cannot change the numerical result or its captured provenance.
+    A failed evaluation has ``gradient=None``, never an artificial zero input.
+    """
+    record_json: str
+    packet_id: str
+
+    @property
+    def record(self):
+        return json.loads(self.record_json)
+
+    @property
+    def gradient(self):
+        value = self.record['gradient']
+        return None if value is None else tuple(value)
+
+    @property
+    def status(self):
+        return self.record['status']
+
+
 class MovingController:
     """One sensor-independent selection rule; no physical state enters it."""
 
@@ -296,6 +324,195 @@ class MovingController:
     def _query(self, state):
         return pose_query(state, self.relative_path,
                           query_id="control:marker_relative_hand", frame="marker")
+
+    def _evaluate_command_objective(self, components, command, command_map):
+        """Evaluate the unchanged relative density, independently of an IK step.
+
+        All branches use the same joint law and captured command action. The
+        log-sum-exp includes every mixture log weight, position normalizer,
+        propagated covariance, and Bingham normalizer. The pose query retains
+        the complete joint covariance before the final comparison proxy.
+        """
+        terms, branches, queries = [], [], []
+        for component in components:
+            trial_state = (command_state(component.state, command,
+                self.body_ids, self.actions) if command_map is None else
+                command_map.push(component.state, command, self.body_ids, self.actions))
+            query = self._query(trial_state)
+            queries.append(query)
+            log_density, branch = _relative_density(query, self.goal_offset,
+                self.goal_orientation, self.integration_steps)
+            log_weight = _component_log_weight(component)
+            branch.update(label=component.label, weight=float(component.weight),
+                log_weight=log_weight, state_id=trial_state.state_id,
+                parent_state_id=component.state.state_id,
+                parent_command=list(component.state.command),
+                parent_stamp=float(component.state.stamp))
+            branches.append(branch)
+            terms.append(log_weight+log_density)
+        return float(logsumexp(terms)), branches, tuple(queries)
+
+    def _objective_source(self, result, command_map):
+        body, goals = control_components(result)
+        command = np.asarray(result.prior.command, dtype=float)
+        if (command.shape != self.lower.shape or not np.all(np.isfinite(command))
+                or np.any(command < self.lower) or np.any(command > self.upper)):
+            raise ValueError('The source command must be finite and within physical joint positions.')
+        if (not body or not goals
+                or any(not np.isfinite(item.weight) or item.weight < 0. for item in goals)
+                or not np.isclose(sum(item.weight for item in goals), 1.)
+                or not np.isclose(logsumexp([_component_log_weight(item) for item in goals]), 0., atol=1e-12)):
+            raise ValueError('A complete-objective source requires normalized candidate shape and log weights.')
+        for component in body+goals:
+            if (component.state.stamp != result.prior.stamp
+                    or component.state.command != result.prior.command):
+                raise ValueError('Objective candidates must share the frozen source command and stamp.')
+        if command_map is not None:
+            command_map.validate_result(result)
+        return body, goals, command
+
+    def objective_at_command(self, result, command, *, command_map=None):
+        """Return full J at one candidate, with no endpoint selection or clipping.
+
+        The caller supplies the already history-transported snapshot. Only
+        physical joint positions bound this query; speed, acceleration, the
+        old endpoint duration, a quadratic step and line search play no role.
+        """
+        _, components, _ = self._objective_source(result, command_map)
+        command = np.asarray(command, dtype=float)
+        if (command.shape != self.lower.shape or not np.all(np.isfinite(command))
+                or np.any(command < self.lower) or np.any(command > self.upper)):
+            raise ValueError('An objective query must be finite and within physical joint positions.')
+        log_density, branches, _ = self._evaluate_command_objective(components, command, command_map)
+        objective = -log_density
+        if not np.isfinite(objective):
+            raise ValueError('The complete relative objective is not finite at the candidate command.')
+        return objective, branches
+
+    def gradient_at_command(self, result, source_command=None, *, command_map=None):
+        """Differentiate full J at the snapshot's sent command, not an IK endpoint.
+
+        Each side is restricted only by physical joint positions and the
+        captured action's actual evaluation domain. Unequal two-sided steps
+        use the derivative of their quadratic interpolant; one successful
+        side gives an explicitly reported first-order difference. If a joint
+        has no evaluable side the whole result fails, without zero filling.
+        The same immutable source and stable-branch action serve all probes.
+        """
+        started = perf_counter()
+        record = dict(gradient=None, source_command=None,
+            source_stamp=float(result.prior.stamp), body_state_ids=[], goal_state_ids=[],
+            parameter_density_id=None, selected_K=None, objective_at_source=None,
+            computation_seconds=0., finite_difference_diagnostics=dict(
+                method='physical-position-aware two-sided/one-sided full-objective finite differences',
+                configured_step=self.gradient_step, evaluations=[], coordinates=[]),
+            status='failed', reason=None, physical_truth_received=False,
+            monte_carlo_used=False, endpoint_selection_performed=False,
+            fixed_goal_memory_available=bool(result.records.get('fixed_goal_memory', {}).get('available', False)),
+            source_observation_ids=list(result.records.get('observation_ids', ())))
+        diagnostics = record['finite_difference_diagnostics']
+        try:
+            body, components, command = self._objective_source(result, command_map)
+            record.update(source_command=command.tolist(),
+                body_state_ids=[item.state.state_id for item in body],
+                goal_state_ids=[item.state.state_id for item in components],
+                body_versions=[int(item.state.version) for item in body],
+                goal_versions=[int(item.state.version) for item in components],
+                body_weights=[float(item.weight) for item in body],
+                goal_weights=[float(item.weight) for item in components],
+                body_log_weights=[_component_log_weight(item) for item in body],
+                goal_log_weights=[_component_log_weight(item) for item in components])
+            requested = command if source_command is None else np.asarray(source_command, dtype=float)
+            if requested.shape != command.shape or not np.array_equal(requested, command):
+                raise ValueError('The gradient evaluation command must equal the snapshot sent command; transport history first.')
+            action_record = None if command_map is None else command_map.record()
+            if action_record is not None:
+                record.update(parameter_density_id=action_record['density_id'],
+                    selected_K=list(action_record['selected_K']))
+            record.update(command_action=action_record,
+                command_propagation=('declared rigid joint action; no stiffness representative selected'
+                    if command_map is None else 'captured estimated-K anchored equilibrium joint action'))
+            cache = {}
+
+            def evaluate(candidate):
+                key = tuple(float(value) for value in candidate)
+                if key not in cache:
+                    attempt = dict(command=list(key), status='failed', reason=None)
+                    diagnostics['evaluations'].append(attempt)
+                    try:
+                        log_density, branches, _ = self._evaluate_command_objective(
+                            components, np.asarray(candidate), command_map)
+                        objective = -log_density
+                        if not np.isfinite(objective):
+                            raise ValueError('The complete relative objective is not finite.')
+                        cache[key] = (objective, branches)
+                        attempt.update(status='ok', objective=objective)
+                    except Exception as error:
+                        attempt['reason'] = type(error).__name__+': '+str(error)
+                        raise
+                return cache[key]
+
+            objective, branches = evaluate(command)
+            record.update(objective_at_source=objective, source_branches=branches)
+            gradient = []
+            for index in range(command.size):
+                coordinate = dict(joint_index=index, source_position=float(command[index]),
+                    position_lower=float(self.lower[index]), position_upper=float(self.upper[index]),
+                    forward=None, backward=None, method=None, derivative=None)
+                diagnostics['coordinates'].append(coordinate)
+                successful = {}
+                for side, boundary, sign in (('forward', self.upper[index], 1.),
+                                              ('backward', self.lower[index], -1.)):
+                    value = (min(boundary, command[index]+self.gradient_step) if sign > 0.
+                             else max(boundary, command[index]-self.gradient_step))
+                    step = float(value-command[index])
+                    probe_record = dict(step=step, status='outside_position_domain', reason=None)
+                    coordinate[side] = probe_record
+                    if step == 0.:
+                        continue
+                    candidate = command.copy()
+                    candidate[index] = value
+                    try:
+                        probed, _ = evaluate(candidate)
+                        successful[side] = (abs(step), probed)
+                        probe_record.update(status='ok', objective=probed)
+                    except Exception as error:
+                        probe_record.update(status='evaluation_failed',
+                            reason=type(error).__name__+': '+str(error))
+                if len(successful) == 2:
+                    forward, plus = successful['forward']
+                    backward, minus = successful['backward']
+                    derivative = (backward*(plus-objective)/forward
+                        + forward*(objective-minus)/backward)/(forward+backward)
+                    coordinate['method'] = 'two-sided unequal-step quadratic derivative'
+                elif 'forward' in successful:
+                    forward, plus = successful['forward']
+                    derivative = (plus-objective)/forward
+                    coordinate['method'] = 'one-sided forward derivative'
+                elif 'backward' in successful:
+                    backward, minus = successful['backward']
+                    derivative = (objective-minus)/backward
+                    coordinate['method'] = 'one-sided backward derivative'
+                else:
+                    raise ValueError('No finite objective difference is available for joint '+str(index)+'.')
+                if not np.isfinite(derivative):
+                    raise ValueError('The complete-objective derivative is nonfinite for joint '+str(index)+'.')
+                coordinate['derivative'] = float(derivative)
+                gradient.append(float(derivative))
+            # The map rejects epoch changes in push(); this final validation
+            # also detects source/proposal edits before publishing a result.
+            if command_map is not None:
+                command_map.validate_result(result)
+                if command_map.record() != action_record:
+                    raise ValueError('The captured stiffness command action changed during differentiation.')
+            record.update(gradient=gradient, status='ok')
+        except Exception as error:
+            record.update(gradient=None, status='failed',
+                reason=type(error).__name__+': '+str(error))
+        record['computation_seconds'] = perf_counter()-started
+        diagnostics['objective_evaluation_count'] = len(diagnostics['evaluations'])
+        encoded = json.dumps(record, sort_keys=True, separators=(',', ':'))
+        return GradientEvaluation(encoded, hashlib.sha256(encoded.encode()).hexdigest())
 
     def _step_metric(self, components, queries, command_jacobian=None):
         """A Fisher-like scaling metric, never a replacement objective gradient.
@@ -456,28 +673,9 @@ class MovingController:
             key = tuple(float(value) for value in trial_command)
             if key in cache:
                 return cache[key]
-            terms, branches, queries = [], [], []
-            for component in components:
-                trial_state = (command_state(component.state, trial_command,
-                                             self.body_ids, self.actions) if command_map is None
-                               else command_map.push(component.state, trial_command,
-                                                     self.body_ids, self.actions))
-                query = self._query(trial_state)
-                queries.append(query)
-                log_density, branch = _relative_density(
-                    query, self.goal_offset, self.goal_orientation, self.integration_steps)
-                log_weight = getattr(component, 'log_weight', None)
-                if log_weight is None:
-                    log_weight = np.log(component.weight) if component.weight > 0.0 else -np.inf
-                branch.update(label=component.label, weight=float(component.weight),
-                              log_weight=float(log_weight),
-                              state_id=trial_state.state_id,
-                              parent_state_id=component.state.state_id,
-                              parent_command=list(component.state.command),
-                              parent_stamp=float(component.state.stamp))
-                branches.append(branch)
-                terms.append(log_weight+log_density)
-            cache[key] = (float(logsumexp(terms)), increment.copy(), branches, tuple(queries))
+            log_density, branches, queries = self._evaluate_command_objective(
+                components, trial_command, command_map)
+            cache[key] = (log_density, increment.copy(), branches, queries)
             return cache[key]
 
         # Start at the feasible increment closest to stopping. Retaining the

@@ -201,7 +201,7 @@ def test_actual_control_worker_selects_full_K_IK_and_serializes_the_same_law(pro
     requests.put(None)
     forbid_sampling(monkeypatch)
     control_worker(requests, replies, scene.robot_description, str(scene.urdf), templates,
-                   str(tmp_path), .5)
+                   str(tmp_path), .5, 'single_step_ik')
     reply = replies.get_nowait()
     assert not reply.get('failed'), reply
     assert isinstance(reply['packet'], FrozenActionKPacket)

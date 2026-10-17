@@ -593,8 +593,11 @@ def main():
         from .async_motion import AsyncMotionLive
         duration = rospy.get_param('~async_duration_s', None)
         playback = AsyncMotionLive(observations, output, observations.stem, autostart,
-            imu_target_link=imu_target_link, max_updates=max_updates, duration=duration)
-        rospy.loginfo('Asynchronous wall-clock motion; inference and IK run in separate processes.')
+            imu_target_link=imu_target_link, max_updates=max_updates, duration=duration,
+            control_mode=rospy.get_param('~control_mode', None) or None,
+            running_gradient_options=rospy.get_param('~running_gradient_options', None))
+        rospy.loginfo('Asynchronous wall-clock motion; inference and %s run in separate processes.',
+                      playback.session.control_mode)
     elif mode == 'live':
         playback = MotionLive(observations, output, observations.stem, autostart,
                               imu_target_link=imu_target_link, max_updates=max_updates)

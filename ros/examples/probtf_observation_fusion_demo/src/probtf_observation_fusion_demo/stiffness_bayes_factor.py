@@ -21,7 +21,7 @@ import time
 
 import numpy as np
 from scipy.special import logsumexp
-from scipy.optimize import minimize
+from scipy.optimize import OptimizeResult, minimize
 
 
 @dataclass(frozen=True)
@@ -78,15 +78,122 @@ class LocalLaplaceEvidence:
     Seed/evaluation failures are recorded, never converted to zero density.
     """
 
+    def _continue_available_bfgs(self, query, accepted, diagnostics):
+        """Continue the same mode search after an unavailable line trial.
+
+        SciPy does not expose its line search when a density query raises.
+        Reconstruct its inverse-BFGS approximation from completed iterates,
+        then backtrack explicitly. An unavailable query has no assigned
+        function value or gradient and cannot become an accepted iterate.
+        """
+        point = np.array(accepted[0], copy=True)
+        value, score = query(point)
+        inverse = np.eye(point.size)
+        history = diagnostics['availability_recovery']
+        history.update(accepted_iterations_before_failure=len(accepted)-1,
+            line_search='Armijo ascent of the unchanged log density; unavailable trials are rejected without a value',
+            maximum_backtracks=64, iterations=[])
+
+        def update_inverse(matrix, displacement, old_score, new_score):
+            # BFGS is applied to minus the log density. Retain the previous
+            # approximation if this finite secant has no positive curvature;
+            # no Hessian regularization or modification of the law is made.
+            difference = old_score-new_score
+            curvature = float(displacement @ difference)
+            if not np.isfinite(curvature) or curvature <= 0.:
+                return matrix, False
+            factor = np.eye(point.size)-np.outer(displacement, difference)/curvature
+            result = factor @ matrix @ factor.T+np.outer(displacement, displacement)/curvature
+            if not np.all(np.isfinite(result)):
+                return matrix, False
+            return result, True
+
+        for next_point in accepted[1:]:
+            next_value, next_score = query(next_point)
+            inverse, _ = update_inverse(inverse, next_point-point, score, next_score)
+            point, value, score = np.array(next_point, copy=True), next_value, next_score
+        completed = len(accepted)-1
+        failed_trial = diagnostics['unavailable_trials'][-1]
+        resume_direction = np.asarray(failed_trial['logK'])-point
+        resume_failed_line = True
+        message = 'Availability-aware BFGS reached the configured iteration limit.'
+        success = False
+        for iteration in range(completed, self.max_iterations):
+            if np.max(np.abs(score)) <= self.gradient_tolerance:
+                success, message = True, 'Full-score tolerance reached after availability-aware BFGS.'
+                break
+            # First retry exactly the failed SciPy line at a shorter step.
+            # Subsequent accepted iterations use the reconstructed BFGS
+            # direction, with the same explicit backtracking treatment.
+            direction = resume_direction if resume_failed_line else inverse @ score
+            slope = float(score @ direction)
+            if not np.isfinite(slope) or slope <= 0. or not np.all(np.isfinite(direction)):
+                message = 'Availability-aware BFGS has no finite ascent direction.'
+                break
+            step, found = 1., False
+            row = dict(iteration=iteration, source_logK=point.tolist(),
+                source_log_density=float(value), source_score_inf=float(np.max(np.abs(score))),
+                direction=direction.tolist(), trials=[])
+            if resume_failed_line:
+                row['resumes_unavailable_scipy_line'] = True
+                row['trials'].append(dict(step=1., logK=failed_trial['logK'],
+                    available=False, reason=failed_trial['reason'], accepted=False,
+                    already_evaluated_by_scipy=True))
+                step = .5
+                resume_failed_line = False
+            for backtrack in range(64):
+                trial = point+step*direction
+                if np.array_equal(trial, point):
+                    row['resolution_exhausted'] = True
+                    break
+                trial_record = dict(step=float(step), logK=trial.tolist())
+                try:
+                    trial_value, trial_score = query(trial)
+                except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                    trial_record.update(available=False, reason=str(error), accepted=False)
+                    diagnostics['unavailable_trials'].append(dict(
+                        phase='availability_backtrack', iteration=iteration,
+                        step=float(step), logK=trial.tolist(), reason=str(error)))
+                else:
+                    sufficient = bool(trial_value >= value+1e-4*step*slope)
+                    trial_record.update(available=True, log_density=float(trial_value),
+                        Armijo_log_density=float(value+1e-4*step*slope), accepted=sufficient)
+                    if sufficient:
+                        inverse, updated = update_inverse(inverse, trial-point, score, trial_score)
+                        row['inverse_BFGS_updated'] = updated
+                        point, value, score = trial, trial_value, trial_score
+                        found = True
+                row['trials'].append(trial_record)
+                if found:
+                    break
+                step *= .5
+            row['accepted'] = found
+            history['iterations'].append(row)
+            if not found:
+                message = 'Availability-aware BFGS could not find an evaluable Armijo step.'
+                break
+            completed += 1
+        if np.max(np.abs(score)) <= self.gradient_tolerance:
+            success, message = True, 'Full-score tolerance reached after availability-aware BFGS.'
+        return OptimizeResult(x=point, success=success, message=message, nit=completed)
+
     def __init__(self, seeds, *, max_iterations=80, gradient_tolerance=1e-6,
                  hessian_step=1e-4, hessian_relative_tolerance=1e-3,
-                 hessian_absolute_tolerance=1e-5):
+                 hessian_absolute_tolerance=1e-5, max_hessian_refinements=8):
         self.seeds = seeds
         self.max_iterations = int(max_iterations)
         self.gradient_tolerance = float(gradient_tolerance)
         self.hessian_step = float(hessian_step)
         self.hessian_relative_tolerance = float(hessian_relative_tolerance)
         self.hessian_absolute_tolerance = float(hessian_absolute_tolerance)
+        try:
+            self.max_hessian_refinements = int(max_hessian_refinements)
+        except (ValueError, TypeError, OverflowError):
+            raise ValueError('Laplace evidence Hessian refinements must be a nonnegative integer.')
+        if (isinstance(max_hessian_refinements, (bool, np.bool_))
+                or self.max_hessian_refinements != max_hessian_refinements
+                or self.max_hessian_refinements < 0):
+            raise ValueError('Laplace evidence Hessian refinements must be a nonnegative integer.')
         if (not callable(seeds) or self.max_iterations <= 0
                 or not np.isfinite(self.gradient_tolerance) or self.gradient_tolerance <= 0.
                 or not np.isfinite(self.hessian_step) or self.hessian_step <= 0.
@@ -101,9 +208,15 @@ class LocalLaplaceEvidence:
             mode_method='deterministic-start ranking followed by BFGS with the complete density score',
             maximum_iterations=self.max_iterations, gradient_tolerance=self.gradient_tolerance,
             Hessian_steps=[self.hessian_step, .5*self.hessian_step],
+            configured_Hessian_steps=[self.hessian_step, .5*self.hessian_step],
+            max_hessian_refinements=self.max_hessian_refinements,
+            adaptive_Hessian_steps_enabled=self.max_hessian_refinements > 0,
+            Hessian_refinement_count=0, Hessian_attempts=[],
             Hessian_relative_tolerance=self.hessian_relative_tolerance,
             Hessian_absolute_tolerance=self.hessian_absolute_tolerance,
-            unavailable_starts=[], evaluations=0, density_projection_applied=False)
+            unavailable_starts=[], unavailable_trials=[],
+            availability_recovery=dict(applied=False),
+            evaluations=0, density_projection_applied=False)
         cache = {}
         def query(x):
             x = np.asarray(x, dtype=float)
@@ -136,15 +249,33 @@ class LocalLaplaceEvidence:
             fail('Laplace evidence has no evaluable deterministic mode start.')
         _, index, seed = max(ranked, key=lambda item:item[0])
         diagnostics.update(selected_start_index=index, selected_start=seed.tolist())
+        accepted = [seed.copy()]
         def objective(x):
-            value, score = query(x)
+            try:
+                value, score = query(x)
+            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                diagnostics['unavailable_trials'].append(dict(
+                    phase='scipy_BFGS', logK=np.asarray(x).tolist(), reason=str(error)))
+                raise
             return -value, -score
+        def completed_iteration(x):
+            accepted.append(np.array(x, copy=True))
         try:
             optimum = minimize(objective, seed, jac=True, method='BFGS',
+                callback=completed_iteration,
                 options=dict(maxiter=self.max_iterations, gtol=self.gradient_tolerance))
             value, score = query(optimum.x)
         except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-            fail('Laplace evidence mode evaluation is unavailable: '+str(error))
+            if not diagnostics['unavailable_trials']:
+                fail('Laplace evidence mode evaluation is unavailable: '+str(error))
+            diagnostics['availability_recovery'].update(applied=True, trigger=str(error),
+                source_logK=accepted[-1].tolist())
+            diagnostics['mode_method'] += '; availability-aware BFGS continuation after an unavailable trial'
+            try:
+                optimum = self._continue_available_bfgs(query, accepted, diagnostics)
+                value, score = query(optimum.x)
+            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as recovery_error:
+                fail('Laplace evidence mode evaluation is unavailable: '+str(recovery_error))
         score_norm = float(np.max(np.abs(score)))
         diagnostics.update(optimizer_success=bool(optimum.success), optimizer_message=str(optimum.message),
             optimizer_iterations=int(optimum.nit), mode=optimum.x.tolist(),
@@ -193,24 +324,48 @@ class LocalLaplaceEvidence:
                 mode_score=score.tolist(), mode_score_inf=score_norm)
         if score_norm > self.gradient_tolerance:
             fail('Laplace evidence mode did not satisfy the configured full-score tolerance.')
-        hessians = []
-        try:
-            for step in (self.hessian_step, .5*self.hessian_step):
-                matrix = np.column_stack([-(query(mode+step*axis)[1]
-                    -query(mode-step*axis)[1])/(2.*step)
-                    for axis in np.eye(mode.size)])
-                hessians.append(matrix)
-        except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
-            fail('Laplace evidence Hessian evaluation is unavailable: '+str(error))
-        diagnostics['Hessian_raw_asymmetry_max'] = [float(np.max(np.abs(item-item.T))) for item in hessians]
-        diagnostics['Hessian_step_difference_max'] = float(np.max(np.abs(hessians[0]-hessians[1])))
-        if not np.allclose(hessians[0], hessians[1],
-                rtol=self.hessian_relative_tolerance, atol=self.hessian_absolute_tolerance):
-            fail('Laplace evidence Hessian is unstable across the two score-difference steps.')
-        for matrix in hessians:
-            if not np.allclose(matrix, matrix.T,
-                    rtol=self.hessian_relative_tolerance, atol=self.hessian_absolute_tolerance):
-                fail('Laplace evidence score Hessian is not numerically symmetric.')
+        hessian_cache = {}
+        for refinement in range(self.max_hessian_refinements+1):
+            coarse = self.hessian_step*(.5**refinement)
+            steps = [coarse, .5*coarse]
+            attempt = dict(refinement=refinement, steps=steps,
+                reused_previous_fine=coarse in hessian_cache)
+            diagnostics['Hessian_attempts'].append(attempt)
+            diagnostics.update(Hessian_steps=steps, Hessian_refinement_count=refinement)
+            hessians = []
+            try:
+                for step in steps:
+                    if step not in hessian_cache:
+                        hessian_cache[step] = np.column_stack([-(query(mode+step*axis)[1]
+                            -query(mode-step*axis)[1])/(2.*step)
+                            for axis in np.eye(mode.size)])
+                    hessians.append(hessian_cache[step])
+            except (ValueError, np.linalg.LinAlgError, FloatingPointError) as error:
+                attempt.update(available=False, reason=str(error), precision_checks_passed=False)
+                fail('Laplace evidence Hessian evaluation is unavailable: '+str(error))
+            asymmetry = [float(np.max(np.abs(item-item.T))) for item in hessians]
+            difference = float(np.max(np.abs(hessians[0]-hessians[1])))
+            stable = bool(np.allclose(hessians[0], hessians[1],
+                rtol=self.hessian_relative_tolerance, atol=self.hessian_absolute_tolerance))
+            symmetric = [bool(np.allclose(matrix, matrix.T,
+                rtol=self.hessian_relative_tolerance, atol=self.hessian_absolute_tolerance))
+                for matrix in hessians]
+            reason = ('Laplace evidence Hessian is unstable across the two score-difference steps.'
+                if not stable else 'Laplace evidence score Hessian is not numerically symmetric.'
+                if not all(symmetric) else None)
+            attempt.update(available=True, Hessians=[matrix.tolist() for matrix in hessians],
+                raw_asymmetry_max=asymmetry, step_difference_max=difference,
+                two_step_stability_verified=stable, symmetry_verified=symmetric,
+                precision_checks_passed=reason is None, reason=reason)
+            diagnostics.update(Hessian_raw_asymmetry_max=asymmetry,
+                Hessian_step_difference_max=difference)
+            if reason is None:
+                break
+            if refinement == self.max_hessian_refinements:
+                fail(reason)
+            # Re-evaluate the same full score with both widths halved. The
+            # preceding fine matrix becomes the next coarse matrix. Neither
+            # tolerances nor the density, mode, or curvature are modified.
         # Symmetrization removes roundoff only after the symmetry check. No
         # eigenvalue clipping, variance cap or positive diagonal is added.
         symmetric = .5*(hessians[1]+hessians[1].T)

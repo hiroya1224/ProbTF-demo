@@ -1,0 +1,3095 @@
+{
+  "base_commit": "7046be540d572af59081f5907d0162d4f284c939",
+  "instruction_source": "/home/leus/Downloads/ProbTF_unified_theory_running_gradient_codex_20261018.md",
+  "instruction_copy_sha256": "08e4e19f6735a6150d13b28fca2f26cfb2bf29b1520a06223f51a78e3e0a7b94",
+  "tests": {
+    "passed": 677,
+    "seconds": 190.18,
+    "log": "/tmp/probtf_running_gradient_final_full_suite_20261018.log",
+    "command": "OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONPATH=/tmp/probtf_switch_press_pytest:$PYTHONPATH /usr/bin/python3 -m pytest -q ros/examples/probtf_observation_fusion_demo/tests"
+  },
+  "build": {
+    "command": "catkin build probtf_observation_fusion_demo --no-deps",
+    "passed": true
+  },
+  "final_source": {
+    "source_sha256": {
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/short_command.py": "76130898f16aae163d8d2901f506f323981263303aff3bebf44b742a487b1c2f",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/running_gradient.py": "2c624b3f016b1208b417adcc698637e77b72c90c249f86e495f4ca8e0e9eb663",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visual_approach.py": "2d2c5782fc24d186692279f1d1bb9673ec72049ae9e30d60be276878152eb5e8",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/execution_stiffness.py": "a1a5b5e984eb6e0bdc9a80d318f5c541f5dd1622ce82c06c046ae623ae350f98",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py": "74a473dba2da1d113ac05404c1a4e770783b0f0fd2ac3e9c244181576c8eef7b",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_workers.py": "c230f7e44586f46eac1cd6d4b4cc29d4918cdd46e4d0024a74927e6d02f76c12",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_publication.py": "54fe151cd6b1a9335903b1fe1efd0b153567730dc0c5c64417d8d36c988f7099",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py": "99bf5ed9931f788cc5ccf67b6dba31fc571607edd611b0605fff7b22a1213cf6",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_bayes_factor.py": "74fe33826317a11765880831a3480ac871ca062985c33ad8a7f131901336a73d",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py": "db4bbf84fd532a284fb4567809d33847aa3daf13af1651c5c8e592027bb8d531",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py": "3f6e4c4c0ca8defc5227965e35d09ed51028ae08590aa3275c3ff4e6330cb51c",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_state.py": "0ac321e3695ee802db1be7ad012ae43c7893c24c6be8221c2df9ee45f481cb19",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py": "95975544541328a07eb9ca41b44e95676dd6d78c2487f3a88c6a1cfc459c1bba",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/event_motion.py": "437b97aa11db274daa7bb537e2157d4b9b11a3fe3af8127b4f76ac643a78b3b9",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py": "60dde9dcaf41c2fd158fe05f72e2b82aa2b7fc99bff7d9a4084cdca8646e07b7",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py": "cc1f9308e542dc88345b41286ba305259519d5c6625ff2e58006f831b3fbe8e1",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py": "f0a3e8638b7e70b6e61eca076f879179ffa364ba3c377f4a3943dc48ab455c29",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py": "c03cc89017e11292404cea97f479bce0de3ebbd1213a7169b4e326980dbd80fa",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensor_event_store.py": "b9f1841a98ed6091d016525f0e587ebf3bc131e9a7cfbaf7194afb4249ea42f4",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/dynamic_physics.py": "99fe6a394b86b22247f18220987409ec66ef381b480d9387a623a1ff2750e453",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py": "53139568c2bb07d95d3984a7f33acea6ca74c966fc41cee0c4187bb73820376b",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py": "c26da0f69f2416f68af6168b0a757654f73589d7f2fa00bd90a37840eabf25fc",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py": "9a0b2c506a69bcc031f032164b739dc8ee2bd1ba2cbf2d9ed0028d23eb1ccadf",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py": "079db5b231e3db65d9f6d8b6fd869cd2055e21ddf189e44d2fe0a3bced68301d",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py": "6446e2b7e8e8b2793b00eb80d52b427c2d203649934e97e77de8fe6e56164ec3",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py": "62d630f909ccf16fd1f3b4d2a66294ab6e04000d854882ee1d20cb819c987ca6",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py": "81bd8fa0bd6c609fc52030177684a44736a4c11117b57ec695470ce5609644c3",
+      "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py": "df0de497547c822d9b336a0536f954769455b3002c9869129ecc18aafcb682f7",
+      "ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml": "42a77d50f697602baf608efcd0322edae49d769b16b0a1ec7404d9ca8d8aa4cb",
+      "ros/examples/probtf_observation_fusion_demo/config/common.yaml": "994306ed66f5091c29cfd1608c8632f5d635e5e0976f7ad038327086c8be0fa8",
+      "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml": "6e6e8876fd52df30034c973b9647b5b427fc6f3f3deddfadef5ffe66c6f961fe",
+      "ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml": "06ae21320718ce839e2297abe3a880400aa12681a76de0b6e1ae8ed0ea568a68",
+      "ros/examples/probtf_observation_fusion_demo/config/imu.yaml": "ae63815ea690cd9f1ed89f71c2400f8a14556082250dc00d650b17afcd1e944d",
+      "ros/examples/probtf_observation_fusion_demo/config/imu_hand.yaml": "3ace3e469e55c89b09580d5642c8b39053c82a6dff6a67c9d2e5c46275224280",
+      "ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml": "9f152886760158b02a0fc78ec499c4ee9ce537d49369b25692e14b134ae8295b",
+      "ros/examples/probtf_observation_fusion_demo/config/marker.yaml": "bdc5684e172da1b51ec9b5d03c601e51cbf1022b12c5596e66e0af7cf01aaf3d",
+      "ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml": "27f854873a833db6c827c3d10eeba7f22484238671a1bfa7496399067a30c78a"
+    },
+    "gains": {
+      "eta": 1e-06,
+      "gamma": 8.0
+    },
+    "mode": "running_gradient",
+    "duration": 90.0,
+    "ports": {
+      "marker": 11853,
+      "imu_marker": 11854
+    }
+  },
+  "final_source_matched_at_motion_end": {
+    "frozen_source_matches": true,
+    "changed": []
+  },
+  "protected": {
+    "checked_count": 214,
+    "core_files": 142,
+    "rviz_files": 43,
+    "all_unchanged": true,
+    "native_binary": {
+      "path": "/home/leus/catkin_ws/devel/.private/probtf_observation_fusion_demo/lib/libprobtf_flexible_dynamics.so",
+      "sha256": "770adaa9b7c296f60a9a851218fa3d2c4dbe9234a785dce51fbc2b98816b2339",
+      "unchanged": true
+    },
+    "provided_instruction_copy_exact": true
+  },
+  "final_runs": {
+    "marker": {
+      "configuration": {
+        "eta": 1e-06,
+        "gain_source": "run manifest",
+        "gamma": 8.0,
+        "near_threshold_m": 0.006,
+        "near_threshold_source": "explicit --near-threshold"
+      },
+      "control_mode": "running_gradient",
+      "commands": {
+        "command_acceleration_norm_rad_s2": {
+          "count": 8292,
+          "maximum": 0.6351648786399532,
+          "mean": 0.005016844998303711,
+          "minimum": 1.1408034355232421e-06,
+          "population_std": 0.03447145788872039
+        },
+        "command_position_boundary_residual_inf_rad": {
+          "count": 8291,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "command_speed_norm_rad_s": {
+          "count": 8292,
+          "maximum": 0.1705560266194291,
+          "mean": 0.005123465997545677,
+          "minimum": 0.0009845505570869712,
+          "population_std": 0.015290595744733355
+        },
+        "command_velocity_boundary_residual_inf_rad_s": {
+          "count": 8291,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "continuity_note": "Equation residual, interval-state boundary continuity and packet-adoption invariance are separate checks; no unrecorded initial velocity is assumed.",
+        "exact_hold_equation_position_residual_inf_rad": {
+          "count": 8292,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "exact_hold_equation_velocity_residual_inf_rad_s": {
+          "count": 8292,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "exact_hold_equation_verified_intervals": 8292,
+        "fail_safe_tick_reasons": {},
+        "gradient_snapshot_update_lag": {
+          "count": 8292,
+          "maximum": 3.0,
+          "mean": 0.16304872165943152,
+          "minimum": 0.0,
+          "population_std": 0.44249082944545315
+        },
+        "gradient_source_age_s": {
+          "count": 8292,
+          "maximum": 0.881629228591919,
+          "mean": 0.4580546177014362,
+          "minimum": 0.004453897476196289,
+          "population_std": 0.10401419710563739
+        },
+        "gradient_source_command_distance_rad": {
+          "count": 8292,
+          "maximum": 0.07503837314190247,
+          "mean": 0.0021411458214219813,
+          "minimum": 3.835707053737088e-06,
+          "population_std": 0.005823965732978025
+        },
+        "held_gradient_tracking_duration_s": 90.0,
+        "held_gradient_tracking_intervals": 8292,
+        "intervals": 8292,
+        "no_goal_duration_s": null,
+        "no_goal_motion_covered_samples": 0,
+        "no_goal_motion_detected": null,
+        "no_goal_motion_duration_s": null,
+        "no_goal_telemetry_samples": 0,
+        "policy_counts": {
+          "reaching": 8292
+        },
+        "raw_image_missing_duration_s": 43.32294911611825,
+        "raw_image_missing_retained_gradient_motion_duration_s": 43.32294911611825,
+        "raw_image_missing_retained_gradient_motion_samples": 4577,
+        "raw_image_missing_telemetry_samples": 4577,
+        "selected_K_on_actual_intervals": {
+          "changed_samples": 17,
+          "distinct_density_ids": 18,
+          "final": [
+            78.66746000530173,
+            280.71648837975806,
+            292.7279767658869,
+            91.34283954860324,
+            250.26649938883446,
+            90.63246849655256
+          ],
+          "initial": [
+            104.09105922304327,
+            90.48184792536931,
+            95.39158617848595,
+            104.09792358691497,
+            101.0137625159821,
+            104.04663251319766
+          ],
+          "maximum_absolute_log_step": 0.7442502369159092,
+          "maximum_absolute_step": 153.65573348866926,
+          "per_joint_maximum": [
+            104.09105922304327,
+            280.71648837975806,
+            300.3460883413257,
+            104.09792358691497,
+            250.26649938883446,
+            104.04663251319766
+          ],
+          "per_joint_minimum": [
+            78.66746000530173,
+            90.48184792536931,
+            95.39158617848595,
+            81.73620852401032,
+            50.39881308785799,
+            81.75436607447625
+          ],
+          "samples": 8292
+        },
+        "status_counts": {
+          "tracking": 8292
+        }
+      },
+      "control_worker": {
+        "gradient_computation_seconds": {
+          "count": 293,
+          "maximum": 0.10055679967626929,
+          "mean": 0.06889337463997328,
+          "minimum": 0.0,
+          "population_std": 0.005132911394260352
+        },
+        "gradient_reason_counts": {
+          "No valid observed goal has been retained; J is not fabricated.": 1,
+          "None": 292
+        },
+        "gradient_status_counts": {
+          "ok": 292,
+          "waiting_for_goal": 1
+        },
+        "mode_counts": {
+          "running_gradient": 293
+        },
+        "selected_K_at_gradient_evaluation": {
+          "changed_samples": 21,
+          "distinct_density_ids": 22,
+          "final": [
+            76.63685741943289,
+            1181.4191467516425,
+            1040.0831474661743,
+            18.833080349015614,
+            278.72837227060745,
+            84.84666981922177
+          ],
+          "initial": [
+            104.09105922304327,
+            90.48184792536931,
+            95.39158617848595,
+            104.09792358691497,
+            101.0137625159821,
+            104.04663251319766
+          ],
+          "maximum_absolute_log_step": 1.0590364177438225,
+          "maximum_absolute_step": 655.154043058513,
+          "per_joint_maximum": [
+            104.09105922304327,
+            1181.4191467516425,
+            1040.0831474661743,
+            104.09792358691497,
+            291.1267545206861,
+            104.04663251319766
+          ],
+          "per_joint_minimum": [
+            76.63685741943289,
+            90.48184792536931,
+            95.39158617848595,
+            18.833080349015614,
+            50.39881308785799,
+            81.75436607447625
+          ],
+          "samples": 292
+        },
+        "total_worker_seconds": {
+          "count": 293,
+          "maximum": 0.3371392861008644,
+          "mean": 0.25422483861586237,
+          "minimum": 0.08952242881059647,
+          "population_std": 0.03114684347172774
+        }
+      },
+      "gradient_adoptions": {
+        "age_at_adoption_s": {
+          "count": 292,
+          "maximum": 0.3738830089569092,
+          "mean": 0.27240390891898153,
+          "minimum": 0.0,
+          "population_std": 0.0526277795031513
+        },
+        "command_displacement_at_adoption_rad": {
+          "count": 292,
+          "maximum": 0.04221030550558605,
+          "mean": 0.0012369883169156225,
+          "minimum": 0.0,
+          "population_std": 0.0035343795872488
+        },
+        "counts": {
+          "accepted": 292,
+          "rejected": 1
+        },
+        "packet_adoption_position_change_inf_rad": {
+          "count": 293,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "packet_adoption_velocity_change_inf_rad_s": {
+          "count": 293,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "rejection_or_acceptance_reason_counts": {
+          "None": 292,
+          "evaluation_waiting_for_goal": 1
+        },
+        "selected_K_at_accepted_adoptions": {
+          "changed_samples": 21,
+          "distinct_density_ids": 22,
+          "final": [
+            76.63685741943289,
+            1181.4191467516425,
+            1040.0831474661743,
+            18.833080349015614,
+            278.72837227060745,
+            84.84666981922177
+          ],
+          "initial": [
+            104.09105922304327,
+            90.48184792536931,
+            95.39158617848595,
+            104.09792358691497,
+            101.0137625159821,
+            104.04663251319766
+          ],
+          "maximum_absolute_log_step": 1.0590364177438225,
+          "maximum_absolute_step": 655.154043058513,
+          "per_joint_maximum": [
+            104.09105922304327,
+            1181.4191467516425,
+            1040.0831474661743,
+            104.09792358691497,
+            291.1267545206861,
+            104.04663251319766
+          ],
+          "per_joint_minimum": [
+            76.63685741943289,
+            90.48184792536931,
+            95.39158617848595,
+            18.833080349015614,
+            50.39881308785799,
+            81.75436607447625
+          ],
+          "samples": 292
+        },
+        "snapshot_update_lag_at_adoption": {
+          "count": 292,
+          "maximum": 2.0,
+          "mean": 0.10273972602739728,
+          "minimum": 0.0,
+          "population_std": 0.32539653480053965
+        }
+      },
+      "observations": {
+        "backlog_events": 6669,
+        "error_events": 0,
+        "errors": [],
+        "failed_or_replay_events": 0,
+        "inference_seconds": {
+          "count": 36,
+          "maximum": 21.287367332726717,
+          "mean": 3.6881308980389598,
+          "minimum": 0.028042518999427557,
+          "population_std": 4.868236962807915
+        },
+        "observation_fusion_counts": {
+          "image_fused": 22,
+          "image_not_fused": 13,
+          "imu_not_fused": 88,
+          "joint_not_fused": 115
+        },
+        "path": "/tmp/probtf_running_gradient_refined_20261018_074854/marker/observations.sqlite3",
+        "raw_payloads_loaded": false,
+        "ready_to_claim_wall_delay_s": {
+          "count": 238,
+          "maximum": 135.05453848838806,
+          "mean": 35.489408976891454,
+          "minimum": 0.002273082733154297,
+          "population_std": 32.68627507976129
+        },
+        "result_metadata_only": true,
+        "sensor_status_counts": {
+          "image": {
+            "completed": 35,
+            "pending": 1015,
+            "processing": 1
+          },
+          "imu": {
+            "completed": 88,
+            "pending": 2454
+          },
+          "joint": {
+            "completed": 115,
+            "pending": 3199
+          }
+        },
+        "sensors": {
+          "image": {
+            "acquisition_span_s": 90.0,
+            "actual_simulation_acquisition_hz": 11.666666666666666,
+            "attempts": 36,
+            "count": 1051,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080090.0,
+            "maximum_attempts": 1
+          },
+          "imu": {
+            "acquisition_span_s": 90.0,
+            "actual_simulation_acquisition_hz": 28.233333333333334,
+            "attempts": 88,
+            "count": 2542,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080090.0,
+            "maximum_attempts": 1
+          },
+          "joint": {
+            "acquisition_span_s": 90.0,
+            "actual_simulation_acquisition_hz": 36.81111111111111,
+            "attempts": 115,
+            "count": 3314,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080090.0,
+            "maximum_attempts": 1
+          }
+        },
+        "total_events": 6907
+      },
+      "manifest": {
+        "actual_camera_hz": 11.665930556649801,
+        "actual_control_hz": 2.0981954919973287,
+        "actual_estimate_hz": 0.24176737429144357,
+        "actual_imu_hz": 28.231857761525834,
+        "actual_joint_hz": 36.80966577684945,
+        "actual_motion_hz": 92.1220102062877,
+        "collision_checking_enabled": false,
+        "duration": 90.0,
+        "estimation_drained": false,
+        "execution_architecture": "timestamped_sensor_events",
+        "execution_mode": "async",
+        "failure": null,
+        "final_physical_error_m": 0.3339532618137395,
+        "finished": true,
+        "implementation_sha256": {
+          "__init__.py": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f",
+          "async_motion.py": "3f6e4c4c0ca8defc5227965e35d09ed51028ae08590aa3275c3ff4e6330cb51c",
+          "async_publication.py": "54fe151cd6b1a9335903b1fe1efd0b153567730dc0c5c64417d8d36c988f7099",
+          "async_state.py": "0ac321e3695ee802db1be7ad012ae43c7893c24c6be8221c2df9ee45f481cb19",
+          "async_stiffness.py": "62d630f909ccf16fd1f3b4d2a66294ab6e04000d854882ee1d20cb819c987ca6",
+          "async_workers.py": "c230f7e44586f46eac1cd6d4b4cc29d4918cdd46e4d0024a74927e6d02f76c12",
+          "bayes_factor.py": "53139568c2bb07d95d3984a7f33acea6ca74c966fc41cee0c4187bb73820376b",
+          "board_camera.py": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778",
+          "body_projection.py": "74a473dba2da1d113ac05404c1a4e770783b0f0fd2ac3e9c244181576c8eef7b",
+          "display.py": "81bd8fa0bd6c609fc52030177684a44736a4c11117b57ec695470ce5609644c3",
+          "dynamic_physics.py": "99fe6a394b86b22247f18220987409ec66ef381b480d9387a623a1ff2750e453",
+          "event_motion.py": "437b97aa11db274daa7bb537e2157d4b9b11a3fe3af8127b4f76ac643a78b3b9",
+          "execution_stiffness.py": "a1a5b5e984eb6e0bdc9a80d318f5c541f5dd1622ce82c06c046ae623ae350f98",
+          "fresh_goal.py": "60dde9dcaf41c2fd158fe05f72e2b82aa2b7fc99bff7d9a4084cdca8646e07b7",
+          "marker_board.py": "c03cc89017e11292404cea97f479bce0de3ebbd1213a7169b4e326980dbd80fa",
+          "marker_search.py": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb",
+          "model.py": "c26da0f69f2416f68af6168b0a757654f73589d7f2fa00bd90a37840eabf25fc",
+          "motion_display.py": "9a0b2c506a69bcc031f032164b739dc8ee2bd1ba2cbf2d9ed0028d23eb1ccadf",
+          "motion_node.py": "99bf5ed9931f788cc5ccf67b6dba31fc571607edd611b0605fff7b22a1213cf6",
+          "moving_control.py": "db4bbf84fd532a284fb4567809d33847aa3daf13af1651c5c8e592027bb8d531",
+          "moving_inference.py": "95975544541328a07eb9ca41b44e95676dd6d78c2487f3a88c6a1cfc459c1bba",
+          "moving_scene.py": "f0a3e8638b7e70b6e61eca076f879179ffa364ba3c377f4a3943dc48ab455c29",
+          "node.py": "cc1f9308e542dc88345b41286ba305259519d5c6625ff2e58006f831b3fbe8e1",
+          "running_gradient.py": "2c624b3f016b1208b417adcc698637e77b72c90c249f86e495f4ca8e0e9eb663",
+          "scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+          "sensor_event_store.py": "b9f1841a98ed6091d016525f0e587ebf3bc131e9a7cfbaf7194afb4249ea42f4",
+          "sensors.py": "079db5b231e3db65d9f6d8b6fd869cd2055e21ddf189e44d2fe0a3bced68301d",
+          "short_command.py": "76130898f16aae163d8d2901f506f323981263303aff3bebf44b742a487b1c2f",
+          "stiffness_bayes_factor.py": "74fe33826317a11765880831a3480ac871ca062985c33ad8a7f131901336a73d",
+          "stiffness_command.py": "6446e2b7e8e8b2793b00eb80d52b427c2d203649934e97e77de8fe6e56164ec3",
+          "stiffness_identification.py": "df0de497547c822d9b336a0536f954769455b3002c9869129ecc18aafcb682f7",
+          "visual_approach.py": "2d2c5782fc24d186692279f1d1bb9673ec72049ae9e30d60be276878152eb5e8"
+        },
+        "implementation_unchanged_during_execution": true,
+        "reach_condition": "distance_only_collision_unchecked",
+        "reached": false,
+        "target_image_hz": 12.0,
+        "target_imu_hz": 30.0,
+        "target_joint_hz": 40.0,
+        "target_physics_hz": 120.0
+      },
+      "failure_logs": {
+        "shutdown.jsonl": {
+          "file": {
+            "exists": true,
+            "invalid_rows": 0,
+            "path": "/tmp/probtf_running_gradient_refined_20261018_074854/marker/shutdown.jsonl",
+            "rows": 1,
+            "sha256": "b553990b7c663444c8c45ef7c097c48e2c28d77415703199a3f1c959779ea052"
+          },
+          "first_examples": [
+            {
+              "acquisition_acknowledged": 6907,
+              "acquisition_recovery_journal": "acquisition_requests.jsonl",
+              "acquisition_submitted": 6907,
+              "closed_wall_stamp": 1792277516.7009273,
+              "estimation_drained": false,
+              "interrupted_control_request": null,
+              "interrupted_inference_event": "image:00000346",
+              "motion_finished": true,
+              "selected_but_not_dispatched_event": null,
+              "sensor_event_database": {
+                "claimed_through_stamp": 1792080002.923727,
+                "counts": {
+                  "completed": 238,
+                  "pending": 6668,
+                  "processing": 1
+                },
+                "earliest_unfinished": {
+                  "event_id": "image:00000346",
+                  "sequence": 239,
+                  "stamp": 1792080002.923727,
+                  "status": "processing"
+                },
+                "latest_only_selection": false,
+                "ordering": "acquisition stamp, then immutable insertion sequence",
+                "total": 6907
+              },
+              "workers": [
+                {
+                  "exitcode": 1
+                },
+                {
+                  "exitcode": 1
+                },
+                {
+                  "exitcode": 1
+                }
+              ]
+            }
+          ],
+          "reason_counts": {
+            "unrecorded": 1
+          }
+        }
+      },
+      "files": {
+        "commands.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_refined_20261018_074854/marker/commands.jsonl",
+          "rows": 8292,
+          "sha256": "9fce8fdac0b41c93dd7bf2e43ffedff926400bff608088f2598571b855a36676"
+        },
+        "control.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_refined_20261018_074854/marker/control.jsonl",
+          "rows": 293,
+          "sha256": "1b5161729a546504ab0078406fb0ca515578adaf43140853465dbc9c37fb3484"
+        },
+        "gradient_adoptions.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_refined_20261018_074854/marker/gradient_adoptions.jsonl",
+          "rows": 293,
+          "sha256": "2336fa20cb4c454d633f54a885f38319a8974f42a8c37a8b9a86dd1e0c681942"
+        },
+        "physical_trajectory.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_refined_20261018_074854/marker/physical_trajectory.jsonl",
+          "rows": 8293,
+          "sha256": "94328f6b6b9ba903b1c22a2e16948b2b3f885aff53a5400b7a36ac7060ad9d1e"
+        }
+      },
+      "warnings": [],
+      "physical": {
+        "action_mode_samples": {
+          "reaching": 8293
+        },
+        "actual_simulation_sample_hz": 92.13333333333334,
+        "distance_coverage_s": 90.0,
+        "distance_m": {
+          "count": 8293,
+          "maximum": 0.4037437097551572,
+          "mean": 0.38141956412884226,
+          "minimum": 0.3339532618137395,
+          "population_std": 0.019756531948885
+        },
+        "duration_s": 90.0,
+        "final": {
+          "physical_distance_m": 0.3339532618137395,
+          "time_s": 90.0
+        },
+        "initial": {
+          "physical_distance_m": 0.36959607396520444,
+          "time_s": 0.0
+        },
+        "minimum": {
+          "physical_distance_m": 0.3339532618137395,
+          "time_s": 90.0
+        },
+        "near_residence_fraction": 0.0,
+        "near_residence_method": "linear distance interpolation between consecutive valid physical samples",
+        "near_residence_s": 0.0,
+        "near_threshold_m": 0.006,
+        "physical_interval_s": {
+          "count": 8292,
+          "maximum": 0.20254403166472912,
+          "mean": 0.010853835021707668,
+          "minimum": 0.001373796258121729,
+          "population_std": 0.012049594749676096
+        },
+        "reached_samples": {
+          "False": 8293
+        },
+        "distance_trace": {
+          "deterministic_index_stride": 8,
+          "final_point_added": true,
+          "raw_samples": 8293,
+          "retained_samples": 1038
+        }
+      },
+      "in_motion_profile": {
+        "command_generation_s": {
+          "mean_s": 0.000390188966069534,
+          "max_s": 0.00607307581230998,
+          "samples": 8292
+        },
+        "frozen_K_ledger_action_s": {
+          "mean_s": 0.0004860045607581382,
+          "max_s": 0.006878179963678122,
+          "samples": 8292
+        },
+        "native_physics_and_endpoint_FK_s": {
+          "mean_s": 0.0008678015259045566,
+          "max_s": 0.008313342928886414,
+          "samples": 8292
+        },
+        "distinct_executed_gradient_packets": 286,
+        "executed_gradient_versions_per_second": 3.1777777777777776
+      }
+    },
+    "imu_marker": {
+      "configuration": {
+        "eta": 1e-06,
+        "gain_source": "run manifest",
+        "gamma": 8.0,
+        "near_threshold_m": 0.006,
+        "near_threshold_source": "explicit --near-threshold"
+      },
+      "control_mode": "running_gradient",
+      "commands": {
+        "command_acceleration_norm_rad_s2": {
+          "count": 8407,
+          "maximum": 0.573003510255563,
+          "mean": 0.004463827329384233,
+          "minimum": 8.463269347837394e-07,
+          "population_std": 0.030120993559251696
+        },
+        "command_position_boundary_residual_inf_rad": {
+          "count": 8406,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "command_speed_norm_rad_s": {
+          "count": 8407,
+          "maximum": 0.1418709102990667,
+          "mean": 0.006048612415394002,
+          "minimum": 0.0008223190128550929,
+          "population_std": 0.013389846024865315
+        },
+        "command_velocity_boundary_residual_inf_rad_s": {
+          "count": 8406,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "continuity_note": "Equation residual, interval-state boundary continuity and packet-adoption invariance are separate checks; no unrecorded initial velocity is assumed.",
+        "exact_hold_equation_position_residual_inf_rad": {
+          "count": 8407,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "exact_hold_equation_velocity_residual_inf_rad_s": {
+          "count": 8407,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "exact_hold_equation_verified_intervals": 8407,
+        "fail_safe_tick_reasons": {},
+        "gradient_snapshot_update_lag": {
+          "count": 8407,
+          "maximum": 1.0,
+          "mean": 0.0739859640775542,
+          "minimum": 0.0,
+          "population_std": 0.2617480490797772
+        },
+        "gradient_source_age_s": {
+          "count": 8407,
+          "maximum": 0.9438767433166504,
+          "mean": 0.4878370999524199,
+          "minimum": 0.0018489360809326172,
+          "population_std": 0.11393170230570598
+        },
+        "gradient_source_command_distance_rad": {
+          "count": 8407,
+          "maximum": 0.058700157058633295,
+          "mean": 0.0025638797822740223,
+          "minimum": 7.62064808469289e-07,
+          "population_std": 0.004730898267359494
+        },
+        "held_gradient_tracking_duration_s": 90.0,
+        "held_gradient_tracking_intervals": 8407,
+        "intervals": 8407,
+        "no_goal_duration_s": null,
+        "no_goal_motion_covered_samples": 0,
+        "no_goal_motion_detected": null,
+        "no_goal_motion_duration_s": null,
+        "no_goal_telemetry_samples": 0,
+        "policy_counts": {
+          "reaching": 8407
+        },
+        "raw_image_missing_duration_s": 52.59135213633999,
+        "raw_image_missing_retained_gradient_motion_duration_s": 52.59135213633999,
+        "raw_image_missing_retained_gradient_motion_samples": 5361,
+        "raw_image_missing_telemetry_samples": 5361,
+        "selected_K_on_actual_intervals": {
+          "changed_samples": 14,
+          "distinct_density_ids": 15,
+          "final": [
+            104.1771077651313,
+            81.99198275290898,
+            136.62814868505373,
+            104.27825581199426,
+            98.95316758179338,
+            104.23234719522682
+          ],
+          "initial": [
+            104.58060339421266,
+            104.01679606284517,
+            102.96017539337804,
+            104.59891066713831,
+            102.41957466137573,
+            104.55886019321264
+          ],
+          "maximum_absolute_log_step": 0.192967593418107,
+          "maximum_absolute_step": 24.546425850189493,
+          "per_joint_maximum": [
+            105.53270063876771,
+            109.97993402365114,
+            139.8726028076942,
+            105.53592904104012,
+            105.15148737707865,
+            105.52884529909221
+          ],
+          "per_joint_minimum": [
+            104.1771077651313,
+            81.99198275290898,
+            102.96017539337804,
+            104.27825581199426,
+            98.95316758179338,
+            104.23234719522682
+          ],
+          "samples": 8407
+        },
+        "status_counts": {
+          "tracking": 8407
+        }
+      },
+      "control_worker": {
+        "gradient_computation_seconds": {
+          "count": 291,
+          "maximum": 0.08640244277194142,
+          "mean": 0.06610488039169374,
+          "minimum": 0.0,
+          "population_std": 0.013959643160563574
+        },
+        "gradient_reason_counts": {
+          "No valid observed goal has been retained; J is not fabricated.": 12,
+          "None": 279
+        },
+        "gradient_status_counts": {
+          "ok": 279,
+          "waiting_for_goal": 12
+        },
+        "mode_counts": {
+          "running_gradient": 291
+        },
+        "selected_K_at_gradient_evaluation": {
+          "changed_samples": 21,
+          "distinct_density_ids": 22,
+          "final": [
+            103.11561508071313,
+            88.6390573208908,
+            146.29737787586328,
+            103.21750552627444,
+            96.82174867741958,
+            103.17181128199485
+          ],
+          "initial": [
+            105.2415672625662,
+            109.44291394928358,
+            109.27527735523033,
+            105.2415273924016,
+            105.25234249389025,
+            105.24157599067203
+          ],
+          "maximum_absolute_log_step": 0.192967593418107,
+          "maximum_absolute_step": 24.546425850189493,
+          "per_joint_maximum": [
+            105.53270063876771,
+            109.97993402365114,
+            146.29737787586328,
+            105.53592904104012,
+            105.25234249389025,
+            105.52884529909221
+          ],
+          "per_joint_minimum": [
+            103.11561508071313,
+            79.6461087689139,
+            102.96017539337804,
+            103.21750552627444,
+            96.82174867741958,
+            103.17181128199485
+          ],
+          "samples": 290
+        },
+        "total_worker_seconds": {
+          "count": 291,
+          "maximum": 0.3505882858298719,
+          "mean": 0.25795447060844756,
+          "minimum": 0.08332693297415972,
+          "population_std": 0.04981937153170907
+        }
+      },
+      "gradient_adoptions": {
+        "age_at_adoption_s": {
+          "count": 279,
+          "maximum": 0.38959717750549316,
+          "mean": 0.28683079613579626,
+          "minimum": 0.0,
+          "population_std": 0.06410487043765993
+        },
+        "command_displacement_at_adoption_rad": {
+          "count": 279,
+          "maximum": 0.028817991076900314,
+          "mean": 0.0015349707685532853,
+          "minimum": 0.0,
+          "population_std": 0.0029998585266436803
+        },
+        "counts": {
+          "accepted": 279,
+          "rejected": 12
+        },
+        "packet_adoption_position_change_inf_rad": {
+          "count": 291,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "packet_adoption_velocity_change_inf_rad_s": {
+          "count": 291,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "rejection_or_acceptance_reason_counts": {
+          "None": 279,
+          "evaluation_waiting_for_goal": 12
+        },
+        "selected_K_at_accepted_adoptions": {
+          "changed_samples": 20,
+          "distinct_density_ids": 21,
+          "final": [
+            103.11561508071313,
+            88.6390573208908,
+            146.29737787586328,
+            103.21750552627444,
+            96.82174867741958,
+            103.17181128199485
+          ],
+          "initial": [
+            104.58060339421266,
+            104.01679606284517,
+            102.96017539337804,
+            104.59891066713831,
+            102.41957466137573,
+            104.55886019321264
+          ],
+          "maximum_absolute_log_step": 0.192967593418107,
+          "maximum_absolute_step": 24.546425850189493,
+          "per_joint_maximum": [
+            105.53270063876771,
+            109.97993402365114,
+            146.29737787586328,
+            105.53592904104012,
+            105.15148737707865,
+            105.52884529909221
+          ],
+          "per_joint_minimum": [
+            103.11561508071313,
+            79.6461087689139,
+            102.96017539337804,
+            103.21750552627444,
+            96.82174867741958,
+            103.17181128199485
+          ],
+          "samples": 279
+        },
+        "snapshot_update_lag_at_adoption": {
+          "count": 279,
+          "maximum": 1.0,
+          "mean": 0.05017921146953406,
+          "minimum": 0.0,
+          "population_std": 0.21831458541707613
+        }
+      },
+      "observations": {
+        "backlog_events": 6864,
+        "error_events": 0,
+        "errors": [],
+        "failed_or_replay_events": 0,
+        "inference_seconds": {
+          "count": 23,
+          "maximum": 14.523020748980343,
+          "mean": 6.191184781451264,
+          "minimum": 0.02375218505039811,
+          "population_std": 4.3251369703751665
+        },
+        "observation_fusion_counts": {
+          "image_fused": 6,
+          "imu_fused": 16,
+          "joint_not_fused": 21
+        },
+        "path": "/tmp/probtf_running_gradient_refined_20261018_074854/imu_marker/observations.sqlite3",
+        "raw_payloads_loaded": false,
+        "ready_to_claim_wall_delay_s": {
+          "count": 43,
+          "maximum": 128.33033800125122,
+          "mean": 48.62526131785193,
+          "minimum": 0.0032262802124023438,
+          "population_std": 43.41612136103469
+        },
+        "result_metadata_only": true,
+        "sensor_status_counts": {
+          "image": {
+            "completed": 6,
+            "pending": 1049,
+            "processing": 1
+          },
+          "imu": {
+            "completed": 16,
+            "pending": 2524
+          },
+          "joint": {
+            "completed": 21,
+            "pending": 3290
+          }
+        },
+        "sensors": {
+          "image": {
+            "acquisition_span_s": 90.0,
+            "actual_simulation_acquisition_hz": 11.722222222222221,
+            "attempts": 7,
+            "count": 1056,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080090.0,
+            "maximum_attempts": 1
+          },
+          "imu": {
+            "acquisition_span_s": 90.0,
+            "actual_simulation_acquisition_hz": 28.211111111111112,
+            "attempts": 16,
+            "count": 2540,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080090.0,
+            "maximum_attempts": 1
+          },
+          "joint": {
+            "acquisition_span_s": 90.0,
+            "actual_simulation_acquisition_hz": 36.77777777777778,
+            "attempts": 21,
+            "count": 3311,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080090.0,
+            "maximum_attempts": 1
+          }
+        },
+        "total_events": 6907
+      },
+      "manifest": {
+        "actual_camera_hz": 11.720091533007045,
+        "actual_control_hz": 1.9300643743925026,
+        "actual_estimate_hz": 0.13362927236509886,
+        "actual_imu_hz": 28.20639362779203,
+        "actual_joint_hz": 36.77094697732216,
+        "actual_motion_hz": 93.3871661926466,
+        "collision_checking_enabled": false,
+        "duration": 90.0,
+        "estimation_drained": false,
+        "execution_architecture": "timestamped_sensor_events",
+        "execution_mode": "async",
+        "failure": null,
+        "final_physical_error_m": 0.5101262834120879,
+        "finished": true,
+        "implementation_sha256": {
+          "__init__.py": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f",
+          "async_motion.py": "3f6e4c4c0ca8defc5227965e35d09ed51028ae08590aa3275c3ff4e6330cb51c",
+          "async_publication.py": "54fe151cd6b1a9335903b1fe1efd0b153567730dc0c5c64417d8d36c988f7099",
+          "async_state.py": "0ac321e3695ee802db1be7ad012ae43c7893c24c6be8221c2df9ee45f481cb19",
+          "async_stiffness.py": "62d630f909ccf16fd1f3b4d2a66294ab6e04000d854882ee1d20cb819c987ca6",
+          "async_workers.py": "c230f7e44586f46eac1cd6d4b4cc29d4918cdd46e4d0024a74927e6d02f76c12",
+          "bayes_factor.py": "53139568c2bb07d95d3984a7f33acea6ca74c966fc41cee0c4187bb73820376b",
+          "board_camera.py": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778",
+          "body_projection.py": "74a473dba2da1d113ac05404c1a4e770783b0f0fd2ac3e9c244181576c8eef7b",
+          "display.py": "81bd8fa0bd6c609fc52030177684a44736a4c11117b57ec695470ce5609644c3",
+          "dynamic_physics.py": "99fe6a394b86b22247f18220987409ec66ef381b480d9387a623a1ff2750e453",
+          "event_motion.py": "437b97aa11db274daa7bb537e2157d4b9b11a3fe3af8127b4f76ac643a78b3b9",
+          "execution_stiffness.py": "a1a5b5e984eb6e0bdc9a80d318f5c541f5dd1622ce82c06c046ae623ae350f98",
+          "fresh_goal.py": "60dde9dcaf41c2fd158fe05f72e2b82aa2b7fc99bff7d9a4084cdca8646e07b7",
+          "marker_board.py": "c03cc89017e11292404cea97f479bce0de3ebbd1213a7169b4e326980dbd80fa",
+          "marker_search.py": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb",
+          "model.py": "c26da0f69f2416f68af6168b0a757654f73589d7f2fa00bd90a37840eabf25fc",
+          "motion_display.py": "9a0b2c506a69bcc031f032164b739dc8ee2bd1ba2cbf2d9ed0028d23eb1ccadf",
+          "motion_node.py": "99bf5ed9931f788cc5ccf67b6dba31fc571607edd611b0605fff7b22a1213cf6",
+          "moving_control.py": "db4bbf84fd532a284fb4567809d33847aa3daf13af1651c5c8e592027bb8d531",
+          "moving_inference.py": "95975544541328a07eb9ca41b44e95676dd6d78c2487f3a88c6a1cfc459c1bba",
+          "moving_scene.py": "f0a3e8638b7e70b6e61eca076f879179ffa364ba3c377f4a3943dc48ab455c29",
+          "node.py": "cc1f9308e542dc88345b41286ba305259519d5c6625ff2e58006f831b3fbe8e1",
+          "running_gradient.py": "2c624b3f016b1208b417adcc698637e77b72c90c249f86e495f4ca8e0e9eb663",
+          "scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+          "sensor_event_store.py": "b9f1841a98ed6091d016525f0e587ebf3bc131e9a7cfbaf7194afb4249ea42f4",
+          "sensors.py": "079db5b231e3db65d9f6d8b6fd869cd2055e21ddf189e44d2fe0a3bced68301d",
+          "short_command.py": "76130898f16aae163d8d2901f506f323981263303aff3bebf44b742a487b1c2f",
+          "stiffness_bayes_factor.py": "74fe33826317a11765880831a3480ac871ca062985c33ad8a7f131901336a73d",
+          "stiffness_command.py": "6446e2b7e8e8b2793b00eb80d52b427c2d203649934e97e77de8fe6e56164ec3",
+          "stiffness_identification.py": "df0de497547c822d9b336a0536f954769455b3002c9869129ecc18aafcb682f7",
+          "visual_approach.py": "2d2c5782fc24d186692279f1d1bb9673ec72049ae9e30d60be276878152eb5e8"
+        },
+        "implementation_unchanged_during_execution": true,
+        "reach_condition": "distance_only_collision_unchecked",
+        "reached": false,
+        "target_image_hz": 12.0,
+        "target_imu_hz": 30.0,
+        "target_joint_hz": 40.0,
+        "target_physics_hz": 120.0
+      },
+      "failure_logs": {
+        "shutdown.jsonl": {
+          "file": {
+            "exists": true,
+            "invalid_rows": 0,
+            "path": "/tmp/probtf_running_gradient_refined_20261018_074854/imu_marker/shutdown.jsonl",
+            "rows": 1,
+            "sha256": "73c0987ca971a2b6e4a56135ebdb27127688d297c0dc607a73622a4303badc56"
+          },
+          "first_examples": [
+            {
+              "acquisition_acknowledged": 6907,
+              "acquisition_recovery_journal": "acquisition_requests.jsonl",
+              "acquisition_submitted": 6907,
+              "closed_wall_stamp": 1792277516.722663,
+              "estimation_drained": false,
+              "interrupted_control_request": null,
+              "interrupted_inference_event": "image:00000061",
+              "motion_finished": true,
+              "selected_but_not_dispatched_event": null,
+              "sensor_event_database": {
+                "claimed_through_stamp": 1792080000.505185,
+                "counts": {
+                  "completed": 43,
+                  "pending": 6863,
+                  "processing": 1
+                },
+                "earliest_unfinished": {
+                  "event_id": "image:00000061",
+                  "sequence": 44,
+                  "stamp": 1792080000.505185,
+                  "status": "processing"
+                },
+                "latest_only_selection": false,
+                "ordering": "acquisition stamp, then immutable insertion sequence",
+                "total": 6907
+              },
+              "workers": [
+                {
+                  "exitcode": 1
+                },
+                {
+                  "exitcode": 1
+                },
+                {
+                  "exitcode": 1
+                }
+              ]
+            }
+          ],
+          "reason_counts": {
+            "unrecorded": 1
+          }
+        }
+      },
+      "files": {
+        "commands.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_refined_20261018_074854/imu_marker/commands.jsonl",
+          "rows": 8407,
+          "sha256": "41216f5a1d8313368562bab18e852d6a574be54bf701062c8bffb4cb416b6233"
+        },
+        "control.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_refined_20261018_074854/imu_marker/control.jsonl",
+          "rows": 291,
+          "sha256": "c30272b4e91e5deddbd75b5031da9173d35980c8a7441640cf7fba7bc2a89ae5"
+        },
+        "gradient_adoptions.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_refined_20261018_074854/imu_marker/gradient_adoptions.jsonl",
+          "rows": 291,
+          "sha256": "f36de2d998c345c10071b573d395bff98c69ad4fe74b8003bcefd3d7d9b0861b"
+        },
+        "physical_trajectory.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_refined_20261018_074854/imu_marker/physical_trajectory.jsonl",
+          "rows": 8408,
+          "sha256": "085cb503e2ee7c254b66e985441288d2ba300720111c7b70c41cd1c3e19a57dc"
+        }
+      },
+      "warnings": [],
+      "physical": {
+        "action_mode_samples": {
+          "reaching": 8408
+        },
+        "actual_simulation_sample_hz": 93.41111111111111,
+        "distance_coverage_s": 90.0,
+        "distance_m": {
+          "count": 8408,
+          "maximum": 0.5101262834120879,
+          "mean": 0.4690998374617398,
+          "minimum": 0.3578598731224407,
+          "population_std": 0.037629490136541786
+        },
+        "duration_s": 90.0,
+        "final": {
+          "physical_distance_m": 0.5101262834120879,
+          "time_s": 90.0
+        },
+        "initial": {
+          "physical_distance_m": 0.36959607396520444,
+          "time_s": 0.0
+        },
+        "minimum": {
+          "physical_distance_m": 0.3578598731224407,
+          "time_s": 1.151783467270434
+        },
+        "near_residence_fraction": 0.0,
+        "near_residence_method": "linear distance interpolation between consecutive valid physical samples",
+        "near_residence_s": 0.0,
+        "near_threshold_m": 0.006,
+        "physical_interval_s": {
+          "count": 8407,
+          "maximum": 0.21246160985901952,
+          "mean": 0.010705364577138091,
+          "minimum": 0.0013766009360551834,
+          "population_std": 0.011766961311260201
+        },
+        "reached_samples": {
+          "False": 8408
+        },
+        "distance_trace": {
+          "deterministic_index_stride": 8,
+          "final_point_added": true,
+          "raw_samples": 8408,
+          "retained_samples": 1052
+        }
+      },
+      "in_motion_profile": {
+        "command_generation_s": {
+          "mean_s": 0.0003911376292905364,
+          "max_s": 0.0013331440277397633,
+          "samples": 8407
+        },
+        "frozen_K_ledger_action_s": {
+          "mean_s": 0.0004847100139372348,
+          "max_s": 0.0016624159179627895,
+          "samples": 8407
+        },
+        "native_physics_and_endpoint_FK_s": {
+          "mean_s": 0.0008511050874364033,
+          "max_s": 0.00723778922110796,
+          "samples": 8407
+        },
+        "distinct_executed_gradient_packets": 271,
+        "executed_gradient_versions_per_second": 3.011111111111111
+      }
+    }
+  },
+  "initial_runs": {
+    "marker": {
+      "configuration": {
+        "eta": 1e-06,
+        "gain_source": "run manifest",
+        "gamma": 8.0,
+        "near_threshold_m": 0.006,
+        "near_threshold_source": "explicit --near-threshold"
+      },
+      "control_mode": "running_gradient",
+      "commands": {
+        "command_acceleration_norm_rad_s2": {
+          "count": 7832,
+          "maximum": 0.6036107349816284,
+          "mean": 0.005494206801472819,
+          "minimum": 6.567578124889021e-07,
+          "population_std": 0.03455605676498323
+        },
+        "command_position_boundary_residual_inf_rad": {
+          "count": 7831,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "command_speed_norm_rad_s": {
+          "count": 7832,
+          "maximum": 0.16963828148085697,
+          "mean": 0.006638027659941081,
+          "minimum": 0.0007636484267195945,
+          "population_std": 0.015148732668941914
+        },
+        "command_velocity_boundary_residual_inf_rad_s": {
+          "count": 7831,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "continuity_note": "Equation residual, interval-state boundary continuity and packet-adoption invariance are separate checks; no unrecorded initial velocity is assumed.",
+        "exact_hold_equation_position_residual_inf_rad": {
+          "count": 7832,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "exact_hold_equation_velocity_residual_inf_rad_s": {
+          "count": 7832,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "exact_hold_equation_verified_intervals": 7832,
+        "fail_safe_tick_reasons": {},
+        "gradient_snapshot_update_lag": {
+          "count": 7832,
+          "maximum": 3.0,
+          "mean": 0.13891726251276826,
+          "minimum": 0.0,
+          "population_std": 0.3876374214111792
+        },
+        "gradient_source_age_s": {
+          "count": 7832,
+          "maximum": 0.705390453338623,
+          "mean": 0.40822327733648806,
+          "minimum": 0.005827665328979492,
+          "population_std": 0.08434416137534635
+        },
+        "gradient_source_command_distance_rad": {
+          "count": 7832,
+          "maximum": 0.06549090574912957,
+          "mean": 0.002607832015495993,
+          "minimum": 6.542895526828673e-06,
+          "population_std": 0.005269322639723943
+        },
+        "held_gradient_tracking_duration_s": 90.0,
+        "held_gradient_tracking_intervals": 7832,
+        "intervals": 7832,
+        "no_goal_duration_s": null,
+        "no_goal_motion_covered_samples": 0,
+        "no_goal_motion_detected": null,
+        "no_goal_motion_duration_s": null,
+        "no_goal_telemetry_samples": 0,
+        "policy_counts": {
+          "reaching": 7832
+        },
+        "raw_image_missing_duration_s": 81.84997465414926,
+        "raw_image_missing_retained_gradient_motion_duration_s": 81.84997465414926,
+        "raw_image_missing_retained_gradient_motion_samples": 6884,
+        "raw_image_missing_telemetry_samples": 6884,
+        "selected_K_on_actual_intervals": {
+          "changed_samples": 16,
+          "distinct_density_ids": 17,
+          "final": [
+            104.86397836091528,
+            433.0954587229346,
+            176.69114611665822,
+            113.01789930545584,
+            203.97463760341228,
+            110.69278819919896
+          ],
+          "initial": [
+            104.09105922304327,
+            90.48184792536931,
+            95.39158617848595,
+            104.09792358691497,
+            101.0137625159821,
+            104.04663251319766
+          ],
+          "maximum_absolute_log_step": 1.3912631524792078,
+          "maximum_absolute_step": 135.34628980758612,
+          "per_joint_maximum": [
+            105.07223450154243,
+            433.0954587229346,
+            388.4743094697399,
+            113.24201357315808,
+            203.97463760341228,
+            111.41246570175898
+          ],
+          "per_joint_minimum": [
+            82.42036899185393,
+            90.48184792536931,
+            81.67812318234708,
+            81.9627748231825,
+            40.47327841540853,
+            81.64181721269806
+          ],
+          "samples": 7832
+        },
+        "status_counts": {
+          "tracking": 7832
+        }
+      },
+      "control_worker": {
+        "gradient_computation_seconds": {
+          "count": 323,
+          "maximum": 0.09097413020208478,
+          "mean": 0.06809951762752409,
+          "minimum": 0.0,
+          "population_std": 0.004636966954681113
+        },
+        "gradient_reason_counts": {
+          "No valid observed goal has been retained; J is not fabricated.": 1,
+          "None": 322
+        },
+        "gradient_status_counts": {
+          "ok": 322,
+          "waiting_for_goal": 1
+        },
+        "mode_counts": {
+          "running_gradient": 323
+        },
+        "selected_K_at_gradient_evaluation": {
+          "changed_samples": 17,
+          "distinct_density_ids": 18,
+          "final": [
+            104.81515394559578,
+            423.83797113271373,
+            121.68400805768802,
+            115.06749001661723,
+            226.48993839563443,
+            110.6068572573573
+          ],
+          "initial": [
+            104.09105922304327,
+            90.48184792536931,
+            95.39158617848595,
+            104.09792358691497,
+            101.0137625159821,
+            104.04663251319766
+          ],
+          "maximum_absolute_log_step": 1.3912631524792078,
+          "maximum_absolute_step": 135.34628980758612,
+          "per_joint_maximum": [
+            105.07223450154243,
+            433.0954587229346,
+            388.4743094697399,
+            115.06749001661723,
+            226.48993839563443,
+            111.41246570175898
+          ],
+          "per_joint_minimum": [
+            82.42036899185393,
+            90.48184792536931,
+            81.67812318234708,
+            81.9627748231825,
+            40.47327841540853,
+            81.64181721269806
+          ],
+          "samples": 322
+        },
+        "total_worker_seconds": {
+          "count": 323,
+          "maximum": 0.31330913538113236,
+          "mean": 0.2313427011433401,
+          "minimum": 0.08683402091264725,
+          "population_std": 0.02411500693362649
+        }
+      },
+      "gradient_adoptions": {
+        "age_at_adoption_s": {
+          "count": 322,
+          "maximum": 0.3396141529083252,
+          "mean": 0.24970570114088372,
+          "minimum": 0.0,
+          "population_std": 0.03427876579695901
+        },
+        "command_displacement_at_adoption_rad": {
+          "count": 322,
+          "maximum": 0.035824155312040515,
+          "mean": 0.001453206141027146,
+          "minimum": 0.0,
+          "population_std": 0.0030754635454742925
+        },
+        "counts": {
+          "accepted": 322,
+          "rejected": 1
+        },
+        "packet_adoption_position_change_inf_rad": {
+          "count": 323,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "packet_adoption_velocity_change_inf_rad_s": {
+          "count": 323,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "rejection_or_acceptance_reason_counts": {
+          "None": 322,
+          "evaluation_waiting_for_goal": 1
+        },
+        "selected_K_at_accepted_adoptions": {
+          "changed_samples": 17,
+          "distinct_density_ids": 18,
+          "final": [
+            104.81515394559578,
+            423.83797113271373,
+            121.68400805768802,
+            115.06749001661723,
+            226.48993839563443,
+            110.6068572573573
+          ],
+          "initial": [
+            104.09105922304327,
+            90.48184792536931,
+            95.39158617848595,
+            104.09792358691497,
+            101.0137625159821,
+            104.04663251319766
+          ],
+          "maximum_absolute_log_step": 1.3912631524792078,
+          "maximum_absolute_step": 135.34628980758612,
+          "per_joint_maximum": [
+            105.07223450154243,
+            433.0954587229346,
+            388.4743094697399,
+            115.06749001661723,
+            226.48993839563443,
+            111.41246570175898
+          ],
+          "per_joint_minimum": [
+            82.42036899185393,
+            90.48184792536931,
+            81.67812318234708,
+            81.9627748231825,
+            40.47327841540853,
+            81.64181721269806
+          ],
+          "samples": 322
+        },
+        "snapshot_update_lag_at_adoption": {
+          "count": 322,
+          "maximum": 2.0,
+          "mean": 0.08385093167701861,
+          "minimum": 0.0,
+          "population_std": 0.2881512329630713
+        }
+      },
+      "observations": {
+        "backlog_events": 6792,
+        "error_events": 0,
+        "errors": [],
+        "failed_or_replay_events": 0,
+        "inference_seconds": {
+          "count": 30,
+          "maximum": 22.900531764142215,
+          "mean": 3.58503641889741,
+          "minimum": 0.0215514930896461,
+          "population_std": 5.871886215493859
+        },
+        "observation_fusion_counts": {
+          "image_fused": 18,
+          "image_not_fused": 11,
+          "imu_not_fused": 73,
+          "joint_not_fused": 97
+        },
+        "path": "/tmp/probtf_running_gradient_20261018_074339/marker/observations.sqlite3",
+        "raw_payloads_loaded": false,
+        "ready_to_claim_wall_delay_s": {
+          "count": 199,
+          "maximum": 109.19578552246094,
+          "mean": 26.948202303306548,
+          "minimum": 0.0019228458404541016,
+          "population_std": 22.39434364787233
+        },
+        "result_metadata_only": true,
+        "sensor_status_counts": {
+          "image": {
+            "completed": 29,
+            "pending": 1042,
+            "processing": 1
+          },
+          "imu": {
+            "completed": 73,
+            "pending": 2522
+          },
+          "joint": {
+            "completed": 97,
+            "pending": 3227
+          }
+        },
+        "sensors": {
+          "image": {
+            "acquisition_span_s": 90.0,
+            "actual_simulation_acquisition_hz": 11.9,
+            "attempts": 30,
+            "count": 1072,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080090.0,
+            "maximum_attempts": 1
+          },
+          "imu": {
+            "acquisition_span_s": 90.0,
+            "actual_simulation_acquisition_hz": 28.822222222222223,
+            "attempts": 73,
+            "count": 2595,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080090.0,
+            "maximum_attempts": 1
+          },
+          "joint": {
+            "acquisition_span_s": 90.0,
+            "actual_simulation_acquisition_hz": 36.922222222222224,
+            "attempts": 97,
+            "count": 3324,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080090.0,
+            "maximum_attempts": 1
+          }
+        },
+        "total_events": 6991
+      },
+      "manifest": {
+        "actual_camera_hz": 11.898709470367285,
+        "actual_control_hz": 2.867367212150974,
+        "actual_estimate_hz": 0.2453442743828054,
+        "actual_imu_hz": 28.818825770826486,
+        "actual_joint_hz": 36.918081656727516,
+        "actual_motion_hz": 87.00284920182246,
+        "collision_checking_enabled": false,
+        "duration": 90.0,
+        "estimation_drained": false,
+        "execution_architecture": "timestamped_sensor_events",
+        "execution_mode": "async",
+        "failure": null,
+        "final_physical_error_m": 0.4440189469041667,
+        "finished": true,
+        "implementation_sha256": {
+          "__init__.py": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f",
+          "async_motion.py": "3f6e4c4c0ca8defc5227965e35d09ed51028ae08590aa3275c3ff4e6330cb51c",
+          "async_publication.py": "54fe151cd6b1a9335903b1fe1efd0b153567730dc0c5c64417d8d36c988f7099",
+          "async_state.py": "0ac321e3695ee802db1be7ad012ae43c7893c24c6be8221c2df9ee45f481cb19",
+          "async_stiffness.py": "62d630f909ccf16fd1f3b4d2a66294ab6e04000d854882ee1d20cb819c987ca6",
+          "async_workers.py": "c230f7e44586f46eac1cd6d4b4cc29d4918cdd46e4d0024a74927e6d02f76c12",
+          "bayes_factor.py": "53139568c2bb07d95d3984a7f33acea6ca74c966fc41cee0c4187bb73820376b",
+          "board_camera.py": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778",
+          "body_projection.py": "74a473dba2da1d113ac05404c1a4e770783b0f0fd2ac3e9c244181576c8eef7b",
+          "display.py": "81bd8fa0bd6c609fc52030177684a44736a4c11117b57ec695470ce5609644c3",
+          "dynamic_physics.py": "99fe6a394b86b22247f18220987409ec66ef381b480d9387a623a1ff2750e453",
+          "event_motion.py": "437b97aa11db274daa7bb537e2157d4b9b11a3fe3af8127b4f76ac643a78b3b9",
+          "execution_stiffness.py": "a1a5b5e984eb6e0bdc9a80d318f5c541f5dd1622ce82c06c046ae623ae350f98",
+          "fresh_goal.py": "60dde9dcaf41c2fd158fe05f72e2b82aa2b7fc99bff7d9a4084cdca8646e07b7",
+          "marker_board.py": "c03cc89017e11292404cea97f479bce0de3ebbd1213a7169b4e326980dbd80fa",
+          "marker_search.py": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb",
+          "model.py": "c26da0f69f2416f68af6168b0a757654f73589d7f2fa00bd90a37840eabf25fc",
+          "motion_display.py": "9a0b2c506a69bcc031f032164b739dc8ee2bd1ba2cbf2d9ed0028d23eb1ccadf",
+          "motion_node.py": "99bf5ed9931f788cc5ccf67b6dba31fc571607edd611b0605fff7b22a1213cf6",
+          "moving_control.py": "db4bbf84fd532a284fb4567809d33847aa3daf13af1651c5c8e592027bb8d531",
+          "moving_inference.py": "95975544541328a07eb9ca41b44e95676dd6d78c2487f3a88c6a1cfc459c1bba",
+          "moving_scene.py": "f0a3e8638b7e70b6e61eca076f879179ffa364ba3c377f4a3943dc48ab455c29",
+          "node.py": "cc1f9308e542dc88345b41286ba305259519d5c6625ff2e58006f831b3fbe8e1",
+          "running_gradient.py": "2c624b3f016b1208b417adcc698637e77b72c90c249f86e495f4ca8e0e9eb663",
+          "scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+          "sensor_event_store.py": "b9f1841a98ed6091d016525f0e587ebf3bc131e9a7cfbaf7194afb4249ea42f4",
+          "sensors.py": "079db5b231e3db65d9f6d8b6fd869cd2055e21ddf189e44d2fe0a3bced68301d",
+          "short_command.py": "76130898f16aae163d8d2901f506f323981263303aff3bebf44b742a487b1c2f",
+          "stiffness_bayes_factor.py": "a347cdce74f30241b94198913888107b2ad1950ce94c3741fa9f9e6658516ea1",
+          "stiffness_command.py": "6446e2b7e8e8b2793b00eb80d52b427c2d203649934e97e77de8fe6e56164ec3",
+          "stiffness_identification.py": "df0de497547c822d9b336a0536f954769455b3002c9869129ecc18aafcb682f7",
+          "visual_approach.py": "2d2c5782fc24d186692279f1d1bb9673ec72049ae9e30d60be276878152eb5e8"
+        },
+        "implementation_unchanged_during_execution": true,
+        "reach_condition": "distance_only_collision_unchecked",
+        "reached": false,
+        "target_image_hz": 12.0,
+        "target_imu_hz": 30.0,
+        "target_joint_hz": 40.0,
+        "target_physics_hz": 120.0
+      },
+      "failure_logs": {
+        "shutdown.jsonl": {
+          "file": {
+            "exists": true,
+            "invalid_rows": 0,
+            "path": "/tmp/probtf_running_gradient_20261018_074339/marker/shutdown.jsonl",
+            "rows": 1,
+            "sha256": "e0f95e72896e79adf98c71bb0446d89dc062afefd42d519301a6f5b131d9102d"
+          },
+          "first_examples": [
+            {
+              "acquisition_acknowledged": 6991,
+              "acquisition_recovery_journal": "acquisition_requests.jsonl",
+              "acquisition_submitted": 6991,
+              "closed_wall_stamp": 1792277178.513953,
+              "estimation_drained": false,
+              "interrupted_control_request": null,
+              "interrupted_inference_event": "image:00000283",
+              "motion_finished": true,
+              "selected_but_not_dispatched_event": null,
+              "sensor_event_database": {
+                "claimed_through_stamp": 1792080002.4171746,
+                "counts": {
+                  "completed": 199,
+                  "pending": 6791,
+                  "processing": 1
+                },
+                "earliest_unfinished": {
+                  "event_id": "image:00000283",
+                  "sequence": 200,
+                  "stamp": 1792080002.4171746,
+                  "status": "processing"
+                },
+                "latest_only_selection": false,
+                "ordering": "acquisition stamp, then immutable insertion sequence",
+                "total": 6991
+              },
+              "workers": [
+                {
+                  "exitcode": 1
+                },
+                {
+                  "exitcode": 1
+                },
+                {
+                  "exitcode": 1
+                }
+              ]
+            }
+          ],
+          "reason_counts": {
+            "unrecorded": 1
+          }
+        }
+      },
+      "files": {
+        "commands.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_20261018_074339/marker/commands.jsonl",
+          "rows": 7832,
+          "sha256": "2e9d11b87348c2ac0a9fd2ee266016c49d57971f231d55b7af7794f0f1452275"
+        },
+        "control.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_20261018_074339/marker/control.jsonl",
+          "rows": 323,
+          "sha256": "8d2323471d5a4018a28d685f4a2b893ec06d0aa0c157bc973119560175a1a997"
+        },
+        "gradient_adoptions.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_20261018_074339/marker/gradient_adoptions.jsonl",
+          "rows": 323,
+          "sha256": "67a00da8d3ab5d41faedc840bf0c4e53fe09f1117ad4359ca2419fa889db4481"
+        },
+        "physical_trajectory.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_20261018_074339/marker/physical_trajectory.jsonl",
+          "rows": 7833,
+          "sha256": "daed557b6cb15b161dce06dbed81ddc1817487b5fd3be4393f826166adffa85a"
+        }
+      },
+      "warnings": [],
+      "physical": {
+        "action_mode_samples": {
+          "reaching": 7833
+        },
+        "actual_simulation_sample_hz": 87.02222222222223,
+        "distance_coverage_s": 90.0,
+        "distance_m": {
+          "count": 7833,
+          "maximum": 0.45273631559281036,
+          "mean": 0.41106133308154863,
+          "minimum": 0.3555827310468984,
+          "population_std": 0.02358706198812821
+        },
+        "duration_s": 90.0,
+        "final": {
+          "physical_distance_m": 0.4440189469041667,
+          "time_s": 90.0
+        },
+        "initial": {
+          "physical_distance_m": 0.36959607396520444,
+          "time_s": 0.0
+        },
+        "minimum": {
+          "physical_distance_m": 0.3555827310468984,
+          "time_s": 1.2160107898525894
+        },
+        "near_residence_fraction": 0.0,
+        "near_residence_method": "linear distance interpolation between consecutive valid physical samples",
+        "near_residence_s": 0.0,
+        "near_threshold_m": 0.006,
+        "physical_interval_s": {
+          "count": 7832,
+          "maximum": 0.168799240142107,
+          "mean": 0.011491317671092986,
+          "minimum": 0.001402921974658966,
+          "population_std": 0.010837655191998637
+        },
+        "reached_samples": {
+          "False": 7833
+        },
+        "distance_trace": {
+          "deterministic_index_stride": 8,
+          "final_point_added": true,
+          "raw_samples": 7833,
+          "retained_samples": 980
+        }
+      }
+    },
+    "imu_marker": {
+      "configuration": {
+        "eta": 1e-06,
+        "gain_source": "run manifest",
+        "gamma": 8.0,
+        "near_threshold_m": 0.006,
+        "near_threshold_source": "explicit --near-threshold"
+      },
+      "control_mode": "running_gradient",
+      "commands": {
+        "command_acceleration_norm_rad_s2": {
+          "count": 3008,
+          "maximum": 0.5760477287839273,
+          "mean": 0.01231627695266152,
+          "minimum": 1.3842820182709213e-05,
+          "population_std": 0.04968757380642892
+        },
+        "command_position_boundary_residual_inf_rad": {
+          "count": 3007,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "command_speed_norm_rad_s": {
+          "count": 3008,
+          "maximum": 0.14192475142283942,
+          "mean": 0.012337511992008837,
+          "minimum": 0.0019742763746663145,
+          "population_std": 0.020642556452632296
+        },
+        "command_velocity_boundary_residual_inf_rad_s": {
+          "count": 3007,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "continuity_note": "Equation residual, interval-state boundary continuity and packet-adoption invariance are separate checks; no unrecorded initial velocity is assumed.",
+        "exact_hold_equation_position_residual_inf_rad": {
+          "count": 3008,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "exact_hold_equation_velocity_residual_inf_rad_s": {
+          "count": 3008,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "exact_hold_equation_verified_intervals": 3008,
+        "fail_safe_tick_reasons": {},
+        "gradient_snapshot_update_lag": {
+          "count": 3008,
+          "maximum": 1.0,
+          "mean": 0.10206117021276606,
+          "minimum": 0.0,
+          "population_std": 0.302728736243467
+        },
+        "gradient_source_age_s": {
+          "count": 3008,
+          "maximum": 0.6325688362121582,
+          "mean": 0.40172911704854825,
+          "minimum": 0.0044858455657958984,
+          "population_std": 0.08639642999760394
+        },
+        "gradient_source_command_distance_rad": {
+          "count": 3008,
+          "maximum": 0.05558302115788616,
+          "mean": 0.004641207787146535,
+          "minimum": 4.454603516760759e-06,
+          "population_std": 0.0070037170483567114
+        },
+        "held_gradient_tracking_duration_s": 26.69191379006952,
+        "held_gradient_tracking_intervals": 3008,
+        "intervals": 3008,
+        "no_goal_duration_s": null,
+        "no_goal_motion_covered_samples": 0,
+        "no_goal_motion_detected": null,
+        "no_goal_motion_duration_s": null,
+        "no_goal_telemetry_samples": 0,
+        "policy_counts": {
+          "reaching": 3008
+        },
+        "raw_image_missing_duration_s": 18.43342343484983,
+        "raw_image_missing_retained_gradient_motion_duration_s": 18.43342343484983,
+        "raw_image_missing_retained_gradient_motion_samples": 2041,
+        "raw_image_missing_telemetry_samples": 2041,
+        "selected_K_on_actual_intervals": {
+          "changed_samples": 7,
+          "distinct_density_ids": 8,
+          "final": [
+            105.59144451883297,
+            106.77828749819024,
+            110.34862621932207,
+            105.63388854738149,
+            106.1041283961117,
+            105.65110843003934
+          ],
+          "initial": [
+            104.58060339421266,
+            104.01679606284517,
+            102.96017539337804,
+            104.59891066713831,
+            102.41957466137573,
+            104.55886019321264
+          ],
+          "maximum_absolute_log_step": 0.0264983967446355,
+          "maximum_absolute_step": 2.750231968201078,
+          "per_joint_maximum": [
+            105.7002246474281,
+            108.18948617375898,
+            110.34862621932207,
+            105.71012865654603,
+            106.31259774387406,
+            105.72160246268486
+          ],
+          "per_joint_minimum": [
+            104.58060339421266,
+            104.01679606284517,
+            102.96017539337804,
+            104.59891066713831,
+            102.41957466137573,
+            104.55886019321264
+          ],
+          "samples": 3008
+        },
+        "status_counts": {
+          "tracking": 3008
+        }
+      },
+      "control_worker": {
+        "gradient_computation_seconds": {
+          "count": 109,
+          "maximum": 0.0755676138214767,
+          "mean": 0.06130494694695424,
+          "minimum": 0.0,
+          "population_std": 0.02160107701863484
+        },
+        "gradient_reason_counts": {
+          "No valid observed goal has been retained; J is not fabricated.": 12,
+          "None": 97
+        },
+        "gradient_status_counts": {
+          "ok": 97,
+          "waiting_for_goal": 12
+        },
+        "mode_counts": {
+          "running_gradient": 109
+        },
+        "selected_K_at_gradient_evaluation": {
+          "changed_samples": 8,
+          "distinct_density_ids": 9,
+          "final": [
+            105.59144451883297,
+            106.77828749819024,
+            110.34862621932207,
+            105.63388854738149,
+            106.1041283961117,
+            105.65110843003934
+          ],
+          "initial": [
+            105.2415672625662,
+            109.44291394928358,
+            109.27527735523033,
+            105.2415273924016,
+            105.25234249389025,
+            105.24157599067203
+          ],
+          "maximum_absolute_log_step": 0.059527912089683,
+          "maximum_absolute_step": 6.315101961852292,
+          "per_joint_maximum": [
+            105.7002246474281,
+            109.44291394928358,
+            110.34862621932207,
+            105.71012865654603,
+            106.31259774387406,
+            105.72160246268486
+          ],
+          "per_joint_minimum": [
+            104.58060339421266,
+            104.01679606284517,
+            102.96017539337804,
+            104.59891066713831,
+            102.41957466137573,
+            104.55886019321264
+          ],
+          "samples": 108
+        },
+        "total_worker_seconds": {
+          "count": 109,
+          "maximum": 0.2789417961612344,
+          "mean": 0.21188609345619555,
+          "minimum": 0.08488317718729377,
+          "population_std": 0.04476880671367822
+        }
+      },
+      "gradient_adoptions": {
+        "age_at_adoption_s": {
+          "count": 96,
+          "maximum": 0.30986499786376953,
+          "mean": 0.24981043736139935,
+          "minimum": 0.0,
+          "population_std": 0.03270231063245466
+        },
+        "command_displacement_at_adoption_rad": {
+          "count": 96,
+          "maximum": 0.02825866287211119,
+          "mean": 0.0030142859439686314,
+          "minimum": 0.0,
+          "population_std": 0.004596278885474223
+        },
+        "counts": {
+          "accepted": 96,
+          "rejected": 12
+        },
+        "packet_adoption_position_change_inf_rad": {
+          "count": 108,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "packet_adoption_velocity_change_inf_rad_s": {
+          "count": 108,
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "population_std": 0.0
+        },
+        "rejection_or_acceptance_reason_counts": {
+          "None": 96,
+          "evaluation_waiting_for_goal": 12
+        },
+        "selected_K_at_accepted_adoptions": {
+          "changed_samples": 7,
+          "distinct_density_ids": 8,
+          "final": [
+            105.59144451883297,
+            106.77828749819024,
+            110.34862621932207,
+            105.63388854738149,
+            106.1041283961117,
+            105.65110843003934
+          ],
+          "initial": [
+            104.58060339421266,
+            104.01679606284517,
+            102.96017539337804,
+            104.59891066713831,
+            102.41957466137573,
+            104.55886019321264
+          ],
+          "maximum_absolute_log_step": 0.0264983967446355,
+          "maximum_absolute_step": 2.750231968201078,
+          "per_joint_maximum": [
+            105.7002246474281,
+            108.18948617375898,
+            110.34862621932207,
+            105.71012865654603,
+            106.31259774387406,
+            105.72160246268486
+          ],
+          "per_joint_minimum": [
+            104.58060339421266,
+            104.01679606284517,
+            102.96017539337804,
+            104.59891066713831,
+            102.41957466137573,
+            104.55886019321264
+          ],
+          "samples": 96
+        },
+        "snapshot_update_lag_at_adoption": {
+          "count": 96,
+          "maximum": 1.0,
+          "mean": 0.07291666666666666,
+          "minimum": 0.0,
+          "population_std": 0.2599996661322642
+        }
+      },
+      "observations": {
+        "backlog_events": 2133,
+        "error_events": 1,
+        "errors": [
+          {
+            "error": "Traceback (most recent call last):\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_workers.py\", line 316, in event_inference_worker\n    raise ValueError('No stable estimated-K representative: '+str(\nValueError: No stable estimated-K representative: Pending stiffness evidence has no valid posterior; retained prior is not relabeled as an update.\n",
+            "event_id": "imu:00000025",
+            "kind": "imu",
+            "status": "failed"
+          }
+        ],
+        "failed_or_replay_events": 1,
+        "inference_seconds": {
+          "count": 10,
+          "maximum": 9.124513457063586,
+          "mean": 2.2729923028033228,
+          "minimum": 0.02081851428374648,
+          "population_std": 2.460267987808768
+        },
+        "observation_fusion_counts": {
+          "image_fused": 3,
+          "imu_fused": 6,
+          "joint_not_fused": 9
+        },
+        "path": "/tmp/probtf_running_gradient_20261018_074339/imu_marker/observations.sqlite3",
+        "raw_payloads_loaded": false,
+        "ready_to_claim_wall_delay_s": {
+          "count": 18,
+          "maximum": 22.1375150680542,
+          "mean": 6.314050383037991,
+          "minimum": 0.0030274391174316406,
+          "population_std": 6.8872400805187235
+        },
+        "result_metadata_only": true,
+        "sensor_status_counts": {
+          "image": {
+            "completed": 3,
+            "pending": 318
+          },
+          "imu": {
+            "completed": 6,
+            "failed": 1,
+            "pending": 780
+          },
+          "joint": {
+            "completed": 9,
+            "pending": 1035
+          }
+        },
+        "sensors": {
+          "image": {
+            "acquisition_span_s": 26.666977882385254,
+            "actual_simulation_acquisition_hz": 11.999859954561048,
+            "attempts": 3,
+            "count": 321,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080026.666978,
+            "maximum_attempts": 1
+          },
+          "imu": {
+            "acquisition_span_s": 26.666977882385254,
+            "actual_simulation_acquisition_hz": 29.474656013390575,
+            "attempts": 7,
+            "count": 787,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080026.666978,
+            "maximum_attempts": 1
+          },
+          "joint": {
+            "acquisition_span_s": 26.680519580841064,
+            "actual_simulation_acquisition_hz": 39.09219222061046,
+            "attempts": 9,
+            "count": 1044,
+            "first_acquisition_stamp": 1792080000.0,
+            "last_acquisition_stamp": 1792080026.6805196,
+            "maximum_attempts": 1
+          }
+        },
+        "total_events": 2152
+      },
+      "manifest": {
+        "actual_camera_hz": 12.001746658915302,
+        "actual_control_hz": 3.589004517942521,
+        "actual_estimate_hz": 0.28534447662120643,
+        "actual_imu_hz": 29.480301966573556,
+        "actual_joint_hz": 39.09685067823533,
+        "actual_motion_hz": 112.68225875723263,
+        "collision_checking_enabled": false,
+        "duration": 90.0,
+        "estimation_drained": false,
+        "execution_architecture": "timestamped_sensor_events",
+        "execution_mode": "async",
+        "failure": null,
+        "final_physical_error_m": 0.4658893983436286,
+        "finished": false,
+        "implementation_sha256": {
+          "__init__.py": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f",
+          "async_motion.py": "3f6e4c4c0ca8defc5227965e35d09ed51028ae08590aa3275c3ff4e6330cb51c",
+          "async_publication.py": "54fe151cd6b1a9335903b1fe1efd0b153567730dc0c5c64417d8d36c988f7099",
+          "async_state.py": "0ac321e3695ee802db1be7ad012ae43c7893c24c6be8221c2df9ee45f481cb19",
+          "async_stiffness.py": "62d630f909ccf16fd1f3b4d2a66294ab6e04000d854882ee1d20cb819c987ca6",
+          "async_workers.py": "c230f7e44586f46eac1cd6d4b4cc29d4918cdd46e4d0024a74927e6d02f76c12",
+          "bayes_factor.py": "53139568c2bb07d95d3984a7f33acea6ca74c966fc41cee0c4187bb73820376b",
+          "board_camera.py": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778",
+          "body_projection.py": "74a473dba2da1d113ac05404c1a4e770783b0f0fd2ac3e9c244181576c8eef7b",
+          "display.py": "81bd8fa0bd6c609fc52030177684a44736a4c11117b57ec695470ce5609644c3",
+          "dynamic_physics.py": "99fe6a394b86b22247f18220987409ec66ef381b480d9387a623a1ff2750e453",
+          "event_motion.py": "437b97aa11db274daa7bb537e2157d4b9b11a3fe3af8127b4f76ac643a78b3b9",
+          "execution_stiffness.py": "a1a5b5e984eb6e0bdc9a80d318f5c541f5dd1622ce82c06c046ae623ae350f98",
+          "fresh_goal.py": "60dde9dcaf41c2fd158fe05f72e2b82aa2b7fc99bff7d9a4084cdca8646e07b7",
+          "marker_board.py": "c03cc89017e11292404cea97f479bce0de3ebbd1213a7169b4e326980dbd80fa",
+          "marker_search.py": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb",
+          "model.py": "c26da0f69f2416f68af6168b0a757654f73589d7f2fa00bd90a37840eabf25fc",
+          "motion_display.py": "9a0b2c506a69bcc031f032164b739dc8ee2bd1ba2cbf2d9ed0028d23eb1ccadf",
+          "motion_node.py": "99bf5ed9931f788cc5ccf67b6dba31fc571607edd611b0605fff7b22a1213cf6",
+          "moving_control.py": "db4bbf84fd532a284fb4567809d33847aa3daf13af1651c5c8e592027bb8d531",
+          "moving_inference.py": "95975544541328a07eb9ca41b44e95676dd6d78c2487f3a88c6a1cfc459c1bba",
+          "moving_scene.py": "f0a3e8638b7e70b6e61eca076f879179ffa364ba3c377f4a3943dc48ab455c29",
+          "node.py": "cc1f9308e542dc88345b41286ba305259519d5c6625ff2e58006f831b3fbe8e1",
+          "running_gradient.py": "2c624b3f016b1208b417adcc698637e77b72c90c249f86e495f4ca8e0e9eb663",
+          "scene.py": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe",
+          "sensor_event_store.py": "b9f1841a98ed6091d016525f0e587ebf3bc131e9a7cfbaf7194afb4249ea42f4",
+          "sensors.py": "079db5b231e3db65d9f6d8b6fd869cd2055e21ddf189e44d2fe0a3bced68301d",
+          "short_command.py": "76130898f16aae163d8d2901f506f323981263303aff3bebf44b742a487b1c2f",
+          "stiffness_bayes_factor.py": "a347cdce74f30241b94198913888107b2ad1950ce94c3741fa9f9e6658516ea1",
+          "stiffness_command.py": "6446e2b7e8e8b2793b00eb80d52b427c2d203649934e97e77de8fe6e56164ec3",
+          "stiffness_identification.py": "df0de497547c822d9b336a0536f954769455b3002c9869129ecc18aafcb682f7",
+          "visual_approach.py": "2d2c5782fc24d186692279f1d1bb9673ec72049ae9e30d60be276878152eb5e8"
+        },
+        "implementation_unchanged_during_execution": true,
+        "reach_condition": "distance_only_collision_unchecked",
+        "reached": false,
+        "target_image_hz": 12.0,
+        "target_imu_hz": 30.0,
+        "target_joint_hz": 40.0,
+        "target_physics_hz": 120.0
+      },
+      "failure_logs": {
+        "execution_failure.jsonl": {
+          "file": {
+            "exists": true,
+            "invalid_rows": 0,
+            "path": "/tmp/probtf_running_gradient_20261018_074339/imu_marker/execution_failure.jsonl",
+            "rows": 2,
+            "sha256": "ed572b51f19d00bf3b692c0ca844ab58ee31b203c66a46e75c5aed35f8fe4c1e"
+          },
+          "first_examples": [
+            {
+              "failed": true,
+              "traceback": "Traceback (most recent call last):\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_workers.py\", line 316, in event_inference_worker\n    raise ValueError('No stable estimated-K representative: '+str(\nValueError: No stable estimated-K representative: Pending stiffness evidence has no valid posterior; retained prior is not relabeled as an update.\n",
+              "worker": "inference"
+            },
+            {
+              "error": "inference worker failed: Traceback (most recent call last):\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_workers.py\", line 316, in event_inference_worker\n    raise ValueError('No stable estimated-K representative: '+str(\nValueError: No stable estimated-K representative: Pending stiffness evidence has no valid posterior; retained prior is not relabeled as an update.\n",
+              "failed": true,
+              "publication_failure": null,
+              "traceback": "Traceback (most recent call last):\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py\", line 181, in advance\n    self.session.advance()\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/event_motion.py\", line 458, in advance\n    self.poll()\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/event_motion.py\", line 332, in poll\n    raise RuntimeError(kind+' worker failed: '+message['traceback'])\nRuntimeError: inference worker failed: Traceback (most recent call last):\n  File \"/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_workers.py\", line 316, in event_inference_worker\n    raise ValueError('No stable estimated-K representative: '+str(\nValueError: No stable estimated-K representative: Pending stiffness evidence has no valid posterior; retained prior is not relabeled as an update.\n\n"
+            }
+          ],
+          "reason_counts": {
+            "True": 2
+          }
+        },
+        "shutdown.jsonl": {
+          "file": {
+            "exists": true,
+            "invalid_rows": 0,
+            "path": "/tmp/probtf_running_gradient_20261018_074339/imu_marker/shutdown.jsonl",
+            "rows": 1,
+            "sha256": "adeb29c0dcba4c45f8587cb4ad7b15c84ae959de45ee7f67753699f1b1c3133d"
+          },
+          "first_examples": [
+            {
+              "acquisition_acknowledged": 2152,
+              "acquisition_recovery_journal": "acquisition_requests.jsonl",
+              "acquisition_submitted": 2152,
+              "closed_wall_stamp": 1792277085.0066712,
+              "estimation_drained": false,
+              "interrupted_control_request": 109,
+              "interrupted_inference_event": "imu:00000025",
+              "motion_finished": false,
+              "selected_but_not_dispatched_event": null,
+              "sensor_event_database": {
+                "claimed_through_stamp": 1792080000.2043655,
+                "counts": {
+                  "completed": 18,
+                  "failed": 1,
+                  "pending": 2133
+                },
+                "earliest_unfinished": {
+                  "event_id": "imu:00000025",
+                  "sequence": 19,
+                  "stamp": 1792080000.2043655,
+                  "status": "failed"
+                },
+                "latest_only_selection": false,
+                "ordering": "acquisition stamp, then immutable insertion sequence",
+                "total": 2152
+              },
+              "workers": [
+                {
+                  "exitcode": 0
+                },
+                {
+                  "exitcode": -15
+                },
+                {
+                  "exitcode": 0
+                }
+              ]
+            }
+          ],
+          "reason_counts": {
+            "unrecorded": 1
+          }
+        }
+      },
+      "files": {
+        "commands.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_20261018_074339/imu_marker/commands.jsonl",
+          "rows": 3008,
+          "sha256": "3e628493f64bb87782931e6efa13654c95e3fac4c291fba16304595e273adb26"
+        },
+        "control.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_20261018_074339/imu_marker/control.jsonl",
+          "rows": 109,
+          "sha256": "e7494c049e4e8e02827fa96b4d8bc5079758c0fa2d180be9b5e44164ff4ff875"
+        },
+        "gradient_adoptions.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_20261018_074339/imu_marker/gradient_adoptions.jsonl",
+          "rows": 108,
+          "sha256": "bb981d80d225ab2112c22de9e748eacb27b6382a673e053bddf7020da6466e4f"
+        },
+        "physical_trajectory.jsonl": {
+          "exists": true,
+          "invalid_rows": 0,
+          "path": "/tmp/probtf_running_gradient_20261018_074339/imu_marker/physical_trajectory.jsonl",
+          "rows": 3009,
+          "sha256": "d4f27d0aefa895033888c0872924063708d5307110a57e035b1f159d8228ec0b"
+        }
+      },
+      "warnings": [],
+      "physical": {
+        "action_mode_samples": {
+          "reaching": 3009
+        },
+        "actual_simulation_sample_hz": 112.69330568267827,
+        "distance_coverage_s": 26.69191379006952,
+        "distance_m": {
+          "count": 3009,
+          "maximum": 0.4658893983436286,
+          "mean": 0.4269778272074717,
+          "minimum": 0.35789446120304014,
+          "population_std": 0.0321909235843992
+        },
+        "duration_s": 26.69191379006952,
+        "final": {
+          "physical_distance_m": 0.4658893983436286,
+          "time_s": 26.69191379006952
+        },
+        "initial": {
+          "physical_distance_m": 0.36959607396520444,
+          "time_s": 0.0
+        },
+        "minimum": {
+          "physical_distance_m": 0.35789446120304014,
+          "time_s": 1.1461196467280388
+        },
+        "near_residence_fraction": 0.0,
+        "near_residence_method": "linear distance interpolation between consecutive valid physical samples",
+        "near_residence_s": 0.0,
+        "near_threshold_m": 0.006,
+        "physical_interval_s": {
+          "count": 3008,
+          "maximum": 0.08344545913860202,
+          "mean": 0.008873641552549707,
+          "minimum": 0.0013902029022574425,
+          "population_std": 0.005689823905743075
+        },
+        "reached_samples": {
+          "False": 3009
+        },
+        "distance_trace": {
+          "deterministic_index_stride": 4,
+          "final_point_added": true,
+          "raw_samples": 3009,
+          "retained_samples": 753
+        }
+      }
+    }
+  },
+  "stiffness_availability_replay": {
+    "replayed_sensor_events": 17,
+    "event_id": "image:00000078",
+    "acquisition_stamp": 1792080000.3349006,
+    "status": "updated_density_factor",
+    "stiffness_posterior_defined": true,
+    "proposal_status": "deterministic_density_representative",
+    "same_original_body_source_ids": true,
+    "replay_seconds": 163.5124473758042,
+    "event_seconds": 23.26103605516255,
+    "final_source_sha256": "a347cdce74f30241b94198913888107b2ad1950ce94c3741fa9f9e6658516ea1",
+    "evidence": {
+      "keep_evidence": {
+        "log_value": -2217.6228093336754,
+        "availability_recovery_applied": false,
+        "mode_score_inf": 4.73748968943255e-08,
+        "Hessian_condition_number": 339618.01656310126,
+        "stationarity_verified": true,
+        "two_step_stability_verified": true,
+        "positive_definiteness_verified": true,
+        "unavailable_trials": [],
+        "recovery_iterations": 0
+      },
+      "reset_evidence": {
+        "log_value": -2087.965827224848,
+        "availability_recovery_applied": true,
+        "mode_score_inf": 8.626542060685694e-07,
+        "Hessian_condition_number": 83139.16902041165,
+        "stationarity_verified": true,
+        "two_step_stability_verified": true,
+        "positive_definiteness_verified": true,
+        "unavailable_trials": [
+          {
+            "phase": "scipy_BFGS",
+            "logK": [
+              3.1073040492110957,
+              4.024561047577393,
+              18.358159639712177,
+              -7.099127301890613,
+              4.835404956759275,
+              0.4610856591754408
+            ],
+            "reason": "Canonical auxiliary continuation could not retain a stable equilibrium branch."
+          },
+          {
+            "phase": "availability_backtrack",
+            "iteration": 3,
+            "step": 1.0,
+            "logK": [
+              3.1073040492110957,
+              4.11597118371602,
+              8.30183206275026,
+              -25.016781597626952,
+              14.82365141368356,
+              0.7706087585941372
+            ],
+            "reason": "Canonical auxiliary continuation could not retain a stable equilibrium branch."
+          },
+          {
+            "phase": "availability_backtrack",
+            "iteration": 3,
+            "step": 0.5,
+            "logK": [
+              3.1073040492110957,
+              4.108974796213101,
+              10.035712384773593,
+              -11.550164418529207,
+              12.234308295562347,
+              0.6176820274131556
+            ],
+            "reason": "Canonical auxiliary continuation could not retain a stable equilibrium branch."
+          },
+          {
+            "phase": "availability_backtrack",
+            "iteration": 5,
+            "step": 1.0,
+            "logK": [
+              3.1073040492110957,
+              4.11433723315635,
+              12.184521485090997,
+              1.6778595756183388,
+              19.3123354407935,
+              0.8023547405170284
+            ],
+            "reason": "Canonical auxiliary continuation could not retain a stable equilibrium branch."
+          },
+          {
+            "phase": "availability_backtrack",
+            "iteration": 5,
+            "step": 0.5,
+            "logK": [
+              3.1073040492110957,
+              4.115519549442444,
+              10.040375492290421,
+              1.5216136037535375,
+              17.201721813752897,
+              0.7344133418060941
+            ],
+            "reason": "Canonical auxiliary continuation could not retain a stable equilibrium branch."
+          }
+        ],
+        "recovery_iterations": 26,
+        "first_recovery_iteration": {
+          "iteration": 2,
+          "source_logK": [
+            3.1073040492110957,
+            4.127784195754445,
+            9.573403729158509,
+            4.9216461147215895,
+            11.248151917668418,
+            0.46597850858441825
+          ],
+          "source_log_density": -2246.6908798678082,
+          "source_score_inf": 699.542923454377,
+          "direction": [
+            0.0,
+            -0.1032231481770518,
+            8.784755910553669,
+            -12.020773416612203,
+            -6.412746960909143,
+            -0.00489284940897744
+          ],
+          "trials": [
+            {
+              "step": 1.0,
+              "logK": [
+                3.1073040492110957,
+                4.024561047577393,
+                18.358159639712177,
+                -7.099127301890613,
+                4.835404956759275,
+                0.4610856591754408
+              ],
+              "available": false,
+              "reason": "Canonical auxiliary continuation could not retain a stable equilibrium branch.",
+              "accepted": false,
+              "already_evaluated_by_scipy": true
+            },
+            {
+              "step": 0.5,
+              "logK": [
+                3.1073040492110957,
+                4.076172621665918,
+                13.965781684435342,
+                -1.0887405935845118,
+                8.041778437213846,
+                0.4635320838799295
+              ],
+              "available": true,
+              "log_density": -1016501.718577003,
+              "Armijo_log_density": -2246.684040958121,
+              "accepted": false
+            },
+            {
+              "step": 0.25,
+              "logK": [
+                3.1073040492110957,
+                4.101978408710182,
+                11.769592706796926,
+                1.9164527605685389,
+                9.644965177441133,
+                0.4647552962321739
+              ],
+              "available": true,
+              "log_density": -2197.4660129482904,
+              "Armijo_log_density": -2246.6874604129644,
+              "accepted": true
+            }
+          ],
+          "resumes_unavailable_scipy_line": true,
+          "inverse_BFGS_updated": false,
+          "accepted": true
+        }
+      }
+    }
+  },
+  "stiffness_hessian_replay": {
+    "source": "/tmp/probtf_running_gradient_20261018_074339/imu_marker",
+    "replayed_sensor_events": 11,
+    "event_id": "imu:00000025",
+    "acquisition_stamp": 1792080000.2043655,
+    "status": "updated_density_factor",
+    "stiffness_posterior_defined": true,
+    "proposal_status": "deterministic_density_representative",
+    "same_original_body_source_ids": true,
+    "replay_seconds": 34.82922626566142,
+    "event_seconds": 8.115643505938351,
+    "final_source_sha256": "74fe33826317a11765880831a3480ac871ca062985c33ad8a7f131901336a73d",
+    "evidence": {
+      "keep_evidence": {
+        "log_value": 3.745707473510267,
+        "mode_score_inf": 1.5727423896549908e-07,
+        "Hessian_condition_number": 39604.43761335925,
+        "configured_Hessian_steps": [
+          0.0001,
+          5e-05
+        ],
+        "Hessian_steps": [
+          2.5e-05,
+          1.25e-05
+        ],
+        "Hessian_refinement_count": 2,
+        "Hessian_relative_tolerance": 0.001,
+        "Hessian_absolute_tolerance": 1e-05,
+        "stationarity_verified": true,
+        "two_step_stability_verified": true,
+        "positive_definiteness_verified": true,
+        "attempts": [
+          {
+            "refinement": 0,
+            "steps": [
+              0.0001,
+              5e-05
+            ],
+            "reused_previous_fine": false,
+            "available": true,
+            "raw_asymmetry_max": [
+              2.4901319860282456,
+              0.6225775868442724
+            ],
+            "step_difference_max": 9.829877888379997,
+            "two_step_stability_verified": false,
+            "symmetry_verified": [
+              false,
+              false
+            ],
+            "precision_checks_passed": false,
+            "reason": "Laplace evidence Hessian is unstable across the two score-difference steps."
+          },
+          {
+            "refinement": 1,
+            "steps": [
+              5e-05,
+              2.5e-05
+            ],
+            "reused_previous_fine": true,
+            "available": true,
+            "raw_asymmetry_max": [
+              0.6225775868442724,
+              0.15564937250155708
+            ],
+            "step_difference_max": 2.4577203924982314,
+            "two_step_stability_verified": true,
+            "symmetry_verified": [
+              false,
+              true
+            ],
+            "precision_checks_passed": false,
+            "reason": "Laplace evidence score Hessian is not numerically symmetric."
+          },
+          {
+            "refinement": 2,
+            "steps": [
+              2.5e-05,
+              1.25e-05
+            ],
+            "reused_previous_fine": true,
+            "available": true,
+            "raw_asymmetry_max": [
+              0.15564937250155708,
+              0.03891612699635516
+            ],
+            "step_difference_max": 0.614445874305602,
+            "two_step_stability_verified": true,
+            "symmetry_verified": [
+              true,
+              true
+            ],
+            "precision_checks_passed": true,
+            "reason": null
+          }
+        ]
+      },
+      "reset_evidence": {
+        "log_value": -0.29414545070624065,
+        "mode_score_inf": 8.219990778046693e-07,
+        "Hessian_condition_number": 1686.0521019915973,
+        "configured_Hessian_steps": [
+          0.0001,
+          5e-05
+        ],
+        "Hessian_steps": [
+          0.0001,
+          5e-05
+        ],
+        "Hessian_refinement_count": 0,
+        "Hessian_relative_tolerance": 0.001,
+        "Hessian_absolute_tolerance": 1e-05,
+        "stationarity_verified": true,
+        "two_step_stability_verified": true,
+        "positive_definiteness_verified": true,
+        "attempts": [
+          {
+            "refinement": 0,
+            "steps": [
+              0.0001,
+              5e-05
+            ],
+            "reused_previous_fine": false,
+            "available": true,
+            "raw_asymmetry_max": [
+              0.0004767638372982219,
+              0.00011919606635046875
+            ],
+            "step_difference_max": 0.0011337455418924947,
+            "two_step_stability_verified": true,
+            "symmetry_verified": [
+              true,
+              true
+            ],
+            "precision_checks_passed": true,
+            "reason": null
+          }
+        ]
+      }
+    }
+  },
+  "stale_diagnostic": {
+    "diagnostic_only": true,
+    "threshold_not_a_recommendation": true,
+    "error": "Running-gradient explicit fail-safe: held_gradient_source_age_exceeded",
+    "stop_notification": {
+      "event": "running_gradient_tick",
+      "dt": 0.01113756000995636,
+      "interval_start_stamp": 1792080000.00016,
+      "interval_end_stamp": 1792080000.0112977,
+      "stop_requested": true,
+      "gradient_source_age_s": 0.01129770278930664,
+      "gradient_source_command_distance_l2": 5.009112030117791e-09,
+      "gradient_source_command_distance_inf": 3.932454806232499e-09,
+      "gradient_snapshot_update_count": 2,
+      "snapshot_update_count": 2,
+      "gradient_snapshot_update_lag": 0,
+      "gradient_distance_evaluated_at_command": [
+        -0.14999999861894214,
+        -1.850000001847583,
+        2.3499999960675453,
+        -4.674912073964199e-10,
+        -0.9500000019929608,
+        3.4011486581541675e-10
+      ],
+      "status": "fail_safe_stop",
+      "reason": "held_gradient_source_age_exceeded",
+      "last_safe_command": [
+        -0.14999999861894214,
+        -1.850000001847583,
+        2.3499999960675453,
+        -4.674912073964199e-10,
+        -0.9500000019929608,
+        3.4011486581541675e-10
+      ],
+      "last_safe_velocity": [
+        1.7255441402066374e-05,
+        -2.308437819228899e-05,
+        -4.913352788444645e-05,
+        -5.841005977251098e-06,
+        -2.490078102782872e-05,
+        4.249519419292972e-06
+      ],
+      "proposed_command": null
+    },
+    "gradient_tracker_halted": true,
+    "last_physical_time": 0.00016003800556063652,
+    "accepted_count": 1,
+    "rejected_count": 1
+  },
+  "initial_run_full_J_decomposition": {
+    "marker": {
+      "records": [
+        {
+          "t": 1.2160108089447021,
+          "index": 142,
+          "request": 8,
+          "event": "image:00000000",
+          "density": "1db0205a255a5206f386c31e620c2bfb39e6b9a1023e06dda69c74409d09c6c1",
+          "K": [
+            104.09105922304327,
+            90.48184792536931,
+            95.39158617848595,
+            104.09792358691497,
+            101.0137625159821,
+            104.04663251319766
+          ],
+          "body_observation_stamp": 0.0,
+          "goal_observation_stamp": 0.0,
+          "J": 10263.652903241044,
+          "mean_position_error_m": 0.36628168282458223,
+          "Gaussian_quadratic": 9372.455476017201,
+          "Gaussian_half_logdet": -17.069141174036446,
+          "Gaussian_constant": 2.756815599614018,
+          "Gaussian_J": 9358.143150442784,
+          "Bingham_negative_quadratic": 919.0037344904467,
+          "Bingham_log_normalizer": -13.493981692187731,
+          "Bingham_J": 905.509752798259,
+          "mixture_weight": 1.0,
+          "mixture_log_weight": 0.0,
+          "position_covariance_eigenvalues_m2": [
+            3.6431587536171375e-06,
+            1.1353341180522756e-05,
+            3.608532068008122e-05
+          ],
+          "relative_position_mean": [
+            0.04582514481459642,
+            -0.2003967596336355,
+            0.40623940901846944
+          ],
+          "position_covariance": [
+            [
+              3.569163392003328e-05,
+              2.036453595770933e-06,
+              2.33169430798644e-06
+            ],
+            [
+              2.0364535957709527e-06,
+              6.909378254700001e-06,
+              3.97473870380047e-06
+            ],
+            [
+              2.33169430798645e-06,
+              3.974738703800501e-06,
+              8.48080843948784e-06
+            ]
+          ],
+          "J_decomposition_residual": -5.4569682106375694e-12
+        },
+        {
+          "t": 1.456897497177124,
+          "index": 171,
+          "request": 9,
+          "event": "image:00000000",
+          "density": "1db0205a255a5206f386c31e620c2bfb39e6b9a1023e06dda69c74409d09c6c1",
+          "K": [
+            104.09105922304327,
+            90.48184792536931,
+            95.39158617848595,
+            104.09792358691497,
+            101.0137625159821,
+            104.04663251319766
+          ],
+          "body_observation_stamp": 0.0,
+          "goal_observation_stamp": 0.0,
+          "J": 7057.7642410532835,
+          "mean_position_error_m": 0.3788658019814,
+          "Gaussian_quadratic": 5870.278896393667,
+          "Gaussian_half_logdet": -16.571894294682973,
+          "Gaussian_constant": 2.756815599614018,
+          "Gaussian_J": 5856.463817698595,
+          "Bingham_negative_quadratic": 1214.4131256701994,
+          "Bingham_log_normalizer": -13.11270231551147,
+          "Bingham_J": 1201.3004233546878,
+          "mixture_weight": 1.0,
+          "mixture_log_weight": 0.0,
+          "position_covariance_eigenvalues_m2": [
+            5.362981317637235e-06,
+            1.3841184844061439e-05,
+            5.435705932148555e-05
+          ],
+          "relative_position_mean": [
+            0.04471767300737608,
+            -0.1664211854194547,
+            0.41395227831893994
+          ],
+          "position_covariance": [
+            [
+              5.37300165216524e-05,
+              2.576808184215703e-06,
+              4.286278372005689e-06
+            ],
+            [
+              2.576808184215709e-06,
+              7.741152029683555e-06,
+              3.999752017320865e-06
+            ],
+            [
+              4.286278372005685e-06,
+              3.9997520173209375e-06,
+              1.209005693184827e-05
+            ]
+          ],
+          "J_decomposition_residual": 2.7284841053187847e-12
+        }
+      ],
+      "counterfactual_mean_then_covariance": {
+        "initial_quadratic": 9372.455476017201,
+        "new_mean_old_covariance_quadratic": 9024.122445003228,
+        "new_mean_new_covariance_quadratic": 5870.278896393667
+      },
+      "counterfactual_covariance_then_mean": {
+        "initial_quadratic": 9372.455476017201,
+        "old_mean_new_covariance_quadratic": 5938.394984312961,
+        "new_mean_new_covariance_quadratic": 5870.278896393667
+      },
+      "physical_at_source_frames": {
+        "142": {
+          "time": 1.2160107898525894,
+          "distance_m": 0.3555827310468984
+        },
+        "171": {
+          "time": 1.4568974301218987,
+          "distance_m": 0.35873162484460747
+        }
+      },
+      "all_valid_mixture_weights": [
+        [
+          [
+            1.0,
+            0.0
+          ]
+        ]
+      ]
+    },
+    "imu_marker": {
+      "records": [
+        {
+          "t": 1.206693410873413,
+          "index": 144,
+          "request": 19,
+          "event": "imu:00000005",
+          "density": "c9ce48a5917a69a066306d83a135cde936aedbff5a9bde0aaec16ac8d8dd5b34",
+          "K": [
+            105.54137736841628,
+            105.05084033637885,
+            104.88378214212344,
+            105.54449289803772,
+            105.16980662957681,
+            105.53768022670117
+          ],
+          "body_observation_stamp": 0.0377047061920166,
+          "goal_observation_stamp": 0.0,
+          "J": 15804.838004365069,
+          "mean_position_error_m": 0.3625319550382678,
+          "Gaussian_quadratic": 14875.708642996404,
+          "Gaussian_half_logdet": -16.885422535644317,
+          "Gaussian_constant": 2.756815599614018,
+          "Gaussian_J": 14861.580036060384,
+          "Bingham_negative_quadratic": 956.8830505402066,
+          "Bingham_log_normalizer": -13.625082235521852,
+          "Bingham_J": 943.2579683046847,
+          "mixture_weight": 1.0,
+          "mixture_log_weight": 0.0,
+          "position_covariance_eigenvalues_m2": [
+            3.737376113846124e-06,
+            1.4339130146196384e-05,
+            4.02178383464601e-05
+          ],
+          "relative_position_mean": [
+            0.05725651951699302,
+            -0.21389118837171409,
+            0.40202862539581824
+          ],
+          "position_covariance": [
+            [
+              3.9752897409290916e-05,
+              5.181298660994515e-08,
+              4.0161958609146495e-06
+            ],
+            [
+              5.181298660995573e-08,
+              1.3452125020477145e-05,
+              2.969377632730929e-06
+            ],
+            [
+              4.016195860914646e-06,
+              2.9693776327309196e-06,
+              5.089322176734553e-06
+            ]
+          ],
+          "J_decomposition_residual": -1.0913936421275139e-11
+        },
+        {
+          "t": 1.4441707134246826,
+          "index": 172,
+          "request": 20,
+          "event": "imu:00000005",
+          "density": "c9ce48a5917a69a066306d83a135cde936aedbff5a9bde0aaec16ac8d8dd5b34",
+          "K": [
+            105.54137736841628,
+            105.05084033637885,
+            104.88378214212344,
+            105.54449289803772,
+            105.16980662957681,
+            105.53768022670117
+          ],
+          "body_observation_stamp": 0.0377047061920166,
+          "goal_observation_stamp": 0.0,
+          "J": 13072.4706328937,
+          "mean_position_error_m": 0.3724635138930148,
+          "Gaussian_quadratic": 11841.539599415828,
+          "Gaussian_half_logdet": -16.631141662588306,
+          "Gaussian_constant": 2.756815599614018,
+          "Gaussian_J": 11827.665273352859,
+          "Bingham_negative_quadratic": 1258.1100183894996,
+          "Bingham_log_normalizer": -13.30465884865843,
+          "Bingham_J": 1244.8053595408412,
+          "mixture_weight": 1.0,
+          "mixture_log_weight": 0.0,
+          "position_covariance_eigenvalues_m2": [
+            4.780704090684643e-06,
+            1.4865814451981796e-05,
+            5.043050595705428e-05
+          ],
+          "relative_position_mean": [
+            0.06048860587467298,
+            -0.18225787465681162,
+            0.4079546041886258
+          ],
+          "position_covariance": [
+            [
+              4.982077982702253e-05,
+              -6.061147756582876e-07,
+              5.1848239840671744e-06
+            ],
+            [
+              -6.061147756582838e-07,
+              1.4092705546167238e-05,
+              2.634415070367747e-06
+            ],
+            [
+              5.184823984067195e-06,
+              2.6344150703677817e-06,
+              6.163539126530955e-06
+            ]
+          ],
+          "J_decomposition_residual": -5.4569682106375694e-12
+        }
+      ],
+      "counterfactual_mean_then_covariance": {
+        "initial_quadratic": 14875.708642996404,
+        "new_mean_old_covariance_quadratic": 14861.68294706468,
+        "new_mean_new_covariance_quadratic": 11841.539599415828
+      },
+      "counterfactual_covariance_then_mean": {
+        "initial_quadratic": 14875.708642996404,
+        "old_mean_new_covariance_quadratic": 11774.056099932493,
+        "new_mean_new_covariance_quadratic": 11841.539599415828
+      },
+      "physical_at_source_frames": {
+        "144": {
+          "time": 1.2066934248432517,
+          "distance_m": 0.35805152953207176
+        },
+        "172": {
+          "time": 1.4441707208752632,
+          "distance_m": 0.36169292184390084
+        }
+      },
+      "all_valid_mixture_weights": [
+        [
+          [
+            1.0,
+            0.0
+          ]
+        ]
+      ]
+    }
+  },
+  "limitations": [
+    "Both 90-second physical runs missed the 6 mm reaching condition.",
+    "All acquired raw events were archived, but chronological inference did not drain; pending events were preserved at shutdown.",
+    "Physics/input rates are targets, and measured rates below target are reported.",
+    "Gradient and observation source ages are distinct; old observations were transported, not relabeled.",
+    "Native plant linearly interpolates sampled commands; analytic controller C1 does not assert an exactly C1 internal plant reference.",
+    "Joint-limit/nonfinite/stale fail-safe stops are explicit exceptions to normal state continuity.",
+    "External collision checking remains disabled; no no-collision certification is claimed."
+  ],
+  "frozen_runtime_input_files": [
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/short_command.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/running_gradient.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visual_approach.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/execution_stiffness.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_workers.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_publication.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_bayes_factor.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_state.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/event_motion.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensor_event_store.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/dynamic_physics.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py",
+    "ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml",
+    "ros/examples/probtf_observation_fusion_demo/config/common.yaml",
+    "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+    "ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml",
+    "ros/examples/probtf_observation_fusion_demo/config/imu.yaml",
+    "ros/examples/probtf_observation_fusion_demo/config/imu_hand.yaml",
+    "ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml",
+    "ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+    "ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml"
+  ],
+  "changed_files": [
+    "AGENTS.md",
+    "ros/examples/probtf_observation_fusion_demo/CMakeLists.txt",
+    "ros/examples/probtf_observation_fusion_demo/PHYSICS_UPDATE_RATE.md",
+    "ros/examples/probtf_observation_fusion_demo/README.md",
+    "ros/examples/probtf_observation_fusion_demo/RUNNING_GRADIENT_TRACKING.md",
+    "ros/examples/probtf_observation_fusion_demo/UNIFIED_RUNNING_GRADIENT_THEORY_20261018.md",
+    "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+    "ros/examples/probtf_observation_fusion_demo/launch/common.launch",
+    "ros/examples/probtf_observation_fusion_demo/launch/imu_marker.launch",
+    "ros/examples/probtf_observation_fusion_demo/launch/marker.launch",
+    "ros/examples/probtf_observation_fusion_demo/scripts/evaluate_running_gradient.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_workers.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/event_motion.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/running_gradient.py",
+    "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_bayes_factor.py",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_async_execution.py",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_running_gradient.py",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_running_gradient_async.py",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_running_gradient_objective.py",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_stiffness_bfs_integration.py",
+    "ros/examples/probtf_observation_fusion_demo/tests/test_visual_approach_integration.py",
+    "ros/examples/probtf_observation_fusion_demo/validation/running_gradient_20261018.json"
+  ],
+  "git_scope": {
+    "base_commit": "7046be540d572af59081f5907d0162d4f284c939",
+    "branch": "main",
+    "raw_images_DB_logs_included": false
+  }
+}

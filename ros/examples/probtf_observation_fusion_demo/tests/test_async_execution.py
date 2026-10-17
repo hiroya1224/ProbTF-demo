@@ -127,16 +127,16 @@ def _complete_control(current):
     requests, replies = LocalQueue(), LocalQueue()
     requests.put(request); requests.put(None)
     control_worker(requests, replies, current.scene.robot_description, str(current.scene.urdf),
-        current.templates, str(current.output), current.horizon)
+        current.templates, str(current.output), current.horizon, current.control_mode)
     reply = replies.get_nowait()
     assert not reply.get('failed'), reply
     return reply
 
 
-def _new_session(tmp_path, case='imu', duration=1.):
+def _new_session(tmp_path, case='imu', duration=1., control_mode='single_step_ik'):
     clock = [100.]
     current = AsyncMotionSession(PACKAGE/('config/'+case+'.yaml'), tmp_path/'run',
-        clock=lambda: clock[0], context=Context(), duration=duration)
+        clock=lambda: clock[0], context=Context(), duration=duration, control_mode=control_mode)
     current.probability_unit = 'per_effective_sensor_event'
     current._test_inference = MovingInference(current.scene.robot_description, current.templates)
     settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
@@ -170,25 +170,25 @@ def _drain_estimates(current, previous, identifier):
     raise AssertionError('Finite acquired event set did not drain.')
 
 
-def test_240hz_physics_and_independent_40_30_12hz_acquisition_continue_while_workers_are_busy(session):
+def test_120hz_physics_and_independent_40_30_12hz_acquisition_continue_while_workers_are_busy(session):
     current, clock, result, identifier = session
     current.submit_control()
     plan = _complete_control(current)
     current.control_replies.put(plan); current.poll()
     assert _select_next_estimate(current)
     factor_ids = tuple(x.factor_id for x in identifier.factors)
-    _advance_ticks(current, clock, 240, hz=240.)
+    _advance_ticks(current, clock, 120, hz=120.)
     assert current.motion_finished and not current.estimation_finished
     assert current.frame.time == 1.
-    assert len(current.actions) == 240
+    assert len(current.actions) == 120
     assert current.inference_busy and current.control_busy
     assert current.assimilated == ['joint:00000000']
     assert current.latest_result is result
     assert tuple(x.factor_id for x in identifier.factors) == factor_ids
-    assert current.period == pytest.approx(1/240.)
+    assert current.period == pytest.approx(1/120.)
     assert current.rates == {'joint': 40., 'imu': 30., 'image': 12.}
     assert len(current.capture_indices) == 13
-    # Rendering/database writes were not allowed to run during the 240 ticks.
+    # Rendering/database writes were not allowed to run during the 120 ticks.
     assert current.acquisition_completed == 3
     assert current.acquisition_submitted == 85
     assert _complete_acquisitions(current) == 82
@@ -198,7 +198,7 @@ def test_240hz_physics_and_independent_40_30_12hz_acquisition_continue_while_wor
     assert [(e.stamp, e.sequence) for e in events] == sorted((e.stamp, e.sequence) for e in events)
     assert current.acquisition_completed == current.acquisition_submitted == 85
     assert current.manifest()['all_captured_sensor_data_archived']
-    assert current.manifest()['target_physics_hz'] == 240.
+    assert current.manifest()['target_physics_hz'] == 120.
     previous_velocity = np.zeros(6)
     for step, row in zip(current.actions, _jsonlines(current.output/'commands.jsonl')):
         dt = step.end_stamp-step.start_stamp

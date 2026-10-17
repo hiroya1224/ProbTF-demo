@@ -20,6 +20,7 @@ from .marker_search import marker_observed
 from .motion_display import MotionDisplay
 from .model import component_log_weight
 from .moving_control import MovingController
+from .moving_control import control_components
 from .moving_inference import MovingInference
 from .node import build_snapshot
 from .sensor_event_store import SensorEventStore
@@ -99,12 +100,16 @@ def _unselected_parameter_view(result, captured):
         feedback_to_control=False, feedback_to_body_prediction=False)
     return replace(result, records=dict(result.records, stiffness=record))
 
-def control_worker(requests, replies, description, urdf, templates, output, horizon):
-    """Use one captured K_est directly for each complete-criterion IK update."""
+def control_worker(requests, replies, description, urdf, templates, output, horizon,
+                   control_mode=None):
+    """Evaluate a frozen-law gradient, or the isolated comparison endpoint IK."""
     cv2.setNumThreads(1)
     try:
         inference = MovingInference(description, templates)
         settings = inference.settings['control']
+        mode = control_mode or settings.get('mode', 'single_step_ik')
+        if mode not in ('running_gradient', 'single_step_ik'):
+            raise ValueError('Unknown asynchronous control mode: '+str(mode))
         controller = MovingController(inference, description, settings['goal_offset'],
             settings['goal_orientation_wxyz'], settings,
             integration_steps=int(settings['integration_steps']))
@@ -144,28 +149,100 @@ def control_worker(requests, replies, description, urdf, templates, output, hori
                 target_stamp=request['stamp'], frame_index=request['index'],
                 body_ids=inference.body_ids, actions=inference.actions,
                 ledger_reference=ledger_reference)
-            if request['packet'] is None:
-                action_packet = None
-                predicted = _unselected_parameter_view(predicted, source.records['stiffness'])
-                command_map = None
+            try:
+                if request['packet'] is None:
+                    action_packet = None
+                    predicted = _unselected_parameter_view(predicted, source.records['stiffness'])
+                    command_map = None
+                else:
+                    action_packet = capture_direct_stiffness_action(engine, predicted, request['packet'],
+                        request.get('action_packet'))
+                    predicted, command_map = reanchor_retained_stiffness(engine, predicted, action_packet)
+            except Exception as error:
+                if mode != 'running_gradient':
+                    raise
+                # An unavailable branch is a failed gradient evaluation, not
+                # a zero gradient or permission to execute an uncorrected law.
+                reason = type(error).__name__+': '+str(error)
+                failed_body,failed_goals=control_components(predicted)
+                failure = dict(status='failed', reason=reason,
+                    gradient=None, body_state_ids=[item.state.state_id for item in failed_body],
+                    goal_state_ids=[item.state.state_id for item in failed_goals],
+                    parameter_density_id=request['packet'].proposal['density_id'],
+                    selected_K=request['packet'].proposal['selected_K'],
+                    objective_at_source=None, computation_seconds=time.monotonic()-started,
+                    finite_difference_diagnostics={},
+                    source_stamp=request['stamp'], source_command=list(predicted.prior.command),
+                    observation_source_stamp=source.prior.stamp,
+                    observation_source_stamps=[source.prior.stamp],
+                    snapshot_update_count=request.get('snapshot_update_count',0),
+                    command_interval_id=request['index'],
+                    request_id=request.get('request_id'), event_id=request.get('event_id'),
+                    source_action_ledger=ledger_reference,
+                    physical_truth_received=False, monte_carlo_used=False)
+                _append(Path(output)/'gradient_failures.jsonl', failure)
+                replies.put(dict(index=request['index'], request_id=request.get('request_id'),
+                    event_id=request.get('event_id'), capture_index=request['capture_index'],
+                    control_mode=mode, gradient_evaluation=failure,
+                    work_seconds=time.monotonic()-started))
+                continue
+            gradient_evaluation = None
+            if mode == 'running_gradient':
+                if predicted.records.get('fixed_goal_memory', {}).get('available', False):
+                    gradient_evaluation = controller.gradient_at_command(
+                        predicted, command_map=command_map).record
+                else:
+                    body, goals = control_components(predicted)
+                    gradient_evaluation = dict(status='waiting_for_goal',
+                        reason='No valid observed goal has been retained; J is not fabricated.',
+                        gradient=None, source_command=list(predicted.prior.command),
+                        source_stamp=predicted.prior.stamp,
+                        body_state_ids=[item.state.state_id for item in body],
+                        goal_state_ids=[item.state.state_id for item in goals],
+                        parameter_density_id=None if command_map is None else command_map.record()['density_id'],
+                        selected_K=None if command_map is None else command_map.record()['selected_K'],
+                        objective_at_source=None, computation_seconds=0.,
+                        finite_difference_diagnostics={}, fixed_goal_memory_available=False,
+                        physical_truth_received=False, monte_carlo_used=False)
+                goal_stamp=predicted.records.get('fixed_goal_memory',{}).get('observation_stamp')
+                body_stamp=(source.prior.stamp if source.records.get('observation_ids') else None)
+                gradient_evaluation.update(
+                    snapshot_update_count=request.get('snapshot_update_count', 0),
+                    command_interval_id=request['index'],
+                    observation_source_stamps=sorted({stamp for stamp in (body_stamp,goal_stamp)
+                                                      if stamp is not None}),
+                    body_observation_source_stamp=body_stamp,
+                    goal_observation_source_stamp=goal_stamp,
+                    source_action_ledger=ledger_reference,
+                    source_observation_ids=list(source.records.get('observation_ids', ())))
+                diagnostics = dict(gradient_evaluation,
+                    method='asynchronous full-J gradient only; no endpoint selection',
+                    control_mode=mode, reaching_phase='running_gradient',
+                    source_version=predicted.prior.version,
+                    body_source_state_ids=gradient_evaluation['body_state_ids'],
+                    goal_source_state_ids=gradient_evaluation['goal_state_ids'],
+                    ik_update_count=0, gradient_evaluation_count=1 if gradient_evaluation['status']=='ok' else 0,
+                    future_ik_updates=0, lookahead_enabled=False,
+                    endpoint_selection_performed=False, velocity_clipping_enabled=False,
+                    acceleration_clipping_enabled=False)
+                planned_velocity = None
             else:
-                action_packet = capture_direct_stiffness_action(engine, predicted, request['packet'],
-                    request.get('action_packet'))
-                predicted, command_map = reanchor_retained_stiffness(engine, predicted, action_packet)
-            controller.velocity = np.array(request['velocity'], copy=True)
-            command, diagnostics = controller.reaching_step(predicted, horizon, command_map=command_map)
-            diagnostics.update(ik_update_count=1, future_ik_updates=0, lookahead_enabled=False)
-            planned_velocity = (np.asarray(command)-np.asarray(predicted.prior.command))/horizon
+                controller.velocity = np.array(request['velocity'], copy=True)
+                command, diagnostics = controller.reaching_step(predicted, horizon, command_map=command_map)
+                diagnostics.update(ik_update_count=1, future_ik_updates=0, lookahead_enabled=False)
+                planned_velocity = (np.asarray(command)-np.asarray(predicted.prior.command))/horizon
             predicted.records['controller'] = diagnostics
             predicted.records['async_control'] = dict(
                 source_capture_index=request['capture_index'], prediction_index=request['index'],
-                prediction_stamp=request['stamp'], horizon_s=diagnostics['duration'],
-                ik_update_step_s=horizon, ik_update_count=1,
+                prediction_stamp=request['stamp'], control_mode=mode,
+                horizon_s=None if mode=='running_gradient' else diagnostics['duration'],
+                ik_update_step_s=None if mode=='running_gradient' else horizon,
+                ik_update_count=0 if mode=='running_gradient' else 1,
                 source_capture_stamp=source.prior.stamp,
                 source_capture_command=list(source.prior.command),
-                requested_velocity=(np.asarray(command)-np.asarray(predicted.prior.command)).tolist(),
+                requested_velocity=None if planned_velocity is None else (planned_velocity*horizon).tolist(),
                 velocity_units='joint displacement over horizon; see desired_velocity_rad_s',
-                desired_velocity_rad_s=planned_velocity.tolist(),
+                desired_velocity_rad_s=None if planned_velocity is None else planned_velocity.tolist(),
                 physical_truth_received=False, monte_carlo_used=False)
             snapshot = replace(build_snapshot(predicted, predicted.stages[-1], inference.common),
                 summary='', show_labels=False, stiffness_record=predicted.records['stiffness'])
@@ -185,12 +262,15 @@ def control_worker(requests, replies, description, urdf, templates, output, hori
                 capture_index=request['capture_index'], artifact_prefix=path.name,
                 markers_wire_sha256=hashlib.sha256(wire.getvalue()).hexdigest(),
                 prediction=predicted.records['async_prediction'],
-                controller=diagnostics, stiffness=snapshot.stiffness_record,
+                controller=diagnostics, control_mode=mode,
+                gradient_evaluation=gradient_evaluation, stiffness=snapshot.stiffness_record,
                 snapshot=snapshot_record(snapshot), work_seconds=time.monotonic()-started))
             replies.put(dict(index=request['index'], capture_index=request['capture_index'],
                 event_id=request.get('event_id'),
                 request_id=request.get('request_id'),
-                packet=action_packet, velocity=planned_velocity.copy(),
+                packet=action_packet, control_mode=mode,
+                gradient_evaluation=gradient_evaluation,
+                velocity=None if planned_velocity is None else planned_velocity.copy(),
                 snapshot=snapshot, markers_wire=wire.getvalue(), diagnostics=diagnostics,
                 work_seconds=time.monotonic()-started))
     except Exception:

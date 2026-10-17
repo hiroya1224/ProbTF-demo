@@ -70,7 +70,108 @@ def test_local_laplace_integrates_a_correlated_gaussian_without_changing_the_den
     assert integral.diagnostics['two_step_stability_verified']
     assert not integral.diagnostics['density_projection_applied']
     assert not integral.diagnostics['all_modes_integrated']
+    assert not integral.diagnostics['availability_recovery']['applied']
+    assert not integral.diagnostics['unavailable_trials']
     np.testing.assert_allclose(integral.diagnostics['Hessian'], inverse, atol=1e-9)
+
+
+def test_local_laplace_backtracks_unavailable_trials_without_changing_the_density():
+    # This is a normalized Gaussian on the whole real line. The restriction
+    # below models numerical failure of the auxiliary equilibrium evaluator,
+    # not zero density or a truncated prior outside its reliable region.
+    mean, precision = .3, 100.
+    normalization = .5*math.log(2.*math.pi/precision)
+    unavailable = []
+    def density(x):
+        if abs(x[0]) > .8:
+            unavailable.append(x.copy())
+            raise ValueError('synthetic canonical equilibrium query unavailable')
+        residual = x[0]-mean
+        return -normalization-.5*precision*residual**2, np.array([-precision*residual])
+    rule = LocalLaplaceEvidence(lambda:(np.zeros(1),))
+    first = rule(density)
+    second = rule(density)
+    for integral in (first, second):
+        diagnostic = integral.diagnostics
+        assert diagnostic['availability_recovery']['applied']
+        assert diagnostic['unavailable_trials'][0]['phase'] == 'scipy_BFGS'
+        assert abs(diagnostic['unavailable_trials'][0]['logK'][0]) > .8
+        assert 'canonical equilibrium' in diagnostic['unavailable_trials'][0]['reason']
+        iterations = diagnostic['availability_recovery']['iterations']
+        assert len(iterations[0]['trials']) > 1
+        assert iterations[0]['resumes_unavailable_scipy_line']
+        assert iterations[0]['trials'][0]['already_evaluated_by_scipy']
+        assert iterations[0]['trials'][0]['logK'] == diagnostic['unavailable_trials'][0]['logK']
+        assert iterations[0]['trials'][1]['step'] == .5
+        assert not iterations[0]['trials'][0]['available']
+        assert iterations[0]['trials'][-1]['available']
+        assert iterations[0]['trials'][-1]['accepted']
+        direction = iterations[0]['direction'][0]
+        origin = iterations[0]['source_logK'][0]
+        for trial in iterations[0]['trials']:
+            assert trial['logK'][0] == pytest.approx(origin+trial['step']*direction)
+            if not trial['available']:
+                assert 'log_density' not in trial
+                assert 'gradient' not in trial
+        assert diagnostic['stationarity_verified']
+        assert diagnostic['positive_definiteness_verified']
+        assert diagnostic['two_step_stability_verified']
+        assert not diagnostic['density_projection_applied']
+        assert not diagnostic['support_regularization_added']
+        np.testing.assert_allclose(diagnostic['mode'], [mean], atol=1e-12)
+        np.testing.assert_allclose(diagnostic['Hessian'], [[precision]], atol=1e-8)
+        assert integral.log_value == pytest.approx(0., abs=1e-11)
+    assert unavailable
+    np.testing.assert_array_equal(first.diagnostics['mode'], second.diagnostics['mode'])
+    assert first.log_value == second.log_value
+
+
+def test_local_laplace_unavailable_neighborhood_is_failure_not_a_zero_score():
+    def density(x):
+        if x[0] != 0.:
+            raise ValueError('no evaluable trial near this numerical branch anchor')
+        return -4.5, np.array([30.])
+    with pytest.raises(StiffnessEvidenceUnavailable, match='full-score tolerance') as caught:
+        LocalLaplaceEvidence(lambda:(np.zeros(1),))(density)
+    diagnostic = caught.value.diagnostics
+    assert diagnostic['availability_recovery']['applied']
+    assert diagnostic['mode_score_inf'] == 30.
+    assert diagnostic['mode_score'] == [30.]
+    assert not diagnostic['optimizer_success']
+    assert 'evaluable Armijo step' in diagnostic['optimizer_message']
+    assert diagnostic['mode'] == [0.]
+    assert not diagnostic['availability_recovery']['iterations'][-1]['accepted']
+    assert diagnostic['unavailable_trials']
+    assert all('no evaluable trial' in row['reason'] for row in diagnostic['unavailable_trials'])
+    assert 'Hessian' not in diagnostic
+    assert not diagnostic['density_projection_applied']
+
+
+def test_local_laplace_resumes_the_last_completed_iterate_not_the_initial_seed(monkeypatch):
+    mean, precision = .3, 100.
+    def density(x):
+        if x[0] > .8:
+            raise ValueError('later optimizer trial is unavailable')
+        residual = x[0]-mean
+        return -.5*precision*residual**2, np.array([-precision*residual])
+    def interrupted_search(objective, seed, *, callback, **kwargs):
+        objective(seed)
+        completed = np.array([.1])
+        objective(completed)
+        callback(completed)
+        objective(np.array([1.1]))
+        raise AssertionError('The unavailable query must raise instead of returning a fake value.')
+    monkeypatch.setattr('probtf_observation_fusion_demo.stiffness_bayes_factor.minimize', interrupted_search)
+    integral = LocalLaplaceEvidence(lambda:(np.zeros(1),))(density)
+    recovery = integral.diagnostics['availability_recovery']
+    assert recovery['accepted_iterations_before_failure'] == 1
+    assert recovery['source_logK'] == [.1]
+    assert recovery['iterations'][0]['source_logK'] == [.1]
+    assert recovery['iterations'][0]['direction'] == [1.]
+    assert recovery['iterations'][0]['trials'][1]['logK'] == [.6]
+    np.testing.assert_allclose(integral.diagnostics['mode'], [mean], atol=1e-12)
+    assert integral.diagnostics['mode_score_inf'] <= 1e-6
+    assert integral.log_value == pytest.approx(.5*math.log(2.*math.pi/precision), abs=1e-11)
 
 
 def test_local_laplace_cannot_use_a_nonstationary_one_score_representative_as_a_mode():
@@ -96,7 +197,81 @@ def test_local_laplace_rejects_unstable_score_difference_hessian():
     def unresolved(x):
         return -.5*x[0]**2, np.array([-x[0]+.001*np.sin(1e4*x[0])])
     with pytest.raises(StiffnessEvidenceUnavailable, match='unstable across'):
+        LocalLaplaceEvidence(lambda:(np.zeros(1),), max_hessian_refinements=0)(unresolved)
+
+
+def _quartic_density_with_large_central_difference_error():
+    precision = np.array([[2., .5], [.5, 3.]])
+    direction = np.array([1., 2.])
+    def density(x):
+        projection = direction @ x
+        return (-.5*x @ precision @ x-1e6*projection**4,
+                -precision @ x-4e6*projection**3*direction)
+    return precision, density
+
+
+def test_local_laplace_refines_both_hessian_widths_with_unchanged_precision_checks():
+    precision, density = _quartic_density_with_large_central_difference_error()
+    integral = LocalLaplaceEvidence(lambda:(np.zeros(2),))(density)
+    diagnostic = integral.diagnostics
+    assert diagnostic['configured_Hessian_steps'] == [1e-4, 5e-5]
+    assert 0 < diagnostic['Hessian_refinement_count'] <= 8
+    attempts = diagnostic['Hessian_attempts']
+    assert len(attempts) == diagnostic['Hessian_refinement_count']+1
+    assert not attempts[0]['precision_checks_passed']
+    assert attempts[-1]['precision_checks_passed']
+    for previous, current in zip(attempts, attempts[1:]):
+        assert current['steps'] == [step*.5 for step in previous['steps']]
+        assert current['reused_previous_fine']
+        np.testing.assert_array_equal(current['Hessians'][0], previous['Hessians'][1])
+    assert diagnostic['Hessian_steps'] == attempts[-1]['steps']
+    assert diagnostic['Hessian_relative_tolerance'] == 1e-3
+    assert diagnostic['Hessian_absolute_tolerance'] == 1e-5
+    final_matrices = [np.array(matrix) for matrix in attempts[-1]['Hessians']]
+    assert np.allclose(*final_matrices, rtol=1e-3, atol=1e-5)
+    assert all(np.allclose(matrix, matrix.T, rtol=1e-3, atol=1e-5) for matrix in final_matrices)
+    assert diagnostic['stationarity_verified']
+    assert diagnostic['two_step_stability_verified']
+    assert diagnostic['positive_definiteness_verified']
+    assert not diagnostic['support_regularization_added']
+    np.testing.assert_allclose(diagnostic['Hessian'], precision, rtol=1e-3, atol=1e-5)
+    # The oracle is this local Laplace approximation, not the full quartic
+    # integral. The unchanged proxy's exact mode curvature is precision.
+    expected = math.log(2.*math.pi)-.5*np.linalg.slogdet(precision)[1]
+    assert integral.log_value == pytest.approx(expected, abs=1e-4)
+
+
+@pytest.mark.parametrize('refinements', [0, 1])
+def test_local_laplace_hessian_refinement_limit_is_explicit_and_failure_stays_failure(refinements):
+    _, density = _quartic_density_with_large_central_difference_error()
+    with pytest.raises(StiffnessEvidenceUnavailable, match='unstable across') as caught:
+        LocalLaplaceEvidence(lambda:(np.zeros(2),), max_hessian_refinements=refinements)(density)
+    diagnostic = caught.value.diagnostics
+    assert diagnostic['max_hessian_refinements'] == refinements
+    assert diagnostic['adaptive_Hessian_steps_enabled'] == (refinements > 0)
+    assert len(diagnostic['Hessian_attempts']) == refinements+1
+    assert diagnostic['Hessian_refinement_count'] == refinements
+    assert not diagnostic['Hessian_attempts'][-1]['precision_checks_passed']
+    assert diagnostic['Hessian_attempts'][-1]['reason'] == str(caught.value)
+    assert 'positive_definiteness_verified' not in diagnostic
+
+
+def test_local_laplace_adaptive_hessian_does_not_turn_a_negative_curvature_into_mass():
+    def unresolved(x):
+        return -.5*x[0]**2, np.array([-x[0]+.001*np.sin(1e4*x[0])])
+    with pytest.raises(StiffnessEvidenceUnavailable, match='positive definite') as caught:
         LocalLaplaceEvidence(lambda:(np.zeros(1),))(unresolved)
+    diagnostic = caught.value.diagnostics
+    assert diagnostic['Hessian_refinement_count'] > 0
+    assert diagnostic['Hessian_attempts'][-1]['precision_checks_passed']
+    assert diagnostic['Hessian_eigenvalues'][0] < 0.
+    assert not diagnostic['density_projection_applied']
+
+
+@pytest.mark.parametrize('refinements', [-1, 1.5, np.inf, np.nan, True])
+def test_local_laplace_hessian_refinement_count_requires_a_nonnegative_integer(refinements):
+    with pytest.raises(ValueError, match='nonnegative integer'):
+        LocalLaplaceEvidence(lambda:(np.zeros(1),), max_hessian_refinements=refinements)
 
 
 def test_score_root_polish_is_not_rejected_by_cancelling_log_density_roundoff(monkeypatch):

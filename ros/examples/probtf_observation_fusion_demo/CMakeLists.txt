@@ -43,6 +43,6 @@ set_target_properties(probtf_flexible_dynamics PROPERTIES
   INSTALL_RPATH_USE_LINK_PATH TRUE)
 install(TARGETS probtf_flexible_dynamics
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
-catkin_install_python(PROGRAMS scripts/observation_fusion_demo.py scripts/observation_fusion_motion.py scripts/print_motion_robot.py scripts/record_four_cases.py scripts/benchmark_realtime.py scripts/benchmark_physics.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+catkin_install_python(PROGRAMS scripts/observation_fusion_demo.py scripts/observation_fusion_motion.py scripts/print_motion_robot.py scripts/record_four_cases.py scripts/benchmark_realtime.py scripts/benchmark_physics.py scripts/evaluate_running_gradient.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(DIRECTORY config launch rviz DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(FILES README.md REQUIREMENTS.md REQUIREMENTS_STIFFNESS_CORRECTION.md REQUIREMENTS_SEQUENTIAL_UPDATE.md MOTION_REQUIREMENTS.md DYNAMIC_PHYSICS.md DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

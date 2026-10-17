@@ -1,4 +1,8 @@
-# 物理更新の240 Hz化（2026年10月18日）
+# 最新制御での設定（2026年10月18日）
+
+以下は`7046be5`の240 Hz化の履歴である。その後ユーザーが指定した[統合指示書](UNIFIED_RUNNING_GRADIENT_THEORY_20261018.md)の120/40/30/12 Hzへ変更し、[Running Gradient Tracking](RUNNING_GRADIENT_TRACKING.md)で新しく測定する。全リンク変換コピーの省略とC++動力学は保持する。
+
+## 物理更新の240 Hz化（2026年10月18日・旧source）
 
 ユーザーの「物理更新は110Hzよりあげられませんか」に従い、既定の外側物理更新目標を120 Hzから240 Hzへ引き上げた。設定は `moving_estimation.yaml` の `async_execution.physics_hz` である。指令通知40 Hz・IMU30 Hz・画像12 Hzと、各データの全取得・時刻順処理は維持する。動作の速度上限・加速度・0.5秒の位置参照を速める変更ではない。
 

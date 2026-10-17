@@ -1,0 +1,2114 @@
+{
+  "schema": "probtf.three_update_ik_validation.v1",
+  "date": "2026-10-17",
+  "complete": true,
+  "source_freeze": {
+    "path": "/tmp/probtf_three_update_ik_20261017/source_freeze.json",
+    "sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+    "bytes": 14069,
+    "file_count": 42,
+    "files": [
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/first_order.py",
+        "relative_path": "ros/core/probtf_core/src/probtf/spherical_law/first_order.py",
+        "sha256": "5c37d6379e2cccca369a127d0f9d096166f219de938ce0a48e5a74852754c8fa"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/common.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/common.yaml",
+        "sha256": "994306ed66f5091c29cfd1608c8632f5d635e5e0976f7ad038327086c8be0fa8"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/imu.yaml",
+        "sha256": "ae63815ea690cd9f1ed89f71c2400f8a14556082250dc00d650b17afcd1e944d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_hand.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/imu_hand.yaml",
+        "sha256": "3ace3e469e55c89b09580d5642c8b39053c82a6dff6a67c9d2e5c46275224280"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml",
+        "sha256": "06ae21320718ce839e2297abe3a880400aa12681a76de0b6e1ae8ed0ea568a68"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+        "sha256": "bdc5684e172da1b51ec9b5d03c601e51cbf1022b12c5596e66e0af7cf01aaf3d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+        "sha256": "39bac3d99567fb9fe6028d0f36cdc94b931934283c9c1380566fdb446127bd76"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml",
+        "sha256": "42a77d50f697602baf608efcd0322edae49d769b16b0a1ec7404d9ca8d8aa4cb"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml",
+        "sha256": "68a5a4e985ca7a7e5c49e24599720ae05864ca37b0ad937e4634be08d8f288c6"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml",
+        "sha256": "8e69ed37c2f13628fdbf034d27290d4883f22bb27b41a01fb915443814ec1cf5"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/common.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/common.launch",
+        "sha256": "b95d711a9d13e4db11f7ba4693a80fe26851e61d6ed47f7f28e7d6c839ba7455"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/imu.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/imu.launch",
+        "sha256": "baffcd7a60cad9c183204edcfb0fcb821b4dc6e08c4afc866aefaf71a965dfce"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/imu_hand.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/imu_hand.launch",
+        "sha256": "668bf2a0790c37f2c00bb1479e92796822fa6c1092173c03be785fa29ba9be6d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/imu_marker.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/imu_marker.launch",
+        "sha256": "b1fc2040f118ca10c0e64e5661581366e422898c4a9b521f29648b2b1c24033d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/marker.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/marker.launch",
+        "sha256": "14f34c654dda797e917cdbad817d5506ed81ea7728caa586af33f071917fac58"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/no_sensors.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/no_sensors.launch",
+        "sha256": "ff5ca149aa785e0744398ad2bf5840197592410cbb93212597291ed7c837f5f4"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py",
+        "sha256": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py",
+        "sha256": "2eb48af88719b592ef9c6983c2f8fd6b34394bdf74f267da0b71caaa694f2282"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_state.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_state.py",
+        "sha256": "092f98455906662190534480ae767c184a3640edc367e74c83856851dc35a98b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py",
+        "sha256": "6d9e3af2619399efe56e914f6d3696e8c667dffe366d07693347886ab9c2b58f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+        "sha256": "53139568c2bb07d95d3984a7f33acea6ca74c966fc41cee0c4187bb73820376b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py",
+        "sha256": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+        "sha256": "74a473dba2da1d113ac05404c1a4e770783b0f0fd2ac3e9c244181576c8eef7b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py",
+        "sha256": "d88d70771c0ad405f72931db8cc79747fe8a24b7e574328dcade1a3af330bad5"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/execution_stiffness.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/execution_stiffness.py",
+        "sha256": "a1a5b5e984eb6e0bdc9a80d318f5c541f5dd1622ce82c06c046ae623ae350f98"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py",
+        "sha256": "60dde9dcaf41c2fd158fe05f72e2b82aa2b7fc99bff7d9a4084cdca8646e07b7"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py",
+        "sha256": "c03cc89017e11292404cea97f479bce0de3ebbd1213a7169b4e326980dbd80fa"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py",
+        "sha256": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py",
+        "sha256": "c26da0f69f2416f68af6168b0a757654f73589d7f2fa00bd90a37840eabf25fc"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py",
+        "sha256": "f55951130cd64440be72bf66ead357ade933f7e199c0b5ae27814ec3ca63bb7a"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py",
+        "sha256": "c57f6061bce40c6946f1f62c7aded66dfed70e7d612bd2b00773b3bafe83b409"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py",
+        "sha256": "57c06bb6405c75a2bf867b01f62c6cfd87e1f7578e05f2e88f999856edd51048"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+        "sha256": "87a43456baa39adab01470b78473cbc24c02ede6c81ade8a7e88cc02759b7e6f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py",
+        "sha256": "be28842b15122b271600878da39d32011de851333c6b5a982686a3403dae42b4"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py",
+        "sha256": "17f2feed3540c250caa06dcb19c1a446c2112fb67f391aa35ef5debdd2932161"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/rolling_ik.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/rolling_ik.py",
+        "sha256": "d5ffc99b7fb8fcbf4387a7ae17951735610bdf847bf155e8200f442c1d77ab4b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py",
+        "sha256": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py",
+        "sha256": "079db5b231e3db65d9f6d8b6fd869cd2055e21ddf189e44d2fe0a3bced68301d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/short_trajectory.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/short_trajectory.py",
+        "sha256": "d38abac73cba9131be6959baa36173a751aad8a81ccea066e6b244ffbc185d53"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py",
+        "sha256": "05c5952e7508edc5f2f82967cc7f2c73a7c57454662f8e6e785e9c6d3e5afb15"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py",
+        "sha256": "577c6eeb10ed1f3f44c4e0b55bababcb245e5af9a0b47d6844a938637b9d02bc"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visual_approach.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visual_approach.py",
+        "sha256": "3566ca1d6164f34dfabb411185520b7144051ba128129aedc5bf3e82af13edb7"
+      }
+    ]
+  },
+  "source_end_checkpoint": {
+    "path": "/tmp/probtf_three_update_ik_20261017/source_end_checkpoint.json",
+    "sha256": "782dc478ebdda118d0e7e3b5ee2790b2b9e481574a755f62aa3c98ebb8579954",
+    "bytes": 10889
+  },
+  "rviz_end_checkpoint": {
+    "path": "/tmp/probtf_three_update_ik_20261017/rviz_end_checkpoint.json",
+    "sha256": "f8a0a229c6264d5ea7399654c24f0e534b594e6822399629e5761c9c3291a9ed",
+    "bytes": 225
+  },
+  "status": "withdrawn historical three-update implementation; user reported severe oscillation",
+  "task_success": false,
+  "requirements_compliance_complete": false,
+  "scope": "Two actual 60-wall-second runs with three full-J IK updates on one frozen law/K, dt0.5 per update, total1.5s. Snapshot/MarkerArray/stiffness/metadata/scene/TF/goal-source actual wire and independently reconstructed numerical laws are audited separately from physical stability.",
+  "tests": {
+    "passed": 571,
+    "separate_nonoverlapping_test_selections": true,
+    "selections": [
+      {
+        "passed": 556,
+        "seconds": 131.13,
+        "log": {
+          "path": "/tmp/probtf_three_update_ik_20261017/pytest_suite.log",
+          "sha256": "c2f3f245b006f0e18a81945fc9f616ff08fe9c31713ce39e31923f56b4fc9cff",
+          "bytes": 1139
+        }
+      },
+      {
+        "passed": 15,
+        "seconds": 2.47,
+        "log": {
+          "path": "/tmp/probtf_three_update_ik_20261017/pytest_rolling.log",
+          "sha256": "82caccc85fd70af810060291f6fe8b4a7628c2cf347692084ec719e16d7a873a",
+          "bytes": 566
+        }
+      }
+    ]
+  },
+  "runtime_override": {
+    "async_duration_s": 60.0,
+    "default_configuration_duration_s": 30.0
+  },
+  "method": {
+    "virtual_updates_per_plan": 3,
+    "gradient_evaluations_per_plan": 3,
+    "point_offsets_s": [
+      0.5,
+      1.0,
+      1.5
+    ],
+    "same_law_goal_full_cross_K_and_equilibrium_branch_captured_once": true,
+    "no_new_observations_or_Bayes_factors_or_stiffness_factors_during_virtual_rollout": true,
+    "raw_parameter_density_and_representative_preserved": true,
+    "execution_K_filter": "coordinator log-K lag tau0.5s, capped log step0.05 per tick; captured once for the whole plan",
+    "command_reference": "piecewise linear source command and three future endpoints; source+1.5s expiry, common actuator bounds",
+    "core_math_changed": false,
+    "monte_carlo_used": false,
+    "physical_truth_input_to_inference_or_control": false,
+    "body_regenerated_from_K": false
+  },
+  "cases": {
+    "marker": {
+      "actual_law_publications": 122,
+      "actual_core_point_queries": 5368,
+      "subscriber_counts": {
+        "snapshot": 122,
+        "wire": 122,
+        "stiffness": 122,
+        "motion": 1295,
+        "scene": 482,
+        "tf": 1295,
+        "goal_tf_sources": 122
+      },
+      "modal_goal_TF": {
+        "actual_tf_messages": 1295,
+        "actual_goal_source_messages": 122,
+        "candidate_laws_verified": 122,
+        "goal_transforms_verified": 122,
+        "initial_candidate_TF_received": true,
+        "all_modal_goal_poses_weights_log_weights_and_sources_equal_actual_snapshot": true,
+        "explicit_ROS_simulation_clock_mapping_and_age_verified": true
+      },
+      "actual_wire_proof": {
+        "path": "/tmp/probtf_three_update_ik_20261017/marker_live_audit.json",
+        "sha256": "47f85cfd74389670aca6f21dbf4a9f996046ab587dc62c85966fde61cabc42da",
+        "bytes": 481796
+      },
+      "body_BF_and_full_joint_update_count": 60,
+      "missing_marker_change_cross_checks": 0,
+      "raw_captures": 888,
+      "selected_estimation_packets": 61,
+      "board_image_only_fusion": {
+        "updates": 60,
+        "raw_native_modes": 1044,
+        "native_core_center_queries": 1044,
+        "center_component_count_histogram": {
+          "1": 60
+        },
+        "every_raw_native_and_known_attachment_and_full_cross_reconstructed": true,
+        "common_body_prior_not_multiplied_across_tags": true
+      },
+      "fresh_goal_closure": {
+        "translation_error_m": {
+          "count": 60,
+          "minimum": 3.77901430024502e-05,
+          "median": 0.00023592062212568192,
+          "maximum": 0.0005929447127092624
+        },
+        "rotation_error_rad": {
+          "count": 60,
+          "minimum": 2.9165602887786128e-08,
+          "median": 5.4176645166138166e-08,
+          "maximum": 2.700134664511577e-07
+        },
+        "maximum_covariance_element_error": {
+          "count": 60,
+          "minimum": 4.999982308184217e-11,
+          "median": 1.5377929682949948e-10,
+          "maximum": 2.029837913276239e-09
+        },
+        "no_cosmetic_recentering": true
+      },
+      "physical_result": {
+        "final_error_m": 0.006696135178760129,
+        "minimum_error_m": 0.002682145843861845,
+        "minimum_time_s": 52.07636819779873,
+        "reach_tolerance_m": 0.006,
+        "final_reached": false,
+        "ever_reached": true,
+        "first_reach_time_s": 39.65280183684081,
+        "any_forbidden_collision": false,
+        "world_existential_success": true
+      },
+      "measured_rates": {
+        "actual_motion_hz": 18.968596481003825,
+        "actual_camera_hz": 14.789615112974728,
+        "actual_control_hz": 1.913626106247542,
+        "actual_estimate_hz": 0.9513574201169028
+      },
+      "subscriber_measured_rates": {
+        "received_physical_metadata_hz": 18.96688577510422,
+        "received_snapshot_hz": 1.9564916815583424,
+        "received_wire_hz": 1.9566655682173621,
+        "received_stiffness_hz": 1.9564617275228435,
+        "received_scene_hz": 7.174708195981924,
+        "received_estimate_acceptance_hz": 0.9764929923298584,
+        "captured_observation_time_hz": 14.783333333333333,
+        "window_excludes_autostart_wait_and_final_drain": true,
+        "arrival_clock": "subscriber monotonic reception_log",
+        "motion_window_start_arrival_clock": 2837947.424630644,
+        "motion_window_end_arrival_clock": 2838007.424630644,
+        "mean_control_work_s": 0.3886603590704073,
+        "mean_estimate_work_s": 0.8879659371832233,
+        "physical_period_s": {
+          "minimum": 0.007959191221743822,
+          "median": 0.053048872854560614,
+          "maximum": 0.12186528416350484
+        },
+        "display_lag_s": {
+          "minimum": 0.04262280464172363,
+          "median": 0.7398970127105713,
+          "maximum": 1.230630874633789
+        },
+        "observation_lag_s": {
+          "minimum": 0.04262280464172363,
+          "median": 1.5785868167877197,
+          "maximum": 3.2454893589019775
+        }
+      },
+      "physical_pose_accuracy": {
+        "case": "marker",
+        "used_only_for_validation": true,
+        "independent_physical_urdf_fk": true,
+        "covariance_width_definition": "3*sqrt(trace(P)), a diagnostic Euclidean width; anisotropic Gaussian proxy coverage uses support-aware Mahalanobis chi-square95",
+        "trajectory_coverage_is_descriptive_not_a_calibration_guarantee": true,
+        "body": {
+          "camera": {
+            "control_publications": 122,
+            "final": {
+              "frame_label": "camera",
+              "position_mean_error_m": 0.3169982146189046,
+              "three_root_trace_covariance_m": 0.03132985705638314,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 4301.7411858561245,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.40009780458078165,
+              "orientation_root_trace_covariance_rad": 0.019239178836731295,
+              "orientation_mahalanobis_squared": 1662.7823541002952,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.23277729035011177,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 4
+          },
+          "hand": {
+            "control_publications": 122,
+            "final": {
+              "frame_label": "hand",
+              "position_mean_error_m": 0.432885650337565,
+              "three_root_trace_covariance_m": 0.042127594792195765,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 5902.683978436002,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.4000978045807817,
+              "orientation_root_trace_covariance_rad": 0.019239178836731288,
+              "orientation_mahalanobis_squared": 1662.7823541003,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.3324687222477727,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 4
+          },
+          "link_1": {
+            "control_publications": 122,
+            "final": {
+              "frame_label": "link_1",
+              "position_mean_error_m": 1.2520657809885304e-05,
+              "three_root_trace_covariance_m": 0.002596485277360943,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 0.0006280674606592363,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": true,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.05343330016450867,
+              "orientation_root_trace_covariance_rad": 0.04166284306203403,
+              "orientation_mahalanobis_squared": 9.313150559431902,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 3.0474866999285885e-05,
+            "count_within_gaussian_proxy_95_region": 122,
+            "count_orientation_within_gaussian_proxy_95_region": 51
+          },
+          "link_2": {
+            "control_publications": 122,
+            "final": {
+              "frame_label": "link_2",
+              "position_mean_error_m": 0.009638383272434327,
+              "three_root_trace_covariance_m": 0.016903248611866522,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 9.279298582411995,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.21369902053764153,
+              "orientation_root_trace_covariance_rad": 0.046822351079810774,
+              "orientation_mahalanobis_squared": 342.29412163707025,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.0105970550856119,
+            "count_within_gaussian_proxy_95_region": 51,
+            "count_orientation_within_gaussian_proxy_95_region": 11
+          },
+          "link_3": {
+            "control_publications": 122,
+            "final": {
+              "frame_label": "link_3",
+              "position_mean_error_m": 0.06796816829661717,
+              "three_root_trace_covariance_m": 0.03618441105617618,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 549.4004369095069,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.42313307794851895,
+              "orientation_root_trace_covariance_rad": 0.053547371523868494,
+              "orientation_mahalanobis_squared": 694.9588753945918,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.0491405651761881,
+            "count_within_gaussian_proxy_95_region": 9,
+            "count_orientation_within_gaussian_proxy_95_region": 0
+          },
+          "link_4": {
+            "control_publications": 122,
+            "final": {
+              "frame_label": "link_4",
+              "position_mean_error_m": 0.16245671374798573,
+              "three_root_trace_covariance_m": 0.028905213746230278,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 938.1683026651045,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.3912632795602682,
+              "orientation_root_trace_covariance_rad": 0.060601625799040534,
+              "orientation_mahalanobis_squared": 278.2002744919211,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.12038499636314999,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 4
+          },
+          "link_5": {
+            "control_publications": 122,
+            "final": {
+              "frame_label": "link_5",
+              "position_mean_error_m": 0.21317415375498777,
+              "three_root_trace_covariance_m": 0.025851574364615888,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 2682.856813904966,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.43323548704639403,
+              "orientation_root_trace_covariance_rad": 0.06089226378691727,
+              "orientation_mahalanobis_squared": 197.93871873516497,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.16271931751688234,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 3
+          },
+          "link_6": {
+            "control_publications": 122,
+            "final": {
+              "frame_label": "link_6",
+              "position_mean_error_m": 0.2644215632166989,
+              "three_root_trace_covariance_m": 0.025241253615799465,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 4064.06634945065,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.4000978045807817,
+              "orientation_root_trace_covariance_rad": 0.019239178836731288,
+              "orientation_mahalanobis_squared": 1662.7823541003,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.2031314207448757,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 4
+          },
+          "tool0": {
+            "control_publications": 122,
+            "final": {
+              "frame_label": "tool0",
+              "position_mean_error_m": 0.30405510812381004,
+              "three_root_trace_covariance_m": 0.028878987241962615,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 4464.37385107987,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.4000978045807817,
+              "orientation_root_trace_covariance_rad": 0.019239178836731288,
+              "orientation_mahalanobis_squared": 1662.7823541003,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.2331480082714198,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 4
+          }
+        },
+        "absolute_pose_accuracy_resolved_claimed": false,
+        "user_common_shift_explanation_is_structural_hypothesis_not_cause_proof": true
+      },
+      "board_field_of_view": {
+        "raw_captures": 888,
+        "any_marker_detected": 882,
+        "no_marker_detected": 6,
+        "center_ID_detected": 829,
+        "other_ID_visible_while_center_missing": 53,
+        "detected_to_lost_transitions": 3,
+        "detection_count_histogram": {
+          "9": 798,
+          "8": 41,
+          "6": 9,
+          "7": 9,
+          "0": 6,
+          "3": 5,
+          "1": 6,
+          "2": 2,
+          "4": 4,
+          "5": 8
+        },
+        "per_marker_detected_count": {
+          "17": 859,
+          "18": 859,
+          "19": 847,
+          "20": 864,
+          "21": 829,
+          "22": 850,
+          "23": 867,
+          "24": 870,
+          "25": 863
+        },
+        "any_physical_tag_fully_inside": 888,
+        "all_physical_tags_fully_inside": 888,
+        "detected_tag_edge_margin_px": {
+          "count": 7708,
+          "min": 26.40069580078125,
+          "median": 192.77589416503906,
+          "max": 328.0426025390625
+        },
+        "by_reaching_phase": {
+          "indet_ik": {
+            "captures": 887,
+            "any_marker_detected": 881,
+            "central_ID_detected": 828
+          },
+          "waiting_for_control": {
+            "captures": 1,
+            "any_marker_detected": 1,
+            "central_ID_detected": 1
+          }
+        },
+        "selected_board_goal_updates": 60,
+        "selected_usable_tag_counts": {
+          "9": 56,
+          "8": 2,
+          "1": 2
+        },
+        "selected_central_component_counts": {
+          "1": 60
+        },
+        "final_physical_hand_goal_error_m": 0.006696135178760129,
+        "minimum_physical_hand_goal_error_m": 0.002682145843861845
+      },
+      "board_geometry": {
+        "case": "marker",
+        "complete": true,
+        "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+        "actual_scene_messages": 482,
+        "native_tag_triangle_lists_verified": 4338,
+        "native_marker_size_m": 0.072,
+        "pitch_m": 0.09,
+        "white_base_size_m": [
+          0.27,
+          0.27,
+          0.001
+        ],
+        "image_board_outer_size_m": [
+          0.27,
+          0.27
+        ],
+        "central_frame_and_button_relation_unchanged": true,
+        "separate_display_size_multiplier_used": false,
+        "validation_script_sha256": "1f4efbf51f7722c4c134736f60a14a40daaf2222c9af0a6af02f94c817a8c0e7"
+      },
+      "trajectory_supplement": {
+        "case": "marker",
+        "complete": true,
+        "source_freeze": {
+          "path": "/tmp/probtf_three_update_ik_20261017/source_freeze.json",
+          "sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "bytes": 14069
+        },
+        "supplementary_scope": "Read-only trajectory geometry, timing and descriptive physical differences; full law/J/K/trajectory validity is covered by separate independent audits.",
+        "program": {
+          "path": "/tmp/probtf_three_update_supplement.py",
+          "sha256": "238780457131d993320febcfc7e02900465a96cc26291719b32014ca7ae0f00b",
+          "bytes": 10707
+        },
+        "files": [
+          {
+            "path": "/tmp/probtf_three_update_ik_20261017/marker/commands.jsonl",
+            "sha256": "1cdf041eda1d79f7b17420074cbbbb92763554b73ad1ae88a66cc09add5f363b",
+            "bytes": 13630901
+          },
+          {
+            "path": "/tmp/probtf_three_update_ik_20261017/marker/control.jsonl",
+            "sha256": "08262325082b67ac43a3cf7cb25c722a93717c6426651f594248fbb33fedf6ab",
+            "bytes": 137821032
+          },
+          {
+            "path": "/tmp/probtf_three_update_ik_20261017/marker/physical_trajectory.jsonl",
+            "sha256": "ad4d5a8d73fd22d9cbe45f1d197e127f4d89750276dd268775142ab8475b15ba",
+            "bytes": 1605775
+          }
+        ],
+        "hardware_constraint_causality_claimed": false,
+        "truth_is_validation_only": true,
+        "actual_intervals": 1139,
+        "completed_plans": 122,
+        "virtual_updates": 366,
+        "actual_interval_duration_s": {
+          "count": 1139,
+          "minimum": 0.007959191221743822,
+          "median": 0.053048872854560614,
+          "maximum": 0.12186528416350484
+        },
+        "behavior_durations_s": {
+          "reaching": 53.556852917186916,
+          "braking": 0.5748218516819179,
+          "settling": 5.868325231131166
+        },
+        "behavior_intervals": {
+          "reaching": 1010,
+          "braking": 11,
+          "settling": 118
+        },
+        "epoch_timestamp_subtraction_max_roundoff_s": 2.3469328880310059e-07,
+        "interval_dt_source": "physical_trajectory original elapsed time; epoch timestamp subtraction is separately bounded by two epoch ULPs",
+        "maximum_abs_command_step_rad": {
+          "count": 1139,
+          "minimum": 0.0,
+          "median": 0.0023758747056126517,
+          "maximum": 0.005849533639848248
+        },
+        "command_step_l2_rad": {
+          "count": 1139,
+          "minimum": 0.0,
+          "median": 0.004620991576655502,
+          "maximum": 0.010827043137623737
+        },
+        "maximum_abs_velocity_rad_s": {
+          "count": 1139,
+          "minimum": 0.0,
+          "median": 0.048,
+          "maximum": 0.04800000000000001
+        },
+        "maximum_abs_acceleration_rad_s2": {
+          "count": 1139,
+          "minimum": 0.0,
+          "median": 0.3,
+          "maximum": 0.3000000000000003
+        },
+        "physical_tip_tick_displacement_m": {
+          "count": 1139,
+          "minimum": 0.0,
+          "median": 0.0016457675729312676,
+          "maximum": 0.00977280778919895
+        },
+        "physical_tip_tick_speed_m_s": {
+          "count": 1139,
+          "minimum": 0.0,
+          "median": 0.03223436157270137,
+          "maximum": 0.12373276851282967
+        },
+        "command_stopped_intervals": 121,
+        "command_stopped_duration_s": 6.071066326927394,
+        "adjacent_nonzero_velocity_reversals_per_joint": [
+          85,
+          94,
+          73,
+          50,
+          78,
+          76
+        ],
+        "adjacent_reaching_nonzero_velocity_reversals_per_joint": [
+          85,
+          94,
+          73,
+          50,
+          78,
+          76
+        ],
+        "reversal_definition": "Adjacent commanded velocities with opposite signs and both magnitudes greater than 1e-6 rad/s; zero-crossings with an intervening stopped tick are not counted.",
+        "reaching_zero_velocity_intervals": 0,
+        "expired_reaching_intervals": 0,
+        "expired_nonzero_requested_velocity_intervals": 0,
+        "expired_request_max_abs_velocity_rad_s": null,
+        "initial_reaching_without_plan_intervals": 0,
+        "zero_selected_increments_by_virtual_step": [
+          0,
+          0,
+          0
+        ],
+        "internally_stationary_reference_knots_have_no_forced_stop": true,
+        "notes": [
+          "Tick displacement depends on measured tick dt; it is not a discontinuity test.",
+          "Absolute physical pose is only evaluated after the run and was not provided to either worker.",
+          "Hardware acceleration limits can leave nonzero physical command velocity while an expired plan requests zero.",
+          "The three future reference knots are virtual command predictions, not observed or actually executed future poses."
+        ]
+      },
+      "independent_audits": {
+        "three_update_full_J": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/marker_three_update_full_J_independent_audit.json",
+            "sha256": "5837af0078ee8e409a249186d66cefebafdc7b58c78818555e57e7dc1678bc62",
+            "bytes": 260860
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "failures": [],
+          "counts": {
+            "complete_gradient_updates": 366,
+            "line_trials": 1269,
+            "interior_corrections_accepted": 74,
+            "three_update_plans": 122
+          },
+          "max_absolute_differences": {
+            "virtual current-command equilibrium under same captured K": 0.0,
+            "initial J": 0.0,
+            "braking J": 0.0,
+            "selected J": 0.0,
+            "braking position expectation": 2.7755575615628914e-17,
+            "initial position expectation": 2.7755575615628914e-17,
+            "selected position expectation": 1.3877787807814457e-17,
+            "complete propagated J gradient": 0.0,
+            "complete propagated position gradient": 2.7755575615628914e-12,
+            "line search full J": 0.0,
+            "line search exact position": 1.3877787807814457e-17,
+            "line search Armijo bound": 0.0,
+            "accepted line displacement selected": 0.0,
+            "selected query_mean": 0.0,
+            "selected query_covariance": 0.0,
+            "selected query_within": 0.0,
+            "selected query_between": 0.0,
+            "selected relative_position_covariance": 0.0,
+            "trajectory endpoint is actual selected IK command": 0.0,
+            "virtual declared command displacement": 0.0,
+            "interior cone fraction": 0.0,
+            "interior cone coordinate": 0.0,
+            "interior cone direction": 0.0
+          },
+          "scope": "All three gradients/trials/normalizers/mixture terms and exact position constraints independently reconstructed; same execution packet and full body-goal covariance right action, preserved observation provenance, virtual states never treated as observations."
+        },
+        "three_update_trajectory_execution": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/marker_three_update_trajectory_execution_independent_audit.json",
+            "sha256": "42238e349ac30d8f5e232ed773adce7ba6a119fc4fe6c8b0b101500db1b1dc79",
+            "bytes": 1193726
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "failures": [],
+          "counts": {
+            "reaching_intervals": 1010,
+            "segment_0_intervals": 65,
+            "expired_intervals": 0,
+            "segment_1_intervals": 888,
+            "segment_2_intervals": 57
+          },
+          "max_absolute_differences": {
+            "reported trajectory reference_command": 0.0,
+            "reported trajectory reference_velocity": 0.0,
+            "reported trajectory requested_velocity": 0.0,
+            "reported trajectory actual_command_before": 0.0,
+            "exact time-reference actuator command": 0.0,
+            "exact time-reference actuator velocity": 0.0
+          },
+          "scope": "All three selected endpoints, original source-clock interpolation, terminal expiry, unscaled reference-position tracking, and ordinary actuator bounds independently recomputed. Does not call the runtime trajectory helper or perform IK/inference."
+        },
+        "execution_K": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/marker_execution_K_independent_audit.json",
+            "sha256": "e56b3cb087b39f68e5e5fd179315ba48be128a689db62fee7c670921d16293c7",
+            "bytes": 1473
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "counts": {
+            "estimated_packets": 61,
+            "filter_samples": 1142,
+            "filter_steps_with_unchanged_estimate_and_changed_execution": 1069,
+            "capped_filter_components": 1,
+            "IK_frozen_execution_packets": 122,
+            "actual_intervals": 1139,
+            "exact_historical_catchup_paths": 182,
+            "exact_historical_catchup_steps": 4903,
+            "filter_samples_not_used_by_IK": 1020
+          },
+          "failures": [],
+          "max_absolute_differences": {
+            "estimated logarithm": 0.0,
+            "filter wall-motion dt": 0.0,
+            "filter lag alpha": 0.0,
+            "filter pre-cap log step": 0.0,
+            "filter capped log step": 0.0,
+            "filter execution log K": 0.0,
+            "filter execution K": 0.0,
+            "selected action uses filtered-K equilibrium": 0.0,
+            "selected action uses filtered-K joint increment": 0.0,
+            "selected action uses filtered-K sensitivity": 0.0,
+            "actual source equilibrium": 0.0,
+            "actual query equilibrium": 0.0,
+            "actual applied-K joint increment": 0.0,
+            "actual applied-K command Jacobian": 0.0,
+            "next-prior sum of actual applied-K increments": 0.0
+          },
+          "scope": "20 Hz filter recurrence independently recomputed; unchanged full estimated records/density/proposals; request samples frozen with IK, same epoch actual ledger, deterministic auxiliary mechanics, and actual historical next-prior/catchup replay. Filter signal is not a posterior."
+        },
+        "K_representative": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/marker_K_representative_independent_audit.json",
+            "sha256": "59e93f676f632386be8fe7fe6fd57b8218723ffb5f165794a17d877a7d69c8af",
+            "bytes": 43029
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "failures": [],
+          "counts": {
+            "new_density_count": 60,
+            "new_density_refined_count": 60,
+            "accepted_score_step_count": 60,
+            "representative_changed_count": 59,
+            "unchanged_density_count": 1,
+            "IK_cycles_same_estimated_source_and_applied_K": 122,
+            "actual_intervals_same_estimated_source_and_applied_K": 1139
+          },
+          "max_absolute_differences": {
+            "base density": 0.0,
+            "base score": 0.0,
+            "selected density": 0.0,
+            "selected score": 0.0,
+            "selected exponentiation": 0.0,
+            "score displacement": 0.0,
+            "deterministic backtrack scale": 0.0,
+            "representative Armijo bound": 0.0,
+            "representative trial density": 0.0,
+            "accepted score step selected": 0.0,
+            "representative equilibrium": 0.0
+          },
+          "scope": "recorded full continuous density and score restored, every bounded representative step checked, unchanged estimated K traced separately from the applied K into IK and actual command ledger; no true stiffness input"
+        },
+        "visible_hold_policy": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/marker_visible_hold_policy_independent_audit.json",
+            "sha256": "9d1701a47fb2b2f42e085d77b8bd690d934048184745c9aa013289108664997d",
+            "bytes": 36825
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "failures": [],
+          "counts": {
+            "raw_positive_intervals": 1132,
+            "reaching_intervals": 1010,
+            "braking_intervals": 11,
+            "raw_positive_braking_intervals": 4,
+            "settling_intervals": 118
+          },
+          "max_absolute_differences": {
+            "actual velocity equals executed interval": 1.264266469291897e-14,
+            "bounded local servo exact interval": 0.0,
+            "raw reacquisition brakes to zero": 0.0
+          },
+          "raw_positive_search_intervals": 0,
+          "waiting_hold_intervals": 118,
+          "waiting_beyond_settle_time_intervals": 95,
+          "waiting_hold_max_velocity": 0.0,
+          "waiting_hold_max_command_increment": 0.0,
+          "resumed_after_stop_count": 3,
+          "scope": "actual adopted raw-preview index and timestamp, same fused goal and committed IK source, exact bounded local command intervals, stopped post-stop-observation resume; no physical truth input"
+        }
+      },
+      "evidence": [
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker/estimation.jsonl",
+          "sha256": "58df3c25be486ea8ad64d56b1d3525bb5260d1e85809c03d19caa41a37fe978d",
+          "bytes": 169884499
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker/control.jsonl",
+          "sha256": "08262325082b67ac43a3cf7cb25c722a93717c6426651f594248fbb33fedf6ab",
+          "bytes": 137821032
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker/commands.jsonl",
+          "sha256": "1cdf041eda1d79f7b17420074cbbbb92763554b73ad1ae88a66cc09add5f363b",
+          "bytes": 13630901
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker/physical_trajectory.jsonl",
+          "sha256": "ad4d5a8d73fd22d9cbe45f1d197e127f4d89750276dd268775142ab8475b15ba",
+          "bytes": 1605775
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker/execution_stiffness.jsonl",
+          "sha256": "92aa3c761400e6519e6f23ec16ad48b4e5e0f8cc19ebdae3e74dd3ccb2260f95",
+          "bytes": 1682812
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker/captures.jsonl",
+          "sha256": "e886831473bd3db99b987160133e82b34a9f38073b6f80795dc0869806b5f5d6",
+          "bytes": 458050
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker/assimilation_selection.jsonl",
+          "sha256": "69cadd9a019aa75a246198e7999973dbaa1bb3154adc31626269c73c571df9a8",
+          "bytes": 19229
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker_received/reception_log.jsonl",
+          "sha256": "ef53b1fb524c3e51580967898be654b850f6cdc4e44839b703158367b233092e",
+          "bytes": 755200
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker_received/physical_pose_accuracy.json",
+          "sha256": "bab0510a0ed26867d6146c94f7a1511f8aac6b52d89225b50e692daa28715c73",
+          "bytes": 904125
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker_received/measured_rates.json",
+          "sha256": "bba7e842519783efdbbe4e95a01871e363235263f40401dd924767c4e4b06fa6",
+          "bytes": 1066
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker_received/board_fov_analysis.json",
+          "sha256": "1028e5c735ee8298f44f6c4940030ac9af2507003205382e1a9ad43d333c0c70",
+          "bytes": 5663426
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/marker_received/board_geometry_audit.json",
+          "sha256": "a3302398f5cc9a24d54e84f9f58bd1f3ccb02144a042821789ad72f32bafa081",
+          "bytes": 586
+        }
+      ]
+    },
+    "imu_marker": {
+      "actual_law_publications": 126,
+      "actual_core_point_queries": 5544,
+      "subscriber_counts": {
+        "snapshot": 126,
+        "wire": 126,
+        "stiffness": 126,
+        "motion": 1309,
+        "scene": 484,
+        "tf": 1310,
+        "goal_tf_sources": 126
+      },
+      "modal_goal_TF": {
+        "actual_tf_messages": 1310,
+        "actual_goal_source_messages": 126,
+        "candidate_laws_verified": 126,
+        "goal_transforms_verified": 126,
+        "initial_candidate_TF_received": true,
+        "all_modal_goal_poses_weights_log_weights_and_sources_equal_actual_snapshot": true,
+        "explicit_ROS_simulation_clock_mapping_and_age_verified": true
+      },
+      "actual_wire_proof": {
+        "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_live_audit.json",
+        "sha256": "0d29ad99281a76b7149c9c40fe8838fc1e5b6e5566141648ab8602b4fe3f44ba",
+        "bytes": 506651
+      },
+      "body_BF_and_full_joint_update_count": 64,
+      "missing_marker_change_cross_checks": 0,
+      "raw_captures": 891,
+      "selected_estimation_packets": 64,
+      "board_image_only_fusion": {
+        "updates": 64,
+        "raw_native_modes": 1110,
+        "native_core_center_queries": 1110,
+        "center_component_count_histogram": {
+          "1": 64
+        },
+        "every_raw_native_and_known_attachment_and_full_cross_reconstructed": true,
+        "common_body_prior_not_multiplied_across_tags": true
+      },
+      "fresh_goal_closure": {
+        "translation_error_m": {
+          "count": 64,
+          "minimum": 0.00028750288260877613,
+          "median": 0.0003159300735618389,
+          "maximum": 0.0005046527001877126
+        },
+        "rotation_error_rad": {
+          "count": 64,
+          "minimum": 4.589382889208323e-08,
+          "median": 5.776085444153245e-08,
+          "maximum": 1.6976308051426796e-07
+        },
+        "maximum_covariance_element_error": {
+          "count": 64,
+          "minimum": 5.707854086803887e-11,
+          "median": 1.009370158205519e-10,
+          "maximum": 1.530583281547212e-09
+        },
+        "no_cosmetic_recentering": true
+      },
+      "physical_result": {
+        "final_error_m": 0.021700886055576178,
+        "minimum_error_m": 0.0002307938366463299,
+        "minimum_time_s": 38.09081590780988,
+        "reach_tolerance_m": 0.006,
+        "final_reached": false,
+        "ever_reached": true,
+        "first_reach_time_s": 28.781322075985372,
+        "any_forbidden_collision": false,
+        "world_existential_success": true
+      },
+      "measured_rates": {
+        "actual_motion_hz": 19.268317948196668,
+        "actual_camera_hz": 14.825927909137837,
+        "actual_control_hz": 1.982384678077492,
+        "actual_estimate_hz": 1.0011469781961613
+      },
+      "subscriber_measured_rates": {
+        "received_physical_metadata_hz": 19.268511047633847,
+        "received_snapshot_hz": 2.024962805182886,
+        "received_wire_hz": 2.0249676881537257,
+        "received_stiffness_hz": 2.0249173607624114,
+        "received_scene_hz": 7.209279225733408,
+        "received_estimate_acceptance_hz": 1.0200166974943523,
+        "captured_observation_time_hz": 14.833333333333334,
+        "window_excludes_autostart_wait_and_final_drain": true,
+        "arrival_clock": "subscriber monotonic reception_log",
+        "motion_window_start_arrival_clock": 2837944.4021485513,
+        "motion_window_end_arrival_clock": 2838004.4021485513,
+        "mean_control_work_s": 0.3731575883843655,
+        "mean_estimate_work_s": 0.8385115548371687,
+        "physical_period_s": {
+          "minimum": 0.009408385027199984,
+          "median": 0.052055350970476866,
+          "maximum": 0.10871965112164617
+        },
+        "display_lag_s": {
+          "minimum": 0.028273344039916992,
+          "median": 0.7194042205810547,
+          "maximum": 1.1876022815704346
+        },
+        "observation_lag_s": {
+          "minimum": 0.028273344039916992,
+          "median": 1.4841172695159912,
+          "maximum": 3.2605948448181152
+        }
+      },
+      "physical_pose_accuracy": {
+        "case": "imu_marker",
+        "used_only_for_validation": true,
+        "independent_physical_urdf_fk": true,
+        "covariance_width_definition": "3*sqrt(trace(P)), a diagnostic Euclidean width; anisotropic Gaussian proxy coverage uses support-aware Mahalanobis chi-square95",
+        "trajectory_coverage_is_descriptive_not_a_calibration_guarantee": true,
+        "body": {
+          "camera": {
+            "control_publications": 126,
+            "final": {
+              "frame_label": "camera",
+              "position_mean_error_m": 0.059386368809572904,
+              "three_root_trace_covariance_m": 0.036873165730413986,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 628.7838705910204,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07905809776746675,
+              "orientation_root_trace_covariance_rad": 0.02031509564554811,
+              "orientation_mahalanobis_squared": 111.68767539109011,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07064194366976759,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 10
+          },
+          "hand": {
+            "control_publications": 126,
+            "final": {
+              "frame_label": "hand",
+              "position_mean_error_m": 0.0695743733859003,
+              "three_root_trace_covariance_m": 0.04785433618080433,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1609.9714553583779,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07905809776746696,
+              "orientation_root_trace_covariance_rad": 0.0203150956455481,
+              "orientation_mahalanobis_squared": 111.68767539109058,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07947765497818028,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 10
+          },
+          "link_1": {
+            "control_publications": 126,
+            "final": {
+              "frame_label": "link_1",
+              "position_mean_error_m": 6.37794977490547e-05,
+              "three_root_trace_covariance_m": 0.0025954643984926248,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 0.016340170776008554,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": true,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.21556762364406043,
+              "orientation_root_trace_covariance_rad": 0.040741787088389145,
+              "orientation_mahalanobis_squared": 151.1437928856277,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.00013091016286987414,
+            "count_within_gaussian_proxy_95_region": 126,
+            "count_orientation_within_gaussian_proxy_95_region": 0
+          },
+          "link_2": {
+            "control_publications": 126,
+            "final": {
+              "frame_label": "link_2",
+              "position_mean_error_m": 0.038806232440304955,
+              "three_root_trace_covariance_m": 0.01644249676418647,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 187.67810732029642,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.1052872013724414,
+              "orientation_root_trace_covariance_rad": 0.04251697221068489,
+              "orientation_mahalanobis_squared": 88.5216640664686,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.03826926249367749,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 0
+          },
+          "link_3": {
+            "control_publications": 126,
+            "final": {
+              "frame_label": "link_3",
+              "position_mean_error_m": 0.07449179383058589,
+              "three_root_trace_covariance_m": 0.03062633393886343,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 938.9769627963511,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.026083174014803822,
+              "orientation_root_trace_covariance_rad": 0.03770616693858219,
+              "orientation_mahalanobis_squared": 4.205041539943536,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": true
+            },
+            "mean_position_error_m": 0.07944638412184316,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 118
+          },
+          "link_4": {
+            "control_publications": 126,
+            "final": {
+              "frame_label": "link_4",
+              "position_mean_error_m": 0.07457958823656982,
+              "three_root_trace_covariance_m": 0.026238567910470148,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 937.052262308512,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.020005462096720755,
+              "orientation_root_trace_covariance_rad": 0.05385638883709156,
+              "orientation_mahalanobis_squared": 0.30616126314642295,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": true
+            },
+            "mean_position_error_m": 0.07972393591084581,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 63
+          },
+          "link_5": {
+            "control_publications": 126,
+            "final": {
+              "frame_label": "link_5",
+              "position_mean_error_m": 0.07458725319304867,
+              "three_root_trace_covariance_m": 0.02706537212779779,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1088.1737848331072,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.08604943748907633,
+              "orientation_root_trace_covariance_rad": 0.058256181548040076,
+              "orientation_mahalanobis_squared": 10.494913655592802,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.08093610480884282,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 10
+          },
+          "link_6": {
+            "control_publications": 126,
+            "final": {
+              "frame_label": "link_6",
+              "position_mean_error_m": 0.07082061292574553,
+              "three_root_trace_covariance_m": 0.029491918164973735,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1267.8809319844302,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07905809776746696,
+              "orientation_root_trace_covariance_rad": 0.0203150956455481,
+              "orientation_mahalanobis_squared": 111.68767539109058,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07763201795631937,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 10
+          },
+          "tool0": {
+            "control_publications": 126,
+            "final": {
+              "frame_label": "tool0",
+              "position_mean_error_m": 0.06913933113732187,
+              "three_root_trace_covariance_m": 0.03358499314725579,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1311.371000486572,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07905809776746696,
+              "orientation_root_trace_covariance_rad": 0.0203150956455481,
+              "orientation_mahalanobis_squared": 111.68767539109058,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07714701413692804,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 10
+          }
+        },
+        "absolute_pose_accuracy_resolved_claimed": false,
+        "user_common_shift_explanation_is_structural_hypothesis_not_cause_proof": true
+      },
+      "board_field_of_view": {
+        "raw_captures": 891,
+        "any_marker_detected": 889,
+        "no_marker_detected": 2,
+        "center_ID_detected": 851,
+        "other_ID_visible_while_center_missing": 38,
+        "detected_to_lost_transitions": 1,
+        "detection_count_histogram": {
+          "9": 796,
+          "8": 27,
+          "7": 12,
+          "5": 7,
+          "4": 6,
+          "3": 3,
+          "2": 2,
+          "0": 2,
+          "1": 3,
+          "6": 33
+        },
+        "per_marker_detected_count": {
+          "17": 872,
+          "18": 864,
+          "19": 867,
+          "20": 880,
+          "21": 851,
+          "22": 866,
+          "23": 846,
+          "24": 848,
+          "25": 843
+        },
+        "any_physical_tag_fully_inside": 891,
+        "all_physical_tags_fully_inside": 857,
+        "detected_tag_edge_margin_px": {
+          "count": 7737,
+          "min": 4.04083251953125,
+          "median": 177.5714569091797,
+          "max": 327.9354553222656
+        },
+        "by_reaching_phase": {
+          "indet_ik": {
+            "captures": 890,
+            "any_marker_detected": 888,
+            "central_ID_detected": 850
+          },
+          "waiting_for_control": {
+            "captures": 1,
+            "any_marker_detected": 1,
+            "central_ID_detected": 1
+          }
+        },
+        "selected_board_goal_updates": 64,
+        "selected_usable_tag_counts": {
+          "9": 56,
+          "8": 2,
+          "5": 1,
+          "6": 5
+        },
+        "selected_central_component_counts": {
+          "1": 64
+        },
+        "final_physical_hand_goal_error_m": 0.021700886055576178,
+        "minimum_physical_hand_goal_error_m": 0.0002307938366463299
+      },
+      "board_geometry": {
+        "case": "imu_marker",
+        "complete": true,
+        "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+        "actual_scene_messages": 484,
+        "native_tag_triangle_lists_verified": 4356,
+        "native_marker_size_m": 0.072,
+        "pitch_m": 0.09,
+        "white_base_size_m": [
+          0.27,
+          0.27,
+          0.001
+        ],
+        "image_board_outer_size_m": [
+          0.27,
+          0.27
+        ],
+        "central_frame_and_button_relation_unchanged": true,
+        "separate_display_size_multiplier_used": false,
+        "validation_script_sha256": "1f4efbf51f7722c4c134736f60a14a40daaf2222c9af0a6af02f94c817a8c0e7"
+      },
+      "trajectory_supplement": {
+        "case": "imu_marker",
+        "complete": true,
+        "source_freeze": {
+          "path": "/tmp/probtf_three_update_ik_20261017/source_freeze.json",
+          "sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "bytes": 14069
+        },
+        "supplementary_scope": "Read-only trajectory geometry, timing and descriptive physical differences; full law/J/K/trajectory validity is covered by separate independent audits.",
+        "program": {
+          "path": "/tmp/probtf_three_update_supplement.py",
+          "sha256": "238780457131d993320febcfc7e02900465a96cc26291719b32014ca7ae0f00b",
+          "bytes": 10707
+        },
+        "files": [
+          {
+            "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/commands.jsonl",
+            "sha256": "734bac6eba43cfa67f55f42e94ab73a522a9956653f197708e0664c78393351f",
+            "bytes": 13991819
+          },
+          {
+            "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/control.jsonl",
+            "sha256": "4d89931af564ec4572b141ebdfe315ab08fc0d67ed604e8c739212d93e770039",
+            "bytes": 138165299
+          },
+          {
+            "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/physical_trajectory.jsonl",
+            "sha256": "22f5991825ea6462a5aa7a8976649026aa690c7c50d9564998b29e310d944bd1",
+            "bytes": 1633312
+          }
+        ],
+        "hardware_constraint_causality_claimed": false,
+        "truth_is_validation_only": true,
+        "actual_intervals": 1158,
+        "completed_plans": 126,
+        "virtual_updates": 378,
+        "actual_interval_duration_s": {
+          "count": 1158,
+          "minimum": 0.009408385027199984,
+          "median": 0.052055350970476866,
+          "maximum": 0.10871965112164617
+        },
+        "behavior_durations_s": {
+          "reaching": 58.41095605306327,
+          "braking": 0.1822249349206686,
+          "settling": 1.406819012016058
+        },
+        "behavior_intervals": {
+          "reaching": 1126,
+          "braking": 3,
+          "settling": 29
+        },
+        "epoch_timestamp_subtraction_max_roundoff_s": 2.314336597919464e-07,
+        "interval_dt_source": "physical_trajectory original elapsed time; epoch timestamp subtraction is separately bounded by two epoch ULPs",
+        "maximum_abs_command_step_rad": {
+          "count": 1158,
+          "minimum": 0.0,
+          "median": 0.0023256412334740073,
+          "maximum": 0.005155240572988981
+        },
+        "command_step_l2_rad": {
+          "count": 1158,
+          "minimum": 0.0,
+          "median": 0.0044618019386664255,
+          "maximum": 0.010703530303531696
+        },
+        "maximum_abs_velocity_rad_s": {
+          "count": 1158,
+          "minimum": 0.0,
+          "median": 0.048,
+          "maximum": 0.04800000000000001
+        },
+        "maximum_abs_acceleration_rad_s2": {
+          "count": 1158,
+          "minimum": 0.0,
+          "median": 0.3,
+          "maximum": 0.3000000000000009
+        },
+        "physical_tip_tick_displacement_m": {
+          "count": 1158,
+          "minimum": 0.0,
+          "median": 0.0015396705359383912,
+          "maximum": 0.009751911660426419
+        },
+        "physical_tip_tick_speed_m_s": {
+          "count": 1158,
+          "minimum": 0.0,
+          "median": 0.029427692192937574,
+          "maximum": 0.1123624361777462
+        },
+        "command_stopped_intervals": 30,
+        "command_stopped_duration_s": 1.469294342212379,
+        "adjacent_nonzero_velocity_reversals_per_joint": [
+          102,
+          113,
+          100,
+          71,
+          86,
+          96
+        ],
+        "adjacent_reaching_nonzero_velocity_reversals_per_joint": [
+          102,
+          113,
+          100,
+          71,
+          86,
+          96
+        ],
+        "reversal_definition": "Adjacent commanded velocities with opposite signs and both magnitudes greater than 1e-6 rad/s; zero-crossings with an intervening stopped tick are not counted.",
+        "reaching_zero_velocity_intervals": 0,
+        "expired_reaching_intervals": 0,
+        "expired_nonzero_requested_velocity_intervals": 0,
+        "expired_request_max_abs_velocity_rad_s": null,
+        "initial_reaching_without_plan_intervals": 0,
+        "zero_selected_increments_by_virtual_step": [
+          0,
+          0,
+          0
+        ],
+        "internally_stationary_reference_knots_have_no_forced_stop": true,
+        "notes": [
+          "Tick displacement depends on measured tick dt; it is not a discontinuity test.",
+          "Absolute physical pose is only evaluated after the run and was not provided to either worker.",
+          "Hardware acceleration limits can leave nonzero physical command velocity while an expired plan requests zero.",
+          "The three future reference knots are virtual command predictions, not observed or actually executed future poses."
+        ]
+      },
+      "independent_audits": {
+        "three_update_full_J": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_three_update_full_J_independent_audit.json",
+            "sha256": "727ddcd9b8412318843159c59511188320a285adb41d3b9f89ccbee27c2613a9",
+            "bytes": 269753
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "failures": [],
+          "counts": {
+            "complete_gradient_updates": 378,
+            "line_trials": 1133,
+            "interior_corrections_accepted": 58,
+            "three_update_plans": 126
+          },
+          "max_absolute_differences": {
+            "virtual current-command equilibrium under same captured K": 0.0,
+            "initial J": 0.0,
+            "braking J": 0.0,
+            "selected J": 0.0,
+            "braking position expectation": 2.7755575615628914e-17,
+            "initial position expectation": 1.3877787807814457e-17,
+            "selected position expectation": 1.3877787807814457e-17,
+            "complete propagated J gradient": 0.0,
+            "complete propagated position gradient": 2.7755575615628914e-12,
+            "line search full J": 0.0,
+            "line search exact position": 1.3877787807814457e-17,
+            "line search Armijo bound": 0.0,
+            "accepted line displacement selected": 0.0,
+            "selected query_mean": 0.0,
+            "selected query_covariance": 0.0,
+            "selected query_within": 0.0,
+            "selected query_between": 0.0,
+            "selected relative_position_covariance": 0.0,
+            "trajectory endpoint is actual selected IK command": 0.0,
+            "virtual declared command displacement": 0.0,
+            "interior cone fraction": 0.0,
+            "interior cone coordinate": 0.0,
+            "interior cone direction": 0.0
+          },
+          "scope": "All three gradients/trials/normalizers/mixture terms and exact position constraints independently reconstructed; same execution packet and full body-goal covariance right action, preserved observation provenance, virtual states never treated as observations."
+        },
+        "three_update_trajectory_execution": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_three_update_trajectory_execution_independent_audit.json",
+            "sha256": "3e743b59cdb0f1ea2fbe5699f97718898b0b46cb72d7b2da90c456e93f9dd077",
+            "bytes": 1335280
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "failures": [],
+          "counts": {
+            "reaching_intervals": 1126,
+            "segment_0_intervals": 99,
+            "expired_intervals": 0,
+            "segment_1_intervals": 985,
+            "segment_2_intervals": 42
+          },
+          "max_absolute_differences": {
+            "reported trajectory reference_command": 0.0,
+            "reported trajectory reference_velocity": 0.0,
+            "reported trajectory requested_velocity": 0.0,
+            "reported trajectory actual_command_before": 0.0,
+            "exact time-reference actuator command": 0.0,
+            "exact time-reference actuator velocity": 0.0
+          },
+          "scope": "All three selected endpoints, original source-clock interpolation, terminal expiry, unscaled reference-position tracking, and ordinary actuator bounds independently recomputed. Does not call the runtime trajectory helper or perform IK/inference."
+        },
+        "execution_K": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_execution_K_independent_audit.json",
+            "sha256": "527db24ce60e9bfd659720e6d5a7219a80c2362005db8fed3a8ec3da2898a333",
+            "bytes": 1477
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "counts": {
+            "estimated_packets": 64,
+            "filter_samples": 1161,
+            "filter_steps_with_unchanged_estimate_and_changed_execution": 1085,
+            "capped_filter_components": 0,
+            "IK_frozen_execution_packets": 126,
+            "actual_intervals": 1158,
+            "exact_historical_catchup_paths": 189,
+            "exact_historical_catchup_steps": 4840,
+            "filter_samples_not_used_by_IK": 1035
+          },
+          "failures": [],
+          "max_absolute_differences": {
+            "estimated logarithm": 0.0,
+            "filter wall-motion dt": 0.0,
+            "filter lag alpha": 0.0,
+            "filter pre-cap log step": 0.0,
+            "filter capped log step": 0.0,
+            "filter execution log K": 0.0,
+            "filter execution K": 0.0,
+            "selected action uses filtered-K equilibrium": 0.0,
+            "selected action uses filtered-K joint increment": 0.0,
+            "selected action uses filtered-K sensitivity": 0.0,
+            "actual source equilibrium": 0.0,
+            "actual query equilibrium": 0.0,
+            "actual applied-K joint increment": 0.0,
+            "actual applied-K command Jacobian": 0.0,
+            "next-prior sum of actual applied-K increments": 0.0
+          },
+          "scope": "20 Hz filter recurrence independently recomputed; unchanged full estimated records/density/proposals; request samples frozen with IK, same epoch actual ledger, deterministic auxiliary mechanics, and actual historical next-prior/catchup replay. Filter signal is not a posterior."
+        },
+        "K_representative": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_K_representative_independent_audit.json",
+            "sha256": "5ef11f050432c1cba78647ac33f581ed391053abc2cbe79141eccf29d59fcfa6",
+            "bytes": 44877
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "failures": [],
+          "counts": {
+            "new_density_count": 64,
+            "new_density_refined_count": 64,
+            "accepted_score_step_count": 64,
+            "representative_changed_count": 63,
+            "IK_cycles_same_estimated_source_and_applied_K": 126,
+            "actual_intervals_same_estimated_source_and_applied_K": 1158
+          },
+          "max_absolute_differences": {
+            "base density": 0.0,
+            "base score": 0.0,
+            "selected density": 0.0,
+            "selected score": 0.0,
+            "selected exponentiation": 0.0,
+            "score displacement": 0.0,
+            "deterministic backtrack scale": 0.0,
+            "representative Armijo bound": 0.0,
+            "representative trial density": 0.0,
+            "accepted score step selected": 0.0,
+            "representative equilibrium": 0.0
+          },
+          "scope": "recorded full continuous density and score restored, every bounded representative step checked, unchanged estimated K traced separately from the applied K into IK and actual command ledger; no true stiffness input"
+        },
+        "visible_hold_policy": {
+          "proof": {
+            "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_visible_hold_policy_independent_audit.json",
+            "sha256": "e93ae69be8a4794ecfc1fbaaed8bc4bfa7ff11c608dacaad11fa49220d5ed752",
+            "bytes": 9939
+          },
+          "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+          "failures": [],
+          "counts": {
+            "raw_positive_intervals": 1156,
+            "reaching_intervals": 1126,
+            "braking_intervals": 3,
+            "raw_positive_braking_intervals": 1,
+            "settling_intervals": 29
+          },
+          "max_absolute_differences": {
+            "actual velocity equals executed interval": 1.7090495685323503e-14,
+            "bounded local servo exact interval": 0.0,
+            "raw reacquisition brakes to zero": 0.0
+          },
+          "raw_positive_search_intervals": 0,
+          "waiting_hold_intervals": 29,
+          "waiting_beyond_settle_time_intervals": 21,
+          "waiting_hold_max_velocity": 0.0,
+          "waiting_hold_max_command_increment": 0.0,
+          "resumed_after_stop_count": 1,
+          "scope": "actual adopted raw-preview index and timestamp, same fused goal and committed IK source, exact bounded local command intervals, stopped post-stop-observation resume; no physical truth input"
+        }
+      },
+      "evidence": [
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/estimation.jsonl",
+          "sha256": "cb1ebc6c63df9f4b3e68038dd76f690d30e95aebfc746474af387afe0b96b002",
+          "bytes": 192813261
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/control.jsonl",
+          "sha256": "4d89931af564ec4572b141ebdfe315ab08fc0d67ed604e8c739212d93e770039",
+          "bytes": 138165299
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/commands.jsonl",
+          "sha256": "734bac6eba43cfa67f55f42e94ab73a522a9956653f197708e0664c78393351f",
+          "bytes": 13991819
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/physical_trajectory.jsonl",
+          "sha256": "22f5991825ea6462a5aa7a8976649026aa690c7c50d9564998b29e310d944bd1",
+          "bytes": 1633312
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/execution_stiffness.jsonl",
+          "sha256": "14956499d601d3220bbcd5bea62ad1de65eb1ea7e1d28938fba83eb5eb3e13e1",
+          "bytes": 1707036
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/captures.jsonl",
+          "sha256": "691ca7df27b2e4cdc52928a1c8286ab9927591637885b0425a7f95a10095c8ba",
+          "bytes": 459793
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker/assimilation_selection.jsonl",
+          "sha256": "4dfd5b3cbeea4013ca9fffe6d09b70c4ddd22ea07298e63e930b058613a78ade",
+          "bytes": 20017
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_received/reception_log.jsonl",
+          "sha256": "bf58dfb98eb62a389680157d1816042b26f69d9543e541ad02c207f5e4fa0dc8",
+          "bytes": 779645
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_received/physical_pose_accuracy.json",
+          "sha256": "2e641c3f5e3bb5e7c77927cd03fdbf7db973c1ca062ff55de07725faa5ae00eb",
+          "bytes": 934210
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_received/measured_rates.json",
+          "sha256": "3b5d1013d3ad65c01f6d0486e0c15a71249b2784237c1b42877b29725b4c314d",
+          "bytes": 1071
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_received/board_fov_analysis.json",
+          "sha256": "14cd8469eec907a5c07e167e9405b7add494f93328caf7afbc8c63ece7d81019",
+          "bytes": 5685987
+        },
+        {
+          "path": "/tmp/probtf_three_update_ik_20261017/imu_marker_received/board_geometry_audit.json",
+          "sha256": "294c6c001f088434771d8857925a883ac5fb3060bf76ed63c2989c3d215a883c",
+          "bytes": 590
+        }
+      ]
+    }
+  },
+  "limitations": [
+    "The user rejected this implementation because oscillation was severe. Unit tests, same-law consistency and transient 6mm reaching do not establish acceptable smoothness; the horizon was subsequently withdrawn.",
+    "Both cases satisfy the existential simulator reach predicate at least once and have no forbidden collision, but both finish outside the 6mm tolerance. These facts do not override the failed motion-quality requirement.",
+    "Recorded reference switching, latency, saturation and velocity reversals are descriptive diagnostics, not a proven unique cause of the oscillation.",
+    "All sensor-native image modes are retained before the explicitly allowed board-central projection; ordered ADF, conditional independence and nonclosed forward/inverse moment approximations remain assumptions.",
+    "Absolute body accuracy and anisotropic covariance coverage are measured independently; no true pose/K calibration or exact full-history posterior is claimed.",
+    "Only selected latest captures are fused. Every acquired frame and selection is archived; camera capture cadence and pose-estimate update cadence are distinct."
+  ],
+  "rviz_protection": {
+    "baseline_manifest": "/tmp/probtf_rviz_restart_20261017/backup/hashes.json",
+    "manifest_sha256": "dc3b8c409add8cb93acacddead33cc080954173e987dc5770bfc2b5f89e5bda4",
+    "files": [
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083122_631446/demo.rviz",
+        "sha256": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083323_181005/demo.rviz",
+        "sha256": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_rviz/rviz/probtf_tree.rviz",
+        "sha256": "3f4f5f9379b194deb8ab9e5f9615caa8cc71881aa4f9ea9ca62d69b8df2693b2",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/deflecomp_description/rviz/deflecomp.rviz",
+        "sha256": "750cade8b49597b507a80f1b3b754d92b4f073b1e0c70c26631d4a49ab307d11",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_01/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_02/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_03/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_04/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_tip_load_step_01/convergence_demo.rviz",
+        "sha256": "f3edffce537da23a268761e92e211512a39457c4ed624fe2d6479917f47f3bd1",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/tip_load_prediction_recovery/convergence_demo.rviz",
+        "sha256": "f3edffce537da23a268761e92e211512a39457c4ed624fe2d6479917f47f3bd1",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/prob_artag_detector/rviz/prob_artag_real_camera_demo.rviz",
+        "sha256": "4fdda28a8259d74d175c71d5d43914860e694c9a34a806be8ad9eaa7cbd7c1dc",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_global_fusion_demo/rviz/global_fusion_demo.rviz",
+        "sha256": "29565e9fec7e8a21775d196ea5b6c273c43bac5b691289c48dd152bac5827d0f",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_demo.rviz",
+        "sha256": "247e38b29b8c59f70c3a5ddb833acd4c849aba6d6cf331f82446ccecc37c2404",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_motion.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz",
+        "sha256": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/axisymmetric/bottle_grasp_oblique.rviz",
+        "sha256": "a0f25cff5bfa8cc95b2052f8f68e0bb50c8bd83232415ffb897a00fdee585111",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/axisymmetric/bottle_grasp_top.rviz",
+        "sha256": "699716ac70cc55dba77c231ec80018a255158272289d55f8e74ff7da5c7311c5",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/single_pose/bottle_grasp_oblique.rviz",
+        "sha256": "a0f25cff5bfa8cc95b2052f8f68e0bb50c8bd83232415ffb897a00fdee585111",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/single_pose/bottle_grasp_top.rviz",
+        "sha256": "699716ac70cc55dba77c231ec80018a255158272289d55f8e74ff7da5c7311c5",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_trial/bottle_grasp.rviz",
+        "sha256": "4ecd65d93afac1ba9013e5c9d823eae0565ef883a245be2bc7cfe02d73d4bf10",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/mixture/box_grasp_oblique.rviz",
+        "sha256": "f3f7e6653752b7114e69d084699128dab329be73a1a986f37e00e83a0aaa64ee",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/mixture/box_grasp_top.rviz",
+        "sha256": "7ae424d23e482d06e27d96103c0fb1b82f6f7b544354485ce075d633c2676375",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/single_pose/box_grasp_oblique.rviz",
+        "sha256": "f3f7e6653752b7114e69d084699128dab329be73a1a986f37e00e83a0aaa64ee",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/single_pose/box_grasp_top.rviz",
+        "sha256": "7ae424d23e482d06e27d96103c0fb1b82f6f7b544354485ce075d633c2676375",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/rviz/prob_tf_link_cloud.rviz",
+        "sha256": "f3f607312d09ca5ccd354aed91a074a1ab5bf03f6249c350b9c6f187c527070f",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/rviz/probabilistic_tf_demo.rviz",
+        "sha256": "38740ec7067cb64bde974455b2dc6086a0213b6bb79c92f7405b11b814778863",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_K_corrected_live_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_K_corrected_live_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_K_corrected_live_20261017/view.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_full_run_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_full_run_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_v2_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_v2_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      }
+    ]
+  },
+  "independent_audit_failures": [],
+  "all_independent_numerical_checks_passed": true,
+  "historical_audit_state_correction": {
+    "diagnosis": {
+      "path": "/tmp/probtf_three_update_ik_20261017/independent_K_unchanged_scale_audit_diagnosis.json",
+      "sha256": "4294ba047c498fa7f8970b80e70c6e3fa026f6c749c6c73085ce89c481497e9c",
+      "bytes": 1469
+    },
+    "original_rejection": {
+      "path": "/tmp/probtf_three_update_ik_20261017/marker_K_representative_initial_scale_audit.json",
+      "sha256": "b3602dc703073d3e2216cfb3659e9c9f54feae5e34edf315349a7b6d3f6cd3bb",
+      "bytes": 43191
+    },
+    "corrected_program": {
+      "path": "/tmp/probtf_trajectory_K_representative_follow_audit.py",
+      "sha256": "bfc322a0bd3c1ac7ff15b2d0c395af917ec45afa4a8a3196aff1ccca6ce576a2",
+      "bytes": 12837
+    },
+    "scope": "The original independent auditor reset its own remembered representative backtrack scale on a density-identity update. Production correctly retained0.0625 and used0.125 at the next changed-density epoch. The auditor alone was corrected, with no tolerance/runtime/density/score change; the original two discrepancies are preserved separately. All corrected final density/score/Armijo/equilibrium reconstructions pass."
+  },
+  "totals": {
+    "actual_law_publications": 248,
+    "core_point_queries": 10912,
+    "virtual_full_J_updates": 744,
+    "modal_goal_TF_transforms": 248,
+    "raw_captures": 1779,
+    "selected_estimation_packets": 125,
+    "raw_native_modes": 2154,
+    "protected_RViz_files": 35
+  },
+  "figure": {
+    "image": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/validation/three_update_ik_20261017.png",
+      "sha256": "64cf305e9674de469d6d02c88f47c9a7f97eeb3788226c4d05e4697367908e70",
+      "bytes": 255508
+    },
+    "metadata": {
+      "path": "/tmp/probtf_three_update_ik_20261017/three_update_plot_metadata.json",
+      "sha256": "8c95956a4c3412cdd44e275197007dc871f5e7b39af4fbc3f71af52335aec371",
+      "bytes": 4378
+    },
+    "program": {
+      "path": "/tmp/probtf_three_update_supplement.py",
+      "sha256": "238780457131d993320febcfc7e02900465a96cc26291719b32014ca7ae0f00b",
+      "bytes": 10707
+    }
+  },
+  "read_only_diagnostics": [
+    {
+      "path": "/tmp/probtf_three_update_ik_20261017/three_update_oscillation_diagnostic.json",
+      "sha256": "ffc4fcd6d879965f020a5a6b7ff7a48176fcefbf893fc5c40d983cdc7954613a",
+      "bytes": 2755
+    },
+    {
+      "path": "/tmp/probtf_three_update_ik_20261017/historical_stall_repair_counterfactual.json",
+      "sha256": "64d5230f5c6d1fc55a8749ea020f55e008a287f8e1483981d1bc3dbb37b25dc5",
+      "bytes": 14421
+    },
+    {
+      "path": "/tmp/probtf_three_update_oscillation_audit.json",
+      "sha256": "7c80654b62e6c12137d9e7e4aacde8f855dfe75bf6b13e6f7f6f005d09f5f24a",
+      "bytes": 28921
+    }
+  ],
+  "source_history": {
+    "prior_single_endpoint_stop": {
+      "source_freeze_sha256": "3fc6d95be0241e6860afbe0841038c6ffeb6cc8eee0709ca3e02bde47cbacae5",
+      "validation": {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/validation/damped_K_short_targets_20261017.json",
+        "sha256": "10e71c3991294331c19e0ef696f448554fe765e100f94d49711d338b3f5b2314",
+        "bytes": 124259
+      },
+      "status": "historical physical reaching failure; old531 tests are not evidence for the three-update source"
+    },
+    "following_single_update": {
+      "status": "separate unvalidated-at-this-report run; the three-update horizon is withdrawn, while the optimizer correction and execution K damping remain",
+      "requirements": "SINGLE_STEP_IK.md"
+    }
+  },
+  "validation_programs": [
+    {
+      "path": "/tmp/probtf_three_update_report.py",
+      "sha256": "5ec7511df253f1b876909326c9938af6eb967ea3356ebc05f4f0e010bd491ad3",
+      "bytes": 12333
+    },
+    {
+      "path": "/tmp/probtf_three_update_supplement.py",
+      "sha256": "238780457131d993320febcfc7e02900465a96cc26291719b32014ca7ae0f00b",
+      "bytes": 10707
+    },
+    {
+      "path": "/tmp/probtf_marker_board_fov.py",
+      "sha256": "5b3adf661095099fe53f1b70ba0eef295a22f9bc85d4c94c8c2ca449a3d14438",
+      "bytes": 7051
+    },
+    {
+      "path": "/tmp/probtf_marker_board_geometry_audit.py",
+      "sha256": "1f4efbf51f7722c4c134736f60a14a40daaf2222c9af0a6af02f94c817a8c0e7",
+      "bytes": 3899
+    },
+    {
+      "path": "/tmp/probtf_async_accuracy.py",
+      "sha256": "c8aa2bc61ba9d49e8c75f5b36697ca7a169d91801f9dfb4e7b5468e963564ec1",
+      "bytes": 9514
+    },
+    {
+      "path": "/tmp/probtf_damped_execution_K_stable_audit.py",
+      "sha256": "36cba32782f130e7cae818ebb9a9a3739f57a9d9eb9b37df1b656f4385525a0d",
+      "bytes": 72785
+    },
+    {
+      "path": "/tmp/probtf_marker_board_audit_math_stable.py",
+      "sha256": "41cb0a2a4501d55edd02662a0899880ed5b6fa9011dea8e2e32fefb4991edcfb",
+      "bytes": 19032
+    },
+    {
+      "path": "/tmp/probtf_three_update_full_J_audit.py",
+      "sha256": "e97b70e4f4f3d0cca5e756a2cd2b52aad093b47b9369aec5eaabf82f4358329d",
+      "bytes": 14871
+    },
+    {
+      "path": "/tmp/probtf_three_update_trajectory_execution_audit.py",
+      "sha256": "6409c4f812a6690cf0aa5069b7635815801a4e89fd051fc4ce05c8a8f694ff4f",
+      "bytes": 6718
+    },
+    {
+      "path": "/tmp/probtf_execution_K_independent_audit.py",
+      "sha256": "a375a205f1285ec6d0a3ef980239097e92ec042614916ce60a81cb1f3c847fbe",
+      "bytes": 14924
+    },
+    {
+      "path": "/tmp/probtf_trajectory_K_representative_follow_audit.py",
+      "sha256": "bfc322a0bd3c1ac7ff15b2d0c395af917ec45afa4a8a3196aff1ccca6ce576a2",
+      "bytes": 12837
+    },
+    {
+      "path": "/tmp/probtf_visible_hold_policy_audit.py",
+      "sha256": "a1c22d33d221cfd2b540d6f2b94062ea4d08b9cceea9c60cef1ef223b3a5b47f",
+      "bytes": 10531
+    },
+    {
+      "path": "/tmp/probtf_three_update_oscillation_audit.py",
+      "sha256": "40e9013c8c6c0ba1a983e2b91088f56fad0a7e71780fce9f228caebccf1ea825",
+      "bytes": 5348
+    }
+  ]
+}

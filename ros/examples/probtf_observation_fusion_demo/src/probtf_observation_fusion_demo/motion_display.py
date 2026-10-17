@@ -268,7 +268,8 @@ class MotionDisplay:
             raise AssertionError('Stiffness factor memory lost its prior factors.')
         proposal = record.get('proposal_approximation')
         if proposal is None:
-            command_proposal = record.get('command_proposal')
+            estimated_proposal = record.get('command_proposal')
+            command_proposal = record.get('execution_command_proposal', estimated_proposal)
             if command_proposal is not None:
                 values = np.asarray(command_proposal['selected_K'], dtype=float)
                 if values.ndim != 1 or not np.all(np.isfinite(values)):
@@ -285,6 +286,20 @@ class MotionDisplay:
                         raise ValueError('The displayed IK correction belongs to a different stiffness/body update.')
                     proposal_line = 'IK correction K [Nm/rad]: '+', '.join('{:.4g}'.format(value) for value in values)
                     detail = 'Equilibrium command action; global moments not evaluated'
+                execution = record.get('execution_stiffness')
+                if execution is not None:
+                    if (estimated_proposal is None
+                            or not np.array_equal(execution['estimated_K'], estimated_proposal['selected_K'])
+                            or not np.array_equal(execution['execution_K'], values)
+                            or correction is None
+                            or correction.get('execution_stiffness') != execution
+                            or correction['captured_parameter_packet'].get('execution_stiffness') != execution):
+                        raise ValueError('Displayed estimated/execution K must match the same IK action and source.')
+                    estimate_text = ', '.join('{:.4g}'.format(value) for value in execution['estimated_K'])
+                    execution_text = ', '.join('{:.4g}'.format(value) for value in values)
+                    proposal_line = 'Estimated K [Nm/rad]: '+estimate_text+'\nExecution IK K [Nm/rad]: '+execution_text
+                    detail = 'log K damping: tau={:.3g}s, cap={:.3g}/motion tick; density unchanged'.format(
+                        execution['kp_exec_tau'], execution['max_log_kp_exec_step'])
             else:
                 proposal_line = 'No numerical proposal; global moments not evaluated'
                 reason = record.get('proposal_failure_reason', record.get('failure_reason', record.get('proposal_status', 'not computed')))

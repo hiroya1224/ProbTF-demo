@@ -11,6 +11,7 @@ import yaml
 from visualization_msgs.msg import MarkerArray
 
 from probtf_observation_fusion_demo.async_motion import control_worker
+from probtf_observation_fusion_demo.execution_stiffness import LogStiffnessDamper
 from probtf_observation_fusion_demo.async_state import predict_result
 from probtf_observation_fusion_demo.async_stiffness import (
     PhysicalActionEngine, capture_stiffness_packet, reanchor_retained_stiffness,
@@ -190,8 +191,11 @@ def test_marker_disabled_never_enters_visual_phase_or_changes_ordinary_IK(proble
 def test_actual_control_worker_selects_full_K_IK_and_serializes_the_same_law(problems, tmp_path, monkeypatch):
     scene, inference, source, _, _, packet, templates = problems['imu_marker']
     requests, replies = Queue(), Queue()
+    sample = LogStiffnessDamper(inference.settings['control']['execution_stiffness']).advance(
+        packet.proposal['selected_K'], source.prior.stamp)
     requests.put(dict(result=source, steps=(), stamp=source.prior.stamp,
-        index=0, capture_index=0, packet=packet, velocity=np.zeros(6)))
+        index=0, capture_index=0, packet=packet, execution_sample=sample,
+        execution_packet=None, velocity=np.zeros(6)))
     requests.put(None)
     forbid_sampling(monkeypatch)
     control_worker(requests, replies, scene.robot_description, str(scene.urdf), templates,
@@ -203,6 +207,9 @@ def test_actual_control_worker_selects_full_K_IK_and_serializes_the_same_law(pro
     assert diagnostics['reaching_phase'] == 'indet_ik'
     assert record['controller'] == diagnostics
     assert diagnostics['gradient_evaluation_count'] == 1
+    assert diagnostics['ik_update_count'] == 1
+    assert diagnostics['future_ik_updates'] == 0 and not diagnostics['lookahead_enabled']
+    assert 'trajectory_commands' not in diagnostics and 'rollout_steps' not in diagnostics
     assert diagnostics['visual_approach']['full_gaussian_bingham_criterion_used_for_selection'] is True
     assert diagnostics['visual_approach']['visual_velocity_executed_directly'] is False
     assert diagnostics['stiffness_command_correction']['selected_K'] == packet.record['command_proposal']['selected_K']
@@ -210,7 +217,10 @@ def test_actual_control_worker_selects_full_K_IK_and_serializes_the_same_law(pro
     snapshot = reply['snapshot']
     assert {p.query.state_id for p in snapshot.points if p.frame_label == 'hand'} == set(diagnostics['body_source_state_ids'])
     assert {p.query.state_id for p in snapshot.points if p.frame_label == 'switch_goal'} == set(diagnostics['goal_source_state_ids'])
-    assert snapshot.stiffness_record['captured_packet_id'] == packet.packet_id
+    assert snapshot.stiffness_record['captured_packet_id'] == reply['packet'].packet_id
+    assert snapshot.stiffness_record['captured_estimate_packet_id'] == packet.packet_id
+    assert snapshot.stiffness_record['command_proposal'] == packet.proposal
+    assert snapshot.stiffness_record['execution_command_proposal']['selected_K'] == sample['execution_K']
     assert record['stiffness'] == snapshot.stiffness_record
     display = inference.common['display']
     verify_wire_identity(snapshot, MarkerArray().deserialize(reply['markers_wire']),

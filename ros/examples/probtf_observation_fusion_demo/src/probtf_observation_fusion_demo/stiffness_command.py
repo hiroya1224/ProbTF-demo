@@ -31,7 +31,7 @@ class StiffnessCommandMap:
         state_ids = [item.state.state_id for item in components]
         if (not components or proposal is None or record is None
                 or identifier.last_record is not record
-                or record.get('command_proposal') is not proposal):
+                or record.get('execution_command_proposal', record.get('command_proposal')) is not proposal):
             raise ValueError('A stiffness command map requires the same recorded current proposal.')
         if (tuple(proposal['source_command']) != command
                 or float(proposal['source_stamp']) != result.prior.stamp
@@ -135,7 +135,7 @@ class StiffnessCommandMap:
                 or (components[0].state.state_id if getattr(result.stages[-1], 'goal_components', ())
                     else None) != self._goal_parent_internal_id
                 or record is not self._source_record
-                or record.get('command_proposal') is not self._source_proposal
+                or record.get('execution_command_proposal', record.get('command_proposal')) is not self._source_proposal
                 or density is None or density['density_id'] != self._density_id
                 or record['source_prior_state_id'] != self._source_prior_id
                 or record['source_stamp'] != self.source_stamp

@@ -1,0 +1,2053 @@
+{
+  "schema": "probtf.single_position_ik_validation.v1",
+  "date": "2026-10-17",
+  "complete": true,
+  "status": "historical forced-duration braking source; corrected in a later source",
+  "source_freeze": {
+    "path": "/tmp/probtf_single_update_ik_20261017/source_freeze.json",
+    "sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+    "bytes": 13711,
+    "file_count": 41,
+    "files": [
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/first_order.py",
+        "relative_path": "ros/core/probtf_core/src/probtf/spherical_law/first_order.py",
+        "sha256": "5c37d6379e2cccca369a127d0f9d096166f219de938ce0a48e5a74852754c8fa"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/common.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/common.yaml",
+        "sha256": "994306ed66f5091c29cfd1608c8632f5d635e5e0976f7ad038327086c8be0fa8"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/imu.yaml",
+        "sha256": "ae63815ea690cd9f1ed89f71c2400f8a14556082250dc00d650b17afcd1e944d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_hand.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/imu_hand.yaml",
+        "sha256": "3ace3e469e55c89b09580d5642c8b39053c82a6dff6a67c9d2e5c46275224280"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml",
+        "sha256": "06ae21320718ce839e2297abe3a880400aa12681a76de0b6e1ae8ed0ea568a68"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+        "sha256": "bdc5684e172da1b51ec9b5d03c601e51cbf1022b12c5596e66e0af7cf01aaf3d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+        "sha256": "2e2234d88964c88c24b3fa8e46013cbd1c44a106c96c890737ec6329fd9272d6"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml",
+        "sha256": "42a77d50f697602baf608efcd0322edae49d769b16b0a1ec7404d9ca8d8aa4cb"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml",
+        "sha256": "68a5a4e985ca7a7e5c49e24599720ae05864ca37b0ad937e4634be08d8f288c6"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml",
+        "sha256": "8e69ed37c2f13628fdbf034d27290d4883f22bb27b41a01fb915443814ec1cf5"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/common.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/common.launch",
+        "sha256": "b95d711a9d13e4db11f7ba4693a80fe26851e61d6ed47f7f28e7d6c839ba7455"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/imu.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/imu.launch",
+        "sha256": "baffcd7a60cad9c183204edcfb0fcb821b4dc6e08c4afc866aefaf71a965dfce"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/imu_hand.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/imu_hand.launch",
+        "sha256": "668bf2a0790c37f2c00bb1479e92796822fa6c1092173c03be785fa29ba9be6d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/imu_marker.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/imu_marker.launch",
+        "sha256": "b1fc2040f118ca10c0e64e5661581366e422898c4a9b521f29648b2b1c24033d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/marker.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/marker.launch",
+        "sha256": "14f34c654dda797e917cdbad817d5506ed81ea7728caa586af33f071917fac58"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/no_sensors.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/no_sensors.launch",
+        "sha256": "ff5ca149aa785e0744398ad2bf5840197592410cbb93212597291ed7c837f5f4"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py",
+        "sha256": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py",
+        "sha256": "a98165dffdaeda39ac8dda56f627011a6301b592ccbe4cb6aa63f8e080f88986"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_state.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_state.py",
+        "sha256": "092f98455906662190534480ae767c184a3640edc367e74c83856851dc35a98b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py",
+        "sha256": "6d9e3af2619399efe56e914f6d3696e8c667dffe366d07693347886ab9c2b58f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+        "sha256": "53139568c2bb07d95d3984a7f33acea6ca74c966fc41cee0c4187bb73820376b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py",
+        "sha256": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+        "sha256": "74a473dba2da1d113ac05404c1a4e770783b0f0fd2ac3e9c244181576c8eef7b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py",
+        "sha256": "d88d70771c0ad405f72931db8cc79747fe8a24b7e574328dcade1a3af330bad5"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/execution_stiffness.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/execution_stiffness.py",
+        "sha256": "a1a5b5e984eb6e0bdc9a80d318f5c541f5dd1622ce82c06c046ae623ae350f98"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py",
+        "sha256": "60dde9dcaf41c2fd158fe05f72e2b82aa2b7fc99bff7d9a4084cdca8646e07b7"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py",
+        "sha256": "c03cc89017e11292404cea97f479bce0de3ebbd1213a7169b4e326980dbd80fa"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py",
+        "sha256": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py",
+        "sha256": "c26da0f69f2416f68af6168b0a757654f73589d7f2fa00bd90a37840eabf25fc"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py",
+        "sha256": "f55951130cd64440be72bf66ead357ade933f7e199c0b5ae27814ec3ca63bb7a"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py",
+        "sha256": "c57f6061bce40c6946f1f62c7aded66dfed70e7d612bd2b00773b3bafe83b409"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py",
+        "sha256": "57c06bb6405c75a2bf867b01f62c6cfd87e1f7578e05f2e88f999856edd51048"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+        "sha256": "87a43456baa39adab01470b78473cbc24c02ede6c81ade8a7e88cc02759b7e6f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py",
+        "sha256": "be28842b15122b271600878da39d32011de851333c6b5a982686a3403dae42b4"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py",
+        "sha256": "17f2feed3540c250caa06dcb19c1a446c2112fb67f391aa35ef5debdd2932161"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py",
+        "sha256": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py",
+        "sha256": "079db5b231e3db65d9f6d8b6fd869cd2055e21ddf189e44d2fe0a3bced68301d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/short_command.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/short_command.py",
+        "sha256": "e50bc64a08e1eefff2cebc2fe2325c273ef5dae17eab7fb68c7fc43c72f44631"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py",
+        "sha256": "05c5952e7508edc5f2f82967cc7f2c73a7c57454662f8e6e785e9c6d3e5afb15"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py",
+        "sha256": "577c6eeb10ed1f3f44c4e0b55bababcb245e5af9a0b47d6844a938637b9d02bc"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visual_approach.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visual_approach.py",
+        "sha256": "3566ca1d6164f34dfabb411185520b7144051ba128129aedc5bf3e82af13edb7"
+      }
+    ]
+  },
+  "source_end_checkpoint": {
+    "path": "/tmp/probtf_single_update_ik_20261017/source_end_checkpoint.json",
+    "sha256": "1e6355ac7ec37a53fd68752f8e6f4d62719e67ad006812d8a4fa6065ce4f5048",
+    "bytes": 10626
+  },
+  "rviz_end_checkpoint": {
+    "path": "/tmp/probtf_single_update_ik_20261017/rviz_end_checkpoint.json",
+    "sha256": "660083becee8c437bbae1b8934a3fd2a7c97d726c2662224302f3ea353e545a5",
+    "bytes": 225
+  },
+  "tests": {
+    "passed": 548,
+    "seconds": 130.18,
+    "log": {
+      "path": "/tmp/probtf_single_update_ik_20261017/pytest_suite.log",
+      "sha256": "4624b8de84fe38693ccdcb29a597003244b2173f9dd623c9a69d531dd9bd0d44",
+      "bytes": 1139
+    },
+    "scope": "This exact frozen runtime source; predecessor tests are not reused."
+  },
+  "runtime_override": {
+    "async_duration_s": 60.0,
+    "default_configuration_duration_s": 30.0
+  },
+  "method": {
+    "complete_J_gradient_evaluations_per_request": 1,
+    "virtual_future_IK_updates": 0,
+    "nominal_duration_s": 0.5,
+    "reference": "source-clock interpolation to next_command, then zero request at0.5s",
+    "no_constant_velocity_extrapolation": true,
+    "no_extra_endpoint_stopping_speed_or_axis_pass_clamp": true,
+    "common_speed_acceleration_joint_and_stopping_distance_bounds_preserved": true,
+    "execution_K": "Coordinator log-K lag tau0.5s, cap0.05/tick, continues while workers are busy; one sample frozen during each complete IK calculation.",
+    "optimizer": "Complete Gaussian/Bingham-mixture normalized J with existing s condition; eight backtracks and same-J/s feasible interior repair.",
+    "raw_density_and_representative_preserved": true,
+    "same_active_K_for_IK_and_actual_ledger": true,
+    "core_or_candidate_PDF_changed": false,
+    "monte_carlo_used": false,
+    "physical_truth_in_inference_or_control": false,
+    "body_regenerated_from_K": false
+  },
+  "cases": {
+    "marker": {
+      "actual_law_publications": 190,
+      "actual_core_point_queries": 8360,
+      "actual_wire_proof": {
+        "path": "/tmp/probtf_single_update_ik_20261017/marker_frozen_full_audit.json",
+        "sha256": "5311ffcb15059f5292636180d82711b42e85aa0625683ac488abca26a13c4c3d",
+        "bytes": 573650
+      },
+      "subscriber_counts": {
+        "snapshot": 190,
+        "wire": 190,
+        "stiffness": 190,
+        "motion": 1329,
+        "scene": 488,
+        "tf": 1331,
+        "goal_tf_sources": 190
+      },
+      "modal_goal_TF": {
+        "actual_tf_messages": 1331,
+        "actual_goal_source_messages": 190,
+        "candidate_laws_verified": 190,
+        "goal_transforms_verified": 190,
+        "initial_candidate_TF_received": true,
+        "all_modal_goal_poses_weights_log_weights_and_sources_equal_actual_snapshot": true,
+        "explicit_ROS_simulation_clock_mapping_and_age_verified": true
+      },
+      "raw_captures": 890,
+      "selected_estimation_packets": 62,
+      "body_BF_full_joint_updates": 62,
+      "missing_marker_cross_checks": 0,
+      "board_image_only_fusion": {
+        "updates": 62,
+        "raw_native_modes": 1050,
+        "native_core_center_queries": 1050,
+        "central_component_counts": [
+          1
+        ],
+        "every_raw_native_attachment_full_cross_product_mass_verified": true
+      },
+      "fresh_goal_closure": {
+        "translation_error_m": {
+          "count": 62,
+          "minimum": 3.77901430024502e-05,
+          "median": 0.0003346173423402681,
+          "maximum": 0.00045275209700252337
+        },
+        "rotation_error_rad": {
+          "count": 62,
+          "minimum": 2.936710760236559e-08,
+          "median": 5.188765054689425e-08,
+          "maximum": 2.700134664511577e-07
+        },
+        "covariance_element_error": {
+          "count": 62,
+          "minimum": 6.417533423907209e-11,
+          "median": 1.4778831939935223e-10,
+          "maximum": 2.029837913276239e-09
+        },
+        "cosmetic_recentering_used": false
+      },
+      "physical_result": {
+        "final_error_m": 0.007501752083350947,
+        "minimum_error_m": 0.006915700194425352,
+        "minimum_time_s": 57.3022569520399,
+        "reach_tolerance_m": 0.006,
+        "final_reached": false,
+        "ever_reached": false,
+        "first_reach_time_s": null,
+        "any_forbidden_collision": false,
+        "world_existential_success": false
+      },
+      "measured_rates": {
+        "actual_motion_hz": 19.100299297081772,
+        "actual_camera_hz": 14.819848242190277,
+        "actual_control_hz": 2.997875752294659,
+        "actual_estimate_hz": 0.9667653709835881
+      },
+      "subscriber_measured_rates": {
+        "received_physical_metadata_hz": 19.099278170154964,
+        "received_snapshot_hz": 3.0905734023014566,
+        "received_wire_hz": 3.0906881861020294,
+        "received_stiffness_hz": 3.090553735158164,
+        "received_scene_hz": 7.117229168156402,
+        "received_estimate_acceptance_hz": 0.9912826416475234,
+        "captured_observation_time_hz": 14.816666666666666,
+        "window_excludes_autostart_wait_and_final_drain": true,
+        "arrival_clock": "subscriber monotonic reception_log",
+        "motion_window_start_arrival_clock": 2838215.883535027,
+        "motion_window_end_arrival_clock": 2838275.883535027,
+        "mean_control_work_s": 0.21588364401342053,
+        "mean_estimate_work_s": 0.8745386719388226,
+        "physical_period_s": {
+          "minimum": 0.008991953916847706,
+          "median": 0.053228240460157394,
+          "maximum": 0.11017669178545475
+        },
+        "display_lag_s": {
+          "minimum": 0.010814666748046875,
+          "median": 0.46358418464660645,
+          "maximum": 0.7087657451629639
+        },
+        "observation_lag_s": {
+          "minimum": 0.010814666748046875,
+          "median": 1.4589252471923828,
+          "maximum": 3.630042314529419
+        }
+      },
+      "physical_pose_accuracy": {
+        "case": "marker",
+        "used_only_for_validation": true,
+        "independent_physical_urdf_fk": true,
+        "covariance_width_definition": "3*sqrt(trace(P)), a diagnostic Euclidean width; anisotropic Gaussian proxy coverage uses support-aware Mahalanobis chi-square95",
+        "trajectory_coverage_is_descriptive_not_a_calibration_guarantee": true,
+        "body": {
+          "camera": {
+            "control_publications": 190,
+            "final": {
+              "frame_label": "camera",
+              "position_mean_error_m": 0.3024232320611911,
+              "three_root_trace_covariance_m": 0.030027004629510225,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 4802.120812166448,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.38188219401183704,
+              "orientation_root_trace_covariance_rad": 0.019139708309168377,
+              "orientation_mahalanobis_squared": 1606.3751885197908,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.2071457737869542,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 6
+          },
+          "hand": {
+            "control_publications": 190,
+            "final": {
+              "frame_label": "hand",
+              "position_mean_error_m": 0.42310530236877536,
+              "three_root_trace_covariance_m": 0.04127745841887023,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 7337.892063312057,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.38188219401183726,
+              "orientation_root_trace_covariance_rad": 0.019139708309168373,
+              "orientation_mahalanobis_squared": 1606.375188519792,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.3104598202533216,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 6
+          },
+          "link_1": {
+            "control_publications": 190,
+            "final": {
+              "frame_label": "link_1",
+              "position_mean_error_m": 5.451415104028965e-05,
+              "three_root_trace_covariance_m": 0.0025965553496469507,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 0.011922131669237243,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": true,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07652508524777726,
+              "orientation_root_trace_covariance_rad": 0.04172576695727382,
+              "orientation_mahalanobis_squared": 18.970037381843362,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 1.7263959926951753e-05,
+            "count_within_gaussian_proxy_95_region": 190,
+            "count_orientation_within_gaussian_proxy_95_region": 146
+          },
+          "link_2": {
+            "control_publications": 190,
+            "final": {
+              "frame_label": "link_2",
+              "position_mean_error_m": 0.013857764067159077,
+              "three_root_trace_covariance_m": 0.0169874704444493,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 19.49331950560681,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.18947037735165007,
+              "orientation_root_trace_covariance_rad": 0.047018548701047456,
+              "orientation_mahalanobis_squared": 257.7488749322842,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.00706294349147052,
+            "count_within_gaussian_proxy_95_region": 146,
+            "count_orientation_within_gaussian_proxy_95_region": 11
+          },
+          "link_3": {
+            "control_publications": 190,
+            "final": {
+              "frame_label": "link_3",
+              "position_mean_error_m": 0.055722911939962656,
+              "three_root_trace_covariance_m": 0.036918035618479436,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 354.416813393081,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.4374925036704665,
+              "orientation_root_trace_covariance_rad": 0.05352645044772867,
+              "orientation_mahalanobis_squared": 772.399173152575,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.05584045885100966,
+            "count_within_gaussian_proxy_95_region": 13,
+            "count_orientation_within_gaussian_proxy_95_region": 0
+          },
+          "link_4": {
+            "control_publications": 190,
+            "final": {
+              "frame_label": "link_4",
+              "position_mean_error_m": 0.15827628780987563,
+              "three_root_trace_covariance_m": 0.029173357640837533,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1208.4648357231026,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.408099237128753,
+              "orientation_root_trace_covariance_rad": 0.06049371783741073,
+              "orientation_mahalanobis_squared": 303.56118442562746,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.11078829940440017,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 6
+          },
+          "link_5": {
+            "control_publications": 190,
+            "final": {
+              "frame_label": "link_5",
+              "position_mean_error_m": 0.2124197153652221,
+              "three_root_trace_covariance_m": 0.025768336184830827,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 4154.633773668496,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.44431582367040146,
+              "orientation_root_trace_covariance_rad": 0.06092700197451083,
+              "orientation_mahalanobis_squared": 204.3471212892432,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.15050306342730596,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 4
+          },
+          "link_6": {
+            "control_publications": 190,
+            "final": {
+              "frame_label": "link_6",
+              "position_mean_error_m": 0.2638067457460301,
+              "three_root_trace_covariance_m": 0.024690147833005813,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 5158.3458347919595,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.38188219401183726,
+              "orientation_root_trace_covariance_rad": 0.019139708309168373,
+              "orientation_mahalanobis_squared": 1606.375188519792,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.18755784822293226,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 6
+          },
+          "tool0": {
+            "control_publications": 190,
+            "final": {
+              "frame_label": "tool0",
+              "position_mean_error_m": 0.30114439925018627,
+              "three_root_trace_covariance_m": 0.028239024043204265,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 5627.262425937684,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.38188219401183726,
+              "orientation_root_trace_covariance_rad": 0.019139708309168373,
+              "orientation_mahalanobis_squared": 1606.375188519792,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.2157882792152922,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 6
+          }
+        },
+        "absolute_pose_accuracy_resolved_claimed": false,
+        "user_common_shift_explanation_is_structural_hypothesis_not_cause_proof": true
+      },
+      "board_field_of_view": {
+        "raw_captures": 890,
+        "any_marker_detected": 877,
+        "no_marker_detected": 13,
+        "center_ID_detected": 803,
+        "other_ID_visible_while_center_missing": 74,
+        "detected_to_lost_transitions": 8,
+        "detection_count_histogram": {
+          "9": 703,
+          "8": 33,
+          "5": 14,
+          "2": 8,
+          "4": 8,
+          "6": 83,
+          "7": 7,
+          "1": 7,
+          "3": 14,
+          "0": 13
+        },
+        "per_marker_detected_count": {
+          "17": 848,
+          "18": 841,
+          "19": 833,
+          "20": 853,
+          "21": 803,
+          "22": 823,
+          "23": 770,
+          "24": 768,
+          "25": 766
+        },
+        "any_physical_tag_fully_inside": 890,
+        "all_physical_tags_fully_inside": 804,
+        "detected_tag_edge_margin_px": {
+          "count": 7305,
+          "min": 3.5306396484375,
+          "median": 202.20953369140625,
+          "max": 328.1905517578125
+        },
+        "by_reaching_phase": {
+          "indet_ik": {
+            "captures": 889,
+            "any_marker_detected": 876,
+            "central_ID_detected": 802
+          },
+          "waiting_for_control": {
+            "captures": 1,
+            "any_marker_detected": 1,
+            "central_ID_detected": 1
+          }
+        },
+        "selected_board_goal_updates": 62,
+        "selected_usable_tag_counts": {
+          "9": 51,
+          "8": 3,
+          "5": 2,
+          "2": 1,
+          "6": 5
+        },
+        "selected_central_component_counts": {
+          "1": 62
+        },
+        "final_physical_hand_goal_error_m": 0.007501752083350947,
+        "minimum_physical_hand_goal_error_m": 0.006915700194425352
+      },
+      "board_geometry": {
+        "case": "marker",
+        "complete": true,
+        "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+        "actual_scene_messages": 488,
+        "native_tag_triangle_lists_verified": 4392,
+        "native_marker_size_m": 0.072,
+        "pitch_m": 0.09,
+        "white_base_size_m": [
+          0.27,
+          0.27,
+          0.001
+        ],
+        "image_board_outer_size_m": [
+          0.27,
+          0.27
+        ],
+        "central_frame_and_button_relation_unchanged": true,
+        "separate_display_size_multiplier_used": false,
+        "validation_script_sha256": "1f4efbf51f7722c4c134736f60a14a40daaf2222c9af0a6af02f94c817a8c0e7"
+      },
+      "independent_audits": {
+        "single_update_full_J": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/marker_single_update_full_J_independent_audit.json",
+            "sha256": "50df1b2ca69ee99ab4ad0be6d24c27b01d813538b8cf834b43b40831c7368409",
+            "bytes": 135904
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "failures": [],
+          "counts": {
+            "complete_gradient_updates": 190,
+            "line_trials": 737,
+            "interior_corrections_accepted": 50,
+            "single_update_plans": 190
+          },
+          "max_absolute_differences": {
+            "virtual current-command equilibrium under same captured K": 0.0,
+            "initial J": 0.0,
+            "braking J": 0.0,
+            "selected J": 0.0,
+            "braking position expectation": 1.3877787807814457e-17,
+            "initial position expectation": 2.7755575615628914e-17,
+            "selected position expectation": 1.3877787807814457e-17,
+            "complete propagated J gradient": 0.0,
+            "complete propagated position gradient": 2.7755575615628914e-12,
+            "line search full J": 0.0,
+            "line search exact position": 1.3877787807814457e-17,
+            "line search Armijo bound": 0.0,
+            "accepted line displacement selected": 0.0,
+            "selected query_mean": 0.0,
+            "selected query_covariance": 0.0,
+            "selected query_within": 0.0,
+            "selected query_between": 0.0,
+            "selected relative_position_covariance": 0.0,
+            "single endpoint is selected source plus increment": 0.0,
+            "interior cone fraction": 0.0,
+            "interior cone coordinate": 0.0,
+            "interior cone direction": 0.0
+          },
+          "scope": "Every single-update full gradient/trial/normalizer/mixture term and exact position constraint independently reconstructed, including the strict-interior cone and actual source/candidate identity. No future IK rollout."
+        },
+        "single_update_execution": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/marker_single_update_execution_independent_audit.json",
+            "sha256": "30e8a70c2a65352e7f50415f7f47b2046b07804b63e9cbb2ae87c13d2b134654",
+            "bytes": 853834
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "failures": [],
+          "counts": {
+            "reaching_intervals": 791,
+            "expired_intervals": 283
+          },
+          "max_absolute_differences": {
+            "reported trajectory reference_command": 0.0,
+            "reported trajectory reference_velocity": 0.0,
+            "reported trajectory requested_velocity": 0.0,
+            "reported trajectory actual_command_before": 0.0,
+            "exact time-reference actuator command": 0.0,
+            "exact time-reference actuator velocity": 0.0
+          },
+          "scope": "One selected endpoint, original source-clock interpolation and expiry, unscaled reference-position tracking, and ordinary actuator bounds independently recomputed. No future rollout and no call to the runtime command helper or IK/inference."
+        },
+        "execution_K": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/marker_execution_K_independent_audit.json",
+            "sha256": "21473b0ffa3fe66ada6e5d1792841835b340f831ef1817b2cbe75f945fc6d0ac",
+            "bytes": 1472
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "counts": {
+            "estimated_packets": 62,
+            "filter_samples": 1151,
+            "filter_steps_with_unchanged_estimate_and_changed_execution": 1077,
+            "capped_filter_components": 2,
+            "IK_frozen_execution_packets": 190,
+            "actual_intervals": 1148,
+            "exact_historical_catchup_paths": 251,
+            "exact_historical_catchup_steps": 6828,
+            "filter_samples_not_used_by_IK": 961
+          },
+          "failures": [],
+          "max_absolute_differences": {
+            "estimated logarithm": 0.0,
+            "filter wall-motion dt": 0.0,
+            "filter lag alpha": 0.0,
+            "filter pre-cap log step": 0.0,
+            "filter capped log step": 0.0,
+            "filter execution log K": 0.0,
+            "filter execution K": 0.0,
+            "selected action uses filtered-K equilibrium": 0.0,
+            "selected action uses filtered-K joint increment": 0.0,
+            "selected action uses filtered-K sensitivity": 0.0,
+            "actual source equilibrium": 0.0,
+            "actual query equilibrium": 0.0,
+            "actual applied-K joint increment": 0.0,
+            "actual applied-K command Jacobian": 0.0,
+            "next-prior sum of actual applied-K increments": 0.0
+          },
+          "scope": "20 Hz filter recurrence independently recomputed; unchanged full estimated records/density/proposals; request samples frozen with IK, same epoch actual ledger, deterministic auxiliary mechanics, and actual historical next-prior/catchup replay. Filter signal is not a posterior."
+        },
+        "K_representative": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/marker_K_representative_independent_audit.json",
+            "sha256": "684462bf40de584e66a345622ff0829b851b47d95ec33038cbc6c0f891fc5a3e",
+            "bytes": 43675
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "failures": [],
+          "counts": {
+            "new_density_count": 62,
+            "new_density_refined_count": 62,
+            "accepted_score_step_count": 62,
+            "representative_changed_count": 61,
+            "IK_cycles_same_estimated_source_and_applied_K": 190,
+            "actual_intervals_same_estimated_source_and_applied_K": 1148
+          },
+          "max_absolute_differences": {
+            "base density": 0.0,
+            "base score": 0.0,
+            "selected density": 0.0,
+            "selected score": 0.0,
+            "selected exponentiation": 0.0,
+            "score displacement": 0.0,
+            "deterministic backtrack scale": 0.0,
+            "representative Armijo bound": 0.0,
+            "representative trial density": 0.0,
+            "accepted score step selected": 0.0,
+            "representative equilibrium": 0.0
+          },
+          "scope": "recorded full continuous density and score restored, every bounded representative step checked, unchanged estimated K traced separately from the applied K into IK and actual command ledger; no true stiffness input"
+        },
+        "visible_hold_policy": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/marker_visible_hold_policy_independent_audit.json",
+            "sha256": "c96b8caa7638d39042e4d826d010e33d7e1e00a74d3e905d75c366dbef281293",
+            "bytes": 101064
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "failures": [],
+          "counts": {
+            "raw_positive_intervals": 1131,
+            "reaching_intervals": 791,
+            "braking_intervals": 27,
+            "settling_intervals": 330,
+            "raw_positive_braking_intervals": 10
+          },
+          "max_absolute_differences": {
+            "actual velocity equals executed interval": 1.4453716001838757e-14,
+            "bounded local servo exact interval": 0.0,
+            "raw reacquisition brakes to zero": 0.0
+          },
+          "raw_positive_search_intervals": 0,
+          "waiting_hold_intervals": 330,
+          "waiting_beyond_settle_time_intervals": 271,
+          "waiting_hold_max_velocity": 0.0,
+          "waiting_hold_max_command_increment": 0.0,
+          "resumed_after_stop_count": 8,
+          "scope": "actual adopted raw-preview index and timestamp, same fused goal and committed IK source, exact bounded local command intervals, stopped post-stop-observation resume; no physical truth input"
+        }
+      },
+      "evidence": [
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker/commands.jsonl",
+          "sha256": "93f0fa3eef587b0af6e7de5b8c9ab4d42f47bcf13afd9a575d9c35dd820b76bb",
+          "bytes": 13521323
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker/control.jsonl",
+          "sha256": "1217867035b1173a40b3653f41f83b625e7b0109fe6de9ab6fe8799bd2df4c8b",
+          "bytes": 167790216
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker/estimation.jsonl",
+          "sha256": "a6032839ad99c3fbc1dc0b9ac0cb17fd63beea765e341e203fe998edeb1876b8",
+          "bytes": 172659836
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker/physical_trajectory.jsonl",
+          "sha256": "2b8e506b44c4163b62e687119bb37b8c719910074d28efb320cd4b0ba04383b4",
+          "bytes": 1619078
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker/execution_stiffness.jsonl",
+          "sha256": "74c3ddeb9185e3a557053afe9840e57e5d985a0c34247403cac31c62fd566390",
+          "bytes": 1697601
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker/captures.jsonl",
+          "sha256": "448f8a0f43c3867dee5104cd0e238ab4ba7ffa0da3a46d2e16760c95f1961ec8",
+          "bytes": 458480
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker/assimilation_selection.jsonl",
+          "sha256": "42125c4f3c6080b56db4b882180d673eae1c474472e754b7876c3218434f0889",
+          "bytes": 19510
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker_received/reception_log.jsonl",
+          "sha256": "ee4e9668dc831ffd8cb0fdf4892820d671d18143fb546096fc5515d1d924a51e",
+          "bytes": 834141
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker_received/physical_pose_accuracy.json",
+          "sha256": "46e928dc0136c0693f7f704a55152aae2d699ff5b7c5108cb97c75c4fd08433d",
+          "bytes": 1399157
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker_received/measured_rates.json",
+          "sha256": "028467430978541ed96e07073dcda37b73674ec5ba0ff822f4c9a2b2c79e7080",
+          "bytes": 1070
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker_received/board_fov_analysis.json",
+          "sha256": "4a1caf63b59a3ea0b3c3f8b86244bff282ce17e0a5a5d1feb6ae90624009d2ca",
+          "bytes": 5549506
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker_received/board_geometry_audit.json",
+          "sha256": "e0f7e2f782c705b454001576b9a6131a01d2edfe741a4b0b3425a27551441ab9",
+          "bytes": 586
+        }
+      ],
+      "physical_execution_supplement": {
+        "proof": {
+          "path": "/tmp/probtf_single_update_ik_20261017/marker_single_update_supplement.json",
+          "sha256": "50ace83d1ae5558758cf68d51112eeeabd1b325868d510e63a78a418f81dbb68",
+          "bytes": 4712
+        },
+        "complete": true,
+        "case": "marker",
+        "source_freeze": {
+          "path": "/tmp/probtf_single_update_ik_20261017/source_freeze.json",
+          "sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "bytes": 13711
+        },
+        "program": {
+          "path": "/tmp/probtf_single_update_supplement.py",
+          "sha256": "d60a8c56f0fee340c8c6446f1f4e3b920c47f2671c94ba85e08c826f8d5dbd04",
+          "bytes": 7789
+        },
+        "physical_intervals": 1148,
+        "completed_plans": 190,
+        "gradient_updates": 190,
+        "physical_dt_s": {
+          "count": 1148,
+          "minimum": 0.008991953916847706,
+          "median": 0.053228240460157394,
+          "p95": 0.075640488252975,
+          "maximum": 0.11017669178545475
+        },
+        "epoch_stamp_subtraction_max_roundoff_s": 2.2957101464271545e-07,
+        "max_abs_command_increment_rad": {
+          "count": 1148,
+          "minimum": 0.0,
+          "median": 0.0009369463667674577,
+          "p95": 0.0032596518844088644,
+          "maximum": 0.0052884812057019115
+        },
+        "max_abs_command_velocity_rad_s": {
+          "count": 1148,
+          "minimum": 0.0,
+          "median": 0.022124925071373584,
+          "p95": 0.048,
+          "maximum": 0.04800000000000001
+        },
+        "max_abs_command_acceleration_rad_s2": {
+          "count": 1148,
+          "minimum": 0.0,
+          "median": 0.29999999999999993,
+          "p95": 0.30000000000000004,
+          "maximum": 0.3000000000000004
+        },
+        "physical_tip_tick_displacement_m": {
+          "count": 1148,
+          "minimum": 0.0,
+          "median": 0.0009115124283271384,
+          "p95": 0.004804919335050464,
+          "maximum": 0.012215305927123768
+        },
+        "physical_tip_tick_speed_m_s": {
+          "count": 1148,
+          "minimum": 0.0,
+          "median": 0.02023525650630717,
+          "p95": 0.07980786116879507,
+          "maximum": 0.13006972302828226
+        },
+        "command_velocity_reversals_per_joint": [
+          29,
+          31,
+          22,
+          23,
+          30,
+          43
+        ],
+        "reaching_velocity_reversals_per_joint": [
+          29,
+          31,
+          22,
+          23,
+          30,
+          43
+        ],
+        "reversal_definition": "Adjacent opposite-sign velocities with both magnitudes >1e-6 rad/s; an intervening zero tick is not counted.",
+        "stopped_command_intervals": 408,
+        "stopped_command_duration_s": 20.138554577250034,
+        "behavior_durations_s": {
+          "reaching": 42.15920192422345,
+          "braking": 1.4301924142055213,
+          "settling": 16.410605661571026
+        },
+        "expired_reaching_intervals": 283,
+        "expired_nonzero_requested_velocity_intervals": 0,
+        "active_plan_count": 133,
+        "first_actual_interval_age_s": {
+          "count": 133,
+          "minimum": 0.0,
+          "median": 0.25017523765563965,
+          "p95": 0.31852288246154786,
+          "maximum": 0.34533071517944336
+        },
+        "request_source_age_s": {
+          "count": 791,
+          "minimum": 0.010814666748046875,
+          "median": 0.46009087562561035,
+          "p95": 0.6280452013015747,
+          "maximum": 0.7087657451629639
+        },
+        "requested_abs_velocity_rad_s": {
+          "count": 4746,
+          "minimum": 0.0,
+          "median": 0.041405955722833024,
+          "p95": 0.28636918063342437,
+          "maximum": 1.810336251712819
+        },
+        "adjacent_reference_difference_at_switch_rad": {
+          "count": 124,
+          "minimum": 0.0012113306920402689,
+          "median": 0.009323322122766334,
+          "p95": 0.03505466144187849,
+          "maximum": 0.047959491843623886
+        },
+        "adjacent_reference_difference_definition": "Difference to the preceding tick reference at a plan-source change; includes elapsed reference progress and is not a same-time continuity proof.",
+        "physical_distance_last20s": {
+          "minimum_m": 0.006915700194425352,
+          "maximum_m": 0.1359005420397814,
+          "median_m": 0.06811857370408375,
+          "total_variation_m": 0.24412233460903776,
+          "net_change_m": -0.12839878995642987
+        },
+        "proof_files": [
+          {
+            "path": "/tmp/probtf_single_update_ik_20261017/marker/commands.jsonl",
+            "sha256": "93f0fa3eef587b0af6e7de5b8c9ab4d42f47bcf13afd9a575d9c35dd820b76bb",
+            "bytes": 13521323
+          },
+          {
+            "path": "/tmp/probtf_single_update_ik_20261017/marker/control.jsonl",
+            "sha256": "1217867035b1173a40b3653f41f83b625e7b0109fe6de9ab6fe8799bd2df4c8b",
+            "bytes": 167790216
+          },
+          {
+            "path": "/tmp/probtf_single_update_ik_20261017/marker/physical_trajectory.jsonl",
+            "sha256": "2b8e506b44c4163b62e687119bb37b8c719910074d28efb320cd4b0ba04383b4",
+            "bytes": 1619078
+          }
+        ],
+        "causal_improvement_claimed": false,
+        "truth_used_only_for_validation": true,
+        "limitations": [
+          "The asynchronous runs do not share an identical sequence of observations/availability times, commands or posterior densities; this comparison does not isolate the horizon as the only causal variable.",
+          "Velocity-reversal counts depend on task progress and observation changes, and are not a formal stability guarantee.",
+          "Hardware acceleration bounds may leave nonzero command velocity during a zero-velocity expiry request."
+        ]
+      }
+    },
+    "imu_marker": {
+      "actual_law_publications": 191,
+      "actual_core_point_queries": 8404,
+      "actual_wire_proof": {
+        "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_frozen_full_audit.json",
+        "sha256": "86232e1ced82013f5049864ba7e9e16b1c7957f8d73bc48d39b6ba4b819aa6fc",
+        "bytes": 581822
+      },
+      "subscriber_counts": {
+        "snapshot": 191,
+        "wire": 191,
+        "stiffness": 191,
+        "motion": 1295,
+        "scene": 487,
+        "tf": 1295,
+        "goal_tf_sources": 191
+      },
+      "modal_goal_TF": {
+        "actual_tf_messages": 1295,
+        "actual_goal_source_messages": 191,
+        "candidate_laws_verified": 191,
+        "goal_transforms_verified": 191,
+        "initial_candidate_TF_received": true,
+        "all_modal_goal_poses_weights_log_weights_and_sources_equal_actual_snapshot": true,
+        "explicit_ROS_simulation_clock_mapping_and_age_verified": true
+      },
+      "raw_captures": 888,
+      "selected_estimation_packets": 63,
+      "body_BF_full_joint_updates": 63,
+      "missing_marker_cross_checks": 0,
+      "board_image_only_fusion": {
+        "updates": 63,
+        "raw_native_modes": 1114,
+        "native_core_center_queries": 1114,
+        "central_component_counts": [
+          1
+        ],
+        "every_raw_native_attachment_full_cross_product_mass_verified": true
+      },
+      "fresh_goal_closure": {
+        "translation_error_m": {
+          "count": 63,
+          "minimum": 0.0002867165957006809,
+          "median": 0.00032232337250888687,
+          "maximum": 0.0004635248191972381
+        },
+        "rotation_error_rad": {
+          "count": 63,
+          "minimum": 4.2993288797454255e-08,
+          "median": 5.935006653609021e-08,
+          "maximum": 1.7078636999673942e-07
+        },
+        "covariance_element_error": {
+          "count": 63,
+          "minimum": 5.4776244457569917e-11,
+          "median": 9.230739896998443e-11,
+          "maximum": 1.530583281547212e-09
+        },
+        "cosmetic_recentering_used": false
+      },
+      "physical_result": {
+        "final_error_m": 0.003961889049044979,
+        "minimum_error_m": 0.00045894029247086086,
+        "minimum_time_s": 48.601925070397556,
+        "reach_tolerance_m": 0.006,
+        "final_reached": true,
+        "ever_reached": true,
+        "first_reach_time_s": 46.42183302016929,
+        "any_forbidden_collision": false,
+        "world_existential_success": true
+      },
+      "measured_rates": {
+        "actual_motion_hz": 18.750177699745,
+        "actual_camera_hz": 14.775012547013853,
+        "actual_control_hz": 3.050351103993422,
+        "actual_estimate_hz": 0.9948752738272424
+      },
+      "subscriber_measured_rates": {
+        "received_physical_metadata_hz": 18.749540123755637,
+        "received_snapshot_hz": 3.1056094165128187,
+        "received_wire_hz": 3.106060311882629,
+        "received_stiffness_hz": 3.1055793960196687,
+        "received_scene_hz": 7.174587946907402,
+        "received_estimate_acceptance_hz": 1.022519549348072,
+        "captured_observation_time_hz": 14.783333333333333,
+        "window_excludes_autostart_wait_and_final_drain": true,
+        "arrival_clock": "subscriber monotonic reception_log",
+        "motion_window_start_arrival_clock": 2838218.992965266,
+        "motion_window_end_arrival_clock": 2838278.992965266,
+        "mean_control_work_s": 0.20739528809854496,
+        "mean_estimate_work_s": 0.8410167757584344,
+        "physical_period_s": {
+          "minimum": 0.008780980948358774,
+          "median": 0.05456412397325039,
+          "maximum": 0.12990377331152558
+        },
+        "display_lag_s": {
+          "minimum": 0.0222780704498291,
+          "median": 0.460768461227417,
+          "maximum": 0.6942965984344482
+        },
+        "observation_lag_s": {
+          "minimum": 0.0222780704498291,
+          "median": 1.4571346044540405,
+          "maximum": 3.1719930171966553
+        }
+      },
+      "physical_pose_accuracy": {
+        "case": "imu_marker",
+        "used_only_for_validation": true,
+        "independent_physical_urdf_fk": true,
+        "covariance_width_definition": "3*sqrt(trace(P)), a diagnostic Euclidean width; anisotropic Gaussian proxy coverage uses support-aware Mahalanobis chi-square95",
+        "trajectory_coverage_is_descriptive_not_a_calibration_guarantee": true,
+        "body": {
+          "camera": {
+            "control_publications": 191,
+            "final": {
+              "frame_label": "camera",
+              "position_mean_error_m": 0.07141964014569226,
+              "three_root_trace_covariance_m": 0.03698578337825743,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1105.982655721521,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07241175618995864,
+              "orientation_root_trace_covariance_rad": 0.020006976779528358,
+              "orientation_mahalanobis_squared": 86.89443022502707,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.06924090554933712,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 18
+          },
+          "hand": {
+            "control_publications": 191,
+            "final": {
+              "frame_label": "hand",
+              "position_mean_error_m": 0.0845542775744803,
+              "three_root_trace_covariance_m": 0.04741930860885957,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 2435.4393808548116,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07241175618995878,
+              "orientation_root_trace_covariance_rad": 0.020006976779528354,
+              "orientation_mahalanobis_squared": 86.89443022502753,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07831210614972776,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 18
+          },
+          "link_1": {
+            "control_publications": 191,
+            "final": {
+              "frame_label": "link_1",
+              "position_mean_error_m": 0.00012953633102119334,
+              "three_root_trace_covariance_m": 0.0025955333596888955,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 0.0674181158559258,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": true,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.23274841325927864,
+              "orientation_root_trace_covariance_rad": 0.04076931518320133,
+              "orientation_mahalanobis_squared": 174.61596068505958,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.00013246331637394376,
+            "count_within_gaussian_proxy_95_region": 191,
+            "count_orientation_within_gaussian_proxy_95_region": 0
+          },
+          "link_2": {
+            "control_publications": 191,
+            "final": {
+              "frame_label": "link_2",
+              "position_mean_error_m": 0.04192439474035671,
+              "three_root_trace_covariance_m": 0.01646024798808729,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 226.66859704828303,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.1208328572612676,
+              "orientation_root_trace_covariance_rad": 0.04257717965932821,
+              "orientation_mahalanobis_squared": 114.08687560952828,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.03620741415558538,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 0
+          },
+          "link_3": {
+            "control_publications": 191,
+            "final": {
+              "frame_label": "link_3",
+              "position_mean_error_m": 0.0828380082875723,
+              "three_root_trace_covariance_m": 0.030797050805898205,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1072.454353310302,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.02569202956632232,
+              "orientation_root_trace_covariance_rad": 0.03743873138556608,
+              "orientation_mahalanobis_squared": 1.3179376585092049,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": true
+            },
+            "mean_position_error_m": 0.07566200824334249,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 171
+          },
+          "link_4": {
+            "control_publications": 191,
+            "final": {
+              "frame_label": "link_4",
+              "position_mean_error_m": 0.08290988146787119,
+              "three_root_trace_covariance_m": 0.026521934987619955,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1092.025743591039,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.06340367263878739,
+              "orientation_root_trace_covariance_rad": 0.053714781445381166,
+              "orientation_mahalanobis_squared": 8.580184055131133,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07623408144957772,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 88
+          },
+          "link_5": {
+            "control_publications": 191,
+            "final": {
+              "frame_label": "link_5",
+              "position_mean_error_m": 0.08327189608298537,
+              "three_root_trace_covariance_m": 0.02734620391262048,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1377.3712373487213,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.12377691863453225,
+              "orientation_root_trace_covariance_rad": 0.05812370047648624,
+              "orientation_mahalanobis_squared": 21.833495417878087,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07819388409150788,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 18
+          },
+          "link_6": {
+            "control_publications": 191,
+            "final": {
+              "frame_label": "link_6",
+              "position_mean_error_m": 0.08042511593963454,
+              "three_root_trace_covariance_m": 0.029574991927990506,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1787.4310090059325,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07241175618995878,
+              "orientation_root_trace_covariance_rad": 0.020006976779528354,
+              "orientation_mahalanobis_squared": 86.89443022502753,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07546942855096901,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 18
+          },
+          "tool0": {
+            "control_publications": 191,
+            "final": {
+              "frame_label": "tool0",
+              "position_mean_error_m": 0.08038738632792813,
+              "three_root_trace_covariance_m": 0.03352801426081732,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1966.972347084631,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07241175618995878,
+              "orientation_root_trace_covariance_rad": 0.020006976779528354,
+              "orientation_mahalanobis_squared": 86.89443022502753,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.0751751298985357,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 18
+          }
+        },
+        "absolute_pose_accuracy_resolved_claimed": false,
+        "user_common_shift_explanation_is_structural_hypothesis_not_cause_proof": true
+      },
+      "board_field_of_view": {
+        "raw_captures": 888,
+        "any_marker_detected": 881,
+        "no_marker_detected": 7,
+        "center_ID_detected": 816,
+        "other_ID_visible_while_center_missing": 65,
+        "detected_to_lost_transitions": 4,
+        "detection_count_histogram": {
+          "9": 797,
+          "8": 36,
+          "4": 8,
+          "5": 7,
+          "3": 5,
+          "2": 4,
+          "7": 15,
+          "6": 5,
+          "1": 4,
+          "0": 7
+        },
+        "per_marker_detected_count": {
+          "17": 859,
+          "18": 850,
+          "19": 851,
+          "20": 871,
+          "21": 816,
+          "22": 842,
+          "23": 869,
+          "24": 868,
+          "25": 864
+        },
+        "any_physical_tag_fully_inside": 888,
+        "all_physical_tags_fully_inside": 887,
+        "detected_tag_edge_margin_px": {
+          "count": 7690,
+          "min": 4.77398681640625,
+          "median": 191.73947143554688,
+          "max": 328.0019836425781
+        },
+        "by_reaching_phase": {
+          "indet_ik": {
+            "captures": 887,
+            "any_marker_detected": 880,
+            "central_ID_detected": 815
+          },
+          "waiting_for_control": {
+            "captures": 1,
+            "any_marker_detected": 1,
+            "central_ID_detected": 1
+          }
+        },
+        "selected_board_goal_updates": 63,
+        "selected_usable_tag_counts": {
+          "9": 59,
+          "8": 3,
+          "2": 1
+        },
+        "selected_central_component_counts": {
+          "1": 63
+        },
+        "final_physical_hand_goal_error_m": 0.003961889049044979,
+        "minimum_physical_hand_goal_error_m": 0.00045894029247086086
+      },
+      "board_geometry": {
+        "case": "imu_marker",
+        "complete": true,
+        "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+        "actual_scene_messages": 487,
+        "native_tag_triangle_lists_verified": 4383,
+        "native_marker_size_m": 0.072,
+        "pitch_m": 0.09,
+        "white_base_size_m": [
+          0.27,
+          0.27,
+          0.001
+        ],
+        "image_board_outer_size_m": [
+          0.27,
+          0.27
+        ],
+        "central_frame_and_button_relation_unchanged": true,
+        "separate_display_size_multiplier_used": false,
+        "validation_script_sha256": "1f4efbf51f7722c4c134736f60a14a40daaf2222c9af0a6af02f94c817a8c0e7"
+      },
+      "independent_audits": {
+        "single_update_full_J": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_single_update_full_J_independent_audit.json",
+            "sha256": "3acd9d0f64563c9f24e8017577bc4bcf8c6383bcdc92239342920baf084c6abb",
+            "bytes": 136763
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "failures": [],
+          "counts": {
+            "complete_gradient_updates": 191,
+            "line_trials": 366,
+            "interior_corrections_accepted": 14,
+            "single_update_plans": 191
+          },
+          "max_absolute_differences": {
+            "virtual current-command equilibrium under same captured K": 0.0,
+            "initial J": 0.0,
+            "braking J": 0.0,
+            "selected J": 0.0,
+            "braking position expectation": 1.3877787807814457e-17,
+            "initial position expectation": 1.3877787807814457e-17,
+            "selected position expectation": 1.3877787807814457e-17,
+            "complete propagated J gradient": 0.0,
+            "complete propagated position gradient": 2.7755575615628914e-12,
+            "line search full J": 0.0,
+            "line search exact position": 1.3877787807814457e-17,
+            "line search Armijo bound": 0.0,
+            "accepted line displacement selected": 0.0,
+            "selected query_mean": 0.0,
+            "selected query_covariance": 0.0,
+            "selected query_within": 0.0,
+            "selected query_between": 0.0,
+            "selected relative_position_covariance": 0.0,
+            "single endpoint is selected source plus increment": 0.0,
+            "interior cone fraction": 0.0,
+            "interior cone coordinate": 0.0,
+            "interior cone direction": 0.0
+          },
+          "scope": "Every single-update full gradient/trial/normalizer/mixture term and exact position constraint independently reconstructed, including the strict-interior cone and actual source/candidate identity. No future IK rollout."
+        },
+        "single_update_execution": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_single_update_execution_independent_audit.json",
+            "sha256": "48a3ff3024a7ee165e70d7d66ce1693dee3d2bae7f9cf73bb80778f8f2a8f83a",
+            "bytes": 1093989
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "failures": [],
+          "counts": {
+            "reaching_intervals": 1008,
+            "expired_intervals": 361
+          },
+          "max_absolute_differences": {
+            "reported trajectory reference_command": 0.0,
+            "reported trajectory reference_velocity": 0.0,
+            "reported trajectory requested_velocity": 0.0,
+            "reported trajectory actual_command_before": 0.0,
+            "exact time-reference actuator command": 0.0,
+            "exact time-reference actuator velocity": 0.0
+          },
+          "scope": "One selected endpoint, original source-clock interpolation and expiry, unscaled reference-position tracking, and ordinary actuator bounds independently recomputed. No future rollout and no call to the runtime command helper or IK/inference."
+        },
+        "execution_K": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_execution_K_independent_audit.json",
+            "sha256": "269cadc522ae361010f8d065d32323469884c5ba61d4d5519ce4dc8a9a76c7dc",
+            "bytes": 1476
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "counts": {
+            "estimated_packets": 63,
+            "filter_samples": 1130,
+            "filter_steps_with_unchanged_estimate_and_changed_execution": 1055,
+            "capped_filter_components": 0,
+            "IK_frozen_execution_packets": 191,
+            "actual_intervals": 1127,
+            "exact_historical_catchup_paths": 253,
+            "exact_historical_catchup_steps": 6617,
+            "filter_samples_not_used_by_IK": 939
+          },
+          "failures": [],
+          "max_absolute_differences": {
+            "estimated logarithm": 0.0,
+            "filter wall-motion dt": 0.0,
+            "filter lag alpha": 0.0,
+            "filter pre-cap log step": 0.0,
+            "filter capped log step": 0.0,
+            "filter execution log K": 0.0,
+            "filter execution K": 0.0,
+            "selected action uses filtered-K equilibrium": 0.0,
+            "selected action uses filtered-K joint increment": 0.0,
+            "selected action uses filtered-K sensitivity": 0.0,
+            "actual source equilibrium": 0.0,
+            "actual query equilibrium": 0.0,
+            "actual applied-K joint increment": 0.0,
+            "actual applied-K command Jacobian": 0.0,
+            "next-prior sum of actual applied-K increments": 0.0
+          },
+          "scope": "20 Hz filter recurrence independently recomputed; unchanged full estimated records/density/proposals; request samples frozen with IK, same epoch actual ledger, deterministic auxiliary mechanics, and actual historical next-prior/catchup replay. Filter signal is not a posterior."
+        },
+        "K_representative": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_K_representative_independent_audit.json",
+            "sha256": "699709977b00747c22dd5d7a83818a1db98fb2730c8dc0aa6ec5e79e382fc9c0",
+            "bytes": 44196
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "failures": [],
+          "counts": {
+            "new_density_count": 63,
+            "new_density_refined_count": 63,
+            "accepted_score_step_count": 63,
+            "representative_changed_count": 62,
+            "IK_cycles_same_estimated_source_and_applied_K": 191,
+            "actual_intervals_same_estimated_source_and_applied_K": 1127
+          },
+          "max_absolute_differences": {
+            "base density": 0.0,
+            "base score": 0.0,
+            "selected density": 0.0,
+            "selected score": 0.0,
+            "selected exponentiation": 0.0,
+            "score displacement": 0.0,
+            "deterministic backtrack scale": 0.0,
+            "representative Armijo bound": 0.0,
+            "representative trial density": 0.0,
+            "accepted score step selected": 0.0,
+            "representative equilibrium": 0.0
+          },
+          "scope": "recorded full continuous density and score restored, every bounded representative step checked, unchanged estimated K traced separately from the applied K into IK and actual command ledger; no true stiffness input"
+        },
+        "visible_hold_policy": {
+          "proof": {
+            "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_visible_hold_policy_independent_audit.json",
+            "sha256": "d5fbc21be95a46537c3a9fa55bacbe5a3579a8feeeb4027a5113b08db3ed3a46",
+            "bytes": 33374
+          },
+          "source_freeze_sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "failures": [],
+          "counts": {
+            "raw_positive_intervals": 1117,
+            "reaching_intervals": 1008,
+            "braking_intervals": 14,
+            "raw_positive_braking_intervals": 4,
+            "settling_intervals": 105
+          },
+          "max_absolute_differences": {
+            "actual velocity equals executed interval": 1.2483070133129104e-14,
+            "bounded local servo exact interval": 0.0,
+            "raw reacquisition brakes to zero": 2.168404344971009e-19
+          },
+          "raw_positive_search_intervals": 0,
+          "waiting_hold_intervals": 105,
+          "waiting_beyond_settle_time_intervals": 73,
+          "waiting_hold_max_velocity": 0.0,
+          "waiting_hold_max_command_increment": 0.0,
+          "resumed_after_stop_count": 4,
+          "scope": "actual adopted raw-preview index and timestamp, same fused goal and committed IK source, exact bounded local command intervals, stopped post-stop-observation resume; no physical truth input"
+        }
+      },
+      "evidence": [
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/commands.jsonl",
+          "sha256": "aba930174298cf91878e43a0f3f9db66c619c27ff090032cb216d0a7465400d8",
+          "bytes": 13565954
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/control.jsonl",
+          "sha256": "174bb44c9d185c31a64a40f98463fd697513f1a6da351ad6229db2b655dd7f3f",
+          "bytes": 167139747
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/estimation.jsonl",
+          "sha256": "3ef523aea5671fa02f3605402ee18f27877f8cb0cfb2643fc1c4ab6bda2af611",
+          "bytes": 190841738
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/physical_trajectory.jsonl",
+          "sha256": "f51836d578915f5477413a3c699f4f14bc501ea31b5d0d935b68d2d7cb9c531b",
+          "bytes": 1589204
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/execution_stiffness.jsonl",
+          "sha256": "08fb5834fea9e649cf6859ac9a0057c1941aef2468ed5e522f7af31c20ffab29",
+          "bytes": 1661512
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/captures.jsonl",
+          "sha256": "348a736de1ccc7e2cabffcb490fb9fce5addad3e699310ae2768f60eb9320bcc",
+          "bytes": 457894
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/assimilation_selection.jsonl",
+          "sha256": "932a390661ac40058164a02d6e2343b4ea904589a3e45d485a9c1dadf3ddea10",
+          "bytes": 19737
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_received/reception_log.jsonl",
+          "sha256": "b5535078cff5ca9ce288a331aba630cecf96e2da434331cd55e39858027ebe4b",
+          "bytes": 835183
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_received/physical_pose_accuracy.json",
+          "sha256": "958fbd7e83dfcb0203005e4249cf2761b6cf935422ef9ac3aacec8e78244c741",
+          "bytes": 1407712
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_received/measured_rates.json",
+          "sha256": "c9886369cb16f571ad7c25f06a8f586e0dcb24c962a38eb4c949d9fc6251257d",
+          "bytes": 1063
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_received/board_fov_analysis.json",
+          "sha256": "b64d63520ac968a618b97beff47b2113102aaecda31fd2e0b0ce0622c2eb2558",
+          "bytes": 5662694
+        },
+        {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_received/board_geometry_audit.json",
+          "sha256": "59a73ddf16028f119b7d0eff57222f112a05f1fbb725e1f9d95ada8301f86051",
+          "bytes": 590
+        }
+      ],
+      "physical_execution_supplement": {
+        "proof": {
+          "path": "/tmp/probtf_single_update_ik_20261017/imu_marker_single_update_supplement.json",
+          "sha256": "33369b4e8e5461ede0d59ca00371b5f389262a47a8f89ff6a3c0808046e4870e",
+          "bytes": 4706
+        },
+        "complete": true,
+        "case": "imu_marker",
+        "source_freeze": {
+          "path": "/tmp/probtf_single_update_ik_20261017/source_freeze.json",
+          "sha256": "ef3882661d1cb308a48f21e76d0099fa9a2f4343395d4c587be0d65efc47cce8",
+          "bytes": 13711
+        },
+        "program": {
+          "path": "/tmp/probtf_single_update_supplement.py",
+          "sha256": "d60a8c56f0fee340c8c6446f1f4e3b920c47f2671c94ba85e08c826f8d5dbd04",
+          "bytes": 7789
+        },
+        "physical_intervals": 1127,
+        "completed_plans": 191,
+        "gradient_updates": 191,
+        "physical_dt_s": {
+          "count": 1127,
+          "minimum": 0.008780980948358774,
+          "median": 0.05456412397325039,
+          "p95": 0.07738582864403724,
+          "maximum": 0.12990377331152558
+        },
+        "epoch_stamp_subtraction_max_roundoff_s": 2.337619662284851e-07,
+        "max_abs_command_increment_rad": {
+          "count": 1127,
+          "minimum": 0.0,
+          "median": 0.0016712391208433819,
+          "p95": 0.003443314906954792,
+          "maximum": 0.005127409458160426
+        },
+        "max_abs_command_velocity_rad_s": {
+          "count": 1127,
+          "minimum": 0.0,
+          "median": 0.032869061736389996,
+          "p95": 0.048,
+          "maximum": 0.04800000000000001
+        },
+        "max_abs_command_acceleration_rad_s2": {
+          "count": 1127,
+          "minimum": 0.0,
+          "median": 0.3,
+          "p95": 0.30000000000000004,
+          "maximum": 0.3000000000000003
+        },
+        "physical_tip_tick_displacement_m": {
+          "count": 1127,
+          "minimum": 0.0,
+          "median": 0.0010635740628733429,
+          "p95": 0.004390155446226031,
+          "maximum": 0.008217441330665832
+        },
+        "physical_tip_tick_speed_m_s": {
+          "count": 1127,
+          "minimum": 0.0,
+          "median": 0.021739292475082196,
+          "p95": 0.073609274840207,
+          "maximum": 0.12713369466092214
+        },
+        "command_velocity_reversals_per_joint": [
+          55,
+          55,
+          47,
+          37,
+          42,
+          54
+        ],
+        "reaching_velocity_reversals_per_joint": [
+          55,
+          55,
+          47,
+          37,
+          42,
+          54
+        ],
+        "reversal_definition": "Adjacent opposite-sign velocities with both magnitudes >1e-6 rad/s; an intervening zero tick is not counted.",
+        "stopped_command_intervals": 162,
+        "stopped_command_duration_s": 7.925015772692859,
+        "behavior_durations_s": {
+          "reaching": 54.10013738414273,
+          "braking": 0.7438535122200847,
+          "settling": 5.156009103637189
+        },
+        "expired_reaching_intervals": 361,
+        "expired_nonzero_requested_velocity_intervals": 0,
+        "active_plan_count": 169,
+        "first_actual_interval_age_s": {
+          "count": 169,
+          "minimum": 0.0,
+          "median": 0.2547283172607422,
+          "p95": 0.3034804821014404,
+          "maximum": 0.34131455421447754
+        },
+        "request_source_age_s": {
+          "count": 1008,
+          "minimum": 0.0222780704498291,
+          "median": 0.4617875814437866,
+          "p95": 0.6130691885948181,
+          "maximum": 0.6942965984344482
+        },
+        "requested_abs_velocity_rad_s": {
+          "count": 6048,
+          "minimum": 0.0,
+          "median": 0.024000006877047172,
+          "p95": 0.26392911080848164,
+          "maximum": 2.036667312282062
+        },
+        "adjacent_reference_difference_at_switch_rad": {
+          "count": 164,
+          "minimum": 0.0012539619940448166,
+          "median": 0.007969032354525202,
+          "p95": 0.02715740822500579,
+          "maximum": 0.0347005200742716
+        },
+        "adjacent_reference_difference_definition": "Difference to the preceding tick reference at a plan-source change; includes elapsed reference progress and is not a same-time continuity proof.",
+        "physical_distance_last20s": {
+          "minimum_m": 0.00045894029247086086,
+          "maximum_m": 0.02103459226977421,
+          "median_m": 0.004787957305829807,
+          "total_variation_m": 0.22206712418870095,
+          "net_change_m": -0.015451311378604476
+        },
+        "proof_files": [
+          {
+            "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/commands.jsonl",
+            "sha256": "aba930174298cf91878e43a0f3f9db66c619c27ff090032cb216d0a7465400d8",
+            "bytes": 13565954
+          },
+          {
+            "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/control.jsonl",
+            "sha256": "174bb44c9d185c31a64a40f98463fd697513f1a6da351ad6229db2b655dd7f3f",
+            "bytes": 167139747
+          },
+          {
+            "path": "/tmp/probtf_single_update_ik_20261017/imu_marker/physical_trajectory.jsonl",
+            "sha256": "f51836d578915f5477413a3c699f4f14bc501ea31b5d0d935b68d2d7cb9c531b",
+            "bytes": 1589204
+          }
+        ],
+        "causal_improvement_claimed": false,
+        "truth_used_only_for_validation": true,
+        "limitations": [
+          "The asynchronous runs do not share an identical sequence of observations/availability times, commands or posterior densities; this comparison does not isolate the horizon as the only causal variable.",
+          "Velocity-reversal counts depend on task progress and observation changes, and are not a formal stability guarantee.",
+          "Hardware acceleration bounds may leave nonzero command velocity during a zero-velocity expiry request."
+        ]
+      }
+    }
+  },
+  "independent_audit_failures": [],
+  "limitations": [
+    "Physical reach and forbidden collision use the unchanged simulator predicates. Numerical equality of inference/control/display does not guarantee successful reaching or motion stability.",
+    "Comparisons to earlier asynchronous runs are descriptive: availability times, commands, images and posterior estimates differ, so no single-cause attribution is established.",
+    "Absolute pose error, anisotropic covariance coverage and K accuracy are distinct from relative reaching; a common body/goal root shift may remain.",
+    "Camera capture, selected observation updates, IK plans and physical motion have different cadences. Only latest selected captures are fused; all raw captures/selections are archived.",
+    "Raw tag modes and log weights are retained before the allowed image-only board-central projection. Ordered ADF, independent tag likelihoods and single-pose moment approximation remain model assumptions."
+  ],
+  "rviz_protection": {
+    "baseline_manifest": "/tmp/probtf_rviz_restart_20261017/backup/hashes.json",
+    "manifest_sha256": "dc3b8c409add8cb93acacddead33cc080954173e987dc5770bfc2b5f89e5bda4",
+    "files": [
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083122_631446/demo.rviz",
+        "sha256": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083323_181005/demo.rviz",
+        "sha256": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_rviz/rviz/probtf_tree.rviz",
+        "sha256": "3f4f5f9379b194deb8ab9e5f9615caa8cc71881aa4f9ea9ca62d69b8df2693b2",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/deflecomp_description/rviz/deflecomp.rviz",
+        "sha256": "750cade8b49597b507a80f1b3b754d92b4f073b1e0c70c26631d4a49ab307d11",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_01/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_02/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_03/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_04/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_tip_load_step_01/convergence_demo.rviz",
+        "sha256": "f3edffce537da23a268761e92e211512a39457c4ed624fe2d6479917f47f3bd1",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/tip_load_prediction_recovery/convergence_demo.rviz",
+        "sha256": "f3edffce537da23a268761e92e211512a39457c4ed624fe2d6479917f47f3bd1",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/prob_artag_detector/rviz/prob_artag_real_camera_demo.rviz",
+        "sha256": "4fdda28a8259d74d175c71d5d43914860e694c9a34a806be8ad9eaa7cbd7c1dc",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_global_fusion_demo/rviz/global_fusion_demo.rviz",
+        "sha256": "29565e9fec7e8a21775d196ea5b6c273c43bac5b691289c48dd152bac5827d0f",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_demo.rviz",
+        "sha256": "247e38b29b8c59f70c3a5ddb833acd4c849aba6d6cf331f82446ccecc37c2404",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_motion.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz",
+        "sha256": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/axisymmetric/bottle_grasp_oblique.rviz",
+        "sha256": "a0f25cff5bfa8cc95b2052f8f68e0bb50c8bd83232415ffb897a00fdee585111",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/axisymmetric/bottle_grasp_top.rviz",
+        "sha256": "699716ac70cc55dba77c231ec80018a255158272289d55f8e74ff7da5c7311c5",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/single_pose/bottle_grasp_oblique.rviz",
+        "sha256": "a0f25cff5bfa8cc95b2052f8f68e0bb50c8bd83232415ffb897a00fdee585111",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/single_pose/bottle_grasp_top.rviz",
+        "sha256": "699716ac70cc55dba77c231ec80018a255158272289d55f8e74ff7da5c7311c5",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_trial/bottle_grasp.rviz",
+        "sha256": "4ecd65d93afac1ba9013e5c9d823eae0565ef883a245be2bc7cfe02d73d4bf10",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/mixture/box_grasp_oblique.rviz",
+        "sha256": "f3f7e6653752b7114e69d084699128dab329be73a1a986f37e00e83a0aaa64ee",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/mixture/box_grasp_top.rviz",
+        "sha256": "7ae424d23e482d06e27d96103c0fb1b82f6f7b544354485ce075d633c2676375",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/single_pose/box_grasp_oblique.rviz",
+        "sha256": "f3f7e6653752b7114e69d084699128dab329be73a1a986f37e00e83a0aaa64ee",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/single_pose/box_grasp_top.rviz",
+        "sha256": "7ae424d23e482d06e27d96103c0fb1b82f6f7b544354485ce075d633c2676375",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/rviz/prob_tf_link_cloud.rviz",
+        "sha256": "f3f607312d09ca5ccd354aed91a074a1ab5bf03f6249c350b9c6f187c527070f",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/rviz/probabilistic_tf_demo.rviz",
+        "sha256": "38740ec7067cb64bde974455b2dc6086a0213b6bb79c92f7405b11b814778863",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_K_corrected_live_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_K_corrected_live_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_K_corrected_live_20261017/view.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_full_run_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_full_run_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_v2_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_v2_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      }
+    ]
+  },
+  "all_independent_numerical_checks_passed": true,
+  "totals": {
+    "actual_law_publications": 381,
+    "core_point_queries": 16764,
+    "complete_J_updates": 381,
+    "modal_goal_TF_transforms": 381,
+    "raw_captures": 1778,
+    "selected_estimation_packets": 125,
+    "raw_native_modes": 2164,
+    "protected_RViz_files": 35
+  },
+  "world_existential_success_all_cases": false,
+  "universal_smoothness_or_stability_guarantee_claimed": false,
+  "task_success": false,
+  "known_followup_execution_defect": "Nominal0.5s duration was incorrectly used to force a zero request even with finite target error. Actual repeated stopped reaching intervals are recorded. The next source holds the selected finite position instead; no subsequent evidence is reused here.",
+  "supplementary_evidence": [
+    {
+      "path": "/tmp/probtf_single_update_ik_20261017/single_vs_three_update_measured_comparison.json",
+      "sha256": "7376d23605027eaf9fcf1c6e6fd6069b70888e5a42255bf1a1139768b74a74ac",
+      "bytes": 23366
+    },
+    {
+      "path": "/tmp/probtf_single_update_ik_20261017/forced_duration_braking_diagnostic.json",
+      "sha256": "e529450b392242c1833264da60b0a46bbba6ab5b3caa75b775023ceb97ebae22",
+      "bytes": 19586
+    }
+  ],
+  "figure": {
+    "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/validation/single_update_ik_20261017.png",
+    "sha256": "2545fc3bb67e03a4007c006de9aa7da8476b1ef989e0b351edd35546cf27c989",
+    "bytes": 469319
+  },
+  "historical_three_update": {
+    "source_freeze_sha256": "6e2b2a8caed67dbe210bf8c2c31b148f32e9d3d73abacd821a9c795ba6535291",
+    "report": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/validation/three_update_ik_20261017.json",
+      "sha256": "35fc2de46bb738a631041ec70c5bdea57beeaabca55be9804b3f9c9f85fef819",
+      "bytes": 99970
+    },
+    "status": "withdrawn after severe oscillation; transient reaches do not establish acceptable motion quality"
+  },
+  "validation_programs": [
+    {
+      "path": "/tmp/probtf_single_position_frozen_report.py",
+      "sha256": "60d97f6ff1f306beef117b63d97dec3035621833c7d1d06c7856c780a6dfef2b",
+      "bytes": 11078
+    },
+    {
+      "path": "/tmp/probtf_async_accuracy.py",
+      "sha256": "c8aa2bc61ba9d49e8c75f5b36697ca7a169d91801f9dfb4e7b5468e963564ec1",
+      "bytes": 9514
+    },
+    {
+      "path": "/tmp/probtf_marker_board_fov.py",
+      "sha256": "5b3adf661095099fe53f1b70ba0eef295a22f9bc85d4c94c8c2ca449a3d14438",
+      "bytes": 7051
+    },
+    {
+      "path": "/tmp/probtf_marker_board_geometry_audit.py",
+      "sha256": "1f4efbf51f7722c4c134736f60a14a40daaf2222c9af0a6af02f94c817a8c0e7",
+      "bytes": 3899
+    },
+    {
+      "path": "/tmp/probtf_single_update_supplement.py",
+      "sha256": "d60a8c56f0fee340c8c6446f1f4e3b920c47f2671c94ba85e08c826f8d5dbd04",
+      "bytes": 7789
+    }
+  ]
+}

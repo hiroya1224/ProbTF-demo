@@ -48,6 +48,12 @@ control:
   max_joint_acceleration: 0.3
   damping: 0.025
   integration_steps: 480
+  # Three successive IK updates form the short receding trajectory.
+  # Deflecomp-style log-K execution damping at the 20 Hz motion cadence.
+  # Each single-gradient IK calculation captures that time's filtered value.
+  execution_stiffness:
+    kp_exec_tau: 0.5
+    max_log_kp_exec_step: 0.05
   gradient_step: 0.00001
   gradient_max_backtracks: 3
   visual_approach:

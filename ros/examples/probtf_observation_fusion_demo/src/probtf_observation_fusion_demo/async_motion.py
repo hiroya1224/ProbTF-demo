@@ -30,8 +30,9 @@ from visualization_msgs.msg import MarkerArray
 
 from .async_state import ActionStep, RecordedCommandPath, predict_result
 from .async_stiffness import (PhysicalActionEngine, capture_stiffness_packet,
-                              reanchor_retained_stiffness)
+                              execution_sample_record, execution_stiffness_packet, reanchor_retained_stiffness)
 from .display import make_markers, save_snapshot, snapshot_record
+from .execution_stiffness import LogStiffnessDamper
 from .marker_search import MarkerSearchPolicy, marker_observed
 from .model import load_inputs, component_log_weight
 from .motion_display import MotionDisplay
@@ -40,6 +41,7 @@ from .moving_inference import MovingInference
 from .moving_scene import MovingSwitchScene, SensorInputs
 from .node import build_snapshot, image_message
 from .stiffness_identification import StiffnessIdentifier
+from .short_command import command_reference
 
 
 def _append(path, record):
@@ -164,7 +166,7 @@ def inference_worker(requests, replies, description, urdf, templates, output):
 
 
 def control_worker(requests, replies, description, urdf, templates, output, horizon):
-    """Center on approach, then repeat complete-criterion IK with that law/K."""
+    """Freeze one damped execution K with each complete-criterion IK plan."""
     cv2.setNumThreads(1)
     try:
         inference = MovingInference(description, templates)
@@ -185,21 +187,27 @@ def control_worker(requests, replies, description, urdf, templates, output, hori
                 target_stamp=request['stamp'], frame_index=request['index'],
                 body_ids=inference.body_ids, actions=inference.actions)
             if request['packet'] is None:
+                execution_packet = None
                 predicted = _unselected_parameter_view(predicted, source.records['stiffness'])
                 command_map = None
             else:
-                predicted, command_map = reanchor_retained_stiffness(engine, predicted, request['packet'])
+                execution_packet = execution_stiffness_packet(engine, predicted, request['packet'],
+                    request['execution_sample'], request.get('execution_packet'))
+                predicted, command_map = reanchor_retained_stiffness(engine, predicted, execution_packet)
             controller.velocity = np.array(request['velocity'], copy=True)
             command, diagnostics = controller.reaching_step(predicted, horizon, command_map=command_map)
+            diagnostics.update(ik_update_count=1, future_ik_updates=0, lookahead_enabled=False)
+            planned_velocity = (np.asarray(command)-np.asarray(predicted.prior.command))/horizon
             predicted.records['controller'] = diagnostics
             predicted.records['async_control'] = dict(
                 source_capture_index=request['capture_index'], prediction_index=request['index'],
-                prediction_stamp=request['stamp'], horizon_s=horizon,
+                prediction_stamp=request['stamp'], horizon_s=diagnostics['duration'],
+                ik_update_step_s=horizon, ik_update_count=1,
                 source_capture_stamp=source.prior.stamp,
                 source_capture_command=list(source.prior.command),
                 requested_velocity=(np.asarray(command)-np.asarray(predicted.prior.command)).tolist(),
                 velocity_units='joint displacement over horizon; see desired_velocity_rad_s',
-                desired_velocity_rad_s=controller.velocity.tolist(),
+                desired_velocity_rad_s=planned_velocity.tolist(),
                 physical_truth_received=False, monte_carlo_used=False)
             snapshot = replace(build_snapshot(predicted, predicted.stages[-1], inference.common),
                 summary='', show_labels=False, stiffness_record=predicted.records['stiffness'])
@@ -219,7 +227,7 @@ def control_worker(requests, replies, description, urdf, templates, output, hori
                 controller=diagnostics, stiffness=snapshot.stiffness_record,
                 snapshot=snapshot_record(snapshot), work_seconds=time.monotonic()-started))
             replies.put(dict(index=request['index'], capture_index=request['capture_index'],
-                packet=request['packet'], velocity=controller.velocity.copy(),
+                packet=execution_packet, velocity=planned_velocity.copy(),
                 snapshot=snapshot, markers_wire=wire.getvalue(), diagnostics=diagnostics,
                 work_seconds=time.monotonic()-started))
     except Exception:
@@ -249,6 +257,8 @@ class AsyncMotionSession:
         if not (self.period > 0. and self.camera_period > 0. and self.horizon >= self.period):
             raise ValueError('Positive asynchronous periods and an IK horizon >= motion period are required.')
         settings = self.settings['control']
+        self.execution_filter = LogStiffnessDamper(settings.get('execution_stiffness', {}))
+        self.execution_sample = self.execution_target_packet = None
         self.servo = MovingController(self.inference_description, self.scene.robot_description,
             settings['goal_offset'], settings['goal_orientation_wxyz'], settings)
         parameter_settings = yaml.safe_load((self.package/'config/stiffness_identification.yaml').read_text())
@@ -392,10 +402,41 @@ class AsyncMotionSession:
         if self.current_control is not None and (index == self.current_control['index']
                 and self.current_control['capture_index'] == self.last_assimilated_capture):
             return
-        self.control_requests.put(dict(result=self.latest_result, packet=self.latest_packet,
+        self._sample_execution_stiffness(self.frame.stamp)
+        self.control_requests.put(dict(result=self.latest_result, packet=self.execution_target_packet,
+            execution_sample=self.execution_sample,
+            execution_packet=None if self.current_control is None else self.current_control['packet'],
             capture_index=self.last_assimilated_capture, index=index, stamp=self.frame.stamp,
             steps=self._steps_since(self.last_assimilated_capture), velocity=self.velocity.copy()))
         self.control_busy = True
+
+    def _sample_execution_stiffness(self, stamp):
+        """Advance at motion cadence, even while both numerical workers wait."""
+        target = self.latest_packet if self.latest_packet is not None else self.execution_target_packet
+        if target is None:
+            return
+        if (self.execution_sample is not None and self.execution_sample['stamp'] == stamp
+                and target is self.execution_target_packet):
+            return
+        self.execution_sample = execution_sample_record(
+            self.execution_filter.advance(target.proposal['selected_K'], stamp), target)
+        self.execution_target_packet = target
+        _append(self.output/'execution_stiffness.jsonl', self.execution_sample)
+
+    def _reaching_plan_velocity(self, dt, interval_end_stamp):
+        """Follow the single selected position command without extrapolating it."""
+        if self.current_control is None:
+            return self.desired_velocity.copy(), dict(method='initial hold; no completed IK plan')
+        diagnostics = self.current_control['diagnostics']
+        reference = command_reference(diagnostics, interval_end_stamp)
+        requested = (np.asarray(reference['reference_command'])-self.command)/dt
+        reference.update(method='single selected IK position reference; ordinary actuator bounds apply',
+            source_capture_index=self.current_control['capture_index'],
+            execution_packet_id=None if self.current_control['packet'] is None else self.current_control['packet'].packet_id,
+            interval_end_stamp=interval_end_stamp, requested_velocity=requested.tolist(),
+            actual_command_before=self.command.tolist(),
+            new_IK_or_distribution_evaluation=False, physical_truth_received=False)
+        return requested, reference
 
     def poll(self):
         """Queue reads never wait for numerical work or share its mutable models."""
@@ -447,6 +488,7 @@ class AsyncMotionSession:
             elapsed = min(self.scene.duration, self.clock()-self.started)
             dt = elapsed-self.frame.time
             if dt > 1e-6:
+                self._sample_execution_stiffness(1792080000.+elapsed)
                 previous = self.clock()
                 self.servo.velocity = self.velocity.copy()
                 # Pixel detection stops an unnecessary search while the
@@ -474,12 +516,11 @@ class AsyncMotionSession:
                 plan.record.update(marker_detection_capture_index=self.preview_capture_index,
                     marker_detection_stamp=(None if self.preview_capture_index is None else
                         float(self.frames[self.preview_capture_index].stamp)))
+                reaching_execution = None
                 if plan.mode == 'reaching':
                     lower, upper, _, _ = self.servo._command_bounds(self.command, dt)
-                    requested_velocity = self.desired_velocity
-                    if (self.current_control is not None and self.clock()
-                            > self.control_times[-1]+self.horizon):
-                        requested_velocity = np.zeros_like(self.desired_velocity)
+                    requested_velocity, reaching_execution = self._reaching_plan_velocity(
+                        dt, 1792080000.+elapsed)
                     delta = np.clip(dt*requested_velocity, lower, upper)
                     command = self.command+delta
                     self.velocity = delta/dt
@@ -515,7 +556,7 @@ class AsyncMotionSession:
                     end_command=tuple(command), joint_increment=tuple(action['joint_increment']),
                     density_id=action.get('density_id'),
                     estimate_version=action['captured_body_posterior_versions'][0],
-                    selected_K=action.get('selected_K'), anchor_command=action.get('captured_source_command'),
+                    selected_K=action.get('selected_K'), anchor_command=action.get('numerical_branch_anchor_command'),
                     anchor_equilibrium=action.get('numerical_branch_anchor'),
                     source_state_ids=tuple(action.get('captured_body_posterior_state_ids', ())),
                     source_stamp=action.get('captured_source_stamp'),
@@ -539,7 +580,8 @@ class AsyncMotionSession:
                 self.publish_times.append(self.clock())
                 _append(self.output/'commands.jsonl', dict(step=step.record(),
                     velocity=self.velocity.tolist(), desired_velocity=self.desired_velocity.tolist(),
-                    behavior=plan.record, reaching_phase=phase, reaching_phase_source=phase_source,
+                    behavior=plan.record, reaching_execution=reaching_execution,
+                    reaching_phase=phase, reaching_phase_source=phase_source,
                     wall_elapsed_s=self.clock()-self.started))
                 previous = self.clock()
                 if capture_due:
@@ -592,10 +634,22 @@ class AsyncMotionSession:
             inference_busy=self.inference_busy, control_busy=self.control_busy,
             coordinator_last_timings_s=self.last_tick_timings,
             active_parameter_packet_id=None if self.engine.packet is None else self.engine.packet.packet_id,
+            latest_estimated_parameter_packet_id=None if self.latest_packet is None else self.latest_packet.packet_id,
+            latest_estimated_K=None if self.latest_packet is None else self.latest_packet.proposal['selected_K'],
+            interpolated_execution_K=None if self.execution_sample is None else self.execution_sample['execution_K'],
+            interpolated_execution_K_stamp=None if self.execution_sample is None else self.execution_sample['stamp'],
+            active_execution_K=None if self.engine.packet is None else self.engine.stiffness.tolist(),
             active_ik_capture_index=None if self.current_control is None else self.current_control['capture_index'],
-            ik_plan_horizon_s=self.horizon,
-            ik_plan_expired=(self.current_control is not None and
-                self.clock() > self.control_times[-1]+self.horizon),
+            ik_plan_horizon_s=(self.horizon
+                if self.current_control is None else self.current_control['diagnostics']['duration']),
+            ik_update_step_s=self.horizon,
+            ik_update_count=1,
+            future_ik_updates=0, lookahead_enabled=False,
+            ik_command_nominal_end_stamp=(None if self.current_control is None else
+                self.current_control['diagnostics']['source_stamp']+self.current_control['diagnostics']['duration']),
+            ik_command_past_selected_duration=(self.current_control is not None and
+                self.frame.stamp >= self.current_control['diagnostics']['source_stamp']
+                    +self.current_control['diagnostics']['duration']),
             marker_search_mode=self.last_action_mode,
             implementation_sha256=self.source_hashes,
             implementation_unchanged_during_execution=self.source_hashes == {

@@ -1,0 +1,2414 @@
+{
+  "schema": "probtf.damped_execution_K_validation.v1",
+  "date": "2026-10-17",
+  "complete": true,
+  "scope": "Two source-scoped 60-wall-second marker/IMU+marker actual seven-channel runs with execution-only log-K damping. Raw estimated K density/representative records are distinct from the filtered request sample and the atomically adopted frozen execution packet. Native board/Bayes/body/goal law identity, actual-ledger, full-J and physical outcomes are checked separately.",
+  "source_freeze": {
+    "path": "/tmp/probtf_damped_execution_K_20261017/source_freeze.json",
+    "sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+    "bytes": 13353,
+    "file_count": 40,
+    "files": [
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_core/src/probtf/spherical_law/first_order.py",
+        "relative_path": "ros/core/probtf_core/src/probtf/spherical_law/first_order.py",
+        "sha256": "5c37d6379e2cccca369a127d0f9d096166f219de938ce0a48e5a74852754c8fa"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/common.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/common.yaml",
+        "sha256": "994306ed66f5091c29cfd1608c8632f5d635e5e0976f7ad038327086c8be0fa8"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/imu.yaml",
+        "sha256": "ae63815ea690cd9f1ed89f71c2400f8a14556082250dc00d650b17afcd1e944d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_hand.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/imu_hand.yaml",
+        "sha256": "3ace3e469e55c89b09580d5642c8b39053c82a6dff6a67c9d2e5c46275224280"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/imu_marker.yaml",
+        "sha256": "06ae21320718ce839e2297abe3a880400aa12681a76de0b6e1ae8ed0ea568a68"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/marker.yaml",
+        "sha256": "bdc5684e172da1b51ec9b5d03c601e51cbf1022b12c5596e66e0af7cf01aaf3d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/moving_estimation.yaml",
+        "sha256": "8b04d3569809c75b479394a072b157a481edb042406b702f395a9877a6cf0112"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/no_sensors.yaml",
+        "sha256": "42a77d50f697602baf608efcd0322edae49d769b16b0a1ec7404d9ca8d8aa4cb"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/stiffness_identification.yaml",
+        "sha256": "68a5a4e985ca7a7e5c49e24599720ae05864ca37b0ad937e4634be08d8f288c6"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/config/switch_press_scene.yaml",
+        "sha256": "8e69ed37c2f13628fdbf034d27290d4883f22bb27b41a01fb915443814ec1cf5"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/common.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/common.launch",
+        "sha256": "b95d711a9d13e4db11f7ba4693a80fe26851e61d6ed47f7f28e7d6c839ba7455"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/imu.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/imu.launch",
+        "sha256": "baffcd7a60cad9c183204edcfb0fcb821b4dc6e08c4afc866aefaf71a965dfce"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/imu_hand.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/imu_hand.launch",
+        "sha256": "668bf2a0790c37f2c00bb1479e92796822fa6c1092173c03be785fa29ba9be6d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/imu_marker.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/imu_marker.launch",
+        "sha256": "b1fc2040f118ca10c0e64e5661581366e422898c4a9b521f29648b2b1c24033d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/marker.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/marker.launch",
+        "sha256": "14f34c654dda797e917cdbad817d5506ed81ea7728caa586af33f071917fac58"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/launch/no_sensors.launch",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/launch/no_sensors.launch",
+        "sha256": "ff5ca149aa785e0744398ad2bf5840197592410cbb93212597291ed7c837f5f4"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/__init__.py",
+        "sha256": "b6bb2f997e4d75518bafa7dcda55a293ae0f592f31eb5b57ffcd32614cd8575f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_motion.py",
+        "sha256": "5c5dc26dbd5f593a5628825bf48a276091cf90aedf534262854dc0e12b347e5c"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_state.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_state.py",
+        "sha256": "092f98455906662190534480ae767c184a3640edc367e74c83856851dc35a98b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/async_stiffness.py",
+        "sha256": "6d9e3af2619399efe56e914f6d3696e8c667dffe366d07693347886ab9c2b58f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/bayes_factor.py",
+        "sha256": "53139568c2bb07d95d3984a7f33acea6ca74c966fc41cee0c4187bb73820376b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/board_camera.py",
+        "sha256": "e5830b3321fcde0e31c0fa17b4977732e43502736632fc01a93f6218c0655778"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/body_projection.py",
+        "sha256": "74a473dba2da1d113ac05404c1a4e770783b0f0fd2ac3e9c244181576c8eef7b"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/display.py",
+        "sha256": "d88d70771c0ad405f72931db8cc79747fe8a24b7e574328dcade1a3af330bad5"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/execution_stiffness.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/execution_stiffness.py",
+        "sha256": "a1a5b5e984eb6e0bdc9a80d318f5c541f5dd1622ce82c06c046ae623ae350f98"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/fresh_goal.py",
+        "sha256": "60dde9dcaf41c2fd158fe05f72e2b82aa2b7fc99bff7d9a4084cdca8646e07b7"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_board.py",
+        "sha256": "c03cc89017e11292404cea97f479bce0de3ebbd1213a7169b4e326980dbd80fa"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py",
+        "sha256": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/model.py",
+        "sha256": "c26da0f69f2416f68af6168b0a757654f73589d7f2fa00bd90a37840eabf25fc"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_display.py",
+        "sha256": "f55951130cd64440be72bf66ead357ade933f7e199c0b5ae27814ec3ca63bb7a"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/motion_node.py",
+        "sha256": "c57f6061bce40c6946f1f62c7aded66dfed70e7d612bd2b00773b3bafe83b409"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_control.py",
+        "sha256": "171cb35d65b8b05de239b5ec0e54dd96bd5292e9076cd241b7d3b405c867356f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_inference.py",
+        "sha256": "87a43456baa39adab01470b78473cbc24c02ede6c81ade8a7e88cc02759b7e6f"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/moving_scene.py",
+        "sha256": "be28842b15122b271600878da39d32011de851333c6b5a982686a3403dae42b4"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/node.py",
+        "sha256": "17f2feed3540c250caa06dcb19c1a446c2112fb67f391aa35ef5debdd2932161"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/scene.py",
+        "sha256": "5240fb8103f97f3e1adfbf5428af61c83e0b65632f972a28658000a7bed3cabe"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/sensors.py",
+        "sha256": "079db5b231e3db65d9f6d8b6fd869cd2055e21ddf189e44d2fe0a3bced68301d"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_command.py",
+        "sha256": "05c5952e7508edc5f2f82967cc7f2c73a7c57454662f8e6e785e9c6d3e5afb15"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/stiffness_identification.py",
+        "sha256": "577c6eeb10ed1f3f44c4e0b55bababcb245e5af9a0b47d6844a938637b9d02bc"
+      },
+      {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visual_approach.py",
+        "relative_path": "ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/visual_approach.py",
+        "sha256": "3566ca1d6164f34dfabb411185520b7144051ba128129aedc5bf3e82af13edb7"
+      }
+    ],
+    "frozen_bytes_root": "/tmp/probtf_damped_execution_K_20261017/frozen_source"
+  },
+  "source_end_checkpoint": {
+    "path": "/tmp/probtf_damped_execution_K_20261017/source_end_checkpoint.json",
+    "sha256": "4b6a391b039e54deaa65465a12dff493ef5b78807d6a468960173429e81170df",
+    "bytes": 10358
+  },
+  "tests": {
+    "passed": 524,
+    "seconds": 129.87,
+    "log": {
+      "path": "/tmp/probtf_damped_execution_K_20261017/pytest_clean.log",
+      "sha256": "b4801551a98a41f577ac7cd94c0f39d3bc13a33d561c314848d9c0d192835cc7",
+      "bytes": 1139
+    },
+    "warnings": [
+      "one preexisting hppfcl-to-coal deprecation warning"
+    ]
+  },
+  "runtime_override": {
+    "async_duration_s": 60.0,
+    "default_configuration_duration_s": 30.0
+  },
+  "board": {
+    "ids": [
+      [
+        17,
+        18,
+        19
+      ],
+      [
+        20,
+        21,
+        22
+      ],
+      [
+        23,
+        24,
+        25
+      ]
+    ],
+    "center_id": 21,
+    "marker_size_m": 0.072,
+    "pitch_m": 0.09,
+    "white_base_and_image_outer_size_m": [
+      0.27,
+      0.27
+    ],
+    "central_frame_and_switch_relation_unchanged": true,
+    "whole_board_blur_noise_once": true
+  },
+  "method": {
+    "raw_individual_native_mixtures_and_log_masses_retained": true,
+    "central_fusion": "ascending-ID image-only ADF with known attachments; broad intermediate projection deferred with every full-covariance branch retained; broad final mixture retained",
+    "common_body_camera_prior_used_in_board_fusion": false,
+    "body_camera_lift_once_downstream": true,
+    "core_math_changed_for_board_or_control": false,
+    "monte_carlo_used": false,
+    "physical_truth_input_to_inference_or_control": false,
+    "body_regenerated_from_K": false,
+    "selection": "Every reaching cycle evaluates the complete Gaussian/Bingham-mixture J and one complete gradient; visual centering is only an initial-point proposal. Accepted candidates are checked against the recorded position-error expectation constraint."
+  },
+  "cases": {
+    "marker": {
+      "complete": true,
+      "seven_channel_audit": {
+        "path": "/tmp/probtf_damped_execution_K_20261017/marker_live_audit.json",
+        "sha256": "4fb5fadaa1b7f8677ce1abdc42acb2171043f432bc4a96830a7598a71c22c68a",
+        "bytes": 573288
+      },
+      "actual_subscriber_counts": {
+        "snapshot": 194,
+        "wire": 194,
+        "stiffness": 194,
+        "motion": 1324,
+        "scene": 494,
+        "tf": 1324,
+        "goal_tf_sources": 194
+      },
+      "actual_controller_laws": 194,
+      "all_snapshot_wire_stiffness_TF_sources_received_without_gap": true,
+      "actual_core_point_queries": 8536,
+      "modal_goal_TF": {
+        "actual_tf_messages": 1324,
+        "actual_goal_source_messages": 194,
+        "candidate_laws_verified": 194,
+        "goal_transforms_verified": 194,
+        "initial_candidate_TF_received": true,
+        "all_modal_goal_poses_weights_log_weights_and_sources_equal_actual_snapshot": true,
+        "explicit_ROS_simulation_clock_mapping_and_age_verified": true
+      },
+      "physical_frames": 1132,
+      "executed_command_intervals": 1131,
+      "actual_orange_trajectory_prefix_intervals_verified": 0,
+      "raw_captures": 886,
+      "selected_estimation_packets": 61,
+      "archived_not_assimilated_captures": 825,
+      "raw_image_IMU_command_hash_and_explicit_selection_partition_verified": true,
+      "IMU_attachment_link": [
+        "link_3"
+      ],
+      "native_BF_joint_evidence_full_within_between_checks": 61,
+      "missing_marker_keep_reset_cross_checks": 0,
+      "missing_marker_selected_packets": 0,
+      "all_observations_missing_identity_packets": 0,
+      "all_actual_frozen_execution_K_command_ledgers_and_next_prior_sources_verified": true,
+      "same_body_goal_law_and_explicit_execution_K_on_control_display_verified": true,
+      "board_image_only_fusion": {
+        "fresh_updates": 61,
+        "raw_tag_observations": 519,
+        "raw_native_modes": 1038,
+        "native_core_center_queries": 1038,
+        "deferred_projection_events": 0,
+        "final_mixture_fallback_updates": 0,
+        "maximum_live_branch_count": 2,
+        "central_component_count_histogram": {
+          "1": 61
+        },
+        "quaternion_second_moment_fit_error": {
+          "count": 61,
+          "minimum": 9.992007221626409e-16,
+          "median": 2.7755575615628914e-15,
+          "maximum": 1.0297318553398327e-14
+        },
+        "all_raw_native_modes_pixels_and_full_cross_products_independently_checked": true,
+        "sensitive_density_check": "Independent chart/full covariance check at fixed tolerances, then recompute products/evidence from exactly disclosed Gaussian operands to avoid condition-amplified last-bit differences; no tolerance widening."
+      },
+      "raw_image_visibility": {
+        "raw_captures": 886,
+        "any_marker_detected": 882,
+        "no_marker_detected": 4,
+        "center_ID_detected": 819,
+        "other_ID_visible_while_center_missing": 63,
+        "detected_to_lost_transitions": 3,
+        "detection_count_histogram": {
+          "9": 735,
+          "8": 33,
+          "7": 16,
+          "6": 59,
+          "5": 7,
+          "3": 10,
+          "4": 10,
+          "2": 6,
+          "1": 6,
+          "0": 4
+        },
+        "per_marker_detected_count": {
+          "17": 854,
+          "18": 850,
+          "19": 837,
+          "20": 864,
+          "21": 819,
+          "22": 836,
+          "23": 806,
+          "24": 807,
+          "25": 795
+        },
+        "any_physical_tag_fully_inside": 886,
+        "all_physical_tags_fully_inside": 831,
+        "detected_tag_edge_margin_px": {
+          "count": 7468,
+          "min": 3.50860595703125,
+          "median": 193.2533721923828,
+          "max": 327.7471618652344
+        },
+        "by_reaching_phase": {
+          "indet_ik": {
+            "captures": 885,
+            "any_marker_detected": 881,
+            "central_ID_detected": 818
+          },
+          "waiting_for_control": {
+            "captures": 1,
+            "any_marker_detected": 1,
+            "central_ID_detected": 1
+          }
+        },
+        "selected_board_goal_updates": 61,
+        "selected_usable_tag_counts": {
+          "9": 51,
+          "8": 2,
+          "7": 2,
+          "6": 4,
+          "3": 2
+        },
+        "selected_central_component_counts": {
+          "1": 61
+        },
+        "final_physical_hand_goal_error_m": 0.008462861088331924,
+        "minimum_physical_hand_goal_error_m": 0.004439298203878722
+      },
+      "actual_board_scene_geometry": {
+        "complete": true,
+        "source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "actual_scene_messages": 494,
+        "native_tag_triangle_lists_verified": 4446,
+        "native_marker_size_m": 0.072,
+        "pitch_m": 0.09,
+        "white_base_size_m": [
+          0.27,
+          0.27,
+          0.001
+        ],
+        "image_board_outer_size_m": [
+          0.27,
+          0.27
+        ],
+        "central_frame_and_button_relation_unchanged": true,
+        "separate_display_size_multiplier_used": false,
+        "validation_script_sha256": "1f4efbf51f7722c4c134736f60a14a40daaf2222c9af0a6af02f94c817a8c0e7"
+      },
+      "fresh_goal_core_inverse_closure": {
+        "translation_error_m": {
+          "count": 61,
+          "minimum": 3.77901430024502e-05,
+          "median": 0.0002777263333166682,
+          "maximum": 0.0005960275197454358
+        },
+        "rotation_error_rad": {
+          "count": 61,
+          "minimum": 2.8536228859995878e-08,
+          "median": 5.0689621763906326e-08,
+          "maximum": 8.997784399866214e-07
+        },
+        "maximum_covariance_error": {
+          "count": 61,
+          "minimum": 6.286237642059529e-11,
+          "median": 1.463663409464456e-10,
+          "maximum": 2.029837913276239e-09
+        },
+        "approximation_residual_recorded_without_recentering": true
+      },
+      "full_J_selection_independent_audit": {
+        "proof": {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_progress_independent_audit.json",
+          "sha256": "2b29efd75895553a7bd1720561fff009dd87f3799e4fea2777d991c3bbcc0f5d",
+          "bytes": 491152
+        },
+        "counts": {
+          "accepted_visual_initial_points": 66,
+          "rejected_position_trials": 308,
+          "line_search_trials": 437,
+          "full_J_gradient_cycles": 194
+        },
+        "failures": [],
+        "maximum_numeric_differences": {
+          "selected query_mean": 0.0,
+          "selected query_covariance": 0.0,
+          "selected query_within": 0.0,
+          "selected query_between": 0.0,
+          "selected relative_position_covariance": 0.0,
+          "selected J": 0.0,
+          "selected s": 2.7755575615628914e-17,
+          "braking J": 0.0,
+          "initial J": 0.0,
+          "braking s": 2.7755575615628914e-17,
+          "initial s": 2.7755575615628914e-17,
+          "complete gradient": 0.0,
+          "position expectation gradient": 5.551115123125783e-12,
+          "line-search J": 0.0,
+          "line-search s": 2.7755575615628914e-17,
+          "Armijo bound": 0.0,
+          "selected line-search scale": 0.0,
+          "display goal mean": 0.0,
+          "display goal covariance": 0.0,
+          "display goal within": 0.0,
+          "display goal between": 0.0
+        },
+        "executed_interval_progress": {
+          "meaning": "same adopted control law pushed through the actual recorded command history to each interval endpoint; no observation update is compared",
+          "guaranteed_by_horizon_constraint": false,
+          "intervals": 1131,
+          "reaching_intervals": 1015,
+          "reaching_s_increase_count": 156,
+          "reaching_maximum_s_increase": 0.0001950162515393719,
+          "reaching_total_s_change": -0.13682267542116752
+        },
+        "failure_decomposition": {}
+      },
+      "physical_result": {
+        "final_error_m": 0.008462861088331924,
+        "minimum_error_m": 0.004439298203878722,
+        "minimum_error_time_s": 51.310332695022225,
+        "reached": false,
+        "ever_reached": true,
+        "first_reach_time_s": 51.310332695022225,
+        "collided": false,
+        "any_forbidden_collision_during_trajectory": false,
+        "world_success": true,
+        "reach_tolerance_m": 0.006
+      },
+      "runtime_rates": {
+        "actual_motion_hz": 18.824768140325745,
+        "actual_camera_hz": 14.747632710265025,
+        "actual_control_hz": 3.039449211542446,
+        "actual_estimate_hz": 0.9435872575141443
+      },
+      "subscriber_measured_rates": {
+        "received_physical_metadata_hz": 18.825221450965202,
+        "received_snapshot_hz": 3.160944927609611,
+        "received_wire_hz": 3.161174968847726,
+        "received_stiffness_hz": 3.1609529163209937,
+        "received_scene_hz": 7.146322272363037,
+        "received_estimate_acceptance_hz": 0.96710615071389,
+        "captured_observation_time_hz": 14.75,
+        "window_excludes_autostart_wait_and_final_drain": true,
+        "arrival_clock": "subscriber monotonic reception_log",
+        "motion_window_start_arrival_clock": 2836627.5670442143,
+        "motion_window_end_arrival_clock": 2836687.5670442143,
+        "mean_control_work_s": 0.20575553980252714,
+        "mean_estimate_work_s": 0.8942295339676078,
+        "physical_period_s": {
+          "minimum": 0.00631347019225359,
+          "median": 0.05462417984381318,
+          "maximum": 0.12227392802014947
+        },
+        "display_lag_s": {
+          "minimum": 0.03330588340759277,
+          "median": 0.45153069496154785,
+          "maximum": 0.6773014068603516
+        },
+        "observation_lag_s": {
+          "minimum": 0.03330588340759277,
+          "median": 1.586416482925415,
+          "maximum": 3.4766640663146973
+        }
+      },
+      "absolute_pose_accuracy": {
+        "covariance_width_definition": "3*sqrt(trace(P)), a diagnostic Euclidean width; anisotropic Gaussian proxy coverage uses support-aware Mahalanobis chi-square95",
+        "body": {
+          "camera": {
+            "control_publications": 194,
+            "final": {
+              "frame_label": "camera",
+              "position_mean_error_m": 0.3031827070498409,
+              "three_root_trace_covariance_m": 0.03008866295048919,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 4451.7660600461795,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.4017724197639059,
+              "orientation_root_trace_covariance_rad": 0.019186758730549244,
+              "orientation_mahalanobis_squared": 1723.7823204607973,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.21755664899576385,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 5
+          },
+          "hand": {
+            "control_publications": 194,
+            "final": {
+              "frame_label": "hand",
+              "position_mean_error_m": 0.4277028526428193,
+              "three_root_trace_covariance_m": 0.04148529767897194,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 6665.251105601482,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.4017724197639061,
+              "orientation_root_trace_covariance_rad": 0.019186758730549244,
+              "orientation_mahalanobis_squared": 1723.7823204607942,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.32161903194234287,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 5
+          },
+          "link_1": {
+            "control_publications": 194,
+            "final": {
+              "frame_label": "link_1",
+              "position_mean_error_m": 3.320767617718334e-05,
+              "three_root_trace_covariance_m": 0.0025965523344805706,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 0.0044232579586368104,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": true,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.06722805476913385,
+              "orientation_root_trace_covariance_rad": 0.04171132545708444,
+              "orientation_mahalanobis_squared": 14.667250447805422,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 3.24348664625123e-05,
+            "count_within_gaussian_proxy_95_region": 194,
+            "count_orientation_within_gaussian_proxy_95_region": 84
+          },
+          "link_2": {
+            "control_publications": 194,
+            "final": {
+              "frame_label": "link_2",
+              "position_mean_error_m": 0.012155660957910045,
+              "three_root_trace_covariance_m": 0.016947045292349465,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 14.859486047455102,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.19348502985204288,
+              "orientation_root_trace_covariance_rad": 0.046951330258543415,
+              "orientation_mahalanobis_squared": 279.29716969836016,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.011619728560402331,
+            "count_within_gaussian_proxy_95_region": 88,
+            "count_orientation_within_gaussian_proxy_95_region": 9
+          },
+          "link_3": {
+            "control_publications": 194,
+            "final": {
+              "frame_label": "link_3",
+              "position_mean_error_m": 0.058497331561635786,
+              "three_root_trace_covariance_m": 0.036780520999611085,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 411.6769839391148,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.42288189739730425,
+              "orientation_root_trace_covariance_rad": 0.053610406138355104,
+              "orientation_mahalanobis_squared": 706.2592749582464,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.051413193458526366,
+            "count_within_gaussian_proxy_95_region": 11,
+            "count_orientation_within_gaussian_proxy_95_region": 0
+          },
+          "link_4": {
+            "control_publications": 194,
+            "final": {
+              "frame_label": "link_4",
+              "position_mean_error_m": 0.15496843558092066,
+              "three_root_trace_covariance_m": 0.028942607083097954,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1016.0232943445753,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.39453018049164135,
+              "orientation_root_trace_covariance_rad": 0.060547162768741315,
+              "orientation_mahalanobis_squared": 284.831106498014,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.11526252267536977,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 5
+          },
+          "link_5": {
+            "control_publications": 194,
+            "final": {
+              "frame_label": "link_5",
+              "position_mean_error_m": 0.20693427453507285,
+              "three_root_trace_covariance_m": 0.02562699173265609,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 3459.6112509961267,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.4455320942598091,
+              "orientation_root_trace_covariance_rad": 0.06091526951220942,
+              "orientation_mahalanobis_squared": 207.78596926643272,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.15562331702677543,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 4
+          },
+          "link_6": {
+            "control_publications": 194,
+            "final": {
+              "frame_label": "link_6",
+              "position_mean_error_m": 0.2591895245840476,
+              "three_root_trace_covariance_m": 0.02480956294441183,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 4524.030266000093,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.4017724197639061,
+              "orientation_root_trace_covariance_rad": 0.019186758730549244,
+              "orientation_mahalanobis_squared": 1723.7823204607942,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.1940777765150667,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 5
+          },
+          "tool0": {
+            "control_publications": 194,
+            "final": {
+              "frame_label": "tool0",
+              "position_mean_error_m": 0.29877099363302634,
+              "three_root_trace_covariance_m": 0.02838502444372401,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 4976.7317045198315,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.4017724197639061,
+              "orientation_root_trace_covariance_rad": 0.019186758730549244,
+              "orientation_mahalanobis_squared": 1723.7823204607942,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.22337589089468993,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 5
+          }
+        },
+        "calibration_claimed": false
+      },
+      "final_capture_drained": true,
+      "final_capture_index": 1131,
+      "final_prediction_age_s": 0.0,
+      "evidence": [
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker/estimation.jsonl",
+          "sha256": "68f1d39e4082666ca48c65bab1d481efab15827110cb8802c076f261f23addcc",
+          "bytes": 170150784
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker/control.jsonl",
+          "sha256": "3500a957b457433578efb40cc195dc5f180bcffd3e84518f6b6d9cbc7d045e36",
+          "bytes": 170560760
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker/commands.jsonl",
+          "sha256": "38f566a7c4e26cec837d9052b5c30280fc4dcb8ff0fcdbea55e9c5b88c6a7e14",
+          "bytes": 12276400
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker/captures.jsonl",
+          "sha256": "28cc03c5ea9106f9b79113f214f86e10d25e64acfa855dd13c1019ee37b029c2",
+          "bytes": 456921
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker/assimilation_selection.jsonl",
+          "sha256": "3920f2933a9d3b151ec18b69a043ce32cfc2a22f16bfa8e37e5d1fdae29e1860",
+          "bytes": 19215
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker/physical_trajectory.jsonl",
+          "sha256": "26eb3874df7333e5f5a8ef8048a2f62d5ca505851357dea14e8e9b6d7128e0d5",
+          "bytes": 1595437
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_received/reception_log.jsonl",
+          "sha256": "d6102e7bee0338f767ee3a3e78f8a8034a165b83c846357fafd8d60e0477a0f6",
+          "bytes": 844209
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_received/board_fov_analysis.json",
+          "sha256": "25ea5fcd5f49cd835abaf8d415f48cbd17d43252f356932cafc676689e726ff5",
+          "bytes": 5586369
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_received/board_geometry_audit.json",
+          "sha256": "8e4a934b7a80a76c693e0f0ed8a933366359efc127facf547f2c6abc0903f2bd",
+          "bytes": 586
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_received/physical_pose_accuracy.json",
+          "sha256": "e490df0cc3e7546c506c52b4f852ac18ee938a9cdfaff6fe958d7c323da0a3be",
+          "bytes": 1428190
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_received/measured_rates.json",
+          "sha256": "95d5108dae6f7a190a76912fca64d2ce3f5368db773258779c24deb1af9720d5",
+          "bytes": 1052
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_progress_independent_audit.json",
+          "sha256": "2b29efd75895553a7bd1720561fff009dd87f3799e4fea2777d991c3bbcc0f5d",
+          "bytes": 491152
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker/execution_stiffness.jsonl",
+          "sha256": "e837149128b1fd0961b9ea1e74019f139854d4e31b2d364550bcba0da73d0704",
+          "bytes": 1669547
+        }
+      ],
+      "K_representative_independent_audit": {
+        "proof": {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_K_representative_independent_audit.json",
+          "sha256": "81f3827c8be4da35993f594f50efda38792142555c7e78b2fda6860af2a113ec",
+          "bytes": 42951
+        },
+        "source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "failures": [],
+        "counts": {
+          "new_density_count": 61,
+          "new_density_refined_count": 61,
+          "accepted_score_step_count": 61,
+          "representative_changed_count": 60,
+          "IK_cycles_same_estimated_source_and_applied_K": 194,
+          "actual_intervals_same_estimated_source_and_applied_K": 1131
+        },
+        "max_absolute_differences": {
+          "base density": 0.0,
+          "base score": 0.0,
+          "selected density": 0.0,
+          "selected score": 0.0,
+          "selected exponentiation": 0.0,
+          "score displacement": 0.0,
+          "deterministic backtrack scale": 0.0,
+          "representative Armijo bound": 0.0,
+          "representative trial density": 0.0,
+          "accepted score step selected": 0.0,
+          "representative equilibrium": 0.0
+        },
+        "scope": "recorded full continuous density and score restored, every bounded representative step checked, unchanged estimated K traced separately from the applied K into IK and actual command ledger; no true stiffness input",
+        "unchanged_density_bitwise_hold_observed_in_this_run": false,
+        "unchanged_density_bitwise_hold_scope": "The direct-density identity branch is unit-tested; no real same-factor epoch is claimed when the observed count is zero."
+      },
+      "visible_hold_policy_independent_audit": {
+        "proof": {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_visible_hold_policy_independent_audit.json",
+          "sha256": "f67a25a36684b3538f3f1df6c3ba2ca2423a1c98859cda1859ebeeb33efc38a7",
+          "bytes": 33065
+        },
+        "source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "failures": [],
+        "counts": {
+          "raw_positive_intervals": 1125,
+          "reaching_intervals": 1015,
+          "braking_intervals": 11,
+          "raw_positive_braking_intervals": 5,
+          "settling_intervals": 105
+        },
+        "max_absolute_differences": {
+          "actual velocity equals executed interval": 1.9047263766225342e-14,
+          "bounded local servo exact interval": 0.0,
+          "raw reacquisition brakes to zero": 1.734723475976807e-18
+        },
+        "raw_positive_search_intervals": 0,
+        "waiting_hold_intervals": 105,
+        "waiting_beyond_settle_time_intervals": 83,
+        "waiting_hold_max_velocity": 0.0,
+        "waiting_hold_max_command_increment": 0.0,
+        "resumed_after_stop_count": 3,
+        "scope": "actual adopted raw-preview index and timestamp, same fused goal and committed IK source, exact bounded local command intervals, stopped post-stop-observation resume; no physical truth input"
+      },
+      "execution_K_independent_audit": {
+        "proof": {
+          "path": "/tmp/probtf_damped_execution_K_20261017/marker_execution_K_independent_audit.json",
+          "sha256": "4cbe2286ebb4d79db7bb5c1efe4d3951b0b0efb9284914ed5624fa4839566e49",
+          "bytes": 1472
+        },
+        "source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "counts": {
+          "estimated_packets": 61,
+          "filter_samples": 1134,
+          "filter_steps_with_unchanged_estimate_and_changed_execution": 1061,
+          "capped_filter_components": 3,
+          "IK_frozen_execution_packets": 194,
+          "actual_intervals": 1131,
+          "exact_historical_catchup_paths": 254,
+          "exact_historical_catchup_steps": 7078,
+          "filter_samples_not_used_by_IK": 940
+        },
+        "failures": [],
+        "max_absolute_differences": {
+          "estimated logarithm": 0.0,
+          "filter wall-motion dt": 0.0,
+          "filter lag alpha": 0.0,
+          "filter pre-cap log step": 0.0,
+          "filter capped log step": 0.0,
+          "filter execution log K": 0.0,
+          "filter execution K": 0.0,
+          "selected action uses filtered-K equilibrium": 0.0,
+          "selected action uses filtered-K joint increment": 0.0,
+          "selected action uses filtered-K sensitivity": 0.0,
+          "actual source equilibrium": 0.0,
+          "actual query equilibrium": 0.0,
+          "actual applied-K joint increment": 0.0,
+          "actual applied-K command Jacobian": 0.0,
+          "next-prior sum of actual applied-K increments": 0.0
+        },
+        "scope": "20 Hz filter recurrence independently recomputed; unchanged full estimated records/density/proposals; request samples frozen with IK, same epoch actual ledger, deterministic auxiliary mechanics, and actual historical next-prior/catchup replay. Filter signal is not a posterior."
+      }
+    },
+    "imu_marker": {
+      "complete": true,
+      "seven_channel_audit": {
+        "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_live_audit.json",
+        "sha256": "3d15e642c9df84aaae51b5ff6bcc74c69929c072a4f0dbcb6aadde3b01ef605d",
+        "bytes": 595607
+      },
+      "actual_subscriber_counts": {
+        "snapshot": 199,
+        "wire": 199,
+        "stiffness": 199,
+        "motion": 1286,
+        "scene": 484,
+        "tf": 1286,
+        "goal_tf_sources": 199
+      },
+      "actual_controller_laws": 199,
+      "all_snapshot_wire_stiffness_TF_sources_received_without_gap": true,
+      "actual_core_point_queries": 8756,
+      "modal_goal_TF": {
+        "actual_tf_messages": 1286,
+        "actual_goal_source_messages": 199,
+        "candidate_laws_verified": 199,
+        "goal_transforms_verified": 199,
+        "initial_candidate_TF_received": true,
+        "all_modal_goal_poses_weights_log_weights_and_sources_equal_actual_snapshot": true,
+        "explicit_ROS_simulation_clock_mapping_and_age_verified": true
+      },
+      "physical_frames": 1117,
+      "executed_command_intervals": 1116,
+      "actual_orange_trajectory_prefix_intervals_verified": 0,
+      "raw_captures": 893,
+      "selected_estimation_packets": 64,
+      "archived_not_assimilated_captures": 829,
+      "raw_image_IMU_command_hash_and_explicit_selection_partition_verified": true,
+      "IMU_attachment_link": [
+        "link_3"
+      ],
+      "native_BF_joint_evidence_full_within_between_checks": 64,
+      "missing_marker_keep_reset_cross_checks": 0,
+      "missing_marker_selected_packets": 0,
+      "all_observations_missing_identity_packets": 0,
+      "all_actual_frozen_execution_K_command_ledgers_and_next_prior_sources_verified": true,
+      "same_body_goal_law_and_explicit_execution_K_on_control_display_verified": true,
+      "board_image_only_fusion": {
+        "fresh_updates": 64,
+        "raw_tag_observations": 528,
+        "raw_native_modes": 1056,
+        "native_core_center_queries": 1056,
+        "deferred_projection_events": 0,
+        "final_mixture_fallback_updates": 0,
+        "maximum_live_branch_count": 2,
+        "central_component_count_histogram": {
+          "1": 64
+        },
+        "quaternion_second_moment_fit_error": {
+          "count": 64,
+          "minimum": 6.661338147750939e-16,
+          "median": 2.7755575615628914e-15,
+          "maximum": 8.604228440844963e-15
+        },
+        "all_raw_native_modes_pixels_and_full_cross_products_independently_checked": true,
+        "sensitive_density_check": "Independent chart/full covariance check at fixed tolerances, then recompute products/evidence from exactly disclosed Gaussian operands to avoid condition-amplified last-bit differences; no tolerance widening."
+      },
+      "raw_image_visibility": {
+        "raw_captures": 893,
+        "any_marker_detected": 893,
+        "no_marker_detected": 0,
+        "center_ID_detected": 834,
+        "other_ID_visible_while_center_missing": 59,
+        "detected_to_lost_transitions": 0,
+        "detection_count_histogram": {
+          "9": 756,
+          "8": 27,
+          "7": 5,
+          "6": 65,
+          "5": 7,
+          "4": 11,
+          "2": 11,
+          "1": 5,
+          "3": 6
+        },
+        "per_marker_detected_count": {
+          "17": 866,
+          "18": 862,
+          "19": 858,
+          "20": 875,
+          "21": 834,
+          "22": 850,
+          "23": 810,
+          "24": 811,
+          "25": 803
+        },
+        "any_physical_tag_fully_inside": 893,
+        "all_physical_tags_fully_inside": 828,
+        "detected_tag_edge_margin_px": {
+          "count": 7569,
+          "min": 3.0,
+          "median": 179.6307373046875,
+          "max": 327.0502624511719
+        },
+        "by_reaching_phase": {
+          "indet_ik": {
+            "captures": 892,
+            "any_marker_detected": 892,
+            "central_ID_detected": 833
+          },
+          "waiting_for_control": {
+            "captures": 1,
+            "any_marker_detected": 1,
+            "central_ID_detected": 1
+          }
+        },
+        "selected_board_goal_updates": 64,
+        "selected_usable_tag_counts": {
+          "9": 51,
+          "8": 4,
+          "6": 5,
+          "2": 3,
+          "1": 1
+        },
+        "selected_central_component_counts": {
+          "1": 64
+        },
+        "final_physical_hand_goal_error_m": 0.0020003644932689987,
+        "minimum_physical_hand_goal_error_m": 0.0003886654708030438
+      },
+      "actual_board_scene_geometry": {
+        "complete": true,
+        "source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "actual_scene_messages": 484,
+        "native_tag_triangle_lists_verified": 4356,
+        "native_marker_size_m": 0.072,
+        "pitch_m": 0.09,
+        "white_base_size_m": [
+          0.27,
+          0.27,
+          0.001
+        ],
+        "image_board_outer_size_m": [
+          0.27,
+          0.27
+        ],
+        "central_frame_and_button_relation_unchanged": true,
+        "separate_display_size_multiplier_used": false,
+        "validation_script_sha256": "1f4efbf51f7722c4c134736f60a14a40daaf2222c9af0a6af02f94c817a8c0e7"
+      },
+      "fresh_goal_core_inverse_closure": {
+        "translation_error_m": {
+          "count": 64,
+          "minimum": 0.00028803082216958035,
+          "median": 0.0003141118572566816,
+          "maximum": 0.0004962901873735474
+        },
+        "rotation_error_rad": {
+          "count": 64,
+          "minimum": 4.5007313201606505e-08,
+          "median": 5.7572538674173746e-08,
+          "maximum": 1.6899407767797322e-07
+        },
+        "maximum_covariance_error": {
+          "count": 64,
+          "minimum": 5.6809493052758375e-11,
+          "median": 9.727362023168627e-11,
+          "maximum": 1.530583281547212e-09
+        },
+        "approximation_residual_recorded_without_recentering": true
+      },
+      "full_J_selection_independent_audit": {
+        "proof": {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_progress_independent_audit.json",
+          "sha256": "2178cc4a6d5b12fb3cf3ee25f48b7f3c40780eca3182c7436c4744232701ab44",
+          "bytes": 494887
+        },
+        "counts": {
+          "accepted_visual_initial_points": 45,
+          "rejected_position_trials": 188,
+          "line_search_trials": 352,
+          "full_J_gradient_cycles": 199
+        },
+        "failures": [],
+        "maximum_numeric_differences": {
+          "selected query_mean": 0.0,
+          "selected query_covariance": 0.0,
+          "selected query_within": 0.0,
+          "selected query_between": 0.0,
+          "selected relative_position_covariance": 0.0,
+          "selected J": 0.0,
+          "selected s": 1.3877787807814457e-17,
+          "braking J": 0.0,
+          "initial J": 0.0,
+          "braking s": 2.7755575615628914e-17,
+          "initial s": 1.3877787807814457e-17,
+          "complete gradient": 0.0,
+          "position expectation gradient": 2.7755575615628914e-12,
+          "line-search J": 0.0,
+          "line-search s": 1.3877787807814457e-17,
+          "Armijo bound": 0.0,
+          "selected line-search scale": 0.0,
+          "display goal mean": 0.0,
+          "display goal covariance": 0.0,
+          "display goal within": 0.0,
+          "display goal between": 0.0
+        },
+        "executed_interval_progress": {
+          "meaning": "same adopted control law pushed through the actual recorded command history to each interval endpoint; no observation update is compared",
+          "guaranteed_by_horizon_constraint": false,
+          "intervals": 1116,
+          "reaching_intervals": 1116,
+          "reaching_s_increase_count": 244,
+          "reaching_maximum_s_increase": 0.00018491780371248105,
+          "reaching_total_s_change": -0.12893117461305728
+        },
+        "failure_decomposition": {}
+      },
+      "physical_result": {
+        "final_error_m": 0.0020003644932689987,
+        "minimum_error_m": 0.0003886654708030438,
+        "minimum_error_time_s": 54.02348291501403,
+        "reached": true,
+        "ever_reached": true,
+        "first_reach_time_s": 31.62490968219936,
+        "collided": false,
+        "any_forbidden_collision_during_trajectory": false,
+        "world_success": true,
+        "reach_tolerance_m": 0.006
+      },
+      "runtime_rates": {
+        "actual_motion_hz": 18.56783361914396,
+        "actual_camera_hz": 14.871748834898856,
+        "actual_control_hz": 3.169520009200079,
+        "actual_estimate_hz": 1.0087131552100603
+      },
+      "subscriber_measured_rates": {
+        "received_physical_metadata_hz": 18.567320721334337,
+        "received_snapshot_hz": 3.233812591678688,
+        "received_wire_hz": 3.233893955264214,
+        "received_stiffness_hz": 3.2340468558638023,
+        "received_scene_hz": 7.1271855312241135,
+        "received_estimate_acceptance_hz": 1.0290107421451649,
+        "captured_observation_time_hz": 14.866666666666667,
+        "window_excludes_autostart_wait_and_final_drain": true,
+        "arrival_clock": "subscriber monotonic reception_log",
+        "motion_window_start_arrival_clock": 2836630.630175277,
+        "motion_window_end_arrival_clock": 2836690.630175277,
+        "mean_control_work_s": 0.19915725501609882,
+        "mean_estimate_work_s": 0.8286413582536625,
+        "physical_period_s": {
+          "minimum": 0.005271894857287407,
+          "median": 0.05529338354244828,
+          "maximum": 0.11557515524327755
+        },
+        "display_lag_s": {
+          "minimum": 0.00527191162109375,
+          "median": 0.4397697448730469,
+          "maximum": 0.6583194732666016
+        },
+        "observation_lag_s": {
+          "minimum": 0.00527191162109375,
+          "median": 1.4587476253509521,
+          "maximum": 3.0434999465942383
+        }
+      },
+      "absolute_pose_accuracy": {
+        "covariance_width_definition": "3*sqrt(trace(P)), a diagnostic Euclidean width; anisotropic Gaussian proxy coverage uses support-aware Mahalanobis chi-square95",
+        "body": {
+          "camera": {
+            "control_publications": 199,
+            "final": {
+              "frame_label": "camera",
+              "position_mean_error_m": 0.06604941524217833,
+              "three_root_trace_covariance_m": 0.03637358947971526,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 919.7035374087728,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07494713946471852,
+              "orientation_root_trace_covariance_rad": 0.02002197226860782,
+              "orientation_mahalanobis_squared": 99.74878056791819,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07266582215616219,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 17
+          },
+          "hand": {
+            "control_publications": 199,
+            "final": {
+              "frame_label": "hand",
+              "position_mean_error_m": 0.07662478664782757,
+              "three_root_trace_covariance_m": 0.04713210738639495,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 2081.572508118912,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07494713946471879,
+              "orientation_root_trace_covariance_rad": 0.020021972268607816,
+              "orientation_mahalanobis_squared": 99.74878056791873,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07925818344707969,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 17
+          },
+          "link_1": {
+            "control_publications": 199,
+            "final": {
+              "frame_label": "link_1",
+              "position_mean_error_m": 9.964698825303591e-05,
+              "three_root_trace_covariance_m": 0.002595513322751295,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 0.03989345290319747,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": true,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.2252993536042748,
+              "orientation_root_trace_covariance_rad": 0.04073471960258887,
+              "orientation_mahalanobis_squared": 164.98744944785443,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.00013947763693457045,
+            "count_within_gaussian_proxy_95_region": 199,
+            "count_orientation_within_gaussian_proxy_95_region": 0
+          },
+          "link_2": {
+            "control_publications": 199,
+            "final": {
+              "frame_label": "link_2",
+              "position_mean_error_m": 0.040572322915563154,
+              "three_root_trace_covariance_m": 0.01644906300327922,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 209.7355169599744,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.11318211295658652,
+              "orientation_root_trace_covariance_rad": 0.04248409653083493,
+              "orientation_mahalanobis_squared": 102.0436703186597,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.038294212396777765,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 0
+          },
+          "link_3": {
+            "control_publications": 199,
+            "final": {
+              "frame_label": "link_3",
+              "position_mean_error_m": 0.07884865148771979,
+              "three_root_trace_covariance_m": 0.030661748931617355,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1048.236357503992,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.024113209385570735,
+              "orientation_root_trace_covariance_rad": 0.03741400312443432,
+              "orientation_mahalanobis_squared": 1.9578260642567065,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": true
+            },
+            "mean_position_error_m": 0.08008232135977113,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 168
+          },
+          "link_4": {
+            "control_publications": 199,
+            "final": {
+              "frame_label": "link_4",
+              "position_mean_error_m": 0.07892325031310808,
+              "three_root_trace_covariance_m": 0.026186299492611108,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1079.0146552753247,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.037961696960454316,
+              "orientation_root_trace_covariance_rad": 0.05369636177263905,
+              "orientation_mahalanobis_squared": 2.7477429727782976,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": true
+            },
+            "mean_position_error_m": 0.08114443330350317,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 86
+          },
+          "link_5": {
+            "control_publications": 199,
+            "final": {
+              "frame_label": "link_5",
+              "position_mean_error_m": 0.07908515671703072,
+              "three_root_trace_covariance_m": 0.026880894337059355,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1371.9813824332052,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.10740226073249139,
+              "orientation_root_trace_covariance_rad": 0.05818932074422095,
+              "orientation_mahalanobis_squared": 16.29166181542953,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.08277436954115933,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 29
+          },
+          "link_6": {
+            "control_publications": 199,
+            "final": {
+              "frame_label": "link_6",
+              "position_mean_error_m": 0.07553620059265542,
+              "three_root_trace_covariance_m": 0.02913096915396076,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1636.1179738885369,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07494713946471879,
+              "orientation_root_trace_covariance_rad": 0.020021972268607816,
+              "orientation_mahalanobis_squared": 99.74878056791873,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07952384046168852,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 17
+          },
+          "tool0": {
+            "control_publications": 199,
+            "final": {
+              "frame_label": "tool0",
+              "position_mean_error_m": 0.07465772769033452,
+              "three_root_trace_covariance_m": 0.03313112184841315,
+              "covariance_rank": 3,
+              "mahalanobis_squared": 1733.5471172736648,
+              "chi_square_95_threshold": 7.814727903251179,
+              "within_gaussian_proxy_95_region": false,
+              "physical_residual_outside_support": false,
+              "orientation_error_rad": 0.07494713946471879,
+              "orientation_root_trace_covariance_rad": 0.020021972268607816,
+              "orientation_mahalanobis_squared": 99.74878056791873,
+              "orientation_95_threshold": 7.814727903251179,
+              "orientation_within_gaussian_proxy_95_region": false
+            },
+            "mean_position_error_m": 0.07827264542560253,
+            "count_within_gaussian_proxy_95_region": 0,
+            "count_orientation_within_gaussian_proxy_95_region": 17
+          }
+        },
+        "calibration_claimed": false
+      },
+      "final_capture_drained": true,
+      "final_capture_index": 1116,
+      "final_prediction_age_s": 0.0,
+      "evidence": [
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker/estimation.jsonl",
+          "sha256": "85627f076e055dadd284477f39e9e5eb781f38c7dd55c3f5def24f8e3efcb086",
+          "bytes": 188942155
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker/control.jsonl",
+          "sha256": "6dd821420229baadca64729fb9390cfbd0a846b66a7e6eca8fcb7504d372e6e0",
+          "bytes": 167711557
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker/commands.jsonl",
+          "sha256": "671858ebe1410edd839f6a198620fe29a1f6510503d130bc86dd30aabd3026de",
+          "bytes": 12106945
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker/captures.jsonl",
+          "sha256": "934429ee40733cebba5a6d014d086b5ea7946f2106c2e441ddaa982b10030f60",
+          "bytes": 460876
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker/assimilation_selection.jsonl",
+          "sha256": "4b7052559c9fc9f374bfa6cdaf406128ac5a76946bd7038a9cbe86ccba6a1fda",
+          "bytes": 20002
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker/physical_trajectory.jsonl",
+          "sha256": "97a5f256c4c3829ef1163be8db887db8376f7c2366de8ba596bd0ff992cb7352",
+          "bytes": 1574195
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_received/reception_log.jsonl",
+          "sha256": "4d2d1b9d5f9f0abadedb36488e947ed672aacfbd12404086818aa46efe98901b",
+          "bytes": 845463
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_received/board_fov_analysis.json",
+          "sha256": "6c6e86e36ef38c673d0b5c3177e0ca78e48a080deaa243e72624bc7f190016b8",
+          "bytes": 5648589
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_received/board_geometry_audit.json",
+          "sha256": "44fb0450e023fad58d3547bc0b4e103aae42fa20764e6a51d5b5c0d4313e70bb",
+          "bytes": 590
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_received/physical_pose_accuracy.json",
+          "sha256": "d2cb6dc596c10aba0d23b0d53ab942fdaa9c5cd93d9a4021275faf225f54532d",
+          "bytes": 1466072
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_received/measured_rates.json",
+          "sha256": "bc4fc39122d5380ad4618bc45081b89e8354b9afdeb2390559cc0328db90b5ac",
+          "bytes": 1067
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_progress_independent_audit.json",
+          "sha256": "2178cc4a6d5b12fb3cf3ee25f48b7f3c40780eca3182c7436c4744232701ab44",
+          "bytes": 494887
+        },
+        {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker/execution_stiffness.jsonl",
+          "sha256": "41542cc1689a0cd4ee30a0e71dd5fd5a04663a2968aa2938c3dc9bf301c682e0",
+          "bytes": 1644568
+        }
+      ],
+      "K_representative_independent_audit": {
+        "proof": {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_K_representative_independent_audit.json",
+          "sha256": "7bc271f0544d3e0140f115ef00260c8e2e4b14cfda76d51268d7308277170675",
+          "bytes": 44875
+        },
+        "source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "failures": [],
+        "counts": {
+          "new_density_count": 64,
+          "new_density_refined_count": 64,
+          "accepted_score_step_count": 64,
+          "representative_changed_count": 63,
+          "IK_cycles_same_estimated_source_and_applied_K": 199,
+          "actual_intervals_same_estimated_source_and_applied_K": 1116
+        },
+        "max_absolute_differences": {
+          "base density": 0.0,
+          "base score": 0.0,
+          "selected density": 0.0,
+          "selected score": 0.0,
+          "selected exponentiation": 0.0,
+          "score displacement": 0.0,
+          "deterministic backtrack scale": 0.0,
+          "representative Armijo bound": 0.0,
+          "representative trial density": 0.0,
+          "accepted score step selected": 0.0,
+          "representative equilibrium": 0.0
+        },
+        "scope": "recorded full continuous density and score restored, every bounded representative step checked, unchanged estimated K traced separately from the applied K into IK and actual command ledger; no true stiffness input",
+        "unchanged_density_bitwise_hold_observed_in_this_run": false,
+        "unchanged_density_bitwise_hold_scope": "The direct-density identity branch is unit-tested; no real same-factor epoch is claimed when the observed count is zero."
+      },
+      "visible_hold_policy_independent_audit": {
+        "proof": {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_visible_hold_policy_independent_audit.json",
+          "sha256": "fa345557ed9f681e2bdef4e250a5f301fa4f16abb03a3adedcbfeca948dbe0d4",
+          "bytes": 829
+        },
+        "source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "failures": [],
+        "counts": {
+          "raw_positive_intervals": 1116,
+          "reaching_intervals": 1116
+        },
+        "max_absolute_differences": {
+          "actual velocity equals executed interval": 2.285671651947041e-14
+        },
+        "raw_positive_search_intervals": 0,
+        "waiting_hold_intervals": 0,
+        "waiting_beyond_settle_time_intervals": 0,
+        "waiting_hold_max_velocity": null,
+        "waiting_hold_max_command_increment": null,
+        "resumed_after_stop_count": 0,
+        "scope": "actual adopted raw-preview index and timestamp, same fused goal and committed IK source, exact bounded local command intervals, stopped post-stop-observation resume; no physical truth input"
+      },
+      "execution_K_independent_audit": {
+        "proof": {
+          "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_execution_K_independent_audit.json",
+          "sha256": "cd96c908f0cf522c10f05836f6122d6d6c89fa0251ef99f9a5e1101faf00e751",
+          "bytes": 1476
+        },
+        "source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "counts": {
+          "estimated_packets": 64,
+          "filter_samples": 1119,
+          "filter_steps_with_unchanged_estimate_and_changed_execution": 1042,
+          "capped_filter_components": 0,
+          "IK_frozen_execution_packets": 199,
+          "actual_intervals": 1116,
+          "exact_historical_catchup_paths": 262,
+          "exact_historical_catchup_steps": 6673,
+          "filter_samples_not_used_by_IK": 920
+        },
+        "failures": [],
+        "max_absolute_differences": {
+          "estimated logarithm": 0.0,
+          "filter wall-motion dt": 0.0,
+          "filter lag alpha": 0.0,
+          "filter pre-cap log step": 0.0,
+          "filter capped log step": 0.0,
+          "filter execution log K": 0.0,
+          "filter execution K": 0.0,
+          "selected action uses filtered-K equilibrium": 0.0,
+          "selected action uses filtered-K joint increment": 0.0,
+          "selected action uses filtered-K sensitivity": 0.0,
+          "actual source equilibrium": 0.0,
+          "actual query equilibrium": 0.0,
+          "actual applied-K joint increment": 0.0,
+          "actual applied-K command Jacobian": 0.0,
+          "next-prior sum of actual applied-K increments": 0.0
+        },
+        "scope": "20 Hz filter recurrence independently recomputed; unchanged full estimated records/density/proposals; request samples frozen with IK, same epoch actual ledger, deterministic auxiliary mechanics, and actual historical next-prior/catchup replay. Filter signal is not a posterior."
+      }
+    }
+  },
+  "rviz_protection": {
+    "baseline_manifest": "/tmp/probtf_rviz_restart_20261017/backup/hashes.json",
+    "manifest_sha256": "dc3b8c409add8cb93acacddead33cc080954173e987dc5770bfc2b5f89e5bda4",
+    "files": [
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083122_631446/demo.rviz",
+        "sha256": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/recordings/ar_marker/20261013_083323_181005/demo.rviz",
+        "sha256": "7fe04ab35b0bb296438ceae9a924a1b11a50dc594e8226ddb47db17b7aceaa98",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/core/probtf_rviz/rviz/probtf_tree.rviz",
+        "sha256": "3f4f5f9379b194deb8ab9e5f9615caa8cc71881aa4f9ea9ca62d69b8df2693b2",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/deflecomp_description/rviz/deflecomp.rviz",
+        "sha256": "750cade8b49597b507a80f1b3b754d92b4f073b1e0c70c26631d4a49ab307d11",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_01/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_02/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_03/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_automated_run_04/convergence_demo.rviz",
+        "sha256": "9266c6aa5b58e0b355a1a80664cae66028b981c87a1c614775b38d82b6287cbe",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/convergence_demo/20261008_tip_load_step_01/convergence_demo.rviz",
+        "sha256": "f3edffce537da23a268761e92e211512a39457c4ed624fe2d6479917f47f3bd1",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/deflecomp/outputs/tip_load_prediction_recovery/convergence_demo.rviz",
+        "sha256": "f3edffce537da23a268761e92e211512a39457c4ed624fe2d6479917f47f3bd1",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/prob_artag_detector/rviz/prob_artag_real_camera_demo.rviz",
+        "sha256": "4fdda28a8259d74d175c71d5d43914860e694c9a34a806be8ad9eaa7cbd7c1dc",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_global_fusion_demo/rviz/global_fusion_demo.rviz",
+        "sha256": "29565e9fec7e8a21775d196ea5b6c273c43bac5b691289c48dd152bac5827d0f",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_demo.rviz",
+        "sha256": "247e38b29b8c59f70c3a5ddb833acd4c849aba6d6cf331f82446ccecc37c2404",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/rviz/observation_fusion_motion.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_switch_press_demo/rviz/switch_press_demo.rviz",
+        "sha256": "3ca46dbb7e5eb1a7502bc584f933eab20c08a5f561ea77e03b0857f4aff92c58",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/axisymmetric/bottle_grasp_oblique.rviz",
+        "sha256": "a0f25cff5bfa8cc95b2052f8f68e0bb50c8bd83232415ffb897a00fdee585111",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/axisymmetric/bottle_grasp_top.rviz",
+        "sha256": "699716ac70cc55dba77c231ec80018a255158272289d55f8e74ff7da5c7311c5",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/single_pose/bottle_grasp_oblique.rviz",
+        "sha256": "a0f25cff5bfa8cc95b2052f8f68e0bb50c8bd83232415ffb897a00fdee585111",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_distribution_comparison/single_pose/bottle_grasp_top.rviz",
+        "sha256": "699716ac70cc55dba77c231ec80018a255158272289d55f8e74ff7da5c7311c5",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/bottle_grasp_trial/bottle_grasp.rviz",
+        "sha256": "4ecd65d93afac1ba9013e5c9d823eae0565ef883a245be2bc7cfe02d73d4bf10",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/mixture/box_grasp_oblique.rviz",
+        "sha256": "f3f7e6653752b7114e69d084699128dab329be73a1a986f37e00e83a0aaa64ee",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/mixture/box_grasp_top.rviz",
+        "sha256": "7ae424d23e482d06e27d96103c0fb1b82f6f7b544354485ce075d633c2676375",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/single_pose/box_grasp_oblique.rviz",
+        "sha256": "f3f7e6653752b7114e69d084699128dab329be73a1a986f37e00e83a0aaa64ee",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/outputs/box_grasp_distribution_comparison/single_pose/box_grasp_top.rviz",
+        "sha256": "7ae424d23e482d06e27d96103c0fb1b82f6f7b544354485ce075d633c2676375",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/rviz/prob_tf_link_cloud.rviz",
+        "sha256": "f3f607312d09ca5ccd354aed91a074a1ab5bf03f6249c350b9c6f187c527070f",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/symaware_grasp/rviz/probabilistic_tf_demo.rviz",
+        "sha256": "38740ec7067cb64bde974455b2dc6086a0213b6bb79c92f7405b11b814778863",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_K_corrected_live_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_K_corrected_live_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_K_corrected_live_20261017/view.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_full_run_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_full_run_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_v2_20261017/marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      },
+      {
+        "source_path": "/tmp/probtf_internal_full_v2_20261017/imu_marker.rviz",
+        "sha256": "044676c1550b384e5f688c425d99b30a08080bb2199a024a6034ab5b95a73f87",
+        "byte_equal": true
+      }
+    ]
+  },
+  "marker_search_preservation": {
+    "source_sha256": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb",
+    "before_bytes": {
+      "path": "/tmp/probtf_visible_marker_hold_20261017/frozen_source/ros/examples/probtf_observation_fusion_demo/src/probtf_observation_fusion_demo/marker_search.py",
+      "sha256": "c0ff762721124bb5635351645417bceceb35af4c041b275277f6f3b9f7d1f7cb",
+      "bytes": 13117
+    },
+    "byte_equal": true,
+    "source_change_scope": "No marker search policy or sweep setting change in this execution-K damping correction; the preceding raw-visible hold gate is retained.",
+    "settings_exactly_equal_previous_board_run": true,
+    "settings": {
+      "enabled": true,
+      "joint_indices": [
+        4,
+        3
+      ],
+      "amplitude_rad": 0.06,
+      "amplitude_increment_rad": 0.03,
+      "max_amplitude_rad": 0.18,
+      "max_joint_velocity": 0.048,
+      "settle_time_s": 0.35
+    }
+  },
+  "totals": {
+    "actual_control_snapshot_laws": 393,
+    "core_point_queries": 17292,
+    "modal_goal_TF_transforms": 393,
+    "raw_captures": 1779,
+    "selected_estimation_packets": 125,
+    "raw_native_modes": 2094,
+    "native_core_center_queries": 2094,
+    "protected_RViz_files": 35
+  },
+  "historical_runs": [
+    {
+      "root": "/tmp/probtf_marker_board_20261017",
+      "classification": "actual runtime failure",
+      "details": "Original .048m/.06m/.18m board stopped when a genuinely broad intermediate mixture exceeded the unchanged core single-pose concentration domain. The later explicit deferred projection/final-mixture fallback addresses this; the original failure is preserved."
+    },
+    {
+      "root": "/tmp/probtf_marker_board_large_20261017",
+      "source_freeze_sha256": "ccb633159ae05dff91f5b9c7672ce863c131c3eb33d8940411033f5237848d01",
+      "classification": "completed physical experiment; partial actual-wire coverage only",
+      "partial_coverage": {
+        "path": "/tmp/probtf_marker_board_large_20261017/coverage_partial_validation.json",
+        "sha256": "ef05697b67afe2c06c515227cc4c6d47ba64e739af350b51b5d6b80640ee0f88",
+        "bytes": 12904
+      },
+      "details": "Old expensive subscriber parsing lost 3/20 distribution messages and 22/9 snapshots. No full actual-wire pass is claimed for that run; its far visual controller is superseded."
+    },
+    {
+      "source_freeze_sha256": "dabc5c338974b592ae2b7ce8bd19ae791bc6a01dd1ff58072bc17a3585320c5e",
+      "classification": "unexecuted draft, not a runtime failure",
+      "proof": {
+        "path": "/tmp/probtf_full_k_ik_20261017/source_freeze_draft_dabc.json",
+        "sha256": "dabc5c338974b592ae2b7ce8bd19ae791bc6a01dd1ff58072bc17a3585320c5e",
+        "bytes": 12983
+      }
+    },
+    {
+      "root": "/tmp/probtf_full_k_ik_20261017",
+      "source_freeze_sha256": "0f7fd0089b1400dac8a6649eba47ec00c584e81535ebceece4b461ed4bc96836",
+      "classification": "full actual-wire validation but unresolved K representative tracking defect",
+      "details": "New factor additions could keep the previous representative without any score refinement: marker121/123 and IMU105/110. The new source attempts the configured score/Armijo refinement whenever the density changes; unchanged-density calls alone preserve the representative bitwise.",
+      "proof": {
+        "path": "/tmp/probtf_full_k_ik_20261017/K_representative_counterfactual.json",
+        "sha256": "ecd441dbbc17647e8257167bc2376f8d500b9cc049cbadfa2fee15207bcd6342",
+        "bytes": 16488
+      }
+    },
+    {
+      "root": "/tmp/probtf_k_representative_follow_20261017",
+      "source_freeze_sha256": "2372c7a714cb1047def6daac0eaec297a6fe5f466d0ece0a16c87c3ba70ad1d2",
+      "classification": "K representative correction verified, prior raw-visible-marker hold bug remains",
+      "curated_proof": {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/validation/k_representative_follow_20261017.json",
+        "sha256": "172a447b92d2186d819f0916922c084e8a0b4cd2580e8d8403a74d9719e11a05",
+        "bytes": 83717
+      }
+    },
+    {
+      "root": "/tmp/probtf_visible_marker_hold_20261017",
+      "source_freeze_sha256": "7403ad5724ec9ca1d6135e26059781ff41fad0062b2738c463d131bb62ee5142",
+      "classification": "Previous raw-visible hold correction without execution-K damping",
+      "curated_proof": {
+        "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/validation/visible_marker_hold_20261017.json",
+        "sha256": "347e5e73b1d15fcf1d60a84886e096e3c0714cb58fb94932b26e8c1d958fa6a7",
+        "bytes": 86533
+      }
+    }
+  ],
+  "K_action_physical_diagnostic": {
+    "source_scope": "historical 0f7 and preceding ccb633, not the new representative-following run",
+    "proof": {
+      "path": "/tmp/probtf_full_k_ik_20261017/k_action_physical_audit.json",
+      "sha256": "aa0c192c338af7844c86b18fb803c3357bec46b49f512e0a345b6f58c368f605",
+      "bytes": 54088
+    },
+    "truth_is_validation_only": true,
+    "interpretation": "Recorded auxiliary equilibrium delta equals same-K recomputation; selected diagnostic displacement directions mostly agree with true-K physical FK. This is not a proof of globally correct K estimation or successful reaching."
+  },
+  "limitations": [
+    "Physical success is evaluated only by the unchanged 6mm simulator reach condition and absence of forbidden collision across the recorded trajectory. Passing numerical identity/full-J constraints or representative-density follow-through does not establish physical success, calibrated uncertainty, or true K accuracy.",
+    "The one-step horizon s constraint is distinct from a guarantee on each 20Hz interpolated physical interval; actual reaching-interval increases are independently counted for each case.",
+    "Observation updates can change the relative target error at fixed command. The prior 0f7-source combined 11.72s jump is diagnosed separately in a saved direct-camera artifact and is not automatically attributed to this new run.",
+    "The board assumes conditional independence of tag corner likelihoods; shared image errors and ordered ADF approximation are explicit. Final broad mixtures remain; no native mode is dropped.",
+    "The existing Bingham-derived core forward moments and single-root-pose approximation need not close exactly under an inverse query; measured residuals are disclosed without cosmetic recentering.",
+    "Only selected latest captures are fused; every acquired capture and skipped index is archived. IMU is attached to link_3 in these runs.",
+    "Raw detector visibility is image evidence. Physical corner/FK/true-K evaluations are validation only and were not inference/control inputs.",
+    "Absolute body accuracy and covariance coverage are measured separately; coverage counts are descriptive, not a calibration guarantee."
+  ],
+  "representative_refinement_correction": {
+    "changed_density": "Always attempt the already configured bounded score/Armijo refinement, including when the previous representative remains the best fixed start.",
+    "unchanged_density": "Exact representative reuse remains permitted when the density ID is unchanged.",
+    "prior_K_posterior_factor_memory_unchanged": true,
+    "body_inference_and_core_math_unchanged": true,
+    "K_to_joint_equilibrium_action_unchanged": true,
+    "board_and_marker_search_and_RViz_unchanged": true
+  },
+  "historical_visibility_failure": {
+    "proof": {
+      "path": "/tmp/probtf_marker_visibility_audit_20261017.json",
+      "sha256": "b7873b53b64657087ad0a6fcfaf79a312bea343e2060438e22b37203bc6815e9",
+      "bytes": 140390
+    },
+    "scope": "Historical pre-correction diagnosis: the 2372 source could waste time searching despite raw visibility. The new-source strict policy proof is reported separately."
+  },
+  "visibility_correction": {
+    "raw_image_visibility": "Fresh real-pixel 15fps detection is kept separate from the slower fused pose-law result.",
+    "raw_visible_hold": "During an existing loss-recovery episode, raw image reacquisition brakes and holds; no sweep starts or continues merely because a fresh fused result has not arrived yet. Normal reaching is not held solely because a marker is visible.",
+    "resume": "Use a post-stopping valid marker result committed into the active same-K IK plan, preserving every native/goal component.",
+    "candidate_construction_and_estimation_algorithm_unchanged": true,
+    "physical_truth_used_for_visibility": false,
+    "marker_search_sweep_bounds_settings_unchanged": true
+  },
+  "execution_stiffness_definition": {
+    "estimated_density_and_raw_representative_records_unmodified": true,
+    "state": "log K for execution only",
+    "kp_exec_tau_s": 0.5,
+    "max_log_kp_exec_step_per_motion_tick": 0.05,
+    "formula": "z_next = z + clip((1-exp(-dt/tau))*(log K_raw-z), -0.05, +0.05); K_exec=exp(z_next)",
+    "actual_dt_used": true,
+    "first_available_estimate_initializes_filter_directly": true,
+    "no_invented_K_without_estimate": true,
+    "tick": "coordinator motion tick, including while inference/IK workers are busy",
+    "sample": "One coordinator filter sample is captured in the IK request and frozen for that complete gradient/selection; the selected plan and that packet are adopted atomically.",
+    "raw_and_execution_proposal_fields": "command_proposal remains raw; execution_command_proposal and execution_stiffness are separate",
+    "prior_transport": "Each actually executed interval records its adopted execution K; exact same-K equilibrium action carries the retained body to the next prior.",
+    "estimate_changes_between_runs": "Changing execution naturally changes commands, observations and subsequent estimated posteriors; raw-record preservation is within a run, not numerical equality to the predecessor experiment.",
+    "jump_causality_limit": "Measured jump differences across asynchronous trajectories do not establish that K alone caused every pose or target jump."
+  },
+  "independent_chart_numerics": {
+    "diagnosis": {
+      "path": "/tmp/probtf_damped_execution_K_20261017/independent_common_chart_small_angle_diagnosis.json",
+      "sha256": "ac02e638f26e1a1a5afdb4729dd095a1e207a0c783a2ce97645a60ccb1daf188",
+      "bytes": 3364
+    },
+    "full_board_failure_case_recheck": {
+      "path": "/tmp/probtf_damped_execution_K_20261017/stable_common_chart_capture646_smoke.json",
+      "sha256": "99504f8f308523f27a3d0aa73443911367fb4eb42e50c045d7fffb90fd52e974",
+      "bytes": 904
+    },
+    "original_rejection": {
+      "path": "/tmp/probtf_damped_execution_K_20261017/imu_marker_received/audit_failure.json",
+      "sha256": "ce7141441806695b8b9c709935b6625e1de0ac4a61cb7b8e00d2da04c61c30c9",
+      "bytes": 123
+    },
+    "scope": "One original audit-only common-chart comparison had cancellation in the independent 1-cos small-angle coefficient. Runtime analytic inverse and an 80-digit oracle agree within 1.11e-16; stable independent series changes neither the formula nor fixed tolerances, modes, covariance or production source.",
+    "old_reference_maximum_error": 2.646476787715457e-13,
+    "stable_and_runtime_maximum_oracle_error": 1.1102230246251565e-16
+  },
+  "measured_execution_comparison": {
+    "proof": {
+      "path": "/tmp/probtf_damped_execution_K_20261017/execution_K_measured_comparison.json",
+      "sha256": "b5a2d7bfcba4ea9cf09c9873f0293e895381ef60e5687e3f6ad643a674f4497f",
+      "bytes": 12934
+    },
+    "scope": "Descriptive comparison to source7403, with asynchronous command/observation trajectories allowed to differ; no K-only causal attribution.",
+    "cases": {
+      "marker": {
+        "old_source_freeze_sha256": "7403ad5724ec9ca1d6135e26059781ff41fad0062b2738c463d131bb62ee5142",
+        "new_source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "old_measured": {
+          "K_change_all": {
+            "count": 57,
+            "maximum_abs_logK_change": {
+              "median": 0.0916609814689604,
+              "maximum": 0.4757690144103721
+            },
+            "maximum_K_ratio": {
+              "median": 1.0959931970867909,
+              "maximum": 1.6092512591738999
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 0.0169947755523026,
+              "maximum": 0.028391268616542217
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 0.3,
+              "maximum": 0.30000000000000004
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.03083709786042588,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.010410762734101906,
+              "maximum": 0.047434338841221196
+            }
+          },
+          "K_change_same_reaching": {
+            "count": 50,
+            "maximum_abs_logK_change": {
+              "median": 0.09332430153962012,
+              "maximum": 0.4757690144103721
+            },
+            "maximum_K_ratio": {
+              "median": 1.0978178696170597,
+              "maximum": 1.6092512591738999
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 0.017021117988042532,
+              "maximum": 0.028391268616542217
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 0.3,
+              "maximum": 0.30000000000000004
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.030530116882778444,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.010681485477993021,
+              "maximum": 0.043353671104266155
+            }
+          },
+          "no_K_change_same_reaching": {
+            "count": 1018,
+            "maximum_abs_logK_change": {
+              "median": 0.0,
+              "maximum": 0.0
+            },
+            "maximum_K_ratio": {
+              "median": 1.0,
+              "maximum": 1.0
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 5.421010862427522e-20,
+              "maximum": 0.026593823125585912
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 7.628869248668111e-19,
+              "maximum": 0.30000000000000016
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.0,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.0001068126283294519,
+              "maximum": 0.05016375945644964
+            }
+          }
+        },
+        "new_measured": {
+          "K_change_all": {
+            "count": 186,
+            "maximum_abs_logK_change": {
+              "median": 0.019862353232582564,
+              "maximum": 0.2238317615742691
+            },
+            "maximum_K_ratio": {
+              "median": 1.020060946884266,
+              "maximum": 1.2508605589138453
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 0.009711945394536157,
+              "maximum": 0.02625563694164157
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 0.16678753560830623,
+              "maximum": 0.30000000000000004
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.01147866599619186,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.005278567103961891,
+              "maximum": 0.04799175188167991
+            }
+          },
+          "K_change_same_reaching": {
+            "count": 165,
+            "maximum_abs_logK_change": {
+              "median": 0.020082015912564977,
+              "maximum": 0.2238317615742691
+            },
+            "maximum_K_ratio": {
+              "median": 1.020285016202,
+              "maximum": 1.2508605589138453
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 0.01062656108003264,
+              "maximum": 0.02625563694164157
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 0.17652779461839418,
+              "maximum": 0.30000000000000004
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.011999999999999997,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.006227680489356691,
+              "maximum": 0.04799175188167991
+            }
+          },
+          "no_K_change_same_reaching": {
+            "count": 846,
+            "maximum_abs_logK_change": {
+              "median": 0.0,
+              "maximum": 0.0
+            },
+            "maximum_K_ratio": {
+              "median": 1.0,
+              "maximum": 1.0
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 0.0,
+              "maximum": 0.024487445130944252
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 0.0,
+              "maximum": 0.3000000000000001
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.0,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 7.528299516493733e-05,
+              "maximum": 0.03986969567962746
+            }
+          }
+        },
+        "continuous_filter": {
+          "sample_count": 1134,
+          "max_abs_logK_step": 0.05,
+          "maximum_K_ratio_per_filter_tick": 1.051271096376024,
+          "update_dt_median": 0.054624319076538086,
+          "update_dt_maximum": 0.12227392196655273
+        },
+        "physical": {
+          "first_reached_time_s": 51.310332695022225,
+          "minimum_error_m": 0.004439298203878722,
+          "final_error_m": 0.008462861088331924,
+          "final_reached": false,
+          "minimum_clearance_m": 0.011427590676288416,
+          "collision_count": 0
+        },
+        "all_commands_contiguous": true,
+        "acceleration_violation_count": 0,
+        "limitations": [
+          "Different closed-loop observations, body posteriors, goals and plan timing prevent attributing speed differences solely to the filter.",
+          "The 0.05 log cap applies to every physical filter tick; frozen IK plans can adopt samples several ticks apart and their K step can exceed this cap.",
+          "K filtering reduces the measured maximum adopted-K ratio, while maximum actual tip velocity change at K adoption is not reduced in these trials.",
+          "Desired joint velocity can still reverse between -0.048 and +0.048 rad/s; actual sent motion remains acceleration-limited."
+        ]
+      },
+      "imu_marker": {
+        "old_source_freeze_sha256": "7403ad5724ec9ca1d6135e26059781ff41fad0062b2738c463d131bb62ee5142",
+        "new_source_freeze_sha256": "3dae353df114bc7cfde214dd15e52fce1090b08f81ebcbb5c7580dd90d7a8bc4",
+        "old_measured": {
+          "K_change_all": {
+            "count": 61,
+            "maximum_abs_logK_change": {
+              "median": 0.03998235566280961,
+              "maximum": 0.18870434766587163
+            },
+            "maximum_K_ratio": {
+              "median": 1.04079240993815,
+              "maximum": 1.2076838451479874
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 0.016599041037261484,
+              "maximum": 0.02447196082212031
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 0.3,
+              "maximum": 0.30000000000000004
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.031246295374621202,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.00948017317336334,
+              "maximum": 0.04998691802826797
+            }
+          },
+          "K_change_same_reaching": {
+            "count": 56,
+            "maximum_abs_logK_change": {
+              "median": 0.04251336701960495,
+              "maximum": 0.18870434766587163
+            },
+            "maximum_K_ratio": {
+              "median": 1.0434300254275815,
+              "maximum": 1.2076838451479874
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 0.016625777981244025,
+              "maximum": 0.02447196082212031
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 0.3,
+              "maximum": 0.30000000000000004
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.029209455188098817,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.009781538225732203,
+              "maximum": 0.03753233439493932
+            }
+          },
+          "no_K_change_same_reaching": {
+            "count": 1070,
+            "maximum_abs_logK_change": {
+              "median": 0.0,
+              "maximum": 0.0
+            },
+            "maximum_K_ratio": {
+              "median": 1.0,
+              "maximum": 1.0
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 6.938893903907228e-18,
+              "maximum": 0.029939070018008353
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 1.3612443574681484e-16,
+              "maximum": 0.3000000000000002
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.0,
+              "maximum": 0.09518172098800412
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.0001393533889133642,
+              "maximum": 0.04046344727673654
+            }
+          }
+        },
+        "new_measured": {
+          "K_change_all": {
+            "count": 191,
+            "maximum_abs_logK_change": {
+              "median": 0.007885051443326851,
+              "maximum": 0.05889015157667732
+            },
+            "maximum_K_ratio": {
+              "median": 1.0079162203303593,
+              "maximum": 1.0606587226522453
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 0.015877426888802684,
+              "maximum": 0.03223563004285097
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 0.29999999999999993,
+              "maximum": 0.3000000000000001
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.018992371184732057,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.006234459620525514,
+              "maximum": 0.04010679920492575
+            }
+          },
+          "K_change_same_reaching": {
+            "count": 191,
+            "maximum_abs_logK_change": {
+              "median": 0.007885051443326851,
+              "maximum": 0.05889015157667732
+            },
+            "maximum_K_ratio": {
+              "median": 1.0079162203303593,
+              "maximum": 1.0606587226522453
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 0.015877426888802684,
+              "maximum": 0.03223563004285097
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 0.29999999999999993,
+              "maximum": 0.3000000000000001
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.018992371184732057,
+              "maximum": 0.096
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.006234459620525514,
+              "maximum": 0.04010679920492575
+            }
+          },
+          "no_K_change_same_reaching": {
+            "count": 924,
+            "maximum_abs_logK_change": {
+              "median": 0.0,
+              "maximum": 0.0
+            },
+            "maximum_K_ratio": {
+              "median": 1.0,
+              "maximum": 1.0
+            },
+            "maximum_abs_joint_velocity_change": {
+              "median": 1.734723475976807e-18,
+              "maximum": 0.029604516925290227
+            },
+            "maximum_abs_joint_acceleration": {
+              "median": 5.615965821447763e-17,
+              "maximum": 0.30000000000000016
+            },
+            "maximum_abs_desired_velocity_change": {
+              "median": 0.0,
+              "maximum": 0.07817664794348914
+            },
+            "physical_tip_velocity_change_norm": {
+              "median": 0.00011810846479589658,
+              "maximum": 0.039671646467059216
+            }
+          }
+        },
+        "continuous_filter": {
+          "sample_count": 1119,
+          "max_abs_logK_step": 0.018476012416645177,
+          "maximum_K_ratio_per_filter_tick": 1.018647749978694,
+          "update_dt_median": 0.05529332160949707,
+          "update_dt_maximum": 0.11557507514953613
+        },
+        "physical": {
+          "first_reached_time_s": 31.62490968219936,
+          "minimum_error_m": 0.0003886654708030438,
+          "final_error_m": 0.0020003644932689987,
+          "final_reached": true,
+          "minimum_clearance_m": 0.01420372545275038,
+          "collision_count": 0
+        },
+        "all_commands_contiguous": true,
+        "acceleration_violation_count": 0,
+        "limitations": [
+          "Different closed-loop observations, body posteriors, goals and plan timing prevent attributing speed differences solely to the filter.",
+          "The 0.05 log cap applies to every physical filter tick; frozen IK plans can adopt samples several ticks apart and their K step can exceed this cap.",
+          "K filtering reduces the measured maximum adopted-K ratio, while maximum actual tip velocity change at K adoption is not reduced in these trials.",
+          "Desired joint velocity can still reverse between -0.048 and +0.048 rad/s; actual sent motion remains acceleration-limited."
+        ]
+      }
+    }
+  },
+  "initial_test_fixture_failure": {
+    "log": {
+      "path": "/tmp/probtf_damped_execution_K_20261017/pytest_final.log",
+      "sha256": "69cb303e3fa03a84ef60bf92d2d8c1dbeefc76f5cce34d176e8d199c5cf2d873",
+      "bytes": 3488
+    },
+    "passed": 523,
+    "failed": 1,
+    "scope": "The old direct control-worker test request omitted the newly required execution_sample. Test-only request and raw/execution assertions were updated; actual coordinator requests and runtime source were unchanged. The separate clean full-suite result is authoritative."
+  },
+  "requirements_compliance_complete": false,
+  "known_followup_execution_defect": {
+    "source_scope": "3dae K-damping experiment only; historical evidence before the short-target execution correction",
+    "proof": {
+      "path": "/tmp/probtf_damped_execution_K_20261017/marker_end_departure_independent_diagnostic.json",
+      "sha256": "900a144f0b3a56c7a1e4f0c9654bd2f106d7c51dfc9462baa5cdd49bb362d12f",
+      "bytes": 41424
+    },
+    "finding": "At unchanged K the asynchronous velocity executor can move beyond the selected bounded short-horizon command target. Execution beyond that target is not justified by the one-step IK criterion.",
+    "followup": "A separate source/run corrects bounded-target execution and plan expiry; no evidence from that later source is claimed here.",
+    "IK_criterion_gradient_or_candidate_PDF_changed_to_hide_defect": false
+  },
+  "execution_K_figure": {
+    "image": {
+      "path": "/home/leus/catkin_ws/src/ProbTF-demo/ros/examples/probtf_observation_fusion_demo/validation/damped_execution_K_20261017.png",
+      "sha256": "5ca1ef5609cf827bdbdd0f2d9f54b7539dbe4c811447a679b9e32ab26674bff0",
+      "bytes": 271515
+    },
+    "metadata": {
+      "path": "/tmp/probtf_damped_execution_K_20261017/execution_K_plot_metadata.json",
+      "sha256": "148e9f0e509bfe9bcbe2141756249c3e1ccdbd8108f8258c7864fa0d0f4a19e1",
+      "bytes": 30116
+    },
+    "program": {
+      "path": "/tmp/probtf_execution_K_plot.py",
+      "sha256": "bb4cbd1588d0667b62b88f44b361aa974bef0ec44b3b36bbc711931fecfacef1",
+      "bytes": 4410
+    },
+    "time_convention": "Raw target changes are drawn at first coordinator availability, not the older image/capture stamp. Filter curves use coordinator ticks during physical motion, and IK points use the frozen filter sample stamp; post-motion estimator-drain events at the clipped terminal timestamp are excluded from the figure. All are physical elapsed time in [0,60] seconds.",
+    "only_K_curves": true,
+    "no_uncertainty_or_true_K_overlay": true
+  },
+  "marker_after_reach_departure_diagnostic": {
+    "proof": {
+      "path": "/tmp/probtf_damped_execution_K_20261017/marker_end_departure_independent_diagnostic.json",
+      "sha256": "900a144f0b3a56c7a1e4f0c9654bd2f106d7c51dfc9462baa5cdd49bb362d12f",
+      "bytes": 41424
+    },
+    "scope": "This recorded marker run reached once then finished outside the tolerance. Read-only decomposition is separate from the all-trajectory existential success test; no extra control constraint was added."
+  },
+  "validation_programs": [
+    {
+      "path": "/tmp/probtf_marker_board_live_audit.py",
+      "sha256": "b4fd2cee37ed4c679f7c9c934071d07fc9d1b82ba376f3ef655d4afb9b10086d",
+      "bytes": 72454
+    },
+    {
+      "path": "/tmp/probtf_marker_board_audit_math.py",
+      "sha256": "367f15689cbd3325e2388147cc2866716e183731f56c4185639f45c275a865d8",
+      "bytes": 18631
+    },
+    {
+      "path": "/tmp/probtf_marker_board_geometry_audit.py",
+      "sha256": "1f4efbf51f7722c4c134736f60a14a40daaf2222c9af0a6af02f94c817a8c0e7",
+      "bytes": 3899
+    },
+    {
+      "path": "/tmp/probtf_marker_board_fov.py",
+      "sha256": "5b3adf661095099fe53f1b70ba0eef295a22f9bc85d4c94c8c2ca449a3d14438",
+      "bytes": 7051
+    },
+    {
+      "path": "/tmp/probtf_async_accuracy.py",
+      "sha256": "c8aa2bc61ba9d49e8c75f5b36697ca7a169d91801f9dfb4e7b5468e963564ec1",
+      "bytes": 9514
+    },
+    {
+      "path": "/tmp/probtf_full_k_progress_audit.py",
+      "sha256": "f5bc6ff49f398ac7bd0d8ecac8b455f9599ea09f51c069afb99e4939c681ed28",
+      "bytes": 17300
+    },
+    {
+      "path": "/tmp/probtf_damped_execution_K_report.py",
+      "sha256": "8929d613c751ca01ff5488b193f910772ba705f84bebd117df15ddbca7e2e2f9",
+      "bytes": 24175
+    },
+    {
+      "path": "/tmp/probtf_execution_K_independent_audit.py",
+      "sha256": "a375a205f1285ec6d0a3ef980239097e92ec042614916ce60a81cb1f3c847fbe",
+      "bytes": 14924
+    },
+    {
+      "path": "/tmp/probtf_execution_K_representative_follow_audit.py",
+      "sha256": "e36ced69990e8727f7af4fef1ba02183339012e53a0953c8cf2b39e1d2e931a3",
+      "bytes": 12661
+    },
+    {
+      "path": "/tmp/probtf_execution_full_k_progress_audit.py",
+      "sha256": "6cad6e8160f89267e9b0c19e688149a153da841c81ece82ab37abdb11883bf74",
+      "bytes": 17646
+    },
+    {
+      "path": "/tmp/probtf_visible_hold_policy_audit.py",
+      "sha256": "a1c22d33d221cfd2b540d6f2b94062ea4d08b9cceea9c60cef1ef223b3a5b47f",
+      "bytes": 10531
+    },
+    {
+      "path": "/tmp/probtf_execution_K_live_wrapper.py",
+      "sha256": "53a372884f1c798c1d35012d6ad4e36b4a8a11ce1e2f4fd94f601ceb685d61e4",
+      "bytes": 1172
+    },
+    {
+      "path": "/tmp/probtf_marker_board_frozen_fast_audit.py",
+      "sha256": "5c202d715410da8c2f3297a8eacb681aec6119ad62ed066b93559ca140f6b0a8",
+      "bytes": 72778
+    },
+    {
+      "path": "/tmp/probtf_damped_execution_K_stable_audit.py",
+      "sha256": "36cba32782f130e7cae818ebb9a9a3739f57a9d9eb9b37df1b656f4385525a0d",
+      "bytes": 72785
+    },
+    {
+      "path": "/tmp/probtf_marker_board_audit_math_stable.py",
+      "sha256": "41cb0a2a4501d55edd02662a0899880ed5b6fa9011dea8e2e32fefb4991edcfb",
+      "bytes": 19032
+    },
+    {
+      "path": "/tmp/probtf_common_chart_small_angle_diagnosis.py",
+      "sha256": "61f948ebbf9cdfcc9eaf7db39bb48fbea5b2277424895fdfbf5f70839832e9ff",
+      "bytes": 3929
+    },
+    {
+      "path": "/tmp/probtf_execution_K_plot.py",
+      "sha256": "bb4cbd1588d0667b62b88f44b361aa974bef0ec44b3b36bbc711931fecfacef1",
+      "bytes": 4410
+    }
+  ]
+}

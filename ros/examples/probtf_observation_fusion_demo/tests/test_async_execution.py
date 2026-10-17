@@ -15,7 +15,8 @@ from visualization_msgs.msg import MarkerArray
 from probtf_observation_fusion_demo.async_motion import AsyncMotionSession, _freeze_arrays
 from probtf_observation_fusion_demo.async_state import RecordedCommandPath, predict_result
 from probtf_observation_fusion_demo.async_stiffness import (
-    PhysicalActionEngine, capture_stiffness_packet, reanchor_retained_stiffness,
+    PhysicalActionEngine, capture_stiffness_packet, execution_stiffness_packet,
+    reanchor_retained_stiffness,
 )
 from probtf_observation_fusion_demo.display import make_markers, verify_wire_identity
 from probtf_observation_fusion_demo.motion_display import MotionDisplay
@@ -222,20 +223,23 @@ def _complete_control(current):
         body_ids=inference.body_ids, actions=inference.actions)
     settings = yaml.safe_load((PACKAGE/'config/stiffness_identification.yaml').read_text())
     engine = PhysicalActionEngine(current.scene.urdf, inference.body_ids, settings)
-    view, mapping = reanchor_retained_stiffness(engine, predicted, request['packet'])
+    execution_packet = execution_stiffness_packet(engine, predicted, request['packet'],
+        request['execution_sample'], request.get('execution_packet'))
+    view, mapping = reanchor_retained_stiffness(engine, predicted, execution_packet)
     control = inference.settings['control']
     controller = MovingController(inference, current.scene.robot_description,
         control['goal_offset'], control['goal_orientation_wxyz'], control,
         integration_steps=control['integration_steps'])
     controller.velocity = np.array(request['velocity'], copy=True)
-    _, diagnostics = controller.reaching_step(view, current.horizon, command_map=mapping)
+    command, diagnostics = controller.reaching_step(view, current.horizon, command_map=mapping)
+    planned_velocity = (np.asarray(command)-np.asarray(view.prior.command))/current.horizon
     snapshot = replace(build_snapshot(view, view.stages[-1], inference.common),
         stiffness_record=view.records['stiffness'])
     display = inference.common['display']
     markers = make_markers(snapshot, display['seed'], display['point_size'])
     verify_wire_identity(snapshot, markers, seed=display['seed'], point_size=display['point_size'])
     return dict(index=request['index'], capture_index=request['capture_index'],
-        packet=request['packet'], velocity=controller.velocity.copy(),
+        packet=execution_packet, velocity=planned_velocity.copy(),
         snapshot=snapshot, markers=markers, diagnostics=diagnostics, work_seconds=0.)
 
 
@@ -256,9 +260,11 @@ def test_faster_inference_cannot_starve_completed_IK_or_roll_back_the_latest_pos
     assert current.current_control is None
     current.control_replies.put(delayed_first_control)
     current.poll()
+    first_execution_packet = delayed_first_control['packet']
+    assert first_execution_packet.estimated_packet.packet_id == initial_packet.packet_id
     assert current.current_control is delayed_first_control
     assert current.current_control['capture_index'] == 0
-    assert current.engine.packet.packet_id == initial_packet.packet_id
+    assert current.engine.packet.packet_id == first_execution_packet.packet_id
     np.testing.assert_array_equal(current.desired_velocity, delayed_first_control['velocity'])
     assert current.latest_result is third
     assert current.latest_packet is third_packet
@@ -275,24 +281,26 @@ def test_faster_inference_cannot_starve_completed_IK_or_roll_back_the_latest_pos
     fourth, fourth_packet, fourth_index = _complete_estimate(current, third, identifier)
     assert fourth_index > third_index
     # An inference reply alone must not switch K under an already active plan.
-    assert current.engine.packet.packet_id == initial_packet.packet_id
+    assert current.engine.packet.packet_id == first_execution_packet.packet_id
     current.control_replies.put(delayed_third_control)
     current.poll()
     assert current.current_control is delayed_third_control
-    assert current.engine.packet.packet_id == third_packet.packet_id
+    assert current.engine.packet.packet_id == delayed_third_control['packet'].packet_id
+    assert current.engine.packet.estimated_packet.packet_id == third_packet.packet_id
     assert current.latest_packet is fourth_packet
     assert current.latest_result is fourth
     assert current.last_assimilated_capture == fourth_index
     assert len(current.control_times) == 2
     np.testing.assert_array_equal(current.desired_velocity, delayed_third_control['velocity'])
-    assert current.current_control['snapshot'].stiffness_record['captured_packet_id'] == third_packet.packet_id
+    assert current.current_control['snapshot'].stiffness_record['captured_packet_id'] == delayed_third_control['packet'].packet_id
+    assert current.current_control['snapshot'].stiffness_record['captured_estimate_packet_id'] == third_packet.packet_id
     assert current.current_control['diagnostics']['stiffness_command_correction'][
-        'captured_parameter_packet']['packet_id'] == third_packet.packet_id
+        'captured_parameter_packet']['packet_id'] == delayed_third_control['packet'].packet_id
     clock[0] = 100.25
     current.advance()
-    assert current.actions[-1].provenance['packet_id'] == third_packet.packet_id
+    assert current.actions[-1].provenance['packet_id'] == delayed_third_control['packet'].packet_id
     assert current.actions[-1].density_id == third_packet.proposal['density_id']
-    np.testing.assert_array_equal(current.actions[-1].selected_K, third_packet.proposal['selected_K'])
+    np.testing.assert_array_equal(current.actions[-1].selected_K, delayed_third_control['packet'].execution['execution_K'])
 
 
 def test_an_older_control_reply_cannot_replace_the_active_law_K_or_velocity(session):
@@ -316,7 +324,8 @@ def test_an_older_control_reply_cannot_replace_the_active_law_K_or_velocity(sess
     current.poll()
     expected_velocity = current.desired_velocity.copy()
     expected_control_count = len(current.control_times)
-    assert current.engine.packet.packet_id == packet.packet_id
+    assert current.engine.packet.packet_id == active['packet'].packet_id
+    assert current.engine.packet.estimated_packet.packet_id == packet.packet_id
     # A duplicate/late reply from the older capture has different numerical
     # values. It cannot roll back any member of the active source bundle.
     late = dict(initial_control, velocity=-np.ones(6))
@@ -324,44 +333,86 @@ def test_an_older_control_reply_cannot_replace_the_active_law_K_or_velocity(sess
     current.poll()
     assert current.current_control is active
     assert current.current_control['snapshot'] is active['snapshot']
-    assert current.engine.packet.packet_id == packet.packet_id
+    assert current.engine.packet.packet_id == active['packet'].packet_id
     np.testing.assert_array_equal(current.desired_velocity, expected_velocity)
     assert len(current.control_times) == expected_control_count
     assert current.latest_result is updated
     assert current.latest_packet is packet
 
 
-def test_expired_completed_plan_brakes_to_rest_when_neither_worker_replies(session):
+def test_execution_K_keeps_interpolating_at_motion_cadence_without_new_estimates_or_IK_replies(session):
+    current, clock, initial, identifier = session
+    current.submit_control()
+    initial_plan = _complete_control(current)
+    current.control_replies.put(initial_plan)
+    current.poll()
+    initial_execution_K = np.asarray(initial_plan['packet'].execution['execution_K'])
+    for index in (1, 2):
+        clock[0] = 100.+.05*index
+        current.advance()
+    _, target, _ = _complete_estimate(current, initial, identifier)
+    target_log = np.log(target.proposal['selected_K'])
+    assert np.max(np.abs(target_log-np.log(initial_execution_K))) > 1e-10
+    samples = []
+    for index in range(3, 18):
+        clock[0] = 100.+.05*index
+        current.advance()
+        samples.append(dict(current.execution_sample))
+        # Filtering continues while the active IK law and its actual command
+        # actions retain the value captured for the active completed plan.
+        assert current.latest_packet is target
+        assert current.current_control is initial_plan
+        assert current.engine.packet.packet_id == initial_plan['packet'].packet_id
+        np.testing.assert_array_equal(current.engine.stiffness, initial_execution_K)
+        np.testing.assert_array_equal(current.actions[-1].selected_K, initial_execution_K)
+    assert current.inference_busy and current.control_busy
+    errors = [np.linalg.norm(np.asarray(sample['execution_logK'])-target_log) for sample in samples]
+    assert all(left > right for left, right in zip(errors, errors[1:]))
+    assert errors[-1] < errors[0]/3.
+    assert all(abs(sample['actual_dt']-.05) < 1e-6 for sample in samples)
+    assert all(np.max(np.abs(sample['applied_delta_logK'])) <= .05 for sample in samples)
+    assert all(sample['estimated_packet_id'] == target.packet_id for sample in samples)
+
+
+def test_selected_duration_does_not_force_a_stop_while_workers_are_busy(session):
     current,clock,_,_ = session
+    current.horizon = .1
     current.submit_control()
     completed = _complete_control(current)
     assert np.linalg.norm(completed['velocity']) > 1e-6
     current.control_replies.put(completed)
     current.poll()
-    committed = current.control_times[-1]
+    target = np.asarray(completed['diagnostics']['next_command'])
+    original_distance = np.linalg.norm(target-current.command)
+    assert original_distance > 0.
+    # A late worker reply still names a finite position. Its duration is
+    # not permission to replace that position request with zero velocity.
+    request, reference = current._reaching_plan_velocity(.05,
+        completed['diagnostics']['source_stamp']+.2)
+    assert reference['past_selected_duration']
+    np.testing.assert_allclose(request, (target-current.command)/.05, atol=0., rtol=0.)
+    assert np.linalg.norm(request) > 0.
     previous_velocity = current.velocity.copy()
-    expired_velocities = []
-    stopped_position = None
     for index in range(1,21):
         clock[0] = 100.+.05*index
         current.advance()
         dt = current.actions[-1].end_stamp-current.actions[-1].start_stamp
         assert np.max(np.abs(current.velocity-previous_velocity)) <= current.servo.acceleration*dt+1e-7
         assert np.max(np.abs(current.velocity)) <= current.servo.speed+1e-10
-        if clock[0] > committed+current.horizon:
-            expired_velocities.append(current.velocity.copy())
-            assert np.all(np.abs(current.velocity) <= np.abs(previous_velocity)+1e-10)
-            if np.max(np.abs(current.velocity)) < 1e-12:
-                if stopped_position is None:
-                    stopped_position = current.command.copy()
-                np.testing.assert_array_equal(current.command,stopped_position)
         previous_velocity = current.velocity.copy()
-    assert len(expired_velocities) >= 3
-    assert stopped_position is not None
-    np.testing.assert_array_equal(current.velocity,np.zeros(6))
+    rows = [json.loads(line) for line in (current.output/'commands.jsonl').read_text().splitlines()]
+    for row in rows:
+        reference = row['reaching_execution']
+        if reference is not None and reference['past_selected_duration']:
+            np.testing.assert_array_equal(reference['reference_command'], target)
+            before = np.asarray(reference['actual_command_before'])
+            interval = row['step']['end_stamp']-row['step']['start_stamp']
+            np.testing.assert_allclose(reference['requested_velocity'], (target-before)/interval,
+                atol=1e-8, rtol=1e-5)
+    assert np.linalg.norm(current.command-target) < original_distance
     assert current.inference_busy and current.control_busy
     assert len(current.control_times) == 1
-    assert current.manifest()['ik_plan_expired']
+    assert current.manifest()['ik_command_past_selected_duration']
     assert np.all(current.command >= current.servo.lower)
     assert np.all(current.command <= current.servo.upper)
 
